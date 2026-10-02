@@ -30,3 +30,18 @@ translating) is likewise made available under the terms of the zlib
 license above, so that the whole repository can be used under a single
 set of terms. See docs/LICENSING.md for a discussion of what may and may
 not change about the license of a translated work.
+
+---------------------------------------------------------------------------
+
+sdl3/src/stdlib/math/ is a translation of SDL's src/libm/, which is
+derived from fdlibm (via uClibc) and carries the following notice, which
+must be preserved:
+
+ ====================================================
+ Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+
+ Developed at SunPro, a Sun Microsystems, Inc. business.
+ Permission to use, copy, modify, and distribute this
+ software is freely granted, provided that this notice
+ is preserved.
+ ====================================================
