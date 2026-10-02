@@ -210,7 +210,7 @@ macro_rules! rect_impl {
         impl $RECTTYPE {
             /// Translation of `SDL_RectCanOverflow()`: coordinates near the
             /// `i32` limits make the `+ w`/`+ h` arithmetic below unsafe.
-            fn can_overflow(&self) -> bool {
+            pub(crate) fn can_overflow(&self) -> bool {
                 self.x <= (i32::MIN / 2) as $SCALARTYPE
                     || self.x >= (i32::MAX / 2) as $SCALARTYPE
                     || self.y <= (i32::MIN / 2) as $SCALARTYPE
@@ -295,6 +295,48 @@ macro_rules! rect_impl {
                 result.h = amax - amin;
 
                 (!result.is_empty()).then_some(result)
+            }
+
+            /// `SDL_GetRectIntersection()` with its output-parameter
+            /// behaviour: `result` is written even when the rectangles don't
+            /// intersect (with an empty rectangle), and left alone only when
+            /// the arithmetic could overflow.
+            #[allow(dead_code)] // used by the surface module, not yet wired in
+            pub(crate) fn intersect_into(&self, other: &$RECTTYPE, result: &mut $RECTTYPE) -> bool {
+                if self.can_overflow() || other.can_overflow() {
+                    return false; // "Potential rect math overflow"
+                }
+                let (a, b) = (self, other);
+
+                // Horizontal intersection
+                let mut amin = a.x;
+                let mut amax = amin + a.w;
+                let bmin = b.x;
+                let bmax = bmin + b.w;
+                if bmin > amin {
+                    amin = bmin;
+                }
+                result.x = amin;
+                if bmax < amax {
+                    amax = bmax;
+                }
+                result.w = amax - amin;
+
+                // Vertical intersection
+                let mut amin = a.y;
+                let mut amax = amin + a.h;
+                let bmin = b.y;
+                let bmax = bmin + b.h;
+                if bmin > amin {
+                    amin = bmin;
+                }
+                result.y = amin;
+                if bmax < amax {
+                    amax = bmax;
+                }
+                result.h = amax - amin;
+
+                !result.is_empty()
             }
 
             #[doc = concat!("The smallest rectangle containing both. Empty rectangles are ignored. Fails only when the arithmetic could overflow.\n\nTranslation of `", $c_union, "()`.")]
