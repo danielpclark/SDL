@@ -1,0 +1,32 @@
+This repository is a derivative work: a direct translation into Rust of
+Simple DirectMedia Layer (SDL) 3.x, https://github.com/libsdl-org/SDL.
+It is an altered version of that software and is NOT the original SDL.
+The original SDL license notice, which must be retained, follows.
+
+---------------------------------------------------------------------------
+
+Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+
+---------------------------------------------------------------------------
+
+The Rust translation itself (the new expression added in the course of
+translating) is likewise made available under the terms of the zlib
+license above, so that the whole repository can be used under a single
+set of terms. See docs/LICENSING.md for a discussion of what may and may
+not change about the license of a translated work.

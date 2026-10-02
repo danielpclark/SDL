@@ -1,0 +1,25 @@
+[package]
+name = "sdl3"
+description = "A direct, pure-Rust translation of Simple DirectMedia Layer (SDL3). No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "multimedia", "gamedev", "pure-rust"]
+categories = ["multimedia", "game-development", "api-bindings"]
+
+[lib]
+name = "sdl3"
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+# The core is written so that it can eventually build on `no_std + alloc`
+# targets; for now `std` is required.
+std = []
+
+[dependencies]
+# Intentionally empty. The translation is 100% Rust with no C code and,
+# for the platform-independent core, no third-party crates.
