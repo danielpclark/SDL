@@ -31,6 +31,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
 
+pub mod assert;
 pub mod atomic;
 pub mod error;
 pub mod events;
@@ -52,9 +53,6 @@ pub use error::{Error, ErrorKind, Result};
 pub use guid::Guid;
 pub use version::{revision, version, Version};
 
-/// Shut down the translated subsystems that keep global state (timers,
-/// logging, hints, the global property group, the tick counter).
-///
 /// Shut down every subsystem and free the library's global state.
 /// Equivalent to [`init::quit`] (translation of `SDL_Quit()`), kept under
 /// this name from before `SDL.c` was translated. Calling it is optional:

@@ -19,6 +19,12 @@ default = ["std"]
 # The core is written so that it can eventually build on `no_std + alloc`
 # targets; for now `std` is required.
 std = []
+# Override SDL_ASSERT_LEVEL for the sdl_assert* macros (default: 2 in debug
+# builds of the calling crate, 1 in release builds). See `sdl3::assert`.
+assert-level-0 = []
+assert-level-1 = []
+assert-level-2 = []
+assert-level-3 = []
 
 [dependencies]
 # Intentionally empty. The translation is 100% Rust with no C code and,

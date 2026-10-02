@@ -531,7 +531,8 @@ pub fn quit() {
     quit_subsystem(InitFlags::ALL);
 
     crate::timer::quit_timers();
-    // (object validation, assertions, pixel format cache, CPU info: nothing to free in Rust)
+    crate::assert::assertions_quit();
+    // (object validation, pixel format cache, CPU info: nothing to free in Rust)
 
     /* Now that every subsystem has been quit, we reset the subsystem refcount
      * and the list of initialized subsystems.
