@@ -36,13 +36,16 @@ pub mod atomic;
 pub mod cpuinfo;
 pub mod error;
 pub mod events;
+pub mod filesystem;
 pub mod guid;
 pub mod hints;
 pub mod init;
+pub mod io;
 pub mod log;
 pub mod power;
 pub mod properties;
 pub mod stdlib;
+pub mod storage;
 pub mod thread;
 pub mod time;
 pub mod timer;
@@ -67,4 +70,30 @@ pub fn shutdown() {
 #[cfg(test)]
 pub(crate) mod test_support {
     pub(crate) static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// A fresh directory under the system temp dir, removed on drop.
+    pub(crate) struct TempDir(pub String);
+
+    impl TempDir {
+        pub fn new(tag: &str) -> TempDir {
+            let dir = std::env::temp_dir().join(format!(
+                "sdl3-rs-{tag}-{}-{}",
+                std::process::id(),
+                crate::timer::ticks_ns()
+            ));
+            let dir = dir.to_string_lossy().into_owned();
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            TempDir(dir)
+        }
+        pub fn path(&self, rel: &str) -> String {
+            format!("{}/{rel}", self.0)
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
 }

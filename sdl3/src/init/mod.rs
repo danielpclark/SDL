@@ -371,9 +371,10 @@ pub(crate) fn init_main_thread() {
         Ordering::AcqRel,
         Ordering::Acquire,
     );
-    // (TLS data, environment, ticks and filesystem initialize lazily in Rust)
-    let _ = crate::timer::ticks_ns();
+    // (TLS data initializes lazily in Rust)
     crate::stdlib::init_environment();
+    let _ = crate::timer::ticks_ns();
+    crate::filesystem::init_filesystem();
     crate::events::create_event_lock();
 
     if !DONE_INFO.swap(true, Ordering::AcqRel) {
@@ -404,8 +405,9 @@ pub(crate) fn init_main_thread() {
 /// Translation of `SDL_QuitMainThread()`.
 fn quit_main_thread() {
     crate::events::destroy_event_lock();
-    crate::stdlib::quit_environment();
+    crate::filesystem::quit_filesystem();
     crate::timer::quit_ticks();
+    crate::stdlib::quit_environment();
 }
 
 /// Initialize specific SDL subsystems (reference counted). Translation of `SDL_InitSubSystem()`.
@@ -533,6 +535,8 @@ pub fn quit() {
     quit_subsystem(InitFlags::ALL);
 
     crate::timer::quit_timers();
+    crate::io::quit_async_io();
+
     crate::assert::assertions_quit();
     crate::cpuinfo::quit_cpu_info();
     // (object validation, pixel format cache: nothing to free in Rust)
