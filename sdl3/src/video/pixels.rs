@@ -1770,7 +1770,7 @@ impl PixelFormatDetails {
         let a_part = if self.Abits == 0 {
             0
         } else {
-            (((c.a >> (8 - self.Abits)) as u32) << self.Ashift) & self.Amask
+            (narrow_channel(c.a as u32, self.Abits) << self.Ashift) & self.Amask
         };
 
         Ok(if self.format.is_10bit() {
@@ -1779,9 +1779,9 @@ impl PixelFormatDetails {
                 | ((EXPAND_BYTE_10[c.b as usize] as u32) << self.Bshift)
                 | a_part
         } else {
-            ((c.r >> (8 - self.Rbits)) as u32) << self.Rshift
-                | ((c.g >> (8 - self.Gbits)) as u32) << self.Gshift
-                | ((c.b >> (8 - self.Bbits)) as u32) << self.Bshift
+            narrow_channel(c.r as u32, self.Rbits) << self.Rshift
+                | narrow_channel(c.g as u32, self.Gbits) << self.Gshift
+                | narrow_channel(c.b as u32, self.Bbits) << self.Bshift
                 | a_part
         })
     }
@@ -1825,6 +1825,14 @@ impl PixelFormatDetails {
             ..c
         }
     }
+}
+
+/// `v >> (8 - bits)` as C evaluates it: on an `int` (so shifting an 8-bit
+/// value by 8 gives 0), and for channels wider than 8 bits with the negative
+/// shift count masked to 5 bits, as x86 does (undefined behaviour in C).
+#[inline(always)]
+pub(crate) fn narrow_channel(v: u32, bits: u8) -> u32 {
+    v.wrapping_shr((8 - bits as i32) as u32)
 }
 
 /// Translation of `SDL_sRGBtoLinear()`.
@@ -2140,6 +2148,12 @@ impl Palette {
     /// Mutable access; bumps the version.
     pub fn colors_mut(&mut self) -> &mut [Color] {
         self.bump_version();
+        &mut self.colors
+    }
+
+    /// Mutable access without bumping the version: upstream code that writes
+    /// `palette->colors[i]` directly (and restores it, or owns a fresh palette).
+    pub(crate) fn colors_mut_unversioned(&mut self) -> &mut [Color] {
         &mut self.colors
     }
 

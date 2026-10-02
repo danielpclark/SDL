@@ -4,10 +4,13 @@
 
 use super::*;
 use crate::video::pixels::{
-    convert_color_primaries, pq_from_nits, pq_to_nits, srgb_from_linear, srgb_to_linear, ArrayOrder,
-    Color, ColorPrimaries, PixelType, TransferCharacteristics,
+    convert_color_primaries, pq_from_nits, pq_to_nits, srgb_from_linear, srgb_to_linear,
+    ArrayOrder, Color, ColorPrimaries, PixelType, TransferCharacteristics,
 };
-use crate::video::surface::{get_hdr_headroom, get_sdr_white_point, PROP_SURFACE_HDR_HEADROOM_FLOAT, PROP_SURFACE_TONEMAP_OPERATOR_STRING};
+use crate::video::surface::{
+    get_hdr_headroom, get_sdr_white_point, PROP_SURFACE_HDR_HEADROOM_FLOAT,
+    PROP_SURFACE_TONEMAP_OPERATOR_STRING,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum SlowBlitPixelAccess {
@@ -126,7 +129,8 @@ pub(crate) fn blit_slow(info: &mut BlitInfo<'_>) {
                     src_a = 0xFF;
                 }
                 SlowBlitPixelAccess::Rgba => {
-                    (srcpixel, src_r, src_g, src_b, src_a) = disemble_rgba(info.src, src, srcbpp, src_fmt);
+                    (srcpixel, src_r, src_g, src_b, src_a) =
+                        disemble_rgba(info.src, src, srcbpp, src_fmt);
                 }
                 SlowBlitPixelAccess::TenBit => {
                     srcpixel = rd32(info.src, src);
@@ -140,7 +144,9 @@ pub(crate) fn blit_slow(info: &mut BlitInfo<'_>) {
             if flags & COPY_COLORKEY != 0 {
                 // srcpixel isn't set for 24 bpp
                 if srcbpp == 3 {
-                    srcpixel = (src_r << src_fmt.Rshift) | (src_g << src_fmt.Gshift) | (src_b << src_fmt.Bshift);
+                    srcpixel = (src_r << src_fmt.Rshift)
+                        | (src_g << src_fmt.Gshift)
+                        | (src_b << src_fmt.Bshift);
                 }
                 if (srcpixel & rgbmask) == ckey {
                     posx += incx;
@@ -153,14 +159,16 @@ pub(crate) fn blit_slow(info: &mut BlitInfo<'_>) {
                     SlowBlitPixelAccess::Index8 => {
                         dstpixel = info.dst[dst] as u32;
                         let c = pal_color(dst_pal, dstpixel);
-                        (dst_r, dst_g, dst_b, dst_a) = (c.r as u32, c.g as u32, c.b as u32, c.a as u32);
+                        (dst_r, dst_g, dst_b, dst_a) =
+                            (c.r as u32, c.g as u32, c.b as u32, c.a as u32);
                     }
                     SlowBlitPixelAccess::Rgb => {
                         (_, dst_r, dst_g, dst_b) = disemble_rgb(info.dst, dst, dstbpp, dst_fmt);
                         dst_a = 0xFF;
                     }
                     SlowBlitPixelAccess::Rgba => {
-                        (_, dst_r, dst_g, dst_b, dst_a) = disemble_rgba(info.dst, dst, dstbpp, dst_fmt);
+                        (_, dst_r, dst_g, dst_b, dst_a) =
+                            disemble_rgba(info.dst, dst, dstbpp, dst_fmt);
                     }
                     SlowBlitPixelAccess::TenBit => {
                         dstpixel = rd32(info.dst, dst);
@@ -245,12 +253,16 @@ pub(crate) fn blit_slow(info: &mut BlitInfo<'_>) {
                             dst_a = 0xFF;
                             argb2101010_from_rgba(dst_r, dst_g, dst_b, dst_a)
                         }
-                        PixelFormat::ARGB2101010 => argb2101010_from_rgba(dst_r, dst_g, dst_b, dst_a),
+                        PixelFormat::ARGB2101010 => {
+                            argb2101010_from_rgba(dst_r, dst_g, dst_b, dst_a)
+                        }
                         PixelFormat::XBGR2101010 => {
                             dst_a = 0xFF;
                             abgr2101010_from_rgba(dst_r, dst_g, dst_b, dst_a)
                         }
-                        PixelFormat::ABGR2101010 => abgr2101010_from_rgba(dst_r, dst_g, dst_b, dst_a),
+                        PixelFormat::ABGR2101010 => {
+                            abgr2101010_from_rgba(dst_r, dst_g, dst_b, dst_a)
+                        }
                         _ => 0,
                     };
                     wr32(info.dst, dst, pixelvalue);
@@ -354,7 +366,11 @@ fn read_large(pixels: &[u8], i: usize, fmt: &PixelFormatDetails) -> [f32; 4] {
             f32_at(0),
             f32_at(1),
             f32_at(2),
-            if fmt.bytes_per_pixel == 16 { f32_at(3) } else { 1.0 },
+            if fmt.bytes_per_pixel == 16 {
+                f32_at(3)
+            } else {
+                1.0
+            },
         ],
         // Unknown array type
         _ => [0.0; 4],
@@ -386,6 +402,18 @@ fn read_float_pixel(
     sdr_white_point: f32,
 ) -> (f32, f32, f32, f32) {
     let (mut f_r, mut f_g, mut f_b, f_a);
+
+    // Sub-byte indexed formats reach this blitter (through a colorspace
+    // change) and are read one byte per pixel, which runs past the end of
+    // their rows and of the buffer. Their channel masks are all zero, so the
+    // value read never matters; read zeros instead of out of bounds.
+    let need = (fmt.bytes_per_pixel as usize).max(1);
+    let zeros = [0u8; 16];
+    let (pixels, i) = if i + need <= pixels.len() {
+        (pixels, i)
+    } else {
+        (&zeros[..], 0)
+    };
 
     match access {
         SlowBlitPixelAccess::Index8 => {
@@ -515,7 +543,16 @@ fn write_float_pixel(
             assemble_rgb(pixels, i, bpp, fmt, to_u8(f_r), to_u8(f_g), to_u8(f_b));
         }
         SlowBlitPixelAccess::Rgba => {
-            assemble_rgba(pixels, i, bpp, fmt, to_u8(f_r), to_u8(f_g), to_u8(f_b), to_u8(f_a));
+            assemble_rgba(
+                pixels,
+                i,
+                bpp,
+                fmt,
+                to_u8(f_r),
+                to_u8(f_g),
+                to_u8(f_b),
+                to_u8(f_a),
+            );
         }
         SlowBlitPixelAccess::TenBit => {
             let pixelvalue = match fmt.format {
@@ -544,7 +581,9 @@ fn write_float_pixel(
                 // Unknown array order
                 _ => [0.0; 4],
             };
-            let put16 = |p: &mut [u8], k: usize, x: u16| p[i + 2 * k..i + 2 * k + 2].copy_from_slice(&x.to_ne_bytes());
+            let put16 = |p: &mut [u8], k: usize, x: u16| {
+                p[i + 2 * k..i + 2 * k + 2].copy_from_slice(&x.to_ne_bytes())
+            };
             let to_u16 = |x: f32| (x.clamp(0.0, 1.0) * u16::MAX as f32).round() as u16;
             match fmt.format.pixel_type() {
                 PixelType::ArrayU16 => {
@@ -582,8 +621,14 @@ fn write_float_pixel(
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum TonemapOperator {
     None,
-    Linear { scale: f32 },
-    Chrome { a: f32, b: f32, color_primaries_matrix: Option<&'static crate::video::pixels::PrimariesMatrix> },
+    Linear {
+        scale: f32,
+    },
+    Chrome {
+        a: f32,
+        b: f32,
+        color_primaries_matrix: Option<&'static crate::video::pixels::PrimariesMatrix>,
+    },
 }
 
 fn tonemap_linear(r: &mut f32, g: &mut f32, b: &mut f32, scale: f32) {
@@ -627,7 +672,11 @@ fn c_max(x: f32, y: f32) -> f32 {
 fn apply_tonemap(op: &TonemapOperator, r: &mut f32, g: &mut f32, b: &mut f32) {
     match *op {
         TonemapOperator::Linear { scale } => tonemap_linear(r, g, b, scale),
-        TonemapOperator::Chrome { a, b: tb, color_primaries_matrix } => {
+        TonemapOperator::Chrome {
+            a,
+            b: tb,
+            color_primaries_matrix,
+        } => {
             if let Some(m) = color_primaries_matrix {
                 [*r, *g, *b] = convert_color_primaries([*r, *g, *b], m);
             }
@@ -677,7 +726,9 @@ pub(crate) fn blit_slow_float(info: &mut BlitInfo<'_>) {
     let mut tonemap = TonemapOperator::None;
 
     if src_headroom > dst_headroom {
-        let tonemap_operator = info.src_props.and_then(|p| p.get_string(PROP_SURFACE_TONEMAP_OPERATOR_STRING));
+        let tonemap_operator = info
+            .src_props
+            .and_then(|p| p.get_string(PROP_SURFACE_TONEMAP_OPERATOR_STRING));
         let mut chrome = false;
         if let Some(op) = tonemap_operator {
             if op.as_bytes().starts_with(b"*=") {
@@ -730,8 +781,15 @@ pub(crate) fn blit_slow_float(info: &mut BlitInfo<'_>) {
             let srcx = (posx >> 16) as usize;
             let src = srcy * src_pitch + srcx * srcbpp;
 
-            let (mut src_r, mut src_g, mut src_b, mut src_a) =
-                read_float_pixel(info.src, src, src_access, src_fmt, src_pal, src_colorspace, src_white_point);
+            let (mut src_r, mut src_g, mut src_b, mut src_a) = read_float_pixel(
+                info.src,
+                src,
+                src_access,
+                src_fmt,
+                src_pal,
+                src_colorspace,
+                src_white_point,
+            );
 
             if tonemap != TonemapOperator::None {
                 apply_tonemap(&tonemap, &mut src_r, &mut src_g, &mut src_b);
@@ -746,7 +804,15 @@ pub(crate) fn blit_slow_float(info: &mut BlitInfo<'_>) {
             }
             let (mut dst_r, mut dst_g, mut dst_b, mut dst_a) =
                 if flags & (COPY_BLEND | COPY_ADD | COPY_MOD | COPY_MUL) != 0 {
-                    read_float_pixel(info.dst, dst, dst_access, dst_fmt, dst_pal, dst_colorspace, dst_white_point)
+                    read_float_pixel(
+                        info.dst,
+                        dst,
+                        dst_access,
+                        dst_fmt,
+                        dst_pal,
+                        dst_colorspace,
+                        dst_white_point,
+                    )
                 } else {
                     // don't care
                     (0.0, 0.0, 0.0, 0.0)

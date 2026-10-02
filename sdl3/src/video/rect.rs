@@ -301,7 +301,7 @@ macro_rules! rect_impl {
             /// behaviour: `result` is written even when the rectangles don't
             /// intersect (with an empty rectangle), and left alone only when
             /// the arithmetic could overflow.
-            #[allow(dead_code)] // used by the surface module, not yet wired in
+            #[allow(dead_code)] // only the integer variant is used so far
             pub(crate) fn intersect_into(&self, other: &$RECTTYPE, result: &mut $RECTTYPE) -> bool {
                 if self.can_overflow() || other.can_overflow() {
                     return false; // "Potential rect math overflow"

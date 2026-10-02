@@ -9,8 +9,15 @@
 //! This first phase translates the platform-independent building blocks that
 //! everything else is expressed in terms of: [`rect`] and [`pixels`].
 
+pub mod blendmode;
+pub(crate) mod blit;
 pub mod pixels;
 pub mod rect;
+pub(crate) mod rle;
+mod stretch;
+pub mod surface;
 
+pub use blendmode::*;
 pub use pixels::*;
 pub use rect::*;
+pub use surface::*;

@@ -25,7 +25,14 @@ fn map_1to1(src: &Palette, dst: &Palette) -> Option<Vec<u8>> {
 }
 
 /// Map from Palette to BitField. Translation of `Map1toN()`.
-fn map_1ton(pal: Option<&Palette>, rmod: u8, gmod: u8, bmod: u8, amod: u8, dst: &PixelFormatDetails) -> Result<Vec<u8>> {
+fn map_1ton(
+    pal: Option<&Palette>,
+    rmod: u8,
+    gmod: u8,
+    bmod: u8,
+    amod: u8,
+    dst: &PixelFormatDetails,
+) -> Result<Vec<u8>> {
     let Some(pal) = pal else {
         return Err(Error::new("src does not have a palette set"));
     };
@@ -85,9 +92,17 @@ pub(crate) fn map_surface(src: &mut Surface<'_>, dst: &Surface<'_>) -> Result<()
     {
         let srcpal = src.palette.as_ref().map(|p| read_palette(p));
         let same = same_arc(&src.palette, &dst.palette) && src.palette.is_some();
-        let dstpal_guard = if same { None } else { dst.palette.as_ref().map(|p| read_palette(p)) };
+        let dstpal_guard = if same {
+            None
+        } else {
+            dst.palette.as_ref().map(|p| read_palette(p))
+        };
         let srcpal_ref: Option<&Palette> = srcpal.as_deref();
-        let dstpal_ref: Option<&Palette> = if same { srcpal_ref } else { dstpal_guard.as_deref() };
+        let dstpal_ref: Option<&Palette> = if same {
+            srcpal_ref
+        } else {
+            dstpal_guard.as_deref()
+        };
 
         if srcfmt.format.is_indexed() {
             if dstfmt.format.is_indexed() {

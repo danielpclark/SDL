@@ -37,14 +37,18 @@ use crate::error::{Error, Result};
 use crate::properties::Properties;
 use crate::video::blendmode::BlendMode;
 use crate::video::blit::{
-    BlitMap, COPY_ADD, COPY_ADD_PREMULTIPLIED, COPY_BLEND, COPY_BLEND_MASK, COPY_BLEND_PREMULTIPLIED,
-    COPY_COLORKEY, COPY_MOD, COPY_MODULATE_ALPHA, COPY_MODULATE_COLOR, COPY_MUL, COPY_RLE_DESIRED,
+    BlitMap, COPY_ADD, COPY_ADD_PREMULTIPLIED, COPY_BLEND, COPY_BLEND_MASK,
+    COPY_BLEND_PREMULTIPLIED, COPY_COLORKEY, COPY_MOD, COPY_MODULATE_ALPHA, COPY_MODULATE_COLOR,
+    COPY_MUL, COPY_RLE_DESIRED,
 };
-use crate::video::pixels::{Color, Colorspace, FColor, Palette, PixelFormat, PixelFormatDetails, TransferCharacteristics};
+use crate::video::pixels::{
+    Color, Colorspace, FColor, Palette, PixelFormat, PixelFormatDetails, TransferCharacteristics,
+};
 use crate::video::rect::Rect;
 
-pub use convert::{convert_pixels, convert_pixels_and_colorspace, premultiply_alpha};
+#[allow(unused_imports)] // for the window and clipboard code
 pub(crate) use convert::duplicate_pixels;
+pub use convert::{convert_pixels, convert_pixels_and_colorspace, premultiply_alpha};
 
 /// A palette shared between surfaces (upstream's reference-counted
 /// `SDL_Palette *`).
@@ -112,8 +116,20 @@ impl std::fmt::Debug for SurfaceFlags {
             (SurfaceFlags::LOCKED, "LOCKED"),
             (SurfaceFlags::SIMD_ALIGNED, "SIMD_ALIGNED"),
         ];
-        let set: Vec<&str> = names.iter().filter(|(v, _)| self.contains(*v)).map(|(_, n)| *n).collect();
-        write!(f, "SurfaceFlags({})", if set.is_empty() { "0".to_string() } else { set.join(" | ") })
+        let set: Vec<&str> = names
+            .iter()
+            .filter(|(v, _)| self.contains(*v))
+            .map(|(_, n)| *n)
+            .collect();
+        write!(
+            f,
+            "SurfaceFlags({})",
+            if set.is_empty() {
+                "0".to_string()
+            } else {
+                set.join(" | ")
+            }
+        )
     }
 }
 
@@ -152,7 +168,11 @@ pub(crate) enum Pixels<'a> {
     /// `pixels == NULL`.
     None,
     /// Allocated by SDL. `offset` aligns the start for SIMD when requested.
-    Owned { buf: Vec<u8>, offset: usize, len: usize },
+    Owned {
+        buf: Vec<u8>,
+        offset: usize,
+        len: usize,
+    },
     /// The application's memory (`SDL_SURFACE_PREALLOCATED`).
     Borrowed(&'a mut [u8]),
     /// Read-only memory: the source side of `SDL_ConvertPixels()` and
@@ -194,7 +214,11 @@ impl<'a> Pixels<'a> {
         let buf = vec![0u8; size + align - 1];
         let addr = buf.as_ptr() as usize;
         let offset = (align - addr % align) % align;
-        Pixels::Owned { buf, offset, len: size }
+        Pixels::Owned {
+            buf,
+            offset,
+            len: size,
+        }
     }
 }
 
@@ -255,7 +279,7 @@ pub enum SurfaceImage<'s, 'a> {
     /// One of its alternate images, at exactly the wanted size.
     Alternate(&'s mut Surface<'static>),
     /// A new surface scaled from the closest image.
-    Scaled(Surface<'static>),
+    Scaled(Box<Surface<'static>>),
 }
 
 /// `SDL_UpdateSurfaceLockFlag()` and the `SDL_MUSTLOCK()` macro's state.
@@ -263,7 +287,9 @@ impl Surface<'_> {
     /// Translation of `SDL_UpdateSurfaceLockFlag()`.
     pub(crate) fn update_lock_flag(&mut self) {
         // We need to mark the surface as needing unlock while locked
-        if self.flags.contains(SurfaceFlags::LOCKED) || (self.internal_flags & INTERNAL_SURFACE_RLEACCEL) != 0 {
+        if self.flags.contains(SurfaceFlags::LOCKED)
+            || (self.internal_flags & INTERNAL_SURFACE_RLEACCEL) != 0
+        {
             self.flags.insert(SurfaceFlags::LOCK_NEEDED);
         } else {
             self.flags.remove(SurfaceFlags::LOCK_NEEDED);
@@ -281,7 +307,12 @@ impl Surface<'_> {
  * for FOURCC, use SDL_CalculateYUVSize()
  */
 /// Translation of `SDL_CalculateRGBSize()`: `(size, pitch)`.
-fn calculate_rgb_size(format: PixelFormat, width: usize, height: usize, minimal: bool) -> Result<(usize, usize)> {
+fn calculate_rgb_size(
+    format: PixelFormat,
+    width: usize,
+    height: usize,
+    minimal: bool,
+) -> Result<(usize, usize)> {
     let mut pitch;
     if format.bits_per_pixel() >= 8 {
         pitch = width
@@ -341,15 +372,25 @@ pub(crate) fn calculate_yuv_size(format: PixelFormat, w: i32, h: i32) -> Result<
     let int_to_size = |v: usize| v as i32 as isize as usize;
     let (w, h) = (w as isize as usize, h as isize as usize);
     let bpp = format.bytes_per_pixel() as usize;
-    let mul = |a: usize, b: usize, msg: &'static str| a.checked_mul(b).ok_or_else(|| Error::new(msg));
-    let add = |a: usize, b: usize, msg: &'static str| a.checked_add(b).ok_or_else(|| Error::new(msg));
+    let mul =
+        |a: usize, b: usize, msg: &'static str| a.checked_mul(b).ok_or_else(|| Error::new(msg));
+    let add =
+        |a: usize, b: usize, msg: &'static str| a.checked_add(b).ok_or_else(|| Error::new(msg));
 
     let is_planar1x1 = format == PixelFormat::I444 || format == PixelFormat::I4FL;
     let is_planar2x2 = matches!(
         format,
-        PixelFormat::YV12 | PixelFormat::IYUV | PixelFormat::NV12 | PixelFormat::NV21 | PixelFormat::P010 | PixelFormat::I0FL
+        PixelFormat::YV12
+            | PixelFormat::IYUV
+            | PixelFormat::NV12
+            | PixelFormat::NV21
+            | PixelFormat::P010
+            | PixelFormat::I0FL
     );
-    let is_packed4 = matches!(format, PixelFormat::YUY2 | PixelFormat::UYVY | PixelFormat::YVYU);
+    let is_packed4 = matches!(
+        format,
+        PixelFormat::YUY2 | PixelFormat::UYVY | PixelFormat::YVYU
+    );
 
     let (mut sz_plane, mut sz_plane_chroma, mut sz_plane_packed) = (0usize, 0usize, 0usize);
     if is_planar1x1 {
@@ -526,7 +567,8 @@ impl<'a> Surface<'a> {
         Surface::check_create_params(width, height, format)?;
 
         // Overflow...
-        let (size, pitch) = calculate_surface_size(format, width, height, false /* not minimal pitch */)?;
+        let (size, pitch) =
+            calculate_surface_size(format, width, height, false /* not minimal pitch */)?;
 
         // Allocate and initialize the surface
         let mut surface = Surface::initialize(
@@ -553,18 +595,29 @@ impl<'a> Surface<'a> {
 
     /// Translation of `SDL_CreateSurfaceUninitialized()`; Rust memory is
     /// always initialized, so this is [`Surface::new`].
-    pub(crate) fn new_uninitialized(width: i32, height: i32, format: PixelFormat) -> Result<Surface<'static>> {
+    pub(crate) fn new_uninitialized(
+        width: i32,
+        height: i32,
+        format: PixelFormat,
+    ) -> Result<Surface<'static>> {
         Surface::new(width, height, format)
     }
 
-    fn check_from_params(width: i32, height: i32, format: PixelFormat, len: Option<usize>, pitch: i32) -> Result<()> {
+    fn check_from_params(
+        width: i32,
+        height: i32,
+        format: PixelFormat,
+        len: Option<usize>,
+        pitch: i32,
+    ) -> Result<()> {
         Surface::check_create_params(width, height, format)?;
 
         if pitch == 0 && len.is_none() {
             // The application will fill these in later with valid values
         } else {
             // Overflow...
-            let (_, minimal_pitch) = calculate_surface_size(format, width, height, true /* minimal pitch */)?;
+            let (_, minimal_pitch) =
+                calculate_surface_size(format, width, height, true /* minimal pitch */)?;
 
             if pitch < 0 || (pitch as usize) < minimal_pitch {
                 return Err(Error::invalid_param("pitch"));
@@ -598,7 +651,15 @@ impl<'a> Surface<'a> {
         pitch: i32,
     ) -> Result<Surface<'a>> {
         Surface::check_from_params(width, height, format, Some(pixels.len()), pitch)?;
-        Surface::initialize(width, height, format, Colorspace::UNKNOWN, None, Pixels::Borrowed(pixels), pitch)
+        Surface::initialize(
+            width,
+            height,
+            format,
+            Colorspace::UNKNOWN,
+            None,
+            Pixels::Borrowed(pixels),
+            pitch,
+        )
     }
 
     /// A read-only surface over `pixels` (the C code casts away `const`).
@@ -611,7 +672,15 @@ impl<'a> Surface<'a> {
         pixels: &'a [u8],
         pitch: i32,
     ) -> Result<Surface<'a>> {
-        Surface::initialize(width, height, format, colorspace, props, Pixels::ReadOnly(pixels), pitch)
+        Surface::initialize(
+            width,
+            height,
+            format,
+            colorspace,
+            props,
+            Pixels::ReadOnly(pixels),
+            pitch,
+        )
     }
 
     /// A writable surface over `pixels`, set up like `SDL_InitializeSurface()`
@@ -625,12 +694,26 @@ impl<'a> Surface<'a> {
         pixels: &'a mut [u8],
         pitch: i32,
     ) -> Result<Surface<'a>> {
-        Surface::initialize(width, height, format, colorspace, props, Pixels::Borrowed(pixels), pitch)
+        Surface::initialize(
+            width,
+            height,
+            format,
+            colorspace,
+            props,
+            Pixels::Borrowed(pixels),
+            pitch,
+        )
     }
 
     /// Like [`Surface::from_pixels`], but the surface takes ownership of the
     /// buffer (and is not `PREALLOCATED`).
-    pub fn from_vec(width: i32, height: i32, format: PixelFormat, pixels: Vec<u8>, pitch: i32) -> Result<Surface<'static>> {
+    pub fn from_vec(
+        width: i32,
+        height: i32,
+        format: PixelFormat,
+        pixels: Vec<u8>,
+        pitch: i32,
+    ) -> Result<Surface<'static>> {
         Surface::check_from_params(width, height, format, Some(pixels.len()), pitch)?;
         let len = pixels.len();
         let mut s = Surface::initialize(
@@ -651,9 +734,21 @@ impl<'a> Surface<'a> {
     }
 
     /// A surface with no pixels: `SDL_CreateSurfaceFrom(w, h, format, NULL, 0)`.
-    pub fn without_pixels(width: i32, height: i32, format: PixelFormat) -> Result<Surface<'static>> {
+    pub fn without_pixels(
+        width: i32,
+        height: i32,
+        format: PixelFormat,
+    ) -> Result<Surface<'static>> {
         Surface::check_from_params(width, height, format, None, 0)?;
-        Surface::initialize(width, height, format, Colorspace::UNKNOWN, None, Pixels::None, 0)
+        Surface::initialize(
+            width,
+            height,
+            format,
+            Colorspace::UNKNOWN,
+            None,
+            Pixels::None,
+            0,
+        )
     }
 
     /// A read-only view of this surface's pixels (or of `rect` within them,
@@ -664,7 +759,8 @@ impl<'a> Surface<'a> {
         let bytes = self.raw_pixels();
         let (w, h, pixels) = match (rect, bytes) {
             (Some(r), Some(b)) => {
-                let off = r.y as isize * self.pitch as isize + r.x as isize * self.format.bytes_per_pixel() as isize;
+                let off = r.y as isize * self.pitch as isize
+                    + r.x as isize * self.format.bytes_per_pixel() as isize;
                 (r.w, r.h, Pixels::ReadOnly(&b[off as usize..]))
             }
             (Some(r), None) => (r.w, r.h, Pixels::None),
@@ -689,9 +785,10 @@ impl<'a> Surface<'a> {
             map: BlitMap::default(),
             saved_pixels: Pixels::None,
         };
-        v.flags.remove(SurfaceFlags::LOCKED);
-        v.flags.remove(SurfaceFlags::LOCK_NEEDED);
-        v.map.flags = self.map.flags & !(crate::video::blit::COPY_RLE_COLORKEY | crate::video::blit::COPY_RLE_ALPHAKEY);
+        // A locked surface stays "locked" for the blit checks; the view itself is never RLE encoded.
+        v.update_lock_flag();
+        v.map.flags = self.map.flags
+            & !(crate::video::blit::COPY_RLE_COLORKEY | crate::video::blit::COPY_RLE_ALPHAKEY);
         v.map.colorkey = self.map.colorkey;
         (v.map.r, v.map.g, v.map.b, v.map.a) = (self.map.r, self.map.g, self.map.b, self.map.a);
         Ok(v)
@@ -792,7 +889,8 @@ impl<'a> Surface<'a> {
 
         if palette.len() == 2 {
             // Create a black and white bitmap palette
-            let colors = palette.colors_mut();
+            // Written directly, as upstream does: the new palette keeps version 1.
+            let colors = palette.colors_mut_unversioned();
             colors[0].r = 0xFF;
             colors[0].g = 0xFF;
             colors[0].b = 0xFF;
@@ -800,7 +898,6 @@ impl<'a> Surface<'a> {
             colors[1].g = 0x00;
             colors[1].b = 0x00;
         }
-        palette.reset_version();
 
         let palette = share_palette(palette);
         self.set_palette(Some(palette.clone()))?;
@@ -893,8 +990,13 @@ impl<'a> Surface<'a> {
             let size = cw.wrapping_mul(ch);
             let delta_w = cw - desired_w;
             let delta_h = ch - desired_h;
-            let distance = delta_w.wrapping_mul(delta_w).wrapping_add(delta_h.wrapping_mul(delta_h));
-            if closest_distance < 0 || distance < closest_distance || (size > desired_size && closest_size < desired_size) {
+            let distance = delta_w
+                .wrapping_mul(delta_w)
+                .wrapping_add(delta_h.wrapping_mul(delta_h));
+            if closest_distance < 0
+                || distance < closest_distance
+                || (size > desired_size && closest_size < desired_size)
+            {
                 closest = i;
                 closest_distance = distance;
                 closest_size = size;
@@ -913,7 +1015,11 @@ impl<'a> Surface<'a> {
         // We need to scale the image to the correct size. To maintain good image quality, downscaling
         // is done in steps, never reducing the width and height by more than half each time.
         let scaled = {
-            let source: &Surface<'_> = if closest == 0 { self } else { &self.images[closest - 1] };
+            let source: &Surface<'_> = if closest == 0 {
+                self
+            } else {
+                &self.images[closest - 1]
+            };
             let mut scaled: Option<Surface<'static>> = None;
             loop {
                 let cur: &Surface<'_> = match &scaled {
@@ -936,7 +1042,7 @@ impl<'a> Surface<'a> {
             }
         };
         match scaled {
-            Some(s) => SurfaceImage::Scaled(s),
+            Some(s) => SurfaceImage::Scaled(Box::new(s)),
             None if closest == 0 => SurfaceImage::Original(self),
             None => SurfaceImage::Alternate(&mut self.images[closest - 1]),
         }
@@ -1030,7 +1136,11 @@ impl<'a> Surface<'a> {
                     for x in 0..w {
                         let i = y * (pitch / 2) * 2 + x * 2;
                         let spot = rd(pixels, i);
-                        let hit = if ignore_alpha { (spot & mask) == ckey } else { spot == ckey };
+                        let hit = if ignore_alpha {
+                            (spot & mask) == ckey
+                        } else {
+                            spot == ckey
+                        };
                         if hit {
                             pixels[i..i + 2].copy_from_slice(&(spot & mask).to_ne_bytes());
                         }
@@ -1048,7 +1158,11 @@ impl<'a> Surface<'a> {
                     for x in 0..w {
                         let i = y * (pitch / 4) * 4 + x * 4;
                         let spot = crate::video::blit::rd32(pixels, i);
-                        let hit = if ignore_alpha { (spot & mask) == ckey } else { spot == ckey };
+                        let hit = if ignore_alpha {
+                            (spot & mask) == ckey
+                        } else {
+                            spot == ckey
+                        };
                         if hit {
                             crate::video::blit::wr32(pixels, i, spot & mask);
                         }
@@ -1297,7 +1411,9 @@ impl<'a> Surface<'a> {
     /// `SDL_MapSurfaceRGBA()` (an indexed surface without a palette maps to 0).
     pub fn map_rgba(&self, r: u8, g: u8, b: u8, a: u8) -> u32 {
         let pal = self.palette.as_ref().map(|p| read_palette(p));
-        self.fmt.map_rgba(pal.as_deref(), Color::new(r, g, b, a)).unwrap_or(0)
+        self.fmt
+            .map_rgba(pal.as_deref(), Color::new(r, g, b, a))
+            .unwrap_or(0)
     }
 
     fn check_pixel_access(&self, x: i32, y: i32) -> Result<()> {
@@ -1379,7 +1495,8 @@ impl<'a> Surface<'a> {
         } else {
             // This is really slow, but it gets the job done
             let pixels = self.pixels.bytes().unwrap_or(&[]);
-            let p = y as usize * self.pitch as usize + x as usize * self.format.bytes_per_pixel() as usize;
+            let p = y as usize * self.pitch as usize
+                + x as usize * self.format.bytes_per_pixel() as usize;
 
             let mut rgba = [0f32; 4];
             if self.format == PixelFormat::RGBA128_FLOAT {
@@ -1410,7 +1527,12 @@ impl<'a> Surface<'a> {
                     16,
                 )?;
                 for (k, v) in rgba.iter_mut().enumerate() {
-                    *v = f32::from_ne_bytes([bytes[4 * k], bytes[4 * k + 1], bytes[4 * k + 2], bytes[4 * k + 3]]);
+                    *v = f32::from_ne_bytes([
+                        bytes[4 * k],
+                        bytes[4 * k + 1],
+                        bytes[4 * k + 2],
+                        bytes[4 * k + 3],
+                    ]);
                 }
             }
             Ok(FColor::new(rgba[0], rgba[1], rgba[2], rgba[3]))
@@ -1444,7 +1566,8 @@ impl<'a> Surface<'a> {
         } else {
             // This is really slow, but it gets the job done
             let rgba = [c.r, c.g, c.b, c.a];
-            let (format, colorspace, props, pitch) = (self.format, self.colorspace, self.props.clone(), self.pitch);
+            let (format, colorspace, props, pitch) =
+                (self.format, self.colorspace, self.props.clone(), self.pitch);
             match self.pixels.bytes_mut() {
                 Some(pixels) => convert_pixels_and_colorspace(
                     1,
@@ -1487,7 +1610,8 @@ impl<'a> Surface<'a> {
                 self.lock_raw()?;
             }
 
-            let p = y as usize * self.pitch as usize + x as usize * self.format.bytes_per_pixel() as usize;
+            let p = y as usize * self.pitch as usize
+                + x as usize * self.format.bytes_per_pixel() as usize;
 
             let rgba = [c.r, c.g, c.b, c.a];
             let mut bytes = [0u8; 16];
@@ -1495,7 +1619,8 @@ impl<'a> Surface<'a> {
                 bytes[4 * k..4 * k + 4].copy_from_slice(&v.to_ne_bytes());
             }
 
-            let (format, dst_colorspace, props, pitch) = (self.format, self.colorspace, self.props.clone(), self.pitch);
+            let (format, dst_colorspace, props, pitch) =
+                (self.format, self.colorspace, self.props.clone(), self.pitch);
             let result = match self.pixels.bytes_mut() {
                 Some(pixels) if format == PixelFormat::RGBA128_FLOAT => {
                     pixels[p..p + 16].copy_from_slice(&bytes);
