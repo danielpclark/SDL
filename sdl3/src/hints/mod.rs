@@ -74,14 +74,14 @@ pub(crate) fn quit_hints() {
 
 /// Translation of `GetHintEnvironmentVariable()`.
 fn environment_variable(name: &str) -> Option<String> {
-    let mut result = std::env::var(name).ok();
+    let mut result = crate::stdlib::getenv(name);
     if result.is_none() && !name.is_empty() {
         // fall back to old (SDL2) names of environment variables that
         // are important to users (e.g. many use SDL_VIDEODRIVER=wayland)
         if name == VIDEO_DRIVER {
-            result = std::env::var("SDL_VIDEODRIVER").ok();
+            result = crate::stdlib::getenv("SDL_VIDEODRIVER");
         } else if name == AUDIO_DRIVER {
-            result = std::env::var("SDL_AUDIODRIVER").ok();
+            result = crate::stdlib::getenv("SDL_AUDIODRIVER");
         }
     }
     result
@@ -481,7 +481,7 @@ mod tests {
     fn environment_takes_priority() {
         let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let name = "SDL_TEST_HINT_ENV";
-        std::env::set_var(name, "from-env");
+        crate::stdlib::setenv_unsafe(name, "from-env", true).unwrap();
         assert!(set(name, "x").is_err());
         assert_eq!(get(name).as_deref(), Some("from-env"));
         assert_eq!(
@@ -489,7 +489,7 @@ mod tests {
             Ok(true)
         );
         assert_eq!(get(name).as_deref(), Some("over"));
-        std::env::remove_var(name);
+        crate::stdlib::unsetenv_unsafe(name).unwrap();
         reset(name);
     }
 

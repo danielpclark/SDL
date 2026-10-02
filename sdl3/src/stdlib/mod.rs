@@ -7,14 +7,29 @@
 //! Most of upstream `src/stdlib/` exists to give SDL a C runtime it can rely
 //! on everywhere; Rust's `core`/`alloc`/`std` cover that. Translated here are
 //! the pieces with SDL-specific behaviour that other code depends on
-//! bit-for-bit: the CRC and MurmurHash3 routines and the pseudo-random
-//! generator.
+//! bit-for-bit: the CRC and MurmurHash3 routines, the pseudo-random
+//! generator, the bundled libm ([`math`]), UTF-8 and case-folding string
+//! helpers ([`string`]), character-set conversion ([`iconv`]) and the
+//! environment API ([`Environment`], [`getenv`]).
+//!
+//! Intentionally not translated: `SDL_malloc.c` (dlmalloc; Rust's allocator
+//! replaces it), `SDL_memcpy.c`/`SDL_memmove.c`/`SDL_memset.c` (slice
+//! methods), `SDL_qsort.c` (`sort_unstable_by`), `SDL_strtokr.c`
+//! (`split`), `SDL_mslibc.c` (MSVC runtime shims), and `SDL_aligned_alloc`
+//! (`std::alloc::Layout`).
 
+mod casefolding;
 pub mod crc16;
 pub mod crc32;
+mod getenv;
+pub mod iconv;
 pub mod math;
 pub mod murmur3;
 pub mod random;
+pub mod string;
+
+pub use getenv::{getenv, getenv_unsafe, setenv_unsafe, unsetenv_unsafe, Environment};
+pub(crate) use getenv::{init_environment, quit_environment};
 
 pub use crc16::crc16;
 pub use crc32::crc32;
@@ -34,98 +49,19 @@ pub(crate) fn atoi(s: &str) -> i32 {
     strtol(s) as i32
 }
 
-/// `SDL_strtol(s, NULL, 10)` semantics.
+/// `SDL_strtol(s, NULL, 10)`.
 pub(crate) fn strtol(s: &str) -> i64 {
-    let bytes = s.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
-        i += 1;
-    }
-    let mut negative = false;
-    if i < bytes.len() && (bytes[i] == b'-' || bytes[i] == b'+') {
-        negative = bytes[i] == b'-';
-        i += 1;
-    }
-    let mut value: i64 = 0;
-    while i < bytes.len() && bytes[i].is_ascii_digit() {
-        value = value
-            .saturating_mul(10)
-            .saturating_add((bytes[i] - b'0') as i64);
-        i += 1;
-    }
-    if negative {
-        -value
-    } else {
-        value
-    }
+    string::strtol(s, 10).0
 }
 
 /// `SDL_strtoll(s, NULL, 0)`: base auto-detected from a `0x`/`0` prefix.
 pub(crate) fn strtoll_base0(s: &str) -> i64 {
-    let bytes = s.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
-        i += 1;
-    }
-    let mut negative = false;
-    if i < bytes.len() && (bytes[i] == b'-' || bytes[i] == b'+') {
-        negative = bytes[i] == b'-';
-        i += 1;
-    }
-    let mut base: i64 = 10;
-    if i + 1 < bytes.len() && bytes[i] == b'0' && (bytes[i + 1] == b'x' || bytes[i + 1] == b'X') {
-        base = 16;
-        i += 2;
-    } else if i < bytes.len() && bytes[i] == b'0' {
-        base = 8;
-        i += 1;
-    }
-    let mut value: i64 = 0;
-    while i < bytes.len() {
-        let Some(d) = (bytes[i] as char).to_digit(base as u32) else {
-            break;
-        };
-        value = value.saturating_mul(base).saturating_add(d as i64);
-        i += 1;
-    }
-    if negative {
-        -value
-    } else {
-        value
-    }
+    string::strtoll(s, 0).0
 }
 
 /// `SDL_atof()`: leading floating point number, trailing garbage ignored.
 pub(crate) fn atof(s: &str) -> f64 {
-    let t = s.trim_start();
-    let bytes = t.as_bytes();
-    let mut end = 0;
-    let (mut seen_digit, mut seen_dot, mut seen_exp) = (false, false, false);
-    let mut i = 0;
-    if i < bytes.len() && (bytes[i] == b'+' || bytes[i] == b'-') {
-        i += 1;
-    }
-    while i < bytes.len() {
-        let c = bytes[i];
-        if c.is_ascii_digit() {
-            seen_digit = true;
-            end = i + 1;
-        } else if c == b'.' && !seen_dot && !seen_exp {
-            seen_dot = true;
-        } else if (c == b'e' || c == b'E') && seen_digit && !seen_exp {
-            seen_exp = true;
-            if i + 1 < bytes.len() && (bytes[i + 1] == b'+' || bytes[i + 1] == b'-') {
-                i += 1;
-            }
-        } else {
-            break;
-        }
-        i += 1;
-    }
-    if end == 0 {
-        return 0.0;
-    }
-    t[..end].parse::<f64>().unwrap_or(0.0)
+    string::strtod(s).0
 }
 
 #[cfg(test)]

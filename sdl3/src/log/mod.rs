@@ -399,7 +399,7 @@ pub fn reset_priorities() {
     check_init();
     LOG_LOCK.lock();
     {
-        let env = std::env::var("DEBUG_INVOCATION").ok();
+        let env = crate::stdlib::getenv("DEBUG_INVOCATION");
         let debug = matches!(env.as_deref(), Some(e) if !e.is_empty() && !e.starts_with('0'));
 
         cleanup_priorities();

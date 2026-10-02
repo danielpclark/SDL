@@ -373,6 +373,7 @@ pub(crate) fn init_main_thread() {
     );
     // (TLS data, environment, ticks and filesystem initialize lazily in Rust)
     let _ = crate::timer::ticks_ns();
+    crate::stdlib::init_environment();
     crate::events::create_event_lock();
 
     if !DONE_INFO.swap(true, Ordering::AcqRel) {
@@ -403,6 +404,7 @@ pub(crate) fn init_main_thread() {
 /// Translation of `SDL_QuitMainThread()`.
 fn quit_main_thread() {
     crate::events::destroy_event_lock();
+    crate::stdlib::quit_environment();
     crate::timer::quit_ticks();
 }
 
@@ -665,7 +667,7 @@ fn detect_sandbox() -> Sandbox {
         }
         /* For Snap, we check multiple variables because they might be set for
          * unrelated reasons. This is the same thing WebKitGTK does. */
-        let has = |v: &str| std::env::var_os(v).is_some();
+        let has = |v: &str| crate::stdlib::getenv(v).is_some();
         if has("SNAP") && has("SNAP_NAME") && has("SNAP_REVISION") {
             return Sandbox::Snap;
         }
@@ -677,7 +679,9 @@ fn detect_sandbox() -> Sandbox {
         if std::path::Path::new("/run/host/container-manager").exists() {
             return Sandbox::UnknownContainer;
         }
-    } else if cfg!(target_os = "macos") && std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some() {
+    } else if cfg!(target_os = "macos")
+        && crate::stdlib::getenv("APP_SANDBOX_CONTAINER_ID").is_some()
+    {
         return Sandbox::MacOS;
     }
     Sandbox::None
