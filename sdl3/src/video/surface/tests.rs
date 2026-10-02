@@ -937,6 +937,192 @@ fn run_yuv(t: &mut Harness) -> u64 {
     t.h
 }
 
+/// 9: BMP save/load
+fn load_and_hash(t: &mut Harness, data: &[u8]) {
+    let mut io = crate::io::IoStream::from_const_mem(data);
+    let d = Surface::load_bmp_io(&mut io);
+    t.h8(d.is_ok() as u8);
+    t.hash_surface(d.as_ref().ok());
+    t.h32(io.tell().unwrap() as u32);
+    if t.debug {
+        if let Err(e) = &d {
+            println!("  E {e}");
+        }
+    }
+}
+
+fn run_bmp(t: &mut Harness) -> u64 {
+    const MASKS: [[u32; 4]; 8] = [
+        [0x7C00, 0x03E0, 0x001F, 0],
+        [0xF800, 0x07E0, 0x001F, 0],
+        [0x0F00, 0x00F0, 0x000F, 0xF000],
+        [0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000],
+        [0x000000FF, 0x0000FF00, 0x00FF0000, 0],
+        [0x3FF00000, 0x000FFC00, 0x000003FF, 0xC0000000],
+        [0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF],
+        [0, 0, 0, 0],
+    ];
+    const SIZES: [u32; 8] = [12, 40, 52, 56, 64, 108, 124, 20];
+    const BITS: [u32; 12] = [1, 2, 4, 8, 15, 16, 24, 32, 0, 3, 9, 48];
+    t.reset();
+    for (i, &f) in FMTS.iter().enumerate() {
+        for v in 0..4 {
+            let w = 1 + (t.rnd() % 9) as i32;
+            let hh = 1 + (t.rnd() % 7) as i32;
+            let mut s = Surface::new(w, hh, f).unwrap();
+            t.fill_random(&mut s);
+            if v & 1 != 0 {
+                let key = colorkey_for(t, &s);
+                s.set_color_key(Some(key)).unwrap();
+            }
+            if v & 2 != 0 {
+                let r = s.set_rle(true);
+                t.hok(&r);
+            }
+            let mut io = crate::io::IoStream::from_dynamic_mem();
+            let ok = s.save_bmp_io(&mut io);
+            t.hok(&ok);
+            if t.debug {
+                if let Err(e) = &ok {
+                    println!("  S {e}");
+                }
+            }
+            let data = io.dynamic_memory().unwrap_or(&[]).to_vec();
+            t.h32(data.len() as u32);
+            t.hb(&data);
+            t.h32(io.tell().unwrap() as u32);
+            if ok.is_ok() {
+                load_and_hash(t, &data);
+            }
+            t.hash_surface(Some(&s));
+            t.dbg("bmpsave", i, v, ok.is_ok() as usize);
+        }
+    }
+    for k in 0..4000 {
+        let mut b: Vec<u8> = Vec::new();
+        let put8 = |b: &mut Vec<u8>, v: u32| {
+            if b.len() < 8192 {
+                b.push(v as u8)
+            }
+        };
+        let put16 = |b: &mut Vec<u8>, v: u32| {
+            put8(b, v);
+            put8(b, v >> 8);
+        };
+        let put32 = |b: &mut Vec<u8>, v: u32| {
+            put16(b, v);
+            put16(b, v >> 16);
+        };
+        let bi_size = SIZES[t.rnd() as usize % 8];
+        let bits = BITS[t.rnd() as usize % 12];
+        let mut comp = t.rnd() % 8;
+        if comp > 5 {
+            comp = 0;
+        }
+        let w = (t.rnd() % 14) as i32 - 2;
+        let hh = (t.rnd() % 14) as i32 - 7;
+        let clr = if t.rnd() % 3 == 0 { t.rnd() % 300 } else { 0 };
+        let m = MASKS[t.rnd() as usize % 8];
+        let mut ncolors = if bits <= 8 {
+            if clr != 0 {
+                clr
+            } else {
+                1 << bits
+            }
+        } else {
+            0
+        };
+        ncolors = ncolors.min(256);
+        let entry = if bi_size == 12 { 3 } else { 4 };
+        let masks_extra = if bi_size == 40 && comp == 3 { 12 } else { 0 };
+        let mut off = 14 + bi_size + masks_extra + ncolors * entry;
+        let r = t.rnd();
+        if r % 7 == 0 {
+            off = t.rnd() % 200;
+        }
+        put8(&mut b, b'B' as u32);
+        put8(&mut b, if r % 31 == 0 { b'X' } else { b'M' } as u32);
+        let v = t.rnd();
+        put32(&mut b, v);
+        put16(&mut b, 0);
+        put16(&mut b, 0);
+        put32(&mut b, off);
+        put32(&mut b, bi_size);
+        if bi_size == 12 {
+            put16(&mut b, w.max(0) as u32);
+            put16(&mut b, hh.max(0) as u32);
+            put16(&mut b, 1);
+            put16(&mut b, bits);
+        } else if bi_size >= 40 {
+            put32(&mut b, w as u32);
+            put32(&mut b, hh as u32);
+            put16(&mut b, 1);
+            put16(&mut b, bits);
+            put32(&mut b, comp);
+            put32(&mut b, 0);
+            put32(&mut b, 0);
+            put32(&mut b, 0);
+            put32(&mut b, clr);
+            put32(&mut b, 0);
+            let mut written = 40;
+            if bi_size >= 52 || comp == 3 {
+                put32(&mut b, m[0]);
+                put32(&mut b, m[1]);
+                put32(&mut b, m[2]);
+                written += 12;
+            }
+            if bi_size >= 56 {
+                put32(&mut b, m[3]);
+                written += 4;
+            }
+            while written < bi_size {
+                let v = t.rnd();
+                put8(&mut b, v);
+                written += 1;
+            }
+        } else {
+            for _ in 8..bi_size {
+                let v = t.rnd();
+                put8(&mut b, v);
+            }
+        }
+        for _ in 0..ncolors * entry {
+            let v = t.rnd();
+            put8(&mut b, v);
+        }
+        while b.len() < off as usize && b.len() < 8192 {
+            let v = t.rnd();
+            put8(&mut b, v);
+        }
+        let aw = w.unsigned_abs();
+        let ah = hh.unsigned_abs();
+        let row = (aw * (if bits != 0 { bits } else { 8 })).div_ceil(32) * 4;
+        let mut len = row * ah;
+        let tt = t.rnd() % 4;
+        if tt == 0 {
+            len = t.rnd() % (len + 1);
+        } else if tt == 1 {
+            len += t.rnd() % 64;
+        }
+        if comp == 1 || comp == 2 {
+            len = t.rnd() % 200;
+        }
+        for _ in 0..len {
+            let x = t.rnd();
+            // bias RLE streams towards escapes
+            let byte = if (comp == 1 || comp == 2) && x % 5 == 0 {
+                (x >> 8) % 3
+            } else {
+                x >> 4
+            };
+            put8(&mut b, byte);
+        }
+        load_and_hash(t, &b);
+        t.dbg("bmpload", k, bits as usize, comp as usize);
+    }
+    t.h
+}
+
 /// Run `f` with upstream's x86 kernels selected (`simd`) or not.
 fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     // For comparing per-case output with the C harness: run one mode only.
@@ -1219,4 +1405,11 @@ fn yuv_matches_c() {
     let simd = with_simd(true, run_yuv);
     let plain = with_simd(false, run_yuv);
     assert_eq!((simd, plain), (0x0dbacdb8ec13c91b, 0x5a69c4ed3eec6936));
+}
+
+#[test]
+fn bmp_matches_c() {
+    let simd = with_simd(true, run_bmp);
+    let plain = with_simd(false, run_bmp);
+    assert_eq!((simd, plain), (0x6bb164d40b8e4539, 0x6bb164d40b8e4539));
 }

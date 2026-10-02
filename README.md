@@ -16,9 +16,11 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 > **Status: early.** Phase 1 (the foundation every other subsystem is built
 > on) is complete, and so is most of the platform-independent Phase 2:
 > `SDL.c`, assertions, the events core, libm, the stdlib remainder, threads,
-> CPU info, IO streams, async IO, the filesystem, storage and the audio core
-> (with the dummy and disk drivers). Surfaces, rendering and the platform
-> backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+> CPU info, IO streams, async IO, the filesystem, storage, the audio core
+> (with the dummy and disk drivers) and software video (surfaces, every
+> blitter, RLE, rotation, YUV conversion, BMP files). The software renderer,
+> the joystick core and the platform backends come next; see
+> [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What is translated so far
 
@@ -49,22 +51,28 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `stdlib/SDL_crc16.c`, `SDL_crc32.c`, `SDL_murmur3.c`, `SDL_random.c` | `sdl3::stdlib` | bit-exact, verified against published vectors; `Rng` type |
 | `video/SDL_rect.c`, `SDL_rect_impl.h` | `sdl3::video::rect` | methods on `Rect`/`FRect`; int and float variants via one macro, like the C double-include |
 | `video/SDL_pixels.c`, `SDL_pixels.h` | `sdl3::video::pixels` | all pixel formats and colorspaces as typed constants, masks, details, `Palette`, RGB(A) mapping, colour matrices |
+| `video/SDL_surface.c`, `SDL_blit.c`, `SDL_blit_0.c`, `SDL_blit_1.c`, `SDL_blit_A.c`, `SDL_blit_N.c`, `SDL_blit_auto.c`, `SDL_blit_copy.c`, `SDL_blit_slow.c`, `SDL_fillrect.c`, `SDL_stretch.c`, `SDL_RLEaccel.c`, `SDL_rotate.c` | `sdl3::video::surface` | `Surface<'a>` owning or borrowing its pixels, shared palettes, lock guard, alternate images; blits (plain, scaled, tiled, 9-grid), conversion between all formats and colorspaces, fill, stretch, RLE acceleration, rotation, premultiplication; every specialized blitter and the generated `SDL_blit_auto.c` table. Upstream's x86 SIMD kernels (MMX/SSE/SSE2/SSE4.1/AVX2) are computed in portable code and chosen by the same CPU checks, so results match the C bit for bit on any architecture |
+| `video/SDL_yuv.c`, `yuv2rgb/` | `sdl3::video` (`convert_pixels*`, YUV surfaces) | YUV⇄RGB for all 11 FOURCC formats in every supported colorspace (portable and SSE2 kernels), YUV⇄YUV repacking |
+| `video/SDL_bmp.c`, the image front end of `SDL_stb.c` | `Surface::load_bmp`/`save_bmp`/`load`, `is_bmp`/`is_png`/`is_jpg` | BMP load (1–32 bpp, bitfields, RLE4/RLE8, v1–v5 headers) and save (8-bit, 24-bit, 32-bit v5); the stb_image PNG/JPEG codecs are not translated yet |
 | `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
 | `events/SDL_keyboard.c`, `SDL_keymap.c` | `sdl3::events::keyboard` | `Scancode`/`Keycode`/`Keymod` with every constant and name table, `Keymap` with shift-level lookup and the US QWERTY defaults, key state/modifiers/repeat/auto-release, focus, text input/editing/candidates, keycode-options hint |
 | `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursor state; all 14 mouse hints |
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 50,000 lines of upstream C/headers are covered by about 45,000 lines
-of Rust including tests. Upstream is ~624,000 lines, so this is about 8% by
-volume, but it is the part that everything else includes.
+Roughly 83,000 lines of upstream C/headers are covered by about 61,000 lines
+of Rust including tests. Upstream is ~624,000 lines, so this is about 13% by
+volume, but it is the part that everything else includes. The audio
+conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
+BMP path are checked against upstream's C (compiled with its SIMD kernels
+on and off) by hashing the results of large randomized scenarios.
 
 Not yet translated from these files: the SIGINT/SIGTERM handlers of
 `SDL_quit.c` (platform layer); cursor creation from surfaces and animated
-cursors in `SDL_mouse.c` (they need `SDL_Surface`, which comes with the
-software video phase); thread priorities (platform layer); the Windows
+cursors in `SDL_mouse.c` (they need the video subsystem); thread priorities (platform layer); the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
-audio drivers. Parts of the C
+audio drivers; the PNG/JPEG codecs (stb_image, miniz) and the NEON, LSX and
+AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.
 
