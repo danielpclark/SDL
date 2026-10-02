@@ -17,6 +17,7 @@ pub(crate) mod rle;
 mod rotate;
 mod stretch;
 pub mod surface;
+mod yuv;
 
 pub use blendmode::*;
 pub use pixels::*;

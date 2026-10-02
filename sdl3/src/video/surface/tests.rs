@@ -1,9 +1,9 @@
 // Tests for the surface module. The `*_matches_c` tests replay the same
 // operations as a harness built from upstream's C sources and compare
 // FNV-1a hashes of every result, so any difference in any pixel, error or
-// attribute changes the hash. The C side is built without YUV
-// (like this crate so far) and with allocations zeroed like Rust's, and is
-// run with its x86 SIMD kernels both enabled and disabled.
+// attribute changes the hash. The C side is built with allocations zeroed
+// like Rust's, and is run with its x86 SIMD kernels both enabled and
+// disabled.
 
 #![allow(clippy::needless_range_loop)] // the loops mirror the C harness
 
@@ -710,6 +710,233 @@ fn run_rotate(t: &mut Harness) -> u64 {
     t.h
 }
 
+/// 8: YUV conversions
+const YUVF: [PixelFormat; 11] = [
+    PixelFormat::YV12,
+    PixelFormat::IYUV,
+    PixelFormat::YUY2,
+    PixelFormat::UYVY,
+    PixelFormat::YVYU,
+    PixelFormat::NV12,
+    PixelFormat::NV21,
+    PixelFormat::P010,
+    PixelFormat::I444,
+    PixelFormat::I0FL,
+    PixelFormat::I4FL,
+];
+const RGBF: [PixelFormat; 18] = [
+    PixelFormat::RGB565,
+    PixelFormat::BGR565,
+    PixelFormat::RGB24,
+    PixelFormat::BGR24,
+    PixelFormat::XRGB8888,
+    PixelFormat::RGBX8888,
+    PixelFormat::XBGR8888,
+    PixelFormat::BGRX8888,
+    PixelFormat::ARGB8888,
+    PixelFormat::RGBA8888,
+    PixelFormat::ABGR8888,
+    PixelFormat::BGRA8888,
+    PixelFormat::ARGB4444,
+    PixelFormat::XBGR2101010,
+    PixelFormat::ARGB2101010,
+    PixelFormat::RGB48,
+    PixelFormat::RGBA64,
+    PixelFormat::RGBA128_FLOAT,
+];
+const YCS: [Colorspace; 9] = [
+    Colorspace::UNKNOWN,
+    Colorspace::JPEG,
+    Colorspace::BT601_LIMITED,
+    Colorspace::BT601_FULL,
+    Colorspace::BT709_LIMITED,
+    Colorspace::BT709_FULL,
+    Colorspace::BT2020_LIMITED,
+    Colorspace::BT2020_FULL,
+    Colorspace::SRGB,
+];
+const YSIZES: [(i32, i32); 11] = [
+    (1, 1),
+    (2, 2),
+    (3, 3),
+    (7, 5),
+    (32, 2),
+    (33, 3),
+    (64, 4),
+    (65, 5),
+    (31, 7),
+    (96, 3),
+    (40, 1),
+];
+
+impl Harness {
+    fn rnd_buf(&mut self, n: usize) -> Vec<u8> {
+        (0..n).map(|_| self.rnd() as u8).collect()
+    }
+
+    fn fill_rgb(&mut self, p: &mut [u8], f: PixelFormat) {
+        if f.pixel_type() == crate::video::pixels::PixelType::ArrayF32 {
+            for i in 0..p.len() / 4 {
+                let v = self.rnd_float();
+                p[4 * i..4 * i + 4].copy_from_slice(&v.to_ne_bytes());
+            }
+        } else {
+            for b in p.iter_mut() {
+                *b = self.rnd() as u8;
+            }
+        }
+    }
+
+    fn hash_yuv_surface(&mut self, s: Option<&Surface<'_>>) {
+        let Some(s) = s else {
+            self.h8(0xEE);
+            return;
+        };
+        self.h32(s.format.0);
+        self.h32(s.w as u32);
+        self.h32(s.h as u32);
+        let Some(px) = s.pixels.bytes() else {
+            self.h8(0xDD);
+            return;
+        };
+        let (size, _) = calculate_yuv_size(s.format, s.w, s.h).unwrap();
+        let px = px[..size].to_vec();
+        self.hb(&px);
+    }
+
+    fn err(&self, tag: &str, r: &Result<()>) {
+        if self.debug {
+            if let Err(e) = r {
+                println!("  {tag} {e}");
+            }
+        }
+    }
+}
+
+fn run_yuv(t: &mut Harness) -> u64 {
+    t.reset();
+    for (fi, &f) in YUVF.iter().enumerate() {
+        for (si, &(w, hh)) in YSIZES.iter().enumerate() {
+            for (ri, &r) in RGBF.iter().enumerate() {
+                let (ysize, ypitch) = calculate_yuv_size(f, w, hh).unwrap();
+                let cs = YCS[t.rnd() as usize % YCS.len()];
+                let yuv = t.rnd_buf(ysize);
+                let rpitch = w * r.bytes_per_pixel() as i32;
+                let mut rgb = vec![0u8; (rpitch * hh) as usize];
+                let res = convert_pixels_and_colorspace(
+                    w,
+                    hh,
+                    f,
+                    cs,
+                    None,
+                    &yuv,
+                    ypitch as i32,
+                    r,
+                    Colorspace::UNKNOWN,
+                    None,
+                    &mut rgb,
+                    rpitch,
+                );
+                t.hok(&res);
+                if res.is_ok() {
+                    t.hb(&rgb);
+                }
+                t.err("E1", &res);
+                t.dbg("yuv2rgb", fi * 100 + si, ri, res.is_ok() as usize);
+
+                t.fill_rgb(&mut rgb, r);
+                let mut out = vec![0u8; ysize];
+                let res = convert_pixels_and_colorspace(
+                    w,
+                    hh,
+                    r,
+                    Colorspace::UNKNOWN,
+                    None,
+                    &rgb,
+                    rpitch,
+                    f,
+                    cs,
+                    None,
+                    &mut out,
+                    ypitch as i32,
+                );
+                t.hok(&res);
+                if res.is_ok() {
+                    t.hb(&out);
+                }
+                t.err("E2", &res);
+                t.dbg("rgb2yuv", fi * 100 + si, ri, res.is_ok() as usize);
+            }
+        }
+    }
+    for (fi, &f) in YUVF.iter().enumerate() {
+        for (gi, &g) in YUVF.iter().enumerate() {
+            for (si, &(w, hh)) in YSIZES.iter().enumerate() {
+                let (fsize, fpitch) = calculate_yuv_size(f, w, hh).unwrap();
+                let (gsize, gpitch) = calculate_yuv_size(g, w, hh).unwrap();
+                let cs = YCS[t.rnd() as usize % YCS.len()];
+                let mut cs2 = cs;
+                if t.rnd() % 8 == 0 {
+                    cs2 = YCS[t.rnd() as usize % YCS.len()];
+                }
+                let src = t.rnd_buf(fsize);
+                let mut dst = vec![0u8; gsize];
+                let res = convert_pixels_and_colorspace(
+                    w,
+                    hh,
+                    f,
+                    cs,
+                    None,
+                    &src,
+                    fpitch as i32,
+                    g,
+                    cs2,
+                    None,
+                    &mut dst,
+                    gpitch as i32,
+                );
+                t.hok(&res);
+                if res.is_ok() {
+                    t.hb(&dst);
+                }
+                t.err("E3", &res);
+                t.dbg("yuv2yuv", fi * 100 + gi, si, res.is_ok() as usize);
+            }
+        }
+    }
+    // surfaces
+    for (fi, &f) in YUVF.iter().enumerate() {
+        for (si, &(w, hh)) in YSIZES.iter().enumerate() {
+            let mut s = Surface::new(w, hh, f).unwrap();
+            let (size, _) = calculate_yuv_size(f, w, hh).unwrap();
+            let bytes = t.rnd_buf(size);
+            s.pixels.bytes_mut().unwrap()[..size].copy_from_slice(&bytes);
+            let cs = YCS[1 + t.rnd() as usize % 5];
+            s.set_colorspace(cs);
+            let r = RGBF[t.rnd() as usize % RGBF.len()];
+            let d = s.convert(r).ok();
+            t.hash_surface(d.as_ref());
+            let back = d
+                .as_ref()
+                .and_then(|d| d.convert_with_colorspace(f, None, cs, None).ok());
+            t.hash_yuv_surface(back.as_ref());
+            let w2 = 1 + (t.rnd() % 70) as i32;
+            let h2 = 1 + (t.rnd() % 9) as i32;
+            let mode = if t.rnd() & 1 != 0 {
+                ScaleMode::Linear
+            } else {
+                ScaleMode::Nearest
+            };
+            let sc = s.scale(w2, h2, mode).ok();
+            t.hash_yuv_surface(sc.as_ref());
+            let dup = s.duplicate().ok();
+            t.hash_yuv_surface(dup.as_ref());
+            t.dbg("yuvsurf", fi, si, 0);
+        }
+    }
+    t.h
+}
+
 /// Run `f` with upstream's x86 kernels selected (`simd`) or not.
 fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     // For comparing per-case output with the C harness: run one mode only.
@@ -731,7 +958,7 @@ fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     h
 }
 
-// Hashes printed by the upstream C harness (without YUV), with
+// Hashes printed by the upstream C harness, with
 // SDL_HasMMX/SSE2/SSE41/AVX2 reporting true and false.
 #[test]
 fn convert_matches_c() {
@@ -985,4 +1212,11 @@ fn rotate_matches_c() {
     let simd = with_simd(true, run_rotate);
     let plain = with_simd(false, run_rotate);
     assert_eq!((simd, plain), (0x3460306225aab023, 0x541bb17330829833));
+}
+
+#[test]
+fn yuv_matches_c() {
+    let simd = with_simd(true, run_yuv);
+    let plain = with_simd(false, run_yuv);
+    assert_eq!((simd, plain), (0x0dbacdb8ec13c91b, 0x5a69c4ed3eec6936));
 }

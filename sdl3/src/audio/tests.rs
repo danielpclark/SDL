@@ -80,6 +80,17 @@ fn fill(rng: &mut Rng, buf: &mut [u8], fmt: AudioFormat, samples: usize) {
     }
 }
 
+/// A stream that `quit_audio()` leaves alone. Tests that init and quit the
+/// audio subsystem run in parallel with the others, and quitting destroys
+/// every auto-cleanup stream (like upstream's `SDL_QuitAudio()`).
+fn stream_surviving_quit(src: Option<&AudioSpec>, dst: Option<&AudioSpec>) -> AudioStream {
+    let s = AudioStream::new(src, dst).unwrap();
+    s.properties()
+        .set(PROP_AUDIOSTREAM_AUTO_CLEANUP_BOOLEAN, false)
+        .unwrap();
+    s
+}
+
 #[test]
 fn convert_audio_matches_upstream() {
     const EXPECTED: [u64; 8] = [
@@ -249,7 +260,7 @@ fn streams_match_upstream() {
     let mut rng = Rng(3);
     let got_u32 = |r: crate::error::Result<usize>| r.map_or(u32::MAX, |n| n as u32);
     for c in &cases {
-        let s = AudioStream::new(Some(&c.src), Some(&c.dst)).unwrap();
+        let s = stream_surviving_quit(Some(&c.src), Some(&c.dst));
         s.set_gain(c.gain).unwrap();
         s.set_frequency_ratio(c.ratio).unwrap();
         if c.remap {
@@ -526,7 +537,7 @@ fn wave_loader_matches_upstream() {
 #[test]
 fn stream_api_behaviour() {
     let s16 = AudioSpec::new(AudioFormat::S16, 2, 48000);
-    let s = AudioStream::new(Some(&s16), None).unwrap();
+    let s = stream_surviving_quit(Some(&s16), None);
     assert_eq!(
         s.format().unwrap_err().message(),
         "Stream has no destination format"

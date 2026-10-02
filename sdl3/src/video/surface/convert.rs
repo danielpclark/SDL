@@ -630,8 +630,51 @@ pub fn convert_pixels_and_colorspace(
         return Err(Error::new("SDL not built with STB image support"));
     }
 
-    if src_format.is_fourcc() || dst_format.is_fourcc() {
-        return Err(Error::new("SDL not built with YUV support"));
+    if src_format.is_fourcc() && dst_format.is_fourcc() {
+        return crate::video::yuv::convert_pixels_yuv_to_yuv(
+            width,
+            height,
+            src_format,
+            src_colorspace,
+            src_properties,
+            src,
+            src_pitch,
+            dst_format,
+            dst_colorspace,
+            dst_properties,
+            dst,
+            dst_pitch,
+        );
+    } else if src_format.is_fourcc() {
+        return crate::video::yuv::convert_pixels_yuv_to_rgb(
+            width,
+            height,
+            src_format,
+            src_colorspace,
+            src_properties,
+            src,
+            src_pitch,
+            dst_format,
+            dst_colorspace,
+            dst_properties,
+            dst,
+            dst_pitch,
+        );
+    } else if dst_format.is_fourcc() {
+        return crate::video::yuv::convert_pixels_rgb_to_yuv(
+            width,
+            height,
+            src_format,
+            src_colorspace,
+            src_properties,
+            src,
+            src_pitch,
+            dst_format,
+            dst_colorspace,
+            dst_properties,
+            dst,
+            dst_pitch,
+        );
     }
 
     // Fast path for same format copy
