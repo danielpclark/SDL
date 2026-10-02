@@ -62,6 +62,17 @@ faithful translation; the API is not a mock-up of the C one.
   identical and say so in a comment.
 * Reproduce upstream's generated tables with `const fn`s and test them
   against the literal values in the C file.
+* When a subsystem that isn't translated yet is reached through a pointer
+  (`SDL_GetVideoDevice()`, `mouse->WarpMouse`, `SDL_Window *`), define a
+  trait with default "not available" implementations and a registration
+  function (`events::window::VideoHooks` / `set_video`), and refer to
+  objects by their id (`WindowID`). The state the translated code reads and
+  writes lives in a plain struct the later subsystem embeds (`WindowCore`).
+  Upstream's `if (!mouse->X)` presence checks become `supports(Feature)`.
+* Subsystem state that upstream keeps in a file-level `static struct` goes
+  in a `static` guarded by `Mutex` (std) or `ReentrantMutex<RefCell<_>>`
+  when callbacks may re-enter; the C "lock nothing, assume one thread"
+  code becomes short locked scopes with the event push outside them.
 
 ## Testing
 

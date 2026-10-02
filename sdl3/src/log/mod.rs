@@ -619,7 +619,7 @@ mod tests {
     use super::*;
     use std::sync::Mutex;
 
-    static TEST_LOCK: Mutex<()> = Mutex::new(());
+    pub(crate) use crate::test_support::TEST_LOCK;
     type Captured = Arc<Mutex<Vec<(Category, Priority, String)>>>;
 
     fn install() -> Captured {

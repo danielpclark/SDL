@@ -33,8 +33,10 @@
 
 pub mod atomic;
 pub mod error;
+pub mod events;
 pub mod guid;
 pub mod hints;
+pub mod init;
 pub mod log;
 pub mod power;
 pub mod properties;
@@ -53,13 +55,17 @@ pub use version::{revision, version, Version};
 /// Shut down the translated subsystems that keep global state (timers,
 /// logging, hints, the global property group, the tick counter).
 ///
-/// This is the part of `SDL_Quit()` that applies to what has been translated
-/// so far; it will grow into the full `SDL_Quit()` as `SDL.c` is translated.
-/// Calling it is optional: everything re-initializes lazily on next use.
+/// Shut down every subsystem and free the library's global state.
+/// Equivalent to [`init::quit`] (translation of `SDL_Quit()`), kept under
+/// this name from before `SDL.c` was translated. Calling it is optional:
+/// everything re-initializes lazily on next use.
 pub fn shutdown() {
-    timer::quit_timers();
-    log::quit_log();
-    hints::quit_hints();
-    properties::quit_properties();
-    timer::quit_ticks();
+    init::quit();
+}
+
+/// Shared by every test that touches process-global state (hints, log output,
+/// subsystem init, the event queue), so those tests don't race each other.
+#[cfg(test)]
+pub(crate) mod test_support {
+    pub(crate) static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 }

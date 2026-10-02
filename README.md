@@ -14,13 +14,16 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
   (2026-10-01).
 
 > **Status: early.** Phase 1 (the foundation every other subsystem is built
-> on) is complete and tested. Windowing, audio, rendering, input and the
-> platform backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+> on) and the first Phase 2 items (`SDL.c` init/quit, the whole `events/`
+> core: queue, keyboard, mouse, touch, pen, window events) are complete and
+> tested. Surfaces, audio, rendering and the platform backends come next;
+> see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What is translated so far
 
 | Upstream | Rust module | Notes |
 |---|---|---|
+| `SDL.c` | `sdl3::init` | `init`/`quit`/`was_init` with `InitFlags`, subsystem refcounts, main-thread tracking, app metadata, platform/sandbox/form-factor queries |
 | `SDL_version.h` | `sdl3::version` | |
 | `SDL_error.c` | `sdl3::error` | `Error`/`ErrorKind`/`Result`; SDL's messages, Rust's error handling |
 | `SDL_guid.c` | `sdl3::guid` | |
@@ -36,10 +39,20 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `stdlib/SDL_crc16.c`, `SDL_crc32.c`, `SDL_murmur3.c`, `SDL_random.c` | `sdl3::stdlib` | bit-exact, verified against published vectors; `Rng` type |
 | `video/SDL_rect.c`, `SDL_rect_impl.h` | `sdl3::video::rect` | methods on `Rect`/`FRect`; int and float variants via one macro, like the C double-include |
 | `video/SDL_pixels.c`, `SDL_pixels.h` | `sdl3::video::pixels` | all pixel formats and colorspaces as typed constants, masks, details, `Palette`, RGB(A) mapping, colour matrices |
+| `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
+| `events/SDL_keyboard.c`, `SDL_keymap.c` | `sdl3::events::keyboard` | `Scancode`/`Keycode`/`Keymod` with every constant and name table, `Keymap` with shift-level lookup and the US QWERTY defaults, key state/modifiers/repeat/auto-release, focus, text input/editing/candidates, keycode-options hint |
+| `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursor state; all 14 mouse hints |
+| `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
+| `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 7,000 lines of upstream C/headers are covered by about 6,500 lines of
-Rust including tests. Upstream is ~624,000 lines, so this is about 1% by
-volume, but it is the 1% that everything else includes.
+Roughly 22,000 lines of upstream C/headers are covered by about 21,000 lines
+of Rust including tests. Upstream is ~624,000 lines, so this is about 3.5% by
+volume, but it is the part that everything else includes.
+
+Not yet translated from these files: `SDL_assert.c`; the SIGINT/SIGTERM
+handlers of `SDL_quit.c` (platform layer); cursor creation from surfaces and
+animated cursors in `SDL_mouse.c` (they need `SDL_Surface`, which comes with
+the software video phase).
 
 ## Building
 

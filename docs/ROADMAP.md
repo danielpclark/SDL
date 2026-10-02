@@ -16,12 +16,12 @@ timers/ticks, time, GUIDs, CRC/murmur/random, rectangles and pixel formats.
 
 | Directory | Lines | Plan |
 |---|---|---|
-| `SDL.c`, `SDL_assert.c` | ~1,400 | `init`/`quit` with subsystem refcounts, app metadata, assertion handler. |
+| `SDL.c`, `SDL_assert.c` | ~1,400 | **`SDL.c` done** (`sdl3::init`): `init`/`quit` with subsystem refcounts, app metadata, main-thread tracking. `SDL_assert.c` still to do. |
 | `stdlib/` remainder | ~16,000 | Only what has SDL-specific semantics: `SDL_iconv` (UTF conversions), `SDL_qsort` (unused in Rust: `sort_unstable`), string helpers whose exact behaviour callers rely on (`SDL_strlcpy`, `SDL_utf8strlen`, `SDL_StepUTF8`, `SDL_UCS4ToUTF8`). `SDL_malloc.c` (dlmalloc) is replaced by Rust's allocator. |
 | `libm/` | ~3,300 | fdlibm routines; translate so results are bit-identical to SDL's own `SDL_sin` etc. rather than deferring to the platform libm. |
 | `thread/` generic | ~6,000 | RWLock, condition variable, TLS, thread creation/priority wrappers over `std::thread`. |
 | `cpuinfo/` | ~1,300 | `std::arch` feature detection; cache line size, RAM. |
-| `events/` core | ~12,800 | Event queue, event types/structs, keyboard/mouse/touch/pen state machines, scancode tables, keymaps. Pure logic; the biggest Phase 2 item. |
+| `events/` core | ~12,800 | **Done** (`sdl3::events`): event queue, event types/structs, keyboard/mouse/touch/pen state machines, scancode tables, keymaps, window/display/clipboard/drop/notification event sources. Window state is reached through the `events::window::VideoHooks` trait (with `WindowCore` holding the `SDL_Window` fields the event code touches), which the video subsystem implements later. Deferred: `SDL_quit.c` signal handlers (platform layer), cursor creation from surfaces (needs `SDL_Surface`), the platform scancode tables (`scancodes_*.h`, `SDL_keysym_to_*.c`, with their backends). |
 | `io/`, `storage/` | ~5,500 | `SDL_IOStream` over `std::fs`/memory, async IO queue, storage interface. |
 | `audio/` core | ~24,400 | Audio spec, format conversion (`SDL_audiotypecvt`), resampler, channel mixing, audio streams, WAVE loader, mixer. Platform drivers (ALSA, Pulse, WASAPI, CoreAudio…) are Phase 4. |
 | `video/` software | ~60,000 of 270,000 | Surfaces, blitters (`SDL_blit_*`, incl. the generated `SDL_blit_auto.c`), fill, stretch, RLE, YUV conversion, BMP load/save, clipboard/surface helpers. |

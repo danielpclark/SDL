@@ -163,6 +163,23 @@ impl RawMutex {
     }
 }
 
+/// RAII lock on a [`RawMutex`]; unlocks on drop.
+pub(crate) struct RawMutexGuard<'a>(&'a RawMutex);
+
+impl Drop for RawMutexGuard<'_> {
+    fn drop(&mut self) {
+        self.0.unlock();
+    }
+}
+
+impl RawMutex {
+    /// Lock and return a guard that unlocks when dropped.
+    pub(crate) fn guard(&self) -> RawMutexGuard<'_> {
+        self.lock();
+        RawMutexGuard(self)
+    }
+}
+
 /// A recursive mutex guarding a value, built on [`RawMutex`].
 ///
 /// The guard hands out `&T` only (re-entrant `&mut` would be unsound); use

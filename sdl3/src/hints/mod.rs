@@ -374,7 +374,7 @@ mod tests {
     use std::sync::Mutex;
 
     // Tests share global state; serialize them.
-    static TEST_LOCK: Mutex<()> = Mutex::new(());
+    pub(crate) use crate::test_support::TEST_LOCK;
 
     #[test]
     fn set_get_priority() {
