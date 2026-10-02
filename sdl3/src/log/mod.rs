@@ -11,8 +11,8 @@
 //! the `SDL_LOGGING` hint ([`hints::LOGGING`](crate::hints::LOGGING)) turns
 //! them on, e.g. `SDL_LOGGING=video=debug,*=warn`.
 //!
-//! Direct translation of `SDL_log.c`. Formatting uses the [`log!`],
-//! [`info!`], [`warn!`], ... macros in this module.
+//! Direct translation of `SDL_log.c`. Formatting uses the `log!`,
+//! `info!`, `warn!`, ... macros in this module.
 
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard};
