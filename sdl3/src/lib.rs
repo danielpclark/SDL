@@ -33,6 +33,7 @@
 
 pub mod assert;
 pub mod atomic;
+pub mod audio;
 pub mod cpuinfo;
 pub mod error;
 pub mod events;

@@ -9,17 +9,21 @@
 //! what the pthread/Win32 backends wrap); [`TlsId`] translates `SDL_TLSID`;
 //! [`Semaphore`], [`ReentrantMutex`] (SDL's mutexes are recursive) and
 //! [`InitState`] translate the generic `SDL_Semaphore`, `SDL_Mutex` and
-//! `SDL_InitState`. For plain mutexes, reader/writer locks and condition
-//! variables use `std::sync::{Mutex, RwLock, Condvar}`; they are what
-//! `SDL_Mutex`/`SDL_RWLock`/`SDL_Condition` wrap on every real platform.
+//! `SDL_InitState`, and [`Condition`] the generic `SDL_Condition` (for use
+//! with the recursive mutex). For plain mutexes, reader/writer locks and
+//! condition variables use `std::sync::{Mutex, RwLock, Condvar}`; they are
+//! what `SDL_Mutex`/`SDL_RWLock`/`SDL_Condition` wrap on every real platform.
 
 use std::cell::{Cell, UnsafeCell};
 use std::sync::atomic::{AtomicI32, AtomicU64, Ordering};
 use std::sync::Condvar;
 use std::time::Duration;
 
+mod cond;
 mod threads;
 mod tls;
+
+pub use cond::Condition;
 
 pub use threads::{
     set_current_thread_priority, Thread, ThreadBuilder, ThreadPriority, ThreadState,
@@ -280,6 +284,13 @@ impl<T> std::ops::Deref for ReentrantMutexGuard<'_, T> {
     type Target = T;
     fn deref(&self) -> &T {
         &self.m.data
+    }
+}
+
+impl<T> ReentrantMutexGuard<'_, T> {
+    /// The underlying lock, for [`Condition`] waits.
+    pub(crate) fn raw(&self) -> &RawMutex {
+        &self.m.raw
     }
 }
 

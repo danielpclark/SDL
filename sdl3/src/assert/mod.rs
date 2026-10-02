@@ -425,9 +425,12 @@ pub fn trigger_breakpoint() {
 #[macro_export]
 macro_rules! __sdl_enabled_assert {
     ($cond:expr) => {
+        $crate::__sdl_enabled_assert!(@text stringify!($cond), $cond)
+    };
+    (@text $text:expr, $cond:expr) => {
         while !($cond) {
             static SDL_ASSERT_DATA: $crate::assert::AssertData = $crate::assert::AssertData::new(
-                stringify!($cond),
+                $text,
                 module_path!(),
                 file!(),
                 line!(),
@@ -457,6 +460,12 @@ macro_rules! __sdl_disabled_assert {
 /// An assertion active in debug builds (level ≥ 2). Translation of `SDL_assert()`.
 #[macro_export]
 macro_rules! sdl_assert {
+    // C's `SDL_assert(!"message")` idiom: always fails, reporting `!"message"`.
+    (! $msg:literal $(,)?) => {{
+        if $crate::assert::assert_level(cfg!(debug_assertions)) >= 2 {
+            $crate::__sdl_enabled_assert!(@text concat!("!", stringify!($msg)), false);
+        }
+    }};
     ($cond:expr $(,)?) => {{
         if $crate::assert::assert_level(cfg!(debug_assertions)) >= 2 {
             $crate::__sdl_enabled_assert!($cond);
@@ -469,6 +478,12 @@ macro_rules! sdl_assert {
 /// An assertion active in release builds too (level ≥ 1). Translation of `SDL_assert_release()`.
 #[macro_export]
 macro_rules! sdl_assert_release {
+    // C's `SDL_assert(!"message")` idiom: always fails, reporting `!"message"`.
+    (! $msg:literal $(,)?) => {{
+        if $crate::assert::assert_level(cfg!(debug_assertions)) >= 1 {
+            $crate::__sdl_enabled_assert!(@text concat!("!", stringify!($msg)), false);
+        }
+    }};
     ($cond:expr $(,)?) => {{
         if $crate::assert::assert_level(cfg!(debug_assertions)) >= 1 {
             $crate::__sdl_enabled_assert!($cond);
@@ -481,6 +496,12 @@ macro_rules! sdl_assert_release {
 /// An expensive assertion, only active at level 3. Translation of `SDL_assert_paranoid()`.
 #[macro_export]
 macro_rules! sdl_assert_paranoid {
+    // C's `SDL_assert(!"message")` idiom: always fails, reporting `!"message"`.
+    (! $msg:literal $(,)?) => {{
+        if $crate::assert::assert_level(cfg!(debug_assertions)) >= 3 {
+            $crate::__sdl_enabled_assert!(@text concat!("!", stringify!($msg)), false);
+        }
+    }};
     ($cond:expr $(,)?) => {{
         if $crate::assert::assert_level(cfg!(debug_assertions)) >= 3 {
             $crate::__sdl_enabled_assert!($cond);
@@ -493,6 +514,9 @@ macro_rules! sdl_assert_paranoid {
 /// An assertion that is always active. Translation of `SDL_assert_always()`.
 #[macro_export]
 macro_rules! sdl_assert_always {
+    (! $msg:literal $(,)?) => {{
+        $crate::__sdl_enabled_assert!(@text concat!("!", stringify!($msg)), false);
+    }};
     ($cond:expr $(,)?) => {{
         $crate::__sdl_enabled_assert!($cond);
     }};

@@ -14,10 +14,11 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
   (2026-10-01).
 
 > **Status: early.** Phase 1 (the foundation every other subsystem is built
-> on) is complete, and so is the first half of Phase 2: `SDL.c`, assertions,
-> the events core, libm, the stdlib remainder, threads, CPU info, IO streams,
-> async IO, the filesystem and storage. Audio, surfaces, rendering and the
-> platform backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+> on) is complete, and so is most of the platform-independent Phase 2:
+> `SDL.c`, assertions, the events core, libm, the stdlib remainder, threads,
+> CPU info, IO streams, async IO, the filesystem, storage and the audio core
+> (with the dummy and disk drivers). Surfaces, rendering and the platform
+> backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What is translated so far
 
@@ -40,6 +41,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `io/SDL_iostream.c` | `sdl3::io` | `IoStream` over an `IoInterface` trait: buffered files, memory, const memory, dynamic memory; endian helpers, `load_file`/`save_file`, `std::io` impls |
 | `io/SDL_asyncio.c` + generic backend | `sdl3::io` | `AsyncIo`, `AsyncIoQueue<U>` (typed per-request data, buffers moved in and handed back), threadpool, `load_file_async` |
 | `filesystem/SDL_filesystem.c`, POSIX fsops, Unix paths | `sdl3::filesystem` | create/remove/rename/copy, path info, enumeration with `ControlFlow`, glob (matcher checked against upstream C), base/pref/user folders via XDG |
+| `audio/` core: `SDL_audio.c`, `SDL_audiocvt.c`, `SDL_audioqueue.c`, `SDL_audioresample.c`, `SDL_audiotypecvt.c`, `SDL_audio_channel_converters.h`, `SDL_mixer.c`, `SDL_wave.c`, dummy and disk drivers | `sdl3::audio` | `AudioFormat`/`AudioSpec`, `AudioStream` (conversion, resampling, gain, frequency ratio, channel maps, callbacks, no-copy and planar input), physical and logical devices with binding, device threads, postmix, default-device migration, `mix_audio`, `load_wav` (PCM, float, A-law, µ-law, MS and IMA ADPCM). Conversion, resampling, streams, mixing and WAVE decoding are checked bit-for-bit against upstream's C compiled for x86-64 |
 | `storage/SDL_storage.c` + generic backend | `sdl3::storage` | `Storage` over a `StorageInterface` trait: title, user and file storage, driver hints, path validation, glob |
 | `timer/SDL_timer.c` | `sdl3::timer` | ticks, `delay`, `delay_precise`, threaded timer queue behind an RAII `Timer` |
 | `time/SDL_time.c` | `sdl3::time` | `Time` newtype, `DateTime`, civil-date algorithms, `SystemTime` and Windows FILETIME conversions |
@@ -53,15 +55,16 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 38,000 lines of upstream C/headers are covered by about 34,000 lines
-of Rust including tests. Upstream is ~624,000 lines, so this is about 6% by
+Roughly 50,000 lines of upstream C/headers are covered by about 45,000 lines
+of Rust including tests. Upstream is ~624,000 lines, so this is about 8% by
 volume, but it is the part that everything else includes.
 
 Not yet translated from these files: the SIGINT/SIGTERM handlers of
 `SDL_quit.c` (platform layer); cursor creation from surfaces and animated
 cursors in `SDL_mouse.c` (they need `SDL_Surface`, which comes with the
 software video phase); thread priorities (platform layer); the Windows
-known-folder lookups and the io_uring/IoRing async backends. Parts of the C
+known-folder lookups and the io_uring/IoRing async backends; the platform
+audio drivers. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.
 

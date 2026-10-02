@@ -793,10 +793,12 @@ pub fn run_on_main_thread(
 
 /// Periodic work done during every pump. Translation of `SDL_PumpEventMaintenance()`.
 ///
-/// The audio, camera, sensor and joystick update hooks arrive with their
+/// The camera, sensor and joystick update hooks arrive with their
 /// subsystems in later phases; udev polling and signal delivery belong to the
 /// platform layer.
 pub(crate) fn pump_event_maintenance() {
+    crate::audio::update_audio();
+
     // Check for sensor state change
     if UPDATE_SENSORS.load(Ordering::Relaxed) {
         // SDL_UpdateSensors() -- sensor subsystem not yet translated

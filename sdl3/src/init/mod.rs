@@ -447,8 +447,22 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
         if flags.contains(InitFlags::VIDEO) {
             return Err(err!("SDL not built with video support"));
         }
+        // Initialize the audio subsystem
         if flags.contains(InitFlags::AUDIO) {
-            return Err(err!("SDL not built with audio support"));
+            if should_init_subsystem(InitFlags::AUDIO) {
+                // audio implies events
+                init_or_increment_subsystem(InitFlags::EVENTS)?;
+
+                increment_refcount(InitFlags::AUDIO);
+                if let Err(e) = crate::audio::init_audio(None) {
+                    decrement_refcount(InitFlags::AUDIO);
+                    quit_subsystem(InitFlags::EVENTS);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::AUDIO);
+            }
+            flags_initialized |= InitFlags::AUDIO;
         }
         if flags.contains(InitFlags::JOYSTICK) || flags.contains(InitFlags::GAMEPAD) {
             return Err(err!("SDL not built with joystick support"));
@@ -483,7 +497,17 @@ pub fn init(flags: InitFlags) -> Result<()> {
 /// Shut down specific SDL subsystems. Translation of `SDL_QuitSubSystem()`.
 pub fn quit_subsystem(flags: InitFlags) {
     // Shut down requested initialized subsystems
-    // (camera, sensor, gamepad, joystick, haptic, audio, video: not translated yet)
+    // (camera, sensor, gamepad, joystick, haptic, video: not translated yet)
+
+    if flags.contains(InitFlags::AUDIO) {
+        if should_quit_subsystem(InitFlags::AUDIO) {
+            crate::audio::quit_audio();
+            // audio implies events
+            quit_subsystem(InitFlags::EVENTS);
+        }
+        decrement_refcount(InitFlags::AUDIO);
+    }
+
     if flags.contains(InitFlags::EVENTS) {
         if should_quit_subsystem(InitFlags::EVENTS) {
             crate::events::quit_events();
