@@ -17,6 +17,11 @@
 //! versions run the body 4 or 8 times for a width of 0; blits never reach
 //! the inner loops with an empty rectangle.)
 
+pub(crate) mod auto;
+pub(crate) mod blit_0;
+pub(crate) mod blit_1;
+pub(crate) mod blit_a;
+pub(crate) mod blit_n;
 pub(crate) mod copy;
 mod macros;
 pub(crate) mod map;
@@ -47,7 +52,6 @@ pub(crate) const COPY_NEAREST: u32 = 0x00000800;
 pub(crate) const COPY_RLE_DESIRED: u32 = 0x00001000;
 pub(crate) const COPY_RLE_COLORKEY: u32 = 0x00002000;
 pub(crate) const COPY_RLE_ALPHAKEY: u32 = 0x00004000;
-#[allow(dead_code)]
 pub(crate) const COPY_RLE_MASK: u32 = COPY_RLE_DESIRED | COPY_RLE_COLORKEY | COPY_RLE_ALPHAKEY;
 
 /// The per-blit state handed to a blit function. Translation of `SDL_BlitInfo`
@@ -114,8 +118,44 @@ macro_rules! named_blit {
         }
     };
 }
-#[allow(unused_imports)] // for the blitter modules
 pub(crate) use named_blit;
+
+/// The x86 vector extensions upstream's blitter selection looks at
+/// (`SDL_HasMMX()`, `SDL_HasSSE()`, `SDL_HasSSE2()`, `SDL_HasSSE41()`, `SDL_HasAVX2()`).
+/// Their kernels are computed in portable code; only the choice depends on
+/// the CPU, as upstream's does. Other architectures report none of them.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub(crate) struct SimdSupport {
+    pub mmx: bool,
+    pub sse: bool,
+    pub sse2: bool,
+    pub sse41: bool,
+    pub avx2: bool,
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Tests pin the selection to compare with upstream built either way.
+    pub(crate) static SIMD_OVERRIDE: std::cell::Cell<Option<SimdSupport>> = const { std::cell::Cell::new(None) };
+}
+
+pub(crate) fn simd_support() -> SimdSupport {
+    #[cfg(test)]
+    if let Some(s) = SIMD_OVERRIDE.with(|o| o.get()) {
+        return s;
+    }
+    if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
+        SimdSupport {
+            mmx: crate::cpuinfo::has_mmx(),
+            sse: crate::cpuinfo::has_sse(),
+            sse2: crate::cpuinfo::has_sse2(),
+            sse41: crate::cpuinfo::has_sse41(),
+            avx2: crate::cpuinfo::has_avx2(),
+        }
+    } else {
+        SimdSupport::default()
+    }
+}
 
 /// Which top-level blit `SDL_BlitMap::blit` points at.
 #[derive(Clone, Copy, Debug, Default)]
@@ -333,7 +373,6 @@ fn run_soft_blit(
 }
 
 /// Translation of `SDL_ChooseBlitFunc()`, over a generated table.
-#[allow(dead_code)]
 pub(crate) fn choose_blit_func(
     src_format: PixelFormat,
     dst_format: PixelFormat,
@@ -363,7 +402,6 @@ pub(crate) fn choose_blit_func(
 }
 
 /// Translation of `SDL_BlitFuncEntry`.
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct BlitFuncEntry {
     pub src_format: PixelFormat,
@@ -405,7 +443,26 @@ pub(crate) fn calculate_blit(surface: &mut Surface<'_>, dst: &Surface<'_>) -> Re
             blit = Some(named_blit!(copy::blit_copy, "SDL_BlitCopy"));
         } else if surface.format.is_10bit() || dst.format.is_10bit() {
             blit = Some(named_blit!(slow::blit_slow, "SDL_Blit_Slow"));
+        } else if surface.format.bits_per_pixel() < 8 && surface.format.is_indexed() {
+            blit = blit_0::calculate_blit0(surface, dst.format);
+        } else if surface.format.bytes_per_pixel() == 1 && surface.format.is_indexed() {
+            blit = blit_1::calculate_blit1(surface, dst.format);
+        } else if surface.map.flags & COPY_BLEND != 0 {
+            blit = blit_a::calculate_blit_a(surface, dst);
+        } else {
+            blit = blit_n::calculate_blit_n(surface, dst);
         }
+    }
+    if blit.is_none() {
+        let src_format = surface.format;
+        let dst_format = dst.format;
+
+        blit = choose_blit_func(
+            src_format,
+            dst_format,
+            surface.map.flags,
+            auto::GENERATED_BLIT_FUNC_TABLE,
+        );
     }
 
     if blit.is_none() {

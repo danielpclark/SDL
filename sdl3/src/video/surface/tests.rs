@@ -1,9 +1,9 @@
 // Tests for the surface module. The `*_matches_c` tests replay the same
 // operations as a harness built from upstream's C sources and compare
 // FNV-1a hashes of every result, so any difference in any pixel, error or
-// attribute changes the hash. The C side is configured like this module:
-// without SDL_blit_0/1/A/N/auto, RLE and YUV (an upstream "lean" build),
-// with allocations zeroed like Rust's.
+// attribute changes the hash. The C side is built without RLE and YUV
+// (like this crate so far) and with allocations zeroed like Rust's, and is
+// run with its x86 SIMD kernels both enabled and disabled.
 
 #![allow(clippy::needless_range_loop)] // the loops mirror the C harness
 
@@ -73,8 +73,9 @@ const FMTS: [PixelFormat; 54] = [
     PixelFormat::ABGR128_FLOAT,
 ];
 /// Indices into FMTS for the blit tests.
-const SUB: [usize; 18] = [
-    6, 7, 8, 12, 16, 20, 22, 23, 24, 28, 29, 30, 31, 33, 34, 38, 42, 50,
+const SUB: [usize; 27] = [
+    0, 2, 4, 6, 7, 8, 10, 12, 16, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 38,
+    42, 50,
 ];
 
 const MODES: [BlendMode; 7] = [
@@ -270,7 +271,15 @@ fn run_blit(t: &mut Harness) -> u64 {
         for j in 0..SUB.len() {
             for (m, mode) in MODES.iter().enumerate() {
                 for v in 0..4 {
-                    let mut s = Surface::new(9, 7, FMTS[SUB[i]]).unwrap();
+                    // SDL_blit_0.c drifts by leading_skip bytes per row (see
+                    // walk_bits); taller bitmaps keep the C side's reads inside
+                    // the buffer, where both sides read the same bytes.
+                    let sh = if FMTS[SUB[i]].bits_per_pixel() < 8 {
+                        40
+                    } else {
+                        7
+                    };
+                    let mut s = Surface::new(9, sh, FMTS[SUB[i]]).unwrap();
                     let mut d = Surface::new(13, 11, FMTS[SUB[j]]).unwrap();
                     t.fill_random(&mut s);
                     t.fill_random(&mut d);
@@ -383,10 +392,12 @@ fn run_misc(t: &mut Harness) -> u64 {
         let ok = s.fill_rects(&rects, c);
         t.hok(&ok);
         t.hash_surface(Some(&s));
+        t.dbg("fillrects", i, 0, 0);
         let c = t.rnd();
         let ok = s.fill_rect(None, c);
         t.hok(&ok);
         t.hash_surface(Some(&s));
+        t.dbg("fillrect", i, 0, 0);
         t.fill_random(&mut s);
         let (cr, cg, cb, ca) = (t.rnd_float(), t.rnd_float(), t.rnd_float(), t.rnd_float());
         let ok = s.clear(cr, cg, cb, ca);
@@ -560,28 +571,264 @@ fn run_colorspace(t: &mut Harness) -> u64 {
     t.h
 }
 
-// Hashes printed by the upstream C harness (lean configuration).
+/// Run `f` with upstream's x86 kernels selected (`simd`) or not.
+fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
+    // For comparing per-case output with the C harness: run one mode only.
+    if let Ok(only) = std::env::var("SDL_SURFACE_TEST_ONLY_SIMD") {
+        if only != (simd as u8).to_string() {
+            return 0;
+        }
+    }
+    let s = crate::video::blit::SimdSupport {
+        mmx: simd,
+        sse: simd,
+        sse2: simd,
+        sse41: simd,
+        avx2: simd,
+    };
+    crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(Some(s)));
+    let h = f(&mut Harness::new());
+    crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(None));
+    h
+}
+
+// Hashes printed by the upstream C harness (without RLE and YUV), with
+// SDL_HasMMX/SSE2/SSE41/AVX2 reporting true and false.
 #[test]
 fn convert_matches_c() {
-    assert_eq!(run_convert(&mut Harness::new()), 0x61e32c282566f407);
+    let simd = with_simd(true, run_convert);
+    let plain = with_simd(false, run_convert);
+    assert_eq!((simd, plain), (0x11de2e0032a6ba2d, 0xeeef809f7bd0f921));
 }
 
 #[test]
 fn blit_matches_c() {
-    assert_eq!(run_blit(&mut Harness::new()), 0xf360e622b7c8e9ef);
+    let simd = with_simd(true, run_blit);
+    let plain = with_simd(false, run_blit);
+    assert_eq!((simd, plain), (0x812674e3573cf57d, 0x3d7f5cfcb969acac));
 }
 
 #[test]
 fn scaled_blit_matches_c() {
-    assert_eq!(run_scaled(&mut Harness::new()), 0xdb883930588f2a01);
+    let simd = with_simd(true, run_scaled);
+    let plain = with_simd(false, run_scaled);
+    assert_eq!((simd, plain), (0xe3d3a7ad6d866818, 0xd2c02d221a047f4e));
 }
 
 #[test]
 fn misc_matches_c() {
-    assert_eq!(run_misc(&mut Harness::new()), 0xe1bd252c3edefb02);
+    let simd = with_simd(true, run_misc);
+    let plain = with_simd(false, run_misc);
+    assert_eq!((simd, plain), (0x54c5089e1dcbc6e0, 0x90e771243b39fd3f));
 }
 
 #[test]
 fn colorspace_blit_matches_c() {
-    assert_eq!(run_colorspace(&mut Harness::new()), 0xe708ec1d52fb29b3);
+    let simd = with_simd(true, run_colorspace);
+    let plain = with_simd(false, run_colorspace);
+    assert_eq!((simd, plain), (0x19547e3981883d7a, 0x19547e3981883d7a));
+}
+
+/// The blit function upstream's selection logic picks (as read from
+/// SDL_blit*.c), with and without the x86 kernels.
+#[test]
+fn blitter_selection() {
+    use crate::video::blit::MapBlit;
+    #[allow(clippy::type_complexity)]
+    let cases: &[(
+        PixelFormat,
+        PixelFormat,
+        BlendMode,
+        Option<u8>,
+        bool,
+        &str,
+        &str,
+    )] = &[
+        // (src, dst, blend, alpha mod, colorkey, with SIMD, without)
+        (
+            PixelFormat::RGB565,
+            PixelFormat::RGB565,
+            BlendMode::BLEND,
+            Some(100),
+            false,
+            "Blit565to565SurfaceAlphaMMX",
+            "Blit565to565SurfaceAlpha",
+        ),
+        (
+            PixelFormat::XRGB1555,
+            PixelFormat::XRGB1555,
+            BlendMode::BLEND,
+            Some(100),
+            false,
+            "Blit555to555SurfaceAlphaMMX",
+            "Blit555to555SurfaceAlpha",
+        ),
+        (
+            PixelFormat::XRGB8888,
+            PixelFormat::ARGB8888,
+            BlendMode::BLEND,
+            Some(100),
+            false,
+            "Blit888to888SurfaceAlphaSSE2",
+            "BlitRGBtoRGBSurfaceAlpha",
+        ),
+        (
+            PixelFormat::RGBX8888,
+            PixelFormat::RGBX8888,
+            BlendMode::BLEND,
+            Some(100),
+            false,
+            "Blit888to888SurfaceAlphaSSE2",
+            "BlitNtoNSurfaceAlpha",
+        ),
+        (
+            PixelFormat::ARGB8888,
+            PixelFormat::XRGB8888,
+            BlendMode::NONE,
+            None,
+            false,
+            "Blit8888to8888PixelSwizzleAVX2",
+            "Blit4to4MaskAlpha",
+        ),
+        (
+            PixelFormat::ARGB8888,
+            PixelFormat::ABGR8888,
+            BlendMode::NONE,
+            None,
+            false,
+            "Blit8888to8888PixelSwizzleAVX2",
+            "Blit_3or4_to_3or4__inversed_rgb",
+        ),
+        (
+            PixelFormat::ARGB8888,
+            PixelFormat::ARGB8888,
+            BlendMode::BLEND,
+            None,
+            false,
+            "Blit8888to8888PixelAlphaSwizzleAVX2",
+            "Blit8888to8888PixelAlpha",
+        ),
+        (
+            PixelFormat::ARGB8888,
+            PixelFormat::ARGB8888,
+            BlendMode::ADD,
+            None,
+            false,
+            "SDL_Blit_ARGB8888_ARGB8888_Blend",
+            "SDL_Blit_ARGB8888_ARGB8888_Blend",
+        ),
+        (
+            PixelFormat::RGBA8888,
+            PixelFormat::XBGR8888,
+            BlendMode::MUL,
+            Some(7),
+            false,
+            "SDL_Blit_RGBA8888_XBGR8888_Modulate_Blend",
+            "SDL_Blit_RGBA8888_XBGR8888_Modulate_Blend",
+        ),
+        (
+            PixelFormat::INDEX8,
+            PixelFormat::ARGB8888,
+            BlendMode::NONE,
+            None,
+            false,
+            "Blit1to4",
+            "Blit1to4",
+        ),
+        (
+            PixelFormat::INDEX4LSB,
+            PixelFormat::RGB565,
+            BlendMode::NONE,
+            None,
+            true,
+            "Blit4bto2Key",
+            "Blit4bto2Key",
+        ),
+        (
+            PixelFormat::RGB565,
+            PixelFormat::ARGB8888,
+            BlendMode::NONE,
+            None,
+            false,
+            "Blit_RGB565_32_SSE41",
+            "Blit_RGB565_ARGB8888",
+        ),
+        (
+            PixelFormat::ARGB8888,
+            PixelFormat::RGB565,
+            BlendMode::BLEND,
+            None,
+            false,
+            "BlitARGBto565PixelAlpha",
+            "BlitARGBto565PixelAlpha",
+        ),
+        (
+            PixelFormat::RGB24,
+            PixelFormat::BGR24,
+            BlendMode::NONE,
+            None,
+            true,
+            "BlitNtoNKey",
+            "BlitNtoNKey",
+        ),
+        (
+            PixelFormat::ARGB2101010,
+            PixelFormat::ARGB8888,
+            BlendMode::NONE,
+            None,
+            false,
+            // 10-bit formats default to HDR10, so the colorspaces differ
+            "SDL_Blit_Slow_Float",
+            "SDL_Blit_Slow_Float",
+        ),
+        (
+            PixelFormat::ARGB2101010,
+            PixelFormat::ABGR2101010,
+            BlendMode::NONE,
+            None,
+            false,
+            "SDL_Blit_Slow",
+            "SDL_Blit_Slow",
+        ),
+        (
+            PixelFormat::RGBA64,
+            PixelFormat::ARGB8888,
+            BlendMode::NONE,
+            None,
+            false,
+            "SDL_Blit_Slow_Float",
+            "SDL_Blit_Slow_Float",
+        ),
+    ];
+    for &(sf, df, blend, amod, key, with, without) in cases {
+        for (simd, expected) in [(true, with), (false, without)] {
+            let s = crate::video::blit::SimdSupport {
+                mmx: simd,
+                sse: simd,
+                sse2: simd,
+                sse41: simd,
+                avx2: simd,
+            };
+            crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(Some(s)));
+            let mut src = Surface::new(4, 4, sf).unwrap();
+            let mut dst = Surface::new(4, 4, df).unwrap();
+            if sf.is_indexed() {
+                src.create_palette().unwrap();
+            }
+            src.set_blend_mode(blend).unwrap();
+            if let Some(a) = amod {
+                src.set_alpha_mod(a);
+            }
+            if key {
+                src.set_color_key(Some(1)).unwrap();
+            }
+            src.blit(None, &mut dst, None).unwrap();
+            let name = match src.map.blit {
+                MapBlit::Soft(b) => b.name,
+                MapBlit::None => "none",
+            };
+            assert_eq!(name, expected, "{sf:?} -> {df:?} {blend:?} simd={simd}");
+            crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(None));
+        }
+    }
 }

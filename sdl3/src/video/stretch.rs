@@ -6,9 +6,10 @@
 //!
 //! Upstream has three bilinear kernels: portable C, SSE2 and NEON. The SSE2
 //! kernel keeps the vertical pass at full precision before the horizontal
-//! pass, so its results differ from the portable kernel's. x86-64 always
-//! has SSE2, so the SSE2 arithmetic is what SDL produces there; it is
-//! evaluated here in portable code on every target.
+//! pass, so its results differ from the portable kernel's. Both are
+//! translated (the SSE2 one in portable code) and chosen like upstream, by
+//! whether the CPU has SSE2; NEON is not translated, so other architectures
+//! get the portable kernel.
 
 use crate::error::{Error, Result};
 use crate::video::pixels::{Colorspace, PixelFormat};
@@ -257,8 +258,36 @@ fn interpol_bilinear_sse(
     out
 }
 
-/// Translation of `scale_mat_SSE()` (the scalar `scale_mat()` gives
-/// different rounding; see the module documentation).
+/// Translation of `INTERPOL()`: `INTEGER(frac1 * c0 + frac0 * c1)` per byte.
+fn interpol(c0: [u8; 4], c1: [u8; 4], frac0: u32, frac1: u32) -> [u8; 4] {
+    let mut cx = [0u8; 4];
+    for k in 0..4 {
+        cx[k] = ((frac1 * c0[k] as u32 + frac0 * c1[k] as u32) >> PRECISION) as u8;
+    }
+    cx
+}
+
+/// Translation of `INTERPOL_BILINEAR()`.
+fn interpol_bilinear(
+    src: &[u8],
+    s0: isize,
+    s1: isize,
+    frac_w0: u32,
+    frac_h0: u32,
+    frac_h1: u32,
+) -> [u8; 4] {
+    let frac_w1 = FRAC_ONE - frac_w0;
+
+    // Vertical first, store to 'tmp'
+    let tmp0 = interpol(load_px(src, s0), load_px(src, s1), frac_h0, frac_h1);
+    let tmp1 = interpol(load_px(src, s0 + 4), load_px(src, s1 + 4), frac_h0, frac_h1);
+
+    // Horizontal, store to 'dst'
+    interpol(tmp0, tmp1, frac_w0, frac_w1)
+}
+
+/// Translation of `scale_mat()` and `scale_mat_SSE()`, which walk the
+/// image identically and differ in the per-pixel kernel.
 #[allow(clippy::too_many_arguments)]
 fn scale_mat(
     src: &[u8],
@@ -271,7 +300,14 @@ fn scale_mat(
     dst_w: i32,
     dst_h: i32,
     dst_pitch: i32,
+    sse2: bool,
 ) -> Result<()> {
+    let kernel = if sse2 {
+        interpol_bilinear_sse
+    } else {
+        interpol_bilinear
+    };
+
     // BILINEAR___START
     let (mut fp_sum_h, fp_step_h, left_pad_h, right_pad_h) = get_scaler_datas(src_h, dst_h);
     let (fp_sum_w0, fp_step_w, left_pad_w_init, right_pad_w_init) = get_scaler_datas(src_w, dst_w);
@@ -313,17 +349,18 @@ fn scale_mat(
         let middle = middle_init;
 
         for _ in 0..left_pad_w_init {
-            let px = interpol_bilinear_sse(src, src_h0, src_h1, FRAC_ZERO, frac_h0, frac_h1);
+            let px = kernel(src, src_h0, src_h1, FRAC_ZERO, frac_h0, frac_h1);
             put(dst, &mut d, px);
         }
 
         // The SSE kernel works in pairs plus a last point; each pixel is
         // computed independently, so this is the same as one at a time.
+        // (Both kernels read the neighbouring pixel even at zero weight.)
         for _ in 0..middle.max(0) {
             let index_w = 4 * src_index(fp_sum_w) as isize;
             let frac_w = frac(fp_sum_w);
             fp_sum_w += fp_step_w as i64;
-            let px = interpol_bilinear_sse(
+            let px = kernel(
                 src,
                 src_h0 + index_w,
                 src_h1 + index_w,
@@ -336,7 +373,7 @@ fn scale_mat(
 
         for _ in 0..right_pad_w_init {
             let index_w = 4 * (src_w as isize - 2);
-            let px = interpol_bilinear_sse(
+            let px = kernel(
                 src,
                 src_h0 + index_w,
                 src_h1 + index_w,
@@ -370,9 +407,10 @@ fn stretch_surface_unchecked_linear(
         .pixels
         .bytes_mut()
         .ok_or_else(|| Error::invalid_param("dst"))?;
+    let sse2 = crate::video::blit::simd_support().sse2;
     scale_mat(
         src, src_base, srcrect.w, srcrect.h, src_pitch, dst, dst_base, dstrect.w, dstrect.h,
-        dst_pitch,
+        dst_pitch, sse2,
     )
 }
 
