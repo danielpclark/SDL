@@ -310,6 +310,72 @@ impl Surface<'_> {
         self.convert_rect_and_colorspace(None, format, palette, colorspace, props)
     }
 
+    /// A copy of this surface rotated clockwise by `angle` degrees about its
+    /// center, in a surface large enough to hold the result (pixels outside
+    /// the rotated image are transparent or colorkeyed). Translation of `SDL_RotateSurface()`.
+    pub fn rotate(&mut self, angle: f32) -> Result<Surface<'static>> {
+        let center = crate::video::rect::FPoint::new(self.w as f32 * 0.5, self.h as f32 * 0.5);
+        let (rect_dest, cangle, sangle) =
+            crate::video::rotate::rotozoom_surface_size_trig(self.w, self.h, angle as f64, &center);
+
+        // This function requires a 32-bit surface or 8-bit surface with a colorkey
+        let rotated = if (self.format.bits_per_pixel() == 32
+            && self.format.pixel_layout() == crate::video::pixels::PackedLayout::L8888)
+            || (self.format == PixelFormat::INDEX8 && self.has_color_key())
+        {
+            crate::video::rotate::rotate_surface(
+                self,
+                angle as f64,
+                true,
+                false,
+                false,
+                &rect_dest,
+                cangle,
+                sangle,
+                &center,
+            )
+        } else {
+            let mut convert = self.convert(PixelFormat::RGBA32)?;
+            match crate::video::rotate::rotate_surface(
+                &mut convert,
+                angle as f64,
+                true,
+                false,
+                false,
+                &rect_dest,
+                cangle,
+                sangle,
+                &center,
+            ) {
+                Some(tmp) => {
+                    let palette = self.palette.clone();
+                    Some(tmp.convert_with_colorspace(
+                        self.format,
+                        palette.as_ref(),
+                        self.colorspace,
+                        self.props.as_ref(),
+                    )?)
+                }
+                None => None,
+            }
+        };
+
+        let Some(mut rotated) = rotated else {
+            return Err(Error::new("Couldn't rotate surface"));
+        };
+        if let Some(props) = &self.props {
+            if props.contains(PROP_SURFACE_ROTATION_FLOAT) {
+                let rotation =
+                    props.get_number(PROP_SURFACE_ROTATION_FLOAT).unwrap_or(0) as f32 - angle;
+                rotated
+                    .properties()
+                    .set(PROP_SURFACE_ROTATION_FLOAT, rotation)?;
+            }
+        }
+
+        Ok(rotated)
+    }
+
     /// Copy this surface, keeping its format, palette, colorspace,
     /// properties and blit settings. Translation of `SDL_DuplicateSurface()`.
     pub fn duplicate(&self) -> Result<Surface<'static>> {

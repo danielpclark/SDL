@@ -50,6 +50,7 @@ impl Surface<'_> {
         validate_map(self, dst)?;
         match self.map.blit {
             MapBlit::Soft(f) => soft_blit(self, srcrect, dst, dstrect, f),
+            MapBlit::Rle(kind) => crate::video::rle::rle_blit(self, srcrect, dst, dstrect, kind),
             MapBlit::None => Err(Error::new("Blit combination not supported")),
         }
     }

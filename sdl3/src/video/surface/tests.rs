@@ -1,7 +1,7 @@
 // Tests for the surface module. The `*_matches_c` tests replay the same
 // operations as a harness built from upstream's C sources and compare
 // FNV-1a hashes of every result, so any difference in any pixel, error or
-// attribute changes the hash. The C side is built without RLE and YUV
+// attribute changes the hash. The C side is built without YUV
 // (like this crate so far) and with allocations zeroed like Rust's, and is
 // run with its x86 SIMD kernels both enabled and disabled.
 
@@ -571,6 +571,145 @@ fn run_colorspace(t: &mut Harness) -> u64 {
     t.h
 }
 
+/// 6: RLE-accelerated blits
+fn run_rle(t: &mut Harness) -> u64 {
+    const RF: [usize; 11] = [6, 7, 10, 20, 22, 24, 28, 29, 30, 31, 16];
+    const RD: [usize; 7] = [20, 10, 24, 28, 30, 22, 6];
+    t.reset();
+    for i in 0..11 {
+        for j in 0..7 {
+            for v in 0..8 {
+                let w = if v == 7 { 300 } else { 23 };
+                let mut s = Surface::new(w, 13, FMTS[RF[i]]).unwrap();
+                let mut d = Surface::new(w + 7, 17, FMTS[RD[j]]).unwrap();
+                t.fill_random(&mut s);
+                t.fill_random(&mut d);
+                let key = first_pixel(&s);
+                let bpp = s.format.bytes_per_pixel() as usize;
+                let pitch = s.pitch as usize;
+                for y in 0..s.h {
+                    for x in 0..s.w {
+                        let r = t.rnd() % 4;
+                        let p = y as usize * pitch + x as usize * bpp;
+                        if r == 0 {
+                            let px = s.pixels_mut().unwrap();
+                            let first: Vec<u8> = px[..bpp].to_vec();
+                            px[p..p + bpp].copy_from_slice(&first);
+                        } else if s.format.has_alpha() {
+                            let c = s.read_pixel(x, y).unwrap();
+                            let a = match r {
+                                1 => 0,
+                                2 => 255,
+                                _ => t.rnd() as u8,
+                            };
+                            s.write_pixel(x, y, Color::new(c.r, c.g, c.b, a)).unwrap();
+                        }
+                    }
+                }
+                let ok = s.set_rle(true);
+                t.hok(&ok);
+                if v & 1 != 0 {
+                    let k = match &s.palette {
+                        Some(p) => key % read_palette(p).len() as u32,
+                        None => key,
+                    };
+                    s.set_color_key(Some(k)).unwrap();
+                }
+                s.set_blend_mode(if v & 2 != 0 {
+                    BlendMode::BLEND
+                } else {
+                    BlendMode::NONE
+                })
+                .unwrap();
+                if v & 4 != 0 {
+                    let a = if v & 1 != 0 { 128 } else { t.rnd() as u8 };
+                    s.set_alpha_mod(a);
+                }
+                let mut dr = Rect::new((t.rnd() % 9) as i32 - 4, (t.rnd() % 9) as i32 - 4, 0, 0);
+                let ok = s.blit(None, &mut d, Some(&dr));
+                t.hok(&ok);
+                t.h8(s.must_lock() as u8);
+                t.hash_surface(Some(&d));
+                let sr = Rect::new(
+                    (t.rnd() % 7) as i32,
+                    (t.rnd() % 5) as i32,
+                    (t.rnd() % w as u32) as i32,
+                    (t.rnd() % 13) as i32,
+                );
+                dr.x = (t.rnd() % 9) as i32 - 2;
+                dr.y = (t.rnd() % 9) as i32 - 2;
+                let ok = s.blit(Some(&sr), &mut d, Some(&dr));
+                t.hok(&ok);
+                t.hash_surface(Some(&d));
+                {
+                    let lock = s.lock();
+                    t.hok(&lock);
+                    let lock = lock.unwrap();
+                    t.hash_surface(Some(lock.surface()));
+                }
+                t.h8(s.must_lock() as u8);
+                let ok = s.blit(Some(&sr), &mut d, None);
+                t.hok(&ok);
+                t.h8(s.must_lock() as u8);
+                t.hash_surface(Some(&d));
+                t.dbg("rle", i * 100 + j, v, 0);
+            }
+        }
+    }
+    t.h
+}
+
+/// 7: SDL_RotateSurface
+fn run_rotate(t: &mut Harness) -> u64 {
+    const RF: [usize; 7] = [6, 28, 24, 29, 20, 22, 31];
+    const ANG: [f32; 12] = [
+        0.0, 90.0, 180.0, 270.0, -90.0, 45.0, 30.0, 12.5, 359.0, 720.0, -33.0, 1.0,
+    ];
+    t.reset();
+    for i in 0..7 {
+        for (a, &angle) in ANG.iter().enumerate() {
+            for v in 0..2 {
+                let mut s = Surface::new(13, 9, FMTS[RF[i]]).unwrap();
+                t.fill_random(&mut s);
+                if s.palette.is_some() || v != 0 {
+                    let key = if s.palette.is_some() {
+                        t.rnd() % 256
+                    } else {
+                        first_pixel(&s)
+                    };
+                    s.set_color_key(Some(key)).unwrap();
+                }
+                if v != 0 {
+                    s.set_blend_mode(BlendMode::MOD).unwrap();
+                }
+                if a == 3 {
+                    s.properties()
+                        .set(PROP_SURFACE_ROTATION_FLOAT, 10.4f32)
+                        .unwrap();
+                }
+                let d = s.rotate(angle).ok();
+                t.hash_surface(d.as_ref());
+                if let Some(mut d) = d {
+                    let key = d.color_key();
+                    t.h8(key.is_some() as u8);
+                    t.h32(key.unwrap_or(0));
+                    t.h32(d.blend_mode().0);
+                    let rot = d
+                        .properties()
+                        .get_float(PROP_SURFACE_ROTATION_FLOAT)
+                        .unwrap_or(-1.0);
+                    t.h32((rot * 100.0) as i32 as u32);
+                    let clip = d.clip_rect();
+                    t.h32(clip.w as u32);
+                    t.h32(clip.h as u32);
+                }
+                t.dbg("rotate", i, a, v);
+            }
+        }
+    }
+    t.h
+}
+
 /// Run `f` with upstream's x86 kernels selected (`simd`) or not.
 fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     // For comparing per-case output with the C harness: run one mode only.
@@ -592,7 +731,7 @@ fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     h
 }
 
-// Hashes printed by the upstream C harness (without RLE and YUV), with
+// Hashes printed by the upstream C harness (without YUV), with
 // SDL_HasMMX/SSE2/SSE41/AVX2 reporting true and false.
 #[test]
 fn convert_matches_c() {
@@ -825,10 +964,25 @@ fn blitter_selection() {
             src.blit(None, &mut dst, None).unwrap();
             let name = match src.map.blit {
                 MapBlit::Soft(b) => b.name,
+                MapBlit::Rle(_) => "rle",
                 MapBlit::None => "none",
             };
             assert_eq!(name, expected, "{sf:?} -> {df:?} {blend:?} simd={simd}");
             crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(None));
         }
     }
+}
+
+#[test]
+fn rle_blit_matches_c() {
+    let simd = with_simd(true, run_rle);
+    let plain = with_simd(false, run_rle);
+    assert_eq!((simd, plain), (0x8641058ac1efbb42, 0xea2b4ab8dd1e49c2));
+}
+
+#[test]
+fn rotate_matches_c() {
+    let simd = with_simd(true, run_rotate);
+    let plain = with_simd(false, run_rotate);
+    assert_eq!((simd, plain), (0x3460306225aab023, 0x541bb17330829833));
 }

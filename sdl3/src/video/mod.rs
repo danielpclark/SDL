@@ -14,6 +14,7 @@ pub(crate) mod blit;
 pub mod pixels;
 pub mod rect;
 pub(crate) mod rle;
+mod rotate;
 mod stretch;
 pub mod surface;
 

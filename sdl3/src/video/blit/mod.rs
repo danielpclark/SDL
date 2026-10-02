@@ -165,6 +165,8 @@ pub(crate) enum MapBlit {
     None,
     /// `SDL_SoftBlit` with the given row function (`map->data`).
     Soft(NamedBlit),
+    /// `SDL_RLEBlit` or `SDL_RLEAlphaBlit` (the encoded data is `BlitMap::rle`).
+    Rle(crate::video::rle::RleKind),
 }
 
 /// Blit mapping definition. Translation of `SDL_BlitMap` together with the
@@ -194,6 +196,8 @@ pub(crate) struct BlitMap {
     /// invalid mapping.
     pub dst_palette_version: u32,
     pub src_palette_version: u32,
+    /// `map->data` of an RLE-accelerated surface: the encoded pixels.
+    pub rle: Vec<u8>,
 }
 
 impl Default for BlitMap {
@@ -214,6 +218,7 @@ impl Default for BlitMap {
             dst_pal: None,
             dst_palette_version: 0,
             src_palette_version: 0,
+            rle: Vec::new(),
         }
     }
 }
@@ -429,6 +434,11 @@ pub(crate) fn calculate_blit(surface: &mut Surface<'_>, dst: &Surface<'_>) -> Re
     surface.map.blit = MapBlit::None;
     surface.map.dst_fmt = Some(dst.format);
     surface.map.dst_pal = dst.palette.clone();
+
+    // See if we can do RLE acceleration
+    if surface.map.flags & COPY_RLE_DESIRED != 0 && crate::video::rle::rle_surface(surface, dst) {
+        return Ok(());
+    }
 
     // Choose a standard blit function
     if blit.is_none()
