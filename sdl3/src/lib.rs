@@ -42,7 +42,7 @@ pub mod log;
 pub mod power;
 pub mod properties;
 pub mod stdlib;
-mod thread;
+pub mod thread;
 pub mod time;
 pub mod timer;
 pub mod utils;

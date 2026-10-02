@@ -1,51 +1,88 @@
-// Rust translation of src/thread/SDL_thread.c and src/thread/generic/SDL_sysmutex.c
-// from Simple DirectMedia Layer.
+// Rust translation of src/thread/SDL_thread.c, src/thread/generic/SDL_sysmutex.c
+// and src/thread/generic/SDL_syssem.c from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Internal synchronization helpers.
+//! Threads, thread-local storage and synchronization primitives.
 //!
-//! `std::thread` and `std::sync` replace SDL's thread API for users of this
-//! crate. What the translated core still needs internally is SDL's
-//! *recursive* mutex (hint and log callbacks may re-enter the subsystem that
-//! invoked them, and upstream relies on this), a counting semaphore for the
-//! timer thread, and the `SDL_InitState` lifecycle machine.
+//! [`Thread`] translates `SDL_Thread` (on top of `std::thread`, which is
+//! what the pthread/Win32 backends wrap); [`TlsId`] translates `SDL_TLSID`;
+//! [`Semaphore`], [`ReentrantMutex`] (SDL's mutexes are recursive) and
+//! [`InitState`] translate the generic `SDL_Semaphore`, `SDL_Mutex` and
+//! `SDL_InitState`. For plain mutexes, reader/writer locks and condition
+//! variables use `std::sync::{Mutex, RwLock, Condvar}`; they are what
+//! `SDL_Mutex`/`SDL_RWLock`/`SDL_Condition` wrap on every real platform.
 
-use std::cell::UnsafeCell;
+use std::cell::{Cell, UnsafeCell};
 use std::sync::atomic::{AtomicI32, AtomicU64, Ordering};
 use std::sync::Condvar;
 use std::time::Duration;
 
-/// Stable numeric id per OS thread (translation of `SDL_ThreadID`; never 0).
-pub(crate) type ThreadID = u64;
+mod threads;
+mod tls;
+
+pub use threads::{
+    set_current_thread_priority, Thread, ThreadBuilder, ThreadPriority, ThreadState,
+};
+pub use tls::{cleanup_tls, TlsId};
+
+/// A unique numeric ID that identifies a thread (never 0).
+/// Translation of `SDL_ThreadID`.
+pub type ThreadID = u64;
 
 static NEXT_THREAD_ID: AtomicU64 = AtomicU64::new(1);
 
 thread_local! {
-    static THIS_THREAD_ID: ThreadID = NEXT_THREAD_ID.fetch_add(1, Ordering::Relaxed);
+    static THIS_THREAD_ID: Cell<ThreadID> = const { Cell::new(0) };
 }
 
-/// Translation of `SDL_GetCurrentThreadID()`.
-pub(crate) fn current_thread_id() -> ThreadID {
-    THIS_THREAD_ID.with(|id| *id)
+/// Reserve an id for a thread about to be created (so its handle knows the
+/// id before the thread runs, as with `pthread_create`'s out-parameter).
+fn allocate_thread_id() -> ThreadID {
+    NEXT_THREAD_ID.fetch_add(1, Ordering::Relaxed)
 }
 
-/// Counting semaphore. Translation of the generic `SDL_Semaphore`.
-pub(crate) struct Semaphore {
+/// Adopt a pre-allocated id on a freshly started thread.
+fn adopt_thread_id(id: ThreadID) {
+    THIS_THREAD_ID.with(|c| c.set(id));
+}
+
+/// The thread identifier for the current thread. Translation of `SDL_GetCurrentThreadID()`.
+pub fn current_thread_id() -> ThreadID {
+    THIS_THREAD_ID.with(|c| {
+        if c.get() == 0 {
+            c.set(allocate_thread_id());
+        }
+        c.get()
+    })
+}
+
+/// A counting semaphore. Translation of the generic `SDL_Semaphore`
+/// (`SDL_CreateSemaphore()` is [`Semaphore::new`]; dropping destroys it).
+pub struct Semaphore {
     count: std::sync::Mutex<u32>,
     cond: Condvar,
 }
 
+impl std::fmt::Debug for Semaphore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Semaphore")
+            .field("value", &self.value())
+            .finish()
+    }
+}
+
 impl Semaphore {
-    pub(crate) const fn new(initial_value: u32) -> Self {
+    /// Create a semaphore with an initial value. Translation of `SDL_CreateSemaphore()`.
+    pub const fn new(initial_value: u32) -> Self {
         Semaphore {
             count: std::sync::Mutex::new(initial_value),
             cond: Condvar::new(),
         }
     }
 
-    /// Translation of `SDL_WaitSemaphore()`.
-    pub(crate) fn wait(&self) {
+    /// Wait until the value is non-zero, then decrement it. Translation of `SDL_WaitSemaphore()`.
+    pub fn wait(&self) {
         let mut count = self.count.lock().unwrap_or_else(|e| e.into_inner());
         while *count == 0 {
             count = self.cond.wait(count).unwrap_or_else(|e| e.into_inner());
@@ -53,8 +90,8 @@ impl Semaphore {
         *count -= 1;
     }
 
-    /// Translation of `SDL_TryWaitSemaphore()`.
-    pub(crate) fn try_wait(&self) -> bool {
+    /// Decrement the value if it is non-zero. Translation of `SDL_TryWaitSemaphore()`.
+    pub fn try_wait(&self) -> bool {
         let mut count = self.count.lock().unwrap_or_else(|e| e.into_inner());
         if *count > 0 {
             *count -= 1;
@@ -64,8 +101,9 @@ impl Semaphore {
         }
     }
 
-    /// Translation of `SDL_WaitSemaphoreTimeoutNS()`; `None` waits forever.
-    pub(crate) fn wait_timeout(&self, timeout: Option<Duration>) -> bool {
+    /// Wait up to `timeout` (`None`: forever) for a non-zero value, then
+    /// decrement it; `false` on timeout. Translation of `SDL_WaitSemaphoreTimeoutNS()`.
+    pub fn wait_timeout(&self, timeout: Option<Duration>) -> bool {
         let Some(timeout) = timeout else {
             self.wait();
             return true;
@@ -90,11 +128,16 @@ impl Semaphore {
         true
     }
 
-    /// Translation of `SDL_SignalSemaphore()`.
-    pub(crate) fn signal(&self) {
+    /// Increment the value, waking one waiter. Translation of `SDL_SignalSemaphore()`.
+    pub fn signal(&self) {
         let mut count = self.count.lock().unwrap_or_else(|e| e.into_inner());
         *count += 1;
         self.cond.notify_one();
+    }
+
+    /// The current value. Translation of `SDL_GetSemaphoreValue()`.
+    pub fn value(&self) -> u32 {
+        *self.count.lock().unwrap_or_else(|e| e.into_inner())
     }
 }
 
@@ -180,12 +223,14 @@ impl RawMutex {
     }
 }
 
-/// A recursive mutex guarding a value, built on [`RawMutex`].
+/// A recursive mutex guarding a value: the thread holding it may lock it
+/// again. Translation of `SDL_Mutex` (whose generic implementation, kept
+/// here, is a semaphore plus an owner and a recursion count).
 ///
 /// The guard hands out `&T` only (re-entrant `&mut` would be unsound); use
-/// a `RefCell`/`Mutex` inside for mutation, and never hold such a borrow
-/// across a call into user code.
-pub(crate) struct ReentrantMutex<T> {
+/// a `Cell`/`RefCell` inside for mutation, and never hold a `RefCell`
+/// borrow across a call that might lock again.
+pub struct ReentrantMutex<T> {
     raw: RawMutex,
     data: T,
 }
@@ -196,22 +241,39 @@ pub(crate) struct ReentrantMutex<T> {
 unsafe impl<T: Send> Send for ReentrantMutex<T> {}
 unsafe impl<T: Send> Sync for ReentrantMutex<T> {}
 
+impl<T: std::fmt::Debug> std::fmt::Debug for ReentrantMutex<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReentrantMutex")
+            .field("data", &*self.lock())
+            .finish()
+    }
+}
+
 impl<T> ReentrantMutex<T> {
-    pub(crate) const fn new(data: T) -> Self {
+    /// Translation of `SDL_CreateMutex()`.
+    pub const fn new(data: T) -> Self {
         ReentrantMutex {
             raw: RawMutex::new(),
             data,
         }
     }
 
-    pub(crate) fn lock(&self) -> ReentrantMutexGuard<'_, T> {
+    /// Lock (recursively). Translation of `SDL_LockMutex()`; the guard's drop is `SDL_UnlockMutex()`.
+    pub fn lock(&self) -> ReentrantMutexGuard<'_, T> {
         self.raw.lock();
         ReentrantMutexGuard { m: self }
     }
 }
 
-pub(crate) struct ReentrantMutexGuard<'a, T> {
+/// The lock on a [`ReentrantMutex`]; unlocks on drop.
+pub struct ReentrantMutexGuard<'a, T> {
     m: &'a ReentrantMutex<T>,
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for ReentrantMutexGuard<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.m.data, f)
+    }
 }
 
 impl<T> std::ops::Deref for ReentrantMutexGuard<'_, T> {
@@ -233,13 +295,37 @@ const INITIALIZED: i32 = 2;
 const UNINITIALIZING: i32 = 3;
 
 /// Thread-safe one-time initialization/shutdown state. Translation of `SDL_InitState`.
-pub(crate) struct InitState {
+///
+/// ```
+/// use sdl3::thread::InitState;
+/// static STATE: InitState = InitState::new();
+/// if STATE.should_init() {
+///     // ... initialize ...
+///     STATE.set_initialized(true);
+/// }
+/// ```
+pub struct InitState {
     status: AtomicI32,
     thread: AtomicU64,
 }
 
+impl std::fmt::Debug for InitState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InitState")
+            .field("status", &self.status.load(Ordering::Relaxed))
+            .finish()
+    }
+}
+
+impl Default for InitState {
+    fn default() -> Self {
+        InitState::new()
+    }
+}
+
 impl InitState {
-    pub(crate) const fn new() -> Self {
+    /// An uninitialized state.
+    pub const fn new() -> Self {
         InitState {
             status: AtomicI32::new(UNINITIALIZED),
             thread: AtomicU64::new(0),
@@ -248,7 +334,7 @@ impl InitState {
 
     /// Translation of `SDL_ShouldInit()`: returns true if the caller must
     /// perform initialization (and then call `set_initialized`).
-    pub(crate) fn should_init(&self) -> bool {
+    pub fn should_init(&self) -> bool {
         while self.status.load(Ordering::Acquire) != INITIALIZED {
             if self
                 .status
@@ -269,8 +355,9 @@ impl InitState {
         false
     }
 
-    /// Translation of `SDL_ShouldQuit()`.
-    pub(crate) fn should_quit(&self) -> bool {
+    /// Translation of `SDL_ShouldQuit()`: returns true if the caller must
+    /// perform cleanup (and then call `set_initialized(false)`).
+    pub fn should_quit(&self) -> bool {
         while self.status.load(Ordering::Acquire) != UNINITIALIZED {
             if self
                 .status
@@ -291,8 +378,9 @@ impl InitState {
         false
     }
 
-    /// Translation of `SDL_SetInitialized()`.
-    pub(crate) fn set_initialized(&self, initialized: bool) {
+    /// Finish an initialization or cleanup started by [`should_init`](Self::should_init)
+    /// or [`should_quit`](Self::should_quit). Translation of `SDL_SetInitialized()`.
+    pub fn set_initialized(&self, initialized: bool) {
         debug_assert_eq!(self.thread.load(Ordering::Acquire), current_thread_id());
         self.status.store(
             if initialized {
