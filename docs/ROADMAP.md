@@ -16,18 +16,18 @@ timers/ticks, time, GUIDs, CRC/murmur/random, rectangles and pixel formats.
 
 | Directory | Lines | Plan |
 |---|---|---|
-| `SDL.c`, `SDL_assert.c` | ~1,400 | **`SDL.c` done** (`sdl3::init`): `init`/`quit` with subsystem refcounts, app metadata, main-thread tracking. `SDL_assert.c` still to do. |
-| `stdlib/` remainder | ~16,000 | Only what has SDL-specific semantics: `SDL_iconv` (UTF conversions), `SDL_qsort` (unused in Rust: `sort_unstable`), string helpers whose exact behaviour callers rely on (`SDL_strlcpy`, `SDL_utf8strlen`, `SDL_StepUTF8`, `SDL_UCS4ToUTF8`). `SDL_malloc.c` (dlmalloc) is replaced by Rust's allocator. |
-| `libm/` | ~3,300 | fdlibm routines; translate so results are bit-identical to SDL's own `SDL_sin` etc. rather than deferring to the platform libm. |
-| `thread/` generic | ~6,000 | RWLock, condition variable, TLS, thread creation/priority wrappers over `std::thread`. |
-| `cpuinfo/` | ~1,300 | `std::arch` feature detection; cache line size, RAM. |
+| `SDL.c`, `SDL_assert.c` | ~1,400 | **Done** (`sdl3::init`, `sdl3::assert`): `init`/`quit` with subsystem refcounts, app metadata, main-thread tracking; the assertion macros, handler and report. |
+| `stdlib/` remainder | ~16,000 | **Done** (`sdl3::stdlib`): UTF-8 stepping, case folding (tables generated from upstream), string comparison and number parsing with upstream quirks, `iconv` with all encodings, environment snapshots. `SDL_malloc.c` (dlmalloc), `mem*`, `qsort` and `snprintf` are replaced by Rust's own. |
+| `libm/` | ~3,300 | **Done** (`sdl3::stdlib::math`): fdlibm routines, bit-identical to SDL's own `SDL_sin` etc. (verified by hashing outputs against compiled upstream C). |
+| `thread/` generic | ~6,000 | **Done** (`sdl3::thread`): threads, TLS, semaphore, recursive mutex, init state over `std::thread`/`std::sync`. Priorities need the platform layer. |
+| `cpuinfo/` | ~1,300 | **Done** (`sdl3::cpuinfo`): `std::arch` feature detection, cache line size, cores, RAM, page size. |
 | `events/` core | ~12,800 | **Done** (`sdl3::events`): event queue, event types/structs, keyboard/mouse/touch/pen state machines, scancode tables, keymaps, window/display/clipboard/drop/notification event sources. Window state is reached through the `events::window::VideoHooks` trait (with `WindowCore` holding the `SDL_Window` fields the event code touches), which the video subsystem implements later. Deferred: `SDL_quit.c` signal handlers (platform layer), cursor creation from surfaces (needs `SDL_Surface`), the platform scancode tables (`scancodes_*.h`, `SDL_keysym_to_*.c`, with their backends). |
-| `io/`, `storage/` | ~5,500 | `SDL_IOStream` over `std::fs`/memory, async IO queue, storage interface. |
+| `io/`, `storage/` | ~5,500 | **Done** (`sdl3::io`, `sdl3::storage`): `IoStream` over files/memory, async IO with the generic threadpool backend, storage with the generic backends. io_uring/IoRing and Steam storage are Phase 4. |
 | `audio/` core | ~24,400 | Audio spec, format conversion (`SDL_audiotypecvt`), resampler, channel mixing, audio streams, WAVE loader, mixer. Platform drivers (ALSA, Pulse, WASAPI, CoreAudio…) are Phase 4. |
 | `video/` software | ~60,000 of 270,000 | Surfaces, blitters (`SDL_blit_*`, incl. the generated `SDL_blit_auto.c`), fill, stretch, RLE, YUV conversion, BMP load/save, clipboard/surface helpers. |
 | `render/software/` | ~10,000 | Software renderer + the renderer front-end (`SDL_render.c`, `SDL_yuv_sw.c`). |
 | `joystick/` core | ~15,000 of 60,000 | Joystick/gamepad front-end, mapping database parser, virtual joystick, steam virtual gamepad. HIDAPI drivers need USB access → Phase 4. |
-| `haptic/`, `sensor/`, `camera/`, `dialog/`, `tray/`, `notification/`, `filesystem/`, `locale/`, `misc/`, `process/`, `main/` front-ends | ~15,000 | Interface + dummy backends. |
+| `haptic/`, `sensor/`, `camera/`, `dialog/`, `tray/`, `notification/`, `locale/`, `misc/`, `process/`, `main/` front-ends | ~14,000 | Interface + dummy backends. (`filesystem/` is done: `sdl3::filesystem`, with the POSIX operations and Unix paths.) |
 | `dynapi/` | ~3,450 | Not applicable in Rust (no runtime ABI jump table); documented as intentionally omitted. |
 
 ## Phase 3 — Platform layer design
