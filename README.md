@@ -94,7 +94,7 @@ cargo test
 cargo doc --open
 ```
 
-Requires Rust 1.85 or newer. There is nothing else to install.
+Requires Rust 1.87 or newer. There is nothing else to install.
 
 ## Using it
 

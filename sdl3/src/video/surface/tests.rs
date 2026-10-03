@@ -249,7 +249,7 @@ fn run_convert(t: &mut Harness) -> u64 {
             t.fill_random(&mut s);
             let r = t.rnd();
             /* colorkeys converted to >4-byte formats overflow an int in upstream (UB) */
-            if r % 3 == 0 && FMTS[j].bytes_per_pixel() <= 4 {
+            if r.is_multiple_of(3) && FMTS[j].bytes_per_pixel() <= 4 {
                 let key = colorkey_for(t, &s);
                 s.set_color_key(Some(key)).unwrap();
             }
@@ -308,7 +308,7 @@ fn run_blit(t: &mut Harness) -> u64 {
                         let key = colorkey_for(t, &s);
                         s.set_color_key(Some(key)).unwrap();
                     }
-                    if t.rnd() % 4 == 0 {
+                    if t.rnd().is_multiple_of(4) {
                         let x = (t.rnd() % 5) as i32;
                         let y = (t.rnd() % 5) as i32;
                         let w = (t.rnd() % 10) as i32;
@@ -890,7 +890,7 @@ fn run_yuv(t: &mut Harness) -> u64 {
                 let (gsize, gpitch) = calculate_yuv_size(g, w, hh).unwrap();
                 let cs = YCS[t.rnd() as usize % YCS.len()];
                 let mut cs2 = cs;
-                if t.rnd() % 8 == 0 {
+                if t.rnd().is_multiple_of(8) {
                     cs2 = YCS[t.rnd() as usize % YCS.len()];
                 }
                 let src = t.rnd_buf(fsize);
@@ -1035,7 +1035,11 @@ fn run_bmp(t: &mut Harness) -> u64 {
         }
         let w = (t.rnd() % 14) as i32 - 2;
         let hh = (t.rnd() % 14) as i32 - 7;
-        let clr = if t.rnd() % 3 == 0 { t.rnd() % 300 } else { 0 };
+        let clr = if t.rnd().is_multiple_of(3) {
+            t.rnd() % 300
+        } else {
+            0
+        };
         let m = MASKS[t.rnd() as usize % 8];
         let mut ncolors = if bits <= 8 {
             if clr != 0 {
@@ -1051,11 +1055,14 @@ fn run_bmp(t: &mut Harness) -> u64 {
         let masks_extra = if bi_size == 40 && comp == 3 { 12 } else { 0 };
         let mut off = 14 + bi_size + masks_extra + ncolors * entry;
         let r = t.rnd();
-        if r % 7 == 0 {
+        if r.is_multiple_of(7) {
             off = t.rnd() % 200;
         }
         put8(&mut b, b'B' as u32);
-        put8(&mut b, if r % 31 == 0 { b'X' } else { b'M' } as u32);
+        put8(
+            &mut b,
+            if r.is_multiple_of(31) { b'X' } else { b'M' } as u32,
+        );
         let v = t.rnd();
         put32(&mut b, v);
         put16(&mut b, 0);
@@ -1124,7 +1131,7 @@ fn run_bmp(t: &mut Harness) -> u64 {
         for _ in 0..len {
             let x = t.rnd();
             // bias RLE streams towards escapes
-            let byte = if (comp == 1 || comp == 2) && x % 5 == 0 {
+            let byte = if (comp == 1 || comp == 2) && x.is_multiple_of(5) {
                 (x >> 8) % 3
             } else {
                 x >> 4
@@ -1162,7 +1169,11 @@ fn run_draw(t: &mut Harness) -> u64 {
         let r = t.rnd() as u8;
         let g = t.rnd() as u8;
         let b = t.rnd() as u8;
-        let a = if t.rnd() % 3 == 0 { 255 } else { t.rnd() as u8 };
+        let a = if t.rnd().is_multiple_of(3) {
+            255
+        } else {
+            t.rnd() as u8
+        };
         Color::new(r, g, b, a)
     }
     fn rnd_clip(t: &mut Harness, s: &mut Surface<'_>, w: i32, hh: i32) {
@@ -1179,7 +1190,7 @@ fn run_draw(t: &mut Harness) -> u64 {
             let (w, hh) = (23, 17);
             let mut s = Surface::new(w, hh, FMTS[f]).unwrap();
             t.fill_random(&mut s);
-            if t.rnd() % 3 == 0 {
+            if t.rnd().is_multiple_of(3) {
                 rnd_clip(t, &mut s, w, hh);
             }
             let op = t.rnd() % 10;
@@ -1229,7 +1240,7 @@ fn run_draw(t: &mut Harness) -> u64 {
             let (w, hh) = (23, 17);
             let mut d = Surface::new(w, hh, FMTS[f]).unwrap();
             t.fill_random(&mut d);
-            if t.rnd() % 4 == 0 {
+            if t.rnd().is_multiple_of(4) {
                 rnd_clip(t, &mut d, w, hh);
             }
             let mut p = [Point { x: 0, y: 0 }; 3];
@@ -1239,17 +1250,17 @@ fn run_draw(t: &mut Harness) -> u64 {
             }
             let mut c0 = rnd_color(t);
             let (mut c1, mut c2) = (c0, c0);
-            if t.rnd() % 2 != 0 {
+            if !t.rnd().is_multiple_of(2) {
                 c1 = rnd_color(t);
                 c2 = rnd_color(t);
             }
-            let res = if t.rnd() % 2 != 0 {
+            let res = if !t.rnd().is_multiple_of(2) {
                 let mode = DMODES[t.rnd() as usize % 8];
                 triangle::sw_fill_triangle(&mut d, &p[0], &p[1], &p[2], mode, c0, c1, c2)
             } else {
                 let sw = 1 + (t.rnd() % 13) as i32;
                 let sh = 1 + (t.rnd() % 9) as i32;
-                let sf = if t.rnd() % 2 != 0 {
+                let sf = if !t.rnd().is_multiple_of(2) {
                     d.format
                 } else {
                     FMTS[DF[1 + t.rnd() as usize % (DF.len() - 1)]]

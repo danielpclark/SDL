@@ -299,10 +299,6 @@ pub trait VideoHooks: Send + Sync {
     fn has_windows(&self) -> bool {
         false
     }
-    /// Translation of `SDL_HasActiveTrays()`.
-    fn has_active_trays(&self) -> bool {
-        false
-    }
     /// Translation of `_this->PumpEvents`.
     fn pump_events(&self) {}
     /// True if both `WaitEventTimeout` and `SendWakeupEvent` are implemented.
@@ -726,7 +722,7 @@ pub fn send_window_event(
 
     if windowevent == EventType::WINDOW_CLOSE_REQUESTED
         && window_is_topmost
-        && !video.has_active_trays()
+        && !crate::tray::has_active_trays()
     {
         let mut count = if window_exists { 0 } else { 1 };
         count += video.visible_toplevel_window_count();

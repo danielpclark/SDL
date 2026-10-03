@@ -716,7 +716,7 @@ fn ima_adpcm_init(file: &mut WaveFile, datalength: usize) -> Result<()> {
     /* The block size is required to be a multiple of 4 and it must be able to
      * hold a block header.
      */
-    if (format.blockalign as usize) < blockheadersize || format.blockalign % 4 != 0 {
+    if (format.blockalign as usize) < blockheadersize || !format.blockalign.is_multiple_of(4) {
         return Err(Error::new("Invalid IMA ADPCM block size (nBlockAlign)"));
     }
     let blockdatasamples = (blockdatasize * 8) / blockframebitsize;
@@ -1006,7 +1006,10 @@ fn law_init(file: &mut WaveFile, datalength: usize) -> Result<()> {
         return Err(Error::new("Unsupported block alignment"));
     }
 
-    if file.strict() && format.blockalign > 1 && datalength % format.blockalign as usize != 0 {
+    if file.strict()
+        && format.blockalign > 1
+        && !datalength.is_multiple_of(format.blockalign as usize)
+    {
         return Err(Error::new("Truncated data chunk in WAVE file"));
     }
 
@@ -1124,12 +1127,16 @@ fn pcm_init(file: &mut WaveFile, datalength: usize) -> Result<()> {
      * the most common formats should do for now.
      */
     // Make sure we're a multiple of the blockalign, at least.
-    if (format.channels as u32 * format.bitspersample as u32) % (format.blockalign as u32 * 8) != 0
+    if !(format.channels as u32 * format.bitspersample as u32)
+        .is_multiple_of(format.blockalign as u32 * 8)
     {
         return Err(Error::new("Unsupported block alignment"));
     }
 
-    if file.strict() && format.blockalign > 1 && datalength % format.blockalign as usize != 0 {
+    if file.strict()
+        && format.blockalign > 1
+        && !datalength.is_multiple_of(format.blockalign as usize)
+    {
         return Err(Error::new("Truncated data chunk in WAVE file"));
     }
 

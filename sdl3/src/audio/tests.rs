@@ -806,7 +806,7 @@ fn disk_driver_writes_and_reads_files() {
     }
     drop(dev);
     let written = std::fs::read(&out).unwrap();
-    assert!(written.len() >= buffer_bytes && written.len() % buffer_bytes == 0);
+    assert!(written.len() >= buffer_bytes && written.len().is_multiple_of(buffer_bytes));
     assert!(
         written[..spec.frame_size() * 64].iter().all(|&b| b == 0x22),
         "the queued data comes first"

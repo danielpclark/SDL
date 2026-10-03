@@ -499,8 +499,18 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
             flags_initialized |= InitFlags::GAMEPAD;
         }
 
+        // Initialize the haptic subsystem
         if flags.contains(InitFlags::HAPTIC) {
-            return Err(err!("SDL not built with haptic (force feedback) support"));
+            if should_init_subsystem(InitFlags::HAPTIC) {
+                increment_refcount(InitFlags::HAPTIC);
+                if let Err(e) = crate::haptic::init_haptics() {
+                    decrement_refcount(InitFlags::HAPTIC);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::HAPTIC);
+            }
+            flags_initialized |= InitFlags::HAPTIC;
         }
 
         // Initialize the sensor subsystem
@@ -540,7 +550,7 @@ pub fn init(flags: InitFlags) -> Result<()> {
 /// Shut down specific SDL subsystems. Translation of `SDL_QuitSubSystem()`.
 pub fn quit_subsystem(flags: InitFlags) {
     // Shut down requested initialized subsystems
-    // (camera, haptic, video: not translated yet)
+    // (camera, video: not translated yet)
 
     if flags.contains(InitFlags::SENSOR) {
         if should_quit_subsystem(InitFlags::SENSOR) {
@@ -565,6 +575,13 @@ pub fn quit_subsystem(flags: InitFlags) {
             quit_subsystem(InitFlags::EVENTS);
         }
         decrement_refcount(InitFlags::JOYSTICK);
+    }
+
+    if flags.contains(InitFlags::HAPTIC) {
+        if should_quit_subsystem(InitFlags::HAPTIC) {
+            crate::haptic::quit_haptics();
+        }
+        decrement_refcount(InitFlags::HAPTIC);
     }
 
     if flags.contains(InitFlags::AUDIO) {
@@ -625,6 +642,8 @@ pub fn quit() {
 
     // Quit all subsystems
     quit_subsystem(InitFlags::ALL);
+    crate::tray::cleanup_trays();
+    crate::notification::cleanup_notifications();
 
     crate::timer::quit_timers();
     crate::io::quit_async_io();

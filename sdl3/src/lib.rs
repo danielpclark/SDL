@@ -31,20 +31,27 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
 
+pub mod app;
 pub mod assert;
 pub mod atomic;
 pub mod audio;
 pub mod cpuinfo;
+pub mod dialog;
 pub mod error;
 pub mod events;
 pub mod filesystem;
 pub mod guid;
+pub mod haptic;
 pub mod hints;
 pub mod init;
 pub mod io;
 pub mod joystick;
+pub mod locale;
 pub mod log;
+pub mod misc;
+pub mod notification;
 pub mod power;
+pub mod process;
 pub mod properties;
 pub mod render;
 pub mod sensor;
@@ -53,6 +60,7 @@ pub mod storage;
 pub mod thread;
 pub mod time;
 pub mod timer;
+pub mod tray;
 pub mod utils;
 pub mod version;
 pub mod video;

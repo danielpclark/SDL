@@ -700,7 +700,11 @@ fn save_bmp_io_internal(
     dst.seek(fp_offset + bf_off_bits as i64, IoWhence::Set)?;
 
     // Write the bitmap image upside down
-    let pad = if bw % 4 != 0 { 4 - (bw % 4) } else { 0 };
+    let pad = if !bw.is_multiple_of(4) {
+        4 - (bw % 4)
+    } else {
+        0
+    };
     for row in (0..h as usize).rev() {
         let bits = &pixels[row * pitch..row * pitch + bw];
         if dst.write(bits) != bw {

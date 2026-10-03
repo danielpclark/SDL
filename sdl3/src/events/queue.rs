@@ -812,7 +812,9 @@ pub(crate) fn pump_event_maintenance() {
 
     super::mouse::update_cursor_animation();
 
-    // SDL_UpdateTrays(); SDL_SendPendingSignalEvents(); -- platform layer
+    crate::tray::update_trays();
+
+    // SDL_SendPendingSignalEvents(); -- platform layer
 }
 
 /// Run the system dependent event loops. Translation of `SDL_PumpEventsInternal()`.

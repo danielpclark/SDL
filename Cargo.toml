@@ -5,7 +5,7 @@ members = ["sdl3"]
 [workspace.package]
 version = "3.5.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.87"
 license = "Zlib"
 repository = "https://github.com/danielpclark/SDL"
 

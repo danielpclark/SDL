@@ -630,9 +630,9 @@ pub(crate) fn calculate_blit_a(surface: &Surface<'_>, dst: &Surface<'_>) -> Opti
                         && sf.Bmask == df.Bmask
                         && sf.bytes_per_pixel == 4
                     {
-                        if sf.Rshift % 8 == 0
-                            && sf.Gshift % 8 == 0
-                            && sf.Bshift % 8 == 0
+                        if sf.Rshift.is_multiple_of(8)
+                            && sf.Gshift.is_multiple_of(8)
+                            && sf.Bshift.is_multiple_of(8)
                             && simd.sse2
                         {
                             return Some(named_blit!(

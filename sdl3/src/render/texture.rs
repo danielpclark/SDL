@@ -2361,7 +2361,7 @@ impl Renderer {
             self.tex(t)?;
         }
 
-        if count % 3 != 0 {
+        if !count.is_multiple_of(3) {
             return Err(Error::invalid_param(if g.indices.is_some() {
                 "num_indices"
             } else {
