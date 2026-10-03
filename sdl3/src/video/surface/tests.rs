@@ -1123,6 +1123,162 @@ fn run_bmp(t: &mut Harness) -> u64 {
     t.h
 }
 
+/// 10: software renderer primitives
+fn run_draw(t: &mut Harness) -> u64 {
+    use crate::render::software::{draw, triangle};
+    use crate::render::TextureAddressMode;
+    use crate::video::rect::Point;
+    const DF: [usize; 17] = [
+        0, 6, 7, 8, 10, 12, 16, 20, 21, 22, 24, 25, 26, 28, 29, 30, 31,
+    ];
+    const DMODES: [BlendMode; 8] = [
+        BlendMode::NONE,
+        BlendMode::BLEND,
+        BlendMode::BLEND_PREMULTIPLIED,
+        BlendMode::ADD,
+        BlendMode::ADD_PREMULTIPLIED,
+        BlendMode::MOD,
+        BlendMode::MUL,
+        BlendMode(0x12345),
+    ];
+    fn rnd_coord(t: &mut Harness, n: i32) -> i32 {
+        (t.rnd() % (n + 12) as u32) as i32 - 6
+    }
+    fn rnd_color(t: &mut Harness) -> Color {
+        let r = t.rnd() as u8;
+        let g = t.rnd() as u8;
+        let b = t.rnd() as u8;
+        let a = if t.rnd() % 3 == 0 { 255 } else { t.rnd() as u8 };
+        Color::new(r, g, b, a)
+    }
+    fn rnd_clip(t: &mut Harness, s: &mut Surface<'_>, w: i32, hh: i32) {
+        let x = rnd_coord(t, w);
+        let y = rnd_coord(t, hh);
+        let cw = (t.rnd() % 30) as i32;
+        let ch = (t.rnd() % 20) as i32;
+        s.set_clip_rect(Some(&Rect::new(x, y, cw, ch)));
+    }
+
+    t.reset();
+    for (fi, &f) in DF.iter().enumerate() {
+        for k in 0..60 {
+            let (w, hh) = (23, 17);
+            let mut s = Surface::new(w, hh, FMTS[f]).unwrap();
+            t.fill_random(&mut s);
+            if t.rnd() % 3 == 0 {
+                rnd_clip(t, &mut s, w, hh);
+            }
+            let op = t.rnd() % 10;
+            let mode = DMODES[t.rnd() as usize % 8];
+            let (r, g, b, a) = (t.rnd() as u8, t.rnd() as u8, t.rnd() as u8, t.rnd() as u8);
+            let color = t.rnd();
+            let n = 1 + (t.rnd() % 7) as usize;
+            let mut pts = [Point { x: 0, y: 0 }; 8];
+            for p in pts.iter_mut() {
+                p.x = rnd_coord(t, w);
+                p.y = rnd_coord(t, hh);
+            }
+            let nr = (t.rnd() % 4) as usize;
+            let mut rects = [Rect::default(); 4];
+            for rc in rects.iter_mut() {
+                rc.x = rnd_coord(t, w);
+                rc.y = rnd_coord(t, hh);
+                rc.w = rnd_coord(t, w);
+                rc.h = rnd_coord(t, hh);
+            }
+            let list = &pts[..n];
+            let res = match op {
+                0 => draw::draw_point(&mut s, pts[0].x, pts[0].y, color),
+                1 => draw::draw_points(&mut s, list, color),
+                2 => draw::draw_line(&mut s, pts[0].x, pts[0].y, pts[1].x, pts[1].y, color),
+                3 => draw::draw_lines(&mut s, list, color),
+                4 => draw::blend_point(&mut s, pts[0].x, pts[0].y, mode, r, g, b, a),
+                5 => draw::blend_points(&mut s, list, mode, r, g, b, a),
+                6 => draw::blend_line(
+                    &mut s, pts[0].x, pts[0].y, pts[1].x, pts[1].y, mode, r, g, b, a,
+                ),
+                7 => draw::blend_lines(&mut s, list, mode, r, g, b, a),
+                8 => {
+                    draw::blend_fill_rect(&mut s, (nr != 0).then_some(&rects[0]), mode, r, g, b, a)
+                }
+                _ => draw::blend_fill_rects(&mut s, &rects[..nr], mode, r, g, b, a),
+            };
+            t.hok(&res);
+            t.hash_surface(Some(&s));
+            t.dbg("draw", fi, k, op as usize);
+        }
+    }
+    // triangles (not INDEX1: upstream indexes its 2-color palette with whole bytes)
+    const AM: [TextureAddressMode; 2] = [TextureAddressMode::Clamp, TextureAddressMode::Wrap];
+    for (fi, &f) in DF.iter().enumerate().skip(1) {
+        for k in 0..60 {
+            let (w, hh) = (23, 17);
+            let mut d = Surface::new(w, hh, FMTS[f]).unwrap();
+            t.fill_random(&mut d);
+            if t.rnd() % 4 == 0 {
+                rnd_clip(t, &mut d, w, hh);
+            }
+            let mut p = [Point { x: 0, y: 0 }; 3];
+            for q in p.iter_mut() {
+                q.x = (t.rnd() % (2 * w + 40) as u32) as i32 - 20;
+                q.y = (t.rnd() % (2 * hh + 40) as u32) as i32 - 20;
+            }
+            let mut c0 = rnd_color(t);
+            let (mut c1, mut c2) = (c0, c0);
+            if t.rnd() % 2 != 0 {
+                c1 = rnd_color(t);
+                c2 = rnd_color(t);
+            }
+            let res = if t.rnd() % 2 != 0 {
+                let mode = DMODES[t.rnd() as usize % 8];
+                triangle::sw_fill_triangle(&mut d, &p[0], &p[1], &p[2], mode, c0, c1, c2)
+            } else {
+                let sw = 1 + (t.rnd() % 13) as i32;
+                let sh = 1 + (t.rnd() % 9) as i32;
+                let sf = if t.rnd() % 2 != 0 {
+                    d.format
+                } else {
+                    FMTS[DF[1 + t.rnd() as usize % (DF.len() - 1)]]
+                };
+                let mut src = Surface::new(sw, sh, sf).unwrap();
+                t.fill_random(&mut src);
+                let mut sp = [Point { x: 0, y: 0 }; 3];
+                for q in sp.iter_mut() {
+                    q.x = (t.rnd() % (sw + 6) as u32) as i32 - 3;
+                    q.y = (t.rnd() % (sh + 6) as u32) as i32 - 3;
+                }
+                let v = t.rnd();
+                if v & 1 != 0 {
+                    src.set_blend_mode(DMODES[1 + t.rnd() as usize % 6])
+                        .unwrap();
+                } else {
+                    src.set_blend_mode(BlendMode::NONE).unwrap();
+                }
+                if v & 2 != 0 {
+                    let key = colorkey_for(t, &src);
+                    src.set_color_key(Some(key)).unwrap();
+                }
+                if v & 4 != 0 {
+                    c0 = Color::new(255, 255, 255, 255);
+                    c1 = c0;
+                    c2 = c0;
+                }
+                let mu = AM[t.rnd() as usize % 2];
+                let mv = AM[t.rnd() as usize % 2];
+                triangle::sw_blit_triangle(
+                    &mut src, &sp[0], &sp[1], &sp[2], &mut d, &p[0], &p[1], &p[2], c0, c1, c2, mu,
+                    mv,
+                )
+            };
+            t.hok(&res);
+            t.err("TE", &res);
+            t.hash_surface(Some(&d));
+            t.dbg("tri", fi, k, res.is_ok() as usize);
+        }
+    }
+    t.h
+}
+
 /// Run `f` with upstream's x86 kernels selected (`simd`) or not.
 fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     // For comparing per-case output with the C harness: run one mode only.
@@ -1412,4 +1568,11 @@ fn bmp_matches_c() {
     let simd = with_simd(true, run_bmp);
     let plain = with_simd(false, run_bmp);
     assert_eq!((simd, plain), (0x6bb164d40b8e4539, 0x6bb164d40b8e4539));
+}
+
+#[test]
+fn draw_matches_c() {
+    let simd = with_simd(true, run_draw);
+    let plain = with_simd(false, run_draw);
+    assert_eq!((simd, plain), (0x7b03b3984b42eb41, 0x30a8e5e62fbd081c));
 }

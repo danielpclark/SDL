@@ -45,6 +45,7 @@ pub mod io;
 pub mod log;
 pub mod power;
 pub mod properties;
+pub mod render;
 pub mod stdlib;
 pub mod storage;
 pub mod thread;
