@@ -68,9 +68,10 @@ Roughly 118,000 lines of upstream C/headers are covered by about 84,000
 lines of Rust including tests. Upstream is ~624,000 lines, so this is about
 19% by volume, but it is the part that everything else includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
-BMP path, the renderer and the joystick/gamepad front ends are checked against upstream's C (compiled with
+BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
-scenarios. Upstream bugs found this way are kept and marked
+scenarios; the joystick and gamepad front ends by comparing the event trace
+of a scripted virtual-joystick session with upstream's. Upstream bugs found this way are kept and marked
 `FIXME (upstream)`; where the C code would read or write out of bounds, the
 Rust code returns an error instead.
 
