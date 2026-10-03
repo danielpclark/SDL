@@ -54,6 +54,7 @@ fn rgb888_rgb555(src: u32) -> u32 {
 
 /// Translation of `Blit_XRGB8888_RGB555()`.
 fn blit_xrgb8888_rgb555(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(4, 2);
     walk(info, 4, 2, |src, s, dst, d| {
         wr16(dst, d, rgb888_rgb555(rd32(src, s)))
     });
@@ -66,6 +67,7 @@ fn rgb888_rgb565(src: u32) -> u32 {
 
 /// Translation of `Blit_XRGB8888_RGB565()`.
 fn blit_xrgb8888_rgb565(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(4, 2);
     walk(info, 4, 2, |src, s, dst, d| {
         wr16(dst, d, rgb888_rgb565(rd32(src, s)))
     });
@@ -122,6 +124,7 @@ static RGB565_BGRA8888_LUT: [u32; 512] = generate_lut([8, 16, 24], 0x000000ff);
 /// Special optimized blit for RGB 5-6-5 --> 32-bit RGB surfaces.
 /// Translation of `Blit_RGB565_32()`.
 fn blit_rgb565_32(info: &mut BlitInfo<'_>, map: &[u32; 512]) {
+    info.truncate_skips(1, 4);
     walk(info, 2, 4, |src, s, dst, d| {
         // RGB565_32(dst, src, map)
         let v = map[src[s + LO] as usize * 2] | map[src[s + HI] as usize * 2 + 1];
@@ -145,6 +148,7 @@ fn blit_rgb565_bgra8888(info: &mut BlitInfo<'_>) {
 /// Translation of `Blit_RGB565_32_SSE41()`, which works for any 8888
 /// destination (the shuffle puts each channel at the destination's shift).
 fn blit_rgb565_32_sse41(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(2, 4);
     let dstfmt = *info.dst_fmt;
     let (r_shift, g_shift, b_shift) = (
         dstfmt.Rshift as u32,
@@ -366,6 +370,7 @@ fn blit_n_to_n_copy_alpha(info: &mut BlitInfo<'_>) {
 
 /// Translation of `Blit2to2Key()`.
 fn blit_2to2_key(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(2, 2);
     let rgbmask = !info.src_fmt.Amask;
     let ckey = info.colorkey & rgbmask;
     walk(info, 2, 2, |src, s, dst, d| {

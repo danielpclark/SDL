@@ -96,3 +96,36 @@ pub enum BlendFactor {
     /// 1-dstA, 1-dstA, 1-dstA, 1-dstA
     OneMinusDstAlpha = 0xA,
 }
+
+impl BlendOperation {
+    /// The operation of a raw value, `None` for an invalid one.
+    pub const fn from_u32(v: u32) -> Option<BlendOperation> {
+        Some(match v {
+            0x1 => BlendOperation::Add,
+            0x2 => BlendOperation::Subtract,
+            0x3 => BlendOperation::RevSubtract,
+            0x4 => BlendOperation::Minimum,
+            0x5 => BlendOperation::Maximum,
+            _ => return None,
+        })
+    }
+}
+
+impl BlendFactor {
+    /// The factor of a raw value, `None` for an invalid one.
+    pub const fn from_u32(v: u32) -> Option<BlendFactor> {
+        Some(match v {
+            0x1 => BlendFactor::Zero,
+            0x2 => BlendFactor::One,
+            0x3 => BlendFactor::SrcColor,
+            0x4 => BlendFactor::OneMinusSrcColor,
+            0x5 => BlendFactor::SrcAlpha,
+            0x6 => BlendFactor::OneMinusSrcAlpha,
+            0x7 => BlendFactor::DstColor,
+            0x8 => BlendFactor::OneMinusDstColor,
+            0x9 => BlendFactor::DstAlpha,
+            0xA => BlendFactor::OneMinusDstAlpha,
+            _ => return None,
+        })
+    }
+}

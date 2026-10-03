@@ -4,8 +4,6 @@
 
 //! The software renderer and the surface drawing primitives it uses.
 
-// The primitives are used by the software renderer (translated next).
-#[allow(dead_code)]
 pub(crate) mod draw;
-#[allow(dead_code)]
+pub(crate) mod render_sw;
 pub(crate) mod triangle;

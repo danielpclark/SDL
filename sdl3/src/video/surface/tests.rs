@@ -10,13 +10,15 @@
 use super::*;
 use crate::video::pixels::Color;
 
-struct Harness {
+pub(crate) struct Harness {
     rng: u64,
-    h: u64,
+    pub(crate) h: u64,
     debug: bool,
+    /// Print the pixels of hashed surfaces (for comparing with the C harness)
+    pub(crate) dump: bool,
 }
 
-const FMTS: [PixelFormat; 54] = [
+pub(crate) const FMTS: [PixelFormat; 54] = [
     PixelFormat::INDEX1LSB,
     PixelFormat::INDEX1MSB,
     PixelFormat::INDEX2LSB,
@@ -78,7 +80,7 @@ const SUB: [usize; 27] = [
     42, 50,
 ];
 
-const MODES: [BlendMode; 7] = [
+pub(crate) const MODES: [BlendMode; 7] = [
     BlendMode::NONE,
     BlendMode::BLEND,
     BlendMode::BLEND_PREMULTIPLIED,
@@ -89,51 +91,52 @@ const MODES: [BlendMode; 7] = [
 ];
 
 impl Harness {
-    fn new() -> Harness {
+    pub(crate) fn new() -> Harness {
         Harness {
             rng: 1,
             h: 0,
             debug: std::env::var_os("SDL_SURFACE_TEST_DEBUG").is_some(),
+            dump: false,
         }
     }
-    fn rnd(&mut self) -> u32 {
+    pub(crate) fn rnd(&mut self) -> u32 {
         self.rng = self
             .rng
             .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
         (self.rng >> 33) as u32
     }
-    fn rnd_float(&mut self) -> f32 {
+    pub(crate) fn rnd_float(&mut self) -> f32 {
         (self.rnd() % 1500) as f32 / 1000.0 - 0.25
     }
-    fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.h = 0xcbf29ce484222325;
     }
-    fn hb(&mut self, b: &[u8]) {
+    pub(crate) fn hb(&mut self, b: &[u8]) {
         for &x in b {
             self.h ^= x as u64;
             self.h = self.h.wrapping_mul(0x100000001b3);
         }
     }
-    fn h8(&mut self, v: u8) {
+    pub(crate) fn h8(&mut self, v: u8) {
         self.hb(&[v]);
     }
-    fn hok<T>(&mut self, r: &Result<T>) {
+    pub(crate) fn hok<T>(&mut self, r: &Result<T>) {
         self.h8(r.is_ok() as u8);
     }
-    fn h32(&mut self, v: u32) {
+    pub(crate) fn h32(&mut self, v: u32) {
         self.hb(&v.to_le_bytes());
     }
-    fn hf(&mut self, v: f32) {
+    pub(crate) fn hf(&mut self, v: f32) {
         self.hb(&v.to_ne_bytes());
     }
-    fn dbg(&self, what: &str, a: usize, b: usize, c: usize) {
+    pub(crate) fn dbg(&self, what: &str, a: usize, b: usize, c: usize) {
         if self.debug {
             println!("  {what} {a} {b} {c} {:016x}", self.h);
         }
     }
 
-    fn fill_random(&mut self, s: &mut Surface<'_>) {
+    pub(crate) fn fill_random(&mut self, s: &mut Surface<'_>) {
         let f = s.format;
         let n = (s.h * s.pitch) as usize;
         let Some(_) = s.pixels.bytes() else { return };
@@ -173,7 +176,7 @@ impl Harness {
         }
     }
 
-    fn hash_surface(&mut self, s: Option<&Surface<'_>>) {
+    pub(crate) fn hash_surface(&mut self, s: Option<&Surface<'_>>) {
         let Some(s) = s else {
             self.h8(0xEE);
             return;
@@ -192,6 +195,17 @@ impl Harness {
             (s.w * bits + 7) / 8
         } as usize;
         let px = px.to_vec();
+        if self.dump {
+            println!("  dump {}x{}", s.w, s.h);
+            for y in 0..s.h as usize {
+                let start = y * s.pitch as usize;
+                let bytes: String = px[start..start + row]
+                    .iter()
+                    .map(|b| format!(" {b:02x}"))
+                    .collect();
+                println!("  row {y}:{bytes}");
+            }
+        }
         for y in 0..s.h as usize {
             let start = y * s.pitch as usize;
             self.hb(&px[start..start + row]);
@@ -205,7 +219,7 @@ impl Harness {
     }
 }
 
-fn first_pixel(s: &Surface<'_>) -> u32 {
+pub(crate) fn first_pixel(s: &Surface<'_>) -> u32 {
     let px = s.pixels.bytes().unwrap();
     if s.format.bits_per_pixel() < 8 {
         return (px[0] & 1) as u32;
@@ -1280,7 +1294,7 @@ fn run_draw(t: &mut Harness) -> u64 {
 }
 
 /// Run `f` with upstream's x86 kernels selected (`simd`) or not.
-fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
+pub(crate) fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 {
     // For comparing per-case output with the C harness: run one mode only.
     if let Ok(only) = std::env::var("SDL_SURFACE_TEST_ONLY_SIMD") {
         if only != (simd as u8).to_string() {

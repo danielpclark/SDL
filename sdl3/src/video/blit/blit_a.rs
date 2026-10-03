@@ -159,6 +159,7 @@ fn blit_888_to_888_surface_alpha_sse2(info: &mut BlitInfo<'_>) {
 /// fast RGB888->(A)RGB888 blending with surface alpha=128 special case.
 /// Translation of `BlitRGBtoRGBSurfaceAlpha128()`.
 fn blit_rgb_to_rgb_surface_alpha128(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(4, 4);
     walk(info, 4, 4, |src, si, dst, di| {
         let s = rd32(src, si);
         let d = rd32(dst, di);
@@ -169,6 +170,7 @@ fn blit_rgb_to_rgb_surface_alpha128(info: &mut BlitInfo<'_>) {
 
 /// fast RGB888->(A)RGB888 blending with surface alpha. Translation of `BlitRGBtoRGBSurfaceAlpha()`.
 fn blit_rgb_to_rgb_surface_alpha(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(4, 4);
     let alpha = info.a as u32;
     if alpha == 128 {
         blit_rgb_to_rgb_surface_alpha128(info);
@@ -197,6 +199,7 @@ fn blend16_50(d: u32, s: u32, mask: u32) -> u32 {
 /// paired form gives the same value for each pixel as `BLEND16_50`, so
 /// every pixel is blended singly here.
 fn blit_16_to_16_surface_alpha128(info: &mut BlitInfo<'_>, mask: u16) {
+    info.truncate_skips(2, 2);
     let mask = mask as u32;
     walk(info, 2, 2, |src, si, dst, di| {
         let s = rd16(src, si);
@@ -221,6 +224,7 @@ fn blend_packed16(s: u32, d: u32, alpha: u32, packmask: u32) -> u32 {
 
 /// fast RGB565->RGB565 blending with surface alpha. Translation of `Blit565to565SurfaceAlpha()`.
 fn blit_565_to_565_surface_alpha(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(2, 2);
     let alpha = info.a as u32;
     if alpha == 128 {
         blit_16_to_16_surface_alpha128(info, 0xf7de);
@@ -235,6 +239,7 @@ fn blit_565_to_565_surface_alpha(info: &mut BlitInfo<'_>) {
 
 /// fast RGB555->RGB555 blending with surface alpha. Translation of `Blit555to555SurfaceAlpha()`.
 fn blit_555_to_555_surface_alpha(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(2, 2);
     let alpha = info.a as u32; // downscale alpha to 5 bits
     if alpha == 128 {
         blit_16_to_16_surface_alpha128(info, 0xfbde);
@@ -317,6 +322,7 @@ fn mmx_555_lane(s: u16, d: u16, mm_alpha: u16) -> u16 {
 /// `width & 1` and `width & 2` pixels of each row with the scalar formula
 /// and the rest in groups of four with the MMX kernel.
 fn blit_16_to_16_surface_alpha_mmx(info: &mut BlitInfo<'_>, is_565: bool) {
+    info.truncate_skips(2, 2);
     let alpha = info.a as u32;
     if alpha == 128 {
         blit_16_to_16_surface_alpha128(info, if is_565 { 0xf7de } else { 0xfbde });
@@ -363,6 +369,7 @@ fn blit_555_to_555_surface_alpha_mmx(info: &mut BlitInfo<'_>) {
 
 /// fast ARGB8888->RGB565 blending with pixel alpha. Translation of `BlitARGBto565PixelAlpha()`.
 fn blit_argb_to_565_pixel_alpha(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(4, 2);
     walk(info, 4, 2, |src, si, dst, di| {
         let mut s = rd32(src, si);
         let alpha = s >> 27; // downscale alpha to 5 bits
@@ -394,6 +401,7 @@ fn blit_argb_to_565_pixel_alpha(info: &mut BlitInfo<'_>) {
 
 /// fast ARGB8888->RGB555 blending with pixel alpha. Translation of `BlitARGBto555PixelAlpha()`.
 fn blit_argb_to_555_pixel_alpha(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(4, 2);
     walk(info, 4, 2, |src, si, dst, di| {
         let mut s = rd32(src, si);
         let alpha = s >> 27; // downscale alpha to 5 bits

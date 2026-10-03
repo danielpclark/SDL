@@ -53,6 +53,7 @@ fn blit_1to3(info: &mut BlitInfo<'_>) {
 
 /// Translation of `Blit1to4()`.
 fn blit_1to4(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(1, 4);
     let map = info.table;
     walk_bytes(info, 4, |dst, d, s| wr32(dst, d, rd32(map, s as usize * 4)));
 }
@@ -73,6 +74,7 @@ fn blit_1to1_key(info: &mut BlitInfo<'_>) {
 
 /// Translation of `Blit1to2Key()`.
 fn blit_1to2_key(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(1, 2);
     let (palmap, ckey) = (info.table, info.colorkey);
     walk_bytes(info, 2, |dst, d, s| {
         if s as u32 != ckey {
@@ -94,6 +96,7 @@ fn blit_1to3_key(info: &mut BlitInfo<'_>) {
 
 /// Translation of `Blit1to4Key()`.
 fn blit_1to4_key(info: &mut BlitInfo<'_>) {
+    info.truncate_skips(1, 4);
     let (palmap, ckey) = (info.table, info.colorkey);
     walk_bytes(info, 4, |dst, d, s| {
         if s as u32 != ckey {

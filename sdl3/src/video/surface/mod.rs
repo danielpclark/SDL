@@ -637,6 +637,14 @@ impl<'a> Surface<'a> {
         Ok(())
     }
 
+    /// Relabel the pixels as `format` (of the same size), as
+    /// `SDL_RenderReadPixels()` does by setting `surface->format`.
+    pub(crate) fn reinterpret_format(&mut self, format: PixelFormat) -> Result<()> {
+        self.fmt = PixelFormatDetails::new(format)?;
+        self.format = format;
+        Ok(())
+    }
+
     /// Create a surface over existing pixel memory. Translation of
     /// `SDL_CreateSurfaceFrom()`; the surface is `PREALLOCATED` and
     /// borrows `pixels` for its lifetime.
@@ -1715,4 +1723,4 @@ impl Drop for SurfaceLock<'_, '_> {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

@@ -17,7 +17,7 @@ mod bmp;
 pub mod pixels;
 pub mod rect;
 pub(crate) mod rle;
-mod rotate;
+pub(crate) mod rotate;
 mod stb;
 mod stretch;
 pub mod surface;

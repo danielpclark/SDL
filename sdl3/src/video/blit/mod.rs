@@ -92,6 +92,18 @@ pub(crate) struct BlitInfo<'a> {
     pub dst_props: Option<&'a Properties>,
 }
 
+impl BlitInfo<'_> {
+    /// Round the row skips down to whole pixels of `src_unit` and
+    /// `dst_unit` bytes. FIXME (upstream): many blitters step typed
+    /// pointers by `skip / unit` units, so with a pitch that isn't a
+    /// multiple of the pixel size (`SDL_ConvertPixels()` with any pitch)
+    /// they lose the remainder on every row.
+    pub(crate) fn truncate_skips(&mut self, src_unit: i32, dst_unit: i32) {
+        self.src_skip = self.src_skip / src_unit * src_unit;
+        self.dst_skip = self.dst_skip / dst_unit * dst_unit;
+    }
+}
+
 /// Translation of `SDL_BlitFunc`.
 pub(crate) type BlitFunc = fn(&mut BlitInfo<'_>);
 

@@ -444,6 +444,7 @@ fn draw_line_raw(
 }
 
 /// Draw a line in a mapped color. Translation of `SDL_DrawLine()`.
+#[allow(dead_code)] // (the renderer draws lists)
 pub(crate) fn draw_line(
     dst: &mut Surface<'_>,
     x1: i32,
@@ -621,6 +622,7 @@ fn fill_rect_raw(px: &mut [u8], pitch: i32, codec: Codec<'_>, rect: &Rect, op: O
 
 /// Blend a rectangle (or the clip rectangle). Translation of
 /// `SDL_BlendFillRect()`.
+#[allow(dead_code)] // (the renderer draws lists)
 pub(crate) fn blend_fill_rect(
     dst: &mut Surface<'_>,
     rect: Option<&Rect>,
@@ -753,6 +755,7 @@ fn blend_line_raw(
 
 /// Blend a line. Translation of `SDL_BlendLine()`.
 #[allow(clippy::too_many_arguments)]
+#[allow(dead_code)] // (the renderer draws lists)
 pub(crate) fn blend_line(
     dst: &mut Surface<'_>,
     x1: i32,
