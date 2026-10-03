@@ -58,15 +58,23 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `render/SDL_render.c`, `SDL_sysrender.h`, `SDL_yuv_sw.c`, `SDL_render_debug_font.h`, `render/software/` (`SDL_render_sw.c`, draw/blend point, line and fill, `SDL_triangle.c`) | `sdl3::render` | `Renderer` (software renderer over an owned `Surface`) with the command queue, logical presentation, viewport, clip, scale, points/lines/rects, texture copies (plain, rotated, affine, tiled, 9-grid), geometry (incl. the software renderer's quad-to-rect path), debug text, read-back; `Texture` handles checked against the renderer and their generation; streaming, static and target textures, YUV and indexed textures through native textures, palettes, `lock_texture`/`lock_texture_to_surface` guards that upload on drop. Checked against upstream's C with randomized sessions on 16 output formats |
 | `joystick/SDL_joystick.c`, `SDL_gamepad.c`, `SDL_gamepad_db.h`, `controller_type.c`, `controller_list.h`, `usb_ids.h`, `SDL_steam_virtual_gamepad.c`, `virtual/`, `dummy/` | `sdl3::joystick`, `sdl3::gamepad` | `Joystick` and `Gamepad` handles (closed on drop), the joystick state machine (axis initial-value detection, focus filtering, rumble expiry and resend, sensor fusion, player indexes), GUIDs and device classification, VID/PID lists with their hints, the mapping database (tables generated from upstream by `tools/gen_joystick_tables.py` and `tools/gen_gamepad_db.py`), mapping parsing and generation, binding to gamepad events, the virtual joystick driver with closure callbacks. Checked against upstream's C by replaying a scripted virtual-joystick session and comparing the event trace and the whole mapping database |
 | `sensor/SDL_sensor.c`, `dummy/` | `sdl3::sensor` | `Sensor` handles, the driver interface, sensor events |
+| `haptic/SDL_haptic.c`, `dummy/` | `sdl3::haptic` | `Haptic` handles (closed on drop), typed `HapticEffect` variants instead of the C union, effect slots, gain/autocenter/pause, the simple rumble API, the joystick haptic-axes hint |
+| `camera/SDL_camera.c`, `SDL_syscamera.h`, `dummy/` | `sdl3::camera` | `Camera` handles, the device thread, spec sorting and best-match selection, frame queues with zero-copy hand-off (frames are owned buffers that return to the backend when the `CameraFrame` is dropped), conversion and scaling, permission states, zombie devices, hotplug events |
+| `dialog/SDL_dialog.c`, `SDL_dialog_utils.c`, `unix/SDL_zenitydialog.c` | `sdl3::dialog` | open/save/folder dialogs with closure callbacks, filter validation and conversion, the zenity backend on Unix (the D-Bus portal comes with the platform layer) |
+| `tray/SDL_tray_utils.c`, `notification/SDL_notification.c`, their `dummy/` backends | `sdl3::tray`, `sdl3::notification` | the tray and notification front ends; tray bookkeeping for quit-on-last-window-close |
+| `locale/SDL_locale.c`, `unix/` | `sdl3::locale` | `Locale` list, the CSV parser (byte-exact with upstream, checked against its C), `LANG`/`LANGUAGE` on Unix |
+| `misc/SDL_url.c`, `unix/` | `sdl3::misc` | `open_url` via `xdg-open` |
+| `process/SDL_process.c`, `posix/` | `sdl3::process` | `Process`/`ProcessBuilder` (arguments, environment, working directory, redirections, background), pipes with non-blocking output, `kill`, `wait`, over `std::process` |
+| `main/SDL_main_callbacks.c`, `generic/SDL_sysmain_callbacks.c`, `SDL_runapp.c` | `sdl3::app` | the main-callbacks driver (`AppCallbacks` trait: init/iterate/event/quit), the callback-rate hint, `run_app` |
 | `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
 | `events/SDL_keyboard.c`, `SDL_keymap.c` | `sdl3::events::keyboard` | `Scancode`/`Keycode`/`Keymod` with every constant and name table, `Keymap` with shift-level lookup and the US QWERTY defaults, key state/modifiers/repeat/auto-release, focus, text input/editing/candidates, keycode-options hint |
 | `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursor state; all 14 mouse hints |
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 118,000 lines of upstream C/headers are covered by about 84,000
+Roughly 129,000 lines of upstream C/headers are covered by about 91,000
 lines of Rust including tests. Upstream is ~624,000 lines, so this is about
-19% by volume, but it is the part that everything else includes. The audio
+21% by volume, but it is the part that everything else includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
 BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
@@ -81,7 +89,8 @@ cursors in `SDL_mouse.c` (they need the video subsystem); renderers for
 windows, vsync and `SDL_ConvertEventToRenderCoordinates()` (they need the
 video subsystem) and the GPU render state; thread priorities (platform layer); the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
-audio drivers; the PNG/JPEG codecs (stb_image, miniz) and the NEON, LSX and
+audio, haptic and camera drivers and the tray, notification and portal
+dialog backends; the PNG/JPEG codecs (stb_image, miniz) and the NEON, LSX and
 AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.

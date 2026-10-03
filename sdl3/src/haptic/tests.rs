@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::init::{self, InitFlags};
+use crate::test_support::TEST_LOCK;
 
 #[test]
 fn axes_hint_parsing() {
@@ -47,6 +48,7 @@ fn axes_hint_parsing() {
 
 #[test]
 fn hinted_axes() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let _lock = lock_joysticks();
     hints::set(
         hints::JOYSTICK_HAPTIC_AXES,
@@ -83,6 +85,7 @@ fn effect_types() {
 
 #[test]
 fn dummy_driver() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     init::init_subsystem(InitFlags::HAPTIC).unwrap();
     assert!(haptics().is_empty());
     assert_eq!(
@@ -105,6 +108,7 @@ fn dummy_driver() {
 
 #[test]
 fn joystick_is_not_haptic() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use crate::joystick::VirtualJoystickDesc;
 
     init::init_subsystem(InitFlags::JOYSTICK | InitFlags::HAPTIC).unwrap();

@@ -5,10 +5,9 @@
 //! Library initialization and shutdown, subsystem reference counting, and
 //! application metadata.
 //!
-//! Direct translation of `SDL.c`. Subsystems whose implementation has not
-//! been translated yet (video, haptic, camera) behave exactly like an SDL
-//! build with that subsystem disabled: requesting them fails with "SDL not
-//! built with ... support".
+//! Direct translation of `SDL.c`. Video, whose implementation has not been
+//! translated yet, behaves exactly like an SDL build with that subsystem
+//! disabled: requesting it fails with "SDL not built with video support".
 
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -526,8 +525,22 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
             }
             flags_initialized |= InitFlags::SENSOR;
         }
+        // Initialize the camera subsystem
         if flags.contains(InitFlags::CAMERA) {
-            return Err(err!("SDL not built with camera support"));
+            if should_init_subsystem(InitFlags::CAMERA) {
+                // camera implies events
+                init_or_increment_subsystem(InitFlags::EVENTS)?;
+
+                increment_refcount(InitFlags::CAMERA);
+                if let Err(e) = crate::camera::init_camera(None) {
+                    decrement_refcount(InitFlags::CAMERA);
+                    quit_subsystem(InitFlags::EVENTS);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::CAMERA);
+            }
+            flags_initialized |= InitFlags::CAMERA;
         }
         Ok(())
     })();
@@ -550,7 +563,16 @@ pub fn init(flags: InitFlags) -> Result<()> {
 /// Shut down specific SDL subsystems. Translation of `SDL_QuitSubSystem()`.
 pub fn quit_subsystem(flags: InitFlags) {
     // Shut down requested initialized subsystems
-    // (camera, video: not translated yet)
+    // (video: not translated yet)
+
+    if flags.contains(InitFlags::CAMERA) {
+        if should_quit_subsystem(InitFlags::CAMERA) {
+            crate::camera::quit_camera();
+            // camera implies events
+            quit_subsystem(InitFlags::EVENTS);
+        }
+        decrement_refcount(InitFlags::CAMERA);
+    }
 
     if flags.contains(InitFlags::SENSOR) {
         if should_quit_subsystem(InitFlags::SENSOR) {

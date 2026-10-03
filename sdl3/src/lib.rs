@@ -35,6 +35,7 @@ pub mod app;
 pub mod assert;
 pub mod atomic;
 pub mod audio;
+pub mod camera;
 pub mod cpuinfo;
 pub mod dialog;
 pub mod error;
