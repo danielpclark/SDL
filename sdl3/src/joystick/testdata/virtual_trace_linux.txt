@@ -1,0 +1,163 @@
+-- events init
+has 0
+has 1 virtual 1 name [Virtual Wheel] type 2 gamepad 0
+path [(null)] err=[That operation is not supported]
+guid ff00d3535669727475616c2057007602
+-- events attach
+JDEVICE 605 cur
+counts 3 4 1 0 updates>0 1
+props rumble 1 led 0
+axis3 err=[Joystick only has 3 axes]
+-- events open
+axis5 err=[Invalid axis index]
+state 12000 1 9
+-- events update1
+JAXIS cur 0 12000
+JAXIS cur 0 12000
+JAXIS cur 1 0
+JAXIS cur 1 0
+JAXIS cur 2 0
+JAXIS cur 2 0
+JBUTTON cur 2 1
+JHAT cur 0 9
+JDEVICE 608 cur
+-- events update2
+JAXIS cur 0 12001
+JAXIS cur 1 -32768
+JDEVICE 608 cur
+rumbles 2 [100 200] [0 0]
+led 0 err=[That operation is not supported]
+player 2 2 from 1
+cleaned 1 connected 0 player -1
+-- events detach
+JAXIS cur 0 12000
+JAXIS cur 1 0
+JBUTTON cur 2 0
+JHAT cur 0 0
+JDEVICE 606 cur
+name after [Virtual Wheel]
+detach again 0 err=[Virtual joystick data not found]
+set after 0 err=[Invalid joystick]
+rumbles 3
+-- events close
+gamepad 1 player 0
+-- events attach pad
+JDEVICE 605 cur
+GDEVICE 653 cur
+mapping [ff00f2cb546573742c20506164007601,Test  Pad,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,leftstick:b7,rightstick:b8,leftshoulder:b9,rightshoulder:b10,dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,]
+padname [Test  Pad] type 1 real 1
+name [Test  Pad] type 1 label 1 hasLT 1 hasMisc1 0 touchpads 1 fingers 2 gyro 1 rate 250.0 LT 0
+bind in 1 [0 0 0] out 1 [0 0 0]
+bind in 1 [1 0 0] out 1 [1 0 0]
+bind in 1 [2 0 0] out 1 [2 0 0]
+bind in 1 [3 0 0] out 1 [3 0 0]
+bind in 1 [4 0 0] out 1 [4 0 0]
+bind in 1 [5 0 0] out 1 [5 0 0]
+bind in 1 [6 0 0] out 1 [6 0 0]
+bind in 1 [7 0 0] out 1 [7 0 0]
+bind in 1 [8 0 0] out 1 [8 0 0]
+bind in 1 [9 0 0] out 1 [9 0 0]
+bind in 1 [10 0 0] out 1 [10 0 0]
+bind in 1 [11 0 0] out 1 [11 0 0]
+bind in 1 [12 0 0] out 1 [12 0 0]
+bind in 1 [13 0 0] out 1 [13 0 0]
+bind in 1 [14 0 0] out 1 [14 0 0]
+bind in 2 [0 -32768 32767] out 2 [0 -32768 32767]
+bind in 2 [1 -32768 32767] out 2 [1 -32768 32767]
+bind in 2 [2 -32768 32767] out 2 [2 -32768 32767]
+bind in 2 [3 -32768 32767] out 2 [3 -32768 32767]
+bind in 2 [4 -32768 32767] out 2 [4 0 32767]
+bind in 2 [5 -32768 32767] out 2 [5 0 32767]
+-- events open pad
+sensor on 1
+south 1 LT 16383 LY -20000 finger 1 0.250 1.000 0.500 data 1.0 2.0 3.0 0.0
+-- events update pad
+GAXIS cur 0 0
+JAXIS cur 0 0
+GAXIS cur 0 0
+JAXIS cur 0 0
+GAXIS cur 1 -20000
+JAXIS cur 1 -20000
+GAXIS cur 1 -20000
+JAXIS cur 1 -20000
+GAXIS cur 2 0
+JAXIS cur 2 0
+GAXIS cur 2 0
+JAXIS cur 2 0
+GAXIS cur 3 0
+JAXIS cur 3 0
+GAXIS cur 3 0
+JAXIS cur 3 0
+GAXIS cur 4 16383
+JAXIS cur 4 0
+GAXIS cur 4 16383
+JAXIS cur 4 0
+GAXIS cur 5 0
+JAXIS cur 5 -32768
+GAXIS cur 5 0
+JAXIS cur 5 -32768
+GBUTTON cur 0 1
+JBUTTON cur 0 1
+GTOUCH 656 cur 0 1 0.250 1.000 0.500
+GSENSOR cur 2 1.000 2.000 3.000 77
+GDEVICE 65a cur
+JDEVICE 608 cur
+-- events update pad 2
+GAXIS cur 4 32767
+JAXIS cur 4 32767
+GBUTTON cur 0 0
+JBUTTON cur 0 0
+GTOUCH 658 cur 0 1 0.250 1.000 0.000
+GDEVICE 65a cur
+JDEVICE 608 cur
+remap 1
+remapped name [Remapped] east 0 south 0 LT 0
+mapping [ff00f2cb546573742c20506164007601,Remapped,a:b1,b:b0,lefttrigger:+a4,leftx:-a0~,dpup:h0.1,crc:cbf2,platform:Linux,]
+-- events remap
+GDEVICE 655 cur
+remap hint 0
+name [Remapped2]
+-- events remap hint
+GDEVICE 655 cur
+set mapping 1
+name [Test, Pad] south 0
+-- events set mapping
+GDEVICE 655 cur
+-- events detach pad
+GDEVICE 654 cur
+JDEVICE 606 cur
+connected 0
+-- events close pad
+add 1 [03000000aaaa0000bbbb000000000000,Test Pad,a:b0,b:b1,x:b2,y:b3,crc:1234,] err=[]
+add 1 [03001234aaaa0000bbbb000000000000,Test Pad CRC,a:b1,] err=[]
+add 1 [03000000aaaa0000bbbb000000000000,Test Pad Again,a:b5,] err=[]
+add 1 [03000000aaaa0000cccc000000000000,  Labels ,a:b0,b:b1,x:b2,y:b3,hint:SDL_GAMECONTROLLER_USE_BUTTON_LABELS:=1,] err=[]
+add 1 [03000000aaaa0000dddd000000000000,Cube,a:b0,b:b1,x:b2,y:b3,hint:SDL_GAMECONTROLLER_USE_GAMECUBE_LABELS:=1,] err=[]
+add 1 [030000007e0500003703000000000000,GC Adapter,a:b0,b:b1,x:b2,y:b3,] err=[]
+add 0 [03000000aaaa0000eeee000000000000,Hinted,a:b0,hint:SDL_JOYTEST_UNSET:=0,] err=[]
+add 1 [03000000aaaa0000eeee000000000000,Hinted On,a:b0,hint:!SDL_JOYTEST_UNSET:=0,] err=[]
+add -1 [nocomma] err=[Couldn't parse GUID from nocomma]
+add -1 [03000000aaaa0000ffff000000000000,noname] err=[Couldn't parse name from 03000000aaaa0000ffff000000000000,noname]
+add 1 [xinput,X,a:b0,] err=[]
+add 1 [05000000aaaa0000bbbb000001000000,Version,a:b0,platform:Linux,] err=[]
+lookup 03000000aaaa0000bbbb000000000000 -> [03000000aaaa0000bbbb000000000000,Test Pad Again,a:b5,platform:Linux,] err=[]
+lookup 03001234aaaa0000bbbb000000000000 -> [03001234aaaa0000bbbb000000000000,Test Pad CRC,a:b1,crc:3412,platform:Linux,] err=[]
+lookup 03005678aaaa0000bbbb000000000000 -> [03005678aaaa0000bbbb000000000000,Test Pad Again,a:b5,platform:Linux,] err=[]
+lookup 03000000aaaa0000cccc000000000000 -> [03000000aaaa0000cccc000000000000,  Labels ,b:b0,a:b1,y:b2,x:b3,hint:!SDL_GAMECONTROLLER_USE_BUTTON_LABELS:=1,platform:Linux,] err=[]
+lookup 03000000aaaa0000dddd000000000000 -> [03000000aaaa0000dddd000000000000,Cube,a:b0,x:b1,b:b2,y:b3,hint:!SDL_GAMECONTROLLER_USE_GAMECUBE_LABELS:=1,platform:Linux,] err=[]
+lookup 030000007e0500003703000000000000 -> [030000007e0500003703000000000000,GC Adapter,a:b0,x:b1,b:b2,y:b3,hint:!SDL_GAMECONTROLLER_USE_GAMECUBE_LABELS:=1,platform:Linux,] err=[]
+lookup 03000000aaaa0000eeee000000000000 -> [03000000aaaa0000eeee000000000000,Hinted On,a:b0,hint:!SDL_JOYTEST_UNSET:=0,platform:Linux,] err=[]
+lookup 05000000aaaa0000bbbb000002000000 -> [05000000aaaa0000bbbb000002000000,Version,a:b0,platform:Linux,] err=[]
+lookup 03000000aaaa0000bbbb000002000000 -> [03000000aaaa0000bbbb000002000000,Test Pad Again,a:b5,platform:Linux,] err=[]
+lookup 030000005e0400008e02000014010000 -> [(null)] err=[Mapping not available]
+lookup 05000000000000000000000000000000 -> [(null)] err=[Mapping not available]
+mappings 288
+type [xbox360] 2 [xbox360]
+type [+PS5] 6 [ps5]
+type [-switchpro] 7 [switchpro]
+type [Steam] 12 [steam]
+type [bogus] 0 [(null)]
+type [] 0 [(null)]
+type [unknown] 0 [(null)]
+button [misc6] 17 axis [righttrigger] 1
+label 7 3

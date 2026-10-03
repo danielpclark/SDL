@@ -18,9 +18,10 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 > `SDL.c`, assertions, the events core, libm, the stdlib remainder, threads,
 > CPU info, IO streams, async IO, the filesystem, storage, the audio core
 > (with the dummy and disk drivers), software video (surfaces, every
-> blitter, RLE, rotation, YUV conversion, BMP files) and the 2D renderer
-> with its software backend. The joystick core, the remaining front ends and
-> the platform backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+> blitter, RLE, rotation, YUV conversion, BMP files), the 2D renderer
+> with its software backend, and the joystick, gamepad and sensor front ends
+> (with the virtual joystick driver). The remaining front ends and the
+> platform backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What is translated so far
 
@@ -33,7 +34,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `SDL_hints.c` + all 276 `SDL_HINT_*` names | `sdl3::hints` | priorities, environment overrides, closure watchers with RAII tokens |
 | `SDL_properties.c` | `sdl3::properties` | `Properties` handle + typed `Value` (`Any`/string/number/float/bool), lock guard |
 | `SDL_log.c` | `sdl3::log` | `Category`/`Priority` enums, `SDL_LOGGING` hint parsing, prefixes, closure output, `log::warn!`… macros |
-| `SDL_utils.c` (core helpers) | `sdl3::utils` | GCD, best-rational-approximation |
+| `SDL_utils.c` (core helpers) | `sdl3::utils` | GCD, best-rational-approximation, device names |
 | `atomic/SDL_spinlock.c` | `sdl3::atomic` | `SpinLock<T>` with a guard |
 | `SDL_assert.c`, `SDL_assert.h` | `sdl3::assert` | `sdl_assert!`/`sdl_assert_release!`/`sdl_assert_paranoid!`/`sdl_assert_always!`, levels via Cargo features, closure handlers, the report, the `SDL_ASSERT` hint, breakpoints |
 | `thread/SDL_thread.c`, generic sync primitives | `sdl3::thread` | `Thread`/`ThreadBuilder` (status, state, detach), `TlsId` with destructors, `Semaphore`, `ReentrantMutex<T>`, `InitState`, thread IDs |
@@ -55,17 +56,19 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `video/SDL_yuv.c`, `yuv2rgb/` | `sdl3::video` (`convert_pixels*`, YUV surfaces) | YUV⇄RGB for all 11 FOURCC formats in every supported colorspace (portable and SSE2 kernels), YUV⇄YUV repacking |
 | `video/SDL_bmp.c`, the image front end of `SDL_stb.c` | `Surface::load_bmp`/`save_bmp`/`load`, `is_bmp`/`is_png`/`is_jpg` | BMP load (1–32 bpp, bitfields, RLE4/RLE8, v1–v5 headers) and save (8-bit, 24-bit, 32-bit v5); the stb_image PNG/JPEG codecs are not translated yet |
 | `render/SDL_render.c`, `SDL_sysrender.h`, `SDL_yuv_sw.c`, `SDL_render_debug_font.h`, `render/software/` (`SDL_render_sw.c`, draw/blend point, line and fill, `SDL_triangle.c`) | `sdl3::render` | `Renderer` (software renderer over an owned `Surface`) with the command queue, logical presentation, viewport, clip, scale, points/lines/rects, texture copies (plain, rotated, affine, tiled, 9-grid), geometry (incl. the software renderer's quad-to-rect path), debug text, read-back; `Texture` handles checked against the renderer and their generation; streaming, static and target textures, YUV and indexed textures through native textures, palettes, `lock_texture`/`lock_texture_to_surface` guards that upload on drop. Checked against upstream's C with randomized sessions on 16 output formats |
+| `joystick/SDL_joystick.c`, `SDL_gamepad.c`, `SDL_gamepad_db.h`, `controller_type.c`, `controller_list.h`, `usb_ids.h`, `SDL_steam_virtual_gamepad.c`, `virtual/`, `dummy/` | `sdl3::joystick`, `sdl3::gamepad` | `Joystick` and `Gamepad` handles (closed on drop), the joystick state machine (axis initial-value detection, focus filtering, rumble expiry and resend, sensor fusion, player indexes), GUIDs and device classification, VID/PID lists with their hints, the mapping database (tables generated from upstream by `tools/gen_joystick_tables.py` and `tools/gen_gamepad_db.py`), mapping parsing and generation, binding to gamepad events, the virtual joystick driver with closure callbacks. Checked against upstream's C by replaying a scripted virtual-joystick session and comparing the event trace and the whole mapping database |
+| `sensor/SDL_sensor.c`, `dummy/` | `sdl3::sensor` | `Sensor` handles, the driver interface, sensor events |
 | `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
 | `events/SDL_keyboard.c`, `SDL_keymap.c` | `sdl3::events::keyboard` | `Scancode`/`Keycode`/`Keymod` with every constant and name table, `Keymap` with shift-level lookup and the US QWERTY defaults, key state/modifiers/repeat/auto-release, focus, text input/editing/candidates, keycode-options hint |
 | `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursor state; all 14 mouse hints |
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 101,000 lines of upstream C/headers are covered by about 71,000
+Roughly 118,000 lines of upstream C/headers are covered by about 84,000
 lines of Rust including tests. Upstream is ~624,000 lines, so this is about
-16% by volume, but it is the part that everything else includes. The audio
+19% by volume, but it is the part that everything else includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
-BMP path, and the renderer are checked against upstream's C (compiled with
+BMP path, the renderer and the joystick/gamepad front ends are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
 scenarios. Upstream bugs found this way are kept and marked
 `FIXME (upstream)`; where the C code would read or write out of bounds, the

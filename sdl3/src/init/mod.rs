@@ -6,9 +6,9 @@
 //! application metadata.
 //!
 //! Direct translation of `SDL.c`. Subsystems whose implementation has not
-//! been translated yet (video, audio, joystick, haptic, sensor, camera)
-//! behave exactly like an SDL build with that subsystem disabled: requesting
-//! them fails with "SDL not built with ... support".
+//! been translated yet (video, haptic, camera) behave exactly like an SDL
+//! build with that subsystem disabled: requesting them fails with "SDL not
+//! built with ... support".
 
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -464,14 +464,57 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
             }
             flags_initialized |= InitFlags::AUDIO;
         }
-        if flags.contains(InitFlags::JOYSTICK) || flags.contains(InitFlags::GAMEPAD) {
-            return Err(err!("SDL not built with joystick support"));
+        // Initialize the joystick subsystem
+        if flags.contains(InitFlags::JOYSTICK) {
+            if should_init_subsystem(InitFlags::JOYSTICK) {
+                // joystick implies events
+                init_or_increment_subsystem(InitFlags::EVENTS)?;
+
+                increment_refcount(InitFlags::JOYSTICK);
+                if let Err(e) = crate::joystick::init_joysticks() {
+                    decrement_refcount(InitFlags::JOYSTICK);
+                    quit_subsystem(InitFlags::EVENTS);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::JOYSTICK);
+            }
+            flags_initialized |= InitFlags::JOYSTICK;
         }
+
+        if flags.contains(InitFlags::GAMEPAD) {
+            if should_init_subsystem(InitFlags::GAMEPAD) {
+                // game controller implies joystick
+                init_or_increment_subsystem(InitFlags::JOYSTICK)?;
+
+                increment_refcount(InitFlags::GAMEPAD);
+                if let Err(e) = crate::joystick::gamepad::init_gamepads() {
+                    decrement_refcount(InitFlags::GAMEPAD);
+                    quit_subsystem(InitFlags::JOYSTICK);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::GAMEPAD);
+            }
+            flags_initialized |= InitFlags::GAMEPAD;
+        }
+
         if flags.contains(InitFlags::HAPTIC) {
             return Err(err!("SDL not built with haptic (force feedback) support"));
         }
+
+        // Initialize the sensor subsystem
         if flags.contains(InitFlags::SENSOR) {
-            return Err(err!("SDL not built with sensor support"));
+            if should_init_subsystem(InitFlags::SENSOR) {
+                increment_refcount(InitFlags::SENSOR);
+                if let Err(e) = crate::sensor::init_sensors() {
+                    decrement_refcount(InitFlags::SENSOR);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::SENSOR);
+            }
+            flags_initialized |= InitFlags::SENSOR;
         }
         if flags.contains(InitFlags::CAMERA) {
             return Err(err!("SDL not built with camera support"));
@@ -497,7 +540,32 @@ pub fn init(flags: InitFlags) -> Result<()> {
 /// Shut down specific SDL subsystems. Translation of `SDL_QuitSubSystem()`.
 pub fn quit_subsystem(flags: InitFlags) {
     // Shut down requested initialized subsystems
-    // (camera, sensor, gamepad, joystick, haptic, video: not translated yet)
+    // (camera, haptic, video: not translated yet)
+
+    if flags.contains(InitFlags::SENSOR) {
+        if should_quit_subsystem(InitFlags::SENSOR) {
+            crate::sensor::quit_sensors();
+        }
+        decrement_refcount(InitFlags::SENSOR);
+    }
+
+    if flags.contains(InitFlags::GAMEPAD) {
+        if should_quit_subsystem(InitFlags::GAMEPAD) {
+            crate::joystick::gamepad::quit_gamepads();
+            // game controller implies joystick
+            quit_subsystem(InitFlags::JOYSTICK);
+        }
+        decrement_refcount(InitFlags::GAMEPAD);
+    }
+
+    if flags.contains(InitFlags::JOYSTICK) {
+        if should_quit_subsystem(InitFlags::JOYSTICK) {
+            crate::joystick::quit_joysticks();
+            // joystick implies events
+            quit_subsystem(InitFlags::EVENTS);
+        }
+        decrement_refcount(InitFlags::JOYSTICK);
+    }
 
     if flags.contains(InitFlags::AUDIO) {
         if should_quit_subsystem(InitFlags::AUDIO) {

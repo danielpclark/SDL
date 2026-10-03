@@ -42,10 +42,12 @@ pub mod guid;
 pub mod hints;
 pub mod init;
 pub mod io;
+pub mod joystick;
 pub mod log;
 pub mod power;
 pub mod properties;
 pub mod render;
+pub mod sensor;
 pub mod stdlib;
 pub mod storage;
 pub mod thread;
@@ -57,6 +59,7 @@ pub mod video;
 
 pub use error::{Error, ErrorKind, Result};
 pub use guid::Guid;
+pub use joystick::gamepad;
 pub use version::{revision, version, Version};
 
 /// Shut down every subsystem and free the library's global state.

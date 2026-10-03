@@ -295,6 +295,10 @@ pub trait VideoHooks: Send + Sync {
     fn visible_toplevel_window_count(&self) -> usize {
         0
     }
+    /// Whether any windows exist. Translation of `SDL_HasWindows()`.
+    fn has_windows(&self) -> bool {
+        false
+    }
     /// Translation of `SDL_HasActiveTrays()`.
     fn has_active_trays(&self) -> bool {
         false

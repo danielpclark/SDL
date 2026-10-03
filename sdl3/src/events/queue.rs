@@ -23,6 +23,7 @@ use super::window::video;
 use super::{Event, EventType};
 use crate::error::Result;
 use crate::hints;
+use crate::init::InitFlags;
 use crate::thread::{RawMutex, RawMutexGuard, Semaphore};
 use crate::timer;
 use crate::{err, init};
@@ -33,7 +34,6 @@ pub const MAX_QUEUED_EVENTS: usize = 65535;
 
 /// Determines how often we pump events if joystick or sensor subsystems are active.
 /// Translation of `ENUMERATION_POLL_INTERVAL_NS`.
-#[allow(dead_code)]
 const ENUMERATION_POLL_INTERVAL: Duration = Duration::from_secs(3);
 
 /// Determines how often to pump events if joysticks or sensors are actively being read.
@@ -793,20 +793,19 @@ pub fn run_on_main_thread(
 
 /// Periodic work done during every pump. Translation of `SDL_PumpEventMaintenance()`.
 ///
-/// The camera, sensor and joystick update hooks arrive with their
-/// subsystems in later phases; udev polling and signal delivery belong to the
-/// platform layer.
+/// The camera update hook arrives with its subsystem in a later phase; udev
+/// polling and signal delivery belong to the platform layer.
 pub(crate) fn pump_event_maintenance() {
     crate::audio::update_audio();
 
     // Check for sensor state change
     if UPDATE_SENSORS.load(Ordering::Relaxed) {
-        // SDL_UpdateSensors() -- sensor subsystem not yet translated
+        crate::sensor::update_sensors();
     }
 
     // Check for joystick state change
     if UPDATE_JOYSTICKS.load(Ordering::Relaxed) {
-        // SDL_UpdateJoysticks() -- joystick subsystem not yet translated
+        crate::joystick::update_joysticks();
     }
 
     super::pen::send_pending_pen_proximity();
@@ -866,9 +865,30 @@ pub fn poll() -> Option<Event> {
 /// Translation of `SDL_events_get_polling_interval()`; `None` means no
 /// periodic polling is required (`SDL_MAX_SINT64`).
 fn events_get_polling_interval() -> Option<Duration> {
-    let poll_interval: Option<Duration> = None;
+    let mut poll_interval: Option<Duration> = None;
+    let mut min = |interval: Duration| {
+        poll_interval = Some(poll_interval.map_or(interval, |p| p.min(interval)));
+    };
 
-    // Joystick/sensor/tray/DBus polling arrive with those subsystems.
+    if !init::was_init(InitFlags::JOYSTICK).is_empty() && UPDATE_JOYSTICKS.load(Ordering::Relaxed) {
+        if crate::joystick::joysticks_opened() {
+            // If we have joysticks open, we need to poll rapidly for events
+            min(EVENT_POLL_INTERVAL);
+        } else {
+            // If not, just poll every few seconds to enumerate new joysticks
+            min(ENUMERATION_POLL_INTERVAL);
+        }
+    }
+
+    if !init::was_init(InitFlags::SENSOR).is_empty()
+        && UPDATE_SENSORS.load(Ordering::Relaxed)
+        && crate::sensor::sensors_opened()
+    {
+        // If we have sensors open, we need to poll rapidly for events
+        min(EVENT_POLL_INTERVAL);
+    }
+
+    // (Tray and DBus polling arrive with those subsystems.)
 
     poll_interval
 }
