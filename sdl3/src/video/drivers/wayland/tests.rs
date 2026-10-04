@@ -1016,8 +1016,12 @@ fn wayland_window_lifecycle() {
     );
     pump_presenting(&w, 100);
     assert_eq!(popup.size().unwrap(), (100, 50));
-    popup.set_position(30, 40).unwrap();
-    pump_presenting(&w, 100);
+    // (compositors before xdg_popup version 3, such as sway 1.9, can't
+    // reposition popups: upstream reports that as unsupported)
+    match popup.set_position(30, 40) {
+        Ok(()) => pump_presenting(&w, 100),
+        Err(e) => assert_eq!(e.kind(), crate::error::ErrorKind::Unsupported),
+    }
     popup.destroy();
 
     // Hide, show again, and go.
