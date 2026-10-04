@@ -542,3 +542,21 @@ fn virtual_joystick_without_gamepads() {
     init::quit_subsystem(InitFlags::JOYSTICK);
     assert!(Joystick::open(id).is_err());
 }
+
+#[test]
+fn driver_order() {
+    // The platform drivers come before the virtual driver, as upstream lists them
+    let virtual_driver: &dyn JoystickDriver = &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER;
+    assert!(std::ptr::addr_eq(
+        JOYSTICK_DRIVERS[VIRTUAL_DRIVER_INDEX],
+        virtual_driver
+    ));
+    #[cfg(target_os = "linux")]
+    {
+        let linux_driver: &dyn JoystickDriver = &linux::LINUX_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[LINUX_DRIVER_INDEX],
+            linux_driver
+        ));
+    }
+}

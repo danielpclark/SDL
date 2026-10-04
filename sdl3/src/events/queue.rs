@@ -796,9 +796,10 @@ pub fn run_on_main_thread(
 // ---------------------------------------------------------------------------
 
 /// Periodic work done during every pump. Translation of `SDL_PumpEventMaintenance()`.
-///
-/// udev polling and signal delivery belong to the platform layer.
 pub(crate) fn pump_event_maintenance() {
+    #[cfg(target_os = "linux")]
+    crate::core::linux::udev::poll();
+
     crate::audio::update_audio();
 
     crate::camera::update_camera();
