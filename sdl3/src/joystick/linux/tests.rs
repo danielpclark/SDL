@@ -731,6 +731,48 @@ fn classic_highest_codes() {
 }
 
 #[test]
+fn temporary_close_keeps_the_device_linked() {
+    let item = |device_instance, path: &str| JoylistItem {
+        device_instance,
+        path: path.to_owned(),
+        vendor: 0,
+        name: String::new(),
+        driver: None,
+        guid: Guid::ZERO,
+        devnum: 0,
+        steam_virtual_gamepad_slot: -1,
+        hwdata: true,
+        checked_mapping: false,
+        mapping: None,
+    };
+    let mut s = LinuxState {
+        classic_joysticks: false,
+        enumeration_method: EnumerationMethod::Unset,
+        joylist: vec![item(7, "/dev/input/event7"), item(8, "/dev/input/event8")],
+        sensorlist: Vec::new(),
+        inotify_fd: -1,
+        last_joy_detect_time: 0,
+        last_input_dir_mtime: 0,
+        open: Vec::new(),
+    };
+
+    // The fake joystick of LINUX_JoystickGetGamepadMapping() for a device
+    // that's also open as a real joystick
+    let mut temporary = HwData::new(0);
+    temporary.item = true;
+    temporary.fname = "/dev/input/event7".to_owned();
+    close_hwdata(&mut s, &mut temporary);
+    assert!(s.joylist.iter().all(|item| item.hwdata));
+
+    // Closing the real joystick unlinks its device only
+    let mut real = HwData::new(7);
+    real.item = true;
+    real.fname = "/dev/input/event7".to_owned();
+    close_hwdata(&mut s, &mut real);
+    assert!(!s.joylist[0].hwdata && s.joylist[1].hwdata);
+}
+
+#[test]
 fn not_a_joystick() {
     let _l = lock();
     // A character device that isn't an input device is never added
