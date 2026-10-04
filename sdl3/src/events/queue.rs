@@ -40,6 +40,11 @@ const ENUMERATION_POLL_INTERVAL: Duration = Duration::from_secs(3);
 /// Translation of `EVENT_POLL_INTERVAL_NS`.
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
+/// Determines how often to pump events if tray items are active.
+/// Translation of `TRAY_POLL_INTERVAL_NS`.
+#[cfg(unix)]
+const TRAY_POLL_INTERVAL: Duration = Duration::from_millis(50);
+
 // Determines how often to pump events if DBus is active
 #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
 const DBUS_POLL_INTERVAL: Duration = Duration::from_secs(3);
@@ -900,7 +905,11 @@ fn events_get_polling_interval() -> Option<Duration> {
         min(EVENT_POLL_INTERVAL);
     }
 
-    // (Tray polling arrives with the D-Bus tray.)
+    #[cfg(unix)]
+    if crate::tray::has_active_trays() {
+        // Tray events on *nix platforms run separately from window system events, and need periodic polling
+        min(TRAY_POLL_INTERVAL);
+    }
 
     // Wake periodically to pump DBus events
     #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
