@@ -1,6 +1,8 @@
 use super::*;
 use crate::filesystem::PathType;
-use crate::test_support::{TempDir, TEST_LOCK};
+use crate::test_support::TempDir;
+#[cfg(unix)]
+use crate::test_support::TEST_LOCK;
 use crate::ErrorKind;
 use std::ops::ControlFlow;
 

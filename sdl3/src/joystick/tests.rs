@@ -5,6 +5,9 @@
 // upstream SDL (built with only the virtual joystick driver, on Linux) and
 // compares the trace line by line with `testdata/virtual_trace_linux.txt`.
 
+// (the trace helpers serve only the Linux trace test)
+#![cfg_attr(not(target_os = "linux"), allow(dead_code, unused_imports))]
+
 use std::fmt::Write as _;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
