@@ -1209,6 +1209,10 @@ mod tests {
 
     #[test]
     fn names() {
+        // (letter_names_are_uppercase_via_keymap renames N1 meanwhile)
+        let _l = crate::test_support::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         assert_eq!(Scancode::A.name(), "A");
         assert_eq!(Scancode::N1.name(), "1");
         assert_eq!(Scancode::LGUI.name(), "Left GUI");
