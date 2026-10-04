@@ -117,8 +117,8 @@ Rust code returns an error instead.
 Not yet translated from these files: the GPU render state and the window
 texture behind renderer vsync for window surfaces; the
 OpenGL/EGL loaders (and the Vulkan loader for drivers other than X11), the
-GPU-texture window framebuffer, and the X11 driver's GLX/EGL and D-Bus
-parts; the Windows
+GPU-texture window framebuffer, and the X11 driver's GLX/EGL contexts;
+the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
 audio drivers other than ALSA, PulseAudio, PipeWire and WASAPI (and ALSA's
 udev hotplug path), the camera drivers, the haptic drivers other than

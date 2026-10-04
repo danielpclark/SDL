@@ -169,6 +169,22 @@ pub(crate) fn get() -> SystemTheme {
     theme
 }
 
+/// A settings portal on `bus` that answers the color-scheme read with
+/// `scheme` (0 unknown, 1 dark, 2 light), for tests of the theme's users.
+#[cfg(test)]
+pub(crate) fn serve_test_portal(bus: &dbus::test_bus::Bus, scheme: u32) -> dbus::test_bus::Peer {
+    dbus::test_bus::peer(&bus.address, PORTAL_DESTINATION, move |_, msg| {
+        if !msg.is_method_call(PORTAL_INTERFACE, PORTAL_METHOD) {
+            return None;
+        }
+        let mut reply = msg.new_method_return()?;
+        reply
+            .writer()
+            .variant("v", |v| v.variant("u", |u| u.append(&Arg::U32(scheme))));
+        Some(reply)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
