@@ -690,7 +690,55 @@ impl VideoDriver for TestVideo {
     fn implements_window_op(&self, op: WindowOp) -> bool {
         matches!(op, WindowOp::SetParent | WindowOp::SetModal)
     }
+
+    fn create_cursor(
+        &self,
+        surface: &Surface<'_>,
+        hot_x: i32,
+        hot_y: i32,
+    ) -> Option<Result<crate::events::mouse::Cursor>> {
+        let pixels = (0..surface.height())
+            .flat_map(|y| (0..surface.width()).map(move |x| (x, y)))
+            .map(|(x, y)| {
+                let c = surface.read_pixel(x, y).unwrap();
+                u32::from_be_bytes([c.a, c.r, c.g, c.b])
+            })
+            .collect();
+        let mut cursors = CURSORS.lock().unwrap();
+        cursors.push(CursorImage {
+            format: surface.format(),
+            w: surface.width(),
+            h: surface.height(),
+            hot: (hot_x, hot_y),
+            pixels,
+        });
+        Some(Ok(crate::events::mouse::Cursor::with_internal(
+            cursors.len() - 1,
+        )))
+    }
+
+    fn show_cursor(&self, cursor: Option<&crate::events::mouse::Cursor>) -> Option<Result<()>> {
+        SHOWN_CURSORS
+            .lock()
+            .unwrap()
+            .push(cursor.and_then(|c| c.internal::<usize>().copied()));
+        Some(Ok(()))
+    }
 }
+
+/// A cursor image the test driver was given.
+struct CursorImage {
+    format: PixelFormat,
+    w: i32,
+    h: i32,
+    hot: (i32, i32),
+    pixels: Vec<u32>,
+}
+
+/// The cursors the test driver created, and the ones it was asked to show
+/// (by index; `None` hides the cursor).
+static CURSORS: Mutex<Vec<CursorImage>> = Mutex::new(Vec::new());
+static SHOWN_CURSORS: Mutex<Vec<Option<usize>>> = Mutex::new(Vec::new());
 
 fn testvideo_create() -> Option<Arc<dyn VideoDriver>> {
     crate::video::drivers::dummy::available("testvideo")
@@ -917,4 +965,271 @@ fn popups_parents_and_modals() {
     assert!(child.is_valid());
     assert_eq!(windows().unwrap(), vec![child]);
     init::quit();
+}
+
+// ---------------------------------------------------------------------------
+// Cursors
+// ---------------------------------------------------------------------------
+
+use crate::events::mouse::{self as mousemod, CursorFrame, SystemCursor};
+
+/// The cursor calls of a session upstream's C was run through on the
+/// dummy driver, with its output.
+#[test]
+fn cursors_match_c() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    init::quit(); // (in case an earlier test failed halfway)
+    hints::set(hints::VIDEO_DRIVER, "dummy").unwrap();
+    init::init(InitFlags::VIDEO).unwrap();
+
+    let mut out = String::new();
+    let mut cr = |label: &str, c: &Result<mousemod::Cursor>| {
+        let r = match c {
+            Ok(_) => "ok".to_string(),
+            Err(e) => e.message().to_string(),
+        };
+        writeln!(out, "{label}: {r}").unwrap();
+    };
+
+    let def = mousemod::default_cursor();
+    let data = [0xF0, 0x0F, 0xAA, 0x55, 0xFF, 0x00];
+    let mask = [0xFF, 0xFF, 0x0F, 0xF0, 0x00, 0xFF];
+    let c1 = mousemod::create_cursor(&data, &mask, 12, 3, 1, 1);
+    cr("mono", &c1);
+    cr(
+        "mono hot out",
+        &mousemod::create_cursor(&data, &mask, 12, 3, 16, 0),
+    );
+    cr(
+        "mono hot in padding",
+        &mousemod::create_cursor(&data, &mask, 12, 3, 15, 2),
+    );
+    cr(
+        "mono hot neg",
+        &mousemod::create_cursor(&data, &mask, 12, 3, -1, 0),
+    );
+    let mut s = Surface::new(8, 8, PixelFormat::RGB565).unwrap();
+    cr("color 565", &mousemod::create_color_cursor(&s, 7, 7));
+    cr("color out", &mousemod::create_color_cursor(&s, 8, 0));
+    s.properties()
+        .set(crate::video::surface::PROP_SURFACE_HOTSPOT_X_NUMBER, 20i64)
+        .unwrap();
+    cr("color prop out", &mousemod::create_color_cursor(&s, 0, 0));
+    s.properties()
+        .set(crate::video::surface::PROP_SURFACE_HOTSPOT_X_NUMBER, 3i64)
+        .unwrap();
+    cr("color prop in", &mousemod::create_color_cursor(&s, 50, 0));
+    let s2 = Surface::new(8, 4, PixelFormat::ARGB8888).unwrap();
+    let s3 = Surface::new(8, 8, PixelFormat::ABGR8888).unwrap();
+    let frame = |surface, duration| CursorFrame { surface, duration };
+    let frames = [frame(&s, 10), frame(&s3, 20), frame(&s, 0)];
+    let anim = mousemod::create_animated_cursor(&frames, 0, 0);
+    cr("animated", &anim);
+    cr(
+        "animated one",
+        &mousemod::create_animated_cursor(&frames[..1], 0, 0),
+    );
+    cr(
+        "animated zero",
+        &mousemod::create_animated_cursor(&[], 0, 0),
+    );
+    cr(
+        "animated sizes",
+        &mousemod::create_animated_cursor(&[frame(&s, 10), frame(&s2, 20)], 0, 0),
+    );
+    cr(
+        "animated hot",
+        &mousemod::create_animated_cursor(&[frame(&s2, 10), frame(&s2, 20)], 0, 5),
+    );
+    let anim = anim.unwrap();
+    writeln!(
+        out,
+        "set anim: {}",
+        mousemod::set_cursor(Some(&anim)).is_ok() as i32
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "cur is anim={}",
+        (mousemod::cursor() == Some(anim.clone())) as i32
+    )
+    .unwrap();
+    pump();
+    mousemod::destroy_cursor(anim);
+    writeln!(
+        out,
+        "after destroy cur is default={}",
+        (mousemod::cursor() == def) as i32
+    )
+    .unwrap();
+    let c1 = c1.unwrap();
+    writeln!(
+        out,
+        "set destroyed c1 ok={}",
+        mousemod::set_cursor(Some(&c1)).is_ok() as i32
+    )
+    .unwrap();
+    mousemod::destroy_cursor(c1.clone());
+    match mousemod::set_cursor(Some(&c1)) {
+        Ok(()) => writeln!(out, "set destroyed: 1").unwrap(),
+        Err(e) => writeln!(out, "set destroyed: 0 {}", e.message()).unwrap(),
+    }
+    mousemod::destroy_cursor(def.clone().unwrap());
+    writeln!(
+        out,
+        "default still={}",
+        (mousemod::default_cursor() == def) as i32
+    )
+    .unwrap();
+    let mut cr = |label: &str, c: &Result<mousemod::Cursor>| {
+        let r = match c {
+            Ok(_) => "ok".to_string(),
+            Err(e) => e.message().to_string(),
+        };
+        writeln!(out, "{label}: {r}").unwrap();
+    };
+    cr(
+        "system",
+        &mousemod::create_system_cursor(SystemCursor::Wait),
+    );
+    init::quit();
+    hints::reset(hints::VIDEO_DRIVER);
+
+    assert_eq!(
+        out,
+        "mono: ok
+mono hot out: Cursor hot spot doesn't lie within cursor
+mono hot in padding: ok
+mono hot neg: Cursor hot spot doesn't lie within cursor
+color 565: ok
+color out: Cursor hot spot doesn't lie within cursor
+color prop out: Cursor hot spot doesn't lie within cursor
+color prop in: ok
+animated: ok
+animated one: ok
+animated zero: Parameter 'frame_count' is invalid
+animated sizes: All frames in an animated sequence must have the same dimensions
+animated hot: Cursor hot spot doesn't lie within cursor
+set anim: 1
+cur is anim=1
+after destroy cur is default=1
+set destroyed c1 ok=1
+set destroyed: 0 Cursor not associated with the current mouse
+default still=1
+system: CreateSystemCursor is not currently supported
+"
+    );
+}
+
+#[test]
+fn cursor_images_and_animation() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    CURSORS.lock().unwrap().clear();
+    start_test_driver();
+
+    // The default cursor: a transparent 1x1 color cursor
+    {
+        let cursors = CURSORS.lock().unwrap();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!((cursors[0].w, cursors[0].h, cursors[0].hot), (1, 1, (0, 0)));
+        assert_eq!(cursors[0].pixels, vec![0]);
+    }
+
+    // A mono cursor: width rounded up to 8, one byte of data and mask per 8 pixels
+    let data = [0b1100_0000, 0b1010_0000];
+    let mask = [0b1010_0000, 0b1100_0000];
+    let mono = mousemod::create_cursor(&data, &mask, 3, 2, 2, 1).unwrap();
+    {
+        let cursors = CURSORS.lock().unwrap();
+        let c = cursors.last().unwrap();
+        assert_eq!(
+            (c.format, c.w, c.h, c.hot),
+            (PixelFormat::ARGB8888, 8, 2, (2, 1))
+        );
+        let inverted = if cfg!(windows) {
+            0x00FFFFFF
+        } else {
+            0xFF000000
+        };
+        let mut row0 = vec![0xFF000000, inverted, 0xFFFFFFFF];
+        let mut row1 = vec![0xFF000000, 0xFFFFFFFF, inverted];
+        row0.resize(8, 0);
+        row1.resize(8, 0);
+        assert_eq!(c.pixels, [row0, row1].concat());
+    }
+    assert!(mousemod::create_cursor(&data[..1], &mask, 3, 2, 0, 0).is_err());
+
+    // Color cursors are converted to ARGB8888; the hotspot properties win
+    let mut s = Surface::new(2, 2, PixelFormat::RGB565).unwrap();
+    s.fill_rect(None, 0xF800).unwrap();
+    s.properties()
+        .set(crate::video::surface::PROP_SURFACE_HOTSPOT_Y_NUMBER, 1i64)
+        .unwrap();
+    let _color = mousemod::create_color_cursor(&s, 1, 0).unwrap();
+    {
+        let cursors = CURSORS.lock().unwrap();
+        let c = cursors.last().unwrap();
+        assert_eq!((c.format, c.hot), (PixelFormat::ARGB8888, (1, 1)));
+        assert_eq!(c.pixels, vec![0xFFFF0000; 4]);
+    }
+
+    // An animated cursor is animated by the mouse code: a cursor per frame
+    let a = Surface::new(2, 2, PixelFormat::ARGB8888).unwrap();
+    let b = Surface::new(2, 2, PixelFormat::ABGR8888).unwrap();
+    let first = CURSORS.lock().unwrap().len();
+    let anim = mousemod::create_animated_cursor(
+        &[
+            CursorFrame {
+                surface: &a,
+                duration: 20,
+            },
+            CursorFrame {
+                surface: &b,
+                duration: 20,
+            },
+            CursorFrame {
+                surface: &a,
+                duration: 0,
+            },
+        ],
+        0,
+        0,
+    )
+    .unwrap();
+    assert!(anim.is_animated());
+    assert_eq!(CURSORS.lock().unwrap().len(), first + 3);
+
+    // Without focus, the default cursor is shown and nothing animates
+    SHOWN_CURSORS.lock().unwrap().clear();
+    mousemod::set_cursor(Some(&anim)).unwrap();
+    assert_eq!(*SHOWN_CURSORS.lock().unwrap(), vec![Some(0)]);
+
+    let w = Window::create("cursor", 100, 100, WindowFlags::default()).unwrap();
+    mousemod::set_mouse_focus(Some(w.id()));
+    SHOWN_CURSORS.lock().unwrap().clear();
+    mousemod::set_cursor(None).unwrap(); // (a redraw)
+    assert_eq!(*SHOWN_CURSORS.lock().unwrap(), vec![Some(first)]);
+
+    // Frames advance as events are pumped, and stop on a 0 duration
+    for _ in 0..3 {
+        std::thread::sleep(std::time::Duration::from_millis(25));
+        pump();
+    }
+    let shown = SHOWN_CURSORS.lock().unwrap().clone();
+    assert_eq!(shown, vec![Some(first), Some(first + 1), Some(first + 2)]);
+
+    // Hiding shows no cursor
+    mousemod::hide_cursor();
+    assert_eq!(SHOWN_CURSORS.lock().unwrap().last(), Some(&None));
+    mousemod::show_cursor();
+
+    // Destroying the animation destroys its frames
+    mousemod::destroy_cursor(anim.clone());
+    assert!(mousemod::set_cursor(Some(&anim)).is_err());
+    assert_eq!(mousemod::cursor(), mousemod::default_cursor());
+    mousemod::destroy_cursor(mono);
+
+    w.destroy();
+    init::quit();
+    hints::reset(hints::VIDEO_DRIVER);
 }

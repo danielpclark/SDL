@@ -69,7 +69,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `main/SDL_main_callbacks.c`, `generic/SDL_sysmain_callbacks.c`, `SDL_runapp.c` | `sdl3::app` | the main-callbacks driver (`AppCallbacks` trait: init/iterate/event/quit), the callback-rate hint, `run_app` |
 | `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
 | `events/SDL_keyboard.c`, `SDL_keymap.c` | `sdl3::events::keyboard` | `Scancode`/`Keycode`/`Keymod` with every constant and name table, `Keymap` with shift-level lookup and the US QWERTY defaults, key state/modifiers/repeat/auto-release, focus, text input/editing/candidates, keycode-options hint |
-| `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursor state; all 14 mouse hints |
+| `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursors (mono bitmaps, color surfaces with hotspot properties, animated cursors animated by the mouse code when the backend can't), cursor state; all 14 mouse hints |
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
@@ -85,8 +85,7 @@ of a scripted virtual-joystick session with upstream's. Upstream bugs found this
 Rust code returns an error instead.
 
 Not yet translated from these files: the SIGINT/SIGTERM handlers of
-`SDL_quit.c` (platform layer); cursor creation from surfaces and animated
-cursors in `SDL_mouse.c`; the GPU render state and the window
+`SDL_quit.c` (platform layer); the GPU render state and the window
 texture behind renderer vsync for window surfaces; the
 OpenGL/EGL and Vulkan loaders and the GPU-texture window framebuffer; thread priorities (platform layer); the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
