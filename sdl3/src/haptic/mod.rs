@@ -640,6 +640,17 @@ fn haptic_index(instance_id: HapticID) -> Result<usize> {
     Err(Error::new(format!("Haptic device {instance_id} not found")))
 }
 
+/// The instance ID of the driver's haptic mouse, if it has one.
+///
+/// Upstream `SDL_OpenHapticFromMouse()` passes the device index from
+/// `SDL_SYS_HapticMouse()` to `SDL_OpenHaptic()`, which expects an instance
+/// ID; the index is turned into the device's instance ID here.
+fn mouse_instance_id(driver: &dyn HapticDriver) -> Option<HapticID> {
+    driver
+        .mouse()
+        .map(|device_index| driver.instance_id(device_index))
+}
+
 /// The haptic devices currently connected. Translation of
 /// `SDL_GetHaptics()`.
 pub fn haptics() -> Vec<HapticID> {
@@ -765,13 +776,11 @@ impl Haptic {
     /// Open the mouse as a haptic device. Translation of
     /// `SDL_OpenHapticFromMouse()`.
     pub fn open_from_mouse() -> Result<Haptic> {
-        let Some(device_index) = DRIVER.mouse() else {
+        let Some(instance_id) = mouse_instance_id(DRIVER) else {
             return Err(Error::new("Haptic: Mouse isn't a haptic device."));
         };
 
-        // FIXME (upstream): this passes the device index where an instance
-        // ID is expected.
-        Haptic::open(device_index as HapticID)
+        Haptic::open(instance_id)
     }
 
     /// Open the haptic device of a joystick (see [`is_joystick_haptic`]).
