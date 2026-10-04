@@ -1582,7 +1582,36 @@ fn blitter_selection() {
 fn rle_blit_matches_c() {
     let simd = with_simd(true, run_rle);
     let plain = with_simd(false, run_rle);
-    assert_eq!((simd, plain), (0x8641058ac1efbb42, 0xea2b4ab8dd1e49c2));
+    // (from the C harness with Blit888to888SurfaceAlphaSSE2()'s tail store
+    // fixed, see blit_a.rs)
+    assert_eq!((simd, plain), (0xb5fcb0538cc75b71, 0xea2b4ab8dd1e49c2));
+}
+
+/// The pixels after the last group of four in Blit888to888SurfaceAlphaSSE2
+/// are blended in every channel (upstream stored only their first byte).
+#[test]
+fn sse2_surface_alpha_blends_row_tail() {
+    let run = |simd: bool| {
+        let mut out = Vec::new();
+        with_simd(simd, |_| {
+            let mut s = Surface::new(6, 1, PixelFormat::XRGB8888).unwrap();
+            s.fill_rect(None, 0xffc08040).unwrap();
+            s.set_blend_mode(BlendMode::BLEND).unwrap();
+            s.set_alpha_mod(100);
+            let mut d = Surface::new(6, 1, PixelFormat::XRGB8888).unwrap();
+            d.fill_rect(None, 0xff102030).unwrap();
+            s.blit(None, &mut d, None).unwrap();
+            out = (0..6).map(|x| d.read_pixel(x, 0).unwrap()).collect();
+            0
+        });
+        out
+    };
+    let (simd, plain) = (run(true), run(false));
+    for (x, (a, b)) in simd.iter().zip(&plain).enumerate() {
+        for (ca, cb) in [(a.r, b.r), (a.g, b.g), (a.b, b.b)] {
+            assert!(ca.abs_diff(cb) <= 1, "pixel {x}: {a:?} vs {b:?}");
+        }
+    }
 }
 
 #[test]
