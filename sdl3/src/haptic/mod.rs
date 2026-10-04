@@ -16,16 +16,18 @@
 //! [`HapticEffect`]) gives full control over force feedback.
 //!
 //! The haptic backends are platform drivers; so far the Linux driver (the
-//! kernel's force feedback interface on evdev devices) and the dummy driver,
-//! which reports no devices, exist. (The HIDAPI haptic driver, built on the
-//! HIDAPI joystick drivers, and the DirectInput driver of Windows are not
-//! translated yet.)
+//! kernel's force feedback interface on evdev devices), the Windows driver
+//! (DirectInput force feedback) and the dummy driver, which reports no
+//! devices, exist. (The HIDAPI haptic driver, built on the HIDAPI joystick
+//! drivers, is not translated yet.)
 
-// (on Linux, only the tests use the dummy driver)
-#[cfg_attr(target_os = "linux", allow(dead_code))]
+// (on Linux and Windows, only the tests use the dummy driver)
+#[cfg_attr(any(target_os = "linux", windows), allow(dead_code))]
 mod dummy;
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(windows)]
+pub(crate) mod windows;
 
 use std::any::Any;
 use std::cell::RefCell;
@@ -430,7 +432,8 @@ pub(crate) struct HapticData {
     /// Number of axes on the device.
     pub(crate) naxes: i32,
     /// Driver dependent.
-    #[cfg_attr(not(target_os = "linux"), allow(dead_code))] // (used by the haptic drivers)
+    #[cfg_attr(not(any(target_os = "linux", windows)), allow(dead_code))]
+    // (used by the haptic drivers)
     pub(crate) hwdata: Option<Box<dyn Any + Send>>,
     /// Count for multiple opens.
     ref_count: i32,
@@ -543,7 +546,10 @@ pub(crate) trait HapticDriver: Send + Sync {
 #[cfg(target_os = "linux")]
 static DRIVER: &dyn HapticDriver = &linux::LINUX_HAPTIC_DRIVER;
 /// The haptic backend (`SDL_SYS_*`, chosen when upstream is built).
-#[cfg(not(target_os = "linux"))]
+#[cfg(windows)]
+static DRIVER: &dyn HapticDriver = &windows::WINDOWS_HAPTIC_DRIVER;
+/// The haptic backend (`SDL_SYS_*`, chosen when upstream is built).
+#[cfg(not(any(target_os = "linux", windows)))]
 static DRIVER: &dyn HapticDriver = &dummy::DUMMY_HAPTIC_DRIVER;
 
 static NEXT_SERIAL: AtomicU64 = AtomicU64::new(1);

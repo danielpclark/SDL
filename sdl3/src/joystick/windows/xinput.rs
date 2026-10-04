@@ -23,6 +23,7 @@ use super::super::{
     USB_PRODUCT_XBOX360_XUSB_CONTROLLER, USB_VENDOR_MICROSOFT, USB_VENDOR_VALVE,
 };
 use super::{add_joystick_device, HwData, JoyStickDeviceData};
+use crate::core::windows::directx::DIDEVICEINSTANCEW;
 use crate::core::windows::xinput::*;
 use crate::error::{Error, Result};
 use crate::events::JoystickID;
@@ -177,6 +178,7 @@ pub(super) fn add_xinput_device(
         b_xinput_device: true,
         sub_type,
         xinput_user_id: userid,
+        dxdevice: DIDEVICEINSTANCEW::new(),
         path: format!("XInput#{userid}"),
         steam_virtual_gamepad_slot: 0,
     };

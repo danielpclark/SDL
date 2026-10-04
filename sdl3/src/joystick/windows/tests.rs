@@ -4,6 +4,7 @@
 
 use super::xinput::{battery_information, get_xinput_name, state_inputs, Input};
 use super::*;
+use crate::core::windows::directx::*;
 use crate::core::windows::xinput::*;
 use crate::joystick::{joystick_guid_info, HAT_CENTERED, HAT_LEFTDOWN, HAT_RIGHTUP};
 use crate::power::PowerState;
@@ -186,6 +187,7 @@ fn device(userid: u8, sub_type: u8) -> JoyStickDeviceData {
         b_xinput_device: true,
         sub_type,
         xinput_user_id: userid,
+        dxdevice: crate::core::windows::directx::DIDEVICEINSTANCEW::new(),
         path: format!("XInput#{userid}"),
         steam_virtual_gamepad_slot: 0,
     }
@@ -334,4 +336,362 @@ fn detection_thread_waits_for_a_signalled_change() {
     crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
     assert!(JOYSTICK_THREAD.lock().unwrap().is_none());
     hints::reset(hints::JOYSTICK_THREAD);
+}
+
+// --- the scanner of the Steam virtual gamepad slots ---
+
+#[test]
+fn scan_like_sscanf() {
+    use super::Scan::*;
+    // (expected values from upstream's sscanf() formats, run with the C library)
+    let di = |path| super::dinput::get_steam_virtual_gamepad_slot(0x28DE, 0x11FF, path);
+    assert_eq!(
+        di("\\\\?\\HID#VID_28DE&PID_11FF&IG_00#8&2C2D2A42&0&0000#{4D1E55B2-F16F-11CF-88CB-001111000030}"),
+        0
+    );
+    assert_eq!(di("\\\\?\\HID#VID_28DE&PID_11FF&IG_03#X"), 3);
+    assert_eq!(di("\\\\?\\HID#VID_28DE&PID_11FF&IG_012"), 12);
+    assert_eq!(di("\\\\?\\HID#VID_28DE&PID_11FF&IG_0"), -1);
+    assert_eq!(di("\\\\?\\hid#VID_28DE&PID_11FF&IG_01"), -1);
+    assert_eq!(di("\\\\?\\HID#VID_28DE&PID_11FF&IG_0-7"), -7);
+    assert_eq!(di("\\\\?\\HID#VID_28DE&PID_11FF&IG_0 5"), 5);
+    // Only for the Steam virtual gamepad
+    assert_eq!(
+        super::dinput::get_steam_virtual_gamepad_slot(
+            0x045E,
+            0x11FF,
+            "\\\\?\\HID#VID_28DE&PID_11FF&IG_03"
+        ),
+        -1
+    );
+
+    assert_eq!(scan_int("", &[Int]), None);
+    assert_eq!(scan_int("12", &[Lit("1"), Int]), Some(2));
+}
+
+// --- DirectInput ---
+
+#[test]
+fn pov_translation() {
+    use super::dinput::translate_pov;
+    // (expected values from upstream's TranslatePOV())
+    let povs: [u32; 23] = [
+        0, 1, 2249, 2250, 4499, 4500, 6750, 9000, 13500, 18000, 22500, 27000, 31500, 33749, 33750,
+        35999, 36000, 40000, 0xFFFF, 0x1FFFF, 0xFFFFFFFF, 0xFFFFF000, 0x12345678,
+    ];
+    let expected: [u8; 23] = [
+        1, 1, 1, 3, 3, 3, 2, 2, 6, 4, 12, 8, 9, 9, 1, 1, 1, 3, 0, 0, 0, 4, 9,
+    ];
+    for (pov, hat) in povs.iter().zip(expected) {
+        assert_eq!(translate_pov(*pov), hat, "{pov}");
+    }
+}
+
+#[test]
+fn rumble_magnitudes() {
+    use super::dinput::{convert_magnitude, rumble_magnitude, RumbleEffect};
+    // (expected values from upstream's SDL_DINPUT_JoystickRumble() and CONVERT_MAGNITUDE())
+    let cases: [((u16, u16), (i16, u32)); 8] = [
+        ((0, 0), (0, 0)),
+        ((0xFFFF, 0xFFFF), (32767, 10000)),
+        ((0xFFFF, 0), (16383, 4999)),
+        ((0, 0xFFFF), (16383, 4999)),
+        ((1, 1), (0, 0)),
+        ((3, 3), (1, 0)),
+        ((0x8000, 0x4000), (12288, 3750)),
+        ((12345, 54321), (16666, 5086)),
+    ];
+    for ((low, high), (magnitude, converted)) in cases {
+        assert_eq!(rumble_magnitude(low, high), magnitude);
+        assert_eq!(convert_magnitude(magnitude), converted);
+    }
+
+    // CreateRumbleEffectData()
+    let mut effect = RumbleEffect::new(16383);
+    let dieffect = effect.dieffect();
+    assert_eq!(dieffect.dwSize, size_of::<DIEFFECT>() as u32);
+    assert_eq!(dieffect.dwGain, 10000);
+    assert_eq!(dieffect.dwFlags, DIEFF_OBJECTOFFSETS | DIEFF_CARTESIAN);
+    assert_eq!(dieffect.dwDuration, 0xFFFF * 1000);
+    assert_eq!(dieffect.dwTriggerButton, DIEB_NOTRIGGER);
+    assert_eq!(dieffect.cAxes, 2);
+    assert_eq!(dieffect.cbTypeSpecificParams, 16);
+    // SAFETY: the effect points into `effect`, which is alive.
+    let periodic = unsafe { *dieffect.lpvTypeSpecificParams.cast::<DIPERIODIC>() };
+    assert_eq!(
+        periodic,
+        DIPERIODIC {
+            dwMagnitude: 4999,
+            lOffset: 0,
+            dwPhase: 0,
+            dwPeriod: 1000000
+        }
+    );
+    // SAFETY: as above.
+    unsafe {
+        assert_eq!(*dieffect.rgdwAxes, 0);
+        assert_eq!(*dieffect.rglDirection.add(1), 0);
+    }
+}
+
+#[test]
+fn joystick_data_format() {
+    let format = &super::dinput::C_DF_DIJOYSTICK2.0;
+    assert_eq!(format.dwSize, size_of::<DIDATAFORMAT>() as u32);
+    assert_eq!(format.dwDataSize, 272);
+    assert_eq!(format.dwFlags, DIDF_ABSAXIS);
+    // SAFETY: the format points to its 164 static objects.
+    let objects = unsafe { std::slice::from_raw_parts(format.rgodf, format.dwNumObjs as usize) };
+    assert_eq!(objects.len(), 164);
+    // SAFETY: the GUID pointers point to static GUIDs (or are NULL).
+    let guid =
+        |i: usize| unsafe { objects[i].pguid.as_ref() }.map(crate::core::windows::guid_bytes);
+    let g = |g: &windows_sys::core::GUID| Some(crate::core::windows::guid_bytes(g));
+    // The position axes, sliders, POVs, then the 128 buttons
+    let expected_ofs = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48];
+    for (i, ofs) in expected_ofs.iter().enumerate() {
+        assert_eq!(objects[i].dwOfs, *ofs, "{i}");
+    }
+    assert_eq!(guid(0), g(&GUID_XAXIS));
+    assert_eq!(guid(5), g(&GUID_RZAXIS));
+    assert_eq!(guid(3), g(&GUID_RXAXIS));
+    assert_eq!(guid(6), g(&GUID_SLIDER));
+    assert_eq!(guid(8), g(&GUID_POV));
+    assert_eq!(guid(12), None);
+    assert_eq!(objects[0].dwFlags, DIDOI_ASPECTPOSITION);
+    assert_eq!(
+        objects[0].dwType,
+        DIDFT_OPTIONAL | DIDFT_AXIS | DIDFT_ANYINSTANCE
+    );
+    assert_eq!(
+        objects[8].dwType,
+        DIDFT_OPTIONAL | DIDFT_POV | DIDFT_ANYINSTANCE
+    );
+    assert_eq!(objects[8].dwFlags, 0);
+    assert_eq!(objects[139].dwOfs, 48 + 127);
+    assert_eq!(
+        objects[139].dwType,
+        DIDFT_OPTIONAL | DIDFT_BUTTON | DIDFT_ANYINSTANCE
+    );
+    // Velocity, acceleration and force; their sliders use the position offsets
+    assert_eq!(objects[140].dwOfs, 176);
+    assert_eq!(objects[140].dwFlags, DIDOI_ASPECTVELOCITY);
+    assert_eq!(objects[145].dwOfs, 196);
+    assert_eq!(objects[146].dwOfs, 24);
+    assert_eq!(objects[147].dwOfs, 28);
+    assert_eq!(objects[148].dwOfs, 208);
+    assert_eq!(objects[148].dwFlags, DIDOI_ASPECTACCEL);
+    assert_eq!(objects[156].dwOfs, 240);
+    assert_eq!(objects[163].dwOfs, 28);
+    assert_eq!(objects[163].dwFlags, DIDOI_ASPECTFORCE);
+    assert_eq!(guid(163), g(&GUID_SLIDER));
+}
+
+/// A device object of a type, for EnumDevObjectsCallback().
+fn device_object(dw_type: u32, guid_type: windows_sys::core::GUID) -> DIDEVICEOBJECTINSTANCEW {
+    // SAFETY: the structure is plain data.
+    let mut object: DIDEVICEOBJECTINSTANCEW = unsafe { std::mem::zeroed() };
+    object.dwType = dw_type;
+    object.guidType = guid_type;
+    object
+}
+
+#[test]
+fn device_objects_and_their_order() {
+    use super::dinput::{
+        enum_dev_objects_callback, sort_dev_objects, DeviceInput, InputType, ObjectCounts,
+    };
+    // SAFETY: a GUID is plain data.
+    let none: windows_sys::core::GUID = unsafe { std::mem::zeroed() };
+    let mut counts = ObjectCounts::default();
+    let objects = [
+        device_object(DIDFT_BUTTON, none),
+        device_object(DIDFT_AXIS, GUID_YAXIS),
+        device_object(DIDFT_POV, GUID_POV),
+        device_object(DIDFT_AXIS, GUID_XAXIS),
+        device_object(DIDFT_AXIS, GUID_SLIDER),
+        device_object(DIDFT_BUTTON, none),
+        device_object(DIDFT_AXIS, GUID_RZAXIS), // refused by configure_axis below
+        device_object(DIDFT_AXIS, GUID_POV),    // not an axis we can grok
+        device_object(0x0100_0000, none),       // not supported
+    ];
+    for object in &objects {
+        let refuse = object.guidType.data1 == GUID_RZAXIS.data1;
+        assert!(enum_dev_objects_callback(object, &mut counts, |_| !refuse));
+    }
+    assert_eq!((counts.nbuttons, counts.nhats, counts.naxes), (2, 1, 3));
+    assert_eq!(counts.num_sliders, 1);
+    let input = |ofs, kind, num| DeviceInput { ofs, kind, num };
+    assert_eq!(
+        counts.inputs,
+        [
+            input(48, InputType::Button, 0),
+            input(4, InputType::Axis, 0),
+            input(32, InputType::Hat, 0),
+            input(0, InputType::Axis, 1),
+            input(24, InputType::Axis, 2),
+            input(49, InputType::Button, 1),
+        ]
+    );
+    sort_dev_objects(&mut counts.inputs);
+    assert_eq!(
+        counts.inputs,
+        [
+            input(0, InputType::Axis, 0),
+            input(4, InputType::Axis, 1),
+            input(24, InputType::Axis, 2),
+            input(32, InputType::Hat, 0),
+            input(48, InputType::Button, 0),
+            input(49, InputType::Button, 1),
+        ]
+    );
+
+    // Four POVs at most; enumeration stops at 256 inputs
+    let mut counts = ObjectCounts::default();
+    for _ in 0..5 {
+        assert!(enum_dev_objects_callback(
+            &device_object(DIDFT_POV, GUID_POV),
+            &mut counts,
+            |_| true
+        ));
+    }
+    assert_eq!(counts.nhats, 4);
+    for i in 0..252 {
+        let go_on =
+            enum_dev_objects_callback(&device_object(DIDFT_BUTTON, none), &mut counts, |_| true);
+        assert_eq!(go_on, i != 251, "{i}");
+    }
+    assert_eq!(counts.inputs.len(), 256);
+}
+
+#[test]
+fn polled_and_buffered_states() {
+    use super::dinput::{buffered_inputs, polled_state_inputs, DeviceInput, InputType};
+    let inputs = [
+        DeviceInput {
+            ofs: 0,
+            kind: InputType::Axis,
+            num: 0,
+        },
+        DeviceInput {
+            ofs: 20,
+            kind: InputType::Axis,
+            num: 1,
+        },
+        DeviceInput {
+            ofs: 28,
+            kind: InputType::Axis,
+            num: 2,
+        },
+        DeviceInput {
+            ofs: 32 + 4,
+            kind: InputType::Hat,
+            num: 1,
+        },
+        DeviceInput {
+            ofs: 48 + 3,
+            kind: InputType::Button,
+            num: 0,
+        },
+        DeviceInput {
+            ofs: 48 + 200,
+            kind: InputType::Button,
+            num: 1,
+        },
+    ];
+    let mut buttons = [0u8; 128];
+    buttons[3] = 0x80;
+    let state = DIJOYSTATE2 {
+        lX: 0x12345, // (truncated to 16 bits, as the C cast does)
+        lRz: -32768,
+        rglSlider: [0, 77],
+        rgdwPOV: [0, 9000, 0, 0],
+        rgbButtons: buttons,
+        ..Default::default()
+    };
+    assert_eq!(
+        polled_state_inputs(&inputs, &state),
+        [
+            Input::Axis(0, 0x2345),
+            Input::Axis(1, -32768),
+            Input::Axis(2, 77),
+            Input::Hat(1, crate::joystick::HAT_RIGHT),
+            Input::Button(0, true),
+            // (past rgbButtons: released)
+            Input::Button(1, false),
+        ]
+    );
+
+    let event = |ofs, data| DIDEVICEOBJECTDATA {
+        dwOfs: ofs,
+        dwData: data,
+        ..Default::default()
+    };
+    assert_eq!(
+        buffered_inputs(
+            &inputs,
+            &[
+                event(20, 0xFFFF_8000),
+                event(51, 0),
+                event(36, 0xFFFF),
+                event(99, 1),
+                event(0, 5)
+            ]
+        ),
+        [
+            Input::Axis(1, -32768),
+            Input::Button(0, false),
+            Input::Hat(1, HAT_CENTERED),
+            Input::Axis(0, 5),
+        ]
+    );
+}
+
+// --- the drivers together, under Wine (no controllers) ---
+
+#[test]
+fn drivers_with_every_api() {
+    let _l = lock();
+    // DirectInput on (the default)
+    crate::init::init_subsystem(crate::init::InitFlags::JOYSTICK).unwrap();
+    {
+        let _lock = crate::joystick::lock_joysticks();
+        // (Wine has DirectInput, so this enumerates)
+        assert!(super::dinput::dinput_in_use());
+        assert_eq!(WINDOWS_JOYSTICK_DRIVER.count(), 0);
+        assert!(!WINDOWS_JOYSTICK_DRIVER.is_device_present(0x045e, 0x02a1, 0, None));
+        WINDOWS_JOYSTICK_DRIVER.detect();
+    }
+    assert_eq!(crate::joystick::joysticks(), []);
+    crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
+
+    // DirectInput off
+    hints::set(hints::JOYSTICK_DIRECTINPUT, "0").unwrap();
+    crate::init::init_subsystem(crate::init::InitFlags::JOYSTICK).unwrap();
+    assert!(!super::dinput::dinput_in_use());
+    assert_eq!(crate::joystick::joysticks(), []);
+    crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
+
+    hints::reset(hints::JOYSTICK_DIRECTINPUT);
+}
+
+#[test]
+fn pending_device_change_does_not_spin() {
+    let _l = lock();
+    // With a device change pending (nobody calls detect), a wait for
+    // device notifications blocks for a while rather than returning at once.
+    let mut data = DeviceNotificationData::new();
+    create_device_notification(&mut data).unwrap();
+    set_windows_device_changed();
+    let start = std::time::Instant::now();
+    let (guard, ok) = wait_for_device_notification(data.message_window, lock_enum());
+    assert!(ok);
+    drop(guard);
+    assert!(
+        start.elapsed() >= Duration::from_millis(50),
+        "{:?}",
+        start.elapsed()
+    );
+    cleanup_device_notification(&mut data);
+    LAST_DEVICE_CHANGE.store(get_last_device_notification(), Ordering::Release);
 }
