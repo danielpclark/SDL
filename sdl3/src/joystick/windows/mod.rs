@@ -13,10 +13,13 @@
 //! the Windows.Gaming.Input driver ([`windows_gaming_input`]) are drivers
 //! of their own, before and after this one.
 //!
-//! GameInput is not translated: everything behaves as upstream does when
-//! `SDL_UsingGameInputForXInputControllers()` is false.
+//! The GameInput driver ([`gameinput`]) comes before them all; while it
+//! handles the XInput controllers
+//! (`SDL_UsingGameInputForXInputControllers()`), the others leave them
+//! alone.
 
 pub(crate) mod dinput;
+pub(super) mod gameinput;
 pub(super) mod rawinput;
 mod wgi_abi;
 pub(super) mod windows_gaming_input;

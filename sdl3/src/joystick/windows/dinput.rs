@@ -175,8 +175,10 @@ fn set_di_error(function: &str, code: HRESULT) -> Error {
 /// Translation of `SDL_IsXInputDevice()`.
 fn is_xinput_device(vendor_id: u16, product_id: u16, hid_path: &str) -> bool {
     // Some other backends will pick up XInput-compatible devices
-    // (SDL_UsingGameInputForXInputControllers() is false without GameInput)
-    if !super::xinput::xinput_enabled() && !super::rawinput::is_enabled() {
+    if !super::xinput::xinput_enabled()
+        && !super::rawinput::is_enabled()
+        && !crate::core::windows::gameinput::using_game_input_for_xinput_controllers()
+    {
         return false;
     }
 

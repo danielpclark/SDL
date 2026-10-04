@@ -8,8 +8,7 @@
 //! buttons and a hat.
 //!
 //! When the RawInput driver is enabled, it handles the XInput controllers
-//! (it isn't limited to four); GameInput is not translated, so XInput is
-//! never left to it.
+//! (it isn't limited to four); while GameInput handles them, XInput is off.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -50,8 +49,9 @@ fn functions() -> Option<XInputFunctions> {
 pub(super) fn joystick_init() -> bool {
     let mut enabled = true;
 
-    // (SDL_UsingGameInputForXInputControllers() is false without GameInput)
-    if !hints::get_bool(hints::XINPUT_ENABLED, true) {
+    if !hints::get_bool(hints::XINPUT_ENABLED, true)
+        || crate::core::windows::gameinput::using_game_input_for_xinput_controllers()
+    {
         enabled = false;
     }
 

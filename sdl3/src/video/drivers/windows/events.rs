@@ -1496,8 +1496,8 @@ pub(crate) fn check_keyboard_and_mouse_hotplug(hid_loaded: bool) {
     };
     if core::current_video_driver().ok() != Some("windows")
         || !videodata.state.with(|s| s.detect_device_hotplug)
+        || super::gameinput::has_game_input(&videodata)
     {
-        // (no GameInput context: GameInput isn't translated)
         return;
     }
 
@@ -3416,7 +3416,9 @@ pub(crate) fn pump_events(videodata: &VideoData) {
     let end_ticks = unsafe { GetTickCount() }.wrapping_add(1);
     let mut new_messages = 0;
 
-    // (no GameInput context to update)
+    if super::gameinput::has_game_input(videodata) {
+        super::gameinput::update_game_input(videodata);
+    }
 
     if G_WINDOWS_ENABLE_MESSAGE_LOOP.load(Ordering::Relaxed) {
         PROCESSING_MESSAGES.store(true, Ordering::Relaxed);

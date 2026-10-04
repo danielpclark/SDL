@@ -561,7 +561,12 @@ fn driver_order() {
     ));
     #[cfg(windows)]
     {
-        // RawInput, then Windows (DirectInput and XInput), then WGI
+        // GameInput, RawInput, then Windows (DirectInput and XInput), then WGI
+        let gameinput_driver: &dyn JoystickDriver = &windows::gameinput::GAMEINPUT_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[GAMEINPUT_DRIVER_INDEX],
+            gameinput_driver
+        ));
         let rawinput_driver: &dyn JoystickDriver = &windows::rawinput::RAWINPUT_JOYSTICK_DRIVER;
         assert!(std::ptr::addr_eq(
             JOYSTICK_DRIVERS[RAWINPUT_DRIVER_INDEX],
@@ -578,6 +583,8 @@ fn driver_order() {
             wgi_driver
         ));
         const {
+            assert!(HIDAPI_DRIVER_INDEX < GAMEINPUT_DRIVER_INDEX);
+            assert!(GAMEINPUT_DRIVER_INDEX < RAWINPUT_DRIVER_INDEX);
             assert!(RAWINPUT_DRIVER_INDEX < WINDOWS_DRIVER_INDEX);
             assert!(WINDOWS_DRIVER_INDEX < WGI_DRIVER_INDEX);
             assert!(WGI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);

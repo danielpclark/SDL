@@ -1961,8 +1961,9 @@ impl JoystickDriver for RawinputJoystickDriver {
     fn init(&self) -> Result<()> {
         crate::sdl_assert!(!INITED.load(Ordering::Acquire));
 
-        // (SDL_UsingGameInputForXInputControllers() is false without GameInput)
-        if !hints::get_bool(hints::JOYSTICK_RAWINPUT, false) {
+        if !hints::get_bool(hints::JOYSTICK_RAWINPUT, false)
+            || crate::core::windows::gameinput::using_game_input_for_xinput_controllers()
+        {
             return Ok(());
         }
 

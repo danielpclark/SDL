@@ -56,6 +56,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 
 pub(crate) mod com;
 pub(crate) mod directx;
+pub(crate) mod gameinput;
 pub(crate) mod hid;
 pub(crate) mod xinput;
 

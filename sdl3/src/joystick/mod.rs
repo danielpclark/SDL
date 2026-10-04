@@ -535,18 +535,22 @@ pub(crate) trait JoystickDriver: Send + Sync {
 #[cfg(all(test, any(windows, target_os = "linux")))]
 const HIDAPI_DRIVER_INDEX: usize = 0;
 
+/// The index of the GameInput driver in [`JOYSTICK_DRIVERS`].
+#[cfg(windows)]
+const GAMEINPUT_DRIVER_INDEX: usize = 1;
+
 /// The index of the RawInput driver in [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const RAWINPUT_DRIVER_INDEX: usize = 1;
+const RAWINPUT_DRIVER_INDEX: usize = 2;
 
 /// The index of the Windows (DirectInput and XInput) driver in
 /// [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const WINDOWS_DRIVER_INDEX: usize = 2;
+const WINDOWS_DRIVER_INDEX: usize = 3;
 
 /// The index of the Windows.Gaming.Input driver in [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const WGI_DRIVER_INDEX: usize = 3;
+const WGI_DRIVER_INDEX: usize = 4;
 
 /// The index of the Linux driver in [`JOYSTICK_DRIVERS`].
 #[cfg(target_os = "linux")]
@@ -555,7 +559,7 @@ const LINUX_DRIVER_INDEX: usize = 1;
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
-    4
+    5
 } else if cfg!(target_os = "linux") {
     2
 } else {
@@ -568,6 +572,9 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
 static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     #[cfg(any(windows, target_os = "linux"))]
     &hidapi::HIDAPI_JOYSTICK_DRIVER,
+    // Higher priority than other Windows drivers
+    #[cfg(windows)]
+    &windows::gameinput::GAMEINPUT_JOYSTICK_DRIVER,
     // Before WINDOWS driver, as WINDOWS wants to check if this driver is handling things
     #[cfg(windows)]
     &windows::rawinput::RAWINPUT_JOYSTICK_DRIVER,
