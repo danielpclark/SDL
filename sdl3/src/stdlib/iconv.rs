@@ -303,12 +303,11 @@ impl Iconv {
             }
         }
 
-        // Upstream advances `*outbuf` only after each converted character, so
-        // a BOM written here is kept only if at least one character follows
-        // it in this call (otherwise the next call, now in native order,
-        // overwrites it). FIXME (upstream): that loses the BOM when the first
-        // character doesn't fit; kept for identical output.
-        let mut committed_dst = 0;
+        // (upstream advances `*outbuf` only after each converted character,
+        // so a BOM written above is lost when the first character doesn't
+        // fit: the next call, now in native order, overwrites it. Fixed here
+        // by committing the BOM as soon as it is written.)
+        let mut committed_dst = dst_pos;
         let mut total = 0;
 
         let result = loop {
@@ -781,9 +780,35 @@ mod tests {
         assert_eq!(&storage[..2], &0xFEFFu16.to_ne_bytes());
         assert_eq!(&storage[2..4], &('A' as u16).to_ne_bytes());
         assert_eq!(cd.destination(), Encoding::UTF16_NATIVE);
-        // ...and, exactly like upstream's SDL_iconv_string(), is lost when the
-        // buffer first grows past the BOM but not past the first character.
+        // ...and is kept when the first character doesn't fit (upstream drops
+        // it, and SDL_iconv_string() hits that whenever its buffer first grows
+        // past the BOM but not past the first character).
+        let mut cd = Iconv::open("UTF-16", "UTF-8").unwrap();
+        let mut inbuf: &[u8] = b"A";
+        let mut storage = [0u8; 3];
+        let mut outbuf: &mut [u8] = &mut storage;
+        assert_eq!(cd.convert(&mut inbuf, &mut outbuf), Err(IconvError::TooBig));
+        assert_eq!(outbuf.len(), 1, "the BOM was committed");
+        assert_eq!(inbuf, b"A");
+        assert_eq!(&storage[..2], &0xFEFFu16.to_ne_bytes());
         let out = conv("UTF-16", "UTF-8", b"A\0");
-        assert_eq!(out, [&('A' as u16).to_ne_bytes()[..], &[0, 0][..]].concat());
+        assert_eq!(
+            out,
+            [
+                &0xFEFFu16.to_ne_bytes()[..],
+                &('A' as u16).to_ne_bytes()[..],
+                &[0, 0][..]
+            ]
+            .concat()
+        );
+        let out = conv("UTF-32", "UTF-8", b"A");
+        assert_eq!(
+            out,
+            [
+                &0xFEFFu32.to_ne_bytes()[..],
+                &('A' as u32).to_ne_bytes()[..]
+            ]
+            .concat()
+        );
     }
 }
