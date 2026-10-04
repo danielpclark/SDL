@@ -9,12 +9,148 @@
 //! "open" calls of the same name; its "range", "autocenter", "led" and
 //! "close" calls come after its reports.
 
+use std::sync::{Arc, Mutex};
+
 use super::super::steam::tests::{hex_line, FakeHid, Step};
 use super::super::tests::{run, test_device};
+use super::super::{del_device, with_context, HidapiDevice, DEVICES, DRIVER_LG4FF};
 use super::*;
 use crate::hidapi::DeviceInfo;
 
 mod data;
+
+/// A [`FakeHid`] the effect thread of the HIDAPI haptic driver can write
+/// to while the test reads it.
+#[derive(Clone)]
+struct SharedHid(Arc<Mutex<FakeHid>>);
+
+impl SharedHid {
+    fn hid(&self) -> std::sync::MutexGuard<'_, FakeHid> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
+
+impl SteamHid for SharedHid {
+    fn is_bluetooth(&self) -> bool {
+        self.hid().is_bluetooth()
+    }
+    fn send_feature_report(&self, data: &[u8]) -> Result<usize> {
+        self.hid().send_feature_report(data)
+    }
+    fn get_feature_report(&self, data: &mut [u8]) -> Result<usize> {
+        self.hid().get_feature_report(data)
+    }
+    fn read(&self, data: &mut [u8]) -> Result<usize> {
+        self.hid().read(data)
+    }
+    fn read_timeout(&self, data: &mut [u8], milliseconds: i32) -> Result<usize> {
+        self.hid().read_timeout(data, milliseconds)
+    }
+    fn write(&self, data: &[u8]) -> Result<usize> {
+        self.hid().write(data)
+    }
+}
+
+/// The driver's context on a fake HID device: the functions of
+/// [`Lg4ffContext`] on `hid` instead of the device's own.
+struct FakeWheelContext {
+    inner: Lg4ffContext,
+    hid: SharedHid,
+}
+
+impl DriverContext for FakeWheelContext {
+    fn init_device(&mut self, device: &mut DeviceCtx<'_>) -> Result<()> {
+        // (HIDAPI_DriverLg4ff_InitDevice() without the HID device)
+        device.set_joystick_type(JoystickType::Wheel);
+        device.set_device_name(device_name(device.product_id()));
+        self.inner.init(device, &self.hid)
+    }
+
+    fn update_device(&mut self, device: &mut DeviceCtx<'_>) -> bool {
+        let Some(joystick) = device.open_joystick_id() else {
+            return false;
+        };
+        self.inner.update(device, &self.hid, joystick)
+    }
+
+    fn open_joystick(
+        &mut self,
+        device: &mut DeviceCtx<'_>,
+        joystick: &mut JoystickData,
+    ) -> Result<()> {
+        self.inner.open_joystick(device, joystick)
+    }
+
+    fn get_joystick_capabilities(
+        &mut self,
+        device: &mut DeviceCtx<'_>,
+        joystick: JoystickID,
+    ) -> JoystickCaps {
+        self.inner.get_joystick_capabilities(device, joystick)
+    }
+
+    fn send_joystick_effect(
+        &mut self,
+        _device: &mut DeviceCtx<'_>,
+        _joystick: JoystickID,
+        data: &[u8],
+    ) -> Result<()> {
+        send_effect(&self.hid, data)
+    }
+
+    fn close_joystick(&mut self, device: &mut DeviceCtx<'_>, _joystick: JoystickID) {
+        let _ = self.inner.set_led(device.product_id(), &self.hid, 0, 0, 0);
+    }
+}
+
+/// A Logitech wheel on a fake HID device, connected to the HIDAPI joystick
+/// driver as if it had been found (for the tests of the HIDAPI haptic
+/// driver, which reaches it through its joystick); disconnected on drop.
+/// Take the test lock, with the joystick subsystem initialized.
+pub(crate) struct FakeWheel {
+    device: Arc<HidapiDevice>,
+    hid: SharedHid,
+    /// The instance ID of the wheel's joystick.
+    pub(crate) id: JoystickID,
+}
+
+impl FakeWheel {
+    pub(crate) fn connect(vendor_id: u16, product_id: u16, version: u16) -> FakeWheel {
+        let _lock = crate::joystick::lock_joysticks();
+
+        let device = test_device(&DeviceInfo {
+            path: Some(format!("fake-lg4ff-{vendor_id:04x}-{product_id:04x}")),
+            vendor_id,
+            product_id,
+            release_number: version,
+            ..DeviceInfo::default()
+        });
+        let hid = SharedHid(Arc::new(Mutex::new(FakeHid::new(false))));
+        device.state().driver = Some(&DRIVER_LG4FF);
+        *device.context.lock().unwrap() = Some(Box::new(FakeWheelContext {
+            inner: Lg4ffContext::default(),
+            hid: hid.clone(),
+        }));
+        DEVICES.lock().unwrap().push(device.clone());
+
+        let result = with_context(&device, |context, dctx| context.init_device(dctx));
+        assert!(matches!(result, Some(Ok(()))), "{result:?}");
+        let id = device.joysticks()[0];
+        FakeWheel { device, hid, id }
+    }
+
+    /// The reports written since the last call.
+    pub(crate) fn take_writes(&self) -> Vec<String> {
+        self.hid.hid().take_log()
+    }
+}
+
+impl Drop for FakeWheel {
+    fn drop(&mut self) {
+        let _lock = crate::joystick::lock_joysticks();
+        del_device(&self.device);
+    }
+}
 
 fn call(name: &str) -> &'static [&'static str] {
     data::CALLS

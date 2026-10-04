@@ -37,7 +37,7 @@ mod flydigi;
 mod gamecube;
 mod gamesir;
 mod gip;
-mod lg4ff;
+pub(crate) mod lg4ff;
 mod luna;
 mod ps3;
 mod ps4;
@@ -71,10 +71,11 @@ use super::{
     joystick_guid_info, lock_joysticks, private_joystick_added, private_joystick_removed,
     send_joystick_axis, send_joystick_button, send_joystick_capsense, send_joystick_hat,
     send_joystick_power_info, send_joystick_sensor, send_joystick_touchpad, set_joystick_guid_crc,
-    should_ignore_joystick, with_joystick, JoystickConnectionState, JoystickData, JoystickDriver,
-    JoystickType, HARDWARE_BUS_BLUETOOTH, HARDWARE_BUS_USB, PROP_JOYSTICK_CAP_MONO_LED_BOOLEAN,
-    PROP_JOYSTICK_CAP_PLAYER_LED_BOOLEAN, PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN,
-    PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN, PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN,
+    should_ignore_joystick, with_joystick, Joystick, JoystickConnectionState, JoystickData,
+    JoystickDriver, JoystickType, HARDWARE_BUS_BLUETOOTH, HARDWARE_BUS_USB,
+    PROP_JOYSTICK_CAP_MONO_LED_BOOLEAN, PROP_JOYSTICK_CAP_PLAYER_LED_BOOLEAN,
+    PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN, PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN,
+    PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN,
 };
 use crate::error::{Error, Result};
 use crate::events::JoystickID;
@@ -2265,6 +2266,17 @@ fn get_joystick_device(joystick: JoystickID) -> Option<Arc<HidapiDevice>> {
             .map(|h| h.device.clone())
     })??;
     (device.valid.load(Ordering::Relaxed) && device.driver().is_some()).then_some(device)
+}
+
+/// Whether a joystick is the HIDAPI driver's (upstream's
+/// `joystick->driver == &SDL_HIDAPI_JoystickDriver`, as the HIDAPI haptic
+/// driver checks).
+pub(crate) fn is_hidapi_joystick(joystick: &Joystick) -> bool {
+    assert_joysticks_locked();
+
+    joystick
+        .with(|j| j.driver == super::HIDAPI_DRIVER_INDEX)
+        .unwrap_or(false)
 }
 
 /// The driver side of `HIDAPI_JoystickClose()`.

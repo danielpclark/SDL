@@ -6,7 +6,9 @@
 //! The Logitech wheel driver (G29, G27, G25, Driving Force GT, Driving
 //! Force Pro and Driving Force EX), switching the wheels to their native
 //! mode and setting their range and autocenter spring. The force feedback
-//! effects are the HIDAPI haptic driver's.
+//! effects are the HIDAPI haptic driver's ([`crate::haptic`]), which sends
+//! its commands as joystick effects
+//! ([`crate::joystick::Joystick::send_effect`]).
 //!
 //! The commands go through the HID I/O of the Valve drivers
 //! ([`SteamHid`]), which the tests fake.
@@ -21,12 +23,12 @@ use crate::joystick::gamepad::{GamepadAxis, GamepadButton, GamepadType};
 use crate::joystick::usb_ids::USB_VENDOR_LOGITECH;
 use crate::joystick::{JoystickData, JoystickType};
 
-const USB_DEVICE_ID_LOGITECH_G29_WHEEL: u16 = 0xc24f;
-const USB_DEVICE_ID_LOGITECH_G27_WHEEL: u16 = 0xc29b;
-const USB_DEVICE_ID_LOGITECH_G25_WHEEL: u16 = 0xc299;
-const USB_DEVICE_ID_LOGITECH_DFGT_WHEEL: u16 = 0xc29a;
-const USB_DEVICE_ID_LOGITECH_DFP_WHEEL: u16 = 0xc298;
-const USB_DEVICE_ID_LOGITECH_WHEEL: u16 = 0xc294;
+pub(crate) const USB_DEVICE_ID_LOGITECH_G29_WHEEL: u16 = 0xc24f;
+pub(crate) const USB_DEVICE_ID_LOGITECH_G27_WHEEL: u16 = 0xc29b;
+pub(crate) const USB_DEVICE_ID_LOGITECH_G25_WHEEL: u16 = 0xc299;
+pub(crate) const USB_DEVICE_ID_LOGITECH_DFGT_WHEEL: u16 = 0xc29a;
+pub(crate) const USB_DEVICE_ID_LOGITECH_DFP_WHEEL: u16 = 0xc298;
+pub(crate) const USB_DEVICE_ID_LOGITECH_WHEEL: u16 = 0xc294;
 
 /// The supported wheels, with their names (`supported_device_ids` and
 /// `supported_device_names`).
@@ -46,7 +48,28 @@ const SUPPORTED_DEVICES: [(u16, &str); 6] = [
 ];
 
 /// A wheel command.
-type Command = [u8; 7];
+pub(crate) type Command = [u8; 7];
+
+/// Whether `product_id` is one of the supported wheels (also the
+/// `supported_device_ids` of the HIDAPI haptic driver).
+pub(crate) fn is_supported_product(product_id: u16) -> bool {
+    SUPPORTED_DEVICES.iter().any(|(id, _)| *id == product_id)
+}
+
+/// Whether a wheel is a Formula Force EX (part of
+/// `HIDAPI_DriverLg4ff_InitDevice()`, and of the HIDAPI haptic driver's
+/// `SDL_HIDAPI_HapticDriverLg4ff_Open()`).
+///
+/// ffex identification method by:
+/// Simon Wood <simon@mungewell.org>
+/// Michal Malý <madcatxster@devoid-pointer.net> <madcatxster@gmail.com>
+/// lg4ff_init
+/// `git blame v6.12 drivers/hid/hid-lg4ff.c`, <https://github.com/torvalds/linux.git>
+pub(crate) fn is_ffex(product_id: u16, release_number: u16) -> bool {
+    product_id == USB_DEVICE_ID_LOGITECH_WHEEL
+        && (release_number >> 8) == 0x21
+        && (release_number & 0xff) == 0x00
+}
 
 /// Translation of `HIDAPI_DriverLg4ff_GetDeviceName()`.
 fn device_name(device_id: u16) -> &'static str {
@@ -101,8 +124,10 @@ fn identify_wheel(device_id: u16, release_number: u16) -> u16 {
     .unwrap_or(0)
 }
 
-/// Translation of `SDL_HIDAPI_DriverLg4ff_GetEnvInt()`.
-fn get_env_int(env_name: &str, min: i32, max: i32, def: i32) -> i32 {
+/// Translation of `SDL_HIDAPI_DriverLg4ff_GetEnvInt()` (and of the HIDAPI
+/// haptic driver's `SDL_HIDAPI_HapticDriverLg4ff_GetEnvInt()`, the same
+/// function).
+pub(crate) fn get_env_int(env_name: &str, min: i32, max: i32, def: i32) -> i32 {
     let Some(env) = crate::stdlib::getenv(env_name) else {
         return def;
     };
@@ -202,19 +227,9 @@ fn range_commands(product_id: u16, range: u16) -> Vec<Command> {
 /// Michal Malý <madcatxster@devoid-pointer.net> <madcatxster@gmail.com>
 /// lg4ff_set_autocenter_default lg4ff_set_autocenter_ffex
 /// `git blame v6.12 drivers/hid/hid-lg4ff.c`, <https://github.com/torvalds/linux.git>
-fn autocenter_commands(is_ffex: bool, magnitude: u32) -> Vec<Command> {
+pub(crate) fn autocenter_commands(is_ffex: bool, magnitude: u32) -> Vec<Command> {
     if is_ffex {
-        let magnitude = magnitude * 90 / 65535;
-
-        return vec![[
-            0xfe,
-            0x03,
-            ((magnitude as u16) >> 14) as u8,
-            ((magnitude as u16) >> 14) as u8,
-            magnitude as u8,
-            0,
-            0,
-        ]];
+        return vec![ffex_autocenter_command(magnitude * 90 / 65535)];
     }
 
     // first disable
@@ -252,6 +267,20 @@ fn autocenter_commands(is_ffex: bool, magnitude: u32) -> Vec<Command> {
     commands
 }
 
+/// The autocenter command of a Formula Force EX, for a magnitude of 0 to
+/// 90 (the HIDAPI haptic driver scales its own).
+pub(crate) fn ffex_autocenter_command(magnitude: u32) -> Command {
+    [
+        0xfe,
+        0x03,
+        ((magnitude as u16) >> 14) as u8,
+        ((magnitude as u16) >> 14) as u8,
+        magnitude as u8,
+        0,
+        0,
+    ]
+}
+
 /// The command of `HIDAPI_DriverLg4ff_SendLedCommand()`, for 0 to 5 lit
 /// LEDs.
 ///
@@ -272,6 +301,17 @@ fn led_command(state: u8) -> Command {
     };
 
     [0xf8, 0x12, led_state, 0x00, 0x00, 0x00, 0x00]
+}
+
+/// The write of `HIDAPI_DriverLg4ff_SendJoystickEffect()` (the HIDAPI
+/// haptic driver's commands come this way).
+fn send_effect(dev: &dyn SteamHid, data: &[u8]) -> Result<()> {
+    // allow programs to send raw commands
+    if dev.write(data).ok() != Some(data.len()) {
+        // (upstream sets no error)
+        return Err(Error::new("Couldn't send effect"));
+    }
+    Ok(())
 }
 
 /// Translation of `HIDAPI_DriverLg4ff_GetBit()`.
@@ -378,7 +418,7 @@ fn is_supported_wheel(
     if vendor_id != USB_VENDOR_LOGITECH {
         return false;
     }
-    if !SUPPORTED_DEVICES.iter().any(|(id, _)| *id == product_id) {
+    if !is_supported_product(product_id) {
         return false;
     }
     let real_id = identify_wheel(product_id, version);
@@ -421,18 +461,10 @@ impl Lg4ffContext {
 
     /// `HIDAPI_DriverLg4ff_InitDevice()` on `dev`, after the device is set
     /// up.
-    ///
-    /// ffex identification method by:
-    /// Simon Wood <simon@mungewell.org>
-    /// Michal Malý <madcatxster@devoid-pointer.net> <madcatxster@gmail.com>
-    /// lg4ff_init
-    /// `git blame v6.12 drivers/hid/hid-lg4ff.c`, <https://github.com/torvalds/linux.git>
     fn init(&mut self, device: &mut DeviceCtx<'_>, dev: &dyn SteamHid) -> Result<()> {
         self.set_auto_center(dev, 0)?;
 
-        self.is_ffex = device.product_id() == USB_DEVICE_ID_LOGITECH_WHEEL
-            && (device.version() >> 8) == 0x21
-            && (device.version() & 0xff) == 0x00;
+        self.is_ffex = is_ffex(device.product_id(), device.version());
 
         self.range = 900;
 
@@ -747,12 +779,7 @@ impl DriverContext for Lg4ffContext {
         _joystick: JoystickID,
         data: &[u8],
     ) -> Result<()> {
-        // allow programs to send raw commands
-        if SteamHid::write(&**device.device(), data).ok() != Some(data.len()) {
-            // (upstream sets no error)
-            return Err(Error::new("Couldn't send effect"));
-        }
-        Ok(())
+        send_effect(&**device.device(), data)
     }
 
     /// Translation of `HIDAPI_DriverLg4ff_SetSensorsEnabled()`.
@@ -776,4 +803,4 @@ impl DriverContext for Lg4ffContext {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
