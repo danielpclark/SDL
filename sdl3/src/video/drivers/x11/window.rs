@@ -144,6 +144,9 @@ pub(crate) struct X11WindowData {
 
     /// The `client_data` of the input context callbacks (stable address).
     pub(crate) ic_client: Box<IcClientData>,
+
+    /// The GLES window surface (`EGLSurface`, NULL when none).
+    pub(crate) egl_surface: *mut std::ffi::c_void,
 }
 
 // SAFETY: the raw pointers are Xlib objects of the display (locked by Xlib
@@ -213,6 +216,7 @@ impl X11WindowData {
                 video: video as *const X11Video,
                 window,
             }),
+            egl_surface: std::ptr::null_mut(),
         }
     }
 }
@@ -903,7 +907,27 @@ impl X11Video {
         let _ = props.set(PROP_WINDOW_X11_SCREEN_NUMBER, screen as i64);
         let _ = props.set(PROP_WINDOW_X11_WINDOW_NUMBER, w as i64);
 
-        // (the GLES window surface comes with the EGL support)
+        if with_window(window, |win| win.flags().contains(WindowFlags::OPENGL))?
+            && self.x11_gl_window_uses_egl()
+        {
+            if !crate::video::egl::is_loaded() {
+                // FIXME (upstream): this fails without setting an error.
+                self.x11_destroy_input_context(&mut data);
+                return Err(Error::new("EGL not initialized"));
+            }
+
+            // Create the GLES window surface
+            // FIXME (upstream): the surface is never destroyed with the
+            // window (only eglTerminate() frees it, when the library is
+            // unloaded).
+            match crate::video::egl::create_surface(Some(window), w as usize as *mut _) {
+                Ok(surface) => data.egl_surface = surface,
+                Err(_) => {
+                    self.x11_destroy_input_context(&mut data);
+                    return Err(Error::new("Could not create GLES window surface"));
+                }
+            }
+        }
 
         // All done!
         with_window(window, |win| win.internal = Some(Box::new(data)))?;
@@ -1005,9 +1029,43 @@ impl X11Video {
         let screen = displaydata.screen;
         let mut compositor: c_long;
 
-        // (the GLX/EGL visual selection comes with the OpenGL support)
-        let visual = displaydata.visual;
-        let depth = displaydata.depth;
+        let transparent = window_flags.contains(WindowFlags::TRANSPARENT);
+        let forced_visual_id =
+            hints::get(hints::VIDEO_X11_WINDOW_VISUALID).filter(|h| !h.is_empty());
+        let display_visual_id = hints::get(hints::VIDEO_X11_VISUALID).filter(|h| !h.is_empty());
+
+        let (visual, depth) = if let Some(forced_visual_id) = forced_visual_id {
+            let mut template = XVisualInfo {
+                visualid: crate::stdlib::string::strtol(&forced_visual_id, 0).0 as VisualID,
+                ..XVisualInfo::default()
+            };
+            let mut nvis: c_int = 0;
+            // SAFETY: the display is open; the result is freed with XFree.
+            unsafe {
+                let vi = (x.XGetVisualInfo)(display, VisualIDMask, &mut template, &mut nvis);
+                if vi.is_null() {
+                    // FIXME (upstream): this fails without setting an error.
+                    return Err(Error::new("Couldn't find the forced X11 visual"));
+                }
+                let r = ((*vi).visual, (*vi).depth);
+                (x.XFree)(vi.cast());
+                r
+            }
+        } else if window_flags.contains(WindowFlags::OPENGL) && display_visual_id.is_none() {
+            let vinfo = if self.x11_gl_window_uses_egl() {
+                self.x11_gles_get_visual(display, screen, transparent)?
+            } else {
+                self.x11_gl_get_visual(display, screen, transparent)?
+            };
+            // SAFETY: the visual info came from Xlib/GLX and is freed here.
+            unsafe {
+                let r = ((*vinfo.as_ptr()).visual, (*vinfo.as_ptr()).depth);
+                (x.XFree)(vinfo.as_ptr().cast());
+                r
+            }
+        } else {
+            (displaydata.visual, displaydata.depth)
+        };
 
         // SAFETY: an all-zero XSetWindowAttributes is valid (plain data).
         let mut xattr: XSetWindowAttributes = unsafe { std::mem::zeroed() };
