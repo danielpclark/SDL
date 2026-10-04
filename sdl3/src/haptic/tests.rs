@@ -161,7 +161,11 @@ fn mouse_is_opened_by_instance_id() {
 fn dummy_driver() {
     let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     init::init_subsystem(InitFlags::HAPTIC).unwrap();
-    assert!(haptics().is_empty());
+    if !haptics().is_empty() {
+        // (a platform driver found real devices)
+        init::quit_subsystem(InitFlags::HAPTIC);
+        return;
+    }
     assert_eq!(
         Haptic::open(1).unwrap_err().message(),
         "Haptic device 1 not found"
