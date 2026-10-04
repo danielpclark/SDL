@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::error::Result;
-use crate::events::mouse::{MouseButtonFlags, MouseFeature};
+use crate::events::mouse::{Cursor, CursorFrame, MouseButtonFlags, MouseFeature, SystemCursor};
 use crate::events::window::{WindowCore, WindowFlags};
 use crate::events::{DisplayID, WindowID};
 use crate::properties::Properties;
@@ -739,6 +739,36 @@ pub(crate) trait VideoDriver: Send + Sync {
         None
     }
     fn global_mouse_state(&self) -> Option<(f32, f32, MouseButtonFlags)> {
+        None
+    }
+    /// `mouse->CreateCursor`, for an ARGB8888 surface.
+    fn create_cursor(
+        &self,
+        surface: &Surface<'_>,
+        hot_x: i32,
+        hot_y: i32,
+    ) -> Option<Result<Cursor>> {
+        None
+    }
+    /// `mouse->CreateAnimatedCursor`, for ARGB8888 frames.
+    fn create_animated_cursor(
+        &self,
+        frames: &[CursorFrame<'_>],
+        hot_x: i32,
+        hot_y: i32,
+    ) -> Option<Result<Cursor>> {
+        None
+    }
+    /// `mouse->CreateSystemCursor`.
+    fn create_system_cursor(&self, id: SystemCursor) -> Option<Result<Cursor>> {
+        None
+    }
+    /// `mouse->ShowCursor`: show `cursor`, or hide the cursor for `None`.
+    fn show_cursor(&self, cursor: Option<&Cursor>) -> Option<Result<()>> {
+        None
+    }
+    /// `mouse->MoveCursor`.
+    fn move_cursor(&self, cursor: &Cursor) -> Option<Result<()>> {
         None
     }
     /// Whether one of the mouse entry points (or features) is implemented.

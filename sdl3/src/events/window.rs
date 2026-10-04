@@ -374,6 +374,26 @@ pub trait VideoHooks: Send + Sync {
     fn show_cursor(&self, _cursor: Option<&super::mouse::Cursor>) {}
     /// Translation of `mouse->MoveCursor`: called when a mouse motion event occurs.
     fn move_cursor(&self, _cursor: &super::mouse::Cursor) {}
+    /// Translation of `mouse->CreateCursor`, for an ARGB8888 surface; `None`
+    /// if the backend doesn't create cursors.
+    fn create_cursor(
+        &self,
+        _surface: &crate::video::Surface<'_>,
+        _hot_x: i32,
+        _hot_y: i32,
+    ) -> Option<Result<super::mouse::Cursor>> {
+        None
+    }
+    /// Translation of `mouse->CreateAnimatedCursor`, for ARGB8888 frames;
+    /// `None` if the backend doesn't animate cursors.
+    fn create_animated_cursor(
+        &self,
+        _frames: &[super::mouse::CursorFrame<'_>],
+        _hot_x: i32,
+        _hot_y: i32,
+    ) -> Option<Result<super::mouse::Cursor>> {
+        None
+    }
     /// Translation of `mouse->CreateSystemCursor`.
     fn create_system_cursor(
         &self,

@@ -3,16 +3,13 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! General mouse handling code for SDL: mouse devices, focus, motion, buttons
-//! and wheel, relative mode, capture, warping and cursor visibility.
-//!
-//! Cursor *creation* from surfaces (`SDL_CreateCursor`, `SDL_CreateColorCursor`,
-//! `SDL_CreateAnimatedCursor`) needs `SDL_Surface` and arrives with the
-//! software video phase; the cursor bookkeeping (current/default cursor,
-//! show/hide, redraw) is here.
+//! and wheel, relative mode, capture, warping, and cursors (creation from
+//! bitmaps and surfaces, animation, the current and default cursor,
+//! show/hide).
 
 use std::any::Any;
 use std::cell::RefCell;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::queue;
@@ -24,7 +21,8 @@ use super::{
 use crate::error::{Error, Result};
 use crate::hints;
 use crate::thread::ReentrantMutex;
-use crate::video::Rect;
+use crate::video::surface::{PROP_SURFACE_HOTSPOT_X_NUMBER, PROP_SURFACE_HOTSPOT_Y_NUMBER};
+use crate::video::{PixelFormat, Rect, Surface};
 use crate::{err, timer};
 
 /// A mouse instance id. Translation of `SDL_MouseID`.
@@ -293,6 +291,37 @@ pub struct Cursor(Arc<CursorInner>);
 
 struct CursorInner {
     internal: Option<Box<dyn Any + Send + Sync>>,
+    animation: Option<CursorAnimation>,
+}
+
+/// An animation of cursor frames, for backends without animated cursors.
+/// Translation of `SDL_CursorAnimation`.
+struct CursorAnimation {
+    frames: Vec<Cursor>,
+    durations: Vec<u32>,
+    /// `current_frame` and `last_update` (in milliseconds)
+    state: Mutex<(usize, u64)>,
+}
+
+impl CursorAnimation {
+    fn state(&self) -> std::sync::MutexGuard<'_, (usize, u64)> {
+        self.state.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// The frame being shown.
+    fn current(&self) -> Cursor {
+        self.frames[self.state().0].clone()
+    }
+}
+
+/// One frame of an animated cursor. Translation of `SDL_CursorFrameInfo`.
+#[derive(Clone, Copy, Debug)]
+pub struct CursorFrame<'a> {
+    /// The image of the frame
+    pub surface: &'a Surface<'a>,
+    /// How long to show the frame, in milliseconds; 0 stops the animation
+    /// on this frame
+    pub duration: u32,
 }
 
 impl Cursor {
@@ -300,12 +329,22 @@ impl Cursor {
     pub fn with_internal(internal: impl Any + Send + Sync) -> Cursor {
         Cursor(Arc::new(CursorInner {
             internal: Some(Box::new(internal)),
+            animation: None,
         }))
     }
 
     /// A cursor without backend data (for backends that don't support true cursors).
     pub fn placeholder() -> Cursor {
-        Cursor(Arc::new(CursorInner { internal: None }))
+        Cursor(Arc::new(CursorInner {
+            internal: None,
+            animation: None,
+        }))
+    }
+
+    /// Whether this cursor is animated by the mouse code (the backend
+    /// doesn't animate cursors itself).
+    pub fn is_animated(&self) -> bool {
+        self.0.animation.is_some()
     }
 
     /// The backend data, if any.
@@ -708,8 +747,9 @@ pub fn post_init_mouse() {
      * so that mouse grab and focus functionality will work.
      */
     if with_mouse(|mouse| mouse.def_cursor.is_none()) {
-        // (upstream: SDL_CreateColorCursor() on a 1x1 zeroed surface)
-        set_default_cursor(Some(Cursor::placeholder()));
+        if let Ok(surface) = Surface::new(1, 1, PixelFormat::ARGB8888) {
+            set_default_cursor(create_color_cursor(&surface, 0, 0).ok());
+        }
     }
 }
 
@@ -1954,6 +1994,245 @@ pub fn capture_mouse(enabled: bool) -> Result<()> {
     update_mouse_capture(false)
 }
 
+/// Create a black and white cursor from bitmaps: `data` and `mask` have a
+/// bit per pixel, most significant bit first, with rows of `w` rounded up
+/// to a multiple of 8 pixels. Data 1 and mask 1 is black, data 0 and mask 1
+/// white, data 0 and mask 0 transparent, and data 1 and mask 0 inverted
+/// where the system supports it (Windows), black otherwise.
+/// Translation of `SDL_CreateCursor()`.
+pub fn create_cursor(
+    data: &[u8],
+    mask: &[u8],
+    w: i32,
+    h: i32,
+    hot_x: i32,
+    hot_y: i32,
+) -> Result<Cursor> {
+    const BLACK: u32 = 0xFF000000;
+    const WHITE: u32 = 0xFFFFFFFF;
+    const TRANSPARENT: u32 = 0x00000000;
+    // Only Windows backend supports inverted pixels in mono cursors.
+    const INVERTED: u32 = if cfg!(windows) {
+        0x00FFFFFF
+    } else {
+        0xFF000000
+    };
+
+    // Make sure the width is a multiple of 8
+    let w = (w + 7) & !7;
+
+    // (upstream reads past the end of short bitmaps)
+    let needed = (w.max(0) as usize / 8) * h.max(0) as usize;
+    if data.len() < needed {
+        return Err(Error::invalid_param("data"));
+    }
+    if mask.len() < needed {
+        return Err(Error::invalid_param("mask"));
+    }
+
+    // Create the surface from a bitmap
+    let mut surface = Surface::new(w, h, PixelFormat::ARGB8888)?;
+    let pitch = surface.pitch() as usize;
+    let pixels = surface
+        .pixels_mut()
+        .ok_or_else(|| Error::invalid_param("surface"))?;
+    let (mut data, mut mask) = (data.iter(), mask.iter());
+    let (mut datab, mut maskb) = (0u8, 0u8);
+    for y in 0..h as usize {
+        let row = &mut pixels[y * pitch..][..w as usize * 4];
+        for (x, pixel) in row.chunks_exact_mut(4).enumerate() {
+            if x % 8 == 0 {
+                datab = *data.next().unwrap_or(&0);
+                maskb = *mask.next().unwrap_or(&0);
+            }
+            let value = if maskb & 0x80 != 0 {
+                if datab & 0x80 != 0 {
+                    BLACK
+                } else {
+                    WHITE
+                }
+            } else if datab & 0x80 != 0 {
+                INVERTED
+            } else {
+                TRANSPARENT
+            };
+            pixel.copy_from_slice(&value.to_ne_bytes());
+            datab <<= 1;
+            maskb <<= 1;
+        }
+    }
+
+    create_color_cursor(&surface, hot_x, hot_y)
+}
+
+/// The hot spot of a cursor surface: its hotspot properties, or the
+/// given point, checked to lie within the surface.
+fn cursor_hot_spot(surface: &Surface<'_>, hot_x: i32, hot_y: i32) -> Result<(i32, i32)> {
+    // Allow specifying the hot spot via properties on the surface
+    let props = surface.props.as_ref();
+    let hot_x = props
+        .and_then(|p| p.get_number(PROP_SURFACE_HOTSPOT_X_NUMBER))
+        .map_or(hot_x, |v| v as i32);
+    let hot_y = props
+        .and_then(|p| p.get_number(PROP_SURFACE_HOTSPOT_Y_NUMBER))
+        .map_or(hot_y, |v| v as i32);
+
+    // Sanity check the hot spot
+    if hot_x < 0 || hot_y < 0 || hot_x >= surface.width() || hot_y >= surface.height() {
+        return Err(err!("Cursor hot spot doesn't lie within cursor"));
+    }
+    Ok((hot_x, hot_y))
+}
+
+/// Create a color cursor from a surface (its hotspot properties, if set,
+/// override `hot_x` and `hot_y`). Translation of `SDL_CreateColorCursor()`.
+pub fn create_color_cursor(surface: &Surface<'_>, hot_x: i32, hot_y: i32) -> Result<Cursor> {
+    let (hot_x, hot_y) = cursor_hot_spot(surface, hot_x, hot_y)?;
+
+    let converted;
+    let surface = if surface.format() != PixelFormat::ARGB8888 {
+        converted = surface.convert(PixelFormat::ARGB8888)?;
+        &converted
+    } else {
+        surface
+    };
+
+    let cursor = match video().and_then(|v| v.create_cursor(surface, hot_x, hot_y)) {
+        Some(cursor) => cursor?,
+        None => Cursor::placeholder(),
+    };
+    with_mouse(|mouse| mouse.cursors.insert(0, cursor.clone()));
+    Ok(cursor)
+}
+
+/// Translation of `SDL_DestroyCursorAnimation()`.
+fn destroy_cursor_animation(animation: &CursorAnimation) {
+    for frame in &animation.frames {
+        destroy_cursor(frame.clone());
+    }
+}
+
+/// Translation of `SDL_CreateCursorAnimation()`.
+fn create_cursor_animation(
+    frames: &[CursorFrame<'_>],
+    hot_x: i32,
+    hot_y: i32,
+) -> Result<CursorAnimation> {
+    let mut animation = CursorAnimation {
+        frames: Vec::with_capacity(frames.len()),
+        durations: Vec::with_capacity(frames.len()),
+        state: Mutex::new((0, 0)),
+    };
+
+    for frame in frames {
+        match create_color_cursor(frame.surface, hot_x, hot_y) {
+            Ok(cursor) => animation.frames.push(cursor),
+            Err(e) => {
+                destroy_cursor_animation(&animation);
+                return Err(e);
+            }
+        }
+        animation.durations.push(frame.duration);
+    }
+
+    Ok(animation)
+}
+
+/// Update the cursor animation if needed. Translation of `SDL_UpdateCursorAnimation()`.
+pub(crate) fn update_cursor_animation() {
+    let advanced = with_mouse(|mouse| {
+        let Some(cursor) = &mouse.cur_cursor else {
+            return false;
+        };
+        let Some(animation) = &cursor.0.animation else {
+            return false;
+        };
+
+        if mouse.focus.is_none() {
+            return false;
+        }
+
+        let mut state = animation.state();
+        let duration = animation.durations[state.0];
+        if duration == 0 {
+            // We've reached the stop frame of the animation
+            return false;
+        }
+
+        let now = timer::ticks().as_millis() as u64;
+        if now < state.1 + duration as u64 {
+            return false;
+        }
+
+        state.0 = (state.0 + 1) % animation.frames.len();
+        state.1 = now;
+        true
+    });
+    if advanced {
+        redraw_cursor();
+    }
+}
+
+/// Create an animated cursor from frames of the same size (the first
+/// frame's hotspot properties, if set, override `hot_x` and `hot_y`).
+/// Backends that can't animate cursors get a cursor the mouse code
+/// animates as events are pumped. Translation of `SDL_CreateAnimatedCursor()`.
+pub fn create_animated_cursor(
+    frames: &[CursorFrame<'_>],
+    hot_x: i32,
+    hot_y: i32,
+) -> Result<Cursor> {
+    if frames.is_empty() {
+        return Err(Error::invalid_param("frame_count"));
+    }
+
+    if frames.len() == 1 {
+        return create_color_cursor(frames[0].surface, hot_x, hot_y);
+    }
+
+    let (hot_x, hot_y) = cursor_hot_spot(frames[0].surface, hot_x, hot_y)?;
+
+    let w = frames[0].surface.width();
+    let h = frames[0].surface.height();
+
+    let mut temp_surfaces = Vec::with_capacity(frames.len());
+    for frame in frames {
+        // All cursor images should be the same size.
+        if frame.surface.width() != w || frame.surface.height() != h {
+            return Err(err!(
+                "All frames in an animated sequence must have the same dimensions"
+            ));
+        }
+        temp_surfaces.push(if frame.surface.format() == PixelFormat::ARGB8888 {
+            None
+        } else {
+            Some(frame.surface.convert(PixelFormat::ARGB8888)?)
+        });
+    }
+    let temp_frames: Vec<CursorFrame<'_>> = temp_surfaces
+        .iter()
+        .zip(frames)
+        .map(|(converted, frame)| CursorFrame {
+            surface: converted.as_ref().unwrap_or(frame.surface),
+            duration: frame.duration,
+        })
+        .collect();
+
+    let cursor = match video().and_then(|v| v.create_animated_cursor(&temp_frames, hot_x, hot_y)) {
+        Some(cursor) => cursor?,
+        None => {
+            let animation = create_cursor_animation(&temp_frames, hot_x, hot_y)?;
+            Cursor(Arc::new(CursorInner {
+                internal: None,
+                animation: Some(animation),
+            }))
+        }
+    };
+
+    with_mouse(|mouse| mouse.cursors.insert(0, cursor.clone()));
+    Ok(cursor)
+}
+
 /// Create a system cursor. Translation of `SDL_CreateSystemCursor()`.
 pub fn create_system_cursor(id: SystemCursor) -> Result<Cursor> {
     let Some(video) = video() else {
@@ -1969,11 +2248,6 @@ pub fn register_cursor(cursor: Cursor) {
     with_mouse(|mouse| mouse.cursors.insert(0, cursor));
 }
 
-/// Update the cursor animation if needed. Translation of `SDL_UpdateCursorAnimation()`.
-///
-/// Animated cursors arrive with surface support; until then there is nothing to advance.
-pub(crate) fn update_cursor_animation() {}
-
 /// Translation of `SDL_RedrawCursor()`.
 pub fn redraw_cursor() {
     let cursor = with_mouse(|mouse| {
@@ -1988,7 +2262,11 @@ pub fn redraw_cursor() {
         {
             cursor = None;
         }
-        cursor
+
+        cursor.map(|cursor| match &cursor.0.animation {
+            Some(animation) => animation.current(),
+            None => cursor,
+        })
     });
 
     if let Some(video) = video() {
@@ -2013,6 +2291,9 @@ pub fn set_cursor(cursor: Option<&Cursor>) -> Result<()> {
             // Make sure the cursor is still valid for this mouse
             if Some(cursor) != mouse.def_cursor.as_ref() && !mouse.cursors.contains(cursor) {
                 return Err(err!("Cursor not associated with the current mouse"));
+            }
+            if let Some(animation) = &cursor.0.animation {
+                *animation.state() = (0, timer::ticks().as_millis() as u64);
             }
             mouse.cur_cursor = Some(cursor.clone());
         }
@@ -2049,7 +2330,16 @@ pub fn destroy_cursor(cursor: Cursor) {
         let def = default_cursor();
         let _ = set_cursor(def.as_ref());
     }
-    with_mouse(|mouse| mouse.cursors.retain(|c| *c != cursor));
+    let found = with_mouse(|mouse| {
+        let before = mouse.cursors.len();
+        mouse.cursors.retain(|c| *c != cursor);
+        mouse.cursors.len() != before
+    });
+    if found {
+        if let Some(animation) = &cursor.0.animation {
+            destroy_cursor_animation(animation);
+        }
+    }
     // (FreeCursor / SDL_free: the Arc drops the backend data)
 }
 

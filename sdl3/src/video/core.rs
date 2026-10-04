@@ -1490,6 +1490,42 @@ impl VideoHooks for Hooks {
         driver().ok()?.global_mouse_state()
     }
 
+    fn create_cursor(
+        &self,
+        surface: &crate::video::Surface<'_>,
+        hot_x: i32,
+        hot_y: i32,
+    ) -> Option<Result<mouse::Cursor>> {
+        driver().ok()?.create_cursor(surface, hot_x, hot_y)
+    }
+
+    fn create_animated_cursor(
+        &self,
+        frames: &[mouse::CursorFrame<'_>],
+        hot_x: i32,
+        hot_y: i32,
+    ) -> Option<Result<mouse::Cursor>> {
+        driver().ok()?.create_animated_cursor(frames, hot_x, hot_y)
+    }
+
+    fn create_system_cursor(&self, id: mouse::SystemCursor) -> Result<mouse::Cursor> {
+        driver()?
+            .create_system_cursor(id)
+            .unwrap_or_else(|| Err(Error::new("CreateSystemCursor is not currently supported")))
+    }
+
+    fn show_cursor(&self, cursor: Option<&mouse::Cursor>) {
+        if let Ok(driver) = driver() {
+            let _ = driver.show_cursor(cursor);
+        }
+    }
+
+    fn move_cursor(&self, cursor: &mouse::Cursor) {
+        if let Ok(driver) = driver() {
+            let _ = driver.move_cursor(cursor);
+        }
+    }
+
     fn message_box_count(&self) -> i32 {
         super::messagebox::message_box_count()
     }
