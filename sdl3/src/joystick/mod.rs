@@ -14,8 +14,8 @@
 //! [`gamepad`] module maps joystick inputs to named buttons and axes.
 //!
 //! The joystick drivers are platform backends. So far the Linux driver
-//! (evdev devices, found through libudev or inotify), the Windows driver
-//! (DirectInput and XInput), the virtual driver
+//! (evdev devices, found through libudev or inotify), the Windows drivers
+//! (RawInput; DirectInput and XInput), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the HIDAPI drivers and the
 //! other platform drivers arrive later.
@@ -525,9 +525,14 @@ pub(crate) trait JoystickDriver: Send + Sync {
     fn gamepad_mapping(&self, device_index: usize) -> Option<GamepadMapping>;
 }
 
-/// The index of the Windows driver in [`JOYSTICK_DRIVERS`].
+/// The index of the RawInput driver in [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const WINDOWS_DRIVER_INDEX: usize = 0;
+const RAWINPUT_DRIVER_INDEX: usize = 0;
+
+/// The index of the Windows (DirectInput and XInput) driver in
+/// [`JOYSTICK_DRIVERS`].
+#[cfg(windows)]
+const WINDOWS_DRIVER_INDEX: usize = 1;
 
 /// The index of the Linux driver in [`JOYSTICK_DRIVERS`].
 #[cfg(target_os = "linux")]
@@ -535,7 +540,9 @@ const LINUX_DRIVER_INDEX: usize = 0;
 
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// platform driver, if there is one).
-const VIRTUAL_DRIVER_INDEX: usize = if cfg!(any(windows, target_os = "linux")) {
+const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
+    2
+} else if cfg!(target_os = "linux") {
     1
 } else {
     0
@@ -545,6 +552,9 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(any(windows, target_os = "linux")) {
 /// `SDL_joystick_drivers`; the dummy driver is only there without a
 /// platform driver, as upstream builds it.
 static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
+    // Before WINDOWS driver, as WINDOWS wants to check if this driver is handling things
+    #[cfg(windows)]
+    &windows::rawinput::RAWINPUT_JOYSTICK_DRIVER,
     #[cfg(windows)]
     &windows::WINDOWS_JOYSTICK_DRIVER,
     #[cfg(target_os = "linux")]
@@ -625,6 +635,26 @@ pub(crate) fn joysticks_locked() -> bool {
 /// Translation of `SDL_AssertJoysticksLocked()`.
 pub(crate) fn assert_joysticks_locked() {
     crate::sdl_assert!(joysticks_locked());
+}
+
+/// Run `f` with one level of the joystick lock released, as a driver's
+/// `SDL_UnlockJoysticks()` ... `SDL_LockJoysticks()` around a wait does;
+/// the lock is taken back when `f` returns (or unwinds).
+#[cfg_attr(not(windows), allow(dead_code))] // (used by the Windows driver)
+pub(crate) fn with_joysticks_unlocked<R>(f: impl FnOnce() -> R) -> R {
+    struct Relock;
+    impl Drop for Relock {
+        fn drop(&mut self) {
+            EVENT_LOCK.lock();
+            JOYSTICKS_LOCKED.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    assert_joysticks_locked();
+    JOYSTICKS_LOCKED.fetch_sub(1, Ordering::Relaxed);
+    EVENT_LOCK.unlock();
+    let _relock = Relock;
+    f()
 }
 
 fn with_state<R>(f: impl FnOnce(&mut JoystickState) -> R) -> R {

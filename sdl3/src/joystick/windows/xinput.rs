@@ -7,9 +7,9 @@
 //! XInput's user slots, with XInput's fixed layout of six axes, eleven
 //! buttons and a hat.
 //!
-//! This is the configuration upstream builds without RawInput and
-//! GameInput (neither is translated yet): XInput always handles its
-//! controllers itself.
+//! When the RawInput driver is enabled, it handles the XInput controllers
+//! (it isn't limited to four); GameInput is not translated, so XInput is
+//! never left to it.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -127,7 +127,17 @@ pub(super) fn add_xinput_device(
     context: &mut Vec<JoyStickDeviceData>,
     sys_joystick: &mut Vec<JoyStickDeviceData>,
 ) {
-    // (the RawInput driver, which is preferred when enabled, isn't translated)
+    if super::rawinput::is_enabled() {
+        // The raw input driver handles more than 4 controllers, so prefer that when available
+        /* We do this check here rather than at the top of SDL_XINPUT_JoystickDetect() because
+          we need to check XInput state before RAWINPUT gets a hold of the device, otherwise
+          when a controller is connected via the wireless adapter, it will shut down at the
+          first subsequent XInput call. This seems like a driver stack bug?
+
+          Reference: https://github.com/libsdl-org/SDL/issues/3468
+        */
+        return;
+    }
 
     if sub_type == XINPUT_DEVSUBTYPE_UNKNOWN {
         return;

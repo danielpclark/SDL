@@ -552,11 +552,21 @@ fn driver_order() {
     ));
     #[cfg(windows)]
     {
+        // RawInput, then Windows (DirectInput and XInput)
+        let rawinput_driver: &dyn JoystickDriver = &windows::rawinput::RAWINPUT_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[RAWINPUT_DRIVER_INDEX],
+            rawinput_driver
+        ));
         let windows_driver: &dyn JoystickDriver = &windows::WINDOWS_JOYSTICK_DRIVER;
         assert!(std::ptr::addr_eq(
             JOYSTICK_DRIVERS[WINDOWS_DRIVER_INDEX],
             windows_driver
         ));
+        const {
+            assert!(RAWINPUT_DRIVER_INDEX < WINDOWS_DRIVER_INDEX);
+            assert!(WINDOWS_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
+        }
     }
     #[cfg(target_os = "linux")]
     {
