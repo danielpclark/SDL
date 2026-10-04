@@ -22,18 +22,28 @@
 //! their next update, since hint callbacks run with the hint lock held and
 //! can't take the joystick lock.
 //!
-//! Device drivers translated so far: Xbox 360 (wired and wireless), Xbox
-//! One, PS4, PS5 and Nintendo Switch (with the combined Joy-Cons).
+//! Device drivers translated so far: GameCube, Luna, SHIELD, PS3 (with its
+//! third party and Sony Sixaxis drivers), Stadia, Nintendo Switch (with the
+//! combined Joy-Cons), Xbox 360 (wired, wireless and Big Button), Xbox One,
+//! PS4, PS5, 8BitDo and ZUIKI.
 
 mod combined;
+mod eightbitdo;
+mod gamecube;
+mod luna;
+mod ps3;
 mod ps4;
 mod ps5;
 pub(crate) mod report_descriptor;
 pub(crate) mod rumble;
+mod shield;
+mod stadia;
 mod switch;
 mod xbox360;
+mod xbox360bb;
 mod xbox360w;
 mod xboxone;
+mod zuiki;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
@@ -870,12 +880,35 @@ struct HwData {
 pub(crate) static DRIVER_COMBINED: HidapiDeviceDriver =
     HidapiDeviceDriver::new("SDL_JOYSTICK_HIDAPI_COMBINED", &combined::CombinedDriver);
 
+/// `SDL_HIDAPI_DriverGameCube`
+pub(crate) static DRIVER_GAMECUBE: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_GAMECUBE, &gamecube::GameCubeDriver);
+/// `SDL_HIDAPI_DriverLuna`
+pub(crate) static DRIVER_LUNA: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_LUNA, &luna::LunaDriver);
+/// `SDL_HIDAPI_DriverShield`
+pub(crate) static DRIVER_SHIELD: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_SHIELD, &shield::ShieldDriver);
+/// `SDL_HIDAPI_DriverPS3`
+pub(crate) static DRIVER_PS3: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS3, &ps3::Ps3Driver);
+/// `SDL_HIDAPI_DriverPS3ThirdParty`
+pub(crate) static DRIVER_PS3_THIRD_PARTY: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS3, &ps3::Ps3ThirdPartyDriver);
+/// `SDL_HIDAPI_DriverPS3SonySixaxis`
+pub(crate) static DRIVER_PS3_SONY_SIXAXIS: HidapiDeviceDriver = HidapiDeviceDriver::new(
+    hints::JOYSTICK_HIDAPI_PS3_SIXAXIS_DRIVER,
+    &ps3::Ps3SonySixaxisDriver,
+);
 /// `SDL_HIDAPI_DriverPS4`
 pub(crate) static DRIVER_PS4: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS4, &ps4::Ps4Driver);
 /// `SDL_HIDAPI_DriverPS5`
 pub(crate) static DRIVER_PS5: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS5, &ps5::Ps5Driver);
+/// `SDL_HIDAPI_DriverStadia`
+pub(crate) static DRIVER_STADIA: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_STADIA, &stadia::StadiaDriver);
 /// `SDL_HIDAPI_DriverNintendoClassic`
 pub(crate) static DRIVER_NINTENDO_CLASSIC: HidapiDeviceDriver = HidapiDeviceDriver::new(
     hints::JOYSTICK_HIDAPI_NINTENDO_CLASSIC,
@@ -895,24 +928,42 @@ pub(crate) static DRIVER_XBOX360W: HidapiDeviceDriver = HidapiDeviceDriver::new(
     hints::JOYSTICK_HIDAPI_XBOX_360_WIRELESS,
     &xbox360w::Xbox360WDriver,
 );
+/// `SDL_HIDAPI_DriverXbox360BB`
+pub(crate) static DRIVER_XBOX360BB: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(xbox360bb::DRIVER_NAME, &xbox360bb::Xbox360BbDriver);
 /// `SDL_HIDAPI_DriverXboxOne`
 pub(crate) static DRIVER_XBOXONE: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_ONE, &xboxone::XboxOneDriver);
+/// `SDL_HIDAPI_Driver8BitDo`
+pub(crate) static DRIVER_8BITDO: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_8BITDO, &eightbitdo::EightBitDoDriver);
+/// `SDL_HIDAPI_DriverZUIKI`
+pub(crate) static DRIVER_ZUIKI: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_ZUIKI, &zuiki::ZuikiDriver);
 
 /// Translation of `SDL_HIDAPI_drivers`: the drivers translated so far, in
-/// upstream's order. Not translated yet: GameCube, Luna, Shield, PS3 (and
-/// its third party and Sony Sixaxis drivers), Stadia, Steam, Steam HORI,
-/// Steam Deck, Steam Triton, Switch 2, Wii, Xbox 360 Big Button, GIP,
-/// Logitech G (lg4ff), 8BitDo, Flydigi, SInput, GameSir and ZUIKI.
+/// upstream's order. Not translated yet: Steam, Steam HORI, Steam Deck,
+/// Steam Triton, Switch 2, Wii, GIP, Logitech G (lg4ff), Flydigi, SInput
+/// and GameSir.
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
+    &DRIVER_GAMECUBE,
+    &DRIVER_LUNA,
+    &DRIVER_SHIELD,
+    &DRIVER_PS3,
+    &DRIVER_PS3_THIRD_PARTY,
+    &DRIVER_PS3_SONY_SIXAXIS,
     &DRIVER_PS4,
     &DRIVER_PS5,
+    &DRIVER_STADIA,
     &DRIVER_NINTENDO_CLASSIC,
     &DRIVER_JOYCONS,
     &DRIVER_SWITCH,
     &DRIVER_XBOX360,
     &DRIVER_XBOX360W,
+    &DRIVER_XBOX360BB,
     &DRIVER_XBOXONE,
+    &DRIVER_8BITDO,
+    &DRIVER_ZUIKI,
 ];
 
 // The framework state
