@@ -183,6 +183,9 @@ pub(crate) fn convert_filters(
     let mut combined = prefix.to_string();
 
     for (i, f) in filters.iter().enumerate() {
+        if i > 0 {
+            combined.push_str(separator);
+        }
         let converted = convert_filter(
             f,
             ntf,
@@ -194,17 +197,11 @@ pub(crate) fn convert_filters(
             ext_suffix,
             anycase,
         )?;
-
-        let terminator = if i + 1 < filters.len() {
-            separator
-        } else {
-            suffix
-        };
         combined.push_str(&converted);
-        combined.push_str(terminator);
     }
 
-    // FIXME (upstream): the suffix is appended after the last filter's terminator too
+    // Upstream also uses the suffix as the last filter's terminator, so it
+    // appears twice whenever there are filters; it is appended once here.
     combined.push_str(suffix);
 
     Ok(combined)
@@ -694,11 +691,16 @@ mod tests {
             DialogFileFilter::new("A", "a"),
             DialogFileFilter::new("B", "b;c"),
         ];
-        assert_eq!(
-            convert_filters(&filters, None, "[", "|", "]", "<", ":", ">", "", ",", "", false)
-                .unwrap(),
-            "[<A:a>|<B:b,c>]]"
-        );
+        let conv = |filters: &[DialogFileFilter]| {
+            convert_filters(
+                filters, None, "[", "|", "]", "<", ":", ">", "", ",", "", false,
+            )
+            .unwrap()
+        };
+        // (the suffix appears once, not after the last filter too)
+        assert_eq!(conv(&filters), "[<A:a>|<B:b,c>]");
+        assert_eq!(conv(&filters[..1]), "[<A:a>]");
+        assert_eq!(conv(&[]), "[]");
     }
 
     #[test]
