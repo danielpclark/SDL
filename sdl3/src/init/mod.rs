@@ -457,6 +457,12 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
 
                 if let Err(e) = crate::video::core::init_video(None) {
                     decrement_refcount(InitFlags::VIDEO);
+                    // Upstream keeps the video thread here: with video not
+                    // initialized, SDL_IsMainThread() then answers for the
+                    // thread that tried, on every thread, until video is
+                    // initialized and quit again. Forget it, as quitting
+                    // video does.
+                    VIDEO_THREAD_ID.store(0, Ordering::Release);
                     quit_subsystem(InitFlags::EVENTS);
                     return Err(e);
                 }
@@ -939,6 +945,19 @@ pub(crate) mod tests {
         let e = init(InitFlags::EVENTS | InitFlags::VIDEO).unwrap_err();
         assert_eq!(e.message(), "No available video device");
         assert_eq!(was_init(InitFlags::NONE), InitFlags::NONE);
+        // The failed video init doesn't leave its thread behind as the
+        // main thread.
+        assert_eq!(VIDEO_THREAD_ID.load(Ordering::Acquire), 0);
+        let other = std::thread::spawn(|| {
+            init(InitFlags::EVENTS).unwrap();
+            let main = is_main_thread();
+            quit_subsystem(InitFlags::EVENTS);
+            main
+        });
+        assert!(
+            other.join().unwrap(),
+            "the thread that inits events pumps them"
+        );
 
         init(InitFlags::EVENTS).unwrap();
         init(InitFlags::EVENTS).unwrap();
