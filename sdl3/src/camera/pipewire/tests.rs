@@ -496,7 +496,7 @@ fn a_camera_through_a_server() {
     let lib = match init_pipewire_library() {
         Ok(lib) => lib,
         Err(e) => {
-            eprintln!("note: skipping the PipeWire camera test: {}", e.message());
+            crate::test_support::skip("pipewire", e.message());
             return;
         }
     };
@@ -505,10 +505,7 @@ fn a_camera_through_a_server() {
     let r = crate::init::init_subsystem(InitFlags::CAMERA);
     crate::hints::reset(crate::hints::CAMERA_DRIVER);
     if let Err(e) = r {
-        eprintln!(
-            "note: skipping the PipeWire camera test: no server ({})",
-            e.message()
-        );
+        crate::test_support::skip("pipewire", format_args!("no server ({})", e.message()));
         deinit_pipewire_library(&lib);
         return;
     }
@@ -517,7 +514,7 @@ fn a_camera_through_a_server() {
     eprintln!("note: PipeWire cameras before: {}", before.len());
 
     let Some(fake) = FakeCamera::new(&lib) else {
-        eprintln!("note: skipping the PipeWire camera test: couldn't make a video source");
+        crate::test_support::skip("pipewire", "couldn't make a video source");
         crate::init::quit_subsystem(InitFlags::CAMERA);
         deinit_pipewire_library(&lib);
         return;
@@ -581,4 +578,13 @@ fn a_camera_through_a_server() {
     drop(fake);
     crate::init::quit_subsystem(InitFlags::CAMERA);
     deinit_pipewire_library(&lib);
+}
+
+/// Hardware: grab frames from the first camera the PipeWire server offers
+/// (through libcamera or its V4L2 monitor).
+#[test]
+#[ignore = "hardware: needs a camera and a PipeWire server"]
+fn hardware_capture_from_the_first_camera() {
+    let _l = crate::test_support::test_lock();
+    crate::camera::tests::hardware_capture("pipewire", "pipewire");
 }

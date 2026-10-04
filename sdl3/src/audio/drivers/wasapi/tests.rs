@@ -144,7 +144,7 @@ fn management_thread_runs_tasks_in_order() {
     let _l = crate::test_support::test_lock();
     if init_management_thread().is_err() {
         // (COM or IMMDevice unavailable: WASAPI_Init fails the same way.)
-        eprintln!("note: WASAPI management thread didn't start");
+        crate::test_support::skip("wasapi", "the WASAPI management thread didn't start");
         return;
     }
     let order = Arc::new(Mutex::new(Vec::new()));
@@ -175,8 +175,11 @@ fn playback_and_recording_when_there_is_an_endpoint() {
     crate::hints::set(crate::hints::AUDIO_DRIVER, "wasapi").unwrap();
     if let Err(e) = crate::init::init_subsystem(InitFlags::AUDIO) {
         // (Wine without an audio driver, or a server without one.)
-        eprintln!("note: WASAPI didn't initialize: {}", e.message());
         assert!(current_audio_driver().is_none());
+        crate::test_support::skip(
+            "wasapi",
+            format_args!("WASAPI didn't initialize: {}", e.message()),
+        );
         return;
     }
     assert_eq!(current_audio_driver(), Some("wasapi"));
@@ -189,7 +192,10 @@ fn playback_and_recording_when_there_is_an_endpoint() {
     );
 
     match AudioDevice::open(AUDIO_DEVICE_DEFAULT_PLAYBACK, None) {
-        Err(e) => eprintln!("note: no WASAPI playback: {}", e.message()),
+        Err(e) => crate::test_support::skip(
+            "wasapi",
+            format_args!("no WASAPI playback: {}", e.message()),
+        ),
         Ok(dev) => {
             let (spec, frames) = dev.format().unwrap();
             assert!(spec.channels > 0 && spec.freq > 0 && frames > 0);
@@ -209,7 +215,10 @@ fn playback_and_recording_when_there_is_an_endpoint() {
     }
 
     match AudioDevice::open(AUDIO_DEVICE_DEFAULT_RECORDING, None) {
-        Err(e) => eprintln!("note: no WASAPI recording: {}", e.message()),
+        Err(e) => crate::test_support::skip(
+            "wasapi",
+            format_args!("no WASAPI recording: {}", e.message()),
+        ),
         Ok(dev) => {
             let (spec, _) = dev.format().unwrap();
             let stream = AudioStream::new(None, Some(&spec)).unwrap();
@@ -222,4 +231,112 @@ fn playback_and_recording_when_there_is_an_endpoint() {
             drop(dev);
         }
     }
+}
+
+/// Hardware (docs/HARDWARE_TESTING.md): the default playback endpoint
+/// plays half a second of a quiet 440 Hz tone, then the default recording
+/// endpoint records half a second; both must work.
+#[test]
+#[ignore = "hardware: plays a quiet tone and records from the default microphone"]
+fn hardware_default_playback_and_recording() {
+    use crate::audio::{audio_device_name, AudioSpec};
+    let _l = crate::test_support::test_lock();
+    let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "wasapi").unwrap();
+    let r = crate::init::init_subsystem(InitFlags::AUDIO);
+    crate::hints::reset(crate::hints::AUDIO_DRIVER);
+    if let Err(e) = r {
+        crate::test_support::skip(
+            "wasapi",
+            format_args!("WASAPI didn't initialize: {}", e.message()),
+        );
+        return;
+    }
+    for (what, ids) in [
+        ("playback", playback_devices().unwrap()),
+        ("recording", recording_devices().unwrap()),
+    ] {
+        println!("WASAPI {what} endpoints: {}", ids.len());
+        for id in ids {
+            println!("  {id}: {:?}", audio_device_name(id).unwrap());
+        }
+    }
+
+    // Playback: the device thread pulls the tone through the stream.
+    let dev = match AudioDevice::open(AUDIO_DEVICE_DEFAULT_PLAYBACK, None) {
+        Ok(dev) => dev,
+        Err(e) => {
+            crate::test_support::skip(
+                "wasapi",
+                format_args!("no default playback endpoint: {}", e.message()),
+            );
+            return;
+        }
+    };
+    let (spec, frames) = dev.format().unwrap();
+    println!(
+        "playback {:?}: {:?}, {} channels, {} Hz, {frames} sample frames per period",
+        audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK).unwrap(),
+        spec.format,
+        spec.channels,
+        spec.freq
+    );
+    let tone_spec = AudioSpec::new(crate::audio::AudioFormat::F32, 1, 48000);
+    let tone: Vec<u8> = (0..24000)
+        .flat_map(|i| {
+            let t = i as f32 / 48000.0;
+            (0.05 * (t * 440.0 * std::f32::consts::TAU).sin()).to_ne_bytes()
+        })
+        .collect();
+    let stream = AudioStream::new(Some(&tone_spec), None).unwrap();
+    dev.bind(&stream).unwrap();
+    stream.put_data(&tone).unwrap();
+    stream.flush();
+    let start = Instant::now();
+    while stream.queued() > 0 && start.elapsed() < Duration::from_secs(5) {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    println!("played {} bytes in {:?}", tone.len(), start.elapsed());
+    assert_eq!(stream.queued(), 0, "the endpoint played the tone");
+    drop(dev);
+    drop(stream);
+
+    // Recording: half a second arrives in about that time.
+    let dev = match AudioDevice::open(AUDIO_DEVICE_DEFAULT_RECORDING, None) {
+        Ok(dev) => dev,
+        Err(e) => {
+            crate::test_support::skip(
+                "wasapi",
+                format_args!("no default recording endpoint: {}", e.message()),
+            );
+            return;
+        }
+    };
+    let (spec, frames) = dev.format().unwrap();
+    println!(
+        "recording {:?}: {:?}, {} channels, {} Hz, {frames} sample frames per period",
+        audio_device_name(AUDIO_DEVICE_DEFAULT_RECORDING).unwrap(),
+        spec.format,
+        spec.channels,
+        spec.freq
+    );
+    let stream = AudioStream::new(None, Some(&tone_spec)).unwrap();
+    dev.bind(&stream).unwrap();
+    let want = 24000 * 4;
+    let start = Instant::now();
+    while (stream.available() as usize) < want && start.elapsed() < Duration::from_secs(5) {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let mut buf = vec![0u8; want];
+    let got = stream.get_data(&mut buf).unwrap();
+    let peak = buf[..got]
+        .chunks_exact(4)
+        .map(|b| f32::from_ne_bytes([b[0], b[1], b[2], b[3]]).abs())
+        .fold(0.0f32, f32::max);
+    println!(
+        "recorded {got} bytes in {:?}, peak level {peak:.4}",
+        start.elapsed()
+    );
+    assert_eq!(got, want, "the endpoint recorded half a second");
+    drop(dev);
 }

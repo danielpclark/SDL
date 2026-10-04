@@ -1166,7 +1166,7 @@ mod tests {
         let _l = crate::test_support::test_lock();
         // Whatever this system has, the list matches what the driver reports
         if LINUX_HAPTIC_DRIVER.init().is_err() {
-            println!("note: udev unavailable, skipping the haptic driver test");
+            crate::test_support::skip("udev", "the haptic driver didn't initialize");
             return;
         }
         let n = LINUX_HAPTIC_DRIVER.count();

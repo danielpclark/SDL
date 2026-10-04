@@ -174,4 +174,124 @@ pub(crate) mod test_support {
             let _ = std::fs::remove_dir_all(&self.0);
         }
     }
+
+    /// The environment pieces a test may find missing and skip over, by the
+    /// name [`skip`] and `SDL3_TEST_REQUIRE` use (docs/HARDWARE_TESTING.md
+    /// says what provides each one).
+    pub(crate) const CAPABILITIES: &[(&str, &str)] = &[
+        ("x11", "libX11 and the X extension libraries (libXtst, ...)"),
+        ("xvfb", "an X server: Xvfb, or DISPLAY"),
+        ("glx", "libGL with GLX contexts on the X server"),
+        ("egl", "libEGL with contexts for the platform (Mesa, ANGLE)"),
+        (
+            "vulkan",
+            "a Vulkan loader and driver with surface extensions",
+        ),
+        (
+            "wayland",
+            "libwayland-client, libxkbcommon and sway (or weston)",
+        ),
+        ("dbus", "libdbus and dbus-daemon"),
+        ("pulseaudio", "libpulse and the pulseaudio binary (pactl)"),
+        ("pipewire", "libpipewire and a running PipeWire server"),
+        ("alsa", "libasound with its file/null PCM plugins"),
+        ("udev", "libudev and a udev database"),
+        ("uinput", "a writable /dev/uinput"),
+        ("hidapi", "the HID backend: hidraw/libudev, or hid.dll"),
+        ("xinput", "an XInput DLL"),
+        ("gameinput", "GameInput.dll (the GameInput redistributable)"),
+        ("wgl", "opengl32.dll with a WGL pixel format and context"),
+        (
+            "wasapi",
+            "WASAPI with default playback and recording endpoints",
+        ),
+        (
+            "mediafoundation",
+            "Media Foundation (mf, mfplat, mfreadwrite)",
+        ),
+        ("v4l2", "the V4L2 camera driver"),
+        ("camera", "a camera (hardware tests)"),
+        (
+            "desktop",
+            "an interactive Windows desktop that can show windows",
+        ),
+    ];
+
+    /// Whether `SDL3_TEST_REQUIRE` (`all`, or a comma-separated list of
+    /// [`CAPABILITIES`]) makes `capability` mandatory.
+    pub(crate) fn required(capability: &str) -> bool {
+        let list = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
+        required_by(&list, capability).unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    fn required_by(list: &str, capability: &str) -> Result<bool, String> {
+        let mut found = false;
+        for name in list.split(',').map(str::trim).filter(|n| !n.is_empty()) {
+            if name != "all" && !CAPABILITIES.iter().any(|&(c, _)| c == name) {
+                return Err(format!(
+                    "SDL3_TEST_REQUIRE names an unknown capability {name:?} (known: all, {})",
+                    CAPABILITIES
+                        .iter()
+                        .map(|&(c, _)| c)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+            found |= name == "all" || name == capability;
+        }
+        Ok(found)
+    }
+
+    /// The skips so far in this process: (test, capability, reason).
+    pub(crate) static SKIPPED: std::sync::Mutex<Vec<(String, String, String)>> =
+        std::sync::Mutex::new(Vec::new());
+
+    /// Report that the calling test skips (some of) its checks because
+    /// `capability` (one of [`CAPABILITIES`]) is missing here, and return so
+    /// the caller can bail out. Prints a uniform note, records the skip in
+    /// [`SKIPPED`] and, when `SDL3_TEST_SKIP_LOG` names a file, appends a
+    /// tab-separated line to it. When `SDL3_TEST_REQUIRE` makes the
+    /// capability mandatory, panics instead: the environment was meant to
+    /// have it.
+    pub(crate) fn skip(capability: &str, reason: impl std::fmt::Display) {
+        assert!(
+            CAPABILITIES.iter().any(|&(c, _)| c == capability),
+            "unknown test capability {capability:?}"
+        );
+        let reason = reason.to_string();
+        if required(capability) {
+            panic!("required capability {capability} unavailable: {reason}");
+        }
+        let thread = std::thread::current();
+        let test = thread.name().unwrap_or("?").to_string();
+        eprintln!("note: skipping, {capability} unavailable: {reason}");
+        if let Ok(path) = std::env::var("SDL3_TEST_SKIP_LOG") {
+            use std::io::Write;
+            if let Ok(mut file) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+            {
+                let _ = writeln!(file, "{capability}\t{test}\t{reason}");
+            }
+        }
+        SKIPPED.lock().unwrap_or_else(|p| p.into_inner()).push((
+            test,
+            capability.to_string(),
+            reason,
+        ));
+    }
+
+    #[test]
+    fn require_lists() {
+        assert_eq!(required_by("", "x11"), Ok(false));
+        assert_eq!(required_by("all", "x11"), Ok(true));
+        assert_eq!(required_by("glx, x11", "x11"), Ok(true));
+        assert_eq!(required_by("glx,xvfb,", "x11"), Ok(false));
+        assert!(required_by("x11,nope", "x11").is_err());
+        let mut names: Vec<_> = CAPABILITIES.iter().map(|&(c, _)| c).collect();
+        names.sort_unstable();
+        names.dedup();
+        assert_eq!(names.len(), CAPABILITIES.len());
+    }
 }

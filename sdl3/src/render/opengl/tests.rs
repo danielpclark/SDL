@@ -10,8 +10,8 @@
 //! The contexts come from the offscreen driver's EGL (Mesa's device
 //! platform) and, when `DISPLAY` is set (`xvfb-run`), X11's GLX; on Windows
 //! from WGL. Without a usable OpenGL (no library, or one without
-//! framebuffer objects such as GDI Generic 1.1) the tests print a note and
-//! pass.
+//! framebuffer objects such as GDI Generic 1.1) the tests report a skip
+//! (capability `egl`, `glx` or `wgl`, see `test_support::skip`) and pass.
 
 use super::shaders::{self, Shader};
 use super::*;
@@ -169,6 +169,16 @@ fn gl_video_drivers() -> Vec<&'static str> {
     }
 }
 
+/// The test capability (`test_support::CAPABILITIES`) a driver's video
+/// needs, and the one its OpenGL contexts need.
+fn capabilities(driver: &str) -> (&'static str, &'static str) {
+    match driver {
+        "x11" => ("xvfb", "glx"),
+        "windows" => ("desktop", "wgl"),
+        _ => ("egl", "egl"),
+    }
+}
+
 /// Video up on a driver; quit when dropped.
 struct Video;
 
@@ -177,7 +187,10 @@ impl Video {
         init::quit();
         hints::set(hints::VIDEO_DRIVER, driver).unwrap();
         if let Err(e) = init::init(InitFlags::VIDEO) {
-            eprintln!("note: no {driver} video ({}); skipping", e.message());
+            crate::test_support::skip(
+                capabilities(driver).0,
+                format_args!("no {driver} video ({})", e.message()),
+            );
             hints::reset(hints::VIDEO_DRIVER);
             return None;
         }
@@ -207,7 +220,10 @@ impl GlTest {
         let window = match Window::create("opengl renderer", W, H, WindowFlags::default()) {
             Ok(w) => w,
             Err(e) => {
-                eprintln!("note: no {driver} window ({}); skipping", e.message());
+                crate::test_support::skip(
+                    capabilities(driver).1,
+                    format_args!("no {driver} window ({})", e.message()),
+                );
                 return None;
             }
         };
@@ -219,9 +235,9 @@ impl GlTest {
                 _video: video,
             }),
             Err(e) => {
-                eprintln!(
-                    "note: no OpenGL renderer on {driver} ({}); skipping",
-                    e.message()
+                crate::test_support::skip(
+                    capabilities(driver).1,
+                    format_args!("no OpenGL renderer on {driver} ({})", e.message()),
                 );
                 window.destroy();
                 None
@@ -768,9 +784,9 @@ fn debug_context_reports_errors() {
         let mut r = match Renderer::for_window(&window, Some(OPENGL_RENDERER)) {
             Ok(r) => r,
             Err(e) => {
-                eprintln!(
-                    "note: no OpenGL debug renderer on {driver} ({}); skipping",
-                    e.message()
+                crate::test_support::skip(
+                    capabilities(driver).1,
+                    format_args!("no OpenGL debug renderer on {driver} ({})", e.message()),
                 );
                 continue;
             }
@@ -827,7 +843,10 @@ fn fallback_without_framebuffer_objects() {
             continue;
         };
         if gl::gl_load_library(None).is_err() {
-            eprintln!("note: no OpenGL library on {driver}; skipping");
+            crate::test_support::skip(
+                capabilities(driver).1,
+                format_args!("no OpenGL library on {driver}"),
+            );
             continue;
         }
         gl::gl_unload_library();

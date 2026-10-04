@@ -64,17 +64,24 @@ impl Drop for Client {
 struct XServer {
     child: Option<Child>,
     old_display: Option<OsString>,
+    /// A connection to the server in `DISPLAY`, held for the test: a server
+    /// started without `-noreset` (as `xvfb-run` does) resets when its last
+    /// client leaves, and refuses connections meanwhile.
+    _keepalive: Option<Client>,
 }
 
 impl XServer {
     /// The server in `DISPLAY`, or a new Xvfb.
     fn start() -> Option<XServer> {
         let old_display = std::env::var_os("DISPLAY");
-        if old_display.is_some() && Client::open().is_some() {
-            return Some(XServer {
-                child: Option::None,
-                old_display,
-            });
+        if old_display.is_some() {
+            if let Some(client) = Client::open() {
+                return Some(XServer {
+                    child: Option::None,
+                    old_display,
+                    _keepalive: Some(client),
+                });
+            }
         }
         XServer::xvfb(&[])
     }
@@ -101,7 +108,10 @@ impl XServer {
         let mut child = match child {
             Ok(child) => child,
             Err(_) => {
-                eprintln!("note: no X server (DISPLAY can't be opened and Xvfb isn't available); skipping");
+                crate::test_support::skip(
+                    "xvfb",
+                    "no X server (DISPLAY can't be opened and Xvfb isn't available)",
+                );
                 return Option::None;
             }
         };
@@ -116,16 +126,17 @@ impl XServer {
         if read == 0 || number.is_empty() {
             let _ = child.kill();
             let _ = child.wait();
-            eprintln!("note: Xvfb didn't start; skipping");
+            crate::test_support::skip("xvfb", "Xvfb didn't start");
             return Option::None;
         }
         std::env::set_var("DISPLAY", format!(":{number}"));
         let server = XServer {
             child: Some(child),
             old_display,
+            _keepalive: Option::None,
         };
         if Client::open().is_none() {
-            eprintln!("note: can't connect to Xvfb; skipping");
+            crate::test_support::skip("xvfb", "can't connect to Xvfb");
             return Option::None;
         }
         Some(server)
@@ -773,7 +784,7 @@ fn x11_keyboard_and_mouse_input() {
     assert_eq!(keyboard::scancode_from_key(Keycode::Z).0, Scancode::Z);
 
     let Some(xtest) = XTest::load() else {
-        eprintln!("note: libXtst not available; skipping the input part");
+        crate::test_support::skip("x11", "libXtst not available for the input part");
         return;
     };
     let client = Client::open().unwrap();
@@ -865,9 +876,9 @@ fn x11_vulkan() {
             );
             crate::video::vulkan::vulkan_unload_library();
         }
-        Err(e) => eprintln!(
-            "note: no Vulkan loader with surface support: {}",
-            e.message()
+        Err(e) => crate::test_support::skip(
+            "vulkan",
+            format_args!("no Vulkan loader with surface support: {}", e.message()),
         ),
     }
 }
@@ -1058,7 +1069,7 @@ fn x11_message_box() {
         return;
     };
     let Some(xtest) = XTest::load() else {
-        eprintln!("note: libXtst not available; skipping");
+        crate::test_support::skip("x11", "libXtst not available");
         return;
     };
     let client = Client::open().unwrap();
@@ -1197,19 +1208,30 @@ fn gl_string(name: u32) -> String {
 }
 
 /// An OpenGL window and context on the running server (`None`: no GL
-/// library or no usable visual, after printing why).
+/// library or no usable visual, after reporting the skip).
 fn gl_window_and_context(what: &str) -> Option<(SdlWindow, crate::video::gl::GlContext)> {
+    let capability = if what.starts_with("GLX") {
+        "glx"
+    } else {
+        "egl"
+    };
     let window = match SdlWindow::create(what, 64, 48, WindowFlags::OPENGL) {
         Ok(w) => w,
         Err(e) => {
-            eprintln!("note: no {what} window ({}); skipping", e.message());
+            crate::test_support::skip(
+                capability,
+                format_args!("no {what} window ({})", e.message()),
+            );
             return Option::None;
         }
     };
     match crate::video::gl::GlContext::new(&window) {
         Ok(c) => Some((window, c)),
         Err(e) => {
-            eprintln!("note: no {what} context ({}); skipping", e.message());
+            crate::test_support::skip(
+                capability,
+                format_args!("no {what} context ({})", e.message()),
+            );
             Option::None
         }
     }
@@ -1271,7 +1293,7 @@ fn x11_glx_context() {
     let _video = Video::init();
     use crate::video::gl;
     if let Err(e) = gl::gl_load_library(Option::None) {
-        eprintln!("note: no libGL ({}); skipping", e.message());
+        crate::test_support::skip("glx", format_args!("no libGL ({})", e.message()));
         return;
     }
     let Some((window, context)) = gl_window_and_context("GLX") else {

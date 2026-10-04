@@ -158,6 +158,13 @@ cargo doc --open
 
 Requires Rust 1.87 or newer. There is nothing else to install.
 
+Tests of the platform backends that need something from the system (an X
+server, a PipeWire server, a GPU, a camera) skip with a note when it's
+missing; [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) lists what
+each one needs, how to make a missing piece fail the run
+(`SDL3_TEST_REQUIRE`), and the hardware checks run with
+`cargo test -- --ignored`.
+
 ## Using it
 
 ```rust

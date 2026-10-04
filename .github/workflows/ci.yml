@@ -65,6 +65,12 @@ jobs:
       # Print a failing test's panic as it happens rather than in the summary
       # at the end, so a run that then hangs still shows what went wrong.
       RUST_TEST_NOCAPTURE: 1
+      # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
+      # the packages installed below provide on ubuntu: tests that would
+      # skip without them fail instead. Not uinput (the runner can't use
+      # /dev/uinput); the Windows jobs require nothing, since what a hosted
+      # runner offers (an audio endpoint, a usable desktop) isn't pinned down.
+      LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
@@ -73,10 +79,51 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.toolchain }}
+      # What the Linux tests that would otherwise skip need (see
+      # docs/HARDWARE_TESTING.md): an X server, Mesa's software GL, EGL and
+      # Vulkan, a headless Wayland compositor, the PulseAudio binary, and a
+      # PipeWire server with WirePlumber and null devices.
+      - name: Install the test environment
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libegl1 libgles2 \
+            mesa-vulkan-drivers libvulkan1 libxtst6 libwayland-client0 \
+            libwayland-egl1 libwayland-cursor0 libxkbcommon0 sway \
+            pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
+            libudev1 libasound2t64 libdbus-1-3 dbus-daemon
+          XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" tools/ci/start-pipewire.sh
       - run: cargo test --workspace
+        env:
+          # Skips are listed in the job summary; on Linux the capabilities
+          # installed above are required, so a test that can't find one
+          # fails instead of skipping.
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || '' }}
       - name: cargo test --release
         if: matrix.toolchain == 'pinned'
         run: cargo test --workspace --release
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || '' }}
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          if [ -s "$SDL3_TEST_SKIP_LOG" ]; then
+            {
+              echo "### Skipped checks (${{ matrix.os }}, ${{ matrix.toolchain }})"
+              echo
+              echo "| capability | test | reason |"
+              echo "|---|---|---|"
+              sort -u "$SDL3_TEST_SKIP_LOG" | sed 's/|/\\|/g; s/\t/ | /g; s/^/| /; s/$/ |/'
+            } >> "$GITHUB_STEP_SUMMARY"
+            cut -f1 "$SDL3_TEST_SKIP_LOG" | sort | uniq -c
+          else
+            echo "no checks skipped"
+          fi
 
   doc:
     name: rustdoc

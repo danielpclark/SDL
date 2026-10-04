@@ -931,15 +931,12 @@ mod tests {
             && SharedObject::load(SDL_UDEV_LIBS[1]).is_err()
         {
             assert!(init().is_err());
-            println!("note: libudev isn't installed, skipping the udev test");
+            crate::test_support::skip("udev", "libudev isn't installed");
             return;
         }
         if let Err(e) = init() {
             // (no netlink socket in some sandboxes)
-            println!(
-                "note: udev unavailable ({}), skipping the udev test",
-                e.message()
-            );
+            crate::test_support::skip("udev", format_args!("udev unavailable ({})", e.message()));
             return;
         }
         // Counted: a second init only takes a reference

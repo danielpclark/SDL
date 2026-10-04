@@ -932,7 +932,7 @@ mod uinput {
     fn virtual_gamepad_end_to_end() {
         let _l = lock();
         let Some(pad) = VirtualPad::create() else {
-            println!("note: /dev/uinput isn't usable here, skipping the uinput joystick test");
+            crate::test_support::skip("uinput", "/dev/uinput isn't usable here");
             return;
         };
         // Use the node directly, so the test doesn't depend on udev

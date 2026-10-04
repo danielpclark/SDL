@@ -1,7 +1,7 @@
 // Tests of the OpenGL ES 2.0 renderer: scenes drawn through a real OpenGL
 // ES context (the offscreen driver's EGL; Mesa's llvmpipe on Linux CI) and
 // through the software renderer, compared pixel by pixel. Without an
-// OpenGL ES library (Windows CI, Wine) the GL tests print a note and skip.
+// OpenGL ES library (Windows CI, Wine) the GL tests skip (capability `egl`).
 
 use crate::events::window::WindowFlags;
 use crate::hints;
@@ -42,14 +42,17 @@ impl Drop for Video {
     }
 }
 
-/// An offscreen window with an OpenGL ES 2.0 renderer, or `None` (with a
-/// note) when there is no OpenGL ES.
+/// An offscreen window with an OpenGL ES 2.0 renderer, or `None` (with the
+/// skip reported) when there is no OpenGL ES.
 fn gles2_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
     let window = Window::create("gles2", w, h, WindowFlags::default()).unwrap();
     match Renderer::for_window(&window, Some(GLES2_RENDERER)) {
         Ok(r) => Some((window, r)),
         Err(e) => {
-            eprintln!("note: no OpenGL ES 2 renderer ({}); skipping", e.message());
+            crate::test_support::skip(
+                "egl",
+                format_args!("no OpenGL ES 2 renderer ({})", e.message()),
+            );
             window.destroy();
             None
         }
