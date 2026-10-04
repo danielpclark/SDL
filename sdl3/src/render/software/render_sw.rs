@@ -430,13 +430,16 @@ impl SwRenderer {
                                     surface.format()
                                 };
                                 // Scale to an intermediate surface, then blit
-                                // FIXME (upstream): for an indexed output the
-                                // intermediate surface has no palette, and the
-                                // scaled blit of an indexed texture into it
-                                // dereferences the missing palette.
                                 if let Ok(mut tmp) =
                                     Surface::new_uninitialized(dstrect.w, dstrect.h, tmp_format)
                                 {
+                                    // Upstream leaves an indexed intermediate
+                                    // surface without a palette, and the scaled
+                                    // blit into it dereferences the missing
+                                    // palette. Fixed here: it uses the output's.
+                                    if tmp_format.is_indexed() {
+                                        let _ = tmp.set_palette(surface.palette().cloned());
+                                    }
                                     let r = Rect::new(0, 0, dstrect.w, dstrect.h);
                                     let blendmode = src.blend_mode();
                                     let alpha_mod = src.alpha_mod();
