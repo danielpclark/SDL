@@ -120,7 +120,7 @@ impl Drop for Peer {
 pub(crate) fn peer(
     address: &str,
     name: &'static str,
-    handler: impl Fn(&Connection, &Message) -> Option<Message> + Send + 'static,
+    handler: impl Fn(&Arc<Connection>, &Message) -> Option<Message> + Send + 'static,
 ) -> Peer {
     let stop = Arc::new(AtomicBool::new(false));
     let s2 = stop.clone();
