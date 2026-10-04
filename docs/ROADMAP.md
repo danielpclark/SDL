@@ -57,8 +57,8 @@ handlers and thread priorities.
 | `render/` GPU backends | ~77,000 | OpenGL / GLES2 → Vulkan → Direct3D 11/12 → Metal → `SDL_GPU`-based renderer |
 | `gpu/` | ~41,800 | Vulkan → D3D12 → Metal |
 | `audio/` drivers | ~15,000 | dummy & disk → PipeWire/Pulse/ALSA → WASAPI → CoreAudio → AAudio → others |
-| `joystick/` drivers + `hidapi/` | ~60,000 | Linux evdev → HIDAPI (pure-Rust hid transport) → Windows (RawInput/XInput/WGI/GameInput) → Darwin IOKit/MFI → Android |
-| `core/` per-platform glue | ~26,000 | Linux (D-Bus, evdev, udev, ibus, fcitx), Windows (COM, GameInput, XInput), Android JNI, Apple, Haiku, Emscripten, GDK, PS2/PSP/Vita/3DS/N-Gage, OpenHarmony |
+| `joystick/` drivers + `hidapi/` | ~60,000 | Linux evdev (**done**: udev/inotify/polling discovery, classic `js` nodes, calibration, hats, balls, sensors, rumble, the generated gamepad mapping; the Linux haptic driver with it) → HIDAPI (pure-Rust hid transport) → Windows (the `SDL_windowsjoystick.c` frame and XInput **done**; DirectInput (with its haptic driver), RawInput, WGI and GameInput next) → Darwin IOKit/MFI → Android |
+| `core/` per-platform glue | ~26,000 | Linux (evdev capabilities, udev and the evdev event timestamps **done**; D-Bus, ibus, fcitx, and the console evdev keyboard/mouse reader with the KMS/DRM video driver), Windows (COM **done**, XInput and the `SDL_hid.c` device notifications **done**; the HID DLL with RawInput, GameInput), Android JNI, Apple, Haiku, Emscripten, GDK, PS2/PSP/Vita/3DS/N-Gage, OpenHarmony |
 | `power/`, `locale/`, `filesystem/`, `dialog/`, `tray/`, `notification/`, `camera/`, `sensor/`, `haptic/`, `misc/`, `process/`, `time/`, `timer/`, `loadso/`, `main/` backends | ~30,000 | alongside the platform they belong to |
 | `test/` (`SDL_test_*`) | ~6,200 | the test framework, as a `sdl3-test` crate |
 
