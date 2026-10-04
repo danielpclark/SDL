@@ -236,10 +236,11 @@ impl Drop for Thread {
 ///
 /// On Unix the scheduler policy follows `SDL_HINT_THREAD_PRIORITY_POLICY`
 /// and `SDL_HINT_THREAD_FORCE_REALTIME_TIME_CRITICAL`; on Linux the priority
-/// is a nice level (or a realtime priority for `SCHED_RR`/`SCHED_FIFO`) set
-/// with `setpriority()`. Raising the priority usually needs privileges; the
-/// error is then "setpriority() failed" (or "pthread_setschedparam()
-/// failed"), as upstream reports it when RealtimeKit refuses too.
+/// is a nice level set with `setpriority()`, with RealtimeKit as the
+/// fallback (and the only way to realtime priorities for
+/// `SCHED_RR`/`SCHED_FIFO`). Raising the priority usually needs privileges;
+/// the error is then "setpriority() failed" (or "pthread_setschedparam()
+/// failed").
 pub fn set_current_thread_priority(priority: ThreadPriority) -> Result<()> {
     sys_set_thread_priority(priority)
 }
@@ -328,56 +329,29 @@ fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
     }
 }
 
-/// The maximum realtime priority (RealtimeKit's `MaxRealtimePriority`
-/// default, used without it).
-#[cfg(target_os = "linux")]
-const RTKIT_MAX_REALTIME_PRIORITY: i32 = 99;
-
-/// Set a Linux thread's nice level. Translation of
-/// `SDL_SetLinuxThreadPriority()` (`core/linux/SDL_threadprio.c`), without
-/// the RealtimeKit fallback, which needs D-Bus.
+/// Set a Linux thread's nice level, asking RealtimeKit over D-Bus if
+/// `setpriority()` is refused. Translation of `SDL_SetLinuxThreadPriority()`
+/// (`core/linux/SDL_threadprio.c`).
 #[cfg(target_os = "linux")]
 pub fn set_linux_thread_priority(thread_id: i64, priority: i32) -> Result<()> {
-    // SAFETY: setpriority takes plain integers.
-    if unsafe { libc::setpriority(libc::PRIO_PROCESS, thread_id as libc::id_t, priority) } == 0 {
-        return Ok(());
-    }
-    Err(Error::new("setpriority() failed"))
+    crate::core::linux::threadprio::set_linux_thread_priority(thread_id, priority)
 }
 
-/// Set a Linux thread's priority for a scheduler policy. Translation of
-/// `SDL_SetLinuxThreadPriorityAndPolicy()` (`core/linux/SDL_threadprio.c`),
-/// without the RealtimeKit fallback, which needs D-Bus.
+/// Set a Linux thread's priority for a scheduler policy: a realtime
+/// priority from RealtimeKit for `SCHED_RR`/`SCHED_FIFO`, else a nice level.
+/// Translation of `SDL_SetLinuxThreadPriorityAndPolicy()`
+/// (`core/linux/SDL_threadprio.c`).
 #[cfg(target_os = "linux")]
 pub fn set_linux_thread_priority_and_policy(
     thread_id: i64,
     sdl_priority: ThreadPriority,
     sched_policy: i32,
 ) -> Result<()> {
-    if sched_policy == libc::SCHED_RR || sched_policy == libc::SCHED_FIFO {
-        // Realtime priorities are only granted by RealtimeKit
-        // (MakeThreadRealtimeWithPID), which needs D-Bus.
-        let _os_priority = match sdl_priority {
-            ThreadPriority::Low => 1,
-            ThreadPriority::High => RTKIT_MAX_REALTIME_PRIORITY * 3 / 4,
-            ThreadPriority::TimeCritical => RTKIT_MAX_REALTIME_PRIORITY,
-            ThreadPriority::Normal => RTKIT_MAX_REALTIME_PRIORITY / 2,
-        };
-    } else {
-        let os_priority = match sdl_priority {
-            ThreadPriority::Low => 19,
-            ThreadPriority::High => -10,
-            ThreadPriority::TimeCritical => -20,
-            ThreadPriority::Normal => 0,
-        };
-        // SAFETY: setpriority takes plain integers.
-        if unsafe { libc::setpriority(libc::PRIO_PROCESS, thread_id as libc::id_t, os_priority) }
-            == 0
-        {
-            return Ok(());
-        }
-    }
-    Err(Error::new("setpriority() failed"))
+    crate::core::linux::threadprio::set_linux_thread_priority_and_policy(
+        thread_id,
+        sdl_priority,
+        sched_policy,
+    )
 }
 
 #[cfg(windows)]

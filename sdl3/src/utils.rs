@@ -201,6 +201,152 @@ pub(crate) fn create_device_name(
     Some(String::from_utf8_lossy(&name).into_owned())
 }
 
+/// Decode URI escape sequences (`%XX`) in the first `len` bytes of `src`
+/// (all of it when `len` is 0). An invalid escape is copied through as is.
+/// Translation of `SDL_URIDecode()`.
+// (used by the D-Bus code)
+#[cfg_attr(not(unix), allow(dead_code))]
+fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
+    let len = if len == 0 {
+        src.len()
+    } else {
+        len.min(src.len())
+    };
+    let mut dst = Vec::with_capacity(len);
+    let mut decode: u8 = 0;
+    let mut di = 0usize;
+    let mut ri = 0usize;
+    while ri < len && dst.len() < len {
+        let c = src[ri];
+        if di == 0 {
+            // start decoding
+            if c == b'%' {
+                decode = 0;
+                di += 1;
+                ri += 1;
+                continue;
+            }
+            // normal write
+            dst.push(c);
+        } else {
+            let digit = match c {
+                b'0'..=b'9' => c - b'0',
+                b'a'..=b'f' => c - b'a' + 10,
+                b'A'..=b'F' => c - b'A' + 10,
+                _ => {
+                    // not a hexadecimal
+                    dst.extend_from_slice(&src[ri - di..=ri]);
+                    di = 0;
+                    ri += 1;
+                    continue;
+                }
+            };
+            // itsy bitsy magicsy
+            decode |= digit << ((2 - di) * 4);
+            if di == 2 {
+                dst.push(decode);
+                di = 0;
+            } else {
+                di += 1;
+            }
+        }
+        ri += 1;
+    }
+    dst
+}
+
+/// The local path of a `file:` URI (or of a path with no scheme), with
+/// escapes decoded, or `None` for another scheme or a remote host.
+/// `file:///p`, `file:/p`, `file://localhost/p` and
+/// `file://<this host>/p` are local. Translation of `SDL_URIToLocal()`.
+// (used by the D-Bus code)
+#[cfg_attr(not(unix), allow(dead_code))]
+pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
+    let mut src = uri.as_bytes();
+    let had_file_scheme = src.starts_with(b"file:/");
+    if had_file_scheme {
+        src = &src[6..]; // local file?
+    } else if uri.contains(":/") {
+        return None; // wrong scheme
+    }
+    let at = |s: &[u8], i: usize| s.get(i).copied().unwrap_or(0);
+
+    let mut local = at(src, 0) != b'/' || (at(src, 0) != 0 && at(src, 1) == b'/');
+
+    // Check the hostname, if present. RFC 3986 states that the hostname component of a URI is not case-sensitive.
+    if !local && at(src, 0) == b'/' && at(src, 2) != b'/' {
+        if let Some(end) = src[1..].iter().position(|&c| c == b'/').map(|p| p + 1) {
+            let host = &src[1..end];
+            #[cfg(unix)]
+            {
+                let mut hostname = [0u8; 257];
+                // SAFETY: the buffer holds 255 bytes plus a terminator.
+                if unsafe { libc::gethostname(hostname.as_mut_ptr().cast(), 255) } == 0 {
+                    hostname[256] = 0;
+                    let n = hostname.iter().position(|&c| c == 0).unwrap_or(256);
+                    if host.eq_ignore_ascii_case(&hostname[..n]) {
+                        src = &src[end + 1..];
+                        local = true;
+                    }
+                }
+            }
+            if !local && host.eq_ignore_ascii_case(b"localhost") {
+                src = &src[end + 1..];
+                local = true;
+            }
+            if local {
+                // (the slash after the host was skipped; decode from it)
+                return Some(uri_decode(&uri.as_bytes()[uri.len() - src.len() - 1..], 0));
+            }
+        }
+    }
+
+    if local {
+        // Convert URI escape sequences to real characters
+        if at(src, 0) == b'/' {
+            return Some(uri_decode(&src[1..], 0));
+        }
+        // FIXME (upstream): for a path without a "file:/" scheme, upstream
+        // steps `src` back one byte before the start of the string and
+        // decodes from there. Only the "file:" case has a byte to step back
+        // to (the scheme's slash).
+        if !had_file_scheme {
+            return None;
+        }
+        return Some(uri_decode(&uri.as_bytes()[uri.len() - src.len() - 1..], 0));
+    }
+    None
+}
+
+/// Whether `uri` starts with a valid scheme: a letter, then letters,
+/// digits, `+`, `-` or `.`, then `:`. Translation of `SDL_IsURI()`.
+// (used by the D-Bus code)
+#[cfg_attr(not(unix), allow(dead_code))]
+pub(crate) fn is_uri(uri: &str) -> bool {
+    /* A valid URI begins with a letter and is followed by any sequence of
+     * letters, digits, '+', '.', or '-'.
+     */
+    let b = uri.as_bytes();
+
+    // The first character of the scheme must be a letter.
+    if !b.first().is_some_and(u8::is_ascii_alphabetic) {
+        return false;
+    }
+
+    /* If the colon is found before encountering the end of the string or
+     * any invalid characters, the scheme can be considered valid.
+     */
+    for (i, &c) in b.iter().enumerate() {
+        if !(c.is_ascii_alphanumeric() || c == b'+' || c == b'-' || c == b'.') {
+            return false;
+        }
+        if b.get(i + 1) == Some(&b':') {
+            return true;
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,5 +390,32 @@ mod tests {
         let b = next_object_id();
         assert_ne!(a, 0);
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn uris() {
+        assert!(is_uri("https://libsdl.org"));
+        assert!(is_uri("x-scheme+1.2:rest"));
+        assert!(!is_uri("1http://x"));
+        assert!(!is_uri("/tmp/file"));
+        assert!(!is_uri("no_colon"));
+        assert!(!is_uri("bad char:x"));
+
+        assert_eq!(uri_decode(b"a%20b%2Fc", 0), b"a b/c");
+        assert_eq!(
+            uri_decode(b"100%zz", 0),
+            b"100%zz",
+            "invalid escapes pass through"
+        );
+        assert_eq!(uri_decode(b"%41%4a%4A", 0), b"AJJ");
+
+        let local = |u: &str| uri_to_local(u).map(|v| String::from_utf8(v).unwrap());
+        assert_eq!(local("file:///tmp/a%20b").as_deref(), Some("/tmp/a b"));
+        assert_eq!(local("file:/tmp/x").as_deref(), Some("/tmp/x"));
+        assert_eq!(local("file://localhost/tmp/x").as_deref(), Some("/tmp/x"));
+        assert_eq!(local("file://LOCALHOST/tmp/x").as_deref(), Some("/tmp/x"));
+        assert_eq!(local("file://elsewhere.example/tmp/x"), None);
+        assert_eq!(local("https://libsdl.org/"), None);
+        assert_eq!(local("relative/path"), None);
     }
 }

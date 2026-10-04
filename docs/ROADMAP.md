@@ -19,7 +19,7 @@ timers/ticks, time, GUIDs, CRC/murmur/random, rectangles and pixel formats.
 | `SDL.c`, `SDL_assert.c` | ~1,400 | **Done** (`sdl3::init`, `sdl3::assert`): `init`/`quit` with subsystem refcounts, app metadata, main-thread tracking; the assertion macros, handler and report. |
 | `stdlib/` remainder | ~16,000 | **Done** (`sdl3::stdlib`): UTF-8 stepping, case folding (tables generated from upstream), string comparison and number parsing with upstream quirks, `iconv` with all encodings, environment snapshots. `SDL_malloc.c` (dlmalloc), `mem*`, `qsort` and `snprintf` are replaced by Rust's own. |
 | `libm/` | ~3,300 | **Done** (`sdl3::stdlib::math`): fdlibm routines, bit-identical to SDL's own `SDL_sin` etc. (verified by hashing outputs against compiled upstream C). |
-| `thread/` generic | ~6,000 | **Done** (`sdl3::thread`): threads, TLS, semaphore, recursive mutex, init state over `std::thread`/`std::sync`; priorities on pthreads, Linux and Windows (the RealtimeKit fallback comes with D-Bus). |
+| `thread/` generic | ~6,000 | **Done** (`sdl3::thread`): threads, TLS, semaphore, recursive mutex, init state over `std::thread`/`std::sync`; priorities on pthreads, Linux (with the RealtimeKit fallback over D-Bus) and Windows. |
 | `cpuinfo/` | ~1,300 | **Done** (`sdl3::cpuinfo`): `std::arch` feature detection, cache line size, cores, RAM, page size. |
 | `events/` core | ~12,800 | **Done** (`sdl3::events`): event queue, event types/structs, keyboard/mouse/touch/pen state machines, scancode tables, keymaps, window/display/clipboard/drop/notification event sources. Window state is reached through the `events::window::VideoHooks` trait (with `WindowCore` holding the `SDL_Window` fields the event code touches), which the video subsystem implements later. `SDL_quit.c` with its SIGINT/SIGTERM handlers. Deferred: the platform scancode tables (`scancodes_*.h`, `SDL_keysym_to_*.c`, with their backends). |
 | `io/`, `storage/` | ~5,500 | **Done** (`sdl3::io`, `sdl3::storage`): `IoStream` over files/memory, async IO with the generic threadpool backend, storage with the generic backends. io_uring/IoRing and Steam storage are Phase 4. |
@@ -45,8 +45,9 @@ backend that uses them and loaded with `sdl3::loadso`, like upstream's
 `rustc` is needed to build.
 
 Done so far: `loadso/`, `core/unix/` (`SDL_poll.c`, `SDL_appid.c`),
-`core/windows/SDL_windows.c`, the `SDL_quit.c` signal handlers and thread
-priorities.
+`core/windows/SDL_windows.c`, `core/linux/SDL_dbus.c` (the menu export comes
+with the D-Bus tray) and `SDL_threadprio.c`, the `SDL_quit.c` signal
+handlers and thread priorities.
 
 ## Phase 4 — Platform backends (largest volume)
 
