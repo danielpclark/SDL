@@ -18,7 +18,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::error::Result;
-use crate::events::mouse::{Cursor, CursorFrame, MouseButtonFlags, MouseFeature, SystemCursor};
+use crate::events::mouse::{
+    Cursor, CursorFrame, MouseButtonFlags, MouseFeature, MouseID, SystemCursor,
+};
 use crate::events::window::{WindowCore, WindowFlags};
 use crate::events::{DisplayID, WindowID};
 use crate::properties::Properties;
@@ -739,6 +741,18 @@ pub(crate) trait VideoDriver: Send + Sync {
         None
     }
     fn global_mouse_state(&self) -> Option<(f32, f32, MouseButtonFlags)> {
+        None
+    }
+    /// `mouse->ApplySystemScale` (with `mouse->system_scale_data` kept by the
+    /// backend): scale relative motion like the OS would.
+    fn apply_system_scale(
+        &self,
+        timestamp: Duration,
+        window: Option<WindowID>,
+        mouse_id: MouseID,
+        x: f32,
+        y: f32,
+    ) -> Option<(f32, f32)> {
         None
     }
     /// `mouse->CreateCursor`, for an ARGB8888 surface.

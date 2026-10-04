@@ -30,6 +30,9 @@ pub mod queue;
 mod quit;
 #[cfg(all(unix, not(target_vendor = "apple")))]
 pub(crate) mod scancode_tables;
+// (used by the Windows video driver; tested everywhere)
+#[cfg(any(windows, test))]
+pub(crate) mod scancodes_windows;
 pub mod touch;
 pub mod window;
 

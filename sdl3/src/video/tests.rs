@@ -566,6 +566,12 @@ fn session_matches_c() {
     init::quit();
 
     let expected = include_str!("testdata/video_trace.txt");
+    // (on Windows the windows driver is available without asking for it)
+    #[cfg(windows)]
+    let expected_windows =
+        expected.replace("init none: err: No available video device", "init none: ok");
+    #[cfg(windows)]
+    let expected: &str = &expected_windows;
     if t.out != expected {
         let out = std::env::temp_dir().join("rust_video_trace.txt");
         std::fs::write(&out, &t.out).unwrap();

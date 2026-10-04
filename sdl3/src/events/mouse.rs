@@ -420,7 +420,6 @@ pub(crate) struct Mouse {
     pub(crate) relative_mode: bool,
     relative_mode_warp_motion: bool,
     relative_mode_hide_cursor: bool,
-    #[allow(dead_code)]
     relative_mode_center: bool,
     warp_emulation_hint: bool,
     warp_emulation_active: bool,
@@ -438,7 +437,7 @@ pub(crate) struct Mouse {
     pub(crate) pen_mouse_events: bool,
     pub(crate) pen_touch_events: bool,
     /// Was a touch-mouse event pending?
-    was_touch_mouse_events: bool,
+    pub(crate) was_touch_mouse_events: bool,
     /// did we `add_touch()` a virtual touch device for the mouse?
     added_mouse_touch_device: bool,
     /// did we `add_touch()` a virtual touch device for pens?
@@ -1905,6 +1904,13 @@ pub fn set_relative_mouse_mode(enabled: bool) -> Result<()> {
 /// Whether relative mouse mode is enabled. Translation of `SDL_GetRelativeMouseMode()`.
 pub fn relative_mode_enabled() -> bool {
     with_mouse(|mouse| mouse.relative_mode)
+}
+
+/// Whether relative mode keeps the cursor centered
+/// ([`hints::MOUSE_RELATIVE_MODE_CENTER`]); `mouse->relative_mode_center`.
+#[allow(dead_code)] // (used by the platform drivers)
+pub(crate) fn relative_mode_center() -> bool {
+    with_mouse(|mouse| mouse.relative_mode_center)
 }
 
 /// Re-evaluate relative mode from the focus window's flags.

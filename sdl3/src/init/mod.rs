@@ -939,11 +939,23 @@ pub(crate) mod tests {
         // A subsystem that fails rolls back anything that was initialized
         // in the same call (without a driver hint, no video driver is
         // available).
-        crate::hints::reset(crate::hints::VIDEO_DRIVER);
-        let no_display = crate::test_support::NoDisplay::new();
-        let e = init(InitFlags::EVENTS | InitFlags::VIDEO).unwrap_err();
-        drop(no_display);
-        assert_eq!(e.message(), "No available video device");
+        // (on Windows the windows driver is always available: ask for a
+        // driver that doesn't exist instead)
+        #[cfg(not(windows))]
+        {
+            crate::hints::reset(crate::hints::VIDEO_DRIVER);
+            let no_display = crate::test_support::NoDisplay::new();
+            let e = init(InitFlags::EVENTS | InitFlags::VIDEO).unwrap_err();
+            drop(no_display);
+            assert_eq!(e.message(), "No available video device");
+        }
+        #[cfg(windows)]
+        {
+            crate::hints::set(crate::hints::VIDEO_DRIVER, "nonexistent").unwrap();
+            let e = init(InitFlags::EVENTS | InitFlags::VIDEO).unwrap_err();
+            crate::hints::reset(crate::hints::VIDEO_DRIVER);
+            assert_eq!(e.message(), "nonexistent not available");
+        }
         assert_eq!(was_init(InitFlags::NONE), InitFlags::NONE);
         // The failed video init doesn't leave its thread behind as the
         // main thread.

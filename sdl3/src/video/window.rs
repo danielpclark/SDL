@@ -65,6 +65,13 @@ pub const PROP_WINDOW_CREATE_VULKAN_BOOLEAN: &str = "SDL.window.create.vulkan";
 pub const PROP_WINDOW_CREATE_WIDTH_NUMBER: &str = "SDL.window.create.width";
 pub const PROP_WINDOW_CREATE_X_NUMBER: &str = "SDL.window.create.x";
 pub const PROP_WINDOW_CREATE_Y_NUMBER: &str = "SDL.window.create.y";
+/// The `HWND` of an existing window to wrap (Windows).
+pub const PROP_WINDOW_CREATE_WIN32_HWND_POINTER: &str = "SDL.window.create.win32.hwnd";
+/// A window whose pixel format the new window shares (Windows).
+pub const PROP_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER: &str =
+    "SDL.window.create.win32.pixel_format_hwnd";
+/// Extra extended window styles for the new window (Windows).
+pub const PROP_WINDOW_CREATE_WIN32_STYLE_EX_NUMBER: &str = "SDL.window.create.win32.style_ex";
 
 /// The X11 `Window` to wrap (instead of creating one). Translation of
 /// `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`.
@@ -85,6 +92,12 @@ pub const PROP_WINDOW_SHAPE_POINTER: &str = "SDL.window.shape";
 pub const PROP_WINDOW_HDR_ENABLED_BOOLEAN: &str = "SDL.window.HDR_enabled";
 pub const PROP_WINDOW_SDR_WHITE_LEVEL_FLOAT: &str = "SDL.window.SDR_white_level";
 pub const PROP_WINDOW_HDR_HEADROOM_FLOAT: &str = "SDL.window.HDR_headroom";
+/// The window's `HWND` (Windows), as a number.
+pub const PROP_WINDOW_WIN32_HWND_POINTER: &str = "SDL.window.win32.hwnd";
+/// The window's `HDC` (Windows), as a number.
+pub const PROP_WINDOW_WIN32_HDC_POINTER: &str = "SDL.window.win32.hdc";
+/// The window's `HINSTANCE` (Windows), as a number.
+pub const PROP_WINDOW_WIN32_INSTANCE_POINTER: &str = "SDL.window.win32.instance";
 
 /// Translation of `SDL_PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY`.
 const PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY: &str =

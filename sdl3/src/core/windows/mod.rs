@@ -782,6 +782,9 @@ pub(crate) fn has_broken_ezfrd64_dll() -> bool {
 /// The message-only window DirectInput needs for its cooperative level.
 /// Translation of `SDL_HelperWindow`, `SDL_HelperWindowCreate()` and
 /// `SDL_HelperWindowDestroy()`.
+/// `hid.dll` and device notifications (SDL_hid.c).
+pub(crate) mod hid;
+
 pub(crate) mod helper_window {
     use super::*;
 
