@@ -1,0 +1,1800 @@
+case remote
+init
+read 21 18 92 f7 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+added
+identity 128 Nintendo Wii Remote
+result 1
+end
+open
+read 22 1c 8f 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 06 80 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 18 8c f7 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 15 94 f7 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 30
+write 17 04 a4 00 fe 00 02
+write 17 04 a6 00 fe 00 02
+add sensor 1 42c80000
+rumble 11 f0
+buttons 26 axes 6
+end
+update 0
+read 30 04 8a
+read 30 94 42
+read 31 2e bb 92 6a 10
+read 20 00 17 00 00 00 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 1e 03 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 3e 80 cc 1f bc 73 ca 04 6a 3f 48 c1 b4 24 3c d7 95 2d 95 9d f7 f7
+read 50 18 ed f1
+button 24 0
+button 25 0
+button 23 1
+button 22 0
+button 19 0
+button 18 0
+button 17 1
+button 16 0
+button 15 1
+button 20 0
+button 21 1
+button 13 0
+button 14 0
+button 12 1
+button 11 0
+button 6 0
+button 3 0
+button 2 1
+button 0 0
+button 1 1
+button 4 0
+button 5 1
+button 24 0
+button 25 0
+button 23 1
+button 22 0
+button 19 1
+button 18 0
+button 17 1
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 13 0
+button 14 0
+button 12 1
+button 11 0
+button 6 1
+button 3 0
+button 2 1
+button 0 0
+button 1 0
+button 4 0
+button 5 0
+rumble 12 04 30
+button 24 0
+button 25 1
+button 23 1
+button 22 1
+button 19 0
+button 18 1
+button 17 1
+button 16 0
+button 15 1
+button 20 1
+button 21 1
+button 13 0
+button 14 1
+button 12 1
+button 11 1
+button 6 0
+button 3 1
+button 2 1
+button 0 0
+button 1 1
+button 4 1
+button 5 1
+button 24 0
+button 25 0
+button 23 0
+button 22 0
+button 19 0
+button 18 1
+button 17 1
+button 16 1
+button 15 0
+button 20 1
+button 21 0
+button 13 0
+button 14 0
+button 12 0
+button 11 0
+button 6 0
+button 3 1
+button 2 1
+button 0 1
+button 1 0
+button 4 1
+button 5 0
+power OnBattery 70
+rumble 12 04 30
+button 24 0
+button 25 1
+button 23 1
+button 22 1
+button 19 1
+button 18 1
+button 17 1
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 13 0
+button 14 1
+button 12 1
+button 11 1
+button 6 1
+button 3 1
+button 2 1
+button 0 0
+button 1 0
+button 4 0
+button 5 0
+rumble 12 04 30
+rumble 15 00
+connection 0
+result 1
+end
+rumble 1000 0
+rumble 10 01
+end
+rumble 0 2000
+end
+update 5
+read 30 3a bc
+read 20 0a 93 10 00 00 c0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+button 24 0
+button 25 1
+button 23 0
+button 22 1
+button 19 1
+button 18 0
+button 17 0
+button 16 1
+button 15 1
+button 20 1
+button 21 1
+button 13 0
+button 14 1
+button 12 0
+button 11 1
+button 6 1
+button 3 0
+button 2 0
+button 0 1
+button 1 1
+button 4 1
+button 5 1
+button 24 0
+button 25 1
+button 23 0
+button 22 1
+button 19 0
+button 18 1
+button 17 1
+button 16 0
+button 15 0
+button 20 1
+button 21 1
+button 13 0
+button 14 1
+button 12 0
+button 11 1
+button 6 0
+button 3 1
+button 2 1
+button 0 0
+button 1 0
+button 4 1
+button 5 1
+power OnBattery 100
+rumble 12 05 30
+connection 0
+result 1
+end
+rumble 0 0
+rumble 10 00
+end
+sensors 1
+rumble 12 04 35
+end
+update 10
+read 35 eb f1 7f 58 57 0d 7c 24 eb ee 62 a5 59 22 49 cf 0c ca f7 ef 04
+read 35 4c 1e 2f 74 be 59 e8 1d 0d e5 ab 68 f1 1f 0d 46 91 c1 36 c8 f5
+read 35 dc 28 7d 30 95 d0 8f 49 9f cf 9c ed 7c 05 55 d7 73 e2 d9 fb 50
+read 35 6b cf 76 de 0e 46 35 25 27 4c 67 64 4e 50 a3 cd 67 38 d9 03 67
+read 33 41 fa 54 e6 9a 67 b6 6a c0 1b 83 6d 98 97 f4 34 4e
+read 20 1b 10 00 00 00 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 20 0e 89 02 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+button 24 1
+button 25 1
+button 23 0
+button 22 1
+button 19 0
+button 18 1
+button 17 0
+button 16 0
+button 15 0
+button 20 1
+button 21 1
+button 13 1
+button 14 1
+button 12 0
+button 11 1
+button 6 0
+button 3 1
+button 2 0
+button 0 0
+button 1 0
+button 4 1
+button 5 1
+sensor Accel 1000000000 3dc8d717 c17e3039 c177e981
+button 24 0
+button 25 0
+button 23 1
+button 22 1
+button 19 0
+button 18 0
+button 17 1
+button 16 1
+button 15 1
+button 20 1
+button 21 0
+button 13 0
+button 14 0
+button 12 1
+button 11 1
+button 6 0
+button 3 0
+button 2 1
+button 0 1
+button 1 1
+button 4 1
+button 5 0
+sensor Accel 1000000000 41fc9e8b 41c2905e c096a151
+button 24 0
+button 25 0
+button 23 1
+button 22 1
+button 19 1
+button 18 0
+button 17 0
+button 16 0
+button 15 1
+button 20 0
+button 21 0
+button 13 0
+button 14 0
+button 12 1
+button 11 1
+button 6 1
+button 3 0
+button 2 0
+button 0 0
+button 1 1
+button 4 0
+button 5 0
+sensor Accel 1000000000 3f7b0cdd 4103cd27 c1f97b2f
+button 24 1
+button 25 1
+button 23 0
+button 22 1
+button 19 0
+button 18 1
+button 17 1
+button 16 1
+button 15 1
+button 20 0
+button 21 1
+button 13 1
+button 14 1
+button 12 0
+button 11 1
+button 6 0
+button 3 1
+button 2 1
+button 0 1
+button 1 1
+button 4 0
+button 5 1
+sensor Accel 1000000000 406838b3 c23216b9 42137df5
+rumble 12 04 35
+button 24 1
+button 25 0
+button 23 0
+button 22 0
+button 19 0
+button 18 0
+button 17 1
+button 16 0
+button 15 1
+button 20 1
+button 21 1
+button 13 1
+button 14 0
+button 12 0
+button 11 0
+button 6 0
+button 3 0
+button 2 1
+button 0 0
+button 1 1
+button 4 1
+button 5 1
+sensor Accel 1000000000 41888232 4126521e 4220d43d
+button 24 1
+button 25 1
+button 23 0
+button 22 1
+button 19 1
+button 18 0
+button 17 0
+button 16 0
+button 15 0
+button 20 1
+button 21 0
+button 13 1
+button 14 1
+button 12 0
+button 11 1
+button 6 1
+button 3 0
+button 2 0
+button 0 0
+button 1 0
+button 4 1
+button 5 0
+sensor Accel 1000000000 4248d717 c248d717 c248d717
+power OnBattery 20
+rumble 12 04 35
+button 24 0
+button 25 1
+button 23 1
+button 22 1
+button 19 0
+button 18 1
+button 17 0
+button 16 0
+button 15 1
+button 20 0
+button 21 1
+button 13 0
+button 14 1
+button 12 1
+button 11 1
+button 6 0
+button 3 1
+button 2 0
+button 0 0
+button 1 1
+button 4 0
+button 5 1
+sensor Accel 1000000000 4248d717 c248d717 c248d717
+power OnBattery 5
+rumble 12 04 35
+removed
+connection 0
+result 1
+end
+player -1
+rumble 11 f0
+end
+player 0
+rumble 11 10
+end
+player 1
+rumble 11 20
+end
+player 2
+rumble 11 40
+end
+player 3
+rumble 11 80
+end
+player 4
+rumble 11 30
+end
+player 5
+rumble 11 50
+end
+player 6
+rumble 11 90
+end
+player 7
+rumble 11 f0
+end
+player 2
+rumble 11 40
+end
+hint 0
+rumble 11 00
+end
+hint 0
+end
+hint 1
+rumble 11 40
+end
+sensors 0
+rumble 12 04 30
+end
+update 8000
+read 30 14 a9
+connection 0
+result 0
+end
+update 0
+read 21 19 15 f7 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+connection 0
+result 0
+end
+update 0
+read 21 16 1c 10 00 fe 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+connection 0
+result 0
+end
+update 0
+connection 0
+result 0
+end
+endcase
+case nunchuk
+init
+read 30 27 06
+read 21 04 8d 10 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+added
+identity 129 Nintendo Wii Remote with Nunchuk
+result 1
+end
+open
+read 22 0e 01 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 15 0d 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 0f 05 10 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 0b 17 10 00 fe 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 32
+write 17 04 a4 00 fe 00 02
+write 17 04 a6 00 fe 00 02
+add sensor 1 42c80000
+add sensor 3 42c80000
+add sensor 2 42c80000
+rumble 11 f0
+buttons 26 axes 6
+end
+update 0
+read 32 cf 34 a4 75 2b 78 fd 8e 50 2d
+read 32 a4 c7 23 93 fc 6a ea 97 70 ec
+read 32 74 b1 a0 3e d9 b1 42 d6 bc f0
+read 32 22 0c 01 f7 18 27 73 14 8d a2
+read 32 73 13 ee a6 69 61 51 a0 b4 22
+read 32 12 08 ff ff ff ff ff ff ff ff
+read 20 18 0a 02 00 00 b3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 35 7e d7 ed 54 63 5c a3 5a a0 c3 e3 83 e3 2a 5c 12 89 79 d9 4b 6f
+button 24 1
+button 25 1
+button 23 1
+button 22 1
+button 19 0
+button 18 0
+button 17 0
+button 16 1
+button 15 0
+button 20 1
+button 21 0
+button 9 0
+axis 4 32767
+button 13 1
+button 14 1
+button 12 1
+button 11 1
+button 6 0
+button 3 0
+button 2 0
+button 0 1
+button 1 0
+button 4 1
+button 5 0
+button 24 0
+button 25 0
+button 23 1
+button 22 0
+button 19 0
+button 18 1
+button 17 1
+button 16 1
+button 15 0
+button 20 0
+button 21 1
+button 9 0
+axis 4 -32768
+axis 0 -32768
+axis 1 -7448
+button 13 0
+button 14 0
+button 12 1
+button 11 0
+button 6 0
+button 3 1
+button 2 1
+button 0 1
+button 1 0
+button 4 0
+button 5 1
+button 24 0
+button 25 0
+button 23 1
+button 22 0
+button 19 1
+button 18 1
+button 17 0
+button 16 0
+button 15 0
+button 20 1
+button 21 1
+button 9 0
+axis 4 32767
+axis 0 0
+axis 1 22007
+button 13 0
+button 14 0
+button 12 1
+button 11 0
+button 6 1
+button 3 1
+button 2 0
+button 0 0
+button 1 0
+button 4 1
+button 5 1
+button 24 0
+button 25 1
+button 23 0
+button 22 0
+button 19 0
+button 18 0
+button 17 0
+button 16 1
+button 15 1
+button 20 0
+button 21 0
+button 9 1
+axis 4 32767
+axis 0 -32768
+axis 1 -32768
+button 13 0
+button 14 1
+button 12 0
+button 11 0
+button 6 0
+button 3 0
+button 2 0
+button 0 1
+button 1 1
+button 4 0
+button 5 0
+button 24 1
+button 25 1
+button 23 0
+button 22 0
+button 19 1
+button 18 1
+button 17 1
+button 16 0
+button 15 0
+button 20 1
+button 21 0
+button 9 1
+axis 4 32767
+axis 0 32767
+axis 1 -10650
+button 13 1
+button 14 1
+button 12 0
+button 11 0
+button 6 1
+button 3 1
+button 2 1
+button 0 0
+button 1 0
+button 4 1
+button 5 0
+button 24 0
+button 25 1
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 0
+button 16 0
+button 15 1
+button 20 0
+button 21 0
+button 13 0
+button 14 1
+button 12 0
+button 11 0
+button 6 1
+button 3 0
+button 2 0
+button 0 0
+button 1 1
+button 4 0
+button 5 0
+button 24 0
+button 25 0
+button 23 0
+button 22 1
+button 19 1
+button 18 0
+button 17 1
+button 16 0
+button 15 1
+button 20 0
+button 21 0
+button 13 0
+button 14 0
+button 12 0
+button 11 1
+button 6 1
+button 3 0
+button 2 1
+button 0 0
+button 1 1
+button 4 0
+button 5 0
+power OnBattery 100
+rumble 12 04 32
+rumble 12 04 32
+button 24 0
+button 25 1
+button 23 1
+button 22 1
+button 19 1
+button 18 1
+button 17 1
+button 16 1
+button 15 0
+button 20 1
+button 21 1
+button 9 0
+axis 4 -32768
+axis 0 -13278
+axis 1 -9831
+button 13 0
+button 14 1
+button 12 1
+button 11 1
+button 6 1
+button 3 1
+button 2 1
+button 0 1
+button 1 0
+button 4 1
+button 5 1
+rumble 15 00
+connection 0
+result 1
+end
+sensors 1
+read 22 07 86 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a6 00 fe 01 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 35
+end
+update 10
+read 35 06 99 0d e2 f5 85 cb 83 b4 4d 7d 8d 95 7f fb f0 29 bd 31 65 8e
+read 35 13 46 26 7c 1b 83 70 0e d3 09 ba 50 39 34 b1 8c ab cc fb 54 01
+read 35 f1 a8 4f 68 c5 78 c4 fd d7 cf e8 2d 52 79 e7 cf ea 1d b4 fe 82
+read 35 83 91 b8 9d 85 5d 38 8b d6 a1 12 50 76 59 15 53 f1 82 d9 cb 5b
+read 35 68 2a e9 0b ac 1d c5 1a 17 eb 08 9a 22 8e 62 96 41 23 9f ce f3
+read 35 fa ae 2f 8b 7e 3c 14 bb c8 25 3e e5 01 a1 95 22 7b 2e 9d 0e 8f
+read 35 3b b7 5a 34 99 1c 0f 64 a2 99 a0 2f 26 0b bd 9b 1a 99 c8 43 ff
+read 35 b4 39 ab 13 d0 a1 64 3a df 72 e2 ab 92 91 22 5b 4f 9f f4 29 f0
+sensor Gyro 1000000000 c057dd51 409d84c9 c200fda1
+button 24 1
+button 25 1
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 1
+button 16 1
+button 15 0
+button 20 0
+button 21 0
+button 13 1
+button 14 1
+button 12 0
+button 11 0
+button 6 1
+button 3 0
+button 2 1
+button 0 1
+button 1 0
+button 4 0
+button 5 0
+sensor Accel 1000000000 420d373c c21db0e1 bfc8d717
+button 24 1
+button 25 0
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 0
+button 16 0
+button 15 1
+button 20 0
+button 21 1
+button 9 0
+axis 4 32767
+axis 0 -7281
+axis 1 -18842
+sensor AccelL 1000000000 c1c4220c 41797b2f 41894b09
+button 13 1
+button 14 0
+button 12 0
+button 11 0
+button 6 1
+button 3 0
+button 2 0
+button 0 0
+button 1 1
+button 4 0
+button 5 1
+sensor Accel 1000000000 41976a28 41d887e5 c1137df5
+sensor Gyro 1000000000 41ef9b9a 40a40ee8 410f71ba
+button 24 1
+button 25 1
+button 23 0
+button 22 0
+button 19 0
+button 18 1
+button 17 0
+button 16 0
+button 15 0
+button 20 1
+button 21 1
+button 13 1
+button 14 1
+button 12 0
+button 11 0
+button 6 0
+button 3 1
+button 2 0
+button 0 0
+button 1 0
+button 4 1
+button 5 1
+sensor Accel 1000000000 c1afbc34 3ffb0cdd 413602ed
+button 24 0
+button 25 0
+button 23 0
+button 22 1
+button 19 0
+button 18 0
+button 17 1
+button 16 0
+button 15 1
+button 20 0
+button 21 0
+button 9 0
+axis 4 32767
+axis 0 -26771
+axis 1 -19115
+sensor AccelL 1000000000 41a00b66 41a6521e c1a4c070
+button 13 0
+button 14 0
+button 12 0
+button 11 1
+button 6 0
+button 3 0
+button 2 1
+button 0 0
+button 1 1
+button 4 0
+button 5 0
+sensor Accel 1000000000 c225edb4 418a13e0 c236cbc4
+sensor Gyro 1000000000 418dfa7c 419f1ffc c1c807f6
+button 24 0
+button 25 1
+button 23 0
+button 22 1
+button 19 1
+button 18 0
+button 17 1
+button 16 1
+button 15 1
+button 20 0
+button 21 1
+button 13 0
+button 14 1
+button 12 0
+button 11 1
+button 6 1
+button 3 0
+button 2 1
+button 0 1
+button 1 1
+button 4 0
+button 5 1
+sensor Accel 1000000000 41fbd5b4 bf48d717 40905a99
+button 24 1
+button 25 1
+button 23 0
+button 22 1
+button 19 1
+button 18 1
+button 17 1
+button 16 1
+button 15 0
+button 20 1
+button 21 1
+button 9 1
+axis 4 32767
+axis 0 -26985
+axis 1 32767
+sensor AccelL 1000000000 40afbc34 409ce80a 40d887e5
+button 13 1
+button 14 1
+button 12 0
+button 11 1
+button 6 1
+button 3 1
+button 2 1
+button 0 1
+button 1 0
+button 4 1
+button 5 1
+sensor Accel 1000000000 416cedbd 411ce80a c1ecedbd
+sensor Gyro 1000000000 c0ba0bf2 40b574fc bf5dbe7d
+button 24 0
+button 25 0
+button 23 1
+button 22 0
+button 19 1
+button 18 1
+button 17 0
+button 16 0
+button 15 1
+button 20 1
+button 21 0
+button 13 0
+button 14 0
+button 12 1
+button 11 0
+button 6 1
+button 3 1
+button 2 0
+button 0 0
+button 1 1
+button 4 1
+button 5 0
+sensor Accel 1000000000 c187b95b 41fb0cdd c22a3e53
+removed
+connection 0
+result 1
+end
+sensors 0
+read 22 07 09 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 35 ce 41 c7 66 82 38 ff c1 6f f2 3c 1f d7 72 81 4d 04 18 19 e1 f3
+read 20 03 1f 02 00 00 60 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 32
+end
+update 3000
+connection 0
+result 0
+end
+endcase
+case classic
+init
+read 21 0f 9f 10 00 fe 07 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 06 8a 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 0a 8f 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 0c 19 10 00 fe 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 00 9f 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+write 16 04 a6 00 fe 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+added
+identity 130 Nintendo Wii Remote with Classic Controller
+result 1
+end
+open
+read 22 0b 82 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 14 0f 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 09 9a 10 00 fe 07 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 32
+write 17 04 a4 00 fe 00 02
+rumble 11 f0
+buttons 26 axes 6
+end
+update 0
+read 32 ba 8e 31 c4 55 84 35 18 b1 a2
+read 32 2a 23 50 4d 11 a0 c5 dc 57 a4
+read 32 4f 95 b5 6a c7 a1 47 d2 24 4d
+read 32 19 00 38 93 c7 e9 fd f8 d9 c3
+read 32 a3 61 25 8d 27 36 0b 40 aa 7b
+read 32 69 02 41 cb 5f 22 a1 5e 8c 16
+read 20 00 85 02 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 30 d3 bc
+button 24 0
+button 25 1
+button 23 0
+button 22 1
+button 19 1
+button 18 0
+button 17 1
+button 16 1
+button 15 1
+button 20 0
+button 21 1
+button 10 1
+button 6 0
+button 5 1
+button 4 0
+button 9 0
+button 12 1
+button 14 1
+button 3 0
+button 1 0
+button 2 1
+button 0 1
+button 11 0
+button 13 1
+axis 4 32767
+axis 5 32767
+button 24 0
+button 25 1
+button 23 0
+button 22 1
+button 19 0
+button 18 1
+button 17 1
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 10 1
+button 6 0
+button 5 1
+button 4 1
+button 9 1
+button 12 0
+button 14 0
+button 3 0
+button 1 0
+button 2 1
+button 0 0
+button 11 1
+button 13 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -26214
+axis 1 -2850
+axis 2 3640
+axis 3 4680
+button 24 1
+button 25 1
+button 23 1
+button 22 1
+button 19 0
+button 18 1
+button 17 0
+button 16 1
+button 15 0
+button 20 1
+button 21 1
+button 24 1
+button 25 0
+button 23 0
+button 22 1
+button 19 1
+button 18 0
+button 17 0
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 10 1
+button 6 0
+button 5 0
+button 4 0
+button 9 0
+button 12 0
+button 14 0
+button 3 0
+button 1 0
+button 2 0
+button 0 0
+button 11 1
+button 13 0
+axis 4 -32768
+axis 5 32767
+axis 0 32767
+axis 1 -7124
+axis 2 0
+axis 3 28085
+button 24 1
+button 25 1
+button 23 0
+button 22 0
+button 19 0
+button 18 1
+button 17 0
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 10 0
+button 6 1
+button 5 0
+button 4 1
+button 9 1
+button 12 1
+button 14 1
+button 3 1
+button 1 1
+button 2 1
+button 0 0
+button 11 0
+button 13 0
+axis 4 32767
+axis 5 32767
+axis 0 -7489
+axis 1 -2850
+axis 2 0
+axis 3 28085
+button 24 1
+button 25 0
+button 23 0
+button 22 1
+button 19 0
+button 18 0
+button 17 1
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 24 0
+button 25 0
+button 23 0
+button 22 0
+button 19 0
+button 18 1
+button 17 0
+button 16 1
+button 15 0
+button 20 0
+button 21 1
+power OnBattery 20
+rumble 12 04 32
+rumble 12 04 32
+button 24 1
+button 25 1
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 0
+button 16 1
+button 15 1
+button 20 1
+button 21 1
+rumble 17 04 a4 00 fe 00 02
+rumble 15 00
+connection 0
+result 1
+end
+update 1
+read 32 90 b7 80 77 fe 3f 03 86 ae 53
+read 32 f1 de e2 93 b5 db d1 b2 fc ad
+read 32 1e f4 db 00 38 cf 01 a0 23 3a
+button 24 0
+button 25 0
+button 23 0
+button 22 0
+button 19 1
+button 18 1
+button 17 1
+button 16 1
+button 15 0
+button 20 1
+button 21 1
+button 24 1
+button 25 0
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 1
+button 16 1
+button 15 1
+button 20 1
+button 21 1
+button 24 0
+button 25 1
+button 23 1
+button 22 1
+button 19 1
+button 18 0
+button 17 0
+button 16 1
+button 15 0
+button 20 1
+button 21 1
+button 10 1
+button 6 1
+button 5 1
+button 4 1
+button 9 1
+button 12 1
+button 14 1
+button 3 1
+button 1 1
+button 2 0
+button 0 1
+button 11 0
+button 13 1
+axis 4 -32768
+axis 5 32767
+axis 0 -16852
+axis 1 0
+axis 2 29126
+axis 3 -10923
+connection 0
+result 1
+end
+sensors 1
+read 22 1a 14 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a6 00 fe 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 35
+end
+update 2
+read 35 98 e7 fd 28 01 c1 36 af 16 0f 6c 61 66 0c 76 b1 62 6d 0f 19 db
+read 35 2c bb c6 40 13 61 04 95 0b a3 66 33 22 00 bf 42 5e a8 b9 f6 44
+read 35 22 55 8c 26 a0 0c 03 30 1e bd 98 31 3d 5b 0f 2a e1 58 91 99 8b
+read 35 d0 8a 82 78 76 0e 42 77 3f 21 12 8b d0 ac 5e 44 a8 3d c4 de 0d
+read 35 82 eb 16 b8 83 08 d0 40 a2 31 68 46 54 60 de 66 9d 46 9a d9 4d
+read 35 d6 1f ea fc 8c 5b 1e c6 81 c7 22 c7 30 40 74 55 06 a7 d2 00 ab
+button 24 0
+button 25 0
+button 23 0
+button 22 1
+button 19 1
+button 18 1
+button 17 1
+button 16 1
+button 15 0
+button 20 0
+button 21 1
+button 10 0
+button 6 0
+button 5 0
+button 4 1
+button 9 1
+button 12 1
+button 14 1
+button 3 0
+button 1 1
+button 2 0
+button 0 0
+button 11 0
+button 13 1
+axis 4 32767
+axis 5 -32768
+axis 0 -32768
+axis 1 -32768
+axis 2 30946
+axis 3 9361
+sensor Accel 1000000000 c244220c c2467c92 c2094b09
+sensor Gyro 1000000000 3fc52557 c0e37943 3ff638eb
+button 24 0
+button 25 0
+button 23 1
+button 22 1
+button 19 0
+button 18 1
+button 17 1
+button 16 0
+button 15 1
+button 20 1
+button 21 1
+sensor Accel 1000000000 c1dc7418 c22b072a c1c74569
+button 24 0
+button 25 1
+button 23 0
+button 22 0
+button 19 0
+button 18 1
+button 17 0
+button 16 1
+button 15 0
+button 20 1
+button 21 0
+button 10 1
+button 6 0
+button 5 0
+button 4 0
+button 9 0
+button 12 1
+button 14 0
+button 3 0
+button 1 0
+button 2 1
+button 0 1
+button 11 1
+button 13 0
+axis 4 -32768
+axis 5 32767
+axis 0 -23831
+axis 1 0
+axis 2 -32768
+axis 3 7020
+sensor Accel 1000000000 c099c4ae 414bfa73 c20d373c
+sensor Gyro 1000000000 40d3746f c0822173 c1cf308e
+button 24 0
+button 25 0
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 1
+button 16 0
+button 15 1
+button 20 0
+button 21 1
+sensor Accel 1000000000 bf7b0cdd c07b0cdd c048d717
+button 24 0
+button 25 1
+button 23 0
+button 22 0
+button 19 0
+button 18 1
+button 17 1
+button 16 0
+button 15 1
+button 20 0
+button 21 1
+button 10 1
+button 6 1
+button 5 1
+button 4 0
+button 9 0
+button 12 1
+button 14 1
+button 3 0
+button 1 1
+button 2 0
+button 0 0
+button 11 1
+button 13 1
+axis 4 32767
+axis 5 32767
+axis 0 -26810
+axis 1 -5699
+axis 2 0
+axis 3 32767
+sensor Accel 1000000000 4226521e 3fafbc34 41b14de2
+sensor Gyro 1000000000 40b25e01 3ec687fd 40837358
+button 24 0
+button 25 1
+button 23 1
+button 22 0
+button 19 1
+button 18 1
+button 17 1
+button 16 1
+button 15 1
+button 20 1
+button 21 0
+sensor Accel 1000000000 c2271af7 4096a151 4242905e
+connection 0
+result 1
+end
+update 0
+read 32 00 00 20 20 20 20 00 00 ff ff
+rumble 12 04 35
+button 24 0
+button 25 0
+button 23 0
+button 22 0
+button 19 0
+button 18 0
+button 17 0
+button 16 0
+button 15 0
+button 20 0
+button 21 0
+button 10 1
+button 6 1
+button 5 1
+button 4 1
+button 9 1
+button 12 1
+button 14 1
+button 3 1
+button 1 1
+button 2 1
+button 0 1
+button 11 1
+button 13 1
+axis 4 32767
+axis 5 32767
+axis 0 -8936
+axis 1 -17096
+axis 2 -32768
+axis 3 32767
+sensor Accel 1000000000 4248d717 c248d717 c248d717
+removed
+connection 0
+result 1
+end
+endcase
+case wiiupro
+init
+read 21 17 03 10 00 fe 01 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+added
+identity 131 Nintendo Wii U Pro Controller
+result 1
+end
+open
+read 22 0b 13 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 09 86 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+rumble 12 04 3d
+rumble 11 f0
+buttons 15 axes 6
+end
+update 0
+read 3d 00 08 00 08 00 08 00 08 b6 89 dc 06 58 c0 52 14 a3 da b3 28 3e
+read 3d 88 06 08 0a 18 05 f8 07 f3 52 4f e4 10 bd a7 8b 95 a9 59 10 2b
+read 3d 34 04 64 04 94 07 74 0c ea 56 83 a7 7c ec 9c 58 50 79 0c 85 ad
+read 3d e4 09 28 04 34 05 44 07 ee 01 ba 51 d7 30 29 47 78 18 d7 e5 89
+read 3d b4 04 44 0a d8 04 28 08 88 c3 8f 58 6c f2 6c 06 f2 a0 6d 03 aa
+read 3d 44 06 24 09 34 09 34 08 c8 23 c8 70 eb f6 fe 15 68 6a f7 4d a5
+read 3d 08 07 b4 05 c4 04 f4 0b 19 6c d6 17 fb eb 35 45 99 4f c0 99 67
+read 3d 04 07 38 07 34 06 b4 04 f8 38 c4 eb 7e c4 57 d4 e2 ec 01 ff 07
+read 3d 98 04 e4 07 e4 05 f4 06 a8 0f 12 19 70 4c 94 f2 bc 3c 35 5b 5c
+read 3d 94 05 44 04 54 09 b8 03 5e 1a 48 a2 dd 69 ad 91 76 27 b4 8d 53
+read 3d ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+read 30 27 a2
+read 20 02 02 00 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+button 10 0
+button 6 0
+button 5 1
+button 4 0
+button 9 0
+button 12 1
+button 14 0
+button 11 0
+button 13 1
+button 3 0
+button 1 1
+button 2 1
+button 0 1
+button 8 1
+button 7 1
+axis 4 -32768
+axis 5 32767
+power OnBattery 100
+button 10 0
+button 6 1
+button 5 1
+button 4 0
+button 9 0
+button 12 0
+button 14 0
+button 11 1
+button 13 0
+button 3 1
+button 1 0
+button 2 1
+button 0 0
+button 8 0
+button 7 0
+axis 4 32767
+axis 5 32767
+axis 0 -9540
+axis 2 16152
+axis 1 22259
+axis 3 0
+power OnBattery 100
+button 10 0
+button 6 1
+button 5 0
+button 4 1
+button 9 0
+button 12 0
+button 14 0
+button 11 1
+button 13 0
+button 3 1
+button 1 0
+button 2 1
+button 0 0
+button 8 0
+button 7 0
+axis 4 32767
+axis 5 -32768
+axis 0 -30141
+axis 2 -28481
+axis 1 275
+axis 3 -32768
+power Charging 100
+button 10 0
+button 6 0
+button 5 0
+button 4 1
+button 9 0
+button 12 0
+button 14 0
+button 11 0
+button 13 1
+button 3 1
+button 1 1
+button 2 1
+button 0 1
+button 8 1
+button 7 0
+axis 4 32767
+axis 5 32767
+axis 0 14768
+axis 2 -30555
+axis 1 21291
+axis 3 3040
+power Charged 100
+button 10 1
+button 6 1
+button 5 0
+button 4 1
+button 9 1
+button 12 1
+button 14 0
+button 11 0
+button 13 0
+button 3 1
+button 1 1
+button 2 1
+button 0 0
+button 8 0
+button 7 0
+axis 4 -32768
+axis 5 32767
+axis 0 -25716
+axis 2 18460
+axis 1 24471
+axis 3 0
+power OnBattery 100
+button 10 1
+button 6 1
+button 5 0
+button 4 1
+button 9 1
+button 12 0
+button 14 0
+button 11 0
+button 13 0
+button 3 1
+button 1 1
+button 2 0
+button 0 1
+button 8 1
+button 7 1
+axis 4 32767
+axis 5 32767
+axis 0 -11890
+axis 2 7384
+axis 1 -8000
+axis 3 0
+power Charged 100
+button 10 1
+button 6 1
+button 5 0
+button 4 0
+button 9 1
+button 12 1
+button 14 1
+button 11 1
+button 13 1
+button 3 0
+button 1 1
+button 2 0
+button 0 0
+button 8 1
+button 7 0
+axis 4 32767
+axis 5 -32768
+axis 0 -5115
+axis 2 -16867
+axis 1 25162
+axis 3 -28735
+power Charging 100
+button 10 1
+button 6 1
+button 5 0
+button 4 0
+button 9 0
+button 12 0
+button 14 0
+button 11 1
+button 13 1
+button 3 0
+button 1 0
+button 2 0
+button 0 1
+button 8 1
+button 7 1
+axis 4 32767
+axis 5 32767
+axis 0 -5253
+axis 2 -3456
+axis 1 12442
+axis 3 25715
+power Charging 100
+button 10 1
+button 6 1
+button 5 0
+button 4 1
+button 9 0
+button 12 1
+button 14 0
+button 11 0
+button 13 0
+button 3 0
+button 1 1
+button 2 1
+button 0 1
+button 8 1
+button 7 0
+axis 4 32767
+axis 5 -32768
+axis 0 -26684
+axis 2 0
+axis 1 15207
+axis 3 5805
+power Charging 10
+button 10 0
+button 6 0
+button 5 0
+button 4 0
+button 9 1
+button 12 0
+button 14 1
+button 11 1
+button 13 0
+button 3 0
+button 1 0
+button 2 1
+button 0 1
+button 8 1
+button 7 1
+axis 4 32767
+axis 5 32767
+axis 0 -17974
+axis 2 -29587
+axis 1 -9231
+axis 3 32767
+power Charged 100
+rumble 12 04 3d
+rumble 12 04 3d
+removed
+connection 1
+result 1
+end
+rumble 1 1
+rumble 10 01
+end
+sensors 1
+rumble 12 05 3d
+end
+update 3001
+connection 1
+result 0
+end
+update 0
+connection 1
+result 0
+end
+endcase
+case unknown
+init
+read 21 1e 9e 10 00 fc 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 0b 01 13 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 1f 97 00 00 fe 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 30 dd d5
+read 21 05 9f 10 00 fe ff ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 15 01 16 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 22 12 1f 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 21 0e 97 10 00 fe 12 34 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+error Unexpected extension response address
+write 17 04 a4 00 fe 00 02
+error Failed to read extension type: %u
+write 17 04 a4 00 fe 00 02
+error Unexpected read length when reading extension type: %d
+write 17 04 a4 00 fe 00 02
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+error Write memory failed: %u
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 17 04 a4 00 fe 00 02
+added
+identity 0 Nintendo Wii Remote with Unknown Extension
+result 1
+end
+open
+write 16 04 a4 00 f0 01 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+error Read timed out
+write 16 04 a4 00 fb 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+error Read timed out
+rumble 12 04 30
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a6 00 fe 00 02
+error Read timed out
+rumble 11 f0
+buttons 26 axes 6
+end
+update 0
+read 30 03 a6
+read 30 36 bd
+read 30 8f 1e
+read 37 2d 96 4a 5c 90 70 86 da cb 79 72 19 4f dc 89 b8 61 b3 da 2c cc
+read 36 45 93 5b 48 00 51 f9 a9 35 29 a6 c7 96 76 c4 31 6f 60 1a 90 a7
+read 34 31 2a dd 76 58 52 42 e4 39 a5 d1 05 ba 87 e7 f6 8e 0a 5e 96 3f
+button 24 1
+button 25 1
+button 23 0
+button 22 0
+button 19 0
+button 18 0
+button 17 1
+button 16 1
+button 15 0
+button 20 0
+button 21 1
+button 24 0
+button 25 1
+button 23 1
+button 22 0
+button 19 1
+button 18 1
+button 17 0
+button 16 1
+button 15 1
+button 20 1
+button 21 1
+button 24 1
+button 25 1
+button 23 1
+button 22 1
+button 19 0
+button 18 0
+button 17 1
+button 16 1
+button 15 1
+button 20 1
+button 21 0
+rumble 12 04 30
+button 24 1
+button 25 0
+button 23 1
+button 22 1
+button 19 0
+button 18 0
+button 17 1
+button 16 1
+button 15 0
+button 20 1
+button 21 1
+rumble 12 04 30
+button 24 1
+button 25 0
+button 23 1
+button 22 0
+button 19 0
+button 18 1
+button 17 1
+button 16 0
+button 15 0
+button 20 1
+button 21 1
+rumble 12 04 30
+button 24 1
+button 25 0
+button 23 0
+button 22 0
+button 19 1
+button 18 0
+button 17 1
+button 16 0
+button 15 1
+button 20 0
+button 21 0
+rumble 15 00
+connection 0
+result 1
+end
+update 0
+read 30 0c 76
+read -1
+button 24 0
+button 25 0
+button 23 1
+button 22 1
+button 19 0
+button 18 0
+button 17 1
+button 16 1
+button 15 0
+button 20 1
+button 21 0
+removed
+connection 0
+result 0
+end
+endcase
+case silent
+init
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+write 17 04 a4 00 fe 00 02
+error Read timed out
+added
+identity 0 Nintendo Wii Remote with Unknown Extension
+result 1
+end
+endcase
