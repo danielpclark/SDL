@@ -1,6 +1,8 @@
 use super::*;
 use crate::error::Error;
-use crate::test_support::{TempDir, TEST_LOCK};
+use crate::test_support::TempDir;
+#[cfg(unix)]
+use crate::test_support::TEST_LOCK;
 
 /// (pattern, string) pairs; [`WILDCARD_EXPECTED`] is the output of
 /// upstream's `WildcardMatch()` over them, compiled from the C source:

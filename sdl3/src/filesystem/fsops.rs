@@ -115,6 +115,7 @@ fn stream_error(stream: &IoStream<'_>, fallback: &'static str) -> Error {
 
 /// Translation of `SDL_SYS_CreateDirectory()`.
 pub(super) fn create_directory(path: &str) -> Result<()> {
+    #[cfg_attr(not(unix), allow(unused_mut))] // (only Unix sets a mode)
     let mut builder = std::fs::DirBuilder::new();
     #[cfg(unix)]
     {
