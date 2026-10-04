@@ -639,15 +639,13 @@ unsafe extern "system" fn sdlmm_notification_client_release(
     // client is a static object; we don't ever free it.
     // SAFETY: only our client is handed to COM.
     let client = unsafe { sdl_client(iclient) };
-    // FIXME (upstream): SDL_AtomicDecRef() returns whether the count hit
-    // zero, not the count, so releasing while others hold references zeroes
-    // the count, and both paths return 0.
-    let rc = u32::from(client.refcount.fetch_sub(1, Ordering::AcqRel) == 1); // SDL_AtomicDecRef()
-    if rc == 0 {
-        client.refcount.store(0, Ordering::Release); // uhh...
+    let prev = client.refcount.fetch_sub(1, Ordering::AcqRel);
+    if prev <= 0 {
+        // (a release without a reference leaves the count at zero)
+        client.refcount.store(0, Ordering::Release);
         return 0;
     }
-    rc - 1
+    (prev - 1) as u32
 }
 
 // These are the entry points called when WASAPI device endpoints change.
@@ -1114,11 +1112,14 @@ mod tests {
             assert!(out.is_null());
             // (two references taken above)
             assert_eq!(NOTIFICATION_CLIENT.refcount.load(Ordering::Acquire), 3);
-            // Upstream's release zeroes the count when it isn't the last one...
+            // Each release drops one reference and returns the count left...
+            assert_eq!(sdlmm_notification_client_release(client), 2);
+            assert_eq!(NOTIFICATION_CLIENT.refcount.load(Ordering::Acquire), 2);
+            assert_eq!(sdlmm_notification_client_add_ref(client), 3);
+            assert_eq!(sdlmm_notification_client_release(client), 2);
+            assert_eq!(sdlmm_notification_client_release(client), 1);
             assert_eq!(sdlmm_notification_client_release(client), 0);
-            assert_eq!(NOTIFICATION_CLIENT.refcount.load(Ordering::Acquire), 0);
-            assert_eq!(sdlmm_notification_client_add_ref(client), 1);
-            // ...and returns 0 when it is.
+            // ...and an extra release leaves it at zero
             assert_eq!(sdlmm_notification_client_release(client), 0);
             assert_eq!(NOTIFICATION_CLIENT.refcount.load(Ordering::Acquire), 0);
             NOTIFICATION_CLIENT.refcount.store(1, Ordering::Release);
