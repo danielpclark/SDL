@@ -67,9 +67,16 @@ static VIDEO_DEVICE: ReentrantMutex<RefCell<Option<VideoDevice>>> =
     ReentrantMutex::new(RefCell::new(None));
 
 /// Available video drivers. Translation of `bootstrap`.
+#[cfg(not(test))]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
+];
+#[cfg(test)]
+static BOOTSTRAP: &[&VideoBootStrap] = &[
+    &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
+    &drivers::dummy::DUMMY_BOOTSTRAP,
+    &super::tests::TESTVIDEO_BOOTSTRAP,
 ];
 
 /// The video bootstrap list (for message boxes shown without video).

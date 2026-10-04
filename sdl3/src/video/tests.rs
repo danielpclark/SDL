@@ -551,6 +551,7 @@ fn session(t: &mut Trace, driver: &str) {
 #[test]
 fn session_matches_c() {
     let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    init::quit(); // (in case an earlier test failed halfway)
     let mut t = Trace {
         out: String::new(),
         ids: Vec::new(),
@@ -583,4 +584,321 @@ fn session_matches_c() {
             out.display()
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// A test driver for what the dummy driver can't reach: two displays with
+// fullscreen modes, mode switching, popups, parents and modal windows.
+// ---------------------------------------------------------------------------
+
+use std::sync::{Arc, Mutex};
+
+use crate::events::WindowID;
+use crate::video::core::with_window;
+use crate::video::display::{add_fullscreen_display_mode, add_video_display};
+use crate::video::sysvideo::{DeviceCaps, VideoBootStrap, VideoDisplay, VideoDriver};
+use crate::video::window::WindowOp;
+
+/// The display modes the test driver was asked to switch to.
+static MODE_SWITCHES: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
+
+struct TestVideo;
+
+fn mode(w: i32, h: i32, rate: f32) -> DisplayMode {
+    DisplayMode {
+        format: PixelFormat::XRGB8888,
+        w,
+        h,
+        refresh_rate: rate,
+        ..Default::default()
+    }
+}
+
+impl VideoDriver for TestVideo {
+    fn caps(&self) -> DeviceCaps {
+        DeviceCaps::HAS_POPUP_WINDOW_SUPPORT
+    }
+
+    fn video_init(&self) -> Result<()> {
+        let mut primary = VideoDisplay::new();
+        primary.name = Some("Primary".into());
+        primary.desktop_mode = mode(1920, 1080, 60.0);
+        add_video_display(primary, false);
+        let mut second = VideoDisplay::new();
+        second.desktop_mode = mode(1280, 1024, 75.0);
+        second.content_scale = 2.0;
+        add_video_display(second, false);
+        Ok(())
+    }
+
+    fn video_quit(&self) {}
+
+    fn display_modes(&self, display: DisplayID) -> Option<()> {
+        if display == primary_display().ok()? {
+            for m in [
+                mode(800, 600, 60.0),
+                mode(1920, 1080, 60.0),
+                mode(1280, 720, 60.0),
+                mode(1280, 720, 30.0),
+                mode(1280, 720, 60.0),
+            ] {
+                add_fullscreen_display_mode(display, &m);
+            }
+        }
+        Some(())
+    }
+
+    fn set_display_mode(&self, _display: DisplayID, mode: &DisplayMode) -> Option<Result<()>> {
+        MODE_SWITCHES.lock().unwrap().push((mode.w, mode.h));
+        Some(Ok(()))
+    }
+
+    fn set_window_position(&self, window: WindowID) -> Option<Result<()>> {
+        let pending = with_window(window, |w| w.pending).ok()?;
+        crate::events::window::send_window_event(
+            window,
+            EventType::WINDOW_MOVED,
+            pending.x,
+            pending.y,
+        );
+        Some(Ok(()))
+    }
+
+    fn set_window_size(&self, window: WindowID) -> Option<()> {
+        let pending = with_window(window, |w| w.pending).ok()?;
+        crate::events::window::send_window_event(
+            window,
+            EventType::WINDOW_RESIZED,
+            pending.w,
+            pending.h,
+        );
+        Some(())
+    }
+
+    fn set_window_parent(
+        &self,
+        _window: WindowID,
+        _parent: Option<WindowID>,
+    ) -> Option<Result<()>> {
+        Some(Ok(()))
+    }
+
+    fn set_window_modal(&self, _window: WindowID, _modal: bool) -> Option<Result<()>> {
+        Some(Ok(()))
+    }
+
+    fn implements_window_op(&self, op: WindowOp) -> bool {
+        matches!(op, WindowOp::SetParent | WindowOp::SetModal)
+    }
+}
+
+fn testvideo_create() -> Option<Arc<dyn VideoDriver>> {
+    crate::video::drivers::dummy::available("testvideo")
+        .then(|| Arc::new(TestVideo) as Arc<dyn VideoDriver>)
+}
+
+pub(super) static TESTVIDEO_BOOTSTRAP: VideoBootStrap = VideoBootStrap {
+    name: "testvideo",
+    desc: "SDL test video driver",
+    create: testvideo_create,
+    show_message_box: None,
+    is_preferred: false,
+};
+
+fn start_test_driver() {
+    init::quit(); // (in case an earlier test failed halfway)
+    hints::set(hints::VIDEO_DRIVER, "testvideo").unwrap();
+    init::init(InitFlags::VIDEO).unwrap();
+    MODE_SWITCHES.lock().unwrap().clear();
+    let _ = get_events(EventType::FIRST, EventType::LAST, 10000);
+}
+
+fn window_events() -> Vec<(EventType, i32, i32)> {
+    pump();
+    get_events(EventType::WINDOW_FIRST, EventType::WINDOW_LAST, 10000)
+        .unwrap()
+        .into_iter()
+        .filter_map(|e| match e {
+            Event::Window(w) => Some((w.event_type, w.data1, w.data2)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn displays_and_modes() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    start_test_driver();
+
+    let ds = displays().unwrap();
+    assert_eq!(ds.len(), 2);
+    assert_eq!(display_name(ds[0]).unwrap(), "Primary");
+    assert_eq!(display_name(ds[1]).unwrap(), ds[1].to_string());
+    // Displays are assumed to be left to right.
+    assert_eq!(
+        display_bounds(ds[1]).unwrap(),
+        Rect::new(1920, 0, 1280, 1024)
+    );
+    assert_eq!(display_for_point(Point { x: 2000, y: 10 }).unwrap(), ds[1]);
+    // (closest to the center of a rect off every display)
+    assert_eq!(
+        display_for_rect(&Rect::new(-500, 500, 10, 10)).unwrap(),
+        ds[0]
+    );
+    assert_eq!(display_content_scale(ds[1]).unwrap(), 2.0);
+    assert_eq!(
+        desktop_display_mode(ds[1]).unwrap().refresh_rate_numerator,
+        75
+    );
+
+    // Sorted largest first, duplicates dropped.
+    let modes: Vec<(i32, i32, f32)> = fullscreen_display_modes(ds[0])
+        .unwrap()
+        .iter()
+        .map(|m| (m.w, m.h, m.refresh_rate))
+        .collect();
+    assert_eq!(
+        modes,
+        vec![
+            (1920, 1080, 60.0),
+            (1280, 720, 60.0),
+            (1280, 720, 30.0),
+            (800, 600, 60.0)
+        ]
+    );
+    let closest = closest_fullscreen_display_mode(ds[0], 1000, 700, 0.0, false).unwrap();
+    assert_eq!(
+        (closest.w, closest.h, closest.refresh_rate),
+        (1280, 720, 60.0)
+    );
+    let closest = closest_fullscreen_display_mode(ds[0], 1000, 700, 25.0, false).unwrap();
+    assert_eq!(closest.refresh_rate, 30.0);
+    assert!(closest_fullscreen_display_mode(ds[0], 4000, 700, 0.0, false).is_err());
+
+    // A window moved onto the second display changes display, and gets its scale.
+    let w = Window::create("moving", 640, 480, WindowFlags::NONE).unwrap();
+    assert_eq!(w.display().unwrap(), ds[0]);
+    assert_eq!(w.display_scale().unwrap(), 1.0);
+    window_events();
+    w.set_position(2000, 100).unwrap();
+    let events = window_events();
+    assert!(events.contains(&(EventType::WINDOW_DISPLAY_CHANGED, ds[1] as i32, 0)));
+    assert!(events.contains(&(EventType::WINDOW_DISPLAY_SCALE_CHANGED, 0, 0)));
+    assert_eq!(w.display().unwrap(), ds[1]);
+    assert_eq!(w.display_scale().unwrap(), 2.0);
+    // Mostly on the first display: not committed to the new one yet.
+    w.set_position(1920 - 600, 100).unwrap();
+    assert_eq!(w.display().unwrap(), ds[0]);
+    w.destroy();
+    init::quit();
+}
+
+#[test]
+fn exclusive_fullscreen() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    start_test_driver();
+    let primary = primary_display().unwrap();
+
+    let w = Window::create("fs", 640, 480, WindowFlags::NONE).unwrap();
+    // (a mode must match a listed one, format included, as upstream)
+    let partial = DisplayMode {
+        w: 1280,
+        h: 720,
+        refresh_rate: 60.0,
+        ..Default::default()
+    };
+    assert!(w.set_fullscreen_mode(Some(&partial)).is_err());
+    let mode = fullscreen_display_modes(primary).unwrap()[1];
+    assert_eq!((mode.w, mode.h, mode.refresh_rate), (1280, 720, 60.0));
+    w.set_fullscreen_mode(Some(&mode)).unwrap();
+    assert_eq!(
+        w.fullscreen_mode().unwrap().map(|m| (m.w, m.h)),
+        Some((1280, 720))
+    );
+    window_events();
+    pump();
+    let _ = get_events(EventType::FIRST, EventType::LAST, 10000);
+
+    w.set_fullscreen(true).unwrap();
+    assert_eq!(*MODE_SWITCHES.lock().unwrap(), vec![(1280, 720)]);
+    assert_eq!(current_display_mode(primary).unwrap().w, 1280);
+    assert_eq!(w.size().unwrap(), (1280, 720));
+    assert!(w.flags().unwrap().contains(WindowFlags::FULLSCREEN));
+    pump();
+    let display_events: Vec<EventType> =
+        get_events(EventType::DISPLAY_FIRST, EventType::DISPLAY_LAST, 100)
+            .unwrap()
+            .iter()
+            .map(|e| e.event_type())
+            .collect();
+    assert_eq!(
+        display_events,
+        vec![EventType::DISPLAY_CURRENT_MODE_CHANGED]
+    );
+
+    // Leaving restores the desktop mode and the windowed size.
+    w.set_fullscreen(false).unwrap();
+    assert_eq!(
+        *MODE_SWITCHES.lock().unwrap(),
+        vec![(1280, 720), (1920, 1080)]
+    );
+    assert_eq!(current_display_mode(primary).unwrap().w, 1920);
+    assert_eq!(w.size().unwrap(), (640, 480));
+
+    // A mode the display doesn't have is refused.
+    let bad = DisplayMode {
+        w: 1234,
+        h: 567,
+        ..Default::default()
+    };
+    assert_eq!(
+        w.set_fullscreen_mode(Some(&bad)).unwrap_err().message(),
+        "Invalid fullscreen display mode"
+    );
+    w.destroy();
+    init::quit();
+}
+
+#[test]
+fn popups_parents_and_modals() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    start_test_driver();
+
+    let parent = Window::create("parent", 640, 480, WindowFlags::NONE).unwrap();
+    parent.set_position(100, 200).unwrap();
+    let popup = Window::create_popup(&parent, 10, 20, 50, 50, WindowFlags::POPUP_MENU).unwrap();
+    assert_eq!(popup.parent().unwrap(), Some(parent));
+    assert_eq!(popup.position().unwrap(), (10, 20));
+    assert_eq!(
+        crate::video::window::relative_to_global_for_window(popup.id(), 10, 20),
+        (110, 220)
+    );
+    assert_eq!(
+        popup.set_title("no").unwrap_err().message(),
+        "Operation invalid on popup windows"
+    );
+
+    // Hiding the parent hides the popup, and showing it restores the popup.
+    parent.hide().unwrap();
+    assert!(popup.flags().unwrap().contains(WindowFlags::HIDDEN));
+    parent.show().unwrap();
+    assert!(!popup.flags().unwrap().contains(WindowFlags::HIDDEN));
+
+    // Modal windows need a parent and can't change it.
+    let child = Window::create("child", 100, 100, WindowFlags::NONE).unwrap();
+    assert!(child.set_modal(true).is_err());
+    child.set_parent(Some(&parent)).unwrap();
+    child.set_modal(true).unwrap();
+    assert!(child.flags().unwrap().contains(WindowFlags::MODAL));
+    assert!(child.set_parent(None).is_err());
+    child.set_modal(false).unwrap();
+    child.set_parent(None).unwrap();
+    assert_eq!(child.parent().unwrap(), None);
+
+    // Destroying the parent destroys its popups.
+    parent.destroy();
+    assert!(!popup.is_valid());
+    assert!(child.is_valid());
+    assert_eq!(windows().unwrap(), vec![child]);
+    init::quit();
 }

@@ -31,7 +31,7 @@ use crate::video::{PixelFormat, Rect, Surface};
 const DUMMYVID_DRIVER_NAME: &str = "dummy";
 
 /// Translation of `DUMMY_Available()`: the driver must be asked for.
-pub(super) fn available(drivername: &str) -> bool {
+pub(crate) fn available(drivername: &str) -> bool {
     hints::get(hints::VIDEO_DRIVER).is_some_and(|hint| hint.contains(drivername))
 }
 
