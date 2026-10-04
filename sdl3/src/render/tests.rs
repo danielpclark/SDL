@@ -576,6 +576,78 @@ fn renderer_basics() {
     assert!(r.into_surface().is_some());
 }
 
+// The software renderer draws two triangles that make an axis aligned,
+// uniformly colored quad as a rect, but only when the texture coordinates
+// are in [0, 1]; otherwise they are drawn as triangles, with the clamping
+// of the coordinates. Upstream checked u only, looked up with the color
+// stride.
+#[test]
+fn geometry_quad_uv_range() {
+    fn pixels(r: &mut Renderer) -> Vec<Color> {
+        let s = r.read_pixels(None).unwrap();
+        let mut v = Vec::new();
+        for y in 0..s.height() {
+            for x in 0..s.width() {
+                v.push(s.read_pixel(x, y).unwrap());
+            }
+        }
+        v
+    }
+
+    let mut r = Renderer::software(Surface::new(16, 16, PixelFormat::ARGB8888).unwrap()).unwrap();
+    let mut src = Surface::new(4, 4, PixelFormat::ARGB8888).unwrap();
+    for y in 0..4 {
+        for x in 0..4 {
+            let c = Color::new(x as u8 * 60, y as u8 * 60, 200, 255);
+            src.fill_rect(
+                Some(&Rect::new(x, y, 1, 1)),
+                src.map_rgba(c.r, c.g, c.b, c.a),
+            )
+            .unwrap();
+        }
+    }
+    let t = r.create_texture_from_surface(&mut src).unwrap();
+    r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+    r.set_texture_address_mode(TextureAddressMode::Clamp, TextureAddressMode::Clamp);
+
+    let xy = [0.0, 0.0, 16.0, 0.0, 16.0, 16.0, 0.0, 16.0];
+    let white = [FColor::new(1.0, 1.0, 1.0, 1.0)];
+    let idx = [0, 1, 2, 0, 2, 3];
+    for (us, vs) in [([0.0, 2.0], [0.0, 1.0]), ([0.0, 1.0], [0.0, 2.0])] {
+        let uv = [us[0], vs[0], us[1], vs[0], us[1], vs[1], us[0], vs[1]];
+
+        // The two triangles, drawn one at a time (never as a rect)
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        for tri in idx.chunks(3) {
+            let (mut txy, mut tuv) = (Vec::new(), Vec::new());
+            for &i in tri {
+                txy.extend_from_slice(&xy[i as usize * 2..i as usize * 2 + 2]);
+                tuv.extend_from_slice(&uv[i as usize * 2..i as usize * 2 + 2]);
+            }
+            r.render_geometry_raw(Some(t), &txy, 2, &white, 0, &tuv, 2, 3, None)
+                .unwrap();
+        }
+        let expected = pixels(&mut r);
+
+        // The same quad in one call, with separate arrays
+        r.clear().unwrap();
+        r.render_geometry_raw(
+            Some(t),
+            &xy,
+            2,
+            &white,
+            0,
+            &uv,
+            2,
+            4,
+            Some(Indices::I32(&idx)),
+        )
+        .unwrap();
+        assert!(pixels(&mut r) == expected, "u={us:?} v={vs:?}");
+    }
+}
+
 // Rects outside the texture: upstream's YUV/NV updates and
 // SDL_LockTextureToSurface() ignore the failed intersection and go on with a
 // negative size.
