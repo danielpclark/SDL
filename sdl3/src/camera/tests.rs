@@ -235,6 +235,23 @@ fn driver_selection() {
 }
 
 #[test]
+fn zombie_frame_pacing() {
+    let d = |num, den| zombie_frame_delay_ms(&spec(PixelFormat::XRGB8888, 1, 1, num, den));
+    assert_eq!(d(30, 1), 33);
+    assert_eq!(d(15, 1), 66);
+    assert_eq!(d(30000, 1001), 33);
+    assert_eq!(d(1, 2), 2000);
+    // No usable framerate: one frame interval at the fallback rate, not a
+    // zero (or undefined) delay that would spin the zombie thread.
+    let fallback = 1000 / ZOMBIE_FALLBACK_FPS;
+    assert!(fallback > 0);
+    assert_eq!(zombie_frame_delay_ms(&CameraSpec::default()), fallback);
+    assert_eq!(d(0, 1), fallback);
+    assert_eq!(d(30, 0), fallback);
+    assert_eq!(d(-30, 1), fallback);
+}
+
+#[test]
 fn spec_sorting_and_choice() {
     let mut specs = camera_a_specs();
     specs.sort_by(camera_spec_cmp);
