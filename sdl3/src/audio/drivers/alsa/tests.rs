@@ -234,6 +234,58 @@ fn pcm_names() {
     assert!(name.ends_with("CARD=PCH,DEV=3"), "{name}");
 }
 
+unsafe extern "C" fn fake_hw_params_any(_pcm: *mut SndPcm, _hw: *mut SndPcmHwParams) -> c_int {
+    0
+}
+
+unsafe extern "C" fn fake_hw_params_set_access(
+    _pcm: *mut SndPcm,
+    _hw: *mut SndPcmHwParams,
+    _access: c_int,
+) -> c_int {
+    0
+}
+
+unsafe extern "C" fn fake_hw_params_set_format_busy(
+    _pcm: *mut SndPcm,
+    _hw: *mut SndPcmHwParams,
+    _format: c_int,
+) -> c_int {
+    -libc::EBUSY
+}
+
+#[test]
+fn unsupported_format_reports_the_format_error() {
+    let _l = crate::test_support::test_lock();
+    if !have_libasound() {
+        return;
+    }
+    // A PCM that takes any configuration and access mode, but no format
+    let mut lib = load_alsa_library().unwrap();
+    lib.snd_pcm_hw_params_any = fake_hw_params_any;
+    lib.snd_pcm_hw_params_set_access = fake_hw_params_set_access;
+    lib.snd_pcm_hw_params_set_format = fake_hw_params_set_format_busy;
+    let target = PcmTarget {
+        lib: &lib,
+        pcm: ptr::null_mut(),
+    };
+    let mut ctx = PcmCfgCtx::new(AudioSpec::new(AudioFormat::S16, 2, 48000), 1024);
+    ctx.hwparams = AlsaAlloc::new(64);
+    let e = alsa_pcm_cfg_hw_chans_n_scan(
+        &mut ctx,
+        &target,
+        CHANS_N_SCAN_MODE_EQUAL_OR_ABOVE_REQUESTED_CHANS_N,
+    )
+    .unwrap_err();
+    assert_eq!(
+        e.message(),
+        format!(
+            "ALSA: Unsupported audio format: {}",
+            lib.strerror(-libc::EBUSY)
+        )
+    );
+}
+
 /// The hint list the fake `snd_device_name_hint()` hands out, and the
 /// list the fake `snd_device_name_free_hint()` was given.
 static FAKE_HINTS: AtomicUsize = AtomicUsize::new(0);
