@@ -1412,6 +1412,64 @@ fn bitmap_blit_with_leading_skip() {
     }
 }
 
+/// Alpha-modulated blits from 2- and 4-bit bitmaps read each pixel's full
+/// index (upstream read them as 1-bit pixels).
+#[test]
+fn bitmap_alpha_blit_reads_whole_pixels() {
+    for (format, bits) in [
+        (PixelFormat::INDEX1MSB, 1u32),
+        (PixelFormat::INDEX2MSB, 2),
+        (PixelFormat::INDEX4MSB, 4),
+    ] {
+        let mut s = Surface::new(4, 2, format).unwrap();
+        let pal = s.create_palette().unwrap();
+        let ncolors = read_palette(&pal).len();
+        for i in 0..ncolors {
+            write_palette(&pal)
+                .set_colors(i, &[Color::new(i as u8 * 16, 0, 0, 255)])
+                .unwrap();
+        }
+        // Pixels 0, 1, 2, 3 have the indices max, 0, max, 0.
+        let max = (1u32 << bits) - 1;
+        let mut bytes = [0u8; 2];
+        for x in [0u32, 2] {
+            let bit = bits * x;
+            bytes[(bit / 8) as usize] |= (max << (8 - bits - bit % 8)) as u8;
+        }
+        let pitch = s.pitch() as usize;
+        for y in 0..2 {
+            let n = (4 * bits as usize).div_ceil(8);
+            s.pixels_mut().unwrap()[y * pitch..y * pitch + n].copy_from_slice(&bytes[..n]);
+        }
+        s.set_blend_mode(BlendMode::BLEND).unwrap();
+        s.set_alpha_mod(255);
+        let expect = |s: &mut Surface<'_>| -> Vec<u8> {
+            let mut d = Surface::new(4, 2, PixelFormat::XRGB8888).unwrap();
+            s.blit(None, &mut d, None).unwrap();
+            (0..4).map(|x| d.read_pixel(x, 1).unwrap().r).collect()
+        };
+        // (an alpha mod below 255 selects BlitBtoNAlpha; at 255 the plain
+        // bitmap blit gives the reference)
+        let reference = {
+            s.set_blend_mode(BlendMode::NONE).unwrap();
+            let r = expect(&mut s);
+            s.set_blend_mode(BlendMode::BLEND).unwrap();
+            r
+        };
+        assert_eq!(reference, [max as u8 * 16, 0, max as u8 * 16, 0]);
+        s.set_alpha_mod(254);
+        let got = expect(&mut s);
+        let want: Vec<u8> = reference
+            .iter()
+            .map(|&v| (v as u32 * 254 / 255) as u8)
+            .collect();
+        assert_eq!(got.len(), want.len());
+        for (g, w) in got.iter().zip(&want) {
+            assert!(g.abs_diff(*w) <= 1, "{format:?}: {got:?} vs {want:?}");
+        }
+    }
+}
+
 #[test]
 fn scaled_blit_matches_c() {
     let simd = with_simd(true, run_scaled);
