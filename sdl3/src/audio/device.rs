@@ -724,6 +724,35 @@ fn with_logical_device<R>(
     }
 }
 
+/// Test hook: give the physical device behind `devid` a channel map, as a
+/// backend that reports a non-default speaker layout would.
+#[cfg(test)]
+pub(crate) fn set_device_chmap_for_test(devid: AudioDeviceID, chmap: Option<&[i32]>) {
+    let device = find_physical_audio_device(devid).unwrap();
+    {
+        let guard = device.lock();
+        let channels = guard.borrow().spec.channels;
+        guard.borrow_mut().chmap = super::queue::store_chmap(chmap, channels);
+        update_audio_stream_formats_physical(&device, &guard);
+    }
+    unref_physical_audio_device(&device);
+}
+
+/// Test hook: change the channel count a closed physical device opens
+/// with, as a backend that reports a multichannel device would.
+#[cfg(test)]
+pub(crate) fn set_device_default_channels_for_test(devid: AudioDeviceID, channels: i32) {
+    let device = find_physical_audio_device(devid).unwrap();
+    {
+        let guard = device.lock();
+        let mut st = guard.borrow_mut();
+        assert!(!st.currently_opened);
+        st.default_spec.channels = channels;
+        st.spec.channels = channels;
+    }
+    unref_physical_audio_device(&device);
+}
+
 /// Find the physical device associated with `devid`, referenced (not
 /// locked). Note that a logical device instance id will return its
 /// associated physical device! Part of `ObtainPhysicalAudioDevice()`.
@@ -1528,16 +1557,18 @@ pub(crate) fn playback_audio_thread_iterate(device: &Arc<PhysicalDevice>) -> boo
                                     chmap_ref(&dst_chmap),
                                     chmap_ref(&chmap),
                                 ) {
-                                    // FIXME (upstream): this swizzles F32 data with the device's (possibly non-F32) format and frame size.
+                                    // (upstream swizzles this float32 mix data with the device's own
+                                    // format and frame size, which scrambles it on a non-F32 device;
+                                    // fixed here by using the F32 mixing spec.)
                                     convert_audio(
-                                        br / spec.frame_size(),
+                                        br / outspec.frame_size(),
                                         ConvertSrc::InDst,
-                                        spec.format,
-                                        spec.channels,
+                                        outspec.format,
+                                        outspec.channels,
                                         None,
                                         &mut work_buffer[..],
-                                        spec.format,
-                                        spec.channels,
+                                        outspec.format,
+                                        outspec.channels,
                                         chmap_ref(&chmap),
                                         None,
                                         1.0,
@@ -1804,14 +1835,20 @@ pub(crate) fn recording_audio_thread_iterate(device: &Arc<PhysicalDevice>) -> bo
                             // (the mix buffer is otherwise unused on recording devices, so it makes convenient scratch space here.)
                             mix_buffer_bytes.clear();
                             mix_buffer_bytes.resize(br.max(buffer_size), 0);
+                            // (upstream swizzles with the device's format and frame size
+                            // here even when the data was moved to float32 for gain or
+                            // postmix, which scrambles it on a non-F32 device; fixed here by
+                            // using the format the data is actually in.)
+                            let out_frame_size =
+                                out_format.bytesize() as usize * spec.channels as usize;
                             convert_audio(
-                                br / spec.frame_size(),
+                                br / out_frame_size,
                                 ConvertSrc::Slice(output_buffer),
-                                spec.format,
+                                out_format,
                                 spec.channels,
                                 None,
                                 &mut mix_buffer_bytes,
-                                spec.format,
+                                out_format,
                                 spec.channels,
                                 chmap_ref(&src_chmap),
                                 None,

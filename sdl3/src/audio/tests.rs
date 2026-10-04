@@ -775,6 +775,130 @@ fn dummy_driver_playback_and_recording() {
 }
 
 #[test]
+fn mix_path_swizzles_float_data_to_device_layout() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
+    crate::hints::set(crate::hints::AUDIO_DUMMY_TIMESCALE, "0.05").unwrap();
+    crate::init::init_subsystem(crate::init::InitFlags::AUDIO).unwrap();
+
+    // The dummy device is S16 stereo, so mixing happens in a separate F32 buffer.
+    let dev = AudioDevice::open(AUDIO_DEVICE_DEFAULT_PLAYBACK, None).unwrap();
+    assert_eq!(dev.format().unwrap().0.format, AudioFormat::S16);
+    super::device::set_device_chmap_for_test(dev.id(), Some(&[1, 0]));
+
+    // A postmix callback forces the mixing path and shows the final F32 mix.
+    let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<f32>::new()));
+    let s2 = seen.clone();
+    dev.set_postmix_callback(Some(move |_spec: &AudioSpec, buf: &mut [f32]| {
+        let mut seen = s2.lock().unwrap();
+        if seen.is_empty() && buf.iter().any(|&x| x != 0.0) {
+            seen.extend_from_slice(buf);
+        }
+    }))
+    .unwrap();
+
+    let stream = AudioStream::new(Some(&AudioSpec::new(AudioFormat::F32, 2, 44100)), None).unwrap();
+    let frame: Vec<u8> = [0.25f32, -0.5]
+        .iter()
+        .flat_map(|x| x.to_ne_bytes())
+        .collect();
+    dev.bind(&stream).unwrap();
+    // Leave the stream's output in default order, so the device has to
+    // swizzle it into its own layout.
+    stream.set_output_channel_map(None).unwrap();
+    stream.put_data(&frame.repeat(44100)).unwrap();
+
+    let start = std::time::Instant::now();
+    while seen.lock().unwrap().is_empty() && start.elapsed() < std::time::Duration::from_secs(5) {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let mix = std::mem::take(&mut *seen.lock().unwrap());
+    assert!(!mix.is_empty(), "the stream was mixed");
+    for f in mix.chunks_exact(2) {
+        assert!(
+            f == [0.0, 0.0] || f == [-0.5, 0.25],
+            "frame {f:?} is not the swapped stereo pair"
+        );
+    }
+
+    drop(dev);
+    drop(stream);
+    crate::init::quit_subsystem(crate::init::InitFlags::AUDIO);
+    crate::hints::reset(crate::hints::AUDIO_DRIVER);
+    crate::hints::reset(crate::hints::AUDIO_DUMMY_TIMESCALE);
+}
+
+#[test]
+fn recording_swizzle_handles_float_data() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = crate::test_support::TempDir::new("diskswizzle");
+    let input = tmp.path("in.raw");
+    // S16 stereo frames, left 1000 and right -2000.
+    let frame: Vec<u8> = [1000i16, -2000]
+        .iter()
+        .flat_map(|x| x.to_le_bytes())
+        .collect();
+    std::fs::write(&input, frame.repeat(64)).unwrap();
+
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "disk").unwrap();
+    crate::hints::set(crate::hints::AUDIO_DISK_TIMESCALE, "0.05").unwrap();
+    crate::hints::set(crate::hints::AUDIO_DISK_INPUT_FILE, &input).unwrap();
+    crate::init::init_subsystem(crate::init::InitFlags::AUDIO).unwrap();
+
+    let phys = recording_devices().unwrap()[0];
+    super::device::set_device_default_channels_for_test(phys, 2);
+
+    // Record four frames into a stream whose input channel map differs from
+    // the device's, so the device swizzles each buffer into the stream's
+    // layout before handing it over.
+    let record = |gain: f32| -> Vec<(i16, i16)> {
+        let dev = AudioDevice::open(phys, None).unwrap();
+        let (spec, _) = dev.format().unwrap();
+        assert_eq!((spec.format, spec.channels), (AudioFormat::S16LE, 2));
+        dev.set_gain(gain).unwrap(); // below 1, the device side of the stream is F32
+        let rec = AudioStream::new(None, Some(&spec)).unwrap();
+        dev.bind(&rec).unwrap();
+        rec.set_input_channel_map(Some(&[1, 0])).unwrap();
+        let start = std::time::Instant::now();
+        while rec.available() < 16 && start.elapsed() < std::time::Duration::from_secs(5) {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        let mut buf = [0u8; 16];
+        assert_eq!(rec.get_data(&mut buf).unwrap(), 16);
+        buf.chunks_exact(4)
+            .map(|f| {
+                (
+                    i16::from_le_bytes([f[0], f[1]]),
+                    i16::from_le_bytes([f[2], f[3]]),
+                )
+            })
+            .collect()
+    };
+
+    // At unit gain the swizzle runs on the device's own S16 data.
+    let full = record(1.0);
+    assert!(full.iter().all(|&f| f == full[0]), "{full:?}");
+    // At half gain it runs on F32 data, and must give the same layout.
+    let half = record(0.5);
+    for &(l, r) in &half {
+        assert!(
+            (l - full[0].0 / 2).abs() <= 1 && (r - full[0].1 / 2).abs() <= 1,
+            "half-gain frame ({l}, {r}) does not match unit-gain {:?}",
+            full[0]
+        );
+    }
+
+    crate::init::quit_subsystem(crate::init::InitFlags::AUDIO);
+    for h in [
+        crate::hints::AUDIO_DRIVER,
+        crate::hints::AUDIO_DISK_TIMESCALE,
+        crate::hints::AUDIO_DISK_INPUT_FILE,
+    ] {
+        crate::hints::reset(h);
+    }
+}
+
+#[test]
 fn unbinding_a_simplified_stream_is_ignored() {
     let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
