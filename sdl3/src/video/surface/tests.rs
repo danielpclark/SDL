@@ -1659,9 +1659,11 @@ fn bmp_matches_c() {
     assert_eq!((simd, plain), (0x6bb164d40b8e4539, 0x6bb164d40b8e4539));
 }
 
+// (with upstream's SDL_triangle.c fixed to step the barycentric coordinates
+// past color keyed texels, as `Raster::for_each` does)
 #[test]
 fn draw_matches_c() {
     let simd = with_simd(true, run_draw);
     let plain = with_simd(false, run_draw);
-    assert_eq!((simd, plain), (0x7b03b3984b42eb41, 0x30a8e5e62fbd081c));
+    assert_eq!((simd, plain), (0x8e92753755544db8, 0xf8ca3a0d7c615315));
 }
