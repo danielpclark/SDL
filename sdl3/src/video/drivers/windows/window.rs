@@ -74,6 +74,7 @@ use super::events::{
     app_instance, app_name, keyboard_hook_proc, pump_events_for_hwnd, window_proc,
 };
 use super::modes::with_display_data;
+use super::opengl::win_gl_use_egl;
 use super::{
     get_window_long_ptr, set_window_long_ptr, video_data, DwmBlurBehind, ITaskbarList3, Shared,
     VideoData, DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE,
@@ -94,6 +95,7 @@ use crate::hints;
 use crate::log::Category;
 use crate::properties::Properties;
 use crate::video::core::{with_device, with_window};
+use crate::video::gl::{gl_config, GL_CONTEXT_PROFILE_ES};
 use crate::video::sysvideo::{FlashOperation, FullscreenOp, FullscreenResult, ProgressState};
 use crate::video::window::{
     display_for_window, relative_to_global_for_window, should_allow_topmost, should_focus_popup,
@@ -159,6 +161,8 @@ pub(crate) struct WindowState {
     pub(crate) icm_file_name: Option<Vec<u16>>,
     pub(crate) taskbar_button_created: bool,
     pub(crate) drop_target: *mut DropTarget,
+    /// The window's EGL surface (`EGL_NO_SURFACE` without EGL).
+    pub(crate) egl_surface: *mut c_void,
 }
 
 // SAFETY: the handles are process-wide tokens; the window's own handles
@@ -677,6 +681,7 @@ fn setup_window_data(
             icm_file_name: None,
             taskbar_button_created: false,
             drop_target: std::ptr::null_mut(),
+            egl_surface: std::ptr::null_mut(),
         }),
     });
 
@@ -1201,10 +1206,24 @@ pub(crate) fn create_window(
         }
 
         // The rest of this macro mess is for OpenGL or OpenGL ES windows
-        // (neither WGL nor EGL is translated yet)
-        return Err(Error::new(
-            "Could not create GL window (WGL support not configured)",
-        ));
+        let config = gl_config();
+        if (config.profile_mask == GL_CONTEXT_PROFILE_ES
+            || hints::get_bool(hints::VIDEO_FORCE_EGL, false))
+            && videodata
+                .wgl_data()
+                .is_none_or(|wgl| win_gl_use_egl(&wgl, &config))
+        {
+            if let Err(e) = videodata.win_gles_setup_window(window) {
+                destroy_window(window);
+                return Err(e);
+            }
+            return Ok(());
+        }
+
+        if let Err(e) = videodata.win_gl_setup_window(window) {
+            destroy_window(window);
+            return Err(e);
+        }
     }
 
     Ok(())

@@ -6,7 +6,9 @@
 //! The Windows video driver: Win32 windows, the message pump, GDI
 //! framebuffers, displays and modes, keyboard (with the IMM32 input method
 //! editor), mouse (cursors, raw input), the clipboard, message boxes, drag
-//! and drop, window shapes and Vulkan surfaces.
+//! and drop, window shapes, Vulkan surfaces, and OpenGL contexts through WGL
+//! (opengl32.dll) or EGL (libEGL.dll, ANGLE for example), both loaded at
+//! run time.
 //!
 //! Everything newer than Windows XP that upstream loads at run time
 //! (per-monitor DPI functions, `shcore.dll`, `dwmapi.dll`, the pointer and
@@ -23,9 +25,6 @@
 //!   without `dxgi.h`; `SDL_GetDXGIOutputInfo()` and
 //!   `SDL_GetDirect3D9AdapterIndex()` (Direct3D 9 COM) come with the
 //!   Direct3D renderers.
-//! * WGL and EGL contexts (`SDL_windowsopengl.c`, `SDL_windowsopengles.c`):
-//!   the driver behaves as a build without OpenGL, so OpenGL windows can't
-//!   be created ("not available in current SDL video driver").
 //! * The Text Services Framework UI (`SDL_msctf.h`), which upstream no longer
 //!   compiles in.
 
@@ -38,6 +37,8 @@ pub(crate) mod keyboard;
 pub(crate) mod messagebox;
 pub(crate) mod modes;
 pub(crate) mod mouse;
+pub(crate) mod opengl;
+pub(crate) mod opengles;
 pub(crate) mod rawinput;
 pub(crate) mod shape;
 pub(crate) mod vulkan;
@@ -89,12 +90,14 @@ use crate::loadso::SharedObject;
 use crate::log::Category;
 use crate::properties::Properties;
 use crate::thread::ReentrantMutex;
+use crate::video::gl::RawGlContext;
 use crate::video::sysvideo::{
     DeviceCaps, DisplayMode, FlashOperation, FullscreenOp, FullscreenResult, SystemTheme,
     VideoBootStrap, VideoDriver,
 };
 use crate::video::window::WindowOp;
 use crate::video::{Rect, Surface};
+use opengl::GlBackend;
 
 /// Translation of `USER_DEFAULT_SCREEN_DPI`.
 pub(crate) const USER_DEFAULT_SCREEN_DPI: u32 = 96;
@@ -302,6 +305,8 @@ pub(crate) struct VideoData {
     pub(crate) state: Shared<VideoState>,
     pub(crate) raw: Shared<events::RawInputData>,
     pub(crate) ime: Shared<keyboard::ImeData>,
+    /// The OpenGL backend in use and the WGL data (`gl_data`).
+    pub(crate) gl: Mutex<opengl::WinGl>,
 
     // (dropped last: the functions above point into these)
     _user_dll: Option<SharedObject>,
@@ -462,6 +467,13 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
     let shcore_dll = SharedObject::load("SHCORE.DLL").ok();
     let dwmapi_dll = SharedObject::load("DWMAPI.DLL").ok();
 
+    // The OpenGL functions: WGL, or EGL when it is forced
+    let gl_backend = if hints::get_bool(hints::VIDEO_FORCE_EGL, false) {
+        opengl::GlBackend::Egl
+    } else {
+        opengl::GlBackend::Wgl
+    };
+
     // SAFETY: each function type is the documented signature of the export.
     let data = unsafe {
         let user = user_dll.as_ref();
@@ -517,6 +529,7 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
             }),
             raw: Shared::new(events::RawInputData::new()),
             ime: Shared::new(keyboard::ImeData::new()),
+            gl: Mutex::new(opengl::WinGl::new(gl_backend)),
 
             _user_dll: user_dll,
             _shcore_dll: shcore_dll,
@@ -1010,6 +1023,79 @@ impl VideoDriver for WindowsVideo {
     }
     fn set_window_focusable(&self, window: WindowID, focusable: bool) -> Option<Result<()>> {
         Some(window::set_window_focusable(window, focusable))
+    }
+
+    // OpenGL support (`WIN_GL_*` or `WIN_GLES_*`, see `opengl.rs`)
+
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_load_library(path),
+            GlBackend::Egl => self.data.win_gles_load_library(path),
+        })
+    }
+    fn gl_unload_library(&self) -> Option<()> {
+        match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_unload_library(),
+            GlBackend::Egl => crate::video::egl::unload_library(),
+        }
+        Some(())
+    }
+    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_get_proc_address(proc_name),
+            GlBackend::Egl => crate::video::egl::get_proc_address_internal(proc_name),
+        })
+    }
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_create_context(window),
+            GlBackend::Egl => self.data.win_gles_create_context(window),
+        })
+    }
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_make_current(window, context),
+            GlBackend::Egl => self.data.win_gles_make_current(window, context),
+        })
+    }
+    fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_set_swap_interval(interval),
+            GlBackend::Egl => crate::video::egl::set_swap_interval(interval),
+        })
+    }
+    fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_get_swap_interval(),
+            GlBackend::Egl => crate::video::egl::get_swap_interval(),
+        })
+    }
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        Some(match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_swap_window(window),
+            GlBackend::Egl => self.data.win_gles_swap_window(window),
+        })
+    }
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
+        match self.data.gl_backend() {
+            GlBackend::Wgl => self.data.win_gl_destroy_context(context),
+            // (WIN_GLES_DestroyContext())
+            GlBackend::Egl => crate::video::egl::destroy_context(context),
+        }
+        Some(Ok(()))
+    }
+    fn gl_get_egl_surface(&self, window: WindowID) -> Option<*mut c_void> {
+        match self.data.gl_backend() {
+            GlBackend::Wgl => None,
+            GlBackend::Egl => Some(self.data.win_gles_get_egl_surface(window)),
+        }
     }
 
     // Vulkan support
