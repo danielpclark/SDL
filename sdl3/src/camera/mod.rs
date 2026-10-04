@@ -30,6 +30,8 @@
 //! a platform without camera support.
 
 mod dummy;
+#[cfg(target_os = "linux")]
+mod v4l2;
 
 use std::any::Any;
 use std::cell::RefCell;
@@ -178,11 +180,14 @@ pub(crate) struct CameraBootStrap {
 }
 
 /// Available camera drivers. Translation of `bootstrap`.
-#[cfg(not(test))]
-static BOOTSTRAP: &[&CameraBootStrap] = &[&dummy::DUMMYCAMERA_BOOTSTRAP];
-#[cfg(test)]
-static BOOTSTRAP: &[&CameraBootStrap] =
-    &[&tests::TESTCAMERA_BOOTSTRAP, &dummy::DUMMYCAMERA_BOOTSTRAP];
+/// (The test build puts its test driver first; it's demand-only.)
+static BOOTSTRAP: &[&CameraBootStrap] = &[
+    #[cfg(test)]
+    &tests::TESTCAMERA_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &v4l2::V4L2_BOOTSTRAP,
+    &dummy::DUMMYCAMERA_BOOTSTRAP,
+];
 
 /// The number of output surfaces a device buffers frames in.
 const NUM_OUTPUT_SURFACES: usize = 8;
