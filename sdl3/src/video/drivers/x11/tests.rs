@@ -977,3 +977,182 @@ fn x11_fullscreen_and_popups() {
     popup.destroy();
     w.destroy();
 }
+
+/// The top-level window whose `_NET_WM_NAME` is `title`, once it is
+/// viewable (for up to five seconds).
+fn find_viewable_window(client: &Client, title: &str) -> Option<Window> {
+    let net_wm_name = client.atom("_NET_WM_NAME");
+    let utf8 = client.atom("UTF8_STRING");
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while Instant::now() < deadline {
+        // SAFETY: the client display is open; the out-parameters are valid
+        // and the lists and data are freed after use.
+        let found = unsafe {
+            let mut root: Window = 0;
+            let mut parent: Window = 0;
+            let mut children: *mut Window = std::ptr::null_mut();
+            let mut count: c_uint = 0;
+            (client.x.XQueryTree)(
+                client.dpy,
+                DefaultRootWindow(client.dpy),
+                &mut root,
+                &mut parent,
+                &mut children,
+                &mut count,
+            );
+            let mut found = Option::None;
+            for i in 0..count as usize {
+                let child = *children.add(i);
+                let mut actual_type: Atom = 0;
+                let mut format: c_int = 0;
+                let mut nitems: c_ulong = 0;
+                let mut after: c_ulong = 0;
+                let mut data: *mut c_uchar = std::ptr::null_mut();
+                (client.x.XGetWindowProperty)(
+                    client.dpy,
+                    child,
+                    net_wm_name,
+                    0,
+                    1024,
+                    False,
+                    utf8,
+                    &mut actual_type,
+                    &mut format,
+                    &mut nitems,
+                    &mut after,
+                    &mut data,
+                );
+                if data.is_null() {
+                    continue;
+                }
+                let name = std::slice::from_raw_parts(data, nitems as usize).to_vec();
+                (client.x.XFree)(data.cast());
+                let mut attrs: XWindowAttributes = std::mem::zeroed();
+                (client.x.XGetWindowAttributes)(client.dpy, child, &mut attrs);
+                if name == title.as_bytes() && attrs.map_state == IsViewable {
+                    found = Some(child);
+                }
+            }
+            if !children.is_null() {
+                (client.x.XFree)(children.cast());
+            }
+            found
+        };
+        if found.is_some() {
+            return found;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    Option::None
+}
+
+#[test]
+fn x11_message_box() {
+    use crate::video::messagebox::{
+        MessageBoxButtonData, MessageBoxButtonFlags, MessageBoxColor, MessageBoxColorScheme,
+        MessageBoxData, MessageBoxFlags,
+    };
+
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    let Some(xtest) = XTest::load() else {
+        eprintln!("note: libXtst not available; skipping");
+        return;
+    };
+    let client = Client::open().unwrap();
+
+    let background = MessageBoxColor {
+        r: 10,
+        g: 20,
+        b: 30,
+    };
+    let mut scheme = MessageBoxColorScheme::default();
+    scheme.colors[0] = background;
+    scheme.colors[1] = MessageBoxColor {
+        r: 255,
+        g: 255,
+        b: 255,
+    };
+    let data = MessageBoxData {
+        flags: MessageBoxFlags::INFORMATION,
+        title: "SDL message box test".into(),
+        message: "Hello,\nworld".into(),
+        buttons: vec![
+            MessageBoxButtonData {
+                flags: MessageBoxButtonFlags::ESCAPEKEY_DEFAULT,
+                button_id: 1,
+                text: "Cancel".into(),
+            },
+            MessageBoxButtonData {
+                flags: MessageBoxButtonFlags::RETURNKEY_DEFAULT,
+                button_id: 2,
+                text: "OK".into(),
+            },
+        ],
+        color_scheme: Some(scheme),
+        ..MessageBoxData::default()
+    };
+
+    // The toolkit dialog (not zenity, which may be installed) runs in a
+    // thread; keys are injected with XTest into its focused window.
+    for (keysym, expected) in [(0xff0d /* XK_Return */, 2), (0xff1b /* XK_Escape */, 1)] {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let thread_data = data.clone();
+        std::thread::spawn(move || {
+            let mut button_id = -1;
+            let result = super::messagebox::x11_show_message_box_impl(&thread_data, &mut button_id);
+            let _ = tx.send((result.map_err(|e| e.to_string()), button_id));
+        });
+
+        let window = find_viewable_window(&client, &data.title).expect("no message box window");
+        // SAFETY: the client display is open; the window is viewable.
+        let attrs = unsafe {
+            let mut attrs: XWindowAttributes = std::mem::zeroed();
+            (client.x.XGetWindowAttributes)(client.dpy, window, &mut attrs);
+            attrs
+        };
+        assert!(
+            attrs.width > 100 && attrs.height > 50,
+            "{}x{}",
+            attrs.width,
+            attrs.height
+        );
+
+        // The dialog is drawn in the scheme's background color
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            // SAFETY: as above; the image is destroyed after use.
+            let corner = unsafe {
+                (client.x.XSync)(client.dpy, False);
+                let image = (client.x.XGetImage)(client.dpy, window, 0, 0, 4, 4, !0, ZPixmap);
+                assert!(!image.is_null());
+                let corner = XGetPixel(image, 1, 1);
+                XDestroyImage(image);
+                corner
+            };
+            if corner & 0xffffff == 0x0a141e {
+                break;
+            }
+            assert!(Instant::now() < deadline, "background {corner:#x}");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+
+        // SAFETY: the client display is open; the window is viewable; the
+        // key code is the server's.
+        unsafe {
+            (client.x.XSetInputFocus)(client.dpy, window, RevertToParent, CurrentTime);
+            (client.x.XSync)(client.dpy, False);
+            let keycode = (client.x.XKeysymToKeycode)(client.dpy, keysym) as c_uint;
+            (xtest.key)(client.dpy, keycode, True, 0);
+            (xtest.key)(client.dpy, keycode, False, 0);
+            (client.x.XFlush)(client.dpy);
+        }
+        let (result, button_id) = rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("the message box didn't close");
+        assert_eq!(result, Ok(()));
+        assert_eq!(button_id, expected);
+    }
+}

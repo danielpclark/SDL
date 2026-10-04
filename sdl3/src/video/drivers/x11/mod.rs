@@ -15,7 +15,9 @@
 //! [`window`], [`events`], [`keyboard`], [`mouse`], [`framebuffer`],
 //! [`clipboard`], [`xinput2`], [`xfixes`], [`xsync`], [`xtest`],
 //! [`settings`] with [`xsettings_client`], [`edid`], [`shape`], [`pen`],
-//! [`touch`] and [`vulkan`].
+//! [`touch`], [`vulkan`], and [`messagebox`] with its [`toolkit`]
+//! (message boxes try zenity first, see [`crate::dialog`]; the toolkit is
+//! a build without FriBidi and libthai).
 //!
 //! Not translated (yet):
 //!
@@ -25,8 +27,6 @@
 //! * The D-Bus integration (the IBus/Fcitx input methods of
 //!   `SDL_IBus_*`/`SDL_Fcitx_*`, the screensaver inhibition and the system
 //!   theme): it comes with the D-Bus layer; X input methods (XIM) work.
-//! * Message boxes (`SDL_x11messagebox.c` and its toolkit,
-//!   `SDL_x11toolkit.c`).
 
 #![allow(non_upper_case_globals, non_snake_case)] // (X11 names are kept)
 
@@ -35,12 +35,14 @@ pub(crate) mod edid;
 pub mod events;
 pub(crate) mod framebuffer;
 pub(crate) mod keyboard;
+pub(crate) mod messagebox;
 pub(crate) mod modes;
 pub(crate) mod mouse;
 pub(crate) mod pen;
 pub(crate) mod settings;
 pub(crate) mod shape;
 pub(crate) mod sys;
+pub(crate) mod toolkit;
 pub(crate) mod touch;
 pub(crate) mod video;
 pub(crate) mod vulkan;
