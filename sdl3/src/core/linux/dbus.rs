@@ -623,6 +623,28 @@ impl Connection {
         }
     }
 
+    /// Read and write pending data, waiting up to `timeout_ms`
+    /// (`dbus_connection_read_write()`); false once the connection is
+    /// closed.
+    pub(crate) fn read_write(&self, timeout_ms: i32) -> bool {
+        // SAFETY: raw is valid.
+        unsafe { (self.lib.fns.connection_read_write)(self.raw, timeout_ms) != 0 }
+    }
+
+    /// Dispatch one message (`dbus_connection_dispatch()`); true while more
+    /// data remains.
+    pub(crate) fn dispatch(&self) -> bool {
+        // SAFETY: raw is valid.
+        unsafe { (self.lib.fns.connection_dispatch)(self.raw) == DBUS_DISPATCH_DATA_REMAINS }
+    }
+
+    /// Close the connection now (`dbus_connection_close()`); it is released
+    /// on drop. Sending on a closed connection fails quietly.
+    pub(crate) fn close(&self) {
+        // SAFETY: raw is a private connection; closing twice is harmless.
+        unsafe { (self.lib.fns.connection_close)(self.raw) };
+    }
+
     /// Block until data arrives (or `timeout_ms` passes, -1: forever) and
     /// dispatch it; false once the connection is closed.
     pub(crate) fn read_write_dispatch(&self, timeout_ms: i32) -> bool {
