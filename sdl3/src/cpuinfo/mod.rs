@@ -518,6 +518,10 @@ mod tests {
 
     #[test]
     fn basics() {
+        // (feature_mask_hint masks the cached features meanwhile)
+        let _l = crate::test_support::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         assert!(num_logical_cpu_cores() >= 1);
         let line = cpu_cache_line_size();
         assert!(line > 0 && (line as u32).is_power_of_two(), "{line}");

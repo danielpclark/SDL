@@ -156,7 +156,7 @@ pub fn delay(duration: Duration) {
 pub fn delay_precise(duration: Duration) {
     let ns = duration.as_nanos().min(u64::MAX as u128) as u64;
     let mut current_value = ticks_ns();
-    let target_value = current_value + ns;
+    let target_value = current_value.wrapping_add(ns);
 
     // Sleep for a short number of cycles when real sleeps are desired.
     // We'll use 1 ms, it's the minimum guaranteed to produce real sleeps across
@@ -168,12 +168,18 @@ pub fn delay_precise(duration: Duration) {
     // that's fine, the code below can cope with that, but in practice no
     // platforms behave that way.
     let mut max_sleep_ns = SHORT_SLEEP_NS;
-    while current_value + max_sleep_ns < target_value {
+    while current_value.wrapping_add(max_sleep_ns) < target_value {
         // Sleep for a short time
         sys_delay(Duration::from_nanos(SHORT_SLEEP_NS));
 
         let now = ticks_ns();
-        let next_sleep_ns = now - current_value;
+        // Upstream's unsigned subtraction wraps if the tick counter
+        // restarted meanwhile (SDL_Quit() on another thread), which makes
+        // the wait last until the new counter passes the old target; here
+        // a restart ends the wait.
+        let Some(next_sleep_ns) = now.checked_sub(current_value) else {
+            return;
+        };
         if next_sleep_ns > max_sleep_ns {
             max_sleep_ns = next_sleep_ns;
         }
@@ -187,20 +193,32 @@ pub fn delay_precise(duration: Duration) {
     {
         let delay_ns = (target_value - current_value) - (max_sleep_ns - SHORT_SLEEP_NS);
         sys_delay(Duration::from_nanos(delay_ns));
-        current_value = ticks_ns();
+        let now = ticks_ns();
+        if now < current_value {
+            return; // (the tick counter restarted)
+        }
+        current_value = now;
     }
 
     // We've likely undershot target_value at this point by a pretty small
     // amount, but maybe not; handle a large undershoot with more short sleeps.
-    while current_value + SHORT_SLEEP_NS < target_value {
+    while current_value.wrapping_add(SHORT_SLEEP_NS) < target_value {
         sys_delay(Duration::from_nanos(SHORT_SLEEP_NS));
-        current_value = ticks_ns();
+        let now = ticks_ns();
+        if now < current_value {
+            return; // (the tick counter restarted)
+        }
+        current_value = now;
     }
 
     // Spin for any remaining time
     while current_value < target_value {
         std::hint::spin_loop();
-        current_value = ticks_ns();
+        let now = ticks_ns();
+        if now < current_value {
+            return; // (the tick counter restarted)
+        }
+        current_value = now;
     }
 }
 
@@ -506,6 +524,10 @@ mod tests {
 
     #[test]
     fn ticks_increase() {
+        // (init::quit() in another test restarts the tick counter)
+        let _l = crate::test_support::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let a = ticks_ns();
         delay(Duration::from_millis(2));
         let b = ticks_ns();
@@ -518,11 +540,36 @@ mod tests {
 
     #[test]
     fn precise_delay() {
+        // (init::quit() in another test restarts the tick counter)
+        let _l = crate::test_support::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let start = ticks_ns();
         delay_precise(Duration::from_millis(3));
         let elapsed = ticks_ns() - start;
         assert!(elapsed >= 3_000_000, "{elapsed}");
         assert!(elapsed < 200_000_000, "{elapsed}");
+    }
+
+    #[test]
+    fn precise_delay_ends_when_ticks_restart() {
+        let _l = crate::test_support::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let _ = ticks_ns();
+        let restarter = std::thread::spawn(|| {
+            std::thread::sleep(Duration::from_millis(50));
+            quit_ticks();
+        });
+        let start = std::time::Instant::now();
+        // (upstream would wait until the restarted counter reaches the old target)
+        delay_precise(Duration::from_secs(5));
+        assert!(
+            start.elapsed() < Duration::from_secs(4),
+            "{:?}",
+            start.elapsed()
+        );
+        restarter.join().unwrap();
     }
 
     fn wait_until(deadline_ms: u64, mut cond: impl FnMut() -> bool) -> bool {
