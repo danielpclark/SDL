@@ -692,3 +692,166 @@ fn text_input() {
 
     window.destroy();
 }
+
+/// Clear the current context's buffer to a color and read a pixel back
+/// (the GL entry points through `gl_get_proc_address`).
+fn gl_clear_and_read(r: f32, g: f32, b: f32) -> [u8; 4] {
+    use crate::video::gl::gl_get_proc_address;
+    type ClearColor = unsafe extern "system" fn(f32, f32, f32, f32);
+    type Clear = unsafe extern "system" fn(u32);
+    type Finish = unsafe extern "system" fn();
+    type ReadPixels =
+        unsafe extern "system" fn(i32, i32, i32, i32, u32, u32, *mut std::ffi::c_void);
+    let get = |name: &str| gl_get_proc_address(name).unwrap_or_else(|| panic!("{name}"));
+    let mut pixel = [0u8; 4];
+    // SAFETY: the GL functions have these types; a context is current; the
+    // buffer holds one RGBA pixel.
+    unsafe {
+        let clear_color: ClearColor = std::mem::transmute(get("glClearColor"));
+        let clear: Clear = std::mem::transmute(get("glClear"));
+        let finish: Finish = std::mem::transmute(get("glFinish"));
+        let read_pixels: ReadPixels = std::mem::transmute(get("glReadPixels"));
+        clear_color(r, g, b, 1.0);
+        clear(0x4000); // GL_COLOR_BUFFER_BIT
+        finish();
+        // GL_RGBA, GL_UNSIGNED_BYTE
+        read_pixels(1, 1, 1, 1, 0x1908, 0x1401, pixel.as_mut_ptr().cast());
+    }
+    pixel
+}
+
+/// `glGetString(name)` of the current context.
+fn gl_string(name: u32) -> String {
+    type GetString = unsafe extern "system" fn(u32) -> *const std::ffi::c_char;
+    let f = crate::video::gl::gl_get_proc_address("glGetString").unwrap();
+    // SAFETY: glGetString's type; a context is current.
+    unsafe {
+        let get_string: GetString = std::mem::transmute(f);
+        let s = get_string(name);
+        assert!(!s.is_null());
+        std::ffi::CStr::from_ptr(s).to_string_lossy().into_owned()
+    }
+}
+
+#[test]
+fn wgl_context() {
+    use crate::video::gl::{self, GlAttr, GlContext};
+    let _l = crate::test_support::test_lock();
+    let Some(_session) = start() else { return };
+
+    if let Err(e) = gl::gl_load_library(None) {
+        println!("note: no opengl32.dll ({e}); skipping");
+        return;
+    }
+    let window = match Window::create("SDL WGL test", 64, 48, WindowFlags::OPENGL) {
+        Ok(w) => w,
+        Err(e) => {
+            println!("note: no WGL pixel format ({e}); skipping");
+            gl::gl_unload_library();
+            return;
+        }
+    };
+    let context = match GlContext::new(&window) {
+        Ok(c) => c,
+        Err(e) => {
+            println!("note: no WGL context ({e}); skipping");
+            window.destroy();
+            gl::gl_unload_library();
+            return;
+        }
+    };
+    assert!(context.is_current());
+    assert_eq!(gl::gl_current_context().unwrap(), Some(context.raw()));
+    assert_eq!(
+        gl::gl_current_window().unwrap().map(|w| w.id()),
+        Some(window.id())
+    );
+    assert!(gl::egl_current_display().is_err());
+    assert!(gl::gl_get_proc_address("wglGetCurrentContext").is_some());
+    let version = gl_string(0x1F02);
+    println!("GL_VERSION {version}, GL_RENDERER {}", gl_string(0x1F01));
+    assert!(!version.is_empty());
+
+    let px = gl_clear_and_read(1.0, 0.0, 1.0);
+    assert_eq!(&px[..3], &[255, 0, 255]);
+    gl::gl_swap_window(&window).unwrap();
+    assert!(gl::gl_get_attribute(GlAttr::RedSize).unwrap() >= 8);
+    assert!(gl::gl_get_attribute(GlAttr::DoubleBuffer).is_ok());
+
+    // (the swap control extension may be missing: "unsupported" then)
+    if gl::gl_set_swap_interval(0).is_ok() {
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 0);
+    }
+    if gl::gl_set_swap_interval(1).is_ok() {
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 1);
+        gl::gl_set_swap_interval(0).unwrap();
+    }
+
+    // Release and make current again
+    gl::gl_release_current().unwrap();
+    assert!(!context.is_current());
+    assert_eq!(gl::gl_current_context().unwrap(), None);
+    context.make_current(Some(&window)).unwrap();
+    assert!(context.is_current());
+    let px = gl_clear_and_read(0.0, 1.0, 0.0);
+    assert_eq!(&px[..3], &[0, 255, 0]);
+
+    // A core profile context through wglCreateContextAttribsARB
+    gl::gl_set_attribute(GlAttr::ContextMajorVersion, 3).unwrap();
+    gl::gl_set_attribute(GlAttr::ContextMinorVersion, 3).unwrap();
+    gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_CORE).unwrap();
+    match GlContext::new(&window) {
+        Ok(core) => {
+            assert!(core.is_current());
+            // (without wglCreateContextAttribsARB, as with Microsoft's GDI
+            // Generic 1.1, upstream hands back the legacy context)
+            let version = gl_string(0x1F02);
+            if crate::stdlib::atoi(&version) >= 3 {
+                assert!(gl::gl_extension_supported("GL_ARB_texture_rg"));
+            } else {
+                println!("note: legacy context for 3.3 core (GL_VERSION {version})");
+            }
+            let px = gl_clear_and_read(0.0, 0.0, 1.0);
+            assert_eq!(&px[..3], &[0, 0, 255]);
+            core.destroy().unwrap();
+            assert_eq!(gl::gl_current_context().unwrap(), None);
+        }
+        Err(e) => println!("note: no GL 3.3 core context: {e}"),
+    }
+    gl::gl_reset_attributes();
+    drop(context);
+    window.destroy();
+    gl::gl_unload_library();
+}
+
+#[test]
+fn forced_egl_context() {
+    use crate::video::gl::{self, GlContext};
+    let _l = crate::test_support::test_lock();
+    // (in the environment: quitting resets the hints)
+    std::env::set_var(hints::VIDEO_FORCE_EGL, "1");
+    let session = start();
+    std::env::remove_var(hints::VIDEO_FORCE_EGL);
+    let Some(_session) = session else { return };
+
+    // (Wine has no libEGL.dll; with ANGLE or another EGL this runs through)
+    let window = match Window::create("SDL EGL test", 64, 48, WindowFlags::OPENGL) {
+        Ok(w) => w,
+        Err(e) => {
+            println!("note: no EGL window ({e}); skipping");
+            return;
+        }
+    };
+    match GlContext::new(&window) {
+        Ok(context) => {
+            assert!(context.is_current());
+            assert!(gl::egl_current_display().is_ok());
+            assert!(gl::egl_window_surface(&window).unwrap().is_some());
+            let px = gl_clear_and_read(1.0, 0.0, 1.0);
+            assert_eq!(&px[..3], &[255, 0, 255]);
+            gl::gl_swap_window(&window).unwrap();
+        }
+        Err(e) => println!("note: no EGL context ({e})"),
+    }
+    window.destroy();
+}

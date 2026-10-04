@@ -92,7 +92,9 @@ const EGL_OPENGL_ES2_BIT: EGLint = 0x0004;
 const EGL_OPENGL_BIT: EGLint = 0x0008;
 const EGL_VERSION: EGLint = 0x3054;
 const EGL_EXTENSIONS: EGLint = 0x3055;
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 const EGL_HEIGHT: EGLint = 0x3056;
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 const EGL_WIDTH: EGLint = 0x3057;
 const EGL_GL_COLORSPACE_SRGB_KHR: EGLint = 0x3089;
 const EGL_GL_COLORSPACE_LINEAR_KHR: EGLint = 0x308A;
@@ -109,10 +111,12 @@ const EGL_CONTEXT_OPENGL_NO_ERROR_KHR: EGLint = 0x31B3;
 const EGL_OPENGL_ES3_BIT_KHR: EGLint = 0x00000040;
 const EGL_COLOR_COMPONENT_TYPE_EXT: EGLint = 0x3339;
 const EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT: EGLint = 0x333B;
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 const EGL_PLATFORM_DEVICE_EXT: EGLenum = 0x313F;
 const EGL_PRESENT_OPAQUE_EXT: EGLint = 0x31DF;
 
 /// `SDL_EGL_MAX_DEVICES`.
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 const SDL_EGL_MAX_DEVICES: usize = 8;
 
 // The libraries tried, in order (the DEFAULT_*/ALT_* of the platform)
@@ -862,6 +866,7 @@ pub(crate) fn load_library(
 /// device list. If the requested device is a restricted GPU and cannot be used
 /// (eglInitialize() will fail) then attempt to automatically and silently select the next
 /// valid available GPU for EGL to use.
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 pub(crate) fn initialize_offscreen(device: i32) -> Result<()> {
     if gl::driver_loaded() <= 0 {
         return Err(Error::new(
@@ -1508,12 +1513,14 @@ pub(crate) fn set_swap_interval(interval: i32) -> Result<()> {
 
 /// Set `egl_data->egl_swapinterval` alone (nothing if EGL isn't loaded),
 /// for the Wayland driver, which paces the swaps itself.
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 pub(crate) fn set_stored_swap_interval(interval: i32) {
     with_egl(|e| e.egl_swapinterval = interval);
 }
 
 /// `egl_data->eglSwapInterval(egl_data->egl_display, interval)`, its result
 /// ignored (nothing if EGL isn't loaded), for the Wayland driver.
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 pub(crate) fn call_swap_interval(interval: i32) {
     let Some(e) = egl() else { return };
     // SAFETY: the display is EGL's (or EGL_NO_DISPLAY, which fails).
@@ -1686,6 +1693,7 @@ pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> 
 
 /// A pbuffer surface of `width`x`height`. Translation of
 /// `SDL_EGL_CreateOffscreenSurface()`.
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 pub(crate) fn create_offscreen_surface(width: i32, height: i32) -> Result<EGLSurface> {
     let attributes: [EGLint; 5] = [EGL_WIDTH, width, EGL_HEIGHT, height, EGL_NONE];
 
@@ -1699,6 +1707,7 @@ pub(crate) fn create_offscreen_surface(width: i32, height: i32) -> Result<EGLSur
 }
 
 /// Translation of `SDL_EGL_DestroySurface()`.
+#[cfg_attr(windows, allow(dead_code))] // (offscreen and Wayland only)
 pub(crate) fn destroy_surface(egl_surface: EGLSurface) {
     let Some(e) = egl() else { return };
 
