@@ -24,12 +24,14 @@ drop=9.6,18.4
 to window=50,40
 read3: 100x75 fmt=SDL_PIXELFORMAT_XRGB8888 hash=fb98adb5 p00=255,255,255,255 pmid=0,0,0,255
 target: ok
-target sizes: out=20x10 cur=20x10(1) vp=0,0,20,10 safe=1:0,0,20,10
+target sizes: out=100x80 cur=20x10(1) vp=0,0,20,10 safe=1:0,0,20,10
 resize2: ok
 target resized: out=120x90 cur=20x10(1) vp=0,0,20,10 safe=1:0,0,20,10
+target read: 20x10 fmt=SDL_PIXELFORMAT_ARGB8888 hash=14bdd24d p00=255,0,0,255 pmid=0,0,255,255
 target logical rect=0,0,0,0
 untarget: ok
 untarget sizes: out=120x90 cur=120x90(1) vp=0,0,32,24 safe=1:0,0,32,24
+untarget read: 120x90 fmt=SDL_PIXELFORMAT_XRGB8888 hash=b62b24c5 p00=0,0,0,255 pmid=0,0,0,255
 main logical rect=0,0,120,90
 present on target: err: You can't present on a render target
 logical off: ok

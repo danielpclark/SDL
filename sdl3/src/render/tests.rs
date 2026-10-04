@@ -611,7 +611,10 @@ fn convert_pixels_any_pitch_matches_c() {
 // A session with window renderers on the dummy video driver, compared with
 // the same session run by upstream's C (testdata/window_renderer_trace.txt,
 // from a program built against SDL with only the dummy and offscreen video
-// drivers).
+// drivers). That SDL has SDL_render_sw.c patched as `SwRenderer` fixes it:
+// a window resize keeps the render target (SW_WindowEvent() and
+// SW_ActivateRenderer()), and SW_GetOutputSize() reports the output's size,
+// not the target's.
 mod window_session {
     use std::fmt::Write as _;
 
@@ -911,9 +914,17 @@ mod window_session {
         sizes(o, &mut r, "target sizes");
         res(o, "resize2", win.set_size(120, 90));
         sizes(o, &mut r, "target resized");
+        // drawing still goes to the target
+        r.set_draw_color(0, 0, 255, 255);
+        r.clear().unwrap();
+        r.set_draw_color(255, 0, 0, 255);
+        r.render_fill_rect(Some(&FRect::new(0.0, 0.0, 5.0, 5.0)))
+            .unwrap();
+        readpix(o, &mut r, "target read");
         rect(o, "target logical rect", r.logical_presentation_rect());
         res(o, "untarget", r.set_render_target(None));
         sizes(o, &mut r, "untarget sizes");
+        readpix(o, &mut r, "untarget read");
         rect(o, "main logical rect", r.logical_presentation_rect());
         r.set_render_target(Some(t)).unwrap();
         res(o, "present on target", r.present());
