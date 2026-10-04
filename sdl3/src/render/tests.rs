@@ -571,6 +571,64 @@ fn renderer_basics() {
     assert!(r.into_surface().is_some());
 }
 
+// Rects outside the texture: upstream's YUV/NV updates and
+// SDL_LockTextureToSurface() ignore the failed intersection and go on with a
+// negative size.
+#[test]
+fn texture_rects_outside_texture() {
+    let s = Surface::new(8, 8, PixelFormat::ARGB8888).unwrap();
+    let mut r = Renderer::software(s).unwrap();
+    let outside = [
+        Rect::new(20, 0, 4, 4),
+        Rect::new(0, 20, 4, 4),
+        Rect::new(-10, 0, 4, 4),
+        Rect::new(0, -10, 4, 4),
+    ];
+    let planes = [0x80u8; 64];
+
+    // Nothing is updated
+    let t = r
+        .create_texture(PixelFormat::IYUV, TextureAccess::Streaming, 8, 8)
+        .unwrap();
+    r.update_yuv_texture(t, None, &planes, 8, &planes, 4, &planes, 4)
+        .unwrap();
+    r.render_texture(t, None, None).unwrap();
+    let before = r.read_pixels(None).unwrap();
+    let ones = [0xFFu8; 64];
+    for rc in &outside {
+        r.update_yuv_texture(t, Some(rc), &ones, 8, &ones, 4, &ones, 4)
+            .unwrap();
+    }
+    r.render_texture(t, None, None).unwrap();
+    let after = r.read_pixels(None).unwrap();
+    assert_eq!(
+        before.read_pixel(0, 0).unwrap(),
+        after.read_pixel(0, 0).unwrap()
+    );
+
+    let t = r
+        .create_texture(PixelFormat::NV12, TextureAccess::Streaming, 8, 8)
+        .unwrap();
+    for rc in &outside {
+        r.update_nv_texture(t, Some(rc), &ones, 8, &ones, 8)
+            .unwrap();
+    }
+
+    // A lock to a surface is refused, whichever side the rect is on
+    let t = r
+        .create_texture(PixelFormat::ARGB8888, TextureAccess::Streaming, 8, 8)
+        .unwrap();
+    for rc in &outside {
+        assert!(r.lock_texture_to_surface(t, Some(rc)).is_err(), "{rc:?}");
+    }
+    // while a rect that overlaps the texture is clipped to it
+    let mut lock = r
+        .lock_texture_to_surface(t, Some(&Rect::new(-2, 5, 5, 9)))
+        .unwrap();
+    let s = lock.surface().unwrap();
+    assert_eq!((s.width(), s.height()), (3, 3));
+}
+
 // Conversions of pixels with any pitch, as SDL_UpdateTexture() passes
 // them (see BlitInfo::truncate_skips()).
 #[test]

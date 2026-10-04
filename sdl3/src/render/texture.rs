@@ -1132,15 +1132,16 @@ impl Renderer {
     }
 
     /// The part of a texture an update of `rect` covers (the start of the
-    /// YUV and NV update functions, which don't check the intersection).
+    /// YUV and NV update functions), empty if `rect` misses the texture.
     fn yuv_update_rect(&self, t: Texture, rect: Option<&Rect>) -> Result<Rect> {
         let tex = self.tex(t)?;
         let full_rect = Rect::new(0, 0, tex.w, tex.h);
         let mut real_rect = full_rect;
         if let Some(rect) = rect {
-            // FIXME (upstream): the result of the intersection is ignored,
-            // so a rect outside the texture updates a rect with a negative
-            // size; that is treated as an empty rect here.
+            // Upstream ignores the result of the intersection here, so a
+            // rect outside the texture is updated with a negative size (a
+            // huge memcpy in the software YUV code). Fixed here: as in
+            // SDL_UpdateTexture(), there is nothing to update.
             if !rect.intersect_into(&full_rect, &mut real_rect) {
                 real_rect.w = 0;
                 real_rect.h = 0;
@@ -1376,10 +1377,13 @@ impl Renderer {
         let full_rect = Rect::new(0, 0, tex.w, tex.h);
         let mut real_rect = full_rect;
         if let Some(rect) = rect {
-            // FIXME (upstream): the result of the intersection is ignored.
-            if !rect.intersect_into(&full_rect, &mut real_rect) {
-                real_rect.w = 0;
-                real_rect.h = 0;
+            // Upstream ignores the result of the intersection here, so a
+            // rect outside the texture is locked with a negative size (and
+            // the surface creation then fails). Fixed here: such a rect is
+            // rejected before the texture is locked.
+            rect.intersect_into(&full_rect, &mut real_rect);
+            if real_rect.w < 0 || real_rect.h < 0 {
+                return Err(Error::invalid_param("rect"));
             }
         }
         let (format, palette) = (tex.format, tex.public_palette.clone());
