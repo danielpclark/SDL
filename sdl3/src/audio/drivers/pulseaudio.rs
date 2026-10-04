@@ -1137,7 +1137,7 @@ unsafe extern "C" fn server_info_callback(
             )
         };
         let mut d = shared.defaults.lock().unwrap_or_else(|e| e.into_inner());
-        // FIXME (upstream): a NULL default name (no sink/source) is passed to
+        // Note (upstream): a NULL default name (no sink/source) is passed to
         // SDL_strcmp(); here it's skipped, like a failed SDL_strdup().
         if let Some(str) = sink {
             if d.default_sink_path.as_deref() != Some(&str) {

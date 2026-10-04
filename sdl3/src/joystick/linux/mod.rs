@@ -199,7 +199,7 @@ impl HwData {
     fn new(instance_id: JoystickID) -> HwData {
         HwData {
             instance_id,
-            // FIXME (upstream): the C structure is calloc'ed, so its file
+            // Note (upstream): the C structure is calloc'ed, so its file
             // descriptors start as 0; when PrepareJoystickHwdata() fails to
             // open the device, LINUX_JoystickGetGamepadMapping() then closes
             // fd 0 (twice). They start as -1 here, so nothing is closed.
@@ -1830,7 +1830,7 @@ fn handle_classic_events(hwdata: &mut HwData, out: &mut Vec<Pending>) {
             break;
         }
         for event in &events[..len] {
-            // FIXME (upstream): key_pam/abs_pam are NULL when the mapping
+            // Note (upstream): key_pam/abs_pam are NULL when the mapping
             // ioctls failed, and an event then dereferences NULL; such
             // events are ignored here.
             match event.type_ {

@@ -596,7 +596,7 @@ impl DeviceBackend for AlsaPcm {
 
         let total_frames = ((buflen / frame_size) as SndPcmSframes).min(total_available) as i32;
         let rc = if total_frames < 0 {
-            // FIXME (upstream): a negative (error) result from snd_pcm_avail()
+            // Note (upstream): a negative (error) result from snd_pcm_avail()
             // is passed to snd_pcm_readi() as a huge frame count, which could
             // overrun `buffer`; here the error goes straight to the recovery
             // below, which is what snd_pcm_readi() reports in that state.
@@ -975,7 +975,8 @@ fn alsa_chmap_install(ctx: &mut PcmCfgCtx, target: &dyn ChmapTarget, chmap: &[u3
 
     let status = target.set_chmap(chmap);
     if status < 0 {
-        // FIXME (upstream): the channel map buffer isn't released on this path.
+        // Note (upstream): the channel map buffer isn't released on this path;
+        // here it's a borrowed slice, so there's nothing to release.
         return Err(Error::new(format!(
             "ALSA: failed to install channel map: {}",
             target.strerror(status)
@@ -1040,7 +1041,7 @@ fn alsa_chmap_cfg_ordered_fixed_or_paired(
             continue;
         }
 
-        // FIXME (upstream): the C loop compares one position past the end
+        // Note (upstream): the C loop compares one position past the end
         // of the map (it checks `chan_idx == chans_n` only after comparing
         // index `chans_n`), so whether an exact match installs depends on
         // the memory after the query; here a match of all `chans_n`
@@ -1657,7 +1658,7 @@ impl AlsaShared {
                 (lib.snd_ctl_close)(ctl);
                 (lib.snd_ctl_card_info_clear)(ctl_card_info);
             }
-            // FIXME (upstream): `ctl` isn't reset after closing, so a later
+            // Note (upstream): `ctl` isn't reset after closing, so a later
             // failure closes it a second time; here it's reset instead.
             ctl = ptr::null_mut();
         };
@@ -1922,7 +1923,8 @@ impl AudioDriverImpl for Alsa {
         alsa_stop_udev();
 
         // Shutting down! Clean up any data we've gathered.
-        // FIXME (upstream): each device's `id` string is leaked here (only `name` is freed).
+        // Note (upstream): each device's `id` string is leaked here (only
+        // `name` is freed); here both are owned by the list and freed with it.
         self.shared
             .hotplug_devices
             .lock()

@@ -12,6 +12,9 @@ faithful translation; the API is not a mock-up of the C one.
    upstream bug is the exception: it is marked `FIXME (upstream)` at first,
    then fixed in its own change (or tracked in an issue), with the expected
    test results regenerated from the C reference patched the same way.
+   Where the translation can't have the bug at all (an owned value can't
+   leak, a slice can't be read past its end), the comment says
+   `Note (upstream)` instead: there's nothing left to fix here.
 2. **API** — designed for Rust. Nothing in the public surface exists only
    because C needed it (`bool` returns, `void *userdata`, integer handles,
    out-parameters, `NULL` sentinels, global error strings).
