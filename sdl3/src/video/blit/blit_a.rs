@@ -11,8 +11,9 @@
 //!   own per-channel arithmetic for groups of four pixels, emulated lane by
 //!   lane;
 //! * `Blit888to888SurfaceAlphaSSE2` blends groups of four pixels like
-//!   `ALPHA_BLEND_CHANNEL` and finishes the row with a loop that stores only
-//!   the first byte of each pixel (FIXME (upstream));
+//!   `ALPHA_BLEND_CHANNEL` and finishes the row with a loop that, upstream,
+//!   stores only the first byte of each pixel (fixed here: the whole pixel
+//!   is stored);
 //! * the SSE4.1/AVX2 `Blit8888to8888PixelAlphaSwizzle` kernels produce the
 //!   same bytes as the portable one (`(x * 257) >> 16` equals
 //!   `(x + (x >> 8)) >> 8` for every value they see), so that one is used.
@@ -144,9 +145,10 @@ fn blit_888_to_888_surface_alpha_sse2(info: &mut BlitInfo<'_>) {
             let src32 = rd32(info.src, s as usize);
             let dst32 = rd32(info.dst, d as usize);
             let dst32 = factor_blend_8888(src32, dst32, alpha);
-            // FIXME (upstream): `*dst` is a Uint8 pointer here, so only the
-            // first byte of the pixel is stored.
-            info.dst[d as usize] = (dst32 | 0xff000000) as u8;
+            // Upstream stores through `*dst`, a Uint8 pointer here, so only
+            // the first byte of the pixel is written; fixed here by storing
+            // the whole pixel.
+            wr32(info.dst, d as usize, dst32 | 0xff000000);
             s += 4;
             d += 4;
             i += 1;
