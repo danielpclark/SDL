@@ -548,6 +548,7 @@ impl JoystickDriver for VirtualJoystickDriver {
             naxes,
             nbuttons,
             nhats,
+            nballs,
             touchpads,
             sensors,
             has_led,
@@ -559,6 +560,7 @@ impl JoystickDriver for VirtualJoystickDriver {
                 hwdata.axes.len(),
                 hwdata.buttons.len(),
                 hwdata.hats.len(),
+                hwdata.balls.len(),
                 hwdata
                     .touchpads
                     .iter()
@@ -576,7 +578,9 @@ impl JoystickDriver for VirtualJoystickDriver {
         joystick.naxes = naxes;
         joystick.nbuttons = nbuttons;
         joystick.nhats = nhats;
-        // FIXME (upstream): `nballs` isn't set, so ball motion is never reported
+        // Upstream doesn't set `nballs`, so the joystick has no balls and the
+        // ball motion set with `SDL_SetJoystickVirtualBall()` is never reported
+        joystick.nballs = nballs;
 
         for nfingers in touchpads {
             joystick.add_touchpad(nfingers);

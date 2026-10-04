@@ -4,6 +4,9 @@
 // `virtual_trace_matches_c` replays the scenario of a C program run against
 // upstream SDL (built with only the virtual joystick driver, on Linux) and
 // compares the trace line by line with `testdata/virtual_trace_linux.txt`.
+// The upstream build has the virtual driver set `joystick->nballs` in
+// `VIRTUAL_JoystickOpen()`, the upstream bug fixed here, so the trace counts
+// the joystick's ball and has its motion event.
 
 // (the trace helpers serve only the Linux trace test)
 #![cfg_attr(not(target_os = "linux"), allow(dead_code, unused_imports))]
