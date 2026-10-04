@@ -254,6 +254,7 @@ fn playback_and_recording_through_file_and_null_pcms() {
     if !have_libasound() {
         return;
     }
+    let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
     let tmp = TempDir::new("alsa");
     let out = tmp.path("out.raw");
     crate::hints::set(crate::hints::AUDIO_DRIVER, "alsa").unwrap();

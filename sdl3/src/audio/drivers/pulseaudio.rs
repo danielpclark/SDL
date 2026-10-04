@@ -1285,6 +1285,9 @@ fn hotplug_thread(shared: Arc<PulseShared>, ready_sem: Arc<Semaphore>) -> i32 {
     ready_sem.signal();
 
     while shared.hotplug_thread_active.load(Ordering::Acquire) {
+        // FIXME (upstream): a default change whose ServerInfoCallback signal
+        // comes while this thread is unlocked below is only noticed at the
+        // next signal, since the flags aren't checked again before waiting.
         shared.wait();
         // SAFETY: `op` is our live reference; we hold the lock.
         if !op.is_null() && unsafe { (lib.pa_operation_get_state)(op) } != PA_OPERATION_RUNNING {
