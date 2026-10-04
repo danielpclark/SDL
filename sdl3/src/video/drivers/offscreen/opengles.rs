@@ -134,9 +134,9 @@ mod tests {
             }
             let what = if es { "OpenGL ES" } else { "OpenGL" };
             if let Err(e) = gl::gl_load_library(None) {
-                eprintln!(
-                    "note: no offscreen EGL for {what} ({}); skipping",
-                    e.message()
+                crate::test_support::skip(
+                    "egl",
+                    format_args!("no offscreen EGL for {what} ({})", e.message()),
                 );
                 return;
             }
@@ -148,9 +148,9 @@ mod tests {
             let context = match GlContext::new(&window) {
                 Ok(c) => c,
                 Err(e) => {
-                    eprintln!(
-                        "note: no offscreen {what} context ({}); skipping",
-                        e.message()
+                    crate::test_support::skip(
+                        "egl",
+                        format_args!("no offscreen {what} context ({})", e.message()),
                     );
                     window.destroy();
                     gl::gl_unload_library();

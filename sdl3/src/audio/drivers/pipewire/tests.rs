@@ -330,12 +330,12 @@ fn abi_layouts() {
     }
 }
 
-/// Whether libpipewire loads here; prints a note when it doesn't.
+/// Whether libpipewire loads here; reports the skip when it doesn't.
 fn have_libpipewire() -> bool {
     match SharedObject::load(PIPEWIRE_LIBRARY) {
         Ok(_) => true,
         Err(e) => {
-            eprintln!("note: skipping the PipeWire server test: {}", e.message());
+            crate::test_support::skip("pipewire", e.message());
             false
         }
     }
@@ -361,16 +361,13 @@ fn playback_recording_and_hotplug_through_a_server() {
     let r = crate::init::init_subsystem(InitFlags::AUDIO);
     crate::hints::reset(crate::hints::AUDIO_DRIVER);
     if let Err(e) = r {
-        eprintln!(
-            "note: skipping the PipeWire server test: no server ({})",
-            e.message()
-        );
+        crate::test_support::skip("pipewire", format_args!("no server ({})", e.message()));
         return;
     }
     assert_eq!(current_audio_driver(), Some("pipewire"));
     let devices = playback_devices().unwrap();
     if devices.is_empty() {
-        eprintln!("note: the PipeWire server has no sinks; skipping playback");
+        crate::test_support::skip("pipewire", "the PipeWire server has no sinks");
         crate::init::quit_subsystem(InitFlags::AUDIO);
         return;
     }
@@ -431,25 +428,55 @@ fn playback_recording_and_hotplug_through_a_server() {
                 .into_iter()
                 .find(|&d| audio_device_name(d).is_ok_and(|n| n == name))
         };
-        assert!(wait_for(&|| named("Hotplugged").is_some()), "added");
-        if run(
-            "pw-metadata",
-            &[
-                "0",
-                "default.audio.sink",
-                "{ \"name\": \"sdl-hotplugged\" }",
-            ],
-        ) {
-            assert!(
-                wait_for(&|| audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK)
-                    .is_ok_and(|n| n == "Hotplugged")),
-                "the new default"
-            );
+        // The default we set dropped, then the node destroyed (so the
+        // session manager chooses the default again), even when an
+        // assertion fails, so a rerun starts clean.
+        struct Hotplugged;
+        impl Drop for Hotplugged {
+            fn drop(&mut self) {
+                let _ = std::process::Command::new("pw-metadata")
+                    .args(["-d", "0", "default.audio.sink"])
+                    .output();
+                let _ = std::process::Command::new("pw-cli")
+                    .args(["destroy", "sdl-hotplugged"])
+                    .output();
+            }
         }
-        assert!(run("pw-cli", &["destroy", "sdl-hotplugged"]));
+        let hotplugged = Hotplugged;
+        assert!(wait_for(&|| named("Hotplugged").is_some()), "added");
+        let is_default =
+            || audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK).is_ok_and(|n| n == "Hotplugged");
+        // A session manager (WirePlumber) that is still reacting to the new
+        // node may write its own choice over ours, so set it again until it
+        // sticks.
+        let mut changed = false;
+        for _ in 0..10 {
+            if !run(
+                "pw-metadata",
+                &[
+                    "0",
+                    "default.audio.sink",
+                    "{ \"name\": \"sdl-hotplugged\" }",
+                ],
+            ) {
+                changed = true; // (no pw-metadata: nothing to check)
+                break;
+            }
+            let start = Instant::now();
+            while !is_default() && start.elapsed() < Duration::from_secs(1) {
+                crate::events::pump();
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            changed = is_default();
+            if changed {
+                break;
+            }
+        }
+        assert!(changed, "the new default");
+        drop(hotplugged);
         assert!(wait_for(&|| named("Hotplugged").is_none()), "removed");
     } else {
-        eprintln!("note: skipping the PipeWire hotplug check: no pw-cli");
+        crate::test_support::skip("pipewire", "no pw-cli for the hotplug check");
     }
 
     crate::init::quit_subsystem(InitFlags::AUDIO);

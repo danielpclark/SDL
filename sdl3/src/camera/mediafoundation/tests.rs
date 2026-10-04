@@ -590,9 +590,9 @@ fn started_lib() -> Option<MfLib> {
         }
         Err(e) => {
             assert!(!is_wine(), "{}", e.message());
-            eprintln!(
-                "note: Media Foundation isn't available here: {}",
-                e.message()
+            crate::test_support::skip(
+                "mediafoundation",
+                format_args!("Media Foundation isn't available here: {}", e.message()),
             );
             None
         }
@@ -668,9 +668,9 @@ fn driver_starts_without_cameras() {
     crate::hints::reset(crate::hints::CAMERA_DRIVER);
     if let Err(e) = r {
         assert!(!is_wine(), "{}", e.message());
-        eprintln!(
-            "note: Media Foundation isn't available here: {}",
-            e.message()
+        crate::test_support::skip(
+            "mediafoundation",
+            format_args!("Media Foundation isn't available here: {}", e.message()),
         );
         return;
     }
@@ -723,4 +723,12 @@ fn driver_starts_without_cameras() {
 
     init::quit_subsystem(InitFlags::CAMERA);
     assert_eq!(current_camera_driver(), None);
+}
+
+/// Hardware: grab frames from the first Media Foundation camera (a webcam).
+#[test]
+#[ignore = "hardware: needs a camera"]
+fn hardware_capture_from_the_first_camera() {
+    let _l = crate::test_support::test_lock();
+    crate::camera::tests::hardware_capture("mediafoundation", "mediafoundation");
 }

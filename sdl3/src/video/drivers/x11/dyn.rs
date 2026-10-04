@@ -605,7 +605,7 @@ mod tests {
     #[test]
     fn load_and_unload() {
         let Some(x) = load_symbols() else {
-            println!("note: libX11 isn't installed; skipping the X11 symbol test");
+            crate::test_support::skip("x11", "libX11 isn't installed");
             return;
         };
         // A second reference shares the same symbols.

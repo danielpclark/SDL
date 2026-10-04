@@ -1020,3 +1020,113 @@ fn drivers_with_every_api() {
     hints::reset(hints::JOYSTICK_WGI);
     hints::reset(hints::JOYSTICK_DIRECTINPUT);
 }
+
+// --- hardware (cargo test -- --ignored; see docs/HARDWARE_TESTING.md) ---
+
+/// A name for the driver at `index` in `JOYSTICK_DRIVERS`.
+fn driver_label(index: usize) -> String {
+    use crate::joystick::{
+        HIDAPI_DRIVER_INDEX, RAWINPUT_DRIVER_INDEX, VIRTUAL_DRIVER_INDEX, WGI_DRIVER_INDEX,
+        WINDOWS_DRIVER_INDEX,
+    };
+    match index {
+        HIDAPI_DRIVER_INDEX => "HIDAPI".to_owned(),
+        RAWINPUT_DRIVER_INDEX => "RawInput".to_owned(),
+        WINDOWS_DRIVER_INDEX => "DirectInput/XInput".to_owned(),
+        WGI_DRIVER_INDEX => "Windows.Gaming.Input".to_owned(),
+        VIRTUAL_DRIVER_INDEX => "virtual".to_owned(),
+        _ => format!("driver #{index}"),
+    }
+}
+
+/// With the hints in `config`, list what each joystick driver finds (and
+/// which of the devices are gamepads), after a second of hotplug detection.
+fn list_joysticks(what: &str, config: &[(&str, &str)]) {
+    use crate::joystick::gamepad::{gamepad_name_for_id, gamepad_type_for_id, is_gamepad};
+    use crate::joystick::{joystick_guid_for_id, joystick_name_for_id, JOYSTICK_DRIVERS};
+    for &(name, value) in config {
+        hints::set(name, value).unwrap();
+    }
+    crate::init::init_subsystem(crate::init::InitFlags::GAMEPAD).unwrap();
+    let start = std::time::Instant::now();
+    while start.elapsed() < std::time::Duration::from_secs(1) {
+        crate::events::pump();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let per_driver: Vec<(usize, Vec<crate::events::JoystickID>)> = {
+        let _lock = crate::joystick::lock_joysticks();
+        JOYSTICK_DRIVERS
+            .iter()
+            .enumerate()
+            .map(|(i, d)| (i, (0..d.count()).map(|n| d.device_instance_id(n)).collect()))
+            .collect()
+    };
+    let counts: Vec<String> = per_driver
+        .iter()
+        .map(|(index, ids)| format!("{} {}", driver_label(*index), ids.len()))
+        .collect();
+    println!("{what}: {}", counts.join(", "));
+    let mut total = 0;
+    for (index, ids) in per_driver {
+        for id in ids {
+            print!("  {}: ", driver_label(index));
+            total += 1;
+            let name = joystick_name_for_id(id).ok().flatten().unwrap_or_default();
+            let guid = joystick_guid_for_id(id);
+            if is_gamepad(id) {
+                let pad = gamepad_name_for_id(id).ok().flatten().unwrap_or_default();
+                println!(
+                    "{id}: {name:?} {guid}, gamepad {pad:?} ({:?})",
+                    gamepad_type_for_id(id)
+                );
+            } else {
+                println!("{id}: {name:?} {guid}");
+            }
+        }
+    }
+    assert_eq!(crate::joystick::joysticks().len(), total);
+    crate::init::quit_subsystem(crate::init::InitFlags::GAMEPAD);
+    for &(name, _) in config {
+        hints::reset(name);
+    }
+}
+
+/// Hardware: the controllers each Windows joystick driver sees. There may
+/// be none; this lists them, it doesn't require any.
+#[test]
+#[ignore = "hardware: lists the connected controllers"]
+fn hardware_joysticks_per_driver() {
+    let _l = lock();
+    let only = |on: &'static str| -> Vec<(&'static str, &'static str)> {
+        [
+            hints::JOYSTICK_HIDAPI,
+            hints::JOYSTICK_RAWINPUT,
+            hints::JOYSTICK_DIRECTINPUT,
+            hints::XINPUT_ENABLED,
+            hints::JOYSTICK_WGI,
+            hints::JOYSTICK_GAMEINPUT,
+        ]
+        .into_iter()
+        .map(|h| (h, if h == on { "1" } else { "0" }))
+        .collect()
+    };
+    list_joysticks("the default drivers", &[]);
+    list_joysticks(
+        "every driver enabled",
+        &[
+            (hints::JOYSTICK_RAWINPUT, "1"),
+            (hints::JOYSTICK_WGI, "1"),
+            (hints::JOYSTICK_GAMEINPUT, "1"),
+        ],
+    );
+    for (what, hint) in [
+        ("HIDAPI alone", hints::JOYSTICK_HIDAPI),
+        ("RawInput alone", hints::JOYSTICK_RAWINPUT),
+        ("DirectInput alone", hints::JOYSTICK_DIRECTINPUT),
+        ("XInput alone", hints::XINPUT_ENABLED),
+        ("Windows.Gaming.Input alone", hints::JOYSTICK_WGI),
+        ("GameInput alone", hints::JOYSTICK_GAMEINPUT),
+    ] {
+        list_joysticks(what, &only(hint));
+    }
+}

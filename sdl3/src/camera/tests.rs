@@ -613,3 +613,117 @@ fn quit_while_open() {
     drop(frame);
     drop(camera);
 }
+
+/// The hardware check of a camera driver (the `#[ignore]`d tests next to
+/// each driver's own; docs/HARDWARE_TESTING.md): start `driver`, list its
+/// cameras, open the first one in its preferred format and grab ten frames,
+/// checking their size and format and that their timestamps advance. A
+/// driver that doesn't start skips as `capability`, no camera as `camera`.
+pub(super) fn hardware_capture(driver: &str, capability: &str) {
+    use std::time::{Duration, Instant};
+    crate::hints::set(crate::hints::CAMERA_DRIVER, driver).unwrap();
+    let r = init::init_subsystem(InitFlags::CAMERA);
+    crate::hints::reset(crate::hints::CAMERA_DRIVER);
+    if let Err(e) = r {
+        crate::test_support::skip(
+            capability,
+            format_args!("the {driver} camera driver didn't start: {}", e.message()),
+        );
+        return;
+    }
+    assert_eq!(current_camera_driver(), Some(driver));
+
+    // Hotplug detection may still be adding devices.
+    let start = Instant::now();
+    let mut ids = cameras().unwrap();
+    while ids.is_empty() && start.elapsed() < Duration::from_secs(2) {
+        pump();
+        std::thread::sleep(Duration::from_millis(20));
+        ids = cameras().unwrap();
+    }
+    println!("{driver} cameras: {}", ids.len());
+    for &id in &ids {
+        let specs = camera_supported_formats(id).unwrap();
+        println!(
+            "  {id}: {:?} ({:?}), {} formats",
+            camera_name(id).unwrap(),
+            camera_position(id),
+            specs.len()
+        );
+        for s in &specs {
+            println!(
+                "    {:?} {}x{} at {}/{} fps",
+                s.format, s.width, s.height, s.framerate_numerator, s.framerate_denominator
+            );
+        }
+        assert!(!specs.is_empty());
+    }
+    let Some(&id) = ids.first() else {
+        init::quit_subsystem(InitFlags::CAMERA);
+        crate::test_support::skip("camera", format_args!("{driver} found no camera"));
+        return;
+    };
+
+    let camera = Camera::open(id, None).unwrap();
+    let start = Instant::now();
+    while camera.permission_state() == CameraPermissionState::Pending
+        && start.elapsed() < Duration::from_secs(30)
+    {
+        pump();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(
+        camera.permission_state(),
+        CameraPermissionState::Approved,
+        "camera access (Settings > Privacy > Camera on Windows)"
+    );
+    let spec = camera.format().unwrap();
+    println!(
+        "opened {:?}: {:?} {}x{} at {}/{} fps",
+        camera_name(id).unwrap(),
+        spec.format,
+        spec.width,
+        spec.height,
+        spec.framerate_numerator,
+        spec.framerate_denominator
+    );
+    assert!(spec.width > 0 && spec.height > 0);
+
+    let mut stamps = Vec::new();
+    let start = Instant::now();
+    while stamps.len() < 10 {
+        assert!(
+            start.elapsed() < Duration::from_secs(20),
+            "only {} frames in 20 seconds",
+            stamps.len()
+        );
+        pump();
+        let Some(frame) = camera.acquire_frame().unwrap() else {
+            std::thread::sleep(Duration::from_millis(2));
+            continue;
+        };
+        assert_eq!(
+            (frame.width(), frame.height(), frame.format()),
+            (spec.width, spec.height, spec.format)
+        );
+        let pixels = frame.pixels().expect("frame pixels");
+        assert!(!pixels.is_empty());
+        let ts = frame.timestamp_ns();
+        println!(
+            "  frame {}: timestamp {ts} ns ({:+.1} ms from now), {} bytes, first {:02x?}",
+            stamps.len(),
+            (ts as f64 - crate::timer::ticks_ns() as f64) / 1e6,
+            pixels.len(),
+            &pixels[..pixels.len().min(4)]
+        );
+        if let Some(&last) = stamps.last() {
+            assert!(ts > last, "timestamps advance: {last} then {ts}");
+        }
+        stamps.push(ts);
+        drop(frame);
+    }
+    let span = (stamps[9] - stamps[0]) as f64 / 1e9;
+    println!("{:.1} fps over the ten frames", 9.0 / span);
+    drop(camera);
+    init::quit_subsystem(InitFlags::CAMERA);
+}

@@ -56,14 +56,18 @@ impl Drop for Session {
     }
 }
 
-/// Start the windows driver, or `None` (with a note) if there's no desktop.
+/// Start the windows driver, or `None` (with the skip reported) if there's
+/// no desktop.
 fn start() -> Option<Session> {
     init::quit(); // (in case an earlier test failed halfway)
     hints::set(hints::VIDEO_DRIVER, "windows").unwrap();
     let result = init::init(InitFlags::VIDEO);
     hints::reset(hints::VIDEO_DRIVER);
     if let Err(e) = result {
-        println!("note: no desktop for the windows video driver, skipping ({e})");
+        crate::test_support::skip(
+            "desktop",
+            format_args!("no desktop for the windows video driver ({e})"),
+        );
         return None;
     }
     let session = Session;
@@ -71,7 +75,10 @@ fn start() -> Option<Session> {
     match Window::create("SDL probe window", 1, 1, WindowFlags::HIDDEN) {
         Ok(probe) => probe.destroy(),
         Err(e) => {
-            println!("note: the windows video driver can't create windows, skipping ({e})");
+            crate::test_support::skip(
+                "desktop",
+                format_args!("the windows video driver can't create windows ({e})"),
+            );
             return None;
         }
     }
@@ -622,7 +629,10 @@ fn warping_and_relative_mode() {
         assert_ne!(unsafe { GetCursorPos(&mut pt) }, 0);
         assert_ne!((pt.x, pt.y), (30, 40), "SDL reports ({x}, {y})");
         assert_eq!((x, y), (pt.x as f32, pt.y as f32));
-        println!("note: this desktop doesn't let the cursor move, skipping the warp check");
+        crate::test_support::skip(
+            "desktop",
+            "this desktop doesn't let the cursor move, for the warp check",
+        );
     }
 
     let window =
@@ -740,13 +750,13 @@ fn wgl_context() {
     let Some(_session) = start() else { return };
 
     if let Err(e) = gl::gl_load_library(None) {
-        println!("note: no opengl32.dll ({e}); skipping");
+        crate::test_support::skip("wgl", format_args!("no opengl32.dll ({e})"));
         return;
     }
     let window = match Window::create("SDL WGL test", 64, 48, WindowFlags::OPENGL) {
         Ok(w) => w,
         Err(e) => {
-            println!("note: no WGL pixel format ({e}); skipping");
+            crate::test_support::skip("wgl", format_args!("no WGL pixel format ({e})"));
             gl::gl_unload_library();
             return;
         }
@@ -754,7 +764,7 @@ fn wgl_context() {
     let context = match GlContext::new(&window) {
         Ok(c) => c,
         Err(e) => {
-            println!("note: no WGL context ({e}); skipping");
+            crate::test_support::skip("wgl", format_args!("no WGL context ({e})"));
             window.destroy();
             gl::gl_unload_library();
             return;
@@ -838,7 +848,7 @@ fn forced_egl_context() {
     let window = match Window::create("SDL EGL test", 64, 48, WindowFlags::OPENGL) {
         Ok(w) => w,
         Err(e) => {
-            println!("note: no EGL window ({e}); skipping");
+            crate::test_support::skip("egl", format_args!("no EGL window ({e})"));
             return;
         }
     };
@@ -851,7 +861,64 @@ fn forced_egl_context() {
             assert_eq!(&px[..3], &[255, 0, 255]);
             gl::gl_swap_window(&window).unwrap();
         }
-        Err(e) => println!("note: no EGL context ({e})"),
+        Err(e) => crate::test_support::skip("egl", format_args!("no EGL context ({e})")),
     }
+    window.destroy();
+}
+
+/// Hardware (docs/HARDWARE_TESTING.md): an OpenGL context on the GPU's
+/// driver (not Microsoft's GDI Generic), and the 2D renderer on it: with
+/// framebuffer objects the default renderer must be "opengl", and it draws.
+#[test]
+#[ignore = "hardware: needs a GPU OpenGL driver"]
+fn hardware_gpu_gl_context_and_renderer() {
+    use crate::render::Renderer;
+    use crate::video::gl::{self, GlContext};
+    use crate::video::Rect;
+    let _l = crate::test_support::test_lock();
+    let Some(_session) = start() else { return };
+
+    if let Err(e) = gl::gl_load_library(None) {
+        crate::test_support::skip("wgl", format_args!("no opengl32.dll ({e})"));
+        return;
+    }
+    let window = Window::create("SDL GPU GL test", 64, 48, WindowFlags::OPENGL).unwrap();
+    let context = GlContext::new(&window).unwrap();
+    let (vendor, renderer, version) = (gl_string(0x1F00), gl_string(0x1F01), gl_string(0x1F02));
+    println!("GL_VENDOR {vendor}\nGL_RENDERER {renderer}\nGL_VERSION {version}");
+    let major = crate::stdlib::atoi(&version);
+    let fbo = major >= 3
+        || gl::gl_extension_supported("GL_ARB_framebuffer_object")
+        || gl::gl_extension_supported("GL_EXT_framebuffer_object");
+    println!("framebuffer objects: {fbo}");
+    let px = gl_clear_and_read(1.0, 0.0, 1.0);
+    assert_eq!(&px[..3], &[255, 0, 255]);
+    gl::gl_swap_window(&window).unwrap();
+    drop(context);
+    window.destroy();
+    gl::gl_unload_library();
+    if renderer == "GDI Generic" {
+        crate::test_support::skip(
+            "wgl",
+            "GL_RENDERER is GDI Generic: no GPU OpenGL driver (a VM or remote desktop?)",
+        );
+        return;
+    }
+
+    // The 2D renderer, chosen by default.
+    let window = Window::create("SDL GPU renderer test", 64, 48, WindowFlags::default()).unwrap();
+    let mut r = Renderer::for_window(&window, None).unwrap();
+    println!("default renderer: {}", r.name());
+    if fbo {
+        assert_eq!(r.name(), "opengl");
+    }
+    r.set_draw_color(10, 200, 30, 255);
+    r.clear().unwrap();
+    let s = r.read_pixels(Some(&Rect::new(0, 0, 1, 1))).unwrap();
+    let c = s.read_pixel(0, 0).unwrap();
+    assert_eq!((c.r, c.g, c.b), (10, 200, 30));
+    r.present().unwrap();
+    pump();
+    drop(r);
     window.destroy();
 }

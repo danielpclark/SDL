@@ -319,3 +319,11 @@ fn opening_a_missing_device_fails_cleanly() {
     maybe_add_device("/");
     crate::init::quit_subsystem(InitFlags::CAMERA);
 }
+
+/// Hardware: grab frames from the first V4L2 camera (a webcam).
+#[test]
+#[ignore = "hardware: needs a camera"]
+fn hardware_capture_from_the_first_camera() {
+    let _l = crate::test_support::test_lock();
+    crate::camera::tests::hardware_capture("v4l2", "v4l2");
+}

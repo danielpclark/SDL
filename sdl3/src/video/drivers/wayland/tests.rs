@@ -5,8 +5,9 @@
 //! Each compositor test starts its own headless compositor in a private
 //! `XDG_RUNTIME_DIR`: sway (wlroots, with its virtual keyboard, virtual
 //! pointer and data control protocols for input and clipboard tests), else
-//! weston, whichever is found in `PATH`. Without either the tests print a
-//! note and pass. The keymap tests need only libxkbcommon.
+//! weston, whichever is found in `PATH`. Without either the tests report a
+//! skip (capability `wayland`) and pass. The keymap tests need only
+//! libxkbcommon.
 //!
 //! A second client of the compositor (the test's own connection, on the
 //! proxy runtime of [`super::client`]) injects input and reads and sets the
@@ -111,9 +112,15 @@ impl Compositor {
             (None, Some(w)) => (Kind::Weston, w),
             (None, None) => {
                 if need_sway {
-                    eprintln!("note: sway (for its input and data control protocols) isn't in PATH; skipping");
+                    crate::test_support::skip(
+                        "wayland",
+                        "sway (for its input and data control protocols) isn't in PATH",
+                    );
                 } else {
-                    eprintln!("note: no Wayland compositor (sway or weston) in PATH; skipping");
+                    crate::test_support::skip(
+                        "wayland",
+                        "no Wayland compositor (sway or weston) in PATH",
+                    );
                 }
                 return None;
             }
@@ -156,7 +163,10 @@ impl Compositor {
         let child = match cmd.spawn() {
             Ok(child) => child,
             Err(e) => {
-                eprintln!("note: can't start {}: {e}; skipping", exe.display());
+                crate::test_support::skip(
+                    "wayland",
+                    format_args!("can't start {}: {e}", exe.display()),
+                );
                 let _ = std::fs::remove_dir_all(&dir);
                 return None;
             }
@@ -188,7 +198,7 @@ impl Compositor {
             std::thread::sleep(Duration::from_millis(20));
         };
         let Some(socket) = socket else {
-            eprintln!("note: {kind:?} didn't start; skipping");
+            crate::test_support::skip("wayland", format_args!("{kind:?} didn't start"));
             return None;
         };
 
@@ -200,7 +210,13 @@ impl Compositor {
         crate::stdlib::unsetenv_unsafe("DISPLAY").unwrap();
 
         // Wait until it accepts clients and has an output.
-        let syms = load_symbols()?;
+        let Some(syms) = load_symbols() else {
+            crate::test_support::skip(
+                "wayland",
+                "libwayland-client or libxkbcommon isn't available",
+            );
+            return None;
+        };
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {
             if let Ok(conn) = Conn::connect(&syms) {
@@ -212,7 +228,7 @@ impl Compositor {
                 }
             }
             if Instant::now() > deadline {
-                eprintln!("note: can't connect to {kind:?}; skipping");
+                crate::test_support::skip("wayland", format_args!("can't connect to {kind:?}"));
                 return None;
             }
             std::thread::sleep(Duration::from_millis(20));
@@ -806,7 +822,10 @@ impl VirtualKeyboard {
 fn xkb_keymaps_are_built_per_layout() {
     let _l = crate::test_support::test_lock();
     let Some(syms) = load_symbols() else {
-        eprintln!("note: libwayland-client or libxkbcommon isn't available; skipping");
+        crate::test_support::skip(
+            "wayland",
+            "libwayland-client or libxkbcommon isn't available",
+        );
         return;
     };
     let context = XkbContext::new(&syms).unwrap();
@@ -1137,9 +1156,9 @@ fn wayland_egl_contexts() {
         let w = match SdlWindow::create(what, 64, 48, WindowFlags::OPENGL) {
             Ok(w) => w,
             Err(e) => {
-                eprintln!(
-                    "note: no Wayland EGL {what} window ({}); skipping",
-                    e.message()
+                crate::test_support::skip(
+                    "egl",
+                    format_args!("no Wayland EGL {what} window ({})", e.message()),
                 );
                 return;
             }
@@ -1154,9 +1173,9 @@ fn wayland_egl_contexts() {
         let context = match GlContext::new(&w) {
             Ok(c) => c,
             Err(e) => {
-                eprintln!(
-                    "note: no Wayland EGL {what} context ({}); skipping",
-                    e.message()
+                crate::test_support::skip(
+                    "egl",
+                    format_args!("no Wayland EGL {what} context ({})", e.message()),
                 );
                 continue;
             }
@@ -1340,7 +1359,7 @@ fn wayland_keyboard_input() {
     let syms = load_symbols().unwrap();
     let client = TestClient::connect(&syms);
     let Some(mut kbd) = VirtualKeyboard::new(&client) else {
-        eprintln!("note: the compositor has no virtual keyboards; skipping");
+        crate::test_support::skip("wayland", "the compositor has no virtual keyboards");
         return;
     };
     let _video = Video::init();
@@ -1429,7 +1448,10 @@ fn wayland_clipboard_between_clients() {
         client.bind::<DcManager>(1),
         client.bind::<WlSeat>(1),
     ) else {
-        eprintln!("note: the compositor lacks virtual keyboards or data control; skipping");
+        crate::test_support::skip(
+            "wayland",
+            "the compositor lacks virtual keyboards or data control",
+        );
         return;
     };
 

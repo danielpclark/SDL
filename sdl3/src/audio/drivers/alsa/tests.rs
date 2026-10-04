@@ -382,12 +382,12 @@ fn channel_map_queries_are_freed_once_read() {
     assert_eq!(FREED_CHMAPS.load(Ordering::SeqCst), list.as_ptr() as usize);
 }
 
-/// Whether libasound can be loaded here; prints a note when it can't.
+/// Whether libasound can be loaded here; reports the skip when it can't.
 fn have_libasound() -> bool {
     match SharedObject::load(ALSA_LIBRARY) {
         Ok(_) => true,
         Err(e) => {
-            eprintln!("note: skipping the ALSA device test: {}", e.message());
+            crate::test_support::skip("alsa", e.message());
             false
         }
     }
@@ -549,7 +549,7 @@ fn playback_and_recording_through_file_and_null_pcms() {
         Ok(dev) => dev,
         Err(e) => {
             // No alsa.conf (or no `file` plugin) on this system.
-            eprintln!("note: skipping ALSA playback: {}", e.message());
+            crate::test_support::skip("alsa", format_args!("no ALSA file PCM: {}", e.message()));
             crate::init::quit_subsystem(InitFlags::AUDIO);
             reset();
             return;

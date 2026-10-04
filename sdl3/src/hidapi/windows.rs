@@ -2005,7 +2005,10 @@ mod tests {
                 assert!(open_path(r"\\?\nonexistent").is_err());
                 hid_exit().unwrap();
             }
-            Err(e) => println!("note: hid.dll unavailable ({}), skipping", e.message()),
+            Err(e) => crate::test_support::skip(
+                "hidapi",
+                format_args!("hid.dll unavailable ({})", e.message()),
+            ),
         }
         let error = winapi_error_code("op", 2);
         assert!(

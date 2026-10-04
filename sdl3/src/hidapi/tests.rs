@@ -109,7 +109,7 @@ fn device_filtering() {
         ));
         exit().unwrap();
     } else {
-        println!("note: hidapi couldn't be initialized, skipping the filtering test");
+        crate::test_support::skip("hidapi", "hidapi couldn't be initialized");
     }
     hints::reset(hints::HIDAPI_ENUMERATE_ONLY_CONTROLLERS);
     hints::reset(hints::HIDAPI_IGNORE_DEVICES);
@@ -120,9 +120,9 @@ fn init_exit_and_enumerate() {
     let _l = crate::test_support::test_lock();
 
     if let Err(e) = init() {
-        println!(
-            "note: hidapi couldn't be initialized ({}), skipping the device test",
-            e.message()
+        crate::test_support::skip(
+            "hidapi",
+            format_args!("hidapi couldn't be initialized ({})", e.message()),
         );
         return;
     }

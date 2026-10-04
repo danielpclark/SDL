@@ -33,11 +33,11 @@ pub(crate) struct Bus {
 }
 
 impl Bus {
-    /// Start a bus, or `None` (after printing why) without libdbus or
+    /// Start a bus, or `None` (after reporting the skip) without libdbus or
     /// `dbus-daemon`.
     pub(crate) fn start() -> Option<Bus> {
         if lib().is_none() {
-            println!("libdbus isn't available; skipping");
+            crate::test_support::skip("dbus", "libdbus isn't available");
             return None;
         }
         let dir = TempDir::new("dbus");
@@ -71,7 +71,7 @@ impl Bus {
         {
             Ok(c) => c,
             Err(_) => {
-                println!("dbus-daemon isn't installed; skipping");
+                crate::test_support::skip("dbus", "dbus-daemon isn't installed");
                 return None;
             }
         };
@@ -80,7 +80,7 @@ impl Bus {
             .read_line(&mut line)
             .ok()?;
         if line.trim().is_empty() {
-            println!("dbus-daemon didn't start; skipping");
+            crate::test_support::skip("dbus", "dbus-daemon didn't start");
             let _ = child.kill();
             let _ = child.wait();
             return None;

@@ -137,7 +137,7 @@ fn start_private_server() -> Option<(PrivateServer, String)> {
     let child = match child {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("note: skipping the PulseAudio server test: can't run pulseaudio: {e}");
+            crate::test_support::skip("pulseaudio", format_args!("can't run pulseaudio: {e}"));
             return None;
         }
     };
@@ -145,7 +145,7 @@ fn start_private_server() -> Option<(PrivateServer, String)> {
     let start = std::time::Instant::now();
     while !std::path::Path::new(&socket).exists() {
         if start.elapsed() > Duration::from_secs(10) {
-            eprintln!("note: skipping the PulseAudio server test: the server didn't start");
+            crate::test_support::skip("pulseaudio", "the private pulseaudio server didn't start");
             return None;
         }
         std::thread::sleep(Duration::from_millis(20));
@@ -182,7 +182,10 @@ fn failed_context_frees_the_proplist() {
     let mut lib = match load_pulseaudio_library() {
         Ok(lib) => lib,
         Err(e) => {
-            eprintln!("note: libpulse isn't installed: {}", e.message());
+            crate::test_support::skip(
+                "pulseaudio",
+                format_args!("libpulse isn't installed: {}", e.message()),
+            );
             return;
         }
     };
@@ -212,7 +215,10 @@ fn no_server_means_no_driver() {
     let lib = match load_pulseaudio_library() {
         Ok(lib) => lib,
         Err(e) => {
-            eprintln!("note: libpulse isn't installed: {}", e.message());
+            crate::test_support::skip(
+                "pulseaudio",
+                format_args!("libpulse isn't installed: {}", e.message()),
+            );
             return;
         }
     };
@@ -233,7 +239,7 @@ fn no_server_means_no_driver() {
 fn playback_and_recording_through_a_private_server() {
     let _l = crate::test_support::test_lock();
     if load_pulseaudio_library().is_err() {
-        eprintln!("note: skipping the PulseAudio server test: libpulse isn't installed");
+        crate::test_support::skip("pulseaudio", "libpulse isn't installed");
         return;
     }
     let Some((_server, address)) = start_private_server() else {
@@ -344,7 +350,7 @@ fn playback_and_recording_through_a_private_server() {
         pactl(&["unload-module", &module]).unwrap();
         assert!(wait_for(&|| named("Hotplugged").is_none()), "removed");
     } else {
-        eprintln!("note: skipping the PulseAudio hotplug check: no pactl");
+        crate::test_support::skip("pulseaudio", "no pactl for the hotplug check");
     }
 
     crate::init::quit_subsystem(InitFlags::AUDIO);
