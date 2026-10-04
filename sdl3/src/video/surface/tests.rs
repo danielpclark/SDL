@@ -1660,10 +1660,11 @@ fn bmp_matches_c() {
 }
 
 // (with upstream's SDL_triangle.c fixed to step the barycentric coordinates
-// past color keyed texels, as `Raster::for_each` does)
+// past color keyed texels, as `Raster::for_each` does, and to wrap negative
+// texture coordinates by adding the size, as `TexCoords::get` does)
 #[test]
 fn draw_matches_c() {
     let simd = with_simd(true, run_draw);
     let plain = with_simd(false, run_draw);
-    assert_eq!((simd, plain), (0x8e92753755544db8, 0xf8ca3a0d7c615315));
+    assert_eq!((simd, plain), (0xc55edaeb3135741d, 0xf7eaa4fc15b0c094));
 }
