@@ -237,15 +237,15 @@ impl Iconv {
                 // Scan for a byte order marker
                 let mut found = false;
                 for p in src.chunks_exact(2) {
+                    // (upstream maps FF FE to big-endian and FE FF to
+                    // little-endian, the wrong way round; fixed here: FF FE
+                    // is the little-endian BOM.)
                     if p[0] == 0xFF && p[1] == 0xFE {
-                        // FIXME (upstream): FF FE is the *little*-endian BOM, yet
-                        // upstream switches to big-endian here (and vice versa
-                        // below); kept for identical output.
-                        self.src_fmt = Encoding::Utf16Be;
+                        self.src_fmt = Encoding::Utf16Le;
                         found = true;
                         break;
                     } else if p[0] == 0xFE && p[1] == 0xFF {
-                        self.src_fmt = Encoding::Utf16Le;
+                        self.src_fmt = Encoding::Utf16Be;
                         found = true;
                         break;
                     }
@@ -259,13 +259,14 @@ impl Iconv {
                 // Scan for a byte order marker
                 let mut found = false;
                 for p in src.chunks_exact(4) {
+                    // (upstream has the byte orders inverted here too, as
+                    // for UTF-16 above; fixed here.)
                     if p[0] == 0xFF && p[1] == 0xFE && p[2] == 0x00 && p[3] == 0x00 {
-                        // FIXME (upstream): byte order inverted, as for UTF-16 above.
-                        self.src_fmt = Encoding::Utf32Be;
+                        self.src_fmt = Encoding::Utf32Le;
                         found = true;
                         break;
                     } else if p[0] == 0x00 && p[1] == 0x00 && p[2] == 0xFE && p[3] == 0xFF {
-                        self.src_fmt = Encoding::Utf32Le;
+                        self.src_fmt = Encoding::Utf32Be;
                         found = true;
                         break;
                     }
@@ -743,6 +744,43 @@ mod tests {
             conv("UTF-8", "UTF-16LE", &[0x00, 0xDC]),
             "\u{FFFD}".as_bytes()
         );
+    }
+
+    #[test]
+    fn source_byte_order_marks() {
+        // The BOM picks the byte order (and, as upstream, is itself decoded).
+        let want = "\u{FEFF}Aé".as_bytes();
+        assert_eq!(
+            conv("UTF-8", "UTF-16", &[0xFF, 0xFE, 0x41, 0x00, 0xE9, 0x00]),
+            want
+        );
+        assert_eq!(
+            conv("UTF-8", "UTF-16", &[0xFE, 0xFF, 0x00, 0x41, 0x00, 0xE9]),
+            want
+        );
+        assert_eq!(
+            conv(
+                "UTF-8",
+                "UTF-32",
+                &[0xFF, 0xFE, 0, 0, 0x41, 0, 0, 0, 0xE9, 0, 0, 0]
+            ),
+            want
+        );
+        assert_eq!(
+            conv(
+                "UTF-8",
+                "UTF-32",
+                &[0, 0, 0xFE, 0xFF, 0, 0, 0, 0x41, 0, 0, 0, 0xE9]
+            ),
+            want
+        );
+
+        let mut cd = Iconv::open("UTF-8", "UTF-16").unwrap();
+        let mut inbuf: &[u8] = &[0xFF, 0xFE, 0x41, 0x00];
+        let mut storage = [0u8; 8];
+        let mut outbuf: &mut [u8] = &mut storage;
+        assert_eq!(cd.convert(&mut inbuf, &mut outbuf), Ok(2));
+        assert_eq!(cd.source(), Encoding::Utf16Le);
     }
 
     #[test]
