@@ -26,10 +26,12 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 > blitter, RLE, rotation, YUV conversion, BMP files), the 2D renderer
 > with its software backend, and the joystick, gamepad and sensor front ends
 > (with the virtual joystick driver). The platform backends have started:
-> the Linux evdev joystick and haptic drivers (with udev), and the Windows
+> the Linux evdev joystick and haptic drivers (with udev), the Windows
 > joystick drivers (DirectInput, XInput, RawInput, Windows.Gaming.Input)
-> with the DirectInput haptic driver. The remaining front ends and platform
-> backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+> with the DirectInput haptic driver, and HIDAPI (hidraw and Windows HID)
+> with the Xbox, PlayStation and Nintendo Switch controller drivers. The
+> remaining front ends and platform backends come next; see
+> [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What is translated so far
 
@@ -84,6 +86,8 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `joystick/windows/SDL_windowsjoystick.c`, `SDL_xinputjoystick.c`, `SDL_dinputjoystick.c`, `core/windows/SDL_directx.h` | `sdl3::joystick` (Windows driver) | the detection thread with its message-only window and device notifications (waiting instead of spinning while a change is pending), XInput controllers (fixed layout, rumble, battery, packet-numbered updates), DirectInput 8 game controllers over hand-declared COM vtables with RAII references (the `DIJOYSTATE2` data format, buffered and polled input, POV hats, sine-effect rumble), the haptic hotplug; tested under Wine, conversions checked against upstream's C |
 | `joystick/windows/SDL_rawinputjoystick.c`, `core/windows/SDL_hid.c` | `sdl3::joystick` (RawInput driver) | XInput-capable HID devices through `WM_INPUT`, parsed with `hid.dll` (loaded at run time), correlated with XInput slots and Windows.Gaming.Input gamepads by matching states for the guide button, separate triggers and rumble; off unless `SDL_JOYSTICK_RAWINPUT` is set. Match states and packet parsing checked against upstream's C |
 | `joystick/windows/SDL_windows_gaming_input.c` | `sdl3::joystick` (WGI driver) | WinRT raw game controllers over hand-declared vtables (combase loaded at run time), controller added/removed events, gamepad vibration, battery reports; off unless `SDL_JOYSTICK_WGI` is set. GameInput is not translated |
+| `hidapi/SDL_hidapi.c`, `linux/hid.c`, `windows/hid.c`, `windows/hidapi_descriptor_reconstruct.c` and the `hidapi_*.h` headers | `sdl3::hidapi` | the `SDL_hid_*` API: `enumerate()` returning `DeviceInfo`s, `HidDevice` handles (closed on drop) with reads (blocking, timed, non-blocking), writes, feature/input reports, strings and report descriptors, device-change counting through udev, inotify or a Windows notification window, and the ignore/whitelist hints. The Linux backend talks to hidraw nodes through libudev (loaded at run time) and ioctls; the Windows backend loads hid.dll and cfgmgr32.dll and rebuilds report descriptors from preparsed data (checked byte for byte against upstream's 24 recorded devices). The libusb, macOS, iOS, Android and NetBSD backends are not translated |
+| `joystick/hidapi/SDL_hidapijoystick.c`, `SDL_hidapi_rumble.c`, `SDL_hidapi_combined.c`, `SDL_report_descriptor.c`, `SDL_hidapi_xbox360.c`, `SDL_hidapi_xbox360w.c`, `SDL_hidapi_xboxone.c`, `SDL_hidapi_ps4.c`, `SDL_hidapi_ps5.c`, `SDL_hidapi_switch.c` (and their headers) | `sdl3::joystick` (HIDAPI driver, Linux and Windows) | the HIDAPI joystick driver (first in the driver list, as upstream): device list and hotplug, per-device driver contexts behind a trait with events delivered after each driver call, the rumble thread, combined Joy-Cons, the report descriptor parser; device drivers for Xbox 360 (wired and wireless receiver), Xbox One/Series (GIP over USB, Bluetooth, Linux report descriptors), PS4, PS5 (DualSense and third party controllers, effects, IMU calibration) and Nintendo Switch Pro, Joy-Con and Online classic controllers. The report handlers, CRCs and calibrations are checked against upstream's drivers compiled with stubs and fed generated reports. The other device drivers (GameCube, Luna, Shield, PS3, Stadia, Steam, Switch 2, Wii, Xbox 360 Big Button, GIP, Logitech, 8BitDo, Flydigi, SInput, GameSir, ZUIKI) and the HIDAPI haptic driver are not translated yet |
 | `haptic/SDL_haptic.c`, `dummy/` | `sdl3::haptic` | `Haptic` handles (closed on drop), typed `HapticEffect` variants instead of the C union, effect slots, gain/autocenter/pause, the simple rumble API, the joystick haptic-axes hint |
 | `haptic/linux/SDL_syshaptic.c` | `sdl3::haptic` (Linux driver) | force feedback on evdev nodes: effect conversion to `ff_effect` (directions, clamping, envelopes), upload, run/stop, gain, autocenter, haptics opened from Linux joysticks |
 | `haptic/windows/SDL_windowshaptic.c`, `SDL_dinputhaptic.c` | `sdl3::haptic` (Windows driver) | DirectInput force feedback: devices and the joystick driver's devices, actuator axes and supported effects, effect conversion to `DIEFFECT` (owned parameters instead of the C allocations, update flags), run/stop/status, gain, autocenter, pause; conversions checked against upstream's C |
@@ -101,9 +105,9 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 142,500 lines of upstream C/headers are covered by about 111,000
+Roughly 190,000 lines of upstream C/headers are covered by about 229,000
 lines of Rust including tests. Upstream is ~624,000 lines, so this is about
-23% by volume, but it is the part that everything else includes. The audio
+30% by volume, but it is the part that everything else includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
 BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
@@ -123,8 +127,10 @@ known-folder lookups and the io_uring/IoRing async backends; the platform
 audio drivers other than ALSA, PulseAudio, PipeWire and WASAPI (and ALSA's
 udev hotplug path), the camera drivers, the haptic drivers other than
 Linux's and Windows' DirectInput one, the joystick drivers other than Linux
-evdev and the Windows ones (GameInput isn't translated), and the Windows
-and Apple tray, notification and dialog backends; the NEON, LSX and
+evdev, HIDAPI (and the HIDAPI device drivers listed above) and the Windows
+ones (GameInput isn't translated), the hidapi backends other than Linux
+hidraw and Windows, and the Windows and Apple tray, notification and dialog
+backends; the NEON, LSX and
 AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.
