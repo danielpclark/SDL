@@ -1,6 +1,8 @@
-// Rust translation of the static inline SPA helpers SDL_pipewire.c uses,
-// from PipeWire 1.2's spa/pod/builder.h, spa/pod/iter.h, spa/pod/parser.h,
-// spa/param/audio/raw-utils.h, spa/utils/json.h and spa/utils/dict.h.
+// Rust translation of the static inline SPA helpers SDL_pipewire.c and
+// SDL_camera_pipewire.c use, from PipeWire 1.2's spa/pod/builder.h,
+// spa/pod/iter.h, spa/pod/parser.h, spa/param/audio/raw-utils.h,
+// spa/utils/json.h and spa/utils/dict.h, with the constants of
+// spa/utils/type.h, spa/param/format.h and spa/param/video/raw.h they need.
 // Copyright © 2018-2020 Wim Taymans (MIT); this is a translated version.
 
 // These are header-only in C, so a C program compiles them in; here they
@@ -14,6 +16,8 @@ use std::ffi::{c_char, CStr};
 pub(crate) const SPA_TYPE_NONE: u32 = 1;
 pub(crate) const SPA_TYPE_ID: u32 = 3;
 pub(crate) const SPA_TYPE_INT: u32 = 4;
+pub(crate) const SPA_TYPE_RECTANGLE: u32 = 10;
+pub(crate) const SPA_TYPE_FRACTION: u32 = 11;
 pub(crate) const SPA_TYPE_ARRAY: u32 = 13;
 pub(crate) const SPA_TYPE_OBJECT: u32 = 15;
 pub(crate) const SPA_TYPE_CHOICE: u32 = 19;
@@ -22,6 +26,7 @@ pub(crate) const SPA_TYPE_OBJECT_FORMAT: u32 = 0x40003;
 // enum spa_choice_type
 pub(crate) const SPA_CHOICE_NONE: u32 = 0;
 pub(crate) const SPA_CHOICE_RANGE: u32 = 1;
+pub(crate) const SPA_CHOICE_ENUM: u32 = 3;
 
 // enum spa_format
 pub(crate) const SPA_FORMAT_MEDIA_TYPE: u32 = 1;
@@ -31,8 +36,14 @@ pub(crate) const SPA_FORMAT_AUDIO_RATE: u32 = 0x10003;
 pub(crate) const SPA_FORMAT_AUDIO_CHANNELS: u32 = 0x10004;
 pub(crate) const SPA_FORMAT_AUDIO_POSITION: u32 = 0x10005;
 
+pub(crate) const SPA_FORMAT_VIDEO_FORMAT: u32 = 0x20001;
+pub(crate) const SPA_FORMAT_VIDEO_SIZE: u32 = 0x20003;
+pub(crate) const SPA_FORMAT_VIDEO_FRAMERATE: u32 = 0x20004;
+
 pub(crate) const SPA_MEDIA_TYPE_AUDIO: u32 = 1;
+pub(crate) const SPA_MEDIA_TYPE_VIDEO: u32 = 2;
 pub(crate) const SPA_MEDIA_SUBTYPE_RAW: u32 = 1;
+pub(crate) const SPA_MEDIA_SUBTYPE_MJPG: u32 = 0x20002;
 
 pub(crate) const SPA_AUDIO_FORMAT_UNKNOWN: u32 = 0;
 pub(crate) const SPA_AUDIO_MAX_CHANNELS: usize = 64;
@@ -174,7 +185,7 @@ impl<'a> SpaPodBuilder<'a> {
 
     /// `spa_pod_builder_pop()`: the finished pod's bytes, or `None` if it
     /// didn't fit.
-    fn pop(&mut self) -> Option<std::ops::Range<usize>> {
+    pub(crate) fn pop(&mut self) -> Option<std::ops::Range<usize>> {
         if self.flags & SPA_POD_BUILDER_FLAG_FIRST != 0 {
             let p = pod_header(0, SPA_TYPE_NONE);
             self.raw(&p);
@@ -215,7 +226,7 @@ impl<'a> SpaPodBuilder<'a> {
     }
 
     /// `spa_pod_builder_id()`.
-    fn id(&mut self, val: u32) -> i32 {
+    pub(crate) fn id(&mut self, val: u32) -> i32 {
         let mut p = [0u8; 16]; // SPA_POD_INIT_Id(val)
         p[..8].copy_from_slice(&pod_header(4, SPA_TYPE_ID));
         p[8..12].copy_from_slice(&val.to_ne_bytes());
@@ -223,11 +234,29 @@ impl<'a> SpaPodBuilder<'a> {
     }
 
     /// `spa_pod_builder_int()`.
-    fn int(&mut self, val: i32) -> i32 {
+    pub(crate) fn int(&mut self, val: i32) -> i32 {
         let mut p = [0u8; 16]; // SPA_POD_INIT_Int(val)
         p[..8].copy_from_slice(&pod_header(4, SPA_TYPE_INT));
         p[8..12].copy_from_slice(&val.to_ne_bytes());
         self.primitive(&p[..12]) // (SPA_POD_SIZE(): the padding isn't part of the pod)
+    }
+
+    /// `spa_pod_builder_rectangle()`.
+    pub(crate) fn rectangle(&mut self, width: u32, height: u32) -> i32 {
+        let mut p = [0u8; 16]; // SPA_POD_INIT_Rectangle(SPA_RECTANGLE(width, height))
+        p[..8].copy_from_slice(&pod_header(8, SPA_TYPE_RECTANGLE));
+        p[8..12].copy_from_slice(&width.to_ne_bytes());
+        p[12..].copy_from_slice(&height.to_ne_bytes());
+        self.primitive(&p)
+    }
+
+    /// `spa_pod_builder_fraction()`.
+    pub(crate) fn fraction(&mut self, num: u32, denom: u32) -> i32 {
+        let mut p = [0u8; 16]; // SPA_POD_INIT_Fraction(SPA_FRACTION(num, denom))
+        p[..8].copy_from_slice(&pod_header(8, SPA_TYPE_FRACTION));
+        p[8..12].copy_from_slice(&num.to_ne_bytes());
+        p[12..].copy_from_slice(&denom.to_ne_bytes());
+        self.primitive(&p)
     }
 
     /// `spa_pod_builder_array()`.
@@ -245,7 +274,7 @@ impl<'a> SpaPodBuilder<'a> {
     }
 
     /// `spa_pod_builder_push_object()`.
-    fn push_object(&mut self, type_: u32, id: u32) -> i32 {
+    pub(crate) fn push_object(&mut self, type_: u32, id: u32) -> i32 {
         let mut p = [0u8; 16]; // SPA_POD_INIT_Object(sizeof(struct spa_pod_object_body), type, id)
         p[..8].copy_from_slice(&pod_header(8, SPA_TYPE_OBJECT));
         p[8..12].copy_from_slice(&type_.to_ne_bytes());
@@ -257,7 +286,7 @@ impl<'a> SpaPodBuilder<'a> {
     }
 
     /// `spa_pod_builder_prop()`.
-    fn prop(&mut self, key: u32, flags: u32) -> i32 {
+    pub(crate) fn prop(&mut self, key: u32, flags: u32) -> i32 {
         let mut p = [0u8; 8];
         p[..4].copy_from_slice(&key.to_ne_bytes());
         p[4..].copy_from_slice(&flags.to_ne_bytes());
@@ -323,7 +352,6 @@ pub(crate) struct Pod<'a>(&'a [u8]);
 
 impl<'a> Pod<'a> {
     /// The pod at `bytes`, if its header and body fit.
-    #[cfg(test)]
     pub(crate) fn new(bytes: &'a [u8]) -> Option<Pod<'a>> {
         let size = read_u32(bytes, 0)? as usize;
         bytes.get(..8 + size).map(Pod)
@@ -358,10 +386,20 @@ impl<'a> Pod<'a> {
     pub(crate) fn body(&self) -> &'a [u8] {
         &self.0[8..]
     }
+
+    /// The pod's bytes, header and body (`SPA_POD_SIZE()` of them).
+    pub(crate) fn as_bytes(&self) -> &'a [u8] {
+        self.0
+    }
+
+    /// `SPA_POD_OBJECT_ID()`, for an object.
+    pub(crate) fn object_id(&self) -> u32 {
+        read_u32(self.0, 12).unwrap_or(0)
+    }
 }
 
 /// `spa_pod_is_object()`.
-fn spa_pod_is_object(pod: Pod<'_>) -> bool {
+pub(crate) fn spa_pod_is_object(pod: Pod<'_>) -> bool {
     pod.type_() == SPA_TYPE_OBJECT && pod.body_size() >= 8
 }
 
