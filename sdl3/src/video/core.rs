@@ -319,6 +319,7 @@ pub(crate) fn init_video(driver_name: Option<&str>) -> Result<()> {
     crate::events::window::set_video(Some(Arc::new(Hooks)));
 
     // Set some very sane GL defaults
+    super::gl::reset_device_state();
     super::gl::gl_reset_attributes();
 
     // Initialize the video subsystem

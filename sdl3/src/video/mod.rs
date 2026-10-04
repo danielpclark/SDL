@@ -22,6 +22,8 @@ pub mod clipboard;
 pub(crate) mod core;
 pub mod display;
 pub(crate) mod drivers;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod egl;
 pub mod gl;
 pub(crate) mod image;
 pub mod messagebox;

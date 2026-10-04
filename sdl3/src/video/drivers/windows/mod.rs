@@ -24,8 +24,8 @@
 //!   `SDL_GetDirect3D9AdapterIndex()` (Direct3D 9 COM) come with the
 //!   Direct3D renderers.
 //! * WGL and EGL contexts (`SDL_windowsopengl.c`, `SDL_windowsopengles.c`):
-//!   the OpenGL front end has no loader yet, so OpenGL windows can't be
-//!   created ("not available in current SDL video driver").
+//!   the driver behaves as a build without OpenGL, so OpenGL windows can't
+//!   be created ("not available in current SDL video driver").
 //! * The Text Services Framework UI (`SDL_msctf.h`), which upstream no longer
 //!   compiles in.
 

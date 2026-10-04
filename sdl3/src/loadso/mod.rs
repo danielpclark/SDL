@@ -47,6 +47,19 @@ impl SharedObject {
         })
     }
 
+    /// Load a shared object with its symbols made available to the ones
+    /// loaded after it (`dlopen(sofile, RTLD_NOW | RTLD_GLOBAL)`), as the
+    /// X11 driver loads libGL (its `GL_LoadObject()`).
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    pub(crate) fn load_global(sofile: &str) -> Result<SharedObject> {
+        sys::load_with_flags(sofile, libc::RTLD_NOW | libc::RTLD_GLOBAL).map(|handle| {
+            SharedObject {
+                handle,
+                name: sofile.to_owned(),
+            }
+        })
+    }
+
     /// The name the object was loaded by.
     pub fn name(&self) -> &str {
         &self.name
@@ -123,11 +136,15 @@ mod sys {
     }
 
     pub(super) fn load(sofile: &str) -> Result<NonNull<c_void>> {
+        load_with_flags(sofile, libc::RTLD_NOW | libc::RTLD_LOCAL)
+    }
+
+    pub(super) fn load_with_flags(sofile: &str, flags: libc::c_int) -> Result<NonNull<c_void>> {
         let Ok(c) = CString::new(sofile) else {
             return Err(Error::invalid_param("sofile"));
         };
         // SAFETY: c is NUL-terminated; dlopen has no other preconditions.
-        let handle = unsafe { libc::dlopen(c.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL) };
+        let handle = unsafe { libc::dlopen(c.as_ptr(), flags) };
         let loaderror = dlerror_text();
         NonNull::new(handle)
             .ok_or_else(|| Error::new(format!("Failed loading {sofile}: {loaderror}")))

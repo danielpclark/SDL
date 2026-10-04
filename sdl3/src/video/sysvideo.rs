@@ -14,6 +14,7 @@
 //! into SDL.
 
 use std::any::Any;
+use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -26,7 +27,7 @@ use crate::events::{DisplayID, WindowID};
 use crate::properties::Properties;
 use crate::video::{PixelFormat, Point, Rect, Surface};
 
-use super::gl::{GlConfig, GlContext};
+use super::gl::{GlConfig, RawGlContext};
 use super::messagebox::MessageBoxData;
 
 // ---------------------------------------------------------------------------
@@ -896,16 +897,17 @@ pub(crate) trait VideoDriver: Send + Sync {
 
     // * * * OpenGL support
 
-    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<usize>> {
+    /// The address of a GL function (`None` inside: not found).
+    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
         None
     }
-    fn gl_create_context(&self, window: WindowID) -> Option<Result<GlContext>> {
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
         None
     }
     fn gl_make_current(
         &self,
         window: Option<WindowID>,
-        context: Option<GlContext>,
+        context: Option<RawGlContext>,
     ) -> Option<Result<()>> {
         None
     }
@@ -918,15 +920,17 @@ pub(crate) trait VideoDriver: Send + Sync {
     fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
         None
     }
-    fn gl_destroy_context(&self, context: GlContext) -> Option<Result<()>> {
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
         None
     }
     fn gl_set_default_profile_config(&self, config: &mut GlConfig) -> Option<()> {
         None
     }
-    /// Whether `gl_make_current` accepts a context without a window.
-    fn gl_allow_no_surface(&self) -> bool {
-        false
+    /// The `EGLSurface` of a window (`GL_GetEGLSurface`; `None`: not
+    /// implemented, which upstream reports as NULL).
+    #[cfg_attr(not(all(unix, not(target_vendor = "apple"))), allow(dead_code))]
+    fn gl_get_egl_surface(&self, window: WindowID) -> Option<*mut c_void> {
+        None
     }
 
     // * * * Vulkan support (handles are the raw Vulkan handles)

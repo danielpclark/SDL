@@ -239,7 +239,7 @@ enabled=0
 == message box
 msgbox: err: No message system available
 == gl
-gl attr: err: That operation is not supported
+gl attr: ok
 gl load: err: No dynamic OpenGL support in current SDL video driver (dummy)
 gl ctx=0: The specified window isn't an OpenGL window
 vk load: err: No dynamic Vulkan support in current SDL video driver (dummy)
@@ -488,7 +488,7 @@ enabled=0
 == message box
 msgbox: err: No message system available
 == gl
-gl attr: err: That operation is not supported
+gl attr: ok
 gl load: err: No dynamic OpenGL support in current SDL video driver (offscreen)
 gl ctx=0: The specified window isn't an OpenGL window
 vk load: err: No dynamic Vulkan support in current SDL video driver (offscreen)
