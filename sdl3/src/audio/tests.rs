@@ -671,18 +671,24 @@ fn dummy_driver_playback_and_recording() {
     let _l = crate::test_support::test_lock();
     assert!(current_audio_driver().is_none());
     assert!(playback_devices().is_err());
-    assert_eq!(num_audio_drivers(), 2);
-    assert_eq!(audio_driver(0).unwrap(), "disk");
-    assert_eq!(audio_driver(1).unwrap(), "dummy");
+    let drivers: Vec<&str> = (0..num_audio_drivers())
+        .map(|i| audio_driver(i).unwrap())
+        .collect();
+    assert_eq!(drivers, crate::audio::drivers::tests::EXPECTED_DRIVERS);
+    assert!(audio_driver(drivers.len()).is_err());
 
-    // Both drivers are demand-only: nothing initializes without the hint.
-    crate::hints::reset(crate::hints::AUDIO_DRIVER);
-    assert_eq!(
-        crate::init::init_subsystem(crate::init::InitFlags::AUDIO)
-            .unwrap_err()
-            .message(),
-        "No available audio device"
-    );
+    // Disk and dummy are demand-only: without a platform driver, nothing
+    // initializes without the hint.
+    #[cfg(not(any(target_os = "linux", windows)))]
+    {
+        crate::hints::reset(crate::hints::AUDIO_DRIVER);
+        assert_eq!(
+            crate::init::init_subsystem(crate::init::InitFlags::AUDIO)
+                .unwrap_err()
+                .message(),
+            "No available audio device"
+        );
+    }
     crate::hints::set(crate::hints::AUDIO_DRIVER, "nope").unwrap();
     assert_eq!(
         crate::init::init_subsystem(crate::init::InitFlags::AUDIO)
