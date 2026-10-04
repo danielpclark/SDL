@@ -536,8 +536,9 @@ impl JoystickDriver for VirtualJoystickDriver {
     }
 
     fn device_instance_id(&self, device_index: usize) -> JoystickID {
-        // FIXME (upstream): a missing device reports instance id 1 (`return true;`)
-        with_hwdata_for_index(device_index, |h| h.instance_id).unwrap_or(1)
+        // Upstream returns `true` (instance id 1) for a missing device; it
+        // reports 0, the invalid instance id, here.
+        with_hwdata_for_index(device_index, |h| h.instance_id).unwrap_or(0)
     }
 
     fn open(&self, joystick: &mut JoystickData, device_index: usize) -> Result<()> {

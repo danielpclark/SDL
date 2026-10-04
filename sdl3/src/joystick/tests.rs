@@ -525,6 +525,16 @@ fn virtual_joystick_without_gamepads() {
     assert_eq!(j.joystick_type(), JoystickType::Gamepad);
     assert!(Gamepad::open(id).is_ok());
     drop(j);
+
+    // A device index past the end has no (valid) instance id
+    {
+        let _lock = lock_joysticks();
+        let driver = &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER;
+        assert_eq!(driver.count(), 1);
+        assert_eq!(driver.device_instance_id(0), id);
+        assert_eq!(driver.device_instance_id(1), 0);
+    }
+
     detach_virtual_joystick(id).unwrap();
     init::quit_subsystem(InitFlags::JOYSTICK);
     assert!(Joystick::open(id).is_err());
