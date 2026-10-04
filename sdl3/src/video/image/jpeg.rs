@@ -1590,17 +1590,16 @@ fn output_jpeg_nv12(z: &Jpeg<'_, '_>, nv12: &mut Nv12<'_>) -> Result<()> {
     let img_y = z.s.img_y as usize;
     let pitch = nv12.pitch as usize;
 
-    // FIXME (upstream): the planes are read with the image width as their
-    // stride, but each component's rows are `w2` bytes apart; images whose
-    // width isn't a multiple of the MCU width come out sheared.
-    // Copy the Y plane
+    // Copy the Y plane (each component's rows are `w2` bytes apart, padded
+    // to whole MCUs)
     let y_plane = &z.img_comp[0].data;
-    if pitch == img_x {
+    let y_stride = z.img_comp[0].w2 as usize;
+    if pitch == img_x && y_stride == img_x {
         nv12.dst[..img_y * img_x].copy_from_slice(&y_plane[..img_y * img_x]);
     } else {
         for i in 0..img_y {
             nv12.dst[i * pitch..i * pitch + img_x]
-                .copy_from_slice(&y_plane[i * img_x..(i + 1) * img_x]);
+                .copy_from_slice(&y_plane[i * y_stride..i * y_stride + img_x]);
         }
     }
 
@@ -1623,8 +1622,8 @@ fn output_jpeg_nv12(z: &Jpeg<'_, '_>, nv12: &mut Nv12<'_>) -> Result<()> {
                 .ok_or_else(|| crate::error::Error::new("Unexpected chroma subsampling"))
         };
         for i in 0..(img_y as isize + 1) / 2 {
-            let mut src_u = i * (1 + (NV12_VS - u_vs)) * u.x as isize;
-            let mut src_v = i * (1 + (NV12_VS - v_vs)) * v.x as isize;
+            let mut src_u = i * (1 + (NV12_VS - u_vs)) * u.w2 as isize;
+            let mut src_v = i * (1 + (NV12_VS - v_vs)) * v.w2 as isize;
             let mut dst = uv_start + i as usize * pitch;
             for _ in 0..img_x.div_ceil(2) {
                 nv12.dst[dst] = at(&u.data, src_u)?;

@@ -92,7 +92,7 @@ j100.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=30fb5fe9444d8214 blend=0
 j100.jpg pos=2286
 j100.jpg save: saved 3001 bytes hash=a416874224258a57
 j100.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1b635a1ccaef0a69 blend=1
-j100.jpg mjpg SDL_PIXELFORMAT_NV12: d18bfb3e55293bd5
+j100.jpg mjpg SDL_PIXELFORMAT_NV12: dd225f1e5586c24b
 j100.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j100.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j100.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -106,7 +106,7 @@ j420.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=2530f0e051575e07 blend=0
 j420.jpg pos=647
 j420.jpg save: saved 2980 bytes hash=ddedfc552bb1f9c4
 j420.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=5deece08c4b18fb2 blend=1
-j420.jpg mjpg SDL_PIXELFORMAT_NV12: 7bb25199788140c5
+j420.jpg mjpg SDL_PIXELFORMAT_NV12: 792eead73ed84f52
 j420.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j420.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j420.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -116,7 +116,7 @@ j422.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=ef6e08de9db4b18c blend=0
 j422.jpg pos=697
 j422.jpg save: saved 2980 bytes hash=6819875cd51479ba
 j422.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=13a2c43ba4a95d1b blend=1
-j422.jpg mjpg SDL_PIXELFORMAT_NV12: c5d53b8ca470f4e2
+j422.jpg mjpg SDL_PIXELFORMAT_NV12: daebd747b9605247
 j422.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j422.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j422.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -126,7 +126,7 @@ j440.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=d92cde7efd2aa134 blend=0
 j440.jpg pos=711
 j440.jpg save: saved 2984 bytes hash=99b491ee0d0406c5
 j440.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=3e01cb2cde69e4c7 blend=1
-j440.jpg mjpg SDL_PIXELFORMAT_NV12: f20ecf7ff2847512
+j440.jpg mjpg SDL_PIXELFORMAT_NV12: 8e924137cc8dd3e8
 j440.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j440.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j440.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -136,7 +136,7 @@ j444.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=152ec3212c713b69 blend=0
 j444.jpg pos=801
 j444.jpg save: saved 3006 bytes hash=deb499b799fecde3
 j444.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=354c1cbb6c806b08 blend=1
-j444.jpg mjpg SDL_PIXELFORMAT_NV12: e93e5bb1b4a6ddef
+j444.jpg mjpg SDL_PIXELFORMAT_NV12: 2da5ebb10c50e933
 j444.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j444.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 j444.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -156,7 +156,7 @@ jcmyk.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=74b31deceb3af25a blend=0
 jcmyk.jpg pos=1163
 jcmyk.jpg save: saved 2996 bytes hash=baeb1c556b80364d
 jcmyk.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=426862aea875b01f blend=1
-jcmyk.jpg mjpg SDL_PIXELFORMAT_NV12: 4c5e14d039c9f849
+jcmyk.jpg mjpg SDL_PIXELFORMAT_NV12: 6dbe693401d007b1
 jcmyk.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 jcmyk.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 jcmyk.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -166,7 +166,7 @@ jgray.jpg: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:1
 jgray.jpg pos=409
 jgray.jpg save: saved 1990 bytes hash=3cf76d2d09a82b37
 jgray.jpg save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:12d903f0f6e0a125 blend=0
-jgray.jpg mjpg SDL_PIXELFORMAT_NV12: 6b77d0af255e4f9a
+jgray.jpg mjpg SDL_PIXELFORMAT_NV12: 8ff5335390f6fbf5
 jgray.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 jgray.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 jgray.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
@@ -176,6 +176,12 @@ jgrayprog.jpg: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=2
 jgrayprog.jpg pos=524
 jgrayprog.jpg save: saved 1990 bytes hash=3cf76d2d09a82b37
 jgrayprog.jpg save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:12d903f0f6e0a125 blend=0
+jgrayprog.jpg mjpg SDL_PIXELFORMAT_NV12: 8ff5335390f6fbf5
+jgrayprog.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jgrayprog.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jgrayprog.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jgrayprog.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 199932f6646e4efe
+jgrayprog.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 199932f6646e4efe
 jone.jpg: 1x1 SDL_PIXELFORMAT_RGB24 pitch=3 hash=25ce181adb835a1f blend=0
 jone.jpg pos=285
 jone.jpg save: saved 73 bytes hash=4f4e1ef63b13e91d
@@ -190,11 +196,17 @@ jprog.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=869367ed14d6c5c1 blend=0
 jprog.jpg pos=819
 jprog.jpg save: saved 2961 bytes hash=581ac38cb9fe862e
 jprog.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=da788abe9fb3a81c blend=1
+jprog.jpg mjpg SDL_PIXELFORMAT_NV12: c4ed8f0159de579c
+jprog.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jprog.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jprog.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jprog.jpg mjpg SDL_PIXELFORMAT_ABGR8888: da788abe9fb3a81c
+jprog.jpg mjpg SDL_PIXELFORMAT_XRGB8888: e02ebc6ebaae8350
 jrst.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=2edf93460bbc9761 blend=0
 jrst.jpg pos=554
 jrst.jpg save: saved 2969 bytes hash=f48a1f48901499af
 jrst.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=81a2285174a5610e blend=1
-jrst.jpg mjpg SDL_PIXELFORMAT_NV12: 8ced612a57f18b70
+jrst.jpg mjpg SDL_PIXELFORMAT_NV12: 18b37804626ced64
 jrst.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 jrst.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
 jrst.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
