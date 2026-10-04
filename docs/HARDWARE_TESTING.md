@@ -42,6 +42,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `mediafoundation` | Windows | Media Foundation (`mfplat.dll`, `mf.dll`, `mfreadwrite.dll`; missing on Windows N/Server without the Media Feature Pack) |
 | `v4l2` | Linux | the V4L2 camera driver |
 | `camera` | any | a camera (only the hardware checks need one) |
+| `controller` | any | a connected game controller (only the hardware checks need one) |
 | `desktop` | Windows | an interactive desktop the windows video driver can open windows on (and move the cursor on) |
 
 Two environment variables control skips:
@@ -70,6 +71,7 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `video::drivers::windows::tests::hardware_gpu_gl_context_and_renderer` | Windows | a WGL context, printing `GL_VENDOR`, `GL_RENDERER`, `GL_VERSION` and whether framebuffer objects exist; it must not be GDI Generic. Then a window with the default 2D renderer: with framebuffer objects that renderer must be `opengl`, and it must clear to a color that reads back |
 | `audio::drivers::wasapi::tests::hardware_default_playback_and_recording` | Windows | lists the WASAPI endpoints; plays half a second of a quiet 440 Hz tone on the default playback endpoint (it must drain), then records half a second from the default recording endpoint (it must arrive), printing formats, timing and the peak level |
 | `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone. Zero controllers is fine |
+| `joystick::windows::tests::hardware_controller_input` | Windows | opens the first controller through the default drivers and prints its name, driver, GUID, VID:PID, axes/buttons/hats and gamepad mapping; asks for a button press and release, then a full stick (or axis) movement, waiting up to 30 seconds for each; then sends a short rumble and prints whether the controller supports it. Run it on its own, as below |
 
 When the hardware isn't there they skip like the other tests (as `camera`,
 `wasapi`, `wgl`, ...), so add the capabilities to `SDL3_TEST_REQUIRE` to
@@ -138,9 +140,35 @@ cargo test --workspace
 # the hardware checks (a webcam; a GPU OpenGL driver; audio endpoints;
 # controllers are only listed):
 $env:SDL3_TEST_REQUIRE = "desktop,wgl,wasapi,mediafoundation,camera"
-cargo test --workspace -- --ignored --nocapture
+cargo test --workspace -- --ignored --nocapture --skip hardware_controller_input
+# with a controller connected, the interactive check (press a button, then
+# move a stick, when it asks):
+$env:SDL3_TEST_REQUIRE = "controller"
+cargo test -p sdl3 --lib hardware_controller_input -- --ignored --nocapture
 Remove-Item Env:SDL3_TEST_REQUIRE
 ```
+
+Add `gameinput` to the lists when the GameInput redistributable is
+installed (`GameInput.dll` in `System32`).
+
+### Running them from a Claude Code session on that machine
+
+A session on the Windows machine (the Claude desktop app, or
+`claude remote-control` in a terminal) can run these and report back.
+Clone the repository, open the session in it, and ask it to follow this
+section: run the commands above in order, then report:
+
+* the test result lines and every `note: skipping` line of each run;
+* what the hardware checks printed: `GL_VENDOR`/`GL_RENDERER`/`GL_VERSION`
+  and the default renderer's name, the WASAPI endpoints and peak level,
+  the camera's formats and frame rate, the controllers each joystick driver
+  lists, and the controller check's output (which driver claimed it, the
+  gamepad mapping, the button and axis events, the rumble result);
+* any failure with its full panic message and backtrace
+  (`$env:RUST_BACKTRACE = "1"`).
+
+It needs Rust 1.87 or newer (through `rustup`) and the MSVC build tools
+(or the GNU toolchain); nothing else.
 
 With an older GPU, `hardware_gpu_gl_context_and_renderer` prints the
 driver's OpenGL version; anything with framebuffer objects (OpenGL 3.0, or
