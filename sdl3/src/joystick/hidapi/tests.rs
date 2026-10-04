@@ -74,16 +74,22 @@ pub(super) fn describe(pending: &[Pending]) -> Vec<String> {
             Pending::Axis(_, _, axis, value) => format!("axis {axis} {value}"),
             Pending::Button(_, _, button, down) => format!("button {button} {}", u8::from(*down)),
             Pending::Hat(_, _, hat, value) => format!("hat {hat} {value}"),
-            Pending::Touchpad(_, _, touchpad, finger, down, x, y, pressure) => {
-                format!(
-                    "touchpad {touchpad} {finger} {} {x} {y} {pressure}",
-                    u8::from(*down)
-                )
-            }
+            // (floats as their bits, for exact comparisons)
+            Pending::Touchpad(_, _, touchpad, finger, down, x, y, pressure) => format!(
+                "touchpad {touchpad} {finger} {} {:08x} {:08x} {:08x}",
+                u8::from(*down),
+                x.to_bits(),
+                y.to_bits(),
+                pressure.to_bits()
+            ),
             Pending::Sensor(_, _, sensor_type, sensor_timestamp, data, n) => {
+                let values: Vec<String> = data[..*n]
+                    .iter()
+                    .map(|v| format!("{:08x}", v.to_bits()))
+                    .collect();
                 format!(
-                    "sensor {sensor_type:?} {sensor_timestamp} {:?}",
-                    &data[..*n]
+                    "sensor {sensor_type:?} {sensor_timestamp} {}",
+                    values.join(" ")
                 )
             }
             Pending::PowerInfo(_, state, percent) => format!("power {state:?} {percent}"),
