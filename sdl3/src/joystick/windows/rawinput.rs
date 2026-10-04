@@ -1942,6 +1942,11 @@ impl RawinputJoystickDriver {
                 }
                 unload_xinput_dll();
             }
+            // FIXME (upstream): a correlated WGI gamepad isn't freed here: it
+            // stays marked used, its correlated_context pointing to the
+            // freed context (which RAWINPUT_UpdateWindowsGamingInput()
+            // writes to when the gamepad goes away); here the context is
+            // looked up by its joystick, so a stale one is just not found.
             s.quit_windows_gaming_input();
         });
 
