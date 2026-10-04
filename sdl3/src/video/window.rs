@@ -2732,7 +2732,7 @@ impl Window {
 
         // Make no context current if this is the current context window
         if flags.contains(WindowFlags::OPENGL) && super::gl::current_window_id() == Some(window) {
-            let _ = super::gl::gl_make_current(Some(&self), None);
+            let _ = super::gl::make_current_raw(Some(window), None);
         }
 
         let _ = driver.destroy_window(window);
