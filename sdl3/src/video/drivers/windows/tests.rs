@@ -36,7 +36,7 @@ use crate::events::window::WindowFlags;
 use crate::events::{Event, EventType};
 use crate::hints;
 use crate::init::{self, InitFlags};
-use crate::test_support::TEST_LOCK;
+
 use crate::video::clipboard;
 use crate::video::display::{
     desktop_display_mode, display_bounds, display_content_scale, display_name, display_properties,
@@ -131,7 +131,7 @@ fn window_text(hwnd: HWND) -> String {
 
 #[test]
 fn driver_init_displays_and_modes() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     assert_eq!(current_video_driver().unwrap(), "windows");
@@ -173,7 +173,7 @@ fn driver_init_displays_and_modes() {
 
 #[test]
 fn window_lifecycle_and_events() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     let window = Window::create("SDL window test", 200, 150, WindowFlags::HIDDEN).unwrap();
@@ -284,7 +284,7 @@ fn read_client_pixels(hwnd: HWND, w: i32, h: i32) -> Vec<u32> {
 
 #[test]
 fn framebuffer_update_and_readback() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     let window = Window::create("SDL framebuffer test", 64, 48, WindowFlags::BORDERLESS).unwrap();
@@ -372,7 +372,7 @@ fn set_raw_clipboard_text(text: &str) {
 
 #[test]
 fn clipboard_text_round_trip() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
     let _window = Window::create("SDL clipboard test", 32, 32, WindowFlags::HIDDEN).unwrap();
 
@@ -419,7 +419,7 @@ fn clipboard_text_round_trip() {
 
 #[test]
 fn cursors() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
     // (without mouse focus, the default cursor is shown)
     let window = Window::create("SDL cursor test", 64, 64, WindowFlags::HIDDEN).unwrap();
@@ -504,7 +504,7 @@ fn key_lparam(scancode: u32, extended: bool, up: bool) -> isize {
 
 #[test]
 fn keyboard_scancodes() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     // The mapping itself
@@ -554,7 +554,7 @@ fn keyboard_scancodes() {
 
 #[test]
 fn mouse_messages() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     let window = Window::create("SDL mouse test", 100, 100, WindowFlags::default()).unwrap();
@@ -597,7 +597,7 @@ fn mouse_messages() {
 
 #[test]
 fn warping_and_relative_mode() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     // Global warps move the system cursor
@@ -624,7 +624,7 @@ fn warping_and_relative_mode() {
 
 #[test]
 fn text_input() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_session) = start() else { return };
 
     let window = Window::create("SDL text input test", 100, 100, WindowFlags::default()).unwrap();
