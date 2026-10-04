@@ -2684,12 +2684,14 @@ impl Renderer {
 
             // Check if UVs within range
             if is_quad && !g.uv.is_empty() {
-                // FIXME (upstream): the texture coordinates are looked up
-                // with the color stride instead of the texture coordinate
-                // stride (the same for SDL_Vertex arrays). A lookup outside
-                // the coordinates counts as out of range here.
-                let u = |k: i32| g.uv.get(k as usize * g.color_stride).copied();
-                let in_range = |k: i32| u(k).is_some_and(|u| (0.0..=1.0).contains(&u));
+                // Upstream looks the coordinates up with the color stride
+                // instead of the texture coordinate stride (the same only
+                // for SDL_Vertex arrays) and checks only u. Fixed here: both
+                // coordinates of each vertex are checked.
+                let in_range = |k: i32| {
+                    let (u, v) = g.uv(k as usize);
+                    (0.0..=1.0).contains(&u) && (0.0..=1.0).contains(&v)
+                };
                 if in_range(a) && in_range(b) && in_range(c) && in_range(c2) {
                     // ok
                 } else {
