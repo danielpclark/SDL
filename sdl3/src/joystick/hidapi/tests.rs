@@ -92,6 +92,9 @@ pub(super) fn describe(pending: &[Pending]) -> Vec<String> {
                     values.join(" ")
                 )
             }
+            Pending::CapSense(_, _, capsense_type, down) => {
+                format!("capsense {} {}", *capsense_type as i32, u8::from(*down))
+            }
             Pending::PowerInfo(_, state, percent) => format!("power {state:?} {percent}"),
             Pending::Added(_) => "added".to_owned(),
             Pending::Removed(_, _) => "removed".to_owned(),

@@ -1,0 +1,128 @@
+# Expected behaviour of upstream's SDL_hidapi_steam.c, recorded by running it
+# (with stubs for the SDL and HID functions it uses) on these inputs, built for Windows (the steps that differ).
+# Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+# This is an altered (translated) version of the original software; see LICENSE.txt.
+open ble
+reply 03 c0 82 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 80 83 14 01 06 11 00 00 0b 4c 1d 00 00 02 ff 00 00 00 00
+reply 03 c1 00 00 78 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 03 c0 83 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+error Couldn't reset controller
+result 0
+connection 2
+end
+getfeature retries
+reply 03 00 00
+reply 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 03 80 9b 89 1b 43 a2 35 78 57 2e 89 b0 b8 93 1d a0 39 37 dd
+reply 03 03 81 2a 58 21 a8 9e 3b 45 aa e9 6d 92 79 7b 55 b7 f2 fa 7a
+reply 03 03 c2 b9 d2 a8 79 36 13 94 c1 76 0d 84 15 37 48 9e bf 35 22
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+result 54
+buffer 00 9b 89 1b 43 a2 35 78 57 2e 89 b0 b8 93 1d a0 39 37 dd 2a 58 21 a8 9e 3b 45 aa e9 6d 92 79 7b 55 b7 f2 fa 7a b9 d2 a8 79 36 13 94 c1 76 0d 84 15 37 48 9e bf 35 22
+end
+getfeature too_long
+reply 03 03 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 03 81 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 03 82 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 03 c3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+getfeature 21
+result -1
+end

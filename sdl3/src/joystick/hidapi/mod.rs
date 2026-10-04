@@ -23,9 +23,10 @@
 //! can't take the joystick lock.
 //!
 //! Device drivers translated so far: GameCube, Luna, SHIELD, PS3 (with its
-//! third party and Sony Sixaxis drivers), Stadia, Nintendo Switch (with the
-//! combined Joy-Cons), Xbox 360 (wired, wireless and Big Button), Xbox One,
-//! PS4, PS5, 8BitDo and ZUIKI.
+//! third party and Sony Sixaxis drivers), Stadia, the Valve controllers
+//! (Steam Controller, Wireless HORIPAD For Steam, Steam Deck and the Triton
+//! Steam Controller), Nintendo Switch (with the combined Joy-Cons), Xbox 360
+//! (wired, wireless and Big Button), Xbox One, PS4, PS5, 8BitDo and ZUIKI.
 
 mod combined;
 mod eightbitdo;
@@ -38,6 +39,10 @@ pub(crate) mod report_descriptor;
 pub(crate) mod rumble;
 mod shield;
 mod stadia;
+mod steam;
+mod steam_hori;
+mod steam_triton;
+mod steamdeck;
 mod switch;
 mod xbox360;
 mod xbox360bb;
@@ -49,15 +54,15 @@ use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicUsize, Ordering}
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::time::Duration;
 
-use super::gamepad::GamepadType;
+use super::gamepad::{GamepadCapSenseType, GamepadType};
 use super::usb_ids::*;
 use super::{
     assert_joysticks_locked, create_joystick_guid, create_joystick_name, gamepad_type_from_vidpid,
     joystick_guid_info, lock_joysticks, private_joystick_added, private_joystick_removed,
-    send_joystick_axis, send_joystick_button, send_joystick_hat, send_joystick_power_info,
-    send_joystick_sensor, send_joystick_touchpad, set_joystick_guid_crc, should_ignore_joystick,
-    with_joystick, JoystickConnectionState, JoystickData, JoystickDriver, JoystickType,
-    HARDWARE_BUS_BLUETOOTH, HARDWARE_BUS_USB, PROP_JOYSTICK_CAP_MONO_LED_BOOLEAN,
+    send_joystick_axis, send_joystick_button, send_joystick_capsense, send_joystick_hat,
+    send_joystick_power_info, send_joystick_sensor, send_joystick_touchpad, set_joystick_guid_crc,
+    should_ignore_joystick, with_joystick, JoystickConnectionState, JoystickData, JoystickDriver,
+    JoystickType, HARDWARE_BUS_BLUETOOTH, HARDWARE_BUS_USB, PROP_JOYSTICK_CAP_MONO_LED_BOOLEAN,
     PROP_JOYSTICK_CAP_PLAYER_LED_BOOLEAN, PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN,
     PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN, PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN,
 };
@@ -516,6 +521,7 @@ enum Pending {
     Hat(u64, JoystickID, u8, u8),
     Touchpad(u64, JoystickID, i32, i32, bool, f32, f32, f32),
     Sensor(u64, JoystickID, SensorType, u64, [f32; 3], usize),
+    CapSense(u64, JoystickID, GamepadCapSenseType, bool),
     PowerInfo(JoystickID, PowerState, i32),
     /// The `SDL_PrivateJoystickAdded()` of `HIDAPI_JoystickConnected()`
     Added(JoystickID),
@@ -618,6 +624,11 @@ impl DeviceCtx<'_> {
     /// Translation of `HIDAPI_SetDeviceSerial()`.
     pub(crate) fn set_device_serial(&self, serial: &str) {
         set_device_serial(self.device, serial);
+    }
+
+    /// Forget the device's serial (`device->serial = NULL`).
+    pub(crate) fn clear_device_serial(&self) {
+        self.device.state().serial = None;
     }
 
     /// Whether a joystick is open (`SDL_GetJoystickFromID() != NULL`).
@@ -753,6 +764,18 @@ impl DeviceCtx<'_> {
         ));
     }
 
+    /// `SDL_SendJoystickCapSense()`
+    pub(crate) fn send_capsense(
+        &mut self,
+        timestamp: u64,
+        joystick: JoystickID,
+        capsense_type: GamepadCapSenseType,
+        down: bool,
+    ) {
+        self.pending
+            .push(Pending::CapSense(timestamp, joystick, capsense_type, down));
+    }
+
     /// `SDL_SendJoystickPowerInfo()`
     pub(crate) fn send_power_info(
         &mut self,
@@ -839,6 +862,9 @@ fn deliver(pending: Vec<Pending>) {
                 sensor_timestamp,
                 &data[..num_values],
             ),
+            Pending::CapSense(timestamp, joystick, capsense_type, down) => {
+                send_joystick_capsense(timestamp, joystick, capsense_type, down)
+            }
             Pending::PowerInfo(joystick, state, percent) => {
                 send_joystick_power_info(joystick, state, percent)
             }
@@ -909,6 +935,24 @@ pub(crate) static DRIVER_PS5: HidapiDeviceDriver =
 /// `SDL_HIDAPI_DriverStadia`
 pub(crate) static DRIVER_STADIA: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_STADIA, &stadia::StadiaDriver);
+/// `SDL_HIDAPI_DriverSteam`
+pub(crate) static DRIVER_STEAM: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_STEAM, &steam::SteamDriver);
+/// `SDL_HIDAPI_DriverSteamHori`
+pub(crate) static DRIVER_STEAM_HORI: HidapiDeviceDriver = HidapiDeviceDriver::new(
+    hints::JOYSTICK_HIDAPI_STEAM_HORI,
+    &steam_hori::SteamHoriDriver,
+);
+/// `SDL_HIDAPI_DriverSteamDeck`
+pub(crate) static DRIVER_STEAMDECK: HidapiDeviceDriver = HidapiDeviceDriver::new(
+    hints::JOYSTICK_HIDAPI_STEAMDECK,
+    &steamdeck::SteamDeckDriver,
+);
+/// `SDL_HIDAPI_DriverSteamTriton`
+pub(crate) static DRIVER_STEAM_TRITON: HidapiDeviceDriver = HidapiDeviceDriver::new(
+    hints::JOYSTICK_HIDAPI_STEAM,
+    &steam_triton::SteamTritonDriver,
+);
 /// `SDL_HIDAPI_DriverNintendoClassic`
 pub(crate) static DRIVER_NINTENDO_CLASSIC: HidapiDeviceDriver = HidapiDeviceDriver::new(
     hints::JOYSTICK_HIDAPI_NINTENDO_CLASSIC,
@@ -942,9 +986,8 @@ pub(crate) static DRIVER_ZUIKI: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_ZUIKI, &zuiki::ZuikiDriver);
 
 /// Translation of `SDL_HIDAPI_drivers`: the drivers translated so far, in
-/// upstream's order. Not translated yet: Steam, Steam HORI, Steam Deck,
-/// Steam Triton, Switch 2, Wii, GIP, Logitech G (lg4ff), Flydigi, SInput
-/// and GameSir.
+/// upstream's order. Not translated yet: Switch 2, Wii, GIP, Logitech G
+/// (lg4ff), Flydigi, SInput and GameSir.
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_GAMECUBE,
     &DRIVER_LUNA,
@@ -955,6 +998,10 @@ static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_PS4,
     &DRIVER_PS5,
     &DRIVER_STADIA,
+    &DRIVER_STEAM,
+    &DRIVER_STEAM_HORI,
+    &DRIVER_STEAMDECK,
+    &DRIVER_STEAM_TRITON,
     &DRIVER_NINTENDO_CLASSIC,
     &DRIVER_JOYCONS,
     &DRIVER_SWITCH,
