@@ -628,8 +628,20 @@ pub fn convert_pixels_and_colorspace(
     }
 
     if src_format == PixelFormat::MJPG {
-        // SDL_ConvertPixels_STB() in a build without stb_image.
-        return Err(Error::new("SDL not built with STB image support"));
+        return crate::video::stb::convert_pixels_stb(
+            width,
+            height,
+            src_format,
+            src_colorspace,
+            src_properties,
+            src,
+            src_pitch,
+            dst_format,
+            dst_colorspace,
+            dst_properties,
+            dst,
+            dst_pitch,
+        );
     }
 
     if src_format.is_fourcc() && dst_format.is_fourcc() {
