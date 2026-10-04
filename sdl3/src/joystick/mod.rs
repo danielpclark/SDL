@@ -14,8 +14,8 @@
 //! [`gamepad`] module maps joystick inputs to named buttons and axes.
 //!
 //! The joystick drivers are platform backends. So far the Linux driver
-//! (evdev devices, found through libudev or inotify), the XInput half of
-//! the Windows driver, the virtual driver
+//! (evdev devices, found through libudev or inotify), the Windows driver
+//! (DirectInput and XInput), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the HIDAPI drivers and the
 //! other platform drivers arrive later.
@@ -34,7 +34,7 @@ mod usb_ids;
 mod vidpid;
 mod virtual_joystick;
 #[cfg(windows)]
-mod windows;
+pub(crate) mod windows;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -162,7 +162,7 @@ pub enum JoystickConnectionState {
 
 /// Windows and Mac OSX has a limit of MAX_DWORD / 1000, Linux kernel has a
 /// limit of 0xFFFF. Translation of `SDL_MAX_RUMBLE_DURATION_MS`.
-const MAX_RUMBLE_DURATION_MS: u32 = 0xFFFF;
+pub(crate) const MAX_RUMBLE_DURATION_MS: u32 = 0xFFFF;
 
 /// Dualshock4 only rumbles for about 5 seconds max, resend rumble command
 /// every 2 seconds to make long rumble work. Translation of `SDL_RUMBLE_RESEND_MS`.

@@ -4,15 +4,14 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The Windows joystick driver (`SDL_WINDOWS_JoystickDriver`), which
-//! combines DirectInput and XInput devices; a thread with a message-only
-//! window watches for HID devices coming and going, and polls XInput's
-//! slots when device notifications don't work.
+//! combines DirectInput ([`dinput`]) and XInput ([`xinput`]) devices; a
+//! thread with a message-only window watches for HID devices coming and
+//! going, and polls XInput's slots when device notifications don't work.
 //!
-//! Only the XInput half is translated so far: DirectInput
-//! (`SDL_dinputjoystick.c`, with its haptic driver) behaves like a build
-//! without it, and the RawInput, Windows.Gaming.Input and GameInput drivers
-//! are not translated yet either.
+//! The RawInput, Windows.Gaming.Input and GameInput drivers are not
+//! translated yet.
 
+pub(crate) mod dinput;
 mod xinput;
 
 use std::cell::RefCell;
@@ -26,18 +25,20 @@ use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallWindowProcW, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-    KillTimer, PostThreadMessageW, RegisterClassExW, RegisterDeviceNotificationW, SetTimer,
-    TranslateMessage, UnregisterClassW, UnregisterDeviceNotification, DBT_DEVICEARRIVAL,
-    DBT_DEVICEREMOVECOMPLETE, DBT_DEVTYP_DEVICEINTERFACE, DEVICE_NOTIFY_WINDOW_HANDLE,
-    DEV_BROADCAST_DEVICEINTERFACE_W, DEV_BROADCAST_HDR, HDEVNOTIFY, HWND_MESSAGE, MSG,
-    WM_DEVICECHANGE, WM_QUIT, WM_TIMER, WNDCLASSEXW,
+    KillTimer, MsgWaitForMultipleObjects, PeekMessageW, PostThreadMessageW, RegisterClassExW,
+    RegisterDeviceNotificationW, SetTimer, TranslateMessage, UnregisterClassW,
+    UnregisterDeviceNotification, DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE,
+    DBT_DEVTYP_DEVICEINTERFACE, DEVICE_NOTIFY_WINDOW_HANDLE, DEV_BROADCAST_DEVICEINTERFACE_W,
+    DEV_BROADCAST_HDR, HDEVNOTIFY, HWND_MESSAGE, MSG, PM_REMOVE, QS_ALLINPUT, WM_DEVICECHANGE,
+    WM_QUIT, WM_TIMER, WNDCLASSEXW,
 };
 
 use super::gamepad::GamepadMapping;
 use super::{
-    assert_joysticks_locked, private_joystick_added, private_joystick_removed, JoystickData,
-    JoystickDriver,
+    assert_joysticks_locked, private_joystick_added, private_joystick_removed, send_joystick_axis,
+    send_joystick_button, send_joystick_hat, Joystick, JoystickData, JoystickDriver,
 };
+use crate::core::windows::directx::{InputDevice, DIDEVCAPS, DIDEVICEINSTANCEW};
 use crate::core::windows::hid::{
     get_last_device_notification, init_device_notification, quit_device_notification,
     GUID_DEVINTERFACE_HID,
@@ -53,8 +54,7 @@ use crate::thread::{ReentrantMutex, Thread};
 #[cfg(test)]
 mod tests;
 
-/// A device of the driver. Translation of `JoyStick_DeviceData` (without
-/// the DirectInput device instance, `dxdevice`).
+/// A device of the driver. Translation of `JoyStick_DeviceData`.
 pub(super) struct JoyStickDeviceData {
     guid: Guid,
     joystickname: String,
@@ -63,22 +63,46 @@ pub(super) struct JoyStickDeviceData {
     b_xinput_device: bool,
     sub_type: u8,
     xinput_user_id: u8,
+    /// The DirectInput device instance (all zeros for XInput devices).
+    dxdevice: DIDEVICEINSTANCEW,
     path: String,
     steam_virtual_gamepad_slot: i32,
 }
 
-/// The private structure used to keep track of a joystick (its XInput
-/// half). Translation of `struct joystick_hwdata`.
+impl JoyStickDeviceData {
+    /// A copy of the device's data.
+    fn duplicate(&self) -> JoyStickDeviceData {
+        JoyStickDeviceData {
+            guid: self.guid,
+            joystickname: self.joystickname.clone(),
+            send_add_event: self.send_add_event,
+            n_instance_id: self.n_instance_id,
+            b_xinput_device: self.b_xinput_device,
+            sub_type: self.sub_type,
+            xinput_user_id: self.xinput_user_id,
+            dxdevice: self.dxdevice,
+            path: self.path.clone(),
+            steam_virtual_gamepad_slot: self.steam_virtual_gamepad_slot,
+        }
+    }
+}
+
+/// The private structure used to keep track of a joystick. Translation
+/// of `struct joystick_hwdata`.
 pub(super) struct HwData {
     /// The joystick this belongs to
     instance_id: JoystickID,
-    #[allow(dead_code)] // (read by DirectInput)
+    #[allow(dead_code)] // (kept like upstream; nothing reads it)
     guid: Guid,
+
+    /// The DirectInput half (`InputDevice`, `Capabilities` and the rest),
+    /// for DirectInput devices.
+    dinput: Option<dinput::DinputHwData>,
 
     /// true if this device supports using the xinput API rather than DirectInput
     b_xinput_device: bool,
     /// Supports force feedback via XInput.
-    #[allow(dead_code)] // (read by the DirectInput haptic driver)
+    #[allow(dead_code)] // (kept like upstream; nothing reads it)
     b_xinput_haptic: bool,
     /// XInput userid index for this joystick
     userid: u8,
@@ -139,8 +163,58 @@ fn set_windows_device_changed() {
 
 /// Translation of `WINDOWS_RAWINPUTEnabledChanged()`.
 #[allow(dead_code)] // (used by the RawInput driver)
-pub(crate) fn rawinput_enabled_changed() {
+pub(super) fn rawinput_enabled_changed() {
     set_windows_device_changed();
+}
+
+/// A directive of the `SDL_sscanf()` formats the Windows drivers read
+/// Steam virtual gamepad slots with.
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)] // (the skips are used by the RawInput and WGI drivers)
+pub(super) enum Scan<'a> {
+    /// Literal text, which must match.
+    Lit(&'a str),
+    /// `%*X`: a hexadecimal number, skipped.
+    SkipHex,
+    /// `%*u`: an unsigned decimal number, skipped.
+    SkipUnsigned,
+    /// `%d`: the decimal number to return.
+    Int,
+}
+
+/// Scan `text` like `SDL_sscanf(text, format, &value)` with a format of
+/// one `%d` ([`Scan::Int`]): the value, if the scan got that far.
+pub(super) fn scan_int(text: &str, format: &[Scan]) -> Option<i32> {
+    let mut rest = text.as_bytes();
+    let mut value = None;
+    for directive in format {
+        let (number, used) = match directive {
+            Scan::Lit(lit) => match rest.strip_prefix(lit.as_bytes()) {
+                Some(after) => {
+                    rest = after;
+                    continue;
+                }
+                None => break,
+            },
+            Scan::SkipHex => {
+                let (number, used) = crate::stdlib::string::strtoul(rest, 16);
+                (number as i64, used)
+            }
+            Scan::SkipUnsigned => {
+                let (number, used) = crate::stdlib::string::strtoul(rest, 10);
+                (number as i64, used)
+            }
+            Scan::Int => crate::stdlib::string::strtol(rest, 10),
+        };
+        if used == 0 {
+            break;
+        }
+        rest = &rest[used..];
+        if let Scan::Int = directive {
+            value = Some(number as i32);
+        }
+    }
+    value
 }
 
 /// Translation of `SDL_DeviceNotificationData`.
@@ -351,6 +425,30 @@ fn wait_for_device_notification(
             }
         }
     }
+
+    // FIXME (upstream): while a device change is pending (until the next
+    // WINDOWS_JoystickDetect() takes it), the loop above returns at once,
+    // and the joystick thread spins, relocking the mutex and coming back
+    // here, until then. Deviation: wait for a message for up to 100 ms
+    // (dispatching what comes, and noticing WM_QUIT) before returning.
+    if lastret > 0 {
+        // SAFETY: no handles; this waits for this thread's message queue.
+        unsafe {
+            MsgWaitForMultipleObjects(0, std::ptr::null(), 0, 100, QS_ALLINPUT);
+        }
+        // SAFETY: msg is writable; this thread owns the window.
+        while unsafe { PeekMessageW(&mut msg, std::ptr::null_mut(), 0, 0, PM_REMOVE) } != 0 {
+            if msg.message == WM_QUIT {
+                lastret = 0;
+                break;
+            }
+            // SAFETY: msg was filled in by PeekMessageW.
+            unsafe {
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+            }
+        }
+    }
     (lock_enum(), lastret != -1)
 }
 
@@ -437,6 +535,8 @@ fn stop_joystick_thread() {
         *quit = true;
         COND_JOYSTICK_THREAD.notify_all(); // signal the joystick thread to quit
     }
+    // (the thread posts its ID as soon as it runs; until then it can't have
+    // a message queue, and sees the quit flag before waiting)
     let thread_id = JOYSTICK_THREAD_ID.load(Ordering::Acquire);
     if thread_id != 0 {
         // SAFETY: posting a message to a thread has no memory preconditions.
@@ -459,41 +559,7 @@ fn add_joystick_device(sys_joystick: &mut Vec<JoyStickDeviceData>, mut device: J
     sys_joystick.insert(0, device);
 }
 
-// The DirectInput functions, as upstream builds them without DirectInput
-// (the `!SDL_JOYSTICK_DINPUT` half of SDL_dinputjoystick.c).
-
-/// Translation of `SDL_DINPUT_JoystickInit()` without DirectInput.
-fn dinput_joystick_init() -> bool {
-    true
-}
-
-/// Translation of `SDL_DINPUT_JoystickDetect()` without DirectInput.
-fn dinput_joystick_detect(_context: &mut Vec<JoyStickDeviceData>) {}
-
-/// Translation of `SDL_DINPUT_JoystickPresent()` without DirectInput.
-fn dinput_joystick_present(_vendor: u16, _product: u16, _version: u16) -> bool {
-    false
-}
-
-/// Translation of `SDL_DINPUT_JoystickOpen()` without DirectInput.
-fn dinput_joystick_open(_joystick: &mut JoystickData, _device: &JoyStickDeviceData) -> Result<()> {
-    Err(Error::unsupported())
-}
-
-/// Translation of `SDL_DINPUT_JoystickRumble()` without DirectInput.
-fn dinput_joystick_rumble(_low_frequency_rumble: u16, _high_frequency_rumble: u16) -> Result<()> {
-    Err(Error::unsupported())
-}
-
-/// Translation of `SDL_DINPUT_JoystickUpdate()` without DirectInput.
-fn dinput_joystick_update(_joystick: JoystickID) {}
-
-/// Translation of `SDL_DINPUT_JoystickClose()` without DirectInput.
-fn dinput_joystick_close() {}
-
-/// Translation of `SDL_DINPUT_JoystickQuit()` without DirectInput.
-fn dinput_joystick_quit() {}
-
+/// detect any new joysticks being inserted into the system.
 /// Translation of `WINDOWS_JoystickDetect()`.
 fn joystick_detect() {
     // only enum the devices if the joystick thread told us something changed
@@ -512,7 +578,7 @@ fn joystick_detect() {
         let mut sys_joystick = Vec::new();
 
         // Look for DirectInput joysticks, wheels, head trackers, gamepads, etc..
-        dinput_joystick_detect(&mut cur_list);
+        dinput::joystick_detect(&mut cur_list, &mut sys_joystick);
 
         // Look for XInput devices. Do this last, so they're first in the final list.
         xinput::joystick_detect(&mut cur_list, &mut sys_joystick);
@@ -520,7 +586,10 @@ fn joystick_detect() {
         drop(guard);
 
         // (the devices left in the previous list are gone)
-        let removed: Vec<JoystickID> = cur_list.iter().map(|d| d.n_instance_id).collect();
+        let removed: Vec<(JoystickID, Option<DIDEVICEINSTANCEW>)> = cur_list
+            .iter()
+            .map(|d| (d.n_instance_id, (!d.b_xinput_device).then_some(d.dxdevice)))
+            .collect();
         let added = with_state(|s| {
             s.sys_joystick = sys_joystick;
             s.sys_joystick
@@ -528,20 +597,24 @@ fn joystick_detect() {
                 .filter(|d| d.send_add_event)
                 .map(|d| {
                     d.send_add_event = false;
-                    d.n_instance_id
+                    (d.n_instance_id, (!d.b_xinput_device).then_some(d.dxdevice))
                 })
                 .collect::<Vec<_>>()
         });
         (removed, added)
     };
 
-    // (the DirectInput haptic hotplug, SDL_DINPUT_HapticMaybeRemoveDevice()
-    // and SDL_DINPUT_HapticMaybeAddDevice(), comes with DirectInput)
-    for instance_id in removed {
+    for (instance_id, dxdevice) in removed {
+        if let Some(dxdevice) = dxdevice {
+            crate::haptic::windows::dinput_haptic_maybe_remove_device(&dxdevice);
+        }
         private_joystick_removed(instance_id);
     }
 
-    for instance_id in added {
+    for (instance_id, dxdevice) in added {
+        if let Some(dxdevice) = dxdevice {
+            crate::haptic::windows::dinput_haptic_maybe_add_device(&dxdevice);
+        }
         private_joystick_added(instance_id);
     }
 }
@@ -561,6 +634,48 @@ fn with_hwdata<R>(instance_id: JoystickID, f: impl FnOnce(&mut HwData) -> R) -> 
     })
 }
 
+/// The device instances of the driver's devices (`device->dxdevice` of
+/// each `SYS_Joystick` entry), for the haptic driver's initialization.
+pub(crate) fn device_instances() -> Vec<DIDEVICEINSTANCEW> {
+    with_state(|s| s.sys_joystick.iter().map(|d| d.dxdevice).collect())
+}
+
+/// The DirectInput device and capabilities of an open joystick of this
+/// driver (`joystick->hwdata->InputDevice` and `Capabilities`), for the
+/// haptic driver: `None` for a joystick of another driver (`joystick->driver
+/// != &SDL_WINDOWS_JoystickDriver`), no device (and zeroed capabilities)
+/// for an XInput joystick.
+pub(crate) fn joystick_dinput_device(
+    joystick: &Joystick,
+) -> Option<(Option<InputDevice>, DIDEVCAPS)> {
+    assert_joysticks_locked();
+
+    let (instance_id, driver) = joystick.with(|j| (j.instance_id, j.driver)).ok()?;
+    if driver != super::WINDOWS_DRIVER_INDEX {
+        return None;
+    }
+    with_hwdata(instance_id, |h| match &h.dinput {
+        Some(d) => (Some(d.input_device.clone()), d.capabilities),
+        None => (None, DIDEVCAPS::default()),
+    })
+}
+
+/// Send input events of a joystick.
+fn send_inputs(joystick: JoystickID, inputs: Vec<xinput::Input>) {
+    let timestamp = crate::timer::ticks_ns();
+    for input in inputs {
+        match input {
+            xinput::Input::Axis(axis, value) => {
+                send_joystick_axis(timestamp, joystick, axis, value)
+            }
+            xinput::Input::Button(button, down) => {
+                send_joystick_button(timestamp, joystick, button, down)
+            }
+            xinput::Input::Hat(hat, value) => send_joystick_hat(timestamp, joystick, hat, value),
+        }
+    }
+}
+
 /// Translation of `SDL_WINDOWS_JoystickDriver`.
 pub(super) struct WindowsJoystickDriver;
 
@@ -574,9 +689,9 @@ impl JoystickDriver for WindowsJoystickDriver {
             return Err(Error::new("XInput initialization failed"));
         }
 
-        if !dinput_joystick_init() {
+        if let Err(e) = dinput::joystick_init() {
             self.quit();
-            return Err(Error::new("DirectInput initialization failed"));
+            return Err(e);
         }
 
         init_device_notification();
@@ -617,7 +732,7 @@ impl JoystickDriver for WindowsJoystickDriver {
         version: u16,
         _name: Option<&str>,
     ) -> bool {
-        if dinput_joystick_present(vendor_id, product_id, version) {
+        if dinput::joystick_present(vendor_id, product_id, version) {
             return true;
         }
         if xinput::joystick_present(vendor_id, product_id, version) {
@@ -687,17 +802,7 @@ impl JoystickDriver for WindowsJoystickDriver {
     /// and naxes fields of the joystick structure.
     /// Translation of `WINDOWS_JoystickOpen()`.
     fn open(&self, joystick: &mut JoystickData, device_index: usize) -> Result<()> {
-        let Some(device) = with_device(device_index, |d| JoyStickDeviceData {
-            guid: d.guid,
-            joystickname: d.joystickname.clone(),
-            send_add_event: d.send_add_event,
-            n_instance_id: d.n_instance_id,
-            b_xinput_device: d.b_xinput_device,
-            sub_type: d.sub_type,
-            xinput_user_id: d.xinput_user_id,
-            path: d.path.clone(),
-            steam_virtual_gamepad_slot: d.steam_virtual_gamepad_slot,
-        }) else {
+        let Some(device) = with_device(device_index, JoyStickDeviceData::duplicate) else {
             return Err(Error::new("No such device"));
         };
 
@@ -705,6 +810,7 @@ impl JoystickDriver for WindowsJoystickDriver {
         let mut hwdata = HwData {
             instance_id: joystick.instance_id,
             guid: device.guid,
+            dinput: None,
             b_xinput_device: false,
             b_xinput_haptic: false,
             userid: 0,
@@ -714,7 +820,7 @@ impl JoystickDriver for WindowsJoystickDriver {
         if device.b_xinput_device {
             xinput::joystick_open(joystick, &device, &mut hwdata)?;
         } else {
-            dinput_joystick_open(joystick, &device)?;
+            hwdata.dinput = Some(dinput::joystick_open(joystick, &device)?);
         }
         with_state(|s| s.open.push(hwdata));
         Ok(())
@@ -735,7 +841,12 @@ impl JoystickDriver for WindowsJoystickDriver {
                     high_frequency_rumble,
                 );
             }
-            dinput_joystick_rumble(low_frequency_rumble, high_frequency_rumble)
+            match &mut hwdata.dinput {
+                Some(dinput) => {
+                    dinput::joystick_rumble(dinput, low_frequency_rumble, high_frequency_rumble)
+                }
+                None => Err(Error::unsupported()),
+            }
         }) else {
             return Err(Error::invalid_param("joystick"));
         };
@@ -781,7 +892,10 @@ impl JoystickDriver for WindowsJoystickDriver {
             with_hwdata(joystick, |h| h.dw_packet_number = dw_packet_number);
             return;
         }
-        dinput_joystick_update(joystick);
+        let inputs = with_hwdata(joystick, |h| h.dinput.as_mut().map(dinput::joystick_update));
+        if let Some(Some(inputs)) = inputs {
+            send_inputs(joystick, inputs);
+        }
     }
 
     /// Function to close a joystick after use.
@@ -799,8 +913,8 @@ impl JoystickDriver for WindowsJoystickDriver {
         };
         if hwdata.b_xinput_device {
             xinput::joystick_close();
-        } else {
-            dinput_joystick_close();
+        } else if let Some(dinput) = hwdata.dinput {
+            dinput::joystick_close(dinput);
         }
     }
 
@@ -817,7 +931,7 @@ impl JoystickDriver for WindowsJoystickDriver {
             );
         }
 
-        dinput_joystick_quit();
+        dinput::joystick_quit();
         xinput::joystick_quit();
 
         quit_device_notification();
