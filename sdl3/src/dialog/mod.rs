@@ -288,8 +288,9 @@ pub(crate) fn convert_ext_list(
         }
     }
 
-    // FIXME (upstream): an empty list reads the byte before the string
-    if list.ends_with(';') {
+    // Upstream reads `list[strlen(list) - 1]`, the byte before the string
+    // for an empty list; here an empty list is an empty pattern.
+    if list.is_empty() || list.ends_with(';') {
         return Err(Error::new("Empty pattern not allowed"));
     }
 
@@ -325,8 +326,9 @@ pub(crate) fn validate_list(list: &str) -> Option<&'static str> {
         }
     }
 
-    // FIXME (upstream): an empty list reads the byte before the string
-    if list.ends_with(';') {
+    // Upstream reads `list[strlen(list) - 1]`, the byte before the string
+    // for an empty list; here an empty list is an empty pattern.
+    if list.is_empty() || list.ends_with(';') {
         return Some("Empty pattern not allowed");
     }
 
@@ -660,6 +662,13 @@ mod tests {
         assert_eq!(validate_list("png;;jpg"), Some("Empty pattern not allowed"));
         assert_eq!(validate_list(";png"), Some("Empty pattern not allowed"));
         assert_eq!(validate_list("png;"), Some("Empty pattern not allowed"));
+        assert_eq!(validate_list(""), Some("Empty pattern not allowed"));
+        assert_eq!(
+            convert_ext_list("", "(", ",", ")", false)
+                .unwrap_err()
+                .to_string(),
+            "Empty pattern not allowed"
+        );
         assert_eq!(
             validate_list("p ng"),
             Some("Invalid character in pattern (Only [a-zA-Z0-9_.-] allowed, or a single *)")
