@@ -36,7 +36,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
 | `hidapi` | Linux, Windows | the HID backend: hidraw with libudev, or `hid.dll` |
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
-| `gameinput` | Windows | `GameInput.dll` (the GameInput redistributable) |
+| `gameinput` | Windows | a GameInput DLL with the v3 API: the GameInput redistributable's `GameInputRedist.dll` (the `GameInput.dll` that ships with Windows may be too old) |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
 | `wasapi` | Windows | WASAPI with a default playback and a default recording endpoint |
 | `mediafoundation` | Windows | Media Foundation (`mfplat.dll`, `mf.dll`, `mfreadwrite.dll`; missing on Windows N/Server without the Media Feature Pack) |
@@ -70,7 +70,7 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `camera::pipewire::tests::hardware_capture_from_the_first_camera` | Linux | the same through the PipeWire server's cameras |
 | `video::drivers::windows::tests::hardware_gpu_gl_context_and_renderer` | Windows | a WGL context, printing `GL_VENDOR`, `GL_RENDERER`, `GL_VERSION` and whether framebuffer objects exist; it must not be GDI Generic. Then a window with the default 2D renderer: with framebuffer objects that renderer must be `opengl`, and it must clear to a color that reads back |
 | `audio::drivers::wasapi::tests::hardware_default_playback_and_recording` | Windows | lists the WASAPI endpoints; plays half a second of a quiet 440 Hz tone on the default playback endpoint (it must drain), then records half a second from the default recording endpoint (it must arrive), printing formats, timing and the peak level |
-| `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone. Zero controllers is fine |
+| `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone (GameInput alone skips as `gameinput` where GameInput isn't usable). Zero controllers is fine |
 | `joystick::windows::tests::hardware_controller_input` | Windows | opens the first controller through the default drivers and prints its name, driver, GUID, VID:PID, axes/buttons/hats and gamepad mapping; asks for a button press and release, then a full stick (or axis) movement, waiting up to 30 seconds for each; then sends a short rumble and prints whether the controller supports it. Run it on its own, as below |
 
 When the hardware isn't there they skip like the other tests (as `camera`,
@@ -149,7 +149,20 @@ Remove-Item Env:SDL3_TEST_REQUIRE
 ```
 
 Add `gameinput` to the lists when the GameInput redistributable is
-installed (`GameInput.dll` in `System32`).
+installed: `GameInputRedist.dll` in `System32`, or in the directory that
+`RedistDir` under `HKLM\SOFTWARE\Microsoft\GameInput` (32-bit view) names.
+The `GameInput.dll` that Windows ships in `System32` isn't enough by
+itself: an old one (0.1908 on Windows 11 21H2) only has the v0 API, and the
+tests then skip with `GameInputCreate failed: No such interface supported`.
+Without GameInput the joystick listing leaves out "GameInput alone".
+
+A plain `cargo test` only shows the output of failing tests, so the
+`note: skipping` lines of the first two commands stay hidden. To see them,
+set `SDL3_TEST_SKIP_LOG` to a file first and read it after each run:
+
+```powershell
+$env:SDL3_TEST_SKIP_LOG = "$env:TEMP\sdl3-skips.tsv"
+```
 
 ### Running them from a Claude Code session on that machine
 
@@ -158,7 +171,8 @@ A session on the Windows machine (the Claude desktop app, or
 Clone the repository, open the session in it, and ask it to follow this
 section: run the commands above in order, then report:
 
-* the test result lines and every `note: skipping` line of each run;
+* the test result lines and every `note: skipping` line of each run (from
+  `SDL3_TEST_SKIP_LOG`, as above, for the runs without `--nocapture`);
 * what the hardware checks printed: `GL_VENDOR`/`GL_RENDERER`/`GL_VERSION`
   and the default renderer's name, the WASAPI endpoints and peak level,
   the camera's formats and frame rate, the controllers each joystick driver
