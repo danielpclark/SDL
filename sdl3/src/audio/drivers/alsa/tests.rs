@@ -234,6 +234,53 @@ fn pcm_names() {
     assert!(name.ends_with("CARD=PCH,DEV=3"), "{name}");
 }
 
+/// The hint list the fake `snd_device_name_hint()` hands out, and the
+/// list the fake `snd_device_name_free_hint()` was given.
+static FAKE_HINTS: AtomicUsize = AtomicUsize::new(0);
+static FREED_HINTS: AtomicUsize = AtomicUsize::new(0);
+
+unsafe extern "C" fn fake_name_hint(
+    _card: c_int,
+    _iface: *const c_char,
+    hints: *mut *mut *mut c_void,
+) -> c_int {
+    // SAFETY: the caller passes a writable list pointer.
+    unsafe { *hints = FAKE_HINTS.load(Ordering::SeqCst) as *mut *mut c_void };
+    0
+}
+
+unsafe extern "C" fn fake_name_get_hint(_hint: *const c_void, _id: *const c_char) -> *mut c_char {
+    ptr::null_mut()
+}
+
+unsafe extern "C" fn fake_name_free_hint(hints: *mut *mut c_void) -> c_int {
+    FREED_HINTS.store(hints as usize, Ordering::SeqCst);
+    0
+}
+
+#[test]
+fn device_prefix_guess_frees_the_hint_list() {
+    let _l = crate::test_support::test_lock();
+    if !have_libasound() {
+        return;
+    }
+    let mut lib = load_alsa_library().unwrap();
+    lib.snd_device_name_hint = fake_name_hint;
+    lib.snd_device_name_get_hint = fake_name_get_hint;
+    lib.snd_device_name_free_hint = fake_name_free_hint;
+    // One hint without a name, then the terminating NULL
+    let mut hint = 0u8;
+    let mut list: [*mut c_void; 2] = [(&mut hint as *mut u8).cast(), ptr::null_mut()];
+    FAKE_HINTS.store(list.as_mut_ptr() as usize, Ordering::SeqCst);
+    FREED_HINTS.store(0, Ordering::SeqCst);
+
+    let saved = ALSA_DEVICE_PREFIX.lock().unwrap().take();
+    alsa_guess_device_prefix(&lib);
+    let guessed = std::mem::replace(&mut *ALSA_DEVICE_PREFIX.lock().unwrap(), saved);
+    assert_eq!(guessed, Some("hw:"));
+    assert_eq!(FREED_HINTS.load(Ordering::SeqCst), list.as_ptr() as usize);
+}
+
 /// The query list the fake `snd_pcm_query_chmaps()` hands out, and the
 /// list the fake `snd_pcm_free_chmaps()` was given.
 static FAKE_CHMAPS: AtomicUsize = AtomicUsize::new(0);
