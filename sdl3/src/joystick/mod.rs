@@ -15,7 +15,8 @@
 //!
 //! The joystick drivers are platform backends. So far the Linux driver
 //! (evdev devices, found through libudev or inotify), the Windows drivers
-//! (RawInput; DirectInput and XInput), the virtual driver
+//! (RawInput; DirectInput and XInput; Windows.Gaming.Input), the virtual
+//! driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the HIDAPI drivers and the
 //! other platform drivers arrive later.
@@ -534,6 +535,10 @@ const RAWINPUT_DRIVER_INDEX: usize = 0;
 #[cfg(windows)]
 const WINDOWS_DRIVER_INDEX: usize = 1;
 
+/// The index of the Windows.Gaming.Input driver in [`JOYSTICK_DRIVERS`].
+#[cfg(windows)]
+const WGI_DRIVER_INDEX: usize = 2;
+
 /// The index of the Linux driver in [`JOYSTICK_DRIVERS`].
 #[cfg(target_os = "linux")]
 const LINUX_DRIVER_INDEX: usize = 0;
@@ -541,7 +546,7 @@ const LINUX_DRIVER_INDEX: usize = 0;
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// platform driver, if there is one).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
-    2
+    3
 } else if cfg!(target_os = "linux") {
     1
 } else {
@@ -555,8 +560,11 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     // Before WINDOWS driver, as WINDOWS wants to check if this driver is handling things
     #[cfg(windows)]
     &windows::rawinput::RAWINPUT_JOYSTICK_DRIVER,
+    // Before WGI driver, as WGI wants to check if this driver is handling things
     #[cfg(windows)]
     &windows::WINDOWS_JOYSTICK_DRIVER,
+    #[cfg(windows)]
+    &windows::windows_gaming_input::WGI_JOYSTICK_DRIVER,
     #[cfg(target_os = "linux")]
     &linux::LINUX_JOYSTICK_DRIVER,
     &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER,
