@@ -49,6 +49,9 @@ use linux as platform;
 #[cfg(windows)]
 use windows as platform;
 
+#[cfg(windows)]
+pub(crate) use windows::find_interface_path;
+
 /// The platform backend of a system without one (upstream's build without
 /// `HAVE_PLATFORM_BACKEND`): no devices, and nothing can be opened.
 #[cfg(not(any(target_os = "linux", windows)))]
