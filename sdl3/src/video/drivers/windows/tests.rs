@@ -2,8 +2,9 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Each test starts the `windows` driver; with no desktop to connect to,
-//! it prints a note and returns.
+//! Each test starts the `windows` driver; with no desktop to connect to
+//! (or, under Wine, no display to put windows on), it prints a note and
+//! returns.
 
 use std::time::{Duration, Instant};
 
@@ -61,18 +62,22 @@ fn start() -> Option<Session> {
     hints::set(hints::VIDEO_DRIVER, "windows").unwrap();
     let result = init::init(InitFlags::VIDEO);
     hints::reset(hints::VIDEO_DRIVER);
-    match result {
-        Ok(()) => {
-            let session = Session;
-            pump();
-            let _ = get_events(EventType::FIRST, EventType::LAST, 100000);
-            Some(session)
-        }
+    if let Err(e) = result {
+        println!("note: no desktop for the windows video driver, skipping ({e})");
+        return None;
+    }
+    let session = Session;
+    // Wine without an X display starts the driver but can't create windows.
+    match Window::create("SDL probe window", 1, 1, WindowFlags::HIDDEN) {
+        Ok(probe) => probe.destroy(),
         Err(e) => {
-            println!("note: no desktop for the windows video driver, skipping ({e})");
-            None
+            println!("note: the windows video driver can't create windows, skipping ({e})");
+            return None;
         }
     }
+    pump();
+    let _ = get_events(EventType::FIRST, EventType::LAST, 100000);
+    Some(session)
 }
 
 /// Pump events until `done` is satisfied by the events seen so far (or a
