@@ -171,7 +171,7 @@ pub(crate) const MAX_RUMBLE_DURATION_MS: u32 = 0xFFFF;
 
 /// Dualshock4 only rumbles for about 5 seconds max, resend rumble command
 /// every 2 seconds to make long rumble work. Translation of `SDL_RUMBLE_RESEND_MS`.
-const RUMBLE_RESEND_MS: u64 = 2000;
+pub(crate) const RUMBLE_RESEND_MS: u64 = 2000;
 
 /// Translation of `SDL_LED_MIN_REPEAT_MS`.
 const LED_MIN_REPEAT_MS: u64 = 5000;
