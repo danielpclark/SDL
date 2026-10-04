@@ -14,10 +14,11 @@ use crate::video::pixels::{BitmapOrder, Color, PixelType};
 /// The bit-walking loop shared by all of upstream's `BlitBto*` functions:
 /// calls `put(dst, dst_index, bit)` for every pixel of the blit rectangle.
 ///
-/// FIXME (upstream): `src_skip` is computed for `src_w` one-byte pixels, so
+/// Upstream computes the row skip from `width + leading_skip` pixels, so
 /// when the rectangle starts inside a byte (`leading_skip > 0`) every row
-/// starts `leading_skip` bytes further on than it should. Reads past the end
-/// of the buffer that this causes give 0 here.
+/// starts `leading_skip` bytes further on than it should (and the last rows
+/// read past the rectangle). Fixed here by taking `leading_skip` back off
+/// the skip.
 fn walk_bits(
     info: &mut BlitInfo<'_>,
     srcbpp: u32,
@@ -34,6 +35,9 @@ fn walk_bits(
     let dstskip = info.dst_skip as isize;
 
     width += info.leading_skip;
+    // (not upstream: the leading pixels are part of the bytes read below,
+    // not of the `src_w` pixels `src_skip` was computed for)
+    srcskip -= info.leading_skip as isize;
 
     if srcbpp == 4 {
         srcskip += (width - (width + 1) / 2) as isize;
