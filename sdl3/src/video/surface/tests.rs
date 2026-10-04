@@ -1345,6 +1345,30 @@ fn convert_matches_c() {
     assert_glibc_hashes((simd, plain), (0x11de2e0032a6ba2d, 0xeeef809f7bd0f921));
 }
 
+/// The colorkey of a converted surface is the converted key pixel's value,
+/// for every pixel size (upstream memcpy()s the pixel into an int, which
+/// overflows it for wide formats and misplaces narrow ones on big endian).
+#[test]
+fn converted_colorkey_is_the_pixel_value() {
+    let mut s = Surface::new(2, 1, PixelFormat::XRGB8888).unwrap();
+    s.set_color_key(Some(0x00102040)).unwrap();
+    for format in [
+        PixelFormat::RGB332,
+        PixelFormat::RGB565,
+        PixelFormat::RGB24,
+        PixelFormat::XBGR8888,
+    ] {
+        let d = s.convert(format).unwrap();
+        let rgb = d.fmt.Rmask | d.fmt.Gmask | d.fmt.Bmask;
+        let key = d.color_key().map(|k| k & rgb);
+        assert_eq!(key, Some(d.map_rgb(0x10, 0x20, 0x40) & rgb), "{format:?}");
+    }
+    // (no overflow for formats wider than the key)
+    for format in [PixelFormat::RGB48, PixelFormat::RGB96_FLOAT] {
+        assert!(s.convert(format).unwrap().color_key().is_some());
+    }
+}
+
 #[test]
 fn blit_matches_c() {
     let simd = with_simd(true, run_blit);
