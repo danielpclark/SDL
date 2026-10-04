@@ -655,10 +655,9 @@ struct ChmapQuery {
     pos: Vec<u32>,
 }
 
-/// The result of `ALSA_snd_pcm_query_chmaps()`: the list as Rust data, and
-/// the C list to hand back to `ALSA_snd_pcm_free_chmaps()` (NULL in tests).
+/// The result of `ALSA_snd_pcm_query_chmaps()`, copied out of the C list
+/// (which is freed right away).
 struct ChmapQueries {
-    raw: *mut *mut SndPcmChmapQuery,
     list: Vec<ChmapQuery>,
 }
 
@@ -710,7 +709,10 @@ impl ChmapTarget for PcmTarget<'_> {
             list.push(entry);
             i += 1;
         }
-        Some(ChmapQueries { raw, list })
+        // SAFETY: the list came from snd_pcm_query_chmaps(), is freed once,
+        // and nothing points into it any more.
+        unsafe { (self.lib.snd_pcm_free_chmaps)(raw) };
+        Some(ChmapQueries { list })
     }
 
     fn set_chmap(&self, chmap: &[u32]) -> c_int {
@@ -1352,17 +1354,13 @@ fn alsa_pcm_cfg_hw_chans_n_scan(
         //==========================================================================================
         // Here the alsa pcm is in SND_PCM_STATE_PREPARED state, let's figure out a good fit for
         // SDL channel map, it may request to change the target number of channels though.
-        // FIXME (upstream): on an error here the channel map queries are leaked.
         let status = alsa_chmap_cfg(ctx, target)?; // we forward the SDL error
         if status == CHMAP_INSTALLED {
             return Ok(CHANS_N_CONFIGURED); // we are finished here
         }
 
         // status == CHANS_N_NEXT
-        if let Some(queries) = ctx.chmap_queries.take() {
-            // SAFETY: the list came from snd_pcm_query_chmaps() and is freed once.
-            unsafe { (lib.snd_pcm_free_chmaps)(queries.raw) };
-        }
+        ctx.chmap_queries = None;
         // SAFETY: `pcm` is open.
         unsafe { (lib.snd_pcm_hw_free)(pcm) }; // uninstall those hw params
 
@@ -1848,8 +1846,8 @@ impl AudioDriverImpl for Alsa {
             return Err(e);
         }
 
-        // from here, we get only the alsa chmap queries in cfg_ctx to explicitly clean, hwparams is
-        // uninstalled upon pcm closing
+        // from here, hwparams is uninstalled upon pcm closing (the alsa chmap queries were freed
+        // as soon as they were read)
 
         // This is useful for debugging
         let mut bufsize: SndPcmUframes = 0;
@@ -1868,10 +1866,6 @@ impl AudioDriverImpl for Alsa {
         if let Err(e) = alsa_pcm_cfg_sw(&mut cfg_ctx, &target) {
             // alsa pcm "software" part of the pcm
             // (err_cleanup_ctx:)
-            if let Some(queries) = cfg_ctx.chmap_queries.take() {
-                // SAFETY: the list came from snd_pcm_query_chmaps() and is freed once.
-                unsafe { (lib.snd_pcm_free_chmaps)(queries.raw) };
-            }
             close_pcm();
             return Err(e);
         }
@@ -1893,9 +1887,6 @@ impl AudioDriverImpl for Alsa {
             // SAFETY: `pcm` is open.
             unsafe { (lib.snd_pcm_nonblock)(pcm, 0) };
         }
-
-        // FIXME (upstream): the channel map queries are never freed once the
-        // device opens (only the error path frees them).
 
         Ok(Arc::new(AlsaPcm {
             shared: self.shared.clone(),

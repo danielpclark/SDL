@@ -34,10 +34,7 @@ impl FakePcm {
 
 impl ChmapTarget for FakePcm {
     fn query_chmaps(&self) -> Option<ChmapQueries> {
-        self.queries.clone().map(|list| ChmapQueries {
-            raw: ptr::null_mut(),
-            list,
-        })
+        self.queries.clone().map(|list| ChmapQueries { list })
     }
     fn set_chmap(&self, chmap: &[u32]) -> c_int {
         self.installed.borrow_mut().push(chmap.to_vec());
@@ -235,6 +232,55 @@ fn pcm_names() {
     };
     let name = get_pcm_str(&dev);
     assert!(name.ends_with("CARD=PCH,DEV=3"), "{name}");
+}
+
+/// The query list the fake `snd_pcm_query_chmaps()` hands out, and the
+/// list the fake `snd_pcm_free_chmaps()` was given.
+static FAKE_CHMAPS: AtomicUsize = AtomicUsize::new(0);
+static FREED_CHMAPS: AtomicUsize = AtomicUsize::new(0);
+
+unsafe extern "C" fn fake_query_chmaps(_pcm: *mut SndPcm) -> *mut *mut SndPcmChmapQuery {
+    FAKE_CHMAPS.load(Ordering::SeqCst) as *mut *mut SndPcmChmapQuery
+}
+
+unsafe extern "C" fn fake_free_chmaps(maps: *mut *mut SndPcmChmapQuery) {
+    FREED_CHMAPS.store(maps as usize, Ordering::SeqCst);
+}
+
+#[test]
+fn channel_map_queries_are_freed_once_read() {
+    let _l = crate::test_support::test_lock();
+    if !have_libasound() {
+        return;
+    }
+    let mut lib = load_alsa_library().unwrap();
+    lib.snd_pcm_query_chmaps = fake_query_chmaps;
+    lib.snd_pcm_free_chmaps = fake_free_chmaps;
+    // One fixed stereo map (type, channels, positions), then the terminating NULL
+    let mut query: [c_uint; 4] = [
+        SND_CHMAP_TYPE_FIXED as c_uint,
+        2,
+        SND_CHMAP_FL,
+        SND_CHMAP_FR,
+    ];
+    let mut list: [*mut SndPcmChmapQuery; 2] = [query.as_mut_ptr().cast(), ptr::null_mut()];
+    FAKE_CHMAPS.store(list.as_mut_ptr() as usize, Ordering::SeqCst);
+    FREED_CHMAPS.store(0, Ordering::SeqCst);
+
+    let target = PcmTarget {
+        lib: &lib,
+        pcm: ptr::null_mut(),
+    };
+    let queries = target.query_chmaps().unwrap();
+    assert_eq!(
+        queries.list,
+        [ChmapQuery {
+            type_: SND_CHMAP_TYPE_FIXED,
+            pos: vec![SND_CHMAP_FL, SND_CHMAP_FR],
+        }]
+    );
+    // The C list is released as soon as it's copied, whatever happens next
+    assert_eq!(FREED_CHMAPS.load(Ordering::SeqCst), list.as_ptr() as usize);
 }
 
 /// Whether libasound can be loaded here; prints a note when it can't.
