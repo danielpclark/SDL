@@ -393,6 +393,105 @@ fn have_libasound() -> bool {
     }
 }
 
+/// What a [`FifoSink`] has drained: the silent bytes before the first
+/// non-zero one, then up to `keep` bytes from there on.
+#[derive(Default)]
+struct Drained {
+    lead: usize,
+    kept: Vec<u8>,
+}
+
+/// The reading end of a FIFO the `file` PCM writes into, drained on another
+/// thread until dropped.
+///
+/// The `file` PCM's slave is the `null` PCM, which has no clock: it always
+/// has a whole buffer free, so the device thread never sleeps in
+/// `wait_device` and writes as fast as it can. Note (upstream):
+/// `ALSA_WaitDevice()` only sleeps while `snd_pcm_avail()` is short, so
+/// upstream spins on such a PCM just the same. Into a regular file that is
+/// hundreds of MB a second, and a test reading the file back while a
+/// raised-priority device thread keeps growing it never catches up on a
+/// busy CPU. Through a FIFO the writes block until this drains them, so
+/// the device thread goes at our pace, and only `keep` bytes are stored.
+struct FifoSink {
+    keep: usize,
+    seen: Arc<Mutex<Drained>>,
+    stop: Arc<AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl FifoSink {
+    fn new(path: &str, keep: usize) -> FifoSink {
+        let c = CString::new(path).unwrap();
+        // SAFETY: c is NUL-terminated.
+        assert_eq!(unsafe { libc::mkfifo(c.as_ptr(), 0o600) }, 0, "mkfifo");
+        // Read-write: the open doesn't wait for a writer, and the FIFO never
+        // reports end-of-file between the PCM's opens and closes.
+        let fifo = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .unwrap();
+        let seen = Arc::new(Mutex::new(Drained::default()));
+        let stop = Arc::new(AtomicBool::new(false));
+        let (seen2, stop2) = (seen.clone(), stop.clone());
+        let thread = std::thread::spawn(move || {
+            use std::io::Read;
+            use std::os::fd::AsRawFd;
+            let mut fifo = fifo;
+            let mut buf = vec![0u8; 65536];
+            while !stop2.load(Ordering::SeqCst) {
+                let mut pfd = libc::pollfd {
+                    fd: fifo.as_raw_fd(),
+                    events: libc::POLLIN,
+                    revents: 0,
+                };
+                // SAFETY: pfd is one valid pollfd.
+                if unsafe { libc::poll(&mut pfd, 1, 10) } <= 0 {
+                    continue;
+                }
+                let n = fifo.read(&mut buf).unwrap();
+                let mut d = seen2.lock().unwrap();
+                let mut data = &buf[..n];
+                if d.kept.is_empty() {
+                    let silent = data.iter().position(|&b| b != 0).unwrap_or(n);
+                    d.lead += silent;
+                    data = &data[silent..];
+                }
+                let room = keep - d.kept.len();
+                d.kept.extend_from_slice(&data[..data.len().min(room)]);
+            }
+        });
+        FifoSink {
+            keep,
+            seen,
+            stop,
+            thread: Some(thread),
+        }
+    }
+
+    /// Whether `keep` bytes have arrived since the first non-zero one.
+    fn full(&self) -> bool {
+        self.seen.lock().unwrap().kept.len() == self.keep
+    }
+
+    /// Stop draining and return what was seen.
+    fn finish(mut self) -> Drained {
+        self.stop.store(true, Ordering::SeqCst);
+        self.thread.take().unwrap().join().unwrap();
+        std::mem::take(&mut *self.seen.lock().unwrap())
+    }
+}
+
+impl Drop for FifoSink {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::SeqCst);
+        if let Some(t) = self.thread.take() {
+            let _ = t.join();
+        }
+    }
+}
+
 #[test]
 fn playback_and_recording_through_file_and_null_pcms() {
     let _l = crate::test_support::test_lock();
@@ -402,6 +501,13 @@ fn playback_and_recording_through_file_and_null_pcms() {
     let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
     let tmp = TempDir::new("alsa");
     let out = tmp.path("out.raw");
+    let expected = AudioSpec::new(AudioFormat::S16, 2, 44100);
+    let pattern: Vec<u8> = (0..expected.frame_size() * 300)
+        .map(|i| (i % 251) as u8 | 1)
+        .collect();
+    // (the pattern, then a few periods' worth of silence)
+    let keep = pattern.len() + 16384;
+    let sink = FifoSink::new(&out, keep);
     crate::hints::set(crate::hints::AUDIO_DRIVER, "alsa").unwrap();
     crate::hints::set(
         crate::hints::AUDIO_ALSA_DEFAULT_PLAYBACK_DEVICE,
@@ -436,7 +542,7 @@ fn playback_and_recording_through_file_and_null_pcms() {
         "ALSA default recording device"
     );
 
-    // Playback: the device thread writes what we queue into the file, in
+    // Playback: the device thread writes what we queue into the FIFO, in
     // the negotiated format, with silence around it (the device plays
     // silence until the stream is bound, and after it runs dry).
     let dev = match AudioDevice::open(AUDIO_DEVICE_DEFAULT_PLAYBACK, None) {
@@ -450,33 +556,23 @@ fn playback_and_recording_through_file_and_null_pcms() {
         }
     };
     let (spec, frames) = dev.format().unwrap();
-    assert_eq!(spec, AudioSpec::new(AudioFormat::S16, 2, 44100));
+    assert_eq!(spec, expected);
     assert!(frames > 0);
     let stream = AudioStream::new(Some(&spec), None).unwrap();
-    let pattern: Vec<u8> = (0..spec.frame_size() * 300)
-        .map(|i| (i % 251) as u8 | 1)
-        .collect();
     dev.bind(&stream).unwrap();
     stream.put_data(&pattern).unwrap();
-    let played = |written: &[u8]| {
-        let start = written.iter().position(|&b| b != 0)?;
-        let end = start + pattern.len();
-        (written.len() > end).then_some(start)
-    };
     let start = std::time::Instant::now();
-    while played(&std::fs::read(&out).unwrap_or_default()).is_none()
-        && start.elapsed() < Duration::from_secs(10)
-    {
+    while !sink.full() && start.elapsed() < Duration::from_secs(10) {
         std::thread::sleep(Duration::from_millis(5));
     }
     drop(dev);
     drop(stream);
-    let written = std::fs::read(&out).unwrap();
-    let at = played(&written).expect("the queued data reaches the file");
-    assert_eq!(at % spec.frame_size(), 0);
-    assert_eq!(written[at..at + pattern.len()], pattern[..]);
+    let written = sink.finish();
+    assert_eq!(written.kept.len(), keep, "the queued data reaches the file");
+    assert_eq!(written.lead % spec.frame_size(), 0);
+    assert_eq!(written.kept[..pattern.len()], pattern[..]);
     assert!(
-        written[at + pattern.len()..].iter().all(|&b| b == 0),
+        written.kept[pattern.len()..].iter().all(|&b| b == 0),
         "then silence"
     );
 
