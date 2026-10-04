@@ -3,15 +3,22 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The Windows joystick driver (`SDL_WINDOWS_JoystickDriver`), which
-//! combines DirectInput ([`dinput`]) and XInput ([`xinput`]) devices; a
-//! thread with a message-only window watches for HID devices coming and
-//! going, and polls XInput's slots when device notifications don't work.
+//! The Windows joystick drivers.
 //!
-//! The RawInput, Windows.Gaming.Input and GameInput drivers are not
-//! translated yet.
+//! The Windows driver (`SDL_WINDOWS_JoystickDriver`, this file) combines
+//! DirectInput ([`dinput`]) and XInput ([`xinput`]) devices; a thread with a
+//! message-only window watches for HID devices coming and going (and
+//! receives the RawInput driver's input), and polls XInput's slots when
+//! device notifications don't work. The RawInput driver ([`rawinput`]) is
+//! a driver of its own, before this one.
+//!
+//! The Windows.Gaming.Input driver is not translated yet; GameInput is not
+//! translated either: everything behaves as upstream does when
+//! `SDL_UsingGameInputForXInputControllers()` is false.
 
 pub(crate) mod dinput;
+pub(super) mod rawinput;
+mod wgi_abi;
 mod xinput;
 
 use std::cell::RefCell;
@@ -24,8 +31,8 @@ use windows_sys::Win32::Foundation::{ERROR_SUCCESS, HWND, LPARAM, LRESULT, S_OK,
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallWindowProcW, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-    KillTimer, MsgWaitForMultipleObjects, PeekMessageW, PostThreadMessageW, RegisterClassExW,
+    CallWindowProcW, CreateWindowExW, DestroyWindow, DispatchMessageW, GetMessageW, KillTimer,
+    MsgWaitForMultipleObjects, PeekMessageW, PostThreadMessageW, RegisterClassExW,
     RegisterDeviceNotificationW, SetTimer, TranslateMessage, UnregisterClassW,
     UnregisterDeviceNotification, DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE,
     DBT_DEVTYP_DEVICEINTERFACE, DEVICE_NOTIFY_WINDOW_HANDLE, DEV_BROADCAST_DEVICEINTERFACE_W,
@@ -36,7 +43,8 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 use super::gamepad::GamepadMapping;
 use super::{
     assert_joysticks_locked, private_joystick_added, private_joystick_removed, send_joystick_axis,
-    send_joystick_button, send_joystick_hat, Joystick, JoystickData, JoystickDriver,
+    send_joystick_button, send_joystick_hat, with_joysticks_unlocked, Joystick, JoystickData,
+    JoystickDriver,
 };
 use crate::core::windows::directx::{InputDevice, DIDEVCAPS, DIDEVICEINSTANCEW};
 use crate::core::windows::hid::{
@@ -162,7 +170,6 @@ fn set_windows_device_changed() {
 }
 
 /// Translation of `WINDOWS_RAWINPUTEnabledChanged()`.
-#[allow(dead_code)] // (used by the RawInput driver)
 pub(super) fn rawinput_enabled_changed() {
     set_windows_device_changed();
 }
@@ -170,7 +177,6 @@ pub(super) fn rawinput_enabled_changed() {
 /// A directive of the `SDL_sscanf()` formats the Windows drivers read
 /// Steam virtual gamepad slots with.
 #[derive(Clone, Copy, Debug)]
-#[allow(dead_code)] // (the skips are used by the RawInput and WGI drivers)
 pub(super) enum Scan<'a> {
     /// Literal text, which must match.
     Lit(&'a str),
@@ -289,13 +295,14 @@ unsafe extern "system" fn private_joystick_detect_proc(
         _ => {}
     }
 
-    // SAFETY: passing the message on to the default window procedure.
-    unsafe { CallWindowProcW(Some(DefWindowProcW), hwnd, msg, w_param, l_param) }
+    // SAFETY: passing the message on to the RawInput window procedure,
+    // which passes what it doesn't handle on to the default one.
+    unsafe { CallWindowProcW(Some(rawinput::window_proc), hwnd, msg, w_param, l_param) }
 }
 
 /// Translation of `SDL_CleanupDeviceNotification()`.
 fn cleanup_device_notification(data: &mut DeviceNotificationData) {
-    // (RAWINPUT_UnregisterNotifications() comes with the RawInput driver)
+    let _ = rawinput::unregister_notifications();
 
     // SAFETY: the handles were created by create_device_notification() and
     // are released once, here.
@@ -394,7 +401,7 @@ fn create_device_notification(data: &mut DeviceNotificationData) -> Result<()> {
         return Err(error);
     }
 
-    // (RAWINPUT_RegisterNotifications() comes with the RawInput driver)
+    let _ = rawinput::register_notifications(data.message_window);
     Ok(())
 }
 
@@ -545,11 +552,10 @@ fn stop_joystick_thread() {
         }
     }
 
-    // (upstream unlocks the joysticks while the joystick thread finishes
-    // processing messages, because the RawInput window procedure takes the
-    // lock on that thread; without RawInput nothing there does)
+    // Unlock joysticks while the joystick thread finishes processing messages
+    // (the RawInput window procedure takes the lock on that thread)
     assert_joysticks_locked();
-    thread.wait(); // wait for it to bugger off
+    with_joysticks_unlocked(|| thread.wait()); // wait for it to bugger off
 }
 
 /// Translation of `WINDOWS_AddJoystickDevice()`.
@@ -561,7 +567,7 @@ fn add_joystick_device(sys_joystick: &mut Vec<JoyStickDeviceData>, mut device: J
 
 /// detect any new joysticks being inserted into the system.
 /// Translation of `WINDOWS_JoystickDetect()`.
-fn joystick_detect() {
+pub(super) fn joystick_detect() {
     // only enum the devices if the joystick thread told us something changed
     if !windows_device_changed() {
         return; // thread hasn't signaled, nothing to do right now.

@@ -365,6 +365,22 @@ fn scan_like_sscanf() {
         -1
     );
 
+    let raw = |path| super::rawinput::get_steam_virtual_gamepad_slot(0x28DE, 0x11FF, path);
+    assert_eq!(
+        raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#28DE&11FF&1#3#123"),
+        3
+    );
+    assert_eq!(
+        raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#28de&11ff&0x10#12#0"),
+        12
+    );
+    assert_eq!(
+        raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#ZZ&1&1#3#1"),
+        -1
+    );
+    assert_eq!(raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#1&2&3#"), -1);
+    assert_eq!(raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#1&2&3#-4"), -4);
+
     assert_eq!(scan_int("", &[Int]), None);
     assert_eq!(scan_int("12", &[Lit("1"), Int]), Some(2));
 }
@@ -647,23 +663,281 @@ fn polled_and_buffered_states() {
     );
 }
 
+// --- RawInput ---
+
+#[test]
+fn match_states() {
+    use super::rawinput::{
+        fill_match_state, wgi_axes_match, wgi_triggers_match, xinput_axes_match,
+        xinput_triggers_match,
+    };
+    use super::wgi_abi::GamepadReading;
+    // (expected values from upstream's RAWINPUT_FillMatchState() and the
+    // XInput/WGI match macros)
+    let pad = |b_left: u8, b_right: u8, lx: i16, ly: i16, rx: i16, ry: i16| XINPUT_GAMEPAD {
+        wButtons: 0,
+        bLeftTrigger: b_left,
+        bRightTrigger: b_right,
+        sThumbLX: lx,
+        sThumbLY: ly,
+        sThumbRX: rx,
+        sThumbRY: ry,
+    };
+    let pads = [
+        pad(0, 0, 0, 0, 0, 0),
+        pad(0, 0, 0x1000, 0, 0, 0),
+        pad(255, 0, -32768, 32767, 0x7FFF, -1),
+        pad(0, 128, 0x1234, -0x5679, 0x3000, 0),
+        pad(1, 1, 0x7000, 0x7FFF, -0x1000, -0x7000),
+    ];
+    let reading =
+        |buttons: u32, triggers: (f64, f64), left: (f64, f64), right: (f64, f64)| GamepadReading {
+            Timestamp: 0,
+            Buttons: buttons,
+            LeftTrigger: triggers.0,
+            RightTrigger: triggers.1,
+            LeftThumbstickX: left.0,
+            LeftThumbstickY: left.1,
+            RightThumbstickX: right.0,
+            RightThumbstickY: right.1,
+        };
+    let readings = [
+        reading(0, (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)),
+        reading(4, (1.0, 0.0), (1.0, -1.0), (0.5, -0.5)),
+        reading(0, (0.0, 0.5), (0.125, 0.25), (-0.125, 0.875)),
+        reading(0x3FFF, (0.75, 0.75), (-1.0, 1.0), (0.0, 0.0)),
+    ];
+    type Case = (u64, [i16; 6], u16, u32, bool, &'static str, &'static str);
+    let cases: [Case; 9] = [
+        (
+            0x0000008800000000,
+            [0, 0, 0, 0, -32768, -32768],
+            0,
+            0,
+            false,
+            "1111010101",
+            "11010101",
+        ),
+        (0, [0, 0, 0, 0, 0, 0], 0, 0, true, "1010000101", "11000000"),
+        (
+            0x0000008800001001,
+            [0, 0, 0, 0, -32768, -32768],
+            4098,
+            132,
+            true,
+            "1111010101",
+            "11010101",
+        ),
+        (
+            0x00000088FFFF7FFF,
+            [-4096, -4096, -4096, -4096, -32768, -32768],
+            62463,
+            16383,
+            true,
+            "1101010101",
+            "11010101",
+        ),
+        (
+            0x0000001234560000,
+            [24576, 20480, 16384, 12288, 8192, 4096],
+            0,
+            0,
+            true,
+            "0000000001",
+            "01000001",
+        ),
+        (
+            0x000000F0F0F05555,
+            [0, -4096, 0, -4096, 0, -4096],
+            21178,
+            10903,
+            true,
+            "1010000101",
+            "11000100",
+        ),
+        (
+            0x0000FFFFFFFFFFFF,
+            [-4096; 6],
+            62463,
+            16383,
+            true,
+            "1000000101",
+            "11000100",
+        ),
+        (
+            0x0000000011110000,
+            [4096, 4096, 4096, 4096, 0, 0],
+            0,
+            0,
+            true,
+            "0000000101",
+            "01000000",
+        ),
+        (
+            0x0000000022220000,
+            [8192, 8192, 8192, 8192, 0, 0],
+            0,
+            0,
+            true,
+            "0000000101",
+            "01000000",
+        ),
+    ];
+    for (match_state, axes, xb, wb, any, xin, wgi) in cases {
+        let state = fill_match_state(match_state);
+        assert_eq!(state.match_axes, axes, "{match_state:x}");
+        assert_eq!(state.xinput_buttons, xb, "{match_state:x}");
+        assert_eq!(state.wgi_buttons, wb, "{match_state:x}");
+        assert_eq!(state.any_data, any, "{match_state:x}");
+        let xin_got: String = pads
+            .iter()
+            .map(|p| {
+                format!(
+                    "{}{}",
+                    xinput_axes_match(p, &state) as u8,
+                    xinput_triggers_match(p, &state) as u8
+                )
+            })
+            .collect();
+        assert_eq!(xin_got, xin, "{match_state:x}");
+        let wgi_got: String = readings
+            .iter()
+            .map(|r| {
+                format!(
+                    "{}{}",
+                    wgi_axes_match(r, &state) as u8,
+                    wgi_triggers_match(r, &state) as u8
+                )
+            })
+            .collect();
+        assert_eq!(wgi_got, wgi, "{match_state:x}");
+    }
+}
+
+/// The events of a state packet, as upstream's harness prints them.
+fn packet_string(events: &[super::rawinput::Event], match_state: u64) -> String {
+    use super::rawinput::Event;
+    let mut s = String::new();
+    for event in events {
+        match event {
+            Event::Button { button, down, .. } => s += &format!(" B{button}={}", *down as u8),
+            Event::Axis { axis, value, .. } => s += &format!(" A{axis}={value}"),
+            Event::Hat { hat, value, .. } => s += &format!(" H{hat}={value}"),
+            Event::Power { .. } => s += " P",
+        }
+    }
+    s + &format!(" state={match_state:016x}")
+}
+
+#[test]
+fn state_packets() {
+    use super::rawinput::{get_data, StatePacket};
+    use crate::core::windows::hid::HIDP_DATA;
+    // (expected values from upstream's RAWINPUT_HandleStatePacket(), on the same data)
+    let item = |index: u16, raw: u32| HIDP_DATA {
+        DataIndex: index,
+        Reserved: 0,
+        RawValue: raw,
+    };
+    let buttons = [0u16, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let axes = [11u16, 12, 13, 14];
+    let hats = [10u16];
+    let packet = |nbuttons, naxes, hacks: bool, has_trigger_data, match_state| StatePacket {
+        nbuttons,
+        naxes,
+        nhats: 1,
+        guide_hack: hacks,
+        trigger_hack: hacks,
+        trigger_hack_index: 15,
+        button_indices: &buttons,
+        axis_indices: &axes,
+        hat_indices: &hats,
+        has_trigger_data,
+        match_state,
+    };
+    let data = [
+        item(0, 1),
+        item(1, 0),
+        item(2, 0x101),
+        item(3, 0x100),
+        item(4, 1),
+        item(5, 0),
+        item(6, 1),
+        item(7, 1),
+        item(8, 0),
+        item(9, 1),
+        item(10, 3),
+        item(11, 0),
+        item(12, 0xFFFF),
+        item(13, 0x8000),
+        item(14, 0x12345),
+        item(15, 0x9000),
+    ];
+    let (events, state) = packet(11, 6, true, false, 0x0000008800000000).events(&data, 0);
+    assert_eq!(
+        packet_string(&events, state),
+        " B0=1 B1=0 B2=1 B3=0 B4=1 B5=0 B6=1 B7=1 B8=0 B9=1 A0=-32768 A1=32767 A2=0 A3=-23739 H0=2 A4=-24575 A5=-32768 state=0000008aa0784355"
+    );
+
+    let shuffled = [
+        item(15, 0x7000),
+        item(14, 0x4000),
+        item(10, 9),
+        item(0, 1),
+        item(13, 1),
+        item(3, 1),
+    ];
+    let (events, state) = packet(11, 6, true, true, 0x00000088000FFFFF).events(&shuffled, 0);
+    assert_eq!(
+        packet_string(&events, state),
+        " B0=1 B1=0 B2=0 B3=1 B4=0 B5=0 B6=0 B7=0 B8=0 B9=0 A2=-32767 A3=-16384 H0=0 state=00000098c80f8029"
+    );
+
+    let hat_out = [item(10, 10), item(11, 0x1000)];
+    let (events, state) = packet(10, 4, false, false, 0).events(&hat_out, 0);
+    assert_eq!(
+        packet_string(&events, state),
+        " B0=0 B1=0 B2=0 B3=0 B4=0 B5=0 B6=0 B7=0 B8=0 B9=0 A0=-28672 H0=0 state=0000000000090000"
+    );
+
+    let (events, state) = packet(11, 6, true, false, 0).events(&[], 0);
+    assert_eq!(
+        packet_string(&events, state),
+        " B0=0 B1=0 B2=0 B3=0 B4=0 B5=0 B6=0 B7=0 B8=0 B9=0 state=0000000000000000"
+    );
+
+    // GetData() looks at the expected offset first, then searches
+    assert_eq!(get_data(14, &shuffled), Some(&shuffled[1]));
+    assert_eq!(get_data(3, &data), Some(&data[3]));
+    assert_eq!(get_data(16, &data), None);
+}
+
 // --- the drivers together, under Wine (no controllers) ---
 
 #[test]
 fn drivers_with_every_api() {
     let _l = lock();
-    // DirectInput on (the default)
+    // RawInput (correlating with WGI) on, DirectInput on (the default)
+    hints::set(hints::JOYSTICK_RAWINPUT, "1").unwrap();
+    hints::set(hints::JOYSTICK_WGI, "1").unwrap();
     crate::init::init_subsystem(crate::init::InitFlags::JOYSTICK).unwrap();
     {
         let _lock = crate::joystick::lock_joysticks();
         // (Wine has DirectInput, so this enumerates)
         assert!(super::dinput::dinput_in_use());
+        assert!(super::rawinput::is_enabled());
+        assert_eq!(super::rawinput::RAWINPUT_JOYSTICK_DRIVER.count(), 0);
         assert_eq!(WINDOWS_JOYSTICK_DRIVER.count(), 0);
+        assert!(
+            !super::rawinput::RAWINPUT_JOYSTICK_DRIVER.is_device_present(0x045e, 0x02a1, 0, None)
+        );
         assert!(!WINDOWS_JOYSTICK_DRIVER.is_device_present(0x045e, 0x02a1, 0, None));
+        super::rawinput::RAWINPUT_JOYSTICK_DRIVER.detect();
         WINDOWS_JOYSTICK_DRIVER.detect();
     }
     assert_eq!(crate::joystick::joysticks(), []);
     crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
+    assert!(!super::rawinput::is_enabled());
 
     // DirectInput off
     hints::set(hints::JOYSTICK_DIRECTINPUT, "0").unwrap();
@@ -672,6 +946,8 @@ fn drivers_with_every_api() {
     assert_eq!(crate::joystick::joysticks(), []);
     crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
 
+    hints::reset(hints::JOYSTICK_RAWINPUT);
+    hints::reset(hints::JOYSTICK_WGI);
     hints::reset(hints::JOYSTICK_DIRECTINPUT);
 }
 
