@@ -1,0 +1,1917 @@
+case pro 2069 0
+init
+reply 0d 6c 12 95 a1 75 37 0d 10 75 88 5e b0 1a 6c 0f c2 d0 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 c3 21 f4 62 76 0c 13 aa e2 5f fa 31 5f 65 2b 9d 97 fe 6d 80 15 3d 34 54 93 c2 cf 38 00 d9
+reply 54 68 53 4f 4b 7e 12 18 1d 6b a1 a2 3b 34 4b f7
+reply b9 17 2c 1c 6f 69 83 08 1a de 0a 62 bf a5 ef 6e fb 0e af 0e 00 00 00 3f 00 00 80 be 00 00 00 3e 80 76 c5 b9 c1 63 e3 c1 e3 3f 8b a3 42 44 99 26 c0 8b af 55 71 4a c1 1e 09 cd 5d ac 05 36 bb 84
+reply 9c f4 89 61 64 04 73 d0 c5 ea 74 8c 1e 6e df 97
+reply d3 4e a4 25 55 42 e4 d3 b1 60 04 c3 5c 1c b8 b2 78 1c 34 86 23 0f 3d b3 cd ae 1b 0e dc 50 96 d9 fe ea fc 5c d5 4d ac 81 5f 23 62 2f 27 a7 40 67 2d 27 a0 1f 96 3b 9b e1 14 c3 59 23 13 a2 17 65
+reply a9 3c f9 0d 3a b0 95 02 ee d5 3b 0a d4 f6 06 e4
+reply f4 5b 69 71 59 fb 3a 61 4c a9 45 a2 6e da 87 2d d0 44 fa 26 38 48 95 02 e0 2c 6f ec 5f 49 99 5f 81 c7 18 8f f7 da 71 00 be bf f6 e5 4f 75 d3 39 8b 3c d7 9f 65 cf 04 fa 4d 60 d5 cc 60 58 51 4f
+reply 51 cb d4 55 15 bd 98 e0 51 17 06 81 84 67 bf 71
+reply 72 49 2a 83 44 4f 22 66 22 23 5c e5 9b fb da f2 58 92 b1 70 46 a1 b3 ec 82 9f 0d 90 00 00 c0 3f 00 00 00 c0 00 00 40 3f f6 3f 97 67 22 89 92 70 b1 54 85 d8 23 3f 19 9c 6b 91 e1 09 12 f2 6b d6
+reply 2b ec 08 fd fa 26 5b 5e 63 5a a4 13 14 1b ca 91
+reply 64 e3 56 a0 9c ba fc 55 29 f8 97 2c 4b 5a f1 d4 b2 a1 c6 a8 d6 94 f7 e4 aa 32 43 9d db 49 87 07 b4 a9 77 6c 41 89 26 c5 c0 8e 54 1b c7 7d 7b a0 34 ba 98 8c d9 88 ba b9 e4 ff 4c fd 10 cc 22 4b
+reply 8e ab 44 88 b1 a6 7e 2e 5c 0b a3 a3 2c 2e a5 57
+reply a2 b5 1d c9 a8 75 e7 60 19 15 06 db a5 91 ca 66 b2 a0 6a d1 2d 5c 80 1b 0f d0 21 76 62 c7 b0 90 d1 83 d9 dc b7 e2 15 31 91 57 fc 21 24 ac 4e 1a 6d 7a bf 3f 4d 63 86 04 f1 16 a4 8c 03 00 f5 c2
+reply 92 d3 f8 39 c2 b8 5e c4 33 53 54 d5 32 7a 90 96
+reply c0 09 8b ae 54 f4 2d 87
+reply 28 23 75 3f 0e 7c 0f bf
+reply cf 74 5b 67 d7 49 fb a7
+reply a1 05 1d 5e e0 33 89 f3
+reply 72 5e 6a 34 06 4d dc f1
+reply 87 01 39 57 4f 6b 23 0e
+reply 0d ed 51 12 72 97 1b 52
+reply 9e 1e c3 0a 4e 9b 89 e1
+reply c2 0a 6d c2 6f 7d c2 7a
+reply 69 23 77 16 8f fc 25 fa
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 2246 1940 682 3434 3663 1075 77 204 3921 3414 1414 1300 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 Nintendo Switch Pro Controller
+result 1
+end
+open 0 0
+reply 74 5a d8 c2 10 17 9d d9
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 15 axes 6 hats 1
+end
+state
+read 2b 98 d0 da 85 84 22 a9 c6 44 6c 50 28 3b 37 9b e6 c2 07 74 64 ea 6c fc 1b f1 c6 6d 4a 80 db b2 5e aa 1a c3 1e a5 ac c2 96 46 40 00 00 00 00 cc 16 17 c2 67 66 ec 4f 8b 1b eb f5 0d b8 8c 2c 57
+read 50 8e 7a bf b0 b6 80 a5 4c 47 c0 4f ea 40 2f 84 10 58 7e ea 2e ba 28 20 8c 80 3c 9a f2 f1 e8 40 19 7b c9 c6 d4 6f f4 c9 fe 7f c4 00 00 00 00 3b ed be 15 f2 54 0c 4f 31 85 e8 73 0b 8f 69 67 e4
+read d0 a9 de cf 22 00 00 00 00 25 24 ef 0a 1d 84 6a c5 81 5e 7a 70 99 1a 39 1f 5c 72 59 28 aa 02 bc 8e 4f 91 d2 32 b8 21 b6 b8 73 b8 00 00 00 00 88 af d9 31 77 19 1b e3 ae 72 12 12 7b 54 6d 0f 3e
+read 6b a7 ba c8 9b b9 8a 6f f0 9f 59 f1 49 91 f5 0e c4 fe 67 e3 e8 48 01 08 95 43 29 69 ac 6b e8 e5 7e e7 32 a8 f6 41 f3 49 85 e3 de 00 00 00 00 73 1c 28 d6 b6 75 da cc c0 a2 26 91 1c c8 5a e4
+button 2 0
+button 3 0
+button 0 1
+button 1 0
+button 10 0
+button 4 0
+button 6 1
+button 8 0
+button 7 0
+button 5 0
+button 11 1
+button 12 0
+hat 0 12
+button 9 0
+button 13 0
+button 14 1
+axis 5 32767
+axis 4 32767
+axis 0 -5669
+axis 1 32767
+axis 2 32767
+axis 3 -6373
+button 2 0
+button 3 1
+button 0 1
+button 1 0
+button 10 0
+button 4 0
+button 6 0
+button 8 0
+button 7 0
+button 5 0
+button 11 0
+button 12 0
+hat 0 6
+button 9 0
+button 13 0
+button 14 0
+axis 5 32767
+axis 4 32767
+axis 0 6637
+axis 1 32767
+axis 2 32767
+axis 3 32767
+button 2 0
+button 3 0
+button 0 0
+button 1 0
+button 10 0
+button 4 0
+button 6 0
+button 8 0
+button 7 0
+button 5 0
+button 11 0
+button 12 0
+hat 0 0
+button 9 0
+button 13 0
+button 14 0
+axis 5 -32768
+axis 4 -32768
+axis 0 9340
+axis 1 32767
+axis 2 32767
+axis 3 6451
+ready 0 0 0 420b3333 0 10000
+end
+state
+read e0 48 cf 6b da 0a b6 bc 8e 75 1f 14 67 5e 43 2f ce 8f 58 e6 58 87 9c 4d ae f5 21 8b 40 f3 5c 7c a9 03 6b 08 e0 ca 29 41 24 8e f4 88 13 00 00 bb f3 6b c4 6e 28 09 c9 27 d4 e7 b1 af ab ee a6 5d
+read f0 4e dd 77 a0 3a a6 4f 5f 66 35 1a 24 42 2e 8f a3 f3 f2 44 7e 16 ac c7 2a 34 1a 7f a2 03 1c 41 cf 62 fe b1 b2 12 85 5f 57 36 bb 28 23 00 00 22 f6 61 ba 60 f1 67 9c a5 c9 13 32 f3 bd ea 14 a0
+read 5b 77 a4 ae ad 00 00 00 00 34 5c c1 3f fe 76 ec 03 ec f5 ba 1a b4 f1 38 c8 be d3 04 93 5b e8 f3 af c5 a8 65 2a db c4 63 dc 99 f2 c8 32 00 00 65 e3 cb 7a 4b 91 b5 03 f8 41 6b d4 aa bd 0e f0
+button 2 0
+button 3 1
+button 0 0
+button 1 1
+button 10 0
+button 4 0
+button 6 1
+button 8 1
+button 7 0
+button 5 1
+button 11 1
+button 12 0
+hat 0 10
+button 9 0
+button 13 0
+button 14 1
+axis 5 -32768
+axis 4 32767
+axis 0 -20851
+axis 1 32767
+axis 2 32767
+axis 3 2922
+button 2 0
+button 3 1
+button 0 0
+button 1 1
+button 10 0
+button 4 0
+button 6 1
+button 8 1
+button 7 0
+button 5 0
+button 11 1
+button 12 0
+hat 0 15
+button 9 1
+button 13 1
+button 14 1
+axis 5 -32768
+axis 4 -32768
+axis 0 -32768
+axis 1 32767
+axis 2 32767
+axis 3 20112
+ready 0 2 0 420b3333 0 10000
+end
+preset 99 5000
+end
+state
+read e1 84 e3 ce c1 3b d6 47 9a 9d 54 ca 79 51 da 07 ad 38 20 0b ee 22 2a 5e 4a 54 0d dc d3 ba 82 53 0a ec 2c e2 0a e3 a9 0c 74 78 5a 08 2e 06 00 47 7a 69 c2 f1 c8 b3 bf e1 fb af 57 92 6c 19 f8 51
+read 41 35 5b 98 9c 8b 95 2b 83 62 dd f4 92 fd 1b 9f 62 97 35 f5 b8 20 18 f9 6e b6 88 c5 21 e2 a8 22 a0 97 49 e8 0f eb f3 1b df 92 b4 a8 3d 06 00 87 7d fb 52 10 55 21 8f 20 b9 9f 7a 6c 8a cc ec
+reply 3d 4a cc cb fd ba 19 55
+button 2 1
+button 3 1
+button 0 0
+button 1 1
+button 10 0
+button 4 0
+button 6 1
+button 8 1
+button 7 0
+button 5 1
+button 11 0
+button 12 1
+hat 0 7
+button 9 1
+button 13 0
+button 14 1
+axis 5 -32768
+axis 4 -32768
+axis 0 4391
+axis 1 32767
+axis 2 32767
+axis 3 16281
+bulkout 1000 0c 91 00 04 00 04 00 00 23 00 00 00
+bulkin 12 100
+ready 1 100 5000 420b3333 0 10000
+end
+sensors 1
+reply 9f 42 b6 01 4a c0 f9 76
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 12 100
+result 1
+end
+state
+read e2 cb f2 39 39 6e 7b cb f4 a3 04 7f 3f 91 1b 1d 30 85 be 39 fc b2 61 50 dc a9 bd a7 bd 96 5f e4 aa 40 ec 69 fa be 34 74 39 fa fe 20 a1 07 00 38 93 82 f6 29 a5 8a 22 85 ae fe a1 af 60 5b 33 4a
+read ed 92 18 97 30 cb 13 92 9e dc 40 cc eb 88 9b 07 7c 78 4c 93 8f f9 b4 6b 2c 7b 38 0e cb c5 d0 1f c2 f9 4e bc 75 4c 6f 9e 3c 81 a3 c0 b0 07 00 01 03 9e 98 70 54 b9 6f 7b 6f 56 5c bf 95 8d 8b db
+read 42 ad 66 cf 5f 3b d6 47 9a 21 fd 6a e5 86 e8 9e 42 2d b3 b7 89 80 ab 2c 8f c9 e3 b7 57 6c bd f8 85 e6 39 c8 87 89 fd 5e 81 f4 28 60 c0 07 00 57 4f 5e 73 61 c9 08 c1 f6 a3 0a a7 f0 a9 18 bf
+button 2 0
+button 3 1
+button 0 1
+button 1 1
+button 10 1
+button 4 1
+button 6 1
+button 8 0
+button 7 1
+button 5 1
+button 11 1
+button 12 1
+hat 0 13
+button 9 1
+button 13 0
+button 14 0
+axis 5 -32768
+axis 4 32767
+axis 0 29068
+axis 1 32767
+axis 2 32767
+axis 3 32767
+sensor Gyro 500000000 c1b539b5 41d14b11 41ca7926
+sensor Accel 500000000 c0ba2dc6 41a95c86 425eb727
+button 2 1
+button 3 1
+button 0 0
+button 1 1
+button 10 1
+button 4 1
+button 6 1
+button 8 0
+button 7 0
+button 5 1
+button 11 0
+button 12 0
+hat 0 1
+button 9 0
+button 13 0
+button 14 1
+axis 5 32767
+axis 4 32767
+axis 0 13073
+axis 1 32767
+axis 2 32767
+axis 3 32767
+sensor Gyro 504000000 41ee7a38 c1e81bfa c1cad638
+sensor Accel 504000000 c27d77af 4288f512 c24f04c1
+ready 1 100 5000 420b3333 1 10000
+end
+sensors 0
+reply a2 dc 9d a0 84 b5 e1 02
+bulkout 1000 0c 91 00 04 00 04 00 00 23 00 00 00
+bulkin 12 100
+result 1
+end
+state
+read 59 32 fb 1a ef 4d c1 a3 42 67 b2 65 aa 07 08 52 c5 52 7f 62 22 4a e8 2e b2 c7 6c 4e ef 35 a1 74 c9 13 4e 45 55 27 fe fb 35 81 47 c0 27 09 00 b7 0b da 44 04 5b ba 90 38 cd de 7d cb 60 c2 97 2b
+read eb ce fa 9c c7 9b e7 d6 3e e5 0a 5c b2 4e 89 9e 8d d8 cc ce ec 20 0f 82 0a 5b a9 0e 6e 12 19 9f d5 9d d5 18 dd 61 d3 ac 76 c9 d4 60 37 09 00 7e 64 85 f1 b9 6d 34 bd 84 83 75 c6 10 b2 de 81
+button 2 1
+button 3 0
+button 0 1
+button 1 1
+button 10 1
+button 4 1
+button 6 0
+button 8 0
+button 7 0
+button 5 0
+button 11 0
+button 12 1
+hat 0 5
+button 9 0
+button 13 0
+button 14 1
+axis 5 -32768
+axis 4 32767
+axis 0 7009
+axis 1 32767
+axis 2 32767
+axis 3 6476
+sensor Gyro 600000000 c164e7ba 41d187f8 c209e27f
+sensor Accel 600000000 4228ce53 c2886819 c25f257b
+ready 1 100 5000 420b3333 1 10000
+end
+rumble 30000 10000 0
+rumble 02 50 87 15 21 d1 33 00 00 00 00 00 00 00 00 00 00 50 87 15 21 d1 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 30000 10000 5
+end
+rumble 30000 10000 7
+rumble 02 51 87 15 21 d1 33 00 00 00 00 00 00 00 00 00 00 51 87 15 21 d1 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 65535 65535 30
+rumble 02 52 87 15 27 51 71 00 00 00 00 00 00 00 00 00 00 52 87 15 27 51 71 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 0 0 0
+rumble 02 53 87 01 20 11 00 00 00 00 00 00 00 00 00 00 00 53 87 01 20 11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 0 0 50
+end
+rumble 1 40000 0
+rumble 02 54 87 51 24 11 00 00 00 00 00 00 00 00 00 00 00 54 87 51 24 11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1 40000 24
+rumble 02 55 87 51 24 11 00 00 00 00 00 00 00 00 00 00 00 55 87 51 24 11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+player -1
+reply 9f b7 b9 b0 2e 30 1a f6
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+end
+player 1
+reply f4 66 7b 5e 60 14 ef d0
+bulkout 1000 09 91 00 07 00 08 00 00 03 00 00 00 00 00 00 00
+bulkin 8 100
+end
+player 3
+reply a8 19 8a bc 75 ae f3 b4
+bulkout 1000 09 91 00 07 00 08 00 00 0f 00 00 00 00 00 00 00
+bulkin 8 100
+end
+player 5
+reply 4d 63 ae c8 c4 de 26 a0
+bulkout 1000 09 91 00 07 00 08 00 00 05 00 00 00 00 00 00 00
+bulkin 8 100
+end
+player 7
+reply 62 53 7d 5c 53 c2 14 2c
+bulkout 1000 09 91 00 07 00 08 00 00 06 00 00 00 00 00 00 00
+bulkin 8 100
+end
+player 9
+reply d1 f4 d9 ae 52 33 53 0b
+bulkout 1000 09 91 00 07 00 08 00 00 03 00 00 00 00 00 00 00
+bulkin 8 100
+end
+hint 0
+reply 71 cc 6f cf 9d 45 08 8c
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+properties
+end
+hint 0
+reply 83 5f 38 2f 3c ca 61 1d
+end
+player 3
+reply 36 ab f9 15 e4 ce 19 c5
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+end
+hint 1
+reply 25 ab c5 29 75 1a f9 a7
+bulkout 1000 09 91 00 07 00 08 00 00 0f 00 00 00 00 00 00 00
+bulkin 8 100
+properties
+end
+free
+release 1
+end
+endcase
+case gamecube 2073 0
+init
+reply d7 cf 57 1d c2 f0 f1 b1 94 cf 13 29 f5 46 ff 24 d6 d6 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 06 d2 78 0c 82 39 08 c3 17 c6 62 81 38 1d f0 6f 7e 08 ab af 2f 13 8e 5c 92 e7 bc 46 f5 67
+reply 70 6a 7a 8c a8 33 a6 01 91 73 a8 7d b1 20 69 e4
+reply 9c fc b9 54 cf 56 e4 fd 05 4b 3e f3 d8 7c 11 d3 06 43 2f 3a 00 00 00 3f 00 00 80 be 00 00 00 3e a2 2d dd 22 59 30 f3 d7 64 2e 95 f9 f3 12 fe e6 0d b6 fc d5 3c 20 7f 6b f8 80 e3 1c d4 e5 fd 47
+reply 6a c3 e7 10 07 25 8c fd 17 b2 f2 50 4f 61 4a 26
+reply 9e fe 8e fc 90 79 51 19 70 4c 95 2a 85 98 6e 87 47 c8 4d df 65 89 13 99 c5 93 01 25 a1 ed 3c 5c cc 4d 3e af 5e 55 65 c2 19 90 37 c4 9d 2b 76 90 50 73 e8 85 0b 12 e3 26 85 09 9a 70 80 6d 2a ff
+reply b5 e1 64 df 80 d7 58 33 4c 85 a6 88 bc a9 84 f7
+reply b4 5f 05 1a 4e 96 56 3a 8c bc 29 32 24 35 16 d3 6f f0 01 dc cf 92 17 c7 b5 64 63 36 cd b0 93 7f 49 9f 19 3c 8d 77 b6 ec 9e 94 cb 4b 48 27 5f 6d 11 b2 ef 9c e0 3f f9 f7 6d 63 47 c7 68 f6 fc a0
+reply 69 8f 60 3c 9a c2 6b 17 26 19 13 ca 60 d3 55 28
+reply 73 6a 0e 6f 0f a7 d4 53 cf 45 c7 2d 9c ad c7 0a 15 07 3b f4 4f 13 c7 11 21 13 45 9f 00 00 c0 3f 00 00 00 c0 00 00 40 3f 29 a5 e1 70 9a 23 39 8f 66 3d 82 5d 43 22 22 52 a7 b9 39 c3 f2 5d b1 fe
+reply 5b 59 0a 2a 9c 22 e3 db 5d 57 47 78 62 79 bd 4d
+reply 34 2b 56 7e 99 67 69 16 72 53 ff fe 93 1b 01 3f 24 1e a9 ac ad c7 c1 29 40 0a 34 42 13 ef fa 84 55 c6 b5 20 4a 5a 35 8b b3 ee c8 d6 fb f8 42 cb 26 9f cf cb 79 f6 7b 6a ea f6 7e c7 46 3d 49 ad
+reply 24 89 51 6b 8d f3 9e 73 68 eb 12 b5 a8 f7 7a b9
+reply 0d 6c 4e 8c 75 51 73 f7 6a 11 1f 48 70 5c 02 44 f8 eb b9 45 70 29 66 82 09 76 7f c2 3a 62 c7 4d d3 f1 16 be a5 d2 e1 a6 f1 59 8e e0 91 41 7a b2 e8 24 c6 a8 8b b6 e5 31 ac c5 e6 f6 4a f1 82 fe
+reply 1b 2b e5 83 34 ee 3c 91 7e 40 03 64 d9 67 0c 7f
+reply d6 b8 24 9a e9 a0 12 28 6f 6a 38 6f 5c 09 c9 ae b2 a1 9c c3 e0 75 d3 50 32 40 36 83 03 45 0f 1d 7f fb 2b e8 c7 b1 68 4c 5b 93 03 b1 44 5b 9f 98 04 d6 14 79 3e 1d fd 5a 25 91 00 34 a6 93 db 05
+reply 55 08 34 b4 19 90 1d a9 96 81 68 29 5d a5 b1 72
+reply a8 cd 41 e9 02 a4 e9 85
+reply 34 14 28 a6 54 f4 90 49
+reply b0 ee a4 20 77 b4 6b 31
+reply 27 05 b5 2d ba 5e 30 91
+reply 90 81 2a 7e 1b a7 23 59
+reply 4c 84 1a 22 c1 ff 94 95
+reply ab ae 6c 03 81 13 5e ed
+reply 66 98 52 65 5b 4c 68 25
+reply 24 5b c7 6c fc 4f 26 9c
+reply f8 09 16 95 3b 7d 16 cf
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 2437 112 3882 2464 1752 2911 924 885 50 3596 1293 868 36 30
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 Nintendo GameCube Controller
+result 1
+end
+open 0 0
+reply df 31 55 3a 9e 73 45 d5
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 12 axes 6 hats 1
+end
+sensors 1
+reply 44 5d e4 10 d5 8a c9 e3
+result 1
+end
+state
+read 7e 95 f1 aa 3c 56 47 c7 4e db f5 f6 5b 28 6d 6e 63 af 36 bd 68 8d 77 61 d8 8a 44 25 c1 cf ac 42 b3 65 7e 31 74 72 df 51 67 32 8d 00 00 00 00 eb 50 5f e6 85 74 1a 4c 07 3b 59 4b 9d b7 d4 67 ba
+read de 04 48 f8 3c 5c 47 b3 5a 46 b8 63 ec e1 fa bd be 7b 3f 89 5d d0 1c 42 85 00 d0 6f 4e 52 54 c4 15 ab 27 f7 2b cc d6 64 40 4e 4d 00 00 00 00 5d c5 3a 19 c2 b9 68 3f 87 ce b8 ab 94 1f ff ca d7
+read 71 90 f1 27 da 00 00 00 00 84 24 2a 34 e9 fc 42 7c d4 4a 27 21 9a 0e 50 2d b9 b4 03 c1 94 21 6c 09 ec 7f 80 e1 1e c9 94 44 1f 15 00 00 00 00 e4 fc 80 ac b0 2d 1e e0 15 bb 3c c3 b4 ce ca b2 fa
+read f7 f7 aa f8 d8 70 dd 03 92 56 f9 0b f3 02 33 bc 5c 78 15 56 74 ac 0d 4d 8f 77 b1 a0 dc 57 d3 fa 50 e9 49 8a 56 28 79 a2 33 63 a7 00 00 00 00 41 b6 f2 5f 11 8f fb ed 70 c2 a3 55 be 83 f4 de
+button 2 0
+button 3 1
+button 0 1
+button 1 0
+button 11 1
+button 7 0
+button 5 1
+button 4 0
+button 8 0
+button 9 1
+hat 0 7
+button 10 1
+button 6 1
+axis 4 26079
+axis 5 -9084
+axis 0 32767
+axis 1 20474
+axis 2 32767
+axis 3 32767
+button 2 0
+button 3 0
+button 0 1
+button 1 1
+button 11 1
+button 7 0
+hat 0 5
+button 10 0
+button 6 1
+axis 4 32767
+axis 5 23034
+axis 0 32767
+axis 1 -21509
+axis 2 32767
+axis 3 20572
+button 2 0
+button 3 0
+button 0 0
+button 1 0
+button 11 0
+button 7 0
+button 5 0
+button 4 0
+button 8 0
+button 9 0
+hat 0 0
+button 10 0
+button 6 0
+axis 4 22736
+axis 5 15247
+axis 0 -11572
+axis 1 -23697
+axis 2 -32768
+axis 3 32767
+ready 0 0 0 420b3333 1 10000
+end
+preset 99 1000
+end
+state
+read 2f fa 34 2b f4 fe f4 e8 3f 7c f6 c6 e8 ea 5e ec 20 28 62 d8 16 c5 d8 f7 6c f8 87 07 5d 59 2a 2d aa 62 43 d5 49 a9 a6 4d cd db c1 e8 03 00 00 34 b2 50 f4 a3 a0 c1 27 5a a5 ad 1f 72 00 3e 0f
+ready 0 99 1000 420b3333 1 10000
+end
+preset 99 1000
+end
+state
+read da 59 4f 80 ef e3 e7 4a f6 b6 dd 1a d5 62 3e 92 86 a4 ee 6b c7 a6 31 0f 84 fc f5 f8 05 5b e5 c6 d7 17 2e 23 7b 63 0f 57 d1 46 23 fd 19 05 00 7d b2 5a 29 27 20 2e 4e 90 22 1c e2 90 03 67 05 05
+read b8 d4 ba b6 88 e0 77 eb 78 c4 6c c8 78 29 93 6d 4e ab 7c d0 46 10 d6 55 96 45 bc 32 93 1c c5 85 96 c7 ca 32 ac 14 75 7e 01 66 8f b5 25 05 00 db 74 cf bf 5d cf 03 21 d5 fa ae 5d d7 4d 31 7f bf
+read 89 2a 36 8e 80 00 00 00 00 65 64 90 91 01 1d 3f 3a fe ca c6 54 c0 88 89 64 91 9c 76 c9 5d 8a 2a a9 33 d7 c3 9c 7c 98 83 1b f9 c3 6d 31 05 00 10 b9 70 76 04 6c 00 61 e7 ec 24 52 08 9e 5a 3e
+button 2 1
+button 3 1
+button 0 0
+button 1 0
+button 11 1
+button 7 1
+button 5 1
+button 4 0
+button 8 1
+button 9 1
+hat 0 9
+button 10 1
+button 6 0
+axis 4 -10365
+axis 5 -32768
+axis 0 -9546
+axis 1 9938
+axis 2 -32768
+axis 3 32767
+sensor Gyro 401199600 4124d15a 3f7d023a 4111752b
+sensor Accel 401199600 41cac42f 423fad13 c19da880
+button 2 0
+button 3 0
+button 0 0
+button 1 0
+button 11 1
+button 7 1
+button 5 1
+button 4 1
+button 8 1
+button 9 1
+hat 0 13
+button 10 1
+button 6 1
+axis 4 -28421
+axis 5 -1298
+axis 0 -1595
+axis 1 20271
+axis 2 32767
+axis 3 32767
+sensor Gyro 404799600 c0075cce 41c19b05 c1ec34d4
+sensor Accel 404799600 c21d6167 41a1df44 41ee7d2a
+ready 1 100 1000 42200000 1 12000
+end
+rumble 30000 10000 0
+rumble 03 50 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 30000 10000 5
+end
+rumble 30000 10000 7
+rumble 03 51 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 65535 65535 30
+rumble 03 52 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 0 0 0
+rumble 03 53 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 0 0 50
+end
+rumble 1 40000 0
+rumble 03 54 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1 40000 24
+rumble 03 55 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 20000 0 12
+rumble 03 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 20000 0 12
+rumble 03 57 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 20000 0 12
+rumble 03 58 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 20000 0 12
+rumble 03 59 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case left_mini 2067 0
+init
+reply 03 6a 61 24 8d e6 53 be 3e 63 8d 6d 29 de cf c3 0d 1c 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 9a 0e b1 79 06 6a ac a1 55 84 65 de f4 75 cd 1b 14 96 0b 5d 38 26 df c0 80 a0 da 35 b3 da
+reply 40 fd 0d dd b8 e4 ce 88 ba 3e 7f e3 b5 a3 02 44
+reply 4d 3e ba 94 56 01 69 36 ac 0c 51 fe d1 a0 b5 fb 79 88 aa 68 00 00 00 3f 00 00 80 be 00 00 00 3e c5 3f 42 6a b8 75 15 26 0f 7a 85 90 65 5c 48 f9 ca 36 46 a8 73 70 28 76 22 bc a5 28 54 cb 8b 8f
+reply 2c d3 8f 61 22 c2 d6 d6 6b 3f 3f 02 27 65 77 f5
+reply 2d 3a 71 18 ce 4d 84 40 ae cb 6b de 7e f9 b2 3a 4f 5e 21 00 64 85 ee 44 69 e9 94 ba 06 b2 b2 2f 18 da df 25 5d 64 2e 71 e5 5d 83 96 39 94 99 e0 48 18 cf 40 15 76 b5 eb 22 af 5a b1 9b fb 53 1e
+reply 43 41 8c 52 1f 51 ce a0 e4 e7 14 e9 22 60 8d b7
+reply fa 66 33 33 bc 83 41 92 7b 0b 6b f0 d7 04 42 93 e7 aa 99 13 35 80 a1 3b c3 e2 db ee 24 bc eb f7 16 f9 df 81 27 c2 b2 be 25 73 9e 39 47 62 25 fc 1c 4f de 61 37 a9 00 b8 97 86 b0 9e d9 60 0a 18
+reply 1d 90 f1 72 b8 8c 97 da 9e e1 cb bb 8d ee 05 db
+reply cc 8f 71 28 a8 20 01 9d 0a f7 9f d8 42 9d a6 d9 58 36 7f e4 18 65 8b 0e 32 4b ca 5c 00 00 c0 3f 00 00 00 c0 00 00 40 3f 85 a9 e4 dd b6 60 eb df df 23 62 ce e0 04 e6 d2 f8 ea 74 13 f2 54 6e d1
+reply 0f ce 6e 45 b2 2f ce 37 ce 97 f4 5c 10 2c 5e 75
+reply 78 3f 59 f9 d7 5e e1 94 11 79 17 f8 e6 5f dc 9f b2 a1 04 75 53 6f c9 f2 6e 0f 71 65 7b 1f f2 cc 35 b1 84 eb 07 73 32 e7 7e a8 25 a3 6f ea ab de e7 a1 0a 09 d7 42 07 e9 7c 48 35 f1 90 f3 fe 5d
+reply 32 c3 73 0e 96 b3 d3 29 6c 36 dd 6e 11 f2 d6 58
+reply 98 c1 da 6b 51 38 c1 6b 08 3e a2 73 ac a4 a4 38 b2 a1 16 8a ed 99 3b da ee d9 9f 2e c2 6f 7d c0 42 a0 c7 3e ea 7c ae 6a 45 dc f0 70 17 1a e4 0b 4c 93 46 56 a3 de c3 72 1a c9 43 dd 18 17 fa 8d
+reply 5d fc 2e d0 aa 54 c6 e3 2f a7 96 54 b9 de 6c 18
+reply e0 8b 65 a6 ac 9f 81 78
+reply e8 14 e3 99 64 61 ce 3e
+reply d8 bf aa c0 8f 60 8f 3a
+reply d2 70 93 e7 15 cc d3 38
+reply e4 85 44 b8 8b 13 37 a0
+reply 88 59 ad 39 b1 5c 60 f6
+reply 25 c3 8e 4d f4 0e 84 59
+reply 8e 96 ee 31 ec 49 e0 06
+reply 80 21 a3 fe dd 69 40 d4
+reply 26 af ce 2c 38 88 7c b7
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 1284 2415 3950 1335 3884 1808 2582 2969 2542 3800 3491 2557 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 1
+end
+open 0 0
+reply 97 06 5e 0b 19 fa f8 3f
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 17 axes 6 hats 1
+end
+state
+read 55 ea 8b 4a c9 d1 21 19 cd 99 5a 72 3b 59 f5 8b db 4e 1e 69 91 9b 7a fa 46 c1 f3 f1 96 dc 43 65 3e a3 42 29 43 1d f0 e9 e3 24 42 00 00 00 00 3d bf 6e 73 e8 53 4e b0 36 49 2a 23 f8 03 6c bd 42
+read 62 f8 ec c6 f4 e5 a4 ef da f9 32 bd 7a e7 c0 63 ea 47 a7 a2 17 59 78 e4 b9 7a c8 17 f7 62 bf 4f d9 23 5f 1a 71 e1 95 a2 c9 52 02 00 00 00 00 75 73 11 90 8e 75 74 28 7b ad e9 b9 47 0b 76 a0 03
+read bb 5a 75 1d 55 00 00 00 00 65 8a 5a 08 7c 57 ea 73 04 08 a5 04 57 1a 73 3f af ce 7f d6 5f b8 d7 1f d7 05 c6 36 55 8f f1 f2 6c a2 00 00 00 00 3a 01 58 e7 de 5d ba a5 45 85 03 e0 b8 f2 d7 5f
+button 6 1
+button 7 0
+button 5 1
+button 11 0
+button 2 1
+button 3 0
+button 0 0
+button 1 1
+button 10 1
+button 9 0
+button 14 0
+button 16 0
+axis 0 -777
+axis 1 -22334
+button 6 0
+button 7 0
+button 5 1
+button 11 0
+button 2 1
+button 3 1
+button 0 1
+button 1 1
+button 10 0
+button 9 1
+button 14 1
+button 16 1
+axis 0 -19978
+axis 1 -19878
+ready 0 0 0 420b3333 0 10000
+end
+sensors 1
+reply 1e d0 e7 0d ad 3d 48 7d
+result 1
+end
+preset 99 2000
+end
+state
+read 5b 9d 23 09 a5 da 7c de 37 45 03 32 18 55 22 68 97 1f c5 e9 f5 95 ed bc cf 7e f4 eb 52 39 9e 96 1d 31 e3 d4 f4 1f 7f 4d 2b 03 35 b0 12 06 00 55 8f 3a 57 0a 77 50 bb be 4c 1a 02 57 bc 01 e9 b4
+read 50 60 bc 8a 10 bf ed ff f5 c9 56 08 13 13 4e 83 83 8c 6d 14 11 c2 1f c0 ab da eb 4a 84 4c 81 50 0b 63 85 25 8f 70 1e 6e af d1 3d 50 22 06 00 6b 8b 4c e0 fe 5b a1 73 38 04 f7 86 bb 42 d4 be e2
+read 67 70 17 9d 0a e5 a4 ef da 52 c2 e9 b4 50 5f 84 c1 b4 86 c1 ed a6 0e a1 71 a9 ab a3 8d 50 f9 e1 7c c0 48 e9 18 e9 2a 5c 4d 83 bd f0 31 06 00 47 3b fa 38 54 5f 8a 49 70 08 28 33 f9 fe 77 89
+button 6 0
+button 7 1
+button 5 1
+button 11 1
+button 2 0
+button 3 1
+button 0 1
+button 1 1
+button 10 1
+button 9 0
+button 14 1
+button 16 1
+axis 0 -220
+axis 1 -11045
+sensor Gyro 398000000 bf5245f2 c1942a53 c1a2eb5b
+sensor Accel 398000000 c291ed1f c228675a c255db4c
+button 6 1
+button 7 1
+button 5 1
+button 11 0
+button 2 1
+button 3 1
+button 0 1
+button 1 1
+button 10 1
+button 9 1
+button 14 1
+button 16 1
+axis 0 18666
+axis 1 4213
+sensor Gyro 402000000 4202a137 419024a8 bf25a24c
+sensor Accel 402000000 c2618a6a 428dbef0 419b749a
+ready 1 100 2000 420b3333 1 10000
+end
+rumble 1000 50000 0
+rumble 01 50 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 13
+rumble 01 51 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 12
+rumble 01 52 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case left_vertical 2067 0
+init
+reply fe 71 0e 77 aa 1c 8c f7 91 6d e4 c6 eb 4a 2f 37 61 8b 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 cf af 48 03 7a 1f e1 ac f4 b5 2d 03 c6 07 2f 08 ec de 51 49 63 d8 c7 d9 76 bf c3 0f c9 a8
+reply 5d 04 22 cc 40 ca fb 26 16 6d c8 d0 b1 aa 08 1e
+reply ec 13 f4 52 79 23 c8 f6 c3 4d 20 07 31 78 5e 14 35 37 09 a0 00 00 00 3f 00 00 80 be 00 00 00 3e e6 fd 30 c5 f7 51 89 a2 db 93 28 a0 cd 34 9e 4f b2 2a 5d 25 c1 22 4a 19 ef 85 06 01 1b 2d fc ac
+reply fe e4 2a bf d0 a0 b0 50 bb 81 1b 44 01 86 6e 69
+reply 5b e9 9b 68 91 59 9a 1f d3 31 76 9f 76 1d 95 6f 5f 5d d5 5e cd c1 5b 7a 4a 70 93 aa 1e f8 f7 fc fa 2b a8 20 a0 52 f5 0a 52 31 ad 4c fc bf 25 31 20 a2 08 99 85 6c e1 97 9f 98 69 cb bd 43 92 80
+reply f5 aa 50 86 cf 67 2a ce b4 6b 84 c7 15 ba a9 7b
+reply 62 c1 70 fb 7b 39 63 e6 ba 45 35 2f 21 13 14 1a f5 c8 c4 7d 9e 1a be b9 00 31 7c 71 13 21 42 6b 26 6c 66 c4 89 40 df 8b fe 73 91 1c e0 3f 5a 3e 11 bd dc fc a5 22 09 44 50 bd 70 41 90 ac 49 78
+reply 99 61 41 a4 05 d9 06 52 38 96 92 3c 94 61 38 67
+reply d8 23 a4 10 7d fe 40 7d 2d 74 6b 1c 5b f6 da aa ce 02 05 01 9c db 69 ed 98 d1 52 f7 00 00 c0 3f 00 00 00 c0 00 00 40 3f 56 02 a4 34 61 0e fd ca db 85 88 d2 e6 00 5f d3 37 5e a7 44 39 84 a0 a5
+reply 02 d5 6e 5c f7 70 a5 50 3d 2c 96 47 e6 55 5b 00
+reply 55 5c 25 68 9e a3 11 d7 a3 69 e8 87 08 21 a5 71 81 56 87 ad cc 01 3c 08 87 fc e2 61 49 9f 87 33 df 14 30 b2 f7 8f 64 62 91 4b 75 75 25 48 8d e9 95 c5 7c 5e d1 7f 43 b8 4c a8 60 79 22 a6 d7 db
+reply 06 90 05 b0 ed 69 24 fa 7c 1a 9d 4a 32 31 11 d9
+reply 2f 76 a3 86 a5 e4 76 a8 55 8e 3a 56 d2 ae f4 82 b2 a0 f9 03 f6 45 d7 be 06 1b bb 91 18 6b be f3 da 51 5b c2 ca 26 ff de a5 77 52 84 94 c7 48 6c 16 09 e6 a2 ac dc d4 26 46 84 a8 42 70 ac ec ad
+reply 3c de f5 64 ee be 63 44 6a 0a 77 68 5e 52 18 45
+reply 92 39 cb 47 a2 24 97 82
+reply 0a 59 2d 2a fe 78 6d 73
+reply c9 4e 08 a7 79 16 12 bf
+reply 4b 72 4b c4 d5 27 2d e8
+reply f6 9b b5 63 7d 10 f2 0e
+reply 9c 9e 4e c2 0b f2 9f 6f
+reply fb c9 ed fb c1 2a 01 e0
+reply 3f 66 b2 84 12 d0 ef 57
+reply 7d 3d 8b af 18 3a cc 63
+reply 38 10 b1 29 1d 78 07 b0
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 2207 3531 146 1689 1083 3928 3408 65 2121 1803 2761 2455 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 1
+end
+open 0 1
+reply df 1e 2a 7c 15 d8 9c 85
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 17 axes 6 hats 1
+end
+state
+read 4a a3 47 8f 21 62 92 48 42 55 26 23 0b 5a 7d f7 f8 e7 2f 56 ce c3 fc ae 8a 87 98 22 0d d8 3a 26 84 61 e3 dd 99 93 6e 32 5b 1c 5c 00 00 00 00 42 f2 5a 9e 42 b4 89 d6 e2 17 3b 0e e4 40 e2 33 3a
+read 05 d8 5c 64 13 1c dc 8d e1 ca 07 65 58 5c c5 bd 3f a3 d8 e4 68 83 ed c3 9c 71 64 ba 47 ae df 39 e4 40 8c 1f 27 b5 33 d3 ec 97 fe 00 00 00 00 df f6 f8 b4 34 82 69 99 ca 32 63 72 9d ba f3 96 9c
+read 3a d1 4a 03 6c 00 00 00 00 bb 1a e9 23 d5 8a 20 31 93 0a 2b 99 f3 33 6e f1 47 10 84 31 6b b1 da 1e c3 6e 0b 7b f7 fc f9 ef 6e 31 00 00 00 00 f9 05 aa b2 c1 46 d9 11 28 f0 56 17 68 43 cd 87
+button 4 0
+button 7 0
+button 11 0
+hat 0 8
+button 9 1
+button 14 1
+axis 4 -32768
+axis 0 5976
+axis 1 2076
+button 4 0
+button 7 1
+button 11 0
+hat 0 14
+button 9 0
+button 14 0
+axis 4 32767
+axis 0 -13017
+axis 1 1767
+ready 0 0 0 420b3333 0 10000
+end
+sensors 1
+reply a9 4e d1 2c ec 10 1e ca
+result 1
+end
+preset 99 2000
+end
+state
+read 18 e8 1d 6e 2e 87 8b e2 8d 76 85 ec 20 d3 8d 6f 48 c9 5e 40 88 d0 6f c9 f3 aa 49 60 56 19 89 65 25 60 b4 1e 26 80 bf 52 df 2f 59 b0 12 06 00 bb 11 d6 bc 05 9a 2e c4 6a 14 0e b0 9f 52 c9 96 41
+read 2f 10 d0 b5 37 30 89 c1 14 0e 08 e7 bf e2 bc 85 62 b6 0c ae 0f 9d db c6 23 b4 dd e0 78 da 9c d7 4e 2f 49 2e f7 4d 43 a8 44 49 69 50 22 06 00 45 54 a1 23 34 80 d7 0d 56 39 d3 a8 1b 60 03 f3 9e
+read 99 f4 f5 7e fe 1c dc 8d e1 19 54 dc 34 e1 81 72 ff cf da 8d 84 92 b3 90 6e a2 e9 49 a1 fb f3 0f 29 99 ae a0 e6 b2 e5 bc f3 b6 a1 f0 31 06 00 84 7b 78 0a b4 b5 87 24 ef d9 5a 78 61 d4 7c f5
+button 4 1
+button 7 1
+button 11 0
+hat 0 1
+button 9 1
+button 14 0
+axis 4 32767
+axis 0 -32768
+axis 1 -32768
+sensor Gyro 398000000 41abe2e9 41b2b4d4 c0a19b96
+sensor Accel 398000000 427a0782 c212a9e8 4224ab2c
+button 4 1
+button 7 1
+button 11 0
+hat 0 4
+button 9 1
+button 14 0
+axis 4 32767
+axis 0 17297
+axis 1 -32768
+sensor Gyro 402000000 41bb9cf4 41d00928 c1716b3f
+sensor Accel 402000000 429ca985 4107ba06 c1aeb498
+ready 1 100 2000 420b3333 1 10000
+end
+rumble 1000 50000 0
+rumble 01 50 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 13
+rumble 01 51 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 12
+rumble 01 52 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case left_pair 2067 0
+init
+reply 66 f0 90 96 ca 79 f1 91 2b 8a 47 b3 a2 af c7 cb 16 54 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 8a 9f a9 6e b8 e9 93 34 2e 5c 90 3c 4f cc 78 5e a3 33 b3 6e 63 4d ad 36 c3 f3 fa 36 02 39
+reply 44 1b 32 46 f8 ff c7 f6 b4 66 e2 31 6f f4 5b 09
+reply 66 a1 8b 56 fd de 48 42 6f 43 63 7f c4 1d 16 d8 c1 84 da a2 00 00 00 3f 00 00 80 be 00 00 00 3e f9 40 ea a9 20 42 7e 1d 32 8b 8d c0 d0 b4 42 23 6f 49 5a aa 0a 00 b7 2b 8a b6 a4 4a f0 2d e6 97
+reply 48 87 87 64 4e 81 62 67 dd 71 6d 15 1b fe c9 b9
+reply 93 56 69 39 d5 32 8a 75 9c af 1b 68 a0 a1 20 9a 6c fd 41 c0 eb ee f5 ea 42 73 c0 a7 1c 43 b6 04 be c3 44 9f ab 47 b4 4d 1a 09 7f 6e 19 e5 56 0a 7d da ef b4 90 41 90 1b 7a cb 5c 70 6b 3c 60 7c
+reply 8e e9 5d 7d ad f2 53 c4 a4 40 d2 0f 87 3d 00 a7
+reply c3 9b 59 40 9a ae d4 5b 6b ba 7f d1 5e d5 e4 a3 ef 49 ae e7 9b 97 7e 1d 25 20 33 5b a8 dd 6b 24 c5 a9 87 46 52 79 3b 6d c1 58 d4 86 52 2a 4c d5 f9 1d 0f d5 0d ee 8b d3 b5 e1 7a 49 12 7d ef fb
+reply 2c 0b 22 d3 9e cd fb 7d 01 ff 5f c2 1a 8f 3e a5
+reply 8d ba 4a 2e 51 4f 06 ea 51 0f 5e de e4 15 22 48 e0 b4 10 d9 52 e8 22 1d 74 da 95 15 00 00 c0 3f 00 00 00 c0 00 00 40 3f 60 e5 1b ec 23 9d a3 95 f8 db 2b 50 06 80 09 c3 31 22 4c 76 4b cc d1 e7
+reply fa 78 05 6a 67 4d 77 c7 ab 99 25 92 fa 8d 82 48
+reply 49 bf eb 88 c2 ce c0 d3 86 19 47 71 da 7b 58 9b b2 a1 17 1a d7 9c 81 9a 66 0d 75 ba 7b 5c db 35 b7 88 45 6e cc 0b 73 08 ec da a2 44 f3 1a 99 1e 53 a2 71 27 c3 34 27 21 a7 7b e3 5c 3e c4 05 d3
+reply 8d 7c f5 05 0f 6e a7 95 19 b9 f0 a1 0f 92 8c e2
+reply 0d 74 ac 8f 75 a8 5f 89 01 03 88 2d a6 e4 c6 6e b2 a0 30 ed b1 2e fb 09 f1 e5 21 ec d1 37 55 0b 8f d7 5e 35 6e 23 a3 28 1d 21 79 f0 e8 3b 2d 03 a0 ba d0 1e 4b 04 c5 de 8c 95 0b 1d d1 bf 4b 12
+reply 3e 22 a1 27 5d e9 2a 99 82 c9 52 d2 ff ba db 86
+reply 6e d7 8c 55 27 d9 ad 9d
+reply ce 4b a9 0e b8 b2 b9 9a
+reply 86 34 9c 39 c6 d2 20 84
+reply 69 66 6f 13 e9 5c 1f 98
+reply 37 30 f7 b8 65 ab 82 ad
+reply 18 dd 56 9c ab d9 21 b7
+reply 24 33 78 12 d7 3a 60 46
+reply dc f6 98 c8 32 e0 ac 07
+reply b0 64 bb 47 af 17 03 40
+reply 79 b8 31 75 70 e8 6a 56
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 2583 412 3430 3441 2472 1872 437 585 3055 1966 2001 719 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 1
+end
+open 1 0
+reply fe a9 19 15 40 98 77 48
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 4 437a0000
+add sensor 3 437a0000
+buttons 17 axes 6 hats 1
+end
+state
+read 72 ea db 43 19 28 c7 33 f2 aa ae fb 9d d5 87 ce 09 14 12 91 9e 97 ed ee 2d ce 56 38 99 a4 bd 01 42 7c 11 7d 35 ec c7 95 14 3c aa 00 00 00 00 d0 df 29 d2 e7 ce 9f 00 f7 c9 da 06 73 79 16 8b ea
+read 65 e3 11 6d 1f e5 04 a4 30 51 86 af c3 27 f8 be 15 2f 48 6f 98 b6 fd eb ea 05 04 be 79 a6 38 7a f2 56 b2 0b 6e c9 d6 d9 5c 20 1a 00 00 00 00 0f c0 5e 4c 22 93 95 3b 3f a7 87 25 13 30 0c 1b 2a
+read 02 0e cf 50 bb 00 00 00 00 e2 3e 95 99 60 96 3b fb ee b6 f7 59 f3 12 6d 19 98 42 67 38 ff 8f 71 ad 44 3d 34 9e 34 9b 93 45 d0 cb 00 00 00 00 bb dc 17 5e e6 7f 8a da ec 58 70 34 b4 27 39 e9
+button 4 1
+button 7 0
+button 11 0
+hat 0 5
+button 9 0
+button 14 1
+axis 4 -32768
+axis 0 32767
+axis 1 419
+button 4 0
+button 7 0
+button 11 0
+hat 0 2
+button 9 0
+button 14 0
+axis 4 32767
+axis 0 -15667
+axis 1 32767
+ready 0 0 0 420b3333 0 10000
+end
+sensors 1
+reply 0b 2e d5 ae af 2c 3d 08
+result 1
+end
+preset 99 2000
+end
+state
+read 34 20 98 6d dc 41 20 06 7c 11 1d e8 a0 11 ec 35 7b 47 d2 f1 95 70 83 a5 33 05 70 b6 85 f0 d4 82 92 0b 7d 40 e4 5d 5a 94 f3 13 c9 b0 12 06 00 bf 9b 54 f4 17 1c 5e b3 83 3e 01 e5 45 b9 38 b8 7a
+read 7a c9 52 f7 4f 8a 58 df 58 57 3c 04 2e cf 4a 03 d0 d1 72 1e 52 b9 d3 d7 44 5a 0c 52 e3 bb 41 68 02 92 ef 8a b6 82 70 5c c4 13 4d 50 22 06 00 78 31 f4 24 fc cf 3b 3a 1c 5c 49 bd d5 9a 33 c8 c3
+read 42 9e 2c f2 b0 e5 04 a4 30 81 d5 09 c2 ec ee 96 d8 f7 e3 ab 2d 9a 41 c7 9f 03 d0 c7 77 56 a4 03 54 25 e2 27 d7 ae 53 d1 10 d7 aa f0 31 06 00 d6 da 10 86 23 02 8f 3e 52 25 c3 1e 20 12 de 2d
+button 4 0
+button 7 0
+button 11 1
+hat 0 3
+button 9 0
+button 14 0
+axis 4 -32768
+axis 0 -22459
+axis 1 32767
+sensor GyroL 398000000 4183f796 c19ad7ed 40e2df89
+sensor AccelL 398000000 c0e4ee55 c23be22f c189bce3
+button 4 0
+button 7 1
+button 11 0
+hat 0 15
+button 9 1
+button 14 0
+axis 4 32767
+axis 0 32767
+axis 1 2221
+sensor GyroL 402000000 41c45811 c1dd0c0b 418f1bf5
+sensor AccelL 402000000 41b532df 420ec40d 41eb7183
+ready 1 100 2000 420b3333 1 10000
+end
+rumble 1000 50000 0
+rumble 01 50 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 13
+end
+rumble 1000 50000 12
+rumble 01 51 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case right_mini 2066 0
+init
+reply 5c cc 44 3e 3f 54 8b 3b 8c 80 70 d1 00 45 03 0f 4e 5f 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 e4 5b e6 d2 8b 35 05 c0 7d d7 02 81 bb 14 49 84 16 d5 06 a3 c2 b4 97 1f a0 5b b2 5f 48 9b
+reply 56 68 d8 4b 73 1b 7e e7 58 32 c7 e4 e0 f9 a6 d4
+reply 9f 90 9a 1f f6 4a b5 89 f2 75 92 c3 fd 86 08 96 ff 16 37 ec 00 00 00 3f 00 00 80 be 00 00 00 3e a1 6e 4b 54 04 1f 7e c5 18 aa ee 10 a0 94 1f 85 64 bb da 36 e3 9f bc 99 b7 54 7a e2 c6 43 f5 1e
+reply 2d a4 01 0f ed bc f5 cb 53 d6 f2 13 29 02 f4 74
+reply 78 e7 b6 c9 6d ae dd 70 0c 8d 95 59 2f 3c 3b ca 1b a5 40 66 91 e2 47 c4 55 3a 55 d0 34 48 db 54 c6 cb 4e a2 12 db b6 29 00 ea f5 da 82 7d d8 3d 81 a8 df 51 89 4b cc 28 35 0f ee 3f 59 1e 2a 9e
+reply f1 a5 ce b4 cc 0a 15 f0 f8 ed 7a 1f ec e0 bd 89
+reply 80 1c 87 ff ab 7a e0 e2 52 72 46 b6 7e c1 5c fc 39 55 f2 4f bf 8f 2c 57 f3 b4 f9 8b d5 67 10 f2 18 98 9e c6 d5 c3 d0 13 f1 eb 22 15 4f 5a 65 4f b6 15 93 6b 81 21 53 d5 09 79 4a 15 d3 ca 27 f0
+reply 78 f4 6d 3e 58 41 ff 8a fe 63 6d 6c 51 30 01 a5
+reply 0d 3b bd 43 77 69 5e 93 fa 90 34 be 91 31 ea 41 b1 34 fd 2c 8e e2 c1 4c 49 2c 4f 55 00 00 c0 3f 00 00 00 c0 00 00 40 3f e5 d8 c3 65 6f 04 06 8e db 8e 25 85 11 5c 6e d2 ea 7e 9e c8 5a e3 eb a6
+reply 59 df cd 70 96 5d 90 8b db e3 9b 1b 3e 4b 7e 1d
+reply 37 0e c5 d9 58 f6 b6 f5 fd 12 af 13 ce 66 22 6a 99 0a ce 3d 87 57 63 17 4c cb a5 cf 83 4d 1a 21 60 73 9d 5e 59 bf ea 07 91 9c e8 2e 09 16 ba 8d 86 5d 84 63 40 f8 fd 12 4f c8 b9 7a d5 c4 34 13
+reply ec 6e 9e cd 4e 18 68 a7 c7 d8 93 11 5b 4c b3 02
+reply d3 21 d0 c4 95 5c 08 3c 10 e3 c6 18 5c fc 06 0c b2 a1 96 88 f0 2a 32 eb b4 7e 0b 5e 1f 8a 2d 19 c4 57 6b 98 68 0a e7 37 6e e1 60 92 03 ed 3e 9f 0e 8d 5f 88 d5 ae 9f 49 6f c4 2a 0e ed 87 81 4a
+reply 47 6e 4d 97 08 ec e7 51 b9 6d a3 f0 0f 0f e0 29
+reply d6 8c 43 ce cf 54 0d b9
+reply f7 ee 50 25 88 85 5e 81
+reply 32 57 c1 35 c9 ec c3 39
+reply b1 14 b9 75 05 a2 14 d7
+reply 8a e9 26 36 57 fa b3 ea
+reply 40 9c 3f 27 07 08 12 1e
+reply 41 69 0b d2 09 16 2a ba
+reply 68 8d db 1c 80 2f 03 24
+reply 7b be cc c7 35 96 31 5a
+reply ab ae 48 f0 23 4e 52 78
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 3893 2367 3626 3808 485 3865 2198 554 3764 3848 3763 183 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 1
+end
+open 0 0
+reply 19 8e 84 93 ed 92 93 37
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 17 axes 6 hats 1
+end
+state
+read 4e 87 02 05 64 5c 2b 6a c0 41 0f 77 04 e0 dd 81 52 5e 44 78 75 10 78 08 d2 fd 06 71 0c 18 58 27 7a 3a 08 29 4a e1 e5 21 72 ab c6 00 00 00 00 d8 4a e2 09 b6 95 06 dc 45 83 f0 68 64 00 60 d1 02
+read 05 de c3 7f ca 76 88 c2 a8 34 c9 1a d0 5e 23 d6 ae 74 71 a3 1b e8 d4 a8 45 9d 82 63 5e 22 54 41 07 ab 0d 00 7b d3 6b c5 7c 14 f0 00 00 00 00 f3 94 4a 53 36 9e 6e b9 a8 2f 3e 2d 66 c1 15 3b 5b
+read 98 d9 be a3 f6 00 00 00 00 83 13 df 7b 33 47 a8 15 9e 87 67 b7 50 e4 be 5b 09 3f 66 bf f3 dc c9 cf a0 ac 61 d3 c5 57 ce 58 b8 0b 00 00 00 00 6d 49 a6 e6 2f fd 46 ac 61 df 37 92 5a f1 72 91
+button 2 0
+button 3 0
+button 0 1
+button 1 1
+button 10 1
+button 9 0
+button 13 1
+button 15 0
+button 6 1
+button 7 0
+button 5 0
+button 12 0
+axis 0 -21092
+axis 1 -30869
+button 2 0
+button 3 1
+button 0 1
+button 1 0
+button 10 1
+button 9 1
+button 13 1
+button 15 0
+button 6 0
+button 7 0
+button 5 0
+button 12 0
+axis 0 -8571
+axis 1 -20983
+ready 0 0 0 420b3333 0 10000
+end
+sensors 1
+reply c5 37 b0 31 a9 ca 0e c5
+result 1
+end
+preset 99 2000
+end
+state
+read 92 ed af 85 c4 20 06 b9 47 9b 46 85 0a 08 69 09 d3 01 fd 3a ee 4c b1 7f 92 d8 a3 0b 11 76 67 fd c8 59 d7 39 c1 4c 9d 04 28 b5 81 b0 12 06 00 2f 51 9d 58 00 4f 37 95 b7 4d ba 5c e8 a3 83 b9 ef
+read 12 33 5b cd 6d e5 23 c7 04 2c 6e bd d3 cf 23 4b 6f 44 7b a1 ac ed 93 22 0f 14 b3 bf f7 a8 5c 12 8a b5 13 3a 60 a5 f0 79 f2 38 e5 50 22 06 00 d4 46 2e 3f 17 9d 24 05 39 f0 20 80 89 a4 9c a8 de
+read 46 15 d8 77 34 76 88 c2 a8 11 bf cf d4 66 d1 42 ed 93 7a 59 b9 95 42 74 07 14 9c 3d 43 19 f6 cc 5f 8d 81 7d 7f 75 c0 8c 67 ef d2 f0 31 06 00 0d 7d ab 06 60 99 f9 a2 4a 6d 2a dd d4 6c d5 9c
+button 2 0
+button 3 0
+button 0 0
+button 1 0
+button 10 0
+button 9 1
+button 13 0
+button 15 0
+button 6 1
+button 7 1
+button 5 0
+button 12 0
+axis 0 -3662
+axis 1 -13410
+sensor Gyro 398000000 41cbafb9 c1c94f5e 41a508f2
+sensor Accel 398000000 4241aff0 c282e793 425941aa
+button 2 1
+button 3 0
+button 0 1
+button 1 0
+button 10 0
+button 9 1
+button 13 1
+button 15 1
+button 6 1
+button 7 0
+button 5 0
+button 12 0
+axis 0 -17193
+axis 1 -9416
+sensor Gyro 402000000 c20a117c c1c7f12e c0994460
+sensor Accel 402000000 c2728071 4049a7c8 421ae667
+ready 1 100 2000 420b3333 1 10000
+end
+rumble 1000 50000 0
+rumble 01 50 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 13
+rumble 01 51 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 12
+rumble 01 52 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case right_vertical 2066 0
+init
+reply c5 ad 44 f0 1e c3 25 64 fa d7 da 7f 79 04 0c 51 ec 53 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 ba 23 d4 06 7d 33 3a 98 1d 45 b6 8a f4 ed 06 a0 df c1 dc 7d cc fc 46 9a 08 d5 df 02 46 9d
+reply b8 d3 6e 9b 04 75 2c a7 85 97 33 89 ba ee 55 0f
+reply 38 46 fc ed 37 3e 9a fa 50 2a eb f2 10 6a 1f 5e 92 54 fb bf 00 00 00 3f 00 00 80 be 00 00 00 3e 41 b0 ee c7 38 7d d6 8a 50 f8 46 6f 30 49 e0 43 b5 67 37 88 9d 59 62 13 f8 28 42 67 4f a6 92 d0
+reply 91 e2 b3 3f c1 66 35 e9 62 37 25 9e 9e 8a 19 e9
+reply 6e c2 1e 19 ec 65 de 00 e5 d0 de 50 17 65 93 cf ce 7b 6d 4f 53 35 9c f6 45 ca 4e 03 58 7f 0f be 35 28 21 e6 26 64 05 4d 86 9d c9 2f ea be 15 56 0f b3 f3 f0 83 a2 61 2c 14 eb 98 96 f9 e0 1b 38
+reply c1 44 7e 6c ff 85 fb 82 b3 b9 b6 17 77 5a cc 30
+reply bc 2b 57 f8 03 f3 92 29 f1 33 42 7d 36 0e e8 b5 f7 d3 ec 76 5d 58 d5 14 ee b6 89 a1 4d f6 9c 63 01 e0 c4 c3 24 35 6b ec d1 b3 f5 29 4b c6 d1 fb ed 0e 41 fd d6 94 ea 78 50 cc 1b c6 05 4a dd 67
+reply e0 44 bf e5 c4 cc 5e 68 f0 ca b6 17 2d bb 2c 35
+reply 3b 4c 18 cd 02 63 13 e7 6b 7d 68 1b d4 41 5b e4 25 28 e5 77 64 e1 10 ea 59 4e fa 15 00 00 c0 3f 00 00 00 c0 00 00 40 3f e9 23 d8 be 79 fa 13 c4 e6 c3 10 72 9b 2b da ed 25 77 98 18 59 40 99 b2
+reply 45 ee 23 2c d7 f6 fb 4b 4f d3 b4 82 66 c5 b8 0d
+reply c2 b1 8e 9b 32 f1 81 6d 0a 9b 5d 8d 17 98 ee ef b2 a1 89 54 af 0a 6d ae 3c 7d ae c1 95 29 2e 07 3e fd d3 81 31 42 13 50 45 98 42 13 5c b5 9b 04 4f dd 10 d1 9b 21 d1 3c c8 57 9e 71 9d dd cd 2a
+reply 05 0d 1b 85 bf 7e 32 a0 c9 00 fe fa 8a 56 b0 89
+reply e6 a5 aa 24 98 97 bb af 45 36 f0 f6 e6 6f 5e 2a b2 a0 c6 d2 45 d0 c9 50 10 ed 75 c8 f6 da f2 ec 9d b8 dd a9 0d 33 d4 ba 1b 7f c1 0a 9a 14 e7 ce 41 28 ae 5f 5b f0 2f d8 31 97 7d 73 37 fb b9 a4
+reply f9 2a d4 f3 c3 9f 23 9a 13 3c a4 e2 c0 07 12 3e
+reply ed 3f 4c 71 ee ed c4 86
+reply 0a 0b dd 0d 1f 2a c6 b7
+reply b0 60 93 1a 96 7b c7 4d
+reply 64 02 a5 47 9b ef 37 f5
+reply 92 2f 1b 1d 24 d5 11 f5
+reply 17 22 44 82 4f 35 5b b2
+reply b7 92 3f 38 ea 55 ab 2b
+reply a5 32 75 5e ee 34 9e 7d
+reply 00 31 1b ec fd 0f 60 5f
+reply 52 ba b2 39 e9 e1 2a a6
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 1161 3338 3388 2805 2790 2791 3152 1478 2013 444 1184 3590 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 1
+end
+open 0 1
+reply 12 73 88 77 2f dc bd c0
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 17 axes 6 hats 1
+end
+state
+read 21 00 36 33 76 f4 ea 3b 4f 7f 22 d8 13 53 0b 3d d5 0b fd 2b 85 e4 89 0b da 3b 45 ce fb ca 57 85 f0 a2 c2 bf cc e8 73 a6 96 4f 0a 00 00 00 00 07 b6 4d ff 4f bb f7 d2 5a 27 22 4e 36 e7 d6 cf f1
+read 2a 52 f0 fa 87 c8 91 37 ee db aa e5 50 d9 d3 34 0e b8 8f 9e 23 d2 5c 0b 10 60 7b a6 8b b8 7f 7d e6 46 98 db 40 4c 9d 65 6f 59 db 00 00 00 00 3c f5 84 85 0f 54 2d 7f 95 ae 2d a5 17 7e 27 be a0
+read 3d b7 92 5a 8f 00 00 00 00 02 73 04 9d 26 27 98 82 e9 ba 9b e6 c0 93 70 19 c1 a2 7f 59 dd e5 d2 46 de b7 70 0c 1f db 7a 4a 0f 4c 00 00 00 00 bf ce 1e 04 39 73 42 f1 15 68 53 4c d9 b3 91 4a
+button 2 0
+button 3 0
+button 0 1
+button 1 0
+button 10 1
+button 6 1
+button 8 0
+button 5 0
+button 12 1
+button 13 1
+axis 5 32767
+axis 2 21380
+axis 3 -7118
+button 2 0
+button 3 0
+button 0 0
+button 1 1
+button 10 1
+button 6 0
+button 8 0
+button 5 1
+button 12 0
+button 13 0
+axis 5 32767
+axis 2 726
+axis 3 30265
+ready 0 0 0 420b3333 0 10000
+end
+sensors 1
+reply 1b f1 dd 14 4e df be 50
+result 1
+end
+preset 99 2000
+end
+state
+read d5 b6 3d f5 b8 fb c8 29 f0 5d 3d e1 91 6d ef fb b4 1d 7a 1b 26 fa 47 46 d2 29 de 3f ee 23 ef a4 e8 30 1e c8 0f a5 92 4f 02 dd 3c b0 12 06 00 9b 15 56 04 3d 48 d1 33 76 83 be 91 e8 84 a3 c4 ee
+read 9c b5 c7 78 62 18 76 a9 1a d5 d9 32 e2 9a 30 6c a2 35 c3 38 b1 cf 66 96 48 e8 ce 08 a7 16 97 a5 09 7d 11 fc 49 0d ce ae 50 7f ec 50 22 06 00 e6 74 f4 8d 03 fb aa 38 1e 37 df 6d 96 f0 36 bf 41
+read 46 c0 d2 4c 5b c8 91 37 ee 11 4d 4c 9a 07 16 82 a3 c9 3c 96 bc 1b 02 85 68 db 47 8a f7 b9 94 3a 6d b6 e4 61 31 5e 37 9a 7a c4 d5 f0 31 06 00 b8 46 ed a7 ea 8d db 1a 44 f5 14 33 dd 53 59 6e
+button 2 1
+button 3 1
+button 0 0
+button 1 1
+button 10 1
+button 6 0
+button 8 0
+button 5 0
+button 12 1
+button 13 0
+axis 5 32767
+axis 2 18592
+axis 3 -1058
+sensor Gyro 398000000 c1edd16c c2065e59 c20970bc
+sensor Accel 398000000 42311bfb 41fe1498 402a16db
+button 2 0
+button 3 0
+button 0 0
+button 1 1
+button 10 0
+button 6 1
+button 8 1
+button 5 1
+button 12 1
+button 13 0
+axis 5 -32768
+axis 2 19230
+axis 3 2429
+sensor Gyro 402000000 41f0fa17 c08a1b3f 4167c460
+sensor Accel 402000000 c043ade6 420aece7 c28bce76
+ready 1 100 2000 420b3333 1 10000
+end
+rumble 1000 50000 0
+rumble 01 50 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 13
+rumble 01 51 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 12
+rumble 01 52 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case right_pair 2066 0
+init
+reply 43 f9 6b ea 39 9d 4c 3a 76 d4 c1 dd 3f a1 d0 a1 93 97 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 a6 f7 05 a0 da d2 f4 c2 09 86 9e cc a5 26 d3 9b 59 b8 88 56 8c d4 3e 6e b7 01 33 57 67 cf
+reply 4b 03 11 b4 bd 23 99 a7 7e 1c a1 7e 6d cb 92 08
+reply 96 eb 4c bd 54 4f 42 84 4b 6a 66 ec ef 41 07 ff dd 64 c1 19 00 00 00 3f 00 00 80 be 00 00 00 3e fc eb 2e c0 0d b6 8f 1c 5d 3b 52 7b 34 0b f1 ec 43 f4 8c 1f 4c 43 75 08 91 b9 78 39 fe 4d eb fc
+reply 16 a7 78 33 9e 59 ad f1 0a db 40 d4 ab 4d 23 28
+reply 96 cf fa e7 a5 ad 9a d4 ab 41 b1 ed 0a 53 92 37 a8 67 23 3b 82 3e fe 31 97 ec 65 df 3c 1f bf ce ee 81 d8 ec fa fa 6d 27 f0 a9 77 ce c5 a0 38 a7 cb 61 07 cf 51 1c da 55 19 a6 98 95 7e 39 1c 56
+reply 62 ee 09 a3 d9 fb 50 6a 97 ac 82 d6 1a 23 d6 6c
+reply 5b 6f e3 ab b3 31 b4 9e 8d 84 f0 84 f9 b3 b1 1c 0b 6a b5 da 87 0a 42 c4 59 ac 5f fc 84 81 3a c6 23 e7 d5 7c 14 a8 95 27 63 f5 88 e0 78 25 79 e9 01 2d b6 8a 9d de 9c ad 4d e2 e7 39 9b 74 bb 2e
+reply 88 e2 71 85 37 c4 23 c5 5a fa f6 65 60 67 2a e5
+reply bb 56 35 0b c5 15 b0 14 a7 1e 34 13 e0 fc 63 41 dd f9 a5 fb a5 bb 9c 27 a8 87 d2 75 00 00 c0 3f 00 00 00 c0 00 00 40 3f 2f cb 54 d6 34 f6 74 07 3c 62 49 d5 f7 43 58 c4 64 d6 f4 06 fc 1a 46 99
+reply 9e 4f 21 1d 3d 30 83 76 4b ef ea 26 e4 f4 5d 67
+reply 4d cf e1 cb e2 56 6b 2a 71 b9 49 bd a8 88 65 f9 b6 5d e2 5f e2 4c e9 4d fb 28 8a 6c a3 67 c2 b5 73 0d 42 96 a7 ea fa 90 89 96 6a 92 9e 2d a8 12 93 cb 30 f1 e6 c6 6e 0c 55 ae 0d a1 07 05 fd 68
+reply 7b bf 47 6d 34 78 90 af 21 77 6e 7b ce 67 6e 85
+reply 69 e6 96 6e d2 ae 85 92 22 c1 c1 65 f8 73 39 57 b2 a0 1b 89 05 78 c9 ea 88 fa 19 c6 08 60 0e 12 fc a3 cf e6 6e b5 36 1f 69 81 18 b7 20 a6 53 df de f3 98 e1 b1 a2 fd b9 d6 55 42 6d e3 d2 df 30
+reply b7 7d d2 3a 21 99 29 64 53 3e 51 87 05 19 1d 93
+reply 97 96 c0 be 95 bb 9b 71
+reply 48 27 cc 26 f0 97 1c 8c
+reply a4 b4 eb 27 fe 54 b8 ef
+reply 85 77 6e a8 df fc 74 00
+reply b3 26 72 6a 5f d3 e5 bd
+reply 5f 76 61 8b 78 d9 a9 42
+reply a8 95 71 05 cd 4c ed 48
+reply 17 ad 21 2d 2f 25 e8 a2
+reply 24 65 c1 37 1a 99 5d c0
+reply b1 62 e9 af 36 97 1b 2e
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 1561 3733 1564 2442 919 1573 589 2873 3771 3710 1865 2178 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 1
+end
+open 1 0
+reply 8c c0 fe ff d9 4e 7e 14
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+add sensor 6 437a0000
+add sensor 5 437a0000
+buttons 17 axes 6 hats 1
+end
+state
+read f0 9c b3 ed 81 a6 ee b5 02 8b 84 1c 5c c4 5d f3 56 22 3b 89 c2 89 ca c7 69 6f 6c 0d b8 12 c3 cb 27 7c fb e0 6d 37 dc b2 65 d0 93 00 00 00 00 cd 66 f0 2e 11 b4 67 0f 86 57 d8 93 28 02 50 12 e6
+read d5 85 d1 fc 8a 90 0c 11 64 6c c6 10 d8 2e 51 c6 f8 02 9d 40 a3 e9 40 e2 6e 34 49 47 51 c0 c4 dc 11 ef 0d 3c 71 69 d5 49 18 97 f6 00 00 00 00 57 25 91 5d 0e 28 c7 b7 54 c5 bc 68 63 3b 19 32 26
+read f5 f1 87 95 ba 00 00 00 00 89 f9 05 92 cf 83 f8 04 d6 47 71 db b9 cb 53 75 a6 c6 73 59 15 b3 3b 97 c5 18 01 fc 7b 93 25 fe 7a a9 00 00 00 00 20 af 07 34 64 53 77 d4 57 96 2b 3d 70 42 6a 9f
+button 2 0
+button 3 1
+button 0 1
+button 1 0
+button 10 0
+button 6 1
+button 8 1
+button 5 0
+button 12 1
+button 13 0
+axis 5 32767
+axis 2 -14665
+axis 3 21892
+button 2 0
+button 3 0
+button 0 0
+button 1 0
+button 10 0
+button 6 0
+button 8 1
+button 5 0
+button 12 0
+button 13 0
+axis 5 32767
+axis 2 491
+axis 3 -32768
+ready 0 0 0 420b3333 0 10000
+end
+sensors 1
+reply 0f a2 96 78 d1 24 38 b9
+result 1
+end
+preset 99 2000
+end
+state
+read 60 a1 dd bc 4b 68 b1 47 3b 5d fb dc 29 b9 2a d9 3f 83 a4 51 8f d2 4f a8 76 bf db f1 ce 2c d6 07 d7 38 6d 6d e3 7e 03 e6 c3 10 74 b0 12 06 00 51 8a e6 d4 0f d8 03 19 ef e4 56 be 64 8e 4d c5 86
+read 7a 76 32 f5 c2 b9 9c 74 5d 58 77 41 4e a8 1e 36 8c 8c a3 a0 b5 b6 57 e2 71 9d 18 ca a7 3e 5d ae 62 92 02 4f 82 d2 d4 6a 23 6d dc 50 22 06 00 00 60 ad eb ff bd a4 60 f9 35 ce bf 1a b2 b6 f6 f8
+read a7 c5 b7 70 b9 90 0c 11 64 87 7c 5f 0a 47 67 27 1c 81 83 22 89 83 8c ab 47 1f 8d 4d 47 6e e9 dc 61 48 28 52 00 7f 82 6b 8d de 2d f0 31 06 00 25 d9 40 43 01 b0 0c 33 70 bf ca 59 5a fd 1f 8d
+button 2 0
+button 3 0
+button 0 0
+button 1 1
+button 10 1
+button 6 0
+button 8 0
+button 5 1
+button 12 0
+button 13 1
+axis 5 -32768
+axis 2 6890
+axis 3 29599
+sensor Gyro 398000000 c0fb7c23 c1f81ba1 418cd2de
+sensor Accel 398000000 c1d358f1 417549e6 41c3da08
+sensor GyroR 398000000 c0fb7c23 c1f81ba1 418cd2de
+sensor AccelR 398000000 c1d358f1 417549e6 41c3da08
+button 2 1
+button 3 0
+button 0 0
+button 1 1
+button 10 0
+button 6 0
+button 8 1
+button 5 1
+button 12 0
+button 13 1
+axis 5 32767
+axis 2 43
+axis 3 4144
+sensor Gyro 402000000 4162c9c9 c1aa6f2c 4189a10a
+sensor Accel 402000000 c147518f 426ceffc 4221d302
+sensor GyroR 402000000 4162c9c9 c1aa6f2c 4189a10a
+sensor AccelR 402000000 c147518f 426ceffc 4221d302
+ready 1 100 2000 420b3333 1 10000
+end
+rumble 1000 50000 0
+rumble 01 50 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+rumble 1000 50000 13
+end
+rumble 1000 50000 12
+rumble 01 51 87 65 25 91 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+free
+release 1
+end
+endcase
+case bluetooth 2069 1
+init
+error Nintendo Switch2 controllers not supported over Bluetooth
+sticks 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+bias 00000000 00000000 00000000 00000000 00000000 00000000
+identity - -
+result 0
+end
+endcase
+case flash_error 2069 0
+init
+fail 1
+reply 39 d9 54 2b 22 7a 49 ad c4 80 20 ca 45 94 f7 cd a7 51 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 03 95 cc f7 ad c0 b7 05 fb 39 6d 7f 3a 4f 92 19 9e 38 1c 43 cd ab c1 22 28 3d 22 53 d7 7f
+reply b4 5f 9b d5 73 fc 53 15 45 09 4b e3 2e 47 48 cf
+reply db 66 e6 50 9e d7 b7 d5 67 fb c1 50 4e 40 2a 06 03 2e e4 b9 00 00 00 3f 00 00 80 be 00 00 00 3e b5 c7 26 bf 97 df 75 e8 81 fb 8a 94 1f d1 7c cf b3 c9 b5 3a c4 34 80 a7 85 4c 56 76 07 f0 e8 b2
+reply 1e 1c ec eb 15 29 a7 d1 11 ca 3f 95 45 c2 be 00
+reply d5 b4 66 b2 aa 9e da 5b a1 66 8a 8f 7c fd 64 51 8c 10 7e a7 32 12 39 e2 8b 27 16 c5 52 1f 15 d6 94 3f 4f f1 63 73 79 e7 40 53 3a d3 46 d8 2c 3c 16 db b4 ed 86 51 82 93 09 48 e7 1b dc a0 da c9
+reply f6 8a c8 18 ad c2 1f 55 28 8c 99 fa 88 70 49 cb
+reply ff 4e 05 55 8f 0a d3 71 27 ac 8b eb f8 67 a4 40 18 80 2a bb 12 7b 00 95 36 de b6 ba ac bf d6 2b e1 d5 6d f0 36 b0 9a b3 6b ba d8 1a ca ee 0a e7 13 5a 4b d2 2b 55 74 22 83 81 6a 0d 49 7f 2c d5
+reply 51 75 a0 9e c2 41 18 11 80 7a a7 b3 5d 2b 27 03
+reply ee 7e b1 fc 53 16 7f 0b 70 78 93 86 a9 d9 aa 26 3e cc d7 b5 e5 07 ae f0 f8 df d1 53 00 00 c0 3f 00 00 00 c0 00 00 40 3f 39 99 f3 4b 51 2f 95 e5 c0 11 ea 2d 38 bc b3 c6 eb 21 2d f1 b5 68 1e aa
+reply 08 67 a2 82 9b e1 b3 3b d2 7e 79 25 ec 8e 57 3b
+reply fc 4f 1a 2a bd 7d 7e db b5 35 31 43 35 6d f4 16 b2 a1 34 1b 73 73 e3 a5 0a 95 f6 72 60 3e 42 ba e2 49 05 1c cd ce 6a 37 a0 1c dc 09 43 75 0b 07 f4 8c bf 00 f6 bf 5f b2 f8 14 40 29 46 f5 af db
+reply b1 ac bd 85 3f 9d cd c3 93 45 de 72 1b f6 99 c6
+reply 3d 8d ad 21 54 bb 2f 54 eb 0d b3 c5 04 ff c2 e3 b2 a1 b1 2e 41 39 fe 27 61 2b 73 ba c8 12 ac da 83 7d 1d 90 5f 65 98 97 59 2e 9f b7 c7 5c 6b e2 47 15 b9 10 6b 5b 57 da 21 06 72 d8 e3 82 9c bc
+reply a4 4e a0 2b 76 30 06 5f fb 38 65 7d 92 7b 6b b7
+reply 75 f9 7b f2 98 94 1e aa
+reply b4 8b 58 8e 2e 83 4c 0e
+reply 6f 7b 66 5c 94 11 de 0e
+reply d9 7a 0e 78 c3 3f 75 c7
+reply 0f b8 87 de 5d 49 3a f0
+reply 9c 60 51 e2 35 2a 67 5e
+reply f7 18 ba b7 c5 15 bd 7f
+reply 01 83 5c ea b7 fb 0d e1
+reply 8a c1 9b e6 5f 09 b1 aa
+reply cb ed 29 70 3d 29 12 1f
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkerror
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 3205 1910 744 1380 3840 491 2868 883 1290 1841 2654 3945 0 0
+bias 33323157 37363534 31303938 2bd6bfac f06dd5e1 b39ab036
+identity - Nintendo Switch Pro Controller
+result 1
+end
+free
+release 1
+end
+endcase
+case init_error 2069 0
+init
+fail 37
+reply 78 39 d1 39 e5 64 e3 d0 ca 7e 61 65 c6 47 a4 1f eb 9c 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 8f 02 34 8b db 50 58 6b b6 30 de 38 a7 ca 63 3f 98 ad 55 06 67 68 61 4d 2d e8 a0 c7 4c 95
+reply 81 95 3b 2b 74 87 11 59 5c 12 d2 1b b2 0f 7d d7
+reply 61 fd 00 a0 ad 86 64 78 1f 2c eb 89 46 74 f6 f5 2d d0 77 58 00 00 00 3f 00 00 80 be 00 00 00 3e 42 c2 07 c6 c4 50 ee cf cc 2b e7 81 80 23 40 bf 1b 35 1c 82 99 cc fd 75 27 ba 15 4f 4e f5 4c f4
+reply d9 11 11 4b 8b 81 e1 dd 82 8d 98 33 69 13 7a ec
+reply 59 da 97 5c 3e ea 93 15 c3 22 16 7f 25 8a 47 74 54 60 c6 c0 d1 b1 12 73 02 dd 4b 73 17 ce a9 1e 17 61 fd ab 8c 99 36 be ee a7 b0 ce d0 9a 40 37 cc e6 00 1e 30 96 db 08 65 51 d7 3a 23 0e 26 ce
+reply 57 97 ea 9a cf bf cb c0 ab 62 3b 15 84 21 84 33
+reply 39 5b c3 72 df cb 8f db 6b 4b f1 a8 8a 25 97 2e 37 d8 a0 65 0e ae 7c f6 6f 97 64 56 f9 c0 19 60 13 76 61 73 93 63 92 11 33 88 df 3a b4 f9 66 86 d0 5c f5 05 e1 1f a0 d7 52 7c 03 8a c9 2e 57 36
+reply 11 f0 37 5a c9 ba 30 75 ce bb 0b 64 69 15 d9 7f
+reply 97 c9 74 a2 97 24 36 bd 90 51 4a 29 5b 9f a4 78 6c 82 f2 0a 76 a8 c6 b8 ac f3 70 f5 00 00 c0 3f 00 00 00 c0 00 00 40 3f d3 3a 04 a9 d4 5b 2f c0 3b 62 69 7a 33 e3 aa 53 e4 68 e8 e4 a5 30 21 00
+reply de a9 27 90 be af 2e 2e a2 82 16 84 40 89 79 63
+reply cb 32 5a 72 2d b0 29 6d 66 a1 b1 e4 3f 14 ee 64 b2 a1 6d 31 d0 58 8e 6d f0 5c fe 31 66 68 cc 8f 98 f0 ec 7b 3b 23 c1 6e c5 e8 6e bd 96 9a dd b6 e6 84 8b 7f 6d 1b 1a af d4 fe 95 a9 de ae 80 bd
+reply 56 0d a7 fd b7 98 a3 df 9e 64 2c 97 f0 da 22 32
+reply ea 5e e3 23 29 ea c5 5e e7 64 75 7c 9f 5f b3 c4 b2 a1 7f 1e a3 3b 35 87 31 fc 5d af ff 15 cd 62 10 aa b1 01 aa cf 13 1e c0 7d 2c d9 22 52 6c fc 67 0c 4b d9 96 c4 cd df 97 ea d8 ff 5c 04 35 c1
+reply ce 26 68 24 7a 30 30 3a f8 ca dc 80 1f 20 54 fe
+reply 1d dc 57 d4 35 8a d8 3a
+reply 27 c0 9b d2 cd 36 fd e2
+reply 8b 87 1f f6 f3 67 74 7d
+reply 3a a4 0c 20 5f de 9d e6
+reply 15 05 56 09 75 97 64 95
+reply 65 97 40 c6 c6 4c bf 1f
+reply 60 bf d7 4a 8d f2 32 b3
+reply a8 e0 75 e2 35 39 4d 9c
+reply cd da 3e b9 d0 0e 2b c4
+reply c9 87 a4 54 9f 1a f2 2d
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkerror
+error Couldn't send initialization data: %d
+
+sticks 365 3672 3312 3331 1752 4069 3711 1339 3121 2609 2163 1503 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 -
+result 0
+end
+endcase
+case led_error 2069 0
+init
+reply 0b f0 5a f7 2a 15 38 91 82 b3 0e 90 29 a1 6b f1 81 3e 58 41 57 31 32 33 34 35 36 37 38 39 30 31 32 33 e5 de df a6 85 3e 6c c7 9d 75 f3 58 ef 85 08 3b 1d 52 91 11 3c 45 34 30 1e a2 82 62 5c aa
+reply e0 63 25 70 39 19 ca 7c 65 91 05 21 58 be 0c 9e
+reply f9 ab e6 60 ff bc 8c 79 4a 54 41 12 e1 0e 9d 22 6a 88 d5 66 00 00 00 3f 00 00 80 be 00 00 00 3e a2 94 73 fc f3 08 a3 d5 4b 13 30 7c 45 9c a0 ad 15 38 ce b9 31 6c 75 21 bd 9f 7f f7 b7 e1 0b f5
+reply e7 5e 40 5a 84 a0 d5 88 a6 88 5c 5f 70 0a 51 57
+reply b0 d7 52 36 d4 7d 86 ee 18 95 8d 7d 31 3e c5 95 f0 88 9a 08 74 96 26 23 ac 4a 6a 30 40 a5 d8 66 2e 19 f7 53 78 c6 ee 74 8f 71 d2 97 7d 44 af f1 d6 48 58 ff 5c a3 ef 1d 75 91 33 e7 4d 23 8c 53
+reply cb ba d8 8b 35 42 f3 8b a2 30 08 7f 23 39 9b da
+reply 06 ff cb 7d f2 93 45 24 a3 60 01 35 3e c9 e5 dc e9 c6 61 ff cd e9 f3 35 9c c7 bd c1 6a a7 b7 54 97 6e 60 a5 74 dd 45 0f ae 8d 52 e9 82 ac dc a5 9f 75 6a a8 da 71 47 eb 94 6f c8 56 eb 44 5d d7
+reply a3 43 5a 45 d3 7b 83 f8 4f b3 5a 24 d9 26 27 fa
+reply 93 6c 42 f7 5e f9 a8 0e 62 62 6c 5b ef 0d b9 49 ec 8f 19 0d 8a 0f 98 20 13 3e 7b 25 00 00 c0 3f 00 00 00 c0 00 00 40 3f e1 d2 41 56 fa ee a5 da 89 8a 73 f6 30 51 dd ff 11 65 8e e5 f7 1f be 54
+reply 47 83 f7 8c a5 84 a4 01 65 fd 5e b2 b8 6c f6 49
+reply ad 2b 65 29 e1 6a 4e 5d 8b 04 5c d4 ec 23 c2 f1 50 ed 71 b7 70 c4 b4 94 49 19 32 40 10 f9 31 a2 21 6d 5d 09 ac be 53 c4 1d 6b ec 80 4d e7 4a 64 6a 13 a3 ee a6 7e d0 8b a2 5e 94 f9 99 4e ad 5d
+reply 4d c5 9d 23 b2 5a 35 99 5b ba e6 4b a8 65 c7 1c
+reply 6b 06 a4 54 00 61 96 87 16 73 21 42 9c e6 3f a5 b2 a0 d8 3e 07 84 a6 06 34 85 32 b4 99 3e 8a ea 30 6e 90 61 b7 3f 88 83 1a 43 63 ca a1 2f c9 d6 d9 5a e8 51 44 f3 ff 83 c0 05 a9 b4 b8 2c ea 45
+reply 0c 15 fb 8d c1 b7 d5 74 68 53 7f d2 50 2c 18 85
+reply 59 56 7d a5 96 88 8d a9
+reply 8d 6c 8a e4 90 d1 09 75
+reply f9 ea e4 40 d5 84 c5 8a
+reply 4f 05 74 57 de 24 e1 83
+reply 2e 6a f1 a2 cf 6c 08 99
+reply a0 c5 5b f9 fa d6 f3 1f
+reply 9c 3d 80 0c 59 16 e3 05
+reply 83 f4 79 ea 16 9d 28 57
+reply a4 89 2c 7c 04 19 9f bc
+reply ba 98 ca 08 25 f2 2e fa
+claim 1
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 c0 30 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 00 31 01 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 40 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 02 91 00 01 00 08 00 00 00 00 00 00 80 c0 1f 00
+bulkin 64 100
+bulkin 16 100
+bulkout 1000 07 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 02 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 11 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 0a 91 00 08 00 14 00 00 01 ff ff ff ff ff ff ff ff 35 00 46 00 00 00 00 00 00 00 00
+bulkin 64 100
+bulkout 1000 0c 91 00 04 00 04 00 00 27 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 0c 00 00 00 00
+bulkin 64 100
+bulkout 1000 01 91 00 01 00 00 00 00
+bulkin 64 100
+bulkout 1000 08 91 00 02 00 04 00 00 01 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0a 00 04 00 00 05 00 00 00
+bulkin 64 100
+bulkout 1000 03 91 00 0d 00 08 00 00 01 00 ff ff ff ff ff ff
+bulkin 64 100
+added
+sticks 373 3559 908 825 564 3253 3988 2902 1885 3206 1102 2621 0 0
+bias 3f000000 be800000 3e000000 3fc00000 c0000000 3f400000
+identity XAW1234567890123 Nintendo Switch Pro Controller
+result 1
+end
+player 1
+reply 6b 36 50 b1 24 cd 48 6f
+end
+open 0 0
+reply c9 78 08 f3 db 0b 6d 97
+bulkout 1000 09 91 00 07 00 08 00 00 00 00 00 00 00 00 00 00
+bulkin 8 100
+add sensor 2 437a0000
+add sensor 1 437a0000
+buttons 15 axes 6 hats 1
+end
+player 2
+fail 0
+bulkerror
+error Couldn't set LED data: %d
+
+end
+player 3
+fail 1
+bulkout 1000 09 91 00 07 00 08 00 00 0f 00 00 00 00 00 00 00
+bulkerror
+end
+makeready
+end
+sensors 1
+fail 0
+bulkerror
+error Couldn't set sensors enabled: %d
+
+result 0
+end
+free
+release 1
+end
+endcase

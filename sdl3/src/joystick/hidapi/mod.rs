@@ -25,7 +25,8 @@
 //! Device drivers translated so far: GameCube, Luna, SHIELD, PS3 (with its
 //! third party and Sony Sixaxis drivers), Stadia, the Valve controllers
 //! (Steam Controller, Wireless HORIPAD For Steam, Steam Deck and the Triton
-//! Steam Controller), Nintendo Switch (with the combined Joy-Cons), Xbox 360
+//! Steam Controller), Nintendo Switch (with the combined Joy-Cons), Nintendo
+//! Switch 2 (without its libusb setup, so it stays disabled), Wii, Xbox 360
 //! (wired, wireless and Big Button), Xbox One, PS4, PS5, 8BitDo and ZUIKI.
 
 mod combined;
@@ -44,6 +45,8 @@ mod steam_hori;
 mod steam_triton;
 mod steamdeck;
 mod switch;
+mod switch2;
+mod wii;
 mod xbox360;
 mod xbox360bb;
 mod xbox360w;
@@ -964,6 +967,12 @@ pub(crate) static DRIVER_JOYCONS: HidapiDeviceDriver =
 /// `SDL_HIDAPI_DriverSwitch`
 pub(crate) static DRIVER_SWITCH: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_SWITCH, &switch::SwitchDriver);
+/// `SDL_HIDAPI_DriverSwitch2`
+pub(crate) static DRIVER_SWITCH2: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_SWITCH2, &switch2::Switch2Driver);
+/// `SDL_HIDAPI_DriverWii`
+pub(crate) static DRIVER_WII: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_WII, &wii::WiiDriver);
 /// `SDL_HIDAPI_DriverXbox360`
 pub(crate) static DRIVER_XBOX360: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_360, &xbox360::Xbox360Driver);
@@ -986,8 +995,8 @@ pub(crate) static DRIVER_ZUIKI: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_ZUIKI, &zuiki::ZuikiDriver);
 
 /// Translation of `SDL_HIDAPI_drivers`: the drivers translated so far, in
-/// upstream's order. Not translated yet: Switch 2, Wii, GIP, Logitech G
-/// (lg4ff), Flydigi, SInput and GameSir.
+/// upstream's order. Not translated yet: GIP, Logitech G (lg4ff), Flydigi,
+/// SInput and GameSir.
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_GAMECUBE,
     &DRIVER_LUNA,
@@ -1005,6 +1014,8 @@ static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_NINTENDO_CLASSIC,
     &DRIVER_JOYCONS,
     &DRIVER_SWITCH,
+    &DRIVER_SWITCH2,
+    &DRIVER_WII,
     &DRIVER_XBOX360,
     &DRIVER_XBOX360W,
     &DRIVER_XBOX360BB,
