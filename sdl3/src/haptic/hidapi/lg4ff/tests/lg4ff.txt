@@ -1,0 +1,7004 @@
+# Expected behaviour of upstream's SDL_hidapihaptic_lg4ff.c and SDL_hidapihaptic.c,
+# recorded by running them (with stubs for the SDL functions they use, and SDL's
+# own libm) on these operations.
+# Copyright (C) 2025 Simon Wood <simon@mungewell.org>
+# Copyright (C) 2025 Michal Malý <madcatxster@devoid-pointer.net>
+# Copyright (C) 2025 Bernat Arlandis <berarma@hotmail.com>
+# Copyright (C) 2025 Katharine Chui <katharine.chui@gmail.com>
+# This is an altered (translated) version of the original software; see LICENSE.txt.
+case constant|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 status 0
+result 0
+end
+op 1000 create constant 3 0 0 0 100 10 16384 0 0 0 0
+result 0
+end
+op 1000 status 0
+result 0
+end
+op 1000 timer
+result 0 peak 0
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 status 0
+result 1
+end
+op 1000 timer
+result 0 peak 0
+end
+op 1010 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 16384
+end
+op 1020 timer
+result 0 peak 16384
+end
+op 1030 timer
+result 0 peak 16384
+end
+op 1040 timer
+result 0 peak 16384
+end
+op 1050 timer
+result 0 peak 16384
+end
+op 1060 timer
+result 0 peak 16384
+end
+op 1070 timer
+result 0 peak 16384
+end
+op 1080 timer
+result 0 peak 16384
+end
+op 1090 timer
+result 0 peak 16384
+end
+op 1100 timer
+result 0 peak 16384
+end
+op 1110 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 16384
+end
+op 1120 timer
+result 0 peak 16384
+end
+op 1130 timer
+result 0 peak 16384
+end
+op 1200 run 0 2
+result 1
+end
+op 1200 timer
+result 0 peak 16384
+end
+op 1225 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 16384
+end
+op 1250 timer
+result 0 peak 16384
+end
+op 1275 timer
+result 0 peak 16384
+end
+op 1300 timer
+result 0 peak 16384
+end
+op 1325 timer
+result 0 peak 16384
+end
+op 1350 timer
+result 0 peak 16384
+end
+op 1375 timer
+result 0 peak 16384
+end
+op 1400 timer
+result 0 peak 16384
+end
+op 1425 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 16384
+end
+op 1450 timer
+result 0 peak 16384
+end
+op 1475 status 0
+result 0
+end
+op 1500 run 0 1
+result 1
+end
+op 1530 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 16384
+end
+op 1530 stop 0
+result 1
+end
+op 1530 status 0
+result 0
+end
+op 1530 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 16384
+end
+op 1530 timer
+result 0 peak 16384
+end
+op 1530 destroy 0
+end
+op 1530 status 0
+result 0
+end
+op 1530 run 0 1
+error Bad effect id
+result 0
+end
+op 1530 stop 0
+error Bad effect id
+result 0
+end
+op 1530 update 0 constant 3 0 0 0 100 10 16384 0 0 0 0
+error Bad effect id
+result 0
+end
+op 1530 close
+end
+endcase
+case constant envelope|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 300 0 24576 80 0 100 4096
+result 0
+end
+op 1000 create constant 3 0 0 0 300 0 1000 80 20000 100 0
+result 1
+end
+op 1000 create constant 3 0 0 0 300 0 -12288 80 1280 100 28672
+result 2
+end
+op 1000 create constant 3 0 0 0 4294967295 0 8192 0 0 100 0
+result 3
+end
+op 2000 run 0 1
+result 1
+end
+op 2000 timer
+result 0 peak 0
+end
+op 2016 timer
+write 1c 00 93 00 00 00 00
+result 0 peak 4915
+end
+op 2032 timer
+write 1c 00 a6 00 00 00 00
+result 0 peak 9830
+end
+op 2048 timer
+write 1c 00 b9 00 00 00 00
+result 0 peak 14745
+end
+op 2064 timer
+write 1c 00 cc 00 00 00 00
+result 0 peak 19660
+end
+op 2080 timer
+write 1c 00 e0 00 00 00 00
+result 0 peak 24576
+end
+op 2096 timer
+result 0 peak 24576
+end
+op 2112 timer
+result 0 peak 24576
+end
+op 2128 timer
+result 0 peak 24576
+end
+op 2144 timer
+result 0 peak 24576
+end
+op 2160 timer
+result 0 peak 24576
+end
+op 2176 timer
+result 0 peak 24576
+end
+op 2192 timer
+result 0 peak 24576
+end
+op 2208 timer
+write 1c 00 d9 00 00 00 00
+result 0 peak 24576
+end
+op 2224 timer
+write 1c 00 cc 00 00 00 00
+result 0 peak 24576
+end
+op 2240 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 24576
+end
+op 2256 timer
+write 1c 00 b3 00 00 00 00
+result 0 peak 24576
+end
+op 2272 timer
+write 1c 00 a6 00 00 00 00
+result 0 peak 24576
+end
+op 2288 timer
+write 1c 00 99 00 00 00 00
+result 0 peak 24576
+end
+op 2304 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 24576
+end
+op 2320 timer
+result 0 peak 24576
+end
+op 2336 stop 0
+result 1
+end
+op 2336 timer
+result 0 peak 24576
+end
+op 3000 run 1 1
+result 1
+end
+op 3000 timer
+write 1c 00 ce 00 00 00 00
+result 0 peak 24576
+end
+op 3016 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 859009659
+end
+op 3032 timer
+result 0 peak 859009659
+end
+op 3048 timer
+result 0 peak 859009659
+end
+op 3064 timer
+result 0 peak 859009659
+end
+op 3080 timer
+write 1c 00 83 00 00 00 00
+result 0 peak 859009659
+end
+op 3096 timer
+result 0 peak 859009659
+end
+op 3112 timer
+result 0 peak 859009659
+end
+op 3128 timer
+result 0 peak 859009659
+end
+op 3144 timer
+result 0 peak 859009659
+end
+op 3160 timer
+result 0 peak 859009659
+end
+op 3176 timer
+result 0 peak 859009659
+end
+op 3192 timer
+result 0 peak 859009659
+end
+op 3208 timer
+result 0 peak 859009659
+end
+op 3224 timer
+write 1c 00 82 00 00 00 00
+result 0 peak 859009659
+end
+op 3240 timer
+result 0 peak 859009659
+end
+op 3256 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 859009659
+end
+op 3272 timer
+result 0 peak 859009659
+end
+op 3288 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 859009659
+end
+op 3304 timer
+result 0 peak 859009659
+end
+op 3320 timer
+result 0 peak 859009659
+end
+op 3336 stop 1
+result 1
+end
+op 3336 timer
+result 0 peak 859009659
+end
+op 4000 run 2 1
+result 1
+end
+op 4000 timer
+write 1c 00 7b 00 00 00 00
+result 0 peak 859009659
+end
+op 4016 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 859009659
+end
+op 4032 timer
+result 0 peak 859009659
+end
+op 4048 timer
+result 0 peak 859009659
+end
+op 4064 timer
+result 0 peak 859009659
+end
+op 4080 timer
+write 1c 00 50 00 00 00 00
+result 0 peak 859009659
+end
+op 4096 timer
+result 0 peak 859009659
+end
+op 4112 timer
+result 0 peak 859009659
+end
+op 4128 timer
+result 0 peak 859009659
+end
+op 4144 timer
+result 0 peak 859009659
+end
+op 4160 timer
+result 0 peak 859009659
+end
+op 4176 timer
+result 0 peak 859009659
+end
+op 4192 timer
+result 0 peak 859009659
+end
+op 4208 timer
+write 1c 00 4a 00 00 00 00
+result 0 peak 859009659
+end
+op 4224 timer
+write 1c 00 40 00 00 00 00
+result 0 peak 859009659
+end
+op 4240 timer
+write 1c 00 36 00 00 00 00
+result 0 peak 859009659
+end
+op 4256 timer
+write 1c 00 2c 00 00 00 00
+result 0 peak 859009659
+end
+op 4272 timer
+write 1c 00 21 00 00 00 00
+result 0 peak 859009659
+end
+op 4288 timer
+write 1c 00 17 00 00 00 00
+result 0 peak 859009659
+end
+op 4304 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 859009659
+end
+op 4320 timer
+result 0 peak 859009659
+end
+op 4336 stop 2
+result 1
+end
+op 4336 timer
+result 0 peak 859009659
+end
+op 5000 run 3 1
+result 1
+end
+op 5000 timer
+write 1c 00 7f 00 00 00 00
+result 0 peak 859009659
+end
+op 5016 timer
+write 1c 00 7a 00 00 00 00
+result 0 peak 859009659
+end
+op 5032 timer
+write 1c 00 75 00 00 00 00
+result 0 peak 859009659
+end
+op 5048 timer
+write 1c 00 70 00 00 00 00
+result 0 peak 859009659
+end
+op 5064 timer
+write 1c 00 6b 00 00 00 00
+result 0 peak 859009659
+end
+op 5080 timer
+write 1c 00 66 00 00 00 00
+result 0 peak 859009659
+end
+op 5096 timer
+write 1c 00 60 00 00 00 00
+result 0 peak 859009659
+end
+op 5112 timer
+write 1c 00 5b 00 00 00 00
+result 0 peak 859009659
+end
+op 5128 timer
+write 1c 00 56 00 00 00 00
+result 0 peak 859009659
+end
+op 5144 timer
+write 1c 00 51 00 00 00 00
+result 0 peak 859009659
+end
+op 5160 timer
+write 1c 00 4c 00 00 00 00
+result 0 peak 859009659
+end
+op 5176 timer
+write 1c 00 47 00 00 00 00
+result 0 peak 859009659
+end
+op 5192 timer
+write 1c 00 42 00 00 00 00
+result 0 peak 859009659
+end
+op 5208 timer
+write 1c 00 3d 00 00 00 00
+result 0 peak 859009659
+end
+op 5224 timer
+write 1c 00 38 00 00 00 00
+result 0 peak 859009659
+end
+op 5240 timer
+write 1c 00 32 00 00 00 00
+result 0 peak 859009659
+end
+op 5256 timer
+write 1c 00 2d 00 00 00 00
+result 0 peak 859009659
+end
+op 5272 timer
+write 1c 00 28 00 00 00 00
+result 0 peak 859009659
+end
+op 5288 timer
+write 1c 00 23 00 00 00 00
+result 0 peak 859009659
+end
+op 5304 timer
+write 1c 00 1e 00 00 00 00
+result 0 peak 859009659
+end
+op 5320 timer
+write 1c 00 19 00 00 00 00
+result 0 peak 859009659
+end
+op 5336 stop 3
+result 1
+end
+op 5336 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 859009659
+end
+op 5336 close
+end
+endcase
+case directions|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 3000 create constant 0 0 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3000 run 0 1
+result 1
+end
+op 3000 timer
+result 0 peak 0
+end
+op 3000 stop 0
+result 1
+end
+op 3000 timer
+result 0 peak 0
+end
+op 3000 destroy 0
+end
+op 3100 create constant 0 9000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3100 run 0 1
+result 1
+end
+op 3100 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 3100 stop 0
+result 1
+end
+op 3100 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3100 destroy 0
+end
+op 3200 create constant 0 18000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3200 run 0 1
+result 1
+end
+op 3200 timer
+result 0 peak 20480
+end
+op 3200 stop 0
+result 1
+end
+op 3200 timer
+result 0 peak 20480
+end
+op 3200 destroy 0
+end
+op 3300 create constant 0 27000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3300 run 0 1
+result 1
+end
+op 3300 timer
+write 1c 00 30 00 00 00 00
+result 0 peak 20480
+end
+op 3300 stop 0
+result 1
+end
+op 3300 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3300 destroy 0
+end
+op 3400 create constant 0 4500 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3400 run 0 1
+result 1
+end
+op 3400 timer
+write 1c 00 b8 00 00 00 00
+result 0 peak 20480
+end
+op 3400 stop 0
+result 1
+end
+op 3400 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3400 destroy 0
+end
+op 3500 create constant 0 -9000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3500 run 0 1
+result 1
+end
+op 3500 timer
+write 1c 00 30 00 00 00 00
+result 0 peak 20480
+end
+op 3500 stop 0
+result 1
+end
+op 3500 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3500 destroy 0
+end
+op 3600 create constant 0 45000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3600 run 0 1
+result 1
+end
+op 3600 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 3600 stop 0
+result 1
+end
+op 3600 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3600 destroy 0
+end
+op 3700 create constant 0 35999 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3700 run 0 1
+result 1
+end
+op 3700 timer
+write 1c 00 7e 00 00 00 00
+result 0 peak 20480
+end
+op 3700 stop 0
+result 1
+end
+op 3700 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3700 destroy 0
+end
+op 3800 create constant 1 1 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3800 run 0 1
+result 1
+end
+op 3800 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 3800 stop 0
+result 1
+end
+op 3800 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3800 destroy 0
+end
+op 3900 create constant 1 -1 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 3900 run 0 1
+result 1
+end
+op 3900 timer
+write 1c 00 30 00 00 00 00
+result 0 peak 20480
+end
+op 3900 stop 0
+result 1
+end
+op 3900 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 3900 destroy 0
+end
+op 4000 create constant 1 0 1 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4000 run 0 1
+result 1
+end
+op 4000 timer
+result 0 peak 20480
+end
+op 4000 stop 0
+result 1
+end
+op 4000 timer
+result 0 peak 20480
+end
+op 4000 destroy 0
+end
+op 4100 create constant 1 0 -1 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4100 run 0 1
+result 1
+end
+op 4100 timer
+result 0 peak 20480
+end
+op 4100 stop 0
+result 1
+end
+op 4100 timer
+result 0 peak 20480
+end
+op 4100 destroy 0
+end
+op 4200 create constant 1 3 4 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4200 run 0 1
+result 1
+end
+op 4200 timer
+write 1c 00 b0 00 00 00 00
+result 0 peak 20480
+end
+op 4200 stop 0
+result 1
+end
+op 4200 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 4200 destroy 0
+end
+op 4300 create constant 1 -5 2 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4300 run 0 1
+result 1
+end
+op 4300 timer
+write 1c 00 35 00 00 00 00
+result 0 peak 20480
+end
+op 4300 stop 0
+result 1
+end
+op 4300 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 4300 destroy 0
+end
+op 4400 create constant 1 1000000 -7 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4400 run 0 1
+result 1
+end
+op 4400 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 4400 stop 0
+result 1
+end
+op 4400 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 4400 destroy 0
+end
+op 4500 create constant 1 -2 -2 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4500 run 0 1
+result 1
+end
+op 4500 timer
+write 1c 00 47 00 00 00 00
+result 0 peak 20480
+end
+op 4500 stop 0
+result 1
+end
+op 4500 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 4500 destroy 0
+end
+op 4600 create constant 1 0 0 1 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4600 run 0 1
+result 1
+end
+op 4600 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 4600 stop 0
+result 1
+end
+op 4600 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 4600 destroy 0
+end
+op 4700 create constant 2 0 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4700 run 0 1
+result 1
+end
+op 4700 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 4700 stop 0
+result 1
+end
+op 4700 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 4700 destroy 0
+end
+op 4800 create constant 2 9000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4800 run 0 1
+result 1
+end
+op 4800 timer
+result 0 peak 20480
+end
+op 4800 stop 0
+result 1
+end
+op 4800 timer
+result 0 peak 20480
+end
+op 4800 destroy 0
+end
+op 4900 create constant 2 -9000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 4900 run 0 1
+result 1
+end
+op 4900 timer
+result 0 peak 20480
+end
+op 4900 stop 0
+result 1
+end
+op 4900 timer
+result 0 peak 20480
+end
+op 4900 destroy 0
+end
+op 5000 create constant 2 27000 4500 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 5000 run 0 1
+result 1
+end
+op 5000 timer
+result 0 peak 20480
+end
+op 5000 stop 0
+result 1
+end
+op 5000 timer
+result 0 peak 20480
+end
+op 5000 destroy 0
+end
+op 5100 create constant 2 2147480000 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 5100 run 0 1
+result 1
+end
+op 5100 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 20480
+end
+op 5100 stop 0
+result 1
+end
+op 5100 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 5100 destroy 0
+end
+op 5200 create constant 3 0 0 0 4294967295 0 20480 0 0 0 0
+result 0
+end
+op 5200 run 0 1
+result 1
+end
+op 5200 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20480
+end
+op 5200 stop 0
+result 1
+end
+op 5200 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20480
+end
+op 5200 destroy 0
+end
+op 5200 close
+end
+endcase
+case conditions|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create condition 128 3 0 0 0 4294967295 0 65535 65535 16384 -16384 0 0
+result 0
+end
+op 1000 create condition 256 3 0 0 0 4294967295 0 32768 0 -8192 32767 0 0
+result 1
+end
+op 1000 create condition 1024 3 0 0 0 4294967295 0 4660 0 24576 -28672 0 0
+result 2
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+write 21 0b 80 80 77 01 4c
+result 0 peak 9829
+end
+op 1010 run 1 1
+result 1
+end
+op 1010 timer
+write 41 0c 0f 00 04 01 26
+result 0 peak 14743
+end
+op 1020 run 2 1
+result 1
+end
+op 1020 timer
+write 81 0e e0 c0 05 01 00
+result 0 peak 15441
+end
+op 1030 timer
+result 0 peak 15441
+end
+op 1040 update 0 condition 128 3 0 0 0 4294967295 0 28672 0 1000 1500 8192 4096
+result 1
+end
+op 1040 timer
+write 2c 0b 00 ff 00 e0 21
+result 0 peak 15441
+end
+op 1050 update 0 condition 128 3 0 0 0 4294967295 0 65535 0 -3000 30000 65535 -28672
+result 1
+end
+op 1050 timer
+write 2c 0b 90 8f 0d f0 4c
+result 0 peak 15441
+end
+op 1060 update 0 condition 128 3 0 0 0 50 20 0 0 1000 1500 8192 4096
+result 1
+end
+op 1060 timer
+write 23 00 00 00 00 00 00
+result 0 peak 15441
+end
+op 1070 timer
+result 0 peak 15441
+end
+op 1080 timer
+result 0 peak 15441
+end
+op 1090 timer
+result 0 peak 15441
+end
+op 1100 timer
+result 0 peak 15441
+end
+op 1110 timer
+result 0 peak 15441
+end
+op 1120 timer
+result 0 peak 15441
+end
+op 1130 timer
+result 0 peak 15441
+end
+op 1140 timer
+result 0 peak 15441
+end
+op 1150 timer
+result 0 peak 15441
+end
+op 1160 timer
+result 0 peak 15441
+end
+op 1170 update 1 condition 256 3 0 0 0 4294967295 0 65535 0 32767 -32768 0 0
+result 1
+end
+op 1170 update 2 condition 1024 3 0 0 0 4294967295 0 65535 0 -1 1 0 0
+result 1
+end
+op 1170 timer
+write 4c 0c 0f 01 0f 00 4c
+write 8c 0e 00 00 4c 10 00
+result 0 peak 19658
+end
+op 1170 gain 40
+result 1
+end
+op 1170 timer
+write 4c 0c 06 01 06 00 1e
+write 8c 0e 00 00 1e 00 00
+result 0 peak 19658
+end
+op 1170 stop 1
+result 1
+end
+op 1170 timer
+write 43 00 00 00 00 00 00
+result 0 peak 19658
+end
+op 1170 stopall
+result 1
+end
+op 1170 timer
+write 83 00 00 00 00 00 00
+result 0 peak 19658
+end
+op 1170 close
+end
+endcase
+case periodic sine|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create periodic 2 3 0 0 0 300 0 100 20480 256 9000 50 4096 50 0
+result 0
+end
+op 1000 create periodic 2 3 0 0 0 4294967295 5 64 -12288 -512 0 0 0 30 2048
+result 1
+end
+op 1000 create periodic 2 3 0 0 0 0 0 0 4096 0 0 0 0 0 0
+error Bad effect parameters
+result -1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 256
+end
+op 1007 timer
+write 1c 00 8b 00 00 00 00
+result 0 peak 2956
+end
+op 1014 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 6907
+end
+op 1021 timer
+write 1c 00 aa 00 00 00 00
+result 0 peak 10858
+end
+op 1028 timer
+write 1c 00 b4 00 00 00 00
+result 0 peak 13325
+end
+op 1035 timer
+write 1c 00 b2 00 00 00 00
+result 0 peak 13325
+end
+op 1042 timer
+write 1c 00 a2 00 00 00 00
+result 0 peak 13325
+end
+op 1049 timer
+write 1c 00 86 00 00 00 00
+result 0 peak 13325
+end
+op 1056 timer
+write 1c 00 64 00 00 00 00
+result 0 peak 13325
+end
+op 1063 timer
+write 1c 00 47 00 00 00 00
+result 0 peak 14476
+end
+op 1070 timer
+write 1c 00 34 00 00 00 00
+result 0 peak 19221
+end
+op 1077 timer
+write 1c 00 31 00 00 00 00
+result 0 peak 20071
+end
+op 1084 timer
+write 1c 00 3d 00 00 00 00
+result 0 peak 20071
+end
+op 1091 timer
+write 1c 00 55 00 00 00 00
+result 0 peak 20071
+end
+op 1098 timer
+write 1c 00 75 00 00 00 00
+result 0 peak 20071
+end
+op 1105 timer
+write 1c 00 99 00 00 00 00
+result 0 peak 20071
+end
+op 1112 timer
+write 1c 00 b7 00 00 00 00
+result 0 peak 20071
+end
+op 1119 timer
+write 1c 00 cb 00 00 00 00
+result 0 peak 20071
+end
+op 1126 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20707
+end
+op 1133 timer
+write 1c 00 c7 00 00 00 00
+result 0 peak 20707
+end
+op 1140 timer
+write 1c 00 b0 00 00 00 00
+result 0 peak 20707
+end
+op 1147 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 20707
+end
+op 1154 timer
+write 1c 00 6d 00 00 00 00
+result 0 peak 20707
+end
+op 1161 timer
+write 1c 00 4e 00 00 00 00
+result 0 peak 20707
+end
+op 1168 timer
+write 1c 00 39 00 00 00 00
+result 0 peak 20707
+end
+op 1175 timer
+write 1c 00 31 00 00 00 00
+result 0 peak 20707
+end
+op 1182 timer
+write 1c 00 38 00 00 00 00
+result 0 peak 20707
+end
+op 1189 timer
+write 1c 00 4d 00 00 00 00
+result 0 peak 20707
+end
+op 1196 timer
+write 1c 00 6c 00 00 00 00
+result 0 peak 20707
+end
+op 1203 timer
+write 1c 00 8e 00 00 00 00
+result 0 peak 20707
+end
+op 1210 timer
+write 1c 00 b0 00 00 00 00
+result 0 peak 20707
+end
+op 1217 timer
+write 1c 00 c6 00 00 00 00
+result 0 peak 20707
+end
+op 1224 timer
+write 1c 00 d0 00 00 00 00
+result 0 peak 20707
+end
+op 1231 timer
+write 1c 00 cb 00 00 00 00
+result 0 peak 20707
+end
+op 1238 timer
+write 1c 00 b8 00 00 00 00
+result 0 peak 20707
+end
+op 1245 timer
+write 1c 00 99 00 00 00 00
+result 0 peak 20707
+end
+op 1252 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 20707
+end
+op 1259 timer
+write 1c 00 5e 00 00 00 00
+result 0 peak 20707
+end
+op 1266 timer
+write 1c 00 53 00 00 00 00
+result 0 peak 20707
+end
+op 1273 timer
+write 1c 00 56 00 00 00 00
+result 0 peak 20707
+end
+op 1280 timer
+write 1c 00 62 00 00 00 00
+result 0 peak 20707
+end
+op 1287 timer
+write 1c 00 71 00 00 00 00
+result 0 peak 20707
+end
+op 1294 timer
+write 1c 00 7d 00 00 00 00
+result 0 peak 20707
+end
+op 1301 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20707
+end
+op 1308 timer
+result 0 peak 20707
+end
+op 1315 timer
+result 0 peak 20707
+end
+op 1322 timer
+result 0 peak 20707
+end
+op 1329 timer
+result 0 peak 20707
+end
+op 1336 timer
+result 0 peak 20707
+end
+op 1343 run 1 1
+result 1
+end
+op 1343 timer
+result 0 peak 20707
+end
+op 1352 timer
+write 1c 00 7d 00 00 00 00
+result 0 peak 20707
+end
+op 1361 timer
+write 1c 00 86 00 00 00 00
+result 0 peak 20707
+end
+op 1370 timer
+write 1c 00 8f 00 00 00 00
+result 0 peak 20707
+end
+op 1379 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 20707
+end
+op 1388 timer
+write 1c 00 5d 00 00 00 00
+result 0 peak 20707
+end
+op 1397 timer
+write 1c 00 44 00 00 00 00
+result 0 peak 20707
+end
+op 1406 timer
+write 1c 00 57 00 00 00 00
+result 0 peak 20707
+end
+op 1415 timer
+write 1c 00 94 00 00 00 00
+result 0 peak 20707
+end
+op 1424 timer
+write 1c 00 d3 00 00 00 00
+result 0 peak 21481
+end
+op 1433 timer
+write 1c 00 db 00 00 00 00
+result 0 peak 23296
+end
+op 1442 timer
+write 1c 00 96 00 00 00 00
+result 0 peak 23296
+end
+op 1451 timer
+write 1c 00 2c 00 00 00 00
+result 0 peak 23296
+end
+op 1460 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 36693
+end
+op 1469 timer
+write 1c 00 1b 00 00 00 00
+result 0 peak 36693
+end
+op 1478 timer
+write 1c 00 9d 00 00 00 00
+result 0 peak 36693
+end
+op 1487 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 39193
+end
+op 1496 update 1 periodic 2 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
+result 1
+end
+op 1496 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 39193
+end
+op 1502 timer
+write 1c 00 9f 00 00 00 00
+result 0 peak 39193
+end
+op 1508 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 39193
+end
+op 1514 timer
+write 1c 00 7a 00 00 00 00
+result 0 peak 39193
+end
+op 1520 timer
+write 1c 00 66 00 00 00 00
+result 0 peak 39193
+end
+op 1526 timer
+write 1c 00 60 00 00 00 00
+result 0 peak 39193
+end
+op 1532 timer
+write 1c 00 6b 00 00 00 00
+result 0 peak 39193
+end
+op 1538 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 39193
+end
+op 1544 timer
+write 1c 00 97 00 00 00 00
+result 0 peak 39193
+end
+op 1550 timer
+write 1c 00 9f 00 00 00 00
+result 0 peak 39193
+end
+op 1556 timer
+write 1c 00 97 00 00 00 00
+result 0 peak 39193
+end
+op 1562 update 1 periodic 2 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
+result 0
+end
+op 1562 stopall
+result 1
+end
+op 1562 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 39193
+end
+op 1562 close
+end
+endcase
+case periodic square|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create periodic 4 3 0 0 0 300 0 100 20480 256 9000 50 4096 50 0
+result 0
+end
+op 1000 create periodic 4 3 0 0 0 4294967295 5 64 -12288 -512 0 0 0 30 2048
+result 1
+end
+op 1000 create periodic 4 3 0 0 0 0 0 0 4096 0 0 0 0 0 0
+error Bad effect parameters
+result -1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 4352
+end
+op 1007 timer
+write 1c 00 99 00 00 00 00
+result 0 peak 6645
+end
+op 1014 timer
+write 1c 00 a2 00 00 00 00
+result 0 peak 8939
+end
+op 1021 timer
+write 1c 00 ab 00 00 00 00
+result 0 peak 11233
+end
+op 1028 timer
+write 1c 00 b4 00 00 00 00
+result 0 peak 13527
+end
+op 1035 timer
+write 1c 00 bd 00 00 00 00
+result 0 peak 15820
+end
+op 1042 timer
+write 1c 00 c6 00 00 00 00
+result 0 peak 18114
+end
+op 1049 timer
+write 1c 00 cf 00 00 00 00
+result 0 peak 20408
+end
+op 1056 timer
+write 1c 00 31 00 00 00 00
+result 0 peak 20408
+end
+op 1063 timer
+result 0 peak 20408
+end
+op 1070 timer
+result 0 peak 20408
+end
+op 1077 timer
+result 0 peak 20408
+end
+op 1084 timer
+result 0 peak 20408
+end
+op 1091 timer
+result 0 peak 20408
+end
+op 1098 timer
+result 0 peak 20408
+end
+op 1105 timer
+write 1c 00 d1 00 00 00 00
+result 0 peak 20736
+end
+op 1112 timer
+result 0 peak 20736
+end
+op 1119 timer
+result 0 peak 20736
+end
+op 1126 timer
+result 0 peak 20736
+end
+op 1133 timer
+result 0 peak 20736
+end
+op 1140 timer
+result 0 peak 20736
+end
+op 1147 timer
+result 0 peak 20736
+end
+op 1154 timer
+write 1c 00 31 00 00 00 00
+result 0 peak 20736
+end
+op 1161 timer
+result 0 peak 20736
+end
+op 1168 timer
+result 0 peak 20736
+end
+op 1175 timer
+result 0 peak 20736
+end
+op 1182 timer
+result 0 peak 20736
+end
+op 1189 timer
+result 0 peak 20736
+end
+op 1196 timer
+result 0 peak 20736
+end
+op 1203 timer
+write 1c 00 d1 00 00 00 00
+result 0 peak 20736
+end
+op 1210 timer
+result 0 peak 20736
+end
+op 1217 timer
+result 0 peak 20736
+end
+op 1224 timer
+result 0 peak 20736
+end
+op 1231 timer
+result 0 peak 20736
+end
+op 1238 timer
+result 0 peak 20736
+end
+op 1245 timer
+result 0 peak 20736
+end
+op 1252 timer
+write 1c 00 34 00 00 00 00
+result 0 peak 20736
+end
+op 1259 timer
+write 1c 00 3f 00 00 00 00
+result 0 peak 20736
+end
+op 1266 timer
+write 1c 00 4a 00 00 00 00
+result 0 peak 20736
+end
+op 1273 timer
+write 1c 00 55 00 00 00 00
+result 0 peak 20736
+end
+op 1280 timer
+write 1c 00 61 00 00 00 00
+result 0 peak 20736
+end
+op 1287 timer
+write 1c 00 6c 00 00 00 00
+result 0 peak 20736
+end
+op 1294 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 20736
+end
+op 1301 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 20736
+end
+op 1308 timer
+result 0 peak 20736
+end
+op 1315 timer
+result 0 peak 20736
+end
+op 1322 timer
+result 0 peak 20736
+end
+op 1329 timer
+result 0 peak 20736
+end
+op 1336 timer
+result 0 peak 20736
+end
+op 1343 run 1 1
+result 1
+end
+op 1343 timer
+result 0 peak 20736
+end
+op 1352 timer
+write 1c 00 7b 00 00 00 00
+result 0 peak 20736
+end
+op 1361 timer
+write 1c 00 87 00 00 00 00
+result 0 peak 20736
+end
+op 1370 timer
+write 1c 00 93 00 00 00 00
+result 0 peak 20736
+end
+op 1379 timer
+write 1c 00 9f 00 00 00 00
+result 0 peak 20736
+end
+op 1388 timer
+write 1c 00 50 00 00 00 00
+result 0 peak 20736
+end
+op 1397 timer
+write 1c 00 44 00 00 00 00
+result 0 peak 20736
+end
+op 1406 timer
+write 1c 00 38 00 00 00 00
+result 0 peak 20736
+end
+op 1415 timer
+write 1c 00 cf 00 00 00 00
+result 0 peak 20736
+end
+op 1424 timer
+write 1c 00 db 00 00 00 00
+result 0 peak 23381
+end
+op 1433 timer
+write 1c 00 e7 00 00 00 00
+result 0 peak 26453
+end
+op 1442 timer
+write 1c 00 f3 00 00 00 00
+result 0 peak 29525
+end
+op 1451 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 33621
+end
+op 1460 timer
+result 0 peak 36693
+end
+op 1469 timer
+result 0 peak 39765
+end
+op 1478 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 41813
+end
+op 1487 timer
+result 0 peak 44885
+end
+op 1496 update 1 periodic 4 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
+result 1
+end
+op 1496 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 44885
+end
+op 1502 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 44885
+end
+op 1508 timer
+result 0 peak 44885
+end
+op 1514 timer
+write 1c 00 60 00 00 00 00
+result 0 peak 44885
+end
+op 1520 timer
+result 0 peak 44885
+end
+op 1526 timer
+result 0 peak 44885
+end
+op 1532 timer
+result 0 peak 44885
+end
+op 1538 timer
+result 0 peak 44885
+end
+op 1544 timer
+result 0 peak 44885
+end
+op 1550 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 44885
+end
+op 1556 timer
+result 0 peak 44885
+end
+op 1562 update 1 periodic 4 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
+result 0
+end
+op 1562 stopall
+result 1
+end
+op 1562 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 44885
+end
+op 1562 close
+end
+endcase
+case periodic triangle|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create periodic 8 3 0 0 0 300 0 100 20480 256 9000 50 4096 50 0
+result 0
+end
+op 1000 create periodic 8 3 0 0 0 4294967295 5 64 -12288 -512 0 0 0 30 2048
+result 1
+end
+op 1000 create periodic 8 3 0 0 0 0 0 0 4096 0 0 0 0 0 0
+error Bad effect parameters
+result -1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 4352
+end
+op 1007 timer
+write 1c 00 93 00 00 00 00
+result 0 peak 4871
+end
+op 1014 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 4871
+end
+op 1021 timer
+write 1c 00 88 00 00 00 00
+result 0 peak 4871
+end
+op 1028 timer
+write 1c 00 7b 00 00 00 00
+result 0 peak 4871
+end
+op 1035 timer
+write 1c 00 68 00 00 00 00
+result 0 peak 5968
+end
+op 1042 timer
+write 1c 00 51 00 00 00 00
+result 0 peak 11846
+end
+op 1049 timer
+write 1c 00 35 00 00 00 00
+result 0 peak 19000
+end
+op 1056 timer
+write 1c 00 43 00 00 00 00
+result 0 peak 19000
+end
+op 1063 timer
+write 1c 00 59 00 00 00 00
+result 0 peak 19000
+end
+op 1070 timer
+write 1c 00 71 00 00 00 00
+result 0 peak 19000
+end
+op 1077 timer
+write 1c 00 87 00 00 00 00
+result 0 peak 19000
+end
+op 1084 timer
+write 1c 00 9d 00 00 00 00
+result 0 peak 19000
+end
+op 1091 timer
+write 1c 00 b3 00 00 00 00
+result 0 peak 19000
+end
+op 1098 timer
+write 1c 00 c9 00 00 00 00
+result 0 peak 19000
+end
+op 1105 timer
+write 1c 00 c1 00 00 00 00
+result 0 peak 19000
+end
+op 1112 timer
+write 1c 00 aa 00 00 00 00
+result 0 peak 19000
+end
+op 1119 timer
+write 1c 00 94 00 00 00 00
+result 0 peak 19000
+end
+op 1126 timer
+write 1c 00 7e 00 00 00 00
+result 0 peak 19000
+end
+op 1133 timer
+write 1c 00 68 00 00 00 00
+result 0 peak 19000
+end
+op 1140 timer
+write 1c 00 51 00 00 00 00
+result 0 peak 19000
+end
+op 1147 timer
+write 1c 00 3a 00 00 00 00
+result 0 peak 19000
+end
+op 1154 timer
+write 1c 00 3d 00 00 00 00
+result 0 peak 19000
+end
+op 1161 timer
+write 1c 00 53 00 00 00 00
+result 0 peak 19000
+end
+op 1168 timer
+write 1c 00 69 00 00 00 00
+result 0 peak 19000
+end
+op 1175 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 19000
+end
+op 1182 timer
+write 1c 00 97 00 00 00 00
+result 0 peak 19000
+end
+op 1189 timer
+write 1c 00 ad 00 00 00 00
+result 0 peak 19000
+end
+op 1196 timer
+write 1c 00 c3 00 00 00 00
+result 0 peak 19000
+end
+op 1203 timer
+write 1c 00 c8 00 00 00 00
+result 0 peak 19000
+end
+op 1210 timer
+write 1c 00 b1 00 00 00 00
+result 0 peak 19000
+end
+op 1217 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 19000
+end
+op 1224 timer
+write 1c 00 84 00 00 00 00
+result 0 peak 19000
+end
+op 1231 timer
+write 1c 00 6e 00 00 00 00
+result 0 peak 19000
+end
+op 1238 timer
+write 1c 00 58 00 00 00 00
+result 0 peak 19000
+end
+op 1245 timer
+write 1c 00 41 00 00 00 00
+result 0 peak 19000
+end
+op 1252 timer
+write 1c 00 3a 00 00 00 00
+result 0 peak 19000
+end
+op 1259 timer
+write 1c 00 56 00 00 00 00
+result 0 peak 19000
+end
+op 1266 timer
+write 1c 00 6d 00 00 00 00
+result 0 peak 19000
+end
+op 1273 timer
+write 1c 00 7d 00 00 00 00
+result 0 peak 19000
+end
+op 1280 timer
+write 1c 00 87 00 00 00 00
+result 0 peak 19000
+end
+op 1287 timer
+write 1c 00 8a 00 00 00 00
+result 0 peak 19000
+end
+op 1294 timer
+write 1c 00 88 00 00 00 00
+result 0 peak 19000
+end
+op 1301 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 19000
+end
+op 1308 timer
+result 0 peak 19000
+end
+op 1315 timer
+result 0 peak 19000
+end
+op 1322 timer
+result 0 peak 19000
+end
+op 1329 timer
+result 0 peak 19000
+end
+op 1336 timer
+result 0 peak 19000
+end
+op 1343 run 1 1
+result 1
+end
+op 1343 timer
+result 0 peak 19000
+end
+op 1352 timer
+write 1c 00 85 00 00 00 00
+result 0 peak 19000
+end
+op 1361 timer
+write 1c 00 7f 00 00 00 00
+result 0 peak 19000
+end
+op 1370 timer
+write 1c 00 76 00 00 00 00
+result 0 peak 19000
+end
+op 1379 timer
+write 1c 00 5e 00 00 00 00
+result 0 peak 19000
+end
+op 1388 timer
+write 1c 00 67 00 00 00 00
+result 0 peak 19000
+end
+op 1397 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 19000
+end
+op 1406 timer
+write 1c 00 a9 00 00 00 00
+result 0 peak 19000
+end
+op 1415 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 19000
+end
+op 1424 timer
+write 1c 00 95 00 00 00 00
+result 0 peak 19000
+end
+op 1433 timer
+write 1c 00 5d 00 00 00 00
+result 0 peak 19000
+end
+op 1442 timer
+write 1c 00 18 00 00 00 00
+result 0 peak 26543
+end
+op 1451 timer
+write 1c 00 34 00 00 00 00
+result 0 peak 26543
+end
+op 1460 timer
+write 1c 00 7d 00 00 00 00
+result 0 peak 26543
+end
+op 1469 timer
+write 1c 00 d3 00 00 00 00
+result 0 peak 26543
+end
+op 1478 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 36641
+end
+op 1487 timer
+write 1c 00 b7 00 00 00 00
+result 0 peak 36641
+end
+op 1496 update 1 periodic 8 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
+result 1
+end
+op 1496 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 36641
+end
+op 1502 timer
+write 1c 00 7b 00 00 00 00
+result 0 peak 36641
+end
+op 1508 timer
+write 1c 00 6b 00 00 00 00
+result 0 peak 36641
+end
+op 1514 timer
+write 1c 00 63 00 00 00 00
+result 0 peak 36641
+end
+op 1520 timer
+write 1c 00 72 00 00 00 00
+result 0 peak 36641
+end
+op 1526 timer
+write 1c 00 82 00 00 00 00
+result 0 peak 36641
+end
+op 1532 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 36641
+end
+op 1538 timer
+write 1c 00 a1 00 00 00 00
+result 0 peak 36641
+end
+op 1544 timer
+write 1c 00 b0 00 00 00 00
+result 0 peak 36641
+end
+op 1550 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 36641
+end
+op 1556 timer
+write 1c 00 70 00 00 00 00
+result 0 peak 36641
+end
+op 1562 update 1 periodic 8 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
+result 0
+end
+op 1562 stopall
+result 1
+end
+op 1562 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 36641
+end
+op 1562 close
+end
+endcase
+case periodic sawtoothup|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create periodic 16 3 0 0 0 300 0 100 20480 256 9000 50 4096 50 0
+result 0
+end
+op 1000 create periodic 16 3 0 0 0 4294967295 5 64 -12288 -512 0 0 0 30 2048
+result 1
+end
+op 1000 create periodic 16 3 0 0 0 0 0 0 4096 0 0 0 0 0 0
+error Bad effect parameters
+result -1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+write 1c 00 71 00 00 00 00
+result 0 peak 3840
+end
+op 1007 timer
+write 1c 00 6b 00 00 00 00
+result 0 peak 5246
+end
+op 1014 timer
+write 1c 00 68 00 00 00 00
+result 0 peak 6016
+end
+op 1021 timer
+write 1c 00 67 00 00 00 00
+result 0 peak 6148
+end
+op 1028 timer
+write 1c 00 69 00 00 00 00
+result 0 peak 6148
+end
+op 1035 timer
+write 1c 00 6e 00 00 00 00
+result 0 peak 6148
+end
+op 1042 timer
+write 1c 00 75 00 00 00 00
+result 0 peak 6148
+end
+op 1049 timer
+write 1c 00 7f 00 00 00 00
+result 0 peak 6148
+end
+op 1056 timer
+write 1c 00 8a 00 00 00 00
+result 0 peak 6148
+end
+op 1063 timer
+write 1c 00 95 00 00 00 00
+result 0 peak 6148
+end
+op 1070 timer
+write 1c 00 a1 00 00 00 00
+result 0 peak 8448
+end
+op 1077 timer
+write 1c 00 ac 00 00 00 00
+result 0 peak 11292
+end
+op 1084 timer
+write 1c 00 b7 00 00 00 00
+result 0 peak 14136
+end
+op 1091 timer
+write 1c 00 c2 00 00 00 00
+result 0 peak 16981
+end
+op 1098 timer
+write 1c 00 cd 00 00 00 00
+result 0 peak 19825
+end
+op 1105 timer
+write 1c 00 39 00 00 00 00
+result 0 peak 19825
+end
+op 1112 timer
+write 1c 00 44 00 00 00 00
+result 0 peak 19825
+end
+op 1119 timer
+write 1c 00 4f 00 00 00 00
+result 0 peak 19825
+end
+op 1126 timer
+write 1c 00 5a 00 00 00 00
+result 0 peak 19825
+end
+op 1133 timer
+write 1c 00 65 00 00 00 00
+result 0 peak 19825
+end
+op 1140 timer
+write 1c 00 71 00 00 00 00
+result 0 peak 19825
+end
+op 1147 timer
+write 1c 00 7c 00 00 00 00
+result 0 peak 19825
+end
+op 1154 timer
+write 1c 00 87 00 00 00 00
+result 0 peak 19825
+end
+op 1161 timer
+write 1c 00 92 00 00 00 00
+result 0 peak 19825
+end
+op 1168 timer
+write 1c 00 9d 00 00 00 00
+result 0 peak 19825
+end
+op 1175 timer
+write 1c 00 a9 00 00 00 00
+result 0 peak 19825
+end
+op 1182 timer
+write 1c 00 b4 00 00 00 00
+result 0 peak 19825
+end
+op 1189 timer
+write 1c 00 bf 00 00 00 00
+result 0 peak 19825
+end
+op 1196 timer
+write 1c 00 ca 00 00 00 00
+result 0 peak 19825
+end
+op 1203 timer
+write 1c 00 35 00 00 00 00
+result 0 peak 19825
+end
+op 1210 timer
+write 1c 00 41 00 00 00 00
+result 0 peak 19825
+end
+op 1217 timer
+write 1c 00 4c 00 00 00 00
+result 0 peak 19825
+end
+op 1224 timer
+write 1c 00 57 00 00 00 00
+result 0 peak 19825
+end
+op 1231 timer
+write 1c 00 62 00 00 00 00
+result 0 peak 19825
+end
+op 1238 timer
+write 1c 00 6d 00 00 00 00
+result 0 peak 19825
+end
+op 1245 timer
+write 1c 00 79 00 00 00 00
+result 0 peak 19825
+end
+op 1252 timer
+write 1c 00 83 00 00 00 00
+result 0 peak 19825
+end
+op 1259 timer
+write 1c 00 8c 00 00 00 00
+result 0 peak 19825
+end
+op 1266 timer
+write 1c 00 92 00 00 00 00
+result 0 peak 19825
+end
+op 1273 timer
+write 1c 00 94 00 00 00 00
+result 0 peak 19825
+end
+op 1280 timer
+result 0 peak 19825
+end
+op 1287 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 19825
+end
+op 1294 timer
+write 1c 00 89 00 00 00 00
+result 0 peak 19825
+end
+op 1301 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 19825
+end
+op 1308 timer
+result 0 peak 19825
+end
+op 1315 timer
+result 0 peak 19825
+end
+op 1322 timer
+result 0 peak 19825
+end
+op 1329 timer
+result 0 peak 19825
+end
+op 1336 timer
+result 0 peak 19825
+end
+op 1343 run 1 1
+result 1
+end
+op 1343 timer
+result 0 peak 19825
+end
+op 1352 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 11930552
+end
+op 1361 timer
+write 1c 00 78 00 00 00 00
+result 0 peak 11930552
+end
+op 1370 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 11930552
+end
+op 1379 timer
+write 1c 00 7c 00 00 00 00
+result 0 peak 11930552
+end
+op 1388 timer
+write 1c 00 89 00 00 00 00
+result 0 peak 11930552
+end
+op 1397 timer
+write 1c 00 9c 00 00 00 00
+result 0 peak 11930552
+end
+op 1406 timer
+write 1c 00 b6 00 00 00 00
+result 0 peak 11930552
+end
+op 1415 timer
+write 1c 00 33 00 00 00 00
+result 0 peak 11930552
+end
+op 1424 timer
+write 1c 00 43 00 00 00 00
+result 0 peak 11930552
+end
+op 1433 timer
+write 1c 00 59 00 00 00 00
+result 0 peak 11930552
+end
+op 1442 timer
+write 1c 00 76 00 00 00 00
+result 0 peak 11930552
+end
+op 1451 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 11930552
+end
+op 1460 timer
+write 1c 00 c4 00 00 00 00
+result 0 peak 11930552
+end
+op 1469 timer
+write 1c 00 f5 00 00 00 00
+result 0 peak 11930552
+end
+op 1478 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 11930552
+end
+op 1487 timer
+write 1c 00 08 00 00 00 00
+result 0 peak 11930552
+end
+op 1496 update 1 periodic 16 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
+result 1
+end
+op 1496 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11930552
+end
+op 1502 timer
+write 1c 00 72 00 00 00 00
+result 0 peak 11930552
+end
+op 1508 timer
+write 1c 00 7a 00 00 00 00
+result 0 peak 11930552
+end
+op 1514 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 11930552
+end
+op 1520 timer
+write 1c 00 89 00 00 00 00
+result 0 peak 11930552
+end
+op 1526 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 11930552
+end
+op 1532 timer
+write 1c 00 98 00 00 00 00
+result 0 peak 11930552
+end
+op 1538 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 11930552
+end
+op 1544 timer
+write 1c 00 a8 00 00 00 00
+result 0 peak 11930552
+end
+op 1550 timer
+write 1c 00 6f 00 00 00 00
+result 0 peak 11930552
+end
+op 1556 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 11930552
+end
+op 1562 update 1 periodic 16 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
+result 0
+end
+op 1562 stopall
+result 1
+end
+op 1562 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11930552
+end
+op 1562 close
+end
+endcase
+case periodic sawtoothdown|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create periodic 32 3 0 0 0 300 0 100 20480 256 9000 50 4096 50 0
+result 0
+end
+op 1000 create periodic 32 3 0 0 0 4294967295 5 64 -12288 -512 0 0 0 30 2048
+result 1
+end
+op 1000 create periodic 32 3 0 0 0 0 0 0 4096 0 0 0 0 0 0
+error Bad effect parameters
+result -1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 4352
+end
+op 1007 timer
+write 1c 00 96 00 00 00 00
+result 0 peak 5758
+end
+op 1014 timer
+write 1c 00 99 00 00 00 00
+result 0 peak 6528
+end
+op 1021 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 6660
+end
+op 1028 timer
+write 1c 00 98 00 00 00 00
+result 0 peak 6660
+end
+op 1035 timer
+write 1c 00 93 00 00 00 00
+result 0 peak 6660
+end
+op 1042 timer
+write 1c 00 8c 00 00 00 00
+result 0 peak 6660
+end
+op 1049 timer
+write 1c 00 82 00 00 00 00
+result 0 peak 6660
+end
+op 1056 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 6660
+end
+op 1063 timer
+write 1c 00 6c 00 00 00 00
+result 0 peak 6660
+end
+op 1070 timer
+write 1c 00 61 00 00 00 00
+result 0 peak 7936
+end
+op 1077 timer
+write 1c 00 55 00 00 00 00
+result 0 peak 10780
+end
+op 1084 timer
+write 1c 00 4a 00 00 00 00
+result 0 peak 13624
+end
+op 1091 timer
+write 1c 00 3f 00 00 00 00
+result 0 peak 16469
+end
+op 1098 timer
+write 1c 00 34 00 00 00 00
+result 0 peak 19313
+end
+op 1105 timer
+write 1c 00 c9 00 00 00 00
+result 0 peak 19313
+end
+op 1112 timer
+write 1c 00 bd 00 00 00 00
+result 0 peak 19313
+end
+op 1119 timer
+write 1c 00 b2 00 00 00 00
+result 0 peak 19313
+end
+op 1126 timer
+write 1c 00 a7 00 00 00 00
+result 0 peak 19313
+end
+op 1133 timer
+write 1c 00 9c 00 00 00 00
+result 0 peak 19313
+end
+op 1140 timer
+write 1c 00 91 00 00 00 00
+result 0 peak 19313
+end
+op 1147 timer
+write 1c 00 85 00 00 00 00
+result 0 peak 19313
+end
+op 1154 timer
+write 1c 00 7a 00 00 00 00
+result 0 peak 19313
+end
+op 1161 timer
+write 1c 00 6f 00 00 00 00
+result 0 peak 19313
+end
+op 1168 timer
+write 1c 00 64 00 00 00 00
+result 0 peak 19313
+end
+op 1175 timer
+write 1c 00 59 00 00 00 00
+result 0 peak 19313
+end
+op 1182 timer
+write 1c 00 4d 00 00 00 00
+result 0 peak 19313
+end
+op 1189 timer
+write 1c 00 42 00 00 00 00
+result 0 peak 19313
+end
+op 1196 timer
+write 1c 00 37 00 00 00 00
+result 0 peak 19313
+end
+op 1203 timer
+write 1c 00 cc 00 00 00 00
+result 0 peak 19599
+end
+op 1210 timer
+write 1c 00 c1 00 00 00 00
+result 0 peak 19599
+end
+op 1217 timer
+write 1c 00 b5 00 00 00 00
+result 0 peak 19599
+end
+op 1224 timer
+write 1c 00 aa 00 00 00 00
+result 0 peak 19599
+end
+op 1231 timer
+write 1c 00 9f 00 00 00 00
+result 0 peak 19599
+end
+op 1238 timer
+write 1c 00 94 00 00 00 00
+result 0 peak 19599
+end
+op 1245 timer
+write 1c 00 89 00 00 00 00
+result 0 peak 19599
+end
+op 1252 timer
+write 1c 00 7e 00 00 00 00
+result 0 peak 19599
+end
+op 1259 timer
+write 1c 00 75 00 00 00 00
+result 0 peak 19599
+end
+op 1266 timer
+write 1c 00 6f 00 00 00 00
+result 0 peak 19599
+end
+op 1273 timer
+write 1c 00 6d 00 00 00 00
+result 0 peak 19599
+end
+op 1280 timer
+result 0 peak 19599
+end
+op 1287 timer
+write 1c 00 71 00 00 00 00
+result 0 peak 19599
+end
+op 1294 timer
+write 1c 00 78 00 00 00 00
+result 0 peak 19599
+end
+op 1301 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 19599
+end
+op 1308 timer
+result 0 peak 19599
+end
+op 1315 timer
+result 0 peak 19599
+end
+op 1322 timer
+result 0 peak 19599
+end
+op 1329 timer
+result 0 peak 19599
+end
+op 1336 timer
+result 0 peak 19599
+end
+op 1343 run 1 1
+result 1
+end
+op 1343 timer
+result 0 peak 19599
+end
+op 1352 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 11931576
+end
+op 1361 timer
+write 1c 00 83 00 00 00 00
+result 0 peak 11931576
+end
+op 1370 timer
+write 1c 00 84 00 00 00 00
+result 0 peak 11931576
+end
+op 1379 timer
+write 1c 00 7f 00 00 00 00
+result 0 peak 11931576
+end
+op 1388 timer
+write 1c 00 72 00 00 00 00
+result 0 peak 11931576
+end
+op 1397 timer
+write 1c 00 5f 00 00 00 00
+result 0 peak 11931576
+end
+op 1406 timer
+write 1c 00 45 00 00 00 00
+result 0 peak 11931576
+end
+op 1415 timer
+write 1c 00 c8 00 00 00 00
+result 0 peak 11931576
+end
+op 1424 timer
+write 1c 00 b8 00 00 00 00
+result 0 peak 11931576
+end
+op 1433 timer
+write 1c 00 a2 00 00 00 00
+result 0 peak 11931576
+end
+op 1442 timer
+write 1c 00 85 00 00 00 00
+result 0 peak 11931576
+end
+op 1451 timer
+write 1c 00 61 00 00 00 00
+result 0 peak 11931576
+end
+op 1460 timer
+write 1c 00 37 00 00 00 00
+result 0 peak 11931576
+end
+op 1469 timer
+write 1c 00 06 00 00 00 00
+result 0 peak 11931576
+end
+op 1478 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 11931576
+end
+op 1487 timer
+write 1c 00 f3 00 00 00 00
+result 0 peak 11931576
+end
+op 1496 update 1 periodic 32 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
+result 1
+end
+op 1496 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11931576
+end
+op 1502 timer
+write 1c 00 8d 00 00 00 00
+result 0 peak 11931576
+end
+op 1508 timer
+write 1c 00 85 00 00 00 00
+result 0 peak 11931576
+end
+op 1514 timer
+write 1c 00 7e 00 00 00 00
+result 0 peak 11931576
+end
+op 1520 timer
+write 1c 00 76 00 00 00 00
+result 0 peak 11931576
+end
+op 1526 timer
+write 1c 00 6e 00 00 00 00
+result 0 peak 11931576
+end
+op 1532 timer
+write 1c 00 67 00 00 00 00
+result 0 peak 11931576
+end
+op 1538 timer
+write 1c 00 5f 00 00 00 00
+result 0 peak 11931576
+end
+op 1544 timer
+write 1c 00 57 00 00 00 00
+result 0 peak 11931576
+end
+op 1550 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 11931576
+end
+op 1556 timer
+write 1c 00 88 00 00 00 00
+result 0 peak 11931576
+end
+op 1562 update 1 periodic 32 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
+result 0
+end
+op 1562 stopall
+result 1
+end
+op 1562 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11931576
+end
+op 1562 close
+end
+endcase
+case ramps|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create ramp 3 0 0 0 200 0 -16384 16384 20 0 20 0
+result 0
+end
+op 1000 create ramp 3 0 0 0 200 0 16384 -16384 20 4096 20 4096
+result 1
+end
+op 1000 create ramp 3 0 0 0 100 0 256 28672 60 24576 40 0
+result 2
+end
+op 1000 create ramp 3 0 0 0 4294967295 0 -256 256 0 0 0 0
+result 3
+end
+op 5000 run 0 1
+result 1
+end
+op 5000 timer
+write 1c 00 40 00 00 00 00
+result 0 peak 16384
+end
+op 5011 timer
+write 1c 00 63 00 00 00 00
+result 0 peak 16384
+end
+op 5022 timer
+write 1c 00 41 00 00 00 00
+result 0 peak 16384
+end
+op 5033 timer
+write 1c 00 4a 00 00 00 00
+result 0 peak 16384
+end
+op 5044 timer
+write 1c 00 53 00 00 00 00
+result 0 peak 16384
+end
+op 5055 timer
+write 1c 00 5b 00 00 00 00
+result 0 peak 16384
+end
+op 5066 timer
+write 1c 00 64 00 00 00 00
+result 0 peak 16384
+end
+op 5077 timer
+write 1c 00 6d 00 00 00 00
+result 0 peak 16384
+end
+op 5088 timer
+write 1c 00 76 00 00 00 00
+result 0 peak 16384
+end
+op 5099 timer
+write 1c 00 7f 00 00 00 00
+result 0 peak 16384
+end
+op 5110 timer
+write 1c 00 87 00 00 00 00
+result 0 peak 16384
+end
+op 5121 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 16384
+end
+op 5132 timer
+write 1c 00 99 00 00 00 00
+result 0 peak 16384
+end
+op 5143 timer
+write 1c 00 a2 00 00 00 00
+result 0 peak 16384
+end
+op 5154 timer
+write 1c 00 ab 00 00 00 00
+result 0 peak 16384
+end
+op 5165 timer
+write 1c 00 b3 00 00 00 00
+result 0 peak 16384
+end
+op 5176 timer
+write 1c 00 bc 00 00 00 00
+result 0 peak 16384
+end
+op 5187 timer
+write 1c 00 d6 00 00 00 00
+result 0 peak 22118
+end
+op 5198 timer
+write 1c 00 f9 00 00 00 00
+result 0 peak 31129
+end
+op 5209 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 31129
+end
+op 5220 timer
+result 0 peak 31129
+end
+op 5231 stop 0
+result 1
+end
+op 5231 timer
+result 0 peak 31129
+end
+op 6000 run 1 1
+result 1
+end
+op 6000 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 31129
+end
+op 6011 timer
+write 1c 00 a5 00 00 00 00
+result 0 peak 31129
+end
+op 6022 timer
+write 1c 00 c1 00 00 00 00
+result 0 peak 31129
+end
+op 6033 timer
+write 1c 00 ca 00 00 00 00
+result 0 peak 31129
+end
+op 6044 timer
+write 1c 00 d3 00 00 00 00
+result 0 peak 31129
+end
+op 6055 timer
+write 1c 00 db 00 00 00 00
+result 0 peak 31129
+end
+op 6066 timer
+write 1c 00 e4 00 00 00 00
+result 0 peak 31129
+end
+op 6077 timer
+write 1c 00 ed 00 00 00 00
+result 0 peak 31129
+end
+op 6088 timer
+write 1c 00 f6 00 00 00 00
+result 0 peak 31129
+end
+op 6099 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 32563
+end
+op 6110 timer
+result 0 peak 34815
+end
+op 6121 timer
+result 0 peak 37068
+end
+op 6132 timer
+result 0 peak 39321
+end
+op 6143 timer
+result 0 peak 41574
+end
+op 6154 timer
+result 0 peak 43827
+end
+op 6165 timer
+result 0 peak 46079
+end
+op 6176 timer
+result 0 peak 48332
+end
+op 6187 timer
+write 1c 00 2f 00 00 00 00
+result 0 peak 48332
+end
+op 6198 timer
+write 1c 00 14 00 00 00 00
+result 0 peak 48332
+end
+op 6209 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 48332
+end
+op 6220 timer
+result 0 peak 48332
+end
+op 6231 stop 1
+result 1
+end
+op 6231 timer
+result 0 peak 48332
+end
+op 7000 run 2 1
+result 1
+end
+op 7000 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 48332
+end
+op 7011 timer
+write 1c 00 92 00 00 00 00
+result 0 peak 48332
+end
+op 7022 timer
+write 1c 00 a3 00 00 00 00
+result 0 peak 48332
+end
+op 7033 timer
+write 1c 00 b5 00 00 00 00
+result 0 peak 48332
+end
+op 7044 timer
+write 1c 00 c6 00 00 00 00
+result 0 peak 48332
+end
+op 7055 timer
+write 1c 00 d8 00 00 00 00
+result 0 peak 48332
+end
+op 7066 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 48332
+end
+op 7077 timer
+result 0 peak 48332
+end
+op 7088 timer
+result 0 peak 48742
+end
+op 7099 timer
+result 0 peak 56627
+end
+op 7110 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 56627
+end
+op 7121 timer
+result 0 peak 56627
+end
+op 7132 timer
+result 0 peak 56627
+end
+op 7143 timer
+result 0 peak 56627
+end
+op 7154 timer
+result 0 peak 56627
+end
+op 7165 timer
+result 0 peak 56627
+end
+op 7176 timer
+result 0 peak 56627
+end
+op 7187 timer
+result 0 peak 56627
+end
+op 7198 timer
+result 0 peak 56627
+end
+op 7209 timer
+result 0 peak 56627
+end
+op 7220 timer
+result 0 peak 56627
+end
+op 7231 stop 2
+result 1
+end
+op 7231 timer
+result 0 peak 56627
+end
+op 8000 run 3 1
+result 1
+end
+op 8000 timer
+write 1c 00 7f 00 00 00 00
+result 0 peak 56627
+end
+op 8011 timer
+result 0 peak 56627
+end
+op 8022 timer
+result 0 peak 56627
+end
+op 8033 timer
+result 0 peak 56627
+end
+op 8044 timer
+result 0 peak 56627
+end
+op 8055 timer
+result 0 peak 56627
+end
+op 8066 timer
+result 0 peak 56627
+end
+op 8077 timer
+result 0 peak 56627
+end
+op 8088 timer
+result 0 peak 56627
+end
+op 8099 timer
+result 0 peak 56627
+end
+op 8110 timer
+result 0 peak 56627
+end
+op 8121 timer
+result 0 peak 56627
+end
+op 8132 timer
+result 0 peak 56627
+end
+op 8143 timer
+result 0 peak 56627
+end
+op 8154 timer
+result 0 peak 56627
+end
+op 8165 timer
+result 0 peak 56627
+end
+op 8176 timer
+result 0 peak 56627
+end
+op 8187 timer
+result 0 peak 56627
+end
+op 8198 timer
+result 0 peak 56627
+end
+op 8209 timer
+result 0 peak 56627
+end
+op 8220 timer
+result 0 peak 56627
+end
+op 8231 stop 3
+result 1
+end
+op 8231 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 56627
+end
+op 8231 close
+end
+endcase
+case gain|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 4294967295 0 32767 0 0 0 0
+result 0
+end
+op 1000 create condition 128 3 0 0 0 4294967295 0 65535 0 32767 -32767 256 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 ff 00 00 00 00
+write 21 0b 7f 80 ee 89 4c
+result 0 peak 42596
+end
+op 1002 gain 50
+result 1
+end
+op 1002 timer
+write 1c 00 bf 00 00 00 00
+write 2c 0b 7f 80 66 89 26
+result 0 peak 42596
+end
+op 1004 gain 0
+result 1
+end
+op 1004 timer
+write 1c 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+result 0 peak 42596
+end
+op 1006 gain 150
+result 1
+end
+op 1006 timer
+write 1c 00 ff 00 00 00 00
+write 21 0b 7f 80 ee 89 4c
+result 0 peak 42596
+end
+op 1008 gain -10
+result 1
+end
+op 1008 timer
+write 1c 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+result 0 peak 42596
+end
+op 1010 gain 1
+result 1
+end
+op 1010 timer
+write 1c 00 81 00 00 00 00
+write 21 0b 00 ff 00 e1 00
+result 0 peak 42596
+end
+op 1012 gain 99
+result 1
+end
+op 1012 timer
+write 1c 00 fe 00 00 00 00
+write 2c 0b 7f 80 ee 89 4c
+result 0 peak 42596
+end
+op 1014 gain 100
+result 1
+end
+op 1014 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 42596
+end
+op 1014 close
+end
+endcase
+case env|046d c29b 1230 50 100 0 30000
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create condition 128 3 0 0 0 4294967295 0 65535 0 16384 16384 0 0
+result 0
+end
+op 1000 create condition 256 3 0 0 0 4294967295 0 65535 0 16384 16384 0 0
+result 1
+end
+op 1000 create condition 1024 3 0 0 0 4294967295 0 65535 0 16384 16384 0 0
+result 2
+end
+op 1000 create constant 3 0 0 0 4294967295 0 16384 0 0 0 0
+result 3
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 run 2 1
+result 1
+end
+op 1000 run 3 1
+result 1
+end
+op 1000 timer
+write 1c 00 9d 00 00 00 00
+write 21 0b 80 80 22 00 3a
+write 41 0c 03 00 03 00 75
+result 0 peak 29998
+end
+op 1000 close
+end
+endcase
+case env clamped|046d c29a 1300 -5 1000 abc 70000
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create condition 128 3 0 0 0 4294967295 0 65535 0 16384 16384 0 0
+result 0
+end
+op 1000 create condition 256 3 0 0 0 4294967295 0 65535 0 16384 16384 0 0
+result 1
+end
+op 1000 create constant 3 0 0 0 4294967295 0 16384 0 0 0 0
+result 2
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 run 2 1
+result 1
+end
+op 1000 timer
+write 1c 00 c0 00 00 00 00
+write 41 0c 08 00 08 00 ff
+result 0 peak 49151
+end
+op 1000 close
+end
+endcase
+case autocenter g29|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 autocenter 0
+write f5 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 1
+write f5 00 00 00 00 00 00
+write fe 0d 00 00 01 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 2
+write f5 00 00 00 00 00 00
+write fe 0d 00 00 03 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 50
+write f5 00 00 00 00 00 00
+write fe 0d 04 04 5f 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 66
+write f5 00 00 00 00 00 00
+write fe 0d 05 05 7e 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 67
+write f5 00 00 00 00 00 00
+write fe 0d 06 06 81 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 99
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 fb 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 100
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 ff 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter -5
+write f5 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 150
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 ff 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 close
+end
+endcase
+case autocenter ffex|046d c294 2100 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 autocenter 0
+write fe 03 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 1
+write fe 03 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 2
+write fe 03 00 00 01 00 00
+result 1
+end
+op 1000 autocenter 50
+write fe 03 00 00 2d 00 00
+result 1
+end
+op 1000 autocenter 66
+write fe 03 00 00 3b 00 00
+result 1
+end
+op 1000 autocenter 67
+write fe 03 00 00 3c 00 00
+result 1
+end
+op 1000 autocenter 99
+write fe 03 00 00 59 00 00
+result 1
+end
+op 1000 autocenter 100
+write fe 03 00 00 5a 00 00
+result 1
+end
+op 1000 autocenter -5
+write fe 03 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 150
+write fe 03 00 00 5a 00 00
+result 1
+end
+op 1000 close
+end
+endcase
+case autocenter dfex|046d c294 1000 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 autocenter 0
+write f5 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 1
+write f5 00 00 00 00 00 00
+write fe 0d 00 00 01 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 2
+write f5 00 00 00 00 00 00
+write fe 0d 00 00 03 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 50
+write f5 00 00 00 00 00 00
+write fe 0d 04 04 5f 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 66
+write f5 00 00 00 00 00 00
+write fe 0d 05 05 7e 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 67
+write f5 00 00 00 00 00 00
+write fe 0d 06 06 81 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 99
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 fb 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 100
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 ff 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter -5
+write f5 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 150
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 ff 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 close
+end
+endcase
+case autocenter dfp|046d c298 1000 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 autocenter 0
+write f5 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 1
+write f5 00 00 00 00 00 00
+write fe 0d 00 00 01 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 2
+write f5 00 00 00 00 00 00
+write fe 0d 00 00 03 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 50
+write f5 00 00 00 00 00 00
+write fe 0d 04 04 5f 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 66
+write f5 00 00 00 00 00 00
+write fe 0d 05 05 7e 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 67
+write f5 00 00 00 00 00 00
+write fe 0d 06 06 81 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 99
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 fb 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 100
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 ff 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter -5
+write f5 00 00 00 00 00 00
+result 1
+end
+op 1000 autocenter 150
+write f5 00 00 00 00 00 00
+write fe 0d 07 07 ff 00 00
+write 14 00 00 00 00 00 00
+result 1
+end
+op 1000 close
+end
+endcase
+case errors|046d c299 1200 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create leftright 100 16384 8192
+error Unsupported effect
+result -1
+end
+op 1000 create condition 512 3 0 0 0 100 0 65535 0 1 1 0 0
+error Unsupported effect
+result -1
+end
+op 1000 create periodic 2 3 0 0 0 100 0 0 4096 0 0 0 0 0 0
+error Bad effect parameters
+result -1
+end
+op 1000 create constant 3 0 0 0 4294967295 0 0 0 0 0 0
+result 0
+end
+op 1000 create constant 3 0 0 0 4294967295 0 100 0 0 0 0
+result 1
+end
+op 1000 create constant 3 0 0 0 4294967295 0 200 0 0 0 0
+result 2
+end
+op 1000 create constant 3 0 0 0 4294967295 0 300 0 0 0 0
+result 3
+end
+op 1000 create constant 3 0 0 0 4294967295 0 400 0 0 0 0
+result 4
+end
+op 1000 create constant 3 0 0 0 4294967295 0 500 0 0 0 0
+result 5
+end
+op 1000 create constant 3 0 0 0 4294967295 0 600 0 0 0 0
+result 6
+end
+op 1000 create constant 3 0 0 0 4294967295 0 700 0 0 0 0
+result 7
+end
+op 1000 create constant 3 0 0 0 4294967295 0 800 0 0 0 0
+result 8
+end
+op 1000 create constant 3 0 0 0 4294967295 0 900 0 0 0 0
+result 9
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1000 0 0 0 0
+result 10
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1100 0 0 0 0
+result 11
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1200 0 0 0 0
+result 12
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1300 0 0 0 0
+result 13
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1400 0 0 0 0
+result 14
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1500 0 0 0 0
+result 15
+end
+op 1000 create constant 3 0 0 0 4294967295 0 1600 0 0 0 0
+error All effect slots in-use
+result -1
+end
+op 1000 run -1 1
+error Bad effect id
+result 0
+end
+op 1000 run 16 1
+error Bad effect id
+result 0
+end
+op 1000 status -1
+result 0
+end
+op 1000 status 16
+result 0
+end
+op 1000 destroy -1
+end
+op 1000 destroy 3
+end
+op 1000 run 3 1
+error Bad effect id
+result 0
+end
+op 1000 update 3 constant 3 0 0 0 1 0 0 0 0 0 0
+error Bad effect id
+result 0
+end
+op 1000 status 3
+result 0
+end
+op 1000 create periodic 4 3 0 0 0 100 0 10 4096 0 0 0 0 0 0
+result 3
+end
+op 1000 update 3 periodic 4 3 0 0 0 100 0 0 4096 0 0 0 0 0 0
+result 0
+end
+op 1000 run 3 1
+result 1
+end
+op 1000 update 3 periodic 2 3 0 0 0 100 0 10 4096 0 0 0 0 0 0
+result 0
+end
+op 1000 update 3 constant 3 0 0 0 1 0 0 0 0 0 0
+result 0
+end
+op 1000 run 4 4294967295
+result 1
+end
+op 1000 status 4
+result 0
+end
+op 1000 run 4 1
+result 1
+end
+op 1000 status 4
+result 1
+end
+op 1000 run 4 4294967295
+result 1
+end
+op 1000 status 4
+result 0
+end
+op 1000 run 4 2147483648
+result 1
+end
+op 1000 status 4
+result 0
+end
+op 1000 pause
+error That operation is not supported
+result 0
+end
+op 1000 resume
+error That operation is not supported
+result 0
+end
+op 1000 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 4096
+end
+op 1000 close
+end
+endcase
+case fail open 0|046d c24f 1350 - - - -
+op 1000 fail 0 1
+end
+op 1000 open
+fail 0d 00 00 00 00 00 00
+error lg4ff hidapi driver failed initializing effect slots
+result 0
+end
+endcase
+case fail open 3|046d c24f 1350 - - - -
+op 1000 fail 3 1
+end
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+fail 0d 00 00 00 00 00 00
+error lg4ff hidapi driver failed initializing effect slots
+result 0
+end
+endcase
+case fail commands|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 fail 0 1
+end
+op 1000 autocenter 70
+fail f5 00 00 00 00 00 00
+error Failed sending autocenter disable command
+result 0
+end
+op 1000 fail 1 1
+end
+op 1000 autocenter 70
+write f5 00 00 00 00 00 00
+fail fe 0d 06 06 8c 00 00
+error Failed sending autocenter magnitude command
+result 0
+end
+op 1000 fail 2 1
+end
+op 1000 autocenter 70
+write f5 00 00 00 00 00 00
+write fe 0d 06 06 8c 00 00
+fail 14 00 00 00 00 00 00
+error Failed sending autocenter enable command
+result 0
+end
+op 1000 fail 0 1
+end
+op 1000 autocenter 0
+fail f5 00 00 00 00 00 00
+error Failed sending autocenter disable command
+result 0
+end
+op 1000 create constant 3 0 0 0 4294967295 0 16384 0 0 0 0
+result 0
+end
+op 1000 create condition 256 3 0 0 0 4294967295 0 65535 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 fail 0 1
+end
+op 1000 timer
+fail 1c 00 c0 00 00 00 00
+write 41 0c 08 00 08 00 4c
+result -1 peak 26213
+end
+op 1000 timer
+result 0 peak 26213
+end
+op 1000 stopall
+result 1
+end
+op 1000 fail 1 5
+end
+op 1000 timer
+write 1c 00 80 00 00 00 00
+fail 43 00 00 00 00 00 00
+result -1 peak 26213
+end
+op 1000 fail 0 0
+end
+op 1000 timer
+result 0 peak 26213
+end
+op 1000 close
+end
+endcase
+case fail ffex|046d c294 2100 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 fail 0 1
+end
+op 1000 autocenter 10
+fail fe 03 00 00 09 00 00
+error Failed sending autocenter command
+result 0
+end
+op 1000 close
+end
+endcase
+case unsupported product|046d c262 1350 - - - -
+op 1000 open
+error Device not supported by the lg4ff hidapi haptic driver
+result 0
+end
+endcase
+case unsupported vendor|046e c24f 1350 - - - -
+op 1000 open
+error Device not supported by the lg4ff hidapi haptic driver
+result 0
+end
+endcase
+case wheel g29|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case wheel g27|046d c29b 1230 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case wheel g25|046d c299 1200 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case wheel dfgt|046d c29a 1300 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case wheel dfp|046d c298 1000 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case wheel dfex|046d c294 1000 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case wheel ffex|046d c294 2100 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 50 0 -8192 0 0 0 0
+result 0
+end
+op 1000 create condition 1024 3 0 0 0 50 0 32768 0 16384 16384 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 run 1 1
+result 1
+end
+op 1000 timer
+write 1c 00 60 00 00 00 00
+write 81 0e 80 80 26 00 00
+result 0 peak 13106
+end
+op 1020 timer
+result 0 peak 13106
+end
+op 1040 timer
+result 0 peak 13106
+end
+op 1060 timer
+write 1c 00 80 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 13106
+end
+op 1080 close
+end
+endcase
+case restarts|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1000 create constant 3 0 0 0 100 30 12288 40 0 0 0
+result 0
+end
+op 1000 update 0 constant 3 0 0 0 100 30 14336 40 0 0 0
+result 1
+end
+op 1000 run 0 1
+result 1
+end
+op 1000 timer
+result 0 peak 0
+end
+op 1010 timer
+result 0 peak 0
+end
+op 1020 timer
+result 0 peak 0
+end
+op 1030 timer
+result 0 peak 0
+end
+op 1040 timer
+write 1c 00 8e 00 00 00 00
+result 0 peak 3584
+end
+op 1050 timer
+write 1c 00 9c 00 00 00 00
+result 0 peak 7168
+end
+op 1060 timer
+write 1c 00 aa 00 00 00 00
+result 0 peak 10752
+end
+op 1070 run 0 3
+result 1
+end
+op 1070 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 10752
+end
+op 1080 timer
+result 0 peak 10752
+end
+op 1090 timer
+result 0 peak 10752
+end
+op 1100 timer
+result 0 peak 10752
+end
+op 1110 timer
+write 1c 00 8e 00 00 00 00
+result 0 peak 10752
+end
+op 1120 update 0 constant 3 0 0 0 80 20 8192 0 0 30 0
+result 1
+end
+op 1120 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 10752
+end
+op 1135 timer
+result 0 peak 10752
+end
+op 1150 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 10752
+end
+op 1165 timer
+result 0 peak 10752
+end
+op 1180 timer
+result 0 peak 10752
+end
+op 1195 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 10752
+end
+op 1210 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 10752
+end
+op 1225 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 10752
+end
+op 1240 timer
+result 0 peak 10752
+end
+op 1255 timer
+result 0 peak 10752
+end
+op 1270 timer
+result 0 peak 10752
+end
+op 1285 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 10752
+end
+op 1300 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 10752
+end
+op 1315 timer
+result 0 peak 10752
+end
+op 1330 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 10752
+end
+op 1345 timer
+result 0 peak 10752
+end
+op 1360 timer
+result 0 peak 10752
+end
+op 1375 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 10752
+end
+op 1390 timer
+write 1c 00 8a 00 00 00 00
+result 0 peak 10752
+end
+op 1405 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 10752
+end
+op 1420 timer
+result 0 peak 10752
+end
+op 1435 status 0
+result 0
+end
+op 1435 create periodic 8 3 0 0 0 200 0 40 16384 0 4500 0 0 0 0
+result 1
+end
+op 1435 run 1 1
+result 1
+end
+op 1435 timer
+write 1c 00 40 00 00 00 00
+result 0 peak 16384
+end
+op 1440 timer
+write 1c 00 60 00 00 00 00
+result 0 peak 16384
+end
+op 1445 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 16384
+end
+op 1450 timer
+write 1c 00 a0 00 00 00 00
+result 0 peak 16384
+end
+op 1455 timer
+write 1c 00 c0 00 00 00 00
+result 0 peak 16384
+end
+op 1460 timer
+write 1c 00 e0 00 00 00 00
+result 0 peak 24576
+end
+op 1465 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 32768
+end
+op 1470 update 1 periodic 8 3 0 0 0 200 0 30 16384 0 4500 0 0 0 0
+result 1
+end
+op 1470 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 32768
+end
+op 1475 timer
+write 1c 00 55 00 00 00 00
+result 0 peak 32768
+end
+op 1480 timer
+result 0 peak 32768
+end
+op 1485 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 32768
+end
+op 1490 timer
+write 1c 00 aa 00 00 00 00
+result 0 peak 32768
+end
+op 1495 timer
+write 1c 00 d5 00 00 00 00
+result 0 peak 32768
+end
+op 1500 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 32768
+end
+op 1505 timer
+write 1c 00 55 00 00 00 00
+result 0 peak 32768
+end
+op 1510 timer
+result 0 peak 32768
+end
+op 1515 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 32768
+end
+op 1520 timer
+write 1c 00 aa 00 00 00 00
+result 0 peak 32768
+end
+op 1525 timer
+write 1c 00 d5 00 00 00 00
+result 0 peak 32768
+end
+op 1530 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 32768
+end
+op 1035 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 32768
+end
+op 1035 close
+end
+endcase
+case random 0|046d c29b 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1161 timer
+result 0 peak 0
+end
+op 1284 create condition 256 1 -501 -795 0 26 31 33358 54347 25301 20998 15952 -18020
+result 0
+end
+op 1299 timer
+result 0 peak 0
+end
+op 1387 timer
+result 0 peak 0
+end
+op 1395 timer
+result 0 peak 0
+end
+op 1452 status 0
+result 0
+end
+op 1546 run 0 3
+result 1
+end
+op 1608 run 0 1
+result 1
+end
+op 1623 timer
+result 0 peak 0
+end
+op 1740 run 0 1
+result 1
+end
+op 1792 gain 110
+result 1
+end
+op 1906 timer
+result 0 peak 0
+end
+op 1933 status 0
+result 1
+end
+op 1951 create ramp 0 2788 0 0 559 45 -12762 -29375 7 11127 99 11828
+result 1
+end
+op 1997 create constant 3 0 0 0 4294967295 45 -1843 137 51817 0 35150
+result 2
+end
+op 2009 run 0 1
+result 1
+end
+op 2043 create ramp 3 0 0 0 15 50 5689 8361 0 55644 61 21923
+result 3
+end
+op 2081 stop 0
+result 1
+end
+op 2123 run 2 2
+result 1
+end
+op 2127 create condition 128 3 0 0 0 98 9 44489 22697 -20924 21528 46271 -28975
+result 4
+end
+op 2133 run 0 1
+result 1
+end
+op 2164 stop 1
+result 1
+end
+op 2272 gain 22
+result 1
+end
+op 2278 timer
+write 1c 00 75 00 00 00 00
+result 0 peak 2572
+end
+op 2278 gain 62
+result 1
+end
+op 2357 create periodic 16 2 185 -3293 0 34 17 88 25522 -6615 11146 0 10756 154 19389
+result 5
+end
+op 2486 timer
+write 1c 00 7b 00 00 00 00
+result 0 peak 2572
+end
+op 2508 timer
+result 0 peak 2572
+end
+op 2578 run 2 1
+result 1
+end
+op 2611 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 2572
+end
+op 2626 timer
+write 1c 00 05 00 00 00 00
+result 0 peak 31447
+end
+op 2688 update 3 ramp 3 0 0 0 361 9 -8649 8440 110 28871 200 19096
+result 1
+end
+op 2735 run 3 1
+result 1
+end
+op 2809 timer
+write 1c 00 49 00 00 00 00
+result 0 peak 31447
+end
+op 2811 timer
+write 1c 00 48 00 00 00 00
+result 0 peak 31447
+end
+op 2836 timer
+write 1c 00 3d 00 00 00 00
+result 0 peak 31447
+end
+op 2838 timer
+write 1c 00 3c 00 00 00 00
+result 0 peak 31447
+end
+op 2875 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 31447
+end
+op 2904 timer
+write 1c 00 8f 00 00 00 00
+result 0 peak 31447
+end
+op 2936 timer
+write 1c 00 8b 00 00 00 00
+result 0 peak 31447
+end
+op 2980 timer
+write 1c 00 86 00 00 00 00
+result 0 peak 31447
+end
+op 3007 timer
+write 1c 00 82 00 00 00 00
+result 0 peak 31447
+end
+op 3018 timer
+write 1c 00 81 00 00 00 00
+result 0 peak 31447
+end
+op 3051 timer
+write 1c 00 7d 00 00 00 00
+result 0 peak 31447
+end
+op 3098 timer
+write 1c 00 77 00 00 00 00
+result 0 peak 31447
+end
+op 3098 destroy 0
+end
+op 3098 timer
+result 0 peak 31447
+end
+op 3098 close
+end
+endcase
+case random 1|046d c29b 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1068 create condition 1024 1 -1428 -1498 0 203 19 60187 4917 -24416 146 28708 12322
+result 0
+end
+op 1180 timer
+result 0 peak 0
+end
+op 1282 timer
+result 0 peak 0
+end
+op 1397 update 0 condition 1024 0 29436 0 0 0 21 4795 43399 -20946 -26842 20255 -13768
+result 1
+end
+op 1408 timer
+result 0 peak 0
+end
+op 1506 status 0
+result 0
+end
+op 1572 status 0
+result 0
+end
+op 1630 update 0 condition 1024 3 0 0 0 392 43 64197 32747 29964 -19641 34463 12955
+result 1
+end
+op 1688 create constant 2 38631 3736 0 0 51 24797 0 13805 0 12762
+result 1
+end
+op 1706 run 0 4294967295
+result 1
+end
+op 1739 create constant 0 -5474 0 0 28 28 21292 139 46911 49 35139
+result 2
+end
+op 1764 timer
+result 0 peak 0
+end
+op 1853 update 1 constant 2 -5118 3263 0 491 1 2425 152 40222 122 64228
+result 1
+end
+op 1931 timer
+result 0 peak 0
+end
+op 2036 stop 0
+result 1
+end
+op 2058 run 0 1
+result 1
+end
+op 2146 create condition 256 3 0 0 0 29 46 15196 48958 4482 -28141 36579 -9724
+result 3
+end
+op 2149 create periodic 16 2 -27987 2208 0 4294967295 52 127 19756 -6769 25111 128 45683 0 45325
+result 4
+end
+op 2190 status 4
+result 0
+end
+op 2307 timer
+write 81 0e 99 ea 4b 01 00
+result 0 peak 9629
+end
+op 2331 update 2 constant 3 0 0 0 4294967295 60 -5348 34 19376 178 37893
+result 1
+end
+op 2379 update 4 periodic 16 2 61878 7231 0 0 15 194 17953 3146 15354 179 44794 178 18305
+result 1
+end
+op 2482 timer
+result 0 peak 9629
+end
+op 2502 timer
+write 83 00 00 00 00 00 00
+result 0 peak 9629
+end
+op 2533 stop 1
+result 1
+end
+op 2608 timer
+result 0 peak 9629
+end
+op 2673 timer
+result 0 peak 9629
+end
+op 2708 run 4 0
+result 1
+end
+op 2719 timer
+result 0 peak 9629
+end
+op 2796 status 3
+result 0
+end
+op 2836 timer
+result 0 peak 9629
+end
+op 2914 create ramp 0 62921 0 0 4294967295 22 31196 -8847 159 36444 0 64242
+result 5
+end
+op 2929 run 1 1
+result 1
+end
+op 3105 timer
+write 1c 00 85 00 00 00 00
+result 0 peak 9629
+end
+op 3115 timer
+result 0 peak 9629
+end
+op 3188 stop 5
+result 1
+end
+op 3214 run 0 1
+result 1
+end
+op 3287 gain 10
+result 1
+end
+op 3333 timer
+write 1c 00 84 00 00 00 00
+write 81 0e 0f 17 07 01 00
+result 0 peak 9629
+end
+op 3334 timer
+result 0 peak 9629
+end
+op 3357 timer
+write 1c 00 87 00 00 00 00
+result 0 peak 9629
+end
+op 3377 timer
+write 1c 00 8a 00 00 00 00
+result 0 peak 9629
+end
+op 3385 timer
+write 1c 00 8b 00 00 00 00
+result 0 peak 9629
+end
+op 3405 timer
+write 1c 00 8d 00 00 00 00
+result 0 peak 9629
+end
+op 3412 timer
+write 1c 00 8e 00 00 00 00
+result 0 peak 9629
+end
+op 3451 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 9629
+end
+op 3488 timer
+result 0 peak 9629
+end
+op 3517 timer
+result 0 peak 9629
+end
+op 3517 destroy 0
+end
+op 3517 timer
+write 83 00 00 00 00 00 00
+result 0 peak 9629
+end
+op 3517 close
+end
+endcase
+case random 2|046d c29a 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1052 timer
+result 0 peak 0
+end
+op 1093 timer
+result 0 peak 0
+end
+op 1197 create ramp 3 0 0 0 159 60 7762 9039 0 49333 75 60561
+result 0
+end
+op 1280 run 0 3
+result 1
+end
+op 1323 timer
+result 0 peak 0
+end
+op 1395 gain 41
+result 1
+end
+op 1418 run 0 1
+result 1
+end
+op 1477 create constant 0 31080 0 0 4294967295 6 -18000 160 27616 0 64146
+result 1
+end
+op 1480 run 0 1
+result 1
+end
+op 1549 timer
+write 1c 00 8c 00 00 00 00
+result 0 peak 3238
+end
+op 1620 update 0 ramp 1 -470 -682 0 11 14 21682 -20436 0 20945 26 32979
+result 1
+end
+op 1704 stop 1
+result 1
+end
+op 1735 stop 1
+result 1
+end
+op 1774 run 1 1
+result 1
+end
+op 1784 run 0 4294967295
+result 1
+end
+op 1882 timer
+write 1c 00 9a 00 00 00 00
+result 0 peak 6748
+end
+op 1949 create periodic 32 0 -4396 0 0 4294967295 6 124 14182 6475 1651 196 19763 55 22769
+result 2
+end
+op 2032 timer
+write 1c 00 96 00 00 00 00
+result 0 peak 6748
+end
+op 2094 run 0 3
+result 1
+end
+op 2136 gain -3
+result 1
+end
+op 2188 stop 0
+result 1
+end
+op 2199 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 6748
+end
+op 2285 timer
+result 0 peak 6748
+end
+op 2382 update 2 periodic 32 3 0 0 0 4294967295 28 165 -4919 -6392 30648 148 3186 2 37001
+result 1
+end
+op 2462 timer
+result 0 peak 6748
+end
+op 2535 timer
+result 0 peak 6748
+end
+op 2609 timer
+result 0 peak 6748
+end
+op 2725 run 2 4294967295
+result 1
+end
+op 2791 timer
+result 0 peak 6748
+end
+op 2796 status 1
+result 1
+end
+op 2911 run 2 0
+result 1
+end
+op 2990 status 1
+result 1
+end
+op 3102 create ramp 2 14172 -8943 0 4294967295 31 -7662 -7554 33 20520 180 60695
+result 3
+end
+op 3147 status 1
+result 1
+end
+op 3198 stop 0
+result 1
+end
+op 3251 create condition 128 3 0 0 0 0 13 38028 27968 -14018 -29654 3266 -20386
+result 4
+end
+op 3325 timer
+result 0 peak 6748
+end
+op 3373 run 2 1
+result 1
+end
+op 3384 run 2 1
+result 1
+end
+op 3418 run 3 2
+result 1
+end
+op 3464 timer
+result 0 peak 6748
+end
+op 3503 timer
+result 0 peak 6748
+end
+op 3535 timer
+result 0 peak 6748
+end
+op 3557 timer
+result 0 peak 6748
+end
+op 3577 timer
+result 0 peak 6748
+end
+op 3600 timer
+result 0 peak 6748
+end
+op 3634 timer
+result 0 peak 6748
+end
+op 3657 timer
+result 0 peak 6748
+end
+op 3677 timer
+result 0 peak 6748
+end
+op 3697 timer
+result 0 peak 6748
+end
+op 3697 close
+end
+endcase
+case random 3|046d c298 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1020 timer
+result 0 peak 0
+end
+op 1079 timer
+result 0 peak 0
+end
+op 1181 create constant 3 0 0 0 4294967295 16 30740 92 23527 58 15299
+result 0
+end
+op 1255 timer
+result 0 peak 0
+end
+op 1349 gain 27
+result 1
+end
+op 1400 timer
+result 0 peak 0
+end
+op 1403 create constant 1 810 2826 0 196 37 -2629 10 61557 172 1657
+result 1
+end
+op 1442 create periodic 16 3 0 0 0 510 15 324 -13337 2484 23242 0 15141 0 3966
+result 2
+end
+op 1504 timer
+result 0 peak 0
+end
+op 1576 stop 1
+result 1
+end
+op 1590 timer
+result 0 peak 0
+end
+op 1692 gain 27
+result 1
+end
+op 1727 timer
+result 0 peak 0
+end
+op 1746 status 1
+result 0
+end
+op 1776 timer
+result 0 peak 0
+end
+op 1853 run 1 1
+result 1
+end
+op 1910 update 0 constant 1 1494 -114 0 4294967295 27 -21458 0 18669 89 36228
+result 1
+end
+op 1962 status 2
+result 0
+end
+op 2064 run 0 1
+result 1
+end
+op 2120 create periodic 16 2 -30163 -2602 0 4294967295 50 324 2385 -4793 6307 148 4874 186 46151
+result 3
+end
+op 2231 gain 62
+result 1
+end
+op 2272 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 41029
+end
+op 2340 create periodic 2 0 64929 0 0 282 26 71 -2645 -6266 2487 182 60103 39 5924
+result 4
+end
+op 2415 timer
+result 0 peak 55686
+end
+op 2415 update 0 constant 3 0 0 0 4294967295 58 1644 68 29410 8 14153
+result 1
+end
+op 2445 run 3 3
+result 1
+end
+op 2450 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 55686
+end
+op 2483 create periodic 32 2 -8737 8106 0 471 36 247 3706 -5922 3066 0 25945 0 37242
+result 5
+end
+op 2544 status 4
+result 0
+end
+op 2629 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 256860765
+end
+op 2730 run 2 3
+result 1
+end
+op 2830 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 256860765
+end
+op 2939 gain 109
+result 1
+end
+op 2948 run 4 1
+result 1
+end
+op 3021 timer
+result 0 peak 256860765
+end
+op 3112 update 4 periodic 2 1 -787 -522 0 555 22 275 -21244 3003 23296 85 61596 188 18076
+result 1
+end
+op 3198 timer
+result 0 peak 256860765
+end
+op 3228 timer
+result 0 peak 256860765
+end
+op 3259 timer
+result 0 peak 256860765
+end
+op 3305 timer
+result 0 peak 256860765
+end
+op 3321 timer
+result 0 peak 256860765
+end
+op 3340 timer
+result 0 peak 256860765
+end
+op 3345 timer
+result 0 peak 256860765
+end
+op 3363 timer
+result 0 peak 256860765
+end
+op 3373 timer
+result 0 peak 256860765
+end
+op 3397 timer
+result 0 peak 256860765
+end
+op 3397 destroy 0
+end
+op 3397 timer
+result 0 peak 256860765
+end
+op 3397 close
+end
+endcase
+case random 4|046d c298 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1019 timer
+result 0 peak 0
+end
+op 1286 timer
+result 0 peak 0
+end
+op 1566 timer
+result 0 peak 0
+end
+op 1623 create ramp 3 0 0 0 18 9 12579 25433 0 16175 23 47437
+result 0
+end
+op 1643 create constant 0 24316 0 0 60 58 -9807 91 18011 145 29038
+result 1
+end
+op 1645 timer
+result 0 peak 0
+end
+op 1682 timer
+result 0 peak 0
+end
+op 1749 timer
+result 0 peak 0
+end
+op 1841 run 0 1
+result 1
+end
+op 1862 gain 1
+result 1
+end
+op 1959 timer
+result 0 peak 0
+end
+op 1991 stop 0
+result 1
+end
+op 2078 gain -6
+result 1
+end
+op 2179 status 1
+result 0
+end
+op 2253 run 0 1
+result 1
+end
+op 2296 stop 0
+result 1
+end
+op 2348 update 0 ramp 2 23213 -2484 0 527 48 -7027 16393 168 12097 114 12976
+result 1
+end
+op 2369 create periodic 32 3 0 0 0 93 45 277 32429 -738 18755 11 62802 0 50439
+result 2
+end
+op 2425 timer
+result 0 peak 0
+end
+op 2499 run 1 4294967295
+result 1
+end
+op 2596 create constant 3 0 0 0 4294967295 8 -90 150 41956 0 45282
+result 3
+end
+op 2619 create constant 2 34941 -6172 0 0 20 -16351 60 35248 59 45617
+result 4
+end
+op 2738 run 3 1
+result 1
+end
+op 2798 timer
+result 0 peak 0
+end
+op 2862 create constant 3 0 0 0 174 38 -26141 44 23450 0 40776
+result 5
+end
+op 2922 status 5
+result 0
+end
+op 2974 update 4 constant 0 23557 0 0 252 47 -30665 64 6163 150 38206
+result 1
+end
+op 3142 run 3 2
+result 1
+end
+op 3332 stop 2
+result 1
+end
+op 3335 run 2 1
+result 1
+end
+op 3428 timer
+result 0 peak 0
+end
+op 3548 update 0 ramp 0 -7730 0 0 4294967295 1 24061 24544 0 35598 0 1279
+result 1
+end
+op 3557 timer
+result 0 peak 0
+end
+op 3559 timer
+result 0 peak 0
+end
+op 3592 timer
+result 0 peak 0
+end
+op 3611 timer
+result 0 peak 0
+end
+op 3653 timer
+result 0 peak 0
+end
+op 3669 timer
+result 0 peak 0
+end
+op 3712 timer
+result 0 peak 0
+end
+op 3736 timer
+result 0 peak 0
+end
+op 3781 timer
+result 0 peak 0
+end
+op 3789 timer
+result 0 peak 0
+end
+op 3789 close
+end
+endcase
+case random 5|046d c298 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1043 gain 40
+result 1
+end
+op 1260 create constant 1 -1722 1520 0 0 53 30333 124 51999 64 36005
+result 0
+end
+op 1376 timer
+result 0 peak 0
+end
+op 1392 create condition 256 0 -35722 0 0 269 11 36059 20180 27794 -5175 48736 -24907
+result 1
+end
+op 1466 gain 97
+result 1
+end
+op 1491 run 0 1
+result 1
+end
+op 1578 create periodic 4 3 0 0 0 336 56 39 -11666 2322 3116 12 2038 173 555
+result 2
+end
+op 1686 run 2 0
+result 1
+end
+op 1764 timer
+write 1c 00 2a 00 00 00 00
+result 0 peak 21864
+end
+op 1855 timer
+result 0 peak 21864
+end
+op 1886 update 2 periodic 4 2 -26315 6106 0 82 14 370 -4867 1252 18911 84 19222 95 29173
+result 1
+end
+op 1896 run 1 2
+result 1
+end
+op 1929 run 1 2
+result 1
+end
+op 1958 timer
+write 41 0c 02 01 0d 00 28
+result 0 peak 27109
+end
+op 2036 create condition 256 3 0 0 0 524 33 13430 22932 -11037 -12176 39396 -9929
+result 3
+end
+op 2106 timer
+result 0 peak 27109
+end
+op 2125 run 1 2
+result 1
+end
+op 2194 timer
+result 0 peak 27109
+end
+op 2258 timer
+result 0 peak 27109
+end
+op 2366 update 0 constant 3 0 0 0 0 57 -26328 0 17611 0 61037
+result 1
+end
+op 2443 run 1 1
+result 1
+end
+op 2529 stop 0
+result 1
+end
+op 2598 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 27109
+end
+op 2685 status 3
+result 0
+end
+op 2795 timer
+write 43 00 00 00 00 00 00
+result 0 peak 27109
+end
+op 2847 status 3
+result 0
+end
+op 2958 stop 0
+result 1
+end
+op 2976 create condition 1024 2 6994 8681 0 156 2 17783 14920 -17402 959 55694 11273
+result 4
+end
+op 2988 run 2 3
+result 1
+end
+op 3062 timer
+write 1c 00 67 00 00 00 00
+result 0 peak 27109
+end
+op 3124 timer
+write 1c 00 55 00 00 00 00
+result 0 peak 27109
+end
+op 3125 run 4 0
+result 1
+end
+op 3132 status 1
+result 0
+end
+op 3206 timer
+write 1c 00 4d 00 00 00 00
+result 0 peak 27109
+end
+op 3272 run 2 0
+result 1
+end
+op 3289 run 0 2
+result 1
+end
+op 3358 timer
+write 1c 00 1c 00 00 00 00
+result 0 peak 27109
+end
+op 3469 timer
+result 0 peak 27109
+end
+op 3487 timer
+result 0 peak 27109
+end
+op 3493 timer
+result 0 peak 27109
+end
+op 3526 timer
+result 0 peak 27109
+end
+op 3566 timer
+result 0 peak 27109
+end
+op 3577 timer
+result 0 peak 27109
+end
+op 3578 timer
+result 0 peak 27109
+end
+op 3593 timer
+result 0 peak 27109
+end
+op 3613 timer
+result 0 peak 27109
+end
+op 3662 timer
+result 0 peak 27109
+end
+op 3701 timer
+result 0 peak 27109
+end
+op 3701 close
+end
+endcase
+case random 6|046d c29b 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1023 timer
+result 0 peak 0
+end
+op 1052 timer
+result 0 peak 0
+end
+op 1176 timer
+result 0 peak 0
+end
+op 1181 create periodic 8 2 838 -6851 0 537 6 63 12459 -7519 34773 174 17614 0 36256
+result 0
+end
+op 1233 gain -5
+result 1
+end
+op 1242 timer
+result 0 peak 0
+end
+op 1335 create ramp 3 0 0 0 4294967295 51 18230 -6820 87 19029 0 22294
+result 1
+end
+op 1345 update 0 periodic 8 0 30842 0 0 0 6 121 -19033 -1801 577 108 33952 171 2587
+result 1
+end
+op 1409 timer
+result 0 peak 0
+end
+op 1430 run 0 1
+result 1
+end
+op 1530 create ramp 3 0 0 0 0 8 16367 20499 123 47260 99 23092
+result 2
+end
+op 1623 timer
+result 0 peak 0
+end
+op 1716 create condition 128 3 0 0 0 0 29 14563 56990 7502 -28644 60761 29661
+result 3
+end
+op 1722 gain 66
+result 1
+end
+op 1748 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 42396
+end
+op 1827 status 3
+result 0
+end
+op 1834 timer
+write 1c 00 07 00 00 00 00
+result 0 peak 42396
+end
+op 1844 create constant 1 0 -383 0 567 60 -16074 32 36280 0 33973
+result 4
+end
+op 1945 run 4 1
+result 1
+end
+op 1979 stop 1
+result 1
+end
+op 2043 run 3 1
+result 1
+end
+op 2048 timer
+write 1c 00 2b 00 00 00 00
+result 0 peak 42396
+end
+op 2103 timer
+write 1c 00 00 00 00 00 00
+write 21 0b 7d 6a 18 83 0b
+result 0 peak 42396
+end
+op 2208 timer
+result 0 peak 42396
+end
+op 2217 run 4 4294967295
+result 1
+end
+op 2299 status 1
+result 0
+end
+op 2362 run 2 2
+result 1
+end
+op 2387 timer
+result 0 peak 42396
+end
+op 2490 run 3 1
+result 1
+end
+op 2584 create constant 3 0 0 0 195 51 -4658 163 11305 93 60234
+result 5
+end
+op 2697 timer
+write 1c 00 1d 00 00 00 00
+result 0 peak 42396
+end
+op 2759 gain 103
+result 1
+end
+op 2852 timer
+write 1c 00 00 00 00 00 00
+write 2c 0b 7d 6a 2c 83 11
+result 0 peak 57387
+end
+op 2915 timer
+write 1c 00 18 00 00 00 00
+result 0 peak 57387
+end
+op 2963 run 0 0
+result 1
+end
+op 3049 timer
+write 1c 00 bf 00 00 00 00
+result 0 peak 57387
+end
+op 3155 update 2 ramp 0 -25866 0 0 4294967295 39 27031 -31130 151 40347 183 34853
+result 1
+end
+op 3269 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 57387
+end
+op 3283 timer
+result 0 peak 57387
+end
+op 3292 timer
+result 0 peak 57387
+end
+op 3313 timer
+result 0 peak 57387
+end
+op 3332 timer
+result 0 peak 57387
+end
+op 3363 timer
+write 1c 00 e7 00 00 00 00
+result 0 peak 57387
+end
+op 3387 timer
+result 0 peak 57387
+end
+op 3415 timer
+result 0 peak 57387
+end
+op 3446 timer
+result 0 peak 57387
+end
+op 3451 timer
+result 0 peak 57387
+end
+op 3455 timer
+result 0 peak 57387
+end
+op 3455 close
+end
+endcase
+case random 7|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1167 timer
+result 0 peak 0
+end
+op 1258 gain 73
+result 1
+end
+op 1277 create ramp 3 0 0 0 4294967295 10 6321 -20461 161 33147 164 193
+result 0
+end
+op 1342 status 0
+result 0
+end
+op 1377 update 0 ramp 3 0 0 0 483 41 12489 -16719 179 13206 0 27544
+result 1
+end
+op 1478 timer
+result 0 peak 0
+end
+op 1544 run 0 0
+result 1
+end
+op 1648 gain 18
+result 1
+end
+op 1744 gain 37
+result 1
+end
+op 1843 status 0
+result 0
+end
+op 1861 timer
+result 0 peak 0
+end
+op 1873 timer
+result 0 peak 0
+end
+op 1932 timer
+result 0 peak 0
+end
+op 1965 run 0 1
+result 1
+end
+op 1977 timer
+result 0 peak 0
+end
+op 2008 timer
+write 1c 00 92 00 00 00 00
+result 0 peak 4624
+end
+op 2044 run 0 1
+result 1
+end
+op 2106 status 0
+result 1
+end
+op 2129 timer
+result 0 peak 4686
+end
+op 2204 timer
+result 0 peak 4797
+end
+op 2223 stop 0
+result 1
+end
+op 2327 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 4797
+end
+op 2344 timer
+result 0 peak 4797
+end
+op 2354 run 0 0
+result 1
+end
+op 2410 status 0
+result 0
+end
+op 2489 run 0 1
+result 1
+end
+op 2502 stop 0
+result 1
+end
+op 2593 timer
+result 0 peak 4797
+end
+op 2686 timer
+result 0 peak 4797
+end
+op 2705 create periodic 32 2 56179 7027 0 430 21 14 23526 -6793 21646 0 24147 0 28890
+result 1
+end
+op 2760 stop 1
+result 1
+end
+op 2804 create condition 256 3 0 0 0 394 41 22818 32201 7955 17589 1672 -10459
+result 2
+end
+op 2893 create condition 256 0 77818 0 0 187 54 34288 38153 13557 -30469 44663 -28675
+result 3
+end
+op 2940 gain 110
+result 1
+end
+op 2949 run 2 1
+result 1
+end
+op 3031 timer
+write 41 0c 08 00 03 00 1a
+result 0 peak 4797
+end
+op 3036 timer
+result 0 peak 4797
+end
+op 3080 create constant 3 0 0 0 277 45 28726 0 5070 180 36629
+result 4
+end
+op 3119 timer
+result 0 peak 4797
+end
+op 3152 timer
+result 0 peak 4797
+end
+op 3202 timer
+result 0 peak 4797
+end
+op 3235 timer
+result 0 peak 4797
+end
+op 3250 timer
+result 0 peak 4797
+end
+op 3296 timer
+result 0 peak 4797
+end
+op 3345 timer
+result 0 peak 4797
+end
+op 3380 timer
+result 0 peak 4797
+end
+op 3396 timer
+write 43 00 00 00 00 00 00
+result 0 peak 4797
+end
+op 3424 timer
+result 0 peak 4797
+end
+op 3424 close
+end
+endcase
+case random 8|046d c294 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1056 gain 21
+result 1
+end
+op 1144 create periodic 32 3 0 0 0 246 2 238 15191 -1096 17615 143 30051 85 1693
+result 0
+end
+op 1207 stop 0
+result 1
+end
+op 1239 create condition 1024 3 0 0 0 0 28 5902 7023 -12706 5226 1950 -3351
+result 1
+end
+op 1281 timer
+result 0 peak 0
+end
+op 1312 gain 75
+result 1
+end
+op 1346 stop 1
+result 1
+end
+op 1452 create ramp 2 65908 -2208 0 0 25 13516 -12175 136 11091 100 33603
+result 2
+end
+op 1550 status 0
+result 0
+end
+op 1656 timer
+result 0 peak 0
+end
+op 1724 create ramp 3 0 0 0 520 35 10354 -24252 102 60674 21 2486
+result 3
+end
+op 1832 run 0 3
+result 1
+end
+op 1931 status 0
+result 1
+end
+op 2011 update 1 condition 1024 3 0 0 0 40 51 61171 63423 -6047 -9532 11573 2717
+result 1
+end
+op 2015 timer
+write 1c 00 69 00 00 00 00
+result 0 peak 5677
+end
+op 2077 timer
+write 1c 00 82 00 00 00 00
+result 0 peak 5677
+end
+op 2126 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 1072370633
+end
+op 2219 timer
+result 0 peak 1075422944
+end
+op 2225 create constant 3 0 0 0 4294967295 43 27415 89 12949 0 23969
+result 4
+end
+op 2342 create constant 2 -11601 -1076 0 438 0 -7916 0 11948 16 11781
+result 5
+end
+op 2357 run 3 4294967295
+result 1
+end
+op 2375 update 2 ramp 0 -22109 0 0 580 43 24287 25972 67 48634 150 13730
+result 1
+end
+op 2442 status 0
+result 1
+end
+op 2518 timer
+write 1c 00 69 00 00 00 00
+result 0 peak 1075422944
+end
+op 2615 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 1075422944
+end
+op 2742 timer
+result 0 peak 1075422944
+end
+op 2760 stop 4
+result 1
+end
+op 2855 timer
+result 0 peak 1075422944
+end
+op 2959 status 2
+result 0
+end
+op 2998 timer
+result 0 peak 1075422944
+end
+op 3030 run 0 1
+result 1
+end
+op 3109 status 0
+result 1
+end
+op 3114 timer
+write 1c 00 ff 00 00 00 00
+result 0 peak 1075422944
+end
+op 3117 run 2 3
+result 1
+end
+op 3162 run 4 0
+result 1
+end
+op 3227 gain 61
+result 1
+end
+op 3245 gain 17
+result 1
+end
+op 3284 timer
+write 1c 00 8a 00 00 00 00
+result 0 peak 1075422944
+end
+op 3286 timer
+result 0 peak 1075422944
+end
+op 3299 timer
+result 0 peak 1075422944
+end
+op 3325 timer
+result 0 peak 1075422944
+end
+op 3333 timer
+write 1c 00 8b 00 00 00 00
+result 0 peak 1075422944
+end
+op 3368 timer
+result 0 peak 1075422944
+end
+op 3391 timer
+result 0 peak 1075422944
+end
+op 3417 timer
+result 0 peak 1075422944
+end
+op 3443 timer
+result 0 peak 1075422944
+end
+op 3477 timer
+result 0 peak 1075422944
+end
+op 3477 destroy 0
+end
+op 3477 timer
+result 0 peak 1075422944
+end
+op 3477 close
+end
+endcase
+case random 9|046d c298 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1165 timer
+result 0 peak 0
+end
+op 1205 timer
+result 0 peak 0
+end
+op 1227 gain -3
+result 1
+end
+op 1320 timer
+result 0 peak 0
+end
+op 1342 timer
+result 0 peak 0
+end
+op 1453 timer
+result 0 peak 0
+end
+op 1596 create ramp 3 0 0 0 552 55 11079 4909 0 37745 98 54837
+result 0
+end
+op 1678 run 0 4294967295
+result 1
+end
+op 1790 timer
+result 0 peak 0
+end
+op 1863 update 0 ramp 1 101 1744 0 462 38 20155 30655 194 11306 0 45649
+result 1
+end
+op 1909 update 0 ramp 3 0 0 0 410 16 -18570 12854 0 19743 37 7772
+result 1
+end
+op 1943 update 0 ramp 3 0 0 0 4294967295 49 -28208 12354 0 53254 59 42320
+result 1
+end
+op 2001 gain -7
+result 1
+end
+op 2121 run 0 1
+result 1
+end
+op 2236 create condition 256 1 -2850 498 0 236 50 41926 2214 -277 -32091 37448 891
+result 1
+end
+op 2300 gain 37
+result 1
+end
+op 2373 create condition 256 1 942 0 0 4294967295 35 36358 45474 18993 -21813 3967 19290
+result 2
+end
+op 2474 update 0 ramp 3 0 0 0 4294967295 10 8942 29138 1 36182 129 30084
+result 1
+end
+op 2483 gain 47
+result 1
+end
+op 2486 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 4202
+end
+op 2560 update 0 ramp 0 61474 0 0 495 33 -28563 -18519 150 34780 0 29210
+result 1
+end
+op 2588 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 4202
+end
+op 2666 timer
+result 0 peak 4202
+end
+op 2678 update 2 condition 256 3 0 0 0 4294967295 46 13042 39811 1097 17984 24697 21002
+result 1
+end
+op 2707 timer
+result 0 peak 4202
+end
+op 2821 create ramp 0 7652 0 0 4294967295 11 -20080 -32695 156 38811 0 31133
+result 3
+end
+op 2865 stop 3
+result 1
+end
+op 2912 timer
+result 0 peak 4202
+end
+op 2927 create periodic 32 1 1692 -2895 0 28 55 162 8854 3431 28674 0 43770 132 63526
+result 4
+end
+op 3005 run 2 3
+result 1
+end
+op 3110 timer
+write 41 0c 04 00 00 00 07
+result 0 peak 4202
+end
+op 3207 timer
+result 0 peak 4202
+end
+op 3322 run 1 0
+result 1
+end
+op 3437 gain 104
+result 1
+end
+op 3526 create constant 1 -938 0 0 536 49 -31631 19 48800 0 10464
+result 5
+end
+op 3551 run 4 0
+result 1
+end
+op 3560 timer
+write 4c 0c 08 00 00 00 0f
+result 0 peak 4202
+end
+op 3589 timer
+result 0 peak 4202
+end
+op 3622 timer
+result 0 peak 4202
+end
+op 3635 timer
+result 0 peak 4202
+end
+op 3656 timer
+result 0 peak 4202
+end
+op 3668 timer
+result 0 peak 4202
+end
+op 3712 timer
+result 0 peak 4202
+end
+op 3720 timer
+result 0 peak 4202
+end
+op 3726 timer
+result 0 peak 4202
+end
+op 3741 timer
+result 0 peak 4202
+end
+op 3741 destroy 0
+end
+op 3741 timer
+result 0 peak 4202
+end
+op 3741 close
+end
+endcase
+case random 10|046d c299 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1244 timer
+result 0 peak 0
+end
+op 1348 timer
+result 0 peak 0
+end
+op 1405 create ramp 3 0 0 0 502 21 -25009 10353 62 62736 167 10332
+result 0
+end
+op 1411 timer
+result 0 peak 0
+end
+op 1513 gain 30
+result 1
+end
+op 1599 timer
+result 0 peak 0
+end
+op 1651 create ramp 3 0 0 0 398 52 -25931 -11642 143 29626 35 17166
+result 1
+end
+op 1721 create periodic 16 3 0 0 0 36 20 370 2281 -5275 4425 0 12298 50 32603
+result 2
+end
+op 1817 run 0 0
+result 1
+end
+op 1920 gain 18
+result 1
+end
+op 1926 status 2
+result 0
+end
+op 2040 run 0 1
+result 1
+end
+op 2140 create constant 1 -803 904 0 109 21 28788 20 2387 189 47457
+result 3
+end
+op 2149 run 1 1
+result 1
+end
+op 2150 run 0 1
+result 1
+end
+op 2178 gain 6
+result 1
+end
+op 2296 timer
+write 1c 00 75 00 00 00 00
+result 0 peak 2714
+end
+op 2407 run 0 3
+result 1
+end
+op 2463 stop 1
+result 1
+end
+op 2569 gain 89
+result 1
+end
+op 2625 update 2 periodic 16 3 0 0 0 192 31 227 -9370 -7936 29831 147 5599 43 52564
+result 1
+end
+op 2719 gain 70
+result 1
+end
+op 2731 timer
+write 1c 00 90 00 00 00 00
+result 0 peak 4345
+end
+op 2829 create ramp 3 0 0 0 4294967295 32 -5815 -10521 109 26382 0 4875
+result 4
+end
+op 2845 timer
+write 1c 00 9c 00 00 00 00
+result 0 peak 7254
+end
+op 2955 status 3
+result 0
+end
+op 3020 timer
+write 1c 00 3e 00 00 00 00
+result 0 peak 16871
+end
+op 3050 gain 28
+result 1
+end
+op 3068 timer
+write 1c 00 6c 00 00 00 00
+result 0 peak 16871
+end
+op 3158 run 4 4294967295
+result 1
+end
+op 3230 update 3 constant 2 -8519 497 0 4294967295 57 -16209 0 57059 144 30579
+result 1
+end
+op 3286 create ramp 3 0 0 0 4294967295 47 -5065 28075 30 43494 18 39010
+result 5
+end
+op 3316 timer
+write 1c 00 8b 00 00 00 00
+result 0 peak 16871
+end
+op 3431 timer
+result 0 peak 16871
+end
+op 3709 update 5 ramp 3 0 0 0 483 8 11359 -28504 134 41153 0 17195
+result 1
+end
+op 3756 timer
+write 1c 00 83 00 00 00 00
+result 0 peak 16871
+end
+op 3798 timer
+write 1c 00 42 00 00 00 00
+result 0 peak 16871
+end
+op 3840 timer
+write 1c 00 8b 00 00 00 00
+result 0 peak 16871
+end
+op 3887 timer
+result 0 peak 16871
+end
+op 3899 timer
+result 0 peak 16871
+end
+op 3930 timer
+result 0 peak 16871
+end
+op 3940 timer
+result 0 peak 16871
+end
+op 3985 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 16871
+end
+op 4031 timer
+result 0 peak 16871
+end
+op 4044 timer
+result 0 peak 16871
+end
+op 4044 destroy 0
+end
+op 4044 timer
+result 0 peak 16871
+end
+op 4044 close
+end
+endcase
+case random 11|046d c29a 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1233 timer
+result 0 peak 0
+end
+op 1385 timer
+result 0 peak 0
+end
+op 1510 timer
+result 0 peak 0
+end
+op 1593 timer
+result 0 peak 0
+end
+op 1807 timer
+result 0 peak 0
+end
+op 1862 gain 67
+result 1
+end
+op 1921 timer
+result 0 peak 0
+end
+op 2033 timer
+result 0 peak 0
+end
+op 2107 timer
+result 0 peak 0
+end
+op 2288 timer
+result 0 peak 0
+end
+op 2385 timer
+result 0 peak 0
+end
+op 2420 gain 20
+result 1
+end
+op 2502 timer
+result 0 peak 0
+end
+op 2716 timer
+result 0 peak 0
+end
+op 2846 timer
+result 0 peak 0
+end
+op 2847 timer
+result 0 peak 0
+end
+op 2925 gain 3
+result 1
+end
+op 3016 create condition 1024 3 0 0 0 4294967295 59 20419 6185 21581 12957 45421 14790
+result 0
+end
+op 3082 stop 0
+result 1
+end
+op 3119 run 0 4294967295
+result 1
+end
+op 3225 run 0 3
+result 1
+end
+op 3332 run 0 3
+result 1
+end
+op 3350 status 0
+result 1
+end
+op 3435 status 0
+result 1
+end
+op 3495 run 0 2
+result 1
+end
+op 3565 timer
+write 81 0e 03 05 00 00 00
+result 0 peak 91
+end
+op 3570 run 0 2
+result 1
+end
+op 3572 timer
+write 83 00 00 00 00 00 00
+result 0 peak 91
+end
+op 3596 timer
+result 0 peak 91
+end
+op 3608 timer
+result 0 peak 91
+end
+op 3640 timer
+write 81 0e 03 05 00 00 00
+result 0 peak 91
+end
+op 3663 timer
+result 0 peak 91
+end
+op 3707 timer
+result 0 peak 91
+end
+op 3712 timer
+result 0 peak 91
+end
+op 3745 timer
+result 0 peak 91
+end
+op 3789 timer
+result 0 peak 91
+end
+op 3831 timer
+result 0 peak 91
+end
+op 3831 destroy 0
+end
+op 3831 timer
+write 83 00 00 00 00 00 00
+result 0 peak 91
+end
+op 3831 close
+end
+endcase
+case random 12|046d c298 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1031 create periodic 32 1 416 -106 0 320 60 360 -3637 1438 17454 165 29538 149 22240
+result 0
+end
+op 1050 timer
+result 0 peak 0
+end
+op 1080 run 0 1
+result 1
+end
+op 1139 update 0 periodic 32 3 0 0 0 467 46 133 -21959 -708 11810 92 62009 0 19340
+result 1
+end
+op 1176 timer
+result 0 peak 0
+end
+op 1182 timer
+result 0 peak 0
+end
+op 1236 status 0
+result 1
+end
+op 1308 status 0
+result 1
+end
+op 1387 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 11915191
+end
+op 1488 stop 0
+result 1
+end
+op 1507 update 0 periodic 32 2 76076 3704 0 0 35 325 30803 2530 33940 0 19931 89 170
+result 1
+end
+op 1550 update 0 periodic 32 3 0 0 0 389 5 9 -24483 1085 18227 153 183 53 21392
+result 1
+end
+op 1650 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11915191
+end
+op 1738 timer
+result 0 peak 11915191
+end
+op 1850 timer
+result 0 peak 11915191
+end
+op 1860 update 0 periodic 32 3 0 0 0 4294967295 58 376 24304 -5791 13473 96 55803 109 52938
+result 1
+end
+op 1891 stop 0
+result 1
+end
+op 1909 timer
+result 0 peak 11915191
+end
+op 2029 timer
+result 0 peak 11915191
+end
+op 2142 timer
+result 0 peak 11915191
+end
+op 2198 run 0 2
+result 1
+end
+op 2241 status 0
+result 1
+end
+op 2359 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 11915191
+end
+op 2466 timer
+result 0 peak 11915191
+end
+op 2494 stop 0
+result 1
+end
+op 2613 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11915191
+end
+op 2701 timer
+result 0 peak 11915191
+end
+op 2752 run 0 1
+result 1
+end
+op 2846 update 0 periodic 32 3 0 0 0 343 17 35 10130 -2417 27462 71 5584 0 62334
+result 1
+end
+op 2923 timer
+write 1c 00 70 00 00 00 00
+result 0 peak 11915191
+end
+op 2987 stop 0
+result 1
+end
+op 3074 run 0 2
+result 1
+end
+op 3180 status 0
+result 1
+end
+op 3186 stop 0
+result 1
+end
+op 3205 create periodic 16 3 0 0 0 0 13 392 23327 -5083 33699 0 9907 5 5959
+result 1
+end
+op 3237 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11915191
+end
+op 3338 stop 1
+result 1
+end
+op 3349 timer
+result 0 peak 11915191
+end
+op 3461 create periodic 16 2 25052 -7861 0 1 55 260 -15445 -7344 29460 0 13728 85 12935
+result 2
+end
+op 3501 timer
+result 0 peak 11915191
+end
+op 3538 timer
+result 0 peak 11915191
+end
+op 3579 timer
+result 0 peak 11915191
+end
+op 3604 timer
+result 0 peak 11915191
+end
+op 3628 timer
+result 0 peak 11915191
+end
+op 3660 timer
+result 0 peak 11915191
+end
+op 3683 timer
+result 0 peak 11915191
+end
+op 3714 timer
+result 0 peak 11915191
+end
+op 3753 timer
+result 0 peak 11915191
+end
+op 3758 timer
+result 0 peak 11915191
+end
+op 3758 close
+end
+endcase
+case random 13|046d c24f 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1026 timer
+result 0 peak 0
+end
+op 1098 create periodic 2 2 -32368 -8903 0 100 28 111 6313 -3565 20625 99 15558 65 63456
+result 0
+end
+op 1189 run 0 3
+result 1
+end
+op 1257 status 0
+result 1
+end
+op 1278 update 0 periodic 2 3 0 0 0 4294967295 37 220 -29019 5212 24198 5 11111 0 47173
+result 1
+end
+op 1303 status 0
+result 1
+end
+op 1317 run 0 0
+result 1
+end
+op 1418 create condition 1024 3 0 0 0 43 33 34925 18836 26315 18344 20014 -17014
+result 1
+end
+op 1525 timer
+result 0 peak 0
+end
+op 1607 timer
+result 0 peak 0
+end
+op 1662 run 0 1
+result 1
+end
+op 1682 create constant 0 71012 0 0 0 46 18770 72 10313 0 18154
+result 2
+end
+op 1719 status 2
+result 0
+end
+op 1723 timer
+write 1c 00 53 00 00 00 00
+result 0 peak 11432
+end
+op 1825 status 2
+result 0
+end
+op 1939 update 0 periodic 2 1 -198 -114 0 540 18 230 11669 936 7289 180 60006 0 61179
+result 1
+end
+op 2047 create ramp 1 1662 43 0 294 5 -22783 29541 43 13760 0 49745
+result 3
+end
+op 2074 stop 1
+result 1
+end
+op 2083 stop 1
+result 1
+end
+op 2146 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 11432
+end
+op 2191 update 3 ramp 3 0 0 0 4294967295 29 8224 -19643 0 38233 112 52487
+result 1
+end
+op 2203 gain 16
+result 1
+end
+op 2263 run 3 1
+result 1
+end
+op 2305 stop 0
+result 1
+end
+op 2315 timer
+write 1c 00 85 00 00 00 00
+result 0 peak 11432
+end
+op 2336 timer
+result 0 peak 11432
+end
+op 2336 gain 42
+result 1
+end
+op 2355 run 2 4294967295
+result 1
+end
+op 2466 update 2 constant 2 -12410 3504 0 151 48 -27247 0 16150 31 38090
+result 1
+end
+op 2550 timer
+write 1c 00 8d 00 00 00 00
+result 0 peak 11432
+end
+op 2658 status 1
+result 0
+end
+op 2757 timer
+result 0 peak 11432
+end
+op 2859 update 2 constant 3 0 0 0 12 17 -15474 96 20838 118 2366
+result 1
+end
+op 2919 run 0 3
+result 1
+end
+op 2936 create condition 256 3 0 0 0 87 9 40223 40034 -1806 -32610 20866 -5055
+result 4
+end
+op 3036 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 445732519
+end
+op 3086 timer
+result 0 peak 570987327
+end
+op 3090 timer
+result 0 peak 570987327
+end
+op 3091 timer
+result 0 peak 570987327
+end
+op 3121 stop 0
+result 1
+end
+op 3134 timer
+write 1c 00 8d 00 00 00 00
+result 0 peak 570987327
+end
+op 3161 timer
+result 0 peak 570987327
+end
+op 3178 timer
+result 0 peak 570987327
+end
+op 3223 timer
+result 0 peak 570987327
+end
+op 3268 timer
+result 0 peak 570987327
+end
+op 3284 timer
+result 0 peak 570987327
+end
+op 3302 timer
+result 0 peak 570987327
+end
+op 3310 timer
+result 0 peak 570987327
+end
+op 3326 timer
+result 0 peak 570987327
+end
+op 3342 timer
+result 0 peak 570987327
+end
+op 3342 close
+end
+endcase
+case random 14|046d c298 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1120 timer
+result 0 peak 0
+end
+op 1206 timer
+result 0 peak 0
+end
+op 1380 timer
+result 0 peak 0
+end
+op 1400 create periodic 8 3 0 0 0 0 7 61 7548 -890 17476 0 13572 126 18317
+result 0
+end
+op 1458 stop 0
+result 1
+end
+op 1527 run 0 1
+result 1
+end
+op 1592 timer
+write 1c 00 ce 00 00 00 00
+result 0 peak 19992
+end
+op 1709 create periodic 16 3 0 0 0 239 8 4 22314 1204 30066 0 45645 78 59216
+result 1
+end
+op 1775 create ramp 3 0 0 0 0 23 25048 -10342 112 10717 75 4633
+result 2
+end
+op 1840 timer
+write 1c 00 5f 00 00 00 00
+result 0 peak 19992
+end
+op 1869 timer
+write 1c 00 98 00 00 00 00
+result 0 peak 19992
+end
+op 1975 timer
+write 1c 00 78 00 00 00 00
+result 0 peak 19992
+end
+op 2050 timer
+write 1c 00 94 00 00 00 00
+result 0 peak 19992
+end
+op 2148 run 0 3
+result 1
+end
+op 2235 create condition 128 3 0 0 0 329 12 26583 22269 19528 -17026 15034 -10144
+result 3
+end
+op 2341 timer
+write 1c 00 63 00 00 00 00
+result 0 peak 19992
+end
+op 2373 update 2 ramp 3 0 0 0 4294967295 2 -27206 28677 110 62121 30 15841
+result 1
+end
+op 2406 status 1
+result 0
+end
+op 2448 timer
+write 1c 00 bc 00 00 00 00
+result 0 peak 19992
+end
+op 2514 create condition 1024 0 43280 0 0 224 8 64743 27739 -16506 -25107 7289 13587
+result 4
+end
+op 2590 status 0
+result 1
+end
+op 2707 timer
+write 1c 00 63 00 00 00 00
+result 0 peak 19992
+end
+op 2768 timer
+result 0 peak 19992
+end
+op 2797 update 0 periodic 8 3 0 0 0 474 44 376 -27923 -3390 6376 189 30405 98 4223
+result 1
+end
+op 2814 status 4
+result 0
+end
+op 2853 stop 1
+result 1
+end
+op 2928 run 2 1
+result 1
+end
+op 3045 run 0 2
+result 1
+end
+op 3099 update 4 condition 1024 3 0 0 0 0 19 62642 8969 -15300 -18368 44373 32478
+result 1
+end
+op 3118 update 3 condition 128 0 -17385 0 0 517 6 39602 14420 -7147 -16730 9191 -13772
+result 1
+end
+op 3208 gain 91
+result 1
+end
+op 3231 status 2
+result 1
+end
+op 3331 run 0 4294967295
+result 1
+end
+op 3346 create ramp 3 0 0 0 6 54 -1896 -26532 0 16350 0 44417
+result 5
+end
+op 3437 stop 0
+result 1
+end
+op 3618 update 4 condition 1024 0 40654 0 0 0 25 47819 22706 -13204 -5411 16476 -29291
+result 1
+end
+op 3627 timer
+write 1c 00 1f 00 00 00 00
+result 0 peak 24757
+end
+op 3633 timer
+result 0 peak 24757
+end
+op 3639 timer
+result 0 peak 24757
+end
+op 3652 timer
+result 0 peak 24757
+end
+op 3698 timer
+result 0 peak 24757
+end
+op 3732 timer
+result 0 peak 24757
+end
+op 3754 timer
+result 0 peak 24757
+end
+op 3778 timer
+result 0 peak 24757
+end
+op 3791 timer
+result 0 peak 24757
+end
+op 3807 timer
+result 0 peak 24757
+end
+op 3807 destroy 0
+end
+op 3807 timer
+result 0 peak 24757
+end
+op 3807 close
+end
+endcase
+case random 15|046d c29b 1350 - - - -
+op 1000 open
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+features 460287 effects 16 playing 16 axes 1
+result 1
+end
+op 1071 gain 100
+result 1
+end
+op 1104 timer
+result 0 peak 0
+end
+op 1297 timer
+result 0 peak 0
+end
+op 1409 timer
+result 0 peak 0
+end
+op 1579 gain 24
+result 1
+end
+op 1687 create condition 1024 2 24546 4217 0 18 54 4224 18079 15672 -3445 55075 26081
+result 0
+end
+op 1721 gain 36
+result 1
+end
+op 1733 update 0 condition 1024 2 -19302 -2864 0 4294967295 0 13452 51567 23246 -23658 50205 18254
+result 1
+end
+op 1747 timer
+result 0 peak 0
+end
+op 1839 create constant 0 32742 0 0 327 49 -6401 40 2682 133 38132
+result 1
+end
+op 1840 status 0
+result 0
+end
+op 1867 run 0 1
+result 1
+end
+op 1886 timer
+write 81 0e 42 41 05 01 00
+result 0 peak 725
+end
+op 1922 timer
+result 0 peak 725
+end
+op 1954 timer
+result 0 peak 725
+end
+op 2074 create periodic 32 2 70916 8821 0 374 52 51 18269 -3503 34725 0 54115 0 21254
+result 2
+end
+op 2095 timer
+result 0 peak 725
+end
+op 2103 status 2
+result 0
+end
+op 2191 status 1
+result 0
+end
+op 2238 run 2 1
+result 1
+end
+op 2243 status 2
+result 1
+end
+op 2355 gain 15
+result 1
+end
+op 2435 create ramp 3 0 0 0 0 15 10543 -24996 0 40365 0 62662
+result 3
+end
+op 2525 create ramp 3 0 0 0 66 31 -31758 -1737 144 61671 37 55033
+result 4
+end
+op 2567 update 0 condition 1024 3 0 0 0 498 17 26349 10275 18937 -24121 49757 -20371
+result 1
+end
+op 2584 update 1 constant 3 0 0 0 20 34 -24362 42 31122 112 712
+result 1
+end
+op 2644 timer
+write 1c 00 62 00 00 00 00
+write 83 00 00 00 00 00 00
+result 0 peak 7613
+end
+op 2740 stop 3
+result 1
+end
+op 2811 create condition 128 3 0 0 0 70 22 38051 31384 -8485 -19044 58876 12937
+result 5
+end
+op 2876 timer
+write 1c 00 80 00 00 00 00
+result 0 peak 7613
+end
+op 2956 timer
+result 0 peak 7613
+end
+op 3039 timer
+result 0 peak 7613
+end
+op 3114 gain 101
+result 1
+end
+op 3154 timer
+result 0 peak 7613
+end
+op 3154 run 2 1
+result 1
+end
+op 3231 gain 109
+result 1
+end
+op 3248 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 46578
+end
+op 3296 timer
+result 0 peak 46578
+end
+op 3320 timer
+write 1c 00 1c 00 00 00 00
+result 0 peak 46578
+end
+op 3335 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 46578
+end
+op 3357 timer
+result 0 peak 51459
+end
+op 3381 timer
+result 0 peak 51459
+end
+op 3413 timer
+write 1c 00 35 00 00 00 00
+result 0 peak 51459
+end
+op 3416 timer
+write 1c 00 2c 00 00 00 00
+result 0 peak 51459
+end
+op 3465 timer
+write 1c 00 32 00 00 00 00
+result 0 peak 51459
+end
+op 3504 timer
+write 1c 00 00 00 00 00 00
+result 0 peak 51459
+end
+op 3504 destroy 0
+end
+op 3504 timer
+result 0 peak 51459
+end
+op 3504 close
+end
+endcase
+frontend
+call nonhidapi
+haptic 0
+error Cannot open hidapi haptic from non hidapi joystick
+result 0
+endcall
+call vendor
+haptic 0
+error No supported HIDAPI haptic driver found for joystick
+result 0
+endcall
+call product
+haptic 0
+endcall
+call open
+haptic 1
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+write 0d 00 00 00 00 00 00
+result 1
+instance 255 effects 16 playing 16 supported 460287 axes 1 hidapi 1
+same 1
+other 0
+effect 0 type 1
+run 1
+status 1
+gain 1
+write f5 00 00 00 00 00 00
+autocenter 1
+error That operation is not supported
+pause 0
+error That operation is not supported
+resume 0
+stop 1
+stopall 1
+destroyed status 0
+closed hidapi 0
+endcall
+endfrontend

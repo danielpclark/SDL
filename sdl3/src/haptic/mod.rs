@@ -18,12 +18,15 @@
 //! The haptic backends are platform drivers; so far the Linux driver (the
 //! kernel's force feedback interface on evdev devices), the Windows driver
 //! (DirectInput force feedback) and the dummy driver, which reports no
-//! devices, exist. (The HIDAPI haptic driver, built on the HIDAPI joystick
-//! drivers, is not translated yet.)
+//! devices, exist. Where the HIDAPI joystick driver is (Linux and
+//! Windows), the HIDAPI haptic drivers come first for its joysticks: the
+//! Logitech wheels' force feedback (`haptic/hidapi`).
 
 // (on Linux and Windows, only the tests use the dummy driver)
 #[cfg_attr(any(target_os = "linux", windows), allow(dead_code))]
 mod dummy;
+#[cfg(any(target_os = "linux", windows))]
+pub(crate) mod hidapi;
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(windows)]
@@ -636,7 +639,8 @@ fn hinted_naxes(vid: u16, pid: u16) -> Option<u16> {
     naxes
 }
 
-/// Translation of `SDL_InitHaptics()`.
+/// Translation of `SDL_InitHaptics()` (`SDL_HIDAPI_HapticInit()` has
+/// nothing to do, see [`hidapi`]).
 pub(crate) fn init_haptics() -> Result<()> {
     DRIVER.init()
 }
@@ -702,7 +706,35 @@ pub fn is_joystick_haptic(joystick: &Joystick) -> bool {
     joystick.with(|_| ()).is_ok()
         && (hints::get_bool("SDL2_COMPAT", false)
             || !crate::joystick::gamepad::is_gamepad(joystick.id()))
-        && DRIVER.joystick_is_haptic(joystick)
+        && (DRIVER.joystick_is_haptic(joystick) || hidapi_joystick_is_haptic(joystick))
+}
+
+/// `SDL_HIDAPI_JoystickIsHaptic()`, where there is the HIDAPI joystick
+/// driver.
+fn hidapi_joystick_is_haptic(joystick: &Joystick) -> bool {
+    #[cfg(any(target_os = "linux", windows))]
+    {
+        hidapi::joystick_is_haptic(joystick)
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
+    {
+        let _ = joystick;
+        false
+    }
+}
+
+/// `SDL_HIDAPI_JoystickSameHaptic()`, where there is the HIDAPI joystick
+/// driver.
+fn hidapi_joystick_same_haptic(haptic: &HapticData, joystick: &Joystick) -> bool {
+    #[cfg(any(target_os = "linux", windows))]
+    {
+        hidapi::joystick_same_haptic(haptic, joystick)
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
+    {
+        let _ = (haptic, joystick);
+        false
+    }
 }
 
 /// The settings applied to a newly opened device: autocenter off and gain
@@ -803,6 +835,11 @@ impl Haptic {
     /// The [`hints::JOYSTICK_HAPTIC_AXES`] hint can override the
     /// number of axes. Translation of `SDL_OpenHapticFromJoystick()`.
     pub fn open_from_joystick(joystick: &Joystick) -> Result<Haptic> {
+        // (the device list is locked before the joysticks, the order of
+        // every other path that takes both: a HIDAPI haptic's effect
+        // thread waits for the joysticks with its device locked, which
+        // the haptic functions lock with the list locked)
+        let _haptics = HAPTICS.lock();
         let mut haptic = {
             let _lock = lock_joysticks();
 
@@ -814,7 +851,10 @@ impl Haptic {
             // Check to see if joystick's haptic is already open
             let existing = with_haptics(|h| {
                 h.iter_mut()
-                    .find(|h| DRIVER.joystick_same_haptic(h, joystick))
+                    .find(|h| {
+                        DRIVER.joystick_same_haptic(h, joystick)
+                            || hidapi_joystick_same_haptic(h, joystick)
+                    })
                     .map(|h| {
                         h.ref_count += 1;
                         Haptic {
@@ -834,7 +874,14 @@ impl Haptic {
              * This function should fill in the instance ID and name.
              */
             haptic.rumble_id = -1;
-            if DRIVER.open_from_joystick(&mut haptic, joystick).is_err() {
+            if hidapi_joystick_is_haptic(joystick) {
+                #[cfg(any(target_os = "linux", windows))]
+                if hidapi::open_from_joystick(&mut haptic, joystick).is_err() {
+                    return Err(Error::new(
+                        "Haptic: SDL_HIDAPI_HapticOpenFromJoystick failed.",
+                    ));
+                }
+            } else if DRIVER.open_from_joystick(&mut haptic, joystick).is_err() {
                 return Err(Error::new("Haptic: SDL_SYS_HapticOpenFromJoystick failed."));
             }
             crate::sdl_assert!(haptic.instance_id != 0);
@@ -948,6 +995,11 @@ impl Haptic {
     /// `SDL_GetHapticEffectStatus()`.
     pub fn effect_status(&self, effect: HapticEffectID) -> Result<bool> {
         self.with(|h| {
+            #[cfg(any(target_os = "linux", windows))]
+            if hidapi::is_hidapi(h) {
+                return Ok(hidapi::effect_status(h, effect));
+            }
+
             let index = valid_effect(h, effect)?;
 
             if !h.supported.intersects(HapticFeatures::STATUS) {
@@ -986,6 +1038,12 @@ impl Haptic {
                     "Haptic: Device does not support setting pausing.",
                 ));
             }
+
+            #[cfg(any(target_os = "linux", windows))]
+            if hidapi::is_hidapi(h) {
+                return hidapi::pause(h);
+            }
+
             DRIVER.pause(h)
         })?
     }
@@ -996,6 +1054,12 @@ impl Haptic {
             if !h.supported.intersects(HapticFeatures::PAUSE) {
                 return Ok(()); // Not going to be paused, so we pretend it's unpaused.
             }
+
+            #[cfg(any(target_os = "linux", windows))]
+            if hidapi::is_hidapi(h) {
+                return hidapi::resume(h);
+            }
+
             DRIVER.resume(h)
         })?
     }
@@ -1003,7 +1067,14 @@ impl Haptic {
     /// Stop all the currently playing effects. Translation of
     /// `SDL_StopHapticEffects()`.
     pub fn stop_effects(&self) -> Result<()> {
-        self.with(|h| DRIVER.stop_all(h))?
+        self.with(|h| {
+            #[cfg(any(target_os = "linux", windows))]
+            if hidapi::is_hidapi(h) {
+                return hidapi::stop_all(h);
+            }
+
+            DRIVER.stop_all(h)
+        })?
     }
 
     /// Whether rumble is supported. Translation of
@@ -1127,6 +1198,11 @@ fn create_effect(haptic: &mut HapticData, effect: &HapticEffect) -> Result<Hapti
         return Err(Error::new("Haptic: Effect not supported by haptic device."));
     }
 
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        return hidapi::new_effect(haptic, effect);
+    }
+
     // See if there's a free slot
     let Some(i) = haptic.effects.iter().position(|e| e.hweffect.is_none()) else {
         return Err(Error::new("Haptic: Device has no free space left."));
@@ -1164,6 +1240,11 @@ fn update_effect(
         return Err(Error::new("Haptic: Updating effect type is illegal."));
     }
 
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        return hidapi::update_effect(haptic, effect, data);
+    }
+
     // Updates the effect
     DRIVER.update_effect(haptic, index, data)?;
 
@@ -1173,6 +1254,11 @@ fn update_effect(
 
 /// Translation of `SDL_RunHapticEffect()`.
 fn run_effect(haptic: &mut HapticData, effect: HapticEffectID, iterations: u32) -> Result<()> {
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        return hidapi::run_effect(haptic, effect, iterations);
+    }
+
     let index = valid_effect(haptic, effect)?;
 
     // Run the effect
@@ -1181,6 +1267,11 @@ fn run_effect(haptic: &mut HapticData, effect: HapticEffectID, iterations: u32) 
 
 /// Translation of `SDL_StopHapticEffect()`.
 fn stop_effect(haptic: &mut HapticData, effect: HapticEffectID) -> Result<()> {
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        return hidapi::stop_effect(haptic, effect);
+    }
+
     let index = valid_effect(haptic, effect)?;
 
     // Stop the effect
@@ -1189,6 +1280,12 @@ fn stop_effect(haptic: &mut HapticData, effect: HapticEffectID) -> Result<()> {
 
 /// Translation of `SDL_DestroyHapticEffect()`.
 fn destroy_effect(haptic: &mut HapticData, effect: HapticEffectID) {
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        hidapi::destroy_effect(haptic, effect);
+        return;
+    }
+
     let Ok(index) = valid_effect(haptic, effect) else {
         return;
     };
@@ -1223,6 +1320,11 @@ fn set_gain(haptic: &mut HapticData, gain: i32) -> Result<()> {
         None => gain,
     };
 
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        return hidapi::set_gain(haptic, real_gain);
+    }
+
     DRIVER.set_gain(haptic, real_gain)
 }
 
@@ -1236,6 +1338,11 @@ fn set_autocenter(haptic: &mut HapticData, autocenter: i32) -> Result<()> {
 
     if !(0..=100).contains(&autocenter) {
         return Err(Error::new("Haptic: Autocenter must be between 0 and 100."));
+    }
+
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        return hidapi::set_autocenter(haptic, autocenter);
     }
 
     DRIVER.set_autocenter(haptic, autocenter)
@@ -1259,17 +1366,28 @@ fn close_haptic(instance_id: HapticID, serial: u64) {
             return;
         }
 
-        // Close it, properly removing effects if needed
-        for effect in 0..haptic.effects.len() {
-            if haptic.effects[effect].hweffect.is_some() {
-                destroy_effect(haptic, effect as HapticEffectID);
-            }
-        }
-        DRIVER.close(haptic);
+        close_device(haptic);
 
         // Remove from the list
         list.remove(i);
     });
+}
+
+/// The backend's part of `SDL_CloseHaptic()`.
+fn close_device(haptic: &mut HapticData) {
+    #[cfg(any(target_os = "linux", windows))]
+    if hidapi::is_hidapi(haptic) {
+        hidapi::close(haptic);
+        return;
+    }
+
+    // Close it, properly removing effects if needed
+    for effect in 0..haptic.effects.len() {
+        if haptic.effects[effect].hweffect.is_some() {
+            destroy_effect(haptic, effect as HapticEffectID);
+        }
+    }
+    DRIVER.close(haptic);
 }
 
 /// Translation of `SDL_QuitHaptics()`: closes every open device, whatever
@@ -1283,6 +1401,7 @@ pub(crate) fn quit_haptics() {
         close_haptic(instance_id, serial);
     }
 
+    // (SDL_HIDAPI_HapticQuit() has nothing to do, see `hidapi`)
     DRIVER.quit();
 }
 

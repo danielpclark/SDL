@@ -532,7 +532,7 @@ pub(crate) trait JoystickDriver: Send + Sync {
 
 /// The index of the HIDAPI driver in [`JOYSTICK_DRIVERS`] (the highest
 /// priority driver for supported devices).
-#[cfg(all(test, any(windows, target_os = "linux")))]
+#[cfg(any(windows, target_os = "linux"))]
 const HIDAPI_DRIVER_INDEX: usize = 0;
 
 /// The index of the GameInput driver in [`JOYSTICK_DRIVERS`].

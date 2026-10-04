@@ -766,7 +766,13 @@ impl HapticDriver for LinuxHapticDriver {
         };
         /* We are assuming Linux is using evdev which should trump the old
          * joystick methods. */
-        joystick_fname == hwdata(haptic).fname
+        // Note (upstream): upstream reads the hwdata of a HIDAPI haptic in
+        // the list as this driver's; such a haptic isn't this joystick's.
+        haptic
+            .hwdata
+            .as_ref()
+            .and_then(|h| h.downcast_ref::<HapticHwData>())
+            .is_some_and(|hwdata| joystick_fname == hwdata.fname)
     }
 
     /// Closes the haptic device. Translation of `SDL_SYS_HapticClose()`.
