@@ -31,7 +31,7 @@ pub(crate) struct SwYuvTexture {
 
 /// Copy `rows` rows of `length` bytes; the source must hold them all
 /// (upstream reads through the caller's pointer), and so must the
-/// destination (see the FIXME in `update()`).
+/// destination.
 #[allow(clippy::too_many_arguments)]
 fn copy_rows(
     src: &[u8],
@@ -177,11 +177,12 @@ impl SwYuvTexture {
                     )?;
 
                     // Copy the next plane
-                    // FIXME (upstream): the plane is found with the height of
-                    // the rect instead of the texture's
+                    // (upstream finds the plane with the chroma height of the
+                    // rect instead of the texture's, writing the rows into the
+                    // wrong place; fixed here)
                     let s = rh * pitch + rh.div_ceil(2) * uv_pitch;
                     let d = h * self.pitches[0]
-                        + rh.div_ceil(2) * self.pitches[1]
+                        + h.div_ceil(2) * self.pitches[1]
                         + (ry / 2) * self.pitches[2]
                         + (rx / 2) * bpp;
                     copy_rows(
@@ -256,10 +257,11 @@ impl SwYuvTexture {
                     copy_rows(pixels, 0, pitch, p, ry * w + rx, w, rh, rw)?;
 
                     // Copy the next plane
-                    // FIXME (upstream): the chroma row is rounded up, so an
-                    // update ending at the last row of an odd number of chroma
-                    // rows writes a row past the end of the planes (an error here).
-                    let d = h * w + 2 * ry.div_ceil(2) * w.div_ceil(2) + 2 * (rx / 2);
+                    // (upstream rounds the chroma row up, (y + 1) / 2, which
+                    // puts the rows of an update at an odd row one row down
+                    // and can write past the end of the planes; fixed here
+                    // to y / 2, as the column and the other formats)
+                    let d = h * w + 2 * (ry / 2) * w.div_ceil(2) + 2 * (rx / 2);
                     copy_rows(
                         pixels,
                         rh * pitch,
@@ -374,9 +376,10 @@ impl SwYuvTexture {
         copy_rows(y_plane, 0, y_pitch, p, ry * w + rx, w, rh, rw)?;
 
         // Copy the UV or VU plane
-        // FIXME (upstream): the plane offset uses the full row and column
-        // instead of the chroma ones
-        let d = h * w + ry * w.div_ceil(2) + rx;
+        // (upstream offsets the plane by y * ((w + 1) / 2) + x, which is only
+        // the chroma row and column for an even x and y: an odd x swaps U
+        // and V and an odd y starts mid row; fixed here)
+        let d = h * w + 2 * (ry / 2) * w.div_ceil(2) + 2 * (rx / 2);
         copy_rows(
             uv_plane,
             0,
@@ -495,5 +498,65 @@ impl SwYuvTexture {
 
         let mut display = Surface::from_pixels(w, h, target_format, pixels, pitch)?;
         stretch_surface.stretch(Some(srcrect), &mut display, None, ScaleMode::Nearest)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn texture(format: PixelFormat) -> SwYuvTexture {
+        let mut t = SwYuvTexture::new(format, Colorspace::BT601_LIMITED, 4, 4).unwrap();
+        t.pixels.fill(0);
+        t
+    }
+
+    // A partial update of a planar texture: the last plane comes after the
+    // texture's middle plane, not the rect's.
+    #[test]
+    fn planar_update_last_plane() {
+        let mut t = texture(PixelFormat::IYUV);
+        // 2x2 rect: two Y rows of 2, then one U row and one V row of 1
+        let pixels = [1, 1, 1, 1, 2, 3];
+        t.update(&Rect::new(0, 0, 2, 2), &pixels, 2).unwrap();
+        let (y, u, v) = (&t.pixels[..16], &t.pixels[16..20], &t.pixels[20..24]);
+        assert_eq!(y, [1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(u, [2, 0, 0, 0]);
+        assert_eq!(v, [3, 0, 0, 0]);
+    }
+
+    // The chroma row of an NV update at an odd row is row / 2.
+    #[test]
+    fn nv_update_odd_row() {
+        let mut t = texture(PixelFormat::NV12);
+        // rows 1..4: three Y rows, then two UV rows
+        let mut pixels = vec![1; 12];
+        pixels.extend([2, 3, 4, 5, 6, 7, 8, 9]);
+        t.update(&Rect::new(0, 1, 4, 3), &pixels, 4).unwrap();
+        assert_eq!(t.pixels[16..24], [2, 3, 4, 5, 6, 7, 8, 9]);
+
+        let mut t = texture(PixelFormat::NV12);
+        t.update(&Rect::new(0, 1, 4, 1), &pixels, 4).unwrap();
+        assert_eq!(t.pixels[16..24], [1, 1, 1, 1, 0, 0, 0, 0]);
+    }
+
+    // The UV plane of an NV planar update starts at the chroma row and
+    // column: an odd column must not swap U and V.
+    #[test]
+    fn nv_planar_update_offset() {
+        let y = [1; 4];
+        let uv = [2, 3];
+        for (rect, at) in [
+            (Rect::new(1, 0, 2, 2), 16),
+            (Rect::new(0, 1, 2, 2), 16),
+            (Rect::new(2, 2, 2, 2), 22),
+            (Rect::new(3, 3, 1, 1), 22),
+        ] {
+            let mut t = texture(PixelFormat::NV12);
+            t.update_nv_planar(&rect, &y, 2, &uv, 2).unwrap();
+            let mut expected = [0u8; 8];
+            expected[at - 16..at - 14].copy_from_slice(&uv);
+            assert_eq!(t.pixels[16..24], expected, "{rect:?}");
+        }
     }
 }
