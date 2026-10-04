@@ -555,7 +555,9 @@ mod tests {
                         w.container(b'a', Some("{sv}"), |d| {
                             d.dict_entry("uris", "as", |v| v.append_str_array(&uris))
                         });
-                        conn.send(&signal);
+                        // (queued for the peer thread to write; flushing
+                        // from here could wait for good, see Connection::send)
+                        conn.send_no_flush(&signal);
                     });
                     let mut reply = msg.new_method_return()?;
                     reply.append_args(&[Arg::ObjectPath(&path)]);

@@ -588,6 +588,14 @@ impl Connection {
     }
 
     /// Write out everything queued (`dbus_connection_flush()`).
+    ///
+    /// Not while another thread keeps pumping this connection with
+    /// [`Connection::read_write_dispatch`]: libdbus lets one thread at a
+    /// time do a connection's I/O, and the flush waits for that "I/O path"
+    /// with no timeout, while the pumping thread takes it back as soon as
+    /// it lets go (each call holds it for up to its timeout, polling). The
+    /// flush can wait for good. Queue with [`Connection::send_no_flush`]
+    /// there instead; the pumping thread writes the message out.
     pub(crate) fn flush(&self) {
         // SAFETY: raw is valid.
         unsafe { (self.lib.fns.connection_flush)(self.raw) };
@@ -599,7 +607,8 @@ impl Connection {
         unsafe { (self.lib.fns.connection_send)(self.raw, msg.raw, std::ptr::null_mut()) != 0 }
     }
 
-    /// Queue a message without waiting for a reply, then flush.
+    /// Queue a message without waiting for a reply, then flush (which see:
+    /// not on a connection another thread pumps).
     pub(crate) fn send(&self, msg: &Message) -> bool {
         // SAFETY: raw and msg are valid; the serial isn't wanted.
         if unsafe { (self.lib.fns.connection_send)(self.raw, msg.raw, std::ptr::null_mut()) } == 0 {
@@ -2369,7 +2378,9 @@ mod tests {
             let signal = server
                 .new_signal("/org/libsdl/Test", "org.libsdl.Test", "Ping")
                 .unwrap();
-            assert!(server.send(&signal));
+            // Queued only, for the pump thread to write (flushing from here
+            // could wait for good; see Connection::send).
+            assert!(server.send_no_flush(&signal));
         };
         ping();
         assert!(test_bus::wait_for(
