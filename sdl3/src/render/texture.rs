@@ -1481,7 +1481,7 @@ impl Renderer {
         };
         self.update_color_scale();
 
-        self.backend.set_render_target(target)?;
+        self.backend.set_render_target(target, &self.textures)?;
 
         self.queue_cmd_set_viewport()?;
         self.queue_cmd_set_clip_rect()?;

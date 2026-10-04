@@ -13,9 +13,11 @@
 //! which the renderer reports it as an invalid parameter (as upstream's
 //! object validity checks do).
 //!
-//! So far renderers use the software backend, drawing into a [`Surface`]
-//! ([`Renderer::software`]) or a window's surface ([`Renderer::for_window`]);
-//! the GPU backends come with the platform layer.
+//! Renderers use the software backend, drawing into a [`Surface`]
+//! ([`Renderer::software`]) or a window's surface, or for windows the
+//! OpenGL ES 2.0 backend ("opengles2", tried first by
+//! [`Renderer::for_window`]); the other GPU backends come with the
+//! platform layer.
 //!
 //! A window renderer applies the window's changes (size, visibility, HDR
 //! state) at the start of its next drawing, presenting or state-setting
@@ -24,6 +26,7 @@
 //! dropped before or after its window.
 
 mod debug_font;
+pub(crate) mod opengles2;
 pub(crate) mod software;
 pub(crate) mod sysrender;
 mod texture;
@@ -44,6 +47,11 @@ use crate::video::rect::{FPoint, FRect, Point, Rect};
 use crate::video::surface::{ScaleMode, Surface};
 use crate::video::BlendMode;
 
+pub use opengles2::{
+    PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER,
+};
 pub use software::render_sw::SOFTWARE_RENDERER;
 pub use sysrender::Indices;
 pub use texture::{TextureCreateInfo, TextureLock, TextureSurfaceLock};
@@ -174,7 +182,7 @@ pub struct RendererCreateInfo {
 }
 
 /// The rendering drivers compiled in, in order of preference.
-const RENDER_DRIVERS: &[&str] = &[SOFTWARE_RENDERER];
+const RENDER_DRIVERS: &[&str] = &[opengles2::GLES2_RENDERER, SOFTWARE_RENDERER];
 
 /// The number of 2D rendering drivers available.
 /// Translation of `SDL_GetNumRenderDrivers()`.
@@ -393,12 +401,18 @@ impl Renderer {
             return Err(Error::new("Unsupported output colorspace"));
         }
 
+        let texture_formats = backend
+            .texture_formats()
+            .unwrap_or_else(|| SwRenderer::select_best_formats(format));
+        let software = backend.name() == SOFTWARE_RENDERER;
+        let npot_texture_wrap_unsupported = backend.npot_texture_wrap_unsupported();
+        let max_texture_size = backend.max_texture_size();
         let mut renderer = Renderer {
             id: NEXT_RENDERER_ID.fetch_add(1, Ordering::Relaxed),
             backend,
-            texture_formats: SwRenderer::select_best_formats(format),
-            software: true,
-            npot_texture_wrap_unsupported: false,
+            texture_formats,
+            software,
+            npot_texture_wrap_unsupported,
             hidden: false,
             wanted_vsync: false,
             simulate_vsync: false,
@@ -471,6 +485,12 @@ impl Renderer {
         }
 
         let props = renderer.props.clone();
+        if let Some(max_texture_size) = max_texture_size {
+            props.set(
+                PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER,
+                max_texture_size as i64,
+            )?;
+        }
         props.set(PROP_RENDERER_NAME_STRING, renderer.backend.name())?;
         if let Some(window) = renderer.window_handle() {
             props.set_any(PROP_RENDERER_WINDOW_POINTER, window)?;
@@ -2293,7 +2313,7 @@ impl RenderBackend for NullBackend {
         None
     }
     fn unlock_texture(&mut self, _: &mut sysrender::TextureData) {}
-    fn set_render_target(&mut self, _: Option<Texture>) -> Result<()> {
+    fn set_render_target(&mut self, _: Option<Texture>, _: &TextureStore) -> Result<()> {
         Ok(())
     }
     fn read_pixels(&mut self, _: &Rect, _: &mut TextureStore) -> Option<Result<Surface<'static>>> {
