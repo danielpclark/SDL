@@ -375,9 +375,6 @@ fn joystick_thread() -> i32 {
     while !*guard {
         let (relocked, ok) = wait_for_device_notification(notification_data.message_window, guard);
         guard = relocked;
-        // FIXME (upstream): once a device change is signalled, the wait above
-        // returns at once until the next WINDOWS_JoystickDetect() takes it,
-        // so this loop spins until then.
         if !ok {
             // WM_DEVICECHANGE not working, poll for new XINPUT controllers
             guard = COND_JOYSTICK_THREAD
@@ -397,6 +394,14 @@ fn joystick_thread() -> i32 {
                     }
                 }
             }
+        }
+        // A signalled device change makes the wait above return at once
+        // until WINDOWS_JoystickDetect() takes it, so wait for that (or for
+        // the thread to be stopped) instead of spinning
+        while !*guard && windows_device_changed() {
+            guard = COND_JOYSTICK_THREAD
+                .wait(guard)
+                .unwrap_or_else(|e| e.into_inner());
         }
     }
 
@@ -500,6 +505,8 @@ fn joystick_detect() {
         let guard = lock_enum();
 
         LAST_DEVICE_CHANGE.store(get_last_device_notification(), Ordering::Release);
+        // the joystick thread waits for the change to be taken
+        COND_JOYSTICK_THREAD.notify_all();
 
         let mut cur_list = with_state(|s| std::mem::take(&mut s.sys_joystick));
         let mut sys_joystick = Vec::new();

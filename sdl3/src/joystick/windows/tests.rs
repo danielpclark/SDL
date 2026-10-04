@@ -277,3 +277,61 @@ fn device_change_flag() {
     LAST_DEVICE_CHANGE.store(get_last_device_notification(), Ordering::Release);
     assert!(!windows_device_changed());
 }
+
+/// The CPU time a thread has used so far.
+fn thread_cpu_time(thread_id: u32) -> Duration {
+    use windows_sys::Win32::Foundation::{CloseHandle, FILETIME};
+    use windows_sys::Win32::System::Threading::{
+        GetThreadTimes, OpenThread, THREAD_QUERY_LIMITED_INFORMATION,
+    };
+    // SAFETY: opening a thread by ID has no memory preconditions.
+    let handle = unsafe { OpenThread(THREAD_QUERY_LIMITED_INFORMATION, 0, thread_id) };
+    assert!(!handle.is_null());
+    let zero = FILETIME {
+        dwLowDateTime: 0,
+        dwHighDateTime: 0,
+    };
+    let (mut creation, mut exit, mut kernel, mut user) = (zero, zero, zero, zero);
+    // SAFETY: the handle is open and the four times are writable.
+    let ok = unsafe { GetThreadTimes(handle, &mut creation, &mut exit, &mut kernel, &mut user) };
+    // SAFETY: the handle was opened above.
+    unsafe {
+        CloseHandle(handle);
+    }
+    assert_ne!(ok, 0);
+    let ticks = |t: &FILETIME| ((t.dwHighDateTime as u64) << 32) | t.dwLowDateTime as u64;
+    Duration::from_nanos((ticks(&kernel) + ticks(&user)) * 100)
+}
+
+#[test]
+fn detection_thread_waits_for_a_signalled_change() {
+    let _l = lock();
+    hints::set(hints::JOYSTICK_THREAD, "1").unwrap();
+    crate::init::init_subsystem(crate::init::InitFlags::JOYSTICK).unwrap();
+    let mut thread_id = 0;
+    for _ in 0..500 {
+        thread_id = JOYSTICK_THREAD_ID.load(Ordering::Acquire);
+        if thread_id != 0 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    assert_ne!(thread_id, 0);
+
+    // A change nobody has detected yet leaves the thread idle, not spinning
+    set_windows_device_changed();
+    let before = thread_cpu_time(thread_id);
+    std::thread::sleep(Duration::from_millis(300));
+    let spent = thread_cpu_time(thread_id) - before;
+    assert!(spent < Duration::from_millis(100), "{spent:?}");
+
+    // Detection takes the change and the thread goes back to its messages
+    {
+        let _lock = crate::joystick::lock_joysticks();
+        WINDOWS_JOYSTICK_DRIVER.detect();
+    }
+    assert!(!windows_device_changed());
+    crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
+    assert!(JOYSTICK_THREAD.lock().unwrap().is_none());
+    hints::reset(hints::JOYSTICK_THREAD);
+}
