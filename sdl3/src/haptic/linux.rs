@@ -171,14 +171,15 @@ fn ev_is_mouse(fd: RawFd) -> bool {
         return false;
     }
 
-    // Currently we only test for BTN_MOUSE which can give fake positives.
-    if test_bit(BTN_MOUSE, &argp) {
-        return true;
-    }
+    keys_are_mouse(&argp)
+}
 
-    // FIXME (upstream): this returns true as well, so every device whose
-    // keys can be read is taken for a mouse.
-    true
+/// The test of `EV_IsMouse()` on the device's key bits. Upstream's returns
+/// true on both branches, so every device whose keys can be read is taken
+/// for a mouse; a device without `BTN_MOUSE` isn't one.
+fn keys_are_mouse(argp: &[std::ffi::c_ulong]) -> bool {
+    // Currently we only test for BTN_MOUSE which can give fake positives.
+    test_bit(BTN_MOUSE, argp)
 }
 
 /// Translation of `haptic_udev_callback()`.
@@ -690,9 +691,10 @@ impl HapticDriver for LinuxHapticDriver {
             // Open the device.
             let fd = open_path(fname, libc::O_RDWR | libc::O_CLOEXEC);
             if fd < 0 {
-                // FIXME (upstream): this returns SDL_SetError(), which is
-                // false, so device 0 is reported as the mouse.
-                return Some(0);
+                // (upstream returns SDL_SetError(), which is false, i.e.
+                // device index 0: a device that can't be opened isn't the
+                // mouse, so report none, the -1 upstream means)
+                return None;
             }
 
             // Is it a mouse?
@@ -1127,6 +1129,29 @@ mod tests {
                 .message(),
             "Haptic: Unknown effect type."
         );
+    }
+
+    #[test]
+    fn mouse_detection() {
+        // A device with BTN_MOUSE is a mouse; one without isn't.
+        let mut keys = [0 as std::ffi::c_ulong; 40];
+        assert!(!keys_are_mouse(&keys));
+        let bits = std::ffi::c_ulong::BITS as usize;
+        keys[BTN_MOUSE / bits] |= 1 << (BTN_MOUSE % bits);
+        assert!(keys_are_mouse(&keys));
+
+        // A listed device that can't be opened isn't reported as the mouse.
+        let _l = crate::test_support::test_lock();
+        let saved = with_list(std::mem::take);
+        with_list(|l| {
+            l.push(HapticlistItem {
+                instance_id: 1,
+                fname: "/nonexistent/sdl-haptic-test".to_owned(),
+                dev_num: 0,
+            })
+        });
+        assert_eq!(LINUX_HAPTIC_DRIVER.mouse(), None);
+        with_list(|l| *l = saved);
     }
 
     #[test]
