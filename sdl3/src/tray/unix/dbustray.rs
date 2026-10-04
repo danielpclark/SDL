@@ -678,6 +678,11 @@ impl TrayBackend for TrayDBus {
         state.next_key += 1;
 
         // (the parent entry's item holds the submenu list itself)
+        // FIXME (upstream): the parent item keeps a pointer to the
+        // submenu's first list node, set on each insertion but not on
+        // removal, so removing a submenu's first entry leaves it dangling
+        // (and an emptied submenu still reads as one); the current list is
+        // always used here, and an empty one is no submenu.
 
         let host = self.host();
         if update {
