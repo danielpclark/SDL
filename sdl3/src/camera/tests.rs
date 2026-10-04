@@ -193,22 +193,39 @@ fn camera_events() -> Vec<(EventType, CameraID)> {
 #[test]
 fn driver_selection() {
     let _l = crate::test_support::test_lock();
-    assert_eq!(num_camera_drivers(), 2);
-    assert_eq!(camera_driver(1).unwrap(), "dummy");
-    assert!(camera_driver(2).is_err());
+    // The test driver, the platform drivers in upstream's order, dummy.
+    let names: Vec<&str> = (0..num_camera_drivers())
+        .map(|i| camera_driver(i).unwrap())
+        .collect();
+    #[cfg(target_os = "linux")]
+    assert_eq!(names, ["test", "v4l2", "dummy"]);
+    #[cfg(windows)]
+    assert_eq!(names, ["test", "dummy"]);
+    #[cfg(not(any(target_os = "linux", windows)))]
+    assert_eq!(names, ["test", "dummy"]);
+    assert!(camera_driver(names.len()).is_err());
     assert_eq!(
         cameras().unwrap_err().message(),
         "Camera subsystem is not initialized"
     );
 
-    // Every driver is demand-only.
+    // Without a hint, the first platform driver that starts is used (the
+    // test and dummy drivers are demand-only); without one, none is.
     hints::reset(hints::CAMERA_DRIVER);
-    assert_eq!(
-        init::init_subsystem(InitFlags::CAMERA)
-            .unwrap_err()
-            .message(),
-        "No available camera driver"
-    );
+    match init::init_subsystem(InitFlags::CAMERA) {
+        Ok(()) => {
+            let name = current_camera_driver().unwrap();
+            assert!(name != "test" && name != "dummy", "{name}");
+            stop();
+        }
+        Err(e) => {
+            assert!(names.len() == 2 || cfg!(windows), "{}", e.message()); // (V4L2 always starts)
+            if names.len() == 2 {
+                assert_eq!(e.message(), "No available camera driver");
+            }
+            assert_eq!(current_camera_driver(), None);
+        }
+    }
     hints::set(hints::CAMERA_DRIVER, "nonexistent").unwrap();
     assert_eq!(
         init::init_subsystem(InitFlags::CAMERA)
