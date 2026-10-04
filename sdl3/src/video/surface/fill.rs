@@ -228,16 +228,30 @@ impl Surface<'_> {
     /// Fill several rectangles with a pixel value, each clipped to the clip
     /// rectangle. Translation of `SDL_FillSurfaceRects()`.
     ///
-    /// Like upstream, this writes the pixels of an RLE-accelerated surface
-    /// with preallocated memory without decoding it first, so its RLE data
-    /// goes stale (FIXME (upstream)).
-    pub fn fill_rects(&mut self, rects: &[Rect], mut color: u32) -> Result<()> {
+    /// Upstream writes the pixels of an RLE-accelerated surface with
+    /// preallocated memory without decoding it first, so its RLE data goes
+    /// stale and later blits don't show the fill. Fixed here: such a surface
+    /// is locked (which drops the RLE data) for the fill, as
+    /// `SDL_WriteSurfacePixel()` does.
+    pub fn fill_rects(&mut self, rects: &[Rect], color: u32) -> Result<()> {
         if !self.pixels.is_some() && self.must_lock() {
             return Err(Error::new(
                 "SDL_FillSurfaceRects(): You must lock the surface",
             ));
         }
 
+        if self.must_lock() {
+            self.lock_raw()?;
+            let result = self.fill_rects_unlocked(rects, color);
+            self.unlock_raw();
+            return result;
+        }
+        self.fill_rects_unlocked(rects, color)
+    }
+
+    /// The rest of `SDL_FillSurfaceRects()`, on a surface that needn't be
+    /// locked.
+    fn fill_rects_unlocked(&mut self, rects: &[Rect], mut color: u32) -> Result<()> {
         // Nothing to do
         if self.w == 0 || self.h == 0 || !self.pixels.is_some() {
             return Ok(());

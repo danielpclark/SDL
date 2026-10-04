@@ -1602,6 +1602,31 @@ fn blitter_selection() {
     }
 }
 
+/// Filling an RLE-encoded surface over application memory drops the stale
+/// RLE data, so later blits show the fill (upstream kept blitting the old
+/// encoding).
+#[test]
+fn fill_rle_surface_with_preallocated_pixels() {
+    let mut buf = [0x11u8; 4 * 4 * 2];
+    let mut s = Surface::from_pixels(4, 2, PixelFormat::XRGB8888, &mut buf, 16).unwrap();
+    s.set_color_key(Some(0x00ff00ff)).unwrap();
+    s.set_rle(true).unwrap();
+    let mut d = Surface::new(4, 2, PixelFormat::XRGB8888).unwrap();
+    s.blit(None, &mut d, None).unwrap();
+    assert!(s.is_rle_encoded());
+    assert_eq!(
+        d.read_pixel(2, 1).unwrap(),
+        Color::new(0x11, 0x11, 0x11, 255)
+    );
+
+    s.fill_rect(None, 0x00406080).unwrap();
+    s.blit(None, &mut d, None).unwrap();
+    assert_eq!(
+        d.read_pixel(2, 1).unwrap(),
+        Color::new(0x40, 0x60, 0x80, 255)
+    );
+}
+
 #[test]
 fn rle_blit_matches_c() {
     let simd = with_simd(true, run_rle);
