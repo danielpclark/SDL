@@ -96,6 +96,13 @@ pub(crate) fn clipboard_sequence() -> u32 {
     state().sequence
 }
 
+/// The callback of the current clipboard data (`clipboard_callback` and
+/// `clipboard_userdata`, for backends).
+#[allow(dead_code)] // (used by the video drivers)
+pub(crate) fn current_clipboard_callback() -> Option<ClipboardDataCallback> {
+    state().callback.clone()
+}
+
 /// Offer data in the clipboard: `callback` will be asked for the data in
 /// any of `mime_types` when someone pastes. `None` and no mime types clear
 /// the clipboard. Translation of `SDL_SetClipboardData()`.

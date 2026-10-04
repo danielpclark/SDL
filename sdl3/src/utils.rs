@@ -259,7 +259,7 @@ fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
 /// escapes decoded, or `None` for another scheme or a remote host.
 /// `file:///p`, `file:/p`, `file://localhost/p` and
 /// `file://<this host>/p` are local. Translation of `SDL_URIToLocal()`.
-// (used by the D-Bus code)
+// (used by the D-Bus code and the X11 video driver)
 #[cfg_attr(not(unix), allow(dead_code))]
 pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
     let mut src = uri.as_bytes();

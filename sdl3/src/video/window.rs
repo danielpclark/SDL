@@ -66,7 +66,20 @@ pub const PROP_WINDOW_CREATE_WIDTH_NUMBER: &str = "SDL.window.create.width";
 pub const PROP_WINDOW_CREATE_X_NUMBER: &str = "SDL.window.create.x";
 pub const PROP_WINDOW_CREATE_Y_NUMBER: &str = "SDL.window.create.y";
 
+/// The X11 `Window` to wrap (instead of creating one). Translation of
+/// `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`.
+pub const PROP_WINDOW_CREATE_X11_WINDOW_NUMBER: &str = "SDL.window.create.x11.window";
+
 // Window properties (SDL_PROP_WINDOW_*)
+/// The X11 `Display *` of the window, as an address (a number). Translation
+/// of `SDL_PROP_WINDOW_X11_DISPLAY_POINTER`.
+pub const PROP_WINDOW_X11_DISPLAY_POINTER: &str = "SDL.window.x11.display";
+/// The X11 screen number of the window. Translation of
+/// `SDL_PROP_WINDOW_X11_SCREEN_NUMBER`.
+pub const PROP_WINDOW_X11_SCREEN_NUMBER: &str = "SDL.window.x11.screen";
+/// The X11 `Window` of the window. Translation of
+/// `SDL_PROP_WINDOW_X11_WINDOW_NUMBER`.
+pub const PROP_WINDOW_X11_WINDOW_NUMBER: &str = "SDL.window.x11.window";
 /// The window shape set with [`Window::set_shape`] (an `Any` [`Surface`]).
 pub const PROP_WINDOW_SHAPE_POINTER: &str = "SDL.window.shape";
 pub const PROP_WINDOW_HDR_ENABLED_BOOLEAN: &str = "SDL.window.HDR_enabled";

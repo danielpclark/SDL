@@ -940,7 +940,9 @@ pub(crate) mod tests {
         // in the same call (without a driver hint, no video driver is
         // available).
         crate::hints::reset(crate::hints::VIDEO_DRIVER);
+        let no_display = crate::test_support::NoDisplay::new();
         let e = init(InitFlags::EVENTS | InitFlags::VIDEO).unwrap_err();
+        drop(no_display);
         assert_eq!(e.message(), "No available video device");
         assert_eq!(was_init(InitFlags::NONE), InitFlags::NONE);
         // The failed video init doesn't leave its thread behind as the

@@ -2,11 +2,14 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Video backends. So far: the dummy and offscreen drivers, both only
-//! available when requested with [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER).
+//! Video backends: X11 (on Unix other than Apple platforms), and the dummy
+//! and offscreen drivers, both only available when requested with
+//! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER).
 
 pub(crate) mod dummy;
 pub(crate) mod offscreen;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod x11;
 
 use std::sync::atomic::{AtomicI32, Ordering};
 

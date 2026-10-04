@@ -17,11 +17,19 @@
 use std::fmt;
 use std::time::Duration;
 
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod im_ks_to_ucs;
 pub mod keyboard;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod keysym_to_keycode;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod keysym_to_scancode;
 pub mod mouse;
 pub mod pen;
 pub mod queue;
 mod quit;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod scancode_tables;
 pub mod touch;
 pub mod window;
 

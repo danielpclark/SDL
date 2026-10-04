@@ -395,7 +395,7 @@ struct MouseInputSource {
 /// which live on [`VideoHooks`]).
 pub(crate) struct Mouse {
     // User-defined mouse input transform applied in relative mode
-    input_transform: Option<Arc<MouseMotionTransform>>,
+    pub(crate) input_transform: Option<Arc<MouseMotionTransform>>,
 
     // integer mode data
     /// 1 to enable mouse quantization, 2 to enable wheel quantization
@@ -404,20 +404,20 @@ pub(crate) struct Mouse {
     integer_mode_residual_motion_y: f32,
 
     // Data common to all mice
-    focus: Option<WindowID>,
-    x: f32,
-    y: f32,
+    pub(crate) focus: Option<WindowID>,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
     x_accu: f32,
     y_accu: f32,
     /// the last reported x and y coordinates
-    last_x: f32,
-    last_y: f32,
+    pub(crate) last_x: f32,
+    pub(crate) last_y: f32,
     residual_scroll_x: f32,
     residual_scroll_y: f32,
     click_motion_x: f64,
     click_motion_y: f64,
     has_position: bool,
-    relative_mode: bool,
+    pub(crate) relative_mode: bool,
     relative_mode_warp_motion: bool,
     relative_mode_hide_cursor: bool,
     #[allow(dead_code)]
@@ -430,7 +430,7 @@ pub(crate) struct Mouse {
     normal_speed_scale: f32,
     enable_relative_speed_scale: bool,
     relative_speed_scale: f32,
-    enable_relative_system_scale: bool,
+    pub(crate) enable_relative_system_scale: bool,
     double_click_time: u32,
     double_click_radius: i32,
     pub(crate) touch_mouse_events: bool,
