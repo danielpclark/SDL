@@ -178,25 +178,24 @@ impl Raster {
         }
     }
 
-    /// Visit the pixels inside the triangle as `(x, y, w)`. The visitor
-    /// returns `false` for upstream's `continue`, which skips the step of
-    /// the barycentric coordinates for that pixel.
-    fn for_each(&self, mut f: impl FnMut(i32, i32, [i64; 3]) -> bool) {
+    /// Visit the pixels inside the triangle as `(x, y, w)`.
+    ///
+    /// Upstream's loop body is a macro pair whose x step comes after the
+    /// body, so a `continue` in the body (the color key test of
+    /// `SDL_SW_BlitTriangle()`) skips the step and the rest of the row is
+    /// drawn from stale coordinates: after the first color keyed texel,
+    /// the row stays on that texel and nothing more is drawn. Fixed here:
+    /// the coordinates step after every pixel.
+    fn for_each(&self, mut f: impl FnMut(i32, i32, [i64; 3])) {
         let mut row = self.row;
         for y in 0..self.dstrect.h {
             // y start
             let mut w = row;
             for x in 0..self.dstrect.w {
                 // In triangle
-                if w[0] + self.bias[0] >= 0
-                    && w[1] + self.bias[1] >= 0
-                    && w[2] + self.bias[2] >= 0
-                    && !f(x, y, w)
+                if w[0] + self.bias[0] >= 0 && w[1] + self.bias[1] >= 0 && w[2] + self.bias[2] >= 0
                 {
-                    // FIXME (upstream): `continue` in the loop body skips
-                    // the x step below, so the rest of the row is drawn from
-                    // stale coordinates.
-                    continue;
+                    f(x, y, w);
                 }
                 // x += 1
                 for (wk, dk) in w.iter_mut().zip(self.dx) {
@@ -356,7 +355,6 @@ fn fill_triangle_pixels(
     if is_uniform {
         raster.for_each(|x, y, _| {
             store_color(px, at(x, y), bpp, uniform_color);
-            true
         });
     } else {
         raster.for_each(|x, y, w| {
@@ -368,7 +366,6 @@ fn fill_triangle_pixels(
                 )
                 .unwrap_or(0);
             store_color(px, at(x, y), bpp, color);
-            true
         });
     }
 }
@@ -593,7 +590,6 @@ fn blit_triangle_locked(
         let d = (dst_base + y as isize * dst_pitch + x as isize * dstbpp) as usize;
         let s = srcy as usize * src_pitch + srcx as usize * bpp;
         dp[d..d + bpp].copy_from_slice(&sp[s..s + bpp]);
-        true
     });
     Ok(())
 }
@@ -702,7 +698,7 @@ fn blit_triangle_slow(
                     | (src_b << src_fmt.Bshift);
             }
             if (srcpixel & rgbmask) == ckey {
-                return false;
+                return;
             }
         }
         let (mut dst_r, mut dst_g, mut dst_b, mut dst_a);
@@ -793,6 +789,53 @@ fn blit_triangle_slow(
             }
             _ => assemble_rgb(dp, d, dstbpp, &dst_fmt, dst_r, dst_g, dst_b),
         }
-        true
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // A color keyed texel doesn't stop the rest of the row.
+    #[test]
+    fn blit_triangle_after_color_key() {
+        let mut src = Surface::new(2, 1, PixelFormat::XRGB8888).unwrap();
+        let white = src.map_rgb(255, 255, 255);
+        src.fill_rect(Some(&Rect::new(1, 0, 1, 1)), white).unwrap();
+        let black = src.map_rgb(0, 0, 0);
+        src.set_color_key(Some(black)).unwrap();
+        src.set_blend_mode(BlendMode::NONE).unwrap();
+        // (another format than the source, for the general blitter)
+        let mut dst = Surface::new(16, 16, PixelFormat::ARGB8888).unwrap();
+        let red = dst.map_rgba(255, 0, 0, 255);
+        dst.fill_rect(None, red).unwrap();
+
+        let p = |x, y| Point { x, y };
+        let c = Color::new(255, 255, 255, 255);
+        // (the destination in fixed point, as the renderer passes it)
+        let mut d = [p(0, 0), p(16, 0), p(0, 16)];
+        d.iter_mut().for_each(trianglepoint_2_fixedpoint);
+        sw_blit_triangle(
+            &mut src,
+            &p(0, 0),
+            &p(2, 0),
+            &p(0, 1),
+            &mut dst,
+            &d[0],
+            &d[1],
+            &d[2],
+            c,
+            c,
+            c,
+            TextureAddressMode::Clamp,
+            TextureAddressMode::Clamp,
+        )
+        .unwrap();
+        // the keyed left half is left alone, the right half is drawn
+        assert_eq!(dst.read_pixel(2, 1).unwrap(), Color::new(255, 0, 0, 255));
+        assert_eq!(
+            dst.read_pixel(12, 1).unwrap(),
+            Color::new(255, 255, 255, 255)
+        );
+    }
 }
