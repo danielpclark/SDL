@@ -1,6 +1,7 @@
 // Tests of the image codecs: a session replayed from a C harness built
 // against upstream SDL (its stb_image and miniz), whose output is
-// testdata/image_trace.txt. The images in testdata/images come from
+// testdata/image_trace.txt. Its NV12 output reads the component planes
+// with their padded stride (`w2`), as the translation does. The images in testdata/images come from
 // tools/gen_png_testdata.py (PNG) and ImageMagick (JPEG).
 
 use std::fmt::Write as _;
@@ -168,10 +169,9 @@ fn session() -> String {
             save(o, &format!("{name} save"), s);
         }
         // (4:1:1 is left out: upstream's NV12 output reads outside the chroma
-        // planes; progressive files too: with the NV12 stride bug, upstream
-        // reads component padding that progressive decoding never writes)
+        // planes)
         if let Ok(s) = &s {
-            if is_jpg && !name.contains("411") && !name.contains("prog") {
+            if is_jpg && !name.contains("411") {
                 let data = std::fs::read(&path).unwrap();
                 mjpg(o, name, &data, s.width(), s.height());
             }
@@ -251,8 +251,8 @@ fn images_match_c() {
 }
 
 /// The conversions upstream can't run safely: MJPG to YUY2 (upstream
-/// overflows its temporary buffer), 4:1:1 JPEGs to NV12 (upstream reads
-/// outside the chroma planes) and progressive JPEGs to NV12.
+/// overflows its temporary buffer) and 4:1:1 JPEGs to NV12 (upstream reads
+/// outside the chroma planes).
 #[test]
 fn mjpg_conversions_upstream_mishandles() {
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/video/testdata/images");
@@ -291,6 +291,44 @@ fn mjpg_conversions_upstream_mishandles() {
     // A destination too small for the NV12 planes is an error, not a write past it
     let e = convert("j420.jpg", PixelFormat::NV12, 37, 100).unwrap_err();
     assert_eq!(e.message(), "Parameter 'dst' is invalid");
+}
+
+#[test]
+fn mjpg_to_nv12_keeps_rows_aligned() {
+    // A 37-pixel-wide grayscale JPEG: its plane rows are padded to 40 bytes,
+    // and the NV12 Y plane holds the same luma rows as the decoded image
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/video/testdata/images");
+    for name in ["jgray.jpg", "jgrayprog.jpg"] {
+        let path = format!("{dir}/{name}");
+        let gray = Surface::load_jpg(&path).unwrap();
+        assert_eq!(gray.format(), PixelFormat::INDEX8);
+        let (w, h) = (gray.width() as usize, gray.height() as usize);
+        assert_eq!(w, 37);
+        let data = std::fs::read(&path).unwrap();
+        let pixels = gray.raw_pixels().unwrap();
+        let gray_pitch = gray.pitch() as usize;
+        for pitch in [w, w + 1] {
+            let mut nv12 = vec![0u8; pitch * h + pitch.div_ceil(2) * 2 * h.div_ceil(2)];
+            crate::video::surface::convert_pixels(
+                w as i32,
+                h as i32,
+                PixelFormat::MJPG,
+                &data,
+                data.len() as i32,
+                PixelFormat::NV12,
+                &mut nv12,
+                pitch as i32,
+            )
+            .unwrap();
+            for y in 0..h {
+                assert_eq!(
+                    &nv12[y * pitch..][..w],
+                    &pixels[y * gray_pitch..][..w],
+                    "{name} pitch {pitch} row {y}"
+                );
+            }
+        }
+    }
 }
 
 #[test]
