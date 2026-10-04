@@ -83,6 +83,80 @@ fn effect_types() {
     assert!((HapticFeatures::SINE | HapticFeatures::GAIN).contains(HapticFeatures::GAIN));
 }
 
+/// A driver with three devices (instance IDs 100 to 102) whose last one is
+/// the haptic mouse; only the device lookups are implemented.
+struct MouseDriver;
+
+impl HapticDriver for MouseDriver {
+    fn init(&self) -> Result<()> {
+        Ok(())
+    }
+    fn count(&self) -> usize {
+        3
+    }
+    fn instance_id(&self, index: usize) -> HapticID {
+        100 + index as HapticID
+    }
+    fn name(&self, _index: usize) -> Option<String> {
+        None
+    }
+    fn open(&self, _haptic: &mut HapticData) -> Result<()> {
+        unimplemented!()
+    }
+    fn mouse(&self) -> Option<usize> {
+        Some(2)
+    }
+    fn joystick_is_haptic(&self, _joystick: &Joystick) -> bool {
+        false
+    }
+    fn open_from_joystick(&self, _haptic: &mut HapticData, _joystick: &Joystick) -> Result<()> {
+        unimplemented!()
+    }
+    fn joystick_same_haptic(&self, _haptic: &HapticData, _joystick: &Joystick) -> bool {
+        false
+    }
+    fn close(&self, _haptic: &mut HapticData) {}
+    fn quit(&self) {}
+    fn new_effect(&self, _: &mut HapticData, _: usize, _: &HapticEffect) -> Result<()> {
+        unimplemented!()
+    }
+    fn update_effect(&self, _: &mut HapticData, _: usize, _: &HapticEffect) -> Result<()> {
+        unimplemented!()
+    }
+    fn run_effect(&self, _: &mut HapticData, _: usize, _: u32) -> Result<()> {
+        unimplemented!()
+    }
+    fn stop_effect(&self, _: &mut HapticData, _: usize) -> Result<()> {
+        unimplemented!()
+    }
+    fn destroy_effect(&self, _: &mut HapticData, _: usize) {}
+    fn effect_status(&self, _: &mut HapticData, _: usize) -> Result<bool> {
+        unimplemented!()
+    }
+    fn set_gain(&self, _: &mut HapticData, _: i32) -> Result<()> {
+        unimplemented!()
+    }
+    fn set_autocenter(&self, _: &mut HapticData, _: i32) -> Result<()> {
+        unimplemented!()
+    }
+    fn pause(&self, _: &mut HapticData) -> Result<()> {
+        unimplemented!()
+    }
+    fn resume(&self, _: &mut HapticData) -> Result<()> {
+        unimplemented!()
+    }
+    fn stop_all(&self, _: &mut HapticData) -> Result<()> {
+        unimplemented!()
+    }
+}
+
+#[test]
+fn mouse_is_opened_by_instance_id() {
+    // The mouse is device index 2, which is instance ID 102 (not 2)
+    assert_eq!(mouse_instance_id(&MouseDriver), Some(102));
+    assert_eq!(mouse_instance_id(&dummy::DUMMY_HAPTIC_DRIVER), None);
+}
+
 #[test]
 fn dummy_driver() {
     let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
