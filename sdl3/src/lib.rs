@@ -211,6 +211,7 @@ pub(crate) mod test_support {
         ),
         ("v4l2", "the V4L2 camera driver"),
         ("camera", "a camera (hardware tests)"),
+        ("controller", "a connected game controller (hardware tests)"),
         (
             "desktop",
             "an interactive Windows desktop that can show windows",

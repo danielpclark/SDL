@@ -1130,3 +1130,112 @@ fn hardware_joysticks_per_driver() {
         list_joysticks(what, &only(hint));
     }
 }
+
+/// Hardware: input from a connected controller, through the default
+/// drivers. It asks for a button press and a stick (or axis) movement and
+/// waits up to 30 seconds for each, printing the events as they arrive,
+/// then tries a short rumble (which a controller may not support).
+#[test]
+#[ignore = "hardware: needs a controller and someone to press its buttons"]
+fn hardware_controller_input() {
+    use crate::joystick::gamepad::{gamepad_name_for_id, gamepad_type_for_id, is_gamepad};
+    use crate::joystick::{joysticks, Joystick, JOYSTICK_DRIVERS};
+    use std::time::{Duration, Instant};
+    let _l = lock();
+    crate::init::init_subsystem(crate::init::InitFlags::GAMEPAD).unwrap();
+    let settle = Instant::now();
+    while joysticks().is_empty() && settle.elapsed() < Duration::from_secs(3) {
+        crate::events::pump();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let Some(&id) = joysticks().first() else {
+        crate::init::quit_subsystem(crate::init::InitFlags::GAMEPAD);
+        crate::test_support::skip("controller", "no controller connected");
+        return;
+    };
+    let driver = {
+        let _lock = crate::joystick::lock_joysticks();
+        JOYSTICK_DRIVERS
+            .iter()
+            .position(|d| (0..d.count()).any(|n| d.device_instance_id(n) == id))
+    };
+    let joystick = Joystick::open(id).unwrap();
+    let (axes, buttons, hats) = (
+        joystick.num_axes().unwrap(),
+        joystick.num_buttons().unwrap(),
+        joystick.num_hats().unwrap(),
+    );
+    println!(
+        "{:?} through {}: {} {:04x}:{:04x}, {axes} axes, {buttons} buttons, {hats} hats",
+        joystick.name().unwrap().unwrap_or_default(),
+        driver.map_or_else(|| "?".to_owned(), driver_label),
+        joystick.guid(),
+        joystick.vendor(),
+        joystick.product(),
+    );
+    if is_gamepad(id) {
+        println!(
+            "gamepad {:?} ({:?})",
+            gamepad_name_for_id(id).ok().flatten().unwrap_or_default(),
+            gamepad_type_for_id(id)
+        );
+    } else {
+        println!("no gamepad mapping");
+    }
+
+    let wait = |what: &str, done: &mut dyn FnMut() -> bool| {
+        println!("{what} (30 seconds)");
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_secs(30) {
+            crate::events::pump();
+            if done() {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        false
+    };
+    let initial: Vec<i16> = (0..axes).map(|a| joystick.axis(a).unwrap()).collect();
+    let mut pressed = None;
+    assert!(
+        wait("press and release any button", &mut || {
+            for b in 0..buttons {
+                let down = joystick.button(b).unwrap();
+                match pressed {
+                    None if down => {
+                        println!("button {b} down");
+                        pressed = Some(b);
+                    }
+                    Some(p) if p == b && !down => {
+                        println!("button {b} up");
+                        return true;
+                    }
+                    _ => {}
+                }
+            }
+            false
+        }),
+        "no button press and release arrived"
+    );
+    if axes > 0 {
+        assert!(
+            wait("move a stick (or any axis) all the way", &mut || {
+                (0..axes).any(|a| {
+                    let v = joystick.axis(a).unwrap();
+                    let moved = (i32::from(v) - i32::from(initial[a])).abs() > 16000;
+                    if moved {
+                        println!("axis {a}: {} -> {v}", initial[a]);
+                    }
+                    moved
+                })
+            }),
+            "no axis movement arrived"
+        );
+    }
+    match joystick.rumble(0x4000, 0x4000, 250) {
+        Ok(()) => println!("rumble: sent"),
+        Err(e) => println!("rumble: {}", e.message()),
+    }
+    drop(joystick);
+    crate::init::quit_subsystem(crate::init::InitFlags::GAMEPAD);
+}
