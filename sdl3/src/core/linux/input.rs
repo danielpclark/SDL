@@ -42,6 +42,7 @@ pub(crate) const KEY_OK: usize = 0x160;
 // missing defines in older Linux kernel headers
 pub(crate) const KEY_ALS_TOGGLE: usize = 0x230;
 pub(crate) const KEY_MAX: usize = 0x2ff;
+pub(crate) const KEY_CNT: usize = KEY_MAX + 1;
 
 pub(crate) const BTN_MISC: usize = 0x100;
 pub(crate) const BTN_1: usize = 0x101;

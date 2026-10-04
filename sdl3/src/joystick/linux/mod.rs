@@ -153,10 +153,10 @@ struct HwData {
     hats: Vec<[i32; 2]>,
 
     // Support for the Linux 2.4 unified input interface
-    key_map: [u8; KEY_MAX],
-    abs_map: [u8; ABS_MAX],
-    has_key: [bool; KEY_MAX],
-    has_abs: [bool; ABS_MAX],
+    key_map: [u8; KEY_CNT],
+    abs_map: [u8; ABS_CNT],
+    has_key: [bool; KEY_CNT],
+    has_abs: [bool; ABS_CNT],
     has_accelerometer: bool,
     has_gyro: bool,
 
@@ -165,7 +165,7 @@ struct HwData {
     key_pam: Option<Vec<u16>>,
     abs_pam: Option<Vec<u8>>,
 
-    abs_correct: [AxisCorrect; ABS_MAX],
+    abs_correct: [AxisCorrect; ABS_CNT],
 
     accelerometer_scale: [f32; 3],
     gyro_scale: [f32; 3],
@@ -215,16 +215,16 @@ impl HwData {
             effect: ff_effect::zeroed(),
             balls: Vec::new(),
             hats: Vec::new(),
-            key_map: [0; KEY_MAX],
-            abs_map: [0; ABS_MAX],
-            has_key: [false; KEY_MAX],
-            has_abs: [false; ABS_MAX],
+            key_map: [0; KEY_CNT],
+            abs_map: [0; ABS_CNT],
+            has_key: [false; KEY_CNT],
+            has_abs: [false; ABS_CNT],
             has_accelerometer: false,
             has_gyro: false,
             classic: false,
             key_pam: None,
             abs_pam: None,
-            abs_correct: [AxisCorrect::default(); ABS_MAX],
+            abs_correct: [AxisCorrect::default(); ABS_CNT],
             accelerometer_scale: [0.0; 3],
             gyro_scale: [0.0; 3],
             gyro_data: [0.0; 3],
@@ -243,13 +243,10 @@ impl HwData {
         }
     }
 
-    /// `key_map[code]`, unmapped (0xFF) past the end of the table.
+    /// `key_map[code]`, unmapped (0xFF) past the end of the table. The
+    /// tables have an entry for every code the kernel can report (`KEY_CNT`,
+    /// `ABS_CNT`), so only a malformed code is out of range.
     fn key_map(&self, code: usize) -> u8 {
-        // FIXME (upstream): key_map[] and has_key[] have KEY_MAX entries, and
-        // abs_map[], has_abs[] and abs_correct[] ABS_MAX, one fewer than the
-        // codes the kernel can report (KEY_CNT, ABS_CNT): code KEY_MAX or
-        // ABS_MAX is read and written past their end. Here such a code is
-        // unmapped.
         self.key_map.get(code).copied().unwrap_or(0xFF)
     }
 
@@ -1260,34 +1257,49 @@ fn config_classic_inputs(
     hwdata: &mut HwData,
     counts: &mut Counts,
     fd: RawFd,
-    mut key_pam_size: u8,
-    mut abs_pam_size: u8,
+    key_pam_size: u8,
+    abs_pam_size: u8,
+) {
+    let mut key_pam = vec![0u16; KEY_MAX - BTN_MISC + 1];
+    // SAFETY: key_pam has the size JSIOCGBTNMAP encodes.
+    let key_pam = (unsafe { ioctl_ptr(fd, JSIOCGBTNMAP, key_pam.as_mut_ptr().cast()) } >= 0)
+        .then_some(key_pam);
+    let mut abs_pam = vec![0u8; ABS_CNT];
+    // SAFETY: abs_pam has the size JSIOCGAXMAP encodes.
+    let abs_pam = (unsafe { ioctl_ptr(fd, JSIOCGAXMAP, abs_pam.as_mut_ptr().cast()) } >= 0)
+        .then_some(abs_pam);
+    map_classic_inputs(
+        hwdata,
+        counts,
+        key_pam.map(|k| (k, key_pam_size)),
+        abs_pam.map(|a| (a, abs_pam_size)),
+    );
+}
+
+/// The inputs of a classic joystick from its button and axis maps
+/// (`JSIOCGBTNMAP`/`JSIOCGAXMAP` with the `JSIOCGBUTTONS`/`JSIOCGAXES`
+/// counts; `None` when that map couldn't be read).
+fn map_classic_inputs(
+    hwdata: &mut HwData,
+    counts: &mut Counts,
+    key_pam: Option<(Vec<u16>, u8)>,
+    abs_pam: Option<(Vec<u8>, u8)>,
 ) {
     hwdata.classic = true;
 
-    let mut key_pam = vec![0u16; KEY_MAX - BTN_MISC + 1];
-    // SAFETY: key_pam has the size JSIOCGBTNMAP encodes.
-    if unsafe { ioctl_ptr(fd, JSIOCGBTNMAP, key_pam.as_mut_ptr().cast()) } < 0 {
-        key_pam_size = 0;
-    } else {
-        hwdata.key_pam = Some(key_pam);
-    }
+    let key_pam_size = key_pam.as_ref().map_or(0, |&(_, size)| size);
+    hwdata.key_pam = key_pam.map(|(k, _)| k);
     for i in 0..key_pam_size as usize {
         let code = hwdata.key_pam.as_ref().map_or(0, |k| k[i]) as usize;
-        if code < KEY_MAX {
+        if code < KEY_CNT {
             hwdata.key_map[code] = counts.nbuttons as u8;
             hwdata.has_key[code] = true;
         }
         counts.nbuttons += 1;
     }
 
-    let mut abs_pam = vec![0u8; ABS_CNT];
-    // SAFETY: abs_pam has the size JSIOCGAXMAP encodes.
-    if unsafe { ioctl_ptr(fd, JSIOCGAXMAP, abs_pam.as_mut_ptr().cast()) } < 0 {
-        abs_pam_size = 0;
-    } else {
-        hwdata.abs_pam = Some(abs_pam);
-    }
+    let abs_pam_size = abs_pam.as_ref().map_or(0, |&(_, size)| size);
+    hwdata.abs_pam = abs_pam.map(|(a, _)| a);
     for i in 0..abs_pam_size as usize {
         let code = hwdata.abs_pam.as_ref().map_or(0, |a| a[i]) as usize;
 
@@ -1304,7 +1316,7 @@ fn config_classic_inputs(
                 hwdata.hat_correct[hat_index].maximum[1] = 1;
             }
         } else {
-            if code < ABS_MAX {
+            if code < ABS_CNT {
                 hwdata.abs_map[code] = counts.naxes as u8;
                 hwdata.has_abs[code] = true;
             }
@@ -1345,8 +1357,8 @@ fn prepare_joystick_hwdata(
     hwdata.item_sensor = item_sensor.map(str::to_owned);
     hwdata.guid = item.guid;
     hwdata.effect.id = -1;
-    hwdata.key_map = [0xFF; KEY_MAX];
-    hwdata.abs_map = [0xFF; ABS_MAX];
+    hwdata.key_map = [0xFF; KEY_CNT];
+    hwdata.abs_map = [0xFF; ABS_CNT];
 
     let mut fd_sensor = -1;
     // Try read-write first, so we can do rumble
@@ -1525,7 +1537,7 @@ fn axis_correct(hwdata: &HwData, which: usize, mut value: i32) -> i32 {
 /// Translation of `PollAllValues()`.
 fn poll_all_values(timestamp: u64, hwdata: &mut HwData, out: &mut Vec<Pending>) {
     // Poll all axis
-    for i in ABS_X..ABS_MAX {
+    for i in ABS_X..ABS_CNT {
         // We don't need to test for digital hats here, they won't have has_abs[] set
         if hwdata.has_abs[i] {
             if let Some(absinfo) = ioctl_absinfo(hwdata.fd, i) {
@@ -1553,7 +1565,7 @@ fn poll_all_values(timestamp: u64, hwdata: &mut HwData, out: &mut Vec<Pending>) 
     // Poll all buttons
     let mut keyinfo: KeyBits = [0; nbits(KEY_MAX)];
     if ioctl_read(hwdata.fd, eviocgkey(size_of::<KeyBits>()), &mut keyinfo) >= 0 {
-        for i in 0..KEY_MAX {
+        for i in 0..KEY_CNT {
             if hwdata.has_key[i] {
                 let down = test_bit(i, &keyinfo);
                 out.push(Pending::Button(timestamp, hwdata.key_map[i], down));
