@@ -45,6 +45,7 @@ pub mod events;
 pub mod filesystem;
 pub mod guid;
 pub mod haptic;
+pub mod hidapi;
 pub mod hints;
 pub mod init;
 pub mod io;

@@ -31,7 +31,7 @@ mod gamepad_db;
 pub(crate) mod linux;
 mod steam_virtual_gamepad;
 mod tables;
-mod usb_ids;
+pub(crate) mod usb_ids;
 mod vidpid;
 mod virtual_joystick;
 #[cfg(windows)]
