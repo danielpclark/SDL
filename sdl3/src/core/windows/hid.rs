@@ -15,7 +15,7 @@ use std::sync::atomic::{AtomicBool, AtomicPtr, AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use windows_sys::core::GUID;
-use windows_sys::Win32::Foundation::HANDLE;
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
 use windows_sys::Win32::System::Threading::{
     CreateEventW, SetEvent, WaitForSingleObject, INFINITE,
 };
@@ -353,13 +353,21 @@ pub(crate) fn quit_device_notification() {
         s.cfgmgr32_lib_handle = None;
     }
 
-    // FIXME (upstream): s_HotplugEvent is never closed, so every init/quit
-    // cycle leaks an event handle.
+    // The thread is joined and no callback can signal the event any more
+    let event = HOTPLUG_EVENT.swap(std::ptr::null_mut(), Ordering::AcqRel);
+    if !event.is_null() {
+        // SAFETY: the event was created by init_device_notification(), and
+        // nothing uses it after this point.
+        unsafe {
+            CloseHandle(event);
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use windows_sys::Win32::Foundation::GetHandleInformation;
 
     #[test]
     fn notifications_start_and_stop() {
@@ -372,5 +380,21 @@ mod tests {
         assert!(STATE.lock().unwrap().hotplug_thread.is_some());
         quit_device_notification();
         assert!(STATE.lock().unwrap().hotplug_thread.is_none());
+    }
+
+    #[test]
+    fn hotplug_event_is_closed() {
+        let _l = crate::test_support::test_lock();
+        for _ in 0..2 {
+            init_device_notification();
+            let event = HOTPLUG_EVENT.load(Ordering::Acquire);
+            assert!(!event.is_null());
+            let mut flags = 0;
+            // SAFETY: flags is writable; the event is open.
+            assert_ne!(unsafe { GetHandleInformation(event, &mut flags) }, 0);
+            quit_device_notification();
+            // Each init/quit cycle releases its event
+            assert!(HOTPLUG_EVENT.load(Ordering::Acquire).is_null());
+        }
     }
 }
