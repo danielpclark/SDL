@@ -6,10 +6,10 @@
 
 //! System notifications.
 //!
-//! Only the dummy backend exists so far: showing a notification reports
-//! that the operation is unsupported. The platform backends (D-Bus,
-//! Windows toasts, the macOS notification center) arrive with the platform
-//! layer.
+//! On Unix systems other than Apple's and Android, notifications go over
+//! D-Bus (`org.freedesktop.Notifications`, or the notification portal in a
+//! sandbox; see `dbusnotification`); elsewhere the dummy backend reports
+//! that the operation is unsupported.
 
 use crate::error::{Error, Result};
 use crate::video::surface::Surface;
@@ -118,25 +118,68 @@ pub fn remove_notification(notification: NotificationID) -> Result<()> {
     sys_remove_notification(notification)
 }
 
-/// Translation of `SDL_RequestNotificationPermission()` (dummy).
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+mod dbusnotification;
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+use dbusnotification as sys;
+
+#[cfg(not(all(unix, not(target_vendor = "apple"), not(target_os = "android"))))]
+mod sys {
+    //! Translation of `src/notification/dummy/SDL_dummynotification.c`.
+
+    use super::{Notification, NotificationID};
+    use crate::error::{Error, Result};
+
+    /// Translation of `SDL_RequestNotificationPermission()` (dummy).
+    pub(super) fn request_notification_permission() -> Result<()> {
+        Err(Error::unsupported())
+    }
+
+    /// Translation of `SDL_SYS_ShowNotification()` (dummy).
+    pub(super) fn show_notification(_notification: &Notification<'_>) -> Result<NotificationID> {
+        Err(Error::unsupported())
+    }
+
+    /// Translation of `SDL_RemoveNotification()` (dummy).
+    pub(super) fn remove_notification(_notification: NotificationID) -> Result<()> {
+        Err(Error::unsupported())
+    }
+
+    /// Translation of `SDL_CleanupNotifications()` (dummy: nothing to do).
+    pub(super) fn cleanup_notifications() {
+        // Nothing to do.
+    }
+
+    /// Translation of `SDL_GetNotificationActivationToken()` (dummy).
+    pub(super) fn notification_activation_token() -> Option<String> {
+        None
+    }
+}
+
 fn sys_request_notification_permission() -> Result<()> {
-    Err(Error::unsupported())
+    sys::request_notification_permission()
 }
 
-/// Translation of `SDL_SYS_ShowNotification()` (dummy).
-fn sys_show_notification(_notification: &Notification<'_>) -> Result<NotificationID> {
-    Err(Error::unsupported())
+fn sys_show_notification(notification: &Notification<'_>) -> Result<NotificationID> {
+    sys::show_notification(notification)
 }
 
-/// Translation of `SDL_RemoveNotification()` (dummy).
-fn sys_remove_notification(_notification: NotificationID) -> Result<()> {
-    Err(Error::unsupported())
+fn sys_remove_notification(notification: NotificationID) -> Result<()> {
+    sys::remove_notification(notification)
 }
 
 /// Free the notification state at shutdown. Translation of
-/// `SDL_CleanupNotifications()` (dummy: nothing to do).
+/// `SDL_CleanupNotifications()`.
 pub(crate) fn cleanup_notifications() {
-    // Nothing to do.
+    sys::cleanup_notifications();
+}
+
+/// The XDG activation token of the last notification action, if it is
+/// fresh, for the Wayland video driver. Translation of
+/// `SDL_GetNotificationActivationToken()`.
+#[allow(dead_code)] // (used by the Wayland video driver)
+pub(crate) fn notification_activation_token() -> Option<String> {
+    sys::notification_activation_token()
 }
 
 #[cfg(test)]
@@ -144,13 +187,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn dummy_notifications() {
+    fn notifications_need_a_title() {
         assert_eq!(
             show_notification(None, Some("m"), None, &[])
                 .unwrap_err()
                 .to_string(),
             "Notifications must have a title"
         );
+        assert_eq!(
+            show_notification_with(&Notification::default())
+                .unwrap_err()
+                .to_string(),
+            "Notifications must have a title"
+        );
+    }
+
+    #[cfg(not(all(unix, not(target_vendor = "apple"), not(target_os = "android"))))]
+    #[test]
+    fn dummy_notifications() {
         assert_eq!(
             show_notification(Some("t"), None, None, &[])
                 .unwrap_err()
