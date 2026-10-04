@@ -199,7 +199,10 @@ pub(crate) mod test_support {
         ("uinput", "a writable /dev/uinput"),
         ("hidapi", "the HID backend: hidraw/libudev, or hid.dll"),
         ("xinput", "an XInput DLL"),
-        ("gameinput", "GameInput.dll (the GameInput redistributable)"),
+        (
+            "gameinput",
+            "a GameInput DLL with the v3 API (the GameInput redistributable)",
+        ),
         ("wgl", "opengl32.dll with a WGL pixel format and context"),
         (
             "wasapi",

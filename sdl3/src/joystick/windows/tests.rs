@@ -1026,11 +1026,12 @@ fn drivers_with_every_api() {
 /// A name for the driver at `index` in `JOYSTICK_DRIVERS`.
 fn driver_label(index: usize) -> String {
     use crate::joystick::{
-        HIDAPI_DRIVER_INDEX, RAWINPUT_DRIVER_INDEX, VIRTUAL_DRIVER_INDEX, WGI_DRIVER_INDEX,
-        WINDOWS_DRIVER_INDEX,
+        GAMEINPUT_DRIVER_INDEX, HIDAPI_DRIVER_INDEX, RAWINPUT_DRIVER_INDEX, VIRTUAL_DRIVER_INDEX,
+        WGI_DRIVER_INDEX, WINDOWS_DRIVER_INDEX,
     };
     match index {
         HIDAPI_DRIVER_INDEX => "HIDAPI".to_owned(),
+        GAMEINPUT_DRIVER_INDEX => "GameInput".to_owned(),
         RAWINPUT_DRIVER_INDEX => "RawInput".to_owned(),
         WINDOWS_DRIVER_INDEX => "DirectInput/XInput".to_owned(),
         WGI_DRIVER_INDEX => "Windows.Gaming.Input".to_owned(),
@@ -1092,11 +1093,20 @@ fn list_joysticks(what: &str, config: &[(&str, &str)]) {
 }
 
 /// Hardware: the controllers each Windows joystick driver sees. There may
-/// be none; this lists them, it doesn't require any.
+/// be none; this lists them, it doesn't require any. Without a usable
+/// GameInput DLL the GameInput driver can't list anything, so "GameInput
+/// alone" is skipped (as `gameinput`) rather than listed as empty.
 #[test]
 #[ignore = "hardware: lists the connected controllers"]
 fn hardware_joysticks_per_driver() {
     let _l = lock();
+    let game_input = match crate::core::windows::gameinput::init_game_input() {
+        Ok(_) => true,
+        Err(e) => {
+            crate::test_support::skip("gameinput", format_args!("no GameInput here ({e})"));
+            false
+        }
+    };
     let only = |on: &'static str| -> Vec<(&'static str, &'static str)> {
         [
             hints::JOYSTICK_HIDAPI,
@@ -1127,6 +1137,9 @@ fn hardware_joysticks_per_driver() {
         ("Windows.Gaming.Input alone", hints::JOYSTICK_WGI),
         ("GameInput alone", hints::JOYSTICK_GAMEINPUT),
     ] {
+        if hint == hints::JOYSTICK_GAMEINPUT && !game_input {
+            continue;
+        }
         list_joysticks(what, &only(hint));
     }
 }
