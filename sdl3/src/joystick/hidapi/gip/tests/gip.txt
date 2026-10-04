@@ -1,0 +1,5042 @@
+case series_x 045e 0b12 1 1
+init
+result 1
+end
+read 20 00 01 0e ff 3e 85 0a 29 48 47 99 e8 f0 f9 e1 4b ff
+update
+result 1
+end
+read 02 30 01 1c 75 a9 84 1c ec 95 42 f9 5e 04 12 0b 05 00 11 00 ed bb 62 44 88 39 01 00 01 00 01 00
+update
+write 04 20 01 00
+write 01 20 01 09 00 02 20 1c 00 00 00 00 00
+result 1
+end
+read 04 f0 02 32 da 01 10 00 01 00 00 00 00 00 00 00 00 00 00 00 da 00 8d 00 00 00 10 00 13 00 19 00 1f 00 5b 00 00 00 02 c1 b7 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1d 00
+read 04 b0 02 32 32 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 43 6f 6e 74 72 6f 6c 6c 65 72 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e
+read 04 b0 02 32 64 47 61 6d 65 70 61 64 03 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 2c 40 2e 08 df 07 e1 45 a5 ab a3 12 7a f1 97 b5 fe d2 dd ec 87 d3 94 42 bd 96
+read 04 b0 02 32 96 01 1a 71 2e 3d c7 7d 00 04 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00 0f 00 0a 03 00 01 00 08 00 00 00 08 00 00 00 0f 00 00 00 00 01 00 20 00 00 00 08
+read 04 b0 02 12 c8 01 00 00 00 0f 00 20 28 00 01 00 10 00 00 00 08 00 00 00
+read 04 b0 02 00 da 01
+update
+write 01 20 02 09 00 04 20 32 00 00 00 a8 00
+write 01 20 02 09 00 04 20 64 00 00 00 76 00
+write 01 20 02 09 00 04 20 96 00 00 00 44 00
+write 01 20 02 09 00 04 20 c8 00 00 00 12 00
+write 01 20 02 09 00 04 20 da 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+async 0a 00 01 03 00 00 00
+async 00 00 02 00
+added
+write 01 20 02 09 00 04 20 da 00 00 00 00 00
+result 1
+end
+open 0
+buttons 12 axes 6 hats 1 type 1
+result 1
+end
+caps 0
+caps 30
+end
+read 20 00 03 05 fb 00 02 bf c9
+update
+result 1
+end
+read 20 00 04 06 9d 30 01 6a 94 8c
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 0
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+read 20 00 05 0e 9c 1a 01 7f e4 9d 01 a8 41 34 76 6e 4f 57
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 6
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 -22527
+axis 1 -13378
+axis 2 28278
+axis 3 -22352
+result 1
+end
+read 20 00 06 16 d9 30 00 31 34 39 c5 8c ad 5c 12 c5 af 58 a9 55 00 a2 3a 27 99 11
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 0
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -29499
+axis 1 -23726
+axis 2 -15086
+axis 3 -22704
+result 1
+end
+read 20 00 07 17 2b 49 02 c0 99 08 f6 83 05 1c 93 0e 28 ee 41 26 68 a9 18 85 2c 98 5c
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+hat 0 3
+button 9 0
+button 10 0
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 -31754
+axis 1 -7174
+axis 2 3731
+axis 3 4567
+result 1
+end
+read 20 00 08 27 e2 3c 03 04 cd 30 5a cd 8f be 7f 66 7a 3d 7d 66 97 30 43 03 72 20 b1 4c ab 35 06 2c 3e 97 0d 1f 8d 87 07 b1 33 3b 57
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 10
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -12966
+axis 1 16752
+axis 2 26239
+axis 3 -15739
+result 1
+end
+read 20 00 09 28 87 7e 01 5d f2 04 7f ba f1 8e 57 76 e9 c2 20 f1 ae c8 3f 40 d1 a4 05 f0 ad 56 97 79 31 b3 a0 84 6a 01 b8 dd d8 55 92 36
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 14
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -17793
+axis 1 28942
+axis 2 30295
+axis 3 15638
+button 11 0
+result 1
+end
+read 20 00 0a 2c ad e8 02 64 cd 28 cb c8 da db f9 bf b8 da c4 9b 23 2f 94 9f 8f cc de 91 c0 ee 1d 03 29 4f 92 62 06 0e bb bb 38 5f 94 51 e4 f2 8f df
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 2
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -14133
+axis 1 9253
+axis 2 -16391
+axis 3 9543
+button 11 0
+result 1
+end
+read 20 00 0b 2c 24 55 03 65 e8 3b 55 c8 74 82 52 33 ab 57 4e 78 4d 85 28 10 e1 fb c7 fc 5d 02 a1 5d 9b 3a 09 d2 7d 59 3d 95 da a4 2b 54 2f 29 07 d1
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+hat 0 9
+button 9 1
+button 10 0
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -14251
+axis 1 32139
+axis 2 13138
+axis 3 -22444
+button 11 0
+result 1
+end
+read 20 00 0c 2c c1 8e 00 25 c9 17 44 78 9b 5e 10 bc ce 10 be ef 32 16 c9 7b 8a a2 2a 1c 07 fa 2e 96 89 07 12 19 95 9c 64 6f 14 87 19 eb d1 5a 6d 12
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 14
+button 9 0
+button 10 0
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 30788
+axis 1 -24220
+axis 2 -17392
+axis 3 -4303
+button 11 1
+result 1
+end
+read 20 00 0d 32 f6 7e 02 af dc a7 b6 9e 34 9d c8 9e 99 4c 41 5b aa 6f fa 09 51 f1 c3 20 d1 07 54 d6 92 0a f8 61 ac 15 f8 e9 35 63 c8 4f 4b 65 f3 a0 e0 a6 c8 57 48 5f
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+hat 0 14
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -24906
+axis 1 25291
+axis 2 -24888
+axis 3 -19610
+button 11 1
+result 1
+end
+read 20 00 0e 3c 56 84 01 b8 a3 4c 87 c9 e3 de df 05 97 89 fc dc 18 f8 f5 47 53 3f fb b8 45 a7 35 c2 35 3a 5b 88 b5 0d 14 e7 56 50 10 63 2e 16 e5 d2 0b e5 aa ca 74 fd 56 cc 63 69 d6 2d c5 c7 f0 c8
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 8
+button 9 0
+button 10 0
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 -13945
+axis 1 8476
+axis 2 1503
+axis 3 30312
+button 11 0
+result 1
+end
+read 20 00 14 2c d6 da ff ff c4 99 e8 f2 35 1b 39 f0 13 13 f7 75 18 98 dc 34 1c 7d ee 38 1f 6e 6b 57 16 cf 72 77 76 54 71 84 81 60 52 2d 53 1f 65 61
+read 20 00 15 2c d6 da ff ff c4 99 e8 f2 35 1b 39 f0 13 13 f7 75 18 98 dc 34 1c 7d ee 38 1f 6e 6b 57 16 cf 72 77 76 54 71 84 81 60 52 2d 53 1f 65 61
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 6
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 -3352
+axis 1 -6966
+axis 2 -4039
+axis 3 -4884
+button 11 0
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 -3352
+axis 1 -6966
+axis 2 -4039
+axis 3 -4884
+result 1
+end
+read 20 00 16 2c d6 da ff 03 00 02 e8 f2 35 1b 39 f0 13 13 f7 75 18 98 dc 34 1c 7d ee 38 1f 6e 6b 57 16 cf 72 77 76 54 71 84 81 60 52 2d 53 1f 65 61
+update
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 0
+axis 0 -3352
+axis 1 -6966
+axis 2 -4039
+axis 3 -4884
+result 1
+end
+read 07 30 05 02 01 5b
+read 07 20 06 02 00 5b
+read 07 20 07 02 02 5c
+read 07 20 08 01 02
+update
+button 5 1
+write 01 20 05 09 00 07 20 02 00 00 00 00 00
+button 5 0
+result 1
+end
+read 03 20 09 01 00
+read 03 20 10 01 07
+read 03 20 17 01 0e
+read 03 20 1e 01 15
+read 03 20 25 01 1c
+read 03 20 2c 01 23
+read 03 20 33 01 2a
+read 03 20 3a 01 31
+read 03 20 41 01 38
+read 03 20 48 01 3f
+read 03 20 4f 01 46
+read 03 20 56 01 4d
+read 03 20 5d 01 54
+read 03 20 64 01 5b
+read 03 20 6b 01 62
+read 03 20 72 01 69
+read 03 20 79 01 70
+read 03 20 80 01 77
+read 03 20 87 01 7e
+read 03 20 8e 01 85
+read 03 20 95 01 8c
+read 03 20 9c 01 93
+read 03 20 a3 01 9a
+read 03 20 aa 01 a1
+read 03 20 b1 01 a8
+read 03 20 b8 01 af
+read 03 20 bf 01 b6
+read 03 20 c6 01 bd
+read 03 20 cd 01 c4
+read 03 20 d4 01 cb
+read 03 20 db 01 d2
+read 03 20 e2 01 d9
+read 03 20 e9 01 e0
+read 03 20 f0 01 e7
+read 03 20 f7 01 ee
+read 03 20 fe 01 f5
+read 03 20 05 01 fc
+update
+power NoBattery 1
+power OnBattery 100
+power Unknown 50
+power Charging 25
+power Unknown 1
+power NoBattery 100
+power Unknown 50
+power NoBattery 25
+power Unknown 1
+power Unknown 100
+power OnBattery 50
+power Unknown 25
+power Charging 1
+power Charged 100
+power NoBattery 50
+power Unknown 25
+power NoBattery 1
+power Unknown 100
+power Unknown 50
+power OnBattery 25
+power Unknown 1
+power NoBattery 100
+power Charging 50
+power NoBattery 25
+power Unknown 1
+power Unknown 100
+power Unknown 50
+power Unknown 25
+power OnBattery 1
+power OnBattery 100
+power NoBattery 50
+power Charging 25
+power NoBattery 1
+power Unknown 100
+power Unknown 50
+power Unknown 25
+power Unknown 1
+result 1
+end
+read 03 20 0a 04 0a 01 00 00
+read 03 20 0b 04 0a 02 00 00
+read 03 20 0c 05 0a 02 00 00 06
+read 03 20 0d 18 0a 02 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 03 20 0e 19 0a 02 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+update
+power OnBattery 50
+power OnBattery 50
+power OnBattery 50
+power OnBattery 50
+power OnBattery 50
+result 1
+end
+read 1e 30 01 18 04 00 33 30 33 39 35 36 33 34 33 32 33 31 33 39 33 37 33 38 33 31 33 32
+read 1e 20 02 18 04 01 33 30 33 39 35 36 33 34 33 32 33 31 33 39 33 37 33 38 33 31 33 32
+read 1e 30 03 18 01 01 33 30 33 39 35 36 33 34 33 32 33 31 33 39 33 37 33 38 33 31 33 32
+read 1e 20 04 01 01
+update
+serial 3039563432313937383132
+write 01 20 01 09 00 1e 20 18 00 00 00 00 00
+result 1
+end
+read 1e 20 05 25 04 00 30 31 32 33 34 35 36 37 38 39 61 62 63 64 65 66 30 31 32 33 34 35 36 37 38 39 61 62 63 64 65 66 58 59 5a
+update
+serial 0123456789abcdef0123456789abcdef
+result 1
+end
+rumble 0 4660 65244
+async 09 00 00 09 00 0f 00 00 07 63 cd 00 00
+result 1
+end
+rumble 0 65535 0
+result 1
+end
+update
+result 1
+end
+advance 9
+end
+update
+result 1
+end
+advance 1
+end
+update
+async 09 00 00 09 00 0f 00 00 64 00 cd 00 00
+result 1
+end
+triggers 0 32768 16384
+result 1
+end
+advance 10
+end
+update
+async 09 00 00 09 00 0f 32 19 64 00 cd 00 00
+result 1
+end
+update
+result 1
+end
+caps 0
+caps 30
+end
+led 0 1 2 3
+unsupported
+result 0
+end
+led 3 1 2 3
+error Invalid joystick
+result 0
+end
+rumble 3 1 2
+error Invalid joystick
+result 0
+end
+read 60 30 01 08 01 02 03 04 05 06 07 08
+read 06 30 01 08 01 02 03 04 05 06 07 08
+read 01 20 01 08 01 02 03 04 05 06 07 08
+read 0c 20 01 08 01 02 03 04 05 06 07 08
+read 0b 20 01 08 01 02 03 04 05 06 07 08
+read 0c 00 01 08 01 02 03 04 05 06 07 08
+read 21 10 01 08 01 02 03 04 05 06 07 08
+read 22 00 01 08 01 02 03 04 05 06 07 08
+read 26 00 01 08 01 02 03 04 05 06 07 08
+read 55 00 01 08 01 02 03 04 05 06 07 08
+read 1a 20 01 08 01 02 03 04 05 06 07 08
+update
+result 1
+end
+read 20 00 01 20 01 02 03 04 05 06
+read 20 00 01 20
+read 20 00 01 86 00 10 03 04 05 06 00 00 00 00 00 00
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 5
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32384
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+read 21 d0 03 28 78 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b 71 42 c4 65 1d 62 be c0 03 95 fd b9 b8 c9 a8 0a 64 12 c7 c4
+read 21 90 03 28 28 0a ff 6c 0c 95 b7 a1 95 a6 dc 10 e1 1f 1c 75 37 6f 97 c4 63 9c f4 19 30 11 41 64 a6 2d 8e d0 04 87 49 f8 7c 03 58 c9 b1
+read 21 90 03 28 50 96 f9 35 f1 d9 59 9d 32 4f f5 fb ce 75 b4 d2 fe 8f c1 d7 18 2d 2a 5d 88 80 3a 81 90 5e 96 19 bf 16 1a 5d 33 f5 71 53 8e
+read 21 90 03 00 78
+update
+write 01 20 03 09 00 21 00 28 00 00 00 50 00
+write 01 20 03 09 00 21 00 50 00 00 00 28 00
+write 01 20 03 09 00 21 00 78 00 00 00 00 00
+result 1
+end
+read 21 d0 04 14 64 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 22 90 04 14 14 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 90 04 14 1e ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 90 04 51 14 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 90 04 32 14 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 90 04 14 46 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 90 04 0a 5a ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 90 04 00 64
+update
+write 01 20 04 09 00 21 00 14 00 00 00 50 00
+write 01 20 04 09 00 22 00 14 00 00 00 50 00
+write 01 20 04 09 00 21 00 14 00 00 00 50 00
+write 01 20 04 09 00 21 00 14 00 00 00 50 00
+write 01 20 04 09 00 21 00 46 00 00 00 1e 00
+write 01 20 04 09 00 21 00 5a 00 00 00 0a 00
+write 01 20 04 09 00 21 00 64 00 00 00 00 00
+result 1
+end
+read 21 d0 04 3c 64 ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 d0 04 14 0a ac 62 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+read 21 d0 04 14 81 80 01 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+update
+result 1
+end
+read 21 d0 04 14 64 80 01 0c 8d 7b 3e 28 92 2e 62 46 88 bb 3c 8a 35 6e cb 57 4b
+update
+write 01 20 04 09 00 21 00 14 00 00 00 50 00
+result 1
+end
+advance 1000
+end
+update
+result 1
+end
+joystickopen 0
+end
+read 20 00 1e 2c b5 a3 ff d3 70 b2 ef cc 69 48 dd 53 0e 8f bf 17 3c 79 aa a9 49 e4 b7 fb ce 76 b2 9a 35 33 88 ab 06 de 6f a7 f0 15 d3 d6 9a 2b 04 8d
+read 07 30 09 02 01 5b
+read 03 20 0f 01 12
+update
+result 1
+end
+joystickopen 1
+end
+read 20 00 1f 2c 27 c5 a0 27 8b 33 c1 c4 91 94 e7 c4 a8 a8 a4 02 71 73 0a d0 09 97 d5 b7 16 6f 57 eb 93 eb 27 90 5c 2e 88 af 78 e9 9b f7 2a 75 45 33
+read -1
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+hat 0 9
+button 9 0
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -15167
+axis 1 27502
+axis 2 -15129
+axis 3 22359
+button 11 0
+removed
+result 0
+end
+update
+result 1
+end
+free
+end
+endcase
+case elite2 045e 0b00 1 0
+init
+result 1
+end
+read 02 20 01 1c b6 b3 de 8f f4 a4 9e 8a 5e 04 00 0b 05 00 0d 00 2c 7f dd 15 03 43 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 c0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 c0 00 91 00 00 00 00 00 10 00 16 00 1c 00 39 00 8a 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 1a 00 57 69 6e
+read 04 b0 02 32 32 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 05 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 02 32 64 a3 12 7a f1 97 b5 f7 9f d1 37 c6 b5 d1 49 a7 5e 03 b2 4b ef 8c 89 77 ce 34 7a e2 7d c6 45 8c a4 00 42 c0 8b d9 4a 6b e5 f2 87 bb c3 b1 49 82 65 ff ff
+read 04 b0 02 2a 96 01 f3 77 99 ee 05 6c 00 e7 82 d1 00 02 0f 00 09 09 00 01 00 18 00 00 00 08 00 00 00 0f 00 0e 05 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 02 00 c0 01
+update
+write 01 20 02 09 00 04 20 32 00 00 00 8e 00
+write 01 20 02 09 00 04 20 64 00 00 00 5c 00
+write 01 20 02 09 00 04 20 96 00 00 00 2a 00
+write 01 20 02 09 00 04 20 c0 00 00 00 00 00
+write 05 20 02 0f 06 00 00 00 00 00 00 55 53 00 00 00 00 00 00
+async 4d 00 01 02 07 00
+write 05 20 03 01 00
+write 0a 20 04 03 00 01 14
+added
+write 01 20 02 09 00 04 20 c0 00 00 00 00 00
+result 1
+end
+open 0
+async 4d 00 02 02 07 00
+buttons 16 axes 6 hats 1 type 1
+result 1
+end
+caps 0
+caps 32
+end
+led 0 16 32 48
+async 0e 00 03 05 00 00 10 20 30
+result 1
+end
+read 0c 00 0a 11 8e f7 fa 16 3b 5d 11 85 65 e1 6a b0 e2 a1 16 3e df
+update
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 0c 00 0b 11 7b cc 0b 8d 23 f3 84 b0 ac e6 e7 d0 32 88 fb 2c b2
+update
+button 11 1
+button 12 1
+button 13 0
+button 14 1
+result 1
+end
+read 0c 00 0c 11 69 b8 7d d5 ec 97 9c a0 04 65 86 0c 4f 58 4f 65 97
+update
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 0c 00 0d 11 f1 59 9c 8a 96 29 4b 98 81 bb 66 ea cc e4 ad fc cb
+update
+button 11 1
+button 12 0
+button 13 1
+button 14 1
+result 1
+end
+read 0c 00 0e 11 e5 67 e1 1e 36 4b eb 3b e7 72 10 9a 48 59 d7 da b2
+update
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 0c 00 0f 10 1f 8b a4 10 86 fe b0 87 f7 9e a1 b4 7b 5c 9e 00
+update
+result 1
+end
+read 20 00 14 32 08 fc 83 f1 28 fe d1 95 7f fa b3 b7 04 e4 0f f8 8d 9e 3f c3 e9 de 8f 17 bd dd 75 12 1f c5 0e 41 f4 d8 5d a9 0a 60 c2 94 f4 5a 3c 1d a9 e1 5e 7b db 5b
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 10
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 -27183
+axis 1 1408
+axis 2 -18509
+axis 3 7163
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+result 1
+end
+read 20 00 15 32 0d 19 67 11 29 a4 82 1e a4 11 7c 05 21 a2 0d 54 1b 65 96 e2 b0 0a 29 f3 33 85 98 4b 6f 68 cf e2 bc fe 50 5e c4 27 e2 51 12 f6 f9 35 60 0b e4 29 9d b2
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 3
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 7810
+axis 1 -4517
+axis 2 1404
+axis 3 24030
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+result 1
+end
+read 20 00 16 32 69 c0 b8 00 8f 4f 11 22 8c ae 2b 90 65 28 00 b2 ad bf 3e 96 c6 b4 46 55 d6 d5 27 45 8b 89 68 e0 8f 9c f7 77 ca cb c4 96 5b 0f 1d 36 54 aa c8 a5 37 f2
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 0
+button 9 0
+button 10 0
+button 7 1
+button 8 1
+axis 4 -20992
+axis 5 32767
+axis 0 8721
+axis 1 20851
+axis 2 -28629
+axis 3 -10342
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+result 1
+end
+read 0c 30 03 0e 01 00 00 00 00 00 04 00 08 00 01 00 02 00
+update
+write 01 20 03 09 00 0c 20 0e 00 00 00 00 00
+result 1
+end
+read 20 00 1e 32 36 34 e0 7a a8 20 58 ec 57 35 36 ff 25 8c 0c be 26 5b fe 17 0e ee 6a 35 5a 67 98 9d 41 35 36 0a 59 55 f0 09 0a 4b c1 55 b3 df fc f0 9e 98 19 05 a4 fa
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 8
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -5032
+axis 1 -13656
+axis 2 -202
+axis 3 29658
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+result 1
+end
+read 20 00 1f 32 81 9f 7f 97 6b 94 56 4c 07 9d dd 61 af 98 00 3a 6c 92 8f e8 57 f1 41 33 b2 63 eb 69 c5 8a 5e e9 7a 64 44 6f b8 7c d8 1d 80 d2 68 4d c8 8b 8c 18 1a 59
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 15
+button 9 1
+button 10 0
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 19542
+axis 1 25336
+axis 2 25053
+axis 3 26448
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+result 1
+end
+read 20 00 20 32 a6 ec a8 13 34 be 8e bd e6 f6 6f 41 52 7b 03 76 c8 13 a9 a7 63 7d f8 0f d1 4e ca 13 e1 8c 76 41 d1 0c 71 0d 55 8b 35 45 67 8f ed 59 d2 fb e5 4d 7c 75
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 10
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 -17010
+axis 1 2329
+axis 2 16751
+axis 3 -31571
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+result 1
+end
+read 20 00 21 32 7a 76 78 26 08 c5 38 ec 2b ee 39 03 20 43 0e e4 e6 f0 92 70 bd c4 88 9a 60 c1 73 d2 01 62 d5 35 09 ae e8 76 8c 01 7e 8a 8e 95 99 16 f8 d3 ca 99 58 5c
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 12
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 -5064
+axis 1 4564
+axis 2 825
+axis 3 -17185
+button 11 0
+button 12 1
+button 13 1
+button 14 1
+button 15 0
+result 1
+end
+read 20 00 22 32 59 5c d6 da 0e 0c 77 5a 51 ca 52 2b c3 0b 04 46 fd d3 5e 19 3b f2 30 25 c7 00 5a 59 27 19 f1 2c 06 59 73 7c e3 16 4c 29 7b e0 24 70 f7 3a ef 09 d6 15
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 10
+button 9 1
+button 10 0
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 23159
+axis 1 13742
+axis 2 11090
+axis 3 -3012
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+result 1
+end
+read 20 00 23 32 01 98 10 16 55 30 72 ae 52 27 e3 08 af 90 0d 74 66 af 37 98 54 68 7b b1 9c 69 4c a7 aa 17 8a d7 2c 39 a0 9f 9f 67 84 a9 ae 30 6c f7 4b 0e 51 b3 91 0b
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 2
+button 9 1
+button 10 0
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -20878
+axis 1 -10067
+axis 2 2275
+axis 3 28496
+button 11 1
+button 12 0
+button 13 1
+button 14 1
+button 15 0
+result 1
+end
+read 20 00 24 32 b4 5d 2f d3 d0 a6 b0 fa e4 a0 d9 6a a4 95 06 58 23 7e 85 6f 20 64 dc 6e 18 79 99 bb 05 f5 8e 99 f7 b2 e9 20 59 86 65 fd ff 64 33 ec f1 31 a6 f7 fb 67
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 11
+button 9 1
+button 10 0
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -1360
+axis 1 24347
+axis 2 27353
+axis 3 27227
+button 11 0
+button 12 1
+button 13 1
+button 14 0
+button 15 0
+result 1
+end
+read 20 00 25 0f 6c f0 6c c1 9f c2 b0 49 64 43 89 d1 4b b9 0e
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 0
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 18864
+axis 1 -17253
+axis 2 -11895
+axis 3 18100
+button 11 0
+button 12 1
+button 13 1
+button 14 1
+result 1
+end
+read 0c 20 04 0e 01 00 00 00 00 00 05 00 14 00 01 00 02 00
+read 0c 20 05 0d 01 00 00 00 00 00 05 00 14 00 01 00 02
+read 0c 20 06 0e 02 00 00 00 00 00 05 00 14 00 01 00 02 00
+update
+result 1
+end
+read 20 00 28 32 99 24 35 20 0b 4e 6d 3e 4a 97 fa a2 2d 7d 04 d4 b1 ee bf 77 b8 4d 69 36 84 46 45 6c f3 52 2a 96 78 09 aa 79 dd 2b 33 12 bb 6c e8 42 b4 03 3d 36 77 f1
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 8
+button 9 0
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 15981
+axis 1 26805
+axis 2 -23814
+axis 3 -32046
+button 11 0
+button 12 0
+button 13 1
+button 14 0
+button 15 0
+result 1
+end
+read 20 00 29 32 98 71 12 1b 77 54 e5 22 f7 49 1b 3d b8 f4 01 de 07 2b ed 2f c7 76 4a f2 1d 46 e4 19 de f6 d3 24 ba 82 67 3f 25 0a f8 17 09 05 6a 80 2d 44 82 c8 63 ad
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 1
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 8933
+axis 1 -18936
+axis 2 15643
+axis 3 2887
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+result 1
+end
+read 20 00 2a 32 d8 74 b5 08 10 cc 9a 78 e0 e6 66 6a 27 75 04 a4 4c 57 df 57 1c 3b de 99 6a 0c a2 c6 60 24 1c 80 a7 32 ae 7e 3b e7 68 18 0b 63 ff 90 53 63 8c 26 ba 27
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 8
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 30874
+axis 1 6431
+axis 2 27238
+axis 3 -29992
+button 11 0
+button 12 0
+button 13 1
+button 14 0
+button 15 0
+result 1
+end
+read 20 00 2b 32 da 2b 24 8e ff 73 6e 44 84 9f e4 2d 02 13 09 98 85 6b 05 68 18 12 70 f9 1d a3 1a f5 3f 02 ab c5 59 39 5d cc f4 14 6b 63 94 7d 39 9b c9 95 40 b2 f3 96
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 7
+button 9 0
+button 10 1
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 17518
+axis 1 24699
+axis 2 11748
+axis 3 -4867
+button 11 1
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+result 1
+end
+read 20 00 2c 32 51 d8 6b 23 8b e7 0c 33 96 49 9b fb 47 ad 00 7c 4f d0 c5 1b 38 cf f0 bb 1d 2c a4 c0 2c a2 b6 ad dd a9 90 95 ef c7 88 45 27 9d fe 31 c8 ad 38 1f d1 ec
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 2
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 13068
+axis 1 -18839
+axis 2 -1125
+axis 3 21176
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 20 00 2d 32 95 f9 0b f3 03 6b 85 b9 b1 41 69 c3 67 c2 05 f8 de 5c 96 0f e8 60 91 a2 63 80 31 18 d7 08 9f 34 f2 df 22 7b a9 3d 2c 4a 2a 29 20 b4 84 ba e4 1d 15 0a
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 3
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 -18043
+axis 1 -16818
+axis 2 -15511
+axis 3 15768
+button 11 1
+button 12 0
+button 13 1
+button 14 0
+button 15 1
+result 1
+end
+read 20 00 2e 32 98 b7 f8 7f 00 aa a6 11 d8 3f ae 41 e3 4a 02 eb 83 45 4a 77 d2 44 1d 9f 82 9d 7b ff 75 53 30 5e 1b 47 a9 be 8f 1d 74 25 71 ef 79 2a 81 b4 fa 3e 00 6e
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 13
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 4518
+axis 1 -16345
+axis 2 16814
+axis 3 -19172
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+result 1
+end
+read 20 00 2f 12 c0 c7 17 53 bf 24 49 be 8c 77 b0 08 07 91 00 28 a7 c8
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 13
+button 9 0
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -16823
+axis 1 -30605
+axis 2 2224
+axis 3 28408
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 0c 20 07 0e 01 00 00 00 00 00 05 00 0d 00 01 00 02 00
+update
+async 4d 00 04 02 07 00
+result 1
+end
+rumble 0 32768 32768
+async 09 00 00 09 00 0f 00 00 32 32 cd 00 00
+result 1
+end
+triggers 0 65535 65535
+result 1
+end
+free
+end
+endcase
+case elite1 045e 02e3 0 0
+init
+result 1
+end
+read 20 00 01 1e 20 46 da 7e 22 b2 87 49 9f f4 ec bd f9 5e a1 ba 04 56 92 21 3c e5 9e 43 c8 ff f1 0b 32 90
+update
+added
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+hat 0 12
+button 9 0
+button 10 0
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 18823
+axis 1 2912
+axis 2 -16916
+axis 3 -24314
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+result 1
+end
+open 0
+buttons 15 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 02 1e ea e4 4b 0b 85 62 31 6c 21 49 e3 3f ca 0b a9 d9 47 67 3e c5 bd ab 61 60 25 a9 1c 34 7f 7b
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 8
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 27697
+axis 1 -18722
+axis 2 16355
+axis 3 -3019
+button 11 1
+button 12 1
+button 13 1
+button 14 1
+result 1
+end
+read 20 00 03 1e 15 73 f6 0c fd 9c ef 00 a8 53 30 e5 ef 2d 38 f9 e6 d3 b6 4e b4 b5 c4 59 35 6e e4 38 51 f5
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 5
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 239
+axis 1 -21417
+axis 2 -6864
+axis 3 -11760
+button 11 0
+button 12 0
+button 13 1
+button 14 0
+result 1
+end
+read 20 00 04 1e c6 1a 89 8f 61 a8 5b 82 76 b4 f8 8c d1 f7 7d 3a a6 40 79 28 5e 58 a0 3f 23 96 35 af 3a 40
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 6
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -32165
+axis 1 19337
+axis 2 -29448
+axis 3 2094
+button 11 1
+button 12 1
+button 13 0
+button 14 0
+result 1
+end
+read 20 00 05 1e ab c3 a8 44 e7 22 03 59 d3 eb 08 28 94 7f 4d 53 c7 09 60 4f f5 47 a8 17 d4 19 fa 94 43 cb
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 5
+button 9 0
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 22787
+axis 1 5164
+axis 2 10248
+axis 3 -32661
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 20 00 06 1e c7 03 22 38 bc 37 28 06 2f 9a b7 1b fb 82 c7 e9 46 98 79 be 6e 54 df 9c b2 3b 91 d9 b0 d8
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 5
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 1576
+axis 1 26064
+axis 2 7095
+axis 3 32004
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 20 00 07 1e 77 42 7c 39 41 08 b5 49 aa 74 8f 33 65 88 8d 82 c3 ef 65 4e d1 ed 7f 00 2d 08 2c e5 ac 74
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 4
+button 9 0
+button 10 0
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 18869
+axis 1 -29867
+axis 2 13199
+axis 3 30618
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 20 00 08 1e 75 ae 3f cc 61 3c 41 9a 5f e6 c1 6a b5 5e e8 ec 87 d4 e6 e6 e0 11 e6 ac 81 53 b2 5f 6d eb
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 14
+button 9 0
+button 10 1
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 -26047
+axis 1 6560
+axis 2 27329
+axis 3 -24246
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+read 20 00 09 1c e5 30 97 56 ac f3 a0 7f 1e 41 b3 ae e2 97 80 32 d9 ad 14 c3 d3 87 f7 6f 15 3a 05 48
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 0
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 32672
+axis 1 -16671
+axis 2 -20813
+axis 3 26653
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+result 1
+end
+caps 0
+caps 30
+end
+free
+end
+endcase
+case one_s 045e 02ea 0 0
+init
+result 1
+end
+update
+result 1
+end
+advance 1999
+end
+update
+result 1
+end
+advance 1
+end
+update
+added
+write 05 20 01 01 00
+write 0a 20 02 03 00 01 14
+write 06 20 01 02 01 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 02 0e 7f 0c cf cd f9 2b 1f d4 46 e5 d9 79 c7 08
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 10
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 -11233
+axis 1 6841
+axis 2 31193
+axis 3 -2248
+result 1
+end
+read 20 00 03 0e d3 b1 30 40 7f 8a cf 7a 1d e4 9c fa a0 f0
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 1
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 31439
+axis 1 7138
+axis 2 -1380
+axis 3 3935
+result 1
+end
+read 20 00 04 0e 04 3b 61 6a 75 8a 86 96 a8 61 31 fc b2 84
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 7
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 -27002
+axis 1 -25001
+axis 2 -975
+axis 3 31565
+result 1
+end
+read 20 00 05 0e 68 e3 ca dd c7 8e d8 18 e7 38 c2 fe 8d d1
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 5
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 6360
+axis 1 -14568
+axis 2 -318
+axis 3 11890
+result 1
+end
+rumble 0 16384 8192
+async 09 00 00 09 00 0f 00 00 19 0c cd 00 00
+result 1
+end
+triggers 0 4096 2048
+result 1
+end
+triggers 0 8192 2048
+result 1
+end
+update
+result 1
+end
+advance 10
+end
+update
+async 09 00 00 09 00 0f 0c 03 19 0c cd 00 00
+result 1
+end
+caps 0
+caps 30
+end
+led 0 1 1 1
+unsupported
+result 0
+end
+read 02 30 01 1c 75 92 93 77 b5 ee 96 b3 5e 04 ea 02 03 00 01 00 90 f4 44 93 21 2b 01 00 01 00 01 00
+update
+write 04 20 03 00
+write 01 20 01 09 00 02 20 1c 00 00 00 00 00
+result 1
+end
+read 04 f0 02 32 5c 10 00 01 00 00 00 00 00 00 00 00 00 00 00 5c 00 4b 00 00 00 00 00 10 00 16 00 1c 00 39 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 1a 00 57 69 6e
+read 04 b0 02 2a 32 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 01 2c 40 2e 08 df 07 e1 45 a5 ab a3 12 7a f1 97 b5 00 00
+read 04 b0 02 00 5c
+update
+write 01 20 02 09 00 04 20 32 00 00 00 2a 00
+write 01 20 02 09 00 04 20 5c 00 00 00 00 00
+write 05 20 04 01 00
+write 0a 20 05 03 00 01 14
+write 06 20 02 02 01 00
+write 01 20 02 09 00 04 20 5c 00 00 00 00 00
+result 1
+end
+caps 0
+caps 0
+end
+rumble 0 1 1
+unsupported
+result 0
+end
+free
+end
+endcase
+case rock_candy 0e6f 0246 1 0
+init
+write 04 20 01 00
+result 1
+end
+update
+result 1
+end
+advance 500
+end
+update
+write 04 20 02 00
+result 1
+end
+advance 500
+end
+update
+write 04 20 03 00
+result 1
+end
+advance 500
+end
+update
+write 04 20 04 00
+result 1
+end
+advance 500
+end
+update
+write 05 20 05 01 07
+result 1
+end
+read 02 20 01 1c 5f 99 aa 52 6c 39 5e e0 6f 0e 46 02 01 00 02 00 19 94 92 2b 36 ae 01 00 01 00 01 00
+update
+write 05 20 06 01 07
+result 1
+end
+read 04 e0 03 28 5a 10 00 01 00 00 00 00 00 00 00 00 00 00 00 5a 00 3a 00 00 00 00 00 10 00 16 00 1c 00 00 00 00 00 05 02 03 04 07 1e 05 04
+update
+result 1
+end
+advance 600
+end
+update
+result 1
+end
+advance 500
+end
+update
+write 05 20 07 01 07
+result 1
+end
+free
+end
+endcase
+case no_reset 0e6f 0246 0 0
+init
+write 04 20 01 00
+result 1
+end
+read 20 00 01 0e b6 ef 67 6c 7f 42 0e 1f d8 64 19 64 31 a8
+update
+result 1
+end
+advance 2000
+end
+update
+write 04 20 02 00
+result 1
+end
+free
+end
+endcase
+case chatpad 045e 02ea 1 0
+init
+result 1
+end
+read 02 31 01 1c b4 62 18 d6 f5 66 8b 82 5e 04 34 12 01 00 00 00 72 a7 9c dd af 61 01 00 01 00 01 00
+update
+write 04 21 01 00
+write 01 21 01 09 00 02 20 1c 00 00 00 00 00
+result 1
+end
+read 04 f1 02 32 4a 10 00 01 00 00 00 00 00 00 00 00 00 00 00 4a 00 39 00 00 00 00 00 10 00 15 00 1b 00 00 00 00 00 04 02 03 04 0b 05 04 05 06 0a 1e 01 1a 00 57 69 6e 64
+read 04 b1 02 18 32 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 43 68 61 74 70 61 64 00 00
+read 04 b1 02 00 4a
+update
+write 01 21 02 09 00 04 20 32 00 00 00 18 00
+write 01 21 02 09 00 04 20 4a 00 00 00 00 00
+write 05 21 02 01 00
+write 0a 21 03 03 00 01 14
+write 06 21 01 02 01 00
+keyboard add Xbox One Chatpad
+write 01 21 02 09 00 04 20 4a 00 00 00 00 00
+result 1
+end
+read 0b 21 03 08 00 00 04 00 00 00 00 00
+read 0b 21 04 08 00 00 00 00 00 00 00 00
+read 0b 21 05 08 02 00 00 00 00 00 00 00
+read 0b 21 06 08 02 00 05 00 00 00 00 00
+update
+key 4 1
+key 4 0
+text 61
+key 225 1
+key 0 1
+key 5 1
+result 1
+end
+read 0b 21 07 08 02 00 00 00 00 00 00 00
+read 0b 21 08 08 00 00 00 00 00 00 00 00
+read 0b 21 09 08 00 00 39 00 00 00 00 00
+read 0b 21 0a 08 00 00 00 00 00 00 00 00
+update
+key 5 0
+text 42
+key 225 0
+key 0 1
+key 57 1
+key 57 0
+result 1
+end
+read 0b 21 0b 08 00 00 06 00 00 00 00 00
+read 0b 21 0c 08 00 00 00 00 00 00 00 00
+read 0b 21 0d 08 02 00 06 00 00 00 00 00
+read 0b 21 0e 08 02 00 00 00 00 00 00 00
+update
+key 6 1
+key 6 0
+text 43
+key 225 1
+key 6 1
+key 6 0
+text 43
+result 1
+end
+read 0b 21 0f 08 00 00 39 00 00 00 00 00
+read 0b 21 10 08 00 00 00 00 00 00 00 00
+read 0b 21 11 08 00 00 1e 00 00 00 00 00
+read 0b 21 12 08 00 00 00 00 00 00 00 00
+update
+key 225 0
+key 57 1
+key 57 0
+key 30 1
+key 30 0
+text 31
+result 1
+end
+read 0b 21 13 08 02 00 1f 00 00 00 00 00
+read 0b 21 14 08 02 00 00 00 00 00 00 00
+read 0b 21 15 08 00 00 28 00 00 00 00 00
+read 0b 21 16 08 00 00 00 00 00 00 00 00
+update
+key 225 1
+key 31 1
+key 31 0
+text 40
+key 225 0
+key 40 1
+key 40 0
+text 0d
+result 1
+end
+read 0b 21 17 08 00 00 4c 00 00 00 00 00
+read 0b 21 18 08 00 00 00 00 00 00 00 00
+read 0b 21 19 08 00 00 70 00 00 00 00 00
+read 0b 21 1a 08 00 00 00 00 00 00 00 00
+update
+key 76 1
+key 76 0
+text 7f
+key 112 1
+key 112 0
+result 1
+end
+read 0b 21 1b 08 01 00 07 00 00 00 00 00
+read 0b 21 1c 08 01 00 00 00 00 00 00 00
+read 0b 21 1d 08 00 00 00 00 00 00 00 00
+read 0b 21 1e 08 04 00 62 00 00 00 00 00
+update
+key 7 1
+key 7 0
+key 0 1
+key 98 1
+result 1
+end
+read 0b 21 1f 08 04 00 00 00 00 00 00 00
+read 0b 21 20 08 04 00 59 00 00 00 00 00
+read 0b 21 21 08 04 00 00 00 00 00 00 00
+read 0b 21 22 08 04 00 5a 00 00 00 00 00
+update
+key 98 0
+key 89 1
+key 89 0
+key 90 1
+result 1
+end
+read 0b 21 23 08 04 00 00 00 00 00 00 00
+read 0b 21 24 08 04 00 60 00 00 00 00 00
+read 0b 21 25 08 04 00 00 00 00 00 00 00
+read 0b 21 26 08 00 00 00 00 00 00 00 00
+update
+key 90 0
+key 96 1
+key 96 0
+text e2 82 ac
+key 83 1
+key 83 0
+key 0 1
+result 1
+end
+read 0b 21 27 08 04 00 62 00 00 00 00 00
+read 0b 21 28 08 04 00 00 00 00 00 00 00
+read 0b 21 29 08 04 00 5a 00 00 00 00 00
+read 0b 21 2a 08 04 00 5b 00 00 00 00 00
+update
+key 98 1
+key 98 0
+key 90 1
+key 91 1
+result 1
+end
+read 0b 21 2b 08 04 00 00 00 00 00 00 00
+read 0b 21 2c 08 04 00 5b 00 00 00 00 00
+read 0b 21 2d 08 04 00 00 00 00 00 00 00
+read 0b 21 2e 08 00 00 00 00 00 00 00 00
+update
+key 91 0
+key 91 1
+key 91 0
+text c3 a9
+key 83 1
+key 83 0
+key 0 1
+result 1
+end
+read 0b 21 2f 08 04 00 59 00 00 00 00 00
+read 0b 21 30 08 04 00 00 00 00 00 00 00
+read 0b 21 31 08 04 00 5a 00 00 00 00 00
+read 0b 21 32 08 04 00 00 00 00 00 00 00
+update
+key 89 1
+key 89 0
+key 90 1
+key 90 0
+result 1
+end
+read 0b 21 33 08 00 00 00 00 00 00 00 00
+read 0b 21 34 08 04 00 62 00 00 00 00 00
+read 0b 21 35 08 04 00 00 00 00 00 00 00
+read 0b 21 36 08 04 00 04 00 00 00 00 00
+update
+key 83 1
+key 83 0
+key 0 1
+key 98 1
+key 98 0
+key 4 1
+result 1
+end
+read 0b 21 37 08 04 00 00 00 00 00 00 00
+read 0b 21 38 08 00 00 00 00 00 00 00 00
+read 0b 21 39 08 04 00 62 00 00 00 00 00
+read 0b 21 3a 08 04 00 59 00 00 00 00 00
+update
+key 4 0
+key 83 1
+key 83 0
+key 0 1
+key 98 1
+key 89 1
+result 1
+end
+read 0b 21 3b 08 04 00 5b 00 00 00 00 00
+read 0b 21 3c 08 04 00 60 00 00 00 00 00
+read 0b 21 3d 08 04 00 00 00 00 00 00 00
+read 0b 21 3e 08 00 00 00 00 00 00 00 00
+update
+key 91 1
+key 96 1
+key 96 0
+text c5 a0
+key 83 1
+key 83 0
+key 0 1
+result 1
+end
+read 0b 21 3f 08 04 00 62 00 00 00 00 00
+read 0b 21 40 08 04 00 59 00 00 00 00 00
+read 0b 21 41 08 04 00 5d 00 00 00 00 00
+read 0b 21 42 08 04 00 5c 00 00 00 00 00
+update
+key 98 1
+key 89 1
+key 93 1
+key 92 1
+result 1
+end
+read 0b 21 43 08 00 00 00 00 00 00 00 00
+read 0b 21 44 08 04 00 62 00 00 00 00 00
+read 0b 21 45 08 04 00 59 00 00 00 00 00
+read 0b 21 46 08 04 00 5c 00 00 00 00 00
+update
+text c5 a1
+key 83 1
+key 83 0
+key 92 0
+key 98 1
+key 89 1
+key 92 1
+result 1
+end
+read 0b 21 47 08 04 00 62 00 00 00 00 00
+read 0b 21 48 08 00 00 00 00 00 00 00 00
+read 0b 21 49 08 04 00 62 00 00 00 00 00
+read 0b 21 4a 08 04 00 59 00 00 00 00 00
+update
+key 98 1
+text c5 92
+key 83 1
+key 83 0
+key 98 0
+key 98 1
+key 89 1
+result 1
+end
+read 0b 21 4b 08 04 00 5d 00 00 00 00 00
+read 0b 21 4c 08 04 00 5e 00 00 00 00 00
+read 0b 21 4d 08 00 00 00 00 00 00 00 00
+read 0b 21 4e 08 04 00 62 00 00 00 00 00
+update
+key 93 1
+key 94 1
+text c5 93
+key 83 1
+key 83 0
+key 94 0
+key 98 1
+result 1
+end
+read 0b 21 4f 08 04 00 61 00 00 00 00 00
+read 0b 21 50 08 04 00 5e 00 00 00 00 00
+read 0b 21 51 08 04 00 59 00 00 00 00 00
+read 0b 21 52 08 00 00 00 00 00 00 00 00
+update
+key 97 1
+key 94 1
+key 89 1
+text cf 81
+key 83 1
+key 83 0
+key 89 0
+result 1
+end
+read 0b 21 53 08 04 00 00 00 00 00 00 00
+read 0b 21 54 08 04 00 62 00 00 00 00 00
+read 0b 21 55 08 04 00 00 00 00 00 00 00
+read 0b 21 56 08 04 00 61 00 00 00 00 00
+update
+key 0 1
+key 98 1
+key 98 0
+key 97 1
+result 1
+end
+read 0b 21 57 08 04 00 00 00 00 00 00 00
+read 0b 21 58 08 04 00 5f 00 00 00 00 00
+read 0b 21 59 08 04 00 00 00 00 00 00 00
+read 0b 21 5a 08 04 00 60 00 00 00 00 00
+update
+key 97 0
+key 95 1
+key 95 0
+key 96 1
+result 1
+end
+read 0b 21 5b 08 04 00 00 00 00 00 00 00
+read 0b 21 5c 08 00 00 00 00 00 00 00 00
+update
+key 96 0
+key 83 1
+key 83 0
+key 0 1
+result 1
+end
+read 0b 21 01 09 00 00 00 00 00 00 00 00 00
+update
+result 1
+end
+read 0b 32 01 08 00 00 04 00 00 00 00 00
+read 0b 22 02 08 00 00 00 00 00 00 00 00
+update
+keyboard add Xbox One Chatpad
+key 4 1
+write 01 22 01 09 00 0b 20 08 00 00 00 00 00
+key 4 0
+text 61
+result 1
+end
+free
+keyboard remove
+keyboard remove
+end
+endcase
+case guitar 0e6f 0170 1 1
+init
+result 1
+end
+read 02 20 01 1c de 3b ab a1 cc 38 0b 71 6f 0e 70 01 01 00 00 00 93 7f 8e 98 95 ec 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 72 10 00 02 00 00 00 00 00 00 00 00 00 00 00 72 00 61 00 00 00 00 00 10 00 16 00 1c 00 3f 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 20 00 4d 61 64
+read 04 b0 02 32 32 43 61 74 7a 2e 58 62 6f 78 2e 47 75 69 74 61 72 2e 53 74 72 61 74 6f 63 61 73 74 65 72 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33
+read 04 b0 02 0e 64 4b a3 d5 41 a3 4a a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 72
+update
+write 01 20 02 09 00 04 20 32 00 00 00 40 00
+write 01 20 02 09 00 04 20 64 00 00 00 0e 00
+write 01 20 02 09 00 04 20 72 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 72 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 6
+result 1
+end
+read 20 00 03 0a 05 7c 70 2b 48 9d 6d f5 60 59
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 10
+button 9 1
+button 10 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 4 0
+button 6 1
+button 8 1
+button 9 1
+hat 0 10
+axis 2 -21717
+button 10 0
+axis 4 32767
+axis 3 24576
+result 1
+end
+read 20 00 04 0a 41 59 19 dc 05 ea 00 44 91 7c
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 3
+button 9 1
+button 10 0
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 4 0
+button 6 0
+button 8 1
+button 9 1
+hat 0 3
+axis 2 23772
+button 10 0
+axis 4 -32768
+axis 3 -26880
+result 1
+end
+read 20 00 05 0a 80 d6 0d 18 4c 1a 00 45 ca 7d
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 12
+button 9 1
+button 10 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+button 4 0
+button 6 0
+button 8 1
+button 9 1
+hat 0 12
+axis 2 -26600
+button 10 0
+axis 4 -32768
+axis 3 24576
+result 1
+end
+read 20 00 06 0a e1 c2 50 9e 45 7b 00 3a 48 ff
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 4
+button 9 0
+button 10 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 4 0
+button 6 0
+button 8 1
+button 9 0
+hat 0 4
+axis 2 7838
+button 10 0
+axis 4 -32768
+axis 3 24576
+result 1
+end
+read 20 00 07 0a e9 2a 8c d4 48 d7 49 a8 ca 1e
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 6
+button 9 0
+button 10 1
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 4 1
+button 6 0
+button 8 0
+button 9 0
+hat 0 6
+axis 2 21716
+button 10 0
+axis 4 32767
+axis 3 24576
+result 1
+end
+read 20 00 08 0a c7 4e f3 d8 2a a9 00 a8 4f e2
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 14
+button 9 0
+button 10 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 4 0
+button 6 1
+button 8 1
+button 9 0
+hat 0 14
+axis 2 22744
+button 10 1
+axis 4 -32768
+axis 3 -1792
+result 1
+end
+read 20 00 09 0a 5a 57 e5 57 48 0e 00 00 9e 71
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 13
+button 9 1
+button 10 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 4 1
+button 6 0
+button 8 1
+button 9 1
+hat 0 13
+axis 2 -10409
+button 10 1
+axis 4 -32768
+axis 3 24576
+result 1
+end
+read 20 00 0a 0a f4 ca 50 20 46 7d 00 f1 8a 07
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+hat 0 6
+button 9 0
+button 10 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 4 0
+button 6 1
+button 8 1
+button 9 0
+hat 0 6
+axis 2 -24544
+button 10 0
+axis 4 -32768
+axis 3 24576
+result 1
+end
+read 20 00 0b 0a dc ba da 77 04 35 d5 cd f1 a5
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 6
+button 9 1
+button 10 1
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 4 1
+button 6 1
+button 8 0
+button 9 1
+hat 0 6
+axis 2 -2185
+button 10 1
+axis 4 32767
+axis 3 -26880
+result 1
+end
+read 20 00 0c 06 94 bf c0 2a 3e 79
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 15
+button 9 1
+button 10 1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case live_guitar 0e6f 0171 1 1
+init
+result 1
+end
+read 02 20 01 1c 88 8b 94 d9 de a9 7c 64 6f 0e 71 01 01 00 00 00 7e f3 28 43 64 1e 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 6b 10 00 02 00 00 00 00 00 00 00 00 00 00 00 6b 00 5a 00 00 00 00 00 10 00 16 00 1c 00 38 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 19 00 41 63 74
+read 04 b0 02 32 32 69 76 69 73 69 6f 6e 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 48 37 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a a6
+read 04 b0 02 07 64 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 6b
+update
+write 01 20 02 09 00 04 20 32 00 00 00 39 00
+write 01 20 02 09 00 04 20 64 00 00 00 07 00
+write 01 20 02 09 00 04 20 6b 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 6b 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 6
+result 1
+end
+read 20 00 03 0e bf f8 a5 2b 2a 53 ec cb d7 5b 25 27 b7 e8
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 2
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -13332
+axis 1 -23512
+axis 2 10021
+axis 3 5960
+result 1
+end
+read 20 00 04 0e 79 d7 44 66 7e 8d 6e 54 fb ee 4a 78 7b 34
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 13
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 21614
+axis 1 4356
+axis 2 30794
+axis 3 -13436
+result 1
+end
+read 20 00 05 0e 7a e2 94 84 5a a8 f5 10 f0 5b 31 ed 90 4b
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 4
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 4341
+axis 1 -23537
+axis 2 -4815
+axis 3 -19345
+result 1
+end
+read 20 00 06 0e 4d b1 52 7f 0a d4 35 73 f4 c4 10 8f 27 c5
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 1
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 29493
+axis 1 15115
+axis 2 -28912
+axis 3 15064
+result 1
+end
+read 20 00 07 0e 3c 6c e4 8f 03 c6 d7 a5 c7 3f 26 77 f2 d9
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 10
+button 9 0
+button 10 1
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -23081
+axis 1 -16328
+axis 2 30502
+axis 3 9741
+result 1
+end
+read 20 00 08 0e 39 37 a1 31 4c 7b 0f 7c b6 97 c3 43 f6 b8
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 13
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 31759
+axis 1 26697
+axis 2 17347
+axis 3 18185
+result 1
+end
+read 20 00 09 0e 7a de 82 c1 d2 b2 50 e5 bb 2a 21 09 9d 76
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 14
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 -6832
+axis 1 -10940
+axis 2 2337
+axis 3 -30366
+result 1
+end
+read 20 00 0a 0e 90 d7 49 06 de a2 a2 c5 7a fd 08 16 53 19
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 13
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 -14942
+axis 1 645
+axis 2 5640
+axis 3 -6484
+result 1
+end
+read 20 00 0b 0e 87 8f de e2 c4 78 e6 d9 a3 01 17 af b9 47
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 15
+button 9 0
+button 10 0
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 -9754
+axis 1 -420
+axis 2 -20713
+axis 3 -18362
+result 1
+end
+read 20 00 0c 06 48 a7 75 05 8c a9
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 13
+button 9 0
+button 10 1
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case drums 0e6f 0172 1 1
+init
+result 1
+end
+read 02 20 01 1c 0d 1a f7 25 2a bf 30 ad 6f 0e 72 01 01 00 00 00 07 94 2a 05 48 13 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 67 10 00 02 00 00 00 00 00 00 00 00 00 00 00 67 00 56 00 00 00 00 00 10 00 16 00 1c 00 34 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 15 00 50 44 50
+read 04 b0 02 32 32 2e 58 62 6f 78 2e 44 72 75 6d 73 2e 54 61 62 6c 61 68 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a a6 a6 71 1e c4
+read 04 b0 02 03 64 b3 00 00
+read 04 b0 02 00 67
+update
+write 01 20 02 09 00 04 20 32 00 00 00 35 00
+write 01 20 02 09 00 04 20 64 00 00 00 03 00
+write 01 20 02 09 00 04 20 67 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 67 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 7
+result 1
+end
+read 20 00 03 08 e7 a4 70 64 00 00 5c b8
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 8
+button 9 0
+button 10 1
+hat 0 8
+button 4 0
+button 6 1
+button 9 0
+button 10 1
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 7 1
+button 8 0
+result 1
+end
+read 20 00 04 08 08 00 00 38 11 7b be b6
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 0
+button 9 0
+button 10 0
+hat 0 5
+button 4 1
+button 6 0
+button 9 0
+button 10 0
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 7 1
+button 8 1
+result 1
+end
+read 20 00 05 08 59 9f 16 00 ea 8c 92 72
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 15
+button 9 1
+button 10 0
+hat 0 15
+button 4 1
+button 6 0
+button 9 1
+button 10 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 7 1
+button 8 1
+result 1
+end
+read 20 00 06 08 3b d7 e5 55 00 c4 91 7d
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 13
+button 9 1
+button 10 0
+hat 0 13
+button 4 1
+button 6 0
+button 9 1
+button 10 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 7 1
+button 8 1
+result 1
+end
+read 20 00 07 08 06 8b 00 00 00 36 b3 7b
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 7
+button 9 0
+button 10 0
+hat 0 7
+button 4 0
+button 6 1
+button 9 0
+button 10 0
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+button 7 0
+button 8 1
+result 1
+end
+read 20 00 08 08 4d 24 00 8f 00 00 55 76
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 8
+button 9 0
+button 10 1
+hat 0 8
+button 4 1
+button 6 1
+button 9 0
+button 10 1
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 7 1
+button 8 0
+result 1
+end
+read 20 00 09 08 e0 40 00 00 13 fd 1f f0
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 0
+button 9 0
+button 10 0
+hat 0 5
+button 4 0
+button 6 0
+button 9 0
+button 10 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 7 0
+button 8 1
+result 1
+end
+read 20 00 0a 08 95 2b a7 b5 00 04 a3 ba
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 7
+button 9 0
+button 10 1
+hat 0 7
+button 4 0
+button 6 1
+button 9 0
+button 10 1
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 7 1
+button 8 1
+result 1
+end
+read 20 00 0b 08 c6 11 00 00 3c d0 c4 86
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 1
+button 9 1
+button 10 0
+hat 0 5
+button 4 0
+button 6 1
+button 9 1
+button 10 0
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 7 0
+button 8 1
+result 1
+end
+read 20 00 0c 06 99 f0 20 00 00 77
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 0
+button 9 1
+button 10 1
+hat 0 0
+button 4 1
+button 6 0
+button 9 1
+button 10 1
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 7 1
+button 8 1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case arcade 0e6f 0173 1 1
+init
+result 1
+end
+read 02 20 01 1c dc e3 01 4e 5a cd 1e 56 6f 0e 73 01 01 00 00 00 ca 0b 8e c1 b0 50 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 70 10 00 02 00 00 00 00 00 00 00 00 00 00 00 70 00 5f 00 00 00 00 00 10 00 16 00 1c 00 3d 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 1e 00 57 69 6e
+read 04 b0 02 32 32 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 41 72 63 61 64 65 53 74 69 63 6b 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3
+read 04 b0 02 0c 64 d5 41 a3 4a a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 70
+update
+write 01 20 02 09 00 04 20 32 00 00 00 3e 00
+write 01 20 02 09 00 04 20 64 00 00 00 0c 00
+write 01 20 02 09 00 04 20 70 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 70 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 03 14 5b 7f 32 77 29 fe b1 f1 7c 24 bd 61 b0 65 e9 d6 9a 20 cf c4
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 15
+button 10 1
+button 9 1
+axis 4 32767
+axis 5 -32768
+axis 5 32767
+axis 4 32767
+result 1
+end
+read 20 00 04 14 54 79 bc 36 c9 f6 1c d3 ff d9 a4 92 27 3f 41 3d 66 fd c4 a7
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 3
+button 10 1
+button 9 1
+axis 4 32767
+axis 5 -32768
+axis 5 32767
+axis 4 32767
+result 1
+end
+read 20 00 05 14 61 36 4a ac 8b bc 6d ed 2e 2c 2c 49 3a c8 9a 1a d0 12 4a 34
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 12
+button 10 1
+button 9 1
+axis 4 -32768
+axis 5 -32768
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 06 14 8e 2e 76 9e 99 f5 f1 0e 6b d8 d3 26 62 7b de 71 04 0d b2 1c
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 14
+button 10 0
+button 9 1
+axis 4 -32768
+axis 5 -32768
+axis 5 -32768
+axis 4 32767
+result 1
+end
+read 20 00 07 14 13 69 b5 74 55 ee c0 23 20 1f 8a 2a a7 f9 d5 9e 07 18 5a 22
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 3
+button 10 0
+button 9 1
+axis 4 32767
+axis 5 -32768
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 08 14 11 88 75 28 d5 6c 91 e6 f3 51 51 1a a1 50 83 7f 7b e5 c5 0a
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 2
+button 10 0
+button 9 0
+axis 4 32767
+axis 5 32767
+axis 5 32767
+axis 4 32767
+result 1
+end
+read 20 00 09 14 0e 92 f5 ed 22 33 5a 49 cb 20 94 b1 2e 05 44 63 14 80 7a 45
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 4
+button 10 1
+button 9 0
+axis 4 -32768
+axis 5 32767
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 0a 14 30 7f e2 a1 30 58 ae a0 86 a5 42 88 f3 e5 a3 b5 d8 d4 9d 58
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 15
+button 10 1
+button 9 1
+axis 4 -32768
+axis 5 32767
+axis 5 -32768
+axis 4 32767
+result 1
+end
+read 20 00 0b 14 3c 86 b6 f3 9c 45 d5 90 76 30 b2 c4 94 90 fd 67 19 f9 4e 10
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 12
+button 10 0
+button 9 0
+axis 4 -32768
+axis 5 32767
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 0c 06 4d 25 cf 53 28 90
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 9
+button 10 0
+button 9 1
+axis 4 32767
+axis 5 -32768
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case navigation 0e6f 0174 1 1
+init
+result 1
+end
+read 02 20 01 1c ab ba a0 d3 35 84 b2 c1 6f 0e 74 01 01 00 00 00 51 9d f6 7b 39 26 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 79 10 00 02 00 00 00 00 00 00 00 00 00 00 00 79 00 68 00 00 00 00 00 10 00 16 00 1c 00 46 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 27 00 57 69 6e
+read 04 b0 02 32 32 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 4e 61 76 69 67 61 74 69 6f 6e 43 6f 6e 74 72 6f 6c 6c 65 72 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb
+read 04 b0 02 15 64 a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 79
+update
+write 01 20 02 09 00 04 20 32 00 00 00 47 00
+write 01 20 02 09 00 04 20 64 00 00 00 15 00
+write 01 20 02 09 00 04 20 79 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 79 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 03 0e 04 24 04 0a 26 34 52 28 bb 83 86 49 14 6f
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 8
+button 9 0
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 10322
+axis 1 31812
+axis 2 18822
+axis 3 -28437
+result 1
+end
+read 20 00 04 0e c9 f4 a4 a0 04 42 6e 06 2e 39 2f 94 56 e8
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 8
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 1646
+axis 1 -14639
+axis 2 -27601
+axis 3 6057
+result 1
+end
+read 20 00 05 0e 4b be 6f 46 78 b3 df cb 2c 5a c6 cc c7 0e
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 14
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 -13345
+axis 1 -23085
+axis 2 -13114
+axis 3 -3784
+result 1
+end
+read 20 00 06 0e 0e 97 80 1a 37 53 11 f3 e0 94 22 38 14 c1
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 13
+button 9 1
+button 10 0
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -3311
+axis 1 27423
+axis 2 14370
+axis 3 16107
+result 1
+end
+read 20 00 07 0e 77 6a 5a 26 d8 6b 7b d8 c4 b8 11 4c d4 66
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 6
+button 9 0
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -10117
+axis 1 18235
+axis 2 19473
+axis 3 -26325
+result 1
+end
+read 20 00 08 0e d4 b6 f1 de a4 23 35 58 56 55 a2 18 3e 62
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+hat 0 12
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 22581
+axis 1 -21847
+axis 2 6306
+axis 3 -25151
+result 1
+end
+read 20 00 09 0e 85 6b 81 0b a8 60 17 dd 3a 47 a2 09 7f eb
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 7
+button 9 0
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -8937
+axis 1 -18235
+axis 2 2466
+axis 3 5248
+result 1
+end
+read 20 00 0a 0e f2 04 38 8f 55 df d0 a9 9f 64 4b 60 fc f4
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+hat 0 8
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -22064
+axis 1 -25760
+axis 2 24651
+axis 3 2819
+result 1
+end
+read 20 00 0b 0e ee c7 78 23 af d7 4b 10 5b 2e e6 86 89 8a
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 13
+button 9 0
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 4171
+axis 1 -11868
+axis 2 -31002
+axis 3 30070
+result 1
+end
+read 20 00 0c 06 be d4 42 04 db 6c
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 8
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case unknown_type 0e6f 0175 1 1
+init
+result 1
+end
+read 02 20 01 1c 6d 0c 1f 3e fd 28 57 d2 6f 0e 75 01 01 00 00 00 b7 b4 4c c7 28 8c 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 4f 10 00 02 00 00 00 00 00 00 00 00 00 00 00 4f 00 3e 00 00 00 00 00 10 00 16 00 00 00 1c 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 56 ff 76 97 fd
+read 04 b0 02 1d 32 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 4f
+update
+write 01 20 02 09 00 04 20 32 00 00 00 1d 00
+write 01 20 02 09 00 04 20 4f 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 4f 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 03 0e a5 ba 23 fb 8e 17 0c cb 0f 13 24 e6 f8 b2
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 6
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 -13556
+axis 1 -4880
+axis 2 -6620
+axis 3 19719
+result 1
+end
+read 20 00 04 0e 43 e7 1a a3 de 5f b6 3a 5b 29 a6 32 17 8b
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 13
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 15030
+axis 1 -10588
+axis 2 12966
+axis 3 29928
+result 1
+end
+read 20 00 05 0e 4d 25 33 11 40 c7 22 2a b1 e6 f3 7f 9f 22
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 9
+button 9 0
+button 10 1
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 10786
+axis 1 6478
+axis 2 32755
+axis 3 -8864
+result 1
+end
+read 20 00 06 0e 5f 17 c0 6c 92 2c 29 3f b9 ca c3 a1 50 2d
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 13
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 16169
+axis 1 13638
+axis 2 -24125
+axis 3 -11601
+result 1
+end
+read 20 00 07 0e 6e d8 29 d8 f2 ed 3b 75 aa e2 30 70 ef b2
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 2
+button 9 1
+button 10 0
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 30011
+axis 1 7509
+axis 2 28720
+axis 3 19728
+result 1
+end
+read 20 00 08 0e ac 51 45 0d 5f dd 48 d0 c9 ec 55 46 d0 09
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 1
+button 9 1
+button 10 0
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 -12216
+axis 1 4918
+axis 2 18005
+axis 3 -2513
+result 1
+end
+read 20 00 09 0e f7 21 03 cc 18 36 ac f6 e4 fc 98 51 7c c2
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+hat 0 1
+button 9 0
+button 10 1
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 -2388
+axis 1 795
+axis 2 20888
+axis 3 15747
+result 1
+end
+read 20 00 0a 0e a5 45 60 b4 10 3a 99 8c 7c b1 a9 17 c1 22
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 9
+button 9 0
+button 10 0
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 -29543
+axis 1 20099
+axis 2 6057
+axis 3 -8898
+result 1
+end
+read 20 00 0b 0e 33 6e 7a 93 6a f2 4d fd 3b 04 f8 5e 3a 89
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 14
+button 9 0
+button 10 1
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -691
+axis 1 -1084
+axis 2 24312
+axis 3 30405
+result 1
+end
+read 20 00 0c 06 21 9d 4e 21 da 22
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+hat 0 11
+button 9 1
+button 10 0
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case atrox 1532 0a00 1 0
+init
+result 1
+end
+read 02 20 01 1c 1b 22 f5 32 32 56 0e 0b 32 15 00 0a 01 00 00 00 34 4b 05 b8 71 fa 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 6c 10 00 02 00 00 00 00 00 00 00 00 00 00 00 6c 00 5b 00 00 00 00 00 10 00 16 00 1c 00 39 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 1a 00 57 69 6e
+read 04 b0 02 32 32 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a
+read 04 b0 02 08 64 a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 6c
+update
+write 01 20 02 09 00 04 20 32 00 00 00 3a 00
+write 01 20 02 09 00 04 20 64 00 00 00 08 00
+write 01 20 02 09 00 04 20 6c 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 6c 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 03 13 b7 b5 26 7e 39 35 35 2f a9 25 6d 62 55 2f 51 c9 6c 05 e8
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 9
+button 10 1
+button 9 1
+axis 4 32767
+axis 5 32767
+axis 5 32767
+axis 4 32767
+result 1
+end
+read 20 00 04 13 6a 6c 66 02 f6 4f cf 4d ea 75 02 17 67 50 38 e0 d2 d1 25
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 10
+button 10 0
+button 9 1
+axis 4 6528
+axis 5 32767
+axis 5 -32768
+axis 4 -32768
+result 1
+end
+read 20 00 05 13 a7 2b 96 b0 f1 2e d0 6f 99 2c f6 e4 5b a6 2b 79 1f ae 70
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 7
+button 10 0
+button 9 1
+axis 4 -32768
+axis 5 32767
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 06 13 3d 05 fe 89 5c 34 d5 b1 60 63 95 fd 2a 23 1e 90 ae f3 e8
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 9
+button 10 0
+button 9 0
+axis 4 -32768
+axis 5 32767
+axis 5 32767
+axis 4 32767
+result 1
+end
+read 20 00 07 13 84 72 02 e3 93 c4 c2 0e 89 be 31 d9 6a fb e6 3c 63 16 de
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 4
+button 10 1
+button 9 1
+axis 4 -32768
+axis 5 -32768
+axis 5 32767
+axis 4 32767
+result 1
+end
+read 20 00 08 13 93 71 e7 04 40 d3 7c 82 ff 30 d9 ca 07 88 70 63 e6 dd 5e
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 1
+button 10 1
+button 9 1
+axis 4 32767
+axis 5 -32768
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 09 13 74 1a 9d 6b 11 6e d6 c0 49 1b 18 66 eb 9a 29 83 1c 4a 6c
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 6
+button 10 1
+button 9 0
+axis 4 32767
+axis 5 32767
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 0a 13 53 9a c6 0e e7 ce 04 f5 a0 93 2e 69 6b c9 40 80 ba 98 66
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 6
+button 10 1
+button 9 0
+axis 4 32767
+axis 5 -32768
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 0b 13 4c 45 84 13 c3 85 35 e1 71 ed 04 2c df e7 45 6c c1 92 57
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 9
+button 10 0
+button 9 0
+axis 4 32767
+axis 5 -32768
+axis 5 32767
+axis 4 -32768
+result 1
+end
+read 20 00 0c 06 56 e3 3c 6c b2 d2
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 5
+button 10 0
+button 9 1
+axis 4 32767
+axis 5 -32768
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case hotas 044f b68c 1 1
+init
+result 1
+end
+read 02 20 01 1c a1 19 fb 4a e1 9d b8 63 4f 04 8c b6 01 00 00 00 dd 13 5d 45 6f 5a 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 72 10 00 02 00 00 00 00 00 00 00 00 00 00 00 72 00 61 00 00 00 00 00 10 00 16 00 1c 00 3f 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 20 00 4d 69 63
+read 04 b0 02 32 32 72 6f 73 6f 66 74 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 46 6c 69 67 68 74 53 74 69 63 6b 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33
+read 04 b0 02 0e 64 4b a3 d5 41 a3 4a a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 72
+update
+write 01 20 02 09 00 04 20 32 00 00 00 40 00
+write 01 20 02 09 00 04 20 64 00 00 00 0e 00
+write 01 20 02 09 00 04 20 72 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 72 00 00 00 00 00
+result 1
+end
+open 0
+buttons 16 axes 8 hats 1 type 1
+result 1
+end
+read 20 00 03 1a 7b c6 00 00 b9 bc c0 13 19 f8 5d b4 70 e7 30 56 11 de 10 0f 0b a1 55 b6 25 b1
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+hat 0 12
+button 9 0
+button 10 0
+axis 0 28852
+axis 1 12519
+axis 2 4438
+axis 4 -28450
+axis 5 -29937
+axis 6 -10847
+axis 7 -23114
+result 1
+end
+read 20 00 04 1a 09 9a 59 db a1 95 77 50 96 6b 0b 09 f2 9a 81 4c d6 85 be 45 6e ed ec e9 96 2f
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 6
+button 9 1
+button 10 0
+button 7 1
+button 8 0
+button 11 1
+button 12 1
+button 13 0
+button 14 1
+button 15 1
+axis 0 -3575
+axis 1 -32358
+axis 2 -10676
+axis 4 16005
+axis 5 -4539
+axis 6 27885
+axis 7 5865
+result 1
+end
+read 20 00 05 1a 8d 49 40 22 45 ce 68 82 fd a1 c1 59 59 22 6f 5d 4e 00 9d 10 7d 63 3b cf 53 dc
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 3
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+button 11 0
+button 12 1
+button 13 0
+button 14 0
+button 15 0
+axis 0 22873
+axis 1 28450
+axis 2 20061
+axis 4 7424
+axis 5 -752
+axis 6 -17565
+axis 7 -11313
+result 1
+end
+read 20 00 06 1a 97 e1 00 00 9a 7c 17 f7 86 14 c8 b3 90 55 81 39 42 7f e9 7d 0a 06 54 58 7e e9
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 1
+button 9 0
+button 10 1
+button 7 0
+button 8 0
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+axis 0 -28493
+axis 1 -32427
+axis 2 16953
+axis 4 27007
+axis 5 -30083
+axis 6 -11258
+axis 7 -424
+result 1
+end
+read 20 00 07 1a 48 70 00 00 ea b6 f3 0b 39 b6 9b 38 84 b4 9a 90 31 db 5a 5b 33 0c ba 84 4c 6a
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 0
+button 9 1
+button 10 1
+axis 0 -31688
+axis 1 -25932
+axis 2 12688
+axis 4 -9509
+axis 5 -19621
+axis 6 14860
+axis 7 -13180
+result 1
+end
+read 20 00 08 1a 07 04 00 00 18 65 fb 3c 14 7b 21 14 29 8f b1 61 c4 1d 83 cf bd 9b bb 85 45 e9
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 8
+button 9 0
+button 10 0
+axis 0 10516
+axis 1 -20081
+axis 2 -15263
+axis 4 797
+axis 5 15823
+axis 6 15259
+axis 7 -14971
+result 1
+end
+read 20 00 09 1a 01 8b 00 00 b0 31 d9 54 50 72 4a c7 06 0f 63 b0 3e fe ba e3 46 d2 fc ce aa e9
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 7
+button 9 0
+button 10 0
+axis 0 1735
+axis 1 25359
+axis 2 16048
+axis 4 15102
+axis 5 -14621
+axis 6 31954
+axis 7 10958
+result 1
+end
+read 20 00 0a 1a 89 4d 00 00 a1 4c 95 12 a4 93 ea 0e 6c 3b 95 af 2c aa bf da 3c 69 24 74 a4 c3
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 11
+button 9 0
+button 10 0
+axis 0 27662
+axis 1 -27333
+axis 2 11439
+axis 4 16298
+axis 5 -17190
+axis 6 -23447
+axis 7 9332
+result 1
+end
+read 20 00 0b 1a 57 6a 23 aa 13 9b 2b ab 65 1b 94 3c 77 2e c8 49 dd c2 41 1a 4c 82 9f 3c 18 9b
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 6
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+button 11 0
+button 12 1
+button 13 0
+button 14 1
+button 15 0
+axis 0 30524
+axis 1 -14290
+axis 2 -8887
+axis 4 -15934
+axis 5 -13286
+axis 6 8066
+axis 7 -26564
+result 1
+end
+read 20 00 0c 06 30 74 4c 50 d6 67
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 8
+button 9 1
+button 10 1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case hotas_short 044f b68c 1 1
+init
+result 1
+end
+read 02 20 01 1c 33 98 90 4b 96 57 9b d6 4f 04 8c b6 01 00 00 00 59 98 d8 22 5e 9d 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 72 10 00 02 00 00 00 00 00 00 00 00 00 00 00 72 00 61 00 00 00 00 00 10 00 16 00 1c 00 3f 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 20 00 4d 69 63
+read 04 b0 02 32 32 72 6f 73 6f 66 74 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 46 6c 69 67 68 74 53 74 69 63 6b 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33
+read 04 b0 02 0e 64 4b a3 d5 41 a3 4a a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 72
+update
+write 01 20 02 09 00 04 20 32 00 00 00 40 00
+write 01 20 02 09 00 04 20 64 00 00 00 0e 00
+write 01 20 02 09 00 04 20 72 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 72 00 00 00 00 00
+result 1
+end
+open 0
+buttons 16 axes 8 hats 1 type 1
+result 1
+end
+read 20 00 03 15 64 fd 65 f9 d1 4d da f0 06 73 6c a9 f9 bb e1 d3 0e 5b 26 89 7b
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 11
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+button 11 1
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+axis 0 -1623
+axis 1 -7749
+axis 2 3795
+axis 4 -22949
+axis 5 -1143
+result 1
+end
+read 20 00 04 15 0d 62 5e fb c8 37 9b 61 25 b2 77 06 87 9c f6 5f a8 e3 f4 19 10
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 4
+button 9 0
+button 10 1
+button 7 0
+button 8 1
+button 11 1
+button 12 1
+button 13 0
+button 14 1
+button 15 1
+axis 0 -30970
+axis 1 -2404
+axis 2 -22433
+axis 4 29923
+axis 5 -28647
+result 1
+end
+read 20 00 05 15 06 c4 00 00 0e 3f 0f aa a0 e2 a2 9c 18 6e ab 23 77 b5 46 20 02
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 8
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+axis 0 6300
+axis 1 -21650
+axis 2 30499
+axis 4 -14667
+axis 5 -32224
+result 1
+end
+read 20 00 06 15 06 f1 00 00 b2 7a d8 5f bf f7 ef c9 91 85 42 29 72 69 bf de 4e
+update
+hat 0 1
+button 9 1
+button 10 1
+axis 0 -28215
+axis 1 17029
+axis 2 29225
+axis 4 16233
+axis 5 -12578
+result 1
+end
+read 20 00 07 15 03 0e 00 00 2c 51 8d d5 7c 20 1a d0 b3 fc af 0f 29 5e b1 23 ad
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 14
+button 9 0
+button 10 0
+axis 0 -19504
+axis 1 -20484
+axis 2 10511
+axis 4 12638
+axis 5 11555
+result 1
+end
+read 20 00 08 15 51 de 00 00 85 9f d1 33 cb 5b 98 f2 9d 70 b1 cc b3 2a 5e 61 fb
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+hat 0 14
+button 9 1
+button 10 0
+axis 0 -25102
+axis 1 -20112
+axis 2 -19508
+axis 4 -8662
+axis 5 31585
+result 1
+end
+read 20 00 09 15 3b b7 59 f8 5f 2d 1e c7 37 26 4a 03 23 71 82 22 cd 7a cf 91 4e
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+hat 0 13
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+button 11 0
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+axis 0 8963
+axis 1 -32143
+axis 2 -13022
+axis 4 20346
+axis 5 -12655
+result 1
+end
+read 20 00 0a 15 1c 81 00 00 6e 75 1f e4 e1 8d 29 2f 66 90 f3 e5 3e ba 86 ad 35
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 1
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+button 11 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+axis 0 26159
+axis 1 -3184
+axis 2 16101
+axis 4 1722
+axis 5 -19027
+result 1
+end
+read 20 00 0b 15 c1 ff 9f cc ac 4a 14 1f 9d e8 eb 4e 0d c2 77 10 37 c3 04 1a 76
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+hat 0 15
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+button 11 0
+button 12 0
+button 13 1
+button 14 1
+button 15 0
+axis 0 3406
+axis 1 30658
+axis 2 14096
+axis 4 -31549
+axis 5 -2534
+result 1
+end
+read 20 00 0c 06 8f 2c 00 00 49 d7
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 10
+button 9 0
+button 10 1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case wheel 0e6f 0176 1 1
+init
+result 1
+end
+read 02 20 01 1c 91 ca 0e 72 f4 15 74 65 6f 0e 76 01 01 00 00 00 6d 86 52 1f 14 9b 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 6c 10 00 02 00 00 00 00 00 00 00 00 00 00 00 6c 00 5b 00 00 00 00 00 10 00 16 00 1c 00 39 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 1a 00 4d 69 63
+read 04 b0 02 32 32 72 6f 73 6f 66 74 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 57 68 65 65 6c 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a
+read 04 b0 02 08 64 a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 6c
+update
+write 01 20 02 09 00 04 20 32 00 00 00 3a 00
+write 01 20 02 09 00 04 20 64 00 00 00 08 00
+write 01 20 02 09 00 04 20 6c 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 6c 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 03 0e 6f 77 f3 51 68 c1 a5 af 67 1d f2 f1 e9 3c
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 13
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 -20571
+axis 1 -7528
+axis 2 -3598
+axis 3 -15594
+result 1
+end
+read 20 00 04 0e a8 e8 11 54 7c 4a 57 53 93 4f f0 e0 cc 0b
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 2
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 21335
+axis 1 -20372
+axis 2 -7952
+axis 3 -3021
+result 1
+end
+read 20 00 05 0e fc 16 d4 8e 72 ff e7 bd cb d2 66 ef 71 ed
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+hat 0 12
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -16921
+axis 1 11572
+axis 2 -4250
+axis 3 4750
+result 1
+end
+read 20 00 06 0e 1e 47 e6 91 52 d4 b4 5f 8e 69 19 96 2b 3d
+update
+button 6 1
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 13
+button 9 0
+button 10 0
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 24500
+axis 1 -27023
+axis 2 -27111
+axis 3 -15660
+result 1
+end
+read 20 00 07 0e 6e 0a a1 43 5b e3 8f 48 bd 1b 8c ce 52 b5
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+hat 0 6
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 18575
+axis 1 -7102
+axis 2 -12660
+axis 3 19117
+result 1
+end
+read 20 00 08 0e ab aa 2a be d0 5f ce 05 b6 39 2d 99 bc 29
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 6
+button 9 0
+button 10 1
+button 7 0
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 1486
+axis 1 -14775
+axis 2 -26323
+axis 3 -10685
+result 1
+end
+read 20 00 09 0e 4a 07 72 64 a7 50 e7 ba 70 ac b0 b7 68 02
+update
+button 6 0
+button 4 1
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 13
+button 9 0
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -17689
+axis 1 21391
+axis 2 -18512
+axis 3 -617
+result 1
+end
+read 20 00 0a 0e b9 7b 94 22 cb 59 a9 c8 e1 32 37 51 2a 90
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 7
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 32767
+axis 0 -14167
+axis 1 -13026
+axis 2 20791
+axis 3 28629
+result 1
+end
+read 20 00 0b 0e 92 3b de 81 83 5e c1 39 b3 ec 78 67 d3 2a
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 7
+button 9 1
+button 10 1
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 14785
+axis 1 4940
+axis 2 26488
+axis 3 -10964
+result 1
+end
+read 20 00 0c 06 8f 53 8c eb 46 bc
+update
+button 6 1
+button 4 1
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+hat 0 5
+button 9 1
+button 10 0
+button 7 1
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case classic 24c6 581a 1 0
+init
+result 1
+end
+read 02 20 01 1c 2a d1 1e 74 08 43 28 b7 c6 24 1a 58 01 00 00 00 5c 53 6f 37 aa 14 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 02 32 6c 10 00 02 00 00 00 00 00 00 00 00 00 00 00 6c 00 5b 00 00 00 00 00 10 00 16 00 1c 00 39 00 00 00 05 02 03 04 07 1e 05 04 05 06 0a 1e 01 1a 00 57 69 6e
+read 04 b0 02 32 32 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 02 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 cc 54 20 33 4b a3 d5 41 a3 4a
+read 04 b0 02 08 64 a6 a6 71 1e c4 b3 00 00
+read 04 b0 02 00 6c
+update
+write 01 20 02 09 00 04 20 32 00 00 00 3a 00
+write 01 20 02 09 00 04 20 64 00 00 00 08 00
+write 01 20 02 09 00 04 20 6c 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 02 09 00 04 20 6c 00 00 00 00 00
+result 1
+end
+open 0
+buttons 11 axes 6 hats 1 type 1
+result 1
+end
+read 20 00 03 0e 41 10 0b 8a ac 7a fd 71 5c 67 7d e7 ee 51
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+hat 0 0
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 29181
+axis 1 -26461
+axis 2 -6275
+axis 3 -20975
+result 1
+end
+read 20 00 04 0e a7 f1 82 91 5e db 6d 9d d4 d3 a3 02 d8 44
+update
+button 6 1
+button 4 0
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+hat 0 1
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 -32768
+axis 0 -25235
+axis 1 11307
+axis 2 675
+axis 3 -17625
+result 1
+end
+read 20 00 05 0e e2 1f e2 f4 9f a7 e0 dc b1 d4 be cb c0 6c
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+hat 0 15
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 -32768
+axis 0 -8992
+axis 1 11086
+axis 2 -13378
+axis 3 -27841
+result 1
+end
+read 20 00 06 0e b8 b9 6c 75 5f ec 3d b7 6c cd 4d f6 48 87
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 3
+button 9 1
+button 10 1
+button 7 0
+button 8 1
+axis 4 32767
+axis 5 -32768
+axis 0 -18627
+axis 1 12947
+axis 2 -2483
+axis 3 30903
+result 1
+end
+read 20 00 07 0e b7 ec 57 65 be 08 08 e8 bd e9 9e ab d3 99
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 10
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 32767
+axis 5 32767
+axis 0 -6136
+axis 1 5698
+axis 2 -21602
+axis 3 26156
+result 1
+end
+read 20 00 08 0e bb f7 4a 8a b1 26 cb 51 88 b8 44 24 cf 37
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 13
+button 9 1
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 20939
+axis 1 18295
+axis 2 9284
+axis 3 -14288
+result 1
+end
+read 20 00 09 0e 95 15 23 cb fd 0b 81 9c 47 85 4b ea b4 0f
+update
+button 6 1
+button 4 0
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+hat 0 9
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 -32768
+axis 5 32767
+axis 0 -25471
+axis 1 31416
+axis 2 -5557
+axis 3 -4021
+result 1
+end
+read 20 00 0a 0e 1b ee a7 80 4b 70 13 f8 41 25 a5 9d 7b ce
+update
+button 6 0
+button 4 1
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+hat 0 14
+button 9 0
+button 10 1
+button 7 1
+button 8 1
+axis 4 -32768
+axis 5 32767
+axis 0 -2029
+axis 1 -9538
+axis 2 -25179
+axis 3 12676
+result 1
+end
+read 20 00 0b 0e b1 10 5e 11 dd b1 be 16 8f 98 2c e1 17 4e
+update
+button 6 0
+button 4 0
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+hat 0 0
+button 9 1
+button 10 0
+button 7 0
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 5822
+axis 1 26480
+axis 2 -7892
+axis 3 -19992
+result 1
+end
+read 20 00 0c 06 03 72 9c 4f 31 9e
+update
+button 6 0
+button 4 0
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+hat 0 4
+button 9 1
+button 10 1
+button 7 1
+button 8 0
+axis 4 32767
+axis 5 -32768
+axis 0 0
+axis 1 -1
+axis 2 0
+axis 3 -1
+result 1
+end
+caps 0
+caps 0
+end
+free
+end
+endcase
+case malformed 045e 02ea 1 0
+init
+result 1
+end
+read 02 20 01 1c c8 40 c6 ab 33 f0 3e ae 5e 04 ea 02 01 00 00 00 bc 84 6f e0 83 c9 01 00 01 00 01 00
+read 02 20 02 1c 8c e2 b7 b2 cc 93 84 22 5e 04 ea 02 01 00 00 00 17 44 60 f7 cb 44 01 00 01 00 01 00
+update
+write 04 20 01 00
+result 1
+end
+read 04 f0 03 3a a0 01 50 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 03 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 03 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 03 00 a0 01
+update
+write 01 20 03 09 00 04 20 3a 00 00 00 66 00
+write 01 20 03 09 00 04 20 74 00 00 00 2c 00
+write 01 20 03 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 04 3a a0 01 10 41 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 04 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 04 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 04 00 a0 01
+update
+write 01 20 04 09 00 04 20 3a 00 00 00 66 00
+write 01 20 04 09 00 04 20 74 00 00 00 2c 00
+write 01 20 04 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 05 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 e2 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 05 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 05 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 05 00 a0 01
+update
+write 01 20 05 09 00 04 20 3a 00 00 00 66 00
+write 01 20 05 09 00 04 20 74 00 00 00 2c 00
+write 01 20 05 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 06 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 43 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 06 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 06 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 06 00 a0 01
+update
+write 01 20 06 09 00 04 20 3a 00 00 00 66 00
+write 01 20 06 09 00 04 20 74 00 00 00 2c 00
+write 01 20 06 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 07 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 c4 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 07 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 07 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 07 00 a0 01
+update
+write 01 20 07 09 00 04 20 3a 00 00 00 66 00
+write 01 20 07 09 00 04 20 74 00 00 00 2c 00
+write 01 20 07 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 08 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 45 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 08 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 08 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 08 00 a0 01
+update
+write 01 20 08 09 00 04 20 3a 00 00 00 66 00
+write 01 20 08 09 00 04 20 74 00 00 00 2c 00
+write 01 20 08 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 09 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 56 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 09 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 09 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 09 00 a0 01
+update
+write 01 20 09 09 00 04 20 3a 00 00 00 66 00
+write 01 20 09 09 00 04 20 74 00 00 00 2c 00
+write 01 20 09 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 0a 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 53 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 0a 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 0a 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 0a 00 a0 01
+update
+write 01 20 0a 09 00 04 20 3a 00 00 00 66 00
+write 01 20 0a 09 00 04 20 74 00 00 00 2c 00
+write 01 20 0a 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 0b 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 52 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 0b 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 0b 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 0b 00 a0 01
+update
+write 01 20 0b 09 00 04 20 3a 00 00 00 66 00
+write 01 20 0b 09 00 04 20 74 00 00 00 2c 00
+write 01 20 0b 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 0c 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 69 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 0c 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 0c 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 0c 00 a0 01
+update
+write 01 20 0c 09 00 04 20 3a 00 00 00 66 00
+write 01 20 0c 09 00 04 20 74 00 00 00 2c 00
+write 01 20 0c 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 0d 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 13 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 0d 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 0d 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 0d 00 a0 01
+update
+write 01 20 0d 09 00 04 20 3a 00 00 00 66 00
+write 01 20 0d 09 00 04 20 74 00 00 00 2c 00
+write 01 20 0d 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 0e 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 31 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 0e 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 0e 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 0e 00 a0 01
+update
+write 01 20 0e 09 00 04 20 3a 00 00 00 66 00
+write 01 20 0e 09 00 04 20 74 00 00 00 2c 00
+write 01 20 0e 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 0f 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 4f e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 0f 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 0f 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 0f 00 a0 01
+update
+write 01 20 0f 09 00 04 20 3a 00 00 00 66 00
+write 01 20 0f 09 00 04 20 74 00 00 00 2c 00
+write 01 20 0f 09 00 04 20 a0 00 00 00 00 00
+write 05 20 02 01 00
+write 0a 20 03 03 00 01 14
+write 06 20 01 02 01 00
+added
+write 01 20 0f 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 10 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 ab a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 10 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 10 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 10 00 a0 01
+update
+write 01 20 10 09 00 04 20 3a 00 00 00 66 00
+write 01 20 10 09 00 04 20 74 00 00 00 2c 00
+write 01 20 10 09 00 04 20 a0 00 00 00 00 00
+write 05 20 04 01 00
+write 0a 20 05 03 00 01 14
+write 06 20 02 02 01 00
+write 01 20 10 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 11 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 ed 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 11 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 11 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 11 00 a0 01
+update
+write 01 20 11 09 00 04 20 3a 00 00 00 66 00
+write 01 20 11 09 00 04 20 74 00 00 00 2c 00
+write 01 20 11 09 00 04 20 a0 00 00 00 00 00
+write 05 20 06 01 00
+write 0a 20 07 03 00 01 14
+write 06 20 03 02 01 00
+write 01 20 11 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 12 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 7c 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 12 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 12 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 12 00 a0 01
+update
+write 01 20 12 09 00 04 20 3a 00 00 00 66 00
+write 01 20 12 09 00 04 20 74 00 00 00 2c 00
+write 01 20 12 09 00 04 20 a0 00 00 00 00 00
+write 05 20 08 01 00
+write 0a 20 09 03 00 01 14
+write 06 20 04 02 01 00
+write 01 20 12 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 13 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 55 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 13 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 13 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 13 00 a0 01
+update
+write 01 20 13 09 00 04 20 3a 00 00 00 66 00
+write 01 20 13 09 00 04 20 74 00 00 00 2c 00
+write 01 20 13 09 00 04 20 a0 00 00 00 00 00
+write 05 20 0a 01 00
+write 0a 20 0b 03 00 01 14
+write 06 20 05 02 01 00
+write 01 20 13 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 14 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 56 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 14 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 14 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 14 00 a0 01
+update
+write 01 20 14 09 00 04 20 3a 00 00 00 66 00
+write 01 20 14 09 00 04 20 74 00 00 00 2c 00
+write 01 20 14 09 00 04 20 a0 00 00 00 00 00
+write 05 20 0c 01 00
+write 0a 20 0d 03 00 01 14
+write 06 20 06 02 01 00
+write 01 20 14 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 15 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 52 57 69 6e 64 6f 77 73
+read 04 b0 15 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 15 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 15 00 a0 01
+update
+write 01 20 15 09 00 04 20 3a 00 00 00 66 00
+write 01 20 15 09 00 04 20 74 00 00 00 2c 00
+write 01 20 15 09 00 04 20 a0 00 00 00 00 00
+write 05 20 0e 01 00
+write 0a 20 0f 03 00 01 14
+write 06 20 07 02 01 00
+write 01 20 15 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 16 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 16 3a 3a 2e 58 31 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 16 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 16 00 a0 01
+update
+write 01 20 16 09 00 04 20 3a 00 00 00 66 00
+write 01 20 16 09 00 04 20 74 00 00 00 2c 00
+write 01 20 16 09 00 04 20 a0 00 00 00 00 00
+write 05 20 10 01 00
+write 0a 20 11 03 00 01 14
+write 06 20 08 02 01 00
+write 01 20 16 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 17 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 17 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 13 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 17 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 17 00 a0 01
+update
+write 01 20 17 09 00 04 20 3a 00 00 00 66 00
+write 01 20 17 09 00 04 20 74 00 00 00 2c 00
+write 01 20 17 09 00 04 20 a0 00 00 00 00 00
+write 05 20 12 01 00
+write 0a 20 13 03 00 01 14
+write 06 20 09 02 01 00
+write 01 20 17 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 18 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 18 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 3c 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 18 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 18 00 a0 01
+update
+write 01 20 18 09 00 04 20 3a 00 00 00 66 00
+write 01 20 18 09 00 04 20 74 00 00 00 2c 00
+write 01 20 18 09 00 04 20 a0 00 00 00 00 00
+write 05 20 14 01 00
+write 0a 20 15 03 00 01 14
+write 06 20 0a 02 01 00
+write 01 20 18 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 19 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 19 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 2e 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 19 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 19 00 a0 01
+update
+write 01 20 19 09 00 04 20 3a 00 00 00 66 00
+write 01 20 19 09 00 04 20 74 00 00 00 2c 00
+write 01 20 19 09 00 04 20 a0 00 00 00 00 00
+write 05 20 16 01 00
+write 0a 20 17 03 00 01 14
+write 06 20 0b 02 01 00
+write 01 20 19 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 1a 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 1a 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 36 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 1a 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 1a 00 a0 01
+update
+write 01 20 1a 09 00 04 20 3a 00 00 00 66 00
+write 01 20 1a 09 00 04 20 74 00 00 00 2c 00
+write 01 20 1a 09 00 04 20 a0 00 00 00 00 00
+write 05 20 18 01 00
+write 0a 20 19 03 00 01 14
+write 06 20 0c 02 01 00
+write 01 20 1a 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 1b 0f 0f 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0
+read 04 b0 1b 00 0f
+update
+write 01 20 1b 09 00 04 20 0f 00 00 00 00 00
+result 1
+end
+read 04 f0 1c 3a 9d 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 9d 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 00 57 69 6e 64 6f 77 73
+read 04 b0 1c 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 1c 29 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08
+read 04 b0 1c 00 9d 01
+update
+write 01 20 1c 09 00 04 20 3a 00 00 00 63 00
+write 01 20 1c 09 00 04 20 74 00 00 00 29 00
+write 01 20 1c 09 00 04 20 9d 00 00 00 00 00
+result 1
+end
+read 04 f0 1d 3a a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 e6 a3 33 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a 01 57 69 6e 64 6f 77 73
+read 04 b0 1d 3a 3a 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab
+read 04 b0 1d 2c 74 a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 f1 9d 00 86 00 01 0f 00 09 09 00 01 00 08 00 00 00 08 00 00 00
+read 04 b0 1d 00 a0 01
+update
+write 01 20 1d 09 00 04 20 3a 00 00 00 66 00
+write 01 20 1d 09 00 04 20 74 00 00 00 2c 00
+write 01 20 1d 09 00 04 20 a0 00 00 00 00 00
+write 05 20 1a 01 00
+write 0a 20 1b 03 00 01 14
+write 06 20 0d 02 01 00
+write 01 20 1d 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+read 04 f0 28 32 a0 01 10 00 01 00 01 00 00 00 00 00 00 00 00 00 a0 00 80 00 00 00 10 00 14 00 1a 00 20 00 59 00 7a 00 03 22 4c 2f 05 02 03 04 07 1e 05 04 05 06 0a 1e 02 1a
+read 04 b0 28 32 32 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 47 61 6d 65 70 61 64 1a 00 57 69 6e 64 6f 77 73 2e 58 62 6f 78 2e 49 6e 70 75 74 2e 48 65
+read 04 b0 28 32 64 61 64 73 65 74 02 2c 40 2e 08 df 07 e1 45 a5 ab a3 12 7a f1 97 b5 56 ff 76 97 fd 9b 81 45 ad 45 b6 45 bb a5 26 d6 04 de 4d d6 5a 00 01 0f 00 09 09 00
+read 04 b0 28 0a 96 01 01 00 08 00 00 00 08 00 00 00
+read 04 b0 28 00 a0 01
+update
+write 01 20 28 09 00 04 20 32 00 00 00 6e 00
+write 01 20 28 09 00 04 20 64 00 00 00 3c 00
+write 01 20 28 09 00 04 20 96 00 00 00 0a 00
+write 01 20 28 09 00 04 20 a0 00 00 00 00 00
+write 05 20 1c 01 00
+write 0a 20 1d 03 00 01 14
+write 06 20 0e 02 01 00
+write 01 20 28 09 00 04 20 a0 00 00 00 00 00
+result 1
+end
+free
+end
+endcase

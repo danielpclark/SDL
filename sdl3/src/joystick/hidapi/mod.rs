@@ -22,19 +22,21 @@
 //! their next update, since hint callbacks run with the hint lock held and
 //! can't take the joystick lock.
 //!
-//! Device drivers translated so far: GameCube, Luna, SHIELD, PS3 (with its
-//! third party and Sony Sixaxis drivers), Stadia, the Valve controllers
-//! (Steam Controller, Wireless HORIPAD For Steam, Steam Deck and the Triton
-//! Steam Controller), Nintendo Switch (with the combined Joy-Cons), Nintendo
-//! Switch 2 (without its libusb setup, so it stays disabled), Wii, Xbox 360
-//! (wired, wireless and Big Button), Xbox One, the Logitech wheels (lg4ff),
-//! PS4, PS5, 8BitDo, Flydigi, SInput, GameSir and ZUIKI.
+//! Device drivers translated: all of upstream's. GameCube, Luna, SHIELD,
+//! PS3 (with its third party and Sony Sixaxis drivers), Stadia, the Valve
+//! controllers (Steam Controller, Wireless HORIPAD For Steam, Steam Deck and
+//! the Triton Steam Controller), Nintendo Switch (with the combined
+//! Joy-Cons), Nintendo Switch 2 (without its libusb setup, so it stays
+//! disabled), Wii, Xbox 360 (wired, wireless and Big Button), GIP (wired Xbox
+//! One), Xbox One, the Logitech wheels (lg4ff), PS4, PS5, 8BitDo, Flydigi,
+//! SInput, GameSir and ZUIKI.
 
 mod combined;
 mod eightbitdo;
 mod flydigi;
 mod gamecube;
 mod gamesir;
+mod gip;
 mod lg4ff;
 mod luna;
 mod ps3;
@@ -989,6 +991,9 @@ pub(crate) static DRIVER_XBOX360W: HidapiDeviceDriver = HidapiDeviceDriver::new(
 /// `SDL_HIDAPI_DriverXbox360BB`
 pub(crate) static DRIVER_XBOX360BB: HidapiDeviceDriver =
     HidapiDeviceDriver::new(xbox360bb::DRIVER_NAME, &xbox360bb::Xbox360BbDriver);
+/// `SDL_HIDAPI_DriverGIP`
+pub(crate) static DRIVER_GIP: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_GIP, &gip::GipDriver);
 /// `SDL_HIDAPI_DriverXboxOne`
 pub(crate) static DRIVER_XBOXONE: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_ONE, &xboxone::XboxOneDriver);
@@ -1011,8 +1016,7 @@ pub(crate) static DRIVER_GAMESIR: HidapiDeviceDriver =
 pub(crate) static DRIVER_ZUIKI: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_ZUIKI, &zuiki::ZuikiDriver);
 
-/// Translation of `SDL_HIDAPI_drivers`: the drivers translated so far, in
-/// upstream's order. Not translated yet: GIP.
+/// Translation of `SDL_HIDAPI_drivers`, in upstream's order.
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_GAMECUBE,
     &DRIVER_LUNA,
@@ -1035,6 +1039,7 @@ static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_XBOX360,
     &DRIVER_XBOX360W,
     &DRIVER_XBOX360BB,
+    &DRIVER_GIP,
     &DRIVER_XBOXONE,
     &DRIVER_LG4FF,
     &DRIVER_8BITDO,
