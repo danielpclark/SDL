@@ -57,3 +57,6 @@ pub(crate) mod vulkan;
 pub(crate) mod window;
 #[path = "dyn.rs"]
 pub(crate) mod wldyn;
+
+#[cfg(test)]
+mod tests;
