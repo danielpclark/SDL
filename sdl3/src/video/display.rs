@@ -505,9 +505,19 @@ pub(crate) fn add_fullscreen_display_mode(display_id: DisplayID, mode: &DisplayM
         d.fullscreen_modes.push(new_mode);
 
         // Re-sort video modes
-        // FIXME (upstream): a current mode in the list is a pointer into it,
-        // so after the sort it may point at a different mode.
+        // (upstream's current mode is a pointer into the list, so after the
+        // sort it may point at a different mode; fixed here by following the
+        // current mode to its new place)
+        let current = match d.current_mode {
+            CurrentMode::Fullscreen(i) => d.fullscreen_modes.get(i).copied(),
+            _ => None,
+        };
         d.fullscreen_modes.sort_by(|a, b| cmpmodes(a, b).cmp(&0));
+        if let Some(current) = current {
+            if let Some(i) = d.fullscreen_modes.iter().position(|m| *m == current) {
+                d.current_mode = CurrentMode::Fullscreen(i);
+            }
+        }
         true
     })
     .unwrap_or(false)

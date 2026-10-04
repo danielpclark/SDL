@@ -823,6 +823,22 @@ fn exclusive_fullscreen() {
     assert_eq!(*MODE_SWITCHES.lock().unwrap(), vec![(1280, 720)]);
     assert_eq!(current_display_mode(primary).unwrap().w, 1280);
     assert_eq!(w.size().unwrap(), (1280, 720));
+    // A mode added (sorted in ahead of the current one) while it is in use
+    // leaves the current mode alone.
+    assert!(add_fullscreen_display_mode(
+        primary,
+        &DisplayMode {
+            w: 2560,
+            h: 1440,
+            ..mode
+        }
+    ));
+    assert_eq!(fullscreen_display_modes(primary).unwrap()[2].w, 1280);
+    assert_eq!(
+        current_display_mode(primary).unwrap().w,
+        1280,
+        "the current mode moved"
+    );
     assert!(w.flags().unwrap().contains(WindowFlags::FULLSCREEN));
     pump();
     let display_events: Vec<EventType> =
