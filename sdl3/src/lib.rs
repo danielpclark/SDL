@@ -109,22 +109,42 @@ pub(crate) mod test_support {
         guard
     }
 
-    /// While alive, `DISPLAY` is unset, so that no X11 video device is
-    /// found (for tests of having no video device). Hold [`TEST_LOCK`].
-    pub(crate) struct NoDisplay(Option<std::ffi::OsString>);
+    /// The variables [`NoDisplay`] unsets, and the ones it sets (to what).
+    const NO_DISPLAY_UNSET: [&str; 3] = ["DISPLAY", "WAYLAND_DISPLAY", "WAYLAND_SOCKET"];
+    const NO_DISPLAY_SET: [(&str, &str); 1] = [("XDG_SESSION_TYPE", "tty")];
+
+    /// While alive, `DISPLAY`, `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` are
+    /// unset and `XDG_SESSION_TYPE` is "tty", so that no X11 or Wayland video
+    /// device is found (for tests of having no video device). Changed in
+    /// SDL's environment snapshot too. Hold [`TEST_LOCK`].
+    pub(crate) struct NoDisplay(Vec<(&'static str, Option<std::ffi::OsString>)>);
 
     impl NoDisplay {
         pub(crate) fn new() -> NoDisplay {
-            let old = std::env::var_os("DISPLAY");
-            std::env::remove_var("DISPLAY");
+            let mut old = Vec::new();
+            for name in NO_DISPLAY_UNSET {
+                old.push((name, std::env::var_os(name)));
+                crate::stdlib::unsetenv_unsafe(name).unwrap();
+            }
+            for (name, value) in NO_DISPLAY_SET {
+                old.push((name, std::env::var_os(name)));
+                crate::stdlib::setenv_unsafe(name, value, true).unwrap();
+            }
             NoDisplay(old)
         }
     }
 
     impl Drop for NoDisplay {
         fn drop(&mut self) {
-            if let Some(display) = self.0.take() {
-                std::env::set_var("DISPLAY", display);
+            for (name, value) in self.0.drain(..) {
+                match value {
+                    Some(value) => {
+                        let _ = crate::stdlib::setenv_unsafe(name, &value.to_string_lossy(), true);
+                    }
+                    None => {
+                        let _ = crate::stdlib::unsetenv_unsafe(name);
+                    }
+                }
             }
         }
     }
