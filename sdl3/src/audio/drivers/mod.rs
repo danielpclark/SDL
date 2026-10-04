@@ -7,6 +7,8 @@
 pub(crate) mod alsa;
 pub(crate) mod disk;
 pub(crate) mod dummy;
+#[cfg(target_os = "linux")]
+pub(crate) mod pulseaudio;
 
 /// `io_delay` for a device: `(sample_frames * 1000) / freq` milliseconds,
 /// scaled by a timescale hint (`SDL_atof`, rounded with `SDL_round`).

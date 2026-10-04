@@ -209,6 +209,8 @@ pub(crate) struct AudioBootStrap {
 /// them is requested with [`hints::AUDIO_DRIVER`].
 static BOOTSTRAP: &[&AudioBootStrap] = &[
     #[cfg(target_os = "linux")]
+    &drivers::pulseaudio::PULSEAUDIO_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
     &drivers::alsa::ALSA_BOOTSTRAP,
     &drivers::disk::DISKAUDIO_BOOTSTRAP,
     &drivers::dummy::DUMMYAUDIO_BOOTSTRAP,
@@ -1122,7 +1124,7 @@ fn audio_device_disconnected_on_main_thread(devid: AudioDeviceID) {
 /// Backends should call this if an opened audio device is lost. This can
 /// happen due to i/o errors, or a device being unplugged, etc.
 /// Translation of `SDL_AudioDeviceDisconnected()`.
-pub(crate) fn audio_device_disconnected(device: &Arc<PhysicalDevice>) {
+pub(crate) fn audio_device_disconnected(device: &PhysicalDevice) {
     // lots of risk of various audio backends deadlocking because they're calling
     // this while holding a backend-specific lock, which causes problems when we
     // want to obtain the device lock while its audio thread is also waiting for
