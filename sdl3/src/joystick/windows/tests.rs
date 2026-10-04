@@ -381,6 +381,13 @@ fn scan_like_sscanf() {
     assert_eq!(raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#1&2&3#"), -1);
     assert_eq!(raw("\\\\.\\pipe\\HID#VID_045E&PID_028E&IG_00#1&2&3#-4"), -4);
 
+    let wgi = super::windows_gaming_input::steam_virtual_gamepad_slot_of_id;
+    assert_eq!(wgi("{wgi/nrid/:steam-28DE&11FF&1#2#3}"), 2);
+    assert_eq!(wgi("{wgi/nrid/:steam-28DE&11FF&1#2}"), 2);
+    assert_eq!(wgi("{wgi/nrid/:other-28DE&11FF&1#2#3}"), -1);
+    assert_eq!(wgi("{wgi/nrid/:steam-28DE&11FF#2#3}"), -1);
+    assert_eq!(wgi("{wgi/nrid/:steam-A&B&C# 17#3}"), 17);
+
     assert_eq!(scan_int("", &[Int]), None);
     assert_eq!(scan_int("12", &[Lit("1"), Int]), Some(2));
 }
@@ -912,12 +919,74 @@ fn state_packets() {
     assert_eq!(get_data(16, &data), None);
 }
 
+// --- Windows.Gaming.Input ---
+
+#[test]
+fn wgi_conversions() {
+    use super::wgi_abi::switch_position;
+    use super::windows_gaming_input::{
+        battery_percent, convert_axis_value, convert_hat_value, device_instance_id,
+        power_state_of_battery_status,
+    };
+    use crate::joystick::*;
+    // (expected values from upstream's WGI_JoystickUpdate() conversions)
+    let values = [0.0, 1.0, -1.0, 0.5, -0.5, 0.25, 0.999, 0.0001, 0.75];
+    let expected = [-32768, 32767, -32767, -1, 1, -16385, 32701, -32762, 16383];
+    for (value, axis) in values.iter().zip(expected) {
+        assert_eq!(convert_axis_value(*value), axis, "{value}");
+    }
+    let capacities = [
+        (0, 0),
+        (100, 50),
+        (3, 1),
+        (3, 2),
+        (1000, 999),
+        (7, 0),
+        (200, 1),
+        (8, 1),
+    ];
+    let percents = [0, 50, 33, 67, 100, 0, 1, 13];
+    for ((full, curr), percent) in capacities.iter().zip(percents) {
+        assert_eq!(battery_percent(*full, *curr), percent);
+    }
+    assert_eq!(power_state_of_battery_status(0), PowerState::NoBattery);
+    assert_eq!(power_state_of_battery_status(1), PowerState::OnBattery);
+    assert_eq!(power_state_of_battery_status(2), PowerState::Charged);
+    assert_eq!(power_state_of_battery_status(3), PowerState::Charging);
+    assert_eq!(power_state_of_battery_status(4), PowerState::Unknown);
+    let hats = [
+        (switch_position::CENTER, HAT_CENTERED),
+        (switch_position::UP, HAT_UP),
+        (switch_position::UP_RIGHT, HAT_RIGHTUP),
+        (switch_position::RIGHT, HAT_RIGHT),
+        (switch_position::DOWN_RIGHT, HAT_RIGHTDOWN),
+        (switch_position::DOWN, HAT_DOWN),
+        (switch_position::DOWN_LEFT, HAT_LEFTDOWN),
+        (switch_position::LEFT, HAT_LEFT),
+        (switch_position::UP_LEFT, HAT_LEFTUP),
+        (9, HAT_CENTERED),
+    ];
+    for (position, hat) in hats {
+        assert_eq!(convert_hat_value(position), hat);
+    }
+    assert_eq!(
+        device_instance_id("\\\\?\\HID#VID_045E&PID_02FF&IG_00#9&2c203035&2&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}")
+            .as_deref(),
+        Some("HID\\VID_045E&PID_02FF&IG_00\\9&2c203035&2&0000")
+    );
+    assert_eq!(
+        device_instance_id("\\\\?\\HID#VID_045E&PID_02FF&IG_00#9&2c203035&2&0000"),
+        None
+    );
+    assert_eq!(device_instance_id("HID#VID_045E#{x}"), None);
+}
+
 // --- the drivers together, under Wine (no controllers) ---
 
 #[test]
 fn drivers_with_every_api() {
     let _l = lock();
-    // RawInput (correlating with WGI) on, DirectInput on (the default)
+    // RawInput and WGI on, DirectInput on (the default)
     hints::set(hints::JOYSTICK_RAWINPUT, "1").unwrap();
     hints::set(hints::JOYSTICK_WGI, "1").unwrap();
     crate::init::init_subsystem(crate::init::InitFlags::JOYSTICK).unwrap();
@@ -928,6 +997,7 @@ fn drivers_with_every_api() {
         assert!(super::rawinput::is_enabled());
         assert_eq!(super::rawinput::RAWINPUT_JOYSTICK_DRIVER.count(), 0);
         assert_eq!(WINDOWS_JOYSTICK_DRIVER.count(), 0);
+        assert_eq!(super::windows_gaming_input::WGI_JOYSTICK_DRIVER.count(), 0);
         assert!(
             !super::rawinput::RAWINPUT_JOYSTICK_DRIVER.is_device_present(0x045e, 0x02a1, 0, None)
         );

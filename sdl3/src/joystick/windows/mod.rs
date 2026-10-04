@@ -9,16 +9,17 @@
 //! DirectInput ([`dinput`]) and XInput ([`xinput`]) devices; a thread with a
 //! message-only window watches for HID devices coming and going (and
 //! receives the RawInput driver's input), and polls XInput's slots when
-//! device notifications don't work. The RawInput driver ([`rawinput`]) is
-//! a driver of its own, before this one.
+//! device notifications don't work. The RawInput driver ([`rawinput`]) and
+//! the Windows.Gaming.Input driver ([`windows_gaming_input`]) are drivers
+//! of their own, before and after this one.
 //!
-//! The Windows.Gaming.Input driver is not translated yet; GameInput is not
-//! translated either: everything behaves as upstream does when
+//! GameInput is not translated: everything behaves as upstream does when
 //! `SDL_UsingGameInputForXInputControllers()` is false.
 
 pub(crate) mod dinput;
 pub(super) mod rawinput;
 mod wgi_abi;
+pub(super) mod windows_gaming_input;
 mod xinput;
 
 use std::cell::RefCell;
