@@ -296,6 +296,7 @@ impl Renderer {
     /// Create a texture with creation options.
     /// Translation of `SDL_CreateTextureWithProperties()`.
     pub fn create_texture_with(&mut self, info: &TextureCreateInfo) -> Result<Texture> {
+        self.sync_window()?;
         let mut format = info.format;
         let access = info.access;
         let (w, h) = (info.width, info.height);
@@ -574,6 +575,7 @@ impl Renderer {
     /// Create a texture with the contents of a surface.
     /// Translation of `SDL_CreateTextureFromSurface()`.
     pub fn create_texture_from_surface(&mut self, surface: &mut Surface<'_>) -> Result<Texture> {
+        self.sync_window()?;
         use PixelFormat as F;
         let mut format = F::UNKNOWN;
 
@@ -1079,6 +1081,7 @@ impl Renderer {
         pixels: &[u8],
         pitch: i32,
     ) -> Result<()> {
+        self.sync_window()?;
         let tex = self.tex(t)?;
 
         if pixels.is_empty() {
@@ -1350,6 +1353,7 @@ impl Renderer {
     /// pixels; the texture is updated when the lock is dropped.
     /// Translation of `SDL_LockTexture()` and `SDL_UnlockTexture()`.
     pub fn lock_texture(&mut self, t: Texture, rect: Option<&Rect>) -> Result<TextureLock<'_>> {
+        self.sync_window()?;
         let (offset, pitch) = self.lock_texture_raw(t, rect)?;
         Ok(TextureLock {
             renderer: self,
@@ -1367,6 +1371,7 @@ impl Renderer {
         t: Texture,
         rect: Option<&Rect>,
     ) -> Result<TextureSurfaceLock<'_>> {
+        self.sync_window()?;
         let tex = self.tex(t)?;
         let full_rect = Rect::new(0, 0, tex.w, tex.h);
         let mut real_rect = full_rect;
@@ -1443,6 +1448,7 @@ impl Renderer {
     /// Set the target of drawing (`None` = the output).
     /// Translation of `SDL_SetRenderTarget()`.
     pub fn set_render_target(&mut self, texture: Option<Texture>) -> Result<()> {
+        self.sync_window()?;
         // texture == NULL is valid and means reset the target to the window
         let mut target = None;
         if let Some(t) = texture {
@@ -1697,6 +1703,7 @@ impl Renderer {
         srcrect: Option<&FRect>,
         dstrect: Option<&FRect>,
     ) -> Result<()> {
+        self.sync_window()?;
         let Some(real_srcrect) = self.real_srcrect(t, srcrect)? else {
             return Ok(());
         };
@@ -1722,6 +1729,7 @@ impl Renderer {
         right: Option<&FPoint>,
         down: Option<&FPoint>,
     ) -> Result<()> {
+        self.sync_window()?;
         self.tex(t)?;
         if !self.backend.has_queue_copy_ex() && !self.backend.has_queue_geometry() {
             return Err(Error::new("Renderer does not support RenderCopyEx"));
@@ -1801,6 +1809,7 @@ impl Renderer {
         center: Option<&FPoint>,
         flip: FlipMode,
     ) -> Result<()> {
+        self.sync_window()?;
         if flip == FlipMode::None && ((angle / 360.0) as i32) as f64 == angle / 360.0 {
             // fast path when we don't need rotation or flipping
             return self.render_texture(t, srcrect, dstrect);
@@ -2021,6 +2030,7 @@ impl Renderer {
         scale: f32,
         dstrect: Option<&FRect>,
     ) -> Result<()> {
+        self.sync_window()?;
         self.tex(t)?;
 
         if scale <= 0.0 {
@@ -2205,6 +2215,7 @@ impl Renderer {
         scale: f32,
         dstrect: Option<&FRect>,
     ) -> Result<()> {
+        self.sync_window()?;
         self.render_9grid(
             t,
             srcrect,
@@ -2233,6 +2244,7 @@ impl Renderer {
         dstrect: Option<&FRect>,
         tile_scale: f32,
     ) -> Result<()> {
+        self.sync_window()?;
         self.render_9grid(
             t,
             srcrect,
@@ -2255,6 +2267,7 @@ impl Renderer {
         vertices: &[Vertex],
         indices: Option<&[i32]>,
     ) -> Result<()> {
+        self.sync_window()?;
         // The vertices, interleaved as SDL_Vertex: position, color, texture coordinates.
         let floats: Vec<f32> = vertices
             .iter()
@@ -2308,6 +2321,7 @@ impl Renderer {
         num_vertices: usize,
         indices: Option<Indices<'_>>,
     ) -> Result<()> {
+        self.sync_window()?;
         if xy.is_empty() {
             return Err(Error::invalid_param("xy"));
         }
@@ -2865,6 +2879,7 @@ impl Renderer {
     /// `SDL_RenderDebugText()` (format text with `format!` for
     /// `SDL_RenderDebugTextFormat()`).
     pub fn render_debug_text(&mut self, x: f32, y: f32, s: &str) -> Result<()> {
+        self.sync_window()?;
         // Allocate a texture atlas for this renderer if needed.
         if self.debug_char_texture_atlas.is_none() {
             self.create_debug_text_atlas()?;

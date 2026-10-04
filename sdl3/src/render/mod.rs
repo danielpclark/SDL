@@ -13,14 +13,21 @@
 //! which the renderer reports it as an invalid parameter (as upstream's
 //! object validity checks do).
 //!
-//! So far renderers draw into a [`Surface`] with the software backend
-//! ([`Renderer::software`]); renderers for windows come with the video
-//! subsystem and its backends.
+//! So far renderers use the software backend, drawing into a [`Surface`]
+//! ([`Renderer::software`]) or a window's surface ([`Renderer::for_window`]);
+//! the GPU backends come with the platform layer.
+//!
+//! A window renderer applies the window's changes (size, visibility, HDR
+//! state) at the start of its next drawing, presenting or state-setting
+//! call, so the plain getters report the state as of the last such call.
+//! Once the window is destroyed, the renderer's calls fail; it can be
+//! dropped before or after its window.
 
 mod debug_font;
 pub(crate) mod software;
 pub(crate) mod sysrender;
 mod texture;
+mod window;
 pub(crate) mod yuv_sw;
 
 use std::collections::HashMap;
@@ -40,6 +47,8 @@ use crate::video::BlendMode;
 pub use software::render_sw::SOFTWARE_RENDERER;
 pub use sysrender::Indices;
 pub use texture::{TextureCreateInfo, TextureLock, TextureSurfaceLock};
+pub use window::create_window_and_renderer;
+pub(crate) use window::{destroy_window_renderer, quit_render};
 
 use software::render_sw::SwRenderer;
 use sysrender::{
@@ -56,6 +65,9 @@ pub const DEBUG_TEXT_FONT_CHARACTER_SIZE: i32 = 8;
 
 /// Translation of `SDL_PROP_RENDERER_NAME_STRING`.
 pub const PROP_RENDERER_NAME_STRING: &str = "SDL.renderer.name";
+/// The window of a window renderer (an `Any` [`Window`](crate::video::Window)).
+/// Translation of `SDL_PROP_RENDERER_WINDOW_POINTER`.
+pub const PROP_RENDERER_WINDOW_POINTER: &str = "SDL.renderer.window";
 /// Translation of `SDL_PROP_RENDERER_VSYNC_NUMBER`.
 pub const PROP_RENDERER_VSYNC_NUMBER: &str = "SDL.renderer.vsync";
 /// Translation of `SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER`.
@@ -178,6 +190,18 @@ pub fn render_driver(index: usize) -> Result<&'static str> {
         .ok_or_else(|| Error::invalid_param("index"))
 }
 
+/// The vsync interval to create a renderer with: the request, or the
+/// [`hints::RENDER_VSYNC`] hint if set.
+fn present_vsync_with_hint(info: &RendererCreateInfo) -> i64 {
+    let mut present_vsync = info.present_vsync as i64;
+    if let Some(hint) = hints::get(hints::RENDER_VSYNC) {
+        if !hint.is_empty() {
+            present_vsync = hints::get_bool(hints::RENDER_VSYNC, true) as i64;
+        }
+    }
+    present_vsync
+}
+
 /// A color as the four floats of an `SDL_FColor`.
 fn fcolor_floats(c: FColor) -> [f32; 4] {
     [c.r, c.g, c.b, c.a]
@@ -251,6 +275,21 @@ pub struct Renderer {
     props: Properties,
 
     debug_char_texture_atlas: Option<Texture>,
+
+    /// The window rendered into, if any (`renderer->window`), with the
+    /// link its event watcher feeds.
+    window: Option<window::WindowLink>,
+    /// The window was destroyed (`renderer->destroyed`).
+    destroyed: bool,
+    /// Freed by `SDL_QuitRender()` (the object is no longer valid).
+    freed: bool,
+    /// Update the main view even while a target is set (the event watcher
+    /// points `renderer->view` at the main view).
+    force_main_view: bool,
+    transparent_window: bool,
+    /// The window shape the shape texture was made from.
+    shape_surface: Option<std::sync::Arc<Surface<'static>>>,
+    shape_texture: Option<Texture>,
 }
 
 impl std::fmt::Debug for Renderer {
@@ -330,16 +369,25 @@ impl Renderer {
     /// Translation of `SDL_CreateRendererWithProperties()` with
     /// `SDL_PROP_RENDERER_CREATE_SURFACE_POINTER`.
     pub fn software_with(surface: Surface<'static>, info: &RendererCreateInfo) -> Result<Renderer> {
-        let mut present_vsync = info.present_vsync as i64;
-        if let Some(hint) = hints::get(hints::RENDER_VSYNC) {
-            if !hint.is_empty() {
-                present_vsync = hints::get_bool(hints::RENDER_VSYNC, true) as i64;
-            }
-        }
+        let present_vsync = present_vsync_with_hint(info);
 
         // SW_CreateRendererForSurface()
         let (w, h, format) = (surface.width(), surface.height(), surface.format());
         let backend = SwRenderer::for_surface(surface)?;
+        Renderer::finish_create(Box::new(backend), format, (w, h), info, present_vsync, None)
+    }
+
+    /// The common part of `SDL_CreateRendererWithProperties()` once the
+    /// backend exists.
+    fn finish_create(
+        backend: Box<dyn RenderBackend>,
+        format: PixelFormat,
+        (w, h): (i32, i32),
+        info: &RendererCreateInfo,
+        present_vsync: i64,
+        window: Option<crate::video::Window>,
+    ) -> Result<Renderer> {
+        // (SW_CreateRendererForSurface())
         let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
         if output_colorspace != Colorspace::SRGB {
             return Err(Error::new("Unsupported output colorspace"));
@@ -347,7 +395,7 @@ impl Renderer {
 
         let mut renderer = Renderer {
             id: NEXT_RENDERER_ID.fetch_add(1, Ordering::Relaxed),
-            backend: Box::new(backend),
+            backend,
             texture_formats: SwRenderer::select_best_formats(format),
             software: true,
             npot_texture_wrap_unsupported: false,
@@ -384,7 +432,15 @@ impl Renderer {
             cliprect_queued: false,
             props: Properties::new(),
             debug_char_texture_atlas: None,
+            window: None,
+            destroyed: false,
+            freed: false,
+            force_main_view: false,
+            transparent_window: false,
+            shape_surface: None,
+            shape_texture: None,
         };
+        renderer.window = window.map(window::WindowLink::new);
 
         update_pixel_viewport(&mut renderer.main_view);
         update_pixel_clip_rect(&mut renderer.main_view);
@@ -400,8 +456,25 @@ impl Renderer {
             renderer.line_method = render_line_method_from_hint();
         }
 
+        if let Some(window) = renderer.window_handle() {
+            let flags = window.flags()?;
+            if flags.contains(crate::events::window::WindowFlags::TRANSPARENT) {
+                renderer.transparent_window = true;
+            }
+
+            if flags.intersects(
+                crate::events::window::WindowFlags::HIDDEN
+                    | crate::events::window::WindowFlags::MINIMIZED,
+            ) {
+                renderer.hidden = true;
+            }
+        }
+
         let props = renderer.props.clone();
         props.set(PROP_RENDERER_NAME_STRING, renderer.backend.name())?;
+        if let Some(window) = renderer.window_handle() {
+            props.set_any(PROP_RENDERER_WINDOW_POINTER, window)?;
+        }
         props.set(
             PROP_RENDERER_OUTPUT_COLORSPACE_NUMBER,
             renderer.output_colorspace.0 as i64,
@@ -411,7 +484,18 @@ impl Renderer {
             !renderer.npot_texture_wrap_unsupported,
         )?;
 
+        if renderer.window.is_some() {
+            renderer.update_hdr_properties();
+            if let Some(link) = &renderer.window {
+                link.register();
+            }
+        }
+
         renderer.set_viewport(None)?;
+
+        if let Some(link) = &mut renderer.window {
+            link.watch();
+        }
 
         let _ = renderer.set_vsync(present_vsync as i32);
         renderer.calculate_simulated_vsync_interval();
@@ -425,11 +509,24 @@ impl Renderer {
         Ok(renderer)
     }
 
-    /// `SDL_CalculateSimulatedVSyncInterval()`, without a display (the
-    /// default 60 Hz refresh rate).
+    /// Translation of `SDL_CalculateSimulatedVSyncInterval()`: the refresh
+    /// rate of the window's display (or of the primary display).
     fn calculate_simulated_vsync_interval(&mut self) {
-        // Pick a good default refresh rate
-        let (refresh_num, refresh_den) = (60u64, 1u64);
+        let mut display_id = self
+            .window_handle()
+            .and_then(|w| w.display().ok())
+            .unwrap_or(0);
+        if display_id == 0 {
+            display_id = crate::video::primary_display().unwrap_or(0);
+        }
+        let (refresh_num, refresh_den) = match crate::video::desktop_display_mode(display_id) {
+            Ok(mode) if mode.refresh_rate_numerator > 0 && mode.refresh_rate_denominator > 0 => (
+                mode.refresh_rate_numerator as u64,
+                mode.refresh_rate_denominator as u64,
+            ),
+            // Pick a good default refresh rate
+            _ => (60u64, 1u64),
+        };
         // Flip numerator and denominator to change from framerate to interval
         self.simulate_vsync_interval_ns =
             (crate::timer::NS_PER_SECOND as u64 * refresh_den) / refresh_num;
@@ -495,6 +592,9 @@ impl Renderer {
 
     /// The current view: the target texture's, or the main view.
     fn view(&self) -> &RenderViewState {
+        if self.force_main_view {
+            return &self.main_view;
+        }
         match self.target.and_then(|t| self.textures.get(t)) {
             Some(t) => &t.view,
             None => &self.main_view,
@@ -502,6 +602,9 @@ impl Renderer {
     }
 
     fn view_mut(&mut self) -> &mut RenderViewState {
+        if self.force_main_view {
+            return &mut self.main_view;
+        }
         match self.target.and_then(|t| self.textures.get_mut(t)) {
             Some(t) => &mut t.view,
             None => &mut self.main_view,
@@ -509,7 +612,7 @@ impl Renderer {
     }
 
     fn is_main_view(&self) -> bool {
-        self.target.is_none()
+        self.force_main_view || self.target.is_none()
     }
 
     /// Translation of `FlushRenderCommands()`.
@@ -561,6 +664,7 @@ impl Renderer {
 
     /// Run the queued commands now. Translation of `SDL_FlushRenderer()`.
     pub fn flush(&mut self) -> Result<()> {
+        self.sync_window()?;
         self.flush_render_commands()?;
         self.backend.invalidate_cached_state();
         Ok(())
@@ -815,12 +919,25 @@ impl Renderer {
         })
     }
 
-    /// Translation of `UpdateMainViewDimensions()` (without a window).
+    /// Translation of `UpdateMainViewDimensions()`.
     fn update_main_view_dimensions(&mut self) {
-        let (w, h) = self.output_size().unwrap_or((0, 0));
+        let (window_w, window_h) = self
+            .window_handle()
+            .and_then(|w| w.size().ok())
+            .unwrap_or((0, 0));
+
+        let (w, h) = self.backend_output_size().unwrap_or((0, 0));
         self.main_view.pixel_w = w;
         self.main_view.pixel_h = h;
-        self.dpi_scale = FPoint { x: 1.0, y: 1.0 };
+
+        if window_w > 0 && window_h > 0 {
+            self.dpi_scale = FPoint {
+                x: w as f32 / window_w as f32,
+                y: h as f32 / window_h as f32,
+            };
+        } else {
+            self.dpi_scale = FPoint { x: 1.0, y: 1.0 };
+        }
         update_pixel_viewport(&mut self.main_view);
     }
 
@@ -834,17 +951,27 @@ impl Renderer {
     }
 
     /// The output size in pixels. Translation of `SDL_GetRenderOutputSize()`.
-    pub fn output_size(&self) -> Result<(i32, i32)> {
+    pub fn output_size(&mut self) -> Result<(i32, i32)> {
+        self.sync_window()?;
+        self.backend_output_size()
+    }
+
+    /// `SDL_GetRenderOutputSize()` without the window check.
+    fn backend_output_size(&self) -> Result<(i32, i32)> {
         match self.backend.output_size(&self.textures) {
             Some(r) => r,
-            // We don't have any output size, this might be an offscreen-only renderer
-            None => Ok((0, 0)),
+            None => match self.window_handle() {
+                Some(window) => window.size_in_pixels(),
+                // We don't have any output size, this might be an offscreen-only renderer
+                None => Ok((0, 0)),
+            },
         }
     }
 
     /// The size of the current target in pixels.
     /// Translation of `SDL_GetCurrentRenderOutputSize()`.
-    pub fn current_output_size(&self) -> (i32, i32) {
+    pub fn current_output_size(&mut self) -> (i32, i32) {
+        let _ = self.sync_window();
         let view = self.view();
         (view.pixel_w, view.pixel_h)
     }
@@ -868,7 +995,7 @@ impl Renderer {
     fn update_logical_presentation(&mut self) {
         let is_main_view = self.is_main_view();
         let (iwidth, iheight) = if is_main_view {
-            self.output_size().unwrap_or((0, 0))
+            self.backend_output_size().unwrap_or((0, 0))
         } else {
             let t = self.textures.get(self.target.unwrap()).unwrap();
             (t.w, t.h)
@@ -1011,6 +1138,7 @@ impl Renderer {
         h: i32,
         mode: LogicalPresentation,
     ) -> Result<()> {
+        self.sync_window()?;
         let view = self.view_mut();
         if mode == LogicalPresentation::Disabled {
             view.logical_w = 0;
@@ -1136,6 +1264,7 @@ impl Renderer {
     /// Set the drawing area with float coordinates (`None` = the whole target).
     /// Translation of `SDL_SetRenderViewportFloat()`.
     pub fn set_viewport_float(&mut self, rect: Option<&FRect>) -> Result<()> {
+        self.sync_window()?;
         let view = self.view_mut();
         match rect {
             Some(r) => {
@@ -1204,11 +1333,40 @@ impl Renderer {
         }
     }
 
-    /// The area safe for rendering (the viewport, without a window).
-    /// Translation of `SDL_GetRenderSafeArea()`.
-    pub fn safe_area(&self) -> Rect {
-        // The entire viewport is safe for rendering
-        self.viewport()
+    /// The area safe for rendering: the window's safe area in render
+    /// coordinates (the viewport, for a render target or a renderer without
+    /// a window). Translation of `SDL_GetRenderSafeArea()`.
+    pub fn safe_area(&mut self) -> Result<Rect> {
+        self.sync_window()?;
+        let window = match self.window_handle() {
+            Some(window) if self.target.is_none() => window,
+            // The entire viewport is safe for rendering
+            _ => return Ok(self.viewport()),
+        };
+
+        // Get the window safe rect
+        let safe = window.safe_area()?;
+
+        // Convert the coordinates into the render space
+        let (minx, miny) = self.coordinates_from_window(safe.x as f32, safe.y as f32);
+        let (maxx, maxy) = self
+            .coordinates_from_window(safe.x as f32 + safe.w as f32, safe.y as f32 + safe.h as f32);
+
+        let mut rect = Rect::new(
+            minx.ceil() as i32,
+            miny.ceil() as i32,
+            (maxx - minx).ceil() as i32,
+            (maxy - miny).ceil() as i32,
+        );
+
+        // Clip with the viewport
+        let viewport = self.viewport();
+        if let Some(r) = rect.intersection(&viewport) {
+            rect = r;
+        } else {
+            rect = Rect::default();
+        }
+        Ok(rect)
     }
 
     /// Set the clip rectangle (`None` disables clipping).
@@ -1239,6 +1397,7 @@ impl Renderer {
     /// Set the clip rectangle with float coordinates (`None` disables
     /// clipping). Translation of `SDL_SetRenderClipRectFloat()`.
     pub fn set_clip_rect_float(&mut self, rect: Option<&FRect>) -> Result<()> {
+        self.sync_window()?;
         let view = self.view_mut();
         match rect {
             Some(r) if r.w >= 0.0 && r.h >= 0.0 => {
@@ -1267,6 +1426,7 @@ impl Renderer {
 
     /// Set the drawing scale. Translation of `SDL_SetRenderScale()`.
     pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) -> Result<()> {
+        self.sync_window()?;
         let view = self.view_mut();
         if view.scale.x == scale_x && view.scale.y == scale_y {
             return Ok(());
@@ -1361,11 +1521,13 @@ impl Renderer {
 
     /// Clear the target with the draw color. Translation of `SDL_RenderClear()`.
     pub fn clear(&mut self) -> Result<()> {
+        self.sync_window()?;
         self.queue_cmd_clear()
     }
 
     /// Draw a point. Translation of `SDL_RenderPoint()`.
     pub fn render_point(&mut self, x: f32, y: f32) -> Result<()> {
+        self.sync_window()?;
         self.render_points(&[FPoint { x, y }])
     }
 
@@ -1393,6 +1555,7 @@ impl Renderer {
 
     /// Draw points. Translation of `SDL_RenderPoints()`.
     pub fn render_points(&mut self, points: &[FPoint]) -> Result<()> {
+        self.sync_window()?;
         if points.is_empty() {
             return Ok(());
         }
@@ -1407,6 +1570,7 @@ impl Renderer {
 
     /// Draw a line. Translation of `SDL_RenderLine()`.
     pub fn render_line(&mut self, x1: f32, y1: f32, x2: f32, y2: f32) -> Result<()> {
+        self.sync_window()?;
         self.render_lines(&[FPoint { x: x1, y: y1 }, FPoint { x: x2, y: y2 }])
     }
 
@@ -1577,6 +1741,7 @@ impl Renderer {
 
     /// Draw connected lines. Translation of `SDL_RenderLines()`.
     pub fn render_lines(&mut self, points: &[FPoint]) -> Result<()> {
+        self.sync_window()?;
         let count = points.len();
         if count < 2 {
             return Ok(());
@@ -1712,6 +1877,7 @@ impl Renderer {
     /// Draw a rectangle outline (`None` = the whole viewport).
     /// Translation of `SDL_RenderRect()`.
     pub fn render_rect(&mut self, rect: Option<&FRect>) -> Result<()> {
+        self.sync_window()?;
         // If 'rect' == NULL, then outline the whole surface
         let rect = rect.copied().unwrap_or_else(|| self.render_viewport_size());
 
@@ -1742,6 +1908,7 @@ impl Renderer {
 
     /// Draw rectangle outlines. Translation of `SDL_RenderRects()`.
     pub fn render_rects(&mut self, rects: &[FRect]) -> Result<()> {
+        self.sync_window()?;
         for r in rects {
             self.render_rect(Some(r))?;
         }
@@ -1751,6 +1918,7 @@ impl Renderer {
     /// Fill a rectangle (`None` = the whole viewport).
     /// Translation of `SDL_RenderFillRect()`.
     pub fn render_fill_rect(&mut self, rect: Option<&FRect>) -> Result<()> {
+        self.sync_window()?;
         // If 'rect' == NULL, then fill the whole surface
         let rect = rect.copied().unwrap_or_else(|| self.render_viewport_size());
         self.render_fill_rects(&[rect])
@@ -1758,6 +1926,7 @@ impl Renderer {
 
     /// Fill rectangles. Translation of `SDL_RenderFillRects()`.
     pub fn render_fill_rects(&mut self, rects: &[FRect]) -> Result<()> {
+        self.sync_window()?;
         if rects.is_empty() {
             return Ok(());
         }
@@ -1781,6 +1950,7 @@ impl Renderer {
     /// Read pixels from the current target (`None` = the whole viewport).
     /// Translation of `SDL_RenderReadPixels()`.
     pub fn read_pixels(&mut self, rect: Option<&Rect>) -> Result<Surface<'static>> {
+        self.sync_window()?;
         // we need to render before we read the results.
         let _ = self.flush_render_commands();
 
@@ -1874,8 +2044,13 @@ impl Renderer {
     /// Run the queued commands and present the result.
     /// Translation of `SDL_RenderPresent()`.
     pub fn present(&mut self) -> Result<()> {
+        self.sync_window()?;
         if self.target.is_some() {
             return Err(Error::new("You can't present on a render target"));
+        }
+
+        if self.transparent_window {
+            self.apply_window_shape();
         }
 
         // time to send everything to the GPU!
@@ -1897,6 +2072,12 @@ impl Renderer {
 
     /// Translation of `SDL_DestroyRendererWithoutFreeing()`.
     fn destroy_without_freeing(&mut self) {
+        self.destroyed = true;
+
+        if let Some(link) = &mut self.window {
+            link.unregister();
+        }
+
         if self.software {
             // Make sure all drawing to a surface is complete
             let _ = self.flush_render_commands();
@@ -1920,6 +2101,9 @@ impl Renderer {
 
         // Free palette cache, which should be empty now
         crate::sdl_assert!(self.palettes.is_empty());
+
+        // Clean up renderer-specific resources
+        self.backend.destroy();
     }
 
     /// Set the vsync interval (0 disables it). Translation of `SDL_SetRenderVSync()`.
@@ -1927,8 +2111,10 @@ impl Renderer {
         self.wanted_vsync = vsync != 0;
 
         // for the software renderer, forward the call to the WindowTexture renderer
-        if self.software {
-            // (no window)
+        // (with a window, SDL_SetWindowTextureVSync() would handle it, but
+        // only a window framebuffer through a GPU texture can, and there are
+        // none yet)
+        if self.software && self.window.is_none() {
             if vsync == 0 {
                 return Ok(());
             } else {
@@ -1986,7 +2172,12 @@ impl Renderer {
 impl Drop for Renderer {
     fn drop(&mut self) {
         // Translation of `SDL_DestroyRenderer()`.
-        self.destroy_without_freeing();
+        // if we've already destroyed the renderer through SDL_DestroyWindow, we just need
+        // to free the renderer pointer. This lets apps destroy the window and renderer
+        // in either order.
+        if !self.destroyed && !self.window.as_ref().is_some_and(|l| l.window_destroyed()) {
+            self.destroy_without_freeing();
+        }
     }
 }
 

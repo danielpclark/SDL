@@ -503,6 +503,10 @@ pub(crate) trait RenderBackend {
     fn set_vsync(&mut self, _vsync: i32) -> Option<Result<()>> {
         None
     }
+    /// `WindowEvent`: a window event for the renderer's window.
+    fn window_event(&mut self, _event_type: crate::events::EventType) {}
+    /// `DestroyRenderer`: clean up renderer-specific resources.
+    fn destroy(&mut self) {}
 
     /// The output surface of a software backend, if it has one.
     fn surface(&self) -> Option<&Surface<'static>> {

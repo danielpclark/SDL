@@ -2111,6 +2111,18 @@ impl Window {
         })
     }
 
+    /// Whether `surface` is the window's current, valid surface
+    /// (`window->surface_valid` for the surface the caller holds).
+    pub(crate) fn is_current_surface(&self, surface: &WindowSurface) -> bool {
+        with_window(self.id, |w| {
+            w.surface_valid
+                && w.surface
+                    .as_ref()
+                    .is_some_and(|s| Arc::ptr_eq(s, &surface.surface))
+        })
+        .unwrap_or(false)
+    }
+
     /// Toggle VSync for the window surface (0 off, 1 on, -1 adaptive).
     /// Translation of `SDL_SetWindowSurfaceVSync()`.
     pub fn set_surface_vsync(&self, vsync: i32) -> Result<()> {
@@ -2582,6 +2594,8 @@ impl Window {
         send_window_event(window, EventType::WINDOW_DESTROYED, 0, 0);
 
         let _ = self.destroy_surface();
+
+        crate::render::destroy_window_renderer(window);
 
         // Restore video mode, etc.
         let _ = update_fullscreen_mode(window, FullscreenOp::Leave, true);

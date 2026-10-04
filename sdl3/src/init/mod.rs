@@ -632,6 +632,7 @@ pub fn quit_subsystem(flags: InitFlags) {
 
     if flags.contains(InitFlags::VIDEO) {
         if should_quit_subsystem(InitFlags::VIDEO) {
+            crate::render::quit_render();
             crate::video::core::quit_video();
             VIDEO_THREAD_ID.store(0, Ordering::Release);
             // video implies events
