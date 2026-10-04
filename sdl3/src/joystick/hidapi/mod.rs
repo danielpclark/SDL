@@ -26,6 +26,7 @@
 //! One, PS4, PS5 and Nintendo Switch (with the combined Joy-Cons).
 
 mod combined;
+mod ps4;
 pub(crate) mod report_descriptor;
 pub(crate) mod rumble;
 mod xbox360;
@@ -61,6 +62,9 @@ use crate::sensor::SensorType;
 /// device, and on Apple mobile platforms it doesn't do anything except for
 /// handling Bluetooth Steam Controllers, so it's off there by default.
 pub(crate) const SDL_HIDAPI_DEFAULT: bool = !cfg!(any(target_os = "android", target_os = "ios"));
+
+/// `SDL_NS_PER_US`
+pub(crate) const NS_PER_US: u64 = 1000;
 
 /// The maximum size of a USB packet for HID devices (`USB_PACKET_LENGTH`).
 pub(crate) const USB_PACKET_LENGTH: usize = 64;
@@ -214,6 +218,26 @@ impl HintWatch {
 impl std::fmt::Debug for HintWatch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("HintWatch")
+    }
+}
+
+/// The joystick a driver changes (`ctx->joystick`): the one being opened,
+/// which isn't in the joystick list yet, or an open one.
+pub(crate) enum JoystickRef<'a> {
+    /// The joystick of an `OpenJoystick`
+    Opening(&'a mut JoystickData),
+    /// An open joystick
+    Open(JoystickID),
+}
+
+impl JoystickRef<'_> {
+    /// Run `f` on the joystick; `None` if it isn't open (anymore). `f`
+    /// must not look up joysticks itself.
+    pub(crate) fn with<R>(&mut self, f: impl FnOnce(&mut JoystickData) -> R) -> Option<R> {
+        match self {
+            JoystickRef::Opening(joystick) => Some(f(joystick)),
+            JoystickRef::Open(id) => with_joystick(*id, f),
+        }
     }
 }
 
@@ -850,6 +874,9 @@ struct HwData {
 pub(crate) static DRIVER_COMBINED: HidapiDeviceDriver =
     HidapiDeviceDriver::new("SDL_JOYSTICK_HIDAPI_COMBINED", &combined::CombinedDriver);
 
+/// `SDL_HIDAPI_DriverPS4`
+pub(crate) static DRIVER_PS4: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS4, &ps4::Ps4Driver);
 /// `SDL_HIDAPI_DriverXbox360`
 pub(crate) static DRIVER_XBOX360: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_360, &xbox360::Xbox360Driver);
@@ -867,8 +894,12 @@ pub(crate) static DRIVER_XBOXONE: HidapiDeviceDriver =
 /// its third party and Sony Sixaxis drivers), Stadia, Steam, Steam HORI,
 /// Steam Deck, Steam Triton, Switch 2, Wii, Xbox 360 Big Button, GIP,
 /// Logitech G (lg4ff), 8BitDo, Flydigi, SInput, GameSir and ZUIKI.
-static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] =
-    &[&DRIVER_XBOX360, &DRIVER_XBOX360W, &DRIVER_XBOXONE];
+static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
+    &DRIVER_PS4,
+    &DRIVER_XBOX360,
+    &DRIVER_XBOX360W,
+    &DRIVER_XBOXONE,
+];
 
 // The framework state
 
