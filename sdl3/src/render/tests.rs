@@ -607,3 +607,467 @@ fn convert_pixels_any_pitch_matches_c() {
     let plain = with_simd(false, run);
     assert_eq!((simd, plain), (0x34882d8a52ffb322, 0x621e5cedca99fdce));
 }
+
+// A session with window renderers on the dummy video driver, compared with
+// the same session run by upstream's C (testdata/window_renderer_trace.txt,
+// from a program built against SDL with only the dummy and offscreen video
+// drivers).
+mod window_session {
+    use std::fmt::Write as _;
+
+    use crate::events::window::WindowFlags;
+    use crate::events::{
+        get_events, pump, DropEvent, Event, EventType, MouseButtonEvent, MouseMotionEvent,
+        MouseWheelEvent, TouchFingerEvent,
+    };
+    use crate::hints;
+    use crate::init::{self, InitFlags};
+    use crate::render::*;
+    use crate::test_support::TEST_LOCK;
+    use crate::video::rect::{FRect, Rect};
+    use crate::video::{PixelFormat, Surface, Window};
+
+    /// `%g`.
+    fn g(v: f32) -> String {
+        let v = v as f64;
+        if v == 0.0 {
+            return "0".into();
+        }
+        let exp = v.abs().log10().floor() as i32;
+        let decimals = (5 - exp).max(0) as usize;
+        let s = format!("{v:.decimals$}");
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_string()
+        } else {
+            s
+        }
+    }
+
+    fn res<T>(out: &mut String, label: &str, r: crate::error::Result<T>) {
+        match r {
+            Ok(_) => writeln!(out, "{label}: ok").unwrap(),
+            Err(e) => writeln!(out, "{label}: err: {}", e.message()).unwrap(),
+        }
+    }
+
+    /// FNV-1a of the pixel rows.
+    fn hash(s: &Surface<'_>) -> u32 {
+        let mut h = 2166136261u32;
+        let pixels = s.raw_pixels().unwrap();
+        let row = (s.width() * s.format().bytes_per_pixel() as i32) as usize;
+        for y in 0..s.height() as usize {
+            for &b in &pixels[y * s.pitch() as usize..][..row] {
+                h = (h ^ b as u32).wrapping_mul(16777619);
+            }
+        }
+        h
+    }
+
+    fn readpix(out: &mut String, r: &mut Renderer, label: &str) {
+        let s = match r.read_pixels(None) {
+            Ok(s) => s,
+            Err(e) => {
+                writeln!(out, "{label}: err: {}", e.message()).unwrap();
+                return;
+            }
+        };
+        let p = s.read_pixel(0, 0).unwrap();
+        let m = s.read_pixel(s.width() / 2, s.height() / 2).unwrap();
+        writeln!(
+            out,
+            "{label}: {}x{} fmt={} hash={:08x} p00={},{},{},{} pmid={},{},{},{}",
+            s.width(),
+            s.height(),
+            s.format().name(),
+            hash(&s),
+            p.r,
+            p.g,
+            p.b,
+            p.a,
+            m.r,
+            m.g,
+            m.b,
+            m.a
+        )
+        .unwrap();
+    }
+
+    fn sizes(out: &mut String, r: &mut Renderer, label: &str) {
+        let (w, h) = match r.output_size() {
+            Ok(s) => s,
+            Err(e) => {
+                writeln!(out, "{label}: err: {}", e.message()).unwrap();
+                return;
+            }
+        };
+        let (cw, ch) = r.current_output_size();
+        let vp = r.viewport();
+        let (sok, safe) = match r.safe_area() {
+            Ok(s) => (1, s),
+            Err(_) => (0, Rect::default()),
+        };
+        writeln!(
+            out,
+            "{label}: out={w}x{h} cur={cw}x{ch}(1) vp={},{},{},{} safe={sok}:{},{},{},{}",
+            vp.x, vp.y, vp.w, vp.h, safe.x, safe.y, safe.w, safe.h
+        )
+        .unwrap();
+    }
+
+    fn drain() {
+        pump();
+        let _ = get_events(EventType::FIRST, EventType::LAST, 10000);
+    }
+
+    fn rect(out: &mut String, label: &str, r: FRect) {
+        writeln!(out, "{label}={},{},{},{}", g(r.x), g(r.y), g(r.w), g(r.h)).unwrap();
+    }
+
+    fn nil(w: Option<Window>) -> &'static str {
+        match w {
+            Some(_) => "window",
+            None => "(nil)",
+        }
+    }
+
+    fn session() -> String {
+        let mut out = String::new();
+        let o = &mut out;
+        hints::set(hints::VIDEO_DRIVER, "dummy").unwrap();
+        res(o, "init", init::init(InitFlags::VIDEO));
+        drain();
+
+        let created = create_window_and_renderer("wr", 64, 48, WindowFlags::default());
+        res(
+            o,
+            "create",
+            created.as_ref().map(|_| ()).map_err(Clone::clone),
+        );
+        let (win, mut r) = created.unwrap();
+        let props = r.properties();
+        writeln!(
+            o,
+            "name={} vsync=0 hidden={} hassurface={} samewin={} propwin={}",
+            r.name(),
+            win.flags().unwrap().contains(WindowFlags::HIDDEN) as i32,
+            win.has_surface().unwrap() as i32,
+            (r.window() == Some(win)) as i32,
+            props
+                .get_any::<Window>(PROP_RENDERER_WINDOW_POINTER)
+                .is_some_and(|w| *w == win) as i32
+        )
+        .unwrap();
+        writeln!(
+            o,
+            "vsync={} hdr={} white={} headroom={}",
+            r.vsync(),
+            props
+                .get_bool(PROP_RENDERER_HDR_ENABLED_BOOLEAN)
+                .unwrap_or(true) as i32,
+            g(props
+                .get_float(PROP_RENDERER_SDR_WHITE_POINT_FLOAT)
+                .unwrap_or(-1.0)),
+            g(props
+                .get_float(PROP_RENDERER_HDR_HEADROOM_FLOAT)
+                .unwrap_or(-1.0))
+        )
+        .unwrap();
+        match Renderer::for_window(&win, None) {
+            Ok(_) => writeln!(o, "second: ok").unwrap(),
+            Err(e) => writeln!(o, "second: {}", e.message()).unwrap(),
+        }
+        sizes(o, &mut r, "sizes");
+        drain();
+
+        r.set_draw_color(10, 20, 30, 255);
+        res(o, "clear", r.clear());
+        r.set_draw_color(200, 100, 50, 255);
+        res(
+            o,
+            "fill",
+            r.render_fill_rect(Some(&FRect::new(8.0, 8.0, 32.0, 24.0))),
+        );
+        readpix(o, &mut r, "read1");
+        res(o, "present", r.present());
+
+        res(o, "resize", win.set_size(100, 80));
+        sizes(o, &mut r, "resized");
+        readpix(o, &mut r, "read2");
+        drain();
+
+        res(
+            o,
+            "logical",
+            r.set_logical_presentation(32, 24, LogicalPresentation::Letterbox),
+        );
+        rect(o, "logical rect", r.logical_presentation_rect());
+        sizes(o, &mut r, "logical sizes");
+        {
+            let id = win.id();
+            let mut e = Event::MouseMotion(MouseMotionEvent {
+                window_id: id,
+                x: 50.0,
+                y: 40.0,
+                xrel: 10.0,
+                yrel: 5.0,
+                ..Default::default()
+            });
+            res(
+                o,
+                "convert motion",
+                r.convert_event_to_render_coordinates(&mut e),
+            );
+            let Event::MouseMotion(m) = e else {
+                unreachable!()
+            };
+            writeln!(
+                o,
+                "motion={},{} rel={},{}",
+                g(m.x),
+                g(m.y),
+                g(m.xrel),
+                g(m.yrel)
+            )
+            .unwrap();
+
+            let mut e = Event::MouseMotion(MouseMotionEvent {
+                window_id: 12345,
+                x: 50.0,
+                y: 40.0,
+                ..Default::default()
+            });
+            r.convert_event_to_render_coordinates(&mut e).unwrap();
+            let Event::MouseMotion(m) = e else {
+                unreachable!()
+            };
+            writeln!(o, "other motion={},{}", g(m.x), g(m.y)).unwrap();
+
+            let mut e = Event::MouseButton(MouseButtonEvent {
+                window_id: id,
+                x: 10.0,
+                y: 70.0,
+                down: true,
+                ..Default::default()
+            });
+            r.convert_event_to_render_coordinates(&mut e).unwrap();
+            let Event::MouseButton(b) = e else {
+                unreachable!()
+            };
+            writeln!(o, "button={},{}", g(b.x), g(b.y)).unwrap();
+
+            let mut e = Event::MouseWheel(MouseWheelEvent {
+                window_id: id,
+                mouse_x: 75.0,
+                mouse_y: 20.0,
+                x: 1.0,
+                ..Default::default()
+            });
+            r.convert_event_to_render_coordinates(&mut e).unwrap();
+            let Event::MouseWheel(w) = e else {
+                unreachable!()
+            };
+            writeln!(o, "wheel={},{} {}", g(w.mouse_x), g(w.mouse_y), g(w.x)).unwrap();
+
+            let mut e = Event::TouchFinger(TouchFingerEvent {
+                event_type: EventType::FINGER_MOTION,
+                x: 0.5,
+                y: 0.25,
+                dx: 0.1,
+                dy: 0.2,
+                ..Default::default()
+            });
+            r.convert_event_to_render_coordinates(&mut e).unwrap();
+            let Event::TouchFinger(f) = e else {
+                unreachable!()
+            };
+            writeln!(o, "finger={},{} d={},{}", g(f.x), g(f.y), g(f.dx), g(f.dy)).unwrap();
+
+            let mut e = Event::Drop(DropEvent {
+                event_type: EventType::DROP_POSITION,
+                window_id: id,
+                x: 30.0,
+                y: 60.0,
+                ..Default::default()
+            });
+            r.convert_event_to_render_coordinates(&mut e).unwrap();
+            let Event::Drop(d) = e else { unreachable!() };
+            writeln!(o, "drop={},{}", g(d.x), g(d.y)).unwrap();
+
+            let (wx, wy) = r.coordinates_to_window(16.0, 12.0);
+            writeln!(o, "to window={},{}", g(wx), g(wy)).unwrap();
+        }
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.set_draw_color(255, 255, 255, 255);
+        r.render_fill_rect(Some(&FRect::new(0.0, 0.0, 16.0, 12.0)))
+            .unwrap();
+        readpix(o, &mut r, "read3");
+
+        // Resize with a render target set: only the main view follows the window
+        let t = r
+            .create_texture(PixelFormat::ARGB8888, TextureAccess::Target, 20, 10)
+            .unwrap();
+        res(o, "target", r.set_render_target(Some(t)));
+        sizes(o, &mut r, "target sizes");
+        res(o, "resize2", win.set_size(120, 90));
+        sizes(o, &mut r, "target resized");
+        rect(o, "target logical rect", r.logical_presentation_rect());
+        res(o, "untarget", r.set_render_target(None));
+        sizes(o, &mut r, "untarget sizes");
+        rect(o, "main logical rect", r.logical_presentation_rect());
+        r.set_render_target(Some(t)).unwrap();
+        res(o, "present on target", r.present());
+        r.set_render_target(None).unwrap();
+        res(
+            o,
+            "logical off",
+            r.set_logical_presentation(0, 0, LogicalPresentation::Disabled),
+        );
+        drain();
+
+        res(o, "hide", win.hide());
+        res(o, "show", win.show());
+        res(o, "minimize", win.minimize());
+        res(o, "restore", win.restore());
+        res(o, "present2", r.present());
+        drain();
+
+        // The window goes first
+        win.destroy();
+        res(o, "clear after", r.clear());
+        sizes(o, &mut r, "sizes after");
+        res(o, "present after", r.present());
+        writeln!(o, "window after={}", nil(r.window())).unwrap();
+        drop(r);
+        drain();
+
+        // Driver selection
+        let w2 = Window::create("w2", 40, 30, WindowFlags::default()).unwrap();
+        match Renderer::for_window(&w2, Some("nonexistent")) {
+            Ok(_) => writeln!(o, "nonexistent: ok").unwrap(),
+            Err(e) => writeln!(o, "nonexistent: {}", e.message()).unwrap(),
+        }
+        match Renderer::for_window(&w2, Some("nonexistent,SOFTWARE")) {
+            Ok(r2) => writeln!(o, "list: {}", r2.name()).unwrap(),
+            Err(e) => writeln!(o, "list: {}", e.message()).unwrap(),
+        }
+        writeln!(
+            o,
+            "surface after destroy={}",
+            w2.has_surface().unwrap() as i32
+        )
+        .unwrap();
+        hints::set(hints::RENDER_DRIVER, "bogus").unwrap();
+        match Renderer::for_window(&w2, None) {
+            Ok(_) => writeln!(o, "hint bogus: ok").unwrap(),
+            Err(e) => writeln!(o, "hint bogus: {}", e.message()).unwrap(),
+        }
+        hints::set(hints::RENDER_DRIVER, "software").unwrap();
+        let r2 = Renderer::for_window(&w2, None);
+        match &r2 {
+            Ok(r2) => writeln!(o, "hint software: {}", r2.name()).unwrap(),
+            Err(e) => writeln!(o, "hint software: {}", e.message()).unwrap(),
+        }
+        hints::reset(hints::RENDER_DRIVER);
+        writeln!(
+            o,
+            "window surface with renderer={}",
+            w2.surface().is_ok() as i32
+        )
+        .unwrap();
+        // The renderer goes first
+        drop(r2);
+        writeln!(
+            o,
+            "surface after destroy2={}",
+            w2.has_surface().unwrap() as i32
+        )
+        .unwrap();
+        {
+            let sr =
+                Renderer::software(Surface::new(4, 4, PixelFormat::ARGB8888).unwrap()).unwrap();
+            writeln!(o, "sw window={}", nil(sr.window())).unwrap();
+        }
+        {
+            let ws2 = w2.surface();
+            writeln!(o, "got surface={}", ws2.is_ok() as i32).unwrap();
+            match Renderer::for_window(&w2, None) {
+                Ok(_) => writeln!(o, "with surface: ok").unwrap(),
+                Err(e) => writeln!(o, "with surface: {}", e.message()).unwrap(),
+            }
+            w2.destroy_surface().unwrap();
+        }
+        w2.destroy();
+        drain();
+
+        // A transparent window with a shape
+        let created = create_window_and_renderer(
+            "w3",
+            16,
+            16,
+            WindowFlags::TRANSPARENT | WindowFlags::HIDDEN,
+        );
+        res(
+            o,
+            "create transparent",
+            created.as_ref().map(|_| ()).map_err(Clone::clone),
+        );
+        let (w3, mut r3) = created.unwrap();
+        writeln!(
+            o,
+            "hidden={}",
+            w3.flags().unwrap().contains(WindowFlags::HIDDEN) as i32
+        )
+        .unwrap();
+        {
+            let mut shape = Surface::new(16, 16, PixelFormat::ARGB8888).unwrap();
+            shape.fill_rect(None, 0x00000000).unwrap();
+            shape
+                .fill_rect(Some(&Rect::new(4, 4, 8, 8)), 0xff000000)
+                .unwrap();
+            res(o, "shape", w3.set_shape(Some(&shape)));
+        }
+        r3.set_draw_color(255, 255, 255, 255);
+        r3.clear().unwrap();
+        res(o, "present shaped", r3.present());
+        readpix(o, &mut r3, "shaped");
+        r3.set_draw_color(255, 0, 0, 255);
+        r3.clear().unwrap();
+        res(o, "present shaped2", r3.present());
+        readpix(o, &mut r3, "shaped2");
+        res(o, "unshape", w3.set_shape(None));
+        r3.clear().unwrap();
+        res(o, "present unshaped", r3.present());
+        readpix(o, &mut r3, "unshaped");
+        drop(r3);
+        w3.destroy();
+
+        // Quitting video with a renderer alive
+        let created = create_window_and_renderer("w4", 8, 8, WindowFlags::default());
+        res(
+            o,
+            "create4",
+            created.as_ref().map(|_| ()).map_err(Clone::clone),
+        );
+        let (_w4, mut r4) = created.unwrap();
+        init::quit_subsystem(InitFlags::VIDEO);
+        res(o, "clear after quit", r4.clear());
+        drop(r4);
+        init::quit();
+        out
+    }
+
+    #[test]
+    fn window_renderer_matches_c() {
+        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        init::quit(); // (in case an earlier test failed halfway)
+        let out = session();
+        hints::reset(hints::VIDEO_DRIVER);
+        let expected = include_str!("testdata/window_renderer_trace.txt");
+        if out != expected {
+            let path = std::env::temp_dir().join("rust_window_renderer_trace.txt");
+            std::fs::write(&path, &out).unwrap();
+            panic!("trace differs from upstream's; see {}", path.display());
+        }
+    }
+}

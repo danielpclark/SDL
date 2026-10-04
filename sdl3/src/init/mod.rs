@@ -5,9 +5,7 @@
 //! Library initialization and shutdown, subsystem reference counting, and
 //! application metadata.
 //!
-//! Direct translation of `SDL.c`. Video, whose implementation has not been
-//! translated yet, behaves exactly like an SDL build with that subsystem
-//! disabled: requesting it fails with "SDL not built with video support".
+//! Direct translation of `SDL.c`.
 
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -441,10 +439,28 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
             flags_initialized |= InitFlags::EVENTS;
         }
 
-        // The remaining subsystems are not translated yet; behave like a
-        // build with them disabled (see docs/ROADMAP.md).
+        // Initialize the video subsystem
         if flags.contains(InitFlags::VIDEO) {
-            return Err(err!("SDL not built with video support"));
+            if should_init_subsystem(InitFlags::VIDEO) {
+                // video implies events
+                init_or_increment_subsystem(InitFlags::EVENTS)?;
+
+                increment_refcount(InitFlags::VIDEO);
+
+                // We initialize video on the main thread
+                // On Apple platforms this is a requirement.
+                // On other platforms, this is the definition.
+                VIDEO_THREAD_ID.store(current_thread_id(), Ordering::Release);
+
+                if let Err(e) = crate::video::core::init_video(None) {
+                    decrement_refcount(InitFlags::VIDEO);
+                    quit_subsystem(InitFlags::EVENTS);
+                    return Err(e);
+                }
+            } else {
+                increment_refcount(InitFlags::VIDEO);
+            }
+            flags_initialized |= InitFlags::VIDEO;
         }
         // Initialize the audio subsystem
         if flags.contains(InitFlags::AUDIO) {
@@ -563,7 +579,6 @@ pub fn init(flags: InitFlags) -> Result<()> {
 /// Shut down specific SDL subsystems. Translation of `SDL_QuitSubSystem()`.
 pub fn quit_subsystem(flags: InitFlags) {
     // Shut down requested initialized subsystems
-    // (video: not translated yet)
 
     if flags.contains(InitFlags::CAMERA) {
         if should_quit_subsystem(InitFlags::CAMERA) {
@@ -613,6 +628,17 @@ pub fn quit_subsystem(flags: InitFlags) {
             quit_subsystem(InitFlags::EVENTS);
         }
         decrement_refcount(InitFlags::AUDIO);
+    }
+
+    if flags.contains(InitFlags::VIDEO) {
+        if should_quit_subsystem(InitFlags::VIDEO) {
+            crate::render::quit_render();
+            crate::video::core::quit_video();
+            VIDEO_THREAD_ID.store(0, Ordering::Release);
+            // video implies events
+            quit_subsystem(InitFlags::EVENTS);
+        }
+        decrement_refcount(InitFlags::VIDEO);
     }
 
     if flags.contains(InitFlags::EVENTS) {
@@ -900,10 +926,12 @@ pub(crate) mod tests {
         quit_subsystem(InitFlags::EVENTS);
         assert_eq!(was_init(InitFlags::EVENTS), InitFlags::NONE);
 
-        // Untranslated subsystems fail like a disabled build, and roll back
-        // anything that was initialized in the same call.
+        // A subsystem that fails rolls back anything that was initialized
+        // in the same call (without a driver hint, no video driver is
+        // available).
+        crate::hints::reset(crate::hints::VIDEO_DRIVER);
         let e = init(InitFlags::EVENTS | InitFlags::VIDEO).unwrap_err();
-        assert_eq!(e.message(), "SDL not built with video support");
+        assert_eq!(e.message(), "No available video device");
         assert_eq!(was_init(InitFlags::NONE), InitFlags::NONE);
 
         init(InitFlags::EVENTS).unwrap();

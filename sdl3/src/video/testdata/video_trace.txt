@@ -1,0 +1,502 @@
+==== driver dummy
+init: ok
+current=dummy screensaver=0 theme=0
+displays=1 primary=1
+display 1 name=1
+  bounds 0 0 1024 768
+  usable 0 0 1024 768
+  desktop 1 1024x768 fmt=0x16161804 density=1 rate=0 0/1
+  current 1024x768 fmt=0x16161804
+  scale=1 natural=1 current=1
+  modes=0
+for point=1 for rect=1
+closest: err: Couldn't find any matching video modes
+== create A
+created 1
+  event 0x20c win=2 0 0
+  event 0x20e win=2 0 0
+  event 0x202 win=2 0 0
+  event 0x207 win=2 640 480
+window 2 flags=0x620 pos=192,144 size=640x480 pixels=640x480
+  density=1 scale=1 display=1 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,640,480 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== position
+setpos: ok
+  event 0x205 win=2 100 50
+window 2 flags=0x620 pos=100,50 size=640x480 pixels=640x480
+  density=1 scale=1 display=1 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,640,480 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+setpos centered: ok
+  event 0x205 win=2 192 50
+window 2 flags=0x620 pos=192,50 size=640x480 pixels=640x480
+  density=1 scale=1 display=1 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,640,480 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== size
+setsize: ok
+  event 0x206 win=2 800 600
+  event 0x207 win=2 800 600
+  event 0x215 win=2 0 0
+window 2 flags=0x620 pos=192,50 size=800x600 pixels=800x600
+  density=1 scale=1 display=1 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,800,600 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+setsize 0: err: Parameter 'w' is invalid
+minsize: ok
+maxsize: ok
+maxsize bad: err: SDL_SetWindowMaximumSize(): Tried to set maximum size smaller than minimum size
+setsize clamp: ok
+  event 0x206 win=2 200 900
+  event 0x207 win=2 200 900
+  event 0x215 win=2 0 0
+window 2 flags=0x620 pos=192,50 size=200x900 pixels=200x900
+  density=1 scale=1 display=1 fmt=0x16161804 title='Window A' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,200,900 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+aspect: ok
+  event 0x206 win=2 200 200
+  event 0x207 win=2 200 200
+  event 0x215 win=2 0 0
+setsize aspect: ok
+  event 0x206 win=2 450 300
+  event 0x207 win=2 450 300
+  event 0x215 win=2 0 0
+window 2 flags=0x620 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Window A' opacity=1
+  min=200x100 max=1000x900 aspect=1,1.5 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+aspect off: ok
+== states
+title: ok
+bordered: err: That operation is not supported
+resizable: err: That operation is not supported
+on top: err: That operation is not supported
+maximize: err: That operation is not supported
+minimize: err: That operation is not supported
+restore: err: That operation is not supported
+opacity: err: That operation is not supported
+modal: err: That operation is not supported
+parent self: err: Cannot set the parent of a window to itself.
+flash: err: That operation is not supported
+raise: ok
+sync: ok
+focusable: ok
+mouse rect: err: That operation is not supported
+hit test: err: That operation is not supported
+shape: err: Window must be created with SDL_WINDOW_TRANSPARENT
+progress: ok
+progress=1 state=0
+system menu: err: That operation is not supported
+borders: err: That operation is not supported
+window 2 flags=0x620 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== hide/show
+hide: ok
+  event 0x20d win=2 0 0
+  event 0x20f win=2 0 0
+  event 0x203 win=2 0 0
+window 2 flags=0x28 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+fullscreen hidden: ok
+kgrab hidden: ok
+window 2 flags=0x100029 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+show: ok
+  event 0x20c win=2 0 0
+  event 0x20e win=2 0 0
+  event 0x202 win=2 0 0
+  event 0x217 win=2 0 0
+  event 0x205 win=2 0 0
+  event 0x206 win=2 1024 768
+  event 0x207 win=2 1024 768
+  event 0x215 win=2 0 0
+window 2 flags=0x100621 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+== fullscreen
+leave: ok
+  event 0x218 win=2 0 0
+  event 0x205 win=2 192 50
+  event 0x206 win=2 450 300
+  event 0x207 win=2 450 300
+  event 0x215 win=2 0 0
+window 2 flags=0x100620 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+enter: ok
+  event 0x217 win=2 0 0
+  event 0x205 win=2 0 0
+  event 0x206 win=2 1024 768
+  event 0x207 win=2 1024 768
+  event 0x215 win=2 0 0
+window 2 flags=0x100621 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+fsmode: err: Invalid fullscreen display mode
+fsmode none: ok
+leave: ok
+  event 0x218 win=2 0 0
+  event 0x205 win=2 192 50
+  event 0x206 win=2 450 300
+  event 0x207 win=2 450 300
+  event 0x215 win=2 0 0
+window 2 flags=0x100620 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+== grabs
+kgrab: ok
+mgrab: ok
+grabbed=2
+relative: ok
+relative=1
+relative off: ok
+mgrab off: ok
+window 2 flags=0x620 pos=192,50 size=450x300 pixels=450x300
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== surface
+surface 450x300 fmt=0x16161804 pitch=1800
+fill: ok
+update: ok
+update rects: ok
+vsync: err: That operation is not supported
+resize: ok
+  event 0x206 win=2 320 200
+  event 0x207 win=2 320 200
+  event 0x215 win=2 0 0
+update stale: err: Window surface is invalid, please call SDL_GetWindowSurface() to get a new surface
+surface 320x200 fmt=0x16161804 pitch=1280
+destroy surface: ok
+window 2 flags=0x620 pos=192,50 size=320x200 pixels=320x200
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,320,200 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== text input
+start text: ok
+text area: ok
+area 5 6 7 8 cursor 3 shown=0 support=0
+clear composition: ok
+stop text: ok
+window 2 flags=0x620 pos=192,50 size=320x200 pixels=320x200
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,320,200 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== more windows
+  event 0x207 win=3 1024 768
+window 3 flags=0x9 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=1 fmt=0x16161804 title='B' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+popup 0: That operation is not supported
+popup 0: Popup windows must specify either the 'SDL_WINDOW_TOOLTIP' or the 'SDL_WINDOW_POPUP_MENU' flag
+modal 0: Modal windows must specify a parent window
+gl 0: OpenGL support is either not configured in SDL or not available in current SDL video driver (dummy) or platform
+conflict 0: Modal windows must specify a parent window
+  event 0x20d win=2 0 0
+  event 0x20c win=4 0 0
+  event 0x20f win=2 0 0
+  event 0x20e win=4 0 0
+  event 0x202 win=4 0 0
+  event 0x207 win=4 2000 100
+window 4 flags=0x80000610 pos=-488,30 size=2000x100 pixels=2000x100
+  density=1 scale=1 display=1 fmt=0x16161804 title='D' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,2000,100 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+windows=3: 4 3 2
+from id=1 bad=0 Invalid window ID
+show B: ok
+  event 0x20d win=4 0 0
+  event 0x20c win=3 0 0
+  event 0x20f win=4 0 0
+  event 0x20e win=3 0 0
+  event 0x202 win=3 0 0
+  event 0x217 win=3 0 0
+window 3 flags=0x601 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=1 fmt=0x16161804 title='B' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+window 2 flags=0x20 pos=192,50 size=320x200 pixels=320x200
+  density=1 scale=1 display=1 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,320,200 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== clipboard
+has text=0
+set text: ok
+  event 0x900 owner=1 n=1
+    text/plain;charset=utf-8
+text='hello' has=1
+set data: ok
+  event 0x900 owner=1 n=2
+    text/plain
+    image/png
+data='data for image/png' size=18 has png=1 has jpg=0
+text=''
+mime types=2
+bad data: err: Invalid parameters
+clear: ok
+  event 0x900 owner=1 n=0
+primary: ok
+  event 0x900 owner=1 n=0
+primary='sel' has=1
+== screensaver
+enable: err: That operation is not supported
+enabled=1
+disable: err: That operation is not supported
+enabled=0
+== message box
+msgbox: err: No message system available
+== gl
+gl attr: err: That operation is not supported
+gl load: err: No dynamic OpenGL support in current SDL video driver (dummy)
+gl ctx=0: The specified window isn't an OpenGL window
+vk load: err: No dynamic Vulkan support in current SDL video driver (dummy)
+== destroy
+  event 0x219 win=3 0 0
+  event 0x219 win=4 0 0
+  event 0x219 win=2 0 0
+valid after destroy: 0 Invalid window
+after quit: Video subsystem has not been initialized
+==== driver offscreen
+init: ok
+current=offscreen screensaver=0 theme=0
+displays=1 primary=5
+display 5 name=5
+  bounds 0 0 1024 768
+  usable 0 0 1024 768
+  desktop 5 1024x768 fmt=0x16161804 density=1 rate=0 0/1
+  current 1024x768 fmt=0x16161804
+  scale=1 natural=1 current=1
+  modes=0
+for point=5 for rect=5
+closest: err: Couldn't find any matching video modes
+== create A
+created 1
+  event 0x20c win=6 0 0
+  event 0x20e win=6 0 0
+  event 0x202 win=6 0 0
+  event 0x207 win=6 640 480
+window 6 flags=0x620 pos=192,144 size=640x480 pixels=640x480
+  density=1 scale=1 display=5 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,640,480 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== position
+setpos: err: That operation is not supported
+window 6 flags=0x620 pos=192,144 size=640x480 pixels=640x480
+  density=1 scale=1 display=5 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,640,480 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+setpos centered: err: That operation is not supported
+window 6 flags=0x620 pos=192,144 size=640x480 pixels=640x480
+  density=1 scale=1 display=5 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,640,480 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== size
+setsize: ok
+  event 0x206 win=6 800 600
+  event 0x207 win=6 800 600
+  event 0x215 win=6 0 0
+window 6 flags=0x620 pos=192,144 size=800x600 pixels=800x600
+  density=1 scale=1 display=5 fmt=0x16161804 title='Window A' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,800,600 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+setsize 0: err: Parameter 'w' is invalid
+minsize: ok
+maxsize: ok
+maxsize bad: err: SDL_SetWindowMaximumSize(): Tried to set maximum size smaller than minimum size
+setsize clamp: ok
+  event 0x206 win=6 200 900
+  event 0x207 win=6 200 900
+  event 0x215 win=6 0 0
+window 6 flags=0x620 pos=192,144 size=200x900 pixels=200x900
+  density=1 scale=1 display=5 fmt=0x16161804 title='Window A' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,200,900 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+aspect: ok
+  event 0x206 win=6 200 200
+  event 0x207 win=6 200 200
+  event 0x215 win=6 0 0
+setsize aspect: ok
+  event 0x206 win=6 450 300
+  event 0x207 win=6 450 300
+  event 0x215 win=6 0 0
+window 6 flags=0x620 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Window A' opacity=1
+  min=200x100 max=1000x900 aspect=1,1.5 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+aspect off: ok
+== states
+title: ok
+bordered: err: That operation is not supported
+resizable: err: That operation is not supported
+on top: err: That operation is not supported
+maximize: err: That operation is not supported
+minimize: err: That operation is not supported
+restore: err: That operation is not supported
+opacity: err: That operation is not supported
+modal: err: That operation is not supported
+parent self: err: Cannot set the parent of a window to itself.
+flash: err: That operation is not supported
+raise: ok
+sync: ok
+focusable: ok
+mouse rect: err: That operation is not supported
+hit test: err: That operation is not supported
+shape: err: Window must be created with SDL_WINDOW_TRANSPARENT
+progress: ok
+progress=1 state=0
+system menu: err: That operation is not supported
+borders: err: That operation is not supported
+window 6 flags=0x620 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== hide/show
+hide: ok
+  event 0x20d win=6 0 0
+  event 0x20f win=6 0 0
+  event 0x203 win=6 0 0
+window 6 flags=0x28 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+fullscreen hidden: ok
+kgrab hidden: ok
+window 6 flags=0x100029 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+show: ok
+  event 0x20c win=6 0 0
+  event 0x20e win=6 0 0
+  event 0x202 win=6 0 0
+  event 0x217 win=6 0 0
+  event 0x205 win=6 0 0
+  event 0x206 win=6 1024 768
+  event 0x207 win=6 1024 768
+  event 0x215 win=6 0 0
+window 6 flags=0x100621 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+== fullscreen
+leave: ok
+  event 0x218 win=6 0 0
+  event 0x205 win=6 192 144
+  event 0x206 win=6 450 300
+  event 0x207 win=6 450 300
+  event 0x215 win=6 0 0
+window 6 flags=0x100620 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+enter: ok
+  event 0x217 win=6 0 0
+  event 0x205 win=6 0 0
+  event 0x206 win=6 1024 768
+  event 0x207 win=6 1024 768
+  event 0x215 win=6 0 0
+window 6 flags=0x100621 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+fsmode: err: Invalid fullscreen display mode
+fsmode none: ok
+leave: ok
+  event 0x218 win=6 0 0
+  event 0x205 win=6 192 144
+  event 0x206 win=6 450 300
+  event 0x207 win=6 450 300
+  event 0x215 win=6 0 0
+window 6 flags=0x100620 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=1 mgrab=0 text=0 fsmode=none parent=0
+== grabs
+kgrab: ok
+mgrab: ok
+grabbed=6
+relative: err: That operation is not supported
+relative=0
+relative off: ok
+mgrab off: ok
+window 6 flags=0x620 pos=192,144 size=450x300 pixels=450x300
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,450,300 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== surface
+surface 450x300 fmt=0x16161804 pitch=1800
+fill: ok
+update: ok
+update rects: ok
+vsync: err: That operation is not supported
+resize: ok
+  event 0x206 win=6 320 200
+  event 0x207 win=6 320 200
+  event 0x215 win=6 0 0
+update stale: err: Window surface is invalid, please call SDL_GetWindowSurface() to get a new surface
+surface 320x200 fmt=0x16161804 pitch=1280
+destroy surface: ok
+window 6 flags=0x620 pos=192,144 size=320x200 pixels=320x200
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,320,200 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== text input
+start text: ok
+text area: ok
+area 5 6 7 8 cursor 3 shown=0 support=0
+clear composition: ok
+stop text: ok
+window 6 flags=0x620 pos=192,144 size=320x200 pixels=320x200
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,320,200 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== more windows
+  event 0x207 win=7 1024 768
+window 7 flags=0x9 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=5 fmt=0x16161804 title='B' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+popup 0: That operation is not supported
+popup 0: Popup windows must specify either the 'SDL_WINDOW_TOOLTIP' or the 'SDL_WINDOW_POPUP_MENU' flag
+modal 0: Modal windows must specify a parent window
+gl 0: OpenGL support is either not configured in SDL or not available in current SDL video driver (offscreen) or platform
+conflict 0: Modal windows must specify a parent window
+  event 0x20d win=6 0 0
+  event 0x20c win=8 0 0
+  event 0x20f win=6 0 0
+  event 0x20e win=8 0 0
+  event 0x202 win=8 0 0
+  event 0x207 win=8 2000 100
+window 8 flags=0x80000610 pos=-488,30 size=2000x100 pixels=2000x100
+  density=1 scale=1 display=5 fmt=0x16161804 title='D' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,2000,100 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+windows=3: 8 7 6
+from id=1 bad=0 Invalid window ID
+show B: ok
+  event 0x20d win=8 0 0
+  event 0x20c win=7 0 0
+  event 0x20f win=8 0 0
+  event 0x20e win=7 0 0
+  event 0x202 win=7 0 0
+  event 0x217 win=7 0 0
+window 7 flags=0x601 pos=0,0 size=1024x768 pixels=1024x768
+  density=1 scale=1 display=5 fmt=0x16161804 title='B' opacity=1
+  min=0x0 max=0x0 aspect=0,0 safe=0,0,1024,768 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+window 6 flags=0x20 pos=192,144 size=320x200 pixels=320x200
+  density=1 scale=1 display=5 fmt=0x16161804 title='Renamed' opacity=1
+  min=200x100 max=1000x900 aspect=0,0 safe=0,0,320,200 surface=0 kgrab=0 mgrab=0 text=0 fsmode=none parent=0
+== clipboard
+has text=0
+set text: ok
+  event 0x900 owner=1 n=1
+    text/plain;charset=utf-8
+text='hello' has=1
+set data: ok
+  event 0x900 owner=1 n=2
+    text/plain
+    image/png
+data='data for image/png' size=18 has png=1 has jpg=0
+text=''
+mime types=2
+bad data: err: Invalid parameters
+clear: ok
+  event 0x900 owner=1 n=0
+primary: ok
+  event 0x900 owner=1 n=0
+primary='sel' has=1
+== screensaver
+enable: err: That operation is not supported
+enabled=1
+disable: err: That operation is not supported
+enabled=0
+== message box
+msgbox: err: No message system available
+== gl
+gl attr: err: That operation is not supported
+gl load: err: No dynamic OpenGL support in current SDL video driver (offscreen)
+gl ctx=0: The specified window isn't an OpenGL window
+vk load: err: No dynamic Vulkan support in current SDL video driver (offscreen)
+== destroy
+  event 0x219 win=7 0 0
+  event 0x219 win=8 0 0
+  event 0x219 win=6 0 0
+valid after destroy: 0 Invalid window
+after quit: Video subsystem has not been initialized
+init bad: err: nonexistent not available
+init none: err: No available video device

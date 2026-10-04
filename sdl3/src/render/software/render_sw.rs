@@ -10,6 +10,7 @@
 use std::any::Any;
 
 use crate::error::{Error, Result};
+use crate::hints;
 use crate::render::software::draw;
 use crate::render::software::triangle::{
     sw_blit_triangle, sw_fill_triangle, trianglepoint_2_fixedpoint,
@@ -25,7 +26,7 @@ use crate::video::rotate::{rotate_surface, rotozoom_surface_size_trig};
 use crate::video::surface::{
     duplicate_pixels, share_palette, write_palette, ScaleMode, SharedPalette, Surface,
 };
-use crate::video::{BlendMode, FlipMode};
+use crate::video::{BlendMode, FlipMode, Window, WindowSurface};
 
 /// The name of the software renderer. Translation of `SDL_SOFTWARE_RENDERER`.
 pub const SOFTWARE_RENDERER: &str = "software";
@@ -78,10 +79,16 @@ struct SwDrawStateCache {
 /// The software renderer's data. Translation of `SW_RenderData`: `surface`
 /// is the output surface (`data->window` for a surface renderer) and
 /// `target` the texture drawn into instead, if any.
+///
+/// A renderer for a window draws into the window's surface: `window_surface`
+/// is the handle to it (`data->window`), moved into `surface` while
+/// commands run.
 pub(crate) struct SwRenderer {
     surface: Option<Surface<'static>>,
     target: Option<Texture>,
     verts: Vec<SwVert>,
+    window: Option<Window>,
+    window_surface: Option<WindowSurface>,
 }
 
 /// `(Uint8)SDL_roundf(SDL_clamp(v, 0.0f, 1.0f) * 255.0f)`.
@@ -197,7 +204,430 @@ impl SwRenderer {
             surface: Some(surface),
             target: None,
             verts: Vec::new(),
+            window: None,
+            window_surface: None,
         })
+    }
+
+    /// The software renderer for a window. Translation of
+    /// `SW_CreateRenderer()`: the window surface is created with the vsync
+    /// hint set from `present_vsync` (unless the app set it).
+    pub(crate) fn for_window(
+        window: Window,
+        present_vsync: bool,
+    ) -> Result<(SwRenderer, PixelFormat)> {
+        // Set the vsync hint based on our flags, if it's not already set
+        let hint = hints::get(hints::RENDER_VSYNC);
+        let no_hint_set = hint.as_deref().is_none_or(str::is_empty);
+
+        if no_hint_set {
+            let _ = hints::set(hints::RENDER_VSYNC, if present_vsync { "1" } else { "0" });
+        }
+
+        let surface = window.surface();
+
+        // Reset the vsync hint if we set it above
+        if no_hint_set {
+            let _ = hints::set(hints::RENDER_VSYNC, "");
+        }
+
+        let surface = surface?;
+        let format = surface.lock().format();
+        let bits = format.bits_per_pixel();
+        if !(8..=32).contains(&bits) {
+            let _ = window.destroy_surface();
+            return Err(Error::new("Unsupported surface format"));
+        }
+
+        Ok((
+            SwRenderer {
+                surface: None,
+                target: None,
+                verts: Vec::new(),
+                window: Some(window),
+                window_surface: Some(surface),
+            },
+            format,
+        ))
+    }
+
+    /// Make sure a window renderer has the window's current surface.
+    /// Translation of the window part of `SW_ActivateRenderer()`.
+    fn activate_window(&mut self) {
+        if let Some(window) = self.window {
+            let valid = self
+                .window_surface
+                .as_ref()
+                .is_some_and(|s| window.is_current_surface(s));
+            if !valid {
+                if let Ok(surface) = window.surface() {
+                    self.window_surface = Some(surface);
+                }
+            }
+        }
+    }
+
+    /// Run `f` with the output surface in `self.surface` (for a window
+    /// renderer, the window's surface, locked meanwhile).
+    fn with_output<R>(&mut self, f: impl FnOnce(&mut SwRenderer) -> R) -> R {
+        self.activate_window();
+        let Some(shared) = self.window_surface.clone() else {
+            return f(self);
+        };
+        let mut guard = shared.lock();
+        let placeholder = match Surface::without_pixels(1, 1, guard.format()) {
+            Ok(p) => p,
+            Err(_) => return f(self),
+        };
+        self.surface = Some(std::mem::replace(&mut *guard, placeholder));
+        let r = f(self);
+        if let Some(surface) = self.surface.take() {
+            *guard = surface;
+        }
+        r
+    }
+
+    /// Translation of `SW_RunCommandQueue()`, with the output surface in place.
+    fn run_commands(&mut self, cmds: &[RenderCommand], textures: &mut TextureStore) -> Result<()> {
+        let target = self.target;
+        let mut verts = std::mem::take(&mut self.verts);
+        let result = (|| -> Result<()> {
+            let SwRenderer {
+                surface: output, ..
+            } = self;
+            let mut drawstate = SwDrawStateCache {
+                viewport: None,
+                cliprect: None,
+                surface_cliprect_dirty: true,
+                color: Color::new(0, 0, 0, 0),
+            };
+
+            if target.is_none() && output.is_none() {
+                return Err(Error::invalid_param("surface"));
+            }
+
+            for cmd in cmds {
+                match *cmd {
+                    RenderCommand::SetDrawColor {
+                        color, color_scale, ..
+                    } => {
+                        drawstate.color = color_bytes(color, color_scale);
+                    }
+                    RenderCommand::SetViewport { rect, .. } => {
+                        drawstate.viewport = Some(rect);
+                        drawstate.surface_cliprect_dirty = true;
+                    }
+                    RenderCommand::SetClipRect { enabled, rect } => {
+                        drawstate.cliprect = enabled.then_some(rect);
+                        drawstate.surface_cliprect_dirty = true;
+                    }
+                    RenderCommand::Clear {
+                        color, color_scale, ..
+                    } => {
+                        let c = color_bytes(color, color_scale);
+                        let surface = active(output, target, textures)?;
+                        // By definition the clear ignores the clip rect
+                        surface.set_clip_rect(None);
+                        let pixel = surface.map_rgba(c.r, c.g, c.b, c.a);
+                        let _ = surface.fill_rect(None, pixel);
+                        drawstate.surface_cliprect_dirty = true;
+                    }
+                    RenderCommand::Draw(kind @ (DrawKind::Points | DrawKind::Lines), d) => {
+                        let Color { r, g, b, a } = drawstate.color;
+                        let blend = d.blend;
+                        let surface = active(output, target, textures)?;
+                        set_draw_state(surface, &mut drawstate);
+
+                        let mut points: Vec<Point> = verts[d.first..d.first + d.count]
+                            .iter()
+                            .map(|v| match v {
+                                SwVert::Point(p) => *p,
+                                _ => unreachable!(),
+                            })
+                            .collect();
+
+                        // Apply viewport
+                        if let Some(vp) = drawstate.viewport.filter(|vp| vp.x != 0 || vp.y != 0) {
+                            for p in points.iter_mut() {
+                                p.x += vp.x;
+                                p.y += vp.y;
+                            }
+                        }
+
+                        let _ = if kind == DrawKind::Points {
+                            if blend == BlendMode::NONE {
+                                let pixel = surface.map_rgba(r, g, b, a);
+                                draw::draw_points(surface, &points, pixel)
+                            } else {
+                                draw::blend_points(surface, &points, blend, r, g, b, a)
+                            }
+                        } else if blend == BlendMode::NONE {
+                            let pixel = surface.map_rgba(r, g, b, a);
+                            draw::draw_lines(surface, &points, pixel)
+                        } else {
+                            draw::blend_lines(surface, &points, blend, r, g, b, a)
+                        };
+                    }
+                    RenderCommand::Draw(DrawKind::FillRects, d) => {
+                        let Color { r, g, b, a } = drawstate.color;
+                        let blend = d.blend;
+                        let surface = active(output, target, textures)?;
+                        set_draw_state(surface, &mut drawstate);
+
+                        let mut rects: Vec<Rect> = verts[d.first..d.first + d.count]
+                            .iter()
+                            .map(|v| match v {
+                                SwVert::Rect(r) => *r,
+                                _ => unreachable!(),
+                            })
+                            .collect();
+
+                        // Apply viewport
+                        if let Some(vp) = drawstate.viewport.filter(|vp| vp.x != 0 || vp.y != 0) {
+                            for rc in rects.iter_mut() {
+                                rc.x += vp.x;
+                                rc.y += vp.y;
+                            }
+                        }
+
+                        let _ = if blend == BlendMode::NONE {
+                            let pixel = surface.map_rgba(r, g, b, a);
+                            surface.fill_rects(&rects, pixel)
+                        } else {
+                            draw::blend_fill_rects(surface, &rects, blend, r, g, b, a)
+                        };
+                    }
+                    RenderCommand::Draw(DrawKind::Copy, d) => {
+                        let (SwVert::Rect(srcrect), SwVert::Rect(mut dstrect)) =
+                            (verts[d.first], verts[d.first + 1])
+                        else {
+                            unreachable!()
+                        };
+                        let Some(texture) = d.texture else { continue };
+                        with_source(output, target, textures, texture, |surface, tex| {
+                            set_draw_state(surface, &mut drawstate);
+                            prep_texture_for_copy(&d, &drawstate, tex, Some(&srcrect));
+
+                            // Apply viewport
+                            if let Some(vp) = drawstate.viewport.filter(|vp| vp.x != 0 || vp.y != 0)
+                            {
+                                dstrect.x += vp.x;
+                                dstrect.y += vp.y;
+                            }
+
+                            let src = texture_surface_mut(tex);
+                            if srcrect.w == dstrect.w && srcrect.h == dstrect.h {
+                                let _ = src.blit(Some(&srcrect), surface, Some(&dstrect));
+                            } else if dstrect.x < 0
+                                || dstrect.y < 0
+                                || dstrect.x + dstrect.w > surface.width()
+                                || dstrect.y + dstrect.h > surface.height()
+                            {
+                                // Prevent to do scaling + clipping on viewport boundaries as it may lose proportion
+                                let tmp_format = if src.format().has_alpha() {
+                                    PixelFormat::ARGB8888
+                                } else {
+                                    surface.format()
+                                };
+                                // Scale to an intermediate surface, then blit
+                                // FIXME (upstream): for an indexed output the
+                                // intermediate surface has no palette, and the
+                                // scaled blit of an indexed texture into it
+                                // dereferences the missing palette.
+                                if let Ok(mut tmp) =
+                                    Surface::new_uninitialized(dstrect.w, dstrect.h, tmp_format)
+                                {
+                                    let r = Rect::new(0, 0, dstrect.w, dstrect.h);
+                                    let blendmode = src.blend_mode();
+                                    let alpha_mod = src.alpha_mod();
+                                    let (r_mod, g_mod, b_mod) = src.color_mod();
+
+                                    let _ = src.set_blend_mode(BlendMode::NONE);
+                                    src.set_color_mod(255, 255, 255);
+                                    src.set_alpha_mod(255);
+
+                                    let _ = src.blit_scaled(
+                                        Some(&srcrect),
+                                        &mut tmp,
+                                        Some(&r),
+                                        d.texture_scale_mode,
+                                    );
+
+                                    tmp.set_color_mod(r_mod, g_mod, b_mod);
+                                    tmp.set_alpha_mod(alpha_mod);
+                                    let _ = tmp.set_blend_mode(blendmode);
+
+                                    let _ = tmp.blit(None, surface, Some(&dstrect));
+                                    // No need to set back r/g/b/a/blendmode to 'src' since it's done in PrepTextureForCopy()
+                                }
+                            } else {
+                                let _ = src.blit_scaled(
+                                    Some(&srcrect),
+                                    surface,
+                                    Some(&dstrect),
+                                    d.texture_scale_mode,
+                                );
+                            }
+                        })?;
+                    }
+                    RenderCommand::Draw(DrawKind::CopyEx, d) => {
+                        let SwVert::CopyEx(mut copydata) = verts[d.first] else {
+                            unreachable!()
+                        };
+                        let Some(texture) = d.texture else { continue };
+                        with_source(output, target, textures, texture, |surface, tex| {
+                            set_draw_state(surface, &mut drawstate);
+                            prep_texture_for_copy(&d, &drawstate, tex, Some(&copydata.srcrect));
+
+                            // Apply viewport
+                            if let Some(vp) = drawstate.viewport {
+                                if (vp.x != 0 || vp.y != 0)
+                                    && (copydata.scale_x > 0.0 && copydata.scale_y > 0.0)
+                                {
+                                    copydata.dstrect.x += (vp.x as f32 / copydata.scale_x) as i32;
+                                    copydata.dstrect.y += (vp.y as f32 / copydata.scale_y) as i32;
+                                }
+                            }
+
+                            let _ = sw_render_copy_ex(
+                                surface,
+                                texture_surface_mut(tex),
+                                &copydata.srcrect,
+                                &copydata.dstrect,
+                                copydata.angle,
+                                &copydata.center,
+                                copydata.flip,
+                                copydata.scale_x,
+                                copydata.scale_y,
+                                d.texture_scale_mode,
+                            );
+                        })?;
+                    }
+                    RenderCommand::Draw(DrawKind::Geometry, d) => {
+                        let count = d.count;
+                        let blend = d.blend;
+                        let vp = drawstate
+                            .viewport
+                            .filter(|vp| vp.x != 0 || vp.y != 0)
+                            .map(|vp| {
+                                let mut p = Point { x: vp.x, y: vp.y };
+                                trianglepoint_2_fixedpoint(&mut p);
+                                p
+                            });
+                        match d.texture {
+                            Some(texture) => {
+                                let mut data: Vec<GeometryCopyData> = verts
+                                    [d.first..d.first + count]
+                                    .iter()
+                                    .map(|v| match v {
+                                        SwVert::Copy(c) => *c,
+                                        _ => unreachable!(),
+                                    })
+                                    .collect();
+                                with_source(output, target, textures, texture, |surface, tex| {
+                                    set_draw_state(surface, &mut drawstate);
+                                    prep_texture_for_copy(&d, &drawstate, tex, None);
+
+                                    // Apply viewport
+                                    if let Some(vp) = vp {
+                                        for v in data.iter_mut() {
+                                            v.dst.x += vp.x;
+                                            v.dst.y += vp.y;
+                                        }
+                                    }
+
+                                    let src = texture_surface_mut(tex);
+                                    for t in data.chunks_exact(3) {
+                                        let _ = sw_blit_triangle(
+                                            src,
+                                            &t[0].src,
+                                            &t[1].src,
+                                            &t[2].src,
+                                            surface,
+                                            &t[0].dst,
+                                            &t[1].dst,
+                                            &t[2].dst,
+                                            t[0].color,
+                                            t[1].color,
+                                            t[2].color,
+                                            d.texture_address_mode_u,
+                                            d.texture_address_mode_v,
+                                        );
+                                    }
+                                })?;
+                            }
+                            None => {
+                                let surface = active(output, target, textures)?;
+                                set_draw_state(surface, &mut drawstate);
+                                let mut data: Vec<GeometryFillData> = verts
+                                    [d.first..d.first + count]
+                                    .iter()
+                                    .map(|v| match v {
+                                        SwVert::Fill(f) => *f,
+                                        _ => unreachable!(),
+                                    })
+                                    .collect();
+
+                                // Apply viewport
+                                if let Some(vp) = vp {
+                                    for v in data.iter_mut() {
+                                        v.dst.x += vp.x;
+                                        v.dst.y += vp.y;
+                                    }
+                                }
+
+                                for t in data.chunks_exact(3) {
+                                    let _ = sw_fill_triangle(
+                                        surface, &t[0].dst, &t[1].dst, &t[2].dst, blend,
+                                        t[0].color, t[1].color, t[2].color,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    RenderCommand::NoOp => {}
+                }
+            }
+            Ok(())
+        })();
+        verts.clear();
+        self.verts = verts;
+        result
+    }
+
+    /// Translation of `SW_RenderReadPixels()`, with the output surface in place.
+    fn read_output_pixels(
+        &mut self,
+        rect: &Rect,
+        textures: &mut TextureStore,
+    ) -> Option<Result<Surface<'static>>> {
+        let Some(surface) = self.activate(textures) else {
+            return Some(Err(Error::invalid_param("surface")));
+        };
+
+        /* NOTE: The rect is already adjusted according to the viewport by
+         * SDL_RenderReadPixels.
+         */
+
+        if rect.x < 0
+            || rect.x + rect.w > surface.width()
+            || rect.y < 0
+            || rect.y + rect.h > surface.height()
+        {
+            return Some(Err(Error::new("Tried to read outside of surface bounds")));
+        }
+
+        let offset = rect.y as usize * surface.pitch() as usize
+            + rect.x as usize * surface.format().bytes_per_pixel() as usize;
+        let pixels = surface.raw_pixels().map(|p| &p[offset..]);
+        Some(duplicate_pixels(
+            rect.w,
+            rect.h,
+            surface.format(),
+            Colorspace::SRGB,
+            pixels,
+            surface.pitch(),
+        ))
     }
 
     fn push(&mut self, v: SwVert) {
@@ -536,15 +966,24 @@ impl RenderBackend for SwRenderer {
     }
 
     fn output_size(&self, textures: &TextureStore) -> Option<Result<(i32, i32)>> {
+        if self.target.is_none() {
+            if let Some(ws) = &self.window_surface {
+                let s = ws.lock();
+                return Some(Ok((s.width(), s.height())));
+            }
+        }
         let surface = match self.target {
             Some(t) => textures.get(t).map(texture_surface),
             None => self.surface.as_ref(),
         };
         Some(match surface {
             Some(s) => Ok((s.width(), s.height())),
-            None => Err(Error::new(
-                "Software renderer doesn't have an output surface",
-            )),
+            None => match self.window {
+                Some(window) => window.size_in_pixels(),
+                None => Err(Error::new(
+                    "Software renderer doesn't have an output surface",
+                )),
+            },
         })
     }
 
@@ -723,310 +1162,7 @@ impl RenderBackend for SwRenderer {
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
     ) -> Result<()> {
-        let target = self.target;
-        let mut verts = std::mem::take(&mut self.verts);
-        let result = (|| -> Result<()> {
-            let SwRenderer {
-                surface: output, ..
-            } = self;
-            let mut drawstate = SwDrawStateCache {
-                viewport: None,
-                cliprect: None,
-                surface_cliprect_dirty: true,
-                color: Color::new(0, 0, 0, 0),
-            };
-
-            if target.is_none() && output.is_none() {
-                return Err(Error::invalid_param("surface"));
-            }
-
-            for cmd in cmds {
-                match *cmd {
-                    RenderCommand::SetDrawColor {
-                        color, color_scale, ..
-                    } => {
-                        drawstate.color = color_bytes(color, color_scale);
-                    }
-                    RenderCommand::SetViewport { rect, .. } => {
-                        drawstate.viewport = Some(rect);
-                        drawstate.surface_cliprect_dirty = true;
-                    }
-                    RenderCommand::SetClipRect { enabled, rect } => {
-                        drawstate.cliprect = enabled.then_some(rect);
-                        drawstate.surface_cliprect_dirty = true;
-                    }
-                    RenderCommand::Clear {
-                        color, color_scale, ..
-                    } => {
-                        let c = color_bytes(color, color_scale);
-                        let surface = active(output, target, textures)?;
-                        // By definition the clear ignores the clip rect
-                        surface.set_clip_rect(None);
-                        let pixel = surface.map_rgba(c.r, c.g, c.b, c.a);
-                        let _ = surface.fill_rect(None, pixel);
-                        drawstate.surface_cliprect_dirty = true;
-                    }
-                    RenderCommand::Draw(kind @ (DrawKind::Points | DrawKind::Lines), d) => {
-                        let Color { r, g, b, a } = drawstate.color;
-                        let blend = d.blend;
-                        let surface = active(output, target, textures)?;
-                        set_draw_state(surface, &mut drawstate);
-
-                        let mut points: Vec<Point> = verts[d.first..d.first + d.count]
-                            .iter()
-                            .map(|v| match v {
-                                SwVert::Point(p) => *p,
-                                _ => unreachable!(),
-                            })
-                            .collect();
-
-                        // Apply viewport
-                        if let Some(vp) = drawstate.viewport.filter(|vp| vp.x != 0 || vp.y != 0) {
-                            for p in points.iter_mut() {
-                                p.x += vp.x;
-                                p.y += vp.y;
-                            }
-                        }
-
-                        let _ = if kind == DrawKind::Points {
-                            if blend == BlendMode::NONE {
-                                let pixel = surface.map_rgba(r, g, b, a);
-                                draw::draw_points(surface, &points, pixel)
-                            } else {
-                                draw::blend_points(surface, &points, blend, r, g, b, a)
-                            }
-                        } else if blend == BlendMode::NONE {
-                            let pixel = surface.map_rgba(r, g, b, a);
-                            draw::draw_lines(surface, &points, pixel)
-                        } else {
-                            draw::blend_lines(surface, &points, blend, r, g, b, a)
-                        };
-                    }
-                    RenderCommand::Draw(DrawKind::FillRects, d) => {
-                        let Color { r, g, b, a } = drawstate.color;
-                        let blend = d.blend;
-                        let surface = active(output, target, textures)?;
-                        set_draw_state(surface, &mut drawstate);
-
-                        let mut rects: Vec<Rect> = verts[d.first..d.first + d.count]
-                            .iter()
-                            .map(|v| match v {
-                                SwVert::Rect(r) => *r,
-                                _ => unreachable!(),
-                            })
-                            .collect();
-
-                        // Apply viewport
-                        if let Some(vp) = drawstate.viewport.filter(|vp| vp.x != 0 || vp.y != 0) {
-                            for rc in rects.iter_mut() {
-                                rc.x += vp.x;
-                                rc.y += vp.y;
-                            }
-                        }
-
-                        let _ = if blend == BlendMode::NONE {
-                            let pixel = surface.map_rgba(r, g, b, a);
-                            surface.fill_rects(&rects, pixel)
-                        } else {
-                            draw::blend_fill_rects(surface, &rects, blend, r, g, b, a)
-                        };
-                    }
-                    RenderCommand::Draw(DrawKind::Copy, d) => {
-                        let (SwVert::Rect(srcrect), SwVert::Rect(mut dstrect)) =
-                            (verts[d.first], verts[d.first + 1])
-                        else {
-                            unreachable!()
-                        };
-                        let Some(texture) = d.texture else { continue };
-                        with_source(output, target, textures, texture, |surface, tex| {
-                            set_draw_state(surface, &mut drawstate);
-                            prep_texture_for_copy(&d, &drawstate, tex, Some(&srcrect));
-
-                            // Apply viewport
-                            if let Some(vp) = drawstate.viewport.filter(|vp| vp.x != 0 || vp.y != 0)
-                            {
-                                dstrect.x += vp.x;
-                                dstrect.y += vp.y;
-                            }
-
-                            let src = texture_surface_mut(tex);
-                            if srcrect.w == dstrect.w && srcrect.h == dstrect.h {
-                                let _ = src.blit(Some(&srcrect), surface, Some(&dstrect));
-                            } else if dstrect.x < 0
-                                || dstrect.y < 0
-                                || dstrect.x + dstrect.w > surface.width()
-                                || dstrect.y + dstrect.h > surface.height()
-                            {
-                                // Prevent to do scaling + clipping on viewport boundaries as it may lose proportion
-                                let tmp_format = if src.format().has_alpha() {
-                                    PixelFormat::ARGB8888
-                                } else {
-                                    surface.format()
-                                };
-                                // Scale to an intermediate surface, then blit
-                                // FIXME (upstream): for an indexed output the
-                                // intermediate surface has no palette, and the
-                                // scaled blit of an indexed texture into it
-                                // dereferences the missing palette.
-                                if let Ok(mut tmp) =
-                                    Surface::new_uninitialized(dstrect.w, dstrect.h, tmp_format)
-                                {
-                                    let r = Rect::new(0, 0, dstrect.w, dstrect.h);
-                                    let blendmode = src.blend_mode();
-                                    let alpha_mod = src.alpha_mod();
-                                    let (r_mod, g_mod, b_mod) = src.color_mod();
-
-                                    let _ = src.set_blend_mode(BlendMode::NONE);
-                                    src.set_color_mod(255, 255, 255);
-                                    src.set_alpha_mod(255);
-
-                                    let _ = src.blit_scaled(
-                                        Some(&srcrect),
-                                        &mut tmp,
-                                        Some(&r),
-                                        d.texture_scale_mode,
-                                    );
-
-                                    tmp.set_color_mod(r_mod, g_mod, b_mod);
-                                    tmp.set_alpha_mod(alpha_mod);
-                                    let _ = tmp.set_blend_mode(blendmode);
-
-                                    let _ = tmp.blit(None, surface, Some(&dstrect));
-                                    // No need to set back r/g/b/a/blendmode to 'src' since it's done in PrepTextureForCopy()
-                                }
-                            } else {
-                                let _ = src.blit_scaled(
-                                    Some(&srcrect),
-                                    surface,
-                                    Some(&dstrect),
-                                    d.texture_scale_mode,
-                                );
-                            }
-                        })?;
-                    }
-                    RenderCommand::Draw(DrawKind::CopyEx, d) => {
-                        let SwVert::CopyEx(mut copydata) = verts[d.first] else {
-                            unreachable!()
-                        };
-                        let Some(texture) = d.texture else { continue };
-                        with_source(output, target, textures, texture, |surface, tex| {
-                            set_draw_state(surface, &mut drawstate);
-                            prep_texture_for_copy(&d, &drawstate, tex, Some(&copydata.srcrect));
-
-                            // Apply viewport
-                            if let Some(vp) = drawstate.viewport {
-                                if (vp.x != 0 || vp.y != 0)
-                                    && (copydata.scale_x > 0.0 && copydata.scale_y > 0.0)
-                                {
-                                    copydata.dstrect.x += (vp.x as f32 / copydata.scale_x) as i32;
-                                    copydata.dstrect.y += (vp.y as f32 / copydata.scale_y) as i32;
-                                }
-                            }
-
-                            let _ = sw_render_copy_ex(
-                                surface,
-                                texture_surface_mut(tex),
-                                &copydata.srcrect,
-                                &copydata.dstrect,
-                                copydata.angle,
-                                &copydata.center,
-                                copydata.flip,
-                                copydata.scale_x,
-                                copydata.scale_y,
-                                d.texture_scale_mode,
-                            );
-                        })?;
-                    }
-                    RenderCommand::Draw(DrawKind::Geometry, d) => {
-                        let count = d.count;
-                        let blend = d.blend;
-                        let vp = drawstate
-                            .viewport
-                            .filter(|vp| vp.x != 0 || vp.y != 0)
-                            .map(|vp| {
-                                let mut p = Point { x: vp.x, y: vp.y };
-                                trianglepoint_2_fixedpoint(&mut p);
-                                p
-                            });
-                        match d.texture {
-                            Some(texture) => {
-                                let mut data: Vec<GeometryCopyData> = verts
-                                    [d.first..d.first + count]
-                                    .iter()
-                                    .map(|v| match v {
-                                        SwVert::Copy(c) => *c,
-                                        _ => unreachable!(),
-                                    })
-                                    .collect();
-                                with_source(output, target, textures, texture, |surface, tex| {
-                                    set_draw_state(surface, &mut drawstate);
-                                    prep_texture_for_copy(&d, &drawstate, tex, None);
-
-                                    // Apply viewport
-                                    if let Some(vp) = vp {
-                                        for v in data.iter_mut() {
-                                            v.dst.x += vp.x;
-                                            v.dst.y += vp.y;
-                                        }
-                                    }
-
-                                    let src = texture_surface_mut(tex);
-                                    for t in data.chunks_exact(3) {
-                                        let _ = sw_blit_triangle(
-                                            src,
-                                            &t[0].src,
-                                            &t[1].src,
-                                            &t[2].src,
-                                            surface,
-                                            &t[0].dst,
-                                            &t[1].dst,
-                                            &t[2].dst,
-                                            t[0].color,
-                                            t[1].color,
-                                            t[2].color,
-                                            d.texture_address_mode_u,
-                                            d.texture_address_mode_v,
-                                        );
-                                    }
-                                })?;
-                            }
-                            None => {
-                                let surface = active(output, target, textures)?;
-                                set_draw_state(surface, &mut drawstate);
-                                let mut data: Vec<GeometryFillData> = verts
-                                    [d.first..d.first + count]
-                                    .iter()
-                                    .map(|v| match v {
-                                        SwVert::Fill(f) => *f,
-                                        _ => unreachable!(),
-                                    })
-                                    .collect();
-
-                                // Apply viewport
-                                if let Some(vp) = vp {
-                                    for v in data.iter_mut() {
-                                        v.dst.x += vp.x;
-                                        v.dst.y += vp.y;
-                                    }
-                                }
-
-                                for t in data.chunks_exact(3) {
-                                    let _ = sw_fill_triangle(
-                                        surface, &t[0].dst, &t[1].dst, &t[2].dst, blend,
-                                        t[0].color, t[1].color, t[2].color,
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    RenderCommand::NoOp => {}
-                }
-            }
-            Ok(())
-        })();
-        verts.clear();
-        self.verts = verts;
-        result
+        self.with_output(|this| this.run_commands(cmds, textures))
     }
 
     fn reset_vertices(&mut self) {
@@ -1114,38 +1250,32 @@ impl RenderBackend for SwRenderer {
         rect: &Rect,
         textures: &mut TextureStore,
     ) -> Option<Result<Surface<'static>>> {
-        let Some(surface) = self.activate(textures) else {
-            return Some(Err(Error::invalid_param("surface")));
-        };
-
-        /* NOTE: The rect is already adjusted according to the viewport by
-         * SDL_RenderReadPixels.
-         */
-
-        if rect.x < 0
-            || rect.x + rect.w > surface.width()
-            || rect.y < 0
-            || rect.y + rect.h > surface.height()
-        {
-            return Some(Err(Error::new("Tried to read outside of surface bounds")));
-        }
-
-        let offset = rect.y as usize * surface.pitch() as usize
-            + rect.x as usize * surface.format().bytes_per_pixel() as usize;
-        let pixels = surface.raw_pixels().map(|p| &p[offset..]);
-        Some(duplicate_pixels(
-            rect.w,
-            rect.h,
-            surface.format(),
-            Colorspace::SRGB,
-            pixels,
-            surface.pitch(),
-        ))
+        self.with_output(|this| this.read_output_pixels(rect, textures))
     }
 
     fn present(&mut self) -> bool {
-        // (no window: there is nothing to present to)
-        false
+        match self.window {
+            None => false,
+            Some(window) => window.update_surface().is_ok(),
+        }
+    }
+
+    fn window_event(&mut self, event_type: crate::events::EventType) {
+        if event_type == crate::events::EventType::WINDOW_PIXEL_SIZE_CHANGED {
+            // FIXME (upstream): data->surface is also the render target's
+            // surface while one is set, so the target is dropped too: until
+            // the app sets a target again, drawing goes to the window and
+            // the output size is the window's.
+            self.surface = None;
+            self.target = None;
+            self.window_surface = None;
+        }
+    }
+
+    fn destroy(&mut self) {
+        if let Some(window) = self.window {
+            let _ = window.destroy_surface();
+        }
     }
 
     fn destroy_texture(&mut self, texture: &mut TextureData) {

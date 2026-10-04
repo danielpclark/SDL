@@ -214,7 +214,7 @@ fn init_main_callbacks<A: AppCallbacks>(
 }
 
 /// Translation of `SDL_IterateMainCallbacks()`.
-fn iterate_main_callbacks(pump_events: bool) -> AppResult {
+pub(crate) fn iterate_main_callbacks(pump_events: bool) -> AppResult {
     if pump_events {
         queue::pump();
     }

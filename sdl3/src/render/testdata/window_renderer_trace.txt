@@ -1,0 +1,66 @@
+init: ok
+create: ok
+name=software vsync=0 hidden=0 hassurface=1 samewin=1 propwin=1
+vsync=0 hdr=0 white=1 headroom=1
+second: Surface already associated with window
+sizes: out=64x48 cur=64x48(1) vp=0,0,64,48 safe=1:0,0,64,48
+clear: ok
+fill: ok
+read1: 64x48 fmt=SDL_PIXELFORMAT_XRGB8888 hash=1f7dbdc5 p00=10,20,30,255 pmid=200,100,50,255
+present: ok
+resize: ok
+resized: out=100x80 cur=100x80(1) vp=0,0,100,80 safe=1:0,0,100,80
+read2: 100x80 fmt=SDL_PIXELFORMAT_XRGB8888 hash=4f0701c5 p00=0,0,0,255 pmid=0,0,0,255
+logical: ok
+logical rect=0,2.5,100,75
+logical sizes: out=100x80 cur=100x75(1) vp=0,0,32,24 safe=1:0,0,32,24
+convert motion: ok
+motion=16,12 rel=3.2,1.6
+other motion=50,40
+button=3.2,21.6
+wheel=24,5.6 1
+finger=16,5.6 d=3.2,5.12
+drop=9.6,18.4
+to window=50,40
+read3: 100x75 fmt=SDL_PIXELFORMAT_XRGB8888 hash=fb98adb5 p00=255,255,255,255 pmid=0,0,0,255
+target: ok
+target sizes: out=20x10 cur=20x10(1) vp=0,0,20,10 safe=1:0,0,20,10
+resize2: ok
+target resized: out=120x90 cur=20x10(1) vp=0,0,20,10 safe=1:0,0,20,10
+target logical rect=0,0,0,0
+untarget: ok
+untarget sizes: out=120x90 cur=120x90(1) vp=0,0,32,24 safe=1:0,0,32,24
+main logical rect=0,0,120,90
+present on target: err: You can't present on a render target
+logical off: ok
+hide: ok
+show: ok
+minimize: err: That operation is not supported
+restore: err: That operation is not supported
+present2: ok
+clear after: err: Renderer's window has been destroyed, can't use further
+sizes after: err: Renderer's window has been destroyed, can't use further
+present after: err: Renderer's window has been destroyed, can't use further
+window after=(nil)
+nonexistent: nonexistent not available
+list: software
+surface after destroy=0
+hint bogus: bogus not available
+hint software: software
+window surface with renderer=1
+surface after destroy2=0
+sw window=(nil)
+got surface=1
+with surface: Surface already associated with window
+create transparent: ok
+hidden=1
+shape: ok
+present shaped: ok
+shaped: 16x16 fmt=SDL_PIXELFORMAT_XRGB8888 hash=c4e35dc5 p00=255,255,255,255 pmid=0,0,0,255
+present shaped2: ok
+shaped2: 16x16 fmt=SDL_PIXELFORMAT_XRGB8888 hash=7e97a9c5 p00=255,0,0,255 pmid=0,0,0,255
+unshape: ok
+present unshaped: ok
+unshaped: 16x16 fmt=SDL_PIXELFORMAT_XRGB8888 hash=0d4c55c5 p00=255,0,0,255 pmid=255,0,0,255
+create4: ok
+clear after quit: err: Parameter 'renderer' is invalid
