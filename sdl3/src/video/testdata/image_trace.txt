@@ -1,0 +1,370 @@
+ancillary.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=4e445df8099d6efb blend=0
+ancillary.png pos=2704
+ancillary.png save: saved 3033 bytes hash=2c03e7484d74b0b9
+ancillary.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=2aaee4386f1114a4 blend=1
+bad_depth.png: err: PNG not supported: 1/2/4/8/16-bit only
+bad_depth.png pos=0
+bad_filter.png: err: Corrupt PNG
+bad_filter.png pos=0
+bad_zlib.png: err: Corrupt PNG
+bad_zlib.png pos=0
+best.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=89bf938dc472fe87 blend=1
+best.png pos=3495
+best.png save: saved 3495 bytes hash=ec57013008300616
+best.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=89bf938dc472fe87 blend=1
+fixed.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=ebf9e6933a141e5b blend=0
+fixed.png pos=2644
+fixed.png save: saved 3038 bytes hash=aad0a6b2324ce3c6
+fixed.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=f590cd132eaf1ae4 blend=1
+g1.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=5cfe4ed1958c4048 pal=256:12d903f0f6e0a125 blend=0
+g1.png pos=206
+g1.png save: saved 1291 bytes hash=9d7373074dad4691
+g1.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=5cfe4ed1958c4048 pal=256:12d903f0f6e0a125 blend=0
+g16.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=7c395aeac53f1831 pal=256:12d903f0f6e0a125 blend=0
+g16.png pos=1793
+g16.png save: saved 1990 bytes hash=99961dbac0c3b47e
+g16.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=7c395aeac53f1831 pal=256:12d903f0f6e0a125 blend=0
+g16trns.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=11fdb1430433fdce blend=1
+g16trns.png pos=171
+g16trns.png save: saved 115 bytes hash=cbebf94124a509c7
+g16trns.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=11fdb1430433fdce blend=1
+g1i.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=d4449b461fdbc4e2 pal=256:12d903f0f6e0a125 blend=0
+g1i.png pos=245
+g1i.png save: saved 1288 bytes hash=9343395c6236adb9
+g1i.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=d4449b461fdbc4e2 pal=256:12d903f0f6e0a125 blend=0
+g2.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=1e2cdc369bff6dfc pal=256:12d903f0f6e0a125 blend=0
+g2.png pos=321
+g2.png save: saved 1424 bytes hash=4fc2a028479cf50d
+g2.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=1e2cdc369bff6dfc pal=256:12d903f0f6e0a125 blend=0
+g2f0.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=11e8842a18faf256 pal=256:12d903f0f6e0a125 blend=0
+g2f0.png pos=321
+g2f0.png save: saved 1426 bytes hash=131b8f7fc5abad31
+g2f0.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=11e8842a18faf256 pal=256:12d903f0f6e0a125 blend=0
+g2f1.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=3a5a64e496d471e2 pal=256:12d903f0f6e0a125 blend=0
+g2f1.png pos=321
+g2f1.png save: saved 1426 bytes hash=0daff49b2ca4e399
+g2f1.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=3a5a64e496d471e2 pal=256:12d903f0f6e0a125 blend=0
+g2f2.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=ce366a52d1b70d36 pal=256:12d903f0f6e0a125 blend=0
+g2f2.png pos=321
+g2f2.png save: saved 1425 bytes hash=8220ee23f8124975
+g2f2.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=ce366a52d1b70d36 pal=256:12d903f0f6e0a125 blend=0
+g2f3.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=ae55e25ae693e1f5 pal=256:12d903f0f6e0a125 blend=0
+g2f3.png pos=321
+g2f3.png save: saved 1432 bytes hash=029f253b92a84960
+g2f3.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=ae55e25ae693e1f5 pal=256:12d903f0f6e0a125 blend=0
+g2f4.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=209569b78c8d657b pal=256:12d903f0f6e0a125 blend=0
+g2f4.png pos=321
+g2f4.png save: saved 1425 bytes hash=7e09060d3fd1c610
+g2f4.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=209569b78c8d657b pal=256:12d903f0f6e0a125 blend=0
+g4.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=4ce0f1b2dc66cce5 pal=256:12d903f0f6e0a125 blend=0
+g4.png pos=528
+g4.png save: saved 1610 bytes hash=9162ead958f9970d
+g4.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=4ce0f1b2dc66cce5 pal=256:12d903f0f6e0a125 blend=0
+g4trns.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=61c1a41a3104184f blend=1
+g4trns.png pos=167
+g4trns.png save: saved 121 bytes hash=e636786169722782
+g4trns.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=61c1a41a3104184f blend=1
+g8.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=5effadc7f3d6466c pal=256:12d903f0f6e0a125 blend=0
+g8.png pos=942
+g8.png save: saved 1990 bytes hash=3deb9039f751e048
+g8.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=5effadc7f3d6466c pal=256:12d903f0f6e0a125 blend=0
+g8i5x1.png: 5x1 SDL_PIXELFORMAT_INDEX8 pitch=5 hash=4bcbfe6e061681f5 pal=256:12d903f0f6e0a125 blend=0
+g8i5x1.png pos=74
+g8i5x1.png save: saved 1122 bytes hash=76547c05cd42f990
+g8i5x1.png save reload: 5x1 SDL_PIXELFORMAT_INDEX8 pitch=5 hash=4bcbfe6e061681f5 pal=256:12d903f0f6e0a125 blend=0
+g8trns.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=4d90eddb3b7f44d9 blend=1
+g8trns.png pos=177
+g8trns.png save: saved 128 bytes hash=81df3197ef21fd0f
+g8trns.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=4d90eddb3b7f44d9 blend=1
+ga16.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=f6991ace2acaf152 blend=1
+ga16.png pos=3495
+ga16.png save: saved 2788 bytes hash=7396482e329b1c57
+ga16.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=f6991ace2acaf152 blend=1
+ga8.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=62b1b8f32cefc3b6 blend=1
+ga8.png pos=1793
+ga8.png save: saved 2774 bytes hash=d493cc10cf3d98f7
+ga8.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=62b1b8f32cefc3b6 blend=1
+ga8i3x3.png: 3x3 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=cdc836fec2956e26 blend=1
+ga8i3x3.png pos=90
+ga8i3x3.png save: saved 107 bytes hash=f2dfedbbe8133fca
+ga8i3x3.png save reload: 3x3 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=cdc836fec2956e26 blend=1
+j100.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=30fb5fe9444d8214 blend=0
+j100.jpg pos=2286
+j100.jpg save: saved 3001 bytes hash=a416874224258a57
+j100.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1b635a1ccaef0a69 blend=1
+j100.jpg mjpg SDL_PIXELFORMAT_NV12: d18bfb3e55293bd5
+j100.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j100.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j100.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j100.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 1b635a1ccaef0a69
+j100.jpg mjpg SDL_PIXELFORMAT_XRGB8888: b1eeb1b7d5465475
+j411.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=f81b4b227ce83269 blend=0
+j411.jpg pos=659
+j411.jpg save: saved 2921 bytes hash=418965f3c4e71b02
+j411.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=ed5e5f7b8ab520b0 blend=1
+j420.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=2530f0e051575e07 blend=0
+j420.jpg pos=647
+j420.jpg save: saved 2980 bytes hash=ddedfc552bb1f9c4
+j420.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=5deece08c4b18fb2 blend=1
+j420.jpg mjpg SDL_PIXELFORMAT_NV12: 7bb25199788140c5
+j420.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j420.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j420.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j420.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 5deece08c4b18fb2
+j420.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 04c62b7786a9e00a
+j422.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=ef6e08de9db4b18c blend=0
+j422.jpg pos=697
+j422.jpg save: saved 2980 bytes hash=6819875cd51479ba
+j422.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=13a2c43ba4a95d1b blend=1
+j422.jpg mjpg SDL_PIXELFORMAT_NV12: c5d53b8ca470f4e2
+j422.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j422.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j422.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j422.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 13a2c43ba4a95d1b
+j422.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 5c09132a05d099e3
+j440.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=d92cde7efd2aa134 blend=0
+j440.jpg pos=711
+j440.jpg save: saved 2984 bytes hash=99b491ee0d0406c5
+j440.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=3e01cb2cde69e4c7 blend=1
+j440.jpg mjpg SDL_PIXELFORMAT_NV12: f20ecf7ff2847512
+j440.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j440.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j440.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j440.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 3e01cb2cde69e4c7
+j440.jpg mjpg SDL_PIXELFORMAT_XRGB8888: a0594c974780f02b
+j444.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=152ec3212c713b69 blend=0
+j444.jpg pos=801
+j444.jpg save: saved 3006 bytes hash=deb499b799fecde3
+j444.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=354c1cbb6c806b08 blend=1
+j444.jpg mjpg SDL_PIXELFORMAT_NV12: e93e5bb1b4a6ddef
+j444.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j444.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j444.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j444.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 354c1cbb6c806b08
+j444.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 8c452f0483685378
+j64.jpg: 64x48 SDL_PIXELFORMAT_RGB24 pitch=192 hash=eb811160cf6b6964 blend=0
+j64.jpg pos=873
+j64.jpg save: saved 10257 bytes hash=69384553f693c176
+j64.jpg save reload: 64x48 SDL_PIXELFORMAT_ABGR8888 pitch=256 hash=62f1d767f33c315e blend=1
+j64.jpg mjpg SDL_PIXELFORMAT_NV12: 6ec3a54848a0f83e
+j64.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j64.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j64.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+j64.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 62f1d767f33c315e
+j64.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 14c503d551004bde
+jcmyk.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=74b31deceb3af25a blend=0
+jcmyk.jpg pos=1163
+jcmyk.jpg save: saved 2996 bytes hash=baeb1c556b80364d
+jcmyk.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=426862aea875b01f blend=1
+jcmyk.jpg mjpg SDL_PIXELFORMAT_NV12: 4c5e14d039c9f849
+jcmyk.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jcmyk.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jcmyk.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jcmyk.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 426862aea875b01f
+jcmyk.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 17d996c59773810f
+jgray.jpg: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:12d903f0f6e0a125 blend=0
+jgray.jpg pos=409
+jgray.jpg save: saved 1990 bytes hash=3cf76d2d09a82b37
+jgray.jpg save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:12d903f0f6e0a125 blend=0
+jgray.jpg mjpg SDL_PIXELFORMAT_NV12: 6b77d0af255e4f9a
+jgray.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jgray.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jgray.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jgray.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 199932f6646e4efe
+jgray.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 199932f6646e4efe
+jgrayprog.jpg: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:12d903f0f6e0a125 blend=0
+jgrayprog.jpg pos=524
+jgrayprog.jpg save: saved 1990 bytes hash=3cf76d2d09a82b37
+jgrayprog.jpg save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=44a370caf342a8d5 pal=256:12d903f0f6e0a125 blend=0
+jone.jpg: 1x1 SDL_PIXELFORMAT_RGB24 pitch=3 hash=25ce181adb835a1f blend=0
+jone.jpg pos=285
+jone.jpg save: saved 73 bytes hash=4f4e1ef63b13e91d
+jone.jpg save reload: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=c08dd5a300336aa0 blend=1
+jone.jpg mjpg SDL_PIXELFORMAT_NV12: dca56118fecf291f
+jone.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jone.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jone.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jone.jpg mjpg SDL_PIXELFORMAT_ABGR8888: c08dd5a300336aa0
+jone.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 6a97d38afc98df20
+jprog.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=869367ed14d6c5c1 blend=0
+jprog.jpg pos=819
+jprog.jpg save: saved 2961 bytes hash=581ac38cb9fe862e
+jprog.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=da788abe9fb3a81c blend=1
+jrst.jpg: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=2edf93460bbc9761 blend=0
+jrst.jpg pos=554
+jrst.jpg save: saved 2969 bytes hash=f48a1f48901499af
+jrst.jpg save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=81a2285174a5610e blend=1
+jrst.jpg mjpg SDL_PIXELFORMAT_NV12: 8ced612a57f18b70
+jrst.jpg mjpg SDL_PIXELFORMAT_YV12: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jrst.jpg mjpg SDL_PIXELFORMAT_NV21: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jrst.jpg mjpg SDL_PIXELFORMAT_P010: err: SDL_ConvertPixels_YUV_to_YUV: colorspace conversion not supported
+jrst.jpg mjpg SDL_PIXELFORMAT_ABGR8888: 81a2285174a5610e
+jrst.jpg mjpg SDL_PIXELFORMAT_XRGB8888: 52f638546f706816
+no_idat.png: err: Corrupt PNG
+no_idat.png pos=0
+one.png: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=e9ac514fb297ead2 blend=1
+one.png pos=70
+one.png save: saved 73 bytes hash=d90f92f9830bd396
+one.png save reload: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=e9ac514fb297ead2 blend=1
+p1.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=32010390a7f014c6 pal=256:f46848aea3abead7 blend=0
+p1.png pos=224
+p1.png save: saved 1290 bytes hash=fe4e1dcfeb871df1
+p1.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=32010390a7f014c6 pal=256:f46848aea3abead7 blend=0
+p2.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=497f6c366a829b4a pal=256:afe2b8079c5a0aab blend=0
+p2.png pos=345
+p2.png save: saved 1418 bytes hash=680a402b13c7e0b9
+p2.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=497f6c366a829b4a pal=256:afe2b8079c5a0aab blend=0
+p4.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=2ea06ef949ccd038 pal=256:c186d3d6bb88a0ec blend=0
+p4.png pos=588
+p4.png save: saved 1587 bytes hash=5ed9cc682f01b7c0
+p4.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=2ea06ef949ccd038 pal=256:c186d3d6bb88a0ec blend=0
+p4i.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=2ac978328f985646 pal=256:64c6401611254bf5 blend=0
+p4i.png pos=612
+p4i.png save: saved 1594 bytes hash=c1f47d622fb232a0
+p4i.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=2ac978328f985646 pal=256:64c6401611254bf5 blend=0
+p4key2.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=76cb632d9b1b35b4 pal=256:6fca856d69d94ee7 blend=1
+p4key2.png pos=603
+p4key2.png save: saved 1593 bytes hash=8154a12b0f1b92ba
+p4key2.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=76cb632d9b1b35b4 pal=256:6fca856d69d94ee7 blend=1
+p8.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=b019cece4b1bf97a pal=256:982d76c5d830abfd blend=0
+p8.png pos=1554
+p8.png save: saved 1990 bytes hash=de331a2fa700f8e8
+p8.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=b019cece4b1bf97a pal=256:982d76c5d830abfd blend=0
+p8key.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=70039059eadbb1b9 pal=256:d5286a614c15d81c key=2 blend=0
+p8key.png pos=853
+p8key.png save: saved 1683 bytes hash=0da655ff8819f7de
+p8key.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=70039059eadbb1b9 pal=256:d5286a614c15d81c key=2 blend=0
+p8trns.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=03f87dbaa48a9e2f pal=256:578965535c3ed5f1 blend=1
+p8trns.png pos=1095
+p8trns.png save: saved 1793 bytes hash=571558752552095b
+p8trns.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=03f87dbaa48a9e2f pal=256:578965535c3ed5f1 blend=1
+rgb16.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=c0d3697fc96eb550 blend=0
+rgb16.png pos=5197
+rgb16.png save: saved 3034 bytes hash=51fc1caf07fee67d
+rgb16.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=25f80913e6a3781b blend=1
+rgb16trns.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=a8bae124266da881 blend=1
+rgb16trns.png pos=3271
+rgb16trns.png save: saved 986 bytes hash=c7fda6c0cb3841c7
+rgb16trns.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=a8bae124266da881 blend=1
+rgb8.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=45bf7b0535f90934 blend=0
+rgb8.png pos=2644
+rgb8.png save: saved 3039 bytes hash=650cc97e0c58fa0d
+rgb8.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=bbe5279d7508b279 blend=1
+rgb8f0.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=120eec630a2be272 blend=0
+rgb8f0.png pos=2644
+rgb8f0.png save: saved 3034 bytes hash=f3a9483b4b2e2d29
+rgb8f0.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=09cb22f8e1977f6b blend=1
+rgb8f1.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=602a902a02673ce2 blend=0
+rgb8f1.png pos=2644
+rgb8f1.png save: saved 3030 bytes hash=10db406e0a643a22
+rgb8f1.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=e6c9ce23dd56f523 blend=1
+rgb8f2.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=170b3c3f87151e8e blend=0
+rgb8f2.png pos=2644
+rgb8f2.png save: saved 3035 bytes hash=206538f7504f0478
+rgb8f2.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=f7741461174216cd blend=1
+rgb8f3.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=f4a5fe8046adc8a2 blend=0
+rgb8f3.png pos=2644
+rgb8f3.png save: saved 3034 bytes hash=9c21ce0f4dc49eaf
+rgb8f3.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=01c0e204c6e798cb blend=1
+rgb8f4.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=52f341d78e8d00f8 blend=0
+rgb8f4.png pos=2644
+rgb8f4.png save: saved 3027 bytes hash=3296bdff117f0753
+rgb8f4.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=418feb715fd9811d blend=1
+rgb8i.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=c40cbf86707d61bd blend=0
+rgb8i.png pos=2665
+rgb8i.png save: saved 3031 bytes hash=7328f02b4be0237d
+rgb8i.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=d011a410c9d6973c blend=1
+rgb8i1x1.png: 1x1 SDL_PIXELFORMAT_RGB24 pitch=3 hash=a2cf89196ec0052d blend=0
+rgb8i1x1.png pos=69
+rgb8i1x1.png save: saved 73 bytes hash=6a3e6658200f3d73
+rgb8i1x1.png save reload: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=66abc8373049e3d6 blend=1
+rgb8trns.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=67672f782e9b9bc3 blend=1
+rgb8trns.png pos=1528
+rgb8trns.png save: saved 1659 bytes hash=33a454928ce553fa
+rgb8trns.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=67672f782e9b9bc3 blend=1
+rgba16.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=12c3d83295ff6642 blend=1
+rgba16.png pos=6899
+rgba16.png save: saved 3495 bytes hash=be46921169e80610
+rgba16.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=12c3d83295ff6642 blend=1
+rgba16f0.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=17c8d584d90ada51 blend=1
+rgba16f0.png pos=6899
+rgba16f0.png save: saved 3495 bytes hash=e81613af1d560339
+rgba16f0.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=17c8d584d90ada51 blend=1
+rgba16f1.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=82c1f97463765b2c blend=1
+rgba16f1.png pos=6899
+rgba16f1.png save: saved 3495 bytes hash=75d96bc2049a34a8
+rgba16f1.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=82c1f97463765b2c blend=1
+rgba16f2.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=e5f1bea11cb68b0b blend=1
+rgba16f2.png pos=6899
+rgba16f2.png save: saved 3495 bytes hash=d8917987e31d1359
+rgba16f2.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=e5f1bea11cb68b0b blend=1
+rgba16f3.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=f82cbc932879620d blend=1
+rgba16f3.png pos=6899
+rgba16f3.png save: saved 3495 bytes hash=4bcfc0d2f8b6f053
+rgba16f3.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=f82cbc932879620d blend=1
+rgba16f4.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=d9efd48b7ed02db7 blend=1
+rgba16f4.png pos=6899
+rgba16f4.png save: saved 3495 bytes hash=6a4c191fea03b714
+rgba16f4.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=d9efd48b7ed02db7 blend=1
+rgba16i.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fa211b75d6b9e31 blend=1
+rgba16i.png pos=6920
+rgba16i.png save: saved 3495 bytes hash=f3ca260a6bae1cec
+rgba16i.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fa211b75d6b9e31 blend=1
+rgba8.png: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=86c6718fe17877cc blend=1
+rgba8.png pos=3495
+rgba8.png save: saved 3495 bytes hash=fdae8edf4f4f0851
+rgba8.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=86c6718fe17877cc blend=1
+rle.png: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=881eaf8433633687 pal=256:12d903f0f6e0a125 blend=0
+rle.png pos=174
+rle.png save: saved 1142 bytes hash=c84eef2e1c085ba1
+rle.png save reload: 37x23 SDL_PIXELFORMAT_INDEX8 pitch=37 hash=881eaf8433633687 pal=256:12d903f0f6e0a125 blend=0
+split.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=326b5d7bd98116e1 blend=0
+split.png pos=7072
+split.png save: saved 3038 bytes hash=ea7426c986655eb3
+split.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=6bd515f5ce8abcee blend=1
+stored.png: 37x23 SDL_PIXELFORMAT_RGB24 pitch=111 hash=dfe0c99bc17ee03b blend=0
+stored.png pos=2644
+stored.png save: saved 3034 bytes hash=ce958904d68374fa
+stored.png save reload: 37x23 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=e9bdfc2634c1660c blend=1
+tall.png: 1x40 SDL_PIXELFORMAT_RGB24 pitch=3 hash=c6c2e7fd69b064f4 blend=0
+tall.png pos=228
+tall.png save: saved 268 bytes hash=6deb094f711752c1
+tall.png save reload: 1x40 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=1062141f7239f9f8 blend=1
+truncated.png: err: Corrupt PNG
+truncated.png pos=0
+unknown_critical.png: err: PNG not supported: unknown PNG chunk type
+unknown_critical.png pos=0
+wide.png: 40x1 SDL_PIXELFORMAT_RGB24 pitch=120 hash=b8feee2e843c6c72 blend=0
+wide.png pos=189
+wide.png save: saved 229 bytes hash=1bd9a9891c8adeb4
+wide.png save reload: 40x1 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=7e4b83f4c9cb962e blend=1
+wide1bit.png: 77x2 SDL_PIXELFORMAT_INDEX8 pitch=77 hash=33215e519ddf322e pal=256:12d903f0f6e0a125 blend=0
+wide1bit.png pos=88
+wide1bit.png save: saved 1161 bytes hash=fd0f5561d4114b24
+wide1bit.png save reload: 77x2 SDL_PIXELFORMAT_INDEX8 pitch=77 hash=33215e519ddf322e pal=256:12d903f0f6e0a125 blend=0
+random rgba: 61x47 SDL_PIXELFORMAT_ABGR8888 pitch=244 hash=6aa6b28eb34c8365 blend=1
+random rgba: saved 11583 bytes hash=6229c24be012610d
+random rgba reload: 61x47 SDL_PIXELFORMAT_ABGR8888 pitch=244 hash=6aa6b28eb34c8365 blend=1
+gradient argb: 300x211 SDL_PIXELFORMAT_ARGB8888 pitch=1200 hash=82862fd0ae9cd285 blend=1
+gradient argb: saved 2768 bytes hash=4f6198a17a13a40c
+gradient argb reload: 300x211 SDL_PIXELFORMAT_ABGR8888 pitch=1200 hash=f787778b21dbcfa5 blend=1
+stripes rgb565: 257x130 SDL_PIXELFORMAT_RGB565 pitch=516 hash=af90d6b740870875 blend=0
+stripes rgb565: saved 3454 bytes hash=073584a53814c43f
+stripes rgb565 reload: 257x130 SDL_PIXELFORMAT_ABGR8888 pitch=1028 hash=96f0a515699411ae blend=1
+random index8: 123x77 SDL_PIXELFORMAT_INDEX8 pitch=124 hash=d4f417b6053011b8 pal=256:a7142578e2063045 blend=0
+random index8: saved 10664 bytes hash=1a20753d663aeff9
+random index8 reload: 123x77 SDL_PIXELFORMAT_INDEX8 pitch=123 hash=d4f417b6053011b8 pal=256:a7142578e2063045 blend=1
+pattern index4: 50x33 SDL_PIXELFORMAT_INDEX4MSB pitch=28 hash=bc2017e2b09e1837 pal=16:98c7756fa180d7f4 blend=0
+pattern index4: saved 1232 bytes hash=18340d977f4fa16c
+pattern index4 reload: 50x33 SDL_PIXELFORMAT_INDEX8 pitch=50 hash=348a13217ab55167 pal=256:cf3242ec0f666065 blend=0
+pattern index1: 64x20 SDL_PIXELFORMAT_INDEX1LSB pitch=8 hash=fe8bd87a6b9ea7cd pal=2:475da26bfddab95b blend=0
+pattern index1: saved 1182 bytes hash=6e06218c89f113a3
+pattern index1 reload: 64x20 SDL_PIXELFORMAT_INDEX8 pitch=64 hash=53d922b02b5574e5 pal=256:cf3242ec0f666065 blend=0
+large mixed: 700x500 SDL_PIXELFORMAT_ABGR8888 pitch=2800 hash=5d3c18b01c3b3968 blend=1
+large mixed: saved 755551 bytes hash=68942221fd5e9844
+large mixed reload: 700x500 SDL_PIXELFORMAT_ABGR8888 pitch=2800 hash=5d3c18b01c3b3968 blend=1
+no palette: save err: Indexed surfaces must have a palette
+text as png: err: File is not a PNG file
+text as jpg: err: File is not a JPEG file
+text as surface: err: Unsupported image format
+text pos=0
