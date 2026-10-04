@@ -416,8 +416,7 @@ pub(crate) static X11_BOOTSTRAP: VideoBootStrap = VideoBootStrap {
     name: "x11",
     desc: "SDL X11 video driver",
     create: x11_create_device,
-    // (X11_ShowMessageBox() is not translated yet)
-    show_message_box: Option::None,
+    show_message_box: Some(super::messagebox::x11_show_message_box),
     is_preferred: false,
 };
 
