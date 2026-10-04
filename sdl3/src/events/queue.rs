@@ -1,5 +1,5 @@
-// Rust translation of src/events/SDL_events.c, SDL_eventwatch.c and SDL_quit.c
-// from Simple DirectMedia Layer.
+// Rust translation of src/events/SDL_events.c and SDL_eventwatch.c from
+// Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -815,7 +815,7 @@ pub(crate) fn pump_event_maintenance() {
 
     crate::tray::update_trays();
 
-    // SDL_SendPendingSignalEvents(); -- platform layer
+    super::quit::send_pending_signal_events();
 }
 
 /// Run the system dependent event loops. Translation of `SDL_PumpEventsInternal()`.
@@ -1235,13 +1235,7 @@ pub fn send_system_theme_changed_event() {
     send_app_event(EventType::SYSTEM_THEME_CHANGED);
 }
 
-/// Post a `QUIT` event. Translation of `SDL_SendQuit()` (`SDL_quit.c`).
-///
-/// The SIGINT/SIGTERM handlers that upstream installs in `SDL_InitQuit()`
-/// need the platform layer; they are not part of the portable core.
-pub fn send_quit() {
-    send_app_event(EventType::QUIT);
-}
+pub use super::quit::send_quit;
 
 // ---------------------------------------------------------------------------
 // Init / quit
@@ -1273,14 +1267,14 @@ pub(crate) fn init_events() -> Result<()> {
         return Err(e);
     }
 
-    // SDL_InitQuit(): signal handlers belong to the platform layer.
+    super::quit::init_quit();
 
     Ok(())
 }
 
 /// Translation of `SDL_QuitEvents()`.
 pub(crate) fn quit_events() {
-    // SDL_QuitQuit()
+    super::quit::quit_quit();
     stop_event_loop();
     quit_main_thread_callbacks();
     HINT_CALLBACKS

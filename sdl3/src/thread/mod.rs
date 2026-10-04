@@ -28,6 +28,8 @@ pub use cond::Condition;
 pub use threads::{
     set_current_thread_priority, Thread, ThreadBuilder, ThreadPriority, ThreadState,
 };
+#[cfg(target_os = "linux")]
+pub use threads::{set_linux_thread_priority, set_linux_thread_priority_and_policy};
 pub use tls::{cleanup_tls, TlsId};
 
 /// A unique numeric ID that identifies a thread (never 0).

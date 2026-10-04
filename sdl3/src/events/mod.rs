@@ -21,6 +21,7 @@ pub mod keyboard;
 pub mod mouse;
 pub mod pen;
 pub mod queue;
+mod quit;
 pub mod touch;
 pub mod window;
 
