@@ -26,9 +26,10 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 > blitter, RLE, rotation, YUV conversion, BMP files), the 2D renderer
 > with its software backend, and the joystick, gamepad and sensor front ends
 > (with the virtual joystick driver). The platform backends have started:
-> the Linux evdev joystick and haptic drivers (with udev) and XInput
-> controllers on Windows. The remaining front ends and platform backends come
-> next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+> the Linux evdev joystick and haptic drivers (with udev), and the Windows
+> joystick drivers (DirectInput, XInput, RawInput, Windows.Gaming.Input)
+> with the DirectInput haptic driver. The remaining front ends and platform
+> backends come next; see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What is translated so far
 
@@ -78,9 +79,12 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `joystick/SDL_joystick.c`, `SDL_gamepad.c`, `SDL_gamepad_db.h`, `controller_type.c`, `controller_list.h`, `usb_ids.h`, `SDL_steam_virtual_gamepad.c`, `virtual/`, `dummy/` | `sdl3::joystick`, `sdl3::gamepad` | `Joystick` and `Gamepad` handles (closed on drop), the joystick state machine (axis initial-value detection, focus filtering, rumble expiry and resend, sensor fusion, player indexes), GUIDs and device classification, VID/PID lists with their hints, the mapping database (tables generated from upstream by `tools/gen_joystick_tables.py` and `tools/gen_gamepad_db.py`), mapping parsing and generation, binding to gamepad events, the virtual joystick driver with closure callbacks. Checked against upstream's C by replaying a scripted virtual-joystick session and comparing the event trace and the whole mapping database |
 | `sensor/SDL_sensor.c`, `dummy/` | `sdl3::sensor` | `Sensor` handles, the driver interface, sensor events |
 | `joystick/linux/SDL_sysjoystick.c` | `sdl3::joystick` (Linux driver) | evdev and classic `js` devices found through udev, inotify or polling (Steam virtual gamepads first, event nodes ordered by their `js` node), axis calibration and deadzones, digital hat detection, balls, `SYN_DROPPED` recovery, separate sensor nodes matched by unique ID, force-feedback rumble, `ENODEV` removal, the gamepad mapping from the Linux Gamepad Specification (checked against the mapping database for recorded devices); event handling tested through pipes, and end to end with uinput where it is available |
-| `joystick/windows/SDL_windowsjoystick.c`, `SDL_xinputjoystick.c` | `sdl3::joystick` (Windows driver) | the detection thread with its message-only window and device notifications, XInput controllers (fixed layout, rumble, battery, packet-numbered updates); DirectInput behaves like a build without it, RawInput/WGI/GameInput are not translated yet; tested under Wine |
+| `joystick/windows/SDL_windowsjoystick.c`, `SDL_xinputjoystick.c`, `SDL_dinputjoystick.c`, `core/windows/SDL_directx.h` | `sdl3::joystick` (Windows driver) | the detection thread with its message-only window and device notifications (waiting instead of spinning while a change is pending), XInput controllers (fixed layout, rumble, battery, packet-numbered updates), DirectInput 8 game controllers over hand-declared COM vtables with RAII references (the `DIJOYSTATE2` data format, buffered and polled input, POV hats, sine-effect rumble), the haptic hotplug; tested under Wine, conversions checked against upstream's C |
+| `joystick/windows/SDL_rawinputjoystick.c`, `core/windows/SDL_hid.c` | `sdl3::joystick` (RawInput driver) | XInput-capable HID devices through `WM_INPUT`, parsed with `hid.dll` (loaded at run time), correlated with XInput slots and Windows.Gaming.Input gamepads by matching states for the guide button, separate triggers and rumble; off unless `SDL_JOYSTICK_RAWINPUT` is set. Match states and packet parsing checked against upstream's C |
+| `joystick/windows/SDL_windows_gaming_input.c` | `sdl3::joystick` (WGI driver) | WinRT raw game controllers over hand-declared vtables (combase loaded at run time), controller added/removed events, gamepad vibration, battery reports; off unless `SDL_JOYSTICK_WGI` is set. GameInput is not translated |
 | `haptic/SDL_haptic.c`, `dummy/` | `sdl3::haptic` | `Haptic` handles (closed on drop), typed `HapticEffect` variants instead of the C union, effect slots, gain/autocenter/pause, the simple rumble API, the joystick haptic-axes hint |
 | `haptic/linux/SDL_syshaptic.c` | `sdl3::haptic` (Linux driver) | force feedback on evdev nodes: effect conversion to `ff_effect` (directions, clamping, envelopes), upload, run/stop, gain, autocenter, haptics opened from Linux joysticks |
+| `haptic/windows/SDL_windowshaptic.c`, `SDL_dinputhaptic.c` | `sdl3::haptic` (Windows driver) | DirectInput force feedback: devices and the joystick driver's devices, actuator axes and supported effects, effect conversion to `DIEFFECT` (owned parameters instead of the C allocations, update flags), run/stop/status, gain, autocenter, pause; conversions checked against upstream's C |
 | `camera/SDL_camera.c`, `SDL_syscamera.h`, `dummy/` | `sdl3::camera` | `Camera` handles, the device thread, spec sorting and best-match selection, frame queues with zero-copy hand-off (frames are owned buffers that return to the backend when the `CameraFrame` is dropped), conversion and scaling, permission states, zombie devices, hotplug events |
 | `dialog/SDL_dialog.c`, `SDL_dialog_utils.c`, `unix/SDL_zenitydialog.c`, `unix/SDL_zenitymessagebox.c` | `sdl3::dialog` | open/save/folder dialogs with closure callbacks, filter validation and conversion, the zenity backend on Unix (the D-Bus portal comes with the platform layer); the zenity message box of the X11 driver |
 | `tray/SDL_tray_utils.c`, `notification/SDL_notification.c`, their `dummy/` backends | `sdl3::tray`, `sdl3::notification` | the tray and notification front ends; tray bookkeeping for quit-on-last-window-close |
@@ -94,9 +98,9 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 
-Roughly 136,000 lines of upstream C/headers are covered by about 101,000
+Roughly 142,500 lines of upstream C/headers are covered by about 111,000
 lines of Rust including tests. Upstream is ~624,000 lines, so this is about
-22% by volume, but it is the part that everything else includes. The audio
+23% by volume, but it is the part that everything else includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
 BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
@@ -115,7 +119,8 @@ parts; the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
 audio drivers other than ALSA, PulseAudio, PipeWire and WASAPI (and ALSA's
 udev hotplug path), the camera drivers, the haptic drivers other than
-Linux's, the joystick drivers other than Linux evdev and XInput, and the
+Linux's and Windows' DirectInput one, the joystick drivers other than Linux
+evdev and the Windows ones (GameInput isn't translated), and the
 tray, notification and portal dialog backends; the NEON, LSX and
 AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
