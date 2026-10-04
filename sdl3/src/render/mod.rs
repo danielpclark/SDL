@@ -15,9 +15,9 @@
 //!
 //! Renderers use the software backend, drawing into a [`Surface`]
 //! ([`Renderer::software`]) or a window's surface, or for windows the
-//! OpenGL backend ("opengl", tried first by [`Renderer::for_window`]) or
-//! the OpenGL ES 2.0 backend ("opengles2"); the other GPU backends come
-//! with the platform layer.
+//! OpenGL backend ("opengl", tried first by [`Renderer::for_window`]), the
+//! OpenGL ES 2.0 backend ("opengles2") or the Vulkan backend ("vulkan");
+//! the other GPU backends come with the platform layer.
 //!
 //! A window renderer applies the window's changes (size, visibility, HDR
 //! state) at the start of its next drawing, presenting or state-setting
@@ -31,6 +31,7 @@ pub(crate) mod opengles2;
 pub(crate) mod software;
 pub(crate) mod sysrender;
 mod texture;
+pub(crate) mod vulkan;
 mod window;
 pub(crate) mod yuv_sw;
 
@@ -62,6 +63,13 @@ pub use opengles2::{
 pub use software::render_sw::SOFTWARE_RENDERER;
 pub use sysrender::Indices;
 pub use texture::{TextureCreateInfo, TextureLock, TextureSurfaceLock};
+pub use vulkan::{
+    PROP_RENDERER_VULKAN_DEVICE_POINTER, PROP_RENDERER_VULKAN_GRAPHICS_QUEUE_FAMILY_INDEX_NUMBER,
+    PROP_RENDERER_VULKAN_INSTANCE_POINTER, PROP_RENDERER_VULKAN_PHYSICAL_DEVICE_POINTER,
+    PROP_RENDERER_VULKAN_PRESENT_QUEUE_FAMILY_INDEX_NUMBER, PROP_RENDERER_VULKAN_SURFACE_NUMBER,
+    PROP_RENDERER_VULKAN_SWAPCHAIN_IMAGE_COUNT_NUMBER, PROP_TEXTURE_VULKAN_TEXTURE_NUMBER,
+    PROP_TEXTURE_VULKAN_TEXTURE_U_NUMBER, PROP_TEXTURE_VULKAN_TEXTURE_V_NUMBER,
+};
 pub use window::create_window_and_renderer;
 pub(crate) use window::{destroy_window_renderer, quit_render};
 
@@ -192,6 +200,7 @@ pub struct RendererCreateInfo {
 const RENDER_DRIVERS: &[&str] = &[
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
+    vulkan::VULKAN_RENDERER,
     SOFTWARE_RENDERER,
 ];
 
@@ -514,6 +523,7 @@ impl Renderer {
             PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN,
             !renderer.npot_texture_wrap_unsupported,
         )?;
+        renderer.backend.set_properties(&props);
 
         if renderer.window.is_some() {
             renderer.update_hdr_properties();
@@ -2135,6 +2145,21 @@ impl Renderer {
 
         // Clean up renderer-specific resources
         self.backend.destroy();
+    }
+
+    /// Add the Vulkan semaphores to wait for before rendering the current
+    /// frame, and to signal once it's rendered (0: none). Translation of
+    /// `SDL_AddVulkanRenderSemaphores()`.
+    pub fn add_vulkan_render_semaphores(
+        &mut self,
+        wait_stage_mask: u32,
+        wait_semaphore: i64,
+        signal_semaphore: i64,
+    ) -> Result<()> {
+        self.sync_window()?;
+        self.backend
+            .add_vulkan_render_semaphores(wait_stage_mask, wait_semaphore, signal_semaphore)
+            .unwrap_or_else(|| Err(Error::unsupported()))
     }
 
     /// Set the vsync interval (0 disables it). Translation of `SDL_SetRenderVSync()`.

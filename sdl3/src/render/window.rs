@@ -533,6 +533,11 @@ fn create_for_window(
             let backend = super::opengles2::Gles2Renderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
+        super::vulkan::VULKAN_RENDERER => {
+            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let backend = super::vulkan::VulkanRenderer::for_window(window, output_colorspace)?;
+            Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
+        }
         super::SOFTWARE_RENDERER => {
             let (backend, format) = super::SwRenderer::for_window(window, present_vsync)?;
             Ok((Box::new(backend), format))

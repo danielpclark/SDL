@@ -556,11 +556,30 @@ fn session_matches_c() {
         ids: Vec::new(),
     };
     session(&mut t, "dummy");
-    // The C reference's offscreen driver was built without EGL: here EGL is
-    // made to fail, and its error stands in for "not available" (below).
+    // The C reference's offscreen driver was built without EGL and Vulkan:
+    // here their loading is made to fail, and the errors stand in for "not
+    // available" (below).
     #[cfg(all(unix, not(target_vendor = "apple")))]
     hints::set(hints::EGL_LIBRARY, "libSDL-test-no-such-EGL.so").unwrap();
+    hints::set(hints::VULKAN_LIBRARY, "libSDL-test-no-such-vulkan.so").unwrap();
     session(&mut t, "offscreen");
+    hints::reset(hints::VULKAN_LIBRARY);
+    {
+        let offscreen = t.out.find("==== driver offscreen").unwrap();
+        let (before, after) = t.out.split_at(offscreen);
+        let mut out = before.to_owned();
+        for line in after.lines() {
+            if line.starts_with("vk load: err: ") {
+                out.push_str(
+                    "vk load: err: No dynamic Vulkan support in current SDL video driver (offscreen)",
+                );
+            } else {
+                out.push_str(line);
+            }
+            out.push('\n');
+        }
+        t.out = out;
+    }
     #[cfg(all(unix, not(target_vendor = "apple")))]
     {
         hints::reset(hints::EGL_LIBRARY);

@@ -26,7 +26,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
 | `egl` | Linux, Windows | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship) |
-| `vulkan` | Linux | a Vulkan loader and a driver with the surface extensions (Mesa's lavapipe is enough) |
+| `vulkan` | Linux | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the Vulkan renderer's tests (Mesa's lavapipe is enough) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |

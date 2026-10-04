@@ -9,13 +9,15 @@
 //! creation) without a display, say for automated testing on a headless
 //! machine. Its OpenGL contexts are EGL's, on a device display with pbuffer
 //! window surfaces ([`opengles`], where EGL is built: on Unix other than
-//! Apple platforms). (Its Vulkan surfaces come with that loader.)
+//! Apple platforms). Its Vulkan surfaces are `VK_EXT_headless_surface`'s,
+//! from the Vulkan loader loaded at run time ([`vulkan`]).
 
 #[cfg(all(unix, not(target_vendor = "apple")))]
 mod opengles;
+mod vulkan;
 
 use std::sync::atomic::AtomicI32;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[cfg(all(unix, not(target_vendor = "apple")))]
 use std::ffi::c_void;
@@ -46,7 +48,11 @@ struct OffscreenWindow {
     egl_surface: Option<crate::video::gl::EglSurface>,
 }
 
-struct OffscreenVideo;
+#[derive(Default)]
+struct OffscreenVideo {
+    /// The Vulkan loader (`_this->vulkan_config`).
+    vulkan: Mutex<vulkan::VulkanConfig>,
+}
 
 static FRAME_NUMBER: AtomicI32 = AtomicI32::new(0);
 
@@ -252,6 +258,54 @@ impl VideoDriver for OffscreenVideo {
     fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
         Some(crate::video::egl::set_swap_interval(interval))
     }
+
+    // * * * Vulkan (`OFFSCREEN_Vulkan_*`)
+
+    fn implements_vulkan_surfaces(&self) -> bool {
+        true
+    }
+
+    fn vulkan_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(vulkan::offscreen_vulkan_load_library(&self.vulkan, path))
+    }
+
+    fn vulkan_unload_library(&self) -> Option<()> {
+        vulkan::offscreen_vulkan_unload_library(&self.vulkan);
+        Some(())
+    }
+
+    fn vulkan_get_instance_proc_addr(&self) -> Option<usize> {
+        vulkan::offscreen_vulkan_get_instance_proc_addr(&self.vulkan)
+    }
+
+    fn vulkan_instance_extensions(&self) -> Option<Vec<&'static str>> {
+        Some(vulkan::offscreen_vulkan_get_instance_extensions(
+            &self.vulkan,
+        ))
+    }
+
+    fn vulkan_create_surface(
+        &self,
+        _window: WindowID,
+        instance: usize,
+        allocator: usize,
+    ) -> Option<Result<u64>> {
+        Some(vulkan::offscreen_vulkan_create_surface(
+            &self.vulkan,
+            instance,
+            allocator,
+        ))
+    }
+
+    fn vulkan_destroy_surface(
+        &self,
+        instance: usize,
+        surface: u64,
+        allocator: usize,
+    ) -> Option<()> {
+        vulkan::offscreen_vulkan_destroy_surface(&self.vulkan, instance, surface, allocator);
+        Some(())
+    }
 }
 
 /// Translation of `OFFSCREEN_CreateDevice()`.
@@ -259,7 +313,7 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
     if !super::dummy::available(OFFSCREENVID_DRIVER_NAME) {
         return None;
     }
-    Some(Arc::new(OffscreenVideo))
+    Some(Arc::new(OffscreenVideo::default()))
 }
 
 /// Translation of `OFFSCREEN_bootstrap`.
