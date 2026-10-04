@@ -209,7 +209,11 @@ pub(crate) struct AudioBootStrap {
 /// them is requested with [`hints::AUDIO_DRIVER`].
 static BOOTSTRAP: &[&AudioBootStrap] = &[
     #[cfg(target_os = "linux")]
+    &drivers::pipewire::PIPEWIRE_PREFERRED_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
     &drivers::pulseaudio::PULSEAUDIO_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &drivers::pipewire::PIPEWIRE_BOOTSTRAP,
     #[cfg(target_os = "linux")]
     &drivers::alsa::ALSA_BOOTSTRAP,
     &drivers::disk::DISKAUDIO_BOOTSTRAP,
@@ -2285,6 +2289,19 @@ fn prepare_audio_format(recording: bool, spec: &mut AudioSpec) {
             DEFAULT_AUDIO_PLAYBACK_FORMAT
         };
     }
+}
+
+/// Run `f` with the device locked and its state borrowed: for backends
+/// whose own threads change the device's buffer size (upstream does that
+/// under `device->lock`).
+#[allow(dead_code)] // for backends whose own threads resize the device buffer (PipeWire)
+pub(crate) fn with_device_state<R>(
+    device: &PhysicalDevice,
+    f: impl FnOnce(&mut PhysState) -> R,
+) -> R {
+    let guard = device.lock();
+    let r = f(&mut guard.borrow_mut());
+    r
 }
 
 /// Backends should call this if they change the device format, channels,

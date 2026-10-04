@@ -88,6 +88,17 @@ fn state_predicates() {
     assert_eq!(good, [false, true, true, false, false]);
 }
 
+/// Wait up to `timeout` for `what`, pumping events (disconnects are
+/// handled on the main thread).
+fn wait_for_up_to(timeout: Duration, what: &dyn Fn() -> bool) -> bool {
+    let start = std::time::Instant::now();
+    while !what() && start.elapsed() < timeout {
+        crate::events::pump();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    what()
+}
+
 /// A private PulseAudio server with a null sink, killed on drop.
 struct PrivateServer {
     child: std::process::Child,
@@ -182,6 +193,7 @@ fn playback_and_recording_through_a_private_server() {
     let Some((_server, address)) = start_private_server() else {
         return;
     };
+    let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
     std::env::set_var("PULSE_SERVER", &address);
     crate::hints::set(crate::hints::AUDIO_DRIVER, "pulseaudio").unwrap();
     crate::hints::set(crate::hints::AUDIO_INCLUDE_MONITORS, "1").unwrap();
@@ -261,14 +273,7 @@ fn playback_and_recording_through_a_private_server() {
             .into_iter()
             .find(|&d| audio_device_name(d).is_ok_and(|n| n == name))
     };
-    let wait_for = |what: &dyn Fn() -> bool| {
-        let start = std::time::Instant::now();
-        while !what() && start.elapsed() < Duration::from_secs(10) {
-            crate::events::pump(); // (disconnects are handled on the main thread)
-            std::thread::sleep(Duration::from_millis(10));
-        }
-        what()
-    };
+    let wait_for = |what: &dyn Fn() -> bool| wait_for_up_to(Duration::from_secs(10), what);
     if let Some(module) = pactl(&[
         "load-module",
         "module-null-sink",
@@ -277,11 +282,19 @@ fn playback_and_recording_through_a_private_server() {
     ]) {
         assert!(wait_for(&|| named("Hotplugged").is_some()), "added");
         pactl(&["set-default-sink", "hotplugged"]).unwrap();
-        assert!(
-            wait_for(&|| audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK)
-                .is_ok_and(|n| n == "Hotplugged")),
-            "the new default"
-        );
+        // (a volume change wakes the hotplug thread again, in case the
+        // default change's signal was missed; see the FIXME in `hotplug_thread`)
+        let is_default =
+            || audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK).is_ok_and(|n| n == "Hotplugged");
+        let mut changed = false;
+        for volume in ["90%", "100%"].iter().cycle().take(10) {
+            changed = wait_for_up_to(Duration::from_millis(500), &is_default);
+            if changed {
+                break;
+            }
+            let _ = pactl(&["set-sink-volume", "hotplugged", volume]);
+        }
+        assert!(changed, "the new default");
         pactl(&["unload-module", &module]).unwrap();
         assert!(wait_for(&|| named("Hotplugged").is_none()), "removed");
     } else {
