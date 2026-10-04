@@ -387,7 +387,6 @@ pub fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::TEST_LOCK;
 
     struct Counter {
         iterations: u32,
@@ -425,7 +424,7 @@ mod tests {
 
     #[test]
     fn main_callbacks_loop() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         init::set_main_ready();
         let events = Arc::new(Mutex::new(Vec::new()));
         let quit_with = Arc::new(Mutex::new(None));

@@ -374,11 +374,10 @@ mod tests {
     use std::sync::Mutex;
 
     // Tests share global state; serialize them.
-    pub(crate) use crate::test_support::TEST_LOCK;
 
     #[test]
     fn set_get_priority() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let name = "SDL_TEST_HINT_A";
         assert_eq!(set(name, "1"), Ok(true));
         assert_eq!(get(name).as_deref(), Some("1"));
@@ -415,7 +414,7 @@ mod tests {
 
     #[test]
     fn callbacks() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let name = "SDL_TEST_HINT_B";
         reset(name);
         let calls = Arc::new(AtomicUsize::new(0));
@@ -479,7 +478,7 @@ mod tests {
 
     #[test]
     fn environment_takes_priority() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let name = "SDL_TEST_HINT_ENV";
         crate::stdlib::setenv_unsafe(name, "from-env", true).unwrap();
         assert!(set(name, "x").is_err());

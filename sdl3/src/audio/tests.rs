@@ -10,7 +10,6 @@ use super::format::{AudioFormat, AudioSpec};
 use super::resample;
 use super::*;
 use crate::io::IoStream;
-use crate::test_support::TEST_LOCK;
 
 /// The harness's LCG (`rnd()`, `rbyte()`, `rfloat()`).
 struct Rng(u64);
@@ -428,7 +427,7 @@ fn hash_wav(h: &mut Hash, wav: &[u8]) {
 
 #[test]
 fn wave_loader_matches_upstream() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let coeffs: [i16; 14] = [
         256, 0, 512, -256, 0, 0, 192, 64, 240, 0, 460, -208, 392, -232,
     ];
@@ -637,7 +636,7 @@ fn stream_api_behaviour() {
 
 #[test]
 fn dummy_driver_playback_and_recording() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     assert!(current_audio_driver().is_none());
     assert!(playback_devices().is_err());
     assert_eq!(num_audio_drivers(), 2);
@@ -776,7 +775,7 @@ fn dummy_driver_playback_and_recording() {
 
 #[test]
 fn mix_path_swizzles_float_data_to_device_layout() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
     crate::hints::set(crate::hints::AUDIO_DUMMY_TIMESCALE, "0.05").unwrap();
     crate::init::init_subsystem(crate::init::InitFlags::AUDIO).unwrap();
@@ -830,7 +829,7 @@ fn mix_path_swizzles_float_data_to_device_layout() {
 
 #[test]
 fn recording_swizzle_handles_float_data() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let tmp = crate::test_support::TempDir::new("diskswizzle");
     let input = tmp.path("in.raw");
     // S16 stereo frames, left 1000 and right -2000.
@@ -900,7 +899,7 @@ fn recording_swizzle_handles_float_data() {
 
 #[test]
 fn unbinding_a_simplified_stream_is_ignored() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
     crate::hints::set(crate::hints::AUDIO_DUMMY_TIMESCALE, "0.05").unwrap();
     crate::init::init_subsystem(crate::init::InitFlags::AUDIO).unwrap();
@@ -931,7 +930,7 @@ fn unbinding_a_simplified_stream_is_ignored() {
 
 #[test]
 fn disk_driver_writes_and_reads_files() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let tmp = crate::test_support::TempDir::new("diskaudio");
     let out = tmp.path("out.raw");
     let input = tmp.path("in.raw");
@@ -953,8 +952,17 @@ fn disk_driver_writes_and_reads_files() {
         .put_data(&vec![0x22u8; spec.frame_size() * 64])
         .unwrap();
     let buffer_bytes = spec.frame_size() * frames as usize;
+    let data_bytes = spec.frame_size() * 64;
+    // (The device thread starts with the device and may write buffers of
+    // silence before the stream is bound: wait for the buffer holding the
+    // data.)
+    let has_data = |w: &[u8]| {
+        w.iter()
+            .position(|&b| b != 0)
+            .is_some_and(|at| w.len() >= at - at % buffer_bytes + buffer_bytes)
+    };
     let start = std::time::Instant::now();
-    while std::fs::metadata(&out).map_or(0, |m| m.len()) < buffer_bytes as u64
+    while !has_data(&std::fs::read(&out).unwrap_or_default())
         && start.elapsed() < std::time::Duration::from_secs(5)
     {
         std::thread::sleep(std::time::Duration::from_millis(5));
@@ -962,14 +970,20 @@ fn disk_driver_writes_and_reads_files() {
     drop(dev);
     let written = std::fs::read(&out).unwrap();
     assert!(written.len() >= buffer_bytes && written.len().is_multiple_of(buffer_bytes));
+    let at = written
+        .iter()
+        .position(|&b| b != 0)
+        .expect("the queued data was written");
     assert!(
-        written[..spec.frame_size() * 64].iter().all(|&b| b == 0x22),
-        "the queued data comes first"
+        at.is_multiple_of(buffer_bytes),
+        "silence, in whole buffers, before the data"
     );
     assert!(
-        written[spec.frame_size() * 64..buffer_bytes]
-            .iter()
-            .all(|&b| b == 0),
+        written[at..at + data_bytes].iter().all(|&b| b == 0x22),
+        "the queued data, in one piece"
+    );
+    assert!(
+        written[at + data_bytes..].iter().all(|&b| b == 0),
         "then silence"
     );
     drop(stream);

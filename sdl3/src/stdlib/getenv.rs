@@ -218,9 +218,7 @@ mod tests {
 
     #[test]
     fn process_environment_snapshot() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let name = "SDL3_RS_TEST_GETENV";
         setenv_unsafe(name, "one", true).unwrap();
         assert_eq!(getenv(name).as_deref(), Some("one"));

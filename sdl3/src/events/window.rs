@@ -1036,9 +1036,7 @@ pub(crate) mod tests {
     }
 
     pub(crate) fn with_video<R>(ids: &[WindowID], f: impl FnOnce(&Arc<FakeVideo>) -> R) -> R {
-        let _guard = init::tests::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _guard = crate::test_support::test_lock();
         init::init(init::InitFlags::EVENTS).unwrap();
         let video = FakeVideo::with_windows(ids);
         set_video(Some(video.clone()));

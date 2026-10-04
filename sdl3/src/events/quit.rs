@@ -111,9 +111,7 @@ mod tests {
 
     #[test]
     fn sigterm_becomes_a_quit_event() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         crate::hints::reset(crate::hints::NO_SIGNAL_HANDLERS);
         init::init(InitFlags::EVENTS).unwrap();
         events::flush_events(EventType::FIRST, EventType::LAST);

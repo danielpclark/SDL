@@ -1910,9 +1910,7 @@ mod tests {
 
     #[test]
     fn screensaver_inhibit_through_the_session_bus() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let Some(bus) = Bus::start() else { return };
         if crate::init::sandbox() != crate::init::Sandbox::None {
             println!("running in a sandbox; skipping");

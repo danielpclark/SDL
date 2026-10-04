@@ -336,9 +336,7 @@ mod tests {
 
     #[test]
     fn load_and_query_without_controllers() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         if !load_xinput_dll() {
             println!("note: no XInput DLL here, skipping the XInput test");
             return;

@@ -1,8 +1,6 @@
 use super::*;
 use crate::filesystem::PathType;
 use crate::test_support::TempDir;
-#[cfg(unix)]
-use crate::test_support::TEST_LOCK;
 use crate::ErrorKind;
 use std::ops::ControlFlow;
 
@@ -141,7 +139,7 @@ fn title_storage_is_read_only() {
 #[test]
 fn user_storage_and_driver_hints() {
     use crate::stdlib::{getenv, setenv_unsafe, unsetenv_unsafe};
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let tmp = TempDir::new("user");
     let saved = getenv("XDG_DATA_HOME");
     setenv_unsafe("XDG_DATA_HOME", &tmp.0, true).unwrap();

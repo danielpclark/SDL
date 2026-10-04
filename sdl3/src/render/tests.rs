@@ -762,7 +762,6 @@ mod window_session {
     use crate::hints;
     use crate::init::{self, InitFlags};
     use crate::render::*;
-    use crate::test_support::TEST_LOCK;
     use crate::video::rect::{FRect, Rect};
     use crate::video::{PixelFormat, Surface, Window};
 
@@ -1206,7 +1205,7 @@ mod window_session {
 
     #[test]
     fn window_renderer_matches_c() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         init::quit(); // (in case an earlier test failed halfway)
         let out = session();
         hints::reset(hints::VIDEO_DRIVER);

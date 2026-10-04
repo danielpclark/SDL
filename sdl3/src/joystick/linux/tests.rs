@@ -7,9 +7,7 @@ use crate::core::linux::guess_tests::{GuessTest, GUESS_TESTS};
 use crate::joystick::gamepad::InputMapping;
 
 fn lock() -> std::sync::MutexGuard<'static, ()> {
-    crate::test_support::TEST_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
+    crate::test_support::test_lock()
 }
 
 /// A recorded device of test/testevdev.c.

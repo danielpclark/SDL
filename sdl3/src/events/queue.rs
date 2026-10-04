@@ -1317,9 +1317,7 @@ mod tests {
     }
 
     fn with_events<R>(f: impl FnOnce() -> R) -> R {
-        let _guard = init::tests::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _guard = crate::test_support::test_lock();
         init::init(init::InitFlags::EVENTS).unwrap();
         let _quit = QuitOnDrop;
         f()
@@ -1518,9 +1516,7 @@ mod tests {
             push(user(9)).unwrap();
             assert!(matches!(wait(), Ok(Event::User(_))));
         });
-        let _guard = init::tests::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _guard = crate::test_support::test_lock();
         // After shutdown the queue refuses to add or hand out events.
         let err = get_events(EventType::FIRST, EventType::LAST, 1).unwrap_err();
         assert_eq!(err.message(), "The event system has been shut down");

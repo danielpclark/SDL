@@ -1,8 +1,6 @@
 use super::*;
 use crate::error::Error;
 use crate::test_support::TempDir;
-#[cfg(unix)]
-use crate::test_support::TEST_LOCK;
 
 /// (pattern, string) pairs; [`WILDCARD_EXPECTED`] is the output of
 /// upstream's `WildcardMatch()` over them, compiled from the C source:
@@ -210,7 +208,7 @@ fn enumerate_and_glob() {
 #[test]
 fn xdg_paths() {
     use crate::stdlib::{setenv_unsafe, unsetenv_unsafe};
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let tmp = TempDir::new("xdg");
     let saved: Vec<(&str, Option<String>)> = ["HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME"]
         .into_iter()

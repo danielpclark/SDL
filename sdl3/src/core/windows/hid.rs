@@ -272,9 +272,7 @@ mod tests {
 
     #[test]
     fn notifications_start_and_stop() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         assert_eq!(size_of::<CM_NOTIFY_FILTER>(), 416);
         init_device_notification();
         init_device_notification();

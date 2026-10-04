@@ -925,9 +925,7 @@ mod tests {
 
     #[test]
     fn init_scan_and_quit() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
 
         if SharedObject::load(SDL_UDEV_LIBS[0]).is_err()
             && SharedObject::load(SDL_UDEV_LIBS[1]).is_err()

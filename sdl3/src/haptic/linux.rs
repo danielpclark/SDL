@@ -1138,9 +1138,7 @@ mod tests {
 
     #[test]
     fn subsystem_without_devices() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         // Whatever this system has, the list matches what the driver reports
         if LINUX_HAPTIC_DRIVER.init().is_err() {
             println!("note: udev unavailable, skipping the haptic driver test");

@@ -440,9 +440,7 @@ mod tests {
 
     #[test]
     fn priorities() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let t = Thread::spawn("priorities", || {
             // Lowering is always allowed; raising may need privileges, and
             // then fails with upstream's message.

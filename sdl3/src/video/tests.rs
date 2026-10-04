@@ -11,7 +11,6 @@ use crate::events::{get_events, pump, DisplayID, Event, EventType};
 use crate::hints;
 use crate::init::{self, InitFlags};
 use crate::properties::Properties;
-use crate::test_support::TEST_LOCK;
 use crate::video::clipboard;
 use crate::video::gl::{self, GlAttr};
 use crate::video::messagebox::{show_simple_message_box, MessageBoxFlags};
@@ -550,7 +549,7 @@ fn session(t: &mut Trace, driver: &str) {
 
 #[test]
 fn session_matches_c() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     init::quit(); // (in case an earlier test failed halfway)
     let mut t = Trace {
         out: String::new(),
@@ -775,7 +774,7 @@ fn window_events() -> Vec<(EventType, i32, i32)> {
 
 #[test]
 fn displays_and_modes() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     start_test_driver();
 
     let ds = displays().unwrap();
@@ -843,7 +842,7 @@ fn displays_and_modes() {
 
 #[test]
 fn exclusive_fullscreen() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     start_test_driver();
     let primary = primary_display().unwrap();
 
@@ -925,7 +924,7 @@ fn exclusive_fullscreen() {
 
 #[test]
 fn popups_parents_and_modals() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     start_test_driver();
 
     let parent = Window::create("parent", 640, 480, WindowFlags::NONE).unwrap();
@@ -977,7 +976,7 @@ use crate::events::mouse::{self as mousemod, CursorFrame, SystemCursor};
 /// dummy driver, with its output.
 #[test]
 fn cursors_match_c() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     init::quit(); // (in case an earlier test failed halfway)
     hints::set(hints::VIDEO_DRIVER, "dummy").unwrap();
     init::init(InitFlags::VIDEO).unwrap();
@@ -1123,7 +1122,7 @@ system: CreateSystemCursor is not currently supported
 
 #[test]
 fn cursor_images_and_animation() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     CURSORS.lock().unwrap().clear();
     start_test_driver();
 

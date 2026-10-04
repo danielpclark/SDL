@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicI32, AtomicU32, AtomicUsize};
 use super::*;
 use crate::events::{flush_events, get_events, pump};
 use crate::init::{self, InitFlags};
-use crate::test_support::TEST_LOCK;
 use crate::video::Color;
 
 // The test backend's knobs and counters (the tests run one at a time).
@@ -193,7 +192,7 @@ fn camera_events() -> Vec<(EventType, CameraID)> {
 
 #[test]
 fn driver_selection() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     assert_eq!(num_camera_drivers(), 2);
     assert_eq!(camera_driver(1).unwrap(), "dummy");
     assert!(camera_driver(2).is_err());
@@ -314,7 +313,7 @@ fn spec_sorting_and_choice() {
 
 #[test]
 fn devices_and_events() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, b) = start();
     flush_events(EventType::FIRST, EventType::LAST);
     // (the events were queued when the devices were detected)
@@ -344,7 +343,7 @@ fn devices_and_events() {
 
 #[test]
 fn capture_without_conversion() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, _) = start();
     camera_events();
 
@@ -428,7 +427,7 @@ fn capture_without_conversion() {
 
 #[test]
 fn capture_with_conversion_and_scaling() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, _) = start();
 
     let check = |want: CameraSpec, expect: Color| {
@@ -493,7 +492,7 @@ fn capture_with_conversion_and_scaling() {
 
 #[test]
 fn disconnect_makes_zombie() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, b) = start();
     camera_events();
 
@@ -532,7 +531,7 @@ fn disconnect_makes_zombie() {
 
 #[test]
 fn permission_denied_or_pending() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, b) = start();
     camera_events();
 
@@ -562,7 +561,7 @@ fn permission_denied_or_pending() {
 
 #[test]
 fn failed_open_keeps_the_device() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, b) = start();
     let freed = FREED_HANDLES.load(Ordering::SeqCst);
     let closed = CLOSED.load(Ordering::SeqCst);
@@ -586,7 +585,7 @@ fn failed_open_keeps_the_device() {
 
 #[test]
 fn quit_while_open() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let (a, _) = start();
     let camera = Camera::open(a, Some(&spec(PixelFormat::XRGB8888, 160, 120, 30, 1))).unwrap();
     let frame = next_frame(&camera);
