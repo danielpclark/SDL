@@ -33,12 +33,11 @@ use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallWindowProcW, CreateWindowExW, DestroyWindow, DispatchMessageW, GetMessageW, KillTimer,
-    MsgWaitForMultipleObjects, PeekMessageW, PostThreadMessageW, RegisterClassExW,
-    RegisterDeviceNotificationW, SetTimer, TranslateMessage, UnregisterClassW,
-    UnregisterDeviceNotification, DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE,
+    PostThreadMessageW, RegisterClassExW, RegisterDeviceNotificationW, SetTimer, TranslateMessage,
+    UnregisterClassW, UnregisterDeviceNotification, DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE,
     DBT_DEVTYP_DEVICEINTERFACE, DEVICE_NOTIFY_WINDOW_HANDLE, DEV_BROADCAST_DEVICEINTERFACE_W,
-    DEV_BROADCAST_HDR, HDEVNOTIFY, HWND_MESSAGE, MSG, PM_REMOVE, QS_ALLINPUT, WM_DEVICECHANGE,
-    WM_QUIT, WM_TIMER, WNDCLASSEXW,
+    DEV_BROADCAST_HDR, HDEVNOTIFY, HWND_MESSAGE, MSG, WM_DEVICECHANGE, WM_QUIT, WM_TIMER,
+    WNDCLASSEXW,
 };
 
 use super::gamepad::GamepadMapping;
@@ -434,29 +433,6 @@ fn wait_for_device_notification(
         }
     }
 
-    // FIXME (upstream): while a device change is pending (until the next
-    // WINDOWS_JoystickDetect() takes it), the loop above returns at once,
-    // and the joystick thread spins, relocking the mutex and coming back
-    // here, until then. Deviation: wait for a message for up to 100 ms
-    // (dispatching what comes, and noticing WM_QUIT) before returning.
-    if lastret > 0 {
-        // SAFETY: no handles; this waits for this thread's message queue.
-        unsafe {
-            MsgWaitForMultipleObjects(0, std::ptr::null(), 0, 100, QS_ALLINPUT);
-        }
-        // SAFETY: msg is writable; this thread owns the window.
-        while unsafe { PeekMessageW(&mut msg, std::ptr::null_mut(), 0, 0, PM_REMOVE) } != 0 {
-            if msg.message == WM_QUIT {
-                lastret = 0;
-                break;
-            }
-            // SAFETY: msg was filled in by PeekMessageW.
-            unsafe {
-                TranslateMessage(&msg);
-                DispatchMessageW(&msg);
-            }
-        }
-    }
     (lock_enum(), lastret != -1)
 }
 

@@ -1020,24 +1020,3 @@ fn drivers_with_every_api() {
     hints::reset(hints::JOYSTICK_WGI);
     hints::reset(hints::JOYSTICK_DIRECTINPUT);
 }
-
-#[test]
-fn pending_device_change_does_not_spin() {
-    let _l = lock();
-    // With a device change pending (nobody calls detect), a wait for
-    // device notifications blocks for a while rather than returning at once.
-    let mut data = DeviceNotificationData::new();
-    create_device_notification(&mut data).unwrap();
-    set_windows_device_changed();
-    let start = std::time::Instant::now();
-    let (guard, ok) = wait_for_device_notification(data.message_window, lock_enum());
-    assert!(ok);
-    drop(guard);
-    assert!(
-        start.elapsed() >= Duration::from_millis(50),
-        "{:?}",
-        start.elapsed()
-    );
-    cleanup_device_notification(&mut data);
-    LAST_DEVICE_CHANGE.store(get_last_device_notification(), Ordering::Release);
-}
