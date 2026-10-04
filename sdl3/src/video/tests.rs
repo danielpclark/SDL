@@ -556,7 +556,29 @@ fn session_matches_c() {
         ids: Vec::new(),
     };
     session(&mut t, "dummy");
+    // The C reference's offscreen driver was built without EGL: here EGL is
+    // made to fail, and its error stands in for "not available" (below).
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    hints::set(hints::EGL_LIBRARY, "libSDL-test-no-such-EGL.so").unwrap();
     session(&mut t, "offscreen");
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    {
+        hints::reset(hints::EGL_LIBRARY);
+        let offscreen = t.out.find("==== driver offscreen").unwrap();
+        let (before, after) = t.out.split_at(offscreen);
+        let mut out = before.to_owned();
+        for line in after.lines() {
+            if line.starts_with("gl 0: ") {
+                out.push_str("gl 0: OpenGL support is either not configured in SDL or not available in current SDL video driver (offscreen) or platform");
+            } else if line.starts_with("gl load: err: ") {
+                out.push_str("gl load: err: No dynamic OpenGL support in current SDL video driver (offscreen)");
+            } else {
+                out.push_str(line);
+            }
+            out.push('\n');
+        }
+        t.out = out;
+    }
     hints::set(hints::VIDEO_DRIVER, "nonexistent").unwrap();
     t.res("init bad", init::init(InitFlags::VIDEO));
     hints::reset(hints::VIDEO_DRIVER);

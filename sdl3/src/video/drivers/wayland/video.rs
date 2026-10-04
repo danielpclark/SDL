@@ -15,7 +15,7 @@
 //! Protocol listeners hold a weak reference to the device.
 
 use std::cell::RefCell;
-use std::ffi::CString;
+use std::ffi::{c_void, CString};
 use std::ptr::NonNull;
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
@@ -67,6 +67,7 @@ use crate::video::display::{
     del_video_display, finalize_display_mode, reset_fullscreen_display_modes,
     set_desktop_display_mode, set_display_content_scale,
 };
+use crate::video::gl::{GlConfig, RawGlContext};
 use crate::video::messagebox::MessageBoxData;
 use crate::video::sysvideo::{
     DeviceCaps, DisplayMode, DisplayOrientation, FlashOperation, FullscreenOp, FullscreenResult,
@@ -2669,7 +2670,64 @@ impl VideoDriver for WaylandVideo {
         None
     }
 
-    // * * * Vulkan (OpenGL ES through EGL isn't translated)
+    // * * * OpenGL ES through EGL (`Wayland_GLES_*`, see opengles.rs)
+
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        Some(self.wayland_gles_swap_window(window))
+    }
+
+    fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
+        Some(self.wayland_gles_get_swap_interval())
+    }
+
+    fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
+        Some(self.wayland_gles_set_swap_interval(interval))
+    }
+
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(self.wayland_gles_make_current(window, context))
+    }
+
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
+        Some(self.wayland_gles_create_context(window))
+    }
+
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(self.wayland_gles_load_library(path))
+    }
+
+    fn gl_unload_library(&self) -> Option<()> {
+        crate::video::egl::unload_library();
+        Some(())
+    }
+
+    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
+        Some(crate::video::egl::get_proc_address_internal(proc_name))
+    }
+
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
+        self.wayland_gles_destroy_context(context);
+        Some(Ok(()))
+    }
+
+    fn gl_set_default_profile_config(&self, config: &mut GlConfig) -> Option<()> {
+        super::opengles::wayland_gles_set_default_profile_config(config);
+        Some(())
+    }
+
+    fn gl_get_egl_surface(&self, window: WindowID) -> Option<*mut c_void> {
+        Some(self.wayland_gles_get_egl_surface(window))
+    }
+
+    // * * * Vulkan
 
     fn implements_vulkan_surfaces(&self) -> bool {
         true

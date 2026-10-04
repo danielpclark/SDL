@@ -4,8 +4,8 @@
 
 //! The Wayland video driver.
 //!
-//! libwayland-client, libwayland-cursor, libxkbcommon and (optionally)
-//! libdecor are loaded at run time ([`wldyn`]); their functions are declared
+//! libwayland-client, libwayland-egl, libwayland-cursor, libxkbcommon and
+//! (optionally) libdecor are loaded at run time ([`wldyn`]); their functions are declared
 //! by hand ([`sys`]). The protocol code (`wl_interface` tables, typed
 //! requests and decoded events) is generated from the XML files in
 //! `tools/wayland-protocols/` by `tools/gen_wayland_protocols.py` into
@@ -29,12 +29,11 @@
 //! | `SDL_waylandmessagebox.c`   | [`messagebox`]    |
 //! | `SDL_waylandutil.c`         | [`util`]          |
 //! | `SDL_waylandvulkan.c`       | [`vulkan`]        |
+//! | `SDL_waylandopengles.c`     | [`opengles`]      |
 //! | `SDL_waylanddyn.c`          | [`wldyn`]         |
 //! | `SDL_waylandsym.h`          | [`wldyn`], [`sys`] |
 //!
-//! Not translated: `SDL_waylandopengles.c` (OpenGL ES through EGL, as the
-//! crate has no EGL layer); windows get no `wl_egl_window`. In its place,
-//! [`framebuffer`] (not in upstream) gives windows a `wl_shm` framebuffer
+//! Not in upstream: [`framebuffer`] gives windows a `wl_shm` framebuffer
 //! for `Window::surface()`, where upstream draws the window surface through
 //! a GLES texture.
 
@@ -48,6 +47,7 @@ pub(crate) mod framebuffer;
 pub(crate) mod keyboard;
 pub(crate) mod messagebox;
 pub(crate) mod mouse;
+pub(crate) mod opengles;
 pub(crate) mod protocols;
 pub(crate) mod shmbuffer;
 pub(crate) mod sys;

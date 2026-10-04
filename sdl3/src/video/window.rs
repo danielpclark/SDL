@@ -115,8 +115,8 @@ pub const PROP_WINDOW_WAYLAND_SURFACE_POINTER: &str = "SDL.window.wayland.surfac
 /// The `wp_viewport` of the window (an address). Translation of
 /// `SDL_PROP_WINDOW_WAYLAND_VIEWPORT_POINTER`.
 pub const PROP_WINDOW_WAYLAND_VIEWPORT_POINTER: &str = "SDL.window.wayland.viewport";
-/// The `wl_egl_window` of the window (an address; never set, as EGL isn't
-/// translated). Translation of `SDL_PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER`.
+/// The `wl_egl_window` of the window (an address; 0 without one). Translation
+/// of `SDL_PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER`.
 pub const PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER: &str = "SDL.window.wayland.egl_window";
 /// The window's ID string. Translation of `SDL_PROP_WINDOW_WAYLAND_WINDOW_ID_STRING`.
 pub const PROP_WINDOW_WAYLAND_WINDOW_ID_STRING: &str = "SDL.window.wayland.window_id";

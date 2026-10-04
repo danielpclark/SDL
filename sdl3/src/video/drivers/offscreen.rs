@@ -7,18 +7,30 @@
 //! The offscreen video driver: like the dummy driver, but meant to let
 //! applications use some of the video functionality (notably context
 //! creation) without a display, say for automated testing on a headless
-//! machine. (Its EGL and Vulkan contexts come with those loaders.)
+//! machine. Its OpenGL contexts are EGL's, on a device display with pbuffer
+//! window surfaces ([`opengles`], where EGL is built: on Unix other than
+//! Apple platforms). (Its Vulkan surfaces come with that loader.)
+
+#[cfg(all(unix, not(target_vendor = "apple")))]
+mod opengles;
 
 use std::sync::atomic::AtomicI32;
 use std::sync::Arc;
 
+#[cfg(all(unix, not(target_vendor = "apple")))]
+use std::ffi::c_void;
+
+#[cfg(all(unix, not(target_vendor = "apple")))]
+use crate::error::Error;
 use crate::error::Result;
-use crate::events::window::send_window_event;
+use crate::events::window::{send_window_event, WindowFlags};
 use crate::events::{DisplayID, EventType, WindowID};
 use crate::hints;
 use crate::properties::Properties;
 use crate::video::core::with_window;
 use crate::video::display::add_basic_video_display;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+use crate::video::gl::RawGlContext;
 use crate::video::sysvideo::{
     DeviceCaps, DisplayMode, VideoBootStrap, VideoDriver, WINDOWPOS_UNDEFINED,
 };
@@ -30,6 +42,8 @@ const OFFSCREENVID_DRIVER_NAME: &str = "offscreen";
 struct OffscreenWindow {
     #[allow(dead_code)]
     sdl_window: WindowID,
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    egl_surface: Option<crate::video::gl::EglSurface>,
 }
 
 struct OffscreenVideo;
@@ -70,8 +84,12 @@ impl VideoDriver for OffscreenVideo {
     }
 
     fn create_window(&self, window: WindowID, _create_props: &Properties) -> Option<Result<()>> {
-        Some(with_window(window, |w| {
-            w.internal = Some(Box::new(OffscreenWindow { sdl_window: window }));
+        let created = with_window(window, |w| {
+            w.internal = Some(Box::new(OffscreenWindow {
+                sdl_window: window,
+                #[cfg(all(unix, not(target_vendor = "apple")))]
+                egl_surface: None,
+            }));
 
             if w.core.x == WINDOWPOS_UNDEFINED {
                 w.core.x = 0;
@@ -80,11 +98,62 @@ impl VideoDriver for OffscreenVideo {
             if w.core.y == WINDOWPOS_UNDEFINED {
                 w.core.y = 0;
             }
-        }))
+
+            (w.flags().contains(WindowFlags::OPENGL), w.core.w, w.core.h)
+        });
+        #[cfg_attr(not(all(unix, not(target_vendor = "apple"))), allow(unused_variables))]
+        let (opengl, width, height) = match created {
+            Ok(created) => created,
+            Err(e) => return Some(Err(e)),
+        };
+
+        #[cfg(all(unix, not(target_vendor = "apple")))]
+        if opengl {
+            use crate::video::egl;
+
+            let Some(e) = egl::egl() else {
+                return Some(Err(Error::new(
+                    "Cannot create an OPENGL window invalid egl_data",
+                )));
+            };
+
+            let egl_surface = egl::create_offscreen_surface(width, height)
+                .ok()
+                .and_then(crate::video::gl::EglSurface::from_ptr);
+
+            let Some(egl_surface) = egl_surface else {
+                return Some(Err(Error::new(format!(
+                    "Failed to created an offscreen surface (EGL display: {:p})",
+                    e.egl_display
+                ))));
+            };
+            let _ = with_window(window, |w| {
+                if let Some(d) = w
+                    .internal
+                    .as_mut()
+                    .and_then(|i| i.downcast_mut::<OffscreenWindow>())
+                {
+                    d.egl_surface = Some(egl_surface);
+                }
+            });
+        }
+
+        Some(Ok(()))
     }
 
     fn destroy_window(&self, window: WindowID) -> Option<()> {
-        let _ = with_window(window, |w| w.internal = None);
+        let _internal = with_window(window, |w| w.internal.take());
+        #[cfg(all(unix, not(target_vendor = "apple")))]
+        if let Some(d) = _internal
+            .ok()
+            .flatten()
+            .and_then(|i| i.downcast::<OffscreenWindow>().ok())
+        {
+            crate::video::egl::destroy_surface(
+                d.egl_surface
+                    .map_or(crate::video::egl::EGL_NO_SURFACE, |s| s.as_ptr()),
+            );
+        }
         Some(())
     }
 
@@ -124,6 +193,64 @@ impl VideoDriver for OffscreenVideo {
 
     fn destroy_window_framebuffer(&self, _window: WindowID) -> Option<()> {
         Some(())
+    }
+
+    // * * * GL context (`OFFSCREEN_GLES_*`, where EGL is built)
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        Some(opengles::offscreen_gles_swap_window(window))
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(opengles::offscreen_gles_make_current(window, context))
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
+        Some(opengles::offscreen_gles_create_context(window))
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
+        crate::video::egl::destroy_context(context);
+        Some(Ok(()))
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(opengles::offscreen_gles_load_library(path))
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_unload_library(&self) -> Option<()> {
+        crate::video::egl::unload_library();
+        Some(())
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
+        Some(crate::video::egl::get_proc_address_internal(proc_name))
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
+        Some(crate::video::egl::get_swap_interval())
+    }
+
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
+        Some(crate::video::egl::set_swap_interval(interval))
     }
 }
 

@@ -381,7 +381,7 @@ pub(crate) fn gl_config() -> GlConfig {
 }
 
 /// Change the attributes from a driver (`_this->gl_config.x = ...`).
-#[allow(dead_code)] // (for WGL, not translated yet)
+#[cfg_attr(not(all(unix, not(target_vendor = "apple"))), allow(dead_code))]
 pub(crate) fn with_gl_config<R>(f: impl FnOnce(&mut GlConfig) -> R) -> R {
     f(&mut gl_state().config)
 }
