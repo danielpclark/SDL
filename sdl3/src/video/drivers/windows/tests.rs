@@ -922,3 +922,33 @@ fn hardware_gpu_gl_context_and_renderer() {
     drop(r);
     window.destroy();
 }
+
+#[test]
+fn gameinput_hint_falls_back_to_raw_input() {
+    let _l = crate::test_support::test_lock();
+    // With SDL_WINDOWS_GAMEINPUT set but no GameInput DLL (Wine, the CI
+    // runners), the driver starts without a GameInput context and raw
+    // input keeps working.
+    hints::set(hints::WINDOWS_GAMEINPUT, "1").unwrap();
+    let session = start();
+    hints::reset(hints::WINDOWS_GAMEINPUT);
+    let Some(_session) = session else { return };
+
+    let data = video_data().unwrap();
+    if super::gameinput::has_game_input(&data) {
+        println!("note: GameInput is available here");
+    } else {
+        assert!(!crate::core::windows::gameinput::game_input_ready());
+    }
+
+    let window = Window::create("SDL GameInput test", 100, 100, WindowFlags::default()).unwrap();
+    let _ = pump_until(|e| has_window_event(e, EventType::WINDOW_SHOWN));
+    window.set_relative_mouse_mode(true).unwrap();
+    assert!(window.relative_mouse_mode().unwrap());
+    for _ in 0..5 {
+        pump();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    window.set_relative_mouse_mode(false).unwrap();
+    window.destroy();
+}

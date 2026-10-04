@@ -3,8 +3,7 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Raw mouse and keyboard input, read on a dedicated thread with a
-//! message-only window (GameInput isn't translated, so its branches are
-//! never taken).
+//! message-only window, unless the driver reads them through GameInput.
 
 use std::os::windows::io::AsRawHandle;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -336,8 +335,11 @@ fn create_event() -> Result<Event> {
 fn update_raw_input_enabled(data: &VideoData) -> Result<()> {
     let mut desired_flags = 0u32;
 
-    // (there is no GameInput context)
+    let gameinput_context = super::gameinput::has_game_input(data);
     data.state.with(|s| {
+        if gameinput_context {
+            return;
+        }
         if s.raw_mouse_enabled {
             desired_flags |= ENABLE_RAW_MOUSE_INPUT;
             if s.raw_mouse_flag_nolegacy {
@@ -424,7 +426,12 @@ fn update_raw_input_enabled(data: &VideoData) -> Result<()> {
 /// Translation of `WIN_SetRawMouseEnabled()`.
 pub(crate) fn set_raw_mouse_enabled(data: &VideoData, enabled: bool) -> Result<()> {
     data.state.with(|s| s.raw_mouse_enabled = enabled);
-    if let Err(e) = update_raw_input_enabled(data) {
+    let result = if super::gameinput::has_game_input(data) {
+        super::gameinput::update_game_input_enabled(data)
+    } else {
+        update_raw_input_enabled(data)
+    };
+    if let Err(e) = result {
         data.state.with(|s| s.raw_mouse_enabled = !enabled);
         return Err(e);
     }
@@ -441,7 +448,12 @@ pub(crate) fn set_raw_mouse_flag_no_legacy(data: &VideoData, enabled: bool) -> R
 /// Translation of `WIN_SetRawKeyboardEnabled()`.
 pub(crate) fn set_raw_keyboard_enabled(data: &VideoData, enabled: bool) -> Result<()> {
     data.state.with(|s| s.raw_keyboard_enabled = enabled);
-    if let Err(e) = update_raw_input_enabled(data) {
+    let result = if super::gameinput::has_game_input(data) {
+        super::gameinput::update_game_input_enabled(data)
+    } else {
+        update_raw_input_enabled(data)
+    };
+    if let Err(e) = result {
         data.state.with(|s| s.raw_keyboard_enabled = !enabled);
         return Err(e);
     }

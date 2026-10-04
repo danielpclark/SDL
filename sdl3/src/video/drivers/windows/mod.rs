@@ -15,11 +15,13 @@
 //! touch functions, `TaskDialogIndirect`...) is loaded at run time here too,
 //! so a program using this driver still starts on older Windows.
 //!
+//! With the `SDL_WINDOWS_GAMEINPUT` hint set, raw keyboard and mouse
+//! input come from GameInput ([`gameinput`]) instead of the raw input
+//! thread, where GameInput is available.
+//!
 //! Not translated yet (each needs large COM interface declarations or a
 //! subsystem that isn't translated):
 //!
-//! * `SDL_windowsgameinput.cpp` (the GameInput keyboard/mouse backend, C++
-//!   COM); this driver behaves like a build without `HAVE_GAMEINPUT_H`.
 //! * The DXGI parts (`HAVE_DXGI_H`/`HAVE_DXGI1_6_H`): refresh rates come
 //!   from `EnumDisplaySettings` and displays report no HDR, like a build
 //!   without `dxgi.h`; `SDL_GetDXGIOutputInfo()` and
@@ -33,6 +35,7 @@
 pub(crate) mod clipboard;
 pub(crate) mod events;
 pub(crate) mod framebuffer;
+pub(crate) mod gameinput;
 pub(crate) mod keyboard;
 pub(crate) mod messagebox;
 pub(crate) mod modes;
@@ -307,6 +310,8 @@ pub(crate) struct VideoData {
     pub(crate) ime: Shared<keyboard::ImeData>,
     /// The OpenGL backend in use and the WGL data (`gl_data`).
     pub(crate) gl: Mutex<opengl::WinGl>,
+    /// Translation of `gameinput_context`.
+    pub(crate) gameinput: Mutex<Option<Arc<gameinput::GameInputData>>>,
 
     // (dropped last: the functions above point into these)
     _user_dll: Option<SharedObject>,
@@ -530,6 +535,7 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
             raw: Shared::new(events::RawInputData::new()),
             ime: Shared::new(keyboard::ImeData::new()),
             gl: Mutex::new(opengl::WinGl::new(gl_backend)),
+            gameinput: Mutex::new(None),
 
             _user_dll: user_dll,
             _shcore_dll: shcore_dll,
@@ -682,8 +688,8 @@ fn video_init(data: &Arc<VideoData>) -> Result<()> {
     init_dpi_awareness(data);
 
     if hints::get_bool(hints::WINDOWS_GAMEINPUT, false) {
-        // (WIN_InitGameInput(): GameInput isn't translated, which is what
-        // upstream does without HAVE_GAMEINPUT_H)
+        // (without GameInput, the driver uses raw input)
+        let _ = gameinput::init_game_input(data);
     }
 
     modes::init_modes(data)?;
@@ -760,7 +766,7 @@ fn video_quit(data: &Arc<VideoData>) {
     drop(callbacks);
 
     rawinput::quit_raw_input(data);
-    // (WIN_QuitGameInput(): nothing to do, see above)
+    gameinput::quit_game_input(data);
 
     modes::quit_modes(data);
     crate::core::windows::hid::quit_device_notification();

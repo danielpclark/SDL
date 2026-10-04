@@ -718,8 +718,9 @@ pub(in crate::joystick) static WGI_JOYSTICK_DRIVER: WgiJoystickDriver = WgiJoyst
 impl JoystickDriver for WgiJoystickDriver {
     /// Translation of `WGI_JoystickInit()`.
     fn init(&self) -> Result<()> {
-        // (SDL_UsingGameInputForXInputControllers() is false without GameInput)
-        if !hints::get_bool(hints::JOYSTICK_WGI, false) {
+        if !hints::get_bool(hints::JOYSTICK_WGI, false)
+            || crate::core::windows::gameinput::using_game_input_for_xinput_controllers()
+        {
             return Ok(());
         }
 
