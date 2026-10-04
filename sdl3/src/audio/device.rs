@@ -2856,11 +2856,13 @@ pub fn unbind_audio_streams(streams: &[&AudioStream]) {
         }
 
         // everything is locked, start unbinding streams.
+        let mut on_simplified = Vec::with_capacity(streams.len());
         for ((b, stream), _sg) in bindings.iter().zip(streams).zip(&stream_guards) {
             // don't allow unbinding from "simplified" devices (opened with SDL_OpenAudioDeviceStream). Just ignore them.
+            let mut simplified = false;
             if let Some((logdev, _)) = b {
                 let lguard = logdev.state.lock();
-                let simplified = lguard.borrow().simplified;
+                simplified = lguard.borrow().simplified;
                 if !simplified {
                     lguard
                         .borrow_mut()
@@ -2868,13 +2870,18 @@ pub fn unbind_audio_streams(streams: &[&AudioStream]) {
                         .retain(|s| !Arc::ptr_eq(s, stream.inner()));
                 }
             }
+            on_simplified.push(simplified);
         }
 
         // Finalize and unlock everything.
-        for sg in &stream_guards {
-            // FIXME (upstream): this also clears the binding of a stream
-            // on a "simplified" device, which stays in that device's list.
-            sg.borrow_mut().bound_device = None;
+        for (sg, &simplified) in stream_guards.iter().zip(&on_simplified) {
+            // (upstream clears the binding of a stream on a "simplified"
+            // device too, though it stays in that device's list, so the
+            // stream looks unbound and destroying it no longer closes the
+            // device; fixed here by leaving those streams bound.)
+            if !simplified {
+                sg.borrow_mut().bound_device = None;
+            }
         }
         drop(stream_guards);
         let mut guards = device_guards.iter();
