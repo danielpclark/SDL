@@ -51,6 +51,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     UnregisterClassW, CW_USEDEFAULT, HICON, HWND_MESSAGE, ICONINFO, WNDCLASSW, WS_OVERLAPPED,
 };
 
+pub(crate) mod hid;
+pub(crate) mod xinput;
+
 const VER_GREATER_EQUAL: u8 = 3;
 
 /// What `GetProcAddress()` returns, before the cast to the real signature.

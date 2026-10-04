@@ -551,6 +551,14 @@ fn driver_order() {
         JOYSTICK_DRIVERS[VIRTUAL_DRIVER_INDEX],
         virtual_driver
     ));
+    #[cfg(windows)]
+    {
+        let windows_driver: &dyn JoystickDriver = &windows::WINDOWS_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[WINDOWS_DRIVER_INDEX],
+            windows_driver
+        ));
+    }
     #[cfg(target_os = "linux")]
     {
         let linux_driver: &dyn JoystickDriver = &linux::LINUX_JOYSTICK_DRIVER;
