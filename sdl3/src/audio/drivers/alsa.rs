@@ -1265,6 +1265,7 @@ fn alsa_pcm_cfg_hw_chans_n_scan(
         }
         // Try for a closest match on audio format
         ctx.matched_sdl_format = AudioFormat::UNKNOWN;
+        status = -libc::EINVAL; // (reported if no format has an ALSA equivalent)
         for &closefmt in ctx.spec.format.closest_formats() {
             ctx.matched_sdl_format = closefmt;
             let Some(alsa_format) = alsa_format_of(closefmt) else {
@@ -1272,14 +1273,14 @@ fn alsa_pcm_cfg_hw_chans_n_scan(
                 continue;
             };
             // SAFETY: as above.
-            if unsafe { (lib.snd_pcm_hw_params_set_format)(pcm, hw, alsa_format) } >= 0 {
+            status = unsafe { (lib.snd_pcm_hw_params_set_format)(pcm, hw, alsa_format) };
+            if status >= 0 {
                 break;
             }
             ctx.matched_sdl_format = AudioFormat::UNKNOWN;
         }
         if ctx.matched_sdl_format == AudioFormat::UNKNOWN {
-            // FIXME (upstream): `status` is still the (successful) result of
-            // setting the access mode here, so this reports "Success".
+            // (with the error of the last format tried)
             return Err(Error::new(format!(
                 "ALSA: Unsupported audio format: {}",
                 lib.strerror(status)
