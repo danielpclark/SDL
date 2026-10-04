@@ -389,6 +389,23 @@ pub(crate) trait RenderBackend {
     /// `GetOutputSize`; `None` when the backend has no output size of its own.
     fn output_size(&self, textures: &TextureStore) -> Option<Result<(i32, i32)>>;
 
+    /// The texture formats the backend supports, best first (its
+    /// `SDL_AddSupportedTextureFormat()` calls); `None` for the software
+    /// backend, whose formats follow its output (`SW_SelectBestFormats()`).
+    fn texture_formats(&self) -> Option<Vec<PixelFormat>> {
+        None
+    }
+
+    /// `renderer->npot_texture_wrap_unsupported`, as the backend sets it.
+    fn npot_texture_wrap_unsupported(&self) -> bool {
+        false
+    }
+
+    /// `SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER`, if the backend sets it.
+    fn max_texture_size(&self) -> Option<i32> {
+        None
+    }
+
     /// `SupportsBlendMode`, for custom blend modes.
     fn supports_blend_mode(&self, _mode: BlendMode) -> bool {
         false
@@ -489,7 +506,9 @@ pub(crate) trait RenderBackend {
     /// The pixels a lock refers to.
     fn texture_pixels_mut<'t>(&mut self, texture: &'t mut TextureData) -> Option<&'t mut [u8]>;
     fn unlock_texture(&mut self, texture: &mut TextureData);
-    fn set_render_target(&mut self, target: Option<Texture>) -> Result<()>;
+    /// `SetRenderTarget`, with the textures to find the target's data in.
+    fn set_render_target(&mut self, target: Option<Texture>, textures: &TextureStore)
+        -> Result<()>;
     /// `RenderReadPixels`; `None` when not implemented.
     fn read_pixels(
         &mut self,

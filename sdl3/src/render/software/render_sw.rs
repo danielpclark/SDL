@@ -1243,7 +1243,7 @@ impl RenderBackend for SwRenderer {
 
     fn unlock_texture(&mut self, _texture: &mut TextureData) {}
 
-    fn set_render_target(&mut self, target: Option<Texture>) -> Result<()> {
+    fn set_render_target(&mut self, target: Option<Texture>, _: &TextureStore) -> Result<()> {
         self.target = target;
         Ok(())
     }

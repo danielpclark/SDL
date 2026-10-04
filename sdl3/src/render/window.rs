@@ -232,7 +232,7 @@ impl Renderer {
                             // Free any previous driver error
                             driver_error = None;
 
-                            match create_for_window(driver, *window, present_vsync != 0) {
+                            match create_for_window(driver, *window, present_vsync != 0, info) {
                                 Ok(r) => {
                                     created = Some(r);
                                     break;
@@ -253,7 +253,7 @@ impl Renderer {
             }
             None => {
                 for &driver in RENDER_DRIVERS {
-                    if let Ok(r) = create_for_window(driver, *window, present_vsync != 0) {
+                    if let Ok(r) = create_for_window(driver, *window, present_vsync != 0, info) {
                         created = Some(r);
                         break;
                     }
@@ -520,8 +520,14 @@ fn create_for_window(
     driver: &str,
     window: Window,
     present_vsync: bool,
+    info: &RendererCreateInfo,
 ) -> Result<(Box<dyn super::RenderBackend>, crate::video::PixelFormat)> {
     match driver {
+        super::opengles2::GLES2_RENDERER => {
+            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let backend = super::opengles2::Gles2Renderer::for_window(window, output_colorspace)?;
+            Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
+        }
         super::SOFTWARE_RENDERER => {
             let (backend, format) = super::SwRenderer::for_window(window, present_vsync)?;
             Ok((Box::new(backend), format))
