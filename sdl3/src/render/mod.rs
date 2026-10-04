@@ -15,9 +15,9 @@
 //!
 //! Renderers use the software backend, drawing into a [`Surface`]
 //! ([`Renderer::software`]) or a window's surface, or for windows the
-//! OpenGL ES 2.0 backend ("opengles2", tried first by
-//! [`Renderer::for_window`]); the other GPU backends come with the
-//! platform layer.
+//! OpenGL backend ("opengl", tried first by [`Renderer::for_window`]) or
+//! the OpenGL ES 2.0 backend ("opengles2"); the other GPU backends come
+//! with the platform layer.
 //!
 //! A window renderer applies the window's changes (size, visibility, HDR
 //! state) at the start of its next drawing, presenting or state-setting
@@ -26,6 +26,7 @@
 //! dropped before or after its window.
 
 mod debug_font;
+pub(crate) mod opengl;
 pub(crate) mod opengles2;
 pub(crate) mod software;
 pub(crate) mod sysrender;
@@ -47,6 +48,12 @@ use crate::video::rect::{FPoint, FRect, Point, Rect};
 use crate::video::surface::{ScaleMode, Surface};
 use crate::video::BlendMode;
 
+pub use opengl::{
+    PROP_TEXTURE_OPENGL_TEXTURE_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_TARGET_NUMBER,
+    PROP_TEXTURE_OPENGL_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_U_NUMBER,
+    PROP_TEXTURE_OPENGL_TEXTURE_V_NUMBER, PROP_TEXTURE_OPENGL_TEX_H_FLOAT,
+    PROP_TEXTURE_OPENGL_TEX_W_FLOAT,
+};
 pub use opengles2::{
     PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER,
     PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER,
@@ -182,7 +189,11 @@ pub struct RendererCreateInfo {
 }
 
 /// The rendering drivers compiled in, in order of preference.
-const RENDER_DRIVERS: &[&str] = &[opengles2::GLES2_RENDERER, SOFTWARE_RENDERER];
+const RENDER_DRIVERS: &[&str] = &[
+    opengl::OPENGL_RENDERER,
+    opengles2::GLES2_RENDERER,
+    SOFTWARE_RENDERER,
+];
 
 /// The number of 2D rendering drivers available.
 /// Translation of `SDL_GetNumRenderDrivers()`.

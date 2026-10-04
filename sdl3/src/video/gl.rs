@@ -558,7 +558,7 @@ const GL_RGBA_FLOAT_MODE_ARB: GLenum = 0x8820;
 
 /// `SDL_GL_GetProcAddress()` keeping the error: `Err` when no driver can
 /// be asked, `Ok(None)` when the driver doesn't have the function.
-fn get_proc_address(proc_name: &str) -> Result<Option<NonNull<c_void>>> {
+pub(crate) fn get_proc_address(proc_name: &str) -> Result<Option<NonNull<c_void>>> {
     let loaded = with_device(|v| v.gl_driver_loaded)?;
     match driver()?.gl_get_proc_address(proc_name) {
         Some(func) => {
