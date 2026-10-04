@@ -6,7 +6,8 @@
 //! desktop services reached through it (the system theme, taskbar
 //! progress, the IBus and Fcitx input methods), thread priorities, the
 //! kernel's input interfaces, evdev device classification and timestamps,
-//! and libudev.
+//! libudev, and the libpipewire declarations the PipeWire audio and camera
+//! drivers share.
 //!
 //! Not translated yet: the console keyboard/mouse/touch reader of
 //! `SDL_evdev.c` and `SDL_evdev_kbd.c`, which come with the KMS/DRM video
@@ -25,6 +26,8 @@ pub(crate) mod ibus;
 pub(crate) mod ime;
 #[cfg(target_os = "linux")]
 pub(crate) mod input;
+#[cfg(target_os = "linux")]
+pub(crate) mod pipewire;
 pub(crate) mod progressbar;
 pub(crate) mod system_theme;
 #[cfg(target_os = "linux")]
