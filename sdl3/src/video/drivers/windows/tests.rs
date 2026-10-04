@@ -21,8 +21,8 @@ use windows_sys::Win32::System::Ole::CF_UNICODETEXT;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_RIGHT};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetClientRect, GetIconInfo, GetSystemMetrics, GetWindowTextW, IsWindow, IsWindowVisible,
-    PostMessageW, ICONINFO, SM_CXSCREEN, SM_CYSCREEN, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN,
-    WM_LBUTTONUP, WM_MOUSEMOVE,
+    PostMessageW, ICONINFO, SM_CXSCREEN, SM_CYSCREEN, WM_CHAR, WM_KEYDOWN, WM_KEYUP,
+    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE,
 };
 
 use super::clipboard::check_clipboard_update;
@@ -591,6 +591,84 @@ fn mouse_messages() {
         vec![(BUTTON_LEFT, true), (BUTTON_LEFT, false)],
         "{events:?}"
     );
+
+    window.destroy();
+}
+
+#[test]
+fn warping_and_relative_mode() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(_session) = start() else { return };
+
+    // Global warps move the system cursor
+    mouse::warp_mouse_global(30.0, 40.0).unwrap();
+    let (x, y, _) = mouse::global_mouse_state();
+    assert_eq!((x, y), (30.0, 40.0));
+
+    let window =
+        Window::create("SDL relative mouse test", 100, 100, WindowFlags::default()).unwrap();
+    let _ = pump_until(|e| has_window_event(e, EventType::WINDOW_SHOWN));
+
+    // Relative mode starts the raw input thread (and stops it again)
+    window.set_relative_mouse_mode(true).unwrap();
+    assert!(window.relative_mouse_mode().unwrap());
+    for _ in 0..10 {
+        pump();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    window.set_relative_mouse_mode(false).unwrap();
+    assert!(!window.relative_mouse_mode().unwrap());
+
+    window.destroy();
+}
+
+#[test]
+fn text_input() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(_session) = start() else { return };
+
+    let window = Window::create("SDL text input test", 100, 100, WindowFlags::default()).unwrap();
+    let hwnd = hwnd_of(&window);
+    let _ = pump_until(|e| has_window_event(e, EventType::WINDOW_SHOWN));
+    crate::events::keyboard::set_keyboard_focus(Some(window.id())).unwrap();
+
+    // (this sets up the input method context)
+    window.start_text_input().unwrap();
+    window
+        .set_text_input_area(Some(&Rect::new(10, 20, 50, 16)), 3)
+        .unwrap();
+    window.clear_composition().unwrap();
+    let _ = get_events(EventType::FIRST, EventType::LAST, 100000);
+
+    // A character, then one outside the BMP as a surrogate pair
+    // SAFETY: hwnd is a live window of this thread.
+    unsafe {
+        PostMessageW(hwnd, WM_CHAR, 0xE9, 1);
+        PostMessageW(hwnd, WM_CHAR, 0xD83D, 1);
+        PostMessageW(hwnd, WM_CHAR, 0xDE00, 1);
+    }
+    let texts = |events: &[Event]| -> Vec<String> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                Event::TextInput(t) => Some(t.text.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    let events = pump_until(|e| texts(e).len() >= 2);
+    assert_eq!(texts(&events), vec!["\u{e9}", "\u{1F600}"], "{events:?}");
+
+    window.stop_text_input().unwrap();
+    // SAFETY: as above.
+    unsafe { PostMessageW(hwnd, WM_CHAR, u16::from(b'x') as usize, 1) };
+    let mut events = Vec::new();
+    for _ in 0..20 {
+        pump();
+        events.extend(get_events(EventType::FIRST, EventType::LAST, 100000).unwrap());
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(texts(&events).is_empty(), "{events:?}");
 
     window.destroy();
 }
