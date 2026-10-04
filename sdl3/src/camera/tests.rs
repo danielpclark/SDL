@@ -200,7 +200,7 @@ fn driver_selection() {
     #[cfg(target_os = "linux")]
     assert_eq!(names, ["test", "v4l2", "pipewire", "dummy"]);
     #[cfg(windows)]
-    assert_eq!(names, ["test", "dummy"]);
+    assert_eq!(names, ["test", "mediafoundation", "dummy"]);
     #[cfg(not(any(target_os = "linux", windows)))]
     assert_eq!(names, ["test", "dummy"]);
     assert!(camera_driver(names.len()).is_err());
