@@ -1,17 +1,12 @@
-// Rust translation of the device notification part of
-// src/core/windows/SDL_hid.c from Simple DirectMedia Layer.
+// Rust translation of src/core/windows/SDL_hid.c from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Device arrival and removal notifications, through
-//! `CM_Register_Notification()` (loaded from `cfgmgr32.dll` at run time),
-//! for the joystick drivers: [`get_last_device_notification`] changes when
-//! a HID interface comes or goes.
-//!
-//! The rest of `SDL_hid.c`, `WIN_LoadHIDDLL()` and the `HidD_*`/`HidP_*`
-//! function pointers, comes with the RawInput joystick driver; the hotplug
-//! thread here doesn't load `hid.dll`, since only the keyboard and mouse
-//! hotplug check of the Windows video driver (not translated yet) uses it.
+//! `hid.dll`, loaded at run time ([`load_hid_dll`]), and device arrival
+//! and removal notifications, through `CM_Register_Notification()`
+//! (loaded from `cfgmgr32.dll` at run time): [`get_last_device_notification`]
+//! changes when a HID interface comes or goes, and the hotplug thread
+//! rechecks the keyboards and mice of the Windows video driver.
 
 #![allow(non_camel_case_types, non_snake_case)]
 
@@ -27,6 +22,96 @@ use windows_sys::Win32::System::Threading::{
 
 use crate::loadso::SharedObject;
 use crate::thread::Thread;
+
+/// `HidD_GetString_t`
+type HidDGetStringFn = unsafe extern "system" fn(HANDLE, *mut c_void, u32) -> u8;
+
+/// The loaded `hid.dll` and the functions SDL uses from it (`s_pHIDDLL`
+/// and the `SDL_HidD_*` pointers).
+struct HidDll {
+    /// Translation of `s_pHIDDLL`.
+    _lib: SharedObject,
+    /// Translation of `s_HIDDLLRefCount`.
+    ref_count: i32,
+    get_manufacturer_string: HidDGetStringFn,
+    get_product_string: HidDGetStringFn,
+}
+
+static HID: Mutex<Option<HidDll>> = Mutex::new(None);
+
+fn hid() -> std::sync::MutexGuard<'static, Option<HidDll>> {
+    HID.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Load (or take another reference to) `hid.dll`; `false` if it or one of
+/// the functions SDL needs is missing. Translation of `WIN_LoadHIDDLL()`.
+pub(crate) fn load_hid_dll() -> bool {
+    let mut h = hid();
+    if let Some(dll) = h.as_mut() {
+        crate::sdl_assert!(dll.ref_count > 0);
+        dll.ref_count += 1;
+        return true; // already loaded
+    }
+
+    let Ok(lib) = SharedObject::load("hid.dll") else {
+        return false;
+    };
+    // SAFETY: both functions have the HidD_GetString_t prototype.
+    let manufacturer = unsafe { lib.function::<HidDGetStringFn>("HidD_GetManufacturerString") };
+    // SAFETY: as above.
+    let product = unsafe { lib.function::<HidDGetStringFn>("HidD_GetProductString") };
+    // (the others are used by the RawInput joystick driver)
+    let others = [
+        "HidD_GetAttributes",
+        "HidP_GetCaps",
+        "HidP_GetButtonCaps",
+        "HidP_GetValueCaps",
+        "HidP_MaxDataListLength",
+        "HidP_GetData",
+    ];
+    let (Ok(get_manufacturer_string), Ok(get_product_string)) = (manufacturer, product) else {
+        return false;
+    };
+    if others.iter().any(|name| lib.symbol(name).is_err()) {
+        return false;
+    }
+    *h = Some(HidDll {
+        _lib: lib,
+        ref_count: 1,
+        get_manufacturer_string,
+        get_product_string,
+    });
+    true
+}
+
+/// Release a reference taken by [`load_hid_dll`]. Translation of
+/// `WIN_UnloadHIDDLL()`.
+pub(crate) fn unload_hid_dll() {
+    let mut h = hid();
+    if let Some(dll) = h.as_mut() {
+        crate::sdl_assert!(dll.ref_count > 0);
+        dll.ref_count -= 1;
+        if dll.ref_count == 0 {
+            *h = None;
+        }
+    }
+}
+
+/// `SDL_HidD_GetManufacturerString(handle, buf, sizeof(buf))`; `false` if
+/// it fails or `hid.dll` isn't loaded.
+pub(crate) fn hidd_get_manufacturer_string(handle: HANDLE, buf: &mut [u16]) -> bool {
+    let f = hid().as_ref().map(|dll| dll.get_manufacturer_string);
+    // SAFETY: the buffer holds the size passed.
+    f.is_some_and(|f| unsafe { f(handle, buf.as_mut_ptr().cast(), size_of_val(buf) as u32) != 0 })
+}
+
+/// `SDL_HidD_GetProductString(handle, buf, sizeof(buf))`; `false` if it
+/// fails or `hid.dll` isn't loaded.
+pub(crate) fn hidd_get_product_string(handle: HANDLE, buf: &mut [u16]) -> bool {
+    let f = hid().as_ref().map(|dll| dll.get_product_string);
+    // SAFETY: the buffer holds the size passed.
+    f.is_some_and(|f| unsafe { f(handle, buf.as_mut_ptr().cast(), size_of_val(buf) as u32) != 0 })
+}
 
 // CM_Register_Notification definitions
 
@@ -129,9 +214,11 @@ static HOTPLUG_RUNNING: AtomicBool = AtomicBool::new(false);
 
 /// Translation of `DeviceHotplugThread()`.
 fn device_hotplug_thread() -> i32 {
+    let hid_loaded = load_hid_dll();
+
     // Always run the initial device detection
     loop {
-        // (WIN_CheckKeyboardAndMouseHotplug() comes with the video driver)
+        crate::video::drivers::windows::events::check_keyboard_and_mouse_hotplug(hid_loaded);
         // SAFETY: the event handle stays open until this thread is joined.
         unsafe {
             WaitForSingleObject(HOTPLUG_EVENT.load(Ordering::Acquire), INFINITE);
@@ -139,6 +226,10 @@ fn device_hotplug_thread() -> i32 {
         if !HOTPLUG_RUNNING.load(Ordering::Acquire) {
             break;
         }
+    }
+
+    if hid_loaded {
+        unload_hid_dll();
     }
     0
 }

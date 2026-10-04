@@ -71,6 +71,8 @@ static VIDEO_DEVICE: ReentrantMutex<RefCell<Option<VideoDevice>>> =
 static BOOTSTRAP: &[&VideoBootStrap] = &[
     #[cfg(all(unix, not(target_vendor = "apple")))]
     &drivers::x11::video::X11_BOOTSTRAP,
+    #[cfg(windows)]
+    &drivers::windows::WINDOWS_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
 ];
@@ -78,6 +80,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
 static BOOTSTRAP: &[&VideoBootStrap] = &[
     #[cfg(all(unix, not(target_vendor = "apple")))]
     &drivers::x11::video::X11_BOOTSTRAP,
+    #[cfg(windows)]
+    &drivers::windows::WINDOWS_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
     &super::tests::TESTVIDEO_BOOTSTRAP,
@@ -1492,6 +1496,19 @@ impl VideoHooks for Hooks {
 
     fn global_mouse_state(&self) -> Option<(f32, f32, MouseButtonFlags)> {
         driver().ok()?.global_mouse_state()
+    }
+
+    fn apply_system_scale(
+        &self,
+        timestamp: Duration,
+        id: Option<WindowID>,
+        mouse_id: mouse::MouseID,
+        x: f32,
+        y: f32,
+    ) -> Option<(f32, f32)> {
+        driver()
+            .ok()?
+            .apply_system_scale(timestamp, id, mouse_id, x, y)
     }
 
     fn create_cursor(

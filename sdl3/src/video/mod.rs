@@ -54,6 +54,12 @@ pub use sysvideo::{
 };
 pub use window::{grabbed_window, windows, Window, WindowBuilder, WindowSurface};
 
+// The Windows-specific entry points of SDL_system.h
+#[cfg(windows)]
+pub use drivers::windows::events::{
+    register_app, set_windows_message_hook, unregister_app, WindowsMessageHook,
+};
+
 pub use blendmode::*;
 pub use bmp::is_bmp;
 pub use pixels::*;

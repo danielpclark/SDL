@@ -27,6 +27,9 @@ pub const PROP_DISPLAY_HDR_ENABLED_BOOLEAN: &str = "SDL.display.HDR_enabled";
 /// Translation of `SDL_PROP_DISPLAY_KMSDRM_PANEL_ORIENTATION_NUMBER`.
 pub const PROP_DISPLAY_KMSDRM_PANEL_ORIENTATION_NUMBER: &str =
     "SDL.display.KMSDRM.panel_orientation";
+/// Translation of `SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER` (the
+/// `HMONITOR`, as a number).
+pub const PROP_DISPLAY_WINDOWS_HMONITOR_POINTER: &str = "SDL.display.windows.hmonitor";
 
 /// Run `f` on a display, failing like `SDL_GetVideoDisplay()` ("Invalid
 /// display", or the uninitialized error).

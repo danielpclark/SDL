@@ -204,8 +204,8 @@ pub(crate) fn create_device_name(
 /// Decode URI escape sequences (`%XX`) in the first `len` bytes of `src`
 /// (all of it when `len` is 0). An invalid escape is copied through as is.
 /// Translation of `SDL_URIDecode()`.
-// (used by the D-Bus code)
-#[cfg_attr(not(unix), allow(dead_code))]
+// (used by uri_to_local)
+#[cfg_attr(not(any(unix, windows)), allow(dead_code))]
 fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
     let len = if len == 0 {
         src.len()
@@ -259,8 +259,8 @@ fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
 /// escapes decoded, or `None` for another scheme or a remote host.
 /// `file:///p`, `file:/p`, `file://localhost/p` and
 /// `file://<this host>/p` are local. Translation of `SDL_URIToLocal()`.
-// (used by the D-Bus code and the X11 video driver)
-#[cfg_attr(not(unix), allow(dead_code))]
+// (used by the D-Bus code and the X11 and Windows video drivers)
+#[cfg_attr(not(any(unix, windows)), allow(dead_code))]
 pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
     let mut src = uri.as_bytes();
     let had_file_scheme = src.starts_with(b"file:/");
