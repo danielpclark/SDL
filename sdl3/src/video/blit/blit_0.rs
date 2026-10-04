@@ -186,15 +186,16 @@ fn palette_rgb(pal: Option<&Palette>, index: u32) -> Color {
 
 /// Translation of `BlitBtoNAlpha()` and `BlitBtoNAlphaKey()`.
 ///
-/// FIXME (upstream): these take the source's *bytes* per pixel (1) as its
-/// bits per pixel, so 2- and 4-bit sources are read as if they were 1-bit.
+/// Upstream takes the source's *bytes* per pixel (1) as its bits per pixel,
+/// so 2- and 4-bit sources are read as if they were 1-bit; fixed here by
+/// using its bits per pixel.
 fn blit_bto_n_alpha_impl(info: &mut BlitInfo<'_>, keyed: bool) {
     let srcfmt = *info.src_fmt;
     let dstfmt = *info.dst_fmt;
     let srcpal = info.src_pal;
     let a = info.a as u32;
     let ckey = info.colorkey;
-    let srcbpp = srcfmt.bytes_per_pixel as u32;
+    let srcbpp = srcfmt.bits_per_pixel as u32;
     let dstbpp = dstfmt.bytes_per_pixel as usize;
     walk_bits(info, srcbpp, dstbpp, |dst, d, bit| {
         if !keyed || bit != ckey {
