@@ -38,6 +38,9 @@ pub mod vulkan;
 pub mod window;
 mod yuv;
 
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub use drivers::x11::events::{set_x11_event_hook, X11EventHook};
+
 pub use self::core::{
     current_video_driver, disable_screen_saver, enable_screen_saver, num_video_drivers,
     screen_saver_enabled, system_theme, video_driver,

@@ -560,7 +560,9 @@ fn session_matches_c() {
     hints::set(hints::VIDEO_DRIVER, "nonexistent").unwrap();
     t.res("init bad", init::init(InitFlags::VIDEO));
     hints::reset(hints::VIDEO_DRIVER);
+    let no_display = crate::test_support::NoDisplay::new();
     t.res("init none", init::init(InitFlags::VIDEO));
+    drop(no_display);
     init::quit();
 
     let expected = include_str!("testdata/video_trace.txt");

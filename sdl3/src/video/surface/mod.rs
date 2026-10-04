@@ -178,7 +178,27 @@ pub(crate) enum Pixels<'a> {
     /// Read-only memory: the source side of `SDL_ConvertPixels()` and
     /// internal views of another surface's pixels.
     ReadOnly(&'a [u8]),
+    /// Memory a video backend owns (such as a shared memory segment), kept
+    /// alive by the surface.
+    #[allow(dead_code)] // (only some video drivers use it)
+    External(ExternalPixels),
 }
+
+/// Pixel memory owned by a backend object: `len` bytes at `ptr`, valid as
+/// long as `owner` lives. Only the surface holding it accesses the bytes
+/// (the backend may hand the address to the system, such as an X server
+/// reading a shared memory segment).
+pub(crate) struct ExternalPixels {
+    ptr: *mut u8,
+    len: usize,
+    _owner: std::sync::Arc<dyn std::any::Any + Send + Sync>,
+}
+
+// SAFETY: the memory belongs to `owner` (Send + Sync) and is reached only
+// through the surface that holds this value.
+unsafe impl Send for ExternalPixels {}
+// SAFETY: as above; shared access only reads.
+unsafe impl Sync for ExternalPixels {}
 
 impl<'a> Pixels<'a> {
     pub(crate) fn bytes(&self) -> Option<&[u8]> {
@@ -187,6 +207,9 @@ impl<'a> Pixels<'a> {
             Pixels::Owned { buf, offset, len } => Some(&buf[*offset..*offset + *len]),
             Pixels::Borrowed(b) => Some(b),
             Pixels::ReadOnly(b) => Some(b),
+            // SAFETY: the memory is valid for `len` bytes while the owner
+            // lives (see Surface::from_external).
+            Pixels::External(e) => Some(unsafe { std::slice::from_raw_parts(e.ptr, e.len) }),
         }
     }
 
@@ -195,6 +218,8 @@ impl<'a> Pixels<'a> {
             Pixels::None | Pixels::ReadOnly(_) => None,
             Pixels::Owned { buf, offset, len } => Some(&mut buf[*offset..*offset + *len]),
             Pixels::Borrowed(b) => Some(b),
+            // SAFETY: as above, and the surface is borrowed mutably.
+            Pixels::External(e) => Some(unsafe { std::slice::from_raw_parts_mut(e.ptr, e.len) }),
         }
     }
 
@@ -739,6 +764,41 @@ impl<'a> Surface<'a> {
         )?;
         s.flags.remove(SurfaceFlags::PREALLOCATED);
         Ok(s)
+    }
+
+    /// A `PREALLOCATED` surface over memory a backend owns (as
+    /// `SDL_CreateSurfaceFrom()` over a window framebuffer's pixels): `len`
+    /// bytes at `ptr`, kept alive by `owner` as long as the surface lives.
+    ///
+    /// # Safety
+    ///
+    /// `ptr` must be valid for reads and writes of `len` bytes for as long
+    /// as `owner` lives, and nothing else may access the memory through
+    /// Rust references meanwhile.
+    #[allow(dead_code)] // (only some video drivers use it)
+    pub(crate) unsafe fn from_external(
+        width: i32,
+        height: i32,
+        format: PixelFormat,
+        ptr: *mut u8,
+        len: usize,
+        pitch: i32,
+        owner: std::sync::Arc<dyn std::any::Any + Send + Sync>,
+    ) -> Result<Surface<'static>> {
+        Surface::check_from_params(width, height, format, Some(len), pitch)?;
+        Surface::initialize(
+            width,
+            height,
+            format,
+            Colorspace::UNKNOWN,
+            None,
+            Pixels::External(ExternalPixels {
+                ptr,
+                len,
+                _owner: owner,
+            }),
+            pitch,
+        )
     }
 
     /// A surface with no pixels: `SDL_CreateSurfaceFrom(w, h, format, NULL, 0)`.

@@ -108,6 +108,26 @@ pub(crate) mod test_support {
         guard
     }
 
+    /// While alive, `DISPLAY` is unset, so that no X11 video device is
+    /// found (for tests of having no video device). Hold [`TEST_LOCK`].
+    pub(crate) struct NoDisplay(Option<std::ffi::OsString>);
+
+    impl NoDisplay {
+        pub(crate) fn new() -> NoDisplay {
+            let old = std::env::var_os("DISPLAY");
+            std::env::remove_var("DISPLAY");
+            NoDisplay(old)
+        }
+    }
+
+    impl Drop for NoDisplay {
+        fn drop(&mut self) {
+            if let Some(display) = self.0.take() {
+                std::env::set_var("DISPLAY", display);
+            }
+        }
+    }
+
     /// A fresh directory under the system temp dir, removed on drop.
     pub(crate) struct TempDir(pub String);
 

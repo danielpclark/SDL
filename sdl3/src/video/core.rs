@@ -69,11 +69,15 @@ static VIDEO_DEVICE: ReentrantMutex<RefCell<Option<VideoDevice>>> =
 /// Available video drivers. Translation of `bootstrap`.
 #[cfg(not(test))]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    &drivers::x11::video::X11_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
 ];
 #[cfg(test)]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
+    #[cfg(all(unix, not(target_vendor = "apple")))]
+    &drivers::x11::video::X11_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
     &super::tests::TESTVIDEO_BOOTSTRAP,
@@ -1547,4 +1551,52 @@ impl VideoHooks for Hooks {
 #[allow(dead_code)]
 pub(crate) fn display_current_mode_ref(display: DisplayID) -> Option<CurrentMode> {
     with_display(display, |d| d.current_mode)
+}
+
+/// The CSS (and freedesktop cursor theme) name of a system cursor, and a
+/// fallback name for themes without it. Translation of
+/// `SDL_GetCSSCursorName()`.
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) fn css_cursor_name(id: mouse::SystemCursor) -> (&'static str, Option<&'static str>) {
+    use mouse::SystemCursor as C;
+    // Reference: https://www.w3.org/TR/css-ui-4/#cursor
+    // Also in: https://www.freedesktop.org/wiki/Specifications/cursor-spec/
+    match id {
+        C::Default => ("default", None),
+        C::Text => ("text", None),
+        C::Wait => ("wait", None),
+        C::Crosshair => ("crosshair", None),
+        C::Progress => ("progress", None),
+        // only a single arrow
+        C::NwseResize => ("nwse-resize", Some("nw-resize")),
+        // only a single arrow
+        C::NeswResize => ("nesw-resize", Some("ne-resize")),
+        C::EwResize => ("ew-resize", Some("col-resize")),
+        C::NsResize => ("ns-resize", Some("row-resize")),
+        C::Move => ("move", Some("all-scroll")),
+        C::NotAllowed => ("not-allowed", None),
+        C::Pointer => ("pointer", None),
+        C::NwResize => ("nw-resize", None),
+        C::NResize => ("n-resize", None),
+        C::NeResize => ("ne-resize", None),
+        C::EResize => ("e-resize", None),
+        C::SeResize => ("se-resize", None),
+        C::SResize => ("s-resize", None),
+        C::SwResize => ("sw-resize", None),
+        C::WResize => ("w-resize", None),
+        C::ContextMenu => ("context-menu", None),
+        C::Help => ("help", None),
+        C::Cell => ("cell", None),
+        C::VerticalText => ("vertical-text", None),
+        C::Alias => ("alias", None),
+        C::Copy => ("copy", None),
+        C::NoDrop => ("no-drop", None),
+        C::Grab => ("grab", None),
+        C::Grabbing => ("grabbing", None),
+        C::ColResize => ("col-resize", None),
+        C::RowResize => ("row-resize", None),
+        C::AllScroll => ("all-scroll", Some("move")),
+        C::ZoomIn => ("zoom-in", None),
+        C::ZoomOut => ("zoom-out", None),
+    }
 }
