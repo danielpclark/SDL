@@ -544,6 +544,30 @@ fn permission_denied_or_pending() {
 }
 
 #[test]
+fn failed_open_keeps_the_device() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let (a, b) = start();
+    let freed = FREED_HANDLES.load(Ordering::SeqCst);
+    let closed = CLOSED.load(Ordering::SeqCst);
+
+    // The backend opens, but no output surfaces can be made in this format.
+    // (an 8-bit-array format of two bytes per pixel has no masks)
+    let bogus = spec(PixelFormat(0x1710_1002), 640, 480, 30, 1);
+    assert!(Camera::open(a, Some(&bogus)).is_err());
+    assert_eq!(CLOSED.load(Ordering::SeqCst), closed + 1, "backend closed");
+
+    // The device is still there, and still opens.
+    assert_eq!(FREED_HANDLES.load(Ordering::SeqCst), freed);
+    assert_eq!(cameras().unwrap(), vec![a, b]);
+    assert_eq!(camera_name(a).unwrap(), "Test Camera A");
+    let camera = Camera::open(a, None).unwrap();
+    next_frame(&camera);
+    drop(camera);
+    assert_eq!(cameras().unwrap(), vec![a, b]);
+    stop();
+}
+
+#[test]
 fn quit_while_open() {
     let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let (a, _) = start();

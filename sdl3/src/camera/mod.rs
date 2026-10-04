@@ -1403,7 +1403,15 @@ impl Camera {
             return Err(Error::new("Camera subsystem is not initialized"));
         };
         match driver.open_device(&device, &closest) {
-            Ok(backend) => guard.borrow_mut().hidden = Some(backend),
+            Ok(backend) => {
+                guard.borrow_mut().hidden = Some(backend);
+                // we're open, hold a reference. (upstream takes this only once
+                // everything below has succeeded, but close_physical_camera()
+                // drops it whenever the backend is open, so each failure path
+                // below dropped a reference it never took and could destroy
+                // the device; fixed here by taking it as soon as we're open.)
+                ref_physical_camera(&device);
+            }
             Err(e) => {
                 close_physical_camera(&device); // in case anything is half-initialized.
                 release_camera(&device, guard);
@@ -1423,8 +1431,6 @@ impl Camera {
         //  itself, later but before the app is allowed to acquire images.
         if closest.format != PixelFormat::UNKNOWN {
             if let Err(e) = prepare_camera_surfaces(&device) {
-                // FIXME (upstream): closing here drops a reference that
-                // this opening never took, so the device may be destroyed.
                 close_physical_camera(&device);
                 release_camera(&device, guard);
                 return Err(e);
@@ -1446,8 +1452,6 @@ impl Camera {
                 }
             }
         }
-
-        ref_physical_camera(&device); // we're open, hold a reference.
 
         release_camera(&device, guard); // unlock, we're good to go!
 
