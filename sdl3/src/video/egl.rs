@@ -3,8 +3,8 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! EGL: the OpenGL (ES) support the X11 and Windows drivers share for EGL
-//! contexts.
+//! EGL: the OpenGL (ES) support the X11, Wayland and offscreen drivers
+//! share for EGL contexts.
 //!
 //! libEGL and the GL library (libGL / libGLESv2 / libGLESv1_CM, or
 //! `libEGL.dll` with ANGLE's `libGLESv2.dll` on Windows) are loaded at run
@@ -862,7 +862,6 @@ pub(crate) fn load_library(
 /// device list. If the requested device is a restricted GPU and cannot be used
 /// (eglInitialize() will fail) then attempt to automatically and silently select the next
 /// valid available GPU for EGL to use.
-#[allow(dead_code)] // (for the offscreen driver's EGL support, not translated yet)
 pub(crate) fn initialize_offscreen(device: i32) -> Result<()> {
     if gl::driver_loaded() <= 0 {
         return Err(Error::new(
@@ -1507,6 +1506,20 @@ pub(crate) fn set_swap_interval(interval: i32) -> Result<()> {
     Err(e.set_error("Unable to set the EGL swap interval", "eglSwapInterval"))
 }
 
+/// Set `egl_data->egl_swapinterval` alone (nothing if EGL isn't loaded),
+/// for the Wayland driver, which paces the swaps itself.
+pub(crate) fn set_stored_swap_interval(interval: i32) {
+    with_egl(|e| e.egl_swapinterval = interval);
+}
+
+/// `egl_data->eglSwapInterval(egl_data->egl_display, interval)`, its result
+/// ignored (nothing if EGL isn't loaded), for the Wayland driver.
+pub(crate) fn call_swap_interval(interval: i32) {
+    let Some(e) = egl() else { return };
+    // SAFETY: the display is EGL's (or EGL_NO_DISPLAY, which fails).
+    unsafe { (e.f.eglSwapInterval)(e.egl_display, interval) };
+}
+
 /// Translation of `SDL_EGL_GetSwapInterval()`.
 pub(crate) fn get_swap_interval() -> Result<i32> {
     match egl() {
@@ -1673,7 +1686,6 @@ pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> 
 
 /// A pbuffer surface of `width`x`height`. Translation of
 /// `SDL_EGL_CreateOffscreenSurface()`.
-#[allow(dead_code)] // (for the offscreen driver's EGL support, not translated yet)
 pub(crate) fn create_offscreen_surface(width: i32, height: i32) -> Result<EGLSurface> {
     let attributes: [EGLint; 5] = [EGL_WIDTH, width, EGL_HEIGHT, height, EGL_NONE];
 
@@ -1687,7 +1699,6 @@ pub(crate) fn create_offscreen_surface(width: i32, height: i32) -> Result<EGLSur
 }
 
 /// Translation of `SDL_EGL_DestroySurface()`.
-#[allow(dead_code)] // (for the Windows EGL support, not translated yet)
 pub(crate) fn destroy_surface(egl_surface: EGLSurface) {
     let Some(e) = egl() else { return };
 

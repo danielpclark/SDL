@@ -3,16 +3,16 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Loading libwayland-client, libwayland-cursor, libxkbcommon and libdecor
-//! at run time.
+//! Loading libwayland-client, libwayland-egl, libwayland-cursor,
+//! libxkbcommon and libdecor at run time.
 //!
 //! Upstream's `SDL_waylandsym.h` lists every function SDL calls, grouped in
 //! modules; `SDL_waylanddyn.c` looks each one up in all of the libraries it
 //! opened and clears a module's `SDL_WAYLAND_HAVE_*` flag when a required
 //! symbol is missing (`SDL_WAYLAND_SYM_OPT` symbols may be missing). Here a
 //! module is a struct of function pointers that exists exactly when all of
-//! its required symbols were found; libwayland-client, libwayland-cursor and
-//! libxkbcommon are required, libdecor is optional (and only loaded when
+//! its required symbols were found; libwayland-client, libwayland-egl,
+//! libwayland-cursor and libxkbcommon are required, libdecor is optional (and only loaded when
 //! [`hints::VIDEO_WAYLAND_ALLOW_LIBDECOR`] allows it).
 //!
 //! Differences from upstream's list:
@@ -20,8 +20,6 @@
 //! * `wl_proxy_add_dispatcher` is loaded as well: the protocol listeners are
 //!   Rust closures, dispatched by one generic dispatcher per interface (see
 //!   [`super::client`]) instead of tables of C callbacks.
-//! * The libwayland-egl module isn't loaded, since EGL isn't translated (see
-//!   the module documentation).
 //! * Upstream picks some xkbcommon functions at build time from the
 //!   installed version: `xkb_keymap_key_get_mods_for_level()` (1.0) and
 //!   `xkb_keymap_mod_get_mask()` (1.10) are optional here, with the fallbacks
@@ -51,9 +49,13 @@ struct WaylandDynLib {
 }
 
 /// The libraries SDL looks symbols up in (`waylandlibs[]`), in order.
-const WAYLANDLIBS: [WaylandDynLib; 4] = [
+const WAYLANDLIBS: [WaylandDynLib; 5] = [
     WaylandDynLib {
         libname: "libwayland-client.so.0", // SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
+        hint: None,
+    },
+    WaylandDynLib {
+        libname: "libwayland-egl.so.1", // SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL
         hint: None,
     },
     WaylandDynLib {
@@ -193,6 +195,16 @@ wayland_module! {
 }
 
 wayland_module! {
+    /// `SDL_WAYLAND_MODULE(WAYLAND_EGL)`: libwayland-egl.
+    WaylandEgl {
+        wl_egl_window_create: unsafe extern "C" fn(*mut wl_proxy, c_int, c_int) -> *mut wl_egl_window,
+        wl_egl_window_destroy: unsafe extern "C" fn(*mut wl_egl_window),
+        wl_egl_window_resize: unsafe extern "C" fn(*mut wl_egl_window, c_int, c_int, c_int, c_int),
+        wl_egl_window_get_attached_size: unsafe extern "C" fn(*mut wl_egl_window, *mut c_int, *mut c_int),
+    }
+}
+
+wayland_module! {
     /// `SDL_WAYLAND_MODULE(WAYLAND_CURSOR)`: libwayland-cursor.
     WaylandCursor {
         wl_cursor_theme_load: unsafe extern "C" fn(*const c_char, c_int, *mut wl_proxy) -> *mut wl_cursor_theme,
@@ -291,6 +303,8 @@ wayland_module! {
 pub(crate) struct WaylandSyms {
     /// `SDL_WAYLAND_HAVE_WAYLAND_CLIENT`
     pub(crate) client: WaylandClient,
+    /// `SDL_WAYLAND_HAVE_WAYLAND_EGL`
+    pub(crate) egl: WaylandEgl,
     /// `SDL_WAYLAND_HAVE_WAYLAND_CURSOR`
     pub(crate) cursor: WaylandCursor,
     /// `SDL_WAYLAND_HAVE_WAYLAND_XKB`
@@ -316,6 +330,7 @@ impl WaylandSyms {
             .collect();
 
         let client = WaylandClient::load(&libs);
+        let egl = WaylandEgl::load(&libs);
         let cursor = WaylandCursor::load(&libs);
         let xkb = WaylandXkb::load(&libs);
         let libdecor = Libdecor::load(&libs);
@@ -324,6 +339,7 @@ impl WaylandSyms {
         // something got loaded otherwise, dropping `libs` unloads it).
         let syms = WaylandSyms {
             client: client?,
+            egl: egl?,
             cursor: cursor?,
             xkb: xkb?,
             libdecor,

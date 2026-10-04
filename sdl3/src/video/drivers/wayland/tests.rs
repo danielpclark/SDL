@@ -1081,6 +1081,139 @@ fn wayland_framebuffer() {
     w.destroy();
 }
 
+/// Clear the current context's framebuffer to a color and read a pixel
+/// back.
+fn gl_clear_and_read(r: f32, g: f32, b: f32) -> [u8; 4] {
+    use crate::video::gl::gl_get_proc_address;
+    type ClearColor = unsafe extern "C" fn(f32, f32, f32, f32);
+    type Clear = unsafe extern "C" fn(u32);
+    type Finish = unsafe extern "C" fn();
+    type ReadPixels = unsafe extern "C" fn(i32, i32, i32, i32, u32, u32, *mut std::ffi::c_void);
+    let get = |name: &str| gl_get_proc_address(name).unwrap_or_else(|| panic!("{name}"));
+    let mut pixel = [0u8; 4];
+    // SAFETY: the GL functions have these types; a context is current; the
+    // buffer holds one RGBA pixel.
+    unsafe {
+        let clear_color: ClearColor = std::mem::transmute(get("glClearColor"));
+        let clear: Clear = std::mem::transmute(get("glClear"));
+        let finish: Finish = std::mem::transmute(get("glFinish"));
+        let read_pixels: ReadPixels = std::mem::transmute(get("glReadPixels"));
+        clear_color(r, g, b, 1.0);
+        clear(0x4000); // GL_COLOR_BUFFER_BIT
+        finish();
+        // GL_RGBA, GL_UNSIGNED_BYTE
+        read_pixels(1, 1, 1, 1, 0x1908, 0x1401, pixel.as_mut_ptr().cast());
+    }
+    pixel
+}
+
+#[test]
+fn wayland_gles_default_profile() {
+    let mut config = crate::video::gl::GlConfig::default();
+    super::opengles::wayland_gles_set_default_profile_config(&mut config);
+    assert_eq!(config.egl_platform, 0x31D8); // EGL_PLATFORM_WAYLAND_KHR
+}
+
+#[test]
+fn wayland_egl_contexts() {
+    use crate::video::gl::{self, GlAttr, GlContext};
+    use crate::video::window::PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER;
+    let _l = crate::test_support::test_lock();
+    let Some(_compositor) = Compositor::start(false) else {
+        return;
+    };
+    for es in [false, true] {
+        let _video = Video::init();
+        if es {
+            gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_ES).unwrap();
+            gl::gl_set_attribute(GlAttr::ContextMajorVersion, 2).unwrap();
+            gl::gl_set_attribute(GlAttr::ContextMinorVersion, 0).unwrap();
+        }
+        let what = if es { "OpenGL ES" } else { "OpenGL" };
+        let w = match SdlWindow::create(what, 64, 48, WindowFlags::OPENGL) {
+            Ok(w) => w,
+            Err(e) => {
+                eprintln!(
+                    "note: no Wayland EGL {what} window ({}); skipping",
+                    e.message()
+                );
+                return;
+            }
+        };
+        let id = w.id();
+        let props = w.properties().unwrap();
+        assert!(props
+            .get_number(PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER)
+            .is_some_and(|p| p != 0));
+        assert!(gl::egl_window_surface(&w).unwrap().is_some());
+        assert!(gl::egl_current_display().is_ok());
+        let context = match GlContext::new(&w) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!(
+                    "note: no Wayland EGL {what} context ({}); skipping",
+                    e.message()
+                );
+                continue;
+            }
+        };
+        assert!(context.is_current());
+
+        // The swaps map the window.
+        let mut n = 0u32;
+        let shown = wait_for_with(
+            3,
+            || {
+                n += 1;
+                assert_eq!(&gl_clear_and_read(1.0, 0.0, 1.0)[..3], &[255, 0, 255]);
+                gl::gl_swap_window(&w).unwrap();
+            },
+            |e| window_event(e, id, EventType::WINDOW_SHOWN),
+        );
+        assert!(shown.is_some() || !w.flags().unwrap().contains(WindowFlags::HIDDEN));
+        pump_for(50);
+
+        // The swap interval is clamped to adaptive vsync, and paced by the
+        // frame callback (never longer than 1/20 s a swap).
+        gl::gl_set_swap_interval(5).unwrap();
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 1);
+        gl::gl_set_swap_interval(-3).unwrap();
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), -1);
+        let start = Instant::now();
+        for frame in 0..10u8 {
+            let c = f32::from(frame) / 10.0;
+            gl_clear_and_read(c, c, c);
+            gl::gl_swap_window(&w).unwrap();
+            pump_for(5);
+        }
+        assert!(start.elapsed() < Duration::from_secs(3));
+        gl::gl_set_swap_interval(0).unwrap();
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 0);
+        gl::gl_swap_window(&w).unwrap();
+
+        // Resizing resizes the wl_egl_window.
+        w.set_size(80, 60).unwrap();
+        w.sync().unwrap();
+        pump_for(100);
+        gl::gl_swap_window(&w).unwrap();
+
+        gl::gl_release_current().unwrap();
+        assert!(!context.is_current());
+        context.make_current(Some(&w)).unwrap();
+        assert_eq!(&gl_clear_and_read(0.0, 1.0, 0.0)[..3], &[0, 255, 0]);
+        gl::gl_swap_window(&w).unwrap();
+
+        // A hidden window skips its swaps.
+        w.hide().unwrap();
+        pump_for(50);
+        gl::gl_swap_window(&w).unwrap();
+
+        drop(context);
+        w.destroy();
+        pump_for(50);
+    }
+}
+
 #[test]
 fn wayland_cursors() {
     let _l = crate::test_support::test_lock();

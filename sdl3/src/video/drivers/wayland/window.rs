@@ -17,15 +17,19 @@
 //! libdecor is never called with the driver data borrowed either: a libdecor
 //! call may run the frame callbacks (`commit`) synchronously.
 //!
-//! OpenGL ES through EGL isn't translated, so the `wl_egl_window`, the EGL
-//! surface and the GLES swap frame callback are left out.
+//! OpenGL windows get a `wl_egl_window` with an EGL surface on it, and the
+//! GLES swap frame callback on its own queue that `SwapWindow` waits on (see
+//! [`super::opengles`]).
 
 use std::ffi::{c_char, c_int, c_void};
 use std::os::fd::RawFd;
 use std::ptr::NonNull;
-use std::sync::{Arc, OnceLock, Weak};
+use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 
-use super::client::{catch_callback, resume_pending_panic, AsProxy, Fixed, Obj, Proxy};
+use super::client::{
+    catch_callback, resume_pending_panic, AsProxy, Conn, EventQueue, Fixed, Obj, Proxy,
+};
 use super::color::ColorInfoState;
 use super::framebuffer::Framebuffer;
 use super::keyboard::TextInputProps;
@@ -56,6 +60,8 @@ use crate::events::{keyboard, DisplayID, EventType, WindowID};
 use crate::hints;
 use crate::properties::Properties;
 use crate::video::core::{display_for_fullscreen_window, update_fullscreen_mode, with_window};
+use crate::video::egl;
+use crate::video::gl::{with_gl_config, EglSurface};
 use crate::video::sysvideo::{
     DisplayMode, FlashOperation, FullscreenOp, FullscreenResult, HitTestResult,
 };
@@ -306,6 +312,113 @@ pub(crate) struct ShellSurface {
     pub(crate) serial: u32,
 }
 
+/// A `wl_egl_window` (`egl_window`), destroyed on drop.
+pub(crate) struct EglWindow {
+    raw: NonNull<wl_egl_window>,
+    syms: Arc<WaylandSyms>,
+}
+
+// SAFETY: the EGL window is only used on the video thread; the pointer
+// moves with the window data.
+unsafe impl Send for EglWindow {}
+
+impl std::fmt::Debug for EglWindow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "wl_egl_window@{:p}", self.raw)
+    }
+}
+
+impl EglWindow {
+    /// `WAYLAND_wl_egl_window_create()` (`None`: NULL).
+    fn create(surface: Obj<'_, WlSurface>, width: i32, height: i32) -> Option<EglWindow> {
+        let syms = surface.conn().syms().clone();
+        // SAFETY: the surface is alive; libwayland-egl takes no ownership.
+        let raw = unsafe { (syms.egl.wl_egl_window_create)(surface.raw(), width, height) };
+        NonNull::new(raw).map(|raw| EglWindow { raw, syms })
+    }
+
+    /// The `struct wl_egl_window *`.
+    pub(crate) fn raw(&self) -> *mut wl_egl_window {
+        self.raw.as_ptr()
+    }
+
+    /// `WAYLAND_wl_egl_window_resize()`
+    fn resize(&self, width: i32, height: i32, dx: i32, dy: i32) {
+        // SAFETY: the EGL window is alive.
+        unsafe { (self.syms.egl.wl_egl_window_resize)(self.raw(), width, height, dx, dy) };
+    }
+}
+
+impl Drop for EglWindow {
+    fn drop(&mut self) {
+        // SAFETY: the EGL window was made by wl_egl_window_create and is
+        // destroyed once, here (after the EGL surface on it).
+        unsafe { (self.syms.egl.wl_egl_window_destroy)(self.raw()) };
+    }
+}
+
+/// The GLES swap frame callback of an OpenGL window, on its own queue
+/// (`gles_swap_frame_callback`, `gles_swap_frame_event_queue` and
+/// `gles_swap_frame_surface_wrapper`), shared with the callback's listener;
+/// destroyed in that order on drop.
+#[derive(Debug)]
+pub(crate) struct GlesSwapFrame {
+    callback: Mutex<Option<Proxy<WlCallback>>>,
+    surface_wrapper: Proxy<WlSurface>,
+    pub(crate) event_queue: EventQueue,
+    /// The window's `swap_interval_ready`.
+    swap_interval_ready: Arc<AtomicI32>,
+}
+
+impl GlesSwapFrame {
+    /// The queue, the surface wrapper on it and the first frame callback
+    /// (`None` if the queue can't be made).
+    fn new(
+        conn: &Arc<Conn>,
+        surface: Obj<'_, WlSurface>,
+        swap_interval_ready: Arc<AtomicI32>,
+    ) -> Option<Arc<GlesSwapFrame>> {
+        // (upstream's queue has no name)
+        let event_queue = conn.create_queue(c"SDL GLES Swap Frame Queue")?;
+        let surface_wrapper = surface.create_wrapper(&event_queue);
+        let frame = Arc::new(GlesSwapFrame {
+            callback: Mutex::new(None),
+            surface_wrapper,
+            event_queue,
+            swap_interval_ready,
+        });
+        let cb = frame.new_callback();
+        *frame.lock_callback() = Some(cb);
+        Some(frame)
+    }
+
+    fn lock_callback(&self) -> std::sync::MutexGuard<'_, Option<Proxy<WlCallback>>> {
+        self.callback.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// A frame callback on the queue (`gles_swap_frame_listener`).
+    fn new_callback(self: &Arc<Self>) -> Proxy<WlCallback> {
+        let mut cb = self.surface_wrapper.frame();
+        let weak = Arc::downgrade(self);
+        cb.listen(move |_, _| {
+            if let Some(frame) = weak.upgrade() {
+                frame.gles_swap_frame_done();
+            }
+        });
+        cb
+    }
+
+    /// Translation of `gles_swap_frame_done()`.
+    fn gles_swap_frame_done(self: &Arc<Self>) {
+        self.swap_interval_ready.store(1, Ordering::SeqCst); // mark window as ready to present again.
+
+        // reset this callback to fire again once a new frame was presented and compositor wants the next one.
+        let cb = self.new_callback();
+        let old = self.lock_callback().replace(cb);
+        drop(old);
+    }
+}
+
 /// The driver data of a window. Translation of `struct SDL_WindowData`.
 #[derive(Debug)]
 pub(crate) struct WaylandWindowData {
@@ -313,6 +426,7 @@ pub(crate) struct WaylandWindowData {
     pub(crate) sdlwindow: WindowID,
     pub(crate) surface: WindowSurface,
     pub(crate) surface_frame_callback: Option<Proxy<WlCallback>>,
+    pub(crate) gles_swap_frame: Option<Arc<GlesSwapFrame>>,
 
     pub(crate) shell_surface: ShellSurface,
     pub(crate) shell_surface_type: ShellSurfaceType,
@@ -334,6 +448,8 @@ pub(crate) struct WaylandWindowData {
     pub(crate) wp_color_management_surface_feedback:
         Option<Proxy<WpColorManagementSurfaceFeedbackV1>>,
     pub(crate) xdg_toplevel_session: Option<Proxy<XdgToplevelSessionV1>>,
+    pub(crate) egl_window: Option<EglWindow>,
+    pub(crate) egl_surface: Option<EglSurface>,
 
     pub(crate) color_info_state: Option<ColorInfoState>,
 
@@ -352,6 +468,8 @@ pub(crate) struct WaylandWindowData {
     pub(crate) active_touch_count: i32,
 
     pub(crate) pointer_scale: PointerScale,
+
+    pub(crate) swap_interval_ready: Arc<AtomicI32>,
 
     /// The in-flight window size request.
     pub(crate) requested: RequestedSize,
@@ -415,6 +533,10 @@ impl Drop for WaylandWindowData {
         self.mask.buffer.take();
         self.mask.subsurface.take();
         self.mask.surface.take();
+        if let Some(egl_surface) = self.egl_surface.take() {
+            egl::destroy_surface(egl_surface.as_ptr());
+        }
+        self.egl_window.take();
         self.idle_inhibitor.take();
         self.activation_token.take();
         self.viewport.take();
@@ -425,6 +547,7 @@ impl Drop for WaylandWindowData {
             self.color_info_state.take();
             self.wp_color_management_surface_feedback.take();
         }
+        self.gles_swap_frame.take();
         // (the shell surface objects are gone if the window was hidden first,
         // as the video core does; otherwise they go before their surface)
         self.server_decoration.take();
@@ -1148,7 +1271,9 @@ fn configure_window_geometry_locked(
         }
     }
 
-    // (no wl_egl_window to resize: EGL isn't translated)
+    if let (Some(egl_window), true) = (&data.egl_window, buffer_size_changed) {
+        egl_window.resize(data.current.pixel_width, data.current.pixel_height, 0, 0);
+    }
 
     /* Calculate the mask size and offset.
      * Fullscreen windows are centered and masked automatically by the compositor, unless it lacks the capability.
@@ -4602,7 +4727,7 @@ impl WaylandVideo {
     pub(crate) fn wayland_reconfigure_window(
         &self,
         window: WindowID,
-        _flags: WindowFlags,
+        flags: WindowFlags,
     ) -> Result<()> {
         let mapped = self.with_data(|d| {
             d.window(window).is_some_and(|data| {
@@ -4620,9 +4745,61 @@ impl WaylandVideo {
         /* The caller guarantees that only one of the GL or Vulkan flags will be set.
          * Note that Vulkan doesn't require any specific configuration, so only EGL
          * objects are added and removed as required.
-         *
-         * (EGL isn't translated, so there is nothing to add or remove.)
          */
+        if flags.contains(WindowFlags::OPENGL) {
+            let nw = self.with_data(|d| {
+                let data = d.window_mut(window)?;
+                if data.egl_window.is_none() {
+                    data.egl_window = EglWindow::create(
+                        data.surface(),
+                        data.current.pixel_width,
+                        data.current.pixel_height,
+                    );
+                }
+                Some(
+                    data.egl_window
+                        .as_ref()
+                        .map_or(std::ptr::null_mut(), |e| e.raw()),
+                )
+            });
+            let Some(nw) = nw else {
+                return Err(Error::new("Invalid window"));
+            };
+
+            // SDL_EGL_CreateSurface should have set the error.
+            let egl_surface = egl::create_surface(Some(window), nw.cast())?;
+
+            self.with_data(|d| {
+                if let Some(data) = d.window_mut(window) {
+                    data.egl_surface = EglSurface::from_ptr(egl_surface);
+
+                    if data.gles_swap_frame.is_none() {
+                        data.gles_swap_frame = GlesSwapFrame::new(
+                            &self.conn,
+                            data.surface(),
+                            data.swap_interval_ready.clone(),
+                        );
+                    }
+                }
+            });
+        } else {
+            let objects = self.with_data(|d| {
+                let data = d.window_mut(window)?;
+                Some((
+                    data.egl_surface.take(),
+                    data.egl_window.take(),
+                    data.gles_swap_frame.take(),
+                ))
+            });
+            if let Some((egl_surface, egl_window, gles_swap_frame)) = objects {
+                if let Some(egl_surface) = egl_surface {
+                    egl::destroy_surface(egl_surface.as_ptr());
+                }
+                drop(egl_window);
+                drop(gles_swap_frame);
+            }
+        }
+
         Ok(())
     }
 
@@ -4650,8 +4827,6 @@ impl WaylandVideo {
             || create_props
                 .get_bool(PROP_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN)
                 .unwrap_or(false);
-        // (no wl_egl_window: EGL isn't translated)
-        let _ = create_egl_window;
 
         let enable_insets = create_props
             .get_bool(PROP_WINDOW_CREATE_WAYLAND_ENABLE_INSETS_BOOLEAN)
@@ -4742,6 +4917,7 @@ impl WaylandVideo {
                 sdlwindow: window,
                 surface,
                 surface_frame_callback: None,
+                gles_swap_frame: None,
                 shell_surface: ShellSurface::default(),
                 shell_surface_type: ShellSurfaceType::Unknown,
                 shell_surface_status: ShellSurfaceStatus::Hidden,
@@ -4761,6 +4937,8 @@ impl WaylandVideo {
                 frog_color_managed_surface: None,
                 wp_color_management_surface_feedback: None,
                 xdg_toplevel_session: None,
+                egl_window: None,
+                egl_surface: None,
                 color_info_state: None,
                 outputs: Vec::new(),
                 app_id: app_id.clone(),
@@ -4771,6 +4949,7 @@ impl WaylandVideo {
                 pointer_focus_count: 0,
                 active_touch_count: 0,
                 pointer_scale: PointerScale::default(),
+                swap_interval_ready: Arc::new(AtomicI32::new(0)),
                 requested: RequestedSize::default(),
                 current: CurrentSize::default(),
                 last_configure: LastConfigure::default(),
@@ -4931,9 +5110,56 @@ impl WaylandVideo {
         // Must be called before EGL configuration to set the drawable backbuffer size.
         self.configure_window_geometry(window);
 
-        /* (Upstream fires a frame callback on a separate queue for OpenGL here, and
-         * sets the GL alpha size for transparent windows: EGL isn't translated.)
+        /* Fire a callback when the compositor wants a new frame rendered.
+         * Right now this only matters for OpenGL; we use this callback to add a
+         * wait timeout that avoids getting deadlocked by the compositor when the
+         * window isn't visible.
          */
+        if flags.contains(WindowFlags::OPENGL) {
+            self.with_data(|d| {
+                if let Some(data) = d.window_mut(window) {
+                    data.gles_swap_frame = GlesSwapFrame::new(
+                        &self.conn,
+                        data.surface(),
+                        data.swap_interval_ready.clone(),
+                    );
+                }
+            });
+        }
+
+        if flags.contains(WindowFlags::TRANSPARENT) {
+            with_gl_config(|c| {
+                if c.alpha_size == 0 {
+                    c.alpha_size = 8;
+                }
+            });
+        }
+
+        let mut egl_window_raw: *mut wl_egl_window = std::ptr::null_mut();
+        if create_egl_window {
+            egl_window_raw = self
+                .with_data(|d| {
+                    let data = d.window_mut(window)?;
+                    data.egl_window = EglWindow::create(
+                        data.surface(),
+                        data.current.pixel_width,
+                        data.current.pixel_height,
+                    );
+                    data.egl_window.as_ref().map(|e| e.raw())
+                })
+                .unwrap_or(std::ptr::null_mut());
+        }
+
+        if flags.contains(WindowFlags::OPENGL) {
+            // Create the GLES window surface
+            // (SDL_EGL_CreateSurface should have set error)
+            let egl_surface = egl::create_surface(Some(window), egl_window_raw.cast())?;
+            self.with_data(|d| {
+                if let Some(data) = d.window_mut(window) {
+                    data.egl_surface = EglSurface::from_ptr(egl_surface);
+                }
+            });
+        }
 
         // We may need to create an idle inhibitor for this new window
         let suspend = crate::video::core::with_device(|v| v.suspend_screensaver).unwrap_or(false);
@@ -4971,7 +5197,7 @@ impl WaylandVideo {
         set_ptr_prop(
             &props,
             PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER,
-            std::ptr::null(),
+            egl_window_raw.cast(),
         );
         if ty == ShellSurfaceType::XdgToplevel || ty == ShellSurfaceType::Libdecor {
             if let Some(window_id) = create_props

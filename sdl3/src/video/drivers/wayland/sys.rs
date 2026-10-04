@@ -130,6 +130,8 @@ pub(crate) struct wl_list {
 
 /// `struct wl_cursor_theme` (opaque).
 pub(crate) enum wl_cursor_theme {}
+/// `struct wl_egl_window` (opaque).
+pub(crate) enum wl_egl_window {}
 
 /// `struct wl_cursor_image`.
 #[repr(C)]
