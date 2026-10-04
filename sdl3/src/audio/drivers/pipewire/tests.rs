@@ -277,13 +277,14 @@ fn spa_info_from_sdl_specs() {
         [SPA_AUDIO_CHANNEL_FL, SPA_AUDIO_CHANNEL_FR]
     );
     // SPA_AUDIO_CHANNEL_*: MONO 2, FL 3, FR 4, FC 5, LFE 6, SL 7, SR 8, RC 11, RL 12, RR 13.
+    // The layouts of SDL_audio.h: 4.1 is FL FR LFE BL BR, 6.1 is FL FR FC LFE BC SL SR.
     for (channels, map) in [
         (1, &[2][..]),
         (3, &[3, 4, 6][..]),
         (4, &[3, 4, 12, 13][..]),
-        (5, &[3, 4, 5, 12, 13][..]),
+        (5, &[3, 4, 6, 12, 13][..]),
         (6, &[3, 4, 5, 6, 12, 13][..]),
-        (7, &[3, 4, 5, 6, 11, 12, 13][..]),
+        (7, &[3, 4, 5, 6, 11, 7, 8][..]),
         (8, &[3, 4, 5, 6, 12, 13, 7, 8][..]),
     ] {
         let mut i = SpaAudioInfoRaw::default();

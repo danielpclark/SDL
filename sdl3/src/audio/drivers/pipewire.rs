@@ -1621,12 +1621,10 @@ const PIPEWIRE_CHANNEL_MAP_4: &[u32] = &[
     SPA_AUDIO_CHANNEL_RL,
     SPA_AUDIO_CHANNEL_RR,
 ];
-// FIXME (upstream): SDL's 5-channel layout is FL FR LFE BL BR (4.1), as the
-// PulseAudio and ALSA maps have it, but this one has FC in place of LFE.
 const PIPEWIRE_CHANNEL_MAP_5: &[u32] = &[
     SPA_AUDIO_CHANNEL_FL,
     SPA_AUDIO_CHANNEL_FR,
-    SPA_AUDIO_CHANNEL_FC,
+    SPA_AUDIO_CHANNEL_LFE,
     SPA_AUDIO_CHANNEL_RL,
     SPA_AUDIO_CHANNEL_RR,
 ];
@@ -1638,16 +1636,14 @@ const PIPEWIRE_CHANNEL_MAP_6: &[u32] = &[
     SPA_AUDIO_CHANNEL_RL,
     SPA_AUDIO_CHANNEL_RR,
 ];
-// FIXME (upstream): SDL's 7-channel layout (6.1) ends in BC SL SR, as the
-// PulseAudio and ALSA maps have it, but this one has RL RR for the sides.
 const PIPEWIRE_CHANNEL_MAP_7: &[u32] = &[
     SPA_AUDIO_CHANNEL_FL,
     SPA_AUDIO_CHANNEL_FR,
     SPA_AUDIO_CHANNEL_FC,
     SPA_AUDIO_CHANNEL_LFE,
     SPA_AUDIO_CHANNEL_RC,
-    SPA_AUDIO_CHANNEL_RL,
-    SPA_AUDIO_CHANNEL_RR,
+    SPA_AUDIO_CHANNEL_SL,
+    SPA_AUDIO_CHANNEL_SR,
 ];
 const PIPEWIRE_CHANNEL_MAP_8: &[u32] = &[
     SPA_AUDIO_CHANNEL_FL,
