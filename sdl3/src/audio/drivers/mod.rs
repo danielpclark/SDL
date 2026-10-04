@@ -1,6 +1,10 @@
-// Audio drivers. Platform drivers (PipeWire, PulseAudio, ALSA, WASAPI,
-// CoreAudio, ...) arrive with the platform layer.
+// Audio drivers, one module per upstream driver directory. The platform
+// drivers are compiled for their platform only, as upstream's
+// SDL_AUDIO_DRIVER_* configuration does; the system libraries they use are
+// loaded at run time. (CoreAudio, AAudio and the others are still to come.)
 
+#[cfg(target_os = "linux")]
+pub(crate) mod alsa;
 pub(crate) mod disk;
 pub(crate) mod dummy;
 
@@ -17,3 +21,6 @@ pub(super) fn io_delay(sample_frames: i32, freq: i32, timescale_hint: &str) -> u
     }
     io_delay
 }
+
+#[cfg(test)]
+pub(crate) mod tests;

@@ -116,18 +116,6 @@ pub(crate) trait AudioDriverImpl: Send + Sync {
         Err(Error::unsupported())
     }
 
-    /// Translation of `ThreadInit`: called by audio thread at start.
-    fn thread_init(&self, device: &PhysicalDevice) {
-        let _ = crate::thread::set_current_thread_priority(if device.recording {
-            ThreadPriority::High
-        } else {
-            ThreadPriority::TimeCritical
-        });
-    }
-
-    /// Translation of `ThreadDeinit`: called by audio thread at end.
-    fn thread_deinit(&self, _device: &PhysicalDevice) {}
-
     /// Translation of `FreeDeviceHandle`: SDL is done with this device;
     /// free the handle from `add_audio_device`.
     fn free_device_handle(&self, _device: &PhysicalDevice) {}
@@ -148,6 +136,16 @@ pub(crate) trait AudioDriverImpl: Send + Sync {
 /// `wait_*` run on the device thread without the device lock; everything
 /// else with it held. The core owns the buffer passed to `play_device`.
 pub(crate) trait DeviceBackend: Send + Sync {
+    /// Translation of `ThreadInit`: called by audio thread at start. (It
+    /// lives here rather than on [`AudioDriverImpl`] because it always runs
+    /// for an opened device, and backends need that device's data.)
+    fn thread_init(&self, device: &PhysicalDevice) {
+        default_thread_init(device);
+    }
+
+    /// Translation of `ThreadDeinit`: called by audio thread at end.
+    fn thread_deinit(&self, _device: &PhysicalDevice) {}
+
     /// Translation of `WaitDevice`.
     fn wait_device(&self, _device: &PhysicalDevice) -> bool {
         true
@@ -184,6 +182,16 @@ pub(crate) trait DeviceBackend: Send + Sync {
     fn close_device(&self, _device: &PhysicalDevice) {}
 }
 
+/// The default `ThreadInit` (`SDL_AudioThreadInit_Default()`), which
+/// backends that override [`DeviceBackend::thread_init`] may call.
+pub(crate) fn default_thread_init(device: &PhysicalDevice) {
+    let _ = crate::thread::set_current_thread_priority(if device.recording {
+        ThreadPriority::High
+    } else {
+        ThreadPriority::TimeCritical
+    });
+}
+
 /// Translation of `AudioBootStrap`.
 pub(crate) struct AudioBootStrap {
     pub(crate) name: &'static str,
@@ -196,10 +204,12 @@ pub(crate) struct AudioBootStrap {
 
 /// Available audio drivers. Translation of `bootstrap`.
 ///
-/// (The platform drivers arrive with the platform layer; disk and dummy
-/// are both demand-only, so until then audio initializes only when one of
-/// them is requested with [`hints::AUDIO_DRIVER`].)
+/// Disk and dummy are both demand-only, so where no platform driver is
+/// compiled in (or none initializes), audio initializes only when one of
+/// them is requested with [`hints::AUDIO_DRIVER`].
 static BOOTSTRAP: &[&AudioBootStrap] = &[
+    #[cfg(target_os = "linux")]
+    &drivers::alsa::ALSA_BOOTSTRAP,
     &drivers::disk::DISKAUDIO_BOOTSTRAP,
     &drivers::dummy::DUMMYAUDIO_BOOTSTRAP,
 ];
@@ -1360,8 +1370,8 @@ fn put_back<T>(slot: &mut Vec<T>, buf: Vec<T>) {
 /// Translation of `SDL_PlaybackAudioThreadSetup()`.
 pub(crate) fn playback_audio_thread_setup(device: &PhysicalDevice) {
     crate::sdl_assert!(!device.recording);
-    if let Some(driver) = current_driver() {
-        driver.thread_init(device);
+    if let Some(backend) = opened_backend(device) {
+        backend.thread_init(device);
     }
 }
 
@@ -1373,6 +1383,12 @@ fn active_backend(st: &PhysState) -> Option<Arc<dyn DeviceBackend>> {
     } else {
         st.backend.clone()
     }
+}
+
+/// The opened device's backend (zombie or not), for `ThreadInit` and
+/// `ThreadDeinit`.
+fn opened_backend(device: &PhysicalDevice) -> Option<Arc<dyn DeviceBackend>> {
+    device.lock().borrow().backend.clone()
 }
 
 /// Translation of `SDL_PlaybackAudioThreadIterate()`.
@@ -1661,8 +1677,8 @@ pub(crate) fn playback_audio_thread_shutdown(device: &PhysicalDevice) {
         let delay = (((frames * 1000) / freq) * 2).min(100);
         crate::timer::delay(Duration::from_millis(delay as u64));
     }
-    if let Some(driver) = current_driver() {
-        driver.thread_deinit(device);
+    if let Some(backend) = opened_backend(device) {
+        backend.thread_deinit(device);
     }
     audio_thread_finalize(device);
 }
@@ -1692,8 +1708,8 @@ fn playback_audio_thread(device: Arc<PhysicalDevice>) -> i32 {
 /// Translation of `SDL_RecordingAudioThreadSetup()`.
 pub(crate) fn recording_audio_thread_setup(device: &PhysicalDevice) {
     crate::sdl_assert!(device.recording);
-    if let Some(driver) = current_driver() {
-        driver.thread_init(device);
+    if let Some(backend) = opened_backend(device) {
+        backend.thread_init(device);
     }
 }
 
@@ -1892,8 +1908,8 @@ pub(crate) fn recording_audio_thread_shutdown(device: &PhysicalDevice) {
     if let Some(b) = backend {
         b.flush_recording(device);
     }
-    if let Some(driver) = current_driver() {
-        driver.thread_deinit(device);
+    if let Some(backend) = opened_backend(device) {
+        backend.thread_deinit(device);
     }
     audio_thread_finalize(device);
 }

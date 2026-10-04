@@ -49,9 +49,12 @@
 //!
 //! ## Drivers
 //!
-//! Until the platform layer exists, the available drivers are "dummy" and
-//! "disk"; both are only used when requested with the
-//! [`AUDIO_DRIVER`](crate::hints::AUDIO_DRIVER) hint.
+//! The platform drivers are tried in upstream's order ([`audio_driver`]
+//! lists them): on Linux "alsa". Each loads its system library at run
+//! time, so a missing library or sound server just moves on to the next
+//! driver. "disk" and "dummy" are only used when requested with the
+//! [`AUDIO_DRIVER`](crate::hints::AUDIO_DRIVER) hint (which may name
+//! several drivers, separated by commas, to try in turn).
 
 mod channel_converters;
 mod convert;
