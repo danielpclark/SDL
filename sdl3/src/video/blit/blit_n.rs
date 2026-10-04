@@ -534,23 +534,22 @@ fn blit_n_to_n_key_copy_alpha(info: &mut BlitInfo<'_>) {
     let ckey = info.colorkey & rgbmask;
 
     // Fastpath: same source/destination format, with Amask, bpp 32, loop is vectorized. ~10x faster
-    if srcfmt.format == dstfmt.format {
-        if matches!(
+    // (other formats that are the same on both sides take the generic path)
+    if srcfmt.format == dstfmt.format
+        && matches!(
             srcfmt.format,
             PixelFormat::ARGB8888
                 | PixelFormat::ABGR8888
                 | PixelFormat::BGRA8888
                 | PixelFormat::RGBA8888
-        ) {
-            walk(info, 4, 4, |src, s, dst, d| {
-                let v = rd32(src, s);
-                if (v & rgbmask) != ckey {
-                    wr32(dst, d, v);
-                }
-            });
-        }
-        // FIXME (upstream): other formats that are the same on both sides
-        // return without blitting anything.
+        )
+    {
+        walk(info, 4, 4, |src, s, dst, d| {
+            let v = rd32(src, s);
+            if (v & rgbmask) != ckey {
+                wr32(dst, d, v);
+            }
+        });
         return;
     }
 
@@ -1167,5 +1166,59 @@ pub(crate) fn calculate_blit_n(surface: &Surface<'_>, dst: &Surface<'_>) -> Opti
             }
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn key_copy_alpha_same_format() {
+        // A same-format colorkey blit other than 8888 (ARGB4444 here) copies
+        // every pixel whose RGB isn't the key, alpha included
+        let fmt = PixelFormat::ARGB4444.details().unwrap();
+        let key = 0x0123u32;
+        let src: Vec<u8> = [0xF124u16, 0x8456, 0xF123, 0x7ABC]
+            .iter()
+            .flat_map(|p| p.to_ne_bytes())
+            .collect();
+        let mut dst = vec![0x55u8; src.len()];
+        let mut palette_map = PaletteMap::new();
+        let mut info = BlitInfo {
+            src: &src,
+            src_w: 4,
+            src_h: 1,
+            src_pitch: 8,
+            src_skip: 0,
+            leading_skip: 0,
+            dst: &mut dst,
+            dst_w: 4,
+            dst_h: 1,
+            dst_pitch: 8,
+            dst_skip: 0,
+            src_fmt: &fmt,
+            src_pal: None,
+            dst_fmt: &fmt,
+            dst_pal: None,
+            table: &[],
+            palette_map: &mut palette_map,
+            flags: COPY_COLORKEY,
+            colorkey: key,
+            r: 0xFF,
+            g: 0xFF,
+            b: 0xFF,
+            a: 0xFF,
+            src_colorspace: Colorspace::SRGB,
+            dst_colorspace: Colorspace::SRGB,
+            src_props: None,
+            dst_props: None,
+        };
+        blit_n_to_n_key_copy_alpha(&mut info);
+        let out: Vec<u16> = dst
+            .chunks(2)
+            .map(|c| u16::from_ne_bytes([c[0], c[1]]))
+            .collect();
+        assert_eq!(out, [0xF124, 0x8456, 0x5555, 0x7ABC]);
     }
 }
