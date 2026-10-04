@@ -1,15 +1,18 @@
-// Rust translation of src/core/linux/SDL_ime.c from Simple DirectMedia
-// Layer.
+// Rust translation of src/core/linux/SDL_ime.c and SDL_ime.h from Simple
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The input method layer the X11 (and KMS/DRM) video drivers use: Fcitx
-//! when the environment asks for it, else IBus. Upstream picks function
-//! pointers; here an [`Ime`] says which backend is active.
+//! The `SDL_IME_*` input method layer: Fcitx when the environment asks for
+//! it, else IBus. Upstream's Wayland video driver uses it when the
+//! compositor has no text-input protocol (its X11 driver uses XIM).
+//! Upstream picks function pointers; here an [`Ime`] says which backend is
+//! active.
 //!
-//! Where upstream's backends translate the window's origin to root window
-//! coordinates with `X11_XTranslateCoordinates()`, the X11 video driver
-//! installs a [`WindowOriginHook`] instead.
+//! For windows with X11 properties, upstream's backends translate the
+//! window's origin to root window coordinates with
+//! `X11_XTranslateCoordinates()`; here the X11 video driver can install a
+//! [`WindowOriginHook`] for that.
 
 use std::sync::Mutex;
 
@@ -49,8 +52,8 @@ pub(crate) type WindowOriginHook = fn(WindowID) -> Option<(i32, i32)>;
 
 static WINDOW_ORIGIN_HOOK: Mutex<Option<WindowOriginHook>> = Mutex::new(None);
 
-/// Install (or remove) the [`WindowOriginHook`]; the X11 video driver
-/// installs one translating with `XTranslateCoordinates()`.
+/// Install (or remove) the [`WindowOriginHook`]; the X11 video driver can
+/// install one translating with `XTranslateCoordinates()`.
 pub(crate) fn set_window_origin_hook(hook: Option<WindowOriginHook>) {
     *WINDOW_ORIGIN_HOOK.lock().unwrap_or_else(|e| e.into_inner()) = hook;
 }
