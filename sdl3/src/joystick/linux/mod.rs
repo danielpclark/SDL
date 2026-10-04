@@ -1914,13 +1914,14 @@ fn close_hwdata(s: &mut LinuxState, hwdata: &mut HwData) {
         close_fd(hwdata.fd_sensor);
     }
     if hwdata.item {
-        // FIXME (upstream): this also runs for the joystick that
-        // LINUX_JoystickGetGamepadMapping() opens temporarily, unlinking the
-        // device from a real open joystick if there is one.
-        if let Some(item) = s.joylist.iter_mut().find(|item| {
-            item.device_instance == hwdata.instance_id
-                || (hwdata.instance_id == 0 && item.path == hwdata.fname)
-        }) {
+        // Only the joystick that linked the device unlinks it: the one that
+        // LINUX_JoystickGetGamepadMapping() opens temporarily (instance 0)
+        // never linked it, and a real open joystick may still use it.
+        if let Some(item) = s
+            .joylist
+            .iter_mut()
+            .find(|item| item.device_instance == hwdata.instance_id)
+        {
             item.hwdata = false;
         }
     }
