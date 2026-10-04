@@ -424,6 +424,11 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
     #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
     crate::core::linux::dbus::init();
 
+    #[cfg(windows)]
+    if flags.intersects(InitFlags::HAPTIC | InitFlags::JOYSTICK) {
+        crate::core::windows::helper_window::create()?;
+    }
+
     let result = (|| -> Result<()> {
         // Initialize the event subsystem
         if flags.contains(InitFlags::EVENTS) {
@@ -698,6 +703,8 @@ pub fn quit() {
     IN_MAIN_QUIT.store(true, Ordering::Release);
 
     // Quit all subsystems
+    #[cfg(windows)]
+    let _ = crate::core::windows::helper_window::destroy();
     quit_subsystem(InitFlags::ALL);
     crate::tray::cleanup_trays();
     crate::notification::cleanup_notifications();

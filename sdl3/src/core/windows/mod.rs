@@ -49,10 +49,13 @@ use windows_sys::Win32::System::SystemInformation::{
     VER_SERVICEPACKMAJOR,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateIconIndirect, CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, SetPropW,
-    UnregisterClassW, CW_USEDEFAULT, HICON, HWND_MESSAGE, ICONINFO, WNDCLASSW, WS_OVERLAPPED,
+    CreateIconIndirect, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, RegisterClassW,
+    SetPropW, UnregisterClassW, CW_USEDEFAULT, HICON, HWND_MESSAGE, ICONINFO, WNDCLASSW,
+    WS_OVERLAPPED,
 };
 
+pub(crate) mod com;
+pub(crate) mod directx;
 pub(crate) mod hid;
 pub(crate) mod xinput;
 
@@ -149,7 +152,9 @@ unsafe impl Sync for Module {}
 
 /// A function exported by combase.dll, loaded once from System32.
 /// Translation of `WIN_LoadComBaseFunction()`.
-fn load_combase_function(name: &std::ffi::CStr) -> Option<unsafe extern "system" fn() -> isize> {
+pub(crate) fn load_combase_function(
+    name: &std::ffi::CStr,
+) -> Option<unsafe extern "system" fn() -> isize> {
     static COMBASE: OnceLock<Module> = OnceLock::new();
     let combase = COMBASE.get_or_init(|| {
         let name = utf8_to_wide("combase.dll");
@@ -811,7 +816,14 @@ pub(crate) mod helper_window {
         let mut s = STATE.lock().unwrap_or_else(|e| e.into_inner());
         // Make sure window isn't created twice.
         if !s.hwnd.is_null() {
-            return Ok(());
+            // (unless it went away with the thread that created it, which
+            // upstream doesn't check: SDL is initialized on one thread
+            // there, but the tests run on many)
+            // SAFETY: IsWindow accepts any handle value.
+            if unsafe { IsWindow(s.hwnd) } != 0 {
+                return Ok(());
+            }
+            s.hwnd = std::ptr::null_mut();
         }
         let class_name = utf8_to_wide(CLASS_NAME);
         let window_name = utf8_to_wide(WINDOW_NAME);
@@ -873,7 +885,9 @@ pub(crate) mod helper_window {
 
             // Destroy the window.
             if !s.hwnd.is_null() {
-                if DestroyWindow(s.hwnd) == 0 {
+                // (a window that went away with its thread counts as
+                // destroyed, see create())
+                if DestroyWindow(s.hwnd) == 0 && IsWindow(s.hwnd) != 0 {
                     return Err(set_error("Unable to destroy Helper Window"));
                 }
                 s.hwnd = std::ptr::null_mut();
@@ -992,6 +1006,8 @@ mod tests {
 
     #[test]
     fn module_path_and_helper_window() {
+        // (the helper window is also made by the joystick and haptic init)
+        let _l = crate::test_support::test_lock();
         let exe = get_module_path(std::ptr::null_mut()).unwrap();
         assert!(exe.to_ascii_lowercase().ends_with(".exe"), "{exe}");
         helper_window::create().unwrap();
