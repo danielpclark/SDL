@@ -153,6 +153,52 @@ fn start_private_server() -> Option<(PrivateServer, String)> {
     Some((server, format!("unix:{socket}")))
 }
 
+/// The proplist the fake `pa_context_new_with_proplist()` was given, the
+/// one `pa_proplist_free()` was given, and the real `pa_proplist_free()`.
+static PASSED_PROPLIST: AtomicUsize = AtomicUsize::new(0);
+static FREED_PROPLIST: AtomicUsize = AtomicUsize::new(0);
+static REAL_PROPLIST_FREE: Mutex<Option<unsafe extern "C" fn(*mut PaProplist)>> = Mutex::new(None);
+
+unsafe extern "C" fn failing_context_new(
+    _api: *mut PaMainloopApi,
+    _name: *const c_char,
+    proplist: *const PaProplist,
+) -> *mut PaContext {
+    PASSED_PROPLIST.store(proplist as usize, Ordering::SeqCst);
+    ptr::null_mut()
+}
+
+unsafe extern "C" fn recording_proplist_free(proplist: *mut PaProplist) {
+    FREED_PROPLIST.store(proplist as usize, Ordering::SeqCst);
+    if let Some(free) = *REAL_PROPLIST_FREE.lock().unwrap() {
+        // SAFETY: the proplist came from the real pa_proplist_new().
+        unsafe { free(proplist) };
+    }
+}
+
+#[test]
+fn failed_context_frees_the_proplist() {
+    let _l = crate::test_support::test_lock();
+    let mut lib = match load_pulseaudio_library() {
+        Ok(lib) => lib,
+        Err(e) => {
+            eprintln!("note: libpulse isn't installed: {}", e.message());
+            return;
+        }
+    };
+    *REAL_PROPLIST_FREE.lock().unwrap() = Some(lib.pa_proplist_free);
+    lib.pa_context_new_with_proplist = failing_context_new;
+    lib.pa_proplist_free = recording_proplist_free;
+    PASSED_PROPLIST.store(0, Ordering::SeqCst);
+    FREED_PROPLIST.store(0, Ordering::SeqCst);
+
+    let e = connect_to_pulse_server(&lib).err().unwrap();
+    assert_eq!(e.message(), "pa_context_new_with_proplist() failed");
+    let passed = PASSED_PROPLIST.load(Ordering::SeqCst);
+    assert_ne!(passed, 0);
+    assert_eq!(FREED_PROPLIST.load(Ordering::SeqCst), passed);
+}
+
 #[test]
 fn no_server_means_no_driver() {
     let _l = crate::test_support::test_lock();
