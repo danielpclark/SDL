@@ -977,7 +977,7 @@ impl Hotplug {
             if !s.hotplug_events_enabled {
                 return;
             }
-            // FIXME (upstream): `path` can be NULL here (a value that isn't a
+            // Note (upstream): `path` can be NULL here (a value that isn't a
             // JSON object) and is passed to SDL_strcmp(); nothing matches it here.
             let Some(path) = path else { return };
             s.io_list.iter().find(|n| n.path == path).map(|n| n.id)

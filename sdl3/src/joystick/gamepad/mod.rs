@@ -1401,7 +1401,8 @@ fn private_parse_gamepad_element(
         half_axis_input = joystick_button.chars().next();
         joystick_button = rest;
     }
-    // FIXME (upstream): an empty joystick input reads the byte before the string
+    // Note (upstream): an empty joystick input reads the byte before the
+    // string; `ends_with()` doesn't, with the same result.
     let invert_input = joystick_button.ends_with('~');
 
     let bytes = joystick_button.as_bytes();

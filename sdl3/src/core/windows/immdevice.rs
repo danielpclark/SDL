@@ -725,7 +725,7 @@ unsafe extern "system" fn sdlmm_notification_client_on_device_state_changed(
                     let recording = flow == eCapture;
                     let devid = wcsdup(pwstr_device_id);
                     if dw_new_state == DEVICE_STATE_ACTIVE {
-                        // FIXME (upstream): `dsoundguid` isn't initialized here, so an
+                        // Note (upstream): `dsoundguid` isn't initialized here, so an
                         // endpoint without a GUID property gets stack garbage; zeroed here.
                         let info = get_mm_device_info(device, zero_guid());
                         if info.utf8dev.is_some() {
@@ -934,7 +934,7 @@ pub(crate) unsafe fn get_is_capture(device: *mut IMMDevice) -> bool {
             }
         }
 
-        // FIXME (upstream): this releases `endpoint` even when the query
+        // Note (upstream): this releases `endpoint` even when the query
         // failed and it's NULL; here it's only released when it was got.
         if !endpoint.is_null() {
             release(endpoint);
