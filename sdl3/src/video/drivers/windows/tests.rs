@@ -788,13 +788,22 @@ fn wgl_context() {
     assert!(gl::gl_get_attribute(GlAttr::RedSize).unwrap() >= 8);
     assert!(gl::gl_get_attribute(GlAttr::DoubleBuffer).is_ok());
 
-    // (the swap control extension may be missing: "unsupported" then)
-    if gl::gl_set_swap_interval(0).is_ok() {
-        assert_eq!(gl::gl_get_swap_interval().unwrap(), 0);
+    // (the swap control extension may be missing: "unsupported" then. A GPU
+    // driver may also keep an interval of its own whatever is set: an NVIDIA
+    // driver was seen to accept every interval and read back 0)
+    let mut read_back = Vec::new();
+    for interval in [0, 1, 0] {
+        if gl::gl_set_swap_interval(interval).is_ok() {
+            read_back.push((interval, gl::gl_get_swap_interval().unwrap()));
+        }
     }
-    if gl::gl_set_swap_interval(1).is_ok() {
-        assert_eq!(gl::gl_get_swap_interval().unwrap(), 1);
-        gl::gl_set_swap_interval(0).unwrap();
+    if read_back.iter().any(|&(set, got)| set != got) {
+        let forced = read_back[0].1;
+        assert!(
+            read_back.iter().all(|&(_, got)| got == forced),
+            "swap intervals (set, read back): {read_back:?}"
+        );
+        println!("note: the GL driver keeps swap interval {forced} whatever is set");
     }
 
     // Release and make current again
