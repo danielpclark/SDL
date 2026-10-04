@@ -13,15 +13,20 @@
 //! kind of device. For game controllers with a standard layout, the
 //! [`gamepad`] module maps joystick inputs to named buttons and axes.
 //!
-//! The joystick drivers are platform backends. So far the virtual driver
-//! ([`attach_virtual_joystick`]) and the dummy driver, which reports no
-//! devices, exist; the HIDAPI and platform drivers arrive later.
+//! The joystick drivers are platform backends. So far the Linux driver
+//! (evdev devices, found through libudev or inotify), the virtual driver
+//! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
+//! a driver), which reports no devices, exist; the HIDAPI drivers and the
+//! other platform drivers arrive later.
 
 mod controller_type;
 mod device_info;
+#[cfg(not(target_os = "linux"))]
 mod dummy;
 pub mod gamepad;
 mod gamepad_db;
+#[cfg(target_os = "linux")]
+pub(crate) mod linux;
 mod steam_virtual_gamepad;
 mod tables;
 mod usb_ids;
@@ -517,12 +522,22 @@ pub(crate) trait JoystickDriver: Send + Sync {
     fn gamepad_mapping(&self, device_index: usize) -> Option<GamepadMapping>;
 }
 
-/// The index of the virtual driver in [`JOYSTICK_DRIVERS`].
-const VIRTUAL_DRIVER_INDEX: usize = 0;
+/// The index of the Linux driver in [`JOYSTICK_DRIVERS`].
+#[cfg(target_os = "linux")]
+const LINUX_DRIVER_INDEX: usize = 0;
 
-/// The available joystick drivers, in priority order. Translation of `SDL_joystick_drivers`.
+/// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
+/// platform driver, if there is one).
+const VIRTUAL_DRIVER_INDEX: usize = if cfg!(target_os = "linux") { 1 } else { 0 };
+
+/// The available joystick drivers, in priority order. Translation of
+/// `SDL_joystick_drivers`; the dummy driver is only there without a
+/// platform driver, as upstream builds it.
 static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
+    #[cfg(target_os = "linux")]
+    &linux::LINUX_JOYSTICK_DRIVER,
     &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER,
+    #[cfg(not(target_os = "linux"))]
     &dummy::DUMMY_JOYSTICK_DRIVER,
 ];
 
