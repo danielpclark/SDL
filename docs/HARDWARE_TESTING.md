@@ -38,6 +38,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
 | `gameinput` | Windows | a GameInput DLL with the v3 API: the GameInput redistributable's `GameInputRedist.dll` (the `GameInput.dll` that ships with Windows may be too old) |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
+| `d3d11` | Windows | `d3d11.dll` and `dxgi.dll` with a Direct3D 11 device (feature level 11.0 or 11.1) and a swap chain on a window: a GPU driver, WARP, or Wine's d3d11 (wined3d on Mesa) |
 | `wasapi` | Windows | WASAPI with a default playback and a default recording endpoint |
 | `mediafoundation` | Windows | Media Foundation (`mfplat.dll`, `mf.dll`, `mfreadwrite.dll`; missing on Windows N/Server without the Media Feature Pack) |
 | `v4l2` | Linux | the V4L2 camera driver |
@@ -68,7 +69,8 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `camera::mediafoundation::tests::hardware_capture_from_the_first_camera` | Windows | lists the Media Foundation cameras and their formats; opens the first one and grabs ten frames: size and format match the opened spec, pixels are there, timestamps strictly advance; prints the frame rate |
 | `camera::v4l2::tests::hardware_capture_from_the_first_camera` | Linux | the same through V4L2 (`/dev/video*`) |
 | `camera::pipewire::tests::hardware_capture_from_the_first_camera` | Linux | the same through the PipeWire server's cameras |
-| `video::drivers::windows::tests::hardware_gpu_gl_context_and_renderer` | Windows | a WGL context, printing `GL_VENDOR`, `GL_RENDERER`, `GL_VERSION` and whether framebuffer objects exist; it must not be GDI Generic. Then a window with the default 2D renderer: with framebuffer objects that renderer must be `opengl`, and it must clear to a color that reads back |
+| `video::drivers::windows::tests::hardware_gpu_gl_context_and_renderer` | Windows | a WGL context, printing `GL_VENDOR`, `GL_RENDERER`, `GL_VERSION` and whether framebuffer objects exist; it must not be GDI Generic. Then a window with the `opengl` 2D renderer (the default one without framebuffer objects), which must clear to a color that reads back |
+| `render::direct3d11::tests::hardware_gpu_d3d11_renderer` | Windows | a Direct3D 11 renderer on the GPU, printing the adapter's description, vendor and device ids and video memory, the feature level and the swap chain flags (tearing support). Then a window with the default 2D renderer, which must be `direct3d11` and clear to a color that reads back, and an NV12 texture (which Wine's d3d11 can't sample) drawn as the software renderer draws it |
 | `audio::drivers::wasapi::tests::hardware_default_playback_and_recording` | Windows | lists the WASAPI endpoints; plays half a second of a quiet 440 Hz tone on the default playback endpoint (it must drain), then records half a second from the default recording endpoint (it must arrive), printing formats, timing and the peak level |
 | `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone (GameInput alone skips as `gameinput` where GameInput isn't usable). Zero controllers is fine |
 | `joystick::windows::tests::hardware_controller_input` | Windows | opens the first controller through the default drivers and prints its name, driver, GUID, VID:PID, axes/buttons/hats and gamepad mapping; asks for a button press and release, then a full stick (or axis) movement, waiting up to 30 seconds for each; then sends a short rumble and prints whether the controller supports it. Run it on its own, as below |
@@ -122,8 +124,9 @@ then require `uinput` too.
 
 ## Windows 11
 
-Nothing needs installing for `desktop`, `wgl`, `wasapi`, `mediafoundation`,
-`xinput` and `hidapi`: they come with Windows and the GPU driver, given an
+Nothing needs installing for `desktop`, `wgl`, `d3d11`, `wasapi`,
+`mediafoundation`, `xinput` and `hidapi`: they come with Windows and the GPU
+driver, given an
 interactive session (not a service, not a remote desktop session without a
 GPU), speakers or headphones, and a microphone (a webcam's counts).
 `gameinput` needs the GameInput redistributable; `egl` needs an EGL
@@ -135,11 +138,11 @@ In PowerShell:
 ```powershell
 cargo test --workspace
 # fail instead of skipping:
-$env:SDL3_TEST_REQUIRE = "desktop,wgl,wasapi,mediafoundation,xinput,hidapi"
+$env:SDL3_TEST_REQUIRE = "desktop,wgl,d3d11,wasapi,mediafoundation,xinput,hidapi"
 cargo test --workspace
-# the hardware checks (a webcam; a GPU OpenGL driver; audio endpoints;
-# controllers are only listed):
-$env:SDL3_TEST_REQUIRE = "desktop,wgl,wasapi,mediafoundation,camera"
+# the hardware checks (a webcam; a GPU OpenGL and Direct3D 11 driver; audio
+# endpoints; controllers are only listed):
+$env:SDL3_TEST_REQUIRE = "desktop,wgl,d3d11,wasapi,mediafoundation,camera"
 cargo test --workspace -- --ignored --nocapture --skip hardware_controller_input
 # with a controller connected, the interactive check (press a button, then
 # move a stick, when it asks):
@@ -173,8 +176,9 @@ section: run the commands above in order, then report:
 
 * the test result lines and every `note: skipping` line of each run (from
   `SDL3_TEST_SKIP_LOG`, as above, for the runs without `--nocapture`);
-* what the hardware checks printed: `GL_VENDOR`/`GL_RENDERER`/`GL_VERSION`
-  and the default renderer's name, the WASAPI endpoints and peak level,
+* what the hardware checks printed: `GL_VENDOR`/`GL_RENDERER`/`GL_VERSION`,
+  the Direct3D 11 adapter, feature level and default renderer's name, the
+  WASAPI endpoints and peak level,
   the camera's formats and frame rate, the controllers each joystick driver
   lists, and the controller check's output (which driver claimed it, the
   gamepad mapping, the button and axis events, the rumble result);
@@ -193,14 +197,26 @@ get the `opengl` renderer. A machine with only Microsoft's GDI Generic 1.1
 ## Windows tests under Wine (from Linux)
 
 The Windows backends are also tested under Wine, which provides `desktop`
-(with an X server), `wgl` (Mesa through Wine), `mediafoundation`, `xinput`
-and `hidapi`, but no audio endpoints, cameras or EGL:
+(with an X server), `wgl` (Mesa through Wine), `d3d11` (wined3d on Mesa),
+`mediafoundation`, `xinput` and `hidapi`, but no audio endpoints, cameras or
+EGL:
 
 ```sh
 CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
 CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=wine64 \
 WINEDEBUG=-all xvfb-run -a cargo test --workspace --target x86_64-pc-windows-gnu
+# fail instead of skipping the Direct3D 11 renderer's tests:
+SDL3_TEST_REQUIRE=d3d11 CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
+CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=wine64 \
+WINEDEBUG=-all xvfb-run -a cargo test -p sdl3 --lib --target x86_64-pc-windows-gnu direct3d11
 ```
+
+Wine's `IDXGISwapChain1::SetRotation()` is a stub that fails, so the
+Direct3D 11 renderer can't be made for an ordinary window there (as
+upstream's can't: the default renderer falls back to `opengl`); its tests
+draw into transparent windows, whose swap chains aren't rotated. Wine's
+d3d11 can't sample NV12 textures either, so those checks only run on
+Windows.
 
 ## CI
 

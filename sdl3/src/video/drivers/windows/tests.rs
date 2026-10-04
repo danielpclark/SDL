@@ -914,10 +914,12 @@ fn hardware_gpu_gl_context_and_renderer() {
         return;
     }
 
-    // The 2D renderer, chosen by default.
+    // The OpenGL 2D renderer (the default one is direct3d11: see
+    // render::direct3d11::tests::hardware_gpu_d3d11_renderer), which needs
+    // framebuffer objects; without them, the default renderer.
     let window = Window::create("SDL GPU renderer test", 64, 48, WindowFlags::default()).unwrap();
-    let mut r = Renderer::for_window(&window, None).unwrap();
-    println!("default renderer: {}", r.name());
+    let mut r = Renderer::for_window(&window, fbo.then_some("opengl")).unwrap();
+    println!("renderer: {}", r.name());
     if fbo {
         assert_eq!(r.name(), "opengl");
     }

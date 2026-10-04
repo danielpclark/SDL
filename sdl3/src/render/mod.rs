@@ -15,9 +15,10 @@
 //!
 //! Renderers use the software backend, drawing into a [`Surface`]
 //! ([`Renderer::software`]) or a window's surface, or for windows the
-//! OpenGL backend ("opengl", tried first by [`Renderer::for_window`]), the
-//! OpenGL ES 2.0 backend ("opengles2") or the Vulkan backend ("vulkan");
-//! the other GPU backends come with the platform layer.
+//! Direct3D 11 backend ("direct3d11", Windows only, tried first by
+//! [`Renderer::for_window`]), the OpenGL backend ("opengl", first
+//! elsewhere), the OpenGL ES 2.0 backend ("opengles2") or the Vulkan
+//! backend ("vulkan"); the other GPU backends come with the platform layer.
 //!
 //! A window renderer applies the window's changes (size, visibility, HDR
 //! state) at the start of its next drawing, presenting or state-setting
@@ -26,6 +27,8 @@
 //! dropped before or after its window.
 
 mod debug_font;
+#[cfg(windows)]
+pub(crate) mod direct3d11;
 pub(crate) mod opengl;
 pub(crate) mod opengles2;
 pub(crate) mod software;
@@ -49,6 +52,12 @@ use crate::video::rect::{FPoint, FRect, Point, Rect};
 use crate::video::surface::{ScaleMode, Surface};
 use crate::video::BlendMode;
 
+#[cfg(windows)]
+pub use direct3d11::{
+    PROP_RENDERER_D3D11_DEVICE_POINTER, PROP_RENDERER_D3D11_SWAPCHAIN_POINTER,
+    PROP_TEXTURE_D3D11_TEXTURE_POINTER, PROP_TEXTURE_D3D11_TEXTURE_U_POINTER,
+    PROP_TEXTURE_D3D11_TEXTURE_V_POINTER,
+};
 pub use opengl::{
     PROP_TEXTURE_OPENGL_TEXTURE_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_TARGET_NUMBER,
     PROP_TEXTURE_OPENGL_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_U_NUMBER,
@@ -198,6 +207,8 @@ pub struct RendererCreateInfo {
 
 /// The rendering drivers compiled in, in order of preference.
 const RENDER_DRIVERS: &[&str] = &[
+    #[cfg(windows)]
+    direct3d11::D3D11_RENDERER,
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
     vulkan::VULKAN_RENDERER,

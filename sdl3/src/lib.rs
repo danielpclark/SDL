@@ -204,6 +204,7 @@ pub(crate) mod test_support {
             "a GameInput DLL with the v3 API (the GameInput redistributable)",
         ),
         ("wgl", "opengl32.dll with a WGL pixel format and context"),
+        ("d3d11", "d3d11.dll and dxgi.dll with a Direct3D 11 device"),
         (
             "wasapi",
             "WASAPI with default playback and recording endpoints",
