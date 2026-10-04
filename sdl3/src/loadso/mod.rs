@@ -78,6 +78,23 @@ impl SharedObject {
         // (the caller's contract) and has the size of a pointer.
         Ok(unsafe { std::mem::transmute_copy::<*mut c_void, F>(&p.as_ptr()) })
     }
+
+    /// A function exported by ordinal only (`GetProcAddress(handle,
+    /// (LPCSTR)ordinal)`), which XInput needs for its undocumented exports.
+    ///
+    /// # Safety
+    ///
+    /// As for [`SharedObject::function`].
+    #[cfg(windows)]
+    pub(crate) unsafe fn function_by_ordinal<F: Copy>(&self, ordinal: u16) -> Result<F> {
+        const {
+            assert!(size_of::<F>() == size_of::<*mut c_void>());
+        }
+        let p = sys::ordinal(self.handle, ordinal)?;
+        // SAFETY: F is a function pointer type of the symbol's signature
+        // (the caller's contract) and has the size of a pointer.
+        Ok(unsafe { std::mem::transmute_copy::<*mut c_void, F>(&p.as_ptr()) })
+    }
 }
 
 impl Drop for SharedObject {
@@ -172,6 +189,18 @@ mod sys {
                 Ok(NonNull::new(f as *mut c_void).expect("GetProcAddress returned a function"))
             }
             None => Err(set_error(&format!("Failed loading {name}"))),
+        }
+    }
+
+    pub(super) fn ordinal(handle: NonNull<c_void>, ordinal: u16) -> Result<NonNull<c_void>> {
+        // SAFETY: handle came from LoadLibraryW and is still loaded; an
+        // ordinal is passed in the low word of the name pointer.
+        let symbol = unsafe { GetProcAddress(handle.as_ptr(), ordinal as usize as *const u8) };
+        match symbol {
+            Some(f) => {
+                Ok(NonNull::new(f as *mut c_void).expect("GetProcAddress returned a function"))
+            }
+            None => Err(set_error(&format!("Failed loading ordinal {ordinal}"))),
         }
     }
 
