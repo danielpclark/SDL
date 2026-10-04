@@ -61,8 +61,8 @@ fn configure(
     absinfo: impl FnMut(usize) -> Option<input_absinfo>,
 ) -> (HwData, Counts) {
     let mut hwdata = HwData::new(1);
-    hwdata.key_map = [0xFF; KEY_MAX];
-    hwdata.abs_map = [0xFF; ABS_MAX];
+    hwdata.key_map = [0xFF; KEY_CNT];
+    hwdata.abs_map = [0xFF; ABS_CNT];
     let mut counts = Counts::default();
     let keybit: KeyBits = bitmask(t.keys);
     let absbit: AbsBits = bitmask(t.abs);
@@ -205,8 +205,8 @@ fn axis_correction() {
     assert_eq!(axis_correct(&hwdata, ABS_X, 40000), 32767);
     assert_eq!(axis_correct(&hwdata, ABS_X, -40000), -32768);
     assert_eq!(axis_correct(&hwdata, ABS_X, 1234), 1234);
-    // So are codes past the table (ABS_MAX)
-    assert_eq!(axis_correct(&hwdata, ABS_MAX, 99999), 32767);
+    // So are codes past the table (ABS_CNT)
+    assert_eq!(axis_correct(&hwdata, ABS_CNT, 99999), 32767);
 
     // Scaling: 0..255 onto -32768..32767,
     // floor((value - min) * (65535 / 255) - 32768 + 0.5)
@@ -637,8 +637,8 @@ fn classic_events() {
     let _l = lock();
     let pipe = Pipe::new();
     let mut hwdata = HwData::new(1);
-    hwdata.key_map = [0xFF; KEY_MAX];
-    hwdata.abs_map = [0xFF; ABS_MAX];
+    hwdata.key_map = [0xFF; KEY_CNT];
+    hwdata.abs_map = [0xFF; ABS_CNT];
     hwdata.classic = true;
     hwdata.fd = pipe.read;
     // What JSIOCGBTNMAP/JSIOCGAXMAP would say for a pad with two buttons,
@@ -685,6 +685,47 @@ fn classic_events() {
             Pending::Axis(0, 1, -200),
             Pending::Hat(0, 0, HAT_RIGHT),
         ]
+    );
+    hwdata.fd = -1;
+}
+
+#[test]
+fn classic_highest_codes() {
+    let _l = lock();
+    let pipe = Pipe::new();
+    let mut hwdata = HwData::new(1);
+    hwdata.key_map = [0xFF; KEY_CNT];
+    hwdata.abs_map = [0xFF; ABS_CNT];
+    hwdata.fd = pipe.read;
+    // joydev maps buttons up to KEY_MAX and axes up to ABS_MAX
+    let mut key_pam = vec![0u16; KEY_MAX - BTN_MISC + 1];
+    key_pam[0] = BTN_A as u16;
+    key_pam[1] = KEY_MAX as u16;
+    let mut abs_pam = vec![0u8; ABS_CNT];
+    abs_pam[0] = ABS_X as u8;
+    abs_pam[1] = ABS_MAX as u8;
+    let mut counts = Counts::default();
+    let _lock = lock_joysticks();
+    map_classic_inputs(
+        &mut hwdata,
+        &mut counts,
+        Some((key_pam, 2)),
+        Some((abs_pam, 2)),
+    );
+    assert_eq!((counts.nbuttons, counts.naxes), (2, 2));
+    assert!(hwdata.has_key[KEY_MAX] && hwdata.has_abs[ABS_MAX]);
+
+    let js = |type_: u8, number: u8, value: i16| js_event {
+        time: 0,
+        value,
+        type_,
+        number,
+    };
+    pipe.send(&[js(JS_EVENT_BUTTON, 1, 1), js(JS_EVENT_AXIS, 1, -200)]);
+    // The last button and axis are reported, not dropped as unmapped
+    assert_eq!(
+        untimed(update_events(&mut hwdata)),
+        [Pending::Button(0, 1, true), Pending::Axis(0, 1, -200)]
     );
     hwdata.fd = -1;
 }
