@@ -490,40 +490,44 @@ pub(crate) fn fullscreen_mode_match(mode: &DisplayMode) -> Option<ModeMatch> {
 /// returns whether it was added. Translation of `SDL_AddFullscreenDisplayMode()`.
 #[allow(dead_code)] // (used by the video drivers)
 pub(crate) fn add_fullscreen_display_mode(display_id: DisplayID, mode: &DisplayMode) -> bool {
-    with_video_display(display_id, |d| {
-        // Finalize the mode for the display
-        let mut new_mode = *mode;
-        new_mode.display_id = d.id;
-        finalize_display_mode(&mut new_mode);
+    with_video_display(display_id, |d| add_fullscreen_display_mode_to(d, mode)).unwrap_or(false)
+}
 
-        // Make sure we don't already have the mode in the list
-        if d.fullscreen_modes
-            .iter()
-            .any(|m| cmpmodes(&new_mode, m) == 0)
-        {
-            return false;
+/// [`add_fullscreen_display_mode`] on a display record a backend is still
+/// filling in, before [`add_video_display`] (upstream passes such records to
+/// `SDL_AddFullscreenDisplayMode()` too).
+pub(crate) fn add_fullscreen_display_mode_to(d: &mut VideoDisplay, mode: &DisplayMode) -> bool {
+    // Finalize the mode for the display
+    let mut new_mode = *mode;
+    new_mode.display_id = d.id;
+    finalize_display_mode(&mut new_mode);
+
+    // Make sure we don't already have the mode in the list
+    if d.fullscreen_modes
+        .iter()
+        .any(|m| cmpmodes(&new_mode, m) == 0)
+    {
+        return false;
+    }
+
+    // Go ahead and add the new mode
+    d.fullscreen_modes.push(new_mode);
+
+    // Re-sort video modes
+    // (upstream's current mode is a pointer into the list, so after the
+    // sort it may point at a different mode; fixed here by following the
+    // current mode to its new place)
+    let current = match d.current_mode {
+        CurrentMode::Fullscreen(i) => d.fullscreen_modes.get(i).copied(),
+        _ => None,
+    };
+    d.fullscreen_modes.sort_by(|a, b| cmpmodes(a, b).cmp(&0));
+    if let Some(current) = current {
+        if let Some(i) = d.fullscreen_modes.iter().position(|m| *m == current) {
+            d.current_mode = CurrentMode::Fullscreen(i);
         }
-
-        // Go ahead and add the new mode
-        d.fullscreen_modes.push(new_mode);
-
-        // Re-sort video modes
-        // (upstream's current mode is a pointer into the list, so after the
-        // sort it may point at a different mode; fixed here by following the
-        // current mode to its new place)
-        let current = match d.current_mode {
-            CurrentMode::Fullscreen(i) => d.fullscreen_modes.get(i).copied(),
-            _ => None,
-        };
-        d.fullscreen_modes.sort_by(|a, b| cmpmodes(a, b).cmp(&0));
-        if let Some(current) = current {
-            if let Some(i) = d.fullscreen_modes.iter().position(|m| *m == current) {
-                d.current_mode = CurrentMode::Fullscreen(i);
-            }
-        }
-        true
-    })
-    .unwrap_or(false)
+    }
+    true
 }
 
 /// Translation of `SDL_ResetFullscreenDisplayModes()`.

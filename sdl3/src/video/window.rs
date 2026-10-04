@@ -76,6 +76,25 @@ pub const PROP_WINDOW_CREATE_WIN32_STYLE_EX_NUMBER: &str = "SDL.window.create.wi
 /// The X11 `Window` to wrap (instead of creating one). Translation of
 /// `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`.
 pub const PROP_WINDOW_CREATE_X11_WINDOW_NUMBER: &str = "SDL.window.create.x11.window";
+/// Give the window's `wl_surface` a custom role (no xdg-shell toplevel or
+/// popup). Translation of `SDL_PROP_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN`.
+pub const PROP_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN: &str =
+    "SDL.window.create.wayland.surface_role_custom";
+/// Create a `wl_egl_window` for the window. Translation of
+/// `SDL_PROP_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN`.
+pub const PROP_WINDOW_CREATE_WAYLAND_CREATE_EGL_WINDOW_BOOLEAN: &str =
+    "SDL.window.create.wayland.create_egl_window";
+/// The window's ID string, for session management and toplevel tags.
+/// Translation of `SDL_PROP_WINDOW_CREATE_WAYLAND_WINDOW_ID_STRING`.
+pub const PROP_WINDOW_CREATE_WAYLAND_WINDOW_ID_STRING: &str = "SDL.window.create.wayland.window_id";
+/// The `wl_surface` to wrap (an address, as a number). Translation of
+/// `SDL_PROP_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER`.
+pub const PROP_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER: &str =
+    "SDL.window.create.wayland.wl_surface";
+/// Use the `PROP_WINDOW_WAYLAND_BORDER_INSET_*` window properties. Translation
+/// of `SDL_PROP_WINDOW_CREATE_WAYLAND_ENABLE_INSETS_BOOLEAN`.
+pub const PROP_WINDOW_CREATE_WAYLAND_ENABLE_INSETS_BOOLEAN: &str =
+    "SDL.window.create.wayland.enable_insets";
 
 // Window properties (SDL_PROP_WINDOW_*)
 /// The X11 `Display *` of the window, as an address (a number). Translation
@@ -87,6 +106,51 @@ pub const PROP_WINDOW_X11_SCREEN_NUMBER: &str = "SDL.window.x11.screen";
 /// The X11 `Window` of the window. Translation of
 /// `SDL_PROP_WINDOW_X11_WINDOW_NUMBER`.
 pub const PROP_WINDOW_X11_WINDOW_NUMBER: &str = "SDL.window.x11.window";
+/// The `wl_display` of the window (an address, as a number). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER`.
+pub const PROP_WINDOW_WAYLAND_DISPLAY_POINTER: &str = "SDL.window.wayland.display";
+/// The `wl_surface` of the window (an address). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER`.
+pub const PROP_WINDOW_WAYLAND_SURFACE_POINTER: &str = "SDL.window.wayland.surface";
+/// The `wp_viewport` of the window (an address). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_VIEWPORT_POINTER`.
+pub const PROP_WINDOW_WAYLAND_VIEWPORT_POINTER: &str = "SDL.window.wayland.viewport";
+/// The `wl_egl_window` of the window (an address; never set, as EGL isn't
+/// translated). Translation of `SDL_PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER`.
+pub const PROP_WINDOW_WAYLAND_EGL_WINDOW_POINTER: &str = "SDL.window.wayland.egl_window";
+/// The window's ID string. Translation of `SDL_PROP_WINDOW_WAYLAND_WINDOW_ID_STRING`.
+pub const PROP_WINDOW_WAYLAND_WINDOW_ID_STRING: &str = "SDL.window.wayland.window_id";
+/// The `xdg_surface` of the window (an address). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_XDG_SURFACE_POINTER`.
+pub const PROP_WINDOW_WAYLAND_XDG_SURFACE_POINTER: &str = "SDL.window.wayland.xdg_surface";
+/// The `xdg_toplevel` of the window (an address). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_POINTER`.
+pub const PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_POINTER: &str = "SDL.window.wayland.xdg_toplevel";
+/// The xdg-foreign export handle of the window. Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_EXPORT_HANDLE_STRING`.
+pub const PROP_WINDOW_WAYLAND_XDG_TOPLEVEL_EXPORT_HANDLE_STRING: &str =
+    "SDL.window.wayland.xdg_toplevel_export_handle";
+/// The `xdg_popup` of the window (an address). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_XDG_POPUP_POINTER`.
+pub const PROP_WINDOW_WAYLAND_XDG_POPUP_POINTER: &str = "SDL.window.wayland.xdg_popup";
+/// The `xdg_positioner` of the window (an address). Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_XDG_POSITIONER_POINTER`.
+pub const PROP_WINDOW_WAYLAND_XDG_POSITIONER_POINTER: &str = "SDL.window.wayland.xdg_positioner";
+/// The left border inset of the window. Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_BORDER_INSET_LEFT_NUMBER`.
+pub const PROP_WINDOW_WAYLAND_BORDER_INSET_LEFT_NUMBER: &str =
+    "SDL.window.wayland.border_inset_left";
+/// The top border inset of the window. Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_BORDER_INSET_TOP_NUMBER`.
+pub const PROP_WINDOW_WAYLAND_BORDER_INSET_TOP_NUMBER: &str = "SDL.window.wayland.border_inset_top";
+/// The right border inset of the window. Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_BORDER_INSET_RIGHT_NUMBER`.
+pub const PROP_WINDOW_WAYLAND_BORDER_INSET_RIGHT_NUMBER: &str =
+    "SDL.window.wayland.border_inset_right";
+/// The bottom border inset of the window. Translation of
+/// `SDL_PROP_WINDOW_WAYLAND_BORDER_INSET_BOTTOM_NUMBER`.
+pub const PROP_WINDOW_WAYLAND_BORDER_INSET_BOTTOM_NUMBER: &str =
+    "SDL.window.wayland.border_inset_bottom";
 /// The window shape set with [`Window::set_shape`] (an `Any` [`Surface`]).
 pub const PROP_WINDOW_SHAPE_POINTER: &str = "SDL.window.shape";
 pub const PROP_WINDOW_HDR_ENABLED_BOOLEAN: &str = "SDL.window.HDR_enabled";

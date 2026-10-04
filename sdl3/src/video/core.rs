@@ -69,8 +69,12 @@ static VIDEO_DEVICE: ReentrantMutex<RefCell<Option<VideoDevice>>> =
 /// Available video drivers. Translation of `bootstrap`.
 #[cfg(not(test))]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
     #[cfg(all(unix, not(target_vendor = "apple")))]
     &drivers::x11::video::X11_BOOTSTRAP,
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    &drivers::wayland::video::WAYLAND_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::windows::WINDOWS_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
@@ -78,8 +82,12 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
 ];
 #[cfg(test)]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
     #[cfg(all(unix, not(target_vendor = "apple")))]
     &drivers::x11::video::X11_BOOTSTRAP,
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    &drivers::wayland::video::WAYLAND_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::windows::WINDOWS_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,

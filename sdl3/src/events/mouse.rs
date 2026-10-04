@@ -419,10 +419,10 @@ pub(crate) struct Mouse {
     has_position: bool,
     pub(crate) relative_mode: bool,
     relative_mode_warp_motion: bool,
-    relative_mode_hide_cursor: bool,
+    pub(crate) relative_mode_hide_cursor: bool,
     relative_mode_center: bool,
     warp_emulation_hint: bool,
-    warp_emulation_active: bool,
+    pub(crate) warp_emulation_active: bool,
     warp_emulation_prohibited: bool,
     last_center_warp_time: Duration,
     enable_normal_speed_scale: bool,
@@ -451,8 +451,8 @@ pub(crate) struct Mouse {
 
     cursors: Vec<Cursor>,
     def_cursor: Option<Cursor>,
-    cur_cursor: Option<Cursor>,
-    cursor_visible: bool,
+    pub(crate) cur_cursor: Option<Cursor>,
+    pub(crate) cursor_visible: bool,
 
     // SDL_mice / SDL_mouse_names / SDL_mouse_initialized
     mice: Vec<MouseID>,
