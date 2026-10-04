@@ -381,6 +381,8 @@ fn portal_show_file_dialog_on(
         _ => return callback(Err(Error::new("Invalid response received by DBus")), None),
     };
 
+    // FIXME (upstream): the match rule is never removed, so one stays on the
+    // bus for each dialog shown. Kept.
     if let Err(e) = conn.add_match(&signal_filter(&signal_id)) {
         return callback(
             Err(Error::new(format!(
