@@ -12,8 +12,7 @@
 //! exposes as a separate evdev node are matched to their joystick by their
 //! unique identifier.
 //!
-//! This is the configuration upstream builds without HIDAPI (which isn't
-//! translated yet): devices HIDAPI would handle are not skipped for it.
+//! Devices the HIDAPI driver handles are left to it.
 
 use std::cell::RefCell;
 use std::ffi::{c_int, c_ulong, CString};
@@ -395,8 +394,16 @@ fn fixup_device_info_for_mapping(fd: RawFd, inpid: &mut input_id) {
     }
 }
 
-/// Translation of `IsVirtualJoystick()` in a build without HIDAPI.
-fn is_virtual_joystick(_vendor: u16, _product: u16, _version: u16, _name: &str) -> bool {
+/// Translation of `IsVirtualJoystick()` (of a build with HIDAPI).
+fn is_virtual_joystick(vendor: u16, product: u16, version: u16, name: &str) -> bool {
+    if vendor == super::usb_ids::USB_VENDOR_MICROSOFT
+        && product == super::usb_ids::USB_PRODUCT_XBOX_ONE_S
+        && version == 0
+        && name == "Xbox One S Controller"
+    {
+        // This is the virtual device created by the xow driver
+        return true;
+    }
     false
 }
 
