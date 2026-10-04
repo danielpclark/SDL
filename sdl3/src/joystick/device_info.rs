@@ -346,11 +346,16 @@ pub(crate) fn gamepad_type_from_vidpid(
 pub(crate) fn gamepad_type_from_guid(guid: Guid, name: Option<&str>) -> GamepadType {
     let (vendor, product, _, _) = joystick_guid_info(guid);
     let gamepad_type = gamepad_type_from_vidpid(vendor, product, name, true);
-    if gamepad_type == GamepadType::Standard && is_joystick_xinput(guid) {
-        // This is probably an Xbox One controller
-        return GamepadType::XboxOne;
+    if gamepad_type == GamepadType::Standard {
+        if is_joystick_xinput(guid) {
+            // This is probably an Xbox One controller
+            return GamepadType::XboxOne;
+        }
+        #[cfg(any(windows, target_os = "linux"))]
+        if is_joystick_hidapi(guid) {
+            return super::hidapi::get_gamepad_type_from_guid(guid);
+        }
     }
-    // (HIDAPI_GetGamepadTypeFromGUID() arrives with the HIDAPI driver)
     gamepad_type
 }
 
@@ -683,7 +688,10 @@ pub(crate) fn joystick_guid_type(guid: Guid) -> JoystickType {
         return JoystickType::from_u8(guid.0[15]);
     }
 
-    // (HIDAPI_GetJoystickTypeFromGUID() arrives with the HIDAPI driver)
+    #[cfg(any(windows, target_os = "linux"))]
+    if is_joystick_hidapi(guid) {
+        return super::hidapi::get_joystick_type_from_guid(guid);
+    }
 
     if guess_controller_type(vendor, product) != ControllerType::UnknownNonSteamController {
         return JoystickType::Gamepad;

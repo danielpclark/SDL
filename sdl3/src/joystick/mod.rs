@@ -27,6 +27,8 @@ mod device_info;
 mod dummy;
 pub mod gamepad;
 mod gamepad_db;
+#[cfg(any(windows, target_os = "linux"))]
+pub(crate) mod hidapi;
 #[cfg(target_os = "linux")]
 pub(crate) mod linux;
 mod steam_virtual_gamepad;
@@ -526,29 +528,34 @@ pub(crate) trait JoystickDriver: Send + Sync {
     fn gamepad_mapping(&self, device_index: usize) -> Option<GamepadMapping>;
 }
 
+/// The index of the HIDAPI driver in [`JOYSTICK_DRIVERS`] (the highest
+/// priority driver for supported devices).
+#[cfg(all(test, any(windows, target_os = "linux")))]
+const HIDAPI_DRIVER_INDEX: usize = 0;
+
 /// The index of the RawInput driver in [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const RAWINPUT_DRIVER_INDEX: usize = 0;
+const RAWINPUT_DRIVER_INDEX: usize = 1;
 
 /// The index of the Windows (DirectInput and XInput) driver in
 /// [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const WINDOWS_DRIVER_INDEX: usize = 1;
+const WINDOWS_DRIVER_INDEX: usize = 2;
 
 /// The index of the Windows.Gaming.Input driver in [`JOYSTICK_DRIVERS`].
 #[cfg(windows)]
-const WGI_DRIVER_INDEX: usize = 2;
+const WGI_DRIVER_INDEX: usize = 3;
 
 /// The index of the Linux driver in [`JOYSTICK_DRIVERS`].
 #[cfg(target_os = "linux")]
-const LINUX_DRIVER_INDEX: usize = 0;
+const LINUX_DRIVER_INDEX: usize = 1;
 
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
-/// platform driver, if there is one).
+/// HIDAPI and platform drivers, if there are).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
-    3
+    4
 } else if cfg!(target_os = "linux") {
-    1
+    2
 } else {
     0
 };
@@ -557,6 +564,8 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
 /// `SDL_joystick_drivers`; the dummy driver is only there without a
 /// platform driver, as upstream builds it.
 static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
+    #[cfg(any(windows, target_os = "linux"))]
+    &hidapi::HIDAPI_JOYSTICK_DRIVER,
     // Before WINDOWS driver, as WINDOWS wants to check if this driver is handling things
     #[cfg(windows)]
     &windows::rawinput::RAWINPUT_JOYSTICK_DRIVER,
@@ -2491,7 +2500,9 @@ pub fn update_joysticks() {
         send_steam_handle_update_events();
     }
 
-    // (HIDAPI_UpdateDevices() arrives with the HIDAPI driver)
+    // Special function for HIDAPI devices, as a single device can provide multiple SDL_Joysticks
+    #[cfg(any(windows, target_os = "linux"))]
+    hidapi::update_devices();
 
     let open: Vec<(JoystickID, usize)> = with_state(|s| {
         s.joysticks

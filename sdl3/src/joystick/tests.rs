@@ -544,7 +544,16 @@ fn virtual_joystick_without_gamepads() {
 
 #[test]
 fn driver_order() {
-    // The platform drivers come before the virtual driver, as upstream lists them
+    // The HIDAPI driver comes first, then the platform drivers and the
+    // virtual driver, as upstream lists them
+    #[cfg(any(windows, target_os = "linux"))]
+    {
+        let hidapi_driver: &dyn JoystickDriver = &hidapi::HIDAPI_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[HIDAPI_DRIVER_INDEX],
+            hidapi_driver
+        ));
+    }
     let virtual_driver: &dyn JoystickDriver = &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER;
     assert!(std::ptr::addr_eq(
         JOYSTICK_DRIVERS[VIRTUAL_DRIVER_INDEX],
