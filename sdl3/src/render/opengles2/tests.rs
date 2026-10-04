@@ -172,10 +172,11 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 
 #[test]
 fn driver_list_follows_upstreams_order() {
-    assert_eq!(num_render_drivers(), 2);
-    assert_eq!(render_driver(0).unwrap(), "opengles2");
-    assert_eq!(render_driver(1).unwrap(), SOFTWARE_RENDERER);
-    assert!(render_driver(2).is_err());
+    assert_eq!(num_render_drivers(), 3);
+    assert_eq!(render_driver(0).unwrap(), "opengl");
+    assert_eq!(render_driver(1).unwrap(), "opengles2");
+    assert_eq!(render_driver(2).unwrap(), SOFTWARE_RENDERER);
+    assert!(render_driver(3).is_err());
 }
 
 #[test]
@@ -280,12 +281,13 @@ fn gles2_renderer_basics() {
     r.set_vsync(0).unwrap();
     assert_eq!(r.vsync(), 0);
 
-    // The default driver on a GL capable video driver is this one.
+    // The default driver on a GL capable video driver is a GL one (the
+    // OpenGL renderer comes first, where it can be made).
     drop(r);
     window.destroy();
     let w2 = Window::create("gles2 default", 16, 16, WindowFlags::default()).unwrap();
     let r2 = Renderer::for_window(&w2, None).unwrap();
-    assert_eq!(r2.name(), "opengles2");
+    assert!(matches!(r2.name(), "opengl" | "opengles2"), "{}", r2.name());
     // The window can go first.
     w2.destroy();
     drop(r2);

@@ -546,6 +546,14 @@ pub(crate) trait RenderBackend {
 pub(crate) struct TextureCreateProps {
     #[allow(dead_code)] // (the software backend has no colorspaces)
     pub(crate) colorspace: Option<Colorspace>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_NUMBER`
+    pub(crate) opengl_texture: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_UV_NUMBER`
+    pub(crate) opengl_texture_uv: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_U_NUMBER`
+    pub(crate) opengl_texture_u: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`
+    pub(crate) opengl_texture_v: Option<u32>,
 }
 
 /// An error for a texture handle that is not (or no longer) valid.

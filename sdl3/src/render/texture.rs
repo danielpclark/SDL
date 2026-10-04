@@ -54,6 +54,18 @@ pub struct TextureCreateInfo {
     pub sdr_white_point: Option<f32>,
     /// The HDR headroom (`SDL_PROP_TEXTURE_CREATE_HDR_HEADROOM_FLOAT`)
     pub hdr_headroom: Option<f32>,
+    /// An OpenGL texture to use instead of creating one (the OpenGL
+    /// renderer; `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_NUMBER`)
+    pub opengl_texture: Option<u32>,
+    /// The OpenGL texture of the UV plane of an NV12 texture
+    /// (`SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_UV_NUMBER`)
+    pub opengl_texture_uv: Option<u32>,
+    /// The OpenGL texture of the U plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_U_NUMBER`)
+    pub opengl_texture_u: Option<u32>,
+    /// The OpenGL texture of the V plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`)
+    pub opengl_texture_v: Option<u32>,
 }
 
 /// The number of glyphs in a row of the debug text atlas.
@@ -415,6 +427,10 @@ impl Renderer {
                 tex,
                 &TextureCreateProps {
                     colorspace: info.colorspace,
+                    opengl_texture: info.opengl_texture,
+                    opengl_texture_uv: info.opengl_texture_uv,
+                    opengl_texture_u: info.opengl_texture_u,
+                    opengl_texture_v: info.opengl_texture_v,
                 },
             )?;
         } else {
@@ -637,6 +653,7 @@ impl Renderer {
             sdr_white_point: (surface_colorspace == texture_colorspace)
                 .then(|| surface.sdr_white_point(surface_colorspace)),
             hdr_headroom: Some(surface.hdr_headroom(surface_colorspace)),
+            ..TextureCreateInfo::default()
         };
         let texture = self.create_texture_with(&info)?;
 
