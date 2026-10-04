@@ -27,7 +27,7 @@ use super::{
     CameraFrameResult, CameraPosition, CameraSpec,
 };
 use crate::core::linux::evdev_capabilities::DeviceClass;
-use crate::core::linux::input::{ior, iow, ioc_read_write};
+use crate::core::linux::input::{ioc_read_write, ior, iow};
 use crate::core::linux::udev::{self, UdevDeviceEvent};
 use crate::error::{Error, Result};
 use crate::video::surface::calculate_surface_size;
