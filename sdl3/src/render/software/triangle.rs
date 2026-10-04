@@ -458,8 +458,9 @@ impl TexCoords {
             TextureAddressMode::Wrap => {
                 *v %= size;
                 if *v < 0 {
-                    // FIXME (upstream): this adds size - 1, not size
-                    *v += size - 1;
+                    // (upstream adds size - 1, which puts negative
+                    // coordinates one texel off, -1 on size - 2; fixed here)
+                    *v += size;
                 }
             }
             _ => {}
@@ -837,5 +838,28 @@ mod tests {
             dst.read_pixel(12, 1).unwrap(),
             Color::new(255, 255, 255, 255)
         );
+    }
+
+    // Wrapped texture coordinates repeat the texture to the left and above.
+    #[test]
+    fn wrap_negative_coordinates() {
+        let at = |x: i64, y: i64| {
+            TexCoords {
+                s2_x_area: (x, y),
+                s2s0: (0, 0),
+                s2s1: (0, 0),
+                area: 1,
+                w: 4,
+                h: 3,
+                mode_u: TextureAddressMode::Wrap,
+                mode_v: TextureAddressMode::Wrap,
+            }
+            .get([0, 0, 0])
+        };
+        assert_eq!(at(-1, -1), (3, 2));
+        assert_eq!(at(-3, -2), (1, 1));
+        assert_eq!(at(-4, -3), (0, 0));
+        assert_eq!(at(-5, -7), (3, 2));
+        assert_eq!(at(5, 4), (1, 1));
     }
 }

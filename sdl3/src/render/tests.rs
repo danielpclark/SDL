@@ -521,15 +521,16 @@ fn run_render(t: &mut Harness) -> u64 {
 }
 
 // The hash printed by the upstream C harness (with SDL_HasMMX/SSE2/SSE41/AVX2
-// reporting true and false). The INDEX8 output (FMTS[6]) needs upstream's
-// SDL_render_sw.c patched to give the intermediate surface of a scaled,
-// clipped copy the output's palette, as `run_commands` does; upstream
-// crashes there.
+// reporting true and false), with upstream's SDL_triangle.c fixed to wrap
+// negative texture coordinates by adding the size, as `TexCoords::get` does.
+// The INDEX8 output (FMTS[6]) needs upstream's SDL_render_sw.c patched to
+// give the intermediate surface of a scaled, clipped copy the output's
+// palette, as `run_commands` does; upstream crashes there.
 #[test]
 fn render_matches_c() {
     let simd = with_simd(true, run_render);
     let plain = with_simd(false, run_render);
-    assert_eq!((simd, plain), (0x92f63792ff6bb6d0, 0xea36e230679f5eb7));
+    assert_eq!((simd, plain), (0x13c2b23cd1e21472, 0xb189fd46a79a1c45));
 }
 
 #[test]
