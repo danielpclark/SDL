@@ -285,9 +285,9 @@ fn run_blit(t: &mut Harness) -> u64 {
         for j in 0..SUB.len() {
             for (m, mode) in MODES.iter().enumerate() {
                 for v in 0..4 {
-                    // SDL_blit_0.c drifts by leading_skip bytes per row (see
-                    // walk_bits); taller bitmaps keep the C side's reads inside
-                    // the buffer, where both sides read the same bytes.
+                    // Taller bitmaps, as in the C harness (upstream's
+                    // SDL_blit_0.c drifts by leading_skip bytes per row, see
+                    // walk_bits, and these kept its reads inside the buffer).
                     let sh = if FMTS[SUB[i]].bits_per_pixel() < 8 {
                         40
                     } else {
@@ -1373,7 +1373,43 @@ fn converted_colorkey_is_the_pixel_value() {
 fn blit_matches_c() {
     let simd = with_simd(true, run_blit);
     let plain = with_simd(false, run_blit);
-    assert_glibc_hashes((simd, plain), (0x812674e3573cf57d, 0x3d7f5cfcb969acac));
+    // (from the C harness with SDL_blit_0.c's leading_skip fix applied, see
+    // walk_bits)
+    assert_glibc_hashes((simd, plain), (0xbaff3e86bbd89cd3, 0xbc80038440a9ab6e));
+}
+
+/// A bitmap blit that starts inside a byte reads every row from the start
+/// of that row (upstream drifts by `leading_skip` bytes per row).
+#[test]
+fn bitmap_blit_with_leading_skip() {
+    for (format, bits, x) in [
+        (PixelFormat::INDEX1MSB, 1u32, 3),
+        (PixelFormat::INDEX2MSB, 2, 1),
+        (PixelFormat::INDEX4MSB, 4, 1),
+    ] {
+        let mut s = Surface::new(16, 3, format).unwrap();
+        let pal = s.create_palette().unwrap();
+        let ncolors = read_palette(&pal).len();
+        for i in 0..ncolors {
+            let v = (i * 255 / (ncolors - 1)) as u8;
+            write_palette(&pal)
+                .set_colors(i, &[Color::new(v, v, v, 255)])
+                .unwrap();
+        }
+        // Pixel `x` of every row has the last palette index, the others 0.
+        let pitch = s.pitch() as usize;
+        let max = (1u32 << bits) - 1;
+        let shift = 8 - bits * (x as u32 + 1);
+        for y in 0..3 {
+            s.pixels_mut().unwrap()[y * pitch] = (max << shift) as u8;
+        }
+        let mut d = Surface::new(4, 3, PixelFormat::XRGB8888).unwrap();
+        s.blit(Some(&Rect::new(x, 0, 4, 3)), &mut d, None).unwrap();
+        for y in 0..3 {
+            let row: Vec<u8> = (0..4).map(|px| d.read_pixel(px, y).unwrap().r).collect();
+            assert_eq!(row, [255, 0, 0, 0], "{format:?} row {y}");
+        }
+    }
 }
 
 #[test]
@@ -1387,7 +1423,9 @@ fn scaled_blit_matches_c() {
 fn misc_matches_c() {
     let simd = with_simd(true, run_misc);
     let plain = with_simd(false, run_misc);
-    assert_glibc_hashes((simd, plain), (0x54c5089e1dcbc6e0, 0x90e771243b39fd3f));
+    // (from the C harness with SDL_blit_0.c's leading_skip fix applied, see
+    // walk_bits)
+    assert_glibc_hashes((simd, plain), (0xd5f63f57d93af033, 0x2638eeaefacce8c8));
 }
 
 #[test]
