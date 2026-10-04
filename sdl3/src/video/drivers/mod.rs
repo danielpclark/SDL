@@ -8,10 +8,10 @@
 
 pub(crate) mod dummy;
 pub(crate) mod offscreen;
-#[cfg(all(unix, not(target_vendor = "apple")))]
-pub(crate) mod x11;
 #[cfg(windows)]
 pub(crate) mod windows;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+pub(crate) mod x11;
 
 use std::sync::atomic::{AtomicI32, Ordering};
 
