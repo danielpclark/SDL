@@ -53,7 +53,7 @@ handlers and thread priorities.
 
 | Area | Lines | Order |
 |---|---|---|
-| `video/` backends | ~210,000 | dummy & offscreen (**done**, with the video core, `SDL_video.c`, checked against upstream C) → Wayland → X11 (**mostly done**: `video/x11/` except GLX/EGL (`SDL_x11opengl.c`, `SDL_x11opengles.c`, waiting for the OpenGL front end) and the D-Bus IME/screensaver/theme parts (with `core/linux` D-Bus); tested against Xvfb) → Windows → Cocoa → UIKit → Android → KMS/DRM → Emscripten → others |
+| `video/` backends | ~210,000 | dummy & offscreen (**done**, with the video core, `SDL_video.c`, checked against upstream C) → Wayland → X11 (**mostly done**: `video/x11/` except GLX/EGL (`SDL_x11opengl.c`, `SDL_x11opengles.c`, waiting for the OpenGL front end) and the IBus/Fcitx input methods, screensaver inhibition and system theme over D-Bus (next); tested against Xvfb) → Windows → Cocoa → UIKit → Android → KMS/DRM → Emscripten → others |
 | `render/` GPU backends | ~77,000 | OpenGL / GLES2 → Vulkan → Direct3D 11/12 → Metal → `SDL_GPU`-based renderer |
 | `gpu/` | ~41,800 | Vulkan → D3D12 → Metal |
 | `audio/` drivers | ~15,000 | dummy & disk (**done**) → ALSA, PulseAudio, PipeWire, WASAPI (**done**) → CoreAudio → AAudio → others |

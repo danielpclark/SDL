@@ -21,7 +21,7 @@ use crate::events::{Event, EventType};
 use crate::hints;
 use crate::init::{self, InitFlags};
 use crate::loadso::SharedObject;
-use crate::test_support::TEST_LOCK;
+
 use crate::video::pixels::Color;
 use crate::video::window::{Window as SdlWindow, PROP_WINDOW_X11_WINDOW_NUMBER};
 use crate::video::{self, PixelFormat, Rect, Surface};
@@ -218,7 +218,7 @@ impl XTest {
 
 #[test]
 fn x11_init_and_modes() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -258,7 +258,7 @@ fn x11_init_and_modes() {
 
 #[test]
 fn x11_windows() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -470,7 +470,7 @@ fn framebuffer_roundtrip() {
 
 #[test]
 fn x11_framebuffer_shm() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -479,7 +479,7 @@ fn x11_framebuffer_shm() {
 
 #[test]
 fn x11_framebuffer_putimage() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     // (a server without MIT-SHM: the framebuffer goes through XPutImage)
     let Some(_server) = XServer::xvfb(&["-extension", "MIT-SHM"]) else {
         return;
@@ -489,7 +489,7 @@ fn x11_framebuffer_putimage() {
 
 #[test]
 fn x11_clipboard() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -700,7 +700,7 @@ fn serve_selection() {
 
 #[test]
 fn x11_cursors() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -747,7 +747,7 @@ fn x11_cursors() {
 
 #[test]
 fn x11_keyboard_and_mouse_input() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -849,7 +849,7 @@ fn x11_keyboard_and_mouse_input() {
 
 #[test]
 fn x11_vulkan() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -874,7 +874,7 @@ fn x11_vulkan() {
 
 #[test]
 fn x11_wait_and_wakeup() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -924,7 +924,7 @@ fn x11_wait_and_wakeup() {
 
 #[test]
 fn x11_fullscreen_and_popups() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
@@ -1053,7 +1053,7 @@ fn x11_message_box() {
         MessageBoxData, MessageBoxFlags,
     };
 
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let Some(_server) = XServer::start() else {
         return;
     };
