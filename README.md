@@ -93,6 +93,8 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `haptic/linux/SDL_syshaptic.c` | `sdl3::haptic` (Linux driver) | force feedback on evdev nodes: effect conversion to `ff_effect` (directions, clamping, envelopes), upload, run/stop, gain, autocenter, haptics opened from Linux joysticks |
 | `haptic/windows/SDL_windowshaptic.c`, `SDL_dinputhaptic.c` | `sdl3::haptic` (Windows driver) | DirectInput force feedback: devices and the joystick driver's devices, actuator axes and supported effects, effect conversion to `DIEFFECT` (owned parameters instead of the C allocations, update flags), run/stop/status, gain, autocenter, pause; conversions checked against upstream's C |
 | `camera/SDL_camera.c`, `SDL_syscamera.h`, `dummy/` | `sdl3::camera` | `Camera` handles, the device thread, spec sorting and best-match selection, frame queues with zero-copy hand-off (frames are owned buffers that return to the backend when the `CameraFrame` is dropped), conversion and scaling, permission states, zombie devices, hotplug events |
+| `camera/v4l2/` | `sdl3::camera` (V4L2 driver, Linux) | Video4Linux2 capture through raw ioctls (the `<linux/videodev2.h>` layouts and ioctl numbers checked against the header): memory-mapped, user-pointer and `read()` I/O with owned descriptors, mappings and buffers, the format/size/frame-rate enumeration (checked against upstream's C over a fake device), hotplug through udev or a scan of `/dev` |
+| `camera/pipewire/` | `sdl3::camera` (PipeWire driver, Linux) | `Video/Source` nodes from the registry of a hotplug loop, their `EnumFormat` params collected into specs, one capture stream per opened camera; libpipewire loaded at run time, sharing the declarations and SPA helpers with the audio driver (`core::linux::pipewire`); the camera portal in a sandbox. Pods and collected specs checked against the C; tested against a private PipeWire server with a video source of its own when one is reachable |
 | `dialog/SDL_dialog.c`, `SDL_dialog_utils.c`, `unix/SDL_unixdialog.c`, `SDL_portaldialog.c`, `SDL_zenitydialog.c`, `SDL_zenitymessagebox.c` | `sdl3::dialog` | open/save/folder dialogs with closure callbacks, filter validation and conversion; on Unix the XDG FileChooser portal over D-Bus (case-insensitive filters, the parent window handle, save locations, the Response signal handled by the event loop), else zenity; the zenity message box of the X11 and Wayland drivers |
 | `tray/SDL_tray_utils.c`, `unix/SDL_tray.c`, `unix/SDL_dbustray.c`, `dummy/` | `sdl3::tray` | an owning `Tray` with `TrayRef`/`TrayMenu`/`TrayEntry` handles that fail once what they name is gone, closure callbacks; on Unix a StatusNotifierItem on its own session bus connection, registered with the StatusNotifierWatcher, with its menu (submenus, checkboxes, separators) exported as dbusmenu and polled by the event loop; tray bookkeeping for quit-on-last-window-close |
 | `notification/SDL_notification.c`, `unix/SDL_dbusnotification.c`, `dummy/` | `sdl3::notification` | notifications through `org.freedesktop.Notifications`, or the notification portal in a sandbox (images, sounds, priorities, buttons); action invocations become events, and the XDG activation token is kept for Wayland |
@@ -127,7 +129,9 @@ contexts and the Wayland driver's EGL (`SDL_waylandopengles.c`);
 the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
 audio drivers other than ALSA, PulseAudio, PipeWire and WASAPI (and ALSA's
-udev hotplug path), the camera drivers, the haptic drivers other than
+udev hotplug path), the camera drivers other than V4L2 and PipeWire
+(Media Foundation, CoreMedia, Android, Emscripten, Vita, OpenHarmony), the
+haptic drivers other than
 Linux's and Windows' DirectInput one, the joystick drivers other than Linux
 evdev, HIDAPI (and the HIDAPI device drivers listed above) and the Windows
 ones (GameInput isn't translated), the hidapi backends other than Linux

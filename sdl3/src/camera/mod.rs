@@ -23,13 +23,16 @@
 //! when the frame is dropped. A frame still held when its camera closes
 //! stays valid (upstream's pointer dangles) and is freed when dropped.
 //!
-//! The camera backends are platform drivers; so far only the dummy
-//! driver, which reports no cameras and is used only when requested with
-//! [`hints::CAMERA_DRIVER`], exists. Without it, initializing the camera
-//! subsystem fails with "No available camera driver", as upstream does on
-//! a platform without camera support.
+//! The camera backends are platform drivers: on Linux, V4L2 and PipeWire
+//! (in that order, as upstream); elsewhere, so far, only the dummy driver,
+//! which reports no cameras and is used only when requested with
+//! [`hints::CAMERA_DRIVER`]. Without a platform driver, initializing the
+//! camera subsystem fails with "No available camera driver", as upstream
+//! does on a platform without camera support.
 
 mod dummy;
+#[cfg(target_os = "linux")]
+mod pipewire;
 #[cfg(target_os = "linux")]
 mod v4l2;
 
@@ -186,6 +189,8 @@ static BOOTSTRAP: &[&CameraBootStrap] = &[
     &tests::TESTCAMERA_BOOTSTRAP,
     #[cfg(target_os = "linux")]
     &v4l2::V4L2_BOOTSTRAP,
+    #[cfg(target_os = "linux")]
+    &pipewire::PIPEWIRECAMERA_BOOTSTRAP,
     &dummy::DUMMYCAMERA_BOOTSTRAP,
 ];
 
