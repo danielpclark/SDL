@@ -80,8 +80,10 @@ conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
 BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
 scenarios; the joystick and gamepad front ends by comparing the event trace
-of a scripted virtual-joystick session with upstream's. Upstream bugs found this way are kept and marked
-`FIXME (upstream)`; where the C code would read or write out of bounds, the
+of a scripted virtual-joystick session with upstream's. Upstream bugs found
+this way are fixed here, and their expected results come from the C reference
+patched the same way. The ones not fixed yet are marked `FIXME (upstream)` and
+tracked in issues. Where the C code would read or write out of bounds, the
 Rust code returns an error instead.
 
 Not yet translated from these files: the SIGINT/SIGTERM handlers of

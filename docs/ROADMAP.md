@@ -69,7 +69,8 @@ In dependency order, after the core each one needs exists:
 ## Rules for every phase
 
 * Translate whole files; keep upstream's function order inside a module.
-* Carry upstream comments and `FIXME`s across.
+* Carry upstream comments and `FIXME`s across; fix upstream bugs in their
+  own changes (see the translation guide).
 * Pin behaviour with tests derived from upstream constants and comments.
 * `cargo test`, `cargo clippy --all-targets` and `cargo doc` stay clean.
 * Platform code is `#[cfg]`-gated and the crate always builds on every tier-1

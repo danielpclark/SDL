@@ -8,7 +8,10 @@ faithful translation; the API is not a mock-up of the C one.
 
 1. **Implementation** — translated line by line from upstream: algorithms,
    control flow, constants, lookup tables, error strings, the comments and
-   even the `FIXME`s. If upstream has a quirk, we have the quirk.
+   even the `FIXME`s. If upstream has a quirk, we have the quirk. A real
+   upstream bug is the exception: it is marked `FIXME (upstream)` at first,
+   then fixed in its own change (or tracked in an issue), with the expected
+   test results regenerated from the C reference patched the same way.
 2. **API** — designed for Rust. Nothing in the public surface exists only
    because C needed it (`bool` returns, `void *userdata`, integer handles,
    out-parameters, `NULL` sentinels, global error strings).
