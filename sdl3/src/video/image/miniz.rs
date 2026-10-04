@@ -1294,13 +1294,10 @@ pub(crate) fn write_image_to_png_file_in_memory_ex(
             0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        // FIXME (upstream): only the low 16 bits of the width and height
-        // are written, so images 65536 or more pixels across come out wrong.
-        pnghdr[18] = (w >> 8) as u8;
-        pnghdr[19] = w as u8;
-
-        pnghdr[22] = (h >> 8) as u8;
-        pnghdr[23] = h as u8;
+        // (upstream writes only the low 16 bits of each, which breaks
+        // images 65536 or more pixels across: IHDR has 32-bit fields)
+        pnghdr[16..20].copy_from_slice(&(w as u32).to_be_bytes());
+        pnghdr[20..24].copy_from_slice(&(h as u32).to_be_bytes());
 
         if num_chans == 1 && !plte.is_empty() {
             pnghdr[25] = 3;

@@ -324,3 +324,30 @@ fn save_and_load_files() {
     );
     assert!(Surface::load_jpg(std::path::Path::new(&dir.0).join("missing.jpg")).is_err());
 }
+
+#[test]
+fn wide_and_tall_png_round_trip() {
+    // 65536 pixels and more in either direction need all four bytes of the
+    // IHDR width and height.
+    for (w, h) in [(70000, 2), (2, 70000), (65536, 1)] {
+        let mut s = Surface::new(w, h, PixelFormat::RGBA32).unwrap();
+        s.pixels_mut()
+            .unwrap()
+            .iter_mut()
+            .enumerate()
+            .for_each(|(i, b)| *b = (i * 7) as u8);
+        let mut io = IoStream::from_dynamic_mem();
+        s.save_png_io(&mut io).unwrap();
+        let png = io.dynamic_memory().unwrap().to_vec();
+        assert_eq!(
+            &png[16..24],
+            &[(w as u32).to_be_bytes(), (h as u32).to_be_bytes()].concat()
+        );
+        let back = Surface::load_png_io(&mut IoStream::from_const_mem(&png)).unwrap();
+        assert_eq!(
+            (back.width(), back.height(), back.format()),
+            (w, h, PixelFormat::RGBA32)
+        );
+        assert_eq!(surf_hash(&back), surf_hash(&s));
+    }
+}
