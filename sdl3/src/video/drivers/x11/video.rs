@@ -397,7 +397,7 @@ fn x11_create_device() -> Option<Arc<dyn VideoDriver>> {
     // (X11_DEBUG would XSynchronize() the display here)
 
     // The function pointers are the VideoDriver implementation below; the
-    // system theme comes with the D-Bus layer (SDL_SystemTheme_Init()).
+    // system theme is read in video_init(), once the device exists.
     Some(Arc::new(X11Video {
         conn,
         request_conn,
@@ -698,6 +698,13 @@ impl VideoDriver for X11Video {
     }
 
     fn video_init(&self) -> Result<()> {
+        // (X11_CreateDevice() sets device->system_theme, which exists once
+        // the driver is chosen; no event is sent)
+        #[cfg(not(target_os = "android"))]
+        if crate::core::linux::system_theme::init() {
+            let theme = crate::core::linux::system_theme::get();
+            let _ = crate::video::core::with_device(|v| v.system_theme = theme);
+        }
         self.x11_video_init()
     }
 
@@ -925,8 +932,19 @@ impl VideoDriver for X11Video {
         Some(self.x11_flash_window(window, operation))
     }
 
-    // (ApplyWindowProgress is DBUS_ApplyWindowProgress, which comes with
-    // the D-Bus layer)
+    #[cfg(not(target_os = "android"))]
+    fn apply_window_progress(&self, window: WindowID) -> Option<Result<()>> {
+        // (DBUS_ApplyWindowProgress)
+        Some(
+            if crate::core::linux::progressbar::apply_window_progress(window) {
+                Ok(())
+            } else {
+                Err(crate::error::Error::new(
+                    "Couldn't send the progress over D-Bus",
+                ))
+            },
+        )
+    }
 
     fn show_window_system_menu(&self, window: WindowID, x: i32, y: i32) -> Option<()> {
         self.x11_show_window_system_menu(window, x, y);

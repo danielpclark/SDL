@@ -340,7 +340,51 @@ const G_DEFAULT_COLORS: [MessageBoxColor; MESSAGEBOX_COLOR_COUNT] = [
     MessageBoxColor { r: 235, g: 235, b: 235 }, // SDL_MESSAGEBOX_COLOR_BUTTON_SELECTED,
 ];
 
-// (the dark theme colors come with the D-Bus system theme)
+#[cfg(not(target_os = "android"))]
+const G_DEFAULT_COLORS_DARK: [MessageBoxColor; MESSAGEBOX_COLOR_COUNT] = [
+    MessageBoxColor {
+        r: 20,
+        g: 20,
+        b: 20,
+    }, // SDL_MESSAGEBOX_COLOR_BACKGROUND,
+    MessageBoxColor {
+        r: 192,
+        g: 192,
+        b: 192,
+    }, // SDL_MESSAGEBOX_COLOR_TEXT,
+    MessageBoxColor {
+        r: 12,
+        g: 12,
+        b: 12,
+    }, // SDL_MESSAGEBOX_COLOR_BUTTON_BORDER,
+    MessageBoxColor {
+        r: 20,
+        g: 20,
+        b: 20,
+    }, // SDL_MESSAGEBOX_COLOR_BUTTON_BACKGROUND,
+    MessageBoxColor {
+        r: 36,
+        g: 36,
+        b: 36,
+    }, // SDL_MESSAGEBOX_COLOR_BUTTON_SELECTED,
+];
+
+/// The default colors for the system theme.
+fn default_colors() -> [MessageBoxColor; MESSAGEBOX_COLOR_COUNT] {
+    #[cfg(not(target_os = "android"))]
+    {
+        use crate::core::linux::system_theme;
+        use crate::video::SystemTheme;
+        let mut theme = SystemTheme::Light;
+        if system_theme::init() {
+            theme = system_theme::get();
+        }
+        if theme == SystemTheme::Dark {
+            return G_DEFAULT_COLORS_DARK;
+        }
+    }
+    G_DEFAULT_COLORS
+}
 
 /// A font name with its `%d` replaced (`SDL_asprintf(&font, fmt, size)`).
 fn font_name(format: &str, size: c_int) -> CString {
@@ -1217,7 +1261,7 @@ impl ToolkitWindow {
         window.init_window_fonts();
 
         /* Color hints */
-        let colorhints = colorhints.copied().unwrap_or(G_DEFAULT_COLORS);
+        let colorhints = colorhints.copied().unwrap_or_else(default_colors);
 
         /* Convert colors to 16 bpc XColor format */
         for (i, c) in colorhints.iter().enumerate() {
@@ -2921,5 +2965,20 @@ mod tests {
             font_name(G_ICON_FONT, 44).to_str().unwrap(),
             "-*-*-bold-r-normal-*-44-*-*-*-*-*-iso8859-1[33 88 105]"
         );
+    }
+
+    #[test]
+    fn default_colors_follow_the_system_theme() {
+        use crate::core::linux::dbus::test_bus::{self, Bus};
+        use crate::core::linux::system_theme::serve_test_portal;
+        let _l = crate::test_support::test_lock();
+        let Some(bus) = Bus::start() else { return };
+        for (scheme, colors) in [(1, G_DEFAULT_COLORS_DARK), (2, G_DEFAULT_COLORS)] {
+            let portal = serve_test_portal(&bus, scheme);
+            test_bus::use_as_session(&bus);
+            assert_eq!(default_colors(), colors);
+            test_bus::release_session();
+            portal.stop();
+        }
     }
 }

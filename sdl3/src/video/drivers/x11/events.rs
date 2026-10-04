@@ -2787,7 +2787,8 @@ impl X11Video {
                         (self.x.XResetScreenSaver)(self.display);
                     }
 
-                    // (SDL_DBus_ScreensaverTickle() comes with the D-Bus layer)
+                    #[cfg(not(target_os = "android"))]
+                    crate::core::linux::dbus::screensaver_tickle();
 
                     data.screensaver_activity = now;
                 }
@@ -2820,7 +2821,16 @@ impl X11Video {
 
     /// Translation of `X11_SuspendScreenSaver()`.
     pub(crate) fn x11_suspend_screen_saver(&self, suspend: bool) -> Result<()> {
-        // (SDL_DBus_ScreensaverInhibit() comes with the D-Bus layer)
+        #[cfg(not(target_os = "android"))]
+        {
+            if crate::core::linux::dbus::screensaver_inhibit(suspend) {
+                return Ok(());
+            }
+
+            if suspend {
+                crate::core::linux::dbus::screensaver_tickle();
+            }
+        }
 
         if let Some(xss) = &self.x.xss {
             let mut dummy: c_int = 0;

@@ -24,9 +24,10 @@
 //! * OpenGL (`SDL_x11opengl.c`, `SDL_x11opengles.c`): the OpenGL front end
 //!   behaves as a build without OpenGL, so GLX and EGL contexts are not
 //!   provided and windows get the default visual.
-//! * The D-Bus integration (the IBus/Fcitx input methods of
-//!   `SDL_IBus_*`/`SDL_Fcitx_*`, the screensaver inhibition and the system
-//!   theme): it comes with the D-Bus layer; X input methods (XIM) work.
+//!
+//! Text input goes through X input methods (XIM), as upstream; the D-Bus
+//! screensaver inhibition, system theme and taskbar progress come from
+//! `core::linux`.
 
 #![allow(non_upper_case_globals, non_snake_case)] // (X11 names are kept)
 
