@@ -28,7 +28,7 @@ timers/ticks, time, GUIDs, CRC/murmur/random, rectangles and pixel formats.
 | `render/software/` | ~18,000 | **Done** (`sdl3::render`): the renderer front end (`SDL_render.c`, `SDL_sysrender.h`, `SDL_yuv_sw.c`, the debug font) and the software renderer with its drawing primitives, over an owned `Surface`; checked bit for bit against upstream C. Renderers for windows are done too, with event coordinate conversion and window shapes, checked against upstream C on the dummy video driver. Deferred: the window texture (the GPU-texture window framebuffer, which also carries vsync for window surfaces) and the GPU render state, which come with `gpu/` and the GPU backends. |
 | `joystick/` core | ~15,000 of 60,000 | **Done** (`sdl3::joystick`, `sdl3::gamepad`): the joystick and gamepad front ends, the controller tables and mapping database (generated from upstream), mapping parsing and generation (incl. the HIDAPI/RAWINPUT/WGI generators), the Steam virtual gamepad file, the virtual and dummy drivers; checked against upstream C with a scripted virtual-joystick session. The HIDAPI and platform drivers need device access → Phase 4. |
 | `sensor/` front end | ~1,000 | **Done** (`sdl3::sensor`) with the dummy driver. |
-| `haptic/`, `camera/`, `dialog/`, `tray/`, `notification/`, `locale/`, `misc/`, `process/`, `main/` front-ends | ~13,000 | **Done** (`sdl3::haptic`, `sdl3::camera`, `sdl3::dialog`, `sdl3::tray`, `sdl3::notification`, `sdl3::locale`, `sdl3::misc`, `sdl3::process`, `sdl3::app`): the front ends with their dummy backends, plus the Unix backends that need only `std` (zenity dialogs, `LANG` locales, `xdg-open`, POSIX processes). `main/` is `sdl3::app` since `main` is reserved for binaries. The HIDAPI haptic driver (the Windows DirectInput one is done, see Phase 4), the camera drivers (V4L2, PipeWire…) and the D-Bus tray/notification/portal backends are Phase 4. (`filesystem/` is done too: `sdl3::filesystem`, with the POSIX operations and Unix paths.) |
+| `haptic/`, `camera/`, `dialog/`, `tray/`, `notification/`, `locale/`, `misc/`, `process/`, `main/` front-ends | ~13,000 | **Done** (`sdl3::haptic`, `sdl3::camera`, `sdl3::dialog`, `sdl3::tray`, `sdl3::notification`, `sdl3::locale`, `sdl3::misc`, `sdl3::process`, `sdl3::app`): the front ends with their dummy backends, plus the Unix backends that need only `std` (zenity dialogs, `LANG` locales, `xdg-open`, POSIX processes). `main/` is `sdl3::app` since `main` is reserved for binaries. The HIDAPI haptic driver and the camera drivers (V4L2, PipeWire…) are Phase 4; the D-Bus tray, notification and portal dialog backends are done (see Phase 4). (`filesystem/` is done too: `sdl3::filesystem`, with the POSIX operations and Unix paths.) |
 | `dynapi/` | ~3,450 | Not applicable in Rust (no runtime ABI jump table); documented as intentionally omitted. |
 
 ## Phase 3 — Platform layer design ✅
@@ -45,9 +45,9 @@ backend that uses them and loaded with `sdl3::loadso`, like upstream's
 `rustc` is needed to build.
 
 Done so far: `loadso/`, `core/unix/` (`SDL_poll.c`, `SDL_appid.c`),
-`core/windows/SDL_windows.c`, `core/linux/SDL_dbus.c` (the menu export comes
-with the D-Bus tray) and `SDL_threadprio.c`, the `SDL_quit.c` signal
-handlers and thread priorities.
+`core/windows/SDL_windows.c`, `core/linux/SDL_dbus.c` (with the dbusmenu
+export) and `SDL_threadprio.c`, the `SDL_quit.c` signal handlers and thread
+priorities.
 
 ## Phase 4 — Platform backends (largest volume)
 
@@ -58,8 +58,8 @@ handlers and thread priorities.
 | `gpu/` | ~41,800 | Vulkan → D3D12 → Metal |
 | `audio/` drivers | ~15,000 | dummy & disk (**done**) → ALSA, PulseAudio, PipeWire, WASAPI (**done**) → CoreAudio → AAudio → others |
 | `joystick/` drivers + `hidapi/` | ~60,000 | Linux evdev (**done**: udev/inotify/polling discovery, classic `js` nodes, calibration, hats, balls, sensors, rumble, the generated gamepad mapping; the Linux haptic driver with it) → HIDAPI (pure-Rust hid transport) → Windows (the `SDL_windowsjoystick.c` frame, XInput, DirectInput with its haptic driver, RawInput and WGI **done**; GameInput next) → Darwin IOKit/MFI → Android |
-| `core/` per-platform glue | ~26,000 | Linux (D-Bus, thread priorities, evdev capabilities, udev and the evdev event timestamps **done**; ibus, fcitx, and the console evdev keyboard/mouse reader with the KMS/DRM video driver), Windows (COM, IMMDevice, XInput, DirectInput (`SDL_directx.h`) and `SDL_hid.c` (device notifications and the HID DLL) **done**; GameInput), Android JNI, Apple, Haiku, Emscripten, GDK, PS2/PSP/Vita/3DS/N-Gage, OpenHarmony |
-| `power/`, `locale/`, `filesystem/`, `dialog/`, `tray/`, `notification/`, `camera/`, `sensor/`, `haptic/`, `misc/`, `process/`, `time/`, `timer/`, `loadso/`, `main/` backends | ~30,000 | alongside the platform they belong to (haptic: Linux and Windows DirectInput **done**) |
+| `core/` per-platform glue | ~26,000 | Linux (D-Bus with the menu export, the system theme, taskbar progress, the IME layer with IBus and Fcitx, thread priorities, evdev capabilities, udev and the evdev event timestamps **done**; the console evdev keyboard/mouse reader with the KMS/DRM video driver, `SDL_ubuntu_touch.c`), Windows (COM, IMMDevice, XInput, DirectInput (`SDL_directx.h`) and `SDL_hid.c` (device notifications and the HID DLL) **done**; GameInput), Android JNI, Apple, Haiku, Emscripten, GDK, PS2/PSP/Vita/3DS/N-Gage, OpenHarmony |
+| `power/`, `locale/`, `filesystem/`, `dialog/`, `tray/`, `notification/`, `camera/`, `sensor/`, `haptic/`, `misc/`, `process/`, `time/`, `timer/`, `loadso/`, `main/` backends | ~30,000 | alongside the platform they belong to (haptic: Linux and Windows DirectInput **done**; the Unix D-Bus ones **done**: the FileChooser portal dialogs, the StatusNotifierItem tray with its dbusmenu, `org.freedesktop.Notifications` and the notification portal) |
 | `test/` (`SDL_test_*`) | ~6,200 | the test framework, as a `sdl3-test` crate |
 
 ## Phase 5 — Satellite libraries (same approach, each its own crate)

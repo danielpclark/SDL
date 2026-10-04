@@ -102,6 +102,10 @@ pub(crate) type EntryKey = u64;
 /// What a tray backend implements (upstream's `SDL_TrayDriver` functions
 /// that take a tray, menu or entry). Menus are named by their parent entry
 /// (`None` for the tray's menu).
+#[cfg_attr(
+    not(all(unix, not(target_vendor = "apple"), not(target_os = "android"))),
+    allow(dead_code) // (only the dummy backend, which creates none)
+)]
 pub(crate) trait TrayBackend: Send + Sync {
     fn update(&self);
     fn destroy(&self);
