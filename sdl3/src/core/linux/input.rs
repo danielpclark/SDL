@@ -408,6 +408,11 @@ pub(crate) const fn iow(ty: u8, nr: u32, size: usize) -> c_ulong {
     ioc(IOC_WRITE, ty, nr, size)
 }
 
+/// `_IOC(_IOC_WRITE|_IOC_READ, type, nr, size)`
+pub(crate) const fn ioc_read_write(ty: u8, nr: u32, size: usize) -> c_ulong {
+    ioc(IOC_WRITE | IOC_READ, ty, nr, size)
+}
+
 /// get device ID (`EVIOCGID`)
 pub(crate) const EVIOCGID: c_ulong = ior(b'E', 0x02, size_of::<input_id>());
 
