@@ -27,11 +27,15 @@
 //! (Steam Controller, Wireless HORIPAD For Steam, Steam Deck and the Triton
 //! Steam Controller), Nintendo Switch (with the combined Joy-Cons), Nintendo
 //! Switch 2 (without its libusb setup, so it stays disabled), Wii, Xbox 360
-//! (wired, wireless and Big Button), Xbox One, PS4, PS5, 8BitDo and ZUIKI.
+//! (wired, wireless and Big Button), Xbox One, the Logitech wheels (lg4ff),
+//! PS4, PS5, 8BitDo, Flydigi, SInput, GameSir and ZUIKI.
 
 mod combined;
 mod eightbitdo;
+mod flydigi;
 mod gamecube;
+mod gamesir;
+mod lg4ff;
 mod luna;
 mod ps3;
 mod ps4;
@@ -39,6 +43,7 @@ mod ps5;
 pub(crate) mod report_descriptor;
 pub(crate) mod rumble;
 mod shield;
+mod sinput;
 mod stadia;
 mod steam;
 mod steam_hori;
@@ -987,16 +992,27 @@ pub(crate) static DRIVER_XBOX360BB: HidapiDeviceDriver =
 /// `SDL_HIDAPI_DriverXboxOne`
 pub(crate) static DRIVER_XBOXONE: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_ONE, &xboxone::XboxOneDriver);
+/// `SDL_HIDAPI_DriverLg4ff`
+pub(crate) static DRIVER_LG4FF: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_LG4FF, &lg4ff::Lg4ffDriver);
 /// `SDL_HIDAPI_Driver8BitDo`
 pub(crate) static DRIVER_8BITDO: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_8BITDO, &eightbitdo::EightBitDoDriver);
+/// `SDL_HIDAPI_DriverFlydigi`
+pub(crate) static DRIVER_FLYDIGI: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_FLYDIGI, &flydigi::FlydigiDriver);
+/// `SDL_HIDAPI_DriverSInput`
+pub(crate) static DRIVER_SINPUT: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_SINPUT, &sinput::SInputDriver);
+/// `SDL_HIDAPI_DriverGameSir`
+pub(crate) static DRIVER_GAMESIR: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_GAMESIR, &gamesir::GameSirDriver);
 /// `SDL_HIDAPI_DriverZUIKI`
 pub(crate) static DRIVER_ZUIKI: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_ZUIKI, &zuiki::ZuikiDriver);
 
 /// Translation of `SDL_HIDAPI_drivers`: the drivers translated so far, in
-/// upstream's order. Not translated yet: GIP, Logitech G (lg4ff), Flydigi,
-/// SInput and GameSir.
+/// upstream's order. Not translated yet: GIP.
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_GAMECUBE,
     &DRIVER_LUNA,
@@ -1020,7 +1036,11 @@ static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_XBOX360W,
     &DRIVER_XBOX360BB,
     &DRIVER_XBOXONE,
+    &DRIVER_LG4FF,
     &DRIVER_8BITDO,
+    &DRIVER_FLYDIGI,
+    &DRIVER_SINPUT,
+    &DRIVER_GAMESIR,
     &DRIVER_ZUIKI,
 ];
 
@@ -2136,8 +2156,20 @@ fn is_device_present(vendor_id: u16, product_id: u16, version: u16, name: Option
     */
     let _lock = lock_joysticks();
     devices().iter().any(|device| {
-        // (the FlyDigi Space Station check of upstream concerns its Flydigi
-        // driver, which isn't translated)
+        // The HIDAPI functionality will be available when the FlyDigi Space Station app has
+        // enabled third party controller mapping, so the driver needs to be active to watch
+        // for that change. Since this is dynamic and we don't have a way to re-trigger device
+        // changes when that happens, we'll pretend the driver isn't available so the XInput
+        // interface will always show up (but won't have any input when the controller is in
+        // enhanced mode)
+        if device.vendor_id == USB_VENDOR_FLYDIGI_V2
+            && device
+                .driver()
+                .is_some_and(|d| std::ptr::eq(d, &DRIVER_FLYDIGI))
+        {
+            return false;
+        }
+
         device.driver().is_some() && is_equivalent_to_device(vendor_id, product_id, device)
     })
 }

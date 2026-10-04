@@ -118,7 +118,8 @@ impl GamepadType {
     /// The number of gamepad types (`SDL_GAMEPAD_TYPE_COUNT`).
     pub const COUNT: usize = 13;
 
-    const ALL: [GamepadType; GamepadType::COUNT] = [
+    /// The types, by value.
+    pub(crate) const ALL: [GamepadType; GamepadType::COUNT] = [
         GamepadType::Unknown,
         GamepadType::Standard,
         GamepadType::Xbox360,

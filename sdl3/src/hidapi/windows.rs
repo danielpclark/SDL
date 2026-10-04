@@ -1059,12 +1059,9 @@ impl Drop for OwnedHandle {
     }
 }
 
-/// Translation of `hid_enumerate()`.
-pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> {
-    let Ok(f) = functions() else {
-        return Vec::new();
-    };
-
+/// The paths of the device interfaces of the HID class, as a list of
+/// NUL-terminated strings (part of `hid_enumerate()`).
+fn hid_interface_list(f: &Functions) -> Option<Vec<u16>> {
     /* Retrieve HID Interface Class GUID
     https://docs.microsoft.com/windows-hardware/drivers/install/guid-devinterface-hid */
     let mut interface_class_guid = GUID {
@@ -1081,7 +1078,6 @@ pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> 
     /* Get the list of all device interfaces belonging to the HID class. */
     /* Retry in case of list was changed between calls to
     CM_Get_Device_Interface_List_SizeW and CM_Get_Device_Interface_ListW */
-    let mut device_interface_list: Vec<u16>;
     loop {
         let mut len: u32 = 0;
         // SAFETY: valid out-parameters.
@@ -1095,10 +1091,10 @@ pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> 
         };
         if cr != CR_SUCCESS {
             // "Failed to get size of HID device interface list"
-            return Vec::new();
+            return None;
         }
 
-        device_interface_list = vec![0u16; len as usize];
+        let mut device_interface_list = vec![0u16; len as usize];
         // SAFETY: the buffer holds len units.
         let cr = unsafe {
             (f.CM_Get_Device_Interface_ListW)(
@@ -1114,10 +1110,21 @@ pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> 
         }
         if cr != CR_SUCCESS {
             // "Failed to get HID device interface list"
-            return Vec::new();
+            return None;
         }
-        break;
+        return Some(device_interface_list);
     }
+}
+
+/// Translation of `hid_enumerate()`.
+pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> {
+    let Ok(f) = functions() else {
+        return Vec::new();
+    };
+
+    let Some(device_interface_list) = hid_interface_list(&f) else {
+        return Vec::new();
+    };
 
     let mut root = Vec::new();
 
@@ -1182,6 +1189,61 @@ pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> 
     // (with no devices, upstream sets "No HID devices found in the system."
     // or "No HID devices with requested VID/PID found in the system.")
     root
+}
+
+/// The path of the HID interface of a device in collection
+/// `collection_index` with 64 or 37 byte input and output reports.
+/// Translation of `FindHIDInterfacePath()` of
+/// src/joystick/hidapi/SDL_hidapi_gamesir.c (for the GameSir controllers'
+/// output collection).
+///
+/// Upstream lists the interfaces with SetupDi; this lists the same present
+/// interfaces of the HID class with cfgmgr32, as [`hid_enumerate`] does.
+pub(crate) fn find_interface_path(vid: u16, pid: u16, collection_index: i32) -> Option<String> {
+    let f = functions().ok()?;
+    let device_interface_list = hid_interface_list(&f)?;
+
+    for device_interface in wide_list(&device_interface_list) {
+        let path: Vec<u16> = device_interface
+            .iter()
+            .copied()
+            .chain(std::iter::once(0))
+            .collect();
+
+        let device = OwnedHandle(open_device(&path, true));
+        if device.0 == INVALID_HANDLE_VALUE {
+            continue;
+        }
+
+        let mut attributes = HIDD_ATTRIBUTES {
+            Size: size_of::<HIDD_ATTRIBUTES>() as u32,
+            ..HIDD_ATTRIBUTES::default()
+        };
+        // SAFETY: the handle is open and attributes is writable.
+        if unsafe { (f.HidD_GetAttributes)(device.0, &mut attributes) } == 0
+            || attributes.VendorID != vid
+            || attributes.ProductID != pid
+        {
+            continue;
+        }
+
+        let Some(caps) = f.caps(device.0) else {
+            continue;
+        };
+
+        if (caps.InputReportByteLength == 64 && caps.OutputReportByteLength == 64)
+            || (caps.InputReportByteLength == 37 && caps.OutputReportByteLength == 37)
+        {
+            let device_path = wide_to_string(&path);
+            let col_str = format!("col{collection_index:02}");
+
+            if crate::stdlib::string::strcasestr(&device_path, &col_str).is_some() {
+                return Some(device_path);
+            }
+        }
+    }
+
+    None
 }
 
 /// Translation of `hid_open()`.
