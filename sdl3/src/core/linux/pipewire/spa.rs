@@ -11,32 +11,32 @@
 use std::ffi::{c_char, CStr};
 
 // enum spa_type
-pub(super) const SPA_TYPE_NONE: u32 = 1;
-pub(super) const SPA_TYPE_ID: u32 = 3;
-pub(super) const SPA_TYPE_INT: u32 = 4;
-pub(super) const SPA_TYPE_ARRAY: u32 = 13;
-pub(super) const SPA_TYPE_OBJECT: u32 = 15;
-pub(super) const SPA_TYPE_CHOICE: u32 = 19;
-pub(super) const SPA_TYPE_OBJECT_FORMAT: u32 = 0x40003;
+pub(crate) const SPA_TYPE_NONE: u32 = 1;
+pub(crate) const SPA_TYPE_ID: u32 = 3;
+pub(crate) const SPA_TYPE_INT: u32 = 4;
+pub(crate) const SPA_TYPE_ARRAY: u32 = 13;
+pub(crate) const SPA_TYPE_OBJECT: u32 = 15;
+pub(crate) const SPA_TYPE_CHOICE: u32 = 19;
+pub(crate) const SPA_TYPE_OBJECT_FORMAT: u32 = 0x40003;
 
 // enum spa_choice_type
-pub(super) const SPA_CHOICE_NONE: u32 = 0;
-pub(super) const SPA_CHOICE_RANGE: u32 = 1;
+pub(crate) const SPA_CHOICE_NONE: u32 = 0;
+pub(crate) const SPA_CHOICE_RANGE: u32 = 1;
 
 // enum spa_format
-pub(super) const SPA_FORMAT_MEDIA_TYPE: u32 = 1;
-pub(super) const SPA_FORMAT_MEDIA_SUBTYPE: u32 = 2;
-pub(super) const SPA_FORMAT_AUDIO_FORMAT: u32 = 0x10001;
-pub(super) const SPA_FORMAT_AUDIO_RATE: u32 = 0x10003;
-pub(super) const SPA_FORMAT_AUDIO_CHANNELS: u32 = 0x10004;
-pub(super) const SPA_FORMAT_AUDIO_POSITION: u32 = 0x10005;
+pub(crate) const SPA_FORMAT_MEDIA_TYPE: u32 = 1;
+pub(crate) const SPA_FORMAT_MEDIA_SUBTYPE: u32 = 2;
+pub(crate) const SPA_FORMAT_AUDIO_FORMAT: u32 = 0x10001;
+pub(crate) const SPA_FORMAT_AUDIO_RATE: u32 = 0x10003;
+pub(crate) const SPA_FORMAT_AUDIO_CHANNELS: u32 = 0x10004;
+pub(crate) const SPA_FORMAT_AUDIO_POSITION: u32 = 0x10005;
 
-pub(super) const SPA_MEDIA_TYPE_AUDIO: u32 = 1;
-pub(super) const SPA_MEDIA_SUBTYPE_RAW: u32 = 1;
+pub(crate) const SPA_MEDIA_TYPE_AUDIO: u32 = 1;
+pub(crate) const SPA_MEDIA_SUBTYPE_RAW: u32 = 1;
 
-pub(super) const SPA_AUDIO_FORMAT_UNKNOWN: u32 = 0;
-pub(super) const SPA_AUDIO_MAX_CHANNELS: usize = 64;
-pub(super) const SPA_AUDIO_FLAG_UNPOSITIONED: u32 = 1 << 0;
+pub(crate) const SPA_AUDIO_FORMAT_UNKNOWN: u32 = 0;
+pub(crate) const SPA_AUDIO_MAX_CHANNELS: usize = 64;
+pub(crate) const SPA_AUDIO_FLAG_UNPOSITIONED: u32 = 1 << 0;
 
 const EINVAL: i32 = 22;
 const ENOSPC: i32 = 28;
@@ -56,12 +56,12 @@ fn read_u32(data: &[u8], offset: usize) -> Option<u32> {
 
 /// `struct spa_audio_info_raw`.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct SpaAudioInfoRaw {
-    pub(super) format: u32,
-    pub(super) flags: u32,
-    pub(super) rate: u32,
-    pub(super) channels: u32,
-    pub(super) position: [u32; SPA_AUDIO_MAX_CHANNELS],
+pub(crate) struct SpaAudioInfoRaw {
+    pub(crate) format: u32,
+    pub(crate) flags: u32,
+    pub(crate) rate: u32,
+    pub(crate) channels: u32,
+    pub(crate) position: [u32; SPA_AUDIO_MAX_CHANNELS],
 }
 
 impl Default for SpaAudioInfoRaw {
@@ -92,7 +92,7 @@ const SPA_POD_BUILDER_FLAG_FIRST: u32 = 1 << 1;
 
 /// `struct spa_pod_builder` over a fixed buffer (no overflow callbacks).
 /// The C frames are a linked list on the caller's stack; here a stack.
-pub(super) struct SpaPodBuilder<'a> {
+pub(crate) struct SpaPodBuilder<'a> {
     data: &'a mut [u8],
     offset: u32,
     flags: u32,
@@ -101,7 +101,7 @@ pub(super) struct SpaPodBuilder<'a> {
 
 impl<'a> SpaPodBuilder<'a> {
     /// `SPA_POD_BUILDER_INIT(buffer, size)`.
-    pub(super) fn new(data: &'a mut [u8]) -> SpaPodBuilder<'a> {
+    pub(crate) fn new(data: &'a mut [u8]) -> SpaPodBuilder<'a> {
         SpaPodBuilder {
             data,
             offset: 0,
@@ -265,7 +265,7 @@ impl<'a> SpaPodBuilder<'a> {
     }
 
     /// The bytes of a pod `pop()` returned.
-    pub(super) fn bytes(&self, range: std::ops::Range<usize>) -> &[u8] {
+    pub(crate) fn bytes(&self, range: std::ops::Range<usize>) -> &[u8] {
         &self.data[range]
     }
 }
@@ -280,7 +280,7 @@ fn pod_header(size: u32, type_: u32) -> [u8; 8] {
 
 /// Translation of `spa_format_audio_raw_build()`; returns the range of
 /// the built pod in the builder's buffer, or `None` if it didn't fit.
-pub(super) fn spa_format_audio_raw_build(
+pub(crate) fn spa_format_audio_raw_build(
     builder: &mut SpaPodBuilder<'_>,
     id: u32,
     info: &SpaAudioInfoRaw,
@@ -319,12 +319,12 @@ pub(super) fn spa_format_audio_raw_build(
 
 /// A pod's bytes (header and body), as libpipewire passes it.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct Pod<'a>(&'a [u8]);
+pub(crate) struct Pod<'a>(&'a [u8]);
 
 impl<'a> Pod<'a> {
     /// The pod at `bytes`, if its header and body fit.
     #[cfg(test)]
-    pub(super) fn new(bytes: &'a [u8]) -> Option<Pod<'a>> {
+    pub(crate) fn new(bytes: &'a [u8]) -> Option<Pod<'a>> {
         let size = read_u32(bytes, 0)? as usize;
         bytes.get(..8 + size).map(Pod)
     }
@@ -334,7 +334,7 @@ impl<'a> Pod<'a> {
     /// # Safety
     ///
     /// `p` must point to a valid pod whose body is `size` bytes long.
-    pub(super) unsafe fn from_ptr(p: *const u8) -> Option<Pod<'a>> {
+    pub(crate) unsafe fn from_ptr(p: *const u8) -> Option<Pod<'a>> {
         if p.is_null() {
             return None;
         }
@@ -345,17 +345,17 @@ impl<'a> Pod<'a> {
     }
 
     /// `SPA_POD_BODY_SIZE()`.
-    pub(super) fn body_size(&self) -> u32 {
+    pub(crate) fn body_size(&self) -> u32 {
         read_u32(self.0, 0).unwrap_or(0)
     }
 
     /// `SPA_POD_TYPE()`.
-    pub(super) fn type_(&self) -> u32 {
+    pub(crate) fn type_(&self) -> u32 {
         read_u32(self.0, 4).unwrap_or(0)
     }
 
     /// `SPA_POD_BODY()`.
-    pub(super) fn body(&self) -> &'a [u8] {
+    pub(crate) fn body(&self) -> &'a [u8] {
         &self.0[8..]
     }
 }
@@ -386,7 +386,7 @@ fn spa_pod_is_array(pod: Pod<'_>) -> bool {
 }
 
 /// `spa_pod_get_int()`.
-pub(super) fn spa_pod_get_int(pod: Pod<'_>) -> Result<i32, i32> {
+pub(crate) fn spa_pod_get_int(pod: Pod<'_>) -> Result<i32, i32> {
     if !spa_pod_is_int(pod) {
         return Err(-EINVAL);
     }
@@ -395,9 +395,9 @@ pub(super) fn spa_pod_get_int(pod: Pod<'_>) -> Result<i32, i32> {
 
 /// A property inside an object (`struct spa_pod_prop`): its key and value.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct PodProp<'a> {
-    pub(super) key: u32,
-    pub(super) value: Pod<'a>,
+pub(crate) struct PodProp<'a> {
+    pub(crate) key: u32,
+    pub(crate) value: Pod<'a>,
     /// Offset of the property from the object's start.
     offset: usize,
 }
@@ -453,7 +453,7 @@ fn spa_pod_object_find_prop<'a>(
 }
 
 /// `spa_pod_find_prop()`.
-pub(super) fn spa_pod_find_prop<'a>(
+pub(crate) fn spa_pod_find_prop<'a>(
     pod: Pod<'a>,
     start: Option<&PodProp<'a>>,
     key: u32,
@@ -483,7 +483,7 @@ fn choice_n_values(pod: Pod<'_>) -> u32 {
 
 /// `spa_pod_get_values()`: the values pod, their count and the choice type.
 /// For a choice, the returned pod's "body" is all the values.
-pub(super) fn spa_pod_get_values(pod: Pod<'_>) -> (Pod<'_>, u32, u32) {
+pub(crate) fn spa_pod_get_values(pod: Pod<'_>) -> (Pod<'_>, u32, u32) {
     if pod.type_() == SPA_TYPE_CHOICE && pod.0.len() >= 24 {
         let mut n_vals = choice_n_values(pod);
         let choice = read_u32(pod.0, 8).unwrap_or(0); // SPA_POD_CHOICE_TYPE()
@@ -556,7 +556,7 @@ fn spa_pod_copy_array(pod: Pod<'_>, type_: u32, values: &mut [u32]) -> u32 {
 /// SPA_POD_OPT_Int(..), SPA_FORMAT_AUDIO_channels, SPA_POD_OPT_Int(..),
 /// SPA_FORMAT_AUDIO_position, SPA_POD_OPT_Pod(..))`. Returns the number of
 /// fields collected, or a negative errno.
-pub(super) fn spa_format_audio_raw_parse(format: Pod<'_>, info: &mut SpaAudioInfoRaw) -> i32 {
+pub(crate) fn spa_format_audio_raw_parse(format: Pod<'_>, info: &mut SpaAudioInfoRaw) -> i32 {
     let mut position = None;
 
     info.flags = 0;
@@ -612,17 +612,17 @@ pub(super) fn spa_format_audio_raw_parse(format: Pod<'_>, info: &mut SpaAudioInf
 
 /// `struct spa_dict_item`.
 #[repr(C)]
-pub(super) struct SpaDictItem {
-    pub(super) key: *const c_char,
-    pub(super) value: *const c_char,
+pub(crate) struct SpaDictItem {
+    pub(crate) key: *const c_char,
+    pub(crate) value: *const c_char,
 }
 
 /// `struct spa_dict`.
 #[repr(C)]
-pub(super) struct SpaDict {
-    pub(super) flags: u32,
-    pub(super) n_items: u32,
-    pub(super) items: *const SpaDictItem,
+pub(crate) struct SpaDict {
+    pub(crate) flags: u32,
+    pub(crate) n_items: u32,
+    pub(crate) items: *const SpaDictItem,
 }
 
 const SPA_DICT_FLAG_SORTED: u32 = 1 << 0;
@@ -632,7 +632,7 @@ const SPA_DICT_FLAG_SORTED: u32 = 1 << 0;
 /// # Safety
 ///
 /// `dict` must be NULL or a valid dictionary whose keys and values are C strings.
-pub(super) unsafe fn spa_dict_lookup<'a>(dict: *const SpaDict, key: &str) -> Option<&'a CStr> {
+pub(crate) unsafe fn spa_dict_lookup<'a>(dict: *const SpaDict, key: &str) -> Option<&'a CStr> {
     if dict.is_null() {
         // FIXME (upstream): SDL passes the props of an info struct without
         // checking them for NULL; a NULL dict has nothing in it here.
@@ -671,7 +671,7 @@ pub(super) unsafe fn spa_dict_lookup<'a>(dict: *const SpaDict, key: &str) -> Opt
 /// SDL never continues with the parent, so only whether there is one is
 /// kept.
 #[derive(Clone, Debug)]
-pub(super) struct SpaJson<'a> {
+pub(crate) struct SpaJson<'a> {
     data: &'a [u8],
     cur: usize,
     end: usize,
@@ -719,7 +719,7 @@ fn flag_update(field: &mut u32, flag: u32, val: bool) {
 
 impl<'a> SpaJson<'a> {
     /// `spa_json_init()`.
-    pub(super) fn new(data: &'a [u8]) -> SpaJson<'a> {
+    pub(crate) fn new(data: &'a [u8]) -> SpaJson<'a> {
         SpaJson {
             data,
             cur: 0,
@@ -744,7 +744,7 @@ impl<'a> SpaJson<'a> {
 
     /// `spa_json_next()`: the next token's start and length; the length is
     /// -1 on parse error, 0 on end of input.
-    pub(super) fn next(&mut self) -> (usize, i32) {
+    pub(crate) fn next(&mut self) -> (usize, i32) {
         let mut utf8_remain = 0;
         let mut array_stack = [0u64; 8]; // array context flags of depths 1...512
 
@@ -1005,18 +1005,18 @@ impl<'a> SpaJson<'a> {
     }
 
     /// `spa_json_enter_object()`: the sub-iterator, or the (<= 0) result.
-    pub(super) fn enter_object(&mut self) -> Result<SpaJson<'a>, i32> {
+    pub(crate) fn enter_object(&mut self) -> Result<SpaJson<'a>, i32> {
         self.enter_container(b'{')
     }
 
     /// `spa_json_enter_array()`: the sub-iterator, or the (<= 0) result.
-    pub(super) fn enter_array(&mut self) -> Result<SpaJson<'a>, i32> {
+    pub(crate) fn enter_array(&mut self) -> Result<SpaJson<'a>, i32> {
         self.enter_container(b'[')
     }
 
     /// `spa_json_get_string()` into a buffer of `maxlen` bytes: the string
     /// (without the terminating NUL), or the (<= 0) result.
-    pub(super) fn get_string(&mut self, maxlen: usize) -> Result<Vec<u8>, i32> {
+    pub(crate) fn get_string(&mut self, maxlen: usize) -> Result<Vec<u8>, i32> {
         let (value, len) = self.next();
         if len <= 0 {
             return Err(len);

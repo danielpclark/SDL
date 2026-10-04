@@ -5,9 +5,10 @@
 
 // The PipeWire driver. libpipewire is loaded at run time
 // (SDL_AUDIO_DRIVER_PIPEWIRE_DYNAMIC) and only the parts of its API SDL uses
-// are declared here; the static inline helpers of the SPA headers (pods,
-// JSON, dictionaries) and the interface method macros (pw_core_sync(),
-// pw_registry_bind(), ...) are translated in `spa` and below.
+// are declared; those the camera driver shares, the static inline helpers
+// of the SPA headers (pods, JSON, dictionaries) and the interface method
+// macros (pw_core_sync(), pw_registry_bind(), ...) live in
+// `core::linux::pipewire`, the rest is here.
 //
 // Upstream keeps the hotplug loop and its lists in file-level statics and
 // gives the callbacks NULL (or the node) as userdata; here the hotplug
@@ -15,13 +16,14 @@
 // lists are Vecs. Node objects live in Boxes instead of their proxy's user
 // data, and the stream callbacks get the device's backend data.
 
-mod spa;
-
 use std::cell::UnsafeCell;
 use std::ffi::{c_char, c_int, c_void, CStr, CString};
 use std::ptr;
 use std::sync::atomic::{AtomicI32, AtomicPtr, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
+
+use crate::core::linux::pipewire::spa;
+use crate::core::linux::pipewire::*;
 
 use spa::{
     spa_dict_lookup, spa_format_audio_raw_build, spa_format_audio_raw_parse, spa_pod_find_prop,
@@ -56,42 +58,8 @@ const PW_READY_FLAG_ALL_PREOPEN_BITS: i32 = 0x3;
 const PW_READY_FLAG_OPEN_COMPLETE: i32 = 0x4;
 const PW_READY_FLAG_ALL_BITS: i32 = 0x7;
 
-// The parts of <pipewire/pipewire.h> and the SPA headers SDL uses.
-
-macro_rules! opaque {
-    ($($name:ident),*) => {
-        $(
-            #[repr(C)]
-            struct $name {
-                _private: [u8; 0],
-            }
-        )*
-    };
-}
-opaque!(
-    PwMainLoop,
-    PwLoop,
-    PwThreadLoop,
-    PwContext,
-    PwCore,
-    PwRegistry,
-    PwProxy,
-    PwStream,
-    PwProperties,
-    SpaMeta
-);
-
-const PW_ID_CORE: u32 = 0;
-const PW_ID_ANY: u32 = 0xffff_ffff;
-const PW_VERSION_REGISTRY: u32 = 3;
-const PW_VERSION_CORE_EVENTS: u32 = 1;
-const PW_VERSION_REGISTRY_EVENTS: u32 = 0;
-const PW_VERSION_NODE_EVENTS: u32 = 0;
 const PW_VERSION_METADATA_EVENTS: u32 = 0;
 const PW_VERSION_CLIENT_EVENTS: u32 = 0;
-const PW_VERSION_STREAM_EVENTS: u32 = 2;
-
-const PW_TYPE_INTERFACE_NODE: &str = "PipeWire:Interface:Node";
 const PW_TYPE_INTERFACE_METADATA: &str = "PipeWire:Interface:Metadata";
 const PW_TYPE_INTERFACE_CLIENT: &str = "PipeWire:Interface:Client";
 
@@ -99,33 +67,11 @@ const PW_KEY_CONFIG_NAME: &CStr = c"config.name";
 const PW_KEY_APP_NAME: &CStr = c"application.name";
 const PW_KEY_APP_ID: &CStr = c"application.id";
 const PW_KEY_APP_ICON_NAME: &CStr = c"application.icon-name";
-const PW_KEY_NODE_NAME: &CStr = c"node.name";
-const PW_KEY_NODE_DESCRIPTION: &CStr = c"node.description";
 const PW_KEY_NODE_LATENCY: &CStr = c"node.latency";
 const PW_KEY_NODE_RATE: &CStr = c"node.rate";
 const PW_KEY_NODE_ALWAYS_PROCESS: &CStr = c"node.always-process";
-const PW_KEY_MEDIA_TYPE: &CStr = c"media.type";
-const PW_KEY_MEDIA_CATEGORY: &CStr = c"media.category";
-const PW_KEY_MEDIA_ROLE: &CStr = c"media.role";
-const PW_KEY_MEDIA_CLASS: &str = "media.class";
 const PW_KEY_MEDIA_NAME: &CStr = c"media.name";
 const PW_KEY_AUDIO_CHANNELS: &str = "audio.channels";
-const PW_KEY_TARGET_OBJECT: &CStr = c"target.object";
-
-// enum pw_stream_state
-const PW_STREAM_STATE_ERROR: c_int = -1;
-const PW_STREAM_STATE_STREAMING: c_int = 3;
-
-// enum pw_direction (spa_direction)
-const PW_DIRECTION_INPUT: c_int = 0;
-const PW_DIRECTION_OUTPUT: c_int = 1;
-
-// enum pw_stream_flags
-const PW_STREAM_FLAG_AUTOCONNECT: c_int = 1 << 0;
-const PW_STREAM_FLAG_MAP_BUFFERS: c_int = 1 << 2;
-
-const SPA_PARAM_ENUM_FORMAT: u32 = 3;
-const SPA_PARAM_FORMAT: u32 = 4;
 
 // enum spa_audio_format
 const SPA_AUDIO_FORMAT_S8: u32 = 0x101;
@@ -149,239 +95,12 @@ const SPA_AUDIO_CHANNEL_RC: u32 = 11;
 const SPA_AUDIO_CHANNEL_RL: u32 = 12;
 const SPA_AUDIO_CHANNEL_RR: u32 = 13;
 
-/// `struct spa_list`.
-#[repr(C)]
-struct SpaList {
-    next: *mut SpaList,
-    prev: *mut SpaList,
-}
-
-/// `struct spa_callbacks`.
-#[repr(C)]
-struct SpaCallbacks {
-    funcs: *const c_void,
-    data: *mut c_void,
-}
-
-/// `struct spa_interface`: what every proxy (core, registry, node) starts with.
-#[repr(C)]
-struct SpaInterface {
-    type_: *const c_char,
-    version: u32,
-    cb: SpaCallbacks,
-}
-
-/// `struct spa_hook`. libpipewire links it into its lists, so it lives in
-/// an `UnsafeCell` at a stable address.
-#[repr(C)]
-struct SpaHook {
-    link: SpaList,
-    cb: SpaCallbacks,
-    removed: Option<unsafe extern "C" fn(*mut SpaHook)>,
-    priv_: *mut c_void,
-}
-
-impl SpaHook {
-    /// `spa_zero(hook)`.
-    const fn zeroed() -> UnsafeCell<SpaHook> {
-        UnsafeCell::new(SpaHook {
-            link: SpaList {
-                next: ptr::null_mut(),
-                prev: ptr::null_mut(),
-            },
-            cb: SpaCallbacks {
-                funcs: ptr::null(),
-                data: ptr::null_mut(),
-            },
-            removed: None,
-            priv_: ptr::null_mut(),
-        })
-    }
-}
-
-/// Translation of `spa_hook_remove()`.
-///
-/// # Safety
-///
-/// `hook` must be a zeroed hook or one libpipewire linked into a list that
-/// is still alive.
-unsafe fn spa_hook_remove(hook: *mut SpaHook) {
-    // SAFETY: the hook is valid (the caller's contract); a linked hook's
-    // neighbours are valid list nodes (spa_list_is_initialized/spa_list_remove).
-    unsafe {
-        if !(*hook).link.prev.is_null() {
-            let elem = &mut (*hook).link;
-            (*elem.prev).next = elem.next;
-            (*elem.next).prev = elem.prev;
-        }
-        if let Some(removed) = (*hook).removed {
-            removed(hook);
-        }
-    }
-}
-
-/// `struct pw_core_info`.
-#[repr(C)]
-struct PwCoreInfo {
-    id: u32,
-    cookie: u32,
-    user_name: *const c_char,
-    host_name: *const c_char,
-    version: *const c_char,
-    name: *const c_char,
-    change_mask: u64,
-    props: *mut SpaDict,
-}
-
-/// `struct spa_param_info`.
-#[repr(C)]
-struct SpaParamInfo {
-    id: u32,
-    flags: u32,
-    user: u32,
-    seq: i32,
-    padding: [u32; 4],
-}
-
-/// `struct pw_node_info`.
-#[repr(C)]
-struct PwNodeInfo {
-    id: u32,
-    max_input_ports: u32,
-    max_output_ports: u32,
-    change_mask: u64,
-    n_input_ports: u32,
-    n_output_ports: u32,
-    state: c_int,
-    error: *const c_char,
-    props: *mut SpaDict,
-    params: *mut SpaParamInfo,
-    n_params: u32,
-}
-
 /// `struct pw_client_info`.
 #[repr(C)]
 struct PwClientInfo {
     id: u32,
     change_mask: u64,
     props: *mut SpaDict,
-}
-
-/// `struct spa_chunk`.
-#[repr(C)]
-struct SpaChunk {
-    offset: u32,
-    size: u32,
-    stride: i32,
-    flags: i32,
-}
-
-/// `struct spa_data`.
-#[repr(C)]
-struct SpaData {
-    type_: u32,
-    flags: u32,
-    fd: i64,
-    mapoffset: u32,
-    maxsize: u32,
-    data: *mut c_void,
-    chunk: *mut SpaChunk,
-}
-
-/// `struct spa_buffer`.
-#[repr(C)]
-struct SpaBuffer {
-    n_metas: u32,
-    n_datas: u32,
-    metas: *mut SpaMeta,
-    datas: *mut SpaData,
-}
-
-/// `struct pw_buffer`.
-#[repr(C)]
-struct PwBuffer {
-    buffer: *mut SpaBuffer,
-    user_data: *mut c_void,
-    size: u64,
-    requested: u64,
-    time: u64,
-}
-
-type Unused = Option<unsafe extern "C" fn()>;
-
-/// `struct pw_core_events`.
-#[repr(C)]
-struct PwCoreEvents {
-    version: u32,
-    info: Option<unsafe extern "C" fn(*mut c_void, *const PwCoreInfo)>,
-    done: Option<unsafe extern "C" fn(*mut c_void, u32, c_int)>,
-    ping: Unused,
-    error: Unused,
-    remove_id: Unused,
-    bound_id: Unused,
-    add_mem: Unused,
-    remove_mem: Unused,
-    bound_props: Unused,
-}
-
-/// `struct pw_core_methods`.
-#[repr(C)]
-struct PwCoreMethods {
-    version: u32,
-    add_listener: Option<
-        unsafe extern "C" fn(*mut c_void, *mut SpaHook, *const PwCoreEvents, *mut c_void) -> c_int,
-    >,
-    hello: Unused,
-    sync: Option<unsafe extern "C" fn(*mut c_void, u32, c_int) -> c_int>,
-    pong: Unused,
-    error: Unused,
-    get_registry: Option<unsafe extern "C" fn(*mut c_void, u32, usize) -> *mut PwRegistry>,
-    create_object: Unused,
-    destroy: Unused,
-}
-
-/// `struct pw_registry_events`.
-#[repr(C)]
-struct PwRegistryEvents {
-    version: u32,
-    global: Option<unsafe extern "C" fn(*mut c_void, u32, u32, *const c_char, u32, *const SpaDict)>,
-    global_remove: Option<unsafe extern "C" fn(*mut c_void, u32)>,
-}
-
-/// `struct pw_registry_methods`.
-#[repr(C)]
-struct PwRegistryMethods {
-    version: u32,
-    add_listener: Option<
-        unsafe extern "C" fn(
-            *mut c_void,
-            *mut SpaHook,
-            *const PwRegistryEvents,
-            *mut c_void,
-        ) -> c_int,
-    >,
-    bind: Option<unsafe extern "C" fn(*mut c_void, u32, *const c_char, u32, usize) -> *mut c_void>,
-    destroy: Unused,
-}
-
-/// `struct pw_node_events`.
-#[repr(C)]
-struct PwNodeEvents {
-    version: u32,
-    info: Option<unsafe extern "C" fn(*mut c_void, *const PwNodeInfo)>,
-    param: Option<unsafe extern "C" fn(*mut c_void, c_int, u32, u32, u32, *const u8)>,
-}
-
-/// `struct pw_node_methods`.
-#[repr(C)]
-struct PwNodeMethods {
-    version: u32,
-    add_listener: Unused,
-    subscribe_params: Unused,
-    enum_params:
-        Option<unsafe extern "C" fn(*mut c_void, c_int, u32, u32, u32, *const u8) -> c_int>,
-    set_param: Unused,
-    send_command: Unused,
 }
 
 /// `struct pw_metadata_events`.
@@ -407,231 +126,45 @@ struct PwClientEvents {
     permissions: Unused,
 }
 
-/// `struct pw_stream_events`.
-#[repr(C)]
-struct PwStreamEvents {
-    version: u32,
-    destroy: Unused,
-    state_changed: Option<unsafe extern "C" fn(*mut c_void, c_int, c_int, *const c_char)>,
-    control_info: Unused,
-    io_changed: Unused,
-    param_changed: Unused,
-    add_buffer: Option<unsafe extern "C" fn(*mut c_void, *mut PwBuffer)>,
-    remove_buffer: Unused,
-    process: Option<unsafe extern "C" fn(*mut c_void)>,
-    drained: Unused,
-    command: Unused,
-    trigger_done: Unused,
-}
-
-/// The methods table and data of a proxy's interface, if it has one
-/// (`spa_interface_call_res()`; every call here is version 0).
-///
-/// # Safety
-///
-/// `object` must be a live proxy whose interface's methods are `M`.
-unsafe fn interface_methods<'a, M>(object: *mut c_void) -> Option<(&'a M, *mut c_void)> {
-    // SAFETY: proxies start with their `spa_interface` (the caller's contract).
-    let iface = unsafe { &*object.cast::<SpaInterface>() };
-    let funcs = iface.cb.funcs.cast::<M>();
-    // SAFETY: a non-NULL methods table of type `M`, owned by libpipewire.
-    (!funcs.is_null()).then(|| (unsafe { &*funcs }, iface.cb.data))
-}
-
-/// Translation of `pw_core_add_listener()`.
-///
-/// # Safety
-///
-/// `core` is live; `listener` is zeroed and stays at its address while
-/// added; `events` and `data` outlive the listener.
-unsafe fn pw_core_add_listener(
-    core: *mut PwCore,
-    listener: *mut SpaHook,
-    events: &'static PwCoreEvents,
-    data: *mut c_void,
-) -> c_int {
-    // SAFETY: the caller's contract.
-    match unsafe { interface_methods::<PwCoreMethods>(core.cast()) } {
-        // SAFETY: as above.
-        Some((m, d)) => m
-            .add_listener
-            .map_or(-libc::ENOTSUP, |f| unsafe { f(d, listener, events, data) }),
-        None => -libc::ENOTSUP,
-    }
-}
-
-/// Translation of `pw_core_sync()`.
-///
-/// # Safety
-///
-/// `core` must be live.
-unsafe fn pw_core_sync(core: *mut PwCore, id: u32, seq: c_int) -> c_int {
-    // SAFETY: the caller's contract.
-    match unsafe { interface_methods::<PwCoreMethods>(core.cast()) } {
-        // SAFETY: as above.
-        Some((m, d)) => m.sync.map_or(-libc::ENOTSUP, |f| unsafe { f(d, id, seq) }),
-        None => -libc::ENOTSUP,
-    }
-}
-
-/// Translation of `pw_core_get_registry()`.
-///
-/// # Safety
-///
-/// `core` must be live.
-unsafe fn pw_core_get_registry(
-    core: *mut PwCore,
-    version: u32,
-    user_data_size: usize,
-) -> *mut PwRegistry {
-    // SAFETY: the caller's contract.
-    match unsafe { interface_methods::<PwCoreMethods>(core.cast()) } {
-        // SAFETY: as above.
-        Some((m, d)) => m.get_registry.map_or(ptr::null_mut(), |f| unsafe {
-            f(d, version, user_data_size)
-        }),
-        None => ptr::null_mut(),
-    }
-}
-
-/// Translation of `pw_registry_add_listener()`.
-///
-/// # Safety
-///
-/// As for [`pw_core_add_listener`].
-unsafe fn pw_registry_add_listener(
-    registry: *mut PwRegistry,
-    listener: *mut SpaHook,
-    events: &'static PwRegistryEvents,
-    data: *mut c_void,
-) -> c_int {
-    // SAFETY: the caller's contract.
-    match unsafe { interface_methods::<PwRegistryMethods>(registry.cast()) } {
-        // SAFETY: as above.
-        Some((m, d)) => m
-            .add_listener
-            .map_or(-libc::ENOTSUP, |f| unsafe { f(d, listener, events, data) }),
-        None => -libc::ENOTSUP,
-    }
-}
-
-/// Translation of `pw_registry_bind()`.
-///
-/// # Safety
-///
-/// `registry` must be live; `type_` a C string.
-unsafe fn pw_registry_bind(
-    registry: *mut PwRegistry,
-    id: u32,
-    type_: *const c_char,
-    version: u32,
-    user_data_size: usize,
-) -> *mut PwProxy {
-    // SAFETY: the caller's contract.
-    match unsafe { interface_methods::<PwRegistryMethods>(registry.cast()) } {
-        // SAFETY: as above.
-        Some((m, d)) => m
-            .bind
-            .map_or(ptr::null_mut(), |f| unsafe {
-                f(d, id, type_, version, user_data_size)
-            })
-            .cast(),
-        None => ptr::null_mut(),
-    }
-}
-
-/// Translation of `pw_node_enum_params()`.
-///
-/// # Safety
-///
-/// `node` must be a live node proxy.
-unsafe fn pw_node_enum_params(
-    node: *mut PwProxy,
-    seq: c_int,
-    id: u32,
-    start: u32,
-    num: u32,
-    filter: *const u8,
-) -> c_int {
-    // SAFETY: the caller's contract.
-    match unsafe { interface_methods::<PwNodeMethods>(node.cast()) } {
-        // SAFETY: as above.
-        Some((m, d)) => m.enum_params.map_or(-libc::ENOTSUP, |f| unsafe {
-            f(d, seq, id, start, num, filter)
-        }),
-        None => -libc::ENOTSUP,
-    }
-}
-
-macro_rules! pipewire_syms {
-    ($($name:ident: fn($($arg:ty),*) $(-> $ret:ty)?;)*) => {
-        /// The libpipewire entry points SDL uses (the `PIPEWIRE_pw_*`
-        /// function pointers), with the library they came from. (All are
-        /// loaded, as upstream does, though not every one is called.)
-        #[allow(dead_code)]
-        struct PwLib {
-            $($name: unsafe extern "C" fn($($arg),*) $(-> $ret)?,)*
-            pw_properties_new: unsafe extern "C" fn(*const c_char, ...) -> *mut PwProperties,
-            pw_properties_setf: unsafe extern "C" fn(*mut PwProperties, *const c_char, *const c_char, ...) -> c_int,
-            _handle: SharedObject,
-        }
-
-        impl PwLib {
-            /// Translation of `load_pipewire_syms()`.
-            fn load_syms(handle: SharedObject) -> Result<PwLib> {
-                Ok(PwLib {
-                    $(
-                        // SAFETY: the declared type is the symbol's C
-                        // signature from <pipewire/pipewire.h>, and the
-                        // pointer is only called while `_handle` keeps the
-                        // library loaded.
-                        $name: unsafe { handle.function(stringify!($name))? },
-                    )*
-                    // SAFETY: as above (variadic).
-                    pw_properties_new: unsafe { handle.function("pw_properties_new")? },
-                    // SAFETY: as above (variadic).
-                    pw_properties_setf: unsafe { handle.function("pw_properties_setf")? },
-                    _handle: handle,
-                })
-            }
-        }
-    };
-}
-
 pipewire_syms! {
-    pw_get_library_version: fn() -> *const c_char;
-    pw_init: fn(*mut c_int, *mut *mut *mut c_char);
-    pw_deinit: fn();
-    pw_main_loop_new: fn(*const SpaDict) -> *mut PwMainLoop;
-    pw_main_loop_get_loop: fn(*mut PwMainLoop) -> *mut PwLoop;
-    pw_main_loop_run: fn(*mut PwMainLoop) -> c_int;
-    pw_main_loop_quit: fn(*mut PwMainLoop) -> c_int;
-    pw_main_loop_destroy: fn(*mut PwMainLoop);
-    pw_thread_loop_new: fn(*const c_char, *const SpaDict) -> *mut PwThreadLoop;
-    pw_thread_loop_destroy: fn(*mut PwThreadLoop);
-    pw_thread_loop_stop: fn(*mut PwThreadLoop);
-    pw_thread_loop_get_loop: fn(*mut PwThreadLoop) -> *mut PwLoop;
-    pw_thread_loop_lock: fn(*mut PwThreadLoop);
-    pw_thread_loop_unlock: fn(*mut PwThreadLoop);
-    pw_thread_loop_signal: fn(*mut PwThreadLoop, bool);
-    pw_thread_loop_wait: fn(*mut PwThreadLoop);
-    pw_thread_loop_timed_wait: fn(*mut PwThreadLoop, c_int) -> c_int;
-    pw_thread_loop_start: fn(*mut PwThreadLoop) -> c_int;
-    pw_context_new: fn(*mut PwLoop, *mut PwProperties, usize) -> *mut PwContext;
-    pw_context_destroy: fn(*mut PwContext);
-    pw_context_connect: fn(*mut PwContext, *mut PwProperties, usize) -> *mut PwCore;
-    pw_proxy_add_object_listener: fn(*mut PwProxy, *mut SpaHook, *const c_void, *mut c_void);
-    pw_proxy_get_user_data: fn(*mut PwProxy) -> *mut c_void;
-    pw_proxy_destroy: fn(*mut PwProxy);
-    pw_core_disconnect: fn(*mut PwCore) -> c_int;
-    pw_stream_new_simple: fn(*mut PwLoop, *const c_char, *mut PwProperties, *const PwStreamEvents, *mut c_void) -> *mut PwStream;
-    pw_stream_destroy: fn(*mut PwStream);
-    pw_stream_connect: fn(*mut PwStream, c_int, u32, c_int, *mut *const u8, u32) -> c_int;
-    pw_stream_get_state: fn(*mut PwStream, *mut *const c_char) -> c_int;
-    pw_stream_dequeue_buffer: fn(*mut PwStream) -> *mut PwBuffer;
-    pw_stream_queue_buffer: fn(*mut PwStream, *mut PwBuffer) -> c_int;
-    pw_properties_set: fn(*mut PwProperties, *const c_char, *const c_char) -> c_int;
-    pw_stream_update_properties: fn(*mut PwStream, *const SpaDict) -> c_int;
+    /// The libpipewire entry points SDL uses (the `PIPEWIRE_pw_*`
+    /// function pointers), with the library they came from. (All are
+    /// loaded, as upstream does, though not every one is called.)
+    struct PwLib {
+        pw_get_library_version: fn() -> *const c_char;
+        pw_init: fn(*mut c_int, *mut *mut *mut c_char);
+        pw_deinit: fn();
+        pw_main_loop_new: fn(*const SpaDict) -> *mut PwMainLoop;
+        pw_main_loop_get_loop: fn(*mut PwMainLoop) -> *mut PwLoop;
+        pw_main_loop_run: fn(*mut PwMainLoop) -> c_int;
+        pw_main_loop_quit: fn(*mut PwMainLoop) -> c_int;
+        pw_main_loop_destroy: fn(*mut PwMainLoop);
+        pw_thread_loop_new: fn(*const c_char, *const SpaDict) -> *mut PwThreadLoop;
+        pw_thread_loop_destroy: fn(*mut PwThreadLoop);
+        pw_thread_loop_stop: fn(*mut PwThreadLoop);
+        pw_thread_loop_get_loop: fn(*mut PwThreadLoop) -> *mut PwLoop;
+        pw_thread_loop_lock: fn(*mut PwThreadLoop);
+        pw_thread_loop_unlock: fn(*mut PwThreadLoop);
+        pw_thread_loop_signal: fn(*mut PwThreadLoop, bool);
+        pw_thread_loop_wait: fn(*mut PwThreadLoop);
+        pw_thread_loop_timed_wait: fn(*mut PwThreadLoop, c_int) -> c_int;
+        pw_thread_loop_start: fn(*mut PwThreadLoop) -> c_int;
+        pw_context_new: fn(*mut PwLoop, *mut PwProperties, usize) -> *mut PwContext;
+        pw_context_destroy: fn(*mut PwContext);
+        pw_context_connect: fn(*mut PwContext, *mut PwProperties, usize) -> *mut PwCore;
+        pw_proxy_add_object_listener: fn(*mut PwProxy, *mut SpaHook, *const c_void, *mut c_void);
+        pw_proxy_get_user_data: fn(*mut PwProxy) -> *mut c_void;
+        pw_proxy_destroy: fn(*mut PwProxy);
+        pw_core_disconnect: fn(*mut PwCore) -> c_int;
+        pw_stream_new_simple: fn(*mut PwLoop, *const c_char, *mut PwProperties, *const PwStreamEvents, *mut c_void) -> *mut PwStream;
+        pw_stream_destroy: fn(*mut PwStream);
+        pw_stream_connect: fn(*mut PwStream, c_int, u32, c_int, *mut *const u8, u32) -> c_int;
+        pw_stream_get_state: fn(*mut PwStream, *mut *const c_char) -> c_int;
+        pw_stream_dequeue_buffer: fn(*mut PwStream) -> *mut PwBuffer;
+        pw_stream_queue_buffer: fn(*mut PwStream, *mut PwBuffer) -> c_int;
+        pw_properties_set: fn(*mut PwProperties, *const c_char, *const c_char) -> c_int;
+        pw_stream_update_properties: fn(*mut PwStream, *const SpaDict) -> c_int;
+    }
 }
 
 /// `SDL_AUDIO_DRIVER_PIPEWIRE_DYNAMIC`.
@@ -651,25 +184,6 @@ fn init_pipewire_library() -> Option<Arc<PwLib>> {
 fn deinit_pipewire_library(lib: &PwLib) {
     // SAFETY: balances the pw_init() of init_pipewire_library().
     unsafe { (lib.pw_deinit)() };
-}
-
-/// `errno`, for the error messages.
-fn errno() -> i32 {
-    std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
-}
-
-/// A C string as `&str` (empty for NULL or invalid UTF-8).
-///
-/// # Safety
-///
-/// `s` must be NULL or a C string that outlives `'a`.
-unsafe fn c_str<'a>(s: *const c_char) -> Option<&'a str> {
-    if s.is_null() {
-        None
-    } else {
-        // SAFETY: the caller's contract.
-        Some(unsafe { CStr::from_ptr(s) }.to_str().unwrap_or(""))
-    }
 }
 
 /// A generic Pipewire node object used for enumeration. Translation of
@@ -1010,32 +524,6 @@ unsafe extern "C" fn core_events_hotplug_init_callback(object: *mut c_void, id: 
         // SAFETY: the loop is alive.
         unsafe { (hotplug.lib.pw_thread_loop_signal)(hotplug.hotplug_loop, false) };
     }
-}
-
-/// Parse `"%d.%d.%d"` like `SDL_sscanf()`, returning how many matched.
-fn sscanf_version(s: &str, out: &mut [i32; 3]) -> usize {
-    let mut rest = s;
-    for (i, slot) in out.iter_mut().enumerate() {
-        if i > 0 {
-            let Some(r) = rest.strip_prefix('.') else {
-                return i;
-            };
-            rest = r;
-        }
-        let t = rest.trim_start();
-        let digits_start = usize::from(t.starts_with(['-', '+']));
-        let digits = t[digits_start..]
-            .bytes()
-            .take_while(u8::is_ascii_digit)
-            .count();
-        if digits == 0 {
-            return i;
-        }
-        let (num, r) = t.split_at(digits_start + digits);
-        *slot = crate::stdlib::atoi(num);
-        rest = r;
-    }
-    3
 }
 
 /// Translation of `core_events_hotplug_info_callback()`.
