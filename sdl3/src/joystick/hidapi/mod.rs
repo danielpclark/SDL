@@ -27,6 +27,7 @@
 
 mod combined;
 mod ps4;
+mod ps5;
 pub(crate) mod report_descriptor;
 pub(crate) mod rumble;
 mod xbox360;
@@ -877,6 +878,9 @@ pub(crate) static DRIVER_COMBINED: HidapiDeviceDriver =
 /// `SDL_HIDAPI_DriverPS4`
 pub(crate) static DRIVER_PS4: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS4, &ps4::Ps4Driver);
+/// `SDL_HIDAPI_DriverPS5`
+pub(crate) static DRIVER_PS5: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS5, &ps5::Ps5Driver);
 /// `SDL_HIDAPI_DriverXbox360`
 pub(crate) static DRIVER_XBOX360: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_360, &xbox360::Xbox360Driver);
@@ -896,6 +900,7 @@ pub(crate) static DRIVER_XBOXONE: HidapiDeviceDriver =
 /// Logitech G (lg4ff), 8BitDo, Flydigi, SInput, GameSir and ZUIKI.
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_PS4,
+    &DRIVER_PS5,
     &DRIVER_XBOX360,
     &DRIVER_XBOX360W,
     &DRIVER_XBOXONE,

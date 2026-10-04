@@ -224,7 +224,11 @@ struct Ps4Context {
 }
 
 /// Translation of `ReadFeatureReport()`.
-fn read_feature_report(device: &HidapiDevice, report_id: u8, report: &mut [u8]) -> Result<usize> {
+pub(crate) fn read_feature_report(
+    device: &HidapiDevice,
+    report_id: u8,
+    report: &mut [u8],
+) -> Result<usize> {
     report.fill(0);
     report[0] = report_id;
     device
@@ -284,7 +288,7 @@ fn read_wired_serial(device: &HidapiDevice) -> Option<String> {
 
 /// A 12 character serial number with dashes between the byte pairs (part
 /// of `HIDAPI_DriverPS4_InitDevice()`).
-fn dashed_serial(serial: Option<&str>) -> String {
+pub(crate) fn dashed_serial(serial: Option<&str>) -> String {
     match serial {
         Some(serial) if serial.len() == 12 => {
             let pairs: Vec<&[u8]> = serial.as_bytes().chunks(2).collect();
@@ -422,7 +426,7 @@ fn apply_calibration(calibration: &ImuCalibration, value: i16) -> f32 {
 }
 
 /// Translation of `VerifyCRC()`, of a 78 byte Bluetooth report.
-fn verify_crc(data: &[u8]) -> bool {
+pub(crate) fn verify_crc(data: &[u8]) -> bool {
     let hdr = 0xA1; // hidp header is part of the CRC calculation
     let size = data.len();
     let crc = crate::stdlib::crc32(crate::stdlib::crc32(0, &[hdr]), &data[..size - 4]);
