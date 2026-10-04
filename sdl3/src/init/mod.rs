@@ -421,6 +421,9 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
 
     init_main_thread();
 
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    crate::core::linux::dbus::init();
+
     let result = (|| -> Result<()> {
         // Initialize the event subsystem
         if flags.contains(InitFlags::EVENTS) {
@@ -692,6 +695,9 @@ pub fn quit() {
     quit_subsystem(InitFlags::ALL);
     crate::tray::cleanup_trays();
     crate::notification::cleanup_notifications();
+
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    crate::core::linux::dbus::quit();
 
     crate::timer::quit_timers();
     crate::io::quit_async_io();

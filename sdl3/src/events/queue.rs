@@ -40,6 +40,10 @@ const ENUMERATION_POLL_INTERVAL: Duration = Duration::from_secs(3);
 /// Translation of `EVENT_POLL_INTERVAL_NS`.
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
+// Determines how often to pump events if DBus is active
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+const DBUS_POLL_INTERVAL: Duration = Duration::from_secs(3);
+
 // ---------------------------------------------------------------------------
 // The event lock (SDL_event_lock)
 // ---------------------------------------------------------------------------
@@ -829,6 +833,10 @@ fn pump_events_internal(push_sentinel: bool) {
     // Run any pending main thread callbacks
     run_main_thread_callbacks();
 
+    // DBus event processing is independent of the video subsystem
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    crate::core::linux::dbus::pump_events();
+
     // Get events from the video subsystem
     if let Some(video) = video() {
         video.pump_events();
@@ -891,7 +899,11 @@ fn events_get_polling_interval() -> Option<Duration> {
         min(EVENT_POLL_INTERVAL);
     }
 
-    // (Tray and DBus polling arrive with those subsystems.)
+    // (Tray polling arrives with the D-Bus tray.)
+
+    // Wake periodically to pump DBus events
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    min(DBUS_POLL_INTERVAL);
 
     poll_interval
 }

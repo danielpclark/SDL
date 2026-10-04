@@ -6,10 +6,11 @@
 
 //! Opening URLs in the user's preferred application.
 //!
-//! The Unix backend runs `xdg-open` (on Unix systems other than Apple's,
-//! Android and Haiku); elsewhere the dummy backend reports that the
-//! operation is unsupported until the platform layer arrives. The D-Bus
-//! portal and Wayland activation tokens arrive with the platform layer.
+//! The Unix backend prefers the D-Bus OpenURI portal and falls back to
+//! `xdg-open` (on Unix systems other than Apple's, Android and Haiku);
+//! elsewhere the dummy backend reports that the operation is unsupported
+//! until the platform layer arrives. Wayland activation tokens arrive with
+//! the Wayland driver.
 
 use crate::error::Result;
 
@@ -29,9 +30,13 @@ fn sys_open_url(url: &str) -> Result<()> {
     use crate::process::ProcessBuilder;
     use crate::stdlib::Environment;
 
-    // (The D-Bus portal is preferred, if available, and Wayland requires an
-    // activation token for the browser to take focus: both arrive with the
-    // platform layer.)
+    // (Wayland requires an activation token for the browser to take focus:
+    // it arrives with the Wayland driver.)
+
+    // Prefer the D-Bus portal, if available.
+    if crate::core::linux::dbus::open_uri(url, None, None) {
+        return Ok(());
+    }
 
     let env = Environment::new(true);
 

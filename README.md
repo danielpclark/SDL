@@ -42,9 +42,10 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `SDL_utils.c` (core helpers) | `sdl3::utils` | GCD, best-rational-approximation, device names |
 | `atomic/SDL_spinlock.c` | `sdl3::atomic` | `SpinLock<T>` with a guard |
 | `SDL_assert.c`, `SDL_assert.h` | `sdl3::assert` | `sdl_assert!`/`sdl_assert_release!`/`sdl_assert_paranoid!`/`sdl_assert_always!`, levels via Cargo features, closure handlers, the report, the `SDL_ASSERT` hint, breakpoints |
-| `thread/SDL_thread.c`, generic sync primitives, the pthread/Windows priorities, `core/linux/SDL_threadprio.c` | `sdl3::thread` | `Thread`/`ThreadBuilder` (status, state, detach), `TlsId` with destructors, `Semaphore`, `ReentrantMutex<T>`, `InitState`, thread IDs, `set_current_thread_priority` (scheduler policy hints, Linux nice levels) |
+| `thread/SDL_thread.c`, generic sync primitives, the pthread/Windows priorities, `core/linux/SDL_threadprio.c` | `sdl3::thread` | `Thread`/`ThreadBuilder` (status, state, detach), `TlsId` with destructors, `Semaphore`, `ReentrantMutex<T>`, `InitState`, thread IDs, `set_current_thread_priority` (scheduler policy hints, Linux nice levels, RealtimeKit over D-Bus) |
 | `loadso/` (dlopen, Windows) | `sdl3::loadso` | `SharedObject` with `Drop`, typed `function::<F>()` |
 | `core/unix/SDL_poll.c`, `SDL_appid.c`, `core/windows/SDL_windows.c` | `core` (crate-internal) | fd readiness, the app ID; Win32/HRESULT errors, COM/WinRT init, version and Wine checks, UTF-16 conversion, the DirectInput helper window, icons from surfaces, audio device names |
+| `core/linux/SDL_dbus.c` (without the menu export), `SDL_utils.c` URI helpers | `core::linux::dbus` (crate-internal) | libdbus loaded at run time; typed `Arg`s in and decoded `Value`s out instead of varargs; session/system connections, method calls, property queries, filters; screensaver inhibit/tickle, the OpenURI, Documents and Camera portals, the machine ID; pumped with the event loop |
 | `cpuinfo/SDL_cpuinfo.c` | `sdl3::cpuinfo` | `CpuFeatures`, CPUID cache-line rules, core count, RAM, page size, the feature-mask hint, SIMD alignment |
 | `libm/` (fdlibm) + `SDL_stdlib.c` math | `sdl3::stdlib::math` | `sin`…`pow`, `fmod`, `sqrt`, `floor`, `scalbn`, `modf`, f32 variants; bit-identical to SDL's own build, checked by hashing outputs against compiled upstream C |
 | `stdlib/SDL_string.c` (UTF-8, case folding, number parsing), `SDL_iconv.c`, `SDL_getenv.c` | `sdl3::stdlib` | `step_utf8`/`codepoints`, `case_fold_unicode` (tables generated from upstream), `strcasecmp`, `strtol` family with upstream quirks, `Iconv` with all 29 encodings, `Environment` snapshots |
@@ -71,7 +72,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `dialog/SDL_dialog.c`, `SDL_dialog_utils.c`, `unix/SDL_zenitydialog.c` | `sdl3::dialog` | open/save/folder dialogs with closure callbacks, filter validation and conversion, the zenity backend on Unix (the D-Bus portal comes with the platform layer) |
 | `tray/SDL_tray_utils.c`, `notification/SDL_notification.c`, their `dummy/` backends | `sdl3::tray`, `sdl3::notification` | the tray and notification front ends; tray bookkeeping for quit-on-last-window-close |
 | `locale/SDL_locale.c`, `unix/` | `sdl3::locale` | `Locale` list, the CSV parser (byte-exact with upstream, checked against its C), `LANG`/`LANGUAGE` on Unix |
-| `misc/SDL_url.c`, `unix/` | `sdl3::misc` | `open_url` via `xdg-open` |
+| `misc/SDL_url.c`, `unix/` | `sdl3::misc` | `open_url` via the D-Bus OpenURI portal, else `xdg-open` |
 | `process/SDL_process.c`, `posix/` | `sdl3::process` | `Process`/`ProcessBuilder` (arguments, environment, working directory, redirections, background), pipes with non-blocking output, `kill`, `wait`, over `std::process` |
 | `main/SDL_main_callbacks.c`, `generic/SDL_sysmain_callbacks.c`, `SDL_runapp.c` | `sdl3::app` | the main-callbacks driver (`AppCallbacks` trait: init/iterate/event/quit), the callback-rate hint, `run_app` |
 | `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
@@ -95,8 +96,7 @@ Rust code returns an error instead.
 
 Not yet translated from these files: the GPU render state and the window
 texture behind renderer vsync for window surfaces; the
-OpenGL/EGL and Vulkan loaders and the GPU-texture window framebuffer; the RealtimeKit fallback for thread
-priorities (with D-Bus); the Windows
+OpenGL/EGL and Vulkan loaders and the GPU-texture window framebuffer; the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
 audio, haptic and camera drivers and the tray, notification and portal
 dialog backends; the NEON, LSX and
