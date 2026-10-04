@@ -12,16 +12,20 @@
 //! DBUS_TYPE_INVALID, DBUS_TYPE_y, &out, ..., DBUS_TYPE_INVALID)` becomes a
 //! slice of typed [`Arg`]s in, and the reply's decoded [`Value`]s out.
 //!
-//! The menu export of `SDL_DBus_ExportMenu()` and friends belongs to the
-//! D-Bus tray and comes with it.
+//! The menu export of `SDL_DBus_ExportMenu()` and friends is in [`menu`].
 
 #![allow(non_camel_case_types)]
 
 use crate::error::{Error, Result};
 use crate::loadso::SharedObject;
+use std::collections::HashMap;
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr, CString};
 use std::os::fd::{FromRawFd, OwnedFd, RawFd};
 use std::sync::{Arc, Mutex, MutexGuard};
+
+pub(crate) mod menu;
+#[cfg(test)]
+pub(crate) mod test_bus;
 
 // * * * libdbus declarations (dbus/dbus.h)
 
@@ -100,6 +104,27 @@ pub(crate) enum HandlerResult {
 type DBusHandleMessageFunction =
     unsafe extern "C" fn(*mut DBusConnection, *mut DBusMessage, *mut c_void) -> HandlerResult;
 type DBusFreeFunction = unsafe extern "C" fn(*mut c_void);
+type DBusObjectPathUnregisterFunction = unsafe extern "C" fn(*mut DBusConnection, *mut c_void);
+
+/// `DBusObjectPathVTable` (libdbus copies the two functions it uses).
+#[repr(C)]
+struct DBusObjectPathVTable {
+    unregister_function: Option<DBusObjectPathUnregisterFunction>,
+    message_function: Option<DBusHandleMessageFunction>,
+    dbus_internal_pad1: Option<unsafe extern "C" fn(*mut c_void)>,
+    dbus_internal_pad2: Option<unsafe extern "C" fn(*mut c_void)>,
+    dbus_internal_pad3: Option<unsafe extern "C" fn(*mut c_void)>,
+    dbus_internal_pad4: Option<unsafe extern "C" fn(*mut c_void)>,
+}
+
+/// `DBUS_TIMEOUT_INFINITE`.
+pub(crate) const TIMEOUT_INFINITE: i32 = 0x7fff_ffff;
+/// `DBUS_NAME_FLAG_REPLACE_EXISTING`.
+pub(crate) const NAME_FLAG_REPLACE_EXISTING: u32 = 0x2;
+/// `DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER`.
+pub(crate) const REQUEST_NAME_REPLY_PRIMARY_OWNER: i32 = 1;
+/// `DBUS_ERROR_UNKNOWN_PROPERTY`.
+pub(crate) const ERROR_UNKNOWN_PROPERTY: &str = "org.freedesktop.DBus.Error.UnknownProperty";
 
 // D-Bus type codes (DBUS_TYPE_*).
 const TYPE_INVALID: c_int = 0;
@@ -141,6 +166,15 @@ struct Fns {
     ) -> dbus_bool_t,
     connection_remove_filter:
         unsafe extern "C" fn(*mut DBusConnection, DBusHandleMessageFunction, *mut c_void),
+    connection_try_register_object_path: unsafe extern "C" fn(
+        *mut DBusConnection,
+        *const c_char,
+        *const DBusObjectPathVTable,
+        *mut c_void,
+        *mut DBusError,
+    ) -> dbus_bool_t,
+    connection_unregister_object_path:
+        unsafe extern "C" fn(*mut DBusConnection, *const c_char) -> dbus_bool_t,
     connection_send:
         unsafe extern "C" fn(*mut DBusConnection, *mut DBusMessage, *mut u32) -> dbus_bool_t,
     connection_send_with_reply_and_block: unsafe extern "C" fn(
@@ -227,6 +261,8 @@ fn load_dbus_syms(so: &SharedObject) -> Option<Fns> {
         connection_get_is_connected: sym!("connection_get_is_connected"),
         connection_add_filter: sym!("connection_add_filter"),
         connection_remove_filter: sym!("connection_remove_filter"),
+        connection_try_register_object_path: sym!("connection_try_register_object_path"),
+        connection_unregister_object_path: sym!("connection_unregister_object_path"),
         connection_send: sym!("connection_send"),
         connection_send_with_reply_and_block: sym!("connection_send_with_reply_and_block"),
         connection_close: sym!("connection_close"),
@@ -351,6 +387,10 @@ fn cstring(s: &str) -> CString {
 pub(crate) struct Connection {
     lib: &'static Lib,
     raw: *mut DBusConnection,
+    /// The object paths registered through this connection, with their
+    /// tags (what upstream reads back with
+    /// `dbus_connection_get_object_path_data()`).
+    paths: Mutex<HashMap<String, u64>>,
 }
 
 // SAFETY: libdbus connections are thread-safe once dbus_threads_init_default()
@@ -389,7 +429,30 @@ impl Connection {
         }
         // SAFETY: raw is a valid connection.
         unsafe { (lib.fns.connection_set_exit_on_disconnect)(raw, 0) };
-        Ok(Connection { lib, raw })
+        Ok(Connection::from_raw(lib, raw))
+    }
+
+    fn from_raw(lib: &'static Lib, raw: *mut DBusConnection) -> Connection {
+        Connection {
+            lib,
+            raw,
+            paths: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// Open a new private connection to the session bus, as the tray does
+    /// for its own service name (`dbus_bus_get_private(DBUS_BUS_SESSION)`).
+    pub(crate) fn session_private() -> Result<Connection> {
+        #[cfg(test)]
+        if let Some(address) = test_bus::session_address() {
+            return Connection::open_address(&address);
+        }
+        let lib = lib().ok_or_else(|| Error::new("D-Bus is not available"))?;
+        // SAFETY: called before the connection is made, as init() does.
+        if unsafe { (lib.fns.threads_init_default)() } == 0 {
+            return Err(Error::out_of_memory());
+        }
+        Connection::bus(lib, DBUS_BUS_SESSION)
     }
 
     /// Open a private connection to a bus by address and register with it
@@ -409,7 +472,7 @@ impl Connection {
         }
         // SAFETY: raw is a valid connection.
         unsafe { (lib.fns.connection_set_exit_on_disconnect)(raw, 0) };
-        let conn = Connection { lib, raw };
+        let conn = Connection::from_raw(lib, raw);
         // SAFETY: as above.
         if unsafe { (lib.fns.bus_register)(raw, &mut err.err) } == 0 {
             return Err(err.to_error());
@@ -524,6 +587,18 @@ impl Connection {
         }
     }
 
+    /// Write out everything queued (`dbus_connection_flush()`).
+    pub(crate) fn flush(&self) {
+        // SAFETY: raw is valid.
+        unsafe { (self.lib.fns.connection_flush)(self.raw) };
+    }
+
+    /// Queue a message without flushing (`dbus_connection_send()`).
+    pub(crate) fn send_no_flush(&self, msg: &Message) -> bool {
+        // SAFETY: raw and msg are valid; the serial isn't wanted.
+        unsafe { (self.lib.fns.connection_send)(self.raw, msg.raw, std::ptr::null_mut()) != 0 }
+    }
+
     /// Queue a message without waiting for a reply, then flush.
     pub(crate) fn send(&self, msg: &Message) -> bool {
         // SAFETY: raw and msg are valid; the serial isn't wanted.
@@ -597,6 +672,218 @@ impl Connection {
             },
         })
     }
+
+    /// Install a filter that stays until it removes itself: `filter`
+    /// returns `None` for messages that aren't its own, and the verdict
+    /// once it has handled its message, after which it is removed (upstream
+    /// calls `dbus_connection_remove_filter()` from inside the filter).
+    pub(crate) fn add_oneshot_filter<F>(&self, filter: F) -> bool
+    where
+        F: Fn(&Message) -> Option<HandlerResult> + Send + Sync + 'static,
+    {
+        self.add_detached(DetachedFilter::Oneshot(Arc::new(filter)))
+            .is_some()
+    }
+
+    /// Install a filter that stays until [`Connection::remove_owned_filter`]
+    /// (or until the connection goes away), as upstream's filters with
+    /// static functions do.
+    pub(crate) fn add_owned_filter<F>(&self, filter: F) -> Option<FilterHandle>
+    where
+        F: Fn(&Message) -> HandlerResult + Send + Sync + 'static,
+    {
+        self.add_detached(DetachedFilter::Owned(Arc::new(filter)))
+    }
+
+    /// Remove a filter added by [`Connection::add_owned_filter`] on this
+    /// connection.
+    pub(crate) fn remove_owned_filter(&self, handle: FilterHandle) {
+        // SAFETY: (trampoline, data) was added to a connection; if it is
+        // this one, libdbus unlinks it and frees data with free_detached,
+        // otherwise nothing happens. Owned filters only go away here or
+        // with their connection, and handles aren't copied, so data was
+        // not freed yet if it is found.
+        unsafe {
+            (self.lib.fns.connection_remove_filter)(self.raw, detached_trampoline, handle.data)
+        };
+    }
+
+    fn add_detached(&self, filter: DetachedFilter) -> Option<FilterHandle> {
+        let data = Box::into_raw(Box::new(filter)).cast::<c_void>();
+        // SAFETY: the trampoline understands data, which stays valid until
+        // libdbus frees it with free_detached (on removal, or when the
+        // connection is finalized).
+        let ok = unsafe {
+            (self.lib.fns.connection_add_filter)(
+                self.raw,
+                detached_trampoline,
+                data,
+                Some(free_detached),
+            )
+        } != 0;
+        if !ok {
+            // SAFETY: not installed; reclaim the box.
+            unsafe { free_detached(data) };
+            return None;
+        }
+        Some(FilterHandle { data })
+    }
+
+    /// Register a handler for the messages sent to an object path, with a
+    /// tag to recognize the registration by
+    /// (`dbus_connection_try_register_object_path()`; the tag stands in for
+    /// its user data). The handler stays until
+    /// [`Connection::unregister_object_path`] or until the connection goes
+    /// away.
+    pub(crate) fn try_register_object_path<F>(&self, path: &str, tag: u64, handler: F) -> Result<()>
+    where
+        F: Fn(&Connection, &Message) -> HandlerResult + Send + Sync + 'static,
+    {
+        const VTABLE: DBusObjectPathVTable = DBusObjectPathVTable {
+            unregister_function: Some(object_path_unregister),
+            message_function: Some(object_path_trampoline),
+            dbus_internal_pad1: None,
+            dbus_internal_pad2: None,
+            dbus_internal_pad3: None,
+            dbus_internal_pad4: None,
+        };
+        let handler: Arc<PathHandler> = Arc::new(handler);
+        let data = Box::into_raw(Box::new(handler)).cast::<c_void>();
+        let p = cstring(path);
+        let mut err = ErrorGuard::new(self.lib);
+        // SAFETY: libdbus copies the vtable; data stays valid until libdbus
+        // passes it to object_path_unregister.
+        let ok = unsafe {
+            (self.lib.fns.connection_try_register_object_path)(
+                self.raw,
+                p.as_ptr(),
+                &VTABLE,
+                data,
+                &mut err.err,
+            )
+        } != 0;
+        if !ok {
+            // SAFETY: not registered; reclaim the box.
+            drop(unsafe { Box::from_raw(data.cast::<Arc<PathHandler>>()) });
+            return Err(if err.is_set() {
+                err.to_error()
+            } else {
+                Error::new("Unable to register object path")
+            });
+        }
+        self.paths
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(path.to_owned(), tag);
+        Ok(())
+    }
+
+    /// Unregister an object path (`dbus_connection_unregister_object_path()`).
+    pub(crate) fn unregister_object_path(&self, path: &str) -> bool {
+        self.paths
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(path);
+        let p = cstring(path);
+        // SAFETY: p is NUL-terminated; for a registered path libdbus calls
+        // object_path_unregister.
+        unsafe { (self.lib.fns.connection_unregister_object_path)(self.raw, p.as_ptr()) != 0 }
+    }
+
+    /// The tag of the handler registered for `path`, if any (upstream's
+    /// `dbus_connection_get_object_path_data()`).
+    pub(crate) fn object_path_tag(&self, path: &str) -> Option<u64> {
+        self.paths
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(path)
+            .copied()
+    }
+}
+
+/// A filter installed with [`Connection::add_owned_filter`], to remove it
+/// with [`Connection::remove_owned_filter`].
+#[derive(Debug)]
+pub(crate) struct FilterHandle {
+    data: *mut c_void,
+}
+
+// SAFETY: the handle is only an identity token for libdbus's filter list.
+unsafe impl Send for FilterHandle {}
+// SAFETY: as above.
+unsafe impl Sync for FilterHandle {}
+
+type OwnedFilterFn = dyn Fn(&Message) -> HandlerResult + Send + Sync;
+type OneshotFilterFn = dyn Fn(&Message) -> Option<HandlerResult> + Send + Sync;
+type PathHandler = dyn Fn(&Connection, &Message) -> HandlerResult + Send + Sync;
+
+/// The user data of the filters libdbus owns.
+enum DetachedFilter {
+    Owned(Arc<OwnedFilterFn>),
+    Oneshot(Arc<OneshotFilterFn>),
+}
+
+unsafe extern "C" fn detached_trampoline(
+    conn: *mut DBusConnection,
+    msg: *mut DBusMessage,
+    data: *mut c_void,
+) -> HandlerResult {
+    let Some(lib) = lib() else {
+        return HandlerResult::NotYetHandled;
+    };
+    // SAFETY: data is the DetachedFilter installed by add_detached, valid
+    // while the filter is installed. As with libdbus in C, filters are
+    // removed by the thread dispatching the connection or while it isn't
+    // dispatching. The closure is cloned first, so the filter removing
+    // itself (or being removed by its own callback) can't free it while it
+    // runs.
+    let filter = match unsafe { &*(data as *const DetachedFilter) } {
+        DetachedFilter::Owned(f) => Ok(f.clone()),
+        DetachedFilter::Oneshot(f) => Err(f.clone()),
+    };
+    let msg = std::mem::ManuallyDrop::new(Message { lib, raw: msg });
+    match filter {
+        Ok(f) => f(&msg),
+        Err(f) => match f(&msg) {
+            Some(result) => {
+                // SAFETY: (conn, trampoline, data) is installed; libdbus
+                // frees data with free_detached, and nothing touches it
+                // afterwards.
+                unsafe { (lib.fns.connection_remove_filter)(conn, detached_trampoline, data) };
+                result
+            }
+            None => HandlerResult::NotYetHandled,
+        },
+    }
+}
+
+unsafe extern "C" fn free_detached(data: *mut c_void) {
+    // SAFETY: data is the Box<DetachedFilter> made by add_detached, freed once.
+    drop(unsafe { Box::from_raw(data.cast::<DetachedFilter>()) });
+}
+
+unsafe extern "C" fn object_path_trampoline(
+    conn: *mut DBusConnection,
+    msg: *mut DBusMessage,
+    data: *mut c_void,
+) -> HandlerResult {
+    let Some(lib) = lib() else {
+        return HandlerResult::NotYetHandled;
+    };
+    // SAFETY: data is the Box<Arc<PathHandler>> registered by
+    // try_register_object_path, valid while registered (see
+    // detached_trampoline); the handler is cloned before it runs.
+    let handler = unsafe { &*(data as *const Arc<PathHandler>) }.clone();
+    // (the connection and message are lent for the call)
+    let conn = std::mem::ManuallyDrop::new(Connection::from_raw(lib, conn));
+    let msg = std::mem::ManuallyDrop::new(Message { lib, raw: msg });
+    handler(&conn, &msg)
+}
+
+unsafe extern "C" fn object_path_unregister(_conn: *mut DBusConnection, data: *mut c_void) {
+    // SAFETY: data is the Box<Arc<PathHandler>> registered by
+    // try_register_object_path; libdbus calls this once for it.
+    drop(unsafe { Box::from_raw(data.cast::<Arc<PathHandler>>()) });
 }
 
 /// Whether a failed call's error is the D-Bus error `name`; errors read
@@ -829,6 +1116,57 @@ impl Writer<'_> {
                         })
                 })
             })
+        })
+    }
+
+    /// Append a variant of type `signature` holding what `fill` appends.
+    pub(crate) fn variant(
+        &mut self,
+        signature: &str,
+        fill: impl FnOnce(&mut Writer<'_>) -> bool,
+    ) -> bool {
+        self.container(b'v', Some(signature), fill)
+    }
+
+    /// Append a `{sv}` dictionary entry: `key`, then a variant of type
+    /// `signature` holding what `fill` appends (the iterator must be inside
+    /// an `a{sv}` array).
+    pub(crate) fn dict_entry(
+        &mut self,
+        key: &str,
+        signature: &str,
+        fill: impl FnOnce(&mut Writer<'_>) -> bool,
+    ) -> bool {
+        self.container(b'e', None, |entry| {
+            entry.string(TYPE_STRING, key) && entry.variant(signature, fill)
+        })
+    }
+
+    /// Append a byte array (`ay`) in one go.
+    pub(crate) fn append_bytes(&mut self, bytes: &[u8]) -> bool {
+        self.container(b'a', Some("y"), |a| a.append_fixed_bytes(bytes))
+    }
+
+    /// Append bytes to an open `ay` array
+    /// (`dbus_message_iter_append_fixed_array()`).
+    pub(crate) fn append_fixed_bytes(&mut self, bytes: &[u8]) -> bool {
+        let p = bytes.as_ptr();
+        // SAFETY: p points to bytes.len() bytes; libdbus takes a pointer to
+        // the array pointer.
+        unsafe {
+            (self.lib.fns.message_iter_append_fixed_array)(
+                &mut self.iter,
+                TYPE_BYTE,
+                (&p as *const *const u8).cast(),
+                bytes.len() as c_int,
+            ) != 0
+        }
+    }
+
+    /// Append a string array (`as`).
+    pub(crate) fn append_str_array(&mut self, strings: &[&str]) -> bool {
+        self.container(b'a', Some("s"), |a| {
+            strings.iter().all(|s| a.string(TYPE_STRING, s))
         })
     }
 
@@ -1673,89 +2011,8 @@ fn camera_portal_request_access_on(conn: &Connection) -> CameraPortalAccess {
 
 #[cfg(test)]
 mod tests {
+    use super::test_bus::{serve, Bus};
     use super::*;
-    use std::io::{BufRead, BufReader};
-    use std::process::{Child, Command, Stdio};
-
-    /// A private session bus for the test, killed on drop.
-    struct Bus {
-        child: Child,
-        address: String,
-    }
-
-    impl Bus {
-        fn start() -> Option<Bus> {
-            if lib().is_none() {
-                println!("libdbus isn't available; skipping");
-                return None;
-            }
-            let mut child = match Command::new("dbus-daemon")
-                .args(["--session", "--nofork", "--print-address"])
-                .stdout(Stdio::piped())
-                .stderr(Stdio::null())
-                .spawn()
-            {
-                Ok(c) => c,
-                Err(_) => {
-                    println!("dbus-daemon isn't installed; skipping");
-                    return None;
-                }
-            };
-            let mut line = String::new();
-            BufReader::new(child.stdout.take().unwrap())
-                .read_line(&mut line)
-                .ok()?;
-            Some(Bus {
-                child,
-                address: line.trim().to_owned(),
-            })
-        }
-    }
-
-    impl Drop for Bus {
-        fn drop(&mut self) {
-            let _ = self.child.kill();
-            let _ = self.child.wait();
-        }
-    }
-
-    /// Answer method calls on `conn` from another thread until `stop`.
-    fn serve(
-        address: String,
-        name: &'static str,
-        handler: impl Fn(&Message) -> Option<Message> + Send + 'static,
-    ) -> (
-        std::thread::JoinHandle<()>,
-        Arc<std::sync::atomic::AtomicBool>,
-    ) {
-        let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let s2 = stop.clone();
-        let (tx, rx) = std::sync::mpsc::channel();
-        let t = std::thread::spawn(move || {
-            let conn = Connection::open_address(&address).unwrap();
-            assert_eq!(conn.request_name(name, 0).unwrap(), 1, "primary owner");
-            let replies = Arc::new(Mutex::new(Vec::new()));
-            let r2 = replies.clone();
-            let _filter = conn
-                .add_filter(move |msg| match handler(msg) {
-                    Some(reply) => {
-                        r2.lock().unwrap().push(reply);
-                        HandlerResult::Handled
-                    }
-                    None => HandlerResult::NotYetHandled,
-                })
-                .unwrap();
-            tx.send(()).unwrap();
-            while !s2.load(std::sync::atomic::Ordering::SeqCst) {
-                conn.read_write_dispatch(20);
-                for reply in replies.lock().unwrap().drain(..) {
-                    conn.send(&reply);
-                }
-            }
-        });
-        rx.recv().unwrap();
-        (t, stop)
-    }
 
     #[test]
     fn calls_properties_and_values() {
@@ -1994,6 +2251,125 @@ mod tests {
             camera_portal_request_access_on(&conn),
             CameraPortalAccess::Error
         ));
+    }
+
+    #[test]
+    fn object_paths_and_detached_filters() {
+        use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+        let Some(bus) = Bus::start() else { return };
+        let server = Arc::new(Connection::open_address(&bus.address).unwrap());
+        let server_name = server.unique_name().unwrap();
+
+        // An object answering with its path's tag and the first argument.
+        server
+            .try_register_object_path("/org/libsdl/Test", 7, |conn, msg| {
+                if !msg.is_method_call("org.libsdl.Test", "Echo") {
+                    return HandlerResult::NotYetHandled;
+                }
+                let Some(mut reply) = msg.new_method_return() else {
+                    return HandlerResult::NeedMemory;
+                };
+                let arg = match msg.args().first() {
+                    Some(Value::Str(s)) => s.clone(),
+                    _ => String::new(),
+                };
+                let mut w = reply.writer();
+                w.append(&Arg::Str(&arg));
+                w.append_bytes(b"\x01\x02");
+                w.append_str_array(&["a", "b"]);
+                w.container(b'a', Some("{sv}"), |d| {
+                    d.dict_entry("n", "i", |v| v.append(&Arg::I32(-3)))
+                });
+                conn.send_no_flush(&reply);
+                HandlerResult::Handled
+            })
+            .unwrap();
+        assert_eq!(server.object_path_tag("/org/libsdl/Test"), Some(7));
+        assert!(server
+            .try_register_object_path("/org/libsdl/Test", 8, |_, _| HandlerResult::Handled)
+            .is_err());
+        assert_eq!(server.object_path_tag("/org/libsdl/Test"), Some(7));
+
+        let stop = Arc::new(AtomicBool::new(false));
+        let (s2, srv) = (stop.clone(), server.clone());
+        let pump = std::thread::spawn(move || {
+            while !s2.load(Ordering::SeqCst) {
+                srv.read_write_dispatch(10);
+            }
+        });
+
+        let client = Connection::open_address(&bus.address).unwrap();
+        let reply = call_method_on_connection(
+            &client,
+            &server_name,
+            "/org/libsdl/Test",
+            "org.libsdl.Test",
+            "Echo",
+            &[Arg::Str("hi")],
+        )
+        .unwrap();
+        let entry = Value::DictEntry(
+            Box::new(Value::Str("n".into())),
+            Box::new(Value::Variant(Box::new(Value::I32(-3)))),
+        );
+        assert_eq!(
+            reply.args(),
+            vec![
+                Value::Str("hi".into()),
+                Value::Array(vec![Value::Byte(1), Value::Byte(2)]),
+                Value::Array(vec![Value::Str("a".into()), Value::Str("b".into())]),
+                Value::Array(vec![entry]),
+            ]
+        );
+
+        // Signals to a one-shot filter and an owned filter.
+        client
+            .add_match("type='signal',interface='org.libsdl.Test'")
+            .unwrap();
+        let (once, all) = (Arc::new(AtomicU32::new(0)), Arc::new(AtomicU32::new(0)));
+        let o2 = once.clone();
+        assert!(client.add_oneshot_filter(move |msg| {
+            msg.is_signal("org.libsdl.Test", "Ping").then(|| {
+                o2.fetch_add(1, Ordering::SeqCst);
+                HandlerResult::NotYetHandled
+            })
+        }));
+        let a2 = all.clone();
+        let handle = client
+            .add_owned_filter(move |msg| {
+                if msg.is_signal("org.libsdl.Test", "Ping") {
+                    a2.fetch_add(1, Ordering::SeqCst);
+                }
+                HandlerResult::NotYetHandled
+            })
+            .unwrap();
+        let ping = || {
+            let signal = server
+                .new_signal("/org/libsdl/Test", "org.libsdl.Test", "Ping")
+                .unwrap();
+            assert!(server.send(&signal));
+        };
+        ping();
+        assert!(test_bus::wait_for(
+            || client.pump(),
+            || all.load(Ordering::SeqCst) == 1
+        ));
+        ping();
+        assert!(test_bus::wait_for(
+            || client.pump(),
+            || all.load(Ordering::SeqCst) == 2
+        ));
+        assert_eq!(once.load(Ordering::SeqCst), 1, "removed after its message");
+        client.remove_owned_filter(handle);
+        ping();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        client.pump();
+        assert_eq!(all.load(Ordering::SeqCst), 2, "removed");
+
+        assert!(server.unregister_object_path("/org/libsdl/Test"));
+        assert_eq!(server.object_path_tag("/org/libsdl/Test"), None);
+        stop.store(true, Ordering::SeqCst);
+        pump.join().unwrap();
     }
 
     #[test]
