@@ -775,6 +775,37 @@ fn dummy_driver_playback_and_recording() {
 }
 
 #[test]
+fn unbinding_a_simplified_stream_is_ignored() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
+    crate::hints::set(crate::hints::AUDIO_DUMMY_TIMESCALE, "0.05").unwrap();
+    crate::init::init_subsystem(crate::init::InitFlags::AUDIO).unwrap();
+
+    let stream = open_audio_device_stream(
+        AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        Some(&AudioSpec::new(AudioFormat::F32, 2, 44100)),
+        None::<fn(&AudioStream, i32, i32)>,
+    )
+    .unwrap();
+    let devid = stream.device().unwrap();
+
+    // The stream stays bound to the device it was opened with...
+    unbind_audio_stream(&stream);
+    assert_eq!(stream.device().unwrap(), devid);
+    unbind_audio_streams(&[&stream]);
+    assert_eq!(stream.device().unwrap(), devid);
+    assert!(audio_device_format(devid).is_ok());
+
+    // ...so destroying it still closes that device.
+    drop(stream);
+    assert!(audio_device_format(devid).is_err());
+
+    crate::init::quit_subsystem(crate::init::InitFlags::AUDIO);
+    crate::hints::reset(crate::hints::AUDIO_DRIVER);
+    crate::hints::reset(crate::hints::AUDIO_DUMMY_TIMESCALE);
+}
+
+#[test]
 fn disk_driver_writes_and_reads_files() {
     let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let tmp = crate::test_support::TempDir::new("diskaudio");
