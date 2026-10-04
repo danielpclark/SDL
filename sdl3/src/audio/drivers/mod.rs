@@ -11,6 +11,8 @@ pub(crate) mod dummy;
 pub(crate) mod pipewire;
 #[cfg(target_os = "linux")]
 pub(crate) mod pulseaudio;
+#[cfg(windows)]
+pub(crate) mod wasapi;
 
 /// `io_delay` for a device: `(sample_frames * 1000) / freq` milliseconds,
 /// scaled by a timescale hint (`SDL_atof`, rounded with `SDL_round`).

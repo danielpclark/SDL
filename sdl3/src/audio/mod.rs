@@ -50,9 +50,9 @@
 //! ## Drivers
 //!
 //! The platform drivers are tried in upstream's order ([`audio_driver`]
-//! lists them): on Linux "pipewire", "pulseaudio" and "alsa". Each loads its system library at run
-//! time, so a missing library or sound server just moves on to the next
-//! driver. "disk" and "dummy" are only used when requested with the
+//! lists them): on Linux "pipewire", "pulseaudio" and "alsa", on Windows
+//! "wasapi". The Linux ones load their system library at run time, so a
+//! missing library or sound server just moves on to the next driver. "disk" and "dummy" are only used when requested with the
 //! [`AUDIO_DRIVER`](crate::hints::AUDIO_DRIVER) hint (which may name
 //! several drivers, separated by commas, to try in turn).
 

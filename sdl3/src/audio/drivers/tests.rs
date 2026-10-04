@@ -14,6 +14,8 @@ pub(crate) const EXPECTED_DRIVERS: &[&str] = &[
     "pulseaudio",
     #[cfg(target_os = "linux")]
     "alsa",
+    #[cfg(windows)]
+    "wasapi",
     "disk",
     "dummy",
 ];
@@ -26,6 +28,8 @@ const NON_DEMAND_ONLY: &[&str] = &[
     "pulseaudio",
     #[cfg(target_os = "linux")]
     "alsa",
+    #[cfg(windows)]
+    "wasapi",
 ];
 
 /// Shuts audio down (and resets the driver hints) when dropped, so a
