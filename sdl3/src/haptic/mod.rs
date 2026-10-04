@@ -15,11 +15,17 @@
 //! covers most uses; the effect API ([`Haptic::create_effect`] with a
 //! [`HapticEffect`]) gives full control over force feedback.
 //!
-//! The haptic backends are platform drivers; so far only the dummy driver,
-//! which reports no devices, exists. (The HIDAPI haptic driver, built on the
-//! HIDAPI joystick drivers, is not translated yet.)
+//! The haptic backends are platform drivers; so far the Linux driver (the
+//! kernel's force feedback interface on evdev devices) and the dummy driver,
+//! which reports no devices, exist. (The HIDAPI haptic driver, built on the
+//! HIDAPI joystick drivers, and the DirectInput driver of Windows are not
+//! translated yet.)
 
+// (on Linux, only the tests use the dummy driver)
+#[cfg_attr(target_os = "linux", allow(dead_code))]
 mod dummy;
+#[cfg(target_os = "linux")]
+mod linux;
 
 use std::any::Any;
 use std::cell::RefCell;
@@ -424,7 +430,7 @@ pub(crate) struct HapticData {
     /// Number of axes on the device.
     pub(crate) naxes: i32,
     /// Driver dependent.
-    #[allow(dead_code)] // (used by the haptic drivers)
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))] // (used by the haptic drivers)
     pub(crate) hwdata: Option<Box<dyn Any + Send>>,
     /// Count for multiple opens.
     ref_count: i32,
@@ -533,7 +539,11 @@ pub(crate) trait HapticDriver: Send + Sync {
     fn stop_all(&self, haptic: &mut HapticData) -> Result<()>;
 }
 
-/// The haptic backend.
+/// The haptic backend (`SDL_SYS_*`, chosen when upstream is built).
+#[cfg(target_os = "linux")]
+static DRIVER: &dyn HapticDriver = &linux::LINUX_HAPTIC_DRIVER;
+/// The haptic backend (`SDL_SYS_*`, chosen when upstream is built).
+#[cfg(not(target_os = "linux"))]
 static DRIVER: &dyn HapticDriver = &dummy::DUMMY_HAPTIC_DRIVER;
 
 static NEXT_SERIAL: AtomicU64 = AtomicU64::new(1);

@@ -1927,7 +1927,6 @@ fn close_hwdata(s: &mut LinuxState, hwdata: &mut HwData) {
 /// (`joystick->hwdata->fd` and `fname`), for the haptic driver; `None` for
 /// a joystick of another driver (`joystick->driver !=
 /// &SDL_LINUX_JoystickDriver`).
-#[allow(dead_code)] // (used by the haptic driver)
 pub(crate) fn joystick_fd_and_fname(joystick: &Joystick) -> Option<(RawFd, String)> {
     assert_joysticks_locked();
 
