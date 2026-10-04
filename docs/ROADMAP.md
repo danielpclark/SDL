@@ -56,7 +56,7 @@ handlers and thread priorities.
 | `video/` backends | ~210,000 | dummy & offscreen (**done**, with the video core, `SDL_video.c`, checked against upstream C) → Wayland → X11 → Windows → Cocoa → UIKit → Android → KMS/DRM → Emscripten → others |
 | `render/` GPU backends | ~77,000 | OpenGL / GLES2 → Vulkan → Direct3D 11/12 → Metal → `SDL_GPU`-based renderer |
 | `gpu/` | ~41,800 | Vulkan → D3D12 → Metal |
-| `audio/` drivers | ~15,000 | dummy & disk (**done**) → ALSA, PulseAudio, PipeWire (**done**) → WASAPI → CoreAudio → AAudio → others |
+| `audio/` drivers | ~15,000 | dummy & disk (**done**) → ALSA, PulseAudio, PipeWire, WASAPI (**done**) → CoreAudio → AAudio → others |
 | `joystick/` drivers + `hidapi/` | ~60,000 | Linux evdev (**done**: udev/inotify/polling discovery, classic `js` nodes, calibration, hats, balls, sensors, rumble, the generated gamepad mapping; the Linux haptic driver with it) → HIDAPI (pure-Rust hid transport) → Windows (the `SDL_windowsjoystick.c` frame and XInput **done**; DirectInput (with its haptic driver), RawInput, WGI and GameInput next) → Darwin IOKit/MFI → Android |
 | `core/` per-platform glue | ~26,000 | Linux (evdev capabilities, udev and the evdev event timestamps **done**; D-Bus, ibus, fcitx, and the console evdev keyboard/mouse reader with the KMS/DRM video driver), Windows (COM **done**, XInput and the `SDL_hid.c` device notifications **done**; the HID DLL with RawInput, GameInput), Android JNI, Apple, Haiku, Emscripten, GDK, PS2/PSP/Vita/3DS/N-Gage, OpenHarmony |
 | `power/`, `locale/`, `filesystem/`, `dialog/`, `tray/`, `notification/`, `camera/`, `sensor/`, `haptic/`, `misc/`, `process/`, `time/`, `timer/`, `loadso/`, `main/` backends | ~30,000 | alongside the platform they belong to |

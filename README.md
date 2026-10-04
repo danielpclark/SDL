@@ -60,6 +60,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `audio/alsa/` | `sdl3::audio` (drivers, Linux) | the ALSA driver, with libasound loaded at run time: PCM configuration with format, channel count and channel map negotiation (swizzling through the core), xrun recovery, card and device enumeration with the hotplug thread, the default-device hints. Tested through libasound's `file` and `null` PCMs, so no sound card is needed |
 | `audio/pipewire/` | `sdl3::audio` (drivers, Linux) | the PipeWire driver (preferred and plain bootstrap entries), with libpipewire loaded at run time: the hotplug loop over the registry (sink/source nodes, their params, the default-device metadata, WirePlumber's session services), streams on their own loop threads driving the device iterations, and the inline SPA helpers it needs (pod builder and parser, the JSON tokenizer, dictionary lookup, interface method calls) translated to Rust and checked against the C headers' output. Tested against a private PipeWire server when one is reachable |
 | `audio/pulseaudio/` | `sdl3::audio` (drivers, Linux) | the PulseAudio driver, with libpulse loaded at run time: the threaded main loop and context, sink/source enumeration (monitors on request), hotplug and default-device changes from the subscription, playback with libpulse's write buffers and recording from its fragments. Tested against a private `pulseaudio` server with null sinks when the binary is installed |
+| `audio/wasapi/`, `core/windows/SDL_immdevice.c` | `sdl3::audio` (drivers, Windows) | the WASAPI driver over hand-declared COM vtables: the management thread that serializes the COM work, IMMDevice endpoint enumeration with the notification client for hotplug and default-device changes, shared-mode streams (IAudioClient3 low-latency periods when available, event-driven playback and recording, loopback recording of playback devices on request), lost-device recovery, and Avrt "Pro Audio" thread characteristics. Tested under Wine, with and without an endpoint |
 | `storage/SDL_storage.c` + generic backend | `sdl3::storage` | `Storage` over a `StorageInterface` trait: title, user and file storage, driver hints, path validation, glob |
 | `timer/SDL_timer.c` | `sdl3::timer` | ticks, `delay`, `delay_precise`, threaded timer queue behind an RAII `Timer` |
 | `time/SDL_time.c` | `sdl3::time` | `Time` newtype, `DateTime`, civil-date algorithms, `SystemTime` and Windows FILETIME conversions |
@@ -108,9 +109,10 @@ Not yet translated from these files: the GPU render state and the window
 texture behind renderer vsync for window surfaces; the
 OpenGL/EGL and Vulkan loaders and the GPU-texture window framebuffer; the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
-audio and camera drivers, the haptic drivers other than Linux's, the
-joystick drivers other than Linux evdev and XInput, and the tray,
-notification and portal dialog backends; the NEON, LSX and
+audio drivers other than ALSA, PulseAudio, PipeWire and WASAPI (and ALSA's
+udev hotplug path), the camera drivers, the haptic drivers other than
+Linux's, the joystick drivers other than Linux evdev and XInput, and the
+tray, notification and portal dialog backends; the NEON, LSX and
 AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.

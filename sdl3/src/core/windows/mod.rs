@@ -13,6 +13,8 @@
 
 #![allow(clippy::upper_case_acronyms)]
 
+pub(crate) mod immdevice;
+
 use crate::audio::AudioFormat;
 use crate::error::{Error, Result};
 use crate::video::pixels::PixelFormat;

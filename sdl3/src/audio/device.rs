@@ -216,6 +216,8 @@ static BOOTSTRAP: &[&AudioBootStrap] = &[
     &drivers::pipewire::PIPEWIRE_BOOTSTRAP,
     #[cfg(target_os = "linux")]
     &drivers::alsa::ALSA_BOOTSTRAP,
+    #[cfg(windows)]
+    &drivers::wasapi::WASAPI_BOOTSTRAP,
     &drivers::disk::DISKAUDIO_BOOTSTRAP,
     &drivers::dummy::DUMMYAUDIO_BOOTSTRAP,
 ];
@@ -309,6 +311,12 @@ impl PhysicalDevice {
     /// Whether the audio thread is being asked to end.
     pub(crate) fn shutting_down(&self) -> bool {
         self.shutdown.load(Ordering::Acquire) != 0
+    }
+
+    /// Whether the device was lost (`SDL_GetAtomicInt(&device->zombie)`).
+    #[allow(dead_code)] // for hotplug-capable backends
+    pub(crate) fn is_zombie(&self) -> bool {
+        self.zombie.load(Ordering::Acquire) != 0
     }
 }
 
@@ -516,12 +524,17 @@ fn audio_device_can_use_simple_copy(st: &PhysState) -> bool {
 
 /// Translation of `UpdateAudioStreamFormatsPhysical()`. Should hold the device lock.
 fn update_audio_stream_formats_physical(device: &PhysicalDevice, guard: &DeviceGuard<'_>) {
+    update_audio_stream_formats_physical_state(device, &mut guard.borrow_mut());
+}
+
+/// [`update_audio_stream_formats_physical`] with the device's state
+/// already borrowed.
+fn update_audio_stream_formats_physical_state(device: &PhysicalDevice, st: &mut PhysState) {
     let recording = device.recording;
     let (mut spec, devformat, chmap, channels, logical_devices) = {
-        let mut st = guard.borrow_mut();
         let spec = st.spec;
         if !recording {
-            let simple_copy = audio_device_can_use_simple_copy(&st);
+            let simple_copy = audio_device_can_use_simple_copy(st);
             st.simple_copy = simple_copy;
         }
         (
@@ -532,7 +545,7 @@ fn update_audio_stream_formats_physical(device: &PhysicalDevice, guard: &DeviceG
             st.logical_devices.clone(),
         )
     };
-    if !recording && !guard.borrow().simple_copy {
+    if !recording && !st.simple_copy {
         spec.format = AudioFormat::F32; // mixing and postbuf operates in float32 format.
     }
 
@@ -3220,23 +3233,42 @@ fn audio_device_format_changed_already_locked(
     newspec: &AudioSpec,
     new_sample_frames: i32,
 ) -> Result<()> {
-    {
-        let st = guard.borrow();
-        // we don't currently have any place where channel maps change from under you, but we can check that if necessary later.
-        if audio_specs_equal(&st.spec, newspec, None, None) && new_sample_frames == st.sample_frames
-        {
-            return Ok(()); // we're already in that format.
-        }
+    audio_device_format_changed_state(device, &mut guard.borrow_mut(), newspec, new_sample_frames)
+}
+
+/// `SDL_AudioDeviceFormatChangedAlreadyLocked()` from a backend's
+/// `open_device`, which gets the device's state already borrowed (WASAPI
+/// renegotiates the format while opening).
+#[allow(dead_code)] // for backends that renegotiate the format while opening (WASAPI)
+pub(crate) fn audio_device_format_changed_while_opening(
+    device: &PhysicalDevice,
+    st: &mut PhysState,
+    newspec: &AudioSpec,
+    new_sample_frames: i32,
+) -> Result<()> {
+    audio_device_format_changed_state(device, st, newspec, new_sample_frames)
+}
+
+/// The body of `SDL_AudioDeviceFormatChangedAlreadyLocked()`, with the
+/// device's state borrowed.
+fn audio_device_format_changed_state(
+    device: &PhysicalDevice,
+    st: &mut PhysState,
+    newspec: &AudioSpec,
+    new_sample_frames: i32,
+) -> Result<()> {
+    // we don't currently have any place where channel maps change from under you, but we can check that if necessary later.
+    if audio_specs_equal(&st.spec, newspec, None, None) && new_sample_frames == st.sample_frames {
+        return Ok(()); // we're already in that format.
     }
 
-    guard.borrow_mut().spec = *newspec;
-    update_audio_stream_formats_physical(device, guard);
+    st.spec = *newspec;
+    update_audio_stream_formats_physical_state(device, st);
 
     {
-        let mut st = guard.borrow_mut();
         let orig_work_buffer_size = st.work_buffer_size;
         st.sample_frames = new_sample_frames;
-        updated_audio_device_format(&mut st);
+        updated_audio_device_format(st);
         if !st.work_buffer.is_empty() && st.work_buffer_size > orig_work_buffer_size {
             st.work_buffer = vec![0u8; st.work_buffer_size];
 
@@ -3257,7 +3289,7 @@ fn audio_device_format_changed_already_locked(
     //  in a safer thread).
     // !!! FIXME: this duplicates some code we could probably refactor.
     let mut pending = vec![(EventType::AUDIO_DEVICE_FORMAT_CHANGED, device.instance_id)];
-    for logdev in guard.borrow().logical_devices.iter() {
+    for logdev in st.logical_devices.iter() {
         pending.push((EventType::AUDIO_DEVICE_FORMAT_CHANGED, logdev.instance_id));
     }
     queue_pending_events(pending);
