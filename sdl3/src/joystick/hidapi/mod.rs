@@ -30,6 +30,7 @@ mod ps4;
 mod ps5;
 pub(crate) mod report_descriptor;
 pub(crate) mod rumble;
+mod switch;
 mod xbox360;
 mod xbox360w;
 mod xboxone;
@@ -346,6 +347,13 @@ pub(crate) trait DriverContext: Send {
 
     /// `FreeDevice`
     fn free_device(&mut self, _device: &mut DeviceCtx<'_>) {}
+
+    /// The power state the controller last reported, for the other half
+    /// of a combined device (where upstream reads the other device's
+    /// context).
+    fn power_info(&self) -> Option<(PowerState, i32)> {
+        None
+    }
 }
 
 /// The changing part of a device.
@@ -436,9 +444,6 @@ impl HidapiDevice {
     pub(crate) fn is_bluetooth(&self) -> bool {
         self.is_bluetooth
     }
-    pub(crate) fn manufacturer_string(&self) -> Option<&str> {
-        self.manufacturer_string.as_deref()
-    }
     pub(crate) fn product_string(&self) -> Option<&str> {
         self.product_string.as_deref()
     }
@@ -473,6 +478,15 @@ impl HidapiDevice {
     }
     pub(crate) fn children(&self) -> Vec<Arc<HidapiDevice>> {
         self.state().children.clone()
+    }
+
+    /// The power info of the device's driver context (`DriverContext::power_info`).
+    pub(crate) fn context_power_info(&self) -> Option<(PowerState, i32)> {
+        self.context
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+            .and_then(|context| context.power_info())
     }
 
     /// The open HID device (`device->dev`).
@@ -537,16 +551,6 @@ impl DeviceCtx<'_> {
     /// `SDL_hid_write(device->dev, ...)`
     pub(crate) fn write(&self, data: &[u8]) -> Result<usize> {
         self.hid()?.write(data)
-    }
-
-    /// `SDL_hid_get_feature_report(device->dev, ...)`
-    pub(crate) fn get_feature_report(&self, data: &mut [u8]) -> Result<usize> {
-        self.hid()?.get_feature_report(data)
-    }
-
-    /// `SDL_hid_send_feature_report(device->dev, ...)`
-    pub(crate) fn send_feature_report(&self, data: &[u8]) -> Result<usize> {
-        self.hid()?.send_feature_report(data)
     }
 
     /// `SDL_hid_get_report_descriptor(device->dev, ...)`
@@ -619,15 +623,6 @@ impl DeviceCtx<'_> {
             .first()
             .copied()
             .filter(|&id| self.joystick_open(id))
-    }
-
-    /// Run `f` on an open joystick's front end state.
-    pub(crate) fn with_joystick<R>(
-        &self,
-        joystick: JoystickID,
-        f: impl FnOnce(&mut JoystickData) -> R,
-    ) -> Option<R> {
-        with_joystick(joystick, f)
     }
 
     /// Translation of `HIDAPI_JoystickConnected()`: a new joystick on this
@@ -881,6 +876,17 @@ pub(crate) static DRIVER_PS4: HidapiDeviceDriver =
 /// `SDL_HIDAPI_DriverPS5`
 pub(crate) static DRIVER_PS5: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_PS5, &ps5::Ps5Driver);
+/// `SDL_HIDAPI_DriverNintendoClassic`
+pub(crate) static DRIVER_NINTENDO_CLASSIC: HidapiDeviceDriver = HidapiDeviceDriver::new(
+    hints::JOYSTICK_HIDAPI_NINTENDO_CLASSIC,
+    &switch::NintendoClassicDriver,
+);
+/// `SDL_HIDAPI_DriverJoyCons`
+pub(crate) static DRIVER_JOYCONS: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_JOY_CONS, &switch::JoyConsDriver);
+/// `SDL_HIDAPI_DriverSwitch`
+pub(crate) static DRIVER_SWITCH: HidapiDeviceDriver =
+    HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_SWITCH, &switch::SwitchDriver);
 /// `SDL_HIDAPI_DriverXbox360`
 pub(crate) static DRIVER_XBOX360: HidapiDeviceDriver =
     HidapiDeviceDriver::new(hints::JOYSTICK_HIDAPI_XBOX_360, &xbox360::Xbox360Driver);
@@ -901,6 +907,9 @@ pub(crate) static DRIVER_XBOXONE: HidapiDeviceDriver =
 static HIDAPI_DRIVERS: &[&HidapiDeviceDriver] = &[
     &DRIVER_PS4,
     &DRIVER_PS5,
+    &DRIVER_NINTENDO_CLASSIC,
+    &DRIVER_JOYCONS,
+    &DRIVER_SWITCH,
     &DRIVER_XBOX360,
     &DRIVER_XBOX360W,
     &DRIVER_XBOXONE,
