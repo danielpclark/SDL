@@ -7,11 +7,11 @@ use crate::events::window::WindowFlags;
 use crate::hints;
 use crate::init::{self, InitFlags};
 use crate::render::{
-    num_render_drivers, render_driver, Renderer, Texture, TextureAccess, Vertex,
-    PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN,
-    PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER,
-    PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER,
-    PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER, SOFTWARE_RENDERER,
+    Renderer, Texture, TextureAccess, Vertex, PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER,
+    PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN, PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER,
+    SOFTWARE_RENDERER,
 };
 use crate::video::pixels::{Color, FColor, Palette, PixelFormat};
 use crate::video::rect::{FPoint, FRect, Rect};
@@ -174,7 +174,9 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
+#[cfg(not(windows))] // (direct3d11 comes first there: see its tests)
 fn driver_list_follows_upstreams_order() {
+    use crate::render::{num_render_drivers, render_driver};
     assert_eq!(num_render_drivers(), 4);
     assert_eq!(render_driver(0).unwrap(), "opengl");
     assert_eq!(render_driver(1).unwrap(), "opengles2");

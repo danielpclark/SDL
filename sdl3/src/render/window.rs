@@ -523,6 +523,12 @@ fn create_for_window(
     info: &RendererCreateInfo,
 ) -> Result<(Box<dyn super::RenderBackend>, crate::video::PixelFormat)> {
     match driver {
+        #[cfg(windows)]
+        super::direct3d11::D3D11_RENDERER => {
+            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let backend = super::direct3d11::D3d11Renderer::for_window(window, output_colorspace)?;
+            Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
+        }
         super::opengl::OPENGL_RENDERER => {
             let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
             let backend = super::opengl::GlRenderer::for_window(window, output_colorspace)?;

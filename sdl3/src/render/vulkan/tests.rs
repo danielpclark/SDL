@@ -16,7 +16,7 @@ use super::*;
 use crate::events::window::WindowFlags;
 use crate::init::{self, InitFlags};
 use crate::render::{
-    num_render_drivers, render_driver, Renderer, Texture, TextureAccess, TextureCreateInfo, Vertex,
+    Renderer, Texture, TextureAccess, TextureCreateInfo, Vertex,
     PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN,
     SOFTWARE_RENDERER,
 };
@@ -33,7 +33,9 @@ const H: i32 = 48;
 // ---------------------------------------------------------------------------
 
 #[test]
+#[cfg(not(windows))] // (direct3d11 comes first there: see its tests)
 fn driver_list_follows_upstreams_order() {
+    use crate::render::{num_render_drivers, render_driver};
     // (render_drivers[] in SDL_render.c: ..., GLES2, ..., VULKAN, GPU, SW)
     assert_eq!(num_render_drivers(), 4);
     assert_eq!(render_driver(0).unwrap(), "opengl");
