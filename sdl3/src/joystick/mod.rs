@@ -13,13 +13,15 @@
 //! kind of device. For game controllers with a standard layout, the
 //! [`gamepad`] module maps joystick inputs to named buttons and axes.
 //!
-//! The joystick drivers are platform backends. So far the Linux driver
-//! (evdev devices, found through libudev or inotify), the Windows drivers
-//! (RawInput; DirectInput and XInput; Windows.Gaming.Input), the virtual
-//! driver
+//! The joystick drivers are platform backends. So far the HIDAPI driver
+//! (on Linux and Windows: game controllers talked to directly over HID,
+//! through [`crate::hidapi`], with the Xbox 360, Xbox One, PS4, PS5 and
+//! Nintendo Switch device drivers), the Linux driver (evdev devices, found
+//! through libudev or inotify), the Windows drivers (RawInput; DirectInput
+//! and XInput; Windows.Gaming.Input), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
-//! a driver), which reports no devices, exist; the HIDAPI drivers and the
-//! other platform drivers arrive later.
+//! a driver), which reports no devices, exist; the other HIDAPI device
+//! drivers and platform drivers arrive later.
 
 mod controller_type;
 mod device_info;
@@ -412,7 +414,7 @@ impl JoystickData {
     }
 
     /// Update the data rate of a sensor. Translation of `SDL_PrivateJoystickSensorRate()`.
-    #[allow(dead_code)] // (used by the HIDAPI drivers)
+    #[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))] // (used by the HIDAPI drivers)
     pub(crate) fn set_sensor_rate(&mut self, sensor_type: SensorType, rate: f32) {
         assert_joysticks_locked();
 
