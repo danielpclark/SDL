@@ -871,3 +871,109 @@ fn x11_vulkan() {
         ),
     }
 }
+
+#[test]
+fn x11_wait_and_wakeup() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    let _video = Video::init();
+    let w = SdlWindow::create("wait", 50, 50, WindowFlags::default()).unwrap();
+    drain();
+
+    // Waiting with nothing to do times out
+    let start = Instant::now();
+    assert!(crate::events::wait_timeout(Some(Duration::from_millis(50)))
+        .unwrap()
+        .is_none());
+    assert!(start.elapsed() >= Duration::from_millis(40));
+
+    // An event pushed from another thread wakes the waiter up (through an
+    // _SDL_WAKEUP client message sent on the request display)
+    let user = crate::events::register_events(1).unwrap();
+    let pusher = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        crate::events::push(Event::User(crate::events::UserEvent {
+            event_type: user,
+            code: 42,
+            ..Default::default()
+        }))
+        .unwrap();
+    });
+    let start = Instant::now();
+    let mut got = false;
+    while start.elapsed() < Duration::from_secs(3) {
+        match crate::events::wait_timeout(Some(Duration::from_secs(3))).unwrap() {
+            Some(Event::User(u)) if u.code == 42 => {
+                got = true;
+                break;
+            }
+            _ => {}
+        }
+    }
+    pusher.join().unwrap();
+    assert!(got);
+    assert!(
+        start.elapsed() < Duration::from_secs(2),
+        "{:?}",
+        start.elapsed()
+    );
+    w.destroy();
+}
+
+#[test]
+fn x11_fullscreen_and_popups() {
+    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    let _video = Video::init();
+    let primary = video::primary_display().unwrap();
+    let bounds = video::display_bounds(primary).unwrap();
+
+    let w = SdlWindow::create("fullscreen", 300, 200, WindowFlags::RESIZABLE).unwrap();
+    drain();
+    w.set_fullscreen(true).unwrap();
+    w.sync().unwrap();
+    drain();
+    assert!(w.flags().unwrap().contains(WindowFlags::FULLSCREEN));
+    assert_eq!(w.size().unwrap(), (bounds.w, bounds.h));
+    w.set_fullscreen(false).unwrap();
+    w.sync().unwrap();
+    drain();
+    assert!(!w.flags().unwrap().contains(WindowFlags::FULLSCREEN));
+    assert_eq!(w.size().unwrap(), (300, 200));
+
+    // A popup is placed relative to its parent
+    w.set_position(100, 100).unwrap();
+    w.sync().unwrap();
+    let popup = SdlWindow::create_popup(&w, 10, 20, 50, 40, WindowFlags::POPUP_MENU).unwrap();
+    popup.sync().unwrap();
+    drain();
+    let (px, py) = popup.position().unwrap();
+    assert_eq!((px, py), (10, 20));
+    let client = Client::open().unwrap();
+    let xpopup = xwindow_of(&popup);
+    // SAFETY: the client display is open; the out-parameters are valid.
+    let (rx, ry) = unsafe {
+        let mut rx = 0;
+        let mut ry = 0;
+        let mut child: Window = 0;
+        (client.x.XTranslateCoordinates)(
+            client.dpy,
+            xpopup,
+            DefaultRootWindow(client.dpy),
+            0,
+            0,
+            &mut rx,
+            &mut ry,
+            &mut child,
+        );
+        (rx, ry)
+    };
+    let (wx, wy) = w.position().unwrap();
+    assert_eq!((rx, ry), (wx + 10, wy + 20));
+    popup.destroy();
+    w.destroy();
+}
