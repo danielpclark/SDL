@@ -9,9 +9,7 @@ use crate::joystick::{joystick_guid_info, HAT_CENTERED, HAT_LEFTDOWN, HAT_RIGHTU
 use crate::power::PowerState;
 
 fn lock() -> std::sync::MutexGuard<'static, ()> {
-    crate::test_support::TEST_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
+    crate::test_support::test_lock()
 }
 
 fn state(pad: XINPUT_GAMEPAD) -> XINPUT_STATE {

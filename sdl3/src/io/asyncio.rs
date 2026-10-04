@@ -854,11 +854,11 @@ pub fn load_file_async<U: Clone + Send + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::{TempDir, TEST_LOCK};
+    use crate::test_support::TempDir;
 
     /// `init::quit()` (called by other tests) shuts the threadpool down.
     fn guard() -> std::sync::MutexGuard<'static, ()> {
-        TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+        crate::test_support::test_lock()
     }
 
     fn wait<U: Send + 'static>(queue: &AsyncIoQueue<U>) -> AsyncIoOutcome<U> {

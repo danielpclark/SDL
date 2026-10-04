@@ -348,7 +348,9 @@ fn timer_thread(data: &'static TimerData) {
 
         // Adjust the delay based on processing time
         let now = ticks_ns();
-        let elapsed = now - tick;
+        // (Uint64 arithmetic, as upstream: the tick counter restarts when
+        // SDL quits and inits again)
+        let elapsed = now.wrapping_sub(tick);
         let delay = delay.map(|d| d.saturating_sub(elapsed));
 
         /* Note that each time a timer is added, this will return
@@ -525,9 +527,7 @@ mod tests {
     #[test]
     fn ticks_increase() {
         // (init::quit() in another test restarts the tick counter)
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let a = ticks_ns();
         delay(Duration::from_millis(2));
         let b = ticks_ns();
@@ -541,9 +541,7 @@ mod tests {
     #[test]
     fn precise_delay() {
         // (init::quit() in another test restarts the tick counter)
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let start = ticks_ns();
         delay_precise(Duration::from_millis(3));
         let elapsed = ticks_ns() - start;
@@ -553,9 +551,7 @@ mod tests {
 
     #[test]
     fn precise_delay_ends_when_ticks_restart() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let _ = ticks_ns();
         let restarter = std::thread::spawn(|| {
             std::thread::sleep(Duration::from_millis(50));
@@ -585,6 +581,8 @@ mod tests {
 
     #[test]
     fn one_shot_and_periodic() {
+        // (init::quit() in other tests shuts the timer thread down)
+        let _l = crate::test_support::test_lock();
         let fired = Arc::new(AtomicUsize::new(0));
         let f = fired.clone();
         let timer = Timer::new(Duration::from_millis(5), move |_| {
@@ -614,6 +612,8 @@ mod tests {
 
     #[test]
     fn drop_cancels_detach_keeps() {
+        // (init::quit() in other tests shuts the timer thread down)
+        let _l = crate::test_support::test_lock();
         let count = Arc::new(AtomicUsize::new(0));
         let c = count.clone();
         let t = Timer::new(Duration::from_millis(2), move |i| {

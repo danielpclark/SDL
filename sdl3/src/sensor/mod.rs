@@ -584,6 +584,10 @@ mod tests {
 
     #[test]
     fn dummy_driver_has_no_sensors() {
+        // (SENSOR implies EVENTS, whose events thread is the thread that
+        // initializes it: hold the lock so no other test's subsystems run
+        // on the wrong thread meanwhile)
+        let _l = crate::test_support::test_lock();
         init::set_main_ready();
         init::init_subsystem(InitFlags::SENSOR).unwrap();
         assert!(sensors().is_empty());

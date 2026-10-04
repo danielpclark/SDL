@@ -297,9 +297,7 @@ mod tests {
 
     #[test]
     fn hint_overrides() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         hints::set(hints::PREFERRED_LOCALES, "ja_JP,en").unwrap();
         assert_eq!(
             preferred_locales().unwrap(),

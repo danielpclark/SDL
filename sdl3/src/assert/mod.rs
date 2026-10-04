@@ -529,9 +529,7 @@ mod tests {
 
     #[test]
     fn handler_report_and_states() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         reset_assertion_report();
 
         let calls = Arc::new(AtomicUsize::new(0));
@@ -596,9 +594,7 @@ mod tests {
 
     #[test]
     fn default_handler_obeys_hint() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         reset_assertion_report();
         log::disable_output();
         hints::set(hints::ASSERT, "always_ignore").unwrap();

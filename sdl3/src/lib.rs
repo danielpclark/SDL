@@ -88,6 +88,26 @@ pub fn shutdown() {
 pub(crate) mod test_support {
     pub(crate) static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+    /// Take [`TEST_LOCK`], with SDL shut down: subsystems a previous holder
+    /// left initialized would still belong to its (now finished) thread, so
+    /// the events thread checks would fail. If the last holder panicked (a
+    /// failed assertion), its hints are reset too, so one failing test
+    /// doesn't fail or hang the ones after it.
+    pub(crate) fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+        let guard = match TEST_LOCK.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                TEST_LOCK.clear_poison();
+                crate::hints::reset_all();
+                poisoned.into_inner()
+            }
+        };
+        if !crate::init::was_init(crate::init::InitFlags::ALL).is_empty() {
+            crate::init::quit();
+        }
+        guard
+    }
+
     /// A fresh directory under the system temp dir, removed on drop.
     pub(crate) struct TempDir(pub String);
 

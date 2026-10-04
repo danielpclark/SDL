@@ -21,7 +21,6 @@ use super::gamepad::{
 };
 use super::*;
 use crate::events::queue;
-use crate::test_support::TEST_LOCK;
 
 struct Trace {
     out: String,
@@ -482,7 +481,7 @@ fn virtual_trace() -> (String, Vec<String>) {
 #[cfg(target_os = "linux")]
 #[test]
 fn virtual_trace_matches_c() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     init::set_main_ready();
 
     let (trace, mappings) = virtual_trace();
@@ -506,7 +505,7 @@ fn virtual_trace_matches_c() {
 
 #[test]
 fn virtual_joystick_without_gamepads() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     init::set_main_ready();
     init::init_subsystem(InitFlags::JOYSTICK).unwrap();
     queue::flush_events(EventType::FIRST, EventType::LAST);

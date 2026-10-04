@@ -135,9 +135,7 @@ mod tests {
 
     #[test]
     fn app_id_falls_back_to_the_executable() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         crate::init::set_app_metadata_property(
             crate::init::AppMetadata::Identifier,
             Some("org.libsdl.test"),

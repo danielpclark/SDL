@@ -619,7 +619,6 @@ mod tests {
     use super::*;
     use std::sync::Mutex;
 
-    pub(crate) use crate::test_support::TEST_LOCK;
     type Captured = Arc<Mutex<Vec<(Category, Priority, String)>>>;
 
     fn install() -> Captured {
@@ -638,7 +637,7 @@ mod tests {
 
     #[test]
     fn defaults_and_filtering() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let captured = install();
         assert_eq!(
             priority(Category::Application),
@@ -707,7 +706,7 @@ mod tests {
 
     #[test]
     fn hint_parsing() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         let _captured = install();
         crate::hints::set(
             crate::hints::LOGGING,
@@ -753,7 +752,7 @@ mod tests {
 
     #[test]
     fn prefixes_and_output() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         set_prefix(Priority::Warn, Some("W> ")).unwrap();
         assert_eq!(prefix_for(&fstate(), Priority::Warn), "W> ");
         set_prefix(Priority::Warn, None).unwrap();

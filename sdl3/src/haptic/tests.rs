@@ -2,7 +2,6 @@
 
 use super::*;
 use crate::init::{self, InitFlags};
-use crate::test_support::TEST_LOCK;
 
 #[test]
 fn axes_hint_parsing() {
@@ -48,7 +47,7 @@ fn axes_hint_parsing() {
 
 #[test]
 fn hinted_axes() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let _lock = lock_joysticks();
     hints::set(
         hints::JOYSTICK_HAPTIC_AXES,
@@ -159,7 +158,7 @@ fn mouse_is_opened_by_instance_id() {
 
 #[test]
 fn dummy_driver() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     init::init_subsystem(InitFlags::HAPTIC).unwrap();
     if !haptics().is_empty() {
         // (a platform driver found real devices)
@@ -186,7 +185,7 @@ fn dummy_driver() {
 
 #[test]
 fn joystick_is_not_haptic() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     use crate::joystick::VirtualJoystickDesc;
 
     init::init_subsystem(InitFlags::JOYSTICK | InitFlags::HAPTIC).unwrap();

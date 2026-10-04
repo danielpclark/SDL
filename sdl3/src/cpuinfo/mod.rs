@@ -519,9 +519,7 @@ mod tests {
     #[test]
     fn basics() {
         // (feature_mask_hint masks the cached features meanwhile)
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         assert!(num_logical_cpu_cores() >= 1);
         let line = cpu_cache_line_size();
         assert!(line > 0 && (line as u32).is_power_of_two(), "{line}");
@@ -551,9 +549,7 @@ mod tests {
 
     #[test]
     fn feature_mask_hint() {
-        let _l = crate::test_support::TEST_LOCK
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         quit_cpu_info();
         let all = cpu_features();
         hints::set(hints::CPU_FEATURE_MASK, "-sse2,-neon,bogus,+mmx").unwrap();

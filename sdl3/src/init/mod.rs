@@ -880,8 +880,6 @@ pub(crate) fn exit_process(exitcode: i32) -> ! {
 pub(crate) mod tests {
     use super::*;
 
-    pub(crate) use crate::test_support::TEST_LOCK;
-
     #[test]
     fn flags() {
         let f = InitFlags::VIDEO | InitFlags::EVENTS;
@@ -896,7 +894,7 @@ pub(crate) mod tests {
 
     #[test]
     fn metadata() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         set_app_metadata(Some("Test App"), Some("1.2"), Some("com.example.test"));
         assert_eq!(
             app_metadata_property(AppMetadata::Name).as_deref(),
@@ -926,7 +924,7 @@ pub(crate) mod tests {
 
     #[test]
     fn init_quit_refcounting() {
-        let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _l = crate::test_support::test_lock();
         assert_eq!(was_init(InitFlags::EVENTS), InitFlags::NONE);
         init(InitFlags::EVENTS).unwrap();
         init_subsystem(InitFlags::EVENTS).unwrap();
