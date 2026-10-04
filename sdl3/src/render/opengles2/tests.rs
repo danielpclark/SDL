@@ -175,11 +175,12 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 
 #[test]
 fn driver_list_follows_upstreams_order() {
-    assert_eq!(num_render_drivers(), 3);
+    assert_eq!(num_render_drivers(), 4);
     assert_eq!(render_driver(0).unwrap(), "opengl");
     assert_eq!(render_driver(1).unwrap(), "opengles2");
-    assert_eq!(render_driver(2).unwrap(), SOFTWARE_RENDERER);
-    assert!(render_driver(3).is_err());
+    assert_eq!(render_driver(2).unwrap(), "vulkan");
+    assert_eq!(render_driver(3).unwrap(), SOFTWARE_RENDERER);
+    assert!(render_driver(4).is_err());
 }
 
 #[test]

@@ -406,6 +406,11 @@ pub(crate) trait RenderBackend {
         None
     }
 
+    /// Called once the renderer's properties exist, for the backend to
+    /// set its own (`SDL_GetRendererProperties()` in `CreateRenderer`) and
+    /// keep for later updates.
+    fn set_properties(&mut self, _props: &Properties) {}
+
     /// `SupportsBlendMode`, for custom blend modes.
     fn supports_blend_mode(&self, _mode: BlendMode) -> bool {
         false
@@ -520,6 +525,15 @@ pub(crate) trait RenderBackend {
     fn destroy_texture(&mut self, texture: &mut TextureData);
     /// `SetVSync`; `None` when not implemented.
     fn set_vsync(&mut self, _vsync: i32) -> Option<Result<()>> {
+        None
+    }
+    /// `AddVulkanRenderSemaphores`; `None` when not implemented.
+    fn add_vulkan_render_semaphores(
+        &mut self,
+        _wait_stage_mask: u32,
+        _wait_semaphore: i64,
+        _signal_semaphore: i64,
+    ) -> Option<Result<()>> {
         None
     }
     /// `WindowEvent`: a window event for the renderer's window.

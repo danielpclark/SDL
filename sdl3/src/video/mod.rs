@@ -37,6 +37,7 @@ pub mod surface;
 pub mod sysvideo;
 pub mod textinput;
 pub mod vulkan;
+pub(crate) mod vulkan_utils;
 pub mod window;
 mod yuv;
 
