@@ -1,0 +1,1379 @@
+# Expected behaviour of upstream's SDL_hidapi_steam_triton.c, recorded by running it
+# (with stubs for the SDL and HID functions it uses) on these inputs.
+# Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+# This is an altered (translated) version of the original software; see LICENSE.txt.
+init 1302
+name Steam Controller
+added
+result 1
+end
+open
+add sensor 2 43780410
+add sensor 1 43780410
+add touchpad 1
+add touchpad 1
+add capsense 0
+add capsense 1
+add capsense 2
+add capsense 3
+result 1
+end
+sensors 1
+feature 01 87 03 30 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+end
+case open 1
+read 42 23 84 9d 3e 6b 1c 74 17 8a b1 a2 68 fe b1 ef 45 92 2a 84 bd 7f ac 6a 9f 3e fd c7 10 2e 80 d7 ce ea 62 ab 42 68 89 a4 47 d2 3d af bd 24
+update
+feature 01 87 03 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 11 0
+button 7 1
+button 8 0
+button 12 1
+button 13 1
+button 14 1
+button 15 1
+button 16 0
+button 17 0
+capsense 1 1
+capsense 0 1
+capsense 3 0
+capsense 2 1
+hat 0 14
+axis 4 26680
+axis 5 -27602
+axis 0 -23887
+axis 1 408
+axis 2 -4175
+axis 3 28091
+touchpad 0 0 1 3c854000 3a860000 3f555800
+touchpad 1 0 1 3f3e9f00 3f380300 3eb84000
+sensor Gyro 3939424128000 c14780b3 41204d0e 41b031db
+sensor Accel 3939424128000 c14f73ea c1603dae c17f9ae0
+result 1
+end
+read 45 90 15 56 cb ba 77 40 20 56 a6 e5 0d df 5e 65 d1 dc b7 07 65 01 0e b0 48 04 b4 21 07 41 59 f3 8e 0d 37 54 31 da fe 7f 7a 0f 82 fd b0 a4 27 9d 2c 81 08 34
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 1
+button 11 1
+button 7 0
+button 8 0
+button 12 0
+button 13 1
+button 14 0
+button 15 0
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 1
+capsense 2 1
+hat 0 12
+axis 4 238
+axis 5 11328
+axis 0 -6746
+axis 1 8435
+axis 2 25950
+axis 3 9007
+touchpad 0 0 1 3f07b700 3efd3600 3fb00e00
+touchpad 1 0 0 3f3e9f00 3f380300 3f020e00
+sensor Gyro 4522439513000 40870ef9 c1c73686 3f2dfcce
+sensor Accel 4522439513000 414e7765 419ce596 40b96349
+result 1
+end
+read 47 57 5d 5e cc 3f 35 99 2b f4 6a af ff ed 06 1e b5 70 2a 49 32 a9 02 f1 a0 8d 6a 73 fa 71 5d c4 56 69 22 2c f6 61 35 c5 0d fd f6 b3 51 32 14 21 44 a1 b7 ff 43 b7 70 7c 4b 85
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 0
+button 8 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+button 16 1
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 1
+hat 0 14
+axis 4 -19862
+axis 5 26710
+axis 0 -20630
+axis 1 4609
+axis 2 7686
+axis 3 -28853
+touchpad 0 0 1 3e24c800 3f0efe00 3f8da000
+sensor Gyro 4523302425000 bf4de4f2 415b8bf7 41a5e43a
+sensor Accel 4523302425000 40d865c4 c11023f9 c1702acb
+result 1
+end
+read 42 38 1c 77 04 b9 15 3d f6 23 bd c1 fe ea 68 dc b2 0d 45 0c e4 37 49 ee 6a 97 df 7d aa 7f 4c 08 e8 be e4 f5 4f be ef 37 c0 5e 58 90 5e 8d 1b 88 d6 ab 6c 29 6f a0 a8 7f d5 b8 fd d3 a5 45 d8 a1
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 1
+button 4 1
+button 6 0
+button 5 0
+button 11 1
+button 7 0
+button 8 0
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 1
+hat 0 13
+axis 4 -1494
+axis 5 -14356
+axis 0 -15939
+axis 1 5378
+axis 2 -9112
+axis 3 -3506
+touchpad 0 0 0 3e24c800 3f0efe00 3fee4900
+sensor Gyro 7498707724000 41ceb662 c1fa170b 41f3989e
+sensor Accel 7498707724000 bfc64739 4109215b 41210d9c
+result 1
+end
+read 45 f3 11 5f 2f e9 d9 ed 43 a5 5f da c9 94 45 5d 88 74 c6 0e 3b 6a a3 67 64 e2 d2 fe d7 2a e6 80 02 ce 3d 6d fd b1 eb 95 55 f0 69 56 98 77
+read 43 04 37 d7 0f 8f 3f 69 cf 38 10 bb 22 ac 5d
+read 43 f5 a1 9e 64 6a 07 70 5d 9d 8f 25 c7 f2
+read 99 bd ba 76 ee 3c f3 c3 ab 93 9d d5 79 26 3d f6 9d e3 32 12 9b 67 a2 38 f8 d0 25 d1 c9 60 34 9e 04 d7 50 73 83 8d f2 b5 d7 51 35 95 d2 04 45 09 d3 f5 87 8f cf fc 86 a1 24 55 a0 f7 1e 42 75 7f
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 1
+button 11 1
+button 7 0
+button 8 0
+button 12 0
+button 13 1
+button 14 1
+button 15 1
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 0
+capsense 2 1
+hat 0 14
+axis 4 23474
+axis 5 -13690
+axis 0 -9633
+axis 1 27447
+axis 2 23877
+axis 3 -29832
+touchpad 1 0 1 3ec4c800 3f012e00 3eab5c00
+sensor Gyro 7752100774000 c088ba94 420274e0 c1bc8489
+sensor Accel 7752100774000 4185e85f c18209e6 413f4227
+power Charged 55
+result 1
+end
+read 47 5f 0b 1d 6c c3 c1 22 7b db fa 8e f7 07 85 06 56 f1 ce 93 05 b2 c6 20 35 a3 94 b2 69 03 f8 65 c1 4d 83 2a 04 57 79 42 6e 2a 81 79 3f a5 13 23 00 d0 9e d8
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 11 0
+button 7 0
+button 8 0
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 0
+capsense 2 0
+hat 0 14
+axis 4 -14974
+axis 5 14070
+axis 0 -28934
+axis 1 -2039
+axis 2 1669
+axis 3 3754
+touchpad 0 0 1 3e481400 3ebe7400 3fa33500
+touchpad 1 0 1 3e4a5000 3ef92e00 3f4bf000
+sensor Gyro 12046842118000 4139226b c1c5fe8b c2048a4b
+sensor Accel 12046842118000 40d072e3 4122f7f1 c155553c
+result 1
+end
+read 42 9a 52 53 a0 c0 32 4d 8b 35 65 0e 02 56 08 99 a8 89 91 14 d3 62 be 44 63 77 41 ca 46 03 28 1f c6 3d 0e 51 99 76 03 7b a7 f5 3c 05 99 93 7b a1 26 15 3d 00 1c 4c a5 58 30 ee
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 0
+button 8 0
+button 12 0
+button 13 0
+button 14 1
+button 15 0
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 0
+capsense 2 0
+hat 0 8
+axis 4 6756
+axis 5 -5354
+axis 0 3685
+axis 1 -22018
+axis 2 -26360
+axis 3 30296
+touchpad 0 0 0 3e481400 3ebe7400 3f097c00
+touchpad 1 0 1 3f776300 3f35bf00 3cd18000
+sensor Gyro 13921933128000 c03499c6 c1ec7f4b bfb6b6d3
+sensor Accel 13921933128000 4146b7ff 4196caa7 c1916177
+result 1
+end
+read 45 2f 50 da 48 00 80 ff 7f 61 9f 00 80 d3 85 00 80 6b 3a 55 c6 38 48 63 42 0d ed da 1f 21 82 8e d5 67 af a7 03 ac 51 1f 40 72 26 f9 9f 8e 3e 42 04 83 22 c9 2a 9d c1 9d 70 cd 1e 4b 66 48 bb d4
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 1
+button 8 0
+button 12 0
+button 13 0
+button 14 0
+button 15 0
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 0
+capsense 2 0
+hat 0 10
+axis 4 32512
+axis 5 17150
+axis 0 159
+axis 1 11392
+axis 2 133
+axis 3 -27520
+touchpad 1 0 0 3f776300 3f35bf00 3e847c00
+sensor Gyro 14627587746000 41f9413d c1f75aba 3fef2a27
+sensor Accel 14627587746000 c15885a3 40998df5 414de932
+result 1
+end
+read 47 de c4 70 24 1b fc 06 6d 1f 68 66 bf 3d bd 4c 15 56 8b 15 9e f4 26 3f 92 25 57 a2 b5 1d c7 70 ac 8b 27 ee 03 b7 20 ef fa 60 fe 15 12 58
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 0
+button 11 0
+button 7 0
+button 8 0
+button 12 1
+button 13 0
+button 14 0
+button 15 1
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 0
+hat 0 9
+axis 4 -29192
+axis 5 -16678
+axis 0 26216
+axis 1 -15807
+axis 2 19645
+axis 3 -22037
+touchpad 0 0 1 3ee93c00 3e81b400 3e964800
+touchpad 1 0 1 3e095c00 3ec49600 3f618e00
+sensor Gyro 14628094978000 41d391ee 41c023be c0bfeb05
+sensor Accel 14628094978000 c02f0696 c0257cbb 4132f151
+result 1
+end
+read 42 66 70 d7 f6 f9 d5 14 bf 2e 80 be f1 55 70 eb b1 0b 42 15 1b 55 16 95 12 7f 41 e1 c8 b7 b7 86 0c 68 36 e3 56 58 33 ab 94 80 85 18 b2 af d4 f0 ec dd c0 39
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 1
+button 8 1
+button 12 0
+button 13 1
+button 14 1
+button 15 1
+button 16 1
+button 17 0
+capsense 1 1
+capsense 0 1
+capsense 3 1
+capsense 2 1
+hat 0 12
+axis 4 -22102
+axis 5 -8834
+axis 0 -16768
+axis 1 -22001
+axis 2 -5264
+axis 3 -2993
+touchpad 0 0 0 3ee93c00 3e81b400 3f951600
+touchpad 1 0 1 3f7f1200 3f1ebf00 3fb7c800
+sensor Gyro 14631697463000 c20afee7 c1af3299 c0d5f929
+sensor Accel 14631697463000 c08d2981 c14fe724 c15891e6
+result 1
+end
+read 45 11 22 33 44 4c 51 ed 52 4f a7 dd af db 5e 0e e5 4a 1f 15 fc 1c d8 28 83 db 69 59 17 77 88 55 66 66 9b 49 bf 4e 48 13 cf 92 7b c4 3f 54 27 7c 75 49 f9 61 ef 32 45 14 12 b5
+read 43 03 37 12 77 d6 30 53 e5 42 9c 84 ba 8f 47
+read 43 9b 3a 67 a7 55 31 04 3a c6 20 73 d2 31
+read 99 0a 41 8c cb 8a 16 c1 0f 9d f3 69 b7 80 08 0c 97 c1 22 93 7d 55 91 c6 fb 78 da 8d f2 48 21 e3 e3 20 55 99 f5 b5 19 d0 c6 f3 75 34 f2 95 41 f9 64 86 4d 96 5f fb 51 44 4b 4d 98 35 40 97 6b 95
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 11 0
+button 7 0
+button 8 1
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+button 16 1
+button 17 1
+capsense 1 0
+capsense 0 0
+capsense 3 0
+capsense 2 0
+hat 0 9
+axis 4 23202
+axis 5 7844
+axis 0 -8793
+axis 1 9297
+axis 2 3678
+axis 3 -19173
+touchpad 1 0 0 3f7f1200 3f1ebf00 3f6e2e00
+sensor Gyro 18898995976000 c1ee37fd 41b7cbe5 4181d9fa
+sensor Accel 18898995976000 413474ad 403d15a0 c1410f11
+power Unknown 55
+result 1
+end
+read 47 11 22 33 44 35 9d 4a 25 85 d4 28 28 3d 61 be ae a6 1a 11 71 33 1e c8 af 5a 7d 63 b5 77 88 55 66 66 95 3e 31 83 b9 66 04 4b a6 fe b1 f1 7f 94 4f 19 21 bd 0d 74 10 8b ff 98 22 cf a9 9c ee 0f
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 11 0
+button 7 0
+button 8 1
+button 12 0
+button 13 0
+button 14 1
+button 15 1
+button 16 1
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 1
+hat 0 9
+axis 4 5434
+axis 5 -30134
+axis 0 10452
+axis 1 -15656
+axis 2 -16799
+axis 3 22866
+sensor Gyro 23193657928000 41a3a8a1 c079bb69 3ebcb6b7
+sensor Accel 23193657928000 41196e16 417bd75f 4198fe89
+result 1
+end
+read 42 77 f2 46 f0 16 86 5e 3b 3f 84 6e e6 28 b4 b3 1f d6 fa 50 8b 37 3f c6 14 fe 1f 31 74 42 57 48 83 d6 ec 12 41 66 1c 69 a3 56 06 30 1e 5a
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 0
+button 8 1
+button 12 1
+button 13 0
+button 14 0
+button 15 0
+button 16 1
+button 17 1
+capsense 1 1
+capsense 0 0
+capsense 3 1
+capsense 2 0
+hat 0 4
+axis 4 15628
+axis 5 -394
+axis 0 28292
+axis 1 -10470
+axis 2 -19532
+axis 3 10721
+touchpad 0 0 1 3f50fa00 3e90ea00 3fc63f00
+touchpad 1 0 1 3efc2800 3e9dc200 3f04e800
+sensor Gyro 25074603287000 41bd0313 41c49aef c1518ab2
+sensor Accel 25074603287000 40398f6a 4180d8ab c17ab12c
+result 1
+end
+read 45 f3 1d 5a 75 ec 93 be 13 8a c3 fc b1 00 c3 ac a8 0f 80 0e 89 21 b2 7f e9 24 80 b7 f0 2c f2 c8 a0 c7 1a d6 e6 1f 02 97 63 d3 54 8a f7
+update
+result 1
+end
+read 47 4a 7e 3e ed 78 82 2a 6b 27 51 91 48 87 4c 69 09 12 6d 0c 2b b0 38 b4 ef 8c 5f b4 e9 b4 38 7c 46 73 df 4a e0 6e 2b b1 03 81 51 cb fd 57 5a 3d 68 cb 46 ef 36 02 fe 88 81 45
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 11 1
+button 7 0
+button 8 1
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 1
+capsense 2 1
+hat 0 15
+axis 4 -11004
+axis 5 -12586
+axis 0 -28335
+axis 1 30904
+axis 2 26956
+axis 3 -4617
+touchpad 0 0 0 3f50fa00 3e90ea00 3f8cef00
+touchpad 1 0 1 3e517c00 3f4b1700 3f787000
+sensor Gyro 25074708759000 c20a85d2 41bff5ed 4165e024
+sensor Accel 25074708759000 41378f04 c1414500 c187e9ff
+result 1
+end
+rumble 4660 0
+write 80 00 00 00 34 12 00 00 00 00
+result 1
+end
+read 42 3a d6 b2 19 7a 14 62 04 d6 ee ef 6d 7b 10 aa 04 9f 81 0a 33 a5 90 24 e6 f6 7e ea 1e 99 e8 23 35 98 fb 2e ef 13 56 76 44 21 bd b4 f0 6a 84 e8 b6 85 b6 15 78 12 08 bf f8 97 80 25 6c 1b e5 3f
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 11 1
+button 7 1
+button 8 0
+button 12 1
+button 13 0
+button 14 0
+button 15 0
+button 16 0
+button 17 0
+capsense 1 1
+capsense 0 0
+capsense 3 1
+capsense 2 1
+hat 0 9
+axis 4 17448
+axis 5 11272
+axis 0 -4114
+axis 1 -31597
+axis 2 -22000
+axis 3 24828
+touchpad 0 0 1 3f0a8100 3f5acd00 3e924000
+touchpad 1 0 0 3e517c00 3f4b1700 3f991e00
+sensor Gyro 28324367528000 4111260f 41e94d2b 41a43213
+sensor Accel 28324367528000 40e65c4a 41910f55 c0437b56
+result 1
+end
+read 45 84 e5 76 ba b1 09 25 9d 57 59 d4 de 9c ce 2e 57 75 7c c8 5f c0 7c 91 8e 21 9a 17 50 9d c4 7f 2c f7 2d 41 d2 cd 44 a8 e6 72 58 05 8f 8b
+read 43 02 37 49 8f df 20 35 f8 6a 53 00 5b ac 47
+read 43 26 27 ec 5a c2 1a 50 d3 ce 9c 35 a6 69
+read 99 fd da 1f d9 1b b7 36 ef 44 f3 31 7d 94 6a d2 e5 33 54 ff 40 74 2e 3c 2a ad 6a ec 54 d9 d6 47 c7 ee cc 1a f9 ff 1f 42 91 12 c0 e6 fa bf 34 78 a9 8d b6 69 2f 0c 2b af fe b2 ca f7 fb 76 88 aa
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 0
+button 7 0
+button 8 1
+button 12 1
+button 13 1
+button 14 0
+button 15 0
+button 16 0
+button 17 0
+capsense 1 1
+capsense 0 1
+capsense 3 1
+capsense 2 1
+hat 0 13
+axis 4 -13806
+axis 5 12090
+axis 0 -11175
+axis 1 25378
+axis 2 11982
+axis 3 -30039
+touchpad 0 0 0 3f0a8100 3f5acd00 3f917c00
+touchpad 1 0 1 3f218e00 3ed0cc00 3f9d5000
+sensor Gyro 29917636740000 41faab65 c1fe0927 bfba8836
+sensor Accel 29917636740000 411fc9fd c1571857 40f60c1d
+power Charging 55
+result 1
+end
+advance 39
+end
+read 47 2e 44 82 cc a9 b7 a9 0b 8c 19 b5 a1 ed 94 e6 1c b1 6a 3b 7f a6 e5 18 15 5f 02 78 f9 d3 dc f2 61 b4 da 6d af 91 98 a2 36 ab 96 56 cc 97 a3 55 14 97 07 2d
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 11 0
+button 7 1
+button 8 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 0
+capsense 2 1
+hat 0 0
+axis 4 -11410
+axis 5 -26602
+axis 0 -19175
+axis 1 4703
+axis 2 -6508
+axis 3 20196
+touchpad 1 0 0 3f218e00 3ed0cc00 3ff2dc00
+sensor Gyro 29918170084000 c1b8fb26 c1e35601 c1bce6b6
+sensor Accel 29918170084000 4186a8d4 c1650028 41873ab3
+result 1
+end
+advance 1
+end
+read 42 79 25 34 f6 2e d9 67 e9 66 ce 81 d2 34 78 fd 6a 38 26 f8 a3 bd ee af 71 93 58 bc 5b ab cd 10 c5 74 be af fa f8 94 2e fc b5 5a ee 0b 3c 2c 16 f7 8c 5f 52 26 2c 6e 4d 65 0a
+update
+write 80 00 00 00 34 12 00 00 00 00
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 11 0
+button 7 0
+button 8 1
+button 12 0
+button 13 1
+button 14 0
+button 15 1
+button 16 1
+button 17 1
+capsense 1 1
+capsense 0 0
+capsense 3 0
+capsense 2 1
+hat 0 13
+axis 4 20402
+axis 5 19922
+axis 0 -32306
+axis 1 -13522
+axis 2 -648
+axis 3 -14442
+touchpad 0 0 1 3ef04c00 3f425d00 3fafee00
+touchpad 1 0 1 3d9b8800 3f43a800 3fab5b00
+sensor Gyro 32025320685000 c1a17a20 4182fe52 409a02fd
+sensor Accel 32025320685000 c144c3dc 40e46340 3f89c0b7
+result 1
+end
+read 45 9e 3c 96 13 68 df 31 47 91 d2 55 d0 28 d7 d8 92 89 49 f4 6b 7b 0a c2 fd 09 2e 77 3a 21 69 62 b1 ee 39 a1 9a f5 d2 a6 a2 f1 ce 6e 77 6f 91 7b 13 29 7d 96 c9 24 db 46 11 88 84 0e 14 43 53 6a
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 1
+button 11 1
+button 7 1
+button 8 1
+button 12 0
+button 13 1
+button 14 0
+button 15 0
+button 16 0
+button 17 0
+capsense 1 1
+capsense 0 0
+capsense 3 0
+capsense 2 1
+hat 0 12
+axis 4 -7234
+axis 5 -23922
+axis 0 21970
+axis 1 -10448
+axis 2 -10025
+axis 3 30318
+touchpad 0 0 0 3ef04c00 3f425d00 3fc20a00
+touchpad 1 0 0 3d9b8800 3f43a800 3e84e800
+sensor Gyro 34070851209000 c07ac136 41f32db7 c1f1bd03
+sensor Accel 34070851209000 c1685cb0 c15aa375 3fcbf29b
+result 1
+end
+advance 3000
+end
+read 47 5c 4a 88 e5 17 87 c7 e6 ce e5 f0 5a 8a 71 36 53 64 93 ef 99 9e f8 10 7a 80 42 6b 55 f4 6f a7 e5 e1 0a 03 4e 47 14 ca e9 1f af 95 d0 f0
+update
+feature 01 87 03 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+write 80 00 00 00 34 12 00 00 00 00
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 11 0
+button 7 1
+button 8 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+button 16 1
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 0
+hat 0 2
+axis 4 3854
+axis 5 7628
+axis 0 -3867
+axis 1 30118
+axis 2 13937
+axis 3 -25683
+touchpad 0 0 1 3df4c800 3ede1000 3f807a00
+touchpad 1 0 1 3f6b4200 3f0bab00 3fa76f00
+sensor Gyro 34071224073000 410b3bfd c0848934 41e7f249
+sensor Accel 34071224073000 3eee6c97 c10432c0 c12ed0a6
+result 1
+end
+read 42 74 0f ca 2c fd 91 e8 85 dd c6 13 31 1a 06 d9 6c 89 c4 ab eb e7 7a 5b a8 ba 55 56 6d e5 a0 a1 23 0e f2 94 d8 b0 18 59 91 ff c0 24 d5 7f ea 30 f6 62 0e 7d
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 0
+button 11 0
+button 7 1
+button 8 0
+button 12 0
+button 13 0
+button 14 0
+button 15 1
+button 16 0
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 1
+hat 0 2
+axis 4 20770
+axis 5 15114
+axis 0 5062
+axis 1 -6705
+axis 2 -9978
+axis 3 30356
+touchpad 0 0 0 3df4c800 3ede1000 3f36f400
+touchpad 1 0 1 3e6aa000 3e26ac00 3fe56d00
+sensor Gyro 34598805056000 bdf22a19 420b7170 c1205a25
+sensor Accel 34598805056000 c1833b22 415a6d85 4142107d
+result 1
+end
+rumble 0 0
+write 80 00 00 00 00 00 00 00 00 00
+result 1
+end
+advance 100
+end
+read 45 a6 4b 1b a8 d8 bf 55 e6 7d 36 7e 15 97 55 7f 9e b7 9b e6 22 16 4e 61 46 75 27 f8 42 b4 bc 0e 29 34 b1 16 f6 ee 9e 14 5a 50 bf da 48 db 5f 00 3c 7e 01 a0 4f b0 53 d6 fc 4f
+read 43 01 37 3c 19 69 cf ce c7 6f f5 f1 c5 c3 1f
+read 43 57 27 ed 3e 70 82 13 e9 74 c2 2b 03 5c
+read 99 56 46 ed d8 ad 98 e3 0b 49 5e ed 8d 22 23 08 48 fc 8a 17 a3 85 3b 5a 47 30 94 af ae d4 11 8c 70 03 77 b8 4d 2b c3 cc f9 6f d6 6d ab 43 dd 46 64 ca 82 c8 ff ef d4 a1 fd 45 f7 fd 0e 9f 8b 7f
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 11 0
+button 7 0
+button 8 0
+button 12 0
+button 13 0
+button 14 1
+button 15 0
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 1
+capsense 2 0
+hat 0 10
+axis 4 11134
+axis 5 31692
+axis 0 32310
+axis 1 26859
+axis 2 32597
+axis 3 18530
+touchpad 1 0 1 3f754600 3f07d900 3fb44200
+sensor Gyro 35236694876000 41af4cc7 c120373d 41228d03
+sensor Accel 35236694876000 405e86d5 404a2f80 4027189c
+power OnBattery 55
+result 1
+end
+read 47 6f dd fe a7 df d0 00 ef b1 89 f7 24 d7 de 3d 5d d1 7c d1 ed ca da cf 28 72 e1 b1 f6 9a 58 48 19 91 11 78 3e 40 d5 b6 c5 07 10 43 50 56 3d 25 0d 0c 10 ea c4 90 65 1c 9f b0 eb 83 bd 3c 8f 1d
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 11 1
+button 7 1
+button 8 0
+button 12 1
+button 13 1
+button 14 0
+button 15 1
+button 16 0
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 0
+hat 0 15
+axis 4 -32352
+axis 5 -7202
+axis 0 -2167
+axis 1 10460
+axis 2 15838
+axis 3 11939
+touchpad 0 0 1 3e95da00 3f302600 3f645000
+touchpad 1 0 1 3e478400 3f650a00 3f10b000
+sensor Gyro 39531000284000 40079a99 41bc4dff c1924ec4
+sensor Accel 39531000284000 41932e60 c1336217 c11d800b
+result 1
+end
+read 42 61 ab de 6a c7 eb 28 53 6a 03 08 87 39 13 36 4b 70 d5 cb dc b6 8c c0 3b f6 ac 2a bb fd 4a 38 4b d8 42 e8 84 eb 2a 8c 71 d1 fa 00 22 f7
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 0
+button 11 0
+button 7 1
+button 8 1
+button 12 1
+button 13 1
+button 14 0
+button 15 0
+button 16 1
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 0
+capsense 2 0
+hat 0 14
+axis 4 -11818
+axis 5 21670
+axis 0 2051
+axis 1 -14727
+axis 2 13843
+axis 3 -28747
+touchpad 0 0 1 3e97aa00 3f492400 3fc08c00
+touchpad 1 0 1 3eec7600 3eaaa800 3ffdbb00
+sensor Gyro 42284702570000 c14b2673 c01ac2fa be885a96
+sensor Accel 42284702570000 c068d4d2 c18dfecd 4048e213
+result 1
+end
+sensors 0
+feature 01 87 03 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+end
+read 45 ee 6f 4e e2 25 a9 1b f8 35 8c e2 78 09 82 b3 d2 99 55 c5 2f 07 11 ed 3e 7b b7 dc bc bf a6 1b c6 99 c9 c8 de ec 81 0e bf 8d 51 65 e0 e6 4c 8f ca 4d 3f 4e
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 11 0
+button 7 0
+button 8 1
+button 12 0
+button 13 1
+button 14 0
+button 15 0
+button 16 1
+button 17 1
+capsense 1 0
+capsense 0 1
+capsense 3 0
+capsense 2 1
+hat 0 6
+axis 4 -18606
+axis 5 -5136
+axis 0 -7540
+axis 1 -2424
+axis 2 -19582
+axis 3 26158
+touchpad 0 0 0 3e97aa00 3f492400 3fed1100
+touchpad 1 0 1 3f7b3e00 3f234900 3fbfbc00
+result 1
+end
+read 47 d4 ea 0d cf b8 ca 9b 9d d2 e3 43 b5 07 ed 73 b1 0c bb 7e a7 7e 28 15 f1 c2 c0 85 ba 9e 2d b3 49 94 68 d7 0d 02 9b fb 6d fb d8 32 4c e3 7c 99 5e cd 61 0f 2d 94 c7 b4 ea bb
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 11 0
+button 7 0
+button 8 1
+button 12 1
+button 13 1
+button 14 1
+button 15 1
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 1
+capsense 2 1
+hat 0 6
+axis 4 -18540
+axis 5 9530
+axis 0 17379
+axis 1 -1973
+axis 2 29677
+axis 3 -3249
+touchpad 1 0 0 3f7b3e00 3f234900 3fb32d00
+result 1
+end
+read 42 d3 db dd f0 42 0d 66 04 01 c9 ec fe f3 12 38 a9 88 c9 b8 04 db 92 f9 16 8b 87 e6 75 5b 9f be 95 89 dd d6 d2 ef 38 14 3b da 4d 27 24 ad c7 87 6a 36 8a 30 84 cc a2 1e 4f 2d ef 87 96 19 8c db
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 1
+button 8 0
+button 12 1
+button 13 0
+button 14 1
+button 15 0
+button 16 1
+button 17 0
+capsense 1 1
+capsense 0 0
+capsense 3 0
+capsense 2 0
+hat 0 14
+axis 4 19482
+axis 5 -32248
+axis 0 -4919
+axis 1 3074
+axis 2 14354
+axis 3 30551
+touchpad 0 0 1 3e632400 3f24fc00 3ff99200
+touchpad 1 0 1 3d316000 3f197900 3f36ea00
+result 1
+end
+read 45 ad 04 7c 07 81 34 3d eb 81 fe 9c 15 8c b2 bf 79 ce 3d 31 06 dd 0f 59 6b 96 ce be ad b6 bc fd 6a 37 e8 85 ea 71 18 19 eb ec 72 03 29 06
+read 43 00 37 ab d3 36 fd e0 13 13 41 14 b8 93 8d
+read 43 ed f9 29 13 20 28 0e 3b 77 53 15 a8 c8
+read 99 d4 45 b8 87 01 77 88 25 6c f4 5c a5 ea f3 6e 80 db 82 9a 67 47 76 df 10 c1 19 96 c1 f8 93 70 9d 1d 14 31 b1 f9 c7 2e be ca 76 87 c4 e1 fd 25 53 fc 70 72 91 64 0c db 0a c6 de 07 3b d2 35 d4
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 11 0
+button 7 0
+button 8 0
+button 12 0
+button 13 1
+button 14 0
+button 15 1
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 0
+capsense 2 0
+hat 0 15
+axis 4 -1432
+axis 5 -31786
+axis 0 -25346
+axis 1 29675
+axis 2 -16462
+axis 3 12679
+touchpad 0 0 0 3e632400 3f24fc00 3f321e00
+touchpad 1 0 0 3d316000 3f197900 3fb6ad00
+power Unknown 55
+result 1
+end
+read 47 95 c9 16 f1 97 a8 0e 8f b4 e4 ac 6f ba fe 85 34 c8 11 92 7c 61 be ae a8 53 db ce 6c 4a da fd 15 33 fb 1f 9d 52 32 62 70 22 d6 83 fc f0 0e c6 fb 36 fb b2
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 11 0
+button 7 0
+button 8 0
+button 12 1
+button 13 0
+button 14 0
+button 15 0
+button 16 1
+button 17 1
+capsense 1 1
+capsense 0 1
+capsense 3 1
+capsense 2 0
+hat 0 12
+axis 4 -25264
+axis 5 -5858
+axis 0 -21276
+axis 1 17809
+axis 2 -31234
+axis 3 14284
+touchpad 0 0 1 3f617c00 3f514200 3f275000
+touchpad 1 0 1 3e9db600 3e565000 3ffdda00
+result 1
+end
+read 42 ef 43 04 0f a2 7c 60 3a 0d e3 c3 c5 f8 44 1f 80 3e c7 8a f5 e0 d9 b9 31 e6 db 3d 53 fa 8d 7f d6 c2 39 7c 9e 00 9f 41 c4 6c a3 26 21 4d b9 ca 9c d9 0c d2 34 52 71 60 cc dd
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 11 0
+button 7 0
+button 8 0
+button 12 0
+button 13 1
+button 14 0
+button 15 1
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 0
+capsense 2 1
+hat 0 4
+axis 4 16632
+axis 5 -25996
+axis 0 -15389
+axis 1 1851
+axis 2 8004
+axis 3 -16000
+touchpad 0 0 1 3d2c7000 3f1f0b00 3fb9d900
+touchpad 1 0 0 3e9db600 3e565000 3ffa5300
+result 1
+end
+read 45 a3 74 41 a2 e4 b3 3d e6 37 b0 62 68 64 84 fe 26 ff 63 42 93 85 86 bf 6b 3b da a4 37 c7 6a b4 9f 8b 8d 0a 73 c5 cf 8d 78 67 a0 31 f2 b7 bf f2 f6 a7 64 91 6c f2 30 0d e6 fb d5 e0 24 65 85 ff
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 0
+button 11 1
+button 7 0
+button 8 1
+button 12 0
+button 13 1
+button 14 1
+button 15 0
+button 16 0
+button 17 1
+capsense 1 0
+capsense 0 0
+capsense 3 0
+capsense 2 1
+hat 0 0
+axis 4 -1178
+axis 5 -4148
+axis 0 25264
+axis 1 -25704
+axis 2 -380
+axis 3 218
+touchpad 0 0 0 3d2c7000 3f1f0b00 3fbf8600
+touchpad 1 0 1 3f3b6b00 3f5b2600 3fc73700
+result 1
+end
+read 47 71 1c 8f 68 1b 0c 67 52 f4 0c 49 18 be 80 e0 e4 c9 a7 79 16 10 86 81 16 12 98 c3 d8 72 32 5e 31 4e b8 87 dd 5f 82 04 4c d5 8b 63 31 f0
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 11 1
+button 7 1
+button 8 0
+button 12 0
+button 13 0
+button 14 1
+button 15 0
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 1
+capsense 3 1
+capsense 2 0
+hat 0 6
+axis 4 19992
+axis 5 26788
+axis 0 18700
+axis 1 16872
+axis 2 -8064
+axis 3 13852
+touchpad 0 0 1 3f101600 3f7e7a00 3e10b000
+touchpad 1 0 1 3e873000 3d528000 3f3c6400
+result 1
+end
+read 42 19 fa ac 26 08 48 9c 3f 02 b7 38 94 c5 f6 86 7a 5d 51 f0 3e 40 99 bf f1 2b d4 59 f6 bb a5 3a 4c ca 7a b4 9c 8f 77 67 02 74 26 7e 9b b6 db ae d3 bf e8 ef
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 0
+button 11 1
+button 7 1
+button 8 1
+button 12 1
+button 13 1
+button 14 0
+button 15 1
+button 16 0
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 0
+capsense 2 0
+hat 0 7
+axis 4 -18288
+axis 5 -31618
+axis 0 14519
+axis 1 14956
+axis 2 -30986
+axis 3 -23930
+touchpad 0 0 0 3f101600 3f7e7a00 3fbf9900
+touchpad 1 0 1 3f2bf100 3e18b000 3fbbf600
+result 1
+end
+read 45 5a cf 59 97 6b 27 9c 6d 22 70 ee 9e 3a a7 b0 aa 7b 21 67 ca d7 7f 39 bd 46 4f 27 51 61 82 0b b0 c0 92 51 70 15 70 75 58 05 2e 40 f3 ca 71 c2 d7 89 94 0e b2 74 9d b8 19 9f
+read 43 06 37 55 7d 04 69 29 9c 14 f8 2c f4 dd 52
+read 43 aa 5e 61 98 92 cd 01 8b 98 0f b2 57 6d
+read 99 38 97 3e a7 d6 15 e5 fb 6d 75 3f 86 ac 99 c3 4d 8f fc 4a 4c 7c a0 8c 46 20 b9 61 4c 07 1b b3 10 fd 64 46 e7 28 e9 27 9f e2 62 f5 07 58 54 d3 37 e4 42 28 a3 2a 92 1d e3 f4 41 d4 40 ce 46 69
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 11 0
+button 7 0
+button 8 0
+button 12 1
+button 13 1
+button 14 1
+button 15 1
+button 16 0
+button 17 0
+capsense 1 1
+capsense 0 1
+capsense 3 0
+capsense 2 1
+hat 0 10
+axis 4 -18354
+axis 5 -15142
+axis 0 -4496
+axis 1 -15006
+axis 2 -20313
+axis 3 -31658
+touchpad 0 0 1 3f672100 3f283600 3ee5fc00
+touchpad 1 0 0 3f2bf100 3e18b000 3f42a200
+power Unknown 55
+result 1
+end
+read 47 61 c7 a9 6c 90 fe 95 ac 54 ea 95 42 58 b5 7c 5f 53 e8 3f eb 29 51 75 55 c1 b0 8e 1a a4 24 d3 16 5b 58 21 8e 85 6d 65 f9 ba a5 d6 91 23 d5 f6 9e d5 89 46 7d f2 f4 cc 73 7e 9e 45 34 02 cc 2a
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 1
+button 5 0
+button 11 0
+button 7 1
+button 8 0
+button 12 1
+button 13 0
+button 14 1
+button 15 1
+button 16 1
+button 17 0
+capsense 1 0
+capsense 0 0
+capsense 3 1
+capsense 2 0
+hat 0 3
+axis 4 -21508
+axis 5 10584
+axis 0 -27158
+axis 1 -22594
+axis 2 31925
+axis 3 -21343
+touchpad 0 0 0 3f672100 3f283600 3fc15500
+touchpad 1 0 1 3d6b0000 3f5be600 3fd32400
+result 1
+end
+endcase
+effect 31 e3 ae 65 a5 7f 4b d0 5e 0d 2d 72 4b 31 cc 78 ca 62 bb f5 b0 fc 94 59 15 24 a5 b3 e4 60 57 a6 26 f2 62 2d 09 f7 b3 0e b3 44 18 1f c9 fc b1 3c bd f1 17 04 db c0 49 56 13 ab 5b 8e 84 34 dd 7f
+feature 31 e3 ae 65 a5 7f 4b d0 5e 0d 2d 72 4b 31 cc 78 ca 62 bb f5 b0 fc 94 59 15 24 a5 b3 e4 60 57 a6 26 f2 62 2d 09 f7 b3 0e b3 44 18 1f c9 fc b1 3c bd f1 17 04 db c0 49 56 13 ab 5b 8e 84 34 dd 7f
+result 1
+end
+effect cd 7f 0c 30 12 65 bb 57 d0 57 ff 97 61 f9 9d 78 4e 7a 34 2a 58 b5 2a f9 45 09 58 90 6b f9 75 ee fe 82 43 28 19 40 7b e3 8d 3f 79 90 6d a2 a8 66 56 f6 ab 21 7f 53 51 7c 84 38 36 6f f2 24 38 28 91
+unsupported
+result 0
+end
+case open 1
+read -1
+update
+removed
+result 0
+end
+endcase
+init 1304
+name Steam Controller
+result 1
+end
+case dongle 0
+read 79 02
+read 42 2b f6 8c 11 02 49 f7 a2 4f b8 b3 51 70 84 a1 c8 1b 14 59 d8 4f 6d f9 58 fc 70 af c4 71 d7 08 91 89 ee f7 51 95 11 a5 8b 08 e9 fc 58 e5
+read 46 07
+read 79
+update
+added
+result 1
+end
+read 46 01
+read 46 01
+read 47 fc 3f f8 ed 31 b9 4e 0b a1 56 f0 27 d7 c8 6e d9 ba e5 12 e2 79 21 a8 0c 34 cf 11 bf 6b 17 87 63 27 b6 ad 79 ea 79 5e 79 57 77 32 69 a2
+read 43 98 79 d7 8b 94 53 06 52 5a 71 5f 6f c3 e3
+update
+removed
+added
+result 1
+end
+endcase

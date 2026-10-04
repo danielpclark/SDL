@@ -1,0 +1,1578 @@
+# Expected behaviour of upstream's SDL_hidapi_steam_hori.c, recorded by running it
+# (with stubs for the SDL and HID functions it uses) on these inputs.
+# Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+# This is an altered (translated) version of the original software; see LICENSE.txt.
+init 0
+name Wireless HORIPAD For Steam
+added
+result 1
+end
+open 0
+add sensor 2 437a0000
+add sensor 1 437a0000
+add capsense 0
+add capsense 1
+result 1
+end
+case usb
+read 07 64 af be 0b fa c4 ef 2b 8f c6 6d 7b 43 e6 bb 4f b0 83 9c 78 eb 7c 72 71 39 36 57 4e 91 6c fd 65 d6 ba 46 b9 d0 e7 a2 2a ef f5 2c 5f c0 ea 84 6f 2b 5c 6a 52 73 bf 1f 0a ea 6f 7c 91 77 7c cf
+handle
+axis 0 -7068
+axis 1 12207
+axis 2 16062
+axis 3 -29941
+hat 0 0
+button 0 1
+button 1 1
+button 11 1
+button 2 1
+button 3 0
+button 14 0
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 8 1
+button 15 1
+capsense 0 0
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 -21717
+axis 4 3983
+sensor Gyro 4000000 41b20a16 c196c031 419825a4
+sensor Accel 4000000 428c56aa 414957c1 c273e965
+power Charging 10
+serial e7-a2-2a-ef-f5-2c
+ticks 28102 28102
+end
+read 07 c9 37 79 86 fa c4 ef 84 20 cd 95 87 1d fb 1d 6e 85 d5 a0 57 c8 65 3b 71 48 fd 86 a4 d8 03 6d c9 f6 80 cf 89 c8 68 d8 cf d9 a7 1f 0c 90 f0 7f e5 74 44 b5 9f 21 44 be 46 09 38 ee a0 ec db d0
+handle
+axis 0 18889
+axis 1 -18633
+axis 2 -1671
+axis 3 1670
+axis 5 1156
+axis 4 -24544
+sensor Gyro 8000000 4208eaa9 c103ec38 c105f284
+sensor Accel 8000000 42119d87 420875bd c26951db
+ticks 38349 38349
+end
+read 07 15 ec c1 db 5a 75 4b a3 d1 d9 42 05 52 a1 a1 6c b1 03 22 41 b8 36 9f 19 e7 78 2b 9d eb db ef 3d de d3 c6 94 44 81 98 99 c1 bd 77 8b 9c e6 7b 9b f4 69 5e 56 c4 12 d6 d9 98 15 b6 b3 0c db c3
+handle
+axis 0 -27371
+axis 1 27884
+axis 2 16833
+axis 3 23515
+hat 0 0
+button 0 1
+button 1 0
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 8 0
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 9123
+axis 4 20945
+sensor Gyro 12000000 41af8d62 c1b73b58 41d2d5aa
+sensor Accel 12000000 c26d4b4b 422fe5b0 41a6c540
+power Charging 90
+ticks 82649 17113
+end
+read 05 09 8e 57 cb bf 63 b8 49 62 aa 35 b6 a4 97 06 09 f5 ce e1 f6 7d b0 5c 1e d5 68 06 f9 89 b4 43 7f 4e 73 eb 99 04 f3 a2 4b 6a f8 f5 9e a3 8c 39 4e 6c 8a 24 38 1a e8 28 82 56 c7 93 88 99 3c 68
+handle
+ticks 82649 17113
+end
+read 07 65 dc fb 16 49 0a 4e 36 92 00 2e 5a d1 9e 0d 04 11 f5 9e 36 d5 93 33 9b d4 8c d6 77 73 4d 29 50 06 20 fe 5a c7 7e b5 a3 92 18 59 03 66 a4 79 c1 9c 68 c8 05 e5 87 74 02 05 0f 46 e0 51 be 7e
+handle
+axis 0 -6811
+axis 1 23772
+axis 2 31739
+axis 3 -27114
+hat 0 0
+button 0 0
+button 1 0
+button 11 1
+button 2 0
+button 3 0
+button 14 1
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 8 1
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 -18890
+axis 4 4754
+sensor Gyro 16000000 c09809b8 4150706c c0735668
+sensor Accel 16000000 41fce29a 41d1cf06 c26deaa7
+power Charging 110
+ticks 142848 11776
+end
+read 07 80 00 ff 7f 49 0a 4e 2a 22 9a ed 00 80 ff 7f 1e c5 3a 19 00 80 9e e3 9b a2 a6 5c d9 69 67 60 70 c6 9a be 95 4e e2 92 62 fa dd 62 7b a5 ec fb b3 43 c3 0a 7d e2 af 79 19 63 aa 8f 7a f5 21 c6
+handle
+axis 0 0
+axis 1 -32768
+axis 2 32767
+axis 3 -129
+axis 5 -21974
+axis 4 -24030
+sensor Gyro 20000000 41838d46 420efa35 c20ef917
+sensor Accel 20000000 c18b2b8f 429ce80a 41776359
+ticks 191898 60826
+end
+read 07 55 7f 6b bc c6 81 f8 e4 d2 39 31 7a bf df 01 17 d0 5b 12 55 41 93 2e f9 00 74 58 dd 2b c2 a9 9e 4d a0 ec 0b 58 df f9 48 62 06 d2 c5 20 25 7f e3 23 5a a9 60 d4 20 f8 86 30 5b 2e 18 44 24 00
+handle
+axis 0 -10923
+axis 1 -129
+axis 2 -5269
+axis 3 15548
+hat 0 8
+button 0 0
+button 1 0
+button 11 1
+button 2 1
+button 3 1
+button 14 0
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 0
+button 7 0
+button 8 0
+button 15 1
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 25828
+axis 4 21202
+sensor Gyro 24000000 415613a0 41902740 bf05a000
+sensor Accel 24000000 41e45e58 c2202c0e 41340173
+power Charging 90
+ticks 209209 12601
+end
+read 07 68 54 b8 97 3b d2 8c 26 62 9d bb 76 ff 98 6d ae f3 19 48 b5 d4 30 d2 5a ad b7 89 43 78 1e c4 9c 5c f3 48 7b a7 34 a9 15 8a 55 67 a3 96 0f c4 12 fa ee 66 6d 79 99 b1 0b 2e e0 e2 78 00 88 ec
+handle
+axis 0 -6040
+axis 1 -11180
+axis 2 14520
+axis 3 6039
+hat 0 0
+button 0 1
+button 1 1
+button 11 0
+button 2 0
+button 3 0
+button 14 1
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 0
+button 7 0
+button 8 1
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 -23002
+axis 4 -7582
+sensor Gyro 28000000 405c3aa0 3e1ab600 c1f4d58c
+sensor Accel 28000000 c1e0a232 41d4478d 4230c256
+power Charging 100
+ticks 244637 48029
+end
+read 07 e3 d6 13 cd d3 dc 49 ae 91 00 00 65 1c 62 7b a5 ee 33 7c a0 fc 35 90 31 6a 2f b1 cd 12 3a 70 28 b3 53 91 a6 f9 a2 64 88 31 87 e1 d3 c8 6a 8b ff 88 3f 01 65 93 dc 64 66 1b fa 6c 5a e7 0d 49
+handle
+axis 0 25571
+axis 1 22230
+axis 2 -27885
+axis 3 19917
+hat 0 6
+button 0 1
+button 1 0
+button 11 1
+button 2 1
+button 3 0
+button 14 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 8 0
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 11950
+axis 4 4497
+sensor Gyro 32000000 409b1c18 c0fdb8f0 c209d1e1
+sensor Accel 32000000 c2890a11 400463c8 42983f4e
+power Charging 10
+ticks 262144 0
+end
+read 07 85 c4 3b 1e d3 dc 49 3c 20 b3 a1 06 d4 fd eb ba 81 6b 6e d5 76 64 27 31 f8 9b 8e 39 b7
+handle
+axis 0 1413
+axis 1 17604
+axis 2 -17605
+axis 3 -25058
+axis 5 -17348
+axis 4 -24544
+sensor Gyro 36000000 420d0d99 4144803c 40b2d8b8
+sensor Accel 36000000 41c12521 c291ab03 42875a93
+ticks 303539 41395
+end
+read 07 10 df f1 49 6f 19 41 92 cf e5 7c 1a e7 29 7d ae 6b 7f dd 15 05 7b 58 45 14 bc e1 48 27 b5 7f ec 38 39 ee 2d a9 c8 f5 63 ff 9c 88 2c 60 71 9e 17 cd 18 d0 15 20 ba b7 a0 c5 ed 02 a8 38 78 59
+handle
+axis 0 -28656
+axis 1 24543
+axis 2 29169
+axis 3 -14007
+hat 0 0
+button 0 0
+button 1 1
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 8 0
+button 15 0
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 4754
+axis 4 20431
+sensor Gyro 40000000 c1f08edb 40de83f0 c20bce21
+sensor Accel 40000000 4258ec9c c04759cf c1a92f12
+power Charged 50
+ticks 359653 31973
+end
+read 07 42 e6 f5 10 f3 cd fc 6e 5e db 9d 61 17 a6 f0 40 6d 30 8b 20 68 3b e4 01 81 52 69 ba 24 94 61 a4 e6 3f 80 09 86 00 4d 4b a5 fd 34 d4 45 9e 6a c1 03 1f 85 4d 14 d7 d7 ff 01 45 8e 93 22 df 8c
+handle
+axis 0 -15806
+axis 1 26342
+axis 2 30197
+axis 3 -28656
+hat 0 6
+button 0 1
+button 1 1
+button 11 1
+button 2 1
+button 3 1
+button 14 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 7 0
+button 8 1
+button 15 1
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 -4498
+axis 4 -8610
+sensor Gyro 44000000 c1f410f2 c0d0e6d4 408933d0
+sensor Accel 44000000 c18829bd c27f4784 c28f3142
+power Charged 10
+ticks 368091 40411
+end
+read 07 dc 9b 07 31 9a 3a e0 91 8c 57 c4 9b 22 33 05 31 47 3d 36 b5 5e 64 88 33 fd 1d e7 4e 6c 33 d4 eb dc 52 01 9f 67 51 ae d9 cb 43 c6 cf e6 3c b8 2a f1 e3 17 70 7c bc f0 35 2d 32 ef 01 38 67 30
+handle
+axis 0 23772
+axis 1 7067
+axis 2 -30969
+axis 3 -20175
+hat 0 0
+button 0 1
+button 1 0
+button 11 0
+button 2 1
+button 3 0
+button 14 1
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 0
+button 15 0
+capsense 0 0
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 4497
+axis 4 3212
+sensor Gyro 48000000 c19f0a8c c11a9cc2 bfb9c680
+sensor Accel 48000000 c2929ef4 c268308f 4204f956
+power Charging 30
+ticks 377943 50263
+end
+read 07 9e bc e6 6c 9a 3a e0 bb 1a 17 b1 88 c9 91 7c 42 b9 68 9f 96 a8 b6 07 33 49 dd 1b c5 c0 53 99 81 d9 31 2f b0 0c 7b d9 ce 31 2d fd dd 03 0a 48 11 57 24 46 3e 18 2a c4 02 09 74 e6 b2 3a d0 07
+handle
+axis 0 7838
+axis 1 15548
+axis 2 26342
+axis 3 -5012
+axis 5 15291
+axis 4 -26086
+sensor Gyro 52000000 419e0bde 41736190 c20b2457
+sensor Accel 52000000 40973ca8 42564f4e c26cd0b6
+ticks 438551 45335
+end
+read 07 47 0a 53 83 54 3d 26 ab c8 dc 23 e7 cc 7f 14 30 82 6f 85 81 06 f0 1f fd 25 51 c5 df e0 b4 70 25 9f 9e cb fc 35 3d 8e ea 97 7d 9b be 5c c9 d9 37 f4 a1 d4 77 a8 e0 11 26 55 cb 32 65 e8 d9 cf
+handle
+axis 0 -14521
+axis 1 -30198
+axis 2 -11437
+axis 3 899
+hat 0 4
+button 0 1
+button 1 0
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 8 1
+button 15 0
+capsense 0 0
+capsense 1 1
+button 12 0
+button 13 0
+axis 5 11179
+axis 4 18632
+sensor Gyro 56000000 420c89cb 41645198 c0b723e4
+sensor Accel 56000000 419c9996 c07f204a c2963ee8
+power Charging 130
+ticks 467932 9180
+end
+read 07 98 45 0e 34 e6 54 08 22 56 66 db 79 eb bf 8f be 63 13 aa 37 37 d3 91 14 51 3a a5 5c 8b 16 19 99 ec 57 95 42 a1 59 8c ed bd f1 5e 31 b0 39 2d 5c 89 1b 7f da eb a0 98 60 d1 f6 95 db 01 43 48
+handle
+axis 0 6296
+axis 1 -15035
+axis 2 -29170
+axis 3 -19404
+hat 0 8
+button 0 0
+button 1 1
+button 11 1
+button 2 1
+button 3 0
+button 14 0
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 0
+button 7 0
+button 8 0
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 0
+button 13 0
+axis 5 -24030
+axis 4 -10666
+sensor Gyro 60000000 c1ded342 40b77458 41fac92a
+sensor Accel 60000000 c2870e92 c2075e40 c252a939
+power Charging 40
+ticks 514918 56166
+end
+read 07 51 2c d7 40 9d 24 13 e0 83 75 99 fe e5 0f ab aa 1c 13 cc 77 fc 1f 1d a2 8c 57 7a fb 82 38 54 9b 81 1c 4c 44 11 8d 95 96 62 4a 06 f7 c0 19 02 40 d6 52 08 28 a2 28 19 71 3c b6 cd d4 46 ce 34
+handle
+axis 0 -11951
+axis 1 -21460
+axis 2 22487
+axis 3 -16320
+hat 0 0
+button 0 1
+button 1 0
+button 11 0
+button 2 1
+button 3 0
+button 14 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 1
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 0
+axis 5 24800
+axis 4 899
+sensor Gyro 64000000 c10010c4 40e86dd8 41bdc4a8
+sensor Accel 64000000 418eca4a 400aac13 c1fe9be6
+power Charged 20
+ticks 563573 39285
+end
+read 07 32 80 6d 66 9d 24 13 a5 11 c8 1d 35 7b 30 29 b5 6d 31 ac 03 15 93 83 a2 97 6a 05 7e 85 db e0 eb 1d af b2 c0 45 99 67 a6 47 47 55 d0 4c 2b 18 a2 9a 06 2f 21 8d 39 53 19 57 cb 9b 10 77 39 51
+handle
+axis 0 -19918
+axis 1 0
+axis 2 -4755
+axis 3 -6554
+axis 5 9637
+axis 4 -28399
+sensor Gyro 68000000 c1f51655 c2099f9d c1380586
+sensor Accel 68000000 c2988667 c14e0df9 c24d786b
+ticks 597448 7624
+end
+read 07 fa 01 92 68 75 ed a7 31 be 20 26 e0 6d e2 c8 9f 15 2b 09 99 42 f1 82 21 32 31 06 a3 54 bf 7e 4b 82 ce 85 77 fd 3f c2 dd 2c aa 09 7c 14 2d 31 44 96 f7 b3 84 6c 93 07 17 e2 f5 bf 4e 54 45 60
+handle
+axis 0 31482
+axis 1 -32511
+axis 2 4754
+axis 3 -6040
+hat 0 12
+button 0 1
+button 1 1
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 8 1
+button 15 0
+capsense 0 0
+capsense 1 1
+button 12 0
+button 13 1
+axis 5 -20175
+axis 4 16062
+sensor Gyro 72000000 c0c13184 c1f57666 41764748
+sensor Accel 72000000 c2994cfd c2234665 40b3d06a
+power Charged 10
+ticks 599584 9760
+end
+read 07 6b 6f 03 04 16 67 b0 43 4a 3d 75 bd 7a e4 4a 28 d5 c2 a5 fa 43 f7 db 93 1d 6d 3d 2a ae a4 ee 79 6e 3a 86 28 f8 3d 68 fb d0 31 e3 ba d7 e0 0b e4 8a e4 55 12 fe f5 f5 2c 9c f3 f8 4f 9c b2 20
+handle
+axis 0 -5269
+axis 1 -4241
+axis 2 -31997
+axis 3 -31740
+hat 0 8
+button 0 1
+button 1 0
+button 11 0
+button 2 0
+button 3 1
+button 14 1
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 0
+button 7 0
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 1
+button 12 0
+button 13 1
+axis 5 -15549
+axis 4 -13750
+sensor Gyro 76000000 413f707c c2091992 c1a74e32
+sensor Accel 76000000 c1b0b12d c226a7d5 c25d3e4f
+power Charging 30
+ticks 619837 30013
+end
+read 07 43 89 83 fb db 99 e2 9c 77 de ca 8c 63 f7 6d 0f 6d b5 3e e5 d7 65 4e 7c 17 de 69 d5 55 49 ef 36 a1 b3 74 94 f8 54 17 bf f5 9d a3 4b 57 03 67 42 36 8e d5 8b 04 20 dd 19 46 86 07 d3 10 40 53
+handle
+axis 0 -15549
+axis 1 2441
+axis 2 899
+axis 3 31739
+hat 0 0
+button 0 1
+button 1 0
+button 11 1
+button 2 1
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 1
+button 8 0
+button 15 0
+capsense 0 0
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 7324
+axis 4 -2185
+sensor Gyro 80000000 c1f3a37a c1de638e c1f5a9c8
+sensor Accel 80000000 4240326a 41c4a670 4219bc8a
+power Charging 120
+ticks 641758 51934
+end
+read 07 42 10 d0 0d db 99 e2 fc 03 c4 e5 0f e8 db f2 15 9d c6 94 1c bf fd 9b 7c e1 43 4b 62 07 6f 43 42 dd f9 10 7c ba 44 90 ea 59 ad 08 ef 51 58 05 20 5a b5 f3 af 3e d4 7e 9b a0 6e ac 9a 70 af b7
+handle
+axis 0 -15806
+axis 1 -28656
+axis 2 20688
+axis 3 -29427
+axis 5 31996
+axis 4 -31997
+sensor Gyro 84000000 41dcfe1c 40d5f690 406af5b0
+sensor Accel 84000000 c27531eb 421f1705 c2837112
+ticks 648644 58820
+end
+read 07 2a c4 ac f9 d1 29 c4 22 af b0 85 04 c9 50 98 fa 24 b3 69 5d bb 7d 81 b1 3b 5e a3 92 84 d6 a8 5c e0 cb 1a 9d 01 cc 93 3c bd 23 d4 66 88 9d a4 3c b5 18 6f 3d 6c d1 9a 75 6a 6a a7 63 7c be 0d
+handle
+axis 0 -21974
+axis 1 17604
+axis 2 11436
+axis 3 31225
+hat 0 3
+button 0 1
+button 1 0
+button 11 1
+button 2 1
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 1
+button 15 0
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 1
+axis 5 -24030
+axis 4 12207
+sensor Gyro 88000000 c12534e8 4175af5c 41e7a5e2
+sensor Accel 88000000 c29b14ff 4228462a 428191c5
+power Charging 10
+ticks 689584 34224
+end
+read 07 b9 65 d5 80 82 06 f4 cf 3a 5f 6b 2c c6 15 21 7d c3 3d 7b 69 8a a6 c1 7e e5 ec 30 25 8e 3e df 46 6b ea 52 ba 8c ad df 74 e0 bd c5 6f ba 92 06 57 08 78 08 f7 4d d6 ef 65 63 3c b7 ef f3 2e 15
+handle
+axis 0 14777
+axis 1 -6811
+axis 2 21973
+axis 3 0
+hat 0 2
+button 0 0
+button 1 0
+button 11 0
+button 2 1
+button 3 0
+button 14 1
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 1
+button 15 0
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 20431
+axis 4 -17862
+sensor Gyro 92000000 418730e0 41813214 c113ce32
+sensor Accel 92000000 c218dd70 42902533 429711c0
+power Charging 140
+ticks 748383 27487
+end
+read 07 b0 b2 0b 62 56 9b 4d c3 66 94 57 47 9e ec 4b 60 3a 23 8c ff ed 38 1b c2 9e b0 b4 da e3 66 a7 be 3e 16 78 91 1a a7 36 54 83 3c 9b cb a9 f9 e9 30 13 95 7f 9b a2 a4 3d 2c 4d a2 9d fe 96 bf 8e
+handle
+axis 0 12464
+axis 1 12978
+axis 2 -29941
+axis 3 -7582
+hat 0 8
+button 0 1
+button 1 0
+button 11 1
+button 2 0
+button 3 1
+button 14 1
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 8 1
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 17347
+axis 4 -6554
+sensor Gyro 96000000 c182689c 41da527c c1a99bfc
+sensor Accel 96000000 4185765f 41308eda c28e0762
+power Charged 20
+ticks 808852 22420
+end
+read 07 cf 6d 10 5f 56 9b 4d be f1 0d 09 14 12 93 d7 61 49 27 59 e1 a4 f3 4e c2 27 69 ed 72 44 0f c1 84 19 0e 4b e3 6c 7a 56 9a 66 60 18 3a 13 90 0d 89 95 2f 93 e9 2b fb 46 8a e6 5d 19 4f 25 30 39
+handle
+axis 0 20431
+axis 1 -4755
+axis 2 -28656
+axis 3 -8353
+axis 5 16062
+axis 4 29169
+sensor Gyro 100000000 c1a3ed9e c0a1885c 4134a2b4
+sensor Accel 100000000 42418e8d 425f65ef 425a924b
+ticks 854285 2317
+end
+read 07 d5 54 a2 36 6a f1 7d 7f 9c 8b 40 55 e2 ca 84 41 af 07 a5 cd 6f 96 1c ad 40 d6 9c ad 71 f9 ed 5a bb 94 8c 70 41 e6 00 07 49 e8 fa 7c b8 18 34 20 4f 06 06 a3 a8 9b c8 3e ee 2c eb a4 5f 43 d6
+handle
+axis 0 21973
+axis 1 -11180
+axis 2 8866
+axis 3 -18890
+hat 0 0
+button 0 0
+button 1 1
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 8 1
+button 15 1
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 0
+axis 5 -129
+axis 4 7324
+sensor Gyro 104000000 41b46548 4104918c 4209a1d9
+sensor Accel 104000000 418c2a88 c2890c84 c25f08c5
+power Charged 130
+ticks 868491 16523
+end
+read 07 83 27 82 a8 2a 31 d4 c8 27 ce bd c8 cd 53 14 bf 2d 84 2e 84 0e e2 43 d5 a9 b8 80 4b 29 e4 eb fe e5 66 fb f8 5b aa f3 5a ec 95 02 50 5a 51 1c b6 01 d9 96 87 d8 43 84 0a 27 d1 d3 bb 06 b6 25
+handle
+axis 0 899
+axis 1 -22745
+axis 2 642
+axis 3 10408
+hat 0 0
+button 0 0
+button 1 1
+button 11 0
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 1
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 1
+button 13 1
+axis 5 18632
+axis 4 -22745
+sensor Gyro 108000000 c14c63d0 41606444 c0b59ab4
+sensor Accel 108000000 42266cfe c10e5983 41e414cc
+power Charging 50
+ticks 900558 48590
+end
+read 07 99 a8 6f 75 0d 29 54 57 51 95 40 2d 95 ec 45 9d 83 5d b5 c5 40 97 84 74 21 cf 5a 0b 2d 8f 7b 31 57 45 57 3a 78 87 f0 55 0e 27 f0 77 b7 fb 86 0b 6b 69 04 56 7c b4 3a ac 4f 0a 90 55 d8 49 e5
+handle
+axis 0 6553
+axis 1 10408
+axis 2 -4241
+axis 3 -2699
+hat 0 0
+button 0 0
+button 1 0
+button 11 0
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 1
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 -10409
+axis 4 -11951
+sensor Gyro 112000000 420af213 41eea7d6 c19c347a
+sensor Accel 112000000 c29747b0 c21ecb04 c236fbeb
+power Charging 40
+ticks 934037 16533
+end
+read 07 d7 95 2b 5d 0d 29 54 ec db a2 89 46 f8 56 d8 99 71 54 fa 52 c6 74 9e 74 69 da ea af 3d bb 5c b3 d1 f0 62 f7 59 3d b7 b6 70 5e 83 b1 90 d5 32 de 4d 76 10 d0 54 ae a9 e5 27 98 e3 31 96 be d7
+handle
+axis 0 22487
+axis 1 5525
+axis 2 -21717
+axis 3 -8867
+axis 5 27884
+axis 4 23515
+sensor Gyro 116000000 c1fdc774 400a20a0 41313b70
+sensor Accel 116000000 c26f26eb 420d6940 c05e7d06
+ticks 952738 35234
+end
+endcase
+init 1
+name Wireless HORIPAD For Steam
+added
+result 1
+end
+open 1
+add sensor 2 42f00000
+add sensor 1 42f00000
+add capsense 0
+add capsense 1
+result 1
+serial a1b2c3
+end
+case bluetooth
+read 00 fc af 74 1f 3f 45 d2 49 85 b3 57 d1 b6 51 8c 73 b6 27 bd e9 60 3b 52 15 41 9a f0 f4 19 28 4f 43 12 29 da ef be 8b 08 3e d2 f9 7d be a4 a0 df f0 66 bf 79 b4 20 f1 92 74 6f 3a 8b 10 ff d3 bb
+handle
+axis 0 31996
+axis 1 12207
+axis 2 -2956
+axis 3 -24801
+hat 0 0
+button 0 1
+button 1 1
+button 11 0
+button 2 0
+button 3 1
+button 14 0
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 0
+button 7 1
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 1
+button 13 1
+axis 5 -14007
+axis 4 1413
+sensor Gyro 8333000 41a45226 41a38026 42013957
+sensor Accel 8333000 424999f3 c26d974c c223e34d
+power Charging 50
+ticks 22451 22451
+end
+read 00 c9 b5 0b 7d 3f 45 d2 2c 0f 89 6b 8f 91 9c 23 ed 13 97 bd 4b cd aa 61 15 69 cf 2c 9d 80 96 14 a3 db ae 7f e1 66 32 a3 ac f3 b9 9c 5d b5 1c 4e 01 77 05 00 c4 9f 3c b5 1a e6 b1 4a b3 d5 49 51
+handle
+axis 0 18889
+axis 1 13749
+axis 2 -29941
+axis 3 -643
+axis 5 -21460
+axis 4 -28913
+sensor Gyro 16666000 c0b20b34 41f6bc92 c11f1910
+sensor Accel 16666000 426f7078 41f8a210 c222d0b7
+ticks 27529 27529
+end
+read 00 fe 69 af 35 00 43 f8 56 38 e3 85 40 47 f8 5b c5 48 63 bb 37 ce 81 88 92 a0 39 5d 69 34 c4 6a 91 ec 3f 13 8f 12 f2 47 c2 95 5e a0 4f 81 09 3f d1 40 08 65 be 92 51 d2 97 4d be de d7 d6 e0 58
+handle
+axis 0 32510
+axis 1 -5783
+axis 2 12207
+axis 3 -19147
+hat 0 1
+button 0 0
+button 1 0
+button 11 0
+button 2 0
+button 3 1
+button 14 1
+button 9 0
+button 10 0
+button 4 1
+button 6 0
+button 5 0
+button 7 0
+button 8 0
+button 15 1
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 -10666
+axis 4 -18376
+sensor Gyro 24999000 c1a2911a c19f2c0e c1cd757c
+sensor Accel 24999000 c2927b68 41f41ce1 c2283774
+power Charging 20
+ticks 34275 34275
+end
+read 05 5b 89 22 07 d6 18 89 87 c1 82 65 a4 99 25 f5 bc 15 4d 77 6f 23 82 8a c2 a7 97 44 17 f3 74 13 cd 04 9e 54 b7 82 8b b5 3e 76 a8 4b 54 c9 26 72 1f 80 88 68 62 b9 ee a8 ab 64 1e 08 3f c2 57 92
+handle
+ticks 34275 34275
+end
+read 00 a0 d6 22 b5 4f 25 c4 7e 6a 26 ca 7a 47 e3 b0 92 39 13 b1 b1 8c 6b 25 ea 3e ab a1 68 7d 63 cd 19 e5 89 03 19 76 bc ad e0 57 56 5b 2c 4c 34 a7 ad f8 45 c9 72 d4 d3 f9 16 eb 94 88 a9 5b 70 bc
+handle
+axis 0 8352
+axis 1 22230
+axis 2 -24030
+axis 3 13749
+hat 0 0
+button 0 0
+button 1 0
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 1
+button 15 0
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 1
+axis 5 -386
+axis 4 -5526
+sensor Gyro 33332000 c1809c64 c19fada2 41b0bf72
+sensor Accel 33332000 41b778f3 428d5950 c2417fd7
+power OnBattery 100
+ticks 51750 51750
+end
+read 00 80 00 ff 7f 4f 25 c4 fc f3 8f 75 00 80 ff 7f 07 75 76 28 00 80 fd 1a ea 24 33 34 1c 94 54 59 33 4d c1 e0 77 ad 47 ee 6a f7 29 91 96 cc f3 9d 39 68 fe 47 ac a2 c2 83 97 a2 de 1d d6 5f e9 99
+handle
+axis 0 0
+axis 1 -32768
+axis 2 32767
+axis 3 -129
+axis 5 31996
+axis 4 29683
+sensor Gyro 41665000 c202b87a 420efa35 c20ef917
+sensor Accel 41665000 41845513 429ce80a 41c664a4
+ticks 95631 30095
+end
+read 00 e0 f6 cc a0 2e e9 37 c1 1b 7d 26 7f b6 10 8d da 89 35 9d 55 99 f8 29 1c 1b ef bc f2 f6 05 76 dc fd 06 ab 8f e8 ea 39 9a 17 e1 ad 54 07 22 15 83 90 74 a3 d1 e4 79 06 ef 48 bd 88 86 8f 82 e8
+handle
+axis 0 24800
+axis 1 30454
+axis 2 19660
+axis 3 8352
+hat 0 0
+button 0 0
+button 1 1
+button 11 0
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 8 1
+button 15 0
+capsense 0 1
+capsense 1 1
+button 12 0
+button 13 0
+axis 5 16833
+axis 4 -25829
+sensor Gyro 49998000 4203fa2d 41a43758 420063fb
+sensor Accel 49998000 41cdc953 427bb50c c27234ff
+power Charging 120
+ticks 140925 9853
+end
+read 00 5b 49 f5 5d 13 20 ef 8d a3 af 9d 2d f7 00 2d cc 35 12 d0 38 bd 1c 12 a8 e1 a1 fa ab 64 38 e5 d4 b4 18 23 22 e7 65 4e 32 77 3e 6e 23 be 83 cf 4d 30 67 9d a1 5a b9 44 de 9e f1 89 79 ab fd 68
+handle
+axis 0 -9381
+axis 1 -14007
+axis 2 30197
+axis 3 -8867
+hat 0 6
+button 0 1
+button 1 0
+button 11 0
+button 2 0
+button 3 0
+button 14 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 1
+button 8 1
+button 15 1
+capsense 0 0
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 3469
+axis 4 9123
+sensor Gyro 58331000 c1705c98 401dbed0 c1490e68
+sensor Accel 58331000 413197a1 4223b99f c1eb03cc
+power OnBattery 80
+ticks 171439 40367
+end
+read 00 bf c9 ac f6 9c 91 51 20 4b 00 00 4e 94 81 f0 9d 38 cb 81 25 f4 28 94 2a 37 07 ae 07 9e aa 67 da 33 b6 09 f0 6a 7a ed ef d7 ff 96 c6 b0 d4 8a 55 07 96 f4 db c4 41 fb 23 64 3a e0 6e 73 18 da
+handle
+axis 0 16319
+axis 1 18889
+axis 2 11436
+axis 3 30454
+hat 0 0
+button 0 1
+button 1 0
+button 11 0
+button 2 1
+button 3 1
+button 14 0
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 -24544
+axis 4 -13493
+sensor Gyro 66664000 c17cf218 41f09a06 408a7e70
+sensor Accel 66664000 c28432c0 40e8865e c29ab562
+power OnBattery 100
+ticks 196608 0
+end
+read 00 ca 36 b1 29 9c 91 51 39 d3 e2 db a2 4c 53 94 0c 53 21 6f dd 00 dd 70 2a dc e2 97 c6 63
+handle
+axis 0 19146
+axis 1 -18890
+axis 2 12721
+axis 3 -22231
+axis 5 -18119
+axis 4 21459
+sensor Gyro 74997000 c1b986e7 c1ab3296 41f08ede
+sensor Accel 74997000 428a59f1 bf077451 428839ac
+ticks 252898 56290
+end
+read 00 3d 4f c4 b7 99 1b 12 99 fa 62 23 e9 e0 35 db db 46 d3 5b 1f 9f fb 66 12 92 f2 77 a7 74 52 9e 14 89 99 1e 3c fb 6d c8 df 96 b0 15 84 49 48 06 22 5d ab bc 90 72 2d d7 b3 3e 09 8e 61 05 31 93
+handle
+axis 0 -17091
+axis 1 -12465
+axis 2 17604
+axis 3 14263
+hat 0 0
+button 0 1
+button 1 0
+button 11 0
+button 2 1
+button 3 1
+button 14 1
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 0
+axis 5 6553
+axis 4 31482
+sensor Gyro 83330000 c19e4a6a 410aebec 41246760
+sensor Accel 83330000 427c792e 426d83af 42611f3b
+power Charging 20
+ticks 271202 9058
+end
+read 00 d8 d6 a4 60 8d b5 f1 ff 82 28 31 e3 10 e8 82 c8 d1 a3 05 ad 92 41 36 f9 17 f6 0c 6b 91 08 d4 c6 e0 5d cd 3a 89 cc 84 91 75 20 ee 1e 6f eb 47 66 5b 11 ad 8b 37 10 7b 7c d3 10 66 df 50 ae 5a
+handle
+axis 0 22744
+axis 1 22230
+axis 2 9380
+axis 3 -8096
+hat 0 0
+button 0 0
+button 1 0
+button 11 0
+button 2 1
+button 3 1
+button 14 0
+button 9 1
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 1
+axis 5 32767
+axis 4 642
+sensor Gyro 91663000 414e84ec c096e2d4 420bbc41
+sensor Accel 91663000 42050324 42860357 405d1bfc
+power Charging 90
+ticks 274728 12584
+end
+read 00 5a 88 12 e3 25 88 7a 2d 28 f2 c4 4f 9c 2b 4c 94 b3 4f 2c 45 99 71 9f d6 2c af 17 d2 7a fd 1c 88 fe af ea 73 9a c3 ca 6a 54 f4 2c 8c d1 80 89 e9 91 b4 fb f1 f0 3c 99 9d d8 2c 94 5f 47 cd 13
+handle
+axis 0 -9638
+axis 1 2184
+axis 2 -28142
+axis 3 25571
+hat 0 12
+button 0 0
+button 1 1
+button 11 0
+button 2 0
+button 3 0
+button 14 0
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 1
+button 8 0
+button 15 1
+capsense 0 1
+capsense 1 1
+button 12 1
+button 13 0
+axis 5 -21203
+axis 4 -22488
+sensor Gyro 99996000 41aabc2c 41deb874 c1aa28bc
+sensor Accel 99996000 c26cbaa5 427bdc46 41d9426b
+power Charging 60
+ticks 312562 50418
+end
+read 00 84 28 ce 01 25 88 7a e1 af 80 9d ee 44 c0 f7 fe ae 98 92 a7 73 49 62 d6 90 dd 57 9c ee f4 36 18 a4 4d 35 a6 f0 14 59 2a f2 ed 90 8d 2e c4 8e 6b bf 53 68 81 5c 70 f1 d4 0c 1c d8 a2 a9 4c 7e
+handle
+axis 0 1156
+axis 1 -22488
+axis 2 20174
+axis 3 -32511
+axis 5 25057
+axis 4 12207
+sensor Gyro 108329000 41b4faf6 c199fd07 40137b80
+sensor Accel 108329000 4270f648 c28dc530 c2861d15
+ticks 368000 40320
+end
+read 00 16 75 98 7a 40 d9 89 dc d6 94 7c 80 c7 65 44 c8 7f 3d f5 95 e2 89 3f 74 05 40 8d 89 af ac e2 37 92 f8 6e 95 49 7d f3 90 11 cb da e0 47 7a 14 ac a5 af b2 fc 3c 6d 43 e2 31 a1 f1 68 37 eb 5a
+handle
+axis 0 -27114
+axis 1 -2699
+axis 2 6296
+axis 3 -1414
+hat 0 1
+button 0 0
+button 1 0
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 8 0
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 23772
+axis 4 22230
+sensor Gyro 116662000 c20ebba7 417c7500 c198caf6
+sensor Accel 116662000 421bc44b 41903ef1 c0d312a4
+power Charging 40
+ticks 425108 31892
+end
+read 00 d0 2e 2f 0e 43 d6 8f de 5c ec 21 c4 e6 db f3 b0 e9 00 16 cd a4 f3 f5 b6 49 97 79 58 7b e4 df a5 88 6f 54 fe 66 be 56 5d 6f 4e c9 46 dc 60 db 6b 03 88 99 22 50 f3 4e 87 05 7b a0 70 b1 6c 68
+handle
+axis 0 20688
+axis 1 -20946
+axis 2 -20689
+axis 3 -29170
+hat 0 6
+button 0 0
+button 1 0
+button 11 1
+button 2 0
+button 3 0
+button 14 1
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 8 1
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 24286
+axis 4 -9124
+sensor Gyro 124995000 40c76828 40e18478 40591660
+sensor Accel 124995000 c0c52106 425f96f7 4157bf0e
+power Charging 60
+ticks 467436 8684
+end
+read 00 71 14 54 7c ea 0c 3f a6 02 49 4b 7c 61 e2 c4 76 aa 9f b4 11 79 45 46 ee 1d a4 db ca 12 5d ee 21 45 73 a8 a2 06 99 42 51 cc 35 1f 7e ad 37 a5 69 98 9d df b2 58 c2 d4 83 48 6a a4 7c d7 8d 68
+handle
+axis 0 -3727
+axis 1 -27628
+axis 2 -11180
+axis 3 -900
+hat 0 0
+button 0 0
+button 1 1
+button 11 1
+button 2 1
+button 3 0
+button 14 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 1
+button 7 1
+button 8 1
+button 15 1
+capsense 0 1
+capsense 1 1
+button 12 0
+button 13 0
+axis 5 9894
+axis 4 -32254
+sensor Gyro 133328000 41bf1a78 c1d9c7f9 41841350
+sensor Accel 133328000 422c46f5 c2946830 c238cdbb
+power OnBattery 140
+ticks 478025 19273
+end
+read 00 bb e6 c7 85 ea 0c 3f f6 87 6b bb 66 f7 39 76 dc 84 db 91 1e 23 40 f0 ee 40 25 73 9e 36 d6 cf 6d 8a c5 2a 40 eb cc 79 2c ea 42 9a 4a 79 bf 30 66 25 af 42 6d 13 99 92 95 bc 2d bf 4a 68 0f 1a
+handle
+axis 0 15291
+axis 1 26342
+axis 2 18375
+axis 3 1413
+axis 5 30454
+axis 4 1927
+sensor Gyro 141661000 42098dbd 4019c410 c2040e49
+sensor Accel 141661000 c11a746a c1ac30e4 c28704c4
+ticks 506731 47979
+end
+read 00 6b 66 48 e9 22 23 9c 8c ad 11 31 42 6a a1 ca a0 34 73 6b b7 60 a4 b4 43 74 da 00 96 a5 11 41 47 17 22 99 99 d3 18 b9 ad 87 33 fa 68 01 b8 3d 22 6a 7e 83 13 42 39 4b 7e 1f 85 af 9b 25 b2 3d
+handle
+axis 0 -5269
+axis 1 -6554
+axis 2 -14264
+axis 3 27113
+hat 0 2
+button 0 0
+button 1 1
+button 11 0
+button 2 0
+button 3 1
+button 14 1
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 1
+button 15 1
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 3212
+axis 4 11693
+sensor Gyro 149994000 c16b2028 c1ed61a9 416e7a08
+sensor Accel 149994000 c238c179 c26d1cb6 4283b6f1
+power OnBattery 30
+ticks 536849 12561
+end
+read 00 44 52 96 68 35 83 c9 28 32 fd 6d d2 78 da 80 83 7d 29 03 9a f1 31 51 df 77 85 43 70 20 cc 06 6f ab 4d b7 6d 7f 3d c3 95 64 c8 01 99 05 e1 8c 5c 26 ca 62 64 a5 62 be fe 32 32 35 2e ce 36 92
+handle
+axis 0 -15292
+axis 1 -11694
+axis 2 5782
+axis 3 -6040
+hat 0 12
+button 0 1
+button 1 1
+button 11 0
+button 2 0
+button 3 1
+button 14 1
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 8 0
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 1
+axis 5 -22488
+axis 4 -19918
+sensor Gyro 158327000 c20c32a9 c206f51c 420e07cf
+sensor Accel 158327000 42470dce 410d3350 3ff7eca4
+power Charging 150
+ticks 552445 28157
+end
+read 00 05 6b 72 c1 ea 1c a0 8c d7 ed 2e d4 e1 a4 58 45 1d bb 18 89 96 a6 89 72 09 e4 fc ed 67 c8 dc a7 08 04 42 7c af fa 57 a4 41 c3 6d 9c 45 fb dc d6 1b 53 9e 20 fc d4 aa d4 b5 f3 11 c5 22 5a d9
+handle
+axis 0 -31483
+axis 1 -5269
+axis 2 -3470
+axis 3 16833
+hat 0 0
+button 0 0
+button 1 1
+button 11 1
+button 2 1
+button 3 0
+button 14 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 8 0
+button 15 0
+capsense 0 0
+capsense 1 1
+button 12 0
+button 13 1
+axis 5 3212
+axis 4 22487
+sensor Gyro 166660000 c102c554 4106d1ec c1c60612
+sensor Accel 166660000 c291143c 42814838 417285e7
+power Charging 20
+ticks 601837 12013
+end
+read 00 6d 71 9c b6 ea 1c a0 76 5b a2 35 09 67 be 11 a6 d6 ea 6c 41 0e c4 1a 72 ec b8 eb cd 39 c4 83 ad ec 08 fa 86 22 10 34 9a de e2 ff 33 80 c6 ef 4e 07 d8 f8 06 06 4e d0 c2 67 8a 02 1e e3 df d2
+handle
+axis 0 -4755
+axis 1 -3727
+axis 2 7324
+axis 3 14006
+axis 5 -2442
+axis 4 -9381
+sensor Gyro 174993000 4138c5a8 c1e62e91 c09e87d8
+sensor Accel 174993000 41833d95 c10bc877 428582a1
+ticks 603554 13730
+end
+read 00 3d 23 d4 05 41 f9 4b a7 80 db 42 31 c8 ea 6c 65 65 75 bd 85 1b 4b c4 7d de c1 cf cf 57 82 bd 42 18 19 a1 4a 99 3f 1c 36 fa e6 77 1c 77 02 83 84 aa 1a 30 d7 84 91 ef 86 0a b5 c9 fa cf 85 3c
+handle
+axis 0 -17091
+axis 1 -23773
+axis 2 21716
+axis 3 -31483
+hat 0 3
+button 0 0
+button 1 0
+button 11 1
+button 2 0
+button 3 1
+button 14 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 8 0
+button 15 1
+capsense 0 0
+capsense 1 0
+button 12 1
+button 13 0
+axis 5 10151
+axis 4 128
+sensor Gyro 183326000 c1e28443 41795e24 c1f350d2
+sensor Accel 183326000 c21261a9 c186efed c2232412
+power Charging 130
+ticks 606939 17115
+end
+read 00 34 42 d9 6e 62 bc 9f df 04 59 15 0b c5 e6 29 43 8d 1e cb 13 7b fa 49 74 a1 be 69 b4 81 c0 48 26 4b f7 f5 89 d4 47 cd 39 56 8e 94 18 ea 6e 58 3a c6 d8 06 53 36 5d c9 e0 5b 35 26 18 a7 0b d8
+handle
+axis 0 -19404
+axis 1 -15806
+axis 2 23001
+axis 3 -4498
+hat 0 2
+button 0 0
+button 1 1
+button 11 1
+button 2 0
+button 3 0
+button 14 0
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 7 1
+button 8 1
+button 15 1
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 24543
+axis 4 -31740
+sensor Gyro 191659000 42002b05 4183b7b8 c13b32ba
+sensor Accel 191659000 42355d96 c296de44 c201a69c
+power Charging 40
+ticks 660825 5465
+end
+read 00 14 8e 6d b3 27 b8 9d dd a8 dc 6d 59 1e 72 08 00 0c a3 58 ac ee 93 67 62 f2 70 79 3c 77 3f e5 18 47 61 b7 03 93 e8 07 63 b2 9c 18 e6 99 cb 30 2e 19 d4 39 39 dc 72 1c 92 1d c9 d9 39 2a 32 66
+handle
+axis 0 -27628
+axis 1 3726
+axis 2 -4755
+axis 3 13235
+hat 0 9
+button 0 0
+button 1 1
+button 11 0
+button 2 0
+button 3 0
+button 14 0
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 8 1
+button 15 1
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 24029
+axis 4 10408
+sensor Gyro 199992000 c0566f30 c1079686 c016e750
+sensor Accel 199992000 427dedd5 4129ee4d 42594ead
+power OnBattery 20
+ticks 683484 28124
+end
+read 00 9b c7 4e 92 27 b8 9d 62 2c 24 0b d9 93 50 c8 5c a4 c5 22 10 36 d4 df 62 94 97 be 27 f8 be 54 da ca 18 a7 77 95 e1 8c 73 cd ce c1 48 43 d9 c9 21 64 cc 8b 4a 35 8f a9 5a 0f 33 a1 1e 1a ba a6
+handle
+axis 0 7067
+axis 1 18375
+axis 2 -12722
+axis 3 4754
+axis 5 -7582
+axis 4 -21460
+sensor Gyro 208325000 41ccbc10 41f19f6a 4178d3a0
+sensor Accel 208325000 c19dbfc9 c2048b02 41aa7c7f
+ticks 723748 2852
+end
+read 00 8a ac 3c cc 9c 5b 96 2e 4f f1 af 4b e3 3e 2a 16 12 43 ea ff 11 7d 71 23 45 f3 fa 35 c6 ff 55 2a 94 dc 85 a7 9b f3 1a 2b 69 e5 4f fc a9 57 e4 d3 67 81 ba 46 02 76 30 f9 f0 31 3f 84 35 63 58
+handle
+axis 0 2698
+axis 1 11436
+axis 2 -17348
+axis 3 19660
+hat 0 0
+button 0 1
+button 1 0
+button 11 0
+button 2 1
+button 3 1
+button 14 1
+button 9 0
+button 10 1
+button 4 1
+button 6 0
+button 5 0
+button 7 1
+button 8 1
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 1
+axis 5 -20946
+axis 4 -12465
+sensor Gyro 216658000 c0a19a3c 41004664 c13cbbea
+sensor Accel 216658000 428b1e13 c1307b3d c1552e02
+power OnBattery 30
+ticks 765937 45041
+end
+read 00 a1 fe f9 20 cc 81 11 01 d2 02 19 71 cf fd ee ef 19 df 70 38 40 50 dd 75 c6 44 eb 25 9f c0 a7 c8 67 6c 10 51 65 de 72 49 44 a0 84 c3 8b 07 41 03 e1 b3 86 ed 03 e5 70 2f 81 84 73 2e 3c ed 3b
+handle
+axis 0 8609
+axis 1 32510
+axis 2 31225
+axis 3 -24544
+hat 0 0
+button 0 0
+button 1 0
+button 11 1
+button 2 1
+button 3 1
+button 14 0
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 8 0
+button 15 0
+capsense 0 1
+capsense 1 0
+button 12 0
+button 13 0
+axis 5 -32511
+axis 4 21202
+sensor Gyro 224991000 c0e7bb1c 4158f954 409809b8
+sensor Accel 224991000 c1aa1587 c21d7155 428a5c65
+power Charging 50
+ticks 792834 6402
+end
+read 00 9f 7d 43 50 a0 e0 36 9b 75 18 08 09 17 4d d4 a7 77 57 74 7c 83 0b e2 be d7 49 52 b8 43 c2 0b 76 01 8a 09 36 b3 61 54 8e 1e c1 1e 5c a9 a7 9f 72 94 21 b1 ff f8 9c 2a bc 82 eb fd da ee 17 10
+handle
+axis 0 8095
+axis 1 -643
+axis 2 -15549
+axis 3 -12208
+hat 0 1
+button 0 0
+button 1 1
+button 11 0
+button 2 1
+button 3 0
+button 14 0
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 0
+button 7 1
+button 8 1
+button 15 0
+capsense 0 1
+capsense 1 1
+button 12 0
+button 13 0
+axis 5 7067
+axis 4 -2699
+sensor Gyro 233324000 c205a71e c0cdd470 41434300
+sensor Accel 233324000 c192e39a 4298a299 428e9cef
+power Charging 140
+ticks 854040 2072
+end
+read 00 45 e9 db 1a a0 e0 36 bb f8 f3 3d d4 7a ed 9b fd ee 6b b5 8b 99 6f 41 be 38 c3 ee ad 74 c4 41 f2 23 f4 30 15 45 3d 7f b9 b9 06 de 89 c2 f8 bf e0 3e 8d f9 3b a0 5d 1e 5f b2 27 9d 49 0c a2 96
+handle
+axis 0 -15035
+axis 1 27113
+axis 2 23515
+axis 3 -26086
+axis 5 15291
+axis 4 30968
+sensor Gyro 241657000 409809b8 c2093343 41df9362
+sensor Accel 241657000 42206bcd 427b30a8 c236d998
+ticks 867827 15859
+end
+endcase

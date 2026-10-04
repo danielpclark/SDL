@@ -1,0 +1,2232 @@
+# Expected behaviour of upstream's SDL_hidapi_steam.c, recorded by running it
+# (with stubs for the SDL and HID functions it uses) on these inputs.
+# Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+# This is an altered (translated) version of the original software; see LICENSE.txt.
+case wired 0 0 1
+read 01 00 01 3c 65 00 00 00 ff 3e 05 0a 29 48 47 99 cf 3f 6e bd e9 3a ed bb 62 44 88 39 76 f3 2b de f0 02 c1 b7 fb 00 72 bf c9 ba 9d 30 e5 6a 94 8c 59 9c 1a 6a 7f e4 9d 01 a8 41 34 76 6e 4f 57 e5
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 14
+axis 4 -29518
+axis 5 -19438
+axis 0 16335
+axis 1 17041
+axis 2 19077
+axis 3 12928
+result 1
+end
+read 01 00 01 3c 66 00 00 00 d9 30 68 31 34 39 c5 8c 49 4d c0 99 08 f6 83 05 1c 93 0e 28 ee 41 26 68 a9 18 85 2c 98 5c 9a e2 3c 68 04 cd 30 5a cd 8f be 7f 66 7a 3d 7d 66 97 30 43 03 72 20 b1 4c ab
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 0
+hat 0 0
+axis 4 -16836
+axis 5 -15862
+axis 0 0
+axis 1 -1
+axis 2 -2830
+axis 3 -703
+touchpad 0 0 1 3f341800 3f72dc00 3f000000
+result 1
+end
+read 01 00 01 3c 67 00 00 00 35 06 ac 3e 97 0d 1f 8d 8e 57 76 e9 c2 20 f1 ae c8 3f 40 d1 a4 05 f0 ad 56 97 79 31 b3 a0 84 6a 01 b8 dd d8 55 92 36 6d ad e8 a1 64 cd 28 cb c8 da db f9 bf b8 da c4 9b
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 10
+axis 4 -12610
+axis 5 16006
+axis 0 0
+axis 1 -1
+axis 2 13471
+axis 3 17872
+touchpad 0 0 1 3f52a400 3f288600 3f000000
+result 1
+end
+read 01 00 01 3c 68 00 00 00 23 2f 84 9f 8f cc de 91 e4 f2 8f df ca 24 55 ad 65 e8 3b 55 c8 74 82 52 33 ab 57 4e 78 4d 85 28 10 e1 fb c7 fc 5d 02 a1 5d 9b 3a 09 d2 7d 59 3d 95 da a4 2b 54 2f 29 07
+read 01 00 01 3c 69 00 00 00 33 2f 84 9f 8f cc de 91 be ef 32 16 c9 7b 8a a2 2a 1c 07 fa 2e 96 89 07 12 19 95 9c 64 6f 14 87 19 eb d1 5a 6d 12 b0 f6 7e 06 af dc a7 b6 9e 34 9d c8 9e 99 4c 41 5b aa
+read 01 00 04 3c 6a 00 00 00 00 00 00 00 00 00 00 00 15 f8 e9 35 63 c8 4f 4b 65 f3 a0 e0 a6 c8 57 48 5f c2 56 84 d9 b8 a3 4c 87 c9 e3 de df 05 97 89 fc dc 18 f8 f5 47 53 3f fb b8 45 a7 35 c2 35 3a
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 15
+axis 4 18608
+axis 5 13404
+axis 0 -3356
+axis 1 8304
+axis 2 14574
+axis 3 18003
+touchpad 0 0 1 3f52a400 3f288600 3f000000
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 15
+axis 4 18608
+axis 5 13404
+axis 0 -4162
+axis 1 -5683
+axis 2 32767
+axis 3 14908
+touchpad 0 0 1 3f52a400 3f288600 3f000000
+result 1
+end
+read 01 00 07 3c 6b 00 00 00 5b 88 27 0d 14 e7 56 50 d6 2d c5 c7 f0 c8 ad d6 01 65 5c c4 99 e8 f2 35 1b 39 f0 13 13 f7 75 18 98 dc 34 1c 7d ee 38 1f 6e 6b 57 16 cf 72 77 76 54 71 84 81 60 52 2d 53
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 4
+axis 4 -28542
+axis 5 -26266
+axis 0 11734
+axis 1 14394
+axis 2 -10877
+axis 3 13865
+touchpad 0 0 0 3f52a400 3f288600 00000000
+result 1
+end
+read 01 00 01 3c 6c 00 00 00 65 61 34 62 0c 8d 7b 3e c4 65 1d 62 be c0 03 95 fd b9 b8 c9 a8 0a 64 12 c7 c4 0a ff 6c 0c 95 b7 a1 95 a6 dc 10 e1 1f 1c 75 37 6f 97 c4 63 9c f4 19 30 11 41 64 a6 2d 8e
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 1
+axis 4 -904
+axis 5 -28868
+axis 0 26052
+axis 1 -25118
+axis 2 -7553
+axis 3 29646
+touchpad 1 0 1 3ec4fe00 3f73cf00 3f800000
+result 1
+end
+read 01 00 01 3c 6d 00 00 00 d0 04 15 49 10 00 20 00 d2 fe 8f c1 d7 18 2d 2a 5d 88 80 3a 81 90 5e 96 19 bf 16 1a 5d 33 f5 71 53 8e 95 76 fc b9 e9 4e 40 5b 08 42 9a 18 bc 5d 84 8a ca c9 a0 00 ff ea
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 8
+axis 4 -9034
+axis 5 -27566
+axis 0 -302
+axis 1 15984
+axis 2 4347
+axis 3 -13075
+touchpad 1 0 1 3f10fb00 3e99dc00 3f800000
+result 1
+end
+read 01 00 01 3c 6e 00 00 00 ab f9 65 38 21 5e cd dd 5d 40 3e ef ed 84 3d cb 95 95 28 4a 19 2c b8 14 cc 48 b4 c0 bc ee fa ee 9a a2 50 24 70 a1 e8 69 01 e3 b5 a3 ff d3 70 b2 ef cc 69 48 dd 53 0e 8f
+read 01 00 01 3c 6f 00 00 00 bb f9 65 38 21 5e cd dd 88 ab 06 de 6f a7 f0 15 d3 d6 9a 2b 04 8d 27 c5 a0 27 8b 33 c1 c4 91 94 e7 c4 a8 a8 a4 02 71 73 0a d0 09 97 d5 b7 16 6f 57 eb 93 eb 27 90 5c 2e
+read 01 00 04 3c 70 00 00 00 00 00 00 00 00 00 00 00 9e 8a 96 c7 c8 ba 38 36 94 43 2c 7f dd 15 03 43 8f e9 dc 91 ce f9 6c 00 e7 82 d1 8e f7 fa 16 3b 5d 11 85 65 e1 6a b0 e2 a1 16 3e df bf d5 76 7b
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 5
+axis 4 -14560
+axis 5 -22040
+axis 0 16477
+axis 1 4289
+axis 2 -26937
+axis 3 21200
+touchpad 1 0 0 3f10fb00 3e99dc00 3f000000
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 5
+axis 4 -14560
+axis 5 -22040
+axis 0 -21624
+axis 1 8697
+axis 2 -23353
+axis 3 442
+result 1
+end
+read 01 00 01 3c 71 00 00 00 cc 0b 0d 23 f3 84 b0 ac 97 9c a0 04 65 86 0c 4f 58 4f 65 97 a2 4e 4c f1 59 9c 8a 96 29 4b 98 81 bb 66 ea cc e4 ad ff cb 8e 0d 2a e5 67 e1 1e 36 4b eb 3b e7 72 10 9a 48
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 7
+axis 4 -21388
+axis 5 32766
+axis 0 0
+axis 1 -1
+axis 2 -32768
+axis 3 -11490
+touchpad 0 0 1 3e145400 3ebbcc00 3f000000
+result 1
+end
+read 01 00 07 3c 72 00 00 00 00 00 00 00 00 00 00 00 bd 18 e7 08 fc 83 f1 28 00 d1 95 7f fa b3 b7 04 e4 8f f8 8d 9e 3f c3 e9 de 8f 17 bd dd 75 12 1f c5 0e 41 f4 d8 5d a9 0a 60 c2 94 f4 5a 3c 1d a9
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 0
+button 8 0
+hat 0 0
+axis 4 -32768
+axis 5 -32768
+axis 0 6333
+axis 1 -2280
+axis 2 -32768
+axis 3 -1907
+touchpad 0 0 0 3e145400 3ebbcc00 00000000
+result 1
+end
+read 01 00 01 3c 73 00 00 00 5e 7b c1 5b 12 0d 19 67 e2 b0 0a 29 f3 33 85 98 4b 6f 68 cf e2 bc fe 50 5e c4 27 e2 51 12 f6 f9 35 60 0b e4 29 9d b2 b9 69 c0 b8 00 8f 4f 11 22 8c ae 2b 90 65 28 10 b2
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 1
+button 8 0
+hat 0 7
+axis 4 -3180
+axis 5 -26916
+axis 0 -20254
+axis 1 -10507
+axis 2 19702
+axis 3 22145
+touchpad 0 0 1 3f03e800 3ef83000 3f000000
+result 1
+end
+read 01 00 01 3c 74 00 00 00 ad bf 26 96 c6 b4 46 55 5b 0f 1d 36 54 aa c8 a5 37 f2 e2 36 34 e0 7a a8 20 58 ec 57 35 36 ff 25 8c 1c be 26 5b fe 17 0e ee 6a 35 5a 67 98 9d 41 35 36 0a 59 55 f0 09 0a
+read 01 00 01 3c 75 00 00 00 bd bf 26 96 c6 b4 46 55 7f 97 6b 94 56 4c 07 9d dd 61 af 98 e0 3a 6c 92 8f e8 57 f1 41 33 b2 63 eb 69 c5 8a 5e e9 7a 64 44 6f b8 7c d8 1d 80 d2 68 4d c8 8b 8c 18 1a 59
+read 01 00 04 3c 76 00 00 00 00 00 00 00 00 00 00 00 76 c8 13 a9 a7 63 7d f8 0f d1 4e ca 13 e1 8c 76 41 d1 0c 71 0d 55 8b 35 45 67 8f ed 59 d2 fb e5 4d 7c 75 b4 7a 76 78 26 08 c5 38 ec 2b ee 39 03
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 15
+axis 4 16004
+axis 5 31610
+axis 0 3931
+axis 1 -13854
+axis 2 -15207
+axis 3 27984
+touchpad 0 0 0 3f03e800 3ef83000 00000000
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 15
+axis 4 16004
+axis 5 31610
+axis 0 -26753
+axis 1 27540
+axis 2 25433
+axis 3 19414
+result 1
+end
+read 01 00 01 3c 76 00 00 00 20 43 34 e4 e6 f0 92 70 8c 01 7e 8a 8e 95 99 16 f8 d3 ca 99 58 5c 4a 59 5c d6 da 0e 0c 77 5a 51 ca 52 2b c3 0b 64 46 fd d3 5e 19 3b f2 30 25 c7 00 5a 59 27 19 f1 2c 06
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 0
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 3
+axis 4 32766
+axis 5 32766
+axis 0 396
+axis 1 30081
+axis 2 -26818
+axis 3 463
+touchpad 1 0 1 3db9f000 3f01d000 3f800000
+result 1
+end
+read 01 00 01 3c 77 00 00 00 59 73 74 e3 16 4c 29 7b 72 ae 52 27 e3 08 af 90 ed 75 66 af 37 98 57 68 7b b1 9c 69 4c a7 aa 17 8a d7 2c 39 a0 9f 9f 67 84 a9 ae 30 6c f7 4b 0e 51 b3 91 0b 25 b4 5d 2f
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 3
+axis 4 32766
+axis 5 -25616
+axis 0 -20878
+axis 1 -10067
+axis 2 10573
+axis 3 25936
+touchpad 1 0 1 3f294d00 3f655100 3f800000
+result 1
+end
+read 01 00 07 3c 78 00 00 00 d3 d0 24 b0 fa e4 a0 d9 bb 05 f5 8e 99 f7 b2 e9 04 59 86 65 fd ff 64 33 ec f1 31 a6 f7 fb 67 a1 6c f0 6c c1 9f c2 b0 49 64 43 89 d1 4b b9 ce ae 99 24 35 20 0b 4e 6d 3e
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 0
+button 7 0
+button 12 1
+button 11 0
+button 8 1
+hat 0 0
+axis 4 24458
+axis 5 32766
+axis 0 1467
+axis 1 28938
+axis 2 -599
+axis 3 6071
+touchpad 1 0 0 3f294d00 3f655100 3f000000
+result 1
+end
+read 01 00 01 3c 79 00 00 00 97 fa 28 2d ff 7f 00 80 ff 7f 00 80 2b 33 12 bb 6c e8 42 b4 03 3d 36 77 f1 55 98 71 12 1b 77 54 e5 22 f7 49 1b 3d b8 f4 e1 de 07 2b ed 2f c7 76 4a f2 1d 46 e4 19 de f6
+read 01 00 01 3c 7a 00 00 00 87 fa 28 2d 7d d4 d4 b1 82 c8 63 ad ec d8 74 b5 08 10 cc 9a 78 e0 e6 66 6a 27 75 a4 a6 4c 57 df 57 1d 3b de 99 6a 0c a2 c6 60 24 1c 80 a7 32 ae 7e 3b e7 68 18 0b 63 ff
+read 01 00 04 3c 7b 00 00 00 00 00 00 00 00 00 00 00 84 9f e4 2d 02 13 19 9b 85 6b 05 68 1a 12 70 f9 1d a3 1a f5 3f 02 ab c5 59 39 5d cc f4 14 6b 63 94 7d 39 9b c9 95 40 b2 f3 96 bf 51 d8 6b 23 8b
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 6
+axis 4 -18138
+axis 5 32766
+axis 0 0
+axis 1 -1
+axis 2 17219
+axis 3 13653
+touchpad 0 0 1 3f5e6900 3f800000 3f000000
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 6
+axis 4 -18138
+axis 5 7874
+axis 0 0
+axis 1 -1
+axis 2 -4723
+axis 3 21021
+touchpad 0 0 1 3e63b400 3f3d8700 3f000000
+result 1
+end
+read 01 00 01 3c 7c 00 00 00 e7 0c a9 96 49 9b fb 47 a2 b6 ad dd a9 90 95 ef c7 88 45 27 9d fe 31 c8 ad 38 1f d1 ec fd 95 f9 0b f3 03 6b 85 b9 b1 41 69 c3 67 c2 e5 f9 de 5c 96 0f e9 60 91 a2 63 80
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 1
+button 8 0
+hat 0 12
+axis 4 16004
+axis 5 -9034
+axis 0 0
+axis 1 -1
+axis 2 -26443
+axis 3 11435
+touchpad 0 0 1 3e50a000 3f0a4200 3f000000
+result 1
+end
+read 01 00 01 3c 7d 00 00 00 31 18 c5 08 9f 34 f2 df 2b 98 b7 f8 7f 00 aa a6 11 d8 3f ae 41 e3 4a 22 eb 83 45 4a 77 d2 44 1d 9f 82 9d 7b ff 75 53 30 5e 1b 47 a9 be 8f 1d 74 25 71 ef 79 2a 81 b4 fa
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 0
+button 5 0
+button 7 1
+button 12 0
+button 11 1
+button 8 1
+hat 0 4
+axis 4 -30168
+axis 5 18608
+axis 0 -26581
+axis 1 1864
+axis 2 6041
+axis 3 22056
+touchpad 0 0 1 3e50a000 3f0a4200 3f000000
+result 1
+end
+read 01 00 01 3c 7e 00 00 00 3e 00 66 4c c0 c7 17 53 46 da 7e 22 b2 87 49 9f f4 ec bd f9 5e a1 ba 04 56 92 21 3c e5 9e 43 c8 ff f1 0b 32 90 22 ea e4 4b 0b 85 62 31 6c 21 49 e3 3f ca 0b a9 d9 47 67
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 0
+axis 4 -8058
+axis 5 29660
+axis 0 -9658
+axis 1 -8831
+axis 2 -23340
+axis 3 31885
+touchpad 0 0 0 3e50a000 3f0a4200 00000000
+result 1
+end
+read 01 00 07 3c 7f 00 00 00 3e c5 35 ab 61 60 25 a9 e5 ef 2d 38 f9 e6 d3 b6 02 b4 b5 c4 59 35 6e e4 38 51 f5 bb c6 1a 89 8f 61 a8 5b 82 76 b4 f8 8c d1 f7 7d 3a a6 40 79 28 5e 58 a0 3f 23 96 35 af
+read 01 00 01 3c 80 00 00 00 2e c5 35 ab 61 60 25 a9 4d 53 c7 09 60 4f f5 47 a8 17 d4 19 fa 94 43 cb fa c7 03 22 38 bc 37 28 06 2f 9a b7 1b fb 82 c7 e9 46 98 79 be 6e 54 df 9c b2 3b 91 d9 a0 d8 f1
+read 01 00 04 3c 81 00 00 00 00 00 00 00 00 00 00 00 c3 ef 65 4e d1 ed 7f 00 2d 08 2c e5 ac 74 a6 75 ae 3f cc 61 3c 41 9a 5f e6 c1 6a b5 5e e8 ec 87 d4 e6 e6 e0 11 e6 ac 81 53 b2 5f 6d eb 26 e5 30
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 0
+button 12 1
+button 11 1
+button 8 1
+hat 0 9
+axis 4 22508
+axis 5 -1230
+axis 0 -4123
+axis 1 -14382
+axis 2 -340
+axis 3 18751
+touchpad 1 0 1 3efd5800 3f494000 3f800000
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 0
+button 12 1
+button 11 1
+button 8 1
+hat 0 9
+axis 4 22508
+axis 5 -1230
+axis 0 21325
+axis 1 -2504
+axis 2 15859
+axis 3 -24053
+touchpad 1 0 1 3f3df300 3e083000 3f800000
+result 1
+end
+read 01 00 01 3c 82 00 00 00 97 56 34 f3 a0 7f 1e 41 05 48 8b 7f 0c cf cd f9 2b 1f d4 46 e5 d9 79 c7 08 d3 b1 30 40 7f 8a cf 7a 1d e4 9c fa a0 f0 04 3b 61 6a 75 8a 86 96 a8 61 31 fc b2 84 68 e3 ca
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 10
+axis 4 32766
+axis 5 19254
+axis 0 18437
+axis 1 -32652
+axis 2 -10694
+axis 3 3775
+touchpad 1 0 1 3eac7400 3f0ec000 3f800000
+result 1
+end
+read 01 00 01 3c 83 00 00 00 dd c7 04 d8 18 e7 38 c2 31 24 dc 90 f4 44 93 21 2b 23 30 e7 80 82 1c 5f 99 aa 52 6c 39 5e e0 27 15 7f 1d 69 77 82 ab 19 94 92 2b 36 ae 84 c3 a3 ea 7f 51 b6 ef 67 6c 7f
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 0
+button 12 1
+button 11 0
+button 8 1
+hat 0 11
+axis 4 32766
+axis 5 -24966
+axis 0 9265
+axis 1 28451
+axis 2 14825
+axis 3 -12871
+touchpad 1 0 0 3eac7400 3f0ec000 3f000000
+result 1
+end
+read 01 00 01 3c 84 00 00 00 42 0e 0d d8 64 19 64 31 10 72 a7 9c dd af 61 f9 f2 4f ef 11 8d de 3b ab a1 cc 38 0b 71 d8 e3 43 f2 3a fb 3f de 93 7f 8e 98 95 ec f0 c3 72 33 a5 a0 05 7c 70 2b c3 9d 6d
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 14
+axis 4 32766
+axis 5 -254
+axis 0 0
+axis 1 -1
+axis 2 -19377
+axis 3 6945
+touchpad 0 0 1 3f585e00 3f799300 3f000000
+result 1
+end
+read 01 00 01 3c 85 00 00 00 f5 60 c9 98 c0 41 59 19 45 ca 7d 4c b7 e1 c2 50 9e 07 7b 19 3a 48 ff e5 39 e9 2a 8c d4 54 d7 49 a8 ca 1e 48 54 c7 4e f3 d8 34 a9 fc a8 4f e2 2a 93 5a 57 e5 57 07 0e 80
+read 01 00 01 3c 86 00 00 00 e5 60 c9 98 c0 41 59 19 51 dc ba da 77 26 35 d5 cd f1 a5 54 90 94 bf c0 2a 5e 79 de 4f 88 8b 94 d9 de a9 7c 64 27 7d 2a a9 59 66 3e 9b 7e f3 28 43 64 1e be 5c 07 48 7f
+read 01 00 04 3c 87 00 00 00 00 00 00 00 00 00 00 00 d7 44 66 7e 8d 6e 54 fb ee 4a 78 7b 34 7a e2 94 84 5a a8 f5 10 f0 5b 31 ed 90 4b 4d b1 52 7f 0a d4 35 73 f4 c4 10 8f 27 c5 3c 6c e4 8f 03 c6 d7
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 1
+button 8 0
+hat 0 0
+axis 4 16654
+axis 5 29660
+axis 0 0
+axis 1 -1
+axis 2 -12839
+axis 3 -17963
+touchpad 0 0 1 3ec79c00 3e113c00 3f000000
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 1
+button 8 0
+hat 0 0
+axis 4 16654
+axis 5 29660
+axis 0 0
+axis 1 -1
+axis 2 12346
+axis 3 8032
+touchpad 0 0 1 3eaf9600 3f16dc00 3f000000
+result 1
+end
+endcase
+case wired_sensors 0 1 1
+read 01 00 01 3c 88 00 00 00 a5 c7 25 26 77 f2 d9 39 c1 d2 b2 50 e5 bb 2a 21 09 9d 76 90 d7 49 06 de a2 a2 c5 7a fd 08 16 53 19 87 8f de e2 c4 78 e6 d9 a3 01 17 af b9 47 48 a7 75 05 8c a9 0d 1a f7
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 0
+button 12 1
+button 11 1
+button 8 1
+hat 0 11
+axis 4 -20414
+axis 5 5924
+axis 0 -11583
+axis 1 -20659
+axis 2 -19038
+axis 3 -3689
+sensor Gyro 9000000 4205ebb9 41b543f1 401ce007
+sensor Accel 9000000 413507c7 c164e7a3 40a6991f
+result 1
+end
+read 01 00 01 3c 89 00 00 00 25 2a 2d 30 ad 52 84 bb 77 e7 a4 70 64 56 4d 5c b8 d2 d6 c5 05 08 00 c5 38 11 7b be b6 5b 6c 26 3e 59 9f 16 7e ea 8c 92 72 8a 0b 96 80 3b d7 e5 55 31 c4 91 7d 40 c0 49
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 6
+axis 4 -17162
+axis 5 23160
+axis 0 0
+axis 1 -1
+axis 2 15246
+axis 3 -28548
+touchpad 0 0 1 3f095c00 3d0f1000 3f000000
+sensor Gyro 18000000 c18ef103 4127a5a6 41c8150d
+sensor Accel 18000000 3f9d4a1b 4028dbb7 4110a5e9
+result 1
+end
+read 01 00 01 3c 8a 00 00 00 c4 06 89 65 50 d8 36 b3 f1 e0 40 ec 8c 13 fd 1f f0 91 f7 52 00 95 2b a7 b5 1d 04 a3 ba 56 54 75 c6 c6 11 06 bd 3c d0 c4 86 77 01 2e aa 99 f0 20 b2 4a 77 dc 3d ab 84 dc
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 1
+button 8 0
+hat 0 10
+axis 4 72
+axis 5 -6758
+axis 0 0
+axis 1 -1
+axis 2 2714
+axis 3 -9206
+touchpad 0 0 1 3ec19800 3f072100 3f000000
+sensor Gyro 27000000 c1cadc46 41fff863 41bd3540
+sensor Accel 27000000 c18329f8 4091a9ca 4159c942
+result 1
+end
+read 01 00 01 3c 8b 00 00 00 e3 01 c4 5a cd 1e 56 9b 02 c8 c3 5b 7f 32 77 29 fe b1 f1 7c 24 bd 61 b0 65 e9 d6 9a 20 cf c4 54 79 bc 36 c9 f6 1c d3 ff d9 a4 92 27 3f 41 3d 66 fd c4 a7 61 36 4a ac 8b
+read 01 00 01 3c 8c 00 00 00 f3 01 c4 5a cd 1e 56 9b 2e 76 9e 99 f5 f1 0e 6b d8 d3 26 62 7b de 71 04 0d b2 1c 13 69 b5 74 55 ee c0 23 20 1f 8a 2a a7 f9 d5 9e 07 18 5a 22 11 88 75 28 d5 6c 91 e6 f3
+read 01 00 04 3c 8d 00 00 00 00 00 00 00 00 00 00 00 33 5a 49 cb 20 94 b1 2e 05 44 63 14 80 7a 45 30 7f e2 a1 30 58 ae a0 86 a5 42 88 f3 e5 a3 b5 d8 d4 9d 58 3c 86 b6 f3 9c 45 d5 90 76 30 b2 c4 94
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 1
+axis 4 -3506
+axis 5 32766
+axis 0 -14334
+axis 1 -23492
+axis 2 9739
+axis 3 -13600
+touchpad 0 0 1 3ec19800 3f072100 3f000000
+sensor Gyro 36000000 c1dcb4ac 41b8ee0f c15541e6
+sensor Accel 36000000 c123eaa8 c05daf16 4143343d
+button 0 1
+button 1 1
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 1
+axis 4 -3506
+axis 5 32766
+axis 0 30254
+axis 1 26209
+axis 2 -10565
+axis 3 -25542
+touchpad 0 0 1 3ec19800 3f072100 3f000000
+sensor Gyro 45000000 40a6c2c1 41ba6e07 c1a2bad4
+sensor Accel 45000000 c0a45b6f c13f1aed bf2e38a5
+result 1
+end
+read 01 00 07 3c 8e 00 00 00 90 fd 67 19 f9 4e 10 4d 43 c3 67 53 f3 51 9d f6 00 39 26 b3 ac 7a 08 a8 5d 04 24 04 0a 26 34 52 28 bb 83 86 49 14 6f c9 f4 a4 a0 04 42 6e 06 2e 39 2f 94 56 e8 4b be 6f
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 13
+axis 4 -24640
+axis 5 32766
+axis 0 -15549
+axis 1 -21352
+axis 2 20886
+axis 3 -3109
+touchpad 0 0 0 3ec19800 3f072100 00000000
+sensor Gyro 54000000 00000000 00000000 00000000
+sensor Accel 54000000 00000000 00000000 00000000
+result 1
+end
+read 01 00 01 3c 8f 00 00 00 78 b3 55 cb 2c 5a c6 cc 77 6a 5a 26 d8 6b 7b d8 c4 b8 11 4c d4 66 d4 b6 f1 de a4 23 35 58 56 55 a2 18 3e 62 85 6b 81 0b a8 60 17 dd 3a 47 a2 09 7f eb f2 04 38 8f 55 df
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 3
+axis 4 32766
+axis 5 -18462
+axis 0 27255
+axis 1 -9819
+axis 2 30285
+axis 3 1625
+touchpad 1 0 1 3f764d00 3f065a00 3f800000
+sensor Gyro 63000000 411b82f6 41ba2c94 41c0701a
+sensor Accel 63000000 417c1991 c0a218d7 4133648b
+result 1
+end
+read 01 00 01 3c 90 00 00 00 d0 a9 15 64 10 00 20 00 42 04 db 6c 6d 0c 1f 3e fd 28 57 d2 d9 6c 03 27 8e b8 e6 4f b7 b4 4c c7 28 8c 1e 98 dd 6c a6 2e a5 ba 23 fb 8e 17 0c cb 0f 13 24 e6 f8 b2 43 e7
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 1
+button 11 1
+button 8 1
+hat 0 5
+axis 4 -254
+axis 5 -27566
+axis 0 1090
+axis 1 -27868
+axis 2 -43
+axis 3 -17185
+touchpad 1 0 1 3effaa00 3e738000 3f800000
+sensor Gyro 72000000 41ae4fb5 c1776a00 c1a43f2a
+sensor Accel 72000000 41856dca c12f28e8 c0bf4982
+result 1
+end
+read 01 00 01 3c 91 00 00 00 1a a3 44 5f b6 3a 5b 29 9f 22 5f 17 c0 6c 92 2c 29 3f b9 ca c3 a1 50 2d 6e d8 29 d8 f2 ed 3b 75 aa e2 30 70 ef b2 ac 51 45 0d 5f dd 48 d0 c9 ec 55 46 d0 09 f7 21 03 cc
+read 01 00 01 3c 92 00 00 00 0a a3 44 5f b6 3a 5b 29 99 8c 7c b1 a9 17 c1 22 33 6e 7a 93 6a f2 4d fd 3b 04 f8 5e 3a 89 21 9d 4e 21 da 22 1b 22 f5 32 32 56 0e 0b fb 79 51 c3 5e 71 0f e1 34 4b 05 b8
+read 01 00 04 3c 93 00 00 00 00 00 00 00 00 00 00 00 a9 25 6d 62 55 2f 51 c9 6c 05 e8 6a 6c 66 02 f6 4f cf 4d ea 75 02 17 67 50 38 e0 d2 d1 25 a7 2b 96 b0 f1 2e d0 6f 99 2c f6 e4 5b a6 2b 79 1f ae
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 3
+axis 4 -1880
+axis 5 26408
+axis 0 8863
+axis 1 -5984
+axis 2 23938
+axis 3 -18227
+touchpad 1 0 0 3effaa00 3e738000 3f000000
+sensor Gyro 81000000 c12dd589 41ffc1d9 c09d8e8f
+sensor Accel 81000000 c1670a5c c0c206af c0de2e92
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 3
+axis 4 -1880
+axis 5 26408
+axis 0 -29543
+axis 1 20099
+axis 2 3547
+axis 3 -10162
+sensor Gyro 90000000 41cf308f c1d7b409 c2018fcd
+sensor Accel 90000000 c0053b87 3f25f269 3ed3c329
+result 1
+end
+read 01 00 01 3c 94 00 00 00 70 3d 0d fe 89 5c 34 d5 93 c4 c2 0e 89 be 31 d9 6a fb e6 3c 63 16 de 93 71 e7 04 40 d3 7c 82 ff 30 d9 ca 07 88 70 63 e6 dd 5e 74 1a 9d 6b 11 6e d6 c0 49 1b 18 66 eb 9a
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 13
+axis 4 32766
+axis 5 11454
+axis 0 0
+axis 1 -1
+axis 2 -13616
+axis 3 13933
+touchpad 0 0 1 3e9ca800 3ebcec00 3f000000
+sensor Gyro 99000000 418ba912 be0971d7 42082980
+sensor Accel 99000000 405b89e9 c070d669 41848d76
+result 1
+end
+read 01 00 07 3c 95 00 00 00 00 00 00 00 00 00 00 00 4c 45 84 13 c3 85 35 e1 02 ed 04 2c df e7 45 6c c1 92 57 56 e3 3c 6c b2 d2 a1 19 fb 4a e1 9d b8 63 43 f1 9d 7a ac 94 60 e0 dd 13 5d 45 6f 5a e9
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 0
+button 11 0
+button 8 0
+hat 0 0
+axis 4 -32768
+axis 5 -32768
+axis 0 17740
+axis 1 -4997
+axis 2 -28186
+axis 3 15712
+touchpad 0 0 0 3e9ca800 3ebcec00 00000000
+sensor Gyro 108000000 00000000 00000000 00000000
+sensor Accel 108000000 3f4138be 412b6080 40a0f78b
+result 1
+end
+read 01 00 01 3c 96 00 00 00 90 bd e4 6a 7b c6 6b ae 0b a1 55 b6 25 b1 33 09 9a 59 db a1 95 77 50 96 6b 0b 09 f2 9a 81 4c d6 85 be 45 6e ed ec e9 96 2f 06 8d 49 40 22 45 ce 68 82 fd a1 c1 59 59 22
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 13
+axis 4 1696
+axis 5 7224
+axis 0 -24309
+axis 1 18858
+axis 2 -20108
+axis 3 2949
+touchpad 0 0 1 3f03e800 3ef83000 3f000000
+sensor Gyro 117000000 c073bb86 c135f6d7 c209e11a
+sensor Accel 117000000 4192965f 3fdff1ad 41818e17
+result 1
+end
+read 01 00 01 3c 97 00 00 00 6f 5d 46 00 9d 10 7d 63 b3 90 55 81 39 42 7f e9 7d 0a 06 54 58 7e e9 f1 48 70 d3 b5 ea b6 f3 0b 39 b6 9b 38 84 b4 9a 90 31 db 5a 5b 33 0c ba 84 4c 6a a9 07 04 a2 87 18
+read 01 00 01 3c 98 00 00 00 7f 5d 46 00 9d 10 7d 63 9b bb 85 45 e9 8f 01 8b 96 d5 b0 31 d9 54 50 72 4a c7 06 0f 63 b0 3e fe ba e3 46 d2 fc ce aa e9 a9 89 4d 57 91 a1 4c 95 12 a4 93 ea 0e 6c 3b 95
+read 01 00 04 3c 99 00 00 00 00 00 00 00 00 00 00 00 13 9b 2b ab 65 1b 94 3c 77 2e c8 49 dd c2 41 1a 4c 82 9f 3c 18 9b 8c 30 74 4c 50 d6 67 30 33 98 90 4b 96 57 9b d6 d0 15 7f cb c9 67 7d 2f 59 98
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 13
+axis 4 -32768
+axis 5 17956
+axis 0 -28493
+axis 1 32426
+axis 2 17866
+axis 3 1175
+touchpad 0 0 0 3f03e800 3ef83000 00000000
+sensor Gyro 126000000 c1a1d392 40508d9f c19f72e3
+sensor Accel 126000000 419ae049 4189a34b 400a2c96
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 13
+axis 4 -32768
+axis 5 17956
+axis 0 -17509
+axis 1 -17798
+axis 2 -19965
+axis 3 32767
+sensor Gyro 135000000 40831aaf bef56fdb c1adb072
+sensor Accel 135000000 41500490 c10b093d c18c20ba
+result 1
+end
+read 01 00 01 3c 99 00 00 00 d8 22 54 9d 55 a7 9f bd e1 d3 0e 5b 26 89 7b a8 0d 62 5e fb c8 37 9b 61 25 b2 77 06 87 9c f6 5f a8 e3 f4 19 10 6c 06 c4 54 9e 0e 3f 0f aa a0 e2 a2 9c 18 6e ab 23 77 b5
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 2
+axis 4 17956
+axis 5 -5132
+axis 0 -11295
+axis 1 -23311
+axis 2 -22590
+axis 3 28515
+touchpad 1 0 1 3e1f0800 3f6f6400 3f800000
+sensor Gyro 144000000 3fe1aa66 41d15ab3 c1d90403
+sensor Accel 144000000 4108c1be c13ee016 c16f4bb1
+result 1
+end
+read 01 00 01 3c 9a 00 00 00 46 20 14 09 06 f1 99 66 4e 27 03 0e 34 44 2c 51 8d d5 7c 20 1a d0 b3 fc af 0f 29 5e b1 23 ad 61 51 de 20 31 85 9f d1 33 cb 5b 98 f2 9d 70 b1 cc b3 2a 5e 61 fb 11 3b b7
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 0
+axis 4 -29842
+axis 5 -30818
+axis 0 10062
+axis 1 -3588
+axis 2 12486
+axis 3 -25591
+touchpad 1 0 1 3f30c600 3de05000 3f800000
+sensor Gyro 153000000 41cd6cf4 41d51873 411bbbaf
+sensor Accel 153000000 c0eadc92 4019cdb3 3f017a7a
+result 1
+end
+read 01 00 07 3c 9b 00 00 00 59 f8 45 2d 1e c7 37 26 6e 75 1f e4 e1 8d 29 2f 02 90 f3 e5 3e ba 86 ad 35 4b c1 ff 9f cc ac 4a 14 1f 9d e8 eb 4e 0d c2 77 10 37 c3 04 1a 76 fe 8f 2c 5c 9e 49 d7 91 91
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 4
+axis 4 -18138
+axis 5 -23014
+axis 0 30062
+axis 1 7136
+axis 2 -31344
+axis 3 -4101
+touchpad 1 0 0 3f30c600 3de05000 3f000000
+sensor Gyro 162000000 00000000 00000000 00000000
+sensor Accel 162000000 bff3f0c0 c194a928 c11a3238
+result 1
+end
+read 01 00 01 3c 9c 00 00 00 0e 72 6c 15 ff 7f 00 80 ff 7f 00 80 f3 51 68 c1 a5 af 67 1d f2 f1 e9 3c a8 e8 11 54 7c 4a 57 53 93 4f f0 e0 cc 0b fc 16 d4 8e 72 ff e7 bd cb d2 66 ef 71 ed 1e 47 e6 91
+read 01 00 01 3c 9d 00 00 00 1e 72 6c 15 74 65 3d 50 8f 48 bd 1b 8c ce 52 b5 ab aa 2a be d0 5f ce 05 b6 39 2d 99 bc 29 4a 07 72 64 a7 50 e7 ba 70 ac b0 b7 68 02 b9 7b 94 22 cb 59 a9 c8 e1 32 37 51
+read 01 00 04 3c 9e 00 00 00 00 00 00 00 00 00 00 00 8f 53 8c eb 46 bc 2a d1 1e 74 08 43 28 b7 b9 2d 08 50 fb 7a cc 6a 5c 53 6f 37 aa 14 2b 42 1c 13 82 95 41 10 0b 8a ac 7a fd 71 5c 67 7d e7 ee 51
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 0
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 2
+axis 4 -25940
+axis 5 32766
+axis 0 0
+axis 1 -1
+axis 2 24411
+axis 3 10047
+touchpad 0 0 1 3f5e6900 3f800000 3f000000
+sensor Gyro 171000000 41b7678a 41b5d1c0 41a27fec
+sensor Accel 171000000 c009d454 c064ec8b c11554c6
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 2
+axis 4 -25940
+axis 5 4948
+axis 0 0
+axis 1 -1
+axis 2 -7280
+axis 3 21742
+touchpad 0 0 1 3f512b00 3ee82a00 3f000000
+sensor Gyro 180000000 c1e053e1 3ffe6fb0 413619bf
+sensor Accel 180000000 416ae661 410d7cdd bf63b2bb
+result 1
+end
+read 01 00 01 3c 9f 00 00 00 a7 f1 88 91 5e db 6d 9d be cb c0 6c b8 b9 6c 75 5f ec 3d b7 6c cd 4d f6 48 87 b7 ec 57 65 be 08 08 e8 bd e9 9e ab d3 99 bb f7 4a 8a b1 26 cb 51 88 b8 44 24 cf 37 95 15
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 1
+axis 4 14056
+axis 5 -2204
+axis 0 0
+axis 1 -1
+axis 2 -25159
+axis 3 -24380
+touchpad 0 0 1 3edb2800 3cb0e000 3f000000
+sensor Gyro 189000000 c0a84b74 40189478 41dd16d9
+sensor Accel 189000000 c0f80041 c193fb17 3fbe3bd3
+result 1
+end
+read 01 00 01 3c a0 00 00 00 23 cb e5 0b 81 9c 47 85 7b ce b1 10 5e 11 dd b1 be 16 8f 98 2c e1 17 4e 03 72 9c 4f 31 9e c8 40 c6 ab 33 f0 3e ae 90 10 8f a5 9a b2 f1 54 bc 84 6f e0 83 c9 32 2c c4 1b
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 0
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 7
+axis 4 -29192
+axis 5 8852
+axis 0 -12677
+axis 1 -4274
+axis 2 9471
+axis 3 18169
+touchpad 0 0 1 3edb2800 3cb0e000 3f000000
+sensor Gyro 198000000 41adae43 418d54ad c1d562a0
+sensor Accel 198000000 c097290b 418bc256 c13f7330
+result 1
+end
+read 01 00 01 3c a1 00 00 00 88 f7 06 e2 b7 b2 cc 93 90 a2 f1 d7 6a 77 e6 a3 33 f1 9d 00 86 22 4c 2f de 4d d6 5a e4 41 fb 50 79 78 42 fd 83 f3 a2 aa 78 d3 f3 fa ac b7 17 a0 5a d9 e7 e1 74 e7 df cd
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 11
+axis 4 32766
+axis 5 26410
+axis 0 -23920
+axis 1 10254
+axis 2 32767
+axis 3 14861
+touchpad 0 0 0 3edb2800 3cb0e000 00000000
+sensor Gyro 207000000 41c62c5c 41b0ac07 418fc045
+sensor Accel 207000000 40a94796 413ee771 c0e7e976
+result 1
+end
+read 01 00 07 3c a2 00 00 00 2b a3 10 3d 3d 39 ac 8b 57 26 82 bd 5b f9 1f 25 00 9c f4 88 63 9d ce cf 09 f1 fd c2 47 d4 06 49 fe 64 0d 5f af fc 01 d5 81 51 85 cc 12 4f a1 f0 fe b1 2d 75 30 62 f9 d2
+read 01 00 01 3c a3 00 00 00 3b a3 10 3d 3d 39 ac 8b d1 09 46 71 e1 00 e4 34 59 4d 3a 7a 82 c6 4d fd cf 8a c4 fb b6 a9 1f c1 52 93 b7 fb ba 41 7a bd 1f 25 62 50 a7 d2 ba bd 0d 6b 10 1b f5 cd f9 99
+read 01 00 04 3c a4 00 00 00 00 00 00 00 00 00 00 00 b2 f2 5a 87 9b b0 2a f2 44 a0 2f eb b2 a6 8c 17 d3 ab c2 60 5a 4b ed 80 5e 43 c4 4f b2 98 4e cd 02 88 65 ef b2 32 ec 2a 76 04 cf c0 b1 e8 bf cd
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 3
+axis 4 -12934
+axis 5 -12934
+axis 0 9815
+axis 1 17021
+axis 2 -3102
+axis 3 -9739
+touchpad 1 0 1 3ee7c400 3eb3ec00 3f000000
+sensor Gyro 216000000 00000000 00000000 00000000
+sensor Accel 216000000 00000000 00000000 00000000
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 3
+axis 4 -12934
+axis 5 -12934
+axis 0 2513
+axis 1 -28999
+axis 2 -2287
+axis 3 -14137
+touchpad 1 0 1 3eee2200 3e919000 3f000000
+sensor Gyro 225000000 bf93cebd c1892e35 c1bc40e8
+sensor Accel 225000000 c10cf392 c18fa82a 3ed3c329
+result 1
+end
+read 01 00 01 3c a5 00 00 00 8f 2e 35 10 e1 38 fd 7a 1c af 28 74 eb 2c 4a 15 bd 1e 7b 35 80 ac 73 fc 48 de 44 6c a3 c6 12 72 bb 6e 93 af 2f 80 46 03 ae b8 72 dd 57 0a e5 45 d4 92 6a a6 30 40 07 5d
+update
+button 0 1
+button 1 0
+button 2 0
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 1
+button 7 0
+button 12 0
+button 11 1
+button 8 1
+hat 0 14
+axis 4 -27566
+axis 5 32766
+axis 0 -20708
+axis 1 -29737
+axis 2 10696
+axis 3 -9241
+touchpad 1 0 1 3f29c800 3eb7d000 3f800000
+sensor Gyro 234000000 41ec32ef 41f8dce2 c17a4b67
+sensor Accel 234000000 c14cb6bd c0a55581 3f0b48fb
+result 1
+end
+read 01 00 01 3c a6 00 00 00 7c 40 61 02 26 2a 7a 79 4c a4 b0 3b e8 8b 70 f5 d0 24 f8 12 4f 8b 86 6c 0a 97 ad 4f dd 7d 87 09 73 46 b9 34 a7 f2 2b c2 9e 6a 84 cd a1 27 68 1c bb a3 71 74 16 82 ee a5
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 1
+button 4 0
+button 6 1
+button 5 0
+button 7 1
+button 12 0
+button 11 1
+button 8 0
+hat 0 0
+axis 4 -32118
+axis 5 -20414
+axis 0 -23476
+axis 1 -15281
+axis 2 -28007
+axis 3 10302
+touchpad 1 0 0 3f29c800 3eb7d000 00000000
+sensor Gyro 243000000 41add35a 40264895 42094ba9
+sensor Accel 243000000 c18f0b42 c180aa16 c185080b
+result 1
+end
+read 01 00 01 3c a7 00 00 00 16 80 4c 50 32 1a ab 79 b5 d4 9f 01 74 a7 6a 7b af c2 72 90 7d e9 70 fc 86 70 64 82 61 62 51 04 ae 74 bb 44 f3 ac e1 78 37 d1 bb 8f 60 91 b2 46 4d 75 21 e9 b3 85 90 ea
+update
+button 0 0
+button 1 0
+button 2 0
+button 3 1
+button 9 0
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 1
+button 11 0
+button 8 1
+hat 0 0
+axis 4 -6758
+axis 5 -16512
+axis 0 0
+axis 1 -1
+axis 2 -30072
+axis 3 -24651
+touchpad 0 0 1 3eb50600 3edea600 3f000000
+sensor Gyro 252000000 c20904c1 3f96abc7 41d6a126
+sensor Accel 252000000 c05cc3ba 4189ef4c 3f0bbea9
+result 1
+end
+read 01 00 01 3c a8 00 00 00 b8 ba a8 23 51 28 04 eb 69 b0 a4 32 ce 84 c1 9b a7 f4 32 8a 44 18 16 cb c4 70 cd cd e7 90 32 30 b1 89 98 13 c4 17 85 1b 7b 8c 31 44 c6 7f bc 67 c8 33 33 8f 32 c9 41 fc
+read 01 00 01 3c a9 00 00 00 a8 ba a8 23 51 28 04 eb fa 21 01 f5 92 0d 3a a7 95 92 e4 0a 12 d4 3b d6 a0 20 7b 25 3d 94 1b 06 e9 8d c9 c0 02 d3 28 e6 5e 86 4c 1f 2a c8 f1 b2 85 28 7f d4 dc d1 be b1
+read 01 00 04 3c aa 00 00 00 00 00 00 00 00 00 00 00 20 d4 49 99 87 46 9a e0 11 0c 3a c3 88 58 80 e6 01 42 85 0f b5 75 5b b8 9f 9b 0e 55 d9 86 5b 65 b7 23 32 3b a0 1f ed 89 b0 56 4e b1 0f 00 3b cc
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 6
+axis 4 -21388
+axis 5 -6432
+axis 0 0
+axis 1 -1
+axis 2 -23821
+axis 3 32767
+touchpad 0 0 1 3e884600 3e5a5400 3f000000
+sensor Gyro 261000000 c15b0911 41524aaf c1f260a3
+sensor Accel 261000000 406df6e9 418a3b4c 4101ba39
+button 0 1
+button 1 1
+button 2 0
+button 3 0
+button 9 1
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 6
+axis 4 -21388
+axis 5 -6432
+axis 0 0
+axis 1 -1
+axis 2 9237
+axis 3 21051
+touchpad 0 0 1 3f21e100 3f0f8200 3f000000
+sensor Gyro 270000000 41238a16 3fd51efe c1eb1980
+sensor Accel 270000000 c0d766cb 409ff892 40cccf41
+result 1
+end
+endcase
+case ble 1 1 1
+read 03 80 f4 1f 38 76 09 96 a8 60 f5 c2 c3 93 ca 78 56 85 9b 8b
+read 03 81 3e dd 6e ec a2 06 db 20 f4 75 69 62 a5 bb a8 97 ab 4a
+read 03 c2 0e f6 b3 07 92 74 26 93 0a f0 de 59 45 23 00 00 00 00
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 0
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 0
+button 11 1
+button 8 0
+hat 0 10
+axis 4 16004
+axis 5 21856
+axis 0 -27709
+axis 1 -30923
+axis 2 -7298
+axis 3 7141
+touchpad 0 0 1 00000000 3f4cc600 3f000000
+sensor Gyro 7500000 41d6b29a c1e3a48b c19520e5
+sensor Accel 7500000 3f821762 41909733 c0a119de
+result 1
+end
+read 03 80 a4 17 e8 45 71 ad 09 80 62 e8 8d 16 77 0b 42 51 14 61
+read 03 81 bb 2e 34 05 ef c8 6e 2d 90 86 a9 3b 2d 04 9e 82 07 c2
+read 03 c2 12 d8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+update
+axis 4 32766
+axis 5 -10334
+axis 0 -21135
+axis 1 32758
+axis 2 -2548
+axis 3 -20853
+touchpad 0 0 1 3ee5de00 3ec06600 3f000000
+sensor Gyro 15000000 41d6b29a c1e3a48b c19520e5
+sensor Accel 15000000 416e00b8 3f4c19d5 c0e5227a
+result 1
+end
+read 03 80 b4 0f d1 e0 73 b3 69 14 55 df ac 95 09 d5 e3 b2 83 d7
+read 03 c1 d2 3a 55 d1 70 82 ca 45 63 35 c2 fa 3d 00 00 00 00 00
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 1
+button 8 0
+hat 0 0
+axis 4 25110
+axis 5 1372
+axis 0 21780
+axis 1 21280
+axis 2 -26745
+axis 3 18402
+touchpad 0 0 0 3ee5de00 3ec06600 3f000000
+touchpad 1 0 1 3dbc3800 3f47e300 3f000000
+sensor Gyro 22500000 41d89291 4187363e c186cfb4
+sensor Accel 22500000 4150f260 c1032511 c18a4b3c
+result 1
+end
+read 03 80 d4 10 64 79 36 14 d2 34 2f 59 5a ab bd ef 84 78 67 c7
+read 03 c1 b9 8c 91 50 6a eb 86 94 00 2a 00 00 00 00 00 00 00 00
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 5
+axis 4 25110
+axis 5 1372
+axis 0 22831
+axis 1 21669
+axis 2 -26745
+axis 3 18402
+touchpad 1 0 1 3dbc3800 3f47e300 3f800000
+sensor Gyro 30000000 41d89291 4187363e c186cfb4
+sensor Accel 30000000 4150f260 c1032511 c18a4b3c
+result 1
+end
+read 03 80 44 11 86 aa 17 58 18 92 c3 68 0b 8e b2 c8 da 49 b1 66
+read 03 c1 d3 ab 7b 32 85 d2 09 00 00 00 00 00 00 00 00 00 00 00
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 0
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 1
+hat 0 5
+axis 4 25110
+axis 5 1372
+axis 0 22831
+axis 1 21669
+axis 2 -26745
+axis 3 18402
+touchpad 1 0 1 3dbc3800 3f47e300 3f800000
+sensor Gyro 37500000 41d89291 4187363e c186cfb4
+sensor Accel 37500000 4150f260 c1032511 c18a4b3c
+result 1
+end
+read 03 80 01 00 01 3c ab 00 00 00 7a e8 d2 9f 04 4b 2d 93 65 5a
+read 03 81 33 46 3d 55 de 7d ca e5 dd 26 91 3e a2 ee 4d fa 2a 83
+read 03 c2 8b 7d f7 df 05 29 d2 55 c0 47 42 5d e4 b0 ca 20 5f 3f
+update
+button 0 0
+button 1 1
+button 2 1
+button 3 1
+button 9 1
+button 10 0
+button 4 0
+button 6 1
+button 5 1
+button 7 1
+button 12 1
+button 11 0
+button 8 0
+hat 0 4
+axis 4 18608
+axis 5 -31468
+axis 0 23141
+axis 1 -17972
+axis 2 13737
+axis 3 -32768
+touchpad 0 0 1 3f03e800 3ef83000 3f800000
+touchpad 1 0 1 3f35a900 37800000 3f000000
+sensor Gyro 45000000 c2082cc5 c10bc79d 4208f236
+sensor Accel 45000000 41196447 bf5f8f9c 402a505e
+result 1
+end
+read 03 80 24 11 ac 66 a6 5d b2 1f 40 3f 2b 25 3a 64 0c c6 dc 6e
+read 03 c1 27 61 10 5b 23 b1 00 00 00 00 00 00 00 00 00 00 00 00
+update
+axis 4 23156
+axis 5 396
+axis 0 23141
+axis 1 -17972
+axis 2 13737
+axis 3 -32768
+touchpad 0 0 1 3f669100 3eeb7000 3f800000
+touchpad 1 0 1 3f35a900 37800000 3f000000
+sensor Gyro 52500000 c2082cc5 c10bc79d 4208f236
+sensor Accel 52500000 41196447 bf5f8f9c 402a505e
+result 1
+end
+read 01 00 00 00 00 00 00 00 00
+read 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 03 80 b4 16 3f da e3 80 c6 35 7b db 51 dc 0c 7c bf f4 0d ce
+read 03 81 f5 bd fe e7 56 5b 45 2c 01 62 c9 c2 cd 23 50 bb 06 b8
+read 03 c2 99 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+update
+button 0 0
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 0
+button 7 1
+button 12 1
+button 11 1
+button 8 0
+hat 0 6
+axis 4 8850
+axis 5 31610
+axis 0 31541
+axis 1 -20956
+axis 2 7454
+axis 3 15100
+touchpad 0 0 0 3f669100 3eeb7000 3f000000
+touchpad 1 0 0 3f35a900 37800000 00000000
+sensor Gyro 60000000 c2082cc5 c10bc79d 4208f236
+sensor Accel 60000000 4008d55b be45f8c5 3fc7f6b7
+result 1
+end
+read 03 80 f4 04 d1 39 f2 cf 3d 36 f2 55 38 65 70 e7 77 83 e6 57
+read 03 c1 f4 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 1
+button 9 0
+button 10 0
+button 4 1
+button 6 0
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 0
+hat 0 5
+axis 4 32766
+axis 5 -12934
+axis 0 25912
+axis 1 6287
+axis 2 7454
+axis 3 15100
+touchpad 1 0 1 3f1d1e00 3f3afd00 3f000000
+sensor Gyro 67500000 c2082cc5 c10bc79d 4208f236
+sensor Accel 67500000 c198a8ba 406117e0 c1577f4f
+result 1
+end
+read 03 80 84 12 79 01 8c 1d ef ea 9e d0 64 4c 84 55 dd 5b ec e0
+read 03 c1 e1 9b d6 ac c2 3e ba b9 00 00 00 00 00 00 00 00 00 00
+update
+axis 4 32766
+axis 5 -12934
+axis 0 377
+axis 1 -7565
+axis 2 -1069
+axis 3 12111
+touchpad 1 0 1 3ef7a600 3f2f5000 3f000000
+sensor Gyro 75000000 c2082cc5 c10bc79d 4208f236
+sensor Accel 75000000 c198a8ba 406117e0 c1577f4f
+result 1
+end
+read 03 c0 a4 02 7a 46 69 47 06 10 00 31 d1 49 00 00 00 00 00 00
+update
+axis 4 6900
+axis 5 -10008
+axis 0 18281
+axis 1 -4103
+axis 2 8225
+axis 3 -22500
+touchpad 1 0 1 3f202100 3e207400 3f000000
+sensor Gyro 82500000 c2082cc5 c10bc79d 4208f236
+sensor Accel 82500000 c198a8ba 406117e0 c1577f4f
+result 1
+end
+read 03 82 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+read 03 80 01 00 07 3c ac 00 00 00 ed 82 f7 57 34 74 2b 51 92 d1
+read 03 81 53 b4 4e d0 a8 8a 04 10 5d 52 82 8a 0a 10 a6 ac eb 96
+read 03 c2 54 f7 4b 7c 08 5a ad dc db 4c bf d2 48 ab ff b7 bc 57
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 2
+axis 4 -4480
+axis 5 -15862
+axis 0 -11886
+axis 1 19372
+axis 2 -3019
+axis 3 31175
+touchpad 0 0 1 3f03e800 3ef83000 3f800000
+touchpad 1 0 1 3ee86a00 3f79c800 3f800000
+sensor Gyro 90000000 00000000 00000000 00000000
+sensor Accel 90000000 00000000 00000000 00000000
+result 1
+end
+read 03 c0 c4 01 ad d1 df 0b 65 75 8b 85 9d 89 86 00 00 00 00 00
+update
+button 0 1
+button 1 1
+button 2 1
+button 3 0
+button 9 1
+button 10 1
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 1
+button 11 1
+button 8 1
+hat 0 2
+axis 4 -4480
+axis 5 -15862
+axis 0 25867
+axis 1 29834
+axis 2 -3019
+axis 3 31175
+touchpad 0 0 1 3cab2000 3f57ee00 3f800000
+touchpad 1 0 1 3ee86a00 3f79c800 3f800000
+sensor Gyro 97500000 00000000 00000000 00000000
+sensor Accel 97500000 00000000 00000000 00000000
+result 1
+end
+read 03 c0 00 00 00 00 00 00 00 00 00 00
+read 03 80 a4 1f 62 cd a3 cf a0 3d 6f 2b 84 f1 b3 83 f5 5e d4 b7
+read 03 81 50 2f 9a 35 f3 e1 9a ef 87 1f 67 1f 11 db 77 ba b8 30
+read 03 c2 d7 b5 54 fb 8f fa ba 33 00 00 00 00 00 00 00 00 00 00
+update
+axis 4 -904
+axis 5 32766
+axis 0 -12381
+axis 1 -15777
+axis 2 -32768
+axis 3 -16245
+touchpad 0 0 1 3f2a1c00 3f155300 3f800000
+touchpad 1 0 1 00000000 3e811800 3f800000
+sensor Gyro 105000000 c1031f0c 41099062 c08f1a76
+sensor Accel 105000000 c130f0eb 410369b7 c0e7fd13
+result 1
+end
+read 03 80 d4 09 ca 0c ee 0f 35 d0 ee e7 0f 78 10 53 18 0d ea 18
+read 03 c1 ca c1 5b 9c 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+update
+button 0 1
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 12
+axis 4 -904
+axis 5 32766
+axis 0 -6162
+axis 1 -30736
+axis 2 -32768
+axis 3 -16245
+touchpad 0 0 1 3f578700 3f04f100 3f800000
+touchpad 1 0 0 00000000 3e811800 3f000000
+sensor Gyro 112500000 40d96a8d c1d96402 c187b925
+sensor Accel 112500000 c130f0eb 410369b7 c0e7fd13
+result 1
+end
+read 03 c0 24 0c 32 21 2f 07 a1 bf 5b 4b 60 23 7c 88 a0 0a 00 00
+update
+axis 4 -16512
+axis 5 -22040
+axis 0 -6162
+axis 1 -30736
+axis 2 -32768
+axis 3 -16245
+touchpad 0 0 1 3f578700 3f04f100 3f800000
+sensor Gyro 120000000 411a5a41 403970f5 c2025f0f
+sensor Accel 120000000 3f8ce4dc 4138bf06 411dd0f2
+result 1
+end
+read 03 c0 94 04 b6 7b 7e 19 84 c7 ff 4d a7 41 0c b0 62 00 00 00
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 0
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 1
+button 12 0
+button 11 0
+button 8 1
+hat 0 7
+axis 4 -16512
+axis 5 -22040
+axis 0 -31719
+axis 1 56
+axis 2 -32768
+axis 3 -16245
+touchpad 0 0 1 3f578700 3f04f100 3f800000
+touchpad 1 0 1 00000000 3e811800 3f800000
+sensor Gyro 127500000 411a5a41 403970f5 c2025f0f
+sensor Accel 127500000 c15975e7 4171f2cd bff056ec
+result 1
+end
+read 03 80 01 00 01 3c ad 00 00 00 be 78 98 4d cb 89 dc bd 84 14
+read 03 81 d8 36 53 2f 21 a7 56 93 8c c0 6b ba f0 fd 08 3c df 23
+read 03 c2 f4 d9 c7 2f c8 45 cb 02 29 b7 5f c9 c2 30 a6 2e 04 8b
+update
+button 0 1
+button 1 1
+button 2 0
+button 3 1
+button 9 1
+button 10 1
+button 4 1
+button 6 1
+button 5 1
+button 7 0
+button 12 0
+button 11 0
+button 8 0
+hat 0 4
+axis 4 -7732
+axis 5 32766
+axis 0 -11886
+axis 1 19372
+axis 2 18590
+axis 3 17839
+touchpad 0 0 1 3f25ea00 3e98dc00 3f000000
+touchpad 1 0 1 3f489e00 3f45b000 3f000000
+sensor Gyro 135000000 411c8466 415077ce c12602c5
+sensor Accel 135000000 c12a9777 41132d26 3ea1cf4a
+result 1
+end
+read 03 80 f4 0b 4b 89 3a 33 7b 3c fc 3b 0d b5 b3 30 f3 ca b9 29
+read 03 c1 ad 28 0d 79 66 46 cb 74 ce 0d 00 00 00 00 00 00 00 00
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 5
+axis 4 -16186
+axis 5 7224
+axis 0 -19187
+axis 1 -12468
+axis 2 3037
+axis 3 -32768
+touchpad 0 0 1 3eb6ee00 3e8c2000 3f800000
+touchpad 1 0 1 3f0bdd00 37800000 3f000000
+sensor Gyro 142500000 419995e8 4070eff0 41fecd80
+sensor Accel 142500000 c12a9777 41132d26 3ea1cf4a
+result 1
+end
+read 03 c0 64 02 b6 44 c4 e5 6d bd b4 ca dc 00 00 00 00 00 00 00
+update
+button 0 0
+button 1 0
+button 2 1
+button 3 0
+button 9 1
+button 10 0
+button 4 0
+button 6 0
+button 5 0
+button 7 0
+button 12 1
+button 11 0
+button 8 0
+hat 0 5
+axis 4 26408
+axis 5 -10658
+axis 0 -19187
+axis 1 -12468
+axis 2 -15277
+axis 3 12692
+touchpad 0 0 1 3eb6ee00 3e8c2000 3f800000
+touchpad 1 0 1 3e88a600 3f319500 3f000000
+sensor Gyro 150000000 419995e8 4070eff0 41fecd80
+sensor Accel 150000000 c12a9777 41132d26 3ea1cf4a
+result 1
+end
+endcase
+case dongle 0 0 0
+read 01 00 03 00 02
+read 01 00 03 01 02
+read 01 00 01 3c ae 00 00 00 41 b2 11 63 3c ff 5c 72 7b 99 41 3d 57 1a f6 63 57 24 9f c6 2f c4 93 55 ff b2 17 4c 81 07 68 52 f8 bc 87 52 d8 e6 c7 19 36 b4 17 b4 ee 24 10 87 96 88 bd 2d 26 bc 2e 13
+update
+added
+feature 00 b3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+end
+read 01 00 03 01 02
+read 01 00 03 01 01
+read 01 00 03 01 01
+update
+removed
+result 1
+end
+read 01 00 01 3c af 00 00 00 63 24 bb d4 10 68 19 52 15 17 44 91 b8 9e 84 25 6e 2f 9e 75 01 01 bb a3 7d e9 8a d7 e3 98 c8 db 92 97 92 75 75 04 6a 88 ed 0a 0b e9 7d 21 ec 02 38 0b 96 29 eb 8a a6 be
+read 01 00 03 01 03
+update
+added
+feature 00 b3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+end
+read 01 00 03 01
+read 01 00 03 01 01
+read 01 00 03 01 03
+read -1
+update
+removed
+added
+feature 00 b3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+removed
+result 0
+end
+endcase
+init dongle_disconnected
+read 0
+read 01 00 03 01 01
+name Steam Controller
+feature 00 b4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 ad 02 01 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+end
+init dongle_second
+read -1
+name Steam Controller
+feature 00 b4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+end
+free dongle_second
+end
+free dongle_disconnected
+feature 00 ad 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+init dongle_connected
+read 01 00 03 01 02
+name Steam Controller
+feature 00 b4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+added
+result 1
+end
+free dongle_connected
+end
+init wired
+name Steam Controller
+added
+result 1
+end
+open dongle
+reply 00 83 0f 00 12 34 00 00 0b 40 1f 00 00 09 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 83 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+getfeature 65
+feature 00 81 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 8e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 87 0c 31 02 00 07 07 00 08 07 00 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+add sensor 2 42fa0000
+add sensor 1 42fa0000
+add touchpad 1
+add touchpad 1
+feature 00 87 03 2d 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+connection 2
+end
+open ble
+reply 03 c0 82 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 80 83 14 01 06 11 00 00 0b 4c 1d 00 00 02 ff 00 00 00 00
+reply 03 c1 00 00 78 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 03 c0 83 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+getfeature 20
+getfeature 20
+getfeature 20
+feature 03 c0 81 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 03 c0 8e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 03 c0 87 0c 31 02 00 07 07 00 08 07 00 18 00 00 00 00 00 00
+add sensor 2 43055555
+add sensor 1 43055555
+add touchpad 1
+add touchpad 1
+feature 03 c0 87 03 2d 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+result 1
+connection 2
+end
+open bad_attributes
+reply 00 83 42 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 83 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+getfeature 65
+error Couldn't reset controller
+result 0
+end
+homeled 1
+feature 00 87 03 2d 64 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled 0
+feature 00 87 03 2d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled 0.25
+feature 00 87 03 2d 19 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled 2.56
+feature 00 87 03 2d ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled 3.0
+feature 00 87 03 2d ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled false
+feature 00 87 03 2d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled -0.5
+feature 00 87 03 2d ce 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+homeled 
+end
+sensors 0 1
+feature 00 87 03 30 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+sensors 0 0
+feature 00 87 03 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+effect 0 0a e1 a1 07 5b 11 7c cb 64 d0 e6 b0 96 49 5b 54 36 97 e9 2e 0f ff c1 23 d9 ef 7d e8 67 ba 33 1a 94 11 3d 1e ec 41 c6 ba 19 2f 15 70 14 13 99 9e 07 f7 b9 57 04 ee 58 ff 68 15 2a a9 0d 4b b9 30 33
+feature 0a e1 a1 07 5b 11 7c cb 64 d0 e6 b0 96 49 5b 54 36 97 e9 2e 0f ff c1 23 d9 ef 7d e8 67 ba 33 1a 94 11 3d 1e ec 41 c6 ba 19 2f 15 70 14 13 99 9e 07 f7 b9 57 04 ee 58 ff 68 15 2a a9 0d 4b b9 30 33
+result 1
+end
+close 0
+feature 00 85 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 8e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 00 87 03 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+sensors 1 1
+feature 03 c0 87 03 30 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+sensors 1 0
+feature 03 c0 87 03 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+effect 1 b0 36 17 2c de 00 21 c9 ea f6 af 87 19 7d de 79 62 50 5d f5 a8 0a 0f fe b4 75 64 75 f4 90 77 fe f5 62 e7 b3 a2 81 77 8b 3a 61 65 89 12 5e 8b a4 10 87 36 79 e3 30 c9 b3 03 36 12 36 6c 10 68 0e 1a
+feature 03 80 36 17 2c de 00 21 c9 ea f6 af 87 19 7d de 79 62 50 5d
+feature 03 81 f5 a8 0a 0f fe b4 75 64 75 f4 90 77 fe f5 62 e7 b3 a2
+feature 03 82 81 77 8b 3a 61 65 89 12 5e 8b a4 10 87 36 79 e3 30 c9
+feature 03 c3 b3 03 36 12 36 6c 10 68 0e 1a 00 00 00 00 00 00 00 00
+result 1
+end
+close 1
+feature 03 c0 85 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 03 c0 8e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+feature 03 c0 87 03 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+end
+getfeature retries
+reply 03 00
+reply 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 80 9b 89 1b 43 a2 35 78 57 2e 89 b0 b8 93 1d a0 39 37 dd
+reply 03 81 2a 58 21 a8 9e 3b 45 aa e9 6d 92 79 7b 55 b7 f2 fa 7a
+reply 03 c2 b9 d2 a8 79 36 13 94 c1 76 0d 84 15 37 48 9e bf 35 22
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+result 54
+buffer 00 9b 89 1b 43 a2 35 78 57 2e 89 b0 b8 93 1d a0 39 37 dd 2a 58 21 a8 9e 3b 45 aa e9 6d 92 79 7b 55 b7 f2 fa 7a b9 d2 a8 79 36 13 94 c1 76 0d 84 15 37 48 9e bf 35 22
+end
+getfeature too_long
+reply 03 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 81 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 82 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+reply 03 c3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+getfeature 20
+result -1
+end

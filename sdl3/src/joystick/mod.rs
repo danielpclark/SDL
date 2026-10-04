@@ -426,7 +426,7 @@ impl JoystickData {
     }
 
     /// Add a capacitive sensor. Translation of `SDL_PrivateJoystickAddCapSense()`.
-    #[allow(dead_code)] // (used by the HIDAPI drivers)
+    #[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))] // (used by the HIDAPI drivers)
     pub(crate) fn add_capsense(&mut self, capsense_type: GamepadCapSenseType) {
         assert_joysticks_locked();
 
@@ -2823,7 +2823,7 @@ pub(crate) fn send_joystick_sensor(
 
 /// Deliver a capacitive sensor touch or release.
 /// Translation of `SDL_SendJoystickCapSense()`.
-#[allow(dead_code)] // (used by the HIDAPI drivers)
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))] // (used by the HIDAPI drivers)
 pub(crate) fn send_joystick_capsense(
     timestamp: u64,
     joystick: JoystickID,
