@@ -1156,3 +1156,210 @@ fn x11_message_box() {
         assert_eq!(button_id, expected);
     }
 }
+
+/// Render a frame with the current context: clear to a color, read a pixel
+/// back (the GL entry points through `gl_get_proc_address`).
+fn gl_clear_and_read(r: f32, g: f32, b: f32) -> [u8; 4] {
+    use crate::video::gl::gl_get_proc_address;
+    type ClearColor = unsafe extern "C" fn(f32, f32, f32, f32);
+    type Clear = unsafe extern "C" fn(u32);
+    type Finish = unsafe extern "C" fn();
+    type ReadPixels = unsafe extern "C" fn(i32, i32, i32, i32, u32, u32, *mut std::ffi::c_void);
+    let get = |name: &str| gl_get_proc_address(name).unwrap_or_else(|| panic!("{name}"));
+    let mut pixel = [0u8; 4];
+    // SAFETY: the GL functions have these types; a context is current; the
+    // buffer holds one RGBA pixel.
+    unsafe {
+        let clear_color: ClearColor = std::mem::transmute(get("glClearColor"));
+        let clear: Clear = std::mem::transmute(get("glClear"));
+        let finish: Finish = std::mem::transmute(get("glFinish"));
+        let read_pixels: ReadPixels = std::mem::transmute(get("glReadPixels"));
+        clear_color(r, g, b, 1.0);
+        clear(0x4000); // GL_COLOR_BUFFER_BIT
+        finish();
+        // GL_RGBA, GL_UNSIGNED_BYTE
+        read_pixels(1, 1, 1, 1, 0x1908, 0x1401, pixel.as_mut_ptr().cast());
+    }
+    pixel
+}
+
+/// `glGetString(name)` of the current context.
+fn gl_string(name: u32) -> String {
+    type GetString = unsafe extern "C" fn(u32) -> *const std::ffi::c_char;
+    let f = crate::video::gl::gl_get_proc_address("glGetString").unwrap();
+    // SAFETY: glGetString's type; a context is current.
+    unsafe {
+        let get_string: GetString = std::mem::transmute(f);
+        let s = get_string(name);
+        assert!(!s.is_null());
+        std::ffi::CStr::from_ptr(s).to_string_lossy().into_owned()
+    }
+}
+
+/// An OpenGL window and context on the running server (`None`: no GL
+/// library or no usable visual, after printing why).
+fn gl_window_and_context(what: &str) -> Option<(SdlWindow, crate::video::gl::GlContext)> {
+    let window = match SdlWindow::create(what, 64, 48, WindowFlags::OPENGL) {
+        Ok(w) => w,
+        Err(e) => {
+            eprintln!("note: no {what} window ({}); skipping", e.message());
+            return Option::None;
+        }
+    };
+    match crate::video::gl::GlContext::new(&window) {
+        Ok(c) => Some((window, c)),
+        Err(e) => {
+            eprintln!("note: no {what} context ({}); skipping", e.message());
+            Option::None
+        }
+    }
+}
+
+/// The checks shared by the GLX and EGL sessions.
+fn exercise_gl_context(window: &SdlWindow, context: &crate::video::gl::GlContext) {
+    use crate::video::gl::{self, GlAttr};
+    assert!(context.is_current());
+    assert_eq!(gl::gl_current_context().unwrap(), Some(context.raw()));
+    assert_eq!(
+        gl::gl_current_window().unwrap().map(|w| w.id()),
+        Some(window.id())
+    );
+    let version = gl_string(0x1F02);
+    let renderer = gl_string(0x1F01);
+    eprintln!("GL_VERSION {version}, GL_RENDERER {renderer}");
+    assert!(!version.is_empty());
+
+    let px = gl_clear_and_read(1.0, 0.0, 1.0);
+    assert_eq!(&px[..3], &[255, 0, 255]);
+    gl::gl_swap_window(window).unwrap();
+
+    assert!(gl::gl_get_attribute(GlAttr::RedSize).unwrap() >= 8);
+    // (a desktop GL build asks GL_DOUBLEBUFFER, which OpenGL ES doesn't know)
+    if !version.starts_with("OpenGL ES") {
+        assert!(gl::gl_get_attribute(GlAttr::DoubleBuffer).is_ok());
+    }
+    assert_eq!(gl::gl_get_attribute(GlAttr::AcceleratedVisual).unwrap(), 1);
+    let bufsize = gl::gl_get_attribute(GlAttr::BufferSize).unwrap();
+    assert!(bufsize >= 24, "{bufsize}");
+
+    // (Xvfb's GLX may have no swap control: "unsupported" then)
+    if gl::gl_set_swap_interval(0).is_ok() {
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 0);
+    }
+    if gl::gl_set_swap_interval(1).is_ok() {
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 1);
+        gl::gl_set_swap_interval(0).unwrap();
+    }
+
+    // Release and make current again
+    gl::gl_release_current().unwrap();
+    assert!(!context.is_current());
+    assert_eq!(gl::gl_current_context().unwrap(), Option::None);
+    assert!(gl::gl_swap_window(window).is_err());
+    context.make_current(Some(window)).unwrap();
+    assert!(context.is_current());
+    let px = gl_clear_and_read(0.0, 1.0, 0.0);
+    assert_eq!(&px[..3], &[0, 255, 0]);
+}
+
+#[test]
+fn x11_glx_context() {
+    let _l = crate::test_support::test_lock();
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    let _video = Video::init();
+    use crate::video::gl;
+    if let Err(e) = gl::gl_load_library(Option::None) {
+        eprintln!("note: no libGL ({}); skipping", e.message());
+        return;
+    }
+    let Some((window, context)) = gl_window_and_context("GLX") else {
+        gl::gl_unload_library();
+        return;
+    };
+    assert!(gl::egl_current_display().is_err());
+    assert!(gl::gl_get_proc_address("glXGetCurrentContext").is_some());
+    exercise_gl_context(&window, &context);
+    // OpenGL 2.1 (the default attributes) lists its extensions in GL_EXTENSIONS
+    assert!(gl::gl_extension_supported("GL_ARB_multitexture"));
+    assert!(!gl::gl_extension_supported("GL_SDL_no_such_extension"));
+    hints::set("GL_ARB_multitexture", "0").unwrap();
+    assert!(!gl::gl_extension_supported("GL_ARB_multitexture"));
+    hints::reset("GL_ARB_multitexture");
+
+    // A core profile context through glXCreateContextAttribsARB
+    gl::gl_set_attribute(gl::GlAttr::ContextMajorVersion, 3).unwrap();
+    gl::gl_set_attribute(gl::GlAttr::ContextMinorVersion, 3).unwrap();
+    gl::gl_set_attribute(gl::GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_CORE).unwrap();
+    match gl::GlContext::new(&window) {
+        Ok(core) => {
+            assert!(core.is_current());
+            assert!(crate::stdlib::atoi(&gl_string(0x1F02)) >= 3);
+            // (GL 3: the attachment queries and glGetStringi)
+            assert!(gl::gl_get_attribute(gl::GlAttr::RedSize).unwrap() >= 8);
+            assert_eq!(gl::gl_get_attribute(gl::GlAttr::StencilSize).unwrap(), 0);
+            assert!(gl::gl_extension_supported("GL_ARB_texture_rg"));
+            let px = gl_clear_and_read(0.0, 0.0, 1.0);
+            assert_eq!(&px[..3], &[0, 0, 255]);
+            core.destroy().unwrap();
+            assert_eq!(gl::gl_current_context().unwrap(), Option::None);
+        }
+        Err(e) => eprintln!("note: no GL 3.3 core context: {}", e.message()),
+    }
+    gl::gl_reset_attributes();
+    drop(context);
+    window.destroy();
+    gl::gl_unload_library();
+}
+
+#[test]
+fn x11_egl_context() {
+    let _l = crate::test_support::test_lock();
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    // forced EGL, OpenGL ES through EGL, OpenGL ES through GLX
+    // (GLX_EXT_create_context_es2_profile)
+    for (es, through_egl) in [(false, true), (true, true), (true, false)] {
+        // (in the environment: quitting resets the hints)
+        if !es {
+            std::env::set_var(hints::VIDEO_FORCE_EGL, "1");
+        } else if through_egl {
+            std::env::set_var(hints::OPENGL_ES_DRIVER, "1");
+        }
+        let video = Video::init();
+        use crate::video::gl;
+        if es {
+            gl::gl_set_attribute(gl::GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_ES)
+                .unwrap();
+            gl::gl_set_attribute(gl::GlAttr::ContextMajorVersion, 2).unwrap();
+            gl::gl_set_attribute(gl::GlAttr::ContextMinorVersion, 0).unwrap();
+            // (Mesa's GLX can create ES 2 contexts; OPENGL_ES_DRIVER makes it use EGL)
+        }
+        let what = match (es, through_egl) {
+            (false, _) => "EGL (forced)",
+            (true, true) => "EGL (OpenGL ES)",
+            (true, false) => "GLX (OpenGL ES)",
+        };
+        if let Some((window, context)) = gl_window_and_context(what) {
+            if through_egl {
+                assert!(gl::egl_current_display().is_ok());
+                assert!(gl::egl_current_config().unwrap().is_some());
+                assert!(gl::egl_window_surface(&window).unwrap().is_some());
+                assert!(gl::egl_get_proc_address("eglGetCurrentContext").is_some());
+            } else {
+                assert!(gl::egl_current_display().is_err());
+            }
+            exercise_gl_context(&window, &context);
+            if es {
+                assert!(gl_string(0x1F02).starts_with("OpenGL ES"));
+            }
+            drop(context);
+            window.destroy();
+        }
+        drop(video);
+        std::env::remove_var(hints::OPENGL_ES_DRIVER);
+        std::env::remove_var(hints::VIDEO_FORCE_EGL);
+    }
+}

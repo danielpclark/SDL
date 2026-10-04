@@ -12,12 +12,13 @@
 //! cursors; it is closed when the last of them goes.
 
 use std::cell::RefCell;
-use std::ffi::{c_int, c_uchar, c_ulong, CStr, CString};
+use std::ffi::{c_int, c_uchar, c_ulong, c_void, CStr, CString};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use super::clipboard::ClipboardData;
 use super::keyboard::KeyboardData;
+use super::opengl::GlBackend;
 use super::settings::SettingsData;
 use super::sys::*;
 use super::x11dyn::{load_symbols, unload_symbols, X11Syms};
@@ -27,6 +28,7 @@ use crate::events::{keyboard, mouse, DisplayID, KeyboardID, WindowID};
 use crate::hints;
 use crate::properties::Properties;
 use crate::thread::ReentrantMutex;
+use crate::video::gl::{GlConfig, RawGlContext};
 use crate::video::messagebox::MessageBoxData;
 use crate::video::sysvideo::{
     DeviceCaps, DisplayMode, FlashOperation, FullscreenOp, FullscreenResult, VideoBootStrap,
@@ -199,6 +201,11 @@ pub(crate) struct X11Video {
     pub(crate) use_steam_screen_keyboard: bool,
     pub(crate) is_xwayland: bool,
     data: ReentrantMutex<RefCell<VideoData>>,
+    /// The OpenGL backend in use and the GLX data (`gl_data`).
+    pub(crate) gl: std::sync::Mutex<super::opengl::X11Gl>,
+    /// Whether `GL_SetDefaultProfileConfig` is set (EGL was forced at
+    /// creation).
+    gles_default_profile: bool,
 }
 
 // SAFETY: see X11Display; the mutable state is behind a lock.
@@ -396,6 +403,13 @@ fn x11_create_device() -> Option<Arc<dyn VideoDriver>> {
 
     // (X11_DEBUG would XSynchronize() the display here)
 
+    // The OpenGL functions: GLX, or EGL when it is forced
+    let gl_backend = if hints::get_bool(hints::VIDEO_FORCE_EGL, false) {
+        GlBackend::Egl
+    } else {
+        GlBackend::Glx
+    };
+
     // The function pointers are the VideoDriver implementation below; the
     // system theme is read in video_init(), once the device exists.
     Some(Arc::new(X11Video {
@@ -408,6 +422,11 @@ fn x11_create_device() -> Option<Arc<dyn VideoDriver>> {
         use_steam_screen_keyboard,
         is_xwayland,
         data: ReentrantMutex::new(RefCell::new(data)),
+        gl: std::sync::Mutex::new(super::opengl::X11Gl {
+            backend: gl_backend,
+            glx: Option::None,
+        }),
+        gles_default_profile: gl_backend == GlBackend::Egl,
     }))
 }
 
@@ -980,8 +999,98 @@ impl VideoDriver for X11Video {
         true
     }
 
-    // * * * OpenGL: GLX and EGL come with the OpenGL front end (see
-    // `opengl.rs`); Vulkan:
+    // * * * OpenGL (`X11_GL_*` or `X11_GLES_*`, see `opengl.rs`)
+
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_load_library(path),
+            GlBackend::Egl => self.x11_gles_load_library(path),
+        })
+    }
+
+    fn gl_unload_library(&self) -> Option<()> {
+        match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_unload_library(),
+            GlBackend::Egl => crate::video::egl::unload_library(),
+        }
+        Some(())
+    }
+
+    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_get_proc_address(proc_name),
+            GlBackend::Egl => crate::video::egl::get_proc_address_internal(proc_name),
+        })
+    }
+
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_create_context(window),
+            GlBackend::Egl => self.x11_gles_create_context(window),
+        })
+    }
+
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_make_current(window, context),
+            GlBackend::Egl => self.x11_gles_make_current(window, context),
+        })
+    }
+
+    fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_set_swap_interval(interval),
+            GlBackend::Egl => crate::video::egl::set_swap_interval(interval),
+        })
+    }
+
+    fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_get_swap_interval(),
+            GlBackend::Egl => crate::video::egl::get_swap_interval(),
+        })
+    }
+
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        Some(match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_swap_window(window),
+            GlBackend::Egl => self.x11_gles_swap_window(window),
+        })
+    }
+
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
+        match self.gl_backend() {
+            GlBackend::Glx => self.x11_gl_destroy_context(context),
+            GlBackend::Egl => crate::video::egl::destroy_context(context),
+        }
+        Some(Ok(()))
+    }
+
+    fn gl_get_egl_surface(&self, window: WindowID) -> Option<*mut c_void> {
+        match self.gl_backend() {
+            GlBackend::Glx => Option::None,
+            GlBackend::Egl => Some(self.x11_gles_get_egl_surface(window)),
+        }
+    }
+
+    fn gl_set_default_profile_config(&self, config: &mut GlConfig) -> Option<()> {
+        if self.gles_default_profile {
+            super::opengles::x11_gles_set_default_profile_config(config);
+            Some(())
+        } else {
+            Option::None
+        }
+    }
+
+    // * * * Vulkan
 
     fn implements_vulkan_surfaces(&self) -> bool {
         true

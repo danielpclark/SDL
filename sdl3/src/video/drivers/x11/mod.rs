@@ -15,15 +15,10 @@
 //! [`window`], [`events`], [`keyboard`], [`mouse`], [`framebuffer`],
 //! [`clipboard`], [`xinput2`], [`xfixes`], [`xsync`], [`xtest`],
 //! [`settings`] with [`xsettings_client`], [`edid`], [`shape`], [`pen`],
-//! [`touch`], [`vulkan`], and [`messagebox`] with its [`toolkit`]
+//! [`touch`], [`vulkan`], [`opengl`] (GLX, libGL loaded at run time) with
+//! [`opengles`] (EGL), and [`messagebox`] with its [`toolkit`]
 //! (message boxes try zenity first, see [`crate::dialog`]; the toolkit is
 //! a build without FriBidi and libthai).
-//!
-//! Not translated (yet):
-//!
-//! * OpenGL (`SDL_x11opengl.c`, `SDL_x11opengles.c`): the OpenGL front end
-//!   behaves as a build without OpenGL, so GLX and EGL contexts are not
-//!   provided and windows get the default visual.
 //!
 //! Text input goes through X input methods (XIM), as upstream; the D-Bus
 //! screensaver inhibition, system theme and taskbar progress come from
@@ -39,6 +34,8 @@ pub(crate) mod keyboard;
 pub(crate) mod messagebox;
 pub(crate) mod modes;
 pub(crate) mod mouse;
+pub(crate) mod opengl;
+pub(crate) mod opengles;
 pub(crate) mod pen;
 pub(crate) mod settings;
 pub(crate) mod shape;
