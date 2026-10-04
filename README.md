@@ -3,7 +3,12 @@
 A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.com/libsdl-org/SDL) 3**.
 
 * 100% Rust. No C code, no `build.rs` compiling anything, no `bindgen`.
-* The platform-independent core has **zero third-party dependencies**.
+* The platform-independent core has **zero third-party dependencies**. The
+  platform layer reaches the OS only through the pure-Rust declarations of
+  [`libc`](https://crates.io/crates/libc) and
+  [`windows-sys`](https://crates.io/crates/windows-sys), and loads system
+  libraries (X11, Wayland, ALSA, ...) at run time as upstream does. Nothing
+  links to or loads the C SDL.
 * The **implementation** is translated line by line: same algorithms, same
   constants and tables, same error strings, same quirks.
 * The **API** is designed as a Rust library, not a mock-up of the C one:
@@ -37,7 +42,9 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `SDL_utils.c` (core helpers) | `sdl3::utils` | GCD, best-rational-approximation, device names |
 | `atomic/SDL_spinlock.c` | `sdl3::atomic` | `SpinLock<T>` with a guard |
 | `SDL_assert.c`, `SDL_assert.h` | `sdl3::assert` | `sdl_assert!`/`sdl_assert_release!`/`sdl_assert_paranoid!`/`sdl_assert_always!`, levels via Cargo features, closure handlers, the report, the `SDL_ASSERT` hint, breakpoints |
-| `thread/SDL_thread.c`, generic sync primitives | `sdl3::thread` | `Thread`/`ThreadBuilder` (status, state, detach), `TlsId` with destructors, `Semaphore`, `ReentrantMutex<T>`, `InitState`, thread IDs |
+| `thread/SDL_thread.c`, generic sync primitives, the pthread/Windows priorities, `core/linux/SDL_threadprio.c` | `sdl3::thread` | `Thread`/`ThreadBuilder` (status, state, detach), `TlsId` with destructors, `Semaphore`, `ReentrantMutex<T>`, `InitState`, thread IDs, `set_current_thread_priority` (scheduler policy hints, Linux nice levels) |
+| `loadso/` (dlopen, Windows) | `sdl3::loadso` | `SharedObject` with `Drop`, typed `function::<F>()` |
+| `core/unix/SDL_poll.c`, `SDL_appid.c`, `core/windows/SDL_windows.c` | `core` (crate-internal) | fd readiness, the app ID; Win32/HRESULT errors, COM/WinRT init, version and Wine checks, UTF-16 conversion, the DirectInput helper window, icons from surfaces, audio device names |
 | `cpuinfo/SDL_cpuinfo.c` | `sdl3::cpuinfo` | `CpuFeatures`, CPUID cache-line rules, core count, RAM, page size, the feature-mask hint, SIMD alignment |
 | `libm/` (fdlibm) + `SDL_stdlib.c` math | `sdl3::stdlib::math` | `sin`…`pow`, `fmod`, `sqrt`, `floor`, `scalbn`, `modf`, f32 variants; bit-identical to SDL's own build, checked by hashing outputs against compiled upstream C |
 | `stdlib/SDL_string.c` (UTF-8, case folding, number parsing), `SDL_iconv.c`, `SDL_getenv.c` | `sdl3::stdlib` | `step_utf8`/`codepoints`, `case_fold_unicode` (tables generated from upstream), `strcasecmp`, `strtol` family with upstream quirks, `Iconv` with all 29 encodings, `Environment` snapshots |
@@ -86,10 +93,10 @@ patched the same way. The ones not fixed yet are marked `FIXME (upstream)` and
 tracked in issues. Where the C code would read or write out of bounds, the
 Rust code returns an error instead.
 
-Not yet translated from these files: the SIGINT/SIGTERM handlers of
-`SDL_quit.c` (platform layer); the GPU render state and the window
+Not yet translated from these files: the GPU render state and the window
 texture behind renderer vsync for window surfaces; the
-OpenGL/EGL and Vulkan loaders and the GPU-texture window framebuffer; thread priorities (platform layer); the Windows
+OpenGL/EGL and Vulkan loaders and the GPU-texture window framebuffer; the RealtimeKit fallback for thread
+priorities (with D-Bus); the Windows
 known-folder lookups and the io_uring/IoRing async backends; the platform
 audio, haptic and camera drivers and the tray, notification and portal
 dialog backends; the NEON, LSX and

@@ -231,12 +231,176 @@ impl Drop for Thread {
     }
 }
 
-/// Set the priority for the current thread. Translation of `SDL_SetCurrentThreadPriority()`.
+/// Set the priority for the current thread. Translation of
+/// `SDL_SetCurrentThreadPriority()` and `SDL_SYS_SetThreadPriority()`.
 ///
-/// Priorities need the platform layer (`setpriority`/RealtimeKit on Linux,
-/// `SetThreadPriority` on Windows); until it exists this reports
-/// [`Unsupported`](crate::ErrorKind::Unsupported) rather than pretending.
-pub fn set_current_thread_priority(_priority: ThreadPriority) -> Result<()> {
+/// On Unix the scheduler policy follows `SDL_HINT_THREAD_PRIORITY_POLICY`
+/// and `SDL_HINT_THREAD_FORCE_REALTIME_TIME_CRITICAL`; on Linux the priority
+/// is a nice level (or a realtime priority for `SCHED_RR`/`SCHED_FIFO`) set
+/// with `setpriority()`. Raising the priority usually needs privileges; the
+/// error is then "setpriority() failed" (or "pthread_setschedparam()
+/// failed"), as upstream reports it when RealtimeKit refuses too.
+pub fn set_current_thread_priority(priority: ThreadPriority) -> Result<()> {
+    sys_set_thread_priority(priority)
+}
+
+#[cfg(unix)]
+fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
+    use crate::hints;
+    // SAFETY: pthread_self() has no preconditions.
+    let thread = unsafe { libc::pthread_self() };
+    let policyhint = hints::get(hints::THREAD_PRIORITY_POLICY);
+    let timecritical_realtime_hint =
+        hints::get_bool(hints::THREAD_FORCE_REALTIME_TIME_CRITICAL, false);
+
+    let mut policy: libc::c_int = 0;
+    // SAFETY: sched_param is plain data; both out-pointers are valid.
+    let mut sched: libc::sched_param = unsafe { std::mem::zeroed() };
+    // SAFETY: as above.
+    if unsafe { libc::pthread_getschedparam(thread, &mut policy, &mut sched) } != 0 {
+        return Err(Error::new("pthread_getschedparam() failed"));
+    }
+
+    /* Higher priority levels may require changing the pthread scheduler policy
+     * for the thread.  SDL will make such changes by default but there is
+     * also a hint allowing that behavior to be overridden. */
+    let mut pri_policy = match priority {
+        ThreadPriority::Low | ThreadPriority::Normal => libc::SCHED_OTHER,
+        // Apple requires SCHED_RR for high priority threads
+        ThreadPriority::High | ThreadPriority::TimeCritical if cfg!(target_vendor = "apple") => {
+            libc::SCHED_RR
+        }
+        ThreadPriority::High | ThreadPriority::TimeCritical => libc::SCHED_OTHER,
+    };
+
+    if timecritical_realtime_hint && priority == ThreadPriority::TimeCritical {
+        pri_policy = libc::SCHED_RR;
+    }
+
+    policy = match policyhint.as_deref() {
+        Some("current") => policy, // Leave current thread scheduler policy unchanged
+        Some("other") => libc::SCHED_OTHER,
+        Some("rr") => libc::SCHED_RR,
+        Some("fifo") => libc::SCHED_FIFO,
+        _ => pri_policy,
+    };
+
+    #[cfg(target_os = "linux")]
+    {
+        let _ = sched;
+        // SAFETY: gettid has no preconditions.
+        let linux_tid = unsafe { libc::syscall(libc::SYS_gettid) };
+        set_linux_thread_priority_and_policy(linux_tid, priority, policy)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        // SAFETY: sched_get_priority_min/max take a policy constant.
+        let (min_priority, max_priority) = unsafe {
+            (
+                libc::sched_get_priority_min(policy),
+                libc::sched_get_priority_max(policy),
+            )
+        };
+        sched.sched_priority = match priority {
+            ThreadPriority::Low => min_priority,
+            ThreadPriority::TimeCritical => max_priority,
+            // Apple has a specific set of thread priorities
+            _ if cfg!(target_vendor = "apple") && min_priority == 15 && max_priority == 47 => {
+                if priority == ThreadPriority::High {
+                    45
+                } else {
+                    37
+                }
+            }
+            _ => {
+                let mut p = min_priority + (max_priority - min_priority) / 2;
+                if priority == ThreadPriority::High {
+                    p += (max_priority - min_priority) / 4;
+                }
+                p
+            }
+        };
+        // SAFETY: sched is a valid sched_param for this policy.
+        if unsafe { libc::pthread_setschedparam(thread, policy, &sched) } != 0 {
+            return Err(Error::new("pthread_setschedparam() failed"));
+        }
+        Ok(())
+    }
+}
+
+/// The maximum realtime priority (RealtimeKit's `MaxRealtimePriority`
+/// default, used without it).
+#[cfg(target_os = "linux")]
+const RTKIT_MAX_REALTIME_PRIORITY: i32 = 99;
+
+/// Set a Linux thread's nice level. Translation of
+/// `SDL_SetLinuxThreadPriority()` (`core/linux/SDL_threadprio.c`), without
+/// the RealtimeKit fallback, which needs D-Bus.
+#[cfg(target_os = "linux")]
+pub fn set_linux_thread_priority(thread_id: i64, priority: i32) -> Result<()> {
+    // SAFETY: setpriority takes plain integers.
+    if unsafe { libc::setpriority(libc::PRIO_PROCESS, thread_id as libc::id_t, priority) } == 0 {
+        return Ok(());
+    }
+    Err(Error::new("setpriority() failed"))
+}
+
+/// Set a Linux thread's priority for a scheduler policy. Translation of
+/// `SDL_SetLinuxThreadPriorityAndPolicy()` (`core/linux/SDL_threadprio.c`),
+/// without the RealtimeKit fallback, which needs D-Bus.
+#[cfg(target_os = "linux")]
+pub fn set_linux_thread_priority_and_policy(
+    thread_id: i64,
+    sdl_priority: ThreadPriority,
+    sched_policy: i32,
+) -> Result<()> {
+    if sched_policy == libc::SCHED_RR || sched_policy == libc::SCHED_FIFO {
+        // Realtime priorities are only granted by RealtimeKit
+        // (MakeThreadRealtimeWithPID), which needs D-Bus.
+        let _os_priority = match sdl_priority {
+            ThreadPriority::Low => 1,
+            ThreadPriority::High => RTKIT_MAX_REALTIME_PRIORITY * 3 / 4,
+            ThreadPriority::TimeCritical => RTKIT_MAX_REALTIME_PRIORITY,
+            ThreadPriority::Normal => RTKIT_MAX_REALTIME_PRIORITY / 2,
+        };
+    } else {
+        let os_priority = match sdl_priority {
+            ThreadPriority::Low => 19,
+            ThreadPriority::High => -10,
+            ThreadPriority::TimeCritical => -20,
+            ThreadPriority::Normal => 0,
+        };
+        // SAFETY: setpriority takes plain integers.
+        if unsafe { libc::setpriority(libc::PRIO_PROCESS, thread_id as libc::id_t, os_priority) }
+            == 0
+        {
+            return Ok(());
+        }
+    }
+    Err(Error::new("setpriority() failed"))
+}
+
+#[cfg(windows)]
+fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
+    use windows_sys::Win32::System::Threading::{
+        GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_HIGHEST, THREAD_PRIORITY_LOWEST,
+        THREAD_PRIORITY_NORMAL, THREAD_PRIORITY_TIME_CRITICAL,
+    };
+    let value = match priority {
+        ThreadPriority::Low => THREAD_PRIORITY_LOWEST,
+        ThreadPriority::High => THREAD_PRIORITY_HIGHEST,
+        ThreadPriority::TimeCritical => THREAD_PRIORITY_TIME_CRITICAL,
+        ThreadPriority::Normal => THREAD_PRIORITY_NORMAL,
+    };
+    // SAFETY: GetCurrentThread returns a pseudo-handle valid for this call.
+    if unsafe { SetThreadPriority(GetCurrentThread(), value) } == 0 {
+        return Err(crate::core::windows::set_error("SetThreadPriority()"));
+    }
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
+fn sys_set_thread_priority(_priority: ThreadPriority) -> Result<()> {
     Err(Error::unsupported())
 }
 
@@ -298,12 +462,40 @@ mod tests {
 
         let t = Thread::spawn("panics", || panic!("expected test panic")).unwrap();
         assert_eq!(t.wait(), -1);
+    }
 
-        assert_eq!(
-            set_current_thread_priority(ThreadPriority::High)
-                .unwrap_err()
-                .kind(),
-            crate::ErrorKind::Unsupported
-        );
+    #[test]
+    fn priorities() {
+        let _l = crate::test_support::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let t = Thread::spawn("priorities", || {
+            // Lowering is always allowed; raising may need privileges, and
+            // then fails with upstream's message.
+            set_current_thread_priority(ThreadPriority::Low).unwrap();
+            #[cfg(target_os = "linux")]
+            {
+                // SAFETY: getpriority takes plain integers.
+                let tid = unsafe { libc::syscall(libc::SYS_gettid) };
+                // SAFETY: as above.
+                assert_eq!(
+                    unsafe { libc::getpriority(libc::PRIO_PROCESS, tid as libc::id_t) },
+                    19
+                );
+            }
+            match set_current_thread_priority(ThreadPriority::High) {
+                Ok(()) => {}
+                Err(e) => assert!(
+                    ["setpriority() failed", "pthread_setschedparam() failed"]
+                        .contains(&e.message())
+                        || e.message().starts_with("SetThreadPriority()"),
+                    "{}",
+                    e.message()
+                ),
+            }
+            0
+        })
+        .unwrap();
+        assert_eq!(t.wait(), 0);
     }
 }

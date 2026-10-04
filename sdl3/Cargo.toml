@@ -27,5 +27,30 @@ assert-level-2 = []
 assert-level-3 = []
 
 [dependencies]
-# Intentionally empty. The translation is 100% Rust with no C code and,
-# for the platform-independent core, no third-party crates.
+# The platform-independent core uses no third-party crates. The platform
+# layer reaches the OS through the pure-Rust declarations of `libc` and
+# `windows-sys` (no C is compiled); everything else SDL loads at run time
+# (X11, Wayland, ALSA, PulseAudio, ...) is declared by hand and dlopen'd,
+# as upstream does.
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.170"
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.61"
+features = [
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_Graphics_Gdi",
+    "Win32_Media_Audio",
+    "Win32_Security",
+    "Win32_System_Com",
+    "Win32_System_Console",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Registry",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+]

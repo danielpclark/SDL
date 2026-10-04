@@ -24,7 +24,8 @@
 //! upstream `src/`.
 //!
 //! This crate contains **no C code** and the platform-independent core has
-//! **no third-party dependencies**. See `docs/ROADMAP.md` in the repository
+//! **no third-party dependencies**; the platform layer uses only the
+//! pure-Rust OS declarations of `libc` and `windows-sys`. See `docs/ROADMAP.md` in the repository
 //! for what is translated so far and the plan for the rest of SDL and its
 //! satellite libraries.
 
@@ -36,6 +37,7 @@ pub mod assert;
 pub mod atomic;
 pub mod audio;
 pub mod camera;
+mod core;
 pub mod cpuinfo;
 pub mod dialog;
 pub mod error;
@@ -47,6 +49,7 @@ pub mod hints;
 pub mod init;
 pub mod io;
 pub mod joystick;
+pub mod loadso;
 pub mod locale;
 pub mod log;
 pub mod misc;
