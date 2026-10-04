@@ -624,34 +624,33 @@ fn get_yuv_planes(
 ) -> Result<YuvPlanes> {
     let mut planes = [0usize; 3];
     let mut pitches = [0usize; 3];
-    let extent;
     let bpp = format.bytes_per_pixel() as usize;
 
-    match format {
+    let extent = match format {
         PixelFormat::YV12 | PixelFormat::IYUV | PixelFormat::I0FL => {
             pitches[0] = yuv_pitch;
             pitches[1] = ((pitches[0] / bpp).div_ceil(2)) * bpp;
             pitches[2] = pitches[1];
             planes[1] = planes[0] + pitches[0] * height;
             planes[2] = planes[1] + pitches[1] * height.div_ceil(2);
-            extent = planes[2] + pitches[2] * height.div_ceil(2);
+            planes[2] + pitches[2] * height.div_ceil(2)
         }
         PixelFormat::YUY2 | PixelFormat::UYVY | PixelFormat::YVYU => {
             pitches[0] = yuv_pitch;
-            extent = pitches[0] * height;
+            pitches[0] * height
         }
         PixelFormat::NV12 | PixelFormat::NV21 => {
             pitches[0] = yuv_pitch;
             pitches[1] = 2 * pitches[0].div_ceil(2);
             planes[1] = planes[0] + pitches[0] * height;
-            extent = planes[1] + pitches[1] * height.div_ceil(2);
+            planes[1] + pitches[1] * height.div_ceil(2)
         }
         PixelFormat::P010 => {
             pitches[0] = yuv_pitch;
             let uv_width = width.div_ceil(2) * 2;
             pitches[1] = pitches[0].max(uv_width * 2);
             planes[1] = planes[0] + pitches[0] * height;
-            extent = planes[1] + pitches[1] * height.div_ceil(2);
+            planes[1] + pitches[1] * height.div_ceil(2)
         }
         PixelFormat::I444 | PixelFormat::I4FL => {
             pitches[0] = yuv_pitch;
@@ -659,7 +658,7 @@ fn get_yuv_planes(
             pitches[2] = pitches[1];
             planes[1] = planes[0] + pitches[0] * height;
             planes[2] = planes[1] + pitches[1] * height;
-            extent = planes[2] + pitches[2] * height;
+            planes[2] + pitches[2] * height
         }
         _ => {
             return Err(Error::new(format!(
@@ -667,7 +666,7 @@ fn get_yuv_planes(
                 format.name()
             )));
         }
-    }
+    };
 
     let (y, u, v, y_stride, uv_stride) = match format {
         PixelFormat::YV12 => (planes[0], planes[2], planes[1], pitches[0], pitches[1]),

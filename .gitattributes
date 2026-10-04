@@ -1,0 +1,4 @@
+# Check out text files with LF line endings everywhere: tests embed text
+# fixtures (testdata/*.txt) with include_str! and compare them byte for
+# byte, which CRLF checkouts on Windows would break.
+* text=auto eol=lf

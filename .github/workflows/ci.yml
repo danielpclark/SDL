@@ -13,7 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The pinned toolchain the lints, docs and main tests run on, so a new Rust
+# release (and its new lints) can't turn CI red on its own. Bump it on
+# purpose, fixing what the new clippy finds in the same change.
 env:
+  RUST_TOOLCHAIN: "1.99"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
@@ -23,9 +27,10 @@ jobs:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rustfmt
       - run: cargo fmt --all --check
 
@@ -37,9 +42,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
@@ -50,29 +56,32 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        # stable, and the minimum supported version (rust-version in Cargo.toml)
-        toolchain: [stable, "1.87"]
+        # the pinned toolchain, and the minimum supported version
+        # (rust-version in Cargo.toml)
+        toolchain: [pinned, "1.87"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: ${{ matrix.toolchain == 'pinned' && env.RUST_TOOLCHAIN || matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.toolchain }}
       - run: cargo test --workspace
       - name: cargo test --release
-        if: matrix.toolchain == 'stable'
+        if: matrix.toolchain == 'pinned'
         run: cargo test --workspace --release
 
   doc:
     name: rustdoc
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --no-deps
         env:

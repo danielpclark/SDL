@@ -1665,9 +1665,7 @@ fn private_load_button_mapping(instance_id: JoystickID, mapping_id: u64) {
     let found = with_gamepad(instance_id, |g| {
         g.name = name;
         g.mapping = mapping_id;
-        for slot in &mut g.last_match_axis {
-            *slot = None;
-        }
+        g.last_match_axis.fill(None);
         g.gamepad_type = gamepad_type;
         g.face_style = face_style;
         g.bindings = bindings.clone();
