@@ -577,11 +577,15 @@ mod sys {
     /// The paths in zenity's output, one per line. Reading from a process
     /// often leaves a trailing `\n`, so the last one is ignored.
     ///
-    /// FIXME (upstream): an empty output (a canceled dialog) reports one
-    /// empty path rather than none.
+    /// Upstream always reports the text before the first `\n` as a path, so
+    /// an empty output (a canceled dialog) gives one empty path; here it
+    /// gives none, the documented result for a canceled dialog.
     pub(super) fn split_output(container: &[u8]) -> Vec<String> {
         let text = String::from_utf8_lossy(container);
         let text = text.strip_suffix('\n').unwrap_or(&text);
+        if text.is_empty() {
+            return Vec::new();
+        }
         text.split('\n').map(str::to_string).collect()
     }
 
@@ -723,7 +727,10 @@ mod tests {
             "failed to get zenity major version number"
         );
         assert_eq!(sys::split_output(b"/a\n/b\n"), ["/a", "/b"]);
-        assert_eq!(sys::split_output(b""), [""]);
+        assert_eq!(sys::split_output(b"/a"), ["/a"]);
+        // A canceled dialog prints nothing: no files were chosen
+        assert_eq!(sys::split_output(b""), Vec::<String>::new());
+        assert_eq!(sys::split_output(b"\n"), Vec::<String>::new());
 
         let options = FileDialogOptions {
             filters: vec![DialogFileFilter::new("Text|Docs", "txt")],
