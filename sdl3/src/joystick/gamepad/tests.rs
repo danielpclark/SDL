@@ -26,6 +26,30 @@ fn mapping_string_fields() {
 }
 
 #[test]
+fn created_mapping_strings() {
+    let _lock = lock_joysticks();
+    let platform = crate::init::platform();
+    let guid = Guid::ZERO;
+    assert_eq!(
+        create_mapping_string("Pad", "a:b0", guid),
+        format!("{guid},Pad,a:b0,platform:{platform},")
+    );
+    assert_eq!(
+        create_mapping_string("Pad", "a:b0,", guid),
+        format!("{guid},Pad,a:b0,platform:{platform},")
+    );
+    // An empty mapping gets no empty field before the platform
+    assert_eq!(
+        create_mapping_string("Pad", "", guid),
+        format!("{guid},Pad,platform:{platform},")
+    );
+    assert_eq!(
+        create_mapping_string("Pad", "a:b0,platform:Other,", guid),
+        format!("{guid},Pad,a:b0,platform:Other,")
+    );
+}
+
+#[test]
 fn parse_elements() {
     let _lock = lock_joysticks();
     let mut bindings = Vec::new();

@@ -2227,8 +2227,10 @@ fn create_mapping_string(name: &str, mapping: &str, guid: Guid) -> String {
     let mut mapping_string = format!("{guid},{name},{mapping}");
 
     if !mapping.contains(GAMEPAD_PLATFORM_FIELD) {
-        // FIXME (upstream): an empty mapping reads the byte before the string
-        if !mapping.ends_with(',') {
+        // Upstream checks the mapping's last byte, reading the byte before
+        // the string for an empty mapping (whose name's comma already ends
+        // the string); checking the whole string here gives no `,,`.
+        if !mapping_string.ends_with(',') {
             mapping_string.push(',');
         }
         mapping_string.push_str(GAMEPAD_PLATFORM_FIELD);
