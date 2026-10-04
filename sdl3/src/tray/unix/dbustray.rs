@@ -548,13 +548,24 @@ impl MenuHost for TrayDBus {
 impl TrayBackend for TrayDBus {
     /// Translation of `UpdateTray()`.
     fn update(&self) {
+        // (SDL_ObjectValid(tray, SDL_OBJECT_TYPE_TRAY))
+        let valid = || {
+            self.this.upgrade().is_some_and(|tray| {
+                let tray: Arc<dyn TrayBackend> = tray;
+                super::super::is_tray_valid(&tray)
+            })
+        };
+        if !valid() {
+            return;
+        }
+
         if self.block.load(Ordering::Acquire) {
             return;
         }
 
         self.connection.read_write(0);
         while self.connection.dispatch() {
-            if self.this.upgrade().is_none() {
+            if !valid() {
                 break;
             }
 
