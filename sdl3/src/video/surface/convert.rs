@@ -246,16 +246,18 @@ impl Surface<'_> {
                         tmp.convert_with_colorspace(format, palette.as_ref(), colorspace, props)?;
 
                     // Get the converted colorkey
-                    // FIXME (upstream): this memcpy()s bytes_per_pixel bytes into an
-                    // int, overflowing it for 8- and 16-byte formats; the first four
-                    // bytes are what ends up in the int on a little endian machine.
+                    // (upstream memcpy()s bytes_per_pixel bytes into an int: that
+                    // overflows it for 8- and 16-byte formats, and on big endian
+                    // machines puts 1- to 3-byte pixels in the int's high bytes.
+                    // Fixed here by reading the pixel value as the blitters do;
+                    // wider formats, whose blits ignore the colorkey, keep their
+                    // first four bytes, as upstream gets on little endian.)
                     let bpp = tmp2.fmt.bytes_per_pixel as usize;
-                    let mut ck = [0u8; 4];
-                    let n = bpp.min(4);
-                    if let Some(px) = tmp2.pixels.bytes() {
-                        ck[..n].copy_from_slice(&px[..n]);
-                    }
-                    let converted_colorkey = u32::from_ne_bytes(ck);
+                    let converted_colorkey = match tmp2.pixels.bytes() {
+                        Some(px) if bpp <= 4 => crate::video::blit::retrieve_rgb_pixel(px, 0, bpp),
+                        Some(px) => crate::video::blit::rd32(px, 0),
+                        None => 0,
+                    };
 
                     // Set the converted colorkey on the new surface
                     let _ = convert.set_color_key(Some(converted_colorkey));
