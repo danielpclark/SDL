@@ -385,7 +385,7 @@ fn build_wav(
         if adpcm == 1 {
             // MS ADPCM: predictor bytes at the start of each block
             if o < channels as u32 {
-                b = (rng.rnd() % 7) as u8; // (index 7 hits the upstream off-by-one, undefined in C)
+                b = (rng.rnd() % 7) as u8; // (index 7 is out of range; upstream's off-by-one reads past the coefficients there)
             }
         } else if adpcm == 2 {
             // IMA: step index and reserved byte
@@ -531,6 +531,38 @@ fn wave_loader_matches_upstream() {
     crate::hints::reset(crate::hints::WAVE_TRUNCATION);
     crate::hints::reset(crate::hints::WAVE_FACT_CHUNK);
     assert_eq!(h.0, 0x19b9203dc4f4c004);
+}
+
+#[test]
+fn ms_adpcm_rejects_out_of_range_coefficient_index() {
+    let _l = crate::test_support::test_lock();
+    crate::hints::reset(crate::hints::WAVE_TRUNCATION);
+    crate::hints::reset(crate::hints::WAVE_FACT_CHUNK);
+    let coeffs: [i16; 14] = [
+        256, 0, 512, -256, 0, 0, 192, 64, 240, 0, 460, -208, 392, -232,
+    ];
+    let mut msext = [0u8; 32];
+    msext[2] = 7; // seven coefficient pairs: valid indices are 0..=6
+    for (i, c) in coeffs.iter().enumerate() {
+        msext[4 + i * 2..6 + i * 2].copy_from_slice(&c.to_le_bytes());
+    }
+    let mut rng = Rng(9);
+    let mut wav = build_wav(&mut rng, 2, 1, 22050, 256, 4, &msext, None, 256, 1, 0);
+    let data = wav.len() - 256;
+
+    // The last valid index decodes...
+    wav[data] = 6;
+    assert!(load_wav_io(&mut IoStream::from_const_mem(&wav)).is_ok());
+
+    // ...and an index equal to the coefficient count is rejected (upstream
+    // lets it through and reads past the coefficient array).
+    wav[data] = 7;
+    assert_eq!(
+        load_wav_io(&mut IoStream::from_const_mem(&wav))
+            .unwrap_err()
+            .message(),
+        "Invalid MS ADPCM coefficient index in block header"
+    );
 }
 
 #[test]

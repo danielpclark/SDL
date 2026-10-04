@@ -355,9 +355,8 @@ fn ms_adpcm_init(file: &mut WaveFile, datalength: usize) -> Result<()> {
         ));
     }
 
-    // (MS_ADPCM_CoeffData: the pairs, plus one zeroed pair standing in for the
-    // struct padding that the block header check's off-by-one can reach.)
-    let mut coeff = vec![0i16; coeffcount * 2 + 2];
+    // (MS_ADPCM_CoeffData: the coefficient pairs.)
+    let mut coeff = vec![0i16; coeffcount * 2];
 
     // Copy the 16-bit pairs.
     for (i, c_out) in coeff.iter_mut().take(coeffcount * 2).enumerate() {
@@ -448,16 +447,16 @@ fn ms_adpcm_decode_block_header(
     ddata: &[i16],
 ) -> Result<()> {
     let channels = state.channels as usize;
-    let coeffcount = (ddata.len() - 2) / 2;
+    let coeffcount = ddata.len() / 2;
 
     for (c, cs) in cstate.iter_mut().enumerate().take(channels) {
         let mut o = c;
 
         // Load the coefficient pair into the channel state.
         let coeffindex = state.block(o) as usize;
-        // FIXME (upstream): `>` should be `>=`; an index equal to the count
-        // reads the zeroed pad pair after the coefficients.
-        if coeffindex > coeffcount {
+        // (upstream checks `coeffindex > coeffcount`, which lets an index equal
+        // to the count read past the coefficient array; fixed here with `>=`.)
+        if coeffindex >= coeffcount {
             return Err(Error::new(
                 "Invalid MS ADPCM coefficient index in block header",
             ));
