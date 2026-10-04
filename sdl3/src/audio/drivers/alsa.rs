@@ -356,7 +356,8 @@ fn alsa_guess_device_prefix(lib: &AlsaLib) {
             }
             i += 1;
         }
-        // FIXME (upstream): the hint list is never released with snd_device_name_free_hint().
+        // SAFETY: the list came from snd_device_name_hint() and is freed once.
+        unsafe { (lib.snd_device_name_free_hint)(hints) };
     }
 
     if device_prefix.is_none() {
