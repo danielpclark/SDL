@@ -9,6 +9,8 @@ use crate::test_support::TEST_LOCK;
 /// The deduplicated driver list, in upstream's `bootstrap[]` order.
 pub(crate) const EXPECTED_DRIVERS: &[&str] = &[
     #[cfg(target_os = "linux")]
+    "pulseaudio",
+    #[cfg(target_os = "linux")]
     "alsa",
     "disk",
     "dummy",
@@ -16,6 +18,8 @@ pub(crate) const EXPECTED_DRIVERS: &[&str] = &[
 
 /// The drivers that initialize without being asked for by name.
 const NON_DEMAND_ONLY: &[&str] = &[
+    #[cfg(target_os = "linux")]
+    "pulseaudio",
     #[cfg(target_os = "linux")]
     "alsa",
 ];

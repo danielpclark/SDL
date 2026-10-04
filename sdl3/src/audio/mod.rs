@@ -50,7 +50,7 @@
 //! ## Drivers
 //!
 //! The platform drivers are tried in upstream's order ([`audio_driver`]
-//! lists them): on Linux "alsa". Each loads its system library at run
+//! lists them): on Linux "pulseaudio" and "alsa". Each loads its system library at run
 //! time, so a missing library or sound server just moves on to the next
 //! driver. "disk" and "dummy" are only used when requested with the
 //! [`AUDIO_DRIVER`](crate::hints::AUDIO_DRIVER) hint (which may name
