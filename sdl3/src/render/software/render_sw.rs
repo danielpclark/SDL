@@ -968,18 +968,18 @@ impl RenderBackend for SwRenderer {
         SOFTWARE_RENDERER
     }
 
-    fn output_size(&self, textures: &TextureStore) -> Option<Result<(i32, i32)>> {
-        if self.target.is_none() {
-            if let Some(ws) = &self.window_surface {
-                let s = ws.lock();
-                return Some(Ok((s.width(), s.height())));
-            }
+    /// Translation of `SW_GetOutputSize()`. Upstream reports the size of
+    /// data->surface, which is the render target's surface while one is set,
+    /// although SDL_GetRenderOutputSize() is the size of the output ignoring
+    /// render targets (and sizes the main view): with the target kept over a
+    /// window resize, the main view would take the target's size. Fixed
+    /// here: the output's size, whatever the target.
+    fn output_size(&self, _textures: &TextureStore) -> Option<Result<(i32, i32)>> {
+        if let Some(ws) = &self.window_surface {
+            let s = ws.lock();
+            return Some(Ok((s.width(), s.height())));
         }
-        let surface = match self.target {
-            Some(t) => textures.get(t).map(texture_surface),
-            None => self.surface.as_ref(),
-        };
-        Some(match surface {
+        Some(match self.surface.as_ref() {
             Some(s) => Ok((s.width(), s.height())),
             None => match self.window {
                 Some(window) => window.size_in_pixels(),
@@ -1265,12 +1265,11 @@ impl RenderBackend for SwRenderer {
 
     fn window_event(&mut self, event_type: crate::events::EventType) {
         if event_type == crate::events::EventType::WINDOW_PIXEL_SIZE_CHANGED {
-            // FIXME (upstream): data->surface is also the render target's
-            // surface while one is set, so the target is dropped too: until
-            // the app sets a target again, drawing goes to the window and
-            // the output size is the window's.
+            // Upstream drops data->surface, which is also the render
+            // target's surface while one is set, so the target is dropped
+            // too: until the app sets a target again, drawing goes to the
+            // window. Fixed here: the target is kept.
             self.surface = None;
-            self.target = None;
             self.window_surface = None;
         }
     }
