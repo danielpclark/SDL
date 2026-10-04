@@ -40,10 +40,11 @@ fn strlcat(dst: &mut String, src: &str, buflen: usize) {
 
 /// Translation of `build_locales_from_csv_string()`.
 ///
-/// FIXME (upstream): the count is the number of commas plus one, so a
-/// trailing comma reports an entry with no language (here an empty one),
-/// and an empty entry swallows the comma that follows it, leaving the count
-/// past the last entry (here the list stops at the last entry parsed).
+/// Upstream counts the commas plus one, and starts each language one byte
+/// past its first character, so an empty entry swallows the comma that
+/// follows it and a trailing comma reports a slot with no language. Here
+/// each entry starts at its first character and only the entries that have
+/// a language are reported.
 fn build_locales_from_csv_string(csv: &str) -> Vec<Locale> {
     let bytes = csv.as_bytes();
     let mut ptr = bytes
@@ -54,11 +55,9 @@ fn build_locales_from_csv_string(csv: &str) -> Vec<Locale> {
         return Vec::new(); // nothing to report
     }
 
-    let num_locales = 1 + bytes[ptr..].iter().filter(|&&c| c == b',').count(); // at least one
-
     // (start, end) of the language and of the country of each entry
     type Span = Option<(usize, usize)>;
-    let mut entries: Vec<(Span, Span)> = vec![(None, None)];
+    let mut entries: Vec<(Span, Span)> = Vec::new();
     loop {
         // parse out the string
         while ptr < bytes.len() && is_space(bytes[ptr]) {
@@ -68,10 +67,10 @@ fn build_locales_from_csv_string(csv: &str) -> Vec<Locale> {
         if ptr == bytes.len() {
             break;
         }
+        entries.push((None, None));
         let entry = entries.len() - 1;
         let mut field_start = ptr;
         let mut in_country = false;
-        ptr += 1;
         let mut field_end = None;
         loop {
             let ch = bytes.get(ptr).copied().unwrap_or(0);
@@ -98,19 +97,21 @@ fn build_locales_from_csv_string(csv: &str) -> Vec<Locale> {
                 }
                 if ch == b',' {
                     ptr += 1;
-                    entries.push((None, None));
                 }
                 break;
             } else {
                 ptr += 1; // just keep going, still a valid string
             }
         }
+        // only report the entries that have a language
+        if !entries[entry].0.is_some_and(|(start, end)| start < end) {
+            entries.pop();
+        }
     }
 
     let text = |span: (usize, usize)| String::from_utf8_lossy(&bytes[span.0..span.1]).into_owned();
     entries
         .into_iter()
-        .take(num_locales)
         .map(|(language, country)| Locale {
             language: language.map(text).unwrap_or_default(),
             country: country.map(text),
@@ -243,37 +244,47 @@ mod tests {
             build_locales_from_csv_string("en_US, fr ,de_CH"),
             vec![l("en", Some("US")), l("fr", None), l("de", Some("CH"))]
         );
+        // A trailing comma adds no entry
         assert_eq!(
             build_locales_from_csv_string("pt_BR,"),
-            vec![l("pt", Some("BR")), l("", None)]
+            vec![l("pt", Some("BR"))]
         );
+        // An empty entry doesn't swallow the comma after it
         assert_eq!(
             build_locales_from_csv_string("en x_US,,fr"),
-            vec![l("en", Some("US")), l(",fr", None)]
+            vec![l("en", Some("US")), l("fr", None)]
         );
         assert_eq!(
             build_locales_from_csv_string("a_b_c"),
             vec![l("a", Some("c"))]
         );
+        assert_eq!(build_locales_from_csv_string(",,"), vec![]);
     }
 
-    /// The results of upstream's `SDL_GetPreferredLocales()` with these hint
-    /// values (a missing language printed as an empty one).
+    /// The results of `SDL_GetPreferredLocales()` with these hint values,
+    /// from upstream with `build_locales_from_csv_string()` fixed the same
+    /// way (each entry starting at its first character, and only the entries
+    /// with a language reported and counted).
     #[test]
     fn csv_matches_c() {
-        let cases: [(&str, &str); 12] = [
+        let cases: [(&str, &str); 17] = [
             ("  ", ""),
             ("en_US, fr ,de_CH", "(en|US) (fr|-) (de|CH)"),
-            ("pt_BR,", "(pt|BR) (|-)"),
-            ("en x_US,,fr", "(en|US) (,fr|-)"),
+            ("pt_BR,", "(pt|BR)"),
+            ("en x_US,,fr", "(en|US) (fr|-)"),
             ("a_b_c", "(a|c)"),
-            (" _x", "(_x|-)"),
-            ("x_ y_z,", "(x|z) (|-)"),
+            (" _x", ""),
+            ("x_ y_z,", "(x|z)"),
             ("ab\tcd_EF gh,ij", "(ab|EF) (ij|-)"),
             ("", ""),
-            ("_", "(_|-)"),
-            (",", "(,|-)"),
+            ("_", ""),
+            (",", ""),
             ("a,b,c,d", "(a|-) (b|-) (c|-) (d|-)"),
+            (",en_GB", "(en|GB)"),
+            ("en , ,fr_CA", "(en|-) (fr|CA)"),
+            ("_x,de", "(de|-)"),
+            (",,", ""),
+            ("fr_", "(fr|)"),
         ];
         for (csv, expected) in cases {
             let got: Vec<String> = build_locales_from_csv_string(csv)
