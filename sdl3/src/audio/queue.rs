@@ -473,8 +473,12 @@ impl AudioQueue {
             track.head += src_present_bytes;
             let ptr = &track.data.bytes()[start..start + total];
 
-            // Do we still need to copy/convert the data?
-            if dst_given || convert {
+            // Do we still need to copy/convert the data? (upstream only
+            // checks for a dst buffer here, so with no dst and no format
+            // change it hands back the raw track data and the source channel
+            // map is never applied, unlike on the piecewise path below; fixed
+            // here by also converting when there is a source map.)
+            if dst_given || convert || src_map.is_some() {
                 let frames = past_frames + present_frames + future_frames;
                 match &mut out {
                     Out::Same(buf) => convert_audio(
@@ -505,9 +509,6 @@ impl AudioQueue {
                     ),
                 }
             } else if let Out::Same(buf) = &mut out {
-                // FIXME (upstream): this path hands back the raw track data,
-                // so a source channel map is not applied here (the
-                // piecewise path below does apply it).
                 buf[..total].copy_from_slice(ptr);
             }
             return Ok(());

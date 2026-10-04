@@ -566,6 +566,40 @@ fn ms_adpcm_rejects_out_of_range_coefficient_index() {
 }
 
 #[test]
+fn input_channel_map_applies_when_resampling_float() {
+    // F32 in, F32 out at half the rate: the queue is read with no dst buffer,
+    // no format change and unit gain, so the single-track fast path is taken
+    // once the read position has moved past the resampler's padding.
+    let src = AudioSpec::new(AudioFormat::F32, 2, 48000);
+    let dst = AudioSpec::new(AudioFormat::F32, 2, 24000);
+    let mut rng = Rng(11);
+    let frames = 4000;
+    let samples: Vec<f32> = (0..frames * 2).map(|_| rng.float()).collect();
+    let swapped: Vec<f32> = samples.chunks_exact(2).flat_map(|f| [f[1], f[0]]).collect();
+    let bytes = |v: &[f32]| v.iter().flat_map(|x| x.to_ne_bytes()).collect::<Vec<u8>>();
+
+    let run = |data: &[u8], map: Option<&[i32]>| {
+        let s = stream_surviving_quit(Some(&src), Some(&dst));
+        s.set_input_channel_map(map).unwrap();
+        s.put_data(data).unwrap();
+        let mut out = Vec::new();
+        let mut buf = [0u8; 800];
+        for _ in 0..6 {
+            let n = s.get_data(&mut buf).unwrap();
+            out.extend_from_slice(&buf[..n]);
+        }
+        out
+    };
+
+    // Swapping the channels with an input map must match feeding data whose
+    // channels are already swapped, on every read.
+    let mapped = run(&bytes(&samples), Some(&[1, 0]));
+    let preswapped = run(&bytes(&swapped), None);
+    assert_eq!(mapped.len(), 6 * 800);
+    assert_eq!(mapped, preswapped);
+}
+
+#[test]
 fn stream_api_behaviour() {
     let s16 = AudioSpec::new(AudioFormat::S16, 2, 48000);
     let s = stream_surviving_quit(Some(&s16), None);
