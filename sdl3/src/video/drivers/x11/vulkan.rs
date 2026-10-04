@@ -7,6 +7,8 @@
 //! Vulkan surfaces for X11 windows: through `VK_KHR_xlib_surface`, or
 //! `VK_KHR_xcb_surface` with the XCB connection of the display (from
 //! libX11-xcb, loaded at run time like the Vulkan loader).
+//!
+//! The parts of SDL_vulkan_utils.c are shared with the Wayland driver.
 
 use std::ffi::{c_char, c_ulong, c_void, CStr, CString};
 
@@ -27,12 +29,12 @@ const DEFAULT_VULKAN: &str = "libvulkan.so.1";
 #[cfg(not(target_os = "openbsd"))]
 const DEFAULT_X11_XCB: &str = "libX11-xcb.so.1";
 
-const VK_KHR_SURFACE_EXTENSION_NAME: &str = "VK_KHR_surface";
+pub(crate) const VK_KHR_SURFACE_EXTENSION_NAME: &str = "VK_KHR_surface";
 const VK_KHR_XCB_SURFACE_EXTENSION_NAME: &str = "VK_KHR_xcb_surface";
 const VK_KHR_XLIB_SURFACE_EXTENSION_NAME: &str = "VK_KHR_xlib_surface";
 
-type VkResult = i32;
-const VK_SUCCESS: VkResult = 0;
+pub(crate) type VkResult = i32;
+pub(crate) const VK_SUCCESS: VkResult = 0;
 const VK_ERROR_INCOMPATIBLE_DRIVER: VkResult = -9;
 
 const VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR: i32 = 1000004000;
@@ -40,7 +42,7 @@ const VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR: i32 = 1000005000;
 
 /// `VkExtensionProperties`.
 #[repr(C)]
-struct VkExtensionProperties {
+pub(crate) struct VkExtensionProperties {
     extension_name: [c_char; 256],
     spec_version: u32,
 }
@@ -65,8 +67,9 @@ struct VkXlibSurfaceCreateInfoKHR {
     window: Window,
 }
 
-type PfnVkGetInstanceProcAddr = unsafe extern "C" fn(*mut c_void, *const c_char) -> *mut c_void;
-type PfnVkEnumerateInstanceExtensionProperties =
+pub(crate) type PfnVkGetInstanceProcAddr =
+    unsafe extern "C" fn(*mut c_void, *const c_char) -> *mut c_void;
+pub(crate) type PfnVkEnumerateInstanceExtensionProperties =
     unsafe extern "C" fn(*const c_char, *mut u32, *mut VkExtensionProperties) -> VkResult;
 type PfnVkCreateXcbSurfaceKHR = unsafe extern "C" fn(
     *mut c_void,
@@ -80,7 +83,7 @@ type PfnVkCreateXlibSurfaceKHR = unsafe extern "C" fn(
     *const c_void,
     *mut u64,
 ) -> VkResult;
-type PfnVkDestroySurfaceKHR = unsafe extern "C" fn(*mut c_void, u64, *const c_void);
+pub(crate) type PfnVkDestroySurfaceKHR = unsafe extern "C" fn(*mut c_void, u64, *const c_void);
 type PfnVkGetPhysicalDeviceXcbPresentationSupportKHR =
     unsafe extern "C" fn(*mut c_void, u32, *mut c_void, u32) -> u32;
 type PfnVkGetPhysicalDeviceXlibPresentationSupportKHR =
@@ -109,7 +112,7 @@ impl VulkanData {
 }
 
 /// The name of a `VkResult`. Translation of `SDL_Vulkan_GetResultString()`.
-fn vulkan_get_result_string(result: VkResult) -> &'static str {
+pub(crate) fn vulkan_get_result_string(result: VkResult) -> &'static str {
     match result {
         0 => "VK_SUCCESS",
         1 => "VK_NOT_READY",
@@ -158,7 +161,7 @@ fn vulkan_get_result_string(result: VkResult) -> &'static str {
 
 /// The names of the instance extensions. Translation of
 /// `SDL_Vulkan_CreateInstanceExtensionsList()`.
-fn vulkan_create_instance_extensions_list(
+pub(crate) fn vulkan_create_instance_extensions_list(
     vk_enumerate_instance_extension_properties: PfnVkEnumerateInstanceExtensionProperties,
 ) -> Result<Vec<String>> {
     let mut count: u32 = 0;
@@ -228,7 +231,7 @@ fn vulkan_create_instance_extensions_list(
 /// # Safety
 ///
 /// `F` must be the function's pointer type.
-unsafe fn instance_function<F: Copy>(
+pub(crate) unsafe fn instance_function<F: Copy>(
     get: PfnVkGetInstanceProcAddr,
     instance: usize,
     name: &str,

@@ -9,8 +9,8 @@
 //! The Unix backend prefers the D-Bus OpenURI portal and falls back to
 //! `xdg-open` (on Unix systems other than Apple's, Android and Haiku);
 //! elsewhere the dummy backend reports that the operation is unsupported
-//! until the platform layer arrives. Wayland activation tokens arrive with
-//! the Wayland driver.
+//! until the platform layer arrives. Under Wayland, an activation token is
+//! passed along so that the browser may take focus.
 
 use crate::error::Result;
 
@@ -30,11 +30,10 @@ fn sys_open_url(url: &str) -> Result<()> {
     use crate::process::ProcessBuilder;
     use crate::stdlib::Environment;
 
-    // (Wayland requires an activation token for the browser to take focus:
-    // it arrives with the Wayland driver.)
+    let (activation_token, window_id) = get_activation_token();
 
     // Prefer the D-Bus portal, if available.
-    if crate::core::linux::dbus::open_uri(url, None, None) {
+    if crate::core::linux::dbus::open_uri(url, window_id.as_deref(), activation_token.as_deref()) {
         return Ok(());
     }
 
@@ -42,6 +41,9 @@ fn sys_open_url(url: &str) -> Result<()> {
 
     // Clear LD_PRELOAD so Chrome opens correctly when this application is launched by Steam
     env.unset("LD_PRELOAD")?;
+    if let Some(activation_token) = &activation_token {
+        env.set("XDG_ACTIVATION_TOKEN", activation_token, false)?;
+    }
 
     let _process = ProcessBuilder::new(["xdg-open", url])
         .environment(env)
@@ -49,6 +51,16 @@ fn sys_open_url(url: &str) -> Result<()> {
         .spawn()?;
 
     Ok(())
+}
+
+/// Wayland requires an activation token for the browser to take focus: the
+/// token and the window ID. Translation of `GetActivationToken()`.
+#[cfg(all(
+    unix,
+    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+))]
+fn get_activation_token() -> (Option<String>, Option<String>) {
+    crate::video::drivers::wayland::util::get_activation_token()
 }
 
 #[cfg(not(all(
