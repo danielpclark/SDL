@@ -551,12 +551,12 @@ fn connect_to_pulse_server(lib: &PulseLib) -> Result<Connection> {
         context = unsafe {
             (lib.pa_context_new_with_proplist)(mainloop_api, app_name.as_ptr(), proplist)
         };
+        // SAFETY: a new context copied what it needs; we free our proplist
+        // once, whether or not the context was created.
+        unsafe { (lib.pa_proplist_free)(proplist) };
         if context.is_null() {
-            // FIXME (upstream): the proplist is leaked on this path.
             return Err(Error::new("pa_context_new_with_proplist() failed"));
         }
-        // SAFETY: the context copied what it needs; we free our proplist once.
-        unsafe { (lib.pa_proplist_free)(proplist) };
 
         // SAFETY: the context is live; the userdata (`context_signal`) is
         // kept alive with the context.
