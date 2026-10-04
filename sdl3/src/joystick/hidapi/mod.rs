@@ -2035,7 +2035,7 @@ fn is_device_present(vendor_id: u16, product_id: u16, version: u16, name: Option
 
 /// The product name of a connected device. Translation of
 /// `HIDAPI_GetDeviceProductName()`.
-#[allow(dead_code)] // (used by the DirectInput driver, not translated yet)
+#[cfg_attr(not(windows), allow(dead_code))] // (used by the DirectInput driver)
 pub(crate) fn get_device_product_name(vendor_id: u16, product_id: u16) -> Option<String> {
     let _lock = lock_joysticks();
     devices()
@@ -2046,7 +2046,7 @@ pub(crate) fn get_device_product_name(vendor_id: u16, product_id: u16) -> Option
 
 /// The manufacturer of a connected device. Translation of
 /// `HIDAPI_GetDeviceManufacturerName()`.
-#[allow(dead_code)] // (used by the DirectInput driver, not translated yet)
+#[cfg_attr(not(windows), allow(dead_code))] // (used by the DirectInput driver)
 pub(crate) fn get_device_manufacturer_name(vendor_id: u16, product_id: u16) -> Option<String> {
     let _lock = lock_joysticks();
     devices()

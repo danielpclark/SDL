@@ -192,13 +192,15 @@ fn is_xinput_device(vendor_id: u16, product_id: u16, hid_path: &str) -> bool {
         || (vendor_id == USB_VENDOR_VALVE && product_id == USB_PRODUCT_STEAM_VIRTUAL_GAMEPAD)
 }
 
-/// HIDAPI SEAM: `HIDAPI_GetDeviceManufacturerName()` and
-/// `HIDAPI_GetDeviceProductName()` belong to the HIDAPI joystick driver,
-/// which isn't on this branch yet; until it is, no HIDAPI device is known
-/// (as in a build without `SDL_JOYSTICK_HIDAPI`), and the names come from
-/// DirectInput.
-fn hidapi_device_names(_vendor_id: u16, _product_id: u16) -> (Option<String>, Option<String>) {
-    (None, None)
+/// The manufacturer and product names the HIDAPI driver knows for a
+/// device (`HIDAPI_GetDeviceManufacturerName()` and
+/// `HIDAPI_GetDeviceProductName()`).
+fn hidapi_device_names(vendor_id: u16, product_id: u16) -> (Option<String>, Option<String>) {
+    use crate::joystick::hidapi;
+    (
+        hidapi::get_device_manufacturer_name(vendor_id, product_id),
+        hidapi::get_device_product_name(vendor_id, product_id),
+    )
 }
 
 /// The manufacturer and product names of a device. Translation of
