@@ -8,7 +8,7 @@ use crate::audio::{
     AUDIO_DEVICE_DEFAULT_PLAYBACK, AUDIO_DEVICE_DEFAULT_RECORDING,
 };
 use crate::init::InitFlags;
-use crate::test_support::{TempDir, TEST_LOCK};
+use crate::test_support::TempDir;
 use std::cell::RefCell;
 
 /// A PCM that reports `queries` and records what gets installed.
@@ -205,7 +205,7 @@ fn channel_map_negotiation() {
 
 #[test]
 fn pcm_names() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     for h in [
         crate::hints::AUDIO_ALSA_DEFAULT_DEVICE,
         crate::hints::AUDIO_ALSA_DEFAULT_PLAYBACK_DEVICE,
@@ -250,7 +250,7 @@ fn have_libasound() -> bool {
 
 #[test]
 fn playback_and_recording_through_file_and_null_pcms() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     if !have_libasound() {
         return;
     }

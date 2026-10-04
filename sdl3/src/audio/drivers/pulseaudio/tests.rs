@@ -9,7 +9,7 @@ use crate::audio::{
     AudioStream, AUDIO_DEVICE_DEFAULT_PLAYBACK,
 };
 use crate::init::InitFlags;
-use crate::test_support::{TempDir, TEST_LOCK};
+use crate::test_support::TempDir;
 use std::mem::{offset_of, size_of};
 use std::time::Duration;
 
@@ -155,7 +155,7 @@ fn start_private_server() -> Option<(PrivateServer, String)> {
 
 #[test]
 fn no_server_means_no_driver() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     if std::env::var_os("PULSE_SERVER").is_some() {
         eprintln!("note: PULSE_SERVER is set; not testing the failed connection");
         return;
@@ -185,7 +185,7 @@ fn no_server_means_no_driver() {
 
 #[test]
 fn playback_and_recording_through_a_private_server() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     if load_pulseaudio_library().is_err() {
         eprintln!("note: skipping the PulseAudio server test: libpulse isn't installed");
         return;

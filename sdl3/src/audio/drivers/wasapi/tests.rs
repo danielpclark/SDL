@@ -8,7 +8,7 @@ use crate::audio::{
     AUDIO_DEVICE_DEFAULT_PLAYBACK, AUDIO_DEVICE_DEFAULT_RECORDING,
 };
 use crate::init::InitFlags;
-use crate::test_support::TEST_LOCK;
+
 use std::mem::size_of;
 use std::time::{Duration, Instant};
 
@@ -141,7 +141,7 @@ fn wave_format_rate() {
 
 #[test]
 fn management_thread_runs_tasks_in_order() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     if init_management_thread().is_err() {
         // (COM or IMMDevice unavailable: WASAPI_Init fails the same way.)
         eprintln!("note: WASAPI management thread didn't start");
@@ -170,7 +170,7 @@ fn management_thread_runs_tasks_in_order() {
 
 #[test]
 fn playback_and_recording_when_there_is_an_endpoint() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
     crate::hints::set(crate::hints::AUDIO_DRIVER, "wasapi").unwrap();
     if let Err(e) = crate::init::init_subsystem(InitFlags::AUDIO) {

@@ -4,7 +4,6 @@
 
 use crate::audio::{audio_driver, current_audio_driver, num_audio_drivers};
 use crate::init::InitFlags;
-use crate::test_support::TEST_LOCK;
 
 /// The deduplicated driver list, in upstream's `bootstrap[]` order.
 pub(crate) const EXPECTED_DRIVERS: &[&str] = &[
@@ -84,7 +83,7 @@ fn driver_list_is_in_upstream_order() {
 
 #[test]
 fn bootstrap_falls_through_to_the_next_driver() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
 
     // Which drivers work here, each asked for by name.
     let works: Vec<&str> = EXPECTED_DRIVERS

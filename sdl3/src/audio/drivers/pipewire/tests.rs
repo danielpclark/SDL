@@ -11,7 +11,7 @@ use crate::audio::{
     AudioStream, AUDIO_DEVICE_DEFAULT_PLAYBACK,
 };
 use crate::init::InitFlags;
-use crate::test_support::TEST_LOCK;
+
 use std::time::{Duration, Instant};
 
 fn hex(bytes: &[u8]) -> String {
@@ -351,7 +351,7 @@ fn wait_for(what: &dyn Fn() -> bool) -> bool {
 
 #[test]
 fn playback_recording_and_hotplug_through_a_server() {
-    let _l = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _l = crate::test_support::test_lock();
     if !have_libpipewire() {
         return;
     }
