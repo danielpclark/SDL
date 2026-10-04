@@ -378,17 +378,30 @@ pub(crate) fn add_camera_format(
 // These get used when a device is disconnected or fails. Apps that ignore the
 //  loss notifications will get black frames but otherwise keep functioning.
 
+/// Frames per second a zombie camera assumes when its spec has no usable
+/// framerate.
+const ZOMBIE_FALLBACK_FPS: u32 = 30;
+
+/// How long a zombie camera waits between frames: one frame interval at
+/// the spec's framerate. Part of `ZombieWaitDevice()`.
+fn zombie_frame_delay_ms(spec: &CameraSpec) -> u32 {
+    // (upstream divides by the numerator unchecked: a device whose specs
+    // carry no framerate (0/0, as a device that lists no specs gets) makes
+    // the delay infinite or NaN, and converting that to Uint32 is undefined
+    // behavior, in practice no delay, so the zombie thread spins. Fixed
+    // here by assuming a fallback rate when the framerate isn't positive.)
+    if spec.framerate_numerator <= 0 || spec.framerate_denominator <= 0 {
+        return 1000 / ZOMBIE_FALLBACK_FPS;
+    }
+    // !!! FIXME: this is bad for several reasons (uses double, could be precalculated, doesn't track elapsed time).
+    let duration = spec.framerate_denominator as f64 / spec.framerate_numerator as f64;
+    (duration * 1000.0) as u32
+}
+
 /// Translation of `ZombieWaitDevice()`.
 fn zombie_wait_device(device: &CameraDevice) -> bool {
     if !device.shutdown.load(Ordering::Acquire) {
-        // !!! FIXME: this is bad for several reasons (uses double, could be precalculated, doesn't track elapsed time).
-        let spec = device.actual_spec();
-        let duration = spec.framerate_denominator as f64 / spec.framerate_numerator as f64;
-        let ms = duration * 1000.0;
-        // FIXME (upstream): a zero numerator makes this infinite, and
-        // converting that to Uint32 is undefined behavior; here it is no
-        // delay.
-        let ms = if ms.is_finite() { ms as u32 } else { 0 };
+        let ms = zombie_frame_delay_ms(&device.actual_spec());
         crate::timer::delay(Duration::from_millis(ms as u64));
     }
     true
