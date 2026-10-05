@@ -43,6 +43,7 @@ pub mod dialog;
 pub mod error;
 pub mod events;
 pub mod filesystem;
+pub mod gpu;
 pub mod guid;
 pub mod haptic;
 pub mod hidapi;
