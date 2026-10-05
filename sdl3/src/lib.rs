@@ -201,7 +201,7 @@ pub(crate) mod test_support {
         ("xinput", "an XInput DLL"),
         (
             "gameinput",
-            "a GameInput DLL with the v3 API (the GameInput redistributable)",
+            "a GameInput DLL with the v3 API (the redistributable, or a recent inbox one)",
         ),
         ("wgl", "opengl32.dll with a WGL pixel format and context"),
         ("d3d11", "d3d11.dll and dxgi.dll with a Direct3D 11 device"),
