@@ -1826,8 +1826,11 @@ pub(super) fn create_device(
         memory_allocator: ReentrantMutex::new(RefCell::new(MemoryAllocator::new())),
         memory_properties: prepared.memory_properties,
         queue_family_index: prepared.queue_family_index,
+        claimed_windows: Mutex::new(Vec::with_capacity(1)),
         unified_queue,
-        submit_lock: Mutex::new(()),
+        submit_lock: Mutex::new(Vec::with_capacity(16)),
+        fence_pool: Mutex::new(Vec::with_capacity(4)),
+        command_pools: Mutex::new(HashMap::new()),
         dispose: Mutex::new(PendingDestroys::default()),
         // Initialize caches
         render_pass_hash_table: Mutex::new(HashMap::new()),
@@ -1869,10 +1872,11 @@ impl VulkanRenderer {
     pub(super) fn destroy_device(&mut self) {
         let _ = self.wait_internal();
 
-        // part 2: release the claimed windows (VULKAN_ReleaseWindow) and
-        // wait again.
+        self.release_claimed_windows();
 
-        // part 2: free the submitted command buffers.
+        let _ = self.wait_internal();
+
+        // (the submitted command buffers were cleaned by the wait)
 
         for uniform_buffer in std::mem::take(&mut *super::lock(&self.uniform_buffer_pool)) {
             let buffer = super::lock(&uniform_buffer.state).buffer.clone();
@@ -1885,8 +1889,15 @@ impl VulkanRenderer {
             self.destroy_descriptor_set_cache(descriptor_set_cache);
         }
 
-        // part 2: destroy the fence pool's fences and the command pools
-        // (commandPoolHashTable).
+        for fence in std::mem::take(&mut *super::lock(&self.fence_pool)) {
+            // SAFETY: a fence of the device nothing waits on.
+            unsafe { (self.dev.destroy_fence)(self.logical_device, fence.fence, null()) };
+        }
+
+        for (_, command_pool) in std::mem::take(&mut *super::lock(&self.command_pools)) {
+            // (the hash table's destroy callback)
+            self.destroy_command_pool(command_pool);
+        }
 
         for (_, render_pass) in std::mem::take(&mut *super::lock(&self.render_pass_hash_table)) {
             // SAFETY: a render pass of the device, no longer used.

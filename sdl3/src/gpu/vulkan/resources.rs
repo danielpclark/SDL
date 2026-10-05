@@ -25,15 +25,23 @@ use std::ffi::CString;
 use std::ptr::{null, NonNull};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::thread::ThreadId;
 
+use super::commands::VulkanFenceHandle;
 use super::memory::{RegionResource, UsedRegion};
 use super::pipelines::{
-    FramebufferHashTableKey, VulkanComputePipeline, VulkanFramebuffer, VulkanGraphicsPipeline,
-    VulkanShader,
+    DescriptorSetCache, FramebufferHashTableKey, VulkanComputePipeline, VulkanFramebuffer,
+    VulkanGraphicsPipeline, VulkanShader,
 };
+use super::swapchain::WindowEntry;
 use super::tables::{sdl_to_vk_sample_count, sdl_to_vk_texture_format, swizzle_for_sdl_format};
 use super::{lock, VulkanRenderer};
 use crate::error::Result;
+use crate::gpu::sysgpu::{
+    MAX_COMPUTE_WRITE_BUFFERS, MAX_COMPUTE_WRITE_TEXTURES, MAX_STORAGE_BUFFERS_PER_STAGE,
+    MAX_STORAGE_TEXTURES_PER_STAGE, MAX_TEXTURE_SAMPLERS_PER_STAGE, MAX_UNIFORM_BUFFERS_PER_STAGE,
+    MAX_VERTEX_BUFFERS,
+};
 use crate::gpu::{BufferUsageFlags, TextureCreateInfo, TextureType, TextureUsageFlags};
 use crate::log::Category;
 use crate::properties::Properties;
@@ -103,9 +111,7 @@ pub(super) struct UniformBuffer {
 #[derive(Debug)]
 pub(super) struct UniformBufferState {
     pub(super) buffer: Arc<VulkanBuffer>,
-    #[allow(dead_code)] // (part 2: uniform data)
     pub(super) draw_offset: u32,
-    #[allow(dead_code)] // (part 2: uniform data)
     pub(super) write_offset: u32,
 }
 
@@ -174,7 +180,6 @@ pub(super) struct TextureContainer {
     /// properties.
     pub(super) info: TextureCreateInfo,
     pub(super) state: Mutex<TextureContainerState>,
-    #[allow(dead_code)] // (part 2: cycling for writes)
     pub(super) can_be_cycled: bool,
     /// true for XR swapchain images
     #[allow(dead_code)] // (OpenXR isn't translated)
@@ -211,7 +216,6 @@ pub(super) const VULKAN_BUFFER_USAGE_MODE_COMPUTE_STORAGE_READ_WRITE: VulkanBuff
 
 /// Translation of `VulkanTextureUsageMode`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[allow(dead_code)] // (part 2 transitions to the other modes)
 pub(super) enum VulkanTextureUsageMode {
     Uninitialized,
     CopySource,
@@ -225,12 +229,119 @@ pub(super) enum VulkanTextureUsageMode {
     Present,
 }
 
-/// The parts of `VulkanCommandBuffer` that the resources need: the Vulkan
-/// command buffer and the resources it uses. Part 2 (command buffers and
-/// passes) adds the rest of upstream's fields here.
+/// A subresource of a texture (upstream's `VulkanTextureSubresource *`,
+/// whose `parent` is the texture): the texture and the subresource's index.
+#[derive(Clone, Debug)]
+pub(super) struct SubresourceRef {
+    pub(super) texture: Arc<VulkanTexture>,
+    pub(super) index: usize,
+}
+
+impl SubresourceRef {
+    /// The subresource.
+    pub(super) fn get(&self) -> &TextureSubresource {
+        &self.texture.subresources[self.index]
+    }
+}
+
+/// A swapchain image a command buffer presents. Translation of
+/// `VulkanPresentData`.
 #[derive(Debug)]
+pub(super) struct PresentData {
+    pub(super) window_data: Arc<WindowEntry>,
+    pub(super) swapchain_image_index: u32,
+}
+
+/// Translation of `VulkanCommandBuffer` (its `renderer` is the renderer the
+/// driver calls are made on, and its `commandPool` the key of its pool).
 pub(super) struct VulkanCommandBuffer {
     pub(super) command_buffer: VkCommandBuffer,
+    /// The thread whose command pool the command buffer is from.
+    pub(super) command_pool: Option<ThreadId>,
+
+    pub(super) present_datas: Vec<PresentData>,
+    pub(super) wait_semaphores: Vec<VkSemaphore>,
+    pub(super) signal_semaphores: Vec<VkSemaphore>,
+
+    pub(super) current_compute_pipeline: Option<Arc<VulkanComputePipeline>>,
+    pub(super) current_graphics_pipeline: Option<Arc<VulkanGraphicsPipeline>>,
+
+    // Keep track of resources transitioned away from their default state to barrier them on pass end
+    pub(super) color_attachment_subresources: Vec<SubresourceRef>,
+    pub(super) resolve_attachment_subresources: Vec<SubresourceRef>,
+
+    /// may be NULL
+    pub(super) depth_stencil_attachment_subresource: Option<SubresourceRef>,
+
+    // Dynamic state
+    pub(super) current_viewport: VkViewport,
+    pub(super) current_scissor: VkRect2D,
+    pub(super) blend_constants: [f32; 4],
+    pub(super) stencil_ref: u8,
+
+    // Resource bind state
+    /// acquired when command buffer is acquired
+    pub(super) descriptor_set_cache: Option<DescriptorSetCache>,
+
+    pub(super) need_new_vertex_resource_descriptor_set: bool,
+    pub(super) need_new_vertex_uniform_descriptor_set: bool,
+    pub(super) need_new_vertex_uniform_offsets: bool,
+    pub(super) need_new_fragment_resource_descriptor_set: bool,
+    pub(super) need_new_fragment_uniform_descriptor_set: bool,
+    pub(super) need_new_fragment_uniform_offsets: bool,
+
+    pub(super) need_new_compute_read_only_descriptor_set: bool,
+    pub(super) need_new_compute_read_write_descriptor_set: bool,
+    pub(super) need_new_compute_uniform_descriptor_set: bool,
+    pub(super) need_new_compute_uniform_offsets: bool,
+
+    pub(super) vertex_resource_descriptor_set: VkDescriptorSet,
+    pub(super) vertex_uniform_descriptor_set: VkDescriptorSet,
+    pub(super) fragment_resource_descriptor_set: VkDescriptorSet,
+    pub(super) fragment_uniform_descriptor_set: VkDescriptorSet,
+
+    pub(super) compute_read_only_descriptor_set: VkDescriptorSet,
+    pub(super) compute_read_write_descriptor_set: VkDescriptorSet,
+    pub(super) compute_uniform_descriptor_set: VkDescriptorSet,
+
+    pub(super) vertex_buffers: [VkBuffer; MAX_VERTEX_BUFFERS as usize],
+    pub(super) vertex_buffer_offsets: [VkDeviceSize; MAX_VERTEX_BUFFERS as usize],
+    pub(super) vertex_buffer_count: u32,
+    pub(super) need_vertex_buffer_bind: bool,
+
+    pub(super) vertex_sampler_texture_view_bindings: [VkImageView; SAMPLERS],
+    pub(super) vertex_sampler_bindings: [VkSampler; SAMPLERS],
+    pub(super) vertex_storage_texture_view_bindings: [VkImageView; STORAGE_TEXTURES],
+    pub(super) vertex_storage_buffer_bindings: [VkBuffer; STORAGE_BUFFERS],
+
+    pub(super) fragment_sampler_texture_view_bindings: [VkImageView; SAMPLERS],
+    pub(super) fragment_sampler_bindings: [VkSampler; SAMPLERS],
+    pub(super) fragment_storage_texture_view_bindings: [VkImageView; STORAGE_TEXTURES],
+    pub(super) fragment_storage_buffer_bindings: [VkBuffer; STORAGE_BUFFERS],
+
+    pub(super) compute_sampler_texture_view_bindings: [VkImageView; SAMPLERS],
+    pub(super) compute_sampler_bindings: [VkSampler; SAMPLERS],
+    pub(super) read_only_compute_storage_texture_view_bindings: [VkImageView; STORAGE_TEXTURES],
+    pub(super) read_only_compute_storage_buffer_bindings: [VkBuffer; STORAGE_BUFFERS],
+
+    // Track these separately because barriers can happen mid compute pass
+    pub(super) read_only_compute_storage_textures: [Option<Arc<VulkanTexture>>; STORAGE_TEXTURES],
+    pub(super) read_only_compute_storage_buffers: [Option<Arc<VulkanBuffer>>; STORAGE_BUFFERS],
+
+    pub(super) read_write_compute_storage_texture_view_bindings:
+        [VkImageView; MAX_COMPUTE_WRITE_TEXTURES as usize],
+    pub(super) read_write_compute_storage_buffer_bindings:
+        [VkBuffer; MAX_COMPUTE_WRITE_BUFFERS as usize],
+
+    // Track these separately because they are barriered when the compute pass begins
+    pub(super) read_write_compute_storage_texture_subresources: Vec<SubresourceRef>,
+    pub(super) read_write_compute_storage_buffers:
+        [Option<Arc<VulkanBuffer>>; MAX_COMPUTE_WRITE_BUFFERS as usize],
+
+    // Uniform buffers
+    pub(super) vertex_uniform_buffers: [Option<Arc<UniformBuffer>>; UNIFORM_BUFFERS],
+    pub(super) fragment_uniform_buffers: [Option<Arc<UniformBuffer>>; UNIFORM_BUFFERS],
+    pub(super) compute_uniform_buffers: [Option<Arc<UniformBuffer>>; UNIFORM_BUFFERS],
 
     // Track used resources
     pub(super) used_buffers: Vec<Arc<VulkanBuffer>>,
@@ -243,25 +354,106 @@ pub(super) struct VulkanCommandBuffer {
     pub(super) used_framebuffers: Vec<Arc<VulkanFramebuffer>>,
     pub(super) used_uniform_buffers: Vec<Arc<UniformBuffer>>,
 
+    pub(super) in_flight_fence: Option<Arc<VulkanFenceHandle>>,
+    pub(super) auto_release_fence: bool,
+
+    pub(super) swapchain_requested: bool,
     /// Whether this CB was created for defragging
     pub(super) is_defrag: bool,
 }
 
+impl std::fmt::Debug for VulkanCommandBuffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VulkanCommandBuffer")
+            .field("command_buffer", &self.command_buffer)
+            .field("command_pool", &self.command_pool)
+            .field("is_defrag", &self.is_defrag)
+            .finish_non_exhaustive()
+    }
+}
+
+const SAMPLERS: usize = MAX_TEXTURE_SAMPLERS_PER_STAGE as usize;
+const STORAGE_TEXTURES: usize = MAX_STORAGE_TEXTURES_PER_STAGE as usize;
+const STORAGE_BUFFERS: usize = MAX_STORAGE_BUFFERS_PER_STAGE as usize;
+const UNIFORM_BUFFERS: usize = MAX_UNIFORM_BUFFERS_PER_STAGE as usize;
+
 impl VulkanCommandBuffer {
-    /// A command buffer recording into `command_buffer`, tracking nothing.
-    #[allow(dead_code)] // (part 2: AcquireCommandBuffer)
+    /// A command buffer recording into `command_buffer`, tracking nothing:
+    /// the state `VULKAN_INTERNAL_AllocateCommandBuffer()` gives it.
     pub(super) fn new(command_buffer: VkCommandBuffer) -> VulkanCommandBuffer {
         VulkanCommandBuffer {
             command_buffer,
-            used_buffers: Vec::new(),
-            buffers_used_in_pending_transfers: Vec::new(),
-            used_textures: Vec::new(),
-            textures_used_in_pending_transfers: Vec::new(),
-            used_samplers: Vec::new(),
-            used_graphics_pipelines: Vec::new(),
-            used_compute_pipelines: Vec::new(),
-            used_framebuffers: Vec::new(),
-            used_uniform_buffers: Vec::new(),
+            command_pool: None,
+            // Presentation tracking
+            present_datas: Vec::with_capacity(1),
+            wait_semaphores: Vec::with_capacity(1),
+            signal_semaphores: Vec::with_capacity(1),
+            current_compute_pipeline: None,
+            current_graphics_pipeline: None,
+            color_attachment_subresources: Vec::new(),
+            resolve_attachment_subresources: Vec::new(),
+            depth_stencil_attachment_subresource: None,
+            current_viewport: VkViewport::default(),
+            current_scissor: VkRect2D::default(),
+            blend_constants: [0.0; 4],
+            stencil_ref: 0,
+            descriptor_set_cache: None,
+            // Resource bind tracking
+            need_new_vertex_resource_descriptor_set: true,
+            need_new_vertex_uniform_descriptor_set: true,
+            need_new_vertex_uniform_offsets: true,
+            need_new_fragment_resource_descriptor_set: true,
+            need_new_fragment_uniform_descriptor_set: true,
+            need_new_fragment_uniform_offsets: true,
+            need_new_compute_read_only_descriptor_set: true,
+            need_new_compute_read_write_descriptor_set: true,
+            need_new_compute_uniform_descriptor_set: true,
+            need_new_compute_uniform_offsets: true,
+            vertex_resource_descriptor_set: VK_NULL_HANDLE,
+            vertex_uniform_descriptor_set: VK_NULL_HANDLE,
+            fragment_resource_descriptor_set: VK_NULL_HANDLE,
+            fragment_uniform_descriptor_set: VK_NULL_HANDLE,
+            compute_read_only_descriptor_set: VK_NULL_HANDLE,
+            compute_read_write_descriptor_set: VK_NULL_HANDLE,
+            compute_uniform_descriptor_set: VK_NULL_HANDLE,
+            vertex_buffers: Default::default(),
+            vertex_buffer_offsets: Default::default(),
+            vertex_buffer_count: 0,
+            need_vertex_buffer_bind: false,
+            vertex_sampler_texture_view_bindings: Default::default(),
+            vertex_sampler_bindings: Default::default(),
+            vertex_storage_texture_view_bindings: Default::default(),
+            vertex_storage_buffer_bindings: Default::default(),
+            fragment_sampler_texture_view_bindings: Default::default(),
+            fragment_sampler_bindings: Default::default(),
+            fragment_storage_texture_view_bindings: Default::default(),
+            fragment_storage_buffer_bindings: Default::default(),
+            compute_sampler_texture_view_bindings: Default::default(),
+            compute_sampler_bindings: Default::default(),
+            read_only_compute_storage_texture_view_bindings: Default::default(),
+            read_only_compute_storage_buffer_bindings: Default::default(),
+            read_only_compute_storage_textures: Default::default(),
+            read_only_compute_storage_buffers: Default::default(),
+            read_write_compute_storage_texture_view_bindings: Default::default(),
+            read_write_compute_storage_buffer_bindings: Default::default(),
+            read_write_compute_storage_texture_subresources: Vec::new(),
+            read_write_compute_storage_buffers: Default::default(),
+            vertex_uniform_buffers: Default::default(),
+            fragment_uniform_buffers: Default::default(),
+            compute_uniform_buffers: Default::default(),
+            // Resource tracking
+            used_buffers: Vec::with_capacity(4),
+            buffers_used_in_pending_transfers: Vec::with_capacity(4),
+            used_textures: Vec::with_capacity(4),
+            textures_used_in_pending_transfers: Vec::with_capacity(4),
+            used_samplers: Vec::with_capacity(4),
+            used_graphics_pipelines: Vec::with_capacity(4),
+            used_compute_pipelines: Vec::with_capacity(4),
+            used_framebuffers: Vec::with_capacity(4),
+            used_uniform_buffers: Vec::with_capacity(4),
+            in_flight_fence: None,
+            auto_release_fence: false,
+            swapchain_requested: false,
             is_defrag: false,
         }
     }
@@ -297,7 +489,6 @@ fn track_resource<T>(list: &mut Vec<Arc<T>>, resource: &Arc<T>, reference_count:
     reference_count.fetch_add(1, Ordering::SeqCst);
 }
 
-#[allow(dead_code)] // (part 2 tracks the other resource kinds)
 impl VulkanCommandBuffer {
     /// Translation of `VULKAN_INTERNAL_TrackBuffer()`.
     pub(super) fn track_buffer(&mut self, buffer: &Arc<VulkanBuffer>) {
@@ -786,7 +977,6 @@ impl VulkanRenderer {
 
     /// Translation of `VULKAN_INTERNAL_TextureSubresourceMemoryBarrier()`
     /// (the subresource is `texture.subresources[subresource]`).
-    #[allow(dead_code)] // (part 2: passes and copies)
     pub(super) fn texture_subresource_memory_barrier(
         &self,
         command_buffer: &mut VulkanCommandBuffer,
@@ -851,7 +1041,6 @@ impl VulkanRenderer {
 
     /// Translation of
     /// `VULKAN_INTERNAL_TextureSubresourceTransitionFromDefaultUsage()`.
-    #[allow(dead_code)] // (part 2: passes and copies)
     pub(super) fn texture_subresource_transition_from_default_usage(
         &self,
         command_buffer: &mut VulkanCommandBuffer,
@@ -885,7 +1074,6 @@ impl VulkanRenderer {
 
     /// Translation of
     /// `VULKAN_INTERNAL_TextureSubresourceTransitionToDefaultUsage()`.
-    #[allow(dead_code)] // (part 2: passes and copies)
     pub(super) fn texture_subresource_transition_to_default_usage(
         &self,
         command_buffer: &mut VulkanCommandBuffer,
@@ -1361,7 +1549,7 @@ impl VulkanRenderer {
 
     /// Translation of `VULKAN_INTERNAL_CreateRenderTargetView()`.
     #[allow(clippy::too_many_arguments)]
-    fn create_render_target_view(
+    pub(super) fn create_render_target_view(
         &self,
         texture: &VulkanTexture,
         layer_or_depth: u32,
@@ -1771,14 +1959,156 @@ impl VulkanRenderer {
         // Let's transition to the default barrier state, because for some reason Vulkan doesn't let us do that with initialLayout.
         // Only do this after "container" is set, so the texture
         // is fully initialized before any Submit that could trigger defrag.
-        //
-        // part 2: upstream acquires a command buffer here, records
-        // VULKAN_INTERNAL_TextureTransitionToDefaultUsage(UNINITIALIZED) and
-        // VULKAN_INTERNAL_TrackTexture() on it and submits it (releasing
-        // the texture if the submission fails). Until command buffers are
-        // translated the texture stays in VK_IMAGE_LAYOUT_UNDEFINED.
+        {
+            // Note (upstream): C goes on with a NULL command buffer when none
+            // can be acquired; the error is returned here.
+            let mut barrier_command_buffer = match self.acquire_command_buffer_internal() {
+                Ok(command_buffer) => command_buffer,
+                Err(e) => {
+                    self.release_texture_container(&container);
+                    return Err(e);
+                }
+            };
+            self.texture_transition_to_default_usage(
+                &mut barrier_command_buffer,
+                VulkanTextureUsageMode::Uninitialized,
+                &texture,
+            );
+
+            barrier_command_buffer.track_texture(&texture);
+
+            if let Err(e) = self.submit_internal(barrier_command_buffer) {
+                self.release_texture_container(&container);
+                return Err(e);
+            }
+        }
 
         Ok(container)
+    }
+
+    /// The subresource of a container's active texture. Translation of
+    /// `VULKAN_INTERNAL_FetchTextureSubresource()`.
+    pub(super) fn fetch_texture_subresource(
+        container: &TextureContainer,
+        layer: u32,
+        level: u32,
+    ) -> SubresourceRef {
+        let index = get_texture_subresource_index(level, layer, container.info.num_levels);
+
+        SubresourceRef {
+            texture: state(&container.state).active_texture.clone(),
+            index: index as usize,
+        }
+    }
+
+    /// Make a container's active texture one the GPU doesn't use, a new one
+    /// if needed. Translation of `VULKAN_INTERNAL_CycleActiveTexture()`.
+    ///
+    /// As in [`Self::cycle_active_buffer`], the container's lock isn't held
+    /// while the new texture is created.
+    pub(super) fn cycle_active_texture(
+        &self,
+        command_buffer: &mut VulkanCommandBuffer,
+        container: &Arc<TextureContainer>,
+    ) {
+        {
+            let mut container_state = state(&container.state);
+
+            // If a previously-cycled texture is available, we can use that.
+            if let Some(texture) = container_state
+                .textures
+                .iter()
+                .find(|t| t.reference_count.load(Ordering::SeqCst) == 0)
+                .cloned()
+            {
+                container_state.active_texture = texture;
+                return;
+            }
+        }
+
+        // No texture is available, generate a new one.
+        let Ok(texture) = self.create_texture_internal(&container.info) else {
+            return;
+        };
+
+        {
+            let mut container_state = state(&container.state);
+            texture.set_container(Some(ContainerRef {
+                container: Arc::downgrade(container),
+                index: container_state.textures.len(),
+            }));
+            container_state.textures.push(texture.clone());
+
+            container_state.active_texture = texture.clone();
+        }
+
+        // Transition texture after storing it as the memory barrier might need to read the texture's container info
+        self.texture_transition_to_default_usage(
+            command_buffer,
+            VulkanTextureUsageMode::Uninitialized,
+            &texture,
+        );
+    }
+
+    /// The container's active buffer, cycled first if asked and the GPU
+    /// uses it, transitioned for a write. Translation of
+    /// `VULKAN_INTERNAL_PrepareBufferForWrite()`.
+    pub(super) fn prepare_buffer_for_write(
+        &self,
+        command_buffer: &mut VulkanCommandBuffer,
+        buffer_container: &Arc<BufferContainer>,
+        cycle: bool,
+        destination_usage_mode: VulkanBufferUsageModeFlags,
+    ) -> Arc<VulkanBuffer> {
+        let active = state(&buffer_container.state).active_buffer.clone();
+        if cycle && active.reference_count.load(Ordering::SeqCst) > 0 {
+            self.cycle_active_buffer(buffer_container);
+        }
+
+        let active = state(&buffer_container.state).active_buffer.clone();
+        self.buffer_transition_from_default_usage(command_buffer, destination_usage_mode, &active);
+
+        active
+    }
+
+    /// A subresource of the container's active texture, cycled first if
+    /// asked and the GPU uses it, transitioned for a write. Translation of
+    /// `VULKAN_INTERNAL_PrepareTextureSubresourceForWrite()`.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn prepare_texture_subresource_for_write(
+        &self,
+        command_buffer: &mut VulkanCommandBuffer,
+        texture_container: &Arc<TextureContainer>,
+        layer: u32,
+        level: u32,
+        cycle: bool,
+        destination_usage_mode: VulkanTextureUsageMode,
+    ) -> SubresourceRef {
+        let mut texture_subresource =
+            Self::fetch_texture_subresource(texture_container, layer, level);
+
+        if cycle
+            && texture_container.can_be_cycled
+            && texture_subresource
+                .texture
+                .reference_count
+                .load(Ordering::SeqCst)
+                > 0
+        {
+            self.cycle_active_texture(command_buffer, texture_container);
+
+            texture_subresource = Self::fetch_texture_subresource(texture_container, layer, level);
+        }
+
+        // always do barrier because of layout transitions
+        self.texture_subresource_transition_from_default_usage(
+            command_buffer,
+            destination_usage_mode,
+            &texture_subresource.texture,
+            texture_subresource.index,
+        );
+
+        texture_subresource
     }
 
     /// Release every texture of a container (whose handle the front end
@@ -1802,7 +2132,6 @@ impl VulkanRenderer {
     /// Part 2's `Submit` calls this (with a command buffer it acquires for
     /// it) when allocations are marked for defrag and no defrag is in
     /// progress; cleaning that command buffer clears `defrag_in_progress`.
-    #[allow(dead_code)] // (part 2: Submit)
     pub(super) fn defragment_memory(&self, command_buffer: &mut VulkanCommandBuffer) -> Result<()> {
         self.defrag_in_progress.store(true, Ordering::SeqCst);
         command_buffer.is_defrag = true;

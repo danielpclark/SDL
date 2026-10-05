@@ -43,7 +43,6 @@ pub(super) fn next_highest_alignment(n: VkDeviceSize, align: VkDeviceSize) -> Vk
 }
 
 /// Translation of `VULKAN_INTERNAL_NextHighestAlignment32()`.
-#[allow(dead_code)] // (part 2: uniform buffer offsets)
 pub(super) fn next_highest_alignment32(n: u32, align: u32) -> u32 {
     align.wrapping_mul(n.wrapping_add(align).wrapping_sub(1) / align)
 }
