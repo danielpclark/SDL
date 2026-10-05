@@ -1954,3 +1954,10 @@ pub(crate) const VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES: VkStruct
 pub(crate) const VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES: VkStructureType = 53;
 pub(crate) const VK_VERTEX_INPUT_RATE_INSTANCE: i32 = 1;
 pub(crate) const VK_WHOLE_SIZE: VkDeviceSize = !0;
+pub(crate) const VK_NOT_READY: VkResult = 1;
+pub(crate) const VK_ATTACHMENT_UNUSED: u32 = !0;
+pub(crate) const VK_STENCIL_FACE_FRONT_AND_BACK: VkFlags = 0x00000003;
+pub(crate) const VK_PIPELINE_BIND_POINT_COMPUTE: i32 = 1;
+pub(crate) const VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT: VkFlags = 0x00000001;
+pub(crate) const VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR: VkFlags = 0x00000002;
+pub(crate) const VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR: VkFlags = 0x00000004;

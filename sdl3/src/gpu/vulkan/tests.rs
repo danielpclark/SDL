@@ -754,12 +754,9 @@ fn device_formats_and_properties() {
     assert!(device.texture_supports_sample_count(F::R8G8B8A8_UNORM, SampleCount::Four));
     assert!(device.texture_supports_sample_count(F::D32_FLOAT, SampleCount::Four));
 
-    // Command buffers are part 2.
-    let e = device.acquire_command_buffer().unwrap_err();
-    assert_eq!(
-        e.message(),
-        "Vulkan AcquireCommandBuffer is unsupported, not translated yet"
-    );
+    // An empty command buffer submits, and one cancels.
+    device.acquire_command_buffer().unwrap().submit().unwrap();
+    device.acquire_command_buffer().unwrap().cancel().unwrap();
     device.wait_for_idle().unwrap();
 }
 
@@ -1461,7 +1458,7 @@ fn defragmentation_moves_buffers() {
     r.perform_pending_destroys();
 
     // The fragmented allocation is empty now; freeing it is Submit's job
-    // (part 2).
+    // (see the submission test).
     let allocator = r.memory_allocator.lock();
     let a = allocator.borrow_mut();
     assert!(a.check_empty_allocations);

@@ -133,7 +133,6 @@ pub(super) struct VulkanGraphicsPipelineResourceLayout {
      * 2: fragment resources
      * 3: fragment uniform buffers
      */
-    #[allow(dead_code)] // (part 2: descriptor sets)
     pub(super) descriptor_set_layouts: [Arc<DescriptorSetLayout>; 4],
 
     pub(super) vertex_sampler_count: u32,
@@ -151,10 +150,9 @@ pub(super) struct VulkanGraphicsPipelineResourceLayout {
 #[derive(Debug)]
 pub(super) struct VulkanGraphicsPipeline {
     pub(super) pipeline: VkPipeline,
-    #[allow(dead_code)] // (part 2: draws)
+    #[allow(dead_code)] // (kept as upstream does)
     pub(super) primitive_type: PrimitiveType,
 
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) resource_layout: Arc<VulkanGraphicsPipelineResourceLayout>,
 
     pub(super) vertex_shader: Arc<VulkanShader>,
@@ -185,7 +183,6 @@ pub(super) struct VulkanComputePipelineResourceLayout {
      * 1: write-only textures, then write-only buffers
      * 2: uniform buffers
      */
-    #[allow(dead_code)] // (part 2: descriptor sets)
     pub(super) descriptor_set_layouts: [Arc<DescriptorSetLayout>; 3],
 
     pub(super) num_samplers: u32,
@@ -475,7 +472,6 @@ impl VulkanRenderer {
 
     /// A command buffer's descriptor set cache, from the pool or new.
     /// Translation of `VULKAN_INTERNAL_AcquireDescriptorSetCache()`.
-    #[allow(dead_code)] // (part 2: AcquireCommandBuffer)
     pub(super) fn acquire_descriptor_set_cache(&self) -> DescriptorSetCache {
         lock(&self.descriptor_set_cache_pool)
             .pop()
@@ -483,7 +479,6 @@ impl VulkanRenderer {
     }
 
     /// Translation of `VULKAN_INTERNAL_ReturnDescriptorSetCacheToPool()`.
-    #[allow(dead_code)] // (part 2: CleanCommandBuffer)
     pub(super) fn return_descriptor_set_cache_to_pool(
         &self,
         mut descriptor_set_cache: DescriptorSetCache,
@@ -497,7 +492,6 @@ impl VulkanRenderer {
 
     /// The next descriptor set of a layout in a command buffer's cache.
     /// Translation of `VULKAN_INTERNAL_FetchDescriptorSet()`.
-    #[allow(dead_code)] // (part 2: binding descriptor sets)
     pub(super) fn fetch_descriptor_set(
         &self,
         descriptor_set_cache: &mut DescriptorSetCache,

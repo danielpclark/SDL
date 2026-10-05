@@ -13,7 +13,7 @@
 //! Vulkan 1.1 `vkGetPhysicalDeviceFeatures2`) are optional, and a missing
 //! required one fails the lookup instead of crashing later.
 
-#![allow(dead_code)] // (part 2 calls the command functions)
+#![allow(dead_code)] // (upstream loads functions it never calls)
 
 use std::ffi::{c_char, c_void};
 

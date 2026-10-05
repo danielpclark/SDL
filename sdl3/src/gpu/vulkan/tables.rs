@@ -8,8 +8,6 @@
 //!
 //! The tables are indexed by the GPU enums' C values, as upstream's are.
 
-#![allow(dead_code)] // (part 2 uses the swapchain, load/store and index tables)
-
 use crate::gpu::sysgpu::TEXTUREFORMAT_MAX_ENUM_VALUE;
 use crate::gpu::{
     BlendFactor, BlendOp, CompareOp, CullMode, Filter, FrontFace, IndexElementSize, LoadOp,
