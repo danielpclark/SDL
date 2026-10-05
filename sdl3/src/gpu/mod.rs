@@ -2224,7 +2224,10 @@ impl std::fmt::Debug for Owner {
 /// A GPU context. Translation of `SDL_GPUDevice *`.
 ///
 /// Dropping it destroys the device (`SDL_DestroyGPUDevice()`) once every
-/// resource, fence and command buffer created from it is dropped too.
+/// resource, fence and command buffer created from it is dropped too. A
+/// clone is another handle to the same device (as the `SDL_GPUDevice *`
+/// the GPU renderer publishes is).
+#[derive(Clone)]
 pub struct Device {
     shared: Arc<DeviceShared>,
 }

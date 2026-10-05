@@ -17,8 +17,9 @@
 //! ([`Renderer::software`]) or a window's surface, or for windows the
 //! Direct3D 11 backend ("direct3d11", Windows only, tried first by
 //! [`Renderer::for_window`]), the OpenGL backend ("opengl", first
-//! elsewhere), the OpenGL ES 2.0 backend ("opengles2") or the Vulkan
-//! backend ("vulkan"); the other GPU backends come with the platform layer.
+//! elsewhere), the OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend
+//! ("vulkan") or the GPU backend ("gpu", through the [GPU API](crate::gpu));
+//! the other GPU backends come with the platform layer.
 //!
 //! A window renderer applies the window's changes (size, visibility, HDR
 //! state) at the start of its next drawing, presenting or state-setting
@@ -29,6 +30,7 @@
 mod debug_font;
 #[cfg(windows)]
 pub(crate) mod direct3d11;
+pub(crate) mod gpu;
 pub(crate) mod opengl;
 pub(crate) mod opengles2;
 pub(crate) mod software;
@@ -57,6 +59,11 @@ pub use direct3d11::{
     PROP_RENDERER_D3D11_DEVICE_POINTER, PROP_RENDERER_D3D11_SWAPCHAIN_POINTER,
     PROP_TEXTURE_D3D11_TEXTURE_POINTER, PROP_TEXTURE_D3D11_TEXTURE_U_POINTER,
     PROP_TEXTURE_D3D11_TEXTURE_V_POINTER,
+};
+pub use gpu::{
+    PROP_RENDERER_GPU_DEVICE_POINTER, PROP_TEXTURE_GPU_TEXTURE_POINTER,
+    PROP_TEXTURE_GPU_TEXTURE_UV_POINTER, PROP_TEXTURE_GPU_TEXTURE_U_POINTER,
+    PROP_TEXTURE_GPU_TEXTURE_V_POINTER,
 };
 pub use opengl::{
     PROP_TEXTURE_OPENGL_TEXTURE_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_TARGET_NUMBER,
@@ -212,6 +219,7 @@ const RENDER_DRIVERS: &[&str] = &[
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
     vulkan::VULKAN_RENDERER,
+    GPU_RENDERER,
     SOFTWARE_RENDERER,
 ];
 
