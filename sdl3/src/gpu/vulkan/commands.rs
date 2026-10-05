@@ -449,8 +449,8 @@ impl VulkanRenderer {
         let slot = slot_index as usize;
 
         // Note (upstream): C writes past the end of the uniform buffer when
-        // the data doesn't fit in one; such data is dropped here.
-        if block_size as u64 + MAX_UBO_SECTION_SIZE as u64 >= UNIFORM_BUFFER_SIZE as u64 {
+        // the data is longer than one; such data is dropped here.
+        if length > UNIFORM_BUFFER_SIZE {
             crate::log::error!(Category::Gpu, "Uniform data is too large!");
             return;
         }
