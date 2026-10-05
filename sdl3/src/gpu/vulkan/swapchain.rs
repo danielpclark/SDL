@@ -844,6 +844,12 @@ impl VulkanRenderer {
             let _ = self.set_string_error("Window not claimed by this device");
             return;
         }
+        self.release_window_entry(&entry, window);
+    }
+
+    /// The release of a claimed window's entry (`VULKAN_ReleaseWindow()`
+    /// past the checks).
+    fn release_window_entry(&self, entry: &Arc<WindowEntry>, window: Window) {
         {
             let mut window_data = lock(&entry.data);
             if window_data.refcount > 1 {
@@ -872,7 +878,7 @@ impl VulkanRenderer {
 
         {
             let mut claimed_windows = lock(&self.claimed_windows);
-            if let Some(i) = claimed_windows.iter().position(|e| Arc::ptr_eq(e, &entry)) {
+            if let Some(i) = claimed_windows.iter().position(|e| Arc::ptr_eq(e, entry)) {
                 claimed_windows.swap_remove(i);
             }
         }
@@ -1175,11 +1181,15 @@ impl VulkanRenderer {
     }
 
     /// Release every claimed window, most recent first (`VULKAN_DestroyDevice()`).
+    ///
+    /// Note (upstream): C finds each window's data through the window,
+    /// which may be destroyed by now; the claimed windows' entries are
+    /// released directly here.
     pub(super) fn release_claimed_windows(&self) {
         let claimed_windows = lock(&self.claimed_windows).clone();
         for entry in claimed_windows.iter().rev() {
             let window = lock(&entry.data).window;
-            self.release_window_internal(window);
+            self.release_window_entry(entry, window);
         }
     }
 }

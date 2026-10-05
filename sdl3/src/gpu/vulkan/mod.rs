@@ -1,5 +1,5 @@
 // Rust translation of src/gpu/vulkan/SDL_gpu_vulkan.c from Simple
-// DirectMedia Layer (part 1 of 2: devices and resources).
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -8,8 +8,6 @@
 //! every Vulkan function is looked up at run time through its
 //! `vkGetInstanceProcAddr` ([`vkfuncs`]).
 //!
-//! # What is translated (part 1)
-//!
 //! * instance and physical device selection, the logical device, and the
 //!   `SDL_GPUVulkanOptions` and device creation properties ([`device`]);
 //! * the memory allocator: suballocation from large allocations per memory
@@ -17,31 +15,31 @@
 //!   allocations ([`memory`], [`binding`],
 //!   `VulkanRenderer::defragment_memory` in [`resources`]);
 //! * buffers, transfer buffers (mapping, cycling), uniform buffers,
-//!   textures (with their views and subresources), samplers and SPIR-V
-//!   shaders, their release and the deferred destruction
+//!   textures (with their views, subresources and cycling), samplers and
+//!   SPIR-V shaders, their release and the deferred destruction
 //!   (`PerformPendingDestroys`), memory barriers and resource tracking
 //!   ([`resources`]);
 //! * descriptor set layouts, descriptor pools and caches, pipeline layouts,
 //!   graphics pipelines (with their transient render passes) and compute
 //!   pipelines ([`pipelines`]);
+//! * command buffers and their per-thread pools, fences, uniform data,
+//!   submission (with presentation, the cleanup of finished command
+//!   buffers, the defragmentation and the freeing of empty allocations),
+//!   cancelling and waiting ([`commands`]);
+//! * render passes (with the render pass and framebuffer caches), the
+//!   dynamic state, the bindings and their descriptor sets, draws
+//!   (indirect ones too), compute passes and dispatches, uploads,
+//!   downloads, copies, blits and mipmap generation ([`passes`]);
+//! * claimed windows, their surfaces (made by the video driver: X11,
+//!   Wayland, Windows, or the offscreen driver's headless surfaces) and
+//!   swapchains, present modes, compositions, frames in flight and
+//!   swapchain texture acquisition ([`swapchain`]);
 //! * the format and usage tables ([`tables`]), `SupportsTextureFormat`,
 //!   `SupportsSampleCount`, the device properties, the debug names and the
-//!   debug labels, and `Wait` (without command buffers to clean yet).
+//!   debug labels.
 //!
-//! # What is left (part 2)
-//!
-//! Command buffers and their pools, render, compute and copy passes (with
-//! the render pass and framebuffer caches, which part 1 only declares and
-//! destroys), uploads, downloads, copies, blits and mipmap generation,
-//! uniform data, descriptor set binding, windows and swapchains, fences,
-//! submission (which runs `defragment_memory` and frees empty
-//! allocations), cancelling, and `WaitForFences`. Every
-//! [`GpuDriver`](crate::gpu::sysgpu::GpuDriver) method of these is marked
-//! `// part 2` below and fails with "not translated yet" (or does nothing).
-//! Part 2 also adds the transition of a new texture to its default layout
-//! (see `create_texture_container`), texture cycling
-//! (`VULKAN_INTERNAL_CycleActiveTexture`) and the `Prepare*ForWrite`
-//! helpers, and extends [`resources::VulkanCommandBuffer`].
+//! Blits and mipmaps use `vkCmdBlitImage`, as upstream's backend does, so
+//! the front end's blit pipelines aren't needed here.
 //!
 //! The OpenXR parts (`HAVE_GPU_OPENXR`) are not translated.
 

@@ -36,9 +36,7 @@
 //! values out of range can't fail here: handles are references, passes
 //! borrow their command buffer, and the enums can't hold other values.
 //!
-//! The only backend is "vulkan", translated in part: its devices and
-//! resources work, its command buffers, passes, swapchains and submission
-//! fail with "not translated yet" (see the backend's module). Direct3D 12
+//! The only backend is "vulkan" (see the backend's module). Direct3D 12
 //! and Metal come later. The OpenXR functions are not translated.
 
 pub(crate) mod sysgpu;
@@ -3262,7 +3260,6 @@ impl CommandBuffer {
 
     /// The backend's command buffer, if it is a `T` (for the backends'
     /// `generate_mipmaps` and `blit`).
-    #[allow(dead_code)] // (for the backends)
     pub(crate) fn backend_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.raw
             .as_deref_mut()

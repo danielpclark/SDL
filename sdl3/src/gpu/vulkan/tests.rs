@@ -7,9 +7,14 @@
 //! The device tests make a device on the offscreen video driver (Mesa's
 //! lavapipe on Linux CI) through the front end and directly, create and
 //! release every kind of resource, follow the allocator's regions and
-//! defragment an allocation. Without a Vulkan loader and driver they
-//! report a skip (capability `vulkan`) and pass. In debug mode the device
-//! enables `VK_LAYER_KHRONOS_validation` when it's installed.
+//! defragment an allocation. Then they record and submit command buffers
+//! and read the results back exactly: clears, uploads, copies, draws with
+//! vertex buffers, uniforms and samplers (indexed and indirect too),
+//! compute dispatches, blits and mipmaps, fences; and present frames to
+//! swapchains of offscreen windows (and X11 ones when there is a display).
+//! Without a Vulkan loader and driver they report a skip (capability
+//! `vulkan`) and pass. In debug mode the device enables
+//! `VK_LAYER_KHRONOS_validation` when it's installed.
 
 use std::ptr::null;
 use std::sync::atomic::Ordering;
@@ -1482,7 +1487,7 @@ fn defragmentation_moves_buffers() {
 }
 
 // ---------------------------------------------------------------------------
-// Command buffers, passes, swapchains and fences (part 2)
+// Command buffers, passes, swapchains and fences
 // ---------------------------------------------------------------------------
 
 /// The bytes of 32-bit words.
@@ -2535,19 +2540,75 @@ fn submission_frees_empty_allocations() {
     r.wait_internal().unwrap();
 }
 
-/// An offscreen window.
-fn window(w: i32, h: i32) -> Window {
-    Window::create("gpu", w, h, crate::events::window::WindowFlags::default()).unwrap()
+/// The video drivers whose windows the swapchain test presents to: the
+/// offscreen driver's headless surfaces, and X11's when there is a
+/// display (Windows' on Windows).
+fn swapchain_video_drivers() -> Vec<&'static str> {
+    if cfg!(windows) {
+        vec!["windows"]
+    } else {
+        let mut drivers = vec!["offscreen"];
+        if std::env::var_os("DISPLAY").is_some() {
+            drivers.push("x11");
+        }
+        drivers
+    }
+}
+
+/// Video up on a driver, or `None` (with the skip reported); quit when
+/// dropped.
+struct VideoOn;
+
+impl VideoOn {
+    fn init(driver: &str) -> Option<VideoOn> {
+        init::quit();
+        hints::set(hints::VIDEO_DRIVER, driver).unwrap();
+        if let Err(e) = init::init(InitFlags::VIDEO) {
+            let capability = match driver {
+                "x11" => "xvfb",
+                "windows" => "desktop",
+                _ => "vulkan",
+            };
+            crate::test_support::skip(
+                capability,
+                format_args!("no {driver} video ({})", e.message()),
+            );
+            hints::reset(hints::VIDEO_DRIVER);
+            return None;
+        }
+        Some(VideoOn)
+    }
+}
+
+impl Drop for VideoOn {
+    fn drop(&mut self) {
+        init::quit();
+        hints::reset(hints::VIDEO_DRIVER);
+    }
 }
 
 #[test]
-fn swapchain_on_an_offscreen_window() {
+fn swapchains_on_windows() {
     let _l = crate::test_support::test_lock();
-    let _v = Video::init();
+    for driver in swapchain_video_drivers() {
+        let Some(_video) = VideoOn::init(driver) else {
+            continue;
+        };
+        swapchain_frames(driver);
+    }
+}
+
+/// Claim a window of the current video driver, present frames to it
+/// (with the swapchain remade for its parameters and a resize), and
+/// release it.
+fn swapchain_frames(driver: &str) {
     let Some(device) = front_end_device() else {
         return;
     };
-    let window = window(64, 48);
+    let window =
+        Window::create("gpu", 64, 48, crate::events::window::WindowFlags::default()).unwrap();
+    let _ = window.show();
+    let _ = window.sync();
 
     // Not claimed yet
     assert!(!device.window_supports_present_mode(&window, PresentMode::Vsync));
@@ -2565,10 +2626,7 @@ fn swapchain_on_an_offscreen_window() {
     if let Err(e) = device.claim_window(&window) {
         crate::test_support::skip(
             "vulkan",
-            format_args!(
-                "no Vulkan surface for an offscreen window ({})",
-                e.message()
-            ),
+            format_args!("no Vulkan surface for a {driver} window ({})", e.message()),
         );
         return;
     }
