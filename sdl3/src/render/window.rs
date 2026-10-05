@@ -544,6 +544,15 @@ fn create_for_window(
             let backend = super::vulkan::VulkanRenderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
+        super::GPU_RENDERER => {
+            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let backend = super::gpu::GpuRenderer::for_window(
+                window,
+                output_colorspace,
+                present_vsync as i32,
+            )?;
+            Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
+        }
         super::SOFTWARE_RENDERER => {
             let (backend, format) = super::SwRenderer::for_window(window, present_vsync)?;
             Ok((Box::new(backend), format))

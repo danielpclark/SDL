@@ -48,13 +48,14 @@ const H: i32 = 48;
 fn driver_list_follows_upstreams_order() {
     // (render_drivers[] in SDL_render.c: D3D11, D3D12, D3D, METAL, ...,
     // OGL, OGL_ES2, ..., VULKAN, GPU, SW)
-    assert_eq!(num_render_drivers(), 5);
+    assert_eq!(num_render_drivers(), 6);
     assert_eq!(render_driver(0).unwrap(), "direct3d11");
     assert_eq!(render_driver(1).unwrap(), "opengl");
     assert_eq!(render_driver(2).unwrap(), "opengles2");
     assert_eq!(render_driver(3).unwrap(), "vulkan");
-    assert_eq!(render_driver(4).unwrap(), SOFTWARE_RENDERER);
-    assert!(render_driver(5).is_err());
+    assert_eq!(render_driver(4).unwrap(), "gpu");
+    assert_eq!(render_driver(5).unwrap(), SOFTWARE_RENDERER);
+    assert!(render_driver(6).is_err());
 }
 
 #[test]
