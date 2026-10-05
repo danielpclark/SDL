@@ -36,9 +36,10 @@
 //! values out of range can't fail here: handles are references, passes
 //! borrow their command buffer, and the enums can't hold other values.
 //!
-//! No backend is translated yet, so [`Device::new`] fails with upstream's
-//! "No supported SDL_GPU backend found!" (Vulkan comes first; Direct3D 12
-//! and Metal later). The OpenXR functions are not translated.
+//! The only backend is "vulkan", translated in part: its devices and
+//! resources work, its command buffers, passes, swapchains and submission
+//! fail with "not translated yet" (see the backend's module). Direct3D 12
+//! and Metal come later. The OpenXR functions are not translated.
 
 pub(crate) mod sysgpu;
 #[cfg(test)]
