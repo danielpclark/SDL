@@ -36,7 +36,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
 | `hidapi` | Linux, Windows | the HID backend: hidraw with libudev, or `hid.dll` |
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
-| `gameinput` | Windows | a GameInput DLL with the v3 API: the GameInput redistributable's `GameInputRedist.dll` (the `GameInput.dll` that ships with Windows may be too old) |
+| `gameinput` | Windows | a GameInput DLL with the v3 API (one that exports `GameInputInitialize`): the GameInput redistributable's `GameInputRedist.dll`, or a recent enough `GameInput.dll` from Windows (an older inbox one only has the v0 API) |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
 | `d3d11` | Windows | `d3d11.dll` and `dxgi.dll` with a Direct3D 11 device (feature level 11.0 or 11.1) and a swap chain on a window: a GPU driver, WARP, or Wine's d3d11 (wined3d on Mesa) |
 | `wasapi` | Windows | WASAPI with a default playback and a default recording endpoint |
@@ -151,12 +151,16 @@ cargo test -p sdl3 --lib hardware_controller_input -- --ignored --nocapture
 Remove-Item Env:SDL3_TEST_REQUIRE
 ```
 
-Add `gameinput` to the lists when the GameInput redistributable is
-installed: `GameInputRedist.dll` in `System32`, or in the directory that
-`RedistDir` under `HKLM\SOFTWARE\Microsoft\GameInput` (32-bit view) names.
-The `GameInput.dll` that Windows ships in `System32` isn't enough by
-itself: an old one (0.1908 on Windows 11 21H2) only has the v0 API, and the
-tests then skip with `GameInputCreate failed: No such interface supported`.
+Add `gameinput` to the lists when a GameInput with the v3 API is there.
+The loader (Microsoft's, as upstream) picks the newest of the
+redistributable's `GameInputRedist.dll` (in `System32`, or in the directory
+that `RedistDir` under `HKLM\SOFTWARE\Microsoft\GameInput`, 32-bit view,
+names), a `GameInputRedist.dll` next to the executable, and the
+`GameInput.dll` Windows ships in `System32`. The inbox DLL is enough when
+it's recent (it then exports `GameInputInitialize`); an old one (0.1908 on
+Windows 11 21H2) only has the v0 API, and the tests skip with
+`GameInputCreate failed: No such interface supported`. Installing the
+redistributable fixes that.
 Without GameInput the joystick listing leaves out "GameInput alone".
 
 A plain `cargo test` only shows the output of failing tests, so the
