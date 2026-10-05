@@ -1000,9 +1000,19 @@ impl VulkanRenderer {
                 }
             }
 
-            self.release_fence_internal(&fence);
+            // (unless another thread remade the swapchain while the lock
+            // was let go for the wait, which released the fence already;
+            // only an application presenting and changing the swapchain
+            // from two threads at once gets there, which Vulkan forbids
+            // anyway, but the count stays right)
+            if window_data.in_flight_fences[frame_counter]
+                .as_ref()
+                .is_some_and(|f| Arc::ptr_eq(f, &fence))
+            {
+                self.release_fence_internal(&fence);
 
-            window_data.in_flight_fences[frame_counter] = None;
+                window_data.in_flight_fences[frame_counter] = None;
+            }
         }
 
         // Finally, try to acquire!
