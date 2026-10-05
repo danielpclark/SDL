@@ -43,6 +43,7 @@
 pub(crate) mod sysgpu;
 #[cfg(test)]
 mod tests;
+pub(crate) mod vulkan;
 
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -1644,6 +1645,62 @@ pub struct StorageTextureReadWriteBinding<'a> {
     pub cycle: bool,
 }
 
+/// A Vulkan feature structure in [`VulkanOptions::feature_list`]: its
+/// `sType` and its `VkBool32` members (after `sType` and `pNext`), in
+/// declaration order. Translation of an element of the
+/// `SDL_GPUVulkanOptions::feature_list` chain (`VkBaseOutStructure`).
+///
+/// The structures taken are `VkPhysicalDeviceFeatures2` (whose members are
+/// the 55 of its `VkPhysicalDeviceFeatures`), the Vulkan 1.1 ones
+/// (`VkPhysicalDevice16BitStorageFeatures`,
+/// `VkPhysicalDeviceMultiviewFeatures`,
+/// `VkPhysicalDeviceProtectedMemoryFeatures`,
+/// `VkPhysicalDeviceSamplerYcbcrConversionFeatures`,
+/// `VkPhysicalDeviceShaderDrawParametersFeatures`,
+/// `VkPhysicalDeviceVariablePointersFeatures`) and, with API version 1.2 or
+/// higher, `VkPhysicalDeviceVulkan11Features`,
+/// `VkPhysicalDeviceVulkan12Features` and (1.3) `VkPhysicalDeviceVulkan13Features`;
+/// others are ignored. Members past the end of `features` are false.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct VulkanFeatureStructure {
+    /// The structure's `VkStructureType`.
+    pub s_type: i32,
+    /// The structure's features, in order.
+    pub features: Vec<bool>,
+}
+
+/// A structure specifying additional options when using Vulkan, for
+/// [`PROP_GPU_DEVICE_CREATE_VULKAN_OPTIONS_POINTER`] (set it with
+/// [`Properties::set_any`]). Translation of `SDL_GPUVulkanOptions`.
+///
+/// When no such structure is provided, SDL will use Vulkan API version 1.0
+/// and a minimal set of features. The requested API version influences how
+/// the feature_list is processed by SDL. When requesting API version 1.0,
+/// the feature_list is ignored. Only the vulkan_10_physical_device_features
+/// and the extension lists are used. When requesting API version 1.1, the
+/// feature_list is scanned for feature structures introduced in Vulkan 1.1.
+/// When requesting Vulkan 1.2 or higher, the feature_list is additionally
+/// scanned for compound feature structs such as
+/// VkPhysicalDeviceVulkan11Features. The device and instance extension
+/// lists, as well as vulkan_10_physical_device_features, are always
+/// processed.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct VulkanOptions {
+    /// The Vulkan API version to request for the instance. Use Vulkan's
+    /// VK_MAKE_VERSION or VK_MAKE_API_VERSION.
+    pub vulkan_api_version: u32,
+    /// Vulkan feature structs to enable. (Requires API version 1.1 or
+    /// higher.)
+    pub feature_list: Vec<VulkanFeatureStructure>,
+    /// The `VkBool32` members of a `VkPhysicalDeviceFeatures`, in order, to
+    /// enable additional Vulkan 1.0 features.
+    pub vulkan_10_physical_device_features: Option<Vec<bool>>,
+    /// Additional device extensions to require.
+    pub device_extension_names: Vec<String>,
+    /// Additional instance extensions to require.
+    pub instance_extension_names: Vec<String>,
+}
+
 // Properties
 
 /// Enable debug mode properties and validations, defaults to true.
@@ -1955,8 +2012,9 @@ impl TextureFormat {
 /// The GPU backends compiled in, in order of preference (`backends[]`).
 ///
 /// Upstream's list is the private (console) driver, Metal, Direct3D 12 and
-/// Vulkan; none of them is translated yet.
-static BACKENDS: &[&GpuBootstrap] = &[];
+/// Vulkan; only Vulkan is translated yet (its devices and resources: see
+/// [`vulkan`]).
+static BACKENDS: &[&GpuBootstrap] = &[&vulkan::VULKAN_DRIVER];
 
 /// The backends tests use in place of [`BACKENDS`], if set.
 #[cfg(test)]

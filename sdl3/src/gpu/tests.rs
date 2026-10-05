@@ -1147,8 +1147,11 @@ fn texture_format_names_and_defaults() {
 fn no_backend_fails_cleanly() {
     let _l = crate::test_support::test_lock();
     *TEST_BACKENDS.lock().unwrap() = None;
-    assert_eq!(num_gpu_drivers(), 0);
-    let e = gpu_driver(0).unwrap_err();
+    // (Vulkan is the only backend translated; the dummy video driver has
+    // no Vulkan surfaces, so it doesn't work below.)
+    assert_eq!(num_gpu_drivers(), 1);
+    assert_eq!(gpu_driver(0).unwrap(), "vulkan");
+    let e = gpu_driver(1).unwrap_err();
     assert_eq!(e.kind(), crate::ErrorKind::InvalidParam);
     assert_eq!(e.message(), "Parameter 'index' is invalid");
 

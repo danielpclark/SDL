@@ -36,6 +36,7 @@ mod stretch;
 pub mod surface;
 pub mod sysvideo;
 pub mod textinput;
+pub(crate) mod vk;
 pub mod vulkan;
 pub(crate) mod vulkan_utils;
 pub mod window;
