@@ -2703,3 +2703,64 @@ fn swapchain_frames(driver: &str) {
     drop(device);
     window.destroy();
 }
+
+#[test]
+fn swapchain_remade_while_a_frame_waits() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(device) = front_end_device() else {
+        return;
+    };
+    let window =
+        Window::create("gpu", 32, 32, crate::events::window::WindowFlags::default()).unwrap();
+    if let Err(e) = device.claim_window(&window) {
+        crate::test_support::skip(
+            "vulkan",
+            format_args!(
+                "no Vulkan surface for an offscreen window ({})",
+                e.message()
+            ),
+        );
+        return;
+    }
+
+    // One thread presents frames, waiting for each frame's fence without
+    // the window's lock, while another remakes the swapchain (which
+    // releases those fences): each fence is released once.
+    let stop = std::sync::atomic::AtomicBool::new(false);
+    std::thread::scope(|s| {
+        let presenter = s.spawn(|| {
+            for _ in 0..60 {
+                let mut cb = device.acquire_command_buffer().unwrap();
+                if let Some(texture) = cb.wait_and_acquire_swapchain_texture(&window).unwrap() {
+                    cb.begin_render_pass(&[clear_target(&texture.texture, BLUE_F)], None)
+                        .unwrap()
+                        .end();
+                }
+                cb.submit().unwrap();
+            }
+            stop.store(true, Ordering::SeqCst);
+        });
+        let mut frames_in_flight = 1;
+        while !stop.load(Ordering::SeqCst) {
+            frames_in_flight = frames_in_flight % 3 + 1;
+            device
+                .set_allowed_frames_in_flight(frames_in_flight)
+                .unwrap();
+        }
+        presenter.join().unwrap();
+    });
+    device.wait_for_idle().unwrap();
+
+    // Every fence is back in the pool once, with no references left.
+    let renderer = device_renderer(&device);
+    {
+        let pool = lock(&renderer.fence_pool);
+        for (i, fence) in pool.iter().enumerate() {
+            assert_eq!(fence.reference_count.load(Ordering::SeqCst), 0);
+            assert!(pool[..i].iter().all(|f| !Arc::ptr_eq(f, fence)));
+        }
+    }
+    device.release_window(&window);
+    window.destroy();
+}
