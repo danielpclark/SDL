@@ -17,6 +17,27 @@ pub(crate) fn read_byte(src: &mut IoStream<'_>) -> Option<u8> {
     read_ok(src, &mut b).then_some(b[0])
 }
 
+/// `SDL_malloc(len)` and `SDL_ReadIO(src, buf, len)`: the bytes read, up
+/// to `len` (fewer at the end of the stream), or `None` when `len` bytes
+/// can't be allocated (out of memory). The buffer grows only as data
+/// arrives, so a corrupt length costs no more memory than the stream has.
+pub(crate) fn read_up_to(src: &mut IoStream<'_>, len: usize) -> Option<Vec<u8>> {
+    const CHUNK: usize = 64 * 1024;
+    let mut buf = Vec::new();
+    buf.try_reserve_exact(len).ok()?;
+    while buf.len() < len {
+        let old = buf.len();
+        let chunk = CHUNK.min(len - old);
+        buf.resize(old + chunk, 0);
+        let n = src.read(&mut buf[old..]);
+        buf.truncate(old + n);
+        if n < chunk {
+            break;
+        }
+    }
+    Some(buf)
+}
+
 /// The error of a short read: what the stream reported, or (where upstream
 /// leaves `SDL_GetError()` as it was, since a read at the end of the stream
 /// sets no error) "End of stream".
@@ -41,6 +62,29 @@ pub(crate) fn error<T>(message: &'static str) -> Result<T> {
 /// Translation of `SDL_isspace()`: the C locale's white space.
 pub(crate) fn isspace(c: u8) -> bool {
     matches!(c, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
+}
+
+/// `SDL_sscanf(text, "%d %d ...", ...)` (glibc's, which SDL calls on the
+/// platforms upstream's test runs on) for `out.len()` numbers: the count
+/// converted, each `long` truncated to `int`. `text` is a C string: it
+/// ends at a NUL.
+pub(crate) fn scan_ints(text: &[u8], out: &mut [i32]) -> usize {
+    let mut rest = &text[..text.iter().position(|&b| b == 0).unwrap_or(text.len())];
+    for (count, value) in out.iter_mut().enumerate() {
+        while let Some((&c, tail)) = rest.split_first() {
+            if !isspace(c) {
+                break;
+            }
+            rest = tail;
+        }
+        let (v, advance) = sdl3::stdlib::string::strtol(rest, 10);
+        if advance == 0 {
+            return count;
+        }
+        *value = v as i32;
+        rest = &rest[advance..];
+    }
+    out.len()
 }
 
 /// Translation of `SDL_isdigit()`.

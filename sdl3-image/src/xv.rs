@@ -1,16 +1,15 @@
-// Rust translation of get_line(), get_header() and IMG_isXV() from
-// src/IMG_xv.c from SDL_image.
+// Rust translation of src/IMG_xv.c from SDL_image.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! This is a XV thumbnail image file loading framework
-//!
-//! The detector; the decoder is not translated yet.
 
+use sdl3::error::{Error, Result};
 use sdl3::io::{IoStream, IoWhence};
 use sdl3::stdlib::string::strtol;
+use sdl3::video::{PixelFormat, Surface};
 
-use crate::util::{isspace, read_byte};
+use crate::util::{isspace, read_byte, read_ok};
 
 /// Read a line of at most `size` bytes (carriage returns dropped) into
 /// `line`, without the newline. Translation of `get_line()` (`None` for
@@ -99,4 +98,39 @@ pub fn is_xv(src: &mut IoStream<'_>) -> bool {
     }
     let _ = src.seek(start, IoWhence::Set);
     is_xv
+}
+
+/// Load an XV thumbnail: 3-3-2 RGB pixels, as an RGB332 surface.
+/// Translation of `IMG_LoadXV_IO()`.
+pub fn load_xv_io(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
+    let start = src.tell().unwrap_or(-1);
+    load_xv(src).map_err(|error| {
+        let _ = src.seek(start, IoWhence::Set);
+        Error::new(error)
+    })
+}
+
+fn load_xv(src: &mut IoStream<'_>) -> std::result::Result<Surface<'static>, &'static str> {
+    /* Read the header */
+    let Some((w, h)) = get_header(src) else {
+        return Err("Unsupported image format");
+    };
+
+    /* Create the 3-3-2 indexed palette surface */
+    let Ok(mut surface) = Surface::new(w, h, PixelFormat::RGB332) else {
+        return Err("Out of memory");
+    };
+
+    /* Load the image data */
+    let pitch = surface.pitch() as usize;
+    let pixels: &mut [u8] = surface.pixels_mut().unwrap_or(&mut []);
+    // (the rows of a surface of zero width read nothing, and always succeed)
+    let rows = if w > 0 { h as usize } else { 0 };
+    for y in 0..rows {
+        let row = &mut pixels[y * pitch..y * pitch + w as usize];
+        if !read_ok(src, row) {
+            return Err("Couldn't read image data");
+        }
+    }
+    Ok(surface)
 }

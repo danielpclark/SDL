@@ -17,14 +17,15 @@
 //! * Detection: an `is_*` function for every format SDL_image knows, each
 //!   leaving the stream where it was.
 //! * Decoders: BMP, ICO and CUR, GIF (still images), JPEG and PNG (through
-//!   the stb_image translation in `sdl3`, as upstream's stb backend), PCX,
-//!   PNM (PBM/PGM/PPM), QOI and TGA.
+//!   the stb_image translation in `sdl3`, as upstream's stb backend), LBM
+//!   (IFF PBM and ILBM, EHB and HAM), PCX, PNM (PBM/PGM/PPM), QOI, TGA,
+//!   XCF (GIMP), XPM (also from arrays of strings) and XV thumbnails.
 //! * Savers: [`save`] and [`save_typed_io`] pick the format from a file
 //!   extension; BMP, ICO, CUR, JPEG (tiny_jpeg), PNG (miniz, in `sdl3`) and
 //!   TGA.
 //!
-//! Not translated yet: the LBM, XCF, XPM, XV, SVG, WebP, AVIF, TIFF and
-//! JPEG XL decoders, GIF saving and the animation API. Their detectors are
+//! Not translated yet: the SVG, WebP, AVIF, TIFF and JPEG XL decoders, GIF
+//! saving and the animation API. Their detectors are
 //! here; [`load_io`] reports them as an unsupported image format, like an
 //! upstream build without them.
 //!
@@ -75,7 +76,7 @@ pub use img::{
 };
 pub use jpg::{is_jpg, load_jpg_io, save_jpg, save_jpg_io};
 pub use jxl::is_jxl;
-pub use lbm::is_lbm;
+pub use lbm::{is_lbm, load_lbm_io};
 pub use pcx::{is_pcx, load_pcx_io};
 pub use png::{is_png, load_png_io, save_png, save_png_io};
 pub use pnm::{is_pnm, load_pnm_io};
@@ -84,9 +85,9 @@ pub use svg::is_svg;
 pub use tga::{load_tga_io, save_tga, save_tga_io};
 pub use tif::is_tif;
 pub use webp::is_webp;
-pub use xcf::is_xcf;
-pub use xpm::is_xpm;
-pub use xv::is_xv;
+pub use xcf::{is_xcf, load_xcf_io};
+pub use xpm::{is_xpm, load_xpm_io, read_xpm_from_array, read_xpm_from_array_to_rgb888};
+pub use xv::{is_xv, load_xv_io};
 
 /// The major version of SDL_image this crate translates.
 /// Translation of `SDL_IMAGE_MAJOR_VERSION`.

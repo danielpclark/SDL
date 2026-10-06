@@ -41,9 +41,13 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("BMP", Some(crate::bmp::is_bmp), crate::bmp::load_bmp_io),
     ("GIF", Some(crate::gif::is_gif), crate::gif::load_gif_io),
     ("JPG", Some(crate::jpg::is_jpg), crate::jpg::load_jpg_io),
+    ("LBM", Some(crate::lbm::is_lbm), crate::lbm::load_lbm_io),
     ("PCX", Some(crate::pcx::is_pcx), crate::pcx::load_pcx_io),
     ("PNG", Some(crate::png::is_png), crate::png::load_png_io),
     ("PNM", Some(crate::pnm::is_pnm), crate::pnm::load_pnm_io), /* P[BGP]M share code */
+    ("XCF", Some(crate::xcf::is_xcf), crate::xcf::load_xcf_io),
+    ("XPM", Some(crate::xpm::is_xpm), crate::xpm::load_xpm_io),
+    ("XV", Some(crate::xv::is_xv), crate::xv::load_xv_io),
     ("QOI", Some(crate::qoi::is_qoi), crate::qoi::load_qoi_io),
 ];
 
