@@ -26,12 +26,13 @@
 //!   bundled dr_flac), raw PCM and a sine wave generator; ID3v1/v2, APE,
 //!   Lyrics3 and MusicMatch tags and Ogg comments become metadata
 //!   properties, and Ogg `LOOPSTART`-style comments loop.
-//! * The decoders upstream builds against an external library are not
-//!   translated: Opus (libopusfile), MOD and friends (libxmp), MIDI
-//!   (Timidity and FluidSynth), WavPack, the game music formats (libgme),
-//!   and the alternative MP3, Vorbis and FLAC decoders (libmpg123,
-//!   libvorbisfile, libFLAC), as in an upstream build without them.
-//!   [`audio_decoder`] lists the ones available.
+//! * Not translated yet: MIDI through the bundled Timidity. The decoders
+//!   upstream builds against an external library are not translated: Opus
+//!   (libopusfile), MOD and friends (libxmp), MIDI through FluidSynth,
+//!   WavPack, the game music formats (libgme), and the alternative MP3,
+//!   Vorbis and FLAC decoders (libmpg123, libvorbisfile, libFLAC), as in an
+//!   upstream build without them. [`audio_decoder`] lists the ones
+//!   available.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: objects are owned handles

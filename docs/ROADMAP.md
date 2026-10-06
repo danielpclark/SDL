@@ -89,6 +89,23 @@ In dependency order, after the core each one needs exists:
    upstream's stb backend).
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
+   **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
+   (`SDL_mixer.c`: mixers on devices or generating into buffers, audio
+   loading and predecoding, tracks with gains, frequency ratios, fades,
+   loops, stereo and 3D positioning (`SDL_mixer_spatialization.c`, VBAP),
+   tags, groups and every callback, `MIX_AudioDecoder`), the metadata
+   parsers (`SDL_mixer_metadata_tags.c`: ID3v1/v2, APE, Lyrics3,
+   MusicMatch, Ogg comments with loop points), and the self-contained
+   decoders: WAV (PCM, float, mu-law, a-law, MS and IMA ADPCM, `smpl`
+   loops), AIFF/AIFF-C, VOC, AU, raw PCM, the sine wave, MP3 (`dr_mp3.h`
+   with minimp3), Ogg Vorbis (`stb_vorbis.h`, with SDL_mixer's patches)
+   and FLAC and Ogg FLAC (`dr_flac.h`); checked against upstream's C on
+   test audio from `tools/gen_sdl_mixer_testdata.py` (decoding in three
+   formats, truncated and corrupted input, Ogg packets corrupted in intact
+   pages, mixing with loops and seeks, and the mixer features).
+   Not yet: MIDI through the bundled Timidity; not translated, as they need
+   an external library: Opus (libopusfile), libxmp, FluidSynth, WavPack,
+   libgme, and the libmpg123, libvorbisfile and libFLAC decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
 5. **SDL_rtf** — needs SDL_ttf.
 6. **SDL_shadercross** — needs `gpu/`; SPIRV-Cross/DXC glue.
