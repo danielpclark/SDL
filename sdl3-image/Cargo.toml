@@ -1,0 +1,22 @@
+[package]
+name = "sdl3-image"
+description = "A direct, pure-Rust translation of SDL_image 3, the image file loading library for SDL3. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "image", "png", "pure-rust"]
+categories = ["multimedia::images", "game-development"]
+
+[lib]
+name = "sdl3_image"
+path = "src/lib.rs"
+
+# The decoders are self-contained, as upstream's are when it is built with
+# its bundled codecs: PNG and JPEG through the stb_image and miniz
+# translations in `sdl3`, everything else translated here. No system image
+# library is linked or loaded.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }

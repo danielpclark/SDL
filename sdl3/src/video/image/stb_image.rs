@@ -40,7 +40,7 @@ pub(crate) fn err<T>(msg: &'static str) -> Result<T> {
 }
 
 /// The I/O callbacks of a context. Translation of `stbi_io_callbacks`.
-pub(crate) trait Callbacks {
+pub trait Callbacks {
     /// fill 'data' with 'size' bytes.  return number of bytes actually read
     fn read(&mut self, data: &mut [u8]) -> usize;
     /// skip the next 'n' bytes, or 'unget' the last -n bytes if negative
@@ -371,11 +371,16 @@ pub(crate) enum Pixels {
 
 /// A decoded image: `x` by `y` pixels of `out_n` interleaved components
 /// (`comp` is the number in the file).
-pub(crate) struct Image<P> {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
-    pub(crate) comp: i32,
-    pub(crate) data: P,
+#[derive(Debug)]
+pub struct Image<P> {
+    /// The width in pixels.
+    pub x: i32,
+    /// The height in pixels.
+    pub y: i32,
+    /// The number of components in the file.
+    pub comp: i32,
+    /// The pixels.
+    pub data: P,
 }
 
 /// Translation of `stbi__compute_y()`.
@@ -583,17 +588,19 @@ pub(crate) fn load_from_memory(buffer: &[u8], req_comp: i32) -> Result<Image<Vec
     load_and_postprocess_8bit(&mut s, req_comp)
 }
 
+/// Decode a PNG or JPEG image read through `clbk` to 8 bits per channel:
+/// `req_comp` components per pixel, or the file's number for 0.
 /// Translation of `stbi_load_from_callbacks()`.
-pub(crate) fn load_from_callbacks(
-    clbk: &mut dyn Callbacks,
-    req_comp: i32,
-) -> Result<Image<Vec<u8>>> {
+pub fn load_from_callbacks(clbk: &mut dyn Callbacks, req_comp: i32) -> Result<Image<Vec<u8>>> {
     let mut s = Context::from_callbacks(clbk);
     load_and_postprocess_8bit(&mut s, req_comp)
 }
 
+/// Decode an 8-bit paletted PNG read through `clbk` to one index per
+/// pixel, filling `palette_buffer` with its RGBA colors (the entries the
+/// file doesn't set are left as they were).
 /// Translation of `stbi_load_from_callbacks_with_palette()`.
-pub(crate) fn load_from_callbacks_with_palette(
+pub fn load_from_callbacks_with_palette(
     clbk: &mut dyn Callbacks,
     palette_buffer: &mut [u8; 1024],
 ) -> Result<Image<Vec<u8>>> {

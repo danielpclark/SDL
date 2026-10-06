@@ -32,6 +32,16 @@ pub mod rect;
 pub(crate) mod rle;
 pub(crate) mod rotate;
 pub(crate) mod stb;
+
+/// The stb_image decoder SDL bundles (PNG and JPEG, scalar kernels), shared
+/// with the satellite libraries: SDL_image builds its own copy of
+/// `stb_image.h` with the same configuration (`IMG_stb.c`), and the
+/// `sdl3-image` crate uses this one instead of a second translation.
+pub mod stb_image {
+    pub use super::image::stb_image::{
+        load_from_callbacks, load_from_callbacks_with_palette, Callbacks, Image,
+    };
+}
 mod stretch;
 pub mod surface;
 pub mod sysvideo;
