@@ -695,6 +695,28 @@ impl AudioStream {
         Ok((src, dst))
     }
 
+    /// Query the current source (input) format of an audio stream.
+    /// Translation of `SDL_GetAudioStreamFormat(stream, &spec, NULL)`:
+    /// unlike [`format`](Self::format), it doesn't need the other side set.
+    pub fn src_format(&self) -> Result<AudioSpec> {
+        let src = self.with_state(|s| s.src_spec);
+        if src.format.0 == 0 {
+            return Err(Error::new("Stream has no source format"));
+        }
+        Ok(src)
+    }
+
+    /// Query the current destination (output) format of an audio stream.
+    /// Translation of `SDL_GetAudioStreamFormat(stream, NULL, &spec)`:
+    /// unlike [`format`](Self::format), it doesn't need the other side set.
+    pub fn dst_format(&self) -> Result<AudioSpec> {
+        let dst = self.with_state(|s| s.dst_spec);
+        if dst.format.0 == 0 {
+            return Err(Error::new("Stream has no destination format"));
+        }
+        Ok(dst)
+    }
+
     /// Change the input and output formats of an audio stream; `None`
     /// leaves that side alone. Translation of `SDL_SetAudioStreamFormat()`.
     ///

@@ -1,0 +1,22 @@
+[package]
+name = "sdl3-mixer"
+description = "A direct, pure-Rust translation of SDL_mixer 3, the audio mixer library for SDL3. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "audio", "mixer", "pure-rust"]
+categories = ["multimedia::audio", "game-development"]
+
+[lib]
+name = "sdl3_mixer"
+path = "src/lib.rs"
+
+# The decoders are self-contained, as upstream's are when it is built with
+# its bundled codecs: dr_mp3, dr_flac and stb_vorbis are translated here,
+# with SDL_mixer's own WAV, AIFF, VOC and AU decoders. No system audio
+# library is linked or loaded.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }
