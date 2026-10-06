@@ -13,6 +13,10 @@
 //!
 //! The structures implement `Default` as all zeroes, which is what the C
 //! code's `SDL_zero()` gives.
+//!
+//! The DXGI declarations (and the helpers [`check`], [`raw`] and [`out`])
+//! are the GPU API's Direct3D 12 backend's too, which is why they are
+//! visible to the crate.
 
 #![allow(clippy::upper_case_acronyms)]
 
@@ -24,37 +28,93 @@ use windows_sys::Win32::Foundation::{HMODULE, HWND, RECT};
 
 use crate::core::windows::com::{ComObject, ComPtr, IUnknownVtbl};
 
-pub(super) type DxgiFormat = u32;
+pub(crate) type DxgiFormat = u32;
 pub(super) type D3d11Blend = u32;
 pub(super) type D3d11BlendOp = u32;
 pub(super) type D3d11PrimitiveTopology = u32;
 pub(super) type DxgiModeRotation = u32;
-pub(super) type DxgiColorSpaceType = u32;
-pub(super) type D3dFeatureLevel = u32;
+pub(crate) type DxgiColorSpaceType = u32;
+pub(crate) type D3dFeatureLevel = u32;
+pub(crate) type DxgiGpuPreference = u32;
 
 // --- enumerants ---
 
 // DXGI_FORMAT
-pub(super) const DXGI_FORMAT_UNKNOWN: DxgiFormat = 0;
-pub(super) const DXGI_FORMAT_R32G32B32A32_FLOAT: DxgiFormat = 2;
-pub(super) const DXGI_FORMAT_R16G16B16A16_FLOAT: DxgiFormat = 10;
-pub(super) const DXGI_FORMAT_R32G32_FLOAT: DxgiFormat = 16;
-pub(super) const DXGI_FORMAT_R10G10B10A2_UNORM: DxgiFormat = 24;
-pub(super) const DXGI_FORMAT_R8G8B8A8_UNORM: DxgiFormat = 28;
-pub(super) const DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: DxgiFormat = 29;
-pub(super) const DXGI_FORMAT_R16G16_UNORM: DxgiFormat = 35;
-pub(super) const DXGI_FORMAT_R8G8_UNORM: DxgiFormat = 49;
-pub(super) const DXGI_FORMAT_R16_UNORM: DxgiFormat = 56;
-pub(super) const DXGI_FORMAT_R8_UNORM: DxgiFormat = 61;
-pub(super) const DXGI_FORMAT_B5G6R5_UNORM: DxgiFormat = 85;
-pub(super) const DXGI_FORMAT_B5G5R5A1_UNORM: DxgiFormat = 86;
-pub(super) const DXGI_FORMAT_B8G8R8A8_UNORM: DxgiFormat = 87;
-pub(super) const DXGI_FORMAT_B8G8R8X8_UNORM: DxgiFormat = 88;
-pub(super) const DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: DxgiFormat = 91;
-pub(super) const DXGI_FORMAT_B8G8R8X8_UNORM_SRGB: DxgiFormat = 93;
-pub(super) const DXGI_FORMAT_NV12: DxgiFormat = 103;
-pub(super) const DXGI_FORMAT_P010: DxgiFormat = 104;
-pub(super) const DXGI_FORMAT_B4G4R4A4_UNORM: DxgiFormat = 115;
+pub(crate) const DXGI_FORMAT_UNKNOWN: DxgiFormat = 0;
+pub(crate) const DXGI_FORMAT_R32G32B32A32_FLOAT: DxgiFormat = 2;
+pub(crate) const DXGI_FORMAT_R32G32B32A32_UINT: DxgiFormat = 3;
+pub(crate) const DXGI_FORMAT_R32G32B32A32_SINT: DxgiFormat = 4;
+pub(crate) const DXGI_FORMAT_R32G32B32_FLOAT: DxgiFormat = 6;
+pub(crate) const DXGI_FORMAT_R32G32B32_UINT: DxgiFormat = 7;
+pub(crate) const DXGI_FORMAT_R32G32B32_SINT: DxgiFormat = 8;
+pub(crate) const DXGI_FORMAT_R16G16B16A16_FLOAT: DxgiFormat = 10;
+pub(crate) const DXGI_FORMAT_R16G16B16A16_UNORM: DxgiFormat = 11;
+pub(crate) const DXGI_FORMAT_R16G16B16A16_UINT: DxgiFormat = 12;
+pub(crate) const DXGI_FORMAT_R16G16B16A16_SNORM: DxgiFormat = 13;
+pub(crate) const DXGI_FORMAT_R16G16B16A16_SINT: DxgiFormat = 14;
+pub(crate) const DXGI_FORMAT_R32G32_FLOAT: DxgiFormat = 16;
+pub(crate) const DXGI_FORMAT_R32G32_UINT: DxgiFormat = 17;
+pub(crate) const DXGI_FORMAT_R32G32_SINT: DxgiFormat = 18;
+pub(crate) const DXGI_FORMAT_R32G8X24_TYPELESS: DxgiFormat = 19;
+pub(crate) const DXGI_FORMAT_D32_FLOAT_S8X24_UINT: DxgiFormat = 20;
+pub(crate) const DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS: DxgiFormat = 21;
+pub(crate) const DXGI_FORMAT_R10G10B10A2_UNORM: DxgiFormat = 24;
+pub(crate) const DXGI_FORMAT_R11G11B10_FLOAT: DxgiFormat = 26;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_UNORM: DxgiFormat = 28;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: DxgiFormat = 29;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_UINT: DxgiFormat = 30;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_SNORM: DxgiFormat = 31;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_SINT: DxgiFormat = 32;
+pub(crate) const DXGI_FORMAT_R16G16_FLOAT: DxgiFormat = 34;
+pub(crate) const DXGI_FORMAT_R16G16_UNORM: DxgiFormat = 35;
+pub(crate) const DXGI_FORMAT_R16G16_UINT: DxgiFormat = 36;
+pub(crate) const DXGI_FORMAT_R16G16_SNORM: DxgiFormat = 37;
+pub(crate) const DXGI_FORMAT_R16G16_SINT: DxgiFormat = 38;
+pub(crate) const DXGI_FORMAT_R32_TYPELESS: DxgiFormat = 39;
+pub(crate) const DXGI_FORMAT_D32_FLOAT: DxgiFormat = 40;
+pub(crate) const DXGI_FORMAT_R32_FLOAT: DxgiFormat = 41;
+pub(crate) const DXGI_FORMAT_R32_UINT: DxgiFormat = 42;
+pub(crate) const DXGI_FORMAT_R32_SINT: DxgiFormat = 43;
+pub(crate) const DXGI_FORMAT_R24G8_TYPELESS: DxgiFormat = 44;
+pub(crate) const DXGI_FORMAT_D24_UNORM_S8_UINT: DxgiFormat = 45;
+pub(crate) const DXGI_FORMAT_R24_UNORM_X8_TYPELESS: DxgiFormat = 46;
+pub(crate) const DXGI_FORMAT_R8G8_UNORM: DxgiFormat = 49;
+pub(crate) const DXGI_FORMAT_R8G8_UINT: DxgiFormat = 50;
+pub(crate) const DXGI_FORMAT_R8G8_SNORM: DxgiFormat = 51;
+pub(crate) const DXGI_FORMAT_R8G8_SINT: DxgiFormat = 52;
+pub(crate) const DXGI_FORMAT_R16_TYPELESS: DxgiFormat = 53;
+pub(crate) const DXGI_FORMAT_R16_FLOAT: DxgiFormat = 54;
+pub(crate) const DXGI_FORMAT_D16_UNORM: DxgiFormat = 55;
+pub(crate) const DXGI_FORMAT_R16_UNORM: DxgiFormat = 56;
+pub(crate) const DXGI_FORMAT_R16_UINT: DxgiFormat = 57;
+pub(crate) const DXGI_FORMAT_R16_SNORM: DxgiFormat = 58;
+pub(crate) const DXGI_FORMAT_R16_SINT: DxgiFormat = 59;
+pub(crate) const DXGI_FORMAT_R8_UNORM: DxgiFormat = 61;
+pub(crate) const DXGI_FORMAT_R8_UINT: DxgiFormat = 62;
+pub(crate) const DXGI_FORMAT_R8_SNORM: DxgiFormat = 63;
+pub(crate) const DXGI_FORMAT_R8_SINT: DxgiFormat = 64;
+pub(crate) const DXGI_FORMAT_A8_UNORM: DxgiFormat = 65;
+pub(crate) const DXGI_FORMAT_BC1_UNORM: DxgiFormat = 71;
+pub(crate) const DXGI_FORMAT_BC1_UNORM_SRGB: DxgiFormat = 72;
+pub(crate) const DXGI_FORMAT_BC2_UNORM: DxgiFormat = 74;
+pub(crate) const DXGI_FORMAT_BC2_UNORM_SRGB: DxgiFormat = 75;
+pub(crate) const DXGI_FORMAT_BC3_UNORM: DxgiFormat = 77;
+pub(crate) const DXGI_FORMAT_BC3_UNORM_SRGB: DxgiFormat = 78;
+pub(crate) const DXGI_FORMAT_BC4_UNORM: DxgiFormat = 80;
+pub(crate) const DXGI_FORMAT_BC5_UNORM: DxgiFormat = 83;
+pub(crate) const DXGI_FORMAT_B5G6R5_UNORM: DxgiFormat = 85;
+pub(crate) const DXGI_FORMAT_B5G5R5A1_UNORM: DxgiFormat = 86;
+pub(crate) const DXGI_FORMAT_B8G8R8A8_UNORM: DxgiFormat = 87;
+pub(crate) const DXGI_FORMAT_B8G8R8X8_UNORM: DxgiFormat = 88;
+pub(crate) const DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: DxgiFormat = 91;
+pub(crate) const DXGI_FORMAT_B8G8R8X8_UNORM_SRGB: DxgiFormat = 93;
+pub(crate) const DXGI_FORMAT_BC6H_UF16: DxgiFormat = 95;
+pub(crate) const DXGI_FORMAT_BC6H_SF16: DxgiFormat = 96;
+pub(crate) const DXGI_FORMAT_BC7_UNORM: DxgiFormat = 98;
+pub(crate) const DXGI_FORMAT_BC7_UNORM_SRGB: DxgiFormat = 99;
+pub(crate) const DXGI_FORMAT_NV12: DxgiFormat = 103;
+pub(crate) const DXGI_FORMAT_P010: DxgiFormat = 104;
+pub(crate) const DXGI_FORMAT_B4G4R4A4_UNORM: DxgiFormat = 115;
 
 // D3D11_USAGE
 pub(super) const D3D11_USAGE_DEFAULT: u32 = 0;
@@ -130,11 +190,11 @@ pub(super) const D3D11_SDK_VERSION: u32 = 7;
 // D3D_DRIVER_TYPE, D3D_FEATURE_LEVEL
 pub(super) const D3D_DRIVER_TYPE_UNKNOWN: u32 = 0;
 pub(super) const D3D_DRIVER_TYPE_WARP: u32 = 5;
-pub(super) const D3D_FEATURE_LEVEL_11_0: D3dFeatureLevel = 0xb000;
-pub(super) const D3D_FEATURE_LEVEL_11_1: D3dFeatureLevel = 0xb100;
+pub(crate) const D3D_FEATURE_LEVEL_11_0: D3dFeatureLevel = 0xb000;
+pub(crate) const D3D_FEATURE_LEVEL_11_1: D3dFeatureLevel = 0xb100;
 
 pub(super) const DXGI_CREATE_FACTORY_DEBUG: u32 = 0x1;
-pub(super) const DXGI_FEATURE_PRESENT_ALLOW_TEARING: u32 = 0;
+pub(crate) const DXGI_FEATURE_PRESENT_ALLOW_TEARING: u32 = 0;
 pub(super) const DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING: u32 = 2048;
 pub(super) const DXGI_PRESENT_DO_NOT_WAIT: u32 = 0x8;
 pub(super) const DXGI_PRESENT_ALLOW_TEARING: u32 = 0x200;
@@ -155,26 +215,36 @@ pub(super) const DXGI_MODE_ROTATION_ROTATE180: DxgiModeRotation = 3;
 pub(super) const DXGI_MODE_ROTATION_ROTATE270: DxgiModeRotation = 4;
 
 // DXGI_COLOR_SPACE_TYPE
-pub(super) const DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709: DxgiColorSpaceType = 0;
-pub(super) const DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709: DxgiColorSpaceType = 1;
-pub(super) const DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020: DxgiColorSpaceType = 12;
+pub(crate) const DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709: DxgiColorSpaceType = 0;
+pub(crate) const DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709: DxgiColorSpaceType = 1;
+pub(crate) const DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020: DxgiColorSpaceType = 12;
 pub(super) const DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT: u32 = 1;
 
+// DXGI_GPU_PREFERENCE
+pub(crate) const DXGI_GPU_PREFERENCE_MINIMUM_POWER: DxgiGpuPreference = 1;
+pub(crate) const DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE: DxgiGpuPreference = 2;
+
 // DXGI_DEBUG_RLO_FLAGS, DXGI_INFO_QUEUE_MESSAGE_SEVERITY
-pub(super) const DXGI_DEBUG_RLO_DETAIL: u32 = 0x2;
+pub(crate) const DXGI_DEBUG_RLO_SUMMARY: u32 = 0x1;
+pub(crate) const DXGI_DEBUG_RLO_DETAIL: u32 = 0x2;
 pub(super) const DXGI_DEBUG_RLO_IGNORE_INTERNAL: u32 = 0x4;
 pub(super) const DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: u32 = 0;
 pub(super) const DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: u32 = 1;
 
 // HRESULTs
-pub(super) const E_FAIL: HRESULT = 0x8000_4005_u32 as HRESULT;
+pub(crate) const E_FAIL: HRESULT = 0x8000_4005_u32 as HRESULT;
 pub(super) const DXGI_ERROR_INVALID_CALL: HRESULT = 0x887a_0001_u32 as HRESULT;
-pub(super) const DXGI_ERROR_DEVICE_REMOVED: HRESULT = 0x887a_0005_u32 as HRESULT;
+pub(crate) const DXGI_ERROR_DEVICE_REMOVED: HRESULT = 0x887a_0005_u32 as HRESULT;
 pub(super) const DXGI_ERROR_WAS_STILL_DRAWING: HRESULT = 0x887a_000a_u32 as HRESULT;
 
 // --- GUIDs (upstream defines them so as not to need uuid.lib) ---
 
-pub(super) const IID_IDXGIFACTORY5: GUID = GUID::from_u128(0x7632e1f5_ee65_4dca_87fd_84cd75f8838d);
+pub(crate) const IID_IDXGIFACTORY1: GUID = GUID::from_u128(0x770aae78_f26f_4dba_a829_253c83d1b387);
+pub(crate) const IID_IDXGIFACTORY4: GUID = GUID::from_u128(0x1bc6ea02_ef36_464f_bf0c_21ca39e5168a);
+pub(crate) const IID_IDXGIFACTORY5: GUID = GUID::from_u128(0x7632e1f5_ee65_4dca_87fd_84cd75f8838d);
+pub(crate) const IID_IDXGIFACTORY6: GUID = GUID::from_u128(0xc1b6694f_ff09_44a9_b03c_77900a0a1d17);
+pub(crate) const IID_IDXGIADAPTER1: GUID = GUID::from_u128(0x29038f61_3839_4626_91fd_086879011a05);
+pub(crate) const IID_IDXGIDEVICE: GUID = GUID::from_u128(0x54ec77fa_1377_44e6_8c32_88fd5f44c84c);
 pub(super) const IID_IDXGIFACTORY2: GUID = GUID::from_u128(0x50c83a1c_e072_4c48_87b0_3630fa36a6d0);
 pub(super) const IID_IDXGIDEVICE1: GUID = GUID::from_u128(0x77db970f_6276_48ba_ba28_070143b4392c);
 pub(super) const IID_ID3D11TEXTURE2D: GUID =
@@ -184,18 +254,19 @@ pub(super) const IID_ID3D11DEVICECONTEXT1: GUID =
     GUID::from_u128(0xbb2c6faa_b5fb_4082_8e6b_388b8cfa90e1);
 pub(super) const IID_IDXGISWAPCHAIN2: GUID =
     GUID::from_u128(0x94d99bdb_f1f8_4ab0_b236_7da0170edab1);
+pub(crate) const IID_IDXGIDEBUG: GUID = GUID::from_u128(0x119e7452_de9e_40fe_8806_88f90c12b441);
 pub(super) const IID_IDXGIDEBUG1: GUID = GUID::from_u128(0xc5a05f0c_16f2_4adf_9f4d_a8c4d58ac550);
-pub(super) const IID_IDXGIINFOQUEUE: GUID = GUID::from_u128(0xd67441c7_672a_476f_9e82_cd55b44949ce);
-pub(super) const DXGI_DEBUG_ALL: GUID = GUID::from_u128(0xe48ae283_da80_490b_87e6_43e9a9cfda08);
+pub(crate) const IID_IDXGIINFOQUEUE: GUID = GUID::from_u128(0xd67441c7_672a_476f_9e82_cd55b44949ce);
+pub(crate) const DXGI_DEBUG_ALL: GUID = GUID::from_u128(0xe48ae283_da80_490b_87e6_43e9a9cfda08);
 
 // --- structures ---
 
 /// `DXGI_SAMPLE_DESC`
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
-pub(super) struct SampleDesc {
-    pub(super) count: u32,
-    pub(super) quality: u32,
+pub(crate) struct SampleDesc {
+    pub(crate) count: u32,
+    pub(crate) quality: u32,
 }
 
 /// `D3D11_TEXTURE2D_DESC`
@@ -408,7 +479,7 @@ pub(super) struct InputElementDesc {
 /// `DXGI_SWAP_CHAIN_DESC1`
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug)]
-pub(super) struct SwapChainDesc1 {
+pub(crate) struct SwapChainDesc1 {
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) format: DxgiFormat,
@@ -446,7 +517,7 @@ impl Default for PresentParameters {
 /// `DXGI_ADAPTER_DESC`
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub(super) struct AdapterDesc {
+pub(crate) struct AdapterDesc {
     pub(super) description: [u16; 128],
     pub(super) vendor_id: u32,
     pub(super) device_id: u32,
@@ -459,10 +530,44 @@ pub(super) struct AdapterDesc {
     pub(super) adapter_luid: [u32; 2],
 }
 
+/// `DXGI_ADAPTER_DESC1`
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct AdapterDesc1 {
+    pub(crate) description: [u16; 128],
+    pub(crate) vendor_id: u32,
+    pub(crate) device_id: u32,
+    pub(crate) sub_sys_id: u32,
+    pub(crate) revision: u32,
+    pub(crate) dedicated_video_memory: usize,
+    pub(crate) dedicated_system_memory: usize,
+    pub(crate) shared_system_memory: usize,
+    /// `AdapterLuid` (a `LUID`: low part, high part)
+    pub(crate) adapter_luid: [u32; 2],
+    pub(crate) flags: u32,
+}
+
+impl Default for AdapterDesc1 {
+    fn default() -> AdapterDesc1 {
+        AdapterDesc1 {
+            description: [0; 128],
+            vendor_id: 0,
+            device_id: 0,
+            sub_sys_id: 0,
+            revision: 0,
+            dedicated_video_memory: 0,
+            dedicated_system_memory: 0,
+            shared_system_memory: 0,
+            adapter_luid: [0; 2],
+            flags: 0,
+        }
+    }
+}
+
 // --- entry points ---
 
 /// `CreateDXGIFactory()`
-pub(super) type PfnCreateDxgiFactory =
+pub(crate) type PfnCreateDxgiFactory =
     unsafe extern "system" fn(*const GUID, *mut *mut c_void) -> HRESULT;
 /// `CreateDXGIFactory2()` (and `DXGIGetDebugInterface1()`, which upstream
 /// calls through the same type)
@@ -485,29 +590,38 @@ pub(super) type PfnD3d11CreateDevice = unsafe extern "system" fn(
 // --- the COM interfaces SDL calls ---
 
 /// An unused vtable slot.
-type Slot = usize;
+pub(crate) type Slot = usize;
 
 /// `IDXGIObject`'s methods: SetPrivateData, SetPrivateDataInterface,
 /// GetPrivateData, GetParent.
-type DxgiObjectSlots = [Slot; 4];
+pub(crate) type DxgiObjectSlots = [Slot; 4];
 
 /// `ID3D11DeviceChild`'s methods: GetDevice, GetPrivateData,
 /// SetPrivateData, SetPrivateDataInterface.
 type DeviceChildSlots = [Slot; 4];
 
+/// `IDXGIFactory1Vtbl` (the part SDL uses).
+#[repr(C)]
+pub(crate) struct IDXGIFactory1Vtbl {
+    pub(crate) base: IUnknownVtbl,
+    _object: DxgiObjectSlots,
+    pub(crate) enum_adapters:
+        unsafe extern "system" fn(*mut c_void, u32, *mut *mut c_void) -> HRESULT,
+    pub(crate) make_window_association:
+        unsafe extern "system" fn(*mut c_void, HWND, u32) -> HRESULT,
+    /// GetWindowAssociation, CreateSwapChain, CreateSoftwareAdapter
+    _get_window_association: [Slot; 3],
+    pub(crate) enum_adapters1:
+        unsafe extern "system" fn(*mut c_void, u32, *mut *mut c_void) -> HRESULT,
+    _is_current: Slot,
+}
+
 /// `IDXGIFactory2Vtbl` (the part SDL uses).
 #[repr(C)]
-pub(super) struct IDXGIFactory2Vtbl {
-    pub(super) base: IUnknownVtbl,
-    _object: DxgiObjectSlots,
-    pub(super) enum_adapters:
-        unsafe extern "system" fn(*mut c_void, u32, *mut *mut c_void) -> HRESULT,
-    pub(super) make_window_association:
-        unsafe extern "system" fn(*mut c_void, HWND, u32) -> HRESULT,
-    /// GetWindowAssociation, CreateSwapChain, CreateSoftwareAdapter;
-    /// IDXGIFactory1's EnumAdapters1, IsCurrent; IsWindowedStereoEnabled
-    _get_window_association: [Slot; 6],
-    pub(super) create_swap_chain_for_hwnd: unsafe extern "system" fn(
+pub(crate) struct IDXGIFactory2Vtbl {
+    pub(crate) factory1: IDXGIFactory1Vtbl,
+    _is_windowed_stereo_enabled: Slot,
+    pub(crate) create_swap_chain_for_hwnd: unsafe extern "system" fn(
         *mut c_void,
         *mut c_void,
         HWND,
@@ -524,24 +638,52 @@ pub(super) struct IDXGIFactory2Vtbl {
     _create_swap_chain_for_core_window: [Slot; 9],
 }
 
+/// `IDXGIFactory4Vtbl` (the part SDL uses).
+#[repr(C)]
+pub(crate) struct IDXGIFactory4Vtbl {
+    pub(crate) factory2: IDXGIFactory2Vtbl,
+    /// IDXGIFactory3's GetCreationFlags; EnumAdapterByLuid,
+    /// EnumWarpAdapter
+    _get_creation_flags: [Slot; 3],
+}
+
 /// `IDXGIFactory5Vtbl` (the part SDL uses).
 #[repr(C)]
-pub(super) struct IDXGIFactory5Vtbl {
-    pub(super) factory2: IDXGIFactory2Vtbl,
-    /// IDXGIFactory3's GetCreationFlags; IDXGIFactory4's
-    /// EnumAdapterByLuid, EnumWarpAdapter
-    _get_creation_flags: [Slot; 3],
-    pub(super) check_feature_support:
+pub(crate) struct IDXGIFactory5Vtbl {
+    pub(crate) factory4: IDXGIFactory4Vtbl,
+    pub(crate) check_feature_support:
         unsafe extern "system" fn(*mut c_void, u32, *mut c_void, u32) -> HRESULT,
+}
+
+/// `IDXGIFactory6Vtbl`.
+#[repr(C)]
+pub(crate) struct IDXGIFactory6Vtbl {
+    pub(crate) factory5: IDXGIFactory5Vtbl,
+    pub(crate) enum_adapter_by_gpu_preference: unsafe extern "system" fn(
+        *mut c_void,
+        u32,
+        DxgiGpuPreference,
+        *const GUID,
+        *mut *mut c_void,
+    ) -> HRESULT,
 }
 
 /// `IDXGIAdapterVtbl` (the part SDL uses).
 #[repr(C)]
-pub(super) struct IDXGIAdapterVtbl {
-    pub(super) base: IUnknownVtbl,
+pub(crate) struct IDXGIAdapterVtbl {
+    pub(crate) base: IUnknownVtbl,
     _object: DxgiObjectSlots,
     _enum_outputs: Slot,
-    pub(super) get_desc: unsafe extern "system" fn(*mut c_void, *mut AdapterDesc) -> HRESULT,
+    pub(crate) get_desc: unsafe extern "system" fn(*mut c_void, *mut AdapterDesc) -> HRESULT,
+    pub(crate) check_interface_support:
+        unsafe extern "system" fn(*mut c_void, *const GUID, *mut i64) -> HRESULT,
+}
+
+/// `IDXGIAdapter1Vtbl`.
+#[repr(C)]
+pub(crate) struct IDXGIAdapter1Vtbl {
+    pub(crate) adapter: IDXGIAdapterVtbl,
+    pub(crate) get_desc1: unsafe extern "system" fn(*mut c_void, *mut AdapterDesc1) -> HRESULT,
 }
 
 /// `IDXGIDevice1Vtbl` (the part SDL uses).
@@ -602,18 +744,18 @@ pub(super) struct IDXGISwapChain3Vtbl {
 
 /// `IDXGIDebugVtbl`.
 #[repr(C)]
-pub(super) struct IDXGIDebugVtbl {
-    pub(super) base: IUnknownVtbl,
-    pub(super) report_live_objects: unsafe extern "system" fn(*mut c_void, GUID, u32) -> HRESULT,
+pub(crate) struct IDXGIDebugVtbl {
+    pub(crate) base: IUnknownVtbl,
+    pub(crate) report_live_objects: unsafe extern "system" fn(*mut c_void, GUID, u32) -> HRESULT,
 }
 
 /// `IDXGIInfoQueueVtbl` (the part SDL uses).
 #[repr(C)]
-pub(super) struct IDXGIInfoQueueVtbl {
-    pub(super) base: IUnknownVtbl,
+pub(crate) struct IDXGIInfoQueueVtbl {
+    pub(crate) base: IUnknownVtbl,
     /// SetMessageCountLimit ... SetBreakOnCategory (30 methods)
     _set_message_count_limit: [Slot; 30],
-    pub(super) set_break_on_severity:
+    pub(crate) set_break_on_severity:
         unsafe extern "system" fn(*mut c_void, GUID, u32, BOOL) -> HRESULT,
 }
 
@@ -804,14 +946,18 @@ pub(super) struct OpaqueVtbl {
     pub(super) base: IUnknownVtbl,
 }
 
-pub(super) type DxgiFactory2 = ComPtr<IDXGIFactory2Vtbl>;
-pub(super) type DxgiFactory5 = ComPtr<IDXGIFactory5Vtbl>;
-pub(super) type DxgiAdapter = ComPtr<IDXGIAdapterVtbl>;
+pub(crate) type DxgiFactory1 = ComPtr<IDXGIFactory1Vtbl>;
+pub(crate) type DxgiFactory2 = ComPtr<IDXGIFactory2Vtbl>;
+pub(crate) type DxgiFactory4 = ComPtr<IDXGIFactory4Vtbl>;
+pub(crate) type DxgiFactory5 = ComPtr<IDXGIFactory5Vtbl>;
+pub(crate) type DxgiFactory6 = ComPtr<IDXGIFactory6Vtbl>;
+pub(crate) type DxgiAdapter = ComPtr<IDXGIAdapterVtbl>;
+pub(crate) type DxgiAdapter1 = ComPtr<IDXGIAdapter1Vtbl>;
 pub(super) type DxgiDevice1 = ComPtr<IDXGIDevice1Vtbl>;
 pub(super) type DxgiSwapChain1 = ComPtr<IDXGISwapChain1Vtbl>;
 pub(super) type DxgiSwapChain3 = ComPtr<IDXGISwapChain3Vtbl>;
-pub(super) type DxgiDebug = ComPtr<IDXGIDebugVtbl>;
-pub(super) type DxgiInfoQueue = ComPtr<IDXGIInfoQueueVtbl>;
+pub(crate) type DxgiDebug = ComPtr<IDXGIDebugVtbl>;
+pub(crate) type DxgiInfoQueue = ComPtr<IDXGIInfoQueueVtbl>;
 pub(super) type Device = ComPtr<ID3D11DeviceVtbl>;
 pub(super) type DeviceContext = ComPtr<ID3D11DeviceContextVtbl>;
 pub(super) type Texture2d = ComPtr<ID3D11Texture2DVtbl>;
@@ -826,7 +972,7 @@ pub(super) type RasterizerState = ComPtr<OpaqueVtbl>;
 pub(super) type SamplerState = ComPtr<OpaqueVtbl>;
 
 /// `HRESULT` to `Result` (`SUCCEEDED()`).
-pub(super) fn check(hr: HRESULT) -> Result<(), HRESULT> {
+pub(crate) fn check(hr: HRESULT) -> Result<(), HRESULT> {
     if hr < 0 {
         Err(hr)
     } else {
@@ -835,12 +981,12 @@ pub(super) fn check(hr: HRESULT) -> Result<(), HRESULT> {
 }
 
 /// The interface pointer of `object`, as the C code passes it.
-pub(super) fn raw<V>(object: &ComPtr<V>) -> *mut c_void {
+pub(crate) fn raw<V>(object: &ComPtr<V>) -> *mut c_void {
     object.as_ptr().cast()
 }
 
 /// The interface pointer of an optional object (NULL for `None`).
-pub(super) fn raw_or_null<V>(object: Option<&ComPtr<V>>) -> *mut c_void {
+pub(crate) fn raw_or_null<V>(object: Option<&ComPtr<V>>) -> *mut c_void {
     object.map_or(null_mut(), raw)
 }
 
@@ -850,7 +996,7 @@ pub(super) fn raw_or_null<V>(object: Option<&ComPtr<V>>) -> *mut c_void {
 ///
 /// `f` must store NULL or an owned reference to an object whose vtable is
 /// a `V` on success.
-pub(super) unsafe fn out<V>(
+pub(crate) unsafe fn out<V>(
     f: impl FnOnce(*mut *mut c_void) -> HRESULT,
 ) -> Result<ComPtr<V>, HRESULT> {
     // SAFETY: the caller's contract.
@@ -860,7 +1006,7 @@ pub(super) unsafe fn out<V>(
 impl DxgiFactory2 {
     /// `IDXGIFactory::EnumAdapters()`
     pub(super) fn enum_adapters(&self, adapter: u32) -> Result<DxgiAdapter, HRESULT> {
-        let f = self.vtbl().enum_adapters;
+        let f = self.vtbl().factory1.enum_adapters;
         // SAFETY: a live factory; EnumAdapters stores an owned adapter.
         unsafe { out(|o| f(raw(self), adapter, o)) }
     }
@@ -868,7 +1014,7 @@ impl DxgiFactory2 {
     /// `IDXGIFactory::MakeWindowAssociation()`
     pub(super) fn make_window_association(&self, hwnd: HWND, flags: u32) -> HRESULT {
         // SAFETY: a live factory and a window handle.
-        unsafe { (self.vtbl().make_window_association)(raw(self), hwnd, flags) }
+        unsafe { (self.vtbl().factory1.make_window_association)(raw(self), hwnd, flags) }
     }
 
     /// `IDXGIFactory2::CreateSwapChainForHwnd()`, for all displays and
@@ -888,7 +1034,7 @@ impl DxgiFactory2 {
 
 impl DxgiFactory5 {
     /// `IDXGIFactory5::CheckFeatureSupport()` for a `BOOL` feature.
-    pub(super) fn check_feature_support_bool(&self, feature: u32) -> Result<bool, HRESULT> {
+    pub(crate) fn check_feature_support_bool(&self, feature: u32) -> Result<bool, HRESULT> {
         let mut value: BOOL = 0;
         // SAFETY: a live factory; the BOOL is the feature's data, of its size.
         check(unsafe {
@@ -900,6 +1046,64 @@ impl DxgiFactory5 {
             )
         })?;
         Ok(value != 0)
+    }
+}
+
+impl DxgiFactory1 {
+    /// `IDXGIFactory1::EnumAdapters1()`
+    pub(crate) fn enum_adapters1(&self, adapter: u32) -> Result<DxgiAdapter1, HRESULT> {
+        let f = self.vtbl().enum_adapters1;
+        // SAFETY: a live factory; EnumAdapters1 stores an owned adapter.
+        unsafe { out(|o| f(raw(self), adapter, o)) }
+    }
+}
+
+impl DxgiFactory4 {
+    /// `IDXGIFactory1::EnumAdapters1()`
+    pub(crate) fn enum_adapters1(&self, adapter: u32) -> Result<DxgiAdapter1, HRESULT> {
+        let f = self.vtbl().factory2.factory1.enum_adapters1;
+        // SAFETY: a live factory; EnumAdapters1 stores an owned adapter.
+        unsafe { out(|o| f(raw(self), adapter, o)) }
+    }
+}
+
+impl DxgiFactory6 {
+    /// `IDXGIFactory6::EnumAdapterByGpuPreference()`, for an
+    /// `IDXGIAdapter1`.
+    pub(crate) fn enum_adapter_by_gpu_preference(
+        &self,
+        adapter: u32,
+        gpu_preference: DxgiGpuPreference,
+    ) -> Result<DxgiAdapter1, HRESULT> {
+        let f = self.vtbl().enum_adapter_by_gpu_preference;
+        // SAFETY: a live factory; the call stores an owned IDXGIAdapter1,
+        // the interface asked for.
+        unsafe { out(|o| f(raw(self), adapter, gpu_preference, &IID_IDXGIADAPTER1, o)) }
+    }
+}
+
+impl DxgiAdapter1 {
+    /// `IDXGIAdapter1::GetDesc1()`
+    pub(crate) fn desc1(&self) -> Result<AdapterDesc1, HRESULT> {
+        let mut desc = AdapterDesc1::default();
+        // SAFETY: a live adapter; a valid output.
+        check(unsafe { (self.vtbl().get_desc1)(raw(self), &mut desc) })?;
+        Ok(desc)
+    }
+
+    /// `IDXGIAdapter::CheckInterfaceSupport()`: the user mode driver
+    /// version, for `IDXGIDevice`.
+    pub(crate) fn check_interface_support(&self, interface_name: &GUID) -> Result<i64, HRESULT> {
+        let mut umd_version = 0i64;
+        // SAFETY: a live adapter; a GUID and a valid output.
+        check(unsafe {
+            (self.vtbl().adapter.check_interface_support)(
+                raw(self),
+                interface_name,
+                &mut umd_version,
+            )
+        })?;
+        Ok(umd_version)
     }
 }
 
@@ -1014,7 +1218,7 @@ impl DxgiSwapChain3 {
 
 impl DxgiDebug {
     /// `IDXGIDebug::ReportLiveObjects()`
-    pub(super) fn report_live_objects(&self, apiid: GUID, flags: u32) -> HRESULT {
+    pub(crate) fn report_live_objects(&self, apiid: GUID, flags: u32) -> HRESULT {
         // SAFETY: a live debug interface.
         unsafe { (self.vtbl().report_live_objects)(raw(self), apiid, flags) }
     }

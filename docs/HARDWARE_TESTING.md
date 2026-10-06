@@ -39,6 +39,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `gameinput` | Windows | a GameInput DLL with the v3 API (one that exports `GameInputInitialize`): the GameInput redistributable's `GameInputRedist.dll`, or a recent enough `GameInput.dll` from Windows (an older inbox one only has the v0 API) |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
 | `d3d11` | Windows | `d3d11.dll` and `dxgi.dll` with a Direct3D 11 device (feature level 11.0 or 11.1) and a swap chain on a window: a GPU driver, WARP, or Wine's d3d11 (wined3d on Mesa) |
+| `d3d12` | Windows | `d3d12.dll` and `dxgi.dll` with a Direct3D 12 device (feature level 11.0) for the GPU API's backend: a GPU driver, WARP, or Wine's d3d12 (vkd3d on a Vulkan driver, with an X server for DXGI); the DXIL checks need shader model 6, which vkd3d under Wine 9 lacks (they skip there) |
 | `wasapi` | Windows | WASAPI with a default playback and a default recording endpoint |
 | `mediafoundation` | Windows | Media Foundation (`mfplat.dll`, `mf.dll`, `mfreadwrite.dll`; missing on Windows N/Server without the Media Feature Pack) |
 | `v4l2` | Linux | the V4L2 camera driver |
@@ -124,7 +125,7 @@ then require `uinput` too.
 
 ## Windows 11
 
-Nothing needs installing for `desktop`, `wgl`, `d3d11`, `wasapi`,
+Nothing needs installing for `desktop`, `wgl`, `d3d11`, `d3d12`, `wasapi`,
 `mediafoundation`, `xinput` and `hidapi`: they come with Windows and the GPU
 driver, given an
 interactive session (not a service, not a remote desktop session without a
@@ -138,7 +139,7 @@ In PowerShell:
 ```powershell
 cargo test --workspace
 # fail instead of skipping:
-$env:SDL3_TEST_REQUIRE = "desktop,wgl,d3d11,wasapi,mediafoundation,xinput,hidapi"
+$env:SDL3_TEST_REQUIRE = "desktop,wgl,d3d11,d3d12,wasapi,mediafoundation,xinput,hidapi"
 cargo test --workspace
 # the hardware checks (a webcam; a GPU OpenGL and Direct3D 11 driver; audio
 # endpoints; controllers are only listed):
@@ -202,6 +203,8 @@ get the `opengl` renderer. A machine with only Microsoft's GDI Generic 1.1
 
 The Windows backends are also tested under Wine, which provides `desktop`
 (with an X server), `wgl` (Mesa through Wine), `d3d11` (wined3d on Mesa),
+`d3d12` (vkd3d on Mesa's lavapipe; its DXGI needs the X server too, and it
+has shader model 5.1, so the DXIL checks skip),
 `mediafoundation`, `xinput` and `hidapi`, but no audio endpoints, cameras or
 EGL:
 

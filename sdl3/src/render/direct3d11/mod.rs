@@ -28,7 +28,7 @@
 //!
 //! [`ComPtr`]: crate::core::windows::com::ComPtr
 
-mod d3d;
+pub(crate) mod d3d;
 mod shaders;
 #[cfg(test)]
 mod tests;
