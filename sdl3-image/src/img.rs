@@ -50,6 +50,7 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("XCF", Some(crate::xcf::is_xcf), crate::xcf::load_xcf_io),
     ("XPM", Some(crate::xpm::is_xpm), crate::xpm::load_xpm_io),
     ("XV", Some(crate::xv::is_xv), crate::xv::load_xv_io),
+    ("WEBP", Some(crate::webp::is_webp), crate::webp::load_webp_io),
     ("QOI", Some(crate::qoi::is_qoi), crate::qoi::load_qoi_io),
 ];
 
@@ -57,14 +58,19 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
 type LoadAnimFn = fn(&mut IoStream<'_>) -> Result<Animation>;
 
 /* Table of animation detection and loading functions */
-// (WEBP and AVIFS are left out, as in an upstream build without libwebp
-// and libavif, whose detectors then accept nothing)
+// (AVIFS is left out, as in an upstream build without libavif, whose
+// detector then accepts nothing)
 static SUPPORTED_ANIMS: &[(&str, Option<IsFn>, LoadAnimFn)] = &[
     /* keep magicless formats first */
     (
         "GIF",
         Some(crate::gif::is_gif),
         crate::anim_decoder::load_gif_animation_io,
+    ),
+    (
+        "WEBP",
+        Some(crate::webp::is_webp),
+        crate::anim_decoder::load_webp_animation_io,
     ),
     (
         "APNG",
@@ -202,7 +208,7 @@ pub fn load_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
 }
 
 /// Load an animation from a data source, optionally specifying the type: a
-/// GIF, (as a single frame) PNG or ANI animation by detection, otherwise
+/// GIF, WebP, (as a single frame) PNG or ANI animation by detection, otherwise
 /// any image as an animation of one frame (with a delay of 0).
 /// Translation of `IMG_LoadAnimationTyped_IO()`.
 pub fn load_animation_typed_io(src: &mut IoStream<'_>, type_: Option<&str>) -> Result<Animation> {
@@ -271,7 +277,7 @@ pub fn save(surface: &mut Surface<'_>, file: impl AsRef<Path>) -> Result<()> {
 /// Save a surface to a data source in the format named by `type_`, a file
 /// extension compared without case: `"bmp"`, `"cur"`, `"gif"`, `"ico"`,
 /// `"jpg"` or `"jpeg"` (at quality 90), `"png"` or `"tga"`. AVIF and WebP
-/// saving need libraries this crate doesn't have, and report so as an
+/// saving need encoders this crate doesn't have, and report so as an
 /// upstream build without them. Translation of `IMG_SaveTyped_IO()`.
 pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &str) -> Result<()> {
     if type_.is_empty() {
