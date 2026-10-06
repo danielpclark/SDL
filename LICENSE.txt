@@ -297,6 +297,9 @@ sdl3-mixer/src/dr_mp3.rs is also based on minimp3
   worldwide. This software is distributed without any warranty.
   See <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+sdl3-mixer/src/spatialization.rs carries VBAP code originally from
+https://github.com/drbafflegab/vbap/, under the CC0 license (public domain).
+
 sdl3-mixer/src/stb_vorbis.rs (from SDL_mixer's bundled stb_vorbis.h,
 https://github.com/nothings/stb, written by Sean Barrett and contributors),
 available under either of two licenses:
