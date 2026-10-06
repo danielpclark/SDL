@@ -206,6 +206,7 @@ pub(crate) mod test_support {
         ),
         ("wgl", "opengl32.dll with a WGL pixel format and context"),
         ("d3d11", "d3d11.dll and dxgi.dll with a Direct3D 11 device"),
+        ("d3d12", "d3d12.dll and dxgi.dll with a Direct3D 12 device"),
         (
             "wasapi",
             "WASAPI with default playback and recording endpoints",

@@ -477,15 +477,26 @@ fn vtable_slots_match_the_headers() {
     // offsetof(<Interface>Vtbl, <Method>) / sizeof(void *) of the harness.
     let ptr = size_of::<usize>();
     let slot = |offset: usize| offset / ptr;
-    assert_eq!(slot(offset_of!(IDXGIFactory2Vtbl, enum_adapters)), 7);
     assert_eq!(
-        slot(offset_of!(IDXGIFactory2Vtbl, make_window_association)),
+        slot(offset_of!(IDXGIFactory2Vtbl, factory1.enum_adapters)),
+        7
+    );
+    assert_eq!(
+        slot(offset_of!(
+            IDXGIFactory2Vtbl,
+            factory1.make_window_association
+        )),
         8
     );
     assert_eq!(
         slot(offset_of!(IDXGIFactory2Vtbl, create_swap_chain_for_hwnd)),
         15
     );
+    assert_eq!(
+        slot(offset_of!(IDXGIFactory2Vtbl, factory1.enum_adapters1)),
+        12
+    );
+    assert_eq!(size_of::<IDXGIFactory1Vtbl>(), 14 * ptr);
     assert_eq!(size_of::<IDXGIFactory2Vtbl>(), 25 * ptr);
     assert_eq!(
         slot(offset_of!(IDXGIFactory5Vtbl, check_feature_support)),

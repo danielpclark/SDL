@@ -1147,11 +1147,19 @@ fn texture_format_names_and_defaults() {
 fn no_backend_fails_cleanly() {
     let _l = crate::test_support::test_lock();
     *TEST_BACKENDS.lock().unwrap() = None;
-    // (Vulkan is the only backend translated; the dummy video driver has
-    // no Vulkan surfaces, so it doesn't work below.)
-    assert_eq!(num_gpu_drivers(), 1);
-    assert_eq!(gpu_driver(0).unwrap(), "vulkan");
-    let e = gpu_driver(1).unwrap_err();
+    // (Direct3D 12, on Windows, and Vulkan are the backends translated;
+    // neither takes SPIR-V on the dummy video driver, which has no Vulkan
+    // surfaces, below.)
+    let expected: &[&str] = if cfg!(windows) {
+        &["direct3d12", "vulkan"]
+    } else {
+        &["vulkan"]
+    };
+    assert_eq!(num_gpu_drivers(), expected.len());
+    for (i, name) in expected.iter().enumerate() {
+        assert_eq!(gpu_driver(i).unwrap(), *name);
+    }
+    let e = gpu_driver(expected.len()).unwrap_err();
     assert_eq!(e.kind(), crate::ErrorKind::InvalidParam);
     assert_eq!(e.message(), "Parameter 'index' is invalid");
 

@@ -717,6 +717,8 @@ fn device_formats_and_properties() {
         ShaderFormat::SPIRV,
         Some("vulkan")
     ));
+    // (Direct3D 12 takes DXIL on Windows)
+    #[cfg(not(windows))]
     assert!(!crate::gpu::supports_shader_formats(
         ShaderFormat::DXIL,
         None
