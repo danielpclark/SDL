@@ -7,7 +7,7 @@
 //! Windows): the GPU API on a Direct3D 12 device. `d3d12.dll`, `dxgi.dll`
 //! (and, in debug mode, `dxgidebug.dll`, and the PIX runtime when it is
 //! there) are loaded at run time, as upstream does, and the COM interfaces
-//! are declared in [`d3d`] (the DXGI ones are the Direct3D 11 renderer's).
+//! are declared in [`d3d`] (most DXGI ones are the Direct3D 11 renderer's).
 //! It takes DXBC shaders, and DXIL ones on devices with shader model 6.
 //!
 //! * `PrepareDriver`, adapter selection (by GPU preference), the vendored
