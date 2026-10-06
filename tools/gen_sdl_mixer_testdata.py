@@ -216,6 +216,16 @@ def voc_files():
     write('voc_type9.voc', hdr + blocks)
 
 
+def corrupt(data, v):
+    """`data` with 1 + v % 8 random bytes changed (variant `v`)."""
+    out = bytearray(data)
+    rng = Lcg(v * 7 + 12345 + len(data))
+    for _ in range(1 + v % 8):
+        at = (rng.next() >> 8) % len(data)
+        out[at] ^= 1 + (rng.next() >> 24) % 255
+    return bytes(out)
+
+
 def mp3_files():
     meta = (('title', 'MP3 test'), ('artist', 'sdl3-mixer'), ('album', 'Test data'),
             ('track', '3/12'), ('date', '2001'), ('copyright', 'none'))
@@ -224,7 +234,9 @@ def mp3_files():
                                                     '-write_id3v1', '1'], 'mp3', seed=51, metadata=meta)
     ffmpeg('mp3_mpeg2_noxing.mp3', 16000, 1, 0.3, ['-c:a', 'libmp3lame', '-b:a', '24k', '-write_xing', '0',
                                                      '-id3v2_version', '0'], 'mp3', seed=52)
-    ffmpeg('mp3_mpeg25.mp3', 8000, 1, 0.4, ['-c:a', 'libmp3lame', '-b:a', '16k'], 'mp3', seed=53)
+    mpeg25 = ffmpeg('mp3_mpeg25.mp3', 8000, 1, 0.4, ['-c:a', 'libmp3lame', '-b:a', '16k'], 'mp3', seed=53)
+    # Corrupted into 8 kHz mixed blocks, which dr_mp3 reorders past its buffer.
+    write('mp3_mpeg25_mixed.mp3', corrupt(mpeg25, 77))
     ffmpeg('mp3_joint_stereo.mp3', 32000, 2, 0.25, ['-c:a', 'libmp3lame', '-b:a', '64k', '-joint_stereo', '1',
                                                       '-id3v2_version', '4'], 'mp3', seed=54, metadata=meta[:2])
     ffmpeg('mp2_stereo.mp2', 32000, 2, 0.25, ['-c:a', 'mp2', '-b:a', '128k'], 'mp2', seed=55)
