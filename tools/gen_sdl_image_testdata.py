@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Generate the synthetic test images of sdl3-image/src/testdata/gen/.
+# Generate the synthetic test images of sdl3-image/src/testdata/images/ (the ones
+# that aren't upstream SDL_image's own: not sample.*, rgbrgb.*, palette.* or svg*.svg).
 #
 # Usage: tools/gen_sdl_image_testdata.py OUTDIR
 #
