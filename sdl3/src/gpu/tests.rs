@@ -3,7 +3,7 @@
 // backend that records its calls.
 
 use std::ptr::NonNull;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::sysgpu::{
@@ -91,6 +91,18 @@ fn take_log() -> Vec<String> {
 struct MockObject {
     name: String,
     data: Mutex<Vec<u8>>,
+}
+
+/// Whether dropping a [`MockObject`] is logged (off but in the tests that
+/// check the order of drops).
+static LOG_DROPS: AtomicBool = AtomicBool::new(false);
+
+impl Drop for MockObject {
+    fn drop(&mut self) {
+        if LOG_DROPS.load(Ordering::Relaxed) {
+            log(format!("drop {}", self.name));
+        }
+    }
 }
 
 fn object(kind: &str, size: usize) -> BackendObject {
@@ -1142,6 +1154,37 @@ fn texture_format_names_and_defaults() {
 }
 
 // Driver selection
+
+#[test]
+fn handles_drop_their_backend_object_before_the_device() {
+    let fixture = Fixture::new(true);
+    let device = fixture.device();
+    let buffer = device
+        .create_buffer(&BufferCreateInfo {
+            usage: BufferUsageFlags::VERTEX,
+            size: 16,
+            props: None,
+        })
+        .unwrap();
+    let raw = name(&buffer.raw);
+    take_log();
+
+    // The buffer holds the last reference to the device: its backend object
+    // goes before the device is destroyed (which, on Direct3D 12, unloads
+    // the driver the object's vtable is in).
+    LOG_DROPS.store(true, Ordering::Relaxed);
+    drop(device);
+    drop(buffer);
+    LOG_DROPS.store(false, Ordering::Relaxed);
+    assert_eq!(
+        take_log(),
+        [
+            format!("release_buffer {raw}"),
+            format!("drop {raw}"),
+            "destroy mock_a".to_string()
+        ]
+    );
+}
 
 #[test]
 fn no_backend_fails_cleanly() {
