@@ -26,8 +26,8 @@ shader's samplers and textures in space 2 and uniform buffers in space 3,
 a compute shader's read-write storage buffers in space 1 and uniform
 buffers in space 2. Vertex inputs use the TEXCOORD semantic. The render
 state shaders take what the GPU renderer's triangle vertex shaders output
-(`COLOR0` and `TEXCOORD0`), with storage buffers in space 2 after the
-textures.
+(the color as `TEXCOORD0`, the texture coordinates as `TEXCOORD1`), with
+storage buffers in space 2 after the textures.
 """
 import os
 import subprocess
@@ -40,12 +40,13 @@ compiler = sys.argv[2:] if dxbc or render else sys.argv[1:]
 assert compiler, __doc__
 
 # The input of the render state shaders: the output of the GPU renderer's
-# tri_color and tri_texture vertex shaders.
+# tri_color and tri_texture vertex shaders, whose DXIL (from SPIR-V, by
+# SDL_shadercross) names each output TEXCOORD<location>.
 PS_INPUT = """
 struct PSInput
 {
-    float4 v_color : COLOR0;
-    float2 v_uv : TEXCOORD0;
+    float4 v_color : TEXCOORD0;
+    float2 v_uv : TEXCOORD1;
 };
 """
 
