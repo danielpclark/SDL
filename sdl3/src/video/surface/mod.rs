@@ -227,24 +227,47 @@ impl<'a> Pixels<'a> {
         !matches!(self, Pixels::None)
     }
 
-    /// Allocate `size` zeroed bytes, the start aligned to `align` (0 = no alignment).
-    fn allocate(size: usize, align: usize) -> Pixels<'static> {
+    /// Allocate `size` zeroed bytes, the start aligned to `align` (0 = no
+    /// alignment); `None` when the memory can't be had, where upstream's
+    /// `SDL_aligned_alloc()` returns `NULL` (a size from a corrupt image
+    /// file must be an error, not an abort).
+    fn allocate(size: usize, align: usize) -> Option<Pixels<'static>> {
         if align <= 1 {
-            return Pixels::Owned {
-                buf: vec![0u8; size],
+            return Some(Pixels::Owned {
+                buf: try_zeroed_vec(size)?,
                 offset: 0,
                 len: size,
-            };
+            });
         }
-        let buf = vec![0u8; size + align - 1];
+        let buf = try_zeroed_vec(size.checked_add(align - 1)?)?;
         let addr = buf.as_ptr() as usize;
         let offset = (align - addr % align) % align;
-        Pixels::Owned {
+        Some(Pixels::Owned {
             buf,
             offset,
             len: size,
-        }
+        })
     }
+}
+
+/// `len` zeroed bytes, or `None` if the allocation fails (`vec![0; len]`
+/// would abort instead). The memory comes zeroed from the allocator, as
+/// `calloc()`'s, so a large surface isn't written to (or committed) until
+/// it is used.
+fn try_zeroed_vec(len: usize) -> Option<Vec<u8>> {
+    if len == 0 {
+        return Some(Vec::new());
+    }
+    let layout = std::alloc::Layout::array::<u8>(len).ok()?;
+    // SAFETY: the layout has a nonzero size.
+    let ptr = unsafe { std::alloc::alloc_zeroed(layout) };
+    if ptr.is_null() {
+        return None;
+    }
+    // SAFETY: `ptr` was allocated by the global allocator with the layout of
+    // `len` bytes (so a capacity of `len`), and all of them are initialized
+    // (zero).
+    Some(unsafe { Vec::from_raw_parts(ptr, len, len) })
 }
 
 /// A collection of pixels used in software blitting. Translation of `SDL_Surface`.
@@ -608,12 +631,13 @@ impl<'a> Surface<'a> {
 
         if surface.w != 0 && surface.h != 0 && format != PixelFormat::MJPG {
             surface.flags.remove(SurfaceFlags::PREALLOCATED);
-            if crate::hints::get_bool("SDL_SURFACE_MALLOC", false) {
-                surface.pixels = Pixels::allocate(size, 0);
+            let pixels = if crate::hints::get_bool("SDL_SURFACE_MALLOC", false) {
+                Pixels::allocate(size, 0)
             } else {
                 surface.flags.insert(SurfaceFlags::SIMD_ALIGNED);
-                surface.pixels = Pixels::allocate(size, crate::cpuinfo::simd_alignment());
-            }
+                Pixels::allocate(size, crate::cpuinfo::simd_alignment())
+            };
+            surface.pixels = pixels.ok_or_else(Error::out_of_memory)?;
         }
         Ok(surface)
     }

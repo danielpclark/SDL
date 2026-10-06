@@ -460,7 +460,10 @@ pub(crate) mod codec {
 
         let channels = channels as usize;
         let px_len = desc.width as usize * desc.height as usize * channels;
-        let mut pixels = vec![0u8; px_len];
+        // (QOI_MALLOC() failing is a NULL return, not an abort)
+        let mut pixels = Vec::new();
+        pixels.try_reserve_exact(px_len).ok()?;
+        pixels.resize(px_len, 0);
 
         let mut index = [Rgba::default(); 64];
         let mut px = Rgba {

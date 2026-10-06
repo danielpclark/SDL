@@ -784,6 +784,16 @@ fn malformed_input_errors_without_panicking() {
             }
         }
     }
+    // Dimensions too large to allocate are errors: an icon of 16777215 by
+    // 8388607 pixels, a TGA of 65535 by 65535 with no data
+    let mut ico = image("ico_24.ico").to_vec();
+    ico[22 + 4..22 + 8].copy_from_slice(&0xFF_FFFFi32.to_le_bytes());
+    ico[22 + 8..22 + 12].copy_from_slice(&0xFF_FFFFi32.to_le_bytes());
+    assert!(crate::load_io(&mut IoStream::from_const_mem(&ico)).is_err());
+    let mut tga = image("tga32.tga")[..18].to_vec();
+    tga[12..16].copy_from_slice(&[0xff; 4]);
+    assert!(crate::load_tga_io(&mut IoStream::from_const_mem(&tga)).is_err());
+
     // Truncated headers are errors
     for (name, n) in [
         ("sample.pcx", 100),
