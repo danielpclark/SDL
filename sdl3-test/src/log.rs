@@ -17,7 +17,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use sdl3::log::Category;
 
-/// The priorities of [`log_message`], from `sdl3`. Translation of `SDL_LogPriority`.
+/// The priorities of [`log_message()`], from `sdl3`. Translation of `SDL_LogPriority`.
 pub use sdl3::log::Priority;
 
 use crate::internal::{isprint, truncate};

@@ -9,7 +9,7 @@
 //! `include/SDL3/SDL_test*.h`). This code is a part of the SDL test library,
 //! not the main SDL library: it is a separate crate over [`sdl3`].
 //!
-//! * [`assert`]: assertions that log and count instead of aborting.
+//! * [`assert`](mod@assert): assertions that log and count instead of aborting.
 //! * [`compare`]: surface and memory comparisons with a report of the
 //!   differences.
 //! * [`crc32`], [`md5`]: the checksums the harness and memory tracker use.
@@ -17,7 +17,7 @@
 //! * [`fuzzer`]: reproducible random test data from an execution key.
 //! * [`harness`]: test suites and cases, run with seeds, filters, iterations
 //!   and a summary.
-//! * [`log`]: logging in the `TEST` category with timestamps.
+//! * [`log`](mod@log): logging in the `TEST` category with timestamps.
 //! * [`memory`]: an allocation tracker for finding leaks.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line translation
