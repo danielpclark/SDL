@@ -1335,5 +1335,154 @@ fn animation_api_errors() {
     assert!(crate::save_gif_animation_io(&mut anim, &mut out).is_err());
     anim.frames = vec![a, b];
     anim.delays = vec![10, 10];
+    let _lock = VIDEO.lock().unwrap_or_else(|e| e.into_inner());
     assert!(crate::create_animated_cursor(&anim, 0, 0).is_err());
+}
+
+/// Held by the tests that bring the video subsystem up or depend on it
+/// being down.
+static VIDEO: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// The video subsystem up on the offscreen driver; down when dropped.
+struct OffscreenVideo;
+
+impl OffscreenVideo {
+    fn init() -> sdl3::Result<OffscreenVideo> {
+        sdl3::hints::set(sdl3::hints::VIDEO_DRIVER, "offscreen")?;
+        sdl3::init::init(sdl3::init::InitFlags::VIDEO)?;
+        Ok(OffscreenVideo)
+    }
+}
+
+impl Drop for OffscreenVideo {
+    fn drop(&mut self) {
+        sdl3::init::quit_subsystem(sdl3::init::InitFlags::VIDEO);
+        sdl3::hints::reset(sdl3::hints::VIDEO_DRIVER);
+    }
+}
+
+/// The pixels of a GPU texture, downloaded tightly packed.
+fn download_texture(
+    device: &sdl3::gpu::Device,
+    texture: &sdl3::gpu::Texture,
+    w: i32,
+    h: i32,
+) -> Vec<u8> {
+    use sdl3::gpu::{
+        TextureRegion, TextureTransferInfo, TransferBufferCreateInfo, TransferBufferUsage,
+    };
+    let mut buffer = device
+        .create_transfer_buffer(&TransferBufferCreateInfo {
+            usage: TransferBufferUsage::Download,
+            size: (w * h * 4) as u32,
+            props: None,
+        })
+        .unwrap();
+    let mut cmd = device.acquire_command_buffer().unwrap();
+    let mut pass = cmd.begin_copy_pass().unwrap();
+    pass.download_from_texture(
+        &TextureRegion {
+            texture,
+            mip_level: 0,
+            layer: 0,
+            x: 0,
+            y: 0,
+            z: 0,
+            w: w as u32,
+            h: h as u32,
+            d: 1,
+        },
+        &TextureTransferInfo {
+            transfer_buffer: &buffer,
+            offset: 0,
+            pixels_per_row: 0,
+            rows_per_layer: 0,
+        },
+    );
+    pass.end();
+    cmd.submit().unwrap();
+    device.wait_for_idle().unwrap();
+    let pixels = buffer.map(false).unwrap().to_vec();
+    pixels
+}
+
+/// A surface's pixels as RGBA32, tightly packed.
+fn rgba32_pixels(surface: &Surface<'_>) -> Vec<u8> {
+    let s = surface.convert(PixelFormat::RGBA32).unwrap();
+    let row = s.width() as usize * 4;
+    let pitch = s.pitch() as usize;
+    let pixels = s.pixels().unwrap();
+    (0..s.height() as usize)
+        .flat_map(|y| pixels[y * pitch..y * pitch + row].iter().copied())
+        .collect()
+}
+
+#[test]
+fn gpu_textures_from_files_and_streams() {
+    use sdl3::gpu::{Device, ShaderFormat};
+    let _lock = VIDEO.lock().unwrap_or_else(|e| e.into_inner());
+    // Declared before the device, so dropped after it.
+    let video = OffscreenVideo::init();
+    let device = match video
+        .as_ref()
+        .map_err(Clone::clone)
+        .and_then(|_| Device::new(ShaderFormat::SPIRV | ShaderFormat::DXIL, false, None))
+    {
+        Ok(device) => device,
+        Err(e) => {
+            // SDL3_TEST_REQUIRE (docs/HARDWARE_TESTING.md) makes a missing
+            // GPU a failure.
+            let list = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
+            let required = list.split(',').any(|c| {
+                c == "all"
+                    || (cfg!(target_os = "linux") && c == "vulkan")
+                    || (cfg!(windows) && c == "d3d12")
+            });
+            assert!(!required, "no GPU device: {e}");
+            eprintln!("skipped: no GPU device ({e})");
+            return;
+        }
+    };
+
+    let mut cmd = device.acquire_command_buffer().unwrap();
+    let mut pass = cmd.begin_copy_pass().unwrap();
+    let (png, w, h) = crate::load_gpu_texture_io(
+        &device,
+        &mut pass,
+        &mut IoStream::from_const_mem(image("sample.png")),
+    )
+    .unwrap();
+    assert_eq!((w, h), (23, 42));
+    let (tga, tw, th) = crate::load_gpu_texture_typed_io(
+        &device,
+        &mut pass,
+        &mut IoStream::from_const_mem(image("tga8.tga")),
+        Some("tga"),
+    )
+    .unwrap();
+    assert_eq!((tw, th), (23, 13));
+    let path = std::env::temp_dir().join(format!("sdl3-image-gpu-{}.qoi", std::process::id()));
+    std::fs::write(&path, image("sample.qoi")).unwrap();
+    let (qoi, qw, qh) = crate::load_gpu_texture(&device, &mut pass, &path).unwrap();
+    let _ = std::fs::remove_file(&path);
+    assert!(
+        crate::load_gpu_texture_io(&device, &mut pass, &mut IoStream::from_const_mem(b"nope"))
+            .is_err()
+    );
+    pass.end();
+    cmd.submit().unwrap();
+
+    for (texture, w, h, name) in [
+        (&png, w, h, "sample.png"),
+        (&tga, tw, th, "tga8.tga"),
+        (&qoi, qw, qh, "sample.qoi"),
+    ] {
+        let surface =
+            crate::load_typed_io(&mut IoStream::from_const_mem(image(name)), ext_of(name)).unwrap();
+        assert_eq!(
+            download_texture(&device, texture, w, h),
+            rgba32_pixels(&surface),
+            "{name}"
+        );
+    }
 }
