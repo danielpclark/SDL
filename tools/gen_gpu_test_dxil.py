@@ -3,10 +3,14 @@
 shaders for the tests of the Direct3D 12 GPU backend, compiled from the
 HLSL below with Microsoft's DirectX Shader Compiler; or, with --dxbc,
 sdl3/src/gpu/d3d12/test_dxbc.rs: the same shaders as DXBC (shader model
-5.1, which Wine's vkd3d runs), compiled with Microsoft's fxc.
+5.1, which Wine's vkd3d runs), compiled with Microsoft's fxc; or, with
+--render, sdl3/src/render/gpu/test_dxil.rs: the DXIL fragment shaders of the
+GPU renderer's tests of render states (the shaders of
+gen_gpu_test_spirv.py --render).
 
 Usage: gen_gpu_test_dxil.py <dxc command> > sdl3/src/gpu/d3d12/test_dxil.rs
        gen_gpu_test_dxil.py --dxbc <fxc command> > sdl3/src/gpu/d3d12/test_dxbc.rs
+       gen_gpu_test_dxil.py --render <dxc command> > sdl3/src/render/gpu/test_dxil.rs
 
 where <dxc command> runs dxc: `dxc` (Linux or Windows), or for instance
 `wine64 .../dxc.exe` with the dxc.exe, dxcompiler.dll and dxil.dll of the
@@ -20,7 +24,10 @@ The shaders bind their resources where the GPU API's Direct3D 12 backend
 puts them: a vertex shader's uniform buffers in space 1, a fragment
 shader's samplers and textures in space 2 and uniform buffers in space 3,
 a compute shader's read-write storage buffers in space 1 and uniform
-buffers in space 2. Vertex inputs use the TEXCOORD semantic.
+buffers in space 2. Vertex inputs use the TEXCOORD semantic. The render
+state shaders take what the GPU renderer's triangle vertex shaders output
+(`COLOR0` and `TEXCOORD0`), with storage buffers in space 2 after the
+textures.
 """
 import os
 import subprocess
@@ -28,8 +35,81 @@ import sys
 import tempfile
 
 dxbc = sys.argv[1:2] == ["--dxbc"]
-compiler = sys.argv[2:] if dxbc else sys.argv[1:]
+render = sys.argv[1:2] == ["--render"]
+compiler = sys.argv[2:] if dxbc or render else sys.argv[1:]
 assert compiler, __doc__
+
+# The input of the render state shaders: the output of the GPU renderer's
+# tri_color and tri_texture vertex shaders.
+PS_INPUT = """
+struct PSInput
+{
+    float4 v_color : COLOR0;
+    float2 v_uv : TEXCOORD0;
+};
+"""
+
+RENDER_SHADERS = [
+    (
+        "RENDER_TINT",
+        "ps_6_0",
+        "A render state fragment shader multiplying the color by a uniform.",
+        PS_INPUT + """
+cbuffer Tint : register(b0, space3)
+{
+    float4 tint;
+};
+
+float4 main(PSInput input) : SV_Target
+{
+    return input.v_color * tint;
+}
+""",
+    ),
+    (
+        "RENDER_TWO_TEXTURES",
+        "ps_6_0",
+        "A render state fragment shader adding a second texture (sampler 1) scaled by a\n"
+        "/// uniform (slot 1) to the texture drawn (sampler 0), modulated and tinted by a\n"
+        "/// uniform (slot 0).",
+        PS_INPUT + """
+Texture2D u_texture : register(t0, space2);
+SamplerState u_sampler : register(s0, space2);
+Texture2D u_extra : register(t1, space2);
+SamplerState u_extra_sampler : register(s1, space2);
+
+cbuffer Tint : register(b0, space3)
+{
+    float4 tint;
+};
+
+cbuffer Scale : register(b1, space3)
+{
+    float4 scale;
+};
+
+float4 main(PSInput input) : SV_Target
+{
+    return u_texture.Sample(u_sampler, input.v_uv) * input.v_color * tint
+        + u_extra.Sample(u_extra_sampler, input.v_uv) * scale;
+}
+""",
+    ),
+    (
+        "RENDER_STORAGE_BUFFER",
+        "ps_6_0",
+        "A render state fragment shader multiplying the color by the first `float4` of a\n"
+        "/// storage buffer.",
+        PS_INPUT + """
+StructuredBuffer<float4> colors : register(t0, space2);
+
+float4 main(PSInput input) : SV_Target
+{
+    return input.v_color * colors[0];
+}
+""",
+    ),
+]
 
 SHADERS = [
     (
@@ -122,11 +202,15 @@ if dxbc:
 else:
     version = subprocess.run(compiler + ["--version"], capture_output=True, text=True, check=True)
     version = version.stdout.strip().splitlines()[0]
-    out.append("//! DXIL (shader model 6.0) shaders for the tests of the Direct3D 12")
-    out.append("//! backend, compiled by dxc:")
+    if render:
+        out.append("//! DXIL (shader model 6.0) fragment shaders for the tests of the GPU")
+        out.append("//! renderer's render states, compiled by dxc:")
+    else:
+        out.append("//! DXIL (shader model 6.0) shaders for the tests of the Direct3D 12")
+        out.append("//! backend, compiled by dxc:")
     out.append(f"//! {version}.")
 with tempfile.TemporaryDirectory() as tmp:
-    for name, profile, doc, source in SHADERS:
+    for name, profile, doc, source in RENDER_SHADERS if render else SHADERS:
         with open(os.path.join(tmp, "shader.hlsl"), "w") as f:
             f.write(source)
         if dxbc:

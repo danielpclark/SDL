@@ -47,6 +47,10 @@
 
 mod pipeline;
 mod shaders;
+#[cfg(all(test, windows))]
+mod test_dxil;
+#[cfg(test)]
+mod test_spirv;
 #[cfg(test)]
 mod tests;
 
