@@ -67,20 +67,26 @@ priorities.
 In dependency order, after the core each one needs exists:
 
 1. **SDL_image** — needs surfaces + IOStream. Decoders (BMP, PNG, JPEG, GIF, WebP, AVIF, TIFF, SVG, QOI, …) translated from the upstream single-file decoders; no system `libpng`/`libjpeg`.
-   **Started** (`sdl3-image`, SDL_image 3.5.0): the front end (`IMG.c`:
-   `IMG_Version`, `IMG_Load*`, `IMG_LoadTyped_IO`, `IMG_LoadTexture*`,
-   `IMG_Save`/`IMG_SaveTyped_IO`, `IMG_GetClipboardImage`), every `IMG_is*`
-   detector (AVIF's with libavif's file type check), the BMP/ICO/CUR, GIF
-   (still images, through the GIF frame decoder), PCX, PNM, QOI (`qoi.h`)
-   and TGA decoders, PNG and JPEG through the stb_image translation in
-   `sdl3` (`IMG_stb.c`), and the BMP, ICO, CUR, PNG (miniz), TGA and JPEG
-   (`tiny_jpeg.h`) savers; checked against upstream's C on its test images
-   and synthetic ones (detection, loading, truncated and corrupted input,
-   saving). Not yet: the LBM, XCF, XPM, XV and SVG (nanosvg) decoders, GIF
-   saving (the animation encoder and its quantizers), the animation API
-   (`IMG_anim_*`, APNG, ANI, animated cursors), `IMG_gpu.c`, and the
-   formats that need a large library (WebP, AVIF, TIFF, JPEG XL; libpng and
-   libjpeg are replaced by stb_image as upstream's stb backend).
+   **Mostly done** (`sdl3-image`, SDL_image 3.5.0): the front end
+   (`IMG.c`: `IMG_Version`, `IMG_Load*`, `IMG_LoadTyped_IO`,
+   `IMG_LoadTexture*`, `IMG_Save`/`IMG_SaveTyped_IO`,
+   `IMG_GetClipboardImage`, `IMG_LoadAnimation*`, `IMG_SaveAnimation*`,
+   `IMG_CreateAnimatedCursor`), every `IMG_is*` detector (AVIF's with
+   libavif's file type check), the BMP/ICO/CUR, GIF, LBM, PCX, PNM, QOI
+   (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
+   chosen size), TGA, XCF, XPM (with its color table, also from arrays) and
+   XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
+   (`IMG_stb.c`), the BMP, ICO, CUR, GIF (LZW, octree quantizer), PNG
+   (miniz), TGA and JPEG (`tiny_jpeg.h`) savers, the animation API
+   (`IMG_anim_decoder.c`, `IMG_anim_encoder.c`: frame-by-frame decoders and
+   encoders with timebases and metadata) with GIF and ANI cursor animations,
+   and `IMG_gpu.c` (GPU textures through a copy pass); checked against
+   upstream's C on its test images and synthetic ones (detection, loading,
+   truncated and corrupted input, saving, animation decoding and encoding).
+   Not yet: the formats that need a large library: the WebP, AVIF, TIFF
+   and JPEG XL decoders, and the APNG, animated WebP and AVIF animation
+   decoders and encoders (libpng and libjpeg are replaced by stb_image as
+   upstream's stb backend).
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
