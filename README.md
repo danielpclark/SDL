@@ -119,6 +119,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursors (mono bitmaps, color surfaces with hotspot properties, animated cursors animated by the mouse code when the backend can't), cursor state; all 14 mouse hints |
 | `events/SDL_touch.c`, `SDL_pen.c` | `sdl3::events::touch`, `sdl3::events::pen` | touch devices and fingers, pinch; pen registry, axes, buttons, proximity (deferred proximity-out); touch⇄mouse and pen→mouse/touch emulation |
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
+| `test/SDL_test_*.c`, `SDL_test*.h` (the `SDL_test` library) | the `sdl3-test` crate (`sdl3_test`) | assertions that log and count (`assert_check!`, `assert_pass!`), logging in the `TEST` category with timestamps, CRC32 and MD5, the fuzzer (every random and boundary value generator, reproducible from an execution key), the harness (suites and cases as statics, run seeds and MD5 execution keys, filters, iterations, random order, timeouts, summaries and repro lines), surface and memory comparisons, debug-font text and text windows, the memory tracker as a `GlobalAlloc` with stacks and random fill, and the common state (every command line option, windows, renderers and audio from them, the event log and hotkeys, the window information). The fuzzer's sequences, execution keys, test order and comparison logs are checked against upstream's C; upstream's `testautomation_sdltest.c` runs through the harness |
 
 Roughly 190,000 lines of upstream C/headers are covered by about 229,000
 lines of Rust including tests. Upstream is ~624,000 lines, so this is about
@@ -225,6 +226,7 @@ what can and cannot change about the license of a translation.
 
 ## Satellite libraries
 
-SDL_image, SDL_mixer, SDL_ttf, SDL_net, SDL_rtf and SDL_shadercross will be
-translated the same way, each as its own crate in this workspace, after the
-core they depend on exists. See the roadmap.
+The workspace has the `sdl3` crate and `sdl3-test`, the translation of SDL's
+test library (`SDL_test`). SDL_image, SDL_mixer, SDL_ttf, SDL_net, SDL_rtf and
+SDL_shadercross will be translated the same way, each as its own crate in this
+workspace, after the core they depend on exists. See the roadmap.
