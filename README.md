@@ -121,10 +121,11 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `events/SDL_windowevents.c`, display/clipboard/drop/notification event sources | `sdl3::events::window` | `WindowFlags`, window state updates and superseded-event filtering, early/normal window watch lists, quit-on-last-window-close; the `VideoHooks` trait the video subsystem implements |
 | `test/SDL_test_*.c`, `SDL_test*.h` (the `SDL_test` library) | the `sdl3-test` crate (`sdl3_test`) | assertions that log and count (`assert_check!`, `assert_pass!`), logging in the `TEST` category with timestamps, CRC32 and MD5, the fuzzer (every random and boundary value generator, reproducible from an execution key), the harness (suites and cases as statics, run seeds and MD5 execution keys, filters, iterations, random order, timeouts, summaries and repro lines), surface and memory comparisons, debug-font text and text windows, the memory tracker as a `GlobalAlloc` with stacks and random fill, and the common state (every command line option, windows, renderers and audio from them, the event log and hotkeys, the window information). The fuzzer's sequences, execution keys, test order and comparison logs are checked against upstream's C; upstream's `testautomation_sdltest.c` runs through the harness |
 | SDL_image 3.5.0: `IMG.c`, `IMG_anim_decoder.c`, `IMG_anim_encoder.c`, `IMG_ani.c`, `IMG_bmp.c`, `IMG_gif.c`, `IMG_gpu.c`, `IMG_jpg.c`, `IMG_lbm.c`, `IMG_pcx.c`, `IMG_png.c`, `IMG_pnm.c`, `IMG_qoi.c` with `qoi.h`, `IMG_stb.c`, `IMG_svg.c` with `nanosvg.h` and `nanosvgrast.h`, `IMG_tga.c`, `IMG_xcf.c`, `IMG_xpm.c`, `IMG_xv.c`, `tiny_jpeg.h`, the `IMG_is*` detectors of the other formats | the `sdl3-image` crate (`sdl3_image`) | loading by detection or by type (`load`, `load_io`, `load_typed_io`) and into textures and GPU textures, saving by extension (`save`, `save_typed_io`), the clipboard image; every detector (AVIF's with libavif's file type check); BMP, ICO and CUR (alternate images, hotspots), GIF, LBM (PBM, ILBM, EHB, HAM), PCX, PNM, QOI, SVG (nanosvg, at any size), TGA, XCF, XPM and XV decoders, PNG and JPEG through `sdl3`'s stb_image; BMP, ICO, CUR, GIF, PNG, TGA and JPEG (tiny_jpeg) savers; the animation API (`load_animation*`, `save_animation*`, `AnimationDecoder`, `AnimationEncoder`, `create_animated_cursor`) with GIF and ANI. Checked against upstream's C on its test images and synthetic ones, truncated and corrupted; GPU textures read back from a Vulkan device. Not yet: WebP/AVIF/TIFF/JPEG XL decoding, APNG and animated WebP/AVIF |
+| SDL_mixer 3.3.0: `SDL_mixer.c`, `SDL_mixer_metadata_tags.c`, `SDL_mixer_spatialization.c`, `decoder_aiff.c`, `decoder_au.c`, `decoder_drflac.c` with `dr_flac.h`, `decoder_drmp3.c` with `dr_mp3.h`, `decoder_raw.c`, `decoder_sinewave.c`, `decoder_stb_vorbis.c` with `stb_vorbis.h`, `decoder_voc.c`, `decoder_wav.c` | the `sdl3-mixer` crate (`sdl3_mixer`) | mixers on audio devices or generating into buffers, audio loaded on demand or predecoded, tracks from audio, streams or `IoStream`s with gains, frequency ratios, fades, loops, stereo and 3D positioning (VBAP), tags, groups and callbacks at every stage, `AudioDecoder`; ID3v1/v2, APE, Lyrics3, MusicMatch and Ogg comment metadata with Ogg loop points; the WAV (PCM, float, mu-law, a-law, MS and IMA ADPCM, `smpl` loops), AIFF/AIFF-C, VOC, AU, raw and sine wave decoders, MP3 (dr_mp3 with minimp3), Ogg Vorbis (stb_vorbis) and FLAC and Ogg FLAC (dr_flac). Checked against upstream's C on generated test audio, truncated and corrupted, decoded and mixed with loops and seeks. Not yet: MIDI through the bundled Timidity; not translated: the decoders that need an external library (Opus, libxmp, FluidSynth, WavPack, libgme, libmpg123, libvorbisfile, libFLAC) |
 
-Roughly 200,000 lines of upstream C/headers are covered by about 241,000
-lines of Rust including tests. Upstream is ~624,000 lines, so this is about
-30% by volume, but it is the part that everything else includes. The audio
+Roughly 237,000 lines of upstream C/headers are covered by about 265,000
+lines of Rust including tests. Upstream is ~624,000 lines, so this is over
+a third by volume, but it is the part that everything else includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
 BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
@@ -229,7 +230,11 @@ The workspace has the `sdl3` crate, `sdl3-test`, the translation of SDL's
 test library (`SDL_test`), and `sdl3-image`, the translation of SDL_image
 (the front end, the detectors, the self-contained decoders and savers,
 SVG through a translation of nanosvg, the animation API with GIF and ANI,
-and GPU textures; the WebP, AVIF, TIFF and JPEG XL codecs are not done).
-SDL_mixer, SDL_ttf, SDL_net, SDL_rtf and SDL_shadercross will be
+and GPU textures; the WebP, AVIF, TIFF and JPEG XL codecs are not done),
+and `sdl3-mixer`, the translation of SDL_mixer (the mixer, the metadata
+parsers and the self-contained decoders: WAV, AIFF, VOC, AU, raw, sine
+wave, MP3 through dr_mp3, Ogg Vorbis through stb_vorbis and FLAC through
+dr_flac; Timidity MIDI and the decoders that need an external library are
+not done). SDL_ttf, SDL_net, SDL_rtf and SDL_shadercross will be
 translated the same way, each as its own crate in this workspace, after the
 core they depend on exists. See the roadmap.
