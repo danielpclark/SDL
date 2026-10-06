@@ -2494,6 +2494,13 @@ impl Fence {
 }
 
 impl Device {
+    /// Whether two handles are of the same device (upstream compares the
+    /// `SDL_GPUDevice *`s).
+    #[cfg(test)]
+    pub(crate) fn same_device(&self, other: &Device) -> bool {
+        Arc::ptr_eq(&self.shared, &other.shared)
+    }
+
     /// Create a GPU context for the given shader formats. Translation of
     /// `SDL_CreateGPUDevice()`.
     ///

@@ -31,9 +31,9 @@ use crate::events::queue::{get_events, pump};
 use crate::events::{Event, EventType};
 use crate::init::{self, InitFlags};
 use crate::render::{
-    Renderer, Texture, TextureAccess, TextureCreateInfo, Vertex,
-    PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN,
-    SOFTWARE_RENDERER,
+    GpuRenderStateCreateInfo, GpuRenderStateSamplerBinding, Renderer, Texture, TextureAccess,
+    TextureCreateInfo, Vertex, PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER,
+    PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN, SOFTWARE_RENDERER,
 };
 use crate::video::blendmode::{BlendFactor as BF, BlendOperation as BO};
 use crate::video::pixels::Palette;
@@ -1633,6 +1633,679 @@ fn gpu_pipelines_are_cached_on(backend: Backend) {
     window.destroy();
 }
 
+// ---------------------------------------------------------------------------
+// Render states, existing devices and existing textures
+// ---------------------------------------------------------------------------
+
+/// The render state fragment shaders of the tests: the SPIR-V of
+/// [`test_spirv`] and the DXIL of `test_dxil` (made by
+/// `tools/gen_gpu_test_spirv.py --render` and
+/// `tools/gen_gpu_test_dxil.py --render`).
+#[derive(Clone, Copy, Debug)]
+enum StateShader {
+    /// The color times the uniform of slot 0.
+    Tint,
+    /// The texture drawn (sampler 0), modulated and times the uniform of
+    /// slot 0, plus a second texture (sampler 1) times the uniform of
+    /// slot 1.
+    TwoTextures,
+    /// The color times the first `vec4` of storage buffer 0.
+    StorageBuffer,
+}
+
+impl StateShader {
+    /// The shader on `device`, in the format it takes (SPIR-V on Vulkan,
+    /// DXIL on Direct3D 12).
+    fn create(self, device: &gpu::Device) -> Arc<gpu::Shader> {
+        let (spirv, num_samplers, num_storage_buffers, num_uniform_buffers) = match self {
+            StateShader::Tint => (test_spirv::RENDER_TINT, 0, 0, 1),
+            StateShader::TwoTextures => (test_spirv::RENDER_TWO_TEXTURES, 2, 0, 2),
+            StateShader::StorageBuffer => (test_spirv::RENDER_STORAGE_BUFFER, 0, 1, 0),
+        };
+        #[cfg(windows)]
+        let dxil: &[u8] = match self {
+            StateShader::Tint => &test_dxil::RENDER_TINT,
+            StateShader::TwoTextures => &test_dxil::RENDER_TWO_TEXTURES,
+            StateShader::StorageBuffer => &test_dxil::RENDER_STORAGE_BUFFER,
+        };
+        #[cfg(not(windows))]
+        let dxil: &[u8] = &[];
+        let spirv: Vec<u8> = spirv.iter().flat_map(|w| w.to_le_bytes()).collect();
+        let (code, format) = if device.shader_formats().contains(ShaderFormat::SPIRV) {
+            (&spirv[..], ShaderFormat::SPIRV)
+        } else {
+            (dxil, ShaderFormat::DXIL)
+        };
+        let shader = device
+            .create_shader(&gpu::ShaderCreateInfo {
+                code,
+                entrypoint: "main",
+                format,
+                stage: gpu::ShaderStage::Fragment,
+                num_samplers,
+                num_storage_buffers,
+                num_uniform_buffers,
+                ..Default::default()
+            })
+            .unwrap();
+        Arc::new(shader)
+    }
+}
+
+/// A `vec4` uniform's bytes.
+fn vec4(v: [f32; 4]) -> Vec<u8> {
+    float_bytes(&v)
+}
+
+/// The RGBA of the pixel at (`x`, `y`) of what the renderer drew.
+fn rgba_at(r: &mut Renderer, x: i32, y: i32) -> [u8; 4] {
+    let s = r.read_pixels(Some(&Rect::new(x, y, 1, 1))).unwrap();
+    let s = s.convert(PixelFormat::RGBA32).unwrap();
+    rows(&s).try_into().unwrap()
+}
+
+/// Check the pixel at (`x`, `y`), each channel within 1 (the GPU's float
+/// math rounds).
+fn assert_rgba_at(what: &str, r: &mut Renderer, (x, y): (i32, i32), want: [u8; 4]) {
+    let got = rgba_at(r, x, y);
+    assert!(
+        got.iter().zip(&want).all(|(g, w)| g.abs_diff(*w) <= 1),
+        "{what}: ({x}, {y}) is {got:?}, not {want:?}"
+    );
+}
+
+/// A nearest, clamping sampler of the application's on `device`.
+fn nearest_sampler(device: &gpu::Device) -> Arc<gpu::Sampler> {
+    let sampler = device
+        .create_sampler(&gpu::SamplerCreateInfo {
+            min_filter: gpu::Filter::Nearest,
+            mag_filter: gpu::Filter::Nearest,
+            mipmap_mode: gpu::SamplerMipmapMode::Nearest,
+            address_mode_u: gpu::SamplerAddressMode::ClampToEdge,
+            address_mode_v: gpu::SamplerAddressMode::ClampToEdge,
+            address_mode_w: gpu::SamplerAddressMode::ClampToEdge,
+            ..Default::default()
+        })
+        .unwrap();
+    Arc::new(sampler)
+}
+
+/// Run `record` on a command buffer of `device`'s and wait for it.
+fn submit_and_wait(device: &gpu::Device, record: impl FnOnce(&mut gpu::CopyPass<'_>)) {
+    let mut command_buffer = device.acquire_command_buffer().unwrap();
+    {
+        let mut pass = command_buffer.begin_copy_pass().unwrap();
+        record(&mut pass);
+        pass.end();
+    }
+    let fence = command_buffer.submit_and_acquire_fence().unwrap();
+    device.wait_for_fences(true, &[&fence]).unwrap();
+}
+
+/// A transfer buffer of `device`'s holding `data`.
+fn upload_buffer(device: &gpu::Device, data: &[u8]) -> gpu::TransferBuffer {
+    let mut tbuf = device
+        .create_transfer_buffer(&gpu::TransferBufferCreateInfo {
+            usage: gpu::TransferBufferUsage::Upload,
+            size: data.len() as u32,
+            props: None,
+        })
+        .unwrap();
+    tbuf.map(false).unwrap()[..data.len()].copy_from_slice(data);
+    tbuf
+}
+
+/// A storage buffer of the application's on `device`, holding `data`.
+fn storage_buffer(device: &gpu::Device, data: &[u8]) -> Arc<gpu::Buffer> {
+    let buffer = device
+        .create_buffer(&gpu::BufferCreateInfo {
+            usage: gpu::BufferUsageFlags::GRAPHICS_STORAGE_READ,
+            size: data.len() as u32,
+            props: None,
+        })
+        .unwrap();
+    let tbuf = upload_buffer(device, data);
+    submit_and_wait(device, |pass| {
+        pass.upload_to_buffer(
+            &gpu::TransferBufferLocation {
+                transfer_buffer: &tbuf,
+                offset: 0,
+            },
+            &gpu::BufferRegion {
+                buffer: &buffer,
+                offset: 0,
+                size: data.len() as u32,
+            },
+            false,
+        );
+    });
+    Arc::new(buffer)
+}
+
+/// A sampled `w` x `h` texture of `format` of the application's on
+/// `device`, holding `pixels` (rows without padding).
+fn gpu_texture(
+    device: &gpu::Device,
+    format: TextureFormat,
+    w: u32,
+    h: u32,
+    pixels: &[u8],
+) -> Arc<gpu::Texture> {
+    let texture = device
+        .create_texture(&gpu::TextureCreateInfo {
+            format,
+            usage: TextureUsageFlags::SAMPLER,
+            width: w,
+            height: h,
+            layer_count_or_depth: 1,
+            num_levels: 1,
+            sample_count: gpu::SampleCount::One,
+            ..Default::default()
+        })
+        .unwrap();
+    let tbuf = upload_buffer(device, pixels);
+    submit_and_wait(device, |pass| {
+        pass.upload_to_texture(
+            &gpu::TextureTransferInfo {
+                transfer_buffer: &tbuf,
+                offset: 0,
+                pixels_per_row: w,
+                rows_per_layer: h,
+            },
+            &gpu::TextureRegion {
+                texture: &texture,
+                mip_level: 0,
+                layer: 0,
+                x: 0,
+                y: 0,
+                z: 0,
+                w,
+                h,
+                d: 1,
+            },
+            false,
+        );
+    });
+    Arc::new(texture)
+}
+
+#[test]
+fn gpu_render_states() {
+    gpu_render_states_on(Backend::Vulkan);
+}
+
+fn gpu_render_states_on(backend: Backend) {
+    let _l = crate::test_support::test_lock();
+    let video = Video::init(backend);
+    let Some((_window, mut r)) = video.gpu_renderer(W, H) else {
+        return;
+    };
+    let device = r.gpu_renderer_device().unwrap();
+    assert!(r
+        .properties()
+        .get_any::<gpu::Device>(PROP_RENDERER_GPU_DEVICE_POINTER)
+        .unwrap()
+        .same_device(&device));
+
+    // Only a renderer with a GPU device takes render states.
+    let tint = StateShader::Tint.create(&device);
+    let mut sw = software_renderer(8, 8);
+    assert_eq!(
+        sw.gpu_renderer_device().unwrap_err().message(),
+        "Renderer isn't a GPU renderer"
+    );
+    assert_eq!(
+        sw.create_gpu_render_state(&GpuRenderStateCreateInfo::new(tint.clone()))
+            .unwrap_err()
+            .message(),
+        "Renderer isn't associated with a GPU device"
+    );
+    drop(sw);
+
+    // A fill with the tint state is its color times the uniform; changing
+    // the uniform once the state is queued flushes, so each fill gets its
+    // own. The renderer's color shader draws again once the state is
+    // cleared.
+    let state = r
+        .create_gpu_render_state(&GpuRenderStateCreateInfo::new(tint.clone()))
+        .unwrap();
+    r.set_draw_color(0, 0, 0, 255);
+    r.clear().unwrap();
+    r.set_gpu_render_state(Some(state)).unwrap();
+    r.set_gpu_render_state_fragment_uniforms(state, 0, &vec4([0.5, 1.0, 0.25, 1.0]))
+        .unwrap();
+    r.set_draw_color(200, 100, 40, 255);
+    r.render_fill_rect(Some(&FRect::new(0.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    r.set_gpu_render_state_fragment_uniforms(state, 0, &vec4([1.0, 0.0, 1.0, 1.0]))
+        .unwrap();
+    r.render_fill_rect(Some(&FRect::new(10.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    r.set_gpu_render_state(None).unwrap();
+    r.render_fill_rect(Some(&FRect::new(20.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    assert_rgba_at("tinted", &mut r, (5, 5), [100, 100, 10, 255]);
+    assert_rgba_at("tinted again", &mut r, (15, 5), [200, 0, 40, 255]);
+    assert_rgba_at("without the state", &mut r, (25, 5), [200, 100, 40, 255]);
+    assert_rgba_at("not drawn", &mut r, (35, 5), [0, 0, 0, 255]);
+
+    // Two states queued one after the other aren't drawn together; a
+    // storage buffer gives the second its color.
+    let storage = StateShader::StorageBuffer.create(&device);
+    let red = storage_buffer(&device, &vec4([1.0, 0.0, 0.0, 1.0]));
+    let mut info = GpuRenderStateCreateInfo::new(storage);
+    info.storage_buffers.push(red);
+    let buffer_state = r.create_gpu_render_state(&info).unwrap();
+    r.set_draw_color(0, 0, 0, 255);
+    r.clear().unwrap();
+    r.set_draw_color(200, 100, 40, 255);
+    r.set_gpu_render_state(Some(state)).unwrap();
+    r.render_fill_rect(Some(&FRect::new(0.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    r.set_gpu_render_state(Some(buffer_state)).unwrap();
+    r.render_fill_rect(Some(&FRect::new(10.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    r.set_gpu_render_state(Some(state)).unwrap();
+    r.render_fill_rect(Some(&FRect::new(20.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    assert_rgba_at("first state", &mut r, (5, 5), [200, 0, 40, 255]);
+    assert_rgba_at("second state", &mut r, (15, 5), [200, 0, 0, 255]);
+    assert_rgba_at("first state again", &mut r, (25, 5), [200, 0, 40, 255]);
+    // (new storage buffers)
+    let half = storage_buffer(&device, &vec4([0.5, 0.5, 0.5, 1.0]));
+    r.set_gpu_render_state(Some(buffer_state)).unwrap();
+    r.render_fill_rect(Some(&FRect::new(30.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    r.set_gpu_render_state_storage_buffers(buffer_state, &[half])
+        .unwrap();
+    r.render_fill_rect(Some(&FRect::new(40.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    assert_rgba_at("old buffer", &mut r, (35, 5), [200, 0, 0, 255]);
+    assert_rgba_at("new buffer", &mut r, (45, 5), [100, 50, 20, 255]);
+    r.set_gpu_render_state(None).unwrap();
+
+    // A texture drawn with a state: the texture drawn is sampler 0, the
+    // state's texture sampler 1, with two uniform buffers.
+    let t0 = texture_from(
+        &mut r,
+        PixelFormat::RGBA32,
+        2,
+        2,
+        &[
+            200, 100, 0, 255, 0, 200, 100, 255, 100, 0, 200, 255, 250, 250, 250, 255,
+        ],
+    );
+    let t1 = texture_from(
+        &mut r,
+        PixelFormat::RGBA32,
+        2,
+        2,
+        &[
+            0, 100, 200, 255, 40, 0, 0, 255, 0, 40, 0, 255, 0, 0, 40, 255,
+        ],
+    );
+    let extra = r
+        .texture_properties(t1)
+        .unwrap()
+        .get_any::<gpu::Texture>(PROP_TEXTURE_GPU_TEXTURE_POINTER)
+        .unwrap();
+    let sampler = nearest_sampler(&device);
+    let mut info = GpuRenderStateCreateInfo::new(StateShader::TwoTextures.create(&device));
+    info.sampler_bindings.push(GpuRenderStateSamplerBinding {
+        texture: extra,
+        sampler: sampler.clone(),
+    });
+    let textures_state = r.create_gpu_render_state(&info).unwrap();
+    r.set_gpu_render_state_fragment_uniforms(textures_state, 0, &vec4([0.5, 0.5, 0.5, 1.0]))
+        .unwrap();
+    r.set_gpu_render_state_fragment_uniforms(textures_state, 1, &vec4([0.5, 0.5, 0.5, 0.0]))
+        .unwrap();
+    r.set_texture_blend_mode(t0, BlendMode::NONE).unwrap();
+    r.set_texture_scale_mode(t0, ScaleMode::Nearest).unwrap();
+    r.set_draw_color(0, 0, 0, 255);
+    r.clear().unwrap();
+    r.set_gpu_render_state(Some(textures_state)).unwrap();
+    r.render_texture(t0, None, Some(&FRect::new(8.0, 8.0, 16.0, 16.0)))
+        .unwrap();
+    // (with the second texture changed to the first: t0 / 2 + t0 / 2)
+    let own = r
+        .texture_properties(t0)
+        .unwrap()
+        .get_any::<gpu::Texture>(PROP_TEXTURE_GPU_TEXTURE_POINTER)
+        .unwrap();
+    r.set_gpu_render_state_sampler_bindings(
+        textures_state,
+        &[GpuRenderStateSamplerBinding {
+            texture: own,
+            sampler,
+        }],
+    )
+    .unwrap();
+    // (and the color modulated: the vertex color reaches the shader)
+    r.set_texture_color_mod(t0, 255, 255, 0).unwrap();
+    r.render_texture(t0, None, Some(&FRect::new(32.0, 8.0, 16.0, 16.0)))
+        .unwrap();
+    r.set_gpu_render_state(None).unwrap();
+    for (i, want, want_same) in [
+        (0, [100, 100, 100, 255], [200, 100, 0, 255]),
+        (1, [20, 100, 50, 255], [0, 200, 50, 255]),
+        (2, [50, 20, 100, 255], [100, 0, 100, 255]),
+        (3, [125, 125, 145, 255], [250, 250, 125, 255]),
+    ] {
+        let (x, y) = (12 + 8 * (i % 2), 12 + 8 * (i / 2));
+        assert_rgba_at(&format!("texel {i}"), &mut r, (x, y), want);
+        assert_rgba_at(&format!("texel {i} twice"), &mut r, (x + 24, y), want_same);
+    }
+
+    // A destroyed state is gone, and a renderer set to it draws without it.
+    r.set_gpu_render_state(Some(state)).unwrap();
+    r.destroy_gpu_render_state(state);
+    assert!(r.set_gpu_render_state(Some(state)).is_err());
+    assert!(r
+        .set_gpu_render_state_fragment_uniforms(state, 0, &vec4([0.0; 4]))
+        .is_err());
+    r.destroy_gpu_render_state(state);
+    r.set_draw_color(0, 0, 0, 255);
+    r.clear().unwrap();
+    r.set_draw_color(200, 100, 40, 255);
+    r.render_fill_rect(Some(&FRect::new(0.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    assert_rgba_at("destroyed state", &mut r, (5, 5), [200, 100, 40, 255]);
+    // (a state queued when destroyed is drawn first)
+    r.set_gpu_render_state(Some(buffer_state)).unwrap();
+    r.render_fill_rect(Some(&FRect::new(10.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    r.destroy_gpu_render_state(buffer_state);
+    r.render_fill_rect(Some(&FRect::new(20.0, 0.0, 10.0, 10.0)))
+        .unwrap();
+    assert_rgba_at("queued state", &mut r, (15, 5), [100, 50, 20, 255]);
+    assert_rgba_at(
+        "after the queued state",
+        &mut r,
+        (25, 5),
+        [200, 100, 40, 255],
+    );
+
+    // (another renderer's states aren't this one's)
+    let mut other = software_renderer(8, 8);
+    assert!(other.set_gpu_render_state(Some(textures_state)).is_err());
+    drop(other);
+
+    // A state left to the renderer goes with it, after its device's other
+    // objects.
+    r.present().unwrap();
+    drop(r);
+    drop(tint);
+    drop(device);
+}
+
+#[test]
+fn gpu_renderer_on_an_existing_device() {
+    gpu_renderer_on_an_existing_device_on(Backend::Vulkan);
+}
+
+fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init(backend);
+    #[cfg(windows)]
+    if backend == Backend::D3d12 && !has_d3d12_dxil() {
+        return;
+    }
+    let format = match backend {
+        Backend::Vulkan => ShaderFormat::SPIRV,
+        #[cfg(windows)]
+        Backend::D3d12 => ShaderFormat::DXIL,
+    };
+    let device = match gpu::Device::new(format, true, Some(backend.driver())) {
+        Ok(device) => device,
+        Err(e) if backend == Backend::Vulkan => {
+            crate::test_support::skip("vulkan", format_args!("no device ({})", e.message()));
+            return;
+        }
+        Err(e) => panic!("no Direct3D 12 device ({})", e.message()),
+    };
+    let window = Window::create("gpu", W, H, WindowFlags::default()).unwrap();
+    let mut r = match Renderer::for_gpu_device(Some(&device), &window) {
+        Ok(r) => r,
+        Err(e) if backend == Backend::Vulkan => {
+            crate::test_support::skip("vulkan", format_args!("no GPU renderer ({})", e.message()));
+            window.destroy();
+            return;
+        }
+        Err(e) => panic!("no GPU renderer on Direct3D 12 ({})", e.message()),
+    };
+    assert_eq!(r.name(), GPU_RENDERER);
+    assert!(r.gpu_renderer_device().unwrap().same_device(&device));
+
+    // It draws as a renderer with its own device does.
+    let scene = |r: &mut Renderer| {
+        r.set_draw_color(12, 34, 56, 255);
+        r.clear().unwrap();
+        r.set_draw_color(200, 100, 50, 255);
+        r.render_fill_rect(Some(&FRect::new(4.0, 5.0, 20.0, 10.0)))
+            .unwrap();
+        let t = pattern_texture(r, PixelFormat::ARGB8888, 16, 12);
+        r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(30.0, 20.0, 16.0, 12.0)))
+            .unwrap();
+        r.destroy_texture(t);
+    };
+    compare("existing device", &mut r, 1, scene);
+
+    // ... and takes render states with the device's shaders.
+    let state = r
+        .create_gpu_render_state(&GpuRenderStateCreateInfo::new(
+            StateShader::Tint.create(&device),
+        ))
+        .unwrap();
+    r.set_gpu_render_state_fragment_uniforms(state, 0, &vec4([0.0, 1.0, 1.0, 1.0]))
+        .unwrap();
+    r.set_gpu_render_state(Some(state)).unwrap();
+    r.set_draw_color(200, 100, 40, 255);
+    r.render_fill_rect(None).unwrap();
+    assert_rgba_at("existing device state", &mut r, (5, 5), [0, 100, 40, 255]);
+    r.present().unwrap();
+
+    // The renderer can go first: the device stays the application's, and
+    // takes another renderer for the window it released.
+    drop(r);
+    let texture = gpu_texture(&device, TextureFormat::B8G8R8A8_UNORM, 2, 2, &[7; 16]);
+    let mut r = Renderer::for_gpu_device(Some(&device), &window).unwrap();
+    compare("existing device again", &mut r, 1, scene);
+
+    // The application's device can go first: the renderer keeps it.
+    drop(texture);
+    drop(device);
+    compare("existing device dropped", &mut r, 1, scene);
+    r.present().unwrap();
+    drop(r);
+
+    // The application's shader formats are the device's: those the
+    // renderer has too.
+    let with = |info: RendererCreateInfo| {
+        Renderer::for_window_with(
+            &window,
+            &RendererCreateInfo {
+                name: Some(GPU_RENDERER.to_owned()),
+                ..info
+            },
+        )
+    };
+    let r = match backend {
+        Backend::Vulkan => with(RendererCreateInfo {
+            gpu_shaders_spirv: true,
+            ..Default::default()
+        }),
+        #[cfg(windows)]
+        Backend::D3d12 => with(RendererCreateInfo {
+            gpu_shaders_dxil: true,
+            ..Default::default()
+        }),
+    }
+    .unwrap();
+    let formats = r.gpu_renderer_device().unwrap().shader_formats();
+    assert!(formats.contains(format), "{formats:?}");
+    assert!(!formats.contains(ShaderFormat::MSL), "{formats:?}");
+    drop(r);
+    // (there are no MSL shaders: no device takes only those)
+    assert!(with(RendererCreateInfo {
+        gpu_shaders_msl: true,
+        ..Default::default()
+    })
+    .is_err());
+    window.destroy();
+}
+
+#[test]
+fn gpu_textures_from_existing_gpu_textures() {
+    gpu_textures_from_existing_gpu_textures_on(Backend::Vulkan);
+}
+
+fn gpu_textures_from_existing_gpu_textures_on(backend: Backend) {
+    let _l = crate::test_support::test_lock();
+    let video = Video::init(backend);
+    let Some((_window, mut r)) = video.gpu_renderer(W, H) else {
+        return;
+    };
+    let device = r.gpu_renderer_device().unwrap();
+
+    // An ARGB8888 texture of the application's B8G8R8A8 texture draws as
+    // a texture with its pixels does; it's published, and destroying the
+    // renderer's texture leaves it to the application.
+    let (w, h) = (16, 12);
+    let mut src = Surface::new(w, h, PixelFormat::RGBA32).unwrap();
+    let pitch = src.pitch() as usize;
+    let pattern = pattern(w, h);
+    for y in 0..h as usize {
+        src.pixels_mut().unwrap()[y * pitch..][..w as usize * 4]
+            .copy_from_slice(&pattern[y * w as usize * 4..][..w as usize * 4]);
+    }
+    let bgra = src.convert(PixelFormat::ARGB8888).unwrap();
+    let ours = gpu_texture(
+        &device,
+        TextureFormat::B8G8R8A8_UNORM,
+        w as u32,
+        h as u32,
+        &rows(&bgra),
+    );
+    let t = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            width: w,
+            height: h,
+            gpu_texture: Some(ours.clone()),
+            ..Default::default()
+        })
+        .unwrap();
+    let published = r
+        .texture_properties(t)
+        .unwrap()
+        .get_any::<gpu::Texture>(PROP_TEXTURE_GPU_TEXTURE_POINTER)
+        .unwrap();
+    assert!(Arc::ptr_eq(&published, &ours));
+    drop(published);
+    let mut sw = software_renderer(W, H);
+    let ts = texture_from(&mut sw, PixelFormat::ARGB8888, w, h, &pattern);
+    for (rr, t) in [(&mut r, t), (&mut sw, ts)] {
+        rr.set_draw_color(30, 60, 90, 255);
+        rr.clear().unwrap();
+        rr.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        rr.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        rr.render_texture(t, None, Some(&FRect::new(2.0, 3.0, 16.0, 12.0)))
+            .unwrap();
+        rr.render_texture(
+            t,
+            Some(&FRect::new(4.0, 2.0, 8.0, 6.0)),
+            Some(&FRect::new(24.0, 4.0, 16.0, 12.0)),
+        )
+        .unwrap();
+    }
+    assert_close(
+        "existing GPU texture",
+        &r.read_pixels(None).unwrap(),
+        &sw.read_pixels(None).unwrap(),
+        1,
+    );
+    r.destroy_texture(t);
+    assert_eq!(Arc::strong_count(&ours), 1);
+
+    // YUV textures of the application's planes draw as the renderer's own
+    // YUV textures of the same planes do.
+    let (w, h) = (16usize, 12usize);
+    let (y, u, v) = yuv_planes(w, h);
+    let uv: Vec<u8> = u.iter().zip(&v).flat_map(|(a, b)| [*a, *b]).collect();
+    let (cw, ch) = (w.div_ceil(2) as u32, h.div_ceil(2) as u32);
+    let y_plane = gpu_texture(&device, TextureFormat::R8_UNORM, w as u32, h as u32, &y);
+    let u_plane = gpu_texture(&device, TextureFormat::R8_UNORM, cw, ch, &u);
+    let v_plane = gpu_texture(&device, TextureFormat::R8_UNORM, cw, ch, &v);
+    let uv_plane = gpu_texture(&device, TextureFormat::R8G8_UNORM, cw, ch, &uv);
+    for format in [PixelFormat::IYUV, PixelFormat::NV12] {
+        let draw = |r: &mut Renderer, t: Texture| {
+            r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+            r.set_draw_color(0, 0, 0, 255);
+            r.clear().unwrap();
+            r.render_texture(t, None, Some(&FRect::new(3.0, 3.0, 32.0, 24.0)))
+                .unwrap();
+            r.destroy_texture(t);
+            r.read_pixels(None).unwrap()
+        };
+        let own = r
+            .create_texture(format, TextureAccess::Static, w as i32, h as i32)
+            .unwrap();
+        if format == PixelFormat::NV12 {
+            r.update_nv_texture(own, None, &y, w as i32, &uv, w as i32)
+                .unwrap();
+        } else {
+            r.update_yuv_texture(own, None, &y, w as i32, &u, cw as i32, &v, cw as i32)
+                .unwrap();
+        }
+        let expected = draw(&mut r, own);
+        let mut info = TextureCreateInfo {
+            format,
+            width: w as i32,
+            height: h as i32,
+            gpu_texture: Some(y_plane.clone()),
+            ..Default::default()
+        };
+        if format == PixelFormat::NV12 {
+            info.gpu_texture_uv = Some(uv_plane.clone());
+        } else {
+            info.gpu_texture_u = Some(u_plane.clone());
+            info.gpu_texture_v = Some(v_plane.clone());
+        }
+        let wrapped = r.create_texture_with(&info).unwrap();
+        let props = r.texture_properties(wrapped).unwrap();
+        if format == PixelFormat::NV12 {
+            let published = props
+                .get_any::<gpu::Texture>(PROP_TEXTURE_GPU_TEXTURE_UV_POINTER)
+                .unwrap();
+            assert!(Arc::ptr_eq(&published, &uv_plane));
+        } else {
+            let published = props
+                .get_any::<gpu::Texture>(PROP_TEXTURE_GPU_TEXTURE_V_POINTER)
+                .unwrap();
+            assert!(Arc::ptr_eq(&published, &v_plane));
+        }
+        drop(props);
+        let got = draw(&mut r, wrapped);
+        assert_close(
+            &format!("existing GPU {} planes", format.name()),
+            &got,
+            &expected,
+            0,
+        );
+    }
+    for plane in [&y_plane, &u_plane, &v_plane, &uv_plane] {
+        assert_eq!(Arc::strong_count(plane), 1);
+    }
+
+    // The renderer can go before the application's textures.
+    r.present().unwrap();
+    drop(r);
+    drop((y_plane, u_plane, v_plane, uv_plane, ours));
+    drop(device);
+}
+
 /// The device tests again on the Direct3D 12 backend, with the DXIL
 /// shaders.
 #[cfg(windows)]
@@ -1672,6 +2345,21 @@ mod d3d12 {
     #[test]
     fn gpu_pipelines_are_cached() {
         super::gpu_pipelines_are_cached_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_render_states() {
+        super::gpu_render_states_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_renderer_on_an_existing_device() {
+        super::gpu_renderer_on_an_existing_device_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_textures_from_existing_gpu_textures() {
+        super::gpu_textures_from_existing_gpu_textures_on(Backend::D3d12);
     }
 }
 

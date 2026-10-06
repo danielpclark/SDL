@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 """Generate sdl3/src/gpu/vulkan/test_spirv.rs: small SPIR-V 1.0 shaders for
-the tests of the Vulkan GPU backend, assembled here (no glslang needed).
+the tests of the Vulkan GPU backend, assembled here (no glslang needed); or,
+with --render, sdl3/src/render/gpu/test_spirv.rs: the fragment shaders of
+the GPU renderer's tests of render states.
 
 Usage: gen_gpu_test_spirv.py > sdl3/src/gpu/vulkan/test_spirv.rs
+       gen_gpu_test_spirv.py --render > sdl3/src/render/gpu/test_spirv.rs
 
 The shaders bind their resources where the GPU API's Vulkan backend puts
 them: a vertex shader's uniform buffers in set 1, a fragment shader's
-samplers in set 2 and uniform buffers in set 3, a compute shader's
-read-write storage buffers in set 1 and uniform buffers in set 2.
+samplers, then storage buffers, in set 2 and uniform buffers in set 3, a
+compute shader's read-write storage buffers in set 1 and uniform buffers in
+set 2. The render state shaders take what the GPU renderer's triangle
+vertex shaders output: the color at location 0 and the texture
+coordinates at location 1.
 """
 import struct
+import sys
+
+render = sys.argv[1:] == ['--render']
+assert render or not sys.argv[1:], __doc__
 
 # Opcodes
 OP_CAPABILITY = 17
@@ -63,6 +73,7 @@ DEC_LOCATION = 30
 DEC_BINDING = 33
 DEC_DESCRIPTOR_SET = 34
 DEC_OFFSET = 35
+DEC_NON_WRITABLE = 24
 BUILTIN_POSITION = 0
 BUILTIN_GLOBAL_INVOCATION_ID = 28
 SC_UNIFORM_CONSTANT = 0
@@ -337,6 +348,173 @@ def compute_index():
     return m.words()
 
 
+def fragment_header(m, inputs):
+    """A fragment shader's start: its entry point with `inputs` (the
+    renderer's color at location 0 as %v_color, its texture coordinates at
+    location 1 as %v_uv) and the %o_color output, with the types the
+    shaders use."""
+    m.op(OP_ENTRY_POINT, MODEL_FRAGMENT, '%main', 'main', *inputs, '%o_color')
+    m.op(OP_EXECUTION_MODE, '%main', MODE_ORIGIN_UPPER_LEFT)
+    if '%v_color' in inputs:
+        m.op(OP_DECORATE, '%v_color', DEC_LOCATION, 0)
+    if '%v_uv' in inputs:
+        m.op(OP_DECORATE, '%v_uv', DEC_LOCATION, 1)
+    m.op(OP_DECORATE, '%o_color', DEC_LOCATION, 0)
+
+
+def fragment_types(m, inputs):
+    m.op(OP_TYPE_VOID, '%void')
+    m.op(OP_TYPE_FUNCTION, '%fn', '%void')
+    m.op(OP_TYPE_FLOAT, '%float', 32)
+    m.op(OP_TYPE_VECTOR, '%v2', '%float', 2)
+    m.op(OP_TYPE_VECTOR, '%v4', '%float', 4)
+    m.op(OP_TYPE_INT, '%int', 32, 1)
+    m.op(OP_CONSTANT, '%int', '%int0', 0)
+    m.op(OP_TYPE_POINTER, '%ptr_in_v4', SC_INPUT, '%v4')
+    m.op(OP_TYPE_POINTER, '%ptr_in_v2', SC_INPUT, '%v2')
+    m.op(OP_TYPE_POINTER, '%ptr_out_v4', SC_OUTPUT, '%v4')
+    m.op(OP_TYPE_POINTER, '%ptr_u_v4', SC_UNIFORM, '%v4')
+    if '%v_color' in inputs:
+        m.op(OP_VARIABLE, '%ptr_in_v4', '%v_color', SC_INPUT)
+    if '%v_uv' in inputs:
+        m.op(OP_VARIABLE, '%ptr_in_v2', '%v_uv', SC_INPUT)
+    m.op(OP_VARIABLE, '%ptr_out_v4', '%o_color', SC_OUTPUT)
+
+
+def uniform_vec4(m, name, binding):
+    """layout(set = 3, binding = `binding`) uniform { vec4 `name`; }: its
+    decorations, struct %`name`_block and variable %`name`_ub."""
+    block, var = f'%{name}_block', f'%{name}_ub'
+    m.op(OP_DECORATE, block, DEC_BLOCK)
+    m.op(OP_MEMBER_DECORATE, block, 0, DEC_OFFSET, 0)
+    m.op(OP_DECORATE, var, DEC_DESCRIPTOR_SET, 3)
+    m.op(OP_DECORATE, var, DEC_BINDING, binding)
+
+
+def uniform_vec4_types(m, name):
+    block, var = f'%{name}_block', f'%{name}_ub'
+    m.op(OP_TYPE_STRUCT, block, '%v4')
+    m.op(OP_TYPE_POINTER, f'%ptr_u_{name}', SC_UNIFORM, block)
+    m.op(OP_VARIABLE, f'%ptr_u_{name}', var, SC_UNIFORM)
+
+
+def load_uniform_vec4(m, name):
+    m.op(OP_ACCESS_CHAIN, '%ptr_u_v4', f'%{name}_ptr', f'%{name}_ub', '%int0')
+    m.op(OP_LOAD, '%v4', f'%{name}', f'%{name}_ptr')
+
+
+def render_tint():
+    """layout(location = 0) in vec4 v_color;
+    layout(set = 3, binding = 0) uniform U { vec4 tint; };
+    layout(location = 0) out vec4 o_color;
+    o_color = v_color * tint"""
+    m = Module()
+    common(m)
+    inputs = ['%v_color']
+    fragment_header(m, inputs)
+    uniform_vec4(m, 'tint', 0)
+    fragment_types(m, inputs)
+    uniform_vec4_types(m, 'tint')
+    m.op(OP_FUNCTION, '%void', '%main', 0, '%fn')
+    m.op(OP_LABEL, '%entry')
+    m.op(OP_LOAD, '%v4', '%color', '%v_color')
+    load_uniform_vec4(m, 'tint')
+    m.op(OP_FMUL, '%v4', '%product', '%color', '%tint')
+    m.op(OP_STORE, '%o_color', '%product')
+    m.op(OP_RETURN)
+    m.op(OP_FUNCTION_END)
+    return m.words()
+
+
+def render_two_textures():
+    """layout(location = 0) in vec4 v_color;
+    layout(location = 1) in vec2 v_uv;
+    layout(set = 2, binding = 0) uniform sampler2D u_texture;
+    layout(set = 2, binding = 1) uniform sampler2D u_extra;
+    layout(set = 3, binding = 0) uniform T { vec4 tint; };
+    layout(set = 3, binding = 1) uniform S { vec4 scale; };
+    layout(location = 0) out vec4 o_color;
+    o_color = texture(u_texture, v_uv) * v_color * tint + texture(u_extra, v_uv) * scale"""
+    m = Module()
+    common(m)
+    inputs = ['%v_color', '%v_uv']
+    fragment_header(m, inputs)
+    for binding, tex in enumerate(['%u_texture', '%u_extra']):
+        m.op(OP_DECORATE, tex, DEC_DESCRIPTOR_SET, 2)
+        m.op(OP_DECORATE, tex, DEC_BINDING, binding)
+    uniform_vec4(m, 'tint', 0)
+    uniform_vec4(m, 'scale', 1)
+    fragment_types(m, inputs)
+    m.op(OP_TYPE_IMAGE, '%image', '%float', DIM_2D, 0, 0, 0, 1, 0)
+    m.op(OP_TYPE_SAMPLED_IMAGE, '%sampled_image', '%image')
+    m.op(OP_TYPE_POINTER, '%ptr_uc_si', SC_UNIFORM_CONSTANT, '%sampled_image')
+    m.op(OP_VARIABLE, '%ptr_uc_si', '%u_texture', SC_UNIFORM_CONSTANT)
+    m.op(OP_VARIABLE, '%ptr_uc_si', '%u_extra', SC_UNIFORM_CONSTANT)
+    uniform_vec4_types(m, 'tint')
+    uniform_vec4_types(m, 'scale')
+    m.op(OP_FUNCTION, '%void', '%main', 0, '%fn')
+    m.op(OP_LABEL, '%entry')
+    m.op(OP_LOAD, '%v4', '%color', '%v_color')
+    m.op(OP_LOAD, '%v2', '%uv', '%v_uv')
+    m.op(OP_LOAD, '%sampled_image', '%si0', '%u_texture')
+    m.op(OP_IMAGE_SAMPLE_IMPLICIT_LOD, '%v4', '%sample0', '%si0', '%uv')
+    m.op(OP_LOAD, '%sampled_image', '%si1', '%u_extra')
+    m.op(OP_IMAGE_SAMPLE_IMPLICIT_LOD, '%v4', '%sample1', '%si1', '%uv')
+    load_uniform_vec4(m, 'tint')
+    load_uniform_vec4(m, 'scale')
+    m.op(OP_FMUL, '%v4', '%modulated', '%sample0', '%color')
+    m.op(OP_FMUL, '%v4', '%tinted', '%modulated', '%tint')
+    m.op(OP_FMUL, '%v4', '%scaled', '%sample1', '%scale')
+    m.op(OP_FADD, '%v4', '%sum', '%tinted', '%scaled')
+    m.op(OP_STORE, '%o_color', '%sum')
+    m.op(OP_RETURN)
+    m.op(OP_FUNCTION_END)
+    return m.words()
+
+
+def render_storage_buffer():
+    """layout(location = 0) in vec4 v_color;
+    layout(set = 2, binding = 0) readonly buffer B { vec4 colors[]; };
+    layout(location = 0) out vec4 o_color;
+    o_color = v_color * colors[0]"""
+    m = Module()
+    common(m)
+    inputs = ['%v_color']
+    fragment_header(m, inputs)
+    m.op(OP_DECORATE, '%rta', DEC_ARRAY_STRIDE, 16)
+    m.op(OP_MEMBER_DECORATE, '%B', 0, DEC_OFFSET, 0)
+    m.op(OP_MEMBER_DECORATE, '%B', 0, DEC_NON_WRITABLE)
+    m.op(OP_DECORATE, '%B', DEC_BUFFER_BLOCK)
+    m.op(OP_DECORATE, '%b', DEC_DESCRIPTOR_SET, 2)
+    m.op(OP_DECORATE, '%b', DEC_BINDING, 0)
+    fragment_types(m, inputs)
+    m.op(OP_TYPE_RUNTIME_ARRAY, '%rta', '%v4')
+    m.op(OP_TYPE_STRUCT, '%B', '%rta')
+    m.op(OP_TYPE_POINTER, '%ptr_u_B', SC_UNIFORM, '%B')
+    m.op(OP_VARIABLE, '%ptr_u_B', '%b', SC_UNIFORM)
+    m.op(OP_FUNCTION, '%void', '%main', 0, '%fn')
+    m.op(OP_LABEL, '%entry')
+    m.op(OP_LOAD, '%v4', '%color', '%v_color')
+    m.op(OP_ACCESS_CHAIN, '%ptr_u_v4', '%first_ptr', '%b', '%int0', '%int0')
+    m.op(OP_LOAD, '%v4', '%first', '%first_ptr')
+    m.op(OP_FMUL, '%v4', '%product', '%color', '%first')
+    m.op(OP_STORE, '%o_color', '%product')
+    m.op(OP_RETURN)
+    m.op(OP_FUNCTION_END)
+    return m.words()
+
+
+RENDER_SHADERS = [
+    ('RENDER_TINT', 'A render state fragment shader multiplying the color by a uniform', render_tint),
+    ('RENDER_TWO_TEXTURES',
+     'A render state fragment shader adding a second texture (sampler 1) scaled by a\n'
+     '/// uniform (slot 1) to the texture drawn (sampler 0), modulated and tinted by a\n'
+     '/// uniform (slot 0)', render_two_textures),
+    ('RENDER_STORAGE_BUFFER',
+     'A render state fragment shader multiplying the color by the first `vec4` of a\n'
+     '/// storage buffer', render_storage_buffer),
+]
+
 SHADERS = [
     ('VERTEX_NULL', 'A vertex shader without inputs or resources', vertex_null),
     ('VERTEX_INPUT_UNIFORM',
@@ -354,8 +532,12 @@ print('// Generated by tools/gen_gpu_test_spirv.py; do not edit.')
 print('// Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>')
 print('// This is an altered (translated) version of the original software; see LICENSE.txt.')
 print()
-print('//! SPIR-V 1.0 shaders for the tests of the Vulkan GPU backend.')
-for name, doc, gen in SHADERS:
+if render:
+    print('//! SPIR-V 1.0 fragment shaders for the tests of the GPU renderer\'s render')
+    print('//! states.')
+else:
+    print('//! SPIR-V 1.0 shaders for the tests of the Vulkan GPU backend.')
+for name, doc, gen in RENDER_SHADERS if render else SHADERS:
     words = gen()
     print()
     print('/// %s.' % doc)
