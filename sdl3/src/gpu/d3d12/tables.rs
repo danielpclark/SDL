@@ -25,7 +25,6 @@ use crate::render::direct3d11::d3d::*;
 // Conversions
 
 /// Translation of `SwapchainCompositionToSDLTextureFormat`.
-#[allow(dead_code)] // (part 2: swapchains)
 pub(super) static SWAPCHAIN_COMPOSITION_TO_SDL_TEXTURE_FORMAT: [TextureFormat; 4] = [
     TextureFormat::B8G8R8A8_UNORM,      // SDR
     TextureFormat::B8G8R8A8_UNORM_SRGB, // SDR_LINEAR
@@ -34,7 +33,6 @@ pub(super) static SWAPCHAIN_COMPOSITION_TO_SDL_TEXTURE_FORMAT: [TextureFormat; 4
 ];
 
 /// Translation of `SwapchainCompositionToTextureFormat`.
-#[allow(dead_code)] // (part 2: swapchains)
 pub(super) static SWAPCHAIN_COMPOSITION_TO_TEXTURE_FORMAT: [DxgiFormat; 4] = [
     DXGI_FORMAT_B8G8R8A8_UNORM,     // SDR
     DXGI_FORMAT_B8G8R8A8_UNORM,     // SDR_LINEAR (NOTE: The RTV uses the sRGB format)
@@ -43,7 +41,6 @@ pub(super) static SWAPCHAIN_COMPOSITION_TO_TEXTURE_FORMAT: [DxgiFormat; 4] = [
 ];
 
 /// Translation of `SwapchainCompositionToColorSpace`.
-#[allow(dead_code)] // (part 2: swapchains)
 pub(super) static SWAPCHAIN_COMPOSITION_TO_COLOR_SPACE: [DxgiColorSpaceType; 4] = [
     DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,    // SDR
     DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,    // SDR_LINEAR
@@ -52,7 +49,6 @@ pub(super) static SWAPCHAIN_COMPOSITION_TO_COLOR_SPACE: [DxgiColorSpaceType; 4] 
 ];
 
 /// The tables of a swapchain composition (indexed as upstream's are).
-#[allow(dead_code)] // (part 2: swapchains)
 pub(super) fn swapchain_composition_index(composition: SwapchainComposition) -> usize {
     composition as usize
 }
@@ -551,7 +547,6 @@ pub(super) static SDL_TO_D3D12_SAMPLE_COUNT: [u32; 4] = [
 ];
 
 /// Translation of `SDLToD3D12_PrimitiveType`.
-#[allow(dead_code)] // (part 2: render passes)
 pub(super) static SDL_TO_D3D12_PRIMITIVE_TYPE: [u32; 5] = [
     D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,  // TRIANGLELIST
     D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, // TRIANGLESTRIP

@@ -27,14 +27,11 @@ use crate::error::Result;
 /// Translation of `D3D12DescriptorHeap`.
 #[derive(Debug)]
 pub(super) struct DescriptorHeap {
-    #[allow(dead_code)] // (part 2: binding; it owns the heap)
     pub(super) handle: D3d12DescriptorHeap,
     pub(super) heap_type: u32,
     pub(super) descriptor_heap_cpu_start: CpuDescriptorHandle,
     /// only used by GPU heaps
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) descriptor_heap_gpu_start: GpuDescriptorHandle,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) max_descriptors: u32,
     pub(super) descriptor_size: u32,
     #[allow(dead_code)] // (kept as upstream does)
@@ -230,11 +227,10 @@ impl D3D12Renderer {
     /// A shader-visible heap of `descriptor_heap_type` (CBV/SRV/UAV or
     /// sampler) from its pool, or a new one. Translation of
     /// `D3D12_INTERNAL_AcquireGPUDescriptorHeapFromPool()` but the tracking
-    /// in the command buffer, which part 2 adds.
+    /// in the command buffer (`D3D12CommandBuffer::acquire_gpu_descriptor_heap`).
     ///
     /// Note (upstream): C goes on with a NULL heap when a new one can't be
     /// made; the error is returned here.
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: command buffers)
     pub(super) fn acquire_gpu_descriptor_heap_from_pool(
         &self,
         descriptor_heap_type: u32,
@@ -259,7 +255,6 @@ impl D3D12Renderer {
     }
 
     /// Translation of `D3D12_INTERNAL_ReturnGPUDescriptorHeapToPool()`.
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: command buffers)
     pub(super) fn return_gpu_descriptor_heap_to_pool(&self, mut heap: DescriptorHeap) {
         let pool = &self.gpu_descriptor_heap_pools[heap.heap_type as usize];
 

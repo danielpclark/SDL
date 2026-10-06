@@ -2070,12 +2070,8 @@ fn device_formats_and_properties() {
     assert!(device.texture_supports_sample_count(F::R8G8B8A8_UNORM, SampleCount::Four));
     assert!(device.texture_supports_sample_count(F::D32_FLOAT, SampleCount::Four));
 
-    // Part 2 isn't translated yet.
-    let e = device.acquire_command_buffer().unwrap_err();
-    assert_eq!(
-        e.message(),
-        "Direct3D 12 AcquireCommandBuffer is unsupported, not translated yet"
-    );
+    // A command buffer is acquired, and cancelled.
+    device.acquire_command_buffer().unwrap().cancel().unwrap();
     device.wait_for_idle().unwrap();
 }
 
@@ -2622,11 +2618,17 @@ fn renderer_resources_and_pools() {
     assert!(!uniform.buffer.map_pointer.load(Ordering::SeqCst).is_null());
     assert_ne!(uniform.buffer.virtual_address, 0);
     let buffer = uniform.buffer.clone();
-    renderer.return_uniform_buffer_to_pool(uniform);
+    D3D12Renderer::return_uniform_buffer_to_pool(
+        &mut renderer.uniform_buffer_pool.lock().unwrap(),
+        uniform,
+    );
     let mut uniform = renderer.acquire_uniform_buffer_from_pool().unwrap();
     assert!(Arc::ptr_eq(&uniform.buffer, &buffer));
     uniform.write_offset = 256;
-    renderer.return_uniform_buffer_to_pool(uniform);
+    D3D12Renderer::return_uniform_buffer_to_pool(
+        &mut renderer.uniform_buffer_pool.lock().unwrap(),
+        uniform,
+    );
     assert_eq!(renderer.uniform_buffer_pool.lock().unwrap().len(), 1);
     drop(buffer);
 

@@ -57,7 +57,6 @@ use crate::render::direct3d11::d3d::SampleDesc;
 
 /// Translation of `D3D12GraphicsRootSignature`.
 #[derive(Debug)]
-#[allow(dead_code)] // (part 2: binding reads the root indices)
 pub(super) struct GraphicsRootSignature {
     pub(super) handle: D3d12RootSignature,
 
@@ -83,14 +82,10 @@ pub(super) struct GraphicsRootSignature {
 pub(super) struct D3D12GraphicsPipeline {
     pub(super) header: GraphicsPipelineHeader,
 
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) pipeline_state: D3d12PipelineState,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) root_signature: GraphicsRootSignature,
-    #[allow(dead_code)] // (part 2: draws)
     pub(super) primitive_type: PrimitiveType,
 
-    #[allow(dead_code)] // (part 2: vertex buffer binding)
     pub(super) vertex_strides: [u32; MAX_VERTEX_BUFFERS as usize],
 
     pub(super) reference_count: AtomicI32,
@@ -98,7 +93,6 @@ pub(super) struct D3D12GraphicsPipeline {
 
 /// Translation of `D3D12ComputeRootSignature`.
 #[derive(Debug)]
-#[allow(dead_code)] // (part 2: binding reads the root indices)
 pub(super) struct ComputeRootSignature {
     pub(super) handle: D3d12RootSignature,
 
@@ -118,9 +112,7 @@ pub(super) struct ComputeRootSignature {
 pub(super) struct D3D12ComputePipeline {
     pub(super) header: ComputePipelineHeader,
 
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) pipeline_state: D3d12PipelineState,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) root_signature: ComputeRootSignature,
 
     pub(super) reference_count: AtomicI32,
