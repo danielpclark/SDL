@@ -34,8 +34,11 @@ macro_rules! images {
 }
 
 static IMAGES: &[(&str, &[u8])] = images![
+    "ani_plain.ani",
+    "ani_seq.ani",
     "cur_multi.cur",
     "gif_anim.gif",
+    "gif_dispose.gif",
     "gif_interlace.gif",
     "gif_offset.gif",
     "gif_plain.gif",
@@ -254,11 +257,215 @@ fn save_with(
     save(surface, &mut io).map(|()| io)
 }
 
-/// Formats SDL_image doesn't decode in this crate yet, which upstream's
-/// harness loaded.
-fn untranslated(name: &str) -> bool {
-    let _ = name;
-    false
+/// The harness's `print_escaped()`: each run of characters that aren't
+/// printable ASCII (or are a quote) as one `?`.
+fn escaped(s: &str) -> String {
+    let mut out = String::new();
+    let mut in_run = false;
+    for c in s.chars() {
+        if !(' '..='~').contains(&c) || c == '"' {
+            if !in_run {
+                out.push('?');
+            }
+            in_run = true;
+        } else {
+            out.push(c);
+            in_run = false;
+        }
+    }
+    out
+}
+
+/// The harness's `describe_meta()`.
+fn describe_meta(props: &sdl3::properties::Properties) -> String {
+    let mut out = String::new();
+    if props.contains(crate::PROP_METADATA_LOOP_COUNT_NUMBER) {
+        out += &format!(
+            " loop={}",
+            props
+                .get_number(crate::PROP_METADATA_LOOP_COUNT_NUMBER)
+                .unwrap_or(0)
+        );
+    }
+    if props.contains(crate::PROP_METADATA_FRAME_COUNT_NUMBER) {
+        out += &format!(
+            " frames={}",
+            props
+                .get_number(crate::PROP_METADATA_FRAME_COUNT_NUMBER)
+                .unwrap_or(0)
+        );
+    }
+    for (name, short) in [
+        (crate::PROP_METADATA_DESCRIPTION_STRING, "desc"),
+        (crate::PROP_METADATA_TITLE_STRING, "title"),
+        (crate::PROP_METADATA_AUTHOR_STRING, "author"),
+    ] {
+        if props.contains(name) {
+            out += &format!(
+                " {short}=\"{}\"",
+                escaped(&props.get_string(name).unwrap_or_default())
+            );
+        }
+    }
+    out
+}
+
+/// The harness's `describe_anim()`.
+fn describe_anim(a: sdl3::Result<crate::Animation>) -> String {
+    match a {
+        Err(e) => format!("err: {e}"),
+        Ok(mut a) => {
+            let mut out = format!("n={} {}x{}", a.count(), a.w, a.h);
+            if let Some(first) = a.frames.first_mut() {
+                out += &describe_meta(&first.properties());
+            }
+            for i in 0..a.frames.len() {
+                out += &format!(
+                    " | {i}: {} delay={}",
+                    describe1(&mut a.frames[i]),
+                    a.delays[i]
+                );
+            }
+            out
+        }
+    }
+}
+
+/// The harness's `describe_frame()`.
+fn describe_frame(f: &Surface<'_>, dur: u64) -> String {
+    format!(
+        " {dur}:{}x{}:{}:{:016x}",
+        f.width(),
+        f.height(),
+        f.format().name(),
+        surface_hash(f)
+    )
+}
+
+/// The harness's `decoder_walk()`.
+fn decoder_walk(data: &[u8], type_: Option<&str>, den: i64) -> String {
+    let mut io = IoStream::from_const_mem(data);
+    let props = sdl3::properties::Properties::new();
+    if let Some(t) = type_ {
+        props
+            .set(crate::PROP_ANIMATION_DECODER_CREATE_TYPE_STRING, t)
+            .unwrap();
+    }
+    if den != 0 {
+        props
+            .set(
+                crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+                den,
+            )
+            .unwrap();
+    }
+    let mut d = match crate::AnimationDecoder::with_properties(Some(&mut io), &props) {
+        Ok(d) => d,
+        Err(e) => return format!("err: {e}"),
+    };
+    let mut out = String::from("ok");
+    out += &describe_meta(d.properties());
+    let mut error = None;
+    for _ in 0..64 {
+        match d.get_frame() {
+            Ok(Some((f, dur))) => {
+                out += " |";
+                out += &describe_frame(&f, dur);
+            }
+            Ok(None) => break,
+            Err(e) => {
+                error = Some(e);
+                break;
+            }
+        }
+    }
+    let status = match d.status() {
+        crate::AnimationDecoderStatus::Invalid => -1,
+        crate::AnimationDecoderStatus::Ok => 0,
+        crate::AnimationDecoderStatus::Failed => 1,
+        crate::AnimationDecoderStatus::Complete => 2,
+    };
+    out += &format!(" | status={status}");
+    if d.status() == crate::AnimationDecoderStatus::Failed {
+        out += &format!(" err={}", error.map(|e| e.to_string()).unwrap_or_default());
+    }
+    out += &format!(" | reset={}", d.reset().is_ok() as i32);
+    match d.get_frame() {
+        Ok(Some((f, dur))) => out += &describe_frame(&f, dur),
+        _ => out += " none",
+    }
+    out
+}
+
+/// The harness's `dump_saved_anim()`.
+fn dump_saved_anim(saved: sdl3::Result<IoStream<'_>>) -> String {
+    match saved {
+        Err(e) => format!("err: {e}"),
+        Ok(io) => {
+            let bytes = io.dynamic_memory().unwrap_or(&[]).to_vec();
+            format!(
+                "bytes={} hash={:016x} | reload: {}",
+                bytes.len(),
+                fnv(FNV0, &bytes),
+                describe_anim(crate::load_animation_typed_io(
+                    &mut IoStream::from_const_mem(&bytes),
+                    None
+                ))
+            )
+        }
+    }
+}
+
+/// The harness's encoder runs over an animation's frames: the GIF encoder
+/// with options and the ANI encoder with metadata.
+fn encode_with(anim: &mut crate::Animation, gif: bool) -> sdl3::Result<IoStream<'static>> {
+    let mut io = IoStream::from_dynamic_mem();
+    let props = sdl3::properties::Properties::new();
+    if gif {
+        props.set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, "gif")?;
+        props.set(
+            crate::PROP_ANIMATION_ENCODER_CREATE_GIF_USE_LUT_BOOLEAN,
+            true,
+        )?;
+        props.set(
+            crate::PROP_ANIMATION_DECODER_CREATE_GIF_NUM_COLORS_NUMBER,
+            16,
+        )?;
+        props.set(
+            crate::PROP_ANIMATION_DECODER_CREATE_GIF_TRANSPARENT_COLOR_INDEX_NUMBER,
+            3,
+        )?;
+        props.set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 40)?;
+        props.set(
+            crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+            100,
+        )?;
+        props.set(crate::PROP_METADATA_LOOP_COUNT_NUMBER, 3)?;
+        props.set(
+            crate::PROP_METADATA_DESCRIPTION_STRING,
+            "made by the harness",
+        )?;
+    } else {
+        props.set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, "ani")?;
+        props.set(crate::PROP_METADATA_TITLE_STRING, "harness title")?;
+        props.set(crate::PROP_METADATA_AUTHOR_STRING, "an author")?;
+    }
+    let mut e = crate::AnimationEncoder::with_properties(Some(&mut io), &props)?;
+    let mut result = Ok(());
+    for i in 0..anim.frames.len() {
+        let delay = anim.delays[i];
+        let duration = if gif {
+            delay / 10 + i as i32
+        } else {
+            delay + 17
+        };
+        if let Err(err) = e.add_frame(&mut anim.frames[i], duration as i64 as u64) {
+            result = Err(err);
+            break;
+        }
+    }
+    let closed = e.close();
+    result.and(closed).map(|()| io)
 }
 
 /// Compare a result with the reference, allowing for what upstream can't
@@ -281,8 +488,6 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
         // progressive JPEG): its pixels vary from run to run, here they are 0
         let shape = |s: &str| s.split(" hash=").next().unwrap_or("").to_owned();
         !actual.starts_with("err: ") && shape(unstable) == shape(actual)
-    } else if untranslated(name) {
-        actual == "err: Unsupported image format"
     } else {
         false
     };
@@ -304,6 +509,7 @@ fn matches_upstream_reference() {
     let mut name = "";
     let mut data: &[u8] = &[];
     let mut loaded: Option<Surface<'static>> = None;
+    let mut loaded_anim: Option<crate::Animation> = None;
     let tga_formats = [
         PixelFormat::INDEX8,
         PixelFormat::RGB24,
@@ -324,6 +530,7 @@ fn matches_upstream_reference() {
             let path = tmp.join(name);
             std::fs::write(&path, data).unwrap();
             loaded = crate::load(&path).ok();
+            loaded_anim = crate::load_animation(&path).ok();
             tga_index = 0;
             continue;
         }
@@ -401,6 +608,48 @@ fn matches_upstream_reference() {
                 w.parse().unwrap(),
                 h.parse().unwrap(),
             ))
+        } else if label == "anim_io" {
+            describe_anim(crate::load_animation_typed_io(
+                &mut IoStream::from_const_mem(data),
+                None,
+            ))
+        } else if label == "anim_typed" {
+            describe_anim(crate::load_animation_typed_io(
+                &mut IoStream::from_const_mem(data),
+                ext_of(name),
+            ))
+        } else if let Some(n) = label.strip_prefix("anim trunc ") {
+            let n: usize = n.parse().unwrap();
+            describe_anim(crate::load_animation_typed_io(
+                &mut IoStream::from_const_mem(&data[..n]),
+                ext_of(name),
+            ))
+        } else if label == "anim xor" {
+            let mut x = data.to_vec();
+            for i in (20..x.len()).step_by(3) {
+                x[i] ^= 0x5A;
+            }
+            let mut io = IoStream::from_const_mem(&x);
+            let described = describe_anim(crate::load_animation_typed_io(&mut io, ext_of(name)));
+            drop(io);
+            described
+        } else if label == "decoder" {
+            decoder_walk(data, ext_of(name), 0)
+        } else if label == "decoder tb100" {
+            decoder_walk(data, ext_of(name), 100)
+        } else if let Some(t) = label.strip_prefix("save_anim ") {
+            let Some(anim) = loaded_anim.as_mut() else {
+                failures.push(format!("{name}: {label}: the animation didn't load"));
+                continue;
+            };
+            let mut io = IoStream::from_dynamic_mem();
+            dump_saved_anim(crate::save_animation_typed_io(anim, &mut io, t).map(|()| io))
+        } else if label == "gif_enc lut16" || label == "ani_enc meta" {
+            let Some(anim) = loaded_anim.as_mut() else {
+                failures.push(format!("{name}: {label}: the animation didn't load"));
+                continue;
+            };
+            dump_saved_anim(encode_with(anim, label == "gif_enc lut16"))
         } else if label == "xor" {
             let mut x = data.to_vec();
             for i in (20..x.len()).step_by(3) {
@@ -409,9 +658,6 @@ fn matches_upstream_reference() {
             load_mem(&x, ext_of(name))
         } else {
             // the saving lines, from the surface IMG_Load() returned
-            if untranslated(name) {
-                continue;
-            }
             let Some(surface) = loaded.as_mut() else {
                 failures.push(format!("{name}: {label}: the image didn't load"));
                 continue;
@@ -631,7 +877,9 @@ fn saving_through_files_and_types() {
     let mut surface = crate::load_io(&mut IoStream::from_const_mem(image("sample.png"))).unwrap();
     let (w, h) = (surface.width(), surface.height());
 
-    for ext in ["bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "BMP"] {
+    for ext in [
+        "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "BMP",
+    ] {
         let path = tmp.join(format!("out.{ext}"));
         crate::save(&mut surface, &path).unwrap();
         let back = crate::load(&path).unwrap();
@@ -644,6 +892,7 @@ fn saving_through_files_and_types() {
     crate::save_jpg(&mut surface, tmp.join("direct.jpg"), 30).unwrap();
     crate::save_ico(&mut surface, tmp.join("direct.ico")).unwrap();
     crate::save_cur(&mut surface, tmp.join("direct.cur")).unwrap();
+    crate::save_gif(&mut surface, tmp.join("direct.gif")).unwrap();
     assert_eq!(
         std::fs::read(&path).unwrap(),
         dump(|io| crate::save_png_io(&mut surface, io))
@@ -651,7 +900,6 @@ fn saving_through_files_and_types() {
 
     let mut io = IoStream::from_dynamic_mem();
     for (t, message) in [
-        ("gif", "SDL_image built without GIF save support"),
         ("webp", "SDL_image built without WEBP save support"),
         ("avif", "SDL_image built without AVIF save support"),
         ("xyz", "Unsupported image format"),
@@ -665,7 +913,7 @@ fn saving_through_files_and_types() {
 
     // Indexed surfaces need a palette
     let mut indexed = Surface::new(4, 4, PixelFormat::INDEX8).unwrap();
-    for t in ["bmp", "png", "tga", "ico", "cur"] {
+    for t in ["bmp", "png", "tga", "ico", "cur", "gif"] {
         let e = crate::save_typed_io(&mut indexed, &mut io, t).unwrap_err();
         assert_eq!(e.to_string(), "Indexed surfaces must have a palette", "{t}");
     }
@@ -935,4 +1183,157 @@ fn lbm_and_xcf_errors() {
     xcf[compression] = 2;
     let e = crate::load_io(&mut IoStream::from_const_mem(&xcf)).unwrap_err();
     assert_eq!(e.to_string(), "Unsupported compression");
+}
+
+#[test]
+fn animations_through_files() {
+    let tmp = std::env::temp_dir().join(format!("sdl3-image-anim-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let path = tmp.join("in.gif");
+    std::fs::write(&path, image("gif_dispose.gif")).unwrap();
+
+    // A decoder of a file, its frames, reset and the stream it closes
+    let mut d = crate::AnimationDecoder::new(&path).unwrap();
+    assert_eq!(
+        d.properties()
+            .get_number(crate::PROP_METADATA_LOOP_COUNT_NUMBER),
+        Some(3)
+    );
+    let mut durations = Vec::new();
+    while let Some((frame, duration)) = d.get_frame().unwrap() {
+        assert_eq!((frame.width(), frame.height()), (23, 13));
+        durations.push(duration);
+    }
+    assert_eq!(durations, [50, 100, 2000, 70]);
+    assert_eq!(d.status(), crate::AnimationDecoderStatus::Complete);
+    d.reset().unwrap();
+    assert_eq!(d.get_frame().unwrap().unwrap().1, 50);
+    d.close().unwrap();
+
+    // Saved as files of both formats, through an encoder and whole
+    let mut anim = crate::load_animation(&path).unwrap();
+    assert_eq!(anim.count(), 4);
+    for ext in ["gif", "ani"] {
+        let out = tmp.join(format!("out.{ext}"));
+        crate::save_animation(&mut anim, &out).unwrap();
+        let back = crate::load_animation(&out).unwrap();
+        assert_eq!((back.count(), back.w, back.h), (4, 23, 13), "{ext}");
+
+        let out = tmp.join(format!("enc.{ext}"));
+        let mut e = crate::AnimationEncoder::new(&out).unwrap();
+        for frame in &mut anim.frames {
+            e.add_frame(frame, 40).unwrap();
+        }
+        e.close().unwrap();
+        let back = crate::load_animation(&out).unwrap();
+        assert_eq!(back.count(), 4, "{ext}");
+        assert_eq!(back.delays[0], if ext == "gif" { 40 } else { 33 }, "{ext}");
+    }
+
+    // A single image is an animation of one frame
+    let png = tmp.join("one.png");
+    std::fs::write(&png, image("sample.png")).unwrap();
+    let one = crate::load_animation(&png).unwrap();
+    assert_eq!((one.count(), one.delays[0]), (1, 0));
+    let mut d = crate::AnimationDecoder::new(&png).unwrap();
+    assert!(d.get_frame().unwrap().is_some());
+    assert!(d.get_frame().unwrap().is_none());
+    assert_eq!(d.status(), crate::AnimationDecoderStatus::Complete);
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn animation_api_errors() {
+    let gif = image("gif_anim.gif");
+    let mut io = IoStream::from_const_mem(gif);
+    let e = crate::AnimationDecoder::from_io(&mut io, "").unwrap_err();
+    assert!(e.to_string().contains("type"));
+    let props = sdl3::properties::Properties::new();
+    let e = crate::AnimationDecoder::with_properties(None, &props).unwrap_err();
+    assert_eq!(e.to_string(), "Couldn't determine file type");
+    props
+        .set(crate::PROP_ANIMATION_DECODER_CREATE_TYPE_STRING, "gif")
+        .unwrap();
+    let e = crate::AnimationDecoder::with_properties(None, &props).unwrap_err();
+    assert_eq!(e.to_string(), "No input properties set");
+    // (the decoder reads its time base from the encoder's properties)
+    props
+        .set(
+            crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
+            0,
+        )
+        .unwrap();
+    let e = crate::AnimationDecoder::with_properties(Some(&mut io), &props).unwrap_err();
+    assert_eq!(e.to_string(), "Time base numerator must be > 0");
+
+    let mut out = IoStream::from_dynamic_mem();
+    let e = crate::AnimationEncoder::from_io(&mut out, "xyz").unwrap_err();
+    assert_eq!(e.to_string(), "Unrecognized output type");
+    for (t, message) in [
+        ("png", "SDL_image not built against libpng."),
+        (
+            "avif",
+            "SDL_image built without AVIF animation save support",
+        ),
+        ("webp", "SDL_image built without WEBP save support"),
+    ] {
+        let e = crate::AnimationEncoder::from_io(&mut out, t).unwrap_err();
+        assert_eq!(e.to_string(), message);
+    }
+    let props = sdl3::properties::Properties::new();
+    props
+        .set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, "gif")
+        .unwrap();
+    props
+        .set(
+            crate::PROP_ANIMATION_DECODER_CREATE_GIF_NUM_COLORS_NUMBER,
+            12,
+        )
+        .unwrap();
+    assert!(crate::AnimationEncoder::with_properties(Some(&mut out), &props).is_err());
+    props
+        .set(
+            crate::PROP_ANIMATION_DECODER_CREATE_GIF_NUM_COLORS_NUMBER,
+            4,
+        )
+        .unwrap();
+    props
+        .set(
+            crate::PROP_ANIMATION_DECODER_CREATE_GIF_TRANSPARENT_COLOR_INDEX_NUMBER,
+            4,
+        )
+        .unwrap();
+    let e = crate::AnimationEncoder::with_properties(Some(&mut out), &props).unwrap_err();
+    assert_eq!(
+        e.to_string(),
+        "Transparent color index 4 exceeds palette size 4"
+    );
+
+    // GIF frames must keep the first frame's size; an empty surface is
+    // refused
+    let mut e = crate::AnimationEncoder::from_io(&mut out, "gif").unwrap();
+    let mut a = Surface::new(4, 4, PixelFormat::RGBA32).unwrap();
+    let mut b = Surface::new(5, 4, PixelFormat::RGBA32).unwrap();
+    let mut empty = Surface::new(0, 4, PixelFormat::RGBA32).unwrap();
+    e.add_frame(&mut a, 10).unwrap();
+    let err = e.add_frame(&mut b, 10).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "Frame dimensions (5x4) do not match GIF canvas dimensions (4x4)."
+    );
+    assert!(e.add_frame(&mut empty, 10).is_err());
+    e.close().unwrap();
+
+    // An empty animation, and cursors of frames of different sizes
+    let mut anim = crate::Animation {
+        w: 4,
+        h: 4,
+        frames: Vec::new(),
+        delays: Vec::new(),
+    };
+    assert!(crate::save_gif_animation_io(&mut anim, &mut out).is_err());
+    anim.frames = vec![a, b];
+    anim.delays = vec![10, 10];
+    assert!(crate::create_animated_cursor(&anim, 0, 0).is_err());
 }
