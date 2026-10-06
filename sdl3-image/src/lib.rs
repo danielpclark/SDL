@@ -23,13 +23,19 @@
 //!   also at a chosen size with [`load_sized_svg_io`]), TGA, XCF (GIMP),
 //!   XPM (also from arrays of strings) and XV thumbnails.
 //! * Savers: [`save`] and [`save_typed_io`] pick the format from a file
-//!   extension; BMP, ICO, CUR, JPEG (tiny_jpeg), PNG (miniz, in `sdl3`) and
-//!   TGA.
+//!   extension; BMP, ICO, CUR, GIF, JPEG (tiny_jpeg), PNG (miniz, in
+//!   `sdl3`) and TGA.
+//! * Animations: [`load_animation`] and friends read whole [`Animation`]s
+//!   (GIF and ANI cursors, or any still image as one frame), and
+//!   [`save_animation`] writes them; [`AnimationDecoder`] and
+//!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
+//!   and [`create_animated_cursor`] makes a cursor from an animation.
 //!
-//! Not translated yet: the WebP, AVIF, TIFF and JPEG XL decoders, GIF
-//! saving and the animation API. Their detectors are
-//! here; [`load_io`] reports them as an unsupported image format, like an
-//! upstream build without them.
+//! Not translated yet: the WebP, AVIF, TIFF and JPEG XL decoders, and the
+//! APNG, animated WebP and AVIF animation decoders and encoders. Their
+//! detectors are here; [`load_io`] reports them as an unsupported image
+//! format, and the animation API with upstream's messages for a build
+//! without them.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: the `closeio` flags are
@@ -43,6 +49,8 @@
 #![warn(missing_debug_implementations)]
 
 mod ani;
+mod anim_decoder;
+mod anim_encoder;
 mod avif;
 mod bmp;
 mod gif;
@@ -69,15 +77,49 @@ mod xpm;
 mod xv;
 
 pub use ani::is_ani;
+pub use anim_decoder::{
+    load_ani_animation_io, load_apng_animation_io, load_avif_animation_io, load_gif_animation_io,
+    load_webp_animation_io, AnimationDecoder, AnimationDecoderStatus,
+    PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN,
+    PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN,
+    PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER,
+    PROP_ANIMATION_DECODER_CREATE_FILENAME_STRING,
+    PROP_ANIMATION_DECODER_CREATE_GIF_NUM_COLORS_NUMBER,
+    PROP_ANIMATION_DECODER_CREATE_GIF_TRANSPARENT_COLOR_INDEX_NUMBER,
+    PROP_ANIMATION_DECODER_CREATE_IOSTREAM_AUTOCLOSE_BOOLEAN,
+    PROP_ANIMATION_DECODER_CREATE_IOSTREAM_POINTER,
+    PROP_ANIMATION_DECODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+    PROP_ANIMATION_DECODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
+    PROP_ANIMATION_DECODER_CREATE_TYPE_STRING, PROP_METADATA_AUTHOR_STRING,
+    PROP_METADATA_COPYRIGHT_STRING, PROP_METADATA_CREATION_TIME_STRING,
+    PROP_METADATA_DESCRIPTION_STRING, PROP_METADATA_FRAME_COUNT_NUMBER,
+    PROP_METADATA_IGNORE_PROPS_BOOLEAN, PROP_METADATA_LOOP_COUNT_NUMBER,
+    PROP_METADATA_TITLE_STRING,
+};
+pub use anim_encoder::{
+    save_ani_animation_io, save_apng_animation_io, save_avif_animation_io, save_gif_animation_io,
+    save_webp_animation_io, AnimationEncoder,
+    PROP_ANIMATION_ENCODER_CREATE_AVIF_KEYFRAME_INTERVAL_NUMBER,
+    PROP_ANIMATION_ENCODER_CREATE_AVIF_MAX_THREADS_NUMBER,
+    PROP_ANIMATION_ENCODER_CREATE_FILENAME_STRING,
+    PROP_ANIMATION_ENCODER_CREATE_GIF_USE_LUT_BOOLEAN,
+    PROP_ANIMATION_ENCODER_CREATE_IOSTREAM_AUTOCLOSE_BOOLEAN,
+    PROP_ANIMATION_ENCODER_CREATE_IOSTREAM_POINTER, PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER,
+    PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+    PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
+    PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING,
+};
 pub use avif::is_avif;
 pub use bmp::{
     is_bmp, is_cur, is_ico, load_bmp_io, load_cur_io, load_ico_io, save_bmp, save_bmp_io, save_cur,
     save_cur_io, save_ico, save_ico_io,
 };
-pub use gif::{is_gif, load_gif_io};
+pub use gif::{is_gif, load_gif_io, save_gif, save_gif_io};
 pub use img::{
-    clipboard_image, load, load_io, load_texture, load_texture_io, load_texture_typed_io,
-    load_typed_io, save, save_typed_io, version,
+    clipboard_image, create_animated_cursor, load, load_animation, load_animation_io,
+    load_animation_typed_io, load_io, load_texture, load_texture_io, load_texture_typed_io,
+    load_typed_io, save, save_animation, save_animation_typed_io, save_typed_io, version,
+    Animation,
 };
 pub use jpg::{is_jpg, load_jpg_io, save_jpg, save_jpg_io};
 pub use jxl::is_jxl;

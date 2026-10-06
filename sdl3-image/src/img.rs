@@ -9,6 +9,7 @@
 use std::path::Path;
 
 use sdl3::error::{Error, Result};
+use sdl3::events::mouse::{Cursor, CursorFrame};
 use sdl3::io::{IoStream, IoWhence};
 use sdl3::render::{Renderer, Texture};
 use sdl3::stdlib::string::strcasecmp;
@@ -51,6 +52,53 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("XV", Some(crate::xv::is_xv), crate::xv::load_xv_io),
     ("QOI", Some(crate::qoi::is_qoi), crate::qoi::load_qoi_io),
 ];
+
+/// A format's animation loading function.
+type LoadAnimFn = fn(&mut IoStream<'_>) -> Result<Animation>;
+
+/* Table of animation detection and loading functions */
+// (WEBP and AVIFS are left out, as in an upstream build without libwebp
+// and libavif, whose detectors then accept nothing)
+static SUPPORTED_ANIMS: &[(&str, Option<IsFn>, LoadAnimFn)] = &[
+    /* keep magicless formats first */
+    (
+        "GIF",
+        Some(crate::gif::is_gif),
+        crate::anim_decoder::load_gif_animation_io,
+    ),
+    (
+        "APNG",
+        Some(crate::png::is_png),
+        crate::anim_decoder::load_apng_animation_io,
+    ),
+    (
+        "ANI",
+        Some(crate::ani::is_ani),
+        crate::anim_decoder::load_ani_animation_io,
+    ),
+];
+
+/// An animation: frames of the same size and their delays. Translation of
+/// `IMG_Animation` (its `count` is the number of frames;
+/// `IMG_FreeAnimation()` is dropping it).
+#[derive(Debug)]
+pub struct Animation {
+    /// The width of the frames.
+    pub w: i32,
+    /// The height of the frames.
+    pub h: i32,
+    /// The frames.
+    pub frames: Vec<Surface<'static>>,
+    /// The delay of each frame, in milliseconds.
+    pub delays: Vec<i32>,
+}
+
+impl Animation {
+    /// The number of frames. Translation of `IMG_Animation::count`.
+    pub fn count(&self) -> usize {
+        self.frames.len()
+    }
+}
 
 /// The version of SDL_image. Translation of `IMG_Version()`.
 pub const fn version() -> sdl3::Version {
@@ -136,6 +184,59 @@ pub fn load_texture_typed_io(
     renderer.create_texture_from_surface(&mut surface)
 }
 
+/// Load an animation from a file (the format detected, or for a single
+/// image of a magicless format, taken from the extension). Translation of
+/// `IMG_LoadAnimation()`.
+pub fn load_animation(file: impl AsRef<Path>) -> Result<Animation> {
+    let file = file.as_ref();
+    let mut src = IoStream::from_file(file, "rb")?;
+    /* The error message has been set in SDL_IOFromFile */
+    let ext = file_extension(file);
+    load_animation_typed_io(&mut src, ext.as_deref())
+}
+
+/// Load an animation from a data source (for compatibility).
+/// Translation of `IMG_LoadAnimation_IO()`.
+pub fn load_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
+    load_animation_typed_io(src, None)
+}
+
+/// Load an animation from a data source, optionally specifying the type: a
+/// GIF, (as a single frame) PNG or ANI animation by detection, otherwise
+/// any image as an animation of one frame (with a delay of 0).
+/// Translation of `IMG_LoadAnimationTyped_IO()`.
+pub fn load_animation_typed_io(src: &mut IoStream<'_>, type_: Option<&str>) -> Result<Animation> {
+    /* See whether or not this data source can handle seeking */
+    if src.seek(0, IoWhence::Cur).is_err() {
+        return Err(Error::new("Can't seek in this data source"));
+    }
+
+    /* Detect the type of image being loaded */
+    for &(name, is, load) in SUPPORTED_ANIMS {
+        if let Some(is) = is {
+            if !is(src) {
+                continue;
+            }
+        } else {
+            /* magicless format */
+            match type_ {
+                Some(t) if strcasecmp(t, name).is_eq() => {}
+                _ => continue,
+            }
+        }
+        return load(src);
+    }
+
+    /* Create a single frame animation from an image */
+    let image = load_typed_io(src, type_)?;
+    Ok(Animation {
+        w: image.width(),
+        h: image.height(),
+        frames: vec![image],
+        delays: vec![0],
+    })
+}
+
 /// Check that a surface can be saved: an indexed surface needs a palette.
 /// Translation of `IMG_VerifyCanSaveSurface()`.
 pub(crate) fn verify_can_save_surface(surface: &Surface<'_>) -> Result<()> {
@@ -168,9 +269,10 @@ pub fn save(surface: &mut Surface<'_>, file: impl AsRef<Path>) -> Result<()> {
 }
 
 /// Save a surface to a data source in the format named by `type_`, a file
-/// extension compared without case: `"bmp"`, `"cur"`, `"ico"`, `"jpg"` or
-/// `"jpeg"` (at quality 90), `"png"` or `"tga"`. AVIF, GIF and WebP saving
-/// are not translated yet and report so. Translation of `IMG_SaveTyped_IO()`.
+/// extension compared without case: `"bmp"`, `"cur"`, `"gif"`, `"ico"`,
+/// `"jpg"` or `"jpeg"` (at quality 90), `"png"` or `"tga"`. AVIF and WebP
+/// saving need libraries this crate doesn't have, and report so as an
+/// upstream build without them. Translation of `IMG_SaveTyped_IO()`.
 pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &str) -> Result<()> {
     if type_.is_empty() {
         return Err(Error::invalid_param("type"));
@@ -184,7 +286,7 @@ pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &
     } else if is("cur") {
         crate::bmp::save_cur_io(surface, dst)
     } else if is("gif") {
-        Err(Error::new("SDL_image built without GIF save support"))
+        crate::gif::save_gif_io(surface, dst)
     } else if is("ico") {
         crate::bmp::save_ico_io(surface, dst)
     } else if is("jpg") || is("jpeg") {
@@ -195,6 +297,57 @@ pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &
         crate::tga::save_tga_io(surface, dst)
     } else if is("webp") {
         Err(Error::new("SDL_image built without WEBP save support"))
+    } else {
+        Err(Error::new("Unsupported image format"))
+    }
+}
+
+/// Save an animation to a file, in the format named by the file's
+/// extension (see [`save_animation_typed_io`]). Translation of
+/// `IMG_SaveAnimation()`.
+pub fn save_animation(anim: &mut Animation, file: impl AsRef<Path>) -> Result<()> {
+    let file = file.as_ref();
+    if file.as_os_str().is_empty() {
+        return Err(Error::invalid_param("file"));
+    }
+
+    let Some(type_) = file_extension(file) else {
+        return Err(Error::new("Couldn't determine file type"));
+    };
+    // Skip the '.' in the file extension
+
+    let mut dst = IoStream::from_file(file, "wb")?;
+
+    let result = save_animation_typed_io(anim, &mut dst, &type_);
+    let closed = dst.close();
+    result.and(closed)
+}
+
+/// Save an animation to a data source in the format named by `type_`, a
+/// file extension compared without case: `"ani"` or `"gif"`; `"apng"` or
+/// `"png"`, `"avif"` and `"webp"` need libraries this crate doesn't have,
+/// and report so as an upstream build without them. Translation of
+/// `IMG_SaveAnimationTyped_IO()`.
+pub fn save_animation_typed_io(
+    anim: &mut Animation,
+    dst: &mut IoStream<'_>,
+    type_: &str,
+) -> Result<()> {
+    if type_.is_empty() {
+        return Err(Error::invalid_param("type"));
+    }
+
+    let is = |name: &str| strcasecmp(type_, name).is_eq();
+    if is("ani") {
+        crate::anim_encoder::save_ani_animation_io(anim, dst)
+    } else if is("apng") || is("png") {
+        crate::anim_encoder::save_apng_animation_io(anim, dst)
+    } else if is("avif") {
+        crate::anim_encoder::save_avif_animation_io(anim, dst, 90)
+    } else if is("gif") {
+        crate::anim_encoder::save_gif_animation_io(anim, dst)
+    } else if is("webp") {
+        crate::anim_encoder::save_webp_animation_io(anim, dst, 90)
     } else {
         Err(Error::new("Unsupported image format"))
     }
@@ -221,10 +374,25 @@ pub fn clipboard_image() -> Result<Surface<'static>> {
     surface.ok_or_else(|| Error::new("No clipboard image available"))
 }
 
+/// Create an animated cursor from an animation's frames and delays.
+/// Translation of `IMG_CreateAnimatedCursor()`.
+pub fn create_animated_cursor(anim: &Animation, hot_x: i32, hot_y: i32) -> Result<Cursor> {
+    let frames: Vec<CursorFrame<'_>> = anim
+        .frames
+        .iter()
+        .zip(&anim.delays)
+        .map(|(surface, &delay)| CursorFrame {
+            surface,
+            duration: delay as u32,
+        })
+        .collect();
+
+    sdl3::events::mouse::create_animated_cursor(&frames, hot_x, hot_y)
+}
+
 /// Convert a duration between time bases, rounding the start and end
 /// points so that consecutive durations add up. Translation of
 /// `IMG_TimebaseDuration()`.
-#[allow(dead_code)] // for the animation API
 pub(crate) fn timebase_duration(
     pts: u64,
     duration: u64,

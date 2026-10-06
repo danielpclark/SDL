@@ -133,6 +133,22 @@ def main(out):
         p("xpm_trans.xpm"))
     write_xpm_named(p("xpm_named.xpm"))
 
+    # Animations: a GIF with every disposal method, offsets, transparency, a
+    # loop count and a comment; ANI cursors with a sequence, rates and an
+    # info list
+    run("-delay", "5", "-dispose", "None", tmp,
+        "-dispose", "Background", "-delay", "1",
+        "(", "-size", "10x5", "xc:blue", "-set", "page", "+3+2", ")",
+        "-dispose", "Previous", "-delay", "200",
+        "(", tmpa, "-resize", "8x6!", "-set", "page", "+12+5", ")",
+        "-dispose", "None", "-delay", "7",
+        "(", "-size", "4x4", "xc:yellow", "-set", "page", "+1+8", ")",
+        "-loop", "3", "-set", "comment", "gif comment", p("gif_dispose.gif"))
+    write_ani(p("ani_seq.ani"), [p("cur_multi.cur"), p("ico_pal.ico"), p("ico_24.ico")],
+              sequence=[0, 2, 1, 2, 0], rates=[3, 6, 9, 12, 15], title=b"test cursor",
+              author=b"gen script")
+    write_ani(p("ani_plain.ani"), [p("ico_multi.ico"), p("cur_multi.cur")])
+
     # SVG: path commands (arcs too), shapes and units, strokes (joins, caps,
     # dashes), gradients, transforms, styles and colors
     for name, text in SVGS.items():
@@ -574,6 +590,31 @@ def write_xpm_named(path):
     text = "/* XPM */\nstatic char *named[] = {\n/* columns rows colors chars-per-pixel */\n"
     text += "\n".join(lines) + "\n};\n"
     open(path, "w").write(text)
+
+
+def write_ani(path, frames, sequence=None, rates=None, title=None, author=None):
+    """A Windows animated cursor (RIFF ACON) of icon or cursor files, with an
+    optional sequence, rates and INFO list; odd chunks are padded."""
+    def chunk(fourcc, data):
+        return fourcc + struct.pack("<I", len(data)) + data + (b"\0" if len(data) % 2 else b"")
+
+    steps = len(sequence) if sequence else len(frames)
+    flags = 1 | (2 if sequence else 0)
+    body = chunk(b"anih", struct.pack("<9I", 36, len(frames), steps, 0, 0, 0, 0, 10, flags))
+    if title or author:
+        info = b"INFO"
+        if title:
+            info += chunk(b"INAM", title + b"\0")
+        if author:
+            info += chunk(b"IART", author + b"\0")
+        body += chunk(b"LIST", info)
+    if rates:
+        body += chunk(b"rate", struct.pack("<%dI" % len(rates), *rates))
+    if sequence:
+        body += chunk(b"seq ", struct.pack("<%dI" % len(sequence), *sequence))
+    fram = b"fram" + b"".join(chunk(b"icon", open(f, "rb").read()) for f in frames)
+    body += chunk(b"LIST", fram)
+    open(path, "wb").write(b"RIFF" + struct.pack("<I", 4 + len(body)) + b"ACON" + body)
 
 
 def write_xv(path):
