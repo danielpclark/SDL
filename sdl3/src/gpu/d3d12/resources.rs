@@ -787,6 +787,11 @@ impl D3D12Renderer {
                     calc_subresource(level_index, layer_index, createinfo.num_levels);
                 let subresource = &mut subresources[subresource_index as usize];
 
+                // A 3D texture's levels halve in depth too; views past a
+                // level's depth are invalid (upstream uses the base depth,
+                // which removes the device on WARP).
+                let depth = (depth >> level_index).max(1);
+
                 subresource.layer = layer_index;
                 subresource.level = level_index;
                 subresource.depth = depth;

@@ -2431,7 +2431,8 @@ fn renderer_resources_and_pools() {
     let counts = || pools.iter().map(|p| pool_counts(p)).collect::<Vec<_>>();
     assert_eq!(counts(), all_free);
 
-    // A texture's views: one SRV, an RTV per level, layer and depth slice.
+    // A texture's views: one SRV, an RTV per level, layer and depth slice
+    // (a 3D texture's second level is half as deep).
     let texture = renderer
         .create_texture_container(&texture_info(
             TextureType::Texture3D,
@@ -2449,8 +2450,8 @@ fn renderer_resources_and_pools() {
         for (i, subresource) in active.subresources.iter().enumerate() {
             assert_eq!(subresource.index as usize, i);
             assert_eq!((subresource.level, subresource.layer), (i as u32, 0));
-            assert_eq!(subresource.depth, 4);
-            assert_eq!(subresource.rtv_handles.len(), 4);
+            assert_eq!(subresource.depth, 4 >> i);
+            assert_eq!(subresource.rtv_handles.len(), 4 >> i);
             assert!(subresource.uav_handle.is_none() && subresource.dsv_handle.is_none());
         }
         let container = active.container.lock().unwrap();
@@ -2462,7 +2463,7 @@ fn renderer_resources_and_pools() {
     }
     assert_eq!(
         pool_counts(&pools[D3D12_DESCRIPTOR_HEAP_TYPE_RTV as usize]).0,
-        1024 - 8
+        1024 - 6
     );
     assert_eq!(pool_counts(&pools[0]).0, 1024 - 1);
 
@@ -2487,7 +2488,7 @@ fn renderer_resources_and_pools() {
     }
     assert_eq!(
         pool_counts(&pools[D3D12_DESCRIPTOR_HEAP_TYPE_RTV as usize]).0,
-        1024 - 16
+        1024 - 12
     );
 
     // Releasing defers the destruction to the next wait; the views go back
