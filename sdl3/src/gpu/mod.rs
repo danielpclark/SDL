@@ -2253,66 +2253,76 @@ impl std::fmt::Debug for Device {
 /// Translation of `SDL_GPUBuffer *`; dropping it releases it
 /// (`SDL_ReleaseGPUBuffer()`).
 pub struct Buffer {
-    owner: Owner,
     pub(crate) raw: BackendObject,
+    /// Last, so the backend object is dropped first: the owner can hold
+    /// the last reference to the device, which destroys it (and unloads
+    /// its driver).
+    owner: Owner,
 }
 
 /// A buffer for transferring data to and from the GPU. Translation of
 /// `SDL_GPUTransferBuffer *`; dropping it releases it
 /// (`SDL_ReleaseGPUTransferBuffer()`).
 pub struct TransferBuffer {
-    owner: Owner,
     pub(crate) raw: BackendObject,
     size: u32,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 /// A texture. Translation of `SDL_GPUTexture *`; dropping it releases it
 /// (`SDL_ReleaseGPUTexture()`), except for a swapchain's texture, which
 /// belongs to the swapchain.
 pub struct Texture {
-    owner: Owner,
     pub(crate) raw: BackendObject,
     /// The texture's creation info (`TextureCommonHeader`).
     pub(crate) info: TextureCreateInfo,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 /// A sampler. Translation of `SDL_GPUSampler *`; dropping it releases it
 /// (`SDL_ReleaseGPUSampler()`).
 pub struct Sampler {
-    owner: Owner,
     pub(crate) raw: BackendObject,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 /// A compiled shader, used to create pipelines. Translation of
 /// `SDL_GPUShader *`; dropping it releases it (`SDL_ReleaseGPUShader()`),
 /// which is fine once the pipelines are created.
 pub struct Shader {
-    owner: Owner,
     pub(crate) raw: BackendObject,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 /// A compute pipeline. Translation of `SDL_GPUComputePipeline *`; dropping
 /// it releases it (`SDL_ReleaseGPUComputePipeline()`).
 pub struct ComputePipeline {
-    owner: Owner,
     pub(crate) raw: BackendObject,
     pub(crate) header: ComputePipelineHeader,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 /// A graphics pipeline. Translation of `SDL_GPUGraphicsPipeline *`;
 /// dropping it releases it (`SDL_ReleaseGPUGraphicsPipeline()`).
 pub struct GraphicsPipeline {
-    owner: Owner,
     pub(crate) raw: BackendObject,
     pub(crate) header: GraphicsPipelineHeader,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 /// A fence, signaled when the command buffer it was acquired with is done.
 /// Translation of `SDL_GPUFence *`; dropping it releases it
 /// (`SDL_ReleaseGPUFence()`).
 pub struct Fence {
-    owner: Owner,
     pub(crate) raw: BackendObject,
+    /// Last (see [`Buffer`]).
+    owner: Owner,
 }
 
 macro_rules! handle_impls {
@@ -3219,10 +3229,12 @@ impl DeviceShared {
 /// Dropping a command buffer that wasn't submitted or cancelled cancels it,
 /// or submits it if it acquired a swapchain texture.
 pub struct CommandBuffer {
-    pub(crate) device: Arc<DeviceShared>,
     /// The backend's command buffer, until it is submitted or cancelled.
     raw: Option<Box<BackendCommandBuffer>>,
     pub(crate) header: CommandBufferHeader,
+    /// Last, so the backend's command buffer is dropped before the device
+    /// can be (see [`Buffer`]).
+    pub(crate) device: Arc<DeviceShared>,
 }
 
 impl std::fmt::Debug for CommandBuffer {
