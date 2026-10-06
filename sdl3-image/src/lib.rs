@@ -13,7 +13,8 @@
 //!
 //! * Loading: [`load`], [`load_io`] and [`load_typed_io`] detect the format
 //!   (or are told it, for the magicless TGA) and call the format's loader;
-//!   [`load_texture`] and friends upload the result to a renderer.
+//!   [`load_texture`] and friends upload the result to a renderer, and
+//!   [`load_gpu_texture`] and friends to a GPU texture through a copy pass.
 //! * Detection: an `is_*` function for every format SDL_image knows, each
 //!   leaving the stream where it was.
 //! * Decoders: BMP, ICO and CUR, GIF (still images), JPEG and PNG (through
@@ -54,6 +55,7 @@ mod anim_encoder;
 mod avif;
 mod bmp;
 mod gif;
+mod gpu;
 mod img;
 mod jpg;
 mod jxl;
@@ -115,6 +117,7 @@ pub use bmp::{
     save_cur_io, save_ico, save_ico_io,
 };
 pub use gif::{is_gif, load_gif_io, save_gif, save_gif_io};
+pub use gpu::{load_gpu_texture, load_gpu_texture_io, load_gpu_texture_typed_io};
 pub use img::{
     clipboard_image, create_animated_cursor, load, load_animation, load_animation_io,
     load_animation_typed_io, load_io, load_texture, load_texture_io, load_texture_typed_io,
