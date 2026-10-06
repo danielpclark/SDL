@@ -7,6 +7,8 @@
 //! the state they're made for.
 
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use super::shaders::{FragmentShaderId, VertexShaderId};
 use super::{convert_blend_factor, convert_blend_operation, Shaders};
@@ -14,15 +16,36 @@ use crate::error::{Error, Result};
 use crate::gpu::{self, ColorComponentFlags, PrimitiveType, TextureFormat};
 use crate::video::BlendMode;
 
-/// What a pipeline is made for. Translation of `GPU_PipelineParameters`
-/// (without `custom_frag_shader`: there are no render states yet).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+/// What a pipeline is made for. Translation of `GPU_PipelineParameters`.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub(super) struct PipelineParameters {
     pub(super) blend_mode: BlendMode,
     pub(super) frag_shader: FragmentShaderId,
     pub(super) vert_shader: VertexShaderId,
     pub(super) attachment_format: TextureFormat,
     pub(super) primitive_type: PrimitiveType,
+    pub(super) custom_frag_shader: Option<CustomShader>,
+}
+
+/// A render state's fragment shader in the parameters of a pipeline
+/// (`custom_frag_shader`), compared and hashed by its address as
+/// upstream's pointer is. The cache keeps it with the key, so the address
+/// can't be reused by another shader while the pipeline is cached.
+#[derive(Clone, Debug)]
+pub(super) struct CustomShader(pub(super) Arc<gpu::Shader>);
+
+impl PartialEq for CustomShader {
+    fn eq(&self, other: &CustomShader) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for CustomShader {}
+
+impl Hash for CustomShader {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Arc::as_ptr(&self.0).hash(state);
+    }
 }
 
 /// The pipelines made so far. Translation of `GPU_PipelineCache` (its hash
@@ -111,7 +134,9 @@ fn make_pipeline(
 
     let pci = gpu::GraphicsPipelineCreateInfo {
         vertex_shader: shaders.vertex_shader(params.vert_shader),
-        fragment_shader: shaders.fragment_shader(params.frag_shader),
+        fragment_shader: shaders
+            .fragment_shader(params.frag_shader)
+            .ok_or_else(|| Error::new("No custom fragment shader"))?,
         vertex_input_state: gpu::VertexInputState {
             vertex_buffer_descriptions: &[vertex_buffer_desc],
             vertex_attributes: &attribs,
@@ -152,7 +177,7 @@ impl PipelineCache {
     ) -> Result<&gpu::GraphicsPipeline> {
         if !self.table.contains_key(params) {
             let pipeline = make_pipeline(device, shaders, params)?;
-            self.table.insert(*params, pipeline);
+            self.table.insert(params.clone(), pipeline);
         }
         Ok(&self.table[params])
     }

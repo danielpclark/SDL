@@ -1164,6 +1164,7 @@ impl RenderBackend for SwRenderer {
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        _gpu_render_states: &crate::render::sysrender::GpuRenderStates,
     ) -> Result<()> {
         self.with_output(|this| this.run_commands(cmds, textures))
     }

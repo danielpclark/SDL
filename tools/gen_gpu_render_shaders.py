@@ -41,7 +41,7 @@ frag_ids = enum_values(header, "GPU_FragmentShaderID")
 # FRAG_SHADER_TEXTURE_CUSTOM is the application's shader of an
 # SDL_GPURenderState, which has no source.
 assert frag_ids[-1] == "FRAG_SHADER_TEXTURE_CUSTOM", frag_ids
-frag_ids = frag_ids[:-1]
+frag_source_ids = frag_ids[:-1]
 
 source = read("SDL_shaders_gpu.c")
 
@@ -62,7 +62,7 @@ def table(name, ids):
 
 
 vert_sources = table("vert_shader_sources", vert_ids)
-frag_sources = table("frag_shader_sources", frag_ids)
+frag_sources = table("frag_shader_sources", frag_source_ids)
 
 
 
@@ -117,7 +117,7 @@ def rust_const(c_name):
     return c_name.upper()
 
 
-def ids_enum(out, rust_name, c_name, ids, what, extra=()):
+def ids_enum(out, rust_name, c_name, ids, what, extra=(), custom=False):
     out.append(f"/// The {what} shaders. Translation of `{c_name}` (`*_INVALID` is")
     out.append("/// `None` where upstream would keep it).")
     out.extend(extra)
@@ -138,10 +138,17 @@ def ids_enum(out, rust_name, c_name, ids, what, extra=()):
         out.append(f"        {rust_name}::{rust_variant(i)},")
     out.append("    ];")
     out.append("")
-    out.append("    /// The shader's code and resources.")
-    out.append("    pub(super) fn sources(self) -> &'static ShaderSources {")
     sources = "VERT_SHADER_SOURCES" if count == "Vertex" else "FRAG_SHADER_SOURCES"
-    out.append(f"        &{sources}[self as usize]")
+    if custom:
+        # (the custom shader is the last, without an entry)
+        out.append("    /// The shader's code and resources (`None` for the custom shader,")
+        out.append("    /// which is the application's).")
+        out.append("    pub(super) fn sources(self) -> Option<&'static ShaderSources> {")
+        out.append(f"        {sources}.get(self as usize)")
+    else:
+        out.append("    /// The shader's code and resources.")
+        out.append("    pub(super) fn sources(self) -> &'static ShaderSources {")
+        out.append(f"        &{sources}[self as usize]")
     out.append("    }")
     out.append("}")
 
@@ -197,12 +204,11 @@ ids_enum(out, "VertexShaderId", "GPU_VertexShaderID", vert_ids, "vertex")
 out.append("")
 ids_enum(out, "FragmentShaderId", "GPU_FragmentShaderID", frag_ids, "fragment", [
     "///",
-    "/// `FRAG_SHADER_TEXTURE_CUSTOM`, the fragment shader of an",
-    "/// `SDL_GPURenderState`, isn't here: the renderer takes no render states",
-    "/// yet.",
-])
+    "/// `FRAG_SHADER_TEXTURE_CUSTOM` is the fragment shader of an",
+    "/// `SDL_GPURenderState`, the application's: it has no sources.",
+], custom=True)
 sources_table(out, "VERT_SHADER_SOURCES", "vert_shader_sources", vert_ids, vert_sources)
-sources_table(out, "FRAG_SHADER_SOURCES", "frag_shader_sources", frag_ids, frag_sources)
+sources_table(out, "FRAG_SHADER_SOURCES", "frag_shader_sources", frag_source_ids, frag_sources)
 
 
 def blob_statics(out, blobs, cfg=None):

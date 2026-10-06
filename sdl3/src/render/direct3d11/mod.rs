@@ -2990,6 +2990,7 @@ impl RenderBackend for D3d11Renderer {
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        _gpu_render_states: &crate::render::sysrender::GpuRenderStates,
     ) -> Result<()> {
         let viewport_rotation = self.get_rotation_for_current_render_target();
 

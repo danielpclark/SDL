@@ -80,7 +80,7 @@ fn spirv_shaders() {
         (FragmentShaderId::TextureAdvanced, 17260, 3),
     ];
     for (id, len, samplers) in fragment {
-        let s = id.sources();
+        let s = id.sources().unwrap();
         assert_eq!(s.spirv.len(), len, "{id:?}");
         assert_eq!(
             (s.num_samplers, s.num_uniform_buffers),
@@ -91,7 +91,7 @@ fn spirv_shaders() {
     let all = VertexShaderId::ALL
         .iter()
         .map(|id| id.sources())
-        .chain(FragmentShaderId::ALL.iter().map(|id| id.sources()));
+        .chain(FragmentShaderId::ALL.iter().filter_map(|id| id.sources()));
     for s in all {
         let word = |i: usize| u32::from_le_bytes(s.spirv[4 * i..4 * i + 4].try_into().unwrap());
         // SPIR-V magic, version 1.0, DXC's generator id (Google spiregg)
@@ -109,8 +109,13 @@ fn spirv_shaders() {
     for (i, id) in FragmentShaderId::ALL.iter().enumerate() {
         assert_eq!(*id as usize, i);
     }
+    // (FRAG_SHADER_TEXTURE_CUSTOM is last, the application's, without
+    // sources)
+    assert_eq!(FragmentShaderId::COUNT, 5);
+    assert_eq!(FragmentShaderId::ALL[4], FragmentShaderId::TextureCustom);
+    assert!(FragmentShaderId::TextureCustom.sources().is_none());
     // The first bytes of color_frag_spv after the header (OpCapability Shader)
-    let color = FragmentShaderId::Color.sources().spirv;
+    let color = FragmentShaderId::Color.sources().unwrap().spirv;
     assert_eq!(
         &color[20..28],
         &[0x11, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00]
@@ -126,10 +131,14 @@ fn dxil_shaders() {
         (VertexShaderId::Linepoint.sources(), 3924, 1),
         (VertexShaderId::TriColor.sources(), 4208, 1),
         (VertexShaderId::TriTexture.sources(), 4208, 1),
-        (FragmentShaderId::Color.sources(), 3352, 0),
-        (FragmentShaderId::TextureRgb.sources(), 4192, 0),
-        (FragmentShaderId::TextureRgba.sources(), 4196, 0),
-        (FragmentShaderId::TextureAdvanced.sources(), 10992, 0),
+        (FragmentShaderId::Color.sources().unwrap(), 3352, 0),
+        (FragmentShaderId::TextureRgb.sources().unwrap(), 4192, 0),
+        (FragmentShaderId::TextureRgba.sources().unwrap(), 4196, 0),
+        (
+            FragmentShaderId::TextureAdvanced.sources().unwrap(),
+            10992,
+            0,
+        ),
     ];
     for (s, len, kind) in lens {
         let d = s.dxil60;
@@ -314,7 +323,7 @@ fn vertex_layouts_and_uniforms() {
     // The device is asked for the shader formats the renderer has: SPIR-V,
     // and DXIL on Windows.
     let props = Properties::new();
-    fill_supported_shader_formats(&props).unwrap();
+    fill_supported_shader_formats(&props, &RendererCreateInfo::default()).unwrap();
     let get = |name| props.get_bool(name);
     assert_eq!(
         get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_PRIVATE_BOOLEAN),
@@ -332,6 +341,44 @@ fn vertex_layouts_and_uniforms() {
         get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN),
         Some(false)
     );
+
+    // With the application's shader formats, only those are asked for, if
+    // the renderer has them too.
+    let props = Properties::new();
+    let spirv = RendererCreateInfo {
+        gpu_shaders_spirv: true,
+        ..Default::default()
+    };
+    fill_supported_shader_formats(&props, &spirv).unwrap();
+    let get = |name| props.get_bool(name);
+    assert_eq!(
+        get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN),
+        Some(true)
+    );
+    for name in [
+        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_PRIVATE_BOOLEAN,
+        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN,
+        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN,
+    ] {
+        assert_eq!(get(name), None, "{name}");
+    }
+    let props = Properties::new();
+    let dxil_msl = RendererCreateInfo {
+        gpu_shaders_dxil: true,
+        gpu_shaders_msl: true,
+        ..Default::default()
+    };
+    fill_supported_shader_formats(&props, &dxil_msl).unwrap();
+    let get = |name| props.get_bool(name);
+    assert_eq!(
+        get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN),
+        Some(cfg!(windows))
+    );
+    assert_eq!(
+        get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN),
+        Some(false)
+    );
+    assert_eq!(get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN), None);
 }
 
 // ---------------------------------------------------------------------------
@@ -1520,7 +1567,8 @@ fn gpu_pipelines_are_cached_on(backend: Backend) {
     };
     // (a renderer of its own, to look at its state: the window's is taken)
     let other = Window::create("gpu 2", 16, 16, WindowFlags::default()).unwrap();
-    let mut g = GpuRenderer::for_window(other, Colorspace::SRGB, 0).unwrap();
+    let mut g = GpuRenderer::for_window(other, Colorspace::SRGB, 0, &RendererCreateInfo::default())
+        .unwrap();
     let format = g.backbuffer.as_ref().unwrap().format;
     let shaders = g.shaders.take().unwrap();
     let mut params = PipelineParameters {
@@ -1529,6 +1577,7 @@ fn gpu_pipelines_are_cached_on(backend: Backend) {
         vert_shader: VertexShaderId::Linepoint,
         attachment_format: format,
         primitive_type: PrimitiveType::PointList,
+        custom_frag_shader: None,
     };
     g.pipeline_cache
         .get_pipeline(&shaders, &g.device, &params)
