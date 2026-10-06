@@ -25,6 +25,11 @@
 //! sdl3-mixer works around its crashes and memory errors (the
 //! `FIXME (upstream)` notes), and built to use SDL's bundled math functions,
 //! as sdl3's are, rather than the C library's.
+//!
+//! One thing can't be pinned: corrupt input can decode to NaNs, and when
+//! both operands of an x86 float operation are NaNs, the result is the
+//! first one, whose sign can differ as the C and Rust compilers order the
+//! operands differently. The files here don't hit that.
 
 use std::fmt::Write;
 use std::sync::atomic::{AtomicI32, AtomicU64, Ordering};
@@ -68,6 +73,7 @@ static FILES: &[(&str, &[u8])] = files![
     "mp3_joint_stereo.mp3",
     "mp3_junk.mp3",
     "mp3_mpeg25.mp3",
+    "mp3_mpeg25_mixed.mp3",
     "mp3_mpeg2_noxing.mp3",
     "mp3_vbr_stereo.mp3",
     "ogg_6ch.ogg",

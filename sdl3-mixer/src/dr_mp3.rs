@@ -1495,6 +1495,13 @@ fn l3_reorder(grbuf: &mut [f32], scratch: &mut [f32], sfb: &[u8]) {
         if len == 0 {
             break;
         }
+        // FIXME (upstream): the 8 kHz mixed-block table's short bands cover
+        // 528 samples, but only 504 follow the four long bands, so upstream
+        // reads and writes past the channel's buffer (into the other
+        // channel's, or uninitialized memory). Stop at its end instead.
+        if src + 3 * len > grbuf.len() {
+            break;
+        }
         for _ in 0..len {
             scratch[dst] = grbuf[src];
             scratch[dst + 1] = grbuf[src + len];
