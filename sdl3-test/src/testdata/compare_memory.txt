@@ -1,0 +1,10 @@
+: Assert 'Sizes of memory blocks must be equal (actual=20 expected=21)': Failed$
+:                  actual                                                             reference                                                       $
+: 0000000000000000 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 ABCDEFGHIJKLMNOP | 41 42 43 00 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 ABC.EFGHIJKLMNOP$
+: 0000000000000010 51 52 53 54                                     QRST             | 51 52 53 54 ff                                  QRST.           $
+ : Assert 'Sizes of memory blocks must be equal (actual=40 expected=40)': Passed$
+: Assert 'Memory blocks contain the same data': Failed$
+:                  actual                                                             reference                                                       $
+: 0000000000000000 05 2a 4f 74 99 be e3 08 2d 52 77 9c c1 e6 0b 30 .*Ot....-Rw....0 | 05 2a 4f 74 99 be e3 08 2d 52 77 9c c1 e6 0b 30 .*Ot....-Rw....0$
+: 0000000000000010 55 7a 9f c4 e9 0e 33 58 7d a2 c7 ec 11 36 5b 80 Uz....3X}....6[. | 55 7a 9f c4 e9 0e 33 58 7d a2 c7 ec 11 36 5b 80 Uz....3X}....6[.$
+: 0000000000000020 a5 ca ef 14 39 5e 83 a8                         ....9^..         | a5 ca ef 14 39 5e 83 7e                         ....9^.~        $

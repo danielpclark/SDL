@@ -31,6 +31,13 @@ impl Rng {
         Rng { state: seed }
     }
 
+    /// A generator continuing from a raw state, taken as it is (0 too, which
+    /// [`Rng::new`] would replace). Translation of handing `SDL_rand_r()`
+    /// and friends a `Uint64 *state` the caller set itself.
+    pub const fn from_state(state: u64) -> Self {
+        Rng { state }
+    }
+
     /// Generate 32 pseudo-random bits. Translation of `SDL_rand_bits_r()`.
     pub fn next_u32(&mut self) -> u32 {
         // The C and A parameters of this LCG have been chosen based on hundreds
@@ -158,5 +165,14 @@ mod tests {
         let _ = next_f32();
         let _ = next_u32();
         assert_ne!(Rng::new(0).state(), 0);
+    }
+
+    #[test]
+    fn from_state_keeps_zero() {
+        let mut r = Rng::from_state(0);
+        assert_eq!(r.state(), 0);
+        // 0 * A + C: the top 32 bits of 5 are 0, the next state is 5.
+        assert_eq!(r.next_u32(), 0);
+        assert_eq!(r.state(), 5);
     }
 }

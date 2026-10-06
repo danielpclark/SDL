@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["sdl3"]
+members = ["sdl3", "sdl3-test"]
 
 [workspace.package]
 version = "3.5.0"

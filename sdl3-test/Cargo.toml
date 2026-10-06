@@ -1,0 +1,40 @@
+[package]
+name = "sdl3-test"
+description = "A direct, pure-Rust translation of SDL3's test framework (SDL_test). No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "testing", "fuzzing", "pure-rust"]
+categories = ["development-tools::testing", "multimedia"]
+
+[lib]
+name = "sdl3_test"
+path = "src/lib.rs"
+
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }
+
+# The log's local time (localtime_r(), GetLocalTime()) and the memory
+# tracker's stack traces: the system unwinder and dladdr() on Unix, and on
+# Windows RtlCaptureStackBackTrace() with dbghelp.dll loaded at run time, as
+# upstream.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.170"
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.61"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+]
+
+# The memory tracker installed as the global allocator, in a program of its
+# own without the test harness's threads.
+[[test]]
+name = "memory"
+harness = false
