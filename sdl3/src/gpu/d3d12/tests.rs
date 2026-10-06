@@ -237,7 +237,7 @@ fn enum_mappings() {
         sampler_address_mode(SamplerAddressMode::ClampToEdge),
         D3D12_TEXTURE_ADDRESS_MODE_CLAMP
     );
-    // Swapchain compositions (part 2 uses them)
+    // Swapchain compositions
     assert_eq!(
         SWAPCHAIN_COMPOSITION_TO_SDL_TEXTURE_FORMAT[SwapchainComposition::SdrLinear as usize],
         TextureFormat::B8G8R8A8_UNORM_SRGB
@@ -2928,7 +2928,7 @@ fn blit_resources_and_debug_names() {
 // Command buffers, passes, swapchains and fences
 // ---------------------------------------------------------------------------
 
-/// The tests of part 2 on a device: drawing, dispatching, copying,
+/// The tests of the command buffers on a device: drawing, dispatching, copying,
 /// blitting, fences and swapchains, with the DXBC shaders of
 /// [`test_dxbc`](super::super::test_dxbc) (shader model 5.1, which Wine's
 /// vkd3d runs as Windows' WARP does).
