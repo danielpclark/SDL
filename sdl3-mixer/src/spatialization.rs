@@ -18,6 +18,7 @@ use sdl3::stdlib::math::{acosf, cosf, floorf, sinf, sqrtf, PI_F};
 
 // Vector Based Amplitude Panning stuff, for surround sound positional audio.
 // VBAP code originally from https://github.com/drbafflegab/vbap/ ... CC0 license (public domain).
+#[allow(dead_code)] // (used only in a compile-time check, which older compilers don't count.)
 pub(crate) const VBAP2D_MAX_RESOLUTION: i32 = 3600;
 pub(crate) const VBAP2D_MAX_SPEAKER_COUNT: usize = 8; // original code had 64, assumed you'd use less, but we're hardcoding our current maximum.
 pub(crate) const VBAP2D_RESOLUTION: i32 = 36; // 10 degrees per division
