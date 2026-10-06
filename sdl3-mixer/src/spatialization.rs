@@ -267,10 +267,6 @@ impl Vbap2d {
         gains[0] = gain_a_normalized;
         gains[1] = gain_b_normalized;
     }
-
-    pub(crate) fn speaker_count(&self) -> i32 {
-        self.speaker_count
-    }
 }
 
 // end VBAP code.

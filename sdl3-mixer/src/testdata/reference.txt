@@ -752,6 +752,30 @@ corrupt 4: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
 corrupt 4 mix: dur=-1 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 5: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
 corrupt 5 mix: dur=-1 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+ogg corrupt 0: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 16384 70f843a0621ad066 end=0
+ogg corrupt 0 mix: dur=-1 play=1 pos=2048 replay=1 seek=1 pos=100 playing=1 18ec1336f1452da3
+ogg corrupt 1: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
+ogg corrupt 1 mix: dur=-1 play=1 pos=1152 replay=1 seek=0 pos=0 playing=0 472bce0b0e940457
+ogg corrupt 2: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 9216 82723376f7875306 end=0
+ogg corrupt 2 mix: dur=-1 play=1 pos=1152 replay=1 seek=1 pos=100 playing=0 700731bc1cedf876
+ogg corrupt 3: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 16384 d406ccdcc93d71b8 end=0
+ogg corrupt 3 mix: dur=-1 play=1 pos=2048 replay=1 seek=1 pos=100 playing=1 7c4c0039332ac7f9
+ogg corrupt 4: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 16384 d406ccdcc93d71b8 end=0
+ogg corrupt 4 mix: dur=-1 play=1 pos=2048 replay=1 seek=1 pos=100 playing=1 7c4c0039332ac7f9
+ogg corrupt 5: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
+ogg corrupt 5 mix: dur=-1 play=1 pos=1152 replay=1 seek=0 pos=0 playing=0 472bce0b0e940457
+ogg corrupt 6: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 9216 09b6bb892af7f1b4 end=0
+ogg corrupt 6 mix: dur=-1 play=1 pos=1152 replay=1 seek=1 pos=100 playing=0 211e47002201300d
+ogg corrupt 7: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
+ogg corrupt 7 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+ogg corrupt 8: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 16384 d406ccdcc93d71b8 end=0
+ogg corrupt 8 mix: dur=-1 play=1 pos=2048 replay=1 seek=1 pos=100 playing=1 7c4c0039332ac7f9
+ogg corrupt 9: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
+ogg corrupt 9 mix: dur=-1 play=1 pos=2048 replay=1 seek=0 pos=0 playing=1 e639d0bf87ad1be5
+ogg corrupt 10: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 9216 82723376f7875306 end=0
+ogg corrupt 10 mix: dur=-1 play=1 pos=1152 replay=1 seek=1 pos=100 playing=0 700731bc1cedf876
+ogg corrupt 11: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 0 cbf29ce484222325 end=0
+ogg corrupt 11 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
 mix: dur=-1 play=1 pos=897 replay=1 seek=1 pos=100 playing=1 d36b049cb05acaa2
 mixpre: dur=3200 play=1 pos=897 replay=1 seek=1 pos=1066 playing=1 f04c999eccc47557
 == flac_s16_stereo.flac
@@ -1258,6 +1282,30 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 6cd692e546cece26 end=0
+ogg corrupt 0 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 98154182996d15cb
+ogg corrupt 1: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 69eade30d6a70d02 end=0
+ogg corrupt 1 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 1ff7e5ade1ffed2f
+ogg corrupt 2: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 88e6bfad30b9596b end=0
+ogg corrupt 2 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 4d57dff3728ad998
+ogg corrupt 3: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 afb32b254fbe047b end=0
+ogg corrupt 3 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 85376728764e07cd
+ogg corrupt 4: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 cbb4cb90a9ea6bc3 end=0
+ogg corrupt 4 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 8414b7ba174877d1
+ogg corrupt 5: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 1e7284ff568f84e0 end=0
+ogg corrupt 5 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 4ff83f576952844d
+ogg corrupt 6: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 98cca35f574b6a5b end=0
+ogg corrupt 6 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 83d8a6eeb9ddff7d
+ogg corrupt 7: err: stb_vorbis_seek: VORBIS_seek_without_length
+ogg corrupt 7 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+ogg corrupt 8: STBVORBIS 0x8120 6 11025 frames=2205 | 52920 c01cb8c19b3a88e7 end=0
+ogg corrupt 8 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 6a0a4421b4d04e79
+ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10: err: stb_vorbis_seek: VORBIS_seek_without_length
+ogg corrupt 10 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 c4e3baabbc1ac2d6
 mixpre: dur=2205 play=1 pos=618 replay=1 seek=1 pos=735 playing=1 c4e3baabbc1ac2d6
 == ogg_8k.ogg
@@ -1305,6 +1353,30 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 085ee0fad130effe end=0
+ogg corrupt 0 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 c7bae004ca914ea3
+ogg corrupt 1: STBVORBIS 0x8120 1 8000 frames=4000 | 15360 279e337a01d5c571 end=0
+ogg corrupt 1 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 c7bae004ca914ea3
+ogg corrupt 2: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 1167dc57d2e1666d end=0
+ogg corrupt 2 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 9e822d8116eb777b
+ogg corrupt 3: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 d98bf86b415494f2 end=0
+ogg corrupt 3 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 daee7b64842f1b2b
+ogg corrupt 4: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 17847a2ece7c7445 end=0
+ogg corrupt 4 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 437add07aad91d2f
+ogg corrupt 5: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 1c5ff411e0c6d9ea end=0
+ogg corrupt 5 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 6b567a277ebcdf97
+ogg corrupt 6: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 6dd2fc4a52f0b191 end=0
+ogg corrupt 6 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 c7bae004ca914ea3
+ogg corrupt 7: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 0c8efa37afcc52d6 end=0
+ogg corrupt 7 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 32df0c84cf625aeb
+ogg corrupt 8: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 76ba83e3f98436ea end=0
+ogg corrupt 8 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 0b2e67427c7bf5e7
+ogg corrupt 9: STBVORBIS 0x8120 1 8000 frames=4000 | 16000 9667725f08eec525 end=0
+ogg corrupt 9 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 960005572b87464b
+ogg corrupt 10: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 c7bae004ca914ea3
 mixpre: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 c7bae004ca914ea3
 == ogg_mono.ogg
@@ -1352,6 +1424,30 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 f3ea2c4023b22794 end=1
+ogg corrupt 0 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 1723e178e1556cec
+ogg corrupt 1: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 8900e47346460272 end=1
+ogg corrupt 1 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 f03b24c76c38a1f0
+ogg corrupt 2: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 2dc5ba40985b1227 end=1
+ogg corrupt 2 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 7eb6c7ab3e0c66fc
+ogg corrupt 3: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 07a51e36d152d0da end=1
+ogg corrupt 3 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0a51d8ccdeb208e0
+ogg corrupt 4: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 07a51e36d152d0da end=1
+ogg corrupt 4 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0a51d8ccdeb208e0
+ogg corrupt 5: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 07a51e36d152d0da end=1
+ogg corrupt 5 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0a51d8ccdeb208e0
+ogg corrupt 6: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 8d3b514b75c8a702 end=1
+ogg corrupt 6 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 ae4928825a4bef14
+ogg corrupt 7: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 07a51e36d152d0da end=1
+ogg corrupt 7 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0a51d8ccdeb208e0
+ogg corrupt 8: STBVORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 49a017763fd9e14d end=1
+ogg corrupt 8 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 adf5725bc1ea6d74
+ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0a51d8ccdeb208e0
 mixpre: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0a51d8ccdeb208e0
 == ogg_stereo.ogg
@@ -1399,6 +1495,30 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 8514351e900eb382 end=0
+ogg corrupt 0 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 5d39ba7898cb6b04
+ogg corrupt 1: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 a18eec8ed9ea18ea end=0
+ogg corrupt 1 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 84cbb78a1cabef40
+ogg corrupt 2: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 07bfa7dc8522309c end=0
+ogg corrupt 2 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 9600c3459302a567
+ogg corrupt 3: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 06eb05bff36f3777 end=0
+ogg corrupt 3 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 709865f69fdd751c
+ogg corrupt 4: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 a98455ae13dc0b9f end=0
+ogg corrupt 4 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 3ce80a0e6a031a11
+ogg corrupt 5: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 42cc5298fdb7a3d0 end=0
+ogg corrupt 5 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 2b1bac7ea325b642
+ogg corrupt 6: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 de309ff95f3e2cdb end=0
+ogg corrupt 6 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 f3ffb9d6a975f9d1
+ogg corrupt 7: STBVORBIS 0x8120 2 44100 frames=11025 | 88200 d885fc077b95f7ba end=0
+ogg corrupt 7 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 a85c111f0a21f124
+ogg corrupt 8: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 8 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 7b52efa363341ce6
 mixpre: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 7b52efa363341ce6
 == voc_blocks.voc

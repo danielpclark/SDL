@@ -13,7 +13,8 @@
 //!   duration, and the audio decoded with an `MIX_AudioDecoder` in its own
 //!   format and converted to two others; the same for truncated copies and
 //!   for copies with corrupted bytes (which must decode, or fail, exactly as
-//!   upstream does);
+//!   upstream does), and for Ogg files, copies with corrupted packets in
+//!   intact pages (their checksums fixed);
 //! - the output of mixers (`MIX_Generate()`) playing each file, loaded on
 //!   demand and predecoded, with loops and seeks;
 //! - mixer features (gains, fades, stereo and 3D positioning, frequency
@@ -389,6 +390,63 @@ fn test_file(out: &mut String, name: &str, data: &[u8]) {
         write!(out, "corrupt {v}: ").unwrap();
         decode(out, &bad, None, true, None);
         mixtest(out, &format!("corrupt {v} mix"), &bad, false);
+    }
+
+    // Ogg: corrupt the packets, not the pages: fix the page checksums after.
+    let mut pages = Vec::new(); // (offset, length)
+    let mut audio_start = len;
+    let mut p = 0;
+    while p + 27 <= len && pages.len() < 256 && &data[p..p + 4] == b"OggS" {
+        let h = 27 + data[p + 26] as usize;
+        if p + h > len {
+            break;
+        }
+        let body: usize = data[p + 27..p + h].iter().map(|&s| s as usize).sum();
+        if p + h + body > len {
+            break;
+        }
+        let granule = u64::from_le_bytes(data[p + 6..p + 14].try_into().unwrap());
+        if granule != 0 && audio_start == len {
+            audio_start = p;
+        }
+        pages.push((p, h + body));
+        p += h + body;
+    }
+    for v in 0..12usize {
+        if pages.is_empty() {
+            break;
+        }
+        let start = if v < 8 { audio_start } else { pages[0].1 };
+        if start >= len {
+            continue;
+        }
+        let mut bad = data.to_vec();
+        let mut lcg = Lcg((v * 104729 + len) as u32);
+        let flips = 1 + v % 4;
+        for _ in 0..flips {
+            let r = lcg.next();
+            let at = start + (r >> 8) as usize % (len - start);
+            bad[at] ^= (1 + (lcg.next() >> 24) % 255) as u8;
+        }
+        for &(p, n) in &pages {
+            let pg = &mut bad[p..p + n];
+            pg[22..26].fill(0);
+            let mut crc = 0u32;
+            for &b in pg.iter() {
+                crc ^= (b as u32) << 24;
+                for _ in 0..8 {
+                    crc = if crc & 0x8000_0000 != 0 {
+                        (crc << 1) ^ 0x04c1_1db7
+                    } else {
+                        crc << 1
+                    };
+                }
+            }
+            pg[22..26].copy_from_slice(&crc.to_le_bytes());
+        }
+        write!(out, "ogg corrupt {v}: ").unwrap();
+        decode(out, &bad, None, true, None);
+        mixtest(out, &format!("ogg corrupt {v} mix"), &bad, false);
     }
 
     mixtest(out, "mix", data, false);

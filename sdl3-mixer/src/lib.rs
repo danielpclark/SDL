@@ -42,6 +42,27 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]
+// The translations keep upstream's code shape (its branches, constants,
+// counters and arithmetic, including its quirks), which these lints would
+// have rewritten.
+#![allow(
+    clippy::approx_constant,
+    clippy::collapsible_match,
+    clippy::eq_op,
+    clippy::erasing_op,
+    clippy::excessive_precision,
+    clippy::explicit_counter_loop,
+    clippy::identity_op,
+    clippy::if_same_then_else,
+    clippy::implicit_saturating_sub,
+    clippy::manual_clamp,
+    clippy::manual_is_multiple_of,
+    clippy::manual_rotate,
+    clippy::needless_option_as_deref,
+    clippy::neg_cmp_op_on_partial_ord,
+    clippy::precedence,
+    clippy::single_match
+)]
 
 mod decoder_aiff;
 mod decoder_au;
