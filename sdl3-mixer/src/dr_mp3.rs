@@ -5,7 +5,7 @@
 // This is an altered (translated) version of the original software.
 
 //! MP3 audio decoder. Translation of dr_mp3, "based on minimp3
-//! (https://github.com/lieff/minimp3) which is where the real work was
+//! (<https://github.com/lieff/minimp3>) which is where the real work was
 //! done", in the configuration SDL_mixer builds it with
 //! (`DR_MP3_FLOAT_OUTPUT`, `DR_MP3_NO_STDIO`).
 //!
