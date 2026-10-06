@@ -103,3 +103,6 @@ pub const VERSION: sdl3::Version = sdl3::Version::new(MAJOR_VERSION, MINOR_VERSI
 
 /// The upstream SDL_image revision this translation was made from.
 pub const REVISION: &str = "SDL_image-3.5.0-f7ec8b3631f5eeb4497bf4a581547409dfaa55c4";
+
+#[cfg(test)]
+mod tests;
