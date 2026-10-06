@@ -17,6 +17,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-test"
+version = "3.5.0"
+dependencies = [
+ "libc",
+ "sdl3",
+ "windows-sys",
+]
+
+[[package]]
 name = "windows-link"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
