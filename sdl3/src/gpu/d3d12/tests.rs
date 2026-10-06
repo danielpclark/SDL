@@ -13,10 +13,18 @@
 //! the front end and directly, and create and release every kind of
 //! resource, pipelines from DXBC (the blit shaders) and, on devices with
 //! shader model 6, from DXIL ([`test_dxil`], made by
-//! `tools/gen_gpu_test_dxil.py`). Without a Direct3D 12 device they report
-//! a skip (capability `d3d12`) and pass. Wine's Direct3D 12 (vkd3d) has
-//! shader model 5.1 only, so the DXIL parts skip there; Windows' WARP has
-//! shader model 6.
+//! `tools/gen_gpu_test_dxil.py`). With command buffers, they clear,
+//! upload, copy and download buffers and textures, draw (with vertex
+//! buffers, uniforms, samplers, indices and indirect arguments) and read
+//! the pixels back, dispatch compute shaders, blit and generate mipmaps,
+//! wait on fences and present to a window's swapchain, with the same
+//! shaders as DXBC ([`test_dxbc`], shader model 5.1, made by the same
+//! generator with fxc). Without a Direct3D 12 device they report a skip
+//! (capability `d3d12`) and pass. Wine's Direct3D 12 (vkd3d) has shader
+//! model 5.1 only, so the DXIL parts skip there; Windows' WARP has shader
+//! model 6.
+//!
+//! [`test_dxbc`]: super::test_dxbc
 
 use std::mem::{align_of, offset_of, size_of};
 use std::sync::atomic::Ordering;
@@ -2914,4 +2922,1435 @@ fn blit_resources_and_debug_names() {
     assert!(texture.info.props.is_some());
     renderer.release_buffer_container(&buffer);
     renderer.release_texture_container(&texture);
+}
+
+// ---------------------------------------------------------------------------
+// Command buffers, passes, swapchains and fences
+// ---------------------------------------------------------------------------
+
+/// The tests of part 2 on a device: drawing, dispatching, copying,
+/// blitting, fences and swapchains, with the DXBC shaders of
+/// [`test_dxbc`](super::super::test_dxbc) (shader model 5.1, which Wine's
+/// vkd3d runs as Windows' WARP does).
+mod with_command_buffers {
+    use super::super::commands::D3D12Fence;
+    use super::super::resources::{BufferContainer, TextureContainer};
+    use super::super::test_dxbc;
+    use super::*;
+    use crate::gpu::sysgpu::GpuDriver;
+    use crate::gpu::{
+        BlitInfo, BlitRegion, BufferBinding, BufferLocation, BufferRegion, BufferUsageFlags,
+        ColorTargetInfo, CommandBuffer, ComputePipelineCreateInfo, DepthStencilTargetInfo,
+        GraphicsPipeline, GraphicsPipelineCreateInfo, IndexElementSize, LoadOp, PresentMode,
+        SamplerCreateInfo, ShaderCreateInfo, StorageBufferReadWriteBinding, StoreOp,
+        SwapchainComposition, Texture, TextureCreateInfo, TextureFormat, TextureLocation,
+        TextureRegion, TextureSamplerBinding, TextureTransferInfo, TextureType, TextureUsageFlags,
+        TransferBuffer, TransferBufferLocation, TransferBufferUsage,
+    };
+    use crate::video::{FColor, FlipMode, Window};
+
+    /// The bytes of 32-bit words.
+    fn word_bytes(words: &[u32]) -> Vec<u8> {
+        words.iter().flat_map(|w| w.to_ne_bytes()).collect()
+    }
+
+    /// The bytes of floats.
+    fn float_bytes(floats: &[f32]) -> Vec<u8> {
+        floats.iter().flat_map(|f| f.to_ne_bytes()).collect()
+    }
+
+    /// An upload transfer buffer holding `data`.
+    fn upload_buffer(device: &Device, data: &[u8]) -> TransferBuffer {
+        let mut transfer_buffer = device
+            .create_transfer_buffer(&TransferBufferCreateInfo {
+                usage: TransferBufferUsage::Upload,
+                size: data.len() as u32,
+                props: None,
+            })
+            .unwrap();
+        transfer_buffer.map(false).unwrap().copy_from_slice(data);
+        transfer_buffer
+    }
+
+    /// A download transfer buffer of `size` bytes.
+    fn download_buffer(device: &Device, size: u32) -> TransferBuffer {
+        device
+            .create_transfer_buffer(&TransferBufferCreateInfo {
+                usage: TransferBufferUsage::Download,
+                size,
+                props: None,
+            })
+            .unwrap()
+    }
+
+    /// What a transfer buffer holds.
+    fn read_back(transfer_buffer: &mut TransferBuffer) -> Vec<u8> {
+        transfer_buffer.map(false).unwrap().to_vec()
+    }
+
+    /// Submit a command buffer and wait for its fence.
+    fn submit_and_wait(device: &Device, command_buffer: CommandBuffer) {
+        let fence = command_buffer.submit_and_acquire_fence().unwrap();
+        device.wait_for_fences(true, &[&fence]).unwrap();
+        assert!(fence.is_signaled());
+    }
+
+    /// A GPU buffer.
+    fn gpu_buffer(device: &Device, usage: BufferUsageFlags, size: u32) -> crate::gpu::Buffer {
+        device
+            .create_buffer(&BufferCreateInfo {
+                usage,
+                size,
+                props: None,
+            })
+            .unwrap()
+    }
+
+    /// Upload data into a GPU buffer (in its own command buffer).
+    fn fill_buffer(device: &Device, buffer: &crate::gpu::Buffer, data: &[u8]) {
+        let upload = upload_buffer(device, data);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.upload_to_buffer(
+                &TransferBufferLocation {
+                    transfer_buffer: &upload,
+                    offset: 0,
+                },
+                &BufferRegion {
+                    buffer,
+                    offset: 0,
+                    size: data.len() as u32,
+                },
+                false,
+            );
+        }
+        submit_and_wait(device, cb);
+    }
+
+    /// The bytes of a GPU buffer.
+    fn buffer_contents(device: &Device, buffer: &crate::gpu::Buffer, size: u32) -> Vec<u8> {
+        let mut download = download_buffer(device, size);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.download_from_buffer(
+                &BufferRegion {
+                    buffer,
+                    offset: 0,
+                    size,
+                },
+                &TransferBufferLocation {
+                    transfer_buffer: &download,
+                    offset: 0,
+                },
+            );
+        }
+        submit_and_wait(device, cb);
+        read_back(&mut download)
+    }
+
+    /// A 2D RGBA8 texture.
+    fn rgba_texture(
+        device: &Device,
+        w: u32,
+        h: u32,
+        usage: TextureUsageFlags,
+        levels: u32,
+    ) -> Texture {
+        device
+            .create_texture(&TextureCreateInfo {
+                width: w,
+                height: h,
+                ..texture_info(
+                    TextureType::Texture2D,
+                    TextureFormat::R8G8B8A8_UNORM,
+                    usage,
+                    1,
+                    levels,
+                )
+            })
+            .unwrap()
+    }
+
+    /// The region of a texture's level.
+    fn region(texture: &Texture, level: u32, w: u32, h: u32) -> TextureRegion<'_> {
+        TextureRegion {
+            texture,
+            mip_level: level,
+            layer: 0,
+            x: 0,
+            y: 0,
+            z: 0,
+            w,
+            h,
+            d: 1,
+        }
+    }
+
+    /// Upload RGBA8 pixels into a texture's level (in its own command
+    /// buffer).
+    fn fill_texture(device: &Device, texture: &Texture, level: u32, w: u32, h: u32, pixels: &[u8]) {
+        let upload = upload_buffer(device, pixels);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.upload_to_texture(
+                &TextureTransferInfo {
+                    transfer_buffer: &upload,
+                    offset: 0,
+                    pixels_per_row: w,
+                    rows_per_layer: h,
+                },
+                &region(texture, level, w, h),
+                false,
+            );
+        }
+        submit_and_wait(device, cb);
+    }
+
+    /// The RGBA8 pixels of a texture's level.
+    fn texture_pixels(device: &Device, texture: &Texture, level: u32, w: u32, h: u32) -> Vec<u8> {
+        let mut download = download_buffer(device, w * h * 4);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.download_from_texture(
+                &region(texture, level, w, h),
+                &TextureTransferInfo {
+                    transfer_buffer: &download,
+                    offset: 0,
+                    pixels_per_row: w,
+                    rows_per_layer: h,
+                },
+            );
+        }
+        submit_and_wait(device, cb);
+        read_back(&mut download)
+    }
+
+    /// `w * h` pixels of one color.
+    fn solid(w: u32, h: u32, color: [u8; 4]) -> Vec<u8> {
+        (0..w * h).flat_map(|_| color).collect()
+    }
+
+    /// A color target cleared to a color.
+    fn clear_target(texture: &Texture, color: FColor) -> ColorTargetInfo<'_> {
+        ColorTargetInfo {
+            load_op: LoadOp::Clear,
+            clear_color: color,
+            ..ColorTargetInfo::new(texture)
+        }
+    }
+
+    const RED: [u8; 4] = [255, 0, 0, 255];
+    const BLUE: [u8; 4] = [0, 0, 255, 255];
+    const BLUE_F: FColor = FColor {
+        r: 0.0,
+        g: 0.0,
+        b: 1.0,
+        a: 1.0,
+    };
+
+    /// The Direct3D 12 renderer of a front-end device.
+    fn device_renderer(device: &Device) -> &D3D12Renderer {
+        let driver: &dyn GpuDriver = &*device.shared.driver;
+        // SAFETY: the direct3d12 device's driver is a D3D12Renderer.
+        unsafe { &*(driver as *const dyn GpuDriver as *const D3D12Renderer) }
+    }
+
+    /// The texture container of a front-end texture.
+    fn container_of(texture: &Texture) -> Arc<TextureContainer> {
+        texture.raw.downcast::<TextureContainer>().unwrap()
+    }
+
+    /// A DXBC shader of `test_dxbc`.
+    fn dxbc_shader(
+        device: &Device,
+        code: &[u8],
+        stage: ShaderStage,
+        samplers: u32,
+        uniforms: u32,
+    ) -> crate::gpu::Shader {
+        device
+            .create_shader(&ShaderCreateInfo {
+                code,
+                entrypoint: "main",
+                format: ShaderFormat::DXBC,
+                stage,
+                num_samplers: samplers,
+                num_uniform_buffers: uniforms,
+                ..Default::default()
+            })
+            .unwrap()
+    }
+
+    /// A pipeline drawing `float2` positions and `float4` colors (24-byte
+    /// vertices of slot 0) into an RGBA8 target, with the vertex shader's
+    /// uniform offset.
+    fn color_pipeline(device: &Device, fragment: &crate::gpu::Shader) -> GraphicsPipeline {
+        let vertex = dxbc_shader(device, &test_dxbc::VERTEX, ShaderStage::Vertex, 0, 1);
+        let color_target = [ColorTargetDescription {
+            format: TextureFormat::R8G8B8A8_UNORM,
+            blend_state: Default::default(),
+        }];
+        let vertex_buffers = [VertexBufferDescription {
+            slot: 0,
+            pitch: 24,
+            input_rate: VertexInputRate::Vertex,
+            instance_step_rate: 0,
+        }];
+        let vertex_attributes = [
+            VertexAttribute {
+                location: 0,
+                buffer_slot: 0,
+                format: VertexElementFormat::Float2,
+                offset: 0,
+            },
+            VertexAttribute {
+                location: 1,
+                buffer_slot: 0,
+                format: VertexElementFormat::Float4,
+                offset: 8,
+            },
+        ];
+        device
+            .create_graphics_pipeline(&GraphicsPipelineCreateInfo {
+                vertex_shader: &vertex,
+                fragment_shader: fragment,
+                vertex_input_state: VertexInputState {
+                    vertex_buffer_descriptions: &vertex_buffers,
+                    vertex_attributes: &vertex_attributes,
+                },
+                primitive_type: PrimitiveType::TriangleList,
+                rasterizer_state: Default::default(),
+                multisample_state: Default::default(),
+                depth_stencil_state: Default::default(),
+                target_info: GraphicsPipelineTargetInfo {
+                    color_target_descriptions: &color_target,
+                    depth_stencil_format: TextureFormat::D16_UNORM,
+                    has_depth_stencil_target: false,
+                },
+                props: None,
+            })
+            .unwrap()
+    }
+
+    /// The pipeline whose fragments are the vertices' colors.
+    fn solid_pipeline(device: &Device) -> GraphicsPipeline {
+        let fragment = dxbc_shader(
+            device,
+            &test_dxbc::FRAGMENT_SOLID,
+            ShaderStage::Fragment,
+            0,
+            0,
+        );
+        color_pipeline(device, &fragment)
+    }
+
+    /// Vertices: positions with a color.
+    fn vertices(positions: &[[f32; 2]], color: [f32; 4]) -> Vec<u8> {
+        let floats: Vec<f32> = positions
+            .iter()
+            .flat_map(|p| [p[0], p[1], color[0], color[1], color[2], color[3]])
+            .collect();
+        float_bytes(&floats)
+    }
+
+    const RED_F4: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+
+    /// The top-left quadrant of clip space (+y is up) as two triangles.
+    const QUAD_TOP_LEFT: [[f32; 2]; 6] = [
+        [-1.0, 0.0],
+        [0.0, 0.0],
+        [-1.0, 1.0],
+        [-1.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 1.0],
+    ];
+
+    /// Which quadrants of an 8x8 image are red (top-left, top-right,
+    /// bottom-left, bottom-right); the rest is blue.
+    fn quadrants(red: [bool; 4]) -> Vec<u8> {
+        let mut pixels = Vec::new();
+        for y in 0..8 {
+            for x in 0..8 {
+                let quadrant = (y >= 4) as usize * 2 + (x >= 4) as usize;
+                pixels.extend(if red[quadrant] { RED } else { BLUE });
+            }
+        }
+        pixels
+    }
+
+    #[test]
+    fn clear_a_texture_and_download_it() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use TextureUsageFlags as U;
+
+        // A clear sets every pixel; the 16-byte rows of the download are
+        // realigned when the command buffer is cleaned.
+        let target = rgba_texture(&device, 4, 4, U::COLOR_TARGET | U::SAMPLER, 1);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.insert_debug_label("clear");
+        cb.push_debug_group("group");
+        {
+            let color = FColor {
+                r: 1.0,
+                g: 0.0,
+                b: 0.2,
+                a: 1.0,
+            };
+            cb.begin_render_pass(&[clear_target(&target, color)], None)
+                .unwrap()
+                .end();
+        }
+        cb.pop_debug_group();
+        cb.submit().unwrap();
+        device.wait_for_idle().unwrap();
+
+        assert_eq!(
+            texture_pixels(&device, &target, 0, 4, 4),
+            solid(4, 4, [255, 0, 51, 255])
+        );
+
+        // A depth-stencil target clears too, and a texture whose rows are
+        // 256 bytes downloads without the realignment.
+        let depth = device
+            .create_texture(&texture_info(
+                TextureType::Texture2D,
+                TextureFormat::D24_UNORM_S8_UINT,
+                U::DEPTH_STENCIL_TARGET,
+                1,
+                1,
+            ))
+            .unwrap();
+        let wide = rgba_texture(&device, 64, 16, U::COLOR_TARGET | U::SAMPLER, 1);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let depth_target = DepthStencilTargetInfo {
+                load_op: LoadOp::Clear,
+                clear_depth: 1.0,
+                store_op: StoreOp::DontCare,
+                stencil_load_op: LoadOp::Clear,
+                stencil_store_op: StoreOp::DontCare,
+                ..DepthStencilTargetInfo::new(&depth)
+            };
+            cb.begin_render_pass(&[clear_target(&wide, BLUE_F)], Some(&depth_target))
+                .unwrap()
+                .end();
+            // (a depth-only pass)
+            cb.begin_render_pass(&[], Some(&depth_target))
+                .unwrap()
+                .end();
+        }
+        submit_and_wait(&device, cb);
+        let renderer = device_renderer(&device);
+        assert_eq!(
+            texture_pixels(&device, &wide, 0, 64, 16),
+            solid(64, 16, BLUE)
+        );
+
+        // The submitted command buffers were cleaned and went back with the
+        // available ones.
+        device.wait_for_idle().unwrap();
+        assert!(lock(&renderer.submit_lock).is_empty());
+        assert!(!lock(&renderer.command_buffer_pool).is_empty());
+
+        // A cancelled command buffer goes back too.
+        let available = lock(&renderer.command_buffer_pool).len();
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+            .unwrap()
+            .end();
+        cb.cancel().unwrap();
+        assert_eq!(lock(&renderer.command_buffer_pool).len(), available);
+    }
+
+    #[test]
+    fn upload_copy_and_download_buffers_and_textures() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use BufferUsageFlags as B;
+        use TextureUsageFlags as U;
+
+        // Buffers: upload, copy into the middle of another, download.
+        let data: Vec<u8> = (0..256u32).map(|i| (i * 7 + 3) as u8).collect();
+        let a = gpu_buffer(&device, B::VERTEX, 256);
+        let b = gpu_buffer(&device, B::COMPUTE_STORAGE_READ, 512);
+        fill_buffer(&device, &a, &data);
+        fill_buffer(&device, &b, &[0xAA; 512]);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.copy_buffer_to_buffer(
+                &BufferLocation {
+                    buffer: &a,
+                    offset: 16,
+                },
+                &BufferLocation {
+                    buffer: &b,
+                    offset: 100,
+                },
+                200,
+                false,
+            );
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(buffer_contents(&device, &a, 256), data);
+        let contents = buffer_contents(&device, &b, 512);
+        assert!(contents[..100].iter().all(|&x| x == 0xAA));
+        assert_eq!(&contents[100..300], &data[16..216]);
+        assert!(contents[300..].iter().all(|&x| x == 0xAA));
+
+        // Textures: upload a pattern (its 32-byte rows go through a
+        // temporary buffer), copy a region into another texture, download
+        // both.
+        let pattern: Vec<u8> = (0..8 * 8 * 4).map(|i| (i * 5 % 251) as u8).collect();
+        let src = rgba_texture(&device, 8, 8, U::SAMPLER, 1);
+        let dst = rgba_texture(&device, 8, 8, U::SAMPLER | U::COLOR_TARGET, 1);
+        fill_texture(&device, &src, 0, 8, 8, &pattern);
+        fill_texture(&device, &dst, 0, 8, 8, &solid(8, 8, BLUE));
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.copy_texture_to_texture(
+                &TextureLocation {
+                    texture: &src,
+                    mip_level: 0,
+                    layer: 0,
+                    x: 2,
+                    y: 1,
+                    z: 0,
+                },
+                &TextureLocation {
+                    texture: &dst,
+                    mip_level: 0,
+                    layer: 0,
+                    x: 4,
+                    y: 4,
+                    z: 0,
+                },
+                3,
+                2,
+                1,
+                false,
+            )
+            .unwrap();
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(texture_pixels(&device, &src, 0, 8, 8), pattern);
+        let copied = texture_pixels(&device, &dst, 0, 8, 8);
+        for y in 0..8usize {
+            for x in 0..8usize {
+                let got = &copied[(y * 8 + x) * 4..][..4];
+                if (4..7).contains(&x) && (4..6).contains(&y) {
+                    let (sx, sy) = (x - 4 + 2, y - 4 + 1);
+                    assert_eq!(got, &pattern[(sy * 8 + sx) * 4..][..4], "({x}, {y})");
+                } else {
+                    assert_eq!(got, BLUE, "({x}, {y})");
+                }
+            }
+        }
+
+        // A 64-pixel-wide upload from an unaligned offset of the transfer
+        // buffer (the placement copy), downloaded into an offset.
+        let wide = rgba_texture(&device, 64, 2, U::SAMPLER, 1);
+        let wide_pixels: Vec<u8> = (0..64 * 2 * 4).map(|i| (i % 253) as u8).collect();
+        let mut source = vec![0u8; 4];
+        source.extend(&wide_pixels);
+        let upload = upload_buffer(&device, &source);
+        let mut download = download_buffer(&device, 4 + 64 * 2 * 4);
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.upload_to_texture(
+                &TextureTransferInfo {
+                    transfer_buffer: &upload,
+                    offset: 4,
+                    pixels_per_row: 64,
+                    rows_per_layer: 2,
+                },
+                &region(&wide, 0, 64, 2),
+                false,
+            );
+            copy.download_from_texture(
+                &region(&wide, 0, 64, 2),
+                &TextureTransferInfo {
+                    transfer_buffer: &download,
+                    offset: 4,
+                    pixels_per_row: 64,
+                    rows_per_layer: 2,
+                },
+            );
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(&read_back(&mut download)[4..], &wide_pixels[..]);
+
+        // Uploading twice with cycling in one command buffer: the second
+        // upload goes to a new texture, as the first one is in use.
+        let upload = upload_buffer(&device, &solid(8, 8, RED));
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            for _ in 0..2 {
+                copy.upload_to_texture(
+                    &TextureTransferInfo {
+                        transfer_buffer: &upload,
+                        offset: 0,
+                        pixels_per_row: 8,
+                        rows_per_layer: 8,
+                    },
+                    &region(&dst, 0, 8, 8),
+                    true,
+                );
+            }
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(lock(&container_of(&dst).state).textures.len(), 2);
+        assert_eq!(texture_pixels(&device, &dst, 0, 8, 8), solid(8, 8, RED));
+        device.wait_for_idle().unwrap();
+    }
+
+    #[test]
+    fn draw_triangles_with_a_vertex_buffer_and_uniforms() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use BufferUsageFlags as B;
+        use TextureUsageFlags as U;
+
+        let pipeline = solid_pipeline(&device);
+        let quad = vertices(&QUAD_TOP_LEFT, RED_F4);
+        let vertex_buffer = gpu_buffer(&device, B::VERTEX, quad.len() as u32);
+        fill_buffer(&device, &vertex_buffer, &quad);
+        let target = rgba_texture(&device, 8, 8, U::COLOR_TARGET | U::SAMPLER, 1);
+
+        // Two draws of the quad, moved by the vertex uniform: the top-left
+        // quadrant and the bottom-right one.
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut pass = cb
+                .begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+                .unwrap();
+            pass.bind_graphics_pipeline(&pipeline);
+            pass.bind_vertex_buffers(
+                0,
+                &[BufferBinding {
+                    buffer: &vertex_buffer,
+                    offset: 0,
+                }],
+            );
+            pass.command_buffer()
+                .push_vertex_uniform_data(0, &float_bytes(&[0.0; 4]))
+                .unwrap();
+            pass.draw_primitives(6, 1, 0, 0).unwrap();
+            pass.command_buffer()
+                .push_vertex_uniform_data(0, &float_bytes(&[1.0, -1.0, 0.0, 0.0]))
+                .unwrap();
+            pass.draw_primitives(6, 1, 0, 0).unwrap();
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(
+            texture_pixels(&device, &target, 0, 8, 8),
+            quadrants([true, false, false, true])
+        );
+
+        // Many draws in one command buffer move to another uniform buffer
+        // (its 32 KiB hold 128 blocks of 256 bytes).
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut pass = cb
+                .begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+                .unwrap();
+            pass.bind_graphics_pipeline(&pipeline);
+            pass.bind_vertex_buffers(
+                0,
+                &[BufferBinding {
+                    buffer: &vertex_buffer,
+                    offset: 0,
+                }],
+            );
+            let draws = 132;
+            for i in 0..draws {
+                // (only the last draw is on screen: top-right)
+                let x = if i == draws - 1 { 1.0 } else { 4.0 };
+                pass.command_buffer()
+                    .push_vertex_uniform_data(0, &float_bytes(&[x, 0.0, 0.0, 0.0]))
+                    .unwrap();
+                pass.draw_primitives(6, 1, 0, 0).unwrap();
+            }
+        }
+        let uniform_buffers = {
+            let raw = cb.backend_mut::<D3D12CommandBuffer>().unwrap();
+            raw.used_uniform_buffers.len()
+        };
+        assert_eq!(uniform_buffers, 2);
+        submit_and_wait(&device, cb);
+        assert_eq!(
+            texture_pixels(&device, &target, 0, 8, 8),
+            quadrants([false, true, false, false])
+        );
+        device.wait_for_idle().unwrap();
+    }
+
+    #[test]
+    fn indexed_and_indirect_draws() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use BufferUsageFlags as B;
+        use TextureUsageFlags as U;
+
+        let pipeline = solid_pipeline(&device);
+        // The quad as four corners and six 16-bit indices, and as six
+        // vertices.
+        let corner_data = vertices(&[[-1.0, 0.0], [0.0, 0.0], [-1.0, 1.0], [0.0, 1.0]], RED_F4);
+        let corners = gpu_buffer(&device, B::VERTEX, corner_data.len() as u32);
+        fill_buffer(&device, &corners, &corner_data);
+        let indices = gpu_buffer(&device, B::INDEX, 12);
+        let index_data: Vec<u8> = [0u16, 1, 2, 2, 1, 3]
+            .iter()
+            .flat_map(|i| i.to_ne_bytes())
+            .collect();
+        fill_buffer(&device, &indices, &index_data);
+        let quad = vertices(&QUAD_TOP_LEFT, RED_F4);
+        let vertex_buffer = gpu_buffer(&device, B::VERTEX, quad.len() as u32);
+        fill_buffer(&device, &vertex_buffer, &quad);
+        // An indirect draw (after 4 bytes of padding) and an indexed one.
+        let indirect = gpu_buffer(&device, B::INDIRECT, 4 + 16 + 20);
+        let indirect_data = word_bytes(&[
+            0xDEAD, // (padding)
+            6, 1, 0, 0, // IndirectDrawCommand
+            6, 1, 0, 0, 0, // IndexedIndirectDrawCommand
+        ]);
+        fill_buffer(&device, &indirect, &indirect_data);
+        let target = rgba_texture(&device, 8, 8, U::COLOR_TARGET | U::SAMPLER, 1);
+
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut pass = cb
+                .begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+                .unwrap();
+            pass.bind_graphics_pipeline(&pipeline);
+
+            // Indexed: the top-left quadrant.
+            pass.bind_vertex_buffers(
+                0,
+                &[BufferBinding {
+                    buffer: &corners,
+                    offset: 0,
+                }],
+            );
+            pass.bind_index_buffer(
+                &BufferBinding {
+                    buffer: &indices,
+                    offset: 0,
+                },
+                IndexElementSize::Bits16,
+            );
+            pass.command_buffer()
+                .push_vertex_uniform_data(0, &float_bytes(&[0.0; 4]))
+                .unwrap();
+            pass.draw_indexed_primitives(6, 1, 0, 0, 0).unwrap();
+
+            // Indexed indirect: the top-right quadrant.
+            pass.command_buffer()
+                .push_vertex_uniform_data(0, &float_bytes(&[1.0, 0.0, 0.0, 0.0]))
+                .unwrap();
+            pass.draw_indexed_primitives_indirect(&indirect, 20, 1)
+                .unwrap();
+
+            // Indirect: the bottom-right quadrant.
+            pass.bind_vertex_buffers(
+                0,
+                &[BufferBinding {
+                    buffer: &vertex_buffer,
+                    offset: 0,
+                }],
+            );
+            pass.command_buffer()
+                .push_vertex_uniform_data(0, &float_bytes(&[1.0, -1.0, 0.0, 0.0]))
+                .unwrap();
+            pass.draw_primitives_indirect(&indirect, 4, 1).unwrap();
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(
+            texture_pixels(&device, &target, 0, 8, 8),
+            quadrants([true, true, false, true])
+        );
+        device.wait_for_idle().unwrap();
+    }
+
+    #[test]
+    fn draw_with_a_sampler_and_fragment_uniforms() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use BufferUsageFlags as B;
+        use TextureUsageFlags as U;
+
+        let fragment = dxbc_shader(
+            &device,
+            &test_dxbc::FRAGMENT_SAMPLER,
+            ShaderStage::Fragment,
+            1,
+            1,
+        );
+        let pipeline = color_pipeline(&device, &fragment);
+        drop(fragment);
+
+        // A white triangle over the whole target.
+        let triangle = vertices(&[[-1.0, -1.0], [3.0, -1.0], [-1.0, 3.0]], [1.0; 4]);
+        let vertex_buffer = gpu_buffer(&device, B::VERTEX, triangle.len() as u32);
+        fill_buffer(&device, &vertex_buffer, &triangle);
+        let source = rgba_texture(&device, 2, 2, U::SAMPLER, 1);
+        fill_texture(&device, &source, 0, 2, 2, &solid(2, 2, [0, 255, 0, 255]));
+        let sampler = device
+            .create_sampler(&SamplerCreateInfo::default())
+            .unwrap();
+        let target = rgba_texture(&device, 4, 4, U::COLOR_TARGET | U::SAMPLER, 1);
+
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut pass = cb
+                .begin_render_pass(&[clear_target(&target, BLUE_F)], None)
+                .unwrap();
+            pass.bind_graphics_pipeline(&pipeline);
+            pass.bind_vertex_buffers(
+                0,
+                &[BufferBinding {
+                    buffer: &vertex_buffer,
+                    offset: 0,
+                }],
+            );
+            pass.bind_fragment_samplers(
+                0,
+                &[TextureSamplerBinding {
+                    texture: &source,
+                    sampler: &sampler,
+                }],
+            )
+            .unwrap();
+            pass.command_buffer()
+                .push_vertex_uniform_data(0, &float_bytes(&[0.0; 4]))
+                .unwrap();
+            // (the color times the tint times the texture)
+            pass.command_buffer()
+                .push_fragment_uniform_data(0, &float_bytes(&[1.0, 0.2, 1.0, 1.0]))
+                .unwrap();
+            pass.draw_primitives(3, 1, 0, 0).unwrap();
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(
+            texture_pixels(&device, &target, 0, 4, 4),
+            solid(4, 4, [0, 51, 0, 255])
+        );
+        device.wait_for_idle().unwrap();
+    }
+
+    #[test]
+    fn compute_dispatches_write_a_storage_buffer() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use BufferUsageFlags as B;
+
+        let pipeline = device
+            .create_compute_pipeline(&ComputePipelineCreateInfo {
+                code: &test_dxbc::COMPUTE,
+                entrypoint: "main",
+                format: ShaderFormat::DXBC,
+                num_readwrite_storage_buffers: 1,
+                num_uniform_buffers: 1,
+                threadcount_x: 64,
+                threadcount_y: 1,
+                threadcount_z: 1,
+                ..Default::default()
+            })
+            .unwrap();
+        // 128 words: two groups of 64 invocations.
+        let storage = gpu_buffer(&device, B::COMPUTE_STORAGE_WRITE, 512);
+        let indirect = gpu_buffer(&device, B::INDIRECT, 12);
+        fill_buffer(&device, &indirect, &word_bytes(&[1, 1, 1]));
+
+        // Two groups write i * 3, then an indirect dispatch of one group
+        // writes i * 5 over the first ones.
+        let mut cb = device.acquire_command_buffer().unwrap();
+        for (scale, indirect_dispatch) in [(3, false), (5, true)] {
+            let mut pass = cb
+                .begin_compute_pass(
+                    &[],
+                    &[StorageBufferReadWriteBinding {
+                        buffer: &storage,
+                        cycle: false,
+                    }],
+                )
+                .unwrap();
+            pass.bind_compute_pipeline(&pipeline);
+            pass.command_buffer()
+                .push_compute_uniform_data(0, &word_bytes(&[scale]))
+                .unwrap();
+            if indirect_dispatch {
+                pass.dispatch_indirect(&indirect, 0).unwrap();
+            } else {
+                pass.dispatch(2, 1, 1).unwrap();
+            }
+        }
+        submit_and_wait(&device, cb);
+        let expected: Vec<u32> = (0..128)
+            .map(|i| if i < 64 { i * 5 } else { i * 3 })
+            .collect();
+        assert_eq!(
+            buffer_contents(&device, &storage, 512),
+            word_bytes(&expected)
+        );
+
+        // A cycled storage buffer is a new one (the old one is in use by the
+        // recorded command buffer): only the second pass's writes are there.
+        let mut cb = device.acquire_command_buffer().unwrap();
+        for (scale, groups) in [(7, 2), (9, 1)] {
+            let mut pass = cb
+                .begin_compute_pass(
+                    &[],
+                    &[StorageBufferReadWriteBinding {
+                        buffer: &storage,
+                        cycle: true,
+                    }],
+                )
+                .unwrap();
+            pass.bind_compute_pipeline(&pipeline);
+            pass.command_buffer()
+                .push_compute_uniform_data(0, &word_bytes(&[scale]))
+                .unwrap();
+            pass.dispatch(groups, 1, 1).unwrap();
+        }
+        submit_and_wait(&device, cb);
+        let contents = buffer_contents(&device, &storage, 512);
+        let first: Vec<u32> = (0..64).map(|i| i * 9).collect();
+        assert_eq!(&contents[..256], &word_bytes(&first)[..]);
+        let storage_container = storage.raw.downcast::<BufferContainer>().unwrap();
+        assert_eq!(lock(&storage_container.state).buffers.len(), 2);
+        device.wait_for_idle().unwrap();
+    }
+
+    #[test]
+    fn blits_and_mipmaps() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        use TextureUsageFlags as U;
+
+        // Mipmaps of a solid texture are that color down to 1x1.
+        let mipmapped = rgba_texture(&device, 8, 8, U::SAMPLER | U::COLOR_TARGET, 4);
+        let color = [200, 100, 50, 255];
+        fill_texture(&device, &mipmapped, 0, 8, 8, &solid(8, 8, color));
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.generate_mipmaps(&mipmapped).unwrap();
+        submit_and_wait(&device, cb);
+        for level in 1..4 {
+            let size = 8 >> level;
+            assert_eq!(
+                texture_pixels(&device, &mipmapped, level, size, size),
+                solid(size, size, color),
+                "level {level}"
+            );
+        }
+
+        // A horizontally flipped blit with the nearest filter: the left
+        // (red) and right (blue) halves trade places.
+        let mut halves = Vec::new();
+        for _ in 0..8 {
+            for x in 0..8 {
+                halves.extend(if x < 4 { RED } else { BLUE });
+            }
+        }
+        let source = rgba_texture(&device, 8, 8, U::SAMPLER, 1);
+        fill_texture(&device, &source, 0, 8, 8, &halves);
+        let destination = rgba_texture(&device, 8, 8, U::SAMPLER | U::COLOR_TARGET, 1);
+        let blit_region = |texture| BlitRegion {
+            texture,
+            mip_level: 0,
+            layer_or_depth_plane: 0,
+            x: 0,
+            y: 0,
+            w: 8,
+            h: 8,
+        };
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.blit_texture(&BlitInfo {
+            source: blit_region(&source),
+            destination: blit_region(&destination),
+            load_op: LoadOp::DontCare,
+            clear_color: FColor::default(),
+            flip_mode: FlipMode::Horizontal,
+            filter: Filter::Nearest,
+            cycle: false,
+        })
+        .unwrap();
+        submit_and_wait(&device, cb);
+        let flipped = texture_pixels(&device, &destination, 0, 8, 8);
+        for (i, pixel) in flipped.chunks(4).enumerate() {
+            let x = i % 8;
+            assert_eq!(pixel, if x < 4 { BLUE } else { RED }, "pixel {i}");
+        }
+
+        // A blit into a corner, after clearing the destination (to black).
+        let mut cb = device.acquire_command_buffer().unwrap();
+        cb.blit_texture(&BlitInfo {
+            source: blit_region(&source),
+            destination: BlitRegion {
+                w: 4,
+                h: 4,
+                ..blit_region(&destination)
+            },
+            load_op: LoadOp::Clear,
+            clear_color: FColor {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
+            flip_mode: FlipMode::None,
+            filter: Filter::Nearest,
+            cycle: false,
+        })
+        .unwrap();
+        submit_and_wait(&device, cb);
+        let corner = texture_pixels(&device, &destination, 0, 8, 8);
+        for (i, pixel) in corner.chunks(4).enumerate() {
+            let (x, y) = (i % 8, i / 8);
+            let expected = if x < 4 && y < 4 {
+                // (the source's 8x8 scaled to 4x4: red, then blue)
+                if x < 2 {
+                    RED
+                } else {
+                    BLUE
+                }
+            } else {
+                [0, 0, 0, 255]
+            };
+            assert_eq!(pixel, expected, "({x}, {y})");
+        }
+
+        // The blit pipeline of the RGBA8 destination is cached (one per
+        // source texture type and format).
+        let renderer = device_renderer(&device);
+        let BlitPipelineCache::PerFormat(pipelines) = &lock(&renderer.blit).pipelines else {
+            panic!("per-format blit pipelines");
+        };
+        assert_eq!(pipelines.len(), 1);
+        device.wait_for_idle().unwrap();
+    }
+
+    #[test]
+    fn fences() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        let renderer = device_renderer(&device);
+
+        let first = device
+            .acquire_command_buffer()
+            .unwrap()
+            .submit_and_acquire_fence()
+            .unwrap();
+        let second = device
+            .acquire_command_buffer()
+            .unwrap()
+            .submit_and_acquire_fence()
+            .unwrap();
+        device.wait_for_fences(false, &[&first, &second]).unwrap();
+        device.wait_for_fences(true, &[&first, &second]).unwrap();
+        assert!(first.is_signaled());
+        assert!(second.is_signaled());
+
+        // Once the command buffers are cleaned, the fences are only the
+        // application's.
+        assert!(lock(&renderer.submit_lock).is_empty());
+        let handle = first.raw.downcast::<D3D12Fence>().unwrap();
+        assert_eq!(handle.reference_count.load(Ordering::SeqCst), 1);
+
+        // A released fence goes back to the pool, and is reset when reused.
+        let pooled = lock(&renderer.fence_pool).len();
+        drop(first);
+        assert_eq!(lock(&renderer.fence_pool).len(), pooled + 1);
+        let fence_pool_top = lock(&renderer.fence_pool).last().cloned().unwrap();
+        assert!(Arc::ptr_eq(&fence_pool_top, &handle));
+        drop(fence_pool_top);
+        let third = device
+            .acquire_command_buffer()
+            .unwrap()
+            .submit_and_acquire_fence()
+            .unwrap();
+        assert!(Arc::ptr_eq(
+            &third.raw.downcast::<D3D12Fence>().unwrap(),
+            &handle
+        ));
+        device.wait_for_fences(true, &[&third]).unwrap();
+        assert!(third.is_signaled());
+
+        // A plain submission's fence goes back to the pool when it's
+        // cleaned.
+        // (Wait's fence too)
+        device.acquire_command_buffer().unwrap().submit().unwrap();
+        device.wait_for_idle().unwrap();
+        let pooled = lock(&renderer.fence_pool).len();
+        assert!(pooled >= 2);
+        drop((second, third));
+        assert_eq!(lock(&renderer.fence_pool).len(), pooled + 2);
+    }
+
+    /// Video up on the Windows video driver, or `None` (with the skip
+    /// reported); quit when dropped.
+    struct WindowsVideo;
+
+    impl WindowsVideo {
+        fn init() -> Option<WindowsVideo> {
+            init::quit();
+            hints::set(hints::VIDEO_DRIVER, "windows").unwrap();
+            if let Err(e) = init::init(InitFlags::VIDEO) {
+                crate::test_support::skip(
+                    "desktop",
+                    format_args!("no windows video ({})", e.message()),
+                );
+                hints::reset(hints::VIDEO_DRIVER);
+                return None;
+            }
+            Some(WindowsVideo)
+        }
+    }
+
+    impl Drop for WindowsVideo {
+        fn drop(&mut self) {
+            init::quit();
+            hints::reset(hints::VIDEO_DRIVER);
+        }
+    }
+
+    #[test]
+    fn swapchains_on_a_window() {
+        let _l = crate::test_support::test_lock();
+        let Some(_video) = WindowsVideo::init() else {
+            return;
+        };
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        let window =
+            Window::create("gpu", 64, 48, crate::events::window::WindowFlags::default()).unwrap();
+        let _ = window.show();
+        let _ = window.sync();
+
+        // Not claimed yet
+        assert!(device.swapchain_texture_format(&window).is_err());
+        {
+            let mut cb = device.acquire_command_buffer().unwrap();
+            let e = cb.acquire_swapchain_texture(&window).unwrap_err();
+            assert_eq!(
+                e.message(),
+                "Cannot acquire swapchain texture from an unclaimed window!"
+            );
+            cb.cancel().unwrap();
+        }
+
+        device.claim_window(&window).unwrap();
+        // (SDR needs the swapchain format's display support, which vkd3d
+        // doesn't report: then the swapchain parameters can't be set)
+        let mut format_support = FeatureDataFormatSupport {
+            format: DXGI_FORMAT_B8G8R8A8_UNORM,
+            ..Default::default()
+        };
+        device_renderer(&device)
+            .device
+            .check_feature_support(D3D12_FEATURE_FORMAT_SUPPORT, &mut format_support);
+        let sdr = format_support.support1 & D3D12_FORMAT_SUPPORT1_DISPLAY != 0;
+        assert_eq!(
+            device.window_supports_swapchain_composition(&window, SwapchainComposition::Sdr),
+            sdr
+        );
+        for mode in [
+            PresentMode::Vsync,
+            PresentMode::Immediate,
+            PresentMode::Mailbox,
+        ] {
+            assert!(device.window_supports_present_mode(&window, mode));
+        }
+        assert_eq!(
+            device.swapchain_texture_format(&window).unwrap(),
+            TextureFormat::B8G8R8A8_UNORM
+        );
+
+        // A second claim is counted, and so is its release.
+        device.claim_window(&window).unwrap();
+        device.release_window(&window);
+        let renderer = device_renderer(&device);
+        assert_eq!(lock(&renderer.claimed_windows).len(), 1);
+
+        // Several frames: acquire, clear, present.
+        let frame = |device: &Device, block: bool| -> Option<(u32, u32)> {
+            let mut cb = device.acquire_command_buffer().unwrap();
+            let texture = if block {
+                cb.wait_and_acquire_swapchain_texture(&window).unwrap()
+            } else {
+                cb.acquire_swapchain_texture(&window).unwrap()
+            };
+            let size = texture.as_ref().map(|t| (t.width, t.height));
+            if let Some(texture) = &texture {
+                cb.begin_render_pass(&[clear_target(&texture.texture, BLUE_F)], None)
+                    .unwrap()
+                    .end();
+            }
+            cb.submit().unwrap();
+            size
+        };
+        for _ in 0..5 {
+            assert_eq!(frame(&device, true), Some((64, 48)));
+        }
+        device.wait_for_swapchain(&window).unwrap();
+        // (without blocking a frame can be skipped, which isn't an error)
+        for _ in 0..3 {
+            if let Some(size) = frame(&device, false) {
+                assert_eq!(size, (64, 48));
+            }
+        }
+
+        // Frames in flight and the swapchain parameters remake the
+        // swapchain (two or three buffers).
+        device.set_allowed_frames_in_flight(3).unwrap();
+        for entry in lock(&renderer.claimed_windows).iter() {
+            assert_eq!(lock(&entry.data).swapchain_texture_count, 3);
+        }
+        for _ in 0..4 {
+            assert_eq!(frame(&device, true), Some((64, 48)));
+        }
+        device.set_allowed_frames_in_flight(1).unwrap();
+        for entry in lock(&renderer.claimed_windows).iter() {
+            assert_eq!(lock(&entry.data).swapchain_texture_count, 2);
+        }
+        assert_eq!(frame(&device, true), Some((64, 48)));
+        let parameters = device.set_swapchain_parameters(
+            &window,
+            SwapchainComposition::Sdr,
+            PresentMode::Immediate,
+        );
+        if sdr {
+            parameters.unwrap();
+        } else {
+            assert_eq!(
+                parameters.unwrap_err().message(),
+                "Swapchain composition not supported!"
+            );
+        }
+        for _ in 0..3 {
+            assert_eq!(frame(&device, true), Some((64, 48)));
+        }
+        device.set_allowed_frames_in_flight(2).unwrap();
+
+        // A resize remakes the swapchain at the new size.
+        window.set_size(40, 30).unwrap();
+        let _ = window.sync();
+        for _ in 0..3 {
+            assert_eq!(frame(&device, true), Some((40, 30)));
+        }
+
+        // Released: the window can't present any more (and can be claimed
+        // again).
+        device.release_window(&window);
+        assert!(lock(&renderer.claimed_windows).is_empty());
+        assert!(device.swapchain_texture_format(&window).is_err());
+        device.claim_window(&window).unwrap();
+        assert_eq!(frame(&device, true), Some((40, 30)));
+        // (the device releases the windows it still has when it goes)
+        drop(device);
+        window.destroy();
+    }
+}
+
+#[test]
+fn command_declarations_match_the_headers() {
+    // offsetof(<Interface>Vtbl, <Method>) / sizeof(void *), sizeof,
+    // _Alignof and offsetof of a harness built with mingw's d3d12.h and
+    // dxgi1_4.h.
+    assert_eq!(
+        slot(offset_of!(ID3D12DeviceVtbl, create_command_allocator)),
+        9
+    );
+    assert_eq!(slot(offset_of!(ID3D12DeviceVtbl, create_command_list)), 12);
+    assert_eq!(
+        slot(offset_of!(ID3D12DeviceVtbl, copy_descriptors_simple)),
+        24
+    );
+    assert_eq!(slot(offset_of!(ID3D12DeviceVtbl, create_fence)), 36);
+    assert_eq!(slot(offset_of!(ID3D12ResourceVtbl, get_desc)), 10);
+    assert_eq!(
+        slot(offset_of!(ID3D12CommandQueueVtbl, execute_command_lists)),
+        10
+    );
+    assert_eq!(slot(offset_of!(ID3D12CommandQueueVtbl, signal)), 14);
+    assert_eq!(size_of::<ID3D12CommandQueueVtbl>() / PTR, 19);
+    assert_eq!(slot(offset_of!(ID3D12CommandAllocatorVtbl, reset)), 8);
+    assert_eq!(size_of::<ID3D12CommandAllocatorVtbl>() / PTR, 9);
+    assert_eq!(slot(offset_of!(ID3D12FenceVtbl, get_completed_value)), 8);
+    assert_eq!(
+        slot(offset_of!(ID3D12FenceVtbl, set_event_on_completion)),
+        9
+    );
+    assert_eq!(slot(offset_of!(ID3D12FenceVtbl, signal)), 10);
+    assert_eq!(size_of::<ID3D12FenceVtbl>() / PTR, 11);
+
+    type L = ID3D12GraphicsCommandListVtbl;
+    for (offset, expected) in [
+        (offset_of!(L, close), 9),
+        (offset_of!(L, reset), 10),
+        (offset_of!(L, draw_instanced), 12),
+        (offset_of!(L, draw_indexed_instanced), 13),
+        (offset_of!(L, dispatch), 14),
+        (offset_of!(L, copy_buffer_region), 15),
+        (offset_of!(L, copy_texture_region), 16),
+        (offset_of!(L, resolve_subresource), 19),
+        (offset_of!(L, ia_set_primitive_topology), 20),
+        (offset_of!(L, rs_set_viewports), 21),
+        (offset_of!(L, rs_set_scissor_rects), 22),
+        (offset_of!(L, om_set_blend_factor), 23),
+        (offset_of!(L, om_set_stencil_ref), 24),
+        (offset_of!(L, set_pipeline_state), 25),
+        (offset_of!(L, resource_barrier), 26),
+        (offset_of!(L, set_descriptor_heaps), 28),
+        (offset_of!(L, set_compute_root_signature), 29),
+        (offset_of!(L, set_graphics_root_signature), 30),
+        (offset_of!(L, set_compute_root_descriptor_table), 31),
+        (offset_of!(L, set_graphics_root_descriptor_table), 32),
+        (offset_of!(L, set_compute_root_constant_buffer_view), 37),
+        (offset_of!(L, set_graphics_root_constant_buffer_view), 38),
+        (offset_of!(L, ia_set_index_buffer), 43),
+        (offset_of!(L, ia_set_vertex_buffers), 44),
+        (offset_of!(L, om_set_render_targets), 46),
+        (offset_of!(L, clear_depth_stencil_view), 47),
+        (offset_of!(L, clear_render_target_view), 48),
+        (offset_of!(L, execute_indirect), 59),
+    ] {
+        assert_eq!(slot(offset), expected);
+    }
+
+    type S = IDXGISwapChain3Vtbl;
+    assert_eq!(slot(offset_of!(S, get_parent)), 6);
+    assert_eq!(slot(offset_of!(S, present)), 8);
+    assert_eq!(slot(offset_of!(S, get_buffer)), 9);
+    assert_eq!(slot(offset_of!(S, resize_buffers)), 13);
+    assert_eq!(slot(offset_of!(S, get_desc1)), 18);
+    assert_eq!(slot(offset_of!(S, get_current_back_buffer_index)), 36);
+    assert_eq!(slot(offset_of!(S, check_color_space_support)), 37);
+    assert_eq!(slot(offset_of!(S, set_color_space1)), 38);
+    assert_eq!(size_of::<S>() / PTR, 40);
+
+    assert_eq!(
+        (size_of::<ResourceBarrier>(), align_of::<ResourceBarrier>()),
+        (32, 8)
+    );
+    assert_eq!(offset_of!(ResourceBarrier, flags), 4);
+    assert_eq!(offset_of!(ResourceBarrier, u), 8);
+    assert_eq!(offset_of!(ResourceTransitionBarrier, subresource), 8);
+    assert_eq!(offset_of!(ResourceTransitionBarrier, state_before), 12);
+    assert_eq!(offset_of!(ResourceTransitionBarrier, state_after), 16);
+    assert_eq!(
+        (
+            size_of::<TextureCopyLocation>(),
+            align_of::<TextureCopyLocation>()
+        ),
+        (48, 8)
+    );
+    assert_eq!(offset_of!(TextureCopyLocation, ty), 8);
+    assert_eq!(offset_of!(TextureCopyLocation, u), 16);
+    assert_eq!(
+        (
+            size_of::<PlacedSubresourceFootprint>(),
+            align_of::<PlacedSubresourceFootprint>()
+        ),
+        (32, 8)
+    );
+    assert_eq!(offset_of!(PlacedSubresourceFootprint, footprint), 8);
+    assert_eq!(
+        (
+            size_of::<SubresourceFootprint>(),
+            align_of::<SubresourceFootprint>()
+        ),
+        (20, 4)
+    );
+    assert_eq!(offset_of!(SubresourceFootprint, row_pitch), 16);
+    assert_eq!((size_of::<D3d12Box>(), align_of::<D3d12Box>()), (24, 4));
+    assert_eq!(
+        (size_of::<D3d12Viewport>(), align_of::<D3d12Viewport>()),
+        (24, 4)
+    );
+    assert_eq!((size_of::<D3d12Rect>(), align_of::<D3d12Rect>()), (16, 4));
+    assert_eq!(
+        (
+            size_of::<VertexBufferView>(),
+            align_of::<VertexBufferView>()
+        ),
+        (16, 8)
+    );
+    assert_eq!(offset_of!(VertexBufferView, stride_in_bytes), 12);
+    assert_eq!(
+        (size_of::<IndexBufferView>(), align_of::<IndexBufferView>()),
+        (16, 8)
+    );
+    assert_eq!(offset_of!(IndexBufferView, format), 12);
+    assert_eq!(
+        (
+            size_of::<super::d3d::SwapChainDesc1>(),
+            align_of::<super::d3d::SwapChainDesc1>()
+        ),
+        (48, 4)
+    );
+    assert_eq!(offset_of!(super::d3d::SwapChainDesc1, buffer_usage), 24);
+    assert_eq!(offset_of!(super::d3d::SwapChainDesc1, flags), 44);
+    assert_eq!(
+        (
+            size_of::<SwapChainFullscreenDesc>(),
+            align_of::<SwapChainFullscreenDesc>()
+        ),
+        (20, 4)
+    );
+    assert_eq!(offset_of!(SwapChainFullscreenDesc, windowed), 16);
+
+    assert_eq!(D3D12_RESOURCE_STATE_COPY_SOURCE, 2048);
+    assert_eq!(D3D12_RESOURCE_STATE_RESOLVE_DEST, 4096);
+    assert_eq!(D3D12_RESOURCE_STATE_RESOLVE_SOURCE, 8192);
+    assert_eq!(D3D12_FORMAT_SUPPORT1_DISPLAY, 524288);
+    assert_eq!(super::d3d::DXGI_SWAP_EFFECT_FLIP_DISCARD, 4);
+    assert_eq!(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT, 256);
+    assert_eq!(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, 512);
+    assert_eq!(D3D12_RESOURCE_BARRIER_TYPE_UAV, 2);
+    assert_eq!(
+        guid(IID_ID3D12GRAPHICSCOMMANDLIST),
+        0x5b160d0f_ac1b_4185_8ba8_b3ae42a5a455
+    );
+    assert_eq!(
+        guid(IID_ID3D12FENCE),
+        0x0a753dcf_c4d8_4b91_adf6_be5a60d95a76
+    );
+    assert_eq!(
+        guid(IID_IDXGISWAPCHAIN3),
+        0x94d99bdb_f1f8_4ab0_b236_7da0170edab1
+    );
 }

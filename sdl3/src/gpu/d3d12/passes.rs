@@ -745,7 +745,7 @@ impl D3D12Renderer {
                 }
             }
 
-            for i in 0..MAX_UNIFORM_BUFFERS_PER_STAGE as usize {
+            for (i, &root_index) in uniform_buffer_root_index.iter().enumerate() {
                 let need_bind = match stage {
                     GraphicsStage::Vertex => &mut cb.need_vertex_uniform_buffer_bind[i],
                     GraphicsStage::Fragment => &mut cb.need_fragment_uniform_buffer_bind[i],
@@ -757,10 +757,7 @@ impl D3D12Renderer {
                             let address = uniform_buffer.buffer.virtual_address
                                 + uniform_buffer.draw_offset as u64;
                             cb.graphics_command_list
-                                .set_graphics_root_constant_buffer_view(
-                                    uniform_buffer_root_index[i],
-                                    address,
-                                );
+                                .set_graphics_root_constant_buffer_view(root_index, address);
                         }
                     }
                 }
@@ -1337,8 +1334,8 @@ impl D3D12Renderer {
         let format = texture_container.info.format;
         let block_width = format.block_width() as u32;
         let block_size = format.texel_block_size();
-        let row_pitch = (pixels_per_row + (block_width - 1)) / block_width * block_size;
-        let block_height = (rows_per_slice + (block_width - 1)) / block_width;
+        let row_pitch = pixels_per_row.div_ceil(block_width) * block_size;
+        let block_height = rows_per_slice.div_ceil(block_width);
 
         let bytes_per_slice = rows_per_slice * row_pitch;
 
@@ -1350,16 +1347,18 @@ impl D3D12Renderer {
             needs_realignment = false;
             needs_placement_copy = false;
         } else {
-            aligned_row_pitch = (destination.w + (block_width - 1)) / block_width * block_size;
+            aligned_row_pitch = destination.w.div_ceil(block_width) * block_size;
             aligned_row_pitch = align(aligned_row_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
             needs_realignment = rows_per_slice != destination.h || row_pitch != aligned_row_pitch;
-            needs_placement_copy = source.offset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT != 0;
+            needs_placement_copy = !source
+                .offset
+                .is_multiple_of(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
         }
 
         let mut aligned_bytes_per_slice = aligned_row_pitch * block_height;
         if !self.unrestricted_buffer_texture_copy_pitch_supported
             && destination.d > 1
-            && aligned_bytes_per_slice % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT != 0
+            && !aligned_bytes_per_slice.is_multiple_of(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT)
         {
             needs_realignment = true;
             aligned_bytes_per_slice = align(
@@ -1726,7 +1725,9 @@ impl D3D12Renderer {
         } else {
             aligned_row_pitch = align(row_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
             needs_realignment = rows_per_slice != source.h || row_pitch != aligned_row_pitch;
-            needs_placement_copy = destination.offset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT != 0;
+            needs_placement_copy = !destination
+                .offset
+                .is_multiple_of(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
         }
 
         let source_location = TextureCopyLocation {
