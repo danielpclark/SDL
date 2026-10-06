@@ -6,9 +6,10 @@
 
 //! The GPU renderer ("gpu"): draws through the GPU API ([`crate::gpu`]),
 //! into a backbuffer texture that presenting blits to the window's
-//! swapchain. The GPU API's only backend yet is Vulkan, so this renderer
-//! needs what the GPU API's Vulkan backend needs, and runs its SPIR-V
-//! shaders.
+//! swapchain. It runs on the GPU API's Vulkan backend with its SPIR-V
+//! shaders, and on Windows on the Direct3D 12 backend with its DXIL
+//! shaders (shader model 6.0: a Direct3D 12 device without it can't take
+//! them, and then the Vulkan backend is tried).
 //!
 //! What isn't translated:
 //!
@@ -353,10 +354,11 @@ const SUPPORTED_FORMATS: [PixelFormat; 9] = [
 // SDL_shaders_gpu.c (the device parts; the tables are in shaders.rs)
 
 /// Whether the renderer has shaders for each format (upstream's
-/// `HAVE_*_SHADERS`, for the GPU backends compiled in: Vulkan only).
+/// `HAVE_*_SHADERS`, for the GPU backends compiled in: Vulkan, and
+/// Direct3D 12 on Windows).
 const HAVE_PRIVATE_SHADERS: bool = false;
 const HAVE_SPIRV_SHADERS: bool = true;
-const HAVE_DXIL60_SHADERS: bool = false;
+const HAVE_DXIL60_SHADERS: bool = cfg!(windows);
 const HAVE_METAL_SHADERS: bool = false;
 
 /// The renderer's shaders. Translation of `GPU_Shaders`; dropping it is
@@ -375,14 +377,18 @@ fn compile_shader(
     let formats = device.shader_formats();
 
     // (SDL_GetGPUShaderFormats() can't fail: the device exists. There are
-    // no private, DXIL or MSL shaders.)
-    if !(HAVE_SPIRV_SHADERS && formats.contains(ShaderFormat::SPIRV)) {
+    // no private or MSL shaders.)
+    let (code, format) = if HAVE_SPIRV_SHADERS && formats.contains(ShaderFormat::SPIRV) {
+        (sources.spirv, ShaderFormat::SPIRV)
+    } else if HAVE_DXIL60_SHADERS && formats.contains(ShaderFormat::DXIL) {
+        (dxil60(sources), ShaderFormat::DXIL)
+    } else {
         return Err(Error::new("Unsupported GPU backend"));
-    }
+    };
 
     let sci = gpu::ShaderCreateInfo {
-        code: sources.spirv,
-        format: ShaderFormat::SPIRV,
+        code,
+        format,
         // FIXME not sure if this is correct
         // (the MSL shaders' entry point would be "main0")
         entrypoint: "main",
@@ -393,6 +399,18 @@ fn compile_shader(
     };
 
     device.create_shader(&sci)
+}
+
+/// The DXIL of `sources` (`sources->dxil60`; off Windows there is no
+/// Direct3D 12 backend, and no DXIL).
+#[cfg(windows)]
+fn dxil60(sources: &ShaderSources) -> &'static [u8] {
+    sources.dxil60
+}
+
+#[cfg(not(windows))]
+fn dxil60(_sources: &ShaderSources) -> &'static [u8] {
+    &[]
 }
 
 impl Shaders {
