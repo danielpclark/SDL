@@ -3,16 +3,21 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The tables are checked against upstream's values. The scenes are drawn
-//! by the GPU renderer on a real device (the GPU API's Vulkan backend,
-//! through the offscreen driver's headless surface: Mesa's lavapipe on
-//! Linux CI) and by the software renderer, and the pixels compared:
-//! exactly where the math is exact (clears, fills, points, 1:1 copies,
-//! palettes, render targets read back), within a small tolerance where the
-//! GPU's float blending, modulation or YUV conversion rounds differently.
-//! The renderer's device is made in debug mode ([`hints::RENDER_GPU_DEBUG`]),
-//! so `VK_LAYER_KHRONOS_validation` checks it when it's installed. Without
-//! a Vulkan loader and driver with `VK_EXT_headless_surface` the device
-//! tests report a skip (capability `vulkan`) and pass.
+//! by the GPU renderer on a real device and by the software renderer, and
+//! the pixels compared: exactly where the math is exact (clears, fills,
+//! points, 1:1 copies, palettes, render targets read back), within a small
+//! tolerance where the GPU's float blending, modulation or YUV conversion
+//! rounds differently. Each device test runs on the GPU API's Vulkan
+//! backend with the SPIR-V shaders, through the offscreen driver's
+//! headless surface (Mesa's lavapipe on Linux CI), and on Windows again on
+//! the Direct3D 12 backend with the DXIL shaders, on the Windows video
+//! driver (WARP on Windows CI). The renderer's device is made in debug mode
+//! ([`hints::RENDER_GPU_DEBUG`]), so `VK_LAYER_KHRONOS_validation` or the
+//! Direct3D 12 debug layer checks it when it's installed. Without a Vulkan
+//! loader and driver with `VK_EXT_headless_surface` the Vulkan tests report
+//! a skip (capability `vulkan`) and pass; without a Direct3D 12 device with
+//! shader model 6 (vkd3d under Wine has 5.1) the Direct3D 12 ones report a
+//! skip (capability `d3d12`) and pass.
 //!
 //! The scaled copies avoid the exact 2:1 ties of nearest sampling (a
 //! downscale whose pixel centers fall on texel edges), where rasterizers
@@ -110,6 +115,38 @@ fn spirv_shaders() {
         &color[20..28],
         &[0x11, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00]
     );
+}
+
+#[test]
+#[cfg(windows)]
+fn dxil_shaders() {
+    // The `*_len` of upstream's shaders/*.dxil.h, and the program kind of
+    // each (pixel 0, vertex 1).
+    let lens = [
+        (VertexShaderId::Linepoint.sources(), 3924, 1),
+        (VertexShaderId::TriColor.sources(), 4208, 1),
+        (VertexShaderId::TriTexture.sources(), 4208, 1),
+        (FragmentShaderId::Color.sources(), 3352, 0),
+        (FragmentShaderId::TextureRgb.sources(), 4192, 0),
+        (FragmentShaderId::TextureRgba.sources(), 4196, 0),
+        (FragmentShaderId::TextureAdvanced.sources(), 10992, 0),
+    ];
+    for (s, len, kind) in lens {
+        let d = s.dxil60;
+        assert_eq!(d.len(), len);
+        let word = |o: usize| u32::from_le_bytes(d[o..o + 4].try_into().unwrap()) as usize;
+        // A DXBC container (what the Direct3D 12 backend checks for) of
+        // version 1.0 and the blob's size, signed (a digest), with a DXIL
+        // part whose program is shader model 6.0 of the shader's kind.
+        assert_eq!(&d[..4], b"DXBC");
+        assert!(d[4..20].iter().any(|&b| b != 0));
+        assert_eq!((word(20), word(24)), (1, len));
+        let dxil = (0..word(28))
+            .map(|i| word(32 + 4 * i))
+            .find(|&o| &d[o..o + 4] == b"DXIL")
+            .unwrap();
+        assert_eq!(word(dxil + 8), (kind << 16) | 0x60);
+    }
 }
 
 #[test]
@@ -274,7 +311,8 @@ fn vertex_layouts_and_uniforms() {
         );
     }
 
-    // The device is asked for the shader formats the renderer has: SPIR-V.
+    // The device is asked for the shader formats the renderer has: SPIR-V,
+    // and DXIL on Windows.
     let props = Properties::new();
     fill_supported_shader_formats(&props).unwrap();
     let get = |name| props.get_bool(name);
@@ -288,7 +326,7 @@ fn vertex_layouts_and_uniforms() {
     );
     assert_eq!(
         get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN),
-        Some(false)
+        Some(cfg!(windows))
     );
     assert_eq!(
         get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN),
@@ -300,17 +338,70 @@ fn vertex_layouts_and_uniforms() {
 // With a device
 // ---------------------------------------------------------------------------
 
-/// Video up on the offscreen driver, with the renderer's devices in debug
-/// mode (validated); quit when dropped.
-struct Video;
+/// The GPU backend a device test runs the renderer on.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Backend {
+    /// Vulkan with the SPIR-V shaders, on the offscreen driver's headless
+    /// surfaces.
+    Vulkan,
+    /// Direct3D 12 with the DXIL shaders, on the Windows video driver.
+    #[cfg(windows)]
+    D3d12,
+}
+
+impl Backend {
+    /// The GPU API's name of the backend ([`hints::GPU_DRIVER`]).
+    fn driver(self) -> &'static str {
+        match self {
+            Backend::Vulkan => "vulkan",
+            #[cfg(windows)]
+            Backend::D3d12 => "direct3d12",
+        }
+    }
+}
+
+/// Video up for a backend (the offscreen driver for Vulkan, the Windows
+/// one for Direct3D 12), with the renderer's devices made by that backend
+/// in debug mode (validated); quit when dropped.
+struct Video(Backend);
 
 impl Video {
-    fn init() -> Video {
+    fn init(backend: Backend) -> Video {
         init::quit();
-        hints::set(hints::VIDEO_DRIVER, "offscreen").unwrap();
+        let video = match backend {
+            Backend::Vulkan => "offscreen",
+            #[cfg(windows)]
+            Backend::D3d12 => "windows",
+        };
+        hints::set(hints::VIDEO_DRIVER, video).unwrap();
+        hints::set(hints::GPU_DRIVER, backend.driver()).unwrap();
         hints::set(hints::RENDER_GPU_DEBUG, "1").unwrap();
         init::init(InitFlags::VIDEO).unwrap();
-        Video
+        Video(backend)
+    }
+
+    /// A window with a GPU renderer, or `None` (with the skip reported)
+    /// when there is no Vulkan, or no Direct3D 12 device with shader model
+    /// 6.
+    fn gpu_renderer(&self, w: i32, h: i32) -> Option<(Window, Renderer)> {
+        #[cfg(windows)]
+        if self.0 == Backend::D3d12 && !has_d3d12_dxil() {
+            return None;
+        }
+        let window = Window::create("gpu", w, h, WindowFlags::default()).unwrap();
+        match Renderer::for_window(&window, Some(GPU_RENDERER)) {
+            Ok(r) => Some((window, r)),
+            Err(e) if self.0 == Backend::Vulkan => {
+                crate::test_support::skip(
+                    "vulkan",
+                    format_args!("no GPU renderer ({})", e.message()),
+                );
+                window.destroy();
+                None
+            }
+            // (there is a device that takes the DXIL)
+            Err(e) => panic!("no GPU renderer on Direct3D 12 ({})", e.message()),
+        }
     }
 }
 
@@ -318,20 +409,34 @@ impl Drop for Video {
     fn drop(&mut self) {
         init::quit();
         hints::reset(hints::RENDER_GPU_DEBUG);
+        hints::reset(hints::GPU_DRIVER);
         hints::reset(hints::VIDEO_DRIVER);
     }
 }
 
-/// An offscreen window with a GPU renderer, or `None` (with the skip
-/// reported) when there is no Vulkan.
-fn gpu_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
-    let window = Window::create("gpu", w, h, WindowFlags::default()).unwrap();
-    match Renderer::for_window(&window, Some(GPU_RENDERER)) {
-        Ok(r) => Some((window, r)),
+/// Whether there is a Direct3D 12 device with shader model 6 (that takes
+/// DXIL), or `false` with the skip reported.
+#[cfg(windows)]
+fn has_d3d12_dxil() -> bool {
+    match gpu::Device::new(
+        ShaderFormat::DXBC | ShaderFormat::DXIL,
+        false,
+        Some("direct3d12"),
+    ) {
+        Ok(device) if device.shader_formats().contains(ShaderFormat::DXIL) => true,
+        Ok(_) => {
+            crate::test_support::skip(
+                "d3d12",
+                "the device has no shader model 6, so no DXIL (vkd3d under Wine has 5.1)",
+            );
+            false
+        }
         Err(e) => {
-            crate::test_support::skip("vulkan", format_args!("no GPU renderer ({})", e.message()));
-            window.destroy();
-            None
+            crate::test_support::skip(
+                "d3d12",
+                format_args!("no Direct3D 12 device ({})", e.message()),
+            );
+            false
         }
     }
 }
@@ -455,14 +560,21 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 
 #[test]
 fn gpu_renderer_basics() {
+    gpu_renderer_basics_on(Backend::Vulkan);
+}
+
+fn gpu_renderer_basics_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((window, mut r)) = gpu_renderer(W, H) else {
+    let video = Video::init(backend);
+    let Some((window, mut r)) = video.gpu_renderer(W, H) else {
         return;
     };
     assert_eq!(r.name(), "gpu");
     // (the GPU API's Vulkan backend made the window a Vulkan one)
-    assert!(window.flags().unwrap().contains(WindowFlags::VULKAN));
+    assert_eq!(
+        window.flags().unwrap().contains(WindowFlags::VULKAN),
+        backend == Backend::Vulkan
+    );
     assert!(!window.flags().unwrap().contains(WindowFlags::OPENGL));
     assert_eq!(r.output_size().unwrap(), (W, H));
     let props = r.properties();
@@ -477,8 +589,13 @@ fn gpu_renderer_basics() {
     let device = props
         .get_any::<gpu::Device>(PROP_RENDERER_GPU_DEVICE_POINTER)
         .unwrap();
-    assert_eq!(device.driver(), "vulkan");
-    assert!(device.shader_formats().contains(ShaderFormat::SPIRV));
+    assert_eq!(device.driver(), backend.driver());
+    let format = match backend {
+        Backend::Vulkan => ShaderFormat::SPIRV,
+        #[cfg(windows)]
+        Backend::D3d12 => ShaderFormat::DXIL,
+    };
+    assert!(device.shader_formats().contains(format));
 
     let formats = r.texture_formats();
     assert_eq!(
@@ -648,9 +765,13 @@ fn gpu_renderer_basics() {
 
 #[test]
 fn gpu_matches_software_for_shapes() {
+    gpu_matches_software_for_shapes_on(Backend::Vulkan);
+}
+
+fn gpu_matches_software_for_shapes_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((_window, mut r)) = gpu_renderer(W, H) else {
+    let video = Video::init(backend);
+    let Some((_window, mut r)) = video.gpu_renderer(W, H) else {
         return;
     };
 
@@ -781,9 +902,13 @@ fn gpu_matches_software_for_shapes() {
 
 #[test]
 fn gpu_matches_software_for_textures() {
+    gpu_matches_software_for_textures_on(Backend::Vulkan);
+}
+
+fn gpu_matches_software_for_textures_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((_window, mut r)) = gpu_renderer(W, H) else {
+    let video = Video::init(backend);
+    let Some((_window, mut r)) = video.gpu_renderer(W, H) else {
         return;
     };
     let mut sw = software_renderer(W, H);
@@ -1062,9 +1187,13 @@ fn gpu_matches_software_for_textures() {
 
 #[test]
 fn gpu_matches_software_for_targets() {
+    gpu_matches_software_for_targets_on(Backend::Vulkan);
+}
+
+fn gpu_matches_software_for_targets_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((_window, mut r)) = gpu_renderer(W, H) else {
+    let video = Video::init(backend);
+    let Some((_window, mut r)) = video.gpu_renderer(W, H) else {
         return;
     };
     let mut sw = software_renderer(W, H);
@@ -1178,9 +1307,13 @@ fn yuv_planes(w: usize, h: usize) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
 
 #[test]
 fn gpu_matches_software_for_yuv() {
+    gpu_matches_software_for_yuv_on(Backend::Vulkan);
+}
+
+fn gpu_matches_software_for_yuv_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((_window, mut r)) = gpu_renderer(W, H) else {
+    let video = Video::init(backend);
+    let Some((_window, mut r)) = video.gpu_renderer(W, H) else {
         return;
     };
     let mut sw = software_renderer(W, H);
@@ -1333,14 +1466,18 @@ fn gpu_matches_software_for_yuv() {
 
 #[test]
 fn gpu_line_methods() {
+    gpu_line_methods_on(Backend::Vulkan);
+}
+
+fn gpu_line_methods_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
+    let video = Video::init(backend);
     // GPU lines (SDL_RENDER_LINE_METHOD 2) are drawn alone, without the
     // point at their end the other renderers add: each line leaves out its
     // last pixel. Straight ones hit the same pixels as the software
     // renderer's lines one pixel shorter.
     hints::set(hints::RENDER_LINE_METHOD, "2").unwrap();
-    let created = gpu_renderer(W, H);
+    let created = video.gpu_renderer(W, H);
     hints::reset(hints::RENDER_LINE_METHOD);
     let Some((_window, mut r)) = created else {
         return;
@@ -1372,9 +1509,13 @@ fn gpu_line_methods() {
 
 #[test]
 fn gpu_pipelines_are_cached() {
+    gpu_pipelines_are_cached_on(Backend::Vulkan);
+}
+
+fn gpu_pipelines_are_cached_on(backend: Backend) {
     let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((window, _r)) = gpu_renderer(16, 16) else {
+    let video = Video::init(backend);
+    let Some((window, _r)) = video.gpu_renderer(16, 16) else {
         return;
     };
     // (a renderer of its own, to look at its state: the window's is taken)
@@ -1441,6 +1582,48 @@ fn gpu_pipelines_are_cached() {
     drop(g);
     other.destroy();
     window.destroy();
+}
+
+/// The device tests again on the Direct3D 12 backend, with the DXIL
+/// shaders.
+#[cfg(windows)]
+mod d3d12 {
+    use super::Backend;
+
+    #[test]
+    fn gpu_renderer_basics() {
+        super::gpu_renderer_basics_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_matches_software_for_shapes() {
+        super::gpu_matches_software_for_shapes_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_matches_software_for_textures() {
+        super::gpu_matches_software_for_textures_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_matches_software_for_targets() {
+        super::gpu_matches_software_for_targets_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_matches_software_for_yuv() {
+        super::gpu_matches_software_for_yuv_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_line_methods() {
+        super::gpu_line_methods_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_pipelines_are_cached() {
+        super::gpu_pipelines_are_cached_on(Backend::D3d12);
+    }
 }
 
 #[test]
