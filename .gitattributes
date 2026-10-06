@@ -2,3 +2,8 @@
 # fixtures (testdata/*.txt) with include_str! and compare them byte for
 # byte, which CRLF checkouts on Windows would break.
 * text=auto eol=lf
+
+# sdl3-image's test images and their reference log are compared byte for
+# byte (ASCII PNM images included, trailing spaces and all): never convert,
+# diff or merge them as text.
+sdl3-image/src/testdata/** binary
