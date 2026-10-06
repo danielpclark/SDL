@@ -36,19 +36,21 @@
 //! };
 //!
 //! let suites = [&SUITE];
-//! let mut runner = TestSuiteRunner::new(&suites);
+//! let mut runner = TestSuiteRunner::without_state(&suites);
 //! runner.set_seed(Some("ABCDEFGHIJKLMNOP"));
 //! assert_eq!(runner.execute(), 0);
 //! ```
 
 use std::any::Any;
 use std::cmp::Ordering;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use sdl3::log::Priority;
 use sdl3::stdlib::string::{strcasecmp, strtol, strtoull};
 use sdl3::stdlib::Rng;
 
+use crate::common::{ArgumentParser, CommonState};
 use crate::internal::{color_blue, color_end, color_green, color_red, color_yellow};
 use crate::log::log_message;
 use crate::md5::Md5Context;
@@ -187,11 +189,19 @@ fn log_final_result(
 #[derive(Debug)]
 pub struct TestSuiteRunner<'a> {
     test_suites: &'a [&'a TestSuite],
-    run_seed: Option<String>,
-    exec_key: u64,
-    filter: Option<String>,
-    test_iterations: i32,
-    random_order: bool,
+    /// (shared with the argument parser the runner registers in a
+    /// [`CommonState`], as upstream's points to the runner)
+    user: Arc<Mutex<RunnerUser>>,
+}
+
+/// The options of a [`TestSuiteRunner`]: `SDLTest_TestSuiteRunner.user`.
+#[derive(Clone, Default, Debug)]
+pub(crate) struct RunnerUser {
+    pub(crate) run_seed: Option<String>,
+    pub(crate) exec_key: u64,
+    pub(crate) filter: Option<String>,
+    pub(crate) test_iterations: i32,
+    pub(crate) random_order: bool,
 }
 
 /* ! Timeout for single test case execution */
@@ -430,49 +440,107 @@ fn equal_ignoring_case(a: &str, b: &str) -> bool {
     strcasecmp(a, b) == Ordering::Equal
 }
 
+/// Translation of `SDLTest_TestSuiteCommonArg()`.
+fn test_suite_common_arg(runner: &mut RunnerUser, argv: &[impl AsRef<str>], index: usize) -> i32 {
+    let Some(arg) = argv.get(index).map(AsRef::as_ref) else {
+        return 0;
+    };
+    let next = argv.get(index + 1).map(AsRef::as_ref);
+
+    if equal_ignoring_case(arg, "--iterations") {
+        if let Some(next) = next {
+            // (SDL_atoi())
+            runner.test_iterations = strtol(next, 10).0 as i32;
+            if runner.test_iterations < 1 {
+                runner.test_iterations = 1;
+            }
+            return 2;
+        }
+    } else if equal_ignoring_case(arg, "--execKey") {
+        if let Some(next) = next {
+            // (SDL_sscanf(..., "%" SDL_PRIu64): the value is kept when
+            // there is no number)
+            let (value, consumed) = strtoull(next, 10);
+            if consumed > 0 {
+                runner.exec_key = value;
+            }
+            return 2;
+        }
+    } else if equal_ignoring_case(arg, "--seed") {
+        if let Some(next) = next {
+            runner.run_seed = Some(next.to_owned());
+            return 2;
+        }
+    } else if equal_ignoring_case(arg, "--filter") {
+        if let Some(next) = next {
+            runner.filter = Some(next.to_owned());
+            return 2;
+        }
+    } else if equal_ignoring_case(arg, "--random-order") {
+        runner.random_order = true;
+        return 1;
+    }
+    0
+}
+
 impl<'a> TestSuiteRunner<'a> {
     /// Create a new test suite runner, that will execute the given test
-    /// suites. Translation of `SDLTest_CreateTestSuiteRunner()` (the command
-    /// line options go through [`parse_argument`](Self::parse_argument));
-    /// dropping it is `SDLTest_DestroyTestSuiteRunner()`.
-    pub fn new(test_suites: &'a [&'a TestSuite]) -> TestSuiteRunner<'a> {
+    /// suites. It registers the harness command line options with the
+    /// common state, after its own. Translation of
+    /// `SDLTest_CreateTestSuiteRunner()`; dropping it is
+    /// `SDLTest_DestroyTestSuiteRunner()`.
+    pub fn new(state: &mut CommonState, test_suites: &'a [&'a TestSuite]) -> TestSuiteRunner<'a> {
+        let runner = TestSuiteRunner::without_state(test_suites);
+
+        /* Find last argument description and append our description */
+        state.add_argument_parser(Box::new(HarnessArgumentParser {
+            user: runner.user.clone(),
+        }));
+
+        runner
+    }
+
+    /// A runner that takes no command line options: they are set with
+    /// [`set_seed`](Self::set_seed) and the other setters, or parsed with
+    /// [`parse_argument`](Self::parse_argument).
+    pub fn without_state(test_suites: &'a [&'a TestSuite]) -> TestSuiteRunner<'a> {
         TestSuiteRunner {
             test_suites,
-            run_seed: None,
-            exec_key: 0,
-            filter: None,
-            test_iterations: 0,
-            random_order: false,
+            user: Arc::default(),
         }
+    }
+
+    pub(crate) fn user(&self) -> MutexGuard<'_, RunnerUser> {
+        self.user.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Set the run seed (`--seed`); without one (or with an empty one), a
     /// random one is made for each run.
     pub fn set_seed(&mut self, run_seed: Option<&str>) {
-        self.run_seed = run_seed.map(str::to_owned);
+        self.user().run_seed = run_seed.map(str::to_owned);
     }
 
     /// Set the execution key (`--execKey`) every test's fuzzer starts from;
     /// 0 (the default) makes one from the run seed and the test.
     pub fn set_exec_key(&mut self, exec_key: u64) {
-        self.exec_key = exec_key;
+        self.user().exec_key = exec_key;
     }
 
     /// Run only the suite, or else the test, of this name, compared
     /// ignoring case (`--filter`).
     pub fn set_filter(&mut self, filter: Option<&str>) {
-        self.filter = filter.map(str::to_owned);
+        self.user().filter = filter.map(str::to_owned);
     }
 
     /// Run each test this many times, at least once (`--iterations`).
     pub fn set_iterations(&mut self, test_iterations: i32) {
-        self.test_iterations = test_iterations;
+        self.user().test_iterations = test_iterations;
     }
 
     /// Run the suites, and the tests in each suite, in a random order
     /// (`--random-order`).
     pub fn set_random_order(&mut self, random_order: bool) {
-        self.random_order = random_order;
+        self.user().random_order = random_order;
     }
 
     /// The usage of the harness's command line options, printed with `--help`.
@@ -486,45 +554,7 @@ impl<'a> TestSuiteRunner<'a> {
     /// `--random-order`), returning the number of arguments taken, or 0 when
     /// it isn't one of these. Translation of `SDLTest_TestSuiteCommonArg()`.
     pub fn parse_argument(&mut self, argv: &[impl AsRef<str>], index: usize) -> i32 {
-        let Some(arg) = argv.get(index).map(AsRef::as_ref) else {
-            return 0;
-        };
-        let next = argv.get(index + 1).map(AsRef::as_ref);
-
-        if equal_ignoring_case(arg, "--iterations") {
-            if let Some(next) = next {
-                // (SDL_atoi())
-                self.test_iterations = strtol(next, 10).0 as i32;
-                if self.test_iterations < 1 {
-                    self.test_iterations = 1;
-                }
-                return 2;
-            }
-        } else if equal_ignoring_case(arg, "--execKey") {
-            if let Some(next) = next {
-                // (SDL_sscanf(..., "%" SDL_PRIu64): the value is kept when
-                // there is no number)
-                let (value, consumed) = strtoull(next, 10);
-                if consumed > 0 {
-                    self.exec_key = value;
-                }
-                return 2;
-            }
-        } else if equal_ignoring_case(arg, "--seed") {
-            if let Some(next) = next {
-                self.run_seed = Some(next.to_owned());
-                return 2;
-            }
-        } else if equal_ignoring_case(arg, "--filter") {
-            if let Some(next) = next {
-                self.filter = Some(next.to_owned());
-                return 2;
-            }
-        } else if equal_ignoring_case(arg, "--random-order") {
-            self.random_order = true;
-            return 1;
-        }
-        0
+        test_suite_common_arg(&mut self.user(), argv, index)
     }
 
     /// Execute a test suite using the configured run seed, execution key,
@@ -548,13 +578,15 @@ impl<'a> TestSuiteRunner<'a> {
         let mut force_test_run = false;
         let mut test_result = TestResult::Passed;
 
+        let mut user = self.user().clone();
+
         /* Sanitize test iterations */
-        if self.test_iterations < 1 {
-            self.test_iterations = 1;
+        if user.test_iterations < 1 {
+            user.test_iterations = 1;
         }
 
         /* Generate run see if we don't have one already */
-        let run_seed = match self.run_seed.as_deref() {
+        let run_seed = match user.run_seed.as_deref() {
             Some(run_seed) if !run_seed.is_empty() => run_seed.to_owned(),
             _ => match generate_run_seed(16) {
                 Some(run_seed) => run_seed,
@@ -590,7 +622,7 @@ impl<'a> TestSuiteRunner<'a> {
         failed_tests.reserve(total_number_of_tests);
 
         /* Initialize filtering */
-        if let Some(filter) = self.filter.as_deref().filter(|f| !f.is_empty()) {
+        if let Some(filter) = user.filter.as_deref().filter(|f| !f.is_empty()) {
             /* Loop over all suites to check if we have a filter match */
             'suites: for test_suite in self.test_suites {
                 if equal_ignoring_case(filter, test_suite.name) {
@@ -639,7 +671,12 @@ impl<'a> TestSuiteRunner<'a> {
                 return 2;
             }
 
-            self.random_order = false;
+            user.random_order = false;
+        }
+        {
+            let mut shared = self.user();
+            shared.test_iterations = user.test_iterations;
+            shared.random_order = user.random_order;
         }
 
         /* Number of test suites */
@@ -652,8 +689,8 @@ impl<'a> TestSuiteRunner<'a> {
             /* Exclude last test "subsystemsTestSuite" which is said to interfere with other tests */
             nb_suites -= 1;
 
-            let exec_key = if self.exec_key != 0 {
-                self.exec_key
+            let exec_key = if user.exec_key != 0 {
+                user.exec_key
             } else {
                 /* dummy values to have random numbers working */
                 generate_exec_key(&run_seed, "random testSuites", "initialisation", 1)
@@ -676,7 +713,7 @@ impl<'a> TestSuiteRunner<'a> {
                 // Note (upstream): with a single suite the range is
                 // [0, -1], and C swaps with arraySuites[-1]; here an index
                 // out of the list isn't swapped.
-                if self.random_order && a >= 0 && b >= 0 {
+                if user.random_order && a >= 0 && b >= 0 {
                     array_suites.swap(a as usize, b as usize);
                 }
             }
@@ -714,7 +751,7 @@ impl<'a> TestSuiteRunner<'a> {
                     /* Swap */
                     /* See previous note */
                     // Note (upstream): as above, for a suite without tests.
-                    if self.random_order && a >= 0 && b >= 0 {
+                    if user.random_order && a >= 0 && b >= 0 {
                         array_test_cases.swap(a as usize, b as usize);
                     }
                 }
@@ -779,11 +816,11 @@ impl<'a> TestSuiteRunner<'a> {
 
                         /* Loop over all iterations */
                         let mut iteration_counter = 0;
-                        while iteration_counter < self.test_iterations {
+                        while iteration_counter < user.test_iterations {
                             iteration_counter += 1;
 
-                            let exec_key = if self.exec_key != 0 {
-                                self.exec_key
+                            let exec_key = if user.exec_key != 0 {
+                                user.exec_key
                             } else {
                                 generate_exec_key(
                                     &run_seed,
@@ -815,16 +852,16 @@ impl<'a> TestSuiteRunner<'a> {
                             runtime = 0.0;
                         }
 
-                        if self.test_iterations > 1 {
+                        if user.test_iterations > 1 {
                             /* Log test runtime */
                             log!(
                                 "Runtime of {} iterations: {:.1} sec",
-                                self.test_iterations,
+                                user.test_iterations,
                                 runtime
                             );
                             log!(
                                 "Average Test runtime: {:.5} sec",
-                                runtime / self.test_iterations as f32
+                                runtime / user.test_iterations as f32
                             );
                         } else {
                             /* Log test runtime */
@@ -971,6 +1008,27 @@ impl<'a> TestSuiteRunner<'a> {
 
         log!("Exit code: {}", run_result);
         run_result
+    }
+}
+
+/// The harness's command line options in a [`CommonState`]: the
+/// `argparser` of `SDLTest_TestSuiteRunner`.
+#[derive(Debug)]
+struct HarnessArgumentParser {
+    user: Arc<Mutex<RunnerUser>>,
+}
+
+impl ArgumentParser for HarnessArgumentParser {
+    fn parse_arguments(&mut self, argv: &[String], index: usize) -> i32 {
+        test_suite_common_arg(
+            &mut self.user.lock().unwrap_or_else(|e| e.into_inner()),
+            argv,
+            index,
+        )
+    }
+
+    fn usage(&self) -> Option<&[&'static str]> {
+        Some(&COMMON_HARNESS_USAGE)
     }
 }
 

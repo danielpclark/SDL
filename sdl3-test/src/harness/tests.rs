@@ -156,7 +156,7 @@ fn run_seeds() {
 
 #[test]
 fn arguments() {
-    let mut runner = TestSuiteRunner::new(&[]);
+    let mut runner = TestSuiteRunner::without_state(&[]);
     let argv = [
         "prog",
         "--iterations",
@@ -173,24 +173,24 @@ fn arguments() {
     ];
     assert_eq!(runner.parse_argument(&argv, 0), 0);
     assert_eq!(runner.parse_argument(&argv, 1), 2);
-    assert_eq!(runner.test_iterations, 3);
+    assert_eq!(runner.user().test_iterations, 3);
     assert_eq!(runner.parse_argument(&argv, 3), 2);
-    assert_eq!(runner.exec_key, 1234);
+    assert_eq!(runner.user().exec_key, 1234);
     assert_eq!(runner.parse_argument(&argv, 5), 2);
-    assert_eq!(runner.run_seed.as_deref(), Some("S"));
+    assert_eq!(runner.user().run_seed.as_deref(), Some("S"));
     assert_eq!(runner.parse_argument(&argv, 7), 2);
-    assert_eq!(runner.filter.as_deref(), Some("f"));
+    assert_eq!(runner.user().filter.as_deref(), Some("f"));
     assert_eq!(runner.parse_argument(&argv, 9), 1);
-    assert!(runner.random_order);
+    assert!(runner.user().random_order);
     assert_eq!(runner.parse_argument(&argv, 10), 0);
     // An option without its value isn't taken.
     assert_eq!(runner.parse_argument(&argv, 11), 0);
     assert_eq!(runner.parse_argument(&argv, 12), 0);
     // Fewer than one iteration is one; a key that isn't a number is ignored.
     assert_eq!(runner.parse_argument(&["--iterations", "-4"], 0), 2);
-    assert_eq!(runner.test_iterations, 1);
+    assert_eq!(runner.user().test_iterations, 1);
     assert_eq!(runner.parse_argument(&["--execKey", "x"], 0), 2);
-    assert_eq!(runner.exec_key, 1234);
+    assert_eq!(runner.user().exec_key, 1234);
     assert_eq!(TestSuiteRunner::usage().len(), 5);
 }
 
@@ -199,7 +199,7 @@ fn pass_fail_skip() {
     let _l = test_lock();
     let capture = Capture::new();
     let suites = [&MIXED, &GOOD];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_seed(Some("ABCDEFGHIJKLMNOP"));
     assert_eq!(runner.execute(), 1);
     let key = |suite: &str, test: &str| generate_exec_key("ABCDEFGHIJKLMNOP", suite, test, 1);
@@ -263,7 +263,7 @@ fn pass_fail_skip() {
     // Without the failing test, the run passes.
     capture.clear();
     let suites = [&GOOD];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     assert_eq!(runner.execute(), 0);
     let messages = transcript(&capture);
     assert!(messages.contains(&"Run Summary: Total=3 Passed=1 Failed=0 Skipped=2".to_owned()));
@@ -286,7 +286,7 @@ fn other_results() {
     let _l = test_lock();
     let capture = Capture::new();
     let suites = [&ODD];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_seed(Some("X"));
     assert_eq!(runner.execute(), 1);
     let messages = transcript(&capture);
@@ -364,7 +364,7 @@ fn set_up_and_tear_down() {
     SET_UP_RUNS.store(0, AtomicOrdering::SeqCst);
     TEAR_DOWN_DATA.lock().unwrap().clear();
     let suites = [&WITH_DATA, &FAILING_SET_UP];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_iterations(2);
     assert_eq!(runner.execute(), 1);
     assert_eq!(SET_UP_RUNS.load(AtomicOrdering::SeqCst), 4);
@@ -413,7 +413,7 @@ fn iterations_and_exec_keys() {
     let _l = test_lock();
     let capture = Capture::new();
     let suites = [&RECORDER];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_seed(Some("ABCDEFGHIJKLMNOP"));
     runner.set_iterations(3);
     RECORDED.lock().unwrap().clear();
@@ -452,7 +452,7 @@ fn filters() {
     let suites = [&MIXED, &GOOD];
 
     // A suite, by name ignoring case.
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_filter(Some("good"));
     assert_eq!(runner.execute(), 0);
     let messages = transcript(&capture);
@@ -462,7 +462,7 @@ fn filters() {
 
     // A test: the first suite that has it, and a disabled test is run.
     capture.clear();
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_filter(Some("DISABLED"));
     assert_eq!(runner.execute(), 0);
     let messages = transcript(&capture);
@@ -484,7 +484,7 @@ fn filters() {
 
     // Nothing: the tests are listed.
     capture.clear();
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_filter(Some("nothing"));
     assert_eq!(runner.execute(), 2);
     let messages = transcript(&capture);
@@ -514,7 +514,7 @@ fn filters() {
         test_tear_down: None,
     };
     let suites = [&EMPTY];
-    assert_eq!(TestSuiteRunner::new(&suites).execute(), -1);
+    assert_eq!(TestSuiteRunner::without_state(&suites).execute(), -1);
     assert_eq!(transcript(&capture).last().unwrap(), "No tests to run?");
 }
 
@@ -565,7 +565,7 @@ fn random_order() {
     let _l = test_lock();
     let capture = Capture::new();
     let suites = [&S0, &S1, &S2];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_seed(Some("ORDERSEED"));
     runner.set_random_order(true);
     assert_eq!(runner.execute(), 0);
@@ -596,7 +596,7 @@ fn random_order() {
     // A single suite (where upstream's shuffle indexes before the list).
     capture.clear();
     let suites = [&S0];
-    let mut runner = TestSuiteRunner::new(&suites);
+    let mut runner = TestSuiteRunner::without_state(&suites);
     runner.set_random_order(true);
     assert_eq!(runner.execute(), 0);
     assert_eq!(
