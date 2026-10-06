@@ -645,6 +645,160 @@ save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=efd9a0bf96b1d742 | reload: 23x
 save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=823a99c84234b120 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=6113d4f6f37386d0 blend=1
 qoi_encode 3: bytes=1191 hash=7baf3a4db23d87c6 | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2de1a561faa410a8 blend=1
 qoi_encode 4: bytes=1191 hash=9e07faeab6dd66ff | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2de1a561faa410a8 blend=1
+== lbm_24.lbm
+is: LBM
+is_extra:
+load: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=12fe0b50e4279718 blend=0
+load_io: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=12fe0b50e4279718 blend=0
+typed: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=12fe0b50e4279718 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: error reading IFF chunk size
+trunc 32: err: error reading BMHD chunk
+trunc 64: err: error reading BODY chunk
+trunc 128: err: error reading BODY chunk
+trunc 256: err: error reading BODY chunk
+trunc 512: err: error reading BODY chunk
+trunc 312: err: error reading BODY chunk
+trunc 468: err: error reading BODY chunk
+trunc 623: err: error reading BODY chunk
+xor: err: error reading IFF chunk
+save bmp: bytes=630 hash=c65116486c7d3136 | reload: err: Unsupported TGA format
+save png: bytes=431 hash=9fb02773f488c044 | reload: err: Unsupported TGA format
+save tga: bytes=594 hash=a5470d89db74d96c | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=12fe0b50e4279718 blend=0
+save jpg: bytes=1014 hash=0418cd4525e666a1 | reload: err: Unsupported TGA format
+save ico: bytes=454 hash=632e998ad20521eb | reload: err: Unsupported TGA format
+save cur: bytes=454 hash=7da7797d05c9b060 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=741 hash=76a4fb717e029984 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=922 hash=4d045ac18811796a | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=594 hash=a5470d89db74d96c | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=12fe0b50e4279718 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=594 hash=a5470d89db74d96c | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=12fe0b50e4279718 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=786 hash=2b568d9d4975fd1a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9aca8bc8a5f96826 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=2b568d9d4975fd1a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9aca8bc8a5f96826 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=786 hash=2b568d9d4975fd1a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9aca8bc8a5f96826 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=402 hash=fac528a271108632 | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=16ff19b197a222be blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=402 hash=e9c19c88ac86ef15 | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=16ff19b197a222be blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=2b568d9d4975fd1a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9aca8bc8a5f96826 blend=1
+qoi_encode 3: bytes=547 hash=0b3d1a871ad92a33 | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=fe48358a2a314dbe blend=1
+qoi_encode 4: bytes=547 hash=cb7148c0e44896e2 | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=fe48358a2a314dbe blend=1
+== lbm_ehb.lbm
+is: LBM
+is_extra:
+load: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=64:0238ac5de256d865 key=5 blend=0
+load_io: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=64:0238ac5de256d865 key=5 blend=0
+typed: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=64:0238ac5de256d865 key=5 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: error reading IFF chunk size
+trunc 32: err: error reading BMHD chunk
+trunc 64: err: error reading CMAP chunk
+trunc 128: err: error reading CMAP chunk
+trunc 256: err: error reading BODY chunk
+trunc 154: err: error reading CAMG chunk
+trunc 231: err: error reading BODY chunk
+trunc 307: err: error reading BODY chunk
+xor: err: error reading IFF chunk
+save bmp: bytes=906 hash=9ef9fd86bc35afe2 | reload: err: Unsupported TGA format
+save png: bytes=441 hash=c43db1f8ac6d8152 | reload: err: Unsupported TGA format
+save tga: bytes=402 hash=138b1fe054457830 | reload: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=64:0238ac5de256d865 blend=0
+save jpg: bytes=1338 hash=441db8e531aae3fc | reload: err: Unsupported TGA format
+save ico: bytes=464 hash=5cc79dd94b378087 | reload: err: Unsupported TGA format
+save cur: bytes=464 hash=5dd96c3860423964 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=819 hash=0ca4bd2f0958f788 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1134 hash=0c22ee308bdaaff6 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_INDEX8: bytes=978 hash=729b464ad4a1d461 | reload: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=2b51ab2da5c36fc4 pal=256:cf3242ec0f666065 blend=0
+save_tga SDL_PIXELFORMAT_RGB24: bytes=594 hash=1eed2787d92e725f | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=da30bd325bbffebb blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=594 hash=1eed2787d92e725f | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=da30bd325bbffebb blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=786 hash=c057807c91d8b3a9 | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9dce38d8438f8005 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=c057807c91d8b3a9 | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9dce38d8438f8005 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=786 hash=c057807c91d8b3a9 | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9dce38d8438f8005 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=402 hash=13d9dce2582049e3 | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=aeb1d835f24581c7 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=402 hash=8f9160777028197c | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=aeb1d835f24581c7 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=c057807c91d8b3a9 | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=9dce38d8438f8005 blend=1
+qoi_encode 3: bytes=490 hash=d5199e7a6322639a | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=5fcb6088eecc1cb9 blend=1
+qoi_encode 4: bytes=487 hash=25574fdf51f2affd | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=8ccbcaa5ee1677d5 blend=1
+== lbm_ham.lbm
+is: LBM
+is_extra:
+load: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=aeb2129affeaf8da blend=0
+load_io: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=aeb2129affeaf8da blend=0
+typed: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=aeb2129affeaf8da blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: error reading IFF chunk size
+trunc 32: err: error reading BMHD chunk
+trunc 64: err: error reading CMAP chunk
+trunc 128: err: error reading BODY chunk
+trunc 256: err: error reading BODY chunk
+trunc 148: err: error reading BODY chunk
+trunc 222: err: error reading BODY chunk
+trunc 295: err: error reading BODY chunk
+xor: err: error reading IFF chunk
+save bmp: bytes=630 hash=02aecd57640cbd20 | reload: err: Unsupported TGA format
+save png: bytes=301 hash=43facc9b7b0fc5f1 | reload: err: Unsupported TGA format
+save tga: bytes=594 hash=5b5a74f5501a03de | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=aeb2129affeaf8da blend=0
+save jpg: bytes=1323 hash=cfa56333dcad5ea5 | reload: err: Unsupported TGA format
+save ico: bytes=324 hash=e6938560f0832936 | reload: err: Unsupported TGA format
+save cur: bytes=324 hash=a3558eb12bb8aa5d | reload: err: Unsupported TGA format
+save_jpg 10: bytes=823 hash=4f4d067952ca3aab | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1121 hash=104d8c7b5992f4c7 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=594 hash=5b5a74f5501a03de | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=aeb2129affeaf8da blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=594 hash=5b5a74f5501a03de | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=aeb2129affeaf8da blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=786 hash=492af3f56681865c | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=d57cd03bb3160fa8 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=492af3f56681865c | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=d57cd03bb3160fa8 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=786 hash=492af3f56681865c | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=d57cd03bb3160fa8 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=402 hash=253fd224b1781700 | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=c7752f100c82f2bc blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=402 hash=2b69b133e70e4297 | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=c7752f100c82f2bc blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=492af3f56681865c | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=d57cd03bb3160fa8 blend=1
+qoi_encode 3: bytes=482 hash=674d521ecd426b3f | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=d860d7f05722f3b4 blend=1
+qoi_encode 4: bytes=482 hash=ce573bcf3842e978 | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=d860d7f05722f3b4 blend=1
+== lbm_ilbm.lbm
+is: LBM
+is_extra:
+load: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=6d3ec5535b4f80b8 pal=16:48199549795deaa5 blend=0
+load_io: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=6d3ec5535b4f80b8 pal=16:48199549795deaa5 blend=0
+typed: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=6d3ec5535b4f80b8 pal=16:48199549795deaa5 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: error reading IFF chunk size
+trunc 32: err: error reading BMHD chunk
+trunc 64: err: error reading CMAP chunk
+trunc 128: err: error reading BODY chunk
+trunc 127: err: error reading BODY chunk
+trunc 190: err: error reading BODY chunk
+trunc 253: err: error reading BODY chunk
+xor: err: error reading IFF chunk
+save bmp: bytes=310 hash=85f2f0a552e63781 | reload: err: Unsupported TGA format
+save png: bytes=222 hash=f922c4c3a7860143 | reload: err: Unsupported TGA format
+save tga: bytes=258 hash=6ce90f17d6f1a430 | reload: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=6d3ec5535b4f80b8 pal=16:48199549795deaa5 blend=0
+save jpg: bytes=1384 hash=3d57eddd495e5c1b | reload: err: Unsupported TGA format
+save ico: bytes=244 hash=b7edf6bfc5b62045 | reload: err: Unsupported TGA format
+save cur: bytes=244 hash=b866b36f550bf776 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=833 hash=a11f75ef24aa88f5 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1153 hash=7a994510d0dbc1bf | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_INDEX8: bytes=978 hash=ced544274c74bae7 | reload: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=531777318c543be2 pal=256:cf3242ec0f666065 blend=0
+save_tga SDL_PIXELFORMAT_RGB24: bytes=594 hash=dc11cbf9914f1e32 | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=ed58a6bf936f0afe blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=594 hash=dc11cbf9914f1e32 | reload: 32x6 SDL_PIXELFORMAT_BGR24 pitch=96 hash=ed58a6bf936f0afe blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=786 hash=feac841335de651a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=b5bceec5a052d606 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=feac841335de651a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=b5bceec5a052d606 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=786 hash=48a10a0ed281728e | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=eaf84443d340de9a blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=402 hash=c0c01ff2c0bf66c2 | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=9ab54c8e89dd8476 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=402 hash=3bc86253763b430d | reload: 32x6 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=9ab54c8e89dd8476 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=786 hash=feac841335de651a | reload: 32x6 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=b5bceec5a052d606 blend=1
+qoi_encode 3: bytes=204 hash=a37297caff87e192 | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=feddd2f1e99855be blend=1
+qoi_encode 4: bytes=219 hash=81b4fca97f3a0a56 | reload: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=09f7b9e6701724a2 blend=1
 == lbm_pbm.lbm
 is: LBM
 is_extra:
@@ -666,6 +820,46 @@ trunc 416: err: error reading CMAP chunk
 trunc 624: err: error reading CMAP chunk
 trunc 831: err: error reading BODY chunk
 xor: err: error reading IFF chunk
+== lbm_pbm8.lbm
+is: LBM
+is_extra:
+load: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=8708d4e45eb6d960 pal=256:7f3e7202da080025 key=3 blend=0
+load_io: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=8708d4e45eb6d960 pal=256:7f3e7202da080025 key=3 blend=0
+typed: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=8708d4e45eb6d960 pal=256:7f3e7202da080025 key=3 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: error reading IFF chunk size
+trunc 32: err: error reading BMHD chunk
+trunc 64: err: error reading CMAP chunk
+trunc 128: err: error reading CMAP chunk
+trunc 256: err: error reading CMAP chunk
+trunc 512: err: error reading CMAP chunk
+trunc 468: err: error reading CMAP chunk
+trunc 702: err: error reading CMAP chunk
+trunc 935: err: error reading BODY chunk
+xor: err: error reading IFF chunk
+save bmp: bytes=1034 hash=e1aeb81058624417 | reload: err: Unsupported TGA format
+save png: bytes=1263 hash=fa9adfef1afd9098 | reload: err: Unsupported TGA format
+save tga: bytes=1010 hash=2cc85500204a3158 | reload: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=8708d4e45eb6d960 pal=256:7f3e7202da080025 blend=0
+save jpg: bytes=1180 hash=ff5dde8cbc882097 | reload: err: Unsupported TGA format
+save ico: bytes=1286 hash=0bdfe66658e72b4b | reload: err: Unsupported TGA format
+save cur: bytes=1286 hash=596eeeab1fd1de00 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=760 hash=d7e6a8af855ad525 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1009 hash=3382d183b52ab3a5 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_INDEX8: bytes=1010 hash=3c222158da73d883 | reload: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=e3ff388826377aab pal=256:cf3242ec0f666065 blend=0
+save_tga SDL_PIXELFORMAT_RGB24: bytes=690 hash=0d27bd387e7a43f1 | reload: 32x7 SDL_PIXELFORMAT_BGR24 pitch=96 hash=9a63d0a41caae770 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=690 hash=0d27bd387e7a43f1 | reload: 32x7 SDL_PIXELFORMAT_BGR24 pitch=96 hash=9a63d0a41caae770 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=914 hash=e04d89a16fe5a669 | reload: 32x7 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=2c1225665de75f30 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=914 hash=e04d89a16fe5a669 | reload: 32x7 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=2c1225665de75f30 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=914 hash=e04d89a16fe5a669 | reload: 32x7 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=2c1225665de75f30 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=466 hash=f7146b62c2b8e952 | reload: 32x7 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=e6606500d78d8907 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=466 hash=3582ae2cc1c82d11 | reload: 32x7 SDL_PIXELFORMAT_XRGB1555 pitch=64 hash=e6606500d78d8907 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=914 hash=e04d89a16fe5a669 | reload: 32x7 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=2c1225665de75f30 blend=1
+qoi_encode 3: bytes=281 hash=6dcb7b6202917aa4 | reload: 32x7 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=b8de760f38e16538 blend=1
+qoi_encode 4: bytes=281 hash=d88056946478cd09 | reload: 32x7 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=b8de760f38e16538 blend=1
 == p1.pbm
 is: PNM
 is_extra:
@@ -2749,3 +2943,308 @@ save_tga SDL_PIXELFORMAT_ARGB1555: bytes=30 hash=48d3550543b8f33a | reload: 3x2 
 save_tga SDL_PIXELFORMAT_ARGB8888: bytes=42 hash=431746c4b076b728 | reload: 3x2 SDL_PIXELFORMAT_ARGB8888 pitch=12 hash=0bf2ea1534fad627 blend=1
 qoi_encode 3: bytes=31 hash=b83e447dd989fdda | reload: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=86bc33b0037d4477 blend=1
 qoi_encode 4: bytes=31 hash=4be3279f6502100f | reload: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=86bc33b0037d4477 blend=1
+== xcf_gray.xcf
+is: XCF
+is_extra:
+load: err: 
+load_io: err: 
+typed: err: 
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Couldn't read header
+trunc 32: err: Couldn't read header
+trunc 64: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 128: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 256: err: 
+trunc 512: err: 
+trunc 275: err: 
+trunc 412: err: 
+trunc 549: err: 
+xor: err: Couldn't read header
+== xcf_indexed.xcf
+is: XCF
+is_extra:
+load: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+load_io: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+typed: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Couldn't read header
+trunc 32: err: Couldn't read header
+trunc 64: err: Couldn't read header
+trunc 128: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 256: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 512: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 411: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 617: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=088989588778a486 blend=1
+trunc 822: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+xor: err: Couldn't read header
+save bmp: bytes=1334 hash=65dc7cd58eb8e005 | reload: err: Unsupported TGA format
+save png: bytes=149 hash=00151c9fb2296ccc | reload: err: Unsupported TGA format
+save tga: bytes=1214 hash=3328af95b8183039 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+save jpg: bytes=1915 hash=246c253f07e84831 | reload: err: Unsupported TGA format
+save ico: bytes=172 hash=9757e42852096ab8 | reload: err: Unsupported TGA format
+save cur: bytes=172 hash=56b4f79dd1c01e77 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=941 hash=15e24e084c6eb5fa | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1504 hash=259ee8e9a4fdbc7c | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=915 hash=a318bf4a47e382d0 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=5a51977e4dab5430 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=915 hash=a318bf4a47e382d0 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=5a51977e4dab5430 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=1214 hash=3328af95b8183039 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=3328af95b8183039 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=1214 hash=94721b6144a75f51 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5aaef811cbf88861 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=616 hash=9a43defb47d52051 | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=b9ad63d9e1988979 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=e2095ba5f690925a | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=b9ad63d9e1988979 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=3328af95b8183039 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=740f5925cb3e6c09 blend=1
+qoi_encode 3: bytes=342 hash=95d9a822b6e22cb3 | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e82e34a6dc02de61 blend=1
+qoi_encode 4: bytes=623 hash=42d99c920b6f5b9b | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5e2e1452a9477ab9 blend=1
+== xcf_rgb.xcf
+is: XCF
+is_extra:
+load: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+load_io: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+typed: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Couldn't read header
+trunc 32: err: Couldn't read header
+trunc 64: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 128: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 256: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 512: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
+trunc 1024: err: 
+trunc 2048: err: 
+trunc 1794: err: 
+trunc 2691: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+trunc 3587: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+xor: err: Couldn't read header
+save bmp: bytes=1334 hash=43fa7106d413118d | reload: err: Unsupported TGA format
+save png: bytes=872 hash=169310682f36d8ba | reload: err: Unsupported TGA format
+save tga: bytes=1214 hash=f542ec6c83526bbd | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+save jpg: bytes=970 hash=5503310a5dec3a1b | reload: err: Unsupported TGA format
+save ico: bytes=894 hash=f50205641287b05d | reload: err: Unsupported TGA format
+save cur: bytes=894 hash=561da086f9c1a716 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=727 hash=86d29785d64d92fc | reload: err: Unsupported TGA format
+save_jpg 50: bytes=863 hash=c1ae8f7a01baf135 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=915 hash=306962b25c1435c2 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=b91099b9ce296422 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=915 hash=306962b25c1435c2 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=b91099b9ce296422 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=1214 hash=f542ec6c83526bbd | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=f542ec6c83526bbd | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=1214 hash=f542ec6c83526bbd | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=616 hash=c7742bbaf2c70fce | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=70c314b608269526 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=2e46a144e8bd3361 | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=70c314b608269526 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=f542ec6c83526bbd | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+qoi_encode 3: bytes=1215 hash=11b9ce1f9b3e3bf1 | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5884f77700c16f75 blend=1
+qoi_encode 4: bytes=1215 hash=79e0d5cd1169e00c | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5884f77700c16f75 blend=1
+== xcf_rgba.xcf
+is: XCF
+is_extra:
+load: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+load_io: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+typed: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Couldn't read header
+trunc 32: err: Couldn't read header
+trunc 64: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=bd0a736b61e172c5 blend=1
+trunc 128: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=bd0a736b61e172c5 blend=1
+trunc 256: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=bd0a736b61e172c5 blend=1
+trunc 512: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=bd0a736b61e172c5 blend=1
+trunc 1024: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=bd0a736b61e172c5 blend=1
+trunc 2048: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=62de35f2f341be14 blend=1
+trunc 4096: err: 
+trunc 8192: err: 
+trunc 16384: err: 
+trunc 8577: err: 
+trunc 12865: err: 
+trunc 17153: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+xor: err: Couldn't read header
+save bmp: bytes=18898 hash=c5650daa7972bf5a | reload: err: Unsupported TGA format
+save png: bytes=14691 hash=037d56b3fd87bf7f | reload: err: Unsupported TGA format
+save tga: bytes=18778 hash=69bb48901bb14851 | reload: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+save jpg: bytes=10469 hash=b16cb67de898bc89 | reload: err: Unsupported TGA format
+save ico: bytes=14714 hash=5530c55a80e5fdb3 | reload: err: Unsupported TGA format
+save cur: bytes=14714 hash=24c5521a0c67e88c | reload: err: Unsupported TGA format
+save_jpg 10: bytes=2028 hash=25c011342391d0f3 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=6792 hash=c5c5833fc44e139d | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=14088 hash=a7a38493019df5aa | reload: 70x67 SDL_PIXELFORMAT_BGR24 pitch=212 hash=6482afc6a080ac89 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=14088 hash=a7a38493019df5aa | reload: 70x67 SDL_PIXELFORMAT_BGR24 pitch=212 hash=6482afc6a080ac89 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=18778 hash=69bb48901bb14851 | reload: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=18778 hash=69bb48901bb14851 | reload: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=18778 hash=97159e3977665a98 | reload: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=d807bec18e086413 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=9398 hash=5d03a8732dd21ee4 | reload: 70x67 SDL_PIXELFORMAT_XRGB1555 pitch=140 hash=a9debecbc961deeb blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=9398 hash=25fe927f0f9a2663 | reload: 70x67 SDL_PIXELFORMAT_XRGB1555 pitch=140 hash=a9debecbc961deeb blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=18778 hash=69bb48901bb14851 | reload: 70x67 SDL_PIXELFORMAT_ARGB8888 pitch=280 hash=eb993e85efea2926 blend=1
+qoi_encode 3: bytes=13634 hash=dcdecbd66d71d1a6 | reload: 70x67 SDL_PIXELFORMAT_ABGR8888 pitch=280 hash=a69504b7cb88bd0f blend=1
+qoi_encode 4: bytes=23272 hash=290b3148dec50469 | reload: 70x67 SDL_PIXELFORMAT_ABGR8888 pitch=280 hash=f88c8b60a7d6e2f2 blend=1
+== xpm_named.xpm
+is: XPM
+is_extra:
+load: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=12 hash=e1971f68721c08eb pal=8:55916939765bde73 key=0 blend=0
+load_io: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=12 hash=e1971f68721c08eb pal=8:55916939765bde73 key=0 blend=0
+typed: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=12 hash=e1971f68721c08eb pal=8:55916939765bde73 key=0 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Premature end of data
+trunc 32: err: Premature end of data
+trunc 64: err: Premature end of data
+trunc 128: err: Premature end of data
+trunc 256: err: Premature end of data
+trunc 183: err: Premature end of data
+trunc 274: err: Premature end of data
+trunc 365: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=12 hash=e1971f68721c08eb pal=8:55916939765bde73 key=0 blend=0
+xor: err: Invalid format description
+save bmp: bytes=318 hash=8639248c8959b6b1 | reload: err: Unsupported TGA format
+save png: bytes=147 hash=334aabdd07d5884f | reload: err: Unsupported TGA format
+save tga: bytes=87 hash=fb5af6f8a3945ae4 | reload: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=12 hash=e1971f68721c08eb pal=8:094f1f54920f046a blend=0
+save jpg: bytes=979 hash=5af11f47dc1bfabf | reload: err: Unsupported TGA format
+save ico: bytes=170 hash=675804c0ca92d8e1 | reload: err: Unsupported TGA format
+save cur: bytes=170 hash=e714dea94194634e | reload: err: Unsupported TGA format
+save_jpg 10: bytes=760 hash=3ec8d3d30f8c5701 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=894 hash=a8b2c92b2339c862 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_INDEX8: bytes=831 hash=905f0bcad2a6fdc2 | reload: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=12 hash=0c2f1be925b7a9cf pal=256:cf3242ec0f666065 blend=0
+save_tga SDL_PIXELFORMAT_RGB24: bytes=153 hash=86d75736bdf44e3c | reload: 9x5 SDL_PIXELFORMAT_BGR24 pitch=28 hash=d2b7f59a94030692 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=153 hash=86d75736bdf44e3c | reload: 9x5 SDL_PIXELFORMAT_BGR24 pitch=28 hash=d2b7f59a94030692 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=198 hash=bb1c0e51b3963e99 | reload: 9x5 SDL_PIXELFORMAT_ARGB8888 pitch=36 hash=119653faeaefcbd7 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=198 hash=bb1c0e51b3963e99 | reload: 9x5 SDL_PIXELFORMAT_ARGB8888 pitch=36 hash=119653faeaefcbd7 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=198 hash=e7d8c2766a9f5ef8 | reload: 9x5 SDL_PIXELFORMAT_ARGB8888 pitch=36 hash=335daecbf6de2cfa blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=108 hash=662d4acc58a48d91 | reload: 9x5 SDL_PIXELFORMAT_XRGB1555 pitch=20 hash=0b1c9fd5d6746a4b blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=108 hash=70812936501cef1e | reload: 9x5 SDL_PIXELFORMAT_XRGB1555 pitch=20 hash=0b1c9fd5d6746a4b blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=198 hash=bb1c0e51b3963e99 | reload: 9x5 SDL_PIXELFORMAT_ARGB8888 pitch=36 hash=119653faeaefcbd7 blend=1
+qoi_encode 3: bytes=131 hash=9abceaf2914ac9eb | reload: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=e11506ba53bb9c57 blend=1
+qoi_encode 4: bytes=117 hash=83cba3d24e04db82 | reload: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=431f3329dc467937 blend=1
+== xpm_rgb.xpm
+is: XPM
+is_extra:
+load: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=fcccdbbb28f2b31d pal=232:87f52770374e374d blend=0
+load_io: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=fcccdbbb28f2b31d pal=232:87f52770374e374d blend=0
+typed: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=fcccdbbb28f2b31d pal=232:87f52770374e374d blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Premature end of data
+trunc 32: err: Premature end of data
+trunc 64: err: Premature end of data
+trunc 128: err: Premature end of data
+trunc 256: err: Premature end of data
+trunc 512: err: Premature end of data
+trunc 1024: err: Premature end of data
+trunc 2048: err: Premature end of data
+trunc 4096: err: Premature end of data
+trunc 2239: err: Premature end of data
+trunc 3358: err: Premature end of data
+trunc 4477: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=fcccdbbb28f2b31d pal=232:87f52770374e374d blend=0
+xor: err: Invalid format description
+save bmp: bytes=1294 hash=46d2241d93b0a942 | reload: err: Unsupported TGA format
+save png: bytes=1332 hash=4c26b10097363f42 | reload: err: Unsupported TGA format
+save tga: bytes=1013 hash=d0be4dc388958c61 | reload: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=fcccdbbb28f2b31d pal=232:87f52770374e374d blend=0
+save jpg: bytes=1750 hash=588d8c9015f1ebe1 | reload: err: Unsupported TGA format
+save ico: bytes=1354 hash=dc21e3f1eae50c8b | reload: err: Unsupported TGA format
+save cur: bytes=1354 hash=eaadeb16af67d134 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=877 hash=db6d92cabdef9290 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1387 hash=2607aedaa8a04626 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_INDEX8: bytes=1085 hash=e94e01ee160fc9fc | reload: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=426b2b2e4676bd73 pal=256:cf3242ec0f666065 blend=0
+save_tga SDL_PIXELFORMAT_RGB24: bytes=915 hash=731bc71f6237fcc3 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=044f0fe4a1e07623 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=915 hash=731bc71f6237fcc3 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=044f0fe4a1e07623 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=1214 hash=57ca00975b3661ae | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4636b0fbc502f23e blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=57ca00975b3661ae | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4636b0fbc502f23e blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=1214 hash=57ca00975b3661ae | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4636b0fbc502f23e blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=616 hash=1f83065f9463a5ae | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=f11541b3cfb75036 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=2cd4f7a30e114f61 | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=f11541b3cfb75036 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=57ca00975b3661ae | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4636b0fbc502f23e blend=1
+qoi_encode 3: bytes=1069 hash=53ab538440fb5986 | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=8c40b15901d155da blend=1
+qoi_encode 4: bytes=1069 hash=7a9257936d3074bb | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=8c40b15901d155da blend=1
+== xpm_trans.xpm
+is: XPM
+is_extra:
+load: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=35af5ba2983a0954 pal=11:f625d4d03b329a6b key=10 blend=0
+load_io: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=35af5ba2983a0954 pal=11:f625d4d03b329a6b key=10 blend=0
+typed: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=35af5ba2983a0954 pal=11:f625d4d03b329a6b key=10 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Premature end of data
+trunc 32: err: Premature end of data
+trunc 64: err: Premature end of data
+trunc 128: err: Premature end of data
+trunc 256: err: Premature end of data
+trunc 512: err: Premature end of data
+trunc 315: err: Premature end of data
+trunc 472: err: Premature end of data
+trunc 629: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=35af5ba2983a0954 pal=11:f625d4d03b329a6b key=10 blend=0
+xor: err: Invalid format description
+save bmp: bytes=1334 hash=02e4e3477a34a9ff | reload: err: Unsupported TGA format
+save png: bytes=226 hash=6a86274e5b4563bf | reload: err: Unsupported TGA format
+save tga: bytes=350 hash=d4736d466c77ef23 | reload: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=35af5ba2983a0954 pal=11:f62601d03b32e6e2 blend=0
+save jpg: bytes=1718 hash=24b2cdd692832d25 | reload: err: Unsupported TGA format
+save ico: bytes=248 hash=599180bf4f972517 | reload: err: Unsupported TGA format
+save cur: bytes=248 hash=ebb1ea70f2e5baa4 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=873 hash=70f0c234d60850ef | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1376 hash=05539742b041a716 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_INDEX8: bytes=1085 hash=e4491526facb5fa0 | reload: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=24 hash=af65444cd13b5697 pal=256:cf3242ec0f666065 blend=0
+save_tga SDL_PIXELFORMAT_RGB24: bytes=915 hash=9e8b2860cb93dd88 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=6e710ca2b6df1768 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=915 hash=9e8b2860cb93dd88 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=6e710ca2b6df1768 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=1214 hash=30874f1d4401a18f | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=ee059db04ce7655f blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=30874f1d4401a18f | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=ee059db04ce7655f blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=1214 hash=30874f1d4401a18f | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=ee059db04ce7655f blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=616 hash=88c2a5b1066471cd | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=91a5b102ee55d435 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=491fb238f432b012 | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=91a5b102ee55d435 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=30874f1d4401a18f | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=ee059db04ce7655f blend=1
+qoi_encode 3: bytes=208 hash=b0f963a0db3883fd | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=51b53bfd371cb40f blend=1
+qoi_encode 4: bytes=210 hash=77e24890c320c16c | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=505281efa12876c3 blend=1
+== xv_crlf.xv
+is: XV
+is_extra:
+load: 23x13 SDL_PIXELFORMAT_RGB332 pitch=24 hash=70fbd28204e6c588 blend=0
+load_io: 23x13 SDL_PIXELFORMAT_RGB332 pitch=24 hash=70fbd28204e6c588 blend=0
+typed: 23x13 SDL_PIXELFORMAT_RGB332 pitch=24 hash=70fbd28204e6c588 blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Unsupported image format
+trunc 64: err: Unsupported image format
+trunc 128: err: Couldn't read image data
+trunc 256: err: Couldn't read image data
+trunc 191: err: Couldn't read image data
+trunc 287: err: Couldn't read image data
+trunc 382: err: Couldn't read image data
+xor: err: Unsupported image format
+save bmp: bytes=990 hash=1a9a0d7d709b7076 | reload: err: Unsupported TGA format
+save png: bytes=330 hash=e22a2113f9af51fc | reload: err: Unsupported TGA format
+save tga: err: Unsupported SDL_Surface format for TGA saving. Supported formats are INDEX8, BGR24, RGB24, BGRA32, RGBA32, XRGB8888, XRGB1555, ARGB1555.
+save jpg: bytes=1174 hash=c8eee3ccc017f2c3 | reload: err: Unsupported TGA format
+save ico: bytes=352 hash=294f13075895e2ab | reload: err: Unsupported TGA format
+save cur: bytes=352 hash=a65d9420b15076d4 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=822 hash=445b1161f71a4055 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1056 hash=6b6f3e8f08a55a14 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=915 hash=ce3c3b4b8f75b5fc | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=4dbe41804d80839c blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=915 hash=ce3c3b4b8f75b5fc | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=4dbe41804d80839c blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=1214 hash=97989fb82c9dca43 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=57844d429af7f253 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=97989fb82c9dca43 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=57844d429af7f253 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=1214 hash=97989fb82c9dca43 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=57844d429af7f253 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=616 hash=dab1afa4ee668cb5 | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=8a7efbdf91a30ebd blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=70baf07c994983ca | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=8a7efbdf91a30ebd blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=97989fb82c9dca43 | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=57844d429af7f253 blend=1
+qoi_encode 3: bytes=819 hash=f3a6e1f6f60f1b9f | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=fe7771132f823d93 blend=1
+qoi_encode 4: bytes=819 hash=a50ca5365e553686 | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=fe7771132f823d93 blend=1

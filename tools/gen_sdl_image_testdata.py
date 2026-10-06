@@ -104,9 +104,33 @@ def main(out):
     run(tmpa, "-depth", "16", "PNG64:" + p("png_rgba16.png"))
     run(tmp, "-interlace", "PNG", "PNG24:" + p("png_interlace.png"))
 
-    # The detectors of the formats not decoded yet
+    # LBM: a PBM whose body is too short for its padded rows, and complete
+    # pictures: compressed PBM, interleaved planes with a stencil, EHB with
+    # a transparent color, HAM6, 24 planes
     write_lbm(p("lbm_pbm.lbm"))
+    write_lbm_pbm(p("lbm_pbm8.lbm"))
+    write_ilbm(p("lbm_ilbm.lbm"), 4, compress=True, mask=1, ncolors=16)
+    write_ilbm(p("lbm_ehb.lbm"), 6, compress=False, mask=2, ncolors=32, camg=0x80)
+    write_ilbm(p("lbm_ham.lbm"), 6, compress=True, mask=0, ncolors=16, camg=0x800)
+    write_ilbm(p("lbm_24.lbm"), 24, compress=False, mask=0, ncolors=0)
+
+    # XV thumbnails
     write_xv(p("thumb.xv"))
+    write_xv_big(p("xv_crlf.xv"))
+
+    # XCF: RGBA layers (RLE, offsets, an invisible layer, a channel), gray
+    # (uncompressed, version 11 with 64-bit offsets), indexed with alpha
+    write_xcf(p("xcf_rgba.xcf"), "rgba")
+    write_xcf(p("xcf_gray.xcf"), "gray")
+    write_xcf(p("xcf_indexed.xcf"), "indexed")
+    write_xcf(p("xcf_rgb.xcf"), "rgb")
+
+    # XPM: many colors (32-bit), transparency, and named, short and long
+    # hex colors with symbolic names and two characters per pixel
+    run(tmp, p("xpm_rgb.xpm"))
+    run(tmpa, "-channel", "A", "-threshold", "50%", "+channel", "-colors", "12",
+        p("xpm_trans.xpm"))
+    write_xpm_named(p("xpm_named.xpm"))
 
     for f in (tmp, tmpa, p("_16.png"), p("_32.png"), p("_24.png")):
         os.remove(f)
@@ -201,6 +225,240 @@ def write_lbm(path):
     for name, data in ((b"BMHD", bmhd), (b"CMAP", cmap), (b"BODY", body)):
         chunks += name + struct.pack(">I", len(data)) + data + (b"\0" if len(data) % 2 else b"")
     open(path, "wb").write(b"FORM" + struct.pack(">I", 4 + len(chunks)) + b"PBM " + chunks)
+
+
+def byterun1(row):
+    """IFF ByteRun1 (PackBits) compression of one plane's row."""
+    out = b""
+    i = 0
+    while i < len(row):
+        n = 1
+        while i + n < len(row) and row[i + n] == row[i] and n < 128:
+            n += 1
+        if n > 1:
+            out += bytes([257 - n, row[i]])
+            i += n
+            continue
+        j = i
+        while j < len(row) and j - i < 128 and not (j + 1 < len(row) and row[j + 1] == row[j]):
+            j += 1
+        j = max(j, i + 1)
+        out += bytes([j - i - 1]) + row[i:j]
+        i = j
+    return out
+
+
+def iff(form, chunks):
+    data = b""
+    for name, body in chunks:
+        data += name + struct.pack(">I", len(body)) + body + (b"\0" if len(body) % 2 else b"")
+    return b"FORM" + struct.pack(">I", 4 + len(data)) + form + data
+
+
+def write_lbm_pbm(path):
+    """A compressed PBM picture, 20 pixels wide (padded to 32)."""
+    w, h = 20, 7
+    bmhd = struct.pack(">HHhhBBBBHBBhh", w, h, 0, 0, 8, 2, 1, 0, 3, 1, 1, w, h)
+    cmap = b"".join(bytes([i, 255 - i, (i * 7) & 255]) for i in range(256))
+    body = b""
+    for y in range(h):
+        row = bytes(((x // 3) * 11 + y * 5) & 255 if x < w else 0 for x in range(32))
+        body += byterun1(row)
+    open(path, "wb").write(iff(b"PBM ", [(b"BMHD", bmhd), (b"CMAP", cmap), (b"BODY", body)]))
+
+
+def write_ilbm(path, nplanes, compress, mask, ncolors, camg=None):
+    """An interleaved-planes ILBM picture, 21 pixels wide (padded to 32),
+    with an optional stencil plane (mask 1) or transparent color (mask 2)."""
+    w, h = 21, 6
+    bpl = ((w + 15) // 16) * 2
+    bmhd = struct.pack(">HHhhBBBBHBBhh", w, h, 0, 0, nplanes, mask, 1 if compress else 0, 0,
+                       5, 1, 1, w, h)
+    cmap = b"".join(bytes([i * 8 & 255, 255 - i * 6 & 255, i * 37 & 255]) for i in range(ncolors))
+    chunks = [(b"BMHD", bmhd)]
+    if ncolors:
+        chunks.append((b"CMAP", cmap))
+    if camg is not None:
+        chunks.append((b"CAMG", struct.pack(">I", camg)))
+    body = b""
+    for y in range(h):
+        if nplanes == 24:
+            pixels = [((x * 12) << 16) | ((y * 40) << 8) | (x * y * 3) for x in range(w)]
+        else:
+            pixels = [(x * 3 + y * 5) % (1 << nplanes) for x in range(w)]
+        planes = list(range(nplanes)) + ([nplanes] if mask == 1 else [])
+        for plane in planes:
+            if plane == nplanes:
+                bits = [(x + y) % 3 != 0 for x in range(w)]
+            else:
+                bits = [(v >> plane) & 1 for v in pixels]
+            bits += [0] * (bpl * 8 - w)
+            row = bytes(sum(b << (7 - k) for k, b in enumerate(bits[i:i + 8]))
+                        for i in range(0, len(bits), 8))
+            body += byterun1(row) if compress else row
+    chunks.append((b"BODY", body))
+    open(path, "wb").write(iff(b"ILBM", chunks))
+
+
+def write_xv_big(path):
+    """An XV thumbnail with CRLF line ends and several comments."""
+    w, h = 23, 13
+    header = (b"P7 332\r\n#XVVERSION:Version 3.10a\r\n#IMGINFO:a gradient\r\n"
+              b"#END_OF_COMMENTS\r\n%d %d 255\r\n" % (w, h))
+    pixels = bytes(((x * 11) & 0xe0) | ((y * 19 >> 3) & 0x1c) | (x & 3) for y in range(h) for x in range(w))
+    open(path, "wb").write(header + pixels)
+
+
+def xcf_rle(data):
+    """GIMP's tile RLE of one channel."""
+    out = b""
+    i = 0
+    while i < len(data):
+        n = 1
+        while i + n < len(data) and data[i + n] == data[i]:
+            n += 1
+        if n >= 3:
+            if n < 128:
+                out += bytes([n - 1, data[i]])
+            else:
+                out += bytes([127]) + struct.pack(">H", n) + bytes([data[i]])
+            i += n
+            continue
+        j = i
+        while j < len(data) and not (j + 2 < len(data) and data[j] == data[j + 1] == data[j + 2]):
+            j += 1
+        n = j - i
+        if n < 128:
+            out += bytes([256 - n]) + data[i:j]
+        else:
+            out += bytes([128]) + struct.pack(">H", n) + data[i:j]
+        i = j
+    return out
+
+
+def write_xcf(path, kind):
+    """A GIMP image, built chunk by chunk: the header and its properties,
+    the layer and channel offsets, then each layer's hierarchy, level and
+    64x64 tiles."""
+    version, image_type, bpp, compress = {
+        "rgba": (0, 0, 4, 1),
+        "gray": (11, 1, 1, 0),
+        "indexed": (3, 2, 2, 1),
+        "rgb": (5, 0, 3, 0),
+    }[kind]
+    w, h = (70, 67) if kind == "rgba" else (23, 13)
+    sign = b"gimp xcf file\0" if version == 0 else b"gimp xcf v%03d\0" % version
+    osize = ">Q" if version >= 11 else ">I"
+    prop = lambda pid, body: struct.pack(">II", pid, len(body)) + body
+    props = prop(17, bytes([compress]))
+    ncolors = 6
+    if kind == "indexed":
+        props += prop(1, struct.pack(">I", ncolors) +
+                      b"".join(bytes([i * 40, 255 - i * 40, i * 13]) for i in range(ncolors)))
+    props += prop(19, struct.pack(">ff", 72.0, 72.0)) + prop(0, b"")
+    header = sign + struct.pack(">III", w, h, image_type)
+    if version >= 4:
+        header += struct.pack(">I", 150)
+    header += props
+
+    def pixel(layer, x, y):
+        if kind == "rgba":
+            a = 255 if layer == 0 else (x * 9 + y * 5) & 255
+            return bytes([(x * 3 + layer * 90) & 255, (y * 3) & 255, (x * y) & 255, a])
+        if kind == "gray":
+            return bytes([(x * 11 + y * 3) & 255])
+        if kind == "indexed":
+            return bytes([(x + y) % (ncolors + 2), 255 if (x + y) % 4 else 100])
+        return bytes([x * 10 & 255, y * 19 & 255, (x + y) * 5 & 255])
+
+    # layers: (width, height, offset, visible)
+    if kind == "rgba":
+        layers = [(40, 30, (35, 40), True), (70, 67, (0, 0), True)]
+    elif kind == "rgb":
+        layers = [(10, 10, (2, 2), False), (23, 13, (0, 0), True)]
+    else:
+        layers = [(w, h, (0, 0), True)]
+
+    blobs = []  # (placeholder-relative data) built after the offsets are known
+    nlayers = len(layers)
+    nchannels = 1 if kind == "rgba" else 0
+    pos = len(header) + struct.calcsize(osize) * (nlayers + 1 + nchannels + 1)
+    layer_offsets = []
+    channel_offsets = []
+    out = b""
+
+    def string(s):
+        return struct.pack(">I", len(s) + 1) + s + b"\0"
+
+    for i, (lw, lh, (ox, oy), visible) in enumerate(layers):
+        layer_offsets.append(pos + len(out))
+        lprops = (prop(8, struct.pack(">I", 1 if visible else 0)) +
+                  prop(15, struct.pack(">ii", ox, oy)) + prop(6, struct.pack(">I", 255)) + prop(0, b""))
+        ltype = {"rgba": 1, "gray": 2, "indexed": 5, "rgb": 0}[kind]
+        layer = struct.pack(">III", lw, lh, ltype) + string(b"Layer %d" % i) + lprops
+        hier_at = pos + len(out) + len(layer) + 2 * struct.calcsize(osize)
+        layer += struct.pack(osize, hier_at) + struct.pack(osize, 0)
+        # hierarchy: one level, then a dummy second level GIMP writes
+        tiles = []
+        for ty in range(0, lh, 64):
+            for tx in range(0, lw, 64):
+                tw, th = min(64, lw - tx), min(64, lh - ty)
+                raw = b"".join(pixel(i, tx + x, ty + y) for y in range(th) for x in range(tw))
+                if compress:
+                    raw = b"".join(xcf_rle(raw[c::bpp]) for c in range(bpp))
+                tiles.append(raw)
+        hier = struct.pack(">III", lw, lh, bpp)
+        level_at = hier_at + len(hier) + 3 * struct.calcsize(osize)
+        level = struct.pack(">II", lw, lh)
+        tiles_at = level_at + len(level) + (len(tiles) + 1) * struct.calcsize(osize)
+        dummy_at = tiles_at + sum(len(t) for t in tiles)
+        hier += struct.pack(osize, level_at) + struct.pack(osize, dummy_at) + struct.pack(osize, 0)
+        t_at = tiles_at
+        for t in tiles:
+            level += struct.pack(osize, t_at)
+            t_at += len(t)
+        level += struct.pack(osize, 0)
+        dummy = struct.pack(">II", lw // 2, lh // 2) + struct.pack(osize, 0)
+        out += layer + hier + level + b"".join(tiles) + dummy
+    for i in range(nchannels):
+        channel_offsets.append(pos + len(out))
+        cprops = (prop(6, struct.pack(">I", 128)) + prop(8, struct.pack(">I", 1)) +
+                  prop(16, bytes([20, 200, 90])) + prop(0, b""))
+        out += struct.pack(">II", w, h) + string(b"Channel") + cprops + struct.pack(osize, 0)
+    offsets = b"".join(struct.pack(osize, o) for o in layer_offsets) + struct.pack(osize, 0)
+    offsets += b"".join(struct.pack(osize, o) for o in channel_offsets) + struct.pack(osize, 0)
+    if kind == "rgb":
+        # SDL_image reads the last uncompressed tile as if it were RLE data of
+        # the largest size (6 bytes a pixel): without data after it, as in
+        # the gray image, the read is short and the load fails
+        out += b"\0" * 2048
+    open(path, "wb").write(header + offsets + out)
+
+
+def write_xpm_named(path):
+    """An XPM with two characters per pixel: named colors (any case, some
+    only in the extended table), #rgb and #rrrrggggbbbb colors, symbolic
+    names, a transparent color, and a pixel key with no color."""
+    colors = [
+        ("..", "c None"),
+        ("aa", "s background c Red"),
+        ("bB", "c AliceBlue"),
+        ("cc", "m white c #0F8"),
+        ("d ", "c #123456789abc"),
+        ("ee", "c navy"),
+        ("ff", "g4 black c MediumSeaGreen s sea"),
+        ("gg", "c #808080"),
+    ]
+    w, h = 9, 5
+    keys = [k for k, _ in colors] + ["zz"]
+    lines = ['"%d %d %d 2",' % (w, h, len(colors))]
+    lines += ['"%s %s",' % (k, c) for k, c in colors]
+    for y in range(h):
+        lines.append('"' + "".join(keys[(x + y * 2) % len(keys)] for x in range(w)) + '",')
+    lines[-1] = lines[-1].rstrip(",")
+    text = "/* XPM */\nstatic char *named[] = {\n/* columns rows colors chars-per-pixel */\n"
+    text += "\n".join(lines) + "\n};\n"
+    open(path, "w").write(text)
 
 
 def write_xv(path):

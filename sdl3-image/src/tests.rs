@@ -51,7 +51,12 @@ static IMAGES: &[(&str, &[u8])] = images![
     "jpgcmyk.jpg",
     "jpggray.jpg",
     "jpgprog.jpg",
+    "lbm_24.lbm",
+    "lbm_ehb.lbm",
+    "lbm_ham.lbm",
+    "lbm_ilbm.lbm",
     "lbm_pbm.lbm",
+    "lbm_pbm8.lbm",
     "p1.pbm",
     "p2.pgm",
     "p3.ppm",
@@ -108,6 +113,14 @@ static IMAGES: &[(&str, &[u8])] = images![
     "tgagrey.tga",
     "tgagreyrle.tga",
     "thumb.xv",
+    "xcf_gray.xcf",
+    "xcf_indexed.xcf",
+    "xcf_rgb.xcf",
+    "xcf_rgba.xcf",
+    "xpm_named.xpm",
+    "xpm_rgb.xpm",
+    "xpm_trans.xpm",
+    "xv_crlf.xv",
 ];
 
 /// An `is_*` function.
@@ -237,7 +250,7 @@ fn save_with(
 /// Formats SDL_image doesn't decode in this crate yet, which upstream's
 /// harness loaded.
 fn untranslated(name: &str) -> bool {
-    matches!(ext_of(name), Some("svg" | "xpm" | "xcf" | "lbm" | "xv"))
+    matches!(ext_of(name), Some("svg"))
 }
 
 /// Compare a result with the reference, allowing for what upstream can't
@@ -580,13 +593,7 @@ fn front_end_errors() {
 
     // Formats not translated yet are unsupported, like an upstream build
     // without them
-    for name in [
-        "sample.webp",
-        "sample.xpm",
-        "svg.svg",
-        "sample.tif",
-        "sample.avif",
-    ] {
+    for name in ["sample.webp", "svg.svg", "sample.tif", "sample.avif"] {
         let e = crate::load_io(&mut IoStream::from_const_mem(image(name))).unwrap_err();
         assert_eq!(e.to_string(), "Unsupported image format", "{name}");
     }
@@ -769,6 +776,11 @@ fn malformed_input_errors_without_panicking() {
         "gif_trans.gif",
         "ico_pal.ico",
         "sample.qoi",
+        "lbm_ilbm.lbm",
+        "lbm_ham.lbm",
+        "xcf_indexed.xcf",
+        "xpm_named.xpm",
+        "xv_crlf.xv",
     ] {
         let data = image(name);
         for i in 0..64.min(data.len()) {
@@ -838,4 +850,73 @@ fn textures_from_files_and_streams() {
     let _ = std::fs::remove_file(&path);
 
     assert!(crate::load_texture_io(&mut renderer, &mut IoStream::from_const_mem(b"nope")).is_err());
+}
+
+#[test]
+fn xpm_from_arrays() {
+    let xpm = [
+        "4 2 3 1",
+        "a c #ff0000",
+        "b s mask c None",
+        "c c Blue",
+        "abca",
+        "cbac",
+    ];
+    let s = crate::read_xpm_from_array(&xpm).unwrap();
+    assert_eq!(s.format(), PixelFormat::INDEX8);
+    assert_eq!(s.color_key(), Some(1));
+    assert_eq!(&s.pixels().unwrap()[..4], &[0, 1, 2, 0]);
+    assert_eq!(s.palette().unwrap().read().unwrap().len(), 3);
+
+    let s = crate::read_xpm_from_array_to_rgb888(&xpm).unwrap();
+    assert_eq!(s.format(), PixelFormat::ARGB8888);
+    let p = s.pixels().unwrap();
+    let px = |i: usize| u32::from_ne_bytes([p[i * 4], p[i * 4 + 1], p[i * 4 + 2], p[i * 4 + 3]]);
+    assert_eq!((px(0), px(1), px(2)), (0xffff0000, 0, 0xff0000ff));
+
+    // The same image from a file loads the same
+    let mut text = String::from("/* XPM */\nstatic char *x[] = {\n");
+    for line in xpm {
+        text += &format!("\"{line}\",\n");
+    }
+    text += "};\n";
+    let f = crate::load_io(&mut IoStream::from_const_mem(text.as_bytes())).unwrap();
+    assert_eq!(f.pixels().unwrap()[..4], [0, 1, 2, 0]);
+
+    for (lines, message) in [
+        (&xpm[..5], "Premature end of data"),
+        (&["4 2 0 1"][..], "Invalid format description"),
+        (&["4 2 1 1", "a"][..], "Invalid color specification"),
+        (&["4 2 1 1", "a   "][..], "colour parse error"),
+    ] {
+        let e = crate::read_xpm_from_array(lines).unwrap_err();
+        assert_eq!(e.to_string(), message, "{lines:?}");
+    }
+}
+
+#[test]
+fn lbm_and_xcf_errors() {
+    // An ILBM picture of more than 8 planes, not 24 and not HAM
+    let mut lbm = image("lbm_ehb.lbm").to_vec();
+    let bmhd = lbm.windows(4).position(|w| w == b"BMHD").unwrap() + 8;
+    lbm[bmhd + 8] = 9;
+    let e = crate::load_io(&mut IoStream::from_const_mem(&lbm)).unwrap_err();
+    assert_eq!(e.to_string(), "LBM: invalid number of bitplanes (9)");
+
+    // A GIMP image beyond the size limit, and an unknown compression
+    let mut xcf = image("xcf_indexed.xcf").to_vec();
+    xcf[14..18].copy_from_slice(&20001u32.to_be_bytes());
+    let mut io = IoStream::from_const_mem(&xcf);
+    let e = crate::load_xcf_io(&mut io).unwrap_err();
+    assert_eq!(e.to_string(), "Couldn't read header");
+    assert_eq!(io.tell().unwrap(), 0);
+    let mut xcf = image("xcf_indexed.xcf").to_vec();
+    let compression = xcf
+        .windows(8)
+        .position(|w| w == [0, 0, 0, 17, 0, 0, 0, 1])
+        .unwrap()
+        + 8;
+    xcf[compression] = 2;
+    let e = crate::load_io(&mut IoStream::from_const_mem(&xcf)).unwrap_err();
+    assert_eq!(e.to_string(), "Unsupported compression");
 }
