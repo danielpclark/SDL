@@ -5,10 +5,10 @@
 //! This is a ILBM image file loading framework
 //! Load IFF pictures, PBM & ILBM packing methods, with or without stencil
 //! Written by Daniel Morais ( Daniel AT Morais DOT com ) in September 2001.
-//! 24 bits ILBM files support added by Marc Le Douarain (http://www.multimania.com/mavati)
+//! 24 bits ILBM files support added by Marc Le Douarain (<http://www.multimania.com/mavati>)
 //! in December 2002.
 //! EHB and HAM (specific Amiga graphic chip modes) support added by Marc Le Douarain
-//! (http://www.multimania.com/mavati) in December 2003.
+//! (<http://www.multimania.com/mavati>) in December 2003.
 //! Stencil and colorkey fixes by David Raulo (david.raulo AT free DOT fr) in February 2004.
 //! Buffer overflow fix in RLE decompression by David Raulo in January 2008.
 
