@@ -316,23 +316,6 @@ pub(crate) struct OggLoop {
     pub active: bool,
 }
 
-/// `SDL_ReadIO()` until `buf` is full or the stream stops; the number of
-/// bytes read (upstream's single read call does the same on the streams
-/// SDL provides).
-pub(crate) fn read_io(io: &mut IoStream<'_>, buf: &mut [u8]) -> usize {
-    io.read(buf)
-}
-
-/// `SDL_TellIO()`, -1 on failure.
-pub(crate) fn tell_io(io: &mut IoStream<'_>) -> i64 {
-    io.tell().unwrap_or(-1)
-}
-
-/// `SDL_SeekIO()`, -1 on failure.
-pub(crate) fn seek_io(io: &mut IoStream<'_>, offset: i64, whence: IoWhence) -> i64 {
-    io.seek(offset, whence).unwrap_or(-1)
-}
-
 /// `SDL_GetIOSize()`, -1 on failure.
 pub(crate) fn io_size(io: &mut IoStream<'_>) -> i64 {
     io.size().unwrap_or(-1)
