@@ -7,3 +7,6 @@
 # byte (ASCII PNM images included, trailing spaces and all): never convert,
 # diff or merge them as text.
 sdl3-image/src/testdata/** binary
+
+# Likewise sdl3-mixer's test audio and reference log.
+sdl3-mixer/src/testdata/** binary

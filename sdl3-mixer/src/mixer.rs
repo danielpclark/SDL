@@ -1756,7 +1756,11 @@ fn load_audio_with_properties(
             // !!! FIXME: currently we're ignoring return values from this function (see FIXME at the top of its code).
             read_metadata_tags(&mut clamp, &audio_props);
             if clamp.seek_io(0, IoWhence::Set) < 0 {
-                return Err(Error::new("Error seeking in datastream"));
+                // (upstream fails with the last error set, likely the clamp's.)
+                return Err(clamp
+                    .last_error
+                    .clone()
+                    .unwrap_or_else(|| Error::new("Error seeking in datastream")));
             }
 
             // will we need to apply an IoClamp when reading the real data later, too?

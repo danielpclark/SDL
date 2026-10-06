@@ -43,6 +43,10 @@ pub(crate) struct IoClamp<'a> {
     pub start: i64,
     pub length: i64,
     pub pos: i64,
+    /// The last error a seek here failed with: upstream's callers that fail
+    /// without setting an error of their own report whatever error was set
+    /// last (`SDL_GetError()`), which is this one.
+    pub last_error: Option<Error>,
 }
 
 impl<'a> IoClamp<'a> {
@@ -59,6 +63,7 @@ impl<'a> IoClamp<'a> {
             start,
             length,
             pos: 0,
+            last_error: None,
         })
     }
 
@@ -76,13 +81,18 @@ impl<'a> IoClamp<'a> {
         }
 
         if offset < 0 {
-            return Err(Error::new("Seek before start of data"));
+            let e = Error::new("Seek before start of data");
+            self.last_error = Some(e.clone());
+            return Err(e);
         } else if offset > self.length {
             offset = self.length;
         }
 
         if self.pos != offset {
-            self.io.seek(self.start + offset, IoWhence::Set)?;
+            if let Err(e) = self.io.seek(self.start + offset, IoWhence::Set) {
+                self.last_error = Some(e.clone());
+                return Err(e);
+            }
             self.pos = offset;
         }
 
@@ -92,9 +102,9 @@ impl<'a> IoClamp<'a> {
     /// Translation of `MIX_IoClamp_read()`.
     pub fn clamp_read(&mut self, buf: &mut [u8]) -> std::result::Result<usize, IoStop> {
         let size = buf.len();
-        // (a clamp that was moved past its end reads nothing, where
-        // upstream's size_t conversion would read without a limit.)
-        let remaining = (self.length - self.pos).max(0) as usize;
+        // (a clamp that was moved past its end has a negative size left,
+        // which, as a size_t, doesn't limit the read.)
+        let remaining = (self.length - self.pos) as u64 as usize;
         let ret = self.io.read(&mut buf[..size.min(remaining)]);
         self.pos += ret as i64;
         if ret < size {

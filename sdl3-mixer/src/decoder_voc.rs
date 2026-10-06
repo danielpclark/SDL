@@ -134,6 +134,9 @@ fn parse_voc_file(
             break; // that's the (optional) end.
         } else if block != VOC_LOOPEND {
             // TERM and LOOPEND don't have a size field.
+            // FIXME (upstream): the VOC format gives LOOPEND blocks a (zero)
+            // size field like the others, so files that have one end at it
+            // here (its first byte reads as a TERM block).
             let mut bits24 = [0u8; 3];
             if io.read(&mut bits24) != bits24.len() {
                 return Err(voc_error());
@@ -390,7 +393,15 @@ fn parse_voc_file(
         total_frames += loop_frames;
     }
 
-    *duration_frames = total_frames;
+    // FIXME (upstream): an infinite loop leaves the duration at -1, which is
+    // MIX_DURATION_UNKNOWN, not MIX_DURATION_INFINITE, so predecoding such
+    // a file decodes forever (until memory runs out); it's reported as
+    // infinite here (and in the patched C reference harness).
+    *duration_frames = if total_frames == -1 {
+        crate::DURATION_INFINITE
+    } else {
+        total_frames
+    };
 
     Ok(())
 }
