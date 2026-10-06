@@ -200,6 +200,37 @@ impl Renderer {
         )
     }
 
+    /// A GPU renderer for `window`, on `device`, or a device it creates
+    /// without one (the renderer's device is then
+    /// [`Renderer::gpu_renderer_device`]). Translation of
+    /// `SDL_CreateGPURenderer()` (with a window: there are no offscreen GPU
+    /// renderers).
+    pub fn for_gpu_device(
+        device: Option<&crate::gpu::Device>,
+        window: &Window,
+    ) -> Result<Renderer> {
+        Renderer::for_window_with(
+            window,
+            &RendererCreateInfo {
+                gpu_device: device.cloned(),
+                name: Some(super::GPU_RENDERER.to_owned()),
+                ..RendererCreateInfo::default()
+            },
+        )
+    }
+
+    /// The GPU device of a GPU renderer. Translation of
+    /// `SDL_GetGPURendererDevice()`.
+    pub fn gpu_renderer_device(&self) -> Result<crate::gpu::Device> {
+        match self
+            .properties()
+            .get_any::<crate::gpu::Device>(super::PROP_RENDERER_GPU_DEVICE_POINTER)
+        {
+            Some(device) => Ok((*device).clone()),
+            None => Err(Error::new("Renderer isn't a GPU renderer")),
+        }
+    }
+
     /// A renderer for `window`, with creation options. Translation of
     /// `SDL_CreateRendererWithProperties()` with
     /// `SDL_PROP_RENDERER_CREATE_WINDOW_POINTER`.
@@ -550,6 +581,7 @@ fn create_for_window(
                 window,
                 output_colorspace,
                 present_vsync as i32,
+                info,
             )?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }

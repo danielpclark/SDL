@@ -6,11 +6,16 @@
 //! the renderer front end and its backends.
 
 use std::any::Any;
+use std::sync::Arc;
 
 use crate::error::{Error, Result};
+use crate::gpu;
 use crate::properties::Properties;
 use crate::render::yuv_sw::SwYuvTexture;
-use crate::render::{LogicalPresentation, Texture, TextureAccess, TextureAddressMode};
+use crate::render::{
+    GpuRenderState, GpuRenderStateSamplerBinding, LogicalPresentation, Texture, TextureAccess,
+    TextureAddressMode,
+};
 use crate::video::pixels::{Color, Colorspace, FColor, PixelFormat};
 use crate::video::rect::{FPoint, FRect, Rect};
 use crate::video::surface::{ScaleMode, SharedPalette, Surface};
@@ -80,6 +85,82 @@ pub(crate) struct TexturePalette {
     pub(crate) last_command_generation: u32,
     /// Driver specific palette representation
     pub(crate) internal: Box<dyn Any>,
+}
+
+/// A fragment uniform buffer of a GPU render state. Translation of
+/// `SDL_GPURenderStateUniformBuffer`.
+pub(crate) struct GpuRenderStateUniformBuffer {
+    pub(crate) slot_index: u32,
+    pub(crate) data: Vec<u8>,
+}
+
+/// Define the GPU render state structure. Translation of
+/// `struct SDL_GPURenderState` (its renderer is the one whose
+/// [`GpuRenderStates`] hold it). The shader, textures, samplers and
+/// buffers are shared with the application, which upstream keeps them
+/// alive for.
+pub(crate) struct GpuRenderStateData {
+    /// last command queue generation this state was in.
+    pub(crate) last_command_generation: u32,
+
+    pub(crate) fragment_shader: Arc<gpu::Shader>,
+
+    pub(crate) sampler_bindings: Vec<GpuRenderStateSamplerBinding>,
+
+    pub(crate) storage_textures: Vec<Arc<gpu::Texture>>,
+
+    pub(crate) storage_buffers: Vec<Arc<gpu::Buffer>>,
+
+    pub(crate) uniform_buffers: Vec<GpuRenderStateUniformBuffer>,
+}
+
+/// The GPU render states of a renderer: slots addressed by
+/// [`GpuRenderState`] handles, with generations so that a stale handle is
+/// reported as invalid (as [`TextureStore`] does for textures).
+#[derive(Default)]
+pub(crate) struct GpuRenderStates {
+    slots: Vec<(u32, Option<GpuRenderStateData>)>,
+}
+
+impl GpuRenderStates {
+    pub(crate) fn insert(&mut self, renderer: u32, data: GpuRenderStateData) -> GpuRenderState {
+        let index = match self.slots.iter().position(|(_, d)| d.is_none()) {
+            Some(index) => index,
+            None => {
+                self.slots.push((0, None));
+                self.slots.len() - 1
+            }
+        };
+        let slot = &mut self.slots[index];
+        slot.0 += 1;
+        slot.1 = Some(data);
+        GpuRenderState {
+            renderer,
+            index: index as u32,
+            generation: slot.0,
+        }
+    }
+
+    pub(crate) fn get(&self, s: GpuRenderState) -> Option<&GpuRenderStateData> {
+        match self.slots.get(s.index as usize) {
+            Some((generation, Some(d))) if *generation == s.generation => Some(d),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn get_mut(&mut self, s: GpuRenderState) -> Option<&mut GpuRenderStateData> {
+        match self.slots.get_mut(s.index as usize) {
+            Some((generation, Some(d))) if *generation == s.generation => Some(d),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn remove(&mut self, s: GpuRenderState) -> Option<GpuRenderStateData> {
+        match self.slots.get_mut(s.index as usize) {
+            Some((generation, d)) if *generation == s.generation => d.take(),
+            _ => None,
+        }
+    }
 }
 
 /// The state of a texture. Translation of `struct SDL_Texture`.
@@ -234,6 +315,10 @@ pub(crate) struct DrawCmd {
     pub(crate) texture_scale_mode: ScaleMode,
     pub(crate) texture_address_mode_u: TextureAddressMode,
     pub(crate) texture_address_mode_v: TextureAddressMode,
+    /// The renderer's GPU render state when the command was queued
+    /// (`gpu_render_state`), in the [`GpuRenderStates`] the backend runs
+    /// the queue with.
+    pub(crate) gpu_render_state: Option<GpuRenderState>,
 }
 
 /// The kinds of draw commands.
@@ -459,10 +544,13 @@ pub(crate) trait RenderBackend {
     ) -> Result<()>;
 
     fn invalidate_cached_state(&mut self);
+    /// `RunCommandQueue`, with the textures and the GPU render states the
+    /// commands refer to.
     fn run_command_queue(
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        gpu_render_states: &GpuRenderStates,
     ) -> Result<()>;
     fn reset_vertices(&mut self);
 
@@ -568,6 +656,14 @@ pub(crate) struct TextureCreateProps {
     pub(crate) opengl_texture_u: Option<u32>,
     /// `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`
     pub(crate) opengl_texture_v: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`
+    pub(crate) gpu_texture: Option<Arc<gpu::Texture>>,
+    /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_UV_POINTER`
+    pub(crate) gpu_texture_uv: Option<Arc<gpu::Texture>>,
+    /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_U_POINTER`
+    pub(crate) gpu_texture_u: Option<Arc<gpu::Texture>>,
+    /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_V_POINTER`
+    pub(crate) gpu_texture_v: Option<Arc<gpu::Texture>>,
 }
 
 /// An error for a texture handle that is not (or no longer) valid.

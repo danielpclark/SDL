@@ -11,14 +11,25 @@
 //! shaders (shader model 6.0: a Direct3D 12 device without it can't take
 //! them, and then the Vulkan backend is tried).
 //!
+//! A draw made while a GPU render state is set
+//! ([`Renderer::set_gpu_render_state`](crate::render::Renderer::set_gpu_render_state))
+//! uses the state's fragment shader (`FRAG_SHADER_TEXTURE_CUSTOM`) with its
+//! bindings and uniforms, after the renderer's texture sampler. The
+//! renderer can be made on the application's device
+//! ([`RendererCreateInfo::gpu_device`]), and with the shader formats the
+//! application's render states have ([`RendererCreateInfo::gpu_shaders_spirv`]
+//! and the others); textures can wrap the application's GPU textures
+//! ([`TextureCreateInfo::gpu_texture`](crate::render::TextureCreateInfo::gpu_texture)
+//! and the others).
+//!
 //! What isn't translated:
 //!
-//! * render states with custom fragment shaders (`SDL_GPURenderState`,
-//!   `FRAG_SHADER_TEXTURE_CUSTOM`), which the front end doesn't take yet;
-//! * the creation options for an existing GPU device or the application's
-//!   shader formats (`SDL_PROP_RENDERER_CREATE_GPU_*`) and for existing
-//!   textures (`SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_*`), which the front
-//!   end doesn't take yet either: the renderer makes and owns them all;
+//! * a renderer without a window (`GPU_CreateRenderer()` with a NULL
+//!   window, from `SDL_CreateGPURenderer()`): the front end makes GPU
+//!   renderers for windows;
+//! * the other creation properties upstream hands the GPU API (the
+//!   renderer's for the device it makes, the texture's for the GPU textures
+//!   it makes): the front end takes only the ones above;
 //! * the GDK suspend and resume functions (there is no GDK platform layer).
 //!
 //! The front end only makes renderers with sRGB output yet, so the linear
@@ -27,7 +38,12 @@
 //! Upstream keeps a texture's data in `texture->internal` and frees it in
 //! `GPU_DestroyTexture()`; here it's a [`GpuTextureData`] in the front
 //! end's texture, whose GPU textures are released when it is dropped. The
-//! GPU textures are shared (`Arc`) with the texture's properties.
+//! GPU textures are shared (`Arc`) with the texture's properties, and
+//! with the application for the ones it gave, which dropping the texture
+//! leaves alone as upstream's `external_texture*` flags do. The device is
+//! shared the same way (a [`gpu::Device`] clone): the renderer's going
+//! away destroys it only if the application doesn't hold it
+//! (`external_device`).
 
 mod pipeline;
 mod shaders;
@@ -37,7 +53,7 @@ mod tests;
 use std::any::Any;
 use std::sync::Arc;
 
-use pipeline::{PipelineCache, PipelineParameters};
+use pipeline::{CustomShader, PipelineCache, PipelineParameters};
 use shaders::{FragmentShaderId, ShaderSources, VertexShaderId};
 
 use crate::error::{Error, Result};
@@ -48,10 +64,10 @@ use crate::hints;
 use crate::log::Category;
 use crate::properties::{Properties, Value};
 use crate::render::sysrender::{
-    CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend, RenderCommand, TextureCreateProps,
-    TextureData, TextureStore,
+    CopyEx, DrawCmd, DrawKind, Geometry, GpuRenderStates, RenderBackend, RenderCommand,
+    TextureCreateProps, TextureData, TextureStore,
 };
-use crate::render::{Texture, TextureAccess, TextureAddressMode, GPU_RENDERER};
+use crate::render::{RendererCreateInfo, Texture, TextureAccess, TextureAddressMode, GPU_RENDERER};
 use crate::video::blendmode::{BlendFactor, BlendOperation};
 use crate::video::pixels::{
     convert_color_709_to_2020, srgb_to_linear, Color, Colorspace, FColor, PixelFormat,
@@ -365,7 +381,11 @@ const HAVE_METAL_SHADERS: bool = false;
 /// `GPU_ReleaseShaders()`.
 struct Shaders {
     vert_shaders: Vec<gpu::Shader>,
+    /// The shaders with sources (all but `FRAG_SHADER_TEXTURE_CUSTOM`).
     frag_shaders: Vec<gpu::Shader>,
+    /// `frag_shaders[FRAG_SHADER_TEXTURE_CUSTOM]`: the fragment shader of
+    /// the last draw with a render state.
+    custom_frag_shader: Option<Arc<gpu::Shader>>,
 }
 
 /// Translation of `CompileShader()`.
@@ -420,14 +440,16 @@ impl Shaders {
             .iter()
             .map(|id| compile_shader(id.sources(), device, gpu::ShaderStage::Vertex))
             .collect::<Result<Vec<_>>>()?;
-        // (FRAG_SHADER_TEXTURE_CUSTOM is not one of them)
+        // (FRAG_SHADER_TEXTURE_CUSTOM has no sources: it's skipped)
         let frag_shaders = FragmentShaderId::ALL
             .iter()
-            .map(|id| compile_shader(id.sources(), device, gpu::ShaderStage::Fragment))
+            .filter_map(|id| id.sources())
+            .map(|sources| compile_shader(sources, device, gpu::ShaderStage::Fragment))
             .collect::<Result<Vec<_>>>()?;
         Ok(Shaders {
             vert_shaders,
             frag_shaders,
+            custom_frag_shader: None,
         })
     }
 
@@ -436,33 +458,61 @@ impl Shaders {
         &self.vert_shaders[id as usize]
     }
 
-    /// Translation of `GPU_GetFragmentShader()`.
-    fn fragment_shader(&self, id: FragmentShaderId) -> &gpu::Shader {
-        &self.frag_shaders[id as usize]
+    /// Translation of `GPU_GetFragmentShader()` (`None` for
+    /// `FRAG_SHADER_TEXTURE_CUSTOM` before a draw with a render state).
+    fn fragment_shader(&self, id: FragmentShaderId) -> Option<&gpu::Shader> {
+        match id {
+            FragmentShaderId::TextureCustom => self.custom_frag_shader.as_deref(),
+            _ => self.frag_shaders.get(id as usize),
+        }
     }
 }
 
-/// Translation of `GPU_FillSupportedShaderFormats()`. The front end doesn't
-/// take the application's shader formats
-/// (`SDL_PROP_RENDERER_CREATE_GPU_SHADERS_*_BOOLEAN`) yet, so there are no
-/// custom shaders: the device is asked for the formats the renderer has.
-fn fill_supported_shader_formats(props: &Properties) -> Result<()> {
-    props.set(
-        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_PRIVATE_BOOLEAN,
-        HAVE_PRIVATE_SHADERS,
-    )?;
-    props.set(
-        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN,
-        HAVE_SPIRV_SHADERS,
-    )?;
-    props.set(
-        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN,
-        HAVE_DXIL60_SHADERS,
-    )?;
-    props.set(
-        gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN,
-        HAVE_METAL_SHADERS,
-    )?;
+/// Translation of `GPU_FillSupportedShaderFormats()`: the device is asked
+/// for the formats of the application's shaders that the renderer has too
+/// (`SDL_PROP_RENDERER_CREATE_GPU_SHADERS_*_BOOLEAN`), or for all the
+/// formats the renderer has.
+fn fill_supported_shader_formats(props: &Properties, info: &RendererCreateInfo) -> Result<()> {
+    let mut custom_shaders = false;
+    if info.gpu_shaders_spirv {
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN,
+            HAVE_SPIRV_SHADERS,
+        )?;
+        custom_shaders = true;
+    }
+    if info.gpu_shaders_dxil {
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN,
+            HAVE_DXIL60_SHADERS,
+        )?;
+        custom_shaders = true;
+    }
+    if info.gpu_shaders_msl {
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN,
+            HAVE_METAL_SHADERS,
+        )?;
+        custom_shaders = true;
+    }
+    if !custom_shaders {
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_PRIVATE_BOOLEAN,
+            HAVE_PRIVATE_SHADERS,
+        )?;
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN,
+            HAVE_SPIRV_SHADERS,
+        )?;
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN,
+            HAVE_DXIL60_SHADERS,
+        )?;
+        props.set(
+            gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN,
+            HAVE_METAL_SHADERS,
+        )?;
+    }
     Ok(())
 }
 
@@ -873,6 +923,7 @@ impl GpuRenderer {
 
     /// Translation of `Draw()`, in the render pass that
     /// [`GpuRenderer::run_command_queue`] restarts first when needed.
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &mut self,
         pass: &mut gpu::RenderPass<'_>,
@@ -881,7 +932,11 @@ impl GpuRenderer {
         offset: u32,
         prim: PrimitiveType,
         textures: &TextureStore,
+        gpu_render_states: &GpuRenderStates,
     ) {
+        // (a destroyed state is none)
+        let custom_state = cmd.gpu_render_state.and_then(|s| gpu_render_states.get(s));
+        let custom_frag_shader = custom_state.map(|s| &s.fragment_shader);
         let simple_constants = SimpleFragmentShaderUniformData {
             color_scale: cmd.color_scale,
         };
@@ -893,7 +948,7 @@ impl GpuRenderer {
             .and_then(|t| textures.get(t))
             .and_then(|t| Some((t, texture_data(t).ok()?)));
 
-        let (v_shader, f_shader) = if prim == PrimitiveType::TriangleList {
+        let (v_shader, mut f_shader) = if prim == PrimitiveType::TriangleList {
             if let Some((texture, tdata)) = texture {
                 advanced_constants = self.calculate_advanced_shader_constants(
                     cmd,
@@ -928,6 +983,13 @@ impl GpuRenderer {
             (VertexShaderId::Linepoint, FragmentShaderId::Color)
         };
 
+        if let Some(custom_frag_shader) = custom_frag_shader {
+            f_shader = FragmentShaderId::TextureCustom;
+            if let Some(shaders) = &mut self.shaders {
+                shaders.custom_frag_shader = Some(custom_frag_shader.clone());
+            }
+        }
+
         let Some((_, attachment_format)) = self.target_texture(textures) else {
             return;
         };
@@ -937,6 +999,7 @@ impl GpuRenderer {
             frag_shader: f_shader,
             primitive_type: prim,
             attachment_format,
+            custom_frag_shader: custom_frag_shader.map(|s| CustomShader(s.clone())),
         };
 
         let Some(shaders) = &self.shaders else {
@@ -951,6 +1014,7 @@ impl GpuRenderer {
 
         pass.bind_graphics_pipeline(pipe);
 
+        let mut sampler_slot = 0;
         if let Some((texture, tdata)) = texture {
             // (upstream binds a NULL sampler it couldn't create)
             let Ok(sampler) = self.get_sampler(
@@ -1024,17 +1088,45 @@ impl GpuRenderer {
                 }
             }
             let _ = pass.bind_fragment_samplers(0, &sampler_binds);
+            sampler_slot = sampler_binds.len() as u32;
         }
-
-        // (no render states: the uniforms are the renderer's)
-        let uniforms = if f_shader == FragmentShaderId::TextureAdvanced {
-            advanced_constants.bytes()
+        if let Some(custom_state) = custom_state {
+            if !custom_state.sampler_bindings.is_empty() {
+                let sampler_bindings: Vec<_> = custom_state
+                    .sampler_bindings
+                    .iter()
+                    .map(|b| gpu::TextureSamplerBinding {
+                        texture: &b.texture,
+                        sampler: &b.sampler,
+                    })
+                    .collect();
+                let _ = pass.bind_fragment_samplers(sampler_slot, &sampler_bindings);
+            }
+            if !custom_state.storage_textures.is_empty() {
+                let storage_textures: Vec<&gpu::Texture> =
+                    custom_state.storage_textures.iter().map(|t| &**t).collect();
+                let _ = pass.bind_fragment_storage_textures(0, &storage_textures);
+            }
+            if !custom_state.storage_buffers.is_empty() {
+                let storage_buffers: Vec<&gpu::Buffer> =
+                    custom_state.storage_buffers.iter().map(|b| &**b).collect();
+                let _ = pass.bind_fragment_storage_buffers(0, &storage_buffers);
+            }
+            for ub in &custom_state.uniform_buffers {
+                let _ = pass
+                    .command_buffer()
+                    .push_fragment_uniform_data(ub.slot_index, &ub.data);
+            }
         } else {
-            simple_constants.bytes()
-        };
-        let _ = pass
-            .command_buffer()
-            .push_fragment_uniform_data(0, &uniforms);
+            let uniforms = if f_shader == FragmentShaderId::TextureAdvanced {
+                advanced_constants.bytes()
+            } else {
+                simple_constants.bytes()
+            };
+            let _ = pass
+                .command_buffer()
+                .push_fragment_uniform_data(0, &uniforms);
+        }
 
         let Some(vertices) = &self.vertices else {
             return;
@@ -1130,6 +1222,7 @@ impl GpuRenderer {
         command_buffer: &mut gpu::CommandBuffer,
         cmds: &[RenderCommand],
         textures: &TextureStore,
+        gpu_render_states: &GpuRenderStates,
     ) -> Result<()> {
         self.upload_vertices(command_buffer)?;
 
@@ -1147,13 +1240,13 @@ impl GpuRenderer {
             if draws(&cmds[i]) {
                 let mut pass = self.restart_render_pass(command_buffer, &target)?;
                 loop {
-                    i = self.run_command(cmds, i, Some(&mut pass), textures);
+                    i = self.run_command(cmds, i, Some(&mut pass), textures, gpu_render_states);
                     if i >= cmds.len() || (draws(&cmds[i]) && self.state.load_op == LoadOp::Clear) {
                         break;
                     }
                 }
             } else {
-                i = self.run_command(cmds, i, None, textures);
+                i = self.run_command(cmds, i, None, textures, gpu_render_states);
             }
         }
 
@@ -1174,6 +1267,7 @@ impl GpuRenderer {
         i: usize,
         pass: Option<&mut gpu::RenderPass<'_>>,
         textures: &TextureStore,
+        gpu_render_states: &GpuRenderStates,
     ) -> usize {
         let mut finalcmd = i;
         match cmds[i] {
@@ -1225,18 +1319,30 @@ impl GpuRenderer {
 
                 if count > 2 {
                     // joined lines cannot be grouped
-                    self.draw(pass, &d, count, offset, PrimitiveType::LineStrip, textures);
+                    self.draw(
+                        pass,
+                        &d,
+                        count,
+                        offset,
+                        PrimitiveType::LineStrip,
+                        textures,
+                        gpu_render_states,
+                    );
                 } else {
                     // let's group non joined lines
                     let thiscolorscale = d.color_scale;
                     let thisblend = d.blend;
+                    let thisrenderstate = d.gpu_render_state;
 
                     for (j, next) in cmds.iter().enumerate().skip(i + 1) {
                         match next {
                             RenderCommand::Draw(DrawKind::Lines, n) => {
                                 if n.count != 2 {
                                     break; // can't go any further on this draw call, those are joined lines
-                                } else if n.blend != thisblend || n.color_scale != thiscolorscale {
+                                } else if n.blend != thisblend
+                                    || n.color_scale != thiscolorscale
+                                    || n.gpu_render_state != thisrenderstate
+                                {
                                     break; // can't go any further on this draw call, different blendmode copy up next.
                                 } else {
                                     finalcmd = j; // we can combine copy operations here. Mark this one as the furthest okay command.
@@ -1251,7 +1357,15 @@ impl GpuRenderer {
                         }
                     }
 
-                    self.draw(pass, &d, count, offset, PrimitiveType::LineList, textures);
+                    self.draw(
+                        pass,
+                        &d,
+                        count,
+                        offset,
+                        PrimitiveType::LineList,
+                        textures,
+                        gpu_render_states,
+                    );
                 }
             }
 
@@ -1273,6 +1387,7 @@ impl GpuRenderer {
                                 || n.texture_address_mode_v != d.texture_address_mode_v
                                 || n.blend != d.blend
                                 || n.color_scale != d.color_scale
+                                || n.gpu_render_state != d.gpu_render_state
                             {
                                 break; // can't go any further on this draw call, different texture/blendmode copy up next.
                             } else {
@@ -1293,7 +1408,7 @@ impl GpuRenderer {
                 } else {
                     PrimitiveType::PointList
                 };
-                self.draw(pass, &d, count, offset, prim, textures);
+                self.draw(pass, &d, count, offset, prim, textures, gpu_render_states);
             }
 
             RenderCommand::NoOp => {}
@@ -1499,11 +1614,13 @@ impl GpuRenderer {
         self.acquire_command_buffer();
     }
 
-    /// Translation of `GPU_CreateRenderer()` for a window.
+    /// Translation of `GPU_CreateRenderer()` for a window, with the GPU
+    /// creation options of `create_props`.
     pub(crate) fn for_window(
         window: Window,
         output_colorspace: Colorspace,
         vsync: i32,
+        create_props: &RendererCreateInfo,
     ) -> Result<GpuRenderer> {
         // Clear any OpenGL properties on the window to avoid potential driver conflicts.
         let mut flags = window.flags()?;
@@ -1522,10 +1639,15 @@ impl GpuRenderer {
         // (renderer->window is the window from the start; the renderer's
         // functions are the RenderBackend implementation)
 
-        // (there is no SDL_PROP_RENDERER_CREATE_GPU_DEVICE_POINTER to take:
-        // the renderer makes its device)
-        let create_props = Properties::new();
-        {
+        // (the application's device is shared with it: external_device)
+        let device = if let Some(device) = &create_props.gpu_device {
+            device.clone()
+        } else {
+            let info = create_props;
+            // (the GPU API's properties start empty: the front end takes no
+            // others)
+            let create_props = Properties::new();
+
             // Prefer environment variables/hints if they exist, otherwise defer to properties
             let debug = hints::get_bool(hints::RENDER_GPU_DEBUG, false);
             let lowpower = hints::get_bool(hints::RENDER_GPU_LOW_POWER, false);
@@ -1567,9 +1689,9 @@ impl GpuRenderer {
                 false,
             )?;
 
-            fill_supported_shader_formats(&create_props)?;
-        }
-        let device = gpu::Device::with_properties(&create_props)?;
+            fill_supported_shader_formats(&create_props, info)?;
+            gpu::Device::with_properties(&create_props)?
+        };
 
         let shaders = Shaders::new(&device)?;
 
@@ -1820,7 +1942,7 @@ impl RenderBackend for GpuRenderer {
     fn create_texture(
         &mut self,
         texture: &mut TextureData,
-        _props: &TextureCreateProps,
+        create_props: &TextureCreateProps,
     ) -> Result<()> {
         use PixelFormat as F;
         let mut usage = TextureUsageFlags::SAMPLER;
@@ -1882,8 +2004,11 @@ impl RenderBackend for GpuRenderer {
             ..Default::default()
         };
 
-        // (no SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER to take)
-        let main = Arc::new(self.device.create_texture(&tci)?);
+        // (the application's textures are shared with it: external_texture)
+        let main = match &create_props.gpu_texture {
+            Some(external) => external.clone(),
+            None => Arc::new(self.device.create_texture(&tci)?),
+        };
 
         let props = texture.props.get_or_insert_with(Properties::new).clone();
         let publish = |name: &str, t: &Arc<gpu::Texture>| {
@@ -1915,10 +2040,16 @@ impl RenderBackend for GpuRenderer {
             tci.width = tci.width.div_ceil(2);
             tci.height = tci.height.div_ceil(2);
 
-            let u = Arc::new(self.device.create_texture(&tci)?);
+            let u = match &create_props.gpu_texture_u {
+                Some(external) => external.clone(),
+                None => Arc::new(self.device.create_texture(&tci)?),
+            };
             publish(PROP_TEXTURE_GPU_TEXTURE_U_POINTER, &u);
 
-            let v = Arc::new(self.device.create_texture(&tci)?);
+            let v = match &create_props.gpu_texture_v {
+                Some(external) => external.clone(),
+                None => Arc::new(self.device.create_texture(&tci)?),
+            };
             publish(PROP_TEXTURE_GPU_TEXTURE_V_POINTER, &v);
 
             planes = Planes::Yuv { u, v };
@@ -1926,10 +2057,16 @@ impl RenderBackend for GpuRenderer {
             matrix = Some(ycbcr_matrix(bits_per_pixel)?);
         }
         if matches!(texture.format, F::I444 | F::I4FL) {
-            let u = Arc::new(self.device.create_texture(&tci)?);
+            let u = match &create_props.gpu_texture_u {
+                Some(external) => external.clone(),
+                None => Arc::new(self.device.create_texture(&tci)?),
+            };
             publish(PROP_TEXTURE_GPU_TEXTURE_U_POINTER, &u);
 
-            let v = Arc::new(self.device.create_texture(&tci)?);
+            let v = match &create_props.gpu_texture_v {
+                Some(external) => external.clone(),
+                None => Arc::new(self.device.create_texture(&tci)?),
+            };
             // FIXME (upstream): the V property is set to the U texture.
             publish(PROP_TEXTURE_GPU_TEXTURE_V_POINTER, &u);
 
@@ -1938,15 +2075,20 @@ impl RenderBackend for GpuRenderer {
             matrix = Some(ycbcr_matrix(bits_per_pixel)?);
         }
         if matches!(texture.format, F::NV12 | F::NV21 | F::P010) {
-            tci.width = tci.width.div_ceil(2);
-            tci.height = tci.height.div_ceil(2);
-            tci.format = if texture.format == F::P010 {
-                TextureFormat::R16G16_UNORM
-            } else {
-                TextureFormat::R8G8_UNORM
-            };
+            let nv = match &create_props.gpu_texture_uv {
+                Some(external) => external.clone(),
+                None => {
+                    tci.width = tci.width.div_ceil(2);
+                    tci.height = tci.height.div_ceil(2);
+                    tci.format = if texture.format == F::P010 {
+                        TextureFormat::R16G16_UNORM
+                    } else {
+                        TextureFormat::R8G8_UNORM
+                    };
 
-            let nv = Arc::new(self.device.create_texture(&tci)?);
+                    Arc::new(self.device.create_texture(&tci)?)
+                }
+            };
             publish(PROP_TEXTURE_GPU_TEXTURE_UV_POINTER, &nv);
 
             planes = Planes::Nv(nv);
@@ -2089,13 +2231,14 @@ impl RenderBackend for GpuRenderer {
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        gpu_render_states: &GpuRenderStates,
     ) -> Result<()> {
         let mut command_buffer = self
             .state
             .command_buffer
             .take()
             .ok_or_else(no_command_buffer)?;
-        let result = self.run_commands(&mut command_buffer, cmds, textures);
+        let result = self.run_commands(&mut command_buffer, cmds, textures, gpu_render_states);
         self.state.command_buffer = Some(command_buffer);
         result
     }

@@ -1927,6 +1927,7 @@ impl RenderBackend for Gles2Renderer {
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        _gpu_render_states: &crate::render::sysrender::GpuRenderStates,
     ) -> Result<()> {
         let colorswap = self.colorswap();
 

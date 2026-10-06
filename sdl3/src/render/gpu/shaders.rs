@@ -57,20 +57,20 @@ impl VertexShaderId {
 /// The fragment shaders. Translation of `GPU_FragmentShaderID` (`*_INVALID` is
 /// `None` where upstream would keep it).
 ///
-/// `FRAG_SHADER_TEXTURE_CUSTOM`, the fragment shader of an
-/// `SDL_GPURenderState`, isn't here: the renderer takes no render states
-/// yet.
+/// `FRAG_SHADER_TEXTURE_CUSTOM` is the fragment shader of an
+/// `SDL_GPURenderState`, the application's: it has no sources.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub(super) enum FragmentShaderId {
     Color,
     TextureRgb,
     TextureRgba,
     TextureAdvanced,
+    TextureCustom,
 }
 
 impl FragmentShaderId {
     /// Translation of `NUM_FRAG_SHADERS`.
-    pub(super) const COUNT: usize = 4;
+    pub(super) const COUNT: usize = 5;
 
     /// All the shaders, in order.
     pub(super) const ALL: [FragmentShaderId; FragmentShaderId::COUNT] = [
@@ -78,11 +78,13 @@ impl FragmentShaderId {
         FragmentShaderId::TextureRgb,
         FragmentShaderId::TextureRgba,
         FragmentShaderId::TextureAdvanced,
+        FragmentShaderId::TextureCustom,
     ];
 
-    /// The shader's code and resources.
-    pub(super) fn sources(self) -> &'static ShaderSources {
-        &FRAG_SHADER_SOURCES[self as usize]
+    /// The shader's code and resources (`None` for the custom shader,
+    /// which is the application's).
+    pub(super) fn sources(self) -> Option<&'static ShaderSources> {
+        FRAG_SHADER_SOURCES.get(self as usize)
     }
 }
 

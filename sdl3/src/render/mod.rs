@@ -31,6 +31,7 @@ mod debug_font;
 #[cfg(windows)]
 pub(crate) mod direct3d11;
 pub(crate) mod gpu;
+mod gpu_render_state;
 pub(crate) mod opengl;
 pub(crate) mod opengles2;
 pub(crate) mod software;
@@ -65,6 +66,9 @@ pub use gpu::{
     PROP_TEXTURE_GPU_TEXTURE_UV_POINTER, PROP_TEXTURE_GPU_TEXTURE_U_POINTER,
     PROP_TEXTURE_GPU_TEXTURE_V_POINTER,
 };
+pub use gpu_render_state::{
+    GpuRenderState, GpuRenderStateCreateInfo, GpuRenderStateSamplerBinding,
+};
 pub use opengl::{
     PROP_TEXTURE_OPENGL_TEXTURE_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_TARGET_NUMBER,
     PROP_TEXTURE_OPENGL_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_U_NUMBER,
@@ -91,8 +95,8 @@ pub(crate) use window::{destroy_window_renderer, quit_render};
 
 use software::render_sw::SwRenderer;
 use sysrender::{
-    CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend, RenderCommand, RenderLineMethod,
-    RenderViewState, TexturePalette, TextureStore,
+    CopyEx, DrawCmd, DrawKind, Geometry, GpuRenderStates, RenderBackend, RenderCommand,
+    RenderLineMethod, RenderViewState, TexturePalette, TextureStore,
 };
 
 /// The name of the GPU renderer. Translation of `SDL_GPU_RENDERER`.
@@ -210,6 +214,19 @@ pub struct RendererCreateInfo {
     pub output_colorspace: Option<Colorspace>,
     /// The vsync interval (`SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER`)
     pub present_vsync: i32,
+    /// The GPU device for the GPU renderer to use instead of creating one
+    /// (`SDL_PROP_RENDERER_CREATE_GPU_DEVICE_POINTER`); the renderer
+    /// shares it with the application
+    pub gpu_device: Option<crate::gpu::Device>,
+    /// The application can give the GPU renderer's render states SPIR-V
+    /// shaders (`SDL_PROP_RENDERER_CREATE_GPU_SHADERS_SPIRV_BOOLEAN`)
+    pub gpu_shaders_spirv: bool,
+    /// The application can give the GPU renderer's render states DXIL
+    /// shaders (`SDL_PROP_RENDERER_CREATE_GPU_SHADERS_DXIL_BOOLEAN`)
+    pub gpu_shaders_dxil: bool,
+    /// The application can give the GPU renderer's render states MSL
+    /// shaders (`SDL_PROP_RENDERER_CREATE_GPU_SHADERS_MSL_BOOLEAN`)
+    pub gpu_shaders_msl: bool,
 }
 
 /// The rendering drivers compiled in, in order of preference.
@@ -290,6 +307,11 @@ pub struct Renderer {
 
     // The list of textures
     pub(crate) textures: TextureStore,
+    /// The GPU render states made for the renderer
+    /// (`SDL_CreateGPURenderState()`).
+    gpu_render_states: GpuRenderStates,
+    /// The GPU render state of the next draws (`gpu_render_state`).
+    gpu_render_state: Option<GpuRenderState>,
     /// The render target (a native texture); its view is the current view.
     target: Option<Texture>,
 
@@ -462,6 +484,8 @@ impl Renderer {
             line_method: RenderLineMethod::Lines,
             scale_mode: ScaleMode::Linear,
             textures: TextureStore::default(),
+            gpu_render_states: GpuRenderStates::default(),
+            gpu_render_state: None,
             target: None,
             palettes: HashMap::new(),
             current_colorspace: output_colorspace,
@@ -682,9 +706,11 @@ impl Renderer {
             return Ok(());
         }
 
-        let result = self
-            .backend
-            .run_command_queue(&self.render_commands, &mut self.textures);
+        let result = self.backend.run_command_queue(
+            &self.render_commands,
+            &mut self.textures,
+            &self.gpu_render_states,
+        );
 
         // Move the whole render command queue to the unused pool so we can reuse them next time.
         self.render_commands.clear();
@@ -842,6 +868,10 @@ impl Renderer {
             self.queue_cmd_set_clip_rect()?;
         }
 
+        let gpu_render_state = self.gpu_render_state;
+        if let Some(state) = gpu_render_state.and_then(|s| self.gpu_render_states.get_mut(s)) {
+            state.last_command_generation = self.render_command_generation;
+        }
         Ok(self.allocate_render_command(RenderCommand::Draw(
             kind,
             DrawCmd {
@@ -854,6 +884,7 @@ impl Renderer {
                 texture_scale_mode,
                 texture_address_mode_u: TextureAddressMode::Clamp,
                 texture_address_mode_v: TextureAddressMode::Clamp,
+                gpu_render_state,
             },
         )))
     }
@@ -2328,7 +2359,12 @@ impl RenderBackend for NullBackend {
         Ok(())
     }
     fn invalidate_cached_state(&mut self) {}
-    fn run_command_queue(&mut self, _: &[RenderCommand], _: &mut TextureStore) -> Result<()> {
+    fn run_command_queue(
+        &mut self,
+        _: &[RenderCommand],
+        _: &mut TextureStore,
+        _: &GpuRenderStates,
+    ) -> Result<()> {
         Ok(())
     }
     fn reset_vertices(&mut self) {}

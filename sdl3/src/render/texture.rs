@@ -66,6 +66,19 @@ pub struct TextureCreateInfo {
     /// The OpenGL texture of the V plane of a YUV texture
     /// (`SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`)
     pub opengl_texture_v: Option<u32>,
+    /// A GPU texture to use instead of creating one (the GPU renderer;
+    /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`), of the renderer's
+    /// device; the renderer shares it with the application
+    pub gpu_texture: Option<std::sync::Arc<crate::gpu::Texture>>,
+    /// The GPU texture of the UV plane of an NV12 texture
+    /// (`SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_UV_POINTER`)
+    pub gpu_texture_uv: Option<std::sync::Arc<crate::gpu::Texture>>,
+    /// The GPU texture of the U plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_U_POINTER`)
+    pub gpu_texture_u: Option<std::sync::Arc<crate::gpu::Texture>>,
+    /// The GPU texture of the V plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_V_POINTER`)
+    pub gpu_texture_v: Option<std::sync::Arc<crate::gpu::Texture>>,
 }
 
 /// The number of glyphs in a row of the debug text atlas.
@@ -431,6 +444,10 @@ impl Renderer {
                     opengl_texture_uv: info.opengl_texture_uv,
                     opengl_texture_u: info.opengl_texture_u,
                     opengl_texture_v: info.opengl_texture_v,
+                    gpu_texture: info.gpu_texture.clone(),
+                    gpu_texture_uv: info.gpu_texture_uv.clone(),
+                    gpu_texture_u: info.gpu_texture_u.clone(),
+                    gpu_texture_v: info.gpu_texture_v.clone(),
                 },
             )?;
         } else {

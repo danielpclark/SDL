@@ -2175,6 +2175,7 @@ impl RenderBackend for GlRenderer {
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        _gpu_render_states: &crate::render::sysrender::GpuRenderStates,
     ) -> Result<()> {
         // !!! FIXME: it'd be nice to use a vertex buffer instead of immediate mode...
         self.activate()?;

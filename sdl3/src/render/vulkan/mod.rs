@@ -5629,6 +5629,7 @@ impl RenderBackend for VulkanRenderer {
         &mut self,
         cmds: &[RenderCommand],
         textures: &mut TextureStore,
+        _gpu_render_states: &crate::render::sysrender::GpuRenderStates,
     ) -> Result<()> {
         let current_rotation = self.get_rotation_for_current_render_target();
         let mut state_cache = DrawStateCache::default();
