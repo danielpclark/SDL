@@ -4009,12 +4009,13 @@ mod with_command_buffers {
         assert!(third.is_signaled());
 
         // A plain submission's fence goes back to the pool when it's
-        // cleaned.
-        // (Wait's fence too)
+        // cleaned, and so does Wait's. (They can be the same fence: when the
+        // GPU is done before Submit's cleanup pass, Wait reuses it.)
         device.acquire_command_buffer().unwrap().submit().unwrap();
         device.wait_for_idle().unwrap();
+        assert!(lock(&renderer.submit_lock).is_empty());
         let pooled = lock(&renderer.fence_pool).len();
-        assert!(pooled >= 2);
+        assert!(pooled >= 1);
         drop((second, third));
         assert_eq!(lock(&renderer.fence_pool).len(), pooled + 2);
     }
