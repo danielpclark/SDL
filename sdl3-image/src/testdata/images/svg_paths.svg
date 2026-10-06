@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- path commands, absolute and relative, and the basic shapes -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 128 96">
+  <path d="M10,10 L40,10 l0,20 H10 z m40,0 h20 v20 h-20 V10 Z" fill="#c33" fill-rule="evenodd"/>
+  <path d="M80 10 C 90 0, 110 0, 120 10 S 110 40, 80 30 Q 70 20 80 10 T 90 5" fill="rgb(20, 160, 90)"/>
+  <path d="M10 50 a 15 10 30 1 0 30 10 A 10 10 0 0 1 60 50 a5 5 0 0,1 10 0 z" fill="navy" stroke="yellow"/>
+  <path d="M 70 50 q 10 -10 20 0 t 20 0 l 5 5 Z c" fill="#0a8"/>
+  <path d="m90,80 -10,10 5-15 +1.5e1.5 z" fill="rgb(50%, 20.5%, 100%)"/>
+  <polygon points="5,90 15,70 25,90" fill="magenta"/>
+  <polyline points="30 92 40 72 50 92 60 72" fill="none" stroke="black" stroke-width="2"/>
+  <ellipse cx="110" cy="80" rx="15" ry="8" fill="#808"/>
+  <circle cx="100" cy="60" r="6" fill="cyan" opacity="0.5"/>
+  <rect x="62" y="62" width="20" height="14" rx="4" fill="gray" stroke="white" stroke-width="1.5"/>
+  <line x1="0" y1="0" x2="128" y2="96" stroke="#f80" stroke-width="0.8"/>
+  <rect x="1mm" y="0.1in" width="2em" height="5pt" fill="black" display="none"/>
+</svg>

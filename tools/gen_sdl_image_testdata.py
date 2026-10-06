@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Generate the synthetic test images of sdl3-image/src/testdata/images/ (the ones
-# that aren't upstream SDL_image's own: not sample.*, rgbrgb.*, palette.* or svg*.svg).
+# that aren't upstream SDL_image's own: not sample.*, rgbrgb.*, palette.*, svg.svg or
+# svg-class.svg).
 #
 # Usage: tools/gen_sdl_image_testdata.py OUTDIR
 #
@@ -132,8 +133,122 @@ def main(out):
         p("xpm_trans.xpm"))
     write_xpm_named(p("xpm_named.xpm"))
 
+    # SVG: path commands (arcs too), shapes and units, strokes (joins, caps,
+    # dashes), gradients, transforms, styles and colors
+    for name, text in SVGS.items():
+        open(p(name), "w").write(text)
+
     for f in (tmp, tmpa, p("_16.png"), p("_32.png"), p("_24.png")):
         os.remove(f)
+
+
+SVGS = {
+    "svg_paths.svg": """<?xml version="1.0" encoding="UTF-8"?>
+<!-- path commands, absolute and relative, and the basic shapes -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 128 96">
+  <path d="M10,10 L40,10 l0,20 H10 z m40,0 h20 v20 h-20 V10 Z" fill="#c33" fill-rule="evenodd"/>
+  <path d="M80 10 C 90 0, 110 0, 120 10 S 110 40, 80 30 Q 70 20 80 10 T 90 5" fill="rgb(20, 160, 90)"/>
+  <path d="M10 50 a 15 10 30 1 0 30 10 A 10 10 0 0 1 60 50 a5 5 0 0,1 10 0 z" fill="navy" stroke="yellow"/>
+  <path d="M 70 50 q 10 -10 20 0 t 20 0 l 5 5 Z c" fill="#0a8"/>
+  <path d="m90,80 -10,10 5-15 +1.5e1.5 z" fill="rgb(50%, 20.5%, 100%)"/>
+  <polygon points="5,90 15,70 25,90" fill="magenta"/>
+  <polyline points="30 92 40 72 50 92 60 72" fill="none" stroke="black" stroke-width="2"/>
+  <ellipse cx="110" cy="80" rx="15" ry="8" fill="#808"/>
+  <circle cx="100" cy="60" r="6" fill="cyan" opacity="0.5"/>
+  <rect x="62" y="62" width="20" height="14" rx="4" fill="gray" stroke="white" stroke-width="1.5"/>
+  <line x1="0" y1="0" x2="128" y2="96" stroke="#f80" stroke-width="0.8"/>
+  <rect x="1mm" y="0.1in" width="2em" height="5pt" fill="black" display="none"/>
+</svg>
+""",
+    "svg_strokes.svg": """<svg xmlns="http://www.w3.org/2000/svg" width="60" height="50">
+  <g fill="none" stroke="#2050c0" stroke-width="5">
+    <polyline points="5,5 20,15 5,25" stroke-linejoin="miter"/>
+    <polyline points="25,5 40,15 25,25" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="45,5 58,15 45,25" stroke-linejoin="bevel" stroke-linecap="square"/>
+    <polyline points="5,30 30,32 5,34" stroke-miterlimit="1.5" stroke-width="3"/>
+  </g>
+  <path d="M5,45 h50" stroke="red" stroke-width="3" stroke-dasharray="6,3,1" stroke-dashoffset="2"/>
+  <circle cx="45" cy="38" r="7" fill="none" stroke="green" stroke-width="2" stroke-dasharray="4 2" stroke-opacity="0.7"/>
+  <rect x="32" y="28" width="6" height="6" style="fill: blue; stroke: black; stroke-width: 1; fill-opacity: .5"/>
+</svg>
+""",
+    "svg_gradients.svg": """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="80" height="40">
+  <defs>
+    <linearGradient id="lg">
+      <stop offset="0%" stop-color="#ff0000"/>
+      <stop offset="0.5" stop-color="#00ff00" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0000ff"/>
+    </linearGradient>
+    <linearGradient id="lg2" xlink:href="#lg" x1="0" y1="0" x2="0" y2="1" gradientTransform="rotate(20)"/>
+    <radialGradient id="rg" cx="0.5" cy="0.5" r="0.5" fx="0.3" fy="0.3">
+      <stop offset="0" stop-color="white"/>
+      <stop offset="1" stop-color="black"/>
+    </radialGradient>
+    <radialGradient id="ug" gradientUnits="userSpaceOnUse" cx="60" cy="20" r="15" spreadMethod="reflect">
+      <stop offset="0.2" stop-color="yellow"/>
+      <stop offset="0.9" stop-color="#804"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="36" height="16" fill="url(#lg)"/>
+  <rect x="2" y="22" width="36" height="16" fill="url(#lg2)" stroke="url(#rg)" stroke-width="2"/>
+  <circle cx="60" cy="20" r="18" fill="url(#ug)"/>
+  <circle cx="60" cy="20" r="5" fill="url(#missing)" stroke="url(#rg)"/>
+</svg>
+""",
+    "svg_transforms.svg": """<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 100 60" width="90" height="45" preserveAspectRatio="xMidYMax meet">
+  <style>
+    .warm, .hot { fill: #e60; }
+    .cool { fill: #06e; stroke: #003; stroke-width: 0.5 }
+    p { fill: red }
+  </style>
+  <g transform="translate(10,5) rotate(15)">
+    <rect class="warm" width="20" height="10"/>
+    <rect class="cool" y="15" width="20" height="10" transform="skewX(20)"/>
+  </g>
+  <g transform="matrix(0.8 0.2 -0.2 0.8 50 0)">
+    <rect class="cool hot" width="15" height="15"/>
+    <circle cx="25" cy="25" r="5" transform="scale(1.5) rotate(45 25 25)" fill="#5a5"/>
+    <ellipse cx="5" cy="30" rx="6" ry="3" transform="skewY(-10)" fill="#555" opacity="0.6"/>
+  </g>
+  <g fill="#909" display="none"><rect width="80" height="40"/></g>
+  <text x="0" y="0">ignored</text>
+</svg>
+""",
+    # Odd input nanosvg must survive the same way: deep nesting, many
+    # attributes, huge and infinite numbers, degenerate dashes, gradient
+    # reference loops, malformed colors and transforms, markup it skips
+    "svg_odd.svg": """<?xml version='1.0'?><!DOCTYPE svg><!-- odd -->
+<svg width="40" height="30" viewBox="0,0,40%,30">
+<![CDATA[ <rect width="40" height="30"/> ]]>
+""" + "<g fill='#123'>" * 130 + """<rect x="2" y="2" width="6" height="6"/>""" + "</g>" * 130 + """
+<rect x="10" y="2" width="6" height="6" """ + " ".join('a%d="%d"' % (i, i) for i in range(140)) + """ fill="red"/>
+<path d="M 1e30 1e30 L -1e30 5 L 3 1e999 z" fill="blue" stroke="black" stroke-width="1e999"/>
+<path d="M 20 2 L 30 2 L 30 8 Z" fill="none" stroke="green" stroke-width="2" stroke-dasharray="0,0"/>
+<path d="M 20 10 L 38 10" stroke="#0f0" stroke-width="2" stroke-dasharray="3" stroke-dashoffset="-7"/>
+<path d="M 20 14 L 38 14" stroke="#00f" stroke-width="1e7" stroke-dasharray="1e999"/>
+<defs>
+  <linearGradient id="a" xlink:href="#b"/><linearGradient id="b" xlink:href="#a"/>
+  <linearGradient id="c" x1="1" x2="0" spreadMethod="repeat">
+    <stop offset="2" stop-color="red"/><stop offset="-1" stop-color="blue"/>
+    <stop offset="50%" stop-color="rgb(300, -5, 20)" stop-opacity="7"/>
+  </linearGradient>
+</defs>
+<stop offset="0.5" stop-color="white"/>
+<rect x="2" y="12" width="8" height="8" fill="url(#a)" stroke="url(#c)"/>
+<rect x="12" y="12" width="8" height="8" fill="url(#c)" rx="2"/>
+<circle cx="5" cy="25" r="3" fill="#12" stroke="#1234567"/>
+<circle cx="12" cy="25" r="3" fill="Red" stroke="  white" stroke-width="1em" font-size="0.5pc"/>
+<ellipse cx="20" cy="25" rx="3cm" ry="2" fill="rgb(10%, 20%,30% )" transform="matrix(1 2 3)"/>
+<rect x='25' y='20' width='5' height='5' style=' ;fill:#ff0;;stroke: ; stroke-width:x;' class='none nothing'/>
+<polygon points="30 28 35 20 39 29 31" fill="#0ff" transform="translate(1) scale(0.9) skewY(5)"/>
+<path d="M 1 2"/><path d="z m 1 1 l 1 1"/><path d="M5 5 A 0 0 0 0 0 10 10 A 3 3 0 1 1 5 5 Z" fill="none" stroke="red"/>
+<svg x="5" y="5"><rect width="100" height="100" fill="#f0f" opacity=".2"/></svg>
+</svg>
+""",
+    "svg_huge.svg": '<svg width="1e999" height="10"><rect width="1" height="1"/></svg>\n',
+    "svg_empty.svg": "<svg>\n</svg>\n",
+}
 
 
 def write_tga16(path):

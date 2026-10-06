@@ -114,8 +114,8 @@ sdl3-image/ is a translation of SDL_image 3.x,
 https://github.com/libsdl-org/SDL_image, an altered version of that
 software, under the same zlib license as SDL above (Copyright (C) 1997-2026
 Sam Lantinga <slouken@libsdl.org>). Its test images in
-sdl3-image/src/testdata/images/ named sample.*, rgbrgb.*, palette.* and
-svg*.svg are SDL_image's own test images, under that license too. Parts of
+sdl3-image/src/testdata/images/ named sample.*, rgbrgb.*, palette.*, svg.svg
+and svg-class.svg are SDL_image's own test images, under that license too. Parts of
 it carry these further notices, which must be preserved:
 
 sdl3-image/src/gif.rs (from IMG_gif.c), adapted from XPaint:
@@ -175,6 +175,58 @@ sdl3-image/src/avif.rs, the file type check from libavif
   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+sdl3-image/src/nanosvg.rs and nanosvgrast.rs (from SDL_image's bundled
+nanosvg.h and nanosvgrast.h, https://github.com/memononen/nanosvg):
+
+  Copyright (c) 2013-14 Mikko Mononen memon@inside.org
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+  claim that you wrote the original software. If you use this software
+  in a product, an acknowledgment in the product documentation would be
+  appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+  misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+  The SVG parser is based on Anti-Grain Geometry 2.4 SVG example
+  Copyright (C) 2002-2004 Maxim Shemanarev (McSeem) (http://www.antigrain.com/)
+  Arc calculation code based on canvg (https://code.google.com/p/canvg/)
+  The polygon rasterization is heavily based on stb_truetype rasterizer
+  by Sean Barrett - http://nothings.org/
+
+sdl3-image/src/qsort.rs (from SDL's src/stdlib/SDL_qsort.c, which came from
+Gareth McCaughan's qsort.c, https://www.mccaughan.org.uk/software/qsort.c-1.16):
+
+  Copyright (c) 1998-2021 Gareth McCaughan
+
+  This software is provided 'as-is', without any express or implied
+  warranty. In no event will the authors be held liable for any
+  damages arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented;
+     you must not claim that you wrote the original software.
+     If you use this software in a product, an acknowledgment
+     in the product documentation would be appreciated but
+     is not required.
+
+  2. Altered source versions must be plainly marked as such,
+     and must not be misrepresented as being the original software.
+
+  3. This notice may not be removed or altered from any source
+     distribution.
 
 sdl3-image/src/tiny_jpeg.rs (from tiny_jpeg.h, by Sergio Gonzalez) is in the
 public domain; where that dedication is not recognized, a perpetual,

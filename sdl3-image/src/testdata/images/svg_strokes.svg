@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="50">
+  <g fill="none" stroke="#2050c0" stroke-width="5">
+    <polyline points="5,5 20,15 5,25" stroke-linejoin="miter"/>
+    <polyline points="25,5 40,15 25,25" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="45,5 58,15 45,25" stroke-linejoin="bevel" stroke-linecap="square"/>
+    <polyline points="5,30 30,32 5,34" stroke-miterlimit="1.5" stroke-width="3"/>
+  </g>
+  <path d="M5,45 h50" stroke="red" stroke-width="3" stroke-dasharray="6,3,1" stroke-dashoffset="2"/>
+  <circle cx="45" cy="38" r="7" fill="none" stroke="green" stroke-width="2" stroke-dasharray="4 2" stroke-opacity="0.7"/>
+  <rect x="32" y="28" width="6" height="6" style="fill: blue; stroke: black; stroke-width: 1; fill-opacity: .5"/>
+</svg>
