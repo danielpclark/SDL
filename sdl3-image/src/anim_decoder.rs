@@ -4,7 +4,7 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation decoders: frames one at a time from a file or a stream, by
-//! format (GIF and ANI here; APNG, AVIF and WebP need their libraries,
+//! format (GIF, ANI and WebP here; APNG and AVIF need their libraries,
 //! which this crate doesn't have, as an upstream build without them), with
 //! a single-frame decoder for every other format; and whole animations
 //! decoded into an [`Animation`](crate::Animation).
@@ -20,6 +20,7 @@ use sdl3::video::Surface;
 use crate::ani::{create_ani_animation_decoder, AniDecoderContext};
 use crate::gif::{create_gif_animation_decoder, GifContext};
 use crate::img::{timebase_duration, Animation};
+use crate::webp::{create_webp_animation_decoder, WebpDecoderContext};
 
 /// The file to decode (a string). Translation of
 /// `IMG_PROP_ANIMATION_DECODER_CREATE_FILENAME_STRING`.
@@ -170,6 +171,7 @@ pub(crate) enum DecoderContext {
     SingleFrame { type_: String, frame_read: bool },
     Gif(Box<GifContext>),
     Ani(Box<AniDecoderContext>),
+    Webp(Box<WebpDecoderContext>),
 }
 
 /// A decoder of the frames of an animation, one at a time. Translation of
@@ -186,6 +188,7 @@ impl std::fmt::Debug for AnimationDecoder<'_, '_> {
             DecoderContext::SingleFrame { .. } => "single frame",
             DecoderContext::Gif(_) => "gif",
             DecoderContext::Ani(_) => "ani",
+            DecoderContext::Webp(_) => "webp",
         };
         f.debug_struct("AnimationDecoder")
             .field("status", &self.core.status)
@@ -277,6 +280,17 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
         src: Option<&'s mut IoStream<'a>>,
         props: &Properties,
     ) -> Result<AnimationDecoder<'s, 'a>> {
+        AnimationDecoder::with_properties_and_fallback(src, props, true)
+    }
+
+    /// [`with_properties`](Self::with_properties), with or without the
+    /// fallback to the single-frame decoder when the format's decoder
+    /// can't be created (without it, that is an error).
+    pub(crate) fn with_properties_and_fallback(
+        src: Option<&'s mut IoStream<'a>>,
+        props: &Properties,
+        fallback: bool,
+    ) -> Result<AnimationDecoder<'s, 'a>> {
         let file = props.get_string(PROP_ANIMATION_DECODER_CREATE_FILENAME_STRING);
         let mut type_ = props.get_string(PROP_ANIMATION_DECODER_CREATE_TYPE_STRING);
         // FIXME (upstream): the time base is read from the encoder's
@@ -343,7 +357,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
         } else if is("gif") {
             create_gif_animation_decoder(d, props).map(DecoderContext::Gif)
         } else if is("webp") {
-            Err(Error::new("SDL_image built without WEBP support"))
+            create_webp_animation_decoder(d, props).map(DecoderContext::Webp)
         } else {
             // (no decoder for the type: the single-frame one below)
             Err(Error::unsupported())
@@ -351,6 +365,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
 
         decoder.ctx = match result {
             Ok(ctx) => ctx,
+            Err(e) if !fallback => return Err(e),
             Err(_) => {
                 let start = decoder.core.start;
                 if decoder.core.src().seek(start, IoWhence::Set).ok() != Some(start) {
@@ -387,6 +402,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
             }
             DecoderContext::Gif(ctx) => ctx.get_next_frame(d),
             DecoderContext::Ani(ctx) => ctx.get_next_frame(d),
+            DecoderContext::Webp(ctx) => ctx.get_next_frame(d),
         };
 
         // (the formats return Ok(None) with the COMPLETE status, where
@@ -414,6 +430,10 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
             }
             DecoderContext::Gif(ctx) => ctx.reset(d),
             DecoderContext::Ani(ctx) => {
+                ctx.reset();
+                Ok(())
+            }
+            DecoderContext::Webp(ctx) => {
                 ctx.reset();
                 Ok(())
             }
@@ -453,7 +473,33 @@ pub(crate) fn decode_as_animation(
     format: &str,
     max_frames: i32,
 ) -> Result<Animation> {
-    let mut decoder = AnimationDecoder::from_io(src, format)?;
+    decode_as_animation_and_fallback(src, format, max_frames, true)
+}
+
+/// [`decode_as_animation`] without the single-frame decoder's fallback
+/// (for a loader that the fallback would call again).
+pub(crate) fn decode_as_animation_without_fallback(
+    src: &mut IoStream<'_>,
+    format: &str,
+    max_frames: i32,
+) -> Result<Animation> {
+    decode_as_animation_and_fallback(src, format, max_frames, false)
+}
+
+/// The body of `IMG_DecodeAsAnimation()`.
+fn decode_as_animation_and_fallback(
+    src: &mut IoStream<'_>,
+    format: &str,
+    max_frames: i32,
+    fallback: bool,
+) -> Result<Animation> {
+    // (IMG_CreateAnimationDecoder_IO())
+    if format.is_empty() {
+        return Err(Error::invalid_param("type"));
+    }
+    let props = Properties::new();
+    props.set(PROP_ANIMATION_DECODER_CREATE_TYPE_STRING, format)?;
+    let mut decoder = AnimationDecoder::with_properties_and_fallback(Some(src), &props, fallback)?;
 
     // We do not rely on the metadata for the count of available frames because some
     // formats like GIF only supports continuous decoding and doesn't have any data that
@@ -528,9 +574,8 @@ pub fn load_gif_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
     decode_as_animation(src, "gif", 0)
 }
 
-/// Load a WebP animation: WebP isn't decoded here (upstream needs
-/// libwebp), so this fails as an upstream build without it does.
-/// Translation of `IMG_LoadWEBPAnimation_IO()`.
+/// Load a WebP animation: every frame composited on the canvas, with its
+/// duration. Translation of `IMG_LoadWEBPAnimation_IO()`.
 pub fn load_webp_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
     decode_as_animation(src, "webp", 0)
 }

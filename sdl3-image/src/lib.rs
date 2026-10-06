@@ -75,6 +75,7 @@ mod tiny_jpeg;
 mod util;
 mod webp;
 mod xcf;
+mod xmlman;
 mod xpm;
 mod xv;
 
@@ -134,7 +135,7 @@ pub use qoi::{is_qoi, load_qoi_io};
 pub use svg::{is_svg, load_sized_svg_io, load_svg_io};
 pub use tga::{load_tga_io, save_tga, save_tga_io};
 pub use tif::is_tif;
-pub use webp::is_webp;
+pub use webp::{is_webp, load_webp_io};
 pub use xcf::{is_xcf, load_xcf_io};
 pub use xpm::{is_xpm, load_xpm_io, read_xpm_from_array, read_xpm_from_array_to_rgb888};
 pub use xv::{is_xv, load_xv_io};
