@@ -87,6 +87,26 @@ pub(crate) fn scan_ints(text: &[u8], out: &mut [i32]) -> usize {
     out.len()
 }
 
+/// C's `(int)f`: truncation, and for a value out of range (undefined in C)
+/// `INT_MIN`, as x86's conversion instruction gives.
+pub(crate) fn c_f32_to_i32(f: f32) -> i32 {
+    if f.is_nan() || f >= 2147483648.0 || f < -2147483648.0 {
+        i32::MIN
+    } else {
+        f as i32
+    }
+}
+
+/// C's `(unsigned int)f` as x86-64 compilers make it: a conversion to a
+/// 64-bit integer (`INT64_MIN` out of its range), truncated to 32 bits.
+pub(crate) fn c_f32_to_u32(f: f32) -> u32 {
+    if f.is_nan() || f >= 9223372036854775808.0 || f < -9223372036854775808.0 {
+        0
+    } else {
+        f as i64 as u32
+    }
+}
+
 /// Translation of `SDL_isdigit()`.
 pub(crate) fn isdigit(c: u8) -> bool {
     c.is_ascii_digit()

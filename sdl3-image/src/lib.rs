@@ -18,13 +18,15 @@
 //!   leaving the stream where it was.
 //! * Decoders: BMP, ICO and CUR, GIF (still images), JPEG and PNG (through
 //!   the stb_image translation in `sdl3`, as upstream's stb backend), LBM
-//!   (IFF PBM and ILBM, EHB and HAM), PCX, PNM (PBM/PGM/PPM), QOI, TGA,
-//!   XCF (GIMP), XPM (also from arrays of strings) and XV thumbnails.
+//!   (IFF PBM and ILBM, EHB and HAM), PCX, PNM (PBM/PGM/PPM), QOI, SVG
+//!   (through translations of the bundled NanoSVG parser and rasterizer,
+//!   also at a chosen size with [`load_sized_svg_io`]), TGA, XCF (GIMP),
+//!   XPM (also from arrays of strings) and XV thumbnails.
 //! * Savers: [`save`] and [`save_typed_io`] pick the format from a file
 //!   extension; BMP, ICO, CUR, JPEG (tiny_jpeg), PNG (miniz, in `sdl3`) and
 //!   TGA.
 //!
-//! Not translated yet: the SVG, WebP, AVIF, TIFF and JPEG XL decoders, GIF
+//! Not translated yet: the WebP, AVIF, TIFF and JPEG XL decoders, GIF
 //! saving and the animation API. Their detectors are
 //! here; [`load_io`] reports them as an unsupported image format, like an
 //! upstream build without them.
@@ -48,10 +50,13 @@ mod img;
 mod jpg;
 mod jxl;
 mod lbm;
+mod nanosvg;
+mod nanosvgrast;
 mod pcx;
 mod png;
 mod pnm;
 mod qoi;
+mod qsort;
 mod stb;
 mod svg;
 mod tga;
@@ -81,7 +86,7 @@ pub use pcx::{is_pcx, load_pcx_io};
 pub use png::{is_png, load_png_io, save_png, save_png_io};
 pub use pnm::{is_pnm, load_pnm_io};
 pub use qoi::{is_qoi, load_qoi_io};
-pub use svg::is_svg;
+pub use svg::{is_svg, load_sized_svg_io, load_svg_io};
 pub use tga::{load_tga_io, save_tga, save_tga_io};
 pub use tif::is_tif;
 pub use webp::is_webp;

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 100 60" width="90" height="45" preserveAspectRatio="xMidYMax meet">
+  <style>
+    .warm, .hot { fill: #e60; }
+    .cool { fill: #06e; stroke: #003; stroke-width: 0.5 }
+    p { fill: red }
+  </style>
+  <g transform="translate(10,5) rotate(15)">
+    <rect class="warm" width="20" height="10"/>
+    <rect class="cool" y="15" width="20" height="10" transform="skewX(20)"/>
+  </g>
+  <g transform="matrix(0.8 0.2 -0.2 0.8 50 0)">
+    <rect class="cool hot" width="15" height="15"/>
+    <circle cx="25" cy="25" r="5" transform="scale(1.5) rotate(45 25 25)" fill="#5a5"/>
+    <ellipse cx="5" cy="30" rx="6" ry="3" transform="skewY(-10)" fill="#555" opacity="0.6"/>
+  </g>
+  <g fill="#909" display="none"><rect width="80" height="40"/></g>
+  <text x="0" y="0">ignored</text>
+</svg>

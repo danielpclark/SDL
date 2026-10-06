@@ -45,6 +45,7 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("PCX", Some(crate::pcx::is_pcx), crate::pcx::load_pcx_io),
     ("PNG", Some(crate::png::is_png), crate::png::load_png_io),
     ("PNM", Some(crate::pnm::is_pnm), crate::pnm::load_pnm_io), /* P[BGP]M share code */
+    ("SVG", Some(crate::svg::is_svg), crate::svg::load_svg_io),
     ("XCF", Some(crate::xcf::is_xcf), crate::xcf::load_xcf_io),
     ("XPM", Some(crate::xpm::is_xpm), crate::xpm::load_xpm_io),
     ("XV", Some(crate::xv::is_xv), crate::xv::load_xv_io),

@@ -101,6 +101,13 @@ static IMAGES: &[(&str, &[u8])] = images![
     "sample.xpm",
     "svg-class.svg",
     "svg.svg",
+    "svg_empty.svg",
+    "svg_gradients.svg",
+    "svg_huge.svg",
+    "svg_odd.svg",
+    "svg_paths.svg",
+    "svg_strokes.svg",
+    "svg_transforms.svg",
     "tga16.tga",
     "tga24.tga",
     "tga24rle.tga",
@@ -250,7 +257,8 @@ fn save_with(
 /// Formats SDL_image doesn't decode in this crate yet, which upstream's
 /// harness loaded.
 fn untranslated(name: &str) -> bool {
-    matches!(ext_of(name), Some("svg"))
+    let _ = name;
+    false
 }
 
 /// Compare a result with the reference, allowing for what upstream can't
@@ -385,6 +393,14 @@ fn matches_upstream_reference() {
         } else if let Some(n) = label.strip_prefix("trunc ") {
             let n: usize = n.parse().unwrap();
             load_mem(&data[..n], ext_of(name))
+        } else if let Some(size) = label.strip_prefix("sized ") {
+            let (w, h) = size.split_once('x').unwrap();
+            let mut io = IoStream::from_const_mem(data);
+            describe(crate::load_sized_svg_io(
+                &mut io,
+                w.parse().unwrap(),
+                h.parse().unwrap(),
+            ))
         } else if label == "xor" {
             let mut x = data.to_vec();
             for i in (20..x.len()).step_by(3) {
@@ -593,7 +609,7 @@ fn front_end_errors() {
 
     // Formats not translated yet are unsupported, like an upstream build
     // without them
-    for name in ["sample.webp", "svg.svg", "sample.tif", "sample.avif"] {
+    for name in ["sample.webp", "sample.tif", "sample.avif", "sample.jxl"] {
         let e = crate::load_io(&mut IoStream::from_const_mem(image(name))).unwrap_err();
         assert_eq!(e.to_string(), "Unsupported image format", "{name}");
     }
