@@ -1458,6 +1458,13 @@ pub(crate) fn parse_ogg_comments(
         ogg_loop.len = -1; // invalidate the whole thing.
     }
 
+    // FIXME (upstream): a loop of no frames makes the decoders divide by
+    // its length (and crash) when they loop; it's invalid here (and in
+    // the patched C reference harness).
+    if ogg_loop.len == 0 {
+        ogg_loop.len = -1;
+    }
+
     // Ignore invalid or missing loop tag
     ogg_loop.active = (ogg_loop.start >= 0) && (ogg_loop.len >= 0) && (ogg_loop.end >= 0);
     if !ogg_loop.active {
