@@ -87,6 +87,7 @@ static IMAGES: &[(&str, &[u8])] = images![
     "rgbrgb.gif",
     "rgbrgb.png",
     "rgbrgb.webp",
+    "rgbrgb_thirdpartymetadata.webp",
     "sample.avif",
     "sample.bmp",
     "sample.cur",
@@ -123,6 +124,24 @@ static IMAGES: &[(&str, &[u8])] = images![
     "tgagrey.tga",
     "tgagreyrle.tga",
     "thumb.xv",
+    "webp_alpha_best.webp",
+    "webp_alpha_g.webp",
+    "webp_alpha_h.webp",
+    "webp_alpha_q.webp",
+    "webp_alpha_raw.webp",
+    "webp_alpha_v.webp",
+    "webp_anim.webp",
+    "webp_anim_alpha.webp",
+    "webp_anim_bgcolor.webp",
+    "webp_lossless.webp",
+    "webp_lossless_alpha.webp",
+    "webp_lossless_big.webp",
+    "webp_lossy.webp",
+    "webp_lossy_alpha.webp",
+    "webp_lossy_nofilter.webp",
+    "webp_lossy_simple.webp",
+    "webp_lossy_strong.webp",
+    "webp_palette.webp",
     "xcf_gray.xcf",
     "xcf_indexed.xcf",
     "xcf_rgb.xcf",
@@ -299,6 +318,8 @@ fn describe_meta(props: &sdl3::properties::Properties) -> String {
         (crate::PROP_METADATA_DESCRIPTION_STRING, "desc"),
         (crate::PROP_METADATA_TITLE_STRING, "title"),
         (crate::PROP_METADATA_AUTHOR_STRING, "author"),
+        (crate::PROP_METADATA_COPYRIGHT_STRING, "rights"),
+        (crate::PROP_METADATA_CREATION_TIME_STRING, "created"),
     ] {
         if props.contains(name) {
             out += &format!(
@@ -480,6 +501,10 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
     {
         // upstream's endless recursion on a GIF the GIF decoder rejects
         actual.starts_with("err: ")
+    } else if ext_of(name) == Some("webp") && expected == "crash" {
+        // upstream's endless recursion on an animated WebP the WebP
+        // animation decoder rejects
+        actual.starts_with("err: ")
     } else if expected == "err: " {
         // upstream leaves the error message empty (or stale) here
         actual.starts_with("err: ")
@@ -540,10 +565,10 @@ fn matches_upstream_reference() {
         let actual = if label == "is" {
             let mut io = IoStream::from_const_mem(data);
             let mut found = String::new();
-            // (upstream's harness is built without libavif, libjxl,
-            // libtiff and libwebp, so their detectors are on the is_extra
-            // line, and AVIF's is tested separately)
-            let detectors: [(&str, Detector); 15] = [
+            // (upstream's harness is built without libavif, libjxl and
+            // libtiff, so their detectors are on the is_extra line, and
+            // AVIF's is tested separately)
+            let detectors: [(&str, Detector); 16] = [
                 ("ANI", crate::is_ani),
                 ("CUR", crate::is_cur),
                 ("BMP", crate::is_bmp),
@@ -556,6 +581,7 @@ fn matches_upstream_reference() {
                 ("PNM", crate::is_pnm),
                 ("QOI", crate::is_qoi),
                 ("SVG", crate::is_svg),
+                ("WEBP", crate::is_webp),
                 ("XCF", crate::is_xcf),
                 ("XPM", crate::is_xpm),
                 ("XV", crate::is_xv),

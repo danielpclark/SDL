@@ -8,11 +8,19 @@
 # The images are small (23x13, odd sizes for the row padding paths) and made
 # with ImageMagick (`convert`), except the variants ImageMagick doesn't write
 # (16-bit and colormapped TGAs, multi-image cursors, broken GIFs), which are
-# built byte by byte here. The expected results in
+# built byte by byte here. The WebP images are made with libwebp's cwebp,
+# img2webp and webpmux (on PATH, or in the directory $WEBP_TOOLS; libwebp
+# 1.3.2, as SDL_image's external/libwebp) and libwebp's encoding API
+# through ctypes (for the token partitions cwebp doesn't set), and the raw
+# alpha planes with
+# their filters byte by byte. The expected results in
 # sdl3-image/src/testdata/reference.txt come from upstream SDL_image's C,
 # not from this script.
 
+import ctypes
+import ctypes.util
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -153,6 +161,8 @@ def main(out):
     # dashes), gradients, transforms, styles and colors
     for name, text in SVGS.items():
         open(p(name), "w").write(text)
+
+    write_webps(p, tmp, tmpa)
 
     for f in (tmp, tmpa, p("_16.png"), p("_32.png"), p("_24.png")):
         os.remove(f)
@@ -633,6 +643,228 @@ def write_cur_from_ico(src, dst, hotspots):
         x, y = hotspots[i % len(hotspots)]
         struct.pack_into("<HH", data, 6 + 16 * i + 4, x, y)
     open(dst, "wb").write(bytes(data))
+
+
+def webp_tool(name):
+    """The path of one of libwebp's tools."""
+    tools = os.environ.get("WEBP_TOOLS")
+    path = os.path.join(tools, name) if tools else shutil.which(name)
+    if not path or not os.path.exists(path):
+        sys.exit("%s not found (set WEBP_TOOLS to libwebp's tools directory)" % name)
+    return path
+
+
+class WebPPicture(ctypes.Structure):
+    """libwebp's struct WebPPicture (src/webp/encode.h, ABI 0x020f)."""
+    _fields_ = [("use_argb", ctypes.c_int), ("colorspace", ctypes.c_int),
+                ("width", ctypes.c_int), ("height", ctypes.c_int),
+                ("y", ctypes.c_void_p), ("u", ctypes.c_void_p), ("v", ctypes.c_void_p),
+                ("y_stride", ctypes.c_int), ("uv_stride", ctypes.c_int),
+                ("a", ctypes.c_void_p), ("a_stride", ctypes.c_int),
+                ("pad1", ctypes.c_uint32 * 2), ("argb", ctypes.c_void_p),
+                ("argb_stride", ctypes.c_int), ("pad2", ctypes.c_uint32 * 3),
+                ("writer", ctypes.c_void_p), ("custom_ptr", ctypes.c_void_p),
+                ("extra_info_type", ctypes.c_int), ("extra_info", ctypes.c_void_p),
+                ("stats", ctypes.c_void_p), ("error_code", ctypes.c_int),
+                ("progress_hook", ctypes.c_void_p), ("user_data", ctypes.c_void_p),
+                ("pad3", ctypes.c_uint32 * 3), ("pad4", ctypes.c_void_p),
+                ("pad5", ctypes.c_void_p), ("pad6", ctypes.c_uint32 * 8),
+                ("memory_", ctypes.c_void_p), ("memory_argb_", ctypes.c_void_p),
+                ("pad7", ctypes.c_void_p * 2)]
+
+
+class WebPMemoryWriter(ctypes.Structure):
+    """libwebp's struct WebPMemoryWriter."""
+    _fields_ = [("mem", ctypes.POINTER(ctypes.c_uint8)), ("size", ctypes.c_size_t),
+                ("max_size", ctypes.c_size_t), ("pad", ctypes.c_uint32 * 1)]
+
+
+# The fields of libwebp's struct WebPConfig (all 32-bit), in order
+WEBP_CONFIG_FIELDS = ["lossless", "quality", "method", "image_hint", "target_size",
+                      "target_PSNR", "segments", "sns_strength", "filter_strength",
+                      "filter_sharpness", "filter_type", "autofilter", "alpha_compression",
+                      "alpha_filtering", "alpha_quality", "pass", "show_compressed",
+                      "preprocessing", "partitions"]
+
+
+def write_webp_with_config(path, rgb, w, h, quality, **options):
+    """A lossy WebP of RGB samples, encoded with libwebp's advanced API and
+    the given WebPConfig fields."""
+    lib = ctypes.CDLL(ctypes.util.find_library("webp"))
+    config = (ctypes.c_uint32 * 64)()
+    if not lib.WebPConfigInitInternal(config, 0, ctypes.c_float(quality), 0x020f):
+        sys.exit("WebPConfigInit failed")
+    for name, value in options.items():
+        config[WEBP_CONFIG_FIELDS.index(name)] = value
+    if not lib.WebPValidateConfig(config):
+        sys.exit("invalid WebPConfig")
+    pic = WebPPicture()
+    if not lib.WebPPictureInitInternal(ctypes.byref(pic), 0x020f):
+        sys.exit("WebPPictureInit failed")
+    pic.width, pic.height = w, h
+    if not lib.WebPPictureImportRGB(ctypes.byref(pic), rgb, 3 * w):
+        sys.exit("WebPPictureImportRGB failed")
+    writer = WebPMemoryWriter()
+    lib.WebPMemoryWriterInit(ctypes.byref(writer))
+    pic.writer = ctypes.cast(lib.WebPMemoryWrite, ctypes.c_void_p).value
+    pic.custom_ptr = ctypes.addressof(writer)
+    if not lib.WebPEncode(config, ctypes.byref(pic)):
+        sys.exit("WebPEncode failed: %d" % pic.error_code)
+    open(path, "wb").write(ctypes.string_at(writer.mem, writer.size))
+    lib.WebPPictureFree(ctypes.byref(pic))
+    lib.WebPMemoryWriterClear(ctypes.byref(writer))
+
+
+def riff_chunks(data):
+    """The (fourcc, payload) chunks of a RIFF WEBP file."""
+    assert data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    chunks = []
+    pos = 12
+    while pos + 8 <= len(data):
+        fourcc = data[pos:pos + 4]
+        size = struct.unpack_from("<I", data, pos + 4)[0]
+        chunks.append((fourcc, data[pos + 8:pos + 8 + size]))
+        pos += 8 + size + (size & 1)
+    return chunks
+
+
+def riff_chunk(fourcc, payload):
+    return fourcc + struct.pack("<I", len(payload)) + payload + (b"\0" if len(payload) % 2 else b"")
+
+
+def filter_alpha(alpha, w, h, method):
+    """The ALPH chunk's spatial filters (1 horizontal, 2 vertical, 3
+    gradient), as libwebp's unfilters invert them: the first row is
+    filtered horizontally from 0, the first sample of the others from the
+    sample above."""
+    out = bytearray(len(alpha))
+    for y in range(h):
+        row = alpha[y * w:(y + 1) * w]
+        prev = alpha[(y - 1) * w:y * w] if y > 0 else None
+        for x in range(w):
+            if prev is None:
+                pred = row[x - 1] if x > 0 else 0
+            elif method == 1:
+                pred = row[x - 1] if x > 0 else prev[0]
+            elif method == 2:
+                pred = prev[x]
+            elif x == 0:
+                pred = prev[0]
+            else:
+                pred = min(255, max(0, row[x - 1] + prev[x] - prev[x - 1]))
+            out[y * w + x] = (row[x] - pred) & 0xff
+    return bytes(out)
+
+
+def write_webp_raw_alpha(path, vp8, alpha, w, h, method):
+    """A lossy image with an uncompressed ALPH chunk, filtered with
+    'method' (0 to 3)."""
+    data = filter_alpha(alpha, w, h, method) if method else alpha
+    vp8x = struct.pack("<I", 0x10) + struct.pack("<I", w - 1)[:3] + struct.pack("<I", h - 1)[:3]
+    body = b"WEBP" + riff_chunk(b"VP8X", vp8x) + riff_chunk(b"ALPH", bytes([method << 2]) + data)
+    body += riff_chunk(b"VP8 ", vp8)
+    open(path, "wb").write(b"RIFF" + struct.pack("<I", len(body)) + body)
+
+
+WEBP_XMP = """<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x='adobe:ns:meta/'>
+ <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+  <rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'
+    xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
+   <dc:title><rdf:Alt><rdf:li xml:lang='fr'>titre</rdf:li>
+    <rdf:li xml:lang='en-US'>A &amp; B</rdf:li></rdf:Alt></dc:title>
+   <dc:creator><rdf:Seq><rdf:li> gen script </rdf:li></rdf:Seq></dc:creator>
+   <dc:rights><rdf:Alt><rdf:li xml:lang='de'>frei</rdf:li></rdf:Alt></dc:rights>
+   <xmp:CreateDate>2024-05-06T07:08:09</xmp:CreateDate>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>"""
+
+
+def write_webps(p, tmp, tmpa):
+    """The WebP images: lossy (simple and complex in-loop filters,
+    segments, partitions), lossy with alpha (lossless-compressed, quantized
+    and raw with each filter), lossless (with and without alpha, paletted)
+    and animations (lossy and lossless frames, offsets, disposal, blending,
+    a background color, a loop count and XMP metadata)."""
+    cwebp, img2webp, webpmux = (webp_tool(t) for t in ("cwebp", "img2webp", "webpmux"))
+
+    def enc(src, dst, *args):
+        subprocess.run([cwebp, "-quiet", *args, src, "-o", dst], check=True)
+
+    big = p("_big.png")
+    biga = p("_biga.png")
+    run("-seed", "7", "-size", "37x29", "plasma:red-blue", "-depth", "8", big)
+    run(big, "-alpha", "set", "-channel", "A", "-fx", "0.5+0.5*sin(i/3)*cos(j/4)",
+        "+channel", "-depth", "8", biga)
+
+    enc(tmp, p("webp_lossy.webp"), "-q", "75")
+    # (cwebp has no option for the token partitions: libwebp's own API sets
+    # them, and they need a method below 3, without the token buffer)
+    rgb = subprocess.run(["convert", big, "-depth", "8", "rgb:-"],
+                         check=True, capture_output=True).stdout
+    write_webp_with_config(p("webp_lossy_strong.webp"), rgb, 37, 29, quality=60.0,
+                           filter_type=1, filter_strength=60, filter_sharpness=3,
+                           segments=4, partitions=3, sns_strength=80, method=2)
+    enc(big, p("webp_lossy_simple.webp"), "-q", "40", "-nostrong", "-f", "40", "-segments", "2")
+    enc(big, p("webp_lossy_nofilter.webp"), "-q", "90", "-f", "0", "-segments", "1")
+    enc(tmpa, p("webp_lossy_alpha.webp"), "-q", "75")
+    enc(biga, p("webp_alpha_best.webp"), "-q", "50", "-alpha_filter", "best")
+    enc(biga, p("webp_alpha_q.webp"), "-q", "50", "-alpha_q", "20")
+    enc(tmp, p("webp_lossless.webp"), "-lossless", "-z", "9")
+    enc(big, p("webp_lossless_big.webp"), "-lossless", "-m", "6", "-q", "100")
+    enc(tmpa, p("webp_lossless_alpha.webp"), "-lossless", "-exact")
+    pal = p("_pal.png")
+    run(tmp, "-colors", "4", "PNG8:" + pal)
+    enc(pal, p("webp_palette.webp"), "-lossless")
+    os.remove(pal)
+
+    # Uncompressed alpha planes, unfiltered and with each filter
+    vp8 = dict(riff_chunks(open(p("webp_lossy.webp"), "rb").read()))[b"VP8 "]
+    alpha = subprocess.run(["convert", tmpa, "-alpha", "extract", "-depth", "8", "gray:-"],
+                           check=True, capture_output=True).stdout
+    for method, name in ((0, "raw"), (1, "h"), (2, "v"), (3, "g")):
+        write_webp_raw_alpha(p("webp_alpha_%s.webp" % name), vp8, alpha, 23, 13, method)
+
+    # Animations: img2webp's (sub-frames, blending and disposal of its
+    # choice), and webpmux's with set offsets, disposal and blending
+    f2 = p("_f2.png")
+    run(tmp, "-fill", "red", "-draw", "rectangle 5,3 12,8", f2)
+    f3 = p("_f3.png")
+    run(tmp, "-negate", f3)
+    subprocess.run([img2webp, "-loop", "3", "-mixed", "-d", "100", tmp, "-d", "50", f2,
+                    "-lossy", "-q", "70", "-d", "70", f3, "-o", p("webp_anim.webp")],
+                   check=True, capture_output=True)
+    frames = []
+    for i, (src, args) in enumerate(((tmpa, ["-lossless"]),
+                                     (biga, ["-q", "60", "-resize", "10", "6"]),
+                                     (big, ["-lossless", "-resize", "8", "8"]),
+                                     (tmp, ["-q", "80"]))):
+        frames.append(p("_frame%d.webp" % i))
+        enc(src, frames[-1], *args)
+    xmp = p("_meta.xmp")
+    open(xmp, "w").write(WEBP_XMP)
+    anim = p("_anim.webp")
+    subprocess.run([webpmux, "-frame", frames[0], "+40+0+0+0+b",
+                    "-frame", frames[1], "+30+4+2+1+b",
+                    "-frame", frames[2], "+20+12+4+0-b",
+                    "-frame", frames[3], "+10+0+0+1-b",
+                    "-loop", "2", "-bgcolor", "255,10,200,30", "-o", anim],
+                   check=True, capture_output=True)
+    subprocess.run([webpmux, "-set", "xmp", xmp, anim, "-o", p("webp_anim_alpha.webp")],
+                   check=True, capture_output=True)
+    opaque = [p("_opaque%d.webp" % i) for i in range(3)]
+    enc(tmp, opaque[0], "-q", "70")
+    enc(big, opaque[1], "-q", "70", "-resize", "9", "7")
+    enc(f3, opaque[2], "-lossless", "-resize", "6", "6")
+    subprocess.run([webpmux, "-frame", opaque[0], "+60+0+0+1+b",
+                    "-frame", opaque[1], "+30+2+2+1-b",
+                    "-frame", opaque[2], "+5+16+6+0+b",
+                    "-bgcolor", "255,10,200,30", "-o", p("webp_anim_bgcolor.webp")],
+                   check=True, capture_output=True)
+    for f in [big, biga, f2, f3, xmp, anim] + frames + opaque:
+        os.remove(f)
 
 
 if __name__ == "__main__":
