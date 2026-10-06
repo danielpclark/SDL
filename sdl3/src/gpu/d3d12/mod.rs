@@ -1,5 +1,5 @@
 // Rust translation of src/gpu/d3d12/SDL_gpu_d3d12.c from Simple
-// DirectMedia Layer (part 1 of 2: devices and resources).
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -9,8 +9,6 @@
 //! there) are loaded at run time, as upstream does, and the COM interfaces
 //! are declared in [`d3d`] (the DXGI ones are the Direct3D 11 renderer's).
 //! It takes DXBC shaders, and DXIL ones on devices with shader model 6.
-//!
-//! # What is translated (part 1)
 //!
 //! * `PrepareDriver`, adapter selection (by GPU preference), the vendored
 //!   runtime of the Agility SDK, the DXGI and Direct3D 12 debug layers
@@ -27,33 +25,38 @@
 //!   ([`resources`]);
 //! * root signatures, graphics and compute pipelines and the state
 //!   conversions ([`pipelines`]);
-//! * the blit shaders (DXBC, [`shaders`], made by
-//!   `tools/gen_d3d12_shaders.py`) and samplers, made with the device;
-//! * `SupportsTextureFormat`, `SupportsSampleCount`, and `Wait` (without
-//!   command buffers to wait for yet).
-//!
-//! # What is left (part 2)
-//!
-//! Command buffers and their allocators, barriers and resource tracking
-//! (the default resource states and subresource indices are here),
-//! render, compute and copy passes (uploads, downloads with the texture
-//! pitch workaround, copies, blits through the blit pipelines, mipmap
-//! generation), uniform data, descriptor binding into the shader-visible
-//! heaps, the debug labels (PIX), windows and swapchains, fences,
-//! submission, cancelling, and `WaitForFences`. Every
-//! [`GpuDriver`](crate::gpu::sysgpu::GpuDriver) method of these is marked
-//! `// part 2` below and fails with "not translated yet" (or does nothing).
+//! * command buffers and their allocators, resource barriers and tracking,
+//!   fences, uniform data, the shader-visible descriptor heaps of the
+//!   command buffers, submission (with presentation and the cleanup of
+//!   finished command buffers), cancelling, `Wait` and `WaitForFences`,
+//!   and the debug labels (through the PIX runtime, a no-op without it)
+//!   ([`commands`]);
+//! * render passes (targets, dynamic state, bindings and their root
+//!   parameters, draws, indirect ones too), compute passes and
+//!   dispatches, copy passes (uploads and downloads with the texture pitch
+//!   workaround, copies), and blits and mipmap generation through the
+//!   front end's blit pipelines with the blit shaders (DXBC, [`shaders`],
+//!   made by `tools/gen_d3d12_shaders.py`) ([`passes`]);
+//! * claimed windows and their DXGI flip model swapchains, present modes,
+//!   compositions (HDR too), frames in flight, swapchain texture
+//!   acquisition and resizing ([`swapchain`]);
+//! * `SupportsTextureFormat` and `SupportsSampleCount`.
 //!
 //! The OpenXR parts (`HAVE_GPU_OPENXR`) and the Xbox (GDK) code are not
 //! translated.
 
+mod commands;
 mod d3d;
 mod descriptors;
 mod device;
+mod passes;
 mod pipelines;
 mod resources;
 mod shaders;
+mod swapchain;
 mod tables;
+#[cfg(test)]
+mod test_dxbc;
 #[cfg(test)]
 mod test_dxil;
 #[cfg(test)]
@@ -69,8 +72,10 @@ use windows_sys::Win32::System::Diagnostics::Debug::{
     FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 };
 
+use commands::{D3D12CommandBuffer, D3D12Fence, UniformStage};
 use d3d::*;
 use descriptors::{GpuDescriptorHeapPool, StagingDescriptorPool};
+use passes::GraphicsStage;
 use pipelines::{D3D12ComputePipeline, D3D12GraphicsPipeline};
 use resources::{
     BufferContainer, D3D12BufferType, D3D12Sampler, D3D12Shader, PendingDestroys, TextureContainer,
@@ -207,13 +212,6 @@ fn d3d12_error(debug_mode: bool, device: Option<&D3d12Device>, msg: &str, res: H
     Error::new(message)
 }
 
-/// The error of the methods part 2 translates.
-fn not_translated(func: &str) -> Error {
-    Error::new(format!(
-        "Direct3D 12 {func} is unsupported, not translated yet"
-    ))
-}
-
 /// A backend object of this backend.
 fn object<T: std::any::Any + Send + Sync>(object: &BackendObject) -> Arc<T> {
     object
@@ -224,7 +222,6 @@ fn object<T: std::any::Any + Send + Sync>(object: &BackendObject) -> Arc<T> {
 /// The functions of the PIX runtime for the debug labels. Translation of
 /// `WinPixEventRuntimeFns`.
 #[derive(Clone, Copy, Debug, Default)]
-#[allow(dead_code)] // (part 2: debug labels)
 struct WinPixEventRuntimeFns {
     begin_event_on_command_list: Option<PfnBeginEventOnCommandList>,
     end_event_on_command_list: Option<PfnEndEventOnCommandList>,
@@ -236,7 +233,6 @@ struct WinPixEventRuntimeFns {
 /// A shader or sampler that failed to be made is `None`, as upstream's is
 /// NULL.
 #[derive(Debug)]
-#[allow(dead_code)] // (part 2: blits)
 struct BlitResources {
     vertex_shader: Option<Shader>,
     from_2d_shader: Option<Shader>,
@@ -285,13 +281,24 @@ impl Drop for LiveObjectReporter {
 ///
 /// Upstream's locks guard the same state here: `acquireUniformBufferLock`
 /// the uniform buffer pool, `disposeLock` the pending destroys, each pool
-/// its descriptor heaps, and `submitLock` is the one `Wait` takes. Part 2
-/// adds the command buffers, the fence pool and the claimed windows.
+/// its descriptor heaps, `acquireCommandBufferLock` the available command
+/// buffers, `submitLock` the submitted ones, `fenceLock` the fence pool
+/// and `windowLock` the claimed windows.
 ///
 /// The fields are released in their order (upstream's
 /// `D3D12_INTERNAL_DestroyRenderer()`): the pools and resources, then the
 /// Direct3D objects, then the libraries.
 struct D3D12Renderer {
+    /// `claimedWindows`, with `windowLock`.
+    claimed_windows: Mutex<Vec<Arc<swapchain::WindowEntry>>>,
+
+    /// `submittedCommandBuffers`, with `submitLock`.
+    submit_lock: Mutex<Vec<D3D12CommandBuffer>>,
+    /// `availableCommandBuffers`, with `acquireCommandBufferLock`.
+    command_buffer_pool: Mutex<Vec<D3D12CommandBuffer>>,
+    /// `availableFences`, with `fenceLock`.
+    fence_pool: Mutex<Vec<Arc<D3D12Fence>>>,
+
     // Resources
     /// `uniformBufferPool`, with `acquireUniformBufferLock`.
     uniform_buffer_pool: Mutex<Vec<UniformBuffer>>,
@@ -307,37 +314,25 @@ struct D3D12Renderer {
     staging_descriptor_pools:
         [Arc<StagingDescriptorPool>; D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES as usize],
     /// `gpuDescriptorHeapPools` (CBV/SRV/UAV, sampler).
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: command buffers)
     gpu_descriptor_heap_pools: [GpuDescriptorHeapPool; 2],
 
-    // Locks
-    submit_lock: Mutex<()>,
-
-    #[allow(dead_code)] // (part 2: frames in flight)
     allowed_frames_in_flight: AtomicU32,
     props: Properties,
     semantic: CString,
 
     debug_mode: bool,
     gpu_upload_heap_supported: bool,
-    #[allow(dead_code)] // (part 2: downloads)
     unrestricted_buffer_texture_copy_pitch_supported: bool,
-    #[allow(dead_code)] // (part 2: swapchains)
     supports_tearing: bool,
     info_queue_message_callback_supported: bool,
-    #[allow(dead_code)] // (part 2: debug labels)
     winpixeventruntime_fns: WinPixEventRuntimeFns,
     serialize_root_signature: PfnD3d12SerializeRootSignature,
 
     // Indirect command signatures
-    #[allow(dead_code)] // (part 2: indirect draws)
     indirect_draw_command_signature: D3d12CommandSignature,
-    #[allow(dead_code)] // (part 2: indirect draws)
     indirect_indexed_draw_command_signature: D3d12CommandSignature,
-    #[allow(dead_code)] // (part 2: indirect dispatches)
     indirect_dispatch_command_signature: D3d12CommandSignature,
 
-    #[allow(dead_code)] // (part 2: submission)
     command_queue: D3d12CommandQueue,
     debug_info_queue: Option<D3d12InfoQueue>,
     device: D3d12Device,
@@ -345,9 +340,8 @@ struct D3D12Renderer {
     /// released here, after the device.
     #[allow(dead_code)] // (kept alive, as upstream does)
     d3d12_debug: Option<D3d12Debug>,
-    #[allow(dead_code)] // (part 2: swapchains)
+    #[allow(dead_code)] // (kept as upstream does)
     adapter: DxgiAdapter1,
-    #[allow(dead_code)] // (part 2: swapchains)
     factory: DxgiFactory4,
     /// Note (upstream): C never releases the DXGI info queue; it is
     /// released here.
@@ -384,20 +378,6 @@ impl D3D12Renderer {
         d3d12_error(self.debug_mode, Some(&self.device), msg, res)
     }
 
-    /// Translation of `D3D12_Wait()`: there are no submitted command
-    /// buffers to wait for until part 2, so this destroys what was
-    /// released.
-    fn wait_internal(&self) -> Result<()> {
-        let _submit = lock(&self.submit_lock);
-
-        // part 2: signal a fence at the end of the command queue, block on
-        // it and clean up the submitted command buffers.
-
-        self.perform_pending_destroys();
-
-        Ok(())
-    }
-
     /// Translation of `D3D12_DestroyDevice()` (the rest of
     /// `D3D12_INTERNAL_DestroyRenderer()` is dropping the renderer).
     fn destroy_device(&mut self) {
@@ -407,7 +387,8 @@ impl D3D12Renderer {
         // Flush any remaining GPU work...
         let _ = self.wait_internal();
 
-        // part 2: release the claimed windows.
+        // Release window data
+        self.release_claimed_windows();
     }
 
     /// Translation of `D3D12_SupportsTextureFormat()`.
@@ -611,16 +592,16 @@ impl GpuDriver for D3D12Renderer {
         self.set_texture_name_internal(&object::<TextureContainer>(texture), text);
     }
 
-    fn insert_debug_label(&self, _command_buffer: &mut BackendCommandBuffer, _text: &str) {
-        // part 2
+    fn insert_debug_label(&self, command_buffer: &mut BackendCommandBuffer, text: &str) {
+        self.insert_debug_label_internal(Self::d3d12_command_buffer(command_buffer), text);
     }
 
-    fn push_debug_group(&self, _command_buffer: &mut BackendCommandBuffer, _name: &str) {
-        // part 2
+    fn push_debug_group(&self, command_buffer: &mut BackendCommandBuffer, name: &str) {
+        self.push_debug_group_internal(Self::d3d12_command_buffer(command_buffer), name);
     }
 
-    fn pop_debug_group(&self, _command_buffer: &mut BackendCommandBuffer) {
-        // part 2
+    fn pop_debug_group(&self, command_buffer: &mut BackendCommandBuffer) {
+        self.pop_debug_group_internal(Self::d3d12_command_buffer(command_buffer));
     }
 
     // Disposal
@@ -660,254 +641,373 @@ impl GpuDriver for D3D12Renderer {
 
     fn begin_render_pass(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _color_target_infos: &[ColorTargetInfo<'_>],
-        _depth_stencil_target_info: Option<&DepthStencilTargetInfo<'_>>,
+        command_buffer: &mut BackendCommandBuffer,
+        color_target_infos: &[ColorTargetInfo<'_>],
+        depth_stencil_target_info: Option<&DepthStencilTargetInfo<'_>>,
     ) {
-        // part 2
+        self.begin_render_pass_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            color_target_infos,
+            depth_stencil_target_info,
+        );
     }
 
     fn bind_graphics_pipeline(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _graphics_pipeline: &BackendObject,
+        command_buffer: &mut BackendCommandBuffer,
+        graphics_pipeline: &BackendObject,
     ) {
-        // part 2
+        self.bind_graphics_pipeline_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            &object::<D3D12GraphicsPipeline>(graphics_pipeline),
+        );
     }
 
-    fn set_viewport(&self, _command_buffer: &mut BackendCommandBuffer, _viewport: &Viewport) {
-        // part 2
+    fn set_viewport(&self, command_buffer: &mut BackendCommandBuffer, viewport: &Viewport) {
+        Self::set_viewport_internal(Self::d3d12_command_buffer(command_buffer), viewport);
     }
 
-    fn set_scissor(&self, _command_buffer: &mut BackendCommandBuffer, _scissor: &Rect) {
-        // part 2
+    fn set_scissor(&self, command_buffer: &mut BackendCommandBuffer, scissor: &Rect) {
+        Self::set_scissor_internal(Self::d3d12_command_buffer(command_buffer), scissor);
     }
 
     fn set_blend_constants(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _blend_constants: FColor,
+        command_buffer: &mut BackendCommandBuffer,
+        blend_constants: FColor,
     ) {
-        // part 2
+        Self::set_blend_constants_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            blend_constants,
+        );
     }
 
-    fn set_stencil_reference(&self, _command_buffer: &mut BackendCommandBuffer, _reference: u8) {
-        // part 2
+    fn set_stencil_reference(&self, command_buffer: &mut BackendCommandBuffer, reference: u8) {
+        Self::set_stencil_reference_internal(Self::d3d12_command_buffer(command_buffer), reference);
     }
 
     fn bind_vertex_buffers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _bindings: &[BufferBinding<'_>],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        bindings: &[BufferBinding<'_>],
     ) {
-        // part 2
+        Self::bind_vertex_buffers_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            first_slot,
+            bindings,
+        );
     }
 
     fn bind_index_buffer(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _binding: &BufferBinding<'_>,
-        _index_element_size: IndexElementSize,
+        command_buffer: &mut BackendCommandBuffer,
+        binding: &BufferBinding<'_>,
+        index_element_size: IndexElementSize,
     ) {
-        // part 2
+        Self::bind_index_buffer_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            binding,
+            index_element_size,
+        );
     }
 
     fn bind_vertex_samplers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _texture_sampler_bindings: &[TextureSamplerBinding<'_>],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        texture_sampler_bindings: &[TextureSamplerBinding<'_>],
     ) {
-        // part 2
+        Self::bind_graphics_samplers(
+            Self::d3d12_command_buffer(command_buffer),
+            GraphicsStage::Vertex,
+            first_slot,
+            texture_sampler_bindings,
+        );
     }
 
     fn bind_vertex_storage_textures(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _storage_textures: &[&Texture],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        storage_textures: &[&Texture],
     ) {
-        // part 2
+        Self::bind_graphics_storage_textures(
+            Self::d3d12_command_buffer(command_buffer),
+            GraphicsStage::Vertex,
+            first_slot,
+            storage_textures,
+        );
     }
 
     fn bind_vertex_storage_buffers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _storage_buffers: &[&super::Buffer],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        storage_buffers: &[&super::Buffer],
     ) {
-        // part 2
+        Self::bind_graphics_storage_buffers(
+            Self::d3d12_command_buffer(command_buffer),
+            GraphicsStage::Vertex,
+            first_slot,
+            storage_buffers,
+        );
     }
 
     fn bind_fragment_samplers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _texture_sampler_bindings: &[TextureSamplerBinding<'_>],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        texture_sampler_bindings: &[TextureSamplerBinding<'_>],
     ) {
-        // part 2
+        Self::bind_graphics_samplers(
+            Self::d3d12_command_buffer(command_buffer),
+            GraphicsStage::Fragment,
+            first_slot,
+            texture_sampler_bindings,
+        );
     }
 
     fn bind_fragment_storage_textures(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _storage_textures: &[&Texture],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        storage_textures: &[&Texture],
     ) {
-        // part 2
+        Self::bind_graphics_storage_textures(
+            Self::d3d12_command_buffer(command_buffer),
+            GraphicsStage::Fragment,
+            first_slot,
+            storage_textures,
+        );
     }
 
     fn bind_fragment_storage_buffers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _storage_buffers: &[&super::Buffer],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        storage_buffers: &[&super::Buffer],
     ) {
-        // part 2
+        Self::bind_graphics_storage_buffers(
+            Self::d3d12_command_buffer(command_buffer),
+            GraphicsStage::Fragment,
+            first_slot,
+            storage_buffers,
+        );
     }
 
+    /// Translation of `D3D12_PushVertexUniformData()`.
     fn push_vertex_uniform_data(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _slot_index: u32,
-        _data: &[u8],
+        command_buffer: &mut BackendCommandBuffer,
+        slot_index: u32,
+        data: &[u8],
     ) {
-        // part 2
+        self.push_uniform_data(
+            Self::d3d12_command_buffer(command_buffer),
+            UniformStage::Vertex,
+            slot_index,
+            data,
+        );
     }
 
+    /// Translation of `D3D12_PushFragmentUniformData()`.
     fn push_fragment_uniform_data(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _slot_index: u32,
-        _data: &[u8],
+        command_buffer: &mut BackendCommandBuffer,
+        slot_index: u32,
+        data: &[u8],
     ) {
-        // part 2
+        self.push_uniform_data(
+            Self::d3d12_command_buffer(command_buffer),
+            UniformStage::Fragment,
+            slot_index,
+            data,
+        );
     }
 
     fn draw_indexed_primitives(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _num_indices: u32,
-        _num_instances: u32,
-        _first_index: u32,
-        _vertex_offset: i32,
-        _first_instance: u32,
+        command_buffer: &mut BackendCommandBuffer,
+        num_indices: u32,
+        num_instances: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
     ) {
-        // part 2
+        self.draw_indexed_primitives_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            num_indices,
+            num_instances,
+            first_index,
+            vertex_offset,
+            first_instance,
+        );
     }
 
     fn draw_primitives(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _num_vertices: u32,
-        _num_instances: u32,
-        _first_vertex: u32,
-        _first_instance: u32,
+        command_buffer: &mut BackendCommandBuffer,
+        num_vertices: u32,
+        num_instances: u32,
+        first_vertex: u32,
+        first_instance: u32,
     ) {
-        // part 2
+        self.draw_primitives_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            num_vertices,
+            num_instances,
+            first_vertex,
+            first_instance,
+        );
     }
 
     fn draw_primitives_indirect(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _buffer: &BackendObject,
-        _offset: u32,
-        _draw_count: u32,
+        command_buffer: &mut BackendCommandBuffer,
+        buffer: &BackendObject,
+        offset: u32,
+        draw_count: u32,
     ) {
-        // part 2
+        self.draw_primitives_indirect_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            &object::<BufferContainer>(buffer),
+            offset,
+            draw_count,
+            false,
+        );
     }
 
     fn draw_indexed_primitives_indirect(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _buffer: &BackendObject,
-        _offset: u32,
-        _draw_count: u32,
+        command_buffer: &mut BackendCommandBuffer,
+        buffer: &BackendObject,
+        offset: u32,
+        draw_count: u32,
     ) {
-        // part 2
+        self.draw_primitives_indirect_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            &object::<BufferContainer>(buffer),
+            offset,
+            draw_count,
+            true,
+        );
     }
 
-    fn end_render_pass(&self, _command_buffer: &mut BackendCommandBuffer) {
-        // part 2
+    fn end_render_pass(&self, command_buffer: &mut BackendCommandBuffer) {
+        Self::end_render_pass_internal(Self::d3d12_command_buffer(command_buffer));
     }
 
     // Compute Pass
 
     fn begin_compute_pass(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _storage_texture_bindings: &[StorageTextureReadWriteBinding<'_>],
-        _storage_buffer_bindings: &[StorageBufferReadWriteBinding<'_>],
+        command_buffer: &mut BackendCommandBuffer,
+        storage_texture_bindings: &[StorageTextureReadWriteBinding<'_>],
+        storage_buffer_bindings: &[StorageBufferReadWriteBinding<'_>],
     ) {
-        // part 2
+        self.begin_compute_pass_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            storage_texture_bindings,
+            storage_buffer_bindings,
+        );
     }
 
     fn bind_compute_pipeline(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _compute_pipeline: &BackendObject,
+        command_buffer: &mut BackendCommandBuffer,
+        compute_pipeline: &BackendObject,
     ) {
-        // part 2
+        self.bind_compute_pipeline_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            &object::<D3D12ComputePipeline>(compute_pipeline),
+        );
     }
 
     fn bind_compute_samplers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _texture_sampler_bindings: &[TextureSamplerBinding<'_>],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        texture_sampler_bindings: &[TextureSamplerBinding<'_>],
     ) {
-        // part 2
+        Self::bind_compute_samplers_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            first_slot,
+            texture_sampler_bindings,
+        );
     }
 
     fn bind_compute_storage_textures(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _storage_textures: &[&Texture],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        storage_textures: &[&Texture],
     ) {
-        // part 2
+        Self::bind_compute_storage_textures_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            first_slot,
+            storage_textures,
+        );
     }
 
     fn bind_compute_storage_buffers(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _first_slot: u32,
-        _storage_buffers: &[&super::Buffer],
+        command_buffer: &mut BackendCommandBuffer,
+        first_slot: u32,
+        storage_buffers: &[&super::Buffer],
     ) {
-        // part 2
+        Self::bind_compute_storage_buffers_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            first_slot,
+            storage_buffers,
+        );
     }
 
+    /// Translation of `D3D12_PushComputeUniformData()`.
     fn push_compute_uniform_data(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _slot_index: u32,
-        _data: &[u8],
+        command_buffer: &mut BackendCommandBuffer,
+        slot_index: u32,
+        data: &[u8],
     ) {
-        // part 2
+        self.push_uniform_data(
+            Self::d3d12_command_buffer(command_buffer),
+            UniformStage::Compute,
+            slot_index,
+            data,
+        );
     }
 
     fn dispatch_compute(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _groupcount_x: u32,
-        _groupcount_y: u32,
-        _groupcount_z: u32,
+        command_buffer: &mut BackendCommandBuffer,
+        groupcount_x: u32,
+        groupcount_y: u32,
+        groupcount_z: u32,
     ) {
-        // part 2
+        self.dispatch_compute_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            groupcount_x,
+            groupcount_y,
+            groupcount_z,
+        );
     }
 
     fn dispatch_compute_indirect(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _buffer: &BackendObject,
-        _offset: u32,
+        command_buffer: &mut BackendCommandBuffer,
+        buffer: &BackendObject,
+        offset: u32,
     ) {
-        // part 2
+        self.dispatch_compute_indirect_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            &object::<BufferContainer>(buffer),
+            offset,
+        );
     }
 
-    fn end_compute_pass(&self, _command_buffer: &mut BackendCommandBuffer) {
-        // part 2
+    fn end_compute_pass(&self, command_buffer: &mut BackendCommandBuffer) {
+        Self::end_compute_pass_internal(Self::d3d12_command_buffer(command_buffer));
     }
 
     // TransferBuffer Data
@@ -926,191 +1026,228 @@ impl GpuDriver for D3D12Renderer {
 
     // Copy Pass
 
+    /// Translation of `D3D12_BeginCopyPass()`.
     fn begin_copy_pass(&self, _command_buffer: &mut BackendCommandBuffer) {
-        // part 2 (a no-op upstream too)
+        // no-op
     }
 
     fn upload_to_texture(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _source: &TextureTransferInfo<'_>,
-        _destination: &TextureRegion<'_>,
-        _cycle: bool,
+        command_buffer: &mut BackendCommandBuffer,
+        source: &TextureTransferInfo<'_>,
+        destination: &TextureRegion<'_>,
+        cycle: bool,
     ) {
-        // part 2
+        self.upload_to_texture_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            source,
+            destination,
+            cycle,
+        );
     }
 
     fn upload_to_buffer(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _source: &TransferBufferLocation<'_>,
-        _destination: &BufferRegion<'_>,
-        _cycle: bool,
+        command_buffer: &mut BackendCommandBuffer,
+        source: &TransferBufferLocation<'_>,
+        destination: &BufferRegion<'_>,
+        cycle: bool,
     ) {
-        // part 2
+        self.upload_to_buffer_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            source,
+            destination,
+            cycle,
+        );
     }
 
     fn copy_texture_to_texture(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _source: &TextureLocation<'_>,
-        _destination: &TextureLocation<'_>,
-        _w: u32,
-        _h: u32,
-        _d: u32,
-        _cycle: bool,
+        command_buffer: &mut BackendCommandBuffer,
+        source: &TextureLocation<'_>,
+        destination: &TextureLocation<'_>,
+        w: u32,
+        h: u32,
+        d: u32,
+        cycle: bool,
     ) {
-        // part 2
+        self.copy_texture_to_texture_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            source,
+            destination,
+            w,
+            h,
+            d,
+            cycle,
+        );
     }
 
     fn copy_buffer_to_buffer(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _source: &BufferLocation<'_>,
-        _destination: &BufferLocation<'_>,
-        _size: u32,
-        _cycle: bool,
+        command_buffer: &mut BackendCommandBuffer,
+        source: &BufferLocation<'_>,
+        destination: &BufferLocation<'_>,
+        size: u32,
+        cycle: bool,
     ) {
-        // part 2
+        self.copy_buffer_to_buffer_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            source,
+            destination,
+            size,
+            cycle,
+        );
     }
 
-    fn generate_mipmaps(&self, _command_buffer: &mut CommandBuffer, _texture: &Texture) {
-        // part 2
+    fn generate_mipmaps(&self, command_buffer: &mut CommandBuffer, texture: &Texture) {
+        self.generate_mipmaps_internal(command_buffer, texture);
     }
 
     fn download_from_texture(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _source: &TextureRegion<'_>,
-        _destination: &TextureTransferInfo<'_>,
+        command_buffer: &mut BackendCommandBuffer,
+        source: &TextureRegion<'_>,
+        destination: &TextureTransferInfo<'_>,
     ) {
-        // part 2
+        self.download_from_texture_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            source,
+            destination,
+        );
     }
 
     fn download_from_buffer(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _source: &BufferRegion<'_>,
-        _destination: &TransferBufferLocation<'_>,
+        command_buffer: &mut BackendCommandBuffer,
+        source: &BufferRegion<'_>,
+        destination: &TransferBufferLocation<'_>,
     ) {
-        // part 2
+        self.download_from_buffer_internal(
+            Self::d3d12_command_buffer(command_buffer),
+            source,
+            destination,
+        );
     }
 
+    /// Translation of `D3D12_EndCopyPass()`.
     fn end_copy_pass(&self, _command_buffer: &mut BackendCommandBuffer) {
-        // part 2 (a no-op upstream too)
+        // no-op
     }
 
-    fn blit(&self, _command_buffer: &mut CommandBuffer, _info: &BlitInfo<'_>) {
-        // part 2
+    fn blit(&self, command_buffer: &mut CommandBuffer, info: &BlitInfo<'_>) {
+        self.blit_internal(command_buffer, info);
     }
 
     // Submission/Presentation
 
     fn supports_swapchain_composition(
         &self,
-        _window: Window,
-        _swapchain_composition: SwapchainComposition,
+        window: Window,
+        swapchain_composition: SwapchainComposition,
     ) -> bool {
-        // part 2
-        false
+        self.supports_swapchain_composition_internal(window, swapchain_composition)
     }
 
-    fn supports_present_mode(&self, _window: Window, _present_mode: PresentMode) -> bool {
-        // part 2
-        false
+    fn supports_present_mode(&self, window: Window, present_mode: PresentMode) -> bool {
+        self.supports_present_mode_internal(window, present_mode)
     }
 
-    fn claim_window(&self, _window: Window) -> Result<()> {
-        // part 2
-        Err(not_translated("ClaimWindow"))
+    fn claim_window(&self, window: Window) -> Result<()> {
+        self.claim_window_internal(window)
     }
 
-    fn release_window(&self, _window: Window) {
-        // part 2
+    fn release_window(&self, window: Window) {
+        self.release_window_internal(window);
     }
 
     fn set_swapchain_parameters(
         &self,
-        _window: Window,
-        _swapchain_composition: SwapchainComposition,
-        _present_mode: PresentMode,
+        window: Window,
+        swapchain_composition: SwapchainComposition,
+        present_mode: PresentMode,
     ) -> Result<()> {
-        // part 2
-        Err(not_translated("SetSwapchainParameters"))
+        self.set_swapchain_parameters_internal(window, swapchain_composition, present_mode)
     }
 
-    fn set_allowed_frames_in_flight(&self, _allowed_frames_in_flight: u32) -> Result<()> {
-        // part 2
-        Err(not_translated("SetAllowedFramesInFlight"))
+    fn set_allowed_frames_in_flight(&self, allowed_frames_in_flight: u32) -> Result<()> {
+        self.set_allowed_frames_in_flight_internal(allowed_frames_in_flight)
     }
 
-    fn swapchain_texture_format(&self, _window: Window) -> Result<TextureFormat> {
-        // part 2
-        Err(not_translated("GetSwapchainTextureFormat"))
+    fn swapchain_texture_format(&self, window: Window) -> Result<TextureFormat> {
+        self.swapchain_texture_format_internal(window)
     }
 
     fn acquire_command_buffer(&self) -> Result<Box<BackendCommandBuffer>> {
-        // part 2
-        Err(not_translated("AcquireCommandBuffer"))
+        Ok(Box::new(self.acquire_command_buffer_internal()?))
     }
 
+    /// Translation of `D3D12_AcquireSwapchainTexture()`.
     fn acquire_swapchain_texture(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _window: Window,
+        command_buffer: &mut BackendCommandBuffer,
+        window: Window,
     ) -> Result<Option<BackendSwapchainTexture>> {
-        // part 2
-        Err(not_translated("AcquireSwapchainTexture"))
+        self.acquire_swapchain_texture_internal(
+            false,
+            Self::d3d12_command_buffer(command_buffer),
+            window,
+        )
     }
 
-    fn wait_for_swapchain(&self, _window: Window) -> Result<()> {
-        // part 2
-        Err(not_translated("WaitForSwapchain"))
+    fn wait_for_swapchain(&self, window: Window) -> Result<()> {
+        self.wait_for_swapchain_internal(window)
     }
 
+    /// Translation of `D3D12_WaitAndAcquireSwapchainTexture()`.
     fn wait_and_acquire_swapchain_texture(
         &self,
-        _command_buffer: &mut BackendCommandBuffer,
-        _window: Window,
+        command_buffer: &mut BackendCommandBuffer,
+        window: Window,
     ) -> Result<Option<BackendSwapchainTexture>> {
-        // part 2
-        Err(not_translated("WaitAndAcquireSwapchainTexture"))
+        self.acquire_swapchain_texture_internal(
+            true,
+            Self::d3d12_command_buffer(command_buffer),
+            window,
+        )
     }
 
-    fn submit(&self, _command_buffer: Box<BackendCommandBuffer>) -> Result<()> {
-        // part 2
-        Err(not_translated("Submit"))
+    /// Translation of `D3D12_Submit()`.
+    fn submit(&self, command_buffer: Box<BackendCommandBuffer>) -> Result<()> {
+        self.submit_internal(Self::owned_command_buffer(command_buffer))?;
+        Ok(())
     }
 
+    /// Translation of `D3D12_SubmitAndAcquireFence()`.
     fn submit_and_acquire_fence(
         &self,
-        _command_buffer: Box<BackendCommandBuffer>,
+        command_buffer: Box<BackendCommandBuffer>,
     ) -> Result<BackendObject> {
-        // part 2
-        Err(not_translated("SubmitAndAcquireFence"))
+        let mut d3d12_command_buffer = Self::owned_command_buffer(command_buffer);
+        d3d12_command_buffer.auto_release_fence = false;
+        let fence = self.submit_internal(d3d12_command_buffer)?;
+        Ok(BackendObject(fence))
     }
 
-    fn cancel(&self, _command_buffer: Box<BackendCommandBuffer>) -> Result<()> {
-        // part 2
-        Err(not_translated("Cancel"))
+    fn cancel(&self, command_buffer: Box<BackendCommandBuffer>) -> Result<()> {
+        self.cancel_internal(Self::owned_command_buffer(command_buffer))
     }
 
     fn wait(&self) -> Result<()> {
         self.wait_internal()
     }
 
-    fn wait_for_fences(&self, _wait_all: bool, _fences: &[&BackendObject]) -> Result<()> {
-        // part 2
-        Err(not_translated("WaitForFences"))
+    fn wait_for_fences(&self, wait_all: bool, fences: &[&BackendObject]) -> Result<()> {
+        let fences: Vec<Arc<D3D12Fence>> = fences.iter().map(|f| object::<D3D12Fence>(f)).collect();
+        let fences: Vec<&D3D12Fence> = fences.iter().map(|f| &**f).collect();
+        self.wait_for_fences_internal(wait_all, &fences)
     }
 
-    fn query_fence(&self, _fence: &BackendObject) -> bool {
-        // part 2
-        false
+    fn query_fence(&self, fence: &BackendObject) -> bool {
+        self.query_fence_internal(&object::<D3D12Fence>(fence))
     }
 
-    fn release_fence(&self, _fence: &BackendObject) {
-        // part 2
+    fn release_fence(&self, fence: &BackendObject) {
+        self.release_fence_internal(&object::<D3D12Fence>(fence));
     }
 
     // Feature Queries

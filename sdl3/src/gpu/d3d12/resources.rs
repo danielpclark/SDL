@@ -58,10 +58,14 @@ pub(super) enum D3D12BufferType {
 // Structures
 
 /// A buffer's or texture's place in its container (`container`,
-/// `containerIndex`).
+/// `containerIndex`). What upstream reads of the container through it (a
+/// buffer's usage and size, a texture's creation info) is copied into the
+/// buffer or texture here, as the front end may drop the container's
+/// handle while a command buffer still records with the buffer or texture
+/// (upstream's container is freed then).
 #[derive(Debug)]
 pub(super) struct ContainerRef<C> {
-    #[allow(dead_code)] // (part 2: barriers read the container's usage)
+    #[allow(dead_code)] // (kept as upstream does)
     pub(super) container: Weak<C>,
     #[allow(dead_code)] // (kept as upstream does)
     pub(super) index: usize,
@@ -73,18 +77,19 @@ pub(super) struct D3D12Buffer {
     pub(super) container: Mutex<Option<ContainerRef<BufferContainer>>>,
 
     pub(super) handle: D3d12Resource,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) uav_descriptor: Option<StagingDescriptor>,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) srv_descriptor: Option<StagingDescriptor>,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) virtual_address: u64,
     /// NULL except for upload buffers and fast uniform buffers
     pub(super) map_pointer: AtomicPtr<u8>,
     pub(super) reference_count: AtomicI32,
     /// used for initial resource barrier
-    #[allow(dead_code)] // (part 2: barriers)
     pub(super) transitioned: AtomicBool,
+
+    /// The container's usage (`container->usage`).
+    pub(super) usage: BufferUsageFlags,
+    /// The container's size (`container->size`).
+    pub(super) size: u32,
 }
 
 impl Drop for D3D12Buffer {
@@ -150,14 +155,42 @@ pub(super) struct D3D12Texture {
     pub(super) container: Mutex<Option<ContainerRef<TextureContainer>>>,
 
     /// layerCount * num_levels
-    #[allow(dead_code)] // (part 2: passes)
     pub(super) subresources: Vec<TextureSubresource>,
 
     pub(super) resource: D3d12Resource,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) srv_handle: Option<StagingDescriptor>,
 
     pub(super) reference_count: AtomicI32,
+
+    /// The container's creation info (`container->header.info`), without
+    /// its properties.
+    pub(super) info: TextureCreateInfo,
+}
+
+impl D3D12Texture {
+    /// The descriptor of the texture's SRV, or a NULL one (upstream's
+    /// zeroed `srvHandle`).
+    pub(super) fn srv_cpu_handle(&self) -> CpuDescriptorHandle {
+        self.srv_handle
+            .as_ref()
+            .map_or(CpuDescriptorHandle::default(), |d| d.cpu_handle)
+    }
+}
+
+impl D3D12Buffer {
+    /// The descriptor of the buffer's SRV, or a NULL one.
+    pub(super) fn srv_cpu_handle(&self) -> CpuDescriptorHandle {
+        self.srv_descriptor
+            .as_ref()
+            .map_or(CpuDescriptorHandle::default(), |d| d.cpu_handle)
+    }
+
+    /// The descriptor of the buffer's UAV, or a NULL one.
+    pub(super) fn uav_cpu_handle(&self) -> CpuDescriptorHandle {
+        self.uav_descriptor
+            .as_ref()
+            .map_or(CpuDescriptorHandle::default(), |d| d.cpu_handle)
+    }
 }
 
 /// The front end's texture handles. Translation of
@@ -171,7 +204,6 @@ pub(super) struct TextureContainer {
     pub(super) info: TextureCreateInfo,
     pub(super) state: Mutex<TextureContainerState>,
     /// Swapchain images cannot be cycled
-    #[allow(dead_code)] // (part 2: cycling on writes)
     pub(super) can_be_cycled: bool,
 }
 
@@ -189,7 +221,6 @@ pub(super) struct TextureContainerState {
 pub(super) struct D3D12Sampler {
     #[allow(dead_code)] // (kept as upstream does)
     pub(super) create_info: SamplerCreateInfo,
-    #[allow(dead_code)] // (part 2: binding)
     pub(super) handle: StagingDescriptor,
     pub(super) reference_count: AtomicI32,
 }
@@ -235,7 +266,6 @@ unsafe impl Sync for StagingDescriptor {}
 // Helpers
 
 /// Translation of `D3D12_INTERNAL_Align()`.
-#[cfg_attr(not(test), allow(dead_code))] // (part 2: uniform data)
 pub(super) fn align(location: u32, alignment: u32) -> u32 {
     (location.wrapping_add(alignment - 1)) & !(alignment - 1)
 }
@@ -246,7 +276,6 @@ pub(super) fn calc_subresource(mip_level: u32, layer: u32, num_levels: u32) -> u
 }
 
 /// Translation of `D3D12_INTERNAL_CalcSubresourceWithPlane()`.
-#[cfg_attr(not(test), allow(dead_code))] // (part 2: barriers)
 pub(super) fn calc_subresource_with_plane(
     mip_level: u32,
     layer: u32,
@@ -286,7 +315,6 @@ pub(super) fn default_texture_resource_state(usage_flags: TextureUsageFlags) -> 
 /// The state a buffer is in between passes. Translation of
 /// `D3D12_INTERNAL_DefaultBufferResourceState()` (of its container's
 /// usage).
-#[cfg_attr(not(test), allow(dead_code))] // (part 2: barriers)
 pub(super) fn default_buffer_resource_state(usage: BufferUsageFlags) -> u32 {
     let mut states = D3D12_RESOURCE_STATE_COMMON;
 
@@ -329,7 +357,10 @@ impl D3D12Renderer {
 
     /// Translation of `D3D12_INTERNAL_ReleaseBuffer()` (the caller holds
     /// `disposeLock`).
-    fn release_buffer_internal(dispose: &mut PendingDestroys, buffer: &Arc<D3D12Buffer>) {
+    pub(super) fn release_buffer_internal(
+        dispose: &mut PendingDestroys,
+        buffer: &Arc<D3D12Buffer>,
+    ) {
         dispose.buffers_to_destroy.push(buffer.clone());
     }
 
@@ -921,6 +952,10 @@ impl D3D12Renderer {
             resource: handle,
             srv_handle,
             reference_count: AtomicI32::new(0),
+            info: TextureCreateInfo {
+                props: None,
+                ..createinfo.clone()
+            },
         }))
     }
 
@@ -967,7 +1002,6 @@ impl D3D12Renderer {
     /// Make the container's active texture one the GPU doesn't use: a
     /// previously-cycled one, or a new one. Translation of
     /// `D3D12_INTERNAL_CycleActiveTexture()`.
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: writes with cycling)
     pub(super) fn cycle_active_texture(&self, container: &Arc<TextureContainer>) {
         let debug_name = {
             let mut state = lock(&container.state);
@@ -1152,6 +1186,8 @@ impl D3D12Renderer {
             map_pointer: AtomicPtr::new(map_pointer),
             reference_count: AtomicI32::new(0),
             transitioned: AtomicBool::new(initial_state != D3D12_RESOURCE_STATE_COMMON),
+            usage: usage_flags,
+            size,
         }))
     }
 
@@ -1272,13 +1308,12 @@ impl D3D12Renderer {
 
     // Uniform buffers
 
-    /// A uniform buffer from the pool (or a new one), mapped. Translation of
-    /// `D3D12_INTERNAL_AcquireUniformBufferFromPool()` but the tracking in
-    /// the command buffer, which part 2 adds.
+    /// A uniform buffer from the pool (or a new one), mapped: the part of
+    /// `D3D12_INTERNAL_AcquireUniformBufferFromPool()` before the tracking
+    /// in the command buffer (`D3D12CommandBuffer::acquire_uniform_buffer`).
     ///
     /// Note (upstream): C leaks the uniform buffer when making its buffer
     /// or mapping it fails; it is dropped here.
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: uniform data)
     pub(super) fn acquire_uniform_buffer_from_pool(&self) -> Result<UniformBuffer> {
         let pooled = lock(&self.uniform_buffer_pool).pop();
         let mut uniform_buffer = match pooled {
@@ -1311,10 +1346,13 @@ impl D3D12Renderer {
         Ok(uniform_buffer)
     }
 
-    /// Translation of `D3D12_INTERNAL_ReturnUniformBufferToPool()`.
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: command buffer cleanup)
-    pub(super) fn return_uniform_buffer_to_pool(&self, uniform_buffer: UniformBuffer) {
-        lock(&self.uniform_buffer_pool).push(uniform_buffer);
+    /// Translation of `D3D12_INTERNAL_ReturnUniformBufferToPool()` (the
+    /// caller holds `acquireUniformBufferLock`, the pool's lock).
+    pub(super) fn return_uniform_buffer_to_pool(
+        pool: &mut Vec<UniformBuffer>,
+        uniform_buffer: UniformBuffer,
+    ) {
+        pool.push(uniform_buffer);
     }
 
     // Disposal

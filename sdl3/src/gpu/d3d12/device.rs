@@ -448,7 +448,6 @@ impl D3D12Renderer {
     /// Log the messages the info queue stored, when no callback logs them
     /// as they come. Translation of
     /// `D3D12_INTERNAL_DrainInfoQueueMessages()`.
-    #[cfg_attr(not(test), allow(dead_code))] // (part 2: submission)
     pub(super) fn drain_info_queue_messages(&self) {
         let Some(info_queue) = &self.debug_info_queue else {
             return;
@@ -1070,7 +1069,10 @@ pub(super) fn create_device(
         blit: Mutex::new(BlitResources::default()),
         staging_descriptor_pools,
         gpu_descriptor_heap_pools,
-        submit_lock: Mutex::new(()),
+        claimed_windows: Mutex::new(Vec::new()),
+        submit_lock: Mutex::new(Vec::new()),
+        command_buffer_pool: Mutex::new(Vec::new()),
+        fence_pool: Mutex::new(Vec::new()),
         allowed_frames_in_flight: AtomicU32::new(2),
         props: renderer_props,
         semantic,

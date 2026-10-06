@@ -24,10 +24,12 @@ use std::ffi::{c_char, c_void};
 use std::ptr::{null, null_mut};
 
 use windows_sys::core::{BOOL, GUID, HRESULT};
+use windows_sys::Win32::Foundation::{HANDLE, HWND};
 
 use crate::core::windows::com::{ComPtr, IUnknownVtbl};
 use crate::render::direct3d11::d3d::{
-    check, out, raw, D3dFeatureLevel, DxgiAdapter1, DxgiFormat, SampleDesc, Slot,
+    check, out, raw, D3dFeatureLevel, DxgiAdapter1, DxgiColorSpaceType, DxgiFactory1, DxgiFactory4,
+    DxgiFormat, SampleDesc, Slot, IID_IDXGIFACTORY1,
 };
 
 // --- enumerants ---
@@ -140,6 +142,9 @@ pub(super) const D3D12_RESOURCE_STATE_DEPTH_WRITE: u32 = 0x10;
 pub(super) const D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE: u32 = 0x40;
 pub(super) const D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT: u32 = 0x200;
 pub(super) const D3D12_RESOURCE_STATE_COPY_DEST: u32 = 0x400;
+pub(super) const D3D12_RESOURCE_STATE_COPY_SOURCE: u32 = 0x800;
+pub(super) const D3D12_RESOURCE_STATE_RESOLVE_DEST: u32 = 0x1000;
+pub(super) const D3D12_RESOURCE_STATE_RESOLVE_SOURCE: u32 = 0x2000;
 pub(super) const D3D12_RESOURCE_STATE_GENERIC_READ: u32 = 0xac3;
 pub(super) const D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE: u32 = 0xc0;
 pub(super) const D3D12_RESOURCE_STATE_PRESENT: u32 = 0;
@@ -279,6 +284,37 @@ pub(super) const D3D12_MESSAGE_SEVERITY_MESSAGE: u32 = 4;
 pub(super) const D3D12_MESSAGE_CALLBACK_FLAG_NONE: u32 = 0;
 pub(super) const D3D12_DEVICE_FACTORY_FLAG_ALLOW_RETURNING_EXISTING_DEVICE: u32 = 0x1;
 
+// D3D12_RESOURCE_BARRIER_TYPE, D3D12_RESOURCE_BARRIER_FLAGS
+pub(super) const D3D12_RESOURCE_BARRIER_TYPE_TRANSITION: u32 = 0;
+pub(super) const D3D12_RESOURCE_BARRIER_TYPE_UAV: u32 = 2;
+pub(super) const D3D12_RESOURCE_BARRIER_FLAG_NONE: u32 = 0;
+
+// D3D12_TEXTURE_COPY_TYPE, D3D12_CLEAR_FLAGS, D3D12_FENCE_FLAGS
+pub(super) const D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX: u32 = 0;
+pub(super) const D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT: u32 = 1;
+pub(super) const D3D12_CLEAR_FLAG_DEPTH: u32 = 0x1;
+pub(super) const D3D12_CLEAR_FLAG_STENCIL: u32 = 0x2;
+pub(super) const D3D12_FENCE_FLAG_NONE: u32 = 0;
+
+// The copy alignments
+pub(super) const D3D12_TEXTURE_DATA_PITCH_ALIGNMENT: u32 = 256;
+pub(super) const D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT: u32 = 512;
+
+// D3D12_FORMAT_SUPPORT1 (for swapchains)
+pub(super) const D3D12_FORMAT_SUPPORT1_DISPLAY: u32 = 0x80000;
+
+// DXGI (the swapchains')
+pub(super) const DXGI_SWAP_EFFECT_FLIP_DISCARD: u32 = 4;
+pub(super) const DXGI_SCALING_NONE: u32 = 1;
+pub(super) const DXGI_ALPHA_MODE_UNSPECIFIED: u32 = 0;
+pub(super) const DXGI_USAGE_RENDER_TARGET_OUTPUT: u32 = 0x20;
+pub(super) const DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING: u32 = 2048;
+pub(super) const DXGI_PRESENT_ALLOW_TEARING: u32 = 0x200;
+pub(super) const DXGI_MWA_NO_WINDOW_CHANGES: u32 = 1;
+pub(super) const DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT: u32 = 1;
+pub(super) const DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED: u32 = 0;
+pub(super) const DXGI_MODE_SCALING_UNSPECIFIED: u32 = 0;
+
 // --- GUIDs (upstream defines them so as not to need uuid.lib) ---
 
 pub(super) const IID_ID3D12DEVICE: GUID = GUID::from_u128(0x189819f1_1db6_4b57_be54_1821339b85f7);
@@ -308,6 +344,15 @@ pub(super) const IID_ID3D12SDKCONFIGURATION1: GUID =
     GUID::from_u128(0x8aaf9303_ad25_48b9_9a57_d9c37e009d9f);
 pub(super) const IID_ID3D12DEVICEFACTORY: GUID =
     GUID::from_u128(0x61f307d3_d34e_4e7c_8374_3ba4de23cccb);
+pub(super) const IID_ID3D12COMMANDALLOCATOR: GUID =
+    GUID::from_u128(0x6102dee4_af59_4b09_b999_b44d73f09b24);
+pub(super) const IID_ID3D12COMMANDLIST: GUID =
+    GUID::from_u128(0x7116d91c_e7e4_47ce_b8c6_ec8168f437e5);
+pub(super) const IID_ID3D12GRAPHICSCOMMANDLIST: GUID =
+    GUID::from_u128(0x5b160d0f_ac1b_4185_8ba8_b3ae42a5a455);
+pub(super) const IID_ID3D12FENCE: GUID = GUID::from_u128(0x0a753dcf_c4d8_4b91_adf6_be5a60d95a76);
+pub(super) const IID_IDXGISWAPCHAIN3: GUID =
+    GUID::from_u128(0x94d99bdb_f1f8_4ab0_b236_7da0170edab1);
 
 // --- structures ---
 
@@ -974,7 +1019,175 @@ pub(super) struct InfoQueueFilter {
     pub(super) deny_list: InfoQueueFilterDesc,
 }
 
+/// `D3D12_RESOURCE_TRANSITION_BARRIER`
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(super) struct ResourceTransitionBarrier {
+    pub(super) resource: *mut c_void,
+    pub(super) subresource: u32,
+    pub(super) state_before: u32,
+    pub(super) state_after: u32,
+}
+
+/// `D3D12_RESOURCE_ALIASING_BARRIER`
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(super) struct ResourceAliasingBarrier {
+    pub(super) resource_before: *mut c_void,
+    pub(super) resource_after: *mut c_void,
+}
+
+/// `D3D12_RESOURCE_UAV_BARRIER`
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(super) struct ResourceUavBarrier {
+    pub(super) resource: *mut c_void,
+}
+
+/// The union of `D3D12_RESOURCE_BARRIER`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(super) union ResourceBarrierUnion {
+    pub(super) transition: ResourceTransitionBarrier,
+    pub(super) aliasing: ResourceAliasingBarrier,
+    pub(super) uav: ResourceUavBarrier,
+}
+
+/// `D3D12_RESOURCE_BARRIER`
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(super) struct ResourceBarrier {
+    pub(super) ty: u32,
+    pub(super) flags: u32,
+    pub(super) u: ResourceBarrierUnion,
+}
+
+/// `D3D12_SUBRESOURCE_FOOTPRINT`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct SubresourceFootprint {
+    pub(super) format: DxgiFormat,
+    pub(super) width: u32,
+    pub(super) height: u32,
+    pub(super) depth: u32,
+    pub(super) row_pitch: u32,
+}
+
+/// `D3D12_PLACED_SUBRESOURCE_FOOTPRINT`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct PlacedSubresourceFootprint {
+    pub(super) offset: u64,
+    pub(super) footprint: SubresourceFootprint,
+}
+
+/// The union of `D3D12_TEXTURE_COPY_LOCATION`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(super) union TextureCopyLocationUnion {
+    pub(super) placed_footprint: PlacedSubresourceFootprint,
+    pub(super) subresource_index: u32,
+}
+
+/// `D3D12_TEXTURE_COPY_LOCATION`
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(super) struct TextureCopyLocation {
+    pub(super) resource: *mut c_void,
+    pub(super) ty: u32,
+    pub(super) u: TextureCopyLocationUnion,
+}
+
+/// `D3D12_BOX`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct D3d12Box {
+    pub(super) left: u32,
+    pub(super) top: u32,
+    pub(super) front: u32,
+    pub(super) right: u32,
+    pub(super) bottom: u32,
+    pub(super) back: u32,
+}
+
+/// `D3D12_VIEWPORT`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct D3d12Viewport {
+    pub(super) top_left_x: f32,
+    pub(super) top_left_y: f32,
+    pub(super) width: f32,
+    pub(super) height: f32,
+    pub(super) min_depth: f32,
+    pub(super) max_depth: f32,
+}
+
+/// `D3D12_RECT` (`RECT`)
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct D3d12Rect {
+    pub(super) left: i32,
+    pub(super) top: i32,
+    pub(super) right: i32,
+    pub(super) bottom: i32,
+}
+
+/// `D3D12_VERTEX_BUFFER_VIEW`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct VertexBufferView {
+    pub(super) buffer_location: u64,
+    pub(super) size_in_bytes: u32,
+    pub(super) stride_in_bytes: u32,
+}
+
+/// `D3D12_INDEX_BUFFER_VIEW`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct IndexBufferView {
+    pub(super) buffer_location: u64,
+    pub(super) size_in_bytes: u32,
+    pub(super) format: DxgiFormat,
+}
+
+/// `DXGI_SWAP_CHAIN_DESC1`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct SwapChainDesc1 {
+    pub(super) width: u32,
+    pub(super) height: u32,
+    pub(super) format: DxgiFormat,
+    pub(super) stereo: BOOL,
+    pub(super) sample_desc: SampleDesc,
+    pub(super) buffer_usage: u32,
+    pub(super) buffer_count: u32,
+    pub(super) scaling: u32,
+    pub(super) swap_effect: u32,
+    pub(super) alpha_mode: u32,
+    pub(super) flags: u32,
+}
+
+/// `DXGI_RATIONAL`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct DxgiRational {
+    pub(super) numerator: u32,
+    pub(super) denominator: u32,
+}
+
+/// `DXGI_SWAP_CHAIN_FULLSCREEN_DESC`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub(super) struct SwapChainFullscreenDesc {
+    pub(super) refresh_rate: DxgiRational,
+    pub(super) scanline_ordering: u32,
+    pub(super) scaling: u32,
+    pub(super) windowed: BOOL,
+}
+
 zeroed_default!(
+    ResourceBarrier,
+    TextureCopyLocation,
     ClearValue,
     ShaderResourceViewDesc,
     RenderTargetViewDesc,
@@ -1050,7 +1263,8 @@ pub(super) struct ID3D12DeviceVtbl {
         *const GUID,
         *mut *mut c_void,
     ) -> HRESULT,
-    _create_command_allocator: Slot,
+    pub(super) create_command_allocator:
+        unsafe extern "system" fn(*mut c_void, u32, *const GUID, *mut *mut c_void) -> HRESULT,
     pub(super) create_graphics_pipeline_state: unsafe extern "system" fn(
         *mut c_void,
         *const GraphicsPipelineStateDesc,
@@ -1063,7 +1277,15 @@ pub(super) struct ID3D12DeviceVtbl {
         *const GUID,
         *mut *mut c_void,
     ) -> HRESULT,
-    _create_command_list: Slot,
+    pub(super) create_command_list: unsafe extern "system" fn(
+        *mut c_void,
+        u32,
+        u32,
+        *mut c_void,
+        *mut c_void,
+        *const GUID,
+        *mut *mut c_void,
+    ) -> HRESULT,
     pub(super) check_feature_support:
         unsafe extern "system" fn(*mut c_void, u32, *mut c_void, u32) -> HRESULT,
     pub(super) create_descriptor_heap: unsafe extern "system" fn(
@@ -1110,9 +1332,11 @@ pub(super) struct ID3D12DeviceVtbl {
     ),
     pub(super) create_sampler:
         unsafe extern "system" fn(*mut c_void, *const SamplerDesc, CpuDescriptorHandle),
-    /// CopyDescriptors, CopyDescriptorsSimple, GetResourceAllocationInfo,
-    /// GetCustomHeapProperties
-    _copy_descriptors: [Slot; 4],
+    _copy_descriptors: Slot,
+    pub(super) copy_descriptors_simple:
+        unsafe extern "system" fn(*mut c_void, u32, CpuDescriptorHandle, CpuDescriptorHandle, u32),
+    /// GetResourceAllocationInfo, GetCustomHeapProperties
+    _get_resource_allocation_info: [Slot; 2],
     pub(super) create_committed_resource: unsafe extern "system" fn(
         *mut c_void,
         *const HeapProperties,
@@ -1125,8 +1349,10 @@ pub(super) struct ID3D12DeviceVtbl {
     ) -> HRESULT,
     /// CreateHeap, CreatePlacedResource, CreateReservedResource,
     /// CreateSharedHandle, OpenSharedHandle, OpenSharedHandleByName,
-    /// MakeResident, Evict, CreateFence
-    _create_heap: [Slot; 9],
+    /// MakeResident, Evict
+    _create_heap: [Slot; 8],
+    pub(super) create_fence:
+        unsafe extern "system" fn(*mut c_void, u64, u32, *const GUID, *mut *mut c_void) -> HRESULT,
     pub(super) get_device_removed_reason: unsafe extern "system" fn(*mut c_void) -> HRESULT,
     /// GetCopyableFootprints, CreateQueryHeap, SetStablePowerState
     _get_copyable_footprints: [Slot; 3],
@@ -1168,7 +1394,8 @@ pub(super) struct ID3D12ResourceVtbl {
     pub(super) map:
         unsafe extern "system" fn(*mut c_void, u32, *const c_void, *mut *mut c_void) -> HRESULT,
     pub(super) unmap: unsafe extern "system" fn(*mut c_void, u32, *const c_void),
-    _get_desc: Slot,
+    pub(super) get_desc:
+        unsafe extern "system" fn(*mut c_void, *mut ResourceDesc) -> *mut ResourceDesc,
     pub(super) get_gpu_virtual_address: unsafe extern "system" fn(*mut c_void) -> u64,
     /// WriteToSubresource, ReadFromSubresource, GetHeapProperties
     _write_to_subresource: [Slot; 3],
@@ -1282,8 +1509,175 @@ pub(super) struct ID3D12DeviceFactoryVtbl {
     ) -> HRESULT,
 }
 
-/// The vtable of an interface SDL calls none of the methods of yet (root
-/// signatures, command queues and signatures): just its `IUnknown` part.
+/// `ID3D12CommandQueueVtbl` (the part SDL uses).
+#[repr(C)]
+pub(super) struct ID3D12CommandQueueVtbl {
+    pub(super) object: ID3D12ObjectVtbl,
+    /// ID3D12DeviceChild's GetDevice; UpdateTileMappings, CopyTileMappings
+    _get_device: [Slot; 3],
+    pub(super) execute_command_lists:
+        unsafe extern "system" fn(*mut c_void, u32, *const *mut c_void),
+    /// SetMarker, BeginEvent, EndEvent
+    _set_marker: [Slot; 3],
+    pub(super) signal: unsafe extern "system" fn(*mut c_void, *mut c_void, u64) -> HRESULT,
+    /// Wait, GetTimestampFrequency, GetClockCalibration, GetDesc
+    _wait: [Slot; 4],
+}
+
+/// `ID3D12CommandAllocatorVtbl`.
+#[repr(C)]
+pub(super) struct ID3D12CommandAllocatorVtbl {
+    pub(super) object: ID3D12ObjectVtbl,
+    /// ID3D12DeviceChild's GetDevice
+    _get_device: Slot,
+    pub(super) reset: unsafe extern "system" fn(*mut c_void) -> HRESULT,
+}
+
+/// `ID3D12FenceVtbl`.
+#[repr(C)]
+pub(super) struct ID3D12FenceVtbl {
+    pub(super) object: ID3D12ObjectVtbl,
+    /// ID3D12DeviceChild's GetDevice
+    _get_device: Slot,
+    pub(super) get_completed_value: unsafe extern "system" fn(*mut c_void) -> u64,
+    pub(super) set_event_on_completion:
+        unsafe extern "system" fn(*mut c_void, u64, HANDLE) -> HRESULT,
+    pub(super) signal: unsafe extern "system" fn(*mut c_void, u64) -> HRESULT,
+}
+
+/// `ID3D12GraphicsCommandListVtbl` (the part SDL uses).
+#[repr(C)]
+pub(super) struct ID3D12GraphicsCommandListVtbl {
+    pub(super) object: ID3D12ObjectVtbl,
+    /// ID3D12DeviceChild's GetDevice; ID3D12CommandList's GetType
+    _get_device: [Slot; 2],
+    pub(super) close: unsafe extern "system" fn(*mut c_void) -> HRESULT,
+    pub(super) reset: unsafe extern "system" fn(*mut c_void, *mut c_void, *mut c_void) -> HRESULT,
+    _clear_state: Slot,
+    pub(super) draw_instanced: unsafe extern "system" fn(*mut c_void, u32, u32, u32, u32),
+    pub(super) draw_indexed_instanced:
+        unsafe extern "system" fn(*mut c_void, u32, u32, u32, i32, u32),
+    pub(super) dispatch: unsafe extern "system" fn(*mut c_void, u32, u32, u32),
+    pub(super) copy_buffer_region:
+        unsafe extern "system" fn(*mut c_void, *mut c_void, u64, *mut c_void, u64, u64),
+    pub(super) copy_texture_region: unsafe extern "system" fn(
+        *mut c_void,
+        *const TextureCopyLocation,
+        u32,
+        u32,
+        u32,
+        *const TextureCopyLocation,
+        *const D3d12Box,
+    ),
+    /// CopyResource, CopyTiles
+    _copy_resource: [Slot; 2],
+    pub(super) resolve_subresource:
+        unsafe extern "system" fn(*mut c_void, *mut c_void, u32, *mut c_void, u32, DxgiFormat),
+    pub(super) ia_set_primitive_topology: unsafe extern "system" fn(*mut c_void, u32),
+    pub(super) rs_set_viewports: unsafe extern "system" fn(*mut c_void, u32, *const D3d12Viewport),
+    pub(super) rs_set_scissor_rects: unsafe extern "system" fn(*mut c_void, u32, *const D3d12Rect),
+    pub(super) om_set_blend_factor: unsafe extern "system" fn(*mut c_void, *const f32),
+    pub(super) om_set_stencil_ref: unsafe extern "system" fn(*mut c_void, u32),
+    pub(super) set_pipeline_state: unsafe extern "system" fn(*mut c_void, *mut c_void),
+    pub(super) resource_barrier:
+        unsafe extern "system" fn(*mut c_void, u32, *const ResourceBarrier),
+    _execute_bundle: Slot,
+    pub(super) set_descriptor_heaps:
+        unsafe extern "system" fn(*mut c_void, u32, *const *mut c_void),
+    pub(super) set_compute_root_signature: unsafe extern "system" fn(*mut c_void, *mut c_void),
+    pub(super) set_graphics_root_signature: unsafe extern "system" fn(*mut c_void, *mut c_void),
+    pub(super) set_compute_root_descriptor_table:
+        unsafe extern "system" fn(*mut c_void, u32, GpuDescriptorHandle),
+    pub(super) set_graphics_root_descriptor_table:
+        unsafe extern "system" fn(*mut c_void, u32, GpuDescriptorHandle),
+    /// SetComputeRoot32BitConstant, SetGraphicsRoot32BitConstant,
+    /// SetComputeRoot32BitConstants, SetGraphicsRoot32BitConstants
+    _set_compute_root_32bit_constant: [Slot; 4],
+    pub(super) set_compute_root_constant_buffer_view:
+        unsafe extern "system" fn(*mut c_void, u32, u64),
+    pub(super) set_graphics_root_constant_buffer_view:
+        unsafe extern "system" fn(*mut c_void, u32, u64),
+    /// SetComputeRootShaderResourceView, SetGraphicsRootShaderResourceView,
+    /// SetComputeRootUnorderedAccessView, SetGraphicsRootUnorderedAccessView
+    _set_compute_root_shader_resource_view: [Slot; 4],
+    pub(super) ia_set_index_buffer: unsafe extern "system" fn(*mut c_void, *const IndexBufferView),
+    pub(super) ia_set_vertex_buffers:
+        unsafe extern "system" fn(*mut c_void, u32, u32, *const VertexBufferView),
+    _so_set_targets: Slot,
+    pub(super) om_set_render_targets: unsafe extern "system" fn(
+        *mut c_void,
+        u32,
+        *const CpuDescriptorHandle,
+        BOOL,
+        *const CpuDescriptorHandle,
+    ),
+    pub(super) clear_depth_stencil_view: unsafe extern "system" fn(
+        *mut c_void,
+        CpuDescriptorHandle,
+        u32,
+        f32,
+        u8,
+        u32,
+        *const D3d12Rect,
+    ),
+    pub(super) clear_render_target_view: unsafe extern "system" fn(
+        *mut c_void,
+        CpuDescriptorHandle,
+        *const f32,
+        u32,
+        *const D3d12Rect,
+    ),
+    /// ClearUnorderedAccessViewUint, ClearUnorderedAccessViewFloat,
+    /// DiscardResource, BeginQuery, EndQuery, ResolveQueryData,
+    /// SetPredication, SetMarker, BeginEvent, EndEvent
+    _clear_unordered_access_view_uint: [Slot; 10],
+    pub(super) execute_indirect: unsafe extern "system" fn(
+        *mut c_void,
+        *mut c_void,
+        u32,
+        *mut c_void,
+        u64,
+        *mut c_void,
+        u64,
+    ),
+}
+
+/// `IDXGISwapChain3Vtbl` (the part SDL uses; the Direct3D 11 renderer's
+/// declaration names fewer methods).
+#[repr(C)]
+pub(super) struct IDXGISwapChain3Vtbl {
+    pub(super) base: IUnknownVtbl,
+    /// IDXGIObject's SetPrivateData, SetPrivateDataInterface,
+    /// GetPrivateData
+    _set_private_data: [Slot; 3],
+    pub(super) get_parent:
+        unsafe extern "system" fn(*mut c_void, *const GUID, *mut *mut c_void) -> HRESULT,
+    /// IDXGIDeviceSubObject's GetDevice
+    _get_device: Slot,
+    pub(super) present: unsafe extern "system" fn(*mut c_void, u32, u32) -> HRESULT,
+    pub(super) get_buffer:
+        unsafe extern "system" fn(*mut c_void, u32, *const GUID, *mut *mut c_void) -> HRESULT,
+    /// SetFullscreenState, GetFullscreenState, GetDesc
+    _set_fullscreen_state: [Slot; 3],
+    pub(super) resize_buffers:
+        unsafe extern "system" fn(*mut c_void, u32, u32, u32, DxgiFormat, u32) -> HRESULT,
+    /// ResizeTarget, GetContainingOutput, GetFrameStatistics,
+    /// GetLastPresentCount
+    _resize_target: [Slot; 4],
+    pub(super) get_desc1: unsafe extern "system" fn(*mut c_void, *mut SwapChainDesc1) -> HRESULT,
+    /// GetFullscreenDesc ... GetRotation (IDXGISwapChain1), SetSourceSize ...
+    /// GetMatrixTransform (IDXGISwapChain2)
+    _get_fullscreen_desc: [Slot; 17],
+    pub(super) get_current_back_buffer_index: unsafe extern "system" fn(*mut c_void) -> u32,
+    pub(super) check_color_space_support:
+        unsafe extern "system" fn(*mut c_void, DxgiColorSpaceType, *mut u32) -> HRESULT,
+    pub(super) set_color_space1:
+        unsafe extern "system" fn(*mut c_void, DxgiColorSpaceType) -> HRESULT,
+    _resize_buffers1: Slot,
+}
+
+/// The vtable of an interface SDL calls none of the methods of (root
+/// signatures, command signatures and lists): just its `IUnknown` part.
 #[repr(C)]
 pub(super) struct OpaqueVtbl {
     pub(super) base: IUnknownVtbl,
@@ -1294,8 +1688,13 @@ pub(super) type D3d12DescriptorHeap = ComPtr<ID3D12DescriptorHeapVtbl>;
 pub(super) type D3d12Resource = ComPtr<ID3D12ResourceVtbl>;
 pub(super) type D3d12PipelineState = ComPtr<ID3D12PipelineStateVtbl>;
 pub(super) type D3d12RootSignature = ComPtr<OpaqueVtbl>;
-pub(super) type D3d12CommandQueue = ComPtr<OpaqueVtbl>;
+pub(super) type D3d12CommandQueue = ComPtr<ID3D12CommandQueueVtbl>;
 pub(super) type D3d12CommandSignature = ComPtr<OpaqueVtbl>;
+pub(super) type D3d12CommandAllocator = ComPtr<ID3D12CommandAllocatorVtbl>;
+pub(super) type D3d12GraphicsCommandList = ComPtr<ID3D12GraphicsCommandListVtbl>;
+pub(super) type D3d12CommandList = ComPtr<OpaqueVtbl>;
+pub(super) type D3d12Fence = ComPtr<ID3D12FenceVtbl>;
+pub(super) type DxgiSwapChain3 = ComPtr<IDXGISwapChain3Vtbl>;
 pub(super) type D3dBlob = ComPtr<ID3DBlobVtbl>;
 pub(super) type D3d12Debug = ComPtr<ID3D12DebugVtbl>;
 pub(super) type D3d12InfoQueue = ComPtr<ID3D12InfoQueueVtbl>;
@@ -1730,4 +2129,554 @@ impl D3d12DeviceFactory {
             })
         }
     }
+}
+
+impl D3d12Device {
+    /// `ID3D12Device::CreateCommandAllocator()`
+    pub(super) fn create_command_allocator(
+        &self,
+        ty: u32,
+    ) -> Result<D3d12CommandAllocator, HRESULT> {
+        let f = self.vtbl().create_command_allocator;
+        // SAFETY: a live device; the call stores an owned
+        // ID3D12CommandAllocator, the interface asked for.
+        unsafe { out(|o| f(raw(self), ty, &IID_ID3D12COMMANDALLOCATOR, o)) }
+    }
+
+    /// `ID3D12Device::CreateCommandList()` on an allocator, without an
+    /// initial pipeline state.
+    pub(super) fn create_command_list(
+        &self,
+        node_mask: u32,
+        ty: u32,
+        command_allocator: &D3d12CommandAllocator,
+    ) -> Result<D3d12GraphicsCommandList, HRESULT> {
+        let f = self.vtbl().create_command_list;
+        // SAFETY: a live device and allocator; the call stores an owned
+        // ID3D12GraphicsCommandList, the interface asked for.
+        unsafe {
+            out(|o| {
+                f(
+                    raw(self),
+                    node_mask,
+                    ty,
+                    raw(command_allocator),
+                    null_mut(),
+                    &IID_ID3D12GRAPHICSCOMMANDLIST,
+                    o,
+                )
+            })
+        }
+    }
+
+    /// `ID3D12Device::CopyDescriptorsSimple()`
+    ///
+    /// # Safety
+    ///
+    /// The handles must be descriptors of live heaps of `heap_type`, with
+    /// `num_descriptors` descriptors from each.
+    pub(super) unsafe fn copy_descriptors_simple(
+        &self,
+        num_descriptors: u32,
+        dest_descriptor_range_start: CpuDescriptorHandle,
+        src_descriptor_range_start: CpuDescriptorHandle,
+        heap_type: u32,
+    ) {
+        // SAFETY: the caller's contract.
+        unsafe {
+            (self.vtbl().copy_descriptors_simple)(
+                raw(self),
+                num_descriptors,
+                dest_descriptor_range_start,
+                src_descriptor_range_start,
+                heap_type,
+            )
+        }
+    }
+
+    /// `ID3D12Device::CreateFence()`
+    pub(super) fn create_fence(
+        &self,
+        initial_value: u64,
+        flags: u32,
+    ) -> Result<D3d12Fence, HRESULT> {
+        let f = self.vtbl().create_fence;
+        // SAFETY: a live device; the call stores an owned ID3D12Fence.
+        unsafe { out(|o| f(raw(self), initial_value, flags, &IID_ID3D12FENCE, o)) }
+    }
+}
+
+impl D3d12Resource {
+    /// `ID3D12Resource::GetDesc()`
+    pub(super) fn desc(&self) -> ResourceDesc {
+        let mut desc = ResourceDesc::default();
+        // SAFETY: a live resource; the method writes the description it
+        // returns.
+        unsafe { (self.vtbl().get_desc)(raw(self), &mut desc) };
+        desc
+    }
+}
+
+impl D3d12CommandQueue {
+    /// `ID3D12CommandQueue::ExecuteCommandLists()` of one list.
+    pub(super) fn execute_command_list(&self, command_list: &D3d12CommandList) {
+        let list = raw(command_list);
+        // SAFETY: a live queue and a closed command list.
+        unsafe { (self.vtbl().execute_command_lists)(raw(self), 1, &list) }
+    }
+
+    /// `ID3D12CommandQueue::Signal()`
+    pub(super) fn signal(&self, fence: &D3d12Fence, value: u64) -> HRESULT {
+        // SAFETY: a live queue and fence.
+        unsafe { (self.vtbl().signal)(raw(self), raw(fence), value) }
+    }
+}
+
+impl D3d12CommandAllocator {
+    /// `ID3D12CommandAllocator::Reset()`
+    pub(super) fn reset(&self) -> HRESULT {
+        // SAFETY: a live allocator whose command lists the GPU is done with.
+        unsafe { (self.vtbl().reset)(raw(self)) }
+    }
+}
+
+impl D3d12Fence {
+    /// `ID3D12Fence::GetCompletedValue()`
+    pub(super) fn completed_value(&self) -> u64 {
+        // SAFETY: a live fence.
+        unsafe { (self.vtbl().get_completed_value)(raw(self)) }
+    }
+
+    /// `ID3D12Fence::SetEventOnCompletion()`
+    pub(super) fn set_event_on_completion(&self, value: u64, event: HANDLE) -> HRESULT {
+        // SAFETY: a live fence and an event handle (or NULL).
+        unsafe { (self.vtbl().set_event_on_completion)(raw(self), value, event) }
+    }
+
+    /// `ID3D12Fence::Signal()`
+    pub(super) fn signal(&self, value: u64) -> HRESULT {
+        // SAFETY: a live fence.
+        unsafe { (self.vtbl().signal)(raw(self), value) }
+    }
+}
+
+/// The methods of `ID3D12GraphicsCommandList` SDL records with. The
+/// resources, descriptors and objects they name must be live, which the
+/// command buffers' tracking ensures until the GPU is done with them.
+impl D3d12GraphicsCommandList {
+    /// `Close()`
+    pub(super) fn close(&self) -> HRESULT {
+        // SAFETY: a live command list being recorded.
+        unsafe { (self.vtbl().close)(raw(self)) }
+    }
+
+    /// `Reset()`, without an initial pipeline state.
+    pub(super) fn reset(&self, allocator: &D3d12CommandAllocator) -> HRESULT {
+        // SAFETY: a closed command list and a reset allocator.
+        unsafe { (self.vtbl().reset)(raw(self), raw(allocator), null_mut()) }
+    }
+
+    /// `DrawInstanced()`
+    pub(super) fn draw_instanced(&self, vertices: u32, instances: u32, first: u32, base: u32) {
+        // SAFETY: a command list being recorded.
+        unsafe { (self.vtbl().draw_instanced)(raw(self), vertices, instances, first, base) }
+    }
+
+    /// `DrawIndexedInstanced()`
+    pub(super) fn draw_indexed_instanced(
+        &self,
+        indices: u32,
+        instances: u32,
+        first_index: u32,
+        base_vertex: i32,
+        first_instance: u32,
+    ) {
+        // SAFETY: a command list being recorded.
+        unsafe {
+            (self.vtbl().draw_indexed_instanced)(
+                raw(self),
+                indices,
+                instances,
+                first_index,
+                base_vertex,
+                first_instance,
+            )
+        }
+    }
+
+    /// `Dispatch()`
+    pub(super) fn dispatch(&self, x: u32, y: u32, z: u32) {
+        // SAFETY: a command list being recorded.
+        unsafe { (self.vtbl().dispatch)(raw(self), x, y, z) }
+    }
+
+    /// `CopyBufferRegion()`
+    pub(super) fn copy_buffer_region(
+        &self,
+        dst: &D3d12Resource,
+        dst_offset: u64,
+        src: &D3d12Resource,
+        src_offset: u64,
+        num_bytes: u64,
+    ) {
+        // SAFETY: a command list being recorded and live buffers.
+        unsafe {
+            (self.vtbl().copy_buffer_region)(
+                raw(self),
+                raw(dst),
+                dst_offset,
+                raw(src),
+                src_offset,
+                num_bytes,
+            )
+        }
+    }
+
+    /// `CopyTextureRegion()`
+    pub(super) fn copy_texture_region(
+        &self,
+        dst: &TextureCopyLocation,
+        dst_x: u32,
+        dst_y: u32,
+        dst_z: u32,
+        src: &TextureCopyLocation,
+        src_box: Option<&D3d12Box>,
+    ) {
+        let src_box = src_box.map_or(null(), |b| b as *const D3d12Box);
+        // SAFETY: a command list being recorded; the locations name live
+        // resources.
+        unsafe {
+            (self.vtbl().copy_texture_region)(raw(self), dst, dst_x, dst_y, dst_z, src, src_box)
+        }
+    }
+
+    /// `ResolveSubresource()`
+    pub(super) fn resolve_subresource(
+        &self,
+        dst: &D3d12Resource,
+        dst_subresource: u32,
+        src: &D3d12Resource,
+        src_subresource: u32,
+        format: DxgiFormat,
+    ) {
+        // SAFETY: a command list being recorded and live textures.
+        unsafe {
+            (self.vtbl().resolve_subresource)(
+                raw(self),
+                raw(dst),
+                dst_subresource,
+                raw(src),
+                src_subresource,
+                format,
+            )
+        }
+    }
+
+    /// `IASetPrimitiveTopology()`
+    pub(super) fn ia_set_primitive_topology(&self, topology: u32) {
+        // SAFETY: a command list being recorded.
+        unsafe { (self.vtbl().ia_set_primitive_topology)(raw(self), topology) }
+    }
+
+    /// `RSSetViewports()` of one viewport.
+    pub(super) fn rs_set_viewport(&self, viewport: &D3d12Viewport) {
+        // SAFETY: a command list being recorded.
+        unsafe { (self.vtbl().rs_set_viewports)(raw(self), 1, viewport) }
+    }
+
+    /// `RSSetScissorRects()` of one rectangle.
+    pub(super) fn rs_set_scissor_rect(&self, rect: &D3d12Rect) {
+        // SAFETY: a command list being recorded.
+        unsafe { (self.vtbl().rs_set_scissor_rects)(raw(self), 1, rect) }
+    }
+
+    /// `OMSetBlendFactor()`
+    pub(super) fn om_set_blend_factor(&self, blend_factor: &[f32; 4]) {
+        // SAFETY: a command list being recorded and four floats.
+        unsafe { (self.vtbl().om_set_blend_factor)(raw(self), blend_factor.as_ptr()) }
+    }
+
+    /// `OMSetStencilRef()`
+    pub(super) fn om_set_stencil_ref(&self, stencil_ref: u32) {
+        // SAFETY: a command list being recorded.
+        unsafe { (self.vtbl().om_set_stencil_ref)(raw(self), stencil_ref) }
+    }
+
+    /// `SetPipelineState()`
+    pub(super) fn set_pipeline_state(&self, pipeline_state: &D3d12PipelineState) {
+        // SAFETY: a command list being recorded and a live pipeline state.
+        unsafe { (self.vtbl().set_pipeline_state)(raw(self), raw(pipeline_state)) }
+    }
+
+    /// `ResourceBarrier()`
+    pub(super) fn resource_barrier(&self, barriers: &[ResourceBarrier]) {
+        // SAFETY: a command list being recorded; the barriers name live
+        // resources.
+        unsafe {
+            (self.vtbl().resource_barrier)(raw(self), barriers.len() as u32, barriers.as_ptr())
+        }
+    }
+
+    /// `SetDescriptorHeaps()`
+    pub(super) fn set_descriptor_heaps(&self, heaps: &[&D3d12DescriptorHeap]) {
+        let heaps: Vec<*mut c_void> = heaps.iter().map(|h| raw(*h)).collect();
+        // SAFETY: a command list being recorded and live shader-visible
+        // heaps.
+        unsafe { (self.vtbl().set_descriptor_heaps)(raw(self), heaps.len() as u32, heaps.as_ptr()) }
+    }
+
+    /// `SetComputeRootSignature()`
+    pub(super) fn set_compute_root_signature(&self, root_signature: &D3d12RootSignature) {
+        // SAFETY: a command list being recorded and a live root signature.
+        unsafe { (self.vtbl().set_compute_root_signature)(raw(self), raw(root_signature)) }
+    }
+
+    /// `SetGraphicsRootSignature()`
+    pub(super) fn set_graphics_root_signature(&self, root_signature: &D3d12RootSignature) {
+        // SAFETY: a command list being recorded and a live root signature.
+        unsafe { (self.vtbl().set_graphics_root_signature)(raw(self), raw(root_signature)) }
+    }
+
+    /// `SetComputeRootDescriptorTable()`
+    pub(super) fn set_compute_root_descriptor_table(&self, index: i32, base: GpuDescriptorHandle) {
+        // SAFETY: a command list being recorded; the descriptors are in the
+        // shader-visible heaps set.
+        unsafe { (self.vtbl().set_compute_root_descriptor_table)(raw(self), index as u32, base) }
+    }
+
+    /// `SetGraphicsRootDescriptorTable()`
+    pub(super) fn set_graphics_root_descriptor_table(&self, index: i32, base: GpuDescriptorHandle) {
+        // SAFETY: as for set_compute_root_descriptor_table().
+        unsafe { (self.vtbl().set_graphics_root_descriptor_table)(raw(self), index as u32, base) }
+    }
+
+    /// `SetComputeRootConstantBufferView()`
+    pub(super) fn set_compute_root_constant_buffer_view(&self, index: i32, address: u64) {
+        // SAFETY: a command list being recorded; the address is in a live
+        // buffer.
+        unsafe {
+            (self.vtbl().set_compute_root_constant_buffer_view)(raw(self), index as u32, address)
+        }
+    }
+
+    /// `SetGraphicsRootConstantBufferView()`
+    pub(super) fn set_graphics_root_constant_buffer_view(&self, index: i32, address: u64) {
+        // SAFETY: as for set_compute_root_constant_buffer_view().
+        unsafe {
+            (self.vtbl().set_graphics_root_constant_buffer_view)(raw(self), index as u32, address)
+        }
+    }
+
+    /// `IASetIndexBuffer()`
+    pub(super) fn ia_set_index_buffer(&self, view: &IndexBufferView) {
+        // SAFETY: a command list being recorded; the view is of a live
+        // buffer.
+        unsafe { (self.vtbl().ia_set_index_buffer)(raw(self), view) }
+    }
+
+    /// `IASetVertexBuffers()`
+    pub(super) fn ia_set_vertex_buffers(&self, start_slot: u32, views: &[VertexBufferView]) {
+        // SAFETY: a command list being recorded; the views are of live
+        // buffers.
+        unsafe {
+            (self.vtbl().ia_set_vertex_buffers)(
+                raw(self),
+                start_slot,
+                views.len() as u32,
+                views.as_ptr(),
+            )
+        }
+    }
+
+    /// `OMSetRenderTargets()`, the targets not being a single range.
+    pub(super) fn om_set_render_targets(
+        &self,
+        render_targets: &[CpuDescriptorHandle],
+        depth_stencil: Option<&CpuDescriptorHandle>,
+    ) {
+        let depth_stencil = depth_stencil.map_or(null(), |d| d as *const CpuDescriptorHandle);
+        let targets = if render_targets.is_empty() {
+            null()
+        } else {
+            render_targets.as_ptr()
+        };
+        // SAFETY: a command list being recorded and descriptors of live
+        // views.
+        unsafe {
+            (self.vtbl().om_set_render_targets)(
+                raw(self),
+                render_targets.len() as u32,
+                targets,
+                0,
+                depth_stencil,
+            )
+        }
+    }
+
+    /// `ClearDepthStencilView()` of the whole view.
+    pub(super) fn clear_depth_stencil_view(
+        &self,
+        view: CpuDescriptorHandle,
+        flags: u32,
+        depth: f32,
+        stencil: u8,
+    ) {
+        // SAFETY: a command list being recorded and a descriptor of a live
+        // view.
+        unsafe {
+            (self.vtbl().clear_depth_stencil_view)(
+                raw(self),
+                view,
+                flags,
+                depth,
+                stencil,
+                0,
+                null(),
+            )
+        }
+    }
+
+    /// `ClearRenderTargetView()` of the whole view.
+    pub(super) fn clear_render_target_view(&self, view: CpuDescriptorHandle, color: &[f32; 4]) {
+        // SAFETY: a command list being recorded and a descriptor of a live
+        // view.
+        unsafe {
+            (self.vtbl().clear_render_target_view)(raw(self), view, color.as_ptr(), 0, null())
+        }
+    }
+
+    /// `ExecuteIndirect()` without a count buffer.
+    pub(super) fn execute_indirect(
+        &self,
+        command_signature: &D3d12CommandSignature,
+        max_command_count: u32,
+        argument_buffer: &D3d12Resource,
+        argument_buffer_offset: u64,
+    ) {
+        // SAFETY: a command list being recorded, a live signature and
+        // buffer.
+        unsafe {
+            (self.vtbl().execute_indirect)(
+                raw(self),
+                raw(command_signature),
+                max_command_count,
+                raw(argument_buffer),
+                argument_buffer_offset,
+                null_mut(),
+                0,
+            )
+        }
+    }
+
+    /// The command list as an `ID3D12CommandList` (`QueryInterface()`).
+    pub(super) fn command_list(&self) -> Result<D3d12CommandList, HRESULT> {
+        self.query(&IID_ID3D12COMMANDLIST)
+    }
+
+    /// The interface pointer, for the PIX runtime's functions.
+    pub(super) fn as_raw(&self) -> *mut c_void {
+        raw(self)
+    }
+}
+
+/// `IDXGIFactory2::CreateSwapChainForHwnd()` on a command queue, as an
+/// `IDXGISwapChain1` (whose `IUnknown` is all SDL needs before asking for
+/// its `IDXGISwapChain3`).
+pub(super) fn create_swap_chain_for_hwnd(
+    factory: &DxgiFactory4,
+    command_queue: &D3d12CommandQueue,
+    hwnd: HWND,
+    desc: &SwapChainDesc1,
+    fullscreen_desc: &SwapChainFullscreenDesc,
+) -> Result<ComPtr<OpaqueVtbl>, HRESULT> {
+    let f = factory.vtbl().factory2.create_swap_chain_for_hwnd;
+    // SAFETY: a live factory and queue; the descriptions (whose layouts are
+    // DXGI's) outlive the call; the swap chain is stored owned.
+    unsafe {
+        out(|o| {
+            f(
+                raw(factory),
+                raw(command_queue),
+                hwnd,
+                (desc as *const SwapChainDesc1).cast(),
+                (fullscreen_desc as *const SwapChainFullscreenDesc).cast(),
+                null_mut(),
+                o,
+            )
+        })
+    }
+}
+
+impl DxgiSwapChain3 {
+    /// `IDXGIObject::GetParent()` of an `IDXGIFactory1`.
+    pub(super) fn parent_factory(&self) -> Result<DxgiFactory1, HRESULT> {
+        let f = self.vtbl().get_parent;
+        // SAFETY: a live swap chain; the call stores an owned
+        // IDXGIFactory1, the interface asked for.
+        unsafe { out(|o| f(raw(self), &IID_IDXGIFACTORY1, o)) }
+    }
+
+    /// `IDXGISwapChain::Present()`
+    pub(super) fn present(&self, sync_interval: u32, flags: u32) -> HRESULT {
+        // SAFETY: a live swap chain.
+        unsafe { (self.vtbl().present)(raw(self), sync_interval, flags) }
+    }
+
+    /// `IDXGISwapChain::GetBuffer()` of an `ID3D12Resource`.
+    pub(super) fn buffer(&self, index: u32) -> Result<D3d12Resource, HRESULT> {
+        let f = self.vtbl().get_buffer;
+        // SAFETY: a live swap chain; the call stores an owned
+        // ID3D12Resource, the interface asked for.
+        unsafe { out(|o| f(raw(self), index, &IID_ID3D12RESOURCE, o)) }
+    }
+
+    /// `IDXGISwapChain::ResizeBuffers()`
+    pub(super) fn resize_buffers(
+        &self,
+        buffer_count: u32,
+        width: u32,
+        height: u32,
+        format: DxgiFormat,
+        flags: u32,
+    ) -> HRESULT {
+        // SAFETY: a live swap chain.
+        unsafe {
+            (self.vtbl().resize_buffers)(raw(self), buffer_count, width, height, format, flags)
+        }
+    }
+
+    /// `IDXGISwapChain1::GetDesc1()` (whose result upstream doesn't check).
+    pub(super) fn desc1(&self) -> SwapChainDesc1 {
+        let mut desc = SwapChainDesc1::default();
+        // SAFETY: a live swap chain; a valid output.
+        unsafe { (self.vtbl().get_desc1)(raw(self), &mut desc) };
+        desc
+    }
+
+    /// `IDXGISwapChain3::GetCurrentBackBufferIndex()`
+    pub(super) fn current_back_buffer_index(&self) -> u32 {
+        // SAFETY: a live swap chain.
+        unsafe { (self.vtbl().get_current_back_buffer_index)(raw(self)) }
+    }
+
+    /// `IDXGISwapChain3::CheckColorSpaceSupport()`: the support flags (0
+    /// when the call fails; upstream reads its uninitialized variable then).
+    pub(super) fn check_color_space_support(&self, color_space: DxgiColorSpaceType) -> u32 {
+        let mut support = 0;
+        // SAFETY: a live swap chain; a valid output.
+        unsafe { (self.vtbl().check_color_space_support)(raw(self), color_space, &mut support) };
+        support
+    }
+
+    /// `IDXGISwapChain3::SetColorSpace1()`
+    pub(super) fn set_color_space1(&self, color_space: DxgiColorSpaceType) -> HRESULT {
+        // SAFETY: a live swap chain.
+        unsafe { (self.vtbl().set_color_space1)(raw(self), color_space) }
+    }
+}
+
+/// `IDXGIFactory::MakeWindowAssociation()` of a swap chain's parent.
+pub(super) fn make_window_association(factory: &DxgiFactory1, hwnd: HWND, flags: u32) -> HRESULT {
+    // SAFETY: a live factory and a window handle.
+    unsafe { (factory.vtbl().make_window_association)(raw(factory), hwnd, flags) }
 }
