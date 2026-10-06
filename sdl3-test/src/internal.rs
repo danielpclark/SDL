@@ -89,3 +89,80 @@ pub(crate) fn truncate(mut text: String, size: usize) -> String {
     }
     text
 }
+
+/// C's `%g` for a value: 6 significant digits, in fixed or exponent
+/// notation by its exponent, without trailing zeros.
+pub(crate) fn fmt_g(value: f64) -> String {
+    const PRECISION: i32 = 6;
+    if value.is_nan() {
+        return if value.is_sign_negative() {
+            "-nan"
+        } else {
+            "nan"
+        }
+        .to_owned();
+    }
+    if value.is_infinite() {
+        return if value < 0.0 { "-inf" } else { "inf" }.to_owned();
+    }
+    if value == 0.0 {
+        return if value.is_sign_negative() { "-0" } else { "0" }.to_owned();
+    }
+    // The exponent of the value rounded to the precision, as %e has it.
+    let e = format!("{:.*e}", (PRECISION - 1) as usize, value);
+    let (mantissa, exponent) = e.split_once('e').unwrap_or((&e, "0"));
+    let exponent: i32 = exponent.parse().unwrap_or(0);
+    let strip = |s: &str| -> String {
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_owned()
+        } else {
+            s.to_owned()
+        }
+    };
+    if !(-4..PRECISION).contains(&exponent) {
+        let sign = if exponent < 0 { '-' } else { '+' };
+        format!("{}e{sign}{:02}", strip(mantissa), exponent.abs())
+    } else {
+        let decimals = (PRECISION - 1 - exponent) as usize;
+        strip(&format!("{value:.decimals$}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn printf_g() {
+        // What glibc's printf("%g") prints.
+        for (value, expected) in [
+            (0.0, "0"),
+            (-0.0, "-0"),
+            (1.0, "1"),
+            (1.5, "1.5"),
+            (100.0, "100"),
+            (123456.0, "123456"),
+            (1234567.0, "1.23457e+06"),
+            (0.0001, "0.0001"),
+            (0.00001, "1e-05"),
+            (0.1 + 0.2, "0.3"),
+            (59.94, "59.94"),
+            (-2.5, "-2.5"),
+            (999999.5, "1e+06"),
+            (1e100, "1e+100"),
+            (f64::INFINITY, "inf"),
+        ] {
+            assert_eq!(fmt_g(value), expected, "{value}");
+        }
+        assert_eq!(fmt_g(f32::MAX as f64), "3.40282e+38");
+        assert_eq!(fmt_g(0.1f32 as f64), "0.1");
+    }
+
+    #[test]
+    fn cut_at_char_boundary() {
+        assert_eq!(truncate("abcdef".to_owned(), 4), "abc");
+        assert_eq!(truncate("aé".to_owned(), 3), "a");
+        assert_eq!(truncate("ab".to_owned(), 10), "ab");
+        assert!(isprint(b' ') && isprint(b'~') && !isprint(0x7f) && !isprint(b'\n'));
+    }
+}

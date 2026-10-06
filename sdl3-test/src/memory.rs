@@ -42,6 +42,8 @@ use std::cell::{Cell, UnsafeCell};
 use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicIsize, Ordering};
 
+use sdl3::stdlib::string::strcasecmp;
+
 use crate::crc32::Crc32Context;
 
 const MAXIMUM_TRACKED_STACK_DEPTH: usize = 32;
@@ -70,6 +72,9 @@ static S_UNKNOWN_FREES: AtomicI32 = AtomicI32::new(0);
 static S_TRACKED_ALLOCATIONS: Buckets = Buckets(UnsafeCell::new([ptr::null_mut(); 256]));
 static S_RANDFILL_ALLOCATIONS: AtomicBool = AtomicBool::new(false);
 static S_LOCK: AtomicI32 = AtomicI32::new(0);
+/// Whether the stacks are logged with the names of their functions.
+/// Translation of `s_unwind_symbol_names`.
+static S_SYMBOL_NAMES: AtomicBool = AtomicBool::new(true);
 
 /// The allocations made through the [`TrackingAllocator`] and not yet
 /// freed: `SDL_GetNumAllocations()` for Rust's allocations.
@@ -356,7 +361,23 @@ pub fn track_allocations() {
     };
     S_PREVIOUS_ALLOCATIONS.store(previous, Ordering::Relaxed);
 
-    symbols::init();
+    // Note (upstream): the SDL_TRACKMEM_SYMBOL_NAMES environment variable
+    // only applies to builds whose libunwind can't name an address later,
+    // which name the frames as the allocation is made; here it turns the
+    // names off everywhere (and dbghelp.dll isn't loaded on Windows).
+    /* Don't use SDL_GetHint: SDL_malloc is off limits. */
+    if let Some(env_trackmem) = sdl3::stdlib::getenv_unsafe("SDL_TRACKMEM_SYMBOL_NAMES") {
+        let is = |value: &str| strcasecmp(&env_trackmem, value) == std::cmp::Ordering::Equal;
+        if is("1") || is("yes") || is("true") {
+            S_SYMBOL_NAMES.store(true, Ordering::Relaxed);
+        } else if is("0") || is("no") || is("false") {
+            S_SYMBOL_NAMES.store(false, Ordering::Relaxed);
+        }
+    }
+
+    if S_SYMBOL_NAMES.load(Ordering::Relaxed) {
+        symbols::init();
+    }
 
     S_TRACKING.store(true, Ordering::Release);
 
@@ -449,7 +470,11 @@ pub fn log_allocations() {
             if address == 0 {
                 break;
             }
-            let stack_entry_description = symbols::describe(address);
+            let stack_entry_description = if S_SYMBOL_NAMES.load(Ordering::Relaxed) {
+                symbols::describe(address)
+            } else {
+                "???".to_owned()
+            };
             message += &format!("\t0x{address:x}: {stack_entry_description}\n");
         }
         total_allocated += entry.size as u64;
@@ -619,29 +644,31 @@ mod symbols {
 
     /// Load dbghelp.dll and initialize its symbol handler.
     pub(super) fn init() {
-        let load = || -> Option<DynDbghelp> {
-            let module = SharedObject::load("dbghelp.dll").ok()?;
-            // SAFETY: the types of dbghelp.dll's functions.
-            let (p_sym_initialize, p_sym_from_addr, p_sym_get_line_from_addr64) = unsafe {
-                (
-                    module.function::<SymInitializeFn>("SymInitialize").ok()?,
-                    module.function::<SymFromAddrFn>("SymFromAddr").ok()?,
-                    module
-                        .function::<SymGetLineFromAddr64Fn>("SymGetLineFromAddr64")
-                        .ok()?,
-                )
-            };
-            // SAFETY: the current process's pseudo handle, no search path.
-            if unsafe { p_sym_initialize(GetCurrentProcess(), std::ptr::null(), 1) } == 0 {
-                return None;
-            }
-            Some(DynDbghelp {
-                _module: module,
-                p_sym_from_addr,
-                p_sym_get_line_from_addr64,
-            })
-        };
         *DYN_DBGHELP.lock().unwrap_or_else(|e| e.into_inner()) = load();
+    }
+
+    /// Translation of the loading of `dyn_dbghelp` in `SDLTest_TrackAllocations()`.
+    fn load() -> Option<DynDbghelp> {
+        let module = SharedObject::load("dbghelp.dll").ok()?;
+        // SAFETY: the types of dbghelp.dll's functions.
+        let (p_sym_initialize, p_sym_from_addr, p_sym_get_line_from_addr64) = unsafe {
+            (
+                module.function::<SymInitializeFn>("SymInitialize").ok()?,
+                module.function::<SymFromAddrFn>("SymFromAddr").ok()?,
+                module
+                    .function::<SymGetLineFromAddr64Fn>("SymGetLineFromAddr64")
+                    .ok()?,
+            )
+        };
+        // SAFETY: the current process's pseudo handle, no search path.
+        if unsafe { p_sym_initialize(GetCurrentProcess(), std::ptr::null(), 1) } == 0 {
+            return None;
+        }
+        Some(DynDbghelp {
+            _module: module,
+            p_sym_from_addr,
+            p_sym_get_line_from_addr64,
+        })
     }
 
     /// `name+0xdisplacement file:line`, as upstream's description.

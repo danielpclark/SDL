@@ -5,6 +5,8 @@
 use std::alloc::{alloc, dealloc, Layout};
 use std::sync::{Arc, Mutex};
 
+use sdl3::init::InitFlags;
+use sdl3_test::common::CommonState;
 use sdl3_test::fuzzer;
 use sdl3_test::memory::{self, TrackingAllocator};
 
@@ -27,12 +29,30 @@ fn main() {
     // Not tracked yet: nothing to log.
     assert_eq!(logged(&lines, memory::log_allocations), "");
 
+    // Wine's dbghelp.dll crashes reading the debug information of a Rust
+    // program when SymInitialize() loads its symbols: no names there.
+    #[cfg(windows)]
+    if sdl3::loadso::SharedObject::load("ntdll.dll")
+        .is_ok_and(|ntdll| ntdll.symbol("wine_get_version").is_ok())
+    {
+        sdl3::stdlib::setenv_unsafe("SDL_TRACKMEM_SYMBOL_NAMES", "0", true).unwrap();
+    }
+
+    // Started with --trackmem, as SDL's test programs do.
     let from_before = Box::new([1u8; 7]);
-    let message = logged(&lines, memory::track_allocations);
+    let mut state = None;
+    let message = logged(&lines, || {
+        state = Some(CommonState::new(
+            vec!["prog".to_owned(), "--trackmem".to_owned()],
+            InitFlags::NONE,
+        ));
+    });
     assert!(
         message.contains("previous allocations, disabling free() validation"),
         "{message}"
     );
+    let mut state = state.unwrap();
+    assert!(state.default_args());
 
     // An outstanding allocation, with its stack.
     let kept: Vec<u8> = Vec::with_capacity(1000);
@@ -94,6 +114,10 @@ fn main() {
     assert_eq!(&grown[..4], &[9, 9, 9, 9]);
     assert_ne!(first, rest);
     assert_eq!(tail, rest);
+
+    // Destroying the state logs what's left.
+    let message = logged(&lines, || drop(state));
+    assert!(message.starts_with("Memory allocations:\n"), "{message}");
 
     sdl3::log::reset_output();
     println!("memory tracker: ok");

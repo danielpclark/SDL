@@ -28,6 +28,7 @@
 #![warn(missing_debug_implementations)]
 
 pub mod assert;
+pub mod common;
 pub mod compare;
 pub mod crc32;
 pub mod font;
