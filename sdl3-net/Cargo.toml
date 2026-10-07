@@ -1,0 +1,35 @@
+[package]
+name = "sdl3-net"
+description = "A direct, pure-Rust translation of SDL_net 3, the networking library for SDL3. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "network", "sockets", "pure-rust"]
+categories = ["network-programming", "game-development"]
+
+[lib]
+name = "sdl3_net"
+path = "src/lib.rs"
+
+# The sockets are the system's, as upstream's are: BSD sockets through the
+# pure-Rust declarations of `libc`, WinSock (and the IP Helper API, for the
+# interface list) through `windows-sys`. No C is compiled.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.170"
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.61"
+features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_IO",
+]
