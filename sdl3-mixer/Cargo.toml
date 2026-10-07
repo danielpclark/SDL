@@ -20,3 +20,16 @@ path = "src/lib.rs"
 # library is linked or loaded.
 [dependencies]
 sdl3 = { path = "../sdl3", version = "3.5.0" }
+# MIDI through the bundled TiMidity, which upstream builds by default.
+# NOTE: TiMidity is not zlib-licensed: sdl3-mixer-timidity is under
+# "Artistic-1.0-Perl OR LGPL-2.1-only". Build with
+# `default-features = false` for a purely zlib-licensed sdl3-mixer.
+sdl3-mixer-timidity = { path = "../sdl3-mixer-timidity", version = "3.5.0", optional = true }
+
+[features]
+default = ["timidity"]
+# The TIMIDITY decoder (upstream's SDLMIXER_MIDI_TIMIDITY, on by default):
+# MIDI files played with GUS patches or a SoundFont, as the TiMidity
+# configuration file (TIMIDITY_CFG, /etc/timidity.cfg...) or the
+# TIMIDITY_SOUNDFONT environment variable says.
+timidity = ["dep:sdl3-mixer-timidity"]

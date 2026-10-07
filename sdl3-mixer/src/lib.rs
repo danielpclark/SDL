@@ -72,6 +72,8 @@ mod decoder_drmp3;
 mod decoder_raw;
 mod decoder_sinewave;
 mod decoder_stb_vorbis;
+#[cfg(feature = "timidity")]
+mod decoder_timidity;
 mod decoder_voc;
 mod decoder_wav;
 mod dr_flac;

@@ -64,12 +64,15 @@ use crate::{
 // !!! FIXME: should RAW go first (only needs to check if it was explicitly
 // !!! FIXME: requested), and SINEWAVE last (must be requested, likely rare).
 //
-// (the decoders upstream builds against an external library, and the
-// bundled Timidity, are left out, as in an upstream build without them.)
-static DECODERS: [&Decoder; 9] = [
+// (the decoders upstream builds against an external library are left out,
+// as in an upstream build without them; the bundled Timidity is the
+// `timidity` feature's, as DECODER_MIDI_TIMIDITY is upstream.)
+static DECODERS: &[&Decoder] = &[
     &crate::decoder_wav::DECODER,
     &crate::decoder_stb_vorbis::DECODER,
     &crate::decoder_drflac::DECODER,
+    #[cfg(feature = "timidity")]
+    &crate::decoder_timidity::DECODER,
     &crate::decoder_voc::DECODER,
     &crate::decoder_aiff::DECODER,
     &crate::decoder_au::DECODER,

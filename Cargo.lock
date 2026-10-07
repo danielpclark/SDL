@@ -28,6 +28,7 @@ name = "sdl3-mixer"
 version = "3.5.0"
 dependencies = [
  "sdl3",
+ "sdl3-mixer-timidity",
 ]
 
 [[package]]
