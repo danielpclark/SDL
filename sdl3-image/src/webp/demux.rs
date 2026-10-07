@@ -1014,7 +1014,7 @@ pub(crate) fn webp_demux_internal(
             break;
         }
     }
-    if let Some(state) = state.as_deref_mut() {
+    if let Some(state) = state {
         *state = dmux.state;
     }
 

@@ -66,8 +66,6 @@ fn alph_new<'a>() -> ALPHDecoder<'a> {
 /// compression method or filter, error in lossless header data etc).
 /// Translation of `ALPHInit()`.
 fn alph_init<'a>(dec: &mut ALPHDecoder<'a>, data: &'a [u8], src_io: &VP8Io<'_>) -> bool {
-    let ok;
-
     dec.width = src_io.width;
     dec.height = src_io.height;
     debug_assert!(dec.width > 0 && dec.height > 0);
@@ -111,13 +109,11 @@ fn alph_init<'a>(dec: &mut ALPHDecoder<'a>, data: &'a [u8], src_io: &VP8Io<'_>) 
 
     if dec.method == ALPHA_NO_COMPRESSION {
         let alpha_decoded_size = dec.width as usize * dec.height as usize;
-        ok = alpha_data_size >= alpha_decoded_size;
+        alpha_data_size >= alpha_decoded_size
     } else {
         debug_assert!(dec.method == ALPHA_LOSSLESS_COMPRESSION);
-        ok = vp8l_decode_alpha_header(dec, alpha_data);
+        vp8l_decode_alpha_header(dec, alpha_data)
     }
-
-    ok
 }
 
 /// Decodes, unfilters and dequantizes *at least* 'num_rows' rows of alpha
