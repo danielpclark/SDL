@@ -199,6 +199,7 @@ pub(crate) mod test_support {
         ("udev", "libudev and a udev database"),
         ("uinput", "a writable /dev/uinput"),
         ("hidapi", "the HID backend: hidraw/libudev, or hid.dll"),
+        ("ipv6", "IPv6 sockets on the loopback interface (::1)"),
         ("xinput", "an XInput DLL"),
         (
             "gameinput",

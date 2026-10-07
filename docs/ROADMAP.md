@@ -122,6 +122,26 @@ In dependency order, after the core each one needs exists:
    (libopusfile), libxmp, FluidSynth, WavPack, libgme, and the libmpg123,
    libvorbisfile and libFLAC decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
+   **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
+   `NET_Quit`, hostname resolution on resolver threads (a pool of two to
+   ten, with simulated resolution loss), reference-counted addresses with
+   their strings, bytes and comparison, stream sockets (clients connecting
+   without blocking, servers accepting, writes queued and pumped, reads,
+   disconnects, simulated lag), datagram sockets (unicast, broadcast and its
+   IPv6 multicast stand-in, queued sends, the recent-sender address cache,
+   simulated loss), `NET_WaitUntilInputAvailable` (with upstream's
+   `select()`-based poll on Windows), and the network interface list with
+   change monitoring (netlink on Linux and Android, `getifaddrs` and
+   `PF_ROUTE` on the BSDs and Apple platforms, `GetAdaptersAddresses` and
+   `NotifyIpInterfaceChange` on Windows), over BSD sockets through `libc`
+   and WinSock through `windows-sys`. Tested over loopback only (IPv4, and
+   IPv6 where the system has it, else skipped as `ipv6`), on Linux and
+   under Wine, with the system's error strings, status codes and address
+   formats checked against upstream's C (SDL_net 3.2.0 with SDL3) on Linux;
+   upstream's resolve-hostnames, get-local-addrs, echo-server and datagram
+   examples run as tests. Not translated: Haiku's interface monitor (which
+   upstream keeps outside `SDL_net.c`; Haiku lists interfaces without
+   noticing changes) and the PS Vita support upstream added after 3.2.0.
 5. **SDL_rtf** — needs SDL_ttf.
 6. **SDL_shadercross** — needs `gpu/`; SPIRV-Cross/DXC glue.
 
