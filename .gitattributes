@@ -14,3 +14,6 @@ sdl3-mixer/src/testdata/** binary
 # And sdl3-mixer-timidity's test patches, SoundFont, MIDI files,
 # configuration files and reference log.
 sdl3-mixer-timidity/testdata/** binary
+
+# TiMidity's license files, kept verbatim (a blank line at the end and all).
+sdl3-mixer-timidity/COPYING* -whitespace
