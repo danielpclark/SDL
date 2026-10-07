@@ -138,7 +138,8 @@ fn read_midi_event(song: &mut MidiSong, io: &mut IoStream<'_>) -> ReadEvent {
 
                     0x51 => {
                         /* Tempo */
-                        let (Some(ta), Some(tb), Some(tc)) = (read_u8(io), read_u8(io), read_u8(io))
+                        let (Some(ta), Some(tb), Some(tc)) =
+                            (read_u8(io), read_u8(io), read_u8(io))
                         else {
                             crate::snddbg!("read_midi_event: SDL_IOread() failure\n");
                             return ReadEvent::Error;
@@ -628,7 +629,13 @@ pub(crate) fn read_midi_file(
         return None;
     }
 
-    let header = (|| Some((io.read_s16_be().ok()?, io.read_s16_be().ok()?, io.read_s16_be().ok()?)))();
+    let header = (|| {
+        Some((
+            io.read_s16_be().ok()?,
+            io.read_s16_be().ok()?,
+            io.read_s16_be().ok()?,
+        ))
+    })();
     let Some((format, tracks, divisions_tmp)) = header else {
         crate::snddbg!("Not a MIDI file!\n");
         return None;

@@ -26,7 +26,17 @@
 //!   bundled dr_flac), raw PCM and a sine wave generator; ID3v1/v2, APE,
 //!   Lyrics3 and MusicMatch tags and Ogg comments become metadata
 //!   properties, and Ogg `LOOPSTART`-style comments loop.
-//! * Not translated yet: MIDI through the bundled Timidity. The decoders
+//! * MIDI (the `TIMIDITY` decoder) through the bundled TiMidity, translated
+//!   in the `sdl3-mixer-timidity` crate, with GUS patches or a SoundFont,
+//!   as the TiMidity configuration file (the `TIMIDITY_CFG` environment
+//!   variable, or `/etc/timidity.cfg` and the like) or the
+//!   `TIMIDITY_SOUNDFONT` environment variable says. This is the
+//!   `timidity` Cargo feature, on by default (as upstream builds it by
+//!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
+//!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
+//!   `default-features = false` for a purely zlib-licensed sdl3-mixer
+//!   without MIDI.
+//! * The decoders
 //!   upstream builds against an external library are not translated: Opus
 //!   (libopusfile), MOD and friends (libxmp), MIDI through FluidSynth,
 //!   WavPack, the game music formats (libgme), and the alternative MP3,

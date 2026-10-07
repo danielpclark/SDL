@@ -95,7 +95,10 @@ fn convert_vibrato_sweep(song: &MidiSong, sweep: u8, vib_control_ratio: i32) -> 
     }
 
     crate::common::c_f64_to_i32(
-        tim_fscale((vib_control_ratio as f64) * SWEEP_TUNING as f64, SWEEP_SHIFT) as f64
+        tim_fscale(
+            (vib_control_ratio as f64) * SWEEP_TUNING as f64,
+            SWEEP_SHIFT,
+        ) as f64
             / (song.rate.wrapping_mul(sweep as i32)) as f64,
     )
 
@@ -187,7 +190,10 @@ fn load_instrument(
     }
 
     let Some(mut io) = io else {
-        crate::snddbg!("Instrument `{}' can't be found.\n", String::from_utf8_lossy(name));
+        crate::snddbg!(
+            "Instrument `{}' can't be found.\n",
+            String::from_utf8_lossy(name)
+        );
         return None;
     };
 
@@ -275,7 +281,7 @@ fn load_instrument(
             sp.high_freq = read_long!();
             sp.root_freq = read_long!();
             let _ = io.seek(2, IoWhence::Cur); /* Why have a "root frequency" and then
-                                               * "tuning"?? */
+                                                * "tuning"?? */
 
             tmp[0] = read_char!();
 
@@ -598,7 +604,9 @@ fn fill_bank(song: &mut MidiSong, g: &mut Globals, dr: bool, b: usize) -> i32 {
         } else {
             &mut g.master_tonebank[b]
         };
-        let tone = tones(bank, master).and_then(|t| t.get(i).cloned()).unwrap_or_default();
+        let tone = tones(bank, master)
+            .and_then(|t| t.get(i).cloned())
+            .unwrap_or_default();
         if tone.name.is_none() {
             crate::snddbg!(
                 "No instrument mapped to {} {}, program {}{}\n",

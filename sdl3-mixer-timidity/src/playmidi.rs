@@ -204,16 +204,20 @@ fn find_instrument<'a>(song: &'a MidiSong, e: &crate::MidiEvent) -> Option<&'a I
     let a = (e.a & 0x7f) as usize;
     if isdrumchannel(song, ch) {
         let bank = (song.channel[ch].bank as usize).min(127);
-        match song.drumset[bank].as_ref().and_then(|b| b.instrument[a].get()) {
+        match song.drumset[bank]
+            .as_ref()
+            .and_then(|b| b.instrument[a].get())
+        {
             Some(ip) => {
                 if ip.type_ == INST_GUS && ip.samples != 1 {
-                    crate::snddbg!("Strange: percussion instrument with {} samples!", ip.samples);
+                    crate::snddbg!(
+                        "Strange: percussion instrument with {} samples!",
+                        ip.samples
+                    );
                 }
                 Some(ip)
             }
-            None => song.drumset[0]
-                .as_ref()
-                .and_then(|b| b.instrument[a].get()), /* No instrument? Then we can't play. */
+            None => song.drumset[0].as_ref().and_then(|b| b.instrument[a].get()), /* No instrument? Then we can't play. */
         }
     } else if song.channel[ch].program == SPECIAL_PROGRAM {
         song.default_instrument.as_deref()
@@ -357,8 +361,7 @@ fn find_voice(song: &mut MidiSong, e: &crate::MidiEvent) -> usize {
         if song.voice[i].status == VOICE_FREE {
             lowest = i as i32; /* Can't get a lower volume than silence */
         } else if song.voice[i].channel == e.channel
-            && (song.voice[i].note == e.a
-                || song.channel[song.voice[i].channel as usize].mono != 0)
+            && (song.voice[i].note == e.a || song.channel[song.voice[i].channel as usize].mono != 0)
         {
             kill_note(song, i);
         }
@@ -689,10 +692,7 @@ impl MidiSong {
     /// As upstream's, this doesn't restart a song that played to its end.
     pub fn seek(&mut self, ms: u32) {
         let rate = self.rate;
-        skip_to(
-            self,
-            (ms.wrapping_mul((rate / 100) as u32) / 10) as i32,
-        );
+        skip_to(self, (ms.wrapping_mul((rate / 100) as u32) / 10) as i32);
     }
 
     /// The length of the song, in milliseconds. Translation of

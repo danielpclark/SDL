@@ -12,18 +12,18 @@
 #![allow(dead_code)]
 
 /* When a patch file can't be opened, one of these extensions is
-   appended to the filename and the open is tried again.
- */
+  appended to the filename and the open is tried again.
+*/
 pub(crate) const PATCH_EXT_LIST: &[&str] = &[".pat"];
 
 /* Acoustic Grand Piano seems to be the usual default instrument. */
 pub(crate) const DEFAULT_PROGRAM: i32 = 0;
 
 /* 9 here is MIDI channel 10, which is the standard percussion channel.
-   Some files (notably C:\WINDOWS\CANYON.MID) think that 16 is one too.
-   On the other hand, some files know that 16 is not a drum channel and
-   try to play music on it. This is now a runtime option, so this isn't
-   a critical choice anymore. */
+Some files (notably C:\WINDOWS\CANYON.MID) think that 16 is one too.
+On the other hand, some files know that 16 is not a drum channel and
+try to play music on it. This is now a runtime option, so this isn't
+a critical choice anymore. */
 pub(crate) const DEFAULT_DRUMCHANNELS: i32 = 1 << 9;
 
 /* In percent. */
@@ -34,12 +34,12 @@ pub(crate) const DEFAULT_AMPLIFICATION: i32 = 70;
 pub(crate) const DEFAULT_VOICES: i32 = 256;
 
 /* 1000 here will give a control ratio of 22:1 with 22 kHz output.
-   Higher CONTROLS_PER_SECOND values allow more accurate rendering
-   of envelopes and tremolo. The cost is CPU time. */
+Higher CONTROLS_PER_SECOND values allow more accurate rendering
+of envelopes and tremolo. The cost is CPU time. */
 pub(crate) const CONTROLS_PER_SECOND: i32 = 1000;
 
 /* Make envelopes twice as fast. Saves ~20% CPU time (notes decay
-   faster) and sounds more like a GUS. */
+faster) and sounds more like a GUS. */
 pub(crate) const FAST_DECAY: bool = true;
 
 /* A somewhat arbitrary output frequency range. */
@@ -47,25 +47,25 @@ pub(crate) const MIN_OUTPUT_RATE: i32 = 4000;
 pub(crate) const MAX_OUTPUT_RATE: i32 = 256000;
 
 /* How many bits to use for the fractional part of sample positions.
-   This affects tonal accuracy. The entire position counter must fit
-   in 32 bits, so with FRACTION_BITS equal to 12, the maximum size of
-   a sample is 1048576 samples (2 megabytes in memory). The GUS gets
-   by with just 9 bits and a little help from its friends...
-   "The GUS does not SUCK!!!" -- a happy user :) */
+This affects tonal accuracy. The entire position counter must fit
+in 32 bits, so with FRACTION_BITS equal to 12, the maximum size of
+a sample is 1048576 samples (2 megabytes in memory). The GUS gets
+by with just 9 bits and a little help from its friends...
+"The GUS does not SUCK!!!" -- a happy user :) */
 pub(crate) const FRACTION_BITS: i32 = 12;
 
 /* For some reason the sample volume is always set to maximum in all
-   patch files. Define this for a crude adjustment that may help
-   equalize instrument volumes. */
+patch files. Define this for a crude adjustment that may help
+equalize instrument volumes. */
 pub(crate) const ADJUST_SAMPLE_VOLUMES: bool = true;
 
 /* The number of samples to use for ramping out a dying note. Affects
-   click removal. */
+click removal. */
 pub(crate) const MAX_DIE_TIME: i32 = 20;
 
 /**************************************************************************/
 /* Anything below this shouldn't need to be changed unless you're porting
-   to a new machine with other than 32-bit, big-endian words. */
+to a new machine with other than 32-bit, big-endian words. */
 /**************************************************************************/
 
 /* change FRACTION_BITS above, not these */

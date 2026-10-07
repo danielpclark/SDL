@@ -31,6 +31,22 @@ license above, so that the whole repository can be used under a single
 set of terms. See docs/LICENSING.md for a discussion of what may and may
 not change about the license of a translated work.
 
+EXCEPT sdl3-mixer-timidity/: that crate is a translation of TiMidity
+(Copyright (C) 1995 Tuukka Toivonen; SoundFont support Copyright (C)
+1996,1997 Takashi Iwai), as bundled with SDL_mixer, and is NOT under the
+zlib license. It is licensed, as TiMidity is, under the Perl Artistic
+License or the GNU Lesser General Public License version 2.1, at your
+choice (SPDX: Artistic-1.0-Perl OR LGPL-2.1-only); see
+sdl3-mixer-timidity/COPYING, COPYING.artistic, COPYING.LGPL and NOTICE,
+which also describes how and when it was modified.
+
+The default build of sdl3-mixer includes sdl3-mixer-timidity (sdl3-mixer's
+`timidity` Cargo feature, on by default, as upstream builds TiMidity by
+default), so a program using sdl3-mixer's default features is subject to
+those terms for that part. Build sdl3-mixer with `default-features = false`
+(leaving out `timidity`, and MIDI support) for a purely zlib-licensed
+build.
+
 ---------------------------------------------------------------------------
 
 sdl3/src/stdlib/math/ is a translation of SDL's src/libm/, which is

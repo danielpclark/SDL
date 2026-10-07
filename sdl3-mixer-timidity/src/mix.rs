@@ -1,11 +1,11 @@
 /*
-    TiMidity -- Experimental MIDI to WAVE converter
-    Copyright (C) 1995 Tuukka Toivonen <toivonen@clinet.fi>
+TiMidity -- Experimental MIDI to WAVE converter
+Copyright (C) 1995 Tuukka Toivonen <toivonen@clinet.fi>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the Perl Artistic License, available in COPYING.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the Perl Artistic License, available in COPYING.
 
-    mix.c */
+mix.c */
 // Modified 2026-10-07: translated into Rust from mix.c and mix.h in SDL_mixer 3.3.0's TiMidity (see NOTICE).
 
 //! Envelopes, tremolo, and mixing the voices into the 32-bit buffer.
@@ -313,15 +313,33 @@ fn mix_signal(
     }
 }
 
-fn mix_mystery_signal(song: &mut MidiSong, sp: &mut Src<'_>, lp: &mut Dst<'_>, v: usize, count: i32) {
+fn mix_mystery_signal(
+    song: &mut MidiSong,
+    sp: &mut Src<'_>,
+    lp: &mut Dst<'_>,
+    v: usize,
+    count: i32,
+) {
     mix_signal(Shape::Mystery, song, sp, lp, v, count);
 }
 
-fn mix_center_signal(song: &mut MidiSong, sp: &mut Src<'_>, lp: &mut Dst<'_>, v: usize, count: i32) {
+fn mix_center_signal(
+    song: &mut MidiSong,
+    sp: &mut Src<'_>,
+    lp: &mut Dst<'_>,
+    v: usize,
+    count: i32,
+) {
     mix_signal(Shape::Center, song, sp, lp, v, count);
 }
 
-fn mix_single_signal(song: &mut MidiSong, sp: &mut Src<'_>, lp: &mut Dst<'_>, v: usize, count: i32) {
+fn mix_single_signal(
+    song: &mut MidiSong,
+    sp: &mut Src<'_>,
+    lp: &mut Dst<'_>,
+    v: usize,
+    count: i32,
+) {
     mix_signal(Shape::Single, song, sp, lp, v, count);
 }
 
@@ -331,7 +349,14 @@ fn mix_mono_signal(song: &mut MidiSong, sp: &mut Src<'_>, lp: &mut Dst<'_>, v: u
 
 /// `mix_mystery()`, `mix_center()`, `mix_single()` and `mix_mono()`,
 /// which differ in the same way.
-fn mix_plain(shape: Shape, song: &MidiSong, sp: &mut Src<'_>, lp: &mut Dst<'_>, v: usize, count: i32) {
+fn mix_plain(
+    shape: Shape,
+    song: &MidiSong,
+    sp: &mut Src<'_>,
+    lp: &mut Dst<'_>,
+    v: usize,
+    count: i32,
+) {
     let left: FinalVolumeT = song.voice[v].left_mix;
     let right: FinalVolumeT = song.voice[v].right_mix;
 
@@ -456,7 +481,13 @@ pub(crate) fn mix_voice(song: &mut MidiSong, buf: &mut [i32], v: usize, mut c: i
                 Resampled::Buffer => &rbuf,
                 Resampled::Data(sample, ofs) => sample.data.get(*ofs..).unwrap_or(&[]),
             };
-            ramp_out(song, &mut Src { data, pos: 0 }, &mut Dst { buf, pos: 0 }, v, c);
+            ramp_out(
+                song,
+                &mut Src { data, pos: 0 },
+                &mut Dst { buf, pos: 0 },
+                v,
+                c,
+            );
         }
         song.voice[v].status = VOICE_FREE;
     } else {

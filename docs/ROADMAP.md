@@ -108,9 +108,19 @@ In dependency order, after the core each one needs exists:
    test audio from `tools/gen_sdl_mixer_testdata.py` (decoding in three
    formats, truncated and corrupted input, Ogg packets corrupted in intact
    pages, mixing with loops and seeks, and the mixer features).
-   Not yet: MIDI through the bundled Timidity; not translated, as they need
-   an external library: Opus (libopusfile), libxmp, FluidSynth, WavPack,
-   libgme, and the libmpg123, libvorbisfile and libFLAC decoders.
+   MIDI through the bundled TiMidity (`decoder_timidity.c`, behind the
+   `timidity` feature, on by default as upstream's SDLMIXER_MIDI_TIMIDITY
+   is) is done: `src/timidity/` is translated in its own crate,
+   `sdl3-mixer-timidity`, which keeps TiMidity's license
+   (`Artistic-1.0-Perl OR LGPL-2.1-only`; `default-features = false`
+   leaves it out for a purely zlib-licensed `sdl3-mixer`). It reads
+   `timidity.cfg` files, GUS patches and SoundFonts, and is checked
+   bit-for-bit against upstream's C on synthetic patches, a SoundFont and
+   MIDI files from `tools/gen_timidity_testdata.py` (eight output formats,
+   seeks, truncated and corrupted files and broken patches, and through
+   the mixer). Not translated, as they need an external library: Opus
+   (libopusfile), libxmp, FluidSynth, WavPack, libgme, and the libmpg123,
+   libvorbisfile and libFLAC decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
 5. **SDL_rtf** — needs SDL_ttf.
 6. **SDL_shadercross** — needs `gpu/`; SPIRV-Cross/DXC glue.

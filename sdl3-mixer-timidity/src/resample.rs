@@ -304,8 +304,7 @@ fn update_vibrato(rate: i32, vp: &mut Voice, sign: bool) -> i32 {
     if old >= 2 * VIBRATO_SAMPLE_INCREMENTS as i32 - 1 {
         vp.vibrato_phase = 0;
     }
-    let phase =
-        (vib_phase_to_inc_ptr(vp.vibrato_phase) as usize) & (VIBRATO_SAMPLE_INCREMENTS - 1);
+    let phase = (vib_phase_to_inc_ptr(vp.vibrato_phase) as usize) & (VIBRATO_SAMPLE_INCREMENTS - 1);
 
     if vp.vibrato_sample_increment[phase] != 0 {
         if sign {
@@ -691,7 +690,11 @@ pub(crate) fn pre_resample(song: &mut MidiSong, sp: &mut Sample) {
     count -= 1;
     for _ in 0..count.max(0) {
         let vptr = ofs >> FRACTION_BITS;
-        let v1: i32 = if vptr >= 1 { at(src, vptr - 1) as i32 } else { 0 };
+        let v1: i32 = if vptr >= 1 {
+            at(src, vptr - 1) as i32
+        } else {
+            0
+        };
         let v2: i32 = at(src, vptr) as i32;
         let v3: i32 = at(src, vptr + 1) as i32;
         let v4: i32 = at(src, vptr + 2) as i32;
@@ -725,14 +728,17 @@ pub(crate) fn pre_resample(song: &mut MidiSong, sp: &mut Sample) {
         put(
             &mut newdata,
             &mut d,
-            (v1 + (((v2 - v1) * (ofs as u32 & FRACTION_MASK) as i32) >> FRACTION_BITS))
-                as SampleT,
+            (v1 + (((v2 - v1) * (ofs as u32 & FRACTION_MASK) as i32) >> FRACTION_BITS)) as SampleT,
         );
     } else {
         put(&mut newdata, &mut d, at(src, ofs >> FRACTION_BITS));
     }
 
-    let last = if d >= 1 { newdata.get(d - 1).copied().unwrap_or(0) } else { 0 };
+    let last = if d >= 1 {
+        newdata.get(d - 1).copied().unwrap_or(0)
+    } else {
+        0
+    };
     put(&mut newdata, &mut d, last / 2);
     let last = newdata.get(d - 1).copied().unwrap_or(0);
     put(&mut newdata, &mut d, last / 2);

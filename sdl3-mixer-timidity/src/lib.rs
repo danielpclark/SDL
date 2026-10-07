@@ -48,8 +48,11 @@
     clippy::excessive_precision,
     clippy::field_reassign_with_default,
     clippy::identity_op,
+    clippy::enum_variant_names,
     clippy::if_same_then_else,
+    clippy::manual_clamp,
     clippy::manual_range_contains,
+    clippy::needless_late_init,
     clippy::needless_range_loop,
     clippy::too_many_arguments,
     clippy::unnecessary_cast

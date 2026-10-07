@@ -111,7 +111,10 @@ fn iogets(io: &mut IoStream<'_>, s: &mut [u8]) -> bool {
 
 /// `strlen()` from `i`.
 fn cstr(buf: &[u8], i: usize) -> &[u8] {
-    let end = buf[i..].iter().position(|&c| c == 0).map_or(buf.len(), |n| i + n);
+    let end = buf[i..]
+        .iter()
+        .position(|&c| c == 0)
+        .map_or(buf.len(), |n| i + n);
     &buf[i..end]
 }
 
@@ -938,9 +941,8 @@ impl MidiSong {
     /// (where upstream sets no error) with an error saying the song
     /// couldn't be loaded.
     pub fn load(io: &mut IoStream<'_>, audio: &AudioSpec, samples: i32) -> Result<MidiSong> {
-        do_song_load(io, audio, samples).map_err(|e| {
-            e.unwrap_or_else(|| Error::new("TiMidity: couldn't load the MIDI file"))
-        })
+        do_song_load(io, audio, samples)
+            .map_err(|e| e.unwrap_or_else(|| Error::new("TiMidity: couldn't load the MIDI file")))
     }
 }
 

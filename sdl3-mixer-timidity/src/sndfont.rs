@@ -225,7 +225,10 @@ pub(crate) fn init_sbk(g: &mut Globals, fname: &[u8]) -> i32 {
 
     sf.sfrec.io = timi_openfile(fname);
     let Some(io) = sf.sfrec.io.as_mut() else {
-        crate::snddbg!("can't open soundfont file {}\n", String::from_utf8_lossy(fname));
+        crate::snddbg!(
+            "can't open soundfont file {}\n",
+            String::from_utf8_lossy(fname)
+        );
         return -1;
     };
 
@@ -347,7 +350,11 @@ fn load_from_file(song: &mut MidiSong, rec: &mut SFInsts, ipi: usize) -> Option<
         samples: ip.samples,
         sample: Vec::new(),
     });
-    if inst.sample.try_reserve_exact(ip.samples.max(0) as usize).is_err() {
+    if inst
+        .sample
+        .try_reserve_exact(ip.samples.max(0) as usize)
+        .is_err()
+    {
         song.oom = 1; /* nomem */
         return None;
     }
@@ -467,7 +474,13 @@ fn free_exclude(sf: &mut SfState) {
  *----------------------------------------------------------------*/
 
 /// Translation of `order_soundfont()`.
-pub(crate) fn order_soundfont(g: &mut Globals, bank: i32, preset: i32, keynote: i32, order: i32) -> i32 {
+pub(crate) fn order_soundfont(
+    g: &mut Globals,
+    bank: i32,
+    preset: i32,
+    keynote: i32,
+    order: i32,
+) -> i32 {
     if g.sf.sforder.try_reserve(1).is_err() {
         return -1;
     }
@@ -664,7 +677,14 @@ fn append_layer(dst: &mut Layer, src: &Layer, sf: &SFInfo) {
 }
 
 /* convert layer info to timidity instrument strucutre */
-fn make_inst(song: &mut MidiSong, g: &mut Globals, lay: &Layer, pr_idx: i32, in_idx: i32, mut order: i32) {
+fn make_inst(
+    song: &mut MidiSong,
+    g: &mut Globals,
+    lay: &Layer,
+    pr_idx: i32,
+    in_idx: i32,
+    mut order: i32,
+) {
     let sf = &g.sf.sfinfo;
     let bank = sf.presethdr[pr_idx as usize].bank as i32;
     let preset = sf.presethdr[pr_idx as usize].preset as i32;
@@ -723,11 +743,9 @@ fn make_inst(song: &mut MidiSong, g: &mut Globals, lay: &Layer, pr_idx: i32, in_
 
     /* search current instrument list */
     let rec = &mut g.sf.sfrec;
-    let ip = match rec
-        .instlist
-        .iter()
-        .rposition(|ip| ip.bank == bank && ip.preset == preset && (keynote < 0 || keynote == ip.keynote))
-    {
+    let ip = match rec.instlist.iter().rposition(|ip| {
+        ip.bank == bank && ip.preset == preset && (keynote < 0 || keynote == ip.keynote)
+    }) {
         Some(ip) => ip,
         None => {
             if rec.instlist.try_reserve(1).is_err() {
@@ -789,7 +807,11 @@ fn make_inst(song: &mut MidiSong, g: &mut Globals, lay: &Layer, pr_idx: i32, in_
     sp.v.scale_tuning = 100;
     if lay.set[SF_SCALE_TUNING] != 0 {
         if sf.version == 1 {
-            sp.v.scale_tuning = if lay.val[SF_SCALE_TUNING] != 0 { 50 } else { 100 };
+            sp.v.scale_tuning = if lay.val[SF_SCALE_TUNING] != 0 {
+                50
+            } else {
+                100
+            };
         } else {
             sp.v.scale_tuning = lay.val[SF_SCALE_TUNING];
         }
@@ -878,7 +900,12 @@ fn freq_table(i: i32) -> i32 {
 }
 
 /* calculate root pitch */
-fn calc_root_pitch(lay: &Layer, sf: &SFInfo, sp: &SampleList, sample: &crate::readsbk::Tsampleinfo) -> i32 {
+fn calc_root_pitch(
+    lay: &Layer,
+    sf: &SFInfo,
+    sp: &SampleList,
+    sample: &crate::readsbk::Tsampleinfo,
+) -> i32 {
     let mut root: i32 = sample.original_pitch as i32;
     let mut tune: i32 = sample.pitch_correction as i32;
     if sf.version == 1 {
@@ -1110,8 +1137,7 @@ fn convert_vibrato(song: &MidiSong, lay: &Layer, sf: &SFInfo, sp: &mut SampleLis
         freq = to_mhz(freq);
     }
     /* convert mHz to control ratio */
-    sp.v.vibrato_control_ratio = freq
-        .wrapping_mul(VIBRATO_RATE_TUNING.wrapping_mul(song.rate))
+    sp.v.vibrato_control_ratio = freq.wrapping_mul(VIBRATO_RATE_TUNING.wrapping_mul(song.rate))
         / (2 * VIBRATO_SAMPLE_INCREMENTS as i32);
 
     sp.v.vibrato_sweep_increment = 0;
