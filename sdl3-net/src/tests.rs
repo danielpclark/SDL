@@ -919,6 +919,9 @@ fn local_addresses() {
         assert_eq!(addr.status().unwrap(), Status::Success);
         let s = addr.address_string().unwrap();
         assert!(!s.is_empty());
+        // The Unix versions chop the scope (`%eth0`) off link-local IPv6
+        // addresses; upstream's Windows version doesn't (`fe80::...%14`).
+        #[cfg(not(windows))]
         assert!(!s.contains('%'), "{s}");
     }
     #[cfg(target_os = "linux")]
