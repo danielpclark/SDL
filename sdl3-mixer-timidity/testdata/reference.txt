@@ -219,14 +219,14 @@ v5: len=624 bytes=39998 calls=62 rc=0 time=624 active=0 7c2483e1262335d6 afteren
 v6: len=625 bytes=480000 calls=119 rc=0 time=625 active=0 6ff14bf37045f027 afterend=0 seektime=625 rc=0 cbf29ce484222325 triple=12288 1a766d41f9a390bc stopped=0
 v7: len=624 bytes=9996 calls=51 rc=0 time=624 active=0 6c356fda12ce264b afterend=0 seektime=624 rc=0 cbf29ce484222325 triple=600 2974d471a5bd1881 stopped=0
 == sustained.mid
-v0: len=4250 bytes=749700 calls=734 rc=0 time=4250 active=0 ef8d691ba5880743 afterend=0 seektime=300 rc=1024 f83d1683d41378a9 triple=3072 7c1e6464738ca6fd stopped=0
-v1: len=4250 bytes=1632000 calls=798 rc=0 time=4250 active=0 7df82c3f310b206b afterend=0 seektime=550 rc=2048 bf5d0a46c87e827b triple=6144 10539ec1630e80b6 stopped=0
-v2: len=4249 bytes=374848 calls=95 rc=0 time=4249 active=0 1d16a54de923b60c afterend=0 seektime=798 rc=4000 4b3b5e84240d28e5 triple=12000 cc37af660ee9137b stopped=0
-v3: len=4249 bytes=93712 calls=470 rc=0 time=4249 active=0 7cf0c62f9ae0c108 afterend=0 seektime=1047 rc=200 27cd979df38a84e5 triple=600 72eb94bbe6318040 stopped=0
-v4: len=4249 bytes=33999 calls=533 rc=0 time=4249 active=0 ceed1da9d6ce1591 afterend=0 seektime=1300 rc=64 c86ec345c0ee8125 triple=192 c5aaa73bd450491f stopped=0
-v5: len=4249 bytes=271998 calls=410 rc=0 time=4249 active=0 8bb8732265ed47b6 afterend=0 seektime=1550 rc=666 f9854f07771997d5 triple=1998 409c8987f397f8dd stopped=0
-v6: len=4250 bytes=1921024 calls=469 rc=4096 time=2501 active=1 a28ae13ab915ca3c afterend=4096 seektime=1800 rc=4096 332fc06af0b9a325 triple=12288 847d8dce984196ed stopped=0
-v7: len=4249 bytes=67996 calls=341 rc=0 time=4249 active=0 5ce7231358a14ab2 afterend=0 seektime=2050 rc=200 74b4429a2fdd70e5 triple=600 927d174c135fbfe4 stopped=0
+v0: len=4250 bytes=749700 calls=734 rc=0 time=4250 active=0 913ada6404eba7c3 afterend=0 seektime=300 rc=1024 c1bbc9008781fe8c triple=3072 e2d6e2290f182a02 stopped=0
+v1: len=4250 bytes=1632000 calls=798 rc=0 time=4250 active=0 ced53fa544d4517f afterend=0 seektime=550 rc=2048 0715f4f972c229ed triple=6144 9df3df33c9dec9a7 stopped=0
+v2: len=4249 bytes=374848 calls=95 rc=0 time=4249 active=0 c68b2444d34391e6 afterend=0 seektime=798 rc=4000 9dca01a8b5db2b66 triple=12000 1414d6a566037cfe stopped=0
+v3: len=4249 bytes=93712 calls=470 rc=0 time=4249 active=0 2e061bfda52ee555 afterend=0 seektime=1047 rc=200 27cd979df38a84e5 triple=600 b10b1c5336f37596 stopped=0
+v4: len=4249 bytes=33999 calls=533 rc=0 time=4249 active=0 9e6a8930598edeb3 afterend=0 seektime=1300 rc=64 c86ec345c0ee8125 triple=192 30b363da266570b1 stopped=0
+v5: len=4249 bytes=271998 calls=410 rc=0 time=4249 active=0 ba65045119933313 afterend=0 seektime=1550 rc=666 f9854f07771997d5 triple=1998 79079e5e912f5830 stopped=0
+v6: len=4250 bytes=1921024 calls=469 rc=4096 time=2501 active=1 15192d4abc4625d1 afterend=4096 seektime=1800 rc=4096 332fc06af0b9a325 triple=12288 5bcb1c5e282fecce stopped=0
+v7: len=4249 bytes=67996 calls=341 rc=0 time=4249 active=0 05cebcb889a7ebb8 afterend=0 seektime=2050 rc=200 74b4429a2fdd70e5 triple=600 c9038330ef4185d6 stopped=0
 == track_len_long.mid
 v0: len=500 bytes=88200 calls=88 rc=0 time=500 active=0 714bc982f85e9a2a afterend=0 seektime=300 rc=1024 4fd4ca6abf7d94cf triple=3072 e8a25564f7135399 stopped=0
 v1: len=500 bytes=192000 calls=95 rc=0 time=500 active=0 2d6c6c9a23f4c8fd afterend=0 seektime=500 rc=0 cbf29ce484222325 triple=6144 781f6986632a11e5 stopped=0
@@ -266,6 +266,12 @@ v0: len=1500 bytes=264600 calls=260 rc=0 time=1500 active=0 51818b6484021a1e aft
 v1: len=1500 bytes=576000 calls=283 rc=0 time=1500 active=0 2b504a4c60a3f3f3 afterend=0 seektime=550 rc=2048 6e431751526de325 triple=6144 2b0854bee1dfe0e1 stopped=0
 == basic.mid
 v0: len=2574 bytes=454228 calls=445 rc=0 time=2574 active=0 8f44df48ad09069a afterend=0 seektime=300 rc=1024 6df0de0551480325 triple=3072 63e0d8d12eacebf1 stopped=0
+init sbk.cfg: 0
+== sf2.mid
+v0: len=1500 bytes=264600 calls=260 rc=0 time=1500 active=0 6a7da149fc5ad5e0 afterend=0 seektime=300 rc=1024 6df0de0551480325 triple=3072 e1bf9bff7553191e stopped=0
+v1: len=1500 bytes=576000 calls=283 rc=0 time=1500 active=0 314dcee316d4978b afterend=0 seektime=550 rc=2048 6e431751526de325 triple=6144 3f1e35e6efcd5f74 stopped=0
+== basic.mid
+v0: len=2574 bytes=454228 calls=445 rc=0 time=2574 active=0 35158e4ef6bee3d5 afterend=0 seektime=300 rc=1024 6df0de0551480325 triple=3072 f959ca0d498e69c9 stopped=0
 init default.cfg: 0
 == default.mid
 v0: len=2250 bytes=396900 calls=389 rc=0 time=2250 active=0 97fd9ed83903eddd afterend=0 seektime=300 rc=1024 e027df99e031d6ae triple=3072 8c6885694c3aebf6 stopped=0

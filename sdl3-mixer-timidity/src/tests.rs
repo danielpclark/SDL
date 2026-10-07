@@ -390,6 +390,11 @@ fn run(out: &mut String) {
     play_file(out, "basic.mid", 1, false);
     exit();
 
+    init_cfg(out, "sbk.cfg");
+    play_file(out, "sf2.mid", 2, false);
+    play_file(out, "basic.mid", 1, false);
+    exit();
+
     init_cfg(out, "default.cfg");
     play_file(out, "default.mid", 2, false);
     play_file(out, "basic.mid", 1, false);

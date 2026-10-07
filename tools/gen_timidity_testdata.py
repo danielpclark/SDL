@@ -196,6 +196,15 @@ def patches():
                    env_rates=(0x30, 0x30, 0x30, 0x18, 0x18, 0x18),
                    env_offsets=(240, 235, 230, 20, 10, 10)),
     ]))
+    # Vibrato through a bidirectional loop (a long one: an increment longer
+    # than the loop makes upstream write past its buffer).
+    vp = wave('sine', 5000, 110, 80)
+    write('patches/vibpp.pat', gus_patch([
+        gus_sample(vp, loop=(1200, 4200), root=200454, vibrato=(0, 70, 120),
+                   modes=MODES_LOOPING | MODES_PINGPONG | MODES_ENVELOPE | MODES_SUSTAIN,
+                   env_rates=(0x30, 0x30, 0x30, 0x18, 0x18, 0x18),
+                   env_offsets=(240, 235, 230, 20, 10, 10)),
+    ]))
     # Not looped, played at a fixed pitch (note=60 in the configuration):
     # pre-resampled at load time.
     fx = decaying(wave('sine', 6000, 60, 95), 2000)
@@ -292,6 +301,7 @@ bank 0
 17 patches/vib strip=env
 18 patches/piano keep=loop keep=env amp=0
 19 patches/twoinstruments
+20 patches/vibpp
 drumset 0
 36 patches/kick
 38 patches/snare
@@ -376,6 +386,7 @@ font order 1 0 7
 bank 0
 1 patches/square8
 ''')
+    write('sbk.cfg', 'soundfont test_v1.sbk\n')
     write('sf2_badorder.cfg', 'soundfont test.sf2 order=x\n')
     write('sf2_badoption.cfg', 'soundfont test.sf2 orderly\n')
 
@@ -497,6 +508,76 @@ def soundfont():
     write('sf2_badsize.sf2', sf2[:4] + struct.pack('<I', len(body) + 2) + sf2[8:])
     v3 = sf2.replace(b'ifil' + struct.pack('<IHH', 4, 2, 1), b'ifil' + struct.pack('<IHH', 4, 3, 0))
     write('sf2_version3.sf2', v3)
+
+
+def soundfont_v1():
+    """A SoundFont 1 (SBK) file: sample names in their own chunk, 16-byte
+    sample headers, and the generators TiMidity reads differently."""
+    s0 = wave('tri', 3000, 90, 75)
+    s1 = decaying(wave('noise', 1500, 1, 60, seed=5), 400)
+    smpl = b''
+    shdr = b''
+    snam = b''
+    for name, data, loop in ((b'tri', s0, (400, 2600)), (b'noise', s1, (0, 1400))):
+        start = len(smpl) // 2
+        smpl += b''.join(struct.pack('<h', v) for v in data) + b'\0' * 92
+        shdr += struct.pack('<IIII', start, start + len(data), start + loop[0], start + loop[1])
+        snam += name.ljust(20, b'\0')
+
+    def gen(oper, amount):
+        return struct.pack('<Hh', oper, amount)
+
+    def gen_range(oper, lo, hi):
+        return struct.pack('<HBB', oper, lo, hi)
+
+    zones_by_inst = [
+        (b'Tri', [[gen_range(43, 0, 127), gen(55, 6040), gen(48, 100), gen(37, 48), gen(34, 10),
+                   gen(36, 300), gen(38, 200), gen(13, 32), gen(22, 50), gen(6, 20), gen(17, 40),
+                   gen(56, 1), gen(51, 2), gen(52, 30), gen(8, 60), gen(9, 10), gen(54, 1),
+                   gen(53, 0)]]),
+        (b'Kit', [[gen_range(43, 36, 36), gen(53, 1)],
+                  [gen_range(43, 38, 38), gen(58, 62), gen(55, 6280), gen(53, 1)]]),
+    ]
+    igen = b''
+    ibag = b''
+    inst = b''
+    nigen = 0
+    for name, zones in zones_by_inst:
+        inst += name.ljust(20, b'\0') + struct.pack('<H', len(ibag) // 4)
+        for z in zones:
+            ibag += struct.pack('<HH', nigen, 0)
+            for g in z:
+                igen += g
+                nigen += 1
+    inst += b'EOI'.ljust(20, b'\0') + struct.pack('<H', len(ibag) // 4)
+    ibag += struct.pack('<HH', nigen, 0)
+    igen += gen(0, 0)
+
+    pgen = b''
+    pbag = b''
+    phdr = b''
+    npgen = 0
+    for name, prog, bank, zones in ((b'Tri', 0, 0, [[gen(41, 0)]]), (b'Kit', 0, 128, [[gen(41, 1)]])):
+        phdr += name.ljust(20, b'\0') + struct.pack('<HHH', prog, bank, len(pbag) // 4) + b'\0' * 12
+        for z in zones:
+            pbag += struct.pack('<HH', npgen, 0)
+            for g in z:
+                pgen += g
+                npgen += 1
+    phdr += b'EOP'.ljust(20, b'\0') + struct.pack('<HHH', 0, 0, len(pbag) // 4) + b'\0' * 12
+    pbag += struct.pack('<HH', npgen, 0)
+    pgen += gen(0, 0)
+
+    info = riff_chunk(b'ifil', struct.pack('<HH', 1, 0))
+    sdta = riff_chunk(b'snam', snam) + riff_chunk(b'smpl', smpl)
+    pdta = (riff_chunk(b'phdr', phdr) + riff_chunk(b'pbag', pbag)
+            + riff_chunk(b'pmod', b'\0' * 10) + riff_chunk(b'pgen', pgen)
+            + riff_chunk(b'inst', inst) + riff_chunk(b'ibag', ibag)
+            + riff_chunk(b'imod', b'\0' * 10) + riff_chunk(b'igen', igen)
+            + riff_chunk(b'shdr', shdr))
+    body = (b'sfbk' + riff_chunk(b'LIST', b'INFO' + info) + riff_chunk(b'LIST', b'sdta' + sdta)
+            + riff_chunk(b'LIST', b'pdta' + pdta))
+    write('test_v1.sbk', b'RIFF' + struct.pack('<I', len(body)) + body)
 
 
 # --- MIDI files -----------------------------------------------------------------
@@ -647,12 +728,12 @@ def midi_files():
     # A long note through each looping patch, with vibrato and tremolo
     # running, released at different times; high and low notes.
     ev = [(0, prog(0, 2)), (0, prog(1, 1)), (0, prog(2, 3)), (0, prog(3, 5)), (0, prog(4, 0)),
-          (0, cc(4, 10, 0)), (0, cc(2, 10, 127)), (0, cc(3, 10, 64))]
+          (0, prog(5, 20)), (0, cc(4, 10, 0)), (0, cc(2, 10, 127)), (0, cc(3, 10, 64))]
     ev += [(0, on(0, 57)), (0, on(1, 45)), (0, on(2, 72)), (0, on(3, 50)), (0, on(4, 36)),
-           (0, on(4, 96))]
+           (0, on(4, 96)), (0, on(5, 62))]
     ev += [(192, off(1, 45)), (96, off(0, 57)), (48, off(2, 72)), (96, off(3, 50)),
-           (0, off(4, 36)), (0, off(4, 96)), (0, on(2, 30)), (0, on(0, 90)), (192, off(2, 30)),
-           (0, off(0, 90)), (192, on(9, 42))]
+           (0, off(4, 36)), (0, off(4, 96)), (0, on(2, 30)), (0, on(0, 90)), (0, on(5, 50)),
+           (96, off(5, 62)), (96, off(2, 30)), (0, off(0, 90)), (0, off(5, 50)), (192, on(9, 42))]
     write('midi/sustained.mid', midi(0, [track(ev)], 96))
 
     # More notes than voices: voices are cut, then lost.
@@ -718,6 +799,7 @@ def main():
     patches()
     configs()
     soundfont()
+    soundfont_v1()
     midi_files()
 
 
