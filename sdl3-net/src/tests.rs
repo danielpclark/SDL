@@ -369,11 +369,6 @@ fn resolve_failures() {
     );
 
     // Failed addresses have nothing to compare.
-    let empty = resolve_hostname("").unwrap();
-    let err = empty.wait_until_resolved(-1).unwrap_err();
-    #[cfg(target_os = "linux")]
-    assert_eq!(err.message(), "Name or service not known");
-    let _ = err;
     let lo = loopback_v4();
     assert_eq!(
         compare_addresses(Some(&lo), Some(&inv)),
@@ -383,10 +378,24 @@ fn resolve_failures() {
         compare_addresses(Some(&inv), Some(&lo)),
         std::cmp::Ordering::Greater
     );
-    assert_eq!(
-        compare_addresses(Some(&inv), Some(&empty)),
-        std::cmp::Ordering::Equal
-    );
+
+    // An empty name: glibc and the BSDs fail, WinSock lists the local
+    // computer's addresses.
+    let empty = resolve_hostname("").unwrap();
+    let result = empty.wait_until_resolved(-1);
+    #[cfg(windows)]
+    assert_eq!(result.unwrap(), Status::Success);
+    #[cfg(not(windows))]
+    {
+        let err = result.unwrap_err();
+        #[cfg(target_os = "linux")]
+        assert_eq!(err.message(), "Name or service not known");
+        let _ = err;
+        assert_eq!(
+            compare_addresses(Some(&inv), Some(&empty)),
+            std::cmp::Ordering::Equal
+        );
+    }
 
     // A name with a NUL ends there, as the C string would.
     let nul = resolve("127.0.0.1\0garbage").unwrap();
