@@ -503,8 +503,8 @@ fn create_socket_error_string(rc: c_int) -> String {
             FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
         };
         let mut msgbuf = [0u16; 256];
-        // MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT): Default language
-        const LANGID: u32 = (0x01 << 10) | 0x00;
+        // MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT): Default language (SUBLANG_DEFAULT << 10 | LANG_NEUTRAL)
+        const LANGID: u32 = 0x0400;
         // SAFETY: the buffer is valid for its length.
         let bw = unsafe {
             FormatMessageW(
@@ -978,16 +978,16 @@ mod ifaces {
                         let isbroadcast = rta_type == IFA_BROADCAST;
                         if isbroadcast || (rta_type == IFA_ADDRESS) {
                             // this gives us the raw bytes of an address, but not the actual sockaddr_* layout, so we have to go with known protocols.  :/
-                            let data = &buffer[attr + RTATTR_LEN..attr + rta_len]; // RTA_DATA(attr), RTA_PAYLOAD(attr)
-                                                                                   // SAFETY: an all-zero sockaddr_storage is valid.
+                            // (RTA_DATA(attr), RTA_PAYLOAD(attr))
+                            let data = &buffer[attr + RTATTR_LEN..attr + rta_len];
+                            // SAFETY: an all-zero sockaddr_storage is valid.
                             let mut addrstorage: AddressStorage = unsafe { std::mem::zeroed() };
-                            let addrlen;
                             addrstorage.ss_family = ifa_family as libc::sa_family_t;
-                            if ifa_family == AF_INET {
+                            // (Upstream copies RTA_PAYLOAD() bytes; this
+                            // copies no more than the address holds.)
+                            let addrlen = if ifa_family == AF_INET {
                                 let sa = (&mut addrstorage as *mut AddressStorage)
                                     .cast::<libc::sockaddr_in>();
-                                // (Upstream copies RTA_PAYLOAD() bytes; this
-                                // copies no more than the address holds.)
                                 // SAFETY: sockaddr_storage is big enough for a sockaddr_in.
                                 unsafe {
                                     let dst =
@@ -998,7 +998,7 @@ mod ifaces {
                                         data.len().min(4),
                                     );
                                 }
-                                addrlen = std::mem::size_of::<libc::sockaddr_in>();
+                                std::mem::size_of::<libc::sockaddr_in>()
                             } else if ifa_family == AF_INET6 {
                                 let sa6 = (&mut addrstorage as *mut AddressStorage)
                                     .cast::<libc::sockaddr_in6>();
@@ -1012,22 +1012,23 @@ mod ifaces {
                                         data.len().min(16),
                                     );
                                 }
-                                addrlen = std::mem::size_of::<libc::sockaddr_in6>();
+                                std::mem::size_of::<libc::sockaddr_in6>()
                             } else {
                                 // unknown protocol family.
                                 // RTA_NEXT(attr, payload_len)
                                 payload_len -= rta_align(rta_len).min(payload_len);
                                 attr += rta_align(rta_len);
                                 continue;
-                            }
+                            };
 
                             let paddr = if isbroadcast {
                                 &mut broadcast
                             } else {
                                 &mut address
                             };
-                            debug_assert!(paddr.is_none()); // shouldn't be two of these attributes on a single RTM_NEWADDR.
-                                                            // SAFETY: the storage holds `addrlen` bytes of a socket address.
+                            // shouldn't be two of these attributes on a single RTM_NEWADDR.
+                            debug_assert!(paddr.is_none());
+                            // SAFETY: the storage holds `addrlen` bytes of a socket address.
                             *paddr = unsafe {
                                 create_sdl_net_addr_from_sock_addr(
                                     (&addrstorage as *const AddressStorage).cast(),
@@ -1339,12 +1340,13 @@ fn resolve_address(addr: &Address) -> i32 {
     let data = &*addr.0;
     let mut ainfo: *mut AddrInfo = std::ptr::null_mut();
 
+    // we control all this, so this shouldn't happen.
     let hostname = data
         .hostname
         .as_ref()
-        .expect("only NET_ResolveHostname() addresses get resolved"); // we control all this, so this shouldn't happen.
-                                                                      //SDL_Log("getaddrinfo '%s'", addr->hostname);
-                                                                      // SAFETY: a valid C string, no hints, and an out-pointer.
+        .expect("only NET_ResolveHostname() addresses get resolved");
+    //SDL_Log("getaddrinfo '%s'", addr->hostname);
+    // SAFETY: a valid C string, no hints, and an out-pointer.
     let rc = unsafe {
         sys::getaddrinfo(
             hostname.as_ptr(),
@@ -2017,8 +2019,9 @@ fn get_boolean_property(props: Option<&Properties>, name: &str, default_value: b
 /// `NET_DestroyStreamSocket()`: it disconnects, abandoning data still
 /// queued for sending (see [`wait_until_drained`](Self::wait_until_drained)).
 ///
-/// Stream sockets are `Send` but not `Sync`: one thread at a time, as
-/// upstream requires.
+/// Everything that uses the socket takes `&mut self`, so one thread at a
+/// time does, as upstream requires; different sockets can be used from
+/// different threads at once.
 pub struct StreamSocket {
     addr: Address,
     port: u16,
@@ -2071,7 +2074,6 @@ impl StreamSocket {
         let addrwithport = make_addr_info_with_port(Some(addr), SOCK_STREAM, port)?;
         let ai = addrwithport.first();
 
-        let winsock = winsock_ref();
         // SAFETY: plain socket creation.
         let handle = unsafe { sys::socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol) };
         if handle == INVALID_SOCKET {
@@ -2106,7 +2108,7 @@ impl StreamSocket {
             pending_output: Vec::new(),
             percent_loss: 0,
             simulated_failure_until: 0,
-            _winsock: winsock,
+            _winsock: winsock_ref(),
         })
     }
 
