@@ -1083,6 +1083,9 @@ fn convert_tremolo(song: &MidiSong, lay: &Layer, sf: &SFInfo, sp: &mut SampleLis
     sp.v.tremolo_depth = c_f64_to_i32(to_linear(level as f64)) as u8;
 
     /* frequency in mHz */
+    // (Note (upstream): the test is the wrong way round: a frequency the
+    // SoundFont sets is ignored, and when it sets none, 0 is used:
+    // TO_MHZ(0), 8.176 Hz.)
     let mut freq: i32;
     if lay.set[SF_FREQ_LFO1] != 0 {
         if sf.version == 1 {
@@ -1122,6 +1125,7 @@ fn convert_vibrato(song: &MidiSong, lay: &Layer, sf: &SFInfo, sp: &mut SampleLis
     sp.v.vibrato_depth = (shift * 256 / 400) as i8 as u8;
 
     /* frequency in mHz */
+    // (Note (upstream): as in convert_tremolo().)
     let mut freq: i32;
     if lay.set[SF_FREQ_LFO2] != 0 {
         if sf.version == 1 {
