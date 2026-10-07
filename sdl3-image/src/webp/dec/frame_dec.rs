@@ -323,16 +323,15 @@ fn precompute_filter_strengths(dec: &mut VP8Decoder<'_>) {
         let hdr = &dec.filter_hdr;
         for s in 0..NUM_MB_SEGMENTS {
             // First, compute the initial level
-            let base_level;
-            if dec.segment_hdr.use_segment {
+            let base_level = if dec.segment_hdr.use_segment {
                 let mut l = dec.segment_hdr.filter_strength[s] as i32;
                 if !dec.segment_hdr.absolute_delta {
                     l += hdr.level;
                 }
-                base_level = l;
+                l
             } else {
-                base_level = hdr.level;
-            }
+                hdr.level
+            };
             for i4x4 in 0..=1usize {
                 let info = &mut dec.fstrengths[s][i4x4];
                 let mut level = base_level;

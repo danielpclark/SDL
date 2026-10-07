@@ -20,7 +20,20 @@
 //
 //=============================================================================
 
+// The libwebp translation keeps upstream's loops, conditions and names
+// (ParseResiduals()'s late initializations, the nested ifs of the header
+// parsers, GetLargeValue()'s `v += v + bit`, the transform and decoder
+// state enumerators) as written.
+#[allow(
+    clippy::collapsible_if,
+    clippy::enum_variant_names,
+    clippy::if_same_then_else,
+    clippy::misrefactored_assign_op,
+    clippy::needless_late_init,
+    clippy::needless_range_loop
+)]
 mod dec;
+#[allow(clippy::enum_variant_names)]
 mod decode;
 mod demux;
 mod dsp;
