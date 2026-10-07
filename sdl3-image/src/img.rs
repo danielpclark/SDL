@@ -50,7 +50,11 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("XCF", Some(crate::xcf::is_xcf), crate::xcf::load_xcf_io),
     ("XPM", Some(crate::xpm::is_xpm), crate::xpm::load_xpm_io),
     ("XV", Some(crate::xv::is_xv), crate::xv::load_xv_io),
-    ("WEBP", Some(crate::webp::is_webp), crate::webp::load_webp_io),
+    (
+        "WEBP",
+        Some(crate::webp::is_webp),
+        crate::webp::load_webp_io,
+    ),
     ("QOI", Some(crate::qoi::is_qoi), crate::qoi::load_qoi_io),
 ];
 

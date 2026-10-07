@@ -43,8 +43,8 @@ use dec::webp_dec::{webp_decode_rgb_into, webp_decode_rgba_into, webp_get_featur
 use decode::{VP8StatusCode, WebPBitstreamFeatures, WebPMuxAnimBlend, WebPMuxAnimDispose};
 use demux::{
     webp_demux, webp_demux_get_chunk, webp_demux_get_frame, webp_demux_next_frame,
-    webp_demux_release_chunk_iterator, webp_demux_release_iterator, WebPChunkIterator,
-    WebPDemuxer, WebPFormatFeature, WebPIterator,
+    webp_demux_release_chunk_iterator, webp_demux_release_iterator, WebPChunkIterator, WebPDemuxer,
+    WebPFormatFeature, WebPIterator,
 };
 
 /// Whether `src` holds a WebP image, and if so (with `datasize`) the size
@@ -131,7 +131,8 @@ fn load_webp(src: &mut IoStream<'_>, start: i64) -> Result<Surface<'static>> {
             // which loads the image with IMG_LoadTyped_IO(): that detects a
             // WebP and calls IMG_LoadWEBP_IO() again, without end. Here the
             // animation decoder's error ends it.
-            let animation = crate::anim_decoder::decode_as_animation_without_fallback(src, "webp", 1);
+            let animation =
+                crate::anim_decoder::decode_as_animation_without_fallback(src, "webp", 1);
             match animation {
                 Ok(mut animation) if animation.count() > 0 => {
                     // (frames[0] is never NULL here)
@@ -439,3 +440,12 @@ pub(crate) fn create_webp_animation_decoder(
 // need libwebp's encoder and muxer, which are not translated; see
 // crate::img::save_typed_io and crate::anim_encoder for the !SAVE_WEBP
 // errors.)
+
+/// The bitstream's dimensions as WebPGetFeatures() reads them (the canvas,
+/// for an animation), if its header parses.
+#[cfg(test)]
+pub(crate) fn bitstream_dimensions(data: &[u8]) -> Option<(i32, i32)> {
+    let mut features = WebPBitstreamFeatures::default();
+    (webp_get_features(data, &mut features) == VP8StatusCode::Ok)
+        .then_some((features.width, features.height))
+}

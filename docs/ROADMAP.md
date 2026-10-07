@@ -74,19 +74,24 @@ In dependency order, after the core each one needs exists:
    `IMG_CreateAnimatedCursor`), every `IMG_is*` detector (AVIF's with
    libavif's file type check), the BMP/ICO/CUR, GIF, LBM, PCX, PNM, QOI
    (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
-   chosen size), TGA, XCF, XPM (with its color table, also from arrays) and
-   XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
+   chosen size), TGA, WebP (`IMG_webp.c` over a translation of libwebp
+   1.3.2's VP8 and VP8L decoders, alpha plane decoder, plain-C DSP
+   functions and demuxer, with `xmlman.c` for the XMP metadata), XCF, XPM
+   (with its color table, also from arrays) and XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
    (`IMG_stb.c`), the BMP, ICO, CUR, GIF (LZW, octree quantizer), PNG
    (miniz), TGA and JPEG (`tiny_jpeg.h`) savers, the animation API
    (`IMG_anim_decoder.c`, `IMG_anim_encoder.c`: frame-by-frame decoders and
-   encoders with timebases and metadata) with GIF and ANI cursor animations,
+   encoders with timebases and metadata) with GIF and ANI cursor animations
+   and the WebP animation decoder,
    and `IMG_gpu.c` (GPU textures through a copy pass); checked against
    upstream's C on its test images and synthetic ones (detection, loading,
    truncated and corrupted input, saving, animation decoding and encoding).
-   Not yet: the formats that need a large library: the WebP, AVIF, TIFF
-   and JPEG XL decoders, and the APNG, animated WebP and AVIF animation
-   decoders and encoders (libpng and libjpeg are replaced by stb_image as
-   upstream's stb backend).
+   Not yet: the formats that need a large library: the AVIF, TIFF and
+   JPEG XL decoders, the APNG and AVIF animation decoders and encoders,
+   and WebP saving and the WebP animation encoder (libwebp's encoder and
+   muxer, `IMG_SaveWEBP_IO()` failing as upstream built without
+   `SAVE_WEBP`); libpng and libjpeg are replaced by stb_image as upstream's
+   stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer

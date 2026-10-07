@@ -294,8 +294,7 @@ pub(crate) fn custom_setup(io: &mut VP8Io<'_>, p: &mut WebPDecParams<'_>) -> boo
     if is_alpha {
         // need transparency output
         // (EmitAlphaRGBA4444() and EmitAlphaYUV() are not translated)
-        if colorspace == WebpCspMode::Rgba4444 || colorspace == WebpCspMode::RgbA4444Premultiplied
-        {
+        if colorspace == WebpCspMode::Rgba4444 || colorspace == WebpCspMode::RgbA4444Premultiplied {
             return false;
         }
         p.emit_alpha = OutputAlphaFunc::AlphaRgb;

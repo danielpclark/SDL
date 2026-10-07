@@ -114,6 +114,9 @@ mod tests {
         assert!(rgb[0] > 250 && rgb[1] < 5 && rgb[2] < 5);
         let mut bgra = [0u8; 4];
         vp8_yuv_to_bgra(81, 90, 240, &mut bgra);
-        assert_eq!([bgra[2], bgra[1], bgra[0], bgra[3]], [rgb[0], rgb[1], rgb[2], 255]);
+        assert_eq!(
+            [bgra[2], bgra[1], bgra[0], bgra[3]],
+            [rgb[0], rgb[1], rgb[2], 255]
+        );
     }
 }

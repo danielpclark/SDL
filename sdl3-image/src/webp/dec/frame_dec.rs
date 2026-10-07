@@ -14,8 +14,8 @@
 use crate::webp::dec::alpha_dec::vp8_decompress_alpha_rows;
 use crate::webp::dec::io_dec::{custom_put, custom_setup, custom_teardown, WebPDecParams};
 use crate::webp::dec::vp8_dec::{
-    vp8_init_scanline, vp8_set_error, VP8Decoder, VP8FInfo, VP8Io, VP8MBData, VP8TopSamples,
-    VP8_TOP_SAMPLES_SIZE, U_OFF, V_OFF, YUV_SIZE, Y_OFF,
+    vp8_init_scanline, vp8_set_error, VP8Decoder, VP8FInfo, VP8Io, VP8MBData, VP8TopSamples, U_OFF,
+    VP8_TOP_SAMPLES_SIZE, V_OFF, YUV_SIZE, Y_OFF,
 };
 use crate::webp::dec::{
     B_DC_PRED, B_DC_PRED_NOLEFT, B_DC_PRED_NOTOP, B_DC_PRED_NOTOPLEFT, NUM_MB_SEGMENTS,
@@ -24,8 +24,8 @@ use crate::webp::decode::VP8StatusCode;
 use crate::webp::dsp::dec::{
     h_filter16, h_filter16i, h_filter8, h_filter8i, pred_chroma8, pred_luma16, pred_luma4,
     simple_h_filter16, simple_h_filter16i, simple_v_filter16, simple_v_filter16i, transform,
-    transform_ac3, transform_dc, transform_dcuv, transform_uv, v_filter16, v_filter16i,
-    v_filter8, v_filter8i,
+    transform_ac3, transform_dc, transform_dcuv, transform_uv, v_filter16, v_filter16i, v_filter8,
+    v_filter8i,
 };
 use crate::webp::dsp::BPS;
 use crate::webp::utils::{check_size_overflow, safe_alloc};
@@ -62,7 +62,11 @@ fn check_mode(mb_x: i32, mb_y: i32, mode: i32) -> i32 {
                 B_DC_PRED_NOLEFT
             };
         } else {
-            return if mb_y == 0 { B_DC_PRED_NOTOP } else { B_DC_PRED };
+            return if mb_y == 0 {
+                B_DC_PRED_NOTOP
+            } else {
+                B_DC_PRED
+            };
         }
     }
     mode
@@ -206,9 +210,12 @@ fn reconstruct_row(dec: &mut VP8Decoder<'_>) {
             // stash away top samples for next block
             if mb_y < dec.mb_h - 1 {
                 let top = &mut dec.yuv_t[top_yuv];
-                top.y.copy_from_slice(&yuv_b[y_dst + 15 * BPS..y_dst + 15 * BPS + 16]);
-                top.u.copy_from_slice(&yuv_b[u_dst + 7 * BPS..u_dst + 7 * BPS + 8]);
-                top.v.copy_from_slice(&yuv_b[v_dst + 7 * BPS..v_dst + 7 * BPS + 8]);
+                top.y
+                    .copy_from_slice(&yuv_b[y_dst + 15 * BPS..y_dst + 15 * BPS + 16]);
+                top.u
+                    .copy_from_slice(&yuv_b[u_dst + 7 * BPS..u_dst + 7 * BPS + 8]);
+                top.v
+                    .copy_from_slice(&yuv_b[v_dst + 7 * BPS..v_dst + 7 * BPS + 8]);
             }
         }
         // Transfer reconstructed samples from yuv_b_ cache to final destination.
@@ -387,7 +394,11 @@ fn macroblock_vpos(mb_y: i32) -> i32 {
 
 /// Finalize and transmit a complete row. Return false in case of
 /// user-abort. Translation of `FinishRow()`.
-fn finish_row(dec: &mut VP8Decoder<'_>, io: &mut VP8Io<'_>, params: &mut WebPDecParams<'_>) -> bool {
+fn finish_row(
+    dec: &mut VP8Decoder<'_>,
+    io: &mut VP8Io<'_>,
+    params: &mut WebPDecParams<'_>,
+) -> bool {
     let mut ok = true;
     let ctx = dec.thread_ctx;
     let cache_id = ctx.id;
@@ -468,8 +479,10 @@ fn finish_row(dec: &mut VP8Decoder<'_>, io: &mut VP8Io<'_>, params: &mut WebPDec
     if cache_id + 1 == dec.num_caches && !is_last_row {
         let y_stride = dec.cache_y_stride as usize;
         let uv_stride = dec.cache_uv_stride as usize;
-        dec.cache
-            .copy_within(ydst + 16 * y_stride..ydst + 16 * y_stride + ysize, dec.cache_y - ysize);
+        dec.cache.copy_within(
+            ydst + 16 * y_stride..ydst + 16 * y_stride + ysize,
+            dec.cache_y - ysize,
+        );
         dec.cache.copy_within(
             udst + 8 * uv_stride..udst + 8 * uv_stride + uvsize,
             dec.cache_u - uvsize,

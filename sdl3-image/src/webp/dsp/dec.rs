@@ -386,7 +386,16 @@ fn edges(dst: &[u8], off: usize) -> Edges {
 /// Translation of `RD4_C()`: Down-right.
 fn rd4(dst: &mut [u8], off: usize) {
     let Edges {
-        i, j, k, l, x, a, b, c, d, ..
+        i,
+        j,
+        k,
+        l,
+        x,
+        a,
+        b,
+        c,
+        d,
+        ..
     } = edges(dst, off);
     let mut put = |xy: &[(usize, usize)], v: u8| {
         for &(px, py) in xy {
@@ -405,7 +414,15 @@ fn rd4(dst: &mut [u8], off: usize) {
 /// Translation of `LD4_C()`: Down-Left.
 fn ld4(dst: &mut [u8], off: usize) {
     let Edges {
-        a, b, c, d, e, f, g, h, ..
+        a,
+        b,
+        c,
+        d,
+        e,
+        f,
+        g,
+        h,
+        ..
     } = edges(dst, off);
     let mut put = |xy: &[(usize, usize)], v: u8| {
         for &(px, py) in xy {
@@ -424,7 +441,15 @@ fn ld4(dst: &mut [u8], off: usize) {
 /// Translation of `VR4_C()`: Vertical-Right.
 fn vr4(dst: &mut [u8], off: usize) {
     let Edges {
-        i, j, k, x, a, b, c, d, ..
+        i,
+        j,
+        k,
+        x,
+        a,
+        b,
+        c,
+        d,
+        ..
     } = edges(dst, off);
     let mut put = |xy: &[(usize, usize)], v: u8| {
         for &(px, py) in xy {
@@ -447,7 +472,15 @@ fn vr4(dst: &mut [u8], off: usize) {
 /// Translation of `VL4_C()`: Vertical-Left.
 fn vl4(dst: &mut [u8], off: usize) {
     let Edges {
-        a, b, c, d, e, f, g, h, ..
+        a,
+        b,
+        c,
+        d,
+        e,
+        f,
+        g,
+        h,
+        ..
     } = edges(dst, off);
     let mut put = |xy: &[(usize, usize)], v: u8| {
         for &(px, py) in xy {
@@ -487,7 +520,15 @@ fn hu4(dst: &mut [u8], off: usize) {
 /// Translation of `HD4_C()`: Horizontal-Down.
 fn hd4(dst: &mut [u8], off: usize) {
     let Edges {
-        i, j, k, l, x, a, b, c, ..
+        i,
+        j,
+        k,
+        l,
+        x,
+        a,
+        b,
+        c,
+        ..
     } = edges(dst, off);
     let mut put = |xy: &[(usize, usize)], v: u8| {
         for &(px, py) in xy {
@@ -875,8 +916,26 @@ pub(crate) fn v_filter8i(
     ithresh: i32,
     hev_thresh: i32,
 ) {
-    filter_loop24(p, u + 4 * stride, stride as isize, 1, 8, thresh, ithresh, hev_thresh);
-    filter_loop24(p, v + 4 * stride, stride as isize, 1, 8, thresh, ithresh, hev_thresh);
+    filter_loop24(
+        p,
+        u + 4 * stride,
+        stride as isize,
+        1,
+        8,
+        thresh,
+        ithresh,
+        hev_thresh,
+    );
+    filter_loop24(
+        p,
+        v + 4 * stride,
+        stride as isize,
+        1,
+        8,
+        thresh,
+        ithresh,
+        hev_thresh,
+    );
 }
 
 /// Translation of `HFilter8i_C()` (`VP8HFilter8i`).

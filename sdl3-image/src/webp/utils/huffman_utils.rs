@@ -316,9 +316,7 @@ fn build_huffman_table(
                         root[low as usize].value = (table - low as usize) as u16;
                     }
                 }
-                if let (Some(root), Some(sorted)) =
-                    (root_table.as_deref_mut(), sorted.as_deref())
-                {
+                if let (Some(root), Some(sorted)) = (root_table.as_deref_mut(), sorted.as_deref()) {
                     let code = HuffmanCode {
                         bits: (len - root_bits) as u8,
                         value: sorted[symbol],
