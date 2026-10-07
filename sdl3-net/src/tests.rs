@@ -862,8 +862,10 @@ fn stream_simulated_loss() {
     accepted.write(b"xyz").unwrap();
     std::thread::sleep(Duration::from_millis(20));
     let mut buf = [0u8; 8];
-    assert_eq!(client.read(&mut buf).unwrap(), 0); // it's there, but "delayed"
-                                                   // Turned off, it all goes through.
+    // it's there, but "delayed"
+    assert_eq!(client.read(&mut buf).unwrap(), 0);
+
+    // Turned off, it all goes through.
     client.simulate_packet_loss(0);
     assert_eq!(client.pending_writes().unwrap(), 0);
     assert_eq!(read_exactly(&mut accepted, 3, None), b"abc");

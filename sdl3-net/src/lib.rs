@@ -89,6 +89,9 @@
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]
+// The socket types differ between platforms (`socklen_t` or `int`, `size_t`
+// or `int` lengths), so a cast needed on one is a no-op on another.
+#![allow(clippy::unnecessary_cast)]
 
 mod net;
 mod sys;
