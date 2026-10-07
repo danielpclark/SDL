@@ -1,0 +1,23 @@
+[package]
+name = "sdl3-mixer-timidity"
+description = "A direct, pure-Rust translation of the TiMidity MIDI synthesizer bundled with SDL_mixer 3, for sdl3-mixer. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# TiMidity's own terms (see COPYING): the Perl Artistic License or the GNU
+# LGPL, version 2.1 (COPYING.LGPL), at your choice. Not zlib, unlike the
+# rest of this repository; see NOTICE.
+license = "Artistic-1.0-Perl OR LGPL-2.1-only"
+repository.workspace = true
+readme = "NOTICE"
+keywords = ["sdl", "sdl3", "midi", "timidity", "pure-rust"]
+categories = ["multimedia::audio", "game-development"]
+
+[lib]
+name = "sdl3_mixer_timidity"
+path = "src/lib.rs"
+
+# Patches (GUS .pat files or a SoundFont) and timidity.cfg are read from
+# the file system at run time; none are bundled.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }
