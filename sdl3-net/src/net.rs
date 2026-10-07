@@ -431,7 +431,11 @@ fn should_simulate_loss(percent_likely_to_lose: i32) -> bool {
     debug_assert!(percent_likely_to_lose >= 0);
     debug_assert!(percent_likely_to_lose <= 100);
     if percent_likely_to_lose > 0 {
-        random_number_between(0, 100) < percent_likely_to_lose
+        // FIXME (upstream): this draws from 0 to 100, 101 values, so 100
+        // percent loses only 100 of 101 times; the documentation promises
+        // that 100 "means _everything_ fails unconditionally". Drawn from
+        // 0 to 99 here.
+        random_number_between(0, 99) < percent_likely_to_lose
     } else {
         false
     }
