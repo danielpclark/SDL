@@ -10,3 +10,7 @@ sdl3-image/src/testdata/** binary
 
 # Likewise sdl3-mixer's test audio and reference log.
 sdl3-mixer/src/testdata/** binary
+
+# And sdl3-mixer-timidity's test patches, SoundFont, MIDI files,
+# configuration files and reference log.
+sdl3-mixer-timidity/testdata/** binary
