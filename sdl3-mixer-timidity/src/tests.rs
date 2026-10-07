@@ -58,14 +58,62 @@ struct Variant {
 }
 
 const VARIANTS: [Variant; 8] = [
-    Variant { format: AudioFormat::S16LE, channels: 2, freq: 44100, samples: 256, volume: 100 },
-    Variant { format: AudioFormat::S32LE, channels: 2, freq: 48000, samples: 256, volume: 800 },
-    Variant { format: AudioFormat::F32LE, channels: 1, freq: 22050, samples: 1000, volume: 70 },
-    Variant { format: AudioFormat::U8, channels: 2, freq: 11025, samples: 100, volume: 300 },
-    Variant { format: AudioFormat::S8, channels: 1, freq: 8000, samples: 64, volume: 100 },
-    Variant { format: AudioFormat::S16BE, channels: 1, freq: 32000, samples: 333, volume: 50 },
-    Variant { format: AudioFormat::F32BE, channels: 2, freq: 96000, samples: 512, volume: 100 },
-    Variant { format: AudioFormat::S32BE, channels: 1, freq: 4000, samples: 50, volume: 900 },
+    Variant {
+        format: AudioFormat::S16LE,
+        channels: 2,
+        freq: 44100,
+        samples: 256,
+        volume: 100,
+    },
+    Variant {
+        format: AudioFormat::S32LE,
+        channels: 2,
+        freq: 48000,
+        samples: 256,
+        volume: 800,
+    },
+    Variant {
+        format: AudioFormat::F32LE,
+        channels: 1,
+        freq: 22050,
+        samples: 1000,
+        volume: 70,
+    },
+    Variant {
+        format: AudioFormat::U8,
+        channels: 2,
+        freq: 11025,
+        samples: 100,
+        volume: 300,
+    },
+    Variant {
+        format: AudioFormat::S8,
+        channels: 1,
+        freq: 8000,
+        samples: 64,
+        volume: 100,
+    },
+    Variant {
+        format: AudioFormat::S16BE,
+        channels: 1,
+        freq: 32000,
+        samples: 333,
+        volume: 50,
+    },
+    Variant {
+        format: AudioFormat::F32BE,
+        channels: 2,
+        freq: 96000,
+        samples: 512,
+        volume: 100,
+    },
+    Variant {
+        format: AudioFormat::S32BE,
+        channels: 1,
+        freq: 4000,
+        samples: 50,
+        volume: 900,
+    },
 ];
 
 const CAP_FRAMES: i64 = 5 * 48000;
@@ -207,7 +255,12 @@ fn play_file(out: &mut String, name: &str, nvariants: usize, damage: bool) {
 }
 
 fn init_cfg(out: &mut String, name: &str) {
-    writeln!(out, "init {name}: {}", rc(init(Some(&format!("{DIR}/{name}"))))).unwrap();
+    writeln!(
+        out,
+        "init {name}: {}",
+        rc(init(Some(&format!("{DIR}/{name}"))))
+    )
+    .unwrap();
 }
 
 fn run(out: &mut String) {
@@ -263,11 +316,23 @@ fn run(out: &mut String) {
             freq: 44100,
         };
         let r = MidiSong::load(&mut IoStream::from_const_mem(&data), &spec, 256);
-        writeln!(out, "6ch: {} {}", r.is_ok() as i32, r.err().map(|e| e.to_string()).unwrap_or_default()).unwrap();
+        writeln!(
+            out,
+            "6ch: {} {}",
+            r.is_ok() as i32,
+            r.err().map(|e| e.to_string()).unwrap_or_default()
+        )
+        .unwrap();
         spec.channels = 2;
         spec.format = AudioFormat::UNKNOWN;
         let r = MidiSong::load(&mut IoStream::from_const_mem(&data), &spec, 256);
-        writeln!(out, "unknown: {} {}", r.is_ok() as i32, r.err().map(|e| e.to_string()).unwrap_or_default()).unwrap();
+        writeln!(
+            out,
+            "unknown: {} {}",
+            r.is_ok() as i32,
+            r.err().map(|e| e.to_string()).unwrap_or_default()
+        )
+        .unwrap();
     }
     const FILES: [&str; 21] = [
         "bad_format.mid",
@@ -306,8 +371,19 @@ fn run(out: &mut String) {
     exit();
 
     writeln!(out, "== soundfonts").unwrap();
-    for name in ["sf2_truncated.sf2", "sf2_badsize.sf2", "sf2_version3.sf2", "nowhere.sf2", "test.sf2"] {
-        writeln!(out, "soundfont {name}: {}", rc(set_soundfont(Some(&format!("{DIR}/{name}"))))).unwrap();
+    for name in [
+        "sf2_truncated.sf2",
+        "sf2_badsize.sf2",
+        "sf2_version3.sf2",
+        "nowhere.sf2",
+        "test.sf2",
+    ] {
+        writeln!(
+            out,
+            "soundfont {name}: {}",
+            rc(set_soundfont(Some(&format!("{DIR}/{name}"))))
+        )
+        .unwrap();
     }
     writeln!(out, "init: {}", rc(init(Some("unused.cfg")))).unwrap();
     play_file(out, "sf2.mid", 2, false);

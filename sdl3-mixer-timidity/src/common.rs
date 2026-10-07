@@ -24,7 +24,9 @@ fn is_dirsep(c: u8) -> bool {
 }
 #[cfg(windows)]
 fn is_abspath(p: &[u8]) -> bool {
-    p.first() == Some(&b'/') || p.first() == Some(&b'\\') || (!p.is_empty() && p.get(1) == Some(&b':'))
+    p.first() == Some(&b'/')
+        || p.first() == Some(&b'\\')
+        || (!p.is_empty() && p.get(1) == Some(&b':'))
 }
 
 #[cfg(not(windows))] /* unix: */
