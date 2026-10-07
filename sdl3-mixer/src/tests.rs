@@ -19,7 +19,11 @@
 //!   demand and predecoded, with loops and seeks;
 //! - mixer features (gains, fades, stereo and 3D positioning, frequency
 //!   ratios, tags, groups and callbacks, channel maps, other output formats)
-//!   on a few files, the sine wave and raw audio decoders.
+//!   on a few files, the sine wave and raw audio decoders;
+//! - with the `timidity` feature, the same for a few of sdl3-mixer-timidity's
+//!   MIDI files, played with its test patches (upstream's C was built with
+//!   its TIMIDITY decoder, and run with `TIMIDITY_CFG` naming the same
+//!   configuration).
 //!
 //! Hashes are FNV-1a over the bytes. Upstream's C was patched where
 //! sdl3-mixer works around its crashes and memory errors (the
@@ -719,7 +723,13 @@ fn compare(out: &str, sections: &[&str]) {
             keep = sections.contains(&name);
         }
         if keep {
-            want.push_str(line);
+            // (upstream was built with its TIMIDITY decoder; without the
+            // `timidity` feature, there is none.)
+            if !cfg!(feature = "timidity") && line.starts_with("decoders:") {
+                want.push_str(&line.replace(" TIMIDITY", ""));
+            } else {
+                want.push_str(line);
+            }
             want.push('\n');
         }
     }
@@ -752,7 +762,23 @@ fn compare(out: &str, sections: &[&str]) {
     }
 }
 
+/// sdl3-mixer-timidity's test data: its configuration (which upstream's
+/// TIMIDITY decoder reads from `TIMIDITY_CFG`) and MIDI files.
+#[cfg(feature = "timidity")]
+fn timidity_testdata() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-timidity/testdata")
+}
+
 fn setup() {
+    // The TIMIDITY decoder reads its configuration when the library is
+    // initialized; the C program that made the reference ran with
+    // TIMIDITY_CFG set to the same file (and TIMIDITY_SOUNDFONT unset).
+    #[cfg(feature = "timidity")]
+    {
+        let cfg = timidity_testdata().join("timidity.cfg");
+        sdl3::stdlib::setenv_unsafe("TIMIDITY_CFG", &cfg.to_string_lossy(), true).unwrap();
+        sdl3::stdlib::unsetenv_unsafe("TIMIDITY_SOUNDFONT").unwrap();
+    }
     crate::init().unwrap();
 }
 
@@ -810,6 +836,46 @@ fn vorbis_matches_upstream() {
 #[test]
 fn flac_matches_upstream() {
     files_with_prefix(&["flac_"]);
+}
+
+/// The MIDI files, in the reference's order (sdl3-mixer-timidity's, read
+/// at run time, as the decoder reads its patches).
+#[cfg(feature = "timidity")]
+static MIDI_FILES: &[&str] = &[
+    "bad_no_eot.mid",
+    "basic.mid",
+    "empty.mid",
+    "format1.mid",
+    "oom.mid",
+    "rmid.rmi",
+];
+
+/// MIDI through the TIMIDITY decoder, and the mixer's features on a MIDI
+/// file. TiMidity's MIDI reader keeps state from one file to the next (see
+/// sdl3-mixer-timidity), so this is the only test that plays MIDI, in the
+/// reference's order.
+#[cfg(feature = "timidity")]
+#[test]
+fn midi_matches_upstream() {
+    setup();
+    let dir = timidity_testdata().join("midi");
+    if !dir.is_dir() {
+        // (a packaged crate doesn't have sdl3-mixer-timidity's test data.)
+        eprintln!("skipped: no {}", dir.display());
+        return;
+    }
+    let mut out = String::new();
+    let mut names = Vec::new();
+    for name in MIDI_FILES {
+        let data = std::fs::read(dir.join(name)).unwrap();
+        test_file(&mut out, name, &data);
+        names.push(*name);
+    }
+    compare(&out, &names);
+    let data = std::fs::read(dir.join("basic.mid")).unwrap();
+    let mut out = String::new();
+    scenarios(&mut out, "basic.mid", &data);
+    compare(&out, &["scenarios basic.mid"]);
 }
 
 #[test]

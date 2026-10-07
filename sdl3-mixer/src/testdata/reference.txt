@@ -1,5 +1,5 @@
 == misc
-decoders: WAV STBVORBIS DRFLAC VOC AIFF AU DRMP3 SINEWAVE RAW
+decoders: WAV STBVORBIS DRFLAC TIMIDITY VOC AIFF AU DRMP3 SINEWAVE RAW
 sine 440: dur=4800 playing=0 956304aabfd120a9
 sine 1000: dur=-2 playing=1 24a432722a9e8e51
 sine 30: dur=336 playing=0 872ec7d62025ec85
@@ -613,6 +613,115 @@ corrupt 5: AU 0x8120 1 8000 frames=2000 | 8000 58c252915263d5aa end=0
 corrupt 5 mix: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 100fbb8045e909df
 mix: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 c7114a898249175f
 mixpre: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 c7114a898249175f
+== bad_no_eot.mid
+open: err: Audio data is in unknown/unsupported/corrupt format
+f32s48: err: Audio data is in unknown/unsupported/corrupt format
+s16m22: err: Audio data is in unknown/unsupported/corrupt format
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 9: err: Audio data is in unknown/unsupported/corrupt format
+trunc 19: err: Audio data is in unknown/unsupported/corrupt format
+trunc 28: err: Audio data is in unknown/unsupported/corrupt format
+trunc 37: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: err: Audio data is in unknown/unsupported/corrupt format
+mixpre: err: Audio data is in unknown/unsupported/corrupt format
+== basic.mid
+open: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 6a2861142251c396 end=0
+f32s48: 988800 344bccf87a3f83c3 end=0
+s16m22: 113558 cd2f47cb8edb8168 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 69: err: Audio data is in unknown/unsupported/corrupt format
+trunc 138: err: Audio data is in unknown/unsupported/corrupt format
+trunc 207: err: Audio data is in unknown/unsupported/corrupt format
+trunc 276: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 6a2861142251c396 end=0
+corrupt 0: TIMIDITY 0x8020 2 48000 frames=677328 | 5418800 d7f0d1fd46cd90d7 end=0
+corrupt 0 mix: dur=677328 play=1 pos=12288 replay=1 seek=1 pos=225776 playing=1 1e9aef8191baa40b
+corrupt 1: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 80a881edc561b2ad end=0
+corrupt 1 mix: dur=123600 play=1 pos=12288 replay=1 seek=1 pos=41200 playing=1 7e264a5c3456e359
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: TIMIDITY 0x8020 2 48000 frames=0 | 0 cbf29ce484222325 end=0
+corrupt 3 mix: dur=0 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: TIMIDITY 0x8020 2 48000 frames=0 | 0 cbf29ce484222325 end=0
+corrupt 5 mix: dur=0 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+mix: dur=123600 play=1 pos=12288 replay=1 seek=1 pos=41200 playing=1 bb142653fff5dc88
+mixpre: dur=123600 play=1 pos=12288 replay=1 seek=1 pos=41200 playing=1 40def23e67d1c4c2
+== empty.mid
+open: TIMIDITY 0x8020 2 48000 frames=0 | 0 cbf29ce484222325 end=0
+f32s48: 0 cbf29ce484222325 end=0
+s16m22: 0 cbf29ce484222325 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 17: err: Audio data is in unknown/unsupported/corrupt format
+trunc 26: err: Audio data is in unknown/unsupported/corrupt format
+trunc 34: TIMIDITY 0x8020 2 48000 frames=0 | 0 cbf29ce484222325 end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=0 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+mixpre: dur=0 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
 == flac_6ch.flac
 open: DRFLAC 0x8120 6 8000 frames=1200 | 28800 dd87f856951de8ff end=0
 f32s48: 57600 870b04de4ba859ed end=0
@@ -872,6 +981,47 @@ corrupt 5: DRFLAC 0x8120 1 11025 frames=2756 | 0 cbf29ce484222325 end=0
 corrupt 5 mix: dur=2756 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
 mix: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 cad814af31c62900
 mixpre: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 cad814af31c62900
+== format1.mid
+open: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 0169cc083748299d end=0
+f32s48: 771840 f71d1b91c2b84bb5 end=0
+s16m22: 88642 b04bdc1c58d04911 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 58: err: Audio data is in unknown/unsupported/corrupt format
+trunc 116: err: Audio data is in unknown/unsupported/corrupt format
+trunc 174: err: Audio data is in unknown/unsupported/corrupt format
+trunc 232: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 0169cc083748299d end=0
+corrupt 0: TIMIDITY 0x8020 2 48000 frames=104015 | 832320 972e0cd40d907eb2 end=0
+corrupt 0 mix: dur=104015 play=1 pos=12288 replay=1 seek=1 pos=34671 playing=1 521eeaeb694a06c5
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=96479 play=1 pos=12288 replay=1 seek=1 pos=32159 playing=1 8cd4e88f636272a8
+mixpre: dur=96480 play=1 pos=12288 replay=1 seek=1 pos=32160 playing=1 fe0e83c11ee4a4f4
 == mp2_stereo.mp2
 open: DRMP3 0x8120 2 32000 frames=8064 | 64512 fdd7ab4bb1338e6c end=0
 f32s48: 96768 a5901d2b7f701ffb end=0
@@ -1566,6 +1716,78 @@ ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 7b52efa363341ce6
 mixpre: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 7b52efa363341ce6
+== oom.mid
+open: err: Audio data is in unknown/unsupported/corrupt format
+f32s48: err: Audio data is in unknown/unsupported/corrupt format
+s16m22: err: Audio data is in unknown/unsupported/corrupt format
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 9: err: Audio data is in unknown/unsupported/corrupt format
+trunc 18: err: Audio data is in unknown/unsupported/corrupt format
+trunc 27: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: err: Audio data is in unknown/unsupported/corrupt format
+mixpre: err: Audio data is in unknown/unsupported/corrupt format
+== rmid.rmi
+open: err: Audio data is in unknown/unsupported/corrupt format
+f32s48: err: Audio data is in unknown/unsupported/corrupt format
+s16m22: err: Audio data is in unknown/unsupported/corrupt format
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 60: err: Audio data is in unknown/unsupported/corrupt format
+trunc 80: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: err: Audio data is in unknown/unsupported/corrupt format
+mixpre: err: Audio data is in unknown/unsupported/corrupt format
 == voc_blocks.voc
 open: VOC 0x0008 1 8000 frames=1280 | 1040 5e958afa49ac5b8b end=0
 f32s48: 49920 31dc6c1c71f48e59 end=0
@@ -2549,3 +2771,17 @@ mixpre: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 7a63cd1449eefa5
 10: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=4caf2192fc43435a post=a16e1c38946c7beb 5d99d84cf27ed4b2
 11: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 853e35f001e04ae9
 12: play=1 playing=1 paused=0 pos=33865 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 8e37f41149942383
+== scenarios basic.mid
+0: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 54324b4aff8dfed3
+1: play=1 playing=0 paused=0 pos=6000 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 86f87d42c6cd4d6c
+2: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 33edc49e056d7351
+3: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 58b75f308a9a51ff
+4: play=1 playing=1 paused=0 pos=13823 remaining=109777 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 1aae886af1a06dee
+5: play=1 playing=1 paused=0 pos=12388 remaining=111212 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 33a147a1f083e7b5
+6: play=1 playing=1 paused=0 pos=12528 remaining=111072 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 e1d33fa2556d9642
+7: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 edf181b0b1df9f94
+8: play=1 playing=1 paused=0 pos=10240 remaining=113360 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 f9633616c7590a19
+9: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 d69a2d74a8de1d29
+10: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=51cfa2b8a490d160 post=7b765d570466ed41 3dfe2736cdb45329
+11: play=1 playing=1 paused=0 pos=12288 remaining=44468 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 09d975e1fe02d47c
+12: play=1 playing=1 paused=0 pos=12288 remaining=8304 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 4907beddca87310c
