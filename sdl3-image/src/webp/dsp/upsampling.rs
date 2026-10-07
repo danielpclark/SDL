@@ -79,7 +79,7 @@ fn upsample_func(func: YuvToPixel, xstep: usize, l: &LinePair<'_>, dst: &mut [u8
     for x in 1..=last_pixel_pair {
         let t_uv = load_uv(l.top_u[x], l.top_v[x]); // top sample
         let uv = load_uv(l.cur_u[x], l.cur_v[x]); // sample
-        // precompute invariant values associated with first and second diagonals
+                                                  // precompute invariant values associated with first and second diagonals
         let avg = tl_uv + t_uv + l_uv + uv + 0x00080008;
         let diag_12 = (avg + 2 * (t_uv + l_uv)) >> 3;
         let diag_03 = (avg + 2 * (tl_uv + uv)) >> 3;

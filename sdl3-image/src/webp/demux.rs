@@ -22,8 +22,8 @@ use crate::webp::dec::webp_dec::webp_get_features;
 use crate::webp::decode::{
     mkfourcc, VP8StatusCode, WebPBitstreamFeatures, WebPMuxAnimBlend, WebPMuxAnimDispose,
     ALL_VALID_FLAGS, ALPHA_FLAG, ANIMATION_FLAG, ANIM_CHUNK_SIZE, ANMF_CHUNK_SIZE,
-    CHUNK_HEADER_SIZE, CHUNK_SIZE_BYTES, EXIF_FLAG, ICCP_FLAG, MAX_CHUNK_PAYLOAD,
-    MAX_IMAGE_AREA, RIFF_HEADER_SIZE, TAG_SIZE, VP8X_CHUNK_SIZE, XMP_FLAG,
+    CHUNK_HEADER_SIZE, CHUNK_SIZE_BYTES, EXIF_FLAG, ICCP_FLAG, MAX_CHUNK_PAYLOAD, MAX_IMAGE_AREA,
+    RIFF_HEADER_SIZE, TAG_SIZE, VP8X_CHUNK_SIZE, XMP_FLAG,
 };
 use crate::webp::utils::{get_le16, get_le24, get_le32};
 
@@ -319,7 +319,12 @@ fn set_frame_info(
 
 /// Store image bearing chunks to 'frame'. 'min_size' is an optional size
 /// requirement, it may be zero. Translation of `StoreFrame()`.
-fn store_frame(dmux: &mut WebPDemuxer, frame_num: i32, min_size: u32, frame: &mut Frame) -> ParseStatus {
+fn store_frame(
+    dmux: &mut WebPDemuxer,
+    frame_num: i32,
+    min_size: u32,
+    frame: &mut Frame,
+) -> ParseStatus {
     let mut alpha_chunks = 0;
     let mut image_chunks = 0;
     let mut done = mem_data_size(&dmux.mem) < CHUNK_HEADER_SIZE
@@ -378,8 +383,7 @@ fn store_frame(dmux: &mut WebPDemuxer, frame_num: i32, min_size: u32, frame: &mu
                     &dmux.data[chunk_start_offset..chunk_start_offset + chunk_size],
                     &mut features,
                 );
-                if status == ParseStatus::NeedMoreData
-                    && vp8_status == VP8StatusCode::NotEnoughData
+                if status == ParseStatus::NeedMoreData && vp8_status == VP8StatusCode::NotEnoughData
                 {
                     return ParseStatus::NeedMoreData;
                 } else if vp8_status != VP8StatusCode::Ok {
@@ -634,7 +638,10 @@ fn parse_vp8x_chunks(dmux: &mut WebPDemuxer) -> ParseStatus {
                 anim_chunks += 1;
                 dmux.bgcolor = dmux.read_le32();
                 dmux.loop_count = dmux.read_le16s();
-                skip(&mut dmux.mem, (chunk_size_padded - ANIM_CHUNK_SIZE) as usize);
+                skip(
+                    &mut dmux.mem,
+                    (chunk_size_padded - ANIM_CHUNK_SIZE) as usize,
+                );
             } else {
                 store = false;
                 goto_skip = true;
@@ -902,7 +909,14 @@ fn create_raw_image_demuxer(
     {
         let mut dmux = init_demux(data, mem);
         let mut frame = Frame::default();
-        set_frame_info(0, mem.buf_size, 1 /*frame_num*/, true /*complete*/, &features, &mut frame);
+        set_frame_info(
+            0,
+            mem.buf_size,
+            1,    /*frame_num*/
+            true, /*complete*/
+            &features,
+            &mut frame,
+        );
         if !add_frame(&mut dmux, frame) {
             return Err((ParseStatus::Error, dmux.data));
         }
@@ -1107,7 +1121,11 @@ fn set_frame(dmux: &WebPDemuxer, mut frame_num: i32, iter: &mut WebPIterator) ->
 /// to 0 will return the last frame of the image. Returns false if 'dmux'
 /// is NULL or frame 'frame_number' is not present. Translation of
 /// `WebPDemuxGetFrame()`.
-pub(crate) fn webp_demux_get_frame(dmux: &WebPDemuxer, frame: i32, iter: &mut WebPIterator) -> bool {
+pub(crate) fn webp_demux_get_frame(
+    dmux: &WebPDemuxer,
+    frame: i32,
+    iter: &mut WebPIterator,
+) -> bool {
     *iter = WebPIterator::default();
     iter.private = true;
     set_frame(dmux, frame, iter)
@@ -1164,7 +1182,12 @@ fn get_chunk<'d>(dmux: &'d WebPDemuxer, fourcc: &[u8; 4], chunk_num: i32) -> Opt
 }
 
 /// Translation of `SetChunk()`.
-fn set_chunk(dmux: &WebPDemuxer, fourcc: &[u8; 4], mut chunk_num: i32, iter: &mut WebPChunkIterator) -> bool {
+fn set_chunk(
+    dmux: &WebPDemuxer,
+    fourcc: &[u8; 4],
+    mut chunk_num: i32,
+    iter: &mut WebPChunkIterator,
+) -> bool {
     if !iter.private || chunk_num < 0 {
         return false;
     }
@@ -1239,3 +1262,83 @@ pub(crate) fn webp_demux_prev_chunk(dmux: &WebPDemuxer, iter: &mut WebPChunkIter
 /// Releases any memory associated with 'iter'. Translation of
 /// `WebPDemuxReleaseChunkIterator()` (nothing to release).
 pub(crate) fn webp_demux_release_chunk_iterator(_iter: &mut WebPChunkIterator) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static ANIM: &[u8] = include_bytes!("../testdata/images/rgbrgb_thirdpartymetadata.webp");
+    static LOSSY_ALPHA: &[u8] = include_bytes!("../testdata/images/webp_lossy_alpha.webp");
+
+    #[test]
+    fn frames_and_chunks_of_an_animation() {
+        let dmux = webp_demux(ANIM.to_vec()).unwrap();
+        assert_eq!(dmux.get_i(WebPFormatFeature::CanvasWidth), 256);
+        assert_eq!(dmux.get_i(WebPFormatFeature::CanvasHeight), 256);
+        assert_eq!(dmux.get_i(WebPFormatFeature::FrameCount), 6);
+        assert_eq!(dmux.get_i(WebPFormatFeature::LoopCount), 0);
+        assert_eq!(dmux.get_i(WebPFormatFeature::BackgroundColor), 0xffffffff);
+        let flags = dmux.get_i(WebPFormatFeature::FormatFlags);
+        assert_eq!(
+            flags & (ANIMATION_FLAG | XMP_FLAG),
+            ANIMATION_FLAG | XMP_FLAG
+        );
+
+        // frame 0 is the last one; next and previous move through them
+        let mut iter = WebPIterator::default();
+        assert!(!webp_demux_next_frame(&dmux, &mut iter)); // not set up
+        assert!(webp_demux_get_frame(&dmux, 0, &mut iter));
+        assert_eq!((iter.frame_num, iter.num_frames), (6, 6));
+        assert!(!webp_demux_next_frame(&dmux, &mut iter));
+        assert!(webp_demux_prev_frame(&dmux, &mut iter));
+        assert_eq!(iter.frame_num, 5);
+        assert!(webp_demux_get_frame(&dmux, 1, &mut iter));
+        assert!(!webp_demux_prev_frame(&dmux, &mut iter));
+        assert_eq!((iter.width, iter.height, iter.duration), (256, 256, 20));
+        assert!(iter.complete);
+        assert_eq!(&dmux.bytes(iter.fragment)[..4], b"VP8L");
+        assert!(!webp_demux_get_frame(&dmux, 7, &mut iter));
+        assert!(!webp_demux_get_frame(&dmux, -1, &mut iter));
+        webp_demux_release_iterator(&mut iter);
+
+        // the XMP chunk, its payload without the header
+        let mut chunk = WebPChunkIterator::default();
+        assert!(webp_demux_get_chunk(&dmux, b"XMP ", 0, &mut chunk));
+        assert_eq!((chunk.chunk_num, chunk.num_chunks), (1, 1));
+        assert!(dmux.bytes(chunk.chunk).starts_with(b"<?xpacket"));
+        assert!(!webp_demux_next_chunk(&dmux, &mut chunk));
+        assert!(!webp_demux_prev_chunk(&dmux, &mut chunk));
+        assert!(!webp_demux_get_chunk(&dmux, b"EXIF", 1, &mut chunk));
+        webp_demux_release_chunk_iterator(&mut chunk);
+        assert_eq!(webp_get_demux_version(), 0x010302);
+    }
+
+    #[test]
+    fn still_images_raw_bitstreams_and_partial_files() {
+        // A lossy image with alpha: the ALPH and VP8 chunks are its frame
+        let dmux = webp_demux(LOSSY_ALPHA.to_vec()).unwrap();
+        assert_eq!(dmux.get_i(WebPFormatFeature::FrameCount), 1);
+        assert_ne!(dmux.get_i(WebPFormatFeature::FormatFlags) & ALPHA_FLAG, 0);
+        let mut iter = WebPIterator::default();
+        assert!(webp_demux_get_frame(&dmux, 1, &mut iter));
+        assert!(iter.has_alpha);
+        assert_eq!(&dmux.bytes(iter.fragment)[..4], b"ALPH");
+
+        // A raw VP8L bitstream, without its RIFF container
+        let dmux = webp_demux(ANIM[68 + 8..68 + 8 + 32].to_vec()).unwrap();
+        assert_eq!(dmux.get_i(WebPFormatFeature::CanvasWidth), 256);
+
+        // A truncated file: refused, unless partial files are allowed
+        let part = &ANIM[..200];
+        assert!(webp_demux(part.to_vec()).is_none());
+        let mut state = WebPDemuxState::ParseError;
+        let dmux = webp_demux_internal(part.to_vec(), true, Some(&mut state)).unwrap();
+        assert_eq!(state, WebPDemuxState::ParsedHeader);
+        assert_eq!(dmux.get_i(WebPFormatFeature::FrameCount), 2);
+        let mut state = WebPDemuxState::Done;
+        assert!(webp_demux_internal(ANIM[..10].to_vec(), true, Some(&mut state)).is_none());
+        assert_eq!(state, WebPDemuxState::ParsingHeader);
+        assert!(webp_demux(Vec::new()).is_none());
+        assert!(webp_demux(b"RIFF\x04\0\0\0WEBPVP8L\0\0\0\0".to_vec()).is_none());
+    }
+}

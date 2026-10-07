@@ -16,8 +16,7 @@ use crate::webp::dec::vp8l_dec::{
     vp8l_decode_alpha_header, vp8l_decode_alpha_image_stream, VP8LDecoder,
 };
 use crate::webp::decode::{
-    ALPHA_HEADER_LEN, ALPHA_LOSSLESS_COMPRESSION, ALPHA_NO_COMPRESSION,
-    ALPHA_PREPROCESSED_LEVELS,
+    ALPHA_HEADER_LEN, ALPHA_LOSSLESS_COMPRESSION, ALPHA_NO_COMPRESSION, ALPHA_PREPROCESSED_LEVELS,
 };
 use crate::webp::dsp::filters::webp_unfilter;
 use crate::webp::dsp::WebpFilterType;

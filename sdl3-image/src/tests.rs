@@ -881,7 +881,7 @@ fn front_end_errors() {
 
     // Formats not translated yet are unsupported, like an upstream build
     // without them
-    for name in ["sample.webp", "sample.tif", "sample.avif", "sample.jxl"] {
+    for name in ["sample.tif", "sample.avif", "sample.jxl"] {
         let e = crate::load_io(&mut IoStream::from_const_mem(image(name))).unwrap_err();
         assert_eq!(e.to_string(), "Unsupported image format", "{name}");
     }
@@ -1511,4 +1511,181 @@ fn gpu_textures_from_files_and_streams() {
             "{name}"
         );
     }
+}
+
+#[test]
+fn webp_corruptions_fail_cleanly() {
+    // Truncations and single-byte corruptions of every WebP test image (the
+    // first bytes, where the headers are, and a spread of the others) load,
+    // load as animations and decode frame by frame without panicking (the
+    // reference test compares a sample of these with upstream). Images
+    // whose headers then claim more than a million pixels only have their
+    // headers parsed, to keep the test small.
+    const HEAD: usize = 48;
+    const SPREAD: usize = 40;
+    let mut cases = 0;
+    for (name, data) in IMAGES.iter().filter(|(n, _)| n.ends_with(".webp")) {
+        let animated = name.contains("anim") || name.starts_with("rgbrgb");
+        let len = data.len();
+        let positions: Vec<usize> = (0..len.min(HEAD))
+            .chain((HEAD.min(len)..len).step_by((len / SPREAD.min(len).max(1)).max(1)))
+            .collect();
+        let mut variants: Vec<Vec<u8>> = Vec::new();
+        for &n in &positions {
+            variants.push(data[..n].to_vec());
+        }
+        for &i in &positions {
+            let values = if i < HEAD {
+                vec![0x00, 0xff]
+            } else {
+                vec![data[i] ^ 0x55]
+            };
+            for v in values {
+                let mut x = data.to_vec();
+                x[i] = v;
+                variants.push(x);
+            }
+        }
+        for x in &variants {
+            cases += 1;
+            if let Some((w, h)) = crate::webp::bitstream_dimensions(x) {
+                if w as i64 * h as i64 > 1 << 20 {
+                    continue;
+                }
+            }
+            let result = std::panic::catch_unwind(|| {
+                let _ = crate::load_io(&mut IoStream::from_const_mem(x));
+                if animated {
+                    let _ = crate::load_animation_io(&mut IoStream::from_const_mem(x));
+                    let _ = decoder_walk(x, Some("webp"), 0);
+                }
+            });
+            assert!(result.is_ok(), "{name}: panicked on {x:02x?}");
+        }
+    }
+    assert!(cases > 3000, "only {cases} cases");
+}
+
+#[test]
+fn webp_loader_and_animation_decoder() {
+    use sdl3::io::IoWhence;
+
+    // Still images: RGB24 without alpha, RGBA32 with it
+    let load = |name: &str| crate::load_webp_io(&mut IoStream::from_const_mem(image(name)));
+    let s = load("webp_lossy.webp").unwrap();
+    assert_eq!(
+        (s.width(), s.height(), s.format()),
+        (23, 13, PixelFormat::RGB24)
+    );
+    assert_eq!(
+        load("webp_lossless_alpha.webp").unwrap().format(),
+        PixelFormat::RGBA32
+    );
+    assert_eq!(
+        load("webp_alpha_g.webp").unwrap().format(),
+        PixelFormat::RGBA32
+    );
+    assert_eq!(load("sample.webp").unwrap().format(), PixelFormat::RGB24);
+
+    // Not a WebP: an error, the stream where it was
+    let png = image("sample.png");
+    let mut io = IoStream::from_const_mem(png);
+    io.seek(3, IoWhence::Set).unwrap();
+    let e = crate::load_webp_io(&mut io).unwrap_err();
+    assert_eq!(e.to_string(), "Invalid WEBP");
+    assert_eq!(io.tell().unwrap(), 3);
+
+    // A truncated bitstream fails to decode; a bad header fails before
+    let x = &image("webp_lossy.webp")[..150];
+    assert_eq!(
+        crate::load_webp_io(&mut IoStream::from_const_mem(x))
+            .unwrap_err()
+            .to_string(),
+        "Failed to decode WEBP"
+    );
+    let mut x = image("webp_lossless.webp").to_vec();
+    x[20] = 0;
+    assert_eq!(
+        crate::load_webp_io(&mut IoStream::from_const_mem(&x))
+            .unwrap_err()
+            .to_string(),
+        "WebPGetFeatures has failed"
+    );
+
+    // An animated WebP loads as its first frame, with the animation's
+    // metadata (from its XMP chunk too)
+    let mut first = load("webp_anim_alpha.webp").unwrap();
+    assert_eq!((first.width(), first.height()), (23, 13));
+    let props = first.properties();
+    assert_eq!(
+        props.get_number(crate::PROP_METADATA_FRAME_COUNT_NUMBER),
+        Some(4)
+    );
+    assert_eq!(
+        props.get_number(crate::PROP_METADATA_LOOP_COUNT_NUMBER),
+        Some(2)
+    );
+    let string = |name| props.get_string(name);
+    // (xmlman looks for xml:lang="x-default" or "en-us" in double quotes:
+    // the title's 'en-US' alternative is missed, the first one is taken)
+    assert_eq!(
+        string(crate::PROP_METADATA_TITLE_STRING).as_deref(),
+        Some("titre")
+    );
+    assert_eq!(
+        string(crate::PROP_METADATA_AUTHOR_STRING).as_deref(),
+        Some("gen script")
+    );
+    assert_eq!(
+        string(crate::PROP_METADATA_COPYRIGHT_STRING).as_deref(),
+        Some("frei")
+    );
+    assert_eq!(
+        string(crate::PROP_METADATA_CREATION_TIME_STRING).as_deref(),
+        Some("2024-05-06T07:08:09")
+    );
+    assert_eq!(string(crate::PROP_METADATA_DESCRIPTION_STRING), None);
+
+    // The decoder: the frames and their durations, a reset, and the
+    // metadata left out on request
+    let data = image("webp_anim_alpha.webp");
+    let mut io = IoStream::from_const_mem(data);
+    let props = sdl3::properties::Properties::new();
+    props
+        .set(crate::PROP_ANIMATION_DECODER_CREATE_TYPE_STRING, "webp")
+        .unwrap();
+    props
+        .set(crate::PROP_METADATA_IGNORE_PROPS_BOOLEAN, true)
+        .unwrap();
+    let mut d = crate::AnimationDecoder::with_properties(Some(&mut io), &props).unwrap();
+    assert!(!d
+        .properties()
+        .contains(crate::PROP_METADATA_FRAME_COUNT_NUMBER));
+    let mut durations = Vec::new();
+    let mut frames = Vec::new();
+    while let Some((frame, duration)) = d.get_frame().unwrap() {
+        assert_eq!((frame.width(), frame.height()), (23, 13));
+        frames.push(surface_hash(&frame));
+        durations.push(duration);
+    }
+    assert_eq!(durations, [40, 30, 20, 10]);
+    assert_eq!(d.status(), crate::AnimationDecoderStatus::Complete);
+    d.reset().unwrap();
+    let (again, duration) = d.get_frame().unwrap().unwrap();
+    assert_eq!((surface_hash(&again), duration), (frames[0], 40));
+    drop(d);
+
+    // The whole animation, and a still image through the WebP animation
+    // loader: the single-frame fallback
+    let anim = crate::load_webp_animation_io(&mut IoStream::from_const_mem(data)).unwrap();
+    assert_eq!(
+        (anim.count(), anim.delays.as_slice()),
+        (4, &[40, 30, 20, 10][..])
+    );
+    let one = crate::load_webp_animation_io(&mut IoStream::from_const_mem(png)).unwrap();
+    assert_eq!((one.count(), one.delays[0]), (1, 0));
+    let one =
+        crate::load_webp_animation_io(&mut IoStream::from_const_mem(image("webp_lossy.webp")))
+            .unwrap();
+    assert_eq!(one.count(), 1);
 }

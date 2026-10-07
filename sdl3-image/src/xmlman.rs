@@ -205,8 +205,7 @@ fn get_content_from_tag(data: &[u8], tag: &str) -> Option<String> {
         let mut li_start = alt_start;
         let mut fallback: Option<(usize, usize)> = None;
 
-        while let Some(found) =
-            find_substr_in_bounds(data, li_start, content_end, b"<rdf:li", true)
+        while let Some(found) = find_substr_in_bounds(data, li_start, content_end, b"<rdf:li", true)
         {
             li_start = found;
             let Some(li_content_start) = find_char_in_bounds(data, li_start, content_end, b'>')
@@ -239,8 +238,13 @@ fn get_content_from_tag(data: &[u8], tag: &str) -> Option<String> {
                 b"xml:lang=\"x-default\"",
                 false,
             );
-            let en_us_lang =
-                find_substr_in_bounds(data, li_start, li_content_start, b"xml:lang=\"en-us\"", false);
+            let en_us_lang = find_substr_in_bounds(
+                data,
+                li_start,
+                li_content_start,
+                b"xml:lang=\"en-us\"",
+                false,
+            );
 
             if default_lang.is_some() || en_us_lang.is_some() {
                 return Some(unescaped_copy(data, li_content_start, li_end));
@@ -278,7 +282,8 @@ fn get_content_from_tag(data: &[u8], tag: &str) -> Option<String> {
 
     let seq_start = find_substr_in_bounds(data, content_start, content_end, b"<rdf:Seq>", true);
     if let Some(seq_start) = seq_start.filter(|&s| s < content_end) {
-        if let Some(li_start) = find_substr_in_bounds(data, seq_start, content_end, b"<rdf:li", true)
+        if let Some(li_start) =
+            find_substr_in_bounds(data, seq_start, content_end, b"<rdf:li", true)
         {
             if let Some(li_content_start) = find_char_in_bounds(data, li_start, content_end, b'>') {
                 let mut li_content_start = li_content_start + 1;
@@ -386,7 +391,8 @@ pub(crate) fn construct_xmp_with_rdf_description(
         <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n    \
         <rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n";
 
-    let title_prefix = "      <dc:title>\n        <rdf:Alt>\n          <rdf:li xml:lang=\"x-default\">";
+    let title_prefix =
+        "      <dc:title>\n        <rdf:Alt>\n          <rdf:li xml:lang=\"x-default\">";
     let title_suffix = "</rdf:li>\n        </rdf:Alt>\n      </dc:title>\n";
 
     let creator_prefix = "      <dc:creator>\n        <rdf:Seq>\n          <rdf:li>";
@@ -396,7 +402,8 @@ pub(crate) fn construct_xmp_with_rdf_description(
         "      <dc:description>\n        <rdf:Alt>\n          <rdf:li xml:lang=\"x-default\">";
     let description_suffix = "</rdf:li>\n        </rdf:Alt>\n      </dc:description>\n";
 
-    let rights_prefix = "      <dc:rights>\n        <rdf:Alt>\n          <rdf:li xml:lang=\"x-default\">";
+    let rights_prefix =
+        "      <dc:rights>\n        <rdf:Alt>\n          <rdf:li xml:lang=\"x-default\">";
     let rights_suffix = "</rdf:li>\n        </rdf:Alt>\n      </dc:rights>\n";
 
     let createdate_prefix = "      <xmp:CreateDate>";
@@ -457,7 +464,10 @@ mod tests {
         );
         assert_eq!(get_xmp_copyright(&xmp), None);
         assert_eq!(get_xmp_create_date(&xmp).as_deref(), Some("2024-01-02"));
-        assert_eq!(construct_xmp_with_rdf_description(None, None, None, None, None), None);
+        assert_eq!(
+            construct_xmp_with_rdf_description(None, None, None, None, None),
+            None
+        );
     }
 
     #[test]

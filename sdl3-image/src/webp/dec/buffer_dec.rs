@@ -25,7 +25,9 @@ static K_MODE_BPP: [u8; MODE_LAST] = [
 /// strictly speaking, the very last (or first, if flipped) row doesn't
 /// require padding. Translation of `MIN_BUFFER_SIZE()`.
 fn min_buffer_size(width: u64, height: i32, stride: i32) -> u64 {
-    (stride as u64).wrapping_mul((height - 1) as u64).wrapping_add(width)
+    (stride as u64)
+        .wrapping_mul((height - 1) as u64)
+        .wrapping_add(width)
 }
 
 /// Translation of `CheckDecBuffer()` (for the RGB colorspaces).

@@ -22,10 +22,9 @@ use crate::webp::dec::io_dec::WebPDecParams;
 use crate::webp::dec::vp8_dec::VP8Io;
 use crate::webp::dec::webp_dec::webp_io_init_from_options;
 use crate::webp::decode::{
-    VP8LImageTransformType, VP8StatusCode, WebPDecBuffer, WebpCspMode,
-    HUFFMAN_CODES_PER_META_CODE, MAX_CACHE_BITS, NUM_DISTANCE_CODES, NUM_LENGTH_CODES,
-    NUM_LITERAL_CODES, NUM_TRANSFORMS, VP8L_FRAME_HEADER_SIZE, VP8L_IMAGE_SIZE_BITS,
-    VP8L_MAGIC_BYTE, VP8L_VERSION_BITS,
+    VP8LImageTransformType, VP8StatusCode, WebPDecBuffer, WebpCspMode, HUFFMAN_CODES_PER_META_CODE,
+    MAX_CACHE_BITS, NUM_DISTANCE_CODES, NUM_LENGTH_CODES, NUM_LITERAL_CODES, NUM_TRANSFORMS,
+    VP8L_FRAME_HEADER_SIZE, VP8L_IMAGE_SIZE_BITS, VP8L_MAGIC_BYTE, VP8L_VERSION_BITS,
 };
 use crate::webp::dsp::alpha_processing::webp_extract_green;
 use crate::webp::dsp::filters::webp_unfilter;
@@ -220,9 +219,8 @@ pub(crate) struct AlphaSink<'s> {
 /// Returns true if the next byte(s) in data is a VP8L signature.
 /// Translation of `VP8LCheckSignature()`.
 pub(crate) fn vp8l_check_signature(data: &[u8]) -> bool {
-    data.len() >= VP8L_FRAME_HEADER_SIZE
-        && data[0] as u32 == VP8L_MAGIC_BYTE
-        && (data[4] >> 5) == 0 // version
+    data.len() >= VP8L_FRAME_HEADER_SIZE && data[0] as u32 == VP8L_MAGIC_BYTE && (data[4] >> 5) == 0
+    // version
 }
 
 /// Translation of `ReadImageInfo()`.
@@ -484,12 +482,7 @@ fn read_huffman_code(
         for &order in &K_CODE_LENGTH_CODE_ORDER[..num_codes] {
             code_length_code_lengths[order as usize] = br.read_bits(3) as i32;
         }
-        ok = read_huffman_code_lengths(
-            dec,
-            &code_length_code_lengths,
-            alphabet_size,
-            code_lengths,
-        );
+        ok = read_huffman_code_lengths(dec, &code_length_code_lengths, alphabet_size, code_lengths);
     }
 
     ok = ok && !dec.br.eos;
@@ -605,10 +598,8 @@ fn read_huffman_codes(
             break 'error;
         };
         let mut htree_groups: Vec<HTreeGroup> = groups;
-        if !vp8l_huffman_tables_allocate(
-            num_htree_groups * table_size,
-            &mut dec.hdr.huffman_tables,
-        ) {
+        if !vp8l_huffman_tables_allocate(num_htree_groups * table_size, &mut dec.hdr.huffman_tables)
+        {
             dec.status = VP8StatusCode::OutOfMemory;
             break 'error;
         }
@@ -723,7 +714,12 @@ fn emit_rows(
     let mut lines = mb_h;
     while lines > 0 {
         lines -= 1;
-        vp8l_convert_from_bgra(&cache[row_in..], mb_w as usize, colorspace, &mut out[out_off..]);
+        vp8l_convert_from_bgra(
+            &cache[row_in..],
+            mb_w as usize,
+            colorspace,
+            &mut out[out_off..],
+        );
         row_in += in_stride;
         out_off += out_stride;
     }
@@ -796,7 +792,12 @@ fn get_htree_group_for_pos(hdr: &VP8LMetadata, x: i32, y: i32) -> usize {
 
 /// Translation of `ApplyInverseTransforms()`: the rows (from `rows`, the
 /// decoded pixels) into the argb cache, transformed there.
-fn apply_inverse_transforms(dec: &mut VP8LDecoder<'_>, start_row: i32, num_rows: i32, rows: &[u32]) {
+fn apply_inverse_transforms(
+    dec: &mut VP8LDecoder<'_>,
+    start_row: i32,
+    num_rows: i32,
+    rows: &[u32],
+) {
     let cache_pixs = (dec.width * num_rows) as usize;
     let end_row = start_row + num_rows;
     let rows_out = dec.argb_cache_off;
@@ -915,12 +916,12 @@ fn extract_paletted_alpha_rows(
 ) {
     // For vertical and gradient filtering, we need to decode the part above the
     // crop_top row, in order to have the correct spatial predictors.
-    let top_row = if sink.filter == WebpFilterType::None || sink.filter == WebpFilterType::Horizontal
-    {
-        dec.io.crop_top
-    } else {
-        dec.last_row
-    };
+    let top_row =
+        if sink.filter == WebpFilterType::None || sink.filter == WebpFilterType::Horizontal {
+            dec.io.crop_top
+        } else {
+            dec.last_row
+        };
     let first_row = if dec.last_row < top_row {
         top_row
     } else {
@@ -1418,7 +1419,11 @@ fn update_decoder(dec: &mut VP8LDecoder<'_>, width: i32, height: i32) {
     dec.height = height;
 
     hdr.huffman_xsize = vp8l_sub_sample_size(width as u32, num_bits as u32) as i32;
-    hdr.huffman_mask = if num_bits == 0 { !0 } else { (1 << num_bits) - 1 };
+    hdr.huffman_mask = if num_bits == 0 {
+        !0
+    } else {
+        (1 << num_bits) - 1
+    };
 }
 
 /// Translation of `DecodeImageStream()`.

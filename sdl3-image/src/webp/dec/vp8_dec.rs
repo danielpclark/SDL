@@ -908,8 +908,7 @@ fn get_coeffs(
                 v = get_large_value(br, p);
                 p = &p_ctx[2];
             }
-            out[K_ZIGZAG[n] as usize] =
-                (br.get_signed(v) * dq[(n > 0) as usize]) as i16;
+            out[K_ZIGZAG[n] as usize] = (br.get_signed(v) * dq[(n > 0) as usize]) as i16;
         }
         n += 1;
     }
@@ -1088,7 +1087,11 @@ pub(crate) fn vp8_init_scanline(dec: &mut VP8Decoder<'_>) {
 }
 
 /// Translation of `ParseFrame()`.
-fn parse_frame(dec: &mut VP8Decoder<'_>, io: &mut VP8Io<'_>, params: &mut WebPDecParams<'_>) -> bool {
+fn parse_frame(
+    dec: &mut VP8Decoder<'_>,
+    io: &mut VP8Io<'_>,
+    params: &mut WebPDecParams<'_>,
+) -> bool {
     dec.mb_y = 0;
     while dec.mb_y < dec.br_mb_y {
         // Parse bitstream for this row.

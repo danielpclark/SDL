@@ -19,9 +19,9 @@ use crate::webp::dec::vp8l_dec::{
     vp8l_check_signature, vp8l_decode_header, vp8l_decode_image, vp8l_get_info, vp8l_new,
 };
 use crate::webp::decode::{
-    VP8StatusCode, WebPBitstreamFeatures, WebPDecBuffer, WebPRGBABuffer, WebpCspMode,
-    ALPHA_FLAG, ANIMATION_FLAG, CHUNK_HEADER_SIZE, MAX_CHUNK_PAYLOAD, MAX_IMAGE_AREA,
-    RIFF_HEADER_SIZE, TAG_SIZE, VP8L_FRAME_HEADER_SIZE, VP8X_CHUNK_SIZE, VP8_FRAME_HEADER_SIZE,
+    VP8StatusCode, WebPBitstreamFeatures, WebPDecBuffer, WebPRGBABuffer, WebpCspMode, ALPHA_FLAG,
+    ANIMATION_FLAG, CHUNK_HEADER_SIZE, MAX_CHUNK_PAYLOAD, MAX_IMAGE_AREA, RIFF_HEADER_SIZE,
+    TAG_SIZE, VP8L_FRAME_HEADER_SIZE, VP8X_CHUNK_SIZE, VP8_FRAME_HEADER_SIZE,
 };
 use crate::webp::utils::{get_le24, get_le32};
 
@@ -456,8 +456,7 @@ pub(crate) fn webp_parse_headers(headers: &mut WebPHeaderStructure<'_>) -> VP8St
     // fill out headers, ignore width/height/has_alpha.
     let data = headers.data;
     let mut status = parse_headers_internal(data, &mut out, Some(headers));
-    if (status == VP8StatusCode::Ok || status == VP8StatusCode::NotEnoughData)
-        && out.has_animation
+    if (status == VP8StatusCode::Ok || status == VP8StatusCode::NotEnoughData) && out.has_animation
     {
         // The WebPDemux API + libwebp can be used to decode individual
         // uncomposited frames or the WebPAnimDecoder can be used to fully
