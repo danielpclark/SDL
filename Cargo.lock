@@ -39,6 +39,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-net"
+version = "3.5.0"
+dependencies = [
+ "libc",
+ "sdl3",
+ "windows-sys",
+]
+
+[[package]]
 name = "sdl3-test"
 version = "3.5.0"
 dependencies = [
