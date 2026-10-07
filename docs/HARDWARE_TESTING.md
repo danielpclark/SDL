@@ -35,6 +35,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
 | `hidapi` | Linux, Windows | the HID backend: hidraw with libudev, or `hid.dll` |
+| `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
 | `gameinput` | Windows | a GameInput DLL with the v3 API (one that exports `GameInputInitialize`): the GameInput redistributable's `GameInputRedist.dll`, or a recent enough `GameInput.dll` from Windows (an older inbox one only has the v0 API) |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
