@@ -1646,7 +1646,8 @@ pub fn init() -> Result<()> {
 ///
 /// Addresses and sockets stay valid after this (upstream wants them
 /// destroyed first); on Windows, WinSock stays up until the last socket is
-/// dropped. Addresses still being resolved stay unresolved.
+/// dropped. Addresses still waiting to be resolved stay unresolved (so
+/// waiting on one without a timeout never returns, as upstream).
 pub fn quit() {
     let prevcount = INITIALIZE_COUNT.fetch_add(-1, Ordering::SeqCst);
     if prevcount <= 0 {
