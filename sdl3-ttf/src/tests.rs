@@ -552,11 +552,7 @@ fn matches_upstream_reference() {
     let mut failures = Vec::new();
     for (i, expected) in reference.iter().enumerate() {
         let actual = out.get(i).map(String::as_str).unwrap_or("<missing>");
-        // FreeType's light hinting is its auto-hinter's (autofit), which
-        // isn't translated yet
-        let autofit = expected.starts_with("render ")
-            && (expected.contains(" light ") || expected.contains(" light_subpixel "));
-        if actual != *expected && !autofit {
+        if actual != *expected {
             failures.push(format!(
                 "line {}:\n  expected {expected}\n  actual   {actual}",
                 i + 1

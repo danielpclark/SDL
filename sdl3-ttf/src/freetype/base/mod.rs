@@ -7,6 +7,7 @@
 //! The FreeType base layer (`ftbase` and the base extensions SDL_ttf
 //! uses).
 
+pub mod ftadvanc;
 pub mod ftbitmap;
 pub mod ftcalc;
 pub mod ftgloadr;
