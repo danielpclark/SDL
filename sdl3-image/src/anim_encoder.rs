@@ -20,6 +20,7 @@ use crate::ani::{create_ani_animation_encoder, AniEncoderContext};
 use crate::anim_decoder::Stream;
 use crate::gif::{create_gif_animation_encoder, GifEncoderContext};
 use crate::img::{timebase_duration, Animation};
+use crate::webp::{create_webp_animation_encoder, WebpEncoderContext};
 
 /// The file to write (a string). Translation of
 /// `IMG_PROP_ANIMATION_ENCODER_CREATE_FILENAME_STRING`.
@@ -104,6 +105,7 @@ pub(crate) enum EncoderContext {
     None,
     Gif(Box<GifEncoderContext>),
     Ani(Box<AniEncoderContext>),
+    Webp(Box<WebpEncoderContext>),
 }
 
 /// An encoder of the frames of an animation, one at a time. Translation of
@@ -120,6 +122,7 @@ impl std::fmt::Debug for AnimationEncoder<'_, '_> {
             EncoderContext::None => "closed",
             EncoderContext::Gif(_) => "gif",
             EncoderContext::Ani(_) => "ani",
+            EncoderContext::Webp(_) => "webp",
         };
         f.debug_struct("AnimationEncoder")
             .field("format", &format)
@@ -236,7 +239,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
         } else if is("gif") {
             create_gif_animation_encoder(e, props).map(EncoderContext::Gif)
         } else if is("webp") {
-            Err(Error::new("SDL_image built without WEBP save support"))
+            create_webp_animation_encoder(e, props).map(EncoderContext::Webp)
         } else {
             Err(Error::new("Unrecognized output type"))
         };
@@ -270,6 +273,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
             EncoderContext::None => Err(Error::invalid_param("encoder")),
             EncoderContext::Gif(ctx) => ctx.add_frame(e, surface, duration),
             EncoderContext::Ani(ctx) => ctx.add_frame(surface, duration),
+            EncoderContext::Webp(ctx) => ctx.add_frame(e, surface, duration),
         }
     }
 
@@ -286,6 +290,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
             EncoderContext::None => return Ok(()),
             EncoderContext::Gif(mut ctx) => ctx.end(e),
             EncoderContext::Ani(mut ctx) => ctx.end(e),
+            EncoderContext::Webp(mut ctx) => ctx.end(e),
         };
         let dst = std::mem::replace(
             &mut self.core.dst,
@@ -307,7 +312,6 @@ impl Drop for AnimationEncoder<'_, '_> {
 
 /// Translation of `HasMetadataCallback()` and `IMG_HasMetadata()`: whether
 /// a property group has any `SDL_image.metadata.` property.
-#[allow(dead_code)] // for the APNG, AVIF and WebP encoders, not translated
 pub(crate) fn has_metadata(props: &Properties) -> bool {
     props
         .names()

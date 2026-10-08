@@ -46,6 +46,7 @@ mod dsp;
 )]
 mod enc;
 mod encode;
+mod mux;
 mod utils;
 
 use sdl3::error::{Error, Result};
@@ -59,6 +60,7 @@ use crate::anim_decoder::{
     PROP_METADATA_FRAME_COUNT_NUMBER, PROP_METADATA_IGNORE_PROPS_BOOLEAN,
     PROP_METADATA_LOOP_COUNT_NUMBER, PROP_METADATA_TITLE_STRING,
 };
+use crate::anim_encoder::EncoderCore;
 use crate::util::{read_ok, read_up_to};
 use crate::xmlman;
 use dec::webp_dec::{webp_decode_rgb_into, webp_decode_rgba_into, webp_get_features};
@@ -75,6 +77,12 @@ use enc::picture_enc::{
 };
 use enc::webp_enc::webp_encode;
 use encode::{WebPConfig, WebPEncodingError, WebPPicture, WebPPreset};
+use mux::anim_encode::{
+    webp_anim_encoder_add, webp_anim_encoder_assemble, webp_anim_encoder_new, WebPAnimEncoder,
+};
+use mux::muxedit::{webp_mux_assemble, webp_mux_set_animation_params, webp_mux_set_chunk};
+use mux::muxread::{webp_mux_create, webp_mux_get_animation_params};
+use mux::{WebPMuxAnimParams, WebPMuxError};
 
 /// Whether `src` holds a WebP image, and if so (with `datasize`) the size
 /// of the data from the stream position to its end. Translation of
@@ -583,6 +591,196 @@ pub fn save_webp(
     let result = save_webp_io(surface, &mut dst, quality);
     let closed = dst.close();
     result.and(closed)
+}
+
+/// Translation of `struct IMG_AnimationEncoderContext` of the WebP
+/// animation encoder.
+pub(crate) struct WebpEncoderContext {
+    encoder: Option<Box<WebPAnimEncoder>>,
+    config: WebPConfig,
+    timestamp: i32,
+    metadata: Option<Properties>,
+}
+
+impl WebpEncoderContext {
+    /// Translation of `IMG_AddWEBPAnimationFrame()`.
+    pub(crate) fn add_frame(
+        &mut self,
+        e: &mut EncoderCore<'_, '_>,
+        surface: &mut Surface<'_>,
+        duration: u64,
+    ) -> Result<()> {
+        if self.encoder.is_none() {
+            self.encoder = webp_anim_encoder_new(surface.width(), surface.height());
+            if self.encoder.is_none() {
+                return Err(Error::new("WebPAnimEncoderNew() failed"));
+            }
+        }
+
+        let mut pic = WebPPicture::default();
+        if !webp_picture_init(&mut pic) {
+            return Err(Error::new("WebPPictureInit() failed"));
+        }
+        pic.use_argb = self.config.lossless != 0;
+        pic.width = surface.width();
+        pic.height = surface.height();
+
+        let converted;
+        let surface: &Surface<'_> = if surface.format() != PixelFormat::RGBA32 {
+            converted = surface.convert(PixelFormat::RGBA32)?;
+            &converted
+        } else {
+            surface
+        };
+
+        // (SDL_LockSurface(): the pixels are readable here)
+        let pitch = surface.pitch() as usize;
+        let pixels = surface.pixels().unwrap_or(&[]);
+        if !webp_picture_import_rgba(&mut pic, pixels, pitch) {
+            return Err(Error::new("WebPPictureImportRGBA() failed"));
+        }
+
+        let encoder = self.encoder.as_mut().expect("the encoder");
+        if !webp_anim_encoder_add(encoder, Some(&mut pic), self.timestamp, Some(&self.config)) {
+            return Err(Error::new(get_webp_encoding_error_string_internal(
+                pic.error_code.get(),
+            )));
+        }
+        self.timestamp = self
+            .timestamp
+            .wrapping_add(e.encoder_duration(duration, 1000) as i32);
+
+        Ok(())
+    }
+
+    /// Translation of `IMG_CloseWEBPAnimation()` (the encoder and the
+    /// metadata go with the context).
+    pub(crate) fn end(&mut self, e: &mut EncoderCore<'_, '_>) -> Result<()> {
+        let metadata = self.metadata.take();
+        let Some(encoder) = self.encoder.as_mut() else {
+            return Err(Error::new("No frames added to animation"));
+        };
+
+        if !webp_anim_encoder_add(encoder, None, self.timestamp, Some(&self.config)) {
+            return Err(Error::new("WebPAnimEncoderAdd() failed"));
+        }
+
+        let mut data = Vec::new();
+        match metadata.filter(crate::anim_encoder::has_metadata) {
+            None => {
+                if !webp_anim_encoder_assemble(encoder, &mut data) {
+                    return Err(Error::new("WebPAnimEncoderAssemble() failed"));
+                }
+            }
+            Some(metadata) => {
+                let mut pdata = Vec::new();
+                if !webp_anim_encoder_assemble(encoder, &mut pdata) {
+                    return Err(Error::new("WebPAnimEncoderAssemble() failed"));
+                }
+
+                if pdata.is_empty() {
+                    return Err(Error::new(
+                        "WebPAnimEncoderAssemble() returned invalid data",
+                    ));
+                }
+
+                let Some(mut mux) = webp_mux_create(&pdata) else {
+                    return Err(Error::new(
+                        "WebPMuxCreateInternal() failed. This usually happens if you tried to encode a single frame only.",
+                    ));
+                };
+
+                let mut params = WebPMuxAnimParams::default();
+                if webp_mux_get_animation_params(&mux, &mut params) != WebPMuxError::Ok {
+                    return Err(Error::new("WebPMuxGetAnimationParams() failed"));
+                }
+                params.loop_count = metadata
+                    .get_number(PROP_METADATA_LOOP_COUNT_NUMBER)
+                    .unwrap_or(0)
+                    .max(0) as i32;
+                if webp_mux_set_animation_params(&mut mux, &params) != WebPMuxError::Ok {
+                    return Err(Error::new("WebPMuxSetAnimationParams() failed"));
+                }
+
+                let d = xmlman::construct_xmp_with_rdf_description(
+                    metadata.get_string(PROP_METADATA_TITLE_STRING).as_deref(),
+                    metadata.get_string(PROP_METADATA_AUTHOR_STRING).as_deref(),
+                    metadata
+                        .get_string(PROP_METADATA_DESCRIPTION_STRING)
+                        .as_deref(),
+                    metadata
+                        .get_string(PROP_METADATA_COPYRIGHT_STRING)
+                        .as_deref(),
+                    metadata
+                        .get_string(PROP_METADATA_CREATION_TIME_STRING)
+                        .as_deref(),
+                );
+                let Some(d) = d.filter(|d| !d.is_empty()) else {
+                    return Err(Error::new("Failed to construct XMP data"));
+                };
+                if webp_mux_set_chunk(&mut mux, b"XMP ", &d) != WebPMuxError::Ok {
+                    return Err(Error::new("WebPMuxSetChunk() failed for XMP data"));
+                }
+
+                if webp_mux_assemble(&mut mux, &mut data) != WebPMuxError::Ok {
+                    return Err(Error::new("WebPMuxAssemble() failed"));
+                }
+            }
+        }
+
+        let dst = e.dst();
+        if dst.write(&data) != data.len() {
+            return Err(crate::util::write_error(dst));
+        }
+
+        Ok(())
+    }
+}
+
+/// Create the WebP encoder of an animation encoder: lossless at quality
+/// 100, else lossy at the quality (75 by default), with the metadata
+/// unless ignored. Translation of `IMG_CreateWEBPAnimationEncoder()`.
+pub(crate) fn create_webp_animation_encoder(
+    e: &mut EncoderCore<'_, '_>,
+    props: &Properties,
+) -> Result<Box<WebpEncoderContext>> {
+    // (IMG_InitWEBP(): libwebp is linked in)
+
+    let quality = if e.quality < 0 {
+        75.0f32
+    } else {
+        e.quality.clamp(0, 100) as f32
+    };
+    let mut config = WebPConfig::default();
+    if !webp_config_init_internal(&mut config, WebPPreset::Default, quality) {
+        return Err(Error::new("WebPConfigInit() failed"));
+    }
+    config.lossless = (quality == 100.0) as i32;
+    config.quality = quality;
+    config.method = 4;
+
+    if !webp_validate_config(&config) {
+        return Err(Error::new("WebPValidateConfig() failed"));
+    }
+
+    let ignore_props = props
+        .get_bool(PROP_METADATA_IGNORE_PROPS_BOOLEAN)
+        .unwrap_or(false);
+    let mut metadata = None;
+    if !ignore_props {
+        let m = Properties::new();
+        if m.copy_from(props).is_err() {
+            return Err(Error::new("Failed to copy properties for WebP metadata"));
+        }
+        metadata = Some(m);
+    }
+
+    Ok(Box::new(WebpEncoderContext {
+        encoder: None,
+        config,
+        timestamp: 0,
+        metadata,
+    }))
 }
 
 /// The bitstream's dimensions as WebPGetFeatures() reads them (the canvas,
