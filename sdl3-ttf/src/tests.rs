@@ -18,7 +18,12 @@
 use sdl3::io::{IoStream, IoWhence};
 use sdl3::video::{Color, Surface};
 
-use crate::{Direction, Font, Hinting, HorizontalAlignment, ImageType};
+use std::rc::Rc;
+
+use crate::{
+    draw_surface_text, Direction, DrawOperation, Font, Hinting, HorizontalAlignment, ImageType,
+    SubString, SurfaceTextEngine, Text, TextEngine,
+};
 
 static SANS: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.ttf");
 static SERIF_BOLD: &[u8] = include_bytes!("testdata/fonts/DejaVuSerif-Bold.ttf");
@@ -464,6 +469,290 @@ fn font_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
     ));
 }
 
+/// C's `%#x`
+fn hex(v: u32) -> String {
+    if v == 0 {
+        "0".into()
+    } else {
+        format!("{v:#x}")
+    }
+}
+
+fn sub_str(s: &SubString) -> String {
+    format!(
+        "{} {} {} {} {} {},{},{},{}",
+        hex(s.flags),
+        s.offset,
+        s.length,
+        s.line_index,
+        s.cluster_index,
+        s.rect.x,
+        s.rect.y,
+        s.rect.w,
+        s.rect.h
+    )
+}
+
+fn print_sub(out: &mut Vec<String>, label: &str, s: sdl3::Result<SubString>) {
+    match s {
+        Ok(s) => out.push(format!("{label}: {}", sub_str(&s))),
+        Err(e) => out.push(format!("{label}: err: {e}")),
+    }
+}
+
+fn escaped(s: Option<Vec<u8>>) -> String {
+    let Some(s) = s else {
+        return "(null)".into();
+    };
+    let mut out = String::new();
+    for c in s {
+        match c {
+            b'\n' => out.push_str("\\n"),
+            b'\t' => out.push_str("\\t"),
+            c if !(0x20..0x7f).contains(&c) => out.push_str(&format!("\\x{c:02x}")),
+            c => out.push(c as char),
+        }
+    }
+    out
+}
+
+fn dump_text(out: &mut Vec<String>, label: &str, t: &Text, main_font: &Font) {
+    let r = t.size();
+    let (ok, w, h) = match &r {
+        Ok((w, h)) => (1, *w, *h),
+        Err(_) => (0, 0, 0),
+    };
+    out.push(format!(
+        "{label} size: {ok} {w} {h} lines={} text={}",
+        t.num_lines(),
+        escaped(t.text_bytes())
+    ));
+    if let Err(e) = r {
+        out.push(format!("  err: {e}"));
+        return;
+    }
+    t.with_data(|d| {
+        let mut line = format!("{label} ops: {}", d.ops().len());
+        for op in d.ops() {
+            match op {
+                DrawOperation::Fill(f) => {
+                    line += &format!(" | F {},{},{},{}", f.rect.x, f.rect.y, f.rect.w, f.rect.h)
+                }
+                DrawOperation::Copy(c) => {
+                    line += &format!(
+                        " | C {} {} {} {},{},{},{} {},{},{},{}",
+                        c.text_offset,
+                        if c.glyph_font.is(main_font) { 0 } else { 1 },
+                        c.glyph_index,
+                        c.src.x,
+                        c.src.y,
+                        c.src.w,
+                        c.src.h,
+                        c.dst.x,
+                        c.dst.y,
+                        c.dst.w,
+                        c.dst.h
+                    )
+                }
+                DrawOperation::Noop => line += " | N",
+            }
+        }
+        out.push(line);
+        let mut line = format!("{label} clusters: {}", d.clusters().len());
+        for s in d.clusters() {
+            line += &format!(" | {}", sub_str(s));
+        }
+        out.push(line);
+    });
+    let len = t.text_bytes().map_or(0, |t| t.len()) as i32;
+    for offset in [-1, 0, 1, 2, 5, len / 2, len - 1, len, len + 3] {
+        print_sub(out, &format!("{label} sub {offset}"), t.substring(offset));
+        if let Ok(sub) = t.substring(offset) {
+            print_sub(
+                out,
+                &format!("{label} prev {offset}"),
+                t.previous_substring(&sub),
+            );
+            print_sub(
+                out,
+                &format!("{label} next {offset}"),
+                t.next_substring(&sub),
+            );
+        }
+    }
+    for line in -1..=t.num_lines() {
+        print_sub(
+            out,
+            &format!("{label} line {line}"),
+            t.substring_for_line(line),
+        );
+    }
+    for (a, b) in [(0, -1), (0, 0), (3, 4), (2, 30), (len - 2, 5), (-1, 3)] {
+        let mut line;
+        match t.substrings_for_range(a, b) {
+            Ok(subs) => {
+                line = format!("{label} range {a} {b}: {}", subs.len());
+                for s in &subs {
+                    line += &format!(" | {}", sub_str(s));
+                }
+            }
+            Err(e) => line = format!("{label} range {a} {b}: 0 err: {e}"),
+        }
+        out.push(line);
+    }
+    let mut line = format!("{label} points:");
+    let mut y = -5;
+    while y < h + 10 {
+        let mut x = -5;
+        while x < w + 10 {
+            match t.substring_for_point(x, y) {
+                Ok(s) => line += &format!(" {}", s.offset),
+                Err(_) => line += " e",
+            }
+            x += 11;
+        }
+        y += 7;
+    }
+    out.push(line);
+}
+
+fn draw_text(out: &mut Vec<String>, label: &str, t: &Text, x: i32, y: i32) {
+    let mut s = Surface::new(220, 160, sdl3::video::PixelFormat::ARGB8888).unwrap();
+    let c = s.map_rgba(0x10, 0x20, 0x30, 0xFF);
+    s.fill_rect(None, c).unwrap();
+    match draw_surface_text(t, x, y, &mut s) {
+        Ok(()) => out.push(format!("{label} draw: 1 {}", describe(Ok(s)))),
+        Err(e) => out.push(format!("{label} draw: 0 err: {e}")),
+    }
+}
+
+fn text_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
+    use crate::{STYLE_NORMAL, STYLE_STRIKETHROUGH, STYLE_UNDERLINE};
+
+    out.push(format!("== text {name}"));
+    let f = open_mem(data, 16.5).unwrap();
+    let fb = open_mem(MONO, 14.0).unwrap();
+    let engine: Rc<dyn TextEngine> = SurfaceTextEngine::new().unwrap();
+    let t = Text::new(Some(engine.clone()), Some(&f), WRAP).unwrap();
+    dump_text(out, "plain", &t, &f);
+    draw_text(out, "plain", &t, 3, 4);
+    t.set_color(0xC0, 0x40, 0x20, 0xFF).unwrap();
+    t.set_wrap_width(150).unwrap();
+    dump_text(out, "wrap150", &t, &f);
+    draw_text(out, "wrap150", &t, 0, 0);
+    t.set_wrap_whitespace_visible(true).unwrap();
+    dump_text(out, "wrapws", &t, &f);
+    t.set_wrap_whitespace_visible(false).unwrap();
+    t.set_position(5, 7).unwrap();
+    dump_text(out, "pos", &t, &f);
+    draw_text(out, "pos", &t, -3, 2);
+    t.set_color_float(0.25, 0.5, 1.5, 0.5).unwrap();
+    {
+        let (r, g, b, a) = t.color();
+        let (fr, fg, fb_, fa) = t.color_float();
+        out.push(format!("color: {r} {g} {b} {a} {fr} {fg} {fb_} {fa}"));
+    }
+    draw_text(out, "halfalpha", &t, 1, 1);
+    t.set_position(0, 0).unwrap();
+    t.set_color(0xFF, 0xFF, 0xFF, 0xFF).unwrap();
+    f.set_style(STYLE_UNDERLINE | STYLE_STRIKETHROUGH);
+    dump_text(out, "styled", &t, &f);
+    draw_text(out, "styled", &t, 0, 0);
+    f.set_style(STYLE_NORMAL);
+    f.set_outline(2).unwrap();
+    dump_text(out, "outline", &t, &f);
+    draw_text(out, "outline", &t, 0, 0);
+    f.set_outline(0).unwrap();
+    f.set_size(12.0).unwrap();
+    dump_text(out, "resized", &t, &f);
+    draw_text(out, "resized", &t, 0, 0);
+    f.set_wrap_alignment(HorizontalAlignment::Center);
+    dump_text(out, "center", &t, &f);
+    f.set_wrap_alignment(HorizontalAlignment::Right);
+    draw_text(out, "right", &t, 0, 0);
+    f.set_wrap_alignment(HorizontalAlignment::Left);
+
+    out.push(format!(
+        "insert: {}",
+        t.insert_string(6, "big ").is_ok() as i32
+    ));
+    dump_text(out, "inserted", &t, &f);
+    out.push(format!(
+        "append: {}",
+        t.append_string(" tail€").is_ok() as i32
+    ));
+    out.push(format!(
+        "insert neg: {}",
+        t.insert_string(-3, "XY").is_ok() as i32
+    ));
+    out.push(format!(
+        "insert far: {}",
+        t.insert_string(1000, "!").is_ok() as i32
+    ));
+    out.push(format!("delete: {}", t.delete_string(3, 5).is_ok() as i32));
+    out.push(format!(
+        "delete neg: {}",
+        t.delete_string(-4, 2).is_ok() as i32
+    ));
+    dump_text(out, "edited", &t, &f);
+    f.add_fallback_font(&fb).unwrap();
+    dump_text(out, "fallback", &t, &f);
+    draw_text(out, "fallback", &t, 0, 0);
+    out.push(format!(
+        "delete tail: {}",
+        t.delete_string(20, -1).is_ok() as i32
+    ));
+    dump_text(out, "cut", &t, &f);
+    out.push(format!(
+        "set string: {}",
+        t.set_string(Some("One\n\nThree  ")).is_ok() as i32
+    ));
+    t.set_wrap_width(0).unwrap();
+    dump_text(out, "lines", &t, &f);
+    draw_text(out, "lines", &t, 0, 0);
+    out.push(format!(
+        "set empty: {}",
+        t.set_string(Some("")).is_ok() as i32
+    ));
+    dump_text(out, "empty", &t, &f);
+    draw_text(out, "empty", &t, 0, 0);
+    out.push(format!(
+        "set string: {}",
+        t.set_string(Some("abc")).is_ok() as i32
+    ));
+    out.push(format!(
+        "direction rtl: {}",
+        t.set_direction(Direction::Rtl).is_ok() as i32
+    ));
+    out.push(format!(
+        "direction: {} script: {}",
+        t.direction() as i32,
+        t.script()
+    ));
+    out.push(format!(
+        "set font null: {}",
+        t.set_font(None).is_ok() as i32
+    ));
+    dump_text(out, "nofont", &t, &f);
+    out.push(format!(
+        "set font fb: {}",
+        t.set_font(Some(&fb)).is_ok() as i32
+    ));
+    dump_text(out, "fbfont", &t, &fb);
+    draw_text(out, "fbfont", &t, 10, 10);
+    let t2 = Text::new(None, Some(&f), "no engine").unwrap();
+    dump_text(out, "noengine", &t2, &f);
+    drop(t2);
+    let t3 = Text::new(Some(engine.clone()), Some(&f), "").unwrap();
+    dump_text(out, "emptynew", &t3, &f);
+    drop(t3);
+    drop(fb);
+    dump_text(out, "closedfb", &t, &f);
+    drop(t);
+    drop(engine);
+    drop(f);
+}
+
 fn corrupt_case(out: &mut Vec<String>, label: &str, data: &[u8]) {
     let f = match open_mem(data, 16.5) {
         Ok(f) => f,
@@ -544,6 +833,7 @@ fn matches_upstream_reference() {
         ("DejaVuSansMono.ttf", MONO),
     ] {
         font_cases(&mut out, name, data);
+        text_cases(&mut out, name, data);
         corrupt_cases(&mut out, name, data);
     }
     crate::quit();
