@@ -21,10 +21,12 @@
 //!   the stb_image translation in `sdl3`, as upstream's stb backend), LBM
 //!   (IFF PBM and ILBM, EHB and HAM), PCX, PNM (PBM/PGM/PPM), QOI, SVG
 //!   (through translations of the bundled NanoSVG parser and rasterizer,
-//!   also at a chosen size with [`load_sized_svg_io`]), TGA, WebP (lossy,
-//!   lossless, with alpha, and the first frame of animations, through a
-//!   translation of libwebp's decoder and demuxer), XCF (GIMP), XPM (also
-//!   from arrays of strings) and XV thumbnails.
+//!   also at a chosen size with [`load_sized_svg_io`]), TGA, TIFF (through
+//!   a translation of libtiff's reading path and the codecs SDL_image
+//!   builds it with), WebP (lossy, lossless, with alpha, and the first
+//!   frame of animations, through a translation of libwebp's decoder and
+//!   demuxer), XCF (GIMP), XPM (also from arrays of strings) and XV
+//!   thumbnails.
 //! * Savers: [`save`] and [`save_typed_io`] pick the format from a file
 //!   extension; BMP, ICO, CUR, GIF, JPEG (tiny_jpeg), PNG (miniz, in
 //!   `sdl3`) and TGA.
@@ -34,7 +36,7 @@
 //!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
 //!   and [`create_animated_cursor`] makes a cursor from an animation.
 //!
-//! Not translated yet: the AVIF, TIFF and JPEG XL decoders, the APNG and
+//! Not translated yet: the AVIF and JPEG XL decoders, the APNG and
 //! AVIF animation decoders and encoders, and the WebP encoders (WebP saving
 //! and animation encoding, which need libwebp's encoder and muxer). Their
 //! detectors are here; [`load_io`] reports the formats as unsupported, and

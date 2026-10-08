@@ -61,6 +61,7 @@ use super::tiffiop::{
 pub(crate) type TIFFFaxFillFunc = fn(&mut [u8], &mut [u32], usize, usize, u32);
 
 /* finite state machine codes */
+#[allow(dead_code)] // (no table entry has it)
 const S_NULL: u8 = 0;
 const S_PASS: u8 = 1;
 const S_HORIZ: u8 = 2;
@@ -901,7 +902,7 @@ fn with_state(
         tif.tif_data = data;
         return -1;
     };
-    let (cp, cc, r, uncached);
+    let (cp, r, uncached);
     {
         let mut d = Dec {
             ctx,
@@ -927,12 +928,10 @@ fn with_state(
         r = ret;
         uncached = did_uncache;
         cp = d.cp;
-        cc = d.ep as TmSize - d.cp as TmSize;
     }
     if uncached {
         tif.tif_rawcc -= cp as TmSize - tif.tif_rawcp as TmSize;
         tif.tif_rawcp = cp;
-        let _ = cc;
     }
     tif.tif_data = data;
     r
@@ -1883,6 +1882,3 @@ pub(crate) fn tiff_init_ccitt_rlew(tif: &mut Tiff<'_>, _scheme: i32) -> i32 {
         0
     }
 }
-
-#[allow(dead_code)]
-const _UNUSED_STATES: [u8; 1] = [S_NULL];
