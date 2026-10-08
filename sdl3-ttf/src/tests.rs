@@ -1,5 +1,5 @@
 // Tests of sdl3-ttf against upstream SDL_ttf's C.
-// Copyright (C) 2001-2026 Sam Lantinga <slouken@libsdl.org>
+// Copyright (C) 2001-2025 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The fonts in `testdata/fonts/` are subsets of DejaVu fonts (see their

@@ -1,5 +1,5 @@
 // Rust translation of include/SDL3_ttf/SDL_ttf.h from SDL_ttf.
-// Copyright (C) 2001-2026 Sam Lantinga <slouken@libsdl.org>
+// Copyright (C) 2001-2025 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! # sdl3-ttf — SDL_ttf, translated to Rust

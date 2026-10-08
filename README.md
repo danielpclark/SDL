@@ -240,6 +240,15 @@ without MIDI, turn the default features off:
 sdl3-mixer = { version = "3.5.0", default-features = false }
 ```
 
+**`sdl3-ttf` also carries a second license** for its translation of the
+FreeType that SDL_ttf bundles (`sdl3-ttf/src/freetype/`): the FreeType
+License ([sdl3-ttf/FTL.TXT](sdl3-ttf/FTL.TXT); the crate is `Zlib AND
+FTL`), one of FreeType's two licenses (the other is the GPL 2). It asks
+for a credit in the documentation of programs that use it:
+
+> Portions of this software are copyright © 2023 The FreeType Project
+> (www.freetype.org). All rights reserved.
+
 ## Satellite libraries
 
 The workspace has the `sdl3` crate, `sdl3-test`, the translation of SDL's
