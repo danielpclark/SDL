@@ -124,6 +124,97 @@ static IMAGES: &[(&str, &[u8])] = images![
     "tgagrey.tga",
     "tgagreyrle.tga",
     "thumb.xv",
+    "tif_bigtiff.tif",
+    "tif_bilevel.tif",
+    "tif_bilevel_miniswhite.tif",
+    "tif_bps3.tif",
+    "tif_ccitt_rle.tif",
+    "tif_ccitt_rlew.tif",
+    "tif_cmyk.tif",
+    "tif_float.tif",
+    "tif_g3.tif",
+    "tif_g4.tif",
+    "tif_g4_lsb.tif",
+    "tif_gray16_be.tif",
+    "tif_gray2.tif",
+    "tif_gray4.tif",
+    "tif_gray8.tif",
+    "tif_gray8_miniswhite.tif",
+    "tif_graya.tif",
+    "tif_jpeg.tif",
+    "tif_lab16.tif",
+    "tif_lab8.tif",
+    "tif_logl.tif",
+    "tif_logl_nocomp.tif",
+    "tif_logluv.tif",
+    "tif_logluv24.tif",
+    "tif_logluv_tiled.tif",
+    "tif_mdi.tif",
+    "tif_next.tif",
+    "tif_no_bytecounts.tif",
+    "tif_no_length.tif",
+    "tif_no_photometric.tif",
+    "tif_orient2.tif",
+    "tif_orient3.tif",
+    "tif_orient4.tif",
+    "tif_orient5.tif",
+    "tif_orient6.tif",
+    "tif_orient7.tif",
+    "tif_orient8.tif",
+    "tif_pal2.tif",
+    "tif_pal4.tif",
+    "tif_pal8.tif",
+    "tif_pal_nocmap.tif",
+    "tif_pal_old.tif",
+    "tif_photometric_icclab.tif",
+    "tif_planar_cmyk.tif",
+    "tif_planar_graya.tif",
+    "tif_planar_rgb.tif",
+    "tif_planar_rgb16_be.tif",
+    "tif_planar_rgba.tif",
+    "tif_planar_rgba16_unassoc.tif",
+    "tif_planar_rgba_unassoc.tif",
+    "tif_planar_tiled_rgb.tif",
+    "tif_rgb.tif",
+    "tif_rgb16.tif",
+    "tif_rgb16_pred_be.tif",
+    "tif_rgb32.tif",
+    "tif_rgb_2spp.tif",
+    "tif_rgb_lzw_be.tif",
+    "tif_rgb_lzw_pred.tif",
+    "tif_rgb_packbits.tif",
+    "tif_rgba16_assoc.tif",
+    "tif_rgba16_unassoc_be.tif",
+    "tif_rgba_assoc.tif",
+    "tif_rgba_unassoc.tif",
+    "tif_rgba_unspec.tif",
+    "tif_rps0.tif",
+    "tif_strip_past_end.tif",
+    "tif_strip_short.tif",
+    "tif_thunder.tif",
+    "tif_tile_huge.tif",
+    "tif_tiled_badcounts.tif",
+    "tif_tiled_g4.tif",
+    "tif_tiled_gray8.tif",
+    "tif_tiled_gray_none.tif",
+    "tif_tiled_orient3.tif",
+    "tif_tiled_orient8.tif",
+    "tif_tiled_pal8.tif",
+    "tif_tiled_rgb.tif",
+    "tif_tiled_rgb16_be.tif",
+    "tif_width0.tif",
+    "tif_ycbcr11.tif",
+    "tif_ycbcr11_planar.tif",
+    "tif_ycbcr12.tif",
+    "tif_ycbcr21.tif",
+    "tif_ycbcr22.tif",
+    "tif_ycbcr41.tif",
+    "tif_ycbcr42.tif",
+    "tif_ycbcr42_even.tif",
+    "tif_ycbcr44.tif",
+    "tif_ycbcr44_even.tif",
+    "tif_ycbcr_badsub.tif",
+    "tif_zip.tif",
     "webp_alpha_best.webp",
     "webp_alpha_g.webp",
     "webp_alpha_h.webp",
@@ -508,6 +599,13 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
     } else if expected == "err: " {
         // upstream leaves the error message empty (or stale) here
         actual.starts_with("err: ")
+    } else if expected.contains(" err= | ") {
+        // the same, for an animation decoder's failure (libtiff's)
+        let without_err = |s: &str| match s.split_once(" err=") {
+            Some((a, b)) => format!("{a}{}", b.find(" | ").map_or("", |i| &b[i..])),
+            None => s.to_owned(),
+        };
+        actual.contains(" err=") && without_err(expected) == without_err(actual)
     } else if let Some(unstable) = expected.strip_prefix("unstable ") {
         // upstream decodes uninitialized memory (stb_image on a truncated
         // progressive JPEG): its pixels vary from run to run, here they are 0
@@ -565,10 +663,10 @@ fn matches_upstream_reference() {
         let actual = if label == "is" {
             let mut io = IoStream::from_const_mem(data);
             let mut found = String::new();
-            // (upstream's harness is built without libavif, libjxl and
-            // libtiff, so their detectors are on the is_extra line, and
-            // AVIF's is tested separately)
-            let detectors: [(&str, Detector); 16] = [
+            // (upstream's harness is built without libavif and libjxl, so
+            // their detectors are on the is_extra line, and AVIF's is
+            // tested separately)
+            let detectors: [(&str, Detector); 17] = [
                 ("ANI", crate::is_ani),
                 ("CUR", crate::is_cur),
                 ("BMP", crate::is_bmp),
@@ -581,6 +679,7 @@ fn matches_upstream_reference() {
                 ("PNM", crate::is_pnm),
                 ("QOI", crate::is_qoi),
                 ("SVG", crate::is_svg),
+                ("TIF", crate::is_tif),
                 ("WEBP", crate::is_webp),
                 ("XCF", crate::is_xcf),
                 ("XPM", crate::is_xpm),
@@ -881,7 +980,7 @@ fn front_end_errors() {
 
     // Formats not translated yet are unsupported, like an upstream build
     // without them
-    for name in ["sample.tif", "sample.avif", "sample.jxl"] {
+    for name in ["sample.avif", "sample.jxl"] {
         let e = crate::load_io(&mut IoStream::from_const_mem(image(name))).unwrap_err();
         assert_eq!(e.to_string(), "Unsupported image format", "{name}");
     }
