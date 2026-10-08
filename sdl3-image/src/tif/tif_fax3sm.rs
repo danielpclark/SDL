@@ -1,4 +1,5 @@
-// Rust translation of libtiff/tif_fax3sm.c from libtiff
+// Rust translation of libtiff/tif_fax3sm.c (the tables libtiff's mkg3states
+// generates) from libtiff
 // (https://gitlab.com/libtiff/libtiff, 4.7.2 as SDL_image's external/libtiff
 // pins it).
 // Copyright (c) 1991-1997 Sam Leffler

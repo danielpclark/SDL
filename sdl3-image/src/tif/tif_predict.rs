@@ -3,6 +3,8 @@
 // external/libtiff pins it).
 // Copyright (c) 1988-1997 Sam Leffler
 // Copyright (c) 1991-1997 Silicon Graphics, Inc.
+// (tif_predict.h: Copyright (c) 1995-1997 Sam Leffler, Copyright (c) 1995-1997
+// Silicon Graphics, Inc.)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Predictor Tag Support (used by multiple codecs).
