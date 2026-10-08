@@ -582,6 +582,52 @@ fn encode_with(anim: &mut crate::Animation, gif: bool) -> sdl3::Result<IoStream<
     result.and(closed).map(|()| io)
 }
 
+/// The harness's WebP animation encoder runs: lossless with a time base of
+/// 1/100, a loop count and a title (`webp_enc ll meta`), or lossy at
+/// quality 30 without metadata, every frame added twice (`webp_enc q30
+/// dup`). As `SDL_GetError()` would, the error is the last one set.
+fn encode_webp_with(
+    anim: &mut crate::Animation,
+    lossless: bool,
+) -> sdl3::Result<IoStream<'static>> {
+    let mut io = IoStream::from_dynamic_mem();
+    let props = sdl3::properties::Properties::new();
+    props.set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, "webp")?;
+    if lossless {
+        props.set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 100)?;
+        props.set(
+            crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+            100,
+        )?;
+        props.set(crate::PROP_METADATA_LOOP_COUNT_NUMBER, 3)?;
+        props.set(crate::PROP_METADATA_TITLE_STRING, "webp & <title>")?;
+    } else {
+        props.set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 30)?;
+        props.set(crate::PROP_METADATA_IGNORE_PROPS_BOOLEAN, true)?;
+    }
+    let mut e = crate::AnimationEncoder::with_properties(Some(&mut io), &props)?;
+    let mut result = Ok(());
+    'frames: for i in 0..anim.frames.len() {
+        let delay = anim.delays[i];
+        let durations: &[i32] = if lossless {
+            &[delay / 10 + i as i32]
+        } else {
+            &[delay, 5]
+        };
+        for &duration in durations {
+            if let Err(err) = e.add_frame(&mut anim.frames[i], duration as i64 as u64) {
+                result = Err(err);
+                break 'frames;
+            }
+        }
+    }
+    let closed = e.close();
+    match closed {
+        Err(err) => Err(err),
+        Ok(()) => result.map(|()| io),
+    }
+}
+
 /// Compare a result with the reference, allowing for what upstream can't
 /// do the same way (see the module documentation).
 fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut Vec<String>) {
@@ -777,6 +823,12 @@ fn matches_upstream_reference() {
                 continue;
             };
             dump_saved_anim(encode_with(anim, label == "gif_enc lut16"))
+        } else if label == "webp_enc ll meta" || label == "webp_enc q30 dup" {
+            let Some(anim) = loaded_anim.as_mut() else {
+                failures.push(format!("{name}: {label}: the animation didn't load"));
+                continue;
+            };
+            dump_saved_anim(encode_webp_with(anim, label == "webp_enc ll meta"))
         } else if label == "xor" {
             let mut x = data.to_vec();
             for i in (20..x.len()).step_by(3) {
@@ -791,6 +843,21 @@ fn matches_upstream_reference() {
             };
             if let Some(t) = label.strip_prefix("save ") {
                 dump_saved(save_with(surface, |s, io| crate::save_typed_io(s, io, t)))
+            } else if let Some(q) = label.strip_prefix("save_webp ") {
+                // (reloaded as whatever it is detected as)
+                let q: f32 = q.parse().unwrap();
+                match save_with(surface, |s, io| crate::save_webp_io(s, io, q)) {
+                    Err(e) => format!("err: {e}"),
+                    Ok(io) => {
+                        let bytes = io.dynamic_memory().unwrap_or(&[]).to_vec();
+                        format!(
+                            "bytes={} hash={:016x} | reload: {}",
+                            bytes.len(),
+                            fnv(FNV0, &bytes),
+                            load_mem(&bytes, None)
+                        )
+                    }
+                }
             } else if let Some(q) = label.strip_prefix("save_jpg ") {
                 let q: i32 = q.parse().unwrap();
                 dump_saved(save_with(surface, |s, io| crate::save_jpg_io(s, io, q)))
@@ -1406,7 +1473,6 @@ fn animation_api_errors() {
             "avif",
             "SDL_image built without AVIF animation save support",
         ),
-        ("webp", "SDL_image built without WEBP save support"),
     ] {
         let e = crate::AnimationEncoder::from_io(&mut out, t).unwrap_err();
         assert_eq!(e.to_string(), message);
@@ -1893,4 +1959,142 @@ fn webp_loader_and_animation_decoder() {
         crate::load_webp_animation_io(&mut IoStream::from_const_mem(image("webp_lossy.webp")))
             .unwrap();
     assert_eq!(one.count(), 1);
+}
+
+/// An opaque RGBA32 test pattern, different for each `seed`.
+fn webp_pattern(w: i32, h: i32, seed: u8) -> Surface<'static> {
+    let mut s = Surface::new(w, h, PixelFormat::RGBA32).unwrap();
+    let pitch = s.pitch() as usize;
+    let pixels = s.pixels_mut().unwrap();
+    for y in 0..h as usize {
+        for x in 0..w as usize {
+            let p = &mut pixels[y * pitch + x * 4..y * pitch + x * 4 + 4];
+            // (smooth: the 4:2:0 chroma subsampling keeps it close)
+            p[0] = (x * 6 + seed as usize * 40) as u8;
+            p[1] = (y * 10 + x) as u8;
+            p[2] = ((x + y) * 3 + seed as usize) as u8;
+            p[3] = 255;
+        }
+    }
+    s
+}
+
+/// The RGBA32 rows of a surface.
+fn webp_rgba(s: &Surface<'_>) -> Vec<u8> {
+    let c = s.convert(PixelFormat::RGBA32).unwrap();
+    let (w, h, pitch) = (c.width() as usize, c.height() as usize, c.pitch() as usize);
+    let pixels = c.pixels().unwrap();
+    (0..h)
+        .flat_map(|y| pixels[y * pitch..y * pitch + w * 4].to_vec())
+        .collect()
+}
+
+#[test]
+fn webp_encoders_round_trip() {
+    // The still saver: typed as "webp" it is quality 90; the lossy and the
+    // lossless (by way of YUV, as upstream's) outputs decode to the image's
+    // size, close to its pixels.
+    let mut s = webp_pattern(37, 21, 1);
+    let dump = |s: &mut Surface<'_>, q: f32| {
+        let mut io = IoStream::from_dynamic_mem();
+        crate::save_webp_io(s, &mut io, q).unwrap();
+        io.dynamic_memory().unwrap().to_vec()
+    };
+    let mut io = IoStream::from_dynamic_mem();
+    crate::save_typed_io(&mut s, &mut io, "webp").unwrap();
+    assert_eq!(io.dynamic_memory().unwrap(), &dump(&mut s, 90.0)[..]);
+    let source = webp_rgba(&s);
+    for q in [100.0, 90.0, 40.0] {
+        let data = dump(&mut s, q);
+        assert_eq!(&data[..4], b"RIFF");
+        assert_eq!(&data[12..16], if q == 100.0 { b"VP8L" } else { b"VP8 " });
+        let back = crate::load_webp_io(&mut IoStream::from_const_mem(&data)).unwrap();
+        assert_eq!((back.width(), back.height()), (37, 21));
+        let back = webp_rgba(&back);
+        let total: u32 = source
+            .iter()
+            .zip(&back)
+            .map(|(a, b)| a.abs_diff(*b) as u32)
+            .sum();
+        let mean = total as f32 / source.len() as f32;
+        assert!(mean < 4.0, "q{q}: {mean}");
+    }
+    // Above 100, libwebp's configuration rejects the quality.
+    let e = crate::save_webp_io(&mut s, &mut IoStream::from_dynamic_mem(), 101.0).unwrap_err();
+    assert_eq!(e.to_string(), "Failed to initialize WebPConfig");
+
+    // The animation encoder, lossless: the frames come back as they were
+    // (the repeated one merged into the one before it), with the loop count
+    // and title of the metadata.
+    let frames = [
+        webp_pattern(24, 16, 1),
+        webp_pattern(24, 16, 2),
+        webp_pattern(24, 16, 2),
+        webp_pattern(24, 16, 3),
+    ];
+    let mut out = IoStream::from_dynamic_mem();
+    let props = sdl3::properties::Properties::new();
+    props
+        .set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, "webp")
+        .unwrap();
+    props
+        .set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 100)
+        .unwrap();
+    props
+        .set(crate::PROP_METADATA_LOOP_COUNT_NUMBER, 2)
+        .unwrap();
+    props
+        .set(crate::PROP_METADATA_TITLE_STRING, "frames")
+        .unwrap();
+    let mut e = crate::AnimationEncoder::with_properties(Some(&mut out), &props).unwrap();
+    for (i, f) in frames.iter().enumerate() {
+        let mut f = f.convert(PixelFormat::RGBA32).unwrap();
+        e.add_frame(&mut f, 100 + i as u64 * 10).unwrap();
+    }
+    e.close().unwrap();
+    let data = out.dynamic_memory().unwrap().to_vec();
+    let anim = crate::load_animation_typed_io(&mut IoStream::from_const_mem(&data), None).unwrap();
+    assert_eq!(anim.count(), 3);
+    assert_eq!(anim.delays, vec![100, 110 + 120, 130]);
+    for (f, i) in anim.frames.iter().zip([0, 1, 3]) {
+        assert_eq!(webp_rgba(f), webp_rgba(&frames[i]), "frame {i}");
+    }
+    let mut src = IoStream::from_const_mem(&data);
+    let mut decoder = crate::AnimationDecoder::from_io(&mut src, "webp").unwrap();
+    let meta = decoder.properties();
+    assert_eq!(
+        meta.get_number(crate::PROP_METADATA_LOOP_COUNT_NUMBER),
+        Some(2)
+    );
+    assert_eq!(
+        meta.get_string(crate::PROP_METADATA_TITLE_STRING)
+            .as_deref(),
+        Some("frames")
+    );
+    assert!(decoder.get_frame().unwrap().is_some());
+
+    // Lossy, the whole animation at once (quality 90).
+    let mut anim =
+        crate::load_animation_typed_io(&mut IoStream::from_const_mem(&data), None).unwrap();
+    let mut lossy = IoStream::from_dynamic_mem();
+    crate::save_webp_animation_io(&mut anim, &mut lossy, 90).unwrap();
+    let back = crate::load_animation_typed_io(
+        &mut IoStream::from_const_mem(lossy.dynamic_memory().unwrap()),
+        None,
+    )
+    .unwrap();
+    assert_eq!((back.count(), back.w, back.h), (3, 24, 16));
+
+    // Errors: no frame, and a frame of another size.
+    let mut out = IoStream::from_dynamic_mem();
+    let e = crate::AnimationEncoder::from_io(&mut out, "webp").unwrap();
+    assert_eq!(
+        e.close().unwrap_err().to_string(),
+        "No frames added to animation"
+    );
+    let mut e = crate::AnimationEncoder::from_io(&mut out, "webp").unwrap();
+    e.add_frame(&mut webp_pattern(8, 8, 1), 10).unwrap();
+    let err = e.add_frame(&mut webp_pattern(9, 8, 1), 10).unwrap_err();
+    assert_eq!(err.to_string(), "Invalid configuration");
+    e.close().unwrap();
 }
