@@ -15,11 +15,11 @@
 //!    Seattle, WA  98104
 //!    206-622-5500
 //!
-//!    (http://partners.adobe.com/asn/developer/PDFS/TN/TIFF6.pdf)
+//!    (<http://partners.adobe.com/asn/developer/PDFS/TN/TIFF6.pdf>)
 //!
 //! For BigTIFF design notes see the following links
-//!    http://www.remotesensing.org/libtiff/bigtiffdesign.html
-//!    http://www.awaresystems.be/imaging/tiff/bigtiff.html
+//!    <http://www.remotesensing.org/libtiff/bigtiffdesign.html>
+//!    <http://www.awaresystems.be/imaging/tiff/bigtiff.html>
 //!
 //! The header's constants, up to the EXIF and GPS tags (the EXIF and GPS
 //! directories are not read).

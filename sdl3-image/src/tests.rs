@@ -900,7 +900,10 @@ fn every_detector_on_every_image() {
         let mut io = IoStream::from_const_mem(&padded);
         for (exts, is) in detectors {
             io.seek(3, sdl3::io::IoWhence::Set).unwrap();
-            assert_eq!(is(&mut io), exts.contains(&ext), "{name}: {exts:?}");
+            // (IMG_isTIF() takes neither BigTIFF nor MDI's byte order mark)
+            let expected =
+                exts.contains(&ext) && !matches!(*name, "tif_bigtiff.tif" | "tif_mdi.tif");
+            assert_eq!(is(&mut io), expected, "{name}: {exts:?}");
             assert_eq!(io.tell().unwrap(), 3, "{name}: {exts:?}");
         }
     }
