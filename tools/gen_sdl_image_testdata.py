@@ -7,16 +7,15 @@
 #
 # The images are small (23x13, odd sizes for the row padding paths) and made
 # with ImageMagick (`convert`), except the variants ImageMagick doesn't write
-# (16-bit and colormapped TGAs, multi-image cursors, broken GIFs), which are
-# built byte by byte here, as are the TIFFs ImageMagick can't make (the
-# codecs it doesn't write, YCbCr, broken directories). The WebP images are made with libwebp's cwebp,
-# img2webp and webpmux (on PATH, or in the directory $WEBP_TOOLS; libwebp
-# 1.3.2, as SDL_image's external/libwebp) and libwebp's encoding API
-# through ctypes (for the token partitions cwebp doesn't set), and the raw
-# alpha planes with
-# their filters byte by byte. The expected results in
-# sdl3-image/src/testdata/reference.txt come from upstream SDL_image's C,
-# not from this script.
+# (16-bit and colormapped TGAs, multi-image cursors, broken GIFs, and the
+# TIFFs of the codecs it doesn't write, YCbCr, gray with alpha and broken
+# directories), which are built byte by byte here. The WebP images are made
+# with libwebp's cwebp, img2webp and webpmux (on PATH, or in the directory
+# $WEBP_TOOLS; libwebp 1.3.2, as SDL_image's external/libwebp) and
+# libwebp's encoding API through ctypes (for the token partitions cwebp
+# doesn't set), and the raw alpha planes with their filters byte by byte.
+# The expected results in sdl3-image/src/testdata/reference.txt come from
+# upstream SDL_image's C, not from this script.
 
 import ctypes
 import ctypes.util

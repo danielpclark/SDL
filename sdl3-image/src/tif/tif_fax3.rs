@@ -3,6 +3,7 @@
 // pins it).
 // Copyright (c) 1990-1997 Sam Leffler
 // Copyright (c) 1991-1997 Silicon Graphics, Inc.
+// Decoder derived from Frank Cringle's viewfax: Copyright (C) 1990, 1995 Frank D. Cringle.
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! CCITT Group 3 (T.4) and Group 4 (T.6) Compression Support.

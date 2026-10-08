@@ -76,7 +76,12 @@ In dependency order, after the core each one needs exists:
    (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
    chosen size), TGA, WebP (`IMG_webp.c` over a translation of libwebp
    1.3.2's VP8 and VP8L decoders, alpha plane decoder, plain-C DSP
-   functions and demuxer, with `xmlman.c` for the XMP metadata), XCF, XPM
+   functions and demuxer, with `xmlman.c` for the XMP metadata), TIFF
+   (`IMG_tif.c` over a translation of libtiff 4.7.2's reading path:
+   directories, strips and tiles, `TIFFReadRGBAImageOriented()` with every
+   photometric interpretation it takes, and the codecs SDL_image builds
+   libtiff with: PackBits, LZW and the predictor, CCITT RLE/RLEW/Group 3/
+   Group 4, ThunderScan, NeXT and SGI LogL/LogLuv), XCF, XPM
    (with its color table, also from arrays) and XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
    (`IMG_stb.c`), the BMP, ICO, CUR, GIF (LZW, octree quantizer), PNG
    (miniz), TGA and JPEG (`tiny_jpeg.h`) savers, the animation API
@@ -86,8 +91,8 @@ In dependency order, after the core each one needs exists:
    and `IMG_gpu.c` (GPU textures through a copy pass); checked against
    upstream's C on its test images and synthetic ones (detection, loading,
    truncated and corrupted input, saving, animation decoding and encoding).
-   Not yet: the formats that need a large library: the AVIF, TIFF and
-   JPEG XL decoders, the APNG and AVIF animation decoders and encoders,
+   Not yet: the formats that need a large library: the AVIF and JPEG XL
+   decoders, the APNG and AVIF animation decoders and encoders,
    and WebP saving and the WebP animation encoder (libwebp's encoder and
    muxer, `IMG_SaveWEBP_IO()` failing as upstream built without
    `SAVE_WEBP`); libpng and libjpeg are replaced by stb_image as upstream's

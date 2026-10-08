@@ -6,19 +6,21 @@
 //! (`test/`, under SDL_image's zlib license) and small synthetic ones made
 //! by `tools/gen_sdl_image_testdata.py`. `testdata/reference.txt` is the
 //! output of a C program built from upstream SDL_image (with its stb_image,
-//! tiny_jpeg and QOI codecs) and SDL3: for every image, the detectors that
-//! accept it, the surfaces loaded from the file, from memory and by type,
-//! from truncations and from a corrupted copy, and the files saved from it
-//! in every format (with their size and hash, and the surface reloaded from
-//! them). Surfaces are described by their size, format, pitch and FNV-1a
-//! hashes of their pixel rows and palette, their color key, blend mode,
-//! hotspot and alternate images.
+//! tiny_jpeg and QOI codecs, libwebp and libtiff, the latter two as
+//! SDL_image's external/ builds them) and SDL3: for every image, the
+//! detectors that accept it, the surfaces loaded from the file, from memory
+//! and by type, from truncations and from a corrupted copy, and the files
+//! saved from it in every format (with their size and hash, and the surface
+//! reloaded from them). Surfaces are described by their size, format, pitch
+//! and FNV-1a hashes of their pixel rows and palette, their color key,
+//! blend mode, hotspot and alternate images.
 //!
 //! Where upstream's results can't be had here, the comparison says why:
-//! formats not translated yet load as "Unsupported image format", and the
-//! GIFs whose header the GIF decoder rejects (which upstream loads through
-//! an endless recursion, until it crashes or runs out of memory) fail with
-//! the decoder's error.
+//! formats not translated yet load as "Unsupported image format", the GIFs
+//! whose header the GIF decoder rejects (which upstream loads through an
+//! endless recursion, until it crashes or runs out of memory) fail with the
+//! decoder's error, and where upstream leaves the error message empty
+//! (libtiff only prints its errors) any message is taken.
 
 use sdl3::io::IoStream;
 use sdl3::video::{

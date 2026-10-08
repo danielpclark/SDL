@@ -3,6 +3,7 @@
 // pins it).
 // Copyright (c) 1988-1997 Sam Leffler
 // Copyright (c) 1991-1997 Silicon Graphics, Inc.
+// Copyright (c) 2022 Even Rouault
 // Copyright (c) 1985, 1986 The Regents of the University of California.
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 

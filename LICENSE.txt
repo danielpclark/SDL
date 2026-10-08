@@ -416,6 +416,89 @@ SDL's patches), its decoder, demuxer and their utilities:
   for these implementations of WebM shall terminate as of the date such
   litigation is filed.
 
+sdl3-image/src/tif/ (from libtiff, https://gitlab.com/libtiff/libtiff, at the
+revision SDL_image's external/libtiff pins: libtiff 4.7.2), its reading path
+and the codecs SDL_image's build of it enables:
+
+  Copyright (c) 1988-1997 Sam Leffler
+  Copyright (c) 1991-1997 Silicon Graphics, Inc.
+
+  Permission to use, copy, modify, distribute, and sell this software and
+  its documentation for any purpose is hereby granted without fee, provided
+  that (i) the above copyright notices and this permission notice appear in
+  all copies of the software and related documentation, and (ii) the names of
+  Sam Leffler and Silicon Graphics may not be used in any advertising or
+  publicity relating to the software without the specific, prior written
+  permission of Sam Leffler and Silicon Graphics.
+
+  THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
+  WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+  IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
+  ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+  WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF
+  LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  OF THIS SOFTWARE.
+
+  (tif_lzw.c also carries "Copyright (c) 2022 Even Rouault", under the same
+  notice.)
+
+sdl3-image/src/tif/tif_luv.rs (from libtiff's tif_luv.c, the SGI LogL and
+LogLuv codec):
+
+  Copyright (c) 1997 Greg Ward Larson
+  Copyright (c) 1997 Silicon Graphics, Inc.
+
+  Permission to use, copy, modify, distribute, and sell this software and
+  its documentation for any purpose is hereby granted without fee, provided
+  that (i) the above copyright notices and this permission notice appear in
+  all copies of the software and related documentation, and (ii) the names of
+  Sam Leffler, Greg Larson and Silicon Graphics may not be used in any
+  advertising or publicity relating to the software without the specific,
+  prior written permission of Sam Leffler, Greg Larson and Silicon Graphics.
+
+  THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
+  WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+  IN NO EVENT SHALL SAM LEFFLER, GREG LARSON OR SILICON GRAPHICS BE LIABLE
+  FOR ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+  WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF
+  LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  OF THIS SOFTWARE.
+
+sdl3-image/src/tif/tif_lzw.rs (from libtiff's tif_lzw.c) is derived from the
+compress program whose code is derived from software contributed to Berkeley
+by James A. Woods, derived from original work by Spencer Thomas and Joseph
+Orost. The original Berkeley copyright notice, in its entirety:
+
+  Copyright (c) 1985, 1986 The Regents of the University of California.
+  All rights reserved.
+
+  This code is derived from software contributed to Berkeley by
+  James A. Woods, derived from original work by Spencer Thomas
+  and Joseph Orost.
+
+  Redistribution and use in source and binary forms are permitted
+  provided that the above copyright notice and this paragraph are
+  duplicated in all such forms and that any documentation,
+  advertising materials, and other materials related to such
+  distribution and use acknowledge that the software was developed
+  by the University of California, Berkeley.  The name of the
+  University may not be used to endorse or promote products derived
+  from this software without specific prior written permission.
+  THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+sdl3-image/src/tif/tif_fax3.rs (from libtiff's tif_fax3.c and tif_fax3.h, the
+CCITT Group 3 and 4 codec): its decoder support is derived, with permission,
+from the code in Frank Cringle's viewfax program;
+     Copyright (C) 1990, 1995  Frank D. Cringle.
+
 --------------------------------------------------------------------------------
 
 sdl3-net/ is a translation of SDL_net 3.x,
