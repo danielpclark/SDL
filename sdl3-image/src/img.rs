@@ -47,6 +47,7 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("PNG", Some(crate::png::is_png), crate::png::load_png_io),
     ("PNM", Some(crate::pnm::is_pnm), crate::pnm::load_pnm_io), /* P[BGP]M share code */
     ("SVG", Some(crate::svg::is_svg), crate::svg::load_svg_io),
+    ("TIF", Some(crate::tif::is_tif), crate::tif::load_tif_io),
     ("XCF", Some(crate::xcf::is_xcf), crate::xcf::load_xcf_io),
     ("XPM", Some(crate::xpm::is_xpm), crate::xpm::load_xpm_io),
     ("XV", Some(crate::xv::is_xv), crate::xv::load_xv_io),
@@ -429,7 +430,7 @@ pub(crate) fn timebase_duration(
 /// Apply an EXIF orientation (1 to 8) to a decoded image: flip, then
 /// rotate clockwise. Translation of `IMG_ApplyOrientation()` (as built
 /// without `ORIENTATION_USES_PROPERTIES`).
-#[allow(dead_code)] // for the TIFF, AVIF and JPEG XL decoders still to come
+#[allow(dead_code)] // for the AVIF and JPEG XL decoders still to come
 pub(crate) fn apply_orientation(
     mut surface: Surface<'static>,
     orientation: i32,
