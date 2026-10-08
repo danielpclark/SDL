@@ -346,7 +346,7 @@ pub(crate) struct FontData {
     props: Option<Properties>,
 
     // The current font generation, changes when glyphs need to be rebuilt
-    generation: u32,
+    pub(crate) generation: u32,
 
     // Text objects using this font
     pub(crate) text: Vec<Weak<RefCell<crate::text::TextData>>>,
@@ -2727,7 +2727,7 @@ fn find_glyph_metrics(
 
 /// Run `f` on the data of the font `which`, which is `this` (borrowed as
 /// `font`) or another font.
-fn with_font_data<R>(
+pub(crate) fn with_font_data<R>(
     this: &Weak<RefCell<FontData>>,
     font: &mut FontData,
     which: &Weak<RefCell<FontData>>,
@@ -4652,7 +4652,7 @@ impl Font {
 }
 
 /// `TTF_GetGlyphImageForIndex`
-fn glyph_image_for_index(
+pub(crate) fn glyph_image_for_index(
     font: &mut FontData,
     glyph_index: u32,
 ) -> Result<(Surface<'static>, ImageType)> {

@@ -728,6 +728,10 @@ FreeType's src/gzip/ bundles):
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
 
+sdl3-ttf/src/qsort.rs is the same translation of SDL's SDL_qsort.c as
+sdl3-image/src/qsort.rs, from Gareth McCaughan's qsort.c, under the notice
+given for that file above (Copyright (c) 1998-2021 Gareth McCaughan).
+
 The test fonts in sdl3-ttf/src/testdata/fonts/ are subsets of DejaVu fonts
 (https://dejavu-fonts.github.io/, derived from the Bitstream Vera and Arev
 fonts) under their own license, in sdl3-ttf/src/testdata/fonts/LICENSE.

@@ -14,9 +14,13 @@
 #[doc(hidden)]
 pub mod freetype;
 
+mod qsort;
+mod surface_textengine;
 mod text;
 mod ttf;
 
+pub use surface_textengine::*;
+pub use text::*;
 pub use ttf::*;
 
 #[cfg(test)]
