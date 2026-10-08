@@ -15,10 +15,13 @@
 pub mod freetype;
 
 mod qsort;
+mod renderer_textengine;
+mod stb_rect_pack;
 mod surface_textengine;
 mod text;
 mod ttf;
 
+pub use renderer_textengine::*;
 pub use surface_textengine::*;
 pub use text::*;
 pub use ttf::*;

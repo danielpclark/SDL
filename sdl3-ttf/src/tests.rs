@@ -11,18 +11,24 @@
 //! several sizes, text rendered in every render mode (solid, shaded,
 //! blended, LCD) with every hinting mode, style, a few outlines, without
 //! kerning, wrapped and aligned, single glyphs and glyph images, fallback
-//! fonts, and the fonts truncated and with flipped bytes. Surfaces are
+//! fonts, text objects (layouts, clusters, substrings and edits) drawn
+//! with the surface and renderer (software, with several atlas sizes) text
+//! engines, and the fonts truncated and with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
 //! rows and palette, their color key and blend mode.
 
 use sdl3::io::{IoStream, IoWhence};
 use sdl3::video::{Color, Surface};
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
+use sdl3::render::Renderer;
+
 use crate::{
-    draw_surface_text, Direction, DrawOperation, Font, Hinting, HorizontalAlignment, ImageType,
-    SubString, SurfaceTextEngine, Text, TextEngine,
+    draw_renderer_text, draw_surface_text, Direction, DrawOperation, Font, Hinting,
+    HorizontalAlignment, ImageType, RendererTextEngine, SubString, SurfaceTextEngine, Text,
+    TextEngine,
 };
 
 static SANS: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.ttf");
@@ -753,6 +759,139 @@ fn text_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
     drop(f);
 }
 
+fn rdraw(out: &mut Vec<String>, label: &str, r: &Rc<RefCell<Renderer>>, t: &Text, x: f32, y: f32) {
+    {
+        let mut r = r.borrow_mut();
+        r.set_draw_color(0x10, 0x20, 0x30, 0xFF);
+        let _ = r.clear();
+    }
+    match draw_renderer_text(t, x, y) {
+        Ok(()) => {
+            let s = r.borrow_mut().read_pixels(None);
+            out.push(format!("{label} rdraw: 1 {}", describe(s)));
+        }
+        Err(e) => out.push(format!("{label} rdraw: 0 err: {e}")),
+    }
+}
+
+/// Texts whose glyphs don't overlap: the order of drawing glyphs from
+/// different atlases follows the atlases' addresses in upstream.
+const SPACED1: &str = "H e l l o  w o r l d ,  t h i s  i s\nw r a p p e d  t e x t .\n\nE n d";
+const SPACED2: &str =
+    "T h e  q u i c k  b r o w n  f o x  j u m p s  0 1 2 3 4 5 6 7 8 9  A V W é « »";
+
+#[allow(clippy::too_many_arguments)]
+fn renderer_pass(
+    out: &mut Vec<String>,
+    tag: &str,
+    r: &Rc<RefCell<Renderer>>,
+    engine: Rc<dyn TextEngine>,
+    f: &Font,
+    fb: &Font,
+    text1: &str,
+    text2: &str,
+) {
+    let spaced = text1 == SPACED1;
+    use crate::{STYLE_NORMAL, STYLE_STRIKETHROUGH, STYLE_UNDERLINE};
+
+    let l = |s: &str| format!("{tag} {s}");
+    f.set_size(16.5).unwrap();
+    let t = Text::new(Some(engine.clone()), Some(f), text1);
+    let t2 = Text::new(Some(engine.clone()), Some(f), text2);
+    out.push(format!(
+        "{tag} create: {} {}",
+        t.is_ok() as i32,
+        t2.is_ok() as i32
+    ));
+    let (t, t2) = (t.unwrap(), t2.unwrap());
+    rdraw(out, &l("plain"), r, &t, 3.0, 4.0);
+    t2.set_wrap_width(200).unwrap();
+    rdraw(out, &l("second"), r, &t2, 0.0, 0.0);
+    t.set_color(0xC0, 0x40, 0x20, 0xFF).unwrap();
+    t.set_wrap_width(150).unwrap();
+    rdraw(out, &l("wrap150"), r, &t, 0.0, 0.0);
+    t.set_position(5, 7).unwrap();
+    rdraw(out, &l("pos"), r, &t, -3.5, 2.25);
+    t.set_color_float(0.25, 0.5, 1.5, 0.5).unwrap();
+    rdraw(out, &l("halfalpha"), r, &t, 1.0, 1.0);
+    t.set_position(0, 0).unwrap();
+    t.set_color(0xFF, 0xFF, 0xFF, 0xFF).unwrap();
+    f.set_style(STYLE_UNDERLINE | STYLE_STRIKETHROUGH);
+    rdraw(out, &l("styled"), r, &t, 0.0, 0.0);
+    f.set_style(STYLE_NORMAL);
+    f.set_outline(2).unwrap();
+    rdraw(out, &l("outline"), r, &t, 0.0, 0.0);
+    if !spaced {
+        // (the outlined glyphs of the second text overlap)
+        rdraw(out, &l("outline2"), r, &t2, 0.5, 0.5);
+    }
+    f.set_outline(0).unwrap();
+    rdraw(out, &l("again"), r, &t, 0.0, 0.0);
+    f.set_size(12.0).unwrap();
+    rdraw(out, &l("resized"), r, &t, 0.0, 0.0);
+    rdraw(out, &l("resized2"), r, &t2, 0.0, 0.0);
+    f.set_size(16.5).unwrap();
+    rdraw(out, &l("back"), r, &t, 0.0, 0.0);
+    rdraw(out, &l("back2"), r, &t2, 2.0, 3.0);
+    f.add_fallback_font(fb).unwrap();
+    if spaced {
+        t.append_string(" t a i l € ← ☺").unwrap();
+    } else {
+        t.append_string(" tail€ ←☺").unwrap();
+    }
+    rdraw(out, &l("fallback"), r, &t, 0.0, 0.0);
+    f.remove_fallback_font(fb);
+    t.set_string(Some("")).unwrap();
+    rdraw(out, &l("empty"), r, &t, 0.0, 0.0);
+    t.set_font(Some(fb)).unwrap();
+    t.set_string(Some("abc def")).unwrap();
+    rdraw(out, &l("fbfont"), r, &t, 10.0, 10.0);
+    t.set_font(None).unwrap();
+    rdraw(out, &l("nofont"), r, &t, 0.0, 0.0);
+    drop(t2);
+    drop(t);
+}
+
+fn renderer_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
+    out.push(format!("== renderer {name}"));
+    let f = open_mem(data, 16.5).unwrap();
+    let fb = open_mem(MONO, 14.0).unwrap();
+    let surface = Surface::new(220, 160, sdl3::video::PixelFormat::ARGB8888).unwrap();
+    let r = Rc::new(RefCell::new(Renderer::software(surface).unwrap()));
+    let engine: Rc<dyn TextEngine> = RendererTextEngine::new(r.clone()).unwrap();
+    renderer_pass(out, "big", &r, engine.clone(), &f, &fb, WRAP, TEXT);
+    {
+        // a text of another engine
+        let se: Rc<dyn TextEngine> = SurfaceTextEngine::new().unwrap();
+        let st = Text::new(Some(se), Some(&f), "x").unwrap();
+        rdraw(out, "surfaceengine", &r, &st, 0.0, 0.0);
+    }
+    drop(engine);
+    let mut size = 32;
+    while size <= 128 {
+        let tag = format!("atlas{size}");
+        let engine = RendererTextEngine::with_atlas_texture_size(r.clone(), size);
+        out.push(format!("{tag} engine: {}", engine.is_ok() as i32));
+        renderer_pass(out, &tag, &r, engine.unwrap(), &f, &fb, SPACED1, SPACED2);
+        size *= 2;
+    }
+    match RendererTextEngine::with_atlas_texture_size(r.clone(), 0) {
+        Ok(_) => out.push("atlas0 engine: 1 err: ".into()),
+        Err(e) => out.push(format!("atlas0 engine: 0 err: {e}")),
+    }
+    let engine: Rc<dyn TextEngine> =
+        RendererTextEngine::with_atlas_texture_size(r.clone(), 8).unwrap();
+    {
+        f.set_size(16.5).unwrap();
+        let t = Text::new(Some(engine.clone()), Some(&f), "Wide").unwrap();
+        rdraw(out, "atlas8", &r, &t, 0.0, 0.0);
+    }
+    drop(engine);
+    drop(r);
+    drop(fb);
+    drop(f);
+}
+
 fn corrupt_case(out: &mut Vec<String>, label: &str, data: &[u8]) {
     let f = match open_mem(data, 16.5) {
         Ok(f) => f,
@@ -834,6 +973,7 @@ fn matches_upstream_reference() {
     ] {
         font_cases(&mut out, name, data);
         text_cases(&mut out, name, data);
+        renderer_cases(&mut out, name, data);
         corrupt_cases(&mut out, name, data);
     }
     crate::quit();
@@ -859,4 +999,33 @@ fn matches_upstream_reference() {
         reference.len(),
         failures.join("\n")
     );
+}
+
+/// Atlas textures smaller than 4x4 pixels have no packing nodes, which
+/// upstream divides by; this fails instead.
+#[test]
+fn tiny_renderer_atlas() {
+    crate::init().unwrap();
+    let f = open_mem(SANS, 2.0).unwrap();
+    let surface = Surface::new(16, 16, sdl3::video::PixelFormat::ARGB8888).unwrap();
+    let r = Rc::new(RefCell::new(Renderer::software(surface).unwrap()));
+    let (w, h) = f
+        .glyph_image(u32::from('.'))
+        .map(|(s, _)| (s.width(), s.height()))
+        .unwrap();
+    assert!(w > 0 && w < 4 && h > 0 && h < 4, "{w}x{h}");
+    for size in 1..4 {
+        let engine: Rc<dyn TextEngine> =
+            RendererTextEngine::with_atlas_texture_size(r.clone(), size).unwrap();
+        let t = Text::new(Some(engine), Some(&f), ".").unwrap();
+        let err = draw_renderer_text(&t, 0.0, 0.0).unwrap_err().to_string();
+        if w <= size && h <= size {
+            assert!(err.contains("Invalid texture atlas size"), "{err}");
+        } else {
+            assert!(err.contains("larger than atlas texture"), "{err}");
+        }
+    }
+    drop(r);
+    drop(f);
+    crate::quit();
 }
