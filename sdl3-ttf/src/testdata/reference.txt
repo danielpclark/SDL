@@ -1,0 +1,996 @@
+== DejaVuSans.ttf
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+info: family=DejaVu Sans style=Book size=9 dpi=72,72 height=11 ascent=9 descent=-2 lineskip=11 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+metrics 9 U+0041: has=1 0 7 0 7 6
+metrics 9 U+0067: has=1 0 5 -2 5 6
+metrics 9 U+0057: has=1 0 9 0 7 9
+metrics 9 U+006A: has=1 -1 2 -2 7 3
+metrics 9 U+0020: has=1 0 0 0 0 3
+metrics 9 U+00E9: has=1 0 6 0 7 6
+metrics 9 U+20AC: has=0 0 5 -2 6 5
+metrics 9 U+4E00: has=0 0 5 -2 6 5
+kern 9 U+0041 U+0056: 0
+kern 9 U+0054 U+006F: -1
+kern 9 U+0057 U+0061: 0
+kern 9 U+0066 U+006A: 0
+kern 9 U+0041 U+4E00: 0
+string_size 9: 358 11
+measure 9 0: 358 74
+string_size_wrapped 9 0: 200 55
+measure 9 50: 50 10
+string_size_wrapped 9 50: 50 154
+measure 9 200: 196 40
+string_size_wrapped 9 200: 200 66
+hinting 9 normal: 0
+render 9 normal solid: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=2bebc11d00a16ee6 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 normal shaded: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=064e7729cf458a25 pal=256:b1257179c18f8b45 blend=1
+render 9 normal blended: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=4fe2e7dc67196875 blend=1
+render 9 normal lcd: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=13acb50c7a66185c blend=1
+hinting 9 light: 1
+render 9 light solid: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=ca6d6bd7963d6efb pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light shaded: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=44dadad02f09b535 pal=256:b1257179c18f8b45 blend=1
+render 9 light blended: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=5e51b8a150086e77 blend=1
+render 9 light lcd: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=fa0b652abf95577f blend=1
+hinting 9 mono: 2
+render 9 mono solid: 354x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=2efa2f98eb70bb9a pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 mono shaded: 354x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=659ab3cf06f1f2e4 pal=256:b1257179c18f8b45 blend=1
+render 9 mono blended: 354x11 SDL_PIXELFORMAT_ARGB8888 pitch=1472 hash=0931badb0803244e blend=1
+render 9 mono lcd: 354x11 SDL_PIXELFORMAT_ARGB8888 pitch=1472 hash=f54a8e076af0a479 blend=1
+hinting 9 none: 3
+render 9 none solid: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=2685f9ee22655246 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 none shaded: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=cb865bc57878ef34 pal=256:b1257179c18f8b45 blend=1
+render 9 none blended: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=ec070d6952ed8b5a blend=1
+render 9 none lcd: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=262209f48c6ea2eb blend=1
+hinting 9 light_subpixel: 1
+render 9 light_subpixel solid: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=ca6d6bd7963d6efb pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light_subpixel shaded: 358x11 SDL_PIXELFORMAT_INDEX8 pitch=368 hash=44dadad02f09b535 pal=256:b1257179c18f8b45 blend=1
+render 9 light_subpixel blended: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=5e51b8a150086e77 blend=1
+render 9 light_subpixel lcd: 358x11 SDL_PIXELFORMAT_ARGB8888 pitch=1488 hash=fa0b652abf95577f blend=1
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+metrics 16.5 U+0041: has=1 0 12 0 12 12
+metrics 16.5 U+0067: has=1 0 10 -4 9 11
+metrics 16.5 U+0057: has=1 0 17 0 12 17
+metrics 16.5 U+006A: has=1 -1 4 -4 13 5
+metrics 16.5 U+0020: has=1 0 0 0 0 5
+metrics 16.5 U+00E9: has=1 0 10 0 14 10
+metrics 16.5 U+20AC: has=0 0 10 -3 12 10
+metrics 16.5 U+4E00: has=0 0 10 -3 12 10
+kern 16.5 U+0041 U+0056: -1
+kern 16.5 U+0054 U+006F: -2
+kern 16.5 U+0057 U+0061: -1
+kern 16.5 U+0066 U+006A: 0
+kern 16.5 U+0041 U+4E00: 0
+string_size 16.5: 639 20
+measure 16.5 0: 639 74
+string_size_wrapped 16.5 0: 351 100
+measure 16.5 50: 48 5
+string_size_wrapped 16.5 50: 50 420
+measure 16.5 200: 193 22
+string_size_wrapped 16.5 200: 200 140
+hinting 16.5 normal: 0
+render 16.5 normal solid: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=aaabed9914e49b57 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 normal shaded: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=802413d84ad8f67a pal=256:b1257179c18f8b45 blend=1
+render 16.5 normal blended: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=14a91129d4bb711e blend=1
+render 16.5 normal lcd: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=fbad2d715f5d7ae7 blend=1
+hinting 16.5 light: 1
+render 16.5 light solid: 620x20 SDL_PIXELFORMAT_INDEX8 pitch=624 hash=c333d3f07a56298c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light shaded: 620x20 SDL_PIXELFORMAT_INDEX8 pitch=624 hash=ab6aa7010313ea6c pal=256:b1257179c18f8b45 blend=1
+render 16.5 light blended: 620x20 SDL_PIXELFORMAT_ARGB8888 pitch=2528 hash=3562036d2e967312 blend=1
+render 16.5 light lcd: 620x20 SDL_PIXELFORMAT_ARGB8888 pitch=2528 hash=d1ca54c7f7700b20 blend=1
+hinting 16.5 mono: 2
+render 16.5 mono solid: 628x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=66fec3bb7162e80a pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 mono shaded: 628x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=521ac533edd204d0 pal=256:b1257179c18f8b45 blend=1
+render 16.5 mono blended: 628x20 SDL_PIXELFORMAT_ARGB8888 pitch=2560 hash=52f9111e382407a2 blend=1
+render 16.5 mono lcd: 628x20 SDL_PIXELFORMAT_ARGB8888 pitch=2560 hash=e50a7d45a733585d blend=1
+hinting 16.5 none: 3
+render 16.5 none solid: 620x20 SDL_PIXELFORMAT_INDEX8 pitch=624 hash=21b4a26a104f9f25 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 none shaded: 620x20 SDL_PIXELFORMAT_INDEX8 pitch=624 hash=bf8ced46840583a7 pal=256:b1257179c18f8b45 blend=1
+render 16.5 none blended: 620x20 SDL_PIXELFORMAT_ARGB8888 pitch=2528 hash=3bbd5574d83ca1ed blend=1
+render 16.5 none lcd: 620x20 SDL_PIXELFORMAT_ARGB8888 pitch=2528 hash=4db53efd8d8fe274 blend=1
+hinting 16.5 light_subpixel: 1
+render 16.5 light_subpixel solid: 620x20 SDL_PIXELFORMAT_INDEX8 pitch=624 hash=c333d3f07a56298c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light_subpixel shaded: 620x20 SDL_PIXELFORMAT_INDEX8 pitch=624 hash=ab6aa7010313ea6c pal=256:b1257179c18f8b45 blend=1
+render 16.5 light_subpixel blended: 620x20 SDL_PIXELFORMAT_ARGB8888 pitch=2528 hash=3562036d2e967312 blend=1
+render 16.5 light_subpixel lcd: 620x20 SDL_PIXELFORMAT_ARGB8888 pitch=2528 hash=d1ca54c7f7700b20 blend=1
+info: family=DejaVu Sans style=Book size=33 dpi=72,72 height=39 ascent=31 descent=-7 lineskip=39 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+metrics 33 U+0041: has=1 0 23 0 24 23
+metrics 33 U+0067: has=1 1 18 -7 18 21
+metrics 33 U+0057: has=1 1 32 0 24 33
+metrics 33 U+006A: has=1 -1 7 -7 25 9
+metrics 33 U+0020: has=1 0 0 0 0 10
+metrics 33 U+00E9: has=1 1 19 0 26 20
+metrics 33 U+20AC: has=0 1 19 -6 23 20
+metrics 33 U+4E00: has=0 1 19 -6 23 20
+kern 33 U+0041 U+0056: -2
+kern 33 U+0054 U+006F: -6
+kern 33 U+0057 U+0061: -2
+kern 33 U+0066 U+006A: 0
+kern 33 U+0041 U+4E00: 0
+string_size 33: 1246 39
+measure 33 0: 1246 74
+string_size_wrapped 33 0: 681 195
+measure 33 50: 42 2
+string_size_wrapped 33 50: 50 1560
+measure 33 200: 191 11
+string_size_wrapped 33 200: 200 507
+hinting 33 normal: 0
+render 33 normal solid: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=f9a2bead50e4fac6 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 normal shaded: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=7fcca527babae0a4 pal=256:b1257179c18f8b45 blend=1
+render 33 normal blended: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=0b8c023d766aef80 blend=1
+render 33 normal lcd: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=845bb9227e79f5e7 blend=1
+hinting 33 light: 1
+render 33 light solid: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=6c3c7ab153fa7d2c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light shaded: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=c1cb62be551793e3 pal=256:b1257179c18f8b45 blend=1
+render 33 light blended: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=b2a54b58370ba481 blend=1
+render 33 light lcd: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=3c8698b5875d92a3 blend=1
+hinting 33 mono: 2
+render 33 mono solid: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=72d5687a2715626a pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 mono shaded: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=00fe76789d21933c pal=256:b1257179c18f8b45 blend=1
+render 33 mono blended: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=1114dc3612390252 blend=1
+render 33 mono lcd: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=9a9c90d41c9014ce blend=1
+hinting 33 none: 3
+render 33 none solid: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=505a812d45c7152e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 none shaded: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=1c87fde7dcbcfbc3 pal=256:b1257179c18f8b45 blend=1
+render 33 none blended: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=22f7be7c4adba6ef blend=1
+render 33 none lcd: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=5b3233e6707353fb blend=1
+hinting 33 light_subpixel: 1
+render 33 light_subpixel solid: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=6c3c7ab153fa7d2c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light_subpixel shaded: 1246x39 SDL_PIXELFORMAT_INDEX8 pitch=1248 hash=c1cb62be551793e3 pal=256:b1257179c18f8b45 blend=1
+render 33 light_subpixel blended: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=b2a54b58370ba481 blend=1
+render 33 light_subpixel lcd: 1246x39 SDL_PIXELFORMAT_ARGB8888 pitch=5040 hash=3c8698b5875d92a3 blend=1
+style 1: 1
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render style 1 solid: 709x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=d8457d407a5a3004 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 1 shaded: 709x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=a50e5729e0aae9a9 pal=256:b1257179c18f8b45 blend=1
+render style 1 blended: 709x20 SDL_PIXELFORMAT_ARGB8888 pitch=2896 hash=6a2ecbde948217fd blend=1
+render style 1 lcd: 709x20 SDL_PIXELFORMAT_ARGB8888 pitch=2896 hash=d95cca6227bff690 blend=1
+style 2: 2
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render style 2 solid: 643x20 SDL_PIXELFORMAT_INDEX8 pitch=656 hash=4f38906a8a70d3fc pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 2 shaded: 643x20 SDL_PIXELFORMAT_INDEX8 pitch=656 hash=8410106dcbc435c1 pal=256:b1257179c18f8b45 blend=1
+render style 2 blended: 643x20 SDL_PIXELFORMAT_ARGB8888 pitch=2624 hash=c4eb0d1b2ea9ae5f blend=1
+render style 2 lcd: 643x20 SDL_PIXELFORMAT_ARGB8888 pitch=2624 hash=5167677881f7a784 blend=1
+style 4: 4
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render style 4 solid: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=8998d6c232eb9b56 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 4 shaded: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=ec9f167ebbe862b2 pal=256:b1257179c18f8b45 blend=1
+render style 4 blended: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=3c3a25db6879726c blend=1
+render style 4 lcd: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=0488c195adf97b1f blend=1
+style 8: 8
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render style 8 solid: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=77b27ffc94a26895 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 8 shaded: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=c4f544cee07d75ba pal=256:b1257179c18f8b45 blend=1
+render style 8 blended: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=10d96369bb8770fe blend=1
+render style 8 lcd: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=3e4c06f66c36cf4f blend=1
+style 15: 15
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render style 15 solid: 713x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=22819b6148ba0463 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 15 shaded: 713x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=ac0507c1a51f4d2f pal=256:b1257179c18f8b45 blend=1
+render style 15 blended: 713x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=1f184d4516a5d44b blend=1
+render style 15 lcd: 713x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=3298197036d1267a blend=1
+outline 1: 1 1
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=18 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render outline 1 0 solid: 641x22 SDL_PIXELFORMAT_INDEX8 pitch=656 hash=0b3f8d558993a1de pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 0 shaded: 641x22 SDL_PIXELFORMAT_INDEX8 pitch=656 hash=3edda92e45d29f66 pal=256:b1257179c18f8b45 blend=1
+render outline 1 0 blended: 641x22 SDL_PIXELFORMAT_ARGB8888 pitch=2624 hash=356daa91b07601ca blend=1
+render outline 1 0 lcd: 641x22 SDL_PIXELFORMAT_ARGB8888 pitch=2624 hash=bbbe07d1d290c077 blend=1
+outline 1: 1 1
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=18 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render outline 1 1 solid: 711x22 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=4f9d26dcf7a52bdd pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 1 shaded: 711x22 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=98fe853e8d281996 pal=256:b1257179c18f8b45 blend=1
+render outline 1 1 blended: 711x22 SDL_PIXELFORMAT_ARGB8888 pitch=2896 hash=6cd7bcdbc693790a blend=1
+render outline 1 1 lcd: 711x22 SDL_PIXELFORMAT_ARGB8888 pitch=2896 hash=d86cf3780e899b82 blend=1
+outline 3: 1 3
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=22 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render outline 3 0 solid: 645x26 SDL_PIXELFORMAT_INDEX8 pitch=656 hash=ab667121e8acde68 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 0 shaded: 645x26 SDL_PIXELFORMAT_INDEX8 pitch=656 hash=9fc41e9fff82ad2d pal=256:b1257179c18f8b45 blend=1
+render outline 3 0 blended: 645x26 SDL_PIXELFORMAT_ARGB8888 pitch=2640 hash=5ea152400783c837 blend=1
+render outline 3 0 lcd: 645x26 SDL_PIXELFORMAT_ARGB8888 pitch=2640 hash=9514826142c42a3e blend=1
+outline 3: 1 3
+info: family=DejaVu Sans style=Book size=16.5 dpi=72,72 height=20 ascent=22 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render outline 3 1 solid: 715x26 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=98ae70727a2e0288 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 1 shaded: 715x26 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=530ce064bc3f66d8 pal=256:b1257179c18f8b45 blend=1
+render outline 3 1 blended: 715x26 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=941c770b91e38964 blend=1
+render outline 3 1 lcd: 715x26 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=187438ec48530d26 blend=1
+kerning off: 0
+render nokern solid: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=f3c935e0ba63c00f pal=256:b2ddce223dd8aab4 key=0 blend=0
+render nokern shaded: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=2bd75975fe5f2e96 pal=256:b1257179c18f8b45 blend=1
+render nokern blended: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=1202916a9c8afdbe blend=1
+render nokern lcd: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=31854b628fea8a07 blend=1
+render blended alpha: 639x20 SDL_PIXELFORMAT_ARGB8888 pitch=2608 hash=d2eef433adf0dd63 blend=1
+render shaded alpha: 639x20 SDL_PIXELFORMAT_INDEX8 pitch=640 hash=2bd75975fe5f2e96 pal=256:3b2779e20689d5ea blend=1
+render solid len 10: 88x20 SDL_PIXELFORMAT_INDEX8 pitch=96 hash=a7219e1a479ad263 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render empty: err: Text has zero width
+render space: 5x20 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=b260f5a039ebf365 blend=1
+render newline: 31x20 SDL_PIXELFORMAT_ARGB8888 pitch=176 hash=ea72819830fe7604 blend=1
+render nul: 30x20 SDL_PIXELFORMAT_ARGB8888 pitch=176 hash=a452186ffc21211e blend=1
+render nul shaded: 30x20 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=9761501112b0d729 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 solid: 351x100 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=36bff711087e71bd pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 0 shaded: 351x100 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=227082ac2feceff6 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 blended: 351x100 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=174b24f568da67bc blend=1
+wrapped 0 lcd: 351x100 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=4fc9154bc63ed6a7 blend=1
+wrapped 80 solid: 80x280 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=a060674f69eb1977 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 80 shaded: 80x280 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=467e3b599768e28e pal=256:b1257179c18f8b45 blend=1
+wrapped 80 blended: 80x280 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=581391576147ecd0 blend=1
+wrapped 80 lcd: 80x280 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=777348ee32a7923b blend=1
+wrapped 200 solid: 200x140 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=c5522f27ec506825 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 200 shaded: 200x140 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=0e1c1949613066dc pal=256:b1257179c18f8b45 blend=1
+wrapped 200 blended: 200x140 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=d960d540e92734ac blend=1
+wrapped 200 lcd: 200x140 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=6c411ab55872808b blend=1
+wrapped align 1: 1 150x160 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=3a19e6b8b86ee67c blend=1
+wrapped align 2: 2 150x160 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=b09f9bcdaa136ecc blend=1
+wrapped align 0: 0 150x160 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=ae7efc47a62cb67c blend=1
+wrapped lineskip 30: 30 150x240 SDL_PIXELFORMAT_INDEX8 pitch=160 hash=18ee55336293bdf6 pal=256:b1257179c18f8b45 blend=1
+wrapped lineskip 3: 3 150x41 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=abd280b8c8beaf6a blend=1
+wrapped underline lineskip 3: 150x160 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=9d5fc711d8a69837 blend=1
+lineskip after set_size: 20
+glyph U+0067 solid: 11x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=d09fd6471869d40d pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+0067 shaded: 11x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=8cb6cdae858e59c4 pal=256:b1257179c18f8b45 blend=1
+glyph U+0067 blended: 11x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=e3622242fa87854c blend=1
+glyph U+0067 lcd: 11x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=886a7634d9ea1543 blend=1
+glyph_image U+0067: type=1 10x13 SDL_PIXELFORMAT_ARGB8888 pitch=40 hash=4ce8802bed906034 blend=1
+glyph U+00E9 solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=eab2e028f9a405d2 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+00E9 shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=3519c7a5ce8ebaa2 pal=256:b1257179c18f8b45 blend=1
+glyph U+00E9 blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=a7efe7841938607a blend=1
+glyph U+00E9 lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=c2efee897b011fd7 blend=1
+glyph_image U+00E9: type=1 10x14 SDL_PIXELFORMAT_ARGB8888 pitch=40 hash=659ddfe21fd865ea blend=1
+glyph U+20AC solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=d3ed72a93b942f13 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+20AC shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=0eac6a03229ab349 pal=256:b1257179c18f8b45 blend=1
+glyph U+20AC blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=6ca4f7f360b3b7d9 blend=1
+glyph U+20AC lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=94e3baa41c284d55 blend=1
+glyph_image U+20AC: type=0 err: Codepoint not in font
+glyph U+4E00 solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=d3ed72a93b942f13 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+4E00 shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=0eac6a03229ab349 pal=256:b1257179c18f8b45 blend=1
+glyph U+4E00 blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=6ca4f7f360b3b7d9 blend=1
+glyph U+4E00 lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=94e3baa41c284d55 blend=1
+glyph_image U+4E00: type=0 err: Codepoint not in font
+glyph_image_for_index 0: type=1 10x15 SDL_PIXELFORMAT_ARGB8888 pitch=40 hash=55d5b564b4346749 blend=1
+glyph_image_for_index 1: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 2: type=1 3x12 SDL_PIXELFORMAT_ARGB8888 pitch=12 hash=625c725adb089a42 blend=1
+glyph_image_for_index 3: type=1 6x5 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=20c7f8117394b4d9 blend=1
+glyph_image_for_index 100000: err: FT_Load_Glyph() failed
+direction rtl: 0 0 That operation is not supported
+direction ltr: 1 4
+script: 0 That operation is not supported
+language: 0 That operation is not supported
+sizedpi: 1 info: family=DejaVu Sans style=Book size=12 dpi=96,144 height=28 ascent=23 descent=-5 lineskip=28 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render dpi: 605x28 SDL_PIXELFORMAT_ARGB8888 pitch=2480 hash=bd1ba89605f51fd7 blend=1
+copy: info: family=DejaVu Sans style=Book size=12 dpi=96,144 height=28 ascent=23 descent=-5 lineskip=28 fixed=0 scalable=1 faces=1 weight=400 kerning=1
+render copy: 605x28 SDL_PIXELFORMAT_INDEX8 pitch=608 hash=da7535fbf392e81f pal=256:b1257179c18f8b45 blend=1
+fallback add: 1
+render fallback solid: 68x39 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=833aa9bdfa56dab5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render fallback shaded: 68x39 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=aafa936b3e6b9d6e pal=256:b1257179c18f8b45 blend=1
+render fallback blended: 68x39 SDL_PIXELFORMAT_ARGB8888 pitch=320 hash=dae77fd89a2f7de8 blend=1
+render fallback lcd: 68x39 SDL_PIXELFORMAT_ARGB8888 pitch=320 hash=15107fd7da7abb21 blend=1
+metrics fallback U+20AC: 0 9 0 12 10
+render fallback resized: 68x39 SDL_PIXELFORMAT_ARGB8888 pitch=320 hash=5d19369c16434358 blend=1
+render fallback removed: 68x41 SDL_PIXELFORMAT_ARGB8888 pitch=320 hash=7b779f375130272f blend=1
+== corrupt DejaVuSans.ttf
+trunc 0: err: Couldn't load font file
+trunc 1: err: Couldn't load font file
+trunc 4: err: Couldn't load font file
+trunc 12: err: Couldn't load font file
+trunc 16: err: Couldn't load font file
+trunc 100: err: Couldn't load font file
+trunc 200: err: Couldn't load font file
+trunc 300: err: Couldn't load font file
+trunc 600: err: Couldn't load font file
+trunc 1000: err: Couldn't load font file
+trunc 2000: err: Couldn't load font file
+trunc 4000: err: Couldn't load font file
+trunc 8000: err: Couldn't load font file
+trunc 24108: err: Couldn't load font file
+trunc 48116: ok noname nostyle 20 20 | 189x20 7a638d65d2ffb19f
+trunc 48215: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 4: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 16: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 28: ok named styled 20 20 | 190x20 a39b64979d80bd19
+flip 40: ok named styled 20 20 | 190x20 a39b64979d80bd19
+flip 52: ok named styled 20 20 | 189x20 89b8019f3c3c71bd
+flip 64: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 76: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 88: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 100: ok named styled 20 20 | 189x20 55e4d421fffe3165
+flip 112: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 124: err: Couldn't load font file
+flip 136: err: Couldn't load font file
+flip 148: err: Couldn't load font file
+flip 160: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 172: err: Couldn't load font file
+flip 184: err: Couldn't load font file
+flip 196: ok named styled 20 20 | err: Text has zero width
+flip 208: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 220: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 232: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 244: ok named styled 20 20 | 189x20 b876501bddffd3f5
+flip 256: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 268: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 280: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 168: ok named styled 20 20 | 189x20 293209b7ac85b04f
+flip 2184: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 4200: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 6216: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 8232: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 10248: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 12264: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 14280: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 16296: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 18312: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 20328: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 22344: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 24360: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 26376: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 28392: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 30408: ok named styled 20 20 | err: Text has zero width
+flip 32424: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 34440: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 36456: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 38472: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 40488: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 42504: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 44520: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+flip 46536: ok named styled 20 20 | 189x20 7a638d65d2ffb19f
+== DejaVuSerif-Bold.ttf
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+info: family=DejaVu Serif style=Bold size=9 dpi=72,72 height=11 ascent=9 descent=-2 lineskip=11 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+metrics 9 U+0041: has=1 -1 8 0 7 7
+metrics 9 U+0067: has=1 0 7 -2 5 6
+metrics 9 U+0057: has=1 -1 11 0 7 10
+metrics 9 U+006A: has=1 -1 3 -2 8 3
+metrics 9 U+0020: has=1 0 0 0 0 3
+metrics 9 U+00E9: has=1 0 6 0 7 6
+metrics 9 U+20AC: has=0 0 5 -2 6 5
+metrics 9 U+4E00: has=0 0 5 -2 6 5
+kern 9 U+0041 U+0056: 0
+kern 9 U+0054 U+006F: 0
+kern 9 U+0057 U+0061: 0
+kern 9 U+0066 U+006A: 0
+kern 9 U+0041 U+4E00: 0
+string_size 9: 377 11
+measure 9 0: 377 74
+string_size_wrapped 9 0: 209 55
+measure 9 50: 45 8
+string_size_wrapped 9 50: 50 154
+measure 9 200: 199 38
+string_size_wrapped 9 200: 200 66
+hinting 9 normal: 0
+render 9 normal solid: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=850a5b684805debf pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 normal shaded: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=bbac5b60d16d8eec pal=256:b1257179c18f8b45 blend=1
+render 9 normal blended: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=f32eeabeb390898e blend=1
+render 9 normal lcd: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=01f6530fd54fdcc3 blend=1
+hinting 9 light: 1
+render 9 light solid: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=a847576ce22e889c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light shaded: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=0ee60b89e2bd0ddb pal=256:b1257179c18f8b45 blend=1
+render 9 light blended: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=5322861b7b5a72b9 blend=1
+render 9 light lcd: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=453fe423b60e942d blend=1
+hinting 9 mono: 2
+render 9 mono solid: 373x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=dbe54328a3e667a5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 mono shaded: 373x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=2e136f484b288489 pal=256:b1257179c18f8b45 blend=1
+render 9 mono blended: 373x11 SDL_PIXELFORMAT_ARGB8888 pitch=1552 hash=f198fb3318660d5f blend=1
+render 9 mono lcd: 373x11 SDL_PIXELFORMAT_ARGB8888 pitch=1552 hash=349b698b51f67c12 blend=1
+hinting 9 none: 3
+render 9 none solid: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=b43e45fb0bc53535 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 none shaded: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=2153392b434928a9 pal=256:b1257179c18f8b45 blend=1
+render 9 none blended: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=ce098169e5db4b93 blend=1
+render 9 none lcd: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=ba81d6e42d5dad2d blend=1
+hinting 9 light_subpixel: 1
+render 9 light_subpixel solid: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=a847576ce22e889c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light_subpixel shaded: 377x11 SDL_PIXELFORMAT_INDEX8 pitch=384 hash=0ee60b89e2bd0ddb pal=256:b1257179c18f8b45 blend=1
+render 9 light_subpixel blended: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=5322861b7b5a72b9 blend=1
+render 9 light_subpixel lcd: 377x11 SDL_PIXELFORMAT_ARGB8888 pitch=1568 hash=453fe423b60e942d blend=1
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+metrics 16.5 U+0041: has=1 -1 14 0 12 13
+metrics 16.5 U+0067: has=1 0 12 -4 9 12
+metrics 16.5 U+0057: has=1 -1 20 0 12 19
+metrics 16.5 U+006A: has=1 -2 5 -4 12 6
+metrics 16.5 U+0020: has=1 0 0 0 0 6
+metrics 16.5 U+00E9: has=1 0 11 0 14 11
+metrics 16.5 U+20AC: has=0 0 10 -3 12 10
+metrics 16.5 U+4E00: has=0 0 10 -3 12 10
+kern 16.5 U+0041 U+0056: -1
+kern 16.5 U+0054 U+006F: -1
+kern 16.5 U+0057 U+0061: -1
+kern 16.5 U+0066 U+006A: 0
+kern 16.5 U+0041 U+4E00: 0
+string_size 16.5: 715 20
+measure 16.5 0: 715 74
+string_size_wrapped 16.5 0: 398 100
+measure 16.5 50: 42 4
+string_size_wrapped 16.5 50: 50 480
+measure 16.5 200: 199 20
+string_size_wrapped 16.5 200: 200 160
+hinting 16.5 normal: 0
+render 16.5 normal solid: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=c52fb51ed6564f99 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 normal shaded: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=1466d63587a493b9 pal=256:b1257179c18f8b45 blend=1
+render 16.5 normal blended: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=668776167f39c567 blend=1
+render 16.5 normal lcd: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=72e6204f29babcbf blend=1
+hinting 16.5 light: 1
+render 16.5 light solid: 701x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=8d5ce0c2aae21656 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light shaded: 701x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=ee6256f55b5d551f pal=256:b1257179c18f8b45 blend=1
+render 16.5 light blended: 701x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=0c84aef35bb3b813 blend=1
+render 16.5 light lcd: 701x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=e98868dde552788e blend=1
+hinting 16.5 mono: 2
+render 16.5 mono solid: 722x20 SDL_PIXELFORMAT_INDEX8 pitch=736 hash=a5f7005e35fe55c0 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 mono shaded: 722x20 SDL_PIXELFORMAT_INDEX8 pitch=736 hash=1692091aa9e6bf73 pal=256:b1257179c18f8b45 blend=1
+render 16.5 mono blended: 722x20 SDL_PIXELFORMAT_ARGB8888 pitch=2944 hash=c9cf235e29e77aa1 blend=1
+render 16.5 mono lcd: 722x20 SDL_PIXELFORMAT_ARGB8888 pitch=2944 hash=c8ff0413d4e3dc64 blend=1
+hinting 16.5 none: 3
+render 16.5 none solid: 701x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=3ed0458d090c9362 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 none shaded: 701x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=59b50c408f741017 pal=256:b1257179c18f8b45 blend=1
+render 16.5 none blended: 701x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=902df70f4a4248b3 blend=1
+render 16.5 none lcd: 701x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=81548bdb60624aee blend=1
+hinting 16.5 light_subpixel: 1
+render 16.5 light_subpixel solid: 701x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=8d5ce0c2aae21656 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light_subpixel shaded: 701x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=ee6256f55b5d551f pal=256:b1257179c18f8b45 blend=1
+render 16.5 light_subpixel blended: 701x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=0c84aef35bb3b813 blend=1
+render 16.5 light_subpixel lcd: 701x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=e98868dde552788e blend=1
+info: family=DejaVu Serif style=Bold size=33 dpi=72,72 height=39 ascent=31 descent=-7 lineskip=39 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+metrics 33 U+0041: has=1 -1 26 0 24 26
+metrics 33 U+0067: has=1 1 23 -7 17 23
+metrics 33 U+0057: has=1 -1 38 0 24 37
+metrics 33 U+006A: has=1 -3 10 -7 25 12
+metrics 33 U+0020: has=1 0 0 0 0 11
+metrics 33 U+00E9: has=1 1 20 0 26 21
+metrics 33 U+20AC: has=0 1 19 -6 23 20
+metrics 33 U+4E00: has=0 1 19 -6 23 20
+kern 33 U+0041 U+0056: -2
+kern 33 U+0054 U+006F: -4
+kern 33 U+0057 U+0061: -3
+kern 33 U+0066 U+006A: 0
+kern 33 U+0041 U+4E00: 0
+string_size 33: 1381 39
+measure 33 0: 1381 74
+string_size_wrapped 33 0: 771 195
+measure 33 50: 49 2
+string_size_wrapped 33 50: 50 1638
+measure 33 200: 195 10
+string_size_wrapped 33 200: 200 546
+hinting 33 normal: 0
+render 33 normal solid: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=8817ab86b299d3de pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 normal shaded: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=17fa85f64732bdd8 pal=256:b1257179c18f8b45 blend=1
+render 33 normal blended: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=bbc03ed7cf718226 blend=1
+render 33 normal lcd: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=3c884d3a5daa37b7 blend=1
+hinting 33 light: 1
+render 33 light solid: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=acbcd890be6e500f pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light shaded: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=5f5c231f94a37f9b pal=256:b1257179c18f8b45 blend=1
+render 33 light blended: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=2d4e5cb192156455 blend=1
+render 33 light lcd: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=22d3db5d8fb42fd3 blend=1
+hinting 33 mono: 2
+render 33 mono solid: 1382x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=8c5f5755cccc9adc pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 mono shaded: 1382x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=b422bdecffaf8155 pal=256:b1257179c18f8b45 blend=1
+render 33 mono blended: 1382x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=7328ada56bbc97d3 blend=1
+render 33 mono lcd: 1382x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=655c9f5aee4add32 blend=1
+hinting 33 none: 3
+render 33 none solid: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=8e696f07290d8883 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 none shaded: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=45d37ce522bf7eca pal=256:b1257179c18f8b45 blend=1
+render 33 none blended: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=47f3000e0d57c20c blend=1
+render 33 none lcd: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=5cce797e87d02163 blend=1
+hinting 33 light_subpixel: 1
+render 33 light_subpixel solid: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=acbcd890be6e500f pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light_subpixel shaded: 1381x39 SDL_PIXELFORMAT_INDEX8 pitch=1392 hash=5f5c231f94a37f9b pal=256:b1257179c18f8b45 blend=1
+render 33 light_subpixel blended: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=2d4e5cb192156455 blend=1
+render 33 light_subpixel lcd: 1381x39 SDL_PIXELFORMAT_ARGB8888 pitch=5584 hash=22d3db5d8fb42fd3 blend=1
+style 1: 1
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render style 1 solid: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=c52fb51ed6564f99 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 1 shaded: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=1466d63587a493b9 pal=256:b1257179c18f8b45 blend=1
+render style 1 blended: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=668776167f39c567 blend=1
+render style 1 lcd: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=72e6204f29babcbf blend=1
+style 2: 3
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render style 2 solid: 718x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=8f0f6a381bd44268 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 2 shaded: 718x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=3002ed0260cd6e4b pal=256:b1257179c18f8b45 blend=1
+render style 2 blended: 718x20 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=89e1bee13cc734bb blend=1
+render style 2 lcd: 718x20 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=58319d6f0754ba67 blend=1
+style 4: 5
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render style 4 solid: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=349bcc9e63893baa pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 4 shaded: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=a1c4befc38b70756 pal=256:b1257179c18f8b45 blend=1
+render style 4 blended: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=c52f3b85f2e014fa blend=1
+render style 4 lcd: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=e61522e470a1ba51 blend=1
+style 8: 9
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render style 8 solid: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=5bc3d41f1889f590 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 8 shaded: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=dd5ad333a173ada1 pal=256:b1257179c18f8b45 blend=1
+render style 8 blended: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=dd1fc4975bcb4f0d blend=1
+render style 8 lcd: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=547e0ec2e943cc1d blend=1
+style 15: 15
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render style 15 solid: 718x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=e91d2624b5e39a05 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 15 shaded: 718x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=8195edcd4eda9412 pal=256:b1257179c18f8b45 blend=1
+render style 15 blended: 718x20 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=c578b72e0308a3ae blend=1
+render style 15 lcd: 718x20 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=553f65c3e8ef2fe6 blend=1
+outline 1: 1 1
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=18 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render outline 1 0 solid: 717x22 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=fdcd9633731137f7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 0 shaded: 717x22 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=fb15fded08b3d7af pal=256:b1257179c18f8b45 blend=1
+render outline 1 0 blended: 717x22 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=0c57c5aa71fc4ecf blend=1
+render outline 1 0 lcd: 717x22 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=f01ada9d3327243d blend=1
+outline 1: 1 1
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=18 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render outline 1 1 solid: 717x22 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=47df3898eb297068 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 1 shaded: 717x22 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=65cf79e4005be3b1 pal=256:b1257179c18f8b45 blend=1
+render outline 1 1 blended: 717x22 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=ef044c9aee58af45 blend=1
+render outline 1 1 lcd: 717x22 SDL_PIXELFORMAT_ARGB8888 pitch=2928 hash=02760cc7c2dd9985 blend=1
+outline 3: 1 3
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=22 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render outline 3 0 solid: 721x26 SDL_PIXELFORMAT_INDEX8 pitch=736 hash=1f4dea61338692a3 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 0 shaded: 721x26 SDL_PIXELFORMAT_INDEX8 pitch=736 hash=f8bdb2e8191d8d3d pal=256:b1257179c18f8b45 blend=1
+render outline 3 0 blended: 721x26 SDL_PIXELFORMAT_ARGB8888 pitch=2944 hash=3aaa3f93a38c5349 blend=1
+render outline 3 0 lcd: 721x26 SDL_PIXELFORMAT_ARGB8888 pitch=2944 hash=d7390e2c5b6c0e93 blend=1
+outline 3: 1 3
+info: family=DejaVu Serif style=Bold size=16.5 dpi=72,72 height=20 ascent=22 descent=-3 lineskip=20 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render outline 3 1 solid: 721x26 SDL_PIXELFORMAT_INDEX8 pitch=736 hash=51d880fa158396bc pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 1 shaded: 721x26 SDL_PIXELFORMAT_INDEX8 pitch=736 hash=9cdb4901a28b62cd pal=256:b1257179c18f8b45 blend=1
+render outline 3 1 blended: 721x26 SDL_PIXELFORMAT_ARGB8888 pitch=2944 hash=55fb255321051745 blend=1
+render outline 3 1 lcd: 721x26 SDL_PIXELFORMAT_ARGB8888 pitch=2944 hash=3d81a0261fc1904e blend=1
+kerning off: 0
+render nokern solid: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=1eb8527de381861b pal=256:b2ddce223dd8aab4 key=0 blend=0
+render nokern shaded: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=face4652a08800d5 pal=256:b1257179c18f8b45 blend=1
+render nokern blended: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=536e5968c1b8a147 blend=1
+render nokern lcd: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=e4c5049cbca8b392 blend=1
+render blended alpha: 715x20 SDL_PIXELFORMAT_ARGB8888 pitch=2912 hash=9ed2681cdbed4897 blend=1
+render shaded alpha: 715x20 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=face4652a08800d5 pal=256:3b2779e20689d5ea blend=1
+render solid len 10: 100x20 SDL_PIXELFORMAT_INDEX8 pitch=112 hash=e2c06b41b6e8030a pal=256:b2ddce223dd8aab4 key=0 blend=0
+render empty: err: Text has zero width
+render space: 6x20 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=7ad6e3eec45a28a5 blend=1
+render newline: 33x20 SDL_PIXELFORMAT_ARGB8888 pitch=192 hash=145143f37e282f6d blend=1
+render nul: 31x20 SDL_PIXELFORMAT_ARGB8888 pitch=176 hash=1fbba92de5e1fa80 blend=1
+render nul shaded: 30x20 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=9761501112b0d729 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 solid: 398x100 SDL_PIXELFORMAT_INDEX8 pitch=400 hash=7ce62c62a89dfacb pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 0 shaded: 398x100 SDL_PIXELFORMAT_INDEX8 pitch=400 hash=25c804a3772b3ac5 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 blended: 398x100 SDL_PIXELFORMAT_ARGB8888 pitch=1648 hash=72382e6bf96a8c55 blend=1
+wrapped 0 lcd: 398x100 SDL_PIXELFORMAT_ARGB8888 pitch=1648 hash=d06b2c0cfd86a8cd blend=1
+wrapped 80 solid: 80x320 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=a40529bb72770f13 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 80 shaded: 80x320 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=6eacd7765bf01479 pal=256:b1257179c18f8b45 blend=1
+wrapped 80 blended: 80x320 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=3950aea4edd124e9 blend=1
+wrapped 80 lcd: 80x320 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=69e7df01d530f4f9 blend=1
+wrapped 200 solid: 200x160 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=283c0c45d570f019 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 200 shaded: 200x160 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=9d78a2de0437695d pal=256:b1257179c18f8b45 blend=1
+wrapped 200 blended: 200x160 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=a1b30b13c0cf77f5 blend=1
+wrapped 200 lcd: 200x160 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=c259606e27c92e81 blend=1
+wrapped align 1: 1 150x180 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=8dd4f85b17132705 blend=1
+wrapped align 2: 2 150x180 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=fd362eb943a66e75 blend=1
+wrapped align 0: 0 150x180 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=740c73695606a225 blend=1
+wrapped lineskip 30: 30 150x270 SDL_PIXELFORMAT_INDEX8 pitch=160 hash=7f44126e0c71f9af pal=256:b1257179c18f8b45 blend=1
+wrapped lineskip 3: 3 150x44 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=eaf22278107512e3 blend=1
+wrapped underline lineskip 3: 150x180 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=b99543ccfb37c525 blend=1
+lineskip after set_size: 20
+glyph U+0067 solid: 12x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=92bb4e91646222ac pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+0067 shaded: 12x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=0c928ca47e968700 pal=256:b1257179c18f8b45 blend=1
+glyph U+0067 blended: 12x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=aa57235bd0ff32f6 blend=1
+glyph U+0067 lcd: 12x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5e5c28ab25f9e7a0 blend=1
+glyph_image U+0067: type=1 12x13 SDL_PIXELFORMAT_ARGB8888 pitch=48 hash=9dff595ee8184d36 blend=1
+glyph U+00E9 solid: 11x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=451832fd4519f34d pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+00E9 shaded: 11x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=da5e89e7da524147 pal=256:b1257179c18f8b45 blend=1
+glyph U+00E9 blended: 11x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=51ebb9a61d1bc17d blend=1
+glyph U+00E9 lcd: 11x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=f8ccde4577214b51 blend=1
+glyph_image U+00E9: type=1 11x14 SDL_PIXELFORMAT_ARGB8888 pitch=44 hash=188953b4f54674a5 blend=1
+glyph U+20AC solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=d3ed72a93b942f13 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+20AC shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=0eac6a03229ab349 pal=256:b1257179c18f8b45 blend=1
+glyph U+20AC blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=6ca4f7f360b3b7d9 blend=1
+glyph U+20AC lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=94e3baa41c284d55 blend=1
+glyph_image U+20AC: type=0 err: Codepoint not in font
+glyph U+4E00 solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=d3ed72a93b942f13 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+4E00 shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=0eac6a03229ab349 pal=256:b1257179c18f8b45 blend=1
+glyph U+4E00 blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=6ca4f7f360b3b7d9 blend=1
+glyph U+4E00 lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=94e3baa41c284d55 blend=1
+glyph_image U+4E00: type=0 err: Codepoint not in font
+glyph_image_for_index 0: type=1 10x15 SDL_PIXELFORMAT_ARGB8888 pitch=40 hash=55d5b564b4346749 blend=1
+glyph_image_for_index 1: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 2: type=1 4x12 SDL_PIXELFORMAT_ARGB8888 pitch=16 hash=174f18cf133c4480 blend=1
+glyph_image_for_index 3: type=1 7x5 SDL_PIXELFORMAT_ARGB8888 pitch=28 hash=18b5f8e555e50814 blend=1
+glyph_image_for_index 100000: err: FT_Load_Glyph() failed
+direction rtl: 0 0 That operation is not supported
+direction ltr: 1 4
+script: 0 That operation is not supported
+language: 0 That operation is not supported
+sizedpi: 1 info: family=DejaVu Serif style=Bold size=12 dpi=96,144 height=29 ascent=23 descent=-5 lineskip=29 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render dpi: 675x29 SDL_PIXELFORMAT_ARGB8888 pitch=2752 hash=cb40743242c39c22 blend=1
+copy: info: family=DejaVu Serif style=Bold size=12 dpi=96,144 height=29 ascent=23 descent=-5 lineskip=29 fixed=0 scalable=1 faces=1 weight=700 kerning=1
+render copy: 675x29 SDL_PIXELFORMAT_INDEX8 pitch=688 hash=7be142183bf623f8 pal=256:b1257179c18f8b45 blend=1
+fallback add: 1
+render fallback solid: 70x39 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=000839f1228ae937 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render fallback shaded: 70x39 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=25839ae5de8e99d3 pal=256:b1257179c18f8b45 blend=1
+render fallback blended: 70x39 SDL_PIXELFORMAT_ARGB8888 pitch=336 hash=ce1653c039469cc1 blend=1
+render fallback lcd: 70x39 SDL_PIXELFORMAT_ARGB8888 pitch=336 hash=56c6735babaa5b9a blend=1
+metrics fallback U+20AC: 0 9 0 12 10
+render fallback resized: 70x39 SDL_PIXELFORMAT_ARGB8888 pitch=336 hash=00cf33a72ffcb9b1 blend=1
+render fallback removed: 70x41 SDL_PIXELFORMAT_ARGB8888 pitch=336 hash=c733c8646936b592 blend=1
+== corrupt DejaVuSerif-Bold.ttf
+trunc 0: err: Couldn't load font file
+trunc 1: err: Couldn't load font file
+trunc 4: err: Couldn't load font file
+trunc 12: err: Couldn't load font file
+trunc 16: err: Couldn't load font file
+trunc 100: err: Couldn't load font file
+trunc 200: err: Couldn't load font file
+trunc 300: err: Couldn't load font file
+trunc 600: err: Couldn't load font file
+trunc 1000: err: Couldn't load font file
+trunc 2000: err: Couldn't load font file
+trunc 4000: err: Couldn't load font file
+trunc 8000: err: Couldn't load font file
+trunc 20128: err: Couldn't load font file
+trunc 40156: ok noname nostyle 20 20 | 210x20 b1979fe615ffd86b
+trunc 40255: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 4: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 16: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 28: ok named styled 20 20 | 190x20 a39b64979d80bd19
+flip 40: ok named styled 20 20 | 190x20 a39b64979d80bd19
+flip 52: ok named styled 20 20 | 210x20 8943ef3f162f1a93
+flip 64: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 76: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 88: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 100: ok named styled 20 20 | 210x20 13c229fbc864c3a5
+flip 112: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 124: err: Couldn't load font file
+flip 136: err: Couldn't load font file
+flip 148: err: Couldn't load font file
+flip 160: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 172: err: Couldn't load font file
+flip 184: err: Couldn't load font file
+flip 196: ok named styled 20 20 | err: Text has zero width
+flip 208: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 220: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 232: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 244: ok named styled 20 20 | 210x20 02ae995c9044f8dc
+flip 256: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 268: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 280: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 168: ok named styled 20 20 | 211x20 c2abe2be72bc908b
+flip 1852: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 3536: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 5221: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 6905: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 8589: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 10274: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 11958: ok named styled 20 20 | 307x20 dbfc6880735625f6
+flip 13642: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 15327: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 17011: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 18695: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 20380: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 22064: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 23748: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 25433: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 27117: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 28801: ok named styled 20 21 | 210x20 b1979fe615ffd86b
+flip 30486: ok named styled 20 20 | err: Text has zero width
+flip 32170: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 33854: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 35539: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 37223: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+flip 38907: ok named styled 20 20 | 210x20 b1979fe615ffd86b
+== DejaVuSansMono.ttf
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+info: family=DejaVu Sans Mono style=Book size=9 dpi=72,72 height=11 ascent=9 descent=-2 lineskip=11 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+metrics 9 U+0041: has=1 0 6 0 7 5
+metrics 9 U+0067: has=1 0 5 -2 5 5
+metrics 9 U+0057: has=1 0 6 0 7 5
+metrics 9 U+006A: has=1 0 4 -2 8 5
+metrics 9 U+0020: has=1 0 0 0 0 5
+metrics 9 U+00E9: has=1 0 5 0 8 5
+metrics 9 U+20AC: has=1 0 5 0 7 5
+metrics 9 U+4E00: has=0 0 5 -2 6 5
+kern 9 U+0041 U+0056: 0
+kern 9 U+0054 U+006F: 0
+kern 9 U+0057 U+0061: 0
+kern 9 U+0066 U+006A: 0
+kern 9 U+0041 U+4E00: 0
+string_size 9: 350 11
+measure 9 0: 350 74
+string_size_wrapped 9 0: 220 55
+measure 9 50: 50 10
+string_size_wrapped 9 50: 50 154
+measure 9 200: 200 40
+string_size_wrapped 9 200: 200 66
+hinting 9 normal: 0
+render 9 normal solid: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=d6712951e26d9b9c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 normal shaded: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=5166b3e138691c1b pal=256:b1257179c18f8b45 blend=1
+render 9 normal blended: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=5323c034dab4c71d blend=1
+render 9 normal lcd: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=de2e71d5a7ed3221 blend=1
+hinting 9 light: 1
+render 9 light solid: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=cc56f66ae3e17193 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light shaded: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=0041b85f3a927994 pal=256:b1257179c18f8b45 blend=1
+render 9 light blended: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=f23db95177e13078 blend=1
+render 9 light lcd: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=c2eaadee954eb343 blend=1
+hinting 9 mono: 2
+render 9 mono solid: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=9c1ec4807c71dc18 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 mono shaded: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=b38fcd26afe3a2f3 pal=256:b1257179c18f8b45 blend=1
+render 9 mono blended: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=2db6626ebda5c571 blend=1
+render 9 mono lcd: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=c8de9264438436a6 blend=1
+hinting 9 none: 3
+render 9 none solid: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=eb43a79e8a30d085 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 none shaded: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=0965a71b4aefee0e pal=256:b1257179c18f8b45 blend=1
+render 9 none blended: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=492a98050d281b86 blend=1
+render 9 none lcd: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=1af16babd85c7bf7 blend=1
+hinting 9 light_subpixel: 1
+render 9 light_subpixel solid: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=cc56f66ae3e17193 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light_subpixel shaded: 350x11 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=0041b85f3a927994 pal=256:b1257179c18f8b45 blend=1
+render 9 light_subpixel blended: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=f23db95177e13078 blend=1
+render 9 light_subpixel lcd: 350x11 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=c2eaadee954eb343 blend=1
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+metrics 16.5 U+0041: has=1 0 10 0 12 10
+metrics 16.5 U+0067: has=1 1 9 -4 9 10
+metrics 16.5 U+0057: has=1 0 11 0 12 10
+metrics 16.5 U+006A: has=1 1 7 -4 13 10
+metrics 16.5 U+0020: has=1 0 0 0 0 10
+metrics 16.5 U+00E9: has=1 1 10 0 14 10
+metrics 16.5 U+20AC: has=1 0 9 0 12 10
+metrics 16.5 U+4E00: has=0 0 10 -3 12 10
+kern 16.5 U+0041 U+0056: 0
+kern 16.5 U+0054 U+006F: 0
+kern 16.5 U+0057 U+0061: 0
+kern 16.5 U+0066 U+006A: 0
+kern 16.5 U+0041 U+4E00: 0
+string_size 16.5: 700 20
+measure 16.5 0: 700 74
+string_size_wrapped 16.5 0: 440 100
+measure 16.5 50: 50 5
+string_size_wrapped 16.5 50: 50 460
+measure 16.5 200: 200 20
+string_size_wrapped 16.5 200: 200 160
+hinting 16.5 normal: 0
+render 16.5 normal solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=362b91f98a0b57f7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 normal shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=80a880c42b7eb50e pal=256:b1257179c18f8b45 blend=1
+render 16.5 normal blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=fc4d02c1c79272d0 blend=1
+render 16.5 normal lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=e951438dc398d2cf blend=1
+hinting 16.5 light: 1
+render 16.5 light solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=be0d646c4f2382e2 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=1ad73f1339cd95d5 pal=256:b1257179c18f8b45 blend=1
+render 16.5 light blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=f3c04e26f4989cf9 blend=1
+render 16.5 light lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=694ed892e1d19f26 blend=1
+hinting 16.5 mono: 2
+render 16.5 mono solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=ac6840d3aa0440a5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 mono shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=6cfa5d85ffcf9641 pal=256:b1257179c18f8b45 blend=1
+render 16.5 mono blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=778d42f497775dd7 blend=1
+render 16.5 mono lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=d1d864679bdda8a7 blend=1
+hinting 16.5 none: 3
+render 16.5 none solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=e33e098d7730bbb1 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 none shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=7a89fca79d0e94d4 pal=256:b1257179c18f8b45 blend=1
+render 16.5 none blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=b8e595630c427ee0 blend=1
+render 16.5 none lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=ff8a671599be28b0 blend=1
+hinting 16.5 light_subpixel: 1
+render 16.5 light_subpixel solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=be0d646c4f2382e2 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light_subpixel shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=1ad73f1339cd95d5 pal=256:b1257179c18f8b45 blend=1
+render 16.5 light_subpixel blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=f3c04e26f4989cf9 blend=1
+render 16.5 light_subpixel lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=694ed892e1d19f26 blend=1
+info: family=DejaVu Sans Mono style=Book size=33 dpi=72,72 height=39 ascent=31 descent=-7 lineskip=39 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+metrics 33 U+0041: has=1 0 20 0 24 20
+metrics 33 U+0067: has=1 1 17 -7 18 20
+metrics 33 U+0057: has=1 0 20 0 24 20
+metrics 33 U+006A: has=1 3 13 -7 25 20
+metrics 33 U+0020: has=1 0 0 0 0 20
+metrics 33 U+00E9: has=1 1 18 0 26 20
+metrics 33 U+20AC: has=1 0 18 0 24 20
+metrics 33 U+4E00: has=0 1 19 -6 23 20
+kern 33 U+0041 U+0056: 0
+kern 33 U+0054 U+006F: 0
+kern 33 U+0057 U+0061: 0
+kern 33 U+0066 U+006A: 0
+kern 33 U+0041 U+4E00: 0
+string_size 33: 1400 39
+measure 33 0: 1400 74
+string_size_wrapped 33 0: 880 195
+measure 33 50: 40 2
+string_size_wrapped 33 50: 50 1638
+measure 33 200: 200 10
+string_size_wrapped 33 200: 200 546
+hinting 33 normal: 0
+render 33 normal solid: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=3ebe6c0705e52da1 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 normal shaded: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=f8d09e21243a267a pal=256:b1257179c18f8b45 blend=1
+render 33 normal blended: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=54cd2937c5c9dfd4 blend=1
+render 33 normal lcd: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=d33699789567a40e blend=1
+hinting 33 light: 1
+render 33 light solid: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=00e236a74f46b307 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light shaded: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=2e6127b9119c62a5 pal=256:b1257179c18f8b45 blend=1
+render 33 light blended: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=d3c1418d3028ed39 blend=1
+render 33 light lcd: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=fe6b713de7413b36 blend=1
+hinting 33 mono: 2
+render 33 mono solid: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=69edf0b309ec8b27 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 mono shaded: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=3c93d43b317422c4 pal=256:b1257179c18f8b45 blend=1
+render 33 mono blended: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=a247febb6d0ce3b4 blend=1
+render 33 mono lcd: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=424552df54904112 blend=1
+hinting 33 none: 3
+render 33 none solid: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=84ef0a55a3dd356b pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 none shaded: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=75184f04437bd5cd pal=256:b1257179c18f8b45 blend=1
+render 33 none blended: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=53207ae9d3fb670b blend=1
+render 33 none lcd: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=9caea0e8aa29e356 blend=1
+hinting 33 light_subpixel: 1
+render 33 light_subpixel solid: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=00e236a74f46b307 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light_subpixel shaded: 1400x39 SDL_PIXELFORMAT_INDEX8 pitch=1408 hash=2e6127b9119c62a5 pal=256:b1257179c18f8b45 blend=1
+render 33 light_subpixel blended: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=d3c1418d3028ed39 blend=1
+render 33 light_subpixel lcd: 1400x39 SDL_PIXELFORMAT_ARGB8888 pitch=5648 hash=fe6b713de7413b36 blend=1
+style 1: 1
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render style 1 solid: 770x20 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=ff4dad21cb594963 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 1 shaded: 770x20 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=848fb4a0b2e1df3c pal=256:b1257179c18f8b45 blend=1
+render style 1 blended: 770x20 SDL_PIXELFORMAT_ARGB8888 pitch=3136 hash=58b5fa7cd8b40398 blend=1
+render style 1 lcd: 770x20 SDL_PIXELFORMAT_ARGB8888 pitch=3136 hash=d988281d483a1deb blend=1
+style 2: 2
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render style 2 solid: 704x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=aa672a355876f6ec pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 2 shaded: 704x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=3b446809f7050cab pal=256:b1257179c18f8b45 blend=1
+render style 2 blended: 704x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=3628d7e6589c5e3d blend=1
+render style 2 lcd: 704x20 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=c74d7fd8d69c91bd blend=1
+style 4: 4
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render style 4 solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=91e7480c72d7e5fe pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 4 shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=291b97de30224b56 pal=256:b1257179c18f8b45 blend=1
+render style 4 blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=8c597df5264888e6 blend=1
+render style 4 lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=18482d88c5dabffe blend=1
+style 8: 8
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render style 8 solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=31f68e42f6b2db26 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 8 shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=a0531deaf071d717 pal=256:b1257179c18f8b45 blend=1
+render style 8 blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=fd9d3aa0a06faed3 blend=1
+render style 8 lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=a25660ea7e22784a blend=1
+style 15: 15
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=16 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render style 15 solid: 774x20 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=e3c3773498837340 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 15 shaded: 774x20 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=a32c10664bbc6824 pal=256:b1257179c18f8b45 blend=1
+render style 15 blended: 774x20 SDL_PIXELFORMAT_ARGB8888 pitch=3152 hash=48d00d6aeb1ce4ea blend=1
+render style 15 lcd: 774x20 SDL_PIXELFORMAT_ARGB8888 pitch=3152 hash=b3ae60977be1d4be blend=1
+outline 1: 1 1
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=18 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render outline 1 0 solid: 702x22 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=5bf1cc660dfbaa5e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 0 shaded: 702x22 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=8cba5d2d6910db40 pal=256:b1257179c18f8b45 blend=1
+render outline 1 0 blended: 702x22 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=3ec519f04da33c8e blend=1
+render outline 1 0 lcd: 702x22 SDL_PIXELFORMAT_ARGB8888 pitch=2864 hash=24b206160558060a blend=1
+outline 1: 1 1
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=18 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render outline 1 1 solid: 772x22 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=30f7a86f73c66ae6 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 1 shaded: 772x22 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=5f1eeeaa27d653ca pal=256:b1257179c18f8b45 blend=1
+render outline 1 1 blended: 772x22 SDL_PIXELFORMAT_ARGB8888 pitch=3136 hash=c3600cc83a8c4740 blend=1
+render outline 1 1 lcd: 772x22 SDL_PIXELFORMAT_ARGB8888 pitch=3136 hash=e30962d6cc1712b5 blend=1
+outline 3: 1 3
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=22 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render outline 3 0 solid: 706x26 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=a7bbe49ee142aa69 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 0 shaded: 706x26 SDL_PIXELFORMAT_INDEX8 pitch=720 hash=b6c8092aff3f8f84 pal=256:b1257179c18f8b45 blend=1
+render outline 3 0 blended: 706x26 SDL_PIXELFORMAT_ARGB8888 pitch=2880 hash=b5df89666ab93170 blend=1
+render outline 3 0 lcd: 706x26 SDL_PIXELFORMAT_ARGB8888 pitch=2880 hash=4680824ae0163771 blend=1
+outline 3: 1 3
+info: family=DejaVu Sans Mono style=Book size=16.5 dpi=72,72 height=20 ascent=22 descent=-3 lineskip=20 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render outline 3 1 solid: 776x26 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=6a04298c530c8f34 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 1 shaded: 776x26 SDL_PIXELFORMAT_INDEX8 pitch=784 hash=1792a683e6a1ff48 pal=256:b1257179c18f8b45 blend=1
+render outline 3 1 blended: 776x26 SDL_PIXELFORMAT_ARGB8888 pitch=3152 hash=6a024f3fb9937de4 blend=1
+render outline 3 1 lcd: 776x26 SDL_PIXELFORMAT_ARGB8888 pitch=3152 hash=92346136da5e5209 blend=1
+kerning off: 0
+render nokern solid: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=362b91f98a0b57f7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render nokern shaded: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=80a880c42b7eb50e pal=256:b1257179c18f8b45 blend=1
+render nokern blended: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=fc4d02c1c79272d0 blend=1
+render nokern lcd: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=e951438dc398d2cf blend=1
+render blended alpha: 700x20 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=9fd2b97b62252f61 blend=1
+render shaded alpha: 700x20 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=80a880c42b7eb50e pal=256:3b2779e20689d5ea blend=1
+render solid len 10: 100x20 SDL_PIXELFORMAT_INDEX8 pitch=112 hash=af600cde64ce53e4 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render empty: err: Text has zero width
+render space: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=ff883a3f1bc921a5 blend=1
+render newline: 30x20 SDL_PIXELFORMAT_ARGB8888 pitch=176 hash=f43fe59fad21d1aa blend=1
+render nul: 30x20 SDL_PIXELFORMAT_ARGB8888 pitch=176 hash=eb7a4171cce4d38f blend=1
+render nul shaded: 30x20 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=e5d36122ebe50001 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 solid: 440x100 SDL_PIXELFORMAT_INDEX8 pitch=448 hash=ce883dcca7e06d7e pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 0 shaded: 440x100 SDL_PIXELFORMAT_INDEX8 pitch=448 hash=bff6a26c83eb07e9 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 blended: 440x100 SDL_PIXELFORMAT_ARGB8888 pitch=1808 hash=aa55dc228f0293cf blend=1
+wrapped 0 lcd: 440x100 SDL_PIXELFORMAT_ARGB8888 pitch=1808 hash=fd7af29bd65621a4 blend=1
+wrapped 80 solid: 80x320 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=41a8abf0aa621dd8 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 80 shaded: 80x320 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=81a625e755888679 pal=256:b1257179c18f8b45 blend=1
+wrapped 80 blended: 80x320 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=825c250475f8940b blend=1
+wrapped 80 lcd: 80x320 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=7d8eec6fcc154f6f blend=1
+wrapped 200 solid: 200x160 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=41050c7d8ad4dada pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 200 shaded: 200x160 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=677c19300b0f317d pal=256:b1257179c18f8b45 blend=1
+wrapped 200 blended: 200x160 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=2dc88e766213f5af blend=1
+wrapped 200 lcd: 200x160 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=9635556a8dca5810 blend=1
+wrapped align 1: 1 150x200 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=ee3510818beed54f blend=1
+wrapped align 2: 2 150x200 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=8f3aae6345db072f blend=1
+wrapped align 0: 0 150x200 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=d234083f093164ef blend=1
+wrapped lineskip 30: 30 150x300 SDL_PIXELFORMAT_INDEX8 pitch=160 hash=c3f9b80b7b196e3d pal=256:b1257179c18f8b45 blend=1
+wrapped lineskip 3: 3 150x47 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=8c22732c46b31044 blend=1
+wrapped underline lineskip 3: 150x200 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=b8280ecfb9a4b397 blend=1
+lineskip after set_size: 20
+glyph U+0067 solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e44a01e5bf1c4783 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+0067 shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=9d8a97152bfb6be7 pal=256:b1257179c18f8b45 blend=1
+glyph U+0067 blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=0b6e41c4f0c48041 blend=1
+glyph U+0067 lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=898a5b60bcf21e74 blend=1
+glyph_image U+0067: type=1 8x13 SDL_PIXELFORMAT_ARGB8888 pitch=32 hash=92eed9a4cef0daa1 blend=1
+glyph U+00E9 solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=36ceb27f083d9bfd pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+00E9 shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=b23a055561b03e84 pal=256:b1257179c18f8b45 blend=1
+glyph U+00E9 blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=772c7c7b8cb061d0 blend=1
+glyph U+00E9 lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=ba9c745b853dfed8 blend=1
+glyph_image U+00E9: type=1 9x14 SDL_PIXELFORMAT_ARGB8888 pitch=36 hash=cc07ae616a1ac0a8 blend=1
+glyph U+20AC solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=983ec990466e2ea7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+20AC shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=a4e1076cf3cd96d3 pal=256:b1257179c18f8b45 blend=1
+glyph U+20AC blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=cd1ff878609eb0bb blend=1
+glyph U+20AC lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=4e46720a978291d3 blend=1
+glyph_image U+20AC: type=1 9x12 SDL_PIXELFORMAT_ARGB8888 pitch=36 hash=dfef9297cb4e5d4b blend=1
+glyph U+4E00 solid: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=d3ed72a93b942f13 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+4E00 shaded: 10x20 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=5d206bf46b185b11 pal=256:b1257179c18f8b45 blend=1
+glyph U+4E00 blended: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=9b10e5dd2400c361 blend=1
+glyph U+4E00 lcd: 10x20 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=58a7241369d1f2cc blend=1
+glyph_image U+4E00: type=0 err: Codepoint not in font
+glyph_image_for_index 0: type=1 10x15 SDL_PIXELFORMAT_ARGB8888 pitch=40 hash=56241886bc84d6d1 blend=1
+glyph_image_for_index 1: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 2: type=1 2x12 SDL_PIXELFORMAT_ARGB8888 pitch=8 hash=389498a353d783d2 blend=1
+glyph_image_for_index 3: type=1 6x5 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=9149c849facfed25 blend=1
+glyph_image_for_index 100000: err: FT_Load_Glyph() failed
+direction rtl: 0 0 That operation is not supported
+direction ltr: 1 4
+script: 0 That operation is not supported
+language: 0 That operation is not supported
+sizedpi: 1 info: family=DejaVu Sans Mono style=Book size=12 dpi=96,144 height=28 ascent=23 descent=-5 lineskip=28 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render dpi: 700x28 SDL_PIXELFORMAT_ARGB8888 pitch=2848 hash=6e0aca1205f46fa2 blend=1
+copy: info: family=DejaVu Sans Mono style=Book size=12 dpi=96,144 height=28 ascent=23 descent=-5 lineskip=28 fixed=1 scalable=1 faces=1 weight=400 kerning=1
+render copy: 700x28 SDL_PIXELFORMAT_INDEX8 pitch=704 hash=21e7a84c1bed79d2 pal=256:b1257179c18f8b45 blend=1
+fallback add: 1
+render fallback solid: 78x39 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=710b61d52e5ab8b4 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render fallback shaded: 78x39 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=914bf0f50155343a pal=256:b1257179c18f8b45 blend=1
+render fallback blended: 78x39 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=cf823ca5e51e880a blend=1
+render fallback lcd: 78x39 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=984eeb9051c5a5d1 blend=1
+metrics fallback U+20AC: 0 12 0 24 13
+render fallback resized: 78x39 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=cf823ca5e51e880a blend=1
+render fallback removed: 78x39 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=cf823ca5e51e880a blend=1
+== corrupt DejaVuSansMono.ttf
+trunc 0: err: Couldn't load font file
+trunc 1: err: Couldn't load font file
+trunc 4: err: Couldn't load font file
+trunc 12: err: Couldn't load font file
+trunc 16: err: Couldn't load font file
+trunc 100: err: Couldn't load font file
+trunc 200: err: Couldn't load font file
+trunc 300: err: Couldn't load font file
+trunc 600: err: Couldn't load font file
+trunc 1000: err: Couldn't load font file
+trunc 2000: err: Couldn't load font file
+trunc 4000: err: Couldn't load font file
+trunc 8000: err: Couldn't load font file
+trunc 16812: err: Couldn't load font file
+trunc 33524: ok noname nostyle 20 20 | 190x20 689dc38c9fb21bba
+trunc 33623: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 4: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 16: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 28: ok named styled 20 20 | 190x20 c043faf356c440e1
+flip 40: ok named styled 20 20 | 190x20 c043faf356c440e1
+flip 52: ok named styled 20 20 | 190x20 1405c9ba671e9eaf
+flip 64: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 76: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 88: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 100: ok named styled 20 20 | 190x20 3bf3086d4309e6a5
+flip 112: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 124: err: Couldn't load font file
+flip 136: err: Couldn't load font file
+flip 148: err: Couldn't load font file
+flip 160: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 172: ok named styled 20 20 | err: Text has zero width
+flip 184: ok named styled 20 20 | err: Text has zero width
+flip 196: ok noname nostyle 20 20 | 190x20 689dc38c9fb21bba
+flip 208: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 220: ok named styled 20 20 | 190x20 1738f9e3793e0063
+flip 232: ok named styled 20 20 | 190x20 1738f9e3793e0063
+flip 244: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 256: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 268: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 280: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 168: err: Couldn't load font file
+flip 1576: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 2984: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 4392: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 5800: ok named styled 20 20 | 190x20 dbd80fe0ff961240
+flip 7208: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 8616: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 10024: ok named styled 20 20 | 190x20 7ca74ce8b8e75a59
+flip 11432: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 12840: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 14248: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 15656: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 17064: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 18472: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 19880: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 21288: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 22696: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 24104: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 25512: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 26920: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 28328: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 29736: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 31144: ok named styled 20 20 | 190x20 689dc38c9fb21bba
+flip 32552: ok named styled 20 20 | 190x20 689dc38c9fb21bba

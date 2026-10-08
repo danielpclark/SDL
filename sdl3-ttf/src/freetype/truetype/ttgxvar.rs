@@ -233,7 +233,7 @@ pub struct GxMVarTableRec {
 }
 
 /// `GX_BlendRec`: Data for interpolating a font from a distortable font
-/// specified by the GX *var tables ([fgcahvm]var).
+/// specified by the GX *var tables (\[fgcahvm\]var).
 #[derive(Debug, Clone, Default)]
 pub struct GxBlendRec {
     pub num_axis: FtUInt,
