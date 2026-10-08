@@ -2782,6 +2782,7 @@ fn tiff_fetch_normal_tag(tif: &mut Tiff<'_>, dp: &mut TIFFDirEntry, recover: boo
     }
     if err != Err::Ok {
         tiff_read_dir_entry_output_err(err, MODULE, &fip.field_name, recover);
+        return 0;
     }
     1
 }
