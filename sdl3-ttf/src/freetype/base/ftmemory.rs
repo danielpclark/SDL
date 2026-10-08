@@ -52,6 +52,13 @@ pub fn ft_alloc(size: FtLong) -> FtResult<Vec<u8>> {
     ft_qalloc(size)
 }
 
+/// `FT_ALLOC_MULT` / `FT_QALLOC_MULT`: a block of `count` items of
+/// `item_size` bytes.
+pub fn ft_alloc_mult(count: FtLong, item_size: FtLong) -> FtResult<Vec<u8>> {
+    ft_mem_check(item_size, count)?;
+    ft_vec_filled((count * item_size) as usize, 0u8)
+}
+
 /// `FT_NEW_ARRAY` / `FT_QNEW_ARRAY`: `count` default items.
 pub fn ft_new_array<T: Clone + Default>(count: FtLong) -> FtResult<Vec<T>> {
     ft_mem_check(std::mem::size_of::<T>().max(1) as i64, count)?;
