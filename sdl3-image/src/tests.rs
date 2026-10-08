@@ -1008,7 +1008,7 @@ fn saving_through_files_and_types() {
     let (w, h) = (surface.width(), surface.height());
 
     for ext in [
-        "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "BMP",
+        "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "webp", "BMP",
     ] {
         let path = tmp.join(format!("out.{ext}"));
         crate::save(&mut surface, &path).unwrap();
@@ -1023,6 +1023,7 @@ fn saving_through_files_and_types() {
     crate::save_ico(&mut surface, tmp.join("direct.ico")).unwrap();
     crate::save_cur(&mut surface, tmp.join("direct.cur")).unwrap();
     crate::save_gif(&mut surface, tmp.join("direct.gif")).unwrap();
+    crate::save_webp(&mut surface, tmp.join("direct.webp"), 100.0).unwrap();
     assert_eq!(
         std::fs::read(&path).unwrap(),
         dump(|io| crate::save_png_io(&mut surface, io))
@@ -1030,7 +1031,6 @@ fn saving_through_files_and_types() {
 
     let mut io = IoStream::from_dynamic_mem();
     for (t, message) in [
-        ("webp", "SDL_image built without WEBP save support"),
         ("avif", "SDL_image built without AVIF save support"),
         ("xyz", "Unsupported image format"),
     ] {

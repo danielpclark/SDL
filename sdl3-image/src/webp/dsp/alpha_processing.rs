@@ -40,6 +40,23 @@ pub(crate) fn webp_dispatch_alpha(
     alpha_mask != 0xff
 }
 
+/// Translation of `DispatchAlphaToGreen_C()` (`WebPDispatchAlphaToGreen`).
+pub(crate) fn webp_dispatch_alpha_to_green(
+    alpha: &[u8],
+    alpha_stride: usize,
+    width: usize,
+    height: usize,
+    dst: &mut [u32],
+    dst_stride: usize,
+) {
+    for j in 0..height {
+        for i in 0..width {
+            dst[j * dst_stride + i] = (alpha[j * alpha_stride + i] as u32) << 8;
+            // leave A/R/B channels zero'd.
+        }
+    }
+}
+
 /// Translation of `ExtractGreen_C()` (`WebPExtractGreen`).
 pub(crate) fn webp_extract_green(argb: &[u32], alpha: &mut [u8], size: usize) {
     for i in 0..size {

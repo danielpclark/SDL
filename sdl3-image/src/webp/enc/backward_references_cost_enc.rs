@@ -296,7 +296,7 @@ impl<'d> CostManager<'d> {
     /// value. Translation of `UpdateCost()`.
     fn update_cost(&mut self, i: i32, position: i32, cost: f32) {
         let k = i - position;
-        debug_assert!(k >= 0 && k < MAX_LENGTH);
+        debug_assert!((0..MAX_LENGTH).contains(&k));
 
         if self.costs[i as usize] > cost {
             self.costs[i as usize] = cost;
@@ -452,7 +452,7 @@ impl<'d> CostManager<'d> {
         if len < k_skip_distance {
             for j in position..position + len {
                 let k = j - position;
-                debug_assert!(k >= 0 && k < MAX_LENGTH);
+                debug_assert!((0..MAX_LENGTH).contains(&k));
                 let cost_tmp = distance_cost + self.cost_cache[k as usize];
 
                 if self.costs[j as usize] > cost_tmp {

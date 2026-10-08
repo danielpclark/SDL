@@ -2720,13 +2720,6 @@ pub(crate) fn vp8l_prefix_encode(distance: i32) -> (i32, i32, i32) {
     }
 }
 
-/// Sum of each component, mod 256. Translation of `VP8LAddPixels()`.
-pub(crate) fn vp8l_add_pixels(a: u32, b: u32) -> u32 {
-    let alpha_and_green = (a & 0xff00ff00).wrapping_add(b & 0xff00ff00);
-    let red_and_blue = (a & 0x00ff00ff).wrapping_add(b & 0x00ff00ff);
-    (alpha_and_green & 0xff00ff00) | (red_and_blue & 0x00ff00ff)
-}
-
 /// Difference of each component, mod 256. Translation of
 /// `VP8LSubPixels()`.
 pub(crate) fn vp8l_sub_pixels(a: u32, b: u32) -> u32 {
@@ -3137,17 +3130,35 @@ pub(crate) fn vp8l_predictors_sub(
     num_pixels: usize,
     out: &mut [u32],
 ) {
-    for x in 0..num_pixels {
+    for (x, o) in out[..num_pixels].iter_mut().enumerate() {
         let i = input + x;
         let pred = match mode {
             0 => ARGB_BLACK,
             1 => buf[i - 1],
             _ => {
+                // (each predictor reads only the neighbours it uses: the
+                // left and top-left ones may be before the buffer for the
+                // top one)
                 let u = upper + x;
-                vp8l_predictor(mode, buf[i - 1], buf[u - 1], buf[u], buf[u + 1])
+                let left = if matches!(mode, 5 | 6 | 7 | 10..=13) {
+                    buf[i - 1]
+                } else {
+                    0
+                };
+                let tl = if matches!(mode, 4 | 6 | 8 | 10..=13) {
+                    buf[u - 1]
+                } else {
+                    0
+                };
+                let tr = if matches!(mode, 3 | 5 | 9 | 10) {
+                    buf[u + 1]
+                } else {
+                    0
+                };
+                vp8l_predictor(mode, left, tl, buf[u], tr)
             }
         };
-        out[x] = vp8l_sub_pixels(buf[i], pred);
+        *o = vp8l_sub_pixels(buf[i], pred);
     }
 }
 

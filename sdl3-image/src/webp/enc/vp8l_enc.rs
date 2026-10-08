@@ -1192,7 +1192,7 @@ fn encode_image_internal(
                     let mut histogram_argb = vec![0u32; histogram_image_xysize as usize];
                     let mut max_index = 0;
                     for (i, h) in histogram_argb.iter_mut().enumerate() {
-                        let symbol_index = (histogram_symbols[i] & 0xffff) as usize;
+                        let symbol_index = histogram_symbols[i] as usize; // (& 0xffff)
                         *h = (symbol_index as u32) << 8;
                         if symbol_index >= max_index {
                             max_index = symbol_index + 1;
@@ -1470,7 +1470,7 @@ fn allocate_transform_buffer(enc: &mut VP8LEncoder<'_>, width: i32, height: i32)
     // pixel in each, plus 2 regular scanlines of bytes.
     // TODO(skal): Clean up by using arithmetic in bytes instead of words.
     let argb_scratch_size: u64 = if enc.use_predict {
-        (width as u64 + 1) * 2 + (width as u64 * 2 + 4 - 1) / 4
+        (width as u64 + 1) * 2 + (width as u64 * 2).div_ceil(4)
     } else {
         0
     };
