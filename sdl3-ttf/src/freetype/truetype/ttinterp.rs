@@ -1614,6 +1614,10 @@ fn round_super(exc: &TtExecContextRec, distance: FtF26Dot6, color: FtInt) -> FtF
 ///
 /// There is a separate function for Round_Super_45() as we may need
 /// greater precision.
+///
+/// (`period` is never 0, as only SROUND and S45ROUND select super
+/// rounding and both set it first; a zero period would divide by zero in
+/// C, and gives 0 here.)
 fn round_super_45(exc: &TtExecContextRec, distance: FtF26Dot6, color: FtInt) -> FtF26Dot6 {
     let compensation = exc.tt_metrics.compensations[color as usize];
     let mut val;
@@ -1625,7 +1629,8 @@ fn round_super_45(exc: &TtExecContextRec, distance: FtF26Dot6, color: FtInt) -> 
                 .wrapping_sub(exc.phase)
                 .wrapping_add(compensation),
         )
-        .wrapping_div(exc.period))
+        .checked_div(exc.period)
+        .unwrap_or(0))
         .wrapping_mul(exc.period);
         val = add_long(val, exc.phase);
         if val < 0 {
@@ -1639,7 +1644,8 @@ fn round_super_45(exc: &TtExecContextRec, distance: FtF26Dot6, color: FtInt) -> 
                     .wrapping_add(compensation),
                 distance,
             )
-            .wrapping_div(exc.period))
+            .checked_div(exc.period)
+            .unwrap_or(0))
             .wrapping_mul(exc.period),
         );
         val = sub_long(val, exc.phase);

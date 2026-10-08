@@ -50,7 +50,7 @@ fn ft_default_modules() -> Vec<FtModuleClassRef> {
         /* FT_USE_MODULE( FT_Module_Class, pshinter_module_class ) */
         /* (not translated yet) */
         FtModuleClassRef::Module(&crate::freetype::sfnt::sfdriver::SFNT_MODULE_CLASS),
-        /* FT_USE_MODULE( FT_Renderer_Class, ft_smooth_renderer_class ) */
+        FtModuleClassRef::Renderer(&crate::freetype::smooth::ftsmooth::FT_SMOOTH_RENDERER_CLASS),
         /* FT_USE_MODULE( FT_Renderer_Class, ft_raster1_renderer_class ) */
         /* FT_USE_MODULE( FT_Renderer_Class, ft_sdf_renderer_class ) */
         /* FT_USE_MODULE( FT_Renderer_Class, ft_bitmap_sdf_renderer_class ) */

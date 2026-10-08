@@ -42,6 +42,7 @@ pub mod fttypes;
 pub mod gzip;
 pub mod psnames;
 pub mod sfnt;
+pub mod smooth;
 pub mod truetype;
 pub mod tttables;
 pub mod tttypes;
