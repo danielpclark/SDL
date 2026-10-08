@@ -13,3 +13,11 @@
 
 #[doc(hidden)]
 pub mod freetype;
+
+mod text;
+mod ttf;
+
+pub use ttf::*;
+
+#[cfg(test)]
+mod tests;

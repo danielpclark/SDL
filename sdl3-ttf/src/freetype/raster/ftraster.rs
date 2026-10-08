@@ -13,6 +13,7 @@
 //!
 //!   Converting an outline into a bitmap is achieved in several steps:
 //!
+//! ```text
 //!   1 - Decomposing the outline into successive `profiles'.  Each
 //!       profile is simply an array of scanline intersections on a given
 //!       dimension.  A profile's main attributes are
@@ -30,6 +31,7 @@
 //!   2 - Sweeping the target map's scanlines in order to compute segment
 //!       `spans' which are then filled.  Additionally, this pass
 //!       performs drop-out control.
+//! ```
 //!
 //!   The outline data is parsed during step 1 only.  The profiles are
 //!   built from the bottom of the render pool, used as a stack.  The

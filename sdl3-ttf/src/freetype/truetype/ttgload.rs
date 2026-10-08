@@ -9,7 +9,7 @@
 //! The loader takes the glyph slot's glyph loader and the size's execution
 //! context out of the face for the duration of a load and puts them back
 //! afterwards.  C's glyph zone (`loader->zone`) points into the glyph
-//! loader's arrays; here [`tt_hint_glyph`] copies the zone's points into
+//! loader's arrays; here `tt_hint_glyph` copies the zone's points into
 //! the execution context and back.  The `face->access_glyph_frame` & co.
 //! function pointers (`TT_Init_Glyph_Loading`) are called directly.
 
