@@ -22,7 +22,7 @@
 //! The module list is upstream's (`ftmodule.h`, as SDL_ttf's bundled build
 //! generates it), in its order, minus the modules not translated yet: the
 //! Type 1, CFF, CID, PFR, Type 42, Windows FNT, PCF and BDF drivers, the
-//! PostScript auxiliary and hinter modules, the auto-hinter, the SDF
+//! PostScript auxiliary and hinter modules, the SDF
 //! renderers and the OT-SVG renderer.
 
 use std::sync::Arc;
@@ -33,8 +33,7 @@ use super::ftobjs::*;
 /// `ft_default_modules`
 fn ft_default_modules() -> Vec<FtModuleClassRef> {
     vec![
-        /* FT_USE_MODULE( FT_Module_Class, autofit_module_class ) */
-        /* (not translated yet) */
+        FtModuleClassRef::Module(&crate::freetype::autofit::afmodule::AUTOFIT_MODULE_CLASS),
         FtModuleClassRef::Driver(&crate::freetype::truetype::ttdriver::TT_DRIVER_CLASS),
         /* FT_USE_MODULE( FT_Driver_ClassRec, t1_driver_class ) */
         /* FT_USE_MODULE( FT_Driver_ClassRec, cff_driver_class ) */

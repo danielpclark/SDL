@@ -25,6 +25,7 @@
     clippy::explicit_counter_loop,
     clippy::if_same_then_else,
     clippy::implicit_saturating_sub,
+    clippy::manual_clamp,
     clippy::manual_checked_ops,
     clippy::manual_is_multiple_of,
     clippy::manual_range_contains,
@@ -36,6 +37,7 @@
     clippy::unnecessary_unwrap
 )]
 
+pub mod autofit;
 pub mod base;
 pub mod ftimage;
 pub mod fttypes;
