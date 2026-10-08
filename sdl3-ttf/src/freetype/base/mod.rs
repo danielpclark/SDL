@@ -10,6 +10,7 @@
 pub mod ftbitmap;
 pub mod ftcalc;
 pub mod ftgloadr;
+pub mod ftglyph;
 pub mod ftinit;
 pub mod ftlcdfil;
 pub mod ftmemory;
@@ -17,4 +18,5 @@ pub mod ftobjs;
 pub mod ftoutln;
 pub mod ftrfork;
 pub mod ftstream;
+pub mod ftstroke;
 pub mod fttrigon;
