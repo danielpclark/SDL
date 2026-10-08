@@ -7,8 +7,10 @@
 
 //! Utilities for processing transparent channel: copying the decoded alpha
 //! plane into the output, and extracting it from the lossless decoder's
-//! green channel. (The premultiplication functions are for the
-//! premultiplied colorspaces SDL_image doesn't ask for.)
+//! green channel; for the encoder, extracting it from RGBA rows, looking
+//! for transparency and replacing transparent pixels. (The
+//! premultiplication functions are for the premultiplied colorspaces
+//! SDL_image doesn't ask for.)
 
 /// Translation of `DispatchAlpha_C()` (`WebPDispatchAlpha`): the alpha
 /// rows into every fourth byte of the destination rows. Returns true if
@@ -42,5 +44,55 @@ pub(crate) fn webp_dispatch_alpha(
 pub(crate) fn webp_extract_green(argb: &[u32], alpha: &mut [u8], size: usize) {
     for i in 0..size {
         alpha[i] = (argb[i] >> 8) as u8;
+    }
+}
+
+/// Translation of `ExtractAlpha_C()` (`WebPExtractAlpha`): every fourth
+/// byte of the `argb` rows (from `argb_off`) to the `alpha` rows. Returns
+/// true if the alpha values are all 0xff.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn webp_extract_alpha(
+    argb: &[u8],
+    mut argb_off: usize,
+    argb_stride: usize,
+    width: usize,
+    height: usize,
+    alpha: &mut [u8],
+    mut alpha_off: usize,
+    alpha_stride: usize,
+) -> bool {
+    let mut alpha_mask = 0xffu8;
+
+    for _ in 0..height {
+        for i in 0..width {
+            let alpha_value = argb[argb_off + 4 * i];
+            alpha[alpha_off + i] = alpha_value;
+            alpha_mask &= alpha_value;
+        }
+        argb_off += argb_stride;
+        alpha_off += alpha_stride;
+    }
+    alpha_mask == 0xff
+}
+
+/// Translation of `HasAlpha8b_C()` (`WebPHasAlpha8b`): whether any of the
+/// `length` bytes isn't 0xff.
+pub(crate) fn webp_has_alpha_8b(src: &[u8], length: usize) -> bool {
+    src[..length].iter().any(|&a| a != 0xff)
+}
+
+/// Translation of `HasAlpha32b_C()` (`WebPHasAlpha32b`): whether any of the
+/// `length` bytes 4 apart isn't 0xff.
+pub(crate) fn webp_has_alpha_32b(src: &[u8], length: usize) -> bool {
+    (0..length).any(|i| src[4 * i] != 0xff)
+}
+
+/// Translation of `AlphaReplace_C()` (`WebPAlphaReplace`): the transparent
+/// pixels become `color`.
+pub(crate) fn webp_alpha_replace(src: &mut [u32], color: u32) {
+    for p in src {
+        if (*p >> 24) == 0 {
+            *p = color;
+        }
     }
 }

@@ -307,7 +307,7 @@ pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &
     } else if is("tga") {
         crate::tga::save_tga_io(surface, dst)
     } else if is("webp") {
-        Err(Error::new("SDL_image built without WEBP save support"))
+        crate::webp::save_webp_io(surface, dst, 90.0)
     } else {
         Err(Error::new("Unsupported image format"))
     }

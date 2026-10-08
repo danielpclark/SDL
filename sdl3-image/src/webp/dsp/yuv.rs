@@ -21,9 +21,9 @@
 //!   a . b = ((a << 8) * b) >> 16
 //! that preserves 8 bits of fractional precision before final descaling.
 //!
-//! (The RGB->YUV direction, the SSE2 helpers and yuv.c's point samplers,
-//! which only the encoder and the decoder without fancy upsampling use,
-//! are not translated.)
+//! (The SSE2 helpers and yuv.c's point samplers, which only the decoder
+//! without fancy upsampling uses, are not translated; of yuv.c's
+//! RGB->YUV converters, the encoder only needs `WebPConvertRGBA32ToUV`.)
 
 /// fixed-point precision for YUV->RGB. Translation of `YUV_FIX2`.
 const YUV_FIX2: i32 = 6;
@@ -95,6 +95,60 @@ pub(crate) fn vp8_yuv_to_bgra(y: i32, u: i32, v: i32, bgra: &mut [u8]) {
 pub(crate) fn vp8_yuv_to_rgba(y: i32, u: i32, v: i32, rgba: &mut [u8]) {
     vp8_yuv_to_rgb(y, u, v, rgba);
     rgba[3] = 0xff;
+}
+
+//------------------------------------------------------------------------------
+// RGB -> YUV conversion (the encoder's)
+
+/// fixed-point precision for RGB->YUV. Translation of `YUV_FIX`.
+pub(crate) const YUV_FIX: i32 = 16;
+/// Translation of `YUV_HALF`.
+pub(crate) const YUV_HALF: i32 = 1 << (YUV_FIX - 1);
+
+// Stub functions that can be called with various rounding values:
+
+/// Translation of `VP8ClipUV()`.
+fn vp8_clip_uv(mut uv: i32, rounding: i32) -> i32 {
+    uv = (uv + rounding + (128 << (YUV_FIX + 2))) >> (YUV_FIX + 2);
+    if (uv & !0xff) == 0 {
+        uv
+    } else if uv < 0 {
+        0
+    } else {
+        255
+    }
+}
+
+/// Translation of `VP8RGBToY()`.
+pub(crate) fn vp8_rgb_to_y(r: i32, g: i32, b: i32, rounding: i32) -> i32 {
+    let luma = 16839 * r + 33059 * g + 6420 * b;
+    (luma + rounding + (16 << YUV_FIX)) >> YUV_FIX // no need to clip
+}
+
+/// Translation of `VP8RGBToU()`.
+pub(crate) fn vp8_rgb_to_u(r: i32, g: i32, b: i32, rounding: i32) -> i32 {
+    let u = -9719 * r - 19081 * g + 28800 * b;
+    vp8_clip_uv(u, rounding)
+}
+
+/// Translation of `VP8RGBToV()`.
+pub(crate) fn vp8_rgb_to_v(r: i32, g: i32, b: i32, rounding: i32) -> i32 {
+    let v = 28800 * r - 24116 * g - 4684 * b;
+    vp8_clip_uv(v, rounding)
+}
+
+/// Translation of `WebPConvertRGBA32ToUV_C()` (`WebPConvertRGBA32ToUV`):
+/// the accumulated R/G/B values of `width` pairs of 2x2 pixels to U and V.
+pub(crate) fn webp_convert_rgba32_to_uv(rgb: &[u16], u: &mut [u8], v: &mut [u8], width: usize) {
+    for i in 0..width {
+        let (r, g, b) = (
+            rgb[4 * i] as i32,
+            rgb[4 * i + 1] as i32,
+            rgb[4 * i + 2] as i32,
+        );
+        u[i] = vp8_rgb_to_u(r, g, b, YUV_HALF << 2) as u8;
+        v[i] = vp8_rgb_to_v(r, g, b, YUV_HALF << 2) as u8;
+    }
 }
 
 #[cfg(test)]
