@@ -878,7 +878,8 @@ fn vset_standard(
                 */
                 let td = &tif.tif_dir;
                 if td.td_transferfunction[0].is_some()
-                    && (v as i32 - td.td_extrasamples as i32 > 1)
+                    // (v is unsigned: so is the difference)
+                    && (v.wrapping_sub(td.td_extrasamples as u32) > 1)
                     && !(td.td_samplesperpixel as i32 - td.td_extrasamples as i32 > 1)
                 {
                     tiff_warning_ext_r!(

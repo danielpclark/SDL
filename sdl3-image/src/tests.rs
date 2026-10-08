@@ -1668,6 +1668,107 @@ fn webp_corruptions_fail_cleanly() {
 }
 
 #[test]
+fn tif_corruptions_fail_cleanly() {
+    // Truncations and single-byte corruptions of every TIFF test image (the
+    // first bytes, where the header and often the directory are, and a
+    // spread of the others) load without panicking (the reference test
+    // compares a sample of these with upstream; every truncation and byte
+    // corruption of them was compared once in release mode). Images whose
+    // directory then claims more than a million pixels are skipped, to
+    // keep the test small.
+    const HEAD: usize = 16;
+    const SPREAD: usize = 24;
+    let mut cases = 0;
+    for (name, data) in IMAGES.iter().filter(|(n, _)| n.ends_with(".tif")) {
+        let len = data.len();
+        let positions: Vec<usize> = (0..len.min(HEAD))
+            .chain((HEAD.min(len)..len).step_by((len / SPREAD.min(len).max(1)).max(1)))
+            .collect();
+        let mut variants: Vec<Vec<u8>> = Vec::new();
+        for &n in &positions {
+            variants.push(data[..n].to_vec());
+        }
+        for &i in &positions {
+            let mut x = data.to_vec();
+            x[i] ^= 0xff;
+            variants.push(x);
+        }
+        for x in &variants {
+            cases += 1;
+            if let Some((w, h)) = crate::tif::dimensions(x) {
+                if w as i64 * h as i64 > 1 << 20 {
+                    continue;
+                }
+            }
+            let result = std::panic::catch_unwind(|| {
+                let _ = crate::load_typed_io(&mut IoStream::from_const_mem(x), Some("TIF"));
+            });
+            assert!(result.is_ok(), "{name}: panicked on {x:02x?}");
+        }
+    }
+    assert!(cases > 5000, "only {cases} cases");
+}
+
+#[test]
+fn tif_loader() {
+    use sdl3::io::IoWhence;
+
+    let load = |data: &[u8]| crate::load_tif_io(&mut IoStream::from_const_mem(data));
+    let rgb = surface_hash(&load(image("tif_rgb.tif")).unwrap());
+
+    // BigTIFF and MDI files, which IMG_isTIF() doesn't take (so the front
+    // end doesn't load them), load through the TIFF loader itself
+    let s = load(image("tif_bigtiff.tif")).unwrap();
+    assert_eq!(
+        (s.width(), s.height(), s.format()),
+        (23, 13, PixelFormat::ABGR8888)
+    );
+    assert_eq!(surface_hash(&s), rgb);
+    let mdi = image("tif_mdi.tif");
+    assert!(!crate::is_tif(&mut IoStream::from_const_mem(mdi)));
+    let mut ii = mdi.to_vec();
+    ii[..2].copy_from_slice(b"II");
+    assert_eq!(
+        surface_hash(&load(mdi).unwrap()),
+        surface_hash(&load(&ii).unwrap())
+    );
+
+    // Orientations 5 to 8 come out rotated
+    let s = load(image("tif_orient6.tif")).unwrap();
+    assert_eq!((s.width(), s.height()), (13, 23));
+
+    // On failure the stream is back where it was, and the error is
+    // libtiff's (which upstream only prints)
+    for (name, message) in [
+        (
+            "tif_jpeg.tif",
+            "Sorry, requested compression method is not configured",
+        ),
+        (
+            "tif_bps3.tif",
+            "Sorry, can not handle images with 3-bit samples",
+        ),
+        ("tif_no_length.tif", "Cannot handle zero number of strips"),
+    ] {
+        let mut io = IoStream::from_const_mem(image(name));
+        let e = crate::load_tif_io(&mut io).unwrap_err();
+        assert!(e.to_string().contains(message), "{name}: {e}");
+        assert_eq!(io.tell().unwrap(), 0, "{name}");
+    }
+
+    // libtiff's offsets are the stream's (as upstream seeks): a TIFF after
+    // other data isn't found where its header says
+    let mut data = b"prefix".to_vec();
+    data.extend_from_slice(image("tif_rgb.tif"));
+    let mut io = IoStream::from_const_mem(&data);
+    io.seek(6, IoWhence::Set).unwrap();
+    assert!(crate::load_tif_io(&mut io).is_err());
+    assert_eq!(io.tell().unwrap(), 6);
+    let e = load(b"II*\0").unwrap_err();
+    assert!(e.to_string().contains("Cannot read TIFF header"), "{e}");
+}
+
+#[test]
 fn webp_loader_and_animation_decoder() {
     use sdl3::io::IoWhence;
 

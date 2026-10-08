@@ -194,3 +194,16 @@ fn load(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
         _ => Ok(surface),
     }
 }
+
+/// The width and height of the first directory of a TIFF in memory, if
+/// libtiff opens it (for tests to skip huge images).
+#[cfg(test)]
+pub(crate) fn dimensions(data: &[u8]) -> Option<(u32, u32)> {
+    let mut io = IoStream::from_const_mem(data);
+    let mut client = Client { src: &mut io };
+    let mut tiff = tif_open::tiff_client_open("SDL_image", "rm", &mut client)?;
+    let w = tif_dir::tiff_get_field_int(&mut tiff, TIFFTAG_IMAGEWIDTH);
+    let h = tif_dir::tiff_get_field_int(&mut tiff, TIFFTAG_IMAGELENGTH);
+    tif_open::tiff_close(tiff);
+    Some((w? as u32, h? as u32))
+}
