@@ -99,6 +99,28 @@ In dependency order, after the core each one needs exists:
    libpng and libjpeg are replaced by stb_image as upstream's
    stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
+   **Part 1 done** (`sdl3-ttf`, SDL_ttf 3.2.2 with its bundled FreeType
+   2.13.2, without HarfBuzz and PlutoSVG): all of `SDL_ttf.c` outside its
+   HarfBuzz paths (fonts, sizes, styles, outlines, hinting, kerning,
+   metrics, fallback fonts, measuring, wrapping, rendering in every mode,
+   glyph images, text objects), the surface, renderer (with
+   `stb_rect_pack.h`) and GPU text engines, and the FreeType modules for
+   TrueType fonts: the base layer (with `ftglyph.c`, `ftstroke.c`,
+   `ftbitmap.c`, `ftlcdfil.c`, `ftadvanc.c`), `sfnt` (with WOFF, color
+   tables, embedded bitmaps), `truetype` (the v40 bytecode interpreter,
+   GX/OpenType variations), `psnames`, `autofit` (with the CJK and Indic
+   writing systems), `smooth`, `raster` and `gzip` (with its zlib). The
+   FreeType License (`sdl3-ttf/FTL.TXT`) applies to `src/freetype/`.
+   Checked against upstream's C (built the same way) on subsets of DejaVu
+   fonts made by `tools/gen_sdl_ttf_testdata.py`: metrics, every render and
+   hinting mode, styles, outlines, wrapping, text objects drawn by the
+   three engines (the GPU one on a Vulkan device), and truncated fonts and
+   fonts with flipped bytes; FreeType alone was also checked against
+   upstream's on more fonts and scripts, and on every truncation and byte
+   flip of two small fonts. Not yet: HarfBuzz (part 2), and FreeType's other
+   font drivers (`cff`, `type1`, `cid`, `type42`, `pfr`, `winfnt`, `pcf`,
+   `bdf`, with `psaux`, `pshinter` and `lzw`), its `sdf` renderers (SDF
+   rendering fails) and its `svg` renderer (which needs PlutoSVG).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
    (`SDL_mixer.c`: mixers on devices or generating into buffers, audio
