@@ -12,7 +12,9 @@
 //! on the mode.
 
 pub(crate) mod alpha_processing;
+pub(crate) mod cost;
 pub(crate) mod dec;
+pub(crate) mod enc;
 pub(crate) mod filters;
 pub(crate) mod lossless;
 pub(crate) mod lossless_enc;

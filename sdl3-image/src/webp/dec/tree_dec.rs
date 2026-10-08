@@ -41,7 +41,7 @@ static K_Y_MODES_INTRA4: [i8; 18] = [
 // Default probabilities
 
 /// Paragraph 13.5. Translation of `CoeffsProba0[]`.
-static COEFFS_PROBA0: [[[[u8; NUM_PROBAS]; NUM_CTX]; NUM_BANDS]; NUM_TYPES] = [
+pub(crate) static COEFFS_PROBA0: [[[[u8; NUM_PROBAS]; NUM_CTX]; NUM_BANDS]; NUM_TYPES] = [
     [
         [
             [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128],
@@ -213,7 +213,7 @@ static COEFFS_PROBA0: [[[[u8; NUM_PROBAS]; NUM_CTX]; NUM_BANDS]; NUM_TYPES] = [
 ];
 
 /// Paragraph 11.5. Translation of `kBModesProba[]`.
-static K_B_MODES_PROBA: [[[u8; NUM_BMODES as usize - 1]; NUM_BMODES as usize];
+pub(crate) static K_B_MODES_PROBA: [[[u8; NUM_BMODES as usize - 1]; NUM_BMODES as usize];
     NUM_BMODES as usize] = [
     [
         [231, 120, 48, 89, 115, 113, 120, 152, 112],
@@ -428,7 +428,7 @@ pub(crate) fn vp8_parse_intra_mode_row(dec: &mut VP8Decoder<'_>) -> bool {
 // Paragraph 13
 
 /// Translation of `CoeffsUpdateProba[]`.
-static COEFFS_UPDATE_PROBA: [[[[u8; NUM_PROBAS]; NUM_CTX]; NUM_BANDS]; NUM_TYPES] = [
+pub(crate) static COEFFS_UPDATE_PROBA: [[[[u8; NUM_PROBAS]; NUM_CTX]; NUM_BANDS]; NUM_TYPES] = [
     [
         [
             [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],

@@ -165,13 +165,6 @@ impl VP8BitWriter {
         *self = VP8BitWriter::default();
     }
 
-    /// Return approximate write position (in bits). Translation of
-    /// `VP8BitWriterPos()`.
-    pub(crate) fn pos(&self) -> u64 {
-        let nb_bits = (8 + self.nb_bits) as u64; // bw->nb_bits_ is <= 0, note
-        (self.buf.len() as u64 + self.run as u64) * 8 + nb_bits
-    }
-
     /// Returns a pointer to the internal buffer. Translation of
     /// `VP8BitWriterBuf()`.
     pub(crate) fn buf(&self) -> &[u8] {
