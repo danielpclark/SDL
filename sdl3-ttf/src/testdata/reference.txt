@@ -1120,6 +1120,82 @@ closedfb range 2 30: 1 | 0 0 0 0 0 0,0,0,0
 closedfb range 1 5: 1 | 0 0 0 0 0 0,0,0,0
 closedfb range -1 3: 1 | 0 0 0 0 0 0,0,0,0
 closedfb points: 0 0 0 0 0 0
+== renderer DejaVuSans.ttf
+big create: 1 1
+big plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=36d5f16422284e35 blend=1
+big second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2cc0e53a15c0c366 blend=1
+big wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5a94da839a30467b blend=1
+big pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=53b8b772f0ded7ac blend=1
+big halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c3301157a7a474f3 blend=1
+big styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a30de3a11108ae16 blend=1
+big outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e9927033331aa7f7 blend=1
+big outline2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=fbfeecfe3ddd40de blend=1
+big again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=dd5792446f9ebd20 blend=1
+big resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a08e464483ca2705 blend=1
+big resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=b9fa394f4bea830f blend=1
+big back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=dd5792446f9ebd20 blend=1
+big back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=00c23029a219ce46 blend=1
+big fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=924a7483c39d8ec6 blend=1
+big empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+big fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+big nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+surfaceengine rdraw: 0 err: Parameter 'text' is invalid
+atlas32 engine: 1
+atlas32 create: 1 1
+atlas32 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a77dd94430e2f10e blend=1
+atlas32 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9670249667605bd8 blend=1
+atlas32 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=606992724cdbeb45 blend=1
+atlas32 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=ab24bdad1b65c144 blend=1
+atlas32 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=34604a500e83b20c blend=1
+atlas32 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2aabdee3dcd580f0 blend=1
+atlas32 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e237f992789ef1d0 blend=1
+atlas32 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c78d2e979efcf29a blend=1
+atlas32 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=010d48a319188f1f blend=1
+atlas32 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=100e5f0da8e079a7 blend=1
+atlas32 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c78d2e979efcf29a blend=1
+atlas32 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9118e3880e8fe878 blend=1
+atlas32 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a22c6cc82b9ae928 blend=1
+atlas32 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas32 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas32 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas64 engine: 1
+atlas64 create: 1 1
+atlas64 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a77dd94430e2f10e blend=1
+atlas64 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9670249667605bd8 blend=1
+atlas64 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=606992724cdbeb45 blend=1
+atlas64 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=ab24bdad1b65c144 blend=1
+atlas64 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=34604a500e83b20c blend=1
+atlas64 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2aabdee3dcd580f0 blend=1
+atlas64 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e237f992789ef1d0 blend=1
+atlas64 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c78d2e979efcf29a blend=1
+atlas64 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=010d48a319188f1f blend=1
+atlas64 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=100e5f0da8e079a7 blend=1
+atlas64 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c78d2e979efcf29a blend=1
+atlas64 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9118e3880e8fe878 blend=1
+atlas64 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a22c6cc82b9ae928 blend=1
+atlas64 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas64 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas64 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas128 engine: 1
+atlas128 create: 1 1
+atlas128 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a77dd94430e2f10e blend=1
+atlas128 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9670249667605bd8 blend=1
+atlas128 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=606992724cdbeb45 blend=1
+atlas128 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=ab24bdad1b65c144 blend=1
+atlas128 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=34604a500e83b20c blend=1
+atlas128 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2aabdee3dcd580f0 blend=1
+atlas128 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e237f992789ef1d0 blend=1
+atlas128 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c78d2e979efcf29a blend=1
+atlas128 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=010d48a319188f1f blend=1
+atlas128 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=100e5f0da8e079a7 blend=1
+atlas128 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c78d2e979efcf29a blend=1
+atlas128 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9118e3880e8fe878 blend=1
+atlas128 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a22c6cc82b9ae928 blend=1
+atlas128 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas128 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas128 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas0 engine: 0 err: Failed to create renderer text engine: Invalid texture atlas size.
+atlas8 rdraw: 0 err: Glyph surface 17x12 larger than atlas texture 8x8
 == corrupt DejaVuSans.ttf
 trunc 0: err: Couldn't load font file
 trunc 1: err: Couldn't load font file
@@ -2314,6 +2390,82 @@ closedfb range 2 30: 1 | 0 0 0 0 0 0,0,0,0
 closedfb range 1 5: 1 | 0 0 0 0 0 0,0,0,0
 closedfb range -1 3: 1 | 0 0 0 0 0 0,0,0,0
 closedfb points: 0 0 0 0 0 0
+== renderer DejaVuSerif-Bold.ttf
+big create: 1 1
+big plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=0ce665907ea1bd5d blend=1
+big second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c48e16e9d1597105 blend=1
+big wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=3c72f2859344ec59 blend=1
+big pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=eb8cb644b7facc69 blend=1
+big halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=11fab890d9a4de4d blend=1
+big styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c8903fc8f387ca1e blend=1
+big outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=ccd1b9ae0925aaa3 blend=1
+big outline2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=8e955e8a54f63bee blend=1
+big again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=110ef6a2b0a9c5b4 blend=1
+big resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=1ad0610a539422a3 blend=1
+big resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5674bb5a81676e4d blend=1
+big back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=110ef6a2b0a9c5b4 blend=1
+big back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=72faf7a3e2618a45 blend=1
+big fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=084b04cb6df72127 blend=1
+big empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+big fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+big nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+surfaceengine rdraw: 0 err: Parameter 'text' is invalid
+atlas32 engine: 1
+atlas32 create: 1 1
+atlas32 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=628f34d1ec3df666 blend=1
+atlas32 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5b3db4495bd1b8b9 blend=1
+atlas32 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a673978851f104cc blend=1
+atlas32 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5247e2a36b023b33 blend=1
+atlas32 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5ceb8807b471c3b0 blend=1
+atlas32 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e0e938e3ffbf5784 blend=1
+atlas32 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2758b34acbf5f593 blend=1
+atlas32 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=974f0013c39b30a6 blend=1
+atlas32 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e1059cf4beb16a89 blend=1
+atlas32 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=3ba748216c97f895 blend=1
+atlas32 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=974f0013c39b30a6 blend=1
+atlas32 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7bdd67c4ebe80a19 blend=1
+atlas32 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5199b6cf1f615e61 blend=1
+atlas32 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas32 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas32 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas64 engine: 1
+atlas64 create: 1 1
+atlas64 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=628f34d1ec3df666 blend=1
+atlas64 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5b3db4495bd1b8b9 blend=1
+atlas64 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a673978851f104cc blend=1
+atlas64 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5247e2a36b023b33 blend=1
+atlas64 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5ceb8807b471c3b0 blend=1
+atlas64 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e0e938e3ffbf5784 blend=1
+atlas64 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2758b34acbf5f593 blend=1
+atlas64 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=974f0013c39b30a6 blend=1
+atlas64 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e1059cf4beb16a89 blend=1
+atlas64 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=3ba748216c97f895 blend=1
+atlas64 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=974f0013c39b30a6 blend=1
+atlas64 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7bdd67c4ebe80a19 blend=1
+atlas64 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5199b6cf1f615e61 blend=1
+atlas64 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas64 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas64 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas128 engine: 1
+atlas128 create: 1 1
+atlas128 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=628f34d1ec3df666 blend=1
+atlas128 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5b3db4495bd1b8b9 blend=1
+atlas128 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=a673978851f104cc blend=1
+atlas128 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5247e2a36b023b33 blend=1
+atlas128 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5ceb8807b471c3b0 blend=1
+atlas128 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e0e938e3ffbf5784 blend=1
+atlas128 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=2758b34acbf5f593 blend=1
+atlas128 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=974f0013c39b30a6 blend=1
+atlas128 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e1059cf4beb16a89 blend=1
+atlas128 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=3ba748216c97f895 blend=1
+atlas128 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=974f0013c39b30a6 blend=1
+atlas128 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7bdd67c4ebe80a19 blend=1
+atlas128 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5199b6cf1f615e61 blend=1
+atlas128 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas128 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas128 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas0 engine: 0 err: Failed to create renderer text engine: Invalid texture atlas size.
+atlas8 rdraw: 0 err: Glyph surface 21x12 larger than atlas texture 8x8
 == corrupt DejaVuSerif-Bold.ttf
 trunc 0: err: Couldn't load font file
 trunc 1: err: Couldn't load font file
@@ -3516,6 +3668,82 @@ closedfb range 2 30: 1 | 0 0 0 0 0 0,0,0,0
 closedfb range 1 5: 1 | 0 0 0 0 0 0,0,0,0
 closedfb range -1 3: 1 | 0 0 0 0 0 0,0,0,0
 closedfb points: 0 0 0 0 0 0
+== renderer DejaVuSansMono.ttf
+big create: 1 1
+big plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=650804539a2a37dd blend=1
+big second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=58ecb3bece2e13cf blend=1
+big wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=50bf9289967ee40b blend=1
+big pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=cd78525cb68e6b49 blend=1
+big halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f090a695459769a3 blend=1
+big styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5dc7ce4d3f81815e blend=1
+big outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=0db79a37a6988238 blend=1
+big outline2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=43bcf94da6a7c83a blend=1
+big again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9a46f29b0ed00aa5 blend=1
+big resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=96ecd1ba67623e4d blend=1
+big resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=93531b87157ed8b8 blend=1
+big back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9a46f29b0ed00aa5 blend=1
+big back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=5b0af778d9b1886f blend=1
+big fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9a46f29b0ed00aa5 blend=1
+big empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+big fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+big nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+surfaceengine rdraw: 0 err: Parameter 'text' is invalid
+atlas32 engine: 1
+atlas32 create: 1 1
+atlas32 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=367cbf4cab051d7a blend=1
+atlas32 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=854a95cdcbce5e60 blend=1
+atlas32 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f86f9197ce8439d0 blend=1
+atlas32 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c0c967812c23d2cb blend=1
+atlas32 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e135b9d5ffbccfef blend=1
+atlas32 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=01fdd103da6f5128 blend=1
+atlas32 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f5bc0957c3745c45 blend=1
+atlas32 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=4b7d026436691614 blend=1
+atlas32 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=fb05fce09dae3bd8 blend=1
+atlas32 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c1b76948045d1e2 blend=1
+atlas32 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=4b7d026436691614 blend=1
+atlas32 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=567af018c5550180 blend=1
+atlas32 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9bcf417f2cd3418d blend=1
+atlas32 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas32 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas32 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas64 engine: 1
+atlas64 create: 1 1
+atlas64 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=367cbf4cab051d7a blend=1
+atlas64 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=854a95cdcbce5e60 blend=1
+atlas64 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f86f9197ce8439d0 blend=1
+atlas64 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c0c967812c23d2cb blend=1
+atlas64 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e135b9d5ffbccfef blend=1
+atlas64 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=01fdd103da6f5128 blend=1
+atlas64 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f5bc0957c3745c45 blend=1
+atlas64 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=4b7d026436691614 blend=1
+atlas64 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=fb05fce09dae3bd8 blend=1
+atlas64 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c1b76948045d1e2 blend=1
+atlas64 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=4b7d026436691614 blend=1
+atlas64 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=567af018c5550180 blend=1
+atlas64 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9bcf417f2cd3418d blend=1
+atlas64 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas64 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas64 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas128 engine: 1
+atlas128 create: 1 1
+atlas128 plain rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=367cbf4cab051d7a blend=1
+atlas128 second rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=854a95cdcbce5e60 blend=1
+atlas128 wrap150 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f86f9197ce8439d0 blend=1
+atlas128 pos rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=c0c967812c23d2cb blend=1
+atlas128 halfalpha rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=e135b9d5ffbccfef blend=1
+atlas128 styled rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=01fdd103da6f5128 blend=1
+atlas128 outline rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=f5bc0957c3745c45 blend=1
+atlas128 again rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=4b7d026436691614 blend=1
+atlas128 resized rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=fb05fce09dae3bd8 blend=1
+atlas128 resized2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c1b76948045d1e2 blend=1
+atlas128 back rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=4b7d026436691614 blend=1
+atlas128 back2 rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=567af018c5550180 blend=1
+atlas128 fallback rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9bcf417f2cd3418d blend=1
+atlas128 empty rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas128 fbfont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=9d8ee42bb6cb8744 blend=1
+atlas128 nofont rdraw: 1 220x160 SDL_PIXELFORMAT_ARGB8888 pitch=880 hash=7c135a4d4bc51f25 blend=1
+atlas0 engine: 0 err: Failed to create renderer text engine: Invalid texture atlas size.
+atlas8 rdraw: 0 err: Glyph surface 11x12 larger than atlas texture 8x8
 == corrupt DejaVuSansMono.ttf
 trunc 0: err: Couldn't load font file
 trunc 1: err: Couldn't load font file
