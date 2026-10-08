@@ -57,6 +57,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-ttf"
+version = "3.5.0"
+dependencies = [
+ "sdl3",
+]
+
+[[package]]
 name = "windows-link"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
