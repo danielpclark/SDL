@@ -14,7 +14,9 @@ use super::tif_dir::{tiff_vget_field, Gv, TIFFDirectory};
 use super::tif_error::tiff_error_ext_r;
 use super::tiff::*;
 use super::tiffio::{D50_X0, D50_Y0, D50_Z0};
-use super::tiffiop::{tiff_howmany8_64, try_vec, TifData, Tiff, TmSize, SEEK_SET, TIFF_TMSIZE_T_MAX};
+use super::tiffiop::{
+    tiff_howmany8_64, try_vec, TifData, Tiff, TmSize, SEEK_SET, TIFF_TMSIZE_T_MAX,
+};
 
 /// Translation of `_TIFFMultiply32()`.
 pub(crate) fn _tiff_multiply32(first: u32, second: u32, where_: &str) -> u32 {
@@ -217,9 +219,9 @@ fn tiff_default_ref_black_white(td: &mut TIFFDirectory) -> i32 {
 /// Translation of `TIFFVGetFieldDefaulted()`: Like TIFFGetField, but
 /// return any default value if the tag is not present in the directory.
 ///
-/// NB:	We use the value in the directory, rather than
-///	explicit values so that defaults exist only one
-///	place in the library -- in TIFFDefaultDirectory.
+/// NB: We use the value in the directory, rather than
+///     explicit values so that defaults exist only one
+///     place in the library -- in TIFFDefaultDirectory.
 pub(crate) fn tiff_vget_field_defaulted(tif: &mut Tiff<'_>, tag: u32, ap: &mut Vec<Gv>) -> i32 {
     if tiff_vget_field(tif, tag, ap) != 0 {
         return 1;
@@ -417,7 +419,10 @@ pub(crate) fn tiff_get_field_defaulted_u16(tif: &mut Tiff<'_>, tag: u32) -> Opti
 
 /// `TIFFGetFieldDefaulted(tif, tag, &a, &b)` for a field of two 16-bit
 /// values.
-pub(crate) fn tiff_get_field_defaulted_u16_pair(tif: &mut Tiff<'_>, tag: u32) -> Option<(u16, u16)> {
+pub(crate) fn tiff_get_field_defaulted_u16_pair(
+    tif: &mut Tiff<'_>,
+    tag: u32,
+) -> Option<(u16, u16)> {
     let mut out = Vec::new();
     if tiff_get_field_defaulted(tif, tag, &mut out) == 0 {
         return None;

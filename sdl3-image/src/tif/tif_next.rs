@@ -64,7 +64,13 @@ fn next_decode(tif: &mut Tiff<'_>, buf: &mut [u8], mut occ: TmSize, _s: u16) -> 
                     if cc < 4 + n || off + n > scanline {
                         break 'rows true;
                     }
-                    copy(buf, row + off as usize, &tif.tif_rawdata, bp + 4, n as usize);
+                    copy(
+                        buf,
+                        row + off as usize,
+                        &tif.tif_rawdata,
+                        bp + 4,
+                        n as usize,
+                    );
                     bp += 4 + n as usize;
                     cc -= 4 + n;
                 }

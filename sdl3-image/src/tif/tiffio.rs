@@ -8,6 +8,8 @@
 //! TIFF I/O Library Definitions: the parts the reading path uses (the
 //! field descriptor, the colorimetry structures and their constants).
 
+#![allow(dead_code)] // (definitions the reading path doesn't all use)
+
 use std::borrow::Cow;
 
 use super::tif_dir::TIFFSetGetFieldType;
@@ -122,12 +124,12 @@ pub(crate) const FIELD_CUSTOM: u16 = 65;
 /// pointers) are left out: those directories are not read.
 #[derive(Clone, Debug)]
 pub(crate) struct TIFFField {
-    pub(crate) field_tag: u32,       /* field's tag */
-    pub(crate) field_readcount: i16, /* read count/TIFF_VARIABLE/TIFF_SPP */
-    pub(crate) field_writecount: i16, /* write count/TIFF_VARIABLE */
+    pub(crate) field_tag: u32,           /* field's tag */
+    pub(crate) field_readcount: i16,     /* read count/TIFF_VARIABLE/TIFF_SPP */
+    pub(crate) field_writecount: i16,    /* write count/TIFF_VARIABLE */
     pub(crate) field_type: TIFFDataType, /* type of associated data */
-    pub(crate) field_anonymous: u32, /* if true, this is a unknown /
-                                     anonymous tag */
+    pub(crate) field_anonymous: u32,     /* if true, this is a unknown /
+                                         anonymous tag */
     pub(crate) set_get_field_type: TIFFSetGetFieldType, /* type to be passed to
                                                         TIFFSetField, TIFFGetField */
     pub(crate) field_bit: u16,       /* bit in fieldsset bit vector */

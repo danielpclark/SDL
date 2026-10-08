@@ -11,6 +11,16 @@
 //! JBIG, LERC, LZMA, ZSTD, WebP and PixarLog codecs are off, and files
 //! using them fail as "not configured").
 
+// (the translation of libtiff keeps upstream's switches, loops over
+// indices, range checks and NaN-aware comparisons as they are)
+#![allow(
+    clippy::collapsible_match,
+    clippy::manual_is_multiple_of,
+    clippy::manual_range_contains,
+    clippy::needless_range_loop,
+    clippy::neg_cmp_op_on_partial_ord
+)]
+
 use sdl3::error::{Error, Result};
 use sdl3::io::{IoStream, IoWhence};
 use sdl3::video::{PixelFormat, Surface};
@@ -48,8 +58,10 @@ mod tiff;
 mod tiffio;
 mod tiffiop;
 
-use tiff::{ORIENTATION_TOPLEFT, ORIENTATION_TOPRIGHT, TIFFTAG_IMAGELENGTH, TIFFTAG_IMAGEWIDTH,
-    TIFFTAG_ORIENTATION};
+use tiff::{
+    ORIENTATION_TOPLEFT, ORIENTATION_TOPRIGHT, TIFFTAG_IMAGELENGTH, TIFFTAG_IMAGEWIDTH,
+    TIFFTAG_ORIENTATION,
+};
 use tiffiop::{TiffClient, TmSize};
 
 /*
@@ -146,14 +158,14 @@ fn load(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
         img_orientation = o as u16;
     }
 
-    let mut surface =
-        match Surface::new(img_width as i32, img_height as i32, PixelFormat::ABGR8888) {
-            Ok(s) => s,
-            Err(e) => {
-                tif_open::tiff_close(tiff);
-                return Err(e);
-            }
-        };
+    let mut surface = match Surface::new(img_width as i32, img_height as i32, PixelFormat::ABGR8888)
+    {
+        Ok(s) => s,
+        Err(e) => {
+            tif_open::tiff_close(tiff);
+            return Err(e);
+        }
+    };
 
     let load_orientation = match img_orientation {
         5..=8 => ORIENTATION_TOPRIGHT,

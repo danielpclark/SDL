@@ -146,8 +146,7 @@ use std::f64::consts::LN_2;
 use super::tif_aux::_tiff_multiply_ssize;
 use super::tif_compress::_tiff_set_default_compression_state;
 use super::tif_dir::{
-    tiff_set_field, TIFFVGetMethod, TIFFVSetMethod, Va, VaList, Gv, FIELD_PSEUDO,
-    TIFF_SETGET_INT,
+    tiff_set_field, Gv, TIFFVGetMethod, TIFFVSetMethod, Va, VaList, FIELD_PSEUDO, TIFF_SETGET_INT,
 };
 use super::tif_dirinfo::_tiff_merge_fields;
 use super::tif_error::tiff_error_ext_r;
@@ -517,7 +516,8 @@ const UV_NDIVS: i32 = 16289;
 const UV_VSTART: f32 = 0.016940;
 const UV_NVS: u32 = 163;
 
-/// A row of `uv_row`.
+/// A row of `uv_row` (`nus` is for the encoder).
+#[allow(dead_code)]
 struct UvRow {
     ustart: f32,
     nus: i16,
@@ -668,7 +668,11 @@ fn luv24_to_luv48(sp: &LogLuvState, op: &mut [u8], n: TmSize) {
             u = U_NEU;
             v = V_NEU;
         }
-        let luv3 = [l, (u * (1 << 15) as f64) as i16, (v * (1 << 15) as f64) as i16];
+        let luv3 = [
+            l,
+            (u * (1 << 15) as f64) as i16,
+            (v * (1 << 15) as f64) as i16,
+        ];
         store_ne(out, &luv3, i16::to_ne_bytes);
     }
 }
@@ -721,7 +725,11 @@ fn luv32_to_luv48(sp: &LogLuvState, op: &mut [u8], n: TmSize) {
         let l = (luv >> 16) as i16;
         let u = 1. / UVSCALE * ((luv >> 8 & 0xff) as f64 + 0.5);
         let v = 1. / UVSCALE * ((luv & 0xff) as f64 + 0.5);
-        let luv3 = [l, (u * (1 << 15) as f64) as i16, (v * (1 << 15) as f64) as i16];
+        let luv3 = [
+            l,
+            (u * (1 << 15) as f64) as i16,
+            (v * (1 << 15) as f64) as i16,
+        ];
         store_ne(out, &luv3, i16::to_ne_bytes);
     }
 }
@@ -881,7 +889,10 @@ fn log_luv_init_state(tif: &mut Tiff<'_>) -> i32 {
 
     /* for some reason, we can't do this in TIFFInitLogLuv */
     if tif.tif_dir.td_planarconfig != PLANARCONFIG_CONTIG {
-        tiff_error_ext_r!(MODULE, "SGILog compression cannot handle non-contiguous data");
+        tiff_error_ext_r!(
+            MODULE,
+            "SGILog compression cannot handle non-contiguous data"
+        );
         return 0;
     }
     let guess = log_luv_guess_data_fmt(tif);
@@ -1197,7 +1208,6 @@ pub(crate) fn tiff_init_sg_log(tif: &mut Tiff<'_>, scheme: i32) -> i32 {
 
     1
 }
-
 
 /// `uv_row`: the rows of the (u',v') grid.
 #[rustfmt::skip]

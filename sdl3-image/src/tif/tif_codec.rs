@@ -41,18 +41,46 @@ pub(crate) struct TIFFCodec {
  * Compression schemes statically built into the library.
  */
 pub(crate) static _TIFF_BUILTIN_CODECS: &[TIFFCodec] = &[
-    TIFFCodec { name: "None", scheme: COMPRESSION_NONE, init: Some(tiff_init_dump_mode) },
-    TIFFCodec { name: "LZW", scheme: COMPRESSION_LZW, init: Some(tiff_init_lzw) },
-    TIFFCodec { name: "PackBits", scheme: COMPRESSION_PACKBITS, init: Some(tiff_init_pack_bits) },
+    TIFFCodec {
+        name: "None",
+        scheme: COMPRESSION_NONE,
+        init: Some(tiff_init_dump_mode),
+    },
+    TIFFCodec {
+        name: "LZW",
+        scheme: COMPRESSION_LZW,
+        init: Some(tiff_init_lzw),
+    },
+    TIFFCodec {
+        name: "PackBits",
+        scheme: COMPRESSION_PACKBITS,
+        init: Some(tiff_init_pack_bits),
+    },
     TIFFCodec {
         name: "ThunderScan",
         scheme: COMPRESSION_THUNDERSCAN,
         init: Some(tiff_init_thunder_scan),
     },
-    TIFFCodec { name: "NeXT", scheme: COMPRESSION_NEXT, init: Some(tiff_init_next) },
-    TIFFCodec { name: "JPEG", scheme: COMPRESSION_JPEG, init: None },
-    TIFFCodec { name: "Old-style JPEG", scheme: COMPRESSION_OJPEG, init: None },
-    TIFFCodec { name: "CCITT RLE", scheme: COMPRESSION_CCITTRLE, init: Some(tiff_init_ccitt_rle) },
+    TIFFCodec {
+        name: "NeXT",
+        scheme: COMPRESSION_NEXT,
+        init: Some(tiff_init_next),
+    },
+    TIFFCodec {
+        name: "JPEG",
+        scheme: COMPRESSION_JPEG,
+        init: None,
+    },
+    TIFFCodec {
+        name: "Old-style JPEG",
+        scheme: COMPRESSION_OJPEG,
+        init: None,
+    },
+    TIFFCodec {
+        name: "CCITT RLE",
+        scheme: COMPRESSION_CCITTRLE,
+        init: Some(tiff_init_ccitt_rle),
+    },
     TIFFCodec {
         name: "CCITT RLE/W",
         scheme: COMPRESSION_CCITTRLEW,
@@ -68,16 +96,56 @@ pub(crate) static _TIFF_BUILTIN_CODECS: &[TIFFCodec] = &[
         scheme: COMPRESSION_CCITTFAX4,
         init: Some(tiff_init_ccitt_fax4),
     },
-    TIFFCodec { name: "ISO JBIG", scheme: COMPRESSION_JBIG, init: None },
-    TIFFCodec { name: "Deflate", scheme: COMPRESSION_DEFLATE, init: None },
-    TIFFCodec { name: "AdobeDeflate", scheme: COMPRESSION_ADOBE_DEFLATE, init: None },
-    TIFFCodec { name: "PixarLog", scheme: COMPRESSION_PIXARLOG, init: None },
-    TIFFCodec { name: "SGILog", scheme: COMPRESSION_SGILOG, init: Some(tiff_init_sg_log) },
-    TIFFCodec { name: "SGILog24", scheme: COMPRESSION_SGILOG24, init: Some(tiff_init_sg_log) },
-    TIFFCodec { name: "LZMA", scheme: COMPRESSION_LZMA, init: None },
-    TIFFCodec { name: "ZSTD", scheme: COMPRESSION_ZSTD, init: None },
-    TIFFCodec { name: "WEBP", scheme: COMPRESSION_WEBP, init: None },
-    TIFFCodec { name: "LERC", scheme: COMPRESSION_LERC, init: None },
+    TIFFCodec {
+        name: "ISO JBIG",
+        scheme: COMPRESSION_JBIG,
+        init: None,
+    },
+    TIFFCodec {
+        name: "Deflate",
+        scheme: COMPRESSION_DEFLATE,
+        init: None,
+    },
+    TIFFCodec {
+        name: "AdobeDeflate",
+        scheme: COMPRESSION_ADOBE_DEFLATE,
+        init: None,
+    },
+    TIFFCodec {
+        name: "PixarLog",
+        scheme: COMPRESSION_PIXARLOG,
+        init: None,
+    },
+    TIFFCodec {
+        name: "SGILog",
+        scheme: COMPRESSION_SGILOG,
+        init: Some(tiff_init_sg_log),
+    },
+    TIFFCodec {
+        name: "SGILog24",
+        scheme: COMPRESSION_SGILOG24,
+        init: Some(tiff_init_sg_log),
+    },
+    TIFFCodec {
+        name: "LZMA",
+        scheme: COMPRESSION_LZMA,
+        init: None,
+    },
+    TIFFCodec {
+        name: "ZSTD",
+        scheme: COMPRESSION_ZSTD,
+        init: None,
+    },
+    TIFFCodec {
+        name: "WEBP",
+        scheme: COMPRESSION_WEBP,
+        init: None,
+    },
+    TIFFCodec {
+        name: "LERC",
+        scheme: COMPRESSION_LERC,
+        init: None,
+    },
 ];
 
 /// Translation of `_notConfigured()`.

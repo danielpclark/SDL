@@ -19,7 +19,6 @@ const fn e(state: u8, width: u8, param: u32) -> TIFFFaxTabEnt {
     }
 }
 
-
 /// `TIFFFaxMainTable`
 #[rustfmt::skip]
 pub(crate) static TIFF_FAX_MAIN_TABLE: [TIFFFaxTabEnt; 128] = [

@@ -456,8 +456,7 @@ fn check_strile_byte_count(
              * cases.
              */
             let max_compression_ratio = tiff_get_max_compression_ratio(tif);
-            if max_compression_ratio > 0 && bytecount < strilesize as u64 / max_compression_ratio
-            {
+            if max_compression_ratio > 0 && bytecount < strilesize as u64 / max_compression_ratio {
                 if is_strip {
                     tiff_error_ext_r!(
                         module,
