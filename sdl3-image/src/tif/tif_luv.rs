@@ -168,9 +168,10 @@ pub(crate) struct LogLuvState {
     encode_meth: i32,   /* encoding method */
     pixel_size: i32,    /* bytes per pixel */
 
-    /// translation buffer (of 16-bit LogL values)
+    /// translation buffer (of 16-bit LogL values; its capacity is the
+    /// C's allocation, its length what has been used of it)
     tbuf16: Vec<i16>,
-    /// translation buffer (of 32-bit or 24-bit LogLuv values)
+    /// translation buffer (of 32-bit or 24-bit LogLuv values, as `tbuf16`)
     tbuf32: Vec<u32>,
     tbuflen: TmSize, /* buffer length */
     tfunc: TFunc,
@@ -193,6 +194,24 @@ const SGILOGDATAFMT_UNKNOWN: i32 = -1;
 /// counts keep it from reading).
 fn byte(raw: &[u8], bp: usize) -> u8 {
     raw.get(bp).copied().unwrap_or(0)
+}
+
+/// `_TIFFmallocExt()` of a translation buffer of `n` values: the memory
+/// reserved, not yet used (the C's allocation isn't written to until it
+/// is used either).
+fn reserve<T>(n: usize) -> Option<Vec<T>> {
+    let mut v = Vec::new();
+    v.try_reserve_exact(n).ok()?;
+    Some(v)
+}
+
+/// The first `n` values of a translation buffer (within its allocation).
+fn used<T: Copy + Default>(buf: &mut Vec<T>, n: TmSize) -> &mut [T] {
+    let n = (n.max(0) as usize).min(buf.capacity());
+    if buf.len() < n {
+        buf.resize(n, T::default());
+    }
+    &mut buf[..n]
 }
 
 /// Stores `values` into `op` in host byte order (what the C's casts of
@@ -228,8 +247,7 @@ fn log_l16_decode(tif: &mut Tiff<'_>, op: &mut [u8], occ: TmSize, _s: u16) -> i3
             tiff_error_ext_r!(MODULE, "Translation buffer too short");
             return 0;
         }
-        let n = (npixels.max(0) as usize).min(sp.tbuf16.len());
-        &mut sp.tbuf16[..n]
+        &mut used(&mut sp.tbuf16, npixels)[..]
     };
     tp.fill(0);
     let npixels = tp.len() as TmSize;
@@ -324,8 +342,7 @@ fn log_luv_decode24(tif: &mut Tiff<'_>, op: &mut [u8], occ: TmSize, _s: u16) -> 
             tiff_error_ext_r!(MODULE, "Translation buffer too short");
             return 0;
         }
-        let n = (npixels.max(0) as usize).min(sp.tbuf32.len());
-        &mut sp.tbuf32[..n]
+        &mut used(&mut sp.tbuf32, npixels)[..]
     };
     let npixels = tp.len() as TmSize;
     /* copy to array of uint32_t */
@@ -384,8 +401,7 @@ fn log_luv_decode32(tif: &mut Tiff<'_>, op: &mut [u8], occ: TmSize, _s: u16) -> 
             tiff_error_ext_r!(MODULE, "Translation buffer too short");
             return 0;
         }
-        let n = (npixels.max(0) as usize).min(sp.tbuf32.len());
-        &mut sp.tbuf32[..n]
+        &mut used(&mut sp.tbuf32, npixels)[..]
     };
     tp.fill(0);
     let npixels = tp.len() as TmSize;
@@ -825,7 +841,7 @@ fn log_l16_init_state(tif: &mut Tiff<'_>) -> i32 {
     let buf = if multiply_ms(sp.tbuflen, 2) == 0 {
         None
     } else {
-        try_vec::<i16>(sp.tbuflen as usize)
+        reserve::<i16>(sp.tbuflen as usize)
     };
     match buf {
         Some(b) => sp.tbuf16 = b,
@@ -920,7 +936,7 @@ fn log_luv_init_state(tif: &mut Tiff<'_>) -> i32 {
     let buf = if multiply_ms(sp.tbuflen, 4) == 0 {
         None
     } else {
-        try_vec::<u32>(sp.tbuflen as usize)
+        reserve::<u32>(sp.tbuflen as usize)
     };
     match buf {
         Some(b) => sp.tbuf32 = b,
