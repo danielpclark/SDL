@@ -1,14 +1,15 @@
 // Rust translation of src/dsp/alpha_processing.c from libwebp
 // (https://chromium.googlesource.com/webm/libwebp, as SDL_image's
-// external/libwebp pins it), the functions the decoder needs.
+// external/libwebp pins it), the functions the decoder and encoder need.
 // Copyright 2013 Google Inc. All Rights Reserved.
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Utilities for processing transparent channel: copying the decoded alpha
 //! plane into the output, and extracting it from the lossless decoder's
-//! green channel; for the encoder, extracting it from RGBA rows, looking
-//! for transparency and replacing transparent pixels. (The
+//! green channel; for the encoder, extracting it from RGBA rows, putting it
+//! in the green channel, looking for transparency and replacing
+//! transparent pixels. (The
 //! premultiplication functions are for the premultiplied colorspaces
 //! SDL_image doesn't ask for.)
 

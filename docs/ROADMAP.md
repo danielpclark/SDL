@@ -76,7 +76,10 @@ In dependency order, after the core each one needs exists:
    (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
    chosen size), TGA, WebP (`IMG_webp.c` over a translation of libwebp
    1.3.2's VP8 and VP8L decoders, alpha plane decoder, plain-C DSP
-   functions and demuxer, with `xmlman.c` for the XMP metadata), TIFF
+   functions and demuxer, with `xmlman.c` for the XMP metadata, and of its
+   VP8 and VP8L encoders, alpha plane encoder, muxer and animation encoder
+   for `IMG_SaveWEBP_IO()` and the WebP animation encoder, whose output is
+   byte-identical to libwebp's plain-C build), TIFF
    (`IMG_tif.c` over a translation of libtiff 4.7.2's reading path:
    directories, strips and tiles, `TIFFReadRGBAImageOriented()` with every
    photometric interpretation it takes, and the codecs SDL_image builds
@@ -84,18 +87,16 @@ In dependency order, after the core each one needs exists:
    Group 4, ThunderScan, NeXT and SGI LogL/LogLuv), XCF, XPM
    (with its color table, also from arrays) and XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
    (`IMG_stb.c`), the BMP, ICO, CUR, GIF (LZW, octree quantizer), PNG
-   (miniz), TGA and JPEG (`tiny_jpeg.h`) savers, the animation API
+   (miniz), TGA, JPEG (`tiny_jpeg.h`) and WebP savers, the animation API
    (`IMG_anim_decoder.c`, `IMG_anim_encoder.c`: frame-by-frame decoders and
-   encoders with timebases and metadata) with GIF and ANI cursor animations
-   and the WebP animation decoder,
+   encoders with timebases and metadata) with GIF, ANI cursor and WebP
+   animations,
    and `IMG_gpu.c` (GPU textures through a copy pass); checked against
    upstream's C on its test images and synthetic ones (detection, loading,
    truncated and corrupted input, saving, animation decoding and encoding).
    Not yet: the formats that need a large library: the AVIF and JPEG XL
-   decoders, the APNG and AVIF animation decoders and encoders,
-   and WebP saving and the WebP animation encoder (libwebp's encoder and
-   muxer, `IMG_SaveWEBP_IO()` failing as upstream built without
-   `SAVE_WEBP`); libpng and libjpeg are replaced by stb_image as upstream's
+   decoders, and the APNG and AVIF animation decoders and encoders;
+   libpng and libjpeg are replaced by stb_image as upstream's
    stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).

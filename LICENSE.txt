@@ -358,7 +358,7 @@ available under either of two licenses:
 
 sdl3-image/src/webp/ (from libwebp, https://chromium.googlesource.com/webm/libwebp,
 at the revision SDL_image's external/libwebp pins: libwebp 1.3.2 with
-SDL's patches), its decoder, demuxer and their utilities:
+SDL's patches), its decoder, demuxer, encoder, muxer and their utilities:
 
   Copyright (c) 2010, Google Inc. All rights reserved.
 

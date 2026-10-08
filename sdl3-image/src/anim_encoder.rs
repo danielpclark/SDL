@@ -4,7 +4,7 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation encoders: frames one at a time to a file or a stream, by
-//! format (GIF and ANI here; APNG, AVIF and WebP need their libraries,
+//! format (GIF, ANI and WebP here; APNG and AVIF need their libraries,
 //! which this crate doesn't have, and report so as an upstream build
 //! without them), and whole [`Animation`](crate::Animation)s.
 
@@ -375,8 +375,9 @@ pub fn save_gif_animation_io(anim: &mut Animation, dst: &mut IoStream<'_>) -> Re
     encode_animation(anim, dst, "gif", -1)
 }
 
-/// Save an animation as a WebP animation: not without libwebp, as
-/// upstream built without it. Translation of `IMG_SaveWEBPAnimation_IO()`.
+/// Save an animation as a WebP animation: lossless at quality 100, else
+/// lossy at the quality (75 if negative). Translation of
+/// `IMG_SaveWEBPAnimation_IO()`.
 pub fn save_webp_animation_io(
     anim: &mut Animation,
     dst: &mut IoStream<'_>,
