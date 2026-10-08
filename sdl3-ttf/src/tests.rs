@@ -26,9 +26,9 @@ use std::rc::Rc;
 use sdl3::render::Renderer;
 
 use crate::{
-    draw_renderer_text, draw_surface_text, Direction, DrawOperation, Font, Hinting,
-    HorizontalAlignment, ImageType, RendererTextEngine, SubString, SurfaceTextEngine, Text,
-    TextEngine,
+    draw_renderer_text, draw_surface_text, gpu_text_draw_data, Direction, DrawOperation, Font,
+    GpuTextEngine, GpuTextEngineWinding, Hinting, HorizontalAlignment, ImageType,
+    RendererTextEngine, SubString, SurfaceTextEngine, Text, TextEngine,
 };
 
 static SANS: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.ttf");
@@ -1025,6 +1025,325 @@ fn tiny_renderer_atlas() {
             assert!(err.contains("larger than atlas texture"), "{err}");
         }
     }
+    drop(r);
+    drop(f);
+    crate::quit();
+}
+
+/* The GPU text engine, against testdata/gpu_reference.txt (the output of
+a C program built from upstream SDL_ttf and SDL3 with the GPU API,
+which runs the cases below in the same order). */
+
+/// Initializes the offscreen video driver for a GPU device, and quits it.
+struct OffscreenVideo;
+
+impl OffscreenVideo {
+    fn init() -> sdl3::Result<OffscreenVideo> {
+        sdl3::hints::set(sdl3::hints::VIDEO_DRIVER, "offscreen")?;
+        sdl3::init::init(sdl3::init::InitFlags::VIDEO)?;
+        Ok(OffscreenVideo)
+    }
+}
+
+impl Drop for OffscreenVideo {
+    fn drop(&mut self) {
+        sdl3::init::quit_subsystem(sdl3::init::InitFlags::VIDEO);
+        sdl3::hints::reset(sdl3::hints::VIDEO_DRIVER);
+    }
+}
+
+/// The hash of a GPU atlas texture's pixels.
+fn gpu_texture_hash(device: &sdl3::gpu::Device, texture: &sdl3::gpu::Texture, size: i32) -> u64 {
+    use sdl3::gpu::{
+        TextureRegion, TextureTransferInfo, TransferBufferCreateInfo, TransferBufferUsage,
+    };
+    let mut buffer = device
+        .create_transfer_buffer(&TransferBufferCreateInfo {
+            usage: TransferBufferUsage::Download,
+            size: (size * size * 4) as u32,
+            props: None,
+        })
+        .unwrap();
+    let mut cmd = device.acquire_command_buffer().unwrap();
+    let mut pass = cmd.begin_copy_pass().unwrap();
+    pass.download_from_texture(
+        &TextureRegion {
+            texture,
+            mip_level: 0,
+            layer: 0,
+            x: 0,
+            y: 0,
+            z: 0,
+            w: size as u32,
+            h: size as u32,
+            d: 1,
+        },
+        &TextureTransferInfo {
+            transfer_buffer: &buffer,
+            offset: 0,
+            pixels_per_row: 0,
+            rows_per_layer: 0,
+        },
+    );
+    pass.end();
+    cmd.submit().unwrap();
+    device.wait_for_idle().unwrap();
+    let pixels = buffer.map(false).unwrap();
+    fnv(FNV0, &pixels)
+}
+
+fn fpoints_bytes(points: &[sdl3::video::FPoint]) -> Vec<u8> {
+    points
+        .iter()
+        .flat_map(|p| p.x.to_le_bytes().into_iter().chain(p.y.to_le_bytes()))
+        .collect()
+}
+
+/// The harness's `gdump()`: the draw sequences, one line each, sorted,
+/// with the hash of their sorted quads (upstream orders the glyphs of
+/// different atlases by the atlases' addresses); atlases are named by the
+/// hash of their pixels.
+fn gdump(out: &mut Vec<String>, label: &str, device: &sdl3::gpu::Device, t: &Text, size: i32) {
+    let seqs = match gpu_text_draw_data(t) {
+        Ok(Some(seqs)) => seqs,
+        Ok(None) => {
+            out.push(format!("{label} gpu: none"));
+            return;
+        }
+        Err(e) => {
+            out.push(format!("{label} gpu: none err: {e}"));
+            return;
+        }
+    };
+    let mut lines = Vec::new();
+    for seq in seqs.iter() {
+        let tex = seq
+            .atlas_texture
+            .as_ref()
+            .map_or(0, |t| gpu_texture_hash(device, t, size));
+        let nq = (seq.num_vertices / 4) as usize;
+        let mut quads: Vec<u64> = (0..nq)
+            .map(|q| {
+                let mut h = fnv(FNV0, &fpoints_bytes(&seq.xy[q * 4..q * 4 + 4]));
+                if !seq.uv.is_empty() {
+                    h = fnv(h, &fpoints_bytes(&seq.uv[q * 4..q * 4 + 4]));
+                }
+                h
+            })
+            .collect();
+        quads.sort_unstable();
+        let qbytes: Vec<u8> = quads.iter().flat_map(|q| q.to_le_bytes()).collect();
+        let ibytes: Vec<u8> = seq.indices[..seq.num_indices as usize]
+            .iter()
+            .flat_map(|i| i.to_le_bytes())
+            .collect();
+        lines.push(format!(
+            "tex={tex:016x} type={} nv={} ni={} uv={} quads={:016x} idx={:016x}",
+            seq.image_type as i32,
+            seq.num_vertices,
+            seq.num_indices,
+            !seq.uv.is_empty() as i32,
+            fnv(FNV0, &qbytes),
+            fnv(FNV0, &ibytes)
+        ));
+    }
+    lines.sort();
+    out.push(format!("{label} gpu: {}", lines.len()));
+    for line in lines {
+        out.push(format!("{label} seq: {line}"));
+    }
+}
+
+/// Each engine sees one generation of the font: when glyphs are
+/// recreated, upstream reuses free atlas areas a pixel larger than the
+/// glyphs, reading past the glyphs' pixels, in the order of its hash
+/// tables.
+fn gpu_pass(
+    out: &mut Vec<String>,
+    device: &sdl3::gpu::Device,
+    tag: &str,
+    size: i32,
+    f: &Font,
+    fb: &Font,
+    text1: &str,
+) {
+    use crate::{STYLE_NORMAL, STYLE_STRIKETHROUGH, STYLE_UNDERLINE};
+
+    let l = |s: &str| format!("{tag} {s}");
+    f.set_size(16.5).unwrap();
+    let engine = GpuTextEngine::with_atlas_texture_size(device, size).unwrap();
+    out.push(format!(
+        "{tag} engine: 1 winding: {}",
+        engine.winding() as i32
+    ));
+    let dyn_engine: Rc<dyn TextEngine> = engine.clone();
+    let t = Text::new(Some(dyn_engine), Some(f), text1).unwrap();
+    gdump(out, &l("plain"), device, &t, size);
+    t.set_wrap_width(150).unwrap();
+    gdump(out, &l("wrap150"), device, &t, size);
+    t.set_position(5, 7).unwrap();
+    gdump(out, &l("pos"), device, &t, size);
+    engine
+        .set_winding(GpuTextEngineWinding::CounterClockwise)
+        .unwrap();
+    out.push(format!("{tag} winding: {}", engine.winding() as i32));
+    t.set_wrap_width(160).unwrap();
+    gdump(out, &l("ccw"), device, &t, size);
+    let e = engine
+        .set_winding(GpuTextEngineWinding::Invalid)
+        .unwrap_err();
+    out.push(format!(
+        "{tag} winding invalid: {e} {}",
+        engine.winding() as i32
+    ));
+    engine.set_winding(GpuTextEngineWinding::Clockwise).unwrap();
+    t.set_string(Some("")).unwrap();
+    gdump(out, &l("empty"), device, &t, size);
+    t.set_string(Some(text1)).unwrap();
+    gdump(out, &l("again"), device, &t, size);
+    t.set_font(None).unwrap();
+    gdump(out, &l("nofont"), device, &t, size);
+    drop(t);
+    drop(engine);
+
+    let new_text = || {
+        let engine: Rc<dyn TextEngine> =
+            GpuTextEngine::with_atlas_texture_size(device, size).unwrap();
+        Text::new(Some(engine), Some(f), text1).unwrap()
+    };
+    f.set_style(STYLE_UNDERLINE | STYLE_STRIKETHROUGH);
+    let t = new_text();
+    t.set_wrap_width(150).unwrap();
+    gdump(out, &l("styled"), device, &t, size);
+    drop(t);
+    f.set_style(STYLE_NORMAL);
+
+    f.set_outline(2).unwrap();
+    let t = new_text();
+    gdump(out, &l("outline"), device, &t, size);
+    drop(t);
+    f.set_outline(0).unwrap();
+
+    f.add_fallback_font(fb).unwrap();
+    let t = new_text();
+    t.append_string(" t a i l € ← ☺").unwrap();
+    gdump(out, &l("fallback"), device, &t, size);
+    t.set_font(Some(fb)).unwrap();
+    t.set_string(Some("abc def")).unwrap();
+    gdump(out, &l("fbfont"), device, &t, size);
+    drop(t);
+    f.remove_fallback_font(fb);
+}
+
+#[test]
+fn gpu_text_engine_matches_upstream_reference() {
+    use sdl3::gpu::{Device, ShaderFormat};
+
+    // Declared before the device, so dropped after it.
+    let video = OffscreenVideo::init();
+    let device = match video
+        .as_ref()
+        .map_err(Clone::clone)
+        .and_then(|_| Device::new(ShaderFormat::SPIRV, false, None))
+    {
+        Ok(device) => device,
+        Err(e) => {
+            // SDL3_TEST_REQUIRE (docs/HARDWARE_TESTING.md) makes a missing
+            // GPU a failure.
+            let list = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
+            let required = list
+                .split(',')
+                .any(|c| c == "all" || (cfg!(target_os = "linux") && c == "vulkan"));
+            assert!(!required, "no GPU device: {e}");
+            eprintln!("skipped: no GPU device ({e})");
+            return;
+        }
+    };
+
+    crate::init().unwrap();
+    let mut out = Vec::new();
+    for (name, data) in [
+        ("DejaVuSans.ttf", SANS),
+        ("DejaVuSerif-Bold.ttf", SERIF_BOLD),
+    ] {
+        out.push(format!("== gpu {name}"));
+        let f = open_mem(data, 16.5).unwrap();
+        let fb = open_mem(MONO, 14.0).unwrap();
+        gpu_pass(&mut out, &device, "big", 1024, &f, &fb, WRAP);
+        gpu_pass(&mut out, &device, "atlas32", 32, &f, &fb, SPACED1);
+        gpu_pass(&mut out, &device, "atlas64", 64, &f, &fb, SPACED1);
+        {
+            // a text of another engine, and a glyph as large as the atlas
+            // (which upstream pads past it and never packs: not run)
+            let se: Rc<dyn TextEngine> = SurfaceTextEngine::new().unwrap();
+            let st = Text::new(Some(se), Some(&f), "x").unwrap();
+            gdump(&mut out, "surfaceengine", &device, &st, 0);
+            drop(st);
+            match GpuTextEngine::with_atlas_texture_size(&device, 0) {
+                Ok(_) => out.push("atlas0 engine: 1 err: ".into()),
+                Err(e) => out.push(format!("atlas0 engine: 0 err: {e}")),
+            }
+            let e: Rc<dyn TextEngine> = GpuTextEngine::with_atlas_texture_size(&device, 8).unwrap();
+            let t = Text::new(Some(e), Some(&f), "Wide").unwrap();
+            gdump(&mut out, "atlas8", &device, &t, 8);
+        }
+    }
+    crate::quit();
+
+    let reference: Vec<&str> = include_str!("testdata/gpu_reference.txt").lines().collect();
+    let mut failures = Vec::new();
+    for (i, expected) in reference.iter().enumerate() {
+        let actual = out.get(i).map(String::as_str).unwrap_or("<missing>");
+        if actual != *expected {
+            failures.push(format!(
+                "line {}:\n  expected {expected}\n  actual   {actual}",
+                i + 1
+            ));
+        }
+    }
+    if out.len() > reference.len() {
+        failures.push(format!("{} extra lines", out.len() - reference.len()));
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} lines differ from upstream:\n{}",
+        failures.len(),
+        reference.len(),
+        failures.join("\n")
+    );
+}
+
+/// A glyph that a renderer atlas can't hold once stb_rect_pack aligns its
+/// width fails (upstream creates atlases without end).
+#[test]
+fn renderer_engine_rejects_glyphs_that_never_pack() {
+    use crate::stb_rect_pack::stbrp_fits_empty_target;
+
+    // 9 pixel atlases have 2 nodes and align widths to 5
+    assert!(stbrp_fits_empty_target(5, 9, 9));
+    assert!(!stbrp_fits_empty_target(6, 9, 9));
+    assert!(!stbrp_fits_empty_target(5, 10, 9));
+
+    crate::init().unwrap();
+    let f = open_mem(SANS, 16.5).unwrap();
+    let (w, h) = f
+        .glyph_image(u32::from('W'))
+        .map(|(s, _)| (s.width(), s.height()))
+        .unwrap();
+    let size = (w.max(h)..w.max(h) + 64)
+        .find(|&size| !stbrp_fits_empty_target(w, h, size))
+        .unwrap();
+    let surface = Surface::new(16, 16, sdl3::video::PixelFormat::ARGB8888).unwrap();
+    let r = Rc::new(RefCell::new(Renderer::software(surface).unwrap()));
+    let engine: Rc<dyn TextEngine> =
+        RendererTextEngine::with_atlas_texture_size(r.clone(), size).unwrap();
+    let t = Text::new(Some(engine), Some(&f), "W").unwrap();
+    let err = draw_renderer_text(&t, 0.0, 0.0).unwrap_err().to_string();
+    assert!(
+        err.contains("larger than atlas texture"),
+        "{w}x{h} in {size}: {err}"
+    );
+    drop(t);
     drop(r);
     drop(f);
     crate::quit();

@@ -498,3 +498,19 @@ pub(crate) fn stbrp_pack_rects(context: &mut StbrpContext, rects: &mut [StbrpRec
     // return the all_rects_packed status
     all_rects_packed
 }
+
+/* (not in stb_rect_pack.h) */
+
+/// Whether a `w` x `h` rectangle can be packed into an empty
+/// `size` x `size` target with `size / 4` nodes, as the text engines make
+/// them: the widths are rounded up to a multiple of the alignment
+/// (`stbrp_setup_allow_out_of_mem(context, 0)`).
+pub(crate) fn stbrp_fits_empty_target(w: i32, h: i32, size: i32) -> bool {
+    let num_nodes = size / 4;
+    if num_nodes == 0 {
+        return true; // (CreateAtlas() fails)
+    }
+    let align = (size + num_nodes - 1) / num_nodes;
+    let aligned = (w as i64 + align as i64 - 1) / align as i64 * align as i64;
+    aligned <= size as i64 && h <= size
+}
