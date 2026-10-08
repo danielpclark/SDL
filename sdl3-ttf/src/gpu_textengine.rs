@@ -1,38 +1,67 @@
-// Rust translation of src/SDL_renderer_textengine.c from SDL_ttf.
+// Rust translation of src/SDL_gpu_textengine.c from SDL_ttf.
 // Copyright (C) 2001-2025 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The text engine for drawing text with SDL renderers.
+//! The text engine for drawing text with the SDL GPU API.
 //!
-//! Translation notes:
-//!
-//! * The engine shares its renderer (`Rc<RefCell<Renderer>>`): it creates
-//!   and fills atlas textures while texts are updated, and draws with it.
-//! * The glyphs (`AtlasGlyph *`) are indices into an arena of the engine,
-//!   with C's reference counts; the atlases (`AtlasTexture *`, a linked
-//!   list) are indices into a list in creation order, and their free lists
-//!   are lists of glyph indices, sorted as C's are.
-//! * The hash tables of glyphs (`SDL_HashTable`, keyed by font pointer and
-//!   glyph index) keep their entries in insertion order, so clearing one
-//!   releases its glyphs in a fixed order (C's order is that of its
-//!   buckets). The order only decides which free atlas areas are reused.
-//! * The draw operations' `reserved` pointers are the glyph indices kept
-//!   next to the copies of the operations.
+//! Translation notes: as in the renderer text engine
+//! (`renderer_textengine.rs`), the glyphs are indices into an arena of the
+//! engine, the atlases are a list in creation order, and the glyph hash
+//! tables keep insertion order. The atlas textures are shared (`Rc`) with
+//! the draw data handed out by [`gpu_text_draw_data`].
 
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use sdl3::render::{Indices, Renderer, Texture, TextureAccess};
-use sdl3::video::surface::ScaleMode;
-use sdl3::video::{FColor, PixelFormat, Rect, Surface};
+use sdl3::gpu::{
+    ColorTargetInfo, Device, LoadOp, Texture, TextureCreateInfo, TextureFormat, TextureRegion,
+    TextureTransferInfo, TextureType, TextureUsageFlags, TransferBufferCreateInfo,
+    TransferBufferUsage,
+};
+use sdl3::video::{FColor, FPoint, Rect, Surface};
 use sdl3::{Error, Result};
 
 use crate::qsort::sdl_qsort;
 use crate::stb_rect_pack::*;
 use crate::text::*;
 use crate::ttf::ImageType;
+
+/// The winding order of the vertices returned by [`gpu_text_draw_data`].
+/// Translation of `TTF_GPUTextEngineWinding`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GpuTextEngineWinding {
+    /// `TTF_GPU_TEXTENGINE_WINDING_INVALID`
+    Invalid = -1,
+    /// `TTF_GPU_TEXTENGINE_WINDING_CLOCKWISE`
+    Clockwise = 0,
+    /// `TTF_GPU_TEXTENGINE_WINDING_COUNTER_CLOCKWISE`
+    CounterClockwise = 1,
+}
+
+/// Draw sequence returned by [`gpu_text_draw_data`]. Translation of
+/// `TTF_GPUAtlasDrawSequence` (the sequences are a slice instead of a
+/// linked list).
+#[derive(Debug, Clone)]
+pub struct GpuAtlasDrawSequence {
+    /// Texture atlas that stores the glyphs (`None` for filled
+    /// rectangles)
+    pub atlas_texture: Option<Rc<Texture>>,
+    /// An array of vertex positions
+    pub xy: Vec<FPoint>,
+    /// An array of normalized texture coordinates for each vertex (empty
+    /// without an atlas texture)
+    pub uv: Vec<FPoint>,
+    /// Number of vertices
+    pub num_vertices: i32,
+    /// An array of indices into the 'vertices' arrays
+    pub indices: Vec<i32>,
+    /// Number of indices
+    pub num_indices: i32,
+    /// The image type of this draw sequence
+    pub image_type: ImageType,
+}
 
 /// `GlyphSurface`
 #[derive(Debug)]
@@ -53,29 +82,25 @@ struct AtlasGlyph {
 
 /// `AtlasTexture` (`packing_nodes` are the packer's, `next` is the next
 /// atlas of the engine's list)
-#[derive(Debug)]
 struct AtlasTexture {
-    texture: Texture,
+    texture: Rc<Texture>,
     packer: StbrpContext,
     free_glyphs: Vec<usize>,
 }
 
-/// `AtlasDrawSequence` (`next` is the next sequence of the text's list)
-#[derive(Debug)]
-struct AtlasDrawSequence {
-    texture: Option<Texture>,
-    image_type: ImageType,
-    rects: Vec<Rect>,
-    texcoords: Vec<f32>,
-    positions: Vec<f32>,
-    indices: Vec<i32>,
+impl std::fmt::Debug for AtlasTexture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AtlasTexture")
+            .field("free_glyphs", &self.free_glyphs)
+            .finish_non_exhaustive()
+    }
 }
 
-/// `TTF_RendererTextEngineTextData`
+/// `TTF_GPUTextEngineTextData`
 #[derive(Debug)]
-struct RendererTextEngineTextData {
+struct GpuTextEngineTextData {
     glyphs: Vec<usize>,
-    draw_sequence: Vec<AtlasDrawSequence>,
+    draw_sequence: Rc<[GpuAtlasDrawSequence]>,
 }
 
 /// A glyph hash table (`SDL_CreateGlyphHashTable(NukeGlyph)`), in
@@ -95,38 +120,31 @@ impl GlyphHashTable {
     }
 }
 
-/// `TTF_RendererTextEngineFontData`
+/// `TTF_GPUTextEngineFontData`
 #[derive(Debug)]
-struct RendererTextEngineFontData {
+struct GpuTextEngineFontData {
     /* font: the key */
     generation: u32,
     glyphs: GlyphHashTable,
 }
 
-/// `TTF_RendererTextEngineData` (but the renderer)
+/// `TTF_GPUTextEngineData` (but the device)
 #[derive(Debug)]
 struct EngineData {
-    fonts: HashMap<FontHandle, RendererTextEngineFontData>,
+    fonts: HashMap<FontHandle, GpuTextEngineFontData>,
     atlas: Vec<AtlasTexture>,
     atlas_texture_size: i32,
+    winding: GpuTextEngineWinding,
     /// the glyphs (C allocates each)
     glyph_arena: Vec<AtlasGlyph>,
 }
 
-/// The text engine for drawing text with an SDL renderer
-/// (`TTF_RendererTextEngineData`, as the `userdata` of a
-/// `TTF_TextEngine`).
-pub struct RendererTextEngine {
-    renderer: Rc<RefCell<Renderer>>,
+/// The text engine for drawing text with the SDL GPU API
+/// (`TTF_GPUTextEngineData`, as the `userdata` of a `TTF_TextEngine`).
+#[derive(Debug)]
+pub struct GpuTextEngine {
+    device: Device,
     data: RefCell<EngineData>,
-}
-
-impl std::fmt::Debug for RendererTextEngine {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RendererTextEngine")
-            .field("data", &self.data)
-            .finish_non_exhaustive()
-    }
 }
 
 /// `SortMissing`
@@ -202,30 +220,43 @@ fn sort_operations(
 }
 
 /* DestroyGlyph: the glyphs live in the engine's arena */
-
-/// `DestroyAtlas`
-fn destroy_atlas(renderer: &mut Renderer, atlas: &AtlasTexture) {
-    renderer.destroy_texture(atlas.texture);
-}
+/* DestroyAtlas: dropping it (SDL_ReleaseGPUTexture() when the last
+reference to the texture goes) */
 
 /// `CreateAtlas`
-fn create_atlas(renderer: &mut Renderer, atlas_texture_size: i32) -> Result<AtlasTexture> {
-    let texture = renderer.create_texture(
-        PixelFormat::ARGB8888,
-        TextureAccess::Streaming,
-        atlas_texture_size,
-        atlas_texture_size,
-    )?;
-    let _ = renderer.set_texture_scale_mode(texture, ScaleMode::Nearest);
+fn create_atlas(device: &Device, atlas_texture_size: i32) -> Result<AtlasTexture> {
+    let info = TextureCreateInfo {
+        texture_type: TextureType::Texture2D,
+        format: TextureFormat::B8G8R8A8_UNORM,
+        usage: TextureUsageFlags::SAMPLER | TextureUsageFlags::COLOR_TARGET,
+        width: atlas_texture_size as u32,
+        height: atlas_texture_size as u32,
+        layer_count_or_depth: 1,
+        num_levels: 1,
+        ..TextureCreateInfo::default()
+    };
+
+    let texture = device.create_texture(&info)?;
+
+    let mut target_info = ColorTargetInfo::new(&texture);
+    target_info.clear_color = FColor::new(0.0, 0.0, 0.0, 0.0);
+    target_info.load_op = LoadOp::Clear;
+
+    // (C doesn't check these)
+    if let Ok(mut cbuf) = device.acquire_command_buffer() {
+        if let Ok(rpass) = cbuf.begin_render_pass(&[target_info], None) {
+            rpass.end();
+        }
+        let _ = cbuf.submit();
+    }
 
     let num_nodes = atlas_texture_size / 4;
     if num_nodes == 0 {
         // FIXME (upstream): stbrp_init_target() divides by the number of
         // nodes (and writes past the empty node array) for atlas sizes
         // below 4; fail instead.
-        renderer.destroy_texture(texture);
         return Err(Error::new(
-            "Failed to create renderer text engine: Invalid texture atlas size.",
+            "Failed to create GPU text engine: Invalid texture atlas size.",
         ));
     }
     let mut packer = StbrpContext::default();
@@ -237,13 +268,12 @@ fn create_atlas(renderer: &mut Renderer, atlas_texture_size: i32) -> Result<Atla
     )
     .is_err()
     {
-        renderer.destroy_texture(texture);
         return Err(Error::out_of_memory());
     }
     stbrp_setup_heuristic(&mut packer, STBRP_HEURISTIC_SKYLINE_DEFAULT);
 
     Ok(AtlasTexture {
-        texture,
+        texture: Rc::new(texture),
         packer,
         free_glyphs: Vec::new(),
     })
@@ -281,15 +311,18 @@ fn create_glyph(
         return Err(Error::out_of_memory());
     }
 
-    let minu = area.x as f32 / atlas_texture_size as f32;
-    let minv = area.y as f32 / atlas_texture_size as f32;
-    let maxu = (area.x + area.w) as f32 / atlas_texture_size as f32;
-    let maxv = (area.y + area.h) as f32 / atlas_texture_size as f32;
+    // Remove the one pixel extra padding between glyphs
+    let rect = Rect::new(area.x, area.y, area.w - 1, area.h - 1);
+
+    let minu = rect.x as f32 / atlas_texture_size as f32;
+    let minv = rect.y as f32 / atlas_texture_size as f32;
+    let maxu = (rect.x + rect.w) as f32 / atlas_texture_size as f32;
+    let maxv = (rect.y + rect.h) as f32 / atlas_texture_size as f32;
     let glyph = AtlasGlyph {
         refcount: 1,
         atlas,
         image_type: ImageType::Invalid,
-        rect: Rect::new(area.x, area.y, area.w, area.h),
+        rect,
         texcoords: [minu, minv, maxu, minv, maxu, maxv, minu, maxv],
     };
 
@@ -331,35 +364,113 @@ fn find_unused_glyph(
     None
 }
 
+/// `UpdateGPUTexture`
+fn update_gpu_texture(
+    device: &Device,
+    texture: &Texture,
+    rect: &Rect,
+    pixels: &[u8],
+    pitch: i32,
+) -> Result<()> {
+    const TEXTUREBPP: usize = 4;
+
+    let (Some(row_size), true) = ((rect.w as usize).checked_mul(TEXTUREBPP), rect.w >= 0) else {
+        return Err(Error::new("update size overflow"));
+    };
+    let (Some(data_size), true) = ((rect.h as usize).checked_mul(row_size), rect.h >= 0) else {
+        return Err(Error::new("update size overflow"));
+    };
+
+    let tbci = TransferBufferCreateInfo {
+        size: data_size as u32,
+        usage: TransferBufferUsage::Upload,
+        ..TransferBufferCreateInfo::default()
+    };
+
+    let mut tbuf = device.create_transfer_buffer(&tbci)?;
+
+    {
+        let mut output = tbuf.map(false)?;
+        let output = &mut output[..];
+
+        // FIXME (upstream): a reused atlas area can be a pixel wider and
+        // taller than the glyph (FindUnusedGlyph() compares the padded size
+        // of the glyph with the unpadded size of the area), and C then reads
+        // past the glyph's pixels; the bytes past them are zeros here.
+        let copy = |dst: &mut [u8], src_offset: usize| {
+            let src = pixels.get(src_offset..).unwrap_or(&[]);
+            let n = dst.len().min(src.len());
+            dst[..n].copy_from_slice(&src[..n]);
+            dst[n..].fill(0);
+        };
+        if pitch as usize == row_size {
+            let n = data_size.min(output.len());
+            copy(&mut output[..n], 0);
+        } else {
+            // FIXME is negative pitch supposed to work?
+            // If not, maybe use SDL_GPUTextureTransferInfo::pixels_per_row instead of this
+            for i in 0..rect.h as usize {
+                let Some(dst) = output.get_mut(i * row_size..(i + 1) * row_size) else {
+                    break;
+                };
+                copy(dst, i.wrapping_mul(pitch as usize));
+            }
+        }
+        // SDL_UnmapGPUTransferBuffer(): dropping the mapping
+    }
+
+    let mut cbuf = device.acquire_command_buffer()?;
+    {
+        let mut cpass = cbuf.begin_copy_pass()?;
+
+        let tex_src = TextureTransferInfo {
+            transfer_buffer: &tbuf,
+            offset: 0,
+            rows_per_layer: rect.h as u32,
+            pixels_per_row: rect.w as u32,
+        };
+
+        let tex_dst = TextureRegion {
+            texture,
+            mip_level: 0,
+            layer: 0,
+            x: rect.x as u32,
+            y: rect.y as u32,
+            z: 0,
+            w: rect.w as u32,
+            h: rect.h as u32,
+            d: 1,
+        };
+
+        cpass.upload_to_texture(&tex_src, &tex_dst, false);
+        cpass.end();
+    }
+    // (SDL_ReleaseGPUTransferBuffer(): dropping it, after the submission)
+    cbuf.submit()?;
+    drop(tbuf);
+
+    Ok(())
+}
+
 /// `UpdateGlyph`
 fn update_glyph(
     enginedata: &mut EngineData,
-    renderer: &mut Renderer,
+    device: &Device,
     glyph: usize,
     surface: &Surface<'_>,
     image_type: ImageType,
 ) -> Result<()> {
+    // SDL_assert(glyph->rect.w > 0 && glyph->rect.h > 0);
     let g = &enginedata.glyph_arena[glyph];
-    let texture = enginedata.atlas[g.atlas].texture;
-    let rect = g.rect;
-    {
-        let mut lock = renderer.lock_texture(texture, Some(&rect))?;
 
-        let src = surface.pixels().unwrap_or(&[]);
-        let src_pitch = surface.pitch() as usize;
-        let dst_pitch = lock.pitch() as usize;
-        let dst = lock.pixels();
-        let row = rect.w as usize * 4;
-        for i in 0..rect.h as usize {
-            let s = src.get(i * src_pitch..i * src_pitch + row);
-            let d = dst.get_mut(i * dst_pitch..i * dst_pitch + row);
-            if let (Some(s), Some(d)) = (s, d) {
-                d.copy_from_slice(s);
-            }
-        }
-        // SDL_UnlockTexture(): dropping the lock
-    }
-
+    /* FIXME: We should update the whole texture at once or at least cache the transfer buffers */
+    let _ = update_gpu_texture(
+        device,
+        &enginedata.atlas[g.atlas].texture,
+        &g.rect,
+        surface.pixels().unwrap_or(&[]),
+        surface.pitch(),
+    );
     enginedata.glyph_arena[glyph].image_type = image_type;
     Ok(())
 }
@@ -406,7 +517,7 @@ fn copy_glyph(op: &DrawOperation) -> Option<(&FontHandle, u32)> {
 #[allow(clippy::too_many_arguments)]
 fn resolve_missing_glyphs(
     enginedata: &mut EngineData,
-    renderer: &mut Renderer,
+    device: &Device,
     atlas: usize,
     font: &FontHandle,
     surfaces: &[GlyphSurface],
@@ -430,7 +541,7 @@ fn resolve_missing_glyphs(
                 release_glyph(enginedata, glyph);
                 return Err(Error::invalid_param("surface"));
             };
-            if let Err(e) = update_glyph(enginedata, renderer, glyph, s, surface.image_type) {
+            if let Err(e) = update_glyph(enginedata, device, glyph, s, surface.image_type) {
                 release_glyph(enginedata, glyph);
                 return Err(e);
             }
@@ -445,6 +556,7 @@ fn resolve_missing_glyphs(
             ops[id].1 = Some(glyph);
 
             // Remove this from the missing entries
+            // (C moves the rest with SDL_memcpy(), on overlapping memory)
             missing.remove(i);
         }
         if missing.is_empty() {
@@ -469,7 +581,7 @@ fn resolve_missing_glyphs(
             release_glyph(enginedata, glyph);
             return Err(Error::invalid_param("surface"));
         };
-        if let Err(e) = update_glyph(enginedata, renderer, glyph, s, surface.image_type) {
+        if let Err(e) = update_glyph(enginedata, device, glyph, s, surface.image_type) {
             release_glyph(enginedata, glyph);
             return Err(e);
         }
@@ -497,24 +609,16 @@ fn resolve_missing_glyphs(
     }
 
     if atlas + 1 >= enginedata.atlas.len() {
-        let next = create_atlas(renderer, atlas_texture_size)?;
+        let next = create_atlas(device, atlas_texture_size)?;
         enginedata.atlas.push(next);
     }
-    resolve_missing_glyphs(
-        enginedata,
-        renderer,
-        atlas + 1,
-        font,
-        surfaces,
-        ops,
-        missing,
-    )
+    resolve_missing_glyphs(enginedata, device, atlas + 1, font, surfaces, ops, missing)
 }
 
 /// `CreateMissingGlyphs`
 fn create_missing_glyphs(
     enginedata: &mut EngineData,
-    renderer: &mut Renderer,
+    device: &Device,
     font: &FontHandle,
     ops: &mut Ops,
     num_missing: usize,
@@ -553,12 +657,16 @@ fn create_missing_glyphs(
             checked.insert(key);
 
             let (surface, image_type) = glyph_font.glyph_image_for_index(glyph_index)?;
-            // FIXME (upstream): a glyph that doesn't fit an empty atlas
-            // once stb_rect_pack aligns its width is never packed, and C then
-            // creates atlases without end; fail as for larger glyphs.
+            // FIXME (upstream): a glyph whose padded size doesn't fit an
+            // empty atlas is never packed, and C then creates atlases
+            // without end; fail as for larger glyphs.
             if surface.width() > atlas_texture_size
                 || surface.height() > atlas_texture_size
-                || !stbrp_fits_empty_target(surface.width(), surface.height(), atlas_texture_size)
+                || !stbrp_fits_empty_target(
+                    surface.width() + 1,
+                    surface.height() + 1,
+                    atlas_texture_size,
+                )
             {
                 return Err(Error::new(format!(
                     "Glyph surface {}x{} larger than atlas texture {}x{}",
@@ -573,10 +681,11 @@ fn create_missing_glyphs(
             surfaces[i].surface = Some(surface);
             surfaces[i].image_type = image_type;
 
+            // Add one pixel extra padding between glyphs
             missing.push(StbrpRect {
                 id: i as i32,
-                w,
-                h,
+                w: w + 1,
+                h: h + 1,
                 ..StbrpRect::default()
             });
         }
@@ -588,11 +697,11 @@ fn create_missing_glyphs(
 
     // Create the texture atlas if necessary
     if enginedata.atlas.is_empty() {
-        let atlas = create_atlas(renderer, atlas_texture_size)?;
+        let atlas = create_atlas(device, atlas_texture_size)?;
         enginedata.atlas.push(atlas);
     }
 
-    resolve_missing_glyphs(enginedata, renderer, 0, font, &surfaces, ops, &mut missing)?;
+    resolve_missing_glyphs(enginedata, device, 0, font, &surfaces, ops, &mut missing)?;
 
     // Resolve any duplicates
     let fontdata = enginedata.fonts.get(font).expect("font data");
@@ -614,14 +723,14 @@ fn create_missing_glyphs(
 
 /* DestroyDrawSequence: dropping it */
 
-/// `GetOperationTexture`
+/// `GetOperationTexture` (the atlas's index)
 fn get_operation_texture(
     enginedata: &EngineData,
     op: &(DrawOperation, Option<usize>),
-) -> Option<Texture> {
+) -> Option<usize> {
     if let DrawOperation::Copy(_) = op.0 {
         let glyph = &enginedata.glyph_arena[op.1.expect("glyph")];
-        return Some(enginedata.atlas[glyph.atlas].texture);
+        return Some(glyph.atlas);
     }
     None
 }
@@ -651,9 +760,12 @@ fn try_vec<T>(n: usize) -> Result<Vec<T>> {
 fn create_draw_sequence(
     enginedata: &EngineData,
     ops: &[(DrawOperation, Option<usize>)],
-    sequences: &mut Vec<AtlasDrawSequence>,
+    winding: GpuTextEngineWinding,
+    sequences: &mut Vec<GpuAtlasDrawSequence>,
 ) -> Result<()> {
     let num_ops = ops.len();
+    debug_assert!(num_ops > 0);
+
     let texture = get_operation_texture(enginedata, &ops[0]);
     let image_type = get_operation_image_type(enginedata, &ops[0]);
     let mut end = None;
@@ -667,37 +779,58 @@ fn create_draw_sequence(
     }
 
     let count = end.unwrap_or(num_ops);
-    let mut rects = try_vec(count)?;
+    let atlas_texture = texture.map(|t| enginedata.atlas[t].texture.clone());
+    let num_vertices = (count * 4) as i32;
+    let num_indices = (count * 6) as i32;
 
+    let mut uv = Vec::new();
+    if texture.is_some() {
+        uv = try_vec(count * 4)?;
+
+        for op in &ops[..count] {
+            let glyph = &enginedata.glyph_arena[op.1.expect("glyph")];
+            for p in glyph.texcoords.chunks_exact(2) {
+                uv.push(FPoint::new(p[0], p[1]));
+            }
+        }
+    }
+
+    let mut xy = try_vec(count * 4)?;
     for op in &ops[..count] {
         let dst = match &op.0 {
             DrawOperation::Fill(fill) => fill.rect,
             DrawOperation::Copy(copy) => copy.dst,
-            // (C copies from a null pointer; the layout makes no no-ops)
+            // (C reads through a null pointer; the layout makes no no-ops)
             DrawOperation::Noop => Rect::default(),
         };
-        rects.push(dst);
+
+        let minx = dst.x as f32;
+        let maxx = (dst.x + dst.w) as f32;
+        let miny = dst.y as f32;
+        let maxy = (dst.y + dst.h) as f32;
+
+        // In the GPU API postive y-axis is upwards so the signs of the y-coords is reversed
+        xy.push(FPoint::new(minx, -miny));
+        xy.push(FPoint::new(maxx, -miny));
+        xy.push(FPoint::new(maxx, -maxy));
+        xy.push(FPoint::new(minx, -maxy));
     }
 
-    let mut texcoords = Vec::new();
-    if texture.is_some() {
-        texcoords = try_vec(count * 8)?;
+    // (C allocates 12 indices per rectangle and fills 6)
+    let mut indices = try_vec(count * 6)?;
 
-        for op in &ops[..count] {
-            let glyph = &enginedata.glyph_arena[op.1.expect("glyph")];
-            texcoords.extend_from_slice(&glyph.texcoords);
-        }
-    }
+    const RECT_INDEX_ORDER_CW: [i32; 6] = [0, 1, 2, 0, 2, 3];
+    const RECT_INDEX_ORDER_CCW: [i32; 6] = [0, 2, 1, 0, 3, 2];
 
-    let mut positions = try_vec(count * 8)?;
-    positions.resize(count * 8, 0.0);
+    let rect_index_order = if winding == GpuTextEngineWinding::Clockwise {
+        RECT_INDEX_ORDER_CW
+    } else {
+        RECT_INDEX_ORDER_CCW
+    };
 
-    let mut indices = try_vec(count * 12)?;
-
-    const RECT_INDEX_ORDER: [i32; 6] = [0, 1, 2, 0, 2, 3];
     let mut vertex_index = 0;
     for _ in 0..count {
-        for o in RECT_INDEX_ORDER {
+        for o in rect_index_order {
             indices.push(vertex_index + o);
         }
         vertex_index += 4;
@@ -706,26 +839,27 @@ fn create_draw_sequence(
     if sequences.try_reserve(1).is_err() {
         return Err(Error::out_of_memory());
     }
-    sequences.push(AtlasDrawSequence {
-        texture,
-        image_type,
-        rects,
-        texcoords,
-        positions,
+    sequences.push(GpuAtlasDrawSequence {
+        atlas_texture,
+        xy,
+        uv,
+        num_vertices,
         indices,
+        num_indices,
+        image_type,
     });
 
     if count < num_ops {
-        create_draw_sequence(enginedata, &ops[count..], sequences)?;
+        create_draw_sequence(enginedata, &ops[count..], winding, sequences)?;
     }
     Ok(())
 }
 
 /// `DestroyTextData`
-fn destroy_text_data(enginedata: &mut EngineData, data: RendererTextEngineTextData) {
+fn destroy_text_data(enginedata: &mut EngineData, glyphs: Vec<usize>) {
     // DestroyDrawSequence(): dropping it
 
-    for glyph in data.glyphs {
+    for glyph in glyphs {
         release_glyph(enginedata, glyph);
     }
 }
@@ -733,14 +867,11 @@ fn destroy_text_data(enginedata: &mut EngineData, data: RendererTextEngineTextDa
 /// `CreateTextData`
 fn create_text_data(
     enginedata: &mut EngineData,
-    renderer: &mut Renderer,
+    device: &Device,
     font: &FontHandle,
     ops: &mut Ops,
-) -> Result<RendererTextEngineTextData> {
-    let mut data = RendererTextEngineTextData {
-        glyphs: Vec::new(),
-        draw_sequence: Vec::new(),
-    };
+) -> Result<GpuTextEngineTextData> {
+    let mut glyphs = Vec::new();
 
     // First, match draw operations to existing glyphs
     let mut num_glyphs = 0;
@@ -763,11 +894,11 @@ fn create_text_data(
 
     // Create any missing glyphs
     if num_missing > 0 {
-        create_missing_glyphs(enginedata, renderer, font, ops, num_missing)?;
+        create_missing_glyphs(enginedata, device, font, ops, num_missing)?;
     }
 
     // Add references to all the glyphs
-    if data.glyphs.try_reserve_exact(num_glyphs).is_err() {
+    if glyphs.try_reserve_exact(num_glyphs).is_err() {
         return Err(Error::out_of_memory());
     }
     for op in ops.iter() {
@@ -777,27 +908,31 @@ fn create_text_data(
 
         let glyph = op.1.expect("glyph");
         enginedata.glyph_arena[glyph].refcount += 1;
-        data.glyphs.push(glyph);
+        glyphs.push(glyph);
     }
 
     // Sort the operations to batch by texture
     {
-        let glyphs = &enginedata.glyph_arena;
+        let arena = &enginedata.glyph_arena;
         let mut order: Vec<usize> = (0..ops.len()).collect();
         sdl_qsort(&mut order, |&a, &b| {
-            sort_operations(glyphs, &ops[a], &ops[b])
+            sort_operations(arena, &ops[a], &ops[b])
         });
         let sorted: Ops = order.iter().map(|&i| ops[i].clone()).collect();
         *ops = sorted;
     }
 
     // Create batched draw sequences
-    if let Err(e) = create_draw_sequence(enginedata, ops, &mut data.draw_sequence) {
-        destroy_text_data(enginedata, data);
+    let mut draw_sequence = Vec::new();
+    if let Err(e) = create_draw_sequence(enginedata, ops, enginedata.winding, &mut draw_sequence) {
+        destroy_text_data(enginedata, glyphs);
         return Err(e);
     }
 
-    Ok(data)
+    Ok(GpuTextEngineTextData {
+        glyphs,
+        draw_sequence: draw_sequence.into(),
+    })
 }
 
 /* DestroyFontData, NukeGlyph: clear_font_glyphs() */
@@ -825,7 +960,7 @@ fn create_font_data(
     }
     enginedata.fonts.insert(
         font.clone(),
-        RendererTextEngineFontData {
+        GpuTextEngineFontData {
             generation: font_generation,
             glyphs: GlyphHashTable::default(),
         },
@@ -833,7 +968,7 @@ fn create_font_data(
     Ok(())
 }
 
-/* DestroyEngineData, NukeFontData: Drop for RendererTextEngine */
+/* DestroyEngineData, NukeFontData: dropping the engine */
 
 /// `CreateEngineData`
 fn create_engine_data(atlas_texture_size: i32) -> EngineData {
@@ -841,11 +976,12 @@ fn create_engine_data(atlas_texture_size: i32) -> EngineData {
         fonts: HashMap::new(),
         atlas: Vec::new(),
         atlas_texture_size,
+        winding: GpuTextEngineWinding::Clockwise,
         glyph_arena: Vec::new(),
     }
 }
 
-impl TextEngine for RendererTextEngine {
+impl TextEngine for GpuTextEngine {
     /// `CreateText`
     fn create_text(&self, text: &TextData) -> Result<Box<dyn Any>> {
         let font = text.font().ok_or_else(|| Error::invalid_param("font"))?;
@@ -870,18 +1006,14 @@ impl TextEngine for RendererTextEngine {
         }
         ops.extend(text.ops().iter().map(|op| (op.clone(), None)));
 
-        let mut renderer = self
-            .renderer
-            .try_borrow_mut()
-            .map_err(|_| Error::invalid_param("renderer"))?;
-        let data = create_text_data(enginedata, &mut renderer, &font, &mut ops)?;
+        let data = create_text_data(enginedata, &self.device, &font, &mut ops)?;
         Ok(Box::new(data))
     }
 
     /// `DestroyText`
     fn destroy_text(&self, engine_text: Box<dyn Any>) {
-        if let Ok(data) = engine_text.downcast::<RendererTextEngineTextData>() {
-            destroy_text_data(&mut self.data.borrow_mut(), *data);
+        if let Ok(data) = engine_text.downcast::<GpuTextEngineTextData>() {
+            destroy_text_data(&mut self.data.borrow_mut(), data.glyphs);
         }
     }
 
@@ -890,115 +1022,84 @@ impl TextEngine for RendererTextEngine {
     }
 }
 
-impl RendererTextEngine {
-    /// Create a text engine for drawing text with an SDL renderer, with
+impl GpuTextEngine {
+    /// Create a text engine for drawing text with the SDL GPU API, with
     /// atlas textures of 1024x1024 pixels. Translation of
-    /// `TTF_CreateRendererTextEngine()` (dropping the last reference is
-    /// `TTF_DestroyRendererTextEngine()`).
-    pub fn new(renderer: Rc<RefCell<Renderer>>) -> Result<Rc<RendererTextEngine>> {
-        RendererTextEngine::with_atlas_texture_size(renderer, 1024)
+    /// `TTF_CreateGPUTextEngine()` (dropping the last reference is
+    /// `TTF_DestroyGPUTextEngine()`).
+    pub fn new(device: &Device) -> Result<Rc<GpuTextEngine>> {
+        GpuTextEngine::with_atlas_texture_size(device, 1024)
     }
 
-    /// Create a text engine for drawing text with an SDL renderer, with
+    /// Create a text engine for drawing text with the SDL GPU API, with
     /// atlas textures of `atlas_texture_size` x `atlas_texture_size`
-    /// pixels. Translation of `TTF_CreateRendererTextEngineWithProperties()`
-    /// (with `TTF_PROP_RENDERER_TEXT_ENGINE_ATLAS_TEXTURE_SIZE`).
+    /// pixels. Translation of `TTF_CreateGPUTextEngineWithProperties()`
+    /// (with `TTF_PROP_GPU_TEXT_ENGINE_ATLAS_TEXTURE_SIZE`).
     pub fn with_atlas_texture_size(
-        renderer: Rc<RefCell<Renderer>>,
+        device: &Device,
         atlas_texture_size: i32,
-    ) -> Result<Rc<RendererTextEngine>> {
+    ) -> Result<Rc<GpuTextEngine>> {
         if atlas_texture_size <= 0 {
             return Err(Error::new(
-                "Failed to create renderer text engine: Invalid texture atlas size.",
+                "Failed to create GPU text engine: Invalid texture atlas size.",
             ));
         }
 
-        Ok(Rc::new(RendererTextEngine {
-            renderer,
+        Ok(Rc::new(GpuTextEngine {
+            device: device.clone(),
             data: RefCell::new(create_engine_data(atlas_texture_size)),
         }))
     }
 
-    /// The renderer of this engine.
-    pub fn renderer(&self) -> &Rc<RefCell<Renderer>> {
-        &self.renderer
-    }
-}
-
-impl Drop for RendererTextEngine {
-    /// `TTF_DestroyRendererTextEngine()` (`DestroyEngineData`)
-    fn drop(&mut self) {
-        let data = self.data.get_mut();
-        data.fonts.clear();
-
-        if let Ok(mut renderer) = self.renderer.try_borrow_mut() {
-            for atlas in &data.atlas {
-                destroy_atlas(&mut renderer, atlas);
-            }
+    /// Sets the winding order of the vertices returned by
+    /// [`gpu_text_draw_data`]. Translation of
+    /// `TTF_SetGPUTextEngineWinding()`.
+    pub fn set_winding(&self, winding: GpuTextEngineWinding) -> Result<()> {
+        if winding == GpuTextEngineWinding::Invalid {
+            return Err(Error::invalid_param("winding"));
         }
+
+        self.data.borrow_mut().winding = winding;
+        Ok(())
+    }
+
+    /// Get the winding order of the vertices returned by
+    /// [`gpu_text_draw_data`]. Translation of
+    /// `TTF_GetGPUTextEngineWinding()`.
+    pub fn winding(&self) -> GpuTextEngineWinding {
+        self.data.borrow().winding
+    }
+
+    /// The GPU device of this engine.
+    pub fn device(&self) -> &Device {
+        &self.device
     }
 }
 
-/// Draw text with the renderer of its [`RendererTextEngine`], at
-/// (`x`, `y`) in renderer coordinates. Translation of
-/// `TTF_DrawRendererText()`.
-pub fn draw_renderer_text(text: &Text, x: f32, y: f32) -> Result<()> {
-    let engine = text.engine();
-    let Some(engine) = engine
-        .as_ref()
-        .and_then(|e| e.as_any().downcast_ref::<RendererTextEngine>())
-    else {
+/// Get the geometry data needed for drawing the text (the text must use
+/// a [`GpuTextEngine`]): the draw sequences, `None` for an empty text.
+/// The positions are relative to the text's upper left corner, with y
+/// going up. Translation of `TTF_GetGPUTextDrawData()`.
+pub fn gpu_text_draw_data(text: &Text) -> Result<Option<Rc<[GpuAtlasDrawSequence]>>> {
+    let is_gpu_engine = text
+        .engine()
+        .is_some_and(|e| e.as_any().downcast_ref::<GpuTextEngine>().is_some());
+    if !is_gpu_engine {
         return Err(Error::invalid_param("text"));
-    };
+    }
 
     // Make sure the text is up to date
     text.update()?;
 
-    let mut td = text.rc.borrow_mut();
-    let text_color = td.color;
+    let td = text.rc.borrow();
     let Some(data) = td
         .engine_text
-        .as_mut()
-        .and_then(|d| d.downcast_mut::<RendererTextEngineTextData>())
+        .as_ref()
+        .and_then(|d| d.downcast_ref::<GpuTextEngineTextData>())
     else {
         // Empty string, nothing to do
-        return Ok(());
+        return Ok(None);
     };
 
-    let mut renderer = engine
-        .renderer
-        .try_borrow_mut()
-        .map_err(|_| Error::invalid_param("renderer"))?;
-    for sequence in &mut data.draw_sequence {
-        let positions = &mut sequence.positions;
-        for (i, dst) in sequence.rects.iter().enumerate() {
-            let minx = x + dst.x as f32;
-            let maxx = x + dst.x as f32 + dst.w as f32;
-            let miny = y + dst.y as f32;
-            let maxy = y + dst.y as f32 + dst.h as f32;
-
-            positions[i * 8..i * 8 + 8]
-                .copy_from_slice(&[minx, miny, maxx, miny, maxx, maxy, minx, maxy]);
-        }
-
-        let color = if sequence.image_type == ImageType::Alpha {
-            text_color
-        } else {
-            // Don't alter the color data in the image
-            FColor::new(1.0, 1.0, 1.0, text_color.a)
-        };
-
-        let _ = renderer.render_geometry_raw(
-            sequence.texture,
-            &sequence.positions,
-            2,
-            &[color],
-            0,
-            &sequence.texcoords,
-            2,
-            sequence.rects.len() * 4,
-            Some(Indices::I32(&sequence.indices)),
-        );
-    }
-    Ok(())
+    Ok(Some(data.draw_sequence.clone()))
 }

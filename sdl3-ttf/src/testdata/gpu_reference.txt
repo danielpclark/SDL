@@ -1,0 +1,201 @@
+== gpu DejaVuSans.ttf
+big engine: 1 winding: 0
+big plain gpu: 1
+big plain seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=4accef804825da54 idx=be9caa555e806b73
+big wrap150 gpu: 1
+big wrap150 seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=5216de9a2d1c6faf idx=be9caa555e806b73
+big pos gpu: 1
+big pos seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=c1bce0437545c8e9 idx=be9caa555e806b73
+big winding: 1
+big ccw gpu: 1
+big ccw seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=c1bce0437545c8e9 idx=25b977ab31c0afef
+big winding invalid: Parameter 'winding' is invalid 1
+big empty gpu: none
+big again gpu: 1
+big again seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=c1bce0437545c8e9 idx=be9caa555e806b73
+big nofont gpu: none
+big styled gpu: 2
+big styled seq: tex=0000000000000000 type=0 nv=56 ni=84 uv=0 quads=716966346d4b77cf idx=87948a636a68b9e5
+big styled seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=5216de9a2d1c6faf idx=be9caa555e806b73
+big outline gpu: 1
+big outline seq: tex=4c95e44f35ec5900 type=1 nv=292 ni=438 uv=1 quads=a8d6623914efdce2 idx=be9caa555e806b73
+big fallback gpu: 1
+big fallback seq: tex=dbb9f2513dc02bc5 type=1 nv=320 ni=480 uv=1 quads=4866819c0bec4e80 idx=a1b7aab428457965
+big fbfont gpu: 1
+big fbfont seq: tex=d00c93cf8255c1bb type=1 nv=24 ni=36 uv=1 quads=f3612afc3a1ad134 idx=743392961a476025
+atlas32 engine: 1 winding: 0
+atlas32 plain gpu: 3
+atlas32 plain seq: tex=27706f5c85241ce0 type=1 nv=68 ni=102 uv=1 quads=c138abf9b8e1dce6 idx=7b9aec20b0264527
+atlas32 plain seq: tex=62fdbe6569f9d44a type=1 nv=16 ni=24 uv=1 quads=d3adb5759df2dc42 idx=7d6fd657d50290a5
+atlas32 plain seq: tex=a286bd7915d9f252 type=1 nv=44 ni=66 uv=1 quads=9779092f72567795 idx=3002afe0cc0c6f67
+atlas32 wrap150 gpu: 3
+atlas32 wrap150 seq: tex=27706f5c85241ce0 type=1 nv=68 ni=102 uv=1 quads=a24703d80ab0173f idx=7b9aec20b0264527
+atlas32 wrap150 seq: tex=62fdbe6569f9d44a type=1 nv=16 ni=24 uv=1 quads=da1e77b9e8a4e983 idx=7d6fd657d50290a5
+atlas32 wrap150 seq: tex=a286bd7915d9f252 type=1 nv=44 ni=66 uv=1 quads=0fc463bc30021a1f idx=3002afe0cc0c6f67
+atlas32 pos gpu: 3
+atlas32 pos seq: tex=27706f5c85241ce0 type=1 nv=68 ni=102 uv=1 quads=8165b625240856d5 idx=7b9aec20b0264527
+atlas32 pos seq: tex=62fdbe6569f9d44a type=1 nv=16 ni=24 uv=1 quads=dc9af091a45c5741 idx=7d6fd657d50290a5
+atlas32 pos seq: tex=a286bd7915d9f252 type=1 nv=44 ni=66 uv=1 quads=06efd2788fbfc852 idx=3002afe0cc0c6f67
+atlas32 winding: 1
+atlas32 ccw gpu: 3
+atlas32 ccw seq: tex=27706f5c85241ce0 type=1 nv=68 ni=102 uv=1 quads=e98db6a4a1455c3e idx=b7484fc6b0049167
+atlas32 ccw seq: tex=62fdbe6569f9d44a type=1 nv=16 ni=24 uv=1 quads=059e3e1ba53a9d7b idx=12ea4a6af6a3e925
+atlas32 ccw seq: tex=a286bd7915d9f252 type=1 nv=44 ni=66 uv=1 quads=f6b92b5f944f42f3 idx=aa52139b19d38c67
+atlas32 winding invalid: Parameter 'winding' is invalid 1
+atlas32 empty gpu: none
+atlas32 again gpu: 3
+atlas32 again seq: tex=27706f5c85241ce0 type=1 nv=68 ni=102 uv=1 quads=e98db6a4a1455c3e idx=7b9aec20b0264527
+atlas32 again seq: tex=62fdbe6569f9d44a type=1 nv=16 ni=24 uv=1 quads=059e3e1ba53a9d7b idx=7d6fd657d50290a5
+atlas32 again seq: tex=a286bd7915d9f252 type=1 nv=44 ni=66 uv=1 quads=f6b92b5f944f42f3 idx=3002afe0cc0c6f67
+atlas32 nofont gpu: none
+atlas32 styled gpu: 4
+atlas32 styled seq: tex=0000000000000000 type=0 nv=40 ni=60 uv=0 quads=0b3871ffffcd630d idx=ef7ad00fb0502325
+atlas32 styled seq: tex=27706f5c85241ce0 type=1 nv=68 ni=102 uv=1 quads=a24703d80ab0173f idx=7b9aec20b0264527
+atlas32 styled seq: tex=62fdbe6569f9d44a type=1 nv=16 ni=24 uv=1 quads=da1e77b9e8a4e983 idx=7d6fd657d50290a5
+atlas32 styled seq: tex=a286bd7915d9f252 type=1 nv=44 ni=66 uv=1 quads=0fc463bc30021a1f idx=3002afe0cc0c6f67
+atlas32 outline gpu: 5
+atlas32 outline seq: tex=0ec4baa1eec689ec type=1 nv=4 ni=6 uv=1 quads=ff70f0d94c659905 idx=df9c258beaf17c27
+atlas32 outline seq: tex=2629de7db81f88a8 type=1 nv=32 ni=48 uv=1 quads=58842efcb39d7b4b idx=f21d0ef71a9ccaa5
+atlas32 outline seq: tex=5553eb70772e299e type=1 nv=24 ni=36 uv=1 quads=2fb29d758e764d5b idx=743392961a476025
+atlas32 outline seq: tex=64f2166491d652b1 type=1 nv=48 ni=72 uv=1 quads=0011e35948f560bf idx=5455c3860332d6a5
+atlas32 outline seq: tex=d46ff79993140b8c type=1 nv=20 ni=30 uv=1 quads=4166c46e63d89da0 idx=85b26ae6a7a15ac7
+atlas32 fallback gpu: 3
+atlas32 fallback seq: tex=27706f5c85241ce0 type=1 nv=80 ni=120 uv=1 quads=c7d58052293a20f2 idx=35e3ac96f19df5a5
+atlas32 fallback seq: tex=ae4d24989bf0338f type=1 nv=32 ni=48 uv=1 quads=262bb9b6d7bdf1be idx=f21d0ef71a9ccaa5
+atlas32 fallback seq: tex=d96bf94404084f99 type=1 nv=44 ni=66 uv=1 quads=634141a030d70b9c idx=3002afe0cc0c6f67
+atlas32 fbfont gpu: 2
+atlas32 fbfont seq: tex=0cc93f9c924add98 type=1 nv=16 ni=24 uv=1 quads=25117a4ec0ea937d idx=7d6fd657d50290a5
+atlas32 fbfont seq: tex=8caeb0866c5799dc type=1 nv=8 ni=12 uv=1 quads=db423434acae2ead idx=285db105e0766465
+atlas64 engine: 1 winding: 0
+atlas64 plain gpu: 1
+atlas64 plain seq: tex=6bf3b47864856940 type=1 nv=128 ni=192 uv=1 quads=f15ada7660dab3f0 idx=27a7d3f954e85025
+atlas64 wrap150 gpu: 1
+atlas64 wrap150 seq: tex=6bf3b47864856940 type=1 nv=128 ni=192 uv=1 quads=fde2bcedc7391fa3 idx=27a7d3f954e85025
+atlas64 pos gpu: 1
+atlas64 pos seq: tex=6bf3b47864856940 type=1 nv=128 ni=192 uv=1 quads=3e44d42d11badf9e idx=27a7d3f954e85025
+atlas64 winding: 1
+atlas64 ccw gpu: 1
+atlas64 ccw seq: tex=6bf3b47864856940 type=1 nv=128 ni=192 uv=1 quads=7814be81380150d0 idx=d6423144b8bfb925
+atlas64 winding invalid: Parameter 'winding' is invalid 1
+atlas64 empty gpu: none
+atlas64 again gpu: 1
+atlas64 again seq: tex=6bf3b47864856940 type=1 nv=128 ni=192 uv=1 quads=7814be81380150d0 idx=27a7d3f954e85025
+atlas64 nofont gpu: none
+atlas64 styled gpu: 2
+atlas64 styled seq: tex=0000000000000000 type=0 nv=40 ni=60 uv=0 quads=0b3871ffffcd630d idx=ef7ad00fb0502325
+atlas64 styled seq: tex=6bf3b47864856940 type=1 nv=128 ni=192 uv=1 quads=fde2bcedc7391fa3 idx=27a7d3f954e85025
+atlas64 outline gpu: 2
+atlas64 outline seq: tex=76fecc65e6fd9986 type=1 nv=120 ni=180 uv=1 quads=8e455a683cce6400 idx=c5ba92a826fc9265
+atlas64 outline seq: tex=da72afe98d6ef9a4 type=1 nv=8 ni=12 uv=1 quads=b2b21e3ac3845bf3 idx=285db105e0766465
+atlas64 fallback gpu: 1
+atlas64 fallback seq: tex=4d2518e37077b0da type=1 nv=156 ni=234 uv=1 quads=c3d82080800404a3 idx=497d87ac5a12cbc7
+atlas64 fbfont gpu: 1
+atlas64 fbfont seq: tex=105410fbfba3cb50 type=1 nv=24 ni=36 uv=1 quads=c44e0ff61737256f idx=743392961a476025
+surfaceengine gpu: none err: Parameter 'text' is invalid
+atlas0 engine: 0 err: Failed to create GPU text engine: Invalid texture atlas size.
+atlas8 gpu: none err: Glyph surface 17x12 larger than atlas texture 8x8
+== gpu DejaVuSerif-Bold.ttf
+big engine: 1 winding: 0
+big plain gpu: 1
+big plain seq: tex=29c52f31f69adb5a type=1 nv=292 ni=438 uv=1 quads=65006ded6c7ec87d idx=be9caa555e806b73
+big wrap150 gpu: 1
+big wrap150 seq: tex=29c52f31f69adb5a type=1 nv=292 ni=438 uv=1 quads=0ee8c87e79cf1239 idx=be9caa555e806b73
+big pos gpu: 1
+big pos seq: tex=29c52f31f69adb5a type=1 nv=292 ni=438 uv=1 quads=d02804090e81b18b idx=be9caa555e806b73
+big winding: 1
+big ccw gpu: 1
+big ccw seq: tex=29c52f31f69adb5a type=1 nv=292 ni=438 uv=1 quads=275627f4409f175c idx=25b977ab31c0afef
+big winding invalid: Parameter 'winding' is invalid 1
+big empty gpu: none
+big again gpu: 1
+big again seq: tex=29c52f31f69adb5a type=1 nv=292 ni=438 uv=1 quads=275627f4409f175c idx=be9caa555e806b73
+big nofont gpu: none
+big styled gpu: 2
+big styled seq: tex=0000000000000000 type=0 nv=64 ni=96 uv=0 quads=d7e4b6cb6132f1fc idx=fa715c1b05000825
+big styled seq: tex=29c52f31f69adb5a type=1 nv=292 ni=438 uv=1 quads=0ee8c87e79cf1239 idx=be9caa555e806b73
+big outline gpu: 1
+big outline seq: tex=fb51188b459bacb3 type=1 nv=292 ni=438 uv=1 quads=0c64c7220b38cbfa idx=be9caa555e806b73
+big fallback gpu: 1
+big fallback seq: tex=2188db15466b35b8 type=1 nv=320 ni=480 uv=1 quads=f0303f25e6a5780c idx=a1b7aab428457965
+big fbfont gpu: 1
+big fbfont seq: tex=cfba106a172eceda type=1 nv=24 ni=36 uv=1 quads=ee43d8939ba2e2a1 idx=743392961a476025
+atlas32 engine: 1 winding: 0
+atlas32 plain gpu: 4
+atlas32 plain seq: tex=27bee1ab0ebee3b4 type=1 nv=8 ni=12 uv=1 quads=404bc5dcec12a3ec idx=285db105e0766465
+atlas32 plain seq: tex=49a265f93ad96fb0 type=1 nv=28 ni=42 uv=1 quads=59dd11c5bf4b01dd idx=c8a006ca7975efc7
+atlas32 plain seq: tex=4cb50d09d704ef4c type=1 nv=48 ni=72 uv=1 quads=abba329eaa5acfba idx=5455c3860332d6a5
+atlas32 plain seq: tex=b5f8afc209577a27 type=1 nv=44 ni=66 uv=1 quads=2f3c27f5a4e94007 idx=3002afe0cc0c6f67
+atlas32 wrap150 gpu: 4
+atlas32 wrap150 seq: tex=27bee1ab0ebee3b4 type=1 nv=8 ni=12 uv=1 quads=0a4de2f922eb3c24 idx=285db105e0766465
+atlas32 wrap150 seq: tex=49a265f93ad96fb0 type=1 nv=28 ni=42 uv=1 quads=360619b1c739dfcd idx=c8a006ca7975efc7
+atlas32 wrap150 seq: tex=4cb50d09d704ef4c type=1 nv=48 ni=72 uv=1 quads=21506c24c5579846 idx=5455c3860332d6a5
+atlas32 wrap150 seq: tex=b5f8afc209577a27 type=1 nv=44 ni=66 uv=1 quads=424e375f40a65783 idx=3002afe0cc0c6f67
+atlas32 pos gpu: 4
+atlas32 pos seq: tex=27bee1ab0ebee3b4 type=1 nv=8 ni=12 uv=1 quads=a07c37cc672e3e3e idx=285db105e0766465
+atlas32 pos seq: tex=49a265f93ad96fb0 type=1 nv=28 ni=42 uv=1 quads=2664fd4e581f67e3 idx=c8a006ca7975efc7
+atlas32 pos seq: tex=4cb50d09d704ef4c type=1 nv=48 ni=72 uv=1 quads=0d8e3b51be6460bc idx=5455c3860332d6a5
+atlas32 pos seq: tex=b5f8afc209577a27 type=1 nv=44 ni=66 uv=1 quads=b26681f21d7cdfbd idx=3002afe0cc0c6f67
+atlas32 winding: 1
+atlas32 ccw gpu: 4
+atlas32 ccw seq: tex=27bee1ab0ebee3b4 type=1 nv=8 ni=12 uv=1 quads=fff3690a3164ed1a idx=ef02428701e078a5
+atlas32 ccw seq: tex=49a265f93ad96fb0 type=1 nv=28 ni=42 uv=1 quads=fd33dbc72317d0ef idx=75c0ef5433397a27
+atlas32 ccw seq: tex=4cb50d09d704ef4c type=1 nv=48 ni=72 uv=1 quads=255fdf6271417bf0 idx=e642e33000be00a5
+atlas32 ccw seq: tex=b5f8afc209577a27 type=1 nv=44 ni=66 uv=1 quads=b26681f21d7cdfbd idx=aa52139b19d38c67
+atlas32 winding invalid: Parameter 'winding' is invalid 1
+atlas32 empty gpu: none
+atlas32 again gpu: 4
+atlas32 again seq: tex=27bee1ab0ebee3b4 type=1 nv=8 ni=12 uv=1 quads=fff3690a3164ed1a idx=285db105e0766465
+atlas32 again seq: tex=49a265f93ad96fb0 type=1 nv=28 ni=42 uv=1 quads=fd33dbc72317d0ef idx=c8a006ca7975efc7
+atlas32 again seq: tex=4cb50d09d704ef4c type=1 nv=48 ni=72 uv=1 quads=255fdf6271417bf0 idx=5455c3860332d6a5
+atlas32 again seq: tex=b5f8afc209577a27 type=1 nv=44 ni=66 uv=1 quads=b26681f21d7cdfbd idx=3002afe0cc0c6f67
+atlas32 nofont gpu: none
+atlas32 styled gpu: 5
+atlas32 styled seq: tex=0000000000000000 type=0 nv=40 ni=60 uv=0 quads=9f8bc1f745372014 idx=ef7ad00fb0502325
+atlas32 styled seq: tex=27bee1ab0ebee3b4 type=1 nv=8 ni=12 uv=1 quads=0a4de2f922eb3c24 idx=285db105e0766465
+atlas32 styled seq: tex=49a265f93ad96fb0 type=1 nv=28 ni=42 uv=1 quads=360619b1c739dfcd idx=c8a006ca7975efc7
+atlas32 styled seq: tex=4cb50d09d704ef4c type=1 nv=48 ni=72 uv=1 quads=21506c24c5579846 idx=5455c3860332d6a5
+atlas32 styled seq: tex=b5f8afc209577a27 type=1 nv=44 ni=66 uv=1 quads=424e375f40a65783 idx=3002afe0cc0c6f67
+atlas32 outline gpu: 6
+atlas32 outline seq: tex=4428819b41e5b1a7 type=1 nv=12 ni=18 uv=1 quads=347b190c6c6c8cb3 idx=8859751fff59aae7
+atlas32 outline seq: tex=72455b535ff27aa2 type=1 nv=20 ni=30 uv=1 quads=be9bb8902028f94d idx=85b26ae6a7a15ac7
+atlas32 outline seq: tex=79dea911d3786300 type=1 nv=20 ni=30 uv=1 quads=9a47a74039fdf6aa idx=85b26ae6a7a15ac7
+atlas32 outline seq: tex=8a6c0ffcd61868d3 type=1 nv=32 ni=48 uv=1 quads=3dc1e25a2f8c7cf6 idx=f21d0ef71a9ccaa5
+atlas32 outline seq: tex=a6ccc8582fea95bc type=1 nv=28 ni=42 uv=1 quads=13eddd5d84167bc6 idx=c8a006ca7975efc7
+atlas32 outline seq: tex=ef975ff41a85c0a0 type=1 nv=16 ni=24 uv=1 quads=2e7690122f4e3b82 idx=7d6fd657d50290a5
+atlas32 fallback gpu: 4
+atlas32 fallback seq: tex=1e09b74c2839acce type=1 nv=36 ni=54 uv=1 quads=e4b4aff0573cfd15 idx=98728444461bf167
+atlas32 fallback seq: tex=4cb50d09d704ef4c type=1 nv=56 ni=84 uv=1 quads=77591e44a4dec94c idx=87948a636a68b9e5
+atlas32 fallback seq: tex=892db43f3d26cd9c type=1 nv=20 ni=30 uv=1 quads=17a1f9b0888bc47c idx=85b26ae6a7a15ac7
+atlas32 fallback seq: tex=da1276e383b0913b type=1 nv=44 ni=66 uv=1 quads=f0628b2f22698056 idx=3002afe0cc0c6f67
+atlas32 fbfont gpu: 3
+atlas32 fbfont seq: tex=438737925d9befea type=1 nv=16 ni=24 uv=1 quads=3c7650c2ef5731cf idx=7d6fd657d50290a5
+atlas32 fbfont seq: tex=98909f11bc0d9819 type=1 nv=4 ni=6 uv=1 quads=c501af11cc4d44f1 idx=df9c258beaf17c27
+atlas32 fbfont seq: tex=b64a28729b68e654 type=1 nv=4 ni=6 uv=1 quads=c80ff7e11719e920 idx=df9c258beaf17c27
+atlas64 engine: 1 winding: 0
+atlas64 plain gpu: 1
+atlas64 plain seq: tex=e956b76f5f3b855e type=1 nv=128 ni=192 uv=1 quads=8fe230a61817a1e7 idx=27a7d3f954e85025
+atlas64 wrap150 gpu: 1
+atlas64 wrap150 seq: tex=e956b76f5f3b855e type=1 nv=128 ni=192 uv=1 quads=c433eb35a2167348 idx=27a7d3f954e85025
+atlas64 pos gpu: 1
+atlas64 pos seq: tex=e956b76f5f3b855e type=1 nv=128 ni=192 uv=1 quads=44b0b2e669a5fd6c idx=27a7d3f954e85025
+atlas64 winding: 1
+atlas64 ccw gpu: 1
+atlas64 ccw seq: tex=e956b76f5f3b855e type=1 nv=128 ni=192 uv=1 quads=ab4e41d3f606489d idx=d6423144b8bfb925
+atlas64 winding invalid: Parameter 'winding' is invalid 1
+atlas64 empty gpu: none
+atlas64 again gpu: 1
+atlas64 again seq: tex=e956b76f5f3b855e type=1 nv=128 ni=192 uv=1 quads=ab4e41d3f606489d idx=27a7d3f954e85025
+atlas64 nofont gpu: none
+atlas64 styled gpu: 2
+atlas64 styled seq: tex=0000000000000000 type=0 nv=40 ni=60 uv=0 quads=9f8bc1f745372014 idx=ef7ad00fb0502325
+atlas64 styled seq: tex=e956b76f5f3b855e type=1 nv=128 ni=192 uv=1 quads=c433eb35a2167348 idx=27a7d3f954e85025
+atlas64 outline gpu: 2
+atlas64 outline seq: tex=11f5488784768e0a type=1 nv=112 ni=168 uv=1 quads=83e341f38005b375 idx=aa0985b9698ebea5
+atlas64 outline seq: tex=7cb20963b0674fb0 type=1 nv=16 ni=24 uv=1 quads=2c9c5df29f354be0 idx=7d6fd657d50290a5
+atlas64 fallback gpu: 1
+atlas64 fallback seq: tex=3b1413f2e0298554 type=1 nv=156 ni=234 uv=1 quads=1b0dd68c65463b22 idx=497d87ac5a12cbc7
+atlas64 fbfont gpu: 1
+atlas64 fbfont seq: tex=041d348cffd450be type=1 nv=24 ni=36 uv=1 quads=dceb686c70d3f673 idx=743392961a476025
+surfaceengine gpu: none err: Parameter 'text' is invalid
+atlas0 engine: 0 err: Failed to create GPU text engine: Invalid texture atlas size.
+atlas8 gpu: none err: Glyph surface 21x12 larger than atlas texture 8x8

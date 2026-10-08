@@ -14,6 +14,7 @@
 #[doc(hidden)]
 pub mod freetype;
 
+mod gpu_textengine;
 mod qsort;
 mod renderer_textengine;
 mod stb_rect_pack;
@@ -21,6 +22,7 @@ mod surface_textengine;
 mod text;
 mod ttf;
 
+pub use gpu_textengine::*;
 pub use renderer_textengine::*;
 pub use surface_textengine::*;
 pub use text::*;
