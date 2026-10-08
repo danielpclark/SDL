@@ -1,5 +1,5 @@
 // Rust translation of the TTF_Text part of src/SDL_ttf.c from SDL_ttf.
-// Copyright (C) 2001-2026 Sam Lantinga <slouken@libsdl.org>
+// Copyright (C) 2001-2025 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! `TTF_Text`: not translated yet; the font keeps weak references to its
