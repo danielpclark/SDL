@@ -14,9 +14,7 @@ use super::tif_aux::{
 use super::tif_error::tiff_error_ext_r;
 use super::tif_tile::tiff_tile_row_size64;
 use super::tiff::*;
-use super::tiffiop::{
-    tiff_howmany8_64, tiff_howmany_32, tiff_howmany_64, Tiff, TmSize,
-};
+use super::tiffiop::{tiff_howmany8_64, tiff_howmany_32, tiff_howmany_64, Tiff, TmSize};
 
 /// Translation of `TIFFComputeStrip()`: Compute which strip a
 /// (row,sample) value is in.
@@ -39,8 +37,11 @@ pub(crate) fn tiff_compute_strip(tif: &mut Tiff<'_>, row: u32, sample: u16) -> u
             );
             return 0;
         }
-        let sample_offset =
-            _tiff_multiply64(sample as u64, td.td_stripsperimage as u64, "TIFFComputeStrip");
+        let sample_offset = _tiff_multiply64(
+            sample as u64,
+            td.td_stripsperimage as u64,
+            "TIFFComputeStrip",
+        );
         if sample_offset == 0 && sample != 0 && td.td_stripsperimage != 0 {
             return 0;
         }
@@ -71,11 +72,7 @@ pub(crate) fn tiff_number_of_strips(tif: &Tiff<'_>) -> u32 {
         tiff_howmany_32(td.td_imagelength, td.td_rowsperstrip)
     };
     if td.td_planarconfig == PLANARCONFIG_SEPARATE {
-        nstrips = _tiff_multiply32(
-            nstrips,
-            td.td_samplesperpixel as u32,
-            "TIFFNumberOfStrips",
-        );
+        nstrips = _tiff_multiply32(nstrips, td.td_samplesperpixel as u32, "TIFFNumberOfStrips");
     }
     nstrips
 }
@@ -113,13 +110,15 @@ pub(crate) fn _tiff_strile_size64(tif: &mut Tiff<'_>, mut nrows: u32, is_strip: 
         }
         let (ss0, ss1) =
             tiff_get_field_defaulted_u16_pair(tif, TIFFTAG_YCBCRSUBSAMPLING).unwrap_or((0, 0));
-        if (ss0 != 1 && ss0 != 2 && ss0 != 4) || (ss1 != 1 && ss1 != 2 && ss1 != 4) || (ss0 == 0 || ss1 == 0)
+        if (ss0 != 1 && ss0 != 2 && ss0 != 4)
+            || (ss1 != 1 && ss1 != 2 && ss1 != 4)
+            || (ss0 == 0 || ss1 == 0)
         {
             tiff_error_ext_r!(MODULE, "Invalid YCbCr subsampling ({}x{})", ss0, ss1);
             return 0;
         }
         let td = &tif.tif_dir;
-        let samplingblock_samples = (ss0 * ss1 + 2) as u16;
+        let samplingblock_samples = ss0 * ss1 + 2;
         let width = if is_strip {
             td.td_imagewidth
         } else {
@@ -127,8 +126,11 @@ pub(crate) fn _tiff_strile_size64(tif: &mut Tiff<'_>, mut nrows: u32, is_strip: 
         };
         let samplingblocks_hor = tiff_howmany_32(width, ss0 as u32);
         let samplingblocks_ver = tiff_howmany_32(nrows, ss1 as u32);
-        let samplingrow_samples =
-            _tiff_multiply64(samplingblocks_hor as u64, samplingblock_samples as u64, MODULE);
+        let samplingrow_samples = _tiff_multiply64(
+            samplingblocks_hor as u64,
+            samplingblock_samples as u64,
+            MODULE,
+        );
         let samplingrow_size = tiff_howmany8_64(_tiff_multiply64(
             samplingrow_samples,
             td.td_bitspersample as u64,
@@ -205,10 +207,13 @@ pub(crate) fn tiff_scanline_size64(tif: &mut Tiff<'_>) -> u64 {
                 return 0;
             }
             let td = &tif.tif_dir;
-            let samplingblock_samples = (ss0 * ss1 + 2) as u16;
+            let samplingblock_samples = ss0 * ss1 + 2;
             let samplingblocks_hor = tiff_howmany_32(td.td_imagewidth, ss0 as u32);
-            let samplingrow_samples =
-                _tiff_multiply64(samplingblocks_hor as u64, samplingblock_samples as u64, MODULE);
+            let samplingrow_samples = _tiff_multiply64(
+                samplingblocks_hor as u64,
+                samplingblock_samples as u64,
+                MODULE,
+            );
             let samplingrow_size = tiff_howmany_64(
                 _tiff_multiply64(samplingrow_samples, td.td_bitspersample as u64, MODULE),
                 8,

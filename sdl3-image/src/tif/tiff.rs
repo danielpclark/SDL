@@ -95,24 +95,24 @@ pub(crate) const COMPRESSION_NEXT: u16 = 32766; // NeXT 2-bit RLE
 pub(crate) const COMPRESSION_CCITTRLEW: u16 = 32771; // #1 w/ word alignment
 pub(crate) const COMPRESSION_PACKBITS: u16 = 32773; // Macintosh RLE
 pub(crate) const COMPRESSION_THUNDERSCAN: u16 = 32809; // ThunderScan RLE
-// codes 32895-32898 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com)
+                                                       // codes 32895-32898 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com)
 pub(crate) const COMPRESSION_IT8CTPAD: u16 = 32895; // IT8 CT w/padding
 pub(crate) const COMPRESSION_IT8LW: u16 = 32896; // IT8 Linework RLE
 pub(crate) const COMPRESSION_IT8MP: u16 = 32897; // IT8 Monochrome picture
 pub(crate) const COMPRESSION_IT8BL: u16 = 32898; // IT8 Binary line art
-// compression codes 32908-32911 are reserved for Pixar
+                                                 // compression codes 32908-32911 are reserved for Pixar
 pub(crate) const COMPRESSION_PIXARFILM: u16 = 32908; // Pixar companded 10bit LZW
 pub(crate) const COMPRESSION_PIXARLOG: u16 = 32909; // Pixar companded 11bit ZIP
 pub(crate) const COMPRESSION_DEFLATE: u16 = 32946; // Deflate compression, legacy tag
 pub(crate) const COMPRESSION_ADOBE_DEFLATE: u16 = 8; // Deflate compression, as recognized by Adobe
-// compression code 32947 is reserved for Oceana Matrix <dev@oceana.com>
+                                                     // compression code 32947 is reserved for Oceana Matrix <dev@oceana.com>
 pub(crate) const COMPRESSION_DCS: u16 = 32947; // Kodak DCS encoding
 pub(crate) const COMPRESSION_JBIG: u16 = 34661; // ISO JBIG
 pub(crate) const COMPRESSION_SGILOG: u16 = 34676; // SGI Log Luminance RLE
 pub(crate) const COMPRESSION_SGILOG24: u16 = 34677; // SGI Log 24-bit packed
 pub(crate) const COMPRESSION_JP2000: u16 = 34712; // Leadtools JPEG2000
 pub(crate) const COMPRESSION_LERC: u16 = 34887; // ESRI Lerc codec: https://github.com/Esri/lerc
-// compression codes 34887-34889 are reserved for ESRI
+                                                // compression codes 34887-34889 are reserved for ESRI
 pub(crate) const COMPRESSION_LZMA: u16 = 34925; // LZMA2
 pub(crate) const COMPRESSION_ZSTD: u16 = 50000; // ZSTD: WARNING not registered in Adobe-maintained registry
 pub(crate) const COMPRESSION_WEBP: u16 = 50001; // WEBP: WARNING not registered in Adobe-maintained registry
@@ -246,7 +246,7 @@ pub(crate) const TIFFTAG_YCLIPPATHUNITS: u32 = 345; // %YClipPathUnits [Adobe TI
 pub(crate) const TIFFTAG_INDEXED: u32 = 346; // %Indexed [Adobe TIFF Technote 3]
 pub(crate) const TIFFTAG_JPEGTABLES: u32 = 347; // %JPEG table stream
 pub(crate) const TIFFTAG_OPIPROXY: u32 = 351; // %OPI Proxy [Adobe TIFF technote]
-// Tags 400-435 are from the TIFF/FX spec
+                                              // Tags 400-435 are from the TIFF/FX spec
 pub(crate) const TIFFTAG_GLOBALPARAMETERSIFD: u32 = 400; // !
 pub(crate) const TIFFTAG_PROFILETYPE: u32 = 401; // !
 pub(crate) const PROFILETYPE_UNSPECIFIED: u16 = 0; // !
@@ -296,12 +296,12 @@ pub(crate) const TIFFTAG_REFPTS: u32 = 32953; // image reference points
 pub(crate) const TIFFTAG_REGIONTACKPOINT: u32 = 32954; // region-xform tack point
 pub(crate) const TIFFTAG_REGIONWARPCORNERS: u32 = 32955; // warp quadrilateral
 pub(crate) const TIFFTAG_REGIONAFFINE: u32 = 32956; // affine transformation mat
-// tags 32995-32999 are private tags registered to SGI
+                                                    // tags 32995-32999 are private tags registered to SGI
 pub(crate) const TIFFTAG_MATTEING: u32 = 32995; // $use ExtraSamples
 pub(crate) const TIFFTAG_DATATYPE: u32 = 32996; // $use SampleFormat
 pub(crate) const TIFFTAG_IMAGEDEPTH: u32 = 32997; // z depth of image
 pub(crate) const TIFFTAG_TILEDEPTH: u32 = 32998; // z depth/data tile
-// tags 33300-33309 are private tags registered to Pixar
+                                                 // tags 33300-33309 are private tags registered to Pixar
 pub(crate) const TIFFTAG_PIXAR_IMAGEFULLWIDTH: u32 = 33300; // full image size in x
 pub(crate) const TIFFTAG_PIXAR_IMAGEFULLLENGTH: u32 = 33301; // full image size in y
 pub(crate) const TIFFTAG_PIXAR_TEXTUREFORMAT: u32 = 33302; // texture map format
@@ -314,7 +314,7 @@ pub(crate) const TIFFTAG_WRITERSERIALNUMBER: u32 = 33405; // device serial numbe
 pub(crate) const TIFFTAG_CFAREPEATPATTERNDIM: u32 = 33421; // (alias for TIFFTAG_EP_CFAREPEATPATTERNDIM)
 pub(crate) const TIFFTAG_CFAPATTERN: u32 = 33422; // (alias for TIFFTAG_EP_CFAPATTERN)
 pub(crate) const TIFFTAG_BATTERYLEVEL: u32 = 33423; // (alias for TIFFTAG_EP_BATTERYLEVEL)
-// tag 33432 is listed in the 6.0 spec w/ unknown ownership
+                                                    // tag 33432 is listed in the 6.0 spec w/ unknown ownership
 pub(crate) const TIFFTAG_COPYRIGHT: u32 = 33432; // copyright string
 pub(crate) const TIFFTAG_MD_FILETAG: u32 = 33445; // Specifies the pixel data format encoding in the GEL file format.
 pub(crate) const TIFFTAG_MD_SCALEPIXEL: u32 = 33446; // scale factor
@@ -324,13 +324,13 @@ pub(crate) const TIFFTAG_MD_SAMPLEINFO: u32 = 33449; // information about the sc
 pub(crate) const TIFFTAG_MD_PREPDATE: u32 = 33450; // information about the date the sample was prepared YY/MM/DD
 pub(crate) const TIFFTAG_MD_PREPTIME: u32 = 33451; // information about the time the sample was prepared HH:MM
 pub(crate) const TIFFTAG_MD_FILEUNITS: u32 = 33452; // Units for data in this file, as used in the GEL file format.
-// IPTC TAG from RichTIFF specifications
+                                                    // IPTC TAG from RichTIFF specifications
 pub(crate) const TIFFTAG_RICHTIFFIPTC: u32 = 33723;
 pub(crate) const TIFFTAG_INGR_PACKET_DATA_TAG: u32 = 33918; // Intergraph Application specific storage.
 pub(crate) const TIFFTAG_INGR_FLAG_REGISTERS: u32 = 33919; // Intergraph Application specific flags.
 pub(crate) const TIFFTAG_IRASB_TRANSORMATION_MATRIX: u32 = 33920; // Originally part of Intergraph's GeoTIFF tags, but likely understood by IrasB only.
 pub(crate) const TIFFTAG_MODELTIEPOINTTAG: u32 = 33922; // GeoTIFF
-// 34016-34029 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com)
+                                                        // 34016-34029 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com)
 pub(crate) const TIFFTAG_IT8SITE: u32 = 34016; // site name
 pub(crate) const TIFFTAG_IT8COLORSEQUENCE: u32 = 34017; // color seq. [RGB,CMYK,etc]
 pub(crate) const TIFFTAG_IT8HEADER: u32 = 34018; // DDES Header
@@ -348,27 +348,27 @@ pub(crate) const TIFFTAG_IT8COLORCHARACTERIZATION: u32 = 34029; // color charact
 pub(crate) const TIFFTAG_IT8HCUSAGE: u32 = 34030; // HC usage indicator
 pub(crate) const TIFFTAG_IT8TRAPINDICATOR: u32 = 34031; // Trapping indicator (untrapped=0, trapped=1)
 pub(crate) const TIFFTAG_IT8CMYKEQUIVALENT: u32 = 34032; // CMYK color equivalents
-// tags 34232-34236 are private tags registered to Texas Instruments
+                                                         // tags 34232-34236 are private tags registered to Texas Instruments
 pub(crate) const TIFFTAG_FRAMECOUNT: u32 = 34232; // Sequence Frame Count
 pub(crate) const TIFFTAG_MODELTRANSFORMATIONTAG: u32 = 34264; // Used in interchangeable GeoTIFF files
-// tag 34377 is private tag registered to Adobe for PhotoShop
+                                                              // tag 34377 is private tag registered to Adobe for PhotoShop
 pub(crate) const TIFFTAG_PHOTOSHOP: u32 = 34377;
 // tags 34665, 34853 and 40965 are documented in EXIF specification
 pub(crate) const TIFFTAG_EXIFIFD: u32 = 34665; // Pointer to EXIF private directory
-// tag 34750 is a private tag registered to Adobe?
+                                               // tag 34750 is a private tag registered to Adobe?
 pub(crate) const TIFFTAG_ICCPROFILE: u32 = 34675; // ICC profile data
 pub(crate) const TIFFTAG_IMAGELAYER: u32 = 34732; // !TIFF/FX image layer information
-// tag 34750 is a private tag registered to Pixel Magic
+                                                  // tag 34750 is a private tag registered to Pixel Magic
 pub(crate) const TIFFTAG_JBIGOPTIONS: u32 = 34750; // JBIG options
 pub(crate) const TIFFTAG_GPSIFD: u32 = 34853; // Pointer to EXIF GPS private directory
-// tags 34908-34914 are private tags registered to SGI
+                                              // tags 34908-34914 are private tags registered to SGI
 pub(crate) const TIFFTAG_FAXRECVPARAMS: u32 = 34908; // encoded Class 2 ses. params
 pub(crate) const TIFFTAG_FAXSUBADDRESS: u32 = 34909; // received SubAddr string
 pub(crate) const TIFFTAG_FAXRECVTIME: u32 = 34910; // receive time (secs)
 pub(crate) const TIFFTAG_FAXDCS: u32 = 34911; // encoded fax ses. params, Table 2/T.30
-// tags 37439-37443 are registered to SGI <gregl@sgi.com>
+                                              // tags 37439-37443 are registered to SGI <gregl@sgi.com>
 pub(crate) const TIFFTAG_STONITS: u32 = 37439; // Sample value to Nits
-// tag 34929 is a private tag registered to FedEx
+                                               // tag 34929 is a private tag registered to FedEx
 pub(crate) const TIFFTAG_FEDEX_EDR: u32 = 34929; // unknown use
 pub(crate) const TIFFTAG_IMAGESOURCEDATA: u32 = 37724; // http://justsolve.archiveteam.org/wiki/PSD, http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 pub(crate) const TIFFTAG_INTEROPERABILITYIFD: u32 = 40965; // Pointer to EXIF Interoperability private directory
@@ -380,7 +380,7 @@ pub(crate) const TIFFTAG_OCE_IDENTIFICATION_NUMBER: u32 = 50217;
 pub(crate) const TIFFTAG_OCE_IMAGELOGIC_CHARACTERISTICS: u32 = 50218;
 // tags 50674 to 50677 are reserved for ESRI
 pub(crate) const TIFFTAG_LERC_PARAMETERS: u32 = 50674; // Stores LERC version and additional compression method
-// Adobe Digital Negative (DNG) format tags
+                                                       // Adobe Digital Negative (DNG) format tags
 pub(crate) const TIFFTAG_DNGVERSION: u32 = 50706; // &DNG version number
 pub(crate) const TIFFTAG_DNGBACKWARDVERSION: u32 = 50707; // &DNG compatibility version
 pub(crate) const TIFFTAG_UNIQUECAMERAMODEL: u32 = 50708; // &name for the camera model
@@ -429,11 +429,11 @@ pub(crate) const TIFFTAG_ASSHOTICCPROFILE: u32 = 50831; // &these two tags used 
 pub(crate) const TIFFTAG_ASSHOTPREPROFILEMATRIX: u32 = 50832; // map cameras's color space  into ICC profile space
 pub(crate) const TIFFTAG_CURRENTICCPROFILE: u32 = 50833; // &
 pub(crate) const TIFFTAG_CURRENTPREPROFILEMATRIX: u32 = 50834; // &
-// DNG 1.2.0.0
+                                                               // DNG 1.2.0.0
 pub(crate) const TIFFTAG_COLORIMETRICREFERENCE: u32 = 50879; // &colorimetric reference
 pub(crate) const TIFFTAG_CAMERACALIBRATIONSIGNATURE: u32 = 50931; // &camera calibration signature (UTF-8)
 pub(crate) const TIFFTAG_PROFILECALIBRATIONSIGNATURE: u32 = 50932; // &profile calibration signature (UTF-8)
-// TIFFTAG_EXTRACAMERAPROFILES 50933 &extra camera profiles : is already defined for GeoTIFF DGIWG
+                                                                   // TIFFTAG_EXTRACAMERAPROFILES 50933 &extra camera profiles : is already defined for GeoTIFF DGIWG
 pub(crate) const TIFFTAG_ASSHOTPROFILENAME: u32 = 50934; // &as shot profile name (UTF-8)
 pub(crate) const TIFFTAG_NOISEREDUCTIONAPPLIED: u32 = 50935; // &amount of applied noise reduction
 pub(crate) const TIFFTAG_PROFILENAME: u32 = 50936; // &camera profile name (UTF-8)
@@ -457,12 +457,12 @@ pub(crate) const TIFFTAG_SUBTILEBLOCKSIZE: u32 = 50974; // &subtile block size
 pub(crate) const TIFFTAG_ROWINTERLEAVEFACTOR: u32 = 50975; // &number of interleaved fields
 pub(crate) const TIFFTAG_PROFILELOOKTABLEDIMS: u32 = 50981; // &num of input samples in each dim of default "look" table
 pub(crate) const TIFFTAG_PROFILELOOKTABLEDATA: u32 = 50982; // &default "look" table for use as starting point
-// DNG 1.3.0.0
+                                                            // DNG 1.3.0.0
 pub(crate) const TIFFTAG_OPCODELIST1: u32 = 51008; // &opcodes that should be applied to raw image after reading
 pub(crate) const TIFFTAG_OPCODELIST2: u32 = 51009; // &opcodes that should be applied after mapping to linear reference
 pub(crate) const TIFFTAG_OPCODELIST3: u32 = 51022; // &opcodes that should be applied after demosaicing
 pub(crate) const TIFFTAG_NOISEPROFILE: u32 = 51041; // &noise profile
-// DNG 1.4.0.0
+                                                    // DNG 1.4.0.0
 pub(crate) const TIFFTAG_DEFAULTUSERCROP: u32 = 51125; // &default user crop rectangle in relative coords
 pub(crate) const TIFFTAG_DEFAULTBLACKRENDER: u32 = 51110; // &black rendering hint
 pub(crate) const TIFFTAG_BASELINEEXPOSUREOFFSET: u32 = 51109; // &baseline exposure offset
@@ -473,14 +473,14 @@ pub(crate) const TIFFTAG_ORIGINALBESTQUALITYFINALSIZE: u32 = 51090; // &best qua
 pub(crate) const TIFFTAG_ORIGINALDEFAULTCROPSIZE: u32 = 51091; // &the default crop size of larger original file for this proxy
 pub(crate) const TIFFTAG_NEWRAWIMAGEDIGEST: u32 = 51111; // &modified MD5 digest of the raw image data
 pub(crate) const TIFFTAG_RAWTOPREVIEWGAIN: u32 = 51112; // &The gain between the main raw FD and the preview IFD containing this tag
-// DNG 1.5.0.0
+                                                        // DNG 1.5.0.0
 pub(crate) const TIFFTAG_DEPTHFORMAT: u32 = 51177; // &encoding of the depth data in the file
 pub(crate) const TIFFTAG_DEPTHNEAR: u32 = 51178; // &distance from the camera represented by value 0 in the depth map
 pub(crate) const TIFFTAG_DEPTHFAR: u32 = 51179; // &distance from the camera represented by the maximum value in the depth map
 pub(crate) const TIFFTAG_DEPTHUNITS: u32 = 51180; // &measurement units for DepthNear and DepthFar
 pub(crate) const TIFFTAG_DEPTHMEASURETYPE: u32 = 51181; // &measurement geometry for the depth map
 pub(crate) const TIFFTAG_ENHANCEPARAMS: u32 = 51182; // &a string that documents how the enhanced image data was processed.
-// DNG 1.6.0.0
+                                                     // DNG 1.6.0.0
 pub(crate) const TIFFTAG_PROFILEGAINTABLEMAP: u32 = 52525; // &spatially varying gain tables that can be applied as starting point
 pub(crate) const TIFFTAG_SEMANTICNAME: u32 = 52526; // &a string that identifies the semantic mask
 pub(crate) const TIFFTAG_SEMANTICINSTANCEID: u32 = 52528; // &a string that identifies a specific instance in a semantic mask
@@ -495,7 +495,7 @@ pub(crate) const TIFFTAG_FORWARDMATRIX3: u32 = 52532; // &matrix to map white ba
 pub(crate) const TIFFTAG_ILLUMINANTDATA1: u32 = 52533; // &data for the first calibration illuminant
 pub(crate) const TIFFTAG_ILLUMINANTDATA2: u32 = 52534; // &data for the second calibration illuminant
 pub(crate) const TIFFTAG_ILLUMINANTDATA3: u32 = 53535; // &data for the third calibration illuminant
-// TIFF/EP
+                                                       // TIFF/EP
 pub(crate) const TIFFTAG_EP_CFAREPEATPATTERNDIM: u32 = 33421; // dimensions of CFA pattern
 pub(crate) const TIFFTAG_EP_CFAPATTERN: u32 = 33422; // color filter array pattern
 pub(crate) const TIFFTAG_EP_BATTERYLEVEL: u32 = 33423; // battery level (rational or ASCII)
@@ -536,11 +536,11 @@ pub(crate) const TIFFTAG_EP_FOCALLENGTH: u32 = 37386; // Lens focal length
 pub(crate) const TIFFTAG_EP_SUBJECTLOCATION: u32 = 37396; // Subject location (area)
 pub(crate) const TIFFTAG_RPCCOEFFICIENT: u32 = 50844; // Define by GDAL for geospatial georeferencing through RPC: http://geotiff.maptools.org/rpc_prop.html
 pub(crate) const TIFFTAG_ALIAS_LAYER_METADATA: u32 = 50784; // Alias Sketchbook Pro layer usage description.
-// GeoTIFF DGIWG
+                                                            // GeoTIFF DGIWG
 pub(crate) const TIFFTAG_TIFF_RSID: u32 = 50908; // https://www.awaresystems.be/imaging/tiff/tifftags/tiff_rsid.html
 pub(crate) const TIFFTAG_GEO_METADATA: u32 = 50909; // https://www.awaresystems.be/imaging/tiff/tifftags/geo_metadata.html
 pub(crate) const TIFFTAG_EXTRACAMERAPROFILES: u32 = 50933; // http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/products/photoshop/pdfs/dng_spec_1.4.0.0.pdf
-// tag 65535 is an undefined tag used by Eastman Kodak
+                                                           // tag 65535 is an undefined tag used by Eastman Kodak
 pub(crate) const TIFFTAG_DCSHUESHIFTVALUES: u32 = 65535; // hue shift correction data
 pub(crate) const TIFFTAG_FAXMODE: u32 = 65536; // Group 3/4 format control
 pub(crate) const FAXMODE_CLASSIC: i32 = 0x0000; // default, include RTC
@@ -550,14 +550,14 @@ pub(crate) const FAXMODE_BYTEALIGN: i32 = 0x0004; // byte align row
 pub(crate) const FAXMODE_WORDALIGN: i32 = 0x0008; // word align row
 pub(crate) const FAXMODE_CLASSF: i32 = FAXMODE_NORTC; // TIFF Class F
 pub(crate) const TIFFTAG_JPEGQUALITY: u32 = 65537; // Compression quality level
-// Note: quality level is on the IJG 0-100 scale.  Default value is 75
+                                                   // Note: quality level is on the IJG 0-100 scale.  Default value is 75
 pub(crate) const TIFFTAG_JPEGCOLORMODE: u32 = 65538; // Auto RGB<=>YCbCr convert?
 pub(crate) const JPEGCOLORMODE_RAW: u16 = 0x0000; // no conversion (default)
 pub(crate) const JPEGCOLORMODE_RGB: u16 = 0x0001; // do auto conversion
 pub(crate) const TIFFTAG_JPEGTABLESMODE: u32 = 65539; // What to put in JPEGTables
 pub(crate) const JPEGTABLESMODE_QUANT: u32 = 0x0001; // include quantization tbls
 pub(crate) const JPEGTABLESMODE_HUFF: u32 = 0x0002; // include Huffman tbls
-// Note: default is JPEGTABLESMODE_QUANT | JPEGTABLESMODE_HUFF
+                                                    // Note: default is JPEGTABLESMODE_QUANT | JPEGTABLESMODE_HUFF
 pub(crate) const TIFFTAG_FAXFILLFUNC: u32 = 65540; // G3/G4 fill function
 pub(crate) const TIFFTAG_PIXARLOGDATAFMT: u32 = 65549; // PixarLogCodec I/O data sz
 pub(crate) const PIXARLOGDATAFMT_8BIT: u16 = 0; // regular u_char samples
@@ -566,7 +566,7 @@ pub(crate) const PIXARLOGDATAFMT_11BITLOG: u16 = 2; // 11-bit log-encoded (raw)
 pub(crate) const PIXARLOGDATAFMT_12BITPICIO: u16 = 3; // as per PICIO (1.0==2048)
 pub(crate) const PIXARLOGDATAFMT_16BIT: u16 = 4; // signed short samples
 pub(crate) const PIXARLOGDATAFMT_FLOAT: u16 = 5; // IEEE float samples
-// 65550-65556 are allocated to Oceana Matrix <dev@oceana.com>
+                                                 // 65550-65556 are allocated to Oceana Matrix <dev@oceana.com>
 pub(crate) const TIFFTAG_DCSIMAGERTYPE: u32 = 65550; // imager model & filter
 pub(crate) const DCSIMAGERMODEL_M3: u16 = 0; // M3 chip (1280 x 1024)
 pub(crate) const DCSIMAGERMODEL_M5: u16 = 1; // M5 chip (1536 x 1024)
@@ -583,10 +583,10 @@ pub(crate) const TIFFTAG_DCSCORRECTMATRIX: u32 = 65553; // color correction valu
 pub(crate) const TIFFTAG_DCSGAMMA: u32 = 65554; // gamma value
 pub(crate) const TIFFTAG_DCSTOESHOULDERPTS: u32 = 65555; // toe & shoulder points
 pub(crate) const TIFFTAG_DCSCALIBRATIONFD: u32 = 65556; // calibration file desc
-// Note: quality level is on the ZLIB 1-9 scale. Default value is -1
+                                                        // Note: quality level is on the ZLIB 1-9 scale. Default value is -1
 pub(crate) const TIFFTAG_ZIPQUALITY: u32 = 65557; // compression quality level
 pub(crate) const TIFFTAG_PIXARLOGQUALITY: u32 = 65558; // PixarLog uses same scale
-// 65559 is allocated to Oceana Matrix <dev@oceana.com>
+                                                       // 65559 is allocated to Oceana Matrix <dev@oceana.com>
 pub(crate) const TIFFTAG_DCSCLIPRECTANGLE: u32 = 65559; // area of image to acquire
 pub(crate) const TIFFTAG_SGILOGDATAFMT: u32 = 65560; // SGILog user data format
 pub(crate) const SGILOGDATAFMT_FLOAT: u16 = 0; // IEEE float samples

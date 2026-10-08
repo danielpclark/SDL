@@ -35,7 +35,6 @@ use super::tif_error::{tiff_error_ext_r, tiff_warning_ext_r};
 use super::tif_fax3sm::{TIFF_FAX_BLACK_TABLE, TIFF_FAX_MAIN_TABLE, TIFF_FAX_WHITE_TABLE};
 use super::tif_strip::tiff_scanline_size;
 use super::tif_swab::tiff_get_bit_rev_table;
-use super::tif_tile::tiff_tile_row_size;
 use super::tiff::*;
 use super::tiffio::{field, TIFFField, TIFF_ANY};
 use super::tiffiop::{
@@ -86,7 +85,7 @@ pub(crate) struct TIFFFaxTabEnt {
     pub(crate) State: u8, /* see above */
     pub(crate) Width: u8, /* width of code in bits */
     pub(crate) Param: u32, /* unsigned 32-bit run length in bits (holds on 16 bit
-                           actually, but cannot be changed. See above warning) */
+                          actually, but cannot be changed. See above warning) */
 }
 
 /* Arbitrary threshold to avoid corrupted single-strip files with extremely
@@ -102,14 +101,14 @@ const EOF_REACHED_COUNT_THRESHOLD: i32 = 8192;
 #[allow(non_snake_case)]
 pub(crate) struct Fax3CodecState {
     /* Fax3BaseState b */
-    rw_mode: i32,       /* O_RDONLY for decode, else encode */
-    mode: i32,          /* operating mode */
-    rowbytes: TmSize,   /* bytes in a decoded scanline */
-    rowpixels: u32,     /* pixels in a scanline */
-    cleanfaxdata: u16,  /* CleanFaxData tag */
-    badfaxrun: u32,     /* BadFaxRun tag */
-    badfaxlines: u32,   /* BadFaxLines tag */
-    groupoptions: u32,  /* Group 3/4 options tag */
+    rw_mode: i32,               /* O_RDONLY for decode, else encode */
+    mode: i32,                  /* operating mode */
+    rowbytes: TmSize,           /* bytes in a decoded scanline */
+    rowpixels: u32,             /* pixels in a scanline */
+    cleanfaxdata: u16,          /* CleanFaxData tag */
+    badfaxrun: u32,             /* BadFaxRun tag */
+    badfaxlines: u32,           /* BadFaxLines tag */
+    groupoptions: u32,          /* Group 3/4 options tag */
     vgetparent: TIFFVGetMethod, /* super-class method */
     vsetparent: TIFFVSetMethod, /* super-class method */
 
@@ -120,15 +119,15 @@ pub(crate) struct Fax3CodecState {
     EOLcnt: i32,                /* count of EOL codes recognized */
     eofReachedCount: i32,       /* number of times decode has been called with
                                 EOF already reached */
-    eolReachedCount: i32,       /* number of times decode has been called with
-                                EOL already reached */
+    eolReachedCount: i32, /* number of times decode has been called with
+                          EOL already reached */
     unexpectedReachedCount: i32, /* number of times decode has been called with
                                  "unexpedted" already reached */
-    fill: TIFFFaxFillFunc,      /* fill routine */
-    runs: Option<Vec<u32>>,     /* b&w runs for current/previous row */
-    nruns: u32,                 /* size of the refruns / curruns arrays */
-    refruns: Option<usize>,     /* runs for reference line */
-    curruns: usize,             /* runs for current line */
+    fill: TIFFFaxFillFunc,  /* fill routine */
+    runs: Option<Vec<u32>>, /* b&w runs for current/previous row */
+    nruns: u32,             /* size of the refruns / curruns arrays */
+    refruns: Option<usize>, /* runs for reference line */
+    curruns: usize,         /* runs for current line */
 
     /* Encoder state info */
     refline: Option<Vec<u8>>, /* reference line for 2d decoding */
@@ -333,20 +332,20 @@ struct Ret;
 #[allow(non_snake_case)]
 struct Dec<'r> {
     ctx: Ctx,
-    a0: i32,           /* reference element */
-    lastx: i32,        /* last element in row */
-    BitAcc: u32,       /* bit accumulator */
-    BitsAvail: i32,    /* # valid bits in BitAcc */
-    RunLength: i32,    /* length of current run */
-    cp: usize,         /* next byte of input data */
-    ep: usize,         /* end of input data */
-    raw: &'r [u8],     /* (the raw data cp and ep index) */
-    pa: usize,         /* place to stuff next run */
-    thisrun: usize,    /* current row's run array */
-    EOLcnt: i32,       /* # EOL codes recognized */
+    a0: i32,                    /* reference element */
+    lastx: i32,                 /* last element in row */
+    BitAcc: u32,                /* bit accumulator */
+    BitsAvail: i32,             /* # valid bits in BitAcc */
+    RunLength: i32,             /* length of current run */
+    cp: usize,                  /* next byte of input data */
+    ep: usize,                  /* end of input data */
+    raw: &'r [u8],              /* (the raw data cp and ep index) */
+    pa: usize,                  /* place to stuff next run */
+    thisrun: usize,             /* current row's run array */
+    EOLcnt: i32,                /* # EOL codes recognized */
     bitmap: &'static [u8; 256], /* input data bit reverser */
-    b1: i32,           /* next change on prev line */
-    pb: isize,         /* next run in reference line */
+    b1: i32,                    /* next change on prev line */
+    pb: isize,                  /* next run in reference line */
 }
 
 impl Dec<'_> {
@@ -557,7 +556,9 @@ impl Dec<'_> {
             self.badlength(sp);
             while self.a0 > self.lastx && self.pa > self.thisrun {
                 self.pa -= 1;
-                self.a0 = self.a0.wrapping_sub(Self::run_at(sp, self.pa as isize) as i32);
+                self.a0 = self
+                    .a0
+                    .wrapping_sub(Self::run_at(sp, self.pa as isize) as i32);
             }
             if self.a0 < self.lastx {
                 if self.a0 < 0 {
@@ -678,11 +679,7 @@ impl Dec<'_> {
     /// One color's codes in the horizontal mode of `EXPAND2D()`:
     /// `Ok(None)` is the terminating code, `Ok(Some(bad))` a bad code
     /// (`goto bad*2d`) or the end of data (`goto eof2d`).
-    fn horiz_run(
-        &mut self,
-        sp: &mut Fax3CodecState,
-        black: bool,
-    ) -> Result<Option<Exit2D>, Ret> {
+    fn horiz_run(&mut self, sp: &mut Fax3CodecState, black: bool) -> Result<Option<Exit2D>, Ret> {
         loop {
             let te = if black {
                 self.lookup16(13, &TIFF_FAX_BLACK_TABLE)
@@ -1237,8 +1234,7 @@ fn fax3_setup_state(tif: &mut Tiff<'_>) -> i32 {
         );
         return 0;
     }
-    if tif.tif_dir.td_samplesperpixel != 1 && tif.tif_dir.td_planarconfig != PLANARCONFIG_SEPARATE
-    {
+    if tif.tif_dir.td_samplesperpixel != 1 && tif.tif_dir.td_planarconfig != PLANARCONFIG_SEPARATE {
         tiff_error_ext_r!(
             MODULE,
             "Samples/pixel shall be 1 for Group 3/4 encoding/decoding, or PlanarConfiguration must be set to Separate."
@@ -1368,7 +1364,18 @@ const FIELD_BADFAXRUN: u16 = FIELD_CODEC + 2;
 const FIELD_OPTIONS: u16 = FIELD_CODEC + 7;
 
 static FAX_FIELDS: [TIFFField; 5] = [
-    field(TIFFTAG_FAXMODE, 0, 0, TIFF_ANY, 0, TIFF_SETGET_INT, FIELD_PSEUDO, 0, 0, "FaxMode"),
+    field(
+        TIFFTAG_FAXMODE,
+        0,
+        0,
+        TIFF_ANY,
+        0,
+        TIFF_SETGET_INT,
+        FIELD_PSEUDO,
+        0,
+        0,
+        "FaxMode",
+    ),
     field(
         TIFFTAG_FAXFILLFUNC,
         0,
@@ -1844,7 +1851,9 @@ pub(crate) fn tiff_init_ccitt_rle(tif: &mut Tiff<'_>, _scheme: i32) -> i32 {
         tiff_set_field(
             tif,
             TIFFTAG_FAXMODE,
-            &[Va::Int((FAXMODE_NORTC | FAXMODE_NOEOL | FAXMODE_BYTEALIGN) as i64)],
+            &[Va::Int(
+                (FAXMODE_NORTC | FAXMODE_NOEOL | FAXMODE_BYTEALIGN) as i64,
+            )],
         )
     } else {
         0
@@ -1865,7 +1874,9 @@ pub(crate) fn tiff_init_ccitt_rlew(tif: &mut Tiff<'_>, _scheme: i32) -> i32 {
         tiff_set_field(
             tif,
             TIFFTAG_FAXMODE,
-            &[Va::Int((FAXMODE_NORTC | FAXMODE_NOEOL | FAXMODE_WORDALIGN) as i64)],
+            &[Va::Int(
+                (FAXMODE_NORTC | FAXMODE_NOEOL | FAXMODE_WORDALIGN) as i64,
+            )],
         )
     } else {
         0

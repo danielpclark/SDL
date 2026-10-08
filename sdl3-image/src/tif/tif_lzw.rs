@@ -63,10 +63,10 @@ const CSIZE: i64 = maxcode(BITS_MAX) + 1024;
 /// Translation of `code_t` (`struct code_ent`): Decoding-specific state.
 #[derive(Clone, Copy, Debug, Default)]
 struct CodeEnt {
-    next: i32,       /* (an index, -1 for NULL) */
-    length: u16,     /* string len, including this token */
-    firstchar: u8,   /* first token of string */
-    value: u8,       /* data value */
+    next: i32,     /* (an index, -1 for NULL) */
+    length: u16,   /* string len, including this token */
+    firstchar: u8, /* first token of string */
+    value: u8,     /* data value */
     repeated: bool,
 }
 
@@ -83,27 +83,27 @@ enum DecodeFunc {
 pub(crate) struct LZWCodecState {
     pub(crate) predict: TIFFPredictorState, /* predictor super class */
 
-    lzw_nbits: u16,     /* # of bits/code */
-    lzw_maxcode: u16,   /* maximum code for lzw_nbits */
+    lzw_nbits: u16,         /* # of bits/code */
+    lzw_maxcode: u16,       /* maximum code for lzw_nbits */
     lzw_nextdata: WordType, /* next bits of i/o */
-    lzw_nextbits: i64,  /* # of valid bits in lzw_nextdata */
+    lzw_nextbits: i64,      /* # of valid bits in lzw_nextdata */
 
     rw_mode: i32, /* preserve rw_mode from init */
 
     /* Decoding specific data */
-    dec_nbitsmask: i64,      /* lzw_nbits 1 bits, right adjusted */
-    dec_restart: TmSize,     /* restart count */
-    dec_bitsleft: u64,       /* available bits in raw data */
-    old_tif_rawcc: TmSize,   /* value of tif_rawcc at the end of the previous
-                             TIFLZWDecode() call */
+    dec_nbitsmask: i64,  /* lzw_nbits 1 bits, right adjusted */
+    dec_restart: TmSize, /* restart count */
+    dec_bitsleft: u64,   /* available bits in raw data */
+    old_tif_rawcc: TmSize, /* value of tif_rawcc at the end of the previous
+                         TIFLZWDecode() call */
     dec_decode: Option<DecodeFunc>, /* regular or backwards compatible */
-    dec_codep: i64,          /* current recognized code */
-    dec_oldcodep: i64,       /* previously recognized code */
-    dec_free_entp: i64,      /* next free entry */
-    dec_maxcodep: i64,       /* max available entry */
+    dec_codep: i64,                 /* current recognized code */
+    dec_oldcodep: i64,              /* previously recognized code */
+    dec_free_entp: i64,             /* next free entry */
+    dec_maxcodep: i64,              /* max available entry */
     dec_codetab: Option<Vec<CodeEnt>>, /* kept separate for small machines */
-    read_error: i32, /* whether a read error has occurred, and which should cause
-                     further reads in the same strip/tile to be aborted */
+    read_error: i32,                /* whether a read error has occurred, and which should cause
+                                    further reads in the same strip/tile to be aborted */
 }
 
 /// Translation of `LZWDecoderState()`.
@@ -223,13 +223,13 @@ fn lzw_pre_decode(tif: &mut Tiff<'_>, _s: u16) -> i32 {
     sp.dec_bitsleft = 0;
     sp.old_tif_rawcc = 0;
     sp.dec_free_entp = -1; // + CODE_FIRST;
-    /*
-     * Zero entries that are not yet filled in.  We do
-     * this to guard against bogus input data that causes
-     * us to index into undefined entries.  If you can
-     * come up with a way to safely bounds-check input codes
-     * while decoding then you can remove this operation.
-     */
+                           /*
+                            * Zero entries that are not yet filled in.  We do
+                            * this to guard against bogus input data that causes
+                            * us to index into undefined entries.  If you can
+                            * come up with a way to safely bounds-check input codes
+                            * while decoding then you can remove this operation.
+                            */
     sp.dec_oldcodep = 0;
     sp.dec_maxcodep = sp.dec_nbitsmask - 1;
     sp.read_error = 0;
@@ -384,7 +384,8 @@ fn lzw_decode_inner(
                     bp += SIZEOF_WORDTYPE as usize;
                     nextbits += 8 * SIZEOF_WORDTYPE;
                     dec_bitsleft -= 8 * SIZEOF_WORDTYPE as u64;
-                    code = ((codetmp as WordType) | (nextdata >> nextbits)) & (nbitsmask as WordType);
+                    code =
+                        ((codetmp as WordType) | (nextdata >> nextbits)) & (nbitsmask as WordType);
                     Ok(code)
                 } else {
                     if dec_bitsleft < 8 {
@@ -431,15 +432,14 @@ fn lzw_decode_inner(
                  * Add the new entry to the code table.
                  */
                 let old = ent(tab, oldcodep);
-                let fvalue;
-                if codep >= free_entp {
+                let fvalue = if codep >= free_entp {
                     if codep != free_entp {
                         break 'top Exit::ErrorCode;
                     }
-                    fvalue = old.firstchar;
+                    old.firstchar
                 } else {
-                    fvalue = ent(tab, codep).firstchar;
-                }
+                    ent(tab, codep).firstchar
+                };
                 let Some(fe) = usize::try_from(free_entp).ok().and_then(|i| tab.get_mut(i)) else {
                     break 'top Exit::ErrorCode;
                 };

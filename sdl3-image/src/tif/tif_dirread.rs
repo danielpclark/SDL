@@ -26,7 +26,7 @@
 
 use std::collections::HashMap;
 
-use super::tif_aux::{_tiff_check_malloc_vec, _tiff_multiply_ssize};
+use super::tif_aux::_tiff_check_malloc_vec;
 use super::tif_dir::*;
 use super::tif_dirinfo::{
     _tiff_check_field_is_valid_for_codec, _tiff_create_anon_field, _tiff_merge_fields,
@@ -242,8 +242,7 @@ fn tiff_read_dir_entry_data_and_realloc(
     /* on 32 bit processes where virtual memory is scarce.  */
     while already_read < size {
         let mut to_read = size - already_read;
-        if cfg!(target_pointer_width = "64") && to_read >= threshold && threshold < MAX_THRESHOLD
-        {
+        if cfg!(target_pointer_width = "64") && to_read >= threshold && threshold < MAX_THRESHOLD {
             to_read = threshold;
             threshold *= THRESHOLD_MULTIPLIER;
         }
@@ -347,8 +346,12 @@ fn tiff_read_dir_entry_array_with_limit(
     {
         data = Vec::new();
     } else {
-        match _tiff_check_malloc_vec::<u8>(tif, count as TmSize, typesize as TmSize, "ReadDirEntryArray")
-        {
+        match _tiff_check_malloc_vec::<u8>(
+            tif,
+            count as TmSize,
+            typesize as TmSize,
+            "ReadDirEntryArray",
+        ) {
             Some(d) => data = d,
             None => return Err(Err::Alloc),
         }
@@ -854,10 +857,7 @@ fn tiff_read_dir_entry_checked_long8(tif: &mut Tiff<'_>, direntry: &TIFFDirEntry
 }
 
 /// Translation of `TIFFReadDirEntryCheckedSlong8()`.
-fn tiff_read_dir_entry_checked_slong8(
-    tif: &mut Tiff<'_>,
-    direntry: &TIFFDirEntry,
-) -> EResult<i64> {
+fn tiff_read_dir_entry_checked_slong8(tif: &mut Tiff<'_>, direntry: &TIFFDirEntry) -> EResult<i64> {
     Ok(tiff_read_dir_entry_checked_long8(tif, direntry)? as i64)
 }
 
@@ -916,10 +916,7 @@ fn tiff_read_dir_entry_checked_float(tif: &Tiff<'_>, direntry: &TIFFDirEntry) ->
 }
 
 /// Translation of `TIFFReadDirEntryCheckedDouble()`.
-fn tiff_read_dir_entry_checked_double(
-    tif: &mut Tiff<'_>,
-    direntry: &TIFFDirEntry,
-) -> EResult<f64> {
+fn tiff_read_dir_entry_checked_double(tif: &mut Tiff<'_>, direntry: &TIFFDirEntry) -> EResult<f64> {
     Ok(f64::from_bits(tiff_read_dir_entry_checked_long8(
         tif, direntry,
     )?))
@@ -937,7 +934,12 @@ fn tiff_read_dir_entry_data(tif: &mut Tiff<'_>, offset: u64, dest: &mut [u8]) ->
 }
 
 /// Translation of `TIFFReadDirEntryOutputErr()`.
-fn tiff_read_dir_entry_output_err(err: TIFFReadDirEntryErr, module: &str, tagname: &str, recover: bool) {
+fn tiff_read_dir_entry_output_err(
+    err: TIFFReadDirEntryErr,
+    module: &str,
+    tagname: &str,
+    recover: bool,
+) {
     if !recover {
         match err {
             Err::Count => tiff_error_ext_r!(module, "Incorrect count for \"{}\"", tagname),
@@ -959,26 +961,20 @@ fn tiff_read_dir_entry_output_err(err: TIFFReadDirEntryErr, module: &str, tagnam
         }
     } else {
         match err {
-            Err::Count => tiff_warning_ext_r!(
-                module,
-                "Incorrect count for \"{}\"; tag ignored",
-                tagname
-            ),
-            Err::Type => tiff_warning_ext_r!(
-                module,
-                "Incompatible type for \"{}\"; tag ignored",
-                tagname
-            ),
+            Err::Count => {
+                tiff_warning_ext_r!(module, "Incorrect count for \"{}\"; tag ignored", tagname)
+            }
+            Err::Type => {
+                tiff_warning_ext_r!(module, "Incompatible type for \"{}\"; tag ignored", tagname)
+            }
             Err::Io => tiff_warning_ext_r!(
                 module,
                 "IO error during reading of \"{}\"; tag ignored",
                 tagname
             ),
-            Err::Range => tiff_warning_ext_r!(
-                module,
-                "Incorrect value for \"{}\"; tag ignored",
-                tagname
-            ),
+            Err::Range => {
+                tiff_warning_ext_r!(module, "Incorrect value for \"{}\"; tag ignored", tagname)
+            }
             Err::Psdif => tiff_warning_ext_r!(
                 module,
                 "Cannot handle different values per sample for \"{}\"; tag ignored",
@@ -1067,7 +1063,13 @@ fn evaluate_ifd_datasize_reading(tif: &mut Tiff<'_>, dp: &TIFFDirEntry) -> bool 
         return false;
     }
     let datalength = dp.tdir_count * data_width;
-    if datalength > (if (tif.tif_flags & TIFF_BIGTIFF) != 0 { 0x8 } else { 0x4 }) {
+    if datalength
+        > (if (tif.tif_flags & TIFF_BIGTIFF) != 0 {
+            0x8
+        } else {
+            0x4
+        })
+    {
         if tif.tif_dir.td_dirdatasize_read > u64::MAX - datalength {
             tiff_error_ext_r!("EvaluateIFDdatasizeReading", "Too large IFD data size");
             return false;
@@ -1159,10 +1161,8 @@ pub(crate) fn tiff_read_directory(tif: &mut Tiff<'_>) -> i32 {
         tif.tif_curdir = tif.tif_curdir.wrapping_add(1);
     }
 
-    match tiff_read_directory_body(tif, &mut dir, dircount) {
-        Ok(r) => r,
-        Err(()) => 0, /* bad: */
-    }
+    /* bad: 0 */
+    tiff_read_directory_body(tif, &mut dir, dircount).unwrap_or_default()
 }
 
 /// The part of `TIFFReadDirectory()` after the directory is fetched; `Err`
@@ -1339,21 +1339,14 @@ fn tiff_read_directory_body(
                     | TIFFTAG_TILEBYTECOUNTS => {
                         tiff_set_field_bit(tif, fip.field_bit);
                     }
-                    TIFFTAG_IMAGEWIDTH
-                    | TIFFTAG_IMAGELENGTH
-                    | TIFFTAG_IMAGEDEPTH
-                    | TIFFTAG_TILELENGTH
-                    | TIFFTAG_TILEWIDTH
-                    | TIFFTAG_TILEDEPTH
-                    | TIFFTAG_PLANARCONFIG
-                    | TIFFTAG_ROWSPERSTRIP
-                    | TIFFTAG_EXTRASAMPLES => {
+                    TIFFTAG_IMAGEWIDTH | TIFFTAG_IMAGELENGTH | TIFFTAG_IMAGEDEPTH
+                    | TIFFTAG_TILELENGTH | TIFFTAG_TILEWIDTH | TIFFTAG_TILEDEPTH
+                    | TIFFTAG_PLANARCONFIG | TIFFTAG_ROWSPERSTRIP | TIFFTAG_EXTRASAMPLES => {
                         bad(tiff_fetch_normal_tag(tif, &mut dir[di], false) != 0)?;
                         dir[di].tdir_ignore = 1;
                     }
                     _ => {
-                        if _tiff_check_field_is_valid_for_codec(tif, dir[di].tdir_tag as u32) == 0
-                        {
+                        if _tiff_check_field_is_valid_for_codec(tif, dir[di].tdir_tag as u32) == 0 {
                             dir[di].tdir_ignore = 1;
                         }
                     }
@@ -1406,7 +1399,9 @@ fn tiff_read_directory_body(
         let dp = dir[di];
         let tagname = |tif: &Tiff<'_>| {
             tiff_field_with_tag(tif, dp.tdir_tag as u32)
-                .map_or(String::from("unknown tagname"), |f| f.field_name.into_owned())
+                .map_or(String::from("unknown tagname"), |f| {
+                    f.field_name.into_owned()
+                })
         };
         match dp.tdir_tag as u32 {
             TIFFTAG_MINSAMPLEVALUE
@@ -1751,8 +1746,7 @@ fn tiff_read_directory_body(
 
         // sampleinfo should contain information relative to these new extra
         // samples
-        let Some(mut new_sampleinfo) = try_vec::<u16>(tif.tif_dir.td_extrasamples as usize)
-        else {
+        let Some(mut new_sampleinfo) = try_vec::<u16>(tif.tif_dir.td_extrasamples as usize) else {
             tiff_error_ext_r!(
                 MODULE,
                 "Failed to allocate memory for temporary new sampleinfo array ({} 16 bit elements)",
@@ -1763,7 +1757,9 @@ fn tiff_read_directory_body(
 
         if old_extrasamples > 0 {
             if let Some(old) = tif.tif_dir.td_sampleinfo.as_ref() {
-                let n = (old_extrasamples as usize).min(old.len()).min(new_sampleinfo.len());
+                let n = (old_extrasamples as usize)
+                    .min(old.len())
+                    .min(new_sampleinfo.len());
                 new_sampleinfo[..n].copy_from_slice(&old[..n]);
             }
         }
@@ -2135,7 +2131,9 @@ pub(crate) fn _tiff_check_dir_number_and_offset(tif: &mut Tiff<'_>, dirn: u32, d
         return 0;
     }
 
-    let offset_to_number = tif.tif_map_dir_offset_to_number.get_or_insert_with(HashMap::new);
+    let offset_to_number = tif
+        .tif_map_dir_offset_to_number
+        .get_or_insert_with(HashMap::new);
 
     /* Check if offset is already in the list:
      * - yes: check, if offset is at the same IFD number - if not, it is an IFD
@@ -2160,12 +2158,16 @@ pub(crate) fn _tiff_check_dir_number_and_offset(tif: &mut Tiff<'_>, dirn: u32, d
 
     /* Check if offset of an IFD has been changed and update offset of that IFD
      * number. */
-    let number_to_offset = tif.tif_map_dir_number_to_offset.get_or_insert_with(HashMap::new);
+    let number_to_offset = tif
+        .tif_map_dir_number_to_offset
+        .get_or_insert_with(HashMap::new);
     if let Some(&found_offset) = number_to_offset.get(&dirn) {
         if found_offset != diroff {
             number_to_offset.remove(&dirn);
             number_to_offset.insert(dirn, diroff);
-            let offset_to_number = tif.tif_map_dir_offset_to_number.get_or_insert_with(HashMap::new);
+            let offset_to_number = tif
+                .tif_map_dir_offset_to_number
+                .get_or_insert_with(HashMap::new);
             offset_to_number.remove(&found_offset);
             offset_to_number.insert(diroff, dirn);
         }
@@ -2173,7 +2175,9 @@ pub(crate) fn _tiff_check_dir_number_and_offset(tif: &mut Tiff<'_>, dirn: u32, d
     }
 
     /* Arbitrary (hopefully big enough) limit */
-    let offset_to_number = tif.tif_map_dir_offset_to_number.get_or_insert_with(HashMap::new);
+    let offset_to_number = tif
+        .tif_map_dir_offset_to_number
+        .get_or_insert_with(HashMap::new);
     if offset_to_number.len() >= TIFF_MAX_DIR_COUNT as usize {
         tiff_error_ext_r!(
             "_TIFFCheckDirNumberAndOffset",
@@ -2200,7 +2204,8 @@ fn check_dir_count(tif: &Tiff<'_>, dir: &mut TIFFDirEntry, count: u32) -> i32 {
         tiff_warning_ext_r!(
             tif.tif_name,
             "incorrect count for field \"{}\" ({}, expecting {}); tag ignored",
-            fip.as_ref().map_or("unknown tagname", |f| f.field_name.as_ref()),
+            fip.as_ref()
+                .map_or("unknown tagname", |f| f.field_name.as_ref()),
             dir.tdir_count,
             count
         );
@@ -2210,7 +2215,8 @@ fn check_dir_count(tif: &Tiff<'_>, dir: &mut TIFFDirEntry, count: u32) -> i32 {
         tiff_warning_ext_r!(
             tif.tif_name,
             "incorrect count for field \"{}\" ({}, expecting {}); tag trimmed",
-            fip.as_ref().map_or("unknown tagname", |f| f.field_name.as_ref()),
+            fip.as_ref()
+                .map_or("unknown tagname", |f| f.field_name.as_ref()),
             dir.tdir_count,
             count
         );
@@ -2571,19 +2577,27 @@ fn tiff_fetch_normal_tag(tif: &mut Tiff<'_>, dp: &mut TIFFDirEntry, recover: boo
             scalar!(tiff_read_dir_entry_byte, false, |data| Va::Int(data as i64))
         }
         TIFF_SETGET_SINT8 => {
-            scalar!(tiff_read_dir_entry_sbyte, false, |data| Va::Int(data as i64))
+            scalar!(tiff_read_dir_entry_sbyte, false, |data| Va::Int(
+                data as i64
+            ))
         }
         TIFF_SETGET_UINT16 => {
-            scalar!(tiff_read_dir_entry_short, false, |data| Va::Int(data as i64))
+            scalar!(tiff_read_dir_entry_short, false, |data| Va::Int(
+                data as i64
+            ))
         }
         TIFF_SETGET_SINT16 => {
-            scalar!(tiff_read_dir_entry_sshort, false, |data| Va::Int(data as i64))
+            scalar!(tiff_read_dir_entry_sshort, false, |data| Va::Int(
+                data as i64
+            ))
         }
         TIFF_SETGET_UINT32 => {
             scalar!(tiff_read_dir_entry_long, false, |data| Va::Int(data as i64))
         }
         TIFF_SETGET_SINT32 => {
-            scalar!(tiff_read_dir_entry_slong, false, |data| Va::Int(data as i64))
+            scalar!(tiff_read_dir_entry_slong, false, |data| Va::Int(
+                data as i64
+            ))
         }
         TIFF_SETGET_UINT64 => {
             scalar!(tiff_read_dir_entry_long8, true, |data| Va::Int(data as i64))
@@ -2592,7 +2606,9 @@ fn tiff_fetch_normal_tag(tif: &mut Tiff<'_>, dp: &mut TIFFDirEntry, recover: boo
             scalar!(tiff_read_dir_entry_slong8, true, |data| Va::Int(data))
         }
         TIFF_SETGET_FLOAT => {
-            scalar!(tiff_read_dir_entry_float, true, |data| Va::Double(data as f64))
+            scalar!(tiff_read_dir_entry_float, true, |data| Va::Double(
+                data as f64
+            ))
         }
         TIFF_SETGET_DOUBLE => {
             scalar!(tiff_read_dir_entry_double, true, |data| Va::Double(data))
@@ -2786,7 +2802,8 @@ fn tiff_fetch_strip_thing(
             tiff_read_dir_entry_output_err(
                 err,
                 MODULE,
-                fip.as_ref().map_or("unknown tagname", |f| f.field_name.as_ref()),
+                fip.as_ref()
+                    .map_or("unknown tagname", |f| f.field_name.as_ref()),
                 false,
             );
             return None;
@@ -2802,7 +2819,8 @@ fn tiff_fetch_strip_thing(
         tiff_read_dir_entry_output_err(
             Err::Count,
             MODULE,
-            fip.as_ref().map_or("unknown tagname", |f| f.field_name.as_ref()),
+            fip.as_ref()
+                .map_or("unknown tagname", |f| f.field_name.as_ref()),
             nstrips <= max_nstrips,
         );
 
@@ -2967,8 +2985,8 @@ fn chop_up_single_uncompressed_strip(tif: &mut Tiff<'_>) {
     if rowblockbytes > STRIP_SIZE_DEFAULT {
         stripbytes = rowblockbytes;
         rowsperstrip = rowblock;
-    } else if rowblockbytes > 0 {
-        let rowblocksperstrip = (STRIP_SIZE_DEFAULT / rowblockbytes) as u32;
+    } else if let Some(q) = STRIP_SIZE_DEFAULT.checked_div(rowblockbytes) {
+        let rowblocksperstrip = q as u32;
         rowsperstrip = rowblocksperstrip.wrapping_mul(rowblock);
         stripbytes = rowblocksperstrip as u64 * rowblockbytes;
     } else {
@@ -3163,9 +3181,7 @@ pub(crate) fn _tiff_fill_striles(tif: &mut Tiff<'_>) -> i32 {
 /// Translation of `_TIFFFillStrilesInternal()`.
 fn _tiff_fill_striles_internal(tif: &mut Tiff<'_>, _load_strip_byte_count: bool) -> i32 {
     /* Do not do anything if TIFF_DEFERSTRILELOAD is not set */
-    if (tif.tif_flags & TIFF_DEFERSTRILELOAD) == 0
-        || (tif.tif_flags & TIFF_CHOPPEDUPARRAYS) != 0
-    {
+    if (tif.tif_flags & TIFF_DEFERSTRILELOAD) == 0 || (tif.tif_flags & TIFF_CHOPPEDUPARRAYS) != 0 {
         return 1;
     }
     // (TIFF_DEFERSTRILELOAD is never set: the rest is not translated)
@@ -3187,7 +3203,10 @@ mod tests {
     #[test]
     fn read_uint64_is_unaligned_safe() {
         let b = [1u8, 2, 3, 4, 5, 6, 7, 8, 9];
-        assert_eq!(tiff_read_uint64(&b[1..]), u64::from_ne_bytes([2, 3, 4, 5, 6, 7, 8, 9]));
+        assert_eq!(
+            tiff_read_uint64(&b[1..]),
+            u64::from_ne_bytes([2, 3, 4, 5, 6, 7, 8, 9])
+        );
     }
 
     #[test]

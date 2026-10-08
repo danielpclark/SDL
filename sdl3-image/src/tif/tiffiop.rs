@@ -14,6 +14,8 @@
 //! position (`tif_rawcp`) an index into it. The compression scheme's
 //! private data (`tif_data`) is a [`TifData`] of the codecs translated.
 
+#![allow(dead_code)] // (definitions the reading path doesn't all use)
+
 use std::collections::HashMap;
 
 use super::tif_dir::{TIFFDirectory, TIFFTagMethods};
@@ -151,12 +153,12 @@ pub(crate) struct Tiff<'a> {
     pub(crate) tif_getmaxcompressionratio: TIFFGetMaxCompressionRatioMethod,
     pub(crate) tif_data: TifData, /* compression scheme private data */
     /* input/output buffering */
-    pub(crate) tif_rawdata: Vec<u8>, /* raw data buffer */
-    pub(crate) tif_rawdatasize: TmSize, /* # of bytes in raw data buffer */
-    pub(crate) tif_rawdataoff: TmSize, /* rawdata offset within strip */
+    pub(crate) tif_rawdata: Vec<u8>,      /* raw data buffer */
+    pub(crate) tif_rawdatasize: TmSize,   /* # of bytes in raw data buffer */
+    pub(crate) tif_rawdataoff: TmSize,    /* rawdata offset within strip */
     pub(crate) tif_rawdataloaded: TmSize, /* amount of data in rawdata */
-    pub(crate) tif_rawcp: usize,     /* current spot in raw buffer */
-    pub(crate) tif_rawcc: TmSize,    /* bytes unread from raw buffer */
+    pub(crate) tif_rawcp: usize,          /* current spot in raw buffer */
+    pub(crate) tif_rawcc: TmSize,         /* bytes unread from raw buffer */
     /* input/output callback methods */
     pub(crate) tif_clientdata: &'a mut dyn TiffClient, /* callback parameter */
     /* post-decoding support */
@@ -192,13 +194,13 @@ pub(crate) const TIFF_PERSAMPLE: u32 = 0x400000; /* get/set per sample tags as a
 pub(crate) const TIFF_BUFFERMMAP: u32 = 0x800000; /* read buffer (tif_rawdata) points into mmap() memory */
 pub(crate) const TIFF_DEFERSTRILELOAD: u32 = 0x1000000; /* defer strip/tile offset/bytecount array loading. */
 pub(crate) const TIFF_LAZYSTRILELOAD_DONE: u32 = 0x2000000; /* set when lazy/ondemand loading of strip/tile
-offset/bytecount values has been done. Only used if
-TIFF_DEFERSTRILELOAD is set and in read-only mode */
+                                                            offset/bytecount values has been done. Only used if
+                                                            TIFF_DEFERSTRILELOAD is set and in read-only mode */
 pub(crate) const TIFF_CHOPPEDUPARRAYS: u32 = 0x4000000; /* set when allocChoppedUpStripArrays() has modified strip
-array */
+                                                        array */
 pub(crate) const TIFF_LAZYSTRILELOAD_ASKED: u32 = 0x8000000; /* set when lazy/ondemand loading of strip/tile
-offset/bytecount values has been requested on opening ('O'
-flag) */
+                                                             offset/bytecount values has been requested on opening ('O'
+                                                             flag) */
 
 /// Translation of `isPseudoTag()`: is tag value normal or pseudo
 pub(crate) fn is_pseudo_tag(t: u32) -> bool {

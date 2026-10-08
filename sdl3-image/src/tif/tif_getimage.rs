@@ -26,8 +26,8 @@ use super::tif_aux::{
     tiff_get_field_defaulted_u16_pair,
 };
 use super::tif_color::{
-    tiff_cie_lab16_to_xyz, tiff_cie_lab_to_rgb_init, tiff_cie_lab_to_xyz, tiff_xyz_to_rgb,
-    tiff_ycbcr_to_rgb, tiff_ycbcr_to_rgb_init,
+    tiff_cie_lab16_to_xyz, tiff_cie_lab_to_rgb_init, tiff_cie_lab_to_xyz, tiff_float_eq,
+    tiff_xyz_to_rgb, tiff_ycbcr_to_rgb, tiff_ycbcr_to_rgb_init,
 };
 use super::tif_dir::{tiff_get_field, tiff_get_field_int, tiff_set_field, Gv, Va};
 use super::tif_error::{tiff_error_ext_r, tiff_warning_ext_r};
@@ -165,17 +165,17 @@ pub(crate) enum Put {
 /// Translation of `TIFFRGBAImage`: RGBA-reader state (the image handle is
 /// passed alongside).
 pub(crate) struct TIFFRGBAImage {
-    stoponerr: i32,            /* stop on read error */
-    is_contig: i32,            /* data is packed/separate */
-    alpha: i32,                /* type of alpha data present */
-    width: u32,                /* image width */
-    height: u32,               /* image height */
-    bitspersample: u16,        /* image bits/sample */
-    samplesperpixel: u16,      /* image samples/pixel */
-    orientation: u16,          /* image orientation */
+    stoponerr: i32,                  /* stop on read error */
+    is_contig: i32,                  /* data is packed/separate */
+    alpha: i32,                      /* type of alpha data present */
+    width: u32,                      /* image width */
+    height: u32,                     /* image height */
+    bitspersample: u16,              /* image bits/sample */
+    samplesperpixel: u16,            /* image samples/pixel */
+    orientation: u16,                /* image orientation */
     pub(crate) req_orientation: u16, /* requested orientation */
-    photometric: u16,          /* image photometric interp */
-    redcmap: Option<Vec<u16>>, /* colormap palette */
+    photometric: u16,                /* image photometric interp */
+    redcmap: Option<Vec<u16>>,       /* colormap palette */
     greencmap: Option<Vec<u16>>,
     bluecmap: Option<Vec<u16>>,
     /* get image data routine */
@@ -668,19 +668,14 @@ fn begin_body(img: &mut TIFFRGBAImage, tif: &mut Tiff<'_>, emsg: &mut String) ->
     {
         *emsg = format!(
             "Sorry, can not handle contiguous data with {}={}, and {}={} and Bits/Sample={}",
-            PHOTO_TAG,
-            img.photometric,
-            "Samples/pixel",
-            img.samplesperpixel,
-            img.bitspersample
+            PHOTO_TAG, img.photometric, "Samples/pixel", img.samplesperpixel, img.bitspersample
         );
         return false;
     }
     img.width = get_int(tif, TIFFTAG_IMAGEWIDTH).unwrap_or(0) as u32;
     img.height = get_int(tif, TIFFTAG_IMAGELENGTH).unwrap_or(0) as u32;
     img.orientation = tiff_get_field_defaulted_u16(tif, TIFFTAG_ORIENTATION).unwrap_or(0);
-    img.is_contig =
-        !(planarconfig == PLANARCONFIG_SEPARATE && img.samplesperpixel > 1) as i32;
+    img.is_contig = !(planarconfig == PLANARCONFIG_SEPARATE && img.samplesperpixel > 1) as i32;
     if img.is_contig != 0 {
         if pick_contig_case(img, tif) == 0 {
             *emsg = "Sorry, can not handle image".to_string();
@@ -1115,7 +1110,11 @@ fn gt_tile_separate(
                 } else {
                     p1 = p0 + tilesize;
                     p2 = p1 + tilesize;
-                    pa = if alpha != 0 { Some(p2 + tilesize) } else { None };
+                    pa = if alpha != 0 {
+                        Some(p2 + tilesize)
+                    } else {
+                        None
+                    };
                 }
             } else if read_tile_at(tif, &mut buf, p0, col, trow, 0) == -1 && img.stoponerr != 0 {
                 ret = 0;
@@ -1300,7 +1299,7 @@ fn gt_strip_contig(
     }
 
     let scanline = tiff_scanline_size(tif);
-    let fromskew = if w < imagewidth { imagewidth - w } else { 0 } as i32;
+    let fromskew = imagewidth.saturating_sub(w) as i32;
     let mut row: u32 = 0;
     while row < h {
         let srow = (row as i32).wrapping_add(img.row_offset) as u32;
@@ -1312,8 +1311,7 @@ fn gt_strip_contig(
         };
         let mut nrowsub = nrow;
         if (nrowsub % subsamplingver as u32) != 0 {
-            nrowsub = nrowsub
-                .wrapping_add(subsamplingver as u32 - nrowsub % subsamplingver as u32);
+            nrowsub = nrowsub.wrapping_add(subsamplingver as u32 - nrowsub % subsamplingver as u32);
         }
         let temp = (srow % rowsperstrip).wrapping_add(nrowsub);
         if scanline > 0 && temp as usize > (TIFF_TMSIZE_T_MAX / scanline) as usize {
@@ -1455,7 +1453,7 @@ fn gt_strip_separate(
     }
 
     let scanline = tiff_scanline_size(tif);
-    let fromskew = if w < imagewidth { imagewidth - w } else { 0 } as i32;
+    let fromskew = imagewidth.saturating_sub(w) as i32;
     let mut row: u32 = 0;
     while row < h {
         let srow = (row as i32).wrapping_add(img.row_offset) as u32;
@@ -1474,8 +1472,7 @@ fn gt_strip_separate(
         let size = (temp as TmSize).wrapping_mul(scanline);
         if buf.is_none() {
             let strip = tiff_compute_strip(tif, offset_row, 0);
-            if _tiff_read_encoded_strip_and_alloc_buffer(tif, strip, &mut buf, bufsize, size)
-                == -1
+            if _tiff_read_encoded_strip_and_alloc_buffer(tif, strip, &mut buf, bufsize, size) == -1
                 && (buf.is_none() || img.stoponerr != 0)
             {
                 ret = 0;
@@ -1769,8 +1766,7 @@ fn putagreytile(
         for _ in 0..w {
             raster.set(
                 cp,
-                tab(bwmap, px(buf, pp) as usize * stride)
-                    & ((px(buf, pp + 1) as u32) << 24 | !A1),
+                tab(bwmap, px(buf, pp) as usize * stride) & ((px(buf, pp + 1) as u32) << 24 | !A1),
             );
             cp += 1;
             pp += samplesperpixel;
@@ -2562,7 +2558,14 @@ fn putcontig8bit_cielab16(
  */
 
 /// `YCbCrtoRGB(dst, Y)`: `raster[dst]` becomes the pixel.
-fn ycbcr_to_rgb(img: &TIFFRGBAImage, raster: &mut Raster<'_>, dst: isize, y: u32, cb: i32, cr: i32) {
+fn ycbcr_to_rgb(
+    img: &TIFFRGBAImage,
+    raster: &mut Raster<'_>,
+    dst: isize,
+    y: u32,
+    cb: i32,
+    cr: i32,
+) {
     let (r, g, b) = match img.ycbcr.as_deref() {
         Some(ycbcr) => tiff_ycbcr_to_rgb(ycbcr, y, cb, cr),
         None => (0, 0, 0),
@@ -3053,12 +3056,15 @@ fn init_ycbcr_conversion(img: &mut TIFFRGBAImage, tif: &mut Tiff<'_>) -> i32 {
 
     /* Do some validation to avoid later issues. Detect NaN for now */
     /* and also if lumaGreen is zero since we divide by it later */
-    if luma[0].is_nan() || luma[1].is_nan() || !(luma[1].abs() > 0.0f32) || luma[2].is_nan() {
+    if luma[0].is_nan() || luma[1].is_nan() || tiff_float_eq(luma[1], 0.0f32) || luma[2].is_nan() {
         tiff_error_ext_r!(MODULE, "Invalid values for YCbCrCoefficients tag");
         return 0;
     }
 
-    if !ref_black_white.iter().all(|&f| is_in_ref_black_white_range(f)) {
+    if !ref_black_white
+        .iter()
+        .all(|&f| is_in_ref_black_white_range(f))
+    {
         tiff_error_ext_r!(MODULE, "Invalid values for ReferenceBlackWhite tag");
         return 0;
     }
@@ -3073,14 +3079,17 @@ fn init_ycbcr_conversion(img: &mut TIFFRGBAImage, tif: &mut Tiff<'_>) -> i32 {
 }
 
 /// Translation of `initCIELabConversion()`.
-fn init_cielab_conversion(img: &mut TIFFRGBAImage, tif: &mut Tiff<'_>) -> Option<TileContigRoutine> {
+fn init_cielab_conversion(
+    img: &mut TIFFRGBAImage,
+    tif: &mut Tiff<'_>,
+) -> Option<TileContigRoutine> {
     const MODULE: &str = "initCIELabConversion";
 
     let mut out = Vec::new();
     tiff_get_field_defaulted(tif, TIFFTAG_WHITEPOINT, &mut out);
     let wp = out.first().and_then(Gv::as_f32s).unwrap_or_default();
     let white_point = [tab(&wp, 0), tab(&wp, 1)];
-    if !(white_point[1].abs() > 0.0f32) {
+    if tiff_float_eq(white_point[1], 0.0f32) {
         tiff_error_ext_r!(MODULE, "Invalid value for WhitePoint tag.");
         return None;
     }
@@ -3194,8 +3203,7 @@ fn setup_map(img: &mut TIFFRGBAImage, tif: &Tiff<'_>) -> i32 {
     }
     img.map = Some(map);
     if img.bitspersample <= 16
-        && (img.photometric == PHOTOMETRIC_MINISBLACK
-            || img.photometric == PHOTOMETRIC_MINISWHITE)
+        && (img.photometric == PHOTOMETRIC_MINISBLACK || img.photometric == PHOTOMETRIC_MINISWHITE)
     {
         /*
          * Use photometric mapping table to construct
@@ -3300,8 +3308,7 @@ fn makecmap(img: &mut TIFFRGBAImage, tif: &Tiff<'_>) -> i32 {
 /// Translation of `buildMap()`.
 fn build_map(img: &mut TIFFRGBAImage, tif: &Tiff<'_>) -> i32 {
     match img.photometric {
-        PHOTOMETRIC_RGB | PHOTOMETRIC_YCBCR | PHOTOMETRIC_SEPARATED
-            if img.bitspersample == 8 => {}
+        PHOTOMETRIC_RGB | PHOTOMETRIC_YCBCR | PHOTOMETRIC_SEPARATED if img.bitspersample == 8 => {}
         PHOTOMETRIC_RGB
         | PHOTOMETRIC_YCBCR
         | PHOTOMETRIC_SEPARATED

@@ -166,8 +166,8 @@ pub(crate) fn tiff_cie_lab_to_rgb_init(
     let mut df_gamma = 1.0 / cielab.display.d_gammaR as f64;
     cielab.rstep = (cielab.display.d_YCR - cielab.display.d_Y0R) / cielab.range as f32;
     for i in 0..=CIELABTORGB_TABLE_RANGE {
-        cielab.Yr2r[i] = cielab.display.d_Vrwr as f32
-            * ((i as f64 / cielab.range as f64).powf(df_gamma) as f32);
+        cielab.Yr2r[i] =
+            cielab.display.d_Vrwr as f32 * ((i as f64 / cielab.range as f64).powf(df_gamma) as f32);
     }
 
     // (sic: the green and blue steps are the red channel's, as upstream)
@@ -175,16 +175,16 @@ pub(crate) fn tiff_cie_lab_to_rgb_init(
     df_gamma = 1.0 / cielab.display.d_gammaG as f64;
     cielab.gstep = (cielab.display.d_YCR - cielab.display.d_Y0R) / cielab.range as f32;
     for i in 0..=CIELABTORGB_TABLE_RANGE {
-        cielab.Yg2g[i] = cielab.display.d_Vrwg as f32
-            * ((i as f64 / cielab.range as f64).powf(df_gamma) as f32);
+        cielab.Yg2g[i] =
+            cielab.display.d_Vrwg as f32 * ((i as f64 / cielab.range as f64).powf(df_gamma) as f32);
     }
 
     /* Blue */
     df_gamma = 1.0 / cielab.display.d_gammaB as f64;
     cielab.bstep = (cielab.display.d_YCR - cielab.display.d_Y0R) / cielab.range as f32;
     for i in 0..=CIELABTORGB_TABLE_RANGE {
-        cielab.Yb2b[i] = cielab.display.d_Vrwb as f32
-            * ((i as f64 / cielab.range as f64).powf(df_gamma) as f32);
+        cielab.Yb2b[i] =
+            cielab.display.d_Vrwb as f32 * ((i as f64 / cielab.range as f64).powf(df_gamma) as f32);
     }
 
     /* Init reference white point */
@@ -207,7 +207,7 @@ fn fix(x: f32) -> i32 {
 }
 const ONE_HALF: i32 = 1 << (SHIFT - 1);
 /// `TIFF_FLOAT_EQ()`
-fn tiff_float_eq(x: f32, y: f32) -> bool {
+pub(crate) fn tiff_float_eq(x: f32, y: f32) -> bool {
     !((x - y).abs() > 0.0f32)
 }
 /// `Code2V()`
@@ -215,7 +215,11 @@ fn code2v(c: i32, rb: f32, rw: f32, cr: i32) -> f32 {
     // ((int32_t)(RB) is out of range for a huge reference black, and the
     // subtraction then overflows: as x86-64 does it)
     (c.wrapping_sub(c_f32_to_i32(rb)) as f32 * cr as f32)
-        / if !tiff_float_eq(rw, rb) { rw - rb } else { 1.0f32 }
+        / if !tiff_float_eq(rw, rb) {
+            rw - rb
+        } else {
+            1.0f32
+        }
 }
 /// `CLAMP()` for floats (`!((f)>=(min))` written that way to deal with
 /// NaN)
@@ -240,7 +244,12 @@ fn clamp_i(f: i32, min: i32, max: i32) -> i32 {
 }
 
 /// Translation of `TIFFYCbCrtoRGB()`: the result is (r, g, b).
-pub(crate) fn tiff_ycbcr_to_rgb(ycbcr: &TIFFYCbCrToRGB, mut y: u32, cb: i32, cr: i32) -> (u32, u32, u32) {
+pub(crate) fn tiff_ycbcr_to_rgb(
+    ycbcr: &TIFFYCbCrToRGB,
+    mut y: u32,
+    cb: i32,
+    cr: i32,
+) -> (u32, u32, u32) {
     /* XXX: Only 8-bit YCbCr input supported for now */
     if y > 255 {
         y = 255;

@@ -44,8 +44,7 @@ pub(crate) fn tiff_compute_tile(tif: &Tiff<'_>, x: u32, y: u32, mut z: u32, s: u
         let xpt_ypt = _tiff_multiply32(xpt, ypt, "TIFFComputeTile");
         let xpt_ypt_zpt = _tiff_multiply32(xpt_ypt, zpt, "TIFFComputeTile");
 
-        if (xpt_ypt == 0 && xpt != 0 && ypt != 0)
-            || (xpt_ypt_zpt == 0 && xpt_ypt != 0 && zpt != 0)
+        if (xpt_ypt == 0 && xpt != 0 && ypt != 0) || (xpt_ypt_zpt == 0 && xpt_ypt != 0 && zpt != 0)
         {
             return 0;
         }
@@ -75,8 +74,7 @@ pub(crate) fn tiff_compute_tile(tif: &Tiff<'_>, x: u32, y: u32, mut z: u32, s: u
                 );
                 return 0;
             }
-            let sample_offset =
-                _tiff_multiply64(xpt_ypt_zpt as u64, s as u64, "TIFFComputeTile");
+            let sample_offset = _tiff_multiply64(xpt_ypt_zpt as u64, s as u64, "TIFFComputeTile");
             if sample_offset == 0 && xpt_ypt_zpt != 0 && s != 0 {
                 return 0;
             }

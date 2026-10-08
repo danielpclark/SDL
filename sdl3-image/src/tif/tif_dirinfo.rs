@@ -113,24 +113,58 @@ pub(crate) fn tiff_field_set_get_size(fip: Option<&TIFFField>) -> i32 {
     };
 
     match fip.set_get_field_type {
-        TIFF_SETGET_UNDEFINED | TIFF_SETGET_ASCII | TIFF_SETGET_C0_ASCII
-        | TIFF_SETGET_C16_ASCII | TIFF_SETGET_C32_ASCII | TIFF_SETGET_OTHER => 1,
-        TIFF_SETGET_UINT8 | TIFF_SETGET_SINT8 | TIFF_SETGET_C0_UINT8 | TIFF_SETGET_C0_SINT8
-        | TIFF_SETGET_C16_UINT8 | TIFF_SETGET_C16_SINT8 | TIFF_SETGET_C32_UINT8
+        TIFF_SETGET_UNDEFINED
+        | TIFF_SETGET_ASCII
+        | TIFF_SETGET_C0_ASCII
+        | TIFF_SETGET_C16_ASCII
+        | TIFF_SETGET_C32_ASCII
+        | TIFF_SETGET_OTHER => 1,
+        TIFF_SETGET_UINT8
+        | TIFF_SETGET_SINT8
+        | TIFF_SETGET_C0_UINT8
+        | TIFF_SETGET_C0_SINT8
+        | TIFF_SETGET_C16_UINT8
+        | TIFF_SETGET_C16_SINT8
+        | TIFF_SETGET_C32_UINT8
         | TIFF_SETGET_C32_SINT8 => 1,
-        TIFF_SETGET_UINT16 | TIFF_SETGET_SINT16 | TIFF_SETGET_C0_UINT16
-        | TIFF_SETGET_C0_SINT16 | TIFF_SETGET_C16_UINT16 | TIFF_SETGET_C16_SINT16
-        | TIFF_SETGET_C32_UINT16 | TIFF_SETGET_C32_SINT16 => 2,
-        TIFF_SETGET_INT | TIFF_SETGET_UINT32 | TIFF_SETGET_SINT32 | TIFF_SETGET_FLOAT
-        | TIFF_SETGET_UINT16_PAIR | TIFF_SETGET_C0_UINT32 | TIFF_SETGET_C0_SINT32
-        | TIFF_SETGET_C0_FLOAT | TIFF_SETGET_C16_UINT32 | TIFF_SETGET_C16_SINT32
-        | TIFF_SETGET_C16_FLOAT | TIFF_SETGET_C32_UINT32 | TIFF_SETGET_C32_SINT32
+        TIFF_SETGET_UINT16
+        | TIFF_SETGET_SINT16
+        | TIFF_SETGET_C0_UINT16
+        | TIFF_SETGET_C0_SINT16
+        | TIFF_SETGET_C16_UINT16
+        | TIFF_SETGET_C16_SINT16
+        | TIFF_SETGET_C32_UINT16
+        | TIFF_SETGET_C32_SINT16 => 2,
+        TIFF_SETGET_INT
+        | TIFF_SETGET_UINT32
+        | TIFF_SETGET_SINT32
+        | TIFF_SETGET_FLOAT
+        | TIFF_SETGET_UINT16_PAIR
+        | TIFF_SETGET_C0_UINT32
+        | TIFF_SETGET_C0_SINT32
+        | TIFF_SETGET_C0_FLOAT
+        | TIFF_SETGET_C16_UINT32
+        | TIFF_SETGET_C16_SINT32
+        | TIFF_SETGET_C16_FLOAT
+        | TIFF_SETGET_C32_UINT32
+        | TIFF_SETGET_C32_SINT32
         | TIFF_SETGET_C32_FLOAT => 4,
-        TIFF_SETGET_UINT64 | TIFF_SETGET_SINT64 | TIFF_SETGET_DOUBLE | TIFF_SETGET_IFD8
-        | TIFF_SETGET_C0_UINT64 | TIFF_SETGET_C0_SINT64 | TIFF_SETGET_C0_DOUBLE
-        | TIFF_SETGET_C0_IFD8 | TIFF_SETGET_C16_UINT64 | TIFF_SETGET_C16_SINT64
-        | TIFF_SETGET_C16_DOUBLE | TIFF_SETGET_C16_IFD8 | TIFF_SETGET_C32_UINT64
-        | TIFF_SETGET_C32_SINT64 | TIFF_SETGET_C32_DOUBLE | TIFF_SETGET_C32_IFD8 => 8,
+        TIFF_SETGET_UINT64
+        | TIFF_SETGET_SINT64
+        | TIFF_SETGET_DOUBLE
+        | TIFF_SETGET_IFD8
+        | TIFF_SETGET_C0_UINT64
+        | TIFF_SETGET_C0_SINT64
+        | TIFF_SETGET_C0_DOUBLE
+        | TIFF_SETGET_C0_IFD8
+        | TIFF_SETGET_C16_UINT64
+        | TIFF_SETGET_C16_SINT64
+        | TIFF_SETGET_C16_DOUBLE
+        | TIFF_SETGET_C16_IFD8
+        | TIFF_SETGET_C32_UINT64
+        | TIFF_SETGET_C32_SINT64
+        | TIFF_SETGET_C32_DOUBLE
+        | TIFF_SETGET_C32_IFD8 => 8,
         _ => 0,
     }
 } /*-- TIFFFieldSetGetSize() --- */
@@ -241,15 +275,9 @@ pub(crate) fn _tiff_check_field_is_valid_for_codec(tif: &Tiff<'_>, tag: u32) -> 
                 return 1;
             }
         }
-        COMPRESSION_PACKBITS => {
-            /* No codec-specific tags */
-        }
-        COMPRESSION_THUNDERSCAN => {
-            /* No codec-specific tags */
-        }
-        COMPRESSION_NEXT => {
-            /* No codec-specific tags */
-        }
+        COMPRESSION_PACKBITS => { /* No codec-specific tags */ }
+        COMPRESSION_THUNDERSCAN => { /* No codec-specific tags */ }
+        COMPRESSION_NEXT => { /* No codec-specific tags */ }
         COMPRESSION_JPEG => {
             if tag == TIFFTAG_JPEGTABLES {
                 return 1;
@@ -265,7 +293,9 @@ pub(crate) fn _tiff_check_field_is_valid_for_codec(tif: &Tiff<'_>, tag: u32) -> 
             | TIFFTAG_JPEGRESTARTINTERVAL => return 1,
             _ => {}
         },
-        COMPRESSION_CCITTRLE | COMPRESSION_CCITTRLEW | COMPRESSION_CCITTFAX3
+        COMPRESSION_CCITTRLE
+        | COMPRESSION_CCITTRLEW
+        | COMPRESSION_CCITTFAX3
         | COMPRESSION_CCITTFAX4 => match tag {
             TIFFTAG_BADFAXLINES | TIFFTAG_CLEANFAXDATA | TIFFTAG_CONSECUTIVEBADFAXLINES => {
                 return 1
@@ -282,9 +312,7 @@ pub(crate) fn _tiff_check_field_is_valid_for_codec(tif: &Tiff<'_>, tag: u32) -> 
             }
             _ => {}
         },
-        COMPRESSION_JBIG => {
-            /* No codec-specific tags */
-        }
+        COMPRESSION_JBIG => { /* No codec-specific tags */ }
         COMPRESSION_DEFLATE | COMPRESSION_ADOBE_DEFLATE => {
             if tag == TIFFTAG_PREDICTOR {
                 return 1;
@@ -295,9 +323,7 @@ pub(crate) fn _tiff_check_field_is_valid_for_codec(tif: &Tiff<'_>, tag: u32) -> 
                 return 1;
             }
         }
-        COMPRESSION_SGILOG | COMPRESSION_SGILOG24 => {
-            /* No codec-specific tags */
-        }
+        COMPRESSION_SGILOG | COMPRESSION_SGILOG24 => { /* No codec-specific tags */ }
         COMPRESSION_LZMA => {
             if tag == TIFFTAG_PREDICTOR {
                 return 1;

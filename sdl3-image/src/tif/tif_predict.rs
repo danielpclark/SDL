@@ -13,13 +13,13 @@
 //! by a [`DecodePFunc`], as the C compares them. The SSE2 path of
 //! `fpAcc()` (an optimization giving the same bytes) is not translated.
 
-use super::tif_dir::{
-    tiff_set_field_bit, Gv, TIFFVGetMethod, TIFFVSetMethod, VaList, FIELD_CODEC,
-};
+use super::tif_dir::{tiff_set_field_bit, Gv, TIFFVGetMethod, TIFFVSetMethod, VaList, FIELD_CODEC};
 use super::tif_dirinfo::_tiff_merge_fields;
 use super::tif_error::tiff_error_ext_r;
 use super::tif_strip::tiff_scanline_size;
-use super::tif_swab::{tiff_swab_array_of_long, tiff_swab_array_of_long8, tiff_swab_array_of_short};
+use super::tif_swab::{
+    tiff_swab_array_of_long, tiff_swab_array_of_long8, tiff_swab_array_of_short,
+};
 use super::tif_tile::tiff_tile_row_size;
 use super::tiff::*;
 use super::tiffio::{field, TIFFField};
@@ -47,16 +47,16 @@ pub(crate) enum DecodePFunc {
 /// (The encoding methods are left out.)
 #[derive(Clone, Copy)]
 pub(crate) struct TIFFPredictorState {
-    pub(crate) predictor: i32,    /* predictor tag value */
-    pub(crate) stride: TmSize,    /* sample stride over data */
-    pub(crate) rowsize: TmSize,   /* tile/strip row size */
-    pub(crate) decoderow: TIFFCodeMethod, /* parent codec encode/decode row */
-    pub(crate) decodestrip: TIFFCodeMethod, /* parent codec encode/decode strip */
-    pub(crate) decodetile: TIFFCodeMethod, /* parent codec encode/decode tile */
+    pub(crate) predictor: i32,                   /* predictor tag value */
+    pub(crate) stride: TmSize,                   /* sample stride over data */
+    pub(crate) rowsize: TmSize,                  /* tile/strip row size */
+    pub(crate) decoderow: TIFFCodeMethod,        /* parent codec encode/decode row */
+    pub(crate) decodestrip: TIFFCodeMethod,      /* parent codec encode/decode strip */
+    pub(crate) decodetile: TIFFCodeMethod,       /* parent codec encode/decode tile */
     pub(crate) decodepfunc: Option<DecodePFunc>, /* horizontal accumulator */
-    pub(crate) vgetparent: TIFFVGetMethod, /* super-class method */
-    pub(crate) vsetparent: TIFFVSetMethod, /* super-class method */
-    pub(crate) setupdecode: TIFFBoolMethod, /* super-class method */
+    pub(crate) vgetparent: TIFFVGetMethod,       /* super-class method */
+    pub(crate) vsetparent: TIFFVSetMethod,       /* super-class method */
+    pub(crate) setupdecode: TIFFBoolMethod,      /* super-class method */
 }
 
 impl TIFFPredictorState {
@@ -199,7 +199,7 @@ fn predictor_setup_decode(tif: &mut Tiff<'_>) -> i32 {
          * Override default decoding method with one that does the
          * predictor stuff.
          */
-        if tif.tif_decoderow as usize != predictor_decode_row as usize {
+        if tif.tif_decoderow as usize != predictor_decode_row as TIFFCodeMethod as usize {
             sp.decoderow = tif.tif_decoderow;
             tif.tif_decoderow = predictor_decode_row;
             sp.decodestrip = tif.tif_decodestrip;
@@ -233,7 +233,7 @@ fn predictor_setup_decode(tif: &mut Tiff<'_>) -> i32 {
          * Override default decoding method with one that does the
          * predictor stuff.
          */
-        if tif.tif_decoderow as usize != predictor_decode_row as usize {
+        if tif.tif_decoderow as usize != predictor_decode_row as TIFFCodeMethod as usize {
             sp.decoderow = tif.tif_decoderow;
             tif.tif_decoderow = predictor_decode_row;
             sp.decodestrip = tif.tif_decodestrip;
@@ -313,7 +313,13 @@ fn swab_hor_acc16(tif: &mut Tiff<'_>, cp0: &mut [u8], cc: TmSize) -> i32 {
 
 /// `horAcc16()`, `horAcc32()` and `horAcc64()`: accumulate the `N`-byte
 /// host order words of the buffer.
-fn hor_acc_n<const N: usize>(tif: &mut Tiff<'_>, cp0: &mut [u8], cc: TmSize, name: &str, what: &str) -> i32 {
+fn hor_acc_n<const N: usize>(
+    tif: &mut Tiff<'_>,
+    cp0: &mut [u8],
+    cc: TmSize,
+    name: &str,
+    what: &str,
+) -> i32 {
     let stride = stride_of(tif);
     let wc = cc / N as TmSize;
 

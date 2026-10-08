@@ -27,9 +27,8 @@ use super::tif_error::{tiff_error_ext_r, tiff_warning_ext_r};
 use super::tiff::*;
 use super::tiffio::{TIFFField, FIELD_CUSTOM, TIFF_ANY, TIFF_SPP, TIFF_VARIABLE, TIFF_VARIABLE2};
 use super::tiffiop::{
-    is_pseudo_tag, try_vec, TIFFPostMethod, Tiff, TmSize, O_RDONLY, TIFF_BIGTIFF,
-    TIFF_CODERSETUP, TIFF_DIRTYDIRECT, TIFF_INSUBIFD, TIFF_ISTILED, TIFF_PERSAMPLE,
-    TIFF_SWAB,
+    is_pseudo_tag, try_vec, TIFFPostMethod, Tiff, TmSize, O_RDONLY, TIFF_BIGTIFF, TIFF_CODERSETUP,
+    TIFF_DIRTYDIRECT, TIFF_INSUBIFD, TIFF_ISTILED, TIFF_PERSAMPLE, TIFF_SWAB,
 };
 
 /*
@@ -51,12 +50,12 @@ pub(crate) struct TIFFTagValue {
 /// offset or the data itself if fits, as the file has it (unswabbed).
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct TIFFDirEntry {
-    pub(crate) tdir_tag: u16,   /* see below */
-    pub(crate) tdir_type: u16,  /* data type; see below */
-    pub(crate) tdir_count: u64, /* number of items; length in spec */
+    pub(crate) tdir_tag: u16,        /* see below */
+    pub(crate) tdir_type: u16,       /* data type; see below */
+    pub(crate) tdir_count: u64,      /* number of items; length in spec */
     pub(crate) tdir_offset: [u8; 8], /* either offset or the data itself if fits */
-    pub(crate) tdir_ignore: u8, /* flag status to ignore tag when parsing tags in
-                                tif_dirread.c */
+    pub(crate) tdir_ignore: u8,      /* flag status to ignore tag when parsing tags in
+                                     tif_dirread.c */
 }
 
 impl TIFFDirEntry {
@@ -84,6 +83,7 @@ impl TIFFDirEntry {
 /// Translation of `TIFFEntryOffsetAndLength`: auxiliary for evaluating
 /// size of IFD data
 #[derive(Clone, Copy, Debug, Default)]
+#[allow(dead_code)] // (kept for writing, which isn't translated)
 pub(crate) struct TIFFEntryOffsetAndLength {
     pub(crate) offset: u64,
     pub(crate) length: u64,
@@ -147,13 +147,13 @@ pub(crate) struct TIFFDirectory {
     pub(crate) td_stripsperimage: u32,
     pub(crate) td_nstrips: u32, /* size of offset & bytecount arrays */
     pub(crate) td_stripoffset_p: Option<Vec<u64>>, /* should be accessed with
-                                                   TIFFGetStrileOffset */
+                                TIFFGetStrileOffset */
     pub(crate) td_stripbytecount_p: Option<Vec<u64>>, /* should be accessed with
                                                       TIFFGetStrileByteCount */
     pub(crate) td_stripoffsetbyteallocsize: u32, /* number of elements currently allocated
-                                                 for td_stripoffset/td_stripbytecount.
-                                                 Only used if TIFF_LAZYSTRILELOAD is set
-                                               */
+                                                   for td_stripoffset/td_stripbytecount.
+                                                   Only used if TIFF_LAZYSTRILELOAD is set
+                                                 */
     /* Be aware that the parameters of td_stripoffset_entry and
      * td_stripbytecount_entry are swapped but tdir_offset is not
      * and has to be swapped when used. */
@@ -175,6 +175,7 @@ pub(crate) struct TIFFDirectory {
     /// `td_customValueCount` is the length of `td_customValues`.
     pub(crate) td_customValues: Vec<TIFFTagValue>,
 
+    #[allow(dead_code)]
     pub(crate) td_deferstrilearraywriting: u8, /* see TIFFDeferStrileArrayWriting() */
 
     pub(crate) td_iswrittentofile: u8, /* indicates if current IFD is present on file */
@@ -262,6 +263,7 @@ pub(crate) const FIELD_CODEC: u16 = 66; /* base of codec-private tags */
  */
 pub(crate) const FIELD_PSEUDO: u16 = 0;
 
+#[allow(dead_code)]
 pub(crate) const FIELD_LAST: u16 = (32 * FIELDSET_ITEMS - 1) as u16;
 
 /// Translation of `BITn()`.
@@ -872,8 +874,8 @@ fn vset_standard(
                     tif.tif_dir.td_smaxsamplevalue = None;
                 }
                 /* Test if 3 transfer functions instead of just one are now
-                   needed See http://bugzilla.maptools.org/show_bug.cgi?id=2820
-                 */
+                  needed See http://bugzilla.maptools.org/show_bug.cgi?id=2820
+                */
                 let td = &tif.tif_dir;
                 if td.td_transferfunction[0].is_some()
                     && (v as i32 - td.td_extrasamples as i32 > 1)
@@ -994,11 +996,7 @@ fn vset_standard(
                 if tif.tif_mode != O_RDONLY {
                     return SetEnd::BadValue32(v32);
                 }
-                tiff_warning_ext_r!(
-                    tif.tif_name,
-                    "Nonstandard tile width {}, convert file",
-                    v32
-                );
+                tiff_warning_ext_r!(tif.tif_name, "Nonstandard tile width {}, convert file", v32);
             }
             tif.tif_dir.td_tilewidth = v32;
             tif.tif_flags |= TIFF_ISTILED;
@@ -1325,17 +1323,20 @@ fn vset_custom(tif: &mut Tiff<'_>, tag: u32, fip: &TIFFField, ap: &mut VaList<'_
             return SetEnd::Done(status);
         }
 
-        let Some(mut value) =
-            super::tif_aux::_tiff_check_malloc_vec::<u8>(tif, count as TmSize, tv_size as TmSize, "custom tag binary object")
-        else {
+        let Some(mut value) = super::tif_aux::_tiff_check_malloc_vec::<u8>(
+            tif,
+            count as TmSize,
+            tv_size as TmSize,
+            "custom tag binary object",
+        ) else {
             return SetEnd::End(0);
         };
 
         if fip.field_tag == TIFFTAG_DOTRANGE && fip.field_name == "DotRange" {
             /* TODO: This is an evil exception and should not have been
-               handled this way ... likely best if we move it into
-               the directory structure with an explicit field in
-               libtiff 4.1 and assign it a FIELD_ value */
+            handled this way ... likely best if we move it into
+            the directory structure with an explicit field in
+            libtiff 4.1 and assign it a FIELD_ value */
             let v2 = [ap.int() as u16, ap.int() as u16];
             value[..2].copy_from_slice(&v2[0].to_ne_bytes());
             value[2..4].copy_from_slice(&v2[1].to_ne_bytes());
@@ -1355,7 +1356,8 @@ fn vset_custom(tif: &mut Tiff<'_>, tag: u32, fip: &TIFFField, ap: &mut VaList<'_
             if (tif.tif_flags & TIFF_BIGTIFF) == 0 {
                 if fip.field_type == TIFF_LONG8 || fip.field_type == TIFF_IFD8 {
                     for (i, c) in value.chunks_exact(8).enumerate() {
-                        let v = u64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]);
+                        let v =
+                            u64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]);
                         if v > 0xffffffff {
                             tiff_error_ext_r!(
                                 MODULE,
@@ -1372,7 +1374,8 @@ fn vset_custom(tif: &mut Tiff<'_>, tag: u32, fip: &TIFFField, ap: &mut VaList<'_
                     }
                 } else if fip.field_type == TIFF_SLONG8 {
                     for (i, c) in value.chunks_exact(8).enumerate() {
-                        let v = i64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]);
+                        let v =
+                            i64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]);
                         if v > 2147483647 || v < (-2147483647 - 1) {
                             tiff_error_ext_r!(
                                 MODULE,
@@ -1656,7 +1659,8 @@ fn _tiff_vget_field(tif: &mut Tiff<'_>, tag: u32, ap: &mut Vec<Gv>) -> i32 {
                 && td
                     .td_sampleinfo
                     .as_ref()
-                    .is_some_and(|s| s.first() == Some(&EXTRASAMPLE_ASSOCALPHA))) as u16,
+                    .is_some_and(|s| s.first() == Some(&EXTRASAMPLE_ASSOCALPHA)))
+                as u16,
         )),
         TIFFTAG_EXTRASAMPLES => {
             ap.push(Gv::U16(td.td_extrasamples));
@@ -1721,7 +1725,11 @@ fn _tiff_vget_field(tif: &mut Tiff<'_>, tag: u32, ap: &mut Vec<Gv>) -> i32 {
              * Do we have a custom value?
              */
             ret_val = 0;
-            if let Some(tv) = td.td_customValues.iter().find(|tv| tv.info.field_tag == tag) {
+            if let Some(tv) = td
+                .td_customValues
+                .iter()
+                .find(|tv| tv.info.field_tag == tag)
+            {
                 let val = tv.value.as_deref().unwrap_or(&[]);
                 let b = |n: usize| -> [u8; 8] {
                     let mut a = [0u8; 8];
@@ -1741,9 +1749,9 @@ fn _tiff_vget_field(tif: &mut Tiff<'_>, tag: u32, ap: &mut Vec<Gv>) -> i32 {
                     ret_val = 1;
                 } else if fip.field_tag == TIFFTAG_DOTRANGE && fip.field_name == "DotRange" {
                     /* TODO: This is an evil exception and should not have been
-                       handled this way ... likely best if we move it into
-                       the directory structure with an explicit field in
-                       libtiff 4.1 and assign it a FIELD_ value */
+                    handled this way ... likely best if we move it into
+                    the directory structure with an explicit field in
+                    libtiff 4.1 and assign it a FIELD_ value */
                     let a = b(4);
                     ap.push(Gv::U16(u16::from_ne_bytes([a[0], a[1]])));
                     ap.push(Gv::U16(u16::from_ne_bytes([a[2], a[3]])));
@@ -1959,7 +1967,11 @@ pub(crate) fn tiff_default_directory(tif: &mut Tiff<'_>) -> i32 {
      * (http://trac.osgeo.org/gdal/ticket/5054)
      */
     // (no compatibility fields, no extender)
-    let _ = tiff_set_field(tif, TIFFTAG_COMPRESSION, &[Va::Int(COMPRESSION_NONE as i64)]);
+    let _ = tiff_set_field(
+        tif,
+        TIFFTAG_COMPRESSION,
+        &[Va::Int(COMPRESSION_NONE as i64)],
+    );
     /*
      * NB: The directory is marked dirty as a result of setting
      * up the default compression scheme.  However, this really
