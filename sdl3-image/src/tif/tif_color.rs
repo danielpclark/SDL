@@ -6,7 +6,7 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! CIE L*a*b* to CIE XYZ and CIE XYZ to RGB conversion routines are taken
-//! from the VIPS library (http://www.vips.ecs.soton.ac.uk) with
+//! from the VIPS library (<http://www.vips.ecs.soton.ac.uk>) with
 //! the permission of John Cupitt, the VIPS author.
 //!
 //! TIFF Library.
