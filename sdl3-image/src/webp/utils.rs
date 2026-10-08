@@ -1,6 +1,6 @@
 // Rust translation of src/utils/utils.c and src/utils/utils.h from libwebp
 // (https://chromium.googlesource.com/webm/libwebp, as SDL_image's
-// external/libwebp pins it), the parts the decoder needs.
+// external/libwebp pins it), the parts the decoder and encoder need.
 // Copyright 2012 Google Inc. All Rights Reserved.
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.

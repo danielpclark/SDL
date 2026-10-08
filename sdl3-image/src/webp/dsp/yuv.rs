@@ -1,6 +1,6 @@
 // Rust translation of src/dsp/yuv.h from libwebp
 // (https://chromium.googlesource.com/webm/libwebp, as SDL_image's
-// external/libwebp pins it), the YUV->RGB conversions.
+// external/libwebp pins it), the YUV<->RGB conversions.
 // Copyright 2010 Google Inc. All Rights Reserved.
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.

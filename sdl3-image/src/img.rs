@@ -281,9 +281,10 @@ pub fn save(surface: &mut Surface<'_>, file: impl AsRef<Path>) -> Result<()> {
 
 /// Save a surface to a data source in the format named by `type_`, a file
 /// extension compared without case: `"bmp"`, `"cur"`, `"gif"`, `"ico"`,
-/// `"jpg"` or `"jpeg"` (at quality 90), `"png"` or `"tga"`. AVIF and WebP
-/// saving need encoders this crate doesn't have, and report so as an
-/// upstream build without them. Translation of `IMG_SaveTyped_IO()`.
+/// `"jpg"` or `"jpeg"` (at quality 90), `"png"`, `"tga"` or `"webp"` (at
+/// quality 90). AVIF saving needs an encoder this crate doesn't have, and
+/// reports so as an upstream build without it. Translation of
+/// `IMG_SaveTyped_IO()`.
 pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &str) -> Result<()> {
     if type_.is_empty() {
         return Err(Error::invalid_param("type"));
@@ -335,10 +336,10 @@ pub fn save_animation(anim: &mut Animation, file: impl AsRef<Path>) -> Result<()
 }
 
 /// Save an animation to a data source in the format named by `type_`, a
-/// file extension compared without case: `"ani"` or `"gif"`; `"apng"` or
-/// `"png"`, `"avif"` and `"webp"` need libraries this crate doesn't have,
-/// and report so as an upstream build without them. Translation of
-/// `IMG_SaveAnimationTyped_IO()`.
+/// file extension compared without case: `"ani"`, `"gif"` or `"webp"` (at
+/// quality 90); `"apng"` or `"png"` and `"avif"` need libraries this crate
+/// doesn't have, and report so as an upstream build without them.
+/// Translation of `IMG_SaveAnimationTyped_IO()`.
 pub fn save_animation_typed_io(
     anim: &mut Animation,
     dst: &mut IoStream<'_>,

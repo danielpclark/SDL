@@ -3,13 +3,13 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! WebP images: the detector, the loader (lossy, lossless, with alpha, and
-//! the first frame of an animation) and the animation decoder, over the
-//! translation of the parts of libwebp they use (in `webp/`: the VP8 and
-//! VP8L decoders, the alpha plane decoder and the demuxer), as upstream
-//! builds it with libwebp linked in (no dynamic loading: `IMG_InitWEBP()`
-//! has nothing to load). The encoders (`IMG_SaveWEBP_IO()` and the WebP
-//! animation encoder) need libwebp's encoder and muxer, which are not
-//! translated; they fail as upstream built without `SAVE_WEBP`.
+//! the first frame of an animation), the animation decoder, the saver and
+//! the animation encoder, over the translation of the parts of libwebp
+//! they use (in `webp/`: the VP8 and VP8L decoders, the alpha plane decoder
+//! and the demuxer; the VP8 and VP8L encoders, the alpha plane encoder,
+//! the muxer and the animation encoder), as upstream builds it with
+//! libwebp linked in and `SAVE_WEBP` (no dynamic loading: `IMG_InitWEBP()`
+//! has nothing to load).
 
 //=============================================================================
 //        File: SDL_webp.c
