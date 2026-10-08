@@ -8,7 +8,8 @@
 # The images are small (23x13, odd sizes for the row padding paths) and made
 # with ImageMagick (`convert`), except the variants ImageMagick doesn't write
 # (16-bit and colormapped TGAs, multi-image cursors, broken GIFs), which are
-# built byte by byte here. The WebP images are made with libwebp's cwebp,
+# built byte by byte here, as are the TIFFs ImageMagick can't make (the
+# codecs it doesn't write, YCbCr, broken directories). The WebP images are made with libwebp's cwebp,
 # img2webp and webpmux (on PATH, or in the directory $WEBP_TOOLS; libwebp
 # 1.3.2, as SDL_image's external/libwebp) and libwebp's encoding API
 # through ctypes (for the token partitions cwebp doesn't set), and the raw
@@ -19,6 +20,7 @@
 
 import ctypes
 import ctypes.util
+import math
 import os
 import shutil
 import struct
@@ -161,6 +163,8 @@ def main(out):
     # dashes), gradients, transforms, styles and colors
     for name, text in SVGS.items():
         open(p(name), "w").write(text)
+
+    write_tiffs(p, tmp, tmpa)
 
     write_webps(p, tmp, tmpa)
 
@@ -865,6 +869,455 @@ def write_webps(p, tmp, tmpa):
                    check=True, capture_output=True)
     for f in [big, biga, f2, f3, xmp, anim] + frames + opaque:
         os.remove(f)
+
+
+def write_tiffs(p, tmp, tmpa):
+    """The TIFF images: ImageMagick's (through the system's libtiff) for
+    the common layouts, and the rest built here byte by byte."""
+    t = lambda name: "TIFF:" + p(name)
+    tiff_none = ["-compress", "None"]
+
+    # Strips and tiles, both byte orders, the codecs SDL_image's libtiff
+    # has (none, PackBits, LZW with and without the predictor, CCITT)
+    run(tmp, *tiff_none, "-endian", "LSB", t("tif_rgb.tif"))
+    run(tmp, "-compress", "LZW", "-define", "tiff:predictor=1", "-endian", "MSB",
+        t("tif_rgb_lzw_be.tif"))
+    run(tmp, "-compress", "LZW", "-define", "tiff:predictor=2",
+        "-define", "tiff:rows-per-strip=4", t("tif_rgb_lzw_pred.tif"))
+    run(tmp, "-compress", "RLE", "-define", "tiff:rows-per-strip=5", t("tif_rgb_packbits.tif"))
+    run(tmp, "-depth", "16", "-compress", "LZW", "-define", "tiff:predictor=2",
+        "-endian", "MSB", t("tif_rgb16_pred_be.tif"))
+    run(tmp, "-depth", "16", *tiff_none, "-endian", "LSB", t("tif_rgb16.tif"))
+    run(tmp, "-compress", "LZW", "-define", "tiff:tile-geometry=16x16", t("tif_tiled_rgb.tif"))
+    run(tmp, "-depth", "16", "-compress", "LZW", "-endian", "MSB",
+        "-define", "tiff:tile-geometry=16x16", t("tif_tiled_rgb16_be.tif"))
+    # (libtiff takes uncompressed tiles of a multiple of 1024 bytes only,
+    # the size it rounds its buffer up to)
+    run(tmp, *tiff_none, "-define", "tiff:tile-geometry=16x16", t("tif_tiled_badcounts.tif"))
+    run(tmp, "-compress", "LZW", "TIFF64:" + p("tif_bigtiff.tif"))
+
+    # Alpha: associated, unassociated, unspecified (taken as associated),
+    # 8 and 16 bits
+    run(tmpa, *tiff_none, "-define", "tiff:alpha=associated", t("tif_rgba_assoc.tif"))
+    run(tmpa, "-compress", "LZW", "-define", "tiff:alpha=unassociated", t("tif_rgba_unassoc.tif"))
+    run(tmpa, *tiff_none, "-define", "tiff:alpha=unspecified", t("tif_rgba_unspec.tif"))
+    run(tmpa, "-depth", "16", *tiff_none, "-define", "tiff:alpha=associated",
+        t("tif_rgba16_assoc.tif"))
+    run(tmpa, "-depth", "16", "-compress", "LZW", "-define", "tiff:alpha=unassociated",
+        "-endian", "MSB", t("tif_rgba16_unassoc_be.tif"))
+
+    # Separate planes, in strips and tiles
+    run(tmp, *tiff_none, "-interlace", "Plane", t("tif_planar_rgb.tif"))
+    run(tmpa, "-compress", "LZW", "-interlace", "Plane", "-define", "tiff:alpha=associated",
+        t("tif_planar_rgba.tif"))
+    run(tmpa, *tiff_none, "-interlace", "Plane", "-define", "tiff:alpha=unassociated",
+        "-define", "tiff:rows-per-strip=3", t("tif_planar_rgba_unassoc.tif"))
+    run(tmp, "-depth", "16", *tiff_none, "-interlace", "Plane", "-endian", "MSB",
+        t("tif_planar_rgb16_be.tif"))
+    run(tmpa, "-depth", "16", *tiff_none, "-interlace", "Plane",
+        "-define", "tiff:alpha=unassociated", t("tif_planar_rgba16_unassoc.tif"))
+    run(tmp, "-compress", "LZW", "-interlace", "Plane", "-define", "tiff:tile-geometry=16x16",
+        t("tif_planar_tiled_rgb.tif"))
+
+    # Palettes, gray at every depth, bilevel (both polarities, CCITT)
+    run(tmp, "-colors", "50", "-type", "Palette", "-compress", "RLE", t("tif_pal8.tif"))
+    run(tmp, "-colors", "12", "-type", "Palette", "-depth", "4", *tiff_none, t("tif_pal4.tif"))
+    run(tmp, "-colors", "4", "-type", "Palette", "-depth", "2", *tiff_none, t("tif_pal2.tif"))
+    run(tmp, "-colors", "50", "-type", "Palette", "-compress", "LZW",
+        "-define", "tiff:tile-geometry=16x16", t("tif_tiled_pal8.tif"))
+    run(tmp, "-colorspace", "Gray", *tiff_none, t("tif_gray8.tif"))
+    run(tmp, "-colorspace", "Gray", "-depth", "16", "-compress", "LZW", "-endian", "MSB",
+        t("tif_gray16_be.tif"))
+    run(tmp, "-colorspace", "Gray", "-depth", "4", *tiff_none, t("tif_gray4.tif"))
+    run(tmp, "-colorspace", "Gray", "-depth", "2", *tiff_none, t("tif_gray2.tif"))
+    run(tmp, "-colorspace", "Gray", "-define", "quantum:polarity=min-is-white", *tiff_none,
+        t("tif_gray8_miniswhite.tif"))
+    run(tmp, "-colorspace", "Gray", "-define", "tiff:tile-geometry=16x16", "-compress", "LZW",
+        "-define", "tiff:predictor=2", t("tif_tiled_gray8.tif"))
+    run(tmp, "-monochrome", "-depth", "1", *tiff_none, t("tif_bilevel.tif"))
+    run(tmp, "-monochrome", "-depth", "1", "-define", "quantum:polarity=min-is-white",
+        *tiff_none, t("tif_bilevel_miniswhite.tif"))
+    run(tmp, "-monochrome", "-compress", "Fax", t("tif_g3.tif"))
+    run(tmp, "-monochrome", "-compress", "Group4", t("tif_g4.tif"))
+    run(tmp, "-monochrome", "-compress", "Group4", "-define", "tiff:fill-order=lsb",
+        "-endian", "MSB", t("tif_g4_lsb.tif"))
+    run(tmp, "-monochrome", "-compress", "Group4", "-define", "tiff:tile-geometry=16x16",
+        t("tif_tiled_g4.tif"))
+
+    # CMYK, CIE L*a*b*
+    run(tmp, "-colorspace", "CMYK", *tiff_none, t("tif_cmyk.tif"))
+    run(tmp, "-colorspace", "Lab", *tiff_none, t("tif_lab8.tif"))
+    run(tmp, "-colorspace", "Lab", "-depth", "16", *tiff_none, t("tif_lab16.tif"))
+
+    # Orientations: the tag as written, the pixels as they are
+    for o, name in enumerate(["TopRight", "BottomRight", "BottomLeft", "LeftTop", "RightTop",
+                              "RightBottom", "LeftBottom"], 2):
+        run(tmp, *tiff_none, "-orient", name, t("tif_orient%d.tif" % o))
+    run(tmp, "-define", "tiff:tile-geometry=16x16", "-compress", "LZW", "-orient",
+        "BottomRight", t("tif_tiled_orient3.tif"))
+    run(tmp, "-define", "tiff:tile-geometry=16x16", "-compress", "LZW", "-orient",
+        "LeftBottom", t("tif_tiled_orient8.tif"))
+
+    # What SDL_image's libtiff can't decode: codecs it's built without,
+    # floating point and 32-bit samples
+    run(tmp, "-compress", "JPEG", t("tif_jpeg.tif"))
+    run(tmp, "-compress", "Zip", t("tif_zip.tif"))
+    run(tmp, "-define", "quantum:format=floating-point", "-depth", "32", *tiff_none,
+        t("tif_float.tif"))
+    run(tmp, "-depth", "32", *tiff_none, t("tif_rgb32.tif"))
+
+    # Built here: the codecs ImageMagick doesn't write (ThunderScan, NeXT,
+    # CCITT RLE, SGI LogL and LogLuv), YCbCr with every subsampling, and
+    # broken directories
+    write_tif_thunder(p("tif_thunder.tif"))
+    write_tif_next(p("tif_next.tif"))
+    write_tif_ccitt_rle(p("tif_ccitt_rle.tif"), word_aligned=False)
+    # (libtiff loses the word alignment after the first row of this one)
+    write_tif_ccitt_rle(p("tif_ccitt_rlew.tif"), word_aligned=True, be=True)
+    write_tif_logluv(p("tif_logluv.tif"))
+    write_tif_logluv(p("tif_logluv_tiled.tif"), tiled=True, be=True)
+    write_tif_logluv24(p("tif_logluv24.tif"))
+    write_tif_logl(p("tif_logl.tif"))
+    for hs, vs in [(1, 1), (2, 1), (2, 2), (4, 1), (4, 2), (4, 4), (1, 2)]:
+        write_tif_ycbcr(p("tif_ycbcr%d%d.tif" % (hs, vs)), hs, vs)
+    write_tif_ycbcr(p("tif_ycbcr44_even.tif"), 4, 4, w=24, h=16, be=True)
+    write_tif_ycbcr(p("tif_ycbcr42_even.tif"), 4, 2, w=24, h=14, refbw=True)
+    write_tif_ycbcr(p("tif_ycbcr11_planar.tif"), 1, 1, planar=True, refbw=True)
+    write_tif_ycbcr(p("tif_ycbcr_badsub.tif"), 3, 1)
+    write_tif_planar_cmyk(p("tif_planar_cmyk.tif"))
+    write_tif_graya(p("tif_graya.tif"), planar=False)
+    write_tif_graya(p("tif_planar_graya.tif"), planar=True)
+    write_tif_tiled_gray(p("tif_tiled_gray_none.tif"))
+    write_tif_broken(p)
+
+
+def tiff_bytes(w, h, tags, chunks, be=False, tiled=False):
+    """A classic TIFF file: the chunks (strips or tiles) after the header,
+    then the directory of the tags ({tag: (type, values)}, None to leave
+    one out) and the width, height, offsets and byte counts."""
+    e = ">" if be else "<"
+    out = bytearray(b"MM\0\x2a" if be else b"II\x2a\0") + b"\0\0\0\0"
+    offsets = []
+    for c in chunks:
+        offsets.append(len(out))
+        out += c
+        if len(out) % 2:
+            out += b"\0"
+    tags = dict(tags)
+    tags.setdefault(256, (4, [w]))
+    tags.setdefault(257, (4, [h]))
+    tags.setdefault(324 if tiled else 273, (4, offsets))
+    tags.setdefault(325 if tiled else 279, (4, [len(c) for c in chunks]))
+    tags = {k: v for k, v in tags.items() if v is not None}
+    ifd = len(out)
+    struct.pack_into(e + "I", out, 4, ifd)
+    extra_at = ifd + 2 + 12 * len(tags) + 4
+    entries = bytearray(struct.pack(e + "H", len(tags)))
+    extra = bytearray()
+    fmt = {1: "B", 3: "H", 4: "I", 5: "II", 11: "f"}
+    for tag in sorted(tags):
+        typ, vals = tags[tag]
+        if typ == 2:
+            data = bytes(vals) + b"\0"
+            count = len(data)
+        elif typ == 5:
+            data = b"".join(struct.pack(e + "II", *v) for v in vals)
+            count = len(vals)
+        else:
+            data = b"".join(struct.pack(e + fmt[typ], v) for v in vals)
+            count = len(vals)
+        if len(data) <= 4:
+            field = data + bytes(4 - len(data))
+        else:
+            field = struct.pack(e + "I", extra_at + len(extra))
+            extra += data
+            if len(extra) % 2:
+                extra += b"\0"
+        entries += struct.pack(e + "HHI", tag, typ, count) + field
+    out += entries + b"\0\0\0\0" + extra
+    return bytes(out)
+
+
+def write_tif_thunder(path, w=23, h=13):
+    """ThunderScan 4-bit: runs, 2-bit and 3-bit deltas and raw pixels."""
+    two = {0: 0, 1: 1, -1: 3}
+    three = {0: 0, 1: 1, 2: 2, 3: 3, -3: 5, -2: 6, -1: 7}
+    data = bytearray()
+    for y in range(h):
+        row = [((x // 3) + y) % 16 if x < 12 else (x * 5 + y * 3) % 16 for x in range(w)]
+        if y % 4 == 3:
+            row = [(x + y) % 16 for x in range(w)]
+        last, x = 0, 0
+        while x < w:
+            k = 0
+            while x + k < w and row[x + k] == last and k < 63:
+                k += 1
+            if k >= 2:
+                data.append(0x00 | k)
+                x += k
+                continue
+            d = [row[x + i] - (row[x + i - 1] if i else last) for i in range(min(3, w - x))]
+            if len(d) == 3 and all(v in two for v in d) and 0 <= last + d[0] <= 15:
+                data.append(0x40 | two[d[0]] << 4 | two[d[1]] << 2 | two[d[2]])
+                last = row[x + 2]
+                x += 3
+            elif len(d) >= 2 and d[0] in three and d[1] in three:
+                data.append(0x80 | three[d[0]] << 3 | three[d[1]])
+                last = row[x + 1]
+                x += 2
+            elif len(d) == 1 and d[0] in three:
+                data.append(0x80 | three[d[0]] << 3 | 4)
+                last = row[x]
+                x += 1
+            else:
+                data.append(0xc0 | row[x])
+                last = row[x]
+                x += 1
+    tags = {258: (3, [4]), 259: (3, [32809]), 262: (3, [1]), 277: (3, [1]), 278: (4, [h])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, [bytes(data)]))
+
+
+def write_tif_next(path, w=23, h=13):
+    """NeXT 2-bit: literal rows, literal spans and runs."""
+    scanline = (w * 2 + 7) // 8
+    data = bytearray()
+    for y in range(h):
+        if y % 3 == 0:
+            data.append(0x00)
+            data += bytes((y * 37 + i * 91) & 0xff for i in range(scanline))
+        elif y % 3 == 1:
+            data += bytes([0x40, 0, 1, 0, 3]) + bytes((y * 13 + i * 7) & 0xff for i in range(3))
+        else:
+            x, g = 0, y % 4
+            while x < w:
+                n = min(1 + (x + y) % 7, w - x)
+                data.append(g << 6 | n)
+                g = (g + 1) % 4
+                x += n
+    tags = {258: (3, [2]), 259: (3, [32766]), 262: (3, [1]), 277: (3, [1]), 278: (4, [h])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, [bytes(data)]))
+
+
+# The terminating codes of T.4's modified Huffman code (runs of 0 to 23)
+WHITE_CODES = ["00110101", "000111", "0111", "1000", "1011", "1100", "1110", "1111",
+               "10011", "10100", "00111", "01000", "001000", "000011", "110100", "110101",
+               "101010", "101011", "0100111", "0001100", "0001000", "0010111", "0000011",
+               "0000100"]
+BLACK_CODES = ["0000110111", "010", "11", "10", "011", "0011", "0010", "00011", "000101",
+               "000100", "0000100", "0000101", "0000111", "00000100", "00000111",
+               "000011000", "0000010111", "0000011000", "0000001000", "00001100111",
+               "00001101000", "00001101100", "00000110111", "00000101000"]
+
+
+def write_tif_ccitt_rle(path, word_aligned, be=False, w=23, h=13):
+    """CCITT modified Huffman (RLE), each row byte (or word, RLEW)
+    aligned."""
+    data = bytearray()
+    for y in range(h):
+        runs, x, color = [], 0, 0
+        if y % 4 == 2:
+            runs.append(0)  # a row starting black
+            color = 1
+        while x < w:
+            n = min((y + 2 * len(runs)) % 6 + 1 + color * 2, w - x)
+            runs.append(n)
+            x += n
+            color ^= 1
+        bits = "".join((BLACK_CODES if i % 2 else WHITE_CODES)[n] for i, n in enumerate(runs))
+        align = 16 if word_aligned else 8
+        bits += "0" * (-len(bits) % align)
+        data += bytes(int(bits[i:i + 8], 2) for i in range(0, len(bits), 8))
+    tags = {258: (3, [1]), 259: (3, [32771 if word_aligned else 2]), 262: (3, [0]),
+            277: (3, [1]), 278: (4, [h])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, [bytes(data)], be=be))
+
+
+def sgilog_rle(plane):
+    """A byte plane of a SGILog row: runs (128 + n - 2, byte) of 4 or more
+    equal bytes, literals (n, bytes) between them."""
+    out, i = bytearray(), 0
+    while i < len(plane):
+        k = 1
+        while i + k < len(plane) and plane[i + k] == plane[i] and k < 129:
+            k += 1
+        if k >= 4:
+            out += bytes([128 + k - 2, plane[i]])
+            i += k
+            continue
+        j = i
+        while j < len(plane) and j - i < 127:
+            k = 1
+            while j + k < len(plane) and plane[j + k] == plane[j] and k < 4:
+                k += 1
+            if k >= 4:
+                break
+            j += 1
+        out += bytes([j - i]) + bytes(plane[i:j])
+        i = j
+    return bytes(out)
+
+
+def logluv_pixel(x, y):
+    """A 32-bit LogLuv pixel: luminance from about 0.05 to 1.5, chroma
+    around neutral (u', v' about 0.21, 0.47)."""
+    le = int(256 * (math.log2(0.05 + (x + y) / 24.0) + 64))
+    ue = 70 + (x * 3) % 30
+    ve = 180 + (y * 5) % 30
+    return le << 16 | ue << 8 | ve
+
+
+def write_tif_logluv(path, tiled=False, be=False, w=23, h=13):
+    """SGILog 32-bit LogLuv, its byte planes run length coded."""
+    def rows_of(x0, y0, cw, ch):
+        data = bytearray()
+        for y in range(y0, y0 + ch):
+            px = [logluv_pixel(x, y) if x < w and y < h else 0 for x in range(x0, x0 + cw)]
+            for shift in (24, 16, 8, 0):
+                data += sgilog_rle([(v >> shift) & 0xff for v in px])
+        return bytes(data)
+    tags = {258: (3, [8, 8, 8]), 259: (3, [34676]), 262: (3, [32845]), 277: (3, [3])}
+    if tiled:
+        tags[322] = (4, [16])
+        tags[323] = (4, [16])
+        chunks = [rows_of(x, y, 16, 16) for y in range(0, h, 16) for x in range(0, w, 16)]
+    else:
+        tags[278] = (4, [5])
+        chunks = [rows_of(0, y, w, min(5, h - y)) for y in range(0, h, 5)]
+    open(path, "wb").write(tiff_bytes(w, h, tags, chunks, be=be, tiled=tiled))
+
+
+def write_tif_logluv24(path, w=23, h=13):
+    """SGILog24: 10-bit luminance and a 14-bit chroma index (the last
+    column's out of range)."""
+    data = bytearray()
+    for y in range(h):
+        for x in range(w):
+            le = int(64 * (math.log2(0.02 + (x + 2 * y) / 30.0) + 12))
+            ce = 16300 if x == w - 1 else (8000 + x * 397 + y * 811) % 16289
+            v = le << 14 | ce
+            data += bytes([v >> 16 & 0xff, v >> 8 & 0xff, v & 0xff])
+    tags = {258: (3, [8, 8, 8]), 259: (3, [34677]), 262: (3, [32845]), 277: (3, [3]),
+            278: (4, [h])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, [bytes(data)]))
+
+
+def write_tif_logl(path, w=23, h=13):
+    """SGILog LogL: 16-bit luminance (negative in the last row), two
+    byte planes a row."""
+    data = bytearray()
+    for y in range(h):
+        px = [int(256 * (math.log2(0.01 + (x * 3 + y) / 40.0) + 64)) for x in range(w)]
+        if y == h - 1:
+            px = [v | 0x8000 for v in px]
+        for shift in (8, 0):
+            data += sgilog_rle([(v >> shift) & 0xff for v in px])
+    tags = {258: (3, [8]), 259: (3, [34676]), 262: (3, [32844]), 277: (3, [1]), 278: (4, [h])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, [bytes(data)]))
+
+
+def write_tif_ycbcr(path, hs, vs, w=23, h=13, be=False, planar=False, refbw=False):
+    """YCbCr with hs x vs subsampling: blocks of luma samples followed by
+    Cb and Cr (or three planes, unsubsampled)."""
+    luma = lambda x, y: (x * 11 + y * 17) % 220 + 16
+    cb = lambda bx, by: 128 + ((bx * 23 + by * 5) % 90) - 45
+    cr = lambda bx, by: 128 + ((bx * 7 + by * 29) % 90) - 45
+    tags = {258: (3, [8, 8, 8]), 259: (3, [1]), 262: (3, [6]), 277: (3, [3]),
+            278: (4, [h]), 530: (3, [hs, vs])}
+    if refbw:
+        tags[532] = (5, [(16, 1), (235, 1), (128, 1), (240, 1), (128, 1), (240, 1)])
+        tags[529] = (5, [(2125, 10000), (7154, 10000), (721, 10000)])
+    if planar:
+        tags[284] = (3, [2])
+        chunks = [bytes(f(x, y) for y in range(h) for x in range(w))
+                  for f in (luma, lambda x, y: cb(x, y), lambda x, y: cr(x, y))]
+    else:
+        data = bytearray()
+        bw = max(hs, 1)
+        for by in range((h + vs - 1) // vs):
+            for bx in range((w + bw - 1) // bw):
+                for j in range(vs):
+                    for i in range(hs):
+                        data.append(luma(bx * hs + i, by * vs + j))
+                data += bytes([cb(bx, by), cr(bx, by)])
+        chunks = [bytes(data)]
+    open(path, "wb").write(tiff_bytes(w, h, tags, chunks, be=be))
+
+
+def write_tif_planar_cmyk(path, w=23, h=13):
+    """CMYK in four planes."""
+    planes = [bytes((x * (5 + 3 * c) + y * (11 - 2 * c)) & 0xff for y in range(h) for x in range(w))
+              for c in range(4)]
+    tags = {258: (3, [8] * 4), 259: (3, [1]), 262: (3, [5]), 277: (3, [4]), 278: (4, [h]),
+            284: (3, [2])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, planes))
+
+
+def write_tif_graya(path, planar, w=23, h=13):
+    """Gray with associated alpha, contiguous or in two planes."""
+    gray = [(x * 11 + y * 7) & 0xff for y in range(h) for x in range(w)]
+    alpha = [(x * 255 // (w - 1)) if y % 2 else 255 - y * 9 for y in range(h) for x in range(w)]
+    tags = {258: (3, [8, 8]), 259: (3, [1]), 262: (3, [1]), 277: (3, [2]), 278: (4, [h]),
+            338: (3, [1])}
+    if planar:
+        tags[284] = (3, [2])
+        chunks = [bytes(gray), bytes(alpha)]
+    else:
+        chunks = [bytes(v for pair in zip(gray, alpha) for v in pair)]
+    open(path, "wb").write(tiff_bytes(w, h, tags, chunks))
+
+
+def write_tif_tiled_gray(path, w=40, h=13, tw=32, th=32):
+    """Uncompressed 8-bit gray in 32x32 tiles (padded past the image; libtiff
+    takes uncompressed tiles of a multiple of 1024 bytes only)."""
+    tiles = []
+    for ty in range(0, h, th):
+        for tx in range(0, w, tw):
+            tiles.append(bytes(((x * 9 + y * 5) & 0xff) if x < w and y < h else 0x77
+                               for y in range(ty, ty + th) for x in range(tx, tx + tw)))
+    tags = {258: (3, [8]), 259: (3, [1]), 262: (3, [1]), 277: (3, [1]), 322: (4, [tw]),
+            323: (4, [th])}
+    open(path, "wb").write(tiff_bytes(w, h, tags, tiles, be=True, tiled=True))
+
+
+def write_tif_broken(p):
+    """Directories libtiff (or the RGBA reader) rejects, or reads in
+    spite of what's wrong with them."""
+    w, h = 23, 13
+    gray = bytes((x * 11 + y * 7) & 0xff for y in range(h) for x in range(w))
+    base = {258: (3, [8]), 259: (3, [1]), 262: (3, [1]), 277: (3, [1]), 278: (4, [h])}
+
+    def write(name, tags, chunks=None, **kw):
+        open(p(name), "wb").write(tiff_bytes(w, h, tags, chunks or [gray], **kw))
+
+    # No ImageLength
+    write("tif_no_length.tif", base | {257: None})
+    # A strip past the end of the file, and a short one
+    write("tif_strip_past_end.tif", base | {273: (4, [100000]), 279: (4, [w * h])})
+    write("tif_strip_short.tif", base | {279: (4, [w * 5 + 3])})
+    # No strip byte counts (estimated), and no offsets
+    write("tif_no_bytecounts.tif", base | {279: None})
+    # Unsupported bits per sample, photometric interpretations, extra
+    # samples, and an RGB with two channels
+    write("tif_bps3.tif", base | {258: (3, [3])})
+    write("tif_photometric_icclab.tif", base | {262: (3, [9])})
+    write("tif_logl_nocomp.tif", base | {262: (3, [32844])})
+    write("tif_rgb_2spp.tif", base | {258: (3, [8, 8]), 262: (3, [2]), 277: (3, [2])},
+          [gray + gray])
+    write("tif_no_photometric.tif", {k: v for k, v in base.items() if k != 262})
+    # Zero rows per strip, zero width
+    write("tif_rps0.tif", base | {278: (4, [0])})
+    write("tif_width0.tif", base | {256: (4, [0])})
+    # A palette without a colormap
+    write("tif_pal_nocmap.tif", base | {262: (3, [3])})
+    # A colormap of 8-bit values (the "old style" libtiff warns about)
+    write("tif_pal_old.tif", base | {262: (3, [3]), 320: (3, [i for i in range(256)] * 3)})
+    # A huge tile size
+    write("tif_tile_huge.tif", base | {322: (4, [0x40000000]), 323: (4, [16])},
+          [gray], tiled=True)
+    # MDI's byte order mark (which IMG_isTIF() doesn't take)
+    data = bytearray(tiff_bytes(w, h, base, [gray]))
+    data[0:2] = b"EP"
+    open(p("tif_mdi.tif"), "wb").write(bytes(data))
 
 
 if __name__ == "__main__":
