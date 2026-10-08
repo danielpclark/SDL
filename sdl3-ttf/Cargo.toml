@@ -1,0 +1,23 @@
+[package]
+name = "sdl3-ttf"
+description = "A direct, pure-Rust translation of SDL_ttf 3, the TrueType font rendering library for SDL3, with the FreeType it bundles. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# SDL_ttf's zlib license, and the FreeType License (FTL.TXT) for the
+# translation of FreeType in src/freetype/, as upstream's bundled FreeType
+# is offered under it (or the GPLv2; this crate uses it under the FTL).
+license = "Zlib AND FTL"
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "ttf", "font", "pure-rust"]
+categories = ["text-processing", "rendering", "game-development"]
+
+[lib]
+name = "sdl3_ttf"
+path = "src/lib.rs"
+
+# FreeType is translated in src/freetype/, as upstream builds its bundled
+# copy (external/freetype); no system font library is linked or loaded.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }
