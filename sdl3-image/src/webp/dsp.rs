@@ -1,6 +1,6 @@
 // Rust translation of src/dsp/dsp.h from libwebp
 // (https://chromium.googlesource.com/webm/libwebp, as SDL_image's
-// external/libwebp pins it), the parts the decoder needs.
+// external/libwebp pins it), the parts the decoder and encoder need.
 // Copyright 2011 Google Inc. All Rights Reserved.
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
@@ -15,6 +15,7 @@ pub(crate) mod alpha_processing;
 pub(crate) mod dec;
 pub(crate) mod filters;
 pub(crate) mod lossless;
+pub(crate) mod lossless_enc;
 pub(crate) mod upsampling;
 pub(crate) mod yuv;
 
@@ -33,5 +34,4 @@ pub(crate) enum WebpFilterType {
 }
 
 /// end marker. Translation of `WEBP_FILTER_LAST`.
-#[allow(dead_code)]
 pub(crate) const WEBP_FILTER_LAST: i32 = WebpFilterType::Gradient as i32 + 1;

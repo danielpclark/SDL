@@ -5,13 +5,20 @@
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Misc. common utility functions: the size-checked allocations and the
-//! little-endian readers. (The pixel copies and the color palette counter
-//! are the encoder's.)
+//! Misc. common utility functions: the size-checked allocations, the
+//! little-endian readers and writers, the pixel copies and the color
+//! palette counter.
 
 pub(crate) mod bit_reader_utils;
+pub(crate) mod bit_writer_utils;
 pub(crate) mod color_cache_utils;
+pub(crate) mod filters_utils;
+pub(crate) mod huffman_encode_utils;
 pub(crate) mod huffman_utils;
+
+use crate::webp::decode::MAX_PALETTE_SIZE;
+use crate::webp::encode::WebPPicture;
+use color_cache_utils::vp8l_hash_pix;
 
 //------------------------------------------------------------------------------
 // Memory allocation
@@ -79,8 +86,131 @@ pub(crate) fn get_le32(data: &[u8]) -> u32 {
     get_le16(data) as u32 | ((get_le16(&data[2..]) as u32) << 16)
 }
 
+/// Store 16 bits in little-endian order. Translation of `PutLE16()`.
+pub(crate) fn put_le16(data: &mut [u8], val: i32) {
+    debug_assert!(val < (1 << 16));
+    data[0] = val as u8;
+    data[1] = (val >> 8) as u8;
+}
+
+/// Store 24 bits in little-endian order. Translation of `PutLE24()`.
+pub(crate) fn put_le24(data: &mut [u8], val: i32) {
+    debug_assert!(val < (1 << 24));
+    put_le16(data, val & 0xffff);
+    data[2] = (val >> 16) as u8;
+}
+
+/// Store 32 bits in little-endian order. Translation of `PutLE32()`.
+pub(crate) fn put_le32(data: &mut [u8], val: u32) {
+    put_le16(data, (val & 0xffff) as i32);
+    put_le16(&mut data[2..], (val >> 16) as i32);
+}
+
 /// Returns (int)floor(log2(n)). n must be > 0. Translation of
 /// `BitsLog2Floor()`.
 pub(crate) fn bits_log2_floor(n: u32) -> i32 {
     31 ^ n.leading_zeros() as i32
+}
+
+//------------------------------------------------------------------------------
+// Pixel copying.
+
+/// Copy width x height pixels from 'src' to 'dst' honoring the strides.
+/// Translation of `WebPCopyPlane()` (the planes start at the offsets).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn webp_copy_plane(
+    src: &[u8],
+    mut src_off: usize,
+    src_stride: usize,
+    dst: &mut [u8],
+    mut dst_off: usize,
+    dst_stride: usize,
+    width: usize,
+    height: usize,
+) {
+    for _ in 0..height {
+        dst[dst_off..dst_off + width].copy_from_slice(&src[src_off..src_off + width]);
+        src_off += src_stride;
+        dst_off += dst_stride;
+    }
+}
+
+/// Copy ARGB pixels from 'src' to 'dst' honoring strides. 'src' and 'dst'
+/// are assumed to be already allocated and using ARGB data. Translation
+/// of `WebPCopyPixels()`.
+pub(crate) fn webp_copy_pixels(src: &WebPPicture, dst: &mut WebPPicture) {
+    debug_assert!(src.width == dst.width && src.height == dst.height);
+    debug_assert!(src.use_argb && dst.use_argb);
+    let width = src.width as usize;
+    let (src_stride, dst_stride) = (src.argb_stride as usize, dst.argb_stride as usize);
+    for y in 0..src.height as usize {
+        dst.argb[y * dst_stride..y * dst_stride + width]
+            .copy_from_slice(&src.argb[y * src_stride..y * src_stride + width]);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+const COLOR_HASH_SIZE: usize = MAX_PALETTE_SIZE * 4;
+/// 32 - log2(COLOR_HASH_SIZE).
+const COLOR_HASH_RIGHT_SHIFT: i32 = 22;
+
+/// Returns count of unique colors in 'pic', assuming pic->use_argb is true.
+/// If the unique color count is more than MAX_PALETTE_SIZE, returns
+/// MAX_PALETTE_SIZE+1.
+/// If 'palette' is not NULL and number of unique colors is less than or
+/// equal to MAX_PALETTE_SIZE, also outputs the actual unique colors into
+/// 'palette'.
+/// Note: 'palette' is assumed to be an array already allocated with at
+/// least MAX_PALETTE_SIZE elements. Translation of `WebPGetColorPalette()`.
+pub(crate) fn webp_get_color_palette(pic: &WebPPicture, palette: Option<&mut [u32]>) -> i32 {
+    let mut num_colors = 0;
+    let mut in_use = [false; COLOR_HASH_SIZE];
+    let mut colors = [0u32; COLOR_HASH_SIZE];
+    let argb = &pic.argb;
+    let width = pic.width as usize;
+    let height = pic.height as usize;
+    let mut last_pix = !argb[0]; // so we're sure that last_pix != argb[0]
+    debug_assert!(pic.use_argb);
+
+    let mut row = 0usize;
+    for _ in 0..height {
+        for &pix in &argb[row..row + width] {
+            if pix == last_pix {
+                continue;
+            }
+            last_pix = pix;
+            let mut key = vp8l_hash_pix(last_pix, COLOR_HASH_RIGHT_SHIFT);
+            loop {
+                if !in_use[key] {
+                    colors[key] = last_pix;
+                    in_use[key] = true;
+                    num_colors += 1;
+                    if num_colors > MAX_PALETTE_SIZE as i32 {
+                        return MAX_PALETTE_SIZE as i32 + 1; // Exact count not needed.
+                    }
+                    break;
+                } else if colors[key] == last_pix {
+                    break; // The color is already there.
+                } else {
+                    // Some other color sits here, so do linear conflict resolution.
+                    key += 1;
+                    key &= COLOR_HASH_SIZE - 1; // Key mask.
+                }
+            }
+        }
+        row += pic.argb_stride as usize;
+    }
+
+    if let Some(palette) = palette {
+        // Fill the colors into palette.
+        num_colors = 0;
+        for i in 0..COLOR_HASH_SIZE {
+            if in_use[i] {
+                palette[num_colors as usize] = colors[i];
+                num_colors += 1;
+            }
+        }
+    }
+    num_colors
 }

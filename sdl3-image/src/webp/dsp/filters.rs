@@ -1,12 +1,12 @@
 // Rust translation of src/dsp/filters.c from libwebp
 // (https://chromium.googlesource.com/webm/libwebp, as SDL_image's
-// external/libwebp pins it), the unfilters.
+// external/libwebp pins it).
 // Copyright 2011 Google Inc. All Rights Reserved.
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Spatial prediction using various filters: the inverse filters the alpha
-//! plane decoder applies (the forward filters are the encoder's).
+//! Spatial prediction using various filters: the forward filters of the
+//! alpha plane encoder and the inverse filters its decoder applies.
 //!
 //! Upstream's unfilters read a row `in` and write it to `out`, which may be
 //! the same memory; here the row is unfiltered in place in `plane` at
@@ -27,6 +27,116 @@ fn gradient_predictor(a: u8, b: u8, c: u8) -> u8 {
         255
     } // clip to 8bit
 }
+
+/// Translation of `PredictLine_C()` (forward: `inverse` is 0).
+fn predict_line(src: &[u8], pred: &[u8], dst: &mut [u8], length: usize) {
+    for i in 0..length {
+        dst[i] = src[i].wrapping_sub(pred[i]);
+    }
+}
+
+//------------------------------------------------------------------------------
+// Horizontal filter.
+
+/// Translation of `DoHorizontalFilter_C()` (forward, on the whole image:
+/// `row` 0, `num_rows` the height).
+fn do_horizontal_filter(input: &[u8], width: usize, height: usize, stride: usize, out: &mut [u8]) {
+    // Leftmost pixel is the same as input for topmost scanline.
+    out[0] = input[0];
+    predict_line(&input[1..], input, &mut out[1..], width - 1);
+    let mut row = 1;
+    let mut off = stride;
+
+    // Filter line-by-line.
+    while row < height {
+        // Leftmost pixel is predicted from above.
+        predict_line(&input[off..], &input[off - stride..], &mut out[off..], 1);
+        predict_line(
+            &input[off + 1..],
+            &input[off..],
+            &mut out[off + 1..],
+            width - 1,
+        );
+        row += 1;
+        off += stride;
+    }
+}
+
+//------------------------------------------------------------------------------
+// Vertical filter.
+
+/// Translation of `DoVerticalFilter_C()` (forward, on the whole image).
+fn do_vertical_filter(input: &[u8], width: usize, height: usize, stride: usize, out: &mut [u8]) {
+    // Very first top-left pixel is copied.
+    out[0] = input[0];
+    // Rest of top scan-line is left-predicted.
+    predict_line(&input[1..], input, &mut out[1..], width - 1);
+    let mut row = 1;
+    let mut off = stride;
+
+    // Filter line-by-line.
+    while row < height {
+        predict_line(
+            &input[off..],
+            &input[off - stride..],
+            &mut out[off..],
+            width,
+        );
+        row += 1;
+        off += stride;
+    }
+}
+
+//------------------------------------------------------------------------------
+// Gradient filter.
+
+/// Translation of `DoGradientFilter_C()` (forward, on the whole image).
+fn do_gradient_filter(input: &[u8], width: usize, height: usize, stride: usize, out: &mut [u8]) {
+    // left prediction for top scan-line
+    out[0] = input[0];
+    predict_line(&input[1..], input, &mut out[1..], width - 1);
+    let mut row = 1;
+    let mut off = stride;
+
+    // Filter line-by-line.
+    while row < height {
+        // leftmost pixel: predict from above.
+        predict_line(&input[off..], &input[off - stride..], &mut out[off..], 1);
+        for w in 1..width {
+            let p = off + w;
+            let pred = gradient_predictor(input[p - 1], input[p - stride], input[p - stride - 1]);
+            out[p] = input[p].wrapping_sub(pred);
+        }
+        row += 1;
+        off += stride;
+    }
+}
+
+//------------------------------------------------------------------------------
+
+/// Translation of `WebPFilters[filter](data, width, height, stride,
+/// filtered_data)`: `HorizontalFilter_C()`, `VerticalFilter_C()` and
+/// `GradientFilter_C()` (`WebPFilters[WEBP_FILTER_NONE]` is NULL: its
+/// callers copy the data instead).
+pub(crate) fn webp_filter(
+    filter: WebpFilterType,
+    data: &[u8],
+    width: usize,
+    height: usize,
+    stride: usize,
+    filtered_data: &mut [u8],
+) {
+    match filter {
+        WebpFilterType::None => unreachable!("WebPFilters[WEBP_FILTER_NONE] is NULL"),
+        WebpFilterType::Horizontal => {
+            do_horizontal_filter(data, width, height, stride, filtered_data)
+        }
+        WebpFilterType::Vertical => do_vertical_filter(data, width, height, stride, filtered_data),
+        WebpFilterType::Gradient => do_gradient_filter(data, width, height, stride, filtered_data),
+    }
+}
+
+//------------------------------------------------------------------------------
 
 /// Translation of `HorizontalUnfilter_C()`.
 fn horizontal_unfilter(plane: &mut [u8], prev: Option<usize>, out: usize, width: usize) {

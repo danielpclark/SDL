@@ -134,7 +134,7 @@ fn select(a: u32, b: u32, c: u32) -> u32 {
 /// The predictors `VP8LPredictor0_C()` to `VP8LPredictor13_C()` (14 and 15
 /// are padding security sentinels, as 0): the prediction from the pixel
 /// to the left and the top-left, top and top-right ones.
-fn vp8l_predictor(mode: u32, left: u32, tl: u32, t: u32, tr: u32) -> u32 {
+pub(crate) fn vp8l_predictor(mode: u32, left: u32, tl: u32, t: u32, tr: u32) -> u32 {
     match mode {
         1 => left,
         2 => t,

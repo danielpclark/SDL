@@ -37,6 +37,15 @@ mod dec;
 mod decode;
 mod demux;
 mod dsp;
+// The libwebp encoder translation keeps upstream's loops and conditions
+// as written, as the decoder's does.
+#[allow(
+    clippy::collapsible_else_if,
+    clippy::collapsible_if,
+    clippy::needless_range_loop
+)]
+mod enc;
+mod encode;
 mod utils;
 
 use sdl3::error::{Error, Result};
@@ -59,6 +68,13 @@ use demux::{
     webp_demux_release_chunk_iterator, webp_demux_release_iterator, WebPChunkIterator, WebPDemuxer,
     WebPFormatFeature, WebPIterator,
 };
+use enc::config_enc::{webp_config_init_internal, webp_validate_config};
+use enc::picture_csp_enc::webp_picture_import_rgba;
+use enc::picture_enc::{
+    webp_picture_init, webp_picture_set_memory_writer, webp_picture_take_written,
+};
+use enc::webp_enc::webp_encode;
+use encode::{WebPConfig, WebPEncodingError, WebPPicture, WebPPreset};
 
 /// Whether `src` holds a WebP image, and if so (with `datasize`) the size
 /// of the data from the stream position to its end. Translation of
@@ -449,10 +465,125 @@ pub(crate) fn create_webp_animation_decoder(
     }))
 }
 
-// (SAVE_WEBP: IMG_SaveWEBP_IO(), IMG_SaveWEBP() and the animation encoder
-// need libwebp's encoder and muxer, which are not translated; see
-// crate::img::save_typed_io and crate::anim_encoder for the !SAVE_WEBP
-// errors.)
+/// Translation of `GetWebPEncodingErrorStringInternal()`.
+fn get_webp_encoding_error_string_internal(error_code: WebPEncodingError) -> &'static str {
+    match error_code {
+        WebPEncodingError::Ok => "OK",
+        WebPEncodingError::OutOfMemory => "Out of memory",
+        WebPEncodingError::BitstreamOutOfMemory => "Bitstream out of memory",
+        WebPEncodingError::NullParameter => "Null parameter",
+        WebPEncodingError::InvalidConfiguration => "Invalid configuration",
+        WebPEncodingError::BadDimension => "Bad dimension",
+        WebPEncodingError::Partition0Overflow => "Partition 0 overflow",
+        WebPEncodingError::PartitionOverflow => "Partition overflow",
+        WebPEncodingError::BadWrite => "Bad write",
+        WebPEncodingError::FileTooBig => "File too big",
+        WebPEncodingError::UserAbort => "User abort",
+    }
+}
+
+/// Save a surface as a WebP image: lossless at quality 100, else lossy at
+/// that quality (clamped to 0 to 100; above 100 it fails as libwebp's
+/// configuration rejects it), with the surface's alpha. Translation of
+/// `IMG_SaveWEBP_IO()` (on failure, the stream is back at its start).
+pub fn save_webp_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, quality: f32) -> Result<()> {
+    crate::img::verify_can_save_surface(surface)?;
+
+    let start = dst.tell().unwrap_or(-1);
+
+    let result = save_webp_body(surface, dst, quality);
+
+    if result.is_err() && start != -1 {
+        let _ = dst.seek(start, IoWhence::Set);
+    }
+    result
+}
+
+/// The body of `IMG_SaveWEBP_IO()` (its `done:` path is the caller's).
+fn save_webp_body(
+    surface: &mut Surface<'_>,
+    dst: &mut IoStream<'_>,
+    mut quality: f32,
+) -> Result<()> {
+    // (IMG_InitWEBP(): libwebp is linked in)
+
+    let mut config = WebPConfig::default();
+    if !webp_config_init_internal(&mut config, WebPPreset::Default, quality) {
+        return Err(Error::new("Failed to initialize WebPConfig"));
+    }
+
+    quality = quality.clamp(0.0, 100.0);
+
+    config.lossless = (quality == 100.0) as i32;
+    config.quality = quality;
+
+    // TODO: Take a look if the method 4 fits here for us.
+    config.method = 4;
+
+    if !webp_validate_config(&config) {
+        return Err(Error::new("Invalid WebP configuration"));
+    }
+
+    let mut pic = WebPPicture::default();
+    if !webp_picture_init(&mut pic) {
+        return Err(Error::new("Failed to initialize WebPPicture"));
+    }
+
+    pic.width = surface.width();
+    pic.height = surface.height();
+
+    // FIXME (upstream): pic.use_argb is left 0, so the RGBA pixels are
+    // imported as YUV 4:2:0 even at quality 100, and the lossless encoder
+    // codes them as converted back to ARGB: not losslessly.
+    let converted;
+    let converted_surface: &Surface<'_> = if surface.format() != PixelFormat::RGBA32 {
+        converted = surface.convert(PixelFormat::RGBA32)?;
+        &converted
+    } else {
+        surface
+    };
+
+    // (SDL_LockSurface(): the pixels are readable here)
+    let pitch = converted_surface.pitch() as usize;
+    let pixels = converted_surface.pixels().unwrap_or(&[]);
+    if !webp_picture_import_rgba(&mut pic, pixels, pitch) {
+        return Err(Error::new("Failed to import RGBA pixels into WebPPicture"));
+    }
+
+    webp_picture_set_memory_writer(&mut pic);
+
+    if !webp_encode(&config, &mut pic) {
+        return Err(Error::new(format!(
+            "Failed to encode WebP: {}",
+            get_webp_encoding_error_string_internal(pic.error_code.get())
+        )));
+    }
+
+    let writer = webp_picture_take_written(&mut pic);
+    if !writer.is_empty() {
+        if dst.write(&writer) != writer.len() {
+            return Err(crate::util::write_error(dst));
+        }
+    } else {
+        return Err(Error::new("No WebP data generated."));
+    }
+
+    Ok(())
+}
+
+/// Save a surface to a WebP file (see [`save_webp_io`]). Translation of
+/// `IMG_SaveWEBP()`.
+pub fn save_webp(
+    surface: &mut Surface<'_>,
+    file: impl AsRef<std::path::Path>,
+    quality: f32,
+) -> Result<()> {
+    crate::img::verify_can_save_surface(surface)?;
+    let mut dst = IoStream::from_file(file, "wb")?;
+    let result = save_webp_io(surface, &mut dst, quality);
+    let closed = dst.close();
+    result.and(closed)
+}
 
 /// The bitstream's dimensions as WebPGetFeatures() reads them (the canvas,
 /// for an animation), if its header parses.
