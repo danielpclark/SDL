@@ -21,15 +21,15 @@
 //! with stb_rect_pack) and GPU ([`GpuTextEngine`]) text engines. Of
 //! FreeType, the modules for those fonts: the base layer (with the glyph
 //! and stroker APIs), `sfnt`, `truetype`, `psnames`, `autofit`, `smooth`,
-//! `raster` and `gzip` (with its zlib).
+//! `raster`, `sdf` (signed distance fields, from outlines and bitmaps) and
+//! `gzip` (with its zlib).
 //!
 //! Not translated yet: the HarfBuzz paths (part 2: HarfBuzz; without them
 //! text is laid out left to right, and setting a script or language is
 //! unsupported, as in such a C build), and FreeType's other modules: the
 //! drivers of the other font formats (`cff`, `type1`, `cid`, `type42`,
-//! `pfr`, `winfnt`, `pcf`, `bdf`, with `psaux`, `pshinter` and `lzw`), the
-//! signed distance field renderers (`sdf`; SDF rendering fails) and the
-//! OT-SVG renderer (`svg`, which needs PlutoSVG's hooks anyway).
+//! `pfr`, `winfnt`, `pcf`, `bdf`, with `psaux`, `pshinter` and `lzw`) and
+//! the OT-SVG renderer (`svg`, which needs PlutoSVG's hooks anyway).
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]

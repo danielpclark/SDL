@@ -13,7 +13,8 @@
 //! kerning, wrapped and aligned, single glyphs and glyph images, fallback
 //! fonts, text objects (layouts, clusters, substrings and edits) drawn
 //! with the surface and renderer (software, with several atlas sizes) text
-//! engines, and the fonts truncated and with flipped bytes. Surfaces are
+//! engines, signed distance field rendering, and the fonts truncated and
+//! with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
 //! rows and palette, their color key and blend mode.
 
@@ -892,6 +893,110 @@ fn renderer_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
     drop(f);
 }
 
+fn sdf_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
+    use crate::{STYLE_BOLD, STYLE_ITALIC, STYLE_NORMAL, STYLE_STRIKETHROUGH, STYLE_UNDERLINE};
+
+    out.push(format!("== sdf {name}"));
+    let f = open_mem(data, 16.5).unwrap();
+    let ok = f.set_sdf(true).is_ok() as i32;
+    out.push(format!("sdf set: {ok} get: {}", f.sdf() as i32));
+    out.push(format!(
+        "sdf string_size: {}",
+        res(f.string_size(TEXT), |(w, h)| format!("{w} {h}"))
+    ));
+    out.push(format!(
+        "sdf blended: {}",
+        describe(f.render_text_blended(TEXT, FG))
+    ));
+    out.push(format!(
+        "sdf blended wrapped: {}",
+        describe(f.render_text_blended_wrapped(WRAP, FGA, 150))
+    ));
+    for ch in ['A' as u32, 'g' as u32, 0xE9, 0x20AC] {
+        let (ty, s) = match f.glyph_image(ch) {
+            Ok((s, ty)) => (ty, Ok(s)),
+            Err(e) => (ImageType::Invalid, Err(e)),
+        };
+        out.push(format!(
+            "sdf glyph_image U+{ch:04X}: type={} {}",
+            ty as i32,
+            describe(s)
+        ));
+        out.push(format!(
+            "sdf glyph blended U+{ch:04X}: {}",
+            describe(f.render_glyph_blended(ch, FG))
+        ));
+    }
+    for size in [9.0f32, 33.0] {
+        let _ = f.set_size(size);
+        out.push(format!(
+            "sdf blended {size}: {}",
+            describe(f.render_text_blended(TEXT, FG))
+        ));
+    }
+    let _ = f.set_size(16.5);
+    for style in [
+        STYLE_BOLD,
+        STYLE_ITALIC,
+        STYLE_UNDERLINE | STYLE_STRIKETHROUGH,
+    ] {
+        f.set_style(style);
+        out.push(format!(
+            "sdf style {style}: {}",
+            describe(f.render_text_blended(TEXT, FG))
+        ));
+    }
+    f.set_style(STYLE_NORMAL);
+    let _ = f.set_outline(1);
+    out.push(format!(
+        "sdf outline: {}",
+        describe(f.render_text_blended(TEXT, FG))
+    ));
+    let _ = f.set_outline(0);
+    f.set_hinting(Hinting::None);
+    out.push(format!(
+        "sdf nohinting: {}",
+        describe(f.render_text_blended(TEXT, FG))
+    ));
+    f.set_hinting(Hinting::Light);
+    out.push(format!(
+        "sdf light: {}",
+        describe(f.render_text_blended(TEXT, FG))
+    ));
+    f.set_hinting(Hinting::Normal);
+    {
+        let engine: Rc<dyn TextEngine> = SurfaceTextEngine::new().unwrap();
+        let t = Text::new(Some(engine), Some(&f), WRAP).unwrap();
+        t.set_wrap_width(150).unwrap();
+        dump_text(out, "sdftext", &t, &f);
+        draw_text(out, "sdftext", &t, 2, 3);
+    }
+    {
+        let surface = Surface::new(220, 160, sdl3::video::PixelFormat::ARGB8888).unwrap();
+        let r = Rc::new(RefCell::new(Renderer::software(surface).unwrap()));
+        let engine: Rc<dyn TextEngine> = RendererTextEngine::new(r.clone()).unwrap();
+        let t = Text::new(Some(engine), Some(&f), WRAP).unwrap();
+        t.set_wrap_width(150).unwrap();
+        rdraw(out, "sdfrenderer", &r, &t, 1.0, 2.0);
+    }
+    out.push(format!(
+        "sdf solid: {}",
+        describe(f.render_text_solid(TEXT, FG))
+    ));
+    out.push(format!("sdf after solid: {}", f.sdf() as i32));
+    out.push(format!(
+        "sdf blended after: {}",
+        describe(f.render_text_blended(TEXT, FG))
+    ));
+    let ok = f.set_sdf(true).is_ok() as i32;
+    out.push(format!("sdf set again: {ok} get: {}", f.sdf() as i32));
+    out.push(format!(
+        "sdf shaded: {}",
+        describe(f.render_text_shaded(TEXT, FG, BG))
+    ));
+    out.push(format!("sdf after shaded: {}", f.sdf() as i32));
+}
+
 fn corrupt_case(out: &mut Vec<String>, label: &str, data: &[u8]) {
     let f = match open_mem(data, 16.5) {
         Ok(f) => f,
@@ -974,6 +1079,7 @@ fn matches_upstream_reference() {
         font_cases(&mut out, name, data);
         text_cases(&mut out, name, data);
         renderer_cases(&mut out, name, data);
+        sdf_cases(&mut out, name, data);
         corrupt_cases(&mut out, name, data);
     }
     crate::quit();
