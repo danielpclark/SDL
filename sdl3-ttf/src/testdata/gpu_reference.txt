@@ -1,26 +1,26 @@
 == gpu DejaVuSans.ttf
 big engine: 1 winding: 0
 big plain gpu: 1
-big plain seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=4accef804825da54 idx=be9caa555e806b73
+big plain seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=92e6e6b202d65082 idx=be9caa555e806b73
 big wrap150 gpu: 1
-big wrap150 seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=5216de9a2d1c6faf idx=be9caa555e806b73
+big wrap150 seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=0ed2644590fe45a5 idx=be9caa555e806b73
 big pos gpu: 1
-big pos seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=c1bce0437545c8e9 idx=be9caa555e806b73
+big pos seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=81fd52731d9f283d idx=be9caa555e806b73
 big winding: 1
 big ccw gpu: 1
-big ccw seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=c1bce0437545c8e9 idx=25b977ab31c0afef
+big ccw seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=81fd52731d9f283d idx=25b977ab31c0afef
 big winding invalid: Parameter 'winding' is invalid 1
 big empty gpu: none
 big again gpu: 1
-big again seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=c1bce0437545c8e9 idx=be9caa555e806b73
+big again seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=81fd52731d9f283d idx=be9caa555e806b73
 big nofont gpu: none
 big styled gpu: 2
-big styled seq: tex=0000000000000000 type=0 nv=56 ni=84 uv=0 quads=716966346d4b77cf idx=87948a636a68b9e5
-big styled seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=5216de9a2d1c6faf idx=be9caa555e806b73
+big styled seq: tex=0000000000000000 type=0 nv=56 ni=84 uv=0 quads=ecfea9aa44fc59b6 idx=87948a636a68b9e5
+big styled seq: tex=d8e6f800065aa88b type=1 nv=292 ni=438 uv=1 quads=0ed2644590fe45a5 idx=be9caa555e806b73
 big outline gpu: 1
-big outline seq: tex=4c95e44f35ec5900 type=1 nv=292 ni=438 uv=1 quads=a8d6623914efdce2 idx=be9caa555e806b73
+big outline seq: tex=4c95e44f35ec5900 type=1 nv=292 ni=438 uv=1 quads=8e28ef146dee7427 idx=be9caa555e806b73
 big fallback gpu: 1
-big fallback seq: tex=dbb9f2513dc02bc5 type=1 nv=320 ni=480 uv=1 quads=4866819c0bec4e80 idx=a1b7aab428457965
+big fallback seq: tex=dbb9f2513dc02bc5 type=1 nv=320 ni=480 uv=1 quads=c392248eea31511d idx=a1b7aab428457965
 big fbfont gpu: 1
 big fbfont seq: tex=d00c93cf8255c1bb type=1 nv=24 ni=36 uv=1 quads=f3612afc3a1ad134 idx=743392961a476025
 atlas32 engine: 1 winding: 0
