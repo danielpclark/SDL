@@ -1,0 +1,2 @@
+Just some plain text,
+not RTF at all.

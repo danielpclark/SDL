@@ -41,7 +41,8 @@
 //! let engine = TtfFontEngine::new(FontSource::File("DejaVuSans.ttf".into()));
 //! let mut ctx = Context::new(renderer.clone(), engine)?;
 //! ctx.load("document.rtf")?;
-//! println!("{}: {} pixels high", ctx.title(), ctx.height(640));
+//! let height = ctx.height(640);
+//! println!("{}: {height} pixels high", ctx.title());
 //! ctx.render(None, 0);
 //! # Ok(())
 //! # }
@@ -61,3 +62,6 @@ mod showrtf;
 pub use rtf::*;
 pub use rtftype::Context;
 pub use showrtf::*;
+
+#[cfg(test)]
+mod tests;

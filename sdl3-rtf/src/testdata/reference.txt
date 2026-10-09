@@ -1,0 +1,2990 @@
+version: 3000000
+bad engine: Unknown font engine version
+== sample.rtf
+create name="Helvetica" family=2 charset=0 size=16 style=1: ok
+offsets "A Centered Title": 16 width=145
+create name="Times New Roman" family=1 charset=0 size=12 style=0: ok
+offsets "This is a paragraph in a serif font, long enough that it has to wrap at the narrower widths. It has ": 100 width=662
+create name="Times New Roman" family=1 charset=0 size=12 style=1: ok
+offsets "bold": 4 width=29
+offsets ", ": 2 width=8
+create name="Times New Roman" family=1 charset=0 size=12 style=2: ok
+offsets "italic": 6 width=36
+offsets ", ": 2 width=8
+create name="Times New Roman" family=1 charset=0 size=12 style=4: ok
+offsets "underlined": 10 width=75
+offsets " and ": 5 width=33
+create name="Times New Roman" family=1 charset=0 size=12 style=7: ok
+offsets "all three": 9 width=59
+offsets " words, and ": 12 width=80
+offsets "red": 3 width=22
+offsets ", ": 2 width=8
+offsets "green": 5 width=39
+offsets " and ": 5 width=33
+offsets "blue": 4 width=30
+offsets " text.": 6 width=35
+create name="Helvetica" family=2 charset=0 size=10 style=0: ok
+offsets "A right-aligned paragraph, which also wraps when the page is narrow enough to need it.": 86 width=431
+offsets "An indented paragraph with a hanging first line: the left indent is half an inch and the right one a quarter of an inch, justified (laid out as left-aligned).": 158 width=737
+create name="Courier New" family=3 charset=0 size=9 style=0: ok
+offsets "Monospaced": 10 width=50
+offsets "text": 4 width=20
+offsets "with": 4 width=20
+offsets "tabs": 4 width=20
+offsets "and a line break.": 17 width=85
+create name="Helvetica" family=2 charset=0 size=12 style=0: ok
+offsets "Escapes: ": 9 width=57
+offsets "{braces": 7 width=48
+offsets "}, a backslash ": 15 width=90
+offsets "\, quotes ": 10 width=57
+offsets ""quoted": 7 width=49
+offsets "", hex ": 7 width=40
+offsets "ét": 2 width=12
+offsets "é caf": 5 width=29
+offsets "é ": 2 width=11
+offsets "© ": 2 width=16
+offsets "µ, Unicode ": 11 width=69
+offsets "? euro and ": 11 width=68
+offsets "é e-acute.": 10 width=60
+offsets "Binary data ": 12 width=73
+offsets "abcde follows.": 14 width=85
+offsets "Text after an unknown destination.": 34 width=212
+offsets " done.": 6 width=38
+create name="Helvetica" family=2 charset=0 size=20 style=0: ok
+offsets "Big ": 4 width=39
+create name="Helvetica" family=2 charset=0 size=6 style=0: ok
+offsets "small": 5 width=17
+offsets " text.": 6 width=52
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 0: 0
+render "A Centered Title" 000000ff: ok 144x19
+render "This is a paragraph in a serif font, long " 000000ff: ok 270x15
+render "enough that it has to wrap at the narrower " 000000ff: ok 295x15
+render "widths. It has " 000000ff: ok 98x15
+render "bold" 000000ff: ok 30x15
+render ", " 000000ff: ok 8x15
+render "italic" 000000ff: ok 39x15
+render ", " 000000ff: ok 8x15
+render "underlined" 000000ff: ok 76x15
+render " and " 000000ff: ok 33x15
+render "all " 000000ff: ok 22x15
+render "three" 000000ff: ok 40x15
+render " words, and " 000000ff: ok 80x15
+render "red" c81e28ff: ok 23x15
+render ", " 000000ff: ok 8x15
+render "green" 14783cff: ok 39x15
+render " and " 000000ff: ok 33x15
+render "blue" 1e3cdcff: ok 30x15
+render " text." 000000ff: ok 35x15
+render "A right-aligned paragraph, which also wraps when the page is " 000000ff: ok 305x12
+render "narrow enough to need it." 000000ff: ok 125x12
+render "An indented paragraph with a hanging first line: the left " 000000ff: ok 275x12
+render "indent is half an inch and the right one a quarter of " 000000ff: ok 254x12
+render "an inch, justified (laid out as left-aligned)." 000000ff: ok 206x12
+render "Monospaced" 000000ff: ok 50x11
+render "text" 000000ff: ok 20x11
+render "with" 000000ff: ok 20x11
+render "tabs" 000000ff: ok 20x11
+render "and a line break." 000000ff: ok 85x11
+render "Escapes: " 000000ff: ok 57x15
+render "{braces" 000000ff: ok 48x14
+render "}, a backslash " 000000ff: ok 90x14
+render "\, quotes " 000000ff: ok 57x15
+render ""quoted" 000000ff: ok 49x15
+render "", " 000000ff: ok 14x14
+render "hex " 000000ff: ok 25x14
+render "ét" 000000ff: ok 12x14
+render "é caf" 000000ff: ok 30x14
+render "é " 000000ff: ok 11x14
+render "© " 000000ff: ok 16x14
+render "µ, Unicode " 000000ff: ok 69x15
+render "? euro and " 000000ff: ok 67x14
+render "é e-acute." 000000ff: ok 60x14
+render "Binary data " 000000ff: ok 73x15
+render "abcde follows." 000000ff: ok 85x14
+render "Text after an unknown destination." 000000ff: ok 210x14
+render " done." 000000ff: ok 38x14
+render "Big " 000000ff: ok 39x24
+render "small" 000000ff: ok 17x7
+render " text." 000000ff: ok 51x24
+height 320: 293
+height 320 again: 293
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=da409bf1cf058fc4
+clip: 1 0,0 0x0
+render "A Centered Title" 000000ff: ok 144x19
+render "This is a paragraph " 000000ff: ok 135x15
+render "in a serif font, long " 000000ff: ok 135x15
+render "enough that it has to " 000000ff: ok 149x15
+render "wrap at the narrower " 000000ff: ok 147x15
+render "widths. It has " 000000ff: ok 98x15
+render "bold" 000000ff: ok 30x15
+render ", " 000000ff: ok 8x15
+render "it" 000000ff: ok 14x15
+render "," 000000ff: ok 4x15
+render "A right-aligned paragraph, " 000000ff: ok 132x12
+render "which also wraps when the " 000000ff: ok 135x12
+render "page is narrow enough to " 000000ff: ok 126x12
+render "need it." 000000ff: ok 37x12
+render "An indented " 000000ff: ok 62x12
+render "paragraph with a " 000000ff: ok 86x12
+render "hanging first line: " 000000ff: ok 89x12
+render "the left indent is " 000000ff: ok 83x12
+render "half an inch and " 000000ff: ok 82x12
+render "the right one a " 000000ff: ok 75x12
+render "quarter of an inch, " 000000ff: ok 94x12
+render "justified (laid out " 000000ff: ok 88x12
+render "as left-aligned)." 000000ff: ok 77x12
+render "Monospaced" 000000ff: ok 50x11
+render "text" 000000ff: ok 20x11
+render "with" 000000ff: ok 20x11
+render "t" 000000ff: ok 5x11
+render "and a line break." 000000ff: ok 85x11
+render "Escapes: " 000000ff: ok 57x15
+render "{braces" 000000ff: ok 48x14
+render "}, a " 000000ff: ok 27x14
+render "backslash " 000000ff: ok 63x14
+render "\, quotes " 000000ff: ok 57x15
+render ""quo" 000000ff: ok 29x15
+render "Binary data " 000000ff: ok 73x15
+render "abcde " 000000ff: ok 41x14
+render "follows." 000000ff: ok 44x14
+render "Text after an unknown " 000000ff: ok 139x14
+render "destination." 000000ff: ok 71x14
+render " done." 000000ff: ok 38x14
+render "Big " 000000ff: ok 39x24
+render "small" 000000ff: ok 17x7
+render " text." 000000ff: ok 51x24
+height 150: 432
+height 150 again: 432
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=d2fd64580b8b4994
+clip: 1 0,0 0x0
+render "A " 000000ff: ok 18x19
+render "Center" 000000ff: ok 60x19
+render "This is " 000000ff: ok 50x15
+render "a " 000000ff: ok 12x15
+render "paragrap" 000000ff: ok 60x15
+render "A " 000000ff: ok 10x12
+render "right-aligne" 000000ff: ok 57x12
+render "An " 000000ff: ok 16x12
+render "i" 000000ff: ok 3x12
+render "Monospaced" 000000ff: ok 50x11
+render "and a line " 000000ff: ok 55x11
+render "break." 000000ff: ok 30x11
+render "Escapes: " 000000ff: ok 57x15
+render "Binary " 000000ff: ok 42x15
+render "data " 000000ff: ok 31x14
+render "abc" 000000ff: ok 22x14
+render "Text " 000000ff: ok 28x14
+render "after an " 000000ff: ok 50x14
+render "unknown " 000000ff: ok 60x14
+render "destinatio" 000000ff: ok 59x14
+render " done." 000000ff: ok 38x14
+render "Big " 000000ff: ok 39x24
+render "small" 000000ff: ok 17x7
+height 60: 338
+height 60 again: 338
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=f8e2754ce163b37e
+clip: 1 0,0 0x0
+render "A Centered Title" 000000ff: ok 144x19
+render "This is a paragraph in a serif font, long enough that " 000000ff: ok 358x15
+render "it has to wrap at the narrower widths. It has " 000000ff: ok 304x15
+render "bold" 000000ff: ok 30x15
+render ", " 000000ff: ok 8x15
+render "ita" 000000ff: ok 22x15
+render "A right-aligned paragraph, which also wraps when the page is narrow " 000000ff: ok 341x12
+render "enough to need it." 000000ff: ok 89x12
+render "An indented paragraph with a hanging first line: the left indent is " 000000ff: ok 320x12
+render "half an inch and the right one a quarter of an inch, justified " 000000ff: ok 294x12
+render "(laid out as left-aligned)." 000000ff: ok 121x12
+render "Monospaced" 000000ff: ok 50x11
+render "text" 000000ff: ok 20x11
+render "with" 000000ff: ok 20x11
+render "tabs" 000000ff: ok 20x11
+render "and a line break." 000000ff: ok 85x11
+render "Escapes: " 000000ff: ok 57x15
+render "{braces" 000000ff: ok 48x14
+render "}, a backslash " 000000ff: ok 90x14
+render "\, quotes " 000000ff: ok 57x15
+render ""quoted" 000000ff: ok 49x15
+render "", hex " 000000ff: ok 39x14
+render "ét" 000000ff: ok 12x14
+render "é" 000000ff: ok 7x14
+render "Binary data " 000000ff: ok 73x15
+render "abcde follows." 000000ff: ok 85x14
+render "Text after an unknown destination." 000000ff: ok 210x14
+render " done." 000000ff: ok 38x14
+render "Big " 000000ff: ok 39x24
+render "small" 000000ff: ok 17x7
+render " text." 000000ff: ok 51x24
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=092f2ea9b98bd08a
+clip: 1 0,0 0x0
+render "A Centered Title" 000000ff: ok 144x19
+render "This is a paragraph in a serif " 000000ff: ok 200x15
+render "font, long enough that it " 000000ff: ok 173x15
+render "has to wrap at the narrower " 000000ff: ok 192x15
+render "widths. It has " 000000ff: ok 98x15
+render "bold" 000000ff: ok 30x15
+render ", " 000000ff: ok 8x15
+render "italic" 000000ff: ok 39x15
+render ", " 000000ff: ok 8x15
+render "un" 000000ff: ok 18x15
+render " " 000000ff: ok 4x15
+render "A right-aligned paragraph, which also " 000000ff: ok 187x12
+render "wraps when the page is narrow enough " 000000ff: ok 193x12
+render "to need it." 000000ff: ok 50x12
+render "An indented paragraph with a " 000000ff: ok 148x12
+render "hanging first line: the left " 000000ff: ok 127x12
+render "indent is half an inch and the " 000000ff: ok 146x12
+render "right one a quarter of an " 000000ff: ok 123x12
+render "inch, justified (laid out as " 000000ff: ok 128x12
+render "left-aligned)." 000000ff: ok 63x12
+render "Monospaced" 000000ff: ok 50x11
+render "text" 000000ff: ok 20x11
+render "with" 000000ff: ok 20x11
+render "tabs" 000000ff: ok 20x11
+render "and a line break." 000000ff: ok 85x11
+render "Escapes: " 000000ff: ok 57x15
+render "{braces" 000000ff: ok 48x14
+render "}, a backslash " 000000ff: ok 90x14
+render "\" 000000ff: ok 5x14
+render "Binary data " 000000ff: ok 73x15
+render "abcde follows." 000000ff: ok 85x14
+render "Text after an unknown " 000000ff: ok 139x14
+render "destination." 000000ff: ok 71x14
+render " done." 000000ff: ok 38x14
+render "Big " 000000ff: ok 39x24
+render "small" 000000ff: ok 17x7
+render " text." 000000ff: ok 51x24
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=14cd5011a48ce79c
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=8d2ef8fece67a4e9
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Courier New" size=9 style=0
+free name="Times New Roman" size=12 style=7
+free name="Times New Roman" size=12 style=4
+free name="Times New Roman" size=12 style=2
+free name="Times New Roman" size=12 style=1
+free name="Times New Roman" size=12 style=0
+free name="Helvetica" size=6 style=0
+free name="Helvetica" size=20 style=0
+free name="Helvetica" size=12 style=0
+free name="Helvetica" size=10 style=0
+free name="Helvetica" size=16 style=1
+== table.rtf
+create name="DejaVu Sans" family=0 charset=0 size=12 style=0: ok
+offsets "Before the table.": 17 width=100
+offsets "Cell one": 8 width=47
+offsets "Cell two": 8 width=47
+create name="Serif" family=1 charset=0 size=12 style=0: ok
+offsets "Cell three": 10 width=69
+create name="Serif" family=1 charset=0 size=12 style=1: ok
+offsets "Cell four": 9 width=60
+offsets "After the table.": 16 width=91
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 0: 0
+render "Before the table." 000000ff: ok 99x14
+render "Cell one" 000000ff: ok 47x14
+render "Cell two" 000000ff: ok 47x14
+render "Cell three" 0000ffff: ok 69x15
+render "Cell four" 0000ffff: ok 61x15
+render "After the table." 000000ff: ok 90x14
+height 320: 43
+height 320 again: 43
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=acf3ff252839b316
+clip: 1 0,0 0x0
+render "Before the table." 000000ff: ok 99x14
+render "Cell one" 000000ff: ok 47x14
+render "Cell two" 000000ff: ok 47x14
+render "Cell " 0000ffff: ok 32x15
+render "three" 0000ffff: ok 37x15
+render "Cell four" 0000ffff: ok 61x15
+render "After " 000000ff: ok 32x14
+render "the table." 000000ff: ok 58x14
+height 150: 72
+height 150 again: 72
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=01dcde389b0b743e
+clip: 1 0,0 0x0
+render "Before " 000000ff: ok 41x14
+render "the table." 000000ff: ok 58x14
+render "Cell one" 000000ff: ok 47x14
+render "C" 000000ff: ok 8x14
+height 60: 56
+height 60 again: 56
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=caa43eb1edb1b880
+clip: 1 0,0 0x0
+render "Before the table." 000000ff: ok 99x14
+render "Cell one" 000000ff: ok 47x14
+render "Cell two" 000000ff: ok 47x14
+render "Cell three" 0000ffff: ok 69x15
+render "Cell four" 0000ffff: ok 61x15
+render "After the table." 000000ff: ok 90x14
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=332ce7687cdc02e9
+clip: 1 0,0 0x0
+render "Before the table." 000000ff: ok 99x14
+render "Cell one" 000000ff: ok 47x14
+render "Cell two" 000000ff: ok 47x14
+render "Cell three" 0000ffff: ok 69x15
+render "Cell " 0000ffff: ok 32x15
+render "four" 0000ffff: ok 29x15
+render "After the table." 000000ff: ok 90x14
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=fadfa679da0ba7b1
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=8ffcae4c0360c302
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Serif" size=12 style=1
+free name="Serif" size=12 style=0
+free name="DejaVu Sans" size=12 style=0
+== edge.rtf
+create name="Roman" family=1 charset=0 size=12 style=0: ok
+offsets "Not bold (256 is 0 as a byte).": 30 width=194
+create name="Roman" family=1 charset=0 size=12 style=1: ok
+offsets " Bold.": 6 width=39
+offsets " Plain.": 7 width=44
+offsets "Negative color index.": 21 width=144
+offsets " Out of range.": 14 width=93
+offsets " Auto color.": 12 width=78
+offsets " Red.": 5 width=34
+create name="Decor" family=5 charset=0 size=12 style=0: ok
+offsets "Missing font number.": 20 width=128
+create name="Odd family" family=300 charset=0 size=12 style=0: ok
+offsets " Odd family.": 12 width=73
+offsets " Decor.": 7 width=43
+offsets "Size zero is the default.": 25 width=162
+create name="Roman" family=1 charset=0 size=-5 style=0: fail
+create name="Roman" family=1 charset=0 size=6 style=0: ok
+offsets " Small.": 7 width=22
+offsets ""Smart quotes": 13 width=98
+offsets "" and A": 7 width=48
+offsets "B with a hex return, C": 22 width=150
+offsets "D with a hex tab, E": 19 width=127
+offsets "F.": 2 width=13
+offsets "Cut at a NUL: AB": 16 width=115
+offsets "": 0 width=0
+offsets "Two tabs": 8 width=60
+offsets "one": 3 width=25
+offsets "Negative indent.": 16 width=114
+offsets " Negative right indent that makes the line wider than the page.": 63 width=435
+create name="Roman" family=1 charset=0 size=12 style=4: ok
+offsets "Underlined": 10 width=76
+offsets " not": 4 width=27
+offsets " again": 6 width=42
+offsets " off.": 5 width=26
+create name="Roman" family=1 charset=0 size=12 style=2: ok
+offsets "Italic": 6 width=37
+offsets " upright.": 9 width=59
+offsets "Averyveryveryveryveryverylongwordwithoutanyspacesthatcannotfitonanarrowlineatall end.": 85 width=617
+offsets "xyz": 3 width=21
+offsets "q\par": 5 width=34
+offsets "A centered line that is long enough to wrap onto a second line at small widths.": 79 width=538
+offsets "Right with an indent.": 21 width=146
+offsets "J": 1 width=6
+offsets "K": 1 width=10
+offsets "l hex case, raw bytes café ©ÿ.": 30 width=198
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 0: 0
+render "Not bold (256 is 0 as a byte)." 000000ff: ok 194x15
+render " Bold." 000000ff: ok 39x15
+render " Plain." 000000ff: ok 44x15
+render "Negative color index." 00000000: ok 144x15
+render " Out of range." 00000000: ok 93x15
+render " Auto color." 000000ff: ok 76x15
+render " " ff0000ff: ok 4x15
+render "Missing font number." ff0000ff: ok 126x15
+render " Odd family." ff0000ff: ok 71x15
+render " Decor." ff0000ff: ok 41x14
+render "Size zero is the default." ff0000ff: ok 162x15
+render " Small." ff0000ff: ok 22x8
+render ""Smart quotes" ff0000ff: ok 98x15
+render "" and A" ff0000ff: ok 49x15
+render "B with a hex return, C" ff0000ff: ok 150x15
+render "D with a hex tab, E" ff0000ff: ok 127x15
+render "F." ff0000ff: ok 11x15
+render "Cut at a NUL: AB" ff0000ff: ok 115x15
+render "Two tabs" ff0000ff: ok 58x15
+render "one" ff0000ff: ok 25x15
+render "Negative indent." ff0000ff: ok 114x15
+render " Negative right indent that " ff0000ff: ok 189x15
+render "makes the line wider than the page." ff0000ff: ok 246x15
+render "Underlined" ff0000ff: ok 77x15
+render " not" ff0000ff: ok 27x15
+render " again" ff0000ff: ok 42x15
+render " off." ff0000ff: ok 25x15
+render "Italic" ff0000ff: ok 40x15
+render " upright." ff0000ff: ok 59x15
+render "Averyveryveryveryveryverylongwordwithoutany" ff0000ff: ok 317x15
+render "xyz" ff0000ff: ok 21x15
+render "q\par" ff0000ff: ok 35x15
+render "A centered line that is long enough to " ff0000ff: ok 265x15
+render "wrap onto a second line at small widths." ff0000ff: ok 275x15
+render "Right with an indent." ff0000ff: ok 146x15
+render "J" ff0000ff: ok 7x15
+render "K" ff0000ff: ok 11x15
+render "l hex case, raw bytes café ©ÿ." ff0000ff: ok 196x15
+height 320: 269
+height 320 again: 269
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=abcb984922a2300a
+clip: 1 0,0 0x0
+render "Not bold (256 is 0 as " 000000ff: ok 143x15
+render "a byte)." 000000ff: ok 51x15
+render " Bold." 000000ff: ok 39x15
+render " Plain." 000000ff: ok 44x15
+render "Negative color index." 00000000: ok 144x15
+render " " 00000000: ok 4x15
+render "Missing font number." ff0000ff: ok 126x15
+render " Od" ff0000ff: ok 21x14
+render "Size zero is the " ff0000ff: ok 109x15
+render "default." ff0000ff: ok 53x15
+render " Small." ff0000ff: ok 22x8
+render ""Smart quotes" ff0000ff: ok 98x15
+render "" and A" ff0000ff: ok 49x15
+render "B with a hex return, C" ff0000ff: ok 150x15
+render "F." ff0000ff: ok 11x15
+render "Cut at a NUL: AB" ff0000ff: ok 115x15
+render "Two tabs" ff0000ff: ok 58x15
+render "Negative indent." ff0000ff: ok 114x15
+render " Negativ" ff0000ff: ok 58x15
+render "Underlined" ff0000ff: ok 77x15
+render " not" ff0000ff: ok 27x15
+render " again" ff0000ff: ok 42x15
+render " " ff0000ff: ok 4x15
+render "Averyveryveryveryvery" ff0000ff: ok 150x15
+render "xyz" ff0000ff: ok 21x15
+render "q\par" ff0000ff: ok 35x15
+render "A centered " ff0000ff: ok 78x15
+render "line that is long " ff0000ff: ok 114x15
+render "enough to wrap onto " ff0000ff: ok 144x15
+render "a second line at " ff0000ff: ok 112x15
+render "small widths." ff0000ff: ok 91x15
+render "Right with an " ff0000ff: ok 97x15
+render "indent." ff0000ff: ok 49x15
+render "J" ff0000ff: ok 7x15
+render "K" ff0000ff: ok 11x15
+render "l hex case, raw " ff0000ff: ok 103x15
+render "bytes café ©ÿ." ff0000ff: ok 93x15
+height 150: 359
+height 150 again: 359
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=f0dbc42847c4211f
+clip: 1 0,0 0x0
+render "Not " 000000ff: ok 29x15
+render "bold " 000000ff: ok 33x15
+render "(256 is " 000000ff: ok 50x15
+render "0 as a " 000000ff: ok 43x15
+render "byte)." 000000ff: ok 39x15
+render " B" 000000ff: ok 14x15
+render " " 000000ff: ok 4x15
+render "Negativ" 00000000: ok 54x15
+render " " 00000000: ok 4x15
+render "Missing " ff0000ff: ok 48x15
+render "font " ff0000ff: ok 28x14
+render "number." ff0000ff: ok 50x14
+render " " ff0000ff: ok 4x14
+render " " ff0000ff: ok 4x14
+render "Size " ff0000ff: ok 33x15
+render "zero is " ff0000ff: ok 49x15
+render "the " ff0000ff: ok 27x15
+render "default." ff0000ff: ok 53x15
+render " S" ff0000ff: ok 6x8
+render ""Smart " ff0000ff: ok 52x15
+render "quotes" ff0000ff: ok 46x15
+render "" " ff0000ff: ok 10x15
+render "and A" ff0000ff: ok 39x15
+render "B with a " ff0000ff: ok 60x15
+render "hex " ff0000ff: ok 28x15
+render "return, " ff0000ff: ok 52x15
+render "C" ff0000ff: ok 10x15
+render "D " ff0000ff: ok 14x15
+render "with a " ff0000ff: ok 47x15
+render "hex tab, " ff0000ff: ok 58x15
+render "E" ff0000ff: ok 9x15
+render "F." ff0000ff: ok 11x15
+render "Cut at a " ff0000ff: ok 59x15
+render "NUL: AB" ff0000ff: ok 56x15
+render "Negative " ff0000ff: ok 65x15
+render "indent." ff0000ff: ok 49x15
+render " Neg" ff0000ff: ok 32x15
+render "Underlin" ff0000ff: ok 60x15
+render "Averyver" ff0000ff: ok 59x15
+render "xyz" ff0000ff: ok 21x15
+render "q\par" ff0000ff: ok 35x15
+render "Right" ff0000ff: ok 38x15
+render "J" ff0000ff: ok 7x15
+render "K" ff0000ff: ok 11x15
+render "l hex " ff0000ff: ok 37x15
+render "case, " ff0000ff: ok 38x15
+render "raw " ff0000ff: ok 28x15
+render "bytes " ff0000ff: ok 40x15
+render "café ©ÿ." ff0000ff: ok 53x15
+height 60: 567
+height 60 again: 567
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=657b8c2687d96615
+clip: 1 0,0 0x0
+render "Not bold (256 is 0 as a byte)." 000000ff: ok 194x15
+render " Bold." 000000ff: ok 39x15
+render " Plain." 000000ff: ok 44x15
+render "Negative color index." 00000000: ok 144x15
+render " Out of range." 00000000: ok 93x15
+render " Auto color." 000000ff: ok 76x15
+render " Red." ff0000ff: ok 34x15
+render "Missing font number." ff0000ff: ok 126x15
+render " Odd family." ff0000ff: ok 71x15
+render " Decor." ff0000ff: ok 41x14
+render "Size zero is the default." ff0000ff: ok 162x15
+render " Small." ff0000ff: ok 22x8
+render ""Smart quotes" ff0000ff: ok 98x15
+render "" and A" ff0000ff: ok 49x15
+render "B with a hex return, C" ff0000ff: ok 150x15
+render "D with a hex tab, E" ff0000ff: ok 127x15
+render "F." ff0000ff: ok 11x15
+render "Cut at a NUL: AB" ff0000ff: ok 115x15
+render "Two tabs" ff0000ff: ok 58x15
+render "one" ff0000ff: ok 25x15
+render "Negative indent." ff0000ff: ok 114x15
+render " Negative right indent that makes the " ff0000ff: ok 264x15
+render "line wider than the page." ff0000ff: ok 171x15
+render "Underlined" ff0000ff: ok 77x15
+render " not" ff0000ff: ok 27x15
+render " again" ff0000ff: ok 42x15
+render " off." ff0000ff: ok 25x15
+render "Italic" ff0000ff: ok 40x15
+render " upright." ff0000ff: ok 59x15
+render "Averyveryveryveryveryverylongwordwithoutanyspace" ff0000ff: ok 354x15
+render "xyz" ff0000ff: ok 21x15
+render "q\par" ff0000ff: ok 35x15
+render "A centered line that is long enough to wrap " ff0000ff: ok 301x15
+render "onto a second line at small widths." ff0000ff: ok 238x15
+render "Right with an indent." ff0000ff: ok 146x15
+render "J" ff0000ff: ok 7x15
+render "K" ff0000ff: ok 11x15
+render "l hex case, raw bytes café ©ÿ." ff0000ff: ok 196x15
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=f2b8d1625e6aadf1
+clip: 1 0,0 0x0
+render "Not bold (256 is 0 as a byte)." 000000ff: ok 194x15
+render " " 000000ff: ok 4x15
+render "Negative color index." 00000000: ok 144x15
+render " Out of " 00000000: ok 50x15
+render "range." 00000000: ok 43x15
+render " Auto color." 000000ff: ok 76x15
+render " Red." ff0000ff: ok 34x15
+render "Missing font number." ff0000ff: ok 126x15
+render " Odd " ff0000ff: ok 33x14
+render "family." ff0000ff: ok 38x15
+render " Decor." ff0000ff: ok 41x14
+render "Size zero is the default." ff0000ff: ok 162x15
+render " Small." ff0000ff: ok 22x8
+render ""Smart quotes" ff0000ff: ok 98x15
+render "" and A" ff0000ff: ok 49x15
+render "B with a hex return, C" ff0000ff: ok 150x15
+render "D " ff0000ff: ok 14x15
+render "with a hex tab, E" ff0000ff: ok 114x15
+render "F." ff0000ff: ok 11x15
+render "Cut at a NUL: AB" ff0000ff: ok 115x15
+render "Two tabs" ff0000ff: ok 58x15
+render "one" ff0000ff: ok 25x15
+render "Negative indent." ff0000ff: ok 114x15
+render " Negative right " ff0000ff: ok 107x15
+render "indent that makes the line " ff0000ff: ok 188x15
+render "wider than the page." ff0000ff: ok 141x15
+render "Underlined" ff0000ff: ok 77x15
+render " not" ff0000ff: ok 27x15
+render " again" ff0000ff: ok 42x15
+render " off." ff0000ff: ok 25x15
+render "Ital" ff0000ff: ok 28x15
+render " " ff0000ff: ok 4x15
+render "Averyveryveryveryveryverylon" ff0000ff: ok 199x15
+render "xyz" ff0000ff: ok 21x15
+render "q\par" ff0000ff: ok 35x15
+render "A centered line that " ff0000ff: ok 142x15
+render "is long enough to wrap onto " ff0000ff: ok 194x15
+render "a second line at small " ff0000ff: ok 154x15
+render "widths." ff0000ff: ok 50x15
+render "Right with an indent." ff0000ff: ok 146x15
+render "J" ff0000ff: ok 7x15
+render "K" ff0000ff: ok 11x15
+render "l hex case, raw bytes café " ff0000ff: ok 175x15
+render "©ÿ." ff0000ff: ok 21x15
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=b4ea13c69792beb4
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=d321a1564d12e47a
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Decor" size=12 style=0
+free name="Odd family" size=12 style=0
+free name="Roman" size=12 style=2
+free name="Roman" size=12 style=4
+free name="Roman" size=6 style=0
+free name="Roman" size=12 style=1
+free name="Roman" size=12 style=0
+== nocolor.rtf
+create name="Sans" family=2 charset=0 size=12 style=0: ok
+offsets "Invisible text: no color table, so the color is transparent black.": 66 width=373
+create name="Mono" family=3 charset=0 size=12 style=0: ok
+offsets "Still invisible": 15 width=105
+offsets " and still.": 11 width=77
+load: ok
+title="No colors" subject="" author="Nobody"
+height 0: 0
+render "Invisible text: no color table, so the color is " 00000000: ok 261x14
+render "transparent black." 00000000: ok 110x15
+render "Still invisible" 00000000: ok 105x14
+render " and still." 00000000: ok 77x14
+height 320: 56
+height 320 again: 56
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=915b984ed4685494
+clip: 1 0,0 0x0
+render "Invisible text: no color " 00000000: ok 136x14
+render "table, so the color is " 00000000: ok 125x14
+render "transparent black." 00000000: ok 110x15
+render "Still invisible" 00000000: ok 105x14
+render " and " 00000000: ok 35x14
+render "still." 00000000: ok 42x14
+height 150: 84
+height 150 again: 84
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=da7a9f382acf5390
+clip: 1 0,0 0x0
+render "Invisible " 00000000: ok 53x14
+render "text: no " 00000000: ok 50x14
+render "color " 00000000: ok 33x14
+render "table, so " 00000000: ok 55x14
+render "the color " 00000000: ok 57x14
+render "is " 00000000: ok 13x14
+render "transpare" 00000000: ok 57x15
+render "Still " 00000000: ok 42x14
+render "invisibl" 00000000: ok 56x14
+height 60: 140
+height 60 again: 140
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=e12045612cb20e98
+clip: 1 0,0 0x0
+render "Invisible text: no color table, so the color is transparent " 00000000: ok 336x15
+render "black." 00000000: ok 36x14
+render "Still invisible" 00000000: ok 105x14
+render " and still." 00000000: ok 77x14
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=70b8f0a8edfdf32e
+clip: 1 0,0 0x0
+render "Invisible text: no color table, so " 00000000: ok 191x14
+render "the color is transparent black." 00000000: ok 180x15
+render "Still invisible" 00000000: ok 105x14
+render " and still." 00000000: ok 77x14
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=5230b06241eab647
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=495357cccd7c9f0c
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Mono" size=12 style=0
+free name="Sans" size=12 style=0
+== unmatched.rtf
+create name="Sans" family=0 charset=0 size=12 style=0: ok
+offsets "One": 3 width=24
+load: err: Unmatched '}'
+title="" subject="" author=""
+height 0: 0
+render "One" 000000ff: ok 24x14
+height 320: 14
+height 320 again: 14
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=cdf19337488d1496
+clip: 1 0,0 0x0
+render "One" 000000ff: ok 24x14
+height 150: 14
+height 150 again: 14
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=cdf19337488d1496
+clip: 1 0,0 0x0
+render "One" 000000ff: ok 24x14
+height 60: 14
+height 60 again: 14
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=cdf19337488d1496
+clip: 1 0,0 0x0
+render "One" 000000ff: ok 24x14
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=33c938298e9ff9d4
+clip: 1 0,0 0x0
+render "One" 000000ff: ok 24x14
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=f59edf8913ec8e3e
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Sans" size=12 style=0
+== unclosed.rtf
+create name="Sans" family=0 charset=0 size=12 style=0: ok
+offsets "Text in an open group": 21 width=134
+load: err: RTF ended during an open group
+title="Unclosed" subject="" author=""
+height 0: 0
+render "Text in an open group" 000000ff: ok 132x15
+height 320: 28
+height 320 again: 28
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=e64e370183c2ee3a
+clip: 1 0,0 0x0
+render "Text in an open group" 000000ff: ok 132x15
+height 150: 28
+height 150 again: 28
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=e64e370183c2ee3a
+clip: 1 0,0 0x0
+render "Text in " 000000ff: ok 43x14
+render "an open " 000000ff: ok 53x15
+render "group" 000000ff: ok 35x15
+height 60: 56
+height 60 again: 56
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=6463c17f2972bf56
+clip: 1 0,0 0x0
+render "Text in an open group" 000000ff: ok 132x15
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=83b0bdb5bbba8d5d
+clip: 1 0,0 0x0
+render "Text in an open group" 000000ff: ok 132x15
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=a11e688a0bc7fe0e
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Sans" size=12 style=0
+== badhex.rtf
+create name="Sans" family=0 charset=0 size=12 style=0: ok
+offsets "Good ": 5 width=35
+offsets "é then bad ": 11 width=70
+load: err: Invalid hex character found in data
+title="" subject="" author=""
+height 0: 0
+render "Good " 000000ff: ok 35x14
+render "é then bad " 000000ff: ok 70x14
+height 320: 14
+height 320 again: 14
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=95e353c7b295a63a
+clip: 1 0,0 0x0
+render "Good " 000000ff: ok 35x14
+render "é then bad " 000000ff: ok 70x14
+height 150: 14
+height 150 again: 14
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=95e353c7b295a63a
+clip: 1 0,0 0x0
+render "Good " 000000ff: ok 35x14
+render "é " 000000ff: ok 11x14
+render "then bad " 000000ff: ok 59x14
+height 60: 28
+height 60 again: 28
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=c71f091aa7da2216
+clip: 1 0,0 0x0
+render "Good " 000000ff: ok 35x14
+render "é then bad " 000000ff: ok 70x14
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=71f2f8036c920569
+clip: 1 0,0 0x0
+render "Good " 000000ff: ok 35x14
+render "é then bad " 000000ff: ok 70x14
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=3dad01c7c9ce223a
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Sans" size=12 style=0
+== eofkw.rtf
+create name="Sans" family=0 charset=0 size=12 style=0: ok
+offsets "Ends in a keyword": 17 width=111
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 0: 0
+render "Ends in a keyword" 000000ff: ok 110x15
+height 320: 28
+height 320 again: 28
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=e9cd7680b1b0db98
+clip: 1 0,0 0x0
+render "Ends in a keyword" 000000ff: ok 110x15
+height 150: 28
+height 150 again: 28
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=e9cd7680b1b0db98
+clip: 1 0,0 0x0
+render "Ends in a " 000000ff: ok 60x14
+render "keyword" 000000ff: ok 50x15
+height 60: 42
+height 60 again: 42
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=28e8bb23dd6378e0
+clip: 1 0,0 0x0
+render "Ends in a keyword" 000000ff: ok 110x15
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=d80d9bb88b41b711
+clip: 1 0,0 0x0
+render "Ends in a keyword" 000000ff: ok 110x15
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=d40242253642a8d4
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+free name="Sans" size=12 style=0
+== nofont.rtf
+load: err: Couldn't find font for text
+title="" subject="" author=""
+height 0: 0
+height 320: 0
+height 320 again: 0
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+height 150: 0
+height 150 again: 0
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+height 60: 0
+height 60 again: 0
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+== plain.txt
+load: ok
+title="" subject="" author=""
+height 0: 0
+height 320: 0
+height 320 again: 0
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+height 150: 0
+height 150 again: 0
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+height 60: 0
+height 60 again: 0
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+== empty.rtf
+load: ok
+title="" subject="" author=""
+height 0: 0
+height 320: 0
+height 320 again: 0
+pixels 320: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+height 150: 0
+height 150 again: 0
+pixels 150: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+height 60: 0
+height 60 again: 0
+pixels 60: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+pixels viewport 10: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 0,0 0x0
+pixels rect 25: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+clip: 1 5,5 300x400
+pixels rect -30: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+pixels rect 100000: 360x640 SDL_PIXELFORMAT_ARGB8888 hash=864cb661ad838325
+-- sample.rtf truncated 0
+load: ok
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 11
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 22
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 33
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 44
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 55
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 66
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 77
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 88
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 99
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 110
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 121
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 132
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 143
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 154
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 165
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 176
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 187
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 198
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 209
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 220
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 231
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 242
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 253
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 264
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 275
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 286
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 297
+load: err: RTF ended during an open group
+title="Sampl" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 308
+load: err: RTF ended during an open group
+title="Sample Document" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 319
+load: err: RTF ended during an open group
+title="Sample Document" subject="T" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 330
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 341
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 352
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 363
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 374
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 385
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 396
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 407
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 418
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 429
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 440
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 451
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 462
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 473
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 484
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 495
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 506
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 517
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 528
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 539
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 550
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 561
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 572
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 583
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 594
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- sample.rtf truncated 605
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 19
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 616
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 627
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 638
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 649
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 660
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 671
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 682
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 693
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 704
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 715
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 726
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 38
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=09c734fc58c3b95e
+-- sample.rtf truncated 737
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ca63195f157f207
+-- sample.rtf truncated 748
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=ab53298abf56386d
+-- sample.rtf truncated 759
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=dcc67badf5162e41
+-- sample.rtf truncated 770
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=dcc67badf5162e41
+-- sample.rtf truncated 781
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 792
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 803
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 814
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 825
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 836
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 847
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 858
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 79
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 869
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 880
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 891
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 902
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 913
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 924
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 935
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 946
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 957
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 94
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94089df2e5a17246
+-- sample.rtf truncated 968
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 979
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 990
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1001
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1012
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1023
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1034
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1045
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1056
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1067
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1078
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1089
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1100
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1111
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1122
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1133
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1144
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 127
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b88e5b2473a67b5f
+-- sample.rtf truncated 1155
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 187
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=90c022d29b775f74
+-- sample.rtf truncated 1166
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 199
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=90c022d29b775f74
+-- sample.rtf truncated 1177
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 199
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=90c022d29b775f74
+-- sample.rtf truncated 1188
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 198
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=2ccca799d2a46712
+-- sample.rtf truncated 1199
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 198
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=ec81c40a393bfbe9
+-- sample.rtf truncated 1210
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 198
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=dd3ed61ce29eb834
+-- sample.rtf truncated 1221
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 209
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=510b24531c126c17
+-- sample.rtf truncated 1232
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 209
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=510b24531c126c17
+-- sample.rtf truncated 1243
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 220
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=941cdafba9e58022
+-- sample.rtf truncated 1254
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 220
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=941cdafba9e58022
+-- sample.rtf truncated 1265
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=133c37a9e29ef3f0
+-- sample.rtf truncated 1276
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0351246063c6cb89
+-- sample.rtf truncated 1287
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0351246063c6cb89
+-- sample.rtf truncated 1298
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6b6334586b1a357e
+-- sample.rtf truncated 1309
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1320
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1331
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1342
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1353
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1364
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1375
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1386
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1397
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1408
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 223
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1419
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 237
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=845a2ee17a473ea8
+-- sample.rtf truncated 1430
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 237
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e101165beaeca94e
+-- sample.rtf truncated 1441
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 237
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e101165beaeca94e
+-- sample.rtf truncated 1452
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 251
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fbf65bc201b92223
+-- sample.rtf truncated 1463
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 251
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fbf65bc201b92223
+-- sample.rtf truncated 1474
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 251
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fbf65bc201b92223
+-- sample.rtf truncated 1485
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 251
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fbf65bc201b92223
+-- sample.rtf truncated 1496
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 251
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fbf65bc201b92223
+-- sample.rtf truncated 1507
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 251
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fbf65bc201b92223
+-- sample.rtf truncated 1518
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 265
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf truncated 1529
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 265
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf truncated 1540
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 265
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf truncated 1551
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 279
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf truncated 1562
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 279
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf truncated 1573
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 279
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf truncated 1584
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 307
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=24f475e40bd8f7da
+-- sample.rtf truncated 1595
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 317
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a685f8fb6f29eb44
+-- sample.rtf truncated 1606
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 317
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a685f8fb6f29eb44
+-- sample.rtf truncated 1617
+load: err: End of file reached while reading RTF
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 317
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 3 ^ 70
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 26 ^ c6
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 49 ^ 1d
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 72 ^ 73
+load: err: Unmatched '}'
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 360
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=97b3d8a7389b1d3b
+-- sample.rtf flipped 95 ^ c9
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 118 ^ 20
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=eba37f2f33727f52
+-- sample.rtf flipped 141 ^ 76
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 164 ^ cc
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 187 ^ 23
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a0a939a7a488e811
+-- sample.rtf flipped 210 ^ 79
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 233 ^ cf
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 256 ^ 26
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 279 ^ 7c
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6dcb2863d37f1f92
+-- sample.rtf flipped 302 ^ d2
+load: ok
+title="Sample Doc§ment" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 325 ^ 29
+load: ok
+title="Sample Document" subject="Testing	SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 348 ^ 7f
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Wrter"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 371 ^ d5
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 394 ^ 2c
+load: err: Unmatched '}'
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=34bd623a6550c23c
+-- sample.rtf flipped 417 ^ 82
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 440 ^ d8
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 463 ^ 2f
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 486 ^ 85
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 509 ^ db
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 360
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=cffe8f7e4a18f807
+-- sample.rtf flipped 532 ^ 32
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 555 ^ 88
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=aa28857f1b4f84d9
+-- sample.rtf flipped 578 ^ de
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=d5acc18d0cdc0878
+-- sample.rtf flipped 601 ^ 35
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=747e856d0a747cb8
+-- sample.rtf flipped 624 ^ 8b
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=d1a6ac769c856711
+-- sample.rtf flipped 647 ^ e1
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=c3088c9744ad1cab
+-- sample.rtf flipped 670 ^ 38
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=ae02b6ed5730acd7
+-- sample.rtf flipped 693 ^ 8e
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=577fbb31dfc3c740
+-- sample.rtf flipped 716 ^ e4
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a30339ba9d04de3b
+-- sample.rtf flipped 739 ^ 3b
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fdda80f3a7d1e316
+-- sample.rtf flipped 762 ^ 91
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=9c81562eebb3fdf6
+-- sample.rtf flipped 785 ^ e7
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 808 ^ 3e
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 831 ^ 94
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 854 ^ ea
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 877 ^ 41
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 305
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e65976e2c55a5d42
+-- sample.rtf flipped 900 ^ 97
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=10309307f564297b
+-- sample.rtf flipped 923 ^ ed
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=c339bff02f959997
+-- sample.rtf flipped 946 ^ 44
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=5f9539e0b7e09ede
+-- sample.rtf flipped 969 ^ 9a
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=bde0ce5bc4bc1624
+-- sample.rtf flipped 992 ^ f0
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=bbe843b8d6f2340c
+-- sample.rtf flipped 1015 ^ 47
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8c929f2f3cfb9a29
+-- sample.rtf flipped 1038 ^ 9d
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f51c544515bc0118
+-- sample.rtf flipped 1061 ^ f3
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=81329e6ed72e1491
+-- sample.rtf flipped 1084 ^ 4a
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=456422734957ec78
+-- sample.rtf flipped 1107 ^ a0
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=3359b7a976bd08b9
+-- sample.rtf flipped 1130 ^ f6
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=64e5369ac2e0c78d
+-- sample.rtf flipped 1153 ^ 4d
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=d831514a53bd050b
+-- sample.rtf flipped 1176 ^ a3
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=27067b761d7314d5
+-- sample.rtf flipped 1199 ^ f9
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=632984b40f1afd48
+-- sample.rtf flipped 1222 ^ 50
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=67997d29942b8341
+-- sample.rtf flipped 1245 ^ a6
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 334
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f4c63b7d809e4a5d
+-- sample.rtf flipped 1268 ^ fc
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=cbcc218f05245dd0
+-- sample.rtf flipped 1291 ^ 53
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1314 ^ a9
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1337 ^ ff
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1360 ^ 56
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1383 ^ ac
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1406 ^ 03
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 327
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=44ba6fce0e9d6870
+-- sample.rtf flipped 1429 ^ 59
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=5a2505c6b851d482
+-- sample.rtf flipped 1452 ^ af
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1475 ^ 06
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1498 ^ 5c
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=450ad0d49f66ffc7
+-- sample.rtf flipped 1521 ^ b2
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8914d76e20bf89e1
+-- sample.rtf flipped 1544 ^ 09
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 327
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=37f59e18fa2ffe17
+-- sample.rtf flipped 1567 ^ 5f
+load: err: RTF ended during an open group
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 279
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0df318b9b72c4453
+-- sample.rtf flipped 1590 ^ b5
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 341
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b087ea99b007b563
+-- sample.rtf flipped 1613 ^ 0c
+load: ok
+title="Sample Document" subject="Testing SDL_rtf" author="A. Writer"
+height 200: 317
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=faca7c4d82aeb342
+-- table.rtf truncated 0
+load: ok
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 11
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 22
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 33
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 44
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 55
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 66
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 77
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 88
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 99
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 110
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 121
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 132
+load: err: RTF ended during an open group
+title="Ta" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 143
+load: err: End of file reached while reading RTF
+title="Table" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 154
+load: err: RTF ended during an open group
+title="Table" subject="Tables a" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 165
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supp" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 176
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 187
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supported" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- table.rtf truncated 198
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 14
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=68e2b16bb3a675f9
+-- table.rtf truncated 209
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=68e2b16bb3a675f9
+-- table.rtf truncated 220
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=68e2b16bb3a675f9
+-- table.rtf truncated 231
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=68e2b16bb3a675f9
+-- table.rtf truncated 242
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=68e2b16bb3a675f9
+-- table.rtf truncated 253
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=47ca42e500036eb5
+-- table.rtf truncated 264
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=47ca42e500036eb5
+-- table.rtf truncated 275
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1094126882fc4497
+-- table.rtf truncated 286
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1094126882fc4497
+-- table.rtf truncated 297
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1094126882fc4497
+-- table.rtf truncated 308
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1094126882fc4497
+-- table.rtf truncated 319
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1094126882fc4497
+-- table.rtf truncated 330
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supported" author=""
+height 200: 28
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1094126882fc4497
+-- table.rtf truncated 341
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 29
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=9fae995d71bd2bd2
+-- table.rtf truncated 352
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supported" author=""
+height 200: 29
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=9fae995d71bd2bd2
+-- table.rtf truncated 363
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 44
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=5c370625f891860e
+-- table.rtf truncated 374
+load: err: End of file reached while reading RTF
+title="Table" subject="Tables are not supported" author=""
+height 200: 44
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=5c370625f891860e
+-- table.rtf truncated 385
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supported" author=""
+height 200: 44
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=5c370625f891860e
+-- table.rtf truncated 396
+load: err: RTF ended during an open group
+title="Table" subject="Tables are not supported" author=""
+height 200: 44
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=5c370625f891860e
+-- table.rtf flipped 3 ^ 70
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 26 ^ c6
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 49 ^ 1d
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 56
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=aa50be000ae1b36d
+-- table.rtf flipped 72 ^ 73
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=30797b668c6e9da7
+-- table.rtf flipped 95 ^ c9
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 118 ^ 20
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 141 ^ 76
+load: ok
+title="Table" subject="" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 164 ^ cc
+load: ok
+title="Table" subject="Tables are not sup¼orted" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 187 ^ 23
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=82241b107f9463c0
+-- table.rtf flipped 210 ^ 79
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1033781918e74c92
+-- table.rtf flipped 233 ^ cf
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 43
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4fe1b0559c38e7a1
+-- table.rtf flipped 256 ^ 26
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7d891fabc92d2b22
+-- table.rtf flipped 279 ^ 7c
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 43
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4f878ef9e5883066
+-- table.rtf flipped 302 ^ d2
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0ad16d4f753973f5
+-- table.rtf flipped 325 ^ 29
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 43
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=ff5c5e5b376746dc
+-- table.rtf flipped 348 ^ 7f
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a1d2bb59b50542f0
+-- table.rtf flipped 371 ^ d5
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 59
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=fca17e484c52949a
+-- table.rtf flipped 394 ^ 2c
+load: ok
+title="Table" subject="Tables are not supported" author=""
+height 200: 58
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6127d9165d3e06f8
+-- edge.rtf truncated 0
+load: ok
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 11
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 22
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 33
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 44
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 55
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 66
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 77
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 88
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 99
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 110
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 121
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 132
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 143
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 154
+load: err: End of file reached while reading RTF
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 165
+load: err: RTF ended during an open group
+title="" subject="" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 176
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author=""
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 187
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Au"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 198
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author ne"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 209
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 220
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 231
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 242
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 0
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=adcd621e31ebd425
+-- edge.rtf truncated 253
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 15
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f429139867947ab0
+-- edge.rtf truncated 264
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 15
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f429139867947ab0
+-- edge.rtf truncated 275
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 30
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f429139867947ab0
+-- edge.rtf truncated 286
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 30
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f429139867947ab0
+-- edge.rtf truncated 297
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 30
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f429139867947ab0
+-- edge.rtf truncated 308
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 30
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e3a31a4df7abb358
+-- edge.rtf truncated 319
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 30
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e3a31a4df7abb358
+-- edge.rtf truncated 330
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 45
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1f485516bea44abe
+-- edge.rtf truncated 341
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 45
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0cefc394d126f0d1
+-- edge.rtf truncated 352
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 60
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f3cb441aa61d2120
+-- edge.rtf truncated 363
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 60
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f3cb441aa61d2120
+-- edge.rtf truncated 374
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 60
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f3cb441aa61d2120
+-- edge.rtf truncated 385
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 59
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=46ba5958757eae5d
+-- edge.rtf truncated 396
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 73
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=97e40f49b501517f
+-- edge.rtf truncated 407
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 73
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=365ae1446a0f4122
+-- edge.rtf truncated 418
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=365ae1446a0f4122
+-- edge.rtf truncated 429
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=365ae1446a0f4122
+-- edge.rtf truncated 440
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=365ae1446a0f4122
+-- edge.rtf truncated 451
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=cea5f341c891dd0d
+-- edge.rtf truncated 462
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=cea5f341c891dd0d
+-- edge.rtf truncated 473
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=cea5f341c891dd0d
+-- edge.rtf truncated 484
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 88
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f43a71dba6ee74ae
+-- edge.rtf truncated 495
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 103
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f43a71dba6ee74ae
+-- edge.rtf truncated 506
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 103
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=c676b6c94812153d
+-- edge.rtf truncated 517
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 118
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4c9207756a31df27
+-- edge.rtf truncated 528
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 118
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4c9207756a31df27
+-- edge.rtf truncated 539
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 118
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=751ee4b7faa4a141
+-- edge.rtf truncated 550
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 118
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=751ee4b7faa4a141
+-- edge.rtf truncated 561
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 118
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=751ee4b7faa4a141
+-- edge.rtf truncated 572
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 163
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a4685849a2e30ec6
+-- edge.rtf truncated 583
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 163
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a4685849a2e30ec6
+-- edge.rtf truncated 594
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 163
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=266559ef79527123
+-- edge.rtf truncated 605
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 163
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=266559ef79527123
+-- edge.rtf truncated 616
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 178
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=266559ef79527123
+-- edge.rtf truncated 627
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 178
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=38d1977da96d7fc1
+-- edge.rtf truncated 638
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 178
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6c8cfb2f91589df7
+-- edge.rtf truncated 649
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6c8cfb2f91589df7
+-- edge.rtf truncated 660
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6c8cfb2f91589df7
+-- edge.rtf truncated 671
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 682
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 693
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 704
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 715
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 726
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 737
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 193
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0b7e1bac7d323bd0
+-- edge.rtf truncated 748
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e5cb79142eaf3745
+-- edge.rtf truncated 759
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=e5cb79142eaf3745
+-- edge.rtf truncated 770
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8097429e39fcabe2
+-- edge.rtf truncated 781
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=d620213f420b27cb
+-- edge.rtf truncated 792
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=d29c4345f42c26b2
+-- edge.rtf truncated 803
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4dc9f0d2dfbbc019
+-- edge.rtf truncated 814
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 238
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 825
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 836
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 847
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 858
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 869
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 880
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 891
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 902
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 253
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=836aafb25b11c9a8
+-- edge.rtf truncated 913
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=6fee5cdb3914b651
+-- edge.rtf truncated 924
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=3dd4fa14789638c8
+-- edge.rtf truncated 935
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 946
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 957
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 968
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 979
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 990
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 1001
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 1012
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 268
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1ea996d302515a59
+-- edge.rtf truncated 1023
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 328
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1034
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 328
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1045
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 328
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1056
+load: err: End of file reached while reading RTF
+title="" subject="Edge cases" author="Author nested name"
+height 200: 343
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1067
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 343
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1078
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 343
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1089
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 343
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf truncated 1100
+load: err: RTF ended during an open group
+title="" subject="Edge cases" author="Author nested name"
+height 200: 343
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 3 ^ 70
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 26 ^ c6
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 49 ^ 1d
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 72 ^ 73
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 95 ^ c9
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 388
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=0224acb28372ac1e
+-- edge.rtf flipped 118 ^ 20
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 141 ^ 76
+load: err: Unmatched '}'
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 164 ^ cc
+load: ok
+title="" subject="ìEdge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 187 ^ 23
+load: ok
+title="" subject="Edge cases" author="AuWhor nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 210 ^ 79
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 388
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=a60c11395be6d8af
+-- edge.rtf flipped 233 ^ cf
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f95220b8b67d95b8
+-- edge.rtf flipped 256 ^ 26
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 279 ^ 7c
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 358
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=40e4b0f3005675dd
+-- edge.rtf flipped 302 ^ d2
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=9b6c0b3247d4d789
+-- edge.rtf flipped 325 ^ 29
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7cd21fee85a050e7
+-- edge.rtf flipped 348 ^ 7f
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 345
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=36e8400e06e1f1c8
+-- edge.rtf flipped 371 ^ d5
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 359
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4ab905cf69dca75f
+-- edge.rtf flipped 394 ^ 2c
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 374
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=67b6bbc3831a331f
+-- edge.rtf flipped 417 ^ 82
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8b72fa3b3ba7b528
+-- edge.rtf flipped 440 ^ d8
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=8d54d41a74357e76
+-- edge.rtf flipped 463 ^ 2f
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=68afe45093dae388
+-- edge.rtf flipped 486 ^ 85
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=158feee10e7037d0
+-- edge.rtf flipped 509 ^ db
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=b26564b5f2a07d5c
+-- edge.rtf flipped 532 ^ 32
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1a0f76a17c86d9e2
+-- edge.rtf flipped 555 ^ 88
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=3cdc5d850e2f94fa
+-- edge.rtf flipped 578 ^ de
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=4dd8661c01edecd0
+-- edge.rtf flipped 601 ^ 35
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 624 ^ 8b
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=efa68f340f0caba6
+-- edge.rtf flipped 647 ^ e1
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f9d5b38bd36a9682
+-- edge.rtf flipped 670 ^ 38
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 388
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=caa5562f3a718d99
+-- edge.rtf flipped 693 ^ 8e
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=eb358d2099456da8
+-- edge.rtf flipped 716 ^ e4
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=f19d2068f66fd2b9
+-- edge.rtf flipped 739 ^ 3b
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 358
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=2f88c42400047445
+-- edge.rtf flipped 762 ^ 91
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=62e9afa593663c00
+-- edge.rtf flipped 785 ^ e7
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=ee0209b6c36ef071
+-- edge.rtf flipped 808 ^ 3e
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 831 ^ 94
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=c38c7798f6fd0a21
+-- edge.rtf flipped 854 ^ ea
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 877 ^ 41
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 900 ^ 97
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 923 ^ ed
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=3639ede46766dac2
+-- edge.rtf flipped 946 ^ 44
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=00faff2d0a4a97cd
+-- edge.rtf flipped 969 ^ 9a
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=1d1a34dd8a0b3d64
+-- edge.rtf flipped 992 ^ f0
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=7e323ae120f4133e
+-- edge.rtf flipped 1015 ^ 47
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=690e929a89338d32
+-- edge.rtf flipped 1038 ^ 9d
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 1061 ^ f3
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 1084 ^ 4a
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
+-- edge.rtf flipped 1107 ^ a0
+load: ok
+title="" subject="Edge cases" author="Author nested name"
+height 200: 373
+pixels: 200x300 SDL_PIXELFORMAT_ARGB8888 hash=94f151f177632797
