@@ -11,10 +11,11 @@ executables (the tests' reference outputs were made with glslang 16.6.0 and
 the SPIRV-Tools of the same release).
 
 It also writes malformed variants of some of them ("*_bad_*.spv",
-"*_ub_*.spv" and "*_guard_*.spv", listed in MALFORMED below): truncated,
-with a broken header, an instruction claiming zero or too many words,
-out-of-range IDs and member indices, and flipped bytes. The reference has SDL_shadercross's
-errors (or output) for the "bad" ones too.
+"*_ub_*.spv", "*_guard_*.spv" and "*_hang_*.spv", listed in MALFORMED
+below): truncated, with a broken header, an instruction claiming zero or
+too many words, out-of-range IDs and member indices, and flipped bytes.
+The reference has SDL_shadercross's errors (or output) for the "bad"
+ones too.
 
 The shaders bind their resources where SDL's GPU API wants them (see
 SDL_CreateGPUShader): a vertex shader's sampled textures, storage textures
@@ -530,6 +531,10 @@ MALFORMED = [
     ('cs_ub_flip', 'cs_layout', lambda d: flip(d, (len(d) * 2 // 3,), 0x01)),
     ('vs_ub_entry_id', 'vs_storage',
      lambda d: pack(set_word(words(d), first_op(words(d), 15) + 2, words(d)[3] + 5))),
+    # A flip that sends a block chain back to an earlier block without a
+    # loop header, where SDL_shadercross loops forever; the translation
+    # stops with an error. Not in the reference.
+    ('fs_hang_block_chain', 'fs_complex', lambda d: flip(d, (4588,), 0x02)),
 ]
 
 
