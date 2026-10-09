@@ -17,6 +17,7 @@ pub mod ftlcdfil;
 pub mod ftmemory;
 pub mod ftobjs;
 pub mod ftoutln;
+pub mod ftpsprop;
 pub mod ftrfork;
 pub mod ftstream;
 pub mod ftstroke;

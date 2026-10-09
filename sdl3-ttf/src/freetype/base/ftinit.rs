@@ -21,8 +21,8 @@
 //!
 //! The module list is upstream's (`ftmodule.h`, as SDL_ttf's bundled build
 //! generates it), in its order, minus the modules not translated yet: the
-//! Type 1, CFF, CID, PFR, Type 42, Windows FNT, PCF and BDF drivers, the
-//! PostScript auxiliary and hinter modules, and the OT-SVG renderer.
+//! Type 1, CID, PFR, Type 42, Windows FNT, PCF and BDF drivers, and the
+//! OT-SVG renderer.
 
 use std::sync::Arc;
 
@@ -35,18 +35,16 @@ fn ft_default_modules() -> Vec<FtModuleClassRef> {
         FtModuleClassRef::Module(&crate::freetype::autofit::afmodule::AUTOFIT_MODULE_CLASS),
         FtModuleClassRef::Driver(&crate::freetype::truetype::ttdriver::TT_DRIVER_CLASS),
         /* FT_USE_MODULE( FT_Driver_ClassRec, t1_driver_class ) */
-        /* FT_USE_MODULE( FT_Driver_ClassRec, cff_driver_class ) */
+        FtModuleClassRef::Driver(&crate::freetype::cff::cffdrivr::CFF_DRIVER_CLASS),
         /* FT_USE_MODULE( FT_Driver_ClassRec, t1cid_driver_class ) */
         /* FT_USE_MODULE( FT_Driver_ClassRec, pfr_driver_class ) */
         /* FT_USE_MODULE( FT_Driver_ClassRec, t42_driver_class ) */
         /* FT_USE_MODULE( FT_Driver_ClassRec, winfnt_driver_class ) */
         /* FT_USE_MODULE( FT_Driver_ClassRec, pcf_driver_class ) */
         /* FT_USE_MODULE( FT_Driver_ClassRec, bdf_driver_class ) */
-        /* FT_USE_MODULE( FT_Module_Class, psaux_module_class ) */
-        /* (not translated yet) */
+        FtModuleClassRef::Module(&crate::freetype::psaux::psauxmod::PSAUX_MODULE_CLASS),
         FtModuleClassRef::Module(&crate::freetype::psnames::psmodule::PSNAMES_MODULE_CLASS),
-        /* FT_USE_MODULE( FT_Module_Class, pshinter_module_class ) */
-        /* (not translated yet) */
+        FtModuleClassRef::Module(&crate::freetype::pshinter::pshmod::PSHINTER_MODULE_CLASS),
         FtModuleClassRef::Module(&crate::freetype::sfnt::sfdriver::SFNT_MODULE_CLASS),
         FtModuleClassRef::Renderer(&crate::freetype::smooth::ftsmooth::FT_SMOOTH_RENDERER_CLASS),
         FtModuleClassRef::Renderer(&crate::freetype::raster::ftrend1::FT_RASTER1_RENDERER_CLASS),
