@@ -37,6 +37,11 @@ type LoadFn = fn(&mut IoStream<'_>) -> Result<Surface<'static>>;
 static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     /* keep magicless formats first */
     ("TGA", None, crate::tga::load_tga_io),
+    (
+        "AVIF",
+        Some(crate::avif::is_avif),
+        crate::avif::load_avif_io,
+    ),
     ("CUR", Some(crate::bmp::is_cur), crate::bmp::load_cur_io),
     ("ICO", Some(crate::bmp::is_ico), crate::bmp::load_ico_io),
     ("BMP", Some(crate::bmp::is_bmp), crate::bmp::load_bmp_io),
@@ -63,8 +68,6 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
 type LoadAnimFn = fn(&mut IoStream<'_>) -> Result<Animation>;
 
 /* Table of animation detection and loading functions */
-// (AVIFS is left out, as in an upstream build without libavif, whose
-// detector then accepts nothing)
 static SUPPORTED_ANIMS: &[(&str, Option<IsFn>, LoadAnimFn)] = &[
     /* keep magicless formats first */
     (
@@ -81,6 +84,11 @@ static SUPPORTED_ANIMS: &[(&str, Option<IsFn>, LoadAnimFn)] = &[
         "APNG",
         Some(crate::png::is_png),
         crate::anim_decoder::load_apng_animation_io,
+    ),
+    (
+        "AVIFS",
+        Some(crate::avif::is_avif),
+        crate::anim_decoder::load_avif_animation_io,
     ),
     (
         "ANI",
@@ -283,7 +291,8 @@ pub fn save(surface: &mut Surface<'_>, file: impl AsRef<Path>) -> Result<()> {
 /// extension compared without case: `"bmp"`, `"cur"`, `"gif"`, `"ico"`,
 /// `"jpg"` or `"jpeg"` (at quality 90), `"png"`, `"tga"` or `"webp"` (at
 /// quality 90). AVIF saving needs an encoder this crate doesn't have, and
-/// reports so as an upstream build without it. Translation of
+/// reports so as an upstream build without it (see
+/// [`save_avif_io`](crate::save_avif_io)). Translation of
 /// `IMG_SaveTyped_IO()`.
 pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &str) -> Result<()> {
     if type_.is_empty() {
@@ -292,7 +301,7 @@ pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &
 
     let is = |name: &str| strcasecmp(type_, name).is_eq();
     if is("avif") {
-        Err(Error::new("SDL_image built without AVIF save support"))
+        crate::avif::save_avif_io(surface, dst, 90)
     } else if is("bmp") {
         crate::bmp::save_bmp_io(surface, dst)
     } else if is("cur") {

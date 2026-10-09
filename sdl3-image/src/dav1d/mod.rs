@@ -76,7 +76,10 @@ use std::sync::Arc;
 #[allow(unused_imports)]
 pub(crate) use data::{Dav1dData, Dav1dDataProps};
 #[allow(unused_imports)]
-pub(crate) use headers::{Dav1dFrameHeader, Dav1dSequenceHeader};
+pub(crate) use headers::{
+    Dav1dFrameHeader, Dav1dSequenceHeader, DAV1D_PIXEL_LAYOUT_I400, DAV1D_PIXEL_LAYOUT_I420,
+    DAV1D_PIXEL_LAYOUT_I422, DAV1D_PIXEL_LAYOUT_I444,
+};
 #[allow(unused_imports)]
 pub(crate) use internal::{
     Dav1dContext, Dav1dLogger, DAV1D_DECODEFRAMETYPE_ALL, DAV1D_DECODEFRAMETYPE_INTRA,
@@ -90,6 +93,11 @@ pub(crate) use picture::{Dav1dPicture, PicPlanes, PictureData};
 use decode::{dav1d_err, EAGAIN, EINVAL, ENOMEM};
 use internal::{Dav1dFrameContext, Dav1dTaskContext};
 use picture::{picture_alloc_copy, Dav1dThreadPicture};
+
+/// `DAV1D_ERR(EAGAIN)`: the data or picture isn't ready yet.
+pub(crate) const fn dav1d_err_eagain() -> i32 {
+    dav1d_err(EAGAIN)
+}
 
 /// `DAV1D_MAX_THREADS`
 pub(crate) const DAV1D_MAX_THREADS: i32 = 256;
