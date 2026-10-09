@@ -19,6 +19,7 @@ use std::collections::HashSet;
 use super::common::*;
 use super::cross::*;
 use super::glsl::*;
+use super::msl::*;
 use super::parsed_ir::ParsedIR;
 use super::parser::Parser;
 use super::spirv::*;
@@ -319,6 +320,7 @@ pub struct SpvcCompiler {
 pub struct SpvcCompilerOptions {
     backend_flags: u32,
     pub glsl: GlslOptions,
+    pub msl: MslOptions,
 }
 
 /// `struct spvc_set_s`.
@@ -448,11 +450,13 @@ impl SpvcCompiler {
         let mut opt = SpvcCompilerOptions {
             backend_flags: 0,
             glsl: GlslOptions::default(),
+            msl: MslOptions::default(),
         };
         match self.backend {
             SpvcBackend::Msl => {
                 opt.backend_flags |= SPVC_COMPILER_OPTION_MSL_BIT | SPVC_COMPILER_OPTION_COMMON_BIT;
                 opt.glsl = *self.compiler.get_common_options();
+                opt.msl = *self.compiler.get_msl_options();
             }
             SpvcBackend::Hlsl => {
                 opt.backend_flags |=
@@ -472,8 +476,12 @@ impl SpvcCompiler {
     /// `spvc_compiler_install_compiler_options()`.
     pub fn install_compiler_options(&mut self, options: &SpvcCompilerOptions) -> SpvcResult {
         match self.backend {
-            SpvcBackend::Glsl | SpvcBackend::Hlsl | SpvcBackend::Msl => {
+            SpvcBackend::Glsl | SpvcBackend::Hlsl => {
                 self.compiler.set_common_options(&options.glsl)
+            }
+            SpvcBackend::Msl => {
+                self.compiler.set_common_options(&options.glsl);
+                self.compiler.set_msl_options(&options.msl);
             }
             SpvcBackend::None => {}
         }
@@ -696,6 +704,187 @@ impl SpvcCompilerOptions {
             SPVC_COMPILER_OPTION_RELAX_NAN_CHECKS => self.glsl.relax_nan_checks = value != 0,
             SPVC_COMPILER_OPTION_GLSL_ENABLE_ROW_MAJOR_LOAD_WORKAROUND => {
                 self.glsl.enable_row_major_load_workaround = value != 0
+            }
+
+            SPVC_COMPILER_OPTION_MSL_VERSION => self.msl.msl_version = value,
+            SPVC_COMPILER_OPTION_MSL_TEXEL_BUFFER_TEXTURE_WIDTH => {
+                self.msl.texel_buffer_texture_width = value
+            }
+            SPVC_COMPILER_OPTION_MSL_SWIZZLE_BUFFER_INDEX => self.msl.swizzle_buffer_index = value,
+            SPVC_COMPILER_OPTION_MSL_INDIRECT_PARAMS_BUFFER_INDEX => {
+                self.msl.indirect_params_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_OUTPUT_BUFFER_INDEX => {
+                self.msl.shader_output_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_PATCH_OUTPUT_BUFFER_INDEX => {
+                self.msl.shader_patch_output_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_TESS_FACTOR_OUTPUT_BUFFER_INDEX => {
+                self.msl.shader_tess_factor_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_INPUT_WORKGROUP_INDEX => {
+                self.msl.shader_input_wg_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_POINT_SIZE_BUILTIN => {
+                self.msl.enable_point_size_builtin = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_POINT_SIZE_DEFAULT => {
+                self.msl.enable_point_size_default = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_DISABLE_RASTERIZATION => {
+                self.msl.disable_rasterization = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_AUTO_DISABLE_RASTERIZATION => {
+                self.msl.auto_disable_rasterization = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_CAPTURE_OUTPUT_TO_BUFFER => {
+                self.msl.capture_output_to_buffer = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_SWIZZLE_TEXTURE_SAMPLES => {
+                self.msl.swizzle_texture_samples = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_PAD_FRAGMENT_OUTPUT_COMPONENTS => {
+                self.msl.pad_fragment_output_components = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_TESS_DOMAIN_ORIGIN_LOWER_LEFT => {
+                self.msl.tess_domain_origin_lower_left = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_PLATFORM => {
+                self.msl.platform = if value == 0 {
+                    MslPlatform::IOS
+                } else {
+                    MslPlatform::MacOS
+                }
+            }
+            SPVC_COMPILER_OPTION_MSL_ARGUMENT_BUFFERS => self.msl.argument_buffers = value != 0,
+            SPVC_COMPILER_OPTION_MSL_TEXTURE_BUFFER_NATIVE => {
+                self.msl.texture_buffer_native = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_BUFFER_SIZE_BUFFER_INDEX => {
+                self.msl.buffer_size_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_MULTIVIEW => self.msl.multiview = value != 0,
+            SPVC_COMPILER_OPTION_MSL_VIEW_MASK_BUFFER_INDEX => {
+                self.msl.view_mask_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_DEVICE_INDEX => self.msl.device_index = value,
+            SPVC_COMPILER_OPTION_MSL_VIEW_INDEX_FROM_DEVICE_INDEX => {
+                self.msl.view_index_from_device_index = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_DISPATCH_BASE => self.msl.dispatch_base = value != 0,
+            SPVC_COMPILER_OPTION_MSL_DYNAMIC_OFFSETS_BUFFER_INDEX => {
+                self.msl.dynamic_offsets_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_TEXTURE_1D_AS_2D => self.msl.texture_1D_as_2D = value != 0,
+            SPVC_COMPILER_OPTION_MSL_ENABLE_BASE_INDEX_ZERO => {
+                self.msl.enable_base_index_zero = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_FRAMEBUFFER_FETCH_SUBPASS => {
+                self.msl.use_framebuffer_fetch_subpasses = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_INVARIANT_FP_MATH => {
+                self.msl.invariant_float_math = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_EMULATE_CUBEMAP_ARRAY => {
+                self.msl.emulate_cube_array = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_DECORATION_BINDING => {
+                self.msl.enable_decoration_binding = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_FORCE_ACTIVE_ARGUMENT_BUFFER_RESOURCES => {
+                self.msl.force_active_argument_buffer_resources = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_FORCE_NATIVE_ARRAYS => {
+                self.msl.force_native_arrays = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_FRAG_OUTPUT_MASK => {
+                self.msl.enable_frag_output_mask = value
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_FRAG_DEPTH_BUILTIN => {
+                self.msl.enable_frag_depth_builtin = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_FRAG_STENCIL_REF_BUILTIN => {
+                self.msl.enable_frag_stencil_ref_builtin = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ENABLE_CLIP_DISTANCE_USER_VARYING => {
+                self.msl.enable_clip_distance_user_varying = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_MULTI_PATCH_WORKGROUP => {
+                self.msl.multi_patch_workgroup = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_INPUT_BUFFER_INDEX => {
+                self.msl.shader_input_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_INDEX_BUFFER_INDEX => {
+                self.msl.shader_index_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_VERTEX_FOR_TESSELLATION => {
+                self.msl.vertex_for_tessellation = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_VERTEX_INDEX_TYPE => {
+                self.msl.vertex_index_type = match value {
+                    0 => IndexType::None,
+                    1 => IndexType::UInt16,
+                    _ => IndexType::UInt32,
+                }
+            }
+            SPVC_COMPILER_OPTION_MSL_MULTIVIEW_LAYERED_RENDERING => {
+                self.msl.multiview_layered_rendering = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ARRAYED_SUBPASS_INPUT => {
+                self.msl.arrayed_subpass_input = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_R32UI_LINEAR_TEXTURE_ALIGNMENT => {
+                self.msl.r32ui_linear_texture_alignment = value
+            }
+            SPVC_COMPILER_OPTION_MSL_R32UI_ALIGNMENT_CONSTANT_ID => {
+                self.msl.r32ui_alignment_constant_id = value
+            }
+            SPVC_COMPILER_OPTION_MSL_IOS_USE_SIMDGROUP_FUNCTIONS => {
+                self.msl.ios_use_simdgroup_functions = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_EMULATE_SUBGROUPS => self.msl.emulate_subgroups = value != 0,
+            SPVC_COMPILER_OPTION_MSL_FIXED_SUBGROUP_SIZE => self.msl.fixed_subgroup_size = value,
+            SPVC_COMPILER_OPTION_MSL_FORCE_SAMPLE_RATE_SHADING => {
+                self.msl.force_sample_rate_shading = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_IOS_SUPPORT_BASE_VERTEX_INSTANCE => {
+                self.msl.ios_support_base_vertex_instance = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_RAW_BUFFER_TESE_INPUT => {
+                self.msl.raw_buffer_tese_input = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_SHADER_PATCH_INPUT_BUFFER_INDEX => {
+                self.msl.shader_patch_input_buffer_index = value
+            }
+            SPVC_COMPILER_OPTION_MSL_MANUAL_HELPER_INVOCATION_UPDATES => {
+                self.msl.manual_helper_invocation_updates = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_CHECK_DISCARDED_FRAG_STORES => {
+                self.msl.check_discarded_frag_stores = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_ARGUMENT_BUFFERS_TIER => {
+                self.msl.argument_buffers_tier = if value == 0 {
+                    ArgumentBuffersTier::Tier1
+                } else {
+                    ArgumentBuffersTier::Tier2
+                }
+            }
+            SPVC_COMPILER_OPTION_MSL_SAMPLE_DREF_LOD_ARRAY_AS_GRAD => {
+                self.msl.sample_dref_lod_array_as_grad = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_READWRITE_TEXTURE_FENCES => {
+                self.msl.readwrite_texture_fences = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_REPLACE_RECURSIVE_INPUTS => {
+                self.msl.replace_recursive_inputs = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_AGX_MANUAL_CUBE_GRAD_FIXUP => {
+                self.msl.agx_manual_cube_grad_fixup = value != 0
+            }
+            SPVC_COMPILER_OPTION_MSL_FORCE_FRAGMENT_WITH_SIDE_EFFECTS_EXECUTION => {
+                self.msl.force_fragment_with_side_effects_execution = value != 0
             }
 
             _ => {
