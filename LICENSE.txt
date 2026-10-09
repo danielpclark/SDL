@@ -1636,6 +1636,6 @@ FROM,OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE USE OR OTHER DEALINGS
 IN THE MATERIALS.
 --- end of Khronos license ---
 
-The SPIR-V test shaders in sdl3-shadercross/src/testdata/ were written for
+The SPIR-V test shaders in sdl3-shadercross/testdata/ were written for
 its tests (and compiled with glslang by tools/gen_shadercross_testdata.py);
 they are under the zlib license too.
