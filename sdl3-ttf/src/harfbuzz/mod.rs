@@ -67,11 +67,21 @@ pub mod hb_ot_layout_gpos;
 pub mod hb_ot_layout_gsub;
 pub mod hb_ot_layout_gsubgpos;
 pub mod hb_ot_map;
+pub mod hb_ot_shape;
+pub mod hb_ot_shape_fallback;
+pub mod hb_ot_shape_normalize;
+pub mod hb_ot_shaper;
 pub mod hb_ot_shaper_arabic_pua;
+pub mod hb_ot_tag;
+pub mod hb_ot_tag_table;
 pub mod hb_sanitize;
 pub mod hb_set;
 pub mod hb_set_digest;
+pub mod hb_shape;
 pub mod hb_ucd;
 pub mod hb_ucd_table;
 pub mod hb_unicode;
 pub mod hb_unicode_emoji_table;
+
+#[cfg(test)]
+mod tests;

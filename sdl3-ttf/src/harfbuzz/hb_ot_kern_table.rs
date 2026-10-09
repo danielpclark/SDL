@@ -668,7 +668,7 @@ fn subtable_apply(
 
             let cross_stream = h.coverage(d, st) & h.cross_stream() != 0;
             let (left_set, right_set) = sets;
-            let mut driver = |left: HbCodepoint, right: HbCodepoint| -> i32 {
+            let mut driver = |_font: &mut HbFont, left: HbCodepoint, right: HbCodepoint| -> i32 {
                 match format {
                     0 => {
                         /* accelerator_t::get_kerning */
@@ -703,8 +703,8 @@ fn subtable_apply(
 }
 
 /// `hb_kern_machine_t::kern`
-fn hb_kern_machine_kern(
-    driver: &mut dyn FnMut(HbCodepoint, HbCodepoint) -> i32,
+pub(crate) fn hb_kern_machine_kern(
+    driver: &mut dyn FnMut(&mut HbFont, HbCodepoint, HbCodepoint) -> i32,
     cross_stream: bool,
     face: &HbFace,
     font: &mut HbFont,
@@ -738,7 +738,8 @@ fn hb_kern_machine_kern(
         let i = idx as usize;
         let j = c.iter_input.idx as usize;
 
-        let mut kern = driver(c.buffer.info[i].codepoint, c.buffer.info[j].codepoint);
+        let (left, right) = (c.buffer.info[i].codepoint, c.buffer.info[j].codepoint);
+        let mut kern = driver(c.font, left, right);
 
         'skip: {
             if kern == 0 {

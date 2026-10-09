@@ -28,6 +28,7 @@ use super::hb_ot_kern_table::KernAccel;
 use super::hb_ot_layout_gdef::GdefAccel;
 use super::hb_ot_layout_gsubgpos::{GsubGposAccel, GsubGposKind};
 use super::hb_sanitize::hb_sanitize_blob;
+use super::hb_shape::HbShapePlanCache;
 
 /// `HB_OT_TAG_GDEF`
 pub const HB_OT_TAG_GDEF: HbTag = hb_tag(b'G', b'D', b'E', b'F');
@@ -84,6 +85,9 @@ pub struct HbFace {
     gpos: OnceLock<GsubGposAccel>,
     kern: OnceLock<KernAccel>,
     os2: OnceLock<Vec<u8>>,
+
+    /* shape plans */
+    pub(crate) shape_plans: HbShapePlanCache,
 }
 
 impl std::fmt::Debug for HbFace {
@@ -109,6 +113,7 @@ impl HbFace {
             gpos: OnceLock::new(),
             kern: OnceLock::new(),
             os2: OnceLock::new(),
+            shape_plans: HbShapePlanCache::default(),
         };
         if upem != 0 {
             let _ = face.upem.set(upem);
