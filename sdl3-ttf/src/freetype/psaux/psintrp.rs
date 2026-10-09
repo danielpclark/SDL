@@ -120,7 +120,7 @@ fn cf2_hintmask_read(
 
     /* set mask and advance interpreter's charstring pointer */
     for i in 0..hintmask.byteCount {
-        hintmask.mask[i] = cf2_buf_read_byte(charstring, error) as FtByte;
+        hintmask.mask[i] = cf2_buf_read_byte(charstring) as FtByte;
     }
 
     /* assert any unused bits in last byte are zero unless there's a prior */
@@ -560,8 +560,7 @@ pub fn cf2_interp_t2_char_string(
                     op1 = CF2_CMD_ENDCHAR; /* end of buffer for top level charstring */
                 }
             } else {
-                op1 =
-                    cf2_buf_read_byte(&mut subr_stack.items[charstring], &mut font.error) as FtByte;
+                op1 = cf2_buf_read_byte(&mut subr_stack.items[charstring]) as FtByte;
 
                 /* Explicit RETURN and ENDCHAR in CFF2 should be ignored. */
                 /* Note: Trace message will report 0 instead of 11 or 14. */
@@ -916,8 +915,7 @@ pub fn cf2_interp_t2_char_string(
 
                 CF2_CMD_ESC => {
                     let op2: FtByte =
-                        cf2_buf_read_byte(&mut subr_stack.items[charstring], &mut font.error)
-                            as FtByte;
+                        cf2_buf_read_byte(&mut subr_stack.items[charstring]) as FtByte;
 
                     /* first switch for 2-byte operators handles CFF2      */
                     /* and opcodes that are reserved for both CFF and CFF2 */
@@ -1853,10 +1851,8 @@ pub fn cf2_interp_t2_char_string(
                 }
 
                 CF2_CMD_EXTENDEDNMBR => {
-                    let byte1: Cf2Int =
-                        cf2_buf_read_byte(&mut subr_stack.items[charstring], &mut font.error);
-                    let byte2: Cf2Int =
-                        cf2_buf_read_byte(&mut subr_stack.items[charstring], &mut font.error);
+                    let byte1: Cf2Int = cf2_buf_read_byte(&mut subr_stack.items[charstring]);
+                    let byte2: Cf2Int = cf2_buf_read_byte(&mut subr_stack.items[charstring]);
 
                     let v: Cf2Int = ((byte1 << 8) | byte2) as FtShort as Cf2Int;
 
@@ -1879,7 +1875,7 @@ pub fn cf2_interp_t2_char_string(
                         let mut v: Cf2Int = op1 as Cf2Int;
                         v -= 247;
                         v *= 256;
-                        v += cf2_buf_read_byte(&mut subr_stack.items[charstring], &mut font.error);
+                        v += cf2_buf_read_byte(&mut subr_stack.items[charstring]);
                         v += 108;
 
                         /* 108 .. 1131 */
@@ -1890,7 +1886,7 @@ pub fn cf2_interp_t2_char_string(
                         let mut v: Cf2Int = op1 as Cf2Int;
                         v -= 251;
                         v *= 256;
-                        v += cf2_buf_read_byte(&mut subr_stack.items[charstring], &mut font.error);
+                        v += cf2_buf_read_byte(&mut subr_stack.items[charstring]);
                         v = -v - 108;
 
                         /* -1131 .. -108 */
@@ -1898,10 +1894,10 @@ pub fn cf2_interp_t2_char_string(
                     } else {
                         /* op1 == 255 */
                         let cs = &mut subr_stack.items[charstring];
-                        let byte1 = cf2_buf_read_byte(cs, &mut font.error) as FtUInt32;
-                        let byte2 = cf2_buf_read_byte(cs, &mut font.error) as FtUInt32;
-                        let byte3 = cf2_buf_read_byte(cs, &mut font.error) as FtUInt32;
-                        let byte4 = cf2_buf_read_byte(cs, &mut font.error) as FtUInt32;
+                        let byte1 = cf2_buf_read_byte(cs) as FtUInt32;
+                        let byte2 = cf2_buf_read_byte(cs) as FtUInt32;
+                        let byte3 = cf2_buf_read_byte(cs) as FtUInt32;
+                        let byte4 = cf2_buf_read_byte(cs) as FtUInt32;
 
                         let v: Cf2Fixed =
                             ((byte1 << 24) | (byte2 << 16) | (byte3 << 8) | byte4) as Cf2Fixed;
