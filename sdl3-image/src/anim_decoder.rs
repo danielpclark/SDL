@@ -4,8 +4,8 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation decoders: frames one at a time from a file or a stream, by
-//! format (GIF, ANI and WebP here; APNG and AVIF need their libraries,
-//! which this crate doesn't have, as an upstream build without them), with
+//! format (GIF, ANI, WebP and AVIF here; APNG needs libpng, which this
+//! crate doesn't have, as an upstream build without it), with
 //! a single-frame decoder for every other format; and whole animations
 //! decoded into an [`Animation`](crate::Animation).
 
@@ -18,6 +18,7 @@ use sdl3::stdlib::string::strcasecmp;
 use sdl3::video::Surface;
 
 use crate::ani::{create_ani_animation_decoder, AniDecoderContext};
+use crate::avif::{create_avif_animation_decoder, AvifDecoderContext};
 use crate::gif::{create_gif_animation_decoder, GifContext};
 use crate::img::{timebase_duration, Animation};
 use crate::webp::{create_webp_animation_decoder, WebpDecoderContext};
@@ -47,16 +48,20 @@ pub const PROP_ANIMATION_DECODER_CREATE_TIMEBASE_NUMERATOR_NUMBER: &str =
 /// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER`.
 pub const PROP_ANIMATION_DECODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER: &str =
     "SDL_image.animation_decoder.create.timebase.denominator";
-/// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER`
-/// (for the AVIF decoder, not in this crate).
+/// The number of threads the AVIF decoder's AV1 decoder may use (a number,
+/// default half the logical CPU cores, clamped to 1 to their number).
+/// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER`.
 pub const PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER: &str =
     "SDL_image.animation_decoder.create.avif.max_threads";
 /// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN`
-/// (for the AVIF decoder, not in this crate).
+/// (which upstream's AVIF decoder doesn't read: it takes the incremental
+/// mode from [`PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN`]).
 pub const PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN: &str =
     "SDL_image.animation_decoder.create.avif.allow_incremental";
-/// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN`
-/// (for the AVIF decoder, not in this crate).
+/// Whether the AVIF decoder decodes the layers of a progressive image as
+/// frames (a boolean, default true; also its incremental mode, default
+/// false). Translation of
+/// `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN`.
 pub const PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN: &str =
     "SDL_image.animation_decoder.create.avif.allow_progressive";
 /// The GIF encoder's transparent color index (a number; despite its name,
@@ -172,6 +177,7 @@ pub(crate) enum DecoderContext {
     Gif(Box<GifContext>),
     Ani(Box<AniDecoderContext>),
     Webp(Box<WebpDecoderContext>),
+    Avif(Box<AvifDecoderContext>),
 }
 
 /// A decoder of the frames of an animation, one at a time. Translation of
@@ -189,6 +195,7 @@ impl std::fmt::Debug for AnimationDecoder<'_, '_> {
             DecoderContext::Gif(_) => "gif",
             DecoderContext::Ani(_) => "ani",
             DecoderContext::Webp(_) => "webp",
+            DecoderContext::Avif(_) => "avif",
         };
         f.debug_struct("AnimationDecoder")
             .field("status", &self.core.status)
@@ -353,7 +360,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
         } else if is("apng") || is("png") {
             Err(Error::new("SDL_image not built against libpng."))
         } else if is("avifs") || is("avif") {
-            Err(Error::new("SDL_image built without AVIF animation support"))
+            create_avif_animation_decoder(d, props).map(DecoderContext::Avif)
         } else if is("gif") {
             create_gif_animation_decoder(d, props).map(DecoderContext::Gif)
         } else if is("webp") {
@@ -403,6 +410,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
             DecoderContext::Gif(ctx) => ctx.get_next_frame(d),
             DecoderContext::Ani(ctx) => ctx.get_next_frame(d),
             DecoderContext::Webp(ctx) => ctx.get_next_frame(d),
+            DecoderContext::Avif(ctx) => ctx.get_next_frame(d),
         };
 
         // (the formats return Ok(None) with the COMPLETE status, where
@@ -437,6 +445,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
                 ctx.reset();
                 Ok(())
             }
+            DecoderContext::Avif(ctx) => ctx.reset(d),
         }
     }
 
@@ -561,9 +570,9 @@ pub fn load_apng_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
     decode_as_animation(src, "png", 0)
 }
 
-/// Load an AVIF image sequence as an animation: AVIF isn't decoded here
-/// (upstream needs libavif), so this fails as an upstream build without
-/// it does. Translation of `IMG_LoadAVIFAnimation_IO()`.
+/// Load an AVIF image sequence (or a still image, as one frame, or the
+/// layers of a progressive one) as an animation. Translation of
+/// `IMG_LoadAVIFAnimation_IO()`.
 pub fn load_avif_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
     decode_as_animation(src, "avifs", 0)
 }

@@ -112,6 +112,1425 @@ gif_enc lut16: err:
 ani_enc meta: bytes=10952 hash=26eccb8bff2e61e1 | reload: n=5 32x32 frames=5 title="harness title" author="an author" | 0: 32x32 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=2256d1eb388bcf8c blend=1 hot=9,10 delay=67 | 1: 5x3 SDL_PIXELFORMAT_ABGR8888 pitch=20 hash=c5642f58bb6b3fc5 blend=1 hot=0,0 delay=116 | 2: 24x24 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=e985a40ee0051d8e blend=1 hot=0,0 delay=167 | 3: 5x3 SDL_PIXELFORMAT_ABGR8888 pitch=20 hash=c5642f58bb6b3fc5 blend=1 hot=0,0 delay=217 | 4: 32x32 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=2256d1eb388bcf8c blend=1 hot=9,10 delay=266
 webp_enc ll meta: err: WebPMuxGetAnimationParams() failed
 webp_enc q30 dup: err: 
+== avif_10bit_420.avif
+is: AVIF
+is_extra:
+load: 22x14 SDL_PIXELFORMAT_XBGR2101010 pitch=88 hash=c74a3d6d460b6e5f blend=0
+load_io: 22x14 SDL_PIXELFORMAT_XBGR2101010 pitch=88 hash=c74a3d6d460b6e5f blend=0
+typed: 22x14 SDL_PIXELFORMAT_XBGR2101010 pitch=88 hash=c74a3d6d460b6e5f blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 326: err: Couldn't get AVIF image: Truncated data
+trunc 489: err: Couldn't get AVIF image: Truncated data
+trunc 651: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 22x14 loop=1 frames=1 | 0: 22x14 SDL_PIXELFORMAT_XBGR2101010 pitch=88 hash=c74a3d6d460b6e5f blend=0 delay=1
+anim_typed: n=1 22x14 loop=1 frames=1 | 0: 22x14 SDL_PIXELFORMAT_XBGR2101010 pitch=88 hash=c74a3d6d460b6e5f blend=0 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 326: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 489: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 651: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f | status=2 | reset=1 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f
+decoder tb100: ok loop=1 frames=1 | 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f | status=2 | reset=1 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f
+hdr: 22x14 SDL_PIXELFORMAT_XBGR2101010 pitch=88 hash=c74a3d6d460b6e5f blend=0 cs=12002600 maxcll=800 maxfall=300 sdr=434b0000 headroom=407c377d
+decoder hdr: ok loop=1 frames=1 | 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f cs=12002609 maxcll=800 maxfall=300 sdr=434b0000 headroom=407c377d | status=2 | reset=1 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f
+decoder noprog: ok loop=1 frames=1 | 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f | status=2 | reset=1 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f
+decoder ignore: ok | 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f | status=2 | reset=1 1:22x14:SDL_PIXELFORMAT_XBGR2101010:c74a3d6d460b6e5f
+== avif_10bit_444_hlg.avif
+is: AVIF
+is_extra:
+load: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=8ba49b92be9c0861 blend=1
+load_io: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=8ba49b92be9c0861 blend=1
+typed: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=8ba49b92be9c0861 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 395: err: Couldn't get AVIF image: Truncated data
+trunc 593: err: Couldn't get AVIF image: Truncated data
+trunc 790: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 18x10 loop=1 frames=1 | 0: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=eaa4b10d4cb1c15d blend=1 delay=1
+anim_typed: n=1 18x10 loop=1 frames=1 | 0: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=eaa4b10d4cb1c15d blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 395: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 593: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 790: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d
+decoder tb100: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d
+hdr: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=8ba49b92be9c0861 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d cs=12002649 | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d
+decoder noprog: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d
+decoder ignore: ok | 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_ABGR8888:eaa4b10d4cb1c15d
+== avif_10bit_444_pq_identity.avif
+is: AVIF
+is_extra:
+load: 18x10 SDL_PIXELFORMAT_XBGR2101010 pitch=72 hash=e275a74a15273d7f blend=0
+load_io: 18x10 SDL_PIXELFORMAT_XBGR2101010 pitch=72 hash=e275a74a15273d7f blend=0
+typed: 18x10 SDL_PIXELFORMAT_XBGR2101010 pitch=72 hash=e275a74a15273d7f blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 395: err: Couldn't get AVIF image: Truncated data
+trunc 593: err: Couldn't get AVIF image: Truncated data
+trunc 790: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 18x10 loop=1 frames=1 | 0: 18x10 SDL_PIXELFORMAT_XBGR2101010 pitch=72 hash=e275a74a15273d7f blend=0 delay=1
+anim_typed: n=1 18x10 loop=1 frames=1 | 0: 18x10 SDL_PIXELFORMAT_XBGR2101010 pitch=72 hash=e275a74a15273d7f blend=0 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 395: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 593: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 790: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f
+decoder tb100: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f
+hdr: 18x10 SDL_PIXELFORMAT_XBGR2101010 pitch=72 hash=e275a74a15273d7f blend=0 cs=12002600 sdr=434b0000 headroom=409da2ae
+decoder hdr: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f cs=12002600 maxcll=1000 maxfall=250 sdr=434b0000 headroom=409da2ae | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f
+decoder noprog: ok loop=1 frames=1 | 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f
+decoder ignore: ok | 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f | status=2 | reset=1 1:18x10:SDL_PIXELFORMAT_XBGR2101010:e275a74a15273d7f
+save_anim gif: bytes=1023 hash=e1a07232af45a22c | reload: n=1 18x10 loop=0 | 0: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=82014102c141e47b blend=1 delay=100
+save_anim ani: bytes=656 hash=df3544940807d0de | reload: n=1 18x10 frames=1 | 0: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=82873d752b3a3d00 blend=1 hot=0,0 delay=0
+save_anim png: err: SDL_image not built against libpng.
+save_anim webp: bytes=366 hash=4b3367ce20ef3d89 | reload: n=1 18x10 loop=1 frames=1 | 0: 18x10 SDL_PIXELFORMAT_XBGR8888 pitch=72 hash=317c04ae33633f7c blend=0 delay=0
+save_anim avif: err: SDL_image built without AVIF animation save support
+save_anim xyz: err: Unsupported image format
+gif_enc lut16: bytes=209 hash=3b1da50d421e9433 | reload: n=1 18x10 loop=3 desc="made by the harness" | 0: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=fb917d07af5eb888 blend=1 delay=100
+ani_enc meta: bytes=708 hash=9afaa8f0706635ba | reload: n=1 18x10 frames=1 title="harness title" author="an author" | 0: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=82873d752b3a3d00 blend=1 hot=0,0 delay=17
+webp_enc ll meta: err: WebPMuxGetAnimationParams() failed
+webp_enc q30 dup: bytes=194 hash=8e80a48ecf583df1 | reload: n=1 18x10 loop=1 frames=1 | 0: 18x10 SDL_PIXELFORMAT_XBGR8888 pitch=72 hash=688868a33e4dce02 blend=0 delay=0
+save bmp: bytes=614 hash=b84e2ff9cbeaf872 | reload: err: Unsupported TGA format
+save png: bytes=545 hash=227c25647508555e | reload: err: Unsupported TGA format
+save tga: err: Unsupported SDL_Surface format for TGA saving. Supported formats are INDEX8, BGR24, RGB24, BGRA32, RGBA32, XRGB8888, XRGB1555, ARGB1555.
+save jpg: bytes=2062 hash=8bfc75c284e5c6b3 | reload: err: Unsupported TGA format
+save ico: bytes=568 hash=487e35d78d7663dc | reload: err: Unsupported TGA format
+save cur: bytes=568 hash=1959c2ed542d1c4f | reload: err: Unsupported TGA format
+save_jpg 10: bytes=1006 hash=a91abe4a6ab21842 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=1622 hash=f80e6057bbb61347 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=558 hash=b716ede6e2a3a550 | reload: 18x10 SDL_PIXELFORMAT_BGR24 pitch=56 hash=01bd5f51be679a66 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=558 hash=b716ede6e2a3a550 | reload: 18x10 SDL_PIXELFORMAT_BGR24 pitch=56 hash=01bd5f51be679a66 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=738 hash=2225a021f54839e2 | reload: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=5e4b66a62f4ddb30 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=738 hash=2225a021f54839e2 | reload: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=5e4b66a62f4ddb30 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=738 hash=2225a021f54839e2 | reload: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=5e4b66a62f4ddb30 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=378 hash=b8490adb0225a21a | reload: 18x10 SDL_PIXELFORMAT_XRGB1555 pitch=36 hash=76c0d6316fce3c80 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=378 hash=339cb6d4a57d7a3d | reload: 18x10 SDL_PIXELFORMAT_XRGB1555 pitch=36 hash=76c0d6316fce3c80 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=738 hash=2225a021f54839e2 | reload: 18x10 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=5e4b66a62f4ddb30 blend=1
+qoi_encode 3: bytes=660 hash=d7442c8760f9b022 | reload: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=82873d752b3a3d00 blend=1
+qoi_encode 4: bytes=660 hash=b21f450e5f4d18bd | reload: 18x10 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=82873d752b3a3d00 blend=1
+save gif: bytes=1023 hash=e1a07232af45a22c | reload: err: Unsupported TGA format
+save_webp 100: bytes=730 hash=4822323d1c8a555e | reload: 18x10 SDL_PIXELFORMAT_RGB24 pitch=56 hash=5826f97082ab9e17 blend=0
+save_webp 90: bytes=386 hash=ae73a2b3cc982c10 | reload: 18x10 SDL_PIXELFORMAT_RGB24 pitch=56 hash=1b87a6b8ea43ff1a blend=0
+save_webp 50: bytes=244 hash=0cc930d39f12dd92 | reload: 18x10 SDL_PIXELFORMAT_RGB24 pitch=56 hash=44745f7ab854bf48 blend=0
+save_webp 0: bytes=104 hash=0b9db22912c61700 | reload: 18x10 SDL_PIXELFORMAT_RGB24 pitch=56 hash=ba342a94a4aedcb5 blend=0
+== avif_12bit_400.avif
+is: AVIF
+is_extra:
+load: 15x9 SDL_PIXELFORMAT_ARGB8888 pitch=60 hash=ba66ba7852f0e7e2 blend=1
+load_io: 15x9 SDL_PIXELFORMAT_ARGB8888 pitch=60 hash=ba66ba7852f0e7e2 blend=1
+typed: 15x9 SDL_PIXELFORMAT_ARGB8888 pitch=60 hash=ba66ba7852f0e7e2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 193: err: Couldn't parse AVIF image: Truncated data
+trunc 290: err: Couldn't get AVIF image: Truncated data
+trunc 386: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 15x9 loop=1 frames=1 | 0: 15x9 SDL_PIXELFORMAT_ABGR8888 pitch=60 hash=ba66ba7852f0e7e2 blend=1 delay=1
+anim_typed: n=1 15x9 loop=1 frames=1 | 0: 15x9 SDL_PIXELFORMAT_ABGR8888 pitch=60 hash=ba66ba7852f0e7e2 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 193: err: Couldn't parse AVIF image: Truncated data
+anim trunc 290: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 386: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2 | status=2 | reset=1 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2
+decoder tb100: ok loop=1 frames=1 | 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2 | status=2 | reset=1 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2
+hdr: 15x9 SDL_PIXELFORMAT_ARGB8888 pitch=60 hash=ba66ba7852f0e7e2 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2 cs=120005a6 | status=2 | reset=1 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2
+decoder noprog: ok loop=1 frames=1 | 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2 | status=2 | reset=1 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2
+decoder ignore: ok | 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2 | status=2 | reset=1 1:15x9:SDL_PIXELFORMAT_ABGR8888:ba66ba7852f0e7e2
+== avif_12bit_422.avif
+is: AVIF
+is_extra:
+load: 17x11 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=0bd4ad7d624f9426 blend=1
+load_io: 17x11 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=0bd4ad7d624f9426 blend=1
+typed: 17x11 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=0bd4ad7d624f9426 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 311: err: Couldn't get AVIF image: Truncated data
+trunc 466: err: Couldn't get AVIF image: Truncated data
+trunc 621: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 17x11 loop=1 frames=1 | 0: 17x11 SDL_PIXELFORMAT_ABGR8888 pitch=68 hash=a2983dd545be7aa2 blend=1 delay=1
+anim_typed: n=1 17x11 loop=1 frames=1 | 0: 17x11 SDL_PIXELFORMAT_ABGR8888 pitch=68 hash=a2983dd545be7aa2 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 311: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 466: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 621: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2 | status=2 | reset=1 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2
+decoder tb100: ok loop=1 frames=1 | 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2 | status=2 | reset=1 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2
+hdr: 17x11 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=0bd4ad7d624f9426 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2 cs=120005a6 | status=2 | reset=1 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2
+decoder noprog: ok loop=1 frames=1 | 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2 | status=2 | reset=1 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2
+decoder ignore: ok | 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2 | status=2 | reset=1 1:17x11:SDL_PIXELFORMAT_ABGR8888:a2983dd545be7aa2
+== avif_8bit_400.avif
+is: AVIF
+is_extra:
+load: 19x13 SDL_PIXELFORMAT_ARGB8888 pitch=76 hash=9c5520a7ba153485 blend=1
+load_io: 19x13 SDL_PIXELFORMAT_ARGB8888 pitch=76 hash=9c5520a7ba153485 blend=1
+typed: 19x13 SDL_PIXELFORMAT_ARGB8888 pitch=76 hash=9c5520a7ba153485 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 245: err: Couldn't parse AVIF image: Truncated data
+trunc 367: err: Couldn't get AVIF image: Truncated data
+trunc 489: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 19x13 loop=1 frames=1 | 0: 19x13 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=9c5520a7ba153485 blend=1 delay=1
+anim_typed: n=1 19x13 loop=1 frames=1 | 0: 19x13 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=9c5520a7ba153485 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 245: err: Couldn't parse AVIF image: Truncated data
+anim trunc 367: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 489: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485 | status=2 | reset=1 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485
+decoder tb100: ok loop=1 frames=1 | 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485 | status=2 | reset=1 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485
+hdr: 19x13 SDL_PIXELFORMAT_ARGB8888 pitch=76 hash=9c5520a7ba153485 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485 cs=120005a6 | status=2 | reset=1 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485
+decoder noprog: ok loop=1 frames=1 | 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485 | status=2 | reset=1 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485
+decoder ignore: ok | 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485 | status=2 | reset=1 1:19x13:SDL_PIXELFORMAT_ABGR8888:9c5520a7ba153485
+== avif_8bit_420.avif
+is: AVIF
+is_extra:
+load: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+load_io: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+typed: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 358: err: Couldn't get AVIF image: Truncated data
+trunc 537: err: Couldn't get AVIF image: Truncated data
+trunc 715: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 24x18 loop=1 frames=1 | 0: 24x18 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=8ec9d59f414be206 blend=1 delay=1
+anim_typed: n=1 24x18 loop=1 frames=1 | 0: 24x18 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=8ec9d59f414be206 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 358: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 537: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 715: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder tb100: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+hdr: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 cs=120005a6 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder noprog: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder ignore: ok | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+== avif_8bit_420_chromaderived.avif
+is: AVIF
+is_extra:
+load: 24x18 SDL_PIXELFORMAT_XBGR2101010 pitch=96 hash=9785866e51ca763f blend=0
+load_io: 24x18 SDL_PIXELFORMAT_XBGR2101010 pitch=96 hash=9785866e51ca763f blend=0
+typed: 24x18 SDL_PIXELFORMAT_XBGR2101010 pitch=96 hash=9785866e51ca763f blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 358: err: Couldn't get AVIF image: Truncated data
+trunc 537: err: Couldn't get AVIF image: Truncated data
+trunc 715: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 24x18 loop=1 frames=1 | 0: 24x18 SDL_PIXELFORMAT_XBGR2101010 pitch=96 hash=9785866e51ca763f blend=0 delay=1
+anim_typed: n=1 24x18 loop=1 frames=1 | 0: 24x18 SDL_PIXELFORMAT_XBGR2101010 pitch=96 hash=9785866e51ca763f blend=0 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 358: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 537: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 715: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f
+decoder tb100: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f
+hdr: 24x18 SDL_PIXELFORMAT_XBGR2101010 pitch=96 hash=9785866e51ca763f blend=0 cs=12002600 sdr=434b0000 headroom=409da2ae
+decoder hdr: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f cs=1200260c maxcll=1000 maxfall=250 sdr=434b0000 headroom=409da2ae | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f
+decoder noprog: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f
+decoder ignore: ok | 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_XBGR2101010:9785866e51ca763f
+== avif_8bit_420_full_odd.avif
+is: AVIF
+is_extra:
+load: 23x17 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5dbf389215650659 blend=1
+load_io: 23x17 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5dbf389215650659 blend=1
+typed: 23x17 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5dbf389215650659 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 339: err: Couldn't get AVIF image: Truncated data
+trunc 509: err: Couldn't get AVIF image: Truncated data
+trunc 678: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 23x17 loop=1 frames=1 | 0: 23x17 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d7908749cc5ca69d blend=1 delay=1
+anim_typed: n=1 23x17 loop=1 frames=1 | 0: 23x17 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d7908749cc5ca69d blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 339: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 509: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 678: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d | status=2 | reset=1 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d
+decoder tb100: ok loop=1 frames=1 | 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d | status=2 | reset=1 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d
+hdr: 23x17 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5dbf389215650659 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d cs=120005a1 | status=2 | reset=1 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d
+decoder noprog: ok loop=1 frames=1 | 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d | status=2 | reset=1 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d
+decoder ignore: ok | 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d | status=2 | reset=1 1:23x17:SDL_PIXELFORMAT_ABGR8888:d7908749cc5ca69d
+== avif_8bit_422.avif
+is: AVIF
+is_extra:
+load: 21x16 SDL_PIXELFORMAT_ARGB8888 pitch=84 hash=a4d5640df05a6d98 blend=1
+load_io: 21x16 SDL_PIXELFORMAT_ARGB8888 pitch=84 hash=a4d5640df05a6d98 blend=1
+typed: 21x16 SDL_PIXELFORMAT_ARGB8888 pitch=84 hash=a4d5640df05a6d98 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 362: err: Couldn't get AVIF image: Truncated data
+trunc 543: err: Couldn't get AVIF image: Truncated data
+trunc 723: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 21x16 loop=1 frames=1 | 0: 21x16 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=74312ed85a43b51c blend=1 delay=1
+anim_typed: n=1 21x16 loop=1 frames=1 | 0: 21x16 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=74312ed85a43b51c blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 362: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 543: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 723: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c | status=2 | reset=1 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c
+decoder tb100: ok loop=1 frames=1 | 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c | status=2 | reset=1 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c
+hdr: 21x16 SDL_PIXELFORMAT_ARGB8888 pitch=84 hash=a4d5640df05a6d98 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c cs=120025c9 | status=2 | reset=1 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c
+decoder noprog: ok loop=1 frames=1 | 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c | status=2 | reset=1 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c
+decoder ignore: ok | 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c | status=2 | reset=1 1:21x16:SDL_PIXELFORMAT_ABGR8888:74312ed85a43b51c
+== avif_8bit_444.avif
+is: AVIF
+is_extra:
+load: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1
+load_io: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1
+typed: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 451: err: Couldn't get AVIF image: Truncated data
+trunc 677: err: Couldn't get AVIF image: Truncated data
+trunc 902: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 20x12 loop=1 frames=1 | 0: 20x12 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=9f3b47e1b274e989 blend=1 delay=1
+anim_typed: n=1 20x12 loop=1 frames=1 | 0: 20x12 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=9f3b47e1b274e989 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 451: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 677: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 902: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+decoder tb100: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+hdr: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 cs=120005a5 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+decoder noprog: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+decoder ignore: ok | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+== avif_8bit_identity.avif
+is: AVIF
+is_extra:
+load: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=40f852759d3f7068 blend=1
+load_io: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=40f852759d3f7068 blend=1
+typed: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=40f852759d3f7068 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 361: err: Couldn't get AVIF image: Truncated data
+trunc 541: err: Couldn't get AVIF image: Truncated data
+trunc 721: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 16x16 loop=1 frames=1 | 0: 16x16 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=580535c145e5dd58 blend=1 delay=1
+anim_typed: n=1 16x16 loop=1 frames=1 | 0: 16x16 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=580535c145e5dd58 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 361: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 541: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 721: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58 | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58
+decoder tb100: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58 | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58
+hdr: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=40f852759d3f7068 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58 cs=120005a0 | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58
+decoder noprog: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58 | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58
+decoder ignore: ok | 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58 | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:580535c145e5dd58
+== avif_8bit_ycgco.avif
+is: AVIF
+is_extra:
+load: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=88daf049e24d9447 blend=1
+load_io: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=88daf049e24d9447 blend=1
+typed: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=88daf049e24d9447 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 361: err: Couldn't get AVIF image: Truncated data
+trunc 541: err: Couldn't get AVIF image: Truncated data
+trunc 721: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 16x16 loop=1 frames=1 | 0: 16x16 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=e77b3942c5d2316b blend=1 delay=1
+anim_typed: n=1 16x16 loop=1 frames=1 | 0: 16x16 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=e77b3942c5d2316b blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 361: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 541: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 721: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b
+decoder tb100: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b
+hdr: 16x16 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=88daf049e24d9447 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b cs=120005a8 | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b
+decoder noprog: ok loop=1 frames=1 | 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b
+decoder ignore: ok | 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b | status=2 | reset=1 1:16x16:SDL_PIXELFORMAT_ABGR8888:e77b3942c5d2316b
+== avif_alpha.avif
+is: AVIF
+is_extra:
+load: 20x14 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=6b763e47dc9b934b blend=1
+load_io: 20x14 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=6b763e47dc9b934b blend=1
+typed: 20x14 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=6b763e47dc9b934b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: IO Error
+trunc 1024: err: Couldn't get AVIF image: Truncated data
+trunc 709: err: Couldn't get AVIF image: IO Error
+trunc 1063: err: Couldn't get AVIF image: Truncated data
+trunc 1417: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 20x14 loop=1 frames=1 | 0: 20x14 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=77e1926c4366c78f blend=1 delay=1
+anim_typed: n=1 20x14 loop=1 frames=1 | 0: 20x14 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=77e1926c4366c78f blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 1024: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 709: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 1063: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1417: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f | status=2 | reset=1 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f
+decoder tb100: ok loop=1 frames=1 | 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f | status=2 | reset=1 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f
+hdr: 20x14 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=6b763e47dc9b934b blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f cs=120005a6 | status=2 | reset=1 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f
+decoder noprog: ok loop=1 frames=1 | 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f | status=2 | reset=1 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f
+decoder ignore: ok | 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f | status=2 | reset=1 1:20x14:SDL_PIXELFORMAT_ABGR8888:77e1926c4366c78f
+== avif_alpha_10bit.avif
+is: AVIF
+is_extra:
+load: 16x10 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=21368a8ec64a1654 blend=1
+load_io: 16x10 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=21368a8ec64a1654 blend=1
+typed: 16x10 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=21368a8ec64a1654 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: IO Error
+trunc 411: err: Couldn't parse AVIF image: Truncated data
+trunc 617: err: Couldn't get AVIF image: Truncated data
+trunc 822: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 16x10 loop=1 frames=1 | 0: 16x10 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=f311e44a06c92814 blend=1 delay=1
+anim_typed: n=1 16x10 loop=1 frames=1 | 0: 16x10 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=f311e44a06c92814 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 411: err: Couldn't parse AVIF image: Truncated data
+anim trunc 617: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 822: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814 | status=2 | reset=1 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814
+decoder tb100: ok loop=1 frames=1 | 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814 | status=2 | reset=1 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814
+hdr: 16x10 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=21368a8ec64a1654 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814 cs=120005a6 | status=2 | reset=1 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814
+decoder noprog: ok loop=1 frames=1 | 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814 | status=2 | reset=1 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814
+decoder ignore: ok | 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814 | status=2 | reset=1 1:16x10:SDL_PIXELFORMAT_ABGR8888:f311e44a06c92814
+== avif_alpha_premultiplied.avif
+is: AVIF
+is_extra:
+load: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=6a5817c415050117 blend=1
+load_io: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=6a5817c415050117 blend=1
+typed: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=6a5817c415050117 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: IO Error
+trunc 467: err: Couldn't get AVIF image: IO Error
+trunc 701: err: Couldn't get AVIF image: IO Error
+trunc 934: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 18x12 loop=1 frames=1 | 0: 18x12 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=cb58a56c2c653aab blend=1 delay=1
+anim_typed: n=1 18x12 loop=1 frames=1 | 0: 18x12 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=cb58a56c2c653aab blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 467: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 701: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 934: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab
+decoder tb100: ok loop=1 frames=1 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab
+hdr: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=6a5817c415050117 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab cs=120005a6 | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab
+decoder noprog: ok loop=1 frames=1 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab
+decoder ignore: ok | 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:cb58a56c2c653aab
+== avif_anim.avifs
+is: AVIF
+is_extra:
+load: 24x16 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5bdf21397dee5d13 blend=1
+load_io: 24x16 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5bdf21397dee5d13 blend=1
+typed: 24x16 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5bdf21397dee5d13 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Unsupported image format
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't parse AVIF image: Truncated data
+trunc 1024: err: Couldn't parse AVIF image: Truncated data
+trunc 2048: 24x16 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5bdf21397dee5d13 blend=1
+trunc 1277: err: Couldn't parse AVIF image: Truncated data
+trunc 1915: err: Couldn't get AVIF image: Truncated data
+trunc 2553: 24x16 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5bdf21397dee5d13 blend=1
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=3 24x16 loop=3 frames=3 title="an avif" author="someone" | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c5a6bea1d4360fa7 blend=1 delay=7 | 1: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c84826f722cb983c blend=1 delay=3 | 2: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=4cbc0cd16caba2e4 blend=1 delay=7
+anim_typed: n=3 24x16 loop=3 frames=3 title="an avif" author="someone" | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c5a6bea1d4360fa7 blend=1 delay=7 | 1: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c84826f722cb983c blend=1 delay=3 | 2: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=4cbc0cd16caba2e4 blend=1 delay=7
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Unsupported image format
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1024: err: Couldn't parse AVIF image: Truncated data
+anim trunc 2048: err: Couldn't get AVIF frame 2: Truncated data
+anim trunc 1277: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1915: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 2553: err: Couldn't get AVIF frame 3: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=3 frames=3 title="an avif" author="someone" | 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7 | 3:24x16:SDL_PIXELFORMAT_ABGR8888:c84826f722cb983c | 7:24x16:SDL_PIXELFORMAT_ABGR8888:4cbc0cd16caba2e4 | status=2 | reset=1 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7
+decoder tb100: ok loop=3 frames=3 title="an avif" author="someone" | 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7 | 3:24x16:SDL_PIXELFORMAT_ABGR8888:c84826f722cb983c | 7:24x16:SDL_PIXELFORMAT_ABGR8888:4cbc0cd16caba2e4 | status=2 | reset=1 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7
+hdr: 24x16 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=5bdf21397dee5d13 blend=1 cs=120005a0
+decoder hdr: ok loop=3 frames=3 title="an avif" author="someone" | 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7 cs=120005a6 | 3:24x16:SDL_PIXELFORMAT_ABGR8888:c84826f722cb983c cs=120005a6 | 7:24x16:SDL_PIXELFORMAT_ABGR8888:4cbc0cd16caba2e4 cs=120005a6 | status=2 | reset=1 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7
+decoder noprog: ok loop=3 frames=3 title="an avif" author="someone" | 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7 | 3:24x16:SDL_PIXELFORMAT_ABGR8888:c84826f722cb983c | 7:24x16:SDL_PIXELFORMAT_ABGR8888:4cbc0cd16caba2e4 | status=2 | reset=1 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7
+decoder ignore: ok | 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7 | 3:24x16:SDL_PIXELFORMAT_ABGR8888:c84826f722cb983c | 7:24x16:SDL_PIXELFORMAT_ABGR8888:4cbc0cd16caba2e4 | status=2 | reset=1 7:24x16:SDL_PIXELFORMAT_ABGR8888:c5a6bea1d4360fa7
+== avif_anim_10bit.avifs
+is: AVIF
+is_extra:
+load: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=d20a2d9c8d2ebd91 blend=1
+load_io: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=d20a2d9c8d2ebd91 blend=1
+typed: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=d20a2d9c8d2ebd91 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Unsupported image format
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't parse AVIF image: Truncated data
+trunc 1024: err: Couldn't get AVIF image: Truncated data
+trunc 1020: err: Couldn't get AVIF image: Truncated data
+trunc 1530: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=d20a2d9c8d2ebd91 blend=1
+trunc 2040: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=d20a2d9c8d2ebd91 blend=1
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=2 18x12 loop=0 frames=2 | 0: 18x12 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=f9a447066f4d37a5 blend=1 delay=1 | 1: 18x12 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=2020e8ce520f7416 blend=1 delay=1
+anim_typed: n=2 18x12 loop=0 frames=2 | 0: 18x12 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=f9a447066f4d37a5 blend=1 delay=1 | 1: 18x12 SDL_PIXELFORMAT_ABGR8888 pitch=72 hash=2020e8ce520f7416 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Unsupported image format
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1024: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1020: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1530: err: Couldn't get AVIF frame 2: Truncated data
+anim trunc 2040: err: Couldn't get AVIF frame 2: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=0 frames=2 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:2020e8ce520f7416 | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5
+decoder tb100: ok loop=0 frames=2 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:2020e8ce520f7416 | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5
+hdr: 18x12 SDL_PIXELFORMAT_ARGB8888 pitch=72 hash=d20a2d9c8d2ebd91 blend=1 cs=120005a0
+decoder hdr: ok loop=0 frames=2 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5 cs=120005a6 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:2020e8ce520f7416 cs=120005a6 | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5
+decoder noprog: ok loop=0 frames=2 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:2020e8ce520f7416 | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5
+decoder ignore: ok | 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5 | 1:18x12:SDL_PIXELFORMAT_ABGR8888:2020e8ce520f7416 | status=2 | reset=1 1:18x12:SDL_PIXELFORMAT_ABGR8888:f9a447066f4d37a5
+== avif_anim_alpha.avifs
+is: AVIF
+is_extra:
+load: 16x12 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=f8a4dc7f95d82005 blend=1
+load_io: 16x12 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=f8a4dc7f95d82005 blend=1
+typed: 16x12 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=f8a4dc7f95d82005 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Unsupported image format
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't parse AVIF image: Truncated data
+trunc 1024: err: Couldn't parse AVIF image: Truncated data
+trunc 2048: err: Couldn't get AVIF image: IO Error
+trunc 1271: err: Couldn't parse AVIF image: Truncated data
+trunc 1907: err: Couldn't get AVIF image: IO Error
+trunc 2542: 16x12 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=f8a4dc7f95d82005 blend=1
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=3 16x12 loop=0 frames=3 | 0: 16x12 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=7c1ffb2a26c5a359 blend=1 delay=1 | 1: 16x12 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=5a928a14e99419df blend=1 delay=1 | 2: 16x12 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=8d3f053b05c7027e blend=1 delay=1
+anim_typed: n=3 16x12 loop=0 frames=3 | 0: 16x12 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=7c1ffb2a26c5a359 blend=1 delay=1 | 1: 16x12 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=5a928a14e99419df blend=1 delay=1 | 2: 16x12 SDL_PIXELFORMAT_ABGR8888 pitch=64 hash=8d3f053b05c7027e blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Unsupported image format
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1024: err: Couldn't parse AVIF image: Truncated data
+anim trunc 2048: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 1271: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1907: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 2542: err: Couldn't get AVIF frame 3: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=0 frames=3 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:5a928a14e99419df | 1:16x12:SDL_PIXELFORMAT_ABGR8888:8d3f053b05c7027e | status=2 | reset=1 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359
+decoder tb100: ok loop=0 frames=3 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:5a928a14e99419df | 1:16x12:SDL_PIXELFORMAT_ABGR8888:8d3f053b05c7027e | status=2 | reset=1 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359
+hdr: 16x12 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=f8a4dc7f95d82005 blend=1 cs=120005a0
+decoder hdr: ok loop=0 frames=3 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359 cs=120005a6 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:5a928a14e99419df cs=120005a6 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:8d3f053b05c7027e cs=120005a6 | status=2 | reset=1 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359
+decoder noprog: ok loop=0 frames=3 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:5a928a14e99419df | 1:16x12:SDL_PIXELFORMAT_ABGR8888:8d3f053b05c7027e | status=2 | reset=1 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359
+decoder ignore: ok | 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359 | 1:16x12:SDL_PIXELFORMAT_ABGR8888:5a928a14e99419df | 1:16x12:SDL_PIXELFORMAT_ABGR8888:8d3f053b05c7027e | status=2 | reset=1 1:16x12:SDL_PIXELFORMAT_ABGR8888:7c1ffb2a26c5a359
+== avif_clap_irot_imir.avif
+is: AVIF
+is_extra:
+load: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+load_io: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+typed: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 397: err: Couldn't get AVIF image: Truncated data
+trunc 595: err: Couldn't get AVIF image: Truncated data
+trunc 793: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 24x18 loop=1 frames=1 | 0: 24x18 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=8ec9d59f414be206 blend=1 delay=1
+anim_typed: n=1 24x18 loop=1 frames=1 | 0: 24x18 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=8ec9d59f414be206 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 397: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 595: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 793: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder tb100: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+hdr: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 cs=120005a6 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder noprog: ok loop=1 frames=1 | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder ignore: ok | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+== avif_exif_xmp.avif
+is: AVIF
+is_extra:
+load: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+load_io: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+typed: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't parse AVIF image: Truncated data
+trunc 1024: err: Couldn't get AVIF image: Truncated data
+trunc 624: err: Couldn't parse AVIF image: Truncated data
+trunc 936: err: Couldn't get AVIF image: Truncated data
+trunc 1247: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 24x18 loop=1 frames=1 title="an avif" author="someone" | 0: 24x18 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=8ec9d59f414be206 blend=1 delay=1
+anim_typed: n=1 24x18 loop=1 frames=1 title="an avif" author="someone" | 0: 24x18 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=8ec9d59f414be206 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1024: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 624: err: Couldn't parse AVIF image: Truncated data
+anim trunc 936: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1247: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 title="an avif" author="someone" | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder tb100: ok loop=1 frames=1 title="an avif" author="someone" | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+hdr: 24x18 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=1a2e227b632594d2 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 title="an avif" author="someone" | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 cs=120005a6 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder noprog: ok loop=1 frames=1 title="an avif" author="someone" | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+decoder ignore: ok | 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206 | status=2 | reset=1 1:24x18:SDL_PIXELFORMAT_ABGR8888:8ec9d59f414be206
+== avif_grid.avif
+is: AVIF
+is_extra:
+load: 128x64 SDL_PIXELFORMAT_ARGB8888 pitch=512 hash=18c814ec4aaae617 blend=1
+load_io: 128x64 SDL_PIXELFORMAT_ARGB8888 pitch=512 hash=18c814ec4aaae617 blend=1
+typed: 128x64 SDL_PIXELFORMAT_ARGB8888 pitch=512 hash=18c814ec4aaae617 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 1024: err: Couldn't get AVIF image: Truncated data
+trunc 2048: err: Couldn't get AVIF image: Truncated data
+trunc 1162: err: Couldn't get AVIF image: Truncated data
+trunc 1743: err: Couldn't get AVIF image: Truncated data
+trunc 2324: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 128x64 loop=1 frames=1 | 0: 128x64 SDL_PIXELFORMAT_ABGR8888 pitch=512 hash=69e114e6ba6caadf blend=1 delay=1
+anim_typed: n=1 128x64 loop=1 frames=1 | 0: 128x64 SDL_PIXELFORMAT_ABGR8888 pitch=512 hash=69e114e6ba6caadf blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1024: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 2048: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1162: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1743: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 2324: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf | status=2 | reset=1 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf
+decoder tb100: ok loop=1 frames=1 | 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf | status=2 | reset=1 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf
+hdr: 128x64 SDL_PIXELFORMAT_ARGB8888 pitch=512 hash=18c814ec4aaae617 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf cs=120005a6 | status=2 | reset=1 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf
+decoder noprog: ok loop=1 frames=1 | 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf | status=2 | reset=1 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf
+decoder ignore: ok | 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf | status=2 | reset=1 1:128x64:SDL_PIXELFORMAT_ABGR8888:69e114e6ba6caadf
+== avif_grid_alpha.avif
+is: AVIF
+is_extra:
+load: 64x128 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=c1c148d7e8ed9f94 blend=1
+load_io: 64x128 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=c1c148d7e8ed9f94 blend=1
+typed: 64x128 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=c1c148d7e8ed9f94 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't parse AVIF image: Truncated data
+trunc 1024: err: Couldn't get AVIF image: IO Error
+trunc 2048: err: Couldn't get AVIF image: IO Error
+trunc 4096: err: Couldn't get AVIF image: IO Error
+trunc 2395: err: Couldn't get AVIF image: IO Error
+trunc 3593: err: Couldn't get AVIF image: IO Error
+trunc 4790: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 64x128 loop=1 frames=1 | 0: 64x128 SDL_PIXELFORMAT_ABGR8888 pitch=256 hash=0fa65783ccc40f98 blend=1 delay=1
+anim_typed: n=1 64x128 loop=1 frames=1 | 0: 64x128 SDL_PIXELFORMAT_ABGR8888 pitch=256 hash=0fa65783ccc40f98 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1024: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 2048: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 4096: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 2395: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 3593: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 4790: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98 | status=2 | reset=1 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98
+decoder tb100: ok loop=1 frames=1 | 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98 | status=2 | reset=1 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98
+hdr: 64x128 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=c1c148d7e8ed9f94 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98 cs=120005a6 | status=2 | reset=1 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98
+decoder noprog: ok loop=1 frames=1 | 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98 | status=2 | reset=1 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98
+decoder ignore: ok | 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98 | status=2 | reset=1 1:64x128:SDL_PIXELFORMAT_ABGR8888:0fa65783ccc40f98
+== avif_icc.avif
+is: AVIF
+is_extra:
+load: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1
+load_io: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1
+typed: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 1024: err: Couldn't get AVIF image: Truncated data
+trunc 522: err: Couldn't get AVIF image: Truncated data
+trunc 783: err: Couldn't get AVIF image: Truncated data
+trunc 1043: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 20x12 loop=1 frames=1 | 0: 20x12 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=9f3b47e1b274e989 blend=1 delay=1
+anim_typed: n=1 20x12 loop=1 frames=1 | 0: 20x12 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=9f3b47e1b274e989 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1024: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 522: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 783: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1043: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+decoder tb100: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+hdr: 20x12 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=130f46640ce95c51 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 cs=12000846 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+decoder noprog: ok loop=1 frames=1 | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+decoder ignore: ok | 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989 | status=2 | reset=1 1:20x12:SDL_PIXELFORMAT_ABGR8888:9f3b47e1b274e989
+== avif_progressive.avif
+is: AVIF
+is_extra:
+load: 32x24 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=396f5f29cdf2c068 blend=1
+load_io: 32x24 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=396f5f29cdf2c068 blend=1
+typed: 32x24 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=396f5f29cdf2c068 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 349: err: Couldn't get AVIF image: Truncated data
+trunc 523: err: Couldn't get AVIF image: Truncated data
+trunc 697: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=2 32x24 loop=1 frames=2 | 0: 32x24 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=c0093ffdb07be02a blend=1 delay=1 | 1: 32x24 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=efad11130db2aafc blend=1 delay=1
+anim_typed: n=2 32x24 loop=1 frames=2 | 0: 32x24 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=c0093ffdb07be02a blend=1 delay=1 | 1: 32x24 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=efad11130db2aafc blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 2: Truncated data
+anim trunc 349: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 523: err: Couldn't get AVIF frame 2: Truncated data
+anim trunc 697: err: Couldn't get AVIF frame 2: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=2 | 1:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+decoder tb100: ok loop=1 frames=2 | 1:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+hdr: 32x24 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=396f5f29cdf2c068 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=2 | 1:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a cs=120005a6 | 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc cs=120005a6 | status=2 | reset=1 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+decoder noprog: ok loop=1 frames=1 | 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+decoder ignore: ok | 1:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+== avif_scaled_10bit.avif
+is: AVIF
+is_extra:
+load: 15x14 SDL_PIXELFORMAT_XBGR2101010 pitch=60 hash=f942d0bf84ebe6ec blend=0
+load_io: 15x14 SDL_PIXELFORMAT_XBGR2101010 pitch=60 hash=f942d0bf84ebe6ec blend=0
+typed: 15x14 SDL_PIXELFORMAT_XBGR2101010 pitch=60 hash=f942d0bf84ebe6ec blend=0
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 326: err: Couldn't get AVIF image: Truncated data
+trunc 489: err: Couldn't get AVIF image: Truncated data
+trunc 651: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 15x14 loop=1 frames=1 | 0: 15x14 SDL_PIXELFORMAT_XBGR2101010 pitch=60 hash=f942d0bf84ebe6ec blend=0 delay=1
+anim_typed: n=1 15x14 loop=1 frames=1 | 0: 15x14 SDL_PIXELFORMAT_XBGR2101010 pitch=60 hash=f942d0bf84ebe6ec blend=0 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 326: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 489: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 651: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec | status=2 | reset=1 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec
+decoder tb100: ok loop=1 frames=1 | 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec | status=2 | reset=1 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec
+hdr: 15x14 SDL_PIXELFORMAT_XBGR2101010 pitch=60 hash=f942d0bf84ebe6ec blend=0 cs=12002600 maxcll=800 maxfall=300 sdr=434b0000 headroom=407c377d
+decoder hdr: ok loop=1 frames=1 | 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec cs=12002609 maxcll=800 maxfall=300 sdr=434b0000 headroom=407c377d | status=2 | reset=1 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec
+decoder noprog: ok loop=1 frames=1 | 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec | status=2 | reset=1 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec
+decoder ignore: ok | 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec | status=2 | reset=1 1:15x14:SDL_PIXELFORMAT_XBGR2101010:f942d0bf84ebe6ec
+== avif_scaled_12bit_vertical.avif
+is: AVIF
+is_extra:
+load: 17x5 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=40d3cf616bc52cda blend=1
+load_io: 17x5 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=40d3cf616bc52cda blend=1
+typed: 17x5 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=40d3cf616bc52cda blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 311: err: Couldn't get AVIF image: Truncated data
+trunc 466: err: Couldn't get AVIF image: Truncated data
+trunc 621: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 17x5 loop=1 frames=1 | 0: 17x5 SDL_PIXELFORMAT_ABGR8888 pitch=68 hash=487ad132e14b9482 blend=1 delay=1
+anim_typed: n=1 17x5 loop=1 frames=1 | 0: 17x5 SDL_PIXELFORMAT_ABGR8888 pitch=68 hash=487ad132e14b9482 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 311: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 466: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 621: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482 | status=2 | reset=1 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482
+decoder tb100: ok loop=1 frames=1 | 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482 | status=2 | reset=1 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482
+hdr: 17x5 SDL_PIXELFORMAT_ARGB8888 pitch=68 hash=40d3cf616bc52cda blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482 cs=120005a6 | status=2 | reset=1 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482
+decoder noprog: ok loop=1 frames=1 | 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482 | status=2 | reset=1 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482
+decoder ignore: ok | 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482 | status=2 | reset=1 1:17x5:SDL_PIXELFORMAT_ABGR8888:487ad132e14b9482
+== avif_scaled_box.avif
+is: AVIF
+is_extra:
+load: 8x6 SDL_PIXELFORMAT_ARGB8888 pitch=32 hash=3b989b5d5348d1d5 blend=1
+load_io: 8x6 SDL_PIXELFORMAT_ARGB8888 pitch=32 hash=3b989b5d5348d1d5 blend=1
+typed: 8x6 SDL_PIXELFORMAT_ARGB8888 pitch=32 hash=3b989b5d5348d1d5 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 358: err: Couldn't get AVIF image: Truncated data
+trunc 537: err: Couldn't get AVIF image: Truncated data
+trunc 715: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 8x6 loop=1 frames=1 | 0: 8x6 SDL_PIXELFORMAT_ABGR8888 pitch=32 hash=f983c167a443f84d blend=1 delay=1
+anim_typed: n=1 8x6 loop=1 frames=1 | 0: 8x6 SDL_PIXELFORMAT_ABGR8888 pitch=32 hash=f983c167a443f84d blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 358: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 537: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 715: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d | status=2 | reset=1 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d
+decoder tb100: ok loop=1 frames=1 | 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d | status=2 | reset=1 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d
+hdr: 8x6 SDL_PIXELFORMAT_ARGB8888 pitch=32 hash=3b989b5d5348d1d5 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d cs=120005a6 | status=2 | reset=1 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d
+decoder noprog: ok loop=1 frames=1 | 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d | status=2 | reset=1 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d
+decoder ignore: ok | 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d | status=2 | reset=1 1:8x6:SDL_PIXELFORMAT_ABGR8888:f983c167a443f84d
+== avif_scaled_box_odd.avif
+is: AVIF
+is_extra:
+load: 6x4 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=18250efe5f18f2ba blend=1
+load_io: 6x4 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=18250efe5f18f2ba blend=1
+typed: 6x4 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=18250efe5f18f2ba blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 245: err: Couldn't parse AVIF image: Truncated data
+trunc 367: err: Couldn't get AVIF image: Truncated data
+trunc 489: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=18250efe5f18f2ba blend=1 delay=1
+anim_typed: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=18250efe5f18f2ba blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 245: err: Couldn't parse AVIF image: Truncated data
+anim trunc 367: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 489: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba | status=2 | reset=1 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba
+decoder tb100: ok loop=1 frames=1 | 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba | status=2 | reset=1 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba
+hdr: 6x4 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=18250efe5f18f2ba blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba cs=120005a6 | status=2 | reset=1 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba
+decoder noprog: ok loop=1 frames=1 | 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba | status=2 | reset=1 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba
+decoder ignore: ok | 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba | status=2 | reset=1 1:6x4:SDL_PIXELFORMAT_ABGR8888:18250efe5f18f2ba
+== avif_scaled_up.avif
+is: AVIF
+is_extra:
+load: 40x30 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=51d0aefc78f436f1 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=51d0aefc78f436f1 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=51d0aefc78f436f1 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: Truncated data
+trunc 362: err: Couldn't get AVIF image: Truncated data
+trunc 543: err: Couldn't get AVIF image: Truncated data
+trunc 723: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 40x30 loop=1 frames=1 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3b0aadd171adf2c1 blend=1 delay=1
+anim_typed: n=1 40x30 loop=1 frames=1 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3b0aadd171adf2c1 blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 362: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 543: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 723: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1 | status=2 | reset=1 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1
+decoder tb100: ok loop=1 frames=1 | 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1 | status=2 | reset=1 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1
+hdr: 40x30 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=51d0aefc78f436f1 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1 cs=120025c9 | status=2 | reset=1 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1
+decoder noprog: ok loop=1 frames=1 | 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1 | status=2 | reset=1 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1
+decoder ignore: ok | 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1 | status=2 | reset=1 1:40x30:SDL_PIXELFORMAT_ABGR8888:3b0aadd171adf2c1
+== avif_scaled_up2_alpha.avif
+is: AVIF
+is_extra:
+load: 40x28 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=48428ba7b6004a7b blend=1
+load_io: 40x28 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=48428ba7b6004a7b blend=1
+typed: 40x28 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=48428ba7b6004a7b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Unsupported image format
+trunc 32: err: Couldn't parse AVIF image: IO Error
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't get AVIF image: IO Error
+trunc 1024: err: Couldn't get AVIF image: Truncated data
+trunc 709: err: Couldn't get AVIF image: IO Error
+trunc 1063: err: Couldn't get AVIF image: Truncated data
+trunc 1417: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 40x28 loop=1 frames=1 | 0: 40x28 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=98498b411f5d480f blend=1 delay=1
+anim_typed: n=1 40x28 loop=1 frames=1 | 0: 40x28 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=98498b411f5d480f blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: IO Error
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 1024: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 709: err: Couldn't get AVIF frame 1: IO Error
+anim trunc 1063: err: Couldn't get AVIF frame 1: Truncated data
+anim trunc 1417: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f | status=2 | reset=1 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f
+decoder tb100: ok loop=1 frames=1 | 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f | status=2 | reset=1 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f
+hdr: 40x28 SDL_PIXELFORMAT_ARGB8888 pitch=160 hash=48428ba7b6004a7b blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f cs=120005a6 | status=2 | reset=1 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f
+decoder noprog: ok loop=1 frames=1 | 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f | status=2 | reset=1 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f
+decoder ignore: ok | 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f | status=2 | reset=1 1:40x28:SDL_PIXELFORMAT_ABGR8888:98498b411f5d480f
 == cur_multi.cur
 is: CUR
 is_extra:
@@ -2888,11 +4307,11 @@ ani_enc meta: bytes=5892 hash=9a241ae7b78694fb | reload: n=6 256x256 frames=6 ti
 webp_enc ll meta: bytes=878 hash=57031e79710308fb | reload: n=6 256x256 loop=3 frames=6 title="webp & <title>" | 0: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=1ae0842349a42325 blend=0 delay=10 | 1: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=66648495c9ea2325 blend=0 delay=20 | 2: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=4b04d96d514c2325 blend=0 delay=30 | 3: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=1ae0842349a42325 blend=0 delay=40 | 4: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=66648495c9ea2325 blend=0 delay=70 | 5: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=4b04d96d514c2325 blend=0 delay=60
 webp_enc q30 dup: bytes=1408 hash=ab4a41f38ff6796c | reload: n=6 256x256 loop=0 frames=6 | 0: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=451c3c4864ce0866 blend=0 delay=22 | 1: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=39c238d12de6b098 blend=0 delay=21 | 2: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=e4b99c6f93dbb29a blend=0 delay=22 | 3: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=0615dd0f4f59d627 blend=0 delay=22 | 4: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=39c238d12de6b098 blend=0 delay=38 | 5: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=e4b99c6f93dbb29a blend=0 delay=22
 == rgbrgb.avifs
-is:
+is: AVIF
 is_extra:
-load: err: Unsupported image format
-load_io: err: Unsupported image format
-typed: err: Unsupported image format
+load: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+load_io: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+typed: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
 trunc 0: err: Unsupported image format
 trunc 1: err: Unsupported image format
 trunc 2: err: Unsupported image format
@@ -2900,20 +4319,74 @@ trunc 4: err: Unsupported image format
 trunc 8: err: Unsupported image format
 trunc 16: err: Unsupported image format
 trunc 32: err: Unsupported image format
-trunc 64: err: Unsupported image format
-trunc 128: err: Unsupported image format
-trunc 256: err: Unsupported image format
-trunc 512: err: Unsupported image format
-trunc 1024: err: Unsupported image format
-trunc 2048: err: Unsupported image format
-trunc 1243: err: Unsupported image format
-trunc 1864: err: Unsupported image format
-trunc 2485: err: Unsupported image format
-xor: err: Unsupported image format
-anim_io: err: Unsupported image format
-anim_typed: err: Unsupported image format
-decoder: ok | status=1 err=Unsupported image format | reset=1 none
-decoder tb100: ok | status=1 err=Unsupported image format | reset=1 none
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 512: err: Couldn't parse AVIF image: Truncated data
+trunc 1024: err: Couldn't parse AVIF image: Truncated data
+trunc 2048: err: Couldn't parse AVIF image: Truncated data
+trunc 1243: err: Couldn't parse AVIF image: Truncated data
+trunc 1864: err: Couldn't parse AVIF image: Truncated data
+trunc 2485: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=6 256x256 frames=6 | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 delay=20 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 delay=20 | 3: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 4: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 delay=20 | 5: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 delay=20
+anim_typed: n=6 256x256 frames=6 | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 delay=20 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 delay=20 | 3: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 4: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 delay=20 | 5: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 delay=20
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Unsupported image format
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 512: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1024: err: Couldn't parse AVIF image: Truncated data
+anim trunc 2048: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1243: err: Couldn't parse AVIF image: Truncated data
+anim trunc 1864: err: Couldn't parse AVIF image: Truncated data
+anim trunc 2485: err: Couldn't get AVIF frame 6: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok frames=6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | status=2 | reset=1 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325
+decoder tb100: ok frames=6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | status=2 | reset=1 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325
+hdr: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1 cs=120005a0
+decoder hdr: ok frames=6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 cs=120005a6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 cs=120005a6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 cs=120005a6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 cs=120005a6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 cs=120005a6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 cs=120005a6 | status=2 | reset=1 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325
+decoder noprog: ok frames=6 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | status=2 | reset=1 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325
+decoder ignore: ok | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:8ed0fa9afca22325 | 20:256x256:SDL_PIXELFORMAT_ABGR8888:4ec50a919d602325 | status=2 | reset=1 20:256x256:SDL_PIXELFORMAT_ABGR8888:24aa5f5556e02325
+save_anim gif: bytes=7311 hash=81a46ddba2332a4e | reload: n=6 256x256 loop=0 | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 delay=20 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 delay=20 | 3: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 4: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 delay=20 | 5: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 delay=20
+save_anim ani: bytes=5924 hash=5c159712f10ade8b | reload: n=6 256x256 frames=6 | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 hot=0,0 delay=17 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 hot=0,0 delay=16 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 hot=0,0 delay=17 | 3: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 hot=0,0 delay=17 | 4: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 hot=0,0 delay=33 | 5: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 hot=0,0 delay=17
+save_anim png: err: SDL_image not built against libpng.
+save_anim webp: bytes=1328 hash=46649fecbf346f03 | reload: n=6 256x256 loop=0 frames=6 | 0: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=1154b48459f57d25 blend=0 delay=20 | 1: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=0 delay=20 | 2: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=4b04d96d514c2325 blend=0 delay=20 | 3: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=1154b48459f57d25 blend=0 delay=20 | 4: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=0 delay=20 | 5: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=4b04d96d514c2325 blend=0 delay=20
+save_anim avif: err: SDL_image built without AVIF animation save support
+save_anim xyz: err: Unsupported image format
+gif_enc lut16: bytes=2384 hash=16424fe0c64fec1f | reload: n=6 256x256 loop=3 desc="made by the harness" | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=20 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=53eb0cbe294a2325 blend=1 delay=30 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=53eb0cbe294a2325 blend=1 delay=40 | 3: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 delay=50 | 4: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=53eb0cbe294a2325 blend=1 delay=60 | 5: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=53eb0cbe294a2325 blend=1 delay=70
+ani_enc meta: bytes=5976 hash=25add70dfcc31e30 | reload: n=6 256x256 frames=6 title="harness title" author="an author" | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 hot=0,0 delay=33 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 hot=0,0 delay=34 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 hot=0,0 delay=33 | 3: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1 hot=0,0 delay=33 | 4: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=1 hot=0,0 delay=50 | 5: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=4ec50a919d602325 blend=1 hot=0,0 delay=34
+webp_enc ll meta: bytes=878 hash=d9b616bd8a507e83 | reload: n=6 256x256 loop=3 frames=6 title="webp & <title>" | 0: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=24aa5f5556e02325 blend=0 delay=20 | 1: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=0 delay=30 | 2: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=4ec50a919d602325 blend=0 delay=40 | 3: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=24aa5f5556e02325 blend=0 delay=50 | 4: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=8ed0fa9afca22325 blend=0 delay=60 | 5: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=4ec50a919d602325 blend=0 delay=70
+webp_enc q30 dup: bytes=1406 hash=804d2c608efee3c5 | reload: n=6 256x256 loop=0 frames=6 | 0: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=ebb3f6c3decb99ec blend=0 delay=25 | 1: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=39c238d12de6b098 blend=0 delay=25 | 2: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=e4b99c6f93dbb29a blend=0 delay=25 | 3: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=ddde3669dd970752 blend=0 delay=25 | 4: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=39c238d12de6b098 blend=0 delay=25 | 5: 256x256 SDL_PIXELFORMAT_XBGR8888 pitch=1024 hash=e4b99c6f93dbb29a blend=0 delay=25
+save bmp: bytes=262282 hash=dfef819d93a7d670 | reload: err: Unsupported TGA format
+save png: bytes=855 hash=d4f56a66e1aea8dc | reload: err: Unsupported TGA format
+save tga: bytes=262162 hash=3d7981a6bc67f5df | reload: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+save jpg: bytes=2456 hash=49a37aa9283e842e | reload: err: Unsupported TGA format
+save ico: bytes=878 hash=a68c85aeee65c943 | reload: err: Unsupported TGA format
+save cur: bytes=878 hash=0dee4f561675e2f4 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=2453 hash=d70344bb17407953 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=2456 hash=0b485ba470c09eb0 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=196626 hash=384ea1d39267e5bf | reload: 256x256 SDL_PIXELFORMAT_BGR24 pitch=768 hash=1c839e2cfba62325 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=196626 hash=384ea1d39267e5bf | reload: 256x256 SDL_PIXELFORMAT_BGR24 pitch=768 hash=1c839e2cfba62325 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=262162 hash=3d7981a6bc67f5df | reload: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=262162 hash=3d7981a6bc67f5df | reload: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=262162 hash=3d7981a6bc67f5df | reload: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=131090 hash=44c9ac00d03aff07 | reload: 256x256 SDL_PIXELFORMAT_XRGB1555 pitch=512 hash=1b6d036f3ab22325 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=131090 hash=01235f6386dafd54 | reload: 256x256 SDL_PIXELFORMAT_XRGB1555 pitch=512 hash=1b6d036f3ab22325 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=262162 hash=3d7981a6bc67f5df | reload: 256x256 SDL_PIXELFORMAT_ARGB8888 pitch=1024 hash=4ec50a919d602325 blend=1
+qoi_encode 3: bytes=1081 hash=7110a28e47056ab7 | reload: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1
+qoi_encode 4: bytes=1081 hash=9599c8908d73a77e | reload: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=24aa5f5556e02325 blend=1
+save gif: bytes=1246 hash=320944fd6b4fd6ca | reload: err: Unsupported TGA format
+save_webp 100: bytes=44 hash=5ab8da7a4b2bff89 | reload: 256x256 SDL_PIXELFORMAT_RGB24 pitch=768 hash=a180a448b3a62325 blend=0
+save_webp 90: bytes=208 hash=9a0aec34f823269e | reload: 256x256 SDL_PIXELFORMAT_RGB24 pitch=768 hash=b7b63fcfce7e9de5 blend=0
+save_webp 50: bytes=230 hash=418d1ab703908682 | reload: 256x256 SDL_PIXELFORMAT_RGB24 pitch=768 hash=2787b7c944962b54 blend=0
+save_webp 0: bytes=234 hash=2eadef326b2bcef8 | reload: 256x256 SDL_PIXELFORMAT_RGB24 pitch=768 hash=c9515d24aa2b43d9 blend=0
 == rgbrgb.gif
 is: GIF
 is_extra:
@@ -3202,29 +4675,80 @@ save_webp 90: bytes=208 hash=71be6c4f06bca485 | reload: 256x256 SDL_PIXELFORMAT_
 save_webp 50: bytes=230 hash=a41037dd37477bed | reload: 256x256 SDL_PIXELFORMAT_RGB24 pitch=768 hash=b5e24fae9fadc737 blend=0
 save_webp 0: bytes=216 hash=c57e159ea3a322e8 | reload: 256x256 SDL_PIXELFORMAT_RGB24 pitch=768 hash=825b2c9225f23c39 blend=0
 == sample.avif
-is:
+is: AVIF
 is_extra:
-load: err: Unsupported image format
-load_io: err: Unsupported image format
-typed: err: Unsupported image format
+load: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+load_io: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+typed: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
 trunc 0: err: Unsupported image format
 trunc 1: err: Unsupported image format
 trunc 2: err: Unsupported image format
 trunc 4: err: Unsupported image format
 trunc 8: err: Unsupported image format
 trunc 16: err: Unsupported image format
-trunc 32: err: Unsupported image format
-trunc 64: err: Unsupported image format
-trunc 128: err: Unsupported image format
-trunc 256: err: Unsupported image format
-trunc 161: err: Unsupported image format
-trunc 241: err: Unsupported image format
-trunc 321: err: Unsupported image format
-xor: err: Unsupported image format
-anim_io: err: Unsupported image format
-anim_typed: err: Unsupported image format
-decoder: ok | status=1 err=Unsupported image format | reset=1 none
-decoder tb100: ok | status=1 err=Unsupported image format | reset=1 none
+trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+trunc 64: err: Couldn't parse AVIF image: Truncated data
+trunc 128: err: Couldn't parse AVIF image: Truncated data
+trunc 256: err: Couldn't parse AVIF image: Truncated data
+trunc 161: err: Couldn't parse AVIF image: Truncated data
+trunc 241: err: Couldn't parse AVIF image: Truncated data
+trunc 321: err: Couldn't get AVIF image: Truncated data
+xor: err: Couldn't parse AVIF image: IO Error
+anim_io: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=064c8fcc5dac911f blend=1 delay=1
+anim_typed: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=064c8fcc5dac911f blend=1 delay=1
+anim trunc 0: err: Unsupported image format
+anim trunc 1: err: Unsupported image format
+anim trunc 2: err: Unsupported image format
+anim trunc 4: err: Unsupported image format
+anim trunc 8: err: Unsupported image format
+anim trunc 16: err: Unsupported image format
+anim trunc 32: err: Couldn't parse AVIF image: BMFF parsing failed
+anim trunc 64: err: Couldn't parse AVIF image: Truncated data
+anim trunc 128: err: Couldn't parse AVIF image: Truncated data
+anim trunc 256: err: Couldn't parse AVIF image: Truncated data
+anim trunc 161: err: Couldn't parse AVIF image: Truncated data
+anim trunc 241: err: Couldn't parse AVIF image: Truncated data
+anim trunc 321: err: Couldn't get AVIF frame 1: Truncated data
+anim xor: err: Couldn't parse AVIF image: IO Error
+decoder: ok loop=1 frames=1 | 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f | status=2 | reset=1 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f
+decoder tb100: ok loop=1 frames=1 | 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f | status=2 | reset=1 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f
+hdr: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1 cs=120005a0
+decoder hdr: ok loop=1 frames=1 | 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f cs=120005a6 | status=2 | reset=1 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f
+decoder noprog: ok loop=1 frames=1 | 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f | status=2 | reset=1 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f
+decoder ignore: ok | 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f | status=2 | reset=1 1:23x42:SDL_PIXELFORMAT_ABGR8888:064c8fcc5dac911f
+save_anim gif: bytes=1672 hash=106f465851fb824d | reload: n=1 23x42 loop=0 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2cd78cf5517c0430 blend=1 delay=100
+save_anim ani: bytes=2090 hash=e4687055c5ba68cc | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=064c8fcc5dac911f blend=1 hot=0,0 delay=0
+save_anim png: err: SDL_image not built against libpng.
+save_anim webp: bytes=162 hash=c1b8b3678d04419c | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=6b9cdefdeffbbbbc blend=0 delay=0
+save_anim avif: err: SDL_image built without AVIF animation save support
+save_anim xyz: err: Unsupported image format
+gif_enc lut16: bytes=343 hash=80165ce670e80256 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e663e52a6310bb89 blend=1 delay=100
+ani_enc meta: bytes=2142 hash=38dd7b181d325478 | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=064c8fcc5dac911f blend=1 hot=0,0 delay=17
+webp_enc ll meta: err: WebPMuxGetAnimationParams() failed
+webp_enc q30 dup: bytes=108 hash=fb577b8b2798dd70 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f36330b346d58ca6 blend=0 delay=0
+save bmp: bytes=4002 hash=edf8779538012d0b | reload: err: Unsupported TGA format
+save png: bytes=1980 hash=1c83c4fb8225bdb0 | reload: err: Unsupported TGA format
+save tga: bytes=3882 hash=891dac4f982e6138 | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+save jpg: bytes=1174 hash=69e1410b692c0a8c | reload: err: Unsupported TGA format
+save ico: bytes=2002 hash=e0690c82f3f1f8be | reload: err: Unsupported TGA format
+save cur: bytes=2002 hash=2dd27c260dd4d4c5 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=749 hash=0bb532787f360897 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=968 hash=34e69b01f554a952 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=2916 hash=e59aeb70ec6e2240 | reload: 23x42 SDL_PIXELFORMAT_BGR24 pitch=72 hash=9c556c2066f0114b blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=2916 hash=e59aeb70ec6e2240 | reload: 23x42 SDL_PIXELFORMAT_BGR24 pitch=72 hash=9c556c2066f0114b blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=3882 hash=891dac4f982e6138 | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=3882 hash=891dac4f982e6138 | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=3882 hash=891dac4f982e6138 | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=1950 hash=adce315fd42d155f | reload: 23x42 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=b4d1cb6fb3394bac blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=1950 hash=0c0f8b66d5c5b024 | reload: 23x42 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=b4d1cb6fb3394bac blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=3882 hash=891dac4f982e6138 | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c1707954853e77a7 blend=1
+qoi_encode 3: bytes=1416 hash=ad84c51449262ac2 | reload: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=064c8fcc5dac911f blend=1
+qoi_encode 4: bytes=1416 hash=d9afc1fdcd7f5209 | reload: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=064c8fcc5dac911f blend=1
+save gif: bytes=1672 hash=106f465851fb824d | reload: err: Unsupported TGA format
+save_webp 100: bytes=836 hash=34b3aace65a48414 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=72977ac863742ad8 blend=0
+save_webp 90: bytes=162 hash=42b6a8da5664a190 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=9ba5da978ecb1a98 blend=0
+save_webp 50: bytes=114 hash=3571fbcd413278fb | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=dee263f0e5fdafe5 blend=0
+save_webp 0: bytes=82 hash=424e36fe9775b033 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=1f4356e78711b2e2 blend=0
 == sample.bmp
 is: BMP
 is_extra:

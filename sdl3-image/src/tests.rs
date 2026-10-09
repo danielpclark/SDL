@@ -6,15 +6,19 @@
 //! (`test/`, under SDL_image's zlib license) and small synthetic ones made
 //! by `tools/gen_sdl_image_testdata.py`. `testdata/reference.txt` is the
 //! output of a C program built from upstream SDL_image (with its stb_image,
-//! tiny_jpeg and QOI codecs, libwebp and libtiff, the latter two as
-//! SDL_image's external/ builds them, libwebp without its SIMD code and
-//! with its encoder and muxer) and SDL3: for every image, the
+//! tiny_jpeg and QOI codecs, libwebp, libtiff and libavif with dav1d, the
+//! latter four as SDL_image's external/ builds them, libwebp without its
+//! SIMD code and with its encoder and muxer, libavif and dav1d as plain C,
+//! without AVIF saving) and SDL3: for every image, the
 //! detectors that accept it, the surfaces loaded from the file, from memory
 //! and by type, from truncations and from a corrupted copy, and the files
 //! saved from it in every format (with their size and hash, and the surface
 //! or animation reloaded from them). Surfaces are described by their size, format, pitch
 //! and FNV-1a hashes of their pixel rows and palette, their color key,
-//! blend mode, hotspot and alternate images.
+//! blend mode, hotspot and alternate images. The AVIF files (made by
+//! `tools/gen_avif_testdata.py`) also get their colorspace and HDR
+//! properties, the animation decoder's options, and truncations and
+//! corruption as animations; the savers are run on three of them only.
 //!
 //! Where upstream's results can't be had here, the comparison says why:
 //! formats not translated yet load as "Unsupported image format", the GIFs
@@ -40,6 +44,37 @@ macro_rules! images {
 static IMAGES: &[(&str, &[u8])] = images![
     "ani_plain.ani",
     "ani_seq.ani",
+    "avif_10bit_420.avif",
+    "avif_10bit_444_hlg.avif",
+    "avif_10bit_444_pq_identity.avif",
+    "avif_12bit_400.avif",
+    "avif_12bit_422.avif",
+    "avif_8bit_400.avif",
+    "avif_8bit_420.avif",
+    "avif_8bit_420_chromaderived.avif",
+    "avif_8bit_420_full_odd.avif",
+    "avif_8bit_422.avif",
+    "avif_8bit_444.avif",
+    "avif_8bit_identity.avif",
+    "avif_8bit_ycgco.avif",
+    "avif_alpha.avif",
+    "avif_alpha_10bit.avif",
+    "avif_alpha_premultiplied.avif",
+    "avif_anim.avifs",
+    "avif_anim_10bit.avifs",
+    "avif_anim_alpha.avifs",
+    "avif_clap_irot_imir.avif",
+    "avif_exif_xmp.avif",
+    "avif_grid.avif",
+    "avif_grid_alpha.avif",
+    "avif_icc.avif",
+    "avif_progressive.avif",
+    "avif_scaled_10bit.avif",
+    "avif_scaled_12bit_vertical.avif",
+    "avif_scaled_box.avif",
+    "avif_scaled_box_odd.avif",
+    "avif_scaled_up.avif",
+    "avif_scaled_up2_alpha.avif",
     "cur_multi.cur",
     "gif_anim.gif",
     "gif_dispose.gif",
@@ -458,8 +493,58 @@ fn describe_frame(f: &Surface<'_>, dur: u64) -> String {
     )
 }
 
+/// The harness's `describe_hdr()`: the colorspace and HDR properties of an
+/// AVIF surface (the floats as their bits).
+fn describe_hdr(s: &mut Surface<'_>) -> String {
+    let mut out = format!(" cs={:08x}", s.colorspace().0);
+    let props = s.properties();
+    if props.contains(crate::PROP_SURFACE_MAXCLL_NUMBER) {
+        out += &format!(
+            " maxcll={}",
+            props
+                .get_number(crate::PROP_SURFACE_MAXCLL_NUMBER)
+                .unwrap_or(0)
+        );
+    }
+    if props.contains(crate::PROP_SURFACE_MAXFALL_NUMBER) {
+        out += &format!(
+            " maxfall={}",
+            props
+                .get_number(crate::PROP_SURFACE_MAXFALL_NUMBER)
+                .unwrap_or(0)
+        );
+    }
+    for (name, short) in [
+        (sdl3::video::PROP_SURFACE_SDR_WHITE_POINT_FLOAT, "sdr"),
+        (sdl3::video::PROP_SURFACE_HDR_HEADROOM_FLOAT, "headroom"),
+    ] {
+        if props.contains(name) {
+            let f = props.get_float(name).unwrap_or(0.0);
+            out += &format!(" {short}={:08x}", f.to_bits());
+        }
+    }
+    out
+}
+
+/// The harness's decoder options of the AVIF walks.
+#[derive(Clone, Copy, PartialEq)]
+enum AvifWalk {
+    None,
+    /// The colorspace and HDR properties of every frame.
+    Hdr,
+    /// Progressive layers not decoded as frames.
+    NoProgressive,
+    /// The metadata ignored.
+    IgnoreProps,
+}
+
 /// The harness's `decoder_walk()`.
 fn decoder_walk(data: &[u8], type_: Option<&str>, den: i64) -> String {
+    decoder_walk_with(data, type_, den, AvifWalk::None)
+}
+
+/// The harness's `decoder_walk()`, with the AVIF walks' options.
+fn decoder_walk_with(data: &[u8], type_: Option<&str>, den: i64, avif_walk: AvifWalk) -> String {
     let mut io = IoStream::from_const_mem(data);
     let props = sdl3::properties::Properties::new();
     if let Some(t) = type_ {
@@ -475,6 +560,19 @@ fn decoder_walk(data: &[u8], type_: Option<&str>, den: i64) -> String {
             )
             .unwrap();
     }
+    if avif_walk == AvifWalk::NoProgressive {
+        props
+            .set(
+                crate::PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN,
+                false,
+            )
+            .unwrap();
+    }
+    if avif_walk == AvifWalk::IgnoreProps {
+        props
+            .set(crate::PROP_METADATA_IGNORE_PROPS_BOOLEAN, true)
+            .unwrap();
+    }
     let mut d = match crate::AnimationDecoder::with_properties(Some(&mut io), &props) {
         Ok(d) => d,
         Err(e) => return format!("err: {e}"),
@@ -484,9 +582,12 @@ fn decoder_walk(data: &[u8], type_: Option<&str>, den: i64) -> String {
     let mut error = None;
     for _ in 0..64 {
         match d.get_frame() {
-            Ok(Some((f, dur))) => {
+            Ok(Some((mut f, dur))) => {
                 out += " |";
                 out += &describe_frame(&f, dur);
+                if avif_walk == AvifWalk::Hdr {
+                    out += &describe_hdr(&mut f);
+                }
             }
             Ok(None) => break,
             Err(e) => {
@@ -713,11 +814,11 @@ fn matches_upstream_reference() {
         let actual = if label == "is" {
             let mut io = IoStream::from_const_mem(data);
             let mut found = String::new();
-            // (upstream's harness is built without libavif and libjxl, so
-            // their detectors are on the is_extra line, and AVIF's is
-            // tested separately)
-            let detectors: [(&str, Detector); 17] = [
+            // (upstream's harness is built without libjxl, so its detector
+            // is on the is_extra line)
+            let detectors: [(&str, Detector); 18] = [
                 ("ANI", crate::is_ani),
+                ("AVIF", crate::is_avif),
                 ("CUR", crate::is_cur),
                 ("BMP", crate::is_bmp),
                 ("GIF", crate::is_gif),
@@ -812,6 +913,18 @@ fn matches_upstream_reference() {
             decoder_walk(data, ext_of(name), 0)
         } else if label == "decoder tb100" {
             decoder_walk(data, ext_of(name), 100)
+        } else if label == "hdr" {
+            let mut io = IoStream::from_const_mem(data);
+            match crate::load_typed_io(&mut io, ext_of(name)) {
+                Err(e) => format!("err: {e}"),
+                Ok(mut s) => describe1(&mut s) + &describe_hdr(&mut s),
+            }
+        } else if label == "decoder hdr" {
+            decoder_walk_with(data, ext_of(name), 0, AvifWalk::Hdr)
+        } else if label == "decoder noprog" {
+            decoder_walk_with(data, ext_of(name), 0, AvifWalk::NoProgressive)
+        } else if label == "decoder ignore" {
+            decoder_walk_with(data, ext_of(name), 0, AvifWalk::IgnoreProps)
         } else if let Some(t) = label.strip_prefix("save_anim ") {
             let Some(anim) = loaded_anim.as_mut() else {
                 failures.push(format!("{name}: {label}: the animation didn't load"));
@@ -1054,10 +1167,8 @@ fn front_end_errors() {
 
     // Formats not translated yet are unsupported, like an upstream build
     // without them
-    for name in ["sample.avif", "sample.jxl"] {
-        let e = crate::load_io(&mut IoStream::from_const_mem(image(name))).unwrap_err();
-        assert_eq!(e.to_string(), "Unsupported image format", "{name}");
-    }
+    let e = crate::load_io(&mut IoStream::from_const_mem(image("sample.jxl"))).unwrap_err();
+    assert_eq!(e.to_string(), "Unsupported image format");
 
     let e = crate::load("/nonexistent/sdl3-image/image.png").unwrap_err();
     assert!(!e.to_string().is_empty());

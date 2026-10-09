@@ -120,7 +120,10 @@ pub use anim_encoder::{
     PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
     PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING,
 };
-pub use avif::is_avif;
+pub use avif::{
+    is_avif, load_avif_io, save_avif, save_avif_io, PROP_SURFACE_MAXCLL_NUMBER,
+    PROP_SURFACE_MAXFALL_NUMBER,
+};
 pub use bmp::{
     is_bmp, is_cur, is_ico, load_bmp_io, load_cur_io, load_ico_io, save_bmp, save_bmp_io, save_cur,
     save_cur_io, save_ico, save_ico_io,
