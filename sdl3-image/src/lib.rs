@@ -61,6 +61,7 @@ mod anim_decoder;
 mod anim_encoder;
 mod avif;
 mod bmp;
+mod dav1d;
 mod gif;
 mod gpu;
 mod img;
