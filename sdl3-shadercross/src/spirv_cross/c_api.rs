@@ -302,6 +302,18 @@ pub struct SpvcReflectedResource {
     pub name: String,
 }
 
+/// `spvc_msl_resource_binding_2`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SpvcMslResourceBinding2 {
+    pub stage: ExecutionModel,
+    pub desc_set: u32,
+    pub binding: u32,
+    pub count: u32,
+    pub msl_buffer: u32,
+    pub msl_texture: u32,
+    pub msl_sampler: u32,
+}
+
 /// `struct spvc_context_s`.
 #[derive(Debug, Default)]
 pub struct SpvcContext {
@@ -562,6 +574,38 @@ impl SpvcCompiler {
             Err(e) => {
                 context.report_error(e.to_string());
                 Err(SPVC_ERROR_OUT_OF_MEMORY)
+            }
+        }
+    }
+
+    /// `spvc_compiler_msl_add_resource_binding_2()`.
+    pub fn msl_add_resource_binding_2(
+        &mut self,
+        context: &mut SpvcContext,
+        binding: &SpvcMslResourceBinding2,
+    ) -> SpvcResult {
+        if self.backend != SpvcBackend::Msl {
+            context.report_error("MSL function used on a non-MSL backend.");
+            return SPVC_ERROR_INVALID_ARGUMENT;
+        }
+
+        let bind = MSLResourceBinding {
+            binding: binding.binding,
+            desc_set: binding.desc_set,
+            stage: binding.stage,
+            msl_buffer: binding.msl_buffer,
+            msl_texture: binding.msl_texture,
+            msl_sampler: binding.msl_sampler,
+            count: binding.count,
+            ..Default::default()
+        };
+        // (C++'s add_msl_resource_binding() can't fail; SPVC_BEGIN_SAFE_SCOPE
+        // isn't used here either.)
+        match self.compiler.add_msl_resource_binding(&bind) {
+            Ok(()) => SPVC_SUCCESS,
+            Err(e) => {
+                context.report_error(e.to_string());
+                SPVC_ERROR_INVALID_ARGUMENT
             }
         }
     }
