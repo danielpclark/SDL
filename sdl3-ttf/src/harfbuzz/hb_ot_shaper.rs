@@ -22,6 +22,7 @@ use super::hb_ot_shaper_indic;
 use super::hb_ot_shaper_khmer;
 use super::hb_ot_shaper_myanmar;
 use super::hb_ot_shaper_thai;
+use super::hb_ot_shaper_use;
 
 pub(crate) const HB_OT_SHAPE_MAX_COMBINING_MARKS: u32 = 32;
 
@@ -38,6 +39,7 @@ pub(crate) enum ShaperData {
     Hangul(Box<hb_ot_shaper_hangul::HangulShapePlan>),
     Indic(Box<hb_ot_shaper_indic::IndicShapePlan>),
     Khmer(Box<hb_ot_shaper_khmer::KhmerShapePlan>),
+    Use(Box<hb_ot_shaper_use::UseShapePlan>),
 }
 
 /// `decompose ()`: called during shape()'s normalization.
@@ -218,7 +220,7 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
             if chosen_script == hb_tag(b'D', b'F', b'L', b'T') || chosen_script == hb_tag(b'l', b'a', b't', b'n') {
                 &_hb_ot_shaper_default
             } else if (chosen_script & 0x000000FF) == b'3' as u32 {
-                &_hb_ot_shaper_default
+                &hb_ot_shaper_use::_hb_ot_shaper_use
             } else {
                 &hb_ot_shaper_indic::_hb_ot_shaper_indic
             }
@@ -351,7 +353,7 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
             if chosen_script == hb_tag(b'D', b'F', b'L', b'T') || chosen_script == hb_tag(b'l', b'a', b't', b'n') {
                 &_hb_ot_shaper_default
             } else {
-                &_hb_ot_shaper_default
+                &hb_ot_shaper_use::_hb_ot_shaper_use
             }
         }
 
