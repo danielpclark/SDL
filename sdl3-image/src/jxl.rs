@@ -17,6 +17,8 @@ mod color_encoding_internal;
 #[allow(dead_code)]
 mod color_management;
 mod compressed_dc;
+mod dct;
+mod dct_scales;
 mod dec_ans;
 mod dec_bit_reader;
 mod dec_cache;
@@ -29,6 +31,7 @@ mod dec_huffman;
 mod dec_modular;
 mod dec_noise;
 mod dec_patch_dictionary;
+mod dec_transforms;
 mod dec_xyb;
 mod decode;
 mod epf;
