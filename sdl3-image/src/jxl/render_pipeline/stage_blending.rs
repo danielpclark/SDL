@@ -269,4 +269,3 @@ pub(crate) fn get_blending_stage(
         color_encoding_is_original,
     ))
 }
-
