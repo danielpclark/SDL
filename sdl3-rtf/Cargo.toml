@@ -1,0 +1,25 @@
+[package]
+name = "sdl3-rtf"
+description = "A direct, pure-Rust translation of SDL_rtf 3, the library for displaying Rich Text Format (RTF) documents with SDL3, over sdl3-ttf. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# SDL_rtf's zlib license; its RTF reader (rtfreadr.c, rtfactn.c and their
+# headers), adapted from the sample reader of Microsoft's RTF
+# specification, carries no other license notice (see LICENSE.txt).
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "rtf", "text", "pure-rust"]
+categories = ["text-processing", "rendering", "game-development"]
+
+[lib]
+name = "sdl3_rtf"
+path = "src/lib.rs"
+
+# Text is measured and rendered through a font engine the app provides;
+# the one of upstream's showrtf example, over SDL_ttf, is translated in
+# src/showrtf.rs over sdl3-ttf.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }
+sdl3-ttf = { path = "../sdl3-ttf", version = "3.5.0" }
