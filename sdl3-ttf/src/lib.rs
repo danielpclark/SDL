@@ -38,6 +38,8 @@
 
 #[doc(hidden)]
 pub mod freetype;
+#[doc(hidden)]
+pub mod harfbuzz;
 
 mod gpu_textengine;
 mod qsort;
