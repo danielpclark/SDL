@@ -140,16 +140,20 @@ impl ValueFormat {
             glyph_pos.y_offset += c.font.em_scale_y(s);
         }
         if format & VALUE_X_ADVANCE != 0 {
-            let s = get_short(&mut v, &mut ret);
             if horizontal {
+                let s = get_short(&mut v, &mut ret);
                 glyph_pos.x_advance += c.font.em_scale_x(s);
+            } else {
+                v += 1;
             }
         }
         /* y_advance values grow downward but font-space grows upward, hence negation */
         if format & VALUE_Y_ADVANCE != 0 {
-            let s = get_short(&mut v, &mut ret);
             if !horizontal {
+                let s = get_short(&mut v, &mut ret);
                 glyph_pos.y_advance -= c.font.em_scale_y(s);
+            } else {
+                v += 1;
             }
         }
 
