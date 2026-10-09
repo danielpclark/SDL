@@ -15,6 +15,7 @@ use super::hb_font::HbFont;
 use super::hb_ot_layout::HB_OT_TAG_DEFAULT_SCRIPT;
 use super::hb_ot_shape::{HbOtShapePlan, HbOtShapePlanner};
 use super::hb_ot_shape_normalize::*;
+use super::hb_ot_shaper_arabic;
 
 pub(crate) const HB_OT_SHAPE_MAX_COMBINING_MARKS: u32 = 32;
 
@@ -26,7 +27,9 @@ pub(crate) const HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE: HbOtShapeZeroWidthMa
 
 /// The data a shaper's `data_create` makes (C's `plan->data`).
 #[derive(Debug)]
-pub(crate) enum ShaperData {}
+pub(crate) enum ShaperData {
+    Arabic(Box<hb_ot_shaper_arabic::ArabicShapePlan>),
+}
 
 /// `decompose ()`: called during shape()'s normalization.
 pub(crate) type DecomposeFunc = fn(
@@ -173,7 +176,7 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
             if (chosen_script != HB_OT_TAG_DEFAULT_SCRIPT || planner.props.script == HB_SCRIPT_ARABIC)
                 && hb_direction_is_horizontal(planner.props.direction)
             {
-                &_hb_ot_shaper_default
+                &hb_ot_shaper_arabic::_hb_ot_shaper_arabic
             } else {
                 &_hb_ot_shaper_default
             }

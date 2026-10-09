@@ -18,6 +18,7 @@
 //! sanitizer (which cannot edit); their positions in the table are those
 //! of their slices in the table data.
 
+use super::hb_algs::hb_roundf;
 use super::hb_buffer::*;
 use super::hb_common::*;
 use super::hb_open_type::*;
@@ -546,8 +547,8 @@ fn mark_array_apply<'a>(
 
     let idx = c.buffer.idx;
     let o = c.buffer.cur_pos_mut(0);
-    o.x_offset = (base_x - mark_x).round() as HbPosition;
-    o.y_offset = (base_y - mark_y).round() as HbPosition;
+    o.x_offset = hb_roundf(base_x - mark_x) as HbPosition;
+    o.y_offset = hb_roundf(base_y - mark_y) as HbPosition;
     o.set_attach_type(ATTACH_TYPE_MARK);
     o.set_attach_chain((glyph_pos as i32 - idx as i32) as i16);
     c.buffer.scratch_flags |= HB_BUFFER_SCRATCH_FLAG_HAS_GPOS_ATTACHMENT;
@@ -1032,32 +1033,32 @@ fn cursive_pos_apply<'a>(c: &mut HbOtApplyContext<'a, '_, '_>, d: &'a [u8]) -> b
     /* Main-direction adjustment */
     match direction {
         HB_DIRECTION_LTR => {
-            pos[iu].x_advance = exit_x.round() as HbPosition + pos[iu].x_offset;
+            pos[iu].x_advance = hb_roundf(exit_x) as HbPosition + pos[iu].x_offset;
 
-            let d = entry_x.round() as HbPosition + pos[ju].x_offset;
+            let d = hb_roundf(entry_x) as HbPosition + pos[ju].x_offset;
             pos[ju].x_advance -= d;
             pos[ju].x_offset -= d;
         }
         HB_DIRECTION_RTL => {
-            let d = exit_x.round() as HbPosition + pos[iu].x_offset;
+            let d = hb_roundf(exit_x) as HbPosition + pos[iu].x_offset;
             pos[iu].x_advance -= d;
             pos[iu].x_offset -= d;
 
-            pos[ju].x_advance = entry_x.round() as HbPosition + pos[ju].x_offset;
+            pos[ju].x_advance = hb_roundf(entry_x) as HbPosition + pos[ju].x_offset;
         }
         HB_DIRECTION_TTB => {
-            pos[iu].y_advance = exit_y.round() as HbPosition + pos[iu].y_offset;
+            pos[iu].y_advance = hb_roundf(exit_y) as HbPosition + pos[iu].y_offset;
 
-            let d = entry_y.round() as HbPosition + pos[ju].y_offset;
+            let d = hb_roundf(entry_y) as HbPosition + pos[ju].y_offset;
             pos[ju].y_advance -= d;
             pos[ju].y_offset -= d;
         }
         HB_DIRECTION_BTT => {
-            let d = exit_y.round() as HbPosition + pos[iu].y_offset;
+            let d = hb_roundf(exit_y) as HbPosition + pos[iu].y_offset;
             pos[iu].y_advance -= d;
             pos[iu].y_offset -= d;
 
-            pos[ju].y_advance = entry_y.round() as HbPosition;
+            pos[ju].y_advance = hb_roundf(entry_y) as HbPosition;
         }
         _ => {}
     }
@@ -1072,8 +1073,8 @@ fn cursive_pos_apply<'a>(c: &mut HbOtApplyContext<'a, '_, '_>, d: &'a [u8]) -> b
      * Arabic. */
     let mut child = i;
     let mut parent = j;
-    let mut x_offset = (entry_x - exit_x).round() as HbPosition;
-    let mut y_offset = (entry_y - exit_y).round() as HbPosition;
+    let mut x_offset = hb_roundf(entry_x - exit_x) as HbPosition;
+    let mut y_offset = hb_roundf(entry_y - exit_y) as HbPosition;
     if lookup_props & LOOKUP_FLAG_RIGHT_TO_LEFT == 0 {
         std::mem::swap(&mut child, &mut parent);
         x_offset = -x_offset;
@@ -1597,7 +1598,7 @@ pub(crate) fn gpos_position_finish_offsets(slant: f32, slant_xy: f32, buffer: &m
         for i in 0..len as usize {
             if buffer.pos[i].y_offset != 0 {
                 buffer.pos[i].x_offset +=
-                    (slant_xy * buffer.pos[i].y_offset as f32).round() as HbPosition;
+                    hb_roundf(slant_xy * buffer.pos[i].y_offset as f32) as HbPosition;
             }
         }
     }
