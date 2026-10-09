@@ -24,3 +24,6 @@ sdl3-ttf/src/testdata/** binary
 
 # sdl3-rtf's test documents (raw 8-bit bytes, CR-free) and reference log.
 sdl3-rtf/src/testdata/** binary
+
+# sdl3-shadercross's test shaders and their reference outputs.
+sdl3-shadercross/testdata/** binary

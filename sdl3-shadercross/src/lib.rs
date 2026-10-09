@@ -10,3 +10,6 @@
 
 #[doc(hidden)]
 pub mod spirv_cross;
+
+#[cfg(test)]
+mod tests;
