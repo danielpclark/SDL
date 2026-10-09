@@ -134,7 +134,8 @@ fn decode_tree_inner(
             if mul_log >= 31 {
                 return jxl_failure!("Invalid multiplier logarithm");
             }
-            let mul_bits = reader.read_hybrid_uint(K_MULTIPLIER_BITS_CONTEXT, br, context_map) as u32;
+            let mul_bits =
+                reader.read_hybrid_uint(K_MULTIPLIER_BITS_CONTEXT, br, context_map) as u32;
             if mul_bits.wrapping_add(1) >= 1u32 << (31 - mul_log) {
                 return jxl_failure!("Invalid multiplier");
             }
@@ -151,7 +152,8 @@ fn decode_tree_inner(
             leaf_id += 1;
             continue;
         }
-        let splitval = unpack_signed(reader.read_hybrid_uint(K_SPLIT_VAL_CONTEXT, br, context_map)) as i32;
+        let splitval =
+            unpack_signed(reader.read_hybrid_uint(K_SPLIT_VAL_CONTEXT, br, context_map)) as i32;
         let lchild = (tree.len() + to_decode + 1) as u32;
         let rchild = (tree.len() + to_decode + 2) as u32;
         tree.push(PropertyDecisionNode {
@@ -169,10 +171,20 @@ fn decode_tree_inner(
 }
 
 /// Translation of `DecodeTree()`.
-pub(crate) fn decode_tree(br: &mut BitReader<'_>, tree: &mut Tree, tree_size_limit: usize) -> Status {
+pub(crate) fn decode_tree(
+    br: &mut BitReader<'_>,
+    tree: &mut Tree,
+    tree_size_limit: usize,
+) -> Status {
     let mut tree_context_map: Vec<u8> = Vec::new();
     let mut tree_code = AnsCode::default();
-    decode_histograms(br, K_NUM_TREE_CONTEXTS, &mut tree_code, &mut tree_context_map, false)?;
+    decode_histograms(
+        br,
+        K_NUM_TREE_CONTEXTS,
+        &mut tree_code,
+        &mut tree_context_map,
+        false,
+    )?;
     // TODO(eustas): investigate more infinite tree cases.
     if tree_code.degenerate_symbols[tree_context_map[K_PROPERTY_CONTEXT] as usize] > 0 {
         return jxl_failure!("Infinite tree");

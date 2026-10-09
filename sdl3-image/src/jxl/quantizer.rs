@@ -67,7 +67,11 @@ impl Quantizer {
 
     /// Translation of `Quantizer(dequant)`.
     pub(crate) fn new(dequant: &DequantMatrices) -> Self {
-        Self::with_params(dequant, K_DEFAULT_QUANT, K_GLOBAL_SCALE_DENOM / K_DEFAULT_QUANT)
+        Self::with_params(
+            dequant,
+            K_DEFAULT_QUANT,
+            K_GLOBAL_SCALE_DENOM / K_DEFAULT_QUANT,
+        )
     }
 
     /// Translation of `Quantizer(dequant, quant_dc, global_scale)`.
@@ -90,8 +94,10 @@ impl Quantizer {
     /// Recomputes other derived fields after global_scale_ has changed.
     /// Translation of `RecomputeFromGlobalScale()`.
     fn recompute_from_global_scale(&mut self, dequant: &DequantMatrices) {
-        self.global_scale_float = (self.global_scale as f64 * (1.0 / K_GLOBAL_SCALE_DENOM as f64)) as f32;
-        self.inv_global_scale = (1.0 * K_GLOBAL_SCALE_DENOM as f64 / self.global_scale as f64) as f32;
+        self.global_scale_float =
+            (self.global_scale as f64 * (1.0 / K_GLOBAL_SCALE_DENOM as f64)) as f32;
+        self.inv_global_scale =
+            (1.0 * K_GLOBAL_SCALE_DENOM as f64 / self.global_scale as f64) as f32;
         self.inv_quant_dc = self.inv_global_scale / self.quant_dc as f32;
         for c in 0..3 {
             self.mul_dc[c] = self.get_dc_step(c, dequant);
@@ -121,7 +127,11 @@ impl Quantizer {
     }
 
     /// Translation of `Decode()`.
-    pub(crate) fn decode(&mut self, reader: &mut BitReader<'_>, dequant: &DequantMatrices) -> Status {
+    pub(crate) fn decode(
+        &mut self,
+        reader: &mut BitReader<'_>,
+        dequant: &DequantMatrices,
+    ) -> Status {
         let mut params = QuantizerParams::new();
         bundle_read(reader, &mut params)?;
         self.global_scale = params.global_scale as i32;

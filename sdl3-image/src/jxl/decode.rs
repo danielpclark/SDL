@@ -491,7 +491,8 @@ impl<'a> JxlDecoder<'a> {
     fn available_codestream(&self) -> usize {
         let mut avail_codestream = self.avail_in;
         if !self.box_contents_unbounded {
-            avail_codestream = avail_codestream.min(self.box_contents_end.wrapping_sub(self.file_pos));
+            avail_codestream =
+                avail_codestream.min(self.box_contents_end.wrapping_sub(self.file_pos));
         }
         avail_codestream
     }
@@ -508,9 +509,9 @@ impl<'a> JxlDecoder<'a> {
         } else {
             self.codestream_pos += size;
             if self.codestream_pos + self.codestream_unconsumed >= self.codestream_copy.len() {
-                let advance = self
-                    .codestream_unconsumed
-                    .min(self.codestream_unconsumed + self.codestream_pos - self.codestream_copy.len());
+                let advance = self.codestream_unconsumed.min(
+                    self.codestream_unconsumed + self.codestream_pos - self.codestream_copy.len(),
+                );
                 self.advance_input(advance);
                 self.codestream_pos -= self.codestream_pos.min(self.codestream_copy.len());
                 self.codestream_unconsumed = 0;
@@ -551,10 +552,14 @@ impl<'a> JxlDecoder<'a> {
             }
             Ok(Span::Input(self.next_in, avail_codestream))
         } else {
-            let s = &self.input[self.next_in + self.codestream_unconsumed..self.next_in + avail_codestream];
+            let s = &self.input
+                [self.next_in + self.codestream_unconsumed..self.next_in + avail_codestream];
             self.codestream_copy.extend_from_slice(s);
             self.codestream_unconsumed = avail_codestream;
-            Ok(Span::Copy(self.codestream_pos, self.codestream_copy.len() - self.codestream_pos))
+            Ok(Span::Copy(
+                self.codestream_pos,
+                self.codestream_copy.len() - self.codestream_pos,
+            ))
         }
     }
 
@@ -573,7 +578,9 @@ impl<'a> JxlDecoder<'a> {
         let input: &'a [u8] = self.input;
         match span {
             Span::Input(start, len) => std::borrow::Cow::Borrowed(&input[start..start + len]),
-            Span::Copy(start, len) => std::borrow::Cow::Owned(self.codestream_copy[start..start + len].to_vec()),
+            Span::Copy(start, len) => {
+                std::borrow::Cow::Owned(self.codestream_copy[start..start + len].to_vec())
+            }
         }
     }
 
@@ -723,7 +730,8 @@ impl<'a> JxlDecoder<'a> {
     /// Translation of `GetStride()`.
     fn get_stride(&self, format: &JxlPixelFormat) -> usize {
         let (xsize, _) = self.get_current_dimensions(true);
-        let mut stride = xsize * (bits_per_channel(format.data_type) * format.num_channels as usize / K_BITS_PER_BYTE);
+        let mut stride = xsize
+            * (bits_per_channel(format.data_type) * format.num_channels as usize / K_BITS_PER_BYTE);
         if format.align > 1 {
             stride = div_ceil(stride, format.align) * format.align;
         }
@@ -739,13 +747,18 @@ impl<'a> JxlDecoder<'a> {
                 self.metadata.oriented_preview_ysize(self.keep_orientation),
             );
         }
-        let mut xsize = self.metadata.oriented_xsize(self.keep_orientation || !oriented);
-        let mut ysize = self.metadata.oriented_ysize(self.keep_orientation || !oriented);
+        let mut xsize = self
+            .metadata
+            .oriented_xsize(self.keep_orientation || !oriented);
+        let mut ysize = self
+            .metadata
+            .oriented_ysize(self.keep_orientation || !oriented);
         if !self.coalescing {
             let frame_dim = self.frame_header.to_frame_dimensions();
             xsize = frame_dim.xsize_upsampled;
             ysize = frame_dim.ysize_upsampled;
-            if !self.keep_orientation && oriented && (self.metadata.m.get_orientation() as u32) > 4 {
+            if !self.keep_orientation && oriented && (self.metadata.m.get_orientation() as u32) > 4
+            {
                 std::mem::swap(&mut xsize, &mut ysize);
             }
         }
@@ -869,7 +882,9 @@ impl<'a> JxlDecoder<'a> {
 
         // Handle frames
         loop {
-            let parse_frames = self.events_wanted & (JXL_DEC_PREVIEW_IMAGE | JXL_DEC_FRAME | JXL_DEC_FULL_IMAGE) != 0;
+            let parse_frames = self.events_wanted
+                & (JXL_DEC_PREVIEW_IMAGE | JXL_DEC_FRAME | JXL_DEC_FULL_IMAGE)
+                != 0;
             if !parse_frames {
                 break;
             }
@@ -898,11 +913,23 @@ impl<'a> JxlDecoder<'a> {
                 let Some(dec_state) = self.passes_state.as_deref_mut() else {
                     return JxlDecoderStatus::Error;
                 };
-                let ib = self.ib.take().unwrap_or_else(|| ImageBundle::new(Some(self.image_metadata.clone())));
-                let status = frame_dec.init_frame(&mut reader, ib, dec_state, self.preview_frame, output_needed);
+                let ib = self
+                    .ib
+                    .take()
+                    .unwrap_or_else(|| ImageBundle::new(Some(self.image_metadata.clone())));
+                let status = frame_dec.init_frame(
+                    &mut reader,
+                    ib,
+                    dec_state,
+                    self.preview_frame,
+                    output_needed,
+                );
                 if !reader.all_reads_within_bounds() || status == Err(StatusCode::NotEnoughBytes) {
                     close_reader(reader);
-                    self.ib = Some(std::mem::replace(&mut frame_dec.decoded, ImageBundle::new(None)));
+                    self.ib = Some(std::mem::replace(
+                        &mut frame_dec.decoded,
+                        ImageBundle::new(None),
+                    ));
                     self.frame_dec = Some(frame_dec);
                     return self.request_more_input();
                 } else if status.is_err() {
@@ -933,9 +960,11 @@ impl<'a> JxlDecoder<'a> {
                 // is last in entire codestream
                 self.is_last_total = self.frame_header.is_last;
                 // is last of current still
-                self.is_last_of_still = self.is_last_total || self.frame_header.animation_frame.duration > 0;
+                self.is_last_of_still =
+                    self.is_last_total || self.frame_header.animation_frame.duration > 0;
                 // is kRegularFrame and coalescing is disabled
-                self.is_last_of_still |= !self.coalescing && self.frame_header.frame_type == FrameType::RegularFrame;
+                self.is_last_of_still |=
+                    !self.coalescing && self.frame_header.frame_type == FrameType::RegularFrame;
                 let internal_frame_index = self.internal_frames;
                 let external_frame_index = self.external_frames;
                 if self.is_last_of_still {
@@ -1018,7 +1047,9 @@ impl<'a> JxlDecoder<'a> {
                 }
 
                 {
-                    let (Some(fd), Some(ps)) = (self.frame_dec.as_ref(), self.passes_state.as_deref_mut()) else {
+                    let (Some(fd), Some(ps)) =
+                        (self.frame_dec.as_ref(), self.passes_state.as_deref_mut())
+                    else {
                         return JxlDecoderStatus::Error;
                     };
                     fd.maybe_set_unpremultiply_alpha(self.unpremul_alpha, ps);
@@ -1038,8 +1069,13 @@ impl<'a> JxlDecoder<'a> {
                         self.frame_dec.as_ref(),
                         self.passes_state.as_deref_mut(),
                     ) {
-                        self.image_out_buffer =
-                            fd.maybe_set_rgb8_output_buffer(buf, stride, is_rgba, !keep_orientation, ps);
+                        self.image_out_buffer = fd.maybe_set_rgb8_output_buffer(
+                            buf,
+                            stride,
+                            is_rgba,
+                            !keep_orientation,
+                            ps,
+                        );
                     }
                 }
 
@@ -1051,7 +1087,8 @@ impl<'a> JxlDecoder<'a> {
                     return status;
                 }
 
-                let all_sections_done = self.frame_dec.as_ref().is_some_and(|f| f.has_decoded_all());
+                let all_sections_done =
+                    self.frame_dec.as_ref().is_some_and(|f| f.has_decoded_all());
 
                 if !all_sections_done {
                     // Not all sections have been processed yet
@@ -1065,7 +1102,9 @@ impl<'a> JxlDecoder<'a> {
                     // Always fill this in, even if it was already written, it could be that
                     // this frame was skipped before and set to 255, while only now we know
                     // the true value.
-                    if let (Some(fd), Some(ps)) = (self.frame_dec.as_ref(), self.passes_state.as_deref()) {
+                    if let (Some(fd), Some(ps)) =
+                        (self.frame_dec.as_ref(), self.passes_state.as_deref())
+                    {
                         self.frame_references[internal_index] = fd.references(ps);
                     }
                 }
@@ -1097,8 +1136,8 @@ impl<'a> JxlDecoder<'a> {
 
                     // Frame finished, restore the events_wanted with the per-frame events
                     // from orig_events_wanted, in case there is a next frame.
-                    self.events_wanted |=
-                        self.orig_events_wanted & (JXL_DEC_FULL_IMAGE | JXL_DEC_FRAME | JXL_DEC_FRAME_PROGRESSION);
+                    self.events_wanted |= self.orig_events_wanted
+                        & (JXL_DEC_FULL_IMAGE | JXL_DEC_FRAME | JXL_DEC_FRAME_PROGRESSION);
 
                     // If no output buffer was set, we merely return the JXL_DEC_FULL_IMAGE
                     // status without outputting pixels.
@@ -1152,7 +1191,8 @@ impl<'a> JxlDecoder<'a> {
         let format = self.image_out_format;
         let stride = self.get_stride(&format);
 
-        let float_format = format.data_type == JxlDataType::Float || format.data_type == JxlDataType::Float16;
+        let float_format =
+            format.data_type == JxlDataType::Float || format.data_type == JxlDataType::Float16;
 
         let undo_orientation = if self.keep_orientation {
             Orientation::Identity
@@ -1186,7 +1226,12 @@ impl<'a> JxlDecoder<'a> {
     }
 
     /// Parses a box header. Translation of `ParseBoxHeader()`.
-    fn parse_box_header(&self, box_size: &mut u64, header_size: &mut u64, box_type: &mut [u8; 4]) -> JxlDecoderStatus {
+    fn parse_box_header(
+        &self,
+        box_size: &mut u64,
+        header_size: &mut u64,
+        box_type: &mut [u8; 4],
+    ) -> JxlDecoderStatus {
         let input = &self.input[self.next_in..self.next_in + self.avail_in];
         let size = self.avail_in;
         let mut pos = 0usize;
@@ -1472,7 +1517,9 @@ impl<'a> JxlDecoder<'a> {
             info.alpha_premultiplied = alpha.alpha_associated;
         }
 
-        info.num_color_channels = if meta.color_encoding.get_color_space() == super::color_encoding_internal::ColorSpace::Gray {
+        info.num_color_channels = if meta.color_encoding.get_color_space()
+            == super::color_encoding_internal::ColorSpace::Gray
+        {
             1
         } else {
             3
@@ -1502,7 +1549,11 @@ impl<'a> JxlDecoder<'a> {
     }
 
     /// Translation of `JxlDecoderImageOutBufferSize()`.
-    pub(crate) fn image_out_buffer_size(&self, format: &JxlPixelFormat, size: &mut usize) -> JxlDecoderStatus {
+    pub(crate) fn image_out_buffer_size(
+        &self,
+        format: &JxlPixelFormat,
+        size: &mut usize,
+    ) -> JxlDecoderStatus {
         let mut bits = 0usize;
         let status = self.prepare_size_check(format, &mut bits);
         if status != JxlDecoderStatus::Success {
@@ -1523,7 +1574,11 @@ impl<'a> JxlDecoder<'a> {
 
     /// Translation of `JxlDecoderSetImageOutBuffer()`: the decoder takes the
     /// buffer, and gives it back with [`take_image_out_buffer`].
-    pub(crate) fn set_image_out_buffer(&mut self, format: &JxlPixelFormat, buffer: Vec<u8>) -> JxlDecoderStatus {
+    pub(crate) fn set_image_out_buffer(
+        &mut self,
+        format: &JxlPixelFormat,
+        buffer: Vec<u8>,
+    ) -> JxlDecoderStatus {
         if !self.got_basic_info || (self.orig_events_wanted & JXL_DEC_FULL_IMAGE) == 0 {
             return JxlDecoderStatus::Error; // "No image out buffer needed at this time"
         }

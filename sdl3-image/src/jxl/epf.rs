@@ -56,13 +56,20 @@ pub(crate) fn compute_sigma(block_rect: &Rect, state: &mut PassesDecoderState) {
             //
             // lf.epf_quant_mul is a parameter in the format
             // kInvSigmaNum is a constant
-            let sigma_quant = lf.epf_quant_mul / (quant_scale * row_quant[bx] as f32 * K_INV_SIGMA_NUM);
+            let sigma_quant =
+                lf.epf_quant_mul / (quant_scale * row_quant[bx] as f32 * K_INV_SIGMA_NUM);
             for iy in 0..acs.covered_blocks_y() {
                 for ix in 0..acs.covered_blocks_x() {
-                    let mut s = sigma_quant * lf.epf_sharp_lut[sharpness[sharpness_base + bx + ix + iy * sharpness_stride] as usize];
+                    let mut s = sigma_quant
+                        * lf.epf_sharp_lut
+                            [sharpness[sharpness_base + bx + ix + iy * sharpness_stride] as usize];
                     // Avoid infinities.
                     s = if s < -1e-4f32 { s } else { -1e-4f32 }; // TODO(veluca): remove this.
-                    sigma[sigma_base + bx + ix + K_SIGMA_PADDING + (iy + K_SIGMA_PADDING) * sigma_stride] = 1.0f32 / s;
+                    sigma[sigma_base
+                        + bx
+                        + ix
+                        + K_SIGMA_PADDING
+                        + (iy + K_SIGMA_PADDING) * sigma_stride] = 1.0f32 / s;
                 }
             }
             // TODO(veluca): remove this padding.
@@ -80,14 +87,22 @@ pub(crate) fn compute_sigma(block_rect: &Rect, state: &mut PassesDecoderState) {
             if bx + block_rect.x0() + llf_x == xsize_blocks {
                 for iy in 0..acs.covered_blocks_y() {
                     // RightMirror(p, kSigmaBorder)
-                    let p = sigma_base + K_SIGMA_PADDING + bx + llf_x + (iy + K_SIGMA_PADDING) * sigma_stride;
+                    let p = sigma_base
+                        + K_SIGMA_PADDING
+                        + bx
+                        + llf_x
+                        + (iy + K_SIGMA_PADDING) * sigma_stride;
                     for i in 0..K_SIGMA_BORDER {
                         sigma[p + i] = sigma[p - 1 - i];
                     }
                 }
             }
             // Offsets for row copying, in blocks.
-            let offset_before = if bx + block_rect.x0() == 0 { 1 } else { bx + K_SIGMA_PADDING };
+            let offset_before = if bx + block_rect.x0() == 0 {
+                1
+            } else {
+                bx + K_SIGMA_PADDING
+            };
             let offset_after = if bx + block_rect.x0() + llf_x == xsize_blocks {
                 K_SIGMA_PADDING + llf_x + bx + K_SIGMA_BORDER
             } else {
@@ -97,7 +112,8 @@ pub(crate) fn compute_sigma(block_rect: &Rect, state: &mut PassesDecoderState) {
             // Above
             if by + block_rect.y0() == 0 {
                 for iy in 0..K_SIGMA_BORDER {
-                    let dst = sigma_base + offset_before + (K_SIGMA_PADDING - 1 - iy) * sigma_stride;
+                    let dst =
+                        sigma_base + offset_before + (K_SIGMA_PADDING - 1 - iy) * sigma_stride;
                     let src = sigma_base + offset_before + (K_SIGMA_PADDING + iy) * sigma_stride;
                     sigma.copy_within(src..src + num, dst);
                 }
@@ -105,9 +121,12 @@ pub(crate) fn compute_sigma(block_rect: &Rect, state: &mut PassesDecoderState) {
             // Below
             if by + block_rect.y0() + acs.covered_blocks_y() == ysize_blocks {
                 for iy in 0..K_SIGMA_BORDER {
-                    let dst = sigma_base + offset_before + sigma_stride * (acs.covered_blocks_y() + K_SIGMA_PADDING + iy);
-                    let src =
-                        sigma_base + offset_before + sigma_stride * (acs.covered_blocks_y() + K_SIGMA_PADDING - 1 - iy);
+                    let dst = sigma_base
+                        + offset_before
+                        + sigma_stride * (acs.covered_blocks_y() + K_SIGMA_PADDING + iy);
+                    let src = sigma_base
+                        + offset_before
+                        + sigma_stride * (acs.covered_blocks_y() + K_SIGMA_PADDING - 1 - iy);
                     sigma.copy_within(src..src + num, dst);
                 }
             }

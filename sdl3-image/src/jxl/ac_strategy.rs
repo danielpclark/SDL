@@ -269,7 +269,13 @@ impl AcStrategyImage {
     }
 
     /// Translation of `SetNoBoundsCheck()` (the caller checked the bounds).
-    pub(crate) fn set_no_bounds_check(&mut self, x: usize, y: usize, type_: u8, check: bool) -> Status {
+    pub(crate) fn set_no_bounds_check(
+        &mut self,
+        x: usize,
+        y: usize,
+        type_: u8,
+        check: bool,
+    ) -> Status {
         let acs = AcStrategy::from_raw_strategy(type_);
         let stride = self.layers.pixels_per_row();
         let row = self.layers.data_mut();
@@ -289,7 +295,9 @@ impl AcStrategyImage {
     #[allow(dead_code)]
     pub(crate) fn set(&mut self, x: usize, y: usize, type_: u8) -> Status {
         let acs = AcStrategy::from_raw_strategy(type_);
-        if y + acs.covered_blocks_y() > self.layers.ysize() || x + acs.covered_blocks_x() > self.layers.xsize() {
+        if y + acs.covered_blocks_y() > self.layers.ysize()
+            || x + acs.covered_blocks_x() > self.layers.xsize()
+        {
             return jxl_failure!("AC strategy out of bounds");
         }
         self.set_no_bounds_check(x, y, type_, false)

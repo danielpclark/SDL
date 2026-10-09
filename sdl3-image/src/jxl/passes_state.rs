@@ -123,7 +123,12 @@ impl PassesSharedState {
             dc_storage: Image3F::empty(),
             dc_frame_index: None,
             block_ctx_map: BlockCtxMap::new(),
-            dc_frames: [Image3F::empty(), Image3F::empty(), Image3F::empty(), Image3F::empty()],
+            dc_frames: [
+                Image3F::empty(),
+                Image3F::empty(),
+                Image3F::empty(),
+                Image3F::empty(),
+            ],
             reference_frames: Default::default(),
             num_histograms: 0,
         }
@@ -139,7 +144,9 @@ impl PassesSharedState {
 
     #[allow(dead_code)]
     pub(crate) fn is_grayscale(&self) -> bool {
-        self.metadata.as_ref().is_some_and(|m| m.m.color_encoding.is_gray())
+        self.metadata
+            .as_ref()
+            .is_some_and(|m| m.m.color_encoding.is_gray())
     }
 
     /// Translation of `GroupRect()`.
@@ -147,7 +154,14 @@ impl PassesSharedState {
         let fd = &self.frame_dim;
         let gx = group_index % fd.xsize_groups;
         let gy = group_index / fd.xsize_groups;
-        Rect::new_clamped(gx * fd.group_dim, gy * fd.group_dim, fd.group_dim, fd.group_dim, fd.xsize, fd.ysize)
+        Rect::new_clamped(
+            gx * fd.group_dim,
+            gy * fd.group_dim,
+            fd.group_dim,
+            fd.group_dim,
+            fd.xsize,
+            fd.ysize,
+        )
     }
 
     /// Translation of `PaddedGroupRect()`.
@@ -199,13 +213,16 @@ impl PassesSharedState {
 
 /// Initialized the state information that is shared between encoder and
 /// decoder. Translation of `InitializePassesSharedState()` (decoder side).
-pub(crate) fn initialize_passes_shared_state(frame_header: &FrameHeader, shared: &mut PassesSharedState) -> Status {
+pub(crate) fn initialize_passes_shared_state(
+    frame_header: &FrameHeader,
+    shared: &mut PassesSharedState,
+) -> Status {
     debug_assert!(frame_header.nonserialized_metadata.is_some());
     shared.frame_header = frame_header.clone();
     shared.metadata = frame_header.nonserialized_metadata.clone();
     shared.frame_dim = frame_header.to_frame_dimensions();
 
-    let frame_dim = shared.frame_dim.clone();
+    let frame_dim = shared.frame_dim;
 
     shared.ac_strategy = AcStrategyImage::new(frame_dim.xsize_blocks, frame_dim.ysize_blocks)?;
     shared.raw_quant_field = ImageI::new(frame_dim.xsize_blocks, frame_dim.ysize_blocks)?;
@@ -227,7 +244,9 @@ pub(crate) fn initialize_passes_shared_state(frame_header: &FrameHeader, shared:
         let level = frame_header.dc_level as usize;
         shared.dc_frame_index = Some(level);
         if shared.dc_frames[level].xsize() == 0 {
-            return jxl_failure!("kUseDcFrame specified for dc_level, but no frame was decoded with level + 1");
+            return jxl_failure!(
+                "kUseDcFrame specified for dc_level, but no frame was decoded with level + 1"
+            );
         }
         zero_fill_image(&mut shared.quant_dc);
     } else {

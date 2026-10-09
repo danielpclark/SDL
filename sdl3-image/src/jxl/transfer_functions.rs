@@ -197,8 +197,8 @@ impl TfPq {
     pub(crate) fn display_from_encoded_v(&self, x: f32) -> f32 {
         let original_sign = x.to_bits() & K_SIGN;
         let x = f32::from_bits(x.to_bits() & !K_SIGN); // abs
-        // 4-over-4-degree rational polynomial approximation on x+x*x. This improves
-        // the maximum error by about 5x over a rational polynomial for x.
+                                                       // 4-over-4-degree rational polynomial approximation on x+x*x. This improves
+                                                       // the maximum error by about 5x over a rational polynomial for x.
         let xpxx = x * x + x;
         const P: [f32; 5] = [
             2.62975656e-04,
@@ -238,8 +238,8 @@ impl TfPq {
     pub(crate) fn encoded_from_display_v(&self, x: f32) -> f32 {
         let original_sign = x.to_bits() & K_SIGN;
         let x = f32::from_bits(x.to_bits() & !K_SIGN); // abs
-        // 4-over-4-degree rational polynomial approximation on x**0.25, with two
-        // different polynomials above and below 1e-4.
+                                                       // 4-over-4-degree rational polynomial approximation on x**0.25, with two
+                                                       // different polynomials above and below 1e-4.
         let xto025 = x.sqrt().sqrt();
         const P: [f32; 5] = [
             1.351392e-02,

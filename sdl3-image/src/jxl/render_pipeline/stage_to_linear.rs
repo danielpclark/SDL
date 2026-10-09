@@ -132,7 +132,9 @@ impl RenderPipelineStage for ToLinearStage {
 }
 
 /// Translation of `GetToLinearStage()`.
-pub(crate) fn get_to_linear_stage(output_encoding_info: &OutputEncodingInfo) -> Box<dyn RenderPipelineStage> {
+pub(crate) fn get_to_linear_stage(
+    output_encoding_info: &OutputEncodingInfo,
+) -> Box<dyn RenderPipelineStage> {
     let tf = &output_encoding_info.color_encoding.tf;
     let (op, valid) = if tf.is_linear() {
         (Op::Linear, true)

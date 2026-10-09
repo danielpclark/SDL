@@ -100,7 +100,14 @@ fn continuous_idct(dct: &[f32; 32], t: f32) -> f32 {
 
 /// Translation of `DrawSegment()` (one pixel).
 #[inline]
-fn draw_segment_pixel(segment: &SplineSegment, add: bool, y: usize, x: i64, rows: &mut [&mut [f32]; 3], row_x0: i64) {
+fn draw_segment_pixel(
+    segment: &SplineSegment,
+    add: bool,
+    y: usize,
+    x: i64,
+    rows: &mut [&mut [f32]; 3],
+    row_x0: i64,
+) {
     let inv_sigma = segment.inv_sigma;
     let half = 0.5f32;
     let one_over_2s2 = 0.353553391f32;
@@ -111,9 +118,14 @@ fn draw_segment_pixel(segment: &SplineSegment, add: bool, y: usize, x: i64, rows
     let distance = sqd.sqrt();
     let one_dimensional_factor = fast_erff((distance * half + one_over_2s2) * inv_sigma)
         - fast_erff((distance * half - one_over_2s2) * inv_sigma);
-    let local_intensity = sigma_over_4_times_intensity * (one_dimensional_factor * one_dimensional_factor);
+    let local_intensity =
+        sigma_over_4_times_intensity * (one_dimensional_factor * one_dimensional_factor);
     for c in 0..3 {
-        let cm = if add { segment.color[c] } else { -segment.color[c] };
+        let cm = if add {
+            segment.color[c]
+        } else {
+            -segment.color[c]
+        };
         let idx = (x - row_x0) as usize;
         let inp = rows[c][idx];
         rows[c][idx] = cm * local_intensity + inp;
@@ -121,7 +133,14 @@ fn draw_segment_pixel(segment: &SplineSegment, add: bool, y: usize, x: i64, rows
 }
 
 /// Translation of `DrawSegment()` (a range).
-fn draw_segment(segment: &SplineSegment, add: bool, y: usize, x0: i64, x1: i64, rows: &mut [&mut [f32]; 3]) {
+fn draw_segment(
+    segment: &SplineSegment,
+    add: bool,
+    y: usize,
+    x0: i64,
+    x1: i64,
+    rows: &mut [&mut [f32]; 3],
+) {
     let mut x = x0.max((segment.center_x - segment.maximum_distance + 0.5f32) as i64);
     // one-past-the-end
     let x1 = x1.min((segment.center_x + segment.maximum_distance + 1.5f32) as i64);
@@ -144,7 +163,8 @@ fn compute_segments(
     // In worst case zero-sized dot spans over 2 rows / columns.
     const K_THIN_DOT_SPAN: f32 = 2.0;
     // Sanity check sigma, inverse sigma and intensity
-    if !(sigma.is_finite() && sigma != 0.0 && (1.0f32 / sigma).is_finite() && intensity.is_finite()) {
+    if !(sigma.is_finite() && sigma != 0.0 && (1.0f32 / sigma).is_finite() && intensity.is_finite())
+    {
         // Even no-draw should still be accounted.
         *pixel_limit -= (*pixel_limit).min((K_THIN_DOT_SPAN * K_THIN_DOT_SPAN) as usize);
         return;
@@ -217,7 +237,15 @@ fn segments_from_points(
             color[c] = continuous_idct(&spline.color_dct[c], (32 - 1) as f32 * progress_along_arc);
         }
         let sigma = continuous_idct(&spline.sigma_dct, (32 - 1) as f32 * progress_along_arc);
-        compute_segments(point, *multiplier, &color, sigma, segments, segments_by_y, pixel_limit);
+        compute_segments(
+            point,
+            *multiplier,
+            &color,
+            sigma,
+            segments,
+            segments_by_y,
+            pixel_limit,
+        );
         if *pixel_limit == 0 {
             return;
         }
@@ -227,7 +255,11 @@ fn segments_from_points(
 // It is not in spec, but reasonable limit to avoid overflows.
 fn validate_spline_point_pos_i64(x: i64, y: i64) -> Status {
     const K_SPLINE_POS_LIMIT: i64 = 1 << 23;
-    if x >= K_SPLINE_POS_LIMIT || x <= -K_SPLINE_POS_LIMIT || y >= K_SPLINE_POS_LIMIT || y <= -K_SPLINE_POS_LIMIT {
+    if x >= K_SPLINE_POS_LIMIT
+        || x <= -K_SPLINE_POS_LIMIT
+        || y >= K_SPLINE_POS_LIMIT
+        || y <= -K_SPLINE_POS_LIMIT
+    {
         return jxl_failure!("Spline coordinates out of bounds");
     }
     Ok(())
@@ -235,7 +267,11 @@ fn validate_spline_point_pos_i64(x: i64, y: i64) -> Status {
 
 fn validate_spline_point_pos_f32(x: f32, y: f32) -> Status {
     const K_SPLINE_POS_LIMIT: f32 = (1u32 << 23) as f32;
-    if x >= K_SPLINE_POS_LIMIT || x <= -K_SPLINE_POS_LIMIT || y >= K_SPLINE_POS_LIMIT || y <= -K_SPLINE_POS_LIMIT {
+    if x >= K_SPLINE_POS_LIMIT
+        || x <= -K_SPLINE_POS_LIMIT
+        || y >= K_SPLINE_POS_LIMIT
+        || y <= -K_SPLINE_POS_LIMIT
+    {
         return jxl_failure!("Spline coordinates out of bounds");
     }
     Ok(())
@@ -279,7 +315,10 @@ fn decode_all_starting_points(
             y = (unpack_signed(y as usize) as i64).wrapping_add(last_y);
         }
         validate_spline_point_pos_i64(x, y)?;
-        points.push(Point { x: x as f32, y: y as f32 });
+        points.push(Point {
+            x: x as f32,
+            y: y as f32,
+        });
         last_x = x;
         last_y = y;
     }
@@ -354,7 +393,10 @@ fn draw_centripetal_catmull_rom_spline(mut points: Vec<Point>, result: &mut Vec<
 // TODO(eustas): this method always adds the last point, but never the first
 //               (unless those are one); I believe both ends matter.
 /// Translation of `ForEachEquallySpacedPoint()`.
-fn for_each_equally_spaced_point(points: &[Point], functor: &mut dyn FnMut(&Point, f32) -> bool) -> bool {
+fn for_each_equally_spaced_point(
+    points: &[Point],
+    functor: &mut dyn FnMut(&Point, f32) -> bool,
+) -> bool {
     debug_assert!(!points.is_empty());
     let mut current = points[0];
     functor(&current, K_DESIRED_RENDERING_DISTANCE);
@@ -397,7 +439,11 @@ impl QuantizedSpline {
         result: &mut Spline,
     ) -> Status {
         result.control_points.clear();
-        if result.control_points.try_reserve(self.control_points.len() + 1).is_err() {
+        if result
+            .control_points
+            .try_reserve(self.control_points.len() + 1)
+            .is_err()
+        {
             return jxl_failure!("out of memory");
         }
         let px = roundf(starting_point.x);
@@ -438,7 +484,8 @@ impl QuantizedSpline {
         }
         for i in 0..32 {
             let inv_dct_factor = if i == 0 { K_SQRT0_5 } else { 1.0f32 };
-            result.sigma_dct[i] = self.sigma_dct[i] as f32 * inv_dct_factor * K_CHANNEL_WEIGHT[3] * inv_quant;
+            result.sigma_dct[i] =
+                self.sigma_dct[i] as f32 * inv_dct_factor * K_CHANNEL_WEIGHT[3] * inv_quant;
         }
 
         Ok(())
@@ -453,7 +500,8 @@ impl QuantizedSpline {
         max_control_points: usize,
         total_num_control_points: &mut usize,
     ) -> Status {
-        let num_control_points = decoder.read_hybrid_uint(K_NUM_CONTROL_POINTS_CONTEXT, br, context_map);
+        let num_control_points =
+            decoder.read_hybrid_uint(K_NUM_CONTROL_POINTS_CONTEXT, br, context_map);
         *total_num_control_points = total_num_control_points.wrapping_add(num_control_points);
         if *total_num_control_points > max_control_points {
             return jxl_failure!("Too many control points");
@@ -466,8 +514,12 @@ impl QuantizedSpline {
         // Maximal image dimension.
         const K_DELTA_LIMIT: i64 = 1 << 30;
         for control_point in self.control_points.iter_mut() {
-            control_point.0 = unpack_signed(decoder.read_hybrid_uint(K_CONTROL_POINTS_CONTEXT, br, context_map)) as i64;
-            control_point.1 = unpack_signed(decoder.read_hybrid_uint(K_CONTROL_POINTS_CONTEXT, br, context_map)) as i64;
+            control_point.0 =
+                unpack_signed(decoder.read_hybrid_uint(K_CONTROL_POINTS_CONTEXT, br, context_map))
+                    as i64;
+            control_point.1 =
+                unpack_signed(decoder.read_hybrid_uint(K_CONTROL_POINTS_CONTEXT, br, context_map))
+                    as i64;
             // Check delta-deltas are not outrageous; it is not in spec, but there is
             // no reason to allow larger values.
             if control_point.0 >= K_DELTA_LIMIT
@@ -512,19 +564,35 @@ impl Splines {
     pub(crate) fn decode(&mut self, br: &mut BitReader<'_>, num_pixels: usize) -> Status {
         let mut context_map: Vec<u8> = Vec::new();
         let mut code = AnsCode::default();
-        decode_histograms(br, K_NUM_SPLINE_CONTEXTS, &mut code, &mut context_map, false)?;
+        decode_histograms(
+            br,
+            K_NUM_SPLINE_CONTEXTS,
+            &mut code,
+            &mut context_map,
+            false,
+        )?;
         let mut decoder = AnsSymbolReader::new(&code, br, 0);
         let num_splines = decoder
             .read_hybrid_uint(K_NUM_SPLINES_CONTEXT, br, &context_map)
             .wrapping_add(1);
-        let max_control_points = K_MAX_NUM_CONTROL_POINTS.min(num_pixels / K_MAX_NUM_CONTROL_POINTS_PER_PIXEL_RATIO);
+        let max_control_points =
+            K_MAX_NUM_CONTROL_POINTS.min(num_pixels / K_MAX_NUM_CONTROL_POINTS_PER_PIXEL_RATIO);
         if num_splines > max_control_points {
             return jxl_failure!("Too many splines");
         }
-        decode_all_starting_points(&mut self.starting_points, br, &mut decoder, &context_map, num_splines)?;
+        decode_all_starting_points(
+            &mut self.starting_points,
+            br,
+            &mut decoder,
+            &context_map,
+            num_splines,
+        )?;
 
-        self.quantization_adjustment =
-            unpack_signed(decoder.read_hybrid_uint(K_QUANTIZATION_ADJUSTMENT_CONTEXT, br, &context_map)) as i32;
+        self.quantization_adjustment = unpack_signed(decoder.read_hybrid_uint(
+            K_QUANTIZATION_ADJUSTMENT_CONTEXT,
+            br,
+            &context_map,
+        )) as i32;
 
         self.splines.clear();
         if self.splines.try_reserve(num_splines).is_err() {
@@ -533,7 +601,13 @@ impl Splines {
         let mut num_control_points = num_splines;
         for _ in 0..num_splines {
             let mut spline = QuantizedSpline::default();
-            spline.decode(&context_map, &mut decoder, br, max_control_points, &mut num_control_points)?;
+            spline.decode(
+                &context_map,
+                &mut decoder,
+                br,
+                max_control_points,
+                &mut num_control_points,
+            )?;
             self.splines.push(spline);
         }
 
@@ -603,11 +677,15 @@ impl Splines {
                 points_to_draw.len() <= px_limit
             };
             intermediate_points.clear();
-            draw_centripetal_catmull_rom_spline(spline.control_points.clone(), &mut intermediate_points);
+            draw_centripetal_catmull_rom_spline(
+                spline.control_points.clone(),
+                &mut intermediate_points,
+            );
             if !for_each_equally_spaced_point(&intermediate_points, &mut add_point) {
                 return jxl_failure!("Too many pixels covered with splines");
             }
-            let arc_length = (points_to_draw.len().wrapping_sub(2)) as f32 * K_DESIRED_RENDERING_DISTANCE
+            let arc_length = (points_to_draw.len().wrapping_sub(2)) as f32
+                * K_DESIRED_RENDERING_DISTANCE
                 + points_to_draw.last().map_or(0.0, |p| p.1);
             if arc_length <= 0.0f32 {
                 // This spline wouldn't have any effect.
@@ -643,7 +721,14 @@ impl Splines {
     }
 
     /// Translation of `Splines::ApplyToRow()` with `DrawSegments()`.
-    fn apply_to_row(&self, add: bool, rows: &mut [&mut [f32]; 3], x0: usize, y: usize, xsize: usize) {
+    fn apply_to_row(
+        &self,
+        add: bool,
+        rows: &mut [&mut [f32]; 3],
+        x0: usize,
+        y: usize,
+        xsize: usize,
+    ) {
         if self.segments.is_empty() {
             return;
         }

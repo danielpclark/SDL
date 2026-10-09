@@ -45,9 +45,7 @@ pub(crate) const K_SQRT0_5: f32 = 0.70710678118f32;
 // for i in range(N // 2):
 //    print(1.0 / (2 * math.cos((i + 0.5) * math.pi / N)), end=", "))
 
-pub(crate) const DCT_RESAMPLE_SCALES_8_1: [f32; 1] = [
-    1.000000000000000000_f64 as f32,
-];
+pub(crate) const DCT_RESAMPLE_SCALES_8_1: [f32; 1] = [1.000000000000000000_f64 as f32];
 
 pub(crate) const DCT_RESAMPLE_SCALES_16_2: [f32; 2] = [
     1.000000000000000000_f64 as f32,
@@ -126,9 +124,7 @@ pub(crate) const DCT_RESAMPLE_SCALES_256_32: [f32; 32] = [
     0.6603391026591464_f64 as f32,
 ];
 
-pub(crate) const DCT_RESAMPLE_SCALES_1_8: [f32; 1] = [
-    1.000000000000000000_f64 as f32,
-];
+pub(crate) const DCT_RESAMPLE_SCALES_1_8: [f32; 1] = [1.000000000000000000_f64 as f32];
 
 pub(crate) const DCT_RESAMPLE_SCALES_2_16: [f32; 2] = [
     1.000000000000000000_f64 as f32,
@@ -207,10 +203,8 @@ pub(crate) const DCT_RESAMPLE_SCALES_32_256: [f32; 32] = [
     1.5143734423314616_f64 as f32,
 ];
 
-pub(crate) const WC_MULTIPLIERS_4: [f32; 2] = [
-    0.541196100146197_f64 as f32,
-    1.3065629648763764_f64 as f32,
-];
+pub(crate) const WC_MULTIPLIERS_4: [f32; 2] =
+    [0.541196100146197_f64 as f32, 1.3065629648763764_f64 as f32];
 
 pub(crate) const WC_MULTIPLIERS_8: [f32; 4] = [
     0.5097955791041592_f64 as f32,

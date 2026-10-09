@@ -27,8 +27,12 @@ pub(crate) const K_DEFAULT_COLOR_FACTOR: u32 = 84;
 #[allow(dead_code)]
 pub(crate) const K_CFL_FIXED_POINT_PRECISION: u8 = 11;
 
-const K_COLOR_FACTOR_DIST: U32Enc =
-    U32Enc::new(val(K_DEFAULT_COLOR_FACTOR), val(256), bits_offset(8, 2), bits_offset(16, 258));
+const K_COLOR_FACTOR_DIST: U32Enc = U32Enc::new(
+    val(K_DEFAULT_COLOR_FACTOR),
+    val(256),
+    bits_offset(8, 2),
+    bits_offset(16, 258),
+);
 
 // (opsin_params.h)
 const K_Y_TO_B_RATIO: f32 = 1.0; // works better with 0.50017729543783418
@@ -68,8 +72,14 @@ impl ColorCorrelationMap {
     /// Translation of `ColorCorrelationMap(xsize, ysize, XYB)`.
     pub(crate) fn new(xsize: usize, ysize: usize, xyb: bool) -> Result<Self, StatusCode> {
         let mut m = ColorCorrelationMap {
-            ytox_map: ImageSB::new(div_ceil(xsize, K_COLOR_TILE_DIM), div_ceil(ysize, K_COLOR_TILE_DIM))?,
-            ytob_map: ImageSB::new(div_ceil(xsize, K_COLOR_TILE_DIM), div_ceil(ysize, K_COLOR_TILE_DIM))?,
+            ytox_map: ImageSB::new(
+                div_ceil(xsize, K_COLOR_TILE_DIM),
+                div_ceil(ysize, K_COLOR_TILE_DIM),
+            )?,
+            ytob_map: ImageSB::new(
+                div_ceil(xsize, K_COLOR_TILE_DIM),
+                div_ceil(ysize, K_COLOR_TILE_DIM),
+            )?,
             ..Default::default()
         };
         zero_fill_image(&mut m.ytox_map);

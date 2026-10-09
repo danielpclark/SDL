@@ -121,7 +121,10 @@ impl RenderPipelineStage for VerticalChromaUpsamplingStage {
 }
 
 /// Translation of `GetChromaUpsamplingStage()`.
-pub(crate) fn get_chroma_upsampling_stage(channel: usize, horizontal: bool) -> Box<dyn RenderPipelineStage> {
+pub(crate) fn get_chroma_upsampling_stage(
+    channel: usize,
+    horizontal: bool,
+) -> Box<dyn RenderPipelineStage> {
     if horizontal {
         Box::new(HorizontalChromaUpsamplingStage { c: channel })
     } else {

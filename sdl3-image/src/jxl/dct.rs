@@ -233,7 +233,12 @@ fn idct1d_impl_strided(n: usize, from: &DctFrom<'_>, i: usize, to: &mut DctTo<'_
     }
 }
 
-fn idct1d_impl_strided_sized<const N: usize>(from: &DctFrom<'_>, i: usize, to: &mut DctTo<'_>, j: usize) {
+fn idct1d_impl_strided_sized<const N: usize>(
+    from: &DctFrom<'_>,
+    i: usize,
+    to: &mut DctTo<'_>,
+    j: usize,
+) {
     // This is relatively small (4kB with 64-DCT and AVX-512)
     let mut tmp = [0f32; N];
     // CoeffBundle<N, SZ>::ForwardEvenOdd(from, from_stride, tmp);
@@ -288,13 +293,38 @@ pub(crate) fn compute_scaled_dct(
     let block = scratch_space;
     if rows < cols {
         dct1d(rows, cols, from, &mut DctTo::new(block, cols));
-        transpose(rows, cols, &DctFrom::new(block, cols), &mut DctTo::new(to, rows));
-        dct1d(cols, rows, &DctFrom::new(to, rows), &mut DctTo::new(block, rows));
-        transpose(cols, rows, &DctFrom::new(block, rows), &mut DctTo::new(to, cols));
+        transpose(
+            rows,
+            cols,
+            &DctFrom::new(block, cols),
+            &mut DctTo::new(to, rows),
+        );
+        dct1d(
+            cols,
+            rows,
+            &DctFrom::new(to, rows),
+            &mut DctTo::new(block, rows),
+        );
+        transpose(
+            cols,
+            rows,
+            &DctFrom::new(block, rows),
+            &mut DctTo::new(to, cols),
+        );
     } else {
         dct1d(rows, cols, from, &mut DctTo::new(to, cols));
-        transpose(rows, cols, &DctFrom::new(to, cols), &mut DctTo::new(block, rows));
-        dct1d(cols, rows, &DctFrom::new(block, rows), &mut DctTo::new(to, rows));
+        transpose(
+            rows,
+            cols,
+            &DctFrom::new(to, cols),
+            &mut DctTo::new(block, rows),
+        );
+        dct1d(
+            cols,
+            rows,
+            &DctFrom::new(block, rows),
+            &mut DctTo::new(to, rows),
+        );
     }
 }
 
@@ -312,13 +342,38 @@ pub(crate) fn compute_scaled_idct(
     let block = scratch_space;
     // Reverse the steps done in ComputeScaledDCT.
     if rows < cols {
-        transpose(rows, cols, &DctFrom::new(from, cols), &mut DctTo::new(block, rows));
-        idct1d(cols, rows, &DctFrom::new(block, rows), &mut DctTo::new(from, rows));
-        transpose(cols, rows, &DctFrom::new(from, rows), &mut DctTo::new(block, cols));
+        transpose(
+            rows,
+            cols,
+            &DctFrom::new(from, cols),
+            &mut DctTo::new(block, rows),
+        );
+        idct1d(
+            cols,
+            rows,
+            &DctFrom::new(block, rows),
+            &mut DctTo::new(from, rows),
+        );
+        transpose(
+            cols,
+            rows,
+            &DctFrom::new(from, rows),
+            &mut DctTo::new(block, cols),
+        );
         idct1d(rows, cols, &DctFrom::new(block, cols), to);
     } else {
-        idct1d(cols, rows, &DctFrom::new(from, rows), &mut DctTo::new(block, rows));
-        transpose(cols, rows, &DctFrom::new(block, rows), &mut DctTo::new(from, cols));
+        idct1d(
+            cols,
+            rows,
+            &DctFrom::new(from, rows),
+            &mut DctTo::new(block, rows),
+        );
+        transpose(
+            cols,
+            rows,
+            &DctFrom::new(block, rows),
+            &mut DctTo::new(from, cols),
+        );
         idct1d(rows, cols, &DctFrom::new(from, cols), to);
     }
 }

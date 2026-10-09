@@ -9,8 +9,8 @@
 
 use super::ac_strategy::AcStrategy;
 use super::base::{
-    ceil_log2_nonzero_u64, div_ceil, jxl_failure, FrameDimensions, Status, StatusCode, K_BITS_PER_BYTE,
-    K_GROUP_DIM_IN_BLOCKS,
+    ceil_log2_nonzero_u64, div_ceil, jxl_failure, FrameDimensions, Status, StatusCode,
+    K_BITS_PER_BYTE, K_GROUP_DIM_IN_BLOCKS,
 };
 use super::chroma_from_luma::K_COLOR_TILE_DIM_IN_BLOCKS;
 use super::compressed_dc::dequant_dc;
@@ -87,7 +87,12 @@ impl ModularStreamId {
     pub(crate) fn modular_ac(group_id: usize, pass_id: usize) -> Self {
         Self::make(ModularStreamKind::ModularAc, 0, group_id, pass_id)
     }
-    fn make(kind: ModularStreamKind, quant_table_id: usize, group_id: usize, pass_id: usize) -> Self {
+    fn make(
+        kind: ModularStreamKind,
+        quant_table_id: usize,
+        group_id: usize,
+        pass_id: usize,
+    ) -> Self {
         ModularStreamId {
             kind,
             quant_table_id,
@@ -98,7 +103,13 @@ impl ModularStreamId {
 }
 
 /// Translation of `MultiplySum()` (one lane).
-fn multiply_sum(xsize: usize, row_in: &[PixelType], row_in_y: &[PixelType], factor: f32, row_out: &mut [f32]) {
+fn multiply_sum(
+    xsize: usize,
+    row_in: &[PixelType],
+    row_in_y: &[PixelType],
+    factor: f32,
+    row_out: &mut [f32],
+) {
     for x in 0..xsize {
         let inp = row_in[x].wrapping_add(row_in_y[x]);
         row_out[x] = inp as f32 * factor;
@@ -115,7 +126,12 @@ fn single_from_single(xsize: usize, row_in: &[PixelType], factor: f32, row_out: 
 // Slow conversion using double precision multiplication, only
 // needed when the bit depth is too high for single precision
 /// Translation of `SingleFromSingleAccurate()`.
-fn single_from_single_accurate(xsize: usize, row_in: &[PixelType], factor: f64, row_out: &mut [f32]) {
+fn single_from_single_accurate(
+    xsize: usize,
+    row_in: &[PixelType],
+    factor: f64,
+    row_out: &mut [f32],
+) {
     for x in 0..xsize {
         row_out[x] = (row_in[x] as f64 * factor) as f32;
     }
@@ -124,7 +140,13 @@ fn single_from_single_accurate(xsize: usize, row_in: &[PixelType], factor: f64, 
 // convert custom [bits]-bit float (with [exp_bits] exponent bits) stored as int
 // back to binary32 float
 /// Translation of `int_to_float()`.
-fn int_to_float(row_in: &[PixelType], row_out: &mut [f32], xsize: usize, bits: i32, exp_bits: i32) -> Status {
+fn int_to_float(
+    row_in: &[PixelType],
+    row_out: &mut [f32],
+    xsize: usize,
+    bits: i32,
+    exp_bits: i32,
+) -> Status {
     if bits == 32 {
         // JXL_ASSERT(exp_bits == 8)
         if exp_bits != 8 {
@@ -213,7 +235,7 @@ impl Default for ModularFrameDecoder {
 
 impl ModularFrameDecoder {
     pub(crate) fn init(&mut self, frame_dim: &FrameDimensions) {
-        self.frame_dim = frame_dim.clone();
+        self.frame_dim = *frame_dim;
     }
 
     #[allow(dead_code)]
@@ -245,7 +267,9 @@ impl ModularFrameDecoder {
         self.do_color = decode_color;
         let nb_extra = metadata.extra_channel_info.len();
         let has_tree = reader.read_bits(1) != 0;
-        if !allow_truncated_group || reader.total_bits_consumed() < reader.total_bytes() * K_BITS_PER_BYTE {
+        if !allow_truncated_group
+            || reader.total_bits_consumed() < reader.total_bytes() * K_BITS_PER_BYTE
+        {
             if has_tree {
                 let tree_size_limit = (1usize << 22).min(
                     1024 + self
@@ -256,7 +280,13 @@ impl ModularFrameDecoder {
                         / 16,
                 );
                 decode_tree(reader, &mut self.tree, tree_size_limit)?;
-                decode_histograms(reader, (self.tree.len() + 1) / 2, &mut self.code, &mut self.context_map, false)?;
+                decode_histograms(
+                    reader,
+                    (self.tree.len() + 1) / 2,
+                    &mut self.code,
+                    &mut self.context_map,
+                    false,
+                )?;
             }
         }
         if !self.do_color {
@@ -292,7 +322,9 @@ impl ModularFrameDecoder {
                 let xsize_shifted = div_ceil(self.frame_dim.xsize, 1 << gi.channel[c].hshift);
                 let ysize_shifted = div_ceil(self.frame_dim.ysize, 1 << gi.channel[c].vshift);
                 gi.channel[c].shrink_to(xsize_shifted, ysize_shifted)?;
-                if gi.channel[c].hshift != gi.channel[0].hshift || gi.channel[c].vshift != gi.channel[0].vshift {
+                if gi.channel[c].hshift != gi.channel[0].hshift
+                    || gi.channel[c].vshift != gi.channel[0].vshift
+                {
                     self.all_same_shift = false;
                 }
             }
@@ -309,7 +341,9 @@ impl ModularFrameDecoder {
                 - ceil_log2_nonzero_u64(frame_header.upsampling as u64) as i32;
             gi.channel[c].hshift = s;
             gi.channel[c].vshift = s;
-            if gi.channel[c].hshift != gi.channel[0].hshift || gi.channel[c].vshift != gi.channel[0].vshift {
+            if gi.channel[c].hshift != gi.channel[0].hshift
+                || gi.channel[c].vshift != gi.channel[0].vshift
+            {
                 self.all_same_shift = false;
             }
         }
@@ -341,7 +375,10 @@ impl ModularFrameDecoder {
         self.have_something = false;
         for c in 0..gi.channel.len() {
             let gic = &gi.channel[c];
-            if c >= gi.nb_meta_channels && gic.w <= self.frame_dim.group_dim && gic.h <= self.frame_dim.group_dim {
+            if c >= gi.nb_meta_channels
+                && gic.w <= self.frame_dim.group_dim
+                && gic.h <= self.frame_dim.group_dim
+            {
                 self.have_something = true;
             }
         }
@@ -386,7 +423,10 @@ impl ModularFrameDecoder {
         allow_truncated: bool,
         should_run_pipeline: Option<&mut bool>,
     ) -> Status {
-        debug_assert!(stream.kind == ModularStreamKind::ModularDc || stream.kind == ModularStreamKind::ModularAc);
+        debug_assert!(
+            stream.kind == ModularStreamKind::ModularDc
+                || stream.kind == ModularStreamKind::ModularAc
+        );
         let xsize = rect.xsize();
         let ysize = rect.ysize();
         let mut gi = Image::new(xsize, ysize, self.full_image.bitdepth, 0)?;
@@ -442,7 +482,9 @@ impl ModularFrameDecoder {
         // Return early if there's nothing to decode. Otherwise there might be
         // problems later (in ModularImageToDecodedRect).
         if gi.channel.is_empty() {
-            if let (Some(dec_state), Some(should_run_pipeline)) = (dec_state.as_deref(), should_run_pipeline) {
+            if let (Some(dec_state), Some(should_run_pipeline)) =
+                (dec_state.as_deref(), should_run_pipeline)
+            {
                 let frame_header = &dec_state.shared_storage.frame_header;
                 let num_ec = frame_header
                     .nonserialized_metadata
@@ -482,7 +524,8 @@ impl ModularFrameDecoder {
         }
         // Undo global transforms that have been pushed to the group level
         if !self.use_full_image {
-            let (Some(dec_state), Some(render_pipeline_input)) = (dec_state, render_pipeline_input) else {
+            let (Some(dec_state), Some(render_pipeline_input)) = (dec_state, render_pipeline_input)
+            else {
                 // JXL_ASSERT(render_pipeline_input)
                 return Err(StatusCode::GenericError);
             };
@@ -490,7 +533,12 @@ impl ModularFrameDecoder {
                 t.inverse(&mut gi, &self.global_header.wp_header)?;
             }
             let (w, h) = (gi.w, gi.h);
-            self.modular_image_to_decoded_rect(&mut gi, dec_state, render_pipeline_input, Rect::new(0, 0, w, h))?;
+            self.modular_image_to_decoded_rect(
+                &mut gi,
+                dec_state,
+                render_pipeline_input,
+                Rect::new(0, 0, w, h),
+            )?;
             return Ok(());
         }
         let mut gic = 0usize;
@@ -599,7 +647,12 @@ impl ModularFrameDecoder {
         // YToX, YToB, ACS + QF, EPF
         let mut image = Image::new(r.xsize(), r.ysize(), self.full_image.bitdepth, 4)?;
         debug_assert!(K_COLOR_TILE_DIM_IN_BLOCKS == 8);
-        let cr = Rect::new(r.x0() >> 3, r.y0() >> 3, (r.xsize() + 7) >> 3, (r.ysize() + 7) >> 3);
+        let cr = Rect::new(
+            r.x0() >> 3,
+            r.y0() >> 3,
+            (r.xsize() + 7) >> 3,
+            (r.ysize() + 7) >> 3,
+        );
         image.channel[0] = Channel::new(cr.xsize(), cr.ysize(), 3, 3)?;
         image.channel[1] = Channel::new(cr.xsize(), cr.ysize(), 3, 3)?;
         image.channel[2] = Channel::new(count, 2, 0, 0)?;
@@ -667,8 +720,11 @@ impl ModularFrameDecoder {
                 if next_y_dct_block > next_y_ac_block || next_y_dct_block > ylim {
                     return jxl_failure!("Invalid AC strategy, y overflow");
                 }
-                shared.ac_strategy.set_no_bounds_check(x, y, row_in_1[num] as u8, true)?;
-                r.row(&mut shared.raw_quant_field, iy)[ix] = 1 + 0.max((Quantizer::K_QUANT_MAX - 1).min(row_in_2[num]));
+                shared
+                    .ac_strategy
+                    .set_no_bounds_check(x, y, row_in_1[num] as u8, true)?;
+                r.row(&mut shared.raw_quant_field, iy)[ix] =
+                    1 + 0.max((Quantizer::K_QUANT_MAX - 1).min(row_in_2[num]));
                 num += 1;
             }
         }
@@ -704,8 +760,10 @@ impl ModularFrameDecoder {
 
         let mut c = 0usize;
         if self.do_color {
-            let rgb_from_gray = metadata.color_encoding.is_gray() && color_transform == ColorTransform::None;
-            let fp = metadata.bit_depth.floating_point_sample && color_transform != ColorTransform::Xyb;
+            let rgb_from_gray =
+                metadata.color_encoding.is_gray() && color_transform == ColorTransform::None;
+            let fp =
+                metadata.bit_depth.floating_point_sample && color_transform != ColorTransform::Xyb;
             while c < 3 {
                 let mut factor: f64 = if self.full_image.bitdepth < 32 {
                     1.0 / ((1u32 << self.full_image.bitdepth) - 1) as f64
@@ -780,9 +838,19 @@ impl ModularFrameDecoder {
                                 let row_out = rr.row(pipeline.buffer_mut(b), y);
                                 if self.full_image.bitdepth < 23 {
                                     // (RgbFromSingle)
-                                    single_from_single(xsize_shifted, row_in, factor as f32, row_out);
+                                    single_from_single(
+                                        xsize_shifted,
+                                        row_in,
+                                        factor as f32,
+                                        row_out,
+                                    );
                                 } else {
-                                    single_from_single_accurate(xsize_shifted, row_in, factor, row_out);
+                                    single_from_single_accurate(
+                                        xsize_shifted,
+                                        row_in,
+                                        factor,
+                                        row_out,
+                                    );
                                 }
                             }
                         } else {
@@ -814,7 +882,11 @@ impl ModularFrameDecoder {
                 // JXL_ASSERT(fp || bits < 32)
                 return Err(StatusCode::GenericError);
             }
-            let factor: f64 = if fp { 0.0 } else { 1.0 / ((1u32 << bits) - 1) as f64 };
+            let factor: f64 = if fp {
+                0.0
+            } else {
+                1.0 / ((1u32 << bits) - 1) as f64
+            };
             if c >= gi.channel.len() {
                 // JXL_ASSERT(c < gi.channel.size())
                 return Err(StatusCode::GenericError);
@@ -888,7 +960,8 @@ impl ModularFrameDecoder {
             pipeline.clear_done(i);
         }
         let frame_header = &dec_state.shared_storage.frame_header;
-        let use_group_ids = frame_header.encoding == FrameEncoding::VarDct || (frame_header.flags & K_NOISE) != 0;
+        let use_group_ids =
+            frame_header.encoding == FrameEncoding::VarDct || (frame_header.flags & K_NOISE) != 0;
         pipeline.prepare_for_threads(1, use_group_ids)?;
         for group in 0..num_groups {
             let input = match dec_state.render_pipeline.as_ref() {
@@ -896,7 +969,10 @@ impl ModularFrameDecoder {
                 None => return Err(StatusCode::GenericError),
             };
             let group_rect = dec_state.shared_storage.group_rect(group);
-            if self.modular_image_to_decoded_rect(&mut gi, dec_state, &input, group_rect).is_err() {
+            if self
+                .modular_image_to_decoded_rect(&mut gi, dec_state, &input, group_rect)
+                .is_err()
+            {
                 return jxl_failure!("Error producing input to render pipeline");
             }
             dec_state.input_done(&input, decoded);
@@ -942,16 +1018,8 @@ impl ModularFrameDecoder {
             }
             None => {
                 modular_generic_decompress(
-                    br,
-                    &mut image,
-                    /*header=*/ None,
-                    0,
-                    &options,
-                    /*undo_transforms=*/ true,
-                    None,
-                    None,
-                    None,
-                    false,
+                    br, &mut image, /*header=*/ None, 0, &options,
+                    /*undo_transforms=*/ true, None, None, None, false,
                 )?;
             }
         }
@@ -965,7 +1033,8 @@ impl ModularFrameDecoder {
             for y in 0..required_size_y {
                 let row = image.channel[c].row(y);
                 for x in 0..required_size_x {
-                    qtable[c * required_size_x * required_size_y + y * required_size_x + x] = row[x];
+                    qtable[c * required_size_x * required_size_y + y * required_size_x + x] =
+                        row[x];
                     if row[x] <= 0 {
                         return jxl_failure!("Invalid raw quantization table");
                     }

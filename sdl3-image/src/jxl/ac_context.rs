@@ -25,15 +25,16 @@ pub(crate) const K_DCT_ORDER_CONTEXT_START: u32 = 0;
 pub(crate) const K_NON_ZERO_BUCKETS: u32 = 37;
 
 pub(crate) const K_COEFF_FREQ_CONTEXT: [u16; 64] = [
-    0xBAD, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21,
-    22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29,
-    29, 29, 30, 30, 30, 30,
+    0xBAD, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19,
+    19, 20, 20, 21, 21, 22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 25, 26, 26, 26, 26, 27,
+    27, 27, 27, 28, 28, 28, 28, 29, 29, 29, 29, 30, 30, 30, 30,
 ];
 
 pub(crate) const K_COEFF_NUM_NONZERO_CONTEXT: [u16; 64] = [
-    0xBAD, 0, 31, 62, 62, 93, 93, 93, 93, 123, 123, 123, 123, 152, 152, 152, 152, 152, 152, 152, 152, 180, 180, 180,
-    180, 180, 180, 180, 180, 180, 180, 180, 180, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206,
-    206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206,
+    0xBAD, 0, 31, 62, 62, 93, 93, 93, 93, 123, 123, 123, 123, 152, 152, 152, 152, 152, 152, 152,
+    152, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 180, 206, 206, 206, 206, 206, 206,
+    206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206, 206,
+    206, 206, 206, 206, 206, 206,
 ];
 
 // Supremum of ZeroDensityContext(x, y) + 1, when x + y < 64.
@@ -73,7 +74,8 @@ pub(crate) fn zero_density_context(
     // broken, we check this simpler condition which holds anyway. The decoder
     // will still mark a file in which that condition happens as not valid at the
     // end of the decoding loop, as `nzeros` will not be `0`.
-    (K_COEFF_NUM_NONZERO_CONTEXT[nonzeros_left] as usize + K_COEFF_FREQ_CONTEXT[k] as usize) * 2 + prev
+    (K_COEFF_NUM_NONZERO_CONTEXT[nonzeros_left] as usize + K_COEFF_FREQ_CONTEXT[k] as usize) * 2
+        + prev
 }
 
 /// Translation of `BlockCtxMap`.
@@ -157,20 +159,36 @@ impl BlockCtxMap {
         if non_zeros >= 64 {
             non_zeros = 64;
         }
-        let ctx = if non_zeros < 8 { non_zeros } else { 4 + non_zeros / 2 };
+        let ctx = if non_zeros < 8 {
+            non_zeros
+        } else {
+            4 + non_zeros / 2
+        };
         ctx * self.num_ctxs as u32 + block_ctx
     }
 }
 
 // --- entropy_coder.h ---
 
-const K_DC_THRESHOLD_DIST: U32Enc =
-    U32Enc::new(bits(4), bits_offset(8, 16), bits_offset(16, 272), bits_offset(32, 65808));
+const K_DC_THRESHOLD_DIST: U32Enc = U32Enc::new(
+    bits(4),
+    bits_offset(8, 16),
+    bits_offset(16, 272),
+    bits_offset(32, 65808),
+);
 
-const K_QF_THRESHOLD_DIST: U32Enc = U32Enc::new(bits(2), bits_offset(3, 4), bits_offset(5, 12), bits_offset(8, 44));
+const K_QF_THRESHOLD_DIST: U32Enc = U32Enc::new(
+    bits(2),
+    bits_offset(3, 4),
+    bits_offset(5, 12),
+    bits_offset(8, 44),
+);
 
 /// Translation of `DecodeBlockCtxMap()`.
-pub(crate) fn decode_block_ctx_map(br: &mut BitReader<'_>, block_ctx_map: &mut BlockCtxMap) -> Status {
+pub(crate) fn decode_block_ctx_map(
+    br: &mut BitReader<'_>,
+    block_ctx_map: &mut BlockCtxMap,
+) -> Status {
     let is_default = br.read_fixed_bits::<1>() != 0;
     if is_default {
         *block_ctx_map = BlockCtxMap::new();
@@ -195,7 +213,10 @@ pub(crate) fn decode_block_ctx_map(br: &mut BitReader<'_>, block_ctx_map: &mut B
         return jxl_failure!("Invalid block context map: too big");
     }
 
-    let size = 3 * K_NUM_ORDERS as usize * block_ctx_map.num_dc_ctxs * (block_ctx_map.qf_thresholds.len() + 1);
+    let size = 3
+        * K_NUM_ORDERS as usize
+        * block_ctx_map.num_dc_ctxs
+        * (block_ctx_map.qf_thresholds.len() + 1);
     block_ctx_map.ctx_map.resize(size, 0);
     decode_context_map(&mut block_ctx_map.ctx_map, &mut block_ctx_map.num_ctxs, br)?;
     if block_ctx_map.num_ctxs > 16 {

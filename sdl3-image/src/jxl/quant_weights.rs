@@ -181,9 +181,13 @@ const K_QUANT_TABLE: [usize; 27] = [
     qt::DCT128X256,
 ];
 
-pub(crate) const REQUIRED_SIZE_X: [usize; 17] = [1, 1, 1, 1, 2, 4, 1, 1, 2, 1, 1, 8, 4, 16, 8, 32, 16];
-pub(crate) const REQUIRED_SIZE_Y: [usize; 17] = [1, 1, 1, 1, 2, 4, 2, 4, 4, 1, 1, 8, 8, 16, 16, 32, 32];
-const REQUIRED_SIZE: [usize; 17] = [1, 1, 1, 1, 4, 16, 2, 4, 8, 1, 1, 64, 32, 256, 128, 1024, 512];
+pub(crate) const REQUIRED_SIZE_X: [usize; 17] =
+    [1, 1, 1, 1, 2, 4, 1, 1, 2, 1, 1, 8, 4, 16, 8, 32, 16];
+pub(crate) const REQUIRED_SIZE_Y: [usize; 17] =
+    [1, 1, 1, 1, 2, 4, 2, 4, 4, 1, 1, 8, 8, 16, 16, 32, 32];
+const REQUIRED_SIZE: [usize; 17] = [
+    1, 1, 1, 1, 4, 16, 2, 4, 8, 1, 1, 64, 32, 256, 128, 1024, 512,
+];
 const fn array_sum(a: &[usize; 17]) -> usize {
     let mut s = 0;
     let mut i = 0;
@@ -376,7 +380,8 @@ fn compute_quant_table(
             for c in 0..3 {
                 for y in 0..K_BLOCK_DIM {
                     for x in 0..K_BLOCK_DIM {
-                        weights[c * num + y * K_BLOCK_DIM + x] = weights4x4[c * 16 + (y / 2) * 4 + (x / 2)];
+                        weights[c * num + y * K_BLOCK_DIM + x] =
+                            weights4x4[c * 16 + (y / 2) * 4 + (x / 2)];
                     }
                 }
                 weights[c * num + 1] /= encoding.dct4multipliers[c][0];
@@ -400,7 +405,8 @@ fn compute_quant_table(
             for c in 0..3 {
                 for y in 0..K_BLOCK_DIM {
                     for x in 0..K_BLOCK_DIM {
-                        weights[c * num + y * K_BLOCK_DIM + x] = weights4x8[c * 32 + (y / 2) * 8 + x];
+                        weights[c * num + y * K_BLOCK_DIM + x] =
+                            weights4x8[c * 32 + (y / 2) * 8 + x];
                     }
                 }
                 weights[c * num + N] /= encoding.dct4x8multipliers[c];
@@ -480,7 +486,7 @@ fn compute_quant_table(
                     weights[start + y * 8 + x] = val;
                 };
                 set_weight(0, 0, 1.0); // Not used, but causes MSAN error otherwise.
-                // Weights for (0, 1) and (1, 0).
+                                       // Weights for (0, 1) and (1, 0).
                 set_weight(0, 1, encoding.afv_weights[c][0]);
                 set_weight(1, 0, encoding.afv_weights[c][1]);
                 // AFV special weights for 3-pixel corner.
@@ -505,7 +511,8 @@ fn compute_quant_table(
                         if x == 0 && y == 0 {
                             continue;
                         }
-                        weights[c * num + (2 * y + 1) * K_BLOCK_DIM + x] = weights4x8[c * 32 + y * 8 + x];
+                        weights[c * num + (2 * y + 1) * K_BLOCK_DIM + x] =
+                            weights4x8[c * 32 + y * 8 + x];
                     }
                 }
                 // Put 4x4 weights in even rows / odd columns, except (0, 1).
@@ -514,7 +521,8 @@ fn compute_quant_table(
                         if x == 0 && y == 0 {
                             continue;
                         }
-                        weights[c * num + (2 * y) * K_BLOCK_DIM + 2 * x + 1] = weights4x4[c * 16 + y * 4 + x];
+                        weights[c * num + (2 * y) * K_BLOCK_DIM + 2 * x + 1] =
+                            weights4x4[c * 16 + y * 4 + x];
                     }
                 }
             }
@@ -541,8 +549,11 @@ fn compute_quant_table(
     for c in 0..3 {
         for y in 0..ys {
             for x in 0..xs {
-                table_storage
-                    [K_TOTAL_TABLE_SIZE + prev_pos + c * ys * xs * K_DCT_BLOCK_SIZE + y * K_BLOCK_DIM * xs + x] = 0.0;
+                table_storage[K_TOTAL_TABLE_SIZE
+                    + prev_pos
+                    + c * ys * xs * K_DCT_BLOCK_SIZE
+                    + y * K_BLOCK_DIM * xs
+                    + x] = 0.0;
             }
         }
     }
@@ -810,7 +821,11 @@ impl DequantMatrices {
     /// Translation of `DequantMatrices::EnsureComputed()`.
     pub(crate) fn ensure_computed(&mut self, acs_mask: u32) -> Status {
         if self.table_storage.is_empty() {
-            if self.table_storage.try_reserve_exact(2 * K_TOTAL_TABLE_SIZE).is_err() {
+            if self
+                .table_storage
+                .try_reserve_exact(2 * K_TOTAL_TABLE_SIZE)
+                .is_err()
+            {
                 return jxl_failure!("out of memory");
             }
             self.table_storage.resize(2 * K_TOTAL_TABLE_SIZE, 0.0);
@@ -870,19 +885,47 @@ fn dct_enc<const N: usize>(bands: [[f64; N]; 3]) -> QuantEncoding {
 
 fn dct4x8_params() -> DctQuantWeightParams {
     DctQuantWeightParams::new([
-        [2198.050556016380522, -0.96269623020744692, -0.76194253026666783, -0.6551140670773547],
-        [764.3655248643528689, -0.92630200888366945, -0.9675229603596517, -0.27845290869168118],
-        [527.107573587542228, -1.4594385811273854, -1.450082094097871593, -1.5843722511996204],
+        [
+            2198.050556016380522,
+            -0.96269623020744692,
+            -0.76194253026666783,
+            -0.6551140670773547,
+        ],
+        [
+            764.3655248643528689,
+            -0.92630200888366945,
+            -0.9675229603596517,
+            -0.27845290869168118,
+        ],
+        [
+            527.107573587542228,
+            -1.4594385811273854,
+            -1.450082094097871593,
+            -1.5843722511996204,
+        ],
     ])
 }
 
 fn dct4x4_params() -> DctQuantWeightParams {
-    DctQuantWeightParams::new([[2200.0, 0.0, 0.0, 0.0], [392.0, 0.0, 0.0, 0.0], [112.0, -0.25, -0.25, -0.5]])
+    DctQuantWeightParams::new([
+        [2200.0, 0.0, 0.0, 0.0],
+        [392.0, 0.0, 0.0, 0.0],
+        [112.0, -0.25, -0.25, -0.5],
+    ])
 }
 
 fn big_dct(a: f64, b: f64, c: f64) -> QuantEncoding {
     dct_enc([
-        [a, -1.025, -0.78, -0.65012, -0.19041574084286472, -0.20819395464, -0.421064, -0.32733845535848671],
+        [
+            a,
+            -1.025,
+            -0.78,
+            -0.65012,
+            -0.19041574084286472,
+            -0.20819395464,
+            -0.421064,
+            -0.32733845535848671,
+        ],
         [
             b,
             -0.3041958212306401,
@@ -910,7 +953,11 @@ fn library_entry(table: usize) -> QuantEncoding {
         // Identity
         qt::IDENTITY => {
             let mut e = QuantEncoding::base(QuantMode::Id);
-            e.idweights = [[280.0, 3160.0, 3160.0], [60.0, 864.0, 864.0], [18.0, 200.0, 200.0]];
+            e.idweights = [
+                [280.0, 3160.0, 3160.0],
+                [60.0, 864.0, 864.0],
+                [18.0, 200.0, 200.0],
+            ];
             e
         }
         // DCT2
@@ -963,7 +1010,16 @@ fn library_entry(table: usize) -> QuantEncoding {
         ]),
         // DCT32
         qt::DCT32X32 => dct_enc([
-            [15718.40830982518931456, -1.025, -0.98, -0.9012, -0.4, -0.48819395464, -0.421064, -0.27],
+            [
+                15718.40830982518931456,
+                -1.025,
+                -0.98,
+                -0.9012,
+                -0.4,
+                -0.48819395464,
+                -0.421064,
+                -0.27,
+            ],
             [
                 7305.7636810695983104,
                 -0.8041958212306401,
@@ -1046,7 +1102,16 @@ fn library_entry(table: usize) -> QuantEncoding {
                 -0.22924222653091453,
                 -0.20719098826199578,
             ],
-            [1807.236946760964614, -1.2, -1.2, -0.7, -0.7, -0.7, -0.4, -0.5],
+            [
+                1807.236946760964614,
+                -1.2,
+                -1.2,
+                -0.7,
+                -0.7,
+                -0.7,
+                -0.4,
+                -0.5,
+            ],
         ]),
         // DCT4X8 and 8x4
         qt::DCT4X8 => {
@@ -1070,20 +1135,44 @@ fn library_entry(table: usize) -> QuantEncoding {
             e
         }
         // DCT64
-        qt::DCT64X64 => big_dct(0.9 * 26629.073922049845, 0.9 * 9311.3238710010046, 0.9 * 4992.2486445538634),
+        qt::DCT64X64 => big_dct(
+            0.9 * 26629.073922049845,
+            0.9 * 9311.3238710010046,
+            0.9 * 4992.2486445538634,
+        ),
         // DCT64X32
         qt::DCT32X64 => {
-            let mut e = big_dct(0.65 * 23629.073922049845, 0.65 * 8611.3238710010046, 0.65 * 4492.2486445538634);
+            let mut e = big_dct(
+                0.65 * 23629.073922049845,
+                0.65 * 8611.3238710010046,
+                0.65 * 4492.2486445538634,
+            );
             e.mode = QuantMode::Dct;
             e
         }
         // DCT128X128
-        qt::DCT128X128 => big_dct(1.8 * 26629.073922049845, 1.8 * 9311.3238710010046, 1.8 * 4992.2486445538634),
+        qt::DCT128X128 => big_dct(
+            1.8 * 26629.073922049845,
+            1.8 * 9311.3238710010046,
+            1.8 * 4992.2486445538634,
+        ),
         // DCT128X64
-        qt::DCT64X128 => big_dct(1.3 * 23629.073922049845, 1.3 * 8611.3238710010046, 1.3 * 4492.2486445538634),
+        qt::DCT64X128 => big_dct(
+            1.3 * 23629.073922049845,
+            1.3 * 8611.3238710010046,
+            1.3 * 4492.2486445538634,
+        ),
         // DCT256X256
-        qt::DCT256X256 => big_dct(3.6 * 26629.073922049845, 3.6 * 9311.3238710010046, 3.6 * 4992.2486445538634),
+        qt::DCT256X256 => big_dct(
+            3.6 * 26629.073922049845,
+            3.6 * 9311.3238710010046,
+            3.6 * 4992.2486445538634,
+        ),
         // DCT256X128
-        _ => big_dct(2.6 * 23629.073922049845, 2.6 * 8611.3238710010046, 2.6 * 4492.2486445538634),
+        _ => big_dct(
+            2.6 * 23629.073922049845,
+            2.6 * 8611.3238710010046,
+            2.6 * 4492.2486445538634,
+        ),
     }
 }

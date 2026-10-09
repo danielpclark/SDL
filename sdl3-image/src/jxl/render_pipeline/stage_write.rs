@@ -147,7 +147,11 @@ impl RenderPipelineStage for WriteToImageBundleStage {
         Settings::default()
     }
 
-    fn set_input_sizes(&mut self, input_sizes: &[(usize, usize)], ctx: &mut StageCtx<'_>) -> Status {
+    fn set_input_sizes(
+        &mut self,
+        input_sizes: &[(usize, usize)],
+        ctx: &mut StageCtx<'_>,
+    ) -> Status {
         debug_assert!(input_sizes.len() >= 3);
         for c in 1..input_sizes.len() {
             debug_assert!(input_sizes[c].0 == input_sizes[0].0);
@@ -155,10 +159,15 @@ impl RenderPipelineStage for WriteToImageBundleStage {
         }
         let image_bundle = match self.target {
             ImageBundleTarget::Decoded => &mut *ctx.decoded,
-            ImageBundleTarget::FrameStorageForReferencing => &mut *ctx.frame_storage_for_referencing,
+            ImageBundleTarget::FrameStorageForReferencing => {
+                &mut *ctx.frame_storage_for_referencing
+            }
         };
         // TODO(eustas): what should we do in the case of "want only ECs"?
-        image_bundle.set_from_image(Image3F::new(input_sizes[0].0, input_sizes[0].1)?, &self.color_encoding)?;
+        image_bundle.set_from_image(
+            Image3F::new(input_sizes[0].0, input_sizes[0].1)?,
+            &self.color_encoding,
+        )?;
         // TODO(veluca): consider not reallocating ECs if not needed.
         image_bundle.extra_channels_mut().clear();
         for size in &input_sizes[3..] {
@@ -180,7 +189,9 @@ impl RenderPipelineStage for WriteToImageBundleStage {
     ) {
         let image_bundle = match self.target {
             ImageBundleTarget::Decoded => &mut *ctx.decoded,
-            ImageBundleTarget::FrameStorageForReferencing => &mut *ctx.frame_storage_for_referencing,
+            ImageBundleTarget::FrameStorageForReferencing => {
+                &mut *ctx.frame_storage_for_referencing
+            }
         };
         let n = xsize + 2 * xextra;
         let x0 = -(xextra as isize);
@@ -217,7 +228,11 @@ impl RenderPipelineStage for WriteToImage3FStage {
         Settings::default()
     }
 
-    fn set_input_sizes(&mut self, input_sizes: &[(usize, usize)], ctx: &mut StageCtx<'_>) -> Status {
+    fn set_input_sizes(
+        &mut self,
+        input_sizes: &[(usize, usize)],
+        ctx: &mut StageCtx<'_>,
+    ) -> Status {
         debug_assert!(input_sizes.len() >= 3);
         ctx.dc_frames[self.index] = Image3F::new(input_sizes[0].0, input_sizes[0].1)?;
         Ok(())
@@ -261,7 +276,10 @@ pub(crate) fn get_write_to_image_bundle_stage(
     target: ImageBundleTarget,
     color_encoding: ColorEncoding,
 ) -> Box<dyn RenderPipelineStage> {
-    Box::new(WriteToImageBundleStage { target, color_encoding })
+    Box::new(WriteToImageBundleStage {
+        target,
+        color_encoding,
+    })
 }
 
 /// Translation of `GetWriteToImage3FStage()` (for `dc_frames[index]`).

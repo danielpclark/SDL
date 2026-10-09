@@ -113,7 +113,9 @@ impl<T: Pixel> Plane<T> {
             let Some(n) = p.stride.checked_mul(ysize) else {
                 return jxl_failure!("image too large");
             };
-            if n.checked_mul(sizeof_t).is_none_or(|b| b > isize::MAX as usize) {
+            if n.checked_mul(sizeof_t)
+                .is_none_or(|b| b > isize::MAX as usize)
+            {
                 return jxl_failure!("image too large");
             }
             if p.data.try_reserve_exact(n).is_err() {
@@ -288,7 +290,10 @@ impl Rect {
     }
 
     pub(crate) fn is_inside(&self, other: &Rect) -> bool {
-        self.x0 >= other.x0 && self.x1() <= other.x1() && self.y0 >= other.y0 && self.y1() <= other.y1()
+        self.x0 >= other.x0
+            && self.x1() <= other.x1()
+            && self.y0 >= other.y0
+            && self.y1() <= other.y1()
     }
 
     pub(crate) fn is_inside_plane<T: Pixel>(&self, image: &Plane<T>) -> bool {
@@ -375,13 +380,23 @@ impl Rect {
 
     /// Translation of `Rect::ConstPlaneRow()`.
     #[inline]
-    pub(crate) fn const_plane_row<'a, T: Pixel>(&self, image: &'a Image3<T>, c: usize, y: usize) -> &'a [T] {
+    pub(crate) fn const_plane_row<'a, T: Pixel>(
+        &self,
+        image: &'a Image3<T>,
+        c: usize,
+        y: usize,
+    ) -> &'a [T] {
         self.const_row(image.plane(c), y)
     }
 
     /// Translation of `Rect::PlaneRow()`.
     #[inline]
-    pub(crate) fn plane_row<'a, T: Pixel>(&self, image: &'a mut Image3<T>, c: usize, y: usize) -> &'a mut [T] {
+    pub(crate) fn plane_row<'a, T: Pixel>(
+        &self,
+        image: &'a mut Image3<T>,
+        c: usize,
+        y: usize,
+    ) -> &'a mut [T] {
         self.row(image.plane_mut(c), y)
     }
 }
@@ -412,7 +427,9 @@ impl<T: Pixel> Image3<T> {
     pub(crate) fn from_planes(p0: Plane<T>, p1: Plane<T>, p2: Plane<T>) -> Self {
         debug_assert!(same_size(&p0, &p1));
         debug_assert!(same_size(&p0, &p2));
-        Image3 { planes: [p0, p1, p2] }
+        Image3 {
+            planes: [p0, p1, p2],
+        }
     }
 
     /// Returns row slice; usage: plane_row(idx_plane, y)[x] = val.

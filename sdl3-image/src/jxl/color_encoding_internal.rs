@@ -180,11 +180,7 @@ fn double_to_string(v: f64) -> String {
             mantissa
         };
         let e: i32 = e.parse().unwrap_or(0);
-        format!(
-            "{mantissa}e{}{:02}",
-            if e < 0 { '-' } else { '+' },
-            e.abs()
-        )
+        format!("{mantissa}e{}{:02}", if e < 0 { '-' } else { '+' }, e.abs())
     } else {
         let decimals = (p - 1 - exp).max(0) as usize;
         let s = format!("{:.*}", decimals, v);
@@ -766,7 +762,11 @@ impl Fields for ColorEncoding {
 
             visitor.visit_nested(&mut self.tf)?;
 
-            visit_enum(visitor, RenderingIntent::Relative, &mut self.rendering_intent)?;
+            visit_enum(
+                visitor,
+                RenderingIntent::Relative,
+                &mut self.rendering_intent,
+            )?;
 
             // We didn't have ICC, so all fields should be known.
             if self.color_space == ColorSpace::Unknown || self.tf.is_unknown() {

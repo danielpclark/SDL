@@ -56,7 +56,11 @@ pub(crate) fn perform_alpha_blending_rgba(
     let [out_r, out_g, out_b, out_a] = out;
     if alpha_is_premultiplied {
         for x in 0..num_pixels {
-            let fga = if clamp_alpha { clamp(fg[3][x]) } else { fg[3][x] };
+            let fga = if clamp_alpha {
+                clamp(fg[3][x])
+            } else {
+                fg[3][x]
+            };
             out_r[x] = fg[0][x] + bg[0][x] * (1.0f32 - fga);
             out_g[x] = fg[1][x] + bg[1][x] * (1.0f32 - fga);
             out_b[x] = fg[2][x] + bg[2][x] * (1.0f32 - fga);
@@ -64,7 +68,11 @@ pub(crate) fn perform_alpha_blending_rgba(
         }
     } else {
         for x in 0..num_pixels {
-            let fga = if clamp_alpha { clamp(fg[3][x]) } else { fg[3][x] };
+            let fga = if clamp_alpha {
+                clamp(fg[3][x])
+            } else {
+                fg[3][x]
+            };
             let new_a = 1.0f32 - (1.0f32 - fga) * (1.0f32 - bg[3][x]);
             let rnew_a = if new_a > 0.0 { 1.0f32 / new_a } else { 0.0f32 };
             out_r[x] = (fg[0][x] * fga + bg[0][x] * bg[3][x] * (1.0f32 - fga)) * rnew_a;
@@ -135,7 +143,13 @@ pub(crate) fn perform_alpha_weighted_add(
 }
 
 /// Translation of `PerformMulBlending()`.
-pub(crate) fn perform_mul_blending(bg: &[f32], fg: &[f32], out: &mut [f32], num_pixels: usize, clamp_fg: bool) {
+pub(crate) fn perform_mul_blending(
+    bg: &[f32],
+    fg: &[f32],
+    out: &mut [f32],
+    num_pixels: usize,
+    clamp_fg: bool,
+) {
     if clamp_fg {
         for x in 0..num_pixels {
             out[x] = bg[x] * clamp(fg[x]);
@@ -149,7 +163,13 @@ pub(crate) fn perform_mul_blending(bg: &[f32], fg: &[f32], out: &mut [f32], num_
 
 /// Translation of `PremultiplyAlpha()`.
 #[allow(dead_code)]
-pub(crate) fn premultiply_alpha(r: &mut [f32], g: &mut [f32], b: &mut [f32], a: &[f32], num_pixels: usize) {
+pub(crate) fn premultiply_alpha(
+    r: &mut [f32],
+    g: &mut [f32],
+    b: &mut [f32],
+    a: &[f32],
+    num_pixels: usize,
+) {
     for x in 0..num_pixels {
         let multiplier = std_max(K_SMALL_ALPHA, a[x]);
         r[x] *= multiplier;
@@ -159,7 +179,13 @@ pub(crate) fn premultiply_alpha(r: &mut [f32], g: &mut [f32], b: &mut [f32], a: 
 }
 
 /// Translation of `UnpremultiplyAlpha()`.
-pub(crate) fn unpremultiply_alpha(r: &mut [f32], g: &mut [f32], b: &mut [f32], a: &[f32], num_pixels: usize) {
+pub(crate) fn unpremultiply_alpha(
+    r: &mut [f32],
+    g: &mut [f32],
+    b: &mut [f32],
+    a: &[f32],
+    num_pixels: usize,
+) {
     for x in 0..num_pixels {
         let multiplier = 1.0f32 / std_max(K_SMALL_ALPHA, a[x]);
         r[x] *= multiplier;

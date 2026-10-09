@@ -10,7 +10,9 @@
 
 use std::rc::Rc;
 
-use super::base::{div_ceil, jxl_failure, pack_signed, unpack_signed, FrameDimensions, Status, K_MAX_NUM_PASSES};
+use super::base::{
+    div_ceil, jxl_failure, pack_signed, unpack_signed, FrameDimensions, Status, K_MAX_NUM_PASSES,
+};
 use super::fields::{bits, bits_offset, bundle_init, val, Fields, U32Enc, Visitor};
 use super::image_metadata::{visit_name_string, CodecMetadata};
 use super::loop_filter::LoopFilter;
@@ -25,10 +27,10 @@ pub(crate) enum FrameEncoding {
 /// Translation of `ColorTransform`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ColorTransform {
-    Xyb,   // Values are encoded with XYB. May only be used if
-           // ImageBundle::xyb_encoded.
-    None,  // Values are encoded according to the attached color profile. May
-           // only be used if !ImageBundle::xyb_encoded.
+    Xyb, // Values are encoded with XYB. May only be used if
+    // ImageBundle::xyb_encoded.
+    None, // Values are encoded according to the attached color profile. May
+    // only be used if !ImageBundle::xyb_encoded.
     YCbCr, // Values are encoded according to the attached color profile, but
            // transformed to YCbCr. May only be used if
            // !ImageBundle::xyb_encoded.
@@ -134,8 +136,12 @@ impl YCbCrChromaSubsampling {
         self.maxhs = 0;
         self.maxvs = 0;
         for i in 0..3 {
-            self.maxhs = self.maxhs.max(Self::K_H_SHIFT[self.channel_mode[i] as usize]);
-            self.maxvs = self.maxvs.max(Self::K_V_SHIFT[self.channel_mode[i] as usize]);
+            self.maxhs = self
+                .maxhs
+                .max(Self::K_H_SHIFT[self.channel_mode[i] as usize]);
+            self.maxvs = self
+                .maxvs
+                .max(Self::K_V_SHIFT[self.channel_mode[i] as usize]);
         }
     }
 }
@@ -182,7 +188,11 @@ impl BlendMode {
 }
 
 /// Translation of `VisitBlendMode()`.
-fn visit_blend_mode(visitor: &mut dyn Visitor, default_value: BlendMode, blend_mode: &mut BlendMode) -> Status {
+fn visit_blend_mode(
+    visitor: &mut dyn Visitor,
+    default_value: BlendMode,
+    blend_mode: &mut BlendMode,
+) -> Status {
     let mut encoded = *blend_mode as u32;
 
     visitor.u32d(
@@ -220,7 +230,11 @@ pub(crate) enum FrameType {
 }
 
 /// Translation of `VisitFrameType()`.
-fn visit_frame_type(visitor: &mut dyn Visitor, default_value: FrameType, frame_type: &mut FrameType) -> Status {
+fn visit_frame_type(
+    visitor: &mut dyn Visitor,
+    default_value: FrameType,
+    frame_type: &mut FrameType,
+) -> Status {
     let mut encoded = *frame_type as u32;
 
     visitor.u32d(
@@ -303,7 +317,9 @@ impl Fields for BlendingInfo {
         }
         // 'old' frame for blending. Only necessary if this is not a full frame, or
         // blending is not kReplace.
-        if visitor.conditional(self.mode != BlendMode::Replace || self.nonserialized_is_partial_frame) {
+        if visitor
+            .conditional(self.mode != BlendMode::Replace || self.nonserialized_is_partial_frame)
+        {
             visitor.u32d(val(0), val(1), val(2), val(3), 0, &mut self.source)?;
         }
         Ok(())
@@ -397,7 +413,12 @@ impl Passes {
     }
 
     /// Translation of `GetDownsamplingBracket()`.
-    pub(crate) fn get_downsampling_bracket(&self, pass: usize, min_shift: &mut i32, max_shift: &mut i32) {
+    pub(crate) fn get_downsampling_bracket(
+        &self,
+        pass: usize,
+        min_shift: &mut i32,
+        max_shift: &mut i32,
+    ) {
         *max_shift = 2;
         *min_shift = 3;
         let mut i = 0usize;
@@ -771,10 +792,12 @@ impl Fields for FrameHeader {
         if visitor.conditional((self.flags & K_USE_DC_FRAME) == 0) {
             visitor.u32d(val(1), val(2), val(4), val(8), 1, &mut self.upsampling)?;
             let metadata = self.nonserialized_metadata.clone();
-            if metadata.is_some() && visitor.conditional(num_extra_channels != 0) {
-                let metadata = metadata.unwrap();
+            if let Some(metadata) =
+                metadata.filter(|_| visitor.conditional(num_extra_channels != 0))
+            {
                 let extra_channels = &metadata.m.extra_channel_info;
-                self.extra_channel_upsampling.resize(extra_channels.len(), 1);
+                self.extra_channel_upsampling
+                    .resize(extra_channels.len(), 1);
                 for i in 0..extra_channels.len() {
                     let dim_shift = metadata.m.extra_channel_info[i].dim_shift;
                     let ec_upsampling = &mut self.extra_channel_upsampling[i];
@@ -909,7 +932,14 @@ impl Fields for FrameHeader {
         // frame means that it will not be referenced. Not necessary for the last
         // frame.
         if visitor.conditional(self.frame_type != FrameType::DcFrame && !self.is_last) {
-            visitor.u32d(val(0), val(1), val(2), val(3), 0, &mut self.save_as_reference)?;
+            visitor.u32d(
+                val(0),
+                val(1),
+                val(2),
+                val(3),
+                0,
+                &mut self.save_as_reference,
+            )?;
         }
 
         // If this frame is not blended on another frame post-color-transform, it may

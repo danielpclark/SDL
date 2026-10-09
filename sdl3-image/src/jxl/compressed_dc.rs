@@ -77,9 +77,21 @@ pub(crate) fn adaptive_dc_smoothing(dc_factors: &[f32; 4], dc: &mut Image3F) -> 
     for y in 1..ysize - 1 {
         let mut out = [vec![0f32; xsize], vec![0f32; xsize], vec![0f32; xsize]];
         {
-            let rows_top = [dc.const_plane_row(0, y - 1), dc.const_plane_row(1, y - 1), dc.const_plane_row(2, y - 1)];
-            let rows = [dc.const_plane_row(0, y), dc.const_plane_row(1, y), dc.const_plane_row(2, y)];
-            let rows_bottom = [dc.const_plane_row(0, y + 1), dc.const_plane_row(1, y + 1), dc.const_plane_row(2, y + 1)];
+            let rows_top = [
+                dc.const_plane_row(0, y - 1),
+                dc.const_plane_row(1, y - 1),
+                dc.const_plane_row(2, y - 1),
+            ];
+            let rows = [
+                dc.const_plane_row(0, y),
+                dc.const_plane_row(1, y),
+                dc.const_plane_row(2, y),
+            ];
+            let rows_bottom = [
+                dc.const_plane_row(0, y + 1),
+                dc.const_plane_row(1, y + 1),
+                dc.const_plane_row(2, y + 1),
+            ];
             for x in [0, xsize - 1] {
                 for c in 0..3 {
                     out[c][x] = rows[c][x];
@@ -89,9 +101,30 @@ pub(crate) fn adaptive_dc_smoothing(dc_factors: &[f32; 4], dc: &mut Image3F) -> 
             // (ComputePixel, one lane)
             for x in 1..xsize - 1 {
                 let mut gap = 0.5f32;
-                let (mc_x, sm_x) = compute_pixel_channel(dc_factors[0], rows_top[0], rows[0], rows_bottom[0], &mut gap, x);
-                let (mc_y, sm_y) = compute_pixel_channel(dc_factors[1], rows_top[1], rows[1], rows_bottom[1], &mut gap, x);
-                let (mc_b, sm_b) = compute_pixel_channel(dc_factors[2], rows_top[2], rows[2], rows_bottom[2], &mut gap, x);
+                let (mc_x, sm_x) = compute_pixel_channel(
+                    dc_factors[0],
+                    rows_top[0],
+                    rows[0],
+                    rows_bottom[0],
+                    &mut gap,
+                    x,
+                );
+                let (mc_y, sm_y) = compute_pixel_channel(
+                    dc_factors[1],
+                    rows_top[1],
+                    rows[1],
+                    rows_bottom[1],
+                    &mut gap,
+                    x,
+                );
+                let (mc_b, sm_b) = compute_pixel_channel(
+                    dc_factors[2],
+                    rows_top[2],
+                    rows[2],
+                    rows_bottom[2],
+                    &mut gap,
+                    x,
+                );
                 let mut factor = -4.0f32 * gap + 3.0f32;
                 // ZeroIfNegative
                 if factor < 0.0 {
@@ -176,9 +209,15 @@ pub(crate) fn dequant_dc(
         }
     } else {
         for y in 0..r.ysize() {
-            let quant_row_x = input.channel[1].plane.row(y >> chroma_subsampling.v_shift(0));
-            let quant_row_y = input.channel[0].plane.row(y >> chroma_subsampling.v_shift(1));
-            let quant_row_b = input.channel[2].plane.row(y >> chroma_subsampling.v_shift(2));
+            let quant_row_x = input.channel[1]
+                .plane
+                .row(y >> chroma_subsampling.v_shift(0));
+            let quant_row_y = input.channel[0]
+                .plane
+                .row(y >> chroma_subsampling.v_shift(1));
+            let quant_row_b = input.channel[2]
+                .plane
+                .row(y >> chroma_subsampling.v_shift(2));
             let qdc_row_val = r.row(quant_dc, y);
             for x in 0..r.xsize() {
                 let mut bucket_x: i32 = 0;

@@ -169,10 +169,10 @@ pub(crate) fn init_alias_table(
     debug_assert!(distribution.len() <= table_size);
     debug_assert!(table_size as u32 <= range);
     let entry_size = range >> log_alpha_size; // this is exact
-    // Special case for single-symbol distributions, that ensures that the state
-    // does not change when decoding from such a distribution. Note that, since we
-    // hardcode offset0 == 0, it is not straightforward (if at all possible) to
-    // fix the general case to produce this result.
+                                              // Special case for single-symbol distributions, that ensures that the state
+                                              // does not change when decoding from such a distribution. Note that, since we
+                                              // hardcode offset0 == 0, it is not straightforward (if at all possible) to
+                                              // fix the general case to produce this result.
     for sym in 0..distribution.len() {
         if distribution[sym] == ANS_TAB_SIZE as i32 {
             for i in 0..table_size {

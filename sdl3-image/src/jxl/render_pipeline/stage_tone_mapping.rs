@@ -36,7 +36,11 @@ fn log2f(x: f32) -> f32 {
 impl HlgOotf {
     /// Translation of `HlgOOTF(source_luminance, target_luminance, ...)`.
     #[allow(dead_code)]
-    pub(crate) fn new(source_luminance: f32, target_luminance: f32, primaries_luminances: &[f32; 3]) -> Self {
+    pub(crate) fn new(
+        source_luminance: f32,
+        target_luminance: f32,
+        primaries_luminances: &[f32; 3],
+    ) -> Self {
         Self::with_gamma(
             /*gamma=*/ powf(1.111f32, log2f(target_luminance / source_luminance)),
             primaries_luminances,
@@ -44,7 +48,10 @@ impl HlgOotf {
     }
 
     /// Translation of `HlgOOTF::FromSceneLight()`.
-    pub(crate) fn from_scene_light(display_luminance: f32, primaries_luminances: &[f32; 3]) -> Self {
+    pub(crate) fn from_scene_light(
+        display_luminance: f32,
+        primaries_luminances: &[f32; 3],
+    ) -> Self {
         Self::with_gamma(
             /*gamma=*/ 1.2f32 * powf(1.111f32, log2f(display_luminance / 1000.0f32)),
             primaries_luminances,
@@ -54,7 +61,8 @@ impl HlgOotf {
     /// Translation of `HlgOOTF::ToSceneLight()`.
     pub(crate) fn to_scene_light(display_luminance: f32, primaries_luminances: &[f32; 3]) -> Self {
         Self::with_gamma(
-            /*gamma=*/ (1.0 / 1.2f32) * powf(1.111f32, -log2f(display_luminance / 1000.0f32)),
+            /*gamma=*/
+            (1.0 / 1.2f32) * powf(1.111f32, -log2f(display_luminance / 1000.0f32)),
             primaries_luminances,
         )
     }

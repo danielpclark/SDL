@@ -67,7 +67,10 @@ impl BlendingStage {
 
         if bg.xsize() != 0
             && bg.ysize() != 0
-            && (bg.xsize() < image_xsize || bg.ysize() < image_ysize || bg.origin.x0 != 0 || bg.origin.y0 != 0)
+            && (bg.xsize() < image_xsize
+                || bg.ysize() < image_ysize
+                || bg.origin.x0 != 0
+                || bg.origin.y0 != 0)
         {
             // "Trying to use a %" PRIuS "x%" PRIuS " crop as a background"
             s.initialized = Err(StatusCode::GenericError);
@@ -172,8 +175,9 @@ impl RenderPipelineStage for BlendingStage {
                     &self.zeroes
                 });
             } else {
-                let ec_bg =
-                    &ctx.reference_frames[self.frame_header.extra_channel_blending_info[c - 3].source as usize].frame;
+                let ec_bg = &ctx.reference_frames
+                    [self.frame_header.extra_channel_blending_info[c - 3].source as usize]
+                    .frame;
                 bg_rows.push(if ec_bg.xsize() != 0 && ec_bg.ysize() != 0 {
                     &ec_bg.extra_channels()[c - 3].row(bg_ypos)[bg_xpos..]
                 } else {
@@ -204,7 +208,11 @@ impl RenderPipelineStage for BlendingStage {
     }
 
     fn get_image_dimensions(&self) -> (usize, usize, FrameOrigin) {
-        (self.image_xsize, self.image_ysize, self.frame_header.frame_origin)
+        (
+            self.image_xsize,
+            self.image_ysize,
+            self.frame_header.frame_origin,
+        )
     }
 
     fn process_padding_row(
@@ -229,7 +237,9 @@ impl RenderPipelineStage for BlendingStage {
             }
         }
         for ec in 0..self.extra_channel_info.len() {
-            let ec_bg = &ctx.reference_frames[self.frame_header.extra_channel_blending_info[ec].source as usize].frame;
+            let ec_bg = &ctx.reference_frames
+                [self.frame_header.extra_channel_blending_info[ec].source as usize]
+                .frame;
             let p = rows.get_input_row(3 + ec, 0);
             if ec_bg.xsize() == 0 || ec_bg.ysize() == 0 {
                 rows.row_mut(p, 0, xsize).fill(0.0);
@@ -260,5 +270,3 @@ pub(crate) fn get_blending_stage(
     ))
 }
 
-#[allow(dead_code)]
-fn _unused(_: StatusCode) {}

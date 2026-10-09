@@ -15,7 +15,12 @@ use super::transform::{check_equal_channels, pixel_add};
 
 /// Translation of `InvRCTRow<transform_type>()` on the pixel values.
 #[inline]
-fn inv_rct_pixel(transform_type: usize, in0: PixelType, in1: PixelType, in2: PixelType) -> (PixelType, PixelType, PixelType) {
+fn inv_rct_pixel(
+    transform_type: usize,
+    in0: PixelType,
+    in1: PixelType,
+    in2: PixelType,
+) -> (PixelType, PixelType, PixelType) {
     let second = transform_type >> 1;
     let third = transform_type & 1;
     if transform_type == 6 {

@@ -349,7 +349,11 @@ impl<'c> AnsSymbolReader<'c> {
         }
     }
 
-    pub(crate) fn new(code: &'c AnsCode, br: &mut BitReader<'_>, distance_multiplier: usize) -> Self {
+    pub(crate) fn new(
+        code: &'c AnsCode,
+        br: &mut BitReader<'_>,
+        distance_multiplier: usize,
+    ) -> Self {
         let mut r = AnsSymbolReader {
             alias_tables: &code.alias_tables,
             huffman_data: &code.huffman_data,
@@ -409,7 +413,11 @@ impl<'c> AnsSymbolReader<'c> {
     }
 
     #[inline]
-    pub(crate) fn read_symbol_ans_without_refill(&mut self, histo_idx: usize, br: &mut BitReader<'_>) -> usize {
+    pub(crate) fn read_symbol_ans_without_refill(
+        &mut self,
+        histo_idx: usize,
+        br: &mut BitReader<'_>,
+    ) -> usize {
         let res = self.state & (ANS_TAB_SIZE - 1);
 
         let table = &self.alias_tables[histo_idx << self.log_alpha_size..];
@@ -434,12 +442,20 @@ impl<'c> AnsSymbolReader<'c> {
     }
 
     #[inline]
-    pub(crate) fn read_symbol_huff_without_refill(&self, histo_idx: usize, br: &mut BitReader<'_>) -> usize {
+    pub(crate) fn read_symbol_huff_without_refill(
+        &self,
+        histo_idx: usize,
+        br: &mut BitReader<'_>,
+    ) -> usize {
         self.huffman_data[histo_idx].read_symbol(br) as usize
     }
 
     #[inline]
-    pub(crate) fn read_symbol_without_refill(&mut self, histo_idx: usize, br: &mut BitReader<'_>) -> usize {
+    pub(crate) fn read_symbol_without_refill(
+        &mut self,
+        histo_idx: usize,
+        br: &mut BitReader<'_>,
+    ) -> usize {
         // TODO(veluca): hoist if in hotter loops.
         if self.use_prefix_code {
             return self.read_symbol_huff_without_refill(histo_idx, br);
@@ -548,7 +564,11 @@ impl<'c> AnsSymbolReader<'c> {
 
     /// Takes a *clustered* idx. Translation of `ReadHybridUintClustered()`
     /// (its tail call written as a loop).
-    pub(crate) fn read_hybrid_uint_clustered(&mut self, ctx: usize, br: &mut BitReader<'_>) -> usize {
+    pub(crate) fn read_hybrid_uint_clustered(
+        &mut self,
+        ctx: usize,
+        br: &mut BitReader<'_>,
+    ) -> usize {
         loop {
             if self.num_to_copy > 0 {
                 let window = self.lz77_window.as_mut().unwrap();
@@ -569,13 +589,11 @@ impl<'c> AnsSymbolReader<'c> {
                 )
                 .wrapping_add(self.lz77_min_length);
                 br.refill(); // covers ReadSymbolWithoutRefill + PeekBits
-                // Distance code.
+                             // Distance code.
                 let token = self.read_symbol_without_refill(self.lz77_ctx as usize, br);
-                let mut distance = Self::read_hybrid_uint_config(
-                    &self.configs[self.lz77_ctx as usize],
-                    token,
-                    br,
-                ) as usize;
+                let mut distance =
+                    Self::read_hybrid_uint_config(&self.configs[self.lz77_ctx as usize], token, br)
+                        as usize;
                 if distance < self.num_special_distances as usize {
                     distance = self.special_distances[distance] as usize;
                 } else {
@@ -612,14 +630,24 @@ impl<'c> AnsSymbolReader<'c> {
 
     /// Translation of `ReadHybridUint()`.
     #[inline]
-    pub(crate) fn read_hybrid_uint(&mut self, ctx: usize, br: &mut BitReader<'_>, context_map: &[u8]) -> usize {
+    pub(crate) fn read_hybrid_uint(
+        &mut self,
+        ctx: usize,
+        br: &mut BitReader<'_>,
+        context_map: &[u8],
+    ) -> usize {
         self.read_hybrid_uint_clustered(context_map[ctx] as usize, br)
     }
 
     /// ctx is a *clustered* context!
     /// This function will modify the ANS state as if `count` symbols have
     /// been decoded. Translation of `IsSingleValueAndAdvance()`.
-    pub(crate) fn is_single_value_and_advance(&mut self, ctx: usize, value: &mut u32, count: usize) -> bool {
+    pub(crate) fn is_single_value_and_advance(
+        &mut self,
+        ctx: usize,
+        value: &mut u32,
+        count: usize,
+    ) -> bool {
         // TODO(veluca): No optimization for Huffman mode yet.
         if self.use_prefix_code {
             return false;
@@ -948,7 +976,8 @@ fn read_histogram(precision_bits: i32, counts: &mut Vec<i32>, input: &mut BitRea
         }
         // FIXME (upstream): this compares with ANS_TAB_SIZE + 1 where the RLE
         // symbol is ANS_LOG_TAB_SIZE + 1, so it never matches.
-        if (omit_pos as usize) + 1 < n && logcounts[omit_pos as usize + 1] == ANS_TAB_SIZE as i32 + 1
+        if (omit_pos as usize) + 1 < n
+            && logcounts[omit_pos as usize + 1] == ANS_TAB_SIZE as i32 + 1
         {
             return jxl_failure!("Invalid histogram.");
         }
@@ -1136,7 +1165,11 @@ pub(crate) fn decode_histograms(
     bundle_read(br, &mut code.lz77)?;
     if code.lz77.enabled {
         num_contexts += 1;
-        decode_uint_config(/*log_alpha_size=*/ 8, &mut code.lz77.length_uint_config, br)?;
+        decode_uint_config(
+            /*log_alpha_size=*/ 8,
+            &mut code.lz77.length_uint_config,
+            br,
+        )?;
     }
     if code.lz77.enabled && disallow_lz77 {
         return jxl_failure!("Using LZ77 when explicitly disallowed");

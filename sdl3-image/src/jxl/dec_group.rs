@@ -15,7 +15,9 @@
 
 use super::ac_context::{zero_density_context, BlockCtxMap};
 use super::ac_strategy::{AcStrategy, CoeffOrderT};
-use super::base::{ceil_log2_nonzero_u64, div_ceil, Status, StatusCode, K_BLOCK_DIM, K_DCT_BLOCK_SIZE};
+use super::base::{
+    ceil_log2_nonzero_u64, div_ceil, Status, StatusCode, K_BLOCK_DIM, K_DCT_BLOCK_SIZE,
+};
 use super::chroma_from_luma::K_COLOR_TILE_DIM_IN_BLOCKS;
 use super::coeff_order::{coeff_order_offset, K_STRATEGY_ORDER};
 use super::dec_ans::AnsSymbolReader;
@@ -29,7 +31,12 @@ use super::render_pipeline::RenderPipelineInput;
 
 /// Translation of `PredictFromTopAndLeft()`.
 #[inline]
-fn predict_from_top_and_left(row_top: Option<&[i32]>, row: &[i32], x: usize, default_val: i32) -> i32 {
+fn predict_from_top_and_left(
+    row_top: Option<&[i32]>,
+    row: &[i32],
+    x: usize,
+    default_val: i32,
+) -> i32 {
     if x == 0 {
         return match row_top {
             None => default_val,
@@ -289,7 +296,11 @@ fn decode_group_impl(
         let ty = (block_rect.y0() + by) / K_COLOR_TILE_DIM_IN_BLOCKS;
         let acs_row = ac_strategy.const_row_rect(&block_rect, by);
 
-        let row_cmap: [&[i8]; 3] = [shared.cmap.ytox_map.row(ty), &[], shared.cmap.ytob_map.row(ty)];
+        let row_cmap: [&[i8]; 3] = [
+            shared.cmap.ytox_map.row(ty),
+            &[],
+            shared.cmap.ytob_map.row(ty),
+        ];
 
         let mut bx = 0usize;
         for tx in 0..div_ceil(xsize_blocks, K_COLOR_TILE_DIM_IN_BLOCKS) {
@@ -350,7 +361,15 @@ fn decode_group_impl(
                         AcPtr::K32([q0, q1, q2])
                     }
                 };
-                get_block.load_block(bx, by, &acs, size, log2_covered_blocks, &mut qblock, readers)?;
+                get_block.load_block(
+                    bx,
+                    by,
+                    &acs,
+                    size,
+                    log2_covered_blocks,
+                    &mut qblock,
+                    readers,
+                )?;
                 offset += size;
                 if draw == DrawMode::DontDraw {
                     bx += llf_x;
@@ -386,7 +405,8 @@ fn decode_group_impl(
                         }
                         // IDCT
                         let img = pipeline.buffer_mut(idct_buf[c]);
-                        let idct_pos = idct_rect[c].row_index(img, sby[c] * K_BLOCK_DIM) + sbx[c] * K_BLOCK_DIM;
+                        let idct_pos = idct_rect[c].row_index(img, sby[c] * K_BLOCK_DIM)
+                            + sbx[c] * K_BLOCK_DIM;
                         transform_to_pixels(
                             acs.strategy(),
                             &mut block[c * size..(c + 1) * size],
@@ -449,8 +469,9 @@ fn decode_ac_var_block(
     let order = &coeff_order[coeff_order_offset(ord, c)..];
 
     let block_ctx = block_ctx_map.context(qdc_row[lbx] as i32, qf_row[bx] as u32, ord, c);
-    let nzero_ctx =
-        (block_ctx_map.non_zero_context(predicted_nzeros as u32, block_ctx as u32) as usize).wrapping_add(ctx_offset);
+    let nzero_ctx = (block_ctx_map.non_zero_context(predicted_nzeros as u32, block_ctx as u32)
+        as usize)
+        .wrapping_add(ctx_offset);
 
     let mut nzeros = decoder.read_hybrid_uint(nzero_ctx, br, context_map);
     if nzeros + covered_blocks > size {
@@ -458,25 +479,29 @@ fn decode_ac_var_block(
     }
     for y in 0..acs.covered_blocks_y() {
         for x in 0..acs.covered_blocks_x() {
-            row_nzeros[bx + x + y * nzeros_stride] = ((nzeros + covered_blocks - 1) >> log2_covered_blocks) as i32;
+            row_nzeros[bx + x + y * nzeros_stride] =
+                ((nzeros + covered_blocks - 1) >> log2_covered_blocks) as i32;
         }
     }
 
-    let histo_offset = ctx_offset + block_ctx_map.zero_density_contexts_offset(block_ctx as u32) as usize;
+    let histo_offset =
+        ctx_offset + block_ctx_map.zero_density_contexts_offset(block_ctx as u32) as usize;
 
     // Skip LLF
     {
         let mut prev: usize = if nzeros > size / 16 { 0 } else { 1 };
         let mut k = covered_blocks;
         while k < size && nzeros != 0 {
-            let ctx = histo_offset + zero_density_context(nzeros, k, covered_blocks, log2_covered_blocks, prev);
+            let ctx = histo_offset
+                + zero_density_context(nzeros, k, covered_blocks, log2_covered_blocks, prev);
             let u_coeff = decoder.read_hybrid_uint(ctx, br, context_map);
             // Hand-rolled version of UnpackSigned, shifting before the conversion to
             // signed integer to avoid undefined behavior of shifting negative
             // numbers.
             let magnitude = u_coeff >> 1;
             let neg_sign = (!u_coeff) & 1;
-            let coeff = ((magnitude ^ neg_sign.wrapping_sub(1)).wrapping_shl(shift as u32)) as isize;
+            let coeff =
+                ((magnitude ^ neg_sign.wrapping_sub(1)).wrapping_shl(shift as u32)) as isize;
             let idx = order[k] as usize;
             match block {
                 AcPtr::K16(b) => {
@@ -558,7 +583,11 @@ impl<'a> GetBlockFromBitstream<'a> {
                 let plane = self.num_nzeroes[pass].plane_mut(c);
                 let stride = plane.pixels_per_row();
                 let (top, row) = plane.data_mut().split_at_mut(sby * stride);
-                let row_nzeros_top = if sby == 0 { None } else { Some(&top[(sby - 1) * stride..]) };
+                let row_nzeros_top = if sby == 0 {
+                    None
+                } else {
+                    Some(&top[(sby - 1) * stride..])
+                };
                 decode_ac_var_block(
                     self.ctx_offset[pass],
                     log2_covered_blocks,
@@ -625,7 +654,11 @@ impl<'a> GetBlockFromBitstream<'a> {
             }
             ctx_offset[pass] = cur_histogram * block_ctx_map.num_ac_contexts() as usize;
 
-            decoders.push(AnsSymbolReader::new(&dec_state_code[pass + first_pass], readers[pass], 0));
+            decoders.push(AnsSymbolReader::new(
+                &dec_state_code[pass + first_pass],
+                readers[pass],
+                0,
+            ));
         }
         let nzeros_stride = num_nzeroes[0].pixels_per_row();
         for i in 0..num_passes {
@@ -668,7 +701,8 @@ pub(crate) fn decode_group(
     should_run_pipeline: Option<&mut bool>,
 ) -> Status {
     let _ = thread;
-    let draw = if (num_passes + first_pass == dec_state.shared_storage.frame_header.passes.num_passes as usize)
+    let draw = if (num_passes + first_pass
+        == dec_state.shared_storage.frame_header.passes.num_passes as usize)
         || force_draw
     {
         DrawMode::Draw

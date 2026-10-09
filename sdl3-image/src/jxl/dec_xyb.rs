@@ -115,7 +115,13 @@ fn can_output_to_color_encoding(c_desired: &ColorEncoding) -> bool {
     }
     // TODO(veluca): keep in sync with dec_reconstruct.cc
     let tf = &c_desired.tf;
-    if !tf.is_pq() && !tf.is_srgb() && !tf.is_gamma() && !tf.is_linear() && !tf.is_hlg() && !tf.is_dci() && !tf.is_709()
+    if !tf.is_pq()
+        && !tf.is_srgb()
+        && !tf.is_gamma()
+        && !tf.is_linear()
+        && !tf.is_hlg()
+        && !tf.is_dci()
+        && !tf.is_709()
     {
         return false;
     }
@@ -164,7 +170,9 @@ impl OutputEncodingInfo {
         let mut inverse_matrix_is_default = self.default_transform;
         const K_SRGB_LUMINANCES: [f32; 3] = [0.2126, 0.7152, 0.0722];
         self.luminances = K_SRGB_LUMINANCES;
-        if (c_desired.primaries != Primaries::Srgb || c_desired.white_point != WhitePoint::D65) && !c_desired.is_gray() {
+        if (c_desired.primaries != Primaries::Srgb || c_desired.white_point != WhitePoint::D65)
+            && !c_desired.is_gray()
+        {
             let mut srgb_to_xyzd50 = [0f32; 9];
             let srgb = ColorEncoding::srgb(/*is_gray=*/ false);
             let sp = srgb.get_primaries();
@@ -204,11 +212,32 @@ impl OutputEncodingInfo {
                 let mut adapt_to_d50 = [0f32; 9];
                 adapt_to_xyz_d50(dw.x as f32, dw.y as f32, &mut adapt_to_d50)?;
                 let mut xyzd50_to_original = [0f32; 9];
-                mat_mul(&adapt_to_d50, &original_to_xyz, 3, 3, 3, &mut xyzd50_to_original);
+                mat_mul(
+                    &adapt_to_d50,
+                    &original_to_xyz,
+                    3,
+                    3,
+                    3,
+                    &mut xyzd50_to_original,
+                );
                 inv3x3_matrix(&mut xyzd50_to_original)?;
                 let mut srgb_to_original = [0f32; 9];
-                mat_mul(&xyzd50_to_original, &srgb_to_xyzd50, 3, 3, 3, &mut srgb_to_original);
-                mat_mul(&srgb_to_original, &self.orig_inverse_matrix, 3, 3, 3, &mut inverse_matrix);
+                mat_mul(
+                    &xyzd50_to_original,
+                    &srgb_to_xyzd50,
+                    3,
+                    3,
+                    3,
+                    &mut srgb_to_original,
+                );
+                mat_mul(
+                    &srgb_to_original,
+                    &self.orig_inverse_matrix,
+                    3,
+                    3,
+                    3,
+                    &mut inverse_matrix,
+                );
                 inverse_matrix_is_default = false;
             }
         }
@@ -232,9 +261,13 @@ impl OutputEncodingInfo {
             } else {
                 self.orig_intensity_target
             };
-            init_simd_inverse_matrix(&inverse_matrix, &mut self.opsin_params.inverse_opsin_matrix, intensity_target);
-            self.all_default_opsin =
-                (intensity_target as f64 - 255.0).abs() <= 0.1f32 as f64 && inverse_matrix_is_default;
+            init_simd_inverse_matrix(
+                &inverse_matrix,
+                &mut self.opsin_params.inverse_opsin_matrix,
+                intensity_target,
+            );
+            self.all_default_opsin = (intensity_target as f64 - 255.0).abs() <= 0.1f32 as f64
+                && inverse_matrix_is_default;
         }
 
         // Set the inverse gamma based on color space transfer function.
@@ -263,7 +296,12 @@ fn jxl_check_failed() -> Status {
 /// Translation of `XybToRgb()` (scalar target; `MulAdd` is an unfused
 /// multiply-add there).
 #[inline]
-pub(crate) fn xyb_to_rgb(opsin_x: f32, opsin_y: f32, opsin_b: f32, opsin_params: &OpsinParams) -> (f32, f32, f32) {
+pub(crate) fn xyb_to_rgb(
+    opsin_x: f32,
+    opsin_y: f32,
+    opsin_b: f32,
+    opsin_params: &OpsinParams,
+) -> (f32, f32, f32) {
     let neg_bias_r = opsin_params.opsin_biases[0];
     let neg_bias_g = opsin_params.opsin_biases[1];
     let neg_bias_b = opsin_params.opsin_biases[2];

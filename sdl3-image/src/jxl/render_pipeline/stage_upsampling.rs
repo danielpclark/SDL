@@ -34,7 +34,8 @@ impl UpsamplingStage {
             for j in 0..5 * n {
                 let y = i.min(j);
                 let x = i.max(j);
-                kernel[j / 5][i / 5][j % 5][i % 5] = weights[5 * n * y - y * (y.wrapping_sub(1)) / 2 + x - y];
+                kernel[j / 5][i / 5][j % 5][i % 5] =
+                    weights[5 * n * y - y * (y.wrapping_sub(1)) / 2 + x - y];
             }
         }
         UpsamplingStage { shift, c, kernel }
@@ -45,15 +46,18 @@ impl UpsamplingStage {
         let ix = (ix + 2) as usize;
         let iy = (iy + 2) as usize;
         if n == 2 {
-            return self.kernel[0][0][if y % 2 != 0 { 4 - iy } else { iy }][if x % 2 != 0 { 4 - ix } else { ix }];
+            return self.kernel[0][0][if y % 2 != 0 { 4 - iy } else { iy }]
+                [if x % 2 != 0 { 4 - ix } else { ix }];
         }
         if n == 4 {
-            return self.kernel[if y % 4 < 2 { y % 2 } else { 1 - y % 2 }][if x % 4 < 2 { x % 2 } else { 1 - x % 2 }]
-                [if y % 4 < 2 { iy } else { 4 - iy }][if x % 4 < 2 { ix } else { 4 - ix }];
+            return self.kernel[if y % 4 < 2 { y % 2 } else { 1 - y % 2 }]
+                [if x % 4 < 2 { x % 2 } else { 1 - x % 2 }][if y % 4 < 2 { iy } else { 4 - iy }]
+                [if x % 4 < 2 { ix } else { 4 - ix }];
         }
         // N == 8
-        self.kernel[if y % 8 < 4 { y % 4 } else { 3 - y % 4 }][if x % 8 < 4 { x % 4 } else { 3 - x % 4 }]
-            [if y % 8 < 4 { iy } else { 4 - iy }][if x % 8 < 4 { ix } else { 4 - ix }]
+        self.kernel[if y % 8 < 4 { y % 4 } else { 3 - y % 4 }]
+            [if x % 8 < 4 { x % 4 } else { 3 - x % 4 }][if y % 8 < 4 { iy } else { 4 - iy }]
+            [if x % 8 < 4 { ix } else { 4 - ix }]
     }
 }
 
