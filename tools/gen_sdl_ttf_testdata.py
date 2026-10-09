@@ -29,8 +29,10 @@
 # The fonts of the shaping tests (make_shaping_fonts; only those with
 # --shaping) are subsets of Noto fonts ($NOTO_DIR) keeping the characters
 # of their cases in sdl3-ttf/src/testdata/shaping_cases.txt, with all
-# their OpenType layout features, and DejaVuSans-NoLayout.ttf, DejaVu
-# Sans's Arabic and Hebrew without its OpenType layout tables.
+# their OpenType layout features, unhinted versions of three of them (the
+# auto-hinter's fonts; Noto Sans KR's with TrueType outlines), and
+# DejaVuSans-NoLayout.ttf, DejaVu Sans's Arabic and Hebrew without its
+# OpenType layout tables.
 #
 # The expected results in sdl3-ttf/src/testdata/reference.txt and
 # shaping_reference.txt come from upstream SDL_ttf's C (with its bundled
@@ -210,6 +212,68 @@ SHAPING_FONTS = [
 ]
 
 
+UNHINTED_FONTS = [
+    # (hinted subset, unhinted version, with TrueType outlines): fonts
+    # without hinting instructions, which FreeType's auto-hinter hints
+    # (with HarfBuzz finding the glyphs of each style)
+    ("NotoSans-Regular.ttf", "NotoSans-Unhinted.ttf", False),
+    ("NotoSansArabic-Regular.ttf", "NotoSansArabic-Unhinted.ttf", False),
+    ("NotoSansKR-Regular.otf", "NotoSansKR-Unhinted.ttf", True),
+]
+
+
+def make_unhinted(src, dst, to_truetype):
+    """A copy of the font `src` without hinting (all its glyphs and
+    OpenType layout features), with TrueType (quadratic) outlines if
+    `to_truetype`."""
+    options = subset.Options()
+    options.hinting = False
+    options.layout_features = ["*"]
+    options.name_IDs = ["*"]
+    options.notdef_outline = True
+    options.glyph_names = False
+    font = subset.load_font(src, options)
+    subsetter = subset.Subsetter(options)
+    subsetter.populate(gids=list(range(font["maxp"].numGlyphs)))
+    subsetter.subset(font)
+    if to_truetype:
+        from fontTools.pens.cu2quPen import Cu2QuPen
+        from fontTools.pens.ttGlyphPen import TTGlyphPen
+        from fontTools.ttLib import newTable
+
+        glyph_order = font.getGlyphOrder()
+        glyph_set = font.getGlyphSet()
+        glyf = newTable("glyf")
+        glyf.glyphOrder = glyph_order
+        glyf.glyphs = {}
+        for name in glyph_order:
+            pen = TTGlyphPen(glyph_set)
+            glyph_set[name].draw(Cu2QuPen(pen, 1.0, reverse_direction=True))
+            glyf.glyphs[name] = pen.glyph()
+        font["glyf"] = glyf
+        font["loca"] = newTable("loca")
+        font["head"].indexToLocFormat = 0
+        font["head"].glyphDataFormat = 0
+        maxp = newTable("maxp")
+        maxp.tableVersion = 0x00010000
+        for k in ["maxZones", "maxTwilightPoints", "maxStorage", "maxFunctionDefs",
+                  "maxInstructionDefs", "maxStackElements", "maxSizeOfInstructions",
+                  "maxComponentElements", "maxPoints", "maxContours", "maxCompositePoints",
+                  "maxCompositeContours", "maxComponentDepth"]:
+            setattr(maxp, k, 0)
+        maxp.maxZones = 1
+        maxp.numGlyphs = len(glyph_order)
+        font["maxp"] = maxp
+        del font["CFF "]
+        for tag in ["VORG"]:
+            if tag in font:
+                del font[tag]
+        font["post"].formatType = 3.0
+        font.sfntVersion = "\x00\x01\x00\x00"
+        font.recalcBBoxes = True
+    font.save(dst)
+
+
 def shaping_texts(path):
     """The characters of the cases of each font of shaping_cases.txt."""
     texts = {}
@@ -236,6 +300,8 @@ def make_shaping_fonts(out):
     HarfBuzz's fallback shaping and mark positioning."""
     noto = os.environ.get("NOTO_DIR", ".")
     texts = shaping_texts(os.path.join(out, "..", "shaping_cases.txt"))
+    for hinted, unhinted, _ in UNHINTED_FONTS:
+        texts[hinted] |= texts.get(unhinted, set())
     for name, outname, extra in SHAPING_FONTS:
         options = subset.Options()
         options.hinting = True
@@ -248,6 +314,9 @@ def make_shaping_fonts(out):
         subsetter.populate(unicodes=sorted(texts[outname] | set(extra) | {0x20}))
         subsetter.subset(font)
         subset.save_font(font, os.path.join(out, outname), options)
+
+    for hinted, unhinted, to_truetype in UNHINTED_FONTS:
+        make_unhinted(os.path.join(out, hinted), os.path.join(out, unhinted), to_truetype)
 
     src = os.environ.get("DEJAVU_DIR", "/usr/share/fonts/truetype/dejavu")
     options = subset.Options()
