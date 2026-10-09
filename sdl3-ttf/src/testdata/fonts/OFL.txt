@@ -12,6 +12,10 @@ NotoSansKhmer-Regular.ttf: Copyright 2022 The Noto Project Authors (https://gith
 NotoSansMyanmar-Regular.ttf: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/myanmar)
 NotoSansSinhala-Regular.ttf: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sinhala)
 
+NotoSans-Unhinted.ttf, NotoSansArabic-Unhinted.ttf and NotoSansKR-Unhinted.ttf
+are versions of NotoSans-Regular.ttf, NotoSansArabic-Regular.ttf and
+NotoSansKR-Regular.otf without hinting (the last with TrueType outlines).
+
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
 https://openfontlicense.org
