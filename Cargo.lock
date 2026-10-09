@@ -48,6 +48,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-rtf"
+version = "3.5.0"
+dependencies = [
+ "sdl3",
+ "sdl3-ttf",
+]
+
+[[package]]
 name = "sdl3-test"
 version = "3.5.0"
 dependencies = [
