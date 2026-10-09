@@ -1,0 +1,846 @@
+# Expected results of the dav1d tests (sdl3-image/src/dav1d/tests.rs):
+# per stream and variant, the output pictures (size, layout, bit depth,
+# FNV-1a 64 hashes of the visible planes) and the error codes, from
+# upstream dav1d's C at the pinned revision decoding them the same way.
+== i400_10bit.ivf
+pic 0 96x80 layout=0 bpc=10 49fde0173d9ce6c6
+pic 1 96x80 layout=0 bpc=10 9ddebd124eb49ff6
+== i400_10bit.ivf trunc1
+send_err -22
+== i400_10bit.ivf trunc2
+send_err -22
+== i400_10bit.ivf trunc3
+pic 0 96x80 layout=0 bpc=10 49fde0173d9ce6c6
+== i400_10bit.ivf flip1
+pic 0 96x80 layout=0 bpc=10 9c7aaa08e5696871
+pic 1 96x80 layout=0 bpc=10 5f118fe842b076df
+== i400_10bit.ivf flip2
+pic 0 96x80 layout=0 bpc=10 2ee9ddfdd712a2db
+pic 1 96x80 layout=0 bpc=10 64e93b98880626c7
+== i400_10bit.ivf flip3
+send_err -22
+send_err -22
+== i400_10bit.ivf flip4
+pic 0 96x80 layout=0 bpc=10 49fde0173d9ce6c6
+pic 1 96x80 layout=0 bpc=10 7c423384bfc66843
+== i400_12bit.ivf
+pic 0 96x80 layout=0 bpc=12 ac681878bb92096f
+== i400_12bit.ivf trunc1
+send_err -22
+== i400_12bit.ivf trunc2
+send_err -22
+== i400_12bit.ivf trunc3
+send_err -22
+== i400_12bit.ivf flip1
+pic 0 96x80 layout=0 bpc=12 411d37c351180e40
+== i400_12bit.ivf flip2
+pic 0 96x80 layout=0 bpc=12 4af1fe8536826542
+== i400_12bit.ivf flip3
+send_err -22
+== i400_12bit.ivf flip4
+pic 0 96x80 layout=0 bpc=12 0aab0765688f61df
+== i400_8bit.ivf
+pic 0 96x80 layout=0 bpc=8 7adf75e36cec2d7e
+pic 1 96x80 layout=0 bpc=8 7a3f98ea0b25fad8
+pic 2 96x80 layout=0 bpc=8 8fd10f437f6bf1d0
+== i400_8bit.ivf trunc1
+send_err -22
+== i400_8bit.ivf trunc2
+send_err -22
+== i400_8bit.ivf trunc3
+pic 0 96x80 layout=0 bpc=8 7adf75e36cec2d7e
+send_err -22
+== i400_8bit.ivf flip1
+pic 0 96x80 layout=0 bpc=8 a9fd14801d0135dc
+pic 1 96x80 layout=0 bpc=8 5e44adf78db8e5ac
+pic 2 96x80 layout=0 bpc=8 5cca3f980b3381dd
+== i400_8bit.ivf flip2
+send_err -22
+send_err -22
+send_err -22
+== i400_8bit.ivf flip3
+pic 0 96x80 layout=0 bpc=8 7adf75e36cec2d7e
+pic 1 96x80 layout=0 bpc=8 949afdad1d792e8b
+pic 2 96x80 layout=0 bpc=8 260b24c3a45ed578
+== i400_8bit.ivf flip4
+pic 0 96x80 layout=0 bpc=8 7adf75e36cec2d7e
+pic 1 96x80 layout=0 bpc=8 7a3f98ea0b25fad8
+pic 2 96x80 layout=0 bpc=8 1d02cc71e2c28ffd
+== i420_10bit.ivf
+pic 0 128x96 layout=1 bpc=10 27cca26d1afc1cf0 2384fd786b97d89b f00a7b0b5c9944e3
+pic 1 128x96 layout=1 bpc=10 d47b71dac63abe9f 19e7d21559a8268d 8ec35e53f86aec7f
+pic 2 128x96 layout=1 bpc=10 a5dc85e7b26babbc af0e876c6efd8e3e 20c0bf5067c5aa92
+pic 3 128x96 layout=1 bpc=10 2d539b704bb76d57 95106dd13f5a26fb 8571f432e41592d2
+== i420_10bit.ivf trunc1
+send_err -22
+== i420_10bit.ivf trunc2
+send_err -22
+== i420_10bit.ivf trunc3
+pic 0 128x96 layout=1 bpc=10 27cca26d1afc1cf0 2384fd786b97d89b f00a7b0b5c9944e3
+pic 1 128x96 layout=1 bpc=10 d47b71dac63abe9f 19e7d21559a8268d 8ec35e53f86aec7f
+send_err -22
+== i420_10bit.ivf flip1
+pic 0 128x96 layout=1 bpc=10 d0f7fc51f6b2a0f6 069d046e4bab8975 2a457020a122454a
+pic 1 128x96 layout=1 bpc=10 2d0a6dabc0f8a0a2 be9c1dad777ee137 d32fa22aaf6e055c
+pic 2 128x96 layout=1 bpc=10 f39b9a989471718f bb5350c1ec07aecf ef8db35b8b0c686d
+pic 3 128x96 layout=1 bpc=10 f92e8a4d08266cd1 687335ea4da9753d 3267d63de9c6556c
+== i420_10bit.ivf flip2
+pic 0 128x96 layout=1 bpc=10 fc9d47c0947b0f1c e9e19e505dd5b30f 6871ed1dd84ca1d9
+pic 1 128x96 layout=1 bpc=10 9302c724299a5fc3 d97d30b4f4d4a6ca f6b8b177ea3f7b93
+pic 2 128x96 layout=1 bpc=10 26f0aa93b888b593 e6f880aff82f2fa7 beb20e755051ed81
+pic 3 128x96 layout=1 bpc=10 1f484c79d0cad262 73a2007ac357f0f7 92b29758debd2d3b
+== i420_10bit.ivf flip3
+pic 0 128x96 layout=1 bpc=10 27cca26d1afc1cf0 2384fd786b97d89b f00a7b0b5c9944e3
+pic 1 128x96 layout=1 bpc=10 5f035d5263306d27 9262aaf9ae3b89cf c32076e0d17eaee5
+pic 2 128x96 layout=1 bpc=10 07b7daa23bebcda6 30786b22118878a2 5826e82681ffa574
+send_err -22
+== i420_10bit.ivf flip4
+pic 0 128x96 layout=1 bpc=10 27cca26d1afc1cf0 2384fd786b97d89b f00a7b0b5c9944e3
+pic 1 128x96 layout=1 bpc=10 d47b71dac63abe9f 19e7d21559a8268d 8ec35e53f86aec7f
+pic 2 128x96 layout=1 bpc=10 d31ed79d08a0b616 470cbe9e757b1f9c 91f25ce460f68411
+pic 3 128x96 layout=1 bpc=10 266cb08ad38bd74e 89a3b7bfdd431d0b 16ba0d84f76d92a8
+== i420_10bit_grain.ivf
+pic 0 96x80 layout=1 bpc=10 9b71833b9edab157 bb9d8fe17f6ce213 6728d988c953c358
+pic 1 96x80 layout=1 bpc=10 0e2b1c974b8daaa7 301223aa4c4a25ab 6970c46fdbf5f96a
+== i420_10bit_grain.ivf trunc1
+send_err -22
+== i420_10bit_grain.ivf trunc2
+send_err -22
+== i420_10bit_grain.ivf trunc3
+pic 0 96x80 layout=1 bpc=10 9b71833b9edab157 bb9d8fe17f6ce213 6728d988c953c358
+== i420_10bit_grain.ivf flip1
+pic 0 96x80 layout=1 bpc=10 9b71833b9edab157 48d7ffa538328046 6728d988c953c358
+pic 1 96x80 layout=1 bpc=10 0e2b1c974b8daaa7 301223aa4c4a25ab 6970c46fdbf5f96a
+== i420_10bit_grain.ivf flip2
+pic 0 96x80 layout=1 bpc=10 1c4ba8c851e13019 367e2276aefef318 5ceb38f476843344
+pic 1 96x80 layout=1 bpc=10 72352e986942e804 af3e9c960d454004 b793d0fa57888825
+== i420_10bit_grain.ivf flip3
+send_err -22
+send_err -22
+== i420_10bit_grain.ivf flip4
+pic 0 96x80 layout=1 bpc=10 9b71833b9edab157 bb9d8fe17f6ce213 6728d988c953c358
+pic 1 96x80 layout=1 bpc=10 0e2b1c974b8daaa7 301223aa4c4a25ab 59dd2427677f1ba6
+== i420_10bit_still.ivf
+pic 0 96x80 layout=1 bpc=10 bced16281e849586 8ed99708eea0ab51 1381c368c85f3641
+== i420_10bit_still.ivf trunc1
+send_err -22
+== i420_10bit_still.ivf trunc2
+send_err -22
+== i420_10bit_still.ivf trunc3
+send_err -22
+== i420_10bit_still.ivf flip1
+pic 0 96x80 layout=1 bpc=10 22e34c2ec6c91fe1 6fbd57a560f18980 673a73703c0053d0
+== i420_10bit_still.ivf flip2
+pic 0 96x80 layout=1 bpc=10 3e13b4ad9d683733 3b67cc29d7add8fd 5f94a3c3edfb6961
+== i420_10bit_still.ivf flip3
+pic 0 96x80 layout=1 bpc=10 df6035aa5cdc6ca2 3869ef12f905869b 0ecf9e11a1f1afcf
+== i420_10bit_still.ivf flip4
+pic 0 96x80 layout=1 bpc=10 96f7fd9891041b95 20a2b376533fda32 6264d013433c2c5b
+== i420_10bit_tools.ivf
+pic 0 128x96 layout=1 bpc=10 bbd7a0dc34a252ea 2e59e1ac2276fe43 3e0bb6473a73791e
+pic 1 128x96 layout=1 bpc=10 53eead86cd142a8c 7ec4cbe63e98d1f5 49c2531c6358cf9e
+pic 2 128x96 layout=1 bpc=10 1f1cc37bb37e725e ea69ebc55da549f8 cbbb33475449511b
+pic 3 128x96 layout=1 bpc=10 9c2fa3f4428d606b f6545910e8e6f20b 50aecf8a1c3162bb
+== i420_10bit_tools.ivf trunc1
+send_err -22
+== i420_10bit_tools.ivf trunc2
+pic 0 128x96 layout=1 bpc=10 bbd7a0dc34a252ea 2e59e1ac2276fe43 3e0bb6473a73791e
+send_err -22
+== i420_10bit_tools.ivf trunc3
+pic 0 128x96 layout=1 bpc=10 bbd7a0dc34a252ea 2e59e1ac2276fe43 3e0bb6473a73791e
+pic 1 128x96 layout=1 bpc=10 53eead86cd142a8c 7ec4cbe63e98d1f5 49c2531c6358cf9e
+send_err -22
+== i420_10bit_tools.ivf flip1
+pic 0 128x96 layout=1 bpc=10 b2066eaa65a53539 486d2ab2b8296da9 d492542e2aff5492
+pic 1 128x96 layout=1 bpc=10 c6ecfa9ebd273db2 51706bc9a1aef240 868d3fcfb9be8da8
+pic 2 128x96 layout=1 bpc=10 0c623790974dc8b1 d8ef32c463f55bc6 8891c1571783ad6c
+pic 3 128x96 layout=1 bpc=10 69667dd6f4024a74 728b62204b538dc5 7d74a8ee48a7e0fb
+== i420_10bit_tools.ivf flip2
+pic 0 128x96 layout=1 bpc=10 805bb2d50a292a42 587a651c6163aba4 0692af8b14e47b21
+pic 1 128x96 layout=1 bpc=10 efcc2c563617dc3c d0ceb49c3471557c 6cc47982ef6c86d1
+pic 2 128x96 layout=1 bpc=10 26f22c6377590694 1631b0a0eccdfca6 5c3645be5fede989
+pic 3 128x96 layout=1 bpc=10 c685a41ae17f6a30 601fd3e77394757f f3a274d14e18b871
+== i420_10bit_tools.ivf flip3
+pic 0 128x96 layout=1 bpc=10 bbd7a0dc34a252ea 2e59e1ac2276fe43 3e0bb6473a73791e
+pic 1 128x96 layout=1 bpc=10 31e7ac1d45288106 d47fa766839e7029 61bada23775a58fa
+pic 2 128x96 layout=1 bpc=10 1eec0e108b7078ac 885f1d60ae5338e1 93d08d3b1080b84f
+pic 3 128x96 layout=1 bpc=10 f60b7923cb07c91b 28374d66e5c9c2f5 5a49c2c4fcc009dd
+== i420_10bit_tools.ivf flip4
+pic 0 128x96 layout=1 bpc=10 bbd7a0dc34a252ea 2e59e1ac2276fe43 3e0bb6473a73791e
+pic 1 128x96 layout=1 bpc=10 53eead86cd142a8c 7ec4cbe63e98d1f5 49c2531c6358cf9e
+pic 2 128x96 layout=1 bpc=10 1f1cc37bb37e725e ea69ebc55da549f8 cbbb33475449511b
+pic 3 128x96 layout=1 bpc=10 e94cbc6899c778f4 34329f4adb054a23 0507ccdeca8ec80d
+== i420_12bit.ivf
+pic 0 96x80 layout=1 bpc=12 36a184475de18287 3f67fcc28d176f90 213df90a32b78129
+pic 1 96x80 layout=1 bpc=12 d40bb71a69a8cb3a b221c55b3550ac09 f501b8aa3a975e1d
+pic 2 96x80 layout=1 bpc=12 713e1c5ac24117eb 8fcff1083a613fb3 9dbe89ef0f18addc
+== i420_12bit.ivf trunc1
+send_err -22
+== i420_12bit.ivf trunc2
+send_err -22
+== i420_12bit.ivf trunc3
+pic 0 96x80 layout=1 bpc=12 36a184475de18287 3f67fcc28d176f90 213df90a32b78129
+send_err -22
+== i420_12bit.ivf flip1
+pic 0 96x80 layout=1 bpc=12 55f9bf814bdeda26 9fd798be5502d501 6ebf6446ea0675f3
+pic 1 96x80 layout=1 bpc=12 e2b8b35c48af22c1 434c5cfa1cae2bb2 d393e4a4bf78b43b
+pic 2 96x80 layout=1 bpc=12 33c74dadd1227030 6fc0e4f844f80381 55598e89750b0820
+== i420_12bit.ivf flip2
+pic 0 96x80 layout=1 bpc=12 c8f22f205ae97a59 d4a8d8dbd077c1a2 0aa4aca3b07ec872
+pic 1 96x80 layout=1 bpc=12 758990631cb63820 85d1c438efb19df8 2f216e7b41eab445
+pic 2 96x80 layout=1 bpc=12 6612f9974a24d4ef 7f97bca7e64ad137 95ba8cce07039189
+== i420_12bit.ivf flip3
+pic 0 96x80 layout=1 bpc=12 cc8e674de74a1b20 732be4b805788c49 834f0c22dbd40457
+pic 1 96x80 layout=1 bpc=12 96e8cbd7ab2178d5 b6b41d21fdcaf5f3 c63cec7c6cc434ac
+pic 2 96x80 layout=1 bpc=12 7cc9b7cba14e5d9d ac6c3dce77a693ee f55b298e84754973
+== i420_12bit.ivf flip4
+pic 0 96x80 layout=1 bpc=12 36a184475de18287 3f67fcc28d176f90 213df90a32b78129
+pic 1 96x80 layout=1 bpc=12 d40bb71a69a8cb3a b221c55b3550ac09 f501b8aa3a975e1d
+pic 2 96x80 layout=1 bpc=12 612f5eb291cd8faa 641a39128b6605d2 d411e7eac6014ab4
+== i420_8bit_grain.ivf
+pic 0 128x96 layout=1 bpc=8 339de266ce6c1750 4caa6ac8c2162052 a1fe34f281780634
+pic 1 128x96 layout=1 bpc=8 6a633912f2fe990d 770888607a43c7ca d097305e236b8172
+pic 2 128x96 layout=1 bpc=8 b64099b5d3e5d0f6 bc860d78581bcc76 edae12e9eff80727
+== i420_8bit_grain.ivf trunc1
+send_err -22
+== i420_8bit_grain.ivf trunc2
+send_err -22
+== i420_8bit_grain.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 339de266ce6c1750 4caa6ac8c2162052 a1fe34f281780634
+send_err -22
+== i420_8bit_grain.ivf flip1
+pic 0 128x96 layout=1 bpc=8 d2bb68cf3a7b83e5 4a20fcc6fadc3529 a9c0cb0db0352af8
+pic 1 128x96 layout=1 bpc=8 78c09fc2ee8b7729 813f5fdf53127ab5 abfd214b9841dd44
+pic 2 128x96 layout=1 bpc=8 731effa75999ac1e 825ad984fdd12d44 ea2d7a46ae795413
+== i420_8bit_grain.ivf flip2
+pic 0 128x96 layout=1 bpc=8 e1c814aad27eb8bb 66846663a83c24d1 e3f4561138ae6c04
+pic 1 128x96 layout=1 bpc=8 f6a0f747ac081540 a9947a6b55117384 7f5bb7a7c2d0943f
+pic 2 128x96 layout=1 bpc=8 88327c579ffb54f8 3fc20f693dd6da80 e7dddcb73c23e0bc
+== i420_8bit_grain.ivf flip3
+pic 0 128x96 layout=1 bpc=8 339de266ce6c1750 4caa6ac8c2162052 a1fe34f281780634
+send_err -22
+pic 1 128x96 layout=1 bpc=8 cfddb39a167f760c 110481c46f799ae7 3cf66aa12a1769b6
+== i420_8bit_grain.ivf flip4
+pic 0 128x96 layout=1 bpc=8 339de266ce6c1750 4caa6ac8c2162052 a1fe34f281780634
+pic 1 128x96 layout=1 bpc=8 6a633912f2fe990d 770888607a43c7ca d097305e236b8172
+pic 2 128x96 layout=1 bpc=8 b64099b5d3e5d0f6 ba76093e1143bffc edae12e9eff80727
+== i420_8bit_grain2.ivf
+pic 0 96x80 layout=1 bpc=8 557d2453ba173c96 c2852db54c392321 41110724e19e6f70
+pic 1 96x80 layout=1 bpc=8 1621e25ce2045ff7 78250bf953e5fb08 f7439e26b46d2fe4
+== i420_8bit_grain2.ivf trunc1
+send_err -22
+== i420_8bit_grain2.ivf trunc2
+send_err -22
+== i420_8bit_grain2.ivf trunc3
+pic 0 96x80 layout=1 bpc=8 557d2453ba173c96 c2852db54c392321 41110724e19e6f70
+== i420_8bit_grain2.ivf flip1
+pic 0 96x80 layout=1 bpc=8 557d2453ba173c96 0e577df59f618132 edb723eb09f87e03
+pic 1 96x80 layout=1 bpc=8 1621e25ce2045ff7 78250bf953e5fb08 f7439e26b46d2fe4
+== i420_8bit_grain2.ivf flip2
+send_err -22
+send_err -22
+== i420_8bit_grain2.ivf flip3
+send_err -22
+send_err -22
+== i420_8bit_grain2.ivf flip4
+pic 0 96x80 layout=1 bpc=8 557d2453ba173c96 c2852db54c392321 41110724e19e6f70
+pic 1 96x80 layout=1 bpc=8 1621e25ce2045ff7 78250bf953e5fb08 f7439e26b46d2fe4
+== i420_8bit_inter.ivf
+pic 0 128x96 layout=1 bpc=8 9a8cd1ec8f3803df ab0bbd3ab9cc5c80 ca945fb4ce4ae87a
+pic 1 128x96 layout=1 bpc=8 44f6a088f31b2ecd 23f706a5a5a8792a 6f0d15baecc04119
+pic 2 128x96 layout=1 bpc=8 35621ca5a4dd633c e084511a9552e0b5 1b203ac6b7e2e37a
+pic 3 128x96 layout=1 bpc=8 5160f24324036194 32942d2d53030893 ef0267a6339f8147
+pic 4 128x96 layout=1 bpc=8 20524551496a2b82 740ff3c89fc6bf5a 1cfdabb447b96acc
+pic 5 128x96 layout=1 bpc=8 fd0b6450d1fb7079 35d3eedfc529523c a89c0ab4a828e458
+pic 6 128x96 layout=1 bpc=8 d34993793e1806da 916cf94cf5be97d4 d5bcb5b5a2ff9604
+pic 7 128x96 layout=1 bpc=8 f070646dd76ddad9 b31e19b2a6289bb3 7b690ac50cfed052
+== i420_8bit_inter.ivf trunc1
+send_err -22
+== i420_8bit_inter.ivf trunc2
+pic 0 128x96 layout=1 bpc=8 9a8cd1ec8f3803df ab0bbd3ab9cc5c80 ca945fb4ce4ae87a
+pic 1 128x96 layout=1 bpc=8 44f6a088f31b2ecd 23f706a5a5a8792a 6f0d15baecc04119
+send_err -22
+== i420_8bit_inter.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 9a8cd1ec8f3803df ab0bbd3ab9cc5c80 ca945fb4ce4ae87a
+pic 1 128x96 layout=1 bpc=8 44f6a088f31b2ecd 23f706a5a5a8792a 6f0d15baecc04119
+pic 2 128x96 layout=1 bpc=8 35621ca5a4dd633c e084511a9552e0b5 1b203ac6b7e2e37a
+pic 3 128x96 layout=1 bpc=8 5160f24324036194 32942d2d53030893 ef0267a6339f8147
+pic 4 128x96 layout=1 bpc=8 20524551496a2b82 740ff3c89fc6bf5a 1cfdabb447b96acc
+== i420_8bit_inter.ivf flip1
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+== i420_8bit_inter.ivf flip2
+pic 0 128x96 layout=1 bpc=8 9a8cd1ec8f3803df ab0bbd3ab9cc5c80 ca945fb4ce4ae87a
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+send_err -22
+== i420_8bit_inter.ivf flip3
+pic 0 128x96 layout=1 bpc=8 9a8cd1ec8f3803df ab0bbd3ab9cc5c80 ca945fb4ce4ae87a
+pic 1 128x96 layout=1 bpc=8 44f6a088f31b2ecd 23f706a5a5a8792a 6f0d15baecc04119
+pic 2 128x96 layout=1 bpc=8 35621ca5a4dd633c e084511a9552e0b5 1b203ac6b7e2e37a
+pic 3 128x96 layout=1 bpc=8 8ccf3646ab4c989d b93ddcd8f708b2fb 3fc34b3a829c5d9b
+pic 4 128x96 layout=1 bpc=8 34b2a520bf5c4fed 1b9b98cbe0dce404 5091f6eda9de820f
+pic 5 128x96 layout=1 bpc=8 58b43dedd949b919 eeb43abad9ceaddb ba0158980a385f06
+pic 6 128x96 layout=1 bpc=8 41c0fa9e4766fed1 a1606b1ebc38f598 f23a886bfe397b54
+pic 7 128x96 layout=1 bpc=8 d7f9198f2d897e14 89a9d347aee99dc7 ffb5d5e3edd293ed
+== i420_8bit_inter.ivf flip4
+pic 0 128x96 layout=1 bpc=8 9a8cd1ec8f3803df ab0bbd3ab9cc5c80 ca945fb4ce4ae87a
+pic 1 128x96 layout=1 bpc=8 44f6a088f31b2ecd 23f706a5a5a8792a 6f0d15baecc04119
+pic 2 128x96 layout=1 bpc=8 35621ca5a4dd633c e084511a9552e0b5 1b203ac6b7e2e37a
+pic 3 128x96 layout=1 bpc=8 5160f24324036194 32942d2d53030893 ef0267a6339f8147
+pic 4 128x96 layout=1 bpc=8 20524551496a2b82 740ff3c89fc6bf5a 1cfdabb447b96acc
+pic 5 128x96 layout=1 bpc=8 fd0b6450d1fb7079 35d3eedfc529523c a89c0ab4a828e458
+pic 6 128x96 layout=1 bpc=8 e471e79d51d15b70 6d55ee279dd892ad 8c46989162ad1ee7
+pic 7 128x96 layout=1 bpc=8 29f9050f6fb3e14d db291122bb8a4566 7de04cd009bc093f
+== i420_8bit_intrabc.ivf
+pic 0 256x192 layout=1 bpc=8 fcaf2e422bfc0c55 51af177cac6de325 51af177cac6de325
+== i420_8bit_intrabc.ivf trunc1
+send_err -22
+== i420_8bit_intrabc.ivf trunc2
+send_err -22
+== i420_8bit_intrabc.ivf trunc3
+send_err -22
+== i420_8bit_intrabc.ivf flip1
+pic 0 256x192 layout=1 bpc=8 f36696447f003a25 0220e86dac2ce1c0 7e1f696ef3a9fc0b
+== i420_8bit_intrabc.ivf flip2
+pic 0 256x192 layout=1 bpc=8 7f65014b710bef3d 0f76f80b6898ec65 91109f91b3cfd634
+== i420_8bit_intrabc.ivf flip3
+pic 0 256x192 layout=1 bpc=8 6244c9269078a0de f9a081227209ec75 0e694bf16751deef
+== i420_8bit_intrabc.ivf flip4
+pic 0 256x192 layout=1 bpc=8 820226724feaccf8 71f177d9fe260ad3 944868815e0335a5
+== i420_8bit_key.ivf
+pic 0 128x96 layout=1 bpc=8 cfe68159251f584a 428ca37a3d35212e 497f34ec2468d8d2
+== i420_8bit_key.ivf trunc1
+send_err -22
+== i420_8bit_key.ivf trunc2
+send_err -22
+== i420_8bit_key.ivf trunc3
+send_err -22
+== i420_8bit_key.ivf flip1
+pic 0 128x96 layout=1 bpc=8 a38c08081ad85cba 6a3a93dc386b4c59 4851dd8f5567c585
+== i420_8bit_key.ivf flip2
+send_err -22
+== i420_8bit_key.ivf flip3
+pic 0 128x96 layout=1 bpc=8 7e7f130fe662245e 272950ea8a271f08 ebe54ffabe9656f6
+== i420_8bit_key.ivf flip4
+pic 0 128x96 layout=1 bpc=8 b4d3388bc9db479f 1fbcc69065af4f39 bbbe8c21d222fd35
+== i420_8bit_lossless.ivf
+pic 0 48x32 layout=1 bpc=8 6307bf611f326a55 a6a177a97f2dfaa4 f22c4c5478a29e02
+== i420_8bit_lossless.ivf trunc1
+send_err -22
+== i420_8bit_lossless.ivf trunc2
+send_err -22
+== i420_8bit_lossless.ivf trunc3
+send_err -22
+== i420_8bit_lossless.ivf flip1
+pic 0 48x32 layout=1 bpc=8 3d5b68853a80d6e6 a764e0e971a4737a decb31c9cf9c38c2
+== i420_8bit_lossless.ivf flip2
+pic 0 48x32 layout=1 bpc=8 4206599167c003ec 07dec2817a802a12 ce6f7ec91b37ae9f
+== i420_8bit_lossless.ivf flip3
+pic 0 48x32 layout=1 bpc=8 4fc5f8f5da4cf308 0539945afdc88710 638896034c51c4e6
+== i420_8bit_lossless.ivf flip4
+pic 0 48x32 layout=1 bpc=8 968cbbeb36ba065f 269c6329a635c4d9 ccd595ef472c72b6
+== i420_8bit_nofilters.ivf
+pic 0 128x96 layout=1 bpc=8 12995da744c41ce9 77b83cac5d887641 45ede94405cd8e14
+pic 1 128x96 layout=1 bpc=8 e212374220d07ab7 0a991d969678c7b1 2a926172ed162fc4
+pic 2 128x96 layout=1 bpc=8 2c5c2dd603f082b7 3b9aedf9d7d9d156 31d49d63f4aefd77
+== i420_8bit_nofilters.ivf trunc1
+send_err -22
+== i420_8bit_nofilters.ivf trunc2
+send_err -22
+== i420_8bit_nofilters.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 12995da744c41ce9 77b83cac5d887641 45ede94405cd8e14
+send_err -22
+== i420_8bit_nofilters.ivf flip1
+pic 0 128x96 layout=1 bpc=8 90f96b8028ce1080 1e1f79ded8cbe86a 492e37ffe2797b53
+pic 1 128x96 layout=1 bpc=8 3a5c9113fb60949b cf08054a746c2013 e7cfbbcea88c0f57
+pic 2 128x96 layout=1 bpc=8 5d573c310907f707 4df1997b0f40be13 e2f1ad42b16f1f7b
+== i420_8bit_nofilters.ivf flip2
+send_err -22
+send_err -22
+send_err -22
+== i420_8bit_nofilters.ivf flip3
+pic 0 128x96 layout=1 bpc=8 12995da744c41ce9 77b83cac5d887641 45ede94405cd8e14
+send_err -22
+send_err -22
+== i420_8bit_nofilters.ivf flip4
+pic 0 128x96 layout=1 bpc=8 12995da744c41ce9 77b83cac5d887641 45ede94405cd8e14
+pic 1 128x96 layout=1 bpc=8 e212374220d07ab7 0a991d969678c7b1 2a926172ed162fc4
+send_err -22
+== i420_8bit_qm.ivf
+pic 0 98x66 layout=1 bpc=8 022f057e6723db60 89211a62efe8b653 eb6c5b1f59bfe0d6
+pic 1 98x66 layout=1 bpc=8 ad1bb402632c3853 754dbb30aeb61bca 092e5bd07d15a937
+pic 2 98x66 layout=1 bpc=8 45c8395a18300e8f bf3d9707f571bae2 f6cee2ee7db96709
+== i420_8bit_qm.ivf trunc1
+send_err -22
+== i420_8bit_qm.ivf trunc2
+send_err -22
+== i420_8bit_qm.ivf trunc3
+pic 0 98x66 layout=1 bpc=8 022f057e6723db60 89211a62efe8b653 eb6c5b1f59bfe0d6
+send_err -22
+== i420_8bit_qm.ivf flip1
+pic 0 98x66 layout=1 bpc=8 bc8ae1a96bde28f9 10da28b36f5be3df 8256d05dc5f0dc1a
+pic 1 98x66 layout=1 bpc=8 ad840098301df85a a646a34be6545866 4843279d3e36adc3
+pic 2 98x66 layout=1 bpc=8 500b6437d3969aec 993a46785609bc5a 715301a9cc966cce
+== i420_8bit_qm.ivf flip2
+pic 0 98x66 layout=1 bpc=8 b5e1ce762dd6b69a ed0a448fcdc461b7 cc5e3c2521adf23e
+pic 1 98x66 layout=1 bpc=8 cd542679e9021c32 70a61d554b8f2533 952ce339bbb4af94
+pic 2 98x66 layout=1 bpc=8 2dc9cd1749fcec67 696d713fbabca56e 86345e14e86a0769
+== i420_8bit_qm.ivf flip3
+pic 0 98x66 layout=1 bpc=8 022f057e6723db60 89211a62efe8b653 eb6c5b1f59bfe0d6
+pic 1 98x66 layout=1 bpc=8 9e5f2dc4bc5a016a a4f746337af788d7 edcf35857650bd62
+pic 2 98x66 layout=1 bpc=8 30518497b4bd505f a5b4fb571cc9a3ed 8dc3dddc792f9f17
+== i420_8bit_qm.ivf flip4
+pic 0 98x66 layout=1 bpc=8 022f057e6723db60 89211a62efe8b653 eb6c5b1f59bfe0d6
+pic 1 98x66 layout=1 bpc=8 ad1bb402632c3853 754dbb30aeb61bca 092e5bd07d15a937
+pic 2 98x66 layout=1 bpc=8 8ba0a44484e2109a 6f66f4e0db1ec48e 326f677454da8fe3
+== i420_8bit_sb128.ivf
+pic 0 192x160 layout=1 bpc=8 25a35290e98891e0 ee0abe3c8a9db705 4f0921293007d89e
+pic 1 192x160 layout=1 bpc=8 e591c4442f7241d0 21c0afdf4e20a426 ed946d926902f1ba
+== i420_8bit_sb128.ivf trunc1
+send_err -22
+== i420_8bit_sb128.ivf trunc2
+send_err -22
+== i420_8bit_sb128.ivf trunc3
+pic 0 192x160 layout=1 bpc=8 25a35290e98891e0 ee0abe3c8a9db705 4f0921293007d89e
+== i420_8bit_sb128.ivf flip1
+send_err -22
+send_err -22
+== i420_8bit_sb128.ivf flip2
+send_err -22
+send_err -22
+== i420_8bit_sb128.ivf flip3
+pic 0 192x160 layout=1 bpc=8 361ecffcd6e7a6f5 94b42b89961ad6c6 da488002ec80a017
+pic 1 192x160 layout=1 bpc=8 8cc2a7508f3b0ad2 0651f800b3b801fe e6d6829c2ed00de5
+== i420_8bit_sb128.ivf flip4
+pic 0 192x160 layout=1 bpc=8 25a35290e98891e0 ee0abe3c8a9db705 4f0921293007d89e
+pic 1 192x160 layout=1 bpc=8 a3644a98c00711ba 593fac3f78df0bc9 9d0c0f98d0a42c05
+== i420_8bit_screen.ivf
+pic 0 128x96 layout=1 bpc=8 62a883d086970471 f33eef6633ccdc95 14201173b5c76445
+== i420_8bit_screen.ivf trunc1
+send_err -22
+== i420_8bit_screen.ivf trunc2
+send_err -22
+== i420_8bit_screen.ivf trunc3
+send_err -22
+== i420_8bit_screen.ivf flip1
+send_err -22
+== i420_8bit_screen.ivf flip2
+send_err -22
+== i420_8bit_screen.ivf flip3
+pic 0 128x96 layout=1 bpc=8 4df494bfc23da2ca 3c2c376a122d8300 38031917e1418fc4
+== i420_8bit_screen.ivf flip4
+pic 0 128x96 layout=1 bpc=8 be22b10b0a4ca690 0c915e90983856cd 6287f2d54ae3047a
+== i420_8bit_segments.ivf
+pic 0 128x96 layout=1 bpc=8 a9b78fd2c94a68b0 37c0cd6de14ad393 e9265ebe2b2b6f08
+pic 1 128x96 layout=1 bpc=8 7ec935162f5da4b4 04b33e644776cc08 d8fd2f791cac749d
+pic 2 128x96 layout=1 bpc=8 0c0ad9e96570743d 8371e2afefd3feee 50b850061b32b415
+pic 3 128x96 layout=1 bpc=8 4a6f77852d4f4fc6 b51cbfb37267b35b 8d79f09df2c61cdf
+== i420_8bit_segments.ivf trunc1
+send_err -22
+== i420_8bit_segments.ivf trunc2
+send_err -22
+== i420_8bit_segments.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 a9b78fd2c94a68b0 37c0cd6de14ad393 e9265ebe2b2b6f08
+pic 1 128x96 layout=1 bpc=8 7ec935162f5da4b4 04b33e644776cc08 d8fd2f791cac749d
+send_err -22
+== i420_8bit_segments.ivf flip1
+pic 0 128x96 layout=1 bpc=8 1d28940aa13d56ed bf560350c3809364 0444e234a11b9301
+pic 1 128x96 layout=1 bpc=8 399a7a50d7fd1533 4cd7652e01d6cf40 6d8bc74ae3b11395
+pic 2 128x96 layout=1 bpc=8 1408596a43287f33 d4af779a09b3f827 900ecd119a97f005
+pic 3 128x96 layout=1 bpc=8 a14436f052afe04a 427e700e8fab0310 790d7683af563d63
+== i420_8bit_segments.ivf flip2
+pic 0 128x96 layout=1 bpc=8 1909033bea45940e 6e9db10ec067d7d7 b5562167b8f86e03
+pic 1 128x96 layout=1 bpc=8 98b893781219ad99 a58f14d2bdb9b6d6 62c460e8fb0d599f
+pic 2 128x96 layout=1 bpc=8 190036f80a023399 ed3c2785350225b4 85d75c6fc2c6372c
+pic 3 128x96 layout=1 bpc=8 b6d52d45d0b8e123 2f664cbcb8e30a2d 86fb42a859b68faa
+== i420_8bit_segments.ivf flip3
+pic 0 128x96 layout=1 bpc=8 a9b78fd2c94a68b0 37c0cd6de14ad393 e9265ebe2b2b6f08
+pic 1 128x96 layout=1 bpc=8 205f227926c1ccf9 586ff5ed849ee9b0 0606decfce2c7107
+pic 2 128x96 layout=1 bpc=8 b5625791a501fcb7 978aaa65d0b2ea4b a05ca7075cec5679
+send_err -22
+== i420_8bit_segments.ivf flip4
+pic 0 128x96 layout=1 bpc=8 a9b78fd2c94a68b0 37c0cd6de14ad393 e9265ebe2b2b6f08
+pic 1 128x96 layout=1 bpc=8 7ec935162f5da4b4 04b33e644776cc08 d8fd2f791cac749d
+pic 2 128x96 layout=1 bpc=8 0c0ad9e96570743d 8371e2afefd3feee 50b850061b32b415
+pic 3 128x96 layout=1 bpc=8 4a6f77852d4f4fc6 b51cbfb37267b35b 8d79f09df2c61cdf
+== i420_8bit_still.ivf
+pic 0 128x96 layout=1 bpc=8 7e973da962ca546b 716c1ea785625944 aca5d2ebd8d0cdf4
+== i420_8bit_still.ivf trunc1
+send_err -22
+== i420_8bit_still.ivf trunc2
+send_err -22
+== i420_8bit_still.ivf trunc3
+send_err -22
+== i420_8bit_still.ivf flip1
+pic 0 128x96 layout=1 bpc=8 7b0ba2c4fa200a48 6b7f07c1fc2ef28a 3a5300051fb6e20c
+== i420_8bit_still.ivf flip2
+pic 0 128x96 layout=1 bpc=8 01b87572b9215929 b05701e4183bec6d f1de7881b66c66bb
+== i420_8bit_still.ivf flip3
+pic 0 128x96 layout=1 bpc=8 ff48d9af5265f0a5 a85001be571a4792 8b4ca86f9c738c32
+== i420_8bit_still.ivf flip4
+pic 0 128x96 layout=1 bpc=8 5b61965a0296e7c3 1b2bfb17f80c6814 b563eee70513fa47
+== i420_8bit_tiles.ivf
+pic 0 256x144 layout=1 bpc=8 8967c103c66c0bfa 4bb98e59e24ce571 021d5a2e00183759
+pic 1 256x144 layout=1 bpc=8 4997dc49c1d89bb6 9a76c5b5f40f2c4d e10d95b7ced0250e
+== i420_8bit_tiles.ivf trunc1
+send_err -22
+== i420_8bit_tiles.ivf trunc2
+send_err -22
+== i420_8bit_tiles.ivf trunc3
+send_err -22
+== i420_8bit_tiles.ivf flip1
+send_err -22
+send_err -22
+== i420_8bit_tiles.ivf flip2
+pic 0 256x144 layout=1 bpc=8 ff014dbfc4d3d6f0 182376d3c5ae1c1b 0843a366a5a8941e
+pic 1 256x144 layout=1 bpc=8 b6101997535796d6 d2a0f15974c5f825 bd88eaace3ef3141
+== i420_8bit_tiles.ivf flip3
+pic 0 256x144 layout=1 bpc=8 0a8e571108da161d 5cbaf65faddcc2d0 974d33faa034996a
+pic 1 256x144 layout=1 bpc=8 03ed05514fda60f5 7b18e5c1bc09d1ec 876a629d5ba2497b
+== i420_8bit_tiles.ivf flip4
+pic 0 256x144 layout=1 bpc=8 8967c103c66c0bfa 4bb98e59e24ce571 021d5a2e00183759
+send_err -22
+== i420_8bit_tools.ivf
+pic 0 128x96 layout=1 bpc=8 210e749ad4250b4e 61e823a8d690f799 f51eb9912bd8c642
+pic 1 128x96 layout=1 bpc=8 3ed8b1edf27d28a8 6b8a6dd465c7a60c b4899a443bdd77b6
+pic 2 128x96 layout=1 bpc=8 d04b3e60c8044387 f35c6d13b69d2382 8141270bedb02fb9
+pic 3 128x96 layout=1 bpc=8 021f8cf75e9603b5 e9332f25ca13bc49 4161013bad87aff4
+pic 4 128x96 layout=1 bpc=8 2e50f5ef5a1c21d5 1ec7698491597c78 9c1474fa56b9e6a7
+pic 5 128x96 layout=1 bpc=8 9791bdaa6638e176 ac8d37c6f7d4caca b67ee4f7d30a893c
+== i420_8bit_tools.ivf trunc1
+send_err -22
+== i420_8bit_tools.ivf trunc2
+pic 0 128x96 layout=1 bpc=8 210e749ad4250b4e 61e823a8d690f799 f51eb9912bd8c642
+send_err -22
+== i420_8bit_tools.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 210e749ad4250b4e 61e823a8d690f799 f51eb9912bd8c642
+pic 1 128x96 layout=1 bpc=8 3ed8b1edf27d28a8 6b8a6dd465c7a60c b4899a443bdd77b6
+pic 2 128x96 layout=1 bpc=8 d04b3e60c8044387 f35c6d13b69d2382 8141270bedb02fb9
+send_err -22
+== i420_8bit_tools.ivf flip1
+pic 0 128x96 layout=1 bpc=8 e5903a618b570151 e3e05284e95693d0 4b3fac8a412550f9
+pic 1 128x96 layout=1 bpc=8 f3104f6a5b1f6553 5353f8614c17d2ed 5a49d482921d9933
+pic 2 128x96 layout=1 bpc=8 239afd9b280b8bb6 53a5ddb2f504b5d3 0695239c6a45c025
+pic 3 128x96 layout=1 bpc=8 bfe168fbf0df0d87 2779a19a1b8a9e0e 5d13bfab2d862bd6
+pic 4 128x96 layout=1 bpc=8 f9736afbcb53f0f6 9198594aaa40beb0 2db68f4f66bcc518
+pic 5 128x96 layout=1 bpc=8 8af1cf5936e77176 8f049fcf96cd4f68 55de1e3b2e0b1fb6
+== i420_8bit_tools.ivf flip2
+pic 0 128x96 layout=1 bpc=8 210e749ad4250b4e 61e823a8d690f799 f51eb9912bd8c642
+pic 1 128x96 layout=1 bpc=8 c0a916b4ba173747 990e2026d88b1b4e a796c6e79a9c16fd
+pic 2 128x96 layout=1 bpc=8 6567f33cbe0680cf 97d756d6fc5b84fc ef7ceca22cc4758d
+send_err -22
+send_err -22
+send_err -22
+== i420_8bit_tools.ivf flip3
+pic 0 128x96 layout=1 bpc=8 210e749ad4250b4e 61e823a8d690f799 f51eb9912bd8c642
+pic 1 128x96 layout=1 bpc=8 b39b8c5e83ce586f 757fe62ee0e8d51b 9d90e8a6ed2912b6
+pic 2 128x96 layout=1 bpc=8 8879f4399d2b7e5c 7e125cdcd6cf77b7 695952cca1ce7f09
+pic 3 128x96 layout=1 bpc=8 5cb0562d32901ade fefdcbd2d123a7db 8754bbbc2bb52ade
+pic 4 128x96 layout=1 bpc=8 3e6c899ae8dafec4 8dda0f7bed0a6f79 31290022f5133516
+pic 5 128x96 layout=1 bpc=8 c8de8e51085256f7 ed00be49ca542946 1649927cdebdb2b8
+== i420_8bit_tools.ivf flip4
+pic 0 128x96 layout=1 bpc=8 210e749ad4250b4e 61e823a8d690f799 f51eb9912bd8c642
+pic 1 128x96 layout=1 bpc=8 3ed8b1edf27d28a8 6b8a6dd465c7a60c b4899a443bdd77b6
+pic 2 128x96 layout=1 bpc=8 d04b3e60c8044387 f35c6d13b69d2382 8141270bedb02fb9
+pic 3 128x96 layout=1 bpc=8 021f8cf75e9603b5 e9332f25ca13bc49 4161013bad87aff4
+pic 4 128x96 layout=1 bpc=8 2e50f5ef5a1c21d5 1ec7698491597c78 9c1474fa56b9e6a7
+pic 5 128x96 layout=1 bpc=8 fd8e022aefb53a2c 8f854f03a4abd79d c2de643e4423caa2
+== i422_10bit.ivf
+pic 0 96x80 layout=2 bpc=10 85079c84c171e9d2 38ef3e7608d42a28 5af1e68500b348e7
+pic 1 96x80 layout=2 bpc=10 a6194bdcd28812b3 46efc6e24e6854f3 fb3e672a29867b7f
+== i422_10bit.ivf trunc1
+send_err -22
+== i422_10bit.ivf trunc2
+send_err -22
+== i422_10bit.ivf trunc3
+send_err -22
+== i422_10bit.ivf flip1
+send_err -22
+send_err -22
+== i422_10bit.ivf flip2
+send_err -22
+send_err -22
+== i422_10bit.ivf flip3
+pic 0 96x80 layout=2 bpc=10 71d27c53016a7bdd aad1547b8fb50817 3beba3eb6ea304b9
+pic 1 96x80 layout=2 bpc=10 50171c9f1147697e e9aff667bbee31e4 44bc248403ffdddb
+== i422_10bit.ivf flip4
+pic 0 96x80 layout=2 bpc=10 85079c84c171e9d2 38ef3e7608d42a28 5af1e68500b348e7
+send_err -22
+== i422_12bit_grain.ivf
+pic 0 96x80 layout=2 bpc=12 d23ecf66ff6efcc8 30511ce0c6e96bad 37cdc5cabab8c0e9
+pic 1 96x80 layout=2 bpc=12 06bfaf508f5db9d2 4eea5d19b584e578 34b68158909a1f1f
+== i422_12bit_grain.ivf trunc1
+send_err -22
+== i422_12bit_grain.ivf trunc2
+send_err -22
+== i422_12bit_grain.ivf trunc3
+send_err -22
+== i422_12bit_grain.ivf flip1
+pic 0 96x80 layout=2 bpc=12 a96749bf9fa59c63 d5871e81b72c7c24 bd6b87ae17d7f92c
+pic 1 96x80 layout=2 bpc=12 06bfaf508f5db9d2 4eea5d19b584e578 34b68158909a1f1f
+== i422_12bit_grain.ivf flip2
+send_err -22
+send_err -22
+== i422_12bit_grain.ivf flip3
+pic 0 96x80 layout=2 bpc=12 15c2fb2093b82d17 8ec37642cc3b55ab d4b50977c16db845
+pic 1 96x80 layout=2 bpc=12 2be05bfd8b0765e3 9478088205472c4d d402e5fa8ddff6e0
+== i422_12bit_grain.ivf flip4
+pic 0 96x80 layout=2 bpc=12 d23ecf66ff6efcc8 30511ce0c6e96bad 37cdc5cabab8c0e9
+send_err -22
+== i422_8bit.ivf
+pic 0 96x80 layout=2 bpc=8 592b0f3a03f662ec 3c3e4f3ca0b04003 e721872988afc338
+pic 1 96x80 layout=2 bpc=8 bc992e8324ac6531 9beb43782f08958c 472a28c5c549cedc
+== i422_8bit.ivf trunc1
+send_err -22
+== i422_8bit.ivf trunc2
+send_err -22
+== i422_8bit.ivf trunc3
+send_err -22
+== i422_8bit.ivf flip1
+send_err -22
+send_err -22
+== i422_8bit.ivf flip2
+send_err -22
+send_err -22
+== i422_8bit.ivf flip3
+send_err -22
+send_err -22
+== i422_8bit.ivf flip4
+pic 0 96x80 layout=2 bpc=8 592b0f3a03f662ec 3c3e4f3ca0b04003 e721872988afc338
+send_err -22
+== i444_10bit.ivf
+pic 0 96x80 layout=3 bpc=10 57344a96905b8086 fd0893da7909d1de 4f1096757394fab5
+pic 1 96x80 layout=3 bpc=10 13a6158ae2f4cd4a 2bbbf35137ce6af5 5d333e56c0e28c5d
+== i444_10bit.ivf trunc1
+send_err -22
+== i444_10bit.ivf trunc2
+send_err -22
+== i444_10bit.ivf trunc3
+send_err -22
+== i444_10bit.ivf flip1
+pic 0 96x80 layout=3 bpc=10 8d9c1580f3fb95e9 4542b68dea965390 8bed4b30127c9bea
+pic 1 96x80 layout=3 bpc=10 83965dfa7be806d4 f0058a1b72c3635a 0f437cdb426d324b
+== i444_10bit.ivf flip2
+pic 0 96x80 layout=3 bpc=10 7c3ec21a5b0b3656 8e7dce8f5862462a ca43f17687fe1843
+pic 1 96x80 layout=3 bpc=10 d34e67007df88049 38b6bd0f81264c88 ae2cb82b2cc2fdef
+== i444_10bit.ivf flip3
+pic 0 96x80 layout=3 bpc=10 db8962050b722e3a 3b1e52e38273a391 e438330e2e037adb
+pic 1 96x80 layout=3 bpc=10 27f9de9212f58964 8edb428cd6f6ab4c 9cb8c33da5dfd8e4
+== i444_10bit.ivf flip4
+pic 0 96x80 layout=3 bpc=10 57344a96905b8086 fd0893da7909d1de 4f1096757394fab5
+pic 1 96x80 layout=3 bpc=10 d55de5914236bb91 102112bd16328028 5b69d9ff43dff284
+== i444_12bit.ivf
+pic 0 96x80 layout=3 bpc=12 1b409e966643bc96 955dd19dfc683974 ac4788e8380b2400
+pic 1 96x80 layout=3 bpc=12 79db4de179533f18 41b2681c331d0e40 104fff4aa57c9f82
+== i444_12bit.ivf trunc1
+send_err -22
+== i444_12bit.ivf trunc2
+send_err -22
+== i444_12bit.ivf trunc3
+send_err -22
+== i444_12bit.ivf flip1
+pic 0 96x80 layout=3 bpc=12 2b286ddcc2ea5dba 70cda847c42693fe a272ad899ef3f3e3
+pic 1 96x80 layout=3 bpc=12 9c367cdef15357eb 96be5cb22fbbe3fa d41a277f51a85696
+== i444_12bit.ivf flip2
+pic 0 96x80 layout=3 bpc=12 f995f9a358442f76 53537fed2ac6e343 8676a0d0d7579ddd
+pic 1 96x80 layout=3 bpc=12 d9a469a994e37196 181c498598562fe4 972808800bcfae32
+== i444_12bit.ivf flip3
+pic 0 96x80 layout=3 bpc=12 feacdbb4c261cf32 50b6941f2ed893e4 e0cb0af9bf6b9e7c
+pic 1 96x80 layout=3 bpc=12 0b74dedc84d8ac5e 5068b727974ff207 0a4f80cf15223baa
+== i444_12bit.ivf flip4
+pic 0 96x80 layout=3 bpc=12 1b409e966643bc96 955dd19dfc683974 ac4788e8380b2400
+pic 1 96x80 layout=3 bpc=12 d47bb4078f928bef 96d329df2b1f2890 5c35abc1af50de77
+== i444_8bit.ivf
+pic 0 96x80 layout=3 bpc=8 b348cb635024580d bcaab24e670d6fee a4e9a534a61905a7
+pic 1 96x80 layout=3 bpc=8 e2ba2650d22a7a26 bc8710185b9487cc 2d17f5e804fe81f5
+pic 2 96x80 layout=3 bpc=8 5257c3b27906bf4e eb4d2ed7c830d198 0abed1c240dd329e
+== i444_8bit.ivf trunc1
+send_err -22
+== i444_8bit.ivf trunc2
+send_err -22
+== i444_8bit.ivf trunc3
+pic 0 96x80 layout=3 bpc=8 b348cb635024580d bcaab24e670d6fee a4e9a534a61905a7
+send_err -22
+== i444_8bit.ivf flip1
+pic 0 96x80 layout=3 bpc=8 69caa7a0663b6eaf 571601c3a7e159b9 e41a5408243c4dff
+pic 1 96x80 layout=3 bpc=8 cfb939708b06ab3d fda6bc0042924d94 54627c8f02821900
+pic 2 96x80 layout=3 bpc=8 68779d36157fd571 97e79a86b11092cb b3ac4bbd747df071
+== i444_8bit.ivf flip2
+pic 0 96x80 layout=3 bpc=8 bab4671b361fddb8 8e846203f4ea73cc 4a378a498f401751
+pic 1 96x80 layout=3 bpc=8 adaf9590dd1e3ded 40b8539fead9b585 2efcf64817222673
+pic 2 96x80 layout=3 bpc=8 2f7b9ba55290d084 78b0a4e6b8177ae2 fd11a5ba95985e4b
+== i444_8bit.ivf flip3
+pic 0 96x80 layout=3 bpc=8 b348cb635024580d bcaab24e670d6fee a4e9a534a61905a7
+pic 1 96x80 layout=3 bpc=8 2429bc6f73bdca7a 0663ebbd080e8def 1c2962e0ae5066f2
+pic 2 96x80 layout=3 bpc=8 8a5e54a1354b8cc7 405356f3fdcf346f 45c76d00aba8f23b
+== i444_8bit.ivf flip4
+pic 0 96x80 layout=3 bpc=8 b348cb635024580d bcaab24e670d6fee a4e9a534a61905a7
+pic 1 96x80 layout=3 bpc=8 e2ba2650d22a7a26 bc8710185b9487cc 2d17f5e804fe81f5
+pic 2 96x80 layout=3 bpc=8 b7615d7744d139d4 bd65cfdac14627c1 ed80c653d4b7cb3d
+== i444_8bit_grain.ivf
+pic 0 96x80 layout=3 bpc=8 8fc88d67804b51c5 0967fd6ba514ce15 66f1aaf6bf51c9a6
+pic 1 96x80 layout=3 bpc=8 57f2eb7195b38869 54ec0390fd6d6b46 d62d7a5123735e8b
+== i444_8bit_grain.ivf trunc1
+send_err -22
+== i444_8bit_grain.ivf trunc2
+send_err -22
+== i444_8bit_grain.ivf trunc3
+pic 0 96x80 layout=3 bpc=8 8fc88d67804b51c5 0967fd6ba514ce15 66f1aaf6bf51c9a6
+send_err -22
+== i444_8bit_grain.ivf flip1
+pic 0 96x80 layout=3 bpc=8 8fc88d67804b51c5 0967fd6ba514ce15 66f1aaf6bf51c9a6
+pic 1 96x80 layout=3 bpc=8 57f2eb7195b38869 54ec0390fd6d6b46 d62d7a5123735e8b
+== i444_8bit_grain.ivf flip2
+pic 0 96x80 layout=3 bpc=8 fde9858949b92d5f b20506db3a563686 47bc1bdfa4e5c15c
+pic 1 96x80 layout=3 bpc=8 e53e0de28a3069ed 0ad911054d171e9f 2c79db2cac8ae83c
+== i444_8bit_grain.ivf flip3
+pic 0 96x80 layout=3 bpc=8 5ca78dcc36dbc36b c03369d42563d3ef c7dd8b0dc8b390cd
+pic 1 96x80 layout=3 bpc=8 7746ffbd801bcfd2 9b82f188cd75be31 3cdf84b0972f083d
+== i444_8bit_grain.ivf flip4
+pic 0 96x80 layout=3 bpc=8 8fc88d67804b51c5 0967fd6ba514ce15 66f1aaf6bf51c9a6
+send_err -22
+== i444_8bit_screen.ivf
+pic 0 128x96 layout=3 bpc=8 d112a9e69a27f649 191a5ed672eea968 82dc9fcb7cb7e4b5
+== i444_8bit_screen.ivf trunc1
+send_err -22
+== i444_8bit_screen.ivf trunc2
+send_err -22
+== i444_8bit_screen.ivf trunc3
+send_err -22
+== i444_8bit_screen.ivf flip1
+pic 0 128x96 layout=3 bpc=8 f168d8609eac05b0 deb2ecf2226f369f b8bde824dc6d1e86
+== i444_8bit_screen.ivf flip2
+pic 0 128x96 layout=3 bpc=8 e498ab208680096f c22c53db0224ae2c c902530e1e0f796a
+== i444_8bit_screen.ivf flip3
+pic 0 128x96 layout=3 bpc=8 ab1cfedd20394790 238bfee8ead1c899 dd0b8f5d8fb65c7d
+== i444_8bit_screen.ivf flip4
+pic 0 128x96 layout=3 bpc=8 a6bc9ef3fe2fe6e3 83b3b2889a1ee646 125cfbdeb7d2bbca
+== rav1e_i420_8bit.ivf
+pic 0 128x96 layout=1 bpc=8 5276b5ebff0bdf1a 9f261ec696e8d520 145561ef396fa16c
+pic 1 128x96 layout=1 bpc=8 02391f9c3191c57d 6dc90304d1ce5cd6 e13e740344c2f7c9
+pic 2 128x96 layout=1 bpc=8 8b6899e827648a61 f9e024739cc9c0c7 4196f6e2bb1d91fc
+pic 3 128x96 layout=1 bpc=8 fb3c20936d6dc7d3 a4b08e96271d7a2d 23eb5fc8d9ceeb5e
+== rav1e_i420_8bit.ivf trunc1
+send_err -22
+== rav1e_i420_8bit.ivf trunc2
+send_err -22
+== rav1e_i420_8bit.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 5276b5ebff0bdf1a 9f261ec696e8d520 145561ef396fa16c
+send_err -22
+== rav1e_i420_8bit.ivf flip1
+pic 0 128x96 layout=1 bpc=8 93db15b25493ce38 8158f68002673b8d 373654da6c87af19
+pic 1 128x96 layout=1 bpc=8 72e52d41a200cc56 57a939aa5b7ec65d 0f7ff5c17dbeee36
+pic 2 128x96 layout=1 bpc=8 a319f1d357f4b1da c8870a23c10968fd 70c0f0f3613b0e7b
+pic 3 128x96 layout=1 bpc=8 d505fdecf95ba653 5a87e746e101b7a8 24c66f4ab48788e1
+== rav1e_i420_8bit.ivf flip2
+pic 0 128x96 layout=1 bpc=8 fcc2d1ab5e492fa4 c957b2258847600b 9e0cc972fdf7ab81
+pic 1 128x96 layout=1 bpc=8 824ebb2b47d3629a e65b0bc412e4fae0 cd55f0412a37d216
+pic 2 128x96 layout=1 bpc=8 c5b401749799c3b8 bb19d50079f47f51 7f145153d3f7dd28
+send_err -22
+== rav1e_i420_8bit.ivf flip3
+pic 0 128x96 layout=1 bpc=8 5276b5ebff0bdf1a 9f261ec696e8d520 145561ef396fa16c
+pic 1 128x96 layout=1 bpc=8 c1bcbde3fafa0e18 6aaa18fd74b8182d b52a1e9b75a1301c
+pic 2 128x96 layout=1 bpc=8 92080eb027c62c82 c7a78f58624dab93 1d5151d74a7bacc7
+pic 3 128x96 layout=1 bpc=8 ced7fda3ab8970c4 8ced526f61f88c85 aa30961ad0635be2
+== rav1e_i420_8bit.ivf flip4
+pic 0 128x96 layout=1 bpc=8 5276b5ebff0bdf1a 9f261ec696e8d520 145561ef396fa16c
+pic 1 128x96 layout=1 bpc=8 89c221ec1bb0cbd5 42962465c415674a 63ea7b979067cf91
+pic 2 128x96 layout=1 bpc=8 8b6899e827648a61 f9e024739cc9c0c7 4196f6e2bb1d91fc
+pic 3 128x96 layout=1 bpc=8 80cd7d4d367a5b36 48d746bc65bb62ed 8a84584a4b0961b2
+== svt_i420_10bit.ivf
+pic 0 128x96 layout=1 bpc=10 5dcf5509d633bc93 918a9933e055a058 4c964de419a0f17f
+pic 1 128x96 layout=1 bpc=10 23e80a4d2bd174a8 8f49a914e314ac14 73f74e2248844daf
+pic 2 128x96 layout=1 bpc=10 8f1cf14d2f9440ae bc9c61ad42b5e0b3 2aa7d24f926d9832
+== svt_i420_10bit.ivf trunc1
+send_err -22
+== svt_i420_10bit.ivf trunc2
+send_err -22
+== svt_i420_10bit.ivf trunc3
+pic 0 128x96 layout=1 bpc=10 5dcf5509d633bc93 918a9933e055a058 4c964de419a0f17f
+send_err -22
+== svt_i420_10bit.ivf flip1
+send_err -22
+send_err -22
+send_err -22
+== svt_i420_10bit.ivf flip2
+pic 0 128x96 layout=1 bpc=10 609de1c03de6e05e 941e1fbc14b31324 5787a15189a123ba
+pic 1 128x96 layout=1 bpc=10 b42ad46b0b70fd83 556dd863c61c072c b3b2183b9f7ebb3b
+pic 2 128x96 layout=1 bpc=10 e463f649019f2013 a8eda1645647e6eb 19d80f1598eb46ba
+== svt_i420_10bit.ivf flip3
+pic 0 128x96 layout=1 bpc=10 bf4efe7298c4d878 8ef1fc5b769a8eab 1f7e344d101c11d5
+send_err -22
+send_err -22
+== svt_i420_10bit.ivf flip4
+pic 0 128x96 layout=1 bpc=10 5dcf5509d633bc93 918a9933e055a058 4c964de419a0f17f
+pic 1 128x96 layout=1 bpc=10 441c23d026aec838 1b8fabe057f2d4c7 295cf2334dcb79eb
+pic 2 128x96 layout=1 bpc=10 95a5a4b042adb8af d68774422ff262f9 21e52bad9b4e1df1
+== svt_i420_8bit_resize.ivf
+pic 0 114x85 layout=1 bpc=8 a897f50843fa29b2 47ea9581ab72409b d947dabfb1e21abf
+pic 1 85x64 layout=1 bpc=8 6b309cfd7b1a44d8 94ef033cb9a23274 27fb7ee897c08f4a
+pic 2 85x64 layout=1 bpc=8 6344aa8a19d11b5f 8edf866d7d225ab4 7f49f3918542e436
+pic 3 85x64 layout=1 bpc=8 03e229f060bae868 fe17e75c0168d15c 9b25256a9e49f9f9
+== svt_i420_8bit_resize.ivf trunc1
+send_err -22
+== svt_i420_8bit_resize.ivf trunc2
+send_err -22
+== svt_i420_8bit_resize.ivf trunc3
+pic 0 114x85 layout=1 bpc=8 a897f50843fa29b2 47ea9581ab72409b d947dabfb1e21abf
+send_err -22
+== svt_i420_8bit_resize.ivf flip1
+pic 0 114x85 layout=1 bpc=8 4cf6b57f3f6d5f4d 99e266173ce2da26 a407b94faa286a0b
+pic 1 85x64 layout=1 bpc=8 c6af06c7d89562c2 6a857b4a927e2dff f2ac915d3bfc2838
+pic 2 85x64 layout=1 bpc=8 4d54affb73908afd 05db2908007ccd95 275c78897fc77f8f
+pic 3 85x64 layout=1 bpc=8 7612aae8bba0a4b2 4792cc7f95d0ebff 2af6a87dd84fb763
+== svt_i420_8bit_resize.ivf flip2
+pic 0 114x85 layout=1 bpc=8 2dcea40a1c96a9c7 a611a7b46d490574 19761871f74b25a1
+pic 1 85x64 layout=1 bpc=8 d0b5d0f1bb42211f 679162021b26cd0f 63532c124f7ae68e
+pic 2 85x64 layout=1 bpc=8 9ea21d2ee58fc0d7 dc5781055e12f165 5827cb13cc89925e
+pic 3 85x64 layout=1 bpc=8 902241cf916dcd67 8f1c5b6e21ea5885 2fb85a6108448343
+== svt_i420_8bit_resize.ivf flip3
+pic 0 114x85 layout=1 bpc=8 2bb66b69c089ee3c 8bcf0abeea041fad 7f1380391caa383e
+pic 1 85x64 layout=1 bpc=8 77e9f00cfa4107c6 b033900a832b4f1f ee3879f34bb5ee15
+pic 2 85x64 layout=1 bpc=8 debad73f9363a8af 0fa207dc8c5078f3 b517265451534ea6
+pic 3 85x64 layout=1 bpc=8 9bc5e12c29bb8457 590f8355def9b07d 0c8715980fa4ec40
+== svt_i420_8bit_resize.ivf flip4
+pic 0 114x85 layout=1 bpc=8 a897f50843fa29b2 47ea9581ab72409b d947dabfb1e21abf
+pic 1 85x64 layout=1 bpc=8 d3c4f3576431663f e502c1e86ae484ca bbb410174a4c6e43
+pic 2 85x64 layout=1 bpc=8 08a2e49453e3c2d6 a8f1a545b3c435ed d7a09c614e586aca
+pic 3 85x64 layout=1 bpc=8 6a7d6408e8470fb4 26bfa3aafdb87a54 0395a41ca6ef3a42
+== svt_i420_8bit_superres.ivf
+pic 0 128x96 layout=1 bpc=8 749f87efb094e118 7e0382b19cafda93 1b6e00f953f09649
+pic 1 128x96 layout=1 bpc=8 e408d5523feeed36 37c187d8932c7b9d 185eb4a7dc7ffa92
+pic 2 128x96 layout=1 bpc=8 0943087d7253a875 b99bb1ae4935dd0b 129ed39de29a1645
+== svt_i420_8bit_superres.ivf trunc1
+send_err -22
+== svt_i420_8bit_superres.ivf trunc2
+send_err -22
+== svt_i420_8bit_superres.ivf trunc3
+pic 0 128x96 layout=1 bpc=8 749f87efb094e118 7e0382b19cafda93 1b6e00f953f09649
+send_err -22
+== svt_i420_8bit_superres.ivf flip1
+pic 0 128x96 layout=1 bpc=8 4366b9e240fc72dc 53397b5fe8c4fb44 2d2541daf1c5b89e
+send_err -22
+pic 1 128x96 layout=1 bpc=8 31ba9e845a95bd72 99652647f2b556ea d386c0b09b32857c
+== svt_i420_8bit_superres.ivf flip2
+pic 0 128x96 layout=1 bpc=8 d0fa40825f54c175 0d702cc56cdb9ce5 0c29e4f52ffbe5a1
+pic 1 128x96 layout=1 bpc=8 8e5cfb5c628f3491 7c61b6e55ef8a0ab 2b51b84672196f5e
+pic 2 128x96 layout=1 bpc=8 1b2a1b4821bc0786 c4c18d0cf5df970b 43d646e2315d6dc7
+== svt_i420_8bit_superres.ivf flip3
+pic 0 128x96 layout=1 bpc=8 749f87efb094e118 7e0382b19cafda93 1b6e00f953f09649
+pic 1 128x96 layout=1 bpc=8 62175be49a623380 de8f5a637ff39e8a a3cb563ebbbce8c9
+pic 2 128x96 layout=1 bpc=8 eb02c6c0909954a3 8f73969dcd709f17 67103864c642201c
+== svt_i420_8bit_superres.ivf flip4
+pic 0 128x96 layout=1 bpc=8 749f87efb094e118 7e0382b19cafda93 1b6e00f953f09649
+pic 1 128x96 layout=1 bpc=8 a3c8c676ee6cef50 685abf3390a2fd99 020e5c1d3f42e42d
+pic 2 128x96 layout=1 bpc=8 bb9c76c8200e472f 2bc592c7104920af abe1d256a62a17df

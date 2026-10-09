@@ -16,6 +16,7 @@
     clippy::absurd_extreme_comparisons,
     clippy::collapsible_else_if,
     clippy::collapsible_if,
+    clippy::collapsible_match,
     clippy::derivable_impls,
     clippy::erasing_op,
     clippy::explicit_counter_loop,
@@ -52,14 +53,14 @@ mod itx_1d;
 mod levels;
 mod lf_apply;
 mod lf_mask;
+mod log;
 mod loopfilter;
 mod looprestoration;
 mod lr_apply;
-mod log;
 mod mc;
-mod obu;
 mod mem;
 mod msac;
+mod obu;
 mod picture;
 mod qm;
 mod recon;
@@ -71,14 +72,19 @@ mod wedge;
 
 use std::sync::Arc;
 
+// (the decoder's API, for the AVIF loader)
+#[allow(unused_imports)]
 pub(crate) use data::{Dav1dData, Dav1dDataProps};
+#[allow(unused_imports)]
 pub(crate) use headers::{Dav1dFrameHeader, Dav1dSequenceHeader};
+#[allow(unused_imports)]
 pub(crate) use internal::{
     Dav1dContext, Dav1dLogger, DAV1D_DECODEFRAMETYPE_ALL, DAV1D_DECODEFRAMETYPE_INTRA,
     DAV1D_DECODEFRAMETYPE_KEY, DAV1D_DECODEFRAMETYPE_REFERENCE, DAV1D_INLOOPFILTER_ALL,
     DAV1D_INLOOPFILTER_CDEF, DAV1D_INLOOPFILTER_DEBLOCK, DAV1D_INLOOPFILTER_NONE,
     DAV1D_INLOOPFILTER_RESTORATION,
 };
+#[allow(unused_imports)]
 pub(crate) use picture::{Dav1dPicture, PicPlanes, PictureData};
 
 use decode::{dav1d_err, EAGAIN, EINVAL, ENOMEM};
@@ -223,7 +229,12 @@ pub(crate) fn dav1d_open(s: &Dav1dSettings) -> Result<Box<Dav1dContext>, i32> {
 }
 
 fn has_grain(pic: &Dav1dPicture) -> bool {
-    let fgdata = &pic.frame_hdr.as_ref().expect("frame header").film_grain.data;
+    let fgdata = &pic
+        .frame_hdr
+        .as_ref()
+        .expect("frame header")
+        .film_grain
+        .data;
     fgdata.num_y_points != 0
         || fgdata.num_uv_points[0] != 0
         || fgdata.num_uv_points[1] != 0
@@ -257,7 +268,12 @@ fn output_picture_ready(c: &mut Dav1dContext, drain: bool) -> bool {
     if !c.all_layers && c.max_spatial_id != 0 {
         if c.out.p.data.is_some() && c.cache.p.data.is_some() {
             if c.max_spatial_id
-                == c.cache.p.frame_hdr.as_ref().expect("frame header").spatial_id
+                == c.cache
+                    .p
+                    .frame_hdr
+                    .as_ref()
+                    .expect("frame header")
+                    .spatial_id
                 || c.out.flags & picture::PICTURE_FLAG_NEW_TEMPORAL_UNIT != 0
             {
                 return true;
@@ -373,7 +389,12 @@ pub(crate) fn dav1d_apply_grain(
     };
 
     let in_data = in_.data.as_deref().expect("picture data");
-    let fgdata = &in_.frame_hdr.as_ref().expect("frame header").film_grain.data;
+    let fgdata = &in_
+        .frame_hdr
+        .as_ref()
+        .expect("frame header")
+        .film_grain
+        .data;
     let is_id = in_.seq_hdr.as_ref().expect("sequence header").mtrx == headers::DAV1D_MC_IDENTITY;
     match pic.p.bpc {
         8 => fg_apply::apply_grain::<u8>(&mut data, in_data, &pic.p, fgdata, is_id),
