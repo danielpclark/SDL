@@ -521,6 +521,22 @@ Sam Lantinga <slouken@libsdl.org>).
 
 --------------------------------------------------------------------------------
 
+sdl3-rtf/ is a translation of SDL_rtf 3.x (its main branch at
+0bdba67b48e67f2c7d80a08720dcce8b54b01018),
+https://github.com/libsdl-org/SDL_rtf, an altered version of that
+software, under the same zlib license as SDL above (Copyright (C) 2003-2024
+Sam Lantinga <slouken@libsdl.org>). Its RTF reader (sdl3-rtf/src/rtftype.rs,
+rtfdecl.rs, rtfactn.rs and rtfreadr.rs, from SDL_rtf's rtftype.h,
+rtfdecl.h, rtfactn.c and rtfreadr.c) was, as those files say, "adapted
+from Microsoft Rich Text Format Specification 1.6", whose sample RTF
+reader they derive from. Those files carry no copyright or license notice
+of their own beyond that attribution, which is kept; SDL_rtf distributes
+them under its zlib license, and so does this translation. The test
+documents in sdl3-rtf/src/testdata/docs/ were written for its tests, and
+are under the zlib license too.
+
+--------------------------------------------------------------------------------
+
 sdl3-ttf/ is a translation of SDL_ttf 3.x (release 3.2.2),
 https://github.com/libsdl-org/SDL_ttf, an altered version of that software,
 under the same zlib license as SDL above (Copyright (C) 1997-2025 Sam

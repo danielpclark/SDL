@@ -203,6 +203,31 @@ In dependency order, after the core each one needs exists:
    upstream keeps outside `SDL_net.c`; Haiku lists interfaces without
    noticing changes) and the PS Vita support upstream added after 3.2.0.
 5. **SDL_rtf** — needs SDL_ttf.
+   **Done** (`sdl3-rtf`, SDL_rtf 3.0.0 from its `main` branch at
+   0bdba67b48e67f2c7d80a08720dcce8b54b01018, which has no SDL3 release
+   tag; upstream plans no further development): all of `SDL_rtf.c`
+   (`RTF_CreateContext`, `RTF_Load`/`RTF_Load_IO`, `RTF_GetTitle`,
+   `RTF_GetSubject`, `RTF_GetAuthor`, `RTF_GetHeight`, `RTF_Render`,
+   `RTF_FreeContext` as `Drop`), `SDL_rtfreadr.c` (reflowing with word
+   wrapping, indents, tab stops and alignment; rendering to a renderer
+   rectangle with a scroll offset), and the RTF reader SDL_rtf adapted
+   from the sample code of Microsoft's RTF specification (`rtfreadr.c`,
+   `rtfactn.c`, `rtftype.h`, `rtfdecl.h`: groups, keyword and property
+   tables, destinations, the font and color tables, document
+   information, hex and binary data). The `RTF_FontEngine` callbacks are
+   the `FontEngine` trait; `TtfFontEngine` is the font engine of
+   upstream's `examples/showrtf.c` over `sdl3-ttf`, and the example
+   itself is `examples/showrtf.rs`. Upstream's NULL dereference of an
+   empty text buffer (an unnamed first font, an empty title before any
+   text), its unbounded keyword and parameter buffers, and its color
+   table freed twice when a context loads a second document are worked
+   around (FIXME (upstream)). Checked bit for bit against upstream's C
+   over SDL_ttf (with FreeType and HarfBuzz) and SDL3 on test documents
+   written for it (fonts, colors, styles, alignment, indents, tabs,
+   escapes, binary data, skipped destinations, a table, out-of-range
+   values, malformed documents), truncated and with flipped bytes: the
+   font engine's calls, title, subject and author, heights, and the
+   rendered pixels at several widths, offsets and rectangles.
 6. **SDL_shadercross** — needs `gpu/`; SPIRV-Cross/DXC glue.
 
 ## Rules for every phase
