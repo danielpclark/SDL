@@ -516,6 +516,22 @@ impl<'a> HbFont<'a> {
         }
     }
 
+    /// `has_glyph_h_origin_func`: hb-ft sets no `glyph_h_origin`
+    /// function (and the parent, the Null font, has none).
+    pub(crate) fn has_glyph_h_origin_func(&self) -> bool {
+        false
+    }
+
+    /// `has_glyph_h_kerning_func`: hb-ft sets one.
+    pub(crate) fn has_glyph_h_kerning_func(&self) -> bool {
+        matches!(self.p.klass, HbFontKlass::Ft(_))
+    }
+
+    /// `has_glyph_v_kerning_func`: hb-ft sets none.
+    pub(crate) fn has_glyph_v_kerning_func(&self) -> bool {
+        false
+    }
+
     /// `get_glyph_h_kerning`
     pub(crate) fn get_glyph_h_kerning(
         &mut self,

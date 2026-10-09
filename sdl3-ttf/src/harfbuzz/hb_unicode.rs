@@ -366,23 +366,23 @@ pub(crate) fn hb_unicode_general_category_is_letter(gen_cat: u32) -> bool {
  * More details here:
  * https://bugzilla.mozilla.org/show_bug.cgi?id=662055
  */
-const HB_MODIFIED_COMBINING_CLASS_CCC10: u8 = 22; /* sheva */
-const HB_MODIFIED_COMBINING_CLASS_CCC11: u8 = 15; /* hataf segol */
-const HB_MODIFIED_COMBINING_CLASS_CCC12: u8 = 16; /* hataf patah */
-const HB_MODIFIED_COMBINING_CLASS_CCC13: u8 = 17; /* hataf qamats */
-const HB_MODIFIED_COMBINING_CLASS_CCC14: u8 = 23; /* hiriq */
-const HB_MODIFIED_COMBINING_CLASS_CCC15: u8 = 18; /* tsere */
-const HB_MODIFIED_COMBINING_CLASS_CCC16: u8 = 19; /* segol */
-const HB_MODIFIED_COMBINING_CLASS_CCC17: u8 = 20; /* patah */
-const HB_MODIFIED_COMBINING_CLASS_CCC18: u8 = 21; /* qamats & qamats qatan */
-const HB_MODIFIED_COMBINING_CLASS_CCC19: u8 = 14; /* holam & holam haser for vav*/
-const HB_MODIFIED_COMBINING_CLASS_CCC20: u8 = 24; /* qubuts */
-const HB_MODIFIED_COMBINING_CLASS_CCC21: u8 = 12; /* dagesh */
-const HB_MODIFIED_COMBINING_CLASS_CCC22: u8 = 25; /* meteg */
-const HB_MODIFIED_COMBINING_CLASS_CCC23: u8 = 13; /* rafe */
-const HB_MODIFIED_COMBINING_CLASS_CCC24: u8 = 10; /* shin dot */
-const HB_MODIFIED_COMBINING_CLASS_CCC25: u8 = 11; /* sin dot */
-const HB_MODIFIED_COMBINING_CLASS_CCC26: u8 = 26; /* point varika */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC10: u32 = 22; /* sheva */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC11: u32 = 15; /* hataf segol */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC12: u32 = 16; /* hataf patah */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC13: u32 = 17; /* hataf qamats */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC14: u32 = 23; /* hiriq */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC15: u32 = 18; /* tsere */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC16: u32 = 19; /* segol */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC17: u32 = 20; /* patah */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC18: u32 = 21; /* qamats & qamats qatan */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC19: u32 = 14; /* holam & holam haser for vav*/
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC20: u32 = 24; /* qubuts */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC21: u32 = 12; /* dagesh */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC22: u32 = 25; /* meteg */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC23: u32 = 13; /* rafe */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC24: u32 = 10; /* shin dot */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC25: u32 = 11; /* sin dot */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC26: u32 = 26; /* point varika */
 
 /*
  * Arabic
@@ -391,18 +391,18 @@ const HB_MODIFIED_COMBINING_CLASS_CCC26: u8 = 26; /* point varika */
  * https://unicode.org/faq/normalization.html#8
  * https://unicode.org/faq/normalization.html#9
  */
-const HB_MODIFIED_COMBINING_CLASS_CCC27: u8 = 28; /* fathatan */
-const HB_MODIFIED_COMBINING_CLASS_CCC28: u8 = 29; /* dammatan */
-const HB_MODIFIED_COMBINING_CLASS_CCC29: u8 = 30; /* kasratan */
-const HB_MODIFIED_COMBINING_CLASS_CCC30: u8 = 31; /* fatha */
-const HB_MODIFIED_COMBINING_CLASS_CCC31: u8 = 32; /* damma */
-const HB_MODIFIED_COMBINING_CLASS_CCC32: u8 = 33; /* kasra */
-const HB_MODIFIED_COMBINING_CLASS_CCC33: u8 = 27; /* shadda */
-const HB_MODIFIED_COMBINING_CLASS_CCC34: u8 = 34; /* sukun */
-const HB_MODIFIED_COMBINING_CLASS_CCC35: u8 = 35; /* superscript alef */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC27: u32 = 28; /* fathatan */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC28: u32 = 29; /* dammatan */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC29: u32 = 30; /* kasratan */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC30: u32 = 31; /* fatha */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC31: u32 = 32; /* damma */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC32: u32 = 33; /* kasra */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC33: u32 = 27; /* shadda */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC34: u32 = 34; /* sukun */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC35: u32 = 35; /* superscript alef */
 
 /* Syriac */
-const HB_MODIFIED_COMBINING_CLASS_CCC36: u8 = 36; /* superscript alaph */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC36: u32 = 36; /* superscript alaph */
 
 /* Telugu
  *
@@ -411,8 +411,8 @@ const HB_MODIFIED_COMBINING_CLASS_CCC36: u8 = 36; /* superscript alaph */
  * a non-zero ccc.  That makes them reorder with the Halant (ccc=9).
  * Assign 4 and 5, which are otherwise unassigned.
  */
-const HB_MODIFIED_COMBINING_CLASS_CCC84: u8 = 4; /* length mark */
-const HB_MODIFIED_COMBINING_CLASS_CCC91: u8 = 5; /* ai length mark */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC84: u32 = 4; /* length mark */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC91: u32 = 5; /* ai length mark */
 
 /* Thai
  *
@@ -420,21 +420,21 @@ const HB_MODIFIED_COMBINING_CLASS_CCC91: u8 = 5; /* ai length mark */
  * Assign 3, which is unassigned otherwise.
  * Uniscribe does this reordering too.
  */
-const HB_MODIFIED_COMBINING_CLASS_CCC103: u8 = 3; /* sara u / sara uu */
-const HB_MODIFIED_COMBINING_CLASS_CCC107: u8 = 107; /* mai * */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC103: u32 = 3; /* sara u / sara uu */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC107: u32 = 107; /* mai * */
 
 /* Lao */
-const HB_MODIFIED_COMBINING_CLASS_CCC118: u8 = 118; /* sign u / sign uu */
-const HB_MODIFIED_COMBINING_CLASS_CCC122: u8 = 122; /* mai * */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC118: u32 = 118; /* sign u / sign uu */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC122: u32 = 122; /* mai * */
 
 /* Tibetan
  *
  * In case of multiple vowel-signs, use u first (but after achung)
  * this allows Dzongkha multi-vowel shortcuts to render correctly
  */
-const HB_MODIFIED_COMBINING_CLASS_CCC129: u8 = 129; /* sign aa */
-const HB_MODIFIED_COMBINING_CLASS_CCC130: u8 = 132; /* sign i */
-const HB_MODIFIED_COMBINING_CLASS_CCC132: u8 = 131; /* sign u */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC129: u32 = 129; /* sign aa */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC130: u32 = 132; /* sign i */
+pub(crate) const HB_MODIFIED_COMBINING_CLASS_CCC132: u32 = 131; /* sign u */
 
 /// `_hb_modified_combining_class`: permuted combining classes (see the
 /// comments above).
@@ -448,37 +448,37 @@ pub(crate) static _HB_MODIFIED_COMBINING_CLASS: [u8; 256] = [
     9, /* HB_UNICODE_COMBINING_CLASS_VIRAMA */
 
     /* Hebrew */
-    HB_MODIFIED_COMBINING_CLASS_CCC10,
-    HB_MODIFIED_COMBINING_CLASS_CCC11,
-    HB_MODIFIED_COMBINING_CLASS_CCC12,
-    HB_MODIFIED_COMBINING_CLASS_CCC13,
-    HB_MODIFIED_COMBINING_CLASS_CCC14,
-    HB_MODIFIED_COMBINING_CLASS_CCC15,
-    HB_MODIFIED_COMBINING_CLASS_CCC16,
-    HB_MODIFIED_COMBINING_CLASS_CCC17,
-    HB_MODIFIED_COMBINING_CLASS_CCC18,
-    HB_MODIFIED_COMBINING_CLASS_CCC19,
-    HB_MODIFIED_COMBINING_CLASS_CCC20,
-    HB_MODIFIED_COMBINING_CLASS_CCC21,
-    HB_MODIFIED_COMBINING_CLASS_CCC22,
-    HB_MODIFIED_COMBINING_CLASS_CCC23,
-    HB_MODIFIED_COMBINING_CLASS_CCC24,
-    HB_MODIFIED_COMBINING_CLASS_CCC25,
-    HB_MODIFIED_COMBINING_CLASS_CCC26,
+    HB_MODIFIED_COMBINING_CLASS_CCC10 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC11 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC12 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC13 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC14 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC15 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC16 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC17 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC18 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC19 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC20 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC21 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC22 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC23 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC24 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC25 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC26 as u8,
 
     /* Arabic */
-    HB_MODIFIED_COMBINING_CLASS_CCC27,
-    HB_MODIFIED_COMBINING_CLASS_CCC28,
-    HB_MODIFIED_COMBINING_CLASS_CCC29,
-    HB_MODIFIED_COMBINING_CLASS_CCC30,
-    HB_MODIFIED_COMBINING_CLASS_CCC31,
-    HB_MODIFIED_COMBINING_CLASS_CCC32,
-    HB_MODIFIED_COMBINING_CLASS_CCC33,
-    HB_MODIFIED_COMBINING_CLASS_CCC34,
-    HB_MODIFIED_COMBINING_CLASS_CCC35,
+    HB_MODIFIED_COMBINING_CLASS_CCC27 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC28 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC29 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC30 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC31 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC32 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC33 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC34 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC35 as u8,
 
     /* Syriac */
-    HB_MODIFIED_COMBINING_CLASS_CCC36,
+    HB_MODIFIED_COMBINING_CLASS_CCC36 as u8,
 
     37, 38, 39,
     40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
@@ -486,28 +486,28 @@ pub(crate) static _HB_MODIFIED_COMBINING_CLASS: [u8; 256] = [
     80, 81, 82, 83,
 
     /* Telugu */
-    HB_MODIFIED_COMBINING_CLASS_CCC84,
+    HB_MODIFIED_COMBINING_CLASS_CCC84 as u8,
     85, 86, 87, 88, 89, 90,
-    HB_MODIFIED_COMBINING_CLASS_CCC91,
+    HB_MODIFIED_COMBINING_CLASS_CCC91 as u8,
     92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
 
     /* Thai */
-    HB_MODIFIED_COMBINING_CLASS_CCC103,
+    HB_MODIFIED_COMBINING_CLASS_CCC103 as u8,
     104, 105, 106,
-    HB_MODIFIED_COMBINING_CLASS_CCC107,
+    HB_MODIFIED_COMBINING_CLASS_CCC107 as u8,
     108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
 
     /* Lao */
-    HB_MODIFIED_COMBINING_CLASS_CCC118,
+    HB_MODIFIED_COMBINING_CLASS_CCC118 as u8,
     119, 120, 121,
-    HB_MODIFIED_COMBINING_CLASS_CCC122,
+    HB_MODIFIED_COMBINING_CLASS_CCC122 as u8,
     123, 124, 125, 126, 127, 128,
 
     /* Tibetan */
-    HB_MODIFIED_COMBINING_CLASS_CCC129,
-    HB_MODIFIED_COMBINING_CLASS_CCC130,
+    HB_MODIFIED_COMBINING_CLASS_CCC129 as u8,
+    HB_MODIFIED_COMBINING_CLASS_CCC130 as u8,
     131,
-    HB_MODIFIED_COMBINING_CLASS_CCC132,
+    HB_MODIFIED_COMBINING_CLASS_CCC132 as u8,
     133, 134, 135, 136, 137, 138, 139,
 
     140, 141, 142, 143, 144, 145, 146, 147, 148, 149,
