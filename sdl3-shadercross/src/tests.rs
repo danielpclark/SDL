@@ -402,14 +402,35 @@ impl Drop for OffscreenVideo {
     }
 }
 
+/// Whether this is Wine, whose d3dcompiler_47.dll doesn't implement shader
+/// model 5.1 (D3DCompile returns E_NOTIMPL), so there's no DXBC.
+fn under_wine() -> bool {
+    cfg!(windows)
+        && sdl3::loadso::SharedObject::load("ntdll.dll")
+            .and_then(|ntdll| ntdll.symbol("wine_get_version").map(|_| ()))
+            .is_ok()
+}
+
+/// The formats shadercross can make here, as far as the system's tools go.
+fn usable_formats() -> sdl3::gpu::ShaderFormat {
+    let formats = crate::get_spirv_shader_formats();
+    if under_wine() {
+        sdl3::gpu::ShaderFormat(formats.bits() & !sdl3::gpu::ShaderFormat::DXBC.bits())
+    } else {
+        formats
+    }
+}
+
 #[test]
 fn gpu_shaders_and_pipelines_from_spirv() {
     // Declared before the device, so dropped after it.
     let video = OffscreenVideo::init();
     crate::init().unwrap();
-    let device = match video.as_ref().map_err(Clone::clone).and_then(|_| {
-        sdl3::gpu::Device::new(crate::get_spirv_shader_formats(), false, None)
-    }) {
+    let device = match video
+        .as_ref()
+        .map_err(Clone::clone)
+        .and_then(|_| sdl3::gpu::Device::new(usable_formats(), false, None))
+    {
         Ok(device) => device,
         Err(e) => {
             // SDL3_TEST_REQUIRE (docs/HARDWARE_TESTING.md) makes a missing
@@ -458,6 +479,38 @@ fn gpu_shaders_and_pipelines_from_spirv() {
         count += 1;
     }
     assert_eq!(count, 13);
-    drop(device);
-    crate::quit();
+}
+
+#[cfg(windows)]
+#[test]
+fn dxbc_from_spirv() {
+    // d3dcompiler_47.dll is a system DLL on Windows (and a builtin one under
+    // Wine); without it there's no DXBC.
+    crate::init().unwrap();
+    if !usable_formats().contains(sdl3::gpu::ShaderFormat::DXBC) {
+        assert!(crate::compile_dxbc_from_spirv(&crate::SpirvInfo {
+            bytecode: shader("vs_basic"),
+            entrypoint: "main",
+            shader_stage: crate::ShaderStage::Vertex,
+            props: None,
+        })
+        .is_err());
+        eprintln!("skipped: no shader model 5.1 d3dcompiler_47.dll");
+        return;
+    }
+    for name in ["vs_basic", "fs_textured", "cs_basic"] {
+        let info = crate::SpirvInfo {
+            bytecode: shader(name),
+            entrypoint: "main",
+            shader_stage: stage(match name.as_bytes()[0] {
+                b'v' => "vertex",
+                b'f' => "fragment",
+                _ => "compute",
+            }),
+            props: None,
+        };
+        let dxbc = crate::compile_dxbc_from_spirv(&info)
+            .unwrap_or_else(|e| panic!("{name}: {}", e.message()));
+        assert_eq!(&dxbc[..4], b"DXBC", "{name}");
+    }
 }
