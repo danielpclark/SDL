@@ -369,6 +369,28 @@ fn malformed_spirv_fails_cleanly() {
             .message(),
         "spvc_context_parse_spirv failed: Member index is out of range."
     );
+    // SDL_shadercross never returns from this one: a block chain that comes
+    // back around.
+    let code = include_bytes!("../testdata/fs_hang_block_chain.spv");
+    let info = crate::SpirvInfo {
+        bytecode: code,
+        entrypoint: "main",
+        shader_stage: crate::ShaderStage::Fragment,
+        props: None,
+    };
+    for r in [
+        crate::transpile_msl_from_spirv(&info),
+        crate::transpile_hlsl_from_spirv(&info),
+    ] {
+        assert_eq!(
+            r.unwrap_err().message(),
+            "spvc_compiler_compile failed: Block chain loops back on itself."
+        );
+    }
+    assert_eq!(
+        glsl(code, 450, false, false),
+        "ERROR: Block chain loops back on itself.\n"
+    );
     // Every truncation of a shader fails, without panicking.
     let code = shader("vs_push");
     for len in 0..code.len() {

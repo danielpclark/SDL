@@ -23659,6 +23659,13 @@ impl Compiler {
         let mut next_block = self.emit_block_chain_inner(block_id)?;
 
         while next_block != 0 {
+            // The translation's guard: on malformed SPIR-V the chain can come
+            // back around without passing a loop header, which makes C++
+            // loop (and grow cleanup_stack) forever. A chain can't be longer
+            // than the module has IDs.
+            if cleanup_stack.len() > self.ir.ids.len() {
+                spirv_cross_throw!("Block chain loops back on itself.");
+            }
             cleanup_stack.push(next_block);
             next_block = self.emit_block_chain_inner(next_block)?;
         }
