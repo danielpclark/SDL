@@ -22,8 +22,7 @@
 //! The module list is upstream's (`ftmodule.h`, as SDL_ttf's bundled build
 //! generates it), in its order, minus the modules not translated yet: the
 //! Type 1, CFF, CID, PFR, Type 42, Windows FNT, PCF and BDF drivers, the
-//! PostScript auxiliary and hinter modules, the SDF
-//! renderers and the OT-SVG renderer.
+//! PostScript auxiliary and hinter modules, and the OT-SVG renderer.
 
 use std::sync::Arc;
 
@@ -51,8 +50,8 @@ fn ft_default_modules() -> Vec<FtModuleClassRef> {
         FtModuleClassRef::Module(&crate::freetype::sfnt::sfdriver::SFNT_MODULE_CLASS),
         FtModuleClassRef::Renderer(&crate::freetype::smooth::ftsmooth::FT_SMOOTH_RENDERER_CLASS),
         FtModuleClassRef::Renderer(&crate::freetype::raster::ftrend1::FT_RASTER1_RENDERER_CLASS),
-        /* FT_USE_MODULE( FT_Renderer_Class, ft_sdf_renderer_class ) */
-        /* FT_USE_MODULE( FT_Renderer_Class, ft_bitmap_sdf_renderer_class ) */
+        FtModuleClassRef::Renderer(&crate::freetype::sdf::ftsdfrend::FT_SDF_RENDERER_CLASS),
+        FtModuleClassRef::Renderer(&crate::freetype::sdf::ftsdfrend::FT_BITMAP_SDF_RENDERER_CLASS),
         /* FT_USE_MODULE( FT_Renderer_Class, ft_svg_renderer_class ) */
         /* (not translated yet) */
     ]

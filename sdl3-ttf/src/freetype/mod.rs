@@ -44,6 +44,7 @@ pub mod fttypes;
 pub mod gzip;
 pub mod psnames;
 pub mod raster;
+pub mod sdf;
 pub mod sfnt;
 pub mod smooth;
 pub mod truetype;
