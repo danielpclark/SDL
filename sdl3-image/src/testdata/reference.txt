@@ -2641,6 +2641,2087 @@ save_webp 100: bytes=714 hash=90013bf82630be63 | reload: 23x13 SDL_PIXELFORMAT_R
 save_webp 90: bytes=328 hash=409e2e470d3e04a4 | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=48f6c4bb7d7594c9 blend=0
 save_webp 50: bytes=186 hash=425c55f986b71c4a | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=65792fe453ded667 blend=0
 save_webp 0: bytes=72 hash=a51a2da1cf3617d5 | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=ebaa06cce3bc76a0 blend=0
+== jxl_anim.jxl
+is: JXL
+is_extra: JXL
+load: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=6f6b512e8b413e1e blend=1
+load_io: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=6f6b512e8b413e1e blend=1
+typed: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=6f6b512e8b413e1e blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1288: err: Incomplete JXL image
+trunc 1932: err: Incomplete JXL image
+trunc 2576: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=6f6b512e8b413e1e blend=1 delay=0
+anim_typed: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=6f6b512e8b413e1e blend=1 delay=0
+decoder: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:6f6b512e8b413e1e | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:6f6b512e8b413e1e
+decoder tb100: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:6f6b512e8b413e1e | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:6f6b512e8b413e1e
+== jxl_anim_blend.jxl
+is: JXL
+is_extra: JXL
+load: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c0047c8d15d03e4e blend=1
+load_io: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c0047c8d15d03e4e blend=1
+typed: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c0047c8d15d03e4e blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 448: err: Incomplete JXL image
+trunc 672: err: Incomplete JXL image
+trunc 896: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c0047c8d15d03e4e blend=1 delay=0
+anim_typed: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=c0047c8d15d03e4e blend=1 delay=0
+decoder: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:c0047c8d15d03e4e | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:c0047c8d15d03e4e
+decoder tb100: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:c0047c8d15d03e4e | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:c0047c8d15d03e4e
+== jxl_anim_lossy.jxl
+is: JXL
+is_extra: JXL
+load: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=31195bf47a326ad8 blend=1
+load_io: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=31195bf47a326ad8 blend=1
+typed: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=31195bf47a326ad8 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 627: err: Incomplete JXL image
+trunc 941: err: Incomplete JXL image
+trunc 1254: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=31195bf47a326ad8 blend=1 delay=0
+anim_typed: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=31195bf47a326ad8 blend=1 delay=0
+decoder: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:31195bf47a326ad8 | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:31195bf47a326ad8
+decoder tb100: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:31195bf47a326ad8 | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:31195bf47a326ad8
+== jxl_container.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 491: err: Incomplete JXL image
+trunc 737: err: Incomplete JXL image
+trunc 982: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75
+== jxl_dots.jxl
+is: JXL
+is_extra: JXL
+load: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=a8cf3ff20078c5a9 blend=1
+load_io: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=a8cf3ff20078c5a9 blend=1
+typed: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=a8cf3ff20078c5a9 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1291: err: Incomplete JXL image
+trunc 1937: err: Incomplete JXL image
+trunc 2582: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 96x64 | 0: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=a8cf3ff20078c5a9 blend=1 delay=0
+anim_typed: n=1 96x64 | 0: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=a8cf3ff20078c5a9 blend=1 delay=0
+decoder: ok | 0:96x64:SDL_PIXELFORMAT_ABGR8888:a8cf3ff20078c5a9 | status=2 | reset=1 0:96x64:SDL_PIXELFORMAT_ABGR8888:a8cf3ff20078c5a9
+decoder tb100: ok | 0:96x64:SDL_PIXELFORMAT_ABGR8888:a8cf3ff20078c5a9 | status=2 | reset=1 0:96x64:SDL_PIXELFORMAT_ABGR8888:a8cf3ff20078c5a9
+== jxl_enum_709.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=aeec00819f1bf218 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=aeec00819f1bf218 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=aeec00819f1bf218 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 441: err: Incomplete JXL image
+trunc 661: err: Incomplete JXL image
+trunc 881: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=aeec00819f1bf218 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=aeec00819f1bf218 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:aeec00819f1bf218 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:aeec00819f1bf218
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:aeec00819f1bf218 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:aeec00819f1bf218
+== jxl_enum_dci.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70d742465eea18c6 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70d742465eea18c6 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70d742465eea18c6 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 506: err: Incomplete JXL image
+trunc 759: err: Incomplete JXL image
+trunc 1011: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70d742465eea18c6 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70d742465eea18c6 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:70d742465eea18c6 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:70d742465eea18c6
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:70d742465eea18c6 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:70d742465eea18c6
+== jxl_enum_gamma.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4f06da25b86ce393 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4f06da25b86ce393 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4f06da25b86ce393 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 461: err: Incomplete JXL image
+trunc 691: err: Incomplete JXL image
+trunc 921: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4f06da25b86ce393 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4f06da25b86ce393 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:4f06da25b86ce393 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:4f06da25b86ce393
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:4f06da25b86ce393 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:4f06da25b86ce393
+== jxl_enum_gray_linear.jxl
+is: JXL
+is_extra: JXL
+load: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=95d9da09a4d6c82d blend=1
+load_io: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=95d9da09a4d6c82d blend=1
+typed: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=95d9da09a4d6c82d blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 260: err: Incomplete JXL image
+trunc 390: err: Incomplete JXL image
+trunc 519: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=95d9da09a4d6c82d blend=1 delay=0
+anim_typed: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=95d9da09a4d6c82d blend=1 delay=0
+decoder: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:95d9da09a4d6c82d | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:95d9da09a4d6c82d
+decoder tb100: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:95d9da09a4d6c82d | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:95d9da09a4d6c82d
+== jxl_enum_hlg.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=b6a619294e87a665 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=b6a619294e87a665 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=b6a619294e87a665 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 496: err: Incomplete JXL image
+trunc 744: err: Incomplete JXL image
+trunc 991: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=b6a619294e87a665 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=b6a619294e87a665 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:b6a619294e87a665 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:b6a619294e87a665
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:b6a619294e87a665 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:b6a619294e87a665
+== jxl_enum_linear.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=47642ed05baaa6f5 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=47642ed05baaa6f5 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=47642ed05baaa6f5 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 421: err: Incomplete JXL image
+trunc 631: err: Incomplete JXL image
+trunc 841: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=47642ed05baaa6f5 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=47642ed05baaa6f5 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:47642ed05baaa6f5 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:47642ed05baaa6f5
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:47642ed05baaa6f5 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:47642ed05baaa6f5
+== jxl_enum_p3.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=7b7e639e89040be6 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=7b7e639e89040be6 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=7b7e639e89040be6 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 489: err: Incomplete JXL image
+trunc 733: err: Incomplete JXL image
+trunc 977: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=7b7e639e89040be6 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=7b7e639e89040be6 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:7b7e639e89040be6 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:7b7e639e89040be6
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:7b7e639e89040be6 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:7b7e639e89040be6
+== jxl_enum_pq.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e0a48a37bfa410b4 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e0a48a37bfa410b4 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e0a48a37bfa410b4 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 770: err: Incomplete JXL image
+trunc 1155: err: Incomplete JXL image
+trunc 1540: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e0a48a37bfa410b4 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e0a48a37bfa410b4 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:e0a48a37bfa410b4 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:e0a48a37bfa410b4
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:e0a48a37bfa410b4 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:e0a48a37bfa410b4
+== jxl_enum_pq_lossless.jxl
+is: JXL
+is_extra: JXL
+load: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1
+load_io: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1
+typed: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1410: err: Incomplete JXL image
+trunc 2115: err: Incomplete JXL image
+trunc 2820: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 29x17 | 0: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1 delay=0
+anim_typed: n=1 29x17 | 0: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1 delay=0
+decoder: ok | 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20 | status=2 | reset=1 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20
+decoder tb100: ok | 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20 | status=2 | reset=1 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20
+== jxl_float_lossless.jxl
+is: JXL
+is_extra: JXL
+load: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=cc97e956edc443f5 blend=1
+load_io: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=cc97e956edc443f5 blend=1
+typed: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=cc97e956edc443f5 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1454: err: Incomplete JXL image
+trunc 2181: err: Incomplete JXL image
+trunc 2908: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 22x14 | 0: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=cc97e956edc443f5 blend=1 delay=0
+anim_typed: n=1 22x14 | 0: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=cc97e956edc443f5 blend=1 delay=0
+decoder: ok | 0:22x14:SDL_PIXELFORMAT_ABGR8888:cc97e956edc443f5 | status=2 | reset=1 0:22x14:SDL_PIXELFORMAT_ABGR8888:cc97e956edc443f5
+decoder tb100: ok | 0:22x14:SDL_PIXELFORMAT_ABGR8888:cc97e956edc443f5 | status=2 | reset=1 0:22x14:SDL_PIXELFORMAT_ABGR8888:cc97e956edc443f5
+== jxl_float_lossy.jxl
+is: JXL
+is_extra: JXL
+load: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=d42425a1c389e53b blend=1
+load_io: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=d42425a1c389e53b blend=1
+typed: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=d42425a1c389e53b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 208: err: Incomplete JXL image
+trunc 312: err: Incomplete JXL image
+trunc 416: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 22x14 | 0: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=d42425a1c389e53b blend=1 delay=0
+anim_typed: n=1 22x14 | 0: 22x14 SDL_PIXELFORMAT_ABGR8888 pitch=88 hash=d42425a1c389e53b blend=1 delay=0
+decoder: ok | 0:22x14:SDL_PIXELFORMAT_ABGR8888:d42425a1c389e53b | status=2 | reset=1 0:22x14:SDL_PIXELFORMAT_ABGR8888:d42425a1c389e53b
+decoder tb100: ok | 0:22x14:SDL_PIXELFORMAT_ABGR8888:d42425a1c389e53b | status=2 | reset=1 0:22x14:SDL_PIXELFORMAT_ABGR8888:d42425a1c389e53b
+== jxl_group_order.jxl
+is: JXL
+is_extra: JXL
+load: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=5f9327a3cc84773a blend=1
+load_io: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=5f9327a3cc84773a blend=1
+typed: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=5f9327a3cc84773a blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 4096: err: Incomplete JXL image
+trunc 8192: err: Incomplete JXL image
+trunc 16384: err: Incomplete JXL image
+trunc 10993: err: Incomplete JXL image
+trunc 16490: err: Incomplete JXL image
+trunc 21986: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=5f9327a3cc84773a blend=1 delay=0
+anim_typed: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=5f9327a3cc84773a blend=1 delay=0
+decoder: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:5f9327a3cc84773a | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:5f9327a3cc84773a
+decoder tb100: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:5f9327a3cc84773a | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:5f9327a3cc84773a
+== jxl_icc_lossless.jxl
+is: JXL
+is_extra: JXL
+load: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=a3911115d424bfa0 blend=1
+load_io: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=a3911115d424bfa0 blend=1
+typed: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=a3911115d424bfa0 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 492: err: Incomplete JXL image
+trunc 738: err: Incomplete JXL image
+trunc 983: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 20x15 | 0: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=a3911115d424bfa0 blend=1 delay=0
+anim_typed: n=1 20x15 | 0: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=a3911115d424bfa0 blend=1 delay=0
+decoder: ok | 0:20x15:SDL_PIXELFORMAT_ABGR8888:a3911115d424bfa0 | status=2 | reset=1 0:20x15:SDL_PIXELFORMAT_ABGR8888:a3911115d424bfa0
+decoder tb100: ok | 0:20x15:SDL_PIXELFORMAT_ABGR8888:a3911115d424bfa0 | status=2 | reset=1 0:20x15:SDL_PIXELFORMAT_ABGR8888:a3911115d424bfa0
+== jxl_icc_lossy.jxl
+is: JXL
+is_extra: JXL
+load: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=f036cbbc87efbf16 blend=1
+load_io: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=f036cbbc87efbf16 blend=1
+typed: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=f036cbbc87efbf16 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 259: err: Incomplete JXL image
+trunc 388: err: Incomplete JXL image
+trunc 517: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 20x15 | 0: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=f036cbbc87efbf16 blend=1 delay=0
+anim_typed: n=1 20x15 | 0: 20x15 SDL_PIXELFORMAT_ABGR8888 pitch=80 hash=f036cbbc87efbf16 blend=1 delay=0
+decoder: ok | 0:20x15:SDL_PIXELFORMAT_ABGR8888:f036cbbc87efbf16 | status=2 | reset=1 0:20x15:SDL_PIXELFORMAT_ABGR8888:f036cbbc87efbf16
+decoder tb100: ok | 0:20x15:SDL_PIXELFORMAT_ABGR8888:f036cbbc87efbf16 | status=2 | reset=1 0:20x15:SDL_PIXELFORMAT_ABGR8888:f036cbbc87efbf16
+== jxl_jpeg_420.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=2642822cead7a1e9 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=2642822cead7a1e9 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=2642822cead7a1e9 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 580: err: Incomplete JXL image
+trunc 870: err: Incomplete JXL image
+trunc 1160: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=2642822cead7a1e9 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=2642822cead7a1e9 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:2642822cead7a1e9 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:2642822cead7a1e9
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:2642822cead7a1e9 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:2642822cead7a1e9
+== jxl_jpeg_422.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70a5faf6810299d4 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70a5faf6810299d4 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70a5faf6810299d4 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 759: err: Incomplete JXL image
+trunc 1138: err: Incomplete JXL image
+trunc 1517: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70a5faf6810299d4 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=70a5faf6810299d4 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:70a5faf6810299d4 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:70a5faf6810299d4
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:70a5faf6810299d4 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:70a5faf6810299d4
+== jxl_jpeg_444.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1055c479d1b1833a blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1055c479d1b1833a blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1055c479d1b1833a blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1129: err: Incomplete JXL image
+trunc 1694: err: Incomplete JXL image
+trunc 2258: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1055c479d1b1833a blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1055c479d1b1833a blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:1055c479d1b1833a | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:1055c479d1b1833a
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:1055c479d1b1833a | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:1055c479d1b1833a
+== jxl_jpeg_gray.jxl
+is: JXL
+is_extra: JXL
+load: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=456a14a678dfc118 blend=1
+load_io: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=456a14a678dfc118 blend=1
+typed: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=456a14a678dfc118 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 433: err: Incomplete JXL image
+trunc 650: err: Incomplete JXL image
+trunc 866: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=456a14a678dfc118 blend=1 delay=0
+anim_typed: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=456a14a678dfc118 blend=1 delay=0
+decoder: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:456a14a678dfc118 | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:456a14a678dfc118
+decoder tb100: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:456a14a678dfc118 | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:456a14a678dfc118
+== jxl_jpeg_progressive.jxl
+is: JXL
+is_extra: JXL
+load: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=b5624fc9a826ed9d blend=1
+load_io: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=b5624fc9a826ed9d blend=1
+typed: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=b5624fc9a826ed9d blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 424: err: Incomplete JXL image
+trunc 636: err: Incomplete JXL image
+trunc 847: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 3x70 | 0: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=b5624fc9a826ed9d blend=1 delay=0
+anim_typed: n=1 3x70 | 0: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=b5624fc9a826ed9d blend=1 delay=0
+decoder: ok | 0:3x70:SDL_PIXELFORMAT_ABGR8888:b5624fc9a826ed9d | status=2 | reset=1 0:3x70:SDL_PIXELFORMAT_ABGR8888:b5624fc9a826ed9d
+decoder tb100: ok | 0:3x70:SDL_PIXELFORMAT_ABGR8888:b5624fc9a826ed9d | status=2 | reset=1 0:3x70:SDL_PIXELFORMAT_ABGR8888:b5624fc9a826ed9d
+== jxl_lossless.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1549: err: Incomplete JXL image
+trunc 2323: err: Incomplete JXL image
+trunc 3097: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+== jxl_lossless_12bit.jxl
+is: JXL
+is_extra: JXL
+load: 21x13 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=5d7471b6b9d7b0f0 blend=1
+load_io: 21x13 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=5d7471b6b9d7b0f0 blend=1
+typed: 21x13 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=5d7471b6b9d7b0f0 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 386: err: Incomplete JXL image
+trunc 579: err: Incomplete JXL image
+trunc 772: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 21x13 | 0: 21x13 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=5d7471b6b9d7b0f0 blend=1 delay=0
+anim_typed: n=1 21x13 | 0: 21x13 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=5d7471b6b9d7b0f0 blend=1 delay=0
+decoder: ok | 0:21x13:SDL_PIXELFORMAT_ABGR8888:5d7471b6b9d7b0f0 | status=2 | reset=1 0:21x13:SDL_PIXELFORMAT_ABGR8888:5d7471b6b9d7b0f0
+decoder tb100: ok | 0:21x13:SDL_PIXELFORMAT_ABGR8888:5d7471b6b9d7b0f0 | status=2 | reset=1 0:21x13:SDL_PIXELFORMAT_ABGR8888:5d7471b6b9d7b0f0
+== jxl_lossless_16bit.jxl
+is: JXL
+is_extra: JXL
+load: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1
+load_io: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1
+typed: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1406: err: Incomplete JXL image
+trunc 2109: err: Incomplete JXL image
+trunc 2812: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 29x17 | 0: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1 delay=0
+anim_typed: n=1 29x17 | 0: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=982138ce2d3b7b20 blend=1 delay=0
+decoder: ok | 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20 | status=2 | reset=1 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20
+decoder tb100: ok | 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20 | status=2 | reset=1 0:29x17:SDL_PIXELFORMAT_ABGR8888:982138ce2d3b7b20
+== jxl_lossless_16bit_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=b60ddcc701710054 blend=1
+load_io: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=b60ddcc701710054 blend=1
+typed: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=b60ddcc701710054 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1211: err: Incomplete JXL image
+trunc 1817: err: Incomplete JXL image
+trunc 2422: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=b60ddcc701710054 blend=1 delay=0
+anim_typed: n=1 24x16 | 0: 24x16 SDL_PIXELFORMAT_ABGR8888 pitch=96 hash=b60ddcc701710054 blend=1 delay=0
+decoder: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:b60ddcc701710054 | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:b60ddcc701710054
+decoder tb100: ok | 0:24x16:SDL_PIXELFORMAT_ABGR8888:b60ddcc701710054 | status=2 | reset=1 0:24x16:SDL_PIXELFORMAT_ABGR8888:b60ddcc701710054
+== jxl_lossless_1bit.jxl
+is: JXL
+is_extra: JXL
+load: 19x11 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=73dd074f6bfdc2d8 blend=1
+load_io: 19x11 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=73dd074f6bfdc2d8 blend=1
+typed: 19x11 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=73dd074f6bfdc2d8 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 10: err: Incomplete JXL image
+trunc 15: err: Incomplete JXL image
+trunc 19: err: Incomplete JXL image
+xor: 19x11 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=73dd074f6bfdc2d8 blend=1
+anim_io: n=1 19x11 | 0: 19x11 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=73dd074f6bfdc2d8 blend=1 delay=0
+anim_typed: n=1 19x11 | 0: 19x11 SDL_PIXELFORMAT_ABGR8888 pitch=76 hash=73dd074f6bfdc2d8 blend=1 delay=0
+decoder: ok | 0:19x11:SDL_PIXELFORMAT_ABGR8888:73dd074f6bfdc2d8 | status=2 | reset=1 0:19x11:SDL_PIXELFORMAT_ABGR8888:73dd074f6bfdc2d8
+decoder tb100: ok | 0:19x11:SDL_PIXELFORMAT_ABGR8888:73dd074f6bfdc2d8 | status=2 | reset=1 0:19x11:SDL_PIXELFORMAT_ABGR8888:73dd074f6bfdc2d8
+== jxl_lossless_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=ac49c486dbe734ee blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=ac49c486dbe734ee blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=ac49c486dbe734ee blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1180: err: Incomplete JXL image
+trunc 1770: err: Incomplete JXL image
+trunc 2359: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=ac49c486dbe734ee blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=ac49c486dbe734ee blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:ac49c486dbe734ee | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:ac49c486dbe734ee
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:ac49c486dbe734ee | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:ac49c486dbe734ee
+== jxl_lossless_e1.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1743: err: Incomplete JXL image
+trunc 2614: err: Incomplete JXL image
+trunc 3485: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+== jxl_lossless_e3.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1822: err: Incomplete JXL image
+trunc 2733: err: Incomplete JXL image
+trunc 3644: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+== jxl_lossless_e9.jxl
+is: JXL
+is_extra: JXL
+load: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1
+load_io: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1
+typed: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 148: err: Incomplete JXL image
+trunc 222: err: Incomplete JXL image
+trunc 296: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 31x23 | 0: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1 delay=0
+anim_typed: n=1 31x23 | 0: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1 delay=0
+decoder: ok | 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a | status=2 | reset=1 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a
+decoder tb100: ok | 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a | status=2 | reset=1 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a
+== jxl_lossless_gray.jxl
+is: JXL
+is_extra: JXL
+load: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=de81eca442fd33cb blend=1
+load_io: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=de81eca442fd33cb blend=1
+typed: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=de81eca442fd33cb blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 263: err: Incomplete JXL image
+trunc 394: err: Incomplete JXL image
+trunc 525: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=de81eca442fd33cb blend=1 delay=0
+anim_typed: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=de81eca442fd33cb blend=1 delay=0
+decoder: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:de81eca442fd33cb | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:de81eca442fd33cb
+decoder tb100: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:de81eca442fd33cb | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:de81eca442fd33cb
+== jxl_lossless_graya.jxl
+is: JXL
+is_extra: JXL
+load: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=6042bbe2fe81e981 blend=1
+load_io: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=6042bbe2fe81e981 blend=1
+typed: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=6042bbe2fe81e981 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 311: err: Incomplete JXL image
+trunc 467: err: Incomplete JXL image
+trunc 622: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 26x18 | 0: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=6042bbe2fe81e981 blend=1 delay=0
+anim_typed: n=1 26x18 | 0: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=6042bbe2fe81e981 blend=1 delay=0
+decoder: ok | 0:26x18:SDL_PIXELFORMAT_ABGR8888:6042bbe2fe81e981 | status=2 | reset=1 0:26x18:SDL_PIXELFORMAT_ABGR8888:6042bbe2fe81e981
+decoder tb100: ok | 0:26x18:SDL_PIXELFORMAT_ABGR8888:6042bbe2fe81e981 | status=2 | reset=1 0:26x18:SDL_PIXELFORMAT_ABGR8888:6042bbe2fe81e981
+== jxl_lossless_groups.jxl
+is: JXL
+is_extra: JXL
+load: 300x40 SDL_PIXELFORMAT_ABGR8888 pitch=1200 hash=5c233a0ffd8402ef blend=1
+load_io: 300x40 SDL_PIXELFORMAT_ABGR8888 pitch=1200 hash=5c233a0ffd8402ef blend=1
+typed: 300x40 SDL_PIXELFORMAT_ABGR8888 pitch=1200 hash=5c233a0ffd8402ef blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 4096: err: Incomplete JXL image
+trunc 8192: err: Incomplete JXL image
+trunc 16384: err: Incomplete JXL image
+trunc 32768: err: Incomplete JXL image
+trunc 16659: err: Incomplete JXL image
+trunc 24988: err: Incomplete JXL image
+trunc 33317: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 300x40 | 0: 300x40 SDL_PIXELFORMAT_ABGR8888 pitch=1200 hash=5c233a0ffd8402ef blend=1 delay=0
+anim_typed: n=1 300x40 | 0: 300x40 SDL_PIXELFORMAT_ABGR8888 pitch=1200 hash=5c233a0ffd8402ef blend=1 delay=0
+decoder: ok | 0:300x40:SDL_PIXELFORMAT_ABGR8888:5c233a0ffd8402ef | status=2 | reset=1 0:300x40:SDL_PIXELFORMAT_ABGR8888:5c233a0ffd8402ef
+decoder tb100: ok | 0:300x40:SDL_PIXELFORMAT_ABGR8888:5c233a0ffd8402ef | status=2 | reset=1 0:300x40:SDL_PIXELFORMAT_ABGR8888:5c233a0ffd8402ef
+== jxl_lossless_palette.jxl
+is: JXL
+is_extra: JXL
+load: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1
+load_io: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1
+typed: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 213: err: Incomplete JXL image
+trunc 319: err: Incomplete JXL image
+trunc 425: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 31x23 | 0: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1 delay=0
+anim_typed: n=1 31x23 | 0: 31x23 SDL_PIXELFORMAT_ABGR8888 pitch=124 hash=dd6e4b22f5e8941a blend=1 delay=0
+decoder: ok | 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a | status=2 | reset=1 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a
+decoder tb100: ok | 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a | status=2 | reset=1 0:31x23:SDL_PIXELFORMAT_ABGR8888:dd6e4b22f5e8941a
+== jxl_lossless_squeeze.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1634: err: Incomplete JXL image
+trunc 2451: err: Incomplete JXL image
+trunc 3268: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=cf316c6c982fd19b blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:cf316c6c982fd19b
+== jxl_lossless_tall.jxl
+is: JXL
+is_extra: JXL
+load: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=280e0d45f0d8ff89 blend=1
+load_io: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=280e0d45f0d8ff89 blend=1
+typed: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=280e0d45f0d8ff89 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 297: err: Incomplete JXL image
+trunc 445: err: Incomplete JXL image
+trunc 593: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 3x70 | 0: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=280e0d45f0d8ff89 blend=1 delay=0
+anim_typed: n=1 3x70 | 0: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=280e0d45f0d8ff89 blend=1 delay=0
+decoder: ok | 0:3x70:SDL_PIXELFORMAT_ABGR8888:280e0d45f0d8ff89 | status=2 | reset=1 0:3x70:SDL_PIXELFORMAT_ABGR8888:280e0d45f0d8ff89
+decoder tb100: ok | 0:3x70:SDL_PIXELFORMAT_ABGR8888:280e0d45f0d8ff89 | status=2 | reset=1 0:3x70:SDL_PIXELFORMAT_ABGR8888:280e0d45f0d8ff89
+== jxl_lossless_tiny.jxl
+is: JXL
+is_extra: JXL
+load: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=d0a60002b3e53c34 blend=1
+load_io: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=d0a60002b3e53c34 blend=1
+typed: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=d0a60002b3e53c34 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 13: err: Incomplete JXL image
+trunc 19: err: Incomplete JXL image
+trunc 25: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 1x1 | 0: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=d0a60002b3e53c34 blend=1 delay=0
+anim_typed: n=1 1x1 | 0: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=d0a60002b3e53c34 blend=1 delay=0
+decoder: ok | 0:1x1:SDL_PIXELFORMAT_ABGR8888:d0a60002b3e53c34 | status=2 | reset=1 0:1x1:SDL_PIXELFORMAT_ABGR8888:d0a60002b3e53c34
+decoder tb100: ok | 0:1x1:SDL_PIXELFORMAT_ABGR8888:d0a60002b3e53c34 | status=2 | reset=1 0:1x1:SDL_PIXELFORMAT_ABGR8888:d0a60002b3e53c34
+== jxl_lossy.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 471: err: Incomplete JXL image
+trunc 707: err: Incomplete JXL image
+trunc 942: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=3d18508f3bf4df75 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:3d18508f3bf4df75
+== jxl_lossy_16bit.jxl
+is: JXL
+is_extra: JXL
+load: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=53643dd9557f1c2c blend=1
+load_io: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=53643dd9557f1c2c blend=1
+typed: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=53643dd9557f1c2c blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 302: err: Incomplete JXL image
+trunc 453: err: Incomplete JXL image
+trunc 603: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 29x17 | 0: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=53643dd9557f1c2c blend=1 delay=0
+anim_typed: n=1 29x17 | 0: 29x17 SDL_PIXELFORMAT_ABGR8888 pitch=116 hash=53643dd9557f1c2c blend=1 delay=0
+decoder: ok | 0:29x17:SDL_PIXELFORMAT_ABGR8888:53643dd9557f1c2c | status=2 | reset=1 0:29x17:SDL_PIXELFORMAT_ABGR8888:53643dd9557f1c2c
+decoder tb100: ok | 0:29x17:SDL_PIXELFORMAT_ABGR8888:53643dd9557f1c2c | status=2 | reset=1 0:29x17:SDL_PIXELFORMAT_ABGR8888:53643dd9557f1c2c
+== jxl_lossy_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=8b321738e6a73330 blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=8b321738e6a73330 blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=8b321738e6a73330 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 531: err: Incomplete JXL image
+trunc 797: err: Incomplete JXL image
+trunc 1062: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=8b321738e6a73330 blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=8b321738e6a73330 blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:8b321738e6a73330 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:8b321738e6a73330
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:8b321738e6a73330 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:8b321738e6a73330
+== jxl_lossy_alpha_premultiplied.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=dc64d2f2e10de419 blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=dc64d2f2e10de419 blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=dc64d2f2e10de419 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 651: err: Incomplete JXL image
+trunc 977: err: Incomplete JXL image
+trunc 1302: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=dc64d2f2e10de419 blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=dc64d2f2e10de419 blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:dc64d2f2e10de419 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:dc64d2f2e10de419
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:dc64d2f2e10de419 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:dc64d2f2e10de419
+== jxl_lossy_alpha_resampled.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=edc8c8e5c30b6d50 blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=edc8c8e5c30b6d50 blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=edc8c8e5c30b6d50 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 203: err: Incomplete JXL image
+trunc 304: err: Incomplete JXL image
+trunc 405: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=edc8c8e5c30b6d50 blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=edc8c8e5c30b6d50 blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:edc8c8e5c30b6d50 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:edc8c8e5c30b6d50
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:edc8c8e5c30b6d50 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:edc8c8e5c30b6d50
+== jxl_lossy_d0.3_e9.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=f963de532fbfff8e blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=f963de532fbfff8e blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=f963de532fbfff8e blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 1249: err: Incomplete JXL image
+trunc 1874: err: Incomplete JXL image
+trunc 2498: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=f963de532fbfff8e blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=f963de532fbfff8e blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:f963de532fbfff8e | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:f963de532fbfff8e
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:f963de532fbfff8e | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:f963de532fbfff8e
+== jxl_lossy_d15_e8.jxl
+is: JXL
+is_extra: JXL
+load: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=4fad7b1f57b09132 blend=1
+load_io: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=4fad7b1f57b09132 blend=1
+typed: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=4fad7b1f57b09132 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 843: err: Incomplete JXL image
+trunc 1265: err: Incomplete JXL image
+trunc 1686: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=4fad7b1f57b09132 blend=1 delay=0
+anim_typed: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=4fad7b1f57b09132 blend=1 delay=0
+decoder: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:4fad7b1f57b09132 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:4fad7b1f57b09132
+decoder tb100: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:4fad7b1f57b09132 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:4fad7b1f57b09132
+== jxl_lossy_d2_e5.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=8310707d98624520 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=8310707d98624520 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=8310707d98624520 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 313: err: Incomplete JXL image
+trunc 469: err: Incomplete JXL image
+trunc 625: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=8310707d98624520 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=8310707d98624520 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:8310707d98624520 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:8310707d98624520
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:8310707d98624520 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:8310707d98624520
+== jxl_lossy_d3_e3.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=5ab35f39e99d93df blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=5ab35f39e99d93df blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=5ab35f39e99d93df blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 419: err: Incomplete JXL image
+trunc 628: err: Incomplete JXL image
+trunc 837: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=5ab35f39e99d93df blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=5ab35f39e99d93df blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:5ab35f39e99d93df | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:5ab35f39e99d93df
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:5ab35f39e99d93df | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:5ab35f39e99d93df
+== jxl_lossy_d8.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4a3b543fdf60d42a blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4a3b543fdf60d42a blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4a3b543fdf60d42a blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 112: err: Incomplete JXL image
+trunc 168: err: Incomplete JXL image
+trunc 224: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4a3b543fdf60d42a blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=4a3b543fdf60d42a blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:4a3b543fdf60d42a | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:4a3b543fdf60d42a
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:4a3b543fdf60d42a | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:4a3b543fdf60d42a
+== jxl_lossy_epf1.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 258: err: Incomplete JXL image
+trunc 387: err: Incomplete JXL image
+trunc 516: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93
+== jxl_lossy_epf3.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e4ae528d2903647c blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e4ae528d2903647c blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e4ae528d2903647c blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 202: err: Incomplete JXL image
+trunc 303: err: Incomplete JXL image
+trunc 404: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e4ae528d2903647c blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=e4ae528d2903647c blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:e4ae528d2903647c | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:e4ae528d2903647c
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:e4ae528d2903647c | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:e4ae528d2903647c
+== jxl_lossy_faster_decoding.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=9fe582557ba774f0 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=9fe582557ba774f0 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=9fe582557ba774f0 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 434: err: Incomplete JXL image
+trunc 651: err: Incomplete JXL image
+trunc 867: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=9fe582557ba774f0 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=9fe582557ba774f0 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:9fe582557ba774f0 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:9fe582557ba774f0
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:9fe582557ba774f0 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:9fe582557ba774f0
+== jxl_lossy_gray.jxl
+is: JXL
+is_extra: JXL
+load: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=5827292e4587013b blend=1
+load_io: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=5827292e4587013b blend=1
+typed: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=5827292e4587013b blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 208: err: Incomplete JXL image
+trunc 312: err: Incomplete JXL image
+trunc 415: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=5827292e4587013b blend=1 delay=0
+anim_typed: n=1 33x19 | 0: 33x19 SDL_PIXELFORMAT_ABGR8888 pitch=132 hash=5827292e4587013b blend=1 delay=0
+decoder: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:5827292e4587013b | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:5827292e4587013b
+decoder tb100: ok | 0:33x19:SDL_PIXELFORMAT_ABGR8888:5827292e4587013b | status=2 | reset=1 0:33x19:SDL_PIXELFORMAT_ABGR8888:5827292e4587013b
+== jxl_lossy_graya.jxl
+is: JXL
+is_extra: JXL
+load: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=0326f3381fbc6567 blend=1
+load_io: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=0326f3381fbc6567 blend=1
+typed: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=0326f3381fbc6567 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 349: err: Incomplete JXL image
+trunc 523: err: Incomplete JXL image
+trunc 697: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 26x18 | 0: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=0326f3381fbc6567 blend=1 delay=0
+anim_typed: n=1 26x18 | 0: 26x18 SDL_PIXELFORMAT_ABGR8888 pitch=104 hash=0326f3381fbc6567 blend=1 delay=0
+decoder: ok | 0:26x18:SDL_PIXELFORMAT_ABGR8888:0326f3381fbc6567 | status=2 | reset=1 0:26x18:SDL_PIXELFORMAT_ABGR8888:0326f3381fbc6567
+decoder tb100: ok | 0:26x18:SDL_PIXELFORMAT_ABGR8888:0326f3381fbc6567 | status=2 | reset=1 0:26x18:SDL_PIXELFORMAT_ABGR8888:0326f3381fbc6567
+== jxl_lossy_groups.jxl
+is: JXL
+is_extra: JXL
+load: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=0541e917bf71c2a5 blend=1
+load_io: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=0541e917bf71c2a5 blend=1
+typed: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=0541e917bf71c2a5 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 4096: err: Incomplete JXL image
+trunc 8192: err: Incomplete JXL image
+trunc 16384: err: Incomplete JXL image
+trunc 8438: err: Incomplete JXL image
+trunc 12657: err: Incomplete JXL image
+trunc 16875: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=0541e917bf71c2a5 blend=1 delay=0
+anim_typed: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=0541e917bf71c2a5 blend=1 delay=0
+decoder: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:0541e917bf71c2a5 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:0541e917bf71c2a5
+decoder tb100: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:0541e917bf71c2a5 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:0541e917bf71c2a5
+== jxl_lossy_modular.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=482cc2bbccb2409e blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=482cc2bbccb2409e blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=482cc2bbccb2409e blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 407: err: Incomplete JXL image
+trunc 610: err: Incomplete JXL image
+trunc 813: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=482cc2bbccb2409e blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=482cc2bbccb2409e blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:482cc2bbccb2409e | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:482cc2bbccb2409e
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:482cc2bbccb2409e | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:482cc2bbccb2409e
+== jxl_lossy_modular_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=aa2ca231bac6a1ee blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=aa2ca231bac6a1ee blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=aa2ca231bac6a1ee blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 616: err: Incomplete JXL image
+trunc 924: err: Incomplete JXL image
+trunc 1231: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=aa2ca231bac6a1ee blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=aa2ca231bac6a1ee blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:aa2ca231bac6a1ee | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:aa2ca231bac6a1ee
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:aa2ca231bac6a1ee | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:aa2ca231bac6a1ee
+== jxl_lossy_nofilters.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 258: err: Incomplete JXL image
+trunc 387: err: Incomplete JXL image
+trunc 515: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=02a1624ce8d28b93 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:02a1624ce8d28b93
+== jxl_lossy_odd.jxl
+is: JXL
+is_extra: JXL
+load: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=0286a316fe3ba646 blend=1
+load_io: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=0286a316fe3ba646 blend=1
+typed: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=0286a316fe3ba646 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 309: err: Incomplete JXL image
+trunc 464: err: Incomplete JXL image
+trunc 618: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 3x70 | 0: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=0286a316fe3ba646 blend=1 delay=0
+anim_typed: n=1 3x70 | 0: 3x70 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=0286a316fe3ba646 blend=1 delay=0
+decoder: ok | 0:3x70:SDL_PIXELFORMAT_ABGR8888:0286a316fe3ba646 | status=2 | reset=1 0:3x70:SDL_PIXELFORMAT_ABGR8888:0286a316fe3ba646
+decoder tb100: ok | 0:3x70:SDL_PIXELFORMAT_ABGR8888:0286a316fe3ba646 | status=2 | reset=1 0:3x70:SDL_PIXELFORMAT_ABGR8888:0286a316fe3ba646
+== jxl_lossy_resampling.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1aba713607ce19ec blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1aba713607ce19ec blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1aba713607ce19ec blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 63: err: Incomplete JXL image
+trunc 95: err: Incomplete JXL image
+trunc 126: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1aba713607ce19ec blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=1aba713607ce19ec blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:1aba713607ce19ec | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:1aba713607ce19ec
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:1aba713607ce19ec | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:1aba713607ce19ec
+== jxl_lossy_tiny.jxl
+is: JXL
+is_extra: JXL
+load: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=c5ecd702ad3c22b2 blend=1
+load_io: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=c5ecd702ad3c22b2 blend=1
+typed: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=c5ecd702ad3c22b2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 37: err: Incomplete JXL image
+trunc 55: err: Incomplete JXL image
+trunc 73: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 1x1 | 0: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=c5ecd702ad3c22b2 blend=1 delay=0
+anim_typed: n=1 1x1 | 0: 1x1 SDL_PIXELFORMAT_ABGR8888 pitch=4 hash=c5ecd702ad3c22b2 blend=1 delay=0
+decoder: ok | 0:1x1:SDL_PIXELFORMAT_ABGR8888:c5ecd702ad3c22b2 | status=2 | reset=1 0:1x1:SDL_PIXELFORMAT_ABGR8888:c5ecd702ad3c22b2
+decoder tb100: ok | 0:1x1:SDL_PIXELFORMAT_ABGR8888:c5ecd702ad3c22b2 | status=2 | reset=1 0:1x1:SDL_PIXELFORMAT_ABGR8888:c5ecd702ad3c22b2
+== jxl_noise.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=d64ec6582bb3ce80 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=d64ec6582bb3ce80 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=d64ec6582bb3ce80 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 476: err: Incomplete JXL image
+trunc 714: err: Incomplete JXL image
+trunc 952: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=d64ec6582bb3ce80 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=d64ec6582bb3ce80 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:d64ec6582bb3ce80 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:d64ec6582bb3ce80
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:d64ec6582bb3ce80 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:d64ec6582bb3ce80
+== jxl_noise_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1819ad3881a62432 blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1819ad3881a62432 blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1819ad3881a62432 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 463: err: Incomplete JXL image
+trunc 694: err: Incomplete JXL image
+trunc 925: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1819ad3881a62432 blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=1819ad3881a62432 blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:1819ad3881a62432 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:1819ad3881a62432
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:1819ad3881a62432 | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:1819ad3881a62432
+== jxl_orientation_2.jxl
+is: JXL
+is_extra: JXL
+load: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=6e794713a2dbe3f2 blend=1
+load_io: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=6e794713a2dbe3f2 blend=1
+typed: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=6e794713a2dbe3f2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 199: err: Incomplete JXL image
+trunc 298: err: Incomplete JXL image
+trunc 397: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 13x9 | 0: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=6e794713a2dbe3f2 blend=1 delay=0
+anim_typed: n=1 13x9 | 0: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=6e794713a2dbe3f2 blend=1 delay=0
+decoder: ok | 0:13x9:SDL_PIXELFORMAT_ABGR8888:6e794713a2dbe3f2 | status=2 | reset=1 0:13x9:SDL_PIXELFORMAT_ABGR8888:6e794713a2dbe3f2
+decoder tb100: ok | 0:13x9:SDL_PIXELFORMAT_ABGR8888:6e794713a2dbe3f2 | status=2 | reset=1 0:13x9:SDL_PIXELFORMAT_ABGR8888:6e794713a2dbe3f2
+== jxl_orientation_3.jxl
+is: JXL
+is_extra: JXL
+load: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=f446e26b71ce4184 blend=1
+load_io: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=f446e26b71ce4184 blend=1
+typed: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=f446e26b71ce4184 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 204: err: Incomplete JXL image
+trunc 306: err: Incomplete JXL image
+trunc 407: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 13x9 | 0: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=f446e26b71ce4184 blend=1 delay=0
+anim_typed: n=1 13x9 | 0: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=f446e26b71ce4184 blend=1 delay=0
+decoder: ok | 0:13x9:SDL_PIXELFORMAT_ABGR8888:f446e26b71ce4184 | status=2 | reset=1 0:13x9:SDL_PIXELFORMAT_ABGR8888:f446e26b71ce4184
+decoder tb100: ok | 0:13x9:SDL_PIXELFORMAT_ABGR8888:f446e26b71ce4184 | status=2 | reset=1 0:13x9:SDL_PIXELFORMAT_ABGR8888:f446e26b71ce4184
+== jxl_orientation_4.jxl
+is: JXL
+is_extra: JXL
+load: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=363bc8cb75cb5bad blend=1
+load_io: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=363bc8cb75cb5bad blend=1
+typed: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=363bc8cb75cb5bad blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 198: err: Incomplete JXL image
+trunc 297: err: Incomplete JXL image
+trunc 396: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 13x9 | 0: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=363bc8cb75cb5bad blend=1 delay=0
+anim_typed: n=1 13x9 | 0: 13x9 SDL_PIXELFORMAT_ABGR8888 pitch=52 hash=363bc8cb75cb5bad blend=1 delay=0
+decoder: ok | 0:13x9:SDL_PIXELFORMAT_ABGR8888:363bc8cb75cb5bad | status=2 | reset=1 0:13x9:SDL_PIXELFORMAT_ABGR8888:363bc8cb75cb5bad
+decoder tb100: ok | 0:13x9:SDL_PIXELFORMAT_ABGR8888:363bc8cb75cb5bad | status=2 | reset=1 0:13x9:SDL_PIXELFORMAT_ABGR8888:363bc8cb75cb5bad
+== jxl_orientation_5.jxl
+is: JXL
+is_extra: JXL
+load: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c100c81dd643756f blend=1
+load_io: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c100c81dd643756f blend=1
+typed: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c100c81dd643756f blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 200: err: Incomplete JXL image
+trunc 300: err: Incomplete JXL image
+trunc 399: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c100c81dd643756f blend=1 delay=0
+anim_typed: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c100c81dd643756f blend=1 delay=0
+decoder: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:c100c81dd643756f | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:c100c81dd643756f
+decoder tb100: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:c100c81dd643756f | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:c100c81dd643756f
+== jxl_orientation_5_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=81f872a516034ec6 blend=1
+load_io: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=81f872a516034ec6 blend=1
+typed: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=81f872a516034ec6 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 187: err: Incomplete JXL image
+trunc 281: err: Incomplete JXL image
+trunc 374: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=81f872a516034ec6 blend=1 delay=0
+anim_typed: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=81f872a516034ec6 blend=1 delay=0
+decoder: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:81f872a516034ec6 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:81f872a516034ec6
+decoder tb100: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:81f872a516034ec6 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:81f872a516034ec6
+== jxl_orientation_6.jxl
+is: JXL
+is_extra: JXL
+load: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c3267492c27776f2 blend=1
+load_io: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c3267492c27776f2 blend=1
+typed: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c3267492c27776f2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 198: err: Incomplete JXL image
+trunc 297: err: Incomplete JXL image
+trunc 395: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c3267492c27776f2 blend=1 delay=0
+anim_typed: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c3267492c27776f2 blend=1 delay=0
+decoder: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:c3267492c27776f2 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:c3267492c27776f2
+decoder tb100: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:c3267492c27776f2 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:c3267492c27776f2
+== jxl_orientation_6_lossy.jxl
+is: JXL
+is_extra: JXL
+load: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=be9eee38df56ecd2 blend=1
+load_io: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=be9eee38df56ecd2 blend=1
+typed: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=be9eee38df56ecd2 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 146: err: Incomplete JXL image
+trunc 219: err: Incomplete JXL image
+trunc 292: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=be9eee38df56ecd2 blend=1 delay=0
+anim_typed: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=be9eee38df56ecd2 blend=1 delay=0
+decoder: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:be9eee38df56ecd2 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:be9eee38df56ecd2
+decoder tb100: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:be9eee38df56ecd2 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:be9eee38df56ecd2
+== jxl_orientation_7.jxl
+is: JXL
+is_extra: JXL
+load: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c5929a54231bcd64 blend=1
+load_io: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c5929a54231bcd64 blend=1
+typed: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c5929a54231bcd64 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 199: err: Incomplete JXL image
+trunc 298: err: Incomplete JXL image
+trunc 397: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c5929a54231bcd64 blend=1 delay=0
+anim_typed: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=c5929a54231bcd64 blend=1 delay=0
+decoder: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:c5929a54231bcd64 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:c5929a54231bcd64
+decoder tb100: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:c5929a54231bcd64 | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:c5929a54231bcd64
+== jxl_orientation_8.jxl
+is: JXL
+is_extra: JXL
+load: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=a8d0ffab35eb3f9d blend=1
+load_io: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=a8d0ffab35eb3f9d blend=1
+typed: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=a8d0ffab35eb3f9d blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Unsupported image format
+trunc 4: err: Unsupported image format
+trunc 8: err: Unsupported image format
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 199: err: Incomplete JXL image
+trunc 298: err: Incomplete JXL image
+trunc 397: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=a8d0ffab35eb3f9d blend=1 delay=0
+anim_typed: n=1 9x13 | 0: 9x13 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=a8d0ffab35eb3f9d blend=1 delay=0
+decoder: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:a8d0ffab35eb3f9d | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:a8d0ffab35eb3f9d
+decoder tb100: ok | 0:9x13:SDL_PIXELFORMAT_ABGR8888:a8d0ffab35eb3f9d | status=2 | reset=1 0:9x13:SDL_PIXELFORMAT_ABGR8888:a8d0ffab35eb3f9d
+== jxl_patches.jxl
+is: JXL
+is_extra: JXL
+load: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=45d5677b589b05c4 blend=1
+load_io: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=45d5677b589b05c4 blend=1
+typed: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=45d5677b589b05c4 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 441: err: Incomplete JXL image
+trunc 662: err: Incomplete JXL image
+trunc 882: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 96x64 | 0: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=45d5677b589b05c4 blend=1 delay=0
+anim_typed: n=1 96x64 | 0: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=45d5677b589b05c4 blend=1 delay=0
+decoder: ok | 0:96x64:SDL_PIXELFORMAT_ABGR8888:45d5677b589b05c4 | status=2 | reset=1 0:96x64:SDL_PIXELFORMAT_ABGR8888:45d5677b589b05c4
+decoder tb100: ok | 0:96x64:SDL_PIXELFORMAT_ABGR8888:45d5677b589b05c4 | status=2 | reset=1 0:96x64:SDL_PIXELFORMAT_ABGR8888:45d5677b589b05c4
+== jxl_patches_lossless.jxl
+is: JXL
+is_extra: JXL
+load: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=41e4aff056f603c5 blend=1
+load_io: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=41e4aff056f603c5 blend=1
+typed: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=41e4aff056f603c5 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 148: err: Incomplete JXL image
+trunc 222: err: Incomplete JXL image
+trunc 296: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 96x64 | 0: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=41e4aff056f603c5 blend=1 delay=0
+anim_typed: n=1 96x64 | 0: 96x64 SDL_PIXELFORMAT_ABGR8888 pitch=384 hash=41e4aff056f603c5 blend=1 delay=0
+decoder: ok | 0:96x64:SDL_PIXELFORMAT_ABGR8888:41e4aff056f603c5 | status=2 | reset=1 0:96x64:SDL_PIXELFORMAT_ABGR8888:41e4aff056f603c5
+decoder tb100: ok | 0:96x64:SDL_PIXELFORMAT_ABGR8888:41e4aff056f603c5 | status=2 | reset=1 0:96x64:SDL_PIXELFORMAT_ABGR8888:41e4aff056f603c5
+== jxl_progressive_ac.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 480: err: Incomplete JXL image
+trunc 720: err: Incomplete JXL image
+trunc 959: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7
+== jxl_progressive_ac_groups.jxl
+is: JXL
+is_extra: JXL
+load: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=db33060821555e03 blend=1
+load_io: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=db33060821555e03 blend=1
+typed: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=db33060821555e03 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 4096: err: Incomplete JXL image
+trunc 8192: err: Incomplete JXL image
+trunc 6024: err: Incomplete JXL image
+trunc 9036: err: Incomplete JXL image
+trunc 12047: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=db33060821555e03 blend=1 delay=0
+anim_typed: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=db33060821555e03 blend=1 delay=0
+decoder: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:db33060821555e03 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:db33060821555e03
+decoder tb100: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:db33060821555e03 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:db33060821555e03
+== jxl_progressive_dc.jxl
+is: JXL
+is_extra: JXL
+load: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=2d74bae8b2f7ccc0 blend=1
+load_io: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=2d74bae8b2f7ccc0 blend=1
+typed: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=2d74bae8b2f7ccc0 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 4096: err: Incomplete JXL image
+trunc 8192: err: Incomplete JXL image
+trunc 16384: err: Incomplete JXL image
+trunc 8307: err: Incomplete JXL image
+trunc 12461: err: Incomplete JXL image
+trunc 16614: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=2d74bae8b2f7ccc0 blend=1 delay=0
+anim_typed: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=2d74bae8b2f7ccc0 blend=1 delay=0
+decoder: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:2d74bae8b2f7ccc0 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:2d74bae8b2f7ccc0
+decoder tb100: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:2d74bae8b2f7ccc0 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:2d74bae8b2f7ccc0
+== jxl_progressive_dc2.jxl
+is: JXL
+is_extra: JXL
+load: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=97e0f2475ba14e13 blend=1
+load_io: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=97e0f2475ba14e13 blend=1
+typed: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=97e0f2475ba14e13 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 2048: err: Incomplete JXL image
+trunc 4096: err: Incomplete JXL image
+trunc 8192: err: Incomplete JXL image
+trunc 16384: err: Incomplete JXL image
+trunc 15391: err: Incomplete JXL image
+trunc 23087: err: Incomplete JXL image
+trunc 30782: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=97e0f2475ba14e13 blend=1 delay=0
+anim_typed: n=1 272x264 | 0: 272x264 SDL_PIXELFORMAT_ABGR8888 pitch=1088 hash=97e0f2475ba14e13 blend=1 delay=0
+decoder: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:97e0f2475ba14e13 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:97e0f2475ba14e13
+decoder tb100: ok | 0:272x264:SDL_PIXELFORMAT_ABGR8888:97e0f2475ba14e13 | status=2 | reset=1 0:272x264:SDL_PIXELFORMAT_ABGR8888:97e0f2475ba14e13
+== jxl_progressive_qac.jxl
+is: JXL
+is_extra: JXL
+load: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1
+load_io: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1
+typed: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 442: err: Incomplete JXL image
+trunc 663: err: Incomplete JXL image
+trunc 883: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1 delay=0
+anim_typed: n=1 40x30 | 0: 40x30 SDL_PIXELFORMAT_ABGR8888 pitch=160 hash=845394a9f295ecc7 blend=1 delay=0
+decoder: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7
+decoder tb100: ok | 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7 | status=2 | reset=1 0:40x30:SDL_PIXELFORMAT_ABGR8888:845394a9f295ecc7
+== jxl_progressive_qac_alpha.jxl
+is: JXL
+is_extra: JXL
+load: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fdc8e7a8dd5b6ec blend=1
+load_io: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fdc8e7a8dd5b6ec blend=1
+typed: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fdc8e7a8dd5b6ec blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 478: err: Incomplete JXL image
+trunc 717: err: Incomplete JXL image
+trunc 955: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fdc8e7a8dd5b6ec blend=1 delay=0
+anim_typed: n=1 37x21 | 0: 37x21 SDL_PIXELFORMAT_ABGR8888 pitch=148 hash=0fdc8e7a8dd5b6ec blend=1 delay=0
+decoder: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:0fdc8e7a8dd5b6ec | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:0fdc8e7a8dd5b6ec
+decoder tb100: ok | 0:37x21:SDL_PIXELFORMAT_ABGR8888:0fdc8e7a8dd5b6ec | status=2 | reset=1 0:37x21:SDL_PIXELFORMAT_ABGR8888:0fdc8e7a8dd5b6ec
+== jxl_splines.jxl
+is: JXL
+is_extra: JXL
+load: 48x40 SDL_PIXELFORMAT_ABGR8888 pitch=192 hash=baf1d412ebbf0706 blend=1
+load_io: 48x40 SDL_PIXELFORMAT_ABGR8888 pitch=192 hash=baf1d412ebbf0706 blend=1
+typed: 48x40 SDL_PIXELFORMAT_ABGR8888 pitch=192 hash=baf1d412ebbf0706 blend=1
+trunc 0: err: Unsupported image format
+trunc 1: err: Unsupported image format
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 256: err: Incomplete JXL image
+trunc 512: err: Incomplete JXL image
+trunc 1024: err: Incomplete JXL image
+trunc 824: err: Incomplete JXL image
+trunc 1236: err: Incomplete JXL image
+trunc 1648: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 48x40 | 0: 48x40 SDL_PIXELFORMAT_ABGR8888 pitch=192 hash=baf1d412ebbf0706 blend=1 delay=0
+anim_typed: n=1 48x40 | 0: 48x40 SDL_PIXELFORMAT_ABGR8888 pitch=192 hash=baf1d412ebbf0706 blend=1 delay=0
+decoder: ok | 0:48x40:SDL_PIXELFORMAT_ABGR8888:baf1d412ebbf0706 | status=2 | reset=1 0:48x40:SDL_PIXELFORMAT_ABGR8888:baf1d412ebbf0706
+decoder tb100: ok | 0:48x40:SDL_PIXELFORMAT_ABGR8888:baf1d412ebbf0706 | status=2 | reset=1 0:48x40:SDL_PIXELFORMAT_ABGR8888:baf1d412ebbf0706
 == lbm_24.lbm
 is: LBM
 is_extra:
@@ -4988,28 +7069,61 @@ save_webp 90: bytes=170 hash=9053fee80b9674aa | reload: 23x42 SDL_PIXELFORMAT_RG
 save_webp 50: bytes=118 hash=4ab1bb5c213a2971 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=b3873a9afe99e79a blend=0
 save_webp 0: bytes=80 hash=606102056eebc105 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=dc0a7eb53308239c blend=0
 == sample.jxl
-is:
+is: JXL
 is_extra: JXL
-load: err: Unsupported image format
-load_io: err: Unsupported image format
-typed: err: Unsupported image format
+load: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1
+load_io: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1
+typed: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1
 trunc 0: err: Unsupported image format
 trunc 1: err: Unsupported image format
-trunc 2: err: Unsupported image format
-trunc 4: err: Unsupported image format
-trunc 8: err: Unsupported image format
-trunc 16: err: Unsupported image format
-trunc 32: err: Unsupported image format
-trunc 64: err: Unsupported image format
-trunc 128: err: Unsupported image format
-trunc 81: err: Unsupported image format
-trunc 122: err: Unsupported image format
-trunc 162: err: Unsupported image format
-xor: err: Unsupported image format
-anim_io: err: Unsupported image format
-anim_typed: err: Unsupported image format
-decoder: ok | status=1 err=Unsupported image format | reset=1 none
-decoder tb100: ok | status=1 err=Unsupported image format | reset=1 none
+trunc 2: err: Incomplete JXL image
+trunc 4: err: Incomplete JXL image
+trunc 8: err: Incomplete JXL image
+trunc 16: err: Incomplete JXL image
+trunc 32: err: Incomplete JXL image
+trunc 64: err: Incomplete JXL image
+trunc 128: err: Incomplete JXL image
+trunc 81: err: Incomplete JXL image
+trunc 122: err: Incomplete JXL image
+trunc 162: err: Incomplete JXL image
+xor: err: JXL decoder error
+anim_io: n=1 23x42 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1 delay=0
+anim_typed: n=1 23x42 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1 delay=0
+decoder: ok | 0:23x42:SDL_PIXELFORMAT_ABGR8888:ced08057f129cdb6 | status=2 | reset=1 0:23x42:SDL_PIXELFORMAT_ABGR8888:ced08057f129cdb6
+decoder tb100: ok | 0:23x42:SDL_PIXELFORMAT_ABGR8888:ced08057f129cdb6 | status=2 | reset=1 0:23x42:SDL_PIXELFORMAT_ABGR8888:ced08057f129cdb6
+save_anim gif: bytes=1715 hash=1412a9605d16aa74 | reload: n=1 23x42 loop=0 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=0fe3880166d04e66 blend=1 delay=100
+save_anim ani: bytes=2940 hash=1046bbb01d86ad7c | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1 hot=0,0 delay=0
+save_anim png: err: SDL_image not built against libpng.
+save_anim webp: bytes=180 hash=75b35a51eaa2d0c3 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=e949b1949cfb1d81 blend=0 delay=0
+save_anim avif: err: SDL_image built without AVIF animation save support
+save_anim xyz: err: Unsupported image format
+gif_enc lut16: bytes=331 hash=696ed04e11a27ca9 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=4a5305c124c355ab blend=1 delay=100
+ani_enc meta: bytes=2992 hash=7c931f3f4a37589c | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1 hot=0,0 delay=17
+webp_enc ll meta: err: WebPMuxGetAnimationParams() failed
+webp_enc q30 dup: bytes=108 hash=b0290c8f0423a8be | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ded642bc60a2772d blend=0 delay=0
+save bmp: bytes=4002 hash=fe9bd4632d6069b6 | reload: err: Unsupported TGA format
+save png: bytes=2829 hash=8cd11b6a5769fe63 | reload: err: Unsupported TGA format
+save tga: bytes=3882 hash=6cc83d6554f595fd | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4652a52bca592bba blend=1
+save jpg: bytes=1127 hash=0f145873e3a746e1 | reload: err: Unsupported TGA format
+save ico: bytes=2852 hash=1dbf52b6e63bac15 | reload: err: Unsupported TGA format
+save cur: bytes=2852 hash=2c1d322306b6223a | reload: err: Unsupported TGA format
+save_jpg 10: bytes=752 hash=b6c703c4b9c206f4 | reload: err: Unsupported TGA format
+save_jpg 50: bytes=993 hash=677fe69b399a1b54 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=2916 hash=e933bdc1173a1b59 | reload: 23x42 SDL_PIXELFORMAT_BGR24 pitch=72 hash=120c75256ff7121a blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=2916 hash=e933bdc1173a1b59 | reload: 23x42 SDL_PIXELFORMAT_BGR24 pitch=72 hash=120c75256ff7121a blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=3882 hash=6cc83d6554f595fd | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4652a52bca592bba blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=3882 hash=6cc83d6554f595fd | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4652a52bca592bba blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=3882 hash=6cc83d6554f595fd | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4652a52bca592bba blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=1950 hash=937ff904059bb258 | reload: 23x42 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=ace226f799f1e75f blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=1950 hash=997d911dbf17bee7 | reload: 23x42 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=ace226f799f1e75f blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=3882 hash=6cc83d6554f595fd | reload: 23x42 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=4652a52bca592bba blend=1
+qoi_encode 3: bytes=1659 hash=e140b14b245e94b6 | reload: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1
+qoi_encode 4: bytes=1659 hash=b26ad374799b2787 | reload: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ced08057f129cdb6 blend=1
+save gif: bytes=1715 hash=1412a9605d16aa74 | reload: err: Unsupported TGA format
+save_webp 100: bytes=898 hash=a8fc10ea639a66b7 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=3d0e0081f8152a28 blend=0
+save_webp 90: bytes=178 hash=2afb71bfa002906e | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=03a96576b5dd3efd blend=0
+save_webp 50: bytes=120 hash=f7250ddb2f5e5398 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=09b4917aa77afa4a blend=0
+save_webp 0: bytes=82 hash=ab84fa3c9eac9e33 | reload: 23x42 SDL_PIXELFORMAT_RGB24 pitch=72 hash=b756b5a91b3f6d06 blend=0
 == sample.pcx
 is: PCX
 is_extra:
