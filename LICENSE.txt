@@ -534,6 +534,12 @@ license asks:
   Portions of this software are copyright © 2023 The FreeType Project
   (www.freetype.org).  All rights reserved.
 
+The translation of FreeType's Adobe CFF engine (the ps*.rs files of
+sdl3-ttf/src/freetype/psaux/ that name Adobe in their headers) is also
+Copyright 2006-2014 Adobe Systems Incorporated; those files carry, in
+their headers, Adobe's grant of a patent license under the FreeType
+License, kept from the original files.
+
                     The FreeType Project LICENSE
                     ----------------------------
 

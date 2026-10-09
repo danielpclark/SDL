@@ -3,7 +3,8 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The fonts in `testdata/fonts/` are subsets of DejaVu fonts (see their
-//! `LICENSE`) made by `tools/gen_sdl_ttf_testdata.py`.
+//! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
+//! the DejaVu Sans subset, made by `tools/gen_sdl_ttf_testdata.py`.
 //! `testdata/reference.txt` is the output of a C program built from
 //! upstream SDL_ttf (with its bundled FreeType, without HarfBuzz and
 //! PlutoSVG) and SDL3, which runs the cases below in the same order: font
@@ -13,8 +14,8 @@
 //! kerning, wrapped and aligned, single glyphs and glyph images, fallback
 //! fonts, text objects (layouts, clusters, substrings and edits) drawn
 //! with the surface and renderer (software, with several atlas sizes) text
-//! engines, signed distance field rendering, and the fonts truncated and
-//! with flipped bytes. Surfaces are
+//! engines, signed distance field rendering, the CFF2 font's named
+//! instances, and the fonts truncated and with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
 //! rows and palette, their color key and blend mode.
 
@@ -35,6 +36,9 @@ use crate::{
 static SANS: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.ttf");
 static SERIF_BOLD: &[u8] = include_bytes!("testdata/fonts/DejaVuSerif-Bold.ttf");
 static MONO: &[u8] = include_bytes!("testdata/fonts/DejaVuSansMono.ttf");
+static SANS_CFF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-CFF.otf");
+static SANS_CFF2: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-CFF2.otf");
+static SANS_BARE_CFF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.cff");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -1067,6 +1071,37 @@ fn corrupt_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
     }
 }
 
+/// The CFF2 variable font's named instances (face index `instance << 16`).
+fn cff_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
+    out.push(format!("== instances {name}"));
+    for inst in 0..=4i64 {
+        let f = Font::open_with(crate::FontOptions {
+            iostream: Some(stream(data)),
+            size: 20.0,
+            face: Some(inst << 16),
+            ..Default::default()
+        });
+        let f = match f {
+            Ok(f) => f,
+            Err(e) => {
+                out.push(format!("instance {inst}: err: {e}"));
+                continue;
+            }
+        };
+        out.push(format!("instance {inst}: info: {}", info(&f)));
+        metrics(out, &f, "instance");
+        for (hname, hinting) in HINTS {
+            f.set_hinting(hinting);
+            for (m, mname) in MODES.iter().enumerate() {
+                out.push(format!(
+                    "render instance {inst} {hname} {mname}: {}",
+                    render(&f, m, TEXT)
+                ));
+            }
+        }
+    }
+}
+
 #[test]
 fn matches_upstream_reference() {
     crate::init().unwrap();
@@ -1075,11 +1110,22 @@ fn matches_upstream_reference() {
         ("DejaVuSans.ttf", SANS),
         ("DejaVuSerif-Bold.ttf", SERIF_BOLD),
         ("DejaVuSansMono.ttf", MONO),
+        ("DejaVuSans-CFF.otf", SANS_CFF),
+        ("DejaVuSans-CFF2.otf", SANS_CFF2),
+        ("DejaVuSans.cff", SANS_BARE_CFF),
     ] {
+        /* (the CFF2 and bare CFF versions of DejaVu Sans: the font cases,
+        the named instances, and the corrupt fonts) */
+        let full = !name.contains("CFF2") && !name.contains(".cff");
         font_cases(&mut out, name, data);
-        text_cases(&mut out, name, data);
-        renderer_cases(&mut out, name, data);
-        sdf_cases(&mut out, name, data);
+        if full {
+            text_cases(&mut out, name, data);
+            renderer_cases(&mut out, name, data);
+            sdf_cases(&mut out, name, data);
+        }
+        if name.contains("CFF2") {
+            cff_cases(&mut out, name, data);
+        }
         corrupt_cases(&mut out, name, data);
     }
     crate::quit();

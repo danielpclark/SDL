@@ -105,23 +105,27 @@ In dependency order, after the core each one needs exists:
    metrics, fallback fonts, measuring, wrapping, rendering in every mode,
    glyph images, text objects), the surface, renderer (with
    `stb_rect_pack.h`) and GPU text engines, and the FreeType modules for
-   TrueType fonts: the base layer (with `ftglyph.c`, `ftstroke.c`,
+   TrueType and OpenType/CFF fonts: the base layer (with `ftglyph.c`, `ftstroke.c`,
    `ftbitmap.c`, `ftlcdfil.c`, `ftadvanc.c`), `sfnt` (with WOFF, color
    tables, embedded bitmaps), `truetype` (the v40 bytecode interpreter,
-   GX/OpenType variations), `psnames`, `autofit` (with the CJK and Indic
+   GX/OpenType variations), `cff` (CFF, CFF2 variable and bare CFF fonts),
+   `psaux` (its CFF parts and Adobe's CFF engine), `pshinter` (its global
+   hints), `psnames`, `autofit` (with the CJK and Indic
    writing systems), `smooth`, `raster`, `sdf` (signed distance fields
    from outlines and bitmaps) and `gzip` (with its zlib). The
    FreeType License (`sdl3-ttf/FTL.TXT`) applies to `src/freetype/`.
    Checked against upstream's C (built the same way) on subsets of DejaVu
-   fonts made by `tools/gen_sdl_ttf_testdata.py`: metrics, every render and
+   fonts made by `tools/gen_sdl_ttf_testdata.py` (and CFF, CFF2 and
+   bare CFF versions of one, hinted by the AFDKO's otfautohint): metrics, every render and
    hinting mode, styles, outlines, wrapping, SDF rendering, text objects
    drawn by the three engines (the GPU one on a Vulkan device), and truncated fonts and
    fonts with flipped bytes; FreeType alone was also checked against
    upstream's on more fonts and scripts, and on every truncation and byte
    flip of two small fonts. Not yet: HarfBuzz (part 2), and FreeType's other
-   font drivers (`cff`, `type1`, `cid`, `type42`, `pfr`, `winfnt`, `pcf`,
-   `bdf`, with `psaux`, `pshinter` and `lzw`) and its `svg` renderer
-   (which needs PlutoSVG).
+   font drivers (`type1`, `cid`, `type42`, `pfr`, `winfnt`, `pcf`, `bdf`,
+   with the Type 1 parts of `psaux`, the hinter of `pshinter` that only
+   their old interpreters use, and `lzw`) and its `svg` renderer (which
+   needs PlutoSVG).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
    (`SDL_mixer.c`: mixers on devices or generating into buffers, audio
