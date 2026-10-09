@@ -382,3 +382,82 @@ fn malformed_spirv_fails_cleanly() {
         assert!(r.is_err(), "truncated to {len} bytes");
     }
 }
+
+/// `SDL_VIDEO_DRIVER=offscreen` with the video subsystem up, for a GPU
+/// device.
+struct OffscreenVideo;
+
+impl OffscreenVideo {
+    fn init() -> sdl3::Result<OffscreenVideo> {
+        sdl3::hints::set(sdl3::hints::VIDEO_DRIVER, "offscreen")?;
+        sdl3::init::init(sdl3::init::InitFlags::VIDEO)?;
+        Ok(OffscreenVideo)
+    }
+}
+
+impl Drop for OffscreenVideo {
+    fn drop(&mut self) {
+        sdl3::init::quit_subsystem(sdl3::init::InitFlags::VIDEO);
+        sdl3::hints::reset(sdl3::hints::VIDEO_DRIVER);
+    }
+}
+
+#[test]
+fn gpu_shaders_and_pipelines_from_spirv() {
+    // Declared before the device, so dropped after it.
+    let video = OffscreenVideo::init();
+    crate::init().unwrap();
+    let device = match video.as_ref().map_err(Clone::clone).and_then(|_| {
+        sdl3::gpu::Device::new(crate::get_spirv_shader_formats(), false, None)
+    }) {
+        Ok(device) => device,
+        Err(e) => {
+            // SDL3_TEST_REQUIRE (docs/HARDWARE_TESTING.md) makes a missing
+            // GPU a failure.
+            let list = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
+            let required = list.split(',').any(|c| {
+                c == "all"
+                    || (cfg!(target_os = "linux") && c == "vulkan")
+                    || (cfg!(windows) && c == "d3d12")
+            });
+            assert!(!required, "no GPU device: {e}");
+            eprintln!("skipped: no GPU device ({e})");
+            return;
+        }
+    };
+    let mut count = 0;
+    for (name, code) in SHADERS {
+        if name.contains("_bad_") {
+            continue;
+        }
+        let shader_stage = stage(match name.as_bytes()[0] {
+            b'v' => "vertex",
+            b'f' => "fragment",
+            _ => "compute",
+        });
+        let info = crate::SpirvInfo {
+            bytecode: code,
+            entrypoint: "main",
+            shader_stage,
+            props: None,
+        };
+        if shader_stage == crate::ShaderStage::Compute {
+            let metadata = crate::reflect_compute_spirv(code, None).unwrap();
+            crate::compile_compute_pipeline_from_spirv(&device, &info, &metadata, None)
+                .unwrap_or_else(|e| panic!("{name}: {}", e.message()));
+        } else {
+            let metadata = crate::reflect_graphics_spirv(code, None).unwrap();
+            crate::compile_graphics_shader_from_spirv(
+                &device,
+                &info,
+                &metadata.resource_info,
+                None,
+            )
+            .unwrap_or_else(|e| panic!("{name}: {}", e.message()));
+        }
+        count += 1;
+    }
+    assert_eq!(count, 13);
+    drop(device);
+    crate::quit();
+}
