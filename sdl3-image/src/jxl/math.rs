@@ -11,8 +11,9 @@
 //
 // cbrtf() is a translation of the GNU C Library's
 // sysdeps/ieee754/flt-32/s_cbrtf.c (glibc 2.39, the C library the
-// reference was made with), contributed by Ulrich Drepper
-// <drepper@cygnus.com>, 1997; LGPL-2.1-or-later (see LICENSE.txt).
+// reference was made with), Copyright (C) 1997-2024 Free Software
+// Foundation, Inc.; SPDX-License-Identifier: LGPL-2.1-or-later (see
+// LICENSE.txt).
 
 //! The decoder's math: the fast approximations (the SIMD code at one lane,
 //! as highway's scalar target runs it), highway's rounding and conversion

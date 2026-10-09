@@ -6,10 +6,11 @@
 //! (`test/`, under SDL_image's zlib license) and small synthetic ones made
 //! by `tools/gen_sdl_image_testdata.py`. `testdata/reference.txt` is the
 //! output of a C program built from upstream SDL_image (with its stb_image,
-//! tiny_jpeg and QOI codecs, libwebp, libtiff and libavif with dav1d, the
-//! latter four as SDL_image's external/ builds them, libwebp without its
-//! SIMD code and with its encoder and muxer, libavif and dav1d as plain C,
-//! without AVIF saving) and SDL3: for every image, the
+//! tiny_jpeg and QOI codecs, libwebp, libtiff, libavif with dav1d and
+//! libjxl, the latter five as SDL_image's external/ builds them, libwebp
+//! without its SIMD code and with its encoder and muxer, libavif and dav1d
+//! as plain C, libjxl for Highway's scalar target, without AVIF saving) and
+//! SDL3: for every image, the
 //! detectors that accept it, the surfaces loaded from the file, from memory
 //! and by type, from truncations and from a corrupted copy, and the files
 //! saved from it in every format (with their size and hash, and the surface
@@ -19,10 +20,11 @@
 //! `tools/gen_avif_testdata.py`) also get their colorspace and HDR
 //! properties, the animation decoder's options, and truncations and
 //! corruption as animations; the savers are run on three of them only.
+//! The JPEG XL files (made by `tools/gen_jxl_testdata.py`) are loaded but
+//! not saved from, except `sample.jxl`.
 //!
-//! Where upstream's results can't be had here, the comparison says why:
-//! formats not translated yet load as "Unsupported image format", the GIFs
-//! whose header the GIF decoder rejects (which upstream loads through an
+//! Where upstream's results can't be had here, the comparison says why: the
+//! GIFs whose header the GIF decoder rejects (which upstream loads through an
 //! endless recursion, until it crashes or runs out of memory) fail with the
 //! decoder's error, and where upstream leaves the error message empty
 //! (libtiff only prints its errors, and a WebP animation encoder's
@@ -93,6 +95,88 @@ static IMAGES: &[(&str, &[u8])] = images![
     "jpgcmyk.jpg",
     "jpggray.jpg",
     "jpgprog.jpg",
+    "jxl_anim.jxl",
+    "jxl_anim_blend.jxl",
+    "jxl_anim_lossy.jxl",
+    "jxl_container.jxl",
+    "jxl_dots.jxl",
+    "jxl_enum_709.jxl",
+    "jxl_enum_dci.jxl",
+    "jxl_enum_gamma.jxl",
+    "jxl_enum_gray_linear.jxl",
+    "jxl_enum_hlg.jxl",
+    "jxl_enum_linear.jxl",
+    "jxl_enum_p3.jxl",
+    "jxl_enum_pq.jxl",
+    "jxl_enum_pq_lossless.jxl",
+    "jxl_float_lossless.jxl",
+    "jxl_float_lossy.jxl",
+    "jxl_group_order.jxl",
+    "jxl_icc_lossless.jxl",
+    "jxl_icc_lossy.jxl",
+    "jxl_jpeg_420.jxl",
+    "jxl_jpeg_422.jxl",
+    "jxl_jpeg_444.jxl",
+    "jxl_jpeg_gray.jxl",
+    "jxl_jpeg_progressive.jxl",
+    "jxl_lossless.jxl",
+    "jxl_lossless_12bit.jxl",
+    "jxl_lossless_16bit.jxl",
+    "jxl_lossless_16bit_alpha.jxl",
+    "jxl_lossless_1bit.jxl",
+    "jxl_lossless_alpha.jxl",
+    "jxl_lossless_e1.jxl",
+    "jxl_lossless_e3.jxl",
+    "jxl_lossless_e9.jxl",
+    "jxl_lossless_gray.jxl",
+    "jxl_lossless_graya.jxl",
+    "jxl_lossless_groups.jxl",
+    "jxl_lossless_palette.jxl",
+    "jxl_lossless_squeeze.jxl",
+    "jxl_lossless_tall.jxl",
+    "jxl_lossless_tiny.jxl",
+    "jxl_lossy.jxl",
+    "jxl_lossy_16bit.jxl",
+    "jxl_lossy_alpha.jxl",
+    "jxl_lossy_alpha_premultiplied.jxl",
+    "jxl_lossy_alpha_resampled.jxl",
+    "jxl_lossy_d0.3_e9.jxl",
+    "jxl_lossy_d15_e8.jxl",
+    "jxl_lossy_d2_e5.jxl",
+    "jxl_lossy_d3_e3.jxl",
+    "jxl_lossy_d8.jxl",
+    "jxl_lossy_epf1.jxl",
+    "jxl_lossy_epf3.jxl",
+    "jxl_lossy_faster_decoding.jxl",
+    "jxl_lossy_gray.jxl",
+    "jxl_lossy_graya.jxl",
+    "jxl_lossy_groups.jxl",
+    "jxl_lossy_modular.jxl",
+    "jxl_lossy_modular_alpha.jxl",
+    "jxl_lossy_nofilters.jxl",
+    "jxl_lossy_odd.jxl",
+    "jxl_lossy_resampling.jxl",
+    "jxl_lossy_tiny.jxl",
+    "jxl_noise.jxl",
+    "jxl_noise_alpha.jxl",
+    "jxl_orientation_2.jxl",
+    "jxl_orientation_3.jxl",
+    "jxl_orientation_4.jxl",
+    "jxl_orientation_5.jxl",
+    "jxl_orientation_5_alpha.jxl",
+    "jxl_orientation_6.jxl",
+    "jxl_orientation_6_lossy.jxl",
+    "jxl_orientation_7.jxl",
+    "jxl_orientation_8.jxl",
+    "jxl_patches.jxl",
+    "jxl_patches_lossless.jxl",
+    "jxl_progressive_ac.jxl",
+    "jxl_progressive_ac_groups.jxl",
+    "jxl_progressive_dc.jxl",
+    "jxl_progressive_dc2.jxl",
+    "jxl_progressive_qac.jxl",
+    "jxl_progressive_qac_alpha.jxl",
+    "jxl_splines.jxl",
     "lbm_24.lbm",
     "lbm_ehb.lbm",
     "lbm_ham.lbm",
@@ -814,9 +898,7 @@ fn matches_upstream_reference() {
         let actual = if label == "is" {
             let mut io = IoStream::from_const_mem(data);
             let mut found = String::new();
-            // (upstream's harness is built without libjxl, so its detector
-            // is on the is_extra line)
-            let detectors: [(&str, Detector); 18] = [
+            let detectors: [(&str, Detector); 19] = [
                 ("ANI", crate::is_ani),
                 ("AVIF", crate::is_avif),
                 ("CUR", crate::is_cur),
@@ -824,6 +906,7 @@ fn matches_upstream_reference() {
                 ("GIF", crate::is_gif),
                 ("ICO", crate::is_ico),
                 ("JPG", crate::is_jpg),
+                ("JXL", crate::is_jxl),
                 ("LBM", crate::is_lbm),
                 ("PCX", crate::is_pcx),
                 ("PNG", crate::is_png),
@@ -1165,10 +1248,15 @@ fn front_end_errors() {
     assert!(crate::load_typed_io(&mut IoStream::from_const_mem(png), Some("JPG")).is_ok());
     assert!(crate::load_typed_io(&mut IoStream::from_const_mem(png), Some("TGA")).is_err());
 
-    // Formats not translated yet are unsupported, like an upstream build
-    // without them
-    let e = crate::load_io(&mut IoStream::from_const_mem(image("sample.jxl"))).unwrap_err();
-    assert_eq!(e.to_string(), "Unsupported image format");
+    // JPEG XL is detected by its signature whatever the type says, and the
+    // JXL loader rewinds the stream when it fails
+    let jxl = image("sample.jxl");
+    let s = crate::load_typed_io(&mut IoStream::from_const_mem(jxl), Some("PNG")).unwrap();
+    assert_eq!((s.width(), s.height(), s.format()), (23, 42, PixelFormat::RGBA32));
+    let mut io = IoStream::from_const_mem(&jxl[..jxl.len() / 2]);
+    let e = crate::load_typed_io(&mut io, Some("JXL")).unwrap_err();
+    assert_eq!(e.to_string(), "Incomplete JXL image");
+    assert_eq!(io.tell().unwrap(), 0);
 
     let e = crate::load("/nonexistent/sdl3-image/image.png").unwrap_err();
     assert!(!e.to_string().is_empty());

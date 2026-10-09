@@ -860,7 +860,15 @@ impl ModularFrameDecoder {
             return Ok(());
         }
         let mut gi = if inplace {
-            std::mem::take(&mut self.full_image)
+            let gi = std::mem::take(&mut self.full_image);
+            // (A moved-from Image keeps its scalar members: the bit depth
+            // ModularImageToDecodedRect() reads from full_image below.)
+            self.full_image.w = gi.w;
+            self.full_image.h = gi.h;
+            self.full_image.bitdepth = gi.bitdepth;
+            self.full_image.nb_meta_channels = gi.nb_meta_channels;
+            self.full_image.error = gi.error;
+            gi
         } else {
             self.full_image.clone_image()?
         };
