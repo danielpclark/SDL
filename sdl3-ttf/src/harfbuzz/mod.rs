@@ -103,4 +103,4 @@ pub mod hb_unicode;
 pub mod hb_unicode_emoji_table;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

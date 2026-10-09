@@ -6,7 +6,7 @@
 # versions of the DejaVu Sans subset, hinted with the AFDKO's otfautohint
 # (`pip install afdko`).
 #
-# Usage: tools/gen_sdl_ttf_testdata.py [OUTDIR]
+# Usage: tools/gen_sdl_ttf_testdata.py [--shaping] [OUTDIR]
 #
 # The subsets keep Basic Latin and Latin-1 (and, in the monospaced font
 # only, a few more characters that the fallback font test looks for), with
@@ -26,9 +26,15 @@
 # with a width axis, whose masters are the CFF font and a copy 12% wider,
 # and three named instances.
 #
-# The expected results in sdl3-ttf/src/testdata/reference.txt come from
-# upstream SDL_ttf's C (with its bundled FreeType, without HarfBuzz and
-# PlutoSVG), not from this script.
+# The fonts of the shaping tests (make_shaping_fonts; only those with
+# --shaping) are subsets of Noto fonts ($NOTO_DIR) keeping the characters
+# of their cases in sdl3-ttf/src/testdata/shaping_cases.txt, with all
+# their OpenType layout features, and DejaVuSans-NoLayout.ttf, DejaVu
+# Sans's Arabic and Hebrew without its OpenType layout tables.
+#
+# The expected results in sdl3-ttf/src/testdata/reference.txt and
+# shaping_reference.txt come from upstream SDL_ttf's C (with its bundled
+# FreeType and HarfBuzz, without PlutoSVG), not from this script.
 
 import os
 import sys
@@ -188,6 +194,86 @@ def make_cff_fonts(out):
         keep_timestamp(cff2_path, src)
 
 
+SHAPING_FONTS = [
+    # (source, output, extra code points); the sources are Noto fonts as
+    # notofonts.github.io publishes them (fonts/NAME/hinted/ttf/NAME.ttf),
+    # Noto Sans KR from noto-cjk (Sans/SubsetOTF/KR), in $NOTO_DIR
+    ("NotoSans-Regular.ttf", "NotoSans-Regular.ttf", list(range(0x20, 0x7F))),
+    ("NotoSansArabic-Regular.ttf", "NotoSansArabic-Regular.ttf", [0x25CC]),
+    ("NotoSansHebrew-Regular.ttf", "NotoSansHebrew-Regular.ttf", [0x25CC]),
+    ("NotoSansDevanagari-Regular.ttf", "NotoSansDevanagari-Regular.ttf", [0x25CC]),
+    ("NotoSansThai-Regular.ttf", "NotoSansThai-Regular.ttf", [0x25CC]),
+    ("NotoSansKR-Regular.otf", "NotoSansKR-Regular.otf", [0x25CC]),
+    ("NotoSansKhmer-Regular.ttf", "NotoSansKhmer-Regular.ttf", [0x25CC]),
+    ("NotoSansMyanmar-Regular.ttf", "NotoSansMyanmar-Regular.ttf", [0x25CC]),
+    ("NotoSansSinhala-Regular.ttf", "NotoSansSinhala-Regular.ttf", [0x25CC]),
+]
+
+
+def shaping_texts(path):
+    """The characters of the cases of each font of shaping_cases.txt."""
+    texts = {}
+    font = None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith("font "):
+                font = line.split()[1]
+                texts.setdefault(font, set())
+            elif line.startswith("case\t"):
+                text = line.split("\t", 5)[5]
+                texts[font].update(ord(c) for c in text.replace("\\x", ""))
+    return texts
+
+
+def make_shaping_fonts(out):
+    """The fonts of the shaping tests: subsets of Noto fonts (SIL Open
+    Font License, sdl3-ttf/src/testdata/fonts/OFL.txt) with all their
+    OpenType layout features and their hinting, keeping the characters of
+    their cases (and the dotted circle that shapers insert), and
+    DejaVuSans-NoLayout.ttf, DejaVu Sans's Arabic and Hebrew (with their
+    presentation forms) without its OpenType layout tables, for
+    HarfBuzz's fallback shaping and mark positioning."""
+    noto = os.environ.get("NOTO_DIR", ".")
+    texts = shaping_texts(os.path.join(out, "..", "shaping_cases.txt"))
+    for name, outname, extra in SHAPING_FONTS:
+        options = subset.Options()
+        options.hinting = True
+        options.layout_features = ["*"]
+        options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]
+        options.notdef_outline = True
+        options.glyph_names = False
+        font = subset.load_font(os.path.join(noto, name), options)
+        subsetter = subset.Subsetter(options)
+        subsetter.populate(unicodes=sorted(texts[outname] | set(extra) | {0x20}))
+        subsetter.subset(font)
+        subset.save_font(font, os.path.join(out, outname), options)
+
+    src = os.environ.get("DEJAVU_DIR", "/usr/share/fonts/truetype/dejavu")
+    options = subset.Options()
+    options.hinting = True
+    options.legacy_kern = True
+    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]
+    options.notdef_outline = True
+    options.glyph_names = False
+    options.drop_tables += ["GPOS", "GSUB", "GDEF", "FFTM", "MATH"]
+    options.layout_features = []
+    font = subset.load_font(os.path.join(src, "DejaVuSans.ttf"), options)
+    subsetter = subset.Subsetter(options)
+    unicodes = (list(range(0x20, 0x7F)) + list(range(0x0300, 0x0310)) + list(range(0x05B0, 0x05EB))
+                + list(range(0x0621, 0x0656)) + [0x0670, 0x0671] + list(range(0xFB1D, 0xFB50))
+                + list(range(0xFE70, 0xFEFD)))
+    subsetter.populate(unicodes=unicodes)
+    subsetter.subset(font)
+    subset.save_font(font, os.path.join(out, "DejaVuSans-NoLayout.ttf"), options)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "sdl3-ttf", "src", "testdata", "fonts"))
+    args = sys.argv[1:]
+    shaping_only = "--shaping" in args
+    args = [a for a in args if a != "--shaping"]
+    outdir = args[0] if args else os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "sdl3-ttf", "src", "testdata", "fonts")
+    if not shaping_only:
+        main(outdir)
+    make_shaping_fonts(outdir)
