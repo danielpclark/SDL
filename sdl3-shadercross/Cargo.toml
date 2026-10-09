@@ -1,0 +1,26 @@
+[package]
+name = "sdl3-shadercross"
+description = "A direct, pure-Rust translation of SDL_shadercross 3, the shader translation library for SDL3's GPU API, with the SPIRV-Cross it builds on. No C or C++ code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# SDL_shadercross's zlib license; SPIRV-Cross's Apache-2.0 OR MIT for the
+# translation of SPIRV-Cross in src/spirv_cross/ (see SPIRV-CROSS-LICENSE,
+# SPIRV-CROSS-LICENSE-MIT and NOTICE), and the Khronos MIT license of the
+# SPIR-V headers its token tables are generated from (src/spirv_cross/spirv.rs).
+license = "Zlib AND (Apache-2.0 OR MIT) AND MIT"
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "shader", "spirv", "pure-rust"]
+categories = ["rendering", "game-development", "graphics"]
+
+[lib]
+name = "sdl3_shadercross"
+path = "src/lib.rs"
+
+[[bin]]
+name = "shadercross"
+path = "src/bin/shadercross.rs"
+
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }

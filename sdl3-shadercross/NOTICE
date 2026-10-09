@@ -1,0 +1,39 @@
+sdl3-shadercross: notice for the translation of SPIRV-Cross
+============================================================
+
+src/spirv_cross/ of this crate (except src/spirv_cross/spirv.rs, see
+below) is a translation into Rust of SPIRV-Cross,
+https://github.com/KhronosGroup/SPIRV-Cross, at commit
+1a6169566c73d3da552748fc372fe2bbb856e46e (the copy SDL_shadercross pins in
+its external/SPIRV-Cross submodule).
+
+SPIRV-Cross is Copyright 2015-2021 Arm Limited, 2016-2021 The Brenwill
+Workshop Ltd., 2016-2021 Robert Konrad, 2019-2021 Hans-Kristian Arntzen,
+and the other authors named in its files. Its files are licensed under
+"Apache-2.0 OR MIT"; this translation is distributed under the same
+choice: the Apache License, Version 2.0 (SPIRV-CROSS-LICENSE, a verbatim
+copy of SPIRV-Cross's LICENSE) or the MIT license (SPIRV-CROSS-LICENSE-MIT,
+a verbatim copy of SPIRV-Cross's LICENSES/MIT.txt).
+
+As section 4(b) of the Apache License requires, a statement of changes:
+these files were modified from the originals by being translated to Rust.
+The translation keeps the original file layout (one Rust module per C++
+source file), function order, comments and error messages; C++ exceptions
+became Rust `Result` errors, and additional checks return errors where
+the C++ code would read out of bounds or recurse without limit on
+malformed input. Each translated file says, in its header, which original
+files it translates and that it is an altered version.
+
+SPIRV-Cross itself carries no NOTICE file.
+
+src/spirv_cross/spirv.rs is generated (by tools/gen_spirv_headers.py)
+from the SPIR-V headers SPIRV-Cross includes: spirv.hpp (Copyright
+2014-2024 The Khronos Group Inc., MIT license), GLSL.std.450.h (Copyright
+2014-2016,2021 The Khronos Group, Inc., MIT license) and
+NonSemanticShaderDebugInfo100.h (Copyright (c) 2018-2024 The Khronos
+Group Inc.), under the Khronos license in KHRONOS-LICENSE (MIT style).
+
+The rest of the crate is a translation of SDL_shadercross
+(https://github.com/libsdl-org/SDL_shadercross), under the zlib license,
+Copyright (C) 2024 Sam Lantinga <slouken@libsdl.org>; see LICENSE.txt at
+the root of the repository.

@@ -56,6 +56,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-shadercross"
+version = "3.5.0"
+dependencies = [
+ "sdl3",
+]
+
+[[package]]
 name = "sdl3-test"
 version = "3.5.0"
 dependencies = [
