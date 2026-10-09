@@ -46,6 +46,7 @@ pub(crate) const EINVAL: i32 = 22;
 pub(crate) const ERANGE: i32 = 34;
 pub(crate) const ENOPROTOOPT: i32 = 92;
 pub(crate) const EAGAIN: i32 = 11;
+pub(crate) const ENOENT: i32 = 2;
 
 #[inline]
 pub(crate) const fn dav1d_err(e: i32) -> i32 {
