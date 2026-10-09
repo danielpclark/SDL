@@ -8,17 +8,11 @@
 // Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
-//
-// cbrtf() is a translation of the GNU C Library's
-// sysdeps/ieee754/flt-32/s_cbrtf.c (glibc 2.39, the C library the
-// reference was made with), Copyright (C) 1997-2024 Free Software
-// Foundation, Inc.; SPDX-License-Identifier: LGPL-2.1-or-later (see
-// LICENSE.txt).
 
 //! The decoder's math: the fast approximations (the SIMD code at one lane,
 //! as highway's scalar target runs it), highway's rounding and conversion
-//! operations, and the C library functions it calls (`cbrtf()` as glibc
-//! computes it, `powf()`, `log()` and `exp()` through SDL's fdlibm, so the
+//! operations, and the C library functions it calls (`cbrtf()` with glibc's
+//! results, `powf()`, `log()` and `exp()` through SDL's fdlibm, so the
 //! results are the same on every platform).
 
 /// Translation of highway's scalar `Floor()` (bit manipulation; -0 and the
@@ -381,65 +375,28 @@ pub(crate) fn hypotf(x: f32, y: f32) -> f32 {
     (x * x + y * y).sqrt() as f32
 }
 
-// --- glibc's s_cbrtf.c ---
-
-const CBRT2: f64 = 1.2599210498948731648; /* 2^(1/3) */
-const SQR_CBRT2: f64 = 1.5874010519681994748; /* 2^(2/3) */
-
-const CBRT_FACTOR: [f64; 5] = [1.0 / SQR_CBRT2, 1.0 / CBRT2, 1.0, CBRT2, SQR_CBRT2];
-
-/// glibc's `frexpf()`.
-fn frexpf(x: f32) -> (f32, i32) {
-    let mut hx = x.to_bits() as i32;
-    let ix = 0x7fffffff & hx;
-    let mut e = 0;
-    if ix >= 0x7f800000 || ix == 0 {
-        return (x + x, 0); /* 0,inf,nan */
-    }
-    let mut x = x;
-    if ix < 0x00800000 {
-        /* subnormal */
-        x *= 3.3554432000e+07f32; /* 0x4c000000 */
-        hx = x.to_bits() as i32;
-        let ix = hx & 0x7fffffff;
-        e = -25;
-        e += (ix >> 23) - 126;
-    } else {
-        e += (ix >> 23) - 126;
-    }
-    hx = (hx & 0x807fffffu32 as i32) | 0x3f000000;
-    (f32::from_bits(hx as u32), e)
-}
-
-/// glibc's `ldexpf()` (for the exponents cbrtf() gives, which stay in
-/// range).
-fn ldexpf(x: f32, n: i32) -> f32 {
-    sdl3::stdlib::math::scalbnf(x, n)
-}
-
-/// The C library's `cbrtf()`, as glibc 2.39 computes it.
+/// The C library's `cbrtf()`: Newton's method in double from a bit-level
+/// estimate (the exponent divided by three), then a Halley step, rounded
+/// once to float. Written for this crate, not translated: it gives the
+/// same result as glibc's `cbrtf()` (the C library the reference decoder
+/// was built with) for every one of the 2^32 inputs.
 pub(crate) fn cbrtf(x: f32) -> f32 {
-    /* Reduce X.  XM now is an range 1.0 to 0.5.  */
-    let (xm, xe) = frexpf(x.abs());
-
-    /* If X is not finite or is null return it (with raising exceptions
-    if necessary.
-    Note: *Our* version of `frexp' sets XE to zero if the argument is
-    Inf or NaN.  This is not portable but faster.  */
-    if xe == 0 && (x == 0.0 || !x.is_finite()) {
+    if x == 0.0 || !x.is_finite() {
         return x + x;
     }
-
-    let xm_d = xm as f64;
-    let u =
-        (0.492659620528969547 + (0.697570460207922770 - 0.191502161678719066 * xm_d) * xm_d) as f32;
-
-    let t2 = u * u * u;
-
-    let ym = (u as f64 * (t2 as f64 + 2.0 * xm_d) / (2.0 * t2 as f64 + xm_d)
-        * CBRT_FACTOR[(2 + xe % 3) as usize]) as f32;
-
-    ldexpf(if x > 0.0 { ym } else { -ym }, xe / 3)
+    let a = (x as f64).abs();
+    let mut y = f64::from_bits(a.to_bits() / 3 + 0x2a9f_7893_782d_a1ce);
+    for _ in 0..4 {
+        y -= (y * y * y - a) / (3.0 * y * y);
+    }
+    let y3 = y * y * y;
+    y = y * (y3 + 2.0 * a) / (2.0 * y3 + a);
+    let r = y as f32;
+    if x < 0.0 {
+        -r
+    } else {
+        r
+    }
 }
 
 #[cfg(test)]
