@@ -188,6 +188,11 @@ pub struct FtAutoHinterInterfaceRec {
 pub enum FtModuleInterface {
     None,
     AutoHinter(&'static FtAutoHinterInterfaceRec),
+    /// the PostScript auxiliary module's (`PSAux_Interface`, whose
+    /// functions are called directly)
+    PsAux,
+    /// the PostScript hinter's (`PSHinter_Interface`)
+    PsHinter(&'static super::super::pshinter::pshmod::PsHinterInterface),
 }
 
 /// `FT_Module_Class`
@@ -492,6 +497,9 @@ pub enum FtCMapData {
     None,
     Tt(super::super::sfnt::ttcmap::TtCMapData),
     PsUnicodes(super::super::psnames::psmodule::PsUnicodesRec),
+    /// the CFF driver's encoding charmap (`CFF_CMapStdRec`: its `gids`
+    /// are the font encoding's `codes`)
+    CffEncoding(Box<[FtUShort; 256]>),
 }
 
 /// `FT_CMapRec`
@@ -1378,7 +1386,7 @@ pub fn ft_load_glyph(
                 FtModuleInterface::AutoHinter(hinting) => {
                     (hinting.load_glyph)(&library, hinter, face, glyph_index, load_flags)
                 }
-                FtModuleInterface::None => Err(FT_ERR_UNIMPLEMENTED_FEATURE),
+                _ => Err(FT_ERR_UNIMPLEMENTED_FEATURE),
             };
 
             face.internal.transform_flags = transform_flags;

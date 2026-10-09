@@ -39,9 +39,13 @@
 
 pub mod autofit;
 pub mod base;
+pub mod cff;
+pub mod cfftypes;
 pub mod ftimage;
 pub mod fttypes;
 pub mod gzip;
+pub mod psaux;
+pub mod pshinter;
 pub mod psnames;
 pub mod raster;
 pub mod sdf;

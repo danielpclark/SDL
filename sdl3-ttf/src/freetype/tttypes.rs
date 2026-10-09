@@ -372,6 +372,16 @@ pub struct TtFaceRec {
 
     /* the TrueType driver's size data (see the module documentation) */
     pub size: super::truetype::ttobjs::TtSizeRec,
+
+    /* the CFF driver's data (`CFF_Face' is `TT_Face'; see `cfftypes') */
+    /// `psaux` (set: the face found the PostScript auxiliary module)
+    pub psaux: bool,
+    /// `extra.data` (the `CFF_FontRec')
+    pub cff: Option<Box<super::cfftypes::CffFontRec>>,
+    /// the CFF driver's size additions (`CFF_SizeRec')
+    pub cff_size: super::cfftypes::CffSizeRec,
+    /// the CFF driver's glyph slot additions (`CFF_GlyphSlotRec')
+    pub cff_slot: super::cfftypes::CffGlyphSlotRec,
 }
 
 /// `TT_GlyphZoneRec`: the arrays are owned here (C points them into the
