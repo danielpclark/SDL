@@ -409,7 +409,7 @@ impl<'a> Ligature<'a> {
     }
 }
 
-/// `LigatureSet`: Array16OfOffset16To<Ligature>.
+/// `LigatureSet`: `Array16OfOffset16To<Ligature>`.
 #[derive(Clone, Copy)]
 struct LigatureSet<'a>(&'a [u8]);
 

@@ -19,7 +19,7 @@
 //! lookup caches (which keep glyph classes in the `syllable` buffer
 //! variable) are not translated: they only skip work whose result is
 //! known not to change anything. Matching functions and their data are
-//! the [`MatchFunc`] enum. The buffer message callbacks are not
+//! the `MatchFunc` enum. The buffer message callbacks are not
 //! translated.
 
 use std::borrow::Cow;
@@ -1475,7 +1475,7 @@ fn collect_array(
     }
 }
 
-/// `RuleSet<SmallTypes>`: Array16OfOffset16To<Rule>.
+/// `RuleSet<SmallTypes>`: `Array16OfOffset16To<Rule>`.
 #[derive(Clone, Copy)]
 struct RuleSet<'a>(&'a [u8]);
 
