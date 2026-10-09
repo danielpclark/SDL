@@ -250,6 +250,47 @@ In dependency order, after the core each one needs exists:
    font engine's calls, title, subject and author, heights, and the
    rendered pixels at several widths, offsets and rectangles.
 6. **SDL_shadercross** — needs `gpu/`; SPIRV-Cross/DXC glue.
+   **Part 1 done** (`sdl3-shadercross`, SDL_shadercross 3.0.0 from its
+   `main` branch at 1ff05bec573988a98ef9e0260b4da44f512b8367, with the
+   SPIRV-Cross its `external/SPIRV-Cross` submodule pins,
+   1a6169566c73d3da552748fc372fe2bbb856e46e): all of
+   `SDL_shadercross.c` (`init`/`quit`, the shader formats, SPIR-V
+   reflection of graphics shaders and compute pipelines, SPIR-V to MSL
+   with SDL_GPU's Metal resource indices, to HLSL and, through Windows'
+   `d3dcompiler_47.dll` loaded as upstream does, to DXBC;
+   `compile_graphics_shader_from_spirv` and
+   `compile_compute_pipeline_from_spirv` over `sdl3::gpu`) and `cli.c`
+   (the `shadercross` binary). SPIRV-Cross is translated in its hidden
+   `spirv_cross` module, under its Apache-2.0 OR MIT license: the parser,
+   the parsed IR, the CFG and the analysis and reflection of
+   `spirv_cross.cpp`, and the GLSL, MSL and HLSL backends in full, with
+   the subset of the C API SDL_shadercross calls. Upstream's bugs are kept
+   where output depends on them and marked FIXME (upstream) (among them
+   SDL_shadercross's uninitialized MSL buffer index for unused compute
+   bindings, which the translation zeroes, and the CLI's property
+   mix-ups); where C++ reads out of bounds, recurses without limit,
+   loops forever or allocates for impossible sizes on malformed SPIR-V
+   (member indices past any struct, vectors of more than 16 components,
+   block chains that come back around), the translation returns an
+   error. Checked byte for byte against SDL_shadercross and SPIRV-Cross's C++ on
+   13 glslang-built shaders (tools/gen_shadercross_testdata.py): GLSL
+   (450, ES 310, Vulkan), MSL (1.2 and 2.1), HLSL (SM 6.0, 5.1 and 5.0
+   with PSSL) and the reflection, and on malformed variants of them
+   (truncated, broken headers and word counts, out-of-range IDs, flipped
+   bytes; the ones that crash upstream or make it allocate gigabytes are
+   checked to fail cleanly); in release mode, on every truncation of them
+   and three byte flips at every position (about 285,000 variants through
+   reflection, MSL, HLSL and GLSL) for panics, aborts and hangs, which
+   found the guards above. The test shaders also become `sdl3::gpu`
+   shaders and compute pipelines on a Vulkan device (lavapipe; skipped
+   without one), and DXBC through `d3dcompiler_47.dll` on Windows (Wine's
+   builtin one doesn't implement shader model 5.1, so under Wine only the
+   failure is checked). Left for part 2: the DXC paths
+   (`compile_dxil_from_hlsl`, `compile_spirv_from_hlsl`,
+   `compile_dxil_from_spirv` and the DXIL choice of the format
+   selection), which fail with upstream's "not built with DXC" messages
+   (DXC's `dxcompiler` library is not a system library), and the vkd3d
+   DXBC path upstream takes outside Windows.
 
 ## Rules for every phase
 

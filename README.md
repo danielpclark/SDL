@@ -126,10 +126,12 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | SDL_ttf 3.2.2: `SDL_ttf.c` (with its HarfBuzz paths), `SDL_surface_textengine.c`, `SDL_renderer_textengine.c` with `stb_rect_pack.h`, `SDL_gpu_textengine.c`; its bundled FreeType 2.13.2: the base layer, `sfnt`, `truetype`, `cff`, `psaux` (its CFF parts and Adobe's CFF engine), `pshinter` (its global hints), `psnames`, `autofit`, `smooth`, `raster`, `sdf`, `gzip` with its zlib; its bundled HarfBuzz 8.5.0: the buffer, the UCD Unicode functions, the OpenType layout engine (GSUB, GPOS, GDEF, `kern`), the OpenType shaper with all its shapers (Arabic, Hebrew, Indic, Khmer, Myanmar, Thai/Lao, Hangul, USE, default), `hb-ft` | the `sdl3-ttf` crate (`sdl3_ttf`), FreeType in `sdl3_ttf::freetype` (FreeType License), HarfBuzz in `sdl3_ttf::harfbuzz` (HarfBuzz's Old MIT license, Unicode License V3 for its UCD tables) | fonts from files and streams (TrueType, OpenType with TrueType or CFF outlines, CFF2 and bare CFF fonts, collections, WOFF, variable fonts), sizes and DPI, styles, outlines (FreeType's stroker), hinting (bytecode interpreter, Adobe's CFF engine, auto-hinter, light, mono, LCD), kerning, metrics, fallback fonts, measuring and wrapping, solid, shaded, blended and LCD rendering, signed distance fields, glyph images; `Text` objects (layout, clusters, substrings, editing) drawn on surfaces, with renderers (glyph atlases) or as GPU draw data; text shaping with the font's or text's direction, script and language. Checked line by line against upstream's C on DejaVu subsets (and CFF, CFF2 and bare CFF versions of one), truncated and corrupted, and shaping on Noto subsets for Latin, Arabic, Hebrew, Devanagari, Thai, Hangul, Khmer, Myanmar and Sinhala, with corrupted layout tables. Not yet: HarfBuzz's AAT layout and state-machine `kern` subtables, FreeType's Type 1, CID, Type 42, PFR, Windows FNT, PCF and BDF drivers and its OT-SVG renderer |
 | SDL_net 3.2.0: `SDL_net.c` | the `sdl3-net` crate (`sdl3_net`) | hostname resolution on a pool of resolver threads (`resolve_hostname`, reference-counted `Address`es with their strings, bytes and ordering), TCP clients and servers (`StreamSocket`, `Server`) with non-blocking connects, writes queued when the system can't take them, reads and disconnects, UDP `DatagramSocket`s with unicast and broadcast (IPv6 through the all-nodes multicast group), `wait_until_input_available` over any mix of them, the waits with timeouts, simulated resolution, stream and datagram loss, and the local address list (netlink on Linux, `getifaddrs` on the other Unixes, `GetAdaptersAddresses` on Windows) with change monitoring; over BSD sockets (`libc`) and WinSock (`windows-sys`). Tested over loopback (IPv4, and IPv6 where the system has it), with the system's error strings and address formats checked against upstream's C on Linux; upstream's examples run as tests |
 | SDL_rtf 3.0.0 (`main`, 0bdba67): `SDL_rtf.c`, `SDL_rtfreadr.c`, its RTF reader (`rtfreadr.c`, `rtfactn.c`, from the sample reader of Microsoft's RTF specification), and the font engine of `examples/showrtf.c` | the `sdl3-rtf` crate (`sdl3_rtf`) | `Context`: RTF documents loaded from files and streams (groups, control words, font and color tables, title, subject and author, fonts, sizes, bold, italic, underline, colors, paragraphs and line breaks, left, right and centered alignment, indents, tabs, hex escapes, `\bin` data, skipped destinations), their height at a width, rendered with word wrapping to a renderer's rectangle at a scroll offset; the `FontEngine` trait (upstream's `RTF_FontEngine` callbacks) and `TtfFontEngine`, showrtf's engine over `sdl3-ttf`; `examples/showrtf.rs`. Checked against upstream's C (over SDL_ttf and SDL3) on test documents, truncated and with flipped bytes: the font engine's calls, the document information, heights and rendered pixels. As upstream, no Unicode escapes, tables or images |
+| SDL_shadercross 3.0.0 (`main`, 1ff05be): `SDL_shadercross.c`, `cli.c`; the SPIRV-Cross it pins (1a61695): `spirv_parser.cpp`, `spirv_cross_parsed_ir.cpp`, `spirv_cfg.cpp`, `spirv_cross.cpp`, `spirv_glsl.cpp`, `spirv_msl.cpp`, `spirv_hlsl.cpp` and the part of `spirv_cross_c.cpp` SDL_shadercross uses | the `sdl3-shadercross` crate (`sdl3_shadercross`, SPIRV-Cross in its hidden `spirv_cross` module, Apache-2.0 OR MIT) and its `shadercross` binary | SPIR-V reflection (resource counts of graphics shaders and compute pipelines, thread counts, stage inputs and outputs), SPIR-V to MSL (with SDL_GPU's Metal resource bindings) and to HLSL (shader model 6.0, 5.1 for DXBC, 5.0 for PSSL), `compile_graphics_shader_from_spirv` and `compile_compute_pipeline_from_spirv` creating `sdl3::gpu` shaders and compute pipelines in the device's format, DXBC through Windows' `d3dcompiler_47.dll` (loaded as upstream loads it), and the command-line tool. SPIRV-Cross's parser, IR, control-flow analysis and reflection, and its GLSL, MSL and HLSL backends in full. Checked byte for byte against SDL_shadercross and SPIRV-Cross's C++ on glslang-built shaders (GLSL, ES and Vulkan GLSL, MSL 1.2 and 2.1, HLSL for shader models 5.0, 5.1 and 6.0, reflection), and on malformed SPIR-V (truncated, corrupted: upstream's errors, and where upstream crashes, hangs or reads out of bounds a clean error), with a release-mode pass over about 285,000 truncations and byte flips for panics; GPU shaders and pipelines created on Vulkan (lavapipe). Not yet: everything that needs DXC (DXIL output, HLSL source), which fails with upstream's messages for a build without DXC |
 
-Roughly 241,000 lines of upstream C/headers are covered by about 270,000
-lines of Rust including tests. Upstream is ~624,000 lines, so this is over
-a third by volume, but it is the part that everything else includes. The audio
+Roughly 311,000 lines of upstream C/C++/headers are covered by about
+356,000 lines of Rust including tests. Upstream is ~624,000 lines, so this
+is over a third by volume, but it is the part that everything else
+includes. The audio
 conversions, every blit, conversion, fill, stretch, RLE, rotation, YUV and
 BMP path, and the renderer are checked against upstream's C (compiled with
 its SIMD kernels on and off) by hashing the results of large randomized
@@ -259,6 +261,16 @@ Unicode data tables in it under the Unicode License V3
 that their notices go with copies of the software. The crate is `Zlib AND
 FTL AND MIT-Modern-Variant AND Unicode-3.0`.
 
+**`sdl3-shadercross` likewise carries a second license** for its
+translation of SPIRV-Cross (`sdl3-shadercross/src/spirv_cross/`): Apache
+2.0 or MIT, at your choice, as SPIRV-Cross itself
+([SPIRV-CROSS-LICENSE](sdl3-shadercross/SPIRV-CROSS-LICENSE),
+[SPIRV-CROSS-LICENSE-MIT](sdl3-shadercross/SPIRV-CROSS-LICENSE-MIT), with
+the Apache statement of changes in its [NOTICE](sdl3-shadercross/NOTICE)),
+and its SPIR-V token tables, generated from the SPIR-V headers, are under
+the Khronos MIT license ([KHRONOS-LICENSE](sdl3-shadercross/KHRONOS-LICENSE)).
+The crate is `Zlib AND (Apache-2.0 OR MIT) AND MIT`.
+
 ## Satellite libraries
 
 The workspace has the `sdl3` crate, `sdl3-test`, the translation of SDL's
@@ -282,6 +294,8 @@ and OpenType fonts, text shaping for every script HarfBuzz's OpenType
 shaper handles, every render mode, text objects and the surface, renderer
 and GPU text engines; FreeType's other font drivers are not done), and
 `sdl3-rtf`, the translation of SDL_rtf (simple RTF documents read, laid
-out and rendered through `sdl3-ttf` fonts). SDL_shadercross will be
-translated the same way, as its own crate in this workspace, after the
-core it depends on exists. See the roadmap.
+out and rendered through `sdl3-ttf` fonts), and `sdl3-shadercross`, the
+translation of SDL_shadercross with the SPIRV-Cross it builds on (SPIR-V
+reflected and transpiled to MSL and HLSL for SDL_GPU's Metal, Direct3D and
+Vulkan backends, DXBC through the system's D3DCompiler, and the
+`shadercross` tool; the DXC paths are not done). See the roadmap.
