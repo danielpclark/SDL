@@ -1,0 +1,6673 @@
+=== cs_basic reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=64,1,1
+=== cs_basic glsl 450 0 0
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std140) uniform Params
+{
+    uint count;
+    float threshold;
+    vec2 range;
+} params;
+
+layout(binding = 0, std430) readonly buffer Input
+{
+    vec4 values[];
+} input_data;
+
+layout(binding = 0, std430) buffer Output
+{
+    uint total;
+    uint histogram[8];
+    vec4 values[];
+} output_data;
+
+shared vec4 scratch[64];
+
+void main()
+{
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    vec4 _35;
+    if (id < params.count)
+    {
+        _35 = input_data.values[id];
+    }
+    else
+    {
+        _35 = vec4(0.0);
+    }
+    vec4 v = _35;
+    scratch[local] = v;
+    barrier();
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        barrier();
+    }
+    if (local == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (v.x > params.threshold)
+    {
+        uint _115 = atomicAdd(output_data.total, 1u);
+        uint bucket = uint(clamp((v.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0);
+        uint _136 = atomicMax(output_data.histogram[bucket], id);
+    }
+}
+
+=== cs_basic glsl 310 1 0
+#version 310 es
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std140) uniform Params
+{
+    uint count;
+    float threshold;
+    vec2 range;
+} params;
+
+layout(binding = 0, std430) readonly buffer Input
+{
+    vec4 values[];
+} input_data;
+
+layout(binding = 0, std430) buffer Output
+{
+    uint total;
+    uint histogram[8];
+    vec4 values[];
+} output_data;
+
+shared vec4 scratch[64];
+
+void main()
+{
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    vec4 _35;
+    if (id < params.count)
+    {
+        _35 = input_data.values[id];
+    }
+    else
+    {
+        _35 = vec4(0.0);
+    }
+    vec4 v = _35;
+    scratch[local] = v;
+    barrier();
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        barrier();
+    }
+    if (local == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (v.x > params.threshold)
+    {
+        uint _115 = atomicAdd(output_data.total, 1u);
+        uint bucket = uint(clamp((v.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0);
+        uint _136 = atomicMax(output_data.histogram[bucket], id);
+    }
+}
+
+=== cs_basic glsl 450 0 1
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    uint count;
+    float threshold;
+    vec2 range;
+} params;
+
+layout(set = 0, binding = 0, std430) readonly buffer Input
+{
+    vec4 values[];
+} input_data;
+
+layout(set = 1, binding = 0, std430) buffer Output
+{
+    uint total;
+    uint histogram[8];
+    vec4 values[];
+} output_data;
+
+shared vec4 scratch[64];
+
+void main()
+{
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    vec4 _35;
+    if (id < params.count)
+    {
+        _35 = input_data.values[id];
+    }
+    else
+    {
+        _35 = vec4(0.0);
+    }
+    vec4 v = _35;
+    scratch[local] = v;
+    barrier();
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        barrier();
+    }
+    if (local == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (v.x > params.threshold)
+    {
+        uint _115 = atomicAdd(output_data.total, 1u);
+        uint bucket = uint(clamp((v.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0);
+        uint _136 = atomicMax(output_data.histogram[bucket], id);
+    }
+}
+
+=== cs_basic msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct Params
+{
+    uint count;
+    float threshold;
+    float2 range;
+};
+
+struct Input
+{
+    float4 values[1];
+};
+
+struct Output
+{
+    uint total;
+    uint histogram[8];
+    float4 values[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(64u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Input& input_data [[buffer(1)]], device Output& output_data [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]], uint gl_LocalInvocationIndex [[thread_index_in_threadgroup]], uint3 gl_WorkGroupID [[threadgroup_position_in_grid]])
+{
+    threadgroup spvUnsafeArray<float4, 64> scratch;
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    float4 _35;
+    if (id < params.count)
+    {
+        _35 = input_data.values[id];
+    }
+    else
+    {
+        _35 = float4(0.0);
+    }
+    float4 v = _35;
+    scratch[local] = v;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (local == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (v.x > params.threshold)
+    {
+        uint _115 = atomic_fetch_add_explicit((device atomic_uint*)&output_data.total, 1u, memory_order_relaxed);
+        uint bucket = uint(fast::clamp((v.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0);
+        uint _136 = atomic_fetch_max_explicit((device atomic_uint*)&output_data.histogram[bucket], id, memory_order_relaxed);
+    }
+}
+
+=== cs_basic msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct Params
+{
+    uint count;
+    float threshold;
+    float2 range;
+};
+
+struct Input
+{
+    float4 values[1];
+};
+
+struct Output
+{
+    uint total;
+    uint histogram[8];
+    float4 values[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(64u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Input& input_data [[buffer(1)]], device Output& output_data [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]], uint gl_LocalInvocationIndex [[thread_index_in_threadgroup]], uint3 gl_WorkGroupID [[threadgroup_position_in_grid]])
+{
+    threadgroup spvUnsafeArray<float4, 64> scratch;
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    float4 _35;
+    if (id < params.count)
+    {
+        _35 = input_data.values[id];
+    }
+    else
+    {
+        _35 = float4(0.0);
+    }
+    float4 v = _35;
+    scratch[local] = v;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (local == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (v.x > params.threshold)
+    {
+        uint _115 = atomic_fetch_add_explicit((device atomic_uint*)&output_data.total, 1u, memory_order_relaxed);
+        uint bucket = uint(fast::clamp((v.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0);
+        uint _136 = atomic_fetch_max_explicit((device atomic_uint*)&output_data.histogram[bucket], id, memory_order_relaxed);
+    }
+}
+
+=== cs_basic hlsl compute 60 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(64u, 1u, 1u);
+
+cbuffer Params : register(b0, space2)
+{
+    uint params_count : packoffset(c0);
+    float params_threshold : packoffset(c0.y);
+    float2 params_range : packoffset(c0.z);
+};
+
+ByteAddressBuffer input_data : register(t0, space0);
+RWByteAddressBuffer output_data : register(u0, space1);
+
+static uint3 gl_WorkGroupID;
+static uint3 gl_GlobalInvocationID;
+static uint gl_LocalInvocationIndex;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_WorkGroupID : SV_GroupID;
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+    uint gl_LocalInvocationIndex : SV_GroupIndex;
+};
+
+groupshared float4 scratch[64];
+
+void main_inner()
+{
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    float4 _35;
+    if (id < params_count)
+    {
+        _35 = asfloat(input_data.Load4(id * 16 + 0));
+    }
+    else
+    {
+        _35 = 0.0f.xxxx;
+    }
+    float4 v = _35;
+    scratch[local] = v;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (local == 0u)
+    {
+        output_data.Store4(gl_WorkGroupID.x * 16 + 48, asuint(scratch[0]));
+    }
+    if (v.x > params_threshold)
+    {
+        uint _115;
+        output_data.InterlockedAdd(0, 1u, _115);
+        uint bucket = uint(clamp((v.x - params_range.x) / (params_range.y - params_range.x), 0.0f, 0.999000012874603271484375f) * 8.0f);
+        uint _136;
+        output_data.InterlockedMax(bucket * 4 + 4, id, _136);
+    }
+}
+
+[numthreads(64, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_WorkGroupID = stage_input.gl_WorkGroupID;
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    gl_LocalInvocationIndex = stage_input.gl_LocalInvocationIndex;
+    main_inner();
+}
+=== cs_basic hlsl compute 51 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(64u, 1u, 1u);
+
+cbuffer Params : register(b0, space2)
+{
+    uint params_count : packoffset(c0);
+    float params_threshold : packoffset(c0.y);
+    float2 params_range : packoffset(c0.z);
+};
+
+ByteAddressBuffer input_data : register(t0, space0);
+RWByteAddressBuffer output_data : register(u0, space1);
+
+static uint3 gl_WorkGroupID;
+static uint3 gl_GlobalInvocationID;
+static uint gl_LocalInvocationIndex;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_WorkGroupID : SV_GroupID;
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+    uint gl_LocalInvocationIndex : SV_GroupIndex;
+};
+
+groupshared float4 scratch[64];
+
+void main_inner()
+{
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    float4 _35;
+    if (id < params_count)
+    {
+        _35 = asfloat(input_data.Load4(id * 16 + 0));
+    }
+    else
+    {
+        _35 = 0.0f.xxxx;
+    }
+    float4 v = _35;
+    scratch[local] = v;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (local == 0u)
+    {
+        output_data.Store4(gl_WorkGroupID.x * 16 + 48, asuint(scratch[0]));
+    }
+    if (v.x > params_threshold)
+    {
+        uint _115;
+        output_data.InterlockedAdd(0, 1u, _115);
+        uint bucket = uint(clamp((v.x - params_range.x) / (params_range.y - params_range.x), 0.0f, 0.999000012874603271484375f) * 8.0f);
+        uint _136;
+        output_data.InterlockedMax(bucket * 4 + 4, id, _136);
+    }
+}
+
+[numthreads(64, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_WorkGroupID = stage_input.gl_WorkGroupID;
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    gl_LocalInvocationIndex = stage_input.gl_LocalInvocationIndex;
+    main_inner();
+}
+=== cs_basic hlsl compute 50 - 1
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(64u, 1u, 1u);
+
+cbuffer Params : register(b0)
+{
+    uint params_count : packoffset(c0);
+    float params_threshold : packoffset(c0.y);
+    float2 params_range : packoffset(c0.z);
+};
+
+ByteAddressBuffer input_data : register(t0);
+RWByteAddressBuffer output_data : register(u0);
+
+static uint3 gl_WorkGroupID;
+static uint3 gl_GlobalInvocationID;
+static uint gl_LocalInvocationIndex;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_WorkGroupID : SV_GroupID;
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+    uint gl_LocalInvocationIndex : SV_GroupIndex;
+};
+
+groupshared float4 scratch[64];
+
+void comp_main()
+{
+    uint id = gl_GlobalInvocationID.x;
+    uint local = gl_LocalInvocationIndex;
+    float4 _35;
+    if (id < params_count)
+    {
+        _35 = asfloat(input_data.Load4(id * 16 + 0));
+    }
+    else
+    {
+        _35 = 0.0f.xxxx;
+    }
+    float4 v = _35;
+    scratch[local] = v;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint stride = 32u; stride > 0u; stride = stride >> uint(1))
+    {
+        if (local < stride)
+        {
+            scratch[local] += scratch[local + stride];
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (local == 0u)
+    {
+        output_data.Store4(gl_WorkGroupID.x * 16 + 48, asuint(scratch[0]));
+    }
+    if (v.x > params_threshold)
+    {
+        uint _115;
+        output_data.InterlockedAdd(0, 1u, _115);
+        uint bucket = uint(clamp((v.x - params_range.x) / (params_range.y - params_range.x), 0.0f, 0.999000012874603271484375f) * 8.0f);
+        uint _136;
+        output_data.InterlockedMax(bucket * 4 + 4, id, _136);
+    }
+}
+
+[numthreads(64, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_WorkGroupID = stage_input.gl_WorkGroupID;
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    gl_LocalInvocationIndex = stage_input.gl_LocalInvocationIndex;
+    comp_main();
+}
+=== cs_basic_opt reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=64,1,1
+=== cs_basic_opt glsl 450 0 0
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std140) uniform Params
+{
+    uint count;
+    float threshold;
+    vec2 range;
+} params;
+
+layout(binding = 0, std430) readonly buffer Input
+{
+    vec4 values[];
+} input_data;
+
+layout(binding = 0, std430) buffer Output
+{
+    uint total;
+    uint histogram[8];
+    vec4 values[];
+} output_data;
+
+shared vec4 scratch[64];
+
+void main()
+{
+    vec4 _140;
+    if (gl_GlobalInvocationID.x < params.count)
+    {
+        _140 = input_data.values[gl_GlobalInvocationID.x];
+    }
+    else
+    {
+        _140 = vec4(0.0);
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    barrier();
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        barrier();
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (_140.x > params.threshold)
+    {
+        uint _115 = atomicAdd(output_data.total, 1u);
+        uint _136 = atomicMax(output_data.histogram[uint(clamp((_140.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0)], gl_GlobalInvocationID.x);
+    }
+}
+
+=== cs_basic_opt glsl 310 1 0
+#version 310 es
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std140) uniform Params
+{
+    uint count;
+    float threshold;
+    vec2 range;
+} params;
+
+layout(binding = 0, std430) readonly buffer Input
+{
+    vec4 values[];
+} input_data;
+
+layout(binding = 0, std430) buffer Output
+{
+    uint total;
+    uint histogram[8];
+    vec4 values[];
+} output_data;
+
+shared vec4 scratch[64];
+
+void main()
+{
+    vec4 _140;
+    if (gl_GlobalInvocationID.x < params.count)
+    {
+        _140 = input_data.values[gl_GlobalInvocationID.x];
+    }
+    else
+    {
+        _140 = vec4(0.0);
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    barrier();
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        barrier();
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (_140.x > params.threshold)
+    {
+        uint _115 = atomicAdd(output_data.total, 1u);
+        uint _136 = atomicMax(output_data.histogram[uint(clamp((_140.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0)], gl_GlobalInvocationID.x);
+    }
+}
+
+=== cs_basic_opt glsl 450 0 1
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    uint count;
+    float threshold;
+    vec2 range;
+} params;
+
+layout(set = 0, binding = 0, std430) readonly buffer Input
+{
+    vec4 values[];
+} input_data;
+
+layout(set = 1, binding = 0, std430) buffer Output
+{
+    uint total;
+    uint histogram[8];
+    vec4 values[];
+} output_data;
+
+shared vec4 scratch[64];
+
+void main()
+{
+    vec4 _140;
+    if (gl_GlobalInvocationID.x < params.count)
+    {
+        _140 = input_data.values[gl_GlobalInvocationID.x];
+    }
+    else
+    {
+        _140 = vec4(0.0);
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    barrier();
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        barrier();
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (_140.x > params.threshold)
+    {
+        uint _115 = atomicAdd(output_data.total, 1u);
+        uint _136 = atomicMax(output_data.histogram[uint(clamp((_140.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0)], gl_GlobalInvocationID.x);
+    }
+}
+
+=== cs_basic_opt msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct Params
+{
+    uint count;
+    float threshold;
+    float2 range;
+};
+
+struct Input
+{
+    float4 values[1];
+};
+
+struct Output
+{
+    uint total;
+    uint histogram[8];
+    float4 values[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(64u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Input& input_data [[buffer(1)]], device Output& output_data [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]], uint gl_LocalInvocationIndex [[thread_index_in_threadgroup]], uint3 gl_WorkGroupID [[threadgroup_position_in_grid]])
+{
+    threadgroup spvUnsafeArray<float4, 64> scratch;
+    float4 _140;
+    if (gl_GlobalInvocationID.x < params.count)
+    {
+        _140 = input_data.values[gl_GlobalInvocationID.x];
+    }
+    else
+    {
+        _140 = float4(0.0);
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (_140.x > params.threshold)
+    {
+        uint _115 = atomic_fetch_add_explicit((device atomic_uint*)&output_data.total, 1u, memory_order_relaxed);
+        uint _136 = atomic_fetch_max_explicit((device atomic_uint*)&output_data.histogram[uint(fast::clamp((_140.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0)], gl_GlobalInvocationID.x, memory_order_relaxed);
+    }
+}
+
+=== cs_basic_opt msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct Params
+{
+    uint count;
+    float threshold;
+    float2 range;
+};
+
+struct Input
+{
+    float4 values[1];
+};
+
+struct Output
+{
+    uint total;
+    uint histogram[8];
+    float4 values[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(64u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Input& input_data [[buffer(1)]], device Output& output_data [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]], uint gl_LocalInvocationIndex [[thread_index_in_threadgroup]], uint3 gl_WorkGroupID [[threadgroup_position_in_grid]])
+{
+    threadgroup spvUnsafeArray<float4, 64> scratch;
+    float4 _140;
+    if (gl_GlobalInvocationID.x < params.count)
+    {
+        _140 = input_data.values[gl_GlobalInvocationID.x];
+    }
+    else
+    {
+        _140 = float4(0.0);
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.values[gl_WorkGroupID.x] = scratch[0];
+    }
+    if (_140.x > params.threshold)
+    {
+        uint _115 = atomic_fetch_add_explicit((device atomic_uint*)&output_data.total, 1u, memory_order_relaxed);
+        uint _136 = atomic_fetch_max_explicit((device atomic_uint*)&output_data.histogram[uint(fast::clamp((_140.x - params.range.x) / (params.range.y - params.range.x), 0.0, 0.999000012874603271484375) * 8.0)], gl_GlobalInvocationID.x, memory_order_relaxed);
+    }
+}
+
+=== cs_basic_opt hlsl compute 60 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(64u, 1u, 1u);
+
+cbuffer Params : register(b0, space2)
+{
+    uint params_count : packoffset(c0);
+    float params_threshold : packoffset(c0.y);
+    float2 params_range : packoffset(c0.z);
+};
+
+ByteAddressBuffer input_data : register(t0, space0);
+RWByteAddressBuffer output_data : register(u0, space1);
+
+static uint3 gl_WorkGroupID;
+static uint3 gl_GlobalInvocationID;
+static uint gl_LocalInvocationIndex;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_WorkGroupID : SV_GroupID;
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+    uint gl_LocalInvocationIndex : SV_GroupIndex;
+};
+
+groupshared float4 scratch[64];
+
+void main_inner()
+{
+    float4 _140;
+    if (gl_GlobalInvocationID.x < params_count)
+    {
+        _140 = asfloat(input_data.Load4(gl_GlobalInvocationID.x * 16 + 0));
+    }
+    else
+    {
+        _140 = 0.0f.xxxx;
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.Store4(gl_WorkGroupID.x * 16 + 48, asuint(scratch[0]));
+    }
+    if (_140.x > params_threshold)
+    {
+        uint _115;
+        output_data.InterlockedAdd(0, 1u, _115);
+        uint _136;
+        output_data.InterlockedMax(uint(clamp((_140.x - params_range.x) / (params_range.y - params_range.x), 0.0f, 0.999000012874603271484375f) * 8.0f) * 4 + 4, gl_GlobalInvocationID.x, _136);
+    }
+}
+
+[numthreads(64, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_WorkGroupID = stage_input.gl_WorkGroupID;
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    gl_LocalInvocationIndex = stage_input.gl_LocalInvocationIndex;
+    main_inner();
+}
+=== cs_basic_opt hlsl compute 51 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(64u, 1u, 1u);
+
+cbuffer Params : register(b0, space2)
+{
+    uint params_count : packoffset(c0);
+    float params_threshold : packoffset(c0.y);
+    float2 params_range : packoffset(c0.z);
+};
+
+ByteAddressBuffer input_data : register(t0, space0);
+RWByteAddressBuffer output_data : register(u0, space1);
+
+static uint3 gl_WorkGroupID;
+static uint3 gl_GlobalInvocationID;
+static uint gl_LocalInvocationIndex;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_WorkGroupID : SV_GroupID;
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+    uint gl_LocalInvocationIndex : SV_GroupIndex;
+};
+
+groupshared float4 scratch[64];
+
+void main_inner()
+{
+    float4 _140;
+    if (gl_GlobalInvocationID.x < params_count)
+    {
+        _140 = asfloat(input_data.Load4(gl_GlobalInvocationID.x * 16 + 0));
+    }
+    else
+    {
+        _140 = 0.0f.xxxx;
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.Store4(gl_WorkGroupID.x * 16 + 48, asuint(scratch[0]));
+    }
+    if (_140.x > params_threshold)
+    {
+        uint _115;
+        output_data.InterlockedAdd(0, 1u, _115);
+        uint _136;
+        output_data.InterlockedMax(uint(clamp((_140.x - params_range.x) / (params_range.y - params_range.x), 0.0f, 0.999000012874603271484375f) * 8.0f) * 4 + 4, gl_GlobalInvocationID.x, _136);
+    }
+}
+
+[numthreads(64, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_WorkGroupID = stage_input.gl_WorkGroupID;
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    gl_LocalInvocationIndex = stage_input.gl_LocalInvocationIndex;
+    main_inner();
+}
+=== cs_basic_opt hlsl compute 50 - 1
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(64u, 1u, 1u);
+
+cbuffer Params : register(b0)
+{
+    uint params_count : packoffset(c0);
+    float params_threshold : packoffset(c0.y);
+    float2 params_range : packoffset(c0.z);
+};
+
+ByteAddressBuffer input_data : register(t0);
+RWByteAddressBuffer output_data : register(u0);
+
+static uint3 gl_WorkGroupID;
+static uint3 gl_GlobalInvocationID;
+static uint gl_LocalInvocationIndex;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_WorkGroupID : SV_GroupID;
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+    uint gl_LocalInvocationIndex : SV_GroupIndex;
+};
+
+groupshared float4 scratch[64];
+
+void comp_main()
+{
+    float4 _140;
+    if (gl_GlobalInvocationID.x < params_count)
+    {
+        _140 = asfloat(input_data.Load4(gl_GlobalInvocationID.x * 16 + 0));
+    }
+    else
+    {
+        _140 = 0.0f.xxxx;
+    }
+    scratch[gl_LocalInvocationIndex] = _140;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint _141 = 32u; _141 > 0u; _141 = _141 >> uint(1))
+    {
+        if (gl_LocalInvocationIndex < _141)
+        {
+            scratch[gl_LocalInvocationIndex] += scratch[gl_LocalInvocationIndex + _141];
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        output_data.Store4(gl_WorkGroupID.x * 16 + 48, asuint(scratch[0]));
+    }
+    if (_140.x > params_threshold)
+    {
+        uint _115;
+        output_data.InterlockedAdd(0, 1u, _115);
+        uint _136;
+        output_data.InterlockedMax(uint(clamp((_140.x - params_range.x) / (params_range.y - params_range.x), 0.0f, 0.999000012874603271484375f) * 8.0f) * 4 + 4, gl_GlobalInvocationID.x, _136);
+    }
+}
+
+[numthreads(64, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_WorkGroupID = stage_input.gl_WorkGroupID;
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    gl_LocalInvocationIndex = stage_input.gl_LocalInvocationIndex;
+    comp_main();
+}
+=== cs_image reflect
+samplers=1 readonly_storage_textures=1 readonly_storage_buffers=0 readwrite_storage_textures=2 readwrite_storage_buffers=0 uniform_buffers=1 threadcount=8,8,1
+=== cs_image glsl 450 0 0
+#version 450
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0, std140) uniform Params
+{
+    ivec2 offset;
+    uint flags;
+    float gain;
+} params;
+
+layout(binding = 1, r32ui) uniform uimage2D counters;
+layout(binding = 0) uniform sampler2D source;
+layout(binding = 1, r32f) uniform readonly image2D mask;
+layout(binding = 0, rgba32f) uniform writeonly image2D destination;
+
+void main()
+{
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(counters);
+    if (any(greaterThanEqual(p, size)))
+    {
+        return;
+    }
+    vec4 c = texelFetch(source, p + params.offset, 0);
+    float m = imageLoad(mask, p).x;
+    uint bits = uint(bitCount(params.flags)) + uint(findMSB(params.flags));
+    uint _packed = packUnorm4x8(c);
+    c = (unpackUnorm4x8(_packed ^ (params.flags << uint(8))) * m) * params.gain;
+    imageStore(destination, p, c + vec4(float(bits)));
+    uint _108 = imageAtomicAdd(counters, p, bits);
+}
+
+=== cs_image glsl 310 1 0
+#version 310 es
+#extension GL_OES_shader_image_atomic : require
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0, std140) uniform Params
+{
+    ivec2 offset;
+    uint flags;
+    float gain;
+} params;
+
+layout(binding = 1, r32ui) uniform highp uimage2D counters;
+layout(binding = 0) uniform highp sampler2D source;
+layout(binding = 1, r32f) uniform readonly highp image2D mask;
+layout(binding = 0, rgba32f) uniform writeonly highp image2D destination;
+
+void main()
+{
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(counters);
+    if (any(greaterThanEqual(p, size)))
+    {
+        return;
+    }
+    vec4 c = texelFetch(source, p + params.offset, 0);
+    float m = imageLoad(mask, p).x;
+    uint bits = uint(bitCount(params.flags)) + uint(findMSB(params.flags));
+    uint _packed = packUnorm4x8(c);
+    c = (unpackUnorm4x8(_packed ^ (params.flags << uint(8))) * m) * params.gain;
+    imageStore(destination, p, c + vec4(float(bits)));
+    uint _108 = imageAtomicAdd(counters, p, bits);
+}
+
+=== cs_image glsl 450 0 1
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    ivec2 offset;
+    uint flags;
+    float gain;
+} params;
+
+layout(set = 1, binding = 1, r32ui) uniform uimage2D counters;
+layout(set = 0, binding = 0) uniform sampler2D source;
+layout(set = 0, binding = 1, r32f) uniform readonly image2D mask;
+layout(set = 1, binding = 0, rgba32f) uniform writeonly image2D destination;
+
+void main()
+{
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(counters);
+    if (any(greaterThanEqual(p, size)))
+    {
+        return;
+    }
+    vec4 c = texelFetch(source, p + params.offset, 0);
+    float m = imageLoad(mask, p).x;
+    uint bits = uint(bitCount(params.flags)) + uint(findMSB(params.flags));
+    uint _packed = packUnorm4x8(c);
+    c = (unpackUnorm4x8(_packed ^ (params.flags << uint(8))) * m) * params.gain;
+    imageStore(destination, p, c + vec4(float(bits)));
+    uint _108 = imageAtomicAdd(counters, p, bits);
+}
+
+=== cs_image msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+// Implementation of the unsigned GLSL findMSB() function
+template<typename T>
+inline T spvFindUMSB(T x)
+{
+    return select(clz(T(0)) - (clz(x) + T(1)), T(-1), x == T(0));
+}
+
+// The required alignment of a linear texture of R32Uint format.
+constant uint spvLinearTextureAlignmentOverride [[function_constant(65535)]];
+constant uint spvLinearTextureAlignment = is_function_constant_defined(spvLinearTextureAlignmentOverride) ? spvLinearTextureAlignmentOverride : 4;
+// Returns buffer coords corresponding to 2D texture coords for emulating 2D texture atomics
+#define spvImage2DAtomicCoord(tc, tex) (((((tex).get_width() +  spvLinearTextureAlignment / 4 - 1) & ~( spvLinearTextureAlignment / 4 - 1)) * (tc).y) + (tc).x)
+
+struct Params
+{
+    int2 offset;
+    uint flags;
+    float gain;
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(8u, 8u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], texture2d<float> source [[texture(0)]], texture2d<float> mask [[texture(1)]], texture2d<float, access::write> destination [[texture(2)]], texture2d<uint> counters [[texture(3)]], device atomic_uint* counters_atomic [[buffer(3261102336)]], sampler sourceSmplr [[sampler(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    int2 p = int2(gl_GlobalInvocationID.xy);
+    int2 size = int2(counters.get_width(), counters.get_height());
+    if (any(p >= size))
+    {
+        return;
+    }
+    float4 c = source.read(uint2((p + params.offset)), 0);
+    float m = mask.read(uint2(p)).x;
+    uint bits = uint(int(popcount(params.flags))) + uint(int(spvFindUMSB(params.flags)));
+    uint _packed = pack_float_to_unorm4x8(c);
+    c = (unpack_unorm4x8_to_float(_packed ^ (params.flags << uint(8))) * m) * params.gain;
+    destination.write(c + float4(float(bits)), uint2(p));
+    uint _108 = atomic_fetch_add_explicit((device atomic_uint*)&counters_atomic[spvImage2DAtomicCoord(p, counters)], bits, memory_order_relaxed);
+}
+
+=== cs_image msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+// Implementation of the unsigned GLSL findMSB() function
+template<typename T>
+inline T spvFindUMSB(T x)
+{
+    return select(clz(T(0)) - (clz(x) + T(1)), T(-1), x == T(0));
+}
+
+// The required alignment of a linear texture of R32Uint format.
+constant uint spvLinearTextureAlignmentOverride [[function_constant(65535)]];
+constant uint spvLinearTextureAlignment = is_function_constant_defined(spvLinearTextureAlignmentOverride) ? spvLinearTextureAlignmentOverride : 4;
+// Returns buffer coords corresponding to 2D texture coords for emulating 2D texture atomics
+#define spvImage2DAtomicCoord(tc, tex) (((((tex).get_width() +  spvLinearTextureAlignment / 4 - 1) & ~( spvLinearTextureAlignment / 4 - 1)) * (tc).y) + (tc).x)
+
+struct Params
+{
+    int2 offset;
+    uint flags;
+    float gain;
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(8u, 8u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], texture2d<float> source [[texture(0)]], texture2d<float> mask [[texture(1)]], texture2d<float, access::write> destination [[texture(2)]], texture2d<uint> counters [[texture(3)]], device atomic_uint* counters_atomic [[buffer(5)]], sampler sourceSmplr [[sampler(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    int2 p = int2(gl_GlobalInvocationID.xy);
+    int2 size = int2(counters.get_width(), counters.get_height());
+    if (any(p >= size))
+    {
+        return;
+    }
+    float4 c = source.read(uint2((p + params.offset)), 0);
+    float m = mask.read(uint2(p)).x;
+    uint bits = uint(int(popcount(params.flags))) + uint(int(spvFindUMSB(params.flags)));
+    uint _packed = pack_float_to_unorm4x8(c);
+    c = (unpack_unorm4x8_to_float(_packed ^ (params.flags << uint(8))) * m) * params.gain;
+    destination.write(c + float4(float(bits)), uint2(p));
+    uint _108 = atomic_fetch_add_explicit((device atomic_uint*)&counters_atomic[spvImage2DAtomicCoord(p, counters)], bits, memory_order_relaxed);
+}
+
+=== cs_image hlsl compute 60 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(8u, 8u, 1u);
+
+cbuffer Params : register(b0, space2)
+{
+    int2 params_offset : packoffset(c0);
+    uint params_flags : packoffset(c0.z);
+    float params_gain : packoffset(c0.w);
+};
+
+RWTexture2D<uint> counters : register(u1, space1);
+Texture2D<float4> source : register(t0, space0);
+SamplerState _source_sampler : register(s0, space0);
+Texture2D<float4> mask : register(t1, space0);
+RWTexture2D<float4> destination : register(u0, space1);
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+uint2 spvImageSize(RWTexture2D<uint> Tex, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(ret.x, ret.y);
+    Param = 0u;
+    return ret;
+}
+
+uint spvPackUnorm4x8(float4 value)
+{
+    uint4 Packed = uint4(round(saturate(value) * 255.0));
+    return Packed.x | (Packed.y << 8) | (Packed.z << 16) | (Packed.w << 24);
+}
+
+float4 spvUnpackUnorm4x8(uint value)
+{
+    uint4 Packed = uint4(value & 0xff, (value >> 8) & 0xff, (value >> 16) & 0xff, value >> 24);
+    return float4(Packed) / 255.0;
+}
+
+void main_inner()
+{
+    int2 p = int2(gl_GlobalInvocationID.xy);
+    uint _23_dummy_parameter;
+    int2 size = int2(spvImageSize(counters, _23_dummy_parameter));
+    if (any(bool2(p.x >= size.x, p.y >= size.y)))
+    {
+        return;
+    }
+    float4 c = source.Load(int3(p + params_offset, 0));
+    float m = mask[p].x;
+    uint bits = uint(int(countbits(params_flags))) + uint(int(firstbithigh(params_flags)));
+    uint _packed = spvPackUnorm4x8(c);
+    c = (spvUnpackUnorm4x8(_packed ^ (params_flags << uint(8))) * m) * params_gain;
+    destination[p] = c + float(bits).xxxx;
+    uint _108;
+    InterlockedAdd(counters[p], bits, _108);
+}
+
+[numthreads(8, 8, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    main_inner();
+}
+=== cs_image hlsl compute 51 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(8u, 8u, 1u);
+
+cbuffer Params : register(b0, space2)
+{
+    int2 params_offset : packoffset(c0);
+    uint params_flags : packoffset(c0.z);
+    float params_gain : packoffset(c0.w);
+};
+
+RWTexture2D<uint> counters : register(u1, space1);
+Texture2D<float4> source : register(t0, space0);
+SamplerState _source_sampler : register(s0, space0);
+Texture2D<float4> mask : register(t1, space0);
+RWTexture2D<float4> destination : register(u0, space1);
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+uint2 spvImageSize(RWTexture2D<uint> Tex, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(ret.x, ret.y);
+    Param = 0u;
+    return ret;
+}
+
+uint spvPackUnorm4x8(float4 value)
+{
+    uint4 Packed = uint4(round(saturate(value) * 255.0));
+    return Packed.x | (Packed.y << 8) | (Packed.z << 16) | (Packed.w << 24);
+}
+
+float4 spvUnpackUnorm4x8(uint value)
+{
+    uint4 Packed = uint4(value & 0xff, (value >> 8) & 0xff, (value >> 16) & 0xff, value >> 24);
+    return float4(Packed) / 255.0;
+}
+
+void main_inner()
+{
+    int2 p = int2(gl_GlobalInvocationID.xy);
+    uint _23_dummy_parameter;
+    int2 size = int2(spvImageSize(counters, _23_dummy_parameter));
+    if (any(bool2(p.x >= size.x, p.y >= size.y)))
+    {
+        return;
+    }
+    float4 c = source.Load(int3(p + params_offset, 0));
+    float m = mask[p].x;
+    uint bits = uint(int(countbits(params_flags))) + uint(int(firstbithigh(params_flags)));
+    uint _packed = spvPackUnorm4x8(c);
+    c = (spvUnpackUnorm4x8(_packed ^ (params_flags << uint(8))) * m) * params_gain;
+    destination[p] = c + float(bits).xxxx;
+    uint _108;
+    InterlockedAdd(counters[p], bits, _108);
+}
+
+[numthreads(8, 8, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    main_inner();
+}
+=== cs_image hlsl compute 50 - 1
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(8u, 8u, 1u);
+
+cbuffer Params : register(b0)
+{
+    int2 params_offset : packoffset(c0);
+    uint params_flags : packoffset(c0.z);
+    float params_gain : packoffset(c0.w);
+};
+
+RWTexture2D<uint> counters : register(u1);
+Texture2D<float4> source : register(t0);
+SamplerState _source_sampler : register(s0);
+Texture2D<float4> mask : register(t1);
+RWTexture2D<float4> destination : register(u0);
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+uint2 spvImageSize(RWTexture2D<uint> Tex, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(ret.x, ret.y);
+    Param = 0u;
+    return ret;
+}
+
+uint spvPackUnorm4x8(float4 value)
+{
+    uint4 Packed = uint4(round(saturate(value) * 255.0));
+    return Packed.x | (Packed.y << 8) | (Packed.z << 16) | (Packed.w << 24);
+}
+
+float4 spvUnpackUnorm4x8(uint value)
+{
+    uint4 Packed = uint4(value & 0xff, (value >> 8) & 0xff, (value >> 16) & 0xff, value >> 24);
+    return float4(Packed) / 255.0;
+}
+
+void comp_main()
+{
+    int2 p = int2(gl_GlobalInvocationID.xy);
+    uint _23_dummy_parameter;
+    int2 size = int2(spvImageSize(counters, _23_dummy_parameter));
+    if (any(bool2(p.x >= size.x, p.y >= size.y)))
+    {
+        return;
+    }
+    float4 c = source.Load(int3(p + params_offset, 0));
+    float m = mask[p].x;
+    uint bits = uint(int(countbits(params_flags))) + uint(int(firstbithigh(params_flags)));
+    uint _packed = spvPackUnorm4x8(c);
+    c = (spvUnpackUnorm4x8(_packed ^ (params_flags << uint(8))) * m) * params_gain;
+    destination[p] = c + float(bits).xxxx;
+    uint _108;
+    InterlockedAdd(counters[p], bits, _108);
+}
+
+[numthreads(8, 8, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    comp_main();
+}
+=== cs_math reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=4,4,2
+=== cs_math glsl 450 0 0
+#version 450
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 2) in;
+
+layout(binding = 0, std430) buffer Matrices
+{
+    mat4 m[];
+} matrices;
+
+layout(binding = 0, std140) uniform Params
+{
+    mat3 basis;
+    ivec4 divisors;
+    uvec4 bits;
+} params;
+
+mat4 build(uint i)
+{
+    mat4 r = matrices.m[i];
+    r = transpose(r) * inverse(mat4(r[0] + vec4(1.0, 0.0, 0.0, 0.0), r[1] + vec4(0.0, 1.0, 0.0, 0.0), r[2] + vec4(0.0, 0.0, 1.0, 0.0), r[3] + vec4(0.0, 0.0, 0.0, 1.0)));
+    r[3] = vec4(outerProduct(params.basis[0], params.basis[1]) * vec3(determinant(r)), 1.0);
+    return r;
+}
+
+void main()
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    mat4 r = build(param);
+    ivec4 q = ivec4(r[0] * 100.0);
+    q = (q / params.divisors) + (q % params.divisors);
+    uvec4 u = (params.bits >> uvec4(1u, 2u, 3u, 4u)) | (params.bits << uvec4(ivec4(3)));
+    r[1] = ((vec4(q) + (vec4(u) * pow(abs(r[2]), vec4(1.5)))) + exp2(r[0])) - log(abs(r[3]) + vec4(1.0));
+    r[2] = (fract(r[2]) + step(vec4(0.5), r[1])) + (sign(r[0]) * inversesqrt(abs(r[1]) + vec4(1.0)));
+    matrices.m[i] = r;
+}
+
+=== cs_math glsl 310 1 0
+#version 310 es
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 2) in;
+
+layout(binding = 0, std430) buffer Matrices
+{
+    mat4 m[];
+} matrices;
+
+layout(binding = 0, std140) uniform Params
+{
+    mat3 basis;
+    ivec4 divisors;
+    uvec4 bits;
+} params;
+
+mat4 build(uint i)
+{
+    mat4 r = matrices.m[i];
+    r = transpose(r) * inverse(mat4(r[0] + vec4(1.0, 0.0, 0.0, 0.0), r[1] + vec4(0.0, 1.0, 0.0, 0.0), r[2] + vec4(0.0, 0.0, 1.0, 0.0), r[3] + vec4(0.0, 0.0, 0.0, 1.0)));
+    r[3] = vec4(outerProduct(params.basis[0], params.basis[1]) * vec3(determinant(r)), 1.0);
+    return r;
+}
+
+void main()
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    mat4 r = build(param);
+    ivec4 q = ivec4(r[0] * 100.0);
+    q = (q / params.divisors) + (q % params.divisors);
+    uvec4 u = (params.bits >> uvec4(1u, 2u, 3u, 4u)) | (params.bits << uvec4(ivec4(3)));
+    r[1] = ((vec4(q) + (vec4(u) * pow(abs(r[2]), vec4(1.5)))) + exp2(r[0])) - log(abs(r[3]) + vec4(1.0));
+    r[2] = (fract(r[2]) + step(vec4(0.5), r[1])) + (sign(r[0]) * inversesqrt(abs(r[1]) + vec4(1.0)));
+    matrices.m[i] = r;
+}
+
+=== cs_math glsl 450 0 1
+#version 450
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 2) in;
+
+layout(set = 1, binding = 0, std430) buffer Matrices
+{
+    mat4 m[];
+} matrices;
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    mat3 basis;
+    ivec4 divisors;
+    uvec4 bits;
+} params;
+
+mat4 build(uint i)
+{
+    mat4 r = matrices.m[i];
+    r = transpose(r) * inverse(mat4(r[0] + vec4(1.0, 0.0, 0.0, 0.0), r[1] + vec4(0.0, 1.0, 0.0, 0.0), r[2] + vec4(0.0, 0.0, 1.0, 0.0), r[3] + vec4(0.0, 0.0, 0.0, 1.0)));
+    r[3] = vec4(outerProduct(params.basis[0], params.basis[1]) * vec3(determinant(r)), 1.0);
+    return r;
+}
+
+void main()
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    mat4 r = build(param);
+    ivec4 q = ivec4(r[0] * 100.0);
+    q = (q / params.divisors) + (q % params.divisors);
+    uvec4 u = (params.bits >> uvec4(1u, 2u, 3u, 4u)) | (params.bits << uvec4(ivec4(3)));
+    r[1] = ((vec4(q) + (vec4(u) * pow(abs(r[2]), vec4(1.5)))) + exp2(r[0])) - log(abs(r[3]) + vec4(1.0));
+    r[2] = (fract(r[2]) + step(vec4(0.5), r[1])) + (sign(r[0]) * inversesqrt(abs(r[1]) + vec4(1.0)));
+    matrices.m[i] = r;
+}
+
+=== cs_math msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+// Returns the determinant of a 2x2 matrix.
+static inline __attribute__((always_inline))
+float spvDet2x2(float a1, float a2, float b1, float b2)
+{
+    return a1 * b2 - b1 * a2;
+}
+
+// Returns the determinant of a 3x3 matrix.
+static inline __attribute__((always_inline))
+float spvDet3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3)
+{
+    return a1 * spvDet2x2(b2, b3, c2, c3) - b1 * spvDet2x2(a2, a3, c2, c3) + c1 * spvDet2x2(a2, a3, b2, b3);
+}
+
+// Returns the inverse of a matrix, by using the algorithm of calculating the classical
+// adjoint and dividing by the determinant. The contents of the matrix are changed.
+static inline __attribute__((always_inline))
+float4x4 spvInverse4x4(float4x4 m)
+{
+    float4x4 adj;	// The adjoint matrix (inverse after dividing by determinant)
+
+    // Create the transpose of the cofactors, as the classical adjoint of the matrix.
+    adj[0][0] =  spvDet3x3(m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][1] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][2] =  spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][3] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3]);
+
+    adj[1][0] = -spvDet3x3(m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][1] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][2] = -spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][3] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3]);
+
+    adj[2][0] =  spvDet3x3(m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][1] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][2] =  spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][3] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3]);
+
+    adj[3][0] = -spvDet3x3(m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][1] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][2] = -spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][3] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]);
+
+    // Calculate the determinant as a combination of the cofactors of the first row.
+    float det = (adj[0][0] * m[0][0]) + (adj[0][1] * m[1][0]) + (adj[0][2] * m[2][0]) + (adj[0][3] * m[3][0]);
+
+    // Divide the classical adjoint matrix by the determinant.
+    // If determinant is zero, matrix is not invertable, so leave it unchanged.
+    return (det != 0.0f) ? (adj * (1.0f / det)) : m;
+}
+
+struct Matrices
+{
+    float4x4 m[1];
+};
+
+struct Params
+{
+    float3x3 basis;
+    int4 divisors;
+    uint4 bits;
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(4u, 4u, 2u);
+
+static inline __attribute__((always_inline))
+float4x4 build(thread const uint& i, device Matrices& matrices, constant Params& params)
+{
+    float4x4 r = matrices.m[i];
+    r = transpose(r) * spvInverse4x4(float4x4(r[0] + float4(1.0, 0.0, 0.0, 0.0), r[1] + float4(0.0, 1.0, 0.0, 0.0), r[2] + float4(0.0, 0.0, 1.0, 0.0), r[3] + float4(0.0, 0.0, 0.0, 1.0)));
+    r[3] = float4(float3x3(params.basis[0] * params.basis[1].x, params.basis[0] * params.basis[1].y, params.basis[0] * params.basis[1].z) * float3(determinant(r)), 1.0);
+    return r;
+}
+
+kernel void main0(constant Params& params [[buffer(0)]], device Matrices& matrices [[buffer(1)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    float4x4 r = build(param, matrices, params);
+    int4 q = int4(r[0] * 100.0);
+    q = (q / params.divisors) + spvSMod(q, params.divisors);
+    uint4 u = (params.bits >> uint4(1u, 2u, 3u, 4u)) | (params.bits << uint4(int4(3)));
+    r[1] = ((float4(q) + (float4(u) * powr(abs(r[2]), float4(1.5)))) + exp2(r[0])) - log(abs(r[3]) + float4(1.0));
+    r[2] = (fract(r[2]) + step(float4(0.5), r[1])) + (sign(r[0]) * rsqrt(abs(r[1]) + float4(1.0)));
+    matrices.m[i] = r;
+}
+
+=== cs_math msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+// Returns the determinant of a 2x2 matrix.
+static inline __attribute__((always_inline))
+float spvDet2x2(float a1, float a2, float b1, float b2)
+{
+    return a1 * b2 - b1 * a2;
+}
+
+// Returns the determinant of a 3x3 matrix.
+static inline __attribute__((always_inline))
+float spvDet3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3)
+{
+    return a1 * spvDet2x2(b2, b3, c2, c3) - b1 * spvDet2x2(a2, a3, c2, c3) + c1 * spvDet2x2(a2, a3, b2, b3);
+}
+
+// Returns the inverse of a matrix, by using the algorithm of calculating the classical
+// adjoint and dividing by the determinant. The contents of the matrix are changed.
+static inline __attribute__((always_inline))
+float4x4 spvInverse4x4(float4x4 m)
+{
+    float4x4 adj;	// The adjoint matrix (inverse after dividing by determinant)
+
+    // Create the transpose of the cofactors, as the classical adjoint of the matrix.
+    adj[0][0] =  spvDet3x3(m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][1] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][2] =  spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][3] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3]);
+
+    adj[1][0] = -spvDet3x3(m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][1] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][2] = -spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][3] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3]);
+
+    adj[2][0] =  spvDet3x3(m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][1] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][2] =  spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][3] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3]);
+
+    adj[3][0] = -spvDet3x3(m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][1] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][2] = -spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][3] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]);
+
+    // Calculate the determinant as a combination of the cofactors of the first row.
+    float det = (adj[0][0] * m[0][0]) + (adj[0][1] * m[1][0]) + (adj[0][2] * m[2][0]) + (adj[0][3] * m[3][0]);
+
+    // Divide the classical adjoint matrix by the determinant.
+    // If determinant is zero, matrix is not invertable, so leave it unchanged.
+    return (det != 0.0f) ? (adj * (1.0f / det)) : m;
+}
+
+struct Matrices
+{
+    float4x4 m[1];
+};
+
+struct Params
+{
+    float3x3 basis;
+    int4 divisors;
+    uint4 bits;
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(4u, 4u, 2u);
+
+static inline __attribute__((always_inline))
+float4x4 build(thread const uint& i, device Matrices& matrices, constant Params& params)
+{
+    float4x4 r = matrices.m[i];
+    r = transpose(r) * spvInverse4x4(float4x4(r[0] + float4(1.0, 0.0, 0.0, 0.0), r[1] + float4(0.0, 1.0, 0.0, 0.0), r[2] + float4(0.0, 0.0, 1.0, 0.0), r[3] + float4(0.0, 0.0, 0.0, 1.0)));
+    r[3] = float4(float3x3(params.basis[0] * params.basis[1].x, params.basis[0] * params.basis[1].y, params.basis[0] * params.basis[1].z) * float3(determinant(r)), 1.0);
+    return r;
+}
+
+kernel void main0(constant Params& params [[buffer(0)]], device Matrices& matrices [[buffer(1)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    float4x4 r = build(param, matrices, params);
+    int4 q = int4(r[0] * 100.0);
+    q = (q / params.divisors) + spvSMod(q, params.divisors);
+    uint4 u = (params.bits >> uint4(1u, 2u, 3u, 4u)) | (params.bits << uint4(int4(3)));
+    r[1] = ((float4(q) + (float4(u) * powr(abs(r[2]), float4(1.5)))) + exp2(r[0])) - log(abs(r[3]) + float4(1.0));
+    r[2] = (fract(r[2]) + step(float4(0.5), r[1])) + (sign(r[0]) * rsqrt(abs(r[1]) + float4(1.0)));
+    matrices.m[i] = r;
+}
+
+=== cs_math hlsl compute 60 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(4u, 4u, 2u);
+
+RWByteAddressBuffer matrices : register(u0, space1);
+cbuffer Params : register(b0, space2)
+{
+    row_major float3x3 params_basis : packoffset(c0);
+    int4 params_divisors : packoffset(c3);
+    uint4 params_bits : packoffset(c4);
+};
+
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+// Returns the determinant of a 2x2 matrix.
+float spvDet2x2(float a1, float a2, float b1, float b2)
+{
+    return a1 * b2 - b1 * a2;
+}
+
+// Returns the determinant of a 3x3 matrix.
+float spvDet3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3)
+{
+    return a1 * spvDet2x2(b2, b3, c2, c3) - b1 * spvDet2x2(a2, a3, c2, c3) + c1 * spvDet2x2(a2, a3, b2, b3);
+}
+
+// Returns the inverse of a matrix, by using the algorithm of calculating the classical
+// adjoint and dividing by the determinant. The contents of the matrix are changed.
+float4x4 spvInverse(float4x4 m)
+{
+    float4x4 adj;	// The adjoint matrix (inverse after dividing by determinant)
+
+    // Create the transpose of the cofactors, as the classical adjoint of the matrix.
+    adj[0][0] =  spvDet3x3(m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][1] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][2] =  spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][3] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3]);
+
+    adj[1][0] = -spvDet3x3(m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][1] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][2] = -spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][3] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3]);
+
+    adj[2][0] =  spvDet3x3(m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][1] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][2] =  spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][3] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3]);
+
+    adj[3][0] = -spvDet3x3(m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][1] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][2] = -spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][3] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]);
+
+    // Calculate the determinant as a combination of the cofactors of the first row.
+    float det = (adj[0][0] * m[0][0]) + (adj[0][1] * m[1][0]) + (adj[0][2] * m[2][0]) + (adj[0][3] * m[3][0]);
+
+    // Divide the classical adjoint matrix by the determinant.
+    // If determinant is zero, matrix is not invertable, so leave it unchanged.
+    return (det != 0.0f) ? (adj * (1.0f / det)) : m;
+}
+
+float4x4 build(uint i)
+{
+    float4x4 _26 = asfloat(uint4x4(matrices.Load4(i * 64 + 0), matrices.Load4(i * 64 + 16), matrices.Load4(i * 64 + 32), matrices.Load4(i * 64 + 48)));
+    float4x4 r = _26;
+    r = mul(spvInverse(float4x4(r[0] + float4(1.0f, 0.0f, 0.0f, 0.0f), r[1] + float4(0.0f, 1.0f, 0.0f, 0.0f), r[2] + float4(0.0f, 0.0f, 1.0f, 0.0f), r[3] + float4(0.0f, 0.0f, 0.0f, 1.0f))), transpose(r));
+    r[3] = float4(mul(determinant(r).xxx, float3x3(params_basis[0] * params_basis[1].x, params_basis[0] * params_basis[1].y, params_basis[0] * params_basis[1].z)), 1.0f);
+    return r;
+}
+
+void main_inner()
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    float4x4 r = build(param);
+    int4 q = int4(r[0] * 100.0f);
+    q = (q / params_divisors) + (q % params_divisors);
+    uint4 u = (params_bits >> uint4(1u, 2u, 3u, 4u)) | (params_bits << uint4(int4(3, 3, 3, 3)));
+    r[1] = ((float4(q) + (float4(u) * pow(abs(r[2]), 1.5f.xxxx))) + exp2(r[0])) - log(abs(r[3]) + 1.0f.xxxx);
+    r[2] = (frac(r[2]) + step(0.5f.xxxx, r[1])) + (sign(r[0]) * rsqrt(abs(r[1]) + 1.0f.xxxx));
+    matrices.Store4(i * 64 + 0, asuint(r[0]));
+    matrices.Store4(i * 64 + 16, asuint(r[1]));
+    matrices.Store4(i * 64 + 32, asuint(r[2]));
+    matrices.Store4(i * 64 + 48, asuint(r[3]));
+}
+
+[numthreads(4, 4, 2)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    main_inner();
+}
+=== cs_math hlsl compute 51 - 0
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(4u, 4u, 2u);
+
+RWByteAddressBuffer matrices : register(u0, space1);
+cbuffer Params : register(b0, space2)
+{
+    row_major float3x3 params_basis : packoffset(c0);
+    int4 params_divisors : packoffset(c3);
+    uint4 params_bits : packoffset(c4);
+};
+
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+// Returns the determinant of a 2x2 matrix.
+float spvDet2x2(float a1, float a2, float b1, float b2)
+{
+    return a1 * b2 - b1 * a2;
+}
+
+// Returns the determinant of a 3x3 matrix.
+float spvDet3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3)
+{
+    return a1 * spvDet2x2(b2, b3, c2, c3) - b1 * spvDet2x2(a2, a3, c2, c3) + c1 * spvDet2x2(a2, a3, b2, b3);
+}
+
+// Returns the inverse of a matrix, by using the algorithm of calculating the classical
+// adjoint and dividing by the determinant. The contents of the matrix are changed.
+float4x4 spvInverse(float4x4 m)
+{
+    float4x4 adj;	// The adjoint matrix (inverse after dividing by determinant)
+
+    // Create the transpose of the cofactors, as the classical adjoint of the matrix.
+    adj[0][0] =  spvDet3x3(m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][1] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][2] =  spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][3] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3]);
+
+    adj[1][0] = -spvDet3x3(m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][1] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][2] = -spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][3] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3]);
+
+    adj[2][0] =  spvDet3x3(m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][1] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][2] =  spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][3] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3]);
+
+    adj[3][0] = -spvDet3x3(m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][1] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][2] = -spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][3] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]);
+
+    // Calculate the determinant as a combination of the cofactors of the first row.
+    float det = (adj[0][0] * m[0][0]) + (adj[0][1] * m[1][0]) + (adj[0][2] * m[2][0]) + (adj[0][3] * m[3][0]);
+
+    // Divide the classical adjoint matrix by the determinant.
+    // If determinant is zero, matrix is not invertable, so leave it unchanged.
+    return (det != 0.0f) ? (adj * (1.0f / det)) : m;
+}
+
+float4x4 build(uint i)
+{
+    float4x4 _26 = asfloat(uint4x4(matrices.Load4(i * 64 + 0), matrices.Load4(i * 64 + 16), matrices.Load4(i * 64 + 32), matrices.Load4(i * 64 + 48)));
+    float4x4 r = _26;
+    r = mul(spvInverse(float4x4(r[0] + float4(1.0f, 0.0f, 0.0f, 0.0f), r[1] + float4(0.0f, 1.0f, 0.0f, 0.0f), r[2] + float4(0.0f, 0.0f, 1.0f, 0.0f), r[3] + float4(0.0f, 0.0f, 0.0f, 1.0f))), transpose(r));
+    r[3] = float4(mul(determinant(r).xxx, float3x3(params_basis[0] * params_basis[1].x, params_basis[0] * params_basis[1].y, params_basis[0] * params_basis[1].z)), 1.0f);
+    return r;
+}
+
+void main_inner()
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    float4x4 r = build(param);
+    int4 q = int4(r[0] * 100.0f);
+    q = (q / params_divisors) + (q % params_divisors);
+    uint4 u = (params_bits >> uint4(1u, 2u, 3u, 4u)) | (params_bits << uint4(int4(3, 3, 3, 3)));
+    r[1] = ((float4(q) + (float4(u) * pow(abs(r[2]), 1.5f.xxxx))) + exp2(r[0])) - log(abs(r[3]) + 1.0f.xxxx);
+    r[2] = (frac(r[2]) + step(0.5f.xxxx, r[1])) + (sign(r[0]) * rsqrt(abs(r[1]) + 1.0f.xxxx));
+    matrices.Store4(i * 64 + 0, asuint(r[0]));
+    matrices.Store4(i * 64 + 16, asuint(r[1]));
+    matrices.Store4(i * 64 + 32, asuint(r[2]));
+    matrices.Store4(i * 64 + 48, asuint(r[3]));
+}
+
+[numthreads(4, 4, 2)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    main_inner();
+}
+=== cs_math hlsl compute 50 - 1
+entrypoint: main
+static const uint3 gl_WorkGroupSize = uint3(4u, 4u, 2u);
+
+RWByteAddressBuffer matrices : register(u0);
+cbuffer Params : register(b0)
+{
+    row_major float3x3 params_basis : packoffset(c0);
+    int4 params_divisors : packoffset(c3);
+    uint4 params_bits : packoffset(c4);
+};
+
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+// Returns the determinant of a 2x2 matrix.
+float spvDet2x2(float a1, float a2, float b1, float b2)
+{
+    return a1 * b2 - b1 * a2;
+}
+
+// Returns the determinant of a 3x3 matrix.
+float spvDet3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3)
+{
+    return a1 * spvDet2x2(b2, b3, c2, c3) - b1 * spvDet2x2(a2, a3, c2, c3) + c1 * spvDet2x2(a2, a3, b2, b3);
+}
+
+// Returns the inverse of a matrix, by using the algorithm of calculating the classical
+// adjoint and dividing by the determinant. The contents of the matrix are changed.
+float4x4 spvInverse(float4x4 m)
+{
+    float4x4 adj;	// The adjoint matrix (inverse after dividing by determinant)
+
+    // Create the transpose of the cofactors, as the classical adjoint of the matrix.
+    adj[0][0] =  spvDet3x3(m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][1] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[2][1], m[2][2], m[2][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][2] =  spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[3][1], m[3][2], m[3][3]);
+    adj[0][3] = -spvDet3x3(m[0][1], m[0][2], m[0][3], m[1][1], m[1][2], m[1][3], m[2][1], m[2][2], m[2][3]);
+
+    adj[1][0] = -spvDet3x3(m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][1] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[2][0], m[2][2], m[2][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][2] = -spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[3][0], m[3][2], m[3][3]);
+    adj[1][3] =  spvDet3x3(m[0][0], m[0][2], m[0][3], m[1][0], m[1][2], m[1][3], m[2][0], m[2][2], m[2][3]);
+
+    adj[2][0] =  spvDet3x3(m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][1] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[2][0], m[2][1], m[2][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][2] =  spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[3][0], m[3][1], m[3][3]);
+    adj[2][3] = -spvDet3x3(m[0][0], m[0][1], m[0][3], m[1][0], m[1][1], m[1][3], m[2][0], m[2][1], m[2][3]);
+
+    adj[3][0] = -spvDet3x3(m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][1] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[2][0], m[2][1], m[2][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][2] = -spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[3][0], m[3][1], m[3][2]);
+    adj[3][3] =  spvDet3x3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]);
+
+    // Calculate the determinant as a combination of the cofactors of the first row.
+    float det = (adj[0][0] * m[0][0]) + (adj[0][1] * m[1][0]) + (adj[0][2] * m[2][0]) + (adj[0][3] * m[3][0]);
+
+    // Divide the classical adjoint matrix by the determinant.
+    // If determinant is zero, matrix is not invertable, so leave it unchanged.
+    return (det != 0.0f) ? (adj * (1.0f / det)) : m;
+}
+
+float4x4 build(uint i)
+{
+    float4x4 _26 = asfloat(uint4x4(matrices.Load4(i * 64 + 0), matrices.Load4(i * 64 + 16), matrices.Load4(i * 64 + 32), matrices.Load4(i * 64 + 48)));
+    float4x4 r = _26;
+    r = mul(spvInverse(float4x4(r[0] + float4(1.0f, 0.0f, 0.0f, 0.0f), r[1] + float4(0.0f, 1.0f, 0.0f, 0.0f), r[2] + float4(0.0f, 0.0f, 1.0f, 0.0f), r[3] + float4(0.0f, 0.0f, 0.0f, 1.0f))), transpose(r));
+    r[3] = float4(mul(determinant(r).xxx, float3x3(params_basis[0] * params_basis[1].x, params_basis[0] * params_basis[1].y, params_basis[0] * params_basis[1].z)), 1.0f);
+    return r;
+}
+
+void comp_main()
+{
+    uint i = (gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * 4u)) + (gl_GlobalInvocationID.z * 16u);
+    uint param = i;
+    float4x4 r = build(param);
+    int4 q = int4(r[0] * 100.0f);
+    q = (q / params_divisors) + (q % params_divisors);
+    uint4 u = (params_bits >> uint4(1u, 2u, 3u, 4u)) | (params_bits << uint4(int4(3, 3, 3, 3)));
+    r[1] = ((float4(q) + (float4(u) * pow(abs(r[2]), 1.5f.xxxx))) + exp2(r[0])) - log(abs(r[3]) + 1.0f.xxxx);
+    r[2] = (frac(r[2]) + step(0.5f.xxxx, r[1])) + (sign(r[0]) * rsqrt(abs(r[1]) + 1.0f.xxxx));
+    matrices.Store4(i * 64 + 0, asuint(r[0]));
+    matrices.Store4(i * 64 + 16, asuint(r[1]));
+    matrices.Store4(i * 64 + 32, asuint(r[2]));
+    matrices.Store4(i * 64 + 48, asuint(r[3]));
+}
+
+[numthreads(4, 4, 2)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    comp_main();
+}
+=== fs_complex reflect
+samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=2
+input in_normal location=0 type=float32 size=3
+input in_world location=1 type=float32 size=3
+input in_layer location=2 type=int32 size=1
+input in_shadow_coord location=3 type=float32 size=4
+output out_color location=0 type=float32 size=4
+output out_normal location=1 type=float32 size=4
+=== fs_complex glsl 450 0 0
+#version 450
+
+struct Light
+{
+    vec3 position;
+    float radius;
+    vec4 color;
+};
+
+layout(binding = 0, std140) uniform Scene
+{
+    Light lights[4];
+    mat3 normal_matrix;
+    ivec4 counts;
+    vec2 shadow_offsets[3];
+} scene;
+
+layout(binding = 1, std140) uniform Extra
+{
+    uvec2 mask;
+    float bias;
+} extra;
+
+layout(binding = 1) uniform sampler2DShadow shadow_map;
+layout(binding = 0) uniform sampler2DArray layers;
+layout(binding = 2) uniform sampler2D lookup;
+
+layout(location = 0) in vec3 in_normal;
+layout(location = 1) in vec3 in_world;
+layout(location = 2) flat in int in_layer;
+layout(location = 3) in vec4 in_shadow_coord;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_normal;
+
+float attenuate(Light light, vec3 p, inout float count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0;
+    }
+    count += 1.0;
+    return 1.0 - smoothstep(0.0, light.radius, d);
+}
+
+float shadow(vec4 coord)
+{
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+        vec3 c = coord.xyz / vec3(coord.w);
+        vec3 _85 = c;
+        vec2 _87 = _85.xy + scene.shadow_offsets[i];
+        c.x = _87.x;
+        c.y = _87.y;
+        vec3 _114 = vec3(c.xy, c.z - extra.bias);
+        sum += texture(shadow_map, vec3(_114.xy, _114.z));
+    }
+    return sum / 3.0;
+}
+
+void main()
+{
+    vec3 n = normalize(scene.normal_matrix * in_normal);
+    vec3 lit = vec3(0.0);
+    float count = 0.0;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = scene.lights[i].position;
+        l.radius = scene.lights[i].radius;
+        l.color = scene.lights[i].color;
+        Light param = l;
+        vec3 param_1 = in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * max(dot(n, normalize(l.position - in_world)), 0.0));
+        i++;
+    }
+    vec4 base;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            base = texture(layers, vec3(in_world.xy, 0.0));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            base = texture(layers, vec3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            base = texelFetch(lookup, ivec2(gl_FragCoord.xy) % textureSize(lookup, 0), 0);
+            break;
+        }
+        default:
+        {
+            base = vec4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    vec4 param_3 = in_shadow_coord;
+    float s = shadow(param_3);
+    float edge = fwidth(in_world.x) + abs(dFdy(in_world.y));
+    out_color = vec4(((base.xyz * lit) * s) + vec3(edge), count / 4.0);
+    out_normal = vec4((n * (gl_FrontFacing ? 0.5 : (-0.5))) + vec3(0.5), 1.0);
+}
+
+=== fs_complex glsl 310 1 0
+#version 310 es
+precision mediump float;
+precision highp int;
+
+struct Light
+{
+    highp vec3 position;
+    highp float radius;
+    highp vec4 color;
+};
+
+layout(binding = 0, std140) uniform Scene
+{
+    Light lights[4];
+    highp mat3 normal_matrix;
+    ivec4 counts;
+    highp vec2 shadow_offsets[3];
+} scene;
+
+layout(binding = 1, std140) uniform Extra
+{
+    uvec2 mask;
+    highp float bias;
+} extra;
+
+layout(binding = 1) uniform highp sampler2DShadow shadow_map;
+layout(binding = 0) uniform highp sampler2DArray layers;
+layout(binding = 2) uniform highp sampler2D lookup;
+
+layout(location = 0) in highp vec3 in_normal;
+layout(location = 1) in highp vec3 in_world;
+layout(location = 2) flat in int in_layer;
+layout(location = 3) in highp vec4 in_shadow_coord;
+layout(location = 0) out highp vec4 out_color;
+layout(location = 1) out highp vec4 out_normal;
+
+highp float attenuate(Light light, highp vec3 p, inout highp float count)
+{
+    highp float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0;
+    }
+    count += 1.0;
+    return 1.0 - smoothstep(0.0, light.radius, d);
+}
+
+highp float shadow(highp vec4 coord)
+{
+    highp float sum = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+        highp vec3 c = coord.xyz / vec3(coord.w);
+        highp vec3 _85 = c;
+        highp vec2 _87 = _85.xy + scene.shadow_offsets[i];
+        c.x = _87.x;
+        c.y = _87.y;
+        highp vec3 _114 = vec3(c.xy, c.z - extra.bias);
+        sum += texture(shadow_map, vec3(_114.xy, _114.z));
+    }
+    return sum / 3.0;
+}
+
+void main()
+{
+    highp vec3 n = normalize(scene.normal_matrix * in_normal);
+    highp vec3 lit = vec3(0.0);
+    highp float count = 0.0;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = scene.lights[i].position;
+        l.radius = scene.lights[i].radius;
+        l.color = scene.lights[i].color;
+        Light param = l;
+        highp vec3 param_1 = in_world;
+        highp float param_2 = count;
+        highp float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        highp float a = _186;
+        lit += ((l.color.xyz * a) * max(dot(n, normalize(l.position - in_world)), 0.0));
+        i++;
+    }
+    highp vec4 base;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            base = texture(layers, vec3(in_world.xy, 0.0));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            base = texture(layers, vec3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            base = texelFetch(lookup, ivec2(gl_FragCoord.xy) % textureSize(lookup, 0), 0);
+            break;
+        }
+        default:
+        {
+            base = vec4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    highp vec4 param_3 = in_shadow_coord;
+    highp float s = shadow(param_3);
+    highp float edge = fwidth(in_world.x) + abs(dFdy(in_world.y));
+    out_color = vec4(((base.xyz * lit) * s) + vec3(edge), count / 4.0);
+    out_normal = vec4((n * (gl_FrontFacing ? 0.5 : (-0.5))) + vec3(0.5), 1.0);
+}
+
+=== fs_complex glsl 450 0 1
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+
+struct Light
+{
+    vec3 position;
+    float radius;
+    vec4 color;
+};
+
+layout(set = 3, binding = 0, std140) uniform Scene
+{
+    Light lights[4];
+    mat3 normal_matrix;
+    ivec4 counts;
+    vec2 shadow_offsets[3];
+} scene;
+
+layout(set = 3, binding = 1, std140) uniform Extra
+{
+    uvec2 mask;
+    float bias;
+} extra;
+
+layout(set = 2, binding = 1) uniform sampler2DShadow shadow_map;
+layout(set = 2, binding = 0) uniform sampler2DArray layers;
+layout(set = 2, binding = 2) uniform sampler2D lookup;
+
+layout(location = 0) in vec3 in_normal;
+layout(location = 1) in vec3 in_world;
+layout(location = 2) flat in int in_layer;
+layout(location = 3) in vec4 in_shadow_coord;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_normal;
+
+float attenuate(Light light, vec3 p, inout float count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0;
+    }
+    count += 1.0;
+    return 1.0 - smoothstep(0.0, light.radius, d);
+}
+
+float shadow(vec4 coord)
+{
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+        vec3 c = coord.xyz / vec3(coord.w);
+        vec3 _85 = c;
+        vec2 _87 = _85.xy + scene.shadow_offsets[i];
+        c.x = _87.x;
+        c.y = _87.y;
+        vec3 _114 = vec3(c.xy, c.z - extra.bias);
+        sum += texture(shadow_map, vec3(_114.xy, _114.z));
+    }
+    return sum / 3.0;
+}
+
+void main()
+{
+    vec3 n = normalize(scene.normal_matrix * in_normal);
+    vec3 lit = vec3(0.0);
+    float count = 0.0;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = scene.lights[i].position;
+        l.radius = scene.lights[i].radius;
+        l.color = scene.lights[i].color;
+        Light param = l;
+        vec3 param_1 = in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * max(dot(n, normalize(l.position - in_world)), 0.0));
+        i++;
+    }
+    vec4 base;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            base = texture(layers, vec3(in_world.xy, 0.0));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            base = texture(layers, vec3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            base = texelFetch(lookup, ivec2(gl_FragCoord.xy) % textureSize(lookup, 0), 0);
+            break;
+        }
+        default:
+        {
+            base = vec4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    vec4 param_3 = in_shadow_coord;
+    float s = shadow(param_3);
+    float edge = fwidth(in_world.x) + abs(dFdy(in_world.y));
+    out_color = vec4(((base.xyz * lit) * s) + vec3(edge), count / 4.0);
+    out_normal = vec4((n * (gl_FrontFacing ? 0.5 : (-0.5))) + vec3(0.5), 1.0);
+}
+
+=== fs_complex msl fragment 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+struct Light_1
+{
+    packed_float3 position;
+    float radius;
+    float4 color;
+};
+
+struct Scene
+{
+    Light_1 lights[4];
+    float3x3 normal_matrix;
+    int4 counts;
+    float4 shadow_offsets[3];
+};
+
+struct Extra
+{
+    uint2 mask;
+    float bias0;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+    float4 out_normal [[color(1)]];
+};
+
+struct main0_in
+{
+    float3 in_normal [[user(locn0)]];
+    float3 in_world [[user(locn1)]];
+    int in_layer [[user(locn2)]];
+    float4 in_shadow_coord [[user(locn3)]];
+};
+
+static inline __attribute__((always_inline))
+float attenuate(thread const Light& light, thread const float3& p, thread float& count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0;
+    }
+    count += 1.0;
+    return 1.0 - smoothstep(0.0, light.radius, d);
+}
+
+static inline __attribute__((always_inline))
+float shadow(thread const float4& coord, constant Scene& scene, depth2d<float> shadow_map, sampler shadow_mapSmplr, constant Extra& extra)
+{
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+        float3 c = coord.xyz / float3(coord.w);
+        float3 _85 = c;
+        float2 _87 = _85.xy + scene.shadow_offsets[i].xy;
+        c.x = _87.x;
+        c.y = _87.y;
+        float3 _114 = float3(c.xy, c.z - extra.bias0);
+        sum += shadow_map.sample_compare(shadow_mapSmplr, _114.xy, _114.z);
+    }
+    return sum / 3.0;
+}
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Scene& scene [[buffer(0)]], constant Extra& extra [[buffer(1)]], texture2d_array<float> layers [[texture(0)]], depth2d<float> shadow_map [[texture(1)]], texture2d<float> lookup [[texture(2)]], sampler layersSmplr [[sampler(0)]], sampler shadow_mapSmplr [[sampler(1)]], sampler lookupSmplr [[sampler(2)]], float4 gl_FragCoord [[position]], bool gl_FrontFacing [[front_facing]])
+{
+    main0_out out = {};
+    float3 n = fast::normalize(scene.normal_matrix * in.in_normal);
+    float3 lit = float3(0.0);
+    float count = 0.0;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = float3(scene.lights[i].position);
+        l.radius = scene.lights[i].radius;
+        l.color = scene.lights[i].color;
+        Light param = l;
+        float3 param_1 = in.in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * fast::max(dot(n, fast::normalize(l.position - in.in_world)), 0.0));
+        i++;
+    }
+    float4 base;
+    switch (in.in_layer)
+    {
+        case 0:
+        {
+            float3 _224 = float3(in.in_world.xy, 0.0);
+            base = layers.sample(layersSmplr, _224.xy, uint(rint(_224.z)));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            float3 _234 = float3(in.in_world.xy, float(in.in_layer));
+            base = layers.sample(layersSmplr, _234.xy, uint(rint(_234.z)));
+            break;
+        }
+        case 3:
+        {
+            base = lookup.read(uint2(spvSMod(int2(gl_FragCoord.xy), int2(lookup.get_width(), lookup.get_height()))), 0);
+            break;
+        }
+        default:
+        {
+            base = float4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    float4 param_3 = in.in_shadow_coord;
+    float s = shadow(param_3, scene, shadow_map, shadow_mapSmplr, extra);
+    float edge = fwidth(in.in_world.x) + abs(dfdy(in.in_world.y));
+    out.out_color = float4(((base.xyz * lit) * s) + float3(edge), count / 4.0);
+    out.out_normal = float4((n * (gl_FrontFacing ? 0.5 : (-0.5))) + float3(0.5), 1.0);
+    return out;
+}
+
+=== fs_complex msl fragment 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+struct Light_1
+{
+    packed_float3 position;
+    float radius;
+    float4 color;
+};
+
+struct Scene
+{
+    Light_1 lights[4];
+    float3x3 normal_matrix;
+    int4 counts;
+    float4 shadow_offsets[3];
+};
+
+struct Extra
+{
+    uint2 mask;
+    float bias0;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+    float4 out_normal [[color(1)]];
+};
+
+struct main0_in
+{
+    float3 in_normal [[user(locn0)]];
+    float3 in_world [[user(locn1)]];
+    int in_layer [[user(locn2)]];
+    float4 in_shadow_coord [[user(locn3)]];
+};
+
+static inline __attribute__((always_inline))
+float attenuate(thread const Light& light, thread const float3& p, thread float& count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0;
+    }
+    count += 1.0;
+    return 1.0 - smoothstep(0.0, light.radius, d);
+}
+
+static inline __attribute__((always_inline))
+float shadow(thread const float4& coord, constant Scene& scene, depth2d<float> shadow_map, sampler shadow_mapSmplr, constant Extra& extra)
+{
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+        float3 c = coord.xyz / float3(coord.w);
+        float3 _85 = c;
+        float2 _87 = _85.xy + scene.shadow_offsets[i].xy;
+        c.x = _87.x;
+        c.y = _87.y;
+        float3 _114 = float3(c.xy, c.z - extra.bias0);
+        sum += shadow_map.sample_compare(shadow_mapSmplr, _114.xy, _114.z);
+    }
+    return sum / 3.0;
+}
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Scene& scene [[buffer(0)]], constant Extra& extra [[buffer(1)]], texture2d_array<float> layers [[texture(0)]], depth2d<float> shadow_map [[texture(1)]], texture2d<float> lookup [[texture(2)]], sampler layersSmplr [[sampler(0)]], sampler shadow_mapSmplr [[sampler(1)]], sampler lookupSmplr [[sampler(2)]], float4 gl_FragCoord [[position]], bool gl_FrontFacing [[front_facing]])
+{
+    main0_out out = {};
+    float3 n = fast::normalize(scene.normal_matrix * in.in_normal);
+    float3 lit = float3(0.0);
+    float count = 0.0;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = float3(scene.lights[i].position);
+        l.radius = scene.lights[i].radius;
+        l.color = scene.lights[i].color;
+        Light param = l;
+        float3 param_1 = in.in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * fast::max(dot(n, fast::normalize(l.position - in.in_world)), 0.0));
+        i++;
+    }
+    float4 base;
+    switch (in.in_layer)
+    {
+        case 0:
+        {
+            float3 _224 = float3(in.in_world.xy, 0.0);
+            base = layers.sample(layersSmplr, _224.xy, uint(rint(_224.z)));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            float3 _234 = float3(in.in_world.xy, float(in.in_layer));
+            base = layers.sample(layersSmplr, _234.xy, uint(rint(_234.z)));
+            break;
+        }
+        case 3:
+        {
+            base = lookup.read(uint2(spvSMod(int2(gl_FragCoord.xy), int2(lookup.get_width(), lookup.get_height()))), 0);
+            break;
+        }
+        default:
+        {
+            base = float4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    float4 param_3 = in.in_shadow_coord;
+    float s = shadow(param_3, scene, shadow_map, shadow_mapSmplr, extra);
+    float edge = fwidth(in.in_world.x) + abs(dfdy(in.in_world.y));
+    out.out_color = float4(((base.xyz * lit) * s) + float3(edge), count / 4.0);
+    out.out_normal = float4((n * (gl_FrontFacing ? 0.5 : (-0.5))) + float3(0.5), 1.0);
+    return out;
+}
+
+=== fs_complex hlsl fragment 60 - 0
+entrypoint: main
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+cbuffer Scene : register(b0, space3)
+{
+    Light scene_lights[4] : packoffset(c0);
+    row_major float3x3 scene_normal_matrix : packoffset(c8);
+    int4 scene_counts : packoffset(c11);
+    float2 scene_shadow_offsets[3] : packoffset(c12);
+};
+
+cbuffer Extra : register(b1, space3)
+{
+    uint2 extra_mask : packoffset(c0);
+    float extra_bias : packoffset(c0.z);
+};
+
+Texture2D<float4> shadow_map : register(t1, space2);
+SamplerComparisonState _shadow_map_sampler : register(s1, space2);
+Texture2DArray<float4> layers : register(t0, space2);
+SamplerState _layers_sampler : register(s0, space2);
+Texture2D<float4> lookup : register(t2, space2);
+SamplerState _lookup_sampler : register(s2, space2);
+
+static float4 gl_FragCoord;
+static bool gl_FrontFacing;
+static float3 in_normal;
+static float3 in_world;
+static int in_layer;
+static float4 in_shadow_coord;
+static float4 out_color;
+static float4 out_normal;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_normal : TEXCOORD0;
+    float3 in_world : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+    float4 in_shadow_coord : TEXCOORD3;
+    float4 gl_FragCoord : SV_Position;
+    bool gl_FrontFacing : SV_IsFrontFace;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float4 out_normal : SV_Target1;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+float attenuate(Light light, float3 p, inout float count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0f;
+    }
+    count += 1.0f;
+    return 1.0f - smoothstep(0.0f, light.radius, d);
+}
+
+float shadow(float4 coord)
+{
+    float sum = 0.0f;
+    for (int i = 0; i < 3; i++)
+    {
+        float3 c = coord.xyz / coord.w.xxx;
+        float3 _85 = c;
+        float2 _87 = _85.xy + scene_shadow_offsets[i];
+        c.x = _87.x;
+        c.y = _87.y;
+        float3 _114 = float3(c.xy, c.z - extra_bias);
+        sum += shadow_map.SampleCmp(_shadow_map_sampler, _114.xy, _114.z);
+    }
+    return sum / 3.0f;
+}
+
+void main_inner()
+{
+    float3 n = normalize(mul(in_normal, scene_normal_matrix));
+    float3 lit = 0.0f.xxx;
+    float count = 0.0f;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene_counts.x)
+        {
+            break;
+        }
+        if ((extra_mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = scene_lights[i].position;
+        l.radius = scene_lights[i].radius;
+        l.color = scene_lights[i].color;
+        Light param = l;
+        float3 param_1 = in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * max(dot(n, normalize(l.position - in_world)), 0.0f));
+        i++;
+    }
+    float4 base;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            base = layers.Sample(_layers_sampler, float3(in_world.xy, 0.0f));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            base = layers.Sample(_layers_sampler, float3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            uint _250_dummy_parameter;
+            base = lookup.Load(int3(int2(gl_FragCoord.xy) % int2(spvTextureSize(lookup, uint(0), _250_dummy_parameter)), 0));
+            break;
+        }
+        default:
+        {
+            base = float4(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        }
+    }
+    float4 param_3 = in_shadow_coord;
+    float s = shadow(param_3);
+    float edge = fwidth(in_world.x) + abs(ddy(in_world.y));
+    out_color = float4(((base.xyz * lit) * s) + edge.xxx, count / 4.0f);
+    out_normal = float4((n * (gl_FrontFacing ? 0.5f : (-0.5f))) + 0.5f.xxx, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    gl_FrontFacing = stage_input.gl_FrontFacing;
+    in_normal = stage_input.in_normal;
+    in_world = stage_input.in_world;
+    in_layer = stage_input.in_layer;
+    in_shadow_coord = stage_input.in_shadow_coord;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_complex hlsl fragment 51 - 0
+entrypoint: main
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+cbuffer Scene : register(b0, space3)
+{
+    Light scene_lights[4] : packoffset(c0);
+    row_major float3x3 scene_normal_matrix : packoffset(c8);
+    int4 scene_counts : packoffset(c11);
+    float2 scene_shadow_offsets[3] : packoffset(c12);
+};
+
+cbuffer Extra : register(b1, space3)
+{
+    uint2 extra_mask : packoffset(c0);
+    float extra_bias : packoffset(c0.z);
+};
+
+Texture2D<float4> shadow_map : register(t1, space2);
+SamplerComparisonState _shadow_map_sampler : register(s1, space2);
+Texture2DArray<float4> layers : register(t0, space2);
+SamplerState _layers_sampler : register(s0, space2);
+Texture2D<float4> lookup : register(t2, space2);
+SamplerState _lookup_sampler : register(s2, space2);
+
+static float4 gl_FragCoord;
+static bool gl_FrontFacing;
+static float3 in_normal;
+static float3 in_world;
+static int in_layer;
+static float4 in_shadow_coord;
+static float4 out_color;
+static float4 out_normal;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_normal : TEXCOORD0;
+    float3 in_world : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+    float4 in_shadow_coord : TEXCOORD3;
+    float4 gl_FragCoord : SV_Position;
+    bool gl_FrontFacing : SV_IsFrontFace;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float4 out_normal : SV_Target1;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+float attenuate(Light light, float3 p, inout float count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0f;
+    }
+    count += 1.0f;
+    return 1.0f - smoothstep(0.0f, light.radius, d);
+}
+
+float shadow(float4 coord)
+{
+    float sum = 0.0f;
+    for (int i = 0; i < 3; i++)
+    {
+        float3 c = coord.xyz / coord.w.xxx;
+        float3 _85 = c;
+        float2 _87 = _85.xy + scene_shadow_offsets[i];
+        c.x = _87.x;
+        c.y = _87.y;
+        float3 _114 = float3(c.xy, c.z - extra_bias);
+        sum += shadow_map.SampleCmp(_shadow_map_sampler, _114.xy, _114.z);
+    }
+    return sum / 3.0f;
+}
+
+void main_inner()
+{
+    float3 n = normalize(mul(in_normal, scene_normal_matrix));
+    float3 lit = 0.0f.xxx;
+    float count = 0.0f;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene_counts.x)
+        {
+            break;
+        }
+        if ((extra_mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = scene_lights[i].position;
+        l.radius = scene_lights[i].radius;
+        l.color = scene_lights[i].color;
+        Light param = l;
+        float3 param_1 = in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * max(dot(n, normalize(l.position - in_world)), 0.0f));
+        i++;
+    }
+    float4 base;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            base = layers.Sample(_layers_sampler, float3(in_world.xy, 0.0f));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            base = layers.Sample(_layers_sampler, float3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            uint _250_dummy_parameter;
+            base = lookup.Load(int3(int2(gl_FragCoord.xy) % int2(spvTextureSize(lookup, uint(0), _250_dummy_parameter)), 0));
+            break;
+        }
+        default:
+        {
+            base = float4(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        }
+    }
+    float4 param_3 = in_shadow_coord;
+    float s = shadow(param_3);
+    float edge = fwidth(in_world.x) + abs(ddy(in_world.y));
+    out_color = float4(((base.xyz * lit) * s) + edge.xxx, count / 4.0f);
+    out_normal = float4((n * (gl_FrontFacing ? 0.5f : (-0.5f))) + 0.5f.xxx, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    gl_FrontFacing = stage_input.gl_FrontFacing;
+    in_normal = stage_input.in_normal;
+    in_world = stage_input.in_world;
+    in_layer = stage_input.in_layer;
+    in_shadow_coord = stage_input.in_shadow_coord;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_complex hlsl fragment 50 - 1
+entrypoint: main
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+cbuffer Scene : register(b0)
+{
+    Light scene_lights[4] : packoffset(c0);
+    row_major float3x3 scene_normal_matrix : packoffset(c8);
+    int4 scene_counts : packoffset(c11);
+    float2 scene_shadow_offsets[3] : packoffset(c12);
+};
+
+cbuffer Extra : register(b1)
+{
+    uint2 extra_mask : packoffset(c0);
+    float extra_bias : packoffset(c0.z);
+};
+
+Texture2D<float4> shadow_map : register(t1);
+SamplerComparisonState _shadow_map_sampler : register(s1);
+Texture2DArray<float4> layers : register(t0);
+SamplerState _layers_sampler : register(s0);
+Texture2D<float4> lookup : register(t2);
+SamplerState _lookup_sampler : register(s2);
+
+static float4 gl_FragCoord;
+static bool gl_FrontFacing;
+static float3 in_normal;
+static float3 in_world;
+static int in_layer;
+static float4 in_shadow_coord;
+static float4 out_color;
+static float4 out_normal;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_normal : TEXCOORD0;
+    float3 in_world : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+    float4 in_shadow_coord : TEXCOORD3;
+    float4 gl_FragCoord : SV_Position;
+    bool gl_FrontFacing : SV_IsFrontFace;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float4 out_normal : SV_Target1;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+float attenuate(Light light, float3 p, inout float count)
+{
+    float d = distance(light.position, p);
+    if (d > light.radius)
+    {
+        return 0.0f;
+    }
+    count += 1.0f;
+    return 1.0f - smoothstep(0.0f, light.radius, d);
+}
+
+float shadow(float4 coord)
+{
+    float sum = 0.0f;
+    for (int i = 0; i < 3; i++)
+    {
+        float3 c = coord.xyz / coord.w.xxx;
+        float3 _85 = c;
+        float2 _87 = _85.xy + scene_shadow_offsets[i];
+        c.x = _87.x;
+        c.y = _87.y;
+        float3 _114 = float3(c.xy, c.z - extra_bias);
+        sum += shadow_map.SampleCmp(_shadow_map_sampler, _114.xy, _114.z);
+    }
+    return sum / 3.0f;
+}
+
+void frag_main()
+{
+    float3 n = normalize(mul(in_normal, scene_normal_matrix));
+    float3 lit = 0.0f.xxx;
+    float count = 0.0f;
+    int i = 0;
+    Light l;
+    while (true)
+    {
+        if (i >= scene_counts.x)
+        {
+            break;
+        }
+        if ((extra_mask.x & (1u << uint(i))) == 0u)
+        {
+            i++;
+            continue;
+        }
+        l.position = scene_lights[i].position;
+        l.radius = scene_lights[i].radius;
+        l.color = scene_lights[i].color;
+        Light param = l;
+        float3 param_1 = in_world;
+        float param_2 = count;
+        float _186 = attenuate(param, param_1, param_2);
+        count = param_2;
+        float a = _186;
+        lit += ((l.color.xyz * a) * max(dot(n, normalize(l.position - in_world)), 0.0f));
+        i++;
+    }
+    float4 base;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            base = layers.Sample(_layers_sampler, float3(in_world.xy, 0.0f));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            base = layers.Sample(_layers_sampler, float3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            uint _250_dummy_parameter;
+            base = lookup.Load(int3(int2(gl_FragCoord.xy) % int2(spvTextureSize(lookup, uint(0), _250_dummy_parameter)), 0));
+            break;
+        }
+        default:
+        {
+            base = float4(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        }
+    }
+    float4 param_3 = in_shadow_coord;
+    float s = shadow(param_3);
+    float edge = fwidth(in_world.x) + abs(ddy(in_world.y));
+    out_color = float4(((base.xyz * lit) * s) + edge.xxx, count / 4.0f);
+    out_normal = float4((n * (gl_FrontFacing ? 0.5f : (-0.5f))) + 0.5f.xxx, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    gl_FrontFacing = stage_input.gl_FrontFacing;
+    in_normal = stage_input.in_normal;
+    in_world = stage_input.in_world;
+    in_layer = stage_input.in_layer;
+    in_shadow_coord = stage_input.in_shadow_coord;
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_complex_opt reflect
+samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=2
+input in_normal location=0 type=float32 size=3
+input in_world location=1 type=float32 size=3
+input in_layer location=2 type=int32 size=1
+input in_shadow_coord location=3 type=float32 size=4
+output out_color location=0 type=float32 size=4
+output out_normal location=1 type=float32 size=4
+=== fs_complex_opt glsl 450 0 0
+#version 450
+
+struct Light
+{
+    vec3 position;
+    float radius;
+    vec4 color;
+};
+
+layout(binding = 0, std140) uniform Scene
+{
+    Light lights[4];
+    mat3 normal_matrix;
+    ivec4 counts;
+    vec2 shadow_offsets[3];
+} scene;
+
+layout(binding = 1, std140) uniform Extra
+{
+    uvec2 mask;
+    float bias;
+} extra;
+
+layout(binding = 1) uniform sampler2DShadow shadow_map;
+layout(binding = 0) uniform sampler2DArray layers;
+layout(binding = 2) uniform sampler2D lookup;
+
+layout(location = 0) in vec3 in_normal;
+layout(location = 1) in vec3 in_world;
+layout(location = 2) flat in int in_layer;
+layout(location = 3) in vec4 in_shadow_coord;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_normal;
+
+void main()
+{
+    vec3 _134 = normalize(scene.normal_matrix * in_normal);
+    float _404;
+    vec3 _408;
+    _408 = vec3(0.0);
+    _404 = 0.0;
+    int _420;
+    float _421;
+    vec3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(scene.lights[_403].position, in_world);
+            if (_322 > scene.lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0;
+                break;
+            }
+            _406 = _404 + 1.0;
+            _405 = 1.0 - smoothstep(0.0, scene.lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene.lights[_403].color.xyz * _405) * max(dot(_134, normalize(scene.lights[_403].position - in_world)), 0.0));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    vec4 _413;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            _413 = texture(layers, vec3(in_world.xy, 0.0));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            _413 = texture(layers, vec3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            _413 = texelFetch(lookup, ivec2(gl_FragCoord.xy) % textureSize(lookup, 0), 0);
+            break;
+        }
+        default:
+        {
+            _413 = vec4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0;
+    for (int _410 = 0; _410 < 3; )
+    {
+        vec3 _353 = in_shadow_coord.xyz / vec3(in_shadow_coord.w);
+        float _371 = _353.z - extra.bias;
+        _411 += texture(shadow_map, vec3(vec3(_353.xy + scene.shadow_offsets[_410], _371).xy, _371));
+        _410++;
+        continue;
+    }
+    out_color = vec4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375)) + vec3(fwidth(in_world.x) + abs(dFdy(in_world.y))), _404 * 0.25);
+    out_normal = vec4((_134 * (gl_FrontFacing ? 0.5 : (-0.5))) + vec3(0.5), 1.0);
+}
+
+=== fs_complex_opt glsl 310 1 0
+#version 310 es
+precision mediump float;
+precision highp int;
+
+struct Light
+{
+    highp vec3 position;
+    highp float radius;
+    highp vec4 color;
+};
+
+layout(binding = 0, std140) uniform Scene
+{
+    Light lights[4];
+    highp mat3 normal_matrix;
+    ivec4 counts;
+    highp vec2 shadow_offsets[3];
+} scene;
+
+layout(binding = 1, std140) uniform Extra
+{
+    uvec2 mask;
+    highp float bias;
+} extra;
+
+layout(binding = 1) uniform highp sampler2DShadow shadow_map;
+layout(binding = 0) uniform highp sampler2DArray layers;
+layout(binding = 2) uniform highp sampler2D lookup;
+
+layout(location = 0) in highp vec3 in_normal;
+layout(location = 1) in highp vec3 in_world;
+layout(location = 2) flat in int in_layer;
+layout(location = 3) in highp vec4 in_shadow_coord;
+layout(location = 0) out highp vec4 out_color;
+layout(location = 1) out highp vec4 out_normal;
+
+void main()
+{
+    highp vec3 _134 = normalize(scene.normal_matrix * in_normal);
+    highp float _404;
+    highp vec3 _408;
+    _408 = vec3(0.0);
+    _404 = 0.0;
+    int _420;
+    highp float _421;
+    highp vec3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        highp float _405;
+        highp float _406;
+        do
+        {
+            highp float _322 = distance(scene.lights[_403].position, in_world);
+            if (_322 > scene.lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0;
+                break;
+            }
+            _406 = _404 + 1.0;
+            _405 = 1.0 - smoothstep(0.0, scene.lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene.lights[_403].color.xyz * _405) * max(dot(_134, normalize(scene.lights[_403].position - in_world)), 0.0));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    highp vec4 _413;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            _413 = texture(layers, vec3(in_world.xy, 0.0));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            _413 = texture(layers, vec3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            _413 = texelFetch(lookup, ivec2(gl_FragCoord.xy) % textureSize(lookup, 0), 0);
+            break;
+        }
+        default:
+        {
+            _413 = vec4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    highp float _411;
+    _411 = 0.0;
+    for (int _410 = 0; _410 < 3; )
+    {
+        highp vec3 _353 = in_shadow_coord.xyz / vec3(in_shadow_coord.w);
+        highp float _371 = _353.z - extra.bias;
+        _411 += texture(shadow_map, vec3(vec3(_353.xy + scene.shadow_offsets[_410], _371).xy, _371));
+        _410++;
+        continue;
+    }
+    out_color = vec4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375)) + vec3(fwidth(in_world.x) + abs(dFdy(in_world.y))), _404 * 0.25);
+    out_normal = vec4((_134 * (gl_FrontFacing ? 0.5 : (-0.5))) + vec3(0.5), 1.0);
+}
+
+=== fs_complex_opt glsl 450 0 1
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+
+struct Light
+{
+    vec3 position;
+    float radius;
+    vec4 color;
+};
+
+layout(set = 3, binding = 0, std140) uniform Scene
+{
+    Light lights[4];
+    mat3 normal_matrix;
+    ivec4 counts;
+    vec2 shadow_offsets[3];
+} scene;
+
+layout(set = 3, binding = 1, std140) uniform Extra
+{
+    uvec2 mask;
+    float bias;
+} extra;
+
+layout(set = 2, binding = 1) uniform sampler2DShadow shadow_map;
+layout(set = 2, binding = 0) uniform sampler2DArray layers;
+layout(set = 2, binding = 2) uniform sampler2D lookup;
+
+layout(location = 0) in vec3 in_normal;
+layout(location = 1) in vec3 in_world;
+layout(location = 2) flat in int in_layer;
+layout(location = 3) in vec4 in_shadow_coord;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_normal;
+
+void main()
+{
+    vec3 _134 = normalize(scene.normal_matrix * in_normal);
+    float _404;
+    vec3 _408;
+    _408 = vec3(0.0);
+    _404 = 0.0;
+    int _420;
+    float _421;
+    vec3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(scene.lights[_403].position, in_world);
+            if (_322 > scene.lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0;
+                break;
+            }
+            _406 = _404 + 1.0;
+            _405 = 1.0 - smoothstep(0.0, scene.lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene.lights[_403].color.xyz * _405) * max(dot(_134, normalize(scene.lights[_403].position - in_world)), 0.0));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    vec4 _413;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            _413 = texture(layers, vec3(in_world.xy, 0.0));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            _413 = texture(layers, vec3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            _413 = texelFetch(lookup, ivec2(gl_FragCoord.xy) % textureSize(lookup, 0), 0);
+            break;
+        }
+        default:
+        {
+            _413 = vec4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0;
+    for (int _410 = 0; _410 < 3; )
+    {
+        vec3 _353 = in_shadow_coord.xyz / vec3(in_shadow_coord.w);
+        float _371 = _353.z - extra.bias;
+        _411 += texture(shadow_map, vec3(vec3(_353.xy + scene.shadow_offsets[_410], _371).xy, _371));
+        _410++;
+        continue;
+    }
+    out_color = vec4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375)) + vec3(fwidth(in_world.x) + abs(dFdy(in_world.y))), _404 * 0.25);
+    out_normal = vec4((_134 * (gl_FrontFacing ? 0.5 : (-0.5))) + vec3(0.5), 1.0);
+}
+
+=== fs_complex_opt msl fragment 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Light
+{
+    packed_float3 position;
+    float radius;
+    float4 color;
+};
+
+struct Scene
+{
+    Light lights[4];
+    float3x3 normal_matrix;
+    int4 counts;
+    float4 shadow_offsets[3];
+};
+
+struct Extra
+{
+    uint2 mask;
+    float bias0;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+    float4 out_normal [[color(1)]];
+};
+
+struct main0_in
+{
+    float3 in_normal [[user(locn0)]];
+    float3 in_world [[user(locn1)]];
+    int in_layer [[user(locn2)]];
+    float4 in_shadow_coord [[user(locn3)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Scene& scene [[buffer(0)]], constant Extra& extra [[buffer(1)]], texture2d_array<float> layers [[texture(0)]], depth2d<float> shadow_map [[texture(1)]], texture2d<float> lookup [[texture(2)]], sampler layersSmplr [[sampler(0)]], sampler shadow_mapSmplr [[sampler(1)]], sampler lookupSmplr [[sampler(2)]], float4 gl_FragCoord [[position]], bool gl_FrontFacing [[front_facing]])
+{
+    main0_out out = {};
+    float3 _134 = fast::normalize(scene.normal_matrix * in.in_normal);
+    float _404;
+    float3 _408;
+    _408 = float3(0.0);
+    _404 = 0.0;
+    int _420;
+    float _421;
+    float3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(float3(scene.lights[_403].position), in.in_world);
+            if (_322 > scene.lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0;
+                break;
+            }
+            _406 = _404 + 1.0;
+            _405 = 1.0 - smoothstep(0.0, scene.lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene.lights[_403].color.xyz * _405) * fast::max(dot(_134, fast::normalize(float3(scene.lights[_403].position) - in.in_world)), 0.0));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    float4 _413;
+    switch (in.in_layer)
+    {
+        case 0:
+        {
+            float3 _224 = float3(in.in_world.xy, 0.0);
+            _413 = layers.sample(layersSmplr, _224.xy, uint(rint(_224.z)));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            float3 _234 = float3(in.in_world.xy, float(in.in_layer));
+            _413 = layers.sample(layersSmplr, _234.xy, uint(rint(_234.z)));
+            break;
+        }
+        case 3:
+        {
+            _413 = lookup.read(uint2(spvSMod(int2(gl_FragCoord.xy), int2(lookup.get_width(), lookup.get_height()))), 0);
+            break;
+        }
+        default:
+        {
+            _413 = float4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0;
+    for (int _410 = 0; _410 < 3; )
+    {
+        float3 _353 = in.in_shadow_coord.xyz / float3(in.in_shadow_coord.w);
+        float _371 = _353.z - extra.bias0;
+        _411 += shadow_map.sample_compare(shadow_mapSmplr, float3(_353.xy + scene.shadow_offsets[_410].xy, _371).xy, _371);
+        _410++;
+        continue;
+    }
+    out.out_color = float4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375)) + float3(fwidth(in.in_world.x) + abs(dfdy(in.in_world.y))), _404 * 0.25);
+    out.out_normal = float4((_134 * (gl_FrontFacing ? 0.5 : (-0.5))) + float3(0.5), 1.0);
+    return out;
+}
+
+=== fs_complex_opt msl fragment 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Light
+{
+    packed_float3 position;
+    float radius;
+    float4 color;
+};
+
+struct Scene
+{
+    Light lights[4];
+    float3x3 normal_matrix;
+    int4 counts;
+    float4 shadow_offsets[3];
+};
+
+struct Extra
+{
+    uint2 mask;
+    float bias0;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+    float4 out_normal [[color(1)]];
+};
+
+struct main0_in
+{
+    float3 in_normal [[user(locn0)]];
+    float3 in_world [[user(locn1)]];
+    int in_layer [[user(locn2)]];
+    float4 in_shadow_coord [[user(locn3)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Scene& scene [[buffer(0)]], constant Extra& extra [[buffer(1)]], texture2d_array<float> layers [[texture(0)]], depth2d<float> shadow_map [[texture(1)]], texture2d<float> lookup [[texture(2)]], sampler layersSmplr [[sampler(0)]], sampler shadow_mapSmplr [[sampler(1)]], sampler lookupSmplr [[sampler(2)]], float4 gl_FragCoord [[position]], bool gl_FrontFacing [[front_facing]])
+{
+    main0_out out = {};
+    float3 _134 = fast::normalize(scene.normal_matrix * in.in_normal);
+    float _404;
+    float3 _408;
+    _408 = float3(0.0);
+    _404 = 0.0;
+    int _420;
+    float _421;
+    float3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene.counts.x)
+        {
+            break;
+        }
+        if ((extra.mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(float3(scene.lights[_403].position), in.in_world);
+            if (_322 > scene.lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0;
+                break;
+            }
+            _406 = _404 + 1.0;
+            _405 = 1.0 - smoothstep(0.0, scene.lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene.lights[_403].color.xyz * _405) * fast::max(dot(_134, fast::normalize(float3(scene.lights[_403].position) - in.in_world)), 0.0));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    float4 _413;
+    switch (in.in_layer)
+    {
+        case 0:
+        {
+            float3 _224 = float3(in.in_world.xy, 0.0);
+            _413 = layers.sample(layersSmplr, _224.xy, uint(rint(_224.z)));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            float3 _234 = float3(in.in_world.xy, float(in.in_layer));
+            _413 = layers.sample(layersSmplr, _234.xy, uint(rint(_234.z)));
+            break;
+        }
+        case 3:
+        {
+            _413 = lookup.read(uint2(spvSMod(int2(gl_FragCoord.xy), int2(lookup.get_width(), lookup.get_height()))), 0);
+            break;
+        }
+        default:
+        {
+            _413 = float4(1.0, 0.0, 1.0, 1.0);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0;
+    for (int _410 = 0; _410 < 3; )
+    {
+        float3 _353 = in.in_shadow_coord.xyz / float3(in.in_shadow_coord.w);
+        float _371 = _353.z - extra.bias0;
+        _411 += shadow_map.sample_compare(shadow_mapSmplr, float3(_353.xy + scene.shadow_offsets[_410].xy, _371).xy, _371);
+        _410++;
+        continue;
+    }
+    out.out_color = float4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375)) + float3(fwidth(in.in_world.x) + abs(dfdy(in.in_world.y))), _404 * 0.25);
+    out.out_normal = float4((_134 * (gl_FrontFacing ? 0.5 : (-0.5))) + float3(0.5), 1.0);
+    return out;
+}
+
+=== fs_complex_opt hlsl fragment 60 - 0
+entrypoint: main
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+cbuffer Scene : register(b0, space3)
+{
+    Light scene_lights[4] : packoffset(c0);
+    row_major float3x3 scene_normal_matrix : packoffset(c8);
+    int4 scene_counts : packoffset(c11);
+    float2 scene_shadow_offsets[3] : packoffset(c12);
+};
+
+cbuffer Extra : register(b1, space3)
+{
+    uint2 extra_mask : packoffset(c0);
+    float extra_bias : packoffset(c0.z);
+};
+
+Texture2D<float4> shadow_map : register(t1, space2);
+SamplerComparisonState _shadow_map_sampler : register(s1, space2);
+Texture2DArray<float4> layers : register(t0, space2);
+SamplerState _layers_sampler : register(s0, space2);
+Texture2D<float4> lookup : register(t2, space2);
+SamplerState _lookup_sampler : register(s2, space2);
+
+static float4 gl_FragCoord;
+static bool gl_FrontFacing;
+static float3 in_normal;
+static float3 in_world;
+static int in_layer;
+static float4 in_shadow_coord;
+static float4 out_color;
+static float4 out_normal;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_normal : TEXCOORD0;
+    float3 in_world : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+    float4 in_shadow_coord : TEXCOORD3;
+    float4 gl_FragCoord : SV_Position;
+    bool gl_FrontFacing : SV_IsFrontFace;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float4 out_normal : SV_Target1;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+void main_inner()
+{
+    float3 _134 = normalize(mul(in_normal, scene_normal_matrix));
+    float _404;
+    float3 _408;
+    _408 = 0.0f.xxx;
+    _404 = 0.0f;
+    int _420;
+    float _421;
+    float3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene_counts.x)
+        {
+            break;
+        }
+        if ((extra_mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(scene_lights[_403].position, in_world);
+            if (_322 > scene_lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0f;
+                break;
+            }
+            _406 = _404 + 1.0f;
+            _405 = 1.0f - smoothstep(0.0f, scene_lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene_lights[_403].color.xyz * _405) * max(dot(_134, normalize(scene_lights[_403].position - in_world)), 0.0f));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    float4 _413;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            _413 = layers.Sample(_layers_sampler, float3(in_world.xy, 0.0f));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            _413 = layers.Sample(_layers_sampler, float3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            uint _250_dummy_parameter;
+            _413 = lookup.Load(int3(int2(gl_FragCoord.xy) % int2(spvTextureSize(lookup, uint(0), _250_dummy_parameter)), 0));
+            break;
+        }
+        default:
+        {
+            _413 = float4(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0f;
+    for (int _410 = 0; _410 < 3; )
+    {
+        float3 _353 = in_shadow_coord.xyz / in_shadow_coord.w.xxx;
+        float _371 = _353.z - extra_bias;
+        _411 += shadow_map.SampleCmp(_shadow_map_sampler, float3(_353.xy + scene_shadow_offsets[_410], _371).xy, _371);
+        _410++;
+        continue;
+    }
+    out_color = float4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375f)) + (fwidth(in_world.x) + abs(ddy(in_world.y))).xxx, _404 * 0.25f);
+    out_normal = float4((_134 * (gl_FrontFacing ? 0.5f : (-0.5f))) + 0.5f.xxx, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    gl_FrontFacing = stage_input.gl_FrontFacing;
+    in_normal = stage_input.in_normal;
+    in_world = stage_input.in_world;
+    in_layer = stage_input.in_layer;
+    in_shadow_coord = stage_input.in_shadow_coord;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_complex_opt hlsl fragment 51 - 0
+entrypoint: main
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+cbuffer Scene : register(b0, space3)
+{
+    Light scene_lights[4] : packoffset(c0);
+    row_major float3x3 scene_normal_matrix : packoffset(c8);
+    int4 scene_counts : packoffset(c11);
+    float2 scene_shadow_offsets[3] : packoffset(c12);
+};
+
+cbuffer Extra : register(b1, space3)
+{
+    uint2 extra_mask : packoffset(c0);
+    float extra_bias : packoffset(c0.z);
+};
+
+Texture2D<float4> shadow_map : register(t1, space2);
+SamplerComparisonState _shadow_map_sampler : register(s1, space2);
+Texture2DArray<float4> layers : register(t0, space2);
+SamplerState _layers_sampler : register(s0, space2);
+Texture2D<float4> lookup : register(t2, space2);
+SamplerState _lookup_sampler : register(s2, space2);
+
+static float4 gl_FragCoord;
+static bool gl_FrontFacing;
+static float3 in_normal;
+static float3 in_world;
+static int in_layer;
+static float4 in_shadow_coord;
+static float4 out_color;
+static float4 out_normal;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_normal : TEXCOORD0;
+    float3 in_world : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+    float4 in_shadow_coord : TEXCOORD3;
+    float4 gl_FragCoord : SV_Position;
+    bool gl_FrontFacing : SV_IsFrontFace;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float4 out_normal : SV_Target1;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+void main_inner()
+{
+    float3 _134 = normalize(mul(in_normal, scene_normal_matrix));
+    float _404;
+    float3 _408;
+    _408 = 0.0f.xxx;
+    _404 = 0.0f;
+    int _420;
+    float _421;
+    float3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene_counts.x)
+        {
+            break;
+        }
+        if ((extra_mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(scene_lights[_403].position, in_world);
+            if (_322 > scene_lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0f;
+                break;
+            }
+            _406 = _404 + 1.0f;
+            _405 = 1.0f - smoothstep(0.0f, scene_lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene_lights[_403].color.xyz * _405) * max(dot(_134, normalize(scene_lights[_403].position - in_world)), 0.0f));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    float4 _413;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            _413 = layers.Sample(_layers_sampler, float3(in_world.xy, 0.0f));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            _413 = layers.Sample(_layers_sampler, float3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            uint _250_dummy_parameter;
+            _413 = lookup.Load(int3(int2(gl_FragCoord.xy) % int2(spvTextureSize(lookup, uint(0), _250_dummy_parameter)), 0));
+            break;
+        }
+        default:
+        {
+            _413 = float4(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0f;
+    for (int _410 = 0; _410 < 3; )
+    {
+        float3 _353 = in_shadow_coord.xyz / in_shadow_coord.w.xxx;
+        float _371 = _353.z - extra_bias;
+        _411 += shadow_map.SampleCmp(_shadow_map_sampler, float3(_353.xy + scene_shadow_offsets[_410], _371).xy, _371);
+        _410++;
+        continue;
+    }
+    out_color = float4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375f)) + (fwidth(in_world.x) + abs(ddy(in_world.y))).xxx, _404 * 0.25f);
+    out_normal = float4((_134 * (gl_FrontFacing ? 0.5f : (-0.5f))) + 0.5f.xxx, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    gl_FrontFacing = stage_input.gl_FrontFacing;
+    in_normal = stage_input.in_normal;
+    in_world = stage_input.in_world;
+    in_layer = stage_input.in_layer;
+    in_shadow_coord = stage_input.in_shadow_coord;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_complex_opt hlsl fragment 50 - 1
+entrypoint: main
+struct Light
+{
+    float3 position;
+    float radius;
+    float4 color;
+};
+
+cbuffer Scene : register(b0)
+{
+    Light scene_lights[4] : packoffset(c0);
+    row_major float3x3 scene_normal_matrix : packoffset(c8);
+    int4 scene_counts : packoffset(c11);
+    float2 scene_shadow_offsets[3] : packoffset(c12);
+};
+
+cbuffer Extra : register(b1)
+{
+    uint2 extra_mask : packoffset(c0);
+    float extra_bias : packoffset(c0.z);
+};
+
+Texture2D<float4> shadow_map : register(t1);
+SamplerComparisonState _shadow_map_sampler : register(s1);
+Texture2DArray<float4> layers : register(t0);
+SamplerState _layers_sampler : register(s0);
+Texture2D<float4> lookup : register(t2);
+SamplerState _lookup_sampler : register(s2);
+
+static float4 gl_FragCoord;
+static bool gl_FrontFacing;
+static float3 in_normal;
+static float3 in_world;
+static int in_layer;
+static float4 in_shadow_coord;
+static float4 out_color;
+static float4 out_normal;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_normal : TEXCOORD0;
+    float3 in_world : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+    float4 in_shadow_coord : TEXCOORD3;
+    float4 gl_FragCoord : SV_Position;
+    bool gl_FrontFacing : SV_IsFrontFace;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float4 out_normal : SV_Target1;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+void frag_main()
+{
+    float3 _134 = normalize(mul(in_normal, scene_normal_matrix));
+    float _404;
+    float3 _408;
+    _408 = 0.0f.xxx;
+    _404 = 0.0f;
+    int _420;
+    float _421;
+    float3 _422;
+    int _403 = 0;
+    for (;;)
+    {
+        if (_403 >= scene_counts.x)
+        {
+            break;
+        }
+        if ((extra_mask.x & (1u << uint(_403))) == 0u)
+        {
+            _422 = _408;
+            _421 = _404;
+            _420 = _403 + 1;
+            _408 = _422;
+            _404 = _421;
+            _403 = _420;
+            continue;
+        }
+        float _405;
+        float _406;
+        do
+        {
+            float _322 = distance(scene_lights[_403].position, in_world);
+            if (_322 > scene_lights[_403].radius)
+            {
+                _406 = _404;
+                _405 = 0.0f;
+                break;
+            }
+            _406 = _404 + 1.0f;
+            _405 = 1.0f - smoothstep(0.0f, scene_lights[_403].radius, _322);
+            break;
+        } while(false);
+        _422 = _408 + ((scene_lights[_403].color.xyz * _405) * max(dot(_134, normalize(scene_lights[_403].position - in_world)), 0.0f));
+        _421 = _406;
+        _420 = _403 + 1;
+        _408 = _422;
+        _404 = _421;
+        _403 = _420;
+        continue;
+    }
+    float4 _413;
+    switch (in_layer)
+    {
+        case 0:
+        {
+            _413 = layers.Sample(_layers_sampler, float3(in_world.xy, 0.0f));
+            break;
+        }
+        case 1:
+        case 2:
+        {
+            _413 = layers.Sample(_layers_sampler, float3(in_world.xy, float(in_layer)));
+            break;
+        }
+        case 3:
+        {
+            uint _250_dummy_parameter;
+            _413 = lookup.Load(int3(int2(gl_FragCoord.xy) % int2(spvTextureSize(lookup, uint(0), _250_dummy_parameter)), 0));
+            break;
+        }
+        default:
+        {
+            _413 = float4(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        }
+    }
+    float _411;
+    _411 = 0.0f;
+    for (int _410 = 0; _410 < 3; )
+    {
+        float3 _353 = in_shadow_coord.xyz / in_shadow_coord.w.xxx;
+        float _371 = _353.z - extra_bias;
+        _411 += shadow_map.SampleCmp(_shadow_map_sampler, float3(_353.xy + scene_shadow_offsets[_410], _371).xy, _371);
+        _410++;
+        continue;
+    }
+    out_color = float4(((_413.xyz * _408) * (_411 * 0.3333333432674407958984375f)) + (fwidth(in_world.x) + abs(ddy(in_world.y))).xxx, _404 * 0.25f);
+    out_normal = float4((_134 * (gl_FrontFacing ? 0.5f : (-0.5f))) + 0.5f.xxx, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    gl_FrontFacing = stage_input.gl_FrontFacing;
+    in_normal = stage_input.in_normal;
+    in_world = stage_input.in_world;
+    in_layer = stage_input.in_layer;
+    in_shadow_coord = stage_input.in_shadow_coord;
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_storage reflect
+samplers=1 storage_textures=1 storage_buffers=1 uniform_buffers=1
+input in_uv location=0 type=float32 size=2
+output out_color location=0 type=float32 size=4
+=== fs_storage glsl 450 0 0
+#version 450
+
+layout(binding = 2, std430) readonly buffer Weights
+{
+    float weights[16];
+    uint count;
+} weights;
+
+layout(binding = 0, std140) uniform Params
+{
+    vec4 scale;
+    float depth_bias;
+} params;
+
+layout(binding = 1, rgba8) uniform readonly image2D palette;
+layout(binding = 0) uniform sampler2D _noise;
+
+layout(location = 0) in vec2 in_uv;
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    ivec2 size = imageSize(palette);
+    vec4 sum = vec4(0.0);
+    for (uint i = 0u; i < min(weights.count, 16u); i++)
+    {
+        ivec2 p = ivec2(int(i) % size.x, int(i) / size.x);
+        sum += (imageLoad(palette, p) * weights.weights[i]);
+    }
+    sum *= texture(_noise, in_uv * params.scale.xy);
+    out_color = clamp(sum, vec4(0.0), vec4(1.0));
+    gl_FragDepth = gl_FragCoord.z + params.depth_bias;
+}
+
+=== fs_storage glsl 310 1 0
+#version 310 es
+precision mediump float;
+precision highp int;
+
+layout(binding = 2, std430) readonly buffer Weights
+{
+    highp float weights[16];
+    uint count;
+} weights;
+
+layout(binding = 0, std140) uniform Params
+{
+    highp vec4 scale;
+    highp float depth_bias;
+} params;
+
+layout(binding = 1, rgba8) uniform readonly highp image2D palette;
+layout(binding = 0) uniform highp sampler2D _noise;
+
+layout(location = 0) in highp vec2 in_uv;
+layout(location = 0) out highp vec4 out_color;
+
+void main()
+{
+    ivec2 size = imageSize(palette);
+    highp vec4 sum = vec4(0.0);
+    for (uint i = 0u; i < min(weights.count, 16u); i++)
+    {
+        ivec2 p = ivec2(int(i) % size.x, int(i) / size.x);
+        sum += (imageLoad(palette, p) * weights.weights[i]);
+    }
+    sum *= texture(_noise, in_uv * params.scale.xy);
+    out_color = clamp(sum, vec4(0.0), vec4(1.0));
+    gl_FragDepth = gl_FragCoord.z + params.depth_bias;
+}
+
+=== fs_storage glsl 450 0 1
+#version 450
+
+layout(set = 2, binding = 2, std430) readonly buffer Weights
+{
+    float weights[16];
+    uint count;
+} weights;
+
+layout(set = 3, binding = 0, std140) uniform Params
+{
+    vec4 scale;
+    float depth_bias;
+} params;
+
+layout(set = 2, binding = 1, rgba8) uniform readonly image2D palette;
+layout(set = 2, binding = 0) uniform sampler2D _noise;
+
+layout(location = 0) in vec2 in_uv;
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    ivec2 size = imageSize(palette);
+    vec4 sum = vec4(0.0);
+    for (uint i = 0u; i < min(weights.count, 16u); i++)
+    {
+        ivec2 p = ivec2(int(i) % size.x, int(i) / size.x);
+        sum += (imageLoad(palette, p) * weights.weights[i]);
+    }
+    sum *= texture(_noise, in_uv * params.scale.xy);
+    out_color = clamp(sum, vec4(0.0), vec4(1.0));
+    gl_FragDepth = gl_FragCoord.z + params.depth_bias;
+}
+
+=== fs_storage msl fragment 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Weights
+{
+    float weights[16];
+    uint count;
+};
+
+struct Params
+{
+    float4 scale;
+    float depth_bias;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+    float gl_FragDepth [[depth(any)]];
+};
+
+struct main0_in
+{
+    float2 in_uv [[user(locn0)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Params& params [[buffer(0)]], const device Weights& weights [[buffer(1)]], texture2d<float> _noise [[texture(0)]], texture2d<float> palette [[texture(1)]], sampler _noiseSmplr [[sampler(0)]], float4 gl_FragCoord [[position]])
+{
+    main0_out out = {};
+    int2 size = int2(palette.get_width(), palette.get_height());
+    float4 sum = float4(0.0);
+    for (uint i = 0u; i < min(weights.count, 16u); i++)
+    {
+        int2 p = int2(spvSMod(int(i), size.x), int(i) / size.x);
+        sum += (palette.read(uint2(p)) * weights.weights[i]);
+    }
+    sum *= _noise.sample(_noiseSmplr, (in.in_uv * params.scale.xy));
+    out.out_color = fast::clamp(sum, float4(0.0), float4(1.0));
+    out.gl_FragDepth = gl_FragCoord.z + params.depth_bias;
+    return out;
+}
+
+=== fs_storage msl fragment 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Weights
+{
+    float weights[16];
+    uint count;
+};
+
+struct Params
+{
+    float4 scale;
+    float depth_bias;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+    float gl_FragDepth [[depth(any)]];
+};
+
+struct main0_in
+{
+    float2 in_uv [[user(locn0)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Params& params [[buffer(0)]], const device Weights& weights [[buffer(1)]], texture2d<float> _noise [[texture(0)]], texture2d<float> palette [[texture(1)]], sampler _noiseSmplr [[sampler(0)]], float4 gl_FragCoord [[position]])
+{
+    main0_out out = {};
+    int2 size = int2(palette.get_width(), palette.get_height());
+    float4 sum = float4(0.0);
+    for (uint i = 0u; i < min(weights.count, 16u); i++)
+    {
+        int2 p = int2(spvSMod(int(i), size.x), int(i) / size.x);
+        sum += (palette.read(uint2(p)) * weights.weights[i]);
+    }
+    sum *= _noise.sample(_noiseSmplr, (in.in_uv * params.scale.xy));
+    out.out_color = fast::clamp(sum, float4(0.0), float4(1.0));
+    out.gl_FragDepth = gl_FragCoord.z + params.depth_bias;
+    return out;
+}
+
+=== fs_storage hlsl fragment 60 - 0
+entrypoint: main
+ByteAddressBuffer weights : register(t2, space2);
+cbuffer Params : register(b0, space3)
+{
+    float4 params_scale : packoffset(c0);
+    float params_depth_bias : packoffset(c1);
+};
+
+Texture2D<float4> palette : register(t1, space2);
+Texture2D<float4> _noise : register(t0, space2);
+SamplerState __noise_sampler : register(s0, space2);
+
+static float4 gl_FragCoord;
+static float gl_FragDepth;
+static float2 in_uv;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_uv : TEXCOORD0;
+    float4 gl_FragCoord : SV_Position;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float gl_FragDepth : SV_Depth;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+void main_inner()
+{
+    uint _15_dummy_parameter;
+    int2 size = int2(spvTextureSize(palette, 0u, _15_dummy_parameter));
+    float4 sum = 0.0f.xxxx;
+    for (uint i = 0u; i < min(weights.Load(64), 16u); i++)
+    {
+        int2 p = int2(int(i) % size.x, int(i) / size.x);
+        sum += (palette[p] * asfloat(weights.Load(i * 4 + 0)));
+    }
+    sum *= _noise.Sample(__noise_sampler, in_uv * params_scale.xy);
+    out_color = clamp(sum, 0.0f.xxxx, 1.0f.xxxx);
+    gl_FragDepth = gl_FragCoord.z + params_depth_bias;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    in_uv = stage_input.in_uv;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_FragDepth = gl_FragDepth;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_storage hlsl fragment 51 - 0
+entrypoint: main
+ByteAddressBuffer weights : register(t2, space2);
+cbuffer Params : register(b0, space3)
+{
+    float4 params_scale : packoffset(c0);
+    float params_depth_bias : packoffset(c1);
+};
+
+Texture2D<float4> palette : register(t1, space2);
+Texture2D<float4> _noise : register(t0, space2);
+SamplerState __noise_sampler : register(s0, space2);
+
+static float4 gl_FragCoord;
+static float gl_FragDepth;
+static float2 in_uv;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_uv : TEXCOORD0;
+    float4 gl_FragCoord : SV_Position;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float gl_FragDepth : SV_Depth;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+void main_inner()
+{
+    uint _15_dummy_parameter;
+    int2 size = int2(spvTextureSize(palette, 0u, _15_dummy_parameter));
+    float4 sum = 0.0f.xxxx;
+    for (uint i = 0u; i < min(weights.Load(64), 16u); i++)
+    {
+        int2 p = int2(int(i) % size.x, int(i) / size.x);
+        sum += (palette[p] * asfloat(weights.Load(i * 4 + 0)));
+    }
+    sum *= _noise.Sample(__noise_sampler, in_uv * params_scale.xy);
+    out_color = clamp(sum, 0.0f.xxxx, 1.0f.xxxx);
+    gl_FragDepth = gl_FragCoord.z + params_depth_bias;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    in_uv = stage_input.in_uv;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_FragDepth = gl_FragDepth;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_storage hlsl fragment 50 - 1
+entrypoint: main
+ByteAddressBuffer weights : register(t2);
+cbuffer Params : register(b0)
+{
+    float4 params_scale : packoffset(c0);
+    float params_depth_bias : packoffset(c1);
+};
+
+Texture2D<float4> palette : register(t1);
+Texture2D<float4> _noise : register(t0);
+SamplerState __noise_sampler : register(s0);
+
+static float4 gl_FragCoord;
+static float gl_FragDepth;
+static float2 in_uv;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_uv : TEXCOORD0;
+    float4 gl_FragCoord : SV_Position;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+    float gl_FragDepth : SV_Depth;
+};
+
+uint2 spvTextureSize(Texture2D<float4> Tex, uint Level, out uint Param)
+{
+    uint2 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, Param);
+    return ret;
+}
+
+void frag_main()
+{
+    uint _15_dummy_parameter;
+    int2 size = int2(spvTextureSize(palette, 0u, _15_dummy_parameter));
+    float4 sum = 0.0f.xxxx;
+    for (uint i = 0u; i < min(weights.Load(64), 16u); i++)
+    {
+        int2 p = int2(int(i) % size.x, int(i) / size.x);
+        sum += (palette[p] * asfloat(weights.Load(i * 4 + 0)));
+    }
+    sum *= _noise.Sample(__noise_sampler, in_uv * params_scale.xy);
+    out_color = clamp(sum, 0.0f.xxxx, 1.0f.xxxx);
+    gl_FragDepth = gl_FragCoord.z + params_depth_bias;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_FragCoord = stage_input.gl_FragCoord;
+    gl_FragCoord.w = 1.0 / gl_FragCoord.w;
+    in_uv = stage_input.in_uv;
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_FragDepth = gl_FragDepth;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_textured reflect
+samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=1
+input in_uv location=1 type=float32 size=2
+input in_color location=0 type=float32 size=4
+output out_color location=0 type=float32 size=4
+=== fs_textured glsl 450 0 0
+#version 450
+
+layout(binding = 0, std140) uniform Material
+{
+    vec4 base_color;
+    vec3 light_dir;
+    float roughness;
+    int sample_count;
+    float alpha_cutoff;
+} material;
+
+layout(binding = 0) uniform sampler2D albedo;
+layout(binding = 1) uniform samplerCube environment;
+
+layout(location = 1) in vec2 in_uv;
+layout(location = 0) in vec4 in_color;
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    vec4 color = (texture(albedo, in_uv) * in_color) * material.base_color;
+    if (color.w < material.alpha_cutoff)
+    {
+        discard;
+    }
+    vec3 env = vec3(0.0);
+    for (int i = 0; i < material.sample_count; i++)
+    {
+        vec3 dir = normalize(material.light_dir + vec3(float(i) * 0.100000001490116119384765625, 0.0, 0.0));
+        env += texture(environment, dir).xyz;
+    }
+    if (material.sample_count > 0)
+    {
+        env /= vec3(float(material.sample_count));
+    }
+    else
+    {
+        env = vec3(1.0);
+    }
+    out_color = vec4(mix(color.xyz, env, vec3(material.roughness)), color.w);
+}
+
+=== fs_textured glsl 310 1 0
+#version 310 es
+precision mediump float;
+precision highp int;
+
+layout(binding = 0, std140) uniform Material
+{
+    highp vec4 base_color;
+    highp vec3 light_dir;
+    highp float roughness;
+    int sample_count;
+    highp float alpha_cutoff;
+} material;
+
+layout(binding = 0) uniform highp sampler2D albedo;
+layout(binding = 1) uniform highp samplerCube environment;
+
+layout(location = 1) in highp vec2 in_uv;
+layout(location = 0) in highp vec4 in_color;
+layout(location = 0) out highp vec4 out_color;
+
+void main()
+{
+    highp vec4 color = (texture(albedo, in_uv) * in_color) * material.base_color;
+    if (color.w < material.alpha_cutoff)
+    {
+        discard;
+    }
+    highp vec3 env = vec3(0.0);
+    for (int i = 0; i < material.sample_count; i++)
+    {
+        highp vec3 dir = normalize(material.light_dir + vec3(float(i) * 0.100000001490116119384765625, 0.0, 0.0));
+        env += texture(environment, dir).xyz;
+    }
+    if (material.sample_count > 0)
+    {
+        env /= vec3(float(material.sample_count));
+    }
+    else
+    {
+        env = vec3(1.0);
+    }
+    out_color = vec4(mix(color.xyz, env, vec3(material.roughness)), color.w);
+}
+
+=== fs_textured glsl 450 0 1
+#version 450
+
+layout(set = 3, binding = 0, std140) uniform Material
+{
+    vec4 base_color;
+    vec3 light_dir;
+    float roughness;
+    int sample_count;
+    float alpha_cutoff;
+} material;
+
+layout(set = 2, binding = 0) uniform sampler2D albedo;
+layout(set = 2, binding = 1) uniform samplerCube environment;
+
+layout(location = 1) in vec2 in_uv;
+layout(location = 0) in vec4 in_color;
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    vec4 color = (texture(albedo, in_uv) * in_color) * material.base_color;
+    if (color.w < material.alpha_cutoff)
+    {
+        discard;
+    }
+    vec3 env = vec3(0.0);
+    for (int i = 0; i < material.sample_count; i++)
+    {
+        vec3 dir = normalize(material.light_dir + vec3(float(i) * 0.100000001490116119384765625, 0.0, 0.0));
+        env += texture(environment, dir).xyz;
+    }
+    if (material.sample_count > 0)
+    {
+        env /= vec3(float(material.sample_count));
+    }
+    else
+    {
+        env = vec3(1.0);
+    }
+    out_color = vec4(mix(color.xyz, env, vec3(material.roughness)), color.w);
+}
+
+=== fs_textured msl fragment 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Material
+{
+    float4 base_color;
+    packed_float3 light_dir;
+    float roughness;
+    int sample_count;
+    float alpha_cutoff;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+};
+
+struct main0_in
+{
+    float4 in_color [[user(locn0)]];
+    float2 in_uv [[user(locn1)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Material& material [[buffer(0)]], texture2d<float> albedo [[texture(0)]], texturecube<float> environment [[texture(1)]], sampler albedoSmplr [[sampler(0)]], sampler environmentSmplr [[sampler(1)]])
+{
+    main0_out out = {};
+    float4 color = (albedo.sample(albedoSmplr, in.in_uv) * in.in_color) * material.base_color;
+    if (color.w < material.alpha_cutoff)
+    {
+        discard_fragment();
+    }
+    float3 env = float3(0.0);
+    for (int i = 0; i < material.sample_count; i++)
+    {
+        float3 dir = fast::normalize(float3(material.light_dir) + float3(float(i) * 0.100000001490116119384765625, 0.0, 0.0));
+        env += environment.sample(environmentSmplr, dir).xyz;
+    }
+    if (material.sample_count > 0)
+    {
+        env /= float3(float(material.sample_count));
+    }
+    else
+    {
+        env = float3(1.0);
+    }
+    out.out_color = float4(mix(color.xyz, env, float3(material.roughness)), color.w);
+    return out;
+}
+
+=== fs_textured msl fragment 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Material
+{
+    float4 base_color;
+    packed_float3 light_dir;
+    float roughness;
+    int sample_count;
+    float alpha_cutoff;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+};
+
+struct main0_in
+{
+    float4 in_color [[user(locn0)]];
+    float2 in_uv [[user(locn1)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Material& material [[buffer(0)]], texture2d<float> albedo [[texture(0)]], texturecube<float> environment [[texture(1)]], sampler albedoSmplr [[sampler(0)]], sampler environmentSmplr [[sampler(1)]])
+{
+    main0_out out = {};
+    float4 color = (albedo.sample(albedoSmplr, in.in_uv) * in.in_color) * material.base_color;
+    if (color.w < material.alpha_cutoff)
+    {
+        discard_fragment();
+    }
+    float3 env = float3(0.0);
+    for (int i = 0; i < material.sample_count; i++)
+    {
+        float3 dir = fast::normalize(float3(material.light_dir) + float3(float(i) * 0.100000001490116119384765625, 0.0, 0.0));
+        env += environment.sample(environmentSmplr, dir).xyz;
+    }
+    if (material.sample_count > 0)
+    {
+        env /= float3(float(material.sample_count));
+    }
+    else
+    {
+        env = float3(1.0);
+    }
+    out.out_color = float4(mix(color.xyz, env, float3(material.roughness)), color.w);
+    return out;
+}
+
+=== fs_textured hlsl fragment 60 - 0
+entrypoint: main
+cbuffer Material : register(b0, space3)
+{
+    float4 material_base_color : packoffset(c0);
+    float3 material_light_dir : packoffset(c1);
+    float material_roughness : packoffset(c1.w);
+    int material_sample_count : packoffset(c2);
+    float material_alpha_cutoff : packoffset(c2.y);
+};
+
+Texture2D<float4> albedo : register(t0, space2);
+SamplerState _albedo_sampler : register(s0, space2);
+TextureCube<float4> environment : register(t1, space2);
+SamplerState _environment_sampler : register(s1, space2);
+
+static float2 in_uv;
+static float4 in_color;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float4 in_color : TEXCOORD0;
+    float2 in_uv : TEXCOORD1;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void main_inner()
+{
+    float4 color = (albedo.Sample(_albedo_sampler, in_uv) * in_color) * material_base_color;
+    if (color.w < material_alpha_cutoff)
+    {
+        discard;
+    }
+    float3 env = 0.0f.xxx;
+    for (int i = 0; i < material_sample_count; i++)
+    {
+        float3 dir = normalize(material_light_dir + float3(float(i) * 0.100000001490116119384765625f, 0.0f, 0.0f));
+        env += environment.Sample(_environment_sampler, dir).xyz;
+    }
+    if (material_sample_count > 0)
+    {
+        env /= float(material_sample_count).xxx;
+    }
+    else
+    {
+        env = 1.0f.xxx;
+    }
+    out_color = float4(lerp(color.xyz, env, material_roughness.xxx), color.w);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_uv = stage_input.in_uv;
+    in_color = stage_input.in_color;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_textured hlsl fragment 51 - 0
+entrypoint: main
+cbuffer Material : register(b0, space3)
+{
+    float4 material_base_color : packoffset(c0);
+    float3 material_light_dir : packoffset(c1);
+    float material_roughness : packoffset(c1.w);
+    int material_sample_count : packoffset(c2);
+    float material_alpha_cutoff : packoffset(c2.y);
+};
+
+Texture2D<float4> albedo : register(t0, space2);
+SamplerState _albedo_sampler : register(s0, space2);
+TextureCube<float4> environment : register(t1, space2);
+SamplerState _environment_sampler : register(s1, space2);
+
+static float2 in_uv;
+static float4 in_color;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float4 in_color : TEXCOORD0;
+    float2 in_uv : TEXCOORD1;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void main_inner()
+{
+    float4 color = (albedo.Sample(_albedo_sampler, in_uv) * in_color) * material_base_color;
+    if (color.w < material_alpha_cutoff)
+    {
+        discard;
+    }
+    float3 env = 0.0f.xxx;
+    for (int i = 0; i < material_sample_count; i++)
+    {
+        float3 dir = normalize(material_light_dir + float3(float(i) * 0.100000001490116119384765625f, 0.0f, 0.0f));
+        env += environment.Sample(_environment_sampler, dir).xyz;
+    }
+    if (material_sample_count > 0)
+    {
+        env /= float(material_sample_count).xxx;
+    }
+    else
+    {
+        env = 1.0f.xxx;
+    }
+    out_color = float4(lerp(color.xyz, env, material_roughness.xxx), color.w);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_uv = stage_input.in_uv;
+    in_color = stage_input.in_color;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_textured hlsl fragment 50 - 1
+entrypoint: main
+cbuffer Material : register(b0)
+{
+    float4 material_base_color : packoffset(c0);
+    float3 material_light_dir : packoffset(c1);
+    float material_roughness : packoffset(c1.w);
+    int material_sample_count : packoffset(c2);
+    float material_alpha_cutoff : packoffset(c2.y);
+};
+
+Texture2D<float4> albedo : register(t0);
+SamplerState _albedo_sampler : register(s0);
+TextureCube<float4> environment : register(t1);
+SamplerState _environment_sampler : register(s1);
+
+static float2 in_uv;
+static float4 in_color;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float4 in_color : TEXCOORD0;
+    float2 in_uv : TEXCOORD1;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void frag_main()
+{
+    float4 color = (albedo.Sample(_albedo_sampler, in_uv) * in_color) * material_base_color;
+    if (color.w < material_alpha_cutoff)
+    {
+        discard;
+    }
+    float3 env = 0.0f.xxx;
+    for (int i = 0; i < material_sample_count; i++)
+    {
+        float3 dir = normalize(material_light_dir + float3(float(i) * 0.100000001490116119384765625f, 0.0f, 0.0f));
+        env += environment.Sample(_environment_sampler, dir).xyz;
+    }
+    if (material_sample_count > 0)
+    {
+        env /= float(material_sample_count).xxx;
+    }
+    else
+    {
+        env = 1.0f.xxx;
+    }
+    out_color = float4(lerp(color.xyz, env, material_roughness.xxx), color.w);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_uv = stage_input.in_uv;
+    in_color = stage_input.in_color;
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== vs_basic reflect
+samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=1
+input in_color location=1 type=float32 size=4
+input in_uv location=2 type=float32 size=2
+input in_position location=0 type=float32 size=3
+output out_color location=0 type=float32 size=4
+output out_uv location=1 type=float32 size=2
+=== vs_basic glsl 450 0 0
+#version 450
+
+layout(binding = 0, std140) uniform Transform
+{
+    mat4 mvp;
+    vec4 tint;
+} transform;
+
+layout(location = 0) out vec4 out_color;
+layout(location = 1) in vec4 in_color;
+layout(location = 1) out vec2 out_uv;
+layout(location = 2) in vec2 in_uv;
+layout(location = 0) in vec3 in_position;
+
+void main()
+{
+    out_color = in_color * transform.tint;
+    out_uv = in_uv;
+    gl_Position = transform.mvp * vec4(in_position, 1.0);
+}
+
+=== vs_basic glsl 310 1 0
+#version 310 es
+
+layout(binding = 0, std140) uniform Transform
+{
+    mat4 mvp;
+    vec4 tint;
+} transform;
+
+layout(location = 0) out vec4 out_color;
+layout(location = 1) in vec4 in_color;
+layout(location = 1) out vec2 out_uv;
+layout(location = 2) in vec2 in_uv;
+layout(location = 0) in vec3 in_position;
+
+void main()
+{
+    out_color = in_color * transform.tint;
+    out_uv = in_uv;
+    gl_Position = transform.mvp * vec4(in_position, 1.0);
+}
+
+=== vs_basic glsl 450 0 1
+#version 450
+
+layout(set = 1, binding = 0, std140) uniform Transform
+{
+    mat4 mvp;
+    vec4 tint;
+} transform;
+
+layout(location = 0) out vec4 out_color;
+layout(location = 1) in vec4 in_color;
+layout(location = 1) out vec2 out_uv;
+layout(location = 2) in vec2 in_uv;
+layout(location = 0) in vec3 in_position;
+
+void main()
+{
+    out_color = in_color * transform.tint;
+    out_uv = in_uv;
+    gl_Position = transform.mvp * vec4(in_position, 1.0);
+}
+
+=== vs_basic msl vertex 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Transform
+{
+    float4x4 mvp;
+    float4 tint;
+};
+
+struct main0_out
+{
+    float4 out_color [[user(locn0)]];
+    float2 out_uv [[user(locn1)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float3 in_position [[attribute(0)]];
+    float4 in_color [[attribute(1)]];
+    float2 in_uv [[attribute(2)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant Transform& transform [[buffer(0)]])
+{
+    main0_out out = {};
+    out.out_color = in.in_color * transform.tint;
+    out.out_uv = in.in_uv;
+    out.gl_Position = transform.mvp * float4(in.in_position, 1.0);
+    return out;
+}
+
+=== vs_basic msl vertex 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Transform
+{
+    float4x4 mvp;
+    float4 tint;
+};
+
+struct main0_out
+{
+    float4 out_color [[user(locn0)]];
+    float2 out_uv [[user(locn1)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float3 in_position [[attribute(0)]];
+    float4 in_color [[attribute(1)]];
+    float2 in_uv [[attribute(2)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant Transform& transform [[buffer(0)]])
+{
+    main0_out out = {};
+    out.out_color = in.in_color * transform.tint;
+    out.out_uv = in.in_uv;
+    out.gl_Position = transform.mvp * float4(in.in_position, 1.0);
+    return out;
+}
+
+=== vs_basic hlsl vertex 60 - 0
+entrypoint: main
+cbuffer Transform : register(b0, space1)
+{
+    row_major float4x4 transform_mvp : packoffset(c0);
+    float4 transform_tint : packoffset(c4);
+};
+
+
+static float4 gl_Position;
+static float4 out_color;
+static float4 in_color;
+static float2 out_uv;
+static float2 in_uv;
+static float3 in_position;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_position : TEXCOORD0;
+    float4 in_color : TEXCOORD1;
+    float2 in_uv : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : TEXCOORD0;
+    float2 out_uv : TEXCOORD1;
+    float4 gl_Position : SV_Position;
+};
+
+void main_inner()
+{
+    out_color = in_color * transform_tint;
+    out_uv = in_uv;
+    gl_Position = mul(float4(in_position, 1.0f), transform_mvp);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_color = stage_input.in_color;
+    in_uv = stage_input.in_uv;
+    in_position = stage_input.in_position;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_color = out_color;
+    stage_output.out_uv = out_uv;
+    return stage_output;
+}
+=== vs_basic hlsl vertex 51 - 0
+entrypoint: main
+cbuffer Transform : register(b0, space1)
+{
+    row_major float4x4 transform_mvp : packoffset(c0);
+    float4 transform_tint : packoffset(c4);
+};
+
+
+static float4 gl_Position;
+static float4 out_color;
+static float4 in_color;
+static float2 out_uv;
+static float2 in_uv;
+static float3 in_position;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_position : TEXCOORD0;
+    float4 in_color : TEXCOORD1;
+    float2 in_uv : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : TEXCOORD0;
+    float2 out_uv : TEXCOORD1;
+    float4 gl_Position : SV_Position;
+};
+
+void main_inner()
+{
+    out_color = in_color * transform_tint;
+    out_uv = in_uv;
+    gl_Position = mul(float4(in_position, 1.0f), transform_mvp);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_color = stage_input.in_color;
+    in_uv = stage_input.in_uv;
+    in_position = stage_input.in_position;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_color = out_color;
+    stage_output.out_uv = out_uv;
+    return stage_output;
+}
+=== vs_basic hlsl vertex 50 - 1
+entrypoint: main
+cbuffer Transform : register(b0)
+{
+    row_major float4x4 transform_mvp : packoffset(c0);
+    float4 transform_tint : packoffset(c4);
+};
+
+
+static float4 gl_Position;
+static float4 out_color;
+static float4 in_color;
+static float2 out_uv;
+static float2 in_uv;
+static float3 in_position;
+
+struct SPIRV_Cross_Input
+{
+    float3 in_position : TEXCOORD0;
+    float4 in_color : TEXCOORD1;
+    float2 in_uv : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : TEXCOORD0;
+    float2 out_uv : TEXCOORD1;
+    float4 gl_Position : SV_Position;
+};
+
+void vert_main()
+{
+    out_color = in_color * transform_tint;
+    out_uv = in_uv;
+    gl_Position = mul(float4(in_position, 1.0f), transform_mvp);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_color = stage_input.in_color;
+    in_uv = stage_input.in_uv;
+    in_position = stage_input.in_position;
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_color = out_color;
+    stage_output.out_uv = out_uv;
+    return stage_output;
+}
+=== vs_push reflect
+samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
+input in_position location=0 type=float32 size=2
+input in_index location=1 type=int32 size=2
+output out_position location=0 type=float32 size=2
+output out_index location=1 type=int32 size=2
+=== vs_push glsl 450 0 0
+#version 450
+
+struct Push
+{
+    mat2 rotation;
+    vec2 offset;
+    float scale;
+};
+
+uniform Push push;
+
+layout(location = 0) out vec2 out_position;
+layout(location = 0) in vec2 in_position;
+layout(location = 1) flat out ivec2 out_index;
+layout(location = 1) in ivec2 in_index;
+
+void main()
+{
+    out_position = ((push.rotation * in_position) * push.scale) + push.offset;
+    out_index = (in_index * ivec2(2)) + ivec2(1, -1);
+    gl_Position = vec4(out_position, 0.0, 1.0);
+}
+
+=== vs_push glsl 310 1 0
+#version 310 es
+
+struct Push
+{
+    mat2 rotation;
+    vec2 offset;
+    float scale;
+};
+
+uniform Push push;
+
+layout(location = 0) out vec2 out_position;
+layout(location = 0) in vec2 in_position;
+layout(location = 1) flat out ivec2 out_index;
+layout(location = 1) in ivec2 in_index;
+
+void main()
+{
+    out_position = ((push.rotation * in_position) * push.scale) + push.offset;
+    out_index = (in_index * ivec2(2)) + ivec2(1, -1);
+    gl_Position = vec4(out_position, 0.0, 1.0);
+}
+
+=== vs_push glsl 450 0 1
+#version 450
+
+layout(push_constant, std430) uniform Push
+{
+    mat2 rotation;
+    vec2 offset;
+    float scale;
+} push;
+
+layout(location = 0) out vec2 out_position;
+layout(location = 0) in vec2 in_position;
+layout(location = 1) flat out ivec2 out_index;
+layout(location = 1) in ivec2 in_index;
+
+void main()
+{
+    out_position = ((push.rotation * in_position) * push.scale) + push.offset;
+    out_index = (in_index * ivec2(2)) + ivec2(1, -1);
+    gl_Position = vec4(out_position, 0.0, 1.0);
+}
+
+=== vs_push msl vertex 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Push
+{
+    float2x2 rotation;
+    float2 offset;
+    float scale;
+};
+
+struct main0_out
+{
+    float2 out_position [[user(locn0)]];
+    int2 out_index [[user(locn1)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float2 in_position [[attribute(0)]];
+    int2 in_index [[attribute(1)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant Push& push [[buffer(0)]])
+{
+    main0_out out = {};
+    out.out_position = ((push.rotation * in.in_position) * push.scale) + push.offset;
+    out.out_index = (in.in_index * int2(2)) + int2(1, -1);
+    out.gl_Position = float4(out.out_position, 0.0, 1.0);
+    return out;
+}
+
+=== vs_push msl vertex 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Push
+{
+    float2x2 rotation;
+    float2 offset;
+    float scale;
+};
+
+struct main0_out
+{
+    float2 out_position [[user(locn0)]];
+    int2 out_index [[user(locn1)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float2 in_position [[attribute(0)]];
+    int2 in_index [[attribute(1)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant Push& push [[buffer(0)]])
+{
+    main0_out out = {};
+    out.out_position = ((push.rotation * in.in_position) * push.scale) + push.offset;
+    out.out_index = (in.in_index * int2(2)) + int2(1, -1);
+    out.gl_Position = float4(out.out_position, 0.0, 1.0);
+    return out;
+}
+
+=== vs_push hlsl vertex 60 - 0
+entrypoint: main
+cbuffer Push
+{
+    row_major float2x2 push_rotation : packoffset(c0);
+    float2 push_offset : packoffset(c1);
+    float push_scale : packoffset(c1.z);
+};
+
+
+static float4 gl_Position;
+static float2 out_position;
+static float2 in_position;
+static int2 out_index;
+static int2 in_index;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_position : TEXCOORD0;
+    int2 in_index : TEXCOORD1;
+};
+
+struct SPIRV_Cross_Output
+{
+    float2 out_position : TEXCOORD0;
+    nointerpolation int2 out_index : TEXCOORD1;
+    float4 gl_Position : SV_Position;
+};
+
+void main_inner()
+{
+    out_position = (mul(in_position, push_rotation) * push_scale) + push_offset;
+    out_index = (in_index * int2(2, 2)) + int2(1, -1);
+    gl_Position = float4(out_position, 0.0f, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_position = stage_input.in_position;
+    in_index = stage_input.in_index;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_position = out_position;
+    stage_output.out_index = out_index;
+    return stage_output;
+}
+=== vs_push hlsl vertex 51 - 0
+entrypoint: main
+cbuffer Push
+{
+    row_major float2x2 push_rotation : packoffset(c0);
+    float2 push_offset : packoffset(c1);
+    float push_scale : packoffset(c1.z);
+};
+
+
+static float4 gl_Position;
+static float2 out_position;
+static float2 in_position;
+static int2 out_index;
+static int2 in_index;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_position : TEXCOORD0;
+    int2 in_index : TEXCOORD1;
+};
+
+struct SPIRV_Cross_Output
+{
+    float2 out_position : TEXCOORD0;
+    nointerpolation int2 out_index : TEXCOORD1;
+    float4 gl_Position : SV_Position;
+};
+
+void main_inner()
+{
+    out_position = (mul(in_position, push_rotation) * push_scale) + push_offset;
+    out_index = (in_index * int2(2, 2)) + int2(1, -1);
+    gl_Position = float4(out_position, 0.0f, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_position = stage_input.in_position;
+    in_index = stage_input.in_index;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_position = out_position;
+    stage_output.out_index = out_index;
+    return stage_output;
+}
+=== vs_push hlsl vertex 50 - 1
+entrypoint: main
+cbuffer Push
+{
+    row_major float2x2 push_rotation : packoffset(c0);
+    float2 push_offset : packoffset(c1);
+    float push_scale : packoffset(c1.z);
+};
+
+
+static float4 gl_Position;
+static float2 out_position;
+static float2 in_position;
+static int2 out_index;
+static int2 in_index;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_position : TEXCOORD0;
+    int2 in_index : TEXCOORD1;
+};
+
+struct SPIRV_Cross_Output
+{
+    float2 out_position : TEXCOORD0;
+    nointerpolation int2 out_index : TEXCOORD1;
+    float4 gl_Position : SV_Position;
+};
+
+void vert_main()
+{
+    out_position = (mul(in_position, push_rotation) * push_scale) + push_offset;
+    out_index = (in_index * int2(2, 2)) + int2(1, -1);
+    gl_Position = float4(out_position, 0.0f, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_position = stage_input.in_position;
+    in_index = stage_input.in_index;
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_position = out_position;
+    stage_output.out_index = out_index;
+    return stage_output;
+}
+=== vs_storage reflect
+samplers=1 storage_textures=0 storage_buffers=1 uniform_buffers=1
+output out_color location=0 type=float32 size=4
+output out_flags location=1 type=uint32 size=1
+output out_uv location=2 type=float32 size=2
+=== vs_storage glsl 450 0 0
+#version 450
+#ifdef GL_ARB_shader_draw_parameters
+#extension GL_ARB_shader_draw_parameters : enable
+#endif
+
+struct Sprite
+{
+    vec2 position;
+    vec2 size;
+    vec4 color;
+    uint flags;
+    float rotation;
+};
+
+layout(binding = 1, std430) readonly buffer Sprites
+{
+    Sprite sprites[];
+} _17;
+
+layout(binding = 0, std140) uniform Camera
+{
+    mat4 view_projection;
+    vec4 corners[4];
+    int mode;
+} camera;
+
+layout(binding = 0) uniform sampler2D heightmap;
+
+#ifdef GL_ARB_shader_draw_parameters
+#define SPIRV_Cross_BaseInstance gl_BaseInstanceARB
+#else
+uniform int SPIRV_Cross_BaseInstance;
+#endif
+layout(location = 0) out vec4 out_color;
+layout(location = 1) flat out uint out_flags;
+layout(location = 2) out vec2 out_uv;
+
+void main()
+{
+    Sprite s;
+    s.position = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].position;
+    s.size = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].size;
+    s.color = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].color;
+    s.flags = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].flags;
+    s.rotation = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].rotation;
+    vec2 corner = camera.corners[gl_VertexID % 4].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    vec2 p = (vec2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = textureLod(heightmap, p * 0.00999999977648258209228515625, 0.0).x;
+    if (camera.mode == 1)
+    {
+        h *= 2.0;
+    }
+    else
+    {
+        if (camera.mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out_color = s.color;
+    out_flags = s.flags | uint(gl_VertexID << 16);
+    out_uv = (corner * 0.5) + vec2(0.5);
+    gl_Position = camera.view_projection * vec4(p, h, 1.0);
+    gl_PointSize = 1.0;
+}
+
+=== vs_storage glsl 310 1 0
+#version 310 es
+#ifdef GL_ARB_shader_draw_parameters
+#extension GL_ARB_shader_draw_parameters : enable
+#endif
+
+struct Sprite
+{
+    vec2 position;
+    vec2 size;
+    vec4 color;
+    uint flags;
+    float rotation;
+};
+
+layout(binding = 1, std430) readonly buffer Sprites
+{
+    Sprite sprites[];
+} _17;
+
+layout(binding = 0, std140) uniform Camera
+{
+    mat4 view_projection;
+    vec4 corners[4];
+    int mode;
+} camera;
+
+layout(binding = 0) uniform highp sampler2D heightmap;
+
+#ifdef GL_ARB_shader_draw_parameters
+#define SPIRV_Cross_BaseInstance gl_BaseInstanceARB
+#else
+uniform int SPIRV_Cross_BaseInstance;
+#endif
+layout(location = 0) out vec4 out_color;
+layout(location = 1) flat out uint out_flags;
+layout(location = 2) out vec2 out_uv;
+
+void main()
+{
+    Sprite s;
+    s.position = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].position;
+    s.size = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].size;
+    s.color = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].color;
+    s.flags = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].flags;
+    s.rotation = _17.sprites[(gl_InstanceID + SPIRV_Cross_BaseInstance)].rotation;
+    vec2 corner = camera.corners[gl_VertexID % 4].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    vec2 p = (vec2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = textureLod(heightmap, p * 0.00999999977648258209228515625, 0.0).x;
+    if (camera.mode == 1)
+    {
+        h *= 2.0;
+    }
+    else
+    {
+        if (camera.mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out_color = s.color;
+    out_flags = s.flags | uint(gl_VertexID << 16);
+    out_uv = (corner * 0.5) + vec2(0.5);
+    gl_Position = camera.view_projection * vec4(p, h, 1.0);
+    gl_PointSize = 1.0;
+}
+
+=== vs_storage glsl 450 0 1
+#version 450
+
+struct Sprite
+{
+    vec2 position;
+    vec2 size;
+    vec4 color;
+    uint flags;
+    float rotation;
+};
+
+layout(set = 0, binding = 1, std430) readonly buffer Sprites
+{
+    Sprite sprites[];
+} _17;
+
+layout(set = 1, binding = 0, std140) uniform Camera
+{
+    mat4 view_projection;
+    vec4 corners[4];
+    int mode;
+} camera;
+
+layout(set = 0, binding = 0) uniform sampler2D heightmap;
+
+layout(location = 0) out vec4 out_color;
+layout(location = 1) flat out uint out_flags;
+layout(location = 2) out vec2 out_uv;
+
+void main()
+{
+    Sprite s;
+    s.position = _17.sprites[gl_InstanceIndex].position;
+    s.size = _17.sprites[gl_InstanceIndex].size;
+    s.color = _17.sprites[gl_InstanceIndex].color;
+    s.flags = _17.sprites[gl_InstanceIndex].flags;
+    s.rotation = _17.sprites[gl_InstanceIndex].rotation;
+    vec2 corner = camera.corners[gl_VertexIndex % 4].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    vec2 p = (vec2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = textureLod(heightmap, p * 0.00999999977648258209228515625, 0.0).x;
+    if (camera.mode == 1)
+    {
+        h *= 2.0;
+    }
+    else
+    {
+        if (camera.mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out_color = s.color;
+    out_flags = s.flags | uint(gl_VertexIndex << 16);
+    out_uv = (corner * 0.5) + vec2(0.5);
+    gl_Position = camera.view_projection * vec4(p, h, 1.0);
+    gl_PointSize = 1.0;
+}
+
+=== vs_storage msl vertex 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Sprite
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+struct Sprite_1
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+struct Sprites
+{
+    Sprite_1 sprites[1];
+};
+
+struct Camera
+{
+    float4x4 view_projection;
+    float4 corners[4];
+    int mode;
+};
+
+struct main0_out
+{
+    float4 out_color [[user(locn0)]];
+    uint out_flags [[user(locn1)]];
+    float2 out_uv [[user(locn2)]];
+    float4 gl_Position [[position]];
+    float gl_PointSize [[point_size]];
+};
+
+vertex main0_out main0(constant Camera& camera [[buffer(0)]], const device Sprites& _17 [[buffer(1)]], texture2d<float> heightmap [[texture(0)]], sampler heightmapSmplr [[sampler(0)]], uint gl_InstanceIndex [[instance_id]], uint gl_VertexIndex [[vertex_id]])
+{
+    main0_out out = {};
+    Sprite s;
+    s.position = _17.sprites[int(gl_InstanceIndex)].position;
+    s.size = _17.sprites[int(gl_InstanceIndex)].size;
+    s.color = _17.sprites[int(gl_InstanceIndex)].color;
+    s.flags = _17.sprites[int(gl_InstanceIndex)].flags;
+    s.rotation = _17.sprites[int(gl_InstanceIndex)].rotation;
+    float2 corner = camera.corners[spvSMod(int(gl_VertexIndex), 4)].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    float2 p = (float2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = heightmap.sample(heightmapSmplr, (p * 0.00999999977648258209228515625), level(0.0)).x;
+    if (camera.mode == 1)
+    {
+        h *= 2.0;
+    }
+    else
+    {
+        if (camera.mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out.out_color = s.color;
+    out.out_flags = s.flags | uint(int(gl_VertexIndex) << 16);
+    out.out_uv = (corner * 0.5) + float2(0.5);
+    out.gl_Position = camera.view_projection * float4(p, h, 1.0);
+    out.gl_PointSize = 1.0;
+    return out;
+}
+
+=== vs_storage msl vertex 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Implementation of signed integer mod accurate to SPIR-V specification
+template<typename Tx, typename Ty>
+inline Tx spvSMod(Tx x, Ty y)
+{
+    Tx remainder = x - y * (x / y);
+    return select(Tx(remainder + y), remainder, remainder == 0 || (x >= 0) == (y >= 0));
+}
+
+struct Sprite
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+struct Sprite_1
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+struct Sprites
+{
+    Sprite_1 sprites[1];
+};
+
+struct Camera
+{
+    float4x4 view_projection;
+    float4 corners[4];
+    int mode;
+};
+
+struct main0_out
+{
+    float4 out_color [[user(locn0)]];
+    uint out_flags [[user(locn1)]];
+    float2 out_uv [[user(locn2)]];
+    float4 gl_Position [[position]];
+    float gl_PointSize [[point_size]];
+};
+
+vertex main0_out main0(constant Camera& camera [[buffer(0)]], const device Sprites& _17 [[buffer(1)]], texture2d<float> heightmap [[texture(0)]], sampler heightmapSmplr [[sampler(0)]], uint gl_InstanceIndex [[instance_id]], uint gl_VertexIndex [[vertex_id]])
+{
+    main0_out out = {};
+    Sprite s;
+    s.position = _17.sprites[int(gl_InstanceIndex)].position;
+    s.size = _17.sprites[int(gl_InstanceIndex)].size;
+    s.color = _17.sprites[int(gl_InstanceIndex)].color;
+    s.flags = _17.sprites[int(gl_InstanceIndex)].flags;
+    s.rotation = _17.sprites[int(gl_InstanceIndex)].rotation;
+    float2 corner = camera.corners[spvSMod(int(gl_VertexIndex), 4)].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    float2 p = (float2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = heightmap.sample(heightmapSmplr, (p * 0.00999999977648258209228515625), level(0.0)).x;
+    if (camera.mode == 1)
+    {
+        h *= 2.0;
+    }
+    else
+    {
+        if (camera.mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out.out_color = s.color;
+    out.out_flags = s.flags | uint(int(gl_VertexIndex) << 16);
+    out.out_uv = (corner * 0.5) + float2(0.5);
+    out.gl_Position = camera.view_projection * float4(p, h, 1.0);
+    out.gl_PointSize = 1.0;
+    return out;
+}
+
+=== vs_storage hlsl vertex 60 - 0
+entrypoint: main
+struct Sprite
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+ByteAddressBuffer _17 : register(t1, space0);
+cbuffer Camera : register(b0, space1)
+{
+    row_major float4x4 camera_view_projection : packoffset(c0);
+    float4 camera_corners[4] : packoffset(c4);
+    int camera_mode : packoffset(c8);
+};
+
+Texture2D<float4> heightmap : register(t0, space0);
+SamplerState _heightmap_sampler : register(s0, space0);
+
+static float4 gl_Position;
+static float gl_PointSize;
+static int gl_VertexIndex;
+static int gl_InstanceIndex;
+static float4 out_color;
+static uint out_flags;
+static float2 out_uv;
+
+struct SPIRV_Cross_Input
+{
+    uint gl_VertexIndex : SV_VertexID;
+    uint gl_InstanceIndex : SV_InstanceID;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : TEXCOORD0;
+    nointerpolation uint out_flags : TEXCOORD1;
+    float2 out_uv : TEXCOORD2;
+    float4 gl_Position : SV_Position;
+};
+
+void main_inner()
+{
+    Sprite _25;
+    _25.position = asfloat(_17.Load2(gl_InstanceIndex * 48 + 0));
+    _25.size = asfloat(_17.Load2(gl_InstanceIndex * 48 + 8));
+    _25.color = asfloat(_17.Load4(gl_InstanceIndex * 48 + 16));
+    _25.flags = _17.Load(gl_InstanceIndex * 48 + 32);
+    _25.rotation = asfloat(_17.Load(gl_InstanceIndex * 48 + 36));
+    Sprite s;
+    s.position = _25.position;
+    s.size = _25.size;
+    s.color = _25.color;
+    s.flags = _25.flags;
+    s.rotation = _25.rotation;
+    float2 corner = camera_corners[gl_VertexIndex % 4].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    float2 p = (float2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = heightmap.SampleLevel(_heightmap_sampler, p * 0.00999999977648258209228515625f, 0.0f).x;
+    if (camera_mode == 1)
+    {
+        h *= 2.0f;
+    }
+    else
+    {
+        if (camera_mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out_color = s.color;
+    out_flags = s.flags | uint(gl_VertexIndex << 16);
+    out_uv = (corner * 0.5f) + 0.5f.xx;
+    gl_Position = mul(float4(p, h, 1.0f), camera_view_projection);
+    gl_PointSize = 1.0f;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_VertexIndex = int(stage_input.gl_VertexIndex);
+    gl_InstanceIndex = int(stage_input.gl_InstanceIndex);
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_color = out_color;
+    stage_output.out_flags = out_flags;
+    stage_output.out_uv = out_uv;
+    return stage_output;
+}
+=== vs_storage hlsl vertex 51 - 0
+entrypoint: main
+struct Sprite
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+ByteAddressBuffer _17 : register(t1, space0);
+cbuffer Camera : register(b0, space1)
+{
+    row_major float4x4 camera_view_projection : packoffset(c0);
+    float4 camera_corners[4] : packoffset(c4);
+    int camera_mode : packoffset(c8);
+};
+
+Texture2D<float4> heightmap : register(t0, space0);
+SamplerState _heightmap_sampler : register(s0, space0);
+
+static float4 gl_Position;
+static float gl_PointSize;
+static int gl_VertexIndex;
+static int gl_InstanceIndex;
+static float4 out_color;
+static uint out_flags;
+static float2 out_uv;
+
+struct SPIRV_Cross_Input
+{
+    uint gl_VertexIndex : SV_VertexID;
+    uint gl_InstanceIndex : SV_InstanceID;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : TEXCOORD0;
+    nointerpolation uint out_flags : TEXCOORD1;
+    float2 out_uv : TEXCOORD2;
+    float4 gl_Position : SV_Position;
+};
+
+void main_inner()
+{
+    Sprite _25;
+    _25.position = asfloat(_17.Load2(gl_InstanceIndex * 48 + 0));
+    _25.size = asfloat(_17.Load2(gl_InstanceIndex * 48 + 8));
+    _25.color = asfloat(_17.Load4(gl_InstanceIndex * 48 + 16));
+    _25.flags = _17.Load(gl_InstanceIndex * 48 + 32);
+    _25.rotation = asfloat(_17.Load(gl_InstanceIndex * 48 + 36));
+    Sprite s;
+    s.position = _25.position;
+    s.size = _25.size;
+    s.color = _25.color;
+    s.flags = _25.flags;
+    s.rotation = _25.rotation;
+    float2 corner = camera_corners[gl_VertexIndex % 4].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    float2 p = (float2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = heightmap.SampleLevel(_heightmap_sampler, p * 0.00999999977648258209228515625f, 0.0f).x;
+    if (camera_mode == 1)
+    {
+        h *= 2.0f;
+    }
+    else
+    {
+        if (camera_mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out_color = s.color;
+    out_flags = s.flags | uint(gl_VertexIndex << 16);
+    out_uv = (corner * 0.5f) + 0.5f.xx;
+    gl_Position = mul(float4(p, h, 1.0f), camera_view_projection);
+    gl_PointSize = 1.0f;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_VertexIndex = int(stage_input.gl_VertexIndex);
+    gl_InstanceIndex = int(stage_input.gl_InstanceIndex);
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_color = out_color;
+    stage_output.out_flags = out_flags;
+    stage_output.out_uv = out_uv;
+    return stage_output;
+}
+=== vs_storage hlsl vertex 50 - 1
+entrypoint: main
+struct Sprite
+{
+    float2 position;
+    float2 size;
+    float4 color;
+    uint flags;
+    float rotation;
+};
+
+ByteAddressBuffer _17 : register(t1);
+cbuffer Camera : register(b0)
+{
+    row_major float4x4 camera_view_projection : packoffset(c0);
+    float4 camera_corners[4] : packoffset(c4);
+    int camera_mode : packoffset(c8);
+};
+
+Texture2D<float4> heightmap : register(t0);
+SamplerState _heightmap_sampler : register(s0);
+
+static float4 gl_Position;
+static float gl_PointSize;
+static int gl_VertexIndex;
+static int gl_InstanceIndex;
+static float4 out_color;
+static uint out_flags;
+static float2 out_uv;
+
+struct SPIRV_Cross_Input
+{
+    uint gl_VertexIndex : SV_VertexID;
+    uint gl_InstanceIndex : SV_InstanceID;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : TEXCOORD0;
+    nointerpolation uint out_flags : TEXCOORD1;
+    float2 out_uv : TEXCOORD2;
+    float4 gl_Position : SV_Position;
+};
+
+void vert_main()
+{
+    Sprite _25;
+    _25.position = asfloat(_17.Load2(gl_InstanceIndex * 48 + 0));
+    _25.size = asfloat(_17.Load2(gl_InstanceIndex * 48 + 8));
+    _25.color = asfloat(_17.Load4(gl_InstanceIndex * 48 + 16));
+    _25.flags = _17.Load(gl_InstanceIndex * 48 + 32);
+    _25.rotation = asfloat(_17.Load(gl_InstanceIndex * 48 + 36));
+    Sprite s;
+    s.position = _25.position;
+    s.size = _25.size;
+    s.color = _25.color;
+    s.flags = _25.flags;
+    s.rotation = _25.rotation;
+    float2 corner = camera_corners[gl_VertexIndex % 4].xy;
+    float c = cos(s.rotation);
+    float n = sin(s.rotation);
+    float2 p = (float2((corner.x * c) - (corner.y * n), (corner.x * n) + (corner.y * c)) * s.size) + s.position;
+    float h = heightmap.SampleLevel(_heightmap_sampler, p * 0.00999999977648258209228515625f, 0.0f).x;
+    if (camera_mode == 1)
+    {
+        h *= 2.0f;
+    }
+    else
+    {
+        if (camera_mode > 1)
+        {
+            h = -h;
+        }
+    }
+    out_color = s.color;
+    out_flags = s.flags | uint(gl_VertexIndex << 16);
+    out_uv = (corner * 0.5f) + 0.5f.xx;
+    gl_Position = mul(float4(p, h, 1.0f), camera_view_projection);
+    gl_PointSize = 1.0f;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    gl_VertexIndex = int(stage_input.gl_VertexIndex);
+    gl_InstanceIndex = int(stage_input.gl_InstanceIndex);
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.out_color = out_color;
+    stage_output.out_flags = out_flags;
+    stage_output.out_uv = out_uv;
+    return stage_output;
+}

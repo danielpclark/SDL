@@ -84,7 +84,7 @@ pub(crate) trait Back<T> {
     fn back_mut(&mut self) -> Result<&mut T>;
 }
 
-impl<T> Back<T> for Vec<T> {
+impl<T> Back<T> for [T] {
     #[inline]
     fn back(&self) -> Result<&T> {
         self.last()
@@ -112,7 +112,7 @@ pub(crate) fn try_resize<T: Default + Clone>(v: &mut Vec<T>, len: usize) -> Resu
 // Bitset
 
 /// `Bitset`: decoration and flag bits, the low 64 inline.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq)]
 pub struct Bitset {
     // The most common bits to set are all lower than 64,
     // so optimize for this case. Bits spilling outside 64 go into a slower data structure.
@@ -1301,6 +1301,8 @@ impl SPIRAccessChain {
 pub struct ParameterRef {
     pub function: FunctionID,
     pub index: usize,
+    // In the function's `shadow_arguments` rather than its `arguments`.
+    pub shadow: bool,
 }
 
 /// `SPIRVariable`.
@@ -1505,17 +1507,24 @@ impl SPIRConstant {
 
     #[inline]
     pub fn specialization_constant_id(&self, col: u32, row: u32) -> u32 {
-        self.m.c[col as usize].id[row as usize]
+        // (C++ reads past the union for indices beyond 4; the translation
+        // gives 0 there.)
+        self.m
+            .c
+            .get(col as usize)
+            .and_then(|c| c.id.get(row as usize))
+            .copied()
+            .unwrap_or(0)
     }
 
     #[inline]
     pub fn specialization_constant_id_col(&self, col: u32) -> u32 {
-        self.m.id[col as usize]
+        self.m.id.get(col as usize).copied().unwrap_or(0)
     }
 
     #[inline]
     pub fn scalar(&self, col: u32, row: u32) -> u32 {
-        self.m.c[col as usize].r[row as usize] as u32
+        self.scalar_u64(col, row) as u32
     }
 
     #[inline]
@@ -1581,7 +1590,14 @@ impl SPIRConstant {
 
     #[inline]
     pub fn scalar_u64(&self, col: u32, row: u32) -> u64 {
-        self.m.c[col as usize].r[row as usize]
+        // (C++ reads past the union for indices beyond 4; the translation
+        // gives 0 there.)
+        self.m
+            .c
+            .get(col as usize)
+            .and_then(|c| c.r.get(row as usize))
+            .copied()
+            .unwrap_or(0)
     }
 
     #[inline]

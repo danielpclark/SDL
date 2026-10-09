@@ -28,11 +28,14 @@
 )]
 // (the translation follows the C++ code's loops, branches, and arithmetic)
 #![allow(
+    clippy::blocks_in_conditions,
+    clippy::byte_char_slices,
     clippy::collapsible_if,
     clippy::collapsible_else_if,
     clippy::collapsible_match,
     clippy::comparison_chain,
     clippy::explicit_counter_loop,
+    clippy::field_reassign_with_default,
     clippy::identity_op,
     clippy::if_same_then_else,
     clippy::implicit_saturating_sub,
@@ -47,6 +50,7 @@
     clippy::needless_range_loop,
     clippy::neg_multiply,
     clippy::nonminimal_bool,
+    clippy::ptr_arg,
     clippy::too_many_arguments,
     clippy::type_complexity,
     clippy::unnecessary_sort_by,
@@ -54,6 +58,7 @@
     clippy::wrong_self_convention
 )]
 
+pub mod c_api;
 pub mod cfg;
 pub mod common;
 pub mod cross;

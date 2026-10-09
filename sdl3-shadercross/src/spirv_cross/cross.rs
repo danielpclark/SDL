@@ -313,7 +313,7 @@ pub(crate) fn get_expression_result_type<'a>(
 // The deepest call graph the traversals follow; a deeper one is treated
 // as the function recursion SPIR-V forbids (which overflows the stack in
 // C++).
-const MAX_CALL_DEPTH: u32 = 256;
+pub(crate) const MAX_CALL_DEPTH: u32 = 256;
 
 /// `Compiler`, with the state of `CompilerGLSL`, `CompilerHLSL` and
 /// `CompilerMSL`.
@@ -1095,7 +1095,11 @@ impl Compiler {
             return Ok(None);
         };
         let f = self.get_mut::<SPIRFunction>(p.function)?;
-        Ok(f.arguments.get_mut(p.index))
+        Ok(if p.shadow {
+            f.shadow_arguments.get_mut(p.index)
+        } else {
+            f.arguments.get_mut(p.index)
+        })
     }
 
     pub(crate) fn variable_parameter(&self, var: u32) -> Result<Option<&Parameter>> {
@@ -1103,7 +1107,11 @@ impl Compiler {
             return Ok(None);
         };
         let f = self.get::<SPIRFunction>(p.function)?;
-        Ok(f.arguments.get(p.index))
+        Ok(if p.shadow {
+            f.shadow_arguments.get(p.index)
+        } else {
+            f.arguments.get(p.index)
+        })
     }
 
     pub(crate) fn register_read(&mut self, expr: u32, chain: u32, forwarded: bool) -> Result<()> {
