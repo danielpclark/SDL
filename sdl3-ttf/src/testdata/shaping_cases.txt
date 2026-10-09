@@ -63,6 +63,18 @@ font NotoSansSinhala-Regular.ttf
 case	-	-	-	1	ශ්‍රී ලංකාව
 case	-	-	-	1	කෙ කේ කො ක්‍ෂ
 case	-	-	-	1	ෙ ්
+font NotoSans-Unhinted.ttf
+case	-	-	-	1	office affine fluffy ffl ffi
+case	-	-	-	1	AVATAR Wave To Yo! 1/2 T.V.
+case	-	-	-	1	é ạ̈ ñ q̣̇ Å
+font NotoSansArabic-Unhinted.ttf NotoSans-Unhinted.ttf
+case	-	-	-	1	السلام عليكم
+case	-	-	-	1	بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+case	-	-	-	1	مرحبا Hello ١٢٣ world
+font NotoSansKR-Unhinted.ttf
+case	-	-	-	1	안녕하세요 세계
+case	-	-	-	1	한국어 텍스트 123
+case	-	-	-	1	ᄒᆞᆫ글 ᄀᆞᆷ
 font DejaVuSans-NoLayout.ttf
 case	-	-	-	1	السلام عليكم لا
 case	-	-	-	1	بِسْمِ ٱللَّٰهِ

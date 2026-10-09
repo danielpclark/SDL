@@ -3,8 +3,9 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! `testdata/shaping_cases.txt` lists the cases and the fonts they use:
-//! subsets of Noto fonts (see `testdata/fonts/OFL.txt`) and a DejaVu Sans
-//! subset without OpenType layout tables, made by
+//! subsets of Noto fonts (see `testdata/fonts/OFL.txt`), unhinted versions
+//! of three of them (which FreeType's auto-hinter hints, with HarfBuzz),
+//! and a DejaVu Sans subset without OpenType layout tables, made by
 //! `tools/gen_sdl_ttf_testdata.py`. `testdata/shaping_reference.txt` is
 //! the output of a C program built from upstream SDL_ttf (with its bundled
 //! FreeType and HarfBuzz) and SDL3, which runs them in the same order: the
@@ -15,7 +16,7 @@
 //! (with the fallback font the case file names): its size, the rendered
 //! surfaces (also wrapped), and a text object's layout, clusters,
 //! substrings and drawing; then text objects with their own direction and
-//! script, and, for the Arabic and Devanagari fonts, the shaping and
+//! script, and, for the Arabic, Devanagari and unhinted Latin fonts, the shaping and
 //! rendering of the fonts with bytes of their GSUB, GPOS and GDEF tables
 //! flipped or set and with those tables truncated. Malformed UTF-8 goes
 //! through text objects only (the C passes it to the render functions
@@ -32,7 +33,7 @@ use crate::{
 
 static CASES: &str = include_str!("../testdata/shaping_cases.txt");
 
-static FONTS: [(&str, &[u8]); 10] = [
+static FONTS: [(&str, &[u8]); 13] = [
     (
         "NotoSans-Regular.ttf",
         include_bytes!("../testdata/fonts/NotoSans-Regular.ttf"),
@@ -68,6 +69,18 @@ static FONTS: [(&str, &[u8]); 10] = [
     (
         "NotoSansSinhala-Regular.ttf",
         include_bytes!("../testdata/fonts/NotoSansSinhala-Regular.ttf"),
+    ),
+    (
+        "NotoSans-Unhinted.ttf",
+        include_bytes!("../testdata/fonts/NotoSans-Unhinted.ttf"),
+    ),
+    (
+        "NotoSansArabic-Unhinted.ttf",
+        include_bytes!("../testdata/fonts/NotoSansArabic-Unhinted.ttf"),
+    ),
+    (
+        "NotoSansKR-Unhinted.ttf",
+        include_bytes!("../testdata/fonts/NotoSansKR-Unhinted.ttf"),
     ),
     (
         "DejaVuSans-NoLayout.ttf",
@@ -230,7 +243,11 @@ fn find_table(d: &[u8], tag: &[u8; 4]) -> Option<(usize, usize)> {
     None
 }
 
-const CORRUPT_TEXTS: [[&str; 2]; 2] = [["بِسْمِ ٱللَّٰهِ لا", "السلام عليكم"], ["क्षत्रिय र्क श्री", "कि कीं ि"]];
+const CORRUPT_TEXTS: [[&str; 2]; 3] = [
+    ["بِسْمِ ٱللَّٰهِ لا", "السلام عليكم"],
+    ["क्षत्रिय र्क श्री", "कि कीं ि"],
+    ["office affine AVATAR", "Hamburgefonstiv 0123"],
+];
 
 fn corrupt_shaping_case(out: &mut Vec<String>, label: &str, data: &[u8], which: usize) {
     let f = ["-", "-", "-", "1"];
@@ -345,6 +362,9 @@ fn matches_upstream_shaping_reference() {
         }
         if *name == "NotoSansDevanagari-Regular.ttf" {
             corrupt_shaping(&mut out, name, data, 1);
+        }
+        if *name == "NotoSans-Unhinted.ttf" {
+            corrupt_shaping(&mut out, name, data, 2);
         }
     }
     drop(engine);
