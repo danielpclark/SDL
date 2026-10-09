@@ -468,9 +468,16 @@ fn gpu_shaders_and_pipelines_from_spirv() {
             return;
         }
     };
+    // A device without SPIR-V or MSL gets its shaders through HLSL. vs_push's
+    // std430 push constant block (a mat2 in 16 bytes, then a vec2) has no
+    // HLSL cbuffer packing, and upstream's SPIRV-Cross writes the same
+    // overlapping packoffsets, which D3DCompile rejects (X4019).
+    let formats = device.shader_formats();
+    let through_hlsl = !formats.contains(sdl3::gpu::ShaderFormat::SPIRV)
+        && !formats.contains(sdl3::gpu::ShaderFormat::MSL);
     let mut count = 0;
     for (name, code) in SHADERS {
-        if name.contains("_bad_") {
+        if name.contains("_bad_") || (through_hlsl && *name == "vs_push") {
             continue;
         }
         let shader_stage = stage(match name.as_bytes()[0] {
@@ -500,7 +507,7 @@ fn gpu_shaders_and_pipelines_from_spirv() {
         }
         count += 1;
     }
-    assert_eq!(count, 13);
+    assert_eq!(count, if through_hlsl { 12 } else { 13 });
 }
 
 #[cfg(windows)]
