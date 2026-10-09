@@ -110,7 +110,11 @@ pub struct AfCjkMetricsRec {
 /* to replace AF_LatinMetrics.                    */
 
 /// `af_cjk_metrics_init_widths`
-pub fn af_cjk_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut FtFace) {
+pub fn af_cjk_metrics_init_widths(
+    metrics: &mut AfStyleMetricsRec,
+    face: &mut FtFace,
+    globals: &mut AfFaceGlobalsRec,
+) {
     /* scan the array of segments in each direction */
     let mut hints = af_glyph_hints_init();
 
@@ -121,9 +125,7 @@ pub fn af_cjk_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut Ft
         let style_class = metrics.style_class;
         let script_class = &AF_SCRIPT_CLASSES[style_class.script as usize];
 
-        /* If HarfBuzz is not available, we need a pointer to a single */
-        /* unsigned long value.                                        */
-        let mut shaper_buf: FtULong = 0;
+        let mut shaper_buf = af_shaper_buf_create(face);
 
         let p_str = script_class.standard_charstring;
         let mut p: usize = 0;
@@ -138,19 +140,26 @@ pub fn af_cjk_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut Ft
 
             /* reject input that maps to more than a single glyph */
             let num_idx;
-            (p, num_idx) = af_shaper_get_cluster(p_str, p, face, &mut shaper_buf);
+            (p, num_idx) = af_shaper_get_cluster(
+                p_str,
+                p,
+                metrics.style_class,
+                face.units_per_EM,
+                globals,
+                &mut shaper_buf,
+            );
             if num_idx > 1 {
                 continue;
             }
 
             /* otherwise exit loop if we have a result */
-            glyph_index = af_shaper_get_elem(face, shaper_buf, 0, None, None);
+            glyph_index = af_shaper_get_elem(&mut shaper_buf, 0, None, None);
             if glyph_index != 0 {
                 break;
             }
         }
 
-        af_shaper_buf_destroy(face, &mut shaper_buf);
+        af_shaper_buf_destroy(face, shaper_buf);
 
         'exit: {
             if glyph_index == 0 {
@@ -263,7 +272,11 @@ pub fn af_cjk_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut Ft
 /* Find all blue zones. */
 
 /// `af_cjk_metrics_init_blues`
-fn af_cjk_metrics_init_blues(metrics: &mut AfStyleMetricsRec, face: &mut FtFace) {
+fn af_cjk_metrics_init_blues(
+    metrics: &mut AfStyleMetricsRec,
+    face: &mut FtFace,
+    globals: &mut AfFaceGlobalsRec,
+) {
     let mut fills: [FtPos; AF_BLUE_STRING_MAX_LEN] = [0; AF_BLUE_STRING_MAX_LEN];
     let mut flats: [FtPos; AF_BLUE_STRING_MAX_LEN] = [0; AF_BLUE_STRING_MAX_LEN];
 
@@ -272,9 +285,7 @@ fn af_cjk_metrics_init_blues(metrics: &mut AfStyleMetricsRec, face: &mut FtFace)
     let bss = sc.blue_stringset;
     let mut bs = bss as usize;
 
-    /* If HarfBuzz is not available, we need a pointer to a single */
-    /* unsigned long value.                                        */
-    let mut shaper_buf: FtULong = 0;
+    let mut shaper_buf = af_shaper_buf_create(face);
 
     /* we walk over the blue character strings as specified in the   */
     /* style's entry in the `af_blue_stringset' array, computing its */
@@ -310,13 +321,20 @@ fn af_cjk_metrics_init_blues(metrics: &mut AfStyleMetricsRec, face: &mut FtFace)
 
             /* reject input that maps to more than a single glyph */
             let num_idx;
-            (p, num_idx) = af_shaper_get_cluster(p_str, p, face, &mut shaper_buf);
+            (p, num_idx) = af_shaper_get_cluster(
+                p_str,
+                p,
+                metrics.style_class,
+                face.units_per_EM,
+                globals,
+                &mut shaper_buf,
+            );
             if num_idx > 1 {
                 continue;
             }
 
             /* load the character in the face -- skip unknown or empty ones */
-            let glyph_index = af_shaper_get_elem(face, shaper_buf, 0, None, None);
+            let glyph_index = af_shaper_get_elem(&mut shaper_buf, 0, None, None);
 
             if glyph_index == 0 {
                 continue;
@@ -441,21 +459,23 @@ fn af_cjk_metrics_init_blues(metrics: &mut AfStyleMetricsRec, face: &mut FtFace)
         bs += 1;
     } /* end for loop */
 
-    af_shaper_buf_destroy(face, &mut shaper_buf);
+    af_shaper_buf_destroy(face, shaper_buf);
 }
 
 /* Basically the Latin version with type AF_CJKMetrics for metrics. */
 
 /// `af_cjk_metrics_check_digits`
-pub fn af_cjk_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut FtFace) {
+pub fn af_cjk_metrics_check_digits(
+    metrics: &mut AfStyleMetricsRec,
+    face: &mut FtFace,
+    globals: &mut AfFaceGlobalsRec,
+) {
     let mut started = false;
     let mut same_width = true;
     let mut advance: FtLong = 0;
     let mut old_advance: FtLong = 0;
 
-    /* If HarfBuzz is not available, we need a pointer to a single */
-    /* unsigned long value.                                        */
-    let mut shaper_buf: FtULong = 0;
+    let mut shaper_buf = af_shaper_buf_create(face);
 
     /* in all supported charmaps, digits have character codes 0x30-0x39 */
     let digits: &[u8] = b"0 1 2 3 4 5 6 7 8 9\0";
@@ -464,12 +484,19 @@ pub fn af_cjk_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut F
     while digits[p] != 0 {
         /* reject input that maps to more than a single glyph */
         let num_idx;
-        (p, num_idx) = af_shaper_get_cluster(digits, p, face, &mut shaper_buf);
+        (p, num_idx) = af_shaper_get_cluster(
+            digits,
+            p,
+            metrics.style_class,
+            face.units_per_EM,
+            globals,
+            &mut shaper_buf,
+        );
         if num_idx > 1 {
             continue;
         }
 
-        let glyph_index = af_shaper_get_elem(face, shaper_buf, 0, Some(&mut advance), None);
+        let glyph_index = af_shaper_get_elem(&mut shaper_buf, 0, Some(&mut advance), None);
         if glyph_index == 0 {
             continue;
         }
@@ -485,7 +512,7 @@ pub fn af_cjk_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut F
         }
     }
 
-    af_shaper_buf_destroy(face, &mut shaper_buf);
+    af_shaper_buf_destroy(face, shaper_buf);
 
     metrics.digits_have_same_width = same_width;
 }
@@ -496,16 +523,16 @@ pub fn af_cjk_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut F
 pub fn af_cjk_metrics_init(
     metrics: &mut AfStyleMetricsRec, /* AF_CJKMetrics */
     face: &mut FtFace,
-    _globals: &mut AfFaceGlobalsRec,
+    globals: &mut AfFaceGlobalsRec,
 ) -> FtResult<()> {
     let oldmap = face.charmap;
 
     metrics.cjk_mut().units_per_em = face.units_per_EM as FtUInt;
 
     if ft_select_charmap(face, FT_ENCODING_UNICODE).is_ok() {
-        af_cjk_metrics_init_widths(metrics, face);
-        af_cjk_metrics_init_blues(metrics, face);
-        af_cjk_metrics_check_digits(metrics, face);
+        af_cjk_metrics_init_widths(metrics, face, globals);
+        af_cjk_metrics_init_blues(metrics, face, globals);
+        af_cjk_metrics_check_digits(metrics, face, globals);
     }
 
     face.charmap = oldmap;

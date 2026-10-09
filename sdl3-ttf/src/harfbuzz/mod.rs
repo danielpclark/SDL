@@ -22,7 +22,10 @@
 //! fallback shaping and the Syriac/Mongolian/N'Ko joining scripts, Hebrew,
 //! Indic, Khmer, Myanmar and Myanmar Zawgyi, Thai and Lao, Hangul, the
 //! Universal Shaping Engine, with the syllable machines and vowel
-//! constraints) and `hb-ft`'s font functions. The tables HarfBuzz
+//! constraints), `hb-ft`'s font functions, and the OpenType font
+//! functions of `hb_font_create` (`hb-ot-font`: `cmap`, `hmtx`/`vmtx`,
+//! glyph extents from `glyf`, `VORG`, the font metrics), which FreeType's
+//! auto-hinter uses to find the glyphs of OpenType features. The tables HarfBuzz
 //! generates (UCD, tags, Arabic joining, Indic, USE, the Ragel machines)
 //! are generated from HarfBuzz's by `tools/gen_harfbuzz_tables.py`.
 //!
@@ -32,8 +35,10 @@
 //! builds on Windows, the `HB_OPTIONS` environment variable (its
 //! `uniscribe-bug-compatible` option is always off), and the parts of
 //! HarfBuzz SDL_ttf does not use (other shapers than `ot`, the
-//! subsetter, drawing and painting, the public C API beyond what
-//! SDL_ttf calls, debug messages). The lookup accelerators' digests and
+//! subsetter, drawing and painting, glyph names, the public C API beyond
+//! what SDL_ttf and FreeType call, debug messages), and of `hb-ot-font`
+//! the variation deltas (its fonts have no variation coordinates here)
+//! and the extents of CFF and color or bitmap glyphs. The lookup accelerators' digests and
 //! caches, which only skip work whose result is unchanged, are not
 //! translated either.
 //!
@@ -83,6 +88,10 @@ pub mod hb_face;
 pub mod hb_font;
 pub mod hb_ft;
 pub mod hb_open_type;
+pub mod hb_ot_cmap_table;
+pub mod hb_ot_font;
+pub mod hb_ot_glyf_table;
+pub mod hb_ot_hmtx_table;
 pub mod hb_ot_kern_table;
 pub mod hb_ot_layout;
 pub mod hb_ot_layout_common;

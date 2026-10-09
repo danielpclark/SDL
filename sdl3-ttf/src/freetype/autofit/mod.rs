@@ -1,7 +1,8 @@
 // Rust translation of src/autofit/ from FreeType (2.13.2, as SDL_ttf's
 // external/freetype pins it), with `AF_CONFIG_OPTION_CJK` and
-// `AF_CONFIG_OPTION_INDIC` defined and without HarfBuzz, as SDL_ttf builds
-// it.
+// `AF_CONFIG_OPTION_INDIC` defined and with HarfBuzz
+// (`FT_CONFIG_OPTION_USE_HARFBUZZ`), as SDL_ttf builds it along with its
+// bundled HarfBuzz.
 // Copyright (C) 2003-2023 by David Turner, Robert Wilhelm, and Werner Lemberg.
 // This is an altered (translated) version of the original software; it is
 // used under the FreeType License (see FTL.TXT and LICENSE.txt).
@@ -23,3 +24,4 @@ pub mod afscript;
 pub mod afshaper;
 pub mod afstyles;
 pub mod aftypes;
+pub mod ft_hb;

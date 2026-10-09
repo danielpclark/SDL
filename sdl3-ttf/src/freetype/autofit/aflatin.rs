@@ -156,7 +156,11 @@ fn flat_threshold(x: FtPos) -> FtPos {
 /* standard width and height for the glyph with given charcode.     */
 
 /// `af_latin_metrics_init_widths`
-pub fn af_latin_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut FtFace) {
+pub fn af_latin_metrics_init_widths(
+    metrics: &mut AfStyleMetricsRec,
+    face: &mut FtFace,
+    globals: &mut AfFaceGlobalsRec,
+) {
     /* scan the array of segments in each direction */
     let mut hints = af_glyph_hints_init();
 
@@ -167,9 +171,7 @@ pub fn af_latin_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut 
         let style_class = metrics.style_class;
         let script_class = &AF_SCRIPT_CLASSES[style_class.script as usize];
 
-        /* If HarfBuzz is not available, we need a pointer to a single */
-        /* unsigned long value.                                        */
-        let mut shaper_buf: FtULong = 0;
+        let mut shaper_buf = af_shaper_buf_create(face);
 
         let p_str = script_class.standard_charstring;
         let mut p: usize = 0;
@@ -189,19 +191,26 @@ pub fn af_latin_metrics_init_widths(metrics: &mut AfStyleMetricsRec, face: &mut 
 
             /* reject input that maps to more than a single glyph */
             let num_idx;
-            (p, num_idx) = af_shaper_get_cluster(p_str, p, face, &mut shaper_buf);
+            (p, num_idx) = af_shaper_get_cluster(
+                p_str,
+                p,
+                metrics.style_class,
+                face.units_per_EM,
+                globals,
+                &mut shaper_buf,
+            );
             if num_idx > 1 {
                 continue;
             }
 
             /* otherwise exit loop if we have a result */
-            glyph_index = af_shaper_get_elem(face, shaper_buf, 0, None, None);
+            glyph_index = af_shaper_get_elem(&mut shaper_buf, 0, None, None);
             if glyph_index != 0 {
                 break;
             }
         }
 
-        af_shaper_buf_destroy(face, &mut shaper_buf);
+        af_shaper_buf_destroy(face, shaper_buf);
 
         'exit: {
             if glyph_index == 0 {
@@ -356,9 +365,7 @@ fn af_latin_metrics_init_blues(
     let units_per_em = metrics.latin().units_per_em;
     let flat_threshold_ = flat_threshold(units_per_em as FtPos);
 
-    /* If HarfBuzz is not available, we need a pointer to a single */
-    /* unsigned long value.                                        */
-    let mut shaper_buf: FtULong = 0;
+    let mut shaper_buf = af_shaper_buf_create(face);
 
     /* we walk over the blue character strings as specified in the */
     /* style's entry in the `af_blue_stringset' array              */
@@ -383,7 +390,14 @@ fn af_latin_metrics_init_blues(
             }
 
             let num_idx;
-            (p, num_idx) = af_shaper_get_cluster(p_str, p, face, &mut shaper_buf);
+            (p, num_idx) = af_shaper_get_cluster(
+                p_str,
+                p,
+                metrics.style_class,
+                face.units_per_EM,
+                globals,
+                &mut shaper_buf,
+            );
 
             if num_idx == 0 {
                 continue;
@@ -402,8 +416,7 @@ fn af_latin_metrics_init_blues(
                 let mut round = false;
 
                 /* load the character in the face -- skip unknown or empty ones */
-                let glyph_index =
-                    af_shaper_get_elem(face, shaper_buf, i, None, Some(&mut y_offset));
+                let glyph_index = af_shaper_get_elem(&mut shaper_buf, i, None, Some(&mut y_offset));
                 if glyph_index == 0 {
                     continue;
                 }
@@ -848,7 +861,7 @@ fn af_latin_metrics_init_blues(
         bs += 1;
     } /* end for loop */
 
-    af_shaper_buf_destroy(face, &mut shaper_buf);
+    af_shaper_buf_destroy(face, shaper_buf);
 
     let axis = &mut metrics.latin_mut().axis[AF_DIMENSION_VERT];
     if axis.blue_count != 0 {
@@ -905,15 +918,17 @@ fn af_latin_metrics_init_blues(
 /* Check whether all ASCII digits have the same advance width. */
 
 /// `af_latin_metrics_check_digits`
-pub fn af_latin_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut FtFace) {
+pub fn af_latin_metrics_check_digits(
+    metrics: &mut AfStyleMetricsRec,
+    face: &mut FtFace,
+    globals: &mut AfFaceGlobalsRec,
+) {
     let mut started = false;
     let mut same_width = true;
     let mut advance: FtLong = 0;
     let mut old_advance: FtLong = 0;
 
-    /* If HarfBuzz is not available, we need a pointer to a single */
-    /* unsigned long value.                                        */
-    let mut shaper_buf: FtULong = 0;
+    let mut shaper_buf = af_shaper_buf_create(face);
 
     /* in all supported charmaps, digits have character codes 0x30-0x39 */
     let digits: &[u8] = b"0 1 2 3 4 5 6 7 8 9\0";
@@ -922,12 +937,19 @@ pub fn af_latin_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut
     while digits[p] != 0 {
         /* reject input that maps to more than a single glyph */
         let num_idx;
-        (p, num_idx) = af_shaper_get_cluster(digits, p, face, &mut shaper_buf);
+        (p, num_idx) = af_shaper_get_cluster(
+            digits,
+            p,
+            metrics.style_class,
+            face.units_per_EM,
+            globals,
+            &mut shaper_buf,
+        );
         if num_idx > 1 {
             continue;
         }
 
-        let glyph_index = af_shaper_get_elem(face, shaper_buf, 0, Some(&mut advance), None);
+        let glyph_index = af_shaper_get_elem(&mut shaper_buf, 0, Some(&mut advance), None);
         if glyph_index == 0 {
             continue;
         }
@@ -943,7 +965,7 @@ pub fn af_latin_metrics_check_digits(metrics: &mut AfStyleMetricsRec, face: &mut
         }
     }
 
-    af_shaper_buf_destroy(face, &mut shaper_buf);
+    af_shaper_buf_destroy(face, shaper_buf);
 
     metrics.digits_have_same_width = same_width;
 }
@@ -963,12 +985,12 @@ pub fn af_latin_metrics_init(
     metrics.latin_mut().units_per_em = face.units_per_EM as FtUInt;
 
     if ft_select_charmap(face, FT_ENCODING_UNICODE).is_ok() {
-        af_latin_metrics_init_widths(metrics, face);
+        af_latin_metrics_init_widths(metrics, face, globals);
         if af_latin_metrics_init_blues(metrics, face, globals) != 0 {
             /* use internal error code to indicate missing blue zones */
             error = Err(-1);
         } else {
-            af_latin_metrics_check_digits(metrics, face);
+            af_latin_metrics_check_digits(metrics, face, globals);
         }
     }
 

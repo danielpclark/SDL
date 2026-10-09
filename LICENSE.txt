@@ -548,6 +548,13 @@ Copyright 2006-2014 Adobe Systems Incorporated; those files carry, in
 their headers, Adobe's grant of a patent license under the FreeType
 License, kept from the original files.
 
+The translation of FreeType's src/autofit/ft-hb.c and ft-hb.h
+(sdl3-ttf/src/freetype/autofit/ft_hb.rs) is, as FreeType's LICENSE.TXT
+notes, "code taken almost verbatim from the HarfBuzz file hb-ft.cc, which
+uses the 'Old MIT' license": it is under HarfBuzz's license (below), with
+the copyright lines of those files (Copyright © 2009, 2023 Red Hat, Inc.;
+Copyright © 2015 Google, Inc.).
+
                     The FreeType Project LICENSE
                     ----------------------------
 

@@ -27,6 +27,7 @@ use super::hb_algs::hb_roundf;
 use super::hb_common::*;
 use super::hb_face::HbFace;
 use super::hb_ft::HbFtFont;
+use super::hb_ot_font::*;
 use crate::freetype::base::ftobjs::FtFace;
 
 /// `hb_font_extents_t`: font-wide extent values, measured in font units.
@@ -63,6 +64,8 @@ pub(crate) enum HbFontKlass {
     Empty,
     /// hb-ft's functions
     Ft(HbFtFont),
+    /// hb-ot-font's functions (`hb_font_create`'s)
+    Ot(HbOtFont),
 }
 
 /// `hb_font_t`: the state of a font.
@@ -146,6 +149,15 @@ impl HbFontData {
             design_coords: Vec::new(),
             klass: HbFontKlass::Empty,
         }
+    }
+
+    /// `hb_font_create`: a font of `face` with the OpenType font
+    /// functions (`hb_ot_font_set_funcs`). (The named instance of a face
+    /// index above 0xFFFF is not translated: SDL_ttf's faces have none.)
+    pub fn hb_font_create(face: Arc<HbFace>) -> HbFontData {
+        let mut font = HbFontData::create(face);
+        font.klass = HbFontKlass::Ot(HbOtFont);
+        font
     }
 
     /// `mults_changed`
@@ -310,6 +322,46 @@ impl<'a> HbFont<'a> {
         Self::em_mult(v, self.dir_mult(direction))
     }
 
+    /// `scale_glyph_extents`
+    pub(crate) fn scale_glyph_extents(&self, extents: &mut HbGlyphExtents) {
+        let mut x1 = self.em_fscale_x(extents.x_bearing as i16);
+        let y1 = self.em_fscale_y(extents.y_bearing as i16);
+        let mut x2 = self.em_fscale_x((extents.x_bearing + extents.width) as i16);
+        let y2 = self.em_fscale_y((extents.y_bearing + extents.height) as i16);
+
+        /* Apply slant. */
+        let slant_xy = self.p.slant_xy;
+        if slant_xy != 0.0 {
+            x1 += (y1 * slant_xy).min(y2 * slant_xy);
+            x2 += (y1 * slant_xy).max(y2 * slant_xy);
+        }
+
+        extents.x_bearing = x1.floor() as HbPosition;
+        extents.y_bearing = y1.floor() as HbPosition;
+        extents.width = x2.ceil() as HbPosition - extents.x_bearing;
+        extents.height = y2.ceil() as HbPosition - extents.y_bearing;
+
+        if self.p.x_strength != 0 || self.p.y_strength != 0 {
+            /* Y */
+            let mut y_shift = self.p.y_strength;
+            if self.p.y_scale < 0 {
+                y_shift = -y_shift;
+            }
+            extents.y_bearing += y_shift;
+            extents.height -= y_shift;
+
+            /* X */
+            let mut x_shift = self.p.x_strength;
+            if self.p.x_scale < 0 {
+                x_shift = -x_shift;
+            }
+            if self.p.embolden_in_place {
+                extents.x_bearing -= x_shift / 2;
+            }
+            extents.width += x_shift;
+        }
+    }
+
     /// `em_mult`
     #[inline]
     pub(crate) fn em_mult(v: i16, mult: i64) -> HbPosition {
@@ -358,6 +410,7 @@ impl<'a> HbFont<'a> {
         *extents = HbFontExtents::default();
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_font_h_extents(self, extents),
+            HbFontKlass::Ot(_) => hb_ot_get_font_h_extents(self, extents),
             /* hb_font_get_font_h_extents_nil */
             HbFontKlass::Empty => false,
         }
@@ -366,9 +419,12 @@ impl<'a> HbFont<'a> {
     /// `get_font_v_extents`
     pub(crate) fn get_font_v_extents(&mut self, extents: &mut HbFontExtents) -> bool {
         *extents = HbFontExtents::default();
-        /* hb-ft does not set it: hb_font_get_font_v_extents_default, whose
-         * parent (the empty font) has none */
-        false
+        match &self.p.klass {
+            HbFontKlass::Ot(_) => hb_ot_get_font_v_extents(self, extents),
+            /* hb-ft does not set it: hb_font_get_font_v_extents_default, whose
+             * parent (the empty font) has none */
+            _ => false,
+        }
     }
 
     /// `has_glyph`
@@ -387,6 +443,7 @@ impl<'a> HbFont<'a> {
         *glyph = not_found;
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_nominal_glyph(self, unicode, glyph),
+            HbFontKlass::Ot(_) => hb_ot_get_nominal_glyph(self, unicode, glyph),
             HbFontKlass::Empty => {
                 *glyph = 0;
                 false
@@ -403,6 +460,7 @@ impl<'a> HbFont<'a> {
     ) -> u32 {
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_nominal_glyphs(self, unicodes, glyphs),
+            HbFontKlass::Ot(_) => hb_ot_get_nominal_glyphs(self, unicodes, glyphs),
             HbFontKlass::Empty => 0,
         }
     }
@@ -420,6 +478,9 @@ impl<'a> HbFont<'a> {
             HbFontKlass::Ft(_) => {
                 super::hb_ft::hb_ft_get_variation_glyph(self, unicode, variation_selector, glyph)
             }
+            HbFontKlass::Ot(_) => {
+                hb_ot_get_variation_glyph(self, unicode, variation_selector, glyph)
+            }
             HbFontKlass::Empty => {
                 *glyph = 0;
                 false
@@ -431,7 +492,7 @@ impl<'a> HbFont<'a> {
     pub(crate) fn get_glyph_h_advance(&mut self, glyph: HbCodepoint) -> HbPosition {
         match &self.p.klass {
             /* hb_font_get_glyph_h_advance_default: the h_advances function is set */
-            HbFontKlass::Ft(_) => {
+            HbFontKlass::Ft(_) | HbFontKlass::Ot(_) => {
                 let mut ret = [0];
                 self.get_glyph_h_advances(&[glyph], &mut ret);
                 ret[0]
@@ -445,6 +506,12 @@ impl<'a> HbFont<'a> {
     pub(crate) fn get_glyph_v_advance(&mut self, glyph: HbCodepoint) -> HbPosition {
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_glyph_v_advance(self, glyph),
+            /* hb_font_get_glyph_v_advance_default: the v_advances function is set */
+            HbFontKlass::Ot(_) => {
+                let mut ret = [0];
+                hb_ot_get_glyph_v_advances(self, &[glyph], &mut ret);
+                ret[0]
+            }
             /* TODO use font_extents.ascender+descender */
             HbFontKlass::Empty => self.p.y_scale,
         }
@@ -458,6 +525,7 @@ impl<'a> HbFont<'a> {
     ) {
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_glyph_h_advances(self, glyphs, advances),
+            HbFontKlass::Ot(_) => hb_ot_get_glyph_h_advances(self, glyphs, advances),
             HbFontKlass::Empty => {
                 /* hb_font_get_glyph_h_advances_default: the nil h_advance */
                 for (a, &g) in advances.iter_mut().zip(glyphs) {
@@ -473,6 +541,10 @@ impl<'a> HbFont<'a> {
         glyphs: &[HbCodepoint],
         advances: &mut [HbPosition],
     ) {
+        if let HbFontKlass::Ot(_) = self.p.klass {
+            hb_ot_get_glyph_v_advances(self, glyphs, advances);
+            return;
+        }
         /* hb_font_get_glyph_v_advances_default: the v_advance function is
          * set (hb-ft), or the nil one (the empty font) */
         for (a, &g) in advances.iter_mut().zip(glyphs) {
@@ -490,7 +562,7 @@ impl<'a> HbFont<'a> {
         *x = 0;
         *y = 0;
         match &self.p.klass {
-            HbFontKlass::Ft(_) => {
+            HbFontKlass::Ft(_) | HbFontKlass::Ot(_) => {
                 /* hb_font_get_glyph_h_origin_default: the parent's nil
                  * function (0, 0, true), scaled */
                 *x = self.parent_scale_x_distance(*x);
@@ -513,17 +585,19 @@ impl<'a> HbFont<'a> {
         *y = 0;
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_glyph_v_origin(self, glyph, x, y),
+            HbFontKlass::Ot(_) => hb_ot_get_glyph_v_origin(self, glyph, x, y),
             HbFontKlass::Empty => false,
         }
     }
 
-    /// `has_glyph_h_origin_func`: hb-ft sets no `glyph_h_origin`
-    /// function (and the parent, the Null font, has none).
+    /// `has_glyph_h_origin_func`: hb-ft and hb-ot-font set no
+    /// `glyph_h_origin` function (and the parent, the Null font, has
+    /// none).
     pub(crate) fn has_glyph_h_origin_func(&self) -> bool {
         false
     }
 
-    /// `has_glyph_h_kerning_func`: hb-ft sets one.
+    /// `has_glyph_h_kerning_func`: hb-ft sets one (hb-ot-font does not).
     pub(crate) fn has_glyph_h_kerning_func(&self) -> bool {
         matches!(self.p.klass, HbFontKlass::Ft(_))
     }
@@ -543,7 +617,9 @@ impl<'a> HbFont<'a> {
             HbFontKlass::Ft(_) => {
                 super::hb_ft::hb_ft_get_glyph_h_kerning(self, left_glyph, right_glyph)
             }
-            HbFontKlass::Empty => 0,
+            /* hb_font_get_glyph_h_kerning_default: the parent's nil
+             * function, 0 */
+            HbFontKlass::Ot(_) | HbFontKlass::Empty => 0,
         }
     }
 
@@ -566,6 +642,7 @@ impl<'a> HbFont<'a> {
         *extents = HbGlyphExtents::default();
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_glyph_extents(self, glyph, extents),
+            HbFontKlass::Ot(_) => hb_ot_get_glyph_extents(self, glyph, extents),
             HbFontKlass::Empty => false,
         }
     }
@@ -584,7 +661,9 @@ impl<'a> HbFont<'a> {
             HbFontKlass::Ft(_) => {
                 super::hb_ft::hb_ft_get_glyph_contour_point(self, glyph, point_index, x, y)
             }
-            HbFontKlass::Empty => false,
+            /* hb_font_get_glyph_contour_point_default: the parent's nil
+             * function, false */
+            HbFontKlass::Ot(_) | HbFontKlass::Empty => false,
         }
     }
 
@@ -598,7 +677,8 @@ impl<'a> HbFont<'a> {
         name.clear();
         match &self.p.klass {
             HbFontKlass::Ft(_) => super::hb_ft::hb_ft_get_glyph_name(self, glyph, name, size),
-            HbFontKlass::Empty => false,
+            /* (hb_ot_get_glyph_name: post and CFF are not translated) */
+            HbFontKlass::Ot(_) | HbFontKlass::Empty => false,
         }
     }
 

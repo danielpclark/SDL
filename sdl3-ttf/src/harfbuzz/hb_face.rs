@@ -24,6 +24,7 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use super::hb_common::*;
+use super::hb_ot_font::HbOtFace;
 use super::hb_ot_kern_table::KernAccel;
 use super::hb_ot_layout_gdef::GdefAccel;
 use super::hb_ot_layout_gsubgpos::{GsubGposAccel, GsubGposKind};
@@ -85,6 +86,8 @@ pub struct HbFace {
     gpos: OnceLock<GsubGposAccel>,
     kern: OnceLock<KernAccel>,
     os2: OnceLock<Vec<u8>>,
+    head: OnceLock<Vec<u8>>,
+    ot: OnceLock<HbOtFace>,
 
     /* shape plans */
     pub(crate) shape_plans: HbShapePlanCache,
@@ -113,6 +116,8 @@ impl HbFace {
             gpos: OnceLock::new(),
             kern: OnceLock::new(),
             os2: OnceLock::new(),
+            head: OnceLock::new(),
+            ot: OnceLock::new(),
             shape_plans: HbShapePlanCache::default(),
         };
         if upem != 0 {
@@ -136,12 +141,19 @@ impl HbFace {
         *self.upem.get_or_init(|| self.load_upem())
     }
 
+    /// `table.head`: the sanitized 'head' table.
+    pub(crate) fn head(&self) -> &[u8] {
+        self.head.get_or_init(|| {
+            hb_sanitize_blob(self.reference_table(HB_OT_TAG_HEAD), Some(0), |c| {
+                /* head::sanitize */
+                c.check_struct(0, 54) && c.u16(0) == 1 && c.u32(12) == 0x5F0F3CF5
+            })
+        })
+    }
+
     /// `load_upem`: from the sanitized 'head' table.
     fn load_upem(&self) -> u32 {
-        let head = hb_sanitize_blob(self.reference_table(HB_OT_TAG_HEAD), Some(0), |c| {
-            /* head::sanitize */
-            c.check_struct(0, 54) && c.u16(0) == 1 && c.u32(12) == 0x5F0F3CF5
-        });
+        let head = self.head();
         /* head::get_upem */
         let upem = if head.len() >= 54 {
             u16::from_be_bytes([head[18], head[19]]) as u32
@@ -206,9 +218,31 @@ impl HbFace {
         self.kern.get_or_init(|| KernAccel::new(self))
     }
 
+    /// The tables of the OpenType font functions (`table.cmap`,
+    /// `table.hmtx`, ...).
+    pub(crate) fn ot(&self) -> &HbOtFace {
+        self.ot.get_or_init(|| HbOtFace::new(self))
+    }
+
     /// `table.OS2->get_font_page ()`
     pub(crate) fn os2_get_font_page(&self) -> u32 {
-        let os2 = self.os2.get_or_init(|| {
+        let os2 = self.os2();
+        if os2.len() < 78 {
+            return 0;
+        }
+        let version = u16::from_be_bytes([os2[0], os2[1]]);
+        let fs_selection = u16::from_be_bytes([os2[62], os2[63]]) as u32;
+        /* OS2::get_font_page */
+        if version == 0 {
+            fs_selection & 0xFF00
+        } else {
+            0
+        }
+    }
+
+    /// `table.OS2`: the sanitized 'OS/2' table.
+    pub(crate) fn os2(&self) -> &[u8] {
+        self.os2.get_or_init(|| {
             hb_sanitize_blob(
                 self.reference_table(HB_OT_TAG_OS2),
                 Some(self.get_num_glyphs()),
@@ -230,18 +264,7 @@ impl HbFace {
                     true
                 },
             )
-        });
-        if os2.len() < 78 {
-            return 0;
-        }
-        let version = u16::from_be_bytes([os2[0], os2[1]]);
-        let fs_selection = u16::from_be_bytes([os2[62], os2[63]]) as u32;
-        /* OS2::get_font_page */
-        if version == 0 {
-            fs_selection & 0xFF00
-        } else {
-            0
-        }
+        })
     }
 }
 
