@@ -17,7 +17,9 @@
 //!   [`load_gpu_texture`] and friends to a GPU texture through a copy pass.
 //! * Detection: an `is_*` function for every format SDL_image knows, each
 //!   leaving the stream where it was.
-//! * Decoders: BMP, ICO and CUR, GIF (still images), JPEG and PNG (through
+//! * Decoders: AVIF (8, 10 and 12 bits, alpha, grids, HDR PQ images as
+//!   10-bit surfaces, through translations of libavif's decoder and of
+//!   dav1d), BMP, ICO and CUR, GIF (still images), JPEG and PNG (through
 //!   the stb_image translation in `sdl3`, as upstream's stb backend), LBM
 //!   (IFF PBM and ILBM, EHB and HAM), PCX, PNM (PBM/PGM/PPM), QOI, SVG
 //!   (through translations of the bundled NanoSVG parser and rasterizer,
@@ -32,18 +34,19 @@
 //!   `sdl3`), TGA and WebP (lossy, or lossless at quality 100, through a
 //!   translation of libwebp's encoder).
 //! * Animations: [`load_animation`] and friends read whole [`Animation`]s
-//!   (GIF, WebP and ANI cursors, or any still image as one frame), and
+//!   (GIF, WebP, AVIF image sequences and ANI cursors, or any still image
+//!   as one frame), and
 //!   [`save_animation`] writes them (GIF, ANI and WebP, the latter through
 //!   translations of libwebp's animation encoder and muxer);
 //!   [`AnimationDecoder`] and
 //!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
 //!   and [`create_animated_cursor`] makes a cursor from an animation.
 //!
-//! Not translated yet: the AVIF and JPEG XL decoders, and the APNG and
-//! AVIF animation decoders and encoders. Their
-//! detectors are here; [`load_io`] reports the formats as unsupported, and
-//! the savers and the animation API fail with upstream's messages for a
-//! build without them.
+//! Not translated yet: the JPEG XL decoder, the APNG animation decoder and
+//! encoder, and the AVIF saver and animation encoder (which need an AV1
+//! encoder). The detectors are here; [`load_io`] reports JPEG XL as
+//! unsupported, and the savers and the animation API fail with upstream's
+//! messages for a build without them.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: the `closeio` flags are
