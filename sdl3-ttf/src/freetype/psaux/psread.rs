@@ -40,8 +40,6 @@
 
 use std::sync::Arc;
 
-use super::super::fttypes::*;
-use super::pserror::cf2_set_error_code;
 use super::psfixed::Cf2Int;
 
 /* Define CF2_IO_FAIL as 1 to enable random errors and random */
@@ -76,13 +74,17 @@ impl Default for Cf2BufferRec {
 
 /// `cf2_buf_readByte`: reading past the end of the buffer sets error and
 /// returns zero
-pub fn cf2_buf_read_byte(buf: &mut Cf2BufferRec, error: &mut FtError) -> Cf2Int {
+///
+/// (Every buffer C makes is zeroed and never given an `error` pointer, so
+/// `CF2_SET_ERROR( buf->error, Invalid_Stream_Operation )` sets nothing:
+/// reading past the end only returns zero. The field is left out.)
+pub fn cf2_buf_read_byte(buf: &mut Cf2BufferRec) -> Cf2Int {
     if buf.ptr < buf.end {
         let b = buf.bytes.get(buf.ptr).copied().unwrap_or(0);
         buf.ptr += 1;
         b as Cf2Int
     } else {
-        cf2_set_error_code(error, FT_ERR_INVALID_STREAM_OPERATION);
+        /* CF2_SET_ERROR( buf->error, Invalid_Stream_Operation ); */
         0
     }
 }
