@@ -313,6 +313,22 @@ fn ensure_valid_identifier(name: &str) -> String {
     out
 }
 
+/// Grows a type's member decorations to cover `index` (C++ resizes them
+/// to `index + 1`). A struct can't have more members than its module has
+/// words, so a larger index can only come from malformed SPIR-V: it is an
+/// error here, where C++ would allocate for it (or fail to).
+pub(crate) fn resize_members(
+    members: &mut Vec<MetaDecoration>,
+    index: u32,
+    words: usize,
+) -> Result<()> {
+    if index as usize >= words + 0x10000 {
+        spirv_cross_throw!("Member index is out of range.");
+    }
+    let len = members.len().max(index as usize + 1);
+    try_resize(members, len)
+}
+
 impl ParsedIR {
     pub fn new() -> Self {
         ParsedIR {
@@ -429,9 +445,9 @@ impl ParsedIR {
     }
 
     pub fn set_member_name(&mut self, id: TypeID, index: u32, name: &str) -> Result<()> {
+        let words = self.spirv.len();
         let m = self.meta.entry(id).or_default();
-        let len = m.members.len().max(index as usize + 1);
-        try_resize(&mut m.members, len)?;
+        resize_members(&mut m.members, index, words)?;
         m.members[index as usize].alias = name.to_string();
         if !is_valid_identifier(name) || is_reserved_identifier(name, true, false) {
             self.meta_needing_name_fixup.insert(id);
@@ -494,9 +510,9 @@ impl ParsedIR {
         decoration: Decoration,
         argument: u32,
     ) -> Result<()> {
+        let words = self.spirv.len();
         let m = self.meta.entry(id).or_default();
-        let len = m.members.len().max(index as usize + 1);
-        try_resize(&mut m.members, len)?;
+        resize_members(&mut m.members, index, words)?;
         let dec = &mut m.members[index as usize];
         dec.decoration_flags.set(decoration);
 
@@ -760,9 +776,9 @@ impl ParsedIR {
         decoration: Decoration,
         argument: &str,
     ) -> Result<()> {
+        let words = self.spirv.len();
         let m = self.meta.entry(id).or_default();
-        let len = m.members.len().max(index as usize + 1);
-        try_resize(&mut m.members, len)?;
+        resize_members(&mut m.members, index, words)?;
         let dec = &mut m.members[index as usize];
         dec.decoration_flags.set(decoration);
 
@@ -983,6 +999,11 @@ impl ParsedIR {
     }
 
     /// `get<T>(id)`.
+    ///
+    /// FIXME (upstream): C++ indexes `ids[]` unchecked; past the end it
+    /// reads whatever the heap holds there, throwing "nullptr" when that's
+    /// zeroed (as an out-of-range ID does here), "Bad cast" or crashing
+    /// otherwise.
     #[inline]
     pub fn get<T: IVariant>(&self, id: u32) -> Result<&T> {
         match self.ids.get(id as usize) {

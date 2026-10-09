@@ -233,8 +233,13 @@ impl Parser {
     }
 
     fn maybe_get<T: IVariant>(&self, id: u32) -> Result<Option<&T>> {
-        // Note (upstream): C++ indexes ids[] unchecked here.
-        if self.ir.ids.at(id)?.get_type() == T::TYPE {
+        // FIXME (upstream): C++ indexes ids[] unchecked here; past the end
+        // it reads memory that (in practice) isn't of the type asked for,
+        // so an out-of-range ID is "not a T" here.
+        let Some(v) = self.ir.ids.get(id as usize) else {
+            return Ok(None);
+        };
+        if v.get_type() == T::TYPE {
             Ok(Some(self.get::<T>(id)?))
         } else {
             Ok(None)
@@ -824,6 +829,13 @@ impl Parser {
             OpTypeVector => {
                 let id = o!(0);
                 let vecsize = o!(2);
+                // The translation's guard: SPIR-V vectors have at most 16
+                // components (with Vector16); the backends emit code per
+                // component, so a huge count from malformed SPIR-V would
+                // run them out of memory.
+                if vecsize > 16 {
+                    spirv_cross_throw!("Vector component count is out of range.");
+                }
 
                 let base = self.get::<SPIRType>(o!(1))?.clone();
                 let parent = o!(1);
@@ -838,6 +850,10 @@ impl Parser {
             OpTypeMatrix => {
                 let id = o!(0);
                 let colcount = o!(2);
+                // As for vectors: matrices have at most 4 columns.
+                if colcount > 16 {
+                    spirv_cross_throw!("Matrix column count is out of range.");
+                }
 
                 let base = self.get::<SPIRType>(o!(1))?.clone();
                 let parent = o!(1);

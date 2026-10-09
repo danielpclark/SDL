@@ -6,6 +6,23 @@ use crate::spirv_cross::c_api::*;
 
 /// The test shaders (testdata/*.spv), by name.
 pub(crate) const SHADERS: &[(&str, &[u8])] = &[
+    ("cs_bad_flip", include_bytes!("../testdata/cs_bad_flip.spv")),
+    (
+        "cs_bad_flip2",
+        include_bytes!("../testdata/cs_bad_flip2.spv"),
+    ),
+    (
+        "cs_bad_flip3",
+        include_bytes!("../testdata/cs_bad_flip3.spv"),
+    ),
+    (
+        "cs_bad_long_count",
+        include_bytes!("../testdata/cs_bad_long_count.spv"),
+    ),
+    (
+        "cs_bad_magic",
+        include_bytes!("../testdata/cs_bad_magic.spv"),
+    ),
     ("cs_basic", include_bytes!("../testdata/cs_basic.spv")),
     (
         "cs_basic_opt",
@@ -14,6 +31,15 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
     ("cs_image", include_bytes!("../testdata/cs_image.spv")),
     ("cs_layout", include_bytes!("../testdata/cs_layout.spv")),
     ("cs_math", include_bytes!("../testdata/cs_math.spv")),
+    ("fs_bad_flip", include_bytes!("../testdata/fs_bad_flip.spv")),
+    (
+        "fs_bad_header",
+        include_bytes!("../testdata/fs_bad_header.spv"),
+    ),
+    (
+        "fs_bad_zero_count",
+        include_bytes!("../testdata/fs_bad_zero_count.spv"),
+    ),
     ("fs_complex", include_bytes!("../testdata/fs_complex.spv")),
     (
         "fs_complex_opt",
@@ -22,9 +48,29 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
     ("fs_sampling", include_bytes!("../testdata/fs_sampling.spv")),
     ("fs_storage", include_bytes!("../testdata/fs_storage.spv")),
     ("fs_textured", include_bytes!("../testdata/fs_textured.spv")),
+    (
+        "vs_bad_truncated",
+        include_bytes!("../testdata/vs_bad_truncated.spv"),
+    ),
+    (
+        "vs_bad_version",
+        include_bytes!("../testdata/vs_bad_version.spv"),
+    ),
     ("vs_basic", include_bytes!("../testdata/vs_basic.spv")),
     ("vs_push", include_bytes!("../testdata/vs_push.spv")),
     ("vs_storage", include_bytes!("../testdata/vs_storage.spv")),
+];
+
+/// Malformed shaders on which SDL_shadercross's SPIRV-Cross reads out of
+/// bounds (crashing, or failing depending on the heap); not in the
+/// reference.
+const UB_SHADERS: &[(&str, &[u8])] = &[
+    ("cs_ub_flip", include_bytes!("../testdata/cs_ub_flip.spv")),
+    ("fs_ub_flip", include_bytes!("../testdata/fs_ub_flip.spv")),
+    (
+        "vs_ub_entry_id",
+        include_bytes!("../testdata/vs_ub_entry_id.spv"),
+    ),
 ];
 
 const REFERENCE: &str = include_str!("../testdata/reference.txt");
@@ -280,4 +326,59 @@ fn msl_version_strings() {
         err.message(),
         "failed to parse MSL version string \"metal\""
     );
+}
+
+#[test]
+fn malformed_spirv_fails_cleanly() {
+    // SDL_shadercross crashes on fs_ub_flip (in SPIRV-Cross's parser) and
+    // cs_ub_flip (in its GLSL backend), and fails depending on what the heap
+    // holds past its ID array on vs_ub_entry_id; the translation reports the
+    // malformed input.
+    for (name, code) in UB_SHADERS {
+        let compute = name.starts_with('c');
+        let vertex = name.starts_with('v');
+        let props = sdl3::properties::Properties::new();
+        let info = crate::SpirvInfo {
+            bytecode: code,
+            entrypoint: "main",
+            shader_stage: stage(if compute {
+                "compute"
+            } else if vertex {
+                "vertex"
+            } else {
+                "fragment"
+            }),
+            props: Some(&props),
+        };
+        let _ = crate::transpile_msl_from_spirv(&info);
+        let _ = crate::transpile_hlsl_from_spirv(&info);
+        if compute {
+            let _ = crate::reflect_compute_spirv(code, None);
+        } else {
+            let _ = crate::reflect_graphics_spirv(code, None);
+        }
+        let out = glsl(code, 450, false, false);
+        assert!(out.starts_with("ERROR: "), "{name}: {out}");
+    }
+    // SPIRV-Cross allocates decorations for 15 million struct members here;
+    // the translation reports the impossible member index.
+    let code = include_bytes!("../testdata/cs_guard_member_index.spv");
+    assert_eq!(
+        crate::reflect_compute_spirv(code, None)
+            .unwrap_err()
+            .message(),
+        "spvc_context_parse_spirv failed: Member index is out of range."
+    );
+    // Every truncation of a shader fails, without panicking.
+    let code = shader("vs_push");
+    for len in 0..code.len() {
+        let info = crate::SpirvInfo {
+            bytecode: &code[..len],
+            entrypoint: "main",
+            shader_stage: crate::ShaderStage::Vertex,
+            props: None,
+        };
+        let r = crate::transpile_hlsl_from_spirv(&info);
+        assert!(r.is_err(), "truncated to {len} bytes");
+    }
 }

@@ -22022,11 +22022,19 @@ impl Compiler {
 
     /// `type_to_glsl()` (virtual).
     pub(crate) fn type_to_glsl(&mut self, type_: &SPIRType, id: u32) -> Result<String> {
-        match self.backend {
+        // The translation's guard: an image type sampling itself (malformed
+        // SPIR-V) recurses without end here, overflowing the stack in C++.
+        if self.type_name_depth > 64 {
+            spirv_cross_throw!("Type recursion too deep.");
+        }
+        self.type_name_depth += 1;
+        let r = match self.backend {
             Backend::Hlsl => self.hlsl_type_to_glsl(type_, id),
             Backend::Msl => self.msl_type_to_glsl(type_, id),
             _ => self.glsl_type_to_glsl(type_, id),
-        }
+        };
+        self.type_name_depth -= 1;
+        r
     }
 
     // The optional id parameter indicates the object whose type we are trying

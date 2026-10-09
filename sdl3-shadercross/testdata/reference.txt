@@ -1,3 +1,597 @@
+=== cs_bad_flip reflect
+samplers=1 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=16,1,1
+=== cs_bad_flip glsl 450 0 0
+ERROR: Cannot resolve expression type.
+=== cs_bad_flip glsl 310 1 0
+ERROR: Cannot resolve expression type.
+=== cs_bad_flip glsl 450 0 1
+ERROR: Cannot resolve expression type.
+=== cs_bad_flip msl compute 0 - 0
+ERROR: spvc_compiler_compile failed: Cannot resolve expression type.
+=== cs_bad_flip msl compute 0 2.1.0 0
+ERROR: spvc_compiler_compile failed: Cannot resolve expression type.
+=== cs_bad_flip hlsl compute 60 - 0
+ERROR: spvc_compiler_compile failed: Cannot resolve expression type.
+=== cs_bad_flip hlsl compute 51 - 0
+ERROR: spvc_compiler_compile failed: Cannot resolve expression type.
+=== cs_bad_flip hlsl compute 50 - 1
+ERROR: spvc_compiler_compile failed: Cannot resolve expression type.
+=== cs_bad_flip2 reflect
+samplers=1 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=16,1,1
+=== cs_bad_flip2 glsl 450 0 0
+ERROR: nullptr
+=== cs_bad_flip2 glsl 310 1 0
+ERROR: nullptr
+=== cs_bad_flip2 glsl 450 0 1
+ERROR: nullptr
+=== cs_bad_flip2 msl compute 0 - 0
+ERROR: spvc_compiler_compile failed: nullptr
+=== cs_bad_flip2 msl compute 0 2.1.0 0
+ERROR: spvc_compiler_compile failed: nullptr
+=== cs_bad_flip2 hlsl compute 60 - 0
+ERROR: spvc_compiler_compile failed: nullptr
+=== cs_bad_flip2 hlsl compute 51 - 0
+ERROR: spvc_compiler_compile failed: nullptr
+=== cs_bad_flip2 hlsl compute 50 - 1
+ERROR: spvc_compiler_compile failed: nullptr
+=== cs_bad_flip3 reflect
+samplers=1 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=16,1,1
+=== cs_bad_flip3 glsl 450 0 0
+#version 450
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+
+struct Item
+{
+    vec3 position;
+    float weight;
+    mat3x4 frame;
+    uint tags[3];
+};
+
+layout(binding = 1, std430) readonly buffer Source
+{
+    Item items[];
+} source;
+
+layout(binding = 0, std140) uniform Params
+{
+    uint count;
+    float eta;
+    vec2 scale;
+} params;
+
+layout(binding = 0, std430) buffer Destination
+{
+    layout(row_major) Item best;
+    layout(row_major) Item items[];
+} destination;
+
+layout(binding = 0) uniform sampler2DArray layers;
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = source.items[i].position;
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = source.items[_69].position;
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    ivec3 size = textureSize(layers, 0);
+    int levels = textureQueryLevels(layers);
+    c.tags[0] = bitfieldInsert(c.tags[0], uint(levels), 4, 4) + bitfieldExtract(c.tags[1], 2, 6);
+    c.tags[2] = packHalf2x16(params.scale * vec2(size.xy)) ^ uint(findLSB(c.tags[2]));
+    c.weight = fma(refract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = vec4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = c.frame;
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = c.frame;
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_bad_flip3 glsl 310 1 0
+ERROR: textureQueryLevels not supported in ES profile.
+=== cs_bad_flip3 glsl 450 0 1
+#version 450
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+
+struct Item
+{
+    vec3 position;
+    float weight;
+    mat3x4 frame;
+    uint tags[3];
+};
+
+layout(set = 0, binding = 1, std430) readonly buffer Source
+{
+    Item items[];
+} source;
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    uint count;
+    float eta;
+    vec2 scale;
+} params;
+
+layout(set = 1, binding = 0, std430) buffer Destination
+{
+    layout(row_major) Item best;
+    layout(row_major) Item items[];
+} destination;
+
+layout(set = 0, binding = 0) uniform sampler2DArray layers;
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = source.items[i].position;
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = source.items[_69].position;
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    ivec3 size = textureSize(layers, 0);
+    int levels = textureQueryLevels(layers);
+    c.tags[0] = bitfieldInsert(c.tags[0], uint(levels), 4, 4) + bitfieldExtract(c.tags[1], 2, 6);
+    c.tags[2] = packHalf2x16(params.scale * vec2(size.xy)) ^ uint(findLSB(c.tags[2]));
+    c.weight = fma(refract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = vec4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = c.frame;
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = c.frame;
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_bad_flip3 msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+// Implementation of the GLSL mod() function, which is slightly different than Metal fmod()
+template<typename Tx, typename Ty>
+inline Tx mod(Tx x, Ty y)
+{
+    return x - y * floor(x / y);
+}
+
+// Implementation of the GLSL findLSB() function
+template<typename T>
+inline T spvFindLSB(T x)
+{
+    return select(ctz(x), T(-1), x == T(0));
+}
+
+template<typename T>
+inline T spvRefract(T i, T n, T eta)
+{
+    T NoI = n * i;
+    T NoI2 = NoI * NoI;
+    T k = T(1) - eta * eta * (T(1) - NoI2);
+    if (k < T(0))
+    {
+        return T(0);
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+struct Item
+{
+    float3 position;
+    float weight;
+    float3x4 frame;
+    spvUnsafeArray<uint, 3> tags;
+};
+
+struct Item_1
+{
+    packed_float3 position;
+    float weight;
+    float3x4 frame;
+    uint tags[3];
+};
+
+struct Source
+{
+    Item_1 items[1];
+};
+
+struct Params
+{
+    uint count;
+    float eta;
+    float2 scale;
+};
+
+struct Item_2
+{
+    packed_float3 position;
+    float weight;
+    float4x3 frame;
+    uint tags[3];
+};
+
+struct Destination
+{
+    Item_2 best;
+    Item_2 items[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(16u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Source& source [[buffer(1)]], device Destination& destination [[buffer(2)]], texture2d_array<float> layers [[texture(0)]], sampler layersSmplr [[sampler(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = float3(source.items[i].position);
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = float3(source.items[_69].position);
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    int3 size = int3(layers.get_width(), layers.get_height(), layers.get_array_size());
+    int levels = int(layers.get_num_mip_levels());
+    c.tags[0] = insert_bits(c.tags[0], uint(levels), uint(4), uint(4)) + extract_bits(c.tags[1], uint(2), uint(6));
+    c.tags[2] = as_type<uint>(half2(params.scale * float2(size.xy))) ^ uint(int(spvFindLSB(c.tags[2])));
+    c.weight = fma(spvRefract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = float4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = transpose(c.frame);
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = transpose(c.frame);
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_bad_flip3 msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+// Implementation of the GLSL mod() function, which is slightly different than Metal fmod()
+template<typename Tx, typename Ty>
+inline Tx mod(Tx x, Ty y)
+{
+    return x - y * floor(x / y);
+}
+
+// Implementation of the GLSL findLSB() function
+template<typename T>
+inline T spvFindLSB(T x)
+{
+    return select(ctz(x), T(-1), x == T(0));
+}
+
+template<typename T>
+inline T spvRefract(T i, T n, T eta)
+{
+    T NoI = n * i;
+    T NoI2 = NoI * NoI;
+    T k = T(1) - eta * eta * (T(1) - NoI2);
+    if (k < T(0))
+    {
+        return T(0);
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+struct Item
+{
+    float3 position;
+    float weight;
+    float3x4 frame;
+    spvUnsafeArray<uint, 3> tags;
+};
+
+struct Item_1
+{
+    packed_float3 position;
+    float weight;
+    float3x4 frame;
+    uint tags[3];
+};
+
+struct Source
+{
+    Item_1 items[1];
+};
+
+struct Params
+{
+    uint count;
+    float eta;
+    float2 scale;
+};
+
+struct Item_2
+{
+    packed_float3 position;
+    float weight;
+    float4x3 frame;
+    uint tags[3];
+};
+
+struct Destination
+{
+    Item_2 best;
+    Item_2 items[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(16u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Source& source [[buffer(1)]], device Destination& destination [[buffer(2)]], texture2d_array<float> layers [[texture(0)]], sampler layersSmplr [[sampler(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = float3(source.items[i].position);
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = float3(source.items[_69].position);
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    int3 size = int3(layers.get_width(), layers.get_height(), layers.get_array_size());
+    int levels = int(layers.get_num_mip_levels());
+    c.tags[0] = insert_bits(c.tags[0], uint(levels), uint(4), uint(4)) + extract_bits(c.tags[1], uint(2), uint(6));
+    c.tags[2] = as_type<uint>(half2(params.scale * float2(size.xy))) ^ uint(int(spvFindLSB(c.tags[2])));
+    c.weight = fma(spvRefract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = float4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = transpose(c.frame);
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = transpose(c.frame);
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_bad_flip3 hlsl compute 60 - 0
+ERROR: spvc_compiler_compile failed: Reading types other than 32-bit from ByteAddressBuffer not yet supported, unless SM 6.2 and native 16-bit types are enabled.
+=== cs_bad_flip3 hlsl compute 51 - 0
+ERROR: spvc_compiler_compile failed: Reading types other than 32-bit from ByteAddressBuffer not yet supported, unless SM 6.2 and native 16-bit types are enabled.
+=== cs_bad_flip3 hlsl compute 50 - 1
+ERROR: spvc_compiler_compile failed: Reading types other than 32-bit from ByteAddressBuffer not yet supported, unless SM 6.2 and native 16-bit types are enabled.
+=== cs_bad_long_count reflect
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count glsl 450 0 0
+ERROR: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count glsl 310 1 0
+ERROR: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count glsl 450 0 1
+ERROR: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count msl compute 0 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count msl compute 0 2.1.0 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count hlsl compute 60 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count hlsl compute 51 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== cs_bad_long_count hlsl compute 50 - 1
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== cs_bad_magic reflect
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== cs_bad_magic glsl 450 0 0
+ERROR: Invalid SPIRV format.
+=== cs_bad_magic glsl 310 1 0
+ERROR: Invalid SPIRV format.
+=== cs_bad_magic glsl 450 0 1
+ERROR: Invalid SPIRV format.
+=== cs_bad_magic msl compute 0 - 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== cs_bad_magic msl compute 0 2.1.0 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== cs_bad_magic hlsl compute 60 - 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== cs_bad_magic hlsl compute 51 - 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== cs_bad_magic hlsl compute 50 - 1
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
 === cs_basic reflect
 samplers=0 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=64,1,1
 === cs_basic glsl 450 0 0
@@ -3519,6 +4113,60 @@ void main(SPIRV_Cross_Input stage_input)
     gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
     comp_main();
 }
+=== fs_bad_flip reflect
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip glsl 450 0 0
+ERROR: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip glsl 310 1 0
+ERROR: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip glsl 450 0 1
+ERROR: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip msl fragment 0 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip msl fragment 0 2.1.0 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip hlsl fragment 60 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip hlsl fragment 51 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== fs_bad_flip hlsl fragment 50 - 1
+ERROR: spvc_context_parse_spirv failed: SPIR-V instruction goes out of bounds.
+=== fs_bad_header reflect
+ERROR: spvc_context_parse_spirv failed: SPIRV file too small.
+=== fs_bad_header glsl 450 0 0
+ERROR: SPIRV file too small.
+=== fs_bad_header glsl 310 1 0
+ERROR: SPIRV file too small.
+=== fs_bad_header glsl 450 0 1
+ERROR: SPIRV file too small.
+=== fs_bad_header msl fragment 0 - 0
+ERROR: spvc_context_parse_spirv failed: SPIRV file too small.
+=== fs_bad_header msl fragment 0 2.1.0 0
+ERROR: spvc_context_parse_spirv failed: SPIRV file too small.
+=== fs_bad_header hlsl fragment 60 - 0
+ERROR: spvc_context_parse_spirv failed: SPIRV file too small.
+=== fs_bad_header hlsl fragment 51 - 0
+ERROR: spvc_context_parse_spirv failed: SPIRV file too small.
+=== fs_bad_header hlsl fragment 50 - 1
+ERROR: spvc_context_parse_spirv failed: SPIRV file too small.
+=== fs_bad_zero_count reflect
+ERROR: spvc_context_parse_spirv failed: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count glsl 450 0 0
+ERROR: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count glsl 310 1 0
+ERROR: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count glsl 450 0 1
+ERROR: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count msl fragment 0 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count msl fragment 0 2.1.0 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count hlsl fragment 60 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count hlsl fragment 51 - 0
+ERROR: spvc_context_parse_spirv failed: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
+=== fs_bad_zero_count hlsl fragment 50 - 1
+ERROR: spvc_context_parse_spirv failed: SPIR-V instructions cannot consume 0 words. Invalid SPIR-V file.
 === fs_complex reflect
 samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=2
 input in_normal location=0 type=float32 size=3
@@ -7197,6 +7845,42 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     stage_output.out_color = out_color;
     return stage_output;
 }
+=== vs_bad_truncated reflect
+ERROR: spvc_compiler_get_active_interface_variables failed: nullptr
+=== vs_bad_truncated glsl 450 0 0
+ERROR: nullptr
+=== vs_bad_truncated glsl 310 1 0
+ERROR: nullptr
+=== vs_bad_truncated glsl 450 0 1
+ERROR: nullptr
+=== vs_bad_truncated msl vertex 0 - 0
+ERROR: spvc_compiler_get_active_interface_variables failed: nullptr
+=== vs_bad_truncated msl vertex 0 2.1.0 0
+ERROR: spvc_compiler_get_active_interface_variables failed: nullptr
+=== vs_bad_truncated hlsl vertex 60 - 0
+ERROR: spvc_compiler_compile failed: nullptr
+=== vs_bad_truncated hlsl vertex 51 - 0
+ERROR: spvc_compiler_compile failed: nullptr
+=== vs_bad_truncated hlsl vertex 50 - 1
+ERROR: spvc_compiler_compile failed: nullptr
+=== vs_bad_version reflect
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== vs_bad_version glsl 450 0 0
+ERROR: Invalid SPIRV format.
+=== vs_bad_version glsl 310 1 0
+ERROR: Invalid SPIRV format.
+=== vs_bad_version glsl 450 0 1
+ERROR: Invalid SPIRV format.
+=== vs_bad_version msl vertex 0 - 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== vs_bad_version msl vertex 0 2.1.0 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== vs_bad_version hlsl vertex 60 - 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== vs_bad_version hlsl vertex 51 - 0
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
+=== vs_bad_version hlsl vertex 50 - 1
+ERROR: spvc_context_parse_spirv failed: Invalid SPIRV format.
 === vs_basic reflect
 samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=1
 input in_color location=1 type=float32 size=4

@@ -10,6 +10,12 @@ GLSLANG and SPIRV_OPT are the paths of the glslang and spirv-opt
 executables (the tests' reference outputs were made with glslang 16.6.0 and
 the SPIRV-Tools of the same release).
 
+It also writes malformed variants of some of them ("*_bad_*.spv",
+"*_ub_*.spv" and "*_guard_*.spv", listed in MALFORMED below): truncated,
+with a broken header, an instruction claiming zero or too many words,
+out-of-range IDs and member indices, and flipped bytes. The reference has SDL_shadercross's
+errors (or output) for the "bad" ones too.
+
 The shaders bind their resources where SDL's GPU API wants them (see
 SDL_CreateGPUShader): a vertex shader's sampled textures, storage textures
 and storage buffers in set 0 and uniform buffers in set 1, a fragment
@@ -454,6 +460,79 @@ void main()
 ''')
 
 
+def words(data):
+    return [int.from_bytes(data[i:i + 4], 'little') for i in range(0, len(data) - len(data) % 4, 4)]
+
+
+def pack(ws):
+    return b''.join(w.to_bytes(4, 'little') for w in ws)
+
+
+def instruction_offsets(ws):
+    """The word offsets of the instructions after the 5-word header."""
+    out, i = [], 5
+    while i < len(ws):
+        out.append(i)
+        n = ws[i] >> 16
+        if n == 0:
+            break
+        i += n
+    return out
+
+
+def set_word(ws, index, value):
+    ws = list(ws)
+    ws[index] = value
+    return ws
+
+
+def first_op(ws, opcode):
+    return next(i for i in instruction_offsets(ws) if ws[i] & 0xffff == opcode)
+
+
+def nth_op(ws, n):
+    return instruction_offsets(ws)[n]
+
+
+def flip(data, positions, mask):
+    return bytes(b ^ mask if i in positions else b for i, b in enumerate(data))
+
+
+# (name, source shader, transform of its bytes)
+MALFORMED = [
+    # Truncated in the middle of an instruction and of the header.
+    ('vs_bad_truncated', 'vs_basic', lambda d: d[:len(d) * 3 // 5]),
+    ('fs_bad_header', 'fs_textured', lambda d: d[:18]),
+    # A wrong magic number and a version from the future.
+    ('cs_bad_magic', 'cs_basic', lambda d: pack(set_word(words(d), 0, 0x03022307))),
+    ('vs_bad_version', 'vs_push', lambda d: pack(set_word(words(d), 1, 0x00ff0000))),
+    # An instruction with a zero word count, and one running past the end.
+    ('fs_bad_zero_count', 'fs_storage',
+     lambda d: pack(set_word(words(d), nth_op(words(d), 12), words(d)[nth_op(words(d), 12)] & 0xffff))),
+    ('cs_bad_long_count', 'cs_image',
+     lambda d: pack(set_word(words(d), nth_op(words(d), 30), words(d)[nth_op(words(d), 30)] | 0xfff00000))),
+    # An OpMemberDecorate with a member index far past any struct: SPIRV-Cross
+    # allocates decorations for that many members (gigabytes), where the
+    # translation stops with an error; not in the reference either.
+    ('cs_guard_member_index', 'cs_math',
+     lambda d: pack(set_word(words(d), first_op(words(d), 72) + 2, 0x00f00000))),
+    # Byte flips in the function bodies.
+    ('fs_bad_flip', 'fs_complex', lambda d: flip(d, (len(d) * 5 // 8,), 0x10)),
+    ('cs_bad_flip', 'cs_layout', lambda d: flip(d, (len(d) * 3 // 5,), 0x08)),
+    ('cs_bad_flip2', 'cs_layout', lambda d: flip(d, (len(d) * 5 // 6,), 0x01)),
+    ('cs_bad_flip3', 'cs_layout', lambda d: flip(d, (len(d) * 11 // 20,), 0x20)),
+    # Where SDL_shadercross's SPIRV-Cross reads out of bounds, so that what
+    # it does depends on the heap: two flips that crash it (in the parser
+    # and in the GLSL backend) and an OpEntryPoint naming a function ID past
+    # the bound. Not in the reference: the tests check that the translation
+    # fails cleanly.
+    ('fs_ub_flip', 'fs_complex', lambda d: flip(d, (len(d) // 2, len(d) * 3 // 4), 0x5a)),
+    ('cs_ub_flip', 'cs_layout', lambda d: flip(d, (len(d) * 2 // 3,), 0x01)),
+    ('vs_ub_entry_id', 'vs_storage',
+     lambda d: pack(set_word(words(d), first_op(words(d), 15) + 2, words(d)[3] + 5))),
+]
+
+
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
@@ -470,6 +549,11 @@ def main():
             subprocess.run([glslang, '-V', '--quiet', '-o', spv, src], check=True)
             if optimize:
                 subprocess.run([spirv_opt, '-O', spv, '-o', out], check=True)
+    for name, source, transform in MALFORMED:
+        with open(os.path.join(out_dir, source + '.spv'), 'rb') as f:
+            data = transform(f.read())
+        with open(os.path.join(out_dir, name + '.spv'), 'wb') as f:
+            f.write(data)
 
 
 if __name__ == '__main__':

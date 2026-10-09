@@ -325,6 +325,8 @@ pub struct Compiler {
     pub(crate) spirv_stream: Rc<Vec<u32>>,
     pub(crate) zero_stream: Rc<Vec<u32>>,
     pub(crate) traversal_depth: u32,
+    // The nesting depth of type_to_glsl() (the translation's guard).
+    pub(crate) type_name_depth: u32,
 
     // Marks variables which have global scope and variables which can alias with other variables
     // (SSBO, image load store, etc)
@@ -444,6 +446,7 @@ impl Compiler {
             spirv_stream: Rc::new(Vec::new()),
             zero_stream: Rc::new(Vec::new()),
             traversal_depth: 0,
+            type_name_depth: 0,
             global_variables: Vec::new(),
             aliased_variables: Vec::new(),
             buffer_pointer_variables: Vec::new(),
@@ -2151,9 +2154,9 @@ impl Compiler {
         index: u32,
         name: &str,
     ) -> Result<()> {
+        let words = self.ir.spirv.len();
         let m = self.ir.meta.entry(type_id).or_default();
-        let len = m.members.len().max(index as usize + 1);
-        try_resize(&mut m.members, len)?;
+        resize_members(&mut m.members, index, words)?;
         m.members[index as usize].qualified_alias = name.to_string();
         Ok(())
     }
@@ -2216,9 +2219,9 @@ impl Compiler {
         decoration: ExtendedDecorations,
         value: u32,
     ) -> Result<()> {
+        let words = self.ir.spirv.len();
         let m = self.ir.meta.entry(type_).or_default();
-        let len = m.members.len().max(index as usize + 1);
-        try_resize(&mut m.members, len)?;
+        resize_members(&mut m.members, index, words)?;
         let dec = &mut m.members[index as usize];
         dec.extended.flags.set(decoration);
         dec.extended.values[decoration as usize] = value;
@@ -2297,9 +2300,9 @@ impl Compiler {
         index: u32,
         decoration: ExtendedDecorations,
     ) -> Result<()> {
+        let words = self.ir.spirv.len();
         let m = self.ir.meta.entry(type_).or_default();
-        let len = m.members.len().max(index as usize + 1);
-        try_resize(&mut m.members, len)?;
+        resize_members(&mut m.members, index, words)?;
         let dec = &mut m.members[index as usize];
         dec.extended.flags.clear(decoration);
         dec.extended.values[decoration as usize] = 0;
@@ -5981,15 +5984,15 @@ impl OpcodeHandler for ActiveBuiltinHandler {
                     else if type_.basetype == BaseType::Struct {
                         let index = compiler.get::<SPIRConstant>(args[i])?.scalar(0, 0);
 
-                        let members = compiler
+                        let member = compiler
                             .ir
                             .meta
                             .entry(type_.self_)
                             .or_default()
                             .members
-                            .clone();
-                        if (index as usize) < members.len() {
-                            let decorations = &members[index as usize];
+                            .get(index as usize)
+                            .cloned();
+                        if let Some(decorations) = &member {
                             if decorations.builtin {
                                 if input {
                                     compiler.active_input_builtins.set(decorations.builtin_type);
