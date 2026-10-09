@@ -10,7 +10,9 @@
 //! profile in one go: `ICCReader::Init()` and `Process()` are run together;
 //! the state that lets upstream resume with more input is not kept.)
 
-use super::base::{decode_var_int, jxl_failure, jxl_status, load_be32, PaddedBytes, Status, StatusCode};
+use super::base::{
+    decode_var_int, jxl_failure, jxl_status, load_be32, PaddedBytes, Status, StatusCode,
+};
 use super::dec_ans::{decode_histograms, AnsCode, AnsSymbolReader, Checkpoint};
 use super::dec_bit_reader::BitReader;
 use super::fields::u64_coder_read;
@@ -50,8 +52,9 @@ const K_WTPT_TAG: Tag = *b"wtpt";
 const K_XYZ_TAG: Tag = *b"XYZ ";
 
 const K_TAG_STRINGS: [Tag; 17] = [
-    K_CPRT_TAG, K_WTPT_TAG, K_BKPT_TAG, K_RXYZ_TAG, K_GXYZ_TAG, K_BXYZ_TAG, K_KXYZ_TAG, K_RTRC_TAG, K_GTRC_TAG,
-    K_BTRC_TAG, K_KTRC_TAG, K_CHAD_TAG, K_DESC_TAG, K_CHRM_TAG, K_DMND_TAG, K_DMDD_TAG, K_LUMI_TAG,
+    K_CPRT_TAG, K_WTPT_TAG, K_BKPT_TAG, K_RXYZ_TAG, K_GXYZ_TAG, K_BXYZ_TAG, K_KXYZ_TAG, K_RTRC_TAG,
+    K_GTRC_TAG, K_BTRC_TAG, K_KTRC_TAG, K_CHAD_TAG, K_DESC_TAG, K_CHRM_TAG, K_DMND_TAG, K_DMDD_TAG,
+    K_LUMI_TAG,
 ];
 
 const K_COMMAND_TAG_UNKNOWN: u8 = 1;
@@ -270,7 +273,14 @@ fn icc_predict_header(icc: &[u8], size: usize, header: &mut [u8], pos: usize) {
 // which byte of the multi-byte integer is being handled.
 // The value start + i must be at least stride * 4.
 /// Translation of `LinearPredictICCValue()`.
-fn linear_predict_icc_value(data: &[u8], start: usize, i: usize, stride: usize, width: usize, order: i32) -> u8 {
+fn linear_predict_icc_value(
+    data: &[u8],
+    start: usize,
+    i: usize,
+    stride: usize,
+    width: usize,
+    order: i32,
+) -> u8 {
     let pos = start + i;
     if width == 1 {
         let p1 = data[pos - stride] as i64;
@@ -280,8 +290,10 @@ fn linear_predict_icc_value(data: &[u8], start: usize, i: usize, stride: usize, 
     } else if width == 2 {
         let p = start + (i & !1);
         let p1 = ((data[p - stride] as u16) << 8).wrapping_add(data[p - stride + 1] as u16) as i64;
-        let p2 = ((data[p - stride * 2] as u16) << 8).wrapping_add(data[p - stride * 2 + 1] as u16) as i64;
-        let p3 = ((data[p - stride * 3] as u16) << 8).wrapping_add(data[p - stride * 3 + 1] as u16) as i64;
+        let p2 = ((data[p - stride * 2] as u16) << 8).wrapping_add(data[p - stride * 2 + 1] as u16)
+            as i64;
+        let p3 = ((data[p - stride * 3] as u16) << 8).wrapping_add(data[p - stride * 3 + 1] as u16)
+            as i64;
         let pred = predict_value_i64(p1, p2, p3, order) as u16;
         if i & 1 != 0 {
             (pred & 255) as u8
@@ -296,7 +308,10 @@ fn linear_predict_icc_value(data: &[u8], start: usize, i: usize, stride: usize, 
         let pred = match order {
             0 => p1,
             1 => p1.wrapping_mul(2).wrapping_sub(p2),
-            2 => p1.wrapping_mul(3).wrapping_sub(p2.wrapping_mul(3)).wrapping_add(p3),
+            2 => p1
+                .wrapping_mul(3)
+                .wrapping_sub(p2.wrapping_mul(3))
+                .wrapping_add(p3),
             _ => 0,
         };
         let shiftbytes = 3 - (i & 3) as u32;
@@ -393,7 +408,7 @@ fn unpredict_icc(enc: &[u8], size: usize, result: &mut PaddedBytes) -> Status {
         return jxl_failure!("Out of bounds");
     }
     let csize = decode_var_int(enc, size, &mut pos); // Commands size
-    // Every command is translated to at least on byte.
+                                                     // Every command is translated to at least on byte.
     check_is_32bit(csize)?;
     let mut cpos = pos; // pos in commands stream
     check_out_of_bounds(pos, csize, size)?;
@@ -611,7 +626,8 @@ fn unpredict_icc(enc: &[u8], size: usize, result: &mut PaddedBytes) -> Status {
 
             let start = result.len();
             for (i, &s) in shuffled.iter().enumerate() {
-                let predicted = linear_predict_icc_value(result, start, i, stride as usize, width, order);
+                let predicted =
+                    linear_predict_icc_value(result, start, i, stride as usize, width, order);
                 result.push(predicted.wrapping_add(s));
             }
             pos += num;
@@ -628,7 +644,10 @@ fn unpredict_icc(enc: &[u8], size: usize, result: &mut PaddedBytes) -> Status {
         } else if command >= K_COMMAND_TYPE_START_FIRST
             && command < K_COMMAND_TYPE_START_FIRST + K_TYPE_STRINGS.len() as u8
         {
-            append_keyword(&K_TYPE_STRINGS[(command - K_COMMAND_TYPE_START_FIRST) as usize], result);
+            append_keyword(
+                &K_TYPE_STRINGS[(command - K_COMMAND_TYPE_START_FIRST) as usize],
+                result,
+            );
             for _ in 0..4 {
                 result.push(0);
             }
@@ -652,12 +671,19 @@ fn check_eoi(reader: &mut BitReader<'_>) -> Status {
     if reader.all_reads_within_bounds() {
         return Ok(());
     }
-    jxl_status!(StatusCode::NotEnoughBytes, "Not enough bytes for reading ICC profile")
+    jxl_status!(
+        StatusCode::NotEnoughBytes,
+        "Not enough bytes for reading ICC profile"
+    )
 }
 
 /// Translation of `ICCReader::Init()` followed by `ICCReader::Process()`
 /// (for a first call: `bits_to_skip_` is 0).
-pub(crate) fn read_icc(reader: &mut BitReader<'_>, output_limit: usize, icc: &mut PaddedBytes) -> Status {
+pub(crate) fn read_icc(
+    reader: &mut BitReader<'_>,
+    output_limit: usize,
+    icc: &mut PaddedBytes,
+) -> Status {
     // (Init)
     check_eoi(reader)?;
     let used_bits_base = reader.total_bits_consumed();
@@ -669,14 +695,21 @@ pub(crate) fn read_icc(reader: &mut BitReader<'_>, output_limit: usize, icc: &mu
     let enc_size = enc_size as usize;
     let mut code = AnsCode::default();
     let mut context_map: Vec<u8> = Vec::new();
-    decode_histograms(reader, K_NUM_ICC_CONTEXTS, &mut code, &mut context_map, false)?;
+    decode_histograms(
+        reader,
+        K_NUM_ICC_CONTEXTS,
+        &mut code,
+        &mut context_map,
+        false,
+    )?;
     let mut ans_reader = AnsSymbolReader::new(&code, reader, 0);
     let mut i = 0usize;
     let mut decompressed: PaddedBytes = vec![0; (i + 0x400).min(enc_size)];
     while i < 2usize.min(enc_size) {
         let b1 = if i > 0 { decompressed[i - 1] } else { 0 };
         let b2 = if i > 1 { decompressed[i - 2] } else { 0 };
-        decompressed[i] = ans_reader.read_hybrid_uint(icc_ans_context(i, b1, b2), reader, &context_map) as u8;
+        decompressed[i] =
+            ans_reader.read_hybrid_uint(icc_ans_context(i, b1, b2), reader, &context_map) as u8;
         i += 1;
     }
     if enc_size > K_PREAMBLE_SIZE {

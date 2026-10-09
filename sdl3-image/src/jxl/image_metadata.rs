@@ -358,7 +358,10 @@ impl Fields for OpsinInverseMatrix {
             )?;
         }
         for i in 0..3 {
-            visitor.f16(K_NEG_OPSIN_ABSORBANCE_BIAS_RGB[i], &mut self.opsin_biases[i])?;
+            visitor.f16(
+                K_NEG_OPSIN_ABSORBANCE_BIAS_RGB[i],
+                &mut self.opsin_biases[i],
+            )?;
         }
         for i in 0..4 {
             visitor.f16(K_DEFAULT_QUANT_BIAS[i], &mut self.quant_biases[i])?;
@@ -935,7 +938,9 @@ impl ImageMetadata {
     /// Returns first ExtraChannelInfo of the given type, or nullptr if none.
     /// Translation of `Find()`.
     pub(crate) fn find(&self, type_: ExtraChannel) -> Option<&ExtraChannelInfo> {
-        self.extra_channel_info.iter().find(|eci| eci.type_ == type_)
+        self.extra_channel_info
+            .iter()
+            .find(|eci| eci.type_ == type_)
     }
 
     /// Translation of `GetOrientation()`.

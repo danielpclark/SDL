@@ -60,8 +60,12 @@ impl Xorshift128Plus {
         let mut s0 = [0u64; Self::N];
         let mut s1 = [0u64; Self::N];
         // Init state using SplitMix64 generator
-        s0[0] = Self::split_mix64((((seed1 as u64) << 32).wrapping_add(seed2 as u64)).wrapping_add(0x9E3779B97F4A7C15));
-        s1[0] = Self::split_mix64((((seed3 as u64) << 32).wrapping_add(seed4 as u64)).wrapping_add(0x9E3779B97F4A7C15));
+        s0[0] = Self::split_mix64(
+            (((seed1 as u64) << 32).wrapping_add(seed2 as u64)).wrapping_add(0x9E3779B97F4A7C15),
+        );
+        s1[0] = Self::split_mix64(
+            (((seed3 as u64) << 32).wrapping_add(seed4 as u64)).wrapping_add(0x9E3779B97F4A7C15),
+        );
         for i in 1..Self::N {
             s0[i] = Self::split_mix64(s0[i - 1]);
             s1[i] = Self::split_mix64(s1[i - 1]);

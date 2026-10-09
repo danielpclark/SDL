@@ -38,16 +38,16 @@ pub(crate) struct LoopFilter {
     pub epf_sharp_custom: bool,
     pub epf_sharp_lut: [f32; K_EPF_SHARP_ENTRIES],
 
-    pub epf_weight_custom: bool,      // Custom weight params
-    pub epf_channel_scale: [f32; 3],  // Relative weight of each channel
-    pub epf_pass1_zeroflush: f32,     // Minimum weight for first pass
-    pub epf_pass2_zeroflush: f32,     // Minimum weight for second pass
+    pub epf_weight_custom: bool,     // Custom weight params
+    pub epf_channel_scale: [f32; 3], // Relative weight of each channel
+    pub epf_pass1_zeroflush: f32,    // Minimum weight for first pass
+    pub epf_pass2_zeroflush: f32,    // Minimum weight for second pass
 
-    pub epf_sigma_custom: bool,        // Custom sigma parameters
-    pub epf_quant_mul: f32,            // Sigma is ~ this * quant
-    pub epf_pass0_sigma_scale: f32,    // Multiplier for sigma in pass 0
-    pub epf_pass2_sigma_scale: f32,    // Multiplier for sigma in the second pass
-    pub epf_border_sad_mul: f32,       // (inverse) multiplier for sigma on borders
+    pub epf_sigma_custom: bool,     // Custom sigma parameters
+    pub epf_quant_mul: f32,         // Sigma is ~ this * quant
+    pub epf_pass0_sigma_scale: f32, // Multiplier for sigma in pass 0
+    pub epf_pass2_sigma_scale: f32, // Multiplier for sigma in the second pass
+    pub epf_border_sad_mul: f32,    // (inverse) multiplier for sigma on borders
 
     pub epf_sigma_for_modular: f32,
 
@@ -86,18 +86,36 @@ impl Fields for LoopFilter {
         if visitor.conditional(self.gab) {
             visitor.bool_(false, &mut self.gab_custom)?;
             if visitor.conditional(self.gab_custom) {
-                visitor.f16((1.1 * 0.104699568f32 as f64) as f32, &mut self.gab_x_weight1)?;
-                visitor.f16((1.1 * 0.055680538f32 as f64) as f32, &mut self.gab_x_weight2)?;
+                visitor.f16(
+                    (1.1 * 0.104699568f32 as f64) as f32,
+                    &mut self.gab_x_weight1,
+                )?;
+                visitor.f16(
+                    (1.1 * 0.055680538f32 as f64) as f32,
+                    &mut self.gab_x_weight2,
+                )?;
                 if near_zero(self.gab_x_weight1, self.gab_x_weight2) {
                     return jxl_failure!("Gaborish x weights lead to near 0 unnormalized kernel");
                 }
-                visitor.f16((1.1 * 0.104699568f32 as f64) as f32, &mut self.gab_y_weight1)?;
-                visitor.f16((1.1 * 0.055680538f32 as f64) as f32, &mut self.gab_y_weight2)?;
+                visitor.f16(
+                    (1.1 * 0.104699568f32 as f64) as f32,
+                    &mut self.gab_y_weight1,
+                )?;
+                visitor.f16(
+                    (1.1 * 0.055680538f32 as f64) as f32,
+                    &mut self.gab_y_weight2,
+                )?;
                 if near_zero(self.gab_y_weight1, self.gab_y_weight2) {
                     return jxl_failure!("Gaborish y weights lead to near 0 unnormalized kernel");
                 }
-                visitor.f16((1.1 * 0.104699568f32 as f64) as f32, &mut self.gab_b_weight1)?;
-                visitor.f16((1.1 * 0.055680538f32 as f64) as f32, &mut self.gab_b_weight2)?;
+                visitor.f16(
+                    (1.1 * 0.104699568f32 as f64) as f32,
+                    &mut self.gab_b_weight1,
+                )?;
+                visitor.f16(
+                    (1.1 * 0.055680538f32 as f64) as f32,
+                    &mut self.gab_b_weight2,
+                )?;
                 if near_zero(self.gab_b_weight1, self.gab_b_weight2) {
                     return jxl_failure!("Gaborish b weights lead to near 0 unnormalized kernel");
                 }

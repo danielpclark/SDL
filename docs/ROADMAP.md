@@ -88,7 +88,11 @@ In dependency order, after the core each one needs exists:
    directories, strips and tiles, `TIFFReadRGBAImageOriented()` with every
    photometric interpretation it takes, and the codecs SDL_image builds
    libtiff with: PackBits, LZW and the predictor, CCITT RLE/RLEW/Group 3/
-   Group 4, ThunderScan, NeXT and SGI LogL/LogLuv), XCF, XPM
+   Group 4, ThunderScan, NeXT and SGI LogL/LogLuv), JPEG XL (`IMG_jxl.c`
+   over a translation of libjxl 0.7.3's decoder: headers, ANS and prefix
+   codes, modular with every transform, VarDCT with every transform size,
+   patches, splines, noise, the render pipeline with upsampling, the loop
+   filters, blending, color conversion and orientation), XCF, XPM
    (with its color table, also from arrays) and XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
    (`IMG_stb.c`), the BMP, ICO, CUR, GIF (LZW, octree quantizer), PNG
    (miniz), TGA, JPEG (`tiny_jpeg.h`) and WebP savers, the animation API
@@ -105,7 +109,13 @@ In dependency order, after the core each one needs exists:
    AVIF decoding is bit-exact with libavif and dav1d's C on synthetic
    images covering its bit depths, layouts, matrices, alpha, grids,
    transformations, scaling and sequences, truncated and corrupted.
-   Not yet: the JPEG XL decoder, the APNG animation decoder and encoder,
+   JPEG XL is a translation of libjxl 0.7.3's decoder (the revision
+   SDL_image's external/libjxl pins; Highway's scalar target, one
+   thread), bit-exact with SDL_image built with libjxl on synthetic
+   images covering modular and VarDCT, every sample type, alpha, the
+   image features, orientations, color encodings, progressive passes,
+   recompressed JPEGs and animations, truncated and corrupted.
+   Not yet: the APNG animation decoder and encoder,
    and AVIF saving and the AVIF animation encoder (an AV1 encoder);
    libpng and libjpeg are replaced by stb_image as upstream's
    stb backend.

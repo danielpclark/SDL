@@ -32,7 +32,12 @@ fn value_of_lowest_1_bit_usize(t: usize) -> usize {
 /// Decodes the Lehmer code in code[0..n) into permutation[0..n).
 /// temp must have 1 << CeilLog2(n) elements but need not be initialized.
 /// Translation of `DecodeLehmerCode()`.
-pub(crate) fn decode_lehmer_code(code: &[LehmerT], temp: &mut [u32], n: usize, permutation: &mut [CoeffOrderT]) {
+pub(crate) fn decode_lehmer_code(
+    code: &[LehmerT],
+    temp: &mut [u32],
+    n: usize,
+    permutation: &mut [CoeffOrderT],
+) {
     debug_assert!(n != 0);
     let log2n = ceil_log2_nonzero_u64(n as u64);
     let padded_n = 1usize << log2n;
@@ -72,8 +77,8 @@ pub(crate) fn decode_lehmer_code(code: &[LehmerT], temp: &mut [u32], n: usize, p
 
 // Those offsets get multiplied by kDCTBlockSize.
 pub(crate) const K_COEFF_ORDER_OFFSET: [usize; 40] = [
-    0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 34, 50, 66, 68, 70, 72, 76, 80, 84, 92, 100, 108, 172, 236, 300, 332, 364,
-    396, 652, 908, 1164, 1292, 1420, 1548, 2572, 3596, 4620, 5132, 5644, 6156,
+    0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 34, 50, 66, 68, 70, 72, 76, 80, 84, 92, 100, 108, 172, 236,
+    300, 332, 364, 396, 652, 908, 1164, 1292, 1420, 1548, 2572, 3596, 4620, 5132, 5644, 6156,
 ];
 
 /// Translation of `CoeffOrderOffset()`.
@@ -82,7 +87,8 @@ pub(crate) const fn coeff_order_offset(order: usize, c: usize) -> usize {
     K_COEFF_ORDER_OFFSET[3 * order + c] * K_DCT_BLOCK_SIZE
 }
 
-pub(crate) const K_COEFF_ORDER_MAX_SIZE: usize = K_COEFF_ORDER_OFFSET[3 * K_NUM_ORDERS as usize] * K_DCT_BLOCK_SIZE;
+pub(crate) const K_COEFF_ORDER_MAX_SIZE: usize =
+    K_COEFF_ORDER_OFFSET[3 * K_NUM_ORDERS as usize] * K_DCT_BLOCK_SIZE;
 
 // Mapping from AC strategy to order bucket. Strategies with different natural
 // orders must have different buckets.
@@ -120,14 +126,16 @@ fn read_permutation(
     // temp space needs to be as large as the next power of 2, so doubling the
     // allocated size is enough.
     let mut temp: Vec<u32> = vec![0; size * 2];
-    let end = (reader.read_hybrid_uint(coeff_order_context(size as u32) as usize, br, context_map) as u32)
+    let end = (reader.read_hybrid_uint(coeff_order_context(size as u32) as usize, br, context_map)
+        as u32)
         .wrapping_add(skip as u32);
     if end as usize > size {
         return jxl_failure!("Invalid permutation size");
     }
     let mut last: u32 = 0;
     for i in skip..end as usize {
-        lehmer[i] = reader.read_hybrid_uint(coeff_order_context(last) as usize, br, context_map) as u32;
+        lehmer[i] =
+            reader.read_hybrid_uint(coeff_order_context(last) as usize, br, context_map) as u32;
         last = lehmer[i];
         if lehmer[i] as usize + i >= size {
             return jxl_failure!("Invalid lehmer code");
@@ -141,10 +149,21 @@ fn read_permutation(
 }
 
 /// Translation of `DecodePermutation()`.
-pub(crate) fn decode_permutation(skip: usize, size: usize, order: Option<&mut [CoeffOrderT]>, br: &mut BitReader<'_>) -> Status {
+pub(crate) fn decode_permutation(
+    skip: usize,
+    size: usize,
+    order: Option<&mut [CoeffOrderT]>,
+    br: &mut BitReader<'_>,
+) -> Status {
     let mut context_map: Vec<u8> = Vec::new();
     let mut code = AnsCode::default();
-    decode_histograms(br, K_PERMUTATION_CONTEXTS as usize, &mut code, &mut context_map, false)?;
+    decode_histograms(
+        br,
+        K_PERMUTATION_CONTEXTS as usize,
+        &mut code,
+        &mut context_map,
+        false,
+    )?;
     let mut reader = AnsSymbolReader::new(&code, br, 0);
     read_permutation(skip, size, order, br, &mut reader, &context_map)?;
     if !reader.check_ans_final_state() {
@@ -178,14 +197,25 @@ fn decode_coeff_order(
 }
 
 /// Translation of `DecodeCoeffOrders()`.
-pub(crate) fn decode_coeff_orders(used_orders: u16, used_acs: u32, order: &mut [CoeffOrderT], br: &mut BitReader<'_>) -> Status {
+pub(crate) fn decode_coeff_orders(
+    used_orders: u16,
+    used_acs: u32,
+    order: &mut [CoeffOrderT],
+    br: &mut BitReader<'_>,
+) -> Status {
     let mut computed: u16 = 0;
     let mut context_map: Vec<u8> = Vec::new();
     let mut code = AnsCode::default();
     let mut natural_order: Vec<CoeffOrderT> = Vec::new();
     // Bitstream does not have histograms if no coefficient order is used.
     if used_orders != 0 {
-        decode_histograms(br, K_PERMUTATION_CONTEXTS as usize, &mut code, &mut context_map, false)?;
+        decode_histograms(
+            br,
+            K_PERMUTATION_CONTEXTS as usize,
+            &mut code,
+            &mut context_map,
+            false,
+        )?;
     }
     let mut reader = if used_orders != 0 {
         Some(AnsSymbolReader::new(&code, br, 0))
@@ -229,7 +259,11 @@ pub(crate) fn decode_coeff_orders(used_orders: u16, used_acs: u32, order: &mut [
         } else {
             for c in 0..3 {
                 let off = coeff_order_offset(ord as usize, c);
-                let dest = if used { Some(&mut order[off..off + size]) } else { None };
+                let dest = if used {
+                    Some(&mut order[off..off + size])
+                } else {
+                    None
+                };
                 let reader = reader.as_mut().expect("reader for used orders");
                 decode_coeff_order(acs, dest, br, reader, &natural_order, &context_map)?;
             }

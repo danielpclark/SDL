@@ -27,7 +27,9 @@
 //!   a translation of libtiff's reading path and the codecs SDL_image
 //!   builds it with), WebP (lossy, lossless, with alpha, and the first
 //!   frame of animations, through a translation of libwebp's decoder and
-//!   demuxer), XCF (GIMP), XPM (also from arrays of strings) and XV
+//!   demuxer), JPEG XL (lossless and lossy, with alpha, every bit depth,
+//!   animations as their last frame, through a translation of libjxl's
+//!   decoder), XCF (GIMP), XPM (also from arrays of strings) and XV
 //!   thumbnails.
 //! * Savers: [`save`] and [`save_typed_io`] pick the format from a file
 //!   extension; BMP, ICO, CUR, GIF, JPEG (tiny_jpeg), PNG (miniz, in
@@ -42,11 +44,9 @@
 //!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
 //!   and [`create_animated_cursor`] makes a cursor from an animation.
 //!
-//! Not translated yet: the JPEG XL decoder, the APNG animation decoder and
-//! encoder, and the AVIF saver and animation encoder (which need an AV1
-//! encoder). The detectors are here; [`load_io`] reports JPEG XL as
-//! unsupported, and the savers and the animation API fail with upstream's
-//! messages for a build without them.
+//! Not translated yet: the APNG animation decoder and encoder, and the AVIF
+//! saver and animation encoder (which need an AV1 encoder); they fail with
+//! upstream's messages for a build without them.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: the `closeio` flags are
@@ -140,7 +140,7 @@ pub use img::{
     Animation,
 };
 pub use jpg::{is_jpg, load_jpg_io, save_jpg, save_jpg_io};
-pub use jxl::is_jxl;
+pub use jxl::{is_jxl, load_jxl_io};
 pub use lbm::{is_lbm, load_lbm_io};
 pub use pcx::{is_pcx, load_pcx_io};
 pub use png::{is_png, load_png_io, save_png, save_png_io};

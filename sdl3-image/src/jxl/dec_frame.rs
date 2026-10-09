@@ -10,9 +10,14 @@
 //! are only requested through `JXL_DEC_FRAME_PROGRESSION`, which SDL_image
 //! does not subscribe to, so the progressive detail is always `kFrames`.)
 
-use super::ac_context::{decode_block_ctx_map, K_ZERO_DENSITY_CONTEXT_COUNT, K_ZERO_DENSITY_CONTEXT_LIMIT};
+use super::ac_context::{
+    decode_block_ctx_map, K_ZERO_DENSITY_CONTEXT_COUNT, K_ZERO_DENSITY_CONTEXT_LIMIT,
+};
 use super::ac_strategy::CoeffOrderT;
-use super::base::{ceil_log2_nonzero_u64, jxl_failure, FrameDimensions, Status, StatusCode, K_GROUP_DIM, K_MAX_NUM_PASSES};
+use super::base::{
+    ceil_log2_nonzero_u64, jxl_failure, FrameDimensions, Status, StatusCode, K_GROUP_DIM,
+    K_MAX_NUM_PASSES,
+};
 use super::coeff_order::decode_coeff_orders;
 use super::compressed_dc::adaptive_dc_smoothing;
 use super::dec_ans::decode_histograms;
@@ -24,8 +29,8 @@ use super::dec_noise::{decode_noise, random_3_planes};
 use super::epf::K_INV_SIGMA_NUM;
 use super::fields::{bundle_read, u32_coder_read};
 use super::frame_header::{
-    BlendMode, FrameEncoding, FrameHeader, FrameType, K_NOISE, K_ORDER_ENC, K_PATCHES, K_SKIP_ADAPTIVE_DC_SMOOTHING,
-    K_SPLINES, K_USE_DC_FRAME,
+    BlendMode, FrameEncoding, FrameHeader, FrameType, K_NOISE, K_ORDER_ENC, K_PATCHES,
+    K_SKIP_ADAPTIVE_DC_SMOOTHING, K_SPLINES, K_USE_DC_FRAME,
 };
 use super::image::{fill_image, Rect};
 use super::image_bundle::ImageBundle;
@@ -185,7 +190,12 @@ impl FrameDecoder {
 
         // Read TOC.
         let has_ac_global = true;
-        let toc_entries = num_toc_entries(num_groups, self.frame_dim.num_dc_groups, num_passes, has_ac_global);
+        let toc_entries = num_toc_entries(
+            num_groups,
+            self.frame_dim.num_dc_groups,
+            num_passes,
+            has_ac_global,
+        );
         let mut sizes: Vec<u32> = Vec::new();
         let mut permutation: Vec<CoeffOrderT> = Vec::new();
         read_toc(toc_entries, br, &mut sizes, &mut permutation)?;
@@ -195,9 +205,14 @@ impl FrameDecoder {
         self.section_sizes_sum = 0;
         for i in 0..toc_entries {
             self.toc[i].size = sizes[i] as usize;
-            let index = if have_permutation { permutation[i] as usize } else { i };
+            let index = if have_permutation {
+                permutation[i] as usize
+            } else {
+                i
+            };
             self.toc[index].id = i;
-            if self.section_sizes_sum.wrapping_add(self.toc[i].size as u64) < self.section_sizes_sum {
+            if self.section_sizes_sum.wrapping_add(self.toc[i].size as u64) < self.section_sizes_sum
+            {
                 return jxl_failure!("group offset overflow");
             }
             self.section_sizes_sum += self.toc[i].size as u64;
@@ -216,7 +231,9 @@ impl FrameDecoder {
             && (self.frame_header.flags & K_SKIP_ADAPTIVE_DC_SMOOTHING) == 0
             && self.frame_header.encoding == FrameEncoding::VarDct
         {
-            return jxl_failure!("Non-444 chroma subsampling is not allowed when adaptive DC smoothing is enabled");
+            return jxl_failure!(
+                "Non-444 chroma subsampling is not allowed when adaptive DC smoothing is enabled"
+            );
         }
 
         if !output_needed {
@@ -234,9 +251,11 @@ impl FrameDecoder {
         self.finalized_dc = false;
         self.num_sections_done = 0;
         self.decoded_dc_groups.clear();
-        self.decoded_dc_groups.resize(self.frame_dim.num_dc_groups, 0);
+        self.decoded_dc_groups
+            .resize(self.frame_dim.num_dc_groups, 0);
         self.decoded_passes_per_ac_group.clear();
-        self.decoded_passes_per_ac_group.resize(self.frame_dim.num_groups, 0);
+        self.decoded_passes_per_ac_group
+            .resize(self.frame_dim.num_groups, 0);
         self.processed_section.clear();
         self.processed_section.resize(self.toc.len(), 0);
         self.allocated = false;
@@ -244,13 +263,20 @@ impl FrameDecoder {
     }
 
     /// Translation of `ProcessDCGlobal()`.
-    fn process_dc_global(&mut self, br: &mut BitReader<'_>, dec_state: &mut PassesDecoderState) -> Status {
+    fn process_dc_global(
+        &mut self,
+        br: &mut BitReader<'_>,
+        dec_state: &mut PassesDecoderState,
+    ) -> Status {
         let shared = &mut dec_state.shared_storage;
         if shared.frame_header.flags & K_PATCHES != 0 {
             let mut uses_extra_channels = false;
             let md = shared.metadata.clone();
             let (num_ec, eci) = match md.as_ref() {
-                Some(m) => (m.m.num_extra_channels as usize, m.m.extra_channel_info.as_slice()),
+                Some(m) => (
+                    m.m.num_extra_channels as usize,
+                    m.m.extra_channel_info.as_slice(),
+                ),
                 None => (0, &[][..]),
             };
             shared.image_features.patches.decode(
@@ -310,9 +336,11 @@ impl FrameDecoder {
                 ytob,
             )?;
         }
-        let dec_status =
-            self.modular_frame_decoder
-                .decode_global_info(br, &self.frame_header, /*allow_truncated_group=*/ false);
+        let dec_status = self.modular_frame_decoder.decode_global_info(
+            br,
+            &self.frame_header,
+            /*allow_truncated_group=*/ false,
+        );
         if dec_status == Err(StatusCode::GenericError) {
             return dec_status;
         }
@@ -331,8 +359,11 @@ impl FrameDecoder {
     ) -> Status {
         let gx = dc_group_id % self.frame_dim.xsize_dc_groups;
         let gy = dc_group_id / self.frame_dim.xsize_dc_groups;
-        if self.frame_header.encoding == FrameEncoding::VarDct && (self.frame_header.flags & K_USE_DC_FRAME) == 0 {
-            self.modular_frame_decoder.decode_var_dct_dc(dc_group_id, br, dec_state)?;
+        if self.frame_header.encoding == FrameEncoding::VarDct
+            && (self.frame_header.flags & K_USE_DC_FRAME) == 0
+        {
+            self.modular_frame_decoder
+                .decode_var_dct_dc(dc_group_id, br, dec_state)?;
         }
         let mrect = Rect::new(
             gx * self.frame_dim.dc_group_dim,
@@ -353,7 +384,8 @@ impl FrameDecoder {
             None,
         )?;
         if self.frame_header.encoding == FrameEncoding::VarDct {
-            self.modular_frame_decoder.decode_ac_metadata(dc_group_id, br, dec_state)?;
+            self.modular_frame_decoder
+                .decode_ac_metadata(dc_group_id, br, dec_state)?;
         } else {
             let lf = &dec_state.shared_storage.frame_header.loop_filter;
             if lf.epf_iters > 0 {
@@ -395,7 +427,11 @@ impl FrameDecoder {
     }
 
     /// Translation of `ProcessACGlobal()`.
-    fn process_ac_global(&mut self, br: &mut BitReader<'_>, dec_state: &mut PassesDecoderState) -> Status {
+    fn process_ac_global(
+        &mut self,
+        br: &mut BitReader<'_>,
+        dec_state: &mut PassesDecoderState,
+    ) -> Status {
         if !self.finalized_dc {
             // JXL_CHECK(finalized_dc_)
             return Err(StatusCode::GenericError);
@@ -408,13 +444,21 @@ impl FrameDecoder {
                 .matrices
                 .decode(br, Some(&self.modular_frame_decoder))?;
             let used_acs = dec_state.used_acs;
-            dec_state.shared_storage.matrices.ensure_computed(used_acs)?;
+            dec_state
+                .shared_storage
+                .matrices
+                .ensure_computed(used_acs)?;
 
-            let num_histo_bits = ceil_log2_nonzero_u64(dec_state.shared_storage.frame_dim.num_groups as u64);
+            let num_histo_bits =
+                ceil_log2_nonzero_u64(dec_state.shared_storage.frame_dim.num_groups as u64);
             dec_state.shared_storage.num_histograms = 1 + br.read_bits(num_histo_bits) as usize;
 
-            dec_state.code.resize_with(K_MAX_NUM_PASSES, Default::default);
-            dec_state.context_map.resize_with(K_MAX_NUM_PASSES, Vec::new);
+            dec_state
+                .code
+                .resize_with(K_MAX_NUM_PASSES, Default::default);
+            dec_state
+                .context_map
+                .resize_with(K_MAX_NUM_PASSES, Vec::new);
             // Read coefficient orders and histograms.
             let mut max_num_bits_ac = 0usize;
             let num_passes = dec_state.shared_storage.frame_header.passes.num_passes as usize;
@@ -430,9 +474,18 @@ impl FrameDecoder {
                 )?;
                 let num_contexts = dec_state.shared_storage.num_histograms
                     * dec_state.shared_storage.block_ctx_map.num_ac_contexts() as usize;
-                decode_histograms(br, num_contexts, &mut dec_state.code[i], &mut dec_state.context_map[i], false)?;
+                decode_histograms(
+                    br,
+                    num_contexts,
+                    &mut dec_state.code[i],
+                    &mut dec_state.context_map[i],
+                    false,
+                )?;
                 // Add extra values to enable the cheat in hot loop of DecodeACVarBlock.
-                dec_state.context_map[i].resize(num_contexts + K_ZERO_DENSITY_CONTEXT_LIMIT - K_ZERO_DENSITY_CONTEXT_COUNT, 0);
+                dec_state.context_map[i].resize(
+                    num_contexts + K_ZERO_DENSITY_CONTEXT_LIMIT - K_ZERO_DENSITY_CONTEXT_COUNT,
+                    0,
+                );
                 max_num_bits_ac = max_num_bits_ac.max(dec_state.code[i].max_num_bits);
             }
             max_num_bits_ac += ceil_log2_nonzero_u64(num_passes as u64);
@@ -485,10 +538,13 @@ impl FrameDecoder {
 
         if self.frame_header.encoding == FrameEncoding::VarDct {
             if self.group_dec_caches.len() <= thread {
-                self.group_dec_caches.resize_with(thread + 1, GroupDecCache::default);
+                self.group_dec_caches
+                    .resize_with(thread + 1, GroupDecCache::default);
             }
-            self.group_dec_caches[thread]
-                .init_once(self.frame_header.passes.num_passes as usize, dec_state.used_acs)?;
+            self.group_dec_caches[thread].init_once(
+                self.frame_header.passes.num_passes as usize,
+                dec_state.used_acs,
+            )?;
             decode_group(
                 br,
                 num_passes,
@@ -516,7 +572,9 @@ impl FrameDecoder {
         for i in pass0..pass1 {
             let mut min_shift = 0i32;
             let mut max_shift = 0i32;
-            self.frame_header.passes.get_downsampling_bracket(i, &mut min_shift, &mut max_shift);
+            self.frame_header
+                .passes
+                .get_downsampling_bracket(i, &mut min_shift, &mut max_shift);
             let mut modular_pass_ready = true;
             if i < pass0 + num_passes {
                 self.modular_frame_decoder.decode_group(
@@ -593,7 +651,11 @@ impl FrameDecoder {
                         nonvisible,
                         (gx * upsampling + ix) * group_dim,
                         (gy * upsampling + iy) * group_dim,
-                        [(&mut **p0, rects[0].1), (&mut **p1, rects[1].1), (&mut **p2, rects[2].1)],
+                        [
+                            (&mut **p0, rects[0].1),
+                            (&mut **p1, rects[1].1),
+                            (&mut **p2, rects[2].1),
+                        ],
                     );
                 }
             }
@@ -641,11 +703,15 @@ impl FrameDecoder {
         let mut ac_global_sec = num;
         let mut dc_group_sec: Vec<usize> = vec![num; self.frame_dim.num_dc_groups];
         let mut ac_group_sec: Vec<Vec<usize>> =
-            vec![vec![num; self.frame_header.passes.num_passes as usize]; self.frame_dim.num_groups];
+            vec![
+                vec![num; self.frame_header.passes.num_passes as usize];
+                self.frame_dim.num_groups
+            ];
         // This keeps track of the number of ac passes we want to process during this
         // call of ProcessSections.
         let mut desired_num_ac_passes: Vec<usize> = vec![0; self.frame_dim.num_groups];
-        let single_section = self.frame_dim.num_groups == 1 && self.frame_header.passes.num_passes == 1;
+        let single_section =
+            self.frame_dim.num_groups == 1 && self.frame_header.passes.num_passes == 1;
         if single_section {
             if !(num == 1 && sections[0].id == 0) {
                 // JXL_ASSERT(num == 1); JXL_ASSERT(sections[0].id == 0);
@@ -693,7 +759,9 @@ impl FrameDecoder {
             // Count number of new passes per group.
             for g in 0..ac_group_sec.len() {
                 let mut j = 0usize;
-                while j + (self.decoded_passes_per_ac_group[g] as usize) < self.frame_header.passes.num_passes as usize {
+                while j + (self.decoded_passes_per_ac_group[g] as usize)
+                    < self.frame_header.passes.num_passes as usize
+                {
                     if ac_group_sec[g][j + self.decoded_passes_per_ac_group[g] as usize] == num {
                         break;
                     }
@@ -703,7 +771,8 @@ impl FrameDecoder {
             }
         }
         if dc_global_sec != num {
-            let dc_global_status = self.process_dc_global(&mut sections[dc_global_sec].br, dec_state);
+            let dc_global_status =
+                self.process_dc_global(&mut sections[dc_global_sec].br, dec_state);
             if dc_global_status == Err(StatusCode::GenericError) {
                 return dc_global_status;
             }
@@ -718,7 +787,10 @@ impl FrameDecoder {
         if self.decoded_dc_global {
             for i in 0..dc_group_sec.len() {
                 if dc_group_sec[i] != num {
-                    if self.process_dc_group(i, &mut sections[dc_group_sec[i]].br, dec_state).is_err() {
+                    if self
+                        .process_dc_group(i, &mut sections[dc_group_sec[i]].br, dec_state)
+                        .is_err()
+                    {
                         has_error = true;
                     } else {
                         section_status[dc_group_sec[i]] = SectionStatus::Done;
@@ -770,8 +842,17 @@ impl FrameDecoder {
                 }
                 let result = {
                     let mut readers = take_readers(sections, &idxs);
-                    let mut refs: Vec<&mut BitReader<'_>> = readers.iter_mut().map(|r| &mut r.1).collect();
-                    let r = self.process_ac_group(g, &mut refs, desired_num_ac_passes[g], 0, false, false, dec_state);
+                    let mut refs: Vec<&mut BitReader<'_>> =
+                        readers.iter_mut().map(|r| &mut r.1).collect();
+                    let r = self.process_ac_group(
+                        g,
+                        &mut refs,
+                        desired_num_ac_passes[g],
+                        0,
+                        false,
+                        false,
+                        dec_state,
+                    );
                     drop(refs);
                     put_back_readers(sections, readers);
                     r
@@ -794,13 +875,20 @@ impl FrameDecoder {
     }
 
     /// Translation of `PrepareStorage()` (one thread).
-    fn prepare_storage(&mut self, num_threads: usize, num_tasks: usize, dec_state: &mut PassesDecoderState) -> Status {
+    fn prepare_storage(
+        &mut self,
+        num_threads: usize,
+        num_tasks: usize,
+        dec_state: &mut PassesDecoderState,
+    ) -> Status {
         let storage_size = num_threads.min(num_tasks);
         if storage_size > self.group_dec_caches.len() {
-            self.group_dec_caches.resize_with(storage_size, GroupDecCache::default);
+            self.group_dec_caches
+                .resize_with(storage_size, GroupDecCache::default);
         }
         let use_group_ids = self.modular_frame_decoder.uses_full_image()
-            && (self.frame_header.encoding == FrameEncoding::VarDct || (self.frame_header.flags & K_NOISE) != 0);
+            && (self.frame_header.encoding == FrameEncoding::VarDct
+                || (self.frame_header.flags & K_NOISE) != 0);
         if let Some(p) = dec_state.render_pipeline.as_mut() {
             p.prepare_for_threads(storage_size, use_group_ids)?;
         }
@@ -810,8 +898,8 @@ impl FrameDecoder {
     /// Flushes all the data decoded so far to pixels. Translation of
     /// `Flush()`.
     fn flush(&mut self, dec_state: &mut PassesDecoderState) -> Status {
-        let mut has_blending =
-            self.frame_header.blending_info.mode != BlendMode::Replace || self.frame_header.custom_size_or_origin;
+        let mut has_blending = self.frame_header.blending_info.mode != BlendMode::Replace
+            || self.frame_header.custom_size_or_origin;
         for blending_info_ec in &self.frame_header.extra_channel_blending_info {
             if blending_info_ec.mode != BlendMode::Replace {
                 has_blending = true;
@@ -828,12 +916,19 @@ impl FrameDecoder {
         }
         self.allocate_output(dec_state)?;
 
-        let completely_decoded_ac_pass = self.decoded_passes_per_ac_group.iter().copied().min().unwrap_or(0) as u32;
+        let completely_decoded_ac_pass = self
+            .decoded_passes_per_ac_group
+            .iter()
+            .copied()
+            .min()
+            .unwrap_or(0) as u32;
         if completely_decoded_ac_pass < self.frame_header.passes.num_passes {
             // We don't have all AC yet: force a draw of all the missing areas.
             // Mark all sections as not complete.
             for i in 0..self.decoded_passes_per_ac_group.len() {
-                if (self.decoded_passes_per_ac_group[i] as u32) < self.frame_header.passes.num_passes {
+                if (self.decoded_passes_per_ac_group[i] as u32)
+                    < self.frame_header.passes.num_passes
+                {
                     if let Some(p) = dec_state.render_pipeline.as_mut() {
                         p.clear_done(i);
                     }
@@ -842,14 +937,23 @@ impl FrameDecoder {
             self.prepare_storage(1, self.decoded_passes_per_ac_group.len(), dec_state)?;
             let mut has_error = false;
             for g in 0..self.decoded_passes_per_ac_group.len() {
-                if self.decoded_passes_per_ac_group[g] as u32 == self.frame_header.passes.num_passes {
+                if self.decoded_passes_per_ac_group[g] as u32 == self.frame_header.passes.num_passes
+                {
                     // This group was drawn already, nothing to do.
                     continue;
                 }
                 let mut readers: Vec<&mut BitReader<'_>> = Vec::new();
                 let dc_only = !self.decoded_ac_global;
                 if self
-                    .process_ac_group(g, &mut readers, /*num_passes=*/ 0, 0, /*force_draw=*/ true, dc_only, dec_state)
+                    .process_ac_group(
+                        g,
+                        &mut readers,
+                        /*num_passes=*/ 0,
+                        0,
+                        /*force_draw=*/ true,
+                        dc_only,
+                        dec_state,
+                    )
                     .is_err()
                 {
                     has_error = true;
@@ -934,7 +1038,11 @@ impl FrameDecoder {
 
         // Patches
         if self.frame_header.flags & K_PATCHES != 0 {
-            result |= dec_state.shared_storage.image_features.patches.get_references();
+            result |= dec_state
+                .shared_storage
+                .image_features
+                .patches
+                .get_references();
         }
 
         // DC Level
@@ -965,8 +1073,12 @@ impl FrameDecoder {
         self.flush(dec_state)?;
 
         if self.frame_header.can_be_referenced() {
-            let info = &mut dec_state.shared_storage.reference_frames[self.frame_header.save_as_reference as usize];
-            info.frame = std::mem::replace(&mut dec_state.frame_storage_for_referencing, ImageBundle::new(None));
+            let info = &mut dec_state.shared_storage.reference_frames
+                [self.frame_header.save_as_reference as usize];
+            info.frame = std::mem::replace(
+                &mut dec_state.frame_storage_for_referencing,
+                ImageBundle::new(None),
+            );
             info.ib_is_in_xyb = self.frame_header.save_before_color_transform;
         }
         Ok(())
@@ -995,7 +1107,11 @@ impl FrameDecoder {
     }
 
     /// Translation of `MaybeSetUnpremultiplyAlpha()`.
-    pub(crate) fn maybe_set_unpremultiply_alpha(&self, unpremul_alpha: bool, dec_state: &mut PassesDecoderState) {
+    pub(crate) fn maybe_set_unpremultiply_alpha(
+        &self,
+        unpremul_alpha: bool,
+        dec_state: &mut PassesDecoderState,
+    ) {
         let alpha = self
             .decoded
             .metadata()
@@ -1022,18 +1138,25 @@ impl FrameDecoder {
     /// `CanDoLowMemoryPath()`.
     fn can_do_low_memory_path(&self, undo_orientation: bool) -> bool {
         !(undo_orientation
-            && self
-                .decoded
-                .metadata()
-                .is_some_and(|m| m.get_orientation() != super::image_metadata::Orientation::Identity))
+            && self.decoded.metadata().is_some_and(|m| {
+                m.get_orientation() != super::image_metadata::Orientation::Identity
+            }))
     }
 }
 
 /// Takes the bit readers of the given sections out (to hand them to a group
 /// decoder together).
-fn take_readers<'a>(sections: &mut [SectionInfo<'a>], idxs: &[usize]) -> Vec<(usize, BitReader<'a>)> {
+fn take_readers<'a>(
+    sections: &mut [SectionInfo<'a>],
+    idxs: &[usize],
+) -> Vec<(usize, BitReader<'a>)> {
     idxs.iter()
-        .map(|&i| (i, std::mem::replace(&mut sections[i].br, BitReader::new(&[]))))
+        .map(|&i| {
+            (
+                i,
+                std::mem::replace(&mut sections[i].br, BitReader::new(&[])),
+            )
+        })
         .collect()
 }
 

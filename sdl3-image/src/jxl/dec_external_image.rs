@@ -176,7 +176,11 @@ fn convert_channels_to_external(
     if stride < bytes_per_pixel * xsize {
         return jxl_failure!("stride is smaller than scanline width in bytes");
     }
-    if out_image.len() < (ysize.wrapping_sub(1)).wrapping_mul(stride).wrapping_add(bytes_per_pixel * xsize) {
+    if out_image.len()
+        < (ysize.wrapping_sub(1))
+            .wrapping_mul(stride)
+            .wrapping_add(bytes_per_pixel * xsize)
+    {
         return jxl_failure!("out_size is too small to store image");
     }
 
@@ -235,7 +239,11 @@ fn convert_channels_to_external(
                     } else {
                         let o = (num_channels * x + c) * 2;
                         let v = value as u16;
-                        let b = if little_endian { v.to_le_bytes() } else { v.to_be_bytes() };
+                        let b = if little_endian {
+                            v.to_le_bytes()
+                        } else {
+                            v.to_be_bytes()
+                        };
                         row_out[o..o + 2].copy_from_slice(&b);
                     }
                 }
@@ -265,7 +273,7 @@ pub(crate) fn convert_to_external(
 
     let mut color: &Image3F = ib.color();
     // Undo premultiplied alpha.
-    let mut unpremul = Image3F::empty();
+    let mut unpremul;
     let alpha_is_premultiplied = ib
         .metadata()
         .and_then(|m| m.find(super::image_metadata::ExtraChannel::Alpha))

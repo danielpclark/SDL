@@ -257,14 +257,7 @@ impl Fields for AnimationHeader {
             &mut self.tps_denominator,
         )?;
 
-        visitor.u32d(
-            val(0),
-            bits(3),
-            bits(16),
-            bits(32),
-            0,
-            &mut self.num_loops,
-        )?;
+        visitor.u32d(val(0), bits(3), bits(16), bits(32), 0, &mut self.num_loops)?;
 
         visitor.bool_(false, &mut self.have_timecodes)?;
         Ok(())

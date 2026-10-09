@@ -63,7 +63,14 @@ impl Fields for SqueezeParams {
             0,
             &mut self.begin_c,
         )?;
-        visitor.u32d(val(1), val(2), val(3), bits_offset(4, 4), 2, &mut self.num_c)?;
+        visitor.u32d(
+            val(1),
+            val(2),
+            val(3),
+            bits_offset(4, 4),
+            2,
+            &mut self.num_c,
+        )?;
         Ok(())
     }
 }
@@ -132,7 +139,9 @@ impl Transform {
     /// Translation of `MetaApply()`.
     pub(crate) fn meta_apply(&mut self, input: &mut Image) -> Status {
         match self.id {
-            TransformId::Rct => check_equal_channels(input, self.begin_c, self.begin_c.wrapping_add(2)),
+            TransformId::Rct => {
+                check_equal_channels(input, self.begin_c, self.begin_c.wrapping_add(2))
+            }
             TransformId::Squeeze => meta_squeeze(input, &mut self.squeezes),
             TransformId::Palette => meta_palette(
                 input,
@@ -199,7 +208,14 @@ impl Fields for Transform {
             }
         }
         if visitor.conditional(self.id == TransformId::Palette) {
-            visitor.u32d(val(1), val(3), val(4), bits_offset(13, 1), 3, &mut self.num_c)?;
+            visitor.u32d(
+                val(1),
+                val(3),
+                val(4),
+                bits_offset(13, 1),
+                3,
+                &mut self.num_c,
+            )?;
             visitor.u32d(
                 bits_offset(8, 0),
                 bits_offset(10, 256),
@@ -258,7 +274,8 @@ pub(crate) fn check_equal_channels(image: &Image, c1: u32, c2: u32) -> Status {
     let ch1 = &image.channel[c1];
     for c in c1 + 1..=c2 {
         let ch2 = &image.channel[c];
-        if ch1.w != ch2.w || ch1.h != ch2.h || ch1.hshift != ch2.hshift || ch1.vshift != ch2.vshift {
+        if ch1.w != ch2.w || ch1.h != ch2.h || ch1.hshift != ch2.hshift || ch1.vshift != ch2.vshift
+        {
             return jxl_failure!("unequal channels");
         }
     }

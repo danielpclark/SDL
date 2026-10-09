@@ -49,7 +49,11 @@ impl Window {
         let x0 = -(xextra as isize) - border;
         let n = xsize + 2 * xextra + 2 * border as usize;
         let rows = (0..3)
-            .map(|c| (-border..=border).map(|dy| rows.load(rows.get_input_row(c, dy), x0, n)).collect())
+            .map(|c| {
+                (-border..=border)
+                    .map(|dy| rows.load(rows.get_input_row(c, dy), x0, n))
+                    .collect()
+            })
             .collect();
         Window { rows, border, x0 }
     }
@@ -467,7 +471,10 @@ impl RenderPipelineStage for Epf2Stage {
 
 /// Translation of `GetEPFStage()` (the stages read `sigma` from the
 /// [`StageCtx`]).
-pub(crate) fn get_epf_stage(lf: &LoopFilter, epf_stage: usize) -> Result<Box<dyn RenderPipelineStage>, StatusCode> {
+pub(crate) fn get_epf_stage(
+    lf: &LoopFilter,
+    epf_stage: usize,
+) -> Result<Box<dyn RenderPipelineStage>, StatusCode> {
     debug_assert!(lf.epf_iters != 0);
     match epf_stage {
         0 => Ok(Box::new(Epf0Stage { lf: lf.clone() })),

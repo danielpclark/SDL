@@ -11,7 +11,9 @@
 
 use std::collections::VecDeque;
 
-use super::super::super::base::{div_ceil, jxl_failure, unpack_signed, Status, StatusCode, K_BLOCK_DIM};
+use super::super::super::base::{
+    div_ceil, jxl_failure, unpack_signed, Status, StatusCode, K_BLOCK_DIM,
+};
 use super::super::super::dec_ans::{decode_histograms, AnsCode, AnsSymbolReader};
 use super::super::super::dec_bit_reader::BitReader;
 use super::super::super::fields::{bits_offset, bundle_init, bundle_read, val, Fields, Visitor};
@@ -20,9 +22,10 @@ use super::super::modular_image::{Channel, Image, PixelType, PixelTypeW};
 use super::super::options::{ModularOptions, Predictor, Properties, K_NUM_STATIC_PROPERTIES};
 use super::super::transform::transform::Transform;
 use super::context_predict::{
-    clamped_gradient, init_props_row, precompute_references, predict_no_tree_no_wp, predict_no_tree_wp,
-    predict_tree_no_wp, predict_tree_no_wp_nec, predict_tree_wp, weighted, FlatDecisionNode, FlatTree,
-    MaTreeLookup, K_GRADIENT_PROP, K_NUM_NONREF_PROPERTIES, K_WP_PROP, K_EXTRA_PROPS_PER_CHANNEL,
+    clamped_gradient, init_props_row, precompute_references, predict_no_tree_no_wp,
+    predict_no_tree_wp, predict_tree_no_wp, predict_tree_no_wp_nec, predict_tree_wp, weighted,
+    FlatDecisionNode, FlatTree, MaTreeLookup, K_EXTRA_PROPS_PER_CHANNEL, K_GRADIENT_PROP,
+    K_NUM_NONREF_PROPERTIES, K_WP_PROP,
 };
 use super::dec_ma::{decode_tree, Tree};
 
@@ -64,7 +67,8 @@ impl Fields for GroupHeader {
             &mut num_transforms,
         )?;
         if visitor.is_reading() {
-            self.transforms.resize_with(num_transforms as usize, Transform::default);
+            self.transforms
+                .resize_with(num_transforms as usize, Transform::default);
         }
         for i in 0..num_transforms as usize {
             visitor.visit_nested(&mut self.transforms[i])?;
@@ -111,7 +115,9 @@ pub(crate) fn filter_tree(
     // the resulting flat tree.
     let skip = |mut cur: usize| -> usize {
         // Skip nodes that we can decide now, by jumping directly to their children.
-        while (global_tree[cur].property as i32) < K_NUM_STATIC_PROPERTIES as i32 && global_tree[cur].property != -1 {
+        while (global_tree[cur].property as i32) < K_NUM_STATIC_PROPERTIES as i32
+            && global_tree[cur].property != -1
+        {
             if static_props[global_tree[cur].property as usize] > global_tree[cur].splitval {
                 cur = global_tree[cur].lchild as usize;
             } else {
@@ -171,7 +177,10 @@ pub(crate) fn filter_tree(
     }
     *gradient_only &= leaf_gradient_only;
     if *num_props > K_NUM_NONREF_PROPERTIES {
-        *num_props = div_ceil(*num_props - K_NUM_NONREF_PROPERTIES, K_EXTRA_PROPS_PER_CHANNEL) * K_EXTRA_PROPS_PER_CHANNEL
+        *num_props = div_ceil(
+            *num_props - K_NUM_NONREF_PROPERTIES,
+            K_EXTRA_PROPS_PER_CHANNEL,
+        ) * K_EXTRA_PROPS_PER_CHANNEL
             + K_NUM_NONREF_PROPERTIES;
     } else {
         *num_props = K_NUM_NONREF_PROPERTIES;
@@ -202,7 +211,10 @@ pub(crate) fn tree_to_lookup_table(
         pos: 0,
     }];
     while let Some(cur) = ranges.pop() {
-        if cur.begin < -K_PROP_RANGE_FAST - 1 || cur.begin >= K_PROP_RANGE_FAST - 1 || cur.end > K_PROP_RANGE_FAST - 1 {
+        if cur.begin < -K_PROP_RANGE_FAST - 1
+            || cur.begin >= K_PROP_RANGE_FAST - 1
+            || cur.end > K_PROP_RANGE_FAST - 1
+        {
             // Tree is outside the allowed range, exit.
             return false;
         }
@@ -296,7 +308,10 @@ fn decode_modular_channel_maans(
     let static_props: [PixelType; K_NUM_STATIC_PROPERTIES] = [chan, group_id as i32];
     // TODO(veluca): filter the tree according to static_props.
 
-    let (cw, chh) = (image.channel[chan as usize].w, image.channel[chan as usize].h);
+    let (cw, chh) = (
+        image.channel[chan as usize].w,
+        image.channel[chan as usize].h,
+    );
     // zero pixel channel? could happen
     if cw == 0 || chh == 0 {
         return Ok(());
@@ -363,7 +378,11 @@ fn decode_modular_channel_maans(
                     }
                 }
             }
-        } else if predictor == Predictor::Gradient && offset == 0 && multiplier == 1 && reader.huff_rle_only() {
+        } else if predictor == Predictor::Gradient
+            && offset == 0
+            && multiplier == 1
+            && reader.huff_rle_only()
+        {
             // Gradient RLE (fjxl) very fast track.
             let mut sv: PixelTypeW = unpack_signed(*fl_v as usize) as i64;
             let w = channel.w;
@@ -382,8 +401,16 @@ fn decode_modular_channel_maans(
                 data[r] = sv.wrapping_add(guess) as PixelType;
                 for x in 1..w {
                     let left = data[r + x - 1];
-                    let top = if y != 0 { data[r - onerow + x] } else { data[r + x - 1] };
-                    let topleft = if y != 0 { data[r - onerow + x - 1] } else { data[r + x - 1] };
+                    let top = if y != 0 {
+                        data[r - onerow + x]
+                    } else {
+                        data[r + x - 1]
+                    };
+                    let topleft = if y != 0 {
+                        data[r - onerow + x - 1]
+                    } else {
+                        data[r + x - 1]
+                    };
                     let guess: PixelTypeW = clamped_gradient(top, left, topleft) as i64;
                     if *fl_run == 0 {
                         reader.read_hybrid_uint_clustered_huff_rle_only(ctx_id, br, fl_v, fl_run);
@@ -409,7 +436,11 @@ fn decode_modular_channel_maans(
                         0
                     };
                     let top: PixelType = if y != 0 { data[r + x - onerow] } else { left };
-                    let topleft: PixelType = if x != 0 && y != 0 { data[r + x - 1 - onerow] } else { left };
+                    let topleft: PixelType = if x != 0 && y != 0 {
+                        data[r + x - 1 - onerow]
+                    } else {
+                        left
+                    };
                     let guess = clamped_gradient(top, left, topleft);
                     let v = reader.read_hybrid_uint_clustered(ctx_id, br) as u64;
                     data[r + x] = make_pixel(v, 1, guess as i64);
@@ -436,9 +467,10 @@ fn decode_modular_channel_maans(
             for y in 0..chh {
                 for x in 0..w {
                     let pos = y * onerow + x;
-                    let g: PixelTypeW = predict_no_tree_wp(w, data, pos, onerow, x, y, predictor, &mut wp_state)
-                        .guess
-                        .wrapping_add(offset);
+                    let g: PixelTypeW =
+                        predict_no_tree_wp(w, data, pos, onerow, x, y, predictor, &mut wp_state)
+                            .guess
+                            .wrapping_add(offset);
                     let v = reader.read_hybrid_uint_clustered(ctx_id, br) as u64;
                     data[pos] = make_pixel(v, multiplier, g);
                     wp_state.update_errors(data[pos] as i64, x, y, w);
@@ -455,10 +487,20 @@ fn decode_modular_channel_maans(
     let mut multipliers = [0i8; 2 * K_PROP_RANGE_FAST as usize];
     let mut offsets = [0i8; 2 * K_PROP_RANGE_FAST as usize];
     if is_wp_only {
-        is_wp_only = tree_to_lookup_table(&tree, &mut context_lookup, &mut offsets, Some(&mut multipliers));
+        is_wp_only = tree_to_lookup_table(
+            &tree,
+            &mut context_lookup,
+            &mut offsets,
+            Some(&mut multipliers),
+        );
     }
     if is_gradient_only {
-        is_gradient_only = tree_to_lookup_table(&tree, &mut context_lookup, &mut offsets, Some(&mut multipliers));
+        is_gradient_only = tree_to_lookup_table(
+            &tree,
+            &mut context_lookup,
+            &mut offsets,
+            Some(&mut multipliers),
+        );
     }
 
     if is_gradient_only {
@@ -477,15 +519,28 @@ fn decode_modular_channel_maans(
                 } else {
                     0
                 };
-                let top: PixelTypeW = if y != 0 { data[r + x - onerow] as i64 } else { left };
-                let topleft: PixelTypeW = if x != 0 && y != 0 { data[r + x - 1 - onerow] as i64 } else { left };
+                let top: PixelTypeW = if y != 0 {
+                    data[r + x - onerow] as i64
+                } else {
+                    left
+                };
+                let topleft: PixelTypeW = if x != 0 && y != 0 {
+                    data[r + x - 1 - onerow] as i64
+                } else {
+                    left
+                };
                 let guess: i32 = clamped_gradient(top as i32, left as i32, topleft as i32);
                 let pos = (K_PROP_RANGE_FAST as i64
-                    + ((-K_PROP_RANGE_FAST as i64).max(top.wrapping_add(left).wrapping_sub(topleft)))
-                        .min(K_PROP_RANGE_FAST as i64 - 1)) as usize;
+                    + ((-K_PROP_RANGE_FAST as i64)
+                        .max(top.wrapping_add(left).wrapping_sub(topleft)))
+                    .min(K_PROP_RANGE_FAST as i64 - 1)) as usize;
                 let ctx_id = context_lookup[pos] as usize;
                 let v = reader.read_hybrid_uint_clustered(ctx_id, br) as u64;
-                data[r + x] = make_pixel(v, multipliers[pos] as i32, (offsets[pos] as i64).wrapping_add(guess as i64));
+                data[r + x] = make_pixel(
+                    v,
+                    multipliers[pos] as i32,
+                    (offsets[pos] as i64).wrapping_add(guess as i64),
+                );
             }
         }
     } else if is_wp_only {
@@ -507,16 +562,49 @@ fn decode_modular_channel_maans(
                 } else {
                     0
                 };
-                let top: PixelTypeW = if y != 0 { data[r + x - onerow] as i64 } else { left };
-                let topleft: PixelTypeW = if x != 0 && y != 0 { data[r + x - 1 - onerow] as i64 } else { left };
-                let topright: PixelTypeW = if x + 1 < w && y != 0 { data[r + x + 1 - onerow] as i64 } else { top };
-                let toptop: PixelTypeW = if y > 1 { data[r + x - onerow - onerow] as i64 } else { top };
-                let guess = wp_state.predict::<true>(x, y, w, top, left, topright, topleft, toptop, &mut properties, offset)
-                    as i32;
-                let pos = (K_PROP_RANGE_FAST + (-K_PROP_RANGE_FAST).max(properties[0]).min(K_PROP_RANGE_FAST - 1)) as usize;
+                let top: PixelTypeW = if y != 0 {
+                    data[r + x - onerow] as i64
+                } else {
+                    left
+                };
+                let topleft: PixelTypeW = if x != 0 && y != 0 {
+                    data[r + x - 1 - onerow] as i64
+                } else {
+                    left
+                };
+                let topright: PixelTypeW = if x + 1 < w && y != 0 {
+                    data[r + x + 1 - onerow] as i64
+                } else {
+                    top
+                };
+                let toptop: PixelTypeW = if y > 1 {
+                    data[r + x - onerow - onerow] as i64
+                } else {
+                    top
+                };
+                let guess = wp_state.predict::<true>(
+                    x,
+                    y,
+                    w,
+                    top,
+                    left,
+                    topright,
+                    topleft,
+                    toptop,
+                    &mut properties,
+                    offset,
+                ) as i32;
+                let pos = (K_PROP_RANGE_FAST
+                    + (-K_PROP_RANGE_FAST)
+                        .max(properties[0])
+                        .min(K_PROP_RANGE_FAST - 1)) as usize;
                 let ctx_id = context_lookup[pos] as usize;
                 let v = reader.read_hybrid_uint_clustered(ctx_id, br) as u64;
-                data[r + x] = make_pixel(v, multipliers[pos] as i32, (offsets[pos] as i64).wrapping_add(guess as i64));
+                data[r + x] = make_pixel(
+                    v,
+                    multipliers[pos] as i32,
+                    (offsets[pos] as i64).wrapping_add(guess as i64),
+                );
                 wp_state.update_errors(data[r + x] as i64, x, y, w);
             }
         }
@@ -538,23 +626,63 @@ fn decode_modular_channel_maans(
             let p = y * onerow;
             if y > 1 && w > 8 && references.w == 0 {
                 for x in 0..2 {
-                    let res = predict_tree_no_wp(&mut properties, w, data, p + x, onerow, x, y, &tree_lookup, &references);
+                    let res = predict_tree_no_wp(
+                        &mut properties,
+                        w,
+                        data,
+                        p + x,
+                        onerow,
+                        x,
+                        y,
+                        &tree_lookup,
+                        &references,
+                    );
                     let v = reader.read_hybrid_uint_clustered(res.context as usize, br) as u64;
                     data[p + x] = make_pixel(v, res.multiplier, res.guess);
                 }
                 for x in 2..w - 2 {
-                    let res = predict_tree_no_wp_nec(&mut properties, w, data, p + x, onerow, x, y, &tree_lookup, &references);
+                    let res = predict_tree_no_wp_nec(
+                        &mut properties,
+                        w,
+                        data,
+                        p + x,
+                        onerow,
+                        x,
+                        y,
+                        &tree_lookup,
+                        &references,
+                    );
                     let v = reader.read_hybrid_uint_clustered(res.context as usize, br) as u64;
                     data[p + x] = make_pixel(v, res.multiplier, res.guess);
                 }
                 for x in w - 2..w {
-                    let res = predict_tree_no_wp(&mut properties, w, data, p + x, onerow, x, y, &tree_lookup, &references);
+                    let res = predict_tree_no_wp(
+                        &mut properties,
+                        w,
+                        data,
+                        p + x,
+                        onerow,
+                        x,
+                        y,
+                        &tree_lookup,
+                        &references,
+                    );
                     let v = reader.read_hybrid_uint_clustered(res.context as usize, br) as u64;
                     data[p + x] = make_pixel(v, res.multiplier, res.guess);
                 }
             } else {
                 for x in 0..w {
-                    let res = predict_tree_no_wp(&mut properties, w, data, p + x, onerow, x, y, &tree_lookup, &references);
+                    let res = predict_tree_no_wp(
+                        &mut properties,
+                        w,
+                        data,
+                        p + x,
+                        onerow,
+                        x,
+                        y,
+                        &tree_lookup,
+                        &references,
+                    );
                     let v = reader.read_hybrid_uint_clustered(res.context as usize, br) as u64;
                     data[p + x] = make_pixel(v, res.multiplier, res.guess);
                 }
@@ -692,7 +820,9 @@ fn modular_decode(
         if channel.w == 0 || channel.h == 0 {
             continue; // skip empty channels
         }
-        if i >= image.nb_meta_channels && (channel.w > options.max_chan_size || channel.h > options.max_chan_size) {
+        if i >= image.nb_meta_channels
+            && (channel.w > options.max_chan_size || channel.h > options.max_chan_size)
+        {
             break;
         }
         if channel.w > distance_multiplier {
@@ -833,7 +963,17 @@ pub(crate) fn modular_generic_decompress(
         Some(h) => h,
         None => &mut local_header,
     };
-    let dec_status = modular_decode(br, image, header, group_id, options, tree, code, ctx_map, allow_truncated_group);
+    let dec_status = modular_decode(
+        br,
+        image,
+        header,
+        group_id,
+        options,
+        tree,
+        code,
+        ctx_map,
+        allow_truncated_group,
+    );
     if !allow_truncated_group {
         dec_status?;
     }

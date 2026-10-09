@@ -10,7 +10,9 @@
 
 use super::super::super::base::{clamp1, jxl_failure, Status};
 use super::super::super::image::copy_image;
-use super::super::encoding::context_predict::{predict_no_tree_no_wp, predict_no_tree_wp, weighted};
+use super::super::encoding::context_predict::{
+    predict_no_tree_no_wp, predict_no_tree_wp, weighted,
+};
 use super::super::modular_image::{Channel, Image, PixelType, PixelTypeW};
 use super::super::options::Predictor;
 use super::transform::check_equal_channels;
@@ -139,7 +141,8 @@ pub(crate) mod palette_internal {
             index = -(index + 1);
             index %= 1 + 2 * (K_DELTA_PALETTE.len() as i32 - 1);
             const K_MULTIPLIER: [i32; 2] = [-1, 1];
-            let mut result = K_DELTA_PALETTE[((index + 1) >> 1) as usize][c] * K_MULTIPLIER[(index & 1) as usize];
+            let mut result = K_DELTA_PALETTE[((index + 1) >> 1) as usize][c]
+                * K_MULTIPLIER[(index & 1) as usize];
             if bit_depth > 8 {
                 result = result.wrapping_mul(1i32.wrapping_shl((bit_depth - 8) as u32));
             }
@@ -150,8 +153,12 @@ pub(crate) mod palette_internal {
             }
             index -= palette_size;
             index >>= c as i32 * K_SMALL_CUBE_BITS;
-            scale((index % K_SMALL_CUBE) as u64, bit_depth as u64, K_SMALL_CUBE as u64)
-                .wrapping_add(1i32.wrapping_shl(0.max(bit_depth - 3) as u32))
+            scale(
+                (index % K_SMALL_CUBE) as u64,
+                bit_depth as u64,
+                K_SMALL_CUBE as u64,
+            )
+            .wrapping_add(1i32.wrapping_shl(0.max(bit_depth - 3) as u32))
         } else if palette_size.wrapping_add(K_LARGE_CUBE_OFFSET) <= index {
             if c >= K_RGB_CHANNELS {
                 return 0;
@@ -165,7 +172,11 @@ pub(crate) mod palette_internal {
                 2 => index /= K_LARGE_CUBE * K_LARGE_CUBE,
                 _ => {}
             }
-            scale((index % K_LARGE_CUBE) as u64, bit_depth as u64, (K_LARGE_CUBE - 1) as u64)
+            scale(
+                (index % K_LARGE_CUBE) as u64,
+                bit_depth as u64,
+                (K_LARGE_CUBE - 1) as u64,
+            )
         } else {
             palette[c * onerow as usize + index as usize]
         }
@@ -216,7 +227,9 @@ pub(crate) fn inv_palette(
                 let p = ch.row_mut(y);
                 for x in 0..w {
                     let index = clamp1::<i32>(p[x], 0, palette_w - 1);
-                    p[x] = palette_internal::get_palette_value(p_palette, index, /*c=*/ 0, palette_w, onerow, bit_depth);
+                    p[x] = palette_internal::get_palette_value(
+                        p_palette, index, /*c=*/ 0, palette_w, onerow, bit_depth,
+                    );
                 }
             }
         } else {
@@ -227,7 +240,9 @@ pub(crate) fn inv_palette(
                     let p_out = tail[c0 - 1 + c].row_mut(y);
                     for x in 0..w {
                         let index = p_index[x];
-                        p_out[x] = palette_internal::get_palette_value(p_palette, index, c, palette_w, onerow, bit_depth);
+                        p_out[x] = palette_internal::get_palette_value(
+                            p_palette, index, c, palette_w, onerow, bit_depth,
+                        );
                     }
                 }
             }
@@ -255,12 +270,25 @@ pub(crate) fn inv_palette(
                 let idx = indices.row(y);
                 for x in 0..cw {
                     let index = idx[x];
-                    let palette_entry = palette_internal::get_palette_value(p_palette, index, c, palette_w, onerow, bit_depth);
+                    let palette_entry = palette_internal::get_palette_value(
+                        p_palette, index, c, palette_w, onerow, bit_depth,
+                    );
                     let pos = y * onerow_image + x;
                     let val: PixelTypeW = if index < nb_deltas as i32 {
                         let pred = match wp_state.as_mut() {
-                            Some(wp_state) => predict_no_tree_wp(cw, data, pos, onerow_image, x, y, predictor, wp_state),
-                            None => predict_no_tree_no_wp(cw, data, pos, onerow_image, x, y, predictor),
+                            Some(wp_state) => predict_no_tree_wp(
+                                cw,
+                                data,
+                                pos,
+                                onerow_image,
+                                x,
+                                y,
+                                predictor,
+                                wp_state,
+                            ),
+                            None => {
+                                predict_no_tree_no_wp(cw, data, pos, onerow_image, x, y, predictor)
+                            }
                         };
                         pred.guess.wrapping_add(palette_entry as i64)
                     } else {

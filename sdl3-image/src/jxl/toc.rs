@@ -25,13 +25,24 @@ pub(crate) const K_TOC_DIST: U32Enc = U32Enc::new(
 // TODO(veluca): move these to FrameDimensions.
 /// Translation of `AcGroupIndex()`.
 #[inline]
-pub(crate) fn ac_group_index(pass: usize, group: usize, num_groups: usize, num_dc_groups: usize, has_ac_global: bool) -> usize {
+pub(crate) fn ac_group_index(
+    pass: usize,
+    group: usize,
+    num_groups: usize,
+    num_dc_groups: usize,
+    has_ac_global: bool,
+) -> usize {
     1 + num_dc_groups + has_ac_global as usize + pass * num_groups + group
 }
 
 /// Translation of `NumTocEntries()`.
 #[inline]
-pub(crate) fn num_toc_entries(num_groups: usize, num_dc_groups: usize, num_passes: usize, has_ac_global: bool) -> usize {
+pub(crate) fn num_toc_entries(
+    num_groups: usize,
+    num_dc_groups: usize,
+    num_passes: usize,
+    has_ac_global: bool,
+) -> usize {
     if num_groups == 1 && num_passes == 1 {
         return 1;
     }

@@ -1252,7 +1252,10 @@ fn front_end_errors() {
     // JXL loader rewinds the stream when it fails
     let jxl = image("sample.jxl");
     let s = crate::load_typed_io(&mut IoStream::from_const_mem(jxl), Some("PNG")).unwrap();
-    assert_eq!((s.width(), s.height(), s.format()), (23, 42, PixelFormat::RGBA32));
+    assert_eq!(
+        (s.width(), s.height(), s.format()),
+        (23, 42, PixelFormat::RGBA32)
+    );
     let mut io = IoStream::from_const_mem(&jxl[..jxl.len() / 2]);
     let e = crate::load_typed_io(&mut io, Some("JXL")).unwrap_err();
     assert_eq!(e.to_string(), "Incomplete JXL image");

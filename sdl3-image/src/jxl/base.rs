@@ -53,17 +53,6 @@ macro_rules! jxl_status {
 }
 pub(crate) use jxl_status;
 
-/// Returns from the current function with the status if it is not `true`
-/// (a `bool` condition). Translation of `JXL_RETURN_IF_ERROR()` on a `bool`.
-macro_rules! jxl_return_if_error_bool {
-    ($cond:expr) => {
-        if !($cond) {
-            return Err($crate::jxl::base::StatusCode::GenericError);
-        }
-    };
-}
-pub(crate) use jxl_return_if_error_bool;
-
 /// Translation of `bool(status)` for a `Status` that was returned as a bool.
 pub(crate) fn status_from_bool(ok: bool) -> Status {
     if ok {

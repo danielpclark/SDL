@@ -38,7 +38,9 @@ impl RenderPipelineStage for PatchDictionaryStage {
         let x0 = if xpos != 0 { xpos - xextra } else { 0 };
         let len = xsize + xextra + xpos - x0;
         let start = x0 as isize - xpos as isize;
-        let ptrs: Vec<_> = (0..self.num_channels).map(|i| rows.get_input_row(i, 0)).collect();
+        let ptrs: Vec<_> = (0..self.num_channels)
+            .map(|i| rows.get_input_row(i, 0))
+            .collect();
         let mut row_data: Vec<Vec<f32>> = ptrs.iter().map(|&p| rows.load(p, start, len)).collect();
         ctx.image_features.patches.add_one_row(
             &mut row_data,

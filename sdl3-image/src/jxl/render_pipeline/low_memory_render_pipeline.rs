@@ -10,13 +10,15 @@
 //! A multithreaded, low-memory rendering pipeline that only allocates a
 //! minimal amount of buffers. (Run on one thread here.)
 
-use super::super::base::{ceil_log2_nonzero_u64, div_ceil, round_up_to, FrameDimensions, Status, StatusCode};
+use super::super::base::{
+    ceil_log2_nonzero_u64, div_ceil, round_up_to, FrameDimensions, Status, StatusCode,
+};
 use super::super::dec_group_border::GroupBorderAssigner;
 use super::super::frame_header::FrameOrigin;
 use super::super::image::{copy_image_to_rect, mirror, ImageF, Rect};
 use super::{
-    RenderPipelineChannelMode, RenderPipelineInput, RenderPipelineStage, RowInfo, RowPtr, StageCtx, StageRows,
-    K_RENDER_PIPELINE_X_OFFSET,
+    RenderPipelineChannelMode, RenderPipelineInput, RenderPipelineStage, RowInfo, RowPtr, StageCtx,
+    StageRows, K_RENDER_PIPELINE_X_OFFSET,
 };
 
 /// A rect with signed coordinates. Translation of `RectT<ssize_t>`.
@@ -30,10 +32,20 @@ struct SRect {
 
 impl SRect {
     fn new(x0: i64, y0: i64, xsize: i64, ysize: i64) -> SRect {
-        SRect { x0, y0, xsize, ysize }
+        SRect {
+            x0,
+            y0,
+            xsize,
+            ysize,
+        }
     }
     fn from_rect(r: &Rect) -> SRect {
-        SRect::new(r.x0() as i64, r.y0() as i64, r.xsize() as i64, r.ysize() as i64)
+        SRect::new(
+            r.x0() as i64,
+            r.y0() as i64,
+            r.xsize() as i64,
+            r.ysize() as i64,
+        )
     }
     fn x1(&self) -> i64 {
         self.x0 + self.xsize
@@ -61,7 +73,12 @@ impl SRect {
         )
     }
     fn translate(&self, x_offset: i64, y_offset: i64) -> SRect {
-        SRect::new(self.x0 + x_offset, self.y0 + y_offset, self.xsize, self.ysize)
+        SRect::new(
+            self.x0 + x_offset,
+            self.y0 + y_offset,
+            self.xsize,
+            self.ysize,
+        )
     }
     fn shift_left(&self, shift: usize) -> SRect {
         SRect::new(
@@ -189,7 +206,8 @@ impl Rows {
     #[inline]
     fn get_buffer(&self, stage: i32, y: i64, c: usize) -> RowPtr {
         let info = &self.rows[(stage + 1) as usize][c];
-        info.base_ptr.add((info.stride as i64 * (y & info.ymod_minus_1)) as isize)
+        info.base_ptr
+            .add((info.stride as i64 * (y & info.ymod_minus_1)) as isize)
     }
 }
 
@@ -206,7 +224,14 @@ fn get_mirrored_y(y: i64, group_y0: i64, image_ysize: i64) -> i64 {
 }
 
 #[inline]
-fn apply_x_mirroring(plane: &mut ImageF, row: RowPtr, borderx: i64, group_x0: i64, group_xsize: i64, image_xsize: i64) {
+fn apply_x_mirroring(
+    plane: &mut ImageF,
+    row: RowPtr,
+    borderx: i64,
+    group_x0: i64,
+    group_xsize: i64,
+    image_xsize: i64,
+) {
     let data = plane.data_mut();
     let at = |i: i64| -> usize { (row.off as i64 + i) as usize };
     let off = K_RENDER_PIPELINE_X_OFFSET as i64;
@@ -231,7 +256,8 @@ fn apply_x_mirroring(plane: &mut ImageF, row: RowPtr, borderx: i64, group_x0: i6
         }
         if group_xsize + borderx + group_x0 >= image_xsize {
             for ix in 0..borderx {
-                data[at(off + image_xsize - group_x0 + ix)] = data[at(off + image_xsize - group_x0 - ix - 1)];
+                data[at(off + image_xsize - group_x0 + ix)] =
+                    data[at(off + image_xsize - group_x0 - ix - 1)];
             }
         }
     }
@@ -292,11 +318,20 @@ impl RenderPipeline {
     /// Translation of `PassesWithAllInput()`.
     #[allow(dead_code)]
     pub(crate) fn passes_with_all_input(&self) -> usize {
-        self.group_completed_passes.iter().copied().min().unwrap_or(0) as usize
+        self.group_completed_passes
+            .iter()
+            .copied()
+            .min()
+            .unwrap_or(0) as usize
     }
 
     /// Translation of `ColorDimensionsToChannelDimensions()`.
-    fn color_dimensions_to_channel_dimensions(&self, input: (usize, usize), c: usize, stage: usize) -> (usize, usize) {
+    fn color_dimensions_to_channel_dimensions(
+        &self,
+        input: (usize, usize),
+        c: usize,
+        stage: usize,
+    ) -> (usize, usize) {
         let shift = self.channel_shifts[stage][c];
         (
             ((input.0 << self.base_color_shift) + (1 << shift.0) - 1) >> shift.0,
@@ -320,9 +355,11 @@ impl RenderPipeline {
         let hshift = self.channel_shifts[0][c].0;
         let vshift = self.channel_shifts[0][c].1;
         let x0 = gx * self.group_input_x_size(c);
-        let x1 = ((gx + 1) * self.group_input_x_size(c)).min(div_ceil(fd.xsize_upsampled, 1 << hshift));
+        let x1 =
+            ((gx + 1) * self.group_input_x_size(c)).min(div_ceil(fd.xsize_upsampled, 1 << hshift));
         let y0 = gy * self.group_input_y_size(c);
-        let y1 = ((gy + 1) * self.group_input_y_size(c)).min(div_ceil(fd.ysize_upsampled, 1 << vshift));
+        let y1 =
+            ((gy + 1) * self.group_input_y_size(c)).min(div_ceil(fd.ysize_upsampled, 1 << vshift));
 
         let borders = self.border_to_store(c);
         let borderx_write = borders.0;
@@ -364,9 +401,11 @@ impl RenderPipeline {
         let vshift = self.channel_shifts[0][c].1;
         // Coordinates of the group in the image.
         let x0 = gx * self.group_input_x_size(c);
-        let x1 = ((gx + 1) * self.group_input_x_size(c)).min(div_ceil(fd.xsize_upsampled, 1 << hshift));
+        let x1 =
+            ((gx + 1) * self.group_input_x_size(c)).min(div_ceil(fd.xsize_upsampled, 1 << hshift));
         let y0 = gy * self.group_input_y_size(c);
-        let y1 = ((gy + 1) * self.group_input_y_size(c)).min(div_ceil(fd.ysize_upsampled, 1 << vshift));
+        let y1 =
+            ((gy + 1) * self.group_input_y_size(c)).min(div_ceil(fd.ysize_upsampled, 1 << vshift));
 
         let paddingx = self.padding[0][c].0;
         let paddingy = self.padding[0][c].1;
@@ -405,9 +444,19 @@ impl RenderPipeline {
         if y0src < y0 {
             debug_assert!(gy > 0);
             copy_image_to_rect(
-                &Rect::new(x0src, (gy * 2 - 2) * bordery_write, x1src - x0src, bordery_write),
+                &Rect::new(
+                    x0src,
+                    (gy * 2 - 2) * bordery_write,
+                    x1src - x0src,
+                    bordery_write,
+                ),
                 &self.borders_horizontal[c],
-                &Rect::new(gxb + x0src - x0, gyb - bordery_write, x1src - x0src, bordery_write),
+                &Rect::new(
+                    gxb + x0src - x0,
+                    gyb - bordery_write,
+                    x1src - x0src,
+                    bordery_write,
+                ),
                 out,
             );
         }
@@ -416,18 +465,38 @@ impl RenderPipeline {
             debug_assert!(gy + 1 < ysize_groups);
             let _ = ysize_groups;
             copy_image_to_rect(
-                &Rect::new(x0src, (gy * 2 + 1) * bordery_write, x1src - x0src, bordery_write),
+                &Rect::new(
+                    x0src,
+                    (gy * 2 + 1) * bordery_write,
+                    x1src - x0src,
+                    bordery_write,
+                ),
                 &self.borders_horizontal[c],
-                &Rect::new(gxb + x0src - x0, gyb + y1 - y0, x1src - x0src, bordery_write),
+                &Rect::new(
+                    gxb + x0src - x0,
+                    gyb + y1 - y0,
+                    x1src - x0src,
+                    bordery_write,
+                ),
                 out,
             );
         }
         if x0src < x0 {
             debug_assert!(gx > 0);
             copy_image_to_rect(
-                &Rect::new((gx * 2 - 2) * borderx_write, y0src, borderx_write, y1src - y0src),
+                &Rect::new(
+                    (gx * 2 - 2) * borderx_write,
+                    y0src,
+                    borderx_write,
+                    y1src - y0src,
+                ),
                 &self.borders_vertical[c],
-                &Rect::new(gxb - borderx_write, gyb + y0src - y0, borderx_write, y1src - y0src),
+                &Rect::new(
+                    gxb - borderx_write,
+                    gyb + y0src - y0,
+                    borderx_write,
+                    y1src - y0src,
+                ),
                 out,
             );
         }
@@ -436,9 +505,19 @@ impl RenderPipeline {
             debug_assert!(gx + 1 < xsize_groups);
             let _ = xsize_groups;
             copy_image_to_rect(
-                &Rect::new((gx * 2 + 1) * borderx_write, y0src, borderx_write, y1src - y0src),
+                &Rect::new(
+                    (gx * 2 + 1) * borderx_write,
+                    y0src,
+                    borderx_write,
+                    y1src - y0src,
+                ),
                 &self.borders_vertical[c],
-                &Rect::new(gxb + x1 - x0, gyb + y0src - y0, borderx_write, y1src - y0src),
+                &Rect::new(
+                    gxb + x1 - x0,
+                    gyb + y0src - y0,
+                    borderx_write,
+                    y1src - y0src,
+                ),
                 out,
             );
         }
@@ -493,7 +572,8 @@ impl RenderPipeline {
     fn init(&mut self, ctx: &mut StageCtx<'_>) -> Status {
         self.group_border = (0, 0);
         let fd = &self.frame_dimensions;
-        self.base_color_shift = ceil_log2_nonzero_u64((fd.xsize_upsampled_padded / fd.xsize_padded) as u64);
+        self.base_color_shift =
+            ceil_log2_nonzero_u64((fd.xsize_upsampled_padded / fd.xsize_padded) as u64);
 
         let nc = self.channel_shifts[0].len();
 
@@ -547,7 +627,9 @@ impl RenderPipeline {
         while self.first_trailing_stage > 0 {
             let mut has_inout_c = false;
             for c in 0..nc {
-                if self.stages[self.first_trailing_stage - 1].get_channel_mode(c) == RenderPipelineChannelMode::InOut {
+                if self.stages[self.first_trailing_stage - 1].get_channel_mode(c)
+                    == RenderPipelineChannelMode::InOut
+                {
                     has_inout_c = true;
                 }
             }
@@ -586,7 +668,8 @@ impl RenderPipeline {
                 // JXL_ABORT("Cannot switch to image dimensions multiple times");
                 return Err(StatusCode::GenericError);
             }
-            let input_sizes: Vec<(usize, usize)> = vec![(self.full_image_xsize, self.full_image_ysize); nc];
+            let input_sizes: Vec<(usize, usize)> =
+                vec![(self.full_image_xsize, self.full_image_ysize); nc];
             self.stages[i].set_input_sizes(&input_sizes, ctx)?;
         }
 
@@ -613,8 +696,14 @@ impl RenderPipeline {
         self.image_rect = vec![Rect::default(); self.stages.len()];
         for i in 0..self.stages.len() {
             let fd = &self.frame_dimensions;
-            let x1 = div_ceil(fd.xsize_upsampled, 1 << self.channel_shifts[i][self.anyc[i]].0);
-            let y1 = div_ceil(fd.ysize_upsampled, 1 << self.channel_shifts[i][self.anyc[i]].1);
+            let x1 = div_ceil(
+                fd.xsize_upsampled,
+                1 << self.channel_shifts[i][self.anyc[i]].0,
+            );
+            let y1 = div_ceil(
+                fd.ysize_upsampled,
+                1 << self.channel_shifts[i][self.anyc[i]].1,
+            );
             self.image_rect[i] = Rect::new(0, 0, x1, y1);
         }
 
@@ -625,7 +714,8 @@ impl RenderPipeline {
             let mut xpad: i32 = 0;
             for i in (0..self.stages.len()).rev() {
                 if self.stages[i].get_channel_mode(c) != RenderPipelineChannelMode::Ignored {
-                    self.virtual_ypadding_for_output[i] = ypad.max(self.virtual_ypadding_for_output[i]);
+                    self.virtual_ypadding_for_output[i] =
+                        ypad.max(self.virtual_ypadding_for_output[i]);
                     self.xpadding_for_output[i] = xpad.max(self.xpadding_for_output[i]);
                 }
                 if self.stages[i].get_channel_mode(c) == RenderPipelineChannelMode::InOut {
@@ -640,7 +730,12 @@ impl RenderPipeline {
     }
 
     /// Allocates a plane of the arena, reusing `slot` if given.
-    fn alloc(&mut self, slot: Option<usize>, xsize: usize, ysize: usize) -> Result<usize, StatusCode> {
+    fn alloc(
+        &mut self,
+        slot: Option<usize>,
+        xsize: usize,
+        ysize: usize,
+    ) -> Result<usize, StatusCode> {
         let plane = ImageF::new(xsize, ysize)?;
         match slot {
             Some(i) => {
@@ -713,9 +808,16 @@ impl RenderPipeline {
         }
         if self.first_image_dim_stage != self.stages.len() {
             let fd = &self.frame_dimensions;
-            let mut image_rect = SRect::new(0, 0, fd.xsize_upsampled as i64, fd.ysize_upsampled as i64);
-            let full_image_rect = SRect::new(0, 0, self.full_image_xsize as i64, self.full_image_ysize as i64);
-            image_rect = image_rect.translate(self.frame_origin.x0 as i64, self.frame_origin.y0 as i64);
+            let mut image_rect =
+                SRect::new(0, 0, fd.xsize_upsampled as i64, fd.ysize_upsampled as i64);
+            let full_image_rect = SRect::new(
+                0,
+                0,
+                self.full_image_xsize as i64,
+                self.full_image_ysize as i64,
+            );
+            image_rect =
+                image_rect.translate(self.frame_origin.x0 as i64, self.frame_origin.y0 as i64);
             image_rect = image_rect.intersection(&full_image_rect);
             if image_rect.xsize == 0 || image_rect.ysize == 0 {
                 image_rect = SRect::new(0, 0, 0, 0);
@@ -740,13 +842,21 @@ impl RenderPipeline {
     /// When input has been provided for all buffers, the pipeline will
     /// complete its processing. Translation of `GetInputBuffers()` (and
     /// `PrepareBuffers()`).
-    pub(crate) fn get_input_buffers(&self, group_id: usize, thread_id: usize) -> RenderPipelineInput {
+    pub(crate) fn get_input_buffers(
+        &self,
+        group_id: usize,
+        thread_id: usize,
+    ) -> RenderPipelineInput {
         debug_assert!(group_id < self.group_completed_passes.len());
         let nc = self.channel_shifts[0].len();
         let fd = &self.frame_dimensions;
         let gx = group_id % fd.xsize_groups;
         let gy = group_id / fd.xsize_groups;
-        let set = if self.use_group_ids { group_id } else { thread_id };
+        let set = if self.use_group_ids {
+            group_id
+        } else {
+            thread_id
+        };
         let mut buffers = Vec::with_capacity(nc);
         for c in 0..nc {
             let idx = self.group_data[set][c];
@@ -783,13 +893,16 @@ impl RenderPipeline {
 
     /// Three distinct planes of the pipeline (mutable).
     pub(crate) fn buffers_mut3(&mut self, idx: [usize; 3]) -> Result<[&mut ImageF; 3], StatusCode> {
-        self.arena.get_disjoint_mut(idx).map_err(|_| StatusCode::GenericError)
+        self.arena
+            .get_disjoint_mut(idx)
+            .map_err(|_| StatusCode::GenericError)
     }
 
     /// Translation of `RenderPipelineInput::Done()` (`InputReady()`).
     pub(crate) fn input_ready(&mut self, input: &RenderPipelineInput, ctx: &mut StageCtx<'_>) {
         debug_assert!(input.group_id < self.group_completed_passes.len());
-        self.group_completed_passes[input.group_id] = self.group_completed_passes[input.group_id].wrapping_add(1);
+        self.group_completed_passes[input.group_id] =
+            self.group_completed_passes[input.group_id].wrapping_add(1);
         self.process_buffers(input.group_id, input.thread_id, ctx);
     }
 
@@ -815,7 +928,10 @@ impl RenderPipeline {
         let mut group_rect: Vec<Rect> = vec![Rect::default(); nstages];
         let image_area_rect = image_max_color_channel_rect
             .shift_left(self.base_color_shift, self.base_color_shift)
-            .crop(self.frame_dimensions.xsize_upsampled, self.frame_dimensions.ysize_upsampled);
+            .crop(
+                self.frame_dimensions.xsize_upsampled,
+                self.frame_dimensions.ysize_upsampled,
+            );
         for i in 0..nstages {
             let sh = self.channel_shifts[i][self.anyc[i]];
             group_rect[i] = image_area_rect.ceil_shift_right(sh.0, sh.1);
@@ -841,13 +957,23 @@ impl RenderPipeline {
         let mut span: Vec<Rect> = vec![Rect::default(); nstages];
         for i in 0..nstages {
             if i < self.first_image_dim_stage {
-                span[i] = Rect::new(group_rect[i].x0(), 0, group_rect[i].xsize(), self.image_rect[i].ysize());
+                span[i] = Rect::new(
+                    group_rect[i].x0(),
+                    0,
+                    group_rect[i].xsize(),
+                    self.image_rect[i].ysize(),
+                );
             } else {
                 let x0 = full_image_x0 as usize;
                 let x1 = full_image_x1;
                 let x_max = self.full_image_xsize as i64;
                 let cropped_x1 = x1.min(x_max);
-                span[i] = Rect::new(x0, 0, 0i64.max(cropped_x1 - x0 as i64) as usize, self.full_image_ysize);
+                span[i] = Rect::new(
+                    x0,
+                    0,
+                    0i64.max(cropped_x1 - x0 as i64) as usize,
+                    self.full_image_ysize,
+                );
             }
         }
 
@@ -869,7 +995,10 @@ impl RenderPipeline {
             }
             for c in 0..nc {
                 let channel_group_data_rect = SRect::from_rect(&data_max_color_channel_rect)
-                    .translate(-(self.group_data_x_border as i64), -(self.group_data_y_border as i64))
+                    .translate(
+                        -(self.group_data_x_border as i64),
+                        -(self.group_data_y_border as i64),
+                    )
                     .shift_left(self.base_color_shift)
                     .ceil_shift_right(self.channel_shifts[0][c])
                     .translate(
@@ -880,7 +1009,8 @@ impl RenderPipeline {
                 let stride = plane.pixels_per_row();
                 r[0][c].base_ptr = RowPtr {
                     buf: input_data[c],
-                    off: (channel_group_data_rect.y0 * stride as i64 + channel_group_data_rect.x0) as isize,
+                    off: (channel_group_data_rect.y0 * stride as i64 + channel_group_data_rect.x0)
+                        as isize,
                 };
                 r[0][c].stride = stride;
                 r[0][c].ymod_minus_1 = -1;
@@ -904,7 +1034,12 @@ impl RenderPipeline {
         // to an actual row of the current processing stage; actual processing happens
         // when vy % (1<<vshift) == 0.
 
-        let num_extra_rows: i32 = self.virtual_ypadding_for_output.iter().copied().max().unwrap_or(0);
+        let num_extra_rows: i32 = self
+            .virtual_ypadding_for_output
+            .iter()
+            .copied()
+            .max()
+            .unwrap_or(0);
 
         let mut vy: i32 = -num_extra_rows;
         while vy < image_area_rect.ysize() as i32 + num_extra_rows {
@@ -948,7 +1083,8 @@ impl RenderPipeline {
                                 group_rect[i].y0() as i64,
                                 self.image_rect[i].ysize() as i64,
                             );
-                            let p = rows.get_buffer(self.stage_input_for_channel[i][c], mirrored_y, c);
+                            let p =
+                                rows.get_buffer(self.stage_input_for_channel[i][c], mirrored_y, c);
                             apply_x_mirroring(
                                 &mut arena[p.buf],
                                 p,
@@ -978,7 +1114,11 @@ impl RenderPipeline {
                         // If necessary, get the output buffers.
                         if mode == RenderPipelineChannelMode::InOut {
                             for iy in 0..(1usize << shifty) {
-                                output_rows[c][iy] = rows.get_buffer(i as i32, (y as i64) * (1 << shifty) + iy as i64, c);
+                                output_rows[c][iy] = rows.get_buffer(
+                                    i as i32,
+                                    (y as i64) * (1 << shifty) + iy as i64,
+                                    c,
+                                );
                             }
                         }
                     }
@@ -1012,7 +1152,8 @@ impl RenderPipeline {
             let y = vy - num_extra_rows;
 
             for c in 0..nc {
-                input_rows[fts][c][0] = rows.get_buffer(self.stage_input_for_channel[fts][c], y as i64, c);
+                input_rows[fts][c][0] =
+                    rows.get_buffer(self.stage_input_for_channel[fts][c], y as i64, c);
             }
 
             // Check that we are not outside of the bounds for the current rendering
@@ -1038,7 +1179,15 @@ impl RenderPipeline {
                     bufs: &mut self.arena,
                     settings,
                 };
-                self.stages[i].process_row(&mut sr, /*xextra=*/ 0, span[i].xsize(), span[i].x0(), y0, thread_id, ctx);
+                self.stages[i].process_row(
+                    &mut sr,
+                    /*xextra=*/ 0,
+                    span[i].xsize(),
+                    span[i].x0(),
+                    y0,
+                    thread_id,
+                    ctx,
+                );
             }
 
             if self.first_image_dim_stage == nstages {
@@ -1125,14 +1274,26 @@ impl RenderPipeline {
                     bufs: &mut self.arena,
                     settings,
                 };
-                self.stages[i].process_row(&mut sr, /*xextra=*/ 0, rect.xsize(), rect.x0(), rect.y0() + y, thread_id, ctx);
+                self.stages[i].process_row(
+                    &mut sr,
+                    /*xextra=*/ 0,
+                    rect.xsize(),
+                    rect.x0(),
+                    rect.y0() + y,
+                    thread_id,
+                    ctx,
+                );
             }
         }
     }
 
     /// Translation of `ProcessBuffers()`.
     fn process_buffers(&mut self, group_id: usize, thread_id: usize, ctx: &mut StageCtx<'_>) {
-        let set = if self.use_group_ids { group_id } else { thread_id };
+        let set = if self.use_group_ids {
+            group_id
+        } else {
+            thread_id
+        };
         let input_data: Vec<usize> = self.group_data[set].clone();
 
         // Copy the group borders to the border storage.
@@ -1140,17 +1301,30 @@ impl RenderPipeline {
             self.save_borders(group_id, c, idx);
         }
 
-        let fd = self.frame_dimensions.clone();
+        let fd = self.frame_dimensions;
         let gy = group_id / fd.xsize_groups;
         let gx = group_id % fd.xsize_groups;
 
         if self.first_image_dim_stage != self.stages.len() {
             let group_dim = (fd.group_dim << self.base_color_shift) as i64;
-            let mut group_rect = SRect::new(gx as i64 * group_dim, gy as i64 * group_dim, group_dim, group_dim);
-            let mut image_rect = SRect::new(0, 0, fd.xsize_upsampled as i64, fd.ysize_upsampled as i64);
-            let full_image_rect = SRect::new(0, 0, self.full_image_xsize as i64, self.full_image_ysize as i64);
-            group_rect = group_rect.translate(self.frame_origin.x0 as i64, self.frame_origin.y0 as i64);
-            image_rect = image_rect.translate(self.frame_origin.x0 as i64, self.frame_origin.y0 as i64);
+            let mut group_rect = SRect::new(
+                gx as i64 * group_dim,
+                gy as i64 * group_dim,
+                group_dim,
+                group_dim,
+            );
+            let mut image_rect =
+                SRect::new(0, 0, fd.xsize_upsampled as i64, fd.ysize_upsampled as i64);
+            let full_image_rect = SRect::new(
+                0,
+                0,
+                self.full_image_xsize as i64,
+                self.full_image_ysize as i64,
+            );
+            group_rect =
+                group_rect.translate(self.frame_origin.x0 as i64, self.frame_origin.y0 as i64);
+            image_rect =
+                image_rect.translate(self.frame_origin.x0 as i64, self.frame_origin.y0 as i64);
             image_rect = image_rect.intersection(&full_image_rect);
             group_rect = group_rect.intersection(&image_rect);
             let x0 = group_rect.x0 as usize;
@@ -1196,14 +1370,20 @@ impl RenderPipeline {
             }
         }
 
-        let ready_rects = self.group_border_assigner.group_done(group_id, self.group_border.0, self.group_border.1);
+        let ready_rects = self.group_border_assigner.group_done(
+            group_id,
+            self.group_border.0,
+            self.group_border.1,
+        );
         for image_max_color_channel_rect in ready_rects {
             for (c, &idx) in input_data.iter().enumerate() {
                 self.load_borders(group_id, c, &image_max_color_channel_rect, idx);
             }
             let data_max_color_channel_rect = Rect::new(
-                (self.group_data_x_border + image_max_color_channel_rect.x0()).wrapping_sub(gx * fd.group_dim),
-                (self.group_data_y_border + image_max_color_channel_rect.y0()).wrapping_sub(gy * fd.group_dim),
+                (self.group_data_x_border + image_max_color_channel_rect.x0())
+                    .wrapping_sub(gx * fd.group_dim),
+                (self.group_data_y_border + image_max_color_channel_rect.y0())
+                    .wrapping_sub(gy * fd.group_dim),
                 image_max_color_channel_rect.xsize(),
                 image_max_color_channel_rect.ysize(),
             );
@@ -1217,4 +1397,3 @@ impl RenderPipeline {
         }
     }
 }
-

@@ -102,7 +102,12 @@ impl Default for Image {
 
 impl Image {
     /// Translation of `Image(iw, ih, bitdepth, nb_chans)`.
-    pub(crate) fn new(iw: usize, ih: usize, bitdepth: i32, nb_chans: i32) -> Result<Image, StatusCode> {
+    pub(crate) fn new(
+        iw: usize,
+        ih: usize,
+        bitdepth: i32,
+        nb_chans: i32,
+    ) -> Result<Image, StatusCode> {
         let mut img = Image {
             channel: Vec::new(),
             transform: Vec::new(),

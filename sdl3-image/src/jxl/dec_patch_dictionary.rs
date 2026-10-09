@@ -159,7 +159,13 @@ impl PatchDictionary {
         self.positions.clear();
         let mut context_map: Vec<u8> = Vec::new();
         let mut code = AnsCode::default();
-        decode_histograms(br, K_NUM_PATCH_DICTIONARY_CONTEXTS, &mut code, &mut context_map, false)?;
+        decode_histograms(
+            br,
+            K_NUM_PATCH_DICTIONARY_CONTEXTS,
+            &mut code,
+            &mut context_map,
+            false,
+        )?;
         let mut decoder = AnsSymbolReader::new(&code, br, 0);
 
         let mut read_num = |context: usize, br: &mut BitReader<'_>| -> usize {
@@ -186,7 +192,9 @@ impl PatchDictionary {
                 ref_: read_num(K_REFERENCE_FRAME_CONTEXT, br),
                 ..Default::default()
             };
-            if ref_pos.ref_ >= K_MAX_NUM_REFERENCE_FRAMES || reference_frames[ref_pos.ref_].frame.xsize() == 0 {
+            if ref_pos.ref_ >= K_MAX_NUM_REFERENCE_FRAMES
+                || reference_frames[ref_pos.ref_].frame.xsize() == 0
+            {
                 return jxl_failure!("Invalid reference frame ID");
             }
             if !reference_frames[ref_pos.ref_].ib_is_in_xyb {
@@ -215,11 +223,19 @@ impl PatchDictionary {
             if next_size * (num_ec + 1) > max_blending_infos {
                 return jxl_failure!("Too many patches in dictionary");
             }
-            if self.positions.try_reserve(next_size.saturating_sub(self.positions.len())).is_err() {
+            if self
+                .positions
+                .try_reserve(next_size.saturating_sub(self.positions.len()))
+                .is_err()
+            {
                 return jxl_failure!("out of memory");
             }
             let want = next_size * (num_ec + 1);
-            if self.blendings.try_reserve(want.saturating_sub(self.blendings.len())).is_err() {
+            if self
+                .blendings
+                .try_reserve(want.saturating_sub(self.blendings.len()))
+                .is_err()
+            {
                 return jxl_failure!("out of memory");
             }
             for i in 0..id_count {
@@ -324,10 +340,10 @@ impl PatchDictionary {
             })
             .collect();
         let sort_by_y0 = |intervals: &mut Vec<PatchInterval>, start: usize, end: usize| {
-            intervals[start..end].sort_by(|i0, i1| i0.y0.cmp(&i1.y0));
+            intervals[start..end].sort_by_key(|i0| i0.y0);
         };
         let sort_by_y1 = |intervals: &mut Vec<PatchInterval>, start: usize, end: usize| {
-            intervals[start..end].sort_by(|i0, i1| i0.y1.cmp(&i1.y1));
+            intervals[start..end].sort_by_key(|i0| i0.y1);
         };
         // Count the number of patches for each row.
         let n = intervals.len();
@@ -369,7 +385,8 @@ impl PatchDictionary {
             self.patch_tree[next].num = right_start - left_end;
             self.patch_tree[next].start = self.sorted_patches_y0.len();
             for i in (left_end..right_start).rev() {
-                self.sorted_patches_y1.push((intervals[i].y1, intervals[i].idx));
+                self.sorted_patches_y1
+                    .push((intervals[i].y1, intervals[i].idx));
             }
             sort_by_y0(&mut intervals, left_end, right_start);
             for iv in &intervals[left_end..right_start] {
@@ -417,7 +434,11 @@ impl PatchDictionary {
                         }
                         result.push(p.1);
                     }
-                    tree_idx = if y < node.y_center { node.left_child } else { -1 };
+                    tree_idx = if y < node.y_center {
+                        node.left_child
+                    } else {
+                        -1
+                    };
                 } else {
                     for i in 0..node.num {
                         let p = self.sorted_patches_y1[node.start + i];

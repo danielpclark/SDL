@@ -42,7 +42,12 @@ pub(crate) const JXL_MAX_FIRST_PREVIEW_SIZE: usize = 8;
 pub(crate) fn smooth_tendency(b: PixelTypeW, a: PixelTypeW, n: PixelTypeW) -> PixelTypeW {
     let mut diff: PixelTypeW = 0;
     if b >= a && a >= n {
-        diff = (4i64.wrapping_mul(b).wrapping_sub(3i64.wrapping_mul(n)).wrapping_sub(a).wrapping_add(6)) / 12;
+        diff = (4i64
+            .wrapping_mul(b)
+            .wrapping_sub(3i64.wrapping_mul(n))
+            .wrapping_sub(a)
+            .wrapping_add(6))
+            / 12;
         //      2C = a<<1 + diff - diff&1 <= 2B  so diff - diff&1 <= 2B - 2a
         //      2D = a<<1 - diff - diff&1 >= 2n  so diff + diff&1 <= 2a - 2n
         if diff.wrapping_sub(diff & 1) > 2i64.wrapping_mul(b.wrapping_sub(a)) {
@@ -52,7 +57,12 @@ pub(crate) fn smooth_tendency(b: PixelTypeW, a: PixelTypeW, n: PixelTypeW) -> Pi
             diff = 2i64.wrapping_mul(a.wrapping_sub(n));
         }
     } else if b <= a && a <= n {
-        diff = (4i64.wrapping_mul(b).wrapping_sub(3i64.wrapping_mul(n)).wrapping_sub(a).wrapping_sub(6)) / 12;
+        diff = (4i64
+            .wrapping_mul(b)
+            .wrapping_sub(3i64.wrapping_mul(n))
+            .wrapping_sub(a)
+            .wrapping_sub(6))
+            / 12;
         //      2C = a<<1 + diff + diff&1 >= 2B  so diff + diff&1 >= 2B - 2a
         //      2D = a<<1 - diff + diff&1 <= 2n  so diff - diff&1 >= 2a - 2n
         if diff.wrapping_add(diff & 1) < 2i64.wrapping_mul(b.wrapping_sub(a)) {
@@ -107,7 +117,11 @@ fn inv_h_squeeze(input: &mut Image, c: usize, rc: usize) -> Status {
                 let diff_minus_tendency: PixelTypeW = p_residual[x] as i64;
                 let avg: PixelTypeW = p_avg[x] as i64;
                 let next_avg: PixelTypeW = if x + 1 < cw { p_avg[x + 1] as i64 } else { avg };
-                let left: PixelTypeW = if x != 0 { p_out[(x << 1) - 1] as i64 } else { avg };
+                let left: PixelTypeW = if x != 0 {
+                    p_out[(x << 1) - 1] as i64
+                } else {
+                    avg
+                };
                 let tendency = smooth_tendency(left, avg, next_avg);
                 let diff = diff_minus_tendency.wrapping_add(tendency);
                 let a = avg.wrapping_add(diff / 2);
@@ -203,11 +217,17 @@ pub(crate) fn inv_squeeze(input: &mut Image, parameters: &[SqueezeParams]) -> St
         let horizontal = parameters[i].horizontal;
         let in_place = parameters[i].in_place;
         let beginc = parameters[i].begin_c;
-        let endc = parameters[i].begin_c.wrapping_add(parameters[i].num_c).wrapping_sub(1);
+        let endc = parameters[i]
+            .begin_c
+            .wrapping_add(parameters[i].num_c)
+            .wrapping_sub(1);
         let offset: u32 = if in_place {
             endc.wrapping_add(1)
         } else {
-            (input.channel.len() as u32).wrapping_add(beginc).wrapping_sub(endc).wrapping_sub(1)
+            (input.channel.len() as u32)
+                .wrapping_add(beginc)
+                .wrapping_sub(endc)
+                .wrapping_sub(1)
         };
         if (beginc as usize) < input.nb_meta_channels {
             // This is checked in MetaSqueeze.
@@ -227,7 +247,9 @@ pub(crate) fn inv_squeeze(input: &mut Image, parameters: &[SqueezeParams]) -> St
                 return jxl_failure!("rc out of range");
             }
             let c = c as usize;
-            if (input.channel[c].w < input.channel[rc].w) || (input.channel[c].h < input.channel[rc].h) {
+            if (input.channel[c].w < input.channel[rc].w)
+                || (input.channel[c].h < input.channel[rc].h)
+            {
                 return jxl_failure!("Corrupted squeeze transform");
             }
             if horizontal {
@@ -247,7 +269,10 @@ pub(crate) fn inv_squeeze(input: &mut Image, parameters: &[SqueezeParams]) -> St
 }
 
 /// Translation of `DefaultSqueezeParameters()`.
-pub(crate) fn default_squeeze_parameters(parameters: &mut Vec<SqueezeParams>, image: &Image) -> Status {
+pub(crate) fn default_squeeze_parameters(
+    parameters: &mut Vec<SqueezeParams>,
+    image: &Image,
+) -> Status {
     let nb_channels = image.channel.len() as i32 - image.nb_meta_channels as i32;
 
     parameters.clear();
@@ -306,7 +331,10 @@ pub(crate) fn default_squeeze_parameters(parameters: &mut Vec<SqueezeParams>, im
 /// Translation of `CheckMetaSqueezeParams()`.
 pub(crate) fn check_meta_squeeze_params(parameter: &SqueezeParams, num_channels: i32) -> Status {
     let c1 = parameter.begin_c as i32;
-    let c2 = parameter.begin_c.wrapping_add(parameter.num_c).wrapping_sub(1) as i32;
+    let c2 = parameter
+        .begin_c
+        .wrapping_add(parameter.num_c)
+        .wrapping_sub(1) as i32;
     if c1 < 0 || c1 >= num_channels || c2 < 0 || c2 >= num_channels || c2 < c1 {
         return jxl_failure!("Invalid channel range");
     }
@@ -361,7 +389,9 @@ pub(crate) fn meta_squeeze(image: &mut Image, parameters: &mut Vec<SqueezeParams
             dummy.hshift = image.channel[cu].hshift;
             dummy.vshift = image.channel[cu].vshift;
 
-            image.channel.insert((offset + (c - beginc)) as usize, dummy);
+            image
+                .channel
+                .insert((offset + (c - beginc)) as usize, dummy);
         }
     }
     Ok(())

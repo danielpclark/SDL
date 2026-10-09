@@ -37,11 +37,11 @@ pub(crate) mod stage_xyb;
 pub(crate) mod stage_ycbcr;
 
 use super::base::{Status, StatusCode};
-use super::passes_state::ReferenceFrame;
 use super::frame_header::FrameOrigin;
 use super::image::{Image3F, ImageF, Rect};
 use super::image_bundle::ImageBundle;
 use super::passes_state::ImageFeatures;
+use super::passes_state::ReferenceFrame;
 
 pub(crate) use low_memory_render_pipeline::RenderPipeline;
 
@@ -158,7 +158,8 @@ impl StageRows<'_> {
     pub(crate) fn get_input_row(&self, c: usize, offset: isize) -> RowPtr {
         debug_assert!(-offset <= self.settings.border_y as isize);
         debug_assert!(offset <= self.settings.border_y as isize);
-        self.input_rows[c][(self.settings.border_y as isize + offset) as usize].add(K_RENDER_PIPELINE_X_OFFSET as isize)
+        self.input_rows[c][(self.settings.border_y as isize + offset) as usize]
+            .add(K_RENDER_PIPELINE_X_OFFSET as isize)
     }
 
     /// Similar to `GetInputRow`, but can only be used if `GetChannelMode(c)
@@ -259,7 +260,11 @@ pub(crate) trait RenderPipelineStage {
 
     /// Informs the stage about the total size of each channel. Few stages
     /// will actually need to use this information.
-    fn set_input_sizes(&mut self, _input_sizes: &[(usize, usize)], _ctx: &mut StageCtx<'_>) -> Status {
+    fn set_input_sizes(
+        &mut self,
+        _input_sizes: &[(usize, usize)],
+        _ctx: &mut StageCtx<'_>,
+    ) -> Status {
         Ok(())
     }
 
@@ -353,7 +358,9 @@ impl Builder {
             return Err(StatusCode::GenericError);
         }
         for c in 0..self.num_c {
-            if self.stages[self.stages.len() - 1].get_channel_mode(c) == RenderPipelineChannelMode::InOut {
+            if self.stages[self.stages.len() - 1].get_channel_mode(c)
+                == RenderPipelineChannelMode::InOut
+            {
                 return Err(StatusCode::GenericError);
             }
         }
@@ -370,8 +377,10 @@ impl Builder {
             let s = stage.settings();
             for c in 0..num_c {
                 if stage.get_channel_mode(c) == RenderPipelineChannelMode::InOut {
-                    padding[i][c].0 = super::base::div_ceil(padding[i + 1][c].0, 1 << s.shift_x) + s.border_x;
-                    padding[i][c].1 = super::base::div_ceil(padding[i + 1][c].1, 1 << s.shift_y) + s.border_y;
+                    padding[i][c].0 =
+                        super::base::div_ceil(padding[i + 1][c].0, 1 << s.shift_x) + s.border_x;
+                    padding[i][c].1 =
+                        super::base::div_ceil(padding[i + 1][c].1, 1 << s.shift_y) + s.border_y;
                 } else {
                     padding[i][c] = padding[i + 1][c];
                 }

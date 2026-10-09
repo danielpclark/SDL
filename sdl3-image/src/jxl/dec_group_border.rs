@@ -30,7 +30,7 @@ impl GroupBorderAssigner {
 
     /// Prepare the GroupBorderAssigner to handle a given frame.
     pub(crate) fn init(&mut self, frame_dim: &FrameDimensions) {
-        self.frame_dim = frame_dim.clone();
+        self.frame_dim = *frame_dim;
         let num_corners = (self.frame_dim.xsize_groups + 1) * (self.frame_dim.ysize_groups + 1);
         self.counters = vec![0; num_corners];
         // Initialize counters.
@@ -180,7 +180,7 @@ impl GroupBorderAssigner {
         // We do this horizontally rather than vertically because horizontal borders
         // are larger.
         let mut available_parts_mask = [[false; 3]; 3]; // [x][y]
-        // Center
+                                                        // Center
         available_parts_mask[1][1] = true;
         // Corners
         if top_left_status == 0xF {
@@ -217,14 +217,18 @@ impl GroupBorderAssigner {
                 if !available_parts_mask[x][y] {
                     continue;
                 }
-                debug_assert!(horizontal_segments[y].1 == K_NO_SEGMENT || horizontal_segments[y].1 == x);
+                debug_assert!(
+                    horizontal_segments[y].1 == K_NO_SEGMENT || horizontal_segments[y].1 == x
+                );
                 if horizontal_segments[y].0 == K_NO_SEGMENT {
                     horizontal_segments[y].0 = x;
                 }
                 horizontal_segments[y].1 = x + 1;
             }
         }
-        if horizontal_segments[0] == horizontal_segments[1] && horizontal_segments[0] == horizontal_segments[2] {
+        if horizontal_segments[0] == horizontal_segments[1]
+            && horizontal_segments[0] == horizontal_segments[2]
+        {
             append_rect(horizontal_segments[0].0, horizontal_segments[0].1, 0, 3);
         } else if horizontal_segments[0] == horizontal_segments[1] {
             append_rect(horizontal_segments[0].0, horizontal_segments[0].1, 0, 2);

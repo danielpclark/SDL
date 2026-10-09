@@ -29,7 +29,7 @@ enum ExtraTF {
 /// Translation of `CreateTableCurve()`.
 fn create_table_curve(n: u32, tf: ExtraTF) -> Vec<u16> {
     debug_assert!(n <= 4096); // ICC MFT2 only allows 4K entries
-    // No point using float - LCMS converts to 16-bit for A2B/MFT.
+                              // No point using float - LCMS converts to 16-bit for A2B/MFT.
     let mut table = vec![0u16; n as usize];
     for i in 0..n {
         let x = i as f32 / (n - 1) as f32; // 1.0 at index N - 1.
@@ -90,9 +90,9 @@ fn icc_compute_md5(data: &PaddedBytes, sum: &mut [u8; 16]) {
         0xeb86d391,
     ];
     static SHIFT: [u32; 64] = [
-        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20,
-        5, 9, 14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-        6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5,
+        9, 14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10,
+        15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
     ];
 
     let mut a0: u32 = 0x67452301;
@@ -124,10 +124,7 @@ fn icc_compute_md5(data: &PaddedBytes, sum: &mut [u8; 16]) {
             let dg2 = data64[i + g * 4 + 2] as u32;
             let dg3 = data64[i + g * 4 + 3] as u32;
             let u = dg0 | (dg1 << 8) | (dg2 << 16) | (dg3 << 24);
-            f = f
-                .wrapping_add(a)
-                .wrapping_add(SINEPARTS[j])
-                .wrapping_add(u);
+            f = f.wrapping_add(a).wrapping_add(SINEPARTS[j]).wrapping_add(u);
             a = d;
             d = c;
             c = b;

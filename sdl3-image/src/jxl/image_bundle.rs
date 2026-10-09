@@ -26,7 +26,7 @@ pub(crate) struct ImageBundle {
 
     metadata: Option<Rc<ImageMetadata>>,
 
-    color: Image3F,             // If empty, planes_ is not; all planes equal if IsGray().
+    color: Image3F, // If empty, planes_ is not; all planes equal if IsGray().
     c_current: ColorEncoding, // of color_
 
     extra_channels: Vec<ImageF>,
@@ -102,7 +102,10 @@ impl ImageBundle {
             // JXL_CHECK(color.xsize() != 0 && color.ysize() != 0)
             return Err(StatusCode::GenericError);
         }
-        let md_is_gray = self.metadata.as_ref().is_some_and(|m| m.color_encoding.is_gray());
+        let md_is_gray = self
+            .metadata
+            .as_ref()
+            .is_some_and(|m| m.color_encoding.is_gray());
         if md_is_gray != c_current.is_gray() {
             // JXL_CHECK(metadata_->color_encoding.IsGray() == c_current.IsGray())
             return Err(StatusCode::GenericError);
@@ -121,12 +124,15 @@ impl ImageBundle {
     // -- ALPHA
 
     pub(crate) fn has_alpha(&self) -> bool {
-        self.metadata().is_some_and(|m| m.find(ExtraChannel::Alpha).is_some())
+        self.metadata()
+            .is_some_and(|m| m.find(ExtraChannel::Alpha).is_some())
     }
 
     fn alpha_index(&self) -> Option<usize> {
         let m = self.metadata()?;
-        m.extra_channel_info.iter().position(|e| e.type_ == ExtraChannel::Alpha)
+        m.extra_channel_info
+            .iter()
+            .position(|e| e.type_ == ExtraChannel::Alpha)
     }
 
     /// Translation of `alpha()`.

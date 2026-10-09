@@ -7,7 +7,10 @@
 
 //! Blending of frames and patches.
 
-use super::alpha::{perform_alpha_blending, perform_alpha_blending_rgba, perform_alpha_weighted_add, perform_mul_blending};
+use super::alpha::{
+    perform_alpha_blending, perform_alpha_blending_rgba, perform_alpha_weighted_add,
+    perform_mul_blending,
+};
 use super::dec_patch_dictionary::{PatchBlendMode, PatchBlending};
 use super::frame_header::{BlendMode, FrameHeader, FrameType};
 use super::image_metadata::{ExtraChannel, ExtraChannelInfo};
@@ -15,7 +18,9 @@ use super::image_metadata::{ExtraChannel, ExtraChannelInfo};
 /// Translation of `NeedsBlending()` (on the frame header of the shared
 /// state).
 pub(crate) fn needs_blending(frame_header: &FrameHeader) -> bool {
-    if !(frame_header.frame_type == FrameType::RegularFrame || frame_header.frame_type == FrameType::SkipProgressive) {
+    if !(frame_header.frame_type == FrameType::RegularFrame
+        || frame_header.frame_type == FrameType::SkipProgressive)
+    {
         return false;
     }
     let info = &frame_header.blending_info;
@@ -171,18 +176,37 @@ pub(crate) fn perform_blending(
     } else if mode == PatchBlendMode::AlphaWeightedAddAbove {
         debug_assert!(has_alpha);
         for c in 0..3 {
-            perform_alpha_weighted_add(bg[c], fg[c], fg[3 + alpha], false, &mut tmp[c], xsize, color_blending.clamp);
+            perform_alpha_weighted_add(
+                bg[c],
+                fg[c],
+                fg[3 + alpha],
+                false,
+                &mut tmp[c],
+                xsize,
+                color_blending.clamp,
+            );
         }
     } else if mode == PatchBlendMode::AlphaWeightedAddBelow {
         debug_assert!(has_alpha);
         for c in 0..3 {
-            perform_alpha_weighted_add(fg[c], bg[c], bg[3 + alpha], false, &mut tmp[c], xsize, color_blending.clamp);
+            perform_alpha_weighted_add(
+                fg[c],
+                bg[c],
+                bg[3 + alpha],
+                false,
+                &mut tmp[c],
+                xsize,
+                color_blending.clamp,
+            );
         }
     } else if mode == PatchBlendMode::Mul {
         for p in 0..3 {
             perform_mul_blending(bg[p], fg[p], &mut tmp[p], xsize, color_blending.clamp);
         }
-    } else if mode == PatchBlendMode::Replace || mode == PatchBlendMode::BlendAbove || mode == PatchBlendMode::BlendBelow {
+    } else if mode == PatchBlendMode::Replace
+        || mode == PatchBlendMode::BlendAbove
+        || mode == PatchBlendMode::BlendBelow
+    {
         // kReplace
         for p in 0..3 {
             tmp[p].copy_from_slice(&fg[p][..xsize]);

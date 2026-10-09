@@ -10,7 +10,10 @@
 //! does not use output callbacks.)
 
 use super::ac_strategy::AcStrategy;
-use super::base::{ceil_log2_nonzero_u64, Status, StatusCode, K_DCT_BLOCK_SIZE, K_GROUP_DIM_IN_BLOCKS, K_MAX_NUM_PASSES};
+use super::base::{
+    ceil_log2_nonzero_u64, Status, StatusCode, K_DCT_BLOCK_SIZE, K_GROUP_DIM_IN_BLOCKS,
+    K_MAX_NUM_PASSES,
+};
 use super::blending::needs_blending;
 use super::coeff_order::{K_COEFF_ORDER_OFFSET, K_STRATEGY_ORDER};
 use super::dec_ans::AnsCode;
@@ -34,7 +37,8 @@ use super::render_pipeline::stage_to_linear::get_to_linear_stage;
 use super::render_pipeline::stage_tone_mapping::get_tone_mapping_stage;
 use super::render_pipeline::stage_upsampling::get_upsampling_stage;
 use super::render_pipeline::stage_write::{
-    get_write_to_image3f_stage, get_write_to_image_bundle_stage, get_write_to_u8_stage, ImageBundleTarget,
+    get_write_to_image3f_stage, get_write_to_image_bundle_stage, get_write_to_u8_stage,
+    ImageBundleTarget,
 };
 use super::render_pipeline::stage_xyb::get_xyb_stage;
 use super::render_pipeline::stage_ycbcr::get_ycbcr_stage;
@@ -177,7 +181,10 @@ impl PassesDecoderState {
 
         if fh.loop_filter.epf_iters > 0 {
             let fd = &self.shared_storage.frame_dim;
-            self.sigma = ImageF::new(fd.xsize_blocks + 2 * K_SIGMA_PADDING, fd.ysize_blocks + 2 * K_SIGMA_PADDING)?;
+            self.sigma = ImageF::new(
+                fd.xsize_blocks + 2 * K_SIGMA_PADDING,
+                fd.ysize_blocks + 2 * K_SIGMA_PADDING,
+            )?;
         }
         Ok(())
     }
@@ -192,11 +199,16 @@ impl PassesDecoderState {
                 continue;
             }
             let ord = K_STRATEGY_ORDER[o as usize] as usize;
-            s.coeff_order_size = s.coeff_order_size.max(K_COEFF_ORDER_OFFSET[3 * (ord + 1)] * K_DCT_BLOCK_SIZE);
+            s.coeff_order_size = s
+                .coeff_order_size
+                .max(K_COEFF_ORDER_OFFSET[3 * (ord + 1)] * K_DCT_BLOCK_SIZE);
         }
         let sz = s.frame_header.passes.num_passes as usize * s.coeff_order_size;
         if sz > s.coeff_orders.len() {
-            if s.coeff_orders.try_reserve(sz - s.coeff_orders.len()).is_err() {
+            if s.coeff_orders
+                .try_reserve(sz - s.coeff_orders.len())
+                .is_err()
+            {
                 return Err(StatusCode::GenericError);
             }
             s.coeff_orders.resize(sz, 0);
@@ -205,7 +217,10 @@ impl PassesDecoderState {
     }
 
     /// The context the render pipeline's stages need, besides `decoded`.
-    pub(crate) fn stage_ctx<'a>(&'a mut self, decoded: &'a mut ImageBundle) -> (Option<&'a mut RenderPipeline>, StageCtx<'a>) {
+    pub(crate) fn stage_ctx<'a>(
+        &'a mut self,
+        decoded: &'a mut ImageBundle,
+    ) -> (Option<&'a mut RenderPipeline>, StageCtx<'a>) {
         let PassesDecoderState {
             shared_storage,
             sigma,
@@ -243,7 +258,11 @@ impl PassesDecoderState {
     }
 
     /// Translation of `PreparePipeline()`.
-    pub(crate) fn prepare_pipeline(&mut self, decoded: &mut ImageBundle, options: PipelineOptions) -> Status {
+    pub(crate) fn prepare_pipeline(
+        &mut self,
+        decoded: &mut ImageBundle,
+        options: PipelineOptions,
+    ) -> Status {
         let frame_header = self.shared_storage.frame_header.clone();
         let Some(md) = frame_header.nonserialized_metadata.clone() else {
             return Err(StatusCode::GenericError);
@@ -346,7 +365,9 @@ impl PassesDecoderState {
             ));
         }
         if frame_header.dc_level != 0 {
-            builder.add_stage(get_write_to_image3f_stage(frame_header.dc_level as usize - 1));
+            builder.add_stage(get_write_to_image3f_stage(
+                frame_header.dc_level as usize - 1,
+            ));
         }
 
         if frame_header.can_be_referenced() && frame_header.save_before_color_transform {
@@ -399,7 +420,10 @@ impl PassesDecoderState {
                 ));
             }
 
-            if options.coalescing && frame_header.can_be_referenced() && !frame_header.save_before_color_transform {
+            if options.coalescing
+                && frame_header.can_be_referenced()
+                && !frame_header.save_before_color_transform
+            {
                 if linear {
                     builder.add_stage(get_from_linear_stage(&self.output_encoding_info)?);
                     linear = false;
@@ -449,7 +473,7 @@ impl PassesDecoderState {
                 ));
             }
         }
-        let frame_dim = self.shared_storage.frame_dim.clone();
+        let frame_dim = self.shared_storage.frame_dim;
         self.render_pipeline = None;
         let pipeline = {
             let (_, mut ctx) = self.stage_ctx(decoded);
@@ -487,7 +511,8 @@ impl GroupDecCache {
     /// Translation of `InitOnce()`.
     pub(crate) fn init_once(&mut self, num_passes: usize, used_acs: u32) -> Status {
         if self.num_nzeroes.len() < K_MAX_NUM_PASSES {
-            self.num_nzeroes.resize_with(K_MAX_NUM_PASSES, Image3::empty);
+            self.num_nzeroes
+                .resize_with(K_MAX_NUM_PASSES, Image3::empty);
         }
         for i in 0..num_passes {
             if self.num_nzeroes[i].xsize() == 0 {

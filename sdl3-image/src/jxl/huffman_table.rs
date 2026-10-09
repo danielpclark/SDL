@@ -30,7 +30,13 @@ fn get_next_key(key: i32, len: usize) -> i32 {
 /* Stores code in table[0], table[step], table[2*step], ..., table[end] */
 /* Assumes that end is an integer multiple of step */
 #[inline]
-fn replicate_value(table: &mut [HuffmanCode], base: usize, step: i32, mut end: i32, code: HuffmanCode) {
+fn replicate_value(
+    table: &mut [HuffmanCode],
+    base: usize,
+    step: i32,
+    mut end: i32,
+    code: HuffmanCode,
+) {
     loop {
         end -= step;
         table[base + end as usize] = code;

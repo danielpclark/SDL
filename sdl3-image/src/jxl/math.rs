@@ -94,8 +94,7 @@ pub(crate) fn hwy_nearest_int(v: f32) -> i32 {
     if abs.partial_cmp(&8388608.0f32) != Some(core::cmp::Ordering::Less) {
         // Huge or NaN
         // Check if too large to cast or NaN
-        if abs.partial_cmp(&(i32::MAX as f32)) == Some(core::cmp::Ordering::Greater)
-            || abs.is_nan()
+        if abs.partial_cmp(&(i32::MAX as f32)) == Some(core::cmp::Ordering::Greater) || abs.is_nan()
         {
             return if is_sign { i32::MIN } else { i32::MAX };
         }
@@ -159,7 +158,7 @@ pub(crate) fn fast_log2f(x: f32) -> f32 {
 
     // Range reduction to [-1/3, 1/3] - 3 integer, 2 float ops
     let exp_bits = x_bits.wrapping_sub(0x3f2aaaab); // = 2/3
-    // Shifted exponent = log2; also used to clear mantissa.
+                                                    // Shifted exponent = log2; also used to clear mantissa.
     let exp_shifted = exp_bits >> 23;
     let mantissa = f32::from_bits(x_bits.wrapping_sub(exp_shifted.wrapping_shl(23)) as u32);
     let exp_val = exp_shifted as f32;
@@ -170,9 +169,8 @@ pub(crate) fn fast_log2f(x: f32) -> f32 {
 #[inline]
 pub(crate) fn fast_pow2f(x: f32) -> f32 {
     let floorx = hwy_floor(x);
-    let exp = f32::from_bits(
-        (hwy_convert_to_i32(floorx).wrapping_add(127) as u32).wrapping_shl(23),
-    );
+    let exp =
+        f32::from_bits((hwy_convert_to_i32(floorx).wrapping_add(127) as u32).wrapping_shl(23));
     let frac = x - floorx;
     let mut num = frac + 1.01749063e+01f32;
     num = num * frac + 4.88687798e+01f32;
@@ -214,7 +212,8 @@ pub(crate) fn fast_cosf(x: f32) -> f32 {
     let xs = x_pihalf * 0.25f32;
     let x2 = xs * xs;
     let x4 = x2 * x2;
-    let cosx_prescaling = x4 * 0.06960438f64 as f32 + (x2 * -0.84087373f64 as f32 + 1.68179268f64 as f32);
+    let cosx_prescaling =
+        x4 * 0.06960438f64 as f32 + (x2 * -0.84087373f64 as f32 + 1.68179268f64 as f32);
     // Step 5: angle duplication.
     let cosx_scale1 = cosx_prescaling * cosx_prescaling + -1.414213562f64 as f32;
     let cosx_scale2 = cosx_scale1 * cosx_scale1 + -1.0f32;
@@ -432,8 +431,8 @@ pub(crate) fn cbrtf(x: f32) -> f32 {
     }
 
     let xm_d = xm as f64;
-    let u = (0.492659620528969547 + (0.697570460207922770 - 0.191502161678719066 * xm_d) * xm_d)
-        as f32;
+    let u =
+        (0.492659620528969547 + (0.697570460207922770 - 0.191502161678719066 * xm_d) * xm_d) as f32;
 
     let t2 = u * u * u;
 

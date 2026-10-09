@@ -12,7 +12,9 @@
 
 use super::super::super::base::floor_log2_nonzero_u64;
 use super::super::modular_image::{Channel, Image, PixelType, PixelTypeW};
-use super::super::options::{Predictor, Properties, PropertyVal, K_NUM_MODULAR_PREDICTORS, K_NUM_STATIC_PROPERTIES};
+use super::super::options::{
+    Predictor, Properties, PropertyVal, K_NUM_MODULAR_PREDICTORS, K_NUM_STATIC_PROPERTIES,
+};
 
 pub(crate) mod weighted {
     use super::super::super::super::base::Status;
@@ -56,12 +58,13 @@ pub(crate) mod weighted {
                 visitor.set_default(self);
                 return Ok(());
             }
-            let visit_p = |visitor: &mut dyn Visitor, val: PixelType, p: &mut PixelType| -> Status {
-                let mut up = *p as u32;
-                visitor.bits(5, val as u32, &mut up)?;
-                *p = up as PixelType;
-                Ok(())
-            };
+            let visit_p =
+                |visitor: &mut dyn Visitor, val: PixelType, p: &mut PixelType| -> Status {
+                    let mut up = *p as u32;
+                    visitor.bits(5, val as u32, &mut up)?;
+                    *p = up as PixelType;
+                    Ok(())
+                };
             visit_p(visitor, 16, &mut self.p1c)?;
             visit_p(visitor, 10, &mut self.p2c)?;
             visit_p(visitor, 7, &mut self.p3ca)?;
@@ -121,13 +124,19 @@ pub(crate) mod weighted {
             if shift < 0 {
                 shift = 0;
             }
-            4u32.wrapping_add(maxweight.wrapping_mul(self.divlookup[(x >> shift) as usize]) >> shift)
+            4u32.wrapping_add(
+                maxweight.wrapping_mul(self.divlookup[(x >> shift) as usize]) >> shift,
+            )
         }
 
         // Approximates the weighted average of the input values with the given
         // weights, avoiding division. Weights must sum to at least 16.
         #[inline]
-        pub(crate) fn weighted_average(&self, p: &[PixelTypeW; K_NUM_PREDICTORS], mut w: [u32; K_NUM_PREDICTORS]) -> PixelTypeW {
+        pub(crate) fn weighted_average(
+            &self,
+            p: &[PixelTypeW; K_NUM_PREDICTORS],
+            mut w: [u32; K_NUM_PREDICTORS],
+        ) -> PixelTypeW {
             let mut weight_sum: u32 = 0;
             for &wi in w.iter() {
                 weight_sum = weight_sum.wrapping_add(wi);
@@ -183,7 +192,11 @@ pub(crate) mod weighted {
             let nw = add_bits(nw);
             let nn = add_bits(nn);
 
-            let te_w: PixelTypeW = if x == 0 { 0 } else { self.error[cur_row + x - 1] as i64 };
+            let te_w: PixelTypeW = if x == 0 {
+                0
+            } else {
+                self.error[cur_row + x - 1] as i64
+            };
             let te_n: PixelTypeW = self.error[pos_n] as i64;
             let te_nw: PixelTypeW = self.error[pos_nw] as i64;
             let sum_wn: PixelTypeW = te_n.wrapping_add(te_w);
@@ -205,8 +218,10 @@ pub(crate) mod weighted {
 
             let h = &self.header;
             self.prediction[0] = w.wrapping_add(ne).wrapping_sub(n);
-            self.prediction[1] = n.wrapping_sub(sum_wn.wrapping_add(te_ne).wrapping_mul(h.p1c as i64) >> 5);
-            self.prediction[2] = w.wrapping_sub(sum_wn.wrapping_add(te_nw).wrapping_mul(h.p2c as i64) >> 5);
+            self.prediction[1] =
+                n.wrapping_sub(sum_wn.wrapping_add(te_ne).wrapping_mul(h.p1c as i64) >> 5);
+            self.prediction[2] =
+                w.wrapping_sub(sum_wn.wrapping_add(te_nw).wrapping_mul(h.p2c as i64) >> 5);
             self.prediction[3] = n.wrapping_sub(
                 te_nw
                     .wrapping_mul(h.p3ca as i64)
@@ -239,7 +254,9 @@ pub(crate) mod weighted {
             let val = add_bits(val);
             self.error[cur_row + x] = self.pred.wrapping_sub(val) as i32;
             for i in 0..K_NUM_PREDICTORS {
-                let err: PixelTypeW = (self.prediction[i].wrapping_sub(val).wrapping_abs()
+                let err: PixelTypeW = (self.prediction[i]
+                    .wrapping_sub(val)
+                    .wrapping_abs()
                     .wrapping_add(K_PREDICTION_ROUND))
                     >> K_PRED_EXTRA_BITS;
                 // For predicting in the next row.
@@ -321,7 +338,8 @@ impl<'a> MaTreeLookup<'a> {
 }
 
 pub(crate) const K_EXTRA_PROPS_PER_CHANNEL: usize = 4;
-pub(crate) const K_NUM_NONREF_PROPERTIES: usize = K_NUM_STATIC_PROPERTIES + 13 + weighted::K_NUM_PROPERTIES;
+pub(crate) const K_NUM_NONREF_PROPERTIES: usize =
+    K_NUM_STATIC_PROPERTIES + 13 + weighted::K_NUM_PROPERTIES;
 
 pub(crate) const K_WP_PROP: usize = K_NUM_NONREF_PROPERTIES - weighted::K_NUM_PROPERTIES;
 pub(crate) const K_GRADIENT_PROP: usize = 9;
@@ -363,7 +381,13 @@ pub(crate) fn select(a: PixelTypeW, b: PixelTypeW, c: PixelTypeW) -> PixelTypeW 
 }
 
 /// Translation of `PrecomputeReferences()`.
-pub(crate) fn precompute_references(ch: &Channel, y: usize, image: &Image, i: u32, references: &mut Channel) {
+pub(crate) fn precompute_references(
+    ch: &Channel,
+    y: usize,
+    image: &Image,
+    i: u32,
+    references: &mut Channel,
+) {
     super::super::super::image::zero_fill_image(&mut references.plane);
     let mut offset: u32 = 0;
     let num_extra_props = references.w;
@@ -386,7 +410,11 @@ pub(crate) fn precompute_references(ch: &Channel, y: usize, image: &Image, i: u3
             rdata[rp + 1] = v as PixelType;
             let vleft: PixelTypeW = if x != 0 { rpp[x - 1] as i64 } else { 0 };
             let vtop: PixelTypeW = if y != 0 { rpprev[x] as i64 } else { vleft };
-            let vtopleft: PixelTypeW = if x != 0 && y != 0 { rpprev[x - 1] as i64 } else { vleft };
+            let vtopleft: PixelTypeW = if x != 0 && y != 0 {
+                rpprev[x - 1] as i64
+            } else {
+                vleft
+            };
             let vpredicted = clamped_gradient(vleft as i32, vtop as i32, vtopleft as i32) as i64;
             rdata[rp + 2] = v.wrapping_sub(vpredicted).wrapping_abs() as PixelType;
             rdata[rp + 3] = v.wrapping_sub(vpredicted) as PixelType;
@@ -409,7 +437,11 @@ pub(crate) struct PredictionResult {
 
 /// Translation of `InitPropsRow()`.
 #[inline]
-pub(crate) fn init_props_row(p: &mut Properties, static_props: &[PixelType; K_NUM_STATIC_PROPERTIES], y: i32) {
+pub(crate) fn init_props_row(
+    p: &mut Properties,
+    static_props: &[PixelType; K_NUM_STATIC_PROPERTIES],
+    y: i32,
+) {
     for i in 0..K_NUM_STATIC_PROPERTIES {
         p[i] = static_props[i];
     }
@@ -500,11 +532,27 @@ pub(crate) mod detail {
             0
         };
         let top: PixelTypeW = if nec || y != 0 { at(-onerow) } else { left };
-        let topleft: PixelTypeW = if nec || (x != 0 && y != 0) { at(-1 - onerow) } else { left };
-        let topright: PixelTypeW = if nec || (x + 1 < w && y != 0) { at(1 - onerow) } else { top };
+        let topleft: PixelTypeW = if nec || (x != 0 && y != 0) {
+            at(-1 - onerow)
+        } else {
+            left
+        };
+        let topright: PixelTypeW = if nec || (x + 1 < w && y != 0) {
+            at(1 - onerow)
+        } else {
+            top
+        };
         let leftleft: PixelTypeW = if nec || x > 1 { at(-2) } else { left };
-        let toptop: PixelTypeW = if nec || y > 1 { at(-onerow - onerow) } else { top };
-        let toprightright: PixelTypeW = if nec || (x + 2 < w && y != 0) { at(2 - onerow) } else { topright };
+        let toptop: PixelTypeW = if nec || y > 1 {
+            at(-onerow - onerow)
+        } else {
+            top
+        };
+        let toprightright: PixelTypeW = if nec || (x + 2 < w && y != 0) {
+            at(2 - onerow)
+        } else {
+            topright
+        };
 
         if compute_properties {
             // location
@@ -612,7 +660,9 @@ pub(crate) fn predict_no_tree_no_wp(
     predictor: Predictor,
 ) -> PredictionResult {
     let mut p = Properties::new();
-    detail::predict::<0>(&mut p, w, data, pos, onerow, x, y, predictor, None, None, None, None)
+    detail::predict::<0>(
+        &mut p, w, data, pos, onerow, x, y, predictor, None, None, None, None,
+    )
 }
 
 /// Translation of `PredictNoTreeWP()`.
@@ -629,7 +679,20 @@ pub(crate) fn predict_no_tree_wp(
     wp_state: &mut weighted::State,
 ) -> PredictionResult {
     let mut p = Properties::new();
-    detail::predict::<{ detail::K_USE_WP }>(&mut p, w, data, pos, onerow, x, y, predictor, None, None, Some(wp_state), None)
+    detail::predict::<{ detail::K_USE_WP }>(
+        &mut p,
+        w,
+        data,
+        pos,
+        onerow,
+        x,
+        y,
+        predictor,
+        None,
+        None,
+        Some(wp_state),
+        None,
+    )
 }
 
 /// Translation of `PredictTreeNoWP()`.

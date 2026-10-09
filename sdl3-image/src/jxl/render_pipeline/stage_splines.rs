@@ -37,7 +37,9 @@ impl RenderPipelineStage for SplineStage {
         let mut row_b = rows.load(pb, 0, xsize);
         {
             let mut r: [&mut [f32]; 3] = [&mut row_x, &mut row_y, &mut row_b];
-            ctx.image_features.splines.add_to_row(&mut r, xpos, ypos, xsize);
+            ctx.image_features
+                .splines
+                .add_to_row(&mut r, xpos, ypos, xsize);
         }
         rows.store(px, 0, &row_x);
         rows.store(py, 0, &row_y);

@@ -395,7 +395,12 @@ fn afv_idct_4x4(coeffs: &[f32], pixels: &mut [f32]) {
 }
 
 /// Translation of `AFVTransformToPixels<afv_kind>()`.
-fn afv_transform_to_pixels(afv_kind: usize, coefficients: &[f32], pixels: &mut [f32], pixels_stride: usize) {
+fn afv_transform_to_pixels(
+    afv_kind: usize,
+    coefficients: &[f32],
+    pixels: &mut [f32],
+    pixels_stride: usize,
+) {
     let mut scratch_space = [0f32; 4 * 8];
     let afv_x = afv_kind & 1;
     let afv_y = afv_kind / 2;
@@ -422,7 +427,8 @@ fn afv_transform_to_pixels(afv_kind: usize, coefficients: &[f32], pixels: &mut [
     for iy in 0..4 {
         for ix in 0..4 {
             pixels[(iy + afv_y * 4) * pixels_stride + afv_x * 4 + ix] =
-                block[(if afv_y == 1 { 3 - iy } else { iy }) * 4 + (if afv_x == 1 { 3 - ix } else { ix })];
+                block[(if afv_y == 1 { 3 - iy } else { iy }) * 4
+                    + (if afv_x == 1 { 3 - ix } else { ix })];
         }
     }
     // IDCT4x4 in (odd, even) positions.
@@ -495,7 +501,8 @@ pub(crate) fn transform_to_pixels(
                             residual_sum += coefficients[(y + iy * 2) * 8 + x + ix * 2];
                         }
                     }
-                    pixels[(4 * y + 1) * pixels_stride + 4 * x + 1] = block_dc - residual_sum * (1.0f32 / 16.0);
+                    pixels[(4 * y + 1) * pixels_stride + 4 * x + 1] =
+                        block_dc - residual_sum * (1.0f32 / 16.0);
                     for iy in 0..4 {
                         for ix in 0..4 {
                             if ix == 1 && iy == 1 {
@@ -506,8 +513,8 @@ pub(crate) fn transform_to_pixels(
                                 + pixels[(4 * y + 1) * pixels_stride + 4 * x + 1];
                         }
                     }
-                    pixels[y * 4 * pixels_stride + x * 4] =
-                        coefficients[(y + 2) * 8 + x + 2] + pixels[(4 * y + 1) * pixels_stride + 4 * x + 1];
+                    pixels[y * 4 * pixels_stride + x * 4] = coefficients[(y + 2) * 8 + x + 2]
+                        + pixels[(4 * y + 1) * pixels_stride + 4 * x + 1];
                 }
             }
         }
@@ -589,7 +596,10 @@ pub(crate) fn transform_to_pixels(
                         4,
                         4,
                         &mut block,
-                        &mut DctTo::new(&mut pixels[y * 4 * pixels_stride + x * 4..], pixels_stride),
+                        &mut DctTo::new(
+                            &mut pixels[y * 4 * pixels_stride + x * 4..],
+                            pixels_stride,
+                        ),
                         scratch_space,
                     );
                 }
@@ -649,7 +659,12 @@ pub(crate) fn transform_to_pixels(
 
 /// The lowest frequencies of a block of the given strategy, from its DC
 /// samples. Translation of `LowestFrequenciesFromDC()`.
-pub(crate) fn lowest_frequencies_from_dc(strategy: u8, dc: &[f32], dc_stride: usize, llf: &mut [f32]) {
+pub(crate) fn lowest_frequencies_from_dc(
+    strategy: u8,
+    dc: &[f32],
+    dc_stride: usize,
+    llf: &mut [f32],
+) {
     // (DCT_ROWS, DCT_COLS, ROWS, COLS, output stride)
     let p = match strategy {
         Type::DCT16X8 => (2 * K_BLOCK_DIM, K_BLOCK_DIM, 2, 1, 2 * K_BLOCK_DIM),

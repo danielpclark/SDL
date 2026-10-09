@@ -62,7 +62,10 @@ impl RenderPipelineStage for SpotColorStage {
 }
 
 /// Translation of `GetSpotColorStage()`.
-pub(crate) fn get_spot_color_stage(spot_c: usize, spot_color: [f32; 4]) -> Box<dyn RenderPipelineStage> {
+pub(crate) fn get_spot_color_stage(
+    spot_c: usize,
+    spot_color: [f32; 4],
+) -> Box<dyn RenderPipelineStage> {
     debug_assert!(spot_c >= 3);
     Box::new(SpotColorStage { spot_c, spot_color })
 }

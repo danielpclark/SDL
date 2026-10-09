@@ -266,5 +266,7 @@ impl RenderPipelineStage for ConvolveNoiseStage {
 
 /// Translation of `GetConvolveNoiseStage()`.
 pub(crate) fn get_convolve_noise_stage(noise_c_start: usize) -> Box<dyn RenderPipelineStage> {
-    Box::new(ConvolveNoiseStage { first_c: noise_c_start })
+    Box::new(ConvolveNoiseStage {
+        first_c: noise_c_start,
+    })
 }

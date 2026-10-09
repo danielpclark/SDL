@@ -5,6 +5,28 @@
 //! JPEG XL images: the detector and the loader, over the translation of
 //! libjxl's decoder in `jxl/`.
 
+// (the translation of libjxl keeps the helpers SDL_image's decoding doesn't
+// call, upstream's constants as written (the float literals, and the
+// approximations of pi, ln 2 and the square roots), and its loops over
+// indices, argument lists, late initializations, assertions on constants
+// and explicit arithmetic as they are)
+#![allow(
+    dead_code,
+    clippy::approx_constant,
+    clippy::assertions_on_constants,
+    clippy::assign_op_pattern,
+    clippy::collapsible_if,
+    clippy::excessive_precision,
+    clippy::explicit_counter_loop,
+    clippy::implicit_saturating_sub,
+    clippy::manual_div_ceil,
+    clippy::manual_is_multiple_of,
+    clippy::manual_memcpy,
+    clippy::needless_late_init,
+    clippy::needless_range_loop,
+    clippy::too_many_arguments
+)]
+
 mod ac_context;
 mod ac_strategy;
 mod alpha;
@@ -14,7 +36,6 @@ mod blending;
 mod chroma_from_luma;
 mod coeff_order;
 mod color_encoding_internal;
-#[allow(dead_code)]
 mod color_management;
 mod compressed_dc;
 mod dct;
@@ -62,8 +83,8 @@ use sdl3::video::Surface;
 
 use crate::util::read_ok;
 use decode::{
-    JxlBasicInfo, JxlDataType, JxlDecoder, JxlDecoderStatus, JxlEndianness, JxlPixelFormat, JXL_DEC_BASIC_INFO,
-    JXL_DEC_FULL_IMAGE,
+    JxlBasicInfo, JxlDataType, JxlDecoder, JxlDecoderStatus, JxlEndianness, JxlPixelFormat,
+    JXL_DEC_BASIC_INFO, JXL_DEC_FULL_IMAGE,
 };
 
 /* See if an image is contained in a data source */
@@ -94,10 +115,10 @@ pub fn is_jxl(src: &mut IoStream<'_>) -> bool {
 
 /* Load a JXL type image from an SDL datasource */
 
-/// Load a JPEG XL image (the last frame of an animation) as an RGBA32
-/// surface. Translation of `IMG_LoadJXL_IO()`; on failure the stream is
-/// rewound to where it was.
-pub(crate) fn load_jxl_io(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
+/// Load a JPEG XL image (the last frame of an animation) from `src` as an
+/// RGBA32 surface, its orientation undone. Translation of
+/// `IMG_LoadJXL_IO()`; on failure the stream is rewound to where it was.
+pub fn load_jxl_io(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
     let start = src.tell().unwrap_or(-1);
 
     // (IMG_InitJXL(): nothing to load)
@@ -120,7 +141,9 @@ fn load_jxl_io_internal(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
         align: 0,
     };
 
-    if decoder.subscribe_events(JXL_DEC_BASIC_INFO | JXL_DEC_FULL_IMAGE) != JxlDecoderStatus::Success {
+    if decoder.subscribe_events(JXL_DEC_BASIC_INFO | JXL_DEC_FULL_IMAGE)
+        != JxlDecoderStatus::Success
+    {
         return Err(Error::new("Couldn't subscribe to JXL events"));
     }
 
@@ -149,7 +172,9 @@ fn load_jxl_io_internal(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
             }
             JxlDecoderStatus::NeedImageOutBuffer => {
                 let mut outputsize: usize = 0;
-                if decoder.image_out_buffer_size(&format, &mut outputsize) != JxlDecoderStatus::Success {
+                if decoder.image_out_buffer_size(&format, &mut outputsize)
+                    != JxlDecoderStatus::Success
+                {
                     return Err(Error::new("Couldn't get JXL image size"));
                 }
                 if info.xsize == 0 || info.ysize == 0 {
@@ -178,11 +203,18 @@ fn load_jxl_io_internal(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
             }
             JxlDecoderStatus::Success => {
                 /* All done! */
-                let pixels = if have_pixels { decoder.take_image_out_buffer() } else { None };
+                let pixels = if have_pixels {
+                    decoder.take_image_out_buffer()
+                } else {
+                    None
+                };
                 return create_surface_from(info.xsize as i32, info.ysize as i32, pixels, pitch);
             }
             other => {
-                return Err(Error::new(format!("Unknown JXL decoding status: {}", other.value())));
+                return Err(Error::new(format!(
+                    "Unknown JXL decoding status: {}",
+                    other.value()
+                )));
             }
         }
     }
@@ -190,7 +222,12 @@ fn load_jxl_io_internal(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
 
 /// `SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, pixels, pitch)`,
 /// with the surface taking over the pixels (copied into a new surface).
-fn create_surface_from(w: i32, h: i32, pixels: Option<Vec<u8>>, pitch: usize) -> Result<Surface<'static>> {
+fn create_surface_from(
+    w: i32,
+    h: i32,
+    pixels: Option<Vec<u8>>,
+    pitch: usize,
+) -> Result<Surface<'static>> {
     let mut surface = Surface::new(w, h, PixelFormat::RGBA32)?;
     let Some(pixels) = pixels else {
         // (SDL_CreateSurfaceFrom() with NULL pixels: an empty surface)

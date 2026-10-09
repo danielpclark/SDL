@@ -104,7 +104,11 @@ fn read_huffman_code_lengths(
 
 /// Translation of `ReadSimpleCode()`.
 #[inline]
-fn read_simple_code(alphabet_size: usize, br: &mut BitReader<'_>, table: &mut [HuffmanCode]) -> bool {
+fn read_simple_code(
+    alphabet_size: usize,
+    br: &mut BitReader<'_>,
+    table: &mut [HuffmanCode],
+) -> bool {
     let max_bits = if alphabet_size > 1 {
         floor_log2_nonzero_u64(alphabet_size as u64 - 1) + 1
     } else {
@@ -208,7 +212,11 @@ impl HuffmanDecodingData {
     /// pre-allocated table with the corresponding 2-level Huffman decoding
     /// table. Returns false if the Huffman code lengths can not de decoded.
     /// Translation of `ReadFromBitStream()`.
-    pub(crate) fn read_from_bit_stream(&mut self, alphabet_size: usize, br: &mut BitReader<'_>) -> bool {
+    pub(crate) fn read_from_bit_stream(
+        &mut self,
+        alphabet_size: usize,
+        br: &mut BitReader<'_>,
+    ) -> bool {
         if alphabet_size > (1 << PREFIX_MAX_BITS) {
             return false;
         }
@@ -218,7 +226,8 @@ impl HuffmanDecodingData {
         0 for no skipping, 2 skips 2 code lengths, 3 skips 3 code lengths */
         let simple_code_or_skip = br.read_fixed_bits::<2>() as u32;
         if simple_code_or_skip == 1 {
-            self.table.resize(1 << K_HUFFMAN_TABLE_BITS, HuffmanCode::default());
+            self.table
+                .resize(1 << K_HUFFMAN_TABLE_BITS, HuffmanCode::default());
             return read_simple_code(alphabet_size, br, &mut self.table);
         }
 
