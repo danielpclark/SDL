@@ -99,9 +99,9 @@ In dependency order, after the core each one needs exists:
    libpng and libjpeg are replaced by stb_image as upstream's
    stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
-   **Part 1 done** (`sdl3-ttf`, SDL_ttf 3.2.2 with its bundled FreeType
-   2.13.2, without HarfBuzz and PlutoSVG): all of `SDL_ttf.c` outside its
-   HarfBuzz paths (fonts, sizes, styles, outlines, hinting, kerning,
+   **Done** (`sdl3-ttf`, SDL_ttf 3.2.2 with its bundled FreeType
+   2.13.2 and HarfBuzz 8.5.0, without PlutoSVG): all of `SDL_ttf.c`
+   (fonts, sizes, styles, outlines, hinting, kerning, text shaping,
    metrics, fallback fonts, measuring, wrapping, rendering in every mode,
    glyph images, text objects), the surface, renderer (with
    `stb_rect_pack.h`) and GPU text engines, and the FreeType modules for
@@ -114,6 +114,28 @@ In dependency order, after the core each one needs exists:
    writing systems), `smooth`, `raster`, `sdf` (signed distance fields
    from outlines and bitmaps) and `gzip` (with its zlib). The
    FreeType License (`sdl3-ttf/FTL.TXT`) applies to `src/freetype/`.
+   **Part 2 done**: HarfBuzz as SDL_ttf's build compiles it
+   (`src/harfbuzz/`, under HarfBuzz's Old MIT license in
+   `sdl3-ttf/HARFBUZZ-COPYING`, its Unicode data tables under the Unicode
+   License V3): the buffer, the UCD Unicode functions, the OpenType
+   layout engine (GSUB, GPOS, GDEF, feature variations, the `kern`
+   table), script/language tags and feature selection, the OpenType
+   shaper with every shaper it selects (default, Arabic with fallback
+   shaping, Hebrew, Indic, Khmer, Myanmar and Zawgyi, Thai/Lao, Hangul,
+   USE) with normalization and fallback positioning, and `hb-ft`; the
+   generated tables come from HarfBuzz's via
+   `tools/gen_harfbuzz_tables.py`. SDL_ttf's `TTF_USE_HARFBUZZ` paths are
+   on, as upstream's default build has them (font and text direction,
+   script and language, `TTF_GetGlyphScript`). Checked against upstream
+   (SDL_ttf with HarfBuzz, and HarfBuzz itself on FreeType) on subsets of
+   Noto fonts: shaped glyphs and positions, rendered surfaces and text
+   layouts for Latin ligatures and kerning, Arabic, Hebrew, mixed
+   direction, Devanagari, Thai, Hangul, Khmer, Myanmar and Sinhala, and
+   fonts with corrupted or truncated GSUB/GPOS/GDEF; HarfBuzz alone was
+   also checked on more fonts and scripts (the other Indic scripts,
+   Tibetan, Balinese, Javanese, Mongolian, N'Ko, Syriac, Tai Tham,
+   Tifinagh, Lao), and on byte flips of every layout-table byte of the
+   test fonts.
    Checked against upstream's C (built the same way) on subsets of DejaVu
    fonts made by `tools/gen_sdl_ttf_testdata.py` (and CFF, CFF2 and
    bare CFF versions of one, hinted by the AFDKO's otfautohint): metrics, every render and
@@ -121,7 +143,8 @@ In dependency order, after the core each one needs exists:
    drawn by the three engines (the GPU one on a Vulkan device), and truncated fonts and
    fonts with flipped bytes; FreeType alone was also checked against
    upstream's on more fonts and scripts, and on every truncation and byte
-   flip of two small fonts. Not yet: HarfBuzz (part 2), and FreeType's other
+   flip of two small fonts. Not yet: HarfBuzz's AAT layout (`morx`,
+   `kerx`, `trak`) and state-machine `kern` subtables, and FreeType's other
    font drivers (`type1`, `cid`, `type42`, `pfr`, `winfnt`, `pcf`, `bdf`,
    with the Type 1 parts of `psaux`, the hinter of `pshinter` that only
    their old interpreters use, and `lzw`) and its `svg` renderer (which

@@ -889,5 +889,10 @@ either of two licenses:
 
 The test fonts in sdl3-ttf/src/testdata/fonts/ are subsets of DejaVu fonts
 (https://dejavu-fonts.github.io/, derived from the Bitstream Vera and Arev
-fonts) under their own license, in sdl3-ttf/src/testdata/fonts/LICENSE.
-They are only test data, not part of the library.
+fonts) under their own license, in sdl3-ttf/src/testdata/fonts/LICENSE,
+and (the Noto*.ttf and Noto*.otf files) subsets of Noto fonts
+(https://notofonts.github.io/; Noto Sans KR from
+https://github.com/notofonts/noto-cjk) under the SIL Open Font License
+1.1, whose text and the fonts' copyright notices are in
+sdl3-ttf/src/testdata/fonts/OFL.txt. They are only test data, not part of
+the library.

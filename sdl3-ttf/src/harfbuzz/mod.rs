@@ -13,6 +13,30 @@
 //! only, and the FreeType integration (`hb-ft`), with `HB_NO_BEYOND_64K`,
 //! `HB_NO_CUBIC_GLYF` and `HB_NO_VAR_COMPOSITES`.
 //!
+//! Translated: the buffer, the Unicode functions and their tables, the
+//! OpenType font tables the shaper reads, the layout engine (GSUB, GPOS,
+//! GDEF, feature variations, the `kern` table and its formats 0, 2 and
+//! 3), the tags, the shape plans and the shaping pipeline (normalization,
+//! fallback mark positioning, spacing and kerning), every shaper of the
+//! OpenType shaper's selection (default and dumber, Arabic with its
+//! fallback shaping and the Syriac/Mongolian/N'Ko joining scripts, Hebrew,
+//! Indic, Khmer, Myanmar and Myanmar Zawgyi, Thai and Lao, Hangul, the
+//! Universal Shaping Engine, with the syllable machines and vowel
+//! constraints) and `hb-ft`'s font functions. The tables HarfBuzz
+//! generates (UCD, tags, Arabic joining, Indic, USE, the Ragel machines)
+//! are generated from HarfBuzz's by `tools/gen_harfbuzz_tables.py`.
+//!
+//! Not translated: the AAT layout (`morx`, `kerx`, `trak`, `ankr`; those
+//! tables are treated as absent) and the state-machine `kern` subtables
+//! (format 1, skipped), the Windows-1256 Arabic fallback that C only
+//! builds on Windows, the `HB_OPTIONS` environment variable (its
+//! `uniscribe-bug-compatible` option is always off), and the parts of
+//! HarfBuzz SDL_ttf does not use (other shapers than `ot`, the
+//! subsetter, drawing and painting, the public C API beyond what
+//! SDL_ttf calls, debug messages). The lookup accelerators' digests and
+//! caches, which only skip work whose result is unchanged, are not
+//! translated either.
+//!
 //! The translation keeps HarfBuzz's file layout (one Rust module per C++
 //! source file, `hb-ot-layout-gsub.hh` becoming `hb_ot_layout_gsub.rs`),
 //! function order and comments where practical; the C++ identifiers are

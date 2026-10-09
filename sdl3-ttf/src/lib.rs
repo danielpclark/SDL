@@ -6,11 +6,11 @@
 //!
 //! The pure-Rust translation of [SDL_ttf](https://github.com/libsdl-org/SDL_ttf)
 //! 3 (release 3.2.2), the TrueType font rendering library for SDL3,
-//! together with the FreeType it bundles (2.13.2). No C code is built,
-//! linked or loaded.
+//! together with the FreeType (2.13.2) and HarfBuzz (8.5.0) it bundles.
+//! No C or C++ code is built, linked or loaded.
 //!
-//! Translated: `SDL_ttf.c` as upstream builds it with its bundled
-//! FreeType and without HarfBuzz and PlutoSVG: fonts from files and
+//! Translated: `SDL_ttf.c` as upstream builds it by default, with its
+//! bundled FreeType and HarfBuzz and without PlutoSVG: fonts from files and
 //! streams (TrueType, OpenType with TrueType or CFF outlines, CFF2 and
 //! bare CFF fonts, collections, WOFF, variable fonts), sizes and DPI,
 //! styles, outlines, hinting (the TrueType bytecode interpreter, Adobe's
@@ -23,11 +23,19 @@
 //! and stroker APIs), `sfnt`, `truetype`, `cff`, `psaux` (its CFF parts
 //! and the Adobe CFF engine), `pshinter` (its global hints), `psnames`,
 //! `autofit`, `smooth`, `raster`, `sdf` (signed distance fields, from
-//! outlines and bitmaps) and `gzip` (with its zlib).
+//! outlines and bitmaps) and `gzip` (with its zlib). Of HarfBuzz, what
+//! SDL_ttf's build compiles and uses for text shaping (the font's or
+//! text's direction, script and language, [`glyph_script`]): the buffer,
+//! its own Unicode functions (the UCD tables), the OpenType layout engine
+//! (GSUB, GPOS, GDEF, the `kern` table, feature and language selection),
+//! the OpenType shaper with all its shapers (default, Arabic with its
+//! fallback shaping, Hebrew, Indic, Khmer, Myanmar and Zawgyi, Thai and
+//! Lao, Hangul, and the Universal Shaping Engine) and fallback mark
+//! positioning and kerning, and the FreeType integration (`hb-ft`).
 //!
-//! Not translated yet: the HarfBuzz paths (part 2: HarfBuzz; without them
-//! text is laid out left to right, and setting a script or language is
-//! unsupported, as in such a C build), and FreeType's other modules: the
+//! Not translated yet: HarfBuzz's AAT layout (`morx`, `kerx`, `trak`
+//! tables, treated as absent) and the state-machine `kern` subtables
+//! (format 1, which are skipped), and FreeType's other modules: the
 //! drivers of the other font formats (`type1`, `cid`, `type42`, `pfr`,
 //! `winfnt`, `pcf`, `bdf`, with the Type 1 parts of `psaux`, the hinter of
 //! `pshinter`, which only their old interpreters use, and `lzw`) and the
