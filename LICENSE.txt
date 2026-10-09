@@ -512,6 +512,42 @@ CCITT Group 3 and 4 codec): its decoder support is derived, with permission,
 from the code in Frank Cringle's viewfax program;
      Copyright (C) 1990, 1995  Frank D. Cringle.
 
+sdl3-image/src/dav1d/ is a translation of dav1d
+(https://code.videolan.org/videolan/dav1d), at the revision SDL_image's
+external/dav1d pins (dav1d 1.2.1), the AV1 decoder SDL_image's libavif
+uses, an altered version of that software, distributed under dav1d's
+license, whose text (dav1d's COPYING, verbatim) follows. The individual
+files carry the copyright lines of the dav1d files they translate (some
+also name Two Orioles, LLC or Niklas Haas, under the same license).
+
+--- dav1d COPYING ---
+
+Copyright © 2018-2019, VideoLAN and dav1d authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+--- end of dav1d COPYING ---
+
 --------------------------------------------------------------------------------
 
 sdl3-net/ is a translation of SDL_net 3.x,

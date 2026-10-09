@@ -94,8 +94,13 @@ In dependency order, after the core each one needs exists:
    and `IMG_gpu.c` (GPU textures through a copy pass); checked against
    upstream's C on its test images and synthetic ones (detection, loading,
    truncated and corrupted input, saving, animation decoding and encoding).
-   Not yet: the formats that need a large library: the AVIF and JPEG XL
-   decoders, and the APNG and AVIF animation decoders and encoders;
+   AVIF's AV1 decoder is done: a translation of dav1d 1.2.1 (the
+   revision SDL_image's external/dav1d pins; plain-C paths, one thread,
+   a frame delay of one), bit-exact with dav1d's C on AV1 streams from
+   libaom, SVT-AV1 and rav1e and their truncated and corrupted variants.
+   Not yet: the formats that need a large library: the AVIF (libavif on
+   top of the dav1d translation) and JPEG XL decoders, and the APNG and
+   AVIF animation decoders and encoders;
    libpng and libjpeg are replaced by stb_image as upstream's
    stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
