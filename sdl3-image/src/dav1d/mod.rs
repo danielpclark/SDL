@@ -13,12 +13,17 @@
 // they are)
 #![allow(
     dead_code,
+    clippy::absurd_extreme_comparisons,
     clippy::collapsible_else_if,
     clippy::collapsible_if,
     clippy::derivable_impls,
+    clippy::erasing_op,
+    clippy::explicit_counter_loop,
     clippy::identity_op,
     clippy::int_plus_one,
+    clippy::manual_is_multiple_of,
     clippy::manual_range_contains,
+    clippy::misrefactored_assign_op,
     clippy::needless_late_init,
     clippy::needless_range_loop,
     clippy::precedence,
@@ -27,12 +32,17 @@
 
 mod bitdepth;
 mod cdef;
+mod cdef_apply;
 mod cdf;
 mod data;
+mod decode;
 mod dequant_tables;
 mod env;
+mod fg_apply;
+mod filmgrain;
 mod getbits;
 mod headers;
+mod internal;
 mod intops;
 mod intra_edge;
 mod ipred;
@@ -40,13 +50,17 @@ mod ipred_prepare;
 mod itx;
 mod itx_1d;
 mod levels;
+mod lf_apply;
 mod lf_mask;
 mod loopfilter;
 mod looprestoration;
+mod lr_apply;
+mod mc;
 mod mem;
 mod msac;
 mod picture;
 mod qm;
+mod recon;
 mod refmvs;
 mod scan;
 mod tables;

@@ -18,6 +18,7 @@
 
 use std::fmt::Debug;
 
+use super::internal::{FramePixBufs, FramePx, TaskPixScratch, TaskPx};
 use super::picture::{PicPlanes, PictureData};
 
 /// A pixel type: `u8` for the 8 bpc template, `u16` for the 16 bpc one.
@@ -40,6 +41,10 @@ pub(crate) trait Pixel: Copy + Default + PartialEq + Debug + Send + Sync + 'stat
 
     fn planes(p: &PictureData) -> &[Vec<Self>; 3];
     fn planes_mut(p: &mut PictureData) -> &mut [Vec<Self>; 3];
+
+    fn frame_px(p: &FramePx) -> &FramePixBufs<Self>;
+    fn frame_px_mut(p: &mut FramePx) -> &mut FramePixBufs<Self>;
+    fn task_px(p: &mut TaskPx) -> &mut TaskPixScratch<Self>;
 }
 
 impl Pixel for u8 {
@@ -76,6 +81,16 @@ impl Pixel for u8 {
             PicPlanes::U16(_) => unreachable!("8 bpc template on a 16 bpc picture"),
         }
     }
+
+    fn frame_px(p: &FramePx) -> &FramePixBufs<u8> {
+        &p.b8
+    }
+    fn frame_px_mut(p: &mut FramePx) -> &mut FramePixBufs<u8> {
+        &mut p.b8
+    }
+    fn task_px(p: &mut TaskPx) -> &mut TaskPixScratch<u8> {
+        &mut p.b8
+    }
 }
 
 impl Pixel for u16 {
@@ -111,6 +126,16 @@ impl Pixel for u16 {
             PicPlanes::U16(p) => p,
             PicPlanes::U8(_) => unreachable!("16 bpc template on an 8 bpc picture"),
         }
+    }
+
+    fn frame_px(p: &FramePx) -> &FramePixBufs<u16> {
+        &p.b16
+    }
+    fn frame_px_mut(p: &mut FramePx) -> &mut FramePixBufs<u16> {
+        &mut p.b16
+    }
+    fn task_px(p: &mut TaskPx) -> &mut TaskPixScratch<u16> {
+        &mut p.b16
     }
 }
 
