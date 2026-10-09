@@ -382,6 +382,77 @@ void main()
 }
 ''')
 
+shader('cs_layout', 'comp', '''
+#version 450
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+struct Item {
+    vec3 position;
+    float weight;
+    mat3x4 frame;
+    uint tags[3];
+};
+layout(set = 0, binding = 0) uniform sampler2DArray layers;
+layout(set = 0, binding = 1, std430) readonly buffer Source {
+    Item items[];
+} source;
+layout(set = 1, binding = 0, std430, row_major) buffer Destination {
+    Item best;
+    Item items[];
+} destination;
+layout(set = 2, binding = 0) uniform Params {
+    uint count;
+    float eta;
+    vec2 scale;
+} params;
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a = source.items[i];
+    Item b = source.items[(i + 1u) % params.count];
+    Item c = a.weight > b.weight ? a : b;
+    ivec3 size = textureSize(layers, 0);
+    int levels = textureQueryLevels(layers);
+    c.tags[0] = bitfieldInsert(c.tags[0], uint(levels), 4, 4) + bitfieldExtract(c.tags[1], 2, 6);
+    c.tags[2] = packHalf2x16(params.scale * vec2(size.xy)) ^ uint(findLSB(c.tags[2]));
+    c.weight = fma(refract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = vec4(c.position, 1.0) * c.frame;
+    destination.items[i] = c;
+    if (i == 0u) {
+        destination.best = c;
+    }
+}
+''')
+
+shader('fs_sampling', 'frag', '''
+#version 450
+layout(set = 2, binding = 0) uniform sampler2D color;
+layout(set = 2, binding = 1) uniform sampler2DShadow shadow;
+layout(set = 2, binding = 2) uniform samplerCube environment;
+layout(set = 3, binding = 0) uniform Params {
+    vec4 tint;
+    float lod;
+    float bias;
+} params;
+layout(location = 0) in vec2 in_uv;
+layout(location = 1) in vec3 in_normal;
+layout(location = 2) flat in int in_layer;
+layout(location = 0) out vec4 out_color;
+void main()
+{
+    vec2 dx = dFdx(in_uv);
+    vec2 dy = dFdy(in_uv);
+    vec4 c = textureGrad(color, in_uv, dx, dy) + textureLod(color, in_uv, params.lod);
+    c += texture(color, in_uv, params.bias) + textureOffset(color, in_uv, ivec2(1, -1));
+    c *= textureGather(color, in_uv, 1);
+    float s = texture(shadow, vec3(in_uv, fwidth(in_uv.x)));
+    vec4 e = texture(environment, reflect(normalize(in_normal), vec3(0.0, 0.0, 1.0)));
+    if (c.a < 0.01 && in_layer > 2) {
+        discard;
+    }
+    out_color = mix(c, e, s) * params.tint;
+}
+''')
+
 
 def main():
     if len(sys.argv) != 3:

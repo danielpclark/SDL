@@ -19,6 +19,7 @@ use std::collections::HashSet;
 use super::common::*;
 use super::cross::*;
 use super::glsl::*;
+use super::hlsl::*;
 use super::msl::*;
 use super::parsed_ir::ParsedIR;
 use super::parser::Parser;
@@ -332,6 +333,7 @@ pub struct SpvcCompiler {
 pub struct SpvcCompilerOptions {
     backend_flags: u32,
     pub glsl: GlslOptions,
+    pub hlsl: HlslOptions,
     pub msl: MslOptions,
 }
 
@@ -462,6 +464,7 @@ impl SpvcCompiler {
         let mut opt = SpvcCompilerOptions {
             backend_flags: 0,
             glsl: GlslOptions::default(),
+            hlsl: HlslOptions::default(),
             msl: MslOptions::default(),
         };
         match self.backend {
@@ -474,6 +477,7 @@ impl SpvcCompiler {
                 opt.backend_flags |=
                     SPVC_COMPILER_OPTION_HLSL_BIT | SPVC_COMPILER_OPTION_COMMON_BIT;
                 opt.glsl = *self.compiler.get_common_options();
+                opt.hlsl = *self.compiler.get_hlsl_options();
             }
             SpvcBackend::Glsl => {
                 opt.backend_flags |=
@@ -488,8 +492,10 @@ impl SpvcCompiler {
     /// `spvc_compiler_install_compiler_options()`.
     pub fn install_compiler_options(&mut self, options: &SpvcCompilerOptions) -> SpvcResult {
         match self.backend {
-            SpvcBackend::Glsl | SpvcBackend::Hlsl => {
-                self.compiler.set_common_options(&options.glsl)
+            SpvcBackend::Glsl => self.compiler.set_common_options(&options.glsl),
+            SpvcBackend::Hlsl => {
+                self.compiler.set_common_options(&options.glsl);
+                self.compiler.set_hlsl_options(&options.hlsl);
             }
             SpvcBackend::Msl => {
                 self.compiler.set_common_options(&options.glsl);
@@ -749,6 +755,34 @@ impl SpvcCompilerOptions {
             SPVC_COMPILER_OPTION_GLSL_ENABLE_ROW_MAJOR_LOAD_WORKAROUND => {
                 self.glsl.enable_row_major_load_workaround = value != 0
             }
+
+            SPVC_COMPILER_OPTION_HLSL_SHADER_MODEL => self.hlsl.shader_model = value,
+            SPVC_COMPILER_OPTION_HLSL_POINT_SIZE_COMPAT => self.hlsl.point_size_compat = value != 0,
+            SPVC_COMPILER_OPTION_HLSL_POINT_COORD_COMPAT => {
+                self.hlsl.point_coord_compat = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_SUPPORT_NONZERO_BASE_VERTEX_BASE_INSTANCE => {
+                self.hlsl.support_nonzero_base_vertex_base_instance = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_FORCE_STORAGE_BUFFER_AS_UAV => {
+                self.hlsl.force_storage_buffer_as_uav = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_NONWRITABLE_UAV_TEXTURE_AS_SRV => {
+                self.hlsl.nonwritable_uav_texture_as_srv = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_ENABLE_16BIT_TYPES => {
+                self.hlsl.enable_16bit_types = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_FLATTEN_MATRIX_VERTEX_INPUT_SEMANTICS => {
+                self.hlsl.flatten_matrix_vertex_input_semantics = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_USE_ENTRY_POINT_NAME => {
+                self.hlsl.use_entry_point_name = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_PRESERVE_STRUCTURED_BUFFERS => {
+                self.hlsl.preserve_structured_buffers = value != 0
+            }
+            SPVC_COMPILER_OPTION_HLSL_USER_SEMANTIC => self.hlsl.user_semantic = value != 0,
 
             SPVC_COMPILER_OPTION_MSL_VERSION => self.msl.msl_version = value,
             SPVC_COMPILER_OPTION_MSL_TEXEL_BUFFER_TEXTURE_WIDTH => {

@@ -1607,6 +1607,1308 @@ void main(SPIRV_Cross_Input stage_input)
     gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
     comp_main();
 }
+=== cs_layout reflect
+samplers=1 readonly_storage_textures=0 readonly_storage_buffers=1 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=16,1,1
+=== cs_layout glsl 450 0 0
+#version 450
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+
+struct Item
+{
+    vec3 position;
+    float weight;
+    mat3x4 frame;
+    uint tags[3];
+};
+
+layout(binding = 1, std430) readonly buffer Source
+{
+    Item items[];
+} source;
+
+layout(binding = 0, std140) uniform Params
+{
+    uint count;
+    float eta;
+    vec2 scale;
+} params;
+
+layout(binding = 0, std430) buffer Destination
+{
+    layout(row_major) Item best;
+    layout(row_major) Item items[];
+} destination;
+
+layout(binding = 0) uniform sampler2DArray layers;
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = source.items[i].position;
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = source.items[_69].position;
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    ivec3 size = textureSize(layers, 0);
+    int levels = textureQueryLevels(layers);
+    c.tags[0] = bitfieldInsert(c.tags[0], uint(levels), 4, 4) + bitfieldExtract(c.tags[1], 2, 6);
+    c.tags[2] = packHalf2x16(params.scale * vec2(size.xy)) ^ uint(findLSB(c.tags[2]));
+    c.weight = fma(refract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = vec4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = c.frame;
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = c.frame;
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_layout glsl 310 1 0
+ERROR: textureQueryLevels not supported in ES profile.
+=== cs_layout glsl 450 0 1
+#version 450
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+
+struct Item
+{
+    vec3 position;
+    float weight;
+    mat3x4 frame;
+    uint tags[3];
+};
+
+layout(set = 0, binding = 1, std430) readonly buffer Source
+{
+    Item items[];
+} source;
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    uint count;
+    float eta;
+    vec2 scale;
+} params;
+
+layout(set = 1, binding = 0, std430) buffer Destination
+{
+    layout(row_major) Item best;
+    layout(row_major) Item items[];
+} destination;
+
+layout(set = 0, binding = 0) uniform sampler2DArray layers;
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = source.items[i].position;
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = source.items[_69].position;
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    ivec3 size = textureSize(layers, 0);
+    int levels = textureQueryLevels(layers);
+    c.tags[0] = bitfieldInsert(c.tags[0], uint(levels), 4, 4) + bitfieldExtract(c.tags[1], 2, 6);
+    c.tags[2] = packHalf2x16(params.scale * vec2(size.xy)) ^ uint(findLSB(c.tags[2]));
+    c.weight = fma(refract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = vec4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = c.frame;
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = c.frame;
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_layout msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+// Implementation of the GLSL mod() function, which is slightly different than Metal fmod()
+template<typename Tx, typename Ty>
+inline Tx mod(Tx x, Ty y)
+{
+    return x - y * floor(x / y);
+}
+
+// Implementation of the GLSL findLSB() function
+template<typename T>
+inline T spvFindLSB(T x)
+{
+    return select(ctz(x), T(-1), x == T(0));
+}
+
+template<typename T>
+inline T spvRefract(T i, T n, T eta)
+{
+    T NoI = n * i;
+    T NoI2 = NoI * NoI;
+    T k = T(1) - eta * eta * (T(1) - NoI2);
+    if (k < T(0))
+    {
+        return T(0);
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+struct Item
+{
+    float3 position;
+    float weight;
+    float3x4 frame;
+    spvUnsafeArray<uint, 3> tags;
+};
+
+struct Item_1
+{
+    packed_float3 position;
+    float weight;
+    float3x4 frame;
+    uint tags[3];
+};
+
+struct Source
+{
+    Item_1 items[1];
+};
+
+struct Params
+{
+    uint count;
+    float eta;
+    float2 scale;
+};
+
+struct Item_2
+{
+    packed_float3 position;
+    float weight;
+    float4x3 frame;
+    uint tags[3];
+};
+
+struct Destination
+{
+    Item_2 best;
+    Item_2 items[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(16u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Source& source [[buffer(1)]], device Destination& destination [[buffer(2)]], texture2d_array<float> layers [[texture(0)]], sampler layersSmplr [[sampler(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = float3(source.items[i].position);
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = float3(source.items[_69].position);
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    int3 size = int3(layers.get_width(), layers.get_height(), layers.get_array_size());
+    int levels = int(layers.get_num_mip_levels());
+    c.tags[0] = insert_bits(c.tags[0], uint(levels), uint(4), uint(4)) + extract_bits(c.tags[1], uint(2), uint(6));
+    c.tags[2] = as_type<uint>(half2(params.scale * float2(size.xy))) ^ uint(int(spvFindLSB(c.tags[2])));
+    c.weight = fma(spvRefract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = float4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = transpose(c.frame);
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = transpose(c.frame);
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_layout msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+// Implementation of the GLSL mod() function, which is slightly different than Metal fmod()
+template<typename Tx, typename Ty>
+inline Tx mod(Tx x, Ty y)
+{
+    return x - y * floor(x / y);
+}
+
+// Implementation of the GLSL findLSB() function
+template<typename T>
+inline T spvFindLSB(T x)
+{
+    return select(ctz(x), T(-1), x == T(0));
+}
+
+template<typename T>
+inline T spvRefract(T i, T n, T eta)
+{
+    T NoI = n * i;
+    T NoI2 = NoI * NoI;
+    T k = T(1) - eta * eta * (T(1) - NoI2);
+    if (k < T(0))
+    {
+        return T(0);
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+struct Item
+{
+    float3 position;
+    float weight;
+    float3x4 frame;
+    spvUnsafeArray<uint, 3> tags;
+};
+
+struct Item_1
+{
+    packed_float3 position;
+    float weight;
+    float3x4 frame;
+    uint tags[3];
+};
+
+struct Source
+{
+    Item_1 items[1];
+};
+
+struct Params
+{
+    uint count;
+    float eta;
+    float2 scale;
+};
+
+struct Item_2
+{
+    packed_float3 position;
+    float weight;
+    float4x3 frame;
+    uint tags[3];
+};
+
+struct Destination
+{
+    Item_2 best;
+    Item_2 items[1];
+};
+
+constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(16u, 1u, 1u);
+
+kernel void main0(constant Params& params [[buffer(0)]], device Source& source [[buffer(1)]], device Destination& destination [[buffer(2)]], texture2d_array<float> layers [[texture(0)]], sampler layersSmplr [[sampler(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item a;
+    a.position = float3(source.items[i].position);
+    a.weight = source.items[i].weight;
+    a.frame = source.items[i].frame;
+    a.tags[0] = source.items[i].tags[0];
+    a.tags[1] = source.items[i].tags[1];
+    a.tags[2] = source.items[i].tags[2];
+    uint _69 = (i + 1u) % params.count;
+    Item b;
+    b.position = float3(source.items[_69].position);
+    b.weight = source.items[_69].weight;
+    b.frame = source.items[_69].frame;
+    b.tags[0] = source.items[_69].tags[0];
+    b.tags[1] = source.items[_69].tags[1];
+    b.tags[2] = source.items[_69].tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    int3 size = int3(layers.get_width(), layers.get_height(), layers.get_array_size());
+    int levels = int(layers.get_num_mip_levels());
+    c.tags[0] = insert_bits(c.tags[0], uint(levels), uint(4), uint(4)) + extract_bits(c.tags[1], uint(2), uint(6));
+    c.tags[2] = as_type<uint>(half2(params.scale * float2(size.xy))) ^ uint(int(spvFindLSB(c.tags[2])));
+    c.weight = fma(spvRefract(c.weight, 1.0, params.eta), mod(c.weight, 3.0), float(size.z));
+    c.position = float4(c.position, 1.0) * c.frame;
+    destination.items[i].position = c.position;
+    destination.items[i].weight = c.weight;
+    destination.items[i].frame = transpose(c.frame);
+    destination.items[i].tags[0] = c.tags[0];
+    destination.items[i].tags[1] = c.tags[1];
+    destination.items[i].tags[2] = c.tags[2];
+    if (i == 0u)
+    {
+        destination.best.position = c.position;
+        destination.best.weight = c.weight;
+        destination.best.frame = transpose(c.frame);
+        destination.best.tags[0] = c.tags[0];
+        destination.best.tags[1] = c.tags[1];
+        destination.best.tags[2] = c.tags[2];
+    }
+}
+
+=== cs_layout hlsl compute 60 - 0
+entrypoint: main
+struct Item
+{
+    float3 position;
+    float weight;
+    column_major float3x4 frame;
+    uint tags[3];
+};
+
+static const uint3 gl_WorkGroupSize = uint3(16u, 1u, 1u);
+
+ByteAddressBuffer source : register(t1, space0);
+cbuffer Params : register(b0, space2)
+{
+    uint params_count : packoffset(c0);
+    float params_eta : packoffset(c0.y);
+    float2 params_scale : packoffset(c0.z);
+};
+
+RWByteAddressBuffer destination : register(u0, space1);
+Texture2DArray<float4> layers : register(t0, space0);
+SamplerState _layers_sampler : register(s0, space0);
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+float mod(float x, float y)
+{
+    return x - y * floor(x / y);
+}
+
+float2 mod(float2 x, float2 y)
+{
+    return x - y * floor(x / y);
+}
+
+float3 mod(float3 x, float3 y)
+{
+    return x - y * floor(x / y);
+}
+
+float4 mod(float4 x, float4 y)
+{
+    return x - y * floor(x / y);
+}
+
+uint3 spvTextureSize(Texture2DArray<float4> Tex, uint Level, out uint Param)
+{
+    uint3 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, ret.z, Param);
+    return ret;
+}
+
+uint spvPackHalf2x16(float2 value)
+{
+    uint2 Packed = f32tof16(value);
+    return Packed.x | (Packed.y << 16);
+}
+
+float2 spvUnpackHalf2x16(uint value)
+{
+    return f16tof32(uint2(value & 0xffff, value >> 16));
+}
+
+uint spvBitfieldInsert(uint Base, uint Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint2 spvBitfieldInsert(uint2 Base, uint2 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint3 spvBitfieldInsert(uint3 Base, uint3 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint4 spvBitfieldInsert(uint4 Base, uint4 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint spvBitfieldUExtract(uint Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint2 spvBitfieldUExtract(uint2 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint3 spvBitfieldUExtract(uint3 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint4 spvBitfieldUExtract(uint4 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+int spvBitfieldSExtract(int Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int2 spvBitfieldSExtract(int2 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int2 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int3 spvBitfieldSExtract(int3 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int3 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int4 spvBitfieldSExtract(int4 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int4 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+float spvRefract(float i, float n, float eta)
+{
+    float NoI = n * i;
+    float NoI2 = NoI * NoI;
+    float k = 1.0 - eta * eta * (1.0 - NoI2);
+    if (k < 0.0)
+    {
+        return 0.0;
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+void main_inner()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item _36;
+    _36.position = asfloat(source.Load3(i * 80 + 0));
+    _36.weight = asfloat(source.Load(i * 80 + 12));
+    _36.frame = asfloat(uint3x4(source.Load4(i * 80 + 16), source.Load4(i * 80 + 32), source.Load4(i * 80 + 48)));
+    [unroll]
+    for (int _2ident = 0; _2ident < 3; _2ident++)
+    {
+        _36.tags[_2ident] = source.Load(_2ident * 4 + i * 80 + 64);
+    }
+    Item a;
+    a.position = _36.position;
+    a.weight = _36.weight;
+    a.frame = _36.frame;
+    a.tags[0] = _36.tags[0];
+    a.tags[1] = _36.tags[1];
+    a.tags[2] = _36.tags[2];
+    Item _71;
+    _71.position = asfloat(source.Load3(((i + 1u) % params_count) * 80 + 0));
+    _71.weight = asfloat(source.Load(((i + 1u) % params_count) * 80 + 12));
+    _71.frame = asfloat(uint3x4(source.Load4(((i + 1u) % params_count) * 80 + 16), source.Load4(((i + 1u) % params_count) * 80 + 32), source.Load4(((i + 1u) % params_count) * 80 + 48)));
+    [unroll]
+    for (int _3ident = 0; _3ident < 3; _3ident++)
+    {
+        _71.tags[_3ident] = source.Load(_3ident * 4 + ((i + 1u) % params_count) * 80 + 64);
+    }
+    Item b;
+    b.position = _71.position;
+    b.weight = _71.weight;
+    b.frame = _71.frame;
+    b.tags[0] = _71.tags[0];
+    b.tags[1] = _71.tags[1];
+    b.tags[2] = _71.tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    uint _109_dummy_parameter;
+    int3 size = int3(spvTextureSize(layers, uint(0), _109_dummy_parameter));
+    int _114;
+    spvTextureSize(layers, 0u, _114);
+    int levels = int(_114);
+    c.tags[0] = spvBitfieldInsert(c.tags[0], uint(levels), 4, 4) + spvBitfieldUExtract(c.tags[1], 2, 6);
+    c.tags[2] = spvPackHalf2x16(params_scale * float2(size.xy)) ^ uint(int(firstbitlow(c.tags[2])));
+    c.weight = mad(spvRefract(c.weight, 1.0f, params_eta), mod(c.weight, 3.0f), float(size.z));
+    c.position = mul(c.frame, float4(c.position, 1.0f));
+    destination.Store3(i * 96 + 96, asuint(c.position));
+    destination.Store(i * 96 + 108, asuint(c.weight));
+    destination.Store(i * 96 + 112, asuint(c.frame[0].x));
+    destination.Store(i * 96 + 116, asuint(c.frame[1].x));
+    destination.Store(i * 96 + 120, asuint(c.frame[2].x));
+    destination.Store(i * 96 + 128, asuint(c.frame[0].y));
+    destination.Store(i * 96 + 132, asuint(c.frame[1].y));
+    destination.Store(i * 96 + 136, asuint(c.frame[2].y));
+    destination.Store(i * 96 + 144, asuint(c.frame[0].z));
+    destination.Store(i * 96 + 148, asuint(c.frame[1].z));
+    destination.Store(i * 96 + 152, asuint(c.frame[2].z));
+    destination.Store(i * 96 + 160, asuint(c.frame[0].w));
+    destination.Store(i * 96 + 164, asuint(c.frame[1].w));
+    destination.Store(i * 96 + 168, asuint(c.frame[2].w));
+    destination.Store(i * 96 + 176, c.tags[0]);
+    destination.Store(i * 96 + 180, c.tags[1]);
+    destination.Store(i * 96 + 184, c.tags[2]);
+    if (i == 0u)
+    {
+        destination.Store3(0, asuint(c.position));
+        destination.Store(12, asuint(c.weight));
+        destination.Store(16, asuint(c.frame[0].x));
+        destination.Store(20, asuint(c.frame[1].x));
+        destination.Store(24, asuint(c.frame[2].x));
+        destination.Store(32, asuint(c.frame[0].y));
+        destination.Store(36, asuint(c.frame[1].y));
+        destination.Store(40, asuint(c.frame[2].y));
+        destination.Store(48, asuint(c.frame[0].z));
+        destination.Store(52, asuint(c.frame[1].z));
+        destination.Store(56, asuint(c.frame[2].z));
+        destination.Store(64, asuint(c.frame[0].w));
+        destination.Store(68, asuint(c.frame[1].w));
+        destination.Store(72, asuint(c.frame[2].w));
+        destination.Store(80, c.tags[0]);
+        destination.Store(84, c.tags[1]);
+        destination.Store(88, c.tags[2]);
+    }
+}
+
+[numthreads(16, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    main_inner();
+}
+=== cs_layout hlsl compute 51 - 0
+entrypoint: main
+struct Item
+{
+    float3 position;
+    float weight;
+    column_major float3x4 frame;
+    uint tags[3];
+};
+
+static const uint3 gl_WorkGroupSize = uint3(16u, 1u, 1u);
+
+ByteAddressBuffer source : register(t1, space0);
+cbuffer Params : register(b0, space2)
+{
+    uint params_count : packoffset(c0);
+    float params_eta : packoffset(c0.y);
+    float2 params_scale : packoffset(c0.z);
+};
+
+RWByteAddressBuffer destination : register(u0, space1);
+Texture2DArray<float4> layers : register(t0, space0);
+SamplerState _layers_sampler : register(s0, space0);
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+float mod(float x, float y)
+{
+    return x - y * floor(x / y);
+}
+
+float2 mod(float2 x, float2 y)
+{
+    return x - y * floor(x / y);
+}
+
+float3 mod(float3 x, float3 y)
+{
+    return x - y * floor(x / y);
+}
+
+float4 mod(float4 x, float4 y)
+{
+    return x - y * floor(x / y);
+}
+
+uint3 spvTextureSize(Texture2DArray<float4> Tex, uint Level, out uint Param)
+{
+    uint3 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, ret.z, Param);
+    return ret;
+}
+
+uint spvPackHalf2x16(float2 value)
+{
+    uint2 Packed = f32tof16(value);
+    return Packed.x | (Packed.y << 16);
+}
+
+float2 spvUnpackHalf2x16(uint value)
+{
+    return f16tof32(uint2(value & 0xffff, value >> 16));
+}
+
+uint spvBitfieldInsert(uint Base, uint Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint2 spvBitfieldInsert(uint2 Base, uint2 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint3 spvBitfieldInsert(uint3 Base, uint3 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint4 spvBitfieldInsert(uint4 Base, uint4 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint spvBitfieldUExtract(uint Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint2 spvBitfieldUExtract(uint2 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint3 spvBitfieldUExtract(uint3 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint4 spvBitfieldUExtract(uint4 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+int spvBitfieldSExtract(int Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int2 spvBitfieldSExtract(int2 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int2 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int3 spvBitfieldSExtract(int3 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int3 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int4 spvBitfieldSExtract(int4 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int4 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+float spvRefract(float i, float n, float eta)
+{
+    float NoI = n * i;
+    float NoI2 = NoI * NoI;
+    float k = 1.0 - eta * eta * (1.0 - NoI2);
+    if (k < 0.0)
+    {
+        return 0.0;
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+void main_inner()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item _36;
+    _36.position = asfloat(source.Load3(i * 80 + 0));
+    _36.weight = asfloat(source.Load(i * 80 + 12));
+    _36.frame = asfloat(uint3x4(source.Load4(i * 80 + 16), source.Load4(i * 80 + 32), source.Load4(i * 80 + 48)));
+    [unroll]
+    for (int _2ident = 0; _2ident < 3; _2ident++)
+    {
+        _36.tags[_2ident] = source.Load(_2ident * 4 + i * 80 + 64);
+    }
+    Item a;
+    a.position = _36.position;
+    a.weight = _36.weight;
+    a.frame = _36.frame;
+    a.tags[0] = _36.tags[0];
+    a.tags[1] = _36.tags[1];
+    a.tags[2] = _36.tags[2];
+    Item _71;
+    _71.position = asfloat(source.Load3(((i + 1u) % params_count) * 80 + 0));
+    _71.weight = asfloat(source.Load(((i + 1u) % params_count) * 80 + 12));
+    _71.frame = asfloat(uint3x4(source.Load4(((i + 1u) % params_count) * 80 + 16), source.Load4(((i + 1u) % params_count) * 80 + 32), source.Load4(((i + 1u) % params_count) * 80 + 48)));
+    [unroll]
+    for (int _3ident = 0; _3ident < 3; _3ident++)
+    {
+        _71.tags[_3ident] = source.Load(_3ident * 4 + ((i + 1u) % params_count) * 80 + 64);
+    }
+    Item b;
+    b.position = _71.position;
+    b.weight = _71.weight;
+    b.frame = _71.frame;
+    b.tags[0] = _71.tags[0];
+    b.tags[1] = _71.tags[1];
+    b.tags[2] = _71.tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    uint _109_dummy_parameter;
+    int3 size = int3(spvTextureSize(layers, uint(0), _109_dummy_parameter));
+    int _114;
+    spvTextureSize(layers, 0u, _114);
+    int levels = int(_114);
+    c.tags[0] = spvBitfieldInsert(c.tags[0], uint(levels), 4, 4) + spvBitfieldUExtract(c.tags[1], 2, 6);
+    c.tags[2] = spvPackHalf2x16(params_scale * float2(size.xy)) ^ uint(int(firstbitlow(c.tags[2])));
+    c.weight = mad(spvRefract(c.weight, 1.0f, params_eta), mod(c.weight, 3.0f), float(size.z));
+    c.position = mul(c.frame, float4(c.position, 1.0f));
+    destination.Store3(i * 96 + 96, asuint(c.position));
+    destination.Store(i * 96 + 108, asuint(c.weight));
+    destination.Store(i * 96 + 112, asuint(c.frame[0].x));
+    destination.Store(i * 96 + 116, asuint(c.frame[1].x));
+    destination.Store(i * 96 + 120, asuint(c.frame[2].x));
+    destination.Store(i * 96 + 128, asuint(c.frame[0].y));
+    destination.Store(i * 96 + 132, asuint(c.frame[1].y));
+    destination.Store(i * 96 + 136, asuint(c.frame[2].y));
+    destination.Store(i * 96 + 144, asuint(c.frame[0].z));
+    destination.Store(i * 96 + 148, asuint(c.frame[1].z));
+    destination.Store(i * 96 + 152, asuint(c.frame[2].z));
+    destination.Store(i * 96 + 160, asuint(c.frame[0].w));
+    destination.Store(i * 96 + 164, asuint(c.frame[1].w));
+    destination.Store(i * 96 + 168, asuint(c.frame[2].w));
+    destination.Store(i * 96 + 176, c.tags[0]);
+    destination.Store(i * 96 + 180, c.tags[1]);
+    destination.Store(i * 96 + 184, c.tags[2]);
+    if (i == 0u)
+    {
+        destination.Store3(0, asuint(c.position));
+        destination.Store(12, asuint(c.weight));
+        destination.Store(16, asuint(c.frame[0].x));
+        destination.Store(20, asuint(c.frame[1].x));
+        destination.Store(24, asuint(c.frame[2].x));
+        destination.Store(32, asuint(c.frame[0].y));
+        destination.Store(36, asuint(c.frame[1].y));
+        destination.Store(40, asuint(c.frame[2].y));
+        destination.Store(48, asuint(c.frame[0].z));
+        destination.Store(52, asuint(c.frame[1].z));
+        destination.Store(56, asuint(c.frame[2].z));
+        destination.Store(64, asuint(c.frame[0].w));
+        destination.Store(68, asuint(c.frame[1].w));
+        destination.Store(72, asuint(c.frame[2].w));
+        destination.Store(80, c.tags[0]);
+        destination.Store(84, c.tags[1]);
+        destination.Store(88, c.tags[2]);
+    }
+}
+
+[numthreads(16, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    main_inner();
+}
+=== cs_layout hlsl compute 50 - 1
+entrypoint: main
+struct Item
+{
+    float3 position;
+    float weight;
+    column_major float3x4 frame;
+    uint tags[3];
+};
+
+static const uint3 gl_WorkGroupSize = uint3(16u, 1u, 1u);
+
+ByteAddressBuffer source : register(t1);
+cbuffer Params : register(b0)
+{
+    uint params_count : packoffset(c0);
+    float params_eta : packoffset(c0.y);
+    float2 params_scale : packoffset(c0.z);
+};
+
+RWByteAddressBuffer destination : register(u0);
+Texture2DArray<float4> layers : register(t0);
+SamplerState _layers_sampler : register(s0);
+
+static uint3 gl_GlobalInvocationID;
+struct SPIRV_Cross_Input
+{
+    uint3 gl_GlobalInvocationID : SV_DispatchThreadID;
+};
+
+float mod(float x, float y)
+{
+    return x - y * floor(x / y);
+}
+
+float2 mod(float2 x, float2 y)
+{
+    return x - y * floor(x / y);
+}
+
+float3 mod(float3 x, float3 y)
+{
+    return x - y * floor(x / y);
+}
+
+float4 mod(float4 x, float4 y)
+{
+    return x - y * floor(x / y);
+}
+
+uint3 spvTextureSize(Texture2DArray<float4> Tex, uint Level, out uint Param)
+{
+    uint3 ret;
+    Tex.GetDimensions(Level, ret.x, ret.y, ret.z, Param);
+    return ret;
+}
+
+uint spvPackHalf2x16(float2 value)
+{
+    uint2 Packed = f32tof16(value);
+    return Packed.x | (Packed.y << 16);
+}
+
+float2 spvUnpackHalf2x16(uint value)
+{
+    return f16tof32(uint2(value & 0xffff, value >> 16));
+}
+
+uint spvBitfieldInsert(uint Base, uint Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint2 spvBitfieldInsert(uint2 Base, uint2 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint3 spvBitfieldInsert(uint3 Base, uint3 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint4 spvBitfieldInsert(uint4 Base, uint4 Insert, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : (((1u << Count) - 1) << (Offset & 31));
+    return (Base & ~Mask) | ((Insert << Offset) & Mask);
+}
+
+uint spvBitfieldUExtract(uint Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint2 spvBitfieldUExtract(uint2 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint3 spvBitfieldUExtract(uint3 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+uint4 spvBitfieldUExtract(uint4 Base, uint Offset, uint Count)
+{
+    uint Mask = Count == 32 ? 0xffffffff : ((1 << Count) - 1);
+    return (Base >> Offset) & Mask;
+}
+
+int spvBitfieldSExtract(int Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int2 spvBitfieldSExtract(int2 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int2 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int3 spvBitfieldSExtract(int3 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int3 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+int4 spvBitfieldSExtract(int4 Base, int Offset, int Count)
+{
+    int Mask = Count == 32 ? -1 : ((1 << Count) - 1);
+    int4 Masked = (Base >> Offset) & Mask;
+    int ExtendShift = (32 - Count) & 31;
+    return (Masked << ExtendShift) >> ExtendShift;
+}
+
+float spvRefract(float i, float n, float eta)
+{
+    float NoI = n * i;
+    float NoI2 = NoI * NoI;
+    float k = 1.0 - eta * eta * (1.0 - NoI2);
+    if (k < 0.0)
+    {
+        return 0.0;
+    }
+    else
+    {
+        return eta * i - (eta * NoI + sqrt(k)) * n;
+    }
+}
+
+void comp_main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    Item _36;
+    _36.position = asfloat(source.Load3(i * 80 + 0));
+    _36.weight = asfloat(source.Load(i * 80 + 12));
+    _36.frame = asfloat(uint3x4(source.Load4(i * 80 + 16), source.Load4(i * 80 + 32), source.Load4(i * 80 + 48)));
+    [unroll]
+    for (int _2ident = 0; _2ident < 3; _2ident++)
+    {
+        _36.tags[_2ident] = source.Load(_2ident * 4 + i * 80 + 64);
+    }
+    Item a;
+    a.position = _36.position;
+    a.weight = _36.weight;
+    a.frame = _36.frame;
+    a.tags[0] = _36.tags[0];
+    a.tags[1] = _36.tags[1];
+    a.tags[2] = _36.tags[2];
+    Item _71;
+    _71.position = asfloat(source.Load3(((i + 1u) % params_count) * 80 + 0));
+    _71.weight = asfloat(source.Load(((i + 1u) % params_count) * 80 + 12));
+    _71.frame = asfloat(uint3x4(source.Load4(((i + 1u) % params_count) * 80 + 16), source.Load4(((i + 1u) % params_count) * 80 + 32), source.Load4(((i + 1u) % params_count) * 80 + 48)));
+    [unroll]
+    for (int _3ident = 0; _3ident < 3; _3ident++)
+    {
+        _71.tags[_3ident] = source.Load(_3ident * 4 + ((i + 1u) % params_count) * 80 + 64);
+    }
+    Item b;
+    b.position = _71.position;
+    b.weight = _71.weight;
+    b.frame = _71.frame;
+    b.tags[0] = _71.tags[0];
+    b.tags[1] = _71.tags[1];
+    b.tags[2] = _71.tags[2];
+    Item _93;
+    if (a.weight > b.weight)
+    {
+        _93 = a;
+    }
+    else
+    {
+        _93 = b;
+    }
+    Item c = _93;
+    uint _109_dummy_parameter;
+    int3 size = int3(spvTextureSize(layers, uint(0), _109_dummy_parameter));
+    int _114;
+    spvTextureSize(layers, 0u, _114);
+    int levels = int(_114);
+    c.tags[0] = spvBitfieldInsert(c.tags[0], uint(levels), 4, 4) + spvBitfieldUExtract(c.tags[1], 2, 6);
+    c.tags[2] = spvPackHalf2x16(params_scale * float2(size.xy)) ^ uint(int(firstbitlow(c.tags[2])));
+    c.weight = mad(spvRefract(c.weight, 1.0f, params_eta), mod(c.weight, 3.0f), float(size.z));
+    c.position = mul(c.frame, float4(c.position, 1.0f));
+    destination.Store3(i * 96 + 96, asuint(c.position));
+    destination.Store(i * 96 + 108, asuint(c.weight));
+    destination.Store(i * 96 + 112, asuint(c.frame[0].x));
+    destination.Store(i * 96 + 116, asuint(c.frame[1].x));
+    destination.Store(i * 96 + 120, asuint(c.frame[2].x));
+    destination.Store(i * 96 + 128, asuint(c.frame[0].y));
+    destination.Store(i * 96 + 132, asuint(c.frame[1].y));
+    destination.Store(i * 96 + 136, asuint(c.frame[2].y));
+    destination.Store(i * 96 + 144, asuint(c.frame[0].z));
+    destination.Store(i * 96 + 148, asuint(c.frame[1].z));
+    destination.Store(i * 96 + 152, asuint(c.frame[2].z));
+    destination.Store(i * 96 + 160, asuint(c.frame[0].w));
+    destination.Store(i * 96 + 164, asuint(c.frame[1].w));
+    destination.Store(i * 96 + 168, asuint(c.frame[2].w));
+    destination.Store(i * 96 + 176, c.tags[0]);
+    destination.Store(i * 96 + 180, c.tags[1]);
+    destination.Store(i * 96 + 184, c.tags[2]);
+    if (i == 0u)
+    {
+        destination.Store3(0, asuint(c.position));
+        destination.Store(12, asuint(c.weight));
+        destination.Store(16, asuint(c.frame[0].x));
+        destination.Store(20, asuint(c.frame[1].x));
+        destination.Store(24, asuint(c.frame[2].x));
+        destination.Store(32, asuint(c.frame[0].y));
+        destination.Store(36, asuint(c.frame[1].y));
+        destination.Store(40, asuint(c.frame[2].y));
+        destination.Store(48, asuint(c.frame[0].z));
+        destination.Store(52, asuint(c.frame[1].z));
+        destination.Store(56, asuint(c.frame[2].z));
+        destination.Store(64, asuint(c.frame[0].w));
+        destination.Store(68, asuint(c.frame[1].w));
+        destination.Store(72, asuint(c.frame[2].w));
+        destination.Store(80, c.tags[0]);
+        destination.Store(84, c.tags[1]);
+        destination.Store(88, c.tags[2]);
+    }
+}
+
+[numthreads(16, 1, 1)]
+void main(SPIRV_Cross_Input stage_input)
+{
+    gl_GlobalInvocationID = stage_input.gl_GlobalInvocationID;
+    comp_main();
+}
 === cs_math reflect
 samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=4,4,2
 === cs_math glsl 450 0 0
@@ -4581,6 +5883,472 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     SPIRV_Cross_Output stage_output;
     stage_output.out_color = out_color;
     stage_output.out_normal = out_normal;
+    return stage_output;
+}
+=== fs_sampling reflect
+samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=1
+input in_uv location=0 type=float32 size=2
+input in_normal location=1 type=float32 size=3
+input in_layer location=2 type=int32 size=1
+output out_color location=0 type=float32 size=4
+=== fs_sampling glsl 450 0 0
+#version 450
+
+layout(binding = 0, std140) uniform Params
+{
+    vec4 tint;
+    float lod;
+    float bias;
+} params;
+
+layout(binding = 0) uniform sampler2D color;
+layout(binding = 1) uniform sampler2DShadow shadow;
+layout(binding = 2) uniform samplerCube environment;
+
+layout(location = 0) in vec2 in_uv;
+layout(location = 1) in vec3 in_normal;
+layout(location = 2) flat in int in_layer;
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    vec2 dx = dFdx(in_uv);
+    vec2 dy = dFdy(in_uv);
+    vec4 c = textureGrad(color, in_uv, dx, dy) + textureLod(color, in_uv, params.lod);
+    c += (texture(color, in_uv, params.bias) + textureOffset(color, in_uv, ivec2(1, -1)));
+    c *= textureGather(color, in_uv, 1);
+    vec3 _78 = vec3(in_uv, fwidth(in_uv.x));
+    float s = texture(shadow, vec3(_78.xy, _78.z));
+    vec4 e = texture(environment, reflect(normalize(in_normal), vec3(0.0, 0.0, 1.0)));
+    bool _101 = c.w < 0.00999999977648258209228515625;
+    bool _108;
+    if (_101)
+    {
+        _108 = in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard;
+    }
+    out_color = mix(c, e, vec4(s)) * params.tint;
+}
+
+=== fs_sampling glsl 310 1 0
+#version 310 es
+precision mediump float;
+precision highp int;
+
+layout(binding = 0, std140) uniform Params
+{
+    highp vec4 tint;
+    highp float lod;
+    highp float bias;
+} params;
+
+layout(binding = 0) uniform highp sampler2D color;
+layout(binding = 1) uniform highp sampler2DShadow shadow;
+layout(binding = 2) uniform highp samplerCube environment;
+
+layout(location = 0) in highp vec2 in_uv;
+layout(location = 1) in highp vec3 in_normal;
+layout(location = 2) flat in int in_layer;
+layout(location = 0) out highp vec4 out_color;
+
+void main()
+{
+    highp vec2 dx = dFdx(in_uv);
+    highp vec2 dy = dFdy(in_uv);
+    highp vec4 c = textureGrad(color, in_uv, dx, dy) + textureLod(color, in_uv, params.lod);
+    c += (texture(color, in_uv, params.bias) + textureOffset(color, in_uv, ivec2(1, -1)));
+    c *= textureGather(color, in_uv, 1);
+    highp vec3 _78 = vec3(in_uv, fwidth(in_uv.x));
+    highp float s = texture(shadow, vec3(_78.xy, _78.z));
+    highp vec4 e = texture(environment, reflect(normalize(in_normal), vec3(0.0, 0.0, 1.0)));
+    bool _101 = c.w < 0.00999999977648258209228515625;
+    bool _108;
+    if (_101)
+    {
+        _108 = in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard;
+    }
+    out_color = mix(c, e, vec4(s)) * params.tint;
+}
+
+=== fs_sampling glsl 450 0 1
+#version 450
+
+layout(set = 3, binding = 0, std140) uniform Params
+{
+    vec4 tint;
+    float lod;
+    float bias;
+} params;
+
+layout(set = 2, binding = 0) uniform sampler2D color;
+layout(set = 2, binding = 1) uniform sampler2DShadow shadow;
+layout(set = 2, binding = 2) uniform samplerCube environment;
+
+layout(location = 0) in vec2 in_uv;
+layout(location = 1) in vec3 in_normal;
+layout(location = 2) flat in int in_layer;
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    vec2 dx = dFdx(in_uv);
+    vec2 dy = dFdy(in_uv);
+    vec4 c = textureGrad(color, in_uv, dx, dy) + textureLod(color, in_uv, params.lod);
+    c += (texture(color, in_uv, params.bias) + textureOffset(color, in_uv, ivec2(1, -1)));
+    c *= textureGather(color, in_uv, 1);
+    vec3 _78 = vec3(in_uv, fwidth(in_uv.x));
+    float s = texture(shadow, vec3(_78.xy, _78.z));
+    vec4 e = texture(environment, reflect(normalize(in_normal), vec3(0.0, 0.0, 1.0)));
+    bool _101 = c.w < 0.00999999977648258209228515625;
+    bool _108;
+    if (_101)
+    {
+        _108 = in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard;
+    }
+    out_color = mix(c, e, vec4(s)) * params.tint;
+}
+
+=== fs_sampling msl fragment 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Params
+{
+    float4 tint;
+    float lod;
+    float bias0;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+};
+
+struct main0_in
+{
+    float2 in_uv [[user(locn0)]];
+    float3 in_normal [[user(locn1)]];
+    int in_layer [[user(locn2)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Params& params [[buffer(0)]], texture2d<float> color [[texture(0)]], depth2d<float> shadow [[texture(1)]], texturecube<float> environment [[texture(2)]], sampler colorSmplr [[sampler(0)]], sampler shadowSmplr [[sampler(1)]], sampler environmentSmplr [[sampler(2)]])
+{
+    main0_out out = {};
+    float2 dx = dfdx(in.in_uv);
+    float2 dy = dfdy(in.in_uv);
+    float4 c = color.sample(colorSmplr, in.in_uv, gradient2d(dx, dy)) + color.sample(colorSmplr, in.in_uv, level(params.lod));
+    c += (color.sample(colorSmplr, in.in_uv, bias(params.bias0)) + color.sample(colorSmplr, in.in_uv, int2(1, -1)));
+    c *= color.gather(colorSmplr, in.in_uv, int2(0), component::y);
+    float3 _78 = float3(in.in_uv, fwidth(in.in_uv.x));
+    float s = shadow.sample_compare(shadowSmplr, _78.xy, _78.z);
+    float4 e = environment.sample(environmentSmplr, reflect(fast::normalize(in.in_normal), float3(0.0, 0.0, 1.0)));
+    bool _101 = c.w < 0.00999999977648258209228515625;
+    bool _108;
+    if (_101)
+    {
+        _108 = in.in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard_fragment();
+    }
+    out.out_color = mix(c, e, float4(s)) * params.tint;
+    return out;
+}
+
+=== fs_sampling msl fragment 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Params
+{
+    float4 tint;
+    float lod;
+    float bias0;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+};
+
+struct main0_in
+{
+    float2 in_uv [[user(locn0)]];
+    float3 in_normal [[user(locn1)]];
+    int in_layer [[user(locn2)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant Params& params [[buffer(0)]], texture2d<float> color [[texture(0)]], depth2d<float> shadow [[texture(1)]], texturecube<float> environment [[texture(2)]], sampler colorSmplr [[sampler(0)]], sampler shadowSmplr [[sampler(1)]], sampler environmentSmplr [[sampler(2)]])
+{
+    main0_out out = {};
+    float2 dx = dfdx(in.in_uv);
+    float2 dy = dfdy(in.in_uv);
+    float4 c = color.sample(colorSmplr, in.in_uv, gradient2d(dx, dy)) + color.sample(colorSmplr, in.in_uv, level(params.lod));
+    c += (color.sample(colorSmplr, in.in_uv, bias(params.bias0)) + color.sample(colorSmplr, in.in_uv, int2(1, -1)));
+    c *= color.gather(colorSmplr, in.in_uv, int2(0), component::y);
+    float3 _78 = float3(in.in_uv, fwidth(in.in_uv.x));
+    float s = shadow.sample_compare(shadowSmplr, _78.xy, _78.z);
+    float4 e = environment.sample(environmentSmplr, reflect(fast::normalize(in.in_normal), float3(0.0, 0.0, 1.0)));
+    bool _101 = c.w < 0.00999999977648258209228515625;
+    bool _108;
+    if (_101)
+    {
+        _108 = in.in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard_fragment();
+    }
+    out.out_color = mix(c, e, float4(s)) * params.tint;
+    return out;
+}
+
+=== fs_sampling hlsl fragment 60 - 0
+entrypoint: main
+cbuffer Params : register(b0, space3)
+{
+    float4 params_tint : packoffset(c0);
+    float params_lod : packoffset(c1);
+    float params_bias : packoffset(c1.y);
+};
+
+Texture2D<float4> color : register(t0, space2);
+SamplerState _color_sampler : register(s0, space2);
+Texture2D<float4> shadow : register(t1, space2);
+SamplerComparisonState _shadow_sampler : register(s1, space2);
+TextureCube<float4> environment : register(t2, space2);
+SamplerState _environment_sampler : register(s2, space2);
+
+static float2 in_uv;
+static float3 in_normal;
+static int in_layer;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_uv : TEXCOORD0;
+    float3 in_normal : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void main_inner()
+{
+    float2 dx = ddx(in_uv);
+    float2 dy = ddy(in_uv);
+    float4 c = color.SampleGrad(_color_sampler, in_uv, dx, dy) + color.SampleLevel(_color_sampler, in_uv, params_lod);
+    c += (color.SampleBias(_color_sampler, in_uv, params_bias) + color.Sample(_color_sampler, in_uv, int2(1, -1)));
+    c *= color.GatherGreen(_color_sampler, in_uv);
+    float3 _78 = float3(in_uv, fwidth(in_uv.x));
+    float s = shadow.SampleCmp(_shadow_sampler, _78.xy, _78.z);
+    float4 e = environment.Sample(_environment_sampler, reflect(normalize(in_normal), float3(0.0f, 0.0f, 1.0f)));
+    bool _101 = c.w < 0.00999999977648258209228515625f;
+    bool _108;
+    if (_101)
+    {
+        _108 = in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard;
+    }
+    out_color = lerp(c, e, s.xxxx) * params_tint;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_uv = stage_input.in_uv;
+    in_normal = stage_input.in_normal;
+    in_layer = stage_input.in_layer;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_sampling hlsl fragment 51 - 0
+entrypoint: main
+cbuffer Params : register(b0, space3)
+{
+    float4 params_tint : packoffset(c0);
+    float params_lod : packoffset(c1);
+    float params_bias : packoffset(c1.y);
+};
+
+Texture2D<float4> color : register(t0, space2);
+SamplerState _color_sampler : register(s0, space2);
+Texture2D<float4> shadow : register(t1, space2);
+SamplerComparisonState _shadow_sampler : register(s1, space2);
+TextureCube<float4> environment : register(t2, space2);
+SamplerState _environment_sampler : register(s2, space2);
+
+static float2 in_uv;
+static float3 in_normal;
+static int in_layer;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_uv : TEXCOORD0;
+    float3 in_normal : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void main_inner()
+{
+    float2 dx = ddx(in_uv);
+    float2 dy = ddy(in_uv);
+    float4 c = color.SampleGrad(_color_sampler, in_uv, dx, dy) + color.SampleLevel(_color_sampler, in_uv, params_lod);
+    c += (color.SampleBias(_color_sampler, in_uv, params_bias) + color.Sample(_color_sampler, in_uv, int2(1, -1)));
+    c *= color.GatherGreen(_color_sampler, in_uv);
+    float3 _78 = float3(in_uv, fwidth(in_uv.x));
+    float s = shadow.SampleCmp(_shadow_sampler, _78.xy, _78.z);
+    float4 e = environment.Sample(_environment_sampler, reflect(normalize(in_normal), float3(0.0f, 0.0f, 1.0f)));
+    bool _101 = c.w < 0.00999999977648258209228515625f;
+    bool _108;
+    if (_101)
+    {
+        _108 = in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard;
+    }
+    out_color = lerp(c, e, s.xxxx) * params_tint;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_uv = stage_input.in_uv;
+    in_normal = stage_input.in_normal;
+    in_layer = stage_input.in_layer;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_sampling hlsl fragment 50 - 1
+entrypoint: main
+cbuffer Params : register(b0)
+{
+    float4 params_tint : packoffset(c0);
+    float params_lod : packoffset(c1);
+    float params_bias : packoffset(c1.y);
+};
+
+Texture2D<float4> color : register(t0);
+SamplerState _color_sampler : register(s0);
+Texture2D<float4> shadow : register(t1);
+SamplerComparisonState _shadow_sampler : register(s1);
+TextureCube<float4> environment : register(t2);
+SamplerState _environment_sampler : register(s2);
+
+static float2 in_uv;
+static float3 in_normal;
+static int in_layer;
+static float4 out_color;
+
+struct SPIRV_Cross_Input
+{
+    float2 in_uv : TEXCOORD0;
+    float3 in_normal : TEXCOORD1;
+    nointerpolation int in_layer : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void frag_main()
+{
+    float2 dx = ddx(in_uv);
+    float2 dy = ddy(in_uv);
+    float4 c = color.SampleGrad(_color_sampler, in_uv, dx, dy) + color.SampleLevel(_color_sampler, in_uv, params_lod);
+    c += (color.SampleBias(_color_sampler, in_uv, params_bias) + color.Sample(_color_sampler, in_uv, int2(1, -1)));
+    c *= color.GatherGreen(_color_sampler, in_uv);
+    float3 _78 = float3(in_uv, fwidth(in_uv.x));
+    float s = shadow.SampleCmp(_shadow_sampler, _78.xy, _78.z);
+    float4 e = environment.Sample(_environment_sampler, reflect(normalize(in_normal), float3(0.0f, 0.0f, 1.0f)));
+    bool _101 = c.w < 0.00999999977648258209228515625f;
+    bool _108;
+    if (_101)
+    {
+        _108 = in_layer > 2;
+    }
+    else
+    {
+        _108 = _101;
+    }
+    if (_108)
+    {
+        discard;
+    }
+    out_color = lerp(c, e, s.xxxx) * params_tint;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_uv = stage_input.in_uv;
+    in_normal = stage_input.in_normal;
+    in_layer = stage_input.in_layer;
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
     return stage_output;
 }
 === fs_storage reflect

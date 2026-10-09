@@ -12,12 +12,14 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
         include_bytes!("../testdata/cs_basic_opt.spv"),
     ),
     ("cs_image", include_bytes!("../testdata/cs_image.spv")),
+    ("cs_layout", include_bytes!("../testdata/cs_layout.spv")),
     ("cs_math", include_bytes!("../testdata/cs_math.spv")),
     ("fs_complex", include_bytes!("../testdata/fs_complex.spv")),
     (
         "fs_complex_opt",
         include_bytes!("../testdata/fs_complex_opt.spv"),
     ),
+    ("fs_sampling", include_bytes!("../testdata/fs_sampling.spv")),
     ("fs_storage", include_bytes!("../testdata/fs_storage.spv")),
     ("fs_textured", include_bytes!("../testdata/fs_textured.spv")),
     ("vs_basic", include_bytes!("../testdata/vs_basic.spv")),
@@ -157,6 +159,20 @@ fn msl_matches_spirv_cross() {
         count += 1;
     }
     assert_eq!(count, SHADERS.len() * 2);
+}
+
+#[test]
+fn hlsl_matches_spirv_cross() {
+    let mut count = 0;
+    for (header, expected) in reference_sections() {
+        if header[1] != "hlsl" {
+            continue;
+        }
+        let out = transpile(&header);
+        assert_eq!(out, expected, "=== {}", header.join(" "));
+        count += 1;
+    }
+    assert_eq!(count, SHADERS.len() * 3);
 }
 
 fn iovar_type(t: crate::IOVarType) -> &'static str {
