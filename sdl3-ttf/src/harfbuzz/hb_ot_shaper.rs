@@ -16,7 +16,10 @@ use super::hb_ot_layout::HB_OT_TAG_DEFAULT_SCRIPT;
 use super::hb_ot_shape::{HbOtShapePlan, HbOtShapePlanner};
 use super::hb_ot_shape_normalize::*;
 use super::hb_ot_shaper_arabic;
+use super::hb_ot_shaper_hangul;
+use super::hb_ot_shaper_hebrew;
 use super::hb_ot_shaper_indic;
+use super::hb_ot_shaper_thai;
 
 pub(crate) const HB_OT_SHAPE_MAX_COMBINING_MARKS: u32 = 32;
 
@@ -30,6 +33,7 @@ pub(crate) const HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE: HbOtShapeZeroWidthMa
 #[derive(Debug)]
 pub(crate) enum ShaperData {
     Arabic(Box<hb_ot_shaper_arabic::ArabicShapePlan>),
+    Hangul(Box<hb_ot_shaper_hangul::HangulShapePlan>),
     Indic(Box<hb_ot_shaper_indic::IndicShapePlan>),
 }
 
@@ -185,13 +189,13 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
         }
 
         /* Unicode-1.1 additions */
-        HB_SCRIPT_THAI | HB_SCRIPT_LAO => &_hb_ot_shaper_default,
+        HB_SCRIPT_THAI | HB_SCRIPT_LAO => &hb_ot_shaper_thai::_hb_ot_shaper_thai,
 
         /* Unicode-1.1 additions */
-        HB_SCRIPT_HANGUL => &_hb_ot_shaper_default,
+        HB_SCRIPT_HANGUL => &hb_ot_shaper_hangul::_hb_ot_shaper_hangul,
 
         /* Unicode-1.1 additions */
-        HB_SCRIPT_HEBREW => &_hb_ot_shaper_default,
+        HB_SCRIPT_HEBREW => &hb_ot_shaper_hebrew::_hb_ot_shaper_hebrew,
 
         /* Unicode-1.1 additions */
         HB_SCRIPT_BENGALI
