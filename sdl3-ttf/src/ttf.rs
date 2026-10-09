@@ -5,12 +5,11 @@
 //! SDL_ttf: A companion library to SDL for working with TrueType (tm)
 //! fonts.
 //!
-//! The build translated is upstream's with its bundled FreeType and
-//! without HarfBuzz and PlutoSVG (`TTF_USE_HARFBUZZ` and
-//! `TTF_USE_PLUTOSVG` are 0); the HarfBuzz paths are not translated yet
-//! (part 2: HarfBuzz), and without them the font direction is left to
-//! right only and the script and language setters are unsupported, as in
-//! such a C build.
+//! The build translated is upstream's default one, with its bundled
+//! FreeType and HarfBuzz and without PlutoSVG (`TTF_USE_HARFBUZZ` is 1,
+//! `TTF_USE_PLUTOSVG` is 0): text is shaped by the translated HarfBuzz
+//! (`crate::harfbuzz`), with the font's or text's direction, script and
+//! language.
 //!
 //! Translation notes:
 //!
@@ -52,6 +51,13 @@ use crate::freetype::base::ftstream::FtStreamRec;
 use crate::freetype::base::ftstroke::*;
 use crate::freetype::fttypes::*;
 use crate::freetype::tttables::{FtSfntTable, FT_SFNT_OS2};
+use crate::harfbuzz::hb_buffer::HbBuffer;
+use crate::harfbuzz::hb_common::*;
+use crate::harfbuzz::hb_face::HbFace;
+use crate::harfbuzz::hb_font::{HbFont, HbFontData};
+use crate::harfbuzz::hb_ft::*;
+use crate::harfbuzz::hb_shape::hb_shape;
+use crate::harfbuzz::hb_unicode::hb_unicode_script;
 
 /* Enable rendering with color
  * Freetype may need to be compiled with FT_CONFIG_OPTION_USE_PNG */
@@ -368,7 +374,6 @@ pub(crate) struct FontData {
 
     // Whether kerning is desired
     enable_kerning: bool,
-    use_kerning: bool,
 
     // Extra width in glyph bounds for text styles
     glyph_overhang: i32,
@@ -396,6 +401,8 @@ pub(crate) struct FontData {
     // Hinting modes
     ft_load_target: i32,
     pub(crate) render_subpixel: i32,
+    pub(crate) hb_font: HbFontData,
+    hb_language: HbLanguage,
     pub(crate) script: u32, // ISO 15924 script tag
     pub(crate) direction: Direction,
     pub(crate) render_sdf: bool,
@@ -1405,10 +1412,11 @@ pub fn freetype_version() -> (i32, i32, i32) {
     }
 }
 
-/// Query the version of the HarfBuzz library in use (`(0, 0, 0)`: this
-/// build has no HarfBuzz). Translation of `TTF_GetHarfBuzzVersion()`.
+/// Query the version of the HarfBuzz library in use (the version of the
+/// translated HarfBuzz). Translation of `TTF_GetHarfBuzzVersion()`.
 pub fn harfbuzz_version() -> (i32, i32, i32) {
-    (0, 0, 0)
+    let (hb_major, hb_minor, hb_micro) = hb_version();
+    (hb_major as i32, hb_minor as i32, hb_micro as i32)
 }
 
 /// `IOread`
@@ -1616,7 +1624,6 @@ impl Font {
             outline: 0,
             stroker: None,
             enable_kerning: false,
-            use_kerning: false,
             glyph_overhang: 0,
             line_thickness: 0,
             underline_top_row: 0,
@@ -1630,6 +1637,8 @@ impl Font {
             positions: None,
             ft_load_target: 0,
             render_subpixel: 0,
+            hb_font: HbFontData::create(Arc::new(HbFace::empty())),
+            hb_language: HB_LANGUAGE_INVALID,
             script: 0,
             direction: Direction::Invalid,
             render_sdf: false,
@@ -1665,6 +1674,16 @@ impl Font {
             }
         }
         drop(existing);
+
+        /* TTF_USE_HARFBUZZ */
+        font.hb_font = hb_ft_font_create(&mut font.face);
+
+        /* Default load-flags of hb_ft_font_create is no-hinting.
+         * So unless you call hb_ft_font_set_load_flags to match what flags you use for rendering,
+         * you will get mismatching advances and raster. */
+        hb_ft_font_set_load_flags(&mut font.hb_font, FT_LOAD_DEFAULT | font.ft_load_target);
+
+        font.hb_language = hb_language_from_string(b"");
 
         let rc = Rc::new(RefCell::new(font));
         let font = Font { rc };
@@ -2762,97 +2781,74 @@ pub(crate) fn step_utf8_unbounded(text: &[u8], pos: &mut usize) -> u32 {
     step_utf8(text, pos, &mut len)
 }
 
-/// `CollectGlyphsFromFont` (without HarfBuzz)
+/// `CollectGlyphsFromFont`
 fn collect_glyphs_from_font(
     this: &Weak<RefCell<FontData>>,
     font: &mut FontData,
     text: &[u8],
     length: usize,
-    _direction: Direction,
-    _script: u32,
+    direction: Direction,
+    script: u32,
     positions: &mut GlyphPositions,
 ) -> Result<()> {
-    /* TTF_USE_HARFBUZZ is 0 */
-    let mut skip_first = true;
-    let mut prev_index: FtUInt = 0;
-    let mut prev_delta: FtPos = 0;
+    /* TTF_USE_HARFBUZZ */
+    // Create a buffer for harfbuzz to use
+    let mut hb_buffer = HbBuffer::new();
 
+    // Set global configuration
+    hb_buffer.set_language(font.hb_language);
+    hb_buffer.set_direction(direction as HbDirection);
+    hb_buffer.set_script(hb_script_from_iso15924_tag(script));
+
+    // Layout the text
+    hb_buffer.add_utf8(&text[..length.min(text.len())], 0, -1);
+    hb_buffer.guess_segment_properties();
+
+    let userfeatures = [HbFeature {
+        tag: hb_tag(b'k', b'e', b'r', b'n'),
+        value: font.enable_kerning as u32,
+        start: HB_FEATURE_GLOBAL_START,
+        end: HB_FEATURE_GLOBAL_END,
+    }];
+
+    {
+        let mut hb_font = HbFont::new(&mut font.hb_font, Some(&mut font.face));
+        hb_shape(&mut hb_font, &mut hb_buffer, &userfeatures);
+    }
+
+    // Get the result
+    let hb_glyph_info: Vec<_> = hb_buffer.get_glyph_infos().to_vec();
+    let hb_glyph_position: Vec<_> = hb_buffer.get_glyph_positions().to_vec();
+
+    // Adjust for bold text
+    let mut advance_if_bold = 0;
+    if ttf_handle_style_bold(font) {
+        advance_if_bold = f26dot6(font.glyph_overhang);
+    }
+
+    // Realloc, if needed
+    let glyph_count = hb_glyph_info.len();
     positions.pos.clear();
+    if positions.pos.try_reserve_exact(glyph_count).is_err() {
+        return Err(Error::out_of_memory());
+    }
 
-    // Load each character and sum it's bounding box
-    let mut p = 0usize;
-    let mut length = length;
-    while length > 0 {
-        let offset = p as i32;
-        let c = step_utf8(text, &mut p, &mut length);
-        if c == UNICODE_BOM_NATIVE || c == UNICODE_BOM_SWAPPED {
-            continue;
-        }
-
-        if c == 0 && length > 0 {
-            length -= 1;
-        }
-
-        let idx = get_char_index(font, c);
-        if find_glyph_by_index(font, idx, 0, 0, 0, 0, 0, 0).is_err() {
-            return Err(Error::new(format!("Couldn't find glyph {idx} in font")));
-        }
-        let glyph = font.glyphs.get(&idx).unwrap().clone_metrics();
-
-        // Realloc, if needed
-        if positions.pos.len() == positions.pos.capacity() {
-            let maxlen = if positions.pos.capacity() != 0 {
-                positions.pos.capacity() * 2
-            } else {
-                16
-            };
-            if positions
-                .pos
-                .try_reserve_exact(maxlen - positions.pos.len())
-                .is_err()
-            {
-                return Err(Error::out_of_memory());
-            }
-        }
-
-        // Compute positions
-        let mut pos = GlyphPosition {
+    for i in 0..glyph_count {
+        let index = hb_glyph_info[i].codepoint;
+        positions.pos.push(GlyphPosition {
             font: this.clone(),
-            index: idx,
-            offset,
-            x_advance: glyph.advance,
-            y_advance: 0,
-            x_offset: 0,
-            y_offset: 0,
+            index,
+            x_advance: hb_glyph_position[i].x_advance.wrapping_add(advance_if_bold),
+            y_advance: hb_glyph_position[i].y_advance,
+            x_offset: hb_glyph_position[i].x_offset,
+            y_offset: hb_glyph_position[i].y_offset,
+            offset: hb_glyph_info[i].cluster as i32,
             x: 0,
             y: 0,
-        };
-        if font.use_kerning {
-            if prev_index != 0 && glyph.index != 0 {
-                let delta =
-                    ft_get_kerning(&mut font.face, prev_index, glyph.index, FT_KERNING_UNFITTED)
-                        .unwrap_or_default();
-                pos.x_offset = pos.x_offset.wrapping_add(delta.x as i32);
-            }
-            prev_index = glyph.index;
+        });
+        if find_glyph_by_index(font, index, 0, 0, 0, 0, 0, 0).is_err() {
+            return Err(Error::new(format!("Couldn't find glyph {index} in font")));
         }
-        // FT SUBPIXEL : LCD_MODE_LIGHT_SUBPIXEL
-        if font.render_subpixel != 0 {
-            // Increment by prev_glyph->lsb_delta - prev_glyph->rsb_delta;
-            pos.x_advance = pos.x_advance.wrapping_add(glyph.u0);
-        } else {
-            // FT KERNING_MODE_SMART: Use `lsb_delta' and `rsb_delta' to improve integer positioning of glyphs
-            if skip_first {
-                skip_first = false;
-            } else if prev_delta - (glyph.u1 as FtPos) > 32 {
-                pos.x_offset -= 64;
-            } else if prev_delta - (glyph.u1 as FtPos) < -31 {
-                pos.x_offset += 64;
-            }
-            prev_delta = glyph.u0 as FtPos;
-            pos.x_offset = (pos.x_offset.wrapping_add(32)) & -64; // ROUND()
-        }
-        positions.pos.push(pos);
     }
 
     Ok(())
@@ -3124,10 +3120,7 @@ fn collect_glyphs(
         pos.y = y.wrapping_add(f26dot6(ascent)).wrapping_sub(pos.y_offset);
         x = x.wrapping_add(pos.x_advance);
         y = y.wrapping_add(pos.y_advance);
-        /* !TTF_USE_HARFBUZZ */
-        if font.render_subpixel == 0 {
-            x = (x.wrapping_add(32)) & -64; // ROUND()
-        }
+        /* (TTF_USE_HARFBUZZ: no rounding) */
 
         // Save the number of clusters we've seen
         if pos.offset != last_offset {
@@ -3275,10 +3268,7 @@ pub(crate) fn ttf_size_internal(
                 );
 
                 x = x.wrapping_add(pos.x_advance);
-                /* !TTF_USE_HARFBUZZ */
-                if font.render_subpixel == 0 {
-                    x = (x.wrapping_add(32)) & -64; // ROUND()
-                }
+                /* (TTF_USE_HARFBUZZ: no rounding) */
                 // Measurement mode
                 if measure_width {
                     let mut cw = std::cmp::max(maxx, ft_floor(x as i64)) - minx;
@@ -3326,10 +3316,7 @@ pub(crate) fn ttf_size_internal(
                 }
 
                 x = x.wrapping_sub(pos.x_advance);
-                /* !TTF_USE_HARFBUZZ */
-                if font.render_subpixel == 0 {
-                    x = (x.wrapping_add(32)) & -64; // ROUND()
-                }
+                /* (TTF_USE_HARFBUZZ: no rounding) */
             }
             if minx > 0 {
                 minx = 0;
@@ -3937,6 +3924,10 @@ fn set_font_size_dpi(
     flush_cache(font);
     update_font_text_borrowed(this, font);
 
+    /* TTF_USE_HARFBUZZ */
+    // Call when size or variations settings on underlying FT_Face change.
+    hb_ft_font_changed(&mut font.hb_font, &mut font.face);
+
     Ok(())
 }
 
@@ -3947,8 +3938,7 @@ fn set_font_kerning(font: &mut FontData, enabled: bool) -> bool {
     }
 
     font.enable_kerning = enabled;
-    /* !TTF_USE_HARFBUZZ */
-    font.use_kerning = enabled && ft_has_kerning(&font.face);
+    /* TTF_USE_HARFBUZZ: Harfbuzz can do kerning positioning even if the font hasn't the data */
     true
 }
 
@@ -4151,6 +4141,9 @@ impl Font {
 
         font.ft_load_target = ft_load_target;
 
+        /* TTF_USE_HARFBUZZ: update flag for HB */
+        hb_ft_font_set_load_flags(&mut font.hb_font, FT_LOAD_DEFAULT | font.ft_load_target);
+
         flush_cache(font);
         update_font_text_borrowed(&this, font);
     }
@@ -4317,9 +4310,8 @@ impl Font {
         self.rc.borrow().face.style_name.clone()
     }
 
-    /// Set the direction to be used for text shaping by a font (without
-    /// HarfBuzz, only left to right). Translation of
-    /// `TTF_SetFontDirection()`.
+    /// Set the direction to be used for text shaping by a font.
+    /// Translation of `TTF_SetFontDirection()`.
     pub fn set_direction(&self, direction: Direction) -> Result<()> {
         let this = self.weak();
         let mut fd = self.rc.borrow_mut();
@@ -4327,11 +4319,6 @@ impl Font {
 
         if direction == font.direction {
             return Ok(());
-        }
-
-        /* !TTF_USE_HARFBUZZ */
-        if direction != Direction::Invalid && direction != Direction::Ltr {
-            return Err(Error::unsupported());
         }
 
         font.direction = direction;
@@ -4345,11 +4332,17 @@ impl Font {
         self.rc.borrow().direction
     }
 
-    /// Set the script to be used for text shaping by a font (unsupported
-    /// without HarfBuzz). Translation of `TTF_SetFontScript()`.
-    pub fn set_script(&self, _script: u32) -> Result<()> {
-        /* !TTF_USE_HARFBUZZ */
-        Err(Error::unsupported())
+    /// Set the script to be used for text shaping by a font (an ISO 15924
+    /// tag, see [`string_to_tag`]). Translation of `TTF_SetFontScript()`.
+    pub fn set_script(&self, script: u32) -> Result<()> {
+        let this = self.weak();
+        let mut fd = self.rc.borrow_mut();
+        let font = &mut *fd;
+
+        /* TTF_USE_HARFBUZZ */
+        font.script = script;
+        update_font_text_borrowed(&this, font);
+        Ok(())
     }
 
     /// Get the script used for text shaping a font. Translation of
@@ -4358,11 +4351,26 @@ impl Font {
         self.rc.borrow().script
     }
 
-    /// Set language to be used for text shaping by a font (unsupported
-    /// without HarfBuzz). Translation of `TTF_SetFontLanguage()`.
-    pub fn set_language(&self, _language_bcp47: Option<&str>) -> Result<()> {
-        /* !TTF_USE_HARFBUZZ */
-        Err(Error::unsupported())
+    /// Set language to be used for text shaping by a font (a BCP 47 tag;
+    /// `None` resets it). Translation of `TTF_SetFontLanguage()`.
+    pub fn set_language(&self, language_bcp47: Option<&str>) -> Result<()> {
+        let this = self.weak();
+        let mut fd = self.rc.borrow_mut();
+        let font = &mut *fd;
+
+        /* TTF_USE_HARFBUZZ */
+        let hb_language = match language_bcp47 {
+            None => hb_language_from_string(b""),
+            Some(l) => hb_language_from_string(l.as_bytes()),
+        };
+
+        if hb_language == font.hb_language {
+            return Ok(());
+        }
+
+        font.hb_language = hb_language;
+        update_font_text_borrowed(&this, font);
+        Ok(())
     }
 
     /// Check whether a glyph is provided by the font for a UNICODE
@@ -4750,11 +4758,18 @@ pub fn tag_to_string(tag: u32) -> [u8; 4] {
     string
 }
 
-/// Get the script used by a 32-bit codepoint (an error without
-/// HarfBuzz). Translation of `TTF_GetGlyphScript()`.
-pub fn glyph_script(_ch: u32) -> Result<u32> {
-    /* !TTF_USE_HARFBUZZ */
-    Err(Error::new("Unknown script"))
+/// Get the script used by a 32-bit codepoint (its ISO 15924 tag).
+/// Translation of `TTF_GetGlyphScript()`.
+pub fn glyph_script(ch: u32) -> Result<u32> {
+    /* TTF_USE_HARFBUZZ */
+    let hb_buffer = HbBuffer::new();
+    let hb_unicode_functions = hb_buffer.get_unicode_funcs();
+    let script = hb_script_to_iso15924_tag(hb_unicode_script(&hb_unicode_functions, ch));
+
+    if script == 0 {
+        return Err(Error::new("Unknown script"));
+    }
+    Ok(script)
 }
 
 /// Deinitialize SDL_ttf. Translation of `TTF_Quit()`.

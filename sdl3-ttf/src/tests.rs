@@ -6,7 +6,7 @@
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
 //! the DejaVu Sans subset, made by `tools/gen_sdl_ttf_testdata.py`.
 //! `testdata/reference.txt` is the output of a C program built from
-//! upstream SDL_ttf (with its bundled FreeType, without HarfBuzz and
+//! upstream SDL_ttf (with its bundled FreeType and HarfBuzz, without
 //! PlutoSVG) and SDL3, which runs the cases below in the same order: font
 //! information and glyph metrics, kerning, string sizes and measures at
 //! several sizes, text rendered in every render mode (solid, shaded,

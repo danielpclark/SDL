@@ -1073,19 +1073,13 @@ impl Text {
         self.rc.borrow().font()
     }
 
-    /// Set the direction to be used for text shaping a text object (without
-    /// HarfBuzz, only left to right). Translation of
-    /// `TTF_SetTextDirection()`.
+    /// Set the direction to be used for text shaping a text object.
+    /// Translation of `TTF_SetTextDirection()`.
     pub fn set_direction(&self, direction: Direction) -> Result<()> {
         let mut text = self.rc.borrow_mut();
 
         if direction == text.layout.direction {
             return Ok(());
-        }
-
-        /* !TTF_USE_HARFBUZZ */
-        if direction != Direction::Invalid && direction != Direction::Ltr {
-            return Err(Error::unsupported());
         }
 
         text.layout.direction = direction;
@@ -1099,12 +1093,15 @@ impl Text {
         text_direction(&self.rc.borrow())
     }
 
-    /// Set the script to be used for text shaping a text object
-    /// (unsupported without HarfBuzz). Translation of
-    /// `TTF_SetTextScript()`.
-    pub fn set_script(&self, _script: u32) -> Result<()> {
-        /* !TTF_USE_HARFBUZZ */
-        Err(Error::unsupported())
+    /// Set the script to be used for text shaping a text object (an ISO
+    /// 15924 tag). Translation of `TTF_SetTextScript()`.
+    pub fn set_script(&self, script: u32) -> Result<()> {
+        let mut text = self.rc.borrow_mut();
+
+        /* TTF_USE_HARFBUZZ */
+        text.layout.script = script;
+        text.needs_layout_update = true;
+        Ok(())
     }
 
     /// Get the script used for text shaping a text object. Translation of
