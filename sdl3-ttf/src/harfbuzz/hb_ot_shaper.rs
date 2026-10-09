@@ -16,6 +16,7 @@ use super::hb_ot_layout::HB_OT_TAG_DEFAULT_SCRIPT;
 use super::hb_ot_shape::{HbOtShapePlan, HbOtShapePlanner};
 use super::hb_ot_shape_normalize::*;
 use super::hb_ot_shaper_arabic;
+use super::hb_ot_shaper_indic;
 
 pub(crate) const HB_OT_SHAPE_MAX_COMBINING_MARKS: u32 = 32;
 
@@ -29,6 +30,7 @@ pub(crate) const HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE: HbOtShapeZeroWidthMa
 #[derive(Debug)]
 pub(crate) enum ShaperData {
     Arabic(Box<hb_ot_shaper_arabic::ArabicShapePlan>),
+    Indic(Box<hb_ot_shaper_indic::IndicShapePlan>),
 }
 
 /// `decompose ()`: called during shape()'s normalization.
@@ -211,7 +213,7 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
             } else if (chosen_script & 0x000000FF) == b'3' as u32 {
                 &_hb_ot_shaper_default
             } else {
-                &_hb_ot_shaper_default
+                &hb_ot_shaper_indic::_hb_ot_shaper_indic
             }
         }
 
