@@ -17,12 +17,24 @@
 /* This is a AVIF image file loading framework */
 
 // (libavif's API is translated whole, header constants and functions
-// SDL_image doesn't call included; the translation keeps upstream's loops,
-// conditions and late initializations as written)
+// SDL_image doesn't call included; the translation keeps upstream's loops
+// over indices, conditions, late initializations, explicit arithmetic
+// (`x * 0`, `x % 2 == 0`) and function pointer variables as written)
 #[allow(clippy::needless_range_loop)]
 mod alpha;
-#[allow(dead_code, clippy::module_inception)]
+#[allow(
+    dead_code,
+    clippy::collapsible_if,
+    clippy::manual_is_multiple_of,
+    clippy::module_inception,
+    clippy::needless_range_loop
+)]
 mod avif;
+#[allow(
+    clippy::collapsible_if,
+    clippy::field_reassign_with_default,
+    clippy::type_complexity
+)]
 mod codec_dav1d;
 mod colr;
 mod diag;
@@ -30,7 +42,13 @@ mod exif;
 mod internal;
 #[allow(dead_code)]
 mod io;
+#[allow(
+    clippy::explicit_counter_loop,
+    clippy::needless_late_init,
+    clippy::type_complexity
+)]
 mod libyuv;
+#[allow(clippy::manual_is_multiple_of, clippy::needless_late_init)]
 mod obu;
 #[allow(dead_code)]
 mod rawdata;
@@ -38,11 +56,23 @@ mod rawdata;
     dead_code,
     clippy::collapsible_else_if,
     clippy::collapsible_if,
+    clippy::manual_clamp,
+    clippy::manual_is_multiple_of,
     clippy::needless_late_init,
     clippy::needless_range_loop
 )]
 mod read;
-#[allow(dead_code, clippy::needless_range_loop)]
+#[allow(
+    dead_code,
+    clippy::erasing_op,
+    clippy::excessive_precision,
+    clippy::identity_op,
+    clippy::manual_clamp,
+    clippy::manual_div_ceil,
+    clippy::manual_is_multiple_of,
+    clippy::needless_late_init,
+    clippy::needless_range_loop
+)]
 mod reformat;
 mod scale;
 #[allow(dead_code)]
@@ -772,9 +802,7 @@ impl AvifDecoderContext {
         let Some(image) = decoder.image.as_deref() else {
             return Err(Error::invalid_param("image"));
         };
-        let frame_surface: Option<Surface<'static>>;
-
-        if image.depth == 16 {
+        let frame_surface: Option<Surface<'static>> = if image.depth == 16 {
             // Handle 16-bit depth
             let Ok(mut s) =
                 Surface::new(image.width as i32, image.height as i32, PixelFormat::RGBA64)
@@ -804,7 +832,7 @@ impl AvifDecoderContext {
 
             // Set HDR properties if needed
             set_hdr_properties(&mut s, image);
-            frame_surface = Some(s);
+            Some(s)
         } else if image.transfer_characteristics == AVIF_TRANSFER_CHARACTERISTICS_SMPTE2084 {
             // Handle HDR PQ image
             let mut surface = None;
@@ -830,7 +858,7 @@ impl AvifDecoderContext {
             if let Some(s) = &mut surface {
                 set_hdr_properties(s, image);
             }
-            frame_surface = surface;
+            surface
         } else {
             let Ok(mut s) =
                 Surface::new(image.width as i32, image.height as i32, PixelFormat::RGBA32)
@@ -870,8 +898,8 @@ impl AvifDecoderContext {
                 SDL_CHROMA_LOCATION_NONE,
             );
             s.set_colorspace(colorspace);
-            frame_surface = Some(s);
-        }
+            Some(s)
+        };
 
         // FIXME (upstream): the duration is in the file's timescale, only
         // multiplied by the time base's numerator.

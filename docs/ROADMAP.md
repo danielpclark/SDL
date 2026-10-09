@@ -71,8 +71,12 @@ In dependency order, after the core each one needs exists:
    (`IMG.c`: `IMG_Version`, `IMG_Load*`, `IMG_LoadTyped_IO`,
    `IMG_LoadTexture*`, `IMG_Save`/`IMG_SaveTyped_IO`,
    `IMG_GetClipboardImage`, `IMG_LoadAnimation*`, `IMG_SaveAnimation*`,
-   `IMG_CreateAnimatedCursor`), every `IMG_is*` detector (AVIF's with
-   libavif's file type check), the BMP/ICO/CUR, GIF, LBM, PCX, PNM, QOI
+   `IMG_CreateAnimatedCursor`), every `IMG_is*` detector, the AVIF
+   (`IMG_avif.c` over a translation of libavif 1.1.1's decoder as
+   SDL_image builds it: the ISOBMFF/HEIF parser with items, grids, alpha
+   items and tracks, the plain-C YUV to RGB conversion and alpha, the
+   libyuv plane scaler libavif bundles, and its dav1d codec), BMP/ICO/CUR,
+   GIF, LBM, PCX, PNM, QOI
    (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
    chosen size), TGA, WebP (`IMG_webp.c` over a translation of libwebp
    1.3.2's VP8 and VP8L decoders, alpha plane decoder, plain-C DSP
@@ -90,17 +94,19 @@ In dependency order, after the core each one needs exists:
    (miniz), TGA, JPEG (`tiny_jpeg.h`) and WebP savers, the animation API
    (`IMG_anim_decoder.c`, `IMG_anim_encoder.c`: frame-by-frame decoders and
    encoders with timebases and metadata) with GIF, ANI cursor and WebP
-   animations,
+   animations and AVIF image sequences (decoding),
    and `IMG_gpu.c` (GPU textures through a copy pass); checked against
    upstream's C on its test images and synthetic ones (detection, loading,
    truncated and corrupted input, saving, animation decoding and encoding).
-   AVIF's AV1 decoder is done: a translation of dav1d 1.2.1 (the
+   AVIF's AV1 decoder is a translation of dav1d 1.2.1 (the
    revision SDL_image's external/dav1d pins; plain-C paths, one thread,
    a frame delay of one), bit-exact with dav1d's C on AV1 streams from
-   libaom, SVT-AV1 and rav1e and their truncated and corrupted variants.
-   Not yet: the formats that need a large library: the AVIF (libavif on
-   top of the dav1d translation) and JPEG XL decoders, and the APNG and
-   AVIF animation decoders and encoders;
+   libaom, SVT-AV1 and rav1e and their truncated and corrupted variants;
+   AVIF decoding is bit-exact with libavif and dav1d's C on synthetic
+   images covering its bit depths, layouts, matrices, alpha, grids,
+   transformations, scaling and sequences, truncated and corrupted.
+   Not yet: the JPEG XL decoder, the APNG animation decoder and encoder,
+   and AVIF saving and the AVIF animation encoder (an AV1 encoder);
    libpng and libjpeg are replaced by stb_image as upstream's
    stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
