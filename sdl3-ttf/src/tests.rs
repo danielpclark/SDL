@@ -4,7 +4,9 @@
 
 //! The fonts in `testdata/fonts/` are subsets of DejaVu fonts (see their
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
-//! the DejaVu Sans subset, made by `tools/gen_sdl_ttf_testdata.py`.
+//! the DejaVu Sans subset, made by `tools/gen_sdl_ttf_testdata.py`, and
+//! the Noto font subsets (see their `OFL.txt`) of the shaping tests in
+//! `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
 //! upstream SDL_ttf (with its bundled FreeType and HarfBuzz, without
 //! PlutoSVG) and SDL3, which runs the cases below in the same order: font
@@ -1500,3 +1502,5 @@ fn renderer_engine_rejects_glyphs_that_never_pack() {
     drop(f);
     crate::quit();
 }
+
+mod shaping;

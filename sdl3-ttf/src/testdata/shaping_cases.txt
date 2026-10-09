@@ -1,0 +1,70 @@
+# The shaping test cases of sdl3-ttf (src/tests.rs), which the C program
+# that made shaping_reference.txt runs too. A `font FILE` line starts the
+# cases of a font in fonts/ (`font FILE FALLBACK` adds a fallback font);
+# a case is `case DIR SCRIPT LANG KERN TEXT`, tab-separated: the direction
+# (ltr, rtl, ttb, btt), the ISO 15924 script and the BCP 47 language set
+# on the font (`-` for none), whether kerning is on, and the text, with
+# `\xNN` escapes for bytes that are not valid UTF-8.
+font NotoSans-Regular.ttf
+case	-	-	-	1	office affine fluffy ffl ffi
+case	-	-	-	1	AVATAR Wave To Yo! 1/2 T.V.
+case	-	-	-	0	AVATAR Wave To Yo! 1/2 T.V.
+case	-	-	-	1	é ạ̈ ñ q̣̇ Å
+case	rtl	-	-	1	Hello, world
+case	-	Latn	tr	1	fi ı i fl
+case	ttb	-	-	1	Vertical
+case	-	-	-	1	ab\xff\xfecd \xc3\x28 \xe2\x82 x\xf0\x9f\x98
+font NotoSansArabic-Regular.ttf NotoSans-Regular.ttf
+case	-	-	-	1	السلام عليكم
+case	-	-	-	1	بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+case	-	-	-	1	لا لأ لإ لآ عـــربي
+case	-	-	-	0	کتاب فارسی ۱۲۳
+case	-	-	fa	1	۴۵۶ ٤٥٦ گچپژ
+case	-	-	ur	1	۴۵۶ ٤٥٦ اردو
+case	-	-	-	1	مرحبا Hello ١٢٣ world
+case	ltr	-	-	1	عربي
+case	-	Arab	-	1	123 abc
+case	-	-	-	1	عر\xd8ب\xffي
+font NotoSansHebrew-Regular.ttf NotoSans-Regular.ttf
+case	-	-	-	1	שָׁלוֹם עוֹלָם
+case	-	-	-	1	בְּרֵאשִׁית בָּרָא אֱלֹהִים
+case	-	-	-	0	בְּרֵאשִׁית בָּרָא אֱלֹהִים
+case	-	-	-	1	אִם־יִהְיֶה (abc) 123
+case	-	-	-	1	Hello שלום world
+case	rtl	-	-	1	abc שלום
+font NotoSansDevanagari-Regular.ttf
+case	-	-	-	1	नमस्ते दुनिया
+case	-	-	-	1	क्षत्रिय र्क र्क्ष श्री
+case	-	-	-	0	क्षत्रिय र्क र्क्ष श्री
+case	-	-	-	1	कि कीं क़ि ज़्
+case	-	-	-	1	हिन्दी 123 abc
+case	-	-	-	1	ि ् क्‍ष क्‌ष
+case	-	Deva	mr	1	र्‍य र्य
+font NotoSansThai-Regular.ttf
+case	-	-	-	1	สวัสดีครับ
+case	-	-	-	1	น้ำ ป่ำ ฟ้ำ กำ
+case	-	-	-	0	ปิ่น ฝั่ง ฟื้น ญุ ฐุ
+case	-	-	-	1	ก็ ่ำ ๑๒๓
+font NotoSansKR-Regular.otf
+case	-	-	-	1	안녕하세요 세계
+case	-	-	-	1	한국어 텍스트 123
+case	-	-	-	1	ᄒᆞᆫ글 ᄀᆞᆷ
+case	-	-	-	1	가〮 각〯 〮
+case	-	-	-	0	강ᆨ ᄀ ᅡ
+font NotoSansKhmer-Regular.ttf
+case	-	-	-	1	ភាសាខ្មែរ
+case	-	-	-	1	ក្រុមហ៊ុន ស្ត្រី
+case	-	-	-	1	កើ កឿ ង្ក្រ ្ក
+font NotoSansMyanmar-Regular.ttf
+case	-	-	-	1	မြန်မာ
+case	-	-	-	1	မင်္ဂလာပါ ကျွန်ုပ်
+case	-	-	-	1	ေ ြ ္
+font NotoSansSinhala-Regular.ttf
+case	-	-	-	1	ශ්‍රී ලංකාව
+case	-	-	-	1	කෙ කේ කො ක්‍ෂ
+case	-	-	-	1	ෙ ්
+font DejaVuSans-NoLayout.ttf
+case	-	-	-	1	السلام عليكم لا
+case	-	-	-	1	بِسْمِ ٱللَّٰهِ
+case	-	-	-	1	שָׁלוֹם בּ שּׁ יִ אַ
+case	-	-	-	1	é ạ בּ
