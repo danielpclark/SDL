@@ -23,6 +23,7 @@
 
 use std::sync::Arc;
 
+use super::hb_algs::hb_roundf;
 use super::hb_common::*;
 use super::hb_face::HbFace;
 use super::hb_ft::HbFtFont;
@@ -166,8 +167,8 @@ impl HbFontData {
             (((self.y_scale as i64) << 16) as f32 / upem) as i64
         };
 
-        self.x_strength = (self.x_scale as f32 * self.x_embolden).round().abs() as i32;
-        self.y_strength = (self.y_scale as f32 * self.y_embolden).round().abs() as i32;
+        self.x_strength = hb_roundf(self.x_scale as f32 * self.x_embolden).abs() as i32;
+        self.y_strength = hb_roundf(self.y_scale as f32 * self.y_embolden).abs() as i32;
 
         self.slant_xy = if self.y_scale != 0 {
             self.slant * self.x_scale as f32 / self.y_scale as f32
@@ -317,7 +318,7 @@ impl<'a> HbFont<'a> {
     /// `em_multf`
     #[inline]
     pub(crate) fn em_multf(v: f32, mult: f32) -> HbPosition {
-        Self::em_fmultf(v, mult).round() as HbPosition
+        hb_roundf(Self::em_fmultf(v, mult)) as HbPosition
     }
     /// `em_fmultf`
     #[inline]

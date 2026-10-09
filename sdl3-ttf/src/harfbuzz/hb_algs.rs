@@ -176,6 +176,15 @@ fn sort_r_simple<T>(base: &mut [T], b: usize, nel: usize, compar: &impl Fn(&T, &
     }
 }
 
+/* Floats. */
+
+/// `_hb_roundf` (HarfBuzz's `roundf`): we want our rounding towards
+/// +infinity.
+#[inline]
+pub(crate) fn hb_roundf(x: f32) -> f32 {
+    (x + 0.5).floor()
+}
+
 /// `hb_qsort`
 pub(crate) fn hb_qsort<T>(base: &mut [T], compar: impl Fn(&T, &T) -> i32) {
     let nel = base.len();

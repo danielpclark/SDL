@@ -114,7 +114,7 @@ impl<'a> Coverage<'a> {
         match self.format() {
             1 => {
                 /* CoverageFormat1_3::get_coverage */
-                let (len, arr) = array16(self.0);
+                let (len, arr) = array16(struct_at(self.0, 2));
                 match bfind_u16(arr, len, glyph_id) {
                     Ok(i) => i,
                     Err(_) => NOT_COVERED,
@@ -122,7 +122,7 @@ impl<'a> Coverage<'a> {
             }
             2 => {
                 /* CoverageFormat2_4::get_coverage */
-                let (len, arr) = array16(self.0);
+                let (len, arr) = array16(struct_at(self.0, 2));
                 let (first, last, value) = RangeRecord::bsearch(arr, len, glyph_id);
                 if first <= last {
                     value.wrapping_add(glyph_id.wrapping_sub(first))
@@ -150,11 +150,11 @@ impl<'a> Coverage<'a> {
     pub(crate) fn collect_coverage(&self, glyphs: &mut HbSet) -> bool {
         match self.format() {
             1 => {
-                let (len, arr) = array16(self.0);
+                let (len, arr) = array16(struct_at(self.0, 2));
                 glyphs.add_sorted_array((0..len as usize).map(|i| u16_at(arr, i * 2) as u32))
             }
             2 => {
-                let (len, arr) = array16(self.0);
+                let (len, arr) = array16(struct_at(self.0, 2));
                 for i in 0..len {
                     let (first, last, _) = RangeRecord::at(arr, len, i);
                     if !glyphs.add_range(first, last) {
@@ -174,14 +174,14 @@ impl<'a> Coverage<'a> {
         let mut out = Vec::new();
         match self.format() {
             1 => {
-                let (len, arr) = array16(self.0);
+                let (len, arr) = array16(struct_at(self.0, 2));
                 for i in 0..len as usize {
                     out.push(u16_at(arr, i * 2) as u32);
                 }
             }
             2 => {
                 /* CoverageFormat2_4::iter_t */
-                let (len, arr) = array16(self.0);
+                let (len, arr) = array16(struct_at(self.0, 2));
                 let mut i = 0u32;
                 let mut coverage = 0u32;
                 let mut j = if len != 0 {
