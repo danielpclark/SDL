@@ -441,3 +441,60 @@ pub(crate) fn cbrtf(x: f32) -> f32 {
 
     ldexpf(if x > 0.0 { ym } else { -ym }, xe / 3)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The C library results the reference decoder gets (glibc 2.39 on
+    // x86-64), as bits.
+
+    #[test]
+    fn powf_of_the_dequantization_multipliers_is_glibcs() {
+        // x_dm_multiplier and b_dm_multiplier: pow(1 / 1.25, qm_scale - 2)
+        // for every 3-bit qm_scale
+        let expected = [
+            0x3fc80000u32,
+            0x3fa00000,
+            0x3f800000,
+            0x3f4ccccd,
+            0x3f23d70b,
+            0x3f03126f,
+            0x3ed1b718,
+            0x3ea7c5ad,
+        ];
+        for (k, &e) in expected.iter().enumerate() {
+            assert_eq!(
+                powf(1.0 / 1.25f32, k as f32 - 2.0).to_bits(),
+                e,
+                "qm_scale {k}"
+            );
+        }
+    }
+
+    #[test]
+    fn cbrtf_and_logf_are_glibcs() {
+        let cbrt = [
+            (0xbb789536u32, 0xbe1fb275u32),
+            (0x3b789536, 0x3e1fb275),
+            (0x3f800000, 0x3f800000),
+            (0x41d80000, 0x40400000),
+            (0x3a83126f, 0x3dcccccd),
+            (0xc1080000, 0xc0029ceb),
+            (0x012355e6, 0x2aaeebf1),
+            (0x7149f2ca, 0x501502f9),
+        ];
+        for (x, e) in cbrt {
+            assert_eq!(cbrtf(f32::from_bits(x)).to_bits(), e, "cbrtf({x:08x})");
+        }
+        let log = [
+            (0x3f000000u32, 0xbf317218u32),
+            (0x3fd9999a, 0x3f07d741),
+            (0x3c23d70a, 0xc0935d8e),
+            (0x42f6cccd, 0x409a1803),
+        ];
+        for (x, e) in log {
+            assert_eq!(logf(f32::from_bits(x)).to_bits(), e, "logf({x:08x})");
+        }
+    }
+}
