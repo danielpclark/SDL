@@ -287,6 +287,7 @@ impl AnsCode {
 
 /// Translation of `ANSSymbolReader::Checkpoint`.
 #[allow(dead_code)]
+#[derive(Default)]
 pub(crate) struct Checkpoint {
     state: u32,
     num_to_copy: u32,

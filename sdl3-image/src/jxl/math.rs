@@ -289,7 +289,14 @@ pub(crate) fn cube_root_and_add(x: f32, add: f32) -> f32 {
 /// Translation of highway's scalar `Min()` on floats.
 #[inline]
 pub(crate) fn hwy_min(a: f32, b: f32) -> f32 {
-    // (HWY_MIN: a < b ? a : b)
+    // (scalar Min for floats: a NaN operand yields the other one, then
+    // HWY_MIN: a < b ? a : b)
+    if a.is_nan() {
+        return b;
+    }
+    if b.is_nan() {
+        return a;
+    }
     if a < b {
         a
     } else {
@@ -300,12 +307,25 @@ pub(crate) fn hwy_min(a: f32, b: f32) -> f32 {
 /// Translation of highway's scalar `Max()` on floats.
 #[inline]
 pub(crate) fn hwy_max(a: f32, b: f32) -> f32 {
-    // (HWY_MAX: a > b ? a : b)
+    // (scalar Max for floats: a NaN operand yields the other one, then
+    // HWY_MAX: a > b ? a : b)
+    if a.is_nan() {
+        return b;
+    }
+    if b.is_nan() {
+        return a;
+    }
     if a > b {
         a
     } else {
         b
     }
+}
+
+/// Translation of Highway's `Clamp(v, lo, hi)`: `Min(Max(lo, v), hi)`.
+#[inline]
+pub(crate) fn hwy_clamp(v: f32, lo: f32, hi: f32) -> f32 {
+    hwy_min(hwy_max(lo, v), hi)
 }
 
 /// The C library's `roundf()` (half away from zero).
@@ -331,6 +351,13 @@ pub(crate) fn pow(x: f64, y: f64) -> f64 {
 #[inline]
 pub(crate) fn log(x: f64) -> f64 {
     sdl3::stdlib::math::log(x)
+}
+
+/// The C library's `logf()`, computed in double through SDL's fdlibm
+/// `log()` and rounded.
+#[inline]
+pub(crate) fn logf(x: f32) -> f32 {
+    sdl3::stdlib::math::log(x as f64) as f32
 }
 
 /// The C library's `exp()` (SDL's fdlibm).

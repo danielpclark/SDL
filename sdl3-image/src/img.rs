@@ -47,6 +47,7 @@ static SUPPORTED: &[(&str, Option<IsFn>, LoadFn)] = &[
     ("BMP", Some(crate::bmp::is_bmp), crate::bmp::load_bmp_io),
     ("GIF", Some(crate::gif::is_gif), crate::gif::load_gif_io),
     ("JPG", Some(crate::jpg::is_jpg), crate::jpg::load_jpg_io),
+    ("JXL", Some(crate::jxl::is_jxl), crate::jxl::load_jxl_io),
     ("LBM", Some(crate::lbm::is_lbm), crate::lbm::load_lbm_io),
     ("PCX", Some(crate::pcx::is_pcx), crate::pcx::load_pcx_io),
     ("PNG", Some(crate::png::is_png), crate::png::load_png_io),
