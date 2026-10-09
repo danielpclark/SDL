@@ -345,8 +345,7 @@ fn read_frame_size(
                 if hdr.super_res.enabled != 0 {
                     let d = 9 + gb.get_bits(3) as i32;
                     hdr.super_res.width_scale_denominator = d;
-                    hdr.width[0] =
-                        imax((hdr.width[1] * 8 + (d >> 1)) / d, imin(16, hdr.width[1]));
+                    hdr.width[0] = imax((hdr.width[1] * 8 + (d >> 1)) / d, imin(16, hdr.width[1]));
                 } else {
                     hdr.super_res.width_scale_denominator = 8;
                     hdr.width[0] = hdr.width[1];
@@ -520,8 +519,7 @@ fn parse_frame_hdr_inner(
     }
 
     if is_key_or_intra(hdr) {
-        hdr.refresh_frame_flags = if hdr.frame_type == DAV1D_FRAME_TYPE_KEY && hdr.show_frame != 0
-        {
+        hdr.refresh_frame_flags = if hdr.frame_type == DAV1D_FRAME_TYPE_KEY && hdr.show_frame != 0 {
             0xff
         } else {
             gb.get_bits(8) as i32
@@ -597,8 +595,7 @@ fn parse_frame_hdr_inner(
             let mut earliest_frame_offset = i32::MAX;
             for i in 0..8 {
                 let hint = shifted_frame_offset[i];
-                if !used_frame[i] && hint >= current_frame_offset && hint < earliest_frame_offset
-                {
+                if !used_frame[i] && hint >= current_frame_offset && hint < earliest_frame_offset {
                     hdr.refidx[4] = i as i32;
                     earliest_frame_offset = hint;
                 }
@@ -610,8 +607,7 @@ fn parse_frame_hdr_inner(
             earliest_frame_offset = i32::MAX;
             for i in 0..8 {
                 let hint = shifted_frame_offset[i];
-                if !used_frame[i] && hint >= current_frame_offset && hint < earliest_frame_offset
-                {
+                if !used_frame[i] && hint >= current_frame_offset && hint < earliest_frame_offset {
                     hdr.refidx[5] = i as i32;
                     earliest_frame_offset = hint;
                 }
@@ -659,12 +655,10 @@ fn parse_frame_hdr_inner(
                 hdr.refidx[i] = gb.get_bits(3) as i32;
             }
             if seqhdr.frame_id_numbers_present != 0 {
-                let delta_ref_frame_id_minus_1 =
-                    gb.get_bits(seqhdr.delta_frame_id_n_bits) as i32;
-                let ref_frame_id = (hdr.frame_id + (1 << seqhdr.frame_id_n_bits)
-                    - delta_ref_frame_id_minus_1
-                    - 1)
-                    & ((1 << seqhdr.frame_id_n_bits) - 1);
+                let delta_ref_frame_id_minus_1 = gb.get_bits(seqhdr.delta_frame_id_n_bits) as i32;
+                let ref_frame_id =
+                    (hdr.frame_id + (1 << seqhdr.frame_id_n_bits) - delta_ref_frame_id_minus_1 - 1)
+                        & ((1 << seqhdr.frame_id_n_bits) - 1);
                 match ref_hdr(c, hdr.refidx[i] as usize) {
                     Some(r) if r.frame_id == ref_frame_id => {}
                     _ => return Err(()),
@@ -1105,8 +1099,7 @@ fn parse_frame_hdr_inner(
                 }
             } else if diff < 0
                 && (off_before == 0xFFFFFFFF
-                    || get_poc_diff(seqhdr.order_hint_n_bits, refpoc as i32, off_before as i32)
-                        > 0)
+                    || get_poc_diff(seqhdr.order_hint_n_bits, refpoc as i32, off_before as i32) > 0)
             {
                 off_before = refpoc;
                 off_before_idx = i as i32;
@@ -1591,7 +1584,11 @@ fn parse_obus_body(
             // print a warning but don't fail for unknown types
             dav1d_log(
                 c,
-                &format!("Unknown OBU type {} of size {}\n", type_, gb.ptr_end - gb.ptr),
+                &format!(
+                    "Unknown OBU type {} of size {}\n",
+                    type_,
+                    gb.ptr_end - gb.ptr
+                ),
             );
         }
     }
