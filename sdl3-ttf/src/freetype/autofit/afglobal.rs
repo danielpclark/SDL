@@ -21,6 +21,9 @@ use super::afscript::*;
 use super::afshaper::af_shaper_get_coverage;
 use super::afstyles::*;
 use super::aftypes::*;
+use super::ft_hb::hb_ft_font_create_;
+use crate::harfbuzz::hb_buffer::HbBuffer;
+use crate::harfbuzz::hb_font::HbFontData;
 
 /// `af_writing_system_classes`
 pub static AF_WRITING_SYSTEM_CLASSES: [&AfWritingSystemClassRec; AF_WRITING_SYSTEM_MAX as usize] = [
@@ -76,6 +79,10 @@ pub const AF_PROP_INCREASE_X_HEIGHT_MAX: FtUInt = 0;
 pub struct AfFaceGlobalsRec {
     pub glyph_count: FtUInt, /* unsigned face->num_glyphs */
     pub glyph_styles: Vec<FtUShort>,
+
+    /* (FT_CONFIG_OPTION_USE_HARFBUZZ) */
+    pub hb_font: HbFontData,
+    pub hb_buf: HbBuffer, /* for feature comparison */
 
     /* per-face auto-hinter properties */
     pub increase_x_height: FtUInt,
@@ -210,7 +217,7 @@ fn af_face_globals_compute_style_coverage(
             } else {
                 /* get glyphs not directly addressable by cmap */
                 let mut gstyles = std::mem::take(&mut globals.glyph_styles);
-                let _ = af_shaper_get_coverage(globals, style_class, &mut gstyles, false);
+                let _ = af_shaper_get_coverage(globals, face, style_class, &mut gstyles, false);
                 globals.glyph_styles = gstyles;
             }
         }
@@ -219,7 +226,7 @@ fn af_face_globals_compute_style_coverage(
         for style_class in &AF_STYLE_CLASSES {
             if style_class.coverage == AF_COVERAGE_DEFAULT {
                 let mut gstyles = std::mem::take(&mut globals.glyph_styles);
-                let _ = af_shaper_get_coverage(globals, style_class, &mut gstyles, false);
+                let _ = af_shaper_get_coverage(globals, face, style_class, &mut gstyles, false);
                 globals.glyph_styles = gstyles;
             }
         }
@@ -230,7 +237,7 @@ fn af_face_globals_compute_style_coverage(
         /* doesn't look at the style class)                                 */
         if let Some(style_class) = AF_STYLE_CLASSES.get(dflt as usize) {
             let mut gstyles = std::mem::take(&mut globals.glyph_styles);
-            let _ = af_shaper_get_coverage(globals, style_class, &mut gstyles, true);
+            let _ = af_shaper_get_coverage(globals, face, style_class, &mut gstyles, true);
             globals.glyph_styles = gstyles;
         }
 
@@ -291,6 +298,10 @@ pub fn af_face_globals_new(
         standard_vertical_width: 0,
         standard_horizontal_width: 0,
         scale_down_factor: 0,
+
+        /* (FT_CONFIG_OPTION_USE_HARFBUZZ) */
+        hb_font: hb_ft_font_create_(face),
+        hb_buf: HbBuffer::new(),
     });
 
     af_face_globals_compute_style_coverage(&mut globals, face, module)?;

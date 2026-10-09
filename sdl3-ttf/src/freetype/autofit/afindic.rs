@@ -19,7 +19,7 @@ use super::aftypes::*;
 fn af_indic_metrics_init(
     metrics: &mut AfStyleMetricsRec, /* AF_CJKMetrics */
     face: &mut FtFace,
-    _globals: &mut AfFaceGlobalsRec,
+    globals: &mut AfFaceGlobalsRec,
 ) -> FtResult<()> {
     /* skip blue zone init in CJK routines */
     let oldmap = face.charmap;
@@ -29,9 +29,9 @@ fn af_indic_metrics_init(
     if ft_select_charmap(face, FT_ENCODING_UNICODE).is_err() {
         face.charmap = None;
     } else {
-        af_cjk_metrics_init_widths(metrics, face);
+        af_cjk_metrics_init_widths(metrics, face, globals);
         /* either need indic specific blue_chars[] or just skip blue zones */
-        af_cjk_metrics_check_digits(metrics, face);
+        af_cjk_metrics_check_digits(metrics, face, globals);
     }
 
     face.charmap = oldmap;

@@ -122,7 +122,10 @@ In dependency order, after the core each one needs exists:
    table), script/language tags and feature selection, the OpenType
    shaper with every shaper it selects (default, Arabic with fallback
    shaping, Hebrew, Indic, Khmer, Myanmar and Zawgyi, Thai/Lao, Hangul,
-   USE) with normalization and fallback positioning, and `hb-ft`; the
+   USE) with normalization and fallback positioning, `hb-ft`, and the
+   OpenType font functions FreeType's auto-hinter uses (SDL_ttf builds
+   its FreeType with HarfBuzz, so the auto-hinter finds the glyphs of
+   OpenType features through it); the
    generated tables come from HarfBuzz's via
    `tools/gen_harfbuzz_tables.py`. SDL_ttf's `TTF_USE_HARFBUZZ` paths are
    on, as upstream's default build has them (font and text direction,
@@ -131,7 +134,8 @@ In dependency order, after the core each one needs exists:
    Noto fonts: shaped glyphs and positions, rendered surfaces and text
    layouts for Latin ligatures and kerning, Arabic, Hebrew, mixed
    direction, Devanagari, Thai, Hangul, Khmer, Myanmar and Sinhala, and
-   fonts with corrupted or truncated GSUB/GPOS/GDEF; HarfBuzz alone was
+   fonts with corrupted or truncated GSUB/GPOS/GDEF, and unhinted fonts
+   (the auto-hinter with HarfBuzz); HarfBuzz alone was
    also checked on more fonts and scripts (the other Indic scripts,
    Tibetan, Balinese, Javanese, Mongolian, N'Ko, Syriac, Tai Tham,
    Tifinagh, Lao), and on byte flips of every layout-table byte of the

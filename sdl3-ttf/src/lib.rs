@@ -31,7 +31,10 @@
 //! the OpenType shaper with all its shapers (default, Arabic with its
 //! fallback shaping, Hebrew, Indic, Khmer, Myanmar and Zawgyi, Thai and
 //! Lao, Hangul, and the Universal Shaping Engine) and fallback mark
-//! positioning and kerning, and the FreeType integration (`hb-ft`).
+//! positioning and kerning, the FreeType integration (`hb-ft`), and the
+//! OpenType font functions FreeType's auto-hinter uses (FreeType is built
+//! with HarfBuzz, as SDL_ttf builds it: the auto-hinter finds the glyphs
+//! of OpenType features such as small capitals and superscripts).
 //!
 //! Not translated yet: HarfBuzz's AAT layout (`morx`, `kerx`, `trak`
 //! tables, treated as absent) and the state-machine `kern` subtables
