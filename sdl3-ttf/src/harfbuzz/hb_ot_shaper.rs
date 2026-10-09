@@ -19,6 +19,8 @@ use super::hb_ot_shaper_arabic;
 use super::hb_ot_shaper_hangul;
 use super::hb_ot_shaper_hebrew;
 use super::hb_ot_shaper_indic;
+use super::hb_ot_shaper_khmer;
+use super::hb_ot_shaper_myanmar;
 use super::hb_ot_shaper_thai;
 
 pub(crate) const HB_OT_SHAPE_MAX_COMBINING_MARKS: u32 = 32;
@@ -35,6 +37,7 @@ pub(crate) enum ShaperData {
     Arabic(Box<hb_ot_shaper_arabic::ArabicShapePlan>),
     Hangul(Box<hb_ot_shaper_hangul::HangulShapePlan>),
     Indic(Box<hb_ot_shaper_indic::IndicShapePlan>),
+    Khmer(Box<hb_ot_shaper_khmer::KhmerShapePlan>),
 }
 
 /// `decompose ()`: called during shape()'s normalization.
@@ -221,7 +224,7 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
             }
         }
 
-        HB_SCRIPT_KHMER => &_hb_ot_shaper_default,
+        HB_SCRIPT_KHMER => &hb_ot_shaper_khmer::_hb_ot_shaper_khmer,
 
         HB_SCRIPT_MYANMAR => {
             /* If the designer designed the font for the 'DFLT' script,
@@ -237,12 +240,12 @@ pub(crate) fn hb_ot_shaper_categorize(planner: &HbOtShapePlanner) -> &'static Hb
             {
                 &_hb_ot_shaper_default
             } else {
-                &_hb_ot_shaper_default
+                &hb_ot_shaper_myanmar::_hb_ot_shaper_myanmar
             }
         }
 
         /* https://github.com/harfbuzz/harfbuzz/issues/1162 */
-        HB_SCRIPT_MYANMAR_ZAWGYI => &_hb_ot_shaper_default,
+        HB_SCRIPT_MYANMAR_ZAWGYI => &hb_ot_shaper_myanmar::_hb_ot_shaper_myanmar_zawgyi,
 
         /* Unicode-2.0 additions */
         HB_SCRIPT_TIBETAN
