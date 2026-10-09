@@ -15,6 +15,7 @@ pub mod ftglyph;
 pub mod ftinit;
 pub mod ftlcdfil;
 pub mod ftmemory;
+pub mod ftmm;
 pub mod ftobjs;
 pub mod ftoutln;
 pub mod ftpsprop;

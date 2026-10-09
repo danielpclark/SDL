@@ -36,12 +36,15 @@
     clippy::identity_op,
     clippy::if_same_then_else,
     clippy::implicit_saturating_sub,
+    clippy::large_enum_variant,
     clippy::manual_clamp,
     clippy::manual_checked_ops,
     clippy::manual_is_multiple_of,
     clippy::manual_range_contains,
     clippy::manual_range_patterns,
+    clippy::needless_bool,
     clippy::needless_late_init,
+    clippy::needless_option_as_deref,
     clippy::needless_range_loop,
     clippy::too_many_arguments,
     clippy::type_complexity,
@@ -49,8 +52,25 @@
     clippy::upper_case_acronyms
 )]
 
+pub mod hb_algs;
 pub mod hb_buffer;
 pub mod hb_common;
+pub mod hb_face;
+pub mod hb_font;
+pub mod hb_ft;
+pub mod hb_open_type;
+pub mod hb_ot_kern_table;
+pub mod hb_ot_layout;
+pub mod hb_ot_layout_common;
+pub mod hb_ot_layout_gdef;
+pub mod hb_ot_layout_gpos;
+pub mod hb_ot_layout_gsub;
+pub mod hb_ot_layout_gsubgpos;
+pub mod hb_ot_map;
+pub mod hb_ot_shaper_arabic_pua;
+pub mod hb_sanitize;
+pub mod hb_set;
+pub mod hb_set_digest;
 pub mod hb_ucd;
 pub mod hb_ucd_table;
 pub mod hb_unicode;
