@@ -49,6 +49,8 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      # sdl3-mixer's zlib-only build (no `timidity` feature)
+      - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
 
   test:
     name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
@@ -98,6 +100,13 @@ jobs:
           # Skips are listed in the job summary; on Linux the capabilities
           # installed above are required, so a test that can't find one
           # fails instead of skipping.
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || '' }}
+      # sdl3-mixer without its default `timidity` feature: the zlib-only
+      # build, without sdl3-mixer-timidity.
+      - name: cargo test -p sdl3-mixer --no-default-features
+        run: cargo test -p sdl3-mixer --no-default-features
+        env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || '' }}
       - name: cargo test --release
