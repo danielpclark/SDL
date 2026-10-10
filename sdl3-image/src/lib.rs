@@ -89,6 +89,7 @@ mod xcf;
 mod xmlman;
 mod xpm;
 mod xv;
+mod zlib;
 
 pub use ani::is_ani;
 pub use anim_decoder::{
