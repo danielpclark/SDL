@@ -346,9 +346,9 @@ pub fn save_animation(anim: &mut Animation, file: impl AsRef<Path>) -> Result<()
 }
 
 /// Save an animation to a data source in the format named by `type_`, a
-/// file extension compared without case: `"ani"`, `"gif"` or `"webp"` (at
-/// quality 90); `"apng"` or `"png"` and `"avif"` need libraries this crate
-/// doesn't have, and report so as an upstream build without them.
+/// file extension compared without case: `"ani"`, `"apng"` or `"png"`,
+/// `"gif"` or `"webp"` (at quality 90); `"avif"` needs an AV1 encoder this
+/// crate doesn't have, and reports so as an upstream build without it.
 /// Translation of `IMG_SaveAnimationTyped_IO()`.
 pub fn save_animation_typed_io(
     anim: &mut Animation,

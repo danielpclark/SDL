@@ -4,10 +4,9 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation decoders: frames one at a time from a file or a stream, by
-//! format (GIF, ANI, WebP and AVIF here; APNG needs libpng, which this
-//! crate doesn't have, as an upstream build without it), with
-//! a single-frame decoder for every other format; and whole animations
-//! decoded into an [`Animation`](crate::Animation).
+//! format (GIF, ANI, APNG, WebP and AVIF), with a single-frame decoder for
+//! every other format (and for a PNG that isn't animated); and whole
+//! animations decoded into an [`Animation`](crate::Animation).
 
 use std::path::Path;
 
@@ -21,6 +20,7 @@ use crate::ani::{create_ani_animation_decoder, AniDecoderContext};
 use crate::avif::{create_avif_animation_decoder, AvifDecoderContext};
 use crate::gif::{create_gif_animation_decoder, GifContext};
 use crate::img::{timebase_duration, Animation};
+use crate::libpng::{create_apng_animation_decoder, ApngDecoderContext};
 use crate::webp::{create_webp_animation_decoder, WebpDecoderContext};
 
 /// The file to decode (a string). Translation of
@@ -176,6 +176,7 @@ pub(crate) enum DecoderContext {
     SingleFrame { type_: String, frame_read: bool },
     Gif(Box<GifContext>),
     Ani(Box<AniDecoderContext>),
+    Apng(Box<ApngDecoderContext>),
     Webp(Box<WebpDecoderContext>),
     Avif(Box<AvifDecoderContext>),
 }
@@ -194,6 +195,7 @@ impl std::fmt::Debug for AnimationDecoder<'_, '_> {
             DecoderContext::SingleFrame { .. } => "single frame",
             DecoderContext::Gif(_) => "gif",
             DecoderContext::Ani(_) => "ani",
+            DecoderContext::Apng(_) => "apng",
             DecoderContext::Webp(_) => "webp",
             DecoderContext::Avif(_) => "avif",
         };
@@ -358,7 +360,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
         let result = if is("ani") {
             create_ani_animation_decoder(d, props).map(DecoderContext::Ani)
         } else if is("apng") || is("png") {
-            Err(Error::new("SDL_image not built against libpng."))
+            create_apng_animation_decoder(d, props).map(DecoderContext::Apng)
         } else if is("avifs") || is("avif") {
             create_avif_animation_decoder(d, props).map(DecoderContext::Avif)
         } else if is("gif") {
@@ -409,6 +411,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
             }
             DecoderContext::Gif(ctx) => ctx.get_next_frame(d),
             DecoderContext::Ani(ctx) => ctx.get_next_frame(d),
+            DecoderContext::Apng(ctx) => ctx.get_next_frame(d),
             DecoderContext::Webp(ctx) => ctx.get_next_frame(d),
             DecoderContext::Avif(ctx) => ctx.get_next_frame(d),
         };
@@ -441,6 +444,7 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
                 ctx.reset();
                 Ok(())
             }
+            DecoderContext::Apng(ctx) => ctx.reset(d),
             DecoderContext::Webp(ctx) => {
                 ctx.reset();
                 Ok(())
@@ -563,9 +567,9 @@ pub fn load_ani_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
     decode_as_animation(src, "ani", 0)
 }
 
-/// Load an animated PNG as an animation: without libpng, as upstream built
-/// without it, the PNG's image as a single frame. Translation of
-/// `IMG_LoadAPNGAnimation_IO()`.
+/// Load an animated PNG as an animation: every frame composited on the
+/// canvas, with its delay (a PNG that isn't animated as its image, a
+/// single frame). Translation of `IMG_LoadAPNGAnimation_IO()`.
 pub fn load_apng_animation_io(src: &mut IoStream<'_>) -> Result<Animation> {
     decode_as_animation(src, "png", 0)
 }
