@@ -4,9 +4,11 @@
 
 //! This is a PNG image file loading framework
 //!
-//! As upstream built without libpng (or WIC, or ImageIO), loading and saving
-//! go through SDL's own PNG support: `SDL_LoadPNG_IO()` (stb_image) and
-//! `SDL_SavePNG_IO()` (miniz), translated in the `sdl3` crate.
+//! As upstream built with libpng for APNG only (`SDL_IMAGE_LIBPNG` in
+//! `IMG_libpng.c`, not `IMG_png.c`; and without WIC or ImageIO), loading and
+//! saving still images go through SDL's own PNG support: `SDL_LoadPNG_IO()`
+//! (stb_image) and `SDL_SavePNG_IO()` (miniz), translated in the `sdl3`
+//! crate. Animated PNGs have the decoder and encoder in `libpng.rs`.
 
 use std::path::Path;
 

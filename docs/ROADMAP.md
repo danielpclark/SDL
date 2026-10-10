@@ -115,10 +115,16 @@ In dependency order, after the core each one needs exists:
    images covering modular and VarDCT, every sample type, alpha, the
    image features, orientations, color encodings, progressive passes,
    recompressed JPEGs and animations, truncated and corrupted.
-   Not yet: the APNG animation decoder and encoder,
-   and AVIF saving and the AVIF animation encoder (an AV1 encoder);
-   libpng and libjpeg are replaced by stb_image as upstream's
-   stb backend.
+   APNG animations are a translation of `IMG_libpng.c`'s decoder and
+   encoder over libpng 1.6.59's sequential reader and writer and zlib
+   1.3.1's inflate and deflate (the revisions SDL_image's external/
+   pins), byte-identical to SDL_image built with them on synthetic APNGs
+   covering every color type and bit depth, the dispose and blend
+   operations, offsets, interlacing, delays and metadata, truncated and
+   corrupted, and on every test image re-encoded.
+   Not yet: AVIF saving and the AVIF animation encoder (an AV1 encoder);
+   still PNGs and JPEG stay on stb_image (and PNG saving on miniz) as
+   upstream's stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
    **Done** (`sdl3-ttf`, SDL_ttf 3.2.2 with its bundled FreeType
    2.13.2 and HarfBuzz 8.5.0, without PlutoSVG): all of `SDL_ttf.c`

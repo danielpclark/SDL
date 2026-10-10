@@ -7,7 +7,8 @@
 //! by `tools/gen_sdl_image_testdata.py`. `testdata/reference.txt` is the
 //! output of a C program built from upstream SDL_image (with its stb_image,
 //! tiny_jpeg and QOI codecs, libwebp, libtiff, libavif with dav1d and
-//! libjxl, the latter five as SDL_image's external/ builds them, libwebp
+//! libjxl, the latter five as SDL_image's external/ builds them, libpng and
+//! zlib at its pins for the APNG code only, libwebp
 //! without its SIMD code and with its encoder and muxer, libavif and dav1d
 //! as plain C, libjxl for Highway's scalar target, without AVIF saving) and
 //! SDL3: for every image, the
@@ -22,13 +23,19 @@
 //! corruption as animations; the savers are run on three of them only.
 //! The JPEG XL files (made by `tools/gen_jxl_testdata.py`) are loaded but
 //! not saved from, except `sample.jxl`.
+//! The APNG files (made by `tools/gen_apng_testdata.py`) also get their
+//! decoder walk without metadata, truncations and corruption as
+//! animations, and the APNG encoder's runs with no frames and a frame of
+//! another size; the APNG encoder runs with its options on every image.
 //!
 //! Where upstream's results can't be had here, the comparison says why: the
 //! GIFs whose header the GIF decoder rejects (which upstream loads through an
 //! endless recursion, until it crashes or runs out of memory) fail with the
-//! decoder's error, and where upstream leaves the error message empty
-//! (libtiff only prints its errors, and a WebP animation encoder's
-//! successful write clears a frame's error) any message is taken.
+//! decoder's error, the APNG with zero delay denominators (which upstream
+//! divides by) decodes as its twin with 100 there, and where upstream
+//! leaves the error message empty
+//! (libtiff only prints its errors, and a WebP or APNG animation
+//! encoder's successful write clears a frame's error) any message is taken.
 
 use sdl3::io::IoStream;
 use sdl3::video::{
@@ -46,6 +53,29 @@ macro_rules! images {
 static IMAGES: &[(&str, &[u8])] = images![
     "ani_plain.ani",
     "ani_seq.ani",
+    "apng_badcrc.png",
+    "apng_badfilter.png",
+    "apng_badzlib.png",
+    "apng_den100.png",
+    "apng_fewer.png",
+    "apng_gray.png",
+    "apng_gray2w1.png",
+    "apng_gray4.png",
+    "apng_graya.png",
+    "apng_graya16.png",
+    "apng_interlaced.png",
+    "apng_nodata.png",
+    "apng_oddops.png",
+    "apng_pal.png",
+    "apng_pal1.png",
+    "apng_pal4.png",
+    "apng_rgb.png",
+    "apng_rgb16.png",
+    "apng_rgba.png",
+    "apng_rgba16.png",
+    "apng_short.png",
+    "apng_split.png",
+    "apng_zeroden.png",
     "avif_10bit_420.avif",
     "avif_10bit_444_hlg.avif",
     "avif_10bit_444_pq_identity.avif",
@@ -815,6 +845,83 @@ fn encode_webp_with(
     }
 }
 
+/// The harness's APNG encoder runs (`variant` is the label after
+/// `apng_enc `): quality 100 with the metadata, quality 50 with it
+/// ignored, quality 0 with a time base of 3/70000, no frames, and a second
+/// frame of another size.
+fn encode_apng_with(anim: &mut crate::Animation, variant: &str) -> sdl3::Result<IoStream<'static>> {
+    let mut io = IoStream::from_dynamic_mem();
+    let props = sdl3::properties::Properties::new();
+    let type_ = if variant == "q50 ignore" {
+        "apng"
+    } else {
+        "png"
+    };
+    props.set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, type_)?;
+    match variant {
+        "q100 meta" => {
+            props.set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 100)?;
+            props.set(
+                crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+                100,
+            )?;
+            props.set(crate::PROP_METADATA_LOOP_COUNT_NUMBER, 5)?;
+            props.set(crate::PROP_METADATA_TITLE_STRING, "apng title")?;
+            props.set(crate::PROP_METADATA_AUTHOR_STRING, "apng author")?;
+            props.set(crate::PROP_METADATA_DESCRIPTION_STRING, "a \"description\"")?;
+            props.set(crate::PROP_METADATA_COPYRIGHT_STRING, "(c) the harness")?;
+            props.set(crate::PROP_METADATA_CREATION_TIME_STRING, "2025-06-07")?;
+        }
+        "q50 ignore" => {
+            props.set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 50)?;
+            props.set(crate::PROP_METADATA_IGNORE_PROPS_BOOLEAN, true)?;
+            props.set(crate::PROP_METADATA_LOOP_COUNT_NUMBER, 7)?;
+        }
+        "q0 tb" => {
+            props.set(crate::PROP_ANIMATION_ENCODER_CREATE_QUALITY_NUMBER, 0)?;
+            props.set(
+                crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
+                3,
+            )?;
+            props.set(
+                crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+                70000,
+            )?;
+        }
+        _ => {}
+    }
+    let mut e = crate::AnimationEncoder::with_properties(Some(&mut io), &props)?;
+    let mut result = Ok(());
+    match variant {
+        "none" => {}
+        "mismatch" => {
+            let mut other = Surface::new(anim.w + 1, anim.h, PixelFormat::RGBA32)?;
+            result = e
+                .add_frame(&mut anim.frames[0], 10)
+                .and_then(|()| e.add_frame(&mut other, 10));
+        }
+        _ => {
+            for i in 0..anim.frames.len() {
+                let delay = anim.delays[i];
+                let duration = match variant {
+                    "q100 meta" => (delay / 10 + i as i32) as i64 as u64,
+                    "q50 ignore" => delay as i64 as u64,
+                    _ => (delay as i64 as u64).wrapping_mul(1000) + 1,
+                };
+                if let Err(err) = e.add_frame(&mut anim.frames[i], duration) {
+                    result = Err(err);
+                    break;
+                }
+            }
+        }
+    }
+    let closed = e.close();
+    match closed {
+        Err(err) => Err(err),
+        Ok(()) => result.map(|()| io),
+    }
+}
+
 /// Compare a result with the reference, allowing for what upstream can't
 /// do the same way (see the module documentation).
 fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut Vec<String>) {
@@ -827,6 +934,10 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
     {
         // upstream's endless recursion on a GIF the GIF decoder rejects
         actual.starts_with("err: ")
+    } else if name == "apng_zeroden.png" && expected == "crash" {
+        // upstream divides by the zero delay denominators (see
+        // apng_zero_denominators_are_100())
+        true
     } else if ext_of(name) == Some("webp") && expected == "crash" {
         // upstream's endless recursion on an animated WebP the WebP
         // animation decoder rejects
@@ -1027,6 +1138,12 @@ fn matches_upstream_reference() {
                 continue;
             };
             dump_saved_anim(encode_webp_with(anim, label == "webp_enc ll meta"))
+        } else if let Some(variant) = label.strip_prefix("apng_enc ") {
+            let Some(anim) = loaded_anim.as_mut() else {
+                failures.push(format!("{name}: {label}: the animation didn't load"));
+                continue;
+            };
+            dump_saved_anim(encode_apng_with(anim, variant))
         } else if label == "xor" {
             let mut x = data.to_vec();
             for i in (20..x.len()).step_by(3) {
@@ -1671,15 +1788,36 @@ fn animation_api_errors() {
     let mut out = IoStream::from_dynamic_mem();
     let e = crate::AnimationEncoder::from_io(&mut out, "xyz").unwrap_err();
     assert_eq!(e.to_string(), "Unrecognized output type");
-    for (t, message) in [
-        ("png", "SDL_image not built against libpng."),
-        (
-            "avif",
-            "SDL_image built without AVIF animation save support",
-        ),
-    ] {
-        let e = crate::AnimationEncoder::from_io(&mut out, t).unwrap_err();
-        assert_eq!(e.to_string(), message);
+    let e = crate::AnimationEncoder::from_io(&mut out, "avif").unwrap_err();
+    assert_eq!(
+        e.to_string(),
+        "SDL_image built without AVIF animation save support"
+    );
+    // APNG frames must keep the first frame's size (the message counts in
+    // sequence numbers)
+    {
+        let mut out = IoStream::from_dynamic_mem();
+        let mut e = crate::AnimationEncoder::from_io(&mut out, "png").unwrap();
+        let mut a = Surface::new(4, 4, PixelFormat::RGBA32).unwrap();
+        let mut b = Surface::new(5, 4, PixelFormat::RGBA32).unwrap();
+        e.add_frame(&mut a, 10).unwrap();
+        e.add_frame(&mut a, 10).unwrap();
+        let err = e.add_frame(&mut b, 10).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Frame 3 doesn't match the first frame's width (current=5 | expected=4) and height (current=4 | expected=4)"
+        );
+        e.close().unwrap();
+        // a still PNG decodes as one frame
+        let mut anim =
+            crate::load_apng_animation_io(&mut IoStream::from_const_mem(image("sample.png")))
+                .unwrap();
+        assert_eq!(anim.count(), 1);
+        let mut reloaded = IoStream::from_dynamic_mem();
+        crate::save_apng_animation_io(&mut anim, &mut reloaded).unwrap();
+        let bytes = reloaded.dynamic_memory().unwrap().to_vec();
+        let again = crate::load_apng_animation_io(&mut IoStream::from_const_mem(&bytes)).unwrap();
+        assert_eq!((again.count(), again.w, again.h), (1, anim.w, anim.h));
     }
     let props = sdl3::properties::Properties::new();
     props
@@ -2301,4 +2439,24 @@ fn webp_encoders_round_trip() {
     let err = e.add_frame(&mut webp_pattern(9, 8, 1), 10).unwrap_err();
     assert_eq!(err.to_string(), "Invalid configuration");
     e.close().unwrap();
+}
+
+#[test]
+fn apng_zero_denominators_are_100() {
+    // Upstream divides by a zero delay denominator (and crashes); here it
+    // is the APNG specification's 100: the file decodes as its twin with
+    // 100 there
+    let decode = |name: &str| {
+        let mut io = IoStream::from_const_mem(image(name));
+        let mut d = crate::AnimationDecoder::from_io(&mut io, "png").unwrap();
+        let mut frames = Vec::new();
+        while let Some((mut f, duration)) = d.get_frame().unwrap() {
+            frames.push((describe1(&mut f), duration));
+        }
+        frames
+    };
+    let frames = decode("apng_zeroden.png");
+    assert_eq!(frames.len(), 3);
+    assert_eq!(frames, decode("apng_den100.png"));
+    assert_eq!(frames.iter().map(|f| f.1).collect::<Vec<_>>(), [50, 0, 300]);
 }

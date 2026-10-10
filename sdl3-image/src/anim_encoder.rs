@@ -4,9 +4,9 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation encoders: frames one at a time to a file or a stream, by
-//! format (GIF, ANI and WebP here; APNG and AVIF need their libraries,
-//! which this crate doesn't have, and report so as an upstream build
-//! without them), and whole [`Animation`](crate::Animation)s.
+//! format (GIF, ANI, APNG and WebP here; AVIF needs an AV1 encoder, which
+//! this crate doesn't have, and reports so as an upstream build without
+//! it), and whole [`Animation`](crate::Animation)s.
 
 use std::path::Path;
 
@@ -20,6 +20,7 @@ use crate::ani::{create_ani_animation_encoder, AniEncoderContext};
 use crate::anim_decoder::Stream;
 use crate::gif::{create_gif_animation_encoder, GifEncoderContext};
 use crate::img::{timebase_duration, Animation};
+use crate::libpng::{create_apng_animation_encoder, ApngEncoderContext};
 use crate::webp::{create_webp_animation_encoder, WebpEncoderContext};
 
 /// The file to write (a string). Translation of
@@ -105,6 +106,7 @@ pub(crate) enum EncoderContext {
     None,
     Gif(Box<GifEncoderContext>),
     Ani(Box<AniEncoderContext>),
+    Apng(Box<ApngEncoderContext>),
     Webp(Box<WebpEncoderContext>),
 }
 
@@ -122,6 +124,7 @@ impl std::fmt::Debug for AnimationEncoder<'_, '_> {
             EncoderContext::None => "closed",
             EncoderContext::Gif(_) => "gif",
             EncoderContext::Ani(_) => "ani",
+            EncoderContext::Apng(_) => "apng",
             EncoderContext::Webp(_) => "webp",
         };
         f.debug_struct("AnimationEncoder")
@@ -231,7 +234,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
         let result = if is("ani") {
             create_ani_animation_encoder(e, props).map(EncoderContext::Ani)
         } else if is("apng") || is("png") {
-            Err(Error::new("SDL_image not built against libpng."))
+            create_apng_animation_encoder(e, props).map(EncoderContext::Apng)
         } else if is("avifs") || is("avif") {
             Err(Error::new(
                 "SDL_image built without AVIF animation save support",
@@ -273,6 +276,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
             EncoderContext::None => Err(Error::invalid_param("encoder")),
             EncoderContext::Gif(ctx) => ctx.add_frame(e, surface, duration),
             EncoderContext::Ani(ctx) => ctx.add_frame(surface, duration),
+            EncoderContext::Apng(ctx) => ctx.add_frame(e, surface, duration),
             EncoderContext::Webp(ctx) => ctx.add_frame(e, surface, duration),
         }
     }
@@ -290,6 +294,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
             EncoderContext::None => return Ok(()),
             EncoderContext::Gif(mut ctx) => ctx.end(e),
             EncoderContext::Ani(mut ctx) => ctx.end(e),
+            EncoderContext::Apng(mut ctx) => ctx.end(e),
             EncoderContext::Webp(mut ctx) => ctx.end(e),
         };
         let dst = std::mem::replace(
@@ -354,8 +359,9 @@ pub fn save_ani_animation_io(anim: &mut Animation, dst: &mut IoStream<'_>) -> Re
     encode_animation(anim, dst, "ani", -1)
 }
 
-/// Save an animation as an animated PNG: not without libpng, as upstream
-/// built without it. Translation of `IMG_SaveAPNGAnimation_IO()`.
+/// Save an animation as an animated PNG (RGBA frames, or paletted ones if
+/// the first frame is paletted, at compression level 1). Translation of
+/// `IMG_SaveAPNGAnimation_IO()`.
 pub fn save_apng_animation_io(anim: &mut Animation, dst: &mut IoStream<'_>) -> Result<()> {
     encode_animation(anim, dst, "png", -1)
 }

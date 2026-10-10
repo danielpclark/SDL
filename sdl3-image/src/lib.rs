@@ -36,17 +36,19 @@
 //!   `sdl3`), TGA and WebP (lossy, or lossless at quality 100, through a
 //!   translation of libwebp's encoder).
 //! * Animations: [`load_animation`] and friends read whole [`Animation`]s
-//!   (GIF, WebP, AVIF image sequences and ANI cursors, or any still image
-//!   as one frame), and
-//!   [`save_animation`] writes them (GIF, ANI and WebP, the latter through
-//!   translations of libwebp's animation encoder and muxer);
+//!   (GIF, WebP, APNG, AVIF image sequences and ANI cursors, or any still
+//!   image as one frame), and
+//!   [`save_animation`] writes them (GIF, ANI, APNG and WebP, the latter
+//!   through translations of libwebp's animation encoder and muxer, APNG
+//!   through translations of libpng's reader and writer and zlib's inflate
+//!   and deflate);
 //!   [`AnimationDecoder`] and
 //!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
 //!   and [`create_animated_cursor`] makes a cursor from an animation.
 //!
-//! Not translated yet: the APNG animation decoder and encoder, and the AVIF
-//! saver and animation encoder (which need an AV1 encoder); they fail with
-//! upstream's messages for a build without them.
+//! Not translated yet: the AVIF saver and animation encoder (which need an
+//! AV1 encoder); they fail with upstream's messages for a build without
+//! them.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: the `closeio` flags are
@@ -71,6 +73,7 @@ mod img;
 mod jpg;
 mod jxl;
 mod lbm;
+mod libpng;
 mod nanosvg;
 mod nanosvgrast;
 mod pcx;
