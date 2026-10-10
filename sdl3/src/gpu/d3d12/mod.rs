@@ -46,7 +46,7 @@
 //! translated.
 
 mod commands;
-mod d3d;
+pub(crate) mod d3d;
 mod descriptors;
 mod device;
 mod passes;

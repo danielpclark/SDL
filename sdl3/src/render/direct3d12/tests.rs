@@ -1,34 +1,40 @@
-// Tests of the Direct3D 11 renderer.
+// Tests of the Direct3D 12 renderer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The tables are checked against upstream's values, and the declarations
-//! against the `sizeof`/`offsetof` values and vtable slots of a C harness
-//! built with mingw-w64's `<d3d11_1.h>`, `<dxgi1_5.h>` and `<dxgidebug.h>`.
-//! The scenes are drawn by the Direct3D 11 renderer on a real device (on
-//! Linux CI, Wine's d3d11 over wined3d and Mesa) and by the software
-//! renderer, and the pixels compared: exactly where the math is exact
-//! (clears, fills, points, 1:1 copies, palettes), within a small tolerance
-//! where the GPU's float blending or YUV conversion rounds differently.
-//! Without a device (or a desktop to put the window on) the device tests
-//! report a skip (capability `d3d11`, or `desktop`) and pass.
+//! The tables are checked against upstream's values, the shader and root
+//! signature blobs against the root parameters the renderer binds, and the
+//! declarations the renderer added to the GPU API's Direct3D 12 ones (the
+//! methods and constants it alone uses) against the vtable slots,
+//! `sizeof`/`offsetof` values, constants and GUIDs of a C harness built
+//! with SDL's vendored `<d3d12.h>` and mingw-w64's `<dxgi1_6.h>`.
 //!
-//! Wine's `IDXGISwapChain1::SetRotation()` is a stub that fails with
-//! `E_NOTIMPL`, which makes the flip-model swap chain of an ordinary
-//! window fail at creation, as upstream's does (checked by
-//! [`flip_model_swap_chain_under_wine`]). Under Wine the scenes are drawn
-//! into transparent windows instead, whose swap chains use
-//! `DXGI_SWAP_EFFECT_DISCARD` and aren't rotated.
+//! The scenes are drawn by the Direct3D 12 renderer and by the software
+//! renderer, and the pixels compared, with the tolerances of the Direct3D
+//! 11 and GPU renderers' tests: exactly where the math is exact (clears,
+//! fills, points, 1:1 copies, palettes, render targets read back), within
+//! a small tolerance where the GPU's float blending, modulation or YUV
+//! conversion rounds differently. The renderer's shaders are DXIL, so the
+//! device tests need a Direct3D 12 device with shader model 6, such as
+//! Windows' WARP: without one (Wine's vkd3d has shader model 5.1, and the
+//! renderer's pipeline states can't be made there) they report a skip
+//! (capability `d3d12`) and pass. Where there is one, the renderer must be
+//! made, except under a Wine whose `IDXGISwapChain1::SetRotation()` is a
+//! stub (`E_NOTIMPL`, as DXVK's is), where the flip-model swap chain of
+//! `D3D12_CreateWindowSizeDependentResources()` fails as upstream's does.
 
-use std::mem::{offset_of, size_of};
+use std::mem::{align_of, offset_of, size_of};
 
-use super::shaders::Shader;
 use super::*;
 use crate::core::windows::is_wine;
 use crate::events::queue::{get_events, pump};
+use crate::gpu::ShaderFormat;
 use crate::init::{self, InitFlags};
+use crate::render::direct3d11::d3d::{
+    IDXGIFactory1Vtbl, IDXGIFactory2Vtbl, IDXGIFactory5Vtbl, IID_IDXGIFACTORY6,
+};
 use crate::render::{
-    num_render_drivers, render_driver, Renderer, Texture, TextureAccess, TextureCreateInfo, Vertex,
+    Renderer, Texture, TextureAccess, TextureCreateInfo, Vertex,
     PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN,
     SOFTWARE_RENDERER,
 };
@@ -40,65 +46,186 @@ use crate::video::FlipMode;
 const W: i32 = 64;
 const H: i32 = 48;
 
+const PTR: usize = size_of::<usize>();
+
+fn slot(offset: usize) -> usize {
+    offset / PTR
+}
+
+fn guid(g: windows_sys::core::GUID) -> u128 {
+    let mut v = (g.data1 as u128) << 96 | (g.data2 as u128) << 80 | (g.data3 as u128) << 64;
+    for (i, b) in g.data4.iter().enumerate() {
+        v |= (*b as u128) << (56 - 8 * i);
+    }
+    v
+}
+
+fn u32_at(data: &[u8], offset: usize) -> u32 {
+    u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap())
+}
+
 // ---------------------------------------------------------------------------
 // Without a device
 // ---------------------------------------------------------------------------
 
 #[test]
-fn driver_list_follows_upstreams_order() {
-    // (render_drivers[] in SDL_render.c: D3D11, D3D12, D3D, METAL, ...,
-    // OGL, OGL_ES2, ..., VULKAN, GPU, SW)
-    assert_eq!(num_render_drivers(), 7);
-    assert_eq!(render_driver(0).unwrap(), "direct3d11");
-    assert_eq!(render_driver(1).unwrap(), "direct3d12");
-    assert_eq!(render_driver(2).unwrap(), "opengl");
-    assert_eq!(render_driver(3).unwrap(), "opengles2");
-    assert_eq!(render_driver(4).unwrap(), "vulkan");
-    assert_eq!(render_driver(5).unwrap(), "gpu");
-    assert_eq!(render_driver(6).unwrap(), SOFTWARE_RENDERER);
-    assert!(render_driver(7).is_err());
-}
-
-#[test]
-fn dxbc_shaders() {
-    // The sizes of the arrays in upstream's D3D11_*.h headers.
+fn dxil_shaders() {
+    // The sizes of the arrays in upstream's D3D12_*.h headers.
     let sizes = [
-        (Shader::Solid, 1248),
-        (Shader::SolidPq, 1908),
-        (Shader::Rgb, 1440),
-        (Shader::Advanced, 9196),
-        (Shader::RgbPq, 8436),
-        (Shader::RgbSimple, 724),
+        (Shader::Solid, 4072, 4464),
+        (Shader::SolidPq, 4524, 4464),
+        (Shader::Rgb, 4880, 4560),
+        (Shader::Advanced, 10768, 4704),
+        (Shader::RgbPq, 10080, 4704),
+        (Shader::RgbSimple, 4116, 4560),
     ];
-    let vs = shaders::vertex_shader();
-    assert_eq!(vs.len(), 1420);
-    for (shader, bytes) in sizes {
-        let ps = shader.pixel_shader();
-        assert_eq!(ps.len(), bytes, "{shader:?}");
+    for (shader, ps_size, vs_size) in sizes {
+        let (ps, vs) = (shader.pixel_shader(), shader.vertex_shader());
+        assert_eq!((ps.len(), vs.len()), (ps_size, vs_size), "{shader:?}");
         for blob in [ps, vs] {
-            // DXBC magic, version 1, and the container's own size
+            // A DXBC container (version 1.0, its own size) with a DXIL
+            // part, and signed (a nonzero digest).
             assert_eq!(&blob[..4], b"DXBC");
+            assert!(blob[4..20].iter().any(|&b| b != 0));
             assert_eq!(&blob[20..24], &[1, 0, 0, 0]);
-            assert_eq!(
-                u32::from_le_bytes(blob[24..28].try_into().unwrap()) as usize,
-                blob.len()
-            );
+            assert_eq!(u32_at(blob, 24) as usize, blob.len());
+            let parts = u32_at(blob, 28) as usize;
+            assert!((0..parts).any(|i| {
+                let offset = u32_at(blob, 32 + 4 * i) as usize;
+                &blob[offset..offset + 4] == b"DXIL"
+            }));
         }
     }
     assert_eq!(Shader::ALL.len(), Shader::COUNT);
     for (i, shader) in Shader::ALL.iter().enumerate() {
         assert_eq!(*shader as usize, i);
     }
-    // The first and last bytes of D3D11_PixelShader_Colors.h
+    // (D3D12_shaders[]: the vertex shader and root signature of each)
+    use RootSignature as R;
+    let roots = [
+        (Shader::Solid, R::Color),
+        (Shader::SolidPq, R::Color),
+        (Shader::Rgb, R::Texture),
+        (Shader::Advanced, R::Advanced),
+        (Shader::RgbPq, R::Advanced),
+        (Shader::RgbSimple, R::Texture),
+    ];
+    for (shader, root) in roots {
+        assert_eq!(shader.root_signature_type(), root, "{shader:?}");
+    }
+    assert_eq!(
+        Shader::Solid.vertex_shader(),
+        Shader::SolidPq.vertex_shader()
+    );
+    assert_eq!(
+        Shader::Rgb.vertex_shader(),
+        Shader::RgbSimple.vertex_shader()
+    );
+    assert_eq!(
+        Shader::Advanced.vertex_shader(),
+        Shader::RgbPq.vertex_shader()
+    );
+    assert_ne!(Shader::Solid.vertex_shader(), Shader::Rgb.vertex_shader());
+    // The first and last bytes of D3D12_PixelShader_Colors.h
     let colors = Shader::Solid.pixel_shader();
     assert_eq!(
-        &colors[..16],
-        &[68, 88, 66, 67, 131, 2, 46, 215, 253, 13, 129, 98, 132, 106, 250, 166]
+        &colors[..12],
+        &[0x44, 0x58, 0x42, 0x43, 0xb5, 0x5a, 0x6a, 0x5a, 0xf5, 0x06, 0xd8, 0xa9]
     );
+    assert_eq!(&colors[colors.len() - 4..], &[0x00, 0x00, 0x00, 0x00]);
+}
+
+/// A root parameter of a serialized root signature (version 1.1): its
+/// type and visibility, and its root constants' register and count or its
+/// descriptor table's ranges (type, count, register).
+#[derive(Debug, PartialEq, Eq)]
+enum Param {
+    Constants(u32, u32, u32),
+    Table(u32, Vec<(u32, u32, u32)>),
+}
+
+/// The root parameters of a root signature blob (its `RTS0` part).
+fn root_parameters(blob: &[u8]) -> (u32, Vec<Param>) {
+    let rts0 = u32_at(blob, 32) as usize + 8;
+    let rs = &blob[rts0..];
+    assert_eq!(u32_at(rs, 0), 2, "version 1.1");
+    let (count, offset) = (u32_at(rs, 4) as usize, u32_at(rs, 8) as usize);
+    assert_eq!(u32_at(rs, 12), 0, "no static samplers");
+    let flags = u32_at(rs, 20);
+    let params = (0..count)
+        .map(|i| {
+            let p = offset + 12 * i;
+            let (ty, visibility, data) = (u32_at(rs, p), u32_at(rs, p + 4), u32_at(rs, p + 8));
+            let data = data as usize;
+            match ty {
+                // D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, for all stages
+                1 => {
+                    assert_eq!(visibility, D3D12_SHADER_VISIBILITY_ALL);
+                    assert_eq!(u32_at(rs, data + 4), 0, "register space");
+                    Param::Constants(u32_at(rs, data), u32_at(rs, data + 8), visibility)
+                }
+                // D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE
+                0 => {
+                    let (ranges, at) = (u32_at(rs, data) as usize, u32_at(rs, data + 4) as usize);
+                    let ranges = (0..ranges)
+                        .map(|r| {
+                            let q = at + 24 * r;
+                            (u32_at(rs, q), u32_at(rs, q + 4), u32_at(rs, q + 8))
+                        })
+                        .collect();
+                    Param::Table(visibility, ranges)
+                }
+                _ => panic!("parameter type {ty}"),
+            }
+        })
+        .collect();
+    (flags, params)
+}
+
+#[test]
+fn root_signatures_match_the_bindings() {
+    // The serialized root signatures (D3D12_Shader_Common.hlsli): the
+    // vertex and pixel constants D3D12_SetDrawState() sets as root
+    // parameters 0 and 1, the shader resources it sets at 2 on, and the
+    // samplers' tables (3 for the RGB shaders, 5 and 6 for the advanced
+    // ones).
+    use Param::{Constants as C, Table as T};
+    let srv = |register| T(D3D12_SHADER_VISIBILITY_PIXEL, vec![(0, 1, register)]);
+    let sampler = |register| T(D3D12_SHADER_VISIBILITY_PIXEL, vec![(3, 1, register)]);
+    // ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT and DENY_{HULL,DOMAIN,GEOMETRY}_SHADER_ROOT_ACCESS
+    let flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | 0x4 | 0x8 | 0x10;
+    let expected = [
+        (RootSignature::Color, Vec::new()),
+        (RootSignature::Texture, vec![srv(0), sampler(0)]),
+        (
+            RootSignature::Advanced,
+            vec![srv(0), srv(1), srv(2), sampler(0), sampler(1)],
+        ),
+    ];
+    for (root, tables) in expected {
+        let blob = root.data();
+        assert_eq!(&blob[..4], b"DXBC");
+        assert_eq!(u32_at(blob, 24) as usize, blob.len());
+        assert_eq!(u32_at(blob, 28), 1, "one part");
+        assert_eq!(&blob[36..40], b"RTS0");
+        let (got_flags, params) = root_parameters(blob);
+        assert_eq!(got_flags, flags, "{root:?}");
+        let mut want = vec![C(0, 16, 0), C(1, 28, 0)];
+        want.extend(tables);
+        assert_eq!(params, want, "{root:?}");
+    }
+    assert_eq!(RootSignature::ALL.len(), RootSignature::COUNT);
     assert_eq!(
-        &colors[colors.len() - 12..],
-        &[83, 86, 95, 84, 65, 82, 71, 69, 84, 0, 171, 171]
+        (
+            RootSignature::Color.data().len(),
+            RootSignature::Texture.data().len(),
+            RootSignature::Advanced.data().len()
+        ),
+        (116, 204, 336)
     );
+    // (the root constants are the constant structures, in 32-bit values)
+    assert_eq!(size_of::<VertexShaderConstants>() / 4, 16);
+    assert_eq!(size_of::<PixelShaderConstants>() / 4, 28);
 }
 
 #[test]
@@ -150,6 +277,7 @@ fn format_tables() {
     assert_eq!(tex(F::NV21, srgb), DXGI_FORMAT_NV12);
     assert_eq!(tex(F::P010, srgb), DXGI_FORMAT_P010);
     assert_eq!(tex(F::I0FL, srgb), DXGI_FORMAT_R16_UNORM);
+    assert_eq!(tex(F::I4FL, srgb), DXGI_FORMAT_R16_UNORM);
     assert_eq!(tex(F::RGBA4444, srgb), DXGI_FORMAT_UNKNOWN);
     assert_eq!(tex(F::XBGR8888, srgb), DXGI_FORMAT_UNKNOWN);
 
@@ -159,27 +287,33 @@ fn format_tables() {
     assert_eq!(view(F::P010, srgb), DXGI_FORMAT_R16_UNORM);
     assert_eq!(view(F::ABGR8888, linear), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
     assert_eq!(view(F::YV12, srgb), DXGI_FORMAT_R8_UNORM);
+
+    assert_eq!(d3d12_align(1, 256), 256);
+    assert_eq!(d3d12_align(256, 256), 256);
+    assert_eq!(d3d12_align(257, 256), 512);
+    assert_eq!(d3d12_align(0, 256), 0);
 }
 
 #[test]
 fn blend_modes() {
     let custom = |sc, dc, co, sa, da, ao| BlendMode::compose_custom(sc, dc, co, sa, da, ao);
-    let desc = blend_desc(BlendMode::BLEND);
+    let desc = create_blend_state(BlendMode::BLEND);
     assert_eq!(desc.alpha_to_coverage_enable, 0);
     assert_eq!(desc.independent_blend_enable, 0);
     let rt = desc.render_target[0];
     assert_eq!(rt.blend_enable, 1);
-    assert_eq!(rt.src_blend, D3D11_BLEND_SRC_ALPHA);
-    assert_eq!(rt.dest_blend, D3D11_BLEND_INV_SRC_ALPHA);
-    assert_eq!(rt.blend_op, D3D11_BLEND_OP_ADD);
-    assert_eq!(rt.src_blend_alpha, D3D11_BLEND_ONE);
-    assert_eq!(rt.dest_blend_alpha, D3D11_BLEND_INV_SRC_ALPHA);
-    assert_eq!(rt.blend_op_alpha, D3D11_BLEND_OP_ADD);
-    assert_eq!(rt.render_target_write_mask, D3D11_COLOR_WRITE_ENABLE_ALL);
+    assert_eq!(rt.logic_op_enable, 0);
+    assert_eq!(rt.src_blend, D3D12_BLEND_SRC_ALPHA);
+    assert_eq!(rt.dest_blend, D3D12_BLEND_INV_SRC_ALPHA);
+    assert_eq!(rt.blend_op, D3D12_BLEND_OP_ADD);
+    assert_eq!(rt.src_blend_alpha, D3D12_BLEND_ONE);
+    assert_eq!(rt.dest_blend_alpha, D3D12_BLEND_INV_SRC_ALPHA);
+    assert_eq!(rt.blend_op_alpha, D3D12_BLEND_OP_ADD);
+    assert_eq!(rt.render_target_write_mask, D3D12_COLOR_WRITE_ENABLE_ALL);
     // (the other render targets stay zeroed)
-    assert_eq!(desc.render_target[1].blend_enable, 0);
+    assert_eq!(desc.render_target[1], RenderTargetBlendDesc::default());
 
-    let rt = blend_desc(BlendMode::MOD).render_target[0];
+    let rt = create_blend_state(BlendMode::MOD).render_target[0];
     assert_eq!(
         (
             rt.src_blend,
@@ -188,41 +322,26 @@ fn blend_modes() {
             rt.dest_blend_alpha
         ),
         (
-            D3D11_BLEND_ZERO,
-            D3D11_BLEND_SRC_COLOR,
-            D3D11_BLEND_ZERO,
-            D3D11_BLEND_ONE
+            D3D12_BLEND_ZERO,
+            D3D12_BLEND_SRC_COLOR,
+            D3D12_BLEND_ZERO,
+            D3D12_BLEND_ONE
         )
     );
-    let rt = blend_desc(BlendMode::MUL).render_target[0];
+    let rt = create_blend_state(BlendMode::MUL).render_target[0];
     assert_eq!(
         (rt.src_blend, rt.dest_blend),
-        (D3D11_BLEND_DEST_COLOR, D3D11_BLEND_INV_SRC_ALPHA)
+        (D3D12_BLEND_DEST_COLOR, D3D12_BLEND_INV_SRC_ALPHA)
     );
-
-    assert_eq!(
-        get_blend_func(Some(BF::OneMinusDstColor)),
-        D3D11_BLEND_INV_DEST_COLOR
-    );
-    assert_eq!(get_blend_func(Some(BF::DstAlpha)), D3D11_BLEND_DEST_ALPHA);
-    assert_eq!(get_blend_func(None), 0);
-    assert_eq!(
-        get_blend_equation(Some(BO::Subtract)),
-        D3D11_BLEND_OP_SUBTRACT
-    );
-    assert_eq!(get_blend_equation(Some(BO::Minimum)), D3D11_BLEND_OP_MIN);
-    assert_eq!(get_blend_equation(Some(BO::Maximum)), D3D11_BLEND_OP_MAX);
-    assert_eq!(get_blend_equation(None), 0);
-
-    let mode = custom(
-        BF::DstColor,
-        BF::Zero,
+    let rt = create_blend_state(custom(
+        BF::OneMinusDstColor,
+        BF::DstAlpha,
         BO::RevSubtract,
-        BF::One,
         BF::OneMinusDstAlpha,
+        BF::SrcColor,
         BO::Maximum,
-    );
-    let rt = blend_desc(mode).render_target[0];
+    ))
+    .render_target[0];
     assert_eq!(
         (
             rt.src_blend,
@@ -233,49 +352,52 @@ fn blend_modes() {
             rt.blend_op_alpha
         ),
         (
-            D3D11_BLEND_DEST_COLOR,
-            D3D11_BLEND_ZERO,
-            D3D11_BLEND_OP_REV_SUBTRACT,
-            D3D11_BLEND_ONE,
-            D3D11_BLEND_INV_DEST_ALPHA,
-            D3D11_BLEND_OP_MAX
+            D3D12_BLEND_INV_DEST_COLOR,
+            D3D12_BLEND_DEST_ALPHA,
+            D3D12_BLEND_OP_REV_SUBTRACT,
+            D3D12_BLEND_INV_DEST_ALPHA,
+            D3D12_BLEND_SRC_COLOR,
+            D3D12_BLEND_OP_MAX
         )
+    );
+    assert_eq!(get_blend_func(None), 0);
+    assert_eq!(get_blend_equation(None), 0);
+    assert_eq!(
+        get_blend_equation(Some(BlendOperation::Minimum)),
+        D3D12_BLEND_OP_MIN
+    );
+    assert_eq!(
+        get_blend_equation(Some(BlendOperation::Subtract)),
+        D3D12_BLEND_OP_SUBTRACT
     );
 }
 
 #[test]
 fn samplers_and_shader_selection() {
     use TextureAddressMode as A;
-    assert_eq!(RENDER_SAMPLER_COUNT, 8);
-    assert_eq!(
-        render_sampler_hashkey(ScaleMode::Linear, A::Clamp, A::Clamp),
-        0
-    );
-    assert_eq!(
-        render_sampler_hashkey(ScaleMode::Nearest, A::Clamp, A::Clamp),
-        1
-    );
-    assert_eq!(
-        render_sampler_hashkey(ScaleMode::PixelArt, A::Wrap, A::Clamp),
-        2
-    );
-    assert_eq!(
-        render_sampler_hashkey(ScaleMode::Nearest, A::Wrap, A::Wrap),
-        7
-    );
-
     let desc = sampler_desc(ScaleMode::Nearest, A::Clamp, A::Wrap).unwrap();
-    assert_eq!(desc.filter, D3D11_FILTER_MIN_MAG_MIP_POINT);
-    assert_eq!(desc.address_u, D3D11_TEXTURE_ADDRESS_CLAMP);
-    assert_eq!(desc.address_v, D3D11_TEXTURE_ADDRESS_WRAP);
-    assert_eq!(desc.address_w, D3D11_TEXTURE_ADDRESS_CLAMP);
+    assert_eq!(desc.filter, D3D12_FILTER_MIN_MAG_MIP_POINT);
+    assert_eq!(desc.address_u, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+    assert_eq!(desc.address_v, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+    assert_eq!(desc.address_w, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
     assert_eq!(desc.max_anisotropy, 1);
-    assert_eq!(desc.comparison_func, D3D11_COMPARISON_ALWAYS);
-    assert_eq!(desc.max_lod.to_bits(), 0x7f7f_ffff); // (FLT_MAX)
+    assert_eq!(desc.mip_lod_bias, 0.0);
+    assert_eq!(desc.comparison_func, D3D12_COMPARISON_FUNC_NONE);
+    assert_eq!(desc.min_lod, 0.0);
+    assert_eq!(desc.max_lod.to_bits(), 0x7f7f_ffff); // (D3D12_FLOAT32_MAX)
+    assert_eq!(desc.border_color, [0.0; 4]);
     let desc = sampler_desc(ScaleMode::PixelArt, A::Wrap, A::Clamp).unwrap();
-    assert_eq!(desc.filter, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+    assert_eq!(desc.filter, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
+    let desc = sampler_desc(ScaleMode::Linear, A::Wrap, A::Wrap).unwrap();
+    assert_eq!(desc.filter, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
     assert_eq!(
         sampler_desc(ScaleMode::Linear, A::Auto, A::Clamp)
+            .unwrap_err()
+            .message(),
+        "Unknown texture address mode: 0"
+    );
+    assert_eq!(
+        sampler_desc(ScaleMode::Linear, A::Clamp, A::Auto)
             .unwrap_err()
             .message(),
         "Unknown texture address mode: 0"
@@ -311,30 +433,25 @@ fn samplers_and_shader_selection() {
 
     // (the layouts the shaders read)
     assert_eq!(size_of::<PixelShaderConstants>(), 112);
-    assert_eq!(size_of::<VertexShaderConstants>(), 128);
+    assert_eq!(size_of::<VertexShaderConstants>(), 64);
     assert_eq!(size_of::<VertexPositionColor>(), 32);
     assert_eq!(offset_of!(VertexPositionColor, tex), 8);
     assert_eq!(offset_of!(VertexPositionColor, color), 16);
     assert_eq!(offset_of!(PixelShaderConstants, tonemap_method), 32);
     assert_eq!(offset_of!(PixelShaderConstants, ycbcr_matrix), 48);
-    let a = PixelShaderConstants::default();
-    let mut b = a;
-    assert!(a.same_bits(&b));
+    let mut b = PixelShaderConstants::default();
     b.ycbcr_matrix[15] = -0.0;
-    assert!(!a.same_bits(&b));
     assert_eq!(b.words()[27], 0x8000_0000);
+    b.sc_rgb_output = 1.0;
+    assert_eq!(b.words()[0], 1.0f32.to_bits());
+    let mut v = VertexShaderConstants::default();
+    v.mpv.m[3][0] = -1.0;
+    assert_eq!(v.words()[12], (-1.0f32).to_bits());
+    assert_eq!(v.words()[0], 0);
 }
 
 #[test]
-fn matrices_and_rotations() {
-    let id = Float4X4::identity();
-    let r = Float4X4::rotation_z(std::f32::consts::PI * 0.5);
-    assert!(Float4X4::multiply(&id, &r).same_bits(&r));
-    assert!(Float4X4::multiply(&r, &id).same_bits(&r));
-    assert_eq!(r.m[0][1], 1.0);
-    assert_eq!(r.m[1][0], -1.0);
-    let rr = Float4X4::multiply(&r, &r);
-    assert!((rr.m[0][0] + 1.0).abs() < 1e-6);
+fn rotations() {
     assert!(is_display_rotated_90_degrees(DXGI_MODE_ROTATION_ROTATE90));
     assert!(is_display_rotated_90_degrees(DXGI_MODE_ROTATION_ROTATE270));
     assert!(!is_display_rotated_90_degrees(DXGI_MODE_ROTATION_ROTATE180));
@@ -343,150 +460,44 @@ fn matrices_and_rotations() {
 }
 
 #[test]
-fn constants_match_the_headers() {
-    // The values a mingw-w64 C harness prints for the headers' names.
-    assert_eq!(
-        [
-            DXGI_FORMAT_R32G32B32A32_FLOAT,
-            DXGI_FORMAT_R16G16B16A16_FLOAT,
-            DXGI_FORMAT_R32G32_FLOAT,
-            DXGI_FORMAT_R10G10B10A2_UNORM,
-            DXGI_FORMAT_R8G8B8A8_UNORM,
-            DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-            DXGI_FORMAT_R16G16_UNORM,
-            DXGI_FORMAT_R8G8_UNORM,
-            DXGI_FORMAT_R16_UNORM,
-            DXGI_FORMAT_R8_UNORM,
-            DXGI_FORMAT_B5G6R5_UNORM,
-            DXGI_FORMAT_B5G5R5A1_UNORM,
-            DXGI_FORMAT_B8G8R8A8_UNORM,
-            DXGI_FORMAT_B8G8R8X8_UNORM,
-            DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
-            DXGI_FORMAT_B8G8R8X8_UNORM_SRGB,
-            DXGI_FORMAT_NV12,
-            DXGI_FORMAT_P010,
-            DXGI_FORMAT_B4G4R4A4_UNORM,
-        ],
-        [
-            0x2, 0xa, 0x10, 0x18, 0x1c, 0x1d, 0x23, 0x31, 0x38, 0x3d, 0x55, 0x56, 0x57, 0x58, 0x5b,
-            0x5d, 0x67, 0x68, 0x73
-        ]
-    );
-    assert_eq!(
-        [
-            D3D11_BIND_VERTEX_BUFFER,
-            D3D11_BIND_CONSTANT_BUFFER,
-            D3D11_BIND_SHADER_RESOURCE,
-            D3D11_BIND_RENDER_TARGET,
-            D3D11_CPU_ACCESS_WRITE,
-            D3D11_CPU_ACCESS_READ,
-            D3D11_FILTER_MIN_MAG_MIP_LINEAR,
-            D3D11_FORMAT_SUPPORT_TEXTURE2D,
-            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-            D3D_FEATURE_LEVEL_11_0,
-            D3D_FEATURE_LEVEL_11_1,
-            DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING,
-            DXGI_PRESENT_DO_NOT_WAIT,
-            DXGI_PRESENT_ALLOW_TEARING,
-            DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
-        ],
-        [
-            0x1, 0x4, 0x8, 0x20, 0x10000, 0x20000, 0x15, 0x20, 0x20, 0xb000, 0xb100, 0x800, 0x8,
-            0x200, 0x20, 0xc
-        ]
-    );
-    assert_eq!(
-        [
-            DXGI_ERROR_INVALID_CALL,
-            DXGI_ERROR_DEVICE_REMOVED,
-            DXGI_ERROR_WAS_STILL_DRAWING,
-            E_FAIL
-        ]
-        .map(|hr| hr as u32),
-        [0x887a0001, 0x887a0005, 0x887a000a, 0x80004005]
-    );
-    assert_eq!(D3D11_FLOAT32_MAX, f32::from_bits(0x7f7f_ffff));
-    // A GUID's fields, as SDL_render_d3d11.c spells them out.
-    assert_eq!(DXGI_DEBUG_ALL.data1, 0xe48ae283);
-    assert_eq!(
-        DXGI_DEBUG_ALL.data4,
-        [0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8]
-    );
-    assert_eq!(IID_IDXGIINFOQUEUE.data2, 0x672A);
-    assert_eq!(IID_ID3D11DEVICE1.data3, 0x43d6);
-}
-
-#[test]
-fn structures_match_the_headers() {
-    // sizeof/offsetof of a mingw-w64 C harness (x86_64)
-    assert_eq!(size_of::<Texture2dDesc>(), 44);
-    assert_eq!(offset_of!(Texture2dDesc, format), 16);
-    assert_eq!(offset_of!(Texture2dDesc, sample_desc), 20);
-    assert_eq!(offset_of!(Texture2dDesc, usage), 28);
-    assert_eq!(offset_of!(Texture2dDesc, bind_flags), 32);
-    assert_eq!(offset_of!(Texture2dDesc, misc_flags), 40);
-    assert_eq!(size_of::<BufferDesc>(), 24);
-    assert_eq!(offset_of!(BufferDesc, structure_byte_stride), 20);
-    assert_eq!(size_of::<SubresourceData>(), 16);
-    assert_eq!(offset_of!(SubresourceData, sys_mem_pitch), 8);
-    assert_eq!(size_of::<MappedSubresource>(), 16);
-    assert_eq!(offset_of!(MappedSubresource, row_pitch), 8);
-    assert_eq!(size_of::<ShaderResourceViewDesc>(), 24);
-    assert_eq!(offset_of!(ShaderResourceViewDesc, view_dimension), 4);
-    assert_eq!(offset_of!(ShaderResourceViewDesc, most_detailed_mip), 8);
-    assert_eq!(size_of::<RenderTargetViewDesc>(), 20);
-    assert_eq!(offset_of!(RenderTargetViewDesc, mip_slice), 8);
-    assert_eq!(size_of::<BlendDesc>(), 264);
-    assert_eq!(offset_of!(BlendDesc, render_target), 8);
-    assert_eq!(size_of::<RenderTargetBlendDesc>(), 32);
-    assert_eq!(
-        offset_of!(RenderTargetBlendDesc, render_target_write_mask),
-        28
-    );
-    assert_eq!(size_of::<RasterizerDesc>(), 40);
-    assert_eq!(offset_of!(RasterizerDesc, depth_bias_clamp), 16);
-    assert_eq!(offset_of!(RasterizerDesc, antialiased_line_enable), 36);
-    assert_eq!(size_of::<SamplerDesc>(), 52);
-    assert_eq!(offset_of!(SamplerDesc, mip_lod_bias), 16);
-    assert_eq!(offset_of!(SamplerDesc, border_color), 28);
-    assert_eq!(offset_of!(SamplerDesc, max_lod), 48);
-    assert_eq!(size_of::<Viewport>(), 24);
-    assert_eq!(size_of::<D3d11Rect>(), 16);
-    assert_eq!(size_of::<D3d11Box>(), 24);
-    assert_eq!(size_of::<InputElementDesc>(), 32);
-    assert_eq!(offset_of!(InputElementDesc, semantic_index), 8);
-    assert_eq!(offset_of!(InputElementDesc, aligned_byte_offset), 20);
-    assert_eq!(offset_of!(InputElementDesc, instance_data_step_rate), 28);
-    assert_eq!(size_of::<SwapChainDesc1>(), 48);
-    assert_eq!(offset_of!(SwapChainDesc1, stereo), 12);
-    assert_eq!(offset_of!(SwapChainDesc1, buffer_usage), 24);
-    assert_eq!(offset_of!(SwapChainDesc1, scaling), 32);
-    assert_eq!(offset_of!(SwapChainDesc1, flags), 44);
-    assert_eq!(size_of::<PresentParameters>(), 32);
-    assert_eq!(offset_of!(PresentParameters, dirty_rects), 8);
-    assert_eq!(offset_of!(PresentParameters, scroll_rect), 16);
-    assert_eq!(offset_of!(PresentParameters, scroll_offset), 24);
-    assert_eq!(size_of::<AdapterDesc>(), 304);
-    assert_eq!(offset_of!(AdapterDesc, vendor_id), 256);
-    assert_eq!(offset_of!(AdapterDesc, dedicated_video_memory), 272);
-    assert_eq!(offset_of!(AdapterDesc, adapter_luid), 296);
-}
-
-#[test]
-fn vtable_slots_match_the_headers() {
+fn renderer_declarations_match_the_headers() {
     // offsetof(<Interface>Vtbl, <Method>) / sizeof(void *) of the harness.
-    let ptr = size_of::<usize>();
-    let slot = |offset: usize| offset / ptr;
     assert_eq!(
-        slot(offset_of!(IDXGIFactory2Vtbl, factory1.enum_adapters)),
-        7
+        slot(offset_of!(ID3D12DeviceVtbl, get_copyable_footprints)),
+        38
+    );
+    assert_eq!(
+        slot(offset_of!(ID3D12DeviceVtbl, create_command_signature)),
+        41
     );
     assert_eq!(
         slot(offset_of!(
-            IDXGIFactory2Vtbl,
-            factory1.make_window_association
+            ID3D12GraphicsCommandListVtbl,
+            set_graphics_root_32bit_constants
         )),
+        36
+    );
+    assert_eq!(
+        slot(offset_of!(
+            ID3D12GraphicsCommandListVtbl,
+            set_compute_root_constant_buffer_view
+        )),
+        37
+    );
+    // (IDXGISwapChain4's slots, the renderer's swap chain)
+    type S = IDXGISwapChain3Vtbl;
+    assert_eq!(slot(offset_of!(S, present)), 8);
+    assert_eq!(slot(offset_of!(S, get_buffer)), 9);
+    assert_eq!(slot(offset_of!(S, resize_buffers)), 13);
+    assert_eq!(slot(offset_of!(S, set_rotation)), 27);
+    assert_eq!(slot(offset_of!(S, set_maximum_frame_latency)), 31);
+    assert_eq!(slot(offset_of!(S, get_current_back_buffer_index)), 36);
+    assert_eq!(slot(offset_of!(S, check_color_space_support)), 37);
+    assert_eq!(slot(offset_of!(S, set_color_space1)), 38);
+    assert_eq!(size_of::<S>() / PTR, 40);
+    // (IDXGIFactory6's)
+    assert_eq!(
+        slot(offset_of!(IDXGIFactory1Vtbl, make_window_association)),
         8
     );
     assert_eq!(
@@ -494,155 +505,67 @@ fn vtable_slots_match_the_headers() {
         15
     );
     assert_eq!(
-        slot(offset_of!(IDXGIFactory2Vtbl, factory1.enum_adapters1)),
-        12
+        slot(offset_of!(
+            IDXGIFactory6Vtbl,
+            enum_adapter_by_gpu_preference
+        )),
+        29
     );
-    assert_eq!(size_of::<IDXGIFactory1Vtbl>(), 14 * ptr);
-    assert_eq!(size_of::<IDXGIFactory2Vtbl>(), 25 * ptr);
     assert_eq!(
         slot(offset_of!(IDXGIFactory5Vtbl, check_feature_support)),
         28
     );
-    assert_eq!(size_of::<IDXGIFactory5Vtbl>(), 29 * ptr);
-    assert_eq!(slot(offset_of!(IDXGIAdapterVtbl, get_desc)), 8);
-    assert_eq!(slot(offset_of!(IDXGIDevice1Vtbl, get_adapter)), 7);
+
+    // sizeof and _Alignof
+    assert_eq!((size_of::<D3d12Range>(), align_of::<D3d12Range>()), (16, 8));
     assert_eq!(
-        slot(offset_of!(IDXGIDevice1Vtbl, set_maximum_frame_latency)),
-        12
-    );
-    assert_eq!(slot(offset_of!(IDXGISwapChain1Vtbl, get_buffer)), 9);
-    assert_eq!(
-        slot(offset_of!(IDXGISwapChain1Vtbl, get_fullscreen_state)),
-        11
-    );
-    assert_eq!(slot(offset_of!(IDXGISwapChain1Vtbl, resize_buffers)), 13);
-    assert_eq!(slot(offset_of!(IDXGISwapChain1Vtbl, present1)), 22);
-    assert_eq!(slot(offset_of!(IDXGISwapChain1Vtbl, set_rotation)), 27);
-    assert_eq!(size_of::<IDXGISwapChain1Vtbl>(), 29 * ptr);
-    assert_eq!(
-        slot(offset_of!(IDXGISwapChain3Vtbl, check_color_space_support)),
-        37
-    );
-    assert_eq!(slot(offset_of!(IDXGISwapChain3Vtbl, set_color_space1)), 38);
-    assert_eq!(size_of::<IDXGISwapChain3Vtbl>(), 40 * ptr);
-    assert_eq!(slot(offset_of!(IDXGIDebugVtbl, report_live_objects)), 3);
-    assert_eq!(size_of::<IDXGIDebugVtbl>(), 4 * ptr);
-    assert_eq!(
-        slot(offset_of!(IDXGIInfoQueueVtbl, set_break_on_severity)),
-        33
+        (
+            size_of::<PlacedSubresourceFootprint>(),
+            align_of::<PlacedSubresourceFootprint>()
+        ),
+        (32, 8)
     );
 
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_buffer)), 3);
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_texture_2d)), 5);
-    assert_eq!(
-        slot(offset_of!(ID3D11DeviceVtbl, create_shader_resource_view)),
-        7
-    );
-    assert_eq!(
-        slot(offset_of!(ID3D11DeviceVtbl, create_render_target_view)),
-        9
-    );
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_input_layout)), 11);
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_vertex_shader)), 12);
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_pixel_shader)), 15);
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_blend_state)), 20);
-    assert_eq!(
-        slot(offset_of!(ID3D11DeviceVtbl, create_rasterizer_state)),
-        22
-    );
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, create_sampler_state)), 23);
-    assert_eq!(slot(offset_of!(ID3D11DeviceVtbl, check_format_support)), 29);
+    // The constants.
+    assert_eq!(D3D12_FILTER_MIN_MAG_MIP_POINT, 0);
+    assert_eq!(D3D12_FILTER_MIN_MAG_MIP_LINEAR, 21);
+    assert_eq!(D3D12_COMPARISON_FUNC_NONE, 0);
+    assert_eq!(D3D12_COLOR_WRITE_ENABLE_ALL, 15);
+    assert_eq!(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 128);
+    assert_eq!(D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH, 4);
+    assert_eq!(D3D12_RESOURCE_FLAG_NONE, 0);
+    assert_eq!(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, 4294967295);
+    assert_eq!(DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT, 64);
+    assert_eq!(D3D12_FLOAT32_MAX, f32::from_bits(0x7f7f_ffff)); // (0x1.fffffep+127)
 
-    let ctx = |offset| slot(offset);
+    // The GUIDs.
     assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, vs_set_constant_buffers)),
-        7
+        guid(IID_ID3D12DEVICE1),
+        0x77acce80_638e_4e65_8895_c1f23386863e
     );
     assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, ps_set_shader_resources)),
-        8
-    );
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, ps_set_shader)), 9);
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, ps_set_samplers)),
-        10
-    );
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, vs_set_shader)), 11);
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, draw)), 13);
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, map)), 14);
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, unmap)), 15);
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, ps_set_constant_buffers)),
-        16
+        guid(IID_ID3D12GRAPHICSCOMMANDLIST2),
+        0x38c3e585_ff17_412c_9150_4fc6f9d72a28
     );
     assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, ia_set_input_layout)),
-        17
+        guid(IID_IDXGISWAPCHAIN4),
+        0x3d585d5a_bd4a_489e_b1f4_3dbcb6452ffb
     );
     assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, ia_set_vertex_buffers)),
-        18
+        guid(IID_IDXGIADAPTER4),
+        0x3c8d99d1_4fbf_4181_a82c_af66bf7bd24e
     );
     assert_eq!(
-        ctx(offset_of!(
-            ID3D11DeviceContextVtbl,
-            ia_set_primitive_topology
-        )),
-        24
+        guid(IID_IDXGIFACTORY6),
+        0xc1b6694f_ff09_44a9_b03c_77900a0a1d17
     );
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, om_set_render_targets)),
-        33
-    );
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, om_set_blend_state)),
-        35
-    );
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, rs_set_state)), 43);
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, rs_set_viewports)),
-        44
-    );
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, rs_set_scissor_rects)),
-        45
-    );
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, copy_subresource_region)),
-        46
-    );
-    assert_eq!(
-        ctx(offset_of!(ID3D11DeviceContextVtbl, update_subresource)),
-        48
-    );
-    assert_eq!(
-        ctx(offset_of!(
-            ID3D11DeviceContextVtbl,
-            clear_render_target_view
-        )),
-        50
-    );
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, clear_state)), 110);
-    assert_eq!(ctx(offset_of!(ID3D11DeviceContextVtbl, flush)), 111);
 
-    assert_eq!(slot(offset_of!(ID3D11Texture2DVtbl, get_desc)), 10);
-    assert_eq!(size_of::<ID3D11Texture2DVtbl>(), 11 * ptr);
-    assert_eq!(slot(offset_of!(ID3D11ViewVtbl, get_resource)), 7);
-}
-
-#[test]
-fn upload_rows_are_bounds_checked() {
-    // (the copies into mapped memory refuse a source that's too short,
-    // where the C code trusts the caller)
-    let mut dst = [0u8; 16];
-    let src = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    // SAFETY: `dst` has 2 rows of 3 bytes, 8 apart.
-    unsafe { copy_rows(dst.as_mut_ptr(), 8, &src, 5, 3, 2) }.unwrap();
-    assert_eq!(dst, [1, 2, 3, 0, 0, 0, 0, 0, 6, 7, 8, 0, 0, 0, 0, 0]);
-    // SAFETY: as above, but nothing is written.
-    assert!(unsafe { copy_rows(dst.as_mut_ptr(), 8, &src, 5, 6, 2) }.is_err());
-    assert_eq!(plane(&src, 10).unwrap().len(), 0);
-    assert!(plane(&src, 11).is_err());
+    // And upstream's numbers.
+    assert_eq!(SDL_D3D12_NUM_BUFFERS, 2);
+    assert_eq!(SDL_D3D12_NUM_VERTEX_BUFFERS, 256);
+    assert_eq!(SDL_D3D12_MAX_NUM_TEXTURES, 16384);
+    assert_eq!(SDL_D3D12_NUM_UPLOAD_BUFFERS, 32);
+    assert_eq!(EVENT_MODIFY_STATE | SYNCHRONIZE, 0x0010_0002);
 }
 
 // ---------------------------------------------------------------------------
@@ -677,20 +600,10 @@ impl Drop for Video {
     }
 }
 
-/// The flags of the test windows: hidden, and under Wine transparent (see
-/// the module documentation).
-fn window_flags() -> WindowFlags {
-    if is_wine() {
-        WindowFlags::HIDDEN | WindowFlags::TRANSPARENT
-    } else {
-        WindowFlags::HIDDEN
-    }
-}
-
 /// A window, or `None` (with the skip reported) when the windows video
 /// driver can't make one.
 fn window(w: i32, h: i32, flags: WindowFlags) -> Option<Window> {
-    match Window::create("direct3d11", w, h, flags) {
+    match Window::create("direct3d12", w, h, flags) {
         Ok(window) => Some(window),
         Err(e) => {
             crate::test_support::skip(
@@ -702,25 +615,69 @@ fn window(w: i32, h: i32, flags: WindowFlags) -> Option<Window> {
     }
 }
 
-/// A window with a Direct3D 11 renderer, or `None` (with the skip
-/// reported) when there is no device.
-fn d3d11_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
-    let window = window(w, h, window_flags())?;
-    match Renderer::for_window(&window, Some(D3D11_RENDERER)) {
-        Ok(r) => Some((window, r)),
+/// Whether there is a Direct3D 12 device with shader model 6 (which takes
+/// the renderer's DXIL), or `false` with the skip reported.
+fn has_d3d12_dxil() -> bool {
+    match crate::gpu::Device::new(
+        ShaderFormat::DXBC | ShaderFormat::DXIL,
+        false,
+        Some("direct3d12"),
+    ) {
+        Ok(device) if device.shader_formats().contains(ShaderFormat::DXIL) => true,
+        Ok(_) => {
+            crate::test_support::skip(
+                "d3d12",
+                "the device has no shader model 6, so no DXIL (vkd3d under Wine has 5.1)",
+            );
+            false
+        }
         Err(e) => {
             crate::test_support::skip(
-                "d3d11",
-                format_args!("no Direct3D 11 renderer ({})", e.message()),
+                "d3d12",
+                format_args!("no Direct3D 12 device ({})", e.message()),
             );
-            window.destroy();
-            None
+            false
         }
     }
 }
 
+/// Whether a renderer that couldn't be made failed at the swap chain's
+/// `SetRotation()`, a stub under some Wines (see the module
+/// documentation): then the skip is reported.
+fn rotation_stub(message: &str) -> bool {
+    if is_wine() && message.starts_with("IDXGISwapChain4::SetRotation") {
+        crate::test_support::skip(
+            "d3d12",
+            format_args!("this Wine's flip-model swap chains can't be rotated ({message})"),
+        );
+        return true;
+    }
+    false
+}
+
+/// A window with a Direct3D 12 renderer, or `None` (with the skip
+/// reported) when there is no device with shader model 6. Where there is
+/// one, the renderer must be made.
+fn d3d12_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
+    if !has_d3d12_dxil() {
+        return None;
+    }
+    let window = window(w, h, WindowFlags::HIDDEN)?;
+    match Renderer::for_window(&window, Some(D3D12_RENDERER)) {
+        Ok(r) => Some((window, r)),
+        Err(e) if rotation_stub(e.message()) => {
+            window.destroy();
+            None
+        }
+        Err(e) => panic!(
+            "no Direct3D 12 renderer on a device with shader model 6 ({})",
+            e.message()
+        ),
+    }
+}
+
 /// A software renderer drawing into an ARGB8888 surface (the format the
-/// Direct3D 11 renderer reads its B8G8R8A8 swap chain back in).
+/// Direct3D 12 renderer reads its B8G8R8A8 swap chain back in).
 fn software_renderer(w: i32, h: i32) -> Renderer {
     Renderer::software(Surface::new(w, h, PixelFormat::ARGB8888).unwrap()).unwrap()
 }
@@ -776,13 +733,13 @@ fn assert_close(what: &str, d3d: &Surface<'_>, sw: &Surface<'_>, tol: u8) {
     let bad = differences(d3d, sw, tol);
     if let Some(((x, y), pa, pb)) = bad.first() {
         panic!(
-            "{what}: {} pixels differ by more than {tol}; first at ({x}, {y}): d3d11 {pa:?} sw {pb:?}",
+            "{what}: {} pixels differ by more than {tol}; first at ({x}, {y}): d3d12 {pa:?} sw {pb:?}",
             bad.len()
         );
     }
 }
 
-/// Draw `scene` with the Direct3D 11 renderer and the software renderer,
+/// Draw `scene` with the Direct3D 12 renderer and the software renderer,
 /// and compare the results (`tol` per channel).
 fn compare(what: &str, r: &mut Renderer, tol: u8, scene: impl Fn(&mut Renderer)) {
     scene(r);
@@ -834,15 +791,53 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
-fn d3d11_renderer_basics() {
+fn srv_pool_allocator() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
     };
-    let Some((window, mut r)) = d3d11_renderer(W, H) else {
+    let Some(window) = window(8, 8, WindowFlags::HIDDEN) else {
         return;
     };
-    assert_eq!(r.name(), "direct3d11");
+    // (the pool of D3D12_GetAvailableSRVIndex() and D3D12_FreeSRVIndex(),
+    // without a device)
+    let mut data = D3d12Renderer::new(window, Colorspace::SRGB);
+    assert!(data.get_available_srv_index().is_err());
+    data.init_srv_pool();
+    assert_eq!(data.get_available_srv_index().unwrap(), 0);
+    assert_eq!(data.get_available_srv_index().unwrap(), 1);
+    assert_eq!(data.get_available_srv_index().unwrap(), 2);
+    data.free_srv_index(1);
+    data.free_srv_index(0);
+    assert_eq!(data.get_available_srv_index().unwrap(), 0);
+    assert_eq!(data.get_available_srv_index().unwrap(), 1);
+    assert_eq!(data.get_available_srv_index().unwrap(), 3);
+    for i in 4..SDL_D3D12_MAX_NUM_TEXTURES {
+        assert_eq!(data.get_available_srv_index().unwrap(), i);
+    }
+    assert_eq!(
+        data.get_available_srv_index().unwrap_err().message(),
+        "[d3d12] Cannot allocate more than 16384 textures!"
+    );
+    data.free_srv_index(7);
+    assert_eq!(data.get_available_srv_index().unwrap(), 7);
+    // (the renderer's starting state: invalidated, tearing presents)
+    assert!(data.cliprect_dirty && data.viewport_dirty);
+    assert_eq!(data.present_flags, DXGI_PRESENT_ALLOW_TEARING);
+    assert_eq!(data.vertex_buffers.len(), SDL_D3D12_NUM_VERTEX_BUFFERS);
+    window.destroy();
+}
+
+#[test]
+fn d3d12_renderer_basics() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((window, mut r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    assert_eq!(r.name(), "direct3d12");
     assert_eq!(r.output_size().unwrap(), (W, H));
     let props = r.properties();
     assert_eq!(
@@ -854,8 +849,9 @@ fn d3d11_renderer_basics() {
         Some(true)
     );
     for prop in [
-        PROP_RENDERER_D3D11_DEVICE_POINTER,
-        PROP_RENDERER_D3D11_SWAPCHAIN_POINTER,
+        PROP_RENDERER_D3D12_DEVICE_POINTER,
+        PROP_RENDERER_D3D12_SWAPCHAIN_POINTER,
+        PROP_RENDERER_D3D12_COMMAND_QUEUE_POINTER,
     ] {
         assert!(props.get_number(prop).unwrap_or(0) != 0, "{prop}");
     }
@@ -866,7 +862,6 @@ fn d3d11_renderer_basics() {
     );
     for f in [
         PixelFormat::XRGB8888,
-        PixelFormat::RGB565,
         PixelFormat::INDEX8,
         PixelFormat::IYUV,
         PixelFormat::YV12,
@@ -874,6 +869,8 @@ fn d3d11_renderer_basics() {
         PixelFormat::NV12,
         PixelFormat::NV21,
         PixelFormat::P010,
+        PixelFormat::I0FL,
+        PixelFormat::I4FL,
     ] {
         assert!(formats.contains(&f), "{f:?} supported");
     }
@@ -883,17 +880,18 @@ fn d3d11_renderer_basics() {
         .create_texture(PixelFormat::ARGB8888, TextureAccess::Static, 8, 8)
         .unwrap();
     let tp = r.texture_properties(t).unwrap();
-    assert!(tp.get_number(PROP_TEXTURE_D3D11_TEXTURE_POINTER).unwrap() != 0);
+    assert!(tp.get_number(PROP_TEXTURE_D3D12_TEXTURE_POINTER).unwrap() != 0);
     assert!(tp
-        .get_number(PROP_TEXTURE_D3D11_TEXTURE_U_POINTER)
+        .get_number(PROP_TEXTURE_D3D12_TEXTURE_U_POINTER)
         .is_none());
     let yuv = r
         .create_texture(PixelFormat::IYUV, TextureAccess::Static, 8, 8)
         .unwrap();
     let yp = r.texture_properties(yuv).unwrap();
-    assert!(yp.get_number(PROP_TEXTURE_D3D11_TEXTURE_U_POINTER).unwrap() != 0);
-    assert!(yp.get_number(PROP_TEXTURE_D3D11_TEXTURE_V_POINTER).unwrap() != 0);
-    // (an unsupported YUV colorspace is refused)
+    assert!(yp.get_number(PROP_TEXTURE_D3D12_TEXTURE_U_POINTER).unwrap() != 0);
+    assert!(yp.get_number(PROP_TEXTURE_D3D12_TEXTURE_V_POINTER).unwrap() != 0);
+    // (an unsupported YUV colorspace is refused, and its SRV slots go back
+    // to the pool: the next texture takes the same ones)
     assert!(r
         .create_texture_with(&TextureCreateInfo {
             format: PixelFormat::IYUV,
@@ -903,8 +901,10 @@ fn d3d11_renderer_basics() {
             ..Default::default()
         })
         .is_err());
+    r.destroy_texture(t);
+    r.destroy_texture(yuv);
 
-    // Custom blend modes are supported
+    // Custom blend modes are supported, with pipeline states made for them
     let custom = BlendMode::compose_custom(
         BF::One,
         BF::One,
@@ -914,7 +914,9 @@ fn d3d11_renderer_basics() {
         BO::Maximum,
     );
     r.set_draw_blend_mode(custom).unwrap();
+    r.render_fill_rect(None).unwrap();
     r.set_draw_blend_mode(BlendMode::NONE).unwrap();
+    r.flush().unwrap();
 
     // Presenting several frames
     for i in 0..5 {
@@ -942,6 +944,7 @@ fn d3d11_renderer_basics() {
     let s = r.read_pixels(None).unwrap();
     assert_eq!((s.width(), s.height()), (40, 30));
     assert_eq!(rows(&s)[..4], [7, 8, 9, 255]);
+    r.present().unwrap();
 
     // The window can go first.
     window.destroy();
@@ -950,12 +953,12 @@ fn d3d11_renderer_basics() {
 }
 
 #[test]
-fn d3d11_matches_software_for_shapes() {
+fn d3d12_matches_software_for_shapes() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
     };
-    let Some((_window, mut r)) = d3d11_renderer(W, H) else {
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
         return;
     };
 
@@ -1049,32 +1052,41 @@ fn d3d11_matches_software_for_shapes() {
         .unwrap();
     });
 
-    // Many flushes in one frame: around the eight vertex buffers, growing
-    // them on the way.
+    // Many flushes in one frame: past the 256 vertex buffers (issuing an
+    // intermediate batch), growing them on the way.
     compare("many flushes", &mut r, 0, |r| {
         r.set_draw_color(0, 0, 0, 255);
         r.clear().unwrap();
-        for i in 0..40 {
+        for i in 0..300 {
             r.set_draw_color((i * 6 % 256) as u8, 100, 200, 255);
-            let points: Vec<FPoint> = (0..=i)
+            let points: Vec<FPoint> = (0..=i % 50)
                 .map(|k| FPoint {
                     x: ((i + k) % W) as f32,
-                    y: (i / 2 + k % 3) as f32,
+                    y: (i % 40 + k % 3) as f32,
                 })
                 .collect();
             r.render_points(&points).unwrap();
             r.flush().unwrap();
         }
+        // (and a draw bigger than a 64 KiB vertex buffer)
+        r.set_draw_color(9, 99, 199, 255);
+        let points: Vec<FPoint> = (0..3000)
+            .map(|k| FPoint {
+                x: (k % W) as f32,
+                y: (44 + k / W % 3) as f32,
+            })
+            .collect();
+        r.render_points(&points).unwrap();
     });
 }
 
 #[test]
-fn d3d11_matches_software_for_textures() {
+fn d3d12_matches_software_for_textures() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
     };
-    let Some((_window, mut r)) = d3d11_renderer(W, H) else {
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
         return;
     };
     let mut sw = software_renderer(W, H);
@@ -1152,6 +1164,26 @@ fn d3d11_matches_software_for_textures() {
         sw.destroy_texture(ts);
     }
 
+    // Wrapped texture coordinates (the samplers' address modes)
+    let tv = pattern_texture(&mut r, PixelFormat::ABGR8888, 16, 12);
+    let ts = pattern_texture(&mut sw, PixelFormat::ABGR8888, 16, 12);
+    for (rr, t) in [(&mut r, tv), (&mut sw, ts)] {
+        rr.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        rr.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        rr.set_draw_color(0, 0, 0, 255);
+        rr.clear().unwrap();
+        rr.render_texture_tiled(t, None, 1.0, Some(&FRect::new(2.0, 2.0, 40.0, 30.0)))
+            .unwrap();
+    }
+    assert_close(
+        "tiled texture",
+        &r.read_pixels(None).unwrap(),
+        &sw.read_pixels(None).unwrap(),
+        0,
+    );
+    r.destroy_texture(tv);
+    sw.destroy_texture(ts);
+
     // A palettized texture, nearest (sampled in the shader)
     let mut palette = Palette::new(256).unwrap();
     let colors: Vec<Color> = (0..256)
@@ -1191,12 +1223,12 @@ fn d3d11_matches_software_for_textures() {
         r.set_texture_palette(tv, Some(shared.clone())).unwrap();
         sw.set_texture_palette(ts, Some(shared)).unwrap();
     }
-    // (FIXME (upstream) in D3D11_SetDrawState(): the texture is bound
-    // already, so without the flush, which invalidates the cached state,
-    // the previous palette would stay bound)
+    // (as in D3D11_SetDrawState(), only the first resource is compared:
+    // the texture is bound already, so without the flush, which
+    // invalidates the cached state, the previous palette would stay bound)
     r.flush().unwrap();
     for rr in [&mut r, &mut sw] {
-        let t = if rr.name() == "direct3d11" { tv } else { ts };
+        let t = if rr.name() == "direct3d12" { tv } else { ts };
         rr.set_draw_color(0, 0, 0, 255);
         rr.clear().unwrap();
         rr.render_texture(t, None, Some(&FRect::new(5.0, 5.0, 16.0, 12.0)))
@@ -1282,15 +1314,40 @@ fn d3d11_matches_software_for_textures() {
             1,
         );
     }
+
+    // More than 32 texture updates in one frame: the upload buffers run
+    // out and the batch is issued.
+    let t = r
+        .create_texture(PixelFormat::ABGR8888, TextureAccess::Static, 40, 1)
+        .unwrap();
+    for i in 0..40 {
+        r.update_texture(
+            t,
+            Some(&Rect::new(i, 0, 1, 1)),
+            &[i as u8 * 6, 0, 0, 255],
+            4,
+        )
+        .unwrap();
+    }
+    r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+    r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+    r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 40.0, 1.0)))
+        .unwrap();
+    let s = r.read_pixels(Some(&Rect::new(0, 0, 40, 1))).unwrap();
+    let px = rows(&s);
+    for i in 0..40 {
+        assert_eq!(px[i * 4..i * 4 + 4], [0, 0, i as u8 * 6, 255], "texel {i}");
+    }
+    r.destroy_texture(t);
 }
 
 #[test]
-fn d3d11_matches_software_for_targets() {
+fn d3d12_matches_software_for_targets() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
     };
-    let Some((_window, mut r)) = d3d11_renderer(W, H) else {
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
         return;
     };
     let mut sw = software_renderer(W, H);
@@ -1323,12 +1380,8 @@ fn d3d11_matches_software_for_targets() {
             r.clear().unwrap();
             r.render_texture(target, None, Some(&FRect::new(0.0, 0.0, 32.0, 24.0)))
                 .unwrap();
-            // A part, scaled up 2x: nearest sampling then reads texels at
-            // a quarter and three quarters across. (Scaled down 2x, every
-            // pixel center falls exactly on a texel edge, and which texel
-            // a rasterizer picks there depends on its texture coordinate
-            // precision: WARP picks the other one than wined3d and the
-            // software renderer do.)
+            // A part, scaled up 2x (not down, where the pixel centers fall
+            // on texel edges and rasterizers differ)
             r.render_texture(
                 target,
                 Some(&FRect::new(12.0, 8.0, 16.0, 12.0)),
@@ -1352,6 +1405,32 @@ fn d3d11_matches_software_for_targets() {
         sw.destroy_texture(ts);
     }
 
+    // One target after another, and back
+    let a = r
+        .create_texture(PixelFormat::ARGB8888, TextureAccess::Target, 8, 8)
+        .unwrap();
+    let b = r
+        .create_texture(PixelFormat::ARGB8888, TextureAccess::Target, 8, 8)
+        .unwrap();
+    r.set_render_target(Some(a)).unwrap();
+    r.set_draw_color(200, 0, 0, 255);
+    r.clear().unwrap();
+    r.set_render_target(Some(b)).unwrap();
+    r.set_draw_color(0, 200, 0, 255);
+    r.clear().unwrap();
+    r.set_texture_blend_mode(a, BlendMode::NONE).unwrap();
+    r.render_texture(a, None, Some(&FRect::new(0.0, 0.0, 4.0, 8.0)))
+        .unwrap();
+    r.set_render_target(None).unwrap();
+    r.set_texture_blend_mode(b, BlendMode::NONE).unwrap();
+    r.render_texture(b, None, Some(&FRect::new(0.0, 0.0, 8.0, 8.0)))
+        .unwrap();
+    let px = rows(&r.read_pixels(Some(&Rect::new(0, 0, 8, 1))).unwrap());
+    assert_eq!(px[..4], [0, 0, 200, 255]);
+    assert_eq!(px[28..32], [0, 200, 0, 255]);
+    r.destroy_texture(a);
+    r.destroy_texture(b);
+
     // A target that's destroyed while it's the target
     let target = r
         .create_texture(PixelFormat::ARGB8888, TextureAccess::Target, 8, 8)
@@ -1371,6 +1450,7 @@ fn d3d11_matches_software_for_targets() {
         .create_texture(PixelFormat::ARGB8888, TextureAccess::Static, 8, 8)
         .unwrap();
     assert!(r.set_render_target(Some(t)).is_err());
+    r.present().unwrap();
 }
 
 /// Planes of a test YUV image. The colors stay inside the RGB gamut: the
@@ -1391,12 +1471,12 @@ fn yuv_planes(w: usize, h: usize) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
 }
 
 #[test]
-fn d3d11_matches_software_for_yuv() {
+fn d3d12_matches_software_for_yuv() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
     };
-    let Some((_window, mut r)) = d3d11_renderer(W, H) else {
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
         return;
     };
     let mut sw = software_renderer(W, H);
@@ -1405,35 +1485,12 @@ fn d3d11_matches_software_for_yuv() {
     let uv: Vec<u8> = u.iter().zip(&v).flat_map(|(a, b)| [*a, *b]).collect();
     let vu: Vec<u8> = u.iter().zip(&v).flat_map(|(a, b)| [*b, *a]).collect();
 
-    // (Wine's d3d11 has no NV12 textures it can sample: the renderer
-    // offers them, as upstream's does, and fails to create them there; the
-    // hardware check draws one)
-    let nv12 = match r.create_texture(PixelFormat::NV12, TextureAccess::Static, 16, 12) {
-        Ok(t) => {
-            r.destroy_texture(t);
-            true
-        }
-        Err(e) => {
-            println!(
-                "note: no NV12 textures on this device ({}): the NV12 and NV21 checks don't run",
-                e.message()
-            );
-            false
-        }
-    };
-    let has =
-        |format: &PixelFormat| nv12 || !matches!(*format, PixelFormat::NV12 | PixelFormat::NV21);
-
     for format in [
         PixelFormat::IYUV,
         PixelFormat::YV12,
         PixelFormat::NV12,
         PixelFormat::NV21,
-    ]
-    .iter()
-    .filter(|f| has(f))
-    .copied()
-    {
+    ] {
         for access in [TextureAccess::Static, TextureAccess::Streaming] {
             let scene = |r: &mut Renderer| {
                 let t = r
@@ -1480,10 +1537,7 @@ fn d3d11_matches_software_for_yuv() {
     all.extend_from_slice(&v);
     let mut nv = y.clone();
     nv.extend_from_slice(&uv);
-    for (format, data) in [(PixelFormat::IYUV, &all), (PixelFormat::NV12, &nv)]
-        .into_iter()
-        .filter(|(f, _)| has(f))
-    {
+    for (format, data) in [(PixelFormat::IYUV, &all), (PixelFormat::NV12, &nv)] {
         let scene = |r: &mut Renderer, access: TextureAccess| {
             let t = r
                 .create_texture(format, access, w as i32, h as i32)
@@ -1544,10 +1598,11 @@ fn d3d11_matches_software_for_yuv() {
         .create_texture(PixelFormat::IYUV, TextureAccess::Static, w as i32, h as i32)
         .unwrap();
     assert!(r.update_texture(t, None, &y, w as i32).is_err());
+    r.destroy_texture(t);
 }
 
 #[test]
-fn d3d11_line_methods() {
+fn d3d12_line_methods() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
@@ -1556,7 +1611,7 @@ fn d3d11_line_methods() {
     // as points, hit the same pixels as the software renderer's for
     // straight lines.
     hints::set(hints::RENDER_LINE_METHOD, "2").unwrap();
-    let created = d3d11_renderer(W, H);
+    let created = d3d12_renderer(W, H);
     hints::reset(hints::RENDER_LINE_METHOD);
     let Some((_window, mut r)) = created else {
         return;
@@ -1581,53 +1636,45 @@ fn d3d11_line_methods() {
 }
 
 #[test]
-fn flip_model_swap_chain_under_wine() {
+fn d3d12_refuses_transparent_windows_and_falls_back() {
     let _l = crate::test_support::test_lock();
     let Some(_video) = Video::init() else {
         return;
     };
-    // An ordinary window gets a flip-model swap chain, rotated with
-    // IDXGISwapChain1::SetRotation() on Windows 8 and later.
+    // D3D12 removed the swap effect needed to support transparent windows
+    let Some(transparent) = window(W, H, WindowFlags::HIDDEN | WindowFlags::TRANSPARENT) else {
+        return;
+    };
+    assert_eq!(
+        Renderer::for_window(&transparent, Some(D3D12_RENDERER))
+            .err()
+            .unwrap()
+            .message(),
+        "The direct3d12 renderer doesn't work with transparent windows"
+    );
+    transparent.destroy();
+
+    // Without a device that takes the DXIL (Wine's vkd3d), the renderer
+    // fails (making its pipeline states) and the next driver is tried.
     let Some(window) = window(W, H, WindowFlags::HIDDEN) else {
         return;
     };
-    let result = Renderer::for_window(&window, Some(D3D11_RENDERER));
-    if is_wine() {
-        // Wine's SetRotation() is a stub (E_NOTIMPL): the renderer fails,
-        // as upstream's does there, unless Wine has no device at all.
-        match result {
-            Ok(_) => println!("note: this Wine rotates flip-model swap chains"),
-            Err(e) => {
-                let message = e.message();
-                if !message.starts_with("IDXGISwapChain1::SetRotation") {
-                    crate::test_support::skip(
-                        "d3d11",
-                        format_args!("no Direct3D 11 renderer ({message})"),
-                    );
-                }
-            }
-        }
-        // and the default renderer is the next one.
-        let r = Renderer::for_window(&window, None).unwrap();
-        assert_ne!(r.name(), D3D11_RENDERER);
-    } else {
-        match result {
-            Ok(mut r) => {
-                r.set_draw_color(1, 2, 3, 255);
-                r.clear().unwrap();
-                r.present().unwrap();
-            }
-            Err(e) => crate::test_support::skip(
-                "d3d11",
-                format_args!("no Direct3D 11 renderer ({})", e.message()),
-            ),
-        }
+    let dxil = has_d3d12_dxil();
+    match Renderer::for_window(&window, Some(D3D12_RENDERER)) {
+        Ok(_) => assert!(dxil, "a renderer without shader model 6"),
+        Err(e) if !dxil => println!("note: no Direct3D 12 renderer ({})", e.message()),
+        Err(e) => assert!(rotation_stub(e.message()), "{}", e.message()),
     }
+    let r = Renderer::for_window(&window, None).unwrap();
+    if !dxil {
+        assert_ne!(r.name(), D3D12_RENDERER);
+    }
+    drop(r);
     window.destroy();
 }
 
 #[test]
-fn d3d11_fails_without_a_window_handle() {
+fn d3d12_fails_without_a_window_handle() {
     let _l = crate::test_support::test_lock();
     // The dummy driver's windows have no HWND: the renderer can't be
     // created, and the default renderer is the software one.
@@ -1636,7 +1683,7 @@ fn d3d11_fails_without_a_window_handle() {
     init::init(InitFlags::VIDEO).unwrap();
     let window = Window::create("no hwnd", 16, 16, WindowFlags::default()).unwrap();
     assert_eq!(
-        Renderer::for_window(&window, Some(D3D11_RENDERER))
+        Renderer::for_window(&window, Some(D3D12_RENDERER))
             .err()
             .unwrap()
             .message(),
@@ -1648,84 +1695,4 @@ fn d3d11_fails_without_a_window_handle() {
     window.destroy();
     init::quit();
     hints::reset(hints::VIDEO_DRIVER);
-}
-
-/// The Direct3D 11 renderer on the machine's GPU: run on Windows with
-/// `--ignored --nocapture` (see docs/HARDWARE_TESTING.md).
-#[test]
-#[ignore]
-fn hardware_gpu_d3d11_renderer() {
-    let _l = crate::test_support::test_lock();
-    let Some(_video) = Video::init() else {
-        return;
-    };
-    let Some(window) = window(64, 48, WindowFlags::default()) else {
-        return;
-    };
-
-    // The backend itself, for the adapter it runs on.
-    let mut backend = match D3d11Renderer::for_window(window, Colorspace::SRGB) {
-        Ok(backend) => backend,
-        Err(e) => {
-            crate::test_support::skip(
-                "d3d11",
-                format_args!("no Direct3D 11 device ({})", e.message()),
-            );
-            window.destroy();
-            return;
-        }
-    };
-    let device = backend.device().unwrap();
-    let dxgi_device = device.query::<IDXGIDevice1Vtbl>(&IID_IDXGIDEVICE1).unwrap();
-    let desc = dxgi_device.adapter().unwrap().desc().unwrap();
-    let description = crate::core::windows::wide_to_utf8(&desc.description);
-    println!(
-        "adapter: {description} (vendor {:04x}, device {:04x}, {} MB dedicated video memory)",
-        desc.vendor_id,
-        desc.device_id,
-        desc.dedicated_video_memory >> 20
-    );
-    println!("feature level: {:#x}", backend.feature_level);
-    println!("swap chain flags: {:#x}", backend.swap_chain_flags);
-    drop(dxgi_device);
-    backend.destroy();
-    drop(backend);
-
-    // The 2D renderer, chosen by default.
-    let mut r = Renderer::for_window(&window, None).unwrap();
-    println!("default renderer: {}", r.name());
-    assert_eq!(r.name(), "direct3d11");
-    r.set_draw_color(10, 200, 30, 255);
-    r.clear().unwrap();
-    let s = r.read_pixels(Some(&Rect::new(0, 0, 1, 1))).unwrap();
-    let c = s.read_pixel(0, 0).unwrap();
-    assert_eq!((c.r, c.g, c.b), (10, 200, 30));
-    r.present().unwrap();
-
-    // An NV12 texture (which Wine's d3d11 can't sample), as the software
-    // renderer draws it.
-    let (w, h) = (16usize, 12usize);
-    let (y, u, v) = yuv_planes(w, h);
-    let uv: Vec<u8> = u.iter().zip(&v).flat_map(|(a, b)| [*a, *b]).collect();
-    let scene = |r: &mut Renderer| {
-        let t = r
-            .create_texture(PixelFormat::NV12, TextureAccess::Static, w as i32, h as i32)
-            .unwrap();
-        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
-        r.update_nv_texture(t, None, &y, w as i32, &uv, w as i32)
-            .unwrap();
-        r.set_draw_color(0, 0, 0, 255);
-        r.clear().unwrap();
-        r.render_texture(t, None, Some(&FRect::new(3.0, 3.0, 32.0, 24.0)))
-            .unwrap();
-        r.destroy_texture(t);
-        r.read_pixels(Some(&Rect::new(0, 0, W, H))).unwrap()
-    };
-    let d3d = scene(&mut r);
-    let sw = scene(&mut software_renderer(W, H));
-    assert_close("NV12 texture", &d3d, &sw, 3);
-    println!("NV12 texture: matches the software renderer");
-    r.present().unwrap();
-    drop(r);
-    window.destroy();
 }

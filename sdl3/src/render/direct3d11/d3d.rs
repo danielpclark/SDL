@@ -32,7 +32,7 @@ pub(crate) type DxgiFormat = u32;
 pub(super) type D3d11Blend = u32;
 pub(super) type D3d11BlendOp = u32;
 pub(super) type D3d11PrimitiveTopology = u32;
-pub(super) type DxgiModeRotation = u32;
+pub(crate) type DxgiModeRotation = u32;
 pub(crate) type DxgiColorSpaceType = u32;
 pub(crate) type D3dFeatureLevel = u32;
 pub(crate) type DxgiGpuPreference = u32;
@@ -193,7 +193,7 @@ pub(super) const D3D_DRIVER_TYPE_WARP: u32 = 5;
 pub(crate) const D3D_FEATURE_LEVEL_11_0: D3dFeatureLevel = 0xb000;
 pub(crate) const D3D_FEATURE_LEVEL_11_1: D3dFeatureLevel = 0xb100;
 
-pub(super) const DXGI_CREATE_FACTORY_DEBUG: u32 = 0x1;
+pub(crate) const DXGI_CREATE_FACTORY_DEBUG: u32 = 0x1;
 pub(crate) const DXGI_FEATURE_PRESENT_ALLOW_TEARING: u32 = 0;
 pub(super) const DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING: u32 = 2048;
 pub(super) const DXGI_PRESENT_DO_NOT_WAIT: u32 = 0x8;
@@ -202,17 +202,17 @@ pub(super) const DXGI_USAGE_RENDER_TARGET_OUTPUT: u32 = 0x20;
 pub(super) const DXGI_MWA_NO_WINDOW_CHANGES: u32 = 1;
 
 // DXGI_SCALING, DXGI_SWAP_EFFECT
-pub(super) const DXGI_SCALING_STRETCH: u32 = 0;
+pub(crate) const DXGI_SCALING_STRETCH: u32 = 0;
 pub(super) const DXGI_SCALING_NONE: u32 = 1;
 pub(super) const DXGI_SWAP_EFFECT_DISCARD: u32 = 0;
-pub(super) const DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL: u32 = 3;
+pub(crate) const DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL: u32 = 3;
 
 // DXGI_MODE_ROTATION
-pub(super) const DXGI_MODE_ROTATION_UNSPECIFIED: DxgiModeRotation = 0;
-pub(super) const DXGI_MODE_ROTATION_IDENTITY: DxgiModeRotation = 1;
-pub(super) const DXGI_MODE_ROTATION_ROTATE90: DxgiModeRotation = 2;
-pub(super) const DXGI_MODE_ROTATION_ROTATE180: DxgiModeRotation = 3;
-pub(super) const DXGI_MODE_ROTATION_ROTATE270: DxgiModeRotation = 4;
+pub(crate) const DXGI_MODE_ROTATION_UNSPECIFIED: DxgiModeRotation = 0;
+pub(crate) const DXGI_MODE_ROTATION_IDENTITY: DxgiModeRotation = 1;
+pub(crate) const DXGI_MODE_ROTATION_ROTATE90: DxgiModeRotation = 2;
+pub(crate) const DXGI_MODE_ROTATION_ROTATE180: DxgiModeRotation = 3;
+pub(crate) const DXGI_MODE_ROTATION_ROTATE270: DxgiModeRotation = 4;
 
 // DXGI_COLOR_SPACE_TYPE
 pub(crate) const DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709: DxgiColorSpaceType = 0;
@@ -227,15 +227,15 @@ pub(crate) const DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE: DxgiGpuPreference = 2;
 // DXGI_DEBUG_RLO_FLAGS, DXGI_INFO_QUEUE_MESSAGE_SEVERITY
 pub(crate) const DXGI_DEBUG_RLO_SUMMARY: u32 = 0x1;
 pub(crate) const DXGI_DEBUG_RLO_DETAIL: u32 = 0x2;
-pub(super) const DXGI_DEBUG_RLO_IGNORE_INTERNAL: u32 = 0x4;
-pub(super) const DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: u32 = 0;
-pub(super) const DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: u32 = 1;
+pub(crate) const DXGI_DEBUG_RLO_IGNORE_INTERNAL: u32 = 0x4;
+pub(crate) const DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: u32 = 0;
+pub(crate) const DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: u32 = 1;
 
 // HRESULTs
 pub(crate) const E_FAIL: HRESULT = 0x8000_4005_u32 as HRESULT;
-pub(super) const DXGI_ERROR_INVALID_CALL: HRESULT = 0x887a_0001_u32 as HRESULT;
+pub(crate) const DXGI_ERROR_INVALID_CALL: HRESULT = 0x887a_0001_u32 as HRESULT;
 pub(crate) const DXGI_ERROR_DEVICE_REMOVED: HRESULT = 0x887a_0005_u32 as HRESULT;
-pub(super) const DXGI_ERROR_WAS_STILL_DRAWING: HRESULT = 0x887a_000a_u32 as HRESULT;
+pub(crate) const DXGI_ERROR_WAS_STILL_DRAWING: HRESULT = 0x887a_000a_u32 as HRESULT;
 
 // --- GUIDs (upstream defines them so as not to need uuid.lib) ---
 
@@ -255,7 +255,7 @@ pub(super) const IID_ID3D11DEVICECONTEXT1: GUID =
 pub(super) const IID_IDXGISWAPCHAIN2: GUID =
     GUID::from_u128(0x94d99bdb_f1f8_4ab0_b236_7da0170edab1);
 pub(crate) const IID_IDXGIDEBUG: GUID = GUID::from_u128(0x119e7452_de9e_40fe_8806_88f90c12b441);
-pub(super) const IID_IDXGIDEBUG1: GUID = GUID::from_u128(0xc5a05f0c_16f2_4adf_9f4d_a8c4d58ac550);
+pub(crate) const IID_IDXGIDEBUG1: GUID = GUID::from_u128(0xc5a05f0c_16f2_4adf_9f4d_a8c4d58ac550);
 pub(crate) const IID_IDXGIINFOQUEUE: GUID = GUID::from_u128(0xd67441c7_672a_476f_9e82_cd55b44949ce);
 pub(crate) const DXGI_DEBUG_ALL: GUID = GUID::from_u128(0xe48ae283_da80_490b_87e6_43e9a9cfda08);
 
@@ -571,7 +571,7 @@ pub(crate) type PfnCreateDxgiFactory =
     unsafe extern "system" fn(*const GUID, *mut *mut c_void) -> HRESULT;
 /// `CreateDXGIFactory2()` (and `DXGIGetDebugInterface1()`, which upstream
 /// calls through the same type)
-pub(super) type PfnCreateDxgiFactory2 =
+pub(crate) type PfnCreateDxgiFactory2 =
     unsafe extern "system" fn(u32, *const GUID, *mut *mut c_void) -> HRESULT;
 /// `PFN_D3D11_CREATE_DEVICE`
 pub(super) type PfnD3d11CreateDevice = unsafe extern "system" fn(
@@ -1226,7 +1226,7 @@ impl DxgiDebug {
 
 impl DxgiInfoQueue {
     /// `IDXGIInfoQueue::SetBreakOnSeverity()`
-    pub(super) fn set_break_on_severity(&self, producer: GUID, severity: u32, enable: bool) {
+    pub(crate) fn set_break_on_severity(&self, producer: GUID, severity: u32, enable: bool) {
         // SAFETY: a live info queue.
         unsafe {
             (self.vtbl().set_break_on_severity)(raw(self), producer, severity, enable as BOOL)

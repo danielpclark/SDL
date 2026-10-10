@@ -95,10 +95,10 @@ const SCRGB_NITS: f32 = 80.0;
 const NUM_VERTEX_BUFFERS: usize = 8;
 
 /// Translation of `RENDER_SAMPLER_COUNT` (from `SDL_sysrender.h`).
-const RENDER_SAMPLER_COUNT: usize = ((1 << 0) | (1 << 1) | (1 << 2)) + 1;
+pub(super) const RENDER_SAMPLER_COUNT: usize = ((1 << 0) | (1 << 1) | (1 << 2)) + 1;
 
 /// Translation of `RENDER_SAMPLER_HASHKEY()` (from `SDL_sysrender.h`).
-fn render_sampler_hashkey(
+pub(super) fn render_sampler_hashkey(
     scale_mode: ScaleMode,
     address_u: TextureAddressMode,
     address_v: TextureAddressMode,
@@ -109,7 +109,7 @@ fn render_sampler_hashkey(
 }
 
 /// Translation of `WIN_SetErrorFromHRESULT()` for this renderer's calls.
-fn hr_error(prefix: &str, hr: HRESULT) -> Error {
+pub(super) fn hr_error(prefix: &str, hr: HRESULT) -> Error {
     error_from_hresult(Some(prefix), hr)
 }
 
@@ -125,7 +125,7 @@ fn not_available() -> Error {
 
 /// The bytes of `pixels` from `offset` on (an error past the end: the C
 /// code trusts the caller to pass all the planes).
-fn plane(pixels: &[u8], offset: usize) -> Result<&[u8]> {
+pub(super) fn plane(pixels: &[u8], offset: usize) -> Result<&[u8]> {
     pixels
         .get(offset..)
         .ok_or_else(|| Error::invalid_param("pixels"))
@@ -134,13 +134,13 @@ fn plane(pixels: &[u8], offset: usize) -> Result<&[u8]> {
 /// A 4x4 matrix of floats. Translation of `Float4X4` (from `SDL_d3dmath.h`).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
-struct Float4X4 {
-    m: [[f32; 4]; 4],
+pub(super) struct Float4X4 {
+    pub(super) m: [[f32; 4]; 4],
 }
 
 impl Float4X4 {
     /// Translation of `MatrixIdentity()`.
-    fn identity() -> Float4X4 {
+    pub(super) fn identity() -> Float4X4 {
         let mut m = Float4X4::default();
         for i in 0..4 {
             m.m[i][i] = 1.0;
@@ -149,7 +149,7 @@ impl Float4X4 {
     }
 
     /// Translation of `MatrixMultiply()`.
-    fn multiply(m1: &Float4X4, m2: &Float4X4) -> Float4X4 {
+    pub(super) fn multiply(m1: &Float4X4, m2: &Float4X4) -> Float4X4 {
         let mut m = Float4X4::default();
         for i in 0..4 {
             for j in 0..4 {
@@ -163,7 +163,7 @@ impl Float4X4 {
     }
 
     /// Translation of `MatrixRotationZ()`.
-    fn rotation_z(r: f32) -> Float4X4 {
+    pub(super) fn rotation_z(r: f32) -> Float4X4 {
         let sin_r = r.sin();
         let cos_r = r.cos();
         let mut m = Float4X4::default();
@@ -644,7 +644,7 @@ fn pq_shader_scales_input(shader_constants: &PixelShaderConstants) -> bool {
 
 /// The 16 floats of `SDL_GetYCbCRtoRGBConversionMatrix()`: the offsets,
 /// then the R, G and B coefficients, each in a row of four.
-fn ycbcr_matrix(texture: &TextureData, bits_per_pixel: u32) -> Option<[f32; 16]> {
+pub(super) fn ycbcr_matrix(texture: &TextureData, bits_per_pixel: u32) -> Option<[f32; 16]> {
     let matrix = texture
         .colorspace
         .ycbcr_to_rgb_matrix(texture.h.max(0) as u32, bits_per_pixel)?;
@@ -665,7 +665,7 @@ fn ycbcr_matrix(texture: &TextureData, bits_per_pixel: u32) -> Option<[f32; 16]>
 ///
 /// `dst` must be writable for `rows` rows of `length` bytes,
 /// `dst_pitch` apart.
-unsafe fn copy_rows(
+pub(super) unsafe fn copy_rows(
     dst: *mut u8,
     dst_pitch: usize,
     src: &[u8],
