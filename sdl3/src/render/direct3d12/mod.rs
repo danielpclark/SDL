@@ -616,10 +616,10 @@ fn cpu_to_gpu_handle(
 ) -> GpuDescriptorHandle {
     // Calculate the correct offset into the heap
     let cpu_heap_start = heap.cpu_descriptor_handle_for_heap_start();
-    let offset = cpu_handle.ptr - cpu_heap_start.ptr;
+    let offset = cpu_handle.ptr.wrapping_sub(cpu_heap_start.ptr);
 
     let mut gpu_handle = heap.gpu_descriptor_handle_for_heap_start();
-    gpu_handle.ptr += offset as u64;
+    gpu_handle.ptr = gpu_handle.ptr.wrapping_add(offset as u64);
 
     gpu_handle
 }
