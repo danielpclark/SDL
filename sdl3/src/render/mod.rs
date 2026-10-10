@@ -16,7 +16,8 @@
 //! Renderers use the software backend, drawing into a [`Surface`]
 //! ([`Renderer::software`]) or a window's surface, or for windows the
 //! Direct3D 11 backend ("direct3d11", Windows only, tried first by
-//! [`Renderer::for_window`]), the OpenGL backend ("opengl", first
+//! [`Renderer::for_window`]), the Direct3D 12 backend ("direct3d12",
+//! Windows only, next), the OpenGL backend ("opengl", first
 //! elsewhere), the OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend
 //! ("vulkan") or the GPU backend ("gpu", through the [GPU API](crate::gpu));
 //! the other GPU backends come with the platform layer.
@@ -30,6 +31,8 @@
 mod debug_font;
 #[cfg(windows)]
 pub(crate) mod direct3d11;
+#[cfg(windows)]
+pub(crate) mod direct3d12;
 pub(crate) mod gpu;
 mod gpu_render_state;
 pub(crate) mod opengl;
@@ -60,6 +63,12 @@ pub use direct3d11::{
     PROP_RENDERER_D3D11_DEVICE_POINTER, PROP_RENDERER_D3D11_SWAPCHAIN_POINTER,
     PROP_TEXTURE_D3D11_TEXTURE_POINTER, PROP_TEXTURE_D3D11_TEXTURE_U_POINTER,
     PROP_TEXTURE_D3D11_TEXTURE_V_POINTER,
+};
+#[cfg(windows)]
+pub use direct3d12::{
+    PROP_RENDERER_D3D12_COMMAND_QUEUE_POINTER, PROP_RENDERER_D3D12_DEVICE_POINTER,
+    PROP_RENDERER_D3D12_SWAPCHAIN_POINTER, PROP_TEXTURE_D3D12_TEXTURE_POINTER,
+    PROP_TEXTURE_D3D12_TEXTURE_U_POINTER, PROP_TEXTURE_D3D12_TEXTURE_V_POINTER,
 };
 pub use gpu::{
     PROP_RENDERER_GPU_DEVICE_POINTER, PROP_TEXTURE_GPU_TEXTURE_POINTER,
@@ -233,6 +242,8 @@ pub struct RendererCreateInfo {
 const RENDER_DRIVERS: &[&str] = &[
     #[cfg(windows)]
     direct3d11::D3D11_RENDERER,
+    #[cfg(windows)]
+    direct3d12::D3D12_RENDERER,
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
     vulkan::VULKAN_RENDERER,
