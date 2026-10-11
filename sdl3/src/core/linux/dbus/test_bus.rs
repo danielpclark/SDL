@@ -199,6 +199,18 @@ pub(crate) fn use_as_session(bus: &Bus) {
     *SESSION_ADDRESS.lock().unwrap_or_else(|e| e.into_inner()) = Some(bus.address.clone());
 }
 
+/// [`use_as_session`], with `bus` standing in for the system bus too.
+pub(crate) fn use_as_session_and_system(bus: &Bus) {
+    use_as_session(bus);
+    let mut s = state();
+    let session_conn = Connection::open_address(&bus.address).unwrap();
+    let system_conn = Some(Connection::open_address(&bus.address).unwrap());
+    s.context = Some(Arc::new(Context {
+        session_conn,
+        system_conn,
+    }));
+}
+
 /// Undo [`use_as_session`]: close the context and forget the address.
 pub(crate) fn release_session() {
     super::quit();

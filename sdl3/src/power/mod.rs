@@ -1,14 +1,23 @@
-// Rust translation of src/power/SDL_power.c from Simple DirectMedia Layer.
+// Rust translation of src/power/SDL_power.c and SDL_syspower.h from Simple
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Power management: battery state queries.
 //!
-//! Direct translation of `SDL_power.c`. The platform backends
-//! (`src/power/linux`, `windows`, `macos`, ...) are not translated yet, so
-//! the dispatcher behaves like an `SDL_POWER_DISABLED` build.
+//! Direct translation of `SDL_power.c`, with the Linux backends (UPower
+//! over D-Bus, `/sys/class/power_supply`, `/proc/acpi` and `/proc/apm`,
+//! tried in that order) and the Windows one (`GetSystemPowerStatus()`).
+//! Elsewhere (the macOS, iOS, Android, ... backends are not translated) no
+//! backend is compiled in, so the answer is [`PowerState::Unknown`], as in
+//! an `SDL_POWER_DISABLED` build.
 
 use std::time::Duration;
+
+#[cfg(target_os = "linux")]
+mod linux;
+#[cfg(windows)]
+mod windows;
 
 /// The basic state for the system's power supply. Translation of `SDL_PowerState`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -42,9 +51,22 @@ pub struct PowerInfo {
 /// `None` to try the next implementation. Translation of `SDL_GetPowerInfo_Impl`.
 pub(crate) type GetPowerInfoImpl = fn() -> Option<PowerInfo>;
 
-/// The ordered list of platform implementations to try (empty until the
-/// platform backends are translated; see docs/ROADMAP.md).
-static IMPLEMENTATIONS: &[GetPowerInfoImpl] = &[];
+/// The ordered list of platform implementations to try. Translation of
+/// `implementations[]`.
+static IMPLEMENTATIONS: &[GetPowerInfoImpl] = &[
+    // in order of preference. More than could work.
+    #[cfg(target_os = "linux")]
+    linux::get_power_info_linux_org_freedesktop_upower,
+    #[cfg(target_os = "linux")]
+    linux::get_power_info_linux_sys_class_power_supply,
+    #[cfg(target_os = "linux")]
+    linux::get_power_info_linux_proc_acpi,
+    #[cfg(target_os = "linux")]
+    linux::get_power_info_linux_proc_apm,
+    // handles Win32, Win64, PocketPC.
+    #[cfg(windows)]
+    windows::get_power_info_windows,
+];
 
 /// Get the current power supply details. Translation of `SDL_GetPowerInfo()`.
 pub fn power_info() -> PowerInfo {
@@ -62,14 +84,4 @@ pub fn power_info() -> PowerInfo {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn no_backends_yet() {
-        let info = power_info();
-        assert_eq!(info.state, PowerState::Unknown);
-        assert_eq!(info.time_left, None);
-        assert_eq!(info.percent, None);
-    }
-}
+mod tests;
