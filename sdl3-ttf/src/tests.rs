@@ -6,8 +6,8 @@
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
 //! the DejaVu Sans subset, and fonts of FreeType's other formats made from
 //! them (Windows FNT and FON, BDF, and PCF bitmap fonts, the latter also
-//! compressed, PFR fonts, and Type 1 fonts with their AFM and PFM
-//! metrics), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
+//! compressed, PFR fonts, Type 1 fonts with their AFM and PFM metrics,
+//! CID-keyed and Type 42 fonts), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
 //! font subsets (see their `OFL.txt`) of the shaping tests in
 //! `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
@@ -20,8 +20,9 @@
 //! fonts, text objects (layouts, clusters, substrings and edits) drawn
 //! with the surface and renderer (software, with several atlas sizes) text
 //! engines, signed distance field rendering, the CFF2 font's named
-//! instances, the faces of fonts with several, the Type 1 fonts through
-//! FreeType (with their metrics attached), and the fonts truncated
+//! instances, the faces of fonts with several, the Type 1, CID-keyed and
+//! Type 42 fonts through FreeType (the Type 1 ones with their metrics
+//! attached), and the fonts truncated
 //! and with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
 //! rows and palette, their color key and blend mode.
@@ -64,6 +65,10 @@ static SANS_AFM: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.afm");
 static SANS_PFA: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfa");
 static SANS_PFM: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfm");
 static SANS_MM_PFB: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-MM.pfb");
+static SANS_CID: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-CID.cid");
+static SANS_CID_HEX: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-CID-hex.cid");
+static SANS_T42: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.t42");
+static SANS_T42_BIN: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-bin.t42");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -426,10 +431,14 @@ fn font_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
             describe(s)
         ));
     }
-    out.push(format!(
-        "glyph_image_for_index 100000: {}",
-        describe(f.glyph_image_for_index(100000).map(|(s, _)| s))
-    ));
+    /* (not for the Type 42 fonts: FreeType's Type 42 driver does not
+    check glyph indices) */
+    if !name.contains(".t42") {
+        out.push(format!(
+            "glyph_image_for_index 100000: {}",
+            describe(f.glyph_image_for_index(100000).map(|(s, _)| s))
+        ));
+    }
 
     let r = f.set_direction(Direction::Rtl);
     out.push(format!(
@@ -1161,6 +1170,64 @@ fn faces_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
 /// glyph names, advances, kerning before and after attaching its metrics
 /// file (`metrics`), a `seac' glyph's subglyphs, and the multiple masters
 /// axes.
+/// The glyph slot after loading a glyph (`label`): its metrics, and its
+/// outline or bitmap, hashed
+fn ps_glyph(face: &crate::freetype::base::ftobjs::FtFace, label: &str, err: i32) -> String {
+    use crate::freetype::fttypes::*;
+
+    let mut line = format!("{label}: {err}");
+    if err != 0 {
+        return line;
+    }
+    let s = &face.glyph;
+    let m = &s.metrics;
+    line += &format!(
+        " fmt={:x} m={},{},{},{},{},{},{},{} adv={},{} lin={},{}",
+        s.format,
+        m.width,
+        m.height,
+        m.horiBearingX,
+        m.horiBearingY,
+        m.horiAdvance,
+        m.vertBearingX,
+        m.vertBearingY,
+        m.vertAdvance,
+        s.advance.x,
+        s.advance.y,
+        s.linearHoriAdvance,
+        s.linearVertAdvance
+    );
+    if s.format == FT_GLYPH_FORMAT_OUTLINE {
+        let o = &s.outline;
+        let n = o.n_points.max(0) as usize;
+        let nc = o.n_contours.max(0) as usize;
+        let mut h = FNV0;
+        for p in &o.points[..n] {
+            h = fnv(h, &p.x.to_le_bytes());
+            h = fnv(h, &p.y.to_le_bytes());
+        }
+        h = fnv(h, &o.tags[..n]);
+        for c in &o.contours[..nc] {
+            h = fnv(h, &c.to_le_bytes());
+        }
+        line += &format!(
+            " outline={},{},{:x} {h:016x}",
+            o.n_points, o.n_contours, o.flags
+        );
+    }
+    if s.format == FT_GLYPH_FORMAT_BITMAP {
+        let b = &s.bitmap;
+        let mut h = FNV0;
+        let row = b.pitch.unsigned_abs() as usize;
+        h = fnv(h, &b.buffer[..(row * b.rows as usize).min(b.buffer.len())]);
+        line += &format!(
+            " bitmap={}x{} p={} mode={} at {},{} {h:016x}",
+            b.width, b.rows, b.pitch, b.pixel_mode, s.bitmap_left, s.bitmap_top
+        );
+    }
+    line
+}
+
 fn t1_cases(out: &mut Vec<String>, name: &str, data: &[u8], metrics: Option<&[u8]>) {
     use crate::freetype::base::ftadvanc::ft_get_advances;
     use crate::freetype::base::ftfntfmt::ft_get_font_format;
@@ -1228,7 +1295,9 @@ fn t1_cases(out: &mut Vec<String>, name: &str, data: &[u8], metrics: Option<&[u8
         line += &format!(" next={next},{gi}");
         out.push(line);
     }
-    let _ = ft_set_charmap(&mut face, 0);
+    if face.num_charmaps != 0 {
+        let _ = ft_set_charmap(&mut face, 0);
+    }
     for gi in [0u32, 1, 34, 100, 202, 203] {
         let mut buf = [b'x'; 16];
         let r = ft_get_glyph_name(&mut face, gi, &mut buf);
@@ -1354,6 +1423,34 @@ fn t1_cases(out: &mut Vec<String>, name: &str, data: &[u8], metrics: Option<&[u8
         coords[1],
         coords[2]
     ));
+    /* (glyphs by index, at 16 and 13 pixels, unhinted, hinted, rendered;
+    not past the glyph count: FreeType's Type 42 driver does not check
+    glyph indices) */
+    let lflags = [
+        FT_LOAD_NO_SCALE,
+        FT_LOAD_DEFAULT,
+        FT_LOAD_NO_HINTING,
+        FT_LOAD_TARGET_LIGHT,
+        FT_LOAD_TARGET_MONO | FT_LOAD_RENDER,
+        FT_LOAD_RENDER,
+        FT_LOAD_NO_HINTING | FT_LOAD_RENDER,
+    ];
+    for size in [16u32, 13] {
+        let _ = ft_set_pixel_sizes(&mut face, 0, size);
+        for gi in [0u32, 3, 36, 68, 100, 137, 202, 203, 204] {
+            if gi as FtLong >= face.num_glyphs {
+                continue;
+            }
+            for flags in lflags {
+                let r = ft_load_glyph(&mut face, gi, flags);
+                out.push(ps_glyph(
+                    &face,
+                    &format!("load {size} {gi} {flags:x}"),
+                    code(&r),
+                ));
+            }
+        }
+    }
     ft_done_face(face);
     let _ = ft_done_freetype(lib);
 }
@@ -1385,6 +1482,10 @@ fn matches_upstream_reference() {
         ("DejaVuSans.pfb", SANS_PFB),
         ("DejaVuSans.pfa", SANS_PFA),
         ("DejaVuSans-MM.pfb", SANS_MM_PFB),
+        ("DejaVuSans-CID.cid", SANS_CID),
+        ("DejaVuSans-CID-hex.cid", SANS_CID_HEX),
+        ("DejaVuSans.t42", SANS_T42),
+        ("DejaVuSans-bin.t42", SANS_T42_BIN),
     ] {
         /* (the other fonts: the font cases, the CFF2 font's named
         instances, the faces of fonts with several, and the corrupt
@@ -1401,6 +1502,9 @@ fn matches_upstream_reference() {
         }
         if name.contains(".fon") || name.contains(".pfr") {
             faces_cases(&mut out, name, data);
+        }
+        if name.contains(".cid") || name.contains(".t42") {
+            t1_cases(&mut out, name, data, None);
         }
         if name.contains(".pfa") || name.contains(".pfb") {
             /* (the Type 1 fonts: with their AFM or PFM metrics) */
