@@ -239,6 +239,9 @@ pub fn create_directory(path: &str) -> Result<()> {
         }
 
         if retval.is_err() {
+            // (where upstream's string ends: a parent that can't be made
+            // stays cut off, its separator left a NUL)
+            let mut end = parents.len();
             for i in 0..parents.len() {
                 let ch = parents[i];
                 let issep = if cfg!(windows) {
@@ -260,13 +263,14 @@ pub fn create_directory(path: &str) -> Result<()> {
                     retval = fsops::create_directory(&String::from_utf8_lossy(&parents[..i]));
                     if retval.is_err() {
                         // still failing when making parents? Give up.
+                        end = i;
                         break;
                     }
                 }
             }
 
             // last chance: did it work this time?
-            retval = fsops::create_directory(&String::from_utf8_lossy(&parents));
+            retval = fsops::create_directory(&String::from_utf8_lossy(&parents[..end]));
         }
     }
     retval
