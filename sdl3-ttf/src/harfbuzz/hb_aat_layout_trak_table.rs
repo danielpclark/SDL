@@ -14,6 +14,7 @@
 //! the structures are positions in it.
 
 use super::hb_aat_layout_common::HbAatApplyContext;
+use super::hb_algs::hb_roundf;
 use super::hb_common::*;
 use super::hb_open_type::*;
 use super::hb_ot_layout::foreach_grapheme;
@@ -146,14 +147,13 @@ fn track_data_get_tracking(d: &[u8], td: Option<usize>, ptem: f32) -> i32 {
         size_index += 1;
     }
 
-    track_data_interpolate_at(
+    hb_roundf(track_data_interpolate_at(
         d,
         td,
         if size_index != 0 { size_index - 1 } else { 0 },
         ptem,
         track_table_entry,
-    )
-    .round() as i32
+    )) as i32
 }
 
 /// `TrackData::sanitize (c, base)`
@@ -197,7 +197,7 @@ pub(crate) fn trak_apply(d: &[u8], c: &mut HbAatApplyContext) -> bool {
 
     let buffer = &mut *c.buffer;
     if hb_direction_is_horizontal(buffer.props.direction) {
-        let tracking = track_data_get_tracking(d, offset16(d, 8) /* this+horizData */, ptem);
+        let tracking = track_data_get_tracking(d, offset16(d, 6) /* this+horizData */, ptem);
         let offset_to_add = c.font.em_scalef_x((tracking / 2) as f32);
         let advance_to_add = c.font.em_scalef_x(tracking as f32);
         for (start, _end) in foreach_grapheme(buffer) {
@@ -209,7 +209,7 @@ pub(crate) fn trak_apply(d: &[u8], c: &mut HbAatApplyContext) -> bool {
             pos.x_offset = pos.x_offset.wrapping_add(offset_to_add);
         }
     } else {
-        let tracking = track_data_get_tracking(d, offset16(d, 10) /* this+vertData */, ptem);
+        let tracking = track_data_get_tracking(d, offset16(d, 8) /* this+vertData */, ptem);
         let offset_to_add = c.font.em_scalef_y((tracking / 2) as f32);
         let advance_to_add = c.font.em_scalef_y(tracking as f32);
         for (start, _end) in foreach_grapheme(buffer) {
@@ -229,6 +229,6 @@ pub(crate) fn trak_apply(d: &[u8], c: &mut HbAatApplyContext) -> bool {
 pub(crate) fn trak_sanitize(c: &mut HbSanitizeContext) -> bool {
     c.check_struct(0, 12)
         && c.u16(0) == 1 /* version.major */
+        && c.sanitize_offset16(6, 0, |c, td| track_data_sanitize(c, td, 0))
         && c.sanitize_offset16(8, 0, |c, td| track_data_sanitize(c, td, 0))
-        && c.sanitize_offset16(10, 0, |c, td| track_data_sanitize(c, td, 0))
 }
