@@ -6,10 +6,12 @@ edition.workspace = true
 rust-version.workspace = true
 # SDL_ttf's zlib license, and the FreeType License (FTL.TXT) for the
 # translation of FreeType in src/freetype/, as upstream's bundled FreeType
-# is offered under it (or the GPLv2; this crate uses it under the FTL);
-# HarfBuzz's "Old MIT" license (HARFBUZZ-COPYING) for src/harfbuzz/, and
-# the Unicode License V3 (UNICODE-LICENSE.txt) for its Unicode tables.
-license = "Zlib AND FTL AND MIT-Modern-Variant AND Unicode-3.0"
+# is offered under it (or the GPLv2; this crate uses it under the FTL),
+# with the MIT licenses of its BDF and PCF drivers (BDF-PCF-COPYING) for
+# src/freetype/bdf/ and src/freetype/pcf/; HarfBuzz's "Old MIT" license
+# (HARFBUZZ-COPYING) for src/harfbuzz/, and the Unicode License V3
+# (UNICODE-LICENSE.txt) for its Unicode tables.
+license = "Zlib AND FTL AND MIT AND MIT-Modern-Variant AND Unicode-3.0"
 repository.workspace = true
 readme = "../README.md"
 keywords = ["sdl", "sdl3", "ttf", "font", "pure-rust"]

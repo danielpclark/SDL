@@ -7310,3 +7310,667 @@ flip 13108: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
 flip 13755: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
 flip 14402: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
 flip 15049: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+== DejaVuSans-13.bdf
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+info: family=DejaVu Sans style=Regular size=9 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+metrics 9 U+0041: has=1 0 9 0 9 9
+metrics 9 U+0067: has=1 1 7 -3 7 8
+metrics 9 U+0057: has=1 1 12 0 9 13
+metrics 9 U+006A: has=1 0 2 -3 10 4
+metrics 9 U+0020: has=1 0 0 0 0 4
+metrics 9 U+00E9: has=1 1 7 0 10 8
+metrics 9 U+20AC: has=0 0 0 0 0 4
+metrics 9 U+4E00: has=0 0 0 0 0 4
+kern 9 U+0041 U+0056: 0
+kern 9 U+0054 U+006F: 0
+kern 9 U+0057 U+0061: 0
+kern 9 U+0066 U+006A: 0
+kern 9 U+0041 U+4E00: 0
+string_size 9: 492 17
+measure 9 0: 492 74
+string_size_wrapped 9 0: 272 85
+measure 9 50: 48 7
+string_size_wrapped 9 50: 50 306
+measure 9 200: 196 28
+string_size_wrapped 9 200: 200 102
+hinting 9 normal: 0
+render 9 normal solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 normal shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 9 normal blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 9 normal lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 light: 1
+render 9 light solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 9 light blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 9 light lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 mono: 2
+render 9 mono solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 mono shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 9 mono blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 9 mono lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 none: 3
+render 9 none solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 none shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 9 none blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 9 none lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 light_subpixel: 1
+render 9 light_subpixel solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light_subpixel shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 9 light_subpixel blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 9 light_subpixel lcd: err: LCD rendering is not available for non-scalable font
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+metrics 16.5 U+0041: has=1 0 9 0 9 9
+metrics 16.5 U+0067: has=1 1 7 -3 7 8
+metrics 16.5 U+0057: has=1 1 12 0 9 13
+metrics 16.5 U+006A: has=1 0 2 -3 10 4
+metrics 16.5 U+0020: has=1 0 0 0 0 4
+metrics 16.5 U+00E9: has=1 1 7 0 10 8
+metrics 16.5 U+20AC: has=0 0 0 0 0 4
+metrics 16.5 U+4E00: has=0 0 0 0 0 4
+kern 16.5 U+0041 U+0056: 0
+kern 16.5 U+0054 U+006F: 0
+kern 16.5 U+0057 U+0061: 0
+kern 16.5 U+0066 U+006A: 0
+kern 16.5 U+0041 U+4E00: 0
+string_size 16.5: 492 17
+measure 16.5 0: 492 74
+string_size_wrapped 16.5 0: 272 85
+measure 16.5 50: 48 7
+string_size_wrapped 16.5 50: 50 306
+measure 16.5 200: 196 28
+string_size_wrapped 16.5 200: 200 102
+hinting 16.5 normal: 0
+render 16.5 normal solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 normal shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 16.5 normal blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 16.5 normal lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 light: 1
+render 16.5 light solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 16.5 light blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 16.5 light lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 mono: 2
+render 16.5 mono solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 mono shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 16.5 mono blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 16.5 mono lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 none: 3
+render 16.5 none solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 none shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 16.5 none blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 16.5 none lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 light_subpixel: 1
+render 16.5 light_subpixel solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light_subpixel shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 16.5 light_subpixel blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 16.5 light_subpixel lcd: err: LCD rendering is not available for non-scalable font
+info: family=DejaVu Sans style=Regular size=33 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+metrics 33 U+0041: has=1 0 9 0 9 9
+metrics 33 U+0067: has=1 1 7 -3 7 8
+metrics 33 U+0057: has=1 1 12 0 9 13
+metrics 33 U+006A: has=1 0 2 -3 10 4
+metrics 33 U+0020: has=1 0 0 0 0 4
+metrics 33 U+00E9: has=1 1 7 0 10 8
+metrics 33 U+20AC: has=0 0 0 0 0 4
+metrics 33 U+4E00: has=0 0 0 0 0 4
+kern 33 U+0041 U+0056: 0
+kern 33 U+0054 U+006F: 0
+kern 33 U+0057 U+0061: 0
+kern 33 U+0066 U+006A: 0
+kern 33 U+0041 U+4E00: 0
+string_size 33: 492 17
+measure 33 0: 492 74
+string_size_wrapped 33 0: 272 85
+measure 33 50: 48 7
+string_size_wrapped 33 50: 50 306
+measure 33 200: 196 28
+string_size_wrapped 33 200: 200 102
+hinting 33 normal: 0
+render 33 normal solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 normal shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 33 normal blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 33 normal lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 light: 1
+render 33 light solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 33 light blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 33 light lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 mono: 2
+render 33 mono solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 mono shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 33 mono blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 33 mono lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 none: 3
+render 33 none solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 none shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 33 none blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 33 none lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 light_subpixel: 1
+render 33 light_subpixel solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light_subpixel shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render 33 light_subpixel blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render 33 light_subpixel lcd: err: LCD rendering is not available for non-scalable font
+style 1: 1
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 1 solid: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=fe9a9bb8ed20da48 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 1 shaded: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=17591c6d922310ee pal=256:b1257179c18f8b45 blend=1
+render style 1 blended: 562x17 SDL_PIXELFORMAT_ARGB8888 pitch=2304 hash=6960b6bbc0a1b638 blend=1
+render style 1 lcd: err: LCD rendering is not available for non-scalable font
+style 2: 2
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 2 solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 2 shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render style 2 blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render style 2 lcd: err: LCD rendering is not available for non-scalable font
+style 4: 4
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 4 solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=41232408f7c00604 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 4 shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=8069b0986eebd0da pal=256:b1257179c18f8b45 blend=1
+render style 4 blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=ba0d2865d0114558 blend=1
+render style 4 lcd: err: LCD rendering is not available for non-scalable font
+style 8: 8
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 8 solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=8ed93b4c85191243 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 8 shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=198d19f3aff05de7 pal=256:b1257179c18f8b45 blend=1
+render style 8 blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=81d2e92f5aa95b55 blend=1
+render style 8 lcd: err: LCD rendering is not available for non-scalable font
+style 15: 15
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 15 solid: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=eaeaf3a2bd60cacc pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 15 shaded: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=6d857e3366091f72 pal=256:b1257179c18f8b45 blend=1
+render style 15 blended: 562x17 SDL_PIXELFORMAT_ARGB8888 pitch=2304 hash=d65f77f629781758 blend=1
+render style 15 lcd: err: LCD rendering is not available for non-scalable font
+outline 1: 1 1
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=15 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 1 0 solid: 494x19 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=d59c5b6fdb58d5e7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 0 shaded: 494x19 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=5a5846a9d75f6a33 pal=256:b1257179c18f8b45 blend=1
+render outline 1 0 blended: 494x19 SDL_PIXELFORMAT_ARGB8888 pitch=2032 hash=8b066e647b056ab5 blend=1
+render outline 1 0 lcd: err: LCD rendering is not available for non-scalable font
+outline 1: 1 1
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=15 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 1 1 solid: 564x19 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=e98d08fdf78eb533 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 1 shaded: 564x19 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=64c922a2f6a27277 pal=256:b1257179c18f8b45 blend=1
+render outline 1 1 blended: 564x19 SDL_PIXELFORMAT_ARGB8888 pitch=2304 hash=804613435be160b5 blend=1
+render outline 1 1 lcd: err: LCD rendering is not available for non-scalable font
+outline 3: 1 3
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=19 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 3 0 solid: 498x23 SDL_PIXELFORMAT_INDEX8 pitch=512 hash=d3f2c8319e1368e7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 0 shaded: 498x23 SDL_PIXELFORMAT_INDEX8 pitch=512 hash=5261dd051a253453 pal=256:b1257179c18f8b45 blend=1
+render outline 3 0 blended: 498x23 SDL_PIXELFORMAT_ARGB8888 pitch=2048 hash=047e4624c93df9b5 blend=1
+render outline 3 0 lcd: err: LCD rendering is not available for non-scalable font
+outline 3: 1 3
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=18 ascent=19 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 3 1 solid: 568x24 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=495d847e44e54a21 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 1 shaded: 568x24 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=ef9195f2d170fc29 pal=256:b1257179c18f8b45 blend=1
+render outline 3 1 blended: 568x24 SDL_PIXELFORMAT_ARGB8888 pitch=2320 hash=2ecba648cfb5d5e5 blend=1
+render outline 3 1 lcd: err: LCD rendering is not available for non-scalable font
+kerning off: 0
+render nokern solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=e0cb6b38a5dd0a53 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render nokern shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+render nokern blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+render nokern lcd: err: LCD rendering is not available for non-scalable font
+render blended alpha: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=e77cc2db5b5a55e5 blend=1
+render shaded alpha: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:3b2779e20689d5ea blend=1
+render solid len 10: 67x17 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=4b19434dfccaa73f pal=256:b2ddce223dd8aab4 key=0 blend=0
+render empty: err: Text has zero width
+render space: 4x17 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=d809e0866668a965 blend=1
+render newline: 20x17 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=689dd903c7b8b715 blend=1
+render nul: 20x17 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=689dd903c7b8b715 blend=1
+render nul shaded: 20x17 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=7abe0a9d65c97e1b pal=256:b1257179c18f8b45 blend=1
+wrapped 0 solid: 272x85 SDL_PIXELFORMAT_INDEX8 pitch=272 hash=c2be627f1b70ac28 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 0 shaded: 272x85 SDL_PIXELFORMAT_INDEX8 pitch=272 hash=d2385659a2e80e5e pal=256:b1257179c18f8b45 blend=1
+wrapped 0 blended: 272x85 SDL_PIXELFORMAT_ARGB8888 pitch=1136 hash=415a9f155b37ee38 blend=1
+wrapped 0 lcd: err: LCD rendering is not available for non-scalable font
+wrapped 80 solid: 80x204 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=1fe6690ddaa20a52 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 80 shaded: 80x204 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=6cea483d3934eb08 pal=256:b1257179c18f8b45 blend=1
+wrapped 80 blended: 80x204 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=a949f544259283e8 blend=1
+wrapped 80 lcd: err: LCD rendering is not available for non-scalable font
+wrapped 200 solid: 200x102 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=dfec2d4e2dd7e820 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 200 shaded: 200x102 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=9a997635a11aa756 pal=256:b1257179c18f8b45 blend=1
+wrapped 200 blended: 200x102 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=2fd5f572afbc2898 blend=1
+wrapped 200 lcd: err: LCD rendering is not available for non-scalable font
+wrapped align 1: 1 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=117910d05d247df8 blend=1
+wrapped align 2: 2 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=d0c5527865e6a7e8 blend=1
+wrapped align 0: 0 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=df00d02a570637f8 blend=1
+wrapped lineskip 30: 30 150x210 SDL_PIXELFORMAT_INDEX8 pitch=160 hash=65c97b052105c41a pal=256:b1257179c18f8b45 blend=1
+wrapped lineskip 3: 3 150x35 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=8b63dacda19d74a5 blend=1
+wrapped underline lineskip 3: 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=63bce28b2b9c08a5 blend=1
+lineskip after set_size: 17
+glyph U+0067 solid: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=f1a991c17c1c0fa1 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+0067 shaded: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=ef609ace0396e1e9 pal=256:b1257179c18f8b45 blend=1
+glyph U+0067 blended: 8x17 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=5f5b970eab731b05 blend=1
+glyph U+0067 lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+0067: type=1 6x10 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=903c4e2c9755aa95 blend=1
+glyph U+00E9 solid: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=1f9686a93f19b23b pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+00E9 shaded: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=edcf87e47126af4f pal=256:b1257179c18f8b45 blend=1
+glyph U+00E9 blended: 8x17 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=598229137aa7c995 blend=1
+glyph U+00E9 lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+00E9: type=1 6x10 SDL_PIXELFORMAT_ARGB8888 pitch=24 hash=35ba9d0d84f067ad blend=1
+glyph U+20AC solid: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+20AC shaded: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b1257179c18f8b45 blend=1
+glyph U+20AC blended: 4x17 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=d809e0866668a965 blend=1
+glyph U+20AC lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+20AC: type=0 err: Codepoint not in font
+glyph U+4E00 solid: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+4E00 shaded: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b1257179c18f8b45 blend=1
+glyph U+4E00 blended: 4x17 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=d809e0866668a965 blend=1
+glyph U+4E00 lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+4E00: type=0 err: Codepoint not in font
+glyph_image_for_index 0: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 1: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 2: type=1 1x9 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4778d114a8864a2c blend=1
+glyph_image_for_index 3: type=1 4x3 SDL_PIXELFORMAT_ARGB8888 pitch=16 hash=424cbd1bf8e86f1d blend=1
+glyph_image_for_index 100000: err: FT_Load_Glyph() failed
+direction rtl: 1 5 
+direction ltr: 1 4
+script: 1 
+language: 1 
+sizedpi: 1 info: family=DejaVu Sans style=Regular size=12 dpi=96,144 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render dpi: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=2fe057ebad6225d5 blend=1
+copy: info: family=DejaVu Sans style=Regular size=12 dpi=96,144 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render copy: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b2a3eeec83cb83d7 pal=256:b1257179c18f8b45 blend=1
+fallback add: 1
+render fallback solid: 49x17 SDL_PIXELFORMAT_INDEX8 pitch=64 hash=9144c3d68c9e0b7c pal=256:b2ddce223dd8aab4 key=0 blend=0
+render fallback shaded: 49x17 SDL_PIXELFORMAT_INDEX8 pitch=64 hash=f066cfb3a0a50864 pal=256:b1257179c18f8b45 blend=1
+render fallback blended: 49x17 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=b9655505d7fdc5a6 blend=1
+render fallback lcd: err: LCD rendering is not available for non-scalable font
+metrics fallback U+20AC: 0 9 0 12 10
+render fallback resized: 49x17 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=36577e135c1c12e4 blend=1
+render fallback removed: 49x19 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=c137447ea1485ae3 blend=1
+== corrupt DejaVuSans-13.bdf
+trunc 0: err: Couldn't load font file
+trunc 1: err: Couldn't load font file
+trunc 4: err: Couldn't load font file
+trunc 12: err: Couldn't load font file
+trunc 16: err: Couldn't load font file
+trunc 100: err: Couldn't load font file
+trunc 200: err: Couldn't load font file
+trunc 300: err: Couldn't load font file
+trunc 600: err: Couldn't load font file
+trunc 1000: err: Couldn't load font file
+trunc 2000: err: Couldn't load font file
+trunc 4000: err: Couldn't load font file
+trunc 8000: err: Couldn't load font file
+trunc 10951: err: Couldn't load font file
+trunc 21802: err: Couldn't load font file
+trunc 21901: err: Couldn't load font file
+flip 4: err: Couldn't load font file
+flip 16: err: Couldn't load font file
+flip 28: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 40: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 52: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 64: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 76: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 88: err: Couldn't load font file
+flip 100: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 112: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 124: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 136: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 148: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 160: err: Couldn't load font file
+flip 172: err: Couldn't load font file
+flip 184: err: Couldn't load font file
+flip 196: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 208: err: Couldn't load font file
+flip 220: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 232: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 244: ok noname styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 256: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 268: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 280: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 168: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 1087: err: Couldn't load font file
+flip 2007: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 2926: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 3846: err: Couldn't load font file
+flip 4765: err: Couldn't load font file
+flip 5685: err: Couldn't load font file
+flip 6605: ok named styled 17 17 | 144x17 8e4f475316a130b5
+flip 7524: err: Couldn't load font file
+flip 8444: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 9363: err: Couldn't load font file
+flip 10283: err: Couldn't load font file
+flip 11203: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 12122: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 13042: err: Couldn't load font file
+flip 13961: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 14881: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 15800: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 16720: err: Couldn't load font file
+flip 17640: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 18559: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 19479: ok named styled 17 17 | 144x17 3fb19c7dba789fb5
+flip 20398: err: Couldn't load font file
+flip 21318: err: Couldn't load font file
+== DejaVuSans-13-4bpp.bdf
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+info: family=DejaVu Sans style=Regular size=9 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+metrics 9 U+0041: has=1 0 9 0 10 9
+metrics 9 U+0067: has=1 0 7 -3 8 8
+metrics 9 U+0057: has=1 0 13 0 10 13
+metrics 9 U+006A: has=1 -1 3 -3 10 4
+metrics 9 U+0020: has=1 0 0 0 0 4
+metrics 9 U+00E9: has=1 0 8 -1 11 8
+metrics 9 U+20AC: has=0 0 0 0 0 4
+metrics 9 U+4E00: has=0 0 0 0 0 4
+kern 9 U+0041 U+0056: 0
+kern 9 U+0054 U+006F: 0
+kern 9 U+0057 U+0061: 0
+kern 9 U+0066 U+006A: 0
+kern 9 U+0041 U+4E00: 0
+string_size 9: 492 17
+measure 9 0: 492 74
+string_size_wrapped 9 0: 272 85
+measure 9 50: 48 7
+string_size_wrapped 9 50: 50 306
+measure 9 200: 196 28
+string_size_wrapped 9 200: 200 102
+hinting 9 normal: 0
+render 9 normal solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 normal shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 9 normal blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 9 normal lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 light: 1
+render 9 light solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 9 light blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 9 light lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 mono: 2
+render 9 mono solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 mono shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 9 mono blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 9 mono lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 none: 3
+render 9 none solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 none shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 9 none blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 9 none lcd: err: LCD rendering is not available for non-scalable font
+hinting 9 light_subpixel: 1
+render 9 light_subpixel solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 9 light_subpixel shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 9 light_subpixel blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 9 light_subpixel lcd: err: LCD rendering is not available for non-scalable font
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+metrics 16.5 U+0041: has=1 0 9 0 10 9
+metrics 16.5 U+0067: has=1 0 7 -3 8 8
+metrics 16.5 U+0057: has=1 0 13 0 10 13
+metrics 16.5 U+006A: has=1 -1 3 -3 10 4
+metrics 16.5 U+0020: has=1 0 0 0 0 4
+metrics 16.5 U+00E9: has=1 0 8 -1 11 8
+metrics 16.5 U+20AC: has=0 0 0 0 0 4
+metrics 16.5 U+4E00: has=0 0 0 0 0 4
+kern 16.5 U+0041 U+0056: 0
+kern 16.5 U+0054 U+006F: 0
+kern 16.5 U+0057 U+0061: 0
+kern 16.5 U+0066 U+006A: 0
+kern 16.5 U+0041 U+4E00: 0
+string_size 16.5: 492 17
+measure 16.5 0: 492 74
+string_size_wrapped 16.5 0: 272 85
+measure 16.5 50: 48 7
+string_size_wrapped 16.5 50: 50 306
+measure 16.5 200: 196 28
+string_size_wrapped 16.5 200: 200 102
+hinting 16.5 normal: 0
+render 16.5 normal solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 normal shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 16.5 normal blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 16.5 normal lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 light: 1
+render 16.5 light solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 16.5 light blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 16.5 light lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 mono: 2
+render 16.5 mono solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 mono shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 16.5 mono blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 16.5 mono lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 none: 3
+render 16.5 none solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 none shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 16.5 none blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 16.5 none lcd: err: LCD rendering is not available for non-scalable font
+hinting 16.5 light_subpixel: 1
+render 16.5 light_subpixel solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 16.5 light_subpixel shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 16.5 light_subpixel blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 16.5 light_subpixel lcd: err: LCD rendering is not available for non-scalable font
+info: family=DejaVu Sans style=Regular size=33 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+metrics 33 U+0041: has=1 0 9 0 10 9
+metrics 33 U+0067: has=1 0 7 -3 8 8
+metrics 33 U+0057: has=1 0 13 0 10 13
+metrics 33 U+006A: has=1 -1 3 -3 10 4
+metrics 33 U+0020: has=1 0 0 0 0 4
+metrics 33 U+00E9: has=1 0 8 -1 11 8
+metrics 33 U+20AC: has=0 0 0 0 0 4
+metrics 33 U+4E00: has=0 0 0 0 0 4
+kern 33 U+0041 U+0056: 0
+kern 33 U+0054 U+006F: 0
+kern 33 U+0057 U+0061: 0
+kern 33 U+0066 U+006A: 0
+kern 33 U+0041 U+4E00: 0
+string_size 33: 492 17
+measure 33 0: 492 74
+string_size_wrapped 33 0: 272 85
+measure 33 50: 48 7
+string_size_wrapped 33 50: 50 306
+measure 33 200: 196 28
+string_size_wrapped 33 200: 200 102
+hinting 33 normal: 0
+render 33 normal solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 normal shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 33 normal blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 33 normal lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 light: 1
+render 33 light solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 33 light blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 33 light lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 mono: 2
+render 33 mono solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 mono shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 33 mono blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 33 mono lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 none: 3
+render 33 none solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 none shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 33 none blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 33 none lcd: err: LCD rendering is not available for non-scalable font
+hinting 33 light_subpixel: 1
+render 33 light_subpixel solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render 33 light_subpixel shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render 33 light_subpixel blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render 33 light_subpixel lcd: err: LCD rendering is not available for non-scalable font
+style 1: 1
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 1 solid: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=18f35813c9c1d1b7 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 1 shaded: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=73b30d8f9d919a12 pal=256:b1257179c18f8b45 blend=1
+render style 1 blended: 562x17 SDL_PIXELFORMAT_ARGB8888 pitch=2304 hash=0df936f105c2a208 blend=1
+render style 1 lcd: err: LCD rendering is not available for non-scalable font
+style 2: 2
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 2 solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 2 shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render style 2 blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render style 2 lcd: err: LCD rendering is not available for non-scalable font
+style 4: 4
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 4 solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=8c6d9f1338240fdd pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 4 shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=95ad9105c3b1742c pal=256:b1257179c18f8b45 blend=1
+render style 4 blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=71bc88bd38818b82 blend=1
+render style 4 lcd: err: LCD rendering is not available for non-scalable font
+style 8: 8
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 8 solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=30832a83be527a44 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 8 shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=c49f2c00016ac9d9 pal=256:b1257179c18f8b45 blend=1
+render style 8 blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=d2005eb5ef3aa589 blend=1
+render style 8 lcd: err: LCD rendering is not available for non-scalable font
+style 15: 15
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render style 15 solid: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=20168a164c5890cd pal=256:b2ddce223dd8aab4 key=0 blend=0
+render style 15 shaded: 562x17 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=81a242b0d1947fde pal=256:b1257179c18f8b45 blend=1
+render style 15 blended: 562x17 SDL_PIXELFORMAT_ARGB8888 pitch=2304 hash=93d33a75ac8afede blend=1
+render style 15 lcd: err: LCD rendering is not available for non-scalable font
+outline 1: 1 1
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=15 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 1 0 solid: 494x19 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=b28c24d171a05a00 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 0 shaded: 494x19 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=4f09da5a8a35edd6 pal=256:b1257179c18f8b45 blend=1
+render outline 1 0 blended: 494x19 SDL_PIXELFORMAT_ARGB8888 pitch=2032 hash=f0ba55e2258d40ac blend=1
+render outline 1 0 lcd: err: LCD rendering is not available for non-scalable font
+outline 1: 1 1
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=15 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 1 1 solid: 564x19 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=3849d1f2e065e4e6 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 1 1 shaded: 564x19 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=1e277014ae141006 pal=256:b1257179c18f8b45 blend=1
+render outline 1 1 blended: 564x19 SDL_PIXELFORMAT_ARGB8888 pitch=2304 hash=9f9915f7be3cc0c0 blend=1
+render outline 1 1 lcd: err: LCD rendering is not available for non-scalable font
+outline 3: 1 3
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=17 ascent=19 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 3 0 solid: 498x23 SDL_PIXELFORMAT_INDEX8 pitch=512 hash=61aaea88bb91df08 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 0 shaded: 498x23 SDL_PIXELFORMAT_INDEX8 pitch=512 hash=5c28cd3fea1907de pal=256:b1257179c18f8b45 blend=1
+render outline 3 0 blended: 498x23 SDL_PIXELFORMAT_ARGB8888 pitch=2048 hash=df990cb4be6449cc blend=1
+render outline 3 0 lcd: err: LCD rendering is not available for non-scalable font
+outline 3: 1 3
+info: family=DejaVu Sans style=Regular size=16.5 dpi=72,72 height=18 ascent=19 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render outline 3 1 solid: 568x24 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=6da33e8056fadcd1 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render outline 3 1 shaded: 568x24 SDL_PIXELFORMAT_INDEX8 pitch=576 hash=1b634b439f3d24f8 pal=256:b1257179c18f8b45 blend=1
+render outline 3 1 blended: 568x24 SDL_PIXELFORMAT_ARGB8888 pitch=2320 hash=81c6989eed3db18e blend=1
+render outline 3 1 lcd: err: LCD rendering is not available for non-scalable font
+kerning off: 0
+render nokern solid: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=ecc557e38a070b8e pal=256:b2ddce223dd8aab4 key=0 blend=0
+render nokern shaded: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+render nokern blended: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+render nokern lcd: err: LCD rendering is not available for non-scalable font
+render blended alpha: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=aea541acbcd3ee93 blend=1
+render shaded alpha: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:3b2779e20689d5ea blend=1
+render solid len 10: 67x17 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=fcaf137d160e8977 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render empty: err: Text has zero width
+render space: 4x17 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=d809e0866668a965 blend=1
+render newline: 20x17 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=deb68cb00bf7dfd2 blend=1
+render nul: 20x17 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=deb68cb00bf7dfd2 blend=1
+render nul shaded: 20x17 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=428916c21e1c1b96 pal=256:b1257179c18f8b45 blend=1
+wrapped 0 solid: 272x85 SDL_PIXELFORMAT_INDEX8 pitch=272 hash=1b66549b7b5200f2 pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 0 shaded: 272x85 SDL_PIXELFORMAT_INDEX8 pitch=272 hash=6ca6ee7d5e6c7dfd pal=256:b1257179c18f8b45 blend=1
+wrapped 0 blended: 272x85 SDL_PIXELFORMAT_ARGB8888 pitch=1136 hash=6d12a67b36059357 blend=1
+wrapped 0 lcd: err: LCD rendering is not available for non-scalable font
+wrapped 80 solid: 80x204 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=05125b634d6e5bca pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 80 shaded: 80x204 SDL_PIXELFORMAT_INDEX8 pitch=80 hash=0754a61a85be8f19 pal=256:b1257179c18f8b45 blend=1
+wrapped 80 blended: 80x204 SDL_PIXELFORMAT_ARGB8888 pitch=368 hash=a96b738569c56497 blend=1
+wrapped 80 lcd: err: LCD rendering is not available for non-scalable font
+wrapped 200 solid: 200x102 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=e4dbae76d11b944c pal=256:b2ddce223dd8aab4 key=0 blend=0
+wrapped 200 shaded: 200x102 SDL_PIXELFORMAT_INDEX8 pitch=208 hash=ac5d3d9eb4b70b83 pal=256:b1257179c18f8b45 blend=1
+wrapped 200 blended: 200x102 SDL_PIXELFORMAT_ARGB8888 pitch=848 hash=85160e405a1c88a7 blend=1
+wrapped 200 lcd: err: LCD rendering is not available for non-scalable font
+wrapped align 1: 1 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=7bd60dd9ef269fa7 blend=1
+wrapped align 2: 2 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=ff07fc6a63356767 blend=1
+wrapped align 0: 0 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=955d04e763a3c547 blend=1
+wrapped lineskip 30: 30 150x210 SDL_PIXELFORMAT_INDEX8 pitch=160 hash=f5500dfb889f541b pal=256:b1257179c18f8b45 blend=1
+wrapped lineskip 3: 3 150x35 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=ff5d341c6a8700d3 blend=1
+wrapped underline lineskip 3: 150x119 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=65c47b86f30fa6aa blend=1
+lineskip after set_size: 17
+glyph U+0067 solid: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=f1a991c17c1c0fa1 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+0067 shaded: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=815070b0e7efba18 pal=256:b1257179c18f8b45 blend=1
+glyph U+0067 blended: 8x17 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=f36b558564019558 blend=1
+glyph U+0067 lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+0067: type=1 7x11 SDL_PIXELFORMAT_ARGB8888 pitch=28 hash=4d8f63313a27e749 blend=1
+glyph U+00E9 solid: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=38d646a482b41227 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+00E9 shaded: 8x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=aae32906b3aba54d pal=256:b1257179c18f8b45 blend=1
+glyph U+00E9 blended: 8x17 SDL_PIXELFORMAT_ARGB8888 pitch=80 hash=f5d686cbafe0b405 blend=1
+glyph U+00E9 lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+00E9: type=1 8x12 SDL_PIXELFORMAT_ARGB8888 pitch=32 hash=b167f8cf7f74d2e5 blend=1
+glyph U+20AC solid: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+20AC shaded: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b1257179c18f8b45 blend=1
+glyph U+20AC blended: 4x17 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=d809e0866668a965 blend=1
+glyph U+20AC lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+20AC: type=0 err: Codepoint not in font
+glyph U+4E00 solid: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b2ddce223dd8aab4 key=0 blend=0
+glyph U+4E00 shaded: 4x17 SDL_PIXELFORMAT_INDEX8 pitch=16 hash=e7d16c6b24f5c8f5 pal=256:b1257179c18f8b45 blend=1
+glyph U+4E00 blended: 4x17 SDL_PIXELFORMAT_ARGB8888 pitch=64 hash=d809e0866668a965 blend=1
+glyph U+4E00 lcd: err: LCD rendering is not available for non-scalable font
+glyph_image U+4E00: type=0 err: Codepoint not in font
+glyph_image_for_index 0: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 1: type=0 1x1 SDL_PIXELFORMAT_ARGB8888 pitch=4 hash=4d25767f9dce13f5 blend=1
+glyph_image_for_index 2: type=1 2x10 SDL_PIXELFORMAT_ARGB8888 pitch=8 hash=9d0ca6115ec81cd9 blend=1
+glyph_image_for_index 3: type=1 4x4 SDL_PIXELFORMAT_ARGB8888 pitch=16 hash=2826ec515d0d48cd blend=1
+glyph_image_for_index 100000: err: FT_Load_Glyph() failed
+direction rtl: 1 5 
+direction ltr: 1 4
+script: 1 
+language: 1 
+sizedpi: 1 info: family=DejaVu Sans style=Regular size=12 dpi=96,144 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render dpi: 492x17 SDL_PIXELFORMAT_ARGB8888 pitch=2016 hash=757d746e106e78fc blend=1
+copy: info: family=DejaVu Sans style=Regular size=12 dpi=96,144 height=17 ascent=13 descent=-4 lineskip=17 fixed=0 scalable=0 faces=1 weight=400 kerning=1
+render copy: 492x17 SDL_PIXELFORMAT_INDEX8 pitch=496 hash=101fa4f67daa6ebc pal=256:b1257179c18f8b45 blend=1
+fallback add: 1
+render fallback solid: 49x17 SDL_PIXELFORMAT_INDEX8 pitch=64 hash=22cfb8949a8d3564 pal=256:b2ddce223dd8aab4 key=0 blend=0
+render fallback shaded: 49x17 SDL_PIXELFORMAT_INDEX8 pitch=64 hash=93cc1dbbe9beae9e pal=256:b1257179c18f8b45 blend=1
+render fallback blended: 49x17 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=3f9c8c6bd521060a blend=1
+render fallback lcd: err: LCD rendering is not available for non-scalable font
+metrics fallback U+20AC: 0 9 0 12 10
+render fallback resized: 49x17 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=0c245decaf4cf8e0 blend=1
+render fallback removed: 49x19 SDL_PIXELFORMAT_ARGB8888 pitch=256 hash=1158e3ec496d81e7 blend=1
+== corrupt DejaVuSans-13-4bpp.bdf
+trunc 0: err: Couldn't load font file
+trunc 1: err: Couldn't load font file
+trunc 4: err: Couldn't load font file
+trunc 12: err: Couldn't load font file
+trunc 16: err: Couldn't load font file
+trunc 100: err: Couldn't load font file
+trunc 200: err: Couldn't load font file
+trunc 300: err: Couldn't load font file
+trunc 600: err: Couldn't load font file
+trunc 1000: err: Couldn't load font file
+trunc 2000: err: Couldn't load font file
+trunc 4000: err: Couldn't load font file
+trunc 8000: err: Couldn't load font file
+trunc 16257: err: Couldn't load font file
+trunc 32414: err: Couldn't load font file
+trunc 32513: err: Couldn't load font file
+flip 4: err: Couldn't load font file
+flip 16: err: Couldn't load font file
+flip 28: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 40: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 52: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 64: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 76: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 88: err: Couldn't load font file
+flip 100: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 112: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 124: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 136: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 148: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 160: err: Couldn't load font file
+flip 172: ok named styled 17 17 | 144x17 9c11c94080c6a778
+flip 184: err: Couldn't load font file
+flip 196: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 208: err: Couldn't load font file
+flip 220: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 232: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 244: ok noname styled 17 17 | 144x17 5cb5451271aa8493
+flip 256: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 268: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 280: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 168: ok named styled 17 17 | 144x17 9c11c94080c6a778
+flip 1529: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 2891: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 4253: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 5615: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 6976: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 8338: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 9700: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 11062: err: Couldn't load font file
+flip 12423: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 13785: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 15147: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 16509: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 17870: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 19232: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 20594: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 21956: err: Couldn't load font file
+flip 23317: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 24679: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 26041: err: Couldn't load font file
+flip 27403: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 28764: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 30126: ok named styled 17 17 | 144x17 5cb5451271aa8493
+flip 31488: ok named styled 17 17 | 144x17 5cb5451271aa8493

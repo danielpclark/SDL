@@ -5,7 +5,7 @@
 //! The fonts in `testdata/fonts/` are subsets of DejaVu fonts (see their
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
 //! the DejaVu Sans subset, and fonts of FreeType's other formats made from
-//! them (Windows FNT and FON bitmap fonts), made by
+//! them (Windows FNT and FON, and BDF bitmap fonts), made by
 //! `tools/gen_sdl_ttf_testdata.py`, and the Noto font subsets (see their
 //! `OFL.txt`) of the shaping tests in `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
@@ -46,6 +46,8 @@ static SANS_BARE_CFF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.cff");
 static SANS_FNT: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.fnt");
 static SANS_FON: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.fon");
 static SANS_PE_FON: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-PE.fon");
+static SANS_BDF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.bdf");
+static SANS_BDF_GRAY: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13-4bpp.bdf");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -1152,6 +1154,8 @@ fn matches_upstream_reference() {
         ("DejaVuSans-13.fnt", SANS_FNT),
         ("DejaVuSans.fon", SANS_FON),
         ("DejaVuSans-PE.fon", SANS_PE_FON),
+        ("DejaVuSans-13.bdf", SANS_BDF),
+        ("DejaVuSans-13-4bpp.bdf", SANS_BDF_GRAY),
     ] {
         /* (the other fonts: the font cases, the CFF2 font's named
         instances, the faces of fonts with several, and the corrupt

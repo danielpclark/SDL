@@ -39,6 +39,7 @@
 
 pub mod autofit;
 pub mod base;
+pub mod bdf;
 pub mod cff;
 pub mod cfftypes;
 pub mod ftimage;
