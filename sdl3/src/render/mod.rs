@@ -215,6 +215,52 @@ pub struct Texture {
     pub(crate) generation: u32,
 }
 
+/// An object of a graphics API that the application made and gives a
+/// renderer (or a texture) to use instead of making its own: what the
+/// pointer and handle creation properties hold (a `VkInstance`,
+/// `VkSurfaceKHR`, `VkImage`, `ID3D11Texture2D *`, `ID3D12Resource *`...).
+///
+/// The renderer uses the object as it is, so making one is `unsafe`: the
+/// renderer can't check it.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct NativeObject(std::num::NonZeroU64);
+
+impl NativeObject {
+    /// An object from its handle (a Vulkan non-dispatchable handle such as
+    /// a `VkImage` or `VkSurfaceKHR`), or `None` for a null handle.
+    ///
+    /// # Safety
+    ///
+    /// `handle` must be a valid object of the kind the creation option it's
+    /// given as names, of the API objects the renderer uses (the renderer's
+    /// instance or device, for instance), and stay valid for as long as the
+    /// renderer or texture made with it exists.
+    pub unsafe fn from_raw(handle: u64) -> Option<NativeObject> {
+        std::num::NonZeroU64::new(handle).map(NativeObject)
+    }
+
+    /// An object from its pointer (a Vulkan dispatchable handle such as a
+    /// `VkInstance` or `VkDevice`, or a COM interface pointer), or `None`
+    /// for a null pointer.
+    ///
+    /// # Safety
+    ///
+    /// As for [`NativeObject::from_raw`].
+    pub unsafe fn from_ptr(ptr: *mut std::ffi::c_void) -> Option<NativeObject> {
+        std::num::NonZeroU64::new(ptr as usize as u64).map(NativeObject)
+    }
+
+    /// The handle.
+    pub fn raw(self) -> u64 {
+        self.0.get()
+    }
+
+    /// The handle as a pointer.
+    pub fn as_ptr(self) -> *mut std::ffi::c_void {
+        self.0.get() as usize as *mut std::ffi::c_void
+    }
+}
+
 /// Options for creating a renderer (the `SDL_PROP_RENDERER_CREATE_*`
 /// properties).
 #[derive(Clone, Debug, Default)]
@@ -238,6 +284,29 @@ pub struct RendererCreateInfo {
     /// The application can give the GPU renderer's render states MSL
     /// shaders (`SDL_PROP_RENDERER_CREATE_GPU_SHADERS_MSL_BOOLEAN`)
     pub gpu_shaders_msl: bool,
+    /// The `VkInstance` for the Vulkan renderer to use instead of creating
+    /// one (`SDL_PROP_RENDERER_CREATE_VULKAN_INSTANCE_POINTER`); it must
+    /// have the window's surface extensions, and the renderer leaves it to
+    /// the application
+    pub vulkan_instance: Option<NativeObject>,
+    /// The `VkSurfaceKHR` of the window for the Vulkan renderer to use
+    /// instead of creating one, of [`RendererCreateInfo::vulkan_instance`]
+    /// (`SDL_PROP_RENDERER_CREATE_VULKAN_SURFACE_NUMBER`)
+    pub vulkan_surface: Option<NativeObject>,
+    /// The `VkPhysicalDevice` for the Vulkan renderer to use instead of
+    /// choosing one (`SDL_PROP_RENDERER_CREATE_VULKAN_PHYSICAL_DEVICE_POINTER`)
+    pub vulkan_physical_device: Option<NativeObject>,
+    /// The `VkDevice` for the Vulkan renderer to use instead of creating one,
+    /// of [`RendererCreateInfo::vulkan_physical_device`], with the queue
+    /// families below and `VK_KHR_swapchain`
+    /// (`SDL_PROP_RENDERER_CREATE_VULKAN_DEVICE_POINTER`)
+    pub vulkan_device: Option<NativeObject>,
+    /// The queue family index the Vulkan renderer renders with
+    /// (`SDL_PROP_RENDERER_CREATE_VULKAN_GRAPHICS_QUEUE_FAMILY_INDEX_NUMBER`)
+    pub vulkan_graphics_queue_family_index: Option<u32>,
+    /// The queue family index the Vulkan renderer presents with
+    /// (`SDL_PROP_RENDERER_CREATE_VULKAN_PRESENT_QUEUE_FAMILY_INDEX_NUMBER`)
+    pub vulkan_present_queue_family_index: Option<u32>,
 }
 
 /// The rendering drivers compiled in, in order of preference.

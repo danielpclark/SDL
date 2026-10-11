@@ -80,6 +80,27 @@ pub struct TextureCreateInfo {
     /// The OpenGL ES texture of the V plane of a YUV texture
     /// (`SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER`)
     pub opengles2_texture_v: Option<u32>,
+    /// A `VkImage` to use instead of creating one (the Vulkan renderer;
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_TEXTURE_NUMBER`), of the renderer's
+    /// device, made as the renderer makes its images: for an NV12 style
+    /// texture the image of both planes, for a YUV style texture the Y
+    /// plane's. The renderer leaves it to the application when the texture
+    /// is destroyed.
+    pub vulkan_texture: Option<super::NativeObject>,
+    /// The `VkImage` of the U plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_VULKAN_TEXTURE_U_NUMBER`)
+    pub vulkan_texture_u: Option<super::NativeObject>,
+    /// The `VkImage` of the V plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_VULKAN_TEXTURE_V_NUMBER`)
+    pub vulkan_texture_v: Option<super::NativeObject>,
+    /// The `VkImageLayout` the given images are in,
+    /// `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL` by default
+    /// (`SDL_PROP_TEXTURE_CREATE_VULKAN_LAYOUT_NUMBER`)
+    pub vulkan_layout: Option<i32>,
+    /// More `VkImageUsageFlags` for the images, those the renderer creates
+    /// and the views of the given ones
+    /// (`SDL_PROP_TEXTURE_CREATE_VULKAN_USAGE_NUMBER`)
+    pub vulkan_usage: u32,
     /// A GPU texture to use instead of creating one (the GPU renderer;
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`), of the renderer's
     /// device; the renderer shares it with the application
@@ -462,6 +483,14 @@ impl Renderer {
                     opengles2_texture_uv: info.opengles2_texture_uv,
                     opengles2_texture_u: info.opengles2_texture_u,
                     opengles2_texture_v: info.opengles2_texture_v,
+                    vulkan_texture: [
+                        info.vulkan_texture,
+                        info.vulkan_texture_u,
+                        info.vulkan_texture_v,
+                    ]
+                    .map(|o| o.map_or(0, super::NativeObject::raw)),
+                    vulkan_layout: info.vulkan_layout,
+                    vulkan_usage: info.vulkan_usage,
                     gpu_texture: info.gpu_texture.clone(),
                     gpu_texture_uv: info.gpu_texture_uv.clone(),
                     gpu_texture_u: info.gpu_texture_u.clone(),

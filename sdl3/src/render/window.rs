@@ -622,7 +622,8 @@ fn create_for_window(
         }
         super::vulkan::VULKAN_RENDERER => {
             let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
-            let backend = super::vulkan::VulkanRenderer::for_window(window, output_colorspace)?;
+            let backend =
+                super::vulkan::VulkanRenderer::for_window(window, output_colorspace, info)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
         super::GPU_RENDERER => {

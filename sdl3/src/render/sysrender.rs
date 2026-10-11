@@ -664,6 +664,13 @@ pub(crate) struct TextureCreateProps {
     pub(crate) opengles2_texture_u: Option<u32>,
     /// `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER`
     pub(crate) opengles2_texture_v: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_TEXTURE_NUMBER`, `_U_NUMBER` and
+    /// `_V_NUMBER` (0: none)
+    pub(crate) vulkan_texture: [u64; 3],
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_LAYOUT_NUMBER`
+    pub(crate) vulkan_layout: Option<i32>,
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_USAGE_NUMBER`
+    pub(crate) vulkan_usage: u32,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`
     pub(crate) gpu_texture: Option<Arc<gpu::Texture>>,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_UV_POINTER`
