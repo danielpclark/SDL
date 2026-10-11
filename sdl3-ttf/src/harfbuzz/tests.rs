@@ -113,6 +113,110 @@ pub(crate) fn hb_line(font_data: &[u8], size: f32, f: &[&str], text: &[u8]) -> S
     )
 }
 
+/// `hb_feature_from_string` for the syntax of the AAT cases
+/// (`[+-]tag`, `tag=N` and `tag[A:B]=N`).
+fn feature_from_string(s: &str) -> Option<HbFeature> {
+    let mut s = s.as_bytes();
+    let mut value = 1;
+    match s.first() {
+        Some(b'-') => {
+            value = 0;
+            s = &s[1..];
+        }
+        Some(b'+') => s = &s[1..],
+        _ => {}
+    }
+    let tag_len = s.iter().take_while(|c| c.is_ascii_alphanumeric()).count();
+    if tag_len == 0 || tag_len > 4 {
+        return None;
+    }
+    let tag = hb_tag_from_string(&s[..tag_len]);
+    s = &s[tag_len..];
+    let (mut start, mut end) = (HB_FEATURE_GLOBAL_START, HB_FEATURE_GLOBAL_END);
+    if let Some(rest) = s.strip_prefix(b"[") {
+        let close = rest.iter().position(|&c| c == b']')?;
+        let inner = std::str::from_utf8(&rest[..close]).ok()?;
+        match inner.split_once(':') {
+            Some((a, b)) => {
+                if !a.is_empty() {
+                    start = a.parse().ok()?;
+                }
+                if !b.is_empty() {
+                    end = b.parse().ok()?;
+                }
+            }
+            None if !inner.is_empty() => {
+                start = inner.parse().ok()?;
+                end = start + 1;
+            }
+            None => {}
+        }
+        s = &rest[close + 1..];
+    }
+    if let Some(v) = s.strip_prefix(b"=") {
+        value = std::str::from_utf8(v).ok()?.parse().ok()?;
+    } else if !s.is_empty() {
+        return None;
+    }
+    Some(HbFeature {
+        tag,
+        value,
+        start,
+        end,
+    })
+}
+
+/// Shapes `text` with `font_data` at `size` points (72 dpi) as the C
+/// program that made `testdata/aat_reference.txt` does: with the
+/// buffer's direction, script and language, the font's `ptem` and the
+/// features (comma-separated) of `f` (`-` for unset).
+pub(crate) fn hb_aat_line(font_data: &[u8], size: f32, f: &[&str], text: &[u8]) -> String {
+    let label = format!("hb {size}: ");
+    let library = ft_init_freetype().expect("FreeType");
+    let Ok(mut face) = ft_new_memory_face(&library, Arc::from(font_data), 0) else {
+        return label + "open failed";
+    };
+    if ft_set_char_size(&mut face, 0, (size * 64.0) as FtF26Dot6, 72, 72).is_err() {
+        return label + "size failed";
+    }
+    let mut data = hb_ft_font_create(&mut face);
+    hb_ft_font_set_load_flags(&mut data, FT_LOAD_DEFAULT | FT_LOAD_TARGET_NORMAL);
+    if f[3] != "-" {
+        data.set_ptem(f[3].parse::<f64>().unwrap_or(0.0) as f32);
+    }
+    let mut buf = HbBuffer::new();
+    if f[0] != "-" {
+        buf.set_direction(hb_direction_from_string(f[0].as_bytes()));
+    }
+    if f[1] != "-" {
+        buf.set_script(hb_script_from_string(f[1].as_bytes()));
+    }
+    buf.set_language(hb_language_from_string(if f[2] != "-" {
+        f[2].as_bytes()
+    } else {
+        b""
+    }));
+    buf.add_utf8(text, 0, -1);
+    buf.guess_segment_properties();
+    let features: Vec<HbFeature> = if f[4] != "-" {
+        f[4].split(',')
+            .filter_map(feature_from_string)
+            .take(32)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let mut font = HbFont::new(&mut data, Some(&mut face));
+    hb_shape(&mut font, &mut buf, &features);
+    let s = hb_buffer_serialize_glyphs_text(&mut buf, false, false, true);
+    format!(
+        "{label}{} {} {}",
+        hb_direction_to_string(buf.get_direction()),
+        hb_language_to_string(buf.get_language()).unwrap_or("(null)"),
+        s
+    )
+}
+
 #[test]
 #[ignore]
 fn scratch_shape() {

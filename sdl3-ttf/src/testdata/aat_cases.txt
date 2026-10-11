@@ -1,0 +1,108 @@
+# The AAT shaping test cases of sdl3-ttf (src/tests/aat.rs), which the C
+# program that made aat_reference.txt runs too. A `font FILE` line
+# starts the cases of a font in fonts/; a case is `case DIR SCRIPT LANG
+# PTEM FEATURES TEXT`, tab-separated: the direction (ltr, rtl, ttb, btt),
+# the ISO 15924 script and the BCP 47 language of the buffer, the font's
+# point size for tracking (hb_font_set_ptem), the features (comma-
+# separated, in hb_feature_from_string's syntax, limited to [+-]tag,
+# tag=N and tag[A:B]=N), `-` for none, and the text, with `\xNN` escapes
+# for bytes. Cases without features and point size also go through
+# SDL_ttf's own functions. The two `corrupt` lines of a font are the
+# cases shaped with its AAT tables corrupted.
+font DejaVuSans-AAT-morx.ttf
+case	-	-	-	-	-	axyb xaz xpqrw xv xx
+case	-	-	-	-	-	coke cat c ec ck
+case	-	-	-	-	-	fi fl ffi ffl ff fff fiffl ffa f
+case	-	-	-	-	-	jam mn mhn q h mhmh
+case	-	-	-	-	-	VaW WaV VV
+case	-	-	-	-	-liga	office fluffy
+case	-	-	-	-	liga[2:5]=0	office office
+case	-	-	-	-	smcp	abcde ABC good
+case	-	-	-	-	ss01	hello world
+case	-	-	-	-	ss02,ss03	0123456789 nnn
+case	-	-	-	-	ss04	rst first
+case	rtl	-	-	-	ss05	xyz axyb
+case	rtl	-	-	-	-	axyb fi coke
+case	-	-	-	-	aalt=1	gig
+case	-	-	-	-	aalt=2	gig
+case	-	-	-	-	aalt=1,aalt=2	gig
+case	-	-	-	-	aalt	gig
+case	-	-	tr	-	-	fit iki
+case	-	-	tr-TR	-	-	fit iki
+case	-	-	en	-	-	fit tut
+case	-	-	-	-	dlig	zebra
+case	-	-	-	-	-calt	coke
+case	-	-	-	-	calt[1:3]=0	coke coke
+case	-	-	-	-	smcp[0:2],liga=0	abcfi abcfi
+case	ttb	-	-	-	-	abc axy fi
+case	btt	-	-	-	-	abc axy
+case	-	-	-	-	-	pad pud tut
+case	-	-	-	-	-	ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffi
+case	-	-	-	-	-	fí fí́ ffí x\xcc\x81y
+case	-	-	-	-	-	f c x m
+corrupt	-	-	-	-	-	axyb coke fi ffl jam mhn VaW
+corrupt	-	-	tr	-	smcp,ss04	fit abc rst gig
+font DejaVuSans-AAT-mort.ttf
+case	-	-	-	-	-	axyb xaz xpqrw xv xx
+case	-	-	-	-	-	coke cat c ec ck
+case	-	-	-	-	-	fi fl ffi ffl ff fff fiffl ffa f
+case	-	-	-	-	-	jam mn mhn q h mhmh
+case	-	-	-	-	-liga	office fluffy
+case	-	-	-	-	smcp	abcde good
+case	-	-	-	-	ss01,ss04	hello rst
+case	-	-	tr	-	-	fit
+case	-	-	-	-	-	AVATAR TOWER To AWAY TWo
+case	-	-	-	-	-kern	AVATAR TOWER
+case	-	-	-	-	-	^x_ ^ x^y
+case	-	-	-	-	-	LT Pa Fo Ya Wa We Yo
+case	ttb	-	-	-	-	AV LT
+case	rtl	-	-	-	-	AVATAR axyb
+corrupt	-	-	-	-	-	axyb coke fi ffl jam AVATAR TWo
+corrupt	-	-	-	-	smcp	abcde LT Wa ^x_
+font DejaVuSans-AAT-kerx.ttf
+case	-	-	-	-	-	AVA To LT AA
+case	-	-	-	-	-	Wa Ye WaYe
+case	-	-	-	-	-	AV TWo TAWV AWV
+case	-	-	-	-	-	^ _ x^ ^_^
+case	-	-	-	-	-	LT Pa Fo Ya Lo
+case	-	-	-	-	-	a. e, o: a.e x.
+case	-	-	-	-	-	HI OQ IH HO OO
+case	-	-	-	-	-	DE ED DD EE
+case	-	-	-	-	-kern	AVA To LT
+case	ttb	-	-	-	-	AV LT
+case	rtl	-	-	-	-	AV TWo
+case	-	-	-	8	-	Tracking
+case	-	-	-	12	-	Tracking
+case	-	-	-	16	-	Tracking
+case	-	-	-	36	-	Tracking
+case	-	-	-	48	-	Tracking
+case	-	-	-	16	-trak	Tracking
+case	ttb	-	-	16	-	Tracking
+case	-	-	-	20	-	é á̈ ñ
+corrupt	-	-	-	16	-	AVA To LT Wa AWV TWo
+corrupt	-	-	-	12	-	^_ LT a. e, o: HI OQ
+font DejaVuSans-AAT-kernot.ttf
+case	-	-	-	-	-	AVATAR TOWER To AWAY TWo
+case	-	-	-	-	-kern	AVATAR TOWER
+case	-	-	-	-	-	^x_ ^ x^y
+case	-	-	-	-	-	LT Pa Fo Ya
+case	ttb	-	-	-	-	AV LT
+corrupt	-	-	-	-	-	AVATAR TOWER TWo
+corrupt	-	-	-	-	-	^x_ LT Pa
+font NotoSans-AAT.ttf
+case	-	-	-	-	-	office affine fluffy ffl ffi
+case	-	-	-	-	-	coke jam mhn axyb
+case	-	-	-	-	-liga	office
+case	ttb	-	-	-	-	office coke
+case	rtl	-	-	-	-	office axyb
+case	-	-	-	-	-	é ạ̈ ñ q̣̇ fí
+corrupt	-	-	-	-	-	office affine coke jam
+corrupt	ttb	-	-	-	-	office coke
+font NotoSans-Unhinted-AAT.ttf
+case	-	-	-	-	-	office affine AVATAR To
+case	-	-	-	10	-	office To
+case	-	-	-	15	-	office To
+case	-	-	-	30	-	office To
+case	ttb	-	-	-	-	office AV
+corrupt	-	-	-	15	-	office AVATAR To Wa
+corrupt	-	-	-	-	-	coke jam axyb

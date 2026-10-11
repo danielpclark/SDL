@@ -15,6 +15,9 @@ NotoSansSinhala-Regular.ttf: Copyright 2022 The Noto Project Authors (https://gi
 NotoSans-Unhinted.ttf, NotoSansArabic-Unhinted.ttf and NotoSansKR-Unhinted.ttf
 are versions of NotoSans-Regular.ttf, NotoSansArabic-Regular.ttf and
 NotoSansKR-Regular.otf without hinting (the last with TrueType outlines).
+NotoSans-AAT.ttf and NotoSans-Unhinted-AAT.ttf are NotoSans-Regular.ttf and
+NotoSans-Unhinted.ttf with Apple Advanced Typography tables added (morx and
+feat, and kerx and trak in the latter).
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

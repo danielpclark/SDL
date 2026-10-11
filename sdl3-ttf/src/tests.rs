@@ -1890,4 +1890,5 @@ fn renderer_engine_rejects_glyphs_that_never_pack() {
     crate::quit();
 }
 
+mod aat;
 mod shaping;
