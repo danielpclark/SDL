@@ -152,7 +152,11 @@ In dependency order, after the core each one needs exists:
    `sdl3-ttf/HARFBUZZ-COPYING`, its Unicode data tables under the Unicode
    License V3): the buffer, the UCD Unicode functions, the OpenType
    layout engine (GSUB, GPOS, GDEF, feature variations, the `kern`
-   table), script/language tags and feature selection, the OpenType
+   table with its state-machine subtables), Apple Advanced Typography
+   (`morx` and `mort` with every subtable type, `kerx`, `trak`, `ankr`,
+   `feat`, `ltag`, the AAT state-machine driver and feature map, and the
+   shaping that picks them over GSUB/GPOS), script/language tags and
+   feature selection, the OpenType
    shaper with every shaper it selects (default, Arabic with fallback
    shaping, Hebrew, Indic, Khmer, Myanmar and Zawgyi, Thai/Lao, Hangul,
    USE) with normalization and fallback positioning, `hb-ft`, and the
@@ -172,7 +176,12 @@ In dependency order, after the core each one needs exists:
    also checked on more fonts and scripts (the other Indic scripts,
    Tibetan, Balinese, Javanese, Mongolian, N'Ko, Syriac, Tai Tham,
    Tifinagh, Lao), and on byte flips of every layout-table byte of the
-   test fonts.
+   test fonts. AAT was checked the same way on DejaVu and Noto fonts with
+   AAT tables made by `tools/gen_sdl_ttf_testdata.py` (`morx`, `mort`,
+   `kerx`, `trak`, Apple and OpenType state-machine `kern`, and `morx`
+   alongside GSUB/GPOS), with features, directions, languages and
+   tracking sizes, corrupted and truncated tables, and randomly mutated
+   AAT tables.
    Checked against upstream's C (built the same way) on subsets of DejaVu
    fonts made by `tools/gen_sdl_ttf_testdata.py` (and CFF, CFF2 and
    bare CFF versions of one, hinted by the AFDKO's otfautohint, and fonts of
@@ -181,8 +190,7 @@ In dependency order, after the core each one needs exists:
    drawn by the three engines (the GPU one on a Vulkan device), and truncated fonts and
    fonts with flipped bytes; FreeType alone was also checked against
    upstream's on more fonts and scripts, and on every truncation and byte
-   flip of two small fonts. Not yet: HarfBuzz's AAT layout (`morx`,
-   `kerx`, `trak`) and state-machine `kern` subtables, the hinter
+   flip of two small fonts. Not yet: the hinter
    of FreeType's `pshinter` (which only
    the old Type 1 and CFF interpreters SDL_ttf's build leaves out use)
    and its `svg` renderer (which needs PlutoSVG).
