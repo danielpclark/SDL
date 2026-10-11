@@ -42,6 +42,7 @@ features = [
     "Win32_Devices_DeviceAndDriverInstallation",
     "Win32_Devices_Display",
     "Win32_Devices_HumanInterfaceDevice",
+    "Win32_Devices_Sensors",
     "Win32_Foundation",
     "Win32_Globalization",
     "Win32_Graphics_Dwm",
