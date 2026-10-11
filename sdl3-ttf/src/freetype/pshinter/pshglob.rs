@@ -111,46 +111,7 @@ pub struct PshAlignmentRec {
     pub align_bot: FtPos,
 }
 
-/// `PS_PrivateRec` (t1tables.h): a Type 1 private dictionary, as the PS
-/// hinter reads it.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct PsPrivateRec {
-    pub unique_id: FtInt,
-    pub lenIV: FtInt,
-
-    pub num_blue_values: FtByte,
-    pub num_other_blues: FtByte,
-    pub num_family_blues: FtByte,
-    pub num_family_other_blues: FtByte,
-
-    pub blue_values: [FtShort; 14],
-    pub other_blues: [FtShort; 10],
-
-    pub family_blues: [FtShort; 14],
-    pub family_other_blues: [FtShort; 10],
-
-    pub blue_scale: FtFixed,
-    pub blue_shift: FtInt,
-    pub blue_fuzz: FtInt,
-
-    pub standard_width: [FtUShort; 1],
-    pub standard_height: [FtUShort; 1],
-
-    pub num_snap_widths: FtByte,
-    pub num_snap_heights: FtByte,
-    pub force_bold: FtByte,
-    pub round_stem_up: FtByte,
-
-    pub snap_widths: [FtShort; 13],  /* including std width  */
-    pub snap_heights: [FtShort; 13], /* including std height */
-
-    pub expansion_factor: FtFixed,
-
-    pub language_group: FtLong,
-    pub password: FtLong,
-
-    pub min_feature: [FtShort; 2],
-}
+pub use super::super::t1tables::PsPrivateRec;
 
 /// `PSH_Globals_FuncsRec`
 #[derive(Debug)]

@@ -57,6 +57,8 @@ pub mod raster;
 pub mod sdf;
 pub mod sfnt;
 pub mod smooth;
+pub mod t1tables;
+pub mod t1types;
 pub mod truetype;
 pub mod tttables;
 pub mod tttypes;

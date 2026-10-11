@@ -36,12 +36,8 @@
 //!
 //! The interpreter's charstring is an index into its subroutine stack
 //! (C points into it), and its hint objects are kept together
-//! ([`Cf2Hints`]) for the glyph path. Type 1 mode (`font->isT1`) is only
-//! set by the Type 1 and CID drivers, which are not translated yet; its
-//! branches (the hint replay of the first pass, `closepath`, `hsbw`,
-//! `seac`, `sbw`, `callothersubr`, `pop`, `setcurrentpoint`, `hstem3`,
-//! `vstem3` and the large integers of `div`) are left out where C has
-//! them, as noted.
+//! ([`Cf2Hints`]) for the glyph path. Type 1 mode (`font->isT1`) is set
+//! by the Type 1 and CID drivers.
 
 use super::super::base::ftcalc::*;
 use super::super::cff::cffload::{cff_blend_build_vector, cff_blend_check_vector};
@@ -53,9 +49,10 @@ use super::psfixed::*;
 use super::psfont::*;
 use super::psft::*;
 use super::pshints::*;
-use super::psobjs::{cff_random, PsDecoder};
+use super::psobjs::{cff_random, ps_builder_check_points, PsDecoder};
 use super::psread::*;
 use super::psstack::*;
+use super::t1decode::{t1_lookup_glyph_by_stdcharcode_ps, T1_MAX_SUBRS_CALLS};
 
 /// `cf2_hintmask_init` (its error is the font instance's)
 pub fn cf2_hintmask_init(hintmask: &mut Cf2HintMaskRec) {
@@ -455,7 +452,17 @@ pub fn cf2_interp_t2_char_string(
     let stack_size: FtUInt;
     let mut op1: FtByte; /* first opcode byte */
 
+    /* stuff for Type 1 */
+    let mut known_othersubr_result_cnt: FtInt = 0;
+    let mut large_int = false;
+    let mut initial_map_ready = false;
+
+    const PS_STORAGE_SIZE: usize = 3;
+    let mut results: [Cf2F16Dot16; PS_STORAGE_SIZE] = [0; PS_STORAGE_SIZE]; /* for othersubr results */
+    let mut result_cnt: FtInt = 0;
+
     let mut storage: [Cf2F16Dot16; CF2_STORAGE_SIZE] = [0; CF2_STORAGE_SIZE]; /* for `put' and `get' */
+    let mut flex_store: [Cf2F16Dot16; 6] = [0; 6]; /* for Type 1 flex     */
 
     /* instruction limit; 20,000,000 matches Avalon */
     let mut instruction_limit: FtUInt32 = 20000000;
@@ -548,7 +555,8 @@ pub fn cf2_interp_t2_char_string(
 
         /* main interpreter loop */
         'main: loop {
-            /* (Type 1 mode is not translated yet) */
+            /* (Type 1 mode: FT_ASSERT( known_othersubr_result_cnt == 0 || */
+            /* result_cnt == 0 ))                                          */
 
             if cf2_buf_is_end(&subr_stack.items[charstring]) {
                 /* If we've reached the end of the charstring, simulate a */
@@ -569,8 +577,39 @@ pub fn cf2_interp_t2_char_string(
                 }
             }
 
-            /* (Type 1 mode: skipping outline commands in the first pass, */
-            /* and the othersubr results, are not translated yet)          */
+            if font.isT1 {
+                if !initial_map_ready
+                    && !(op1 == CF2_CMD_HSTEM
+                        || op1 == CF2_CMD_VSTEM
+                        || op1 == CF2_CMD_HSBW
+                        || op1 == CF2_CMD_CALLSUBR
+                        || op1 == CF2_CMD_RETURN
+                        || op1 == CF2_CMD_ESC
+                        || op1 == CF2_CMD_ENDCHAR
+                        || op1 >= 32/* Numbers */)
+                {
+                    /* Skip outline commands first time round.       */
+                    /* `endchar' will trigger initial hintmap build  */
+                    /* and rewind the charstring.                    */
+                    cf2_stack_clear(op_stack);
+                    continue 'main;
+                }
+
+                if result_cnt > 0
+                    && !(op1 == CF2_CMD_CALLSUBR
+                        || op1 == CF2_CMD_RETURN
+                        || op1 == CF2_CMD_ESC
+                        || op1 >= 32/* Numbers */)
+                {
+                    /* all operands have been transferred by previous pops */
+                    result_cnt = 0;
+                }
+
+                if large_int && !(op1 >= 32 || op1 == CF2_ESC_DIV) {
+                    /* (no `div' after large integer) */
+                    large_int = false;
+                }
+            }
 
             /* check for errors once per loop */
             if font.error != 0 {
@@ -622,7 +661,7 @@ pub fn cf2_interp_t2_char_string(
                         ) {
                             if let Err(e) = cff_blend_build_vector(
                                 &mut font.blend,
-                                &decoder.cff.vstore,
+                                cf2_get_vstore(decoder),
                                 font.vsindex,
                                 font.lenNDV,
                                 font.NDV.as_deref(),
@@ -667,7 +706,11 @@ pub fn cf2_interp_t2_char_string(
                             &mut hints.hStemHintArray,
                             width,
                             &mut have_width,
-                            0, /* (Type 1: the left side bearing's y) */
+                            if font.isT1 {
+                                decoder.builder.builder.left_bearing.y as Cf2Fixed
+                            } else {
+                                0
+                            },
                         );
 
                         if decoder.width_only {
@@ -695,7 +738,11 @@ pub fn cf2_interp_t2_char_string(
                             &mut hints.vStemHintArray,
                             width,
                             &mut have_width,
-                            0, /* (Type 1: the left side bearing's x) */
+                            if font.isT1 {
+                                decoder.builder.builder.left_bearing.x as Cf2Fixed
+                            } else {
+                                0
+                            },
                         );
 
                         if decoder.width_only {
@@ -846,10 +893,23 @@ pub fn cf2_interp_t2_char_string(
                     continue 'main; /* no need to clear stack again */
                 }
 
-                CF2_CMD_CLOSEPATH => { /* (Type 1 only, which is not translated yet) */ }
+                CF2_CMD_CLOSEPATH => {
+                    if font.isT1 {
+                        /* if there is no path, `closepath' is a no-op */
+                        cf2_glyphpath_close_open_path(
+                            &mut glyph_path,
+                            ctx!(font, decoder),
+                            &mut hints,
+                        );
+
+                        have_width = true;
+                    }
+                }
 
                 CF2_CMD_CALLGSUBR | CF2_CMD_CALLSUBR => {
-                    if !font.isT1 && charstring_index > CF2_MAX_SUBR as Cf2Int {
+                    if (!font.isT1 && charstring_index > CF2_MAX_SUBR as Cf2Int)
+                        || (font.isT1 && charstring_index > T1_MAX_SUBRS_CALLS as Cf2Int)
+                    {
                         /* max subr plus one for charstring */
                         last_error = FT_ERR_INVALID_GLYPH_FORMAT;
                         break 'exit; /* overflow of stack */
@@ -863,9 +923,16 @@ pub fn cf2_interp_t2_char_string(
                     );
 
                     /* set up the new CFF region and pointer */
-                    let subr_num: Cf2Int = cf2_stack_pop_int(op_stack, &mut font.error);
+                    let mut subr_num: Cf2Int = cf2_stack_pop_int(op_stack, &mut font.error);
 
-                    /* (Type 1 mode: the subroutine hash is not translated yet) */
+                    if font.isT1 {
+                        if let Some(hash) = decoder.t1().and_then(|t1| t1.locals_hash) {
+                            subr_num = match hash.get(&subr_num) {
+                                Some(&val) => val as Cf2Int,
+                                None => -1,
+                            };
+                        }
+                    }
 
                     match op1 {
                         CF2_CMD_CALLGSUBR => {
@@ -1034,10 +1101,10 @@ pub fn cf2_interp_t2_char_string(
                         _ => {
                             if font.isCFF2 || op2 >= CF2_ESC_RESERVED_38 {
                                 /* unknown op */
+                            } else if font.isT1 && result_cnt > 0 && op2 != CF2_ESC_POP {
+                                /* all operands have been transferred by previous pops */
+                                result_cnt = 0;
                             } else {
-                                /* (Type 1 mode: dropping the othersubr results */
-                                /* is not translated yet)                        */
-
                                 /* second switch for 2-byte operators handles */
                                 /* CFF and Type 1                             */
                                 match op2 {
@@ -1053,8 +1120,58 @@ pub fn cf2_interp_t2_char_string(
                                          *   relative to lsb point            relative to zero
                                          *
                                          */
-                                        /* (unknown op unless in Type 1 mode, */
-                                        /* which is not translated yet)       */
+                                        if font.isT1 {
+                                            let is_v = op2 == CF2_ESC_VSTEM3;
+
+                                            let v0 =
+                                                cf2_stack_get_real(op_stack, 0, &mut font.error);
+                                            let v1 =
+                                                cf2_stack_get_real(op_stack, 2, &mut font.error);
+                                            let v2 =
+                                                cf2_stack_get_real(op_stack, 4, &mut font.error);
+
+                                            let d0 =
+                                                cf2_stack_get_real(op_stack, 1, &mut font.error);
+                                            cf2_stack_set_real(
+                                                op_stack,
+                                                2,
+                                                sub_int32(sub_int32(v1, v0), d0),
+                                                &mut font.error,
+                                            );
+                                            let d1 =
+                                                cf2_stack_get_real(op_stack, 3, &mut font.error);
+                                            cf2_stack_set_real(
+                                                op_stack,
+                                                4,
+                                                sub_int32(sub_int32(v2, v1), d1),
+                                                &mut font.error,
+                                            );
+
+                                            /* add left-sidebearing correction */
+                                            let lsb = if is_v {
+                                                decoder.builder.builder.left_bearing.x
+                                            } else {
+                                                decoder.builder.builder.left_bearing.y
+                                            }
+                                                as Cf2Fixed;
+                                            cf2_do_stems(
+                                                font,
+                                                decoder,
+                                                op_stack,
+                                                if is_v {
+                                                    &mut hints.vStemHintArray
+                                                } else {
+                                                    &mut hints.hStemHintArray
+                                                },
+                                                width,
+                                                &mut have_width,
+                                                lsb,
+                                            );
+
+                                            if decoder.width_only {
+                                                break 'exit;
+                                            }
+                                        }
                                     }
 
                                     CF2_ESC_AND => {
@@ -1093,13 +1210,236 @@ pub fn cf2_interp_t2_char_string(
                                     }
 
                                     CF2_ESC_SEAC => {
-                                        /* (unknown op unless in Type 1 mode, */
-                                        /* which is not translated yet)       */
+                                        if font.isT1 {
+                                            /* (FT_CONFIG_OPTION_INCREMENTAL: no incremental */
+                                            /* interface)                                    */
+                                            let mut component = Cf2BufferRec::default();
+                                            let mut dummy_width: Cf2Fixed = 0;
+
+                                            let achar: Cf2Int =
+                                                cf2_stack_pop_int(op_stack, &mut font.error);
+                                            let bchar: Cf2Int =
+                                                cf2_stack_pop_int(op_stack, &mut font.error);
+
+                                            let ady: FtPos =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error)
+                                                    as FtPos;
+                                            let mut adx: FtPos =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error)
+                                                    as FtPos;
+                                            let asb: FtPos =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error)
+                                                    as FtPos;
+
+                                            if doing_seac {
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit; /* nested seac */
+                                            }
+
+                                            if decoder.builder.metrics_only {
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit; /* unexpected seac */
+                                            }
+
+                                            /* `glyph_names' is set to 0 for CID fonts which do */
+                                            /* not include an encoding.  How can we deal with   */
+                                            /* these?                                           */
+                                            if decoder
+                                                .t1()
+                                                .is_none_or(|t1| t1.glyph_names.is_none())
+                                            {
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit;
+                                            }
+
+                                            /* seac weirdness */
+                                            adx = adx.wrapping_add(
+                                                decoder.builder.builder.left_bearing.x,
+                                            );
+
+                                            let bchar_index: Cf2Int =
+                                                t1_lookup_glyph_by_stdcharcode_ps(decoder, bchar);
+                                            let achar_index: Cf2Int =
+                                                t1_lookup_glyph_by_stdcharcode_ps(decoder, achar);
+
+                                            if bchar_index < 0 || achar_index < 0 {
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit;
+                                            }
+
+                                            /* if we are trying to load a composite glyph, */
+                                            /* do not load the accent character and return */
+                                            /* the array of subglyphs.                     */
+                                            if decoder.builder.no_recurse {
+                                                if let Some(glyph) =
+                                                    decoder.builder.builder.glyph.as_mut()
+                                                {
+                                                    let glyph = &mut *glyph.root;
+                                                    let Some(loader) =
+                                                        glyph.internal.loader.as_mut()
+                                                    else {
+                                                        break 'exit;
+                                                    };
+
+                                                    /* reallocate subglyph array if necessary */
+                                                    if let Err(error2) = loader.check_subglyphs(2) {
+                                                        last_error = error2; /* pass FreeType error through */
+                                                        break 'exit;
+                                                    }
+
+                                                    let subg = loader.current_subglyphs();
+
+                                                    /* subglyph 0 = base character */
+                                                    subg[0].index = bchar_index;
+                                                    subg[0].flags =
+                                                        FT_SUBGLYPH_FLAG_ARGS_ARE_XY_VALUES
+                                                            | FT_SUBGLYPH_FLAG_USE_MY_METRICS;
+                                                    subg[0].arg1 = 0;
+                                                    subg[0].arg2 = 0;
+
+                                                    /* subglyph 1 = accent character */
+                                                    subg[1].index = achar_index;
+                                                    subg[1].flags =
+                                                        FT_SUBGLYPH_FLAG_ARGS_ARE_XY_VALUES;
+                                                    subg[1].arg1 =
+                                                        fixed_to_int(adx.wrapping_sub(asb))
+                                                            as FtInt;
+                                                    subg[1].arg2 = fixed_to_int(ady) as FtInt;
+
+                                                    /* set up remaining glyph fields */
+                                                    glyph.num_subglyphs = 2;
+                                                    glyph.subglyphs = loader.base.subglyphs.clone();
+                                                    glyph.format = FT_GLYPH_FORMAT_COMPOSITE;
+
+                                                    loader.current.num_subglyphs = 2;
+                                                }
+
+                                                break 'exit;
+                                            }
+
+                                            /* First load `bchar' in builder */
+                                            /* now load the unscaled outline */
+
+                                            /* prepare loader */
+                                            if let Some(loader) = decoder.builder.builder.loader() {
+                                                loader.prepare();
+                                            }
+
+                                            if let Err(error2) = cf2_get_t1_seac_component(
+                                                decoder,
+                                                bchar_index as FtUInt,
+                                                &mut component,
+                                            ) {
+                                                last_error = error2; /* pass FreeType error through */
+                                                break 'exit;
+                                            }
+
+                                            /* save the left bearing and width of the SEAC   */
+                                            /* glyph as they will be erased by the next load */
+
+                                            let mut left_bearing =
+                                                decoder.builder.builder.left_bearing;
+                                            let mut advance = decoder.builder.builder.advance;
+
+                                            cf2_interp_t2_char_string(
+                                                font,
+                                                decoder,
+                                                &component,
+                                                translation,
+                                                true,
+                                                0,
+                                                0,
+                                                &mut dummy_width,
+                                            );
+                                            cf2_free_t1_seac_component(decoder, &mut component);
+
+                                            /* If the SEAC glyph doesn't have a (H)SBW of its */
+                                            /* own use the values from the base glyph.        */
+
+                                            if !have_width {
+                                                left_bearing = decoder.builder.builder.left_bearing;
+                                                advance = decoder.builder.builder.advance;
+                                            }
+
+                                            decoder.builder.builder.left_bearing.x = 0;
+                                            decoder.builder.builder.left_bearing.y = 0;
+
+                                            /* Now load `achar' on top of */
+                                            /* the base outline           */
+
+                                            if let Err(error2) = cf2_get_t1_seac_component(
+                                                decoder,
+                                                achar_index as FtUInt,
+                                                &mut component,
+                                            ) {
+                                                last_error = error2; /* pass FreeType error through */
+                                                break 'exit;
+                                            }
+                                            cf2_interp_t2_char_string(
+                                                font,
+                                                decoder,
+                                                &component,
+                                                translation,
+                                                true,
+                                                adx.wrapping_sub(asb) as Cf2Fixed,
+                                                ady as Cf2Fixed,
+                                                &mut dummy_width,
+                                            );
+                                            cf2_free_t1_seac_component(decoder, &mut component);
+
+                                            /* restore the left side bearing and advance width   */
+                                            /* of the SEAC glyph or base character (saved above) */
+
+                                            decoder.builder.builder.left_bearing = left_bearing;
+                                            decoder.builder.builder.advance = advance;
+
+                                            break 'exit;
+                                        }
                                     }
 
                                     CF2_ESC_SBW => {
-                                        /* (unknown op unless in Type 1 mode, */
-                                        /* which is not translated yet)       */
+                                        if font.isT1 {
+                                            let advance_y =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error);
+                                            let advance_x =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error);
+
+                                            let lsb_y: Cf2Fixed =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error);
+                                            let lsb_x: Cf2Fixed =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error);
+
+                                            let builder = &mut decoder.builder.builder;
+
+                                            builder.advance.y = advance_y as FtPos;
+                                            builder.advance.x = advance_x as FtPos;
+
+                                            builder.left_bearing.x = add_int32(
+                                                builder.left_bearing.x as Cf2Fixed,
+                                                lsb_x,
+                                            )
+                                                as FtPos;
+                                            builder.left_bearing.y = add_int32(
+                                                builder.left_bearing.y as Cf2Fixed,
+                                                lsb_y,
+                                            )
+                                                as FtPos;
+
+                                            have_width = true;
+
+                                            /* the `metrics_only' indicates that we only want */
+                                            /* to compute the glyph's metrics (lsb + advance  */
+                                            /* width), not load the  rest of it; so exit      */
+                                            /* immediately                                    */
+                                            if decoder.builder.metrics_only {
+                                                break 'exit;
+                                            }
+
+                                            if initial_map_ready {
+                                                cur_x = add_int32(cur_x, lsb_x);
+                                                cur_y = add_int32(cur_y, lsb_y);
+                                            }
+                                        }
                                     }
 
                                     CF2_ESC_ABS => {
@@ -1150,12 +1490,22 @@ pub fn cf2_interp_t2_char_string(
                                     }
 
                                     CF2_ESC_DIV => {
-                                        /* (Type 1 mode: large integers are not */
-                                        /* translated yet)                      */
-                                        let divisor =
-                                            cf2_stack_pop_fixed(op_stack, &mut font.error);
-                                        let dividend =
-                                            cf2_stack_pop_fixed(op_stack, &mut font.error);
+                                        let divisor: Cf2F16Dot16;
+                                        let dividend: Cf2F16Dot16;
+
+                                        if font.isT1 && large_int {
+                                            divisor = cf2_stack_pop_int(op_stack, &mut font.error)
+                                                as Cf2F16Dot16;
+                                            dividend = cf2_stack_pop_int(op_stack, &mut font.error)
+                                                as Cf2F16Dot16;
+
+                                            large_int = false;
+                                        } else {
+                                            divisor =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error);
+                                            dividend =
+                                                cf2_stack_pop_fixed(op_stack, &mut font.error);
+                                        }
 
                                         cf2_stack_push_fixed(
                                             op_stack,
@@ -1194,14 +1544,649 @@ pub fn cf2_interp_t2_char_string(
                                     }
 
                                     CF2_ESC_CALLOTHERSUBR => {
-                                        /* (unknown op unless in Type 1 mode, */
-                                        /* which is not translated yet)       */
+                                        if font.isT1 {
+                                            let subr_no: Cf2Int =
+                                                cf2_stack_pop_int(op_stack, &mut font.error);
+                                            let mut arg_cnt: Cf2Int =
+                                                cf2_stack_pop_int(op_stack, &mut font.error);
+
+                                            /********************************************************
+                                             *
+                                             * remove all operands to callothersubr from the stack
+                                             *
+                                             * for handled othersubrs, where we know the number of
+                                             * arguments, we increase the stack by the value of
+                                             * known_othersubr_result_cnt
+                                             *
+                                             * for unhandled othersubrs the following pops adjust
+                                             * the stack pointer as necessary
+                                             */
+
+                                            let count: Cf2UInt = cf2_stack_count(op_stack);
+                                            if arg_cnt as Cf2UInt > count {
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit;
+                                            }
+
+                                            let op_idx: Cf2UInt = count - arg_cnt as Cf2UInt;
+
+                                            known_othersubr_result_cnt = 0;
+                                            result_cnt = 0;
+
+                                            /* XXX TODO: The checks to `arg_count == <whatever>'   */
+                                            /* might not be correct; an othersubr expects a        */
+                                            /* certain number of operands on the PostScript stack  */
+                                            /* (as opposed to the T1 stack) but it doesn't have to */
+                                            /* put them there by itself; previous othersubrs might */
+                                            /* have left the operands there if they were not       */
+                                            /* followed by an appropriate number of pops           */
+                                            /*                                                     */
+                                            /* On the other hand, Adobe Reader 7.0.8 for Linux     */
+                                            /* doesn't accept a font that contains charstrings     */
+                                            /* like                                                */
+                                            /*                                                     */
+                                            /*     100 200 2 20 callothersubr                      */
+                                            /*     300 1 20 callothersubr pop                      */
+                                            /*                                                     */
+                                            /* Perhaps this is the reason why BuildCharArray       */
+                                            /* exists.                                             */
+
+                                            /* (`Unexpected_OtherSubr' is the block's `true') */
+                                            let unexpected_othersubr = 'othersubr: {
+                                                match subr_no {
+                                                    0 => {
+                                                        /* end flex feature */
+                                                        if arg_cnt != 3 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        if initial_map_ready
+                                                            && (decoder.flex_state == 0
+                                                                || decoder.num_flex_vectors != 7)
+                                                        {
+                                                            last_error =
+                                                                FT_ERR_INVALID_GLYPH_FORMAT;
+                                                            break 'exit;
+                                                        }
+
+                                                        /* the two `results' are popped     */
+                                                        /* by the following setcurrentpoint */
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            cur_x,
+                                                            &mut font.error,
+                                                        );
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            cur_y,
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 2;
+                                                    }
+
+                                                    1 => {
+                                                        /* start flex feature */
+                                                        if arg_cnt != 0 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        if !initial_map_ready {
+                                                            break 'othersubr false;
+                                                        }
+
+                                                        if ps_builder_check_points(
+                                                            &mut decoder.builder,
+                                                            6,
+                                                        )
+                                                        .is_err()
+                                                        {
+                                                            break 'exit;
+                                                        }
+
+                                                        decoder.flex_state = 1;
+                                                        decoder.num_flex_vectors = 0;
+                                                    }
+
+                                                    2 => {
+                                                        /* add flex vectors */
+                                                        if arg_cnt != 0 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        if !initial_map_ready {
+                                                            break 'othersubr false;
+                                                        }
+
+                                                        if decoder.flex_state == 0 {
+                                                            last_error =
+                                                                FT_ERR_INVALID_GLYPH_FORMAT;
+                                                            break 'exit;
+                                                        }
+
+                                                        /* note that we should not add a point for      */
+                                                        /* index 0; this will move our current position */
+                                                        /* to the flex point without adding any point   */
+                                                        /* to the outline                               */
+                                                        let idx: FtInt = decoder.num_flex_vectors;
+                                                        decoder.num_flex_vectors += 1;
+                                                        if idx > 0 && idx < 7 {
+                                                            /* in malformed fonts it is possible to have    */
+                                                            /* other opcodes in the middle of a flex (which */
+                                                            /* don't increase `num_flex_vectors'); we thus  */
+                                                            /* have to check whether we can add a point     */
+
+                                                            if ps_builder_check_points(
+                                                                &mut decoder.builder,
+                                                                1,
+                                                            )
+                                                            .is_err()
+                                                            {
+                                                                last_error =
+                                                                    FT_ERR_INVALID_GLYPH_FORMAT;
+                                                                break 'exit;
+                                                            }
+
+                                                            /* map: 1->2 2->4 3->6 4->2 5->4 6->6 */
+                                                            let idx2: usize = (if idx > 3 {
+                                                                idx - 3
+                                                            } else {
+                                                                idx
+                                                            } * 2)
+                                                                as usize;
+
+                                                            flex_store[idx2 - 2] = cur_x;
+                                                            flex_store[idx2 - 1] = cur_y;
+
+                                                            if idx == 3 || idx == 6 {
+                                                                cf2_glyphpath_curve_to(
+                                                                    &mut glyph_path,
+                                                                    ctx!(font, decoder),
+                                                                    &mut hints,
+                                                                    flex_store[0],
+                                                                    flex_store[1],
+                                                                    flex_store[2],
+                                                                    flex_store[3],
+                                                                    flex_store[4],
+                                                                    flex_store[5],
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+
+                                                    3 => {
+                                                        /* change hints */
+                                                        if arg_cnt != 1 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        if initial_map_ready {
+                                                            /* do not clear hints if initial hintmap */
+                                                            /* is not ready - we need to collate all */
+                                                            cf2_arrstack_clear(
+                                                                &mut hints.vStemHintArray,
+                                                            );
+                                                            cf2_arrstack_clear(
+                                                                &mut hints.hStemHintArray,
+                                                            );
+
+                                                            cf2_hintmask_init(&mut hints.hintMask);
+                                                            hints.hintMask.isValid = false;
+                                                            hints.hintMask.isNew = true;
+                                                        }
+
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    12 | 13 => {
+                                                        /* counter control hints, clear stack */
+                                                        cf2_stack_clear(op_stack);
+                                                    }
+
+                                                    14..=18 => {
+                                                        /* multiple masters */
+                                                        let Some(blend) =
+                                                            decoder.t1().and_then(|t1| t1.blend)
+                                                        else {
+                                                            last_error =
+                                                                FT_ERR_INVALID_GLYPH_FORMAT;
+                                                            break 'exit;
+                                                        };
+
+                                                        let num_points: FtUInt =
+                                                            (subr_no as FtUInt) - 13
+                                                                + (subr_no == 18) as FtUInt;
+                                                        if arg_cnt
+                                                            != num_points
+                                                                .wrapping_mul(blend.num_designs)
+                                                                as FtInt
+                                                        {
+                                                            last_error =
+                                                                FT_ERR_INVALID_GLYPH_FORMAT;
+                                                            break 'exit;
+                                                        }
+
+                                                        /* We want to compute                                */
+                                                        /*                                                   */
+                                                        /*   a0*w0 + a1*w1 + ... + ak*wk                     */
+                                                        /*                                                   */
+                                                        /* but we only have a0, a1-a0, a2-a0, ..., ak-a0.    */
+                                                        /*                                                   */
+                                                        /* However, given that w0 + w1 + ... + wk == 1, we   */
+                                                        /* can rewrite it easily as                          */
+                                                        /*                                                   */
+                                                        /*   a0 + (a1-a0)*w1 + (a2-a0)*w2 + ... + (ak-a0)*wk */
+                                                        /*                                                   */
+                                                        /* where k == num_designs-1.                         */
+                                                        /*                                                   */
+                                                        /* I guess that's why it's written in this `compact' */
+                                                        /* form.                                             */
+                                                        /*                                                   */
+                                                        let mut delta: Cf2UInt =
+                                                            op_idx + num_points;
+                                                        let mut values: Cf2UInt = op_idx;
+                                                        for _nn in 0..num_points {
+                                                            let mut tmp: Cf2Fixed =
+                                                                cf2_stack_get_real(
+                                                                    op_stack,
+                                                                    values,
+                                                                    &mut font.error,
+                                                                );
+
+                                                            for mm in 1..blend.num_designs as usize
+                                                            {
+                                                                let weight: FtFixed = blend
+                                                                    .weight_vector
+                                                                    .as_ref()
+                                                                    .and_then(|w| w.get(mm))
+                                                                    .copied()
+                                                                    .unwrap_or(0);
+                                                                tmp = add_int32(
+                                                                    tmp,
+                                                                    ft_mul_fix(
+                                                                        cf2_stack_get_real(
+                                                                            op_stack,
+                                                                            delta,
+                                                                            &mut font.error,
+                                                                        )
+                                                                            as FtLong,
+                                                                        weight,
+                                                                    )
+                                                                        as Cf2Fixed,
+                                                                );
+                                                                delta += 1;
+                                                            }
+
+                                                            cf2_stack_set_real(
+                                                                op_stack,
+                                                                values,
+                                                                tmp,
+                                                                &mut font.error,
+                                                            );
+                                                            values += 1;
+                                                        }
+                                                        cf2_stack_pop(
+                                                            op_stack,
+                                                            (arg_cnt as Cf2UInt)
+                                                                .wrapping_sub(num_points),
+                                                            &mut font.error,
+                                                        );
+
+                                                        known_othersubr_result_cnt =
+                                                            num_points as FtInt;
+                                                    }
+
+                                                    19 => {
+                                                        /* <idx> 1 19 callothersubr                 */
+                                                        /* ==> replace elements starting from index */
+                                                        /*     cvi( <idx> ) of BuildCharArray with  */
+                                                        /*     WeightVector                         */
+                                                        let Some(t1) = decoder.t1_mut() else {
+                                                            break 'othersubr true;
+                                                        };
+                                                        let len_buildchar: FtUInt =
+                                                            t1.len_buildchar;
+
+                                                        let Some(blend) =
+                                                            t1.blend.filter(|_| arg_cnt == 1)
+                                                        else {
+                                                            break 'othersubr true;
+                                                        };
+
+                                                        let idx: FtUInt = cf2_stack_pop_int(
+                                                            op_stack,
+                                                            &mut font.error,
+                                                        )
+                                                            as FtUInt;
+
+                                                        if len_buildchar < blend.num_designs
+                                                            || len_buildchar - blend.num_designs
+                                                                < idx
+                                                        {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        if let Some(weight_vector) =
+                                                            blend.weight_vector.as_ref()
+                                                        {
+                                                            let n = blend.num_designs as usize;
+                                                            let idx = idx as usize;
+                                                            if let (Some(dst), Some(src)) = (
+                                                                t1.buildchar.get_mut(idx..idx + n),
+                                                                weight_vector.get(..n),
+                                                            ) {
+                                                                dst.copy_from_slice(src);
+                                                            }
+                                                        }
+                                                    }
+
+                                                    20 => {
+                                                        /* <arg1> <arg2> 2 20 callothersubr pop   */
+                                                        /* ==> push <arg1> + <arg2> onto T1 stack */
+                                                        if arg_cnt != 2 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let summand2: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+                                                        let summand1: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            add_int32(summand1, summand2),
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    21 => {
+                                                        /* <arg1> <arg2> 2 21 callothersubr pop   */
+                                                        /* ==> push <arg1> - <arg2> onto T1 stack */
+                                                        if arg_cnt != 2 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let subtrahend: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+                                                        let minuend: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            sub_int32(minuend, subtrahend),
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    22 => {
+                                                        /* <arg1> <arg2> 2 22 callothersubr pop   */
+                                                        /* ==> push <arg1> * <arg2> onto T1 stack */
+                                                        if arg_cnt != 2 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let factor2: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+                                                        let factor1: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            ft_mul_fix(
+                                                                factor1 as FtLong,
+                                                                factor2 as FtLong,
+                                                            )
+                                                                as Cf2F16Dot16,
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    23 => {
+                                                        /* <arg1> <arg2> 2 23 callothersubr pop   */
+                                                        /* ==> push <arg1> / <arg2> onto T1 stack */
+                                                        if arg_cnt != 2 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let divisor: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+                                                        let dividend: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+
+                                                        if divisor == 0 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            ft_div_fix(
+                                                                dividend as FtLong,
+                                                                divisor as FtLong,
+                                                            )
+                                                                as Cf2F16Dot16,
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    24 => {
+                                                        /* <val> <idx> 2 24 callothersubr               */
+                                                        /* ==> set BuildCharArray[cvi( <idx> )] = <val> */
+                                                        let Some(t1) = decoder.t1_mut() else {
+                                                            break 'othersubr true;
+                                                        };
+
+                                                        if arg_cnt != 2 || t1.blend.is_none() {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let idx: Cf2UInt = cf2_stack_pop_int(
+                                                            op_stack,
+                                                            &mut font.error,
+                                                        )
+                                                            as Cf2UInt;
+
+                                                        if idx >= t1.len_buildchar {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let val = cf2_stack_pop_fixed(
+                                                            op_stack,
+                                                            &mut font.error,
+                                                        );
+                                                        if let Some(slot) =
+                                                            t1.buildchar.get_mut(idx as usize)
+                                                        {
+                                                            *slot = val as FtLong;
+                                                        }
+                                                    }
+
+                                                    25 => {
+                                                        /* <idx> 1 25 callothersubr pop        */
+                                                        /* ==> push BuildCharArray[cvi( idx )] */
+                                                        /*     onto T1 stack                   */
+                                                        let Some(t1) = decoder.t1() else {
+                                                            break 'othersubr true;
+                                                        };
+
+                                                        if arg_cnt != 1 || t1.blend.is_none() {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let idx: Cf2UInt = cf2_stack_pop_int(
+                                                            op_stack,
+                                                            &mut font.error,
+                                                        )
+                                                            as Cf2UInt;
+
+                                                        if idx >= t1.len_buildchar {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let val = t1
+                                                            .buildchar
+                                                            .get(idx as usize)
+                                                            .copied()
+                                                            .unwrap_or(0);
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            val as Cf2F16Dot16,
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    /* (the `#if 0'ed case 26) */
+                                                    27 => {
+                                                        /* <res1> <res2> <val1> <val2> 4 27 callothersubr pop */
+                                                        /* ==> push <res1> onto T1 stack if <val1> <= <val2>, */
+                                                        /*     otherwise push <res2>                          */
+                                                        if arg_cnt != 4 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let cond2: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+                                                        let cond1: Cf2F16Dot16 =
+                                                            cf2_stack_pop_fixed(
+                                                                op_stack,
+                                                                &mut font.error,
+                                                            );
+                                                        let arg2: Cf2F16Dot16 = cf2_stack_pop_fixed(
+                                                            op_stack,
+                                                            &mut font.error,
+                                                        );
+                                                        let arg1: Cf2F16Dot16 = cf2_stack_pop_fixed(
+                                                            op_stack,
+                                                            &mut font.error,
+                                                        );
+
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            if cond1 <= cond2 {
+                                                                arg1
+                                                            } else {
+                                                                arg2
+                                                            },
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    28 => {
+                                                        /* 0 28 callothersubr pop                     */
+                                                        /* ==> push random value from interval [0, 1) */
+                                                        /*     onto stack                             */
+                                                        if arg_cnt != 0 {
+                                                            break 'othersubr true;
+                                                        }
+
+                                                        let subfont = decoder.subfont_mut();
+
+                                                        /* only use the lower 16 bits of `random'  */
+                                                        /* to generate a number in the range (0;1] */
+                                                        let r: Cf2F16Dot16 =
+                                                            ((subfont.random & 0xFFFF) + 1)
+                                                                as Cf2F16Dot16;
+
+                                                        subfont.random = cff_random(subfont.random);
+
+                                                        cf2_stack_push_fixed(
+                                                            op_stack,
+                                                            r,
+                                                            &mut font.error,
+                                                        );
+                                                        known_othersubr_result_cnt = 1;
+                                                    }
+
+                                                    _ => {
+                                                        if arg_cnt >= 0 && subr_no >= 0 {
+                                                            /* store the unused args        */
+                                                            /* for this unhandled OtherSubr */
+
+                                                            if arg_cnt > PS_STORAGE_SIZE as Cf2Int {
+                                                                arg_cnt = PS_STORAGE_SIZE as Cf2Int;
+                                                            }
+                                                            result_cnt = arg_cnt;
+
+                                                            for i in 1..=arg_cnt {
+                                                                results
+                                                                    [(result_cnt - i) as usize] =
+                                                                    cf2_stack_pop_fixed(
+                                                                        op_stack,
+                                                                        &mut font.error,
+                                                                    );
+                                                            }
+
+                                                            break 'othersubr false;
+                                                        }
+                                                        /* fall through */
+                                                        break 'othersubr true;
+                                                    }
+                                                }
+
+                                                false
+                                            };
+
+                                            if unexpected_othersubr {
+                                                /* Unexpected_OtherSubr: */
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit;
+                                            }
+                                        }
                                         continue 'main; /* do not clear the stack */
                                     }
 
                                     CF2_ESC_POP => {
-                                        /* (unknown op unless in Type 1 mode, */
-                                        /* which is not translated yet)       */
+                                        if font.isT1 {
+                                            if known_othersubr_result_cnt > 0 {
+                                                known_othersubr_result_cnt -= 1;
+                                                /* ignore, we pushed the operands ourselves */
+                                                continue 'main;
+                                            }
+
+                                            if result_cnt == 0 {
+                                                /* no more operands for othersubr */
+                                                last_error = FT_ERR_INVALID_GLYPH_FORMAT;
+                                                break 'exit;
+                                            }
+
+                                            result_cnt -= 1;
+                                            cf2_stack_push_fixed(
+                                                op_stack,
+                                                results[result_cnt as usize],
+                                                &mut font.error,
+                                            );
+                                        }
                                         continue 'main; /* do not clear the stack */
                                     }
 
@@ -1251,8 +2236,7 @@ pub fn cf2_interp_t2_char_string(
 
                                     CF2_ESC_RANDOM => {
                                         /* in spec */
-                                        let sub = decoder.current_subfont;
-                                        let subfont = decoder.cff.subfont_mut(sub);
+                                        let subfont = decoder.subfont_mut();
 
                                         /* only use the lower 16 bits of `random'  */
                                         /* to generate a number in the range (0;1] */
@@ -1367,8 +2351,27 @@ pub fn cf2_interp_t2_char_string(
                                     }
 
                                     CF2_ESC_SETCURRENTPT => {
-                                        /* (unknown op unless in Type 1 mode, */
-                                        /* which is not translated yet)       */
+                                        if font.isT1 && initial_map_ready {
+                                            /* From the T1 specification, section 6.4:            */
+                                            /*                                                    */
+                                            /*   The setcurrentpoint command is used only in      */
+                                            /*   conjunction with results from OtherSubrs         */
+                                            /*   procedures.                                      */
+
+                                            /* known_othersubr_result_cnt != 0 is already handled */
+                                            /* above.                                             */
+
+                                            /* Note, however, that both Ghostscript and Adobe     */
+                                            /* Distiller handle this situation by silently        */
+                                            /* ignoring the inappropriate `setcurrentpoint'       */
+                                            /* instruction.  So we do the same.                   */
+                                            /* (the `#if 0'ed flex state check) */
+
+                                            cur_y = cf2_stack_pop_fixed(op_stack, &mut font.error);
+                                            cur_x = cf2_stack_pop_fixed(op_stack, &mut font.error);
+
+                                            decoder.flex_state = 0;
+                                        }
                                     }
 
                                     _ => {}
@@ -1378,11 +2381,72 @@ pub fn cf2_interp_t2_char_string(
                     } /* end of 1st switch checking op2 */
                 } /* case cf2_cmdESC */
 
-                CF2_CMD_HSBW => { /* (Type 1 only, which is not translated yet) */ }
+                CF2_CMD_HSBW => {
+                    if font.isT1 {
+                        let advance_x = cf2_stack_pop_fixed(op_stack, &mut font.error);
+                        let lsb_x: Cf2Fixed = cf2_stack_pop_fixed(op_stack, &mut font.error);
 
-                CF2_CMD_ENDCHAR => {
-                    /* (Type 1 mode: the initial hint map rewind is not */
-                    /* translated yet)                                   */
+                        let builder = &mut decoder.builder.builder;
+
+                        builder.advance.x = advance_x as FtPos;
+                        builder.advance.y = 0;
+
+                        builder.left_bearing.x =
+                            add_int32(builder.left_bearing.x as Cf2Fixed, lsb_x) as FtPos;
+
+                        have_width = true;
+
+                        /* the `metrics_only' indicates that we only want to compute */
+                        /* the glyph's metrics (lsb + advance width), not load the   */
+                        /* rest of it; so exit immediately                           */
+                        if decoder.builder.metrics_only {
+                            break 'exit;
+                        }
+
+                        if initial_map_ready {
+                            cur_x = add_int32(cur_x, lsb_x);
+                        }
+                    }
+                }
+
+                CF2_CMD_ENDCHAR => 'endchar: {
+                    if font.isT1 && !initial_map_ready {
+                        /* trigger initial hintmap build */
+                        cf2_glyphpath_move_to(
+                            &mut glyph_path,
+                            ctx!(font, decoder),
+                            &mut hints,
+                            cur_x,
+                            cur_y,
+                        );
+
+                        initial_map_ready = true;
+
+                        /* change hints routine - clear for rewind */
+                        cf2_arrstack_clear(&mut hints.vStemHintArray);
+                        cf2_arrstack_clear(&mut hints.hStemHintArray);
+
+                        cf2_hintmask_init(&mut hints.hintMask);
+                        hints.hintMask.isValid = false;
+                        hints.hintMask.isNew = true;
+
+                        /* rewind charstring */
+                        /* some charstrings use endchar from a final subroutine call */
+                        /* without returning, detect these and exit to the top level */
+                        /* charstring                                                */
+                        while charstring_index > 0 {
+                            /* restore position in previous charstring */
+                            charstring_index -= 1;
+                            charstring = cf2_arrstack_get_pointer(
+                                &subr_stack,
+                                charstring_index as usize,
+                                &mut font.error,
+                            );
+                        }
+                        subr_stack.items[charstring].ptr = subr_stack.items[charstring].start;
+
+                        break 'endchar;
+                    }
 
                     if cf2_stack_count(op_stack) == 1 || cf2_stack_count(op_stack) == 5 {
                         if !have_width {
@@ -1917,8 +2981,19 @@ pub fn cf2_interp_t2_char_string(
                          * allowed as the large value remains untouched.
                          *
                          */
-                        /* (Type 1 mode is not translated yet) */
-                        cf2_stack_push_fixed(op_stack, v, &mut font.error);
+                        if font.isT1 {
+                            if !(-32000..=32000).contains(&v) {
+                                if large_int {
+                                    /* (no `div' after large integer) */
+                                } else {
+                                    large_int = true;
+                                }
+                            }
+
+                            cf2_stack_push_int(op_stack, v as Cf2Int, &mut font.error);
+                        } else {
+                            cf2_stack_push_fixed(op_stack, v, &mut font.error);
+                        }
                     }
                     continue 'main; /* don't clear stack */
                 }

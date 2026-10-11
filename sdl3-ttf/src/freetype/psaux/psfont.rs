@@ -48,7 +48,7 @@ use super::psfixed::*;
 use super::psft::*;
 use super::psglue::*;
 use super::psintrp::cf2_interp_t2_char_string;
-use super::psobjs::PsDecoder;
+use super::psobjs::{PsDecoder, PsDecoderFont};
 use super::psread::Cf2BufferRec;
 
 pub const CF2_OPERAND_STACK_SIZE: FtUInt = 48;
@@ -373,7 +373,7 @@ fn cf2_font_setup(font: &mut Cf2FontRec, decoder: &mut PsDecoder<'_, '_>, transf
                 }
             }
 
-            let subfont = decoder.cff.subfont(sub_font);
+            let subfont = decoder.subfont();
             if cff_blend_check_vector(
                 &subfont.blend,
                 subfont.private_dict.vsindex,
@@ -381,17 +381,19 @@ fn cf2_font_setup(font: &mut Cf2FontRec, decoder: &mut PsDecoder<'_, '_>, transf
                 normalized_v.as_deref(),
             ) {
                 /* blend has changed, reparse */
-                let _ = cff_load_private_dict(
-                    decoder.cff,
-                    sub_font,
-                    decoder.stream,
-                    len_normalized_v,
-                    normalized_v.as_deref(),
-                );
+                if let PsDecoderFont::Cff { cff, stream, .. } = &mut decoder.font {
+                    let _ = cff_load_private_dict(
+                        cff,
+                        sub_font,
+                        stream,
+                        len_normalized_v,
+                        normalized_v.as_deref(),
+                    );
+                }
                 need_extra_setup = true;
             }
 
-            let subfont = decoder.cff.subfont(sub_font);
+            let subfont = decoder.subfont();
 
             /* copy from subfont */
             font.blend.font = subfont.blend.font;

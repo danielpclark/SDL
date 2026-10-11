@@ -508,6 +508,10 @@ pub enum FtCMapData {
     Fnt(super::super::winfonts::winfnt::FntCMapRec),
     /// the PFR driver's charmap (`PFR_CMapRec`)
     Pfr(super::super::pfr::pfrcmap::PfrCMapRec),
+    /// the Type 1 standard and expert charmaps (`T1_CMapStdRec`)
+    T1Std(Box<super::super::psaux::t1cmap::T1CMapStdRec>),
+    /// the Type 1 custom charmap (`T1_CMapCustomRec`)
+    T1Custom(Box<super::super::psaux::t1cmap::T1CMapCustomRec>),
     /// the PCF driver's charmap (`PCF_CMapRec`)
     Pcf(super::super::pcf::pcfdrivr::PcfCMapRec),
     /// the BDF driver's charmap (`BDF_CMapRec`)
