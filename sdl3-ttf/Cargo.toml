@@ -11,7 +11,10 @@ rust-version.workspace = true
 # for the PCF driver's pcfutil; BDF-PCF-COPYING) for src/freetype/bdf/ and
 # src/freetype/pcf/; HarfBuzz's "Old MIT" license (HARFBUZZ-COPYING) for
 # src/harfbuzz/, and the Unicode License V3 (UNICODE-LICENSE.txt) for its
-# Unicode tables.
+# Unicode tables; the MIT licenses of PlutoVG (PLUTOVG-LICENSE) and
+# PlutoSVG (PLUTOSVG-LICENSE) for src/plutovg/ (its FreeType-derived ft_*
+# files under the FTL; its libm.rs under Arm's MIT license and Sun's
+# notice) and src/plutosvg/.
 license = "Zlib AND FTL AND MIT AND MIT-open-group AND MIT-Modern-Variant AND Unicode-3.0"
 repository.workspace = true
 readme = "../README.md"

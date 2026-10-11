@@ -349,6 +349,7 @@ fn ft_smooth_render(
     slot: &mut FtGlyphSlotRec,
     mode: FtRenderMode,
     origin: Option<&FtVector>,
+    _face: Option<&mut FtFace>,
 ) -> FtResult<()> {
     let mut x_shift: FtPos = 0;
     let mut y_shift: FtPos = 0;

@@ -6,10 +6,12 @@
 //! fonts.
 //!
 //! The build translated is upstream's default one, with its bundled
-//! FreeType and HarfBuzz and without PlutoSVG (`TTF_USE_HARFBUZZ` is 1,
-//! `TTF_USE_PLUTOSVG` is 0): text is shaped by the translated HarfBuzz
+//! FreeType, HarfBuzz and PlutoSVG (`TTF_USE_HARFBUZZ` and
+//! `TTF_USE_PLUTOSVG` are 1): text is shaped by the translated HarfBuzz
 //! (`crate::harfbuzz`), with the font's or text's direction, script and
-//! language.
+//! language, and OpenType SVG glyphs are rendered in color by the
+//! translated PlutoSVG (`crate::plutosvg`), whose FreeType hooks
+//! [`init`] sets.
 //!
 //! Translation notes:
 //!
@@ -58,6 +60,7 @@ use crate::harfbuzz::hb_font::{HbFont, HbFontData};
 use crate::harfbuzz::hb_ft::*;
 use crate::harfbuzz::hb_shape::hb_shape;
 use crate::harfbuzz::hb_unicode::hb_unicode_script;
+use crate::plutosvg::ft::plutosvg_ft_svg_hooks;
 
 /* Enable rendering with color
  * Freetype may need to be compiled with FT_CONFIG_OPTION_USE_PNG */
@@ -1393,6 +1396,15 @@ pub fn init() -> Result<()> {
     match ft_init_freetype() {
         Ok(lib) => {
             /* TTF_USE_SDF: the renderer properties are not set (#if 0) */
+
+            /* TTF_USE_PLUTOSVG */
+            let _ = ft_property_set(
+                &lib,
+                "ot-svg",
+                "svg-hooks",
+                &FtPropertyValue::SvgHooks(*plutosvg_ft_svg_hooks()),
+            );
+
             *library = Some(lib);
             Ok(())
         }

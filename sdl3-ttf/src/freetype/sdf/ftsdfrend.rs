@@ -93,6 +93,7 @@ fn property_int(value: &FtPropertyValue) -> FtResult<FtInt> {
             .trim()
             .parse::<FtInt>()
             .map_err(|_| FT_ERR_INVALID_ARGUMENT),
+        FtPropertyValue::SvgHooks(_) => Err(FT_ERR_INVALID_ARGUMENT),
     }
 }
 
@@ -206,6 +207,7 @@ fn ft_sdf_render(
     slot: &mut FtGlyphSlotRec,
     mode: FtRenderMode,
     origin: Option<&FtVector>,
+    _face: Option<&mut FtFace>,
 ) -> FtResult<()> {
     let mut x_shift: FtPos = 0;
     let mut y_shift: FtPos = 0;
@@ -434,6 +436,7 @@ fn ft_bsdf_render(
     slot: &mut FtGlyphSlotRec,
     mode: FtRenderMode,
     origin: Option<&FtVector>,
+    _face: Option<&mut FtFace>,
 ) -> FtResult<()> {
     let mut x_pad: FtPos = 0;
     let mut y_pad: FtPos = 0;
