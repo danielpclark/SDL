@@ -87,9 +87,16 @@ impl ShaderType {
     };
 
     /// The source that goes before the precision prelude.
-    /// Translation of `GLES2_GetShaderPrologue()`.
-    pub(super) fn prologue(self) -> &'static str {
+    /// Translation of `GLES2_GetShaderPrologue()`, of the `OPENGLES_300`
+    /// shaders when `opengles_300` is set.
+    pub(super) fn prologue(self, opengles_300: bool) -> &'static str {
         match self {
+            // Note (upstream): GL_OES_EGL_image_external is GLSL ES 1.00's;
+            // the OPENGLES_300 shader needs its GLSL ES 3.00 version for
+            // texture() of a samplerExternalOES.
+            ShaderType::FragmentTextureExternalOes if opengles_300 => {
+                FRAGMENT_TEXTURE_EXTERNAL_OES_PROLOGUE_ESSL3
+            }
             ShaderType::FragmentTextureExternalOes => FRAGMENT_TEXTURE_EXTERNAL_OES_PROLOGUE,
             _ => "",
         }
@@ -139,6 +146,28 @@ impl ShaderType {
         }
     }
 }
+
+/// The GLSL ES 1.00 names the sources use, defined as their GLSL ES 3.00
+/// equivalents for the `OPENGLES_300` shaders (which upstream's lack).
+pub(super) fn glsl_es_100_names(fragment: bool) -> &'static str {
+    if fragment {
+        GLSL_ES_100_FRAGMENT_NAMES
+    } else {
+        GLSL_ES_100_VERTEX_NAMES
+    }
+}
+
+const GLSL_ES_100_VERTEX_NAMES: &str = "\
+#define attribute in
+#define varying out
+";
+
+const GLSL_ES_100_FRAGMENT_NAMES: &str = "\
+#define varying in
+#define texture2D texture
+out mediump vec4 SDL_FragColor;
+#define gl_FragColor SDL_FragColor
+";
 
 impl ShaderInclude {
     /// The precision prelude's source. Translation of `GLES2_GetShaderInclude()`.
@@ -676,6 +705,11 @@ const FRAGMENT_TEXTURE_EXTERNAL_OES_PROLOGUE: &str = "\
 #extension GL_OES_EGL_image_external : require
 
 ";
+
+const FRAGMENT_TEXTURE_EXTERNAL_OES_PROLOGUE_ESSL3: &str = "\
+#extension GL_OES_EGL_image_external_essl3 : require
+
+";
 const FRAGMENT_TEXTURE_EXTERNAL_OES: &str = "\
 uniform samplerExternalOES u_texture;
 varying mediump vec4 v_color;
@@ -752,9 +786,9 @@ mod tests {
             palette_shader_functions!(),
             "mediump vec4 GetPixelArtSample(vec2 uv)\n{\n    return texture2D(u_texture, uv);\n}\n\n\nvoid main()\n"
         )));
-        assert_eq!(ShaderType::FragmentSolid.prologue(), "");
+        assert_eq!(ShaderType::FragmentSolid.prologue(false), "");
         assert!(ShaderType::FragmentTextureExternalOes
-            .prologue()
+            .prologue(false)
             .starts_with("#extension GL_OES_EGL_image_external : require\n"));
         assert_eq!(ShaderInclude::None.source(), "");
 

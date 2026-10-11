@@ -1064,29 +1064,186 @@ fn gles2_textures_from_existing_gl_textures() {
     gl.delete_texture(name);
 }
 
-/// An OpenGL ES 3 context asked for: the renderer builds the `OPENGLES_300`
-/// shaders, which upstream's sources don't let compile.
-#[test]
-fn gles2_opengles_300() {
+/// An offscreen OpenGL window whose context is asked for as OpenGL ES 3.0,
+/// with an OpenGL ES 2 renderer (which uses the `OPENGLES_300` shaders and
+/// sampling there), or `None` when there is no OpenGL ES 3 renderer. The
+/// GL attributes are reset when the window is made.
+fn gles3_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
     use crate::video::gl::{self, GlAttr};
 
-    let _l = crate::test_support::test_lock();
-    let _video = Video::init();
-    let Some((window, r)) = gles2_renderer(W, H) else {
-        return;
-    };
-    drop(r);
-    window.destroy();
     gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_ES).unwrap();
     gl::gl_set_attribute(GlAttr::ContextMajorVersion, 3).unwrap();
     gl::gl_set_attribute(GlAttr::ContextMinorVersion, 0).unwrap();
-    let window = Window::create("gles3", W, H, WindowFlags::OPENGL).unwrap();
-    let e = Renderer::for_window(&window, Some(GLES2_RENDERER))
-        .err()
-        .unwrap();
-    assert_eq!(e.message(), "Failed to load the shader 0");
-    window.destroy();
+    let window = match Window::create("gles3", w, h, WindowFlags::OPENGL) {
+        Ok(window) => window,
+        Err(e) => {
+            gl::gl_reset_attributes();
+            crate::test_support::skip(
+                "egl",
+                format_args!("no OpenGL ES 3 window ({})", e.message()),
+            );
+            return None;
+        }
+    };
+    let result = Renderer::for_window(&window, Some(GLES2_RENDERER));
     gl::gl_reset_attributes();
+    match result {
+        Ok(r) => Some((window, r)),
+        Err(e) => {
+            crate::test_support::skip(
+                "egl",
+                format_args!("no OpenGL ES 3 renderer ({})", e.message()),
+            );
+            window.destroy();
+            None
+        }
+    }
+}
+
+/// An OpenGL ES 3 context asked for: the renderer builds the `OPENGLES_300`
+/// shaders (upstream's sources, with their GLSL ES 1.00 names defined),
+/// which draw as the OpenGL ES 2.0 ones do but for pixel art, whose texels'
+/// edges are filtered.
+#[test]
+fn gles2_opengles_300() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut r)) = gles3_renderer(W, H) else {
+        return;
+    };
+    assert!(
+        r.properties()
+            .get_bool(PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN)
+            == Some(true)
+    );
+
+    // Shapes and textures of every shader draw as the software renderer's.
+    let (w, h) = (16usize, 12usize);
+    let (y, u, v) = yuv_planes(w, h);
+    let uv: Vec<u8> = u.iter().zip(&v).flat_map(|(a, b)| [*a, *b]).collect();
+    let palette = share_palette(
+        Palette::from_colors(
+            (0..=255u8)
+                .map(|i| Color::new(i, 255 - i, i / 2, 255))
+                .collect(),
+        )
+        .unwrap(),
+    );
+    let scene = |r: &mut Renderer| {
+        r.set_draw_color(12, 34, 56, 255);
+        r.clear().unwrap();
+        r.set_draw_color(200, 100, 50, 255);
+        r.render_fill_rect(Some(&FRect::new(4.0, 5.0, 20.0, 10.0)))
+            .unwrap();
+        r.render_line(1.0, 40.0, 60.0, 30.0).unwrap();
+        let mut x = 0.0;
+        for format in [
+            PixelFormat::RGBA32,
+            PixelFormat::BGRA32,
+            PixelFormat::RGBX32,
+            PixelFormat::BGRX32,
+        ] {
+            let t = pattern_texture(r, format, 8, 6);
+            r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+            r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+            r.render_texture(t, None, Some(&FRect::new(x, 20.0, 16.0, 12.0)))
+                .unwrap();
+            r.destroy_texture(t);
+            x += 16.0;
+        }
+        let t = r
+            .create_texture(PixelFormat::INDEX8, TextureAccess::Static, 16, 2)
+            .unwrap();
+        r.set_texture_palette(t, Some(palette.clone())).unwrap();
+        let indices: Vec<u8> = (0..32).map(|i| (i * 37 % 256) as u8).collect();
+        r.update_texture(t, None, &indices, 16).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(30.0, 2.0, 32.0, 4.0)))
+            .unwrap();
+        r.destroy_texture(t);
+        for (format, x) in [(PixelFormat::IYUV, 0.0), (PixelFormat::NV12, 32.0)] {
+            let t = r
+                .create_texture(format, TextureAccess::Static, w as i32, h as i32)
+                .unwrap();
+            r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+            if format == PixelFormat::NV12 {
+                r.update_nv_texture(t, None, &y, w as i32, &uv, w as i32)
+                    .unwrap();
+            } else {
+                r.update_yuv_texture(t, None, &y, w as i32, &u, w as i32 / 2, &v, w as i32 / 2)
+                    .unwrap();
+            }
+            r.render_texture(t, None, Some(&FRect::new(x, 34.0, 16.0, 12.0)))
+                .unwrap();
+            r.destroy_texture(t);
+        }
+    };
+    // (the shaders convert YUV in floats, the software path in fixed point)
+    compare("OpenGL ES 3 scene", &mut r, 3, scene);
+
+    // Pixel art scaled by a whole factor samples the texels' centers, as
+    // nearest sampling does.
+    let scene = |r: &mut Renderer, mode: ScaleMode| {
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        let t = pattern_texture(r, PixelFormat::RGBA32, 8, 6);
+        r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(t, mode).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 24.0, 18.0)))
+            .unwrap();
+        r.destroy_texture(t);
+        r.read_pixels(None).unwrap()
+    };
+    let mut sw = software_renderer(W, H);
+    assert_close(
+        "OpenGL ES 3 pixel art 3x",
+        &scene(&mut r, ScaleMode::PixelArt),
+        &scene(&mut sw, ScaleMode::Nearest),
+        0,
+    );
+
+    // Scaled 2.5x, the pixel on the edge of two texels is their mean (the
+    // texels' box of 0.4 puts its sample on the edge, filtered linearly),
+    // for RGB and palette textures; the OpenGL ES 2.0 shaders take the
+    // nearest texel there.
+    let edge = |r: &mut Renderer, format: PixelFormat| -> [u8; 4] {
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        let t = r
+            .create_texture(format, TextureAccess::Static, 2, 1)
+            .unwrap();
+        if format == PixelFormat::INDEX8 {
+            r.set_texture_palette(t, Some(palette.clone())).unwrap();
+            r.update_texture(t, None, &[0, 255], 2).unwrap();
+        } else {
+            r.update_texture(t, None, &[0, 0, 0, 255, 255, 255, 255, 255], 8)
+                .unwrap();
+        }
+        r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::PixelArt).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 5.0, 1.0)))
+            .unwrap();
+        r.destroy_texture(t);
+        let s = r.read_pixels(Some(&Rect::new(0, 0, 5, 1))).unwrap();
+        let s = s.convert(PixelFormat::RGBA32).unwrap();
+        s.raw_pixels().unwrap()[8..12].try_into().unwrap()
+    };
+    let near =
+        |got: [u8; 4], want: [u8; 3]| got[..3].iter().zip(want).all(|(g, w)| g.abs_diff(w) <= 1);
+    let got = edge(&mut r, PixelFormat::RGBA32);
+    assert!(near(got, [128, 128, 128]), "RGBA pixel art edge {got:?}");
+    // (palette entries 0 and 255: (0, 255, 0) and (255, 0, 127))
+    let got = edge(&mut r, PixelFormat::INDEX8);
+    assert!(near(got, [128, 128, 64]), "palette pixel art edge {got:?}");
+    drop(r);
+    window.destroy();
+
+    let Some((window, mut r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    assert_eq!(edge(&mut r, PixelFormat::RGBA32)[..3], [255, 255, 255]);
+    drop(r);
+    window.destroy();
 }
 
 /// A palettized texture destroyed right after it's drawn, before the queue
