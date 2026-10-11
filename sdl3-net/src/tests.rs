@@ -748,7 +748,16 @@ fn udp_exchange(addr: &Address, expected_peer: &str) {
         d2.send(Some(addr), port1, &huge).unwrap_err().message(),
         "buffer is too large to send in a single datagram packet"
     );
-    let big = vec![7u8; 60000];
+    // Apple's kernels refuse datagrams over net.inet.udp.maxdgram (9216 by
+    // default) with EMSGSIZE, upstream's sockets as well.
+    let big = vec![
+        7u8;
+        if cfg!(target_vendor = "apple") {
+            9000
+        } else {
+            60000
+        }
+    ];
     d2.send(Some(addr), port1, &big).unwrap();
     assert_eq!(receive_one(&mut d1).buf, big);
 
