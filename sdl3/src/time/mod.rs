@@ -1,4 +1,6 @@
-// Rust translation of src/time/SDL_time.c and include/SDL3/SDL_time.h from Simple DirectMedia Layer.
+// Rust translation of src/time/SDL_time.c, SDL_time_c.h,
+// src/time/dummy/SDL_systime.c and include/SDL3/SDL_time.h from Simple
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -8,6 +10,12 @@
 //! [`DateTime`] breaks one down into human-understandable components
 //! (`SDL_DateTime`). The calendar algorithms are Howard Hinnant's public-domain
 //! ones, exactly as upstream uses them.
+//!
+//! The platform layer (the clock, local time and the locale's date and time
+//! formats) is the Unix backend (`clock_gettime()`, `localtime_r()`,
+//! `nl_langinfo()`) or the Windows one (`GetSystemTimePreciseAsFileTime()`,
+//! `SystemTimeToTzSpecificLocalTime()`, `GetLocaleInfoW()`); elsewhere the
+//! clock is `std`'s and there is no local time (upstream's dummy backend).
 
 use std::fmt;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -15,6 +23,38 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::err;
 use crate::error::{Error, Result};
 use crate::timer::NS_PER_SECOND;
+
+#[cfg(unix)]
+mod unix;
+#[cfg(unix)]
+use unix as sys;
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows as sys;
+
+/// The dummy backend (`src/time/dummy/SDL_systime.c`).
+#[cfg(not(any(unix, windows)))]
+mod sys {
+    use super::{DateFormat, DateTime, Time, TimeFormat};
+    use crate::error::{Error, Result};
+
+    /// Translation of `SDL_GetSystemTimeLocalePreferences()` (dummy).
+    pub(super) fn get_system_time_locale_preferences(_df: &mut DateFormat, _tf: &mut TimeFormat) {
+        // NOP
+    }
+
+    /// `SDL_GetCurrentTime()`: upstream's dummy backend reports that it is
+    /// unsupported; `std`'s clock is used instead.
+    pub(super) fn get_current_time() -> Result<Time> {
+        Time::try_from(std::time::SystemTime::now())
+    }
+
+    /// Translation of `SDL_TimeToDateTime()` (dummy).
+    pub(super) fn time_to_date_time(_ticks: Time, _local_time: bool) -> Result<DateTime> {
+        Err(Error::unsupported())
+    }
+}
 
 const SECONDS_PER_DAY: i64 = 86400;
 
@@ -49,11 +89,16 @@ impl Time {
     /// The current value of the system realtime clock in UTC.
     /// Translation of `SDL_GetCurrentTime()`.
     pub fn now() -> Result<Time> {
-        Time::try_from(SystemTime::now())
+        sys::get_current_time()
     }
 
     /// Break down into calendar components in UTC.
     /// Translation of `SDL_TimeToDateTime(ticks, dt, false)`.
+    ///
+    /// Upstream asks the platform (`gmtime_r()`, `FileTimeToSystemTime()`),
+    /// which can't fail for a [`Time`]; this computes the same result with
+    /// the calendar algorithms below, on every platform (the tests check it
+    /// against the platform's answer).
     pub fn to_utc_date_time(self) -> DateTime {
         let mut secs = self.0.div_euclid(NS_PER_SECOND);
         let nanos = self.0.rem_euclid(NS_PER_SECOND);
@@ -77,11 +122,10 @@ impl Time {
     /// Break down into calendar components in the local time zone.
     /// Translation of `SDL_TimeToDateTime(ticks, dt, true)`.
     ///
-    /// Upstream implements this per platform (`localtime_r`,
-    /// `FileTimeToSystemTime`, ...). Until that platform layer is translated
-    /// this returns [`ErrorKind::Unsupported`](crate::ErrorKind::Unsupported).
+    /// Without a platform backend (other than on Unix and Windows) this
+    /// returns [`ErrorKind::Unsupported`](crate::ErrorKind::Unsupported).
     pub fn to_local_date_time(self) -> Result<DateTime> {
-        Err(Error::unsupported())
+        sys::time_to_date_time(self, true)
     }
 
     /// Convert to a Windows `FILETIME`: 100-nanosecond intervals since
@@ -298,10 +342,18 @@ pub enum TimeFormat {
 /// The current system locale's preferred date and time formats.
 /// Translation of `SDL_GetDateTimeLocalePreferences()`.
 ///
-/// Without a platform backend this is the documented default: ISO 8601 date
-/// order (unambiguous) and 24 hour time.
+/// On Unix this is what the current `LC_TIME` locale's formats (from
+/// `nl_langinfo()`) start with: a program that never calls `setlocale()`
+/// is in the "C" locale, whose `%m/%d/%y` is month first. On Windows it is
+/// the user locale's short date and time formats.
 pub fn locale_preferences() -> (DateFormat, TimeFormat) {
-    (DateFormat::YearMonthDay, TimeFormat::Hour24)
+    // Default to ISO 8061 date format, as it is unambiguous, and 24 hour time.
+    let mut date_format = DateFormat::YearMonthDay;
+    let mut time_format = TimeFormat::Hour24;
+
+    sys::get_system_time_locale_preferences(&mut date_format, &mut time_format);
+
+    (date_format, time_format)
 }
 
 /* The following algorithms are based on those of Howard Hinnant and are in the public domain.
@@ -498,10 +550,6 @@ mod tests {
             .unwrap_err()
             .message()
             .contains("out of range"));
-        assert_eq!(
-            Time::UNIX_EPOCH.to_local_date_time().unwrap_err().kind(),
-            crate::ErrorKind::Unsupported
-        );
     }
 
     #[test]
@@ -525,9 +573,279 @@ mod tests {
     fn now_is_recent() {
         let t = Time::now().unwrap();
         assert!(t.as_secs() > 1_600_000_000); // after 2020
-        assert_eq!(
-            locale_preferences(),
-            (DateFormat::YearMonthDay, TimeFormat::Hour24)
-        );
+        let std_now = Time::try_from(SystemTime::now()).unwrap();
+        assert!((std_now.as_secs() - t.as_secs()).abs() < 60);
+    }
+
+    /// Times spread over the whole range, from a fixed sequence (and the
+    /// edges), multiples of `unit` nanoseconds.
+    fn sample_times(unit: i64) -> Vec<Time> {
+        let mut out = vec![
+            Time::MAX,
+            Time::from_nanos(-1),
+            Time::from_nanos(-150),
+            Time::from_nanos(-1_000_000_050),
+            Time::UNIX_EPOCH,
+            Time::from_nanos(i64::MIN + 2 * NS_PER_SECOND),
+        ];
+        let mut x: u64 = 0x2545_f491_4f6c_dd1d;
+        for _ in 0..2000 {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            out.push(Time::from_nanos(x as i64));
+        }
+        // (upstream's Unix backend wraps around within a second of
+        // SDL_MIN_TIME, see unix::time_to_date_time)
+        out.retain(|t| t.as_nanos() > i64::MIN + NS_PER_SECOND);
+        for t in &mut out {
+            *t = Time::from_nanos(t.as_nanos() - t.as_nanos().rem_euclid(unit));
+        }
+        out
+    }
+
+    /// The calendar algorithms give what the platform's UTC conversion
+    /// (`gmtime_r()`, `FileTimeToSystemTime()`) gives.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn utc_matches_platform() {
+        for t in sample_times(1) {
+            assert_eq!(
+                sys::time_to_date_time(t, false).unwrap(),
+                t.to_utc_date_time(),
+                "{t:?}"
+            );
+        }
+    }
+
+    /// A local date and time, with its UTC offset, is the same point in time.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn local_time_round_trips() {
+        let _l = crate::test_support::test_lock();
+        // (whole milliseconds: see the FIXME in windows::time_to_date_time)
+        for t in sample_times(1_000_000) {
+            let dt = t.to_local_date_time().unwrap();
+            if !(1678..=2261).contains(&dt.year) {
+                continue; // (the ends of the range don't convert back)
+            }
+            assert_eq!(dt.to_time().unwrap(), t, "{dt:?}");
+            assert_eq!(
+                dt.day_of_week,
+                day_of_week(dt.year, dt.month, dt.day).unwrap()
+            );
+            assert!(dt.utc_offset.abs() <= 14 * 3600 + 3600, "{dt:?}");
+        }
+        let now = Time::now().unwrap().as_nanos();
+        let now = Time::from_nanos(now - now.rem_euclid(1_000_000)); // (as above)
+        assert_eq!(now.to_local_date_time().unwrap().to_time().unwrap(), now);
+    }
+
+    /// " Y-M-D h:m:s.ns wDOW oOFFSET", as the C reference prints it.
+    #[cfg(target_os = "linux")]
+    fn format_dt(dt: Result<DateTime>) -> String {
+        match dt {
+            Ok(dt) => format!(
+                " {}-{}-{} {}:{}:{}.{} w{} o{}",
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.nanosecond,
+                dt.day_of_week as i32,
+                dt.utc_offset
+            ),
+            Err(_) => " err".to_owned(),
+        }
+    }
+
+    /// `testdata/unix.txt` is upstream's `SDL_TimeToDateTime()` (from
+    /// libSDL3 built from the C source, on glibc) for these times in these
+    /// time zones, then `SDL_GetDateTimeLocalePreferences()` in these
+    /// locales (compiled with `localedef`, used with `uselocale()`).
+    #[cfg(target_os = "linux")]
+    const ZONES: [&str; 9] = [
+        "UTC",
+        "America/New_York",
+        "Europe/Berlin",
+        "Australia/Lord_Howe",
+        "Asia/Kolkata",
+        "America/St_Johns",
+        "Pacific/Chatham",
+        "XYZ-5:30",
+        "",
+    ];
+    #[cfg(target_os = "linux")]
+    const TICKS: [i64; 23] = [
+        0,
+        -1,
+        1,
+        -1500000000,
+        999999999,
+        -999999999,
+        -1000000000,
+        -1000000001,
+        1710054000000000000 - 1,
+        1710054000000000000,
+        1730613600000000000 - 1,
+        1730613600000000000,
+        1711846800000000000,
+        1704067200123456789,
+        1719792000000500000,
+        1743865200000000000,
+        7258118400000000000,
+        -2208988800000000000,
+        -5364662400000000000,
+        i64::MAX,
+        i64::MIN,
+        i64::MIN + 1,
+        -9223372036000000000,
+    ];
+
+    #[cfg(target_os = "linux")]
+    extern "C" {
+        /// POSIX `tzset()` (the libc crate doesn't declare it).
+        fn tzset();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn unix_local_time_matches_upstream() {
+        let _l = crate::test_support::test_lock();
+        if !std::path::Path::new("/usr/share/zoneinfo/America/New_York").exists() {
+            crate::test_support::skip("tzdata", "no /usr/share/zoneinfo");
+            return;
+        }
+        let expected: Vec<&str> = include_str!("testdata/unix.txt").lines().collect();
+        let saved = std::env::var("TZ").ok();
+        let mut i = 0;
+        for zone in ZONES {
+            crate::stdlib::setenv_unsafe("TZ", zone, true).unwrap();
+            // SAFETY: tzset() rereads TZ; the test lock keeps other tests
+            // from converting times meanwhile.
+            unsafe { tzset() };
+            for ticks in TICKS {
+                let t = Time::from_nanos(ticks);
+                let got = format!(
+                    "{zone} {ticks}:{} |{}",
+                    format_dt(t.to_local_date_time()),
+                    format_dt(sys::time_to_date_time(t, false))
+                );
+                assert_eq!(got, expected[i]);
+                if ticks > i64::MIN + 1 {
+                    // (upstream wraps around next to SDL_MIN_TIME; the
+                    // calendar algorithms don't)
+                    assert!(got.ends_with(&format_dt(Ok(t.to_utc_date_time()))));
+                }
+                i += 1;
+            }
+        }
+        match saved {
+            Some(tz) => crate::stdlib::setenv_unsafe("TZ", &tz, true).unwrap(),
+            None => crate::stdlib::unsetenv_unsafe("TZ").unwrap(),
+        }
+        // SAFETY: as above.
+        unsafe { tzset() };
+    }
+
+    /// The preferences in `locale` (`None`: it isn't installed), used on
+    /// this thread only.
+    #[cfg(target_os = "linux")]
+    fn preferences_in(locale: &str) -> Option<(DateFormat, TimeFormat)> {
+        let name = std::ffi::CString::new(locale).unwrap();
+        // SAFETY: name is NUL-terminated; the locale object is freed after
+        // the thread switches back to the one it used before.
+        unsafe {
+            let l = libc::newlocale(libc::LC_ALL_MASK, name.as_ptr(), std::ptr::null_mut());
+            if l.is_null() {
+                return None;
+            }
+            let old = libc::uselocale(l);
+            let prefs = locale_preferences();
+            libc::uselocale(old);
+            libc::freelocale(l);
+            Some(prefs)
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn unix_locale_preferences_match_upstream() {
+        let _l = crate::test_support::test_lock();
+        let raw = |prefs: (DateFormat, TimeFormat)| {
+            let df = match prefs.0 {
+                DateFormat::YearMonthDay => 0,
+                DateFormat::DayMonthYear => 1,
+                DateFormat::MonthDayYear => 2,
+            };
+            format!("{} {}", df, prefs.1 as i32)
+        };
+        let expected = |locale: &str| {
+            include_str!("testdata/unix.txt")
+                .lines()
+                .find_map(|l| l.strip_prefix(&format!("locale {locale}: ")))
+                .unwrap()
+        };
+        // Built into glibc.
+        for locale in ["C", "POSIX"] {
+            assert_eq!(raw(preferences_in(locale).unwrap()), expected(locale));
+        }
+
+        // Compiled for the test.
+        let tmp = crate::test_support::TempDir::new("locales");
+        let locales = ["en_US", "en_GB", "de_DE", "ja_JP", "en_DK"];
+        for l in locales {
+            let status = std::process::Command::new("localedef")
+                .args(["-i", l, "-f", "UTF-8", &tmp.path(&format!("{l}.UTF-8"))])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status();
+            if !status.is_ok_and(|s| s.success()) {
+                crate::test_support::skip("locales", format!("localedef can't compile {l}"));
+                return;
+            }
+        }
+        let saved = std::env::var("LOCPATH").ok();
+        crate::stdlib::setenv_unsafe("LOCPATH", &tmp.0, true).unwrap();
+        for l in locales {
+            let name = format!("{l}.UTF-8");
+            let prefs = preferences_in(&name);
+            assert_eq!(prefs.map(raw).as_deref(), Some(expected(&name)), "{name}");
+        }
+        match saved {
+            Some(p) => crate::stdlib::setenv_unsafe("LOCPATH", &p, true).unwrap(),
+            None => crate::stdlib::unsetenv_unsafe("LOCPATH").unwrap(),
+        }
+    }
+
+    /// The preferences follow the first `y`/`d`/`M` of the user locale's
+    /// short date format and the first `H`/`h` of its time format.
+    #[cfg(windows)]
+    #[test]
+    fn windows_locale_preferences() {
+        use windows_sys::Win32::Globalization::{
+            GetLocaleInfoW, LOCALE_SSHORTDATE, LOCALE_STIMEFORMAT, LOCALE_USER_DEFAULT,
+        };
+        let info = |lctype| {
+            let mut buf = [0u16; 80];
+            // SAFETY: buf holds the given number of units.
+            let n = unsafe { GetLocaleInfoW(LOCALE_USER_DEFAULT, lctype, buf.as_mut_ptr(), 80) };
+            String::from_utf16_lossy(&buf[..(n.max(1) - 1) as usize])
+        };
+        let date = info(LOCALE_SSHORTDATE);
+        let time = info(LOCALE_STIMEFORMAT);
+        let df = match date.chars().find(|c| matches!(c, 'y' | 'd' | 'M')) {
+            Some('d') => DateFormat::DayMonthYear,
+            Some('M') => DateFormat::MonthDayYear,
+            _ => DateFormat::YearMonthDay,
+        };
+        let tf = match time.chars().find(|c| matches!(c, 'H' | 'h')) {
+            Some('h') => TimeFormat::Hour12,
+            _ => TimeFormat::Hour24,
+        };
+        assert!(!date.is_empty() && !time.is_empty());
+        assert_eq!(locale_preferences(), (df, tf), "{date:?} {time:?}");
     }
 }

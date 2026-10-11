@@ -36,6 +36,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
 | `hidapi` | Linux, Windows | the HID backend: hidraw with libudev, or `hid.dll` |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
+| `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
+| `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
 | `gameinput` | Windows | a GameInput DLL with the v3 API (one that exports `GameInputInitialize`): the GameInput redistributable's `GameInputRedist.dll`, or a recent enough `GameInput.dll` from Windows (an older inbox one only has the v0 API) |
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
@@ -93,7 +95,7 @@ sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libegl1 libgles2 \
   mesa-vulkan-drivers libvulkan1 libxtst6 libwayland-client0 \
   libwayland-egl1 libwayland-cursor0 libxkbcommon0 sway \
   pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
-  libudev1 libasound2t64 libdbus-1-3 dbus-daemon
+  libudev1 libasound2t64 libdbus-1-3 dbus-daemon tzdata locales
 ```
 
 On a desktop, PipeWire is usually already running. On a headless machine
@@ -110,7 +112,7 @@ Then:
 ```sh
 cargo test --workspace
 # fail instead of skipping (what CI requires):
-SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi \
+SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales \
   cargo test --workspace
 # the OpenGL renderer's tests also run on GLX when DISPLAY is set:
 xvfb-run -a cargo test --workspace
