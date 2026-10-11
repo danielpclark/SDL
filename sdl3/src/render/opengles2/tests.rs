@@ -875,3 +875,191 @@ fn gles2_skips_without_a_gl_driver() {
     init::quit();
     hints::reset(hints::VIDEO_DRIVER);
 }
+
+/// Textures wrapping the test's own GL textures
+/// (`SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE*_NUMBER`): drawn into, read
+/// back through the test's framebuffer, and drawn from, as the software
+/// renderer draws; destroying them leaves the GL textures to the test.
+#[test]
+fn gles2_textures_from_existing_gl_textures() {
+    use crate::render::test_gl::TestGl;
+    use crate::render::TextureCreateInfo;
+
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((_window, mut r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    let mut sw = software_renderer(W, H);
+    // (the renderer's context is current once it has drawn)
+    r.flush().unwrap();
+    let gl = TestGl::load(false);
+
+    // A target of the test's texture: the scene drawn into it reads back
+    // through the test's framebuffer as the software renderer's target.
+    let (tw, th) = (24, 18);
+    let name = gl.gen_texture();
+    let target = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::RGBA32,
+            access: TextureAccess::Target,
+            width: tw,
+            height: th,
+            opengles2_texture: Some(name),
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    let props = r.texture_properties(target).unwrap();
+    assert_eq!(
+        props.get_number(PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER),
+        Some(name as i64)
+    );
+    let scene = |r: &mut Renderer, target: Texture| {
+        let src = pattern_texture(r, PixelFormat::RGBA32, 16, 12);
+        r.set_render_target(Some(target)).unwrap();
+        r.set_draw_color(250, 40, 10, 255);
+        r.clear().unwrap();
+        r.set_draw_color(10, 40, 250, 255);
+        r.render_fill_rect(Some(&FRect::new(2.0, 3.0, 10.0, 6.0)))
+            .unwrap();
+        r.render_point(22.0, 1.0).unwrap();
+        r.set_texture_blend_mode(src, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(src, ScaleMode::Nearest).unwrap();
+        r.render_texture(src, None, Some(&FRect::new(6.0, 5.0, 16.0, 12.0)))
+            .unwrap();
+        r.set_render_target(None).unwrap();
+        r.destroy_texture(src);
+    };
+    scene(&mut r, target);
+    let sw_target = sw
+        .create_texture(PixelFormat::RGBA32, TextureAccess::Target, tw, th)
+        .unwrap();
+    scene(&mut sw, sw_target);
+    sw.set_render_target(Some(sw_target)).unwrap();
+    let expected = sw.read_pixels(None).unwrap();
+    sw.set_render_target(None).unwrap();
+    r.flush().unwrap();
+    let read = gl.read_texture(name, tw, th);
+    // (the renderer draws its targets the right way up: SDL's first row
+    // is the texture's first, which GL reads first)
+    let mut got = Surface::new(tw, th, PixelFormat::RGBA32).unwrap();
+    let pitch = got.pitch() as usize;
+    for (y, row) in read.chunks(tw as usize * 4).enumerate() {
+        got.pixels_mut().unwrap()[y * pitch..][..row.len()].copy_from_slice(row);
+    }
+    assert_close("existing GL target", &got, &expected, 0);
+
+    // Drawn from, it's the software renderer's target.
+    let draw = |r: &mut Renderer, t: Texture, (dw, dh): (usize, usize)| {
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        r.render_texture(
+            t,
+            None,
+            Some(&FRect::new(2.0, 2.0, 2.0 * dw as f32, 2.0 * dh as f32)),
+        )
+        .unwrap();
+        r.read_pixels(None).unwrap()
+    };
+    assert_close(
+        "existing GL target drawn",
+        &draw(&mut r, target, (tw as usize, th as usize)),
+        &draw(&mut sw, sw_target, (tw as usize, th as usize)),
+        0,
+    );
+    r.destroy_texture(target);
+    assert!(gl.is_texture(name), "the test's texture was deleted");
+
+    // Static textures of the test's textures, every plane given, updated
+    // and drawn as the software renderer's.
+    let (w, h) = (16usize, 12usize);
+    let (y, u, v) = yuv_planes(w, h);
+    let uv: Vec<u8> = u.iter().zip(&v).flat_map(|(a, b)| [*a, *b]).collect();
+    for format in [PixelFormat::RGBA32, PixelFormat::IYUV, PixelFormat::NV12] {
+        let names = [gl.gen_texture(), gl.gen_texture(), gl.gen_texture()];
+        let info = match format {
+            PixelFormat::IYUV => TextureCreateInfo {
+                opengles2_texture: Some(names[0]),
+                opengles2_texture_u: Some(names[1]),
+                opengles2_texture_v: Some(names[2]),
+                ..TextureCreateInfo::default()
+            },
+            PixelFormat::NV12 => TextureCreateInfo {
+                opengles2_texture: Some(names[0]),
+                opengles2_texture_uv: Some(names[1]),
+                ..TextureCreateInfo::default()
+            },
+            _ => TextureCreateInfo {
+                opengles2_texture: Some(names[0]),
+                ..TextureCreateInfo::default()
+            },
+        };
+        let make = |r: &mut Renderer, info: &TextureCreateInfo| {
+            let t = r
+                .create_texture_with(&TextureCreateInfo {
+                    format,
+                    width: w as i32,
+                    height: h as i32,
+                    ..info.clone()
+                })
+                .unwrap();
+            match format {
+                PixelFormat::IYUV => r
+                    .update_yuv_texture(t, None, &y, w as i32, &u, w as i32 / 2, &v, w as i32 / 2)
+                    .unwrap(),
+                PixelFormat::NV12 => r
+                    .update_nv_texture(t, None, &y, w as i32, &uv, w as i32)
+                    .unwrap(),
+                _ => {
+                    let p = pattern(w as i32, h as i32);
+                    r.update_texture(t, None, &p, w as i32 * 4).unwrap();
+                }
+            }
+            t
+        };
+        let t = make(&mut r, &info);
+        let props = r.texture_properties(t).unwrap();
+        let published = [
+            props.get_number(PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER),
+            props.get_number(PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER),
+            props.get_number(PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER),
+            props.get_number(PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER),
+        ];
+        let used: &[u32] = match format {
+            PixelFormat::IYUV => &names,
+            PixelFormat::NV12 => &names[..2],
+            _ => &names[..1],
+        };
+        assert_eq!(published[0], Some(names[0] as i64), "{format:?}");
+        match format {
+            PixelFormat::IYUV => assert_eq!(
+                (published[1], published[2]),
+                (Some(names[1] as i64), Some(names[2] as i64))
+            ),
+            PixelFormat::NV12 => assert_eq!(published[3], Some(names[1] as i64)),
+            _ => {}
+        }
+        let st = make(&mut sw, &TextureCreateInfo::default());
+        // (the shaders convert YUV in floats, the software path in fixed
+        // point)
+        let tol = if format == PixelFormat::RGBA32 { 0 } else { 3 };
+        assert_close(
+            &format!("existing GL {} texture", format.name()),
+            &draw(&mut r, t, (w, h)),
+            &draw(&mut sw, st, (w, h)),
+            tol,
+        );
+        r.destroy_texture(t);
+        sw.destroy_texture(st);
+        r.flush().unwrap();
+        for &name in used {
+            assert!(gl.is_texture(name), "{format:?}: a texture was deleted");
+        }
+        for name in names {
+            gl.delete_texture(name);
+        }
+    }
+    gl.delete_texture(name);
+}

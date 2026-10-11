@@ -39,6 +39,8 @@ pub(crate) mod opengl;
 pub(crate) mod opengles2;
 pub(crate) mod software;
 pub(crate) mod sysrender;
+#[cfg(test)]
+mod test_gl;
 mod texture;
 pub(crate) mod vulkan;
 mod window;
