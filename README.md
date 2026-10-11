@@ -254,13 +254,16 @@ documentation of programs that use it:
 > Portions of this software are copyright © 2023 The FreeType Project
 > (www.freetype.org). All rights reserved.
 
-Its translation of the HarfBuzz that SDL_ttf bundles
+FreeType's contributed BDF and PCF drivers are under MIT licenses of their
+own ([sdl3-ttf/BDF-PCF-COPYING](sdl3-ttf/BDF-PCF-COPYING)), and so are
+their translations (`sdl3-ttf/src/freetype/bdf/`,
+`sdl3-ttf/src/freetype/pcf/`). Its translation of the HarfBuzz that SDL_ttf bundles
 (`sdl3-ttf/src/harfbuzz/`) is under HarfBuzz's "Old MIT" license
 ([sdl3-ttf/HARFBUZZ-COPYING](sdl3-ttf/HARFBUZZ-COPYING)), and the
 Unicode data tables in it under the Unicode License V3
 ([sdl3-ttf/UNICODE-LICENSE.txt](sdl3-ttf/UNICODE-LICENSE.txt)); both ask
 that their notices go with copies of the software. The crate is `Zlib AND
-FTL AND MIT-Modern-Variant AND Unicode-3.0`.
+FTL AND MIT AND MIT-Modern-Variant AND Unicode-3.0`.
 
 **`sdl3-shadercross` likewise carries a second license** for its
 translation of SPIRV-Cross (`sdl3-shadercross/src/spirv_cross/`): Apache
