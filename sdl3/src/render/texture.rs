@@ -743,7 +743,9 @@ impl Renderer {
         let has_native = tex.native.is_some();
         if tex.public_palette.is_some() && !has_native {
             // Clean up the texture palette
-            if let Some(key) = self.tex_mut(t)?.palette.take() {
+            // (the texture keeps it until the queue that draws with it is
+            // flushed)
+            if let Some(key) = self.tex(t)?.palette {
                 let refcount = self.palettes.get_mut(&key).map(|p| {
                     p.refcount -= 1;
                     p.refcount
@@ -754,6 +756,7 @@ impl Renderer {
                         self.backend.destroy_palette(p.internal);
                     }
                 }
+                self.tex_mut(t)?.palette = None;
             }
         }
 
