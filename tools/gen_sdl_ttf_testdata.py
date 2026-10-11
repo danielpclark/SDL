@@ -1243,9 +1243,657 @@ def make_pfr_fonts(out):
               bytes(gps), color_flags=0x03)
 
 
+# ---------------------------------------------------------------------
+# Type 1 fonts (make_type1_fonts), DejaVu Sans's outlines and stem hints
+# from DejaVuSans-CFF.otf converted to Type 1 charstrings (`t1_glyph`):
+#
+# * DejaVuSans.pfb: a PFB font (`t1_pfb`) in DejaVu Sans's 2048 units
+#   (an atypical FontMatrix), with the standard encoding, the CFF font's
+#   hints (hint replacement through othersubr 3, and hstem3/vstem3 for
+#   the glyphs with three stems), the accented letters made of their base
+#   letter and accent as `seac' composites, a few curve pairs as flex
+#   (othersubrs 0 to 2), and its AFM metrics, DejaVuSans.afm (`t1_afm`,
+#   with the kerning pairs, in the font's units, and track kerning);
+# * DejaVuSans.pfa: a PFA font (hex eexec section) scaled to 1000 units,
+#   with a custom encoding (Latin-1's codes), unencrypted charstrings
+#   (lenIV -1), `sbw', `dotsection', `div' (also of large integers),
+#   othersubrs 12, 20 to 23, 27 and an unknown one whose arguments are
+#   popped back, and its PFM metrics, DejaVuSans.pfm (`t1_pfm`, the
+#   kerning pairs by character code);
+# * DejaVuSans-MM.pfb: a multiple master font with a width axis whose
+#   designs are DejaVu Sans and a copy 12% wider (the blend othersubrs 14
+#   to 18, a BuildCharArray with othersubrs 19, 24 and 25, per-design
+#   values in the blend's Private and FontInfo dictionaries and bounding
+#   boxes).
+
+T1_OPS = {
+    "hstem": [1], "vstem": [3], "vmoveto": [4], "rlineto": [5], "hlineto": [6],
+    "vlineto": [7], "rrcurveto": [8], "closepath": [9], "callsubr": [10], "return": [11],
+    "hsbw": [13], "endchar": [14], "rmoveto": [21], "hmoveto": [22], "vhcurveto": [30],
+    "hvcurveto": [31], "dotsection": [12, 0], "vstem3": [12, 1], "hstem3": [12, 2],
+    "seac": [12, 6], "sbw": [12, 7], "div": [12, 12], "callothersubr": [12, 16],
+    "pop": [12, 17], "setcurrentpoint": [12, 33],
+}
+
+
+def t1_charstring(tokens):
+    """The Type 1 charstring of `tokens` (integers and operator names)."""
+    out = bytearray()
+    for t in tokens:
+        if isinstance(t, str):
+            out += bytes(T1_OPS[t])
+        elif -107 <= t <= 107:
+            out.append(t + 139)
+        elif 108 <= t <= 1131:
+            t -= 108
+            out += bytes([(t >> 8) + 247, t & 0xFF])
+        elif -1131 <= t <= -108:
+            t = -t - 108
+            out += bytes([(t >> 8) + 251, t & 0xFF])
+        else:
+            out.append(255)
+            out += (t & 0xFFFFFFFF).to_bytes(4, "big")
+    return bytes(out)
+
+
+def t1_encrypt(data, r):
+    """`data` encrypted with the Type 1 cipher, starting with key `r`."""
+    out = bytearray()
+    for p in data:
+        c = p ^ (r >> 8)
+        out.append(c)
+        r = ((c + r) * 52845 + 22719) & 0xFFFF
+    return bytes(out)
+
+
+def t2_events(charstring):
+    """The stems and drawing events of a Type 2 charstring (as
+    otfautohint writes them: hstem, hstemhm, vstem, hintmask, rmoveto,
+    rlineto, rrcurveto and endchar): ([(bottom, width)] horizontal stems,
+    [(left, width)] vertical stems, [events]) in absolute coordinates; an
+    event is ("mask", [stem indices]), ("m", p), ("l", p) or ("c", p1, p2,
+    p3)."""
+    charstring.decompile()
+    hstems, vstems, events = [], [], []
+    stack = []
+    x = y = 0
+    seen_width = False
+    prog = charstring.program
+    i = 0
+
+    def stems(target, args):
+        pos = 0
+        for k in range(0, len(args) - 1, 2):
+            pos += args[k]
+            target.append((pos, args[k + 1]))
+            pos += args[k + 1]
+
+    while i < len(prog):
+        t = prog[i]
+        i += 1
+        if not isinstance(t, str):
+            stack.append(int(t))
+            continue
+        if t in ("hstem", "hstemhm", "vstem", "vstemhm"):
+            if not seen_width and len(stack) % 2 == 1:
+                stack = stack[1:]
+            seen_width = True
+            stems(hstems if t.startswith("h") else vstems, stack)
+        elif t == "hintmask":
+            if not seen_width and len(stack) % 2 == 1:
+                stack = stack[1:]
+            seen_width = True
+            stems(vstems, stack)
+            mask = prog[i]
+            i += 1
+            n = len(hstems) + len(vstems)
+            bits = [k for k in range(n) if mask[k >> 3] & (0x80 >> (k & 7))]
+            events.append(("mask", bits))
+        elif t == "rmoveto":
+            if not seen_width and len(stack) == 3:
+                stack = stack[1:]
+            seen_width = True
+            x += stack[0]
+            y += stack[1]
+            events.append(("m", (x, y)))
+        elif t == "rlineto":
+            for k in range(0, len(stack), 2):
+                x += stack[k]
+                y += stack[k + 1]
+                events.append(("l", (x, y)))
+        elif t == "rrcurveto":
+            for k in range(0, len(stack), 6):
+                p1 = (x + stack[k], y + stack[k + 1])
+                p2 = (p1[0] + stack[k + 2], p1[1] + stack[k + 3])
+                x, y = p2[0] + stack[k + 4], p2[1] + stack[k + 5]
+                events.append(("c", p1, p2, (x, y)))
+        elif t == "endchar":
+            pass
+        else:
+            raise ValueError("unexpected Type 2 operator " + t)
+        stack = []
+    return hstems, vstems, events
+
+
+class T1Writer:
+    """Writes Type 1 charstrings of glyphs for one or two designs (each
+    value a list of the designs' values, blended with othersubrs 14 to 18
+    when they differ), collecting the hint replacement subroutines."""
+
+    BLEND = {1: 14, 2: 15, 3: 16, 4: 17, 6: 18}
+
+    def __init__(self, num_designs=1):
+        self.num_designs = num_designs
+        # Subrs 0 to 3: flex end, flex start, flex point, hint replacement
+        self.subrs = [
+            t1_charstring([3, 0, "callothersubr", "pop", "pop", "setcurrentpoint", "return"]),
+            t1_charstring([0, 1, "callothersubr", "return"]),
+            t1_charstring([0, 2, "callothersubr", "return"]),
+            t1_charstring(["return"]),
+        ]
+
+    def args(self, values):
+        """The tokens pushing `values` (each a list of the designs')."""
+        if all(len(set(v)) == 1 for v in values):
+            return [v[0] for v in values]
+        n = len(values)
+        if n not in self.BLEND:
+            return self.args(values[:3]) + self.args(values[3:])
+        out = [v[0] for v in values]
+        for v in values:
+            out += [d - v[0] for d in v[1:]]
+        return out + [n * self.num_designs, self.BLEND[n], "callothersubr"] + ["pop"] * n
+
+    def op(self, values, op):
+        return self.args(values) + [op]
+
+    def stems(self, hstems, vstems, sbx, three=False):
+        out = []
+        if three and len(hstems) == 3 and all(s[1][0] > 0 for s in hstems):
+            out += self.op([v for s in hstems for v in s], "hstem3")
+        else:
+            for s in hstems:
+                out += self.op(list(s), "hstem")
+        rel = [([a - b for a, b in zip(s[0], sbx)], s[1]) for s in vstems]
+        if three and len(rel) == 3 and all(s[1][0] > 0 for s in rel):
+            out += self.op([v for s in rel for v in s], "vstem3")
+        else:
+            for s in rel:
+                out += self.op(list(s), "vstem")
+        return out
+
+    def glyph(self, designs, sbx, width, hint=True, three=False, flex=(), sbw=False,
+              prolog=(), extra=None):
+        """The charstring of a glyph from its designs' `t2_events` results
+        (with the same structure), its side bearing and advance width (a
+        list of the designs' each): `three` writes hstem3/vstem3, `flex`
+        the indices of curve events drawn as flex with the next one, `sbw`
+        writes `sbw' rather than `hsbw', `prolog` tokens are written after
+        it, and `extra(tokens, i)` may change the tokens of event `i`."""
+        hstems = list(zip(*[[tuple(s) for s in d[0]] for d in designs]))
+        vstems = list(zip(*[[tuple(s) for s in d[1]] for d in designs]))
+        hstems = [tuple(zip(*s)) for s in hstems]
+        vstems = [tuple(zip(*s)) for s in vstems]
+        events = list(zip(*[d[2] for d in designs]))
+        out = []
+        if sbw:
+            out += self.op([sbx, [0] * len(sbx), width, [0] * len(sbx)], "sbw")
+        else:
+            out += self.op([sbx, width], "hsbw")
+        out += list(prolog)
+        cur = list(zip(sbx, [0] * len(sbx)))
+        started = False
+        k = 0
+        if hint:
+            first = events[0] if events else None
+            if first is not None and first[0][0] == "mask":
+                bits = first[0][1]
+                k = 1
+            else:
+                bits = list(range(len(hstems) + len(vstems)))
+            out += self.stems([hstems[b] for b in bits if b < len(hstems)],
+                              [vstems[b - len(hstems)] for b in bits if b >= len(hstems)],
+                              sbx, three)
+        flexing = None
+        while k < len(events):
+            ev = events[k]
+            kind = ev[0][0]
+            tokens = []
+            if kind == "mask":
+                if hint:
+                    bits = ev[0][1]
+                    sub = self.stems([hstems[b] for b in bits if b < len(hstems)],
+                                     [vstems[b - len(hstems)] for b in bits if b >= len(hstems)],
+                                     sbx)
+                    self.subrs.append(t1_charstring(sub + ["return"]))
+                    tokens = [len(self.subrs) - 1, 1, 3, "callothersubr", "pop", "callsubr"]
+            elif kind == "m":
+                if started:
+                    tokens += ["closepath"]
+                started = True
+                d = [[p[1][0] - c[0], p[1][1] - c[1]] for p, c in zip(ev, cur)]
+                dx = [v[0] for v in d]
+                dy = [v[1] for v in d]
+                if all(v == 0 for v in dy):
+                    tokens += self.op([dx], "hmoveto")
+                elif all(v == 0 for v in dx):
+                    tokens += self.op([dy], "vmoveto")
+                else:
+                    tokens += self.op([dx, dy], "rmoveto")
+                cur = [p[1] for p in ev]
+            elif kind == "l":
+                d = [[p[1][0] - c[0], p[1][1] - c[1]] for p, c in zip(ev, cur)]
+                dx = [v[0] for v in d]
+                dy = [v[1] for v in d]
+                if all(v == 0 for v in dy):
+                    tokens += self.op([dx], "hlineto")
+                elif all(v == 0 for v in dx):
+                    tokens += self.op([dy], "vlineto")
+                else:
+                    tokens += self.op([dx, dy], "rlineto")
+                cur = [p[1] for p in ev]
+            else:
+                pts = [p[1:] for p in ev]
+                d = []
+                for j in range(3):
+                    prev = [c if j == 0 else q[j - 1] for c, q in zip(cur, pts)]
+                    d.append([q[j][0] - pv[0] for q, pv in zip(pts, prev)])
+                    d.append([q[j][1] - pv[1] for q, pv in zip(pts, prev)])
+                if k in flex and k + 1 < len(events) and events[k + 1][0][0] == "c":
+                    # the flex: its reference point (the joint's x at the
+                    # start's y), the six points, and the end
+                    nxt = [p[1:] for p in events[k + 1]]
+                    ref = [(q[2][0], c[1]) for q, c in zip(pts, cur)]
+                    pts7 = [ref] + [[q[j] for q in pts] for j in range(3)] + \
+                        [[q[j] for q in nxt] for j in range(3)]
+                    prev = cur
+                    tokens += [1, "callsubr"]
+                    for p in pts7:
+                        dx = [a[0] - b[0] for a, b in zip(p, prev)]
+                        dy = [a[1] - b[1] for a, b in zip(p, prev)]
+                        tokens += self.op([dx, dy], "rmoveto") + [2, "callsubr"]
+                        prev = p
+                    end = pts7[-1]
+                    tokens += self.args([[50] * len(end), [e[0] for e in end],
+                                         [e[1] for e in end]])
+                    tokens += [0, "callsubr"]
+                    cur = end
+                    if extra:
+                        tokens = extra(tokens, k)
+                    out += tokens
+                    k += 2
+                    continue
+                if all(v == 0 for v in d[1]) and all(v == 0 for v in d[4]):
+                    tokens += self.op([d[0], d[2], d[3], d[5]], "hvcurveto")
+                elif all(v == 0 for v in d[0]) and all(v == 0 for v in d[5]):
+                    tokens += self.op([d[1], d[2], d[3], d[4]], "vhcurveto")
+                else:
+                    tokens += self.op(d, "rrcurveto")
+                cur = [p[2] for p in pts]
+            if extra:
+                tokens = extra(tokens, k)
+            out += tokens
+            k += 1
+        if started:
+            out += ["closepath"]
+        return out + ["endchar"]
+
+
+# accents of the `seac' composites (StandardEncoding codes)
+T1_ACCENTS = {"grave": 0o301, "acute": 0o302, "dieresis": 0o310, "cedilla": 0o313}
+
+
+def t1_ps_string(s):
+    return "(" + s.replace("\\", "\\\\") + ")"
+
+
+def t1_font_program(info, font_name, encoding, matrix, bbox, private, subrs, charstrings,
+                    len_iv, top_extra="", private_extra="", unique_id=None):
+    """The cleartext part and the eexec section's cleartext of a Type 1
+    font (`charstrings` an ordered list of (name, bytes))."""
+    top = ["%%!PS-AdobeFont-1.0: %s %s" % (font_name, info["version"]),
+           "%%%%Title: %s" % font_name,
+           "%%Creator: tools/gen_sdl_ttf_testdata.py (a Type 1 version of DejaVu Sans)",
+           "13 dict begin",
+           "/FontInfo 10 dict dup begin"]
+    for key in ["version", "Notice", "FullName", "FamilyName", "Weight"]:
+        top.append("/%s %s readonly def" % (key, t1_ps_string(info[key])))
+    for key in ["ItalicAngle", "isFixedPitch", "UnderlinePosition", "UnderlineThickness",
+                "FSType"]:
+        if key in info:
+            top.append("/%s %s def" % (key, info[key]))
+    top += ["end readonly def",
+            "/FontName /%s def" % font_name,
+            "/PaintType 0 def",
+            "/FontType 1 def",
+            "/FontMatrix [%s] readonly def" % " ".join(matrix),
+            encoding,
+            "/FontBBox {%s} readonly def" % " ".join(str(v) for v in bbox)]
+    if unique_id is not None:
+        top.append("/UniqueID %d def" % unique_id)
+    top.append(top_extra + "currentdict end")
+    top.append("currentfile eexec")
+    clear = ("\n".join(top) + "\n").encode("latin-1")
+
+    priv = ["dup /Private 16 dict dup begin",
+            "/RD{string currentfile exch readstring pop}executeonly def",
+            "/ND{noaccess def}executeonly def",
+            "/NP{noaccess put}executeonly def"]
+    for key, value in private:
+        priv.append("/%s %s def" % (key, value))
+    priv.append("/lenIV %d def" % len_iv)
+    priv.append("/MinFeature{16 16}def")
+    priv.append("/password 5839 def")
+    priv.append(private_extra + "/OtherSubrs [{}{}{}{pop 3}] ND")
+    body = ("\n".join(priv) + "\n").encode("latin-1")
+
+    def enc(cs):
+        return t1_encrypt(bytes(4) + cs, 4330) if len_iv >= 0 else cs
+
+    body += b"/Subrs %d array\n" % len(subrs)
+    for i, s in enumerate(subrs):
+        e = enc(s)
+        body += b"dup %d %d RD " % (i, len(e)) + e + b" NP\n"
+    body += b"ND\n2 index /CharStrings %d dict dup begin\n" % len(charstrings)
+    for name, cs in charstrings:
+        e = enc(cs)
+        body += b"/%s %d RD " % (name.encode(), len(e)) + e + b" ND\n"
+    body += b"end\nend\nreadonly put\nnoaccess put\ndup/FontName get exch definefont pop\n"
+    body += b"mark currentfile closefile\n"
+    return clear, body
+
+
+def t1_eexec(body):
+    """The eexec section of `body`, its four leading bytes chosen so that
+    the encrypted section does not start with four hexadecimal digits."""
+    for seed in range(256):
+        e = t1_encrypt(bytes([seed, 0, 0, 0]) + body, 55665)
+        if not all(chr(c) in "0123456789abcdefABCDEF" for c in e[:4]) and e[0] not in b" \t\r\n":
+            return e
+    raise ValueError("no eexec seed")
+
+
+def t1_pfb(path, clear, body):
+    trailer = ("0" * 64 + "\n") * 8 + "cleartomark\n"
+    e = t1_eexec(body)
+    data = bytearray()
+    for kind, seg in [(1, clear), (2, e), (1, trailer.encode())]:
+        data += bytes([0x80, kind]) + len(seg).to_bytes(4, "little") + seg
+    data += b"\x80\x03"
+    with open(path, "wb") as f:
+        f.write(data)
+
+
+def t1_pfa(path, clear, body):
+    e = t1_eexec(body).hex()
+    lines = [e[i:i + 64] for i in range(0, len(e), 64)]
+    with open(path, "wb") as f:
+        f.write(clear + ("\n".join(lines) + "\n").encode())
+        f.write((("0" * 64 + "\n") * 8 + "cleartomark\n").encode())
+
+
+def t1_afm(path, font_name, info, bbox, ascender, descender, widths, codes, kerns, tracks):
+    """An AFM file: its metrics, character widths (`widths` by glyph name,
+    `codes` their character codes), kerning pairs and track kerns."""
+    lines = ["StartFontMetrics 4.1",
+             "Comment Generated by tools/gen_sdl_ttf_testdata.py",
+             "FontName " + font_name,
+             "FullName " + info["FullName"],
+             "FamilyName " + info["FamilyName"],
+             "Weight " + info["Weight"],
+             "ItalicAngle 0",
+             "IsFixedPitch false",
+             "FontBBox %d %d %d %d" % tuple(bbox),
+             "Ascender %d" % ascender,
+             "Descender %d" % descender,
+             "StartCharMetrics %d" % len(widths)]
+    for name, w in widths:
+        lines.append("C %d ; WX %d ; N %s ;" % (codes.get(name, -1), w, name))
+    lines += ["EndCharMetrics", "StartKernData", "StartTrackKern %d" % len(tracks)]
+    for t in tracks:
+        lines.append("TrackKern %d %s %s %s %s" % t)
+    lines += ["EndTrackKern", "StartKernPairs %d" % len(kerns)]
+    for a, b, v in kerns:
+        lines.append("KPX %s %s %d" % (a, b, v))
+    lines += ["EndKernPairs", "EndKernData", "EndFontMetrics"]
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def t1_pfm(path, font_name, pairs):
+    """A PFM file with the kerning pairs (by character code) FreeType
+    reads: its header, an empty width table and the extension table
+    pointing to the pairs."""
+    import struct
+
+    header = bytearray(117)
+    struct.pack_into("<H", header, 0, 0x100)
+    copyright = b"a Type 1 version of DejaVu Sans"
+    header[6:6 + len(copyright)] = copyright
+    struct.pack_into("<H", header, 99, 0)  # (the width table's length)
+    ext = bytearray(30)
+    kern = struct.pack("<H", len(pairs))
+    kern += b"".join(struct.pack("<BBh", a, b, v) for a, b, v in pairs)
+    name = font_name.encode() + b"\0"
+    kern_offset = 117 + len(ext) + len(name)
+    struct.pack_into("<HIIIIIII", ext, 0, len(ext), 0, 0, 0, kern_offset, 0, 0, 0)
+    data = header + ext + name + kern
+    struct.pack_into("<I", data, 2, len(data))
+    with open(path, "wb") as f:
+        f.write(data)
+
+
+def make_type1_fonts(out):
+    from fontTools.ttLib import TTFont
+    from fontTools.agl import UV2AGL
+
+    cff_font = TTFont(os.path.join(out, "DejaVuSans-CFF.otf"))
+    ttf = TTFont(os.path.join(out, "DejaVuSans.ttf"))
+    top = cff_font["CFF "].cff.topDictIndex[0]
+    cs = top.CharStrings
+    hmtx = cff_font["hmtx"]
+    order = cff_font.getGlyphOrder()
+    glyf = ttf["glyf"]
+    names = cff_font["name"]
+    info = {
+        "version": names.getDebugName(5),
+        "Notice": names.getDebugName(0),
+        "FullName": names.getDebugName(4),
+        "FamilyName": names.getDebugName(1),
+        "Weight": names.getDebugName(2),
+        "ItalicAngle": "0",
+        "isFixedPitch": "false",
+        "UnderlinePosition": str(ttf["post"].underlinePosition),
+        "UnderlineThickness": str(ttf["post"].underlineThickness),
+        "FSType": "0",
+    }
+    priv = top.Private
+    events = {name: t2_events(cs[name]) for name in order}
+    kern = ttf["kern"].kernTables[0].kernTable
+    kerns = sorted((a, b, v) for (a, b), v in kern.items())
+    cmap = ttf.getBestCmap()
+    unicode_of = {}
+    for code, name in cmap.items():
+        unicode_of.setdefault(name, code)
+
+    def private_entries(scale=lambda v: v):
+        def arr(a):
+            return "[" + " ".join(str(scale(v)) for v in a) + "]"
+        return [("BlueValues", arr(priv.BlueValues)), ("OtherBlues", arr(priv.OtherBlues)),
+                ("BlueScale", "0.039625"), ("BlueShift", "7"), ("BlueFuzz", "1"),
+                ("StdHW", arr([priv.StdHW])), ("StdVW", arr([priv.StdVW])),
+                ("StemSnapH", arr(priv.StemSnapH)), ("StemSnapV", arr(priv.StemSnapV)),
+                ("ForceBold", "false"), ("LanguageGroup", "0"), ("ExpansionFactor", "0.06")]
+
+    def seac_parts(name):
+        """(base, accent, dx, dy) of a composite drawn with `seac'."""
+        g = glyf[name]
+        if not g.isComposite() or len(g.components) != 2:
+            return None
+        base, accent = g.components
+        if (base.x, base.y) != (0, 0) or accent.glyphName not in T1_ACCENTS:
+            return None
+        if base.glyphName not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+            return None
+        return base.glyphName, accent.glyphName, accent.x, accent.y
+
+    bbox = [int(v) for v in top.FontBBox]
+
+    # DejaVuSans.pfb
+    w = T1Writer()
+    charstrings = []
+    for name in order:
+        width, lsb = hmtx[name]
+        parts = seac_parts(name)
+        if parts:
+            base, accent, dx, dy = parts
+            base_lsb = hmtx[base][1]
+            asb = hmtx[accent][1]
+            tokens = [base_lsb, width, "hsbw", asb, dx - base_lsb + asb, dy,
+                      ord(base), T1_ACCENTS[accent], "seac"]
+        else:
+            tokens = w.glyph([events[name]], [lsb], [width], three=True,
+                             flex={0} if name in ("o", "O", "zero", "C") else ())
+        charstrings.append((name, t1_charstring(tokens)))
+    clear, body = t1_font_program(
+        info, "DejaVuSans", "/Encoding StandardEncoding def",
+        ["0.00048828125", "0", "0", "0.00048828125", "0", "0"], bbox, private_entries(),
+        w.subrs, charstrings, 4, unique_id=4000000)
+    t1_pfb(os.path.join(out, "DejaVuSans.pfb"), clear, body)
+    t1_afm(os.path.join(out, "DejaVuSans.afm"), "DejaVuSans", info, bbox,
+           ttf["hhea"].ascent, ttf["hhea"].descent,
+           [(n, hmtx[n][0]) for n in order],
+           {n: c for c, n in cmap.items() if c < 0x7F}, kerns,
+           [(-1, 6, "-0.2", 72, "-1.5"), (-2, 6, "-0.4", 72, "-3.0")])
+
+    # DejaVuSans.pfa (1000 units)
+    def s(v):
+        return round(v * 1000 / 2048)
+
+    def scaled(ev):
+        hs, vs, es = ev
+        hs = [(s(a), s(a + b) - s(a)) if b > 0 else (s(a), b) for a, b in hs]
+        vs = [(s(a), s(a + b) - s(a)) for a, b in vs]
+        es2 = []
+        for e in es:
+            if e[0] == "mask":
+                es2.append(e)
+            else:
+                es2.append((e[0],) + tuple((s(p[0]), s(p[1])) for p in e[1:]))
+        return hs, vs, es2
+
+    w = T1Writer()
+    charstrings = []
+    codes = {}
+    for name in order:
+        u = unicode_of.get(name)
+        if u is not None and (0x20 <= u < 0x7F or 0xA0 <= u <= 0xFF):
+            codes[name] = u
+    for name in order:
+        width, lsb = hmtx[name]
+        width, lsb = s(width), s(lsb)
+        ev = scaled(events[name])
+        prolog = []
+        extra = None
+        sbw = name in ("zero", "one", "two", "three")
+        if name == "H":
+            # the first point's coordinates through othersubrs 27, 22, 23,
+            # 20, 21 and an unknown one (29), whose arguments are popped
+            # back, after the counter hints othersubr 12
+            def extra(tokens, i):
+                if i == 0 and tokens[-1] == "rmoveto" and len(tokens) == 3:
+                    dx, dy = tokens[:2]
+                    return [1, 2, 3, 3, 12, "callothersubr",
+                            dy, 0, 1, 2, 4, 27, "callothersubr", "pop",
+                            1, 2, 22, "callothersubr", "pop",
+                            dx * 2, 2, 2, 23, "callothersubr", "pop",
+                            7, 2, 20, "callothersubr", "pop",
+                            7, 2, 21, "callothersubr", "pop",
+                            2, 29, "callothersubr", "pop", "pop", "rmoveto"]
+                return tokens
+        if name == "l":
+            def extra(tokens, i):
+                # (a coordinate as a quotient, and of a large integer)
+                if tokens and tokens[-1] in ("vlineto", "hlineto") and len(tokens) == 2:
+                    v = tokens[0]
+                    if v:
+                        return [v * 40000, 40000, "div", tokens[-1]]
+                    return [v * 6, 6, "div", tokens[-1]]
+                return tokens
+        if name in ("i", "j"):
+            prolog = ["dotsection", "dotsection"]
+        tokens = w.glyph([ev], [lsb], [width], sbw=sbw, prolog=prolog, extra=extra)
+        if name == "H":
+            # (the advance width as a sum, othersubr 20)
+            assert tokens[2] == "hsbw"
+            tokens = [lsb, width - 100, 100, 2, 20, "callothersubr", "pop", "hsbw"] + tokens[3:]
+        charstrings.append((name, t1_charstring(tokens)))
+    enc = ["/Encoding 256 array", "0 1 255 {1 index exch /.notdef put} for"]
+    for name, code in sorted(codes.items(), key=lambda kv: kv[1]):
+        enc.append("dup %d /%s put" % (code, name))
+    enc.append("readonly def")
+    clear, body = t1_font_program(
+        info, "DejaVuSans", "\n".join(enc),
+        ["0.001", "0", "0", "0.001", "0", "0"], [s(v) for v in bbox],
+        private_entries(s), w.subrs, charstrings, -1)
+    t1_pfa(os.path.join(out, "DejaVuSans.pfa"), clear, body)
+    t1_pfm(os.path.join(out, "DejaVuSans.pfm"), "DejaVuSans",
+           [(codes[a], codes[b], s(v)) for a, b, v in kerns if a in codes and b in codes])
+
+    # DejaVuSans-MM.pfb
+    def wide(ev):
+        hs, vs, es = ev
+        vs = [(round(a * 1.12), round((a + b) * 1.12) - round(a * 1.12)) for a, b in vs]
+        es2 = []
+        for e in es:
+            if e[0] == "mask":
+                es2.append(e)
+            else:
+                es2.append((e[0],) + tuple((round(p[0] * 1.12), p[1]) for p in e[1:]))
+        return hs, vs, es2
+
+    w = T1Writer(2)
+    charstrings = []
+    for name in order:
+        width, lsb = hmtx[name]
+        ws = [width, round(width * 1.12)]
+        ls = [lsb, round(lsb * 1.12)]
+        ev = events[name]
+        tokens = w.glyph([ev, wide(ev)], ls, ws, three=False)
+        if name == "A":
+            # the advance width through the BuildCharArray (othersubrs 19,
+            # 24 and 25)
+            n = tokens.index("hsbw")
+            tokens = ([0, 1, 19, "callothersubr"] + tokens[:n] + [3, 2, 24, "callothersubr",
+                      3, 1, 25, "callothersubr", "pop"] + tokens[n:])
+        charstrings.append((name, t1_charstring(tokens)))
+    mm_top = ("/BlendDesignPositions [[0] [1]] def\n"
+              "/BlendDesignMap [[[100 0] [112 1]]] def\n"
+              "/BlendAxisTypes [/Width] def\n"
+              "/WeightVector [0.5 0.5] def\n"
+              "/DesignVector [106] def\n"
+              "/Blend 3 dict dup begin\n"
+              "/FontBBox {{%d %d} {%d %d} {%d %d} {%d %d}} def\n"
+              "/FontInfo 2 dict dup begin /ItalicAngle [0 0] def end def\n"
+              "/Private 4 dict def\n"
+              "end def\n" % (bbox[0], round(bbox[0] * 1.12), bbox[1], bbox[1],
+                             bbox[2], round(bbox[2] * 1.12), bbox[3], bbox[3]))
+    mm_private = ("/BuildCharArray [0 0 0 0] def\n"
+                  "/NDV 0 def\n/CDV 1 def\n"
+                  "/BlueShift [7 7] def\n/ForceBold [false false] def\n")
+    mm_info = dict(info, FullName="DejaVu Sans MM", FamilyName="DejaVu Sans MM")
+    clear, body = t1_font_program(
+        mm_info, "DejaVuSansMM", "/Encoding StandardEncoding def",
+        ["0.00048828125", "0", "0", "0.00048828125", "0", "0"],
+        [bbox[0], bbox[1], round(bbox[2] * 1.12), bbox[3]], private_entries(),
+        w.subrs, charstrings, 4, top_extra=mm_top, private_extra=mm_private)
+    t1_pfb(os.path.join(out, "DejaVuSans-MM.pfb"), clear, body)
+
+
 def make_format_fonts(out):
     make_bitmap_fonts(out)
     make_pfr_fonts(out)
+    make_type1_fonts(out)
 
 
 SHAPING_FONTS = [
