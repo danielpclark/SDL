@@ -1567,8 +1567,13 @@ fn gpu_pipelines_are_cached_on(backend: Backend) {
     };
     // (a renderer of its own, to look at its state: the window's is taken)
     let other = Window::create("gpu 2", 16, 16, WindowFlags::default()).unwrap();
-    let mut g = GpuRenderer::for_window(other, Colorspace::SRGB, 0, &RendererCreateInfo::default())
-        .unwrap();
+    let mut g = GpuRenderer::new(
+        Some(other),
+        Colorspace::SRGB,
+        0,
+        &RendererCreateInfo::default(),
+    )
+    .unwrap();
     let format = g.backbuffer.as_ref().unwrap().format;
     let shaders = g.shaders.take().unwrap();
     let mut params = PipelineParameters {
@@ -2065,7 +2070,7 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
         Err(e) => panic!("no Direct3D 12 device ({})", e.message()),
     };
     let window = Window::create("gpu", W, H, WindowFlags::default()).unwrap();
-    let mut r = match Renderer::for_gpu_device(Some(&device), &window) {
+    let mut r = match Renderer::for_gpu_device(Some(&device), Some(&window)) {
         Ok(r) => r,
         Err(e) if backend == Backend::Vulkan => {
             crate::test_support::skip("vulkan", format_args!("no GPU renderer ({})", e.message()));
@@ -2110,7 +2115,7 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
     // takes another renderer for the window it released.
     drop(r);
     let texture = gpu_texture(&device, TextureFormat::B8G8R8A8_UNORM, 2, 2, &[7; 16]);
-    let mut r = Renderer::for_gpu_device(Some(&device), &window).unwrap();
+    let mut r = Renderer::for_gpu_device(Some(&device), Some(&window)).unwrap();
     compare("existing device again", &mut r, 1, scene);
 
     // The application's device can go first: the renderer keeps it.
@@ -2306,6 +2311,109 @@ fn gpu_textures_from_existing_gpu_textures_on(backend: Backend) {
     drop(device);
 }
 
+#[test]
+fn gpu_renderer_without_a_window() {
+    gpu_renderer_without_a_window_on(Backend::Vulkan);
+}
+
+fn gpu_renderer_without_a_window_on(backend: Backend) {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init(backend);
+    #[cfg(windows)]
+    if backend == Backend::D3d12 && !has_d3d12_dxil() {
+        return;
+    }
+
+    // Only the GPU renderer can be made without a window or surface.
+    for name in [None, Some("software"), Some("vulkan"), Some("GPU")] {
+        let e = Renderer::without_window(&RendererCreateInfo {
+            name: name.map(str::to_owned),
+            ..Default::default()
+        })
+        .err()
+        .unwrap();
+        assert_eq!(e.message(), "Parameter 'window' is invalid", "{name:?}");
+    }
+
+    let mut r = match Renderer::for_gpu_device(None, None) {
+        Ok(r) => r,
+        Err(e) if backend == Backend::Vulkan => {
+            crate::test_support::skip("vulkan", format_args!("no GPU renderer ({})", e.message()));
+            return;
+        }
+        Err(e) => panic!("no GPU renderer on Direct3D 12 ({})", e.message()),
+    };
+    assert_eq!(r.name(), GPU_RENDERER);
+    assert!(r.window().is_none());
+    assert_eq!(r.gpu_renderer_device().unwrap().driver(), backend.driver());
+    // We don't have any output size, this might be an offscreen-only renderer
+    assert_eq!(r.output_size().unwrap(), (0, 0));
+    assert_eq!(r.current_output_size(), (0, 0));
+    // (without a window there is no vsync but none: the front end
+    // simulates an interval of 1)
+    assert!(r.set_vsync(2).is_err());
+    r.set_vsync(1).unwrap();
+    r.set_vsync(0).unwrap();
+    // (and no backbuffer to read)
+    assert!(r.read_pixels(None).is_err());
+
+    // It draws into render targets as the software renderer does (within
+    // the blending's rounding), and presents (submits) without a
+    // swapchain.
+    let scene = |r: &mut Renderer| -> Surface<'static> {
+        let src = pattern_texture(r, PixelFormat::ABGR8888, 16, 12);
+        let target = r
+            .create_texture(PixelFormat::ARGB8888, TextureAccess::Target, W, H)
+            .unwrap();
+        r.set_render_target(Some(target)).unwrap();
+        r.set_draw_color(12, 34, 56, 255);
+        r.clear().unwrap();
+        r.set_draw_color(200, 100, 50, 255);
+        r.render_fill_rect(Some(&FRect::new(4.0, 5.0, 20.0, 10.0)))
+            .unwrap();
+        r.render_line(1.0, 40.0, 60.0, 30.0).unwrap();
+        r.render_point(62.0, 2.0).unwrap();
+        r.set_texture_blend_mode(src, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(src, ScaleMode::Nearest).unwrap();
+        r.render_texture(src, None, Some(&FRect::new(30.0, 20.0, 16.0, 12.0)))
+            .unwrap();
+        r.set_texture_blend_mode(src, BlendMode::BLEND).unwrap();
+        r.render_texture(src, None, Some(&FRect::new(40.0, 4.0, 16.0, 12.0)))
+            .unwrap();
+        let read = r.read_pixels(None).unwrap();
+        r.set_render_target(None).unwrap();
+        r.destroy_texture(target);
+        r.destroy_texture(src);
+        read
+    };
+    let mut sw = software_renderer(W, H);
+    let expected = scene(&mut sw);
+    for frame in 0..2 {
+        let got = scene(&mut r);
+        assert_eq!(got.format(), PixelFormat::ARGB8888);
+        assert_close(&format!("windowless frame {frame}"), &got, &expected, 2);
+        r.present().unwrap();
+    }
+    drop(r);
+
+    // ... on the application's device too, which it leaves to it.
+    let format = match backend {
+        Backend::Vulkan => ShaderFormat::SPIRV,
+        #[cfg(windows)]
+        Backend::D3d12 => ShaderFormat::DXIL,
+    };
+    let device = gpu::Device::new(format, true, Some(backend.driver())).unwrap();
+    let mut r = Renderer::for_gpu_device(Some(&device), None).unwrap();
+    assert!(r.gpu_renderer_device().unwrap().same_device(&device));
+    let got = scene(&mut r);
+    assert_close("windowless on a device", &got, &expected, 2);
+    r.present().unwrap();
+    drop(r);
+    let texture = gpu_texture(&device, TextureFormat::B8G8R8A8_UNORM, 2, 2, &[7; 16]);
+    drop(texture);
+    drop(device);
+}
+
 /// The device tests again on the Direct3D 12 backend, with the DXIL
 /// shaders.
 #[cfg(windows)]
@@ -2360,6 +2468,11 @@ mod d3d12 {
     #[test]
     fn gpu_textures_from_existing_gpu_textures() {
         super::gpu_textures_from_existing_gpu_textures_on(Backend::D3d12);
+    }
+
+    #[test]
+    fn gpu_renderer_without_a_window() {
+        super::gpu_renderer_without_a_window_on(Backend::D3d12);
     }
 }
 

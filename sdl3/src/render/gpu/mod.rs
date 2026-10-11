@@ -6,7 +6,7 @@
 
 //! The GPU renderer ("gpu"): draws through the GPU API ([`crate::gpu`]),
 //! into a backbuffer texture that presenting blits to the window's
-//! swapchain. It runs on the GPU API's Vulkan backend with its SPIR-V
+//! swapchain, or without a window only into render targets. It runs on the GPU API's Vulkan backend with its SPIR-V
 //! shaders, and on Windows on the Direct3D 12 backend with its DXIL
 //! shaders (shader model 6.0: a Direct3D 12 device without it can't take
 //! them, and then the Vulkan backend is tried).
@@ -20,13 +20,13 @@
 //! application's render states have ([`RendererCreateInfo::gpu_shaders_spirv`]
 //! and the others); textures can wrap the application's GPU textures
 //! ([`TextureCreateInfo::gpu_texture`](crate::render::TextureCreateInfo::gpu_texture)
-//! and the others).
+//! and the others). A renderer can be made without a window
+//! ([`Renderer::for_gpu_device`](crate::render::Renderer::for_gpu_device)
+//! with no window, `SDL_CreateGPURenderer()` with a NULL window), to
+//! draw into render targets.
 //!
 //! What isn't translated:
 //!
-//! * a renderer without a window (`GPU_CreateRenderer()` with a NULL
-//!   window, from `SDL_CreateGPURenderer()`): the front end makes GPU
-//!   renderers for windows;
 //! * the other creation properties upstream hands the GPU API (the
 //!   renderer's for the device it makes, the texture's for the GPU textures
 //!   it makes): the front end takes only the ones above;
@@ -631,7 +631,7 @@ fn draws(cmd: &RenderCommand) -> bool {
 /// `SDL_Renderer` the backend reads (`window`, `output_colorspace`, the
 /// colorspace and HDR headroom of the output), and its vertex storage.
 pub(crate) struct GpuRenderer {
-    window: Window,
+    window: Option<Window>,
     output_colorspace: Colorspace,
     /// `renderer->target`'s colorspace, or the output colorspace.
     current_colorspace: Colorspace,
@@ -1462,12 +1462,17 @@ impl GpuRenderer {
     ) -> Result<Surface<'static>> {
         let (gpu_tex, pixfmt) = match self.state.render_target.and_then(|t| textures.get(t)) {
             Some(texture) => (texture_data(texture)?.texture.clone(), texture.format),
+            // (without a window there is no backbuffer, whose format is
+            // then SDL_GPU_TEXTUREFORMAT_INVALID)
             None => {
-                let backbuffer = self.backbuffer.as_ref().ok_or_else(not_available)?;
-                let Some(pixfmt) = backbuffer.format.pixel_format() else {
+                let Some((backbuffer, pixfmt)) = self
+                    .backbuffer
+                    .as_ref()
+                    .and_then(|b| Some((b.texture.clone(), b.format.pixel_format()?)))
+                else {
                     return Err(Error::new("Unsupported backbuffer format"));
                 };
-                (backbuffer.texture.clone(), pixfmt)
+                (backbuffer, pixfmt)
             }
         };
 
@@ -1548,7 +1553,13 @@ impl GpuRenderer {
             return;
         };
 
-        let swapchain = match command_buffer.wait_and_acquire_swapchain_texture(&self.window) {
+        let Some(window) = self.window else {
+            let _ = command_buffer.submit();
+            self.acquire_command_buffer();
+            return;
+        };
+
+        let swapchain = match command_buffer.wait_and_acquire_swapchain_texture(&window) {
             Ok(swapchain) => swapchain,
             Err(e) => {
                 crate::log::error!(
@@ -1597,13 +1608,13 @@ impl GpuRenderer {
                 let _ = command_buffer.submit();
 
                 if swapchain.width != width || swapchain.height != height {
-                    if let Ok(format) = self.device.swapchain_texture_format(&self.window) {
+                    if let Ok(format) = self.device.swapchain_texture_format(&window) {
                         let _ = self.create_backbuffer(swapchain.width, swapchain.height, format);
                     }
 
                     // Notify the application that it needs to redraw this frame
                     crate::events::window::send_window_event(
-                        self.window.id(),
+                        window.id(),
                         EventType::WINDOW_EXPOSED,
                         0,
                         0,
@@ -1618,19 +1629,24 @@ impl GpuRenderer {
         self.acquire_command_buffer();
     }
 
-    /// Translation of `GPU_CreateRenderer()` for a window, with the GPU
-    /// creation options of `create_props`.
-    pub(crate) fn for_window(
-        window: Window,
+    /// Translation of `GPU_CreateRenderer()`, for a window or without one,
+    /// with the GPU creation options of `create_props`.
+    pub(crate) fn new(
+        window: Option<Window>,
         output_colorspace: Colorspace,
         vsync: i32,
         create_props: &RendererCreateInfo,
     ) -> Result<GpuRenderer> {
         // Clear any OpenGL properties on the window to avoid potential driver conflicts.
-        let mut flags = window.flags()?;
+        let mut flags = match window {
+            Some(window) => window.flags()?,
+            None => WindowFlags::default(),
+        };
         if flags.contains(WindowFlags::OPENGL) {
             flags &= !WindowFlags::OPENGL;
-            let _ = window.reconfigure(flags);
+            if let Some(window) = window {
+                let _ = window.reconfigure(flags);
+            }
         }
 
         // (SDL_SetupRendererColorspace())
@@ -1660,7 +1676,12 @@ impl GpuRenderer {
             create_props.set(gpu::PROP_GPU_DEVICE_CREATE_PREFERLOWPOWER_BOOLEAN, lowpower)?;
 
             // Vulkan windows get the Vulkan GPU backend by default
-            if window.flags()?.contains(WindowFlags::VULKAN) {
+            // (SDL_GetWindowFlags(NULL) is 0)
+            let window_flags = match window {
+                Some(window) => window.flags()?,
+                None => WindowFlags::default(),
+            };
+            if window_flags.contains(WindowFlags::VULKAN) {
                 create_props.set(gpu::PROP_GPU_DEVICE_CREATE_NAME_STRING, "vulkan")?;
             }
 
@@ -1733,12 +1754,14 @@ impl GpuRenderer {
         // FIXME: What's a good initial size?
         data.init_vertex_buffer(1 << 16)?;
 
-        data.device.claim_window(&window)?;
-        // (SDL_CreateRenderer() destroys the renderer that failed, which
-        // releases the window)
-        if let Err(e) = data.setup_swapchain(vsync) {
-            data.destroy();
-            return Err(e);
+        if let Some(window) = window {
+            data.device.claim_window(&window)?;
+            // (SDL_CreateRenderer() destroys the renderer that failed, which
+            // releases the window)
+            if let Err(e) = data.setup_swapchain(window, vsync) {
+                data.destroy();
+                return Err(e);
+            }
         }
 
         for format in SUPPORTED_FORMATS {
@@ -1777,8 +1800,7 @@ impl GpuRenderer {
 
     /// The swapchain setup and the backbuffer of `GPU_CreateRenderer()`,
     /// once the window is claimed.
-    fn setup_swapchain(&mut self, vsync: i32) -> Result<()> {
-        let window = self.window;
+    fn setup_swapchain(&mut self, window: Window, vsync: i32) -> Result<()> {
         self.swapchain.composition = match self.output_colorspace {
             Colorspace::SRGB_LINEAR => gpu::SwapchainComposition::HdrExtendedLinear,
             Colorspace::HDR10 => gpu::SwapchainComposition::Hdr10St2084,
@@ -2529,8 +2551,15 @@ impl RenderBackend for GpuRenderer {
 
     /// Translation of `GPU_SetVSync()`.
     fn set_vsync(&mut self, vsync: i32) -> Option<Result<()>> {
-        // (there is always a window)
-        let mode = match choose_present_mode(&self.device, &self.window, vsync) {
+        let Some(window) = self.window else {
+            if vsync == 0 {
+                return Some(Ok(()));
+            } else {
+                return Some(Err(Error::unsupported()));
+            }
+        };
+
+        let mode = match choose_present_mode(&self.device, &window, vsync) {
             Ok(mode) => mode,
             Err(e) => return Some(Err(e)),
         };
@@ -2539,7 +2568,7 @@ impl RenderBackend for GpuRenderer {
             // XXX returns bool instead of SDL-style error code
             if let Err(e) =
                 self.device
-                    .set_swapchain_parameters(&self.window, self.swapchain.composition, mode)
+                    .set_swapchain_parameters(&window, self.swapchain.composition, mode)
             {
                 return Some(Err(e));
             }
@@ -2565,7 +2594,9 @@ impl RenderBackend for GpuRenderer {
 
         self.backbuffer = None;
 
-        self.device.release_window(&self.window);
+        if let Some(window) = &self.window {
+            self.device.release_window(window);
+        }
 
         // ReleaseVertexBuffer()
         self.vertices = None;
