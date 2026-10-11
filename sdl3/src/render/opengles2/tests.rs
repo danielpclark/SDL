@@ -1088,3 +1088,48 @@ fn gles2_opengles_300() {
     window.destroy();
     gl::gl_reset_attributes();
 }
+
+/// A palettized texture destroyed right after it's drawn, before the queue
+/// runs: its palette, which no other texture has, is flushed with the
+/// texture still having it, so the draw uses it (upstream's order in
+/// `SDL_SetTexturePalette()`).
+#[test]
+fn gles2_palette_of_a_texture_destroyed_before_the_flush() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    let palette = share_palette(
+        Palette::from_colors(
+            (0..=255u8)
+                .map(|i| Color::new(i, 255 - i, i / 2, 255))
+                .collect(),
+        )
+        .unwrap(),
+    );
+    let scene = |r: &mut Renderer| {
+        r.set_draw_color(12, 34, 56, 255);
+        r.clear().unwrap();
+        let t = r
+            .create_texture(PixelFormat::INDEX8, TextureAccess::Static, 16, 2)
+            .unwrap();
+        r.set_texture_palette(t, Some(palette.clone())).unwrap();
+        let indices: Vec<u8> = (0..32).map(|i| (i * 37 % 256) as u8).collect();
+        r.update_texture(t, None, &indices, 16).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(30.0, 2.0, 32.0, 4.0)))
+            .unwrap();
+        r.destroy_texture(t);
+    };
+    for round in 0..2 {
+        compare(
+            &format!("palette of a destroyed texture, round {round}"),
+            &mut r,
+            0,
+            scene,
+        );
+    }
+    drop(r);
+    window.destroy();
+}
