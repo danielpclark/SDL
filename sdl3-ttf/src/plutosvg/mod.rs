@@ -1773,8 +1773,8 @@ fn render_state_end(
 
     let mut matrix = Matrix::default();
     plutovg_matrix_invert(&parent.matrix, Some(&mut matrix));
-    let left = matrix;
-    plutovg_matrix_multiply(&mut matrix, &left, &state.matrix);
+    let right = matrix;
+    plutovg_matrix_multiply(&mut matrix, &state.matrix, &right);
 
     let extents = plutovg_matrix_map_rect(&matrix, &state.extents);
     if is_invalid_rect(&parent.extents) {
