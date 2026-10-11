@@ -8,7 +8,8 @@
 //!
 //! On Unix systems other than Apple's and Android, notifications go over
 //! D-Bus (`org.freedesktop.Notifications`, or the notification portal in a
-//! sandbox; see `dbusnotification`); elsewhere the dummy backend reports
+//! sandbox; see `dbusnotification`); on Windows they are toasts through the
+//! Windows Runtime (see `windows.rs`); elsewhere the dummy backend reports
 //! that the operation is unsupported.
 
 use crate::error::{Error, Result};
@@ -123,7 +124,15 @@ mod dbusnotification;
 #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
 use dbusnotification as sys;
 
-#[cfg(not(all(unix, not(target_vendor = "apple"), not(target_os = "android"))))]
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows as sys;
+
+#[cfg(not(any(
+    windows,
+    all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+)))]
 mod sys {
     //! Translation of `src/notification/dummy/SDL_dummynotification.c`.
 
@@ -202,7 +211,10 @@ mod tests {
         );
     }
 
-    #[cfg(not(all(unix, not(target_vendor = "apple"), not(target_os = "android"))))]
+    #[cfg(not(any(
+        windows,
+        all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+    )))]
     #[test]
     fn dummy_notifications() {
         assert_eq!(
