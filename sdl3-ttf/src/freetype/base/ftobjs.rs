@@ -158,6 +158,8 @@ pub enum FtService {
     FontFormat(&'static str),
     /// the Windows FNT driver's header service (`FT_Get_WinFNT_Header`)
     WinFnt(&'static super::ftwinfnt::FtServiceWinFntRec),
+    /// the PFR driver's metrics service (`FT_Get_PFR_Metrics` and others)
+    PfrMetrics(&'static super::super::pfr::pfrdrivr::FtServicePfrMetricsRec),
 }
 
 pub const FT_SERVICE_ID_PROPERTIES: &str = "properties";
@@ -504,6 +506,8 @@ pub enum FtCMapData {
     CffEncoding(Box<[FtUShort; 256]>),
     /// the Windows FNT driver's charmap (`FNT_CMapRec`)
     Fnt(super::super::winfonts::winfnt::FntCMapRec),
+    /// the PFR driver's charmap (`PFR_CMapRec`)
+    Pfr(super::super::pfr::pfrcmap::PfrCMapRec),
     /// the PCF driver's charmap (`PCF_CMapRec`)
     Pcf(super::super::pcf::pcfdrivr::PcfCMapRec),
     /// the BDF driver's charmap (`BDF_CMapRec`)
@@ -768,6 +772,8 @@ pub enum FtFace {
     Tt(Box<TtFaceRec>),
     /// an `FNT_Face` (the Windows FNT driver's)
     Fnt(Box<super::super::winfonts::winfnt::FntFaceRec>),
+    /// a `PFR_Face` (the PFR driver's)
+    Pfr(Box<super::super::pfr::pfrobjs::PfrFaceRec>),
     /// a `PCF_Face` (the PCF driver's)
     Pcf(Box<super::super::pcf::pcf::PcfFaceRec>),
     /// a `BDF_Face` (the BDF driver's)
@@ -780,6 +786,7 @@ impl Deref for FtFace {
         match self {
             FtFace::Tt(f) => &f.root,
             FtFace::Fnt(f) => &f.root,
+            FtFace::Pfr(f) => &f.root,
             FtFace::Pcf(f) => &f.root,
             FtFace::Bdf(f) => &f.root,
         }
@@ -791,6 +798,7 @@ impl DerefMut for FtFace {
         match self {
             FtFace::Tt(f) => &mut f.root,
             FtFace::Fnt(f) => &mut f.root,
+            FtFace::Pfr(f) => &mut f.root,
             FtFace::Pcf(f) => &mut f.root,
             FtFace::Bdf(f) => &mut f.root,
         }

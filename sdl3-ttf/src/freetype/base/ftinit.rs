@@ -21,7 +21,7 @@
 //!
 //! The module list is upstream's (`ftmodule.h`, as SDL_ttf's bundled build
 //! generates it), in its order, minus the modules not translated yet: the
-//! Type 1, CID, PFR and Type 42 drivers, and the OT-SVG renderer.
+//! Type 1, CID and Type 42 drivers, and the OT-SVG renderer.
 
 use std::sync::Arc;
 
@@ -36,7 +36,7 @@ fn ft_default_modules() -> Vec<FtModuleClassRef> {
         /* FT_USE_MODULE( FT_Driver_ClassRec, t1_driver_class ) */
         FtModuleClassRef::Driver(&crate::freetype::cff::cffdrivr::CFF_DRIVER_CLASS),
         /* FT_USE_MODULE( FT_Driver_ClassRec, t1cid_driver_class ) */
-        /* FT_USE_MODULE( FT_Driver_ClassRec, pfr_driver_class ) */
+        FtModuleClassRef::Driver(&crate::freetype::pfr::pfrdrivr::PFR_DRIVER_CLASS),
         /* FT_USE_MODULE( FT_Driver_ClassRec, t42_driver_class ) */
         FtModuleClassRef::Driver(&crate::freetype::winfonts::winfnt::WINFNT_DRIVER_CLASS),
         FtModuleClassRef::Driver(&crate::freetype::pcf::pcfdrivr::PCF_DRIVER_CLASS),
