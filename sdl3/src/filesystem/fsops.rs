@@ -5,7 +5,7 @@
 
 //! The `SDL_SYS_*` filesystem operations, written against `std::fs` (which
 //! wraps the same POSIX calls: `opendir`/`readdir`, `remove`, `rename`,
-//! `mkdir`, `stat` and `getcwd`) so they also serve Windows.
+//! `mkdir`, `stat` and `getcwd`), on every platform but Windows.
 
 use std::ops::ControlFlow;
 
@@ -196,9 +196,8 @@ pub(super) fn get_current_directory() -> Result<String> {
     let mut buf = cwd.to_string_lossy().into_owned();
 
     // make sure there's a path separator at the end.
-    let sep = if cfg!(windows) { '\\' } else { '/' };
-    if !buf.ends_with(sep) {
-        buf.push(sep);
+    if !buf.ends_with('/') {
+        buf.push('/');
     }
     Ok(buf)
 }
