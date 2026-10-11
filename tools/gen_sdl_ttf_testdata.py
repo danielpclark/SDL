@@ -6,7 +6,7 @@
 # versions of the DejaVu Sans subset, hinted with the AFDKO's otfautohint
 # (`pip install afdko`).
 #
-# Usage: tools/gen_sdl_ttf_testdata.py [--shaping | --formats | --aat] [OUTDIR]
+# Usage: tools/gen_sdl_ttf_testdata.py [--shaping | --formats | --aat | --svg] [OUTDIR]
 #
 # The subsets keep Basic Latin and Latin-1 (and, in the monospaced font
 # only, a few more characters that the fallback font test looks for), with
@@ -39,9 +39,15 @@
 # subsets and copies of Noto Sans subsets with Apple Advanced Typography
 # tables (see the comment above aat_lookup).
 #
-# The expected results in sdl3-ttf/src/testdata/reference.txt and
-# shaping_reference.txt come from upstream SDL_ttf's C (with its bundled
-# FreeType and HarfBuzz, without PlutoSVG), not from this script.
+# The OpenType SVG test fonts (make_svg_fonts; only those with --svg, after
+# --shaping, as they copy its Noto Sans subset) are copies of the DejaVu
+# Sans and Noto Sans subsets with `SVG ' tables (see the comment above
+# _png_rgba).
+#
+# The expected results in sdl3-ttf/src/testdata/reference.txt,
+# shaping_reference.txt, aat_reference.txt and svg_reference.txt come from
+# upstream SDL_ttf's C (with its bundled FreeType and HarfBuzz, and for
+# svg_reference.txt PlutoSVG), not from this script.
 
 import os
 import struct
@@ -3338,21 +3344,419 @@ def make_aat_fonts(out):
         _set_tables(font, tables)
         font.save(os.path.join(out, outname))
 
+# The OpenType SVG test fonts (make_svg_fonts) are the DejaVu Sans and Noto
+# Sans subsets with an `SVG ' table (and, in DejaVuSans-SVG.ttf, a `CPAL'
+# table with two palettes): color glyphs drawn by small SVG documents that
+# cover what PlutoSVG renders (every path command, fills and fill rules,
+# strokes with every join and cap, dashes, linear and radial gradients with
+# every spread method and their units, transforms and inheritance, every
+# transform, groups, opacities, the style attribute, display and
+# visibility, use, defs, symbol and reference cycles, clip paths, nested
+# svg elements with view boxes and every aspect ratio alignment, the basic
+# shapes, units, colors, currentColor and CPAL palette entries, an embedded
+# PNG image), as per-glyph documents, documents shared by ranges of glyphs
+# (with "glyphN" ids, some missing), and gzip-compressed documents; the
+# glyphs left out of the table keep their outlines.
+
+def _png_rgba(width, height, pixels):
+    """A minimal PNG (8-bit RGBA, no filtering) of `pixels`, rows of
+    (r, g, b, a) tuples."""
+    import zlib
+
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data
+                + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
+
+    raw = b"".join(b"\0" + bytes(c for px in row for c in px) for row in pixels)
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+SVG_HEADER = ('<svg xmlns="http://www.w3.org/2000/svg" '
+              'xmlns:xlink="http://www.w3.org/1999/xlink">')
+
+
+def _svg(gid, body, root=SVG_HEADER, top=None):
+    """A per-glyph document: `body` in a group with the glyph's id."""
+    top = top or ""
+    return '%s<g id="glyph%d"%s>%s</g></svg>' % (root, gid, top, body)
+
+
+def _dejavu_svg_docs(g):
+    """The SVG documents of DejaVuSans-SVG.ttf (2048 units per em; the
+    glyphs' y axis points down from the baseline): a list of
+    (document, first glyph, last glyph, compressed)."""
+    import base64
+    png = _png_rgba(3, 2, [[(255, 0, 0, 255), (0, 255, 0, 128), (0, 0, 255, 255)],
+                           [(255, 255, 0, 64), (0, 0, 0, 0), (255, 0, 255, 255)]])
+    png_uri = "data:image/png;base64," + base64.b64encode(png).decode()
+    docs = {}
+
+    # A: every path command, absolute and relative, implicit repeats, the
+    # fill rules
+    docs["A"] = _svg(g("A"), (
+        '<path fill="#c03030" d="M100,-100 L400,-1400 l300,0 H1000 h100 V-1000 v300 '
+        'C1100,-600 1000,-300 800,-300 c-100,0 -150,-50 -200,-100 S500,-500 400,-450 '
+        's-100,100 -150,50 Q200,-300 300,-200 q50,50 100,0 T600,-150 t100,50 '
+        'A200,150 30 0 1 900,-100 a100,100 0 1 0 150,0 Z m50,-1200 l100,0 0,100 -100,0z"/>'
+        '<path fill="#3060c0" fill-rule="evenodd" d="M1200-1400h300v300h-300zM1250-1350h200v200h-200z"/>'
+        '<path fill="#30a060" fill-rule="nonzero" d="M1200-1000h300v300h-300zM1250-950h200v200h-200z"/>'
+        '<path fill="#806020" d="M1200,-600a150,80,0,1,1,300,0a150,80,0,1,1,-300,0'
+        'M1250-400A0 0 0 0 0 1300-300a50 50 0 0010 0q0 0 5 5"/>'
+        '<path fill="black" d="M 0 0 L"/><path fill="black" d="M50 50 X 100 100"/>'
+        '<path fill="black" d="1 2 3"/>'))
+
+    # B: strokes with every join and cap, the miter limit, opacities
+    docs["B"] = _svg(g("B"), (
+        '<g fill="none" stroke="#2050d0" stroke-width="80">'
+        '<polyline points="100,-200 300,-1300 500,-200" stroke-linejoin="miter" stroke-linecap="butt"/>'
+        '<polyline points="600,-200 800,-1300 1000,-200" stroke-linejoin="round" stroke-linecap="round"/>'
+        '<polyline points="1100,-200 1300,-1300 1500,-200" stroke-linejoin="bevel" stroke-linecap="square"/>'
+        '<path d="M100,-1450 L700,-1380 L100,-1330" stroke-width="30" stroke-miterlimit="2"/>'
+        '<path d="M100,-1250 L700,-1180 L100,-1130" stroke-width="30" stroke-miterlimit="20"/>'
+        '<path d="M800,-1450 Q1200,-1450 1200,-1350 C1200,-1300 900,-1300 900,-1400" '
+        'stroke="green" stroke-width="40" stroke-opacity="0.5" stroke-linejoin="unknown"/>'
+        '<circle cx="1300" cy="-200" r="120" fill="yellow" fill-opacity="0.7" stroke="#800" '
+        'stroke-width="50" opacity="0.8"/>'
+        '<rect x="200" y="-700" width="300" height="200" stroke-width="0"/>'
+        '<path d="M600-600h0" stroke-linecap="round"/><path d="M700-600z" stroke-linecap="square"/>'
+        '</g>'))
+
+    # C: dashes: even and odd counts, offsets, percentages, zero lengths
+    docs["C"] = _svg(g("C"), (
+        '<g fill="none" stroke="black" stroke-width="40">'
+        '<line x1="100" y1="-1400" x2="1400" y2="-1400" stroke-dasharray="100 50"/>'
+        '<line x1="100" y1="-1300" x2="1400" y2="-1300" stroke-dasharray="100,50,25"/>'
+        '<line x1="100" y1="-1200" x2="1400" y2="-1200" stroke-dasharray="10%" stroke-dashoffset="30"/>'
+        '<line x1="100" y1="-1100" x2="1400" y2="-1100" stroke-dasharray="80 40" stroke-dashoffset="-25"/>'
+        '<line x1="100" y1="-1000" x2="1400" y2="-1000" stroke-dasharray="50 -10"/>'
+        '<line x1="100" y1="-900" x2="1400" y2="-900" stroke-dasharray="none" stroke="#a0a"/>'
+        '<line x1="100" y1="-800" x2="1400" y2="-800" stroke-dasharray="0 0"/>'
+        '<circle cx="400" cy="-400" r="250" stroke="#c60" stroke-dasharray="60 40" '
+        'stroke-dashoffset="1000" stroke-linecap="round"/>'
+        '<path d="M800,-200 C900,-700 1300,-700 1400,-200" stroke="#06c" stroke-dasharray="0 80" '
+        'stroke-linecap="round"/>'
+        '<rect x="800" y="-650" width="500" height="150" stroke="#0a0" stroke-dasharray="120 30 60" '
+        'stroke-linejoin="round"/>'
+        '</g>'))
+
+    # D: linear gradients: every spread method, both units, transforms,
+    # inheritance through xlink:href, a single stop, no stops
+    docs["D"] = _svg(g("D"), (
+        '<defs>'
+        '<linearGradient id="lg1"><stop offset="0" stop-color="red"/>'
+        '<stop offset="0.5" stop-color="#ff0" stop-opacity="0.5"/><stop offset="100%" stop-color="blue"/>'
+        '</linearGradient>'
+        '<linearGradient id="lg2" xlink:href="#lg1" x1="0.3" x2="0.6" spreadMethod="reflect"/>'
+        '<linearGradient id="lg3" xlink:href="#lg2" spreadMethod="repeat" gradientTransform="rotate(30)"/>'
+        '<linearGradient id="lg4" gradientUnits="userSpaceOnUse" x1="100" y1="-1400" x2="300" y2="-1000" '
+        'spreadMethod="repeat"><stop offset="0" stop-color="green"/><stop offset="0.3" stop-color="green"/>'
+        '<stop offset="0.2" stop-color="white"/><stop offset="1" style="stop-color:#00f;stop-opacity:.3"/>'
+        '</linearGradient>'
+        '<linearGradient id="lg5"><stop offset="0.5" stop-color="purple"/></linearGradient>'
+        '<linearGradient id="lg6"/>'
+        '<linearGradient id="lg7" x1="0" y1="0" x2="0" y2="1" gradientTransform="translate(0 0.2) scale(1 0.5)">'
+        '<stop offset="-1" stop-color="black"/><stop offset="2" stop-color="cyan"/></linearGradient>'
+        '<linearGradient id="lg8" x1="50%" y1="50%" x2="50%" y2="50%"><stop offset="0" stop-color="red"/>'
+        '<stop offset="1" stop-color="blue"/></linearGradient>'
+        '</defs>'
+        '<rect x="100" y="-1450" width="600" height="250" fill="url(#lg1)"/>'
+        '<rect x="800" y="-1450" width="600" height="250" fill="url(#lg2)"/>'
+        '<rect x="100" y="-1150" width="600" height="250" fill="url(#lg3)"/>'
+        '<rect x="800" y="-1150" width="600" height="250" fill="url( #lg4 )"/>'
+        '<rect x="100" y="-850" width="600" height="250" fill="url(#lg5)"/>'
+        '<rect x="800" y="-850" width="600" height="250" fill="url(#lg6) green"/>'
+        '<rect x="100" y="-550" width="600" height="250" fill="url(#lg7)"/>'
+        '<rect x="800" y="-550" width="600" height="250" fill="url(#lg8)"/>'
+        '<rect x="100" y="-250" width="1300" height="200" fill="url(#missing) #888" '
+        'stroke="url(#lg1)" stroke-width="40"/>'))
+
+    # E: radial gradients: focal points, every spread method, both units,
+    # transforms, inheritance, zero radius
+    docs["E"] = _svg(g("E"), (
+        '<defs>'
+        '<radialGradient id="rg1"><stop offset="0" stop-color="white"/><stop offset="0.6" stop-color="orange"/>'
+        '<stop offset="1" stop-color="#600"/></radialGradient>'
+        '<radialGradient id="rg2" xlink:href="#rg1" fx="0.2" fy="0.3" r="0.3" spreadMethod="reflect"/>'
+        '<radialGradient id="rg3" xlink:href="#rg1" r="0.2" spreadMethod="repeat" '
+        'gradientTransform="scale(1 0.5) translate(0 0.5)"/>'
+        '<radialGradient id="rg4" gradientUnits="userSpaceOnUse" cx="1050" cy="-300" r="300" fx="1150" '
+        'fy="-250"><stop offset="0" stop-color="#0f0"/><stop offset="1" stop-color="#00f" stop-opacity="0"/>'
+        '</radialGradient>'
+        '<radialGradient id="rg5" xlink:href="#rg1" r="0"/>'
+        '<radialGradient id="rg6" xlink:href="#rg4" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" '
+        'r="0.5" fx="0.9" fy="0.9"/>'
+        '</defs>'
+        '<rect x="100" y="-1450" width="600" height="400" fill="url(#rg1)"/>'
+        '<rect x="800" y="-1450" width="600" height="400" fill="url(#rg2)"/>'
+        '<ellipse cx="400" cy="-750" rx="300" ry="200" fill="url(#rg3)"/>'
+        '<circle cx="1100" cy="-750" r="200" fill="url(#rg5)"/>'
+        '<rect x="100" y="-500" width="600" height="400" fill="url(#rg6)"/>'
+        '<rect x="750" y="-600" width="650" height="550" fill="url(#rg4)"/>'))
+
+    # F: transforms
+    docs["F"] = _svg(g("F"), (
+        '<g transform="translate(750 -750)" fill="#246">'
+        '<rect x="-100" y="-100" width="200" height="200" fill="red" transform="rotate(20)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="orange" transform="rotate(-30 200 100)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="#0a0" transform="scale(1.5) translate(150,150)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="blue" transform="translate(-400) skewX(25)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="purple" transform="translate(0,-450)skewY(-20)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="teal" '
+        'transform="matrix(0.8 0.3 -0.2 0.9 -400 -400)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" transform="scale(0.5,-0.25) rotate(45) translate(-900 0)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="pink" transform="rotate(10, bad)"/>'
+        '<rect x="-100" y="-100" width="200" height="200" fill="pink" transform="scale(0)"/>'
+        '</g>'), top=' transform="translate(0 0)"')
+
+    # G: groups, opacities, the style attribute, display, visibility,
+    # colors
+    docs["G"] = _svg(g("G"), (
+        '<g opacity="0.5"><rect x="100" y="-1400" width="500" height="400" fill="red"/>'
+        '<rect x="300" y="-1200" width="500" height="400" fill="blue"/></g>'
+        '<g style="fill:green; fill-opacity:0.6; stroke: black; stroke-width: 30 ;">'
+        '<circle cx="1150" cy="-1150" r="250"/><circle cx="1250" cy="-1050" r="150" style="fill:#ff0"/></g>'
+        '<rect x="100" y="-700" width="300" height="300" fill="red" display="none"/>'
+        '<g visibility="hidden"><rect x="100" y="-700" width="300" height="300" fill="red"/>'
+        '<rect x="450" y="-700" width="300" height="300" fill="#08f" visibility="visible"/></g>'
+        '<rect x="800" y="-700" width="200" height="200" fill="rgb(10%, 50%, 200)"/>'
+        '<rect x="1050" y="-700" width="200" height="200" fill="#abc"/>'
+        '<rect x="800" y="-450" width="200" height="200" fill="rgba(255,0,0,0.5)"/>'
+        '<rect x="1050" y="-450" width="200" height="200" fill="#11223380"/>'
+        '<rect x="100" y="-350" width="300" height="300" fill="none" stroke="currentColor" stroke-width="60" '
+        'color="darkorange"/>'
+        '<g color="#808" style="color:olive"><rect x="450" y="-350" width="300" height="300" fill="currentColor"/>'
+        '</g>'
+        '<rect x="800" y="-200" width="200" height="150" fill="nosuchcolor"/>'
+        '<rect x="1050" y="-200" width="200" height="150" fill="SkyBlue" opacity="1.5"/>'
+        '<g opacity="0.7"><g opacity="0.5"><rect x="1300" y="-700" width="200" height="650" fill="black"/>'
+        '</g></g>'))
+
+    # H: use, defs, symbol, reference cycles and missing references
+    docs["H"] = _svg(g("H"), (
+        '<defs><path id="p" d="M0,0 l200,-300 l200,300z"/>'
+        '<g id="grp" fill="red"><use xlink:href="#p"/><use xlink:href="#p" x="100" y="-200" fill="blue"/></g>'
+        '<symbol id="sym" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/>'
+        '<rect width="10" height="2" fill="lime"/></symbol>'
+        '<g id="cyc"><use xlink:href="#cyc2"/></g><g id="cyc2"><use xlink:href="#cyc"/>'
+        '<rect width="50" height="50"/></g>'
+        '<use id="self" xlink:href="#self"/></defs>'
+        '<use xlink:href="#p" x="100" y="-1000" fill="#0a0"/>'
+        '<use xlink:href="#grp" transform="translate(600 -900)"/>'
+        '<use xlink:href="#sym" x="900" y="-1450" width="500" height="400" fill="#c0c"/>'
+        '<use xlink:href="#sym" x="100" y="-500" width="300" height="400"/>'
+        '<use xlink:href="#cyc" x="500" y="-300"/>'
+        '<use xlink:href="#self"/><use xlink:href="#missing"/><use xlink:href="nohash"/>'
+        '<use xlink:href="#p" x="1000" y="-50" style="fill:none;stroke:#333;stroke-width:20"/>'))
+
+    # I: nested svg elements: view boxes and every aspect ratio
+    # alignment, percentages
+    pars = ["xMinYMin meet", "xMidYMid meet", "xMaxYMax meet", "xMinYMax slice",
+            "xMidYMin slice", "xMaxYMid slice", "none", "bogus"]
+    nested = []
+    for i, par in enumerate(pars):
+        x = 100 + (i % 4) * 350
+        y = -1450 + (i // 4) * 450
+        w, h = (300, 200) if i % 2 == 0 else (200, 400)
+        nested.append(
+            '<rect x="%d" y="%d" width="%d" height="%d" fill="#eee"/>'
+            '<svg x="%d" y="%d" width="%d" height="%d" viewBox="0 0 30 20" preserveAspectRatio="%s">'
+            '<rect width="30" height="20" fill="#48c"/><circle cx="15" cy="10" r="12" fill="#c84"/></svg>'
+            % (x, y, w, h, x, y, w, h, par))
+    nested.append('<svg x="100" y="-500" width="25%" height="10%" viewBox="0 0 10 10">'
+                  '<rect width="10" height="10" fill="#4c4"/></svg>')
+    nested.append('<svg x="600" y="-500" width="300" height="300" viewBox="0 0 0 10">'
+                  '<rect width="10" height="10" fill="red"/></svg>')
+    nested.append('<svg x="1000" y="-500" width="300" height="300">'
+                  '<rect width="50%" height="50%" fill="#c4c"/><rect x="50%" y="50%" width="1in" '
+                  'height="1cm" fill="#444"/></svg>')
+    docs["I"] = _svg(g("I"), "".join(nested))
+
+    # J: the basic shapes and units
+    docs["J"] = _svg(g("J"), (
+        '<g fill="#3a7" stroke="#123" stroke-width="2mm">'
+        '<rect x="100" y="-1450" width="400" height="300" rx="80"/>'
+        '<rect x="600" y="-1450" width="400" height="300" ry="60"/>'
+        '<rect x="1100" y="-1450" width="300" height="300" rx="400" ry="50"/>'
+        '<rect x="100" y="-1050" width="0" height="300"/><rect x="100" y="-1050" width="-10" height="300"/>'
+        '<circle cx="300" cy="-900" r="150"/><circle cx="700" cy="-900" r="0"/>'
+        '<ellipse cx="800" cy="-900" rx="200" ry="100"/><ellipse cx="1200" cy="-900" rx="100"/>'
+        '<polygon points="100,-500 300,-700 500,-500 400,-300 200,-300 150"/>'
+        '<polyline points="600 -500 700 -700 800 -500 900 -700" fill="none"/>'
+        '<polyline points="1000,-500"/>'
+        '<line x1="1000" y1="-700" x2="1400" y2="-300" stroke-width="10pt"/>'
+        '<line x1="1000" y1="-300" x2="1400" y2="-700" stroke-width="1pc" stroke="#f00"/>'
+        '<rect x="100px" y="-250" width="1.5in" height="0.5cm" stroke-width="0.1em"/>'
+        '<circle cx="1000" cy="-150" r="5%"/>'
+        '</g>'))
+
+    # K: CPAL palette entries through var(--colorN), with fallbacks,
+    # and currentColor
+    docs["K"] = _svg(g("K"), (
+        '<rect x="100" y="-1400" width="400" height="400" fill="var(--color0)"/>'
+        '<rect x="600" y="-1400" width="400" height="400" fill="var(--color1, red)"/>'
+        '<rect x="1100" y="-1400" width="300" height="400" fill="var(--color2)" stroke="var(--color0)" '
+        'stroke-width="40"/>'
+        '<rect x="100" y="-900" width="400" height="400" fill="var(--color7, #0f0)"/>'
+        '<rect x="600" y="-900" width="400" height="400" fill="var(--unknown, blue)"/>'
+        '<rect x="1100" y="-900" width="300" height="400" fill="var(--color9)"/>'
+        '<rect x="100" y="-400" width="400" height="300" fill="currentColor"/>'
+        '<rect x="600" y="-400" width="400" height="300" fill="var( --color1 )"/>'
+        '<rect x="1100" y="-400" width="300" height="300" fill="var(--color1"/>'))
+
+    # L: an embedded PNG image
+    docs["L"] = _svg(g("L"), (
+        '<rect x="100" y="-1400" width="1300" height="1300" fill="#ddd"/>'
+        '<image x="100" y="-1400" width="600" height="400" xlink:href="%s"/>'
+        '<image x="800" y="-1400" width="600" height="600" preserveAspectRatio="xMidYMid meet" '
+        'xlink:href="%s"/>'
+        '<image x="100" y="-700" width="600" height="600" preserveAspectRatio="xMinYMin slice" '
+        'opacity="0.5" xlink:href="%s"/>'
+        '<image x="800" y="-700" width="600" height="600" xlink:href="data:image/png;base64,AAAA"/>'
+        '<image x="800" y="-700" width="0" height="600" xlink:href="%s"/>'
+        % (png_uri, png_uri, png_uri, png_uri)))
+
+    # M: a document with a root view box and size, XML declarations,
+    # comments, CDATA, entities and unknown elements
+    docs["M"] = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+                 '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" '
+                 '"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n'
+                 '<!-- a comment -->\n'
+                 '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" '
+                 'viewBox="0 -1600 1600 1600" preserveAspectRatio="xMidYMid meet">\n'
+                 '  <title>M &amp; more</title>\n'
+                 '  <style><![CDATA[ rect { fill: red } ]]></style>\n'
+                 '  <g id="glyph%d" fill="#a52">\n'
+                 '    <rect x="100" y="-1500" width="1400" height="1400" rx="200"/>\n'
+                 '    <foo><rect x="300" y="-1300" width="1000" height="1000" fill="red"/></foo>\n'
+                 '    <circle cx="800" cy="-800" r="400" fill="&#x23;fff" />\n'
+                 '    <circle cx="800" cy="-800" r="200" fill=\'#246\'/>\n'
+                 '  </g>\n'
+                 '</svg>\n' % g("M"))
+
+    # N: clip paths
+    docs["N"] = _svg(g("N"), (
+        '<defs><clipPath id="c1"><circle cx="400" cy="-1100" r="300"/></clipPath>'
+        '<clipPath id="c2" clipPathUnits="objectBoundingBox"><rect x="0.25" y="0" width="0.5" height="1"/>'
+        '</clipPath>'
+        '<clipPath id="c3"><path d="M800-700h600v600h-600zM900-600h400v400h-400z" clip-rule="evenodd"/>'
+        '</clipPath><clipPath id="c4" clip-path="url(#c1)"><rect x="100" y="-1400" width="300" height="600"/>'
+        '</clipPath></defs>'
+        '<rect x="100" y="-1450" width="600" height="700" fill="#c33" clip-path="url(#c1)"/>'
+        '<rect x="800" y="-1450" width="600" height="700" fill="#3c3" clip-path="url(#c2)"/>'
+        '<rect x="800" y="-700" width="600" height="600" fill="#33c" clip-path="url(#c3)"/>'
+        '<rect x="0" y="-1500" width="800" height="800" fill="#cc3" opacity="0.5" clip-path="url(#c4)"/>'
+        '<rect x="100" y="-700" width="600" height="600" fill="#3cc" clip-path="url(#nope)"/>'))
+
+    # The per-glyph documents, and two of them compressed (with
+    # different lengths), in glyph order; the digits share one document
+    # (with glyph ids, "glyphN" for 4 missing), whose record is repeated
+    # for the parentheses (a range of glyphs with no ids in it).
+    out = []
+    for ch, doc in docs.items():
+        out.append((doc, g(ch), g(ch), False))
+    shared = ['<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+              '<defs><radialGradient id="dg"><stop offset="0" stop-color="#fe8"/>'
+              '<stop offset="1" stop-color="#e40"/></radialGradient></defs><g fill="url(#dg)" '
+              'stroke="#420" stroke-width="40">']
+    for i, d in enumerate("0123456789"):
+        if d == "4":
+            continue
+        shared.append('<g id="glyph%d" transform="translate(%d 0)">'
+                      '<rect x="100" y="-1300" width="1000" height="1300" rx="%d"/>'
+                      '<path d="M%d -1100 l200 900" fill="none" stroke="#fff"/></g>'
+                      % (g(d), i * 10, 50 + i * 40, 300 + i * 50))
+    shared.append('<use id="glyph%d" xlink:href="#glyph%d" transform="scale(0.5)"/>'
+                  % (g("7"), g("3")))
+    shared.append('</g></svg>')
+    shared = "".join(shared)
+    out.append((shared, g("0"), g("9"), False))
+    out.append((shared, g("("), g(")"), False))
+    out.append((_svg(g("Q"), '<circle cx="700" cy="-700" r="600" fill="#963"/>'
+                     '<circle cx="700" cy="-700" r="300" fill="#fc6"/>'), g("Q"), g("Q"), True))
+    out.append((_svg(g("R"), '<path d="M100-100L700-1400L1300-100z" fill="#369" stroke="#036" '
+                     'stroke-width="60" stroke-linejoin="round"/>'), g("R"), g("R"), True))
+    return sorted(out, key=lambda d: d[1])
+
+
+def _noto_svg_docs(g):
+    """The SVG documents of NotoSans-SVG.ttf (1000 units per em): one
+    document shared by the glyphs of "a" to "h" (with root view box and
+    inheritance from the ancestors of the glyphs' elements; no element
+    for "f"), one for "x" with a root size and view box, a compressed one
+    for "z", and an empty, a malformed and a document-less glyph."""
+    shared = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">'
+              '<g fill="#d04" stroke="#204" stroke-width="20" opacity="0.9">']
+    for i, ch in enumerate("abcdegh"):
+        shared.append('<g id="glyph%d"><circle cx="300" cy="-300" r="%d"/>'
+                      '<rect x="100" y="-%d" width="400" height="100" fill="#%x%x%x"/></g>'
+                      % (g(ch), 150 + i * 20, 700 - i * 30, i, 15 - i, 2 * i))
+    shared.append('</g></svg>')
+    docs = [("".join(shared), g("a"), g("h"), False),
+            ('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250" viewBox="0 -700 1000 500" '
+             'preserveAspectRatio="none"><g id="glyph%d"><rect x="50" y="-650" width="500" height="400" '
+             'fill="#0a8"/><circle cx="500" cy="-450" r="200" fill="#a08" fill-opacity=".5"/></g></svg>'
+             % g("x"), g("x"), g("x"), False),
+            ('<svg xmlns="http://www.w3.org/2000/svg"></svg>', g("y"), g("y"), False),
+            (_svg(g("z"), '<path d="M50,-700 h500 l-500,700 h500" fill="none" stroke="#06f" '
+                  'stroke-width="80" stroke-linejoin="miter" stroke-linecap="square"/>'),
+             g("z"), g("z"), True),
+            ('<svg xmlns="http://www.w3.org/2000/svg"><g><rect width="10" height="10"', g("w"), g("w"),
+             False),
+            ('<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0L100 0L100 -100z" fill="red"/></svg>'
+             '<svg/>', g("v"), g("v"), False),
+            ]
+    return sorted(docs, key=lambda d: d[1])
+
+
+def make_svg_fonts(out):
+    """The OpenType SVG test fonts: DejaVuSans-SVG.ttf and NotoSans-SVG.ttf,
+    the DejaVu Sans and Noto Sans subsets (see their licenses above) with
+    `SVG ' tables (see the comment above _png_rgba)."""
+    from fontTools.ttLib import newTable
+    from fontTools.ttLib.tables.C_P_A_L_ import Color
+    from fontTools.ttLib.tables.S_V_G_ import SVGDocument
+
+    for name, outname, make_docs, palettes in [
+            ("DejaVuSans.ttf", "DejaVuSans-SVG.ttf", _dejavu_svg_docs,
+             [[(255, 128, 0, 255), (0, 128, 255, 192), (32, 160, 32, 255)],
+              [(20, 20, 20, 255), (200, 0, 200, 255), (255, 255, 255, 128)]]),
+            ("NotoSans-Regular.ttf", "NotoSans-SVG.ttf", _noto_svg_docs, None)]:
+        font = TTFont(os.path.join(out, name), recalcTimestamp=False)
+        g = _glyph_of(font)
+        svg = newTable("SVG ")
+        svg.docList = [SVGDocument(doc, start, end, compressed)
+                       for doc, start, end, compressed in make_docs(g)]
+        font["SVG "] = svg
+        if palettes:
+            cpal = newTable("CPAL")
+            cpal.version = 0
+            cpal.numPaletteEntries = len(palettes[0])
+            cpal.palettes = [[Color(red=r, green=gr, blue=b, alpha=a) for r, gr, b, a in p]
+                             for p in palettes]
+            font["CPAL"] = cpal
+        font.save(os.path.join(out, outname))
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     shaping_only = "--shaping" in args
     formats_only = "--formats" in args
     aat_only = "--aat" in args
-    args = [a for a in args if a not in ("--shaping", "--formats", "--aat")]
+    svg_only = "--svg" in args
+    args = [a for a in args if a not in ("--shaping", "--formats", "--aat", "--svg")]
     outdir = args[0] if args else os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "sdl3-ttf", "src", "testdata", "fonts")
     if formats_only:
         make_format_fonts(outdir)
     elif aat_only:
         make_aat_fonts(outdir)
+    elif svg_only:
+        make_svg_fonts(outdir)
     else:
         if not shaping_only:
             main(outdir)
             make_format_fonts(outdir)
         make_shaping_fonts(outdir)
         make_aat_fonts(outdir)
+        make_svg_fonts(outdir)

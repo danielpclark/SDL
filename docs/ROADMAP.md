@@ -127,7 +127,7 @@ In dependency order, after the core each one needs exists:
    upstream's stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
    **Done** (`sdl3-ttf`, SDL_ttf 3.2.2 with its bundled FreeType
-   2.13.2 and HarfBuzz 8.5.0, without PlutoSVG): all of `SDL_ttf.c`
+   2.13.2, HarfBuzz 8.5.0, PlutoSVG 0.0.6 and PlutoVG 0.0.12): all of `SDL_ttf.c`
    (fonts, sizes, styles, outlines, hinting, kerning, text shaping,
    metrics, fallback fonts, measuring, wrapping, rendering in every mode,
    glyph images, text objects), the surface, renderer (with
@@ -190,10 +190,28 @@ In dependency order, after the core each one needs exists:
    drawn by the three engines (the GPU one on a Vulkan device), and truncated fonts and
    fonts with flipped bytes; FreeType alone was also checked against
    upstream's on more fonts and scripts, and on every truncation and byte
-   flip of two small fonts. Not yet: the hinter
+   flip of two small fonts. **OT-SVG done**: FreeType's `svg` module
+   (the `ot-svg` renderer and its `svg-hooks` property) with SDL_ttf's
+   PlutoSVG hooks (`TTF_USE_PLUTOSVG`), PlutoSVG (`src/plutosvg/`: the
+   SVG parser, the renderer of shapes, paths, `use`, `symbol`, nested
+   `svg` viewports, gradients, clip paths, images, styles and CPAL
+   palette colors, and its FreeType hooks) and the parts of PlutoVG it
+   draws with (`src/plutovg/`: paths, the FreeType-derived stroker and
+   rasterizer, dashing, paints, gradients, textures, compositing; with
+   the float math functions computed as glibc computes them), under
+   their MIT licenses (`sdl3-ttf/PLUTOSVG-LICENSE`,
+   `sdl3-ttf/PLUTOVG-LICENSE`). Checked bit for bit against upstream's C
+   on DejaVu and Noto subsets with SVG tables made by
+   `tools/gen_sdl_ttf_testdata.py --svg` (per-glyph, shared and
+   gzip-compressed documents covering what PlutoSVG renders, alongside
+   plain glyphs): metrics and glyphs at several sizes and DPIs, every
+   render mode, styles, outlines, SDF, text objects, and corrupted SVG
+   tables and documents. Not yet: the hinter
    of FreeType's `pshinter` (which only
-   the old Type 1 and CFF interpreters SDL_ttf's build leaves out use)
-   and its `svg` renderer (which needs PlutoSVG).
+   the old Type 1 and CFF interpreters SDL_ttf's build leaves out use),
+   and SVG images in formats other than PNG and JPEG (SDL's stb_image
+   decodes them; PlutoVG's copy of stb_image also reads BMP, GIF, TGA
+   and the others).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
    (`SDL_mixer.c`: mixers on devices or generating into buffers, audio

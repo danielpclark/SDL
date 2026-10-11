@@ -18,6 +18,8 @@ NotoSansKR-Regular.otf without hinting (the last with TrueType outlines).
 NotoSans-AAT.ttf and NotoSans-Unhinted-AAT.ttf are NotoSans-Regular.ttf and
 NotoSans-Unhinted.ttf with Apple Advanced Typography tables added (morx and
 feat, and kerx and trak in the latter).
+NotoSans-SVG.ttf is NotoSans-Regular.ttf with an OpenType SVG table (color
+glyphs drawn by SVG documents) added.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

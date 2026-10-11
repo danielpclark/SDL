@@ -221,6 +221,16 @@ pub fn tt_face_load_svg_doc(face: &mut TtFaceRec, glyph_index: FtUInt) -> FtResu
             | (docs[n - 3] as FtULong) << 8
             | docs[n - 4] as FtULong;
 
+        /* (C's uninitialized buffer of `uncomp_size' bytes costs nothing  */
+        /* until it is written; this one is zeroed, so it is no larger     */
+        /* than what deflate can expand the document to, at most 1032      */
+        /* times its size: the inflater ends the same way, as it can never */
+        /* run out of output space before C's would)                       */
+        let max_size = (n as FtULong).saturating_mul(1032).saturating_add(1024);
+        if uncomp_size > max_size {
+            uncomp_size = max_size;
+        }
+
         let mut uncomp_buffer = super::super::base::ftmemory::ft_qalloc(uncomp_size as FtLong)?;
 
         if ft_gzip_uncompress(&mut uncomp_buffer, &mut uncomp_size, docs).is_err() {
