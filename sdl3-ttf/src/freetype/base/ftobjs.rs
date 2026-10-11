@@ -784,6 +784,8 @@ pub enum FtFace {
     Bdf(Box<super::super::bdf::bdfdrivr::BdfFaceRec>),
     /// a `T1_Face` (the Type 1 driver's)
     T1(Box<super::super::t1types::T1FaceRec>),
+    /// a `CID_Face` (the CID driver's)
+    Cid(Box<super::super::t1types::CidFaceRec>),
 }
 
 impl Deref for FtFace {
@@ -796,6 +798,7 @@ impl Deref for FtFace {
             FtFace::Pcf(f) => &f.root,
             FtFace::Bdf(f) => &f.root,
             FtFace::T1(f) => &f.root,
+            FtFace::Cid(f) => &f.root,
         }
     }
 }
@@ -809,6 +812,7 @@ impl DerefMut for FtFace {
             FtFace::Pcf(f) => &mut f.root,
             FtFace::Bdf(f) => &mut f.root,
             FtFace::T1(f) => &mut f.root,
+            FtFace::Cid(f) => &mut f.root,
         }
     }
 }

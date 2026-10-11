@@ -44,6 +44,7 @@ pub mod bdf;
 pub mod bzip2;
 pub mod cff;
 pub mod cfftypes;
+pub mod cid;
 pub mod ftimage;
 pub mod fttypes;
 pub mod gzip;

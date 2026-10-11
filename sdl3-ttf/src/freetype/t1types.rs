@@ -217,3 +217,36 @@ pub struct T1FaceRec {
     /// `T1_SizeRec`'s `internal->module_data`
     pub size_module_data: Option<Box<PshGlobalsRec>>,
 }
+
+/// `CID_FaceRec`
+///
+/// `subrs` has an entry per font dictionary; `cid_stream` is the stream
+/// of the binary data converted from hexadecimal (a memory stream over
+/// C's `binary_data`), or `None` for C's copy of the face's stream (which
+/// the face's own stream then serves). `glyph` and `size_module_data` are
+/// the driver's additions to its glyph slot (`CID_GlyphSlotRec`) and size
+/// (`CID_SizeRec`'s `internal->module_data`), as for Type 1 faces.
+#[derive(Debug, Default)]
+pub struct CidFaceRec {
+    pub root: FtFaceRec,
+    /// (`psnames`: whether the `psnames' module is there)
+    pub psnames: bool,
+    /// (`psaux`: whether the `psaux' module is there)
+    pub psaux: bool,
+    pub cid: CidFaceInfoRec,
+    pub font_extra: PsFontExtraRec,
+    /* (the `#if 0'ed `afm_data') */
+    pub subrs: Vec<CidSubrsRec>,
+
+    /* since version 2.1 - interface to PostScript hinter */
+    /// (`pshinter`: whether the `pshinter' module is there)
+    pub pshinter: bool,
+
+    /* since version 2.1.8, but was originally positioned after `afm_data' */
+    pub cid_stream: Option<super::base::ftstream::FtStream>,
+
+    /// `CID_GlyphSlotRec` (minus its root, the face's slot)
+    pub glyph: CffGlyphSlotRec,
+    /// `CID_SizeRec`'s `internal->module_data`
+    pub size_module_data: Option<Box<PshGlobalsRec>>,
+}
