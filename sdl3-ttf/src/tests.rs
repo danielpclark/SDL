@@ -6,7 +6,7 @@
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
 //! the DejaVu Sans subset, and fonts of FreeType's other formats made from
 //! them (Windows FNT and FON, BDF, and PCF bitmap fonts, the latter also
-//! compressed), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
+//! compressed, and PFR fonts), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
 //! font subsets (see their `OFL.txt`) of the shaping tests in
 //! `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
@@ -55,6 +55,8 @@ static SANS_PCF_GZ: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.gz"
 static SANS_PCF_GZ_NOSIZE: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13-nosize.pcf.gz");
 static SANS_PCF_Z: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.Z");
 static SANS_PCF_BZ2: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.bz2");
+static SANS_PFR: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfr");
+static SANS_PFR_BITMAP: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-bitmap.pfr");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -169,8 +171,9 @@ fn info(f: &Font) -> String {
     let (h, v) = f.dpi();
     format!(
         "family={} style={} size={} dpi={h},{v} height={} ascent={} descent={} lineskip={} fixed={} scalable={} faces={} weight={} kerning={}",
-        f.family_name().unwrap_or_default(),
-        f.style_name().unwrap_or_default(),
+        /* (glibc's printf prints a null string as "(null)") */
+        f.family_name().unwrap_or_else(|| "(null)".into()),
+        f.style_name().unwrap_or_else(|| "(null)".into()),
         f.size(),
         f.height(),
         f.ascent(),
@@ -1169,6 +1172,8 @@ fn matches_upstream_reference() {
         ("DejaVuSans-13-nosize.pcf.gz", SANS_PCF_GZ_NOSIZE),
         ("DejaVuSans-13.pcf.Z", SANS_PCF_Z),
         ("DejaVuSans-13.pcf.bz2", SANS_PCF_BZ2),
+        ("DejaVuSans.pfr", SANS_PFR),
+        ("DejaVuSans-bitmap.pfr", SANS_PFR_BITMAP),
     ] {
         /* (the other fonts: the font cases, the CFF2 font's named
         instances, the faces of fonts with several, and the corrupt
@@ -1183,7 +1188,7 @@ fn matches_upstream_reference() {
         if name.contains("CFF2") {
             cff_cases(&mut out, name, data);
         }
-        if name.contains(".fon") {
+        if name.contains(".fon") || name.contains(".pfr") {
             faces_cases(&mut out, name, data);
         }
         corrupt_cases(&mut out, name, data);

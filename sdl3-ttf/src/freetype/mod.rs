@@ -49,6 +49,7 @@ pub mod fttypes;
 pub mod gzip;
 pub mod lzw;
 pub mod pcf;
+pub mod pfr;
 pub mod psaux;
 pub mod pshinter;
 pub mod psnames;

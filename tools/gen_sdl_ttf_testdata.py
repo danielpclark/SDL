@@ -211,10 +211,22 @@ def make_cff_fonts(out):
 #   DejaVuSans-13.pcf.bz2 (the PCF font compressed with gzip, compress's
 #   LZW -- `lzw_compress` -- and bzip2, which SDL_ttf's FreeType does not
 #   read), DejaVuSans-13-nosize.pcf.gz (the gzipped font without its size
-#   in the gzip trailer, which FreeType then reads as a stream), DejaVuSans-13.fnt (a Windows 3.0 FNT font, `fnt_data`),
-#   DejaVuSans.fon and DejaVuSans-PE.fon (two FNT 2.0 fonts, DejaVu Sans
-#   13 px and DejaVu Serif Bold 16 px, in a 16-bit NE and a 32-bit PE
-#   resource DLL, `write_ne_fon` and `write_pe_fon`).
+#   in the gzip trailer, which FreeType then reads as a stream),
+#   DejaVuSans-13.fnt (a Windows 3.0 FNT font, `fnt_data`), DejaVuSans.fon
+#   and DejaVuSans-PE.fon (two FNT 2.0 fonts, DejaVu Sans 13 px and DejaVu
+#   Serif Bold 16 px, in a 16-bit NE and a 32-bit PE resource DLL,
+#   `write_ne_fon` and `write_pe_fon`);
+# * PFR fonts (`write_pfr`): DejaVuSans.pfr, DejaVu Sans's outlines (its
+#   quadratic curves made cubic) as PFR glyph programs of all the
+#   instructions FreeType reads (`pfr_simple_gps`), its accented letters
+#   and fractions as compound glyphs of their components (and the
+#   superscript digits as scaled digits, `pfr_compound_gps`), its kerning
+#   pairs (in items of each layout, `pfr_kern_items`), its names in the
+#   auxiliary data, and a 9 px strike of the rasterizer's bitmaps in the
+#   three image formats (`pfr_bitmap_gps`); and DejaVuSans-bitmap.pfr,
+#   bitmaps only, two logical fonts: DejaVu Sans 13 and 16 px (named only
+#   by its font ID) and DejaVu Serif Bold 16 px (monospaced, with explicit
+#   advances).
 
 BITMAP_CHARS = list(range(0x20, 0x7F)) + list(range(0xA0, 0x100))
 
@@ -660,8 +672,580 @@ def make_bitmap_fonts(out):
     write_pe_fon(os.path.join(out, "DejaVuSans-PE.fon"), fnts)
 
 
+class _CubicPen:
+    """A pen collecting a glyph's contours, in whole font units, as lists
+    of segments: ("m", p) first, then ("l", p) and ("c", c1, c2, p) (its
+    quadratic curves made cubic), each closed by a line back to its start
+    if it does not end there."""
+
+    def __init__(self, glyph_set):
+        from fontTools.pens.basePen import BasePen
+
+        pen = self
+
+        def r(pt):
+            return (round(pt[0]), round(pt[1]))
+
+        class Pen(BasePen):
+            def _moveTo(self, pt):
+                pen.contours.append([("m", r(pt))])
+
+            def _lineTo(self, pt):
+                pen.contours[-1].append(("l", r(pt)))
+
+            def _curveToOne(self, p1, p2, p3):
+                pen.contours[-1].append(("c", r(p1), r(p2), r(p3)))
+
+            def _qCurveToOne(self, p1, p2):
+                p0 = self._getCurrentPoint()
+                c1 = (p0[0] + 2 * (p1[0] - p0[0]) / 3, p0[1] + 2 * (p1[1] - p0[1]) / 3)
+                c2 = (p2[0] + 2 * (p1[0] - p2[0]) / 3, p2[1] + 2 * (p1[1] - p2[1]) / 3)
+                self._curveToOne(c1, c2, p2)
+
+            def _closePath(self):
+                c = pen.contours[-1]
+                if c[-1][-1] != c[0][1]:
+                    c.append(("l", c[0][1]))
+
+            _endPath = _closePath
+
+        self.contours = []
+        self.pen = Pen(glyph_set)
+
+
+def _pfr_coord(v, prev, controls):
+    """A PFR glyph program's coordinate `v` (after the previous point's
+    `prev`) as its argument format and bytes: the previous point's (3), a
+    control value's index (0), an 8-bit delta (2) or a 16-bit value
+    (1)."""
+    import struct
+
+    if v == prev:
+        return 3, b""
+    if v in controls:
+        return 0, bytes([controls.index(v)])
+    if -128 <= v - prev < 128:
+        return 2, struct.pack(">b", v - prev)
+    return 1, struct.pack(">h", v)
+
+
+def _pfr_point(pt, prev, xc, yc):
+    fx, bx = _pfr_coord(pt[0], prev[0], xc)
+    fy, by = _pfr_coord(pt[1], prev[1], yc)
+    return fx | fy << 2, bx + by
+
+
+def pfr_simple_gps(contours, code, extra=False):
+    """A PFR simple glyph program of `contours` (from `_CubicPen`): the
+    most used on-curve coordinates (up to 15 of each) as control values,
+    then the contours' moves (outside for the first, inside for the
+    others), horizontal and vertical lines to control values, other
+    lines, curves starting horizontally and ending vertically or the
+    reverse (whose middle point has a control value) and other curves.
+    The glyph's control value counts are in one byte or (for even
+    `code`s) two, and with `extra` it has an (empty) extra item."""
+    import struct
+    from collections import Counter
+
+    xs, ys = Counter(), Counter()
+    for c in contours:
+        for seg in c:
+            xs[seg[-1][0]] += 1
+            ys[seg[-1][1]] += 1
+    xc = sorted(v for v, n in xs.most_common(15) if n > 1)
+    yc = sorted(v for v, n in ys.most_common(15) if n > 1)
+
+    flags = 0
+    out = bytearray()
+    if code % 2 == 0:
+        if xc:
+            flags |= 0x02
+            out.append(len(xc))
+        if yc:
+            flags |= 0x01
+            out.append(len(yc))
+    elif xc or yc:
+        flags |= 0x04
+        out.append(len(xc) | len(yc) << 4)
+    # the control values (in groups of 8 after a byte whose bits say which
+    # are 16-bit values rather than 8-bit increments)
+    values = xc + yc
+    run = 0
+    for i in range(0, len(values), 8):
+        mask, data = 0, bytearray()
+        for j, v in enumerate(values[i:i + 8]):
+            if 0 <= v - run < 256:
+                data.append(v - run)
+            else:
+                mask |= 1 << j
+                data += struct.pack(">h", v)
+            run = v
+        out.append(mask)
+        out += data
+    if extra:
+        flags |= 0x08
+        out += bytes([1, 2, 1, 0, 0])
+
+    prev = (0, 0)
+    for n, c in enumerate(contours):
+        for seg in c:
+            if seg[0] == "m":
+                f, b = _pfr_point(seg[1], prev, xc, yc)
+                out.append((0x50 if n == 0 else 0x40) | f)
+                out += b
+                prev = seg[1]
+            elif seg[0] == "l":
+                p = seg[1]
+                if p[1] == prev[1] and p[0] in xc:
+                    out.append(0x20 | xc.index(p[0]))
+                elif p[0] == prev[0] and p[1] in yc:
+                    out.append(0x30 | yc.index(p[1]))
+                else:
+                    f, b = _pfr_point(p, prev, xc, yc)
+                    out.append(0x10 | f)
+                    out += b
+                prev = p
+            else:
+                _, c1, c2, p = seg
+                d = [c1[0] - prev[0], c2[1] - c1[1], p[1] - c2[1],
+                     c1[1] - prev[1], c2[0] - c1[0], p[0] - c2[0]]
+                if (c1[1] == prev[1] and p[0] == c2[0] and c2[0] in xc
+                        and all(-128 <= v < 128 for v in d[:3])):
+                    # horizontal to vertical curve: dx1, cx2 dy2, dy3
+                    out.append(0x60)
+                    out += struct.pack(">bBbb", d[0], xc.index(c2[0]), d[1], d[2])
+                elif (c1[0] == prev[0] and p[1] == c2[1] and c2[1] in yc
+                        and all(-128 <= v < 128 for v in d[3:])):
+                    # vertical to horizontal curve: dy1, dx2 cy2, dx3
+                    out.append(0x70)
+                    out += struct.pack(">bbBb", d[3], d[4], yc.index(c2[1]), d[5])
+                else:
+                    f0, b0 = _pfr_point(c1, prev, xc, yc)
+                    f1, b1 = _pfr_point(c2, c1, xc, yc)
+                    f2, b2 = _pfr_point(p, c2, xc, yc)
+                    out.append(0x80 | f0)
+                    out += b0
+                    out.append(f1 | f2 << 4)
+                    out += b1 + b2
+                prev = p
+    out.append(0)  # end glyph
+    return bytes([flags]) + bytes(out)
+
+
+def pfr_compound_gps(elements):
+    """A PFR compound glyph program of `elements`: (x, y, x scale, y
+    scale, glyph program size, glyph program offset) tuples."""
+    import struct
+
+    out = bytearray([0x80 | len(elements)])
+    for x, y, sx, sy, size, offset in elements:
+        fmt, data = 0, bytearray()
+        if sx != 1:
+            fmt |= 0x10
+            data += struct.pack(">h", round(sx * 4096))
+        if sy != 1:
+            fmt |= 0x20
+            data += struct.pack(">h", round(sy * 4096))
+        for shift, v in ((0, x), (2, y)):
+            if -128 <= v < 128 and v:
+                fmt |= 2 << shift
+                data += struct.pack(">b", v)
+            elif v:
+                fmt |= 1 << shift
+                data += struct.pack(">h", v)
+        if size > 255:
+            fmt |= 0x40
+            data += struct.pack(">H", size)
+        else:
+            data.append(size)
+        if offset > 65535:
+            fmt |= 0x80
+            data += offset.to_bytes(3, "big")
+        else:
+            data += struct.pack(">H", offset)
+        out.append(fmt)
+        out += data
+    return bytes(out)
+
+
+def pfr_bitmap_gps(raster, advance, code, top_down):
+    """A PFR bitmap glyph program of the glyph `raster` (`rasterize`'s):
+    its position and size in the smallest of their formats, its advance
+    (`advance`, in 1/256 pixels; None for the default, the character's
+    scaled one) and its image in one of the three formats (by `code`: as
+    packed bits, or run lengths in nibbles or bytes, when those fit in
+    the glyph program as FreeType checks they do), its rows from the top
+    if `top_down` and else from the bottom."""
+    import struct
+
+    x, y, w, h, rows = raster
+    if not top_down:
+        rows = rows[::-1]
+    head = bytearray()
+    if -8 <= x < 8 and -8 <= y < 8:
+        flags = 0
+        head.append((x & 15) << 4 | (y & 15))
+    elif -128 <= x < 128 and -128 <= y < 128:
+        flags = 1
+        head += struct.pack(">bb", x, y)
+    else:
+        flags = 2
+        head += struct.pack(">hh", x, y)
+    if w == 0 or h == 0:
+        pass
+    elif w < 16 and h < 16:
+        flags |= 1 << 2
+        head.append(w << 4 | h)
+    elif w < 256 and h < 256:
+        flags |= 2 << 2
+        head += bytes([w, h])
+    else:
+        flags |= 3 << 2
+        head += struct.pack(">HH", w, h)
+    if advance is not None:
+        if advance % 256 == 0 and -128 <= advance // 256 < 128:
+            flags |= 1 << 4
+            head += struct.pack(">b", advance // 256)
+        else:
+            flags |= 2 << 4
+            head += struct.pack(">h", advance)
+
+    bits = [v for r in rows for v in r]
+    packed = bytearray((len(bits) + 7) // 8)
+    for i, v in enumerate(bits):
+        if v:
+            packed[i // 8] |= 0x80 >> (i % 8)
+    runs = [0]  # alternating white and black run lengths, from a white one
+    for v in bits:
+        if len(runs) % 2 != 1 - v:
+            runs.append(0)
+        runs[-1] += 1
+    rle1, rle2 = bytearray(), bytearray()
+    pairs = list(zip(runs[0::2], runs[1::2] + [0]))
+    for white, black in pairs:
+        while white > 15:
+            rle1.append(15 << 4)
+            white -= 15
+        while black > 15:
+            rle1.append(white << 4 | 15)
+            white, black = 0, black - 15
+        rle1.append(white << 4 | black)
+    for i, n in enumerate(runs):
+        if i % 2 != len(rle2) % 2:
+            rle2.append(0)
+        while n > 255:
+            rle2 += bytes([255, 0])
+            n -= 255
+        rle2.append(n)
+    images = [packed, rle1, rle2]
+    fmt = code % 3
+    size = 1 + len(head) + len(images[fmt])
+    if fmt == 1 and w * h > 15 * size or fmt == 2 and w * h > 255 * ((size + 1) // 2):
+        fmt = 0
+    flags |= fmt << 6
+    return bytes([flags]) + bytes(head) + bytes(images[fmt])
+
+
+def pfr_kern_items(pairs):
+    """The kerning pairs `pairs` ({(left, right): adjustment} of
+    character codes) as PFR kerning extra items of at most 251 bytes, in
+    order, with one or two bytes per code and adjustment by turns (two
+    bytes when an item's adjustments are more than 255 apart)."""
+    import struct
+
+    items = []
+    pairs = sorted(pairs.items())
+    i = 0
+    while i < len(pairs):
+        flags = len(items) % 4
+        size = 3 + (2 if flags & 1 else 0) + (1 if flags & 2 else 0)
+        chunk = pairs[i:i + 247 // size]
+        adjs = [a for _, a in chunk]
+        if max(adjs) - min(adjs) > 255 and not flags & 2:
+            flags |= 2
+            size += 1
+            chunk = chunk[:247 // size]
+            adjs = [a for _, a in chunk]
+        base = min(adjs) if not flags & 2 else 0
+        data = bytearray(struct.pack(">BhB", len(chunk), base, flags))
+        for (left, right), a in chunk:
+            data += struct.pack(">HH" if flags & 1 else ">BB", left, right)
+            data += struct.pack(">h", a) if flags & 2 else bytes([a - base])
+        items.append((4, bytes(data)))
+        i += len(chunk)
+    return items
+
+
+def pfr_extra_items(items):
+    out = bytearray([len(items)])
+    for type_, data in items:
+        assert len(data) < 256
+        out += bytes([len(data), type_]) + data
+    return bytes(out)
+
+
+def pfr_aux(entries):
+    """PFR physical font auxiliary data of `entries` ((type, data)
+    pairs), each padded to an even length."""
+    import struct
+
+    out = bytearray()
+    for type_, data in entries:
+        if len(data) % 2:
+            data += b"\0"
+        out += struct.pack(">HH", 4 + len(data), type_) + data
+    return bytes(out)
+
+
+def pfr_phys_font(ref, res, metrics_res, bbox, flags, chars, items, aux, blues, stems, strikes):
+    """A PFR physical font record and its bitmap character tables:
+    `chars` are (code, advance, glyph program size, glyph program offset)
+    tuples, `strikes` (x ppem, y ppem, flags, records) tuples, each
+    record a (code, size, offset) tuple."""
+    import struct
+
+    bcts, info = bytearray(), bytearray()
+    strike_flags = 0x1F if any(max(s[0], s[1]) > 255 or s[2] & 1 for s in strikes) else 0
+    for x_ppm, y_ppm, sflags, records in strikes:
+        bct = bytearray()
+        for code, size, offset in records:
+            bct += struct.pack(">H" if sflags & 1 else ">B", code)
+            bct += struct.pack(">H" if sflags & 2 else ">B", size)
+            bct += offset.to_bytes(3 if sflags & 4 else 2, "big")
+        if strike_flags:
+            info += struct.pack(">HHB", x_ppm, y_ppm, sflags)
+            info += len(bct).to_bytes(3, "big") + len(bcts).to_bytes(3, "big")
+            info += struct.pack(">H", len(records))
+        else:
+            info += struct.pack(">BBBHHB", x_ppm, y_ppm, sflags, len(bct), len(bcts), len(records))
+        bcts += bct
+    if strikes:
+        info = len(bcts).to_bytes(3, "big") + bytes([strike_flags, len(strikes)]) + info
+        items = [(1, info)] + items
+
+    out = bytearray(struct.pack(">HHHhhhhB", ref, res, metrics_res, *bbox, flags))
+    if not flags & 0x04:
+        out += struct.pack(">h", chars[0][1])
+    if flags & 0x80:
+        out += pfr_extra_items(items)
+    out += len(aux).to_bytes(3, "big") + aux
+    out.append(len(blues))
+    for v in blues:
+        out += struct.pack(">h", v)
+    out += struct.pack(">BBHH", 1, 39, stems[0], stems[1])
+    out += struct.pack(">H", len(chars))
+    for code, advance, size, offset in chars:
+        out += struct.pack(">H" if flags & 0x02 else ">B", code)
+        if flags & 0x04:
+            out += struct.pack(">h", advance)
+        if flags & 0x08:
+            out.append(code if code < 128 else 0)
+        out += struct.pack(">H" if flags & 0x10 else ">B", size)
+        out += offset.to_bytes(3 if flags & 0x20 else 2, "big")
+    return bytes(out), bytes(bcts)
+
+
+def write_pfr(path, log_fonts, phys_fonts, gps, color_flags=0, size_high=False):
+    """A PFR font file of the logical fonts `log_fonts` ((flags, extra
+    data, index of their physical font) tuples), the physical fonts
+    `phys_fonts` (`pfr_phys_font`'s), and the glyph programs `gps`; the
+    logical fonts have physical font sizes of three bytes with
+    `size_high` (the PFR header's maximum physical font size is then
+    rounded up to a multiple of 65536)."""
+    import struct
+
+    log_dir = 58
+    log_section = log_dir + 2 + 5 * len(log_fonts)
+    phys_offsets, pos = [], 0
+    for rec, bct in phys_fonts:
+        phys_offsets.append(pos)
+        pos += len(rec) + len(bct)
+    phys_size = pos
+
+    def log_record(lf, phys_base):
+        flags, extra, phys = lf
+        rec = bytearray()
+        for v in (256, 0, 0, 256):
+            rec += v.to_bytes(3, "big", signed=True)
+        rec.append(flags)
+        rec += extra
+        size = len(phys_fonts[phys][0])
+        rec += struct.pack(">H", size & 0xFFFF)
+        rec += (phys_base + phys_offsets[phys]).to_bytes(3, "big")
+        if size_high:
+            rec.append(size >> 16)
+        return bytes(rec)
+
+    sizes = [len(log_record(lf, 0)) for lf in log_fonts]
+    phys_section = log_section + sum(sizes)
+    logs = [log_record(lf, phys_section) for lf in log_fonts]
+    gps_section = phys_section + phys_size
+    total = gps_section + len(gps) + 8
+
+    directory = struct.pack(">H", len(log_fonts))
+    pos = log_section
+    for rec in logs:
+        directory += struct.pack(">H", len(rec)) + pos.to_bytes(3, "big")
+        pos += len(rec)
+    max_phys = max(len(rec) for rec, _ in phys_fonts)
+    if size_high:
+        max_phys = (max_phys | 0xFFFF) + 1
+    max_bct = max(len(bct) for _, bct in phys_fonts)
+    header = (struct.pack(">4sHHHHHH", b"PFR0", 4, 0x0D0A, 58, len(directory), log_dir,
+                          max(sizes))
+              + sum(sizes).to_bytes(3, "big") + log_section.to_bytes(3, "big")
+              + struct.pack(">H", max_phys & 0xFFFF)
+              + phys_size.to_bytes(3, "big") + phys_section.to_bytes(3, "big")
+              + struct.pack(">H", 65535)
+              + len(gps).to_bytes(3, "big") + gps_section.to_bytes(3, "big")
+              + bytes([14, 15, 15, max_phys >> 16, color_flags])
+              + max_bct.to_bytes(3, "big") + max_bct.to_bytes(3, "big")
+              + max_bct.to_bytes(3, "big")
+              + struct.pack(">HBBH", len(phys_fonts), 4, 4, 255))
+    assert len(header) == 58
+    data = header + directory + b"".join(logs)
+    for rec, bct in phys_fonts:
+        data += rec + bct
+    # (the trailer: the file size and an end mark, which FreeType does not
+    # read)
+    data += gps + total.to_bytes(3, "big") + b"$PFR$"
+    assert len(data) == total
+    with open(path, "wb") as f:
+        f.write(data)
+
+
+def pfr_name(s):
+    """A name of PFR auxiliary data (padded to an even length with a
+    null byte)."""
+    return s.encode("ascii") + b"\0" * (len(s) % 2)
+
+
+# the superscript digits of DejaVuSans.pfr: their digits, scaled, at
+# these positions
+SUPERSCRIPTS = {"uni00B9": ("one", 20), "uni00B2": ("two", 20), "uni00B3": ("three", 20)}
+
+
+def make_pfr_fonts(out):
+    import struct
+
+    sans = os.path.join(out, "DejaVuSans.ttf")
+    serif = os.path.join(out, "DejaVuSerif-Bold.ttf")
+
+    # DejaVuSans.pfr: the outlines, kerning and a 9 px strike
+    font = TTFont(sans)
+    glyph_set = font.getGlyphSet()
+    glyf = font["glyf"]
+    cmap = font.getBestCmap()
+    upem = font["head"].unitsPerEm
+    gps = bytearray()
+    programs = {}
+
+    def program(name):
+        if name in programs:
+            return programs[name]
+        g = glyf[name]
+        if name in SUPERSCRIPTS:
+            # (the superscript digits made of the digits, scaled)
+            elements = [(SUPERSCRIPTS[name][1], 729, 0.6, 0.6) + program(SUPERSCRIPTS[name][0])]
+            data = pfr_compound_gps(elements)
+        elif g.isComposite() and all(hasattr(c, "x") and not hasattr(c, "transform")
+                                     for c in g.components):
+            elements = [(c.x, c.y, 1, 1) + program(c.glyphName) for c in g.components]
+            data = pfr_compound_gps(elements)
+        else:
+            pen = _CubicPen(glyph_set)
+            glyph_set[name].draw(pen.pen)
+            code = next((c for c, n in sorted(cmap.items()) if n == name), 0)
+            data = pfr_simple_gps(pen.contours, code, extra=name == "H")
+        programs[name] = (len(data), len(gps))
+        gps.extend(data)
+        return programs[name]
+
+    codes = [c for c in BITMAP_CHARS if c in cmap]
+    chars = []
+    for code in codes:
+        name = cmap[code]
+        size, offset = program(name)
+        chars.append((code, round(font["hmtx"][name][0] * 1000 / upem), size, offset))
+
+    strike = []
+    for code in codes:
+        name = cmap[code]
+        raster = rasterize(glyph_set, name, 9 / upem, 2)
+        adv = round(font["hmtx"][name][0] * 9 / upem * 256)
+        data = pfr_bitmap_gps(raster, adv if code % 5 == 0 else None, code, False)
+        strike.append((code, len(data), len(gps)))
+        gps.extend(data)
+
+    names = {}
+    for (left, right), v in font["kern"].kernTables[0].kernTable.items():
+        names[(left, right)] = round(v * 1000 / upem)
+    by_name = {}
+    for code in codes:
+        by_name.setdefault(cmap[code], []).append(code)
+    pairs = {}
+    for (left, right), v in names.items():
+        for a in by_name.get(left, []):
+            for b in by_name.get(right, []):
+                pairs[(a, b)] = v
+
+    head = font["head"]
+    b = {g: bounds(glyph_set, g) for g in ["o", "x", "H", "O", "l", "hyphen"]}
+    blues = [b["o"][1], 0, b["x"][3], b["o"][3], b["H"][3], b["O"][3]]
+    stems = (b["l"][2] - b["l"][0], b["hyphen"][3] - b["hyphen"][1])
+    hhea = font["hhea"]
+    aux_metrics = (bytes(10) + struct.pack(">hhh", hhea.ascent, hhea.descent, hhea.lineGap)
+                   + bytes(16))
+    aux = pfr_aux([(1, pfr_name("DejaVu Sans")), (2, aux_metrics), (3, pfr_name("Book"))])
+    items = [(2, b"DejaVu Sans Book"),
+             (3, bytes([1 | 1 << 4]) + struct.pack(">hh", *stems))]
+    items += pfr_kern_items(pairs)
+    rec = pfr_phys_font(0, upem, 1000, (head.xMin, head.yMin, head.xMax, head.yMax),
+                        0x80 | 0x10 | 0x04 | 0x02 | (0x20 if len(gps) > 65535 else 0),
+                        chars, items, aux, blues, stems, [(9, 9, 0, strike)])
+    write_pfr(os.path.join(out, "DejaVuSans.pfr"), [(0, b"", 0)], [rec], bytes(gps),
+              size_high=True)
+
+    # DejaVuSans-bitmap.pfr: two logical fonts, DejaVu Sans (13 and 16 px)
+    # and DejaVu Serif Bold (16 px, a bold one), bitmaps only
+    gps = bytearray()
+    phys = []
+    for path, ppems, proportional in [(sans, [13, 16], True), (serif, [16], False)]:
+        font = TTFont(path)
+        glyph_set = font.getGlyphSet()
+        cmap = font.getBestCmap()
+        upem = font["head"].unitsPerEm
+        codes = [c for c in BITMAP_CHARS if c in cmap]
+        strikes = []
+        for i, ppem in enumerate(ppems):
+            records = []
+            for code in codes:
+                name = cmap[code]
+                raster = rasterize(glyph_set, name, ppem / upem, 2)
+                adv = round(font["hmtx"][name][0] * ppem / upem) * 256
+                data = pfr_bitmap_gps(raster, None if proportional else adv, code, True)
+                records.append((code, len(data), len(gps)))
+                gps.extend(data)
+            strikes.append((ppem, ppem, 0x07 if i else 0, records))
+        head = font["head"]
+        advances = [font["hmtx"][cmap[c]][0] for c in codes]
+        chars = [(c, a if proportional else max(advances), 0, 0) for c, a in zip(codes, advances)]
+        family = font["name"].getDebugName(1)
+        style = font["name"].getDebugName(2)
+        items = [(2, ("%s %s %s px" % (family, style, "/".join(map(str, ppems)))).encode())]
+        aux = b"" if proportional else pfr_aux([(1, pfr_name(family)), (3, pfr_name(style))])
+        bbox = (head.xMin, head.yMin, head.xMax, head.yMax)
+        phys.append(pfr_phys_font(len(phys), upem, upem, bbox,
+                                  0x80 | 0x08 | (0x04 if proportional else 0), chars, items, aux,
+                                  [], (0, 0), strikes))
+    write_pfr(os.path.join(out, "DejaVuSans-bitmap.pfr"),
+              [(0x40, pfr_extra_items([(1, b"\0\0")]), 0), (0x10, bytes([24]), 1)], phys,
+              bytes(gps), color_flags=0x03)
+
+
 def make_format_fonts(out):
     make_bitmap_fonts(out)
+    make_pfr_fonts(out)
 
 
 SHAPING_FONTS = [

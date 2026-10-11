@@ -139,7 +139,10 @@ In dependency order, after the core each one needs exists:
    `psaux` (its CFF parts and Adobe's CFF engine), `pshinter` (its global
    hints), `psnames`, `autofit` (with the CJK and Indic
    writing systems), `smooth`, `raster`, `sdf` (signed distance fields
-   from outlines and bitmaps) and `gzip` (with its zlib). The
+   from outlines and bitmaps), `gzip` (with its zlib), and the drivers
+   of FreeType's other formats: `pfr` (PFR outlines, bitmaps and
+   kerning), `winfonts` (Windows FNT and FON), `pcf` (with `lzw` and the
+   `bzip2` stub SDL_ttf builds) and `bdf`. The
    FreeType License (`sdl3-ttf/FTL.TXT`) applies to `src/freetype/`.
    **Part 2 done**: HarfBuzz as SDL_ttf's build compiles it
    (`src/harfbuzz/`, under HarfBuzz's Old MIT license in
@@ -176,10 +179,9 @@ In dependency order, after the core each one needs exists:
    upstream's on more fonts and scripts, and on every truncation and byte
    flip of two small fonts. Not yet: HarfBuzz's AAT layout (`morx`,
    `kerx`, `trak`) and state-machine `kern` subtables, and FreeType's other
-   font drivers (`type1`, `cid`, `type42`, `pfr`, `winfnt`, `pcf`, `bdf`,
-   with the Type 1 parts of `psaux`, the hinter of `pshinter` that only
-   their old interpreters use, and `lzw`) and its `svg` renderer (which
-   needs PlutoSVG).
+   font drivers (`type1`, `cid`, `type42`, with the Type 1 parts of
+   `psaux` and the hinter of `pshinter` that only their old interpreters
+   use) and its `svg` renderer (which needs PlutoSVG).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
    (`SDL_mixer.c`: mixers on devices or generating into buffers, audio
