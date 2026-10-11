@@ -9,13 +9,13 @@
 //! the window's `HWND`. `dxgi.dll` and `d3d11.dll` are loaded at run time,
 //! as upstream does, and the COM interfaces are declared in [`d3d`].
 //!
-//! What isn't translated:
+//! Textures can wrap the application's textures
+//! ([`TextureCreateInfo::d3d11_texture`](crate::render::TextureCreateInfo::d3d11_texture)
+//! and the others, `SDL_PROP_TEXTURE_CREATE_D3D11_TEXTURE_*`), holding a
+//! reference to them while they exist.
 //!
-//! * the creation options for existing textures
-//!   (`SDL_PROP_TEXTURE_CREATE_D3D11_TEXTURE_*`), which the front end
-//!   doesn't take yet: the renderer makes all its textures.
-//! * the `CoreWindow` swap chain: upstream's `coreWindow` is always NULL,
-//!   so only the `HWND` branch is.
+//! What isn't translated: the `CoreWindow` swap chain: upstream's
+//! `coreWindow` is always NULL, so only the `HWND` branch is.
 //!
 //! The front end only makes renderers with sRGB output yet, so the linear
 //! and HDR10 output paths here are kept for when it does.
@@ -111,6 +111,22 @@ pub(super) fn render_sampler_hashkey(
 /// Translation of `WIN_SetErrorFromHRESULT()` for this renderer's calls.
 pub(super) fn hr_error(prefix: &str, hr: HRESULT) -> Error {
     error_from_hresult(Some(prefix), hr)
+}
+
+/// Translation of `GetTextureProperty()`: the `ID3D11Texture2D` of the
+/// object a texture creation property gives (`None` for none), an owned
+/// reference. `name` is the property's, for the error.
+fn get_texture_property(object: u64, name: &str) -> Result<Option<Texture2d>> {
+    // SAFETY: the application's live COM object (NativeObject's contract),
+    // borrowed: ManuallyDrop keeps its reference.
+    let unknown = unsafe { ComPtr::<IUnknownVtbl>::from_raw(object as usize as *mut _) };
+    let Some(unknown) = unknown.map(std::mem::ManuallyDrop::new) else {
+        return Ok(None);
+    };
+    unknown
+        .query::<ID3D11Texture2DVtbl>(&IID_ID3D11TEXTURE2D)
+        .map(Some)
+        .map_err(|hr| hr_error(name, hr))
 }
 
 /// The error of a renderer whose device was lost and not recovered.
@@ -2682,7 +2698,7 @@ impl RenderBackend for D3d11Renderer {
     fn create_texture(
         &mut self,
         texture: &mut TextureData,
-        _props: &TextureCreateProps,
+        create_props: &TextureCreateProps,
     ) -> Result<()> {
         use PixelFormat as F;
         let texture_format =
@@ -2740,8 +2756,13 @@ impl RenderBackend for D3d11Renderer {
                 .map_err(|hr| hr_error("ID3D11Device1::CreateTexture2D", hr))
         };
 
-        // (SDL_PROP_TEXTURE_CREATE_D3D11_TEXTURE_POINTER isn't taken)
-        let main_texture = create(&texture_desc)?;
+        let main_texture = match get_texture_property(
+            create_props.d3d11_texture[0],
+            "SDL.texture.create.d3d11.texture",
+        )? {
+            Some(main_texture) => main_texture,
+            None => create(&texture_desc)?,
+        };
         let props = texture.props.get_or_insert_with(Properties::new).clone();
         let _ = props.set(
             PROP_TEXTURE_D3D11_TEXTURE_POINTER,
@@ -2761,14 +2782,26 @@ impl RenderBackend for D3d11Renderer {
         ) {
             texture_data.yuv = true;
 
-            let main_texture_u = create(&texture_desc)?;
+            let main_texture_u = match get_texture_property(
+                create_props.d3d11_texture[1],
+                "SDL.texture.create.d3d11.texture_u",
+            )? {
+                Some(main_texture_u) => main_texture_u,
+                None => create(&texture_desc)?,
+            };
             let _ = props.set(
                 PROP_TEXTURE_D3D11_TEXTURE_U_POINTER,
                 raw(&main_texture_u) as i64,
             );
             texture_data.main_texture_u = Some(main_texture_u);
 
-            let main_texture_v = create(&texture_desc)?;
+            let main_texture_v = match get_texture_property(
+                create_props.d3d11_texture[2],
+                "SDL.texture.create.d3d11.texture_v",
+            )? {
+                Some(main_texture_v) => main_texture_v,
+                None => create(&texture_desc)?,
+            };
             let _ = props.set(
                 PROP_TEXTURE_D3D11_TEXTURE_V_POINTER,
                 raw(&main_texture_v) as i64,
