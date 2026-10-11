@@ -1,15 +1,18 @@
 // Rust translation of src/locale/SDL_locale.c, SDL_syslocale.h,
-// src/locale/unix/SDL_syslocale.c, src/locale/dummy/SDL_syslocale.c and
-// include/SDL3/SDL_locale.h from Simple DirectMedia Layer.
+// src/locale/unix/SDL_syslocale.c, src/locale/windows/SDL_syslocale.c,
+// src/locale/dummy/SDL_syslocale.c and include/SDL3/SDL_locale.h from Simple
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The user's preferred locales.
 //!
 //! The Unix backend (from the `LANG` and `LANGUAGE` environment variables)
-//! is used on Unix systems other than Apple's, Android and Haiku; elsewhere
-//! the dummy backend reports that the operation is unsupported until the
-//! platform layer arrives. `SDL_HINT_PREFERRED_LOCALES` overrides both.
+//! is used on Unix systems other than Apple's, Android and Haiku, and the
+//! Windows backend (`GetUserPreferredUILanguages()`, or the user locale's
+//! language and country where that's missing) on Windows; elsewhere the
+//! dummy backend reports that the operation is unsupported until the
+//! platform layer arrives. `SDL_HINT_PREFERRED_LOCALES` overrides them.
 
 use crate::error::Result;
 use crate::hints;
@@ -210,9 +213,168 @@ mod sys {
     }
 }
 
-#[cfg(not(all(
-    unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+#[cfg(windows)]
+mod sys {
+    use super::strlcat;
+    use std::sync::OnceLock;
+    use windows_sys::core::BOOL;
+    use windows_sys::Win32::Globalization::{
+        GetLocaleInfoA, LOCALE_SISO3166CTRYNAME, LOCALE_SISO639LANGNAME, LOCALE_USER_DEFAULT,
+    };
+    use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+
+    type PfnGetUserPreferredUILanguages =
+        unsafe extern "system" fn(u32, *mut u32, *mut u16, *mut u32) -> BOOL;
+    const MUI_LANGUAGE_NAME: u32 = 0x8;
+
+    /// `pGetUserPreferredUILanguages`, looked up in kernel32.dll once.
+    fn p_get_user_preferred_ui_languages() -> Option<PfnGetUserPreferredUILanguages> {
+        static P: OnceLock<Option<PfnGetUserPreferredUILanguages>> = OnceLock::new();
+        *P.get_or_init(|| {
+            let name = crate::core::windows::utf8_to_wide("kernel32.dll");
+            // SAFETY: name is NUL-terminated; kernel32 stays loaded.
+            unsafe {
+                let kernel32 = GetModuleHandleW(name.as_ptr());
+                if kernel32.is_null() {
+                    return None;
+                }
+                let f = GetProcAddress(kernel32, c"GetUserPreferredUILanguages".as_ptr().cast())?;
+                // SAFETY: the export has this signature.
+                Some(std::mem::transmute::<
+                    unsafe extern "system" fn() -> isize,
+                    PfnGetUserPreferredUILanguages,
+                >(f))
+            }
+        })
+    }
+
+    /// One `GetLocaleInfoA()` string into a 16-byte buffer, with its
+    /// return value (0 on failure).
+    fn get_locale_info_a(lctype: u32) -> (i32, String) {
+        let mut buf = [0u8; 16];
+        // SAFETY: buf holds the given number of bytes.
+        let rc = unsafe {
+            GetLocaleInfoA(
+                LOCALE_USER_DEFAULT,
+                lctype,
+                buf.as_mut_ptr(),
+                buf.len() as i32,
+            )
+        };
+        let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+        (rc, String::from_utf8_lossy(&buf[..end]).into_owned())
+    }
+
+    /// This is the fallback for WinXP...one language, not a list.
+    /// Translation of `SDL_SYS_GetPreferredLocales_winxp()`.
+    fn get_preferred_locales_winxp(buf: &mut String, buflen: usize) -> crate::Result<()> {
+        let (langrc, lang) = get_locale_info_a(LOCALE_SISO639LANGNAME);
+        let (ctryrc, country) = get_locale_info_a(LOCALE_SISO3166CTRYNAME);
+
+        /* Win95 systems will fail, because they don't have LOCALE_SISO*NAME ... */
+        if langrc == 0 {
+            Err(crate::Error::new("Couldn't obtain language info"))
+        } else {
+            let s = if ctryrc != 0 {
+                format!("{lang}_{country}")
+            } else {
+                lang
+            };
+            strlcat(buf, &s, buflen); // (snprintf() into the empty buffer)
+            Ok(())
+        }
+    }
+
+    /// This works on Windows Vista and later.
+    /// Translation of `SDL_SYS_GetPreferredLocales_vista()`.
+    fn get_preferred_locales_vista(
+        p_get_user_preferred_ui_languages: PfnGetUserPreferredUILanguages,
+        buf: &mut String,
+        buflen: usize,
+    ) -> crate::Result<()> {
+        let mut numlangs: u32 = 0;
+        let mut wbuflen: u32 = 0;
+
+        // SAFETY: with no buffer, only the counts are written.
+        unsafe {
+            p_get_user_preferred_ui_languages(
+                MUI_LANGUAGE_NAME,
+                &mut numlangs,
+                std::ptr::null_mut(),
+                &mut wbuflen,
+            )
+        };
+
+        let mut wbuf = vec![0u16; wbuflen as usize];
+
+        // SAFETY: wbuf holds wbuflen UTF-16 units.
+        let ok = unsafe {
+            p_get_user_preferred_ui_languages(
+                MUI_LANGUAGE_NAME,
+                &mut numlangs,
+                wbuf.as_mut_ptr(),
+                &mut wbuflen,
+            )
+        } != 0;
+        if !ok {
+            let _ = get_preferred_locales_winxp(buf, buflen); // oh well, try the fallback.
+        } else {
+            let wbuflen = (wbuflen as usize).min(wbuf.len());
+            buf.push_str(&super::ui_languages_to_csv(&wbuf[..wbuflen], buflen));
+        }
+
+        Ok(())
+    }
+
+    /// Translation of `SDL_SYS_GetPreferredLocales()` (Windows).
+    pub(super) fn get_preferred_locales(buf: &mut String, buflen: usize) -> crate::Result<()> {
+        match p_get_user_preferred_ui_languages() {
+            None => get_preferred_locales_winxp(buf, buflen), // this is always available
+            Some(f) => get_preferred_locales_vista(f, buf, buflen), // available on Vista and later.
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn winxp() -> crate::Result<String> {
+        let mut buf = String::new();
+        get_preferred_locales_winxp(&mut buf, 128).map(|()| buf)
+    }
+}
+
+/// The copy loop of `SDL_SYS_GetPreferredLocales_vista()`: a
+/// `GetUserPreferredUILanguages()` list (NUL-separated and double-NUL
+/// terminated, `wbuflen` units) into a `buflen`-byte buffer, with the
+/// separators turned into commas and `-` into `_`.
+///
+/// Note (upstream): with an empty list (`wbuflen` 0), upstream's
+/// `wbuflen - 1` wraps around and the loop reads past the buffer; here
+/// there is nothing to copy.
+#[cfg(any(windows, test))]
+fn ui_languages_to_csv(wbuf: &[u16], buflen: usize) -> String {
+    let endidx = buflen.min(wbuf.len().saturating_sub(1));
+    let mut out = vec![0u8; endidx];
+    let mut str_start = 0;
+    for (i, &wch) in wbuf.iter().enumerate().take(endidx) {
+        let ch = wch as u8; // these should all be low-ASCII, safe to cast
+        if ch == b'\0' {
+            out[i] = b','; // change null separators to commas
+            str_start = i;
+        } else if ch == b'-' {
+            out[i] = b'_'; // change '-' to '_'
+        } else {
+            out[i] = ch; // copy through as-is.
+        }
+    }
+    out.truncate(str_start); // terminate string, chop off final ','
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+#[cfg(not(any(
+    windows,
+    all(
+        unix,
+        not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    )
 )))]
 mod sys {
     /// Translation of `SDL_SYS_GetPreferredLocales()` (dummy).
@@ -293,6 +455,53 @@ mod tests {
                 .collect();
             assert_eq!(got.join(" "), expected, "{csv:?}");
         }
+    }
+
+    /// The copy loop of upstream's `SDL_SYS_GetPreferredLocales_vista()`,
+    /// compiled from the C source, gives these for these lists.
+    #[test]
+    fn ui_languages_match_c() {
+        let w = |s: &str| -> Vec<u16> {
+            s.chars()
+                .map(|c| if c == '|' { 0 } else { c as u16 })
+                .collect()
+        };
+        let mut zh = w("zh-Hans-CN|de||");
+        zh[10] = 0x100; // (its low byte is a NUL, a separator)
+        let cases: [(Vec<u16>, usize, &str); 9] = [
+            (w("en-US|fr-FR||"), 128, "en_US,fr_FR"),
+            (w("en-US||"), 128, "en_US"),
+            (w("en-US|fr-FR||"), 8, "en_US"),
+            (w("en-US|fr-FR||"), 11, "en_US"),
+            (w("en-US|fr-FR||"), 12, "en_US,fr_FR"),
+            (w("||"), 128, ""),
+            (w("ab"), 128, ""),
+            (zh, 128, "zh_Hans_CN,de"),
+            (w("pt-BR|pt|en||"), 128, "pt_BR,pt,en"),
+        ];
+        for (wbuf, buflen, expected) in cases {
+            assert_eq!(ui_languages_to_csv(&wbuf, buflen), expected, "{wbuf:?}");
+        }
+        assert_eq!(ui_languages_to_csv(&[], 128), "");
+    }
+
+    /// `GetUserPreferredUILanguages()` and the WinXP fallback both report
+    /// languages on any Windows (or Wine) installation.
+    #[cfg(windows)]
+    #[test]
+    fn windows_locales() {
+        let _l = crate::test_support::test_lock();
+        let is_tag = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric());
+        let locales = preferred_locales().unwrap();
+        assert!(!locales.is_empty());
+        for l in &locales {
+            assert!(is_tag(&l.language), "{locales:?}");
+            assert!(l.country.as_deref().is_none_or(is_tag), "{locales:?}");
+        }
+        let xp = sys::winxp().unwrap();
+        let (lang, country) = xp.split_once('_').unwrap_or((&xp, ""));
+        assert!(is_tag(lang), "{xp}");
+        assert!(country.is_empty() || is_tag(country), "{xp}");
     }
 
     #[test]
