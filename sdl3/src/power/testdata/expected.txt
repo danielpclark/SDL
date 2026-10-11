@@ -1,0 +1,33 @@
+empty: sysfs=NoBattery/-1/-1 acpi=none apm=none
+discharging: sysfs=OnBattery/10800/57 acpi=none apm=none
+two_batteries: sysfs=OnBattery/3600/40 acpi=none apm=none
+device_scope: sysfs=NoBattery/-1/-1 acpi=none apm=none
+not_present: sysfs=NoBattery/-1/0 acpi=none apm=none
+full_clamped: sysfs=Charged/-1/100 acpi=none apm=none
+not_charging: sysfs=Charged/-1/80 acpi=none apm=none
+charging_no_status: sysfs=Charging/-1/33 acpi=none apm=none
+weird_status: sysfs=Unknown/-1/-1 acpi=none apm=none
+on_battery_no_power: sysfs=OnBattery/-1/-1 acpi=none apm=none
+acpi_charged: sysfs=none acpi=Charged/-1/50 apm=none
+acpi_charging: sysfs=none acpi=Charging/-1/99 apm=none
+acpi_on_battery: sysfs=none acpi=OnBattery/-1/25 apm=none
+acpi_no_battery: sysfs=none acpi=NoBattery/-1/-1 apm=none
+acpi_no_adapter_dir: sysfs=none acpi=none apm=none
+acpi_malformed: sysfs=none acpi=NoBattery/-1/-1 apm=none
+apm_charged: sysfs=none acpi=none apm=Charged/7200/99
+apm_charging: sysfs=none acpi=none apm=Charging/30/50
+apm_unknown: sysfs=none acpi=none apm=Unknown/-1/-1
+apm_no_battery: sysfs=none acpi=none apm=NoBattery/-1/-1
+apm_on_battery: sysfs=none acpi=none apm=OnBattery/900/100
+apm_unknown_details: sysfs=none acpi=none apm=OnBattery/-1/-1
+apm_truncated: sysfs=none acpi=none apm=none
+apm_bad_number: sysfs=none acpi=none apm=none
+display_discharging: upower=OnBattery/5400/64
+display_not_battery: upower=NoBattery/-1/-1
+display_wrong_type: upower=NoBattery/-1/-1
+enumerate: upower=Charged/-1/100
+enumerate_absent: upower=NoBattery/-1/0
+enumerate_empty: upower=NoBattery/-1/-1
+pending_states: upower=Unknown/7200/100
+no_state: upower=Unknown/-1/12
+no_upower: upower=none

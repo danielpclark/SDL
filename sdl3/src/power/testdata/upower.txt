@@ -1,0 +1,67 @@
+== display_discharging
+display /org/freedesktop/UPower/devices/DisplayDevice
+p /org/freedesktop/UPower/devices/DisplayDevice Type u 2
+p /org/freedesktop/UPower/devices/DisplayDevice PowerSupply b 1
+p /org/freedesktop/UPower/devices/DisplayDevice IsPresent b 1
+p /org/freedesktop/UPower/devices/DisplayDevice State u 2
+p /org/freedesktop/UPower/devices/DisplayDevice Percentage d 64.75
+p /org/freedesktop/UPower/devices/DisplayDevice TimeToEmpty x 5400
+== display_not_battery
+display /org/freedesktop/UPower/devices/DisplayDevice
+p /org/freedesktop/UPower/devices/DisplayDevice Type u 0
+p /org/freedesktop/UPower/devices/DisplayDevice PowerSupply b 1
+== display_wrong_type
+display /org/freedesktop/UPower/devices/DisplayDevice
+p /org/freedesktop/UPower/devices/DisplayDevice Type i 2
+== enumerate
+enumerate /org/freedesktop/UPower/devices/line_power_AC,/org/freedesktop/UPower/devices/battery_BAT0,/org/freedesktop/UPower/devices/mouse,/org/freedesktop/UPower/devices/battery_BAT1
+p /org/freedesktop/UPower/devices/line_power_AC Type u 1
+p /org/freedesktop/UPower/devices/line_power_AC PowerSupply b 1
+p /org/freedesktop/UPower/devices/battery_BAT0 Type u 2
+p /org/freedesktop/UPower/devices/battery_BAT0 PowerSupply b 1
+p /org/freedesktop/UPower/devices/battery_BAT0 IsPresent b 1
+p /org/freedesktop/UPower/devices/battery_BAT0 State u 4
+p /org/freedesktop/UPower/devices/battery_BAT0 Percentage d 100.0
+p /org/freedesktop/UPower/devices/battery_BAT0 TimeToEmpty x 0
+p /org/freedesktop/UPower/devices/mouse Type u 2
+p /org/freedesktop/UPower/devices/mouse PowerSupply b 0
+p /org/freedesktop/UPower/devices/mouse IsPresent b 1
+p /org/freedesktop/UPower/devices/battery_BAT1 Type u 2
+p /org/freedesktop/UPower/devices/battery_BAT1 PowerSupply b 1
+p /org/freedesktop/UPower/devices/battery_BAT1 IsPresent b 1
+p /org/freedesktop/UPower/devices/battery_BAT1 State u 1
+p /org/freedesktop/UPower/devices/battery_BAT1 Percentage d 30.5
+== enumerate_absent
+enumerate /org/freedesktop/UPower/devices/battery_BAT0
+p /org/freedesktop/UPower/devices/battery_BAT0 Type u 2
+p /org/freedesktop/UPower/devices/battery_BAT0 PowerSupply b 1
+p /org/freedesktop/UPower/devices/battery_BAT0 IsPresent b 0
+p /org/freedesktop/UPower/devices/battery_BAT0 Percentage d 0.0
+== enumerate_empty
+enumerate
+== pending_states
+enumerate /b5,/b6,/b9
+p /b5 Type u 2
+p /b5 PowerSupply b 1
+p /b5 IsPresent b 1
+p /b5 State u 5
+p /b5 Percentage d 79.9
+p /b5 TimeToEmpty x 60
+p /b6 Type u 2
+p /b6 PowerSupply b 1
+p /b6 IsPresent b 1
+p /b6 State u 6
+p /b6 TimeToEmpty x 120
+p /b9 Type u 2
+p /b9 PowerSupply b 1
+p /b9 IsPresent b 1
+p /b9 State u 9
+p /b9 Percentage d 150
+p /b9 TimeToEmpty x 7200
+== no_state
+display /d
+p /d Type u 2
+p /d PowerSupply b 1
+p /d IsPresent b 1
+p /d Percentage d 12
+== no_upower

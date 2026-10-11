@@ -1,0 +1,99 @@
+== empty
+d sys/class/power_supply
+== discharging
+f sys/class/power_supply/AC/type=Mains\n
+f sys/class/power_supply/AC/online=0\n
+f sys/class/power_supply/BAT0/type=Battery\n
+f sys/class/power_supply/BAT0/status=Discharging\n
+f sys/class/power_supply/BAT0/capacity=57\n
+f sys/class/power_supply/BAT0/energy_now=30000000\n
+f sys/class/power_supply/BAT0/power_now=10000000\n
+== two_batteries
+f sys/class/power_supply/BAT0/type=Battery\n
+f sys/class/power_supply/BAT0/status=Discharging\n
+f sys/class/power_supply/BAT0/capacity=40\n
+f sys/class/power_supply/BAT0/time_to_empty_now=3600\n
+f sys/class/power_supply/BAT1/type=Battery\n
+f sys/class/power_supply/BAT1/status=Discharging\n
+f sys/class/power_supply/BAT1/capacity=90\n
+f sys/class/power_supply/BAT1/time_to_empty_now=0\n
+== device_scope
+f sys/class/power_supply/hid-ps4/type=Battery\n
+f sys/class/power_supply/hid-ps4/scope=Device\n
+f sys/class/power_supply/hid-ps4/status=Discharging\n
+f sys/class/power_supply/hid-ps4/capacity=12\n
+f sys/class/power_supply/ups/type=UPS\n
+f sys/class/power_supply/notype/status=Charging\n
+== not_present
+f sys/class/power_supply/BAT0/type=Battery\n
+f sys/class/power_supply/BAT0/present=0\n
+f sys/class/power_supply/BAT0/status=Discharging\n
+f sys/class/power_supply/BAT0/capacity=0\n
+== full_clamped
+f sys/class/power_supply/BAT0/type=battery\n
+f sys/class/power_supply/BAT0/scope=System\n
+f sys/class/power_supply/BAT0/present=1\n
+f sys/class/power_supply/BAT0/status=FULL\n
+f sys/class/power_supply/BAT0/capacity=150\n
+== not_charging
+f sys/class/power_supply/BAT1/type=Battery\n
+f sys/class/power_supply/BAT1/status=Not charging\n
+f sys/class/power_supply/BAT1/capacity=80\n
+f sys/class/power_supply/BAT1/energy_now=1000\n
+f sys/class/power_supply/BAT1/power_now=10\n
+== charging_no_status
+f sys/class/power_supply/BAT0/type=Battery\n
+f sys/class/power_supply/BAT0/status=charging\n
+f sys/class/power_supply/BAT0/capacity=33
+f sys/class/power_supply/BAT1/type=Battery\n
+f sys/class/power_supply/BAT1/capacity=20\n
+== weird_status
+f sys/class/power_supply/BAT0/type=Battery\n
+f sys/class/power_supply/BAT0/status=Weird\n
+f sys/class/power_supply/BAT0/energy_now=5000\n
+f sys/class/power_supply/BAT0/power_now=0\n
+== on_battery_no_power
+f sys/class/power_supply/BAT0/type=Battery\n
+f sys/class/power_supply/BAT0/status=Discharging\n
+f sys/class/power_supply/BAT0/energy_now=5000\n
+== acpi_charged
+f proc/acpi/battery/BAT0/state=present: yes\ncharging state: discharging\nremaining capacity: 2000 mAh\n
+f proc/acpi/battery/BAT0/info=present: yes\ndesign capacity: 4000 mAh\nlast full capacity: 3900 mAh\n
+f proc/acpi/ac_adapter/AC/state=state: on-line\n
+== acpi_charging
+f proc/acpi/battery/BAT0/state=present:   YES\ncharging state:    Charging\nremaining capacity: 3999 mWh\n
+f proc/acpi/battery/BAT0/info=design capacity: 4000 mWh\n
+f proc/acpi/ac_adapter/AC/state=state: off-line\n
+== acpi_on_battery
+f proc/acpi/battery/BAT0/state=present: yes\ncharging state: charging/discharging\nremaining capacity: 2000\n
+f proc/acpi/battery/BAT0/info=design capacity: 4000 mAh\n
+f proc/acpi/battery/BAT1/state=present: yes\ncharging state: discharged\nremaining capacity: 100 mAh\n
+f proc/acpi/battery/BAT1/info=design capacity: 400 mAh\n
+d proc/acpi/ac_adapter
+== acpi_no_battery
+f proc/acpi/battery/BAT0/state=present: no\n
+f proc/acpi/battery/BAT0/info=design capacity: 4000 mAh\n
+f proc/acpi/ac_adapter/AC/state=state: on-line\n
+== acpi_no_adapter_dir
+f proc/acpi/battery/BAT0/state=present: yes\n
+f proc/acpi/battery/BAT0/info=design capacity: 4000 mAh\n
+== acpi_malformed
+f proc/acpi/battery/BAT0/state=present yes\ncharging state:\n
+f proc/acpi/battery/BAT0/info=design capacity: 0 mAh\n
+d proc/acpi/ac_adapter
+== apm_charged
+f proc/apm=1.16 1.2 0x03 0x01 0x00 0x01 99% 120 min\n
+== apm_charging
+f proc/apm=1.16 1.2 0x03 0x00 0x00 0x08 50% 30 sec\n
+== apm_unknown
+f proc/apm=1.16 1.2 0x03 0x01 0xff 0xff -1% -1 ?\n
+== apm_no_battery
+f proc/apm=1.16 1.2 0x03 0x01 0x00 0x80 -1% -1 ?\n
+== apm_on_battery
+f proc/apm=1.16 1.2 0x03 0x00 0x00 0x02 150% 017 MIN
+== apm_unknown_details
+f proc/apm=1.16 1.2 0x03 0x00 0x00 0x02 -1% -1 ?\n
+== apm_truncated
+f proc/apm=1.16 1.2 0x03 0x01
+== apm_bad_number
+f proc/apm=1.16 1.2 0x03 0x01 0x00 0x01 9x% 120 min\n
