@@ -200,6 +200,11 @@ pub(crate) mod test_support {
         ("uinput", "a writable /dev/uinput"),
         ("hidapi", "the HID backend: hidraw/libudev, or hid.dll"),
         ("ipv6", "IPv6 sockets on the loopback interface (::1)"),
+        ("tzdata", "the time zone database in /usr/share/zoneinfo"),
+        (
+            "locales",
+            "glibc's localedef and locale sources (/usr/share/i18n/locales)",
+        ),
         ("xinput", "an XInput DLL"),
         (
             "gameinput",
