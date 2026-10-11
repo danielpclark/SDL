@@ -13,10 +13,15 @@
 //! * the Android parts: textures of Android hardware buffers
 //!   (`SDL_PIXELFORMAT_EXTERNAL_OES`) and the sampler YCbCr conversion
 //!   pipelines they need. There is no Android platform layer.
-//! * the creation options for an existing instance, surface, physical
-//!   device, device or queue families (`SDL_PROP_RENDERER_CREATE_VULKAN_*`)
-//!   and for existing images (`SDL_PROP_TEXTURE_CREATE_VULKAN_*`), which
-//!   the front end doesn't take yet: the renderer makes and owns them all.
+//!
+//! The renderer can be made on the application's instance, surface,
+//! physical device, device and queue families
+//! ([`RendererCreateInfo::vulkan_instance`] and the others,
+//! `SDL_PROP_RENDERER_CREATE_VULKAN_*`), and textures can wrap the
+//! application's images
+//! ([`TextureCreateInfo::vulkan_texture`](crate::render::TextureCreateInfo::vulkan_texture)
+//! and the others, `SDL_PROP_TEXTURE_CREATE_VULKAN_*`); the renderer
+//! leaves those to the application.
 //!
 //! The front end only makes renderers with sRGB output yet, so the linear
 //! and HDR10 output paths here are kept for when it does.
@@ -50,7 +55,7 @@ use crate::render::sysrender::{
     invalid_texture, CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend, RenderCommand,
     TextureCreateProps, TextureData, TextureStore,
 };
-use crate::render::{Texture, TextureAccess, TextureAddressMode};
+use crate::render::{NativeObject, RendererCreateInfo, Texture, TextureAccess, TextureAddressMode};
 use crate::video::blendmode::{BlendFactor, BlendOperation};
 use crate::video::pixels::{
     convert_color_709_to_2020, pq_from_nits, srgb_to_linear, Color, ColorPrimaries, Colorspace,
@@ -399,6 +404,8 @@ struct Image {
     device_memory: VkDeviceMemory,
     image_layout: VkImageLayout,
     format: VkFormat,
+    /// The renderer made the image (it isn't the application's).
+    allocated_image: bool,
 }
 
 /// Per-palette data. Translation of `VULKAN_PaletteData`.
@@ -496,11 +503,43 @@ impl SourceTexture {
     }
 }
 
+/// The creation options `VULKAN_CreateDeviceResources()` reads (the
+/// `SDL_PROP_RENDERER_CREATE_VULKAN_*` properties), kept for a device reset
+/// as upstream keeps a copy of the renderer's creation properties
+/// (`rendererData->create_props`).
+#[derive(Clone, Copy, Default)]
+struct VulkanCreateProps {
+    instance: Option<NativeObjectHandle>,
+    surface: Option<NativeObjectHandle>,
+    physical_device: Option<NativeObjectHandle>,
+    device: Option<NativeObjectHandle>,
+    graphics_queue_family_index: Option<u32>,
+    present_queue_family_index: Option<u32>,
+}
+
+/// The handle of an application's object (a [`NativeObject`]'s).
+type NativeObjectHandle = u64;
+
+impl VulkanCreateProps {
+    fn new(info: &RendererCreateInfo) -> VulkanCreateProps {
+        VulkanCreateProps {
+            instance: info.vulkan_instance.map(NativeObject::raw),
+            surface: info.vulkan_surface.map(NativeObject::raw),
+            physical_device: info.vulkan_physical_device.map(NativeObject::raw),
+            device: info.vulkan_device.map(NativeObject::raw),
+            graphics_queue_family_index: info.vulkan_graphics_queue_family_index,
+            present_queue_family_index: info.vulkan_present_queue_family_index,
+        }
+    }
+}
+
 /// The renderer's data. Translation of `VULKAN_RenderData`, with the parts
 /// of `SDL_Renderer` the backend reads (`window`, `output_colorspace`,
 /// `current_colorspace`, the HDR headroom), its textures and palettes, and
 /// its vertex storage.
 pub(crate) struct VulkanRenderer {
+    /// `rendererData->create_props`
+    create_props: VulkanCreateProps,
     window: Window,
     output_colorspace: Colorspace,
     current_colorspace: Colorspace,
@@ -514,7 +553,9 @@ pub(crate) struct VulkanRenderer {
     inst: Option<Rc<InstanceFunctions>>,
     dev: Option<Rc<DeviceFunctions>>,
     instance: VkInstance,
+    instance_external: bool,
     surface: VkSurfaceKHR,
+    surface_external: bool,
     physical_device: VkPhysicalDevice,
     physical_device_properties: Box<VkPhysicalDeviceProperties>,
     physical_device_memory_properties: Box<VkPhysicalDeviceMemoryProperties>,
@@ -522,6 +563,7 @@ pub(crate) struct VulkanRenderer {
     graphics_queue: VkQueue,
     present_queue: VkQueue,
     device: VkDevice,
+    device_external: bool,
     graphics_queue_family_index: u32,
     present_queue_family_index: u32,
     swapchain: VkSwapchainKHR,
@@ -1067,10 +1109,16 @@ impl VulkanRenderer {
             }
         }
 
+        // Note (upstream): upstream keeps the handle of the application's
+        // device (and surface and instance) after VULKAN_DestroyAll(); here
+        // they're forgotten too, so a renderer that couldn't recover from a
+        // device loss doesn't go on with them.
         if !self.device.is_null() {
-            // SAFETY: the device has no child objects left that the
-            // renderer made (bar the palettes, see below).
-            unsafe { (dev.destroy_device)(self.device, null()) };
+            if !self.device_external {
+                // SAFETY: the device has no child objects left that the
+                // renderer made (bar the palettes, see below).
+                unsafe { (dev.destroy_device)(self.device, null()) };
+            }
             self.device = null_mut();
         }
         self.dev = None;
@@ -1082,7 +1130,8 @@ impl VulkanRenderer {
     /// The device, when it was made but its functions couldn't be looked
     /// up: destroyed through its own `vkDestroyDevice`.
     fn destroy_device_without_functions(&mut self) {
-        if self.device.is_null() {
+        if self.device.is_null() || self.device_external {
+            self.device = null_mut();
             return;
         }
         type PfnVkDestroyDevice = unsafe extern "system" fn(VkDevice, *const c_void);
@@ -1107,7 +1156,7 @@ impl VulkanRenderer {
     /// (Without the instance functions, upstream calls a null
     /// `vkDestroyInstance`; here it's looked up on its own.)
     fn destroy_instance_objects(&mut self) {
-        if self.inst.is_none() && !self.instance.is_null() {
+        if self.inst.is_none() && !self.instance.is_null() && !self.instance_external {
             type PfnVkDestroyInstance = unsafe extern "system" fn(VkInstance, *const c_void);
             if let Some(f) = self.instance_lookup(self.instance)(c"vkDestroyInstance") {
                 // SAFETY: vkDestroyInstance has this type; the instance
@@ -1121,17 +1170,19 @@ impl VulkanRenderer {
             self.instance = null_mut();
         }
         if let Some(inst) = self.inst.clone() {
-            if self.surface != VK_NULL_HANDLE {
+            if self.surface != VK_NULL_HANDLE && !self.surface_external {
                 // SAFETY: the surface of this instance, with no swapchain left.
                 unsafe { (inst.destroy_surface_khr)(self.instance, self.surface, null()) };
-                self.surface = VK_NULL_HANDLE;
             }
-            if !self.instance.is_null() {
+            self.surface = VK_NULL_HANDLE;
+            if !self.instance.is_null() && !self.instance_external {
                 // SAFETY: the instance has no child objects left.
                 unsafe { (inst.destroy_instance)(self.instance, null()) };
-                self.instance = null_mut();
             }
+            self.instance = null_mut();
         }
+        self.surface = VK_NULL_HANDLE;
+        self.instance = null_mut();
         self.inst = None;
     }
 
@@ -1261,31 +1312,75 @@ impl VulkanRenderer {
         // use by pending GPU work.
         unsafe {
             if vulkan_image.image != VK_NULL_HANDLE {
-                (dev.destroy_image)(self.device, vulkan_image.image, null());
+                if vulkan_image.allocated_image {
+                    (dev.destroy_image)(self.device, vulkan_image.image, null());
+                }
                 vulkan_image.image = VK_NULL_HANDLE;
             }
 
             if vulkan_image.device_memory != VK_NULL_HANDLE {
-                (dev.free_memory)(self.device, vulkan_image.device_memory, null());
+                if vulkan_image.allocated_image {
+                    (dev.free_memory)(self.device, vulkan_image.device_memory, null());
+                }
                 vulkan_image.device_memory = VK_NULL_HANDLE;
             }
         }
     }
 
-    /// Translation of `VULKAN_AllocateImage()` (without the image of a
-    /// creation property, nor an external buffer).
+    /// Translation of `VULKAN_AllocateImage()` (without an external buffer:
+    /// those are Android's), with the image and layout of the creation
+    /// properties in `existing` (the image, 0 for none, and
+    /// `SDL_PROP_TEXTURE_CREATE_VULKAN_LAYOUT_NUMBER`).
     fn allocate_image(
         &mut self,
+        existing: (VkImage, Option<VkImageLayout>),
         width: u32,
         height: u32,
         format: VkFormat,
         image_usage: VkImageUsageFlags,
     ) -> VkResultOr<Image> {
-        let dev = self.dev();
         let mut image_out = Image {
             format,
+            image: existing.0,
             ..Image::default()
         };
+
+        if image_out.image == VK_NULL_HANDLE {
+            image_out.allocated_image = true;
+            self.allocate_new_image(&mut image_out, width, height, format, image_usage)?;
+        } else {
+            image_out.image_layout = existing
+                .1
+                .unwrap_or(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        if image_out.image_layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL {
+            self.ensure_command_buffer();
+            image_out.image_layout = self.record_pipeline_image_barrier(
+                VK_ACCESS_NONE,
+                VK_ACCESS_SHADER_READ_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                image_out.image,
+                image_out.image_layout,
+            );
+        }
+
+        Ok(image_out)
+    }
+
+    /// The image the renderer makes in `VULKAN_AllocateImage()`, with its
+    /// memory.
+    fn allocate_new_image(
+        &mut self,
+        image_out: &mut Image,
+        width: u32,
+        height: u32,
+        format: VkFormat,
+        image_usage: VkImageUsageFlags,
+    ) -> VkResultOr<()> {
+        let dev = self.dev();
 
         let mut image_create_info = VkImageCreateInfo {
             s_type: VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -1325,7 +1420,7 @@ impl VulkanRenderer {
             )
         };
         if result != VK_SUCCESS {
-            self.destroy_image(&mut image_out);
+            self.destroy_image(image_out);
             return Err(failure("vkCreateImage()", result));
         }
 
@@ -1347,7 +1442,7 @@ impl VulkanRenderer {
         ) {
             Ok(index) => index,
             Err(e) => {
-                self.destroy_image(&mut image_out);
+                self.destroy_image(image_out);
                 return Err((VK_ERROR_UNKNOWN, e));
             }
         };
@@ -1368,7 +1463,7 @@ impl VulkanRenderer {
             )
         };
         if result != VK_SUCCESS {
-            self.destroy_image(&mut image_out);
+            self.destroy_image(image_out);
             return Err(failure("vkAllocateMemory()", result));
         }
         // SAFETY: the image and memory just made.
@@ -1376,24 +1471,10 @@ impl VulkanRenderer {
             (dev.bind_image_memory)(self.device, image_out.image, image_out.device_memory, 0)
         };
         if result != VK_SUCCESS {
-            self.destroy_image(&mut image_out);
+            self.destroy_image(image_out);
             return Err(failure("vkBindImageMemory()", result));
         }
-
-        if image_out.image_layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL {
-            self.ensure_command_buffer();
-            image_out.image_layout = self.record_pipeline_image_barrier(
-                VK_ACCESS_NONE,
-                VK_ACCESS_SHADER_READ_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                image_out.image,
-                image_out.image_layout,
-            );
-        }
-
-        Ok(image_out)
+        Ok(())
     }
 
     /// Translation of `VULKAN_AllocateImageView()` (without a YCbCr
@@ -2467,7 +2548,10 @@ impl VulkanRenderer {
             .unwrap_or(false);
 
         // Create VkInstance
-        {
+        if let Some(instance) = self.create_props.instance {
+            self.instance = instance as usize as VkInstance;
+            self.instance_external = true;
+        } else {
             let app_info = VkApplicationInfo {
                 s_type: VK_STRUCTURE_TYPE_APPLICATION_INFO,
                 api_version: VK_API_VERSION_1_0,
@@ -2516,18 +2600,52 @@ impl VulkanRenderer {
         let inst = self.inst();
 
         // Create Vulkan surface
-        match crate::video::vulkan::vulkan_create_surface(&self.window, self.instance as usize, 0) {
-            Ok(surface) => self.surface = surface,
-            Err(e) => {
-                self.destroy_all();
-                return Err(e);
+        if let Some(surface) = self.create_props.surface {
+            self.surface = surface;
+            self.surface_external = true;
+        } else {
+            match crate::video::vulkan::vulkan_create_surface(
+                &self.window,
+                self.instance as usize,
+                0,
+            ) {
+                Ok(surface) => self.surface = surface,
+                Err(e) => {
+                    self.destroy_all();
+                    return Err(e);
+                }
             }
         }
 
         // Choose Vulkan physical device
-        if let Err(e) = self.find_physical_device() {
+        if let Some(physical_device) = self.create_props.physical_device {
+            self.physical_device = physical_device as usize as VkPhysicalDevice;
+            // SAFETY: the application's physical device, of its instance
+            // (NativeObject's contract).
+            unsafe {
+                (inst.get_physical_device_properties)(
+                    self.physical_device,
+                    &mut *self.physical_device_properties,
+                );
+                (inst.get_physical_device_memory_properties)(
+                    self.physical_device,
+                    &mut *self.physical_device_memory_properties,
+                );
+                (inst.get_physical_device_features)(
+                    self.physical_device,
+                    &mut self.physical_device_features,
+                );
+            }
+        } else if let Err(e) = self.find_physical_device() {
             self.destroy_all();
             return Err(e);
+        }
+
+        if let Some(index) = self.create_props.graphics_queue_family_index {
+            self.graphics_queue_family_index = index;
+        }
+        if let Some(index) = self.create_props.present_queue_family_index {
+            self.present_queue_family_index = index;
         }
 
         let found = self.supports_khr_get_physical_device_properties2
@@ -2541,7 +2659,10 @@ impl VulkanRenderer {
         }
 
         // Create Vulkan device
-        {
+        if let Some(device) = self.create_props.device {
+            self.device = device as usize as VkDevice;
+            self.device_external = true;
+        } else {
             let queue_priority = [1.0f32];
             let mut device_queue_create_info = [VkDeviceQueueCreateInfo::default(); 2];
             let mut device_sampler_ycbcr_conversion_features =
@@ -4832,6 +4953,7 @@ impl VulkanRenderer {
     pub(crate) fn for_window(
         window: Window,
         output_colorspace: Colorspace,
+        create_props: &RendererCreateInfo,
     ) -> Result<VulkanRenderer> {
         // Clear any OpenGL properties on the window to avoid potential driver conflicts.
         let mut flags = window.flags()?;
@@ -4848,7 +4970,11 @@ impl VulkanRenderer {
             return Err(Error::new("Unsupported output colorspace"));
         }
 
-        let mut renderer_data = VulkanRenderer::new(window, output_colorspace);
+        let mut renderer_data = VulkanRenderer::new(
+            window,
+            output_colorspace,
+            VulkanCreateProps::new(create_props),
+        );
 
         // (renderer->window is the window from the start)
 
@@ -4883,6 +5009,9 @@ impl VulkanRenderer {
         };
 
         let mut formats = Vec::new();
+        // FIXME (upstream): this asks for the formats of VK_EXT_4444_formats
+        // too, an extension the device isn't made with (on a Vulkan 1.0
+        // instance), which the validation layer reports as invalid formats.
         for &(sdl, unorm, srgb) in VK_FORMAT_MAP {
             if !texture_format_supported(unorm) {
                 continue;
@@ -4924,8 +5053,13 @@ impl VulkanRenderer {
 
     /// The renderer's data before the device exists (the `SDL_calloc()`
     /// and the setup of `VULKAN_CreateRenderer()`).
-    fn new(window: Window, output_colorspace: Colorspace) -> VulkanRenderer {
+    fn new(
+        window: Window,
+        output_colorspace: Colorspace,
+        create_props: VulkanCreateProps,
+    ) -> VulkanRenderer {
         let mut data = VulkanRenderer {
+            create_props,
             window,
             output_colorspace,
             current_colorspace: output_colorspace,
@@ -4936,7 +5070,9 @@ impl VulkanRenderer {
             inst: None,
             dev: None,
             instance: null_mut(),
+            instance_external: false,
             surface: VK_NULL_HANDLE,
+            surface_external: false,
             physical_device: null_mut(),
             physical_device_properties: Box::default(),
             physical_device_memory_properties: Box::default(),
@@ -4944,6 +5080,7 @@ impl VulkanRenderer {
             graphics_queue: null_mut(),
             present_queue: null_mut(),
             device: null_mut(),
+            device_external: false,
             graphics_queue_family_index: 0,
             present_queue_family_index: 0,
             swapchain: VK_NULL_HANDLE,
@@ -5341,7 +5478,7 @@ impl RenderBackend for VulkanRenderer {
     fn create_texture(
         &mut self,
         texture: &mut TextureData,
-        _props: &TextureCreateProps,
+        create_props: &TextureCreateProps,
     ) -> Result<()> {
         use PixelFormat as F;
         let num_images = get_format_image_count(texture.format);
@@ -5404,7 +5541,7 @@ impl RenderBackend for VulkanRenderer {
         if texture.access == TextureAccess::Target {
             usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         }
-        // (SDL_PROP_TEXTURE_CREATE_VULKAN_USAGE_NUMBER isn't taken)
+        usage |= create_props.vulkan_usage;
 
         // The texture's data goes in the renderer now, so that a failure
         // below releases what was made (upstream leaves that to
@@ -5420,7 +5557,9 @@ impl RenderBackend for VulkanRenderer {
         for i in 0..num_images {
             let image_width = if i == 0 { width } else { chroma_width };
             let image_height = if i == 0 { height } else { chroma_height };
-            match self.allocate_image(image_width, image_height, texture_format, usage) {
+            // (imageCreateProperties[i])
+            let existing = (create_props.vulkan_texture[i], create_props.vulkan_layout);
+            match self.allocate_image(existing, image_width, image_height, texture_format, usage) {
                 Ok(image) => {
                     let t = self.textures.get_mut(&id).expect("the new texture");
                     t.images[i] = image;
@@ -5877,7 +6016,7 @@ impl RenderBackend for VulkanRenderer {
         let image_view_swizzle = self.identity_swizzle;
         let mut palettedata = PaletteData {
             image: self
-                .allocate_image(256, 1, format, usage)
+                .allocate_image((VK_NULL_HANDLE, None), 256, 1, format, usage)
                 .map_err(|(rc, _)| error_code("VULKAN_AllocateImage()", rc))?,
             image_view: VK_NULL_HANDLE,
         };
