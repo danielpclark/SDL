@@ -2,6 +2,18 @@ use super::*;
 use crate::error::Error;
 use crate::test_support::TempDir;
 
+/// The path separator the backend puts in the paths it reports.
+const SEP: &str = if cfg!(windows) { "\\" } else { "/" };
+
+/// What the POSIX and the Windows operations call each failure.
+fn expected_error(posix: &'static str, windows: &'static str) -> &'static str {
+    if cfg!(windows) {
+        windows
+    } else {
+        posix
+    }
+}
+
 /// (pattern, string) pairs; [`WILDCARD_EXPECTED`] is the output of
 /// upstream's `WildcardMatch()` over them, compiled from the C source:
 /// two digits per case, `matched` then `matched_to_dir`.
@@ -95,7 +107,10 @@ fn file_operations() {
     assert!(create_directory(&tmp.path("a/file.txt/sub"))
         .unwrap_err()
         .message()
-        .starts_with("Can't create directory: "));
+        .starts_with(expected_error(
+            "Can't create directory: ",
+            "Couldn't create directory: "
+        )));
 
     copy_file(&tmp.path("a/file.txt"), &tmp.path("a/b/copy.txt")).unwrap();
     assert_eq!(std::fs::read(tmp.path("a/b/copy.txt")).unwrap(), b"hello");
@@ -113,7 +128,10 @@ fn file_operations() {
     assert!(rename_path(&tmp.path("nope"), &tmp.path("nope2"))
         .unwrap_err()
         .message()
-        .starts_with("Can't rename path: "));
+        .starts_with(expected_error(
+            "Can't rename path: ",
+            "Couldn't rename path: "
+        )));
 
     remove_path(&tmp.path("a/b/moved.txt")).unwrap();
     remove_path(&tmp.path("a/b/moved.txt")).unwrap(); // already gone is success
@@ -142,7 +160,7 @@ fn enumerate_and_glob() {
 
     let mut seen = Vec::new();
     enumerate_directory(&format!("{}//", tmp.0), |dir, name| {
-        assert_eq!(dir, format!("{}/", tmp.0));
+        assert_eq!(dir, format!("{}{SEP}", tmp.0));
         seen.push(name.to_owned());
         Ok(ControlFlow::Continue(()))
     })
@@ -164,10 +182,15 @@ fn enumerate_and_glob() {
         enumerate_directory(&tmp.path("missing"), |_, _| Ok(ControlFlow::Continue(())))
             .unwrap_err()
             .message()
-            .starts_with("Can't open directory: ")
+            .starts_with(expected_error(
+                "Can't open directory: ",
+                "Failed to enumerate directory: "
+            ))
     );
 
-    let sorted = |mut v: Vec<String>| {
+    // (with the backend's separators)
+    let sorted = |v: Vec<String>| {
+        let mut v: Vec<String> = v.into_iter().map(|p| p.replace(SEP, "/")).collect();
         v.sort();
         v
     };
@@ -272,4 +295,268 @@ fn base_path_and_exe_name() {
     let exe = get_exe_name().unwrap();
     assert!(!exe.is_empty() && !exe.contains('/'));
     assert!(std::path::Path::new(&format!("{base}{exe}")).exists());
+}
+
+/// The SDL part of an error (Windows appends the system's text for the
+/// error code, which depends on the language and on Wine or Windows).
+#[cfg(windows)]
+fn sdl_part(e: &Error) -> &str {
+    let m = e.message();
+    m.rfind(": ").map_or(m, |i| &m[..i])
+}
+
+/// What upstream's `SDL_sysfsops.c` and `SDL_filesystem.c` (Windows), built
+/// from the C source and run under Wine, report for the same calls on a
+/// fresh tree: see `windows_fsops_match_upstream`. Errors are cut at the
+/// system's text; directory entries are sorted case-insensitively.
+#[cfg(windows)]
+const WINDOWS_FSOPS_EXPECTED: &str = r"mkdir nested: ok
+mkdir again: ok
+save x: ok
+save Y: ok
+save inner: ok
+mkdir under file: Couldn't create directory
+mkdir on file: Couldn't create directory
+info file: type 1 size 5 times 1
+info dir: type 2 size 0 times 1
+info missing: error Can't stat
+copy: ok
+copy over: ok
+info copied: type 1 size 2 times 1
+copy missing: Couldn't copy path
+rename: ok
+rename over: ok
+rename missing: Couldn't rename path
+info renamed: type 1 size 2 times 1
+remove empty dir: ok
+remove gone: ok
+remove missing parent: Couldn't get path's attributes
+remove non-empty: Couldn't remove path
+enumerate:
+  enum [<root>\] [a]
+  enum [<root>\] [x.txt]
+  enum [<root>\] [Y.TXT]
+enumerate done: ok
+enumerate missing: Failed to enumerate directory
+glob *.txt 0: [x.txt]
+glob *.txt 1: [Y.TXT] [x.txt]
+glob a/* 0: [a\b]
+glob a\b\*.txt 0:
+glob */*/*.TXT 1: [a\b\inner.txt]
+glob ?.txt 0: [x.txt]
+glob (null) 0: [Y.TXT] [a] [a\b] [a\b\inner.txt] [x.txt]
+glob a/b/* 0: [a\b\inner.txt]
+glob (null) 0: error Failed to enumerate directory
+";
+
+#[cfg(windows)]
+#[test]
+fn windows_fsops_match_upstream() {
+    let tmp = TempDir::new("winfsops");
+    let root = tmp.0.replace('/', "\\");
+    let mut out = String::new();
+    let mut line = |s: String| {
+        out.push_str(&s);
+        out.push('\n');
+    };
+    let result = |r: Result<()>| match r {
+        Ok(()) => "ok".to_owned(),
+        Err(e) => sdl_part(&e).to_owned(),
+    };
+    let info = |path: &str| match get_path_info(path) {
+        Ok(i) => format!(
+            "type {} size {} times {}",
+            i.kind as i32,
+            i.size,
+            (i.create_time > Time::UNIX_EPOCH
+                && i.modify_time > Time::UNIX_EPOCH
+                && i.access_time > Time::UNIX_EPOCH) as i32
+        ),
+        Err(e) => format!("error {}", sdl_part(&e)),
+    };
+    let glob = |root: &str, pattern: Option<&str>, flags: GlobFlags| {
+        let mut s = format!("glob {} {}:", pattern.unwrap_or("(null)"), flags.0);
+        match glob_directory(root, pattern, flags) {
+            Ok(mut r) => {
+                r.sort();
+                for p in r {
+                    s += &format!(" [{p}]");
+                }
+            }
+            Err(e) => s += &format!(" error {}", sdl_part(&e)),
+        }
+        s
+    };
+
+    let r = &root;
+    line(format!(
+        "mkdir nested: {}",
+        result(create_directory(&format!("{r}\\a/b\\c/")))
+    ));
+    line(format!(
+        "mkdir again: {}",
+        result(create_directory(&format!("{r}\\a/b\\c/")))
+    ));
+    let save = |p: &str, data: &[u8]| result(crate::io::save_file(p, data));
+    line(format!("save x: {}", save(&format!("{r}/x.txt"), b"hello")));
+    line(format!("save Y: {}", save(&format!("{r}/Y.TXT"), b"hi")));
+    line(format!(
+        "save inner: {}",
+        save(&format!("{r}/a/b/inner.txt"), b"inner!")
+    ));
+    line(format!(
+        "mkdir under file: {}",
+        result(create_directory(&format!("{r}/x.txt/sub")))
+    ));
+    line(format!(
+        "mkdir on file: {}",
+        result(create_directory(&format!("{r}/x.txt")))
+    ));
+    line(format!("info file: {}", info(&format!("{r}/x.txt"))));
+    line(format!("info dir: {}", info(&format!("{r}/a"))));
+    line(format!("info missing: {}", info(&format!("{r}/missing"))));
+    let (x, copy) = (format!("{r}/x.txt"), format!("{r}/a/copy.txt"));
+    line(format!("copy: {}", result(copy_file(&x, &copy))));
+    line(format!(
+        "copy over: {}",
+        result(copy_file(&format!("{r}/Y.TXT"), &copy))
+    ));
+    line(format!("info copied: {}", info(&copy)));
+    line(format!(
+        "copy missing: {}",
+        result(copy_file(&format!("{r}/missing"), &copy))
+    ));
+    let moved = format!("{r}/a/moved.txt");
+    line(format!("rename: {}", result(rename_path(&copy, &moved))));
+    line(format!("rename over: {}", result(rename_path(&moved, &x))));
+    line(format!(
+        "rename missing: {}",
+        result(rename_path(&moved, &x))
+    ));
+    line(format!("info renamed: {}", info(&x)));
+    let c = format!("{r}/a/b/c");
+    line(format!("remove empty dir: {}", result(remove_path(&c))));
+    line(format!("remove gone: {}", result(remove_path(&c))));
+    line(format!(
+        "remove missing parent: {}",
+        result(remove_path(&format!("{r}/nope/deeper")))
+    ));
+    line(format!(
+        "remove non-empty: {}",
+        result(remove_path(&format!("{r}/a")))
+    ));
+
+    line("enumerate:".to_owned());
+    let mut entries = Vec::new();
+    let done = enumerate_directory(&format!("{r}\\\\//"), |dir, name| {
+        entries.push(format!("  enum [{dir}] [{name}]"));
+        Ok(ControlFlow::Continue(()))
+    });
+    entries.sort_by_key(|e| e.to_lowercase());
+    for e in entries {
+        line(e);
+    }
+    line(format!("enumerate done: {}", result(done)));
+    line(format!(
+        "enumerate missing: {}",
+        result(enumerate_directory(&format!("{r}/missing"), |_, _| Ok(
+            ControlFlow::Continue(())
+        )))
+    ));
+
+    line(glob(r, Some("*.txt"), GlobFlags::NONE));
+    line(glob(r, Some("*.txt"), GlobFlags::CASE_INSENSITIVE));
+    line(glob(r, Some("a/*"), GlobFlags::NONE));
+    line(glob(r, Some("a\\b\\*.txt"), GlobFlags::NONE));
+    line(glob(r, Some("*/*/*.TXT"), GlobFlags::CASE_INSENSITIVE));
+    line(glob(r, Some("?.txt"), GlobFlags::NONE));
+    line(glob(r, None, GlobFlags::NONE));
+    line(glob(&format!("{r}\\"), Some("a/b/*"), GlobFlags::NONE));
+    line(glob(&format!("{r}/missing"), None, GlobFlags::NONE));
+
+    assert_eq!(out.replace(r.as_str(), "<root>"), WINDOWS_FSOPS_EXPECTED);
+}
+
+/// The drive letters, the known folders, the pref path and the current
+/// directory hold together on any Windows (or Wine) installation.
+#[cfg(windows)]
+#[test]
+fn windows_paths() {
+    let _l = crate::test_support::test_lock();
+    quit_filesystem();
+
+    // An empty path lists the drives.
+    let mut drives = Vec::new();
+    enumerate_directory("", |dir, name| {
+        assert_eq!(dir, "");
+        drives.push(name.to_owned());
+        Ok(ControlFlow::Continue(()))
+    })
+    .unwrap();
+    assert!(!drives.is_empty());
+    for d in &drives {
+        let b = d.as_bytes();
+        assert!(
+            b.len() == 3 && b[0].is_ascii_uppercase() && &b[1..] == b":\\",
+            "{d}"
+        );
+    }
+    assert!(drives.windows(2).all(|w| w[0] < w[1]));
+
+    let is_dir = |p: &str| std::path::Path::new(p).is_dir();
+    let home = get_user_folder(Folder::Home).unwrap();
+    let profile = std::env::var("USERPROFILE").unwrap();
+    assert_eq!(home.to_lowercase(), format!("{profile}\\").to_lowercase());
+    for folder in Folder::ALL {
+        match get_user_folder(folder) {
+            Ok(path) => {
+                assert!(path.ends_with('\\') && is_dir(&path), "{folder:?}: {path}");
+            }
+            Err(e) if folder == Folder::PublicShare => {
+                assert_eq!(e.message(), "Public share unavailable on Windows");
+            }
+            Err(e) => {
+                // (Wine has no Screenshots folder, for one)
+                assert!(
+                    matches!(folder, Folder::SavedGames | Folder::Screenshots)
+                        && sdl_part(&e) == "Couldn't get folder",
+                    "{folder:?}: {e}"
+                );
+            }
+        }
+    }
+
+    let appdata = std::env::var("APPDATA").unwrap();
+    let pref = get_pref_path(Some("SDL3 Test Org"), "Test App").unwrap();
+    assert_eq!(
+        pref.to_lowercase(),
+        format!("{appdata}\\SDL3 Test Org\\Test App\\").to_lowercase()
+    );
+    assert!(is_dir(&pref));
+    let pref2 = get_pref_path(None, "SDL3 Test App 2").unwrap();
+    assert_eq!(
+        pref2.to_lowercase(),
+        format!("{appdata}\\SDL3 Test App 2\\").to_lowercase()
+    );
+    let e = get_pref_path(Some(&"x".repeat(299)), "App").unwrap_err();
+    assert_eq!(sdl_part(&e), "Path too long.");
+    std::fs::remove_dir(&pref).unwrap();
+    std::fs::remove_dir(format!("{appdata}\\SDL3 Test Org")).unwrap();
+    std::fs::remove_dir(&pref2).unwrap();
+
+    let cwd = get_current_directory().unwrap();
+    let std_cwd = std::env::current_dir().unwrap();
+    assert_eq!(
+        cwd.trim_end_matches('\\'),
+        std_cwd.to_string_lossy().trim_end_matches('\\')
+    );
+    assert!(cwd.ends_with('\\'));
+
+    let base = get_base_path().unwrap();
+    let exe = std::env::current_exe().unwrap();
+    assert_eq!(
+        format!("{base}{}", get_exe_name().unwrap()).to_lowercase(),
+        exe.to_string_lossy().to_lowercase()
+    );
+    quit_filesystem();
 }

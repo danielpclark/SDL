@@ -8,8 +8,19 @@
 //! everywhere. File names that are not valid UTF-8 are converted lossily
 //! when they are reported (by [`enumerate_directory`] and [`glob_directory`]).
 
+// The POSIX operations and the Unix paths everywhere but on Windows, which
+// has its own of both (upstream's SDL_FSOPS_POSIX/SDL_FILESYSTEM_UNIX and
+// SDL_FSOPS_WINDOWS/SDL_FILESYSTEM_WINDOWS).
+#[cfg(not(windows))]
 mod fsops;
+#[cfg(not(windows))]
 mod sys;
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows as fsops;
+#[cfg(windows)]
+use windows as sys;
 
 use std::ops::ControlFlow;
 use std::sync::Mutex;
@@ -672,6 +683,10 @@ pub(crate) fn get_exe_name() -> Result<String> {
 /// The returned path is guaranteed to end with a path separator ('\\' on
 /// Windows, '/' on most other platforms).
 pub fn get_current_directory() -> Result<String> {
+    // (part of filesystem, not fsops, upstream; the POSIX one is in fsops)
+    #[cfg(windows)]
+    return sys::get_current_directory();
+    #[cfg(not(windows))]
     fsops::get_current_directory()
 }
 

@@ -1,5 +1,5 @@
-// Rust translation of src/filesystem/unix/SDL_sysfilesystem.c and
-// src/filesystem/windows/SDL_sysfilesystem.c from Simple DirectMedia Layer.
+// Rust translation of src/filesystem/unix/SDL_sysfilesystem.c from Simple
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 //
@@ -7,7 +7,9 @@
 // Copyright (c) 2007 Red Hat, Inc., under the MIT license reproduced in
 // LICENSE.txt.
 
-//! The `SDL_SYS_*` path lookups.
+//! The `SDL_SYS_*` path lookups of Unix, also used on the other platforms
+//! without a backend of their own (for the executable's path, the rest
+//! reporting that it is unsupported there).
 
 use super::Folder;
 use crate::error::{Error, Result};
@@ -15,9 +17,10 @@ use crate::error::{Error, Result};
 use crate::stdlib::getenv;
 
 /// The separator SDL puts at the end of returned paths.
-const SEP: char = if cfg!(windows) { '\\' } else { '/' };
+#[cfg(unix)]
+const SEP: char = '/';
 
-/// Translation of `GetExePath()` (Unix) / `WIN_GetModulePath()` (Windows).
+/// Translation of `GetExePath()`.
 fn get_exe_path() -> Option<String> {
     // is a Linux-style /proc filesystem available?
     #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -36,7 +39,7 @@ fn get_exe_path() -> Option<String> {
     }
 
     // Other systems: the platform query std performs (sysctl
-    // KERN_PROC_PATHNAME, _NSGetExecutablePath, GetModuleFileNameW, ...).
+    // KERN_PROC_PATHNAME, _NSGetExecutablePath, ...).
     std::env::current_exe()
         .ok()
         .map(|p| p.to_string_lossy().into_owned())
@@ -44,11 +47,7 @@ fn get_exe_path() -> Option<String> {
 
 /// The position of the last path separator in an executable path.
 fn last_separator(path: &str) -> Option<usize> {
-    if cfg!(windows) {
-        path.rfind(['\\', '/'])
-    } else {
-        path.rfind('/')
-    }
+    path.rfind('/')
 }
 
 /// Translation of `SDL_SYS_GetBasePath()`.
@@ -158,47 +157,7 @@ pub(super) fn get_pref_path(org: &str, app: &str) -> Result<String> {
     Ok(result)
 }
 
-/// Translation of `SDL_SYS_GetPrefPath()` (Windows).
-///
-/// Upstream asks `SHGetFolderPathW(CSIDL_APPDATA | CSIDL_FLAG_CREATE)`;
-/// without the Win32 bindings this reads `%APPDATA%`, which Windows sets to
-/// that same Roaming AppData folder.
-#[cfg(windows)]
-pub(super) fn get_pref_path(org: &str, app: &str) -> Result<String> {
-    let Some(appdata) = std::env::var_os("APPDATA") else {
-        return Err(Error::new("Couldn't locate our prefpath"));
-    };
-    let mut path = appdata.to_string_lossy().into_owned();
-
-    // (MAX_PATH)
-    if org.encode_utf16().count() + app.encode_utf16().count() + path.encode_utf16().count() + 3 + 1
-        > 260
-    {
-        return Err(Error::new("Path too long."));
-    }
-
-    let create = |path: &str| match std::fs::create_dir(path) {
-        Err(e) if e.kind() != std::io::ErrorKind::AlreadyExists => {
-            Err(Error::new("Couldn't create a prefpath."))
-        }
-        _ => Ok(()),
-    };
-
-    if !org.is_empty() {
-        path.push('\\');
-        path.push_str(org);
-    }
-    create(&path)?;
-
-    path.push('\\');
-    path.push_str(app);
-    create(&path)?;
-
-    path.push('\\');
-    Ok(path)
-}
-
-#[cfg(not(any(unix, windows)))]
+#[cfg(not(unix))]
 pub(super) fn get_pref_path(_org: &str, _app: &str) -> Result<String> {
     Err(Error::unsupported())
 }
@@ -333,27 +292,13 @@ pub(super) fn get_user_folder(folder: Folder) -> Result<String> {
     }
 }
 
-/// Translation of `SDL_SYS_GetUserFolder()` (Windows).
-///
-/// Upstream asks `SHGetKnownFolderPath`/`SHGetFolderPathW`; without the
-/// Win32 bindings only the home folder (`%USERPROFILE%`) is available.
-#[cfg(windows)]
-pub(super) fn get_user_folder(folder: Folder) -> Result<String> {
-    match folder {
-        Folder::Home => match std::env::var_os("USERPROFILE") {
-            Some(home) => Ok(append_slash(home.to_string_lossy().into_owned())),
-            None => Err(Error::new("Couldn't get folder")),
-        },
-        _ => Err(Error::unsupported()),
-    }
-}
-
-#[cfg(not(any(unix, windows)))]
+#[cfg(not(unix))]
 pub(super) fn get_user_folder(_folder: Folder) -> Result<String> {
     Err(Error::unsupported())
 }
 
 /// The `append_slash:` label.
+#[cfg(unix)]
 fn append_slash(mut result: String) -> String {
     result.push(SEP);
     result

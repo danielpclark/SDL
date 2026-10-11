@@ -14,6 +14,7 @@ pub use asyncio::{
     load_file_async, AsyncIo, AsyncIoOutcome, AsyncIoQueue, AsyncIoResult, AsyncIoTaskType,
 };
 
+#[cfg(not(windows))] // (the POSIX filesystem operations)
 pub(crate) use iostream::strerror;
 pub use iostream::{
     load_file, save_file, IoInterface, IoStatus, IoStop, IoStream, IoWhence,
