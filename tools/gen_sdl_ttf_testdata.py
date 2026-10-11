@@ -210,7 +210,8 @@ def make_cff_fonts(out):
 #   first layouts), DejaVuSans-13.pcf.gz, DejaVuSans-13.pcf.Z and
 #   DejaVuSans-13.pcf.bz2 (the PCF font compressed with gzip, compress's
 #   LZW -- `lzw_compress` -- and bzip2, which SDL_ttf's FreeType does not
-#   read), DejaVuSans-13.fnt (a Windows 3.0 FNT font, `fnt_data`),
+#   read), DejaVuSans-13-nosize.pcf.gz (the gzipped font without its size
+#   in the gzip trailer, which FreeType then reads as a stream), DejaVuSans-13.fnt (a Windows 3.0 FNT font, `fnt_data`),
 #   DejaVuSans.fon and DejaVuSans-PE.fon (two FNT 2.0 fonts, DejaVu Sans
 #   13 px and DejaVu Serif Bold 16 px, in a 16-bit NE and a 32-bit PE
 #   resource DLL, `write_ne_fon` and `write_pe_fon`).
@@ -640,6 +641,12 @@ def make_bitmap_fonts(out):
     with open(pcf + ".gz", "wb") as f:
         with gzip.GzipFile(filename="", mode="wb", fileobj=f, mtime=0) as z:
             z.write(pcf_data)
+    # (with its size in the trailer zeroed: FreeType then reads it through
+    # its gzip stream rather than decompressing it into memory at once)
+    with open(pcf + ".gz", "rb") as f:
+        gz = f.read()
+    with open(os.path.join(out, "DejaVuSans-13-nosize.pcf.gz"), "wb") as f:
+        f.write(gz[:-4] + bytes(4))
     with open(pcf + ".Z", "wb") as f:
         f.write(lzw_compress(pcf_data))
     with open(pcf + ".bz2", "wb") as f:

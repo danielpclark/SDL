@@ -48,7 +48,8 @@ those terms for that part. Build sdl3-mixer with `default-features = false`
 build.
 
 EXCEPT, likewise, sdl3-ttf/src/freetype/: that module is a translation of
-FreeType, and is under the FreeType License (FTL), not the zlib license;
+FreeType, and is under the FreeType License (FTL) (its BDF and PCF drivers
+under MIT licenses), not the zlib license;
 see the sdl3-ttf section below. A program using sdl3-ttf is subject to the
 FTL's terms (among them, its credit in the program's documentation) for
 that part.
@@ -1205,6 +1206,15 @@ notes, "code taken almost verbatim from the HarfBuzz file hb-ft.cc, which
 uses the 'Old MIT' license": it is under HarfBuzz's license (below), with
 the copyright lines of those files (Copyright © 2009, 2023 Red Hat, Inc.;
 Copyright © 2015 Google, Inc.).
+
+The translations of FreeType's BDF and PCF drivers (sdl3-ttf/src/freetype/
+bdf/ and sdl3-ttf/src/freetype/pcf/) are not under the FreeType License
+but, as FreeType's LICENSE.TXT notes, under licenses of their own "similar
+to that of the X Window System" (SPDX: MIT; for the PCF driver's bitmap
+utilities, pcfutil.rs, The Open Group's, SPDX: MIT-open-group), with the
+copyright lines of the Computing Research Labs, New Mexico State
+University, Francesco Zappa Nardelli, and The Open Group; their texts are
+in sdl3-ttf/BDF-PCF-COPYING and in those files' headers.
 
                     The FreeType Project LICENSE
                     ----------------------------

@@ -5,9 +5,10 @@
 //! The fonts in `testdata/fonts/` are subsets of DejaVu fonts (see their
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
 //! the DejaVu Sans subset, and fonts of FreeType's other formats made from
-//! them (Windows FNT and FON, and BDF bitmap fonts), made by
-//! `tools/gen_sdl_ttf_testdata.py`, and the Noto font subsets (see their
-//! `OFL.txt`) of the shaping tests in `tests/shaping.rs`.
+//! them (Windows FNT and FON, BDF, and PCF bitmap fonts, the latter also
+//! compressed), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
+//! font subsets (see their `OFL.txt`) of the shaping tests in
+//! `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
 //! upstream SDL_ttf (with its bundled FreeType and HarfBuzz, without
 //! PlutoSVG) and SDL3, which runs the cases below in the same order: font
@@ -48,6 +49,12 @@ static SANS_FON: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.fon");
 static SANS_PE_FON: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-PE.fon");
 static SANS_BDF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.bdf");
 static SANS_BDF_GRAY: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13-4bpp.bdf");
+static SANS_PCF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf");
+static SANS_PCF_LSB: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13-lsb.pcf");
+static SANS_PCF_GZ: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.gz");
+static SANS_PCF_GZ_NOSIZE: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13-nosize.pcf.gz");
+static SANS_PCF_Z: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.Z");
+static SANS_PCF_BZ2: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.bz2");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -1156,6 +1163,12 @@ fn matches_upstream_reference() {
         ("DejaVuSans-PE.fon", SANS_PE_FON),
         ("DejaVuSans-13.bdf", SANS_BDF),
         ("DejaVuSans-13-4bpp.bdf", SANS_BDF_GRAY),
+        ("DejaVuSans-13.pcf", SANS_PCF),
+        ("DejaVuSans-13-lsb.pcf", SANS_PCF_LSB),
+        ("DejaVuSans-13.pcf.gz", SANS_PCF_GZ),
+        ("DejaVuSans-13-nosize.pcf.gz", SANS_PCF_GZ_NOSIZE),
+        ("DejaVuSans-13.pcf.Z", SANS_PCF_Z),
+        ("DejaVuSans-13.pcf.bz2", SANS_PCF_BZ2),
     ] {
         /* (the other fonts: the font cases, the CFF2 font's named
         instances, the faces of fonts with several, and the corrupt

@@ -21,7 +21,7 @@
 //! past the end of the slice gives zero bytes instead of reading out of
 //! bounds (Note (upstream): the C relies on its callers' range checks).
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::super::fttypes::*;
 use super::ftmemory::ft_qalloc;
@@ -60,6 +60,16 @@ impl std::fmt::Debug for FtStreamRec {
 
 /// `FT_Stream`: streams are owned (and closed when dropped).
 pub type FtStream = Box<FtStreamRec>;
+
+/// A stream shared between a face and the compressed streams reading it
+/// (the `source` of the gzip and LZW streams, which C points to while the
+/// face keeps it as its `comp_source`).
+pub type FtSharedStream = Arc<Mutex<FtStream>>;
+
+/// Locks a shared stream.
+pub fn ft_lock_stream(stream: &FtSharedStream) -> MutexGuard<'_, FtStream> {
+    stream.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 /* FT_PEEK_* and FT_NEXT_* */
 
