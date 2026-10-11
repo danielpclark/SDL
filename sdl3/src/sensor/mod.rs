@@ -7,15 +7,18 @@
 //!
 //! A [`Sensor`] is an open sensor; it is closed when the last handle to it
 //! is dropped (upstream reference counts `SDL_OpenSensor()` calls). The
-//! sensor drivers are platform backends; so far only the dummy driver,
-//! which reports no sensors, exists.
+//! sensor drivers are platform backends: the Windows Sensor API driver on
+//! Windows, and the dummy driver, which reports no sensors, elsewhere.
 //!
 //! Sensor data is in SI units: m/s² for accelerometers (a device at rest
 //! reports [`STANDARD_GRAVITY`] away from the center of the earth) and
 //! radians per second for gyroscopes, with the axes of the device in its
 //! natural orientation (see `SDL_sensor.h`).
 
+#[cfg(not(windows))]
 mod dummy;
+#[cfg(windows)]
+mod windows;
 
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -167,7 +170,12 @@ pub(crate) trait SensorDriver: Send + Sync {
 }
 
 /// The available sensor drivers. Translation of `SDL_sensor_drivers`.
-static SENSOR_DRIVERS: &[&dyn SensorDriver] = &[&dummy::DUMMY_SENSOR_DRIVER];
+static SENSOR_DRIVERS: &[&dyn SensorDriver] = &[
+    #[cfg(windows)]
+    &windows::WINDOWS_SENSOR_DRIVER,
+    #[cfg(not(windows))]
+    &dummy::DUMMY_SENSOR_DRIVER,
+];
 
 /// Translation of `SDL_sensors_locked`.
 static SENSORS_LOCKED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
@@ -582,6 +590,7 @@ pub fn update_sensors() {
 mod tests {
     use super::*;
 
+    #[cfg(not(windows))]
     #[test]
     fn dummy_driver_has_no_sensors() {
         // (SENSOR implies EVENTS, whose events thread is the thread that
@@ -603,6 +612,46 @@ mod tests {
         assert!(Sensor::from_id(3).is_none());
         assert!(!sensors_opened());
         update_sensors();
+        init::quit_subsystem(InitFlags::SENSOR);
+    }
+
+    /// Whatever the Sensor API reports (none under Wine, which has no
+    /// sensor manager, or on a machine without sensors).
+    #[cfg(windows)]
+    #[test]
+    fn windows_driver_sensors() {
+        let _l = crate::test_support::test_lock();
+        init::set_main_ready();
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        let ids = sensors();
+        for &id in &ids {
+            let sensor_type = sensor_type_for_id(id).unwrap();
+            assert!(matches!(sensor_type, SensorType::Accel | SensorType::Gyro));
+            assert_eq!(sensor_non_portable_type_for_id(id).unwrap(), -1);
+            let name = sensor_name_for_id(id).unwrap().unwrap();
+            assert!(!name.is_empty());
+
+            let sensor = Sensor::open(id).unwrap();
+            assert_eq!(sensor.id(), id);
+            assert_eq!(sensor.sensor_type(), sensor_type);
+            assert_eq!(sensor.name().unwrap(), Some(name));
+            let mut data = [0f32; 3];
+            sensor.data(&mut data).unwrap();
+            let again = Sensor::from_id(id).unwrap();
+            drop(again);
+            assert!(sensors_opened());
+            drop(sensor);
+            assert!(Sensor::from_id(id).is_none());
+        }
+        assert!(!sensors_opened());
+        assert!(sensor_name_for_id(0).is_err());
+        assert!(Sensor::open(0).is_err());
+        update_sensors();
+        init::quit_subsystem(InitFlags::SENSOR);
+
+        // The same sensors after a restart (with new instance IDs).
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        assert_eq!(sensors().len(), ids.len());
         init::quit_subsystem(InitFlags::SENSOR);
     }
 
