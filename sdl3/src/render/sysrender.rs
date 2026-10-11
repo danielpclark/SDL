@@ -675,6 +675,10 @@ pub(crate) struct TextureCreateProps {
     /// `_V_POINTER` (0: none)
     #[cfg_attr(not(windows), allow(dead_code))]
     pub(crate) d3d11_texture: [u64; 3],
+    /// `SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_POINTER`, `_U_POINTER` and
+    /// `_V_POINTER` (0: none)
+    #[cfg_attr(not(windows), allow(dead_code))]
+    pub(crate) d3d12_texture: [u64; 3],
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`
     pub(crate) gpu_texture: Option<Arc<gpu::Texture>>,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_UV_POINTER`

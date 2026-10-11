@@ -1696,3 +1696,342 @@ fn d3d12_fails_without_a_window_handle() {
     init::quit();
     hints::reset(hints::VIDEO_DRIVER);
 }
+
+/// The reference count of a COM object (one `AddRef()` and `Release()`).
+fn ref_count<V>(object: &ComPtr<V>) -> u32 {
+    use crate::core::windows::com::IUnknownVtbl;
+    let unknown = object.as_ptr().cast::<c_void>();
+    // SAFETY: a live object; every vtable starts with IUnknown's; the
+    // reference taken is given back.
+    unsafe {
+        let vtbl = &**unknown.cast::<*const IUnknownVtbl>();
+        (vtbl.add_ref)(unknown);
+        (vtbl.release)(unknown)
+    }
+}
+
+/// A borrowed reference to the renderer's object in a pointer property
+/// (ManuallyDrop keeps the renderer's reference).
+fn renderer_object<V>(r: &Renderer, name: &str) -> std::mem::ManuallyDrop<ComPtr<V>> {
+    let ptr = r.properties().get_number(name).unwrap() as usize as *mut c_void;
+    // SAFETY: the renderer's live object of that property, borrowed while
+    // the renderer exists.
+    std::mem::ManuallyDrop::new(unsafe { ComPtr::from_raw(ptr.cast()) }.unwrap())
+}
+
+/// A texture the test makes on the renderer's device, in
+/// `D3D12_RESOURCE_STATE_COPY_DEST`, with `pixels` (tightly packed rows of
+/// `bpp` bytes) copied in on the renderer's queue (and waited for).
+fn app_resource(
+    device: &D3d12Device,
+    queue: &D3d12CommandQueue,
+    format: DxgiFormat,
+    (w, h): (u32, u32),
+    flags: u32,
+    pixels: Option<(&[u8], usize)>,
+) -> D3d12Resource {
+    let desc = ResourceDesc {
+        width: w as u64,
+        height: h,
+        mip_levels: 1,
+        depth_or_array_size: 1,
+        format,
+        sample_desc: SampleDesc {
+            count: 1,
+            quality: 0,
+        },
+        dimension: D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        flags,
+        ..Default::default()
+    };
+    let texture = device
+        .create_committed_resource(
+            &heap_properties(D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_FLAG_NONE,
+            &desc,
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            None,
+        )
+        .unwrap();
+    let Some((pixels, bpp)) = pixels else {
+        return texture;
+    };
+
+    let (footprint, num_rows, _, upload_size) = device.copyable_footprints(&desc, 0, 0);
+    let upload = device
+        .create_committed_resource(
+            &heap_properties(D3D12_HEAP_TYPE_UPLOAD),
+            D3D12_HEAP_FLAG_NONE,
+            &buffer_desc(upload_size),
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            None,
+        )
+        .unwrap();
+    let memory = upload.map().unwrap();
+    let row = w as usize * bpp;
+    assert_eq!(pixels.len(), row * h as usize);
+    for y in 0..num_rows as usize {
+        // SAFETY: the mapped buffer holds NumRows rows of RowPitch (>= row)
+        // bytes from the footprint's offset.
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                pixels[y * row..].as_ptr(),
+                memory.add(footprint.offset as usize + y * footprint.footprint.row_pitch as usize),
+                row,
+            )
+        };
+    }
+    upload.unmap();
+
+    let allocator = device
+        .create_command_allocator(D3D12_COMMAND_LIST_TYPE_DIRECT)
+        .unwrap();
+    let list = device
+        .create_command_list(0, D3D12_COMMAND_LIST_TYPE_DIRECT, &allocator)
+        .unwrap();
+    list.copy_texture_region(
+        &subresource_location(&texture, 0),
+        0,
+        0,
+        0,
+        &footprint_location(&upload, footprint),
+        None,
+    );
+    assert_eq!(list.close(), 0);
+    queue.execute_graphics_command_list(&list);
+    let fence = device.create_fence(0, D3D12_FENCE_FLAG_NONE).unwrap();
+    assert_eq!(queue.signal(&fence, 1), 0);
+    while fence.completed_value() < 1 {
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    texture
+}
+
+/// Textures wrapping resources the test makes on the renderer's device
+/// (`SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE*_POINTER`): drawn from (a BGRA
+/// and an IYUV one, filled by the test on the renderer's queue), and drawn
+/// into as a target, as the software renderer draws; the renderer holds a
+/// reference to them while it uses them.
+#[test]
+fn d3d12_textures_from_existing_d3d12_resources() {
+    use crate::render::NativeObject;
+
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    let device: std::mem::ManuallyDrop<D3d12Device> =
+        renderer_object(&r, PROP_RENDERER_D3D12_DEVICE_POINTER);
+    let queue: std::mem::ManuallyDrop<D3d12CommandQueue> =
+        renderer_object(&r, PROP_RENDERER_D3D12_COMMAND_QUEUE_POINTER);
+    let mut sw = software_renderer(W, H);
+    let draw = |r: &mut Renderer, t: Texture| {
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        let (tw, th) = r.texture_size(t).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(2.0, 2.0, tw * 2.0, th * 2.0)))
+            .unwrap();
+        r.read_pixels(None).unwrap()
+    };
+
+    // A BGRA texture filled by the test.
+    let (w, h) = (16u32, 12u32);
+    let bgra: Vec<u8> = pattern(w as i32, h as i32)
+        .chunks(4)
+        .flat_map(|p| [p[2], p[1], p[0], p[3]])
+        .collect();
+    let ours = app_resource(
+        &device,
+        &queue,
+        DXGI_FORMAT_B8G8R8A8_UNORM,
+        (w, h),
+        D3D12_RESOURCE_FLAG_NONE,
+        Some((&bgra, 4)),
+    );
+    let count = ref_count(&ours);
+    // SAFETY: the test's live resource of the renderer's device, alive
+    // until after the renderer's texture is destroyed.
+    let object = unsafe { NativeObject::from_ptr(raw(&ours)) };
+    let t = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            width: w as i32,
+            height: h as i32,
+            d3d12_texture: object,
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    assert_eq!(
+        r.texture_properties(t)
+            .unwrap()
+            .get_number(PROP_TEXTURE_D3D12_TEXTURE_POINTER),
+        Some(raw(&ours) as i64)
+    );
+    assert!(ref_count(&ours) > count, "the renderer holds a reference");
+    let st = pattern_texture(&mut sw, PixelFormat::ARGB8888, w as i32, h as i32);
+    assert_close(
+        "existing D3D12 texture",
+        &draw(&mut r, t),
+        &draw(&mut sw, st),
+        0,
+    );
+    r.destroy_texture(t);
+    sw.destroy_texture(st);
+    r.flush().unwrap();
+    // (the renderer releases its references once the GPU is done)
+    r.present().unwrap();
+    r.set_draw_color(0, 0, 0, 255);
+    r.clear().unwrap();
+    r.read_pixels(None).unwrap();
+    assert_eq!(
+        ref_count(&ours),
+        count,
+        "the renderer's references are given back"
+    );
+
+    // An object that isn't a resource fails as upstream's QueryInterface().
+    // SAFETY: the renderer's live queue, alive while the renderer is.
+    let not_a_resource = unsafe { NativeObject::from_ptr(raw(&*queue)) };
+    let e = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            width: 4,
+            height: 4,
+            d3d12_texture: not_a_resource,
+            ..TextureCreateInfo::default()
+        })
+        .unwrap_err();
+    assert!(
+        e.message().starts_with("SDL.texture.create.d3d12.texture"),
+        "{}",
+        e.message()
+    );
+
+    // A target of the test's resource: what's drawn into it reads back as
+    // the software renderer's target.
+    let (tw, th) = (24u32, 18u32);
+    let target_resource = app_resource(
+        &device,
+        &queue,
+        DXGI_FORMAT_B8G8R8A8_UNORM,
+        (tw, th),
+        D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+        None,
+    );
+    // SAFETY: as above.
+    let object = unsafe { NativeObject::from_ptr(raw(&target_resource)) };
+    let target = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            access: TextureAccess::Target,
+            width: tw as i32,
+            height: th as i32,
+            d3d12_texture: object,
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    let sw_target = sw
+        .create_texture(
+            PixelFormat::ARGB8888,
+            TextureAccess::Target,
+            tw as i32,
+            th as i32,
+        )
+        .unwrap();
+    let into_target = |r: &mut Renderer, target: Texture| {
+        let src = pattern_texture(r, PixelFormat::ARGB8888, 16, 12);
+        r.set_render_target(Some(target)).unwrap();
+        r.set_draw_color(250, 40, 10, 255);
+        r.clear().unwrap();
+        r.set_draw_color(10, 40, 250, 255);
+        r.render_fill_rect(Some(&FRect::new(2.0, 3.0, 10.0, 6.0)))
+            .unwrap();
+        r.render_point(22.0, 1.0).unwrap();
+        r.set_texture_blend_mode(src, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(src, ScaleMode::Nearest).unwrap();
+        r.render_texture(src, None, Some(&FRect::new(6.0, 5.0, 16.0, 12.0)))
+            .unwrap();
+        let read = r.read_pixels(None).unwrap();
+        r.set_render_target(None).unwrap();
+        r.destroy_texture(src);
+        read
+    };
+    assert_close(
+        "existing D3D12 target",
+        &into_target(&mut r, target),
+        &into_target(&mut sw, sw_target),
+        0,
+    );
+    assert_close(
+        "existing D3D12 target drawn",
+        &draw(&mut r, target),
+        &draw(&mut sw, sw_target),
+        0,
+    );
+    r.destroy_texture(target);
+
+    // An IYUV texture of three planes filled by the test.
+    let (y, u, v) = yuv_planes(w as usize, h as usize);
+    let plane = |data: &[u8], size: (u32, u32)| {
+        app_resource(
+            &device,
+            &queue,
+            DXGI_FORMAT_R8_UNORM,
+            size,
+            D3D12_RESOURCE_FLAG_NONE,
+            Some((data, 1)),
+        )
+    };
+    let planes = [
+        plane(&y, (w, h)),
+        plane(&u, (w / 2, h / 2)),
+        plane(&v, (w / 2, h / 2)),
+    ];
+    // SAFETY: as above.
+    let objects = planes
+        .each_ref()
+        .map(|p| unsafe { NativeObject::from_ptr(raw(p)) });
+    let t = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::IYUV,
+            width: w as i32,
+            height: h as i32,
+            d3d12_texture: objects[0],
+            d3d12_texture_u: objects[1],
+            d3d12_texture_v: objects[2],
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    let props = r.texture_properties(t).unwrap();
+    assert_eq!(
+        props.get_number(PROP_TEXTURE_D3D12_TEXTURE_U_POINTER),
+        Some(raw(&planes[1]) as i64)
+    );
+    assert_eq!(
+        props.get_number(PROP_TEXTURE_D3D12_TEXTURE_V_POINTER),
+        Some(raw(&planes[2]) as i64)
+    );
+    let st = sw
+        .create_texture(PixelFormat::IYUV, TextureAccess::Static, w as i32, h as i32)
+        .unwrap();
+    sw.update_yuv_texture(st, None, &y, w as i32, &u, w as i32 / 2, &v, w as i32 / 2)
+        .unwrap();
+    // (the shaders convert in floats, the software path in fixed point)
+    assert_close(
+        "existing D3D12 IYUV planes",
+        &draw(&mut r, t),
+        &draw(&mut sw, st),
+        3,
+    );
+    r.destroy_texture(t);
+    r.present().unwrap();
+    // The test's textures before the renderer: destroying it releases
+    // the device, and the last reference unloads the runtime's DLL.
+    drop((ours, target_resource, planes));
+    drop(r);
+}

@@ -19,9 +19,11 @@
 //! What isn't translated:
 //!
 //! * the Xbox (GDK) paths, which upstream compiles for the Xbox only.
-//! * the creation options for existing textures
-//!   (`SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_*`), which the front end
-//!   doesn't take: the renderer makes all its textures.
+//!
+//! Textures can wrap the application's resources
+//! ([`TextureCreateInfo::d3d12_texture`](crate::render::TextureCreateInfo::d3d12_texture)
+//! and the others, `SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_*`), holding a
+//! reference to them while they exist.
 //!
 //! The front end only makes renderers with sRGB output yet, so the linear
 //! and HDR10 output paths here are kept for when it does.
@@ -134,6 +136,23 @@ const SCRGB_NITS: f32 = 80.0;
 /// The access rights of the fence event (`EVENT_MODIFY_STATE | SYNCHRONIZE`).
 const EVENT_MODIFY_STATE: u32 = 0x0002;
 const SYNCHRONIZE: u32 = 0x0010_0000;
+
+/// Translation of `GetTextureProperty()`: the `ID3D12Resource` of the
+/// object a texture creation property gives (`None` for none), an owned
+/// reference. `name` is the property's, for the error.
+fn get_texture_property(object: u64, name: &str) -> Result<Option<D3d12Resource>> {
+    use crate::core::windows::com::IUnknownVtbl;
+    // SAFETY: the application's live COM object (NativeObject's contract),
+    // borrowed: ManuallyDrop keeps its reference.
+    let unknown = unsafe { ComPtr::<IUnknownVtbl>::from_raw(object as usize as *mut _) };
+    let Some(unknown) = unknown.map(std::mem::ManuallyDrop::new) else {
+        return Ok(None);
+    };
+    unknown
+        .query::<ID3D12ResourceVtbl>(&IID_ID3D12RESOURCE)
+        .map(Some)
+        .map_err(|hr| hr_error(name, hr))
+}
 
 /// The error of a renderer whose device was lost and not recovered.
 fn device_lost() -> Error {
@@ -1855,6 +1874,7 @@ impl D3d12Renderer {
     fn create_texture_resources(
         &mut self,
         texture: &mut TextureData,
+        create_props: &TextureCreateProps,
         texture_data: &mut D3d12Texture,
         mut texture_desc: ResourceDesc,
     ) -> Result<()> {
@@ -1874,8 +1894,13 @@ impl D3d12Renderer {
                 .map_err(|hr| hr_error("ID3D12Device::CreateCommittedResource [texture]", hr))
         };
 
-        // (SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_POINTER isn't taken)
-        let main_texture = create(&texture_desc)?;
+        let main_texture = match get_texture_property(
+            create_props.d3d12_texture[0],
+            "SDL.texture.create.d3d12.texture",
+        )? {
+            Some(main_texture) => main_texture,
+            None => create(&texture_desc)?,
+        };
         texture_data.main_resource_state = D3D12_RESOURCE_STATE_COPY_DEST;
         let props = texture.props.get_or_insert_with(Properties::new).clone();
         let _ = props.set(
@@ -1896,8 +1921,13 @@ impl D3d12Renderer {
         ) {
             texture_data.yuv = true;
 
-            // (SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_U_POINTER isn't taken)
-            let main_texture_u = create(&texture_desc)?;
+            let main_texture_u = match get_texture_property(
+                create_props.d3d12_texture[1],
+                "SDL.texture.create.d3d12.texture_u",
+            )? {
+                Some(main_texture_u) => main_texture_u,
+                None => create(&texture_desc)?,
+            };
             texture_data.main_resource_state_u = D3D12_RESOURCE_STATE_COPY_DEST;
             let _ = props.set(
                 PROP_TEXTURE_D3D12_TEXTURE_U_POINTER,
@@ -1905,8 +1935,13 @@ impl D3d12Renderer {
             );
             texture_data.main_texture_u = Some(main_texture_u);
 
-            // (SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_V_POINTER isn't taken)
-            let main_texture_v = create(&texture_desc)?;
+            let main_texture_v = match get_texture_property(
+                create_props.d3d12_texture[2],
+                "SDL.texture.create.d3d12.texture_v",
+            )? {
+                Some(main_texture_v) => main_texture_v,
+                None => create(&texture_desc)?,
+            };
             texture_data.main_resource_state_v = D3D12_RESOURCE_STATE_COPY_DEST;
             let _ = props.set(
                 PROP_TEXTURE_D3D12_TEXTURE_V_POINTER,
@@ -3273,7 +3308,7 @@ impl RenderBackend for D3d12Renderer {
     fn create_texture(
         &mut self,
         texture: &mut TextureData,
-        _props: &TextureCreateProps,
+        create_props: &TextureCreateProps,
     ) -> Result<()> {
         use PixelFormat as F;
         let texture_format =
@@ -3322,7 +3357,9 @@ impl RenderBackend for D3d12Renderer {
             texture_desc.flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
         }
 
-        if let Err(e) = self.create_texture_resources(texture, &mut texture_data, texture_desc) {
+        if let Err(e) =
+            self.create_texture_resources(texture, create_props, &mut texture_data, texture_desc)
+        {
             // (SDL_CreateTexture() destroys the texture that failed, which
             // frees its SRV slots)
             // FIXME (upstream): D3D12_DestroyTexture() frees the slot of
