@@ -9,7 +9,8 @@
 //!
 //! On Unix systems other than Apple's, Android and Haiku, the dialogs are
 //! shown by the XDG desktop portal over D-Bus, or else with `zenity` (see
-//! `unix/`); elsewhere the dummy backend reports that the operation is
+//! `unix/`); on Windows by `IFileDialog` (or the older common dialogs, see
+//! `windows.rs`); elsewhere the dummy backend reports that the operation is
 //! unsupported.
 //!
 //! The zenity message box (used by the X11 video driver) is in `unix/` too.
@@ -348,9 +349,17 @@ use unix as sys;
 ))]
 pub(crate) use unix::zenity_show_message_box;
 
-#[cfg(not(all(
-    unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows as sys;
+
+#[cfg(not(any(
+    windows,
+    all(
+        unix,
+        not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    )
 )))]
 mod sys {
     use super::{DialogFileCallback, FileDialogOptions, FileDialogType};
