@@ -92,6 +92,18 @@ pub struct TextureCreateInfo {
     /// The `ID3D11Texture2D` of the V plane of a YUV texture
     /// (`SDL_PROP_TEXTURE_CREATE_D3D11_TEXTURE_V_POINTER`)
     pub d3d11_texture_v: Option<super::NativeObject>,
+    /// An `ID3D12Resource` (or another interface of one) to use instead of
+    /// creating one (the Direct3D 12 renderer, on Windows;
+    /// `SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_POINTER`), of the renderer's
+    /// device, in `D3D12_RESOURCE_STATE_COPY_DEST` as the renderer's own
+    /// start; the renderer holds a reference to it while the texture exists
+    pub d3d12_texture: Option<super::NativeObject>,
+    /// The `ID3D12Resource` of the U plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_U_POINTER`)
+    pub d3d12_texture_u: Option<super::NativeObject>,
+    /// The `ID3D12Resource` of the V plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_D3D12_TEXTURE_V_POINTER`)
+    pub d3d12_texture_v: Option<super::NativeObject>,
     /// A `VkImage` to use instead of creating one (the Vulkan renderer;
     /// `SDL_PROP_TEXTURE_CREATE_VULKAN_TEXTURE_NUMBER`), of the renderer's
     /// device, made as the renderer makes its images: for an NV12 style
@@ -502,6 +514,12 @@ impl Renderer {
                     ]
                     .map(|o| o.map_or(0, super::NativeObject::raw)),
                     vulkan_layout: info.vulkan_layout,
+                    d3d12_texture: [
+                        info.d3d12_texture,
+                        info.d3d12_texture_u,
+                        info.d3d12_texture_v,
+                    ]
+                    .map(|o| o.map_or(0, super::NativeObject::raw)),
                     d3d11_texture: [
                         info.d3d11_texture,
                         info.d3d11_texture_u,
