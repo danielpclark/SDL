@@ -64,4 +64,5 @@ pub mod truetype;
 pub mod tttables;
 pub mod tttypes;
 pub mod type1;
+pub mod type42;
 pub mod winfonts;

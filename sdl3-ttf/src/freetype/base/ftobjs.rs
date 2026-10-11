@@ -786,6 +786,8 @@ pub enum FtFace {
     T1(Box<super::super::t1types::T1FaceRec>),
     /// a `CID_Face` (the CID driver's)
     Cid(Box<super::super::t1types::CidFaceRec>),
+    /// a `T42_Face` (the Type 42 driver's)
+    T42(Box<super::super::type42::t42objs::T42FaceRec>),
 }
 
 impl Deref for FtFace {
@@ -799,6 +801,7 @@ impl Deref for FtFace {
             FtFace::Bdf(f) => &f.root,
             FtFace::T1(f) => &f.root,
             FtFace::Cid(f) => &f.root,
+            FtFace::T42(f) => &f.root,
         }
     }
 }
@@ -813,6 +816,7 @@ impl DerefMut for FtFace {
             FtFace::Bdf(f) => &mut f.root,
             FtFace::T1(f) => &mut f.root,
             FtFace::Cid(f) => &mut f.root,
+            FtFace::T42(f) => &mut f.root,
         }
     }
 }
@@ -2471,8 +2475,8 @@ pub fn ft_done_face(mut face: FtFace) {
     destroy_face(&mut face);
 }
 
-/// `FT_New_Size` (for the face's single size)
-fn ft_new_size(face: &mut FtFace) -> FtResult<()> {
+/// `FT_New_Size` (for the face's single size, which it replaces)
+pub fn ft_new_size(face: &mut FtFace) -> FtResult<()> {
     let clazz = face.driver_class();
 
     face.size = FtSizeRec::default();
@@ -2482,6 +2486,18 @@ fn ft_new_size(face: &mut FtFace) -> FtResult<()> {
     }
 
     Ok(())
+}
+
+/// `FT_Done_Size` (of the face's single size: the driver's size data
+/// goes, and the size is reset)
+pub fn ft_done_size(face: &mut FtFace) {
+    let clazz = face.driver_class();
+
+    if let Some(done_size) = clazz.done_size {
+        done_size(face);
+    }
+
+    face.size = FtSizeRec::default();
 }
 
 /// `FT_Match_Size`
