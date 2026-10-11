@@ -11,8 +11,9 @@
 //! hinting algorithm of `pshalgo`) are only called by the old Type 1 and
 //! CFF charstring interpreters, which SDL_ttf's bundled build does not
 //! compile, and are not translated: a slot's `glyph_hints` is set to
-//! [`T2HintsFuncs`] to record that the CFF driver found them, which is
-//! what decides whether `cff_slot_load` scales hinted outlines again.
+//! [`T2HintsFuncs`] (or [`T1HintsFuncs`]) to record that the CFF (or
+//! Type 1 or CID) driver found them, which is what decides whether the
+//! glyph loaders scale hinted outlines again.
 
 use super::super::base::ftobjs::*;
 
@@ -23,9 +24,19 @@ use super::pshglob::{PshGlobalsFuncsRec, PSH_GLOBALS_FUNCS};
 #[derive(Debug, Clone, Copy, Default)]
 pub struct T2HintsFuncs;
 
+/// The Type 1 hints functions (`T1_Hints_FuncsRec`) a glyph slot's
+/// `glyph_hints` points to.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct T1HintsFuncs;
+
 /// `pshinter_get_globals_funcs`: returns global hints interface
 pub fn pshinter_get_globals_funcs(_module: &FtModuleRec) -> &'static PshGlobalsFuncsRec {
     &PSH_GLOBALS_FUNCS
+}
+
+/// `pshinter_get_t1_funcs`: return Type 1 hints interface
+pub fn pshinter_get_t1_funcs(_module: &FtModuleRec) -> T1HintsFuncs {
+    T1HintsFuncs
 }
 
 /// `pshinter_get_t2_funcs`: return Type 2 hints interface
@@ -37,12 +48,14 @@ pub fn pshinter_get_t2_funcs(_module: &FtModuleRec) -> T2HintsFuncs {
 #[derive(Debug)]
 pub struct PsHinterInterface {
     pub get_globals_funcs: fn(module: &FtModuleRec) -> &'static PshGlobalsFuncsRec,
+    pub get_t1_funcs: fn(module: &FtModuleRec) -> T1HintsFuncs,
     pub get_t2_funcs: fn(module: &FtModuleRec) -> T2HintsFuncs,
 }
 
 /// `pshinter_interface`
 pub static PSHINTER_INTERFACE: PsHinterInterface = PsHinterInterface {
     get_globals_funcs: pshinter_get_globals_funcs,
+    get_t1_funcs: pshinter_get_t1_funcs,
     get_t2_funcs: pshinter_get_t2_funcs,
 };
 
