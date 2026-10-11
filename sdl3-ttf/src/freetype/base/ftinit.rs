@@ -20,8 +20,7 @@
 //!   builds a library out of it, then calls FT_Default_Drivers().
 //!
 //! The module list is upstream's (`ftmodule.h`, as SDL_ttf's bundled build
-//! generates it), in its order, minus the module not translated yet: the
-//! OT-SVG renderer.
+//! generates it), in its order.
 
 use std::sync::Arc;
 
@@ -49,8 +48,7 @@ fn ft_default_modules() -> Vec<FtModuleClassRef> {
         FtModuleClassRef::Renderer(&crate::freetype::raster::ftrend1::FT_RASTER1_RENDERER_CLASS),
         FtModuleClassRef::Renderer(&crate::freetype::sdf::ftsdfrend::FT_SDF_RENDERER_CLASS),
         FtModuleClassRef::Renderer(&crate::freetype::sdf::ftsdfrend::FT_BITMAP_SDF_RENDERER_CLASS),
-        /* FT_USE_MODULE( FT_Renderer_Class, ft_svg_renderer_class ) */
-        /* (not translated yet) */
+        FtModuleClassRef::Renderer(&crate::freetype::svg::ftsvg::FT_SVG_RENDERER_CLASS),
     ]
 }
 

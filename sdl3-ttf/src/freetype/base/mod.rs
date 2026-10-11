@@ -10,6 +10,7 @@
 pub mod ftadvanc;
 pub mod ftbitmap;
 pub mod ftcalc;
+pub mod ftcolor;
 pub mod ftfntfmt;
 pub mod ftgloadr;
 pub mod ftglyph;

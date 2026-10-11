@@ -79,6 +79,8 @@ pub enum FtPropertyValue {
     Bool(bool),
     IntArray(Vec<FtInt>),
     Str(String),
+    /// the `ot-svg` module's `svg-hooks` (`SVG_RendererHooks*`)
+    SvgHooks(super::super::svg::ftsvg::SvgRendererHooks),
 }
 
 /// `FT_Service_PropertiesRec`
@@ -197,6 +199,8 @@ pub enum FtModuleInterface {
     PsAux,
     /// the PostScript hinter's (`PSHinter_Interface`)
     PsHinter(&'static super::super::pshinter::pshmod::PsHinterInterface),
+    /// the SVG renderer's (`SVG_Interface`)
+    Svg(&'static super::super::svg::ftsvg::SvgInterface),
 }
 
 /// `FT_Module_Class`
@@ -266,7 +270,9 @@ pub struct FtRendererClass {
 
     pub glyph_format: FtGlyphFormat,
 
-    /// `render_glyph`
+    /// `render_glyph` (with the slot's face, `slot->face`, which the SVG
+    /// renderer's hooks use: `None` for slots without one, and for the
+    /// slots of the other formats)
     pub render_glyph: Option<
         fn(
             library: &FtLibraryRec,
@@ -274,6 +280,7 @@ pub struct FtRendererClass {
             slot: &mut FtGlyphSlotRec,
             mode: FtRenderMode,
             origin: Option<&FtVector>,
+            face: Option<&mut FtFace>,
         ) -> FtResult<()>,
     >,
     /// `transform_glyph`
@@ -958,9 +965,23 @@ pub fn ft_glyphslot_preset_bitmap(
     let mut y_shift: FtPos = 0;
 
     if slot.format == FT_GLYPH_FORMAT_SVG {
-        /* the `ot-svg` module isn't translated (part 2): SVG glyphs */
-        /* can't be rendered                                         */
-        return true;
+        let Some(library) = slot.library.clone() else {
+            return true;
+        };
+        let Some(module) = ft_get_module(&library, "ot-svg") else {
+            return true;
+        };
+        let FtModuleInterface::Svg(svg_service) =
+            library.modules[module].clazz.root().module_interface
+        else {
+            return true;
+        };
+
+        /* (C converts the error code to FT_Bool) */
+        return match (svg_service.preset_slot)(&library, module, slot, false) {
+            Ok(()) => false,
+            Err(e) => e as u8 != 0,
+        };
     } else if slot.format != FT_GLYPH_FORMAT_OUTLINE {
         return true;
     }
@@ -3372,14 +3393,16 @@ pub fn ft_render_glyph_internal(
     slot: &mut FtGlyphSlotRec,
     render_mode: FtRenderMode,
 ) -> FtResult<()> {
-    ft_render_glyph_with_renderers(library, slot, render_mode)
+    ft_render_glyph_with_renderers(library, slot, render_mode, None)
 }
 
-/// The renderer loop of `FT_Render_Glyph_Internal`.
+/// The renderer loop of `FT_Render_Glyph_Internal` (`face` is the slot's
+/// face, for the SVG renderer).
 fn ft_render_glyph_with_renderers(
     library: &FtLibraryRec,
     slot: &mut FtGlyphSlotRec,
     render_mode: FtRenderMode,
+    mut face: Option<&mut FtFace>,
 ) -> FtResult<()> {
     let mut node: Option<usize> = None;
     let mut renderer;
@@ -3400,7 +3423,7 @@ fn ft_render_glyph_with_renderers(
     while let Some(r) = renderer {
         let render = library.modules[r].renderer_class().render_glyph;
         error = match render {
-            Some(f) => match f(library, r, slot, render_mode, None) {
+            Some(f) => match f(library, r, slot, render_mode, None, face.as_deref_mut()) {
                 Ok(()) => 0,
                 Err(e) => e,
             },
@@ -3523,7 +3546,16 @@ pub fn ft_render_glyph(face: &mut FtFace, render_mode: FtRenderMode) -> FtResult
         }
     }
 
-    ft_render_glyph_with_renderers(&library, &mut face.glyph, render_mode)
+    if face.glyph.format == FT_GLYPH_FORMAT_SVG {
+        /* (the SVG renderer's hooks get the face: the slot is moved out of
+        it meanwhile) */
+        let mut slot = std::mem::take(&mut face.glyph);
+        let error = ft_render_glyph_with_renderers(&library, &mut slot, render_mode, Some(face));
+        face.glyph = slot;
+        return error;
+    }
+
+    ft_render_glyph_with_renderers(&library, &mut face.glyph, render_mode, None)
 }
 
 /*************************************************************************/

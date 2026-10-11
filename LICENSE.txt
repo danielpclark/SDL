@@ -61,6 +61,13 @@ Unicode License V3 (SPDX: Unicode-3.0), not the zlib license; see the
 sdl3-ttf section below. Both ask that their notices appear with copies of
 the software.
 
+EXCEPT, likewise, sdl3-ttf/src/plutovg/ and sdl3-ttf/src/plutosvg/: those
+modules are translations of PlutoVG and PlutoSVG, and are under their MIT
+licenses (the FreeType-derived files of sdl3-ttf/src/plutovg/ under the
+FreeType License, and its libm.rs under Arm's MIT license and Sun's
+notice), not the zlib license; see the sdl3-ttf section below. They ask
+that their notices appear with copies of the software.
+
 EXCEPT, likewise, sdl3-shadercross/src/spirv_cross/: that module is a
 translation of SPIRV-Cross, and is under SPIRV-Cross's license, the
 Apache License 2.0 or the MIT license at your choice (SPDX: Apache-2.0 OR
@@ -1176,8 +1183,8 @@ are under the zlib license too.
 sdl3-ttf/ is a translation of SDL_ttf 3.x (release 3.2.2),
 https://github.com/libsdl-org/SDL_ttf, an altered version of that software,
 under the same zlib license as SDL above (Copyright (C) 1997-2025 Sam
-Lantinga <slouken@libsdl.org>), EXCEPT its translations of FreeType and
-HarfBuzz (both below):
+Lantinga <slouken@libsdl.org>), EXCEPT its translations of FreeType,
+HarfBuzz, PlutoVG and PlutoSVG (all below):
 
 sdl3-ttf/src/freetype/ is a translation of FreeType (https://freetype.org),
 at the revision SDL_ttf's external/freetype pins (FreeType 2.13.2), an
@@ -1554,6 +1561,105 @@ either of two licenses:
   AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+sdl3-ttf/src/plutovg/ is a translation of PlutoVG
+(https://github.com/sammycage/plutovg, release 0.0.12 at commit
+3e6f922f453da1c9e7d1d7f66cac1d9724a18b47, as SDL_ttf's external/plutovg
+pins it), and sdl3-ttf/src/plutosvg/ a translation of PlutoSVG
+(https://github.com/sammycage/plutosvg, release 0.0.6 at commit
+2983eb6919feea272d793bc386384e3f5b97b03c, as SDL_ttf's external/plutosvg
+pins it), the libraries SDL_ttf renders OpenType SVG glyphs with; both are
+altered versions of that software, under their MIT licenses, whose texts
+follow (and are in sdl3-ttf/PLUTOVG-LICENSE and sdl3-ttf/PLUTOSVG-LICENSE):
+
+MIT License
+
+Copyright (c) 2020-2024 Samuel Ugochukwu <sammycageagle@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+MIT License
+
+Copyright (c) 2020-2025 Samuel Ugochukwu <sammycageagle@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+EXCEPT, in sdl3-ttf/src/plutovg/, the translations of PlutoVG's copies of
+FreeType's ftgrays.c, ftstroke.c, fttrigon.c and their headers
+(ft_raster.rs, ft_stroker.rs and ft_math.rs; Copyright 1996-2020 by David
+Turner, Robert Wilhelm, and Werner Lemberg), which are under the FreeType
+License above, as those files state; and libm.rs, the C library math
+functions PlutoVG and PlutoSVG call, computed as the reference build's
+C library computes them: its sinf and cosf are translated from Arm's
+optimized-routines (https://github.com/ARM-software/optimized-routines,
+which glibc bundles; SPDX: MIT OR Apache-2.0 WITH LLVM-exception, used
+here under the MIT license):
+
+MIT License
+
+Copyright (c) 2018-2024, Arm Limited.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+and its atanf, atan2f and tanf from newlib's float versions of fdlibm,
+under Sun's notice:
+
+  ====================================================
+  Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+
+  Developed at SunPro, a Sun Microsystems, Inc. business.
+  Permission to use, copy, modify, and distribute this
+  software is freely granted, provided that this notice
+  is preserved.
+  ====================================================
 
 The test fonts in sdl3-ttf/src/testdata/fonts/ are subsets of DejaVu fonts
 (https://dejavu-fonts.github.io/, derived from the Bitstream Vera and Arev
