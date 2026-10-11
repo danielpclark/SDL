@@ -5,9 +5,12 @@
 
 //! The GLSL ES sources of the OpenGL ES 2.0 renderer's shaders.
 //!
-//! This is the OpenGL ES 2.0 build (`OPENGLES_300` undefined): the pixel
-//! art shaders sample like the nearest ones, since `fwidth()` and
-//! `textureGrad()` need OpenGL ES 3.0.
+//! Upstream builds one set of them: without `OPENGLES_300` the pixel art
+//! shaders sample like the nearest ones, since `fwidth()` and
+//! `textureGrad()` need OpenGL ES 3.0; with it (the `_300` sources here)
+//! they filter the texels' edges, and the palette's sample linearly. Here
+//! both sets are built, and the renderer picks one (see
+//! [`ShaderType::source`]).
 
 use crate::hints;
 
@@ -92,9 +95,24 @@ impl ShaderType {
         }
     }
 
-    /// The shader's body. Translation of `GLES2_GetShader()`.
-    pub(super) fn source(self) -> &'static str {
+    /// The shader's body. Translation of `GLES2_GetShader()`, of the
+    /// `OPENGLES_300` build when `opengles_300` is set (only the pixel art
+    /// shaders differ).
+    pub(super) fn source(self, opengles_300: bool) -> &'static str {
         use ShaderType::*;
+        if opengles_300 {
+            match self {
+                FragmentTexturePalettePixelart => return FRAGMENT_TEXTURE_PALETTE_PIXELART_300,
+                FragmentTexturePalettePixelartColorswap => {
+                    return FRAGMENT_TEXTURE_PALETTE_PIXELART_COLORSWAP_300
+                }
+                FragmentTextureRgbPixelart => return FRAGMENT_TEXTURE_RGB_PIXELART_300,
+                FragmentTextureBgrPixelart => return FRAGMENT_TEXTURE_BGR_PIXELART_300,
+                FragmentTextureArgbPixelart => return FRAGMENT_TEXTURE_ARGB_PIXELART_300,
+                FragmentTextureAbgrPixelart => return FRAGMENT_TEXTURE_ABGR_PIXELART_300,
+                _ => {}
+            }
+        }
         match self {
             VertexDefault => VERTEX_DEFAULT,
             FragmentSolid => FRAGMENT_SOLID,
@@ -284,7 +302,28 @@ mediump vec4 SamplePaletteLinear(SDL_TEXCOORD_PRECISION vec2 uv)
     };
 }
 
-// (the OPENGLES_300 version uses fwidth() and textureGrad())
+// This is required for fwidth() and textureGrad()
+macro_rules! pixelart_shader_functions_300 {
+    () => {
+        "\
+SDL_TEXCOORD_PRECISION vec2 GetPixelArtUV(SDL_TEXCOORD_PRECISION vec2 uv)
+{
+    SDL_TEXCOORD_PRECISION vec2 boxSize = clamp(fwidth(uv) * u_texel_size.zw, 1e-5, 1.0);
+    SDL_TEXCOORD_PRECISION vec2 tx = uv * u_texel_size.zw - 0.5 * boxSize;
+    SDL_TEXCOORD_PRECISION vec2 txOffset = smoothstep(vec2(1.0) - boxSize, vec2(1.0), fract(tx));
+    return (floor(tx) + 0.5 + txOffset) * u_texel_size.xy;
+}
+
+mediump vec4 GetPixelArtSample(vec2 uv)
+{
+    return textureGrad(u_texture, GetPixelArtUV(uv), dFdx(v_texCoord), dFdy(v_texCoord));
+}
+
+"
+    };
+}
+
+// (without OPENGLES_300)
 macro_rules! pixelart_shader_functions {
     () => {
         "\
@@ -363,6 +402,20 @@ void main()
 "
 );
 
+const FRAGMENT_TEXTURE_PALETTE_PIXELART_300: &str = concat!(
+    palette_shader_prologue!(),
+    palette_shader_functions!(),
+    pixelart_shader_functions_300!(),
+    "
+void main()
+{
+    mediump vec4 color = SamplePaletteLinear(GetPixelArtUV(v_texCoord));
+    gl_FragColor = color;
+    gl_FragColor *= v_color;
+}
+"
+);
+
 const FRAGMENT_TEXTURE_PALETTE_PIXELART_COLORSWAP: &str = concat!(
     palette_shader_prologue!(),
     palette_shader_functions!(),
@@ -371,6 +424,20 @@ const FRAGMENT_TEXTURE_PALETTE_PIXELART_COLORSWAP: &str = concat!(
 void main()
 {
     mediump vec4 color = SamplePaletteNearest(v_texCoord);
+    gl_FragColor = vec4(color.b, color.g, color.r, color.a);
+    gl_FragColor *= v_color;
+}
+"
+);
+
+const FRAGMENT_TEXTURE_PALETTE_PIXELART_COLORSWAP_300: &str = concat!(
+    palette_shader_prologue!(),
+    palette_shader_functions!(),
+    pixelart_shader_functions_300!(),
+    "
+void main()
+{
+    mediump vec4 color = SamplePaletteLinear(GetPixelArtUV(v_texCoord));
     gl_FragColor = vec4(color.b, color.g, color.r, color.a);
     gl_FragColor *= v_color;
 }
@@ -394,6 +461,19 @@ void main()
 const FRAGMENT_TEXTURE_RGB_PIXELART: &str = concat!(
     rgb_pixelart_shader_prologue!(),
     pixelart_shader_functions!(),
+    "
+void main()
+{
+    mediump vec4 color = GetPixelArtSample(v_texCoord);
+    gl_FragColor = vec4(color.b, color.g, color.r, 1.0);
+    gl_FragColor *= v_color;
+}
+"
+);
+
+const FRAGMENT_TEXTURE_RGB_PIXELART_300: &str = concat!(
+    rgb_pixelart_shader_prologue!(),
+    pixelart_shader_functions_300!(),
     "
 void main()
 {
@@ -431,6 +511,19 @@ void main()
 "
 );
 
+const FRAGMENT_TEXTURE_BGR_PIXELART_300: &str = concat!(
+    rgb_pixelart_shader_prologue!(),
+    pixelart_shader_functions_300!(),
+    "
+void main()
+{
+    mediump vec4 color = GetPixelArtSample(v_texCoord);
+    gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
+    gl_FragColor *= v_color;
+}
+"
+);
+
 // ARGB to ABGR conversion
 const FRAGMENT_TEXTURE_ARGB: &str = concat!(
     rgb_shader_prologue!(),
@@ -458,6 +551,19 @@ void main()
 "
 );
 
+const FRAGMENT_TEXTURE_ARGB_PIXELART_300: &str = concat!(
+    rgb_pixelart_shader_prologue!(),
+    pixelart_shader_functions_300!(),
+    "
+void main()
+{
+    mediump vec4 color = GetPixelArtSample(v_texCoord);
+    gl_FragColor = vec4(color.b, color.g, color.r, color.a);
+    gl_FragColor *= v_color;
+}
+"
+);
+
 const FRAGMENT_TEXTURE_ABGR: &str = concat!(
     rgb_shader_prologue!(),
     "
@@ -473,6 +579,19 @@ void main()
 const FRAGMENT_TEXTURE_ABGR_PIXELART: &str = concat!(
     rgb_pixelart_shader_prologue!(),
     pixelart_shader_functions!(),
+    "
+void main()
+{
+    mediump vec4 color = GetPixelArtSample(v_texCoord);
+    gl_FragColor = color;
+    gl_FragColor *= v_color;
+}
+"
+);
+
+const FRAGMENT_TEXTURE_ABGR_PIXELART_300: &str = concat!(
+    rgb_pixelart_shader_prologue!(),
+    pixelart_shader_functions_300!(),
     "
 void main()
 {
@@ -638,6 +757,23 @@ mod tests {
             .prologue()
             .starts_with("#extension GL_OES_EGL_image_external : require\n"));
         assert_eq!(ShaderInclude::None.source(), "");
+
+        // The OPENGLES_300 build differs in the pixel art shaders only.
+        for ty in ShaderType::ALL {
+            let pixelart = format!("{ty:?}").contains("Pixelart");
+            assert_eq!(ty.source(true) != ty.source(false), pixelart, "{ty:?}");
+        }
+        assert!(FRAGMENT_TEXTURE_RGB_PIXELART_300.starts_with(concat!(
+            rgb_pixelart_shader_prologue!(),
+            "SDL_TEXCOORD_PRECISION vec2 GetPixelArtUV(SDL_TEXCOORD_PRECISION vec2 uv)\n{\n",
+            "    SDL_TEXCOORD_PRECISION vec2 boxSize = clamp(fwidth(uv) * u_texel_size.zw, 1e-5, 1.0);\n"
+        )));
+        assert!(FRAGMENT_TEXTURE_ABGR_PIXELART_300.contains(
+            "    return textureGrad(u_texture, GetPixelArtUV(uv), dFdx(v_texCoord), dFdy(v_texCoord));\n}\n\n\nvoid main()\n"
+        ));
+        assert!(FRAGMENT_TEXTURE_PALETTE_PIXELART_COLORSWAP_300.ends_with(
+            "    mediump vec4 color = SamplePaletteLinear(GetPixelArtUV(v_texCoord));\n    gl_FragColor = vec4(color.b, color.g, color.r, color.a);\n    gl_FragColor *= v_color;\n}\n"
+        ));
     }
 
     #[test]

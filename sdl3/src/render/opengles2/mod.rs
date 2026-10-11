@@ -14,6 +14,14 @@
 //! and the others, `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_*_NUMBER`):
 //! the renderer (re)allocates their storage as upstream does, and leaves
 //! them to the application when it destroys the texture.
+//!
+//! Upstream builds the renderer for OpenGL ES 2.0, or with `OPENGLES_300`
+//! for OpenGL ES 3.0, whose pixel art shaders filter the texels' edges
+//! (`fwidth()` and `textureGrad()`). Here the `OPENGLES_300` shaders and
+//! sampling are used when the application asks for an OpenGL ES 3.0 or
+//! later context ([`GlAttr::ContextProfileMask`] ES and
+//! [`GlAttr::ContextMajorVersion`] 3 or more, on an OpenGL window), and the
+//! OpenGL ES 2.0 ones otherwise.
 
 mod funcs;
 mod shaders;
@@ -211,6 +219,10 @@ pub(crate) struct Gles2Renderer {
 
     gl_oes_egl_image_external_supported: bool,
     gl_ext_blend_minmax_supported: bool,
+    /// The shaders and sampling of upstream's `OPENGLES_300` build: the
+    /// renderer's context is OpenGL ES 3.0 or later, as the application
+    /// asked (upstream picks these when it's built).
+    opengles_300: bool,
 
     gl: Gles2Funcs,
     window_framebuffer: GLuint,
@@ -322,9 +334,11 @@ fn get_blend_equation(operation: Option<BlendOperation>) -> GLenum {
 }
 
 /// Translation of `SetTextureScaleMode()` (every `SDL_ScaleMode` is known
-/// here, so it can't fail).
+/// here, so it can't fail), of the `OPENGLES_300` build when `opengles_300`
+/// is set.
 fn set_texture_scale_mode(
     gl: &Gles2Funcs,
+    opengles_300: bool,
     textype: GLenum,
     format: PixelFormat,
     scale_mode: ScaleMode,
@@ -339,9 +353,19 @@ fn set_texture_scale_mode(
                 GL_LINEAR
             }
         }
-        // We don't have the functions we need, fall back to nearest sampling
-        // (the OPENGLES_300 build samples linearly for the pixel art shaders)
-        ScaleMode::PixelArt => GL_NEAREST,
+        ScaleMode::PixelArt => {
+            if opengles_300 {
+                if format == PixelFormat::INDEX8 {
+                    // We'll do linear sampling in the shader
+                    GL_NEAREST
+                } else {
+                    GL_LINEAR
+                }
+            } else {
+                // We don't have the functions we need, fall back to nearest sampling
+                GL_NEAREST
+            }
+        }
     };
     gl.tex_parameteri(textype, GL_TEXTURE_MIN_FILTER, filter);
     gl.tex_parameteri(textype, GL_TEXTURE_MAG_FILTER, filter);
@@ -566,7 +590,7 @@ impl Gles2Renderer {
         let gl = &self.gl;
         let mut id = 0;
         let mut compile_successful = false;
-        let shader_body = ty.source();
+        let shader_body = ty.source(self.opengles_300);
 
         // FIXME (upstream): when the first attempt fails, its shader object
         // is not deleted before the second attempt creates another one.
@@ -574,9 +598,15 @@ impl Gles2Renderer {
             if compile_successful {
                 break;
             }
-            let mut shader_src_list = Vec::with_capacity(3);
+            let mut shader_src_list = Vec::with_capacity(4);
 
-            // (the OPENGLES_300 build starts with "#version 300 es\n")
+            // FIXME (upstream): the sources after this are GLSL ES 1.00
+            // (`attribute`, `varying`, `texture2D()`, `gl_FragColor`), which
+            // GLSL ES 3.00 doesn't have, so no shader compiles and the
+            // OPENGLES_300 build makes no renderer.
+            if self.opengles_300 {
+                shader_src_list.push("#version 300 es\n");
+            }
             shader_src_list.push(ty.prologue());
 
             if shader_type == GL_FRAGMENT_SHADER {
@@ -1127,25 +1157,55 @@ impl Gles2Renderer {
         if cmd.texture_scale_mode != tdata.texture_scale_mode {
             if tdata.yuv {
                 gl.active_texture(GL_TEXTURE2);
-                set_texture_scale_mode(gl, textype, format, cmd.texture_scale_mode);
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    format,
+                    cmd.texture_scale_mode,
+                );
 
                 gl.active_texture(GL_TEXTURE1);
-                set_texture_scale_mode(gl, textype, format, cmd.texture_scale_mode);
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    format,
+                    cmd.texture_scale_mode,
+                );
 
                 gl.active_texture(GL_TEXTURE0);
             } else if tdata.nv12 {
                 gl.active_texture(GL_TEXTURE1);
-                set_texture_scale_mode(gl, textype, format, cmd.texture_scale_mode);
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    format,
+                    cmd.texture_scale_mode,
+                );
 
                 gl.active_texture(GL_TEXTURE0);
             }
             if has_palette {
                 gl.active_texture(GL_TEXTURE1);
-                set_texture_scale_mode(gl, textype, PixelFormat::UNKNOWN, ScaleMode::Nearest);
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    PixelFormat::UNKNOWN,
+                    ScaleMode::Nearest,
+                );
 
                 gl.active_texture(GL_TEXTURE0);
             }
-            set_texture_scale_mode(gl, textype, format, cmd.texture_scale_mode);
+            set_texture_scale_mode(
+                gl,
+                self.opengles_300,
+                textype,
+                format,
+                cmd.texture_scale_mode,
+            );
 
             tdata.texture_scale_mode = cmd.texture_scale_mode;
         }
@@ -1204,7 +1264,7 @@ impl Gles2Renderer {
 
     /// The creation of the renderer once the window is an OpenGL ES window
     /// (the middle of `GLES2_CreateRenderer()`).
-    fn create(window: Window, major: i32) -> Result<Gles2Renderer> {
+    fn create(window: Window, major: i32, opengles_300: bool) -> Result<Gles2Renderer> {
         // Create an OpenGL ES 2.0 context
         let _ = gl::gl_set_attribute(GlAttr::FramebufferSrgbCapable, 0);
         let context = GlContext::new(&window)?;
@@ -1218,6 +1278,7 @@ impl Gles2Renderer {
             debug_enabled: false,
             gl_oes_egl_image_external_supported: false,
             gl_ext_blend_minmax_supported: false,
+            opengles_300,
             gl,
             window_framebuffer: 0,
             shader_id_cache: [0; ShaderType::COUNT],
@@ -1343,12 +1404,16 @@ impl Gles2Renderer {
         let window_flags = window.flags()?;
 
         let mut changed_window = false;
+        // (the OPENGLES_300 shaders when the application asks for an
+        // OpenGL ES 3.0 or later context: the window keeps its attributes)
+        let mut opengles_300 = profile_mask == gl::GL_CONTEXT_PROFILE_ES && major >= 3;
         let result = (|| {
             // OpenGL ES 3.0 is a superset of OpenGL ES 2.0
             if !window_flags.contains(WindowFlags::OPENGL)
                 || profile_mask != gl::GL_CONTEXT_PROFILE_ES
                 || major < RENDERER_CONTEXT_MAJOR
             {
+                opengles_300 = false;
                 changed_window = true;
                 let _ = gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_ES);
                 let _ = gl::gl_set_attribute(GlAttr::ContextMajorVersion, RENDERER_CONTEXT_MAJOR);
@@ -1359,7 +1424,7 @@ impl Gles2Renderer {
                         | WindowFlags::OPENGL,
                 )?;
             }
-            Gles2Renderer::create(window, major)
+            Gles2Renderer::create(window, major, opengles_300)
         })();
 
         result.inspect_err(|_| {
@@ -1668,7 +1733,13 @@ impl RenderBackend for Gles2Renderer {
             gl.bind_texture(textype, data.texture_v);
             gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
             gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
-            set_texture_scale_mode(gl, textype, texture.format, data.texture_scale_mode);
+            set_texture_scale_mode(
+                gl,
+                self.opengles_300,
+                textype,
+                texture.format,
+                data.texture_scale_mode,
+            );
             set_texture_address_mode(
                 gl,
                 textype,
@@ -1691,7 +1762,13 @@ impl RenderBackend for Gles2Renderer {
             gl.bind_texture(textype, data.texture_u);
             gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
             gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
-            set_texture_scale_mode(gl, textype, texture.format, data.texture_scale_mode);
+            set_texture_scale_mode(
+                gl,
+                self.opengles_300,
+                textype,
+                texture.format,
+                data.texture_scale_mode,
+            );
             set_texture_address_mode(
                 gl,
                 textype,
@@ -1729,7 +1806,13 @@ impl RenderBackend for Gles2Renderer {
                 GL_UNSIGNED_BYTE,
             );
             gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
-            set_texture_scale_mode(gl, textype, texture.format, data.texture_scale_mode);
+            set_texture_scale_mode(
+                gl,
+                self.opengles_300,
+                textype,
+                texture.format,
+                data.texture_scale_mode,
+            );
             set_texture_address_mode(
                 gl,
                 textype,
@@ -1768,7 +1851,13 @@ impl RenderBackend for Gles2Renderer {
                 return Err(e);
             }
         }
-        set_texture_scale_mode(gl, textype, texture.format, data.texture_scale_mode);
+        set_texture_scale_mode(
+            gl,
+            self.opengles_300,
+            textype,
+            texture.format,
+            data.texture_scale_mode,
+        );
         set_texture_address_mode(
             gl,
             textype,
@@ -2120,7 +2209,13 @@ impl RenderBackend for Gles2Renderer {
         gl.bind_texture(GL_TEXTURE_2D, texture);
         gl.tex_image_2d_empty(GL_TEXTURE_2D, GL_RGBA, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE);
         gl_check_error!(self, "glTexImage2D()", "GLES2_CreatePalette")?;
-        set_texture_scale_mode(gl, GL_TEXTURE_2D, PixelFormat::UNKNOWN, ScaleMode::Nearest);
+        set_texture_scale_mode(
+            gl,
+            self.opengles_300,
+            GL_TEXTURE_2D,
+            PixelFormat::UNKNOWN,
+            ScaleMode::Nearest,
+        );
         set_texture_address_mode(
             gl,
             GL_TEXTURE_2D,

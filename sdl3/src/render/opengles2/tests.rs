@@ -1063,3 +1063,28 @@ fn gles2_textures_from_existing_gl_textures() {
     }
     gl.delete_texture(name);
 }
+
+/// An OpenGL ES 3 context asked for: the renderer builds the `OPENGLES_300`
+/// shaders, which upstream's sources don't let compile.
+#[test]
+fn gles2_opengles_300() {
+    use crate::video::gl::{self, GlAttr};
+
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    drop(r);
+    window.destroy();
+    gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_ES).unwrap();
+    gl::gl_set_attribute(GlAttr::ContextMajorVersion, 3).unwrap();
+    gl::gl_set_attribute(GlAttr::ContextMinorVersion, 0).unwrap();
+    let window = Window::create("gles3", W, H, WindowFlags::OPENGL).unwrap();
+    let e = Renderer::for_window(&window, Some(GLES2_RENDERER))
+        .err()
+        .unwrap();
+    assert_eq!(e.message(), "Failed to load the shader 0");
+    window.destroy();
+    gl::gl_reset_attributes();
+}
