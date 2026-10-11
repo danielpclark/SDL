@@ -142,7 +142,9 @@ fn tt_get_kerning(
     left_glyph: FtUInt,
     right_glyph: FtUInt,
 ) -> FtResult<FtVector> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     let kerning = FtVector {
         x: tt_face_get_kerning(ttface, left_glyph, right_glyph) as FtPos,
@@ -160,7 +162,9 @@ fn tt_get_advances(
     flags: FtInt32,
     advances: &mut [FtFixed],
 ) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     /* XXX: TODO: check for sbits */
 
@@ -241,13 +245,17 @@ fn tt_size_select_tt(ttface: &mut TtFaceRec, strike_index: FtULong) -> FtResult<
 
 /// `tt_size_select` (the driver method)
 fn tt_size_select(face: &mut FtFace, strike_index: FtULong) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     tt_size_select_tt(ttface, strike_index)
 }
 
 /// `tt_size_request`
 fn tt_size_request(face: &mut FtFace, req: &FtSizeRequestRec) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     /* TT_CONFIG_OPTION_EMBEDDED_BITMAPS */
     if ft_has_fixed_sizes(&ttface.root) {
@@ -300,7 +308,9 @@ fn tt_size_request(face: &mut FtFace, req: &FtSizeRequestRec) -> FtResult<()> {
 /// (e.g., whether the outline should be scaled, whether to load bitmaps or
 /// not, whether to hint the outline, etc).
 fn tt_glyph_load(face: &mut FtFace, glyph_index: FtUInt, load_flags: FtInt32) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     let mut load_flags = load_flags;
 
     if !ttface.root.has_slot_and_size {
@@ -407,22 +417,30 @@ fn tt_face_init_drv(
     typeface_index: FtInt,
     params: &[FtParameter],
 ) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     tt_face_init(ttface, typeface_index, params)
 }
 
 fn tt_face_done_drv(face: &mut FtFace) {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return;
+    };
     tt_face_done(ttface)
 }
 
 fn tt_size_init_drv(face: &mut FtFace) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     tt_size_init(ttface)
 }
 
 fn tt_size_done_drv(face: &mut FtFace) {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return;
+    };
     tt_size_done(ttface)
 }
 
