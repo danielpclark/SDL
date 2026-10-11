@@ -60,7 +60,9 @@ fn cff_get_kerning(
     left_glyph: FtUInt,
     right_glyph: FtUInt,
 ) -> FtResult<FtVector> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     let mut kerning = FtVector { x: 0, y: 0 };
 
@@ -80,7 +82,9 @@ fn cff_get_kerning(
 /// (e.g., whether the outline should be scaled, whether to load bitmaps or
 /// not, whether to hint the outline, etc).
 fn cff_glyph_load(face: &mut FtFace, glyph_index: FtUInt, load_flags: FtInt32) -> FtResult<()> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     /* (the face's slot and size exist together) */
     if !cffface.root.has_slot_and_size {
@@ -114,7 +118,9 @@ fn cff_get_advances(
     let mut error = Ok(());
 
     'missing_table: {
-        let FtFace::Tt(cffface) = face;
+        let FtFace::Tt(cffface) = face else {
+            return Err(FT_ERR_INVALID_FACE_HANDLE);
+        };
 
         if !ft_is_sfnt(&cffface.root) {
             break 'missing_table;
@@ -176,7 +182,9 @@ fn cff_get_advances(
             break;
         }
 
-        let FtFace::Tt(cffface) = face;
+        let FtFace::Tt(cffface) = face else {
+            return Err(FT_ERR_INVALID_FACE_HANDLE);
+        };
         let slot = &cffface.root.glyph;
         advances[nn as usize] = if flags & FT_LOAD_VERTICAL_LAYOUT != 0 {
             slot.linearVertAdvance
@@ -199,7 +207,9 @@ fn cff_get_glyph_name(
     glyph_index: FtUInt,
     buffer: &mut [u8],
 ) -> FtResult<()> {
-    let FtFace::Tt(cffface) = &*face;
+    let FtFace::Tt(cffface) = &*face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     let Some(font) = cffface.cff.as_deref() else {
         return Err(FT_ERR_INVALID_ARGUMENT);
     };
@@ -246,7 +256,9 @@ fn ft_strcpyn(dst: &mut [u8], src: &[u8]) {
 
 /// `cff_get_name_index`
 fn cff_get_name_index(face: &mut FtFace /* CFF_Face */, glyph_name: &[u8]) -> FtUInt {
-    let FtFace::Tt(cffface) = &*face;
+    let FtFace::Tt(cffface) = &*face else {
+        return 0;
+    };
     let Some(cff) = cffface.cff.as_deref() else {
         return 0;
     };
@@ -305,7 +317,9 @@ static CFF_SERVICE_GLYPH_DICT: FtServiceGlyphDictRec = FtServiceGlyphDictRec {
 
 /// `cff_get_ps_name`
 fn cff_get_ps_name(face: &mut FtFace) -> Option<String> {
-    let FtFace::Tt(cffface) = &*face;
+    let FtFace::Tt(cffface) = &*face else {
+        return None;
+    };
 
     /* following the OpenType specification 1.7, we return the name stored */
     /* in the `name' table for a CFF wrapped into an SFNT container        */
@@ -315,7 +329,9 @@ fn cff_get_ps_name(face: &mut FtFace) -> Option<String> {
         return (SFNT_SERVICE_PS_NAME.get_ps_font_name)(face);
     }
 
-    let FtFace::Tt(cffface) = &*face;
+    let FtFace::Tt(cffface) = &*face else {
+        return None;
+    };
     cffface
         .cff
         .as_ref()
@@ -341,7 +357,9 @@ static CFF_SERVICE_PS_NAME: FtServicePsFontNameRec = FtServicePsFontNameRec {
 
 /// `cff_get_cmap_info`
 fn cff_get_cmap_info(face: &FtFace, charmap: usize) -> FtResult<TtCMapInfo> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     let clazz = cffface.root.charmaps.get(charmap).map(|cmap| cmap.clazz);
 
@@ -458,32 +476,44 @@ fn cff_face_init_drv(
     typeface_index: FtInt,
     params: &[FtParameter],
 ) -> FtResult<()> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     cff_face_init(cffface, typeface_index, params)
 }
 
 fn cff_face_done_drv(face: &mut FtFace) {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return;
+    };
     cff_face_done(cffface)
 }
 
 fn cff_size_init_drv(face: &mut FtFace) -> FtResult<()> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     cff_size_init(cffface)
 }
 
 fn cff_size_done_drv(face: &mut FtFace) {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return;
+    };
     cff_size_done(cffface)
 }
 
 fn cff_size_request_drv(face: &mut FtFace, req: &FtSizeRequestRec) -> FtResult<()> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     cff_size_request(cffface, req)
 }
 
 fn cff_size_select_drv(face: &mut FtFace, strike_index: FtULong) -> FtResult<()> {
-    let FtFace::Tt(cffface) = face;
+    let FtFace::Tt(cffface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
     cff_size_select(cffface, strike_index)
 }
 

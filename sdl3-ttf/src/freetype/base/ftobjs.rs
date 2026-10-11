@@ -156,6 +156,8 @@ pub enum FtService {
     TrueTypeEngine(FtTrueTypeEngineType),
     /// the font format service (`FT_Get_Font_Format`)
     FontFormat(&'static str),
+    /// the Windows FNT driver's header service (`FT_Get_WinFNT_Header`)
+    WinFnt(&'static super::ftwinfnt::FtServiceWinFntRec),
 }
 
 pub const FT_SERVICE_ID_PROPERTIES: &str = "properties";
@@ -500,6 +502,8 @@ pub enum FtCMapData {
     /// the CFF driver's encoding charmap (`CFF_CMapStdRec`: its `gids`
     /// are the font encoding's `codes`)
     CffEncoding(Box<[FtUShort; 256]>),
+    /// the Windows FNT driver's charmap (`FNT_CMapRec`)
+    Fnt(super::super::winfonts::winfnt::FntCMapRec),
 }
 
 /// `FT_CMapRec`
@@ -756,8 +760,10 @@ pub fn ft_has_sbix(face: &FtFaceRec) -> bool {
 /// `FT_Face`: a driver's face record.
 #[derive(Debug)]
 pub enum FtFace {
-    /// a `TT_Face` (the TrueType driver's)
+    /// a `TT_Face` (the TrueType and CFF drivers')
     Tt(Box<TtFaceRec>),
+    /// an `FNT_Face` (the Windows FNT driver's)
+    Fnt(Box<super::super::winfonts::winfnt::FntFaceRec>),
 }
 
 impl Deref for FtFace {
@@ -765,6 +771,7 @@ impl Deref for FtFace {
     fn deref(&self) -> &FtFaceRec {
         match self {
             FtFace::Tt(f) => &f.root,
+            FtFace::Fnt(f) => &f.root,
         }
     }
 }
@@ -773,6 +780,7 @@ impl DerefMut for FtFace {
     fn deref_mut(&mut self) -> &mut FtFaceRec {
         match self {
             FtFace::Tt(f) => &mut f.root,
+            FtFace::Fnt(f) => &mut f.root,
         }
     }
 }
@@ -782,12 +790,14 @@ impl FtFace {
     pub fn tt(&self) -> Option<&TtFaceRec> {
         match self {
             FtFace::Tt(f) => Some(f),
+            _ => None,
         }
     }
     /// The `TT_Face` of an SFNT-based face, mutably.
     pub fn tt_mut(&mut self) -> Option<&mut TtFaceRec> {
         match self {
             FtFace::Tt(f) => Some(f),
+            _ => None,
         }
     }
 }
@@ -3413,7 +3423,9 @@ pub fn ft_render_glyph(face: &mut FtFace, render_mode: FtRenderMode) -> FtResult
                         /* blend new `face->glyph' into old `slot'; */
                         /* at the first call, `slot' is still empty */
                         err = {
-                            let FtFace::Tt(ttface) = face;
+                            let FtFace::Tt(ttface) = face else {
+                                return Err(FT_ERR_INVALID_FACE_HANDLE);
+                            };
                             let new_glyph = std::mem::take(&mut ttface.root.glyph);
                             let r = super::super::sfnt::ttcolr::tt_face_colr_blend_layer(
                                 ttface,

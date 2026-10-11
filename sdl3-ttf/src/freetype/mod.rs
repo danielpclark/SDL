@@ -54,3 +54,4 @@ pub mod smooth;
 pub mod truetype;
 pub mod tttables;
 pub mod tttypes;
+pub mod winfonts;

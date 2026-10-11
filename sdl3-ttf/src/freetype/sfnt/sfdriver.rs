@@ -43,7 +43,9 @@ fn sfnt_load_table(
     buffer: Option<&mut [u8]>,
     length: &mut FtULong,
 ) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     with_stream(ttface, |ttface, stream| {
         tt_face_load_any(ttface, stream, tag, offset, buffer, Some(length))
@@ -52,7 +54,9 @@ fn sfnt_load_table(
 
 /// `get_sfnt_table`
 fn get_sfnt_table(face: &FtFace, tag: FtSfntTag) -> Option<FtSfntTable<'_>> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return None;
+    };
 
     match tag {
         FT_SFNT_HEAD => Some(FtSfntTable::Head(&ttface.header)),
@@ -100,7 +104,9 @@ fn sfnt_table_info(
     offset: &mut FtULong,
     length: &mut FtULong,
 ) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     if *tag == 0 {
         *length = ttface.num_tables as FtULong;
@@ -134,7 +140,9 @@ pub static SFNT_SERVICE_SFNT_TABLE: FtServiceSfntTableRec = FtServiceSfntTableRe
 
 /// `sfnt_get_glyph_name`
 fn sfnt_get_glyph_name(face: &mut FtFace, glyph_index: FtUInt, buffer: &mut [u8]) -> FtResult<()> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return Err(FT_ERR_INVALID_FACE_HANDLE);
+    };
 
     let gname = with_stream(ttface, |ttface, stream| {
         tt_face_get_ps_name(ttface, stream, glyph_index)
@@ -147,7 +155,9 @@ fn sfnt_get_glyph_name(face: &mut FtFace, glyph_index: FtUInt, buffer: &mut [u8]
 
 /// `sfnt_get_name_index`
 fn sfnt_get_name_index(face: &mut FtFace, glyph_name: &[u8]) -> FtUInt {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return 0;
+    };
 
     let mut max_gid = FtUInt::MAX;
 
@@ -346,7 +356,9 @@ pub fn sfnt_get_name_id(
 
 /// `sfnt_get_ps_name`
 fn sfnt_get_ps_name(face: &mut FtFace) -> Option<String> {
-    let FtFace::Tt(ttface) = face;
+    let FtFace::Tt(ttface) = face else {
+        return None;
+    };
 
     let mut win = -1;
     let mut apple = -1;

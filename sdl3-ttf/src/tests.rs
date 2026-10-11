@@ -4,9 +4,10 @@
 
 //! The fonts in `testdata/fonts/` are subsets of DejaVu fonts (see their
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
-//! the DejaVu Sans subset, made by `tools/gen_sdl_ttf_testdata.py`, and
-//! the Noto font subsets (see their `OFL.txt`) of the shaping tests in
-//! `tests/shaping.rs`.
+//! the DejaVu Sans subset, and fonts of FreeType's other formats made from
+//! them (Windows FNT and FON bitmap fonts), made by
+//! `tools/gen_sdl_ttf_testdata.py`, and the Noto font subsets (see their
+//! `OFL.txt`) of the shaping tests in `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
 //! upstream SDL_ttf (with its bundled FreeType and HarfBuzz, without
 //! PlutoSVG) and SDL3, which runs the cases below in the same order: font
@@ -17,7 +18,8 @@
 //! fonts, text objects (layouts, clusters, substrings and edits) drawn
 //! with the surface and renderer (software, with several atlas sizes) text
 //! engines, signed distance field rendering, the CFF2 font's named
-//! instances, and the fonts truncated and with flipped bytes. Surfaces are
+//! instances, the faces of fonts with several, and the fonts truncated
+//! and with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
 //! rows and palette, their color key and blend mode.
 
@@ -41,6 +43,9 @@ static MONO: &[u8] = include_bytes!("testdata/fonts/DejaVuSansMono.ttf");
 static SANS_CFF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-CFF.otf");
 static SANS_CFF2: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-CFF2.otf");
 static SANS_BARE_CFF: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.cff");
+static SANS_FNT: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.fnt");
+static SANS_FON: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.fon");
+static SANS_PE_FON: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-PE.fon");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -1055,6 +1060,7 @@ fn corrupt_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
         len - 1,
     ];
     for cut in cuts {
+        let cut = cut.min(len);
         corrupt_case(out, &format!("trunc {cut}"), &data[..cut]);
     }
     let mut copy = data.to_vec();
@@ -1104,6 +1110,34 @@ fn cff_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
     }
 }
 
+/// The faces of a font with several (face index `face`).
+fn faces_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
+    out.push(format!("== faces {name}"));
+    for face in 0..=2i64 {
+        let f = Font::open_with(crate::FontOptions {
+            iostream: Some(stream(data)),
+            size: 20.0,
+            face: Some(face),
+            ..Default::default()
+        });
+        let f = match f {
+            Ok(f) => f,
+            Err(e) => {
+                out.push(format!("face {face}: err: {e}"));
+                continue;
+            }
+        };
+        out.push(format!("face {face}: info: {}", info(&f)));
+        metrics(out, &f, "face");
+        for (m, mname) in MODES.iter().enumerate() {
+            out.push(format!(
+                "render face {face} {mname}: {}",
+                render(&f, m, TEXT)
+            ));
+        }
+    }
+}
+
 #[test]
 fn matches_upstream_reference() {
     crate::init().unwrap();
@@ -1115,10 +1149,14 @@ fn matches_upstream_reference() {
         ("DejaVuSans-CFF.otf", SANS_CFF),
         ("DejaVuSans-CFF2.otf", SANS_CFF2),
         ("DejaVuSans.cff", SANS_BARE_CFF),
+        ("DejaVuSans-13.fnt", SANS_FNT),
+        ("DejaVuSans.fon", SANS_FON),
+        ("DejaVuSans-PE.fon", SANS_PE_FON),
     ] {
-        /* (the CFF2 and bare CFF versions of DejaVu Sans: the font cases,
-        the named instances, and the corrupt fonts) */
-        let full = !name.contains("CFF2") && !name.contains(".cff");
+        /* (the other fonts: the font cases, the CFF2 font's named
+        instances, the faces of fonts with several, and the corrupt
+        fonts) */
+        let full = name.ends_with(".ttf") || name.ends_with("CFF.otf");
         font_cases(&mut out, name, data);
         if full {
             text_cases(&mut out, name, data);
@@ -1127,6 +1165,9 @@ fn matches_upstream_reference() {
         }
         if name.contains("CFF2") {
             cff_cases(&mut out, name, data);
+        }
+        if name.contains(".fon") {
+            faces_cases(&mut out, name, data);
         }
         corrupt_cases(&mut out, name, data);
     }

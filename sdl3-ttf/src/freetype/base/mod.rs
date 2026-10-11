@@ -10,6 +10,7 @@
 pub mod ftadvanc;
 pub mod ftbitmap;
 pub mod ftcalc;
+pub mod ftfntfmt;
 pub mod ftgloadr;
 pub mod ftglyph;
 pub mod ftinit;
@@ -23,3 +24,4 @@ pub mod ftrfork;
 pub mod ftstream;
 pub mod ftstroke;
 pub mod fttrigon;
+pub mod ftwinfnt;
