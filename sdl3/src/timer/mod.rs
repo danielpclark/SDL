@@ -1,21 +1,34 @@
-// Rust translation of src/timer/SDL_timer.c from Simple DirectMedia Layer.
+// Rust translation of src/timer/SDL_timer.c and SDL_timer_c.h from Simple
+// DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Time management: the SDL tick counter, delays and callback timers.
 //!
 //! Direct translation of `SDL_timer.c`. The platform pieces
-//! (`SDL_GetPerformanceCounter`, `SDL_SYS_DelayNS`) are implemented with
+//! (`SDL_GetPerformanceCounter`, `SDL_SYS_DelayNS`) are the Unix backend
+//! (`clock_gettime()` on `CLOCK_MONOTONIC_RAW`, `nanosleep()`) and the
+//! Windows one (`QueryPerformanceCounter()`, high resolution waitable
+//! timers, `timeBeginPeriod()`); elsewhere they are written with
 //! `std::time` and `std::thread::sleep`.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
-use std::sync::{Arc, LazyLock, Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use std::sync::{Arc, LazyLock, Mutex};
+use std::time::Duration;
 
 use crate::err;
 use crate::error::Result;
 use crate::thread::{InitState, Semaphore};
+
+#[cfg(unix)]
+mod unix;
+#[cfg(unix)]
+use unix as sys;
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows as sys;
 
 /// Nanoseconds in a second, as an `i64` (SDL's `SDL_NS_PER_SECOND` is `long long`).
 pub(crate) const NS_PER_SECOND: i64 = 1_000_000_000;
@@ -26,31 +39,50 @@ const NS_PER_MS: u64 = 1_000_000;
 // Performance counter (platform layer)
 // ---------------------------------------------------------------------------
 
-static PERF_START: OnceLock<Instant> = OnceLock::new();
+/// The performance counter of platforms without a translated backend:
+/// nanoseconds since the first call (plus one).
+#[cfg(not(any(unix, windows)))]
+mod sys {
+    use std::sync::OnceLock;
+    use std::time::Instant;
+
+    static PERF_START: OnceLock<Instant> = OnceLock::new();
+
+    pub(super) fn get_performance_counter() -> u64 {
+        let start = *PERF_START.get_or_init(Instant::now);
+        (Instant::now().duration_since(start).as_nanos() as u64).wrapping_add(1)
+    }
+
+    pub(super) fn get_performance_frequency() -> u64 {
+        super::NS_PER_SECOND as u64
+    }
+
+    pub(super) fn sys_delay_ns(ns: u64) {
+        if ns == 0 {
+            std::thread::yield_now();
+        } else {
+            std::thread::sleep(std::time::Duration::from_nanos(ns));
+        }
+    }
+}
 
 /// The current value of the high resolution counter.
 ///
 /// Counter values are only meaningful relative to each other; divide a
 /// difference by [`performance_frequency`] to get seconds.
-/// Translation of `SDL_GetPerformanceCounter()`. This implementation counts
-/// nanoseconds from the first call and never returns 0.
+/// Translation of `SDL_GetPerformanceCounter()`.
 pub fn performance_counter() -> u64 {
-    let start = *PERF_START.get_or_init(Instant::now);
-    (Instant::now().duration_since(start).as_nanos() as u64).wrapping_add(1)
+    sys::get_performance_counter()
 }
 
 /// Counts per second of the high resolution counter. Translation of `SDL_GetPerformanceFrequency()`.
 pub fn performance_frequency() -> u64 {
-    NS_PER_SECOND as u64
+    sys::get_performance_frequency()
 }
 
-/// Translation of `SDL_SYS_DelayNS()` (Unix: `nanosleep`).
+/// Translation of `SDL_SYS_DelayNS()`.
 fn sys_delay(d: Duration) {
-    if d.is_zero() {
-        std::thread::yield_now();
-    } else {
-        std::thread::sleep(d);
-    }
+    sys::sys_delay_ns(d.as_nanos().min(u64::MAX as u128) as u64);
 }
 
 // ---------------------------------------------------------------------------
@@ -65,9 +97,14 @@ static TICK_DENOMINATOR_MS: AtomicU32 = AtomicU32::new(1);
 static TICKS_INIT_LOCK: Mutex<Option<crate::hints::Callback>> = Mutex::new(None);
 
 /// Translation of `SDL_SetSystemTimerResolutionMS()`. Only Windows has a
-/// system timer resolution to request (`timeBeginPeriod`); elsewhere, as
-/// here, this is a no-op.
-fn set_system_timer_resolution_ms(_period: i32) {}
+/// system timer resolution to request (`timeBeginPeriod`,
+/// `HAVE_TIME_BEGIN_PERIOD`); elsewhere this is a no-op.
+fn set_system_timer_resolution_ms(period: i32) {
+    #[cfg(windows)]
+    windows::set_system_timer_resolution_ms(period);
+    #[cfg(not(windows))]
+    let _ = period;
+}
 
 /// Translation of `SDL_InitTicks()`.
 fn init_ticks() {
@@ -523,6 +560,84 @@ fn remove_timer(id: u32) -> bool {
 mod tests {
     use super::*;
     use std::sync::atomic::AtomicUsize;
+    use std::time::Instant;
+
+    /// The counter runs at its frequency and delays wait at least as long
+    /// as asked, measured with both the counter and `std`'s clock.
+    #[test]
+    fn performance_counter_and_delays() {
+        let freq = performance_frequency();
+        assert!(freq > 0 && freq <= u32::MAX as u64);
+        #[cfg(target_os = "linux")]
+        assert_eq!(freq, NS_PER_SECOND as u64); // (CLOCK_MONOTONIC_RAW)
+
+        for ms in [0u64, 1, 3, 16] {
+            let start = Instant::now();
+            let c0 = performance_counter();
+            delay(Duration::from_millis(ms));
+            let c1 = performance_counter();
+            let wall = start.elapsed();
+            assert!(c1 >= c0);
+            let counted = Duration::from_secs_f64((c1 - c0) as f64 / freq as f64);
+            // (Windows timers may expire a little before the counter says
+            // the time is up, so allow it half a millisecond)
+            let slack = Duration::from_micros(if cfg!(windows) { 500 } else { 0 });
+            assert!(
+                wall + slack >= Duration::from_millis(ms),
+                "{ms} ms: {wall:?}"
+            );
+            // The counter and std's clock agree (a wrong frequency would be
+            // off by orders of magnitude), whatever the scheduler adds.
+            let diff = counted.abs_diff(wall);
+            assert!(diff < Duration::from_millis(10), "{counted:?} vs {wall:?}");
+            assert!(counted + slack + Duration::from_micros(100) >= Duration::from_millis(ms));
+        }
+
+        // Same clock as clock_gettime(CLOCK_MONOTONIC_RAW).
+        #[cfg(target_os = "linux")]
+        {
+            let mut ts = libc::timespec {
+                tv_sec: 0,
+                tv_nsec: 0,
+            };
+            // SAFETY: ts is a valid out-parameter.
+            unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC_RAW, &mut ts) };
+            let raw = ts.tv_sec as u64 * NS_PER_SECOND as u64 + ts.tv_nsec as u64;
+            let ours = performance_counter();
+            assert!(ours >= raw && ours - raw < 50_000_000, "{ours} {raw}");
+        }
+    }
+
+    /// Ticks request a 1 ms system timer resolution unless
+    /// `SDL_HINT_TIMER_RESOLUTION` says otherwise, and release it on quit.
+    #[cfg(windows)]
+    #[test]
+    fn windows_timer_resolution() {
+        let _l = crate::test_support::test_lock();
+        quit_ticks();
+        assert_eq!(windows::timer_period(), 0);
+        ticks_ns();
+        assert_eq!(windows::timer_period(), 1);
+        crate::hints::set(crate::hints::TIMER_RESOLUTION, "5").unwrap();
+        assert_eq!(windows::timer_period(), 5);
+        crate::hints::set(crate::hints::TIMER_RESOLUTION, "0").unwrap();
+        assert_eq!(windows::timer_period(), 0);
+        crate::hints::reset(crate::hints::TIMER_RESOLUTION);
+        assert_eq!(windows::timer_period(), 1);
+        quit_ticks();
+        assert_eq!(windows::timer_period(), 0);
+        ticks_ns();
+
+        // Delays work on threads that make their own timer or event, and
+        // close them when they exit.
+        let t = std::thread::spawn(|| {
+            let start = Instant::now();
+            delay(Duration::from_millis(2));
+            (start.elapsed(), windows::has_waitable_timer())
+        });
+        let (elapsed, _) = t.join().unwrap();
+        assert!(elapsed >= Duration::from_millis(2));
+    }
 
     #[test]
     fn ticks_increase() {
@@ -535,7 +650,6 @@ mod tests {
         assert!(ticks_ms() <= ticks_ns() / 1_000_000 + 1);
         assert!(ticks() >= Duration::from_millis(1));
         assert!(performance_counter() > 0);
-        assert_eq!(performance_frequency(), 1_000_000_000);
     }
 
     #[test]
