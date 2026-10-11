@@ -297,20 +297,65 @@ fn base_path_and_exe_name() {
     assert!(std::path::Path::new(&format!("{base}{exe}")).exists());
 }
 
-/// The SDL part of an error (Windows appends the system's text for the
-/// error code, which depends on the language and on Wine or Windows).
-#[cfg(windows)]
+/// The SDL part of an error: on Windows, without the system's text for the
+/// error code that follows it (it depends on the language, and on Wine or
+/// Windows); elsewhere the whole message.
+#[cfg(any(target_os = "linux", windows))]
 fn sdl_part(e: &Error) -> &str {
     let m = e.message();
-    m.rfind(": ").map_or(m, |i| &m[..i])
+    if cfg!(windows) {
+        m.rfind(": ").map_or(m, |i| &m[..i])
+    } else {
+        m
+    }
 }
 
-/// What upstream's `SDL_sysfsops.c` and `SDL_filesystem.c` (Windows), built
-/// from the C source and run under Wine, report for the same calls on a
-/// fresh tree: see `windows_fsops_match_upstream`. Errors are cut at the
-/// system's text; directory entries are sorted case-insensitively.
+/// What upstream's `SDL_sysfsops.c` and `SDL_filesystem.c` report for the
+/// calls of `fsops_match_upstream` on a fresh tree: upstream's C built for
+/// Linux and run there, and built for Windows and run under Wine. Errors
+/// are cut at the system's text on Windows; directory entries are sorted
+/// case-insensitively.
+#[cfg(target_os = "linux")]
+const FSOPS_EXPECTED: &str = r"mkdir nested: ok
+mkdir again: ok
+save x: ok
+save Y: ok
+save inner: ok
+mkdir under file: Can't create directory: File exists
+mkdir on file: Can't create directory: File exists
+info file: type 1 size 5 times 1
+info dir: type 2 size 0 times 1
+info missing: error Can't stat: No such file or directory
+copy: ok
+copy over: ok
+info copied: type 1 size 2 times 1
+copy missing: Couldn't open <root>/missing: No such file or directory
+rename: ok
+rename over: ok
+rename missing: Can't rename path: No such file or directory
+info renamed: type 1 size 2 times 1
+remove empty dir: ok
+remove gone: ok
+remove missing parent: ok
+remove non-empty: Can't remove path: Directory not empty
+enumerate:
+  enum [<root>/] [a]
+  enum [<root>/] [x.txt]
+  enum [<root>/] [Y.TXT]
+enumerate done: ok
+enumerate missing: Can't open directory: No such file or directory
+glob *.txt 0: [x.txt]
+glob *.txt 1: [Y.TXT] [x.txt]
+glob a/* 0: [a/b]
+glob a/b/*.txt 0: [a/b/inner.txt]
+glob */*/*.TXT 1: [a/b/inner.txt]
+glob ?.txt 0: [x.txt]
+glob (null) 0: [Y.TXT] [a] [a/b] [a/b/inner.txt] [x.txt]
+glob a/b/* 0: [a/b/inner.txt]
+glob (null) 0: error Can't open directory: No such file or directory
+";
 #[cfg(windows)]
-const WINDOWS_FSOPS_EXPECTED: &str = r"mkdir nested: ok
+const FSOPS_EXPECTED: &str = r"mkdir nested: ok
 mkdir again: ok
 save x: ok
 save Y: ok
@@ -349,11 +394,17 @@ glob a/b/* 0: [a\b\inner.txt]
 glob (null) 0: error Failed to enumerate directory
 ";
 
-#[cfg(windows)]
+#[cfg(any(target_os = "linux", windows))]
 #[test]
-fn windows_fsops_match_upstream() {
-    let tmp = TempDir::new("winfsops");
-    let root = tmp.0.replace('/', "\\");
+fn fsops_match_upstream() {
+    let tmp = TempDir::new("fsopsref");
+    // (paths are written with the platform's own separator, `b`, here and
+    // there, as the C harness writes them)
+    let (root, b) = if cfg!(windows) {
+        (tmp.0.replace('/', "\\"), "\\")
+    } else {
+        (tmp.0.clone(), "/")
+    };
     let mut out = String::new();
     let mut line = |s: String| {
         out.push_str(&s);
@@ -389,13 +440,14 @@ fn windows_fsops_match_upstream() {
     };
 
     let r = &root;
+    let nested = format!("{r}{b}a/b{b}c/");
     line(format!(
         "mkdir nested: {}",
-        result(create_directory(&format!("{r}\\a/b\\c/")))
+        result(create_directory(&nested))
     ));
     line(format!(
         "mkdir again: {}",
-        result(create_directory(&format!("{r}\\a/b\\c/")))
+        result(create_directory(&nested))
     ));
     let save = |p: &str, data: &[u8]| result(crate::io::save_file(p, data));
     line(format!("save x: {}", save(&format!("{r}/x.txt"), b"hello")));
@@ -448,7 +500,7 @@ fn windows_fsops_match_upstream() {
 
     line("enumerate:".to_owned());
     let mut entries = Vec::new();
-    let done = enumerate_directory(&format!("{r}\\\\//"), |dir, name| {
+    let done = enumerate_directory(&format!("{r}{b}{b}//"), |dir, name| {
         entries.push(format!("  enum [{dir}] [{name}]"));
         Ok(ControlFlow::Continue(()))
     });
@@ -467,14 +519,14 @@ fn windows_fsops_match_upstream() {
     line(glob(r, Some("*.txt"), GlobFlags::NONE));
     line(glob(r, Some("*.txt"), GlobFlags::CASE_INSENSITIVE));
     line(glob(r, Some("a/*"), GlobFlags::NONE));
-    line(glob(r, Some("a\\b\\*.txt"), GlobFlags::NONE));
+    line(glob(r, Some(&format!("a{b}b{b}*.txt")), GlobFlags::NONE));
     line(glob(r, Some("*/*/*.TXT"), GlobFlags::CASE_INSENSITIVE));
     line(glob(r, Some("?.txt"), GlobFlags::NONE));
     line(glob(r, None, GlobFlags::NONE));
-    line(glob(&format!("{r}\\"), Some("a/b/*"), GlobFlags::NONE));
+    line(glob(&format!("{r}{b}"), Some("a/b/*"), GlobFlags::NONE));
     line(glob(&format!("{r}/missing"), None, GlobFlags::NONE));
 
-    assert_eq!(out.replace(r.as_str(), "<root>"), WINDOWS_FSOPS_EXPECTED);
+    assert_eq!(out.replace(r.as_str(), "<root>"), FSOPS_EXPECTED);
 }
 
 /// The drive letters, the known folders, the pref path and the current
