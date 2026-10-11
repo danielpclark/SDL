@@ -656,6 +656,14 @@ pub(crate) struct TextureCreateProps {
     pub(crate) opengl_texture_u: Option<u32>,
     /// `SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`
     pub(crate) opengl_texture_v: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER`
+    pub(crate) opengles2_texture: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_UV_NUMBER`
+    pub(crate) opengles2_texture_uv: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_U_NUMBER`
+    pub(crate) opengles2_texture_u: Option<u32>,
+    /// `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER`
+    pub(crate) opengles2_texture_v: Option<u32>,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`
     pub(crate) gpu_texture: Option<Arc<gpu::Texture>>,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_UV_POINTER`

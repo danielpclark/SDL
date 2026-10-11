@@ -66,6 +66,20 @@ pub struct TextureCreateInfo {
     /// The OpenGL texture of the V plane of a YUV texture
     /// (`SDL_PROP_TEXTURE_CREATE_OPENGL_TEXTURE_V_NUMBER`)
     pub opengl_texture_v: Option<u32>,
+    /// An OpenGL ES texture to use instead of creating one (the OpenGL ES 2
+    /// renderer; `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER`). The
+    /// renderer (re)allocates its storage and leaves it to the application
+    /// when the texture is destroyed.
+    pub opengles2_texture: Option<u32>,
+    /// The OpenGL ES texture of the UV plane of an NV12 texture
+    /// (`SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_UV_NUMBER`)
+    pub opengles2_texture_uv: Option<u32>,
+    /// The OpenGL ES texture of the U plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_U_NUMBER`)
+    pub opengles2_texture_u: Option<u32>,
+    /// The OpenGL ES texture of the V plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER`)
+    pub opengles2_texture_v: Option<u32>,
     /// A GPU texture to use instead of creating one (the GPU renderer;
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`), of the renderer's
     /// device; the renderer shares it with the application
@@ -444,6 +458,10 @@ impl Renderer {
                     opengl_texture_uv: info.opengl_texture_uv,
                     opengl_texture_u: info.opengl_texture_u,
                     opengl_texture_v: info.opengl_texture_v,
+                    opengles2_texture: info.opengles2_texture,
+                    opengles2_texture_uv: info.opengles2_texture_uv,
+                    opengles2_texture_u: info.opengles2_texture_u,
+                    opengles2_texture_v: info.opengles2_texture_v,
                     gpu_texture: info.gpu_texture.clone(),
                     gpu_texture_uv: info.gpu_texture_uv.clone(),
                     gpu_texture_u: info.gpu_texture_u.clone(),

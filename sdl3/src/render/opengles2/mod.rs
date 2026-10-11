@@ -8,10 +8,12 @@
 //! at run time.
 //!
 //! As on the desktop builds upstream, vertices are passed in client-side
-//! arrays (vertex buffer objects are only used on Emscripten). The texture
-//! creation options don't take existing GL textures yet
-//! (`SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_*_NUMBER`), so every texture
-//! owns its GL textures.
+//! arrays (vertex buffer objects are only used on Emscripten). Textures can
+//! wrap the application's GL textures
+//! ([`TextureCreateInfo::opengles2_texture`](crate::render::TextureCreateInfo::opengles2_texture)
+//! and the others, `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_*_NUMBER`):
+//! the renderer (re)allocates their storage as upstream does, and leaves
+//! them to the application when it destroys the texture.
 
 mod funcs;
 mod shaders;
@@ -1567,7 +1569,7 @@ impl RenderBackend for Gles2Renderer {
     fn create_texture(
         &mut self,
         texture: &mut TextureData,
-        _props: &TextureCreateProps,
+        create_props: &TextureCreateProps,
     ) -> Result<()> {
         use PixelFormat as F;
         let _ = self.activate();
@@ -1655,9 +1657,13 @@ impl RenderBackend for Gles2Renderer {
                 ((w + 1) / 2, (h + 1) / 2)
             };
 
-            // (SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_V_NUMBER isn't taken)
-            data.texture_v = gl.gen_texture();
-            gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            data.texture_v = create_props.opengles2_texture_v.unwrap_or(0);
+            if data.texture_v != 0 {
+                data.texture_v_external = true;
+            } else {
+                data.texture_v = gl.gen_texture();
+                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            }
             gl.active_texture(GL_TEXTURE2);
             gl.bind_texture(textype, data.texture_v);
             gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
@@ -1674,8 +1680,13 @@ impl RenderBackend for Gles2Renderer {
                 data.texture_v as i64,
             );
 
-            data.texture_u = gl.gen_texture();
-            gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            data.texture_u = create_props.opengles2_texture_u.unwrap_or(0);
+            if data.texture_u != 0 {
+                data.texture_u_external = true;
+            } else {
+                data.texture_u = gl.gen_texture();
+                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            }
             gl.active_texture(GL_TEXTURE1);
             gl.bind_texture(textype, data.texture_u);
             gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
@@ -1700,8 +1711,13 @@ impl RenderBackend for Gles2Renderer {
                 return Err(Error::new("Unsupported YUV colorspace"));
             }
         } else if data.nv12 {
-            data.texture_u = gl.gen_texture();
-            gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            data.texture_u = create_props.opengles2_texture_uv.unwrap_or(0);
+            if data.texture_u != 0 {
+                data.texture_u_external = true;
+            } else {
+                data.texture_u = gl.gen_texture();
+                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            }
             gl.active_texture(GL_TEXTURE1);
             gl.bind_texture(textype, data.texture_u);
             gl.tex_image_2d_empty(
@@ -1734,9 +1750,13 @@ impl RenderBackend for Gles2Renderer {
             }
         }
 
-        // (SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_NUMBER isn't taken)
-        data.texture = gl.gen_texture();
-        gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+        data.texture = create_props.opengles2_texture.unwrap_or(0);
+        if data.texture != 0 {
+            data.texture_external = true;
+        } else {
+            data.texture = gl.gen_texture();
+            gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+        }
         gl.active_texture(GL_TEXTURE0);
         gl.bind_texture(textype, data.texture);
         if texture.format != F::EXTERNAL_OES {
