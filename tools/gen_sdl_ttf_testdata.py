@@ -1265,6 +1265,22 @@ def make_pfr_fonts(out):
 #   to 18, a BuildCharArray with othersubrs 19, 24 and 25, per-design
 #   values in the blend's Private and FontInfo dictionaries and bounding
 #   boxes).
+#
+# CID-keyed fonts (make_cid_fonts, `cid_font'), DejaVu Sans's glyphs in
+# 1000 units as the CIDs of their glyph indices, with an empty CID and one
+# without a font dictionary after them:
+#
+# * DejaVuSans-CID.cid: binary data, two font dictionaries (the second
+#   with a slanted FontMatrix and unencrypted charstrings), 3-byte glyph
+#   offsets;
+# * DejaVuSans-CID-hex.cid: hexadecimal data, one font dictionary, 4-byte
+#   glyph and 2-byte subroutine offsets.
+#
+# Type 42 fonts (make_t42_fonts, `t42_font'), the DejaVu Sans subset in a
+# PostScript wrapper: DejaVuSans.t42 (hexadecimal `sfnts' strings, its
+# glyphs in a shuffled order with a name of a missing glyph, the standard
+# encoding) and DejaVuSans-bin.t42 (binary strings, a `<< >>' dictionary
+# of glyphs, an encoding array).
 
 T1_OPS = {
     "hstem": [1], "vstem": [3], "vmoveto": [4], "rlineto": [5], "hlineto": [6],
@@ -1767,20 +1783,7 @@ def make_type1_fonts(out):
            [(-1, 6, "-0.2", 72, "-1.5"), (-2, 6, "-0.4", 72, "-3.0")])
 
     # DejaVuSans.pfa (1000 units)
-    def s(v):
-        return round(v * 1000 / 2048)
-
-    def scaled(ev):
-        hs, vs, es = ev
-        hs = [(s(a), s(a + b) - s(a)) if b > 0 else (s(a), b) for a, b in hs]
-        vs = [(s(a), s(a + b) - s(a)) for a, b in vs]
-        es2 = []
-        for e in es:
-            if e[0] == "mask":
-                es2.append(e)
-            else:
-                es2.append((e[0],) + tuple((s(p[0]), s(p[1])) for p in e[1:]))
-        return hs, vs, es2
+    s, scaled = t1_s, t1_scaled
 
     w = T1Writer()
     charstrings = []
@@ -1890,10 +1893,358 @@ def make_type1_fonts(out):
     t1_pfb(os.path.join(out, "DejaVuSans-MM.pfb"), clear, body)
 
 
+def t1_s(v):
+    """A coordinate of DejaVu Sans's 2048 units in 1000 units."""
+    return round(v * 1000 / 2048)
+
+
+def t1_scaled(ev):
+    """`t2_events` results in 1000 units."""
+    hs, vs, es = ev
+    hs = [(t1_s(a), t1_s(a + b) - t1_s(a)) if b > 0 else (t1_s(a), b) for a, b in hs]
+    vs = [(t1_s(a), t1_s(a + b) - t1_s(a)) for a, b in vs]
+    es2 = []
+    for e in es:
+        if e[0] == "mask":
+            es2.append(e)
+        else:
+            es2.append((e[0],) + tuple((t1_s(p[0]), t1_s(p[1])) for p in e[1:]))
+    return hs, vs, es2
+
+
+def cid_font(path, info, bbox, private, glyphs, fd_matrices, fd_len_iv, fd_bytes, gd_bytes,
+             sd_bytes, hex_data):
+    """A CIDFontType 0 font: `glyphs` a list of (FD index, charstring)
+    (an FD index of 0xFF and an empty charstring for CIDs without one),
+    each FD with its FontMatrix, lenIV and Type 1 subroutines."""
+    num_fds = len(fd_matrices)
+    writers_subrs = private["subrs"]
+    count = len(glyphs)
+
+    def enc(cs, len_iv):
+        return t1_encrypt(bytes(4) + cs, 4330) if len_iv >= 0 else cs
+
+    def offset(v, n):
+        return v.to_bytes(n, "big")
+
+    cidmap_len = (count + 1) * (fd_bytes + gd_bytes)
+    subrmap_offsets, pos = [], cidmap_len
+    for fd in range(num_fds):
+        subrmap_offsets.append(pos)
+        pos += (len(writers_subrs[fd]) + 1) * sd_bytes
+    subr_data, subr_maps = bytearray(), []
+    for fd in range(num_fds):
+        offs = []
+        for s in writers_subrs[fd]:
+            offs.append(pos + len(subr_data))
+            subr_data += enc(s, fd_len_iv[fd])
+        offs.append(pos + len(subr_data))
+        subr_maps.append(b"".join(offset(o, sd_bytes) for o in offs))
+    pos += len(subr_data)
+    cidmap, cs_data = bytearray(), bytearray()
+    for fd, cs in glyphs:
+        cidmap += offset(fd, fd_bytes) + offset(pos + len(cs_data), gd_bytes)
+        if cs:
+            cs_data += enc(cs, fd_len_iv[fd])
+    cidmap += offset(0, fd_bytes) + offset(pos + len(cs_data), gd_bytes)
+    data = bytes(cidmap) + b"".join(subr_maps) + bytes(subr_data) + bytes(cs_data)
+
+    name = "DejaVuSans-CID"
+    lines = ["%!PS-Adobe-3.0 Resource-CIDFont",
+             "%%DocumentNeededResources: ProcSet (CIDInit)",
+             "%%IncludeResource: ProcSet (CIDInit)",
+             "%%BeginResource: CIDFont (" + name + ")",
+             "%%Title: (" + name + " Adobe Identity 0)",
+             "%%Creator: tools/gen_sdl_ttf_testdata.py (a CID-keyed version of DejaVu Sans)",
+             "/CIDInit /ProcSet findresource begin",
+             "20 dict begin",
+             "/CIDFontName /%s def" % name,
+             "/CIDFontVersion 2.37 def",
+             "/CIDFontType 0 def",
+             "/CIDSystemInfo 3 dict dup begin",
+             "/Registry (Adobe) def",
+             "/Ordering (Identity) def",
+             "/Supplement 0 def",
+             "end def",
+             "/FontBBox {%s} def" % " ".join(str(v) for v in bbox),
+             "/UIDBase 4100000 def",
+             "/XUID [1 11 4100000] def",
+             "/FontInfo 9 dict dup begin"]
+    for key in ["version", "Notice", "FullName", "FamilyName", "Weight"]:
+        lines.append("/%s %s readonly def" % (key, t1_ps_string(info[key])))
+    for key in ["ItalicAngle", "isFixedPitch", "UnderlinePosition", "UnderlineThickness",
+                "FSType"]:
+        lines.append("/%s %s def" % (key, info[key]))
+    lines += ["end readonly def",
+              "/CIDMapOffset 0 def",
+              "/FDBytes %d def" % fd_bytes,
+              "/GDBytes %d def" % gd_bytes,
+              "/CIDCount %d def" % count,
+              "/FDArray %d array" % num_fds]
+    for fd in range(num_fds):
+        lines += ["dup %d" % fd,
+                  "%ADOBeginFontDict",
+                  "14 dict begin",
+                  "/FontName /%s-FD%d def" % (name, fd),
+                  "/FontType 1 def",
+                  "/FontMatrix [%s] def" % " ".join(fd_matrices[fd]),
+                  "/PaintType 0 def",
+                  "/StrokeWidth 0 def",
+                  "%ADOBeginPrivateDict",
+                  "/Private 20 dict dup begin",
+                  "/MinFeature {16 16} def"]
+        for key, value in private["entries"]:
+            lines.append("/%s %s def" % (key, value))
+        lines += ["/lenIV %d def" % fd_len_iv[fd],
+                  "/SubrMapOffset %d def" % subrmap_offsets[fd],
+                  "/SDBytes %d def" % sd_bytes,
+                  "/SubrCount %d def" % len(writers_subrs[fd]),
+                  "/lenBuildCharArray 0 def",
+                  "/ForceBoldThreshold 0 def",
+                  "end def",
+                  "%ADOEndPrivateDict",
+                  "currentdict end",
+                  "%ADOEndFontDict",
+                  "put"]
+    lines.append("def")
+    if hex_data:
+        body = data.hex()
+        payload = ("\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + ">").encode()
+        start = "(Hex) %d StartData\n" % len(data)
+        kind = "Hex"
+    else:
+        payload = data
+        start = "(Binary) %d StartData " % len(data)
+        kind = "Binary"
+    lines.append("%%%%BeginData: %d %s Bytes" % (len(start) + len(payload), kind))
+    head = ("\n".join(lines) + "\n" + start).encode("latin-1")
+    blob = head + payload + b"\n%%EndData\n%%EndResource\n%%EOF\n"
+    with open(path, "wb") as f:
+        f.write(blob)
+
+
+def make_cid_fonts(out):
+    from fontTools.ttLib import TTFont
+
+    cff_font = TTFont(os.path.join(out, "DejaVuSans-CFF.otf"))
+    ttf = TTFont(os.path.join(out, "DejaVuSans.ttf"))
+    top = cff_font["CFF "].cff.topDictIndex[0]
+    cs = top.CharStrings
+    hmtx = cff_font["hmtx"]
+    order = cff_font.getGlyphOrder()
+    names = cff_font["name"]
+    info = {
+        "version": names.getDebugName(5),
+        "Notice": names.getDebugName(0),
+        "FullName": names.getDebugName(4),
+        "FamilyName": names.getDebugName(1),
+        "Weight": names.getDebugName(2),
+        "ItalicAngle": "0",
+        "isFixedPitch": "false",
+        "UnderlinePosition": str(ttf["post"].underlinePosition),
+        "UnderlineThickness": str(ttf["post"].underlineThickness),
+        "FSType": "0",
+    }
+    priv = top.Private
+
+    def arr(a):
+        return "[" + " ".join(str(t1_s(v)) for v in a) + "]"
+
+    entries = [("BlueValues", arr(priv.BlueValues)), ("OtherBlues", arr(priv.OtherBlues)),
+               ("BlueScale", "0.039625"), ("BlueShift", "7"), ("BlueFuzz", "1"),
+               ("StdHW", arr([priv.StdHW])), ("StdVW", arr([priv.StdVW])),
+               ("StemSnapH", arr(priv.StemSnapH)), ("StemSnapV", arr(priv.StemSnapV)),
+               ("ForceBold", "false"), ("LanguageGroup", "0"), ("ExpansionFactor", "0.06")]
+    bbox = [t1_s(int(v)) for v in top.FontBBox]
+
+    def glyphs_for(fd_of):
+        """The glyphs (and each FD's subroutines) of each CID: the glyph
+        order's, then an empty one and one without an FD."""
+        writers = {}
+        glyphs = []
+        for name in order:
+            fd = fd_of(name)
+            w = writers.setdefault(fd, T1Writer())
+            width, lsb = hmtx[name]
+            tokens = w.glyph([t1_scaled(t2_events(cs[name]))], [t1_s(lsb)], [t1_s(width)],
+                             three=True, flex={0} if name in ("o", "O") else ())
+            glyphs.append((fd, t1_charstring(tokens)))
+        glyphs.append((0, b""))
+        glyphs.append((0xFF, b""))
+        return glyphs, [writers[fd].subrs for fd in sorted(writers)]
+
+    # DejaVuSans-CID.cid: binary data, two FDs (the second with a slanted
+    # FontMatrix and unencrypted charstrings)
+    upright = set(order[:100])
+    glyphs, subrs = glyphs_for(lambda name: 0 if name in upright else 1)
+    cid_font(os.path.join(out, "DejaVuSans-CID.cid"), info, bbox,
+             {"entries": entries, "subrs": subrs}, glyphs,
+             [["0.001", "0", "0", "0.001", "0", "0"], ["0.001", "0", "0.0002", "0.001", "0", "0"]],
+             [4, -1], 1, 3, 4, False)
+
+    # DejaVuSans-CID-hex.cid: hexadecimal data, one FD
+    glyphs, subrs = glyphs_for(lambda name: 0)
+    cid_font(os.path.join(out, "DejaVuSans-CID-hex.cid"), info, bbox,
+             {"entries": entries, "subrs": subrs}, glyphs,
+             [["0.001", "0", "0", "0.001", "0", "0"]], [4], 1, 4, 2, True)
+
+
+def t42_sfnt_reordered(data):
+    """The sfnt `data' with its tables in the order fontTools recommends
+    (`head' first, `glyf' after `loca'), the bytes of each kept: FreeType
+    checks the sizes of all tables against what follows the string that
+    ends the table directory in the file, which a big
+    first `glyf' table in the font fails."""
+    import struct
+    from fontTools.ttLib.ttFont import sortedTagList
+
+    num_tables = struct.unpack(">H", data[4:6])[0]
+    entries = {}
+    for i in range(num_tables):
+        tag, checksum, offset, length = struct.unpack(
+            ">4sIII", data[12 + 16 * i:28 + 16 * i])
+        entries[tag] = (checksum, data[offset:offset + length])
+    tags = [t.encode("latin-1")
+            for t in sortedTagList([t.decode("latin-1") for t in entries])]
+    offset = 12 + 16 * num_tables
+    directory = {}
+    body = bytearray()
+    for tag in tags:
+        checksum, table = entries[tag]
+        directory[tag] = (checksum, offset + len(body), len(table))
+        body += table + b"\0" * (-len(table) % 4)
+    out = bytearray(data[:12])
+    for tag in sorted(entries):
+        out += struct.pack(">4sIII", tag, *directory[tag])
+    out += body
+    # the font's checksum adjustment, after zeroing it
+    adjust = directory[b"head"][1] + 8
+    out[adjust:adjust + 4] = b"\0\0\0\0"
+    total = sum(struct.unpack(">%dI" % (len(out) // 4), bytes(out))) & 0xFFFFFFFF
+    out[adjust:adjust + 4] = struct.pack(">I", (0xB1B0AFBA - total) & 0xFFFFFFFF)
+    return bytes(out)
+
+
+def t42_font(path, ttf_path, binary):
+    """A Type 42 version of the TrueType font `ttf_path`: hexadecimal
+    `sfnts' strings (split at table boundaries, with a padding byte) and
+    `/name index' CharStrings in a shuffled order (.notdef not first, and
+    a name with a glyph index the font does not have) with the standard
+    encoding, or `binary' ones (`RD') with a `<< >>' dictionary of
+    CharStrings (some `(name) cvn index') and an encoding array of
+    immediates, after a `FontDirectory ... known' test."""
+    from fontTools.ttLib import TTFont
+
+    font = TTFont(ttf_path)
+    order = font.getGlyphOrder()
+    upem = font["head"].unitsPerEm
+    head = font["head"]
+    name = font["name"]
+    post = font["post"]
+    with open(ttf_path, "rb") as f:
+        data = t42_sfnt_reordered(f.read())
+
+    # the strings: the offset table and directory, then each table (or
+    # pieces of at most 65534 bytes)
+    import struct
+    num_tables = struct.unpack(">H", data[4:6])[0]
+    entries = sorted((struct.unpack(">4sIII", data[12 + 16 * i:28 + 16 * i])
+                      for i in range(num_tables)), key=lambda e: e[2])
+    bounds = [0, 12 + 16 * num_tables] + [e[2] for e in entries] + [len(data)]
+    pieces = []
+    for a, b in zip(bounds, bounds[1:]):
+        while a < b:
+            pieces.append(data[a:min(b, a + 65534)])
+            a = min(b, a + 65534)
+    ps_name = name.getDebugName(6)
+
+    def em(v):
+        return "%g" % (v / upem)
+
+    lines = ["%%!PS-TrueTypeFont-1.0-%.2f" % head.fontRevision,
+             "%%Creator: tools/gen_sdl_ttf_testdata.py (a Type 42 version of DejaVu Sans)"]
+    if binary:
+        lines += ["FontDirectory/%s known{/%s findfont dup/UniqueID known{dup"
+                  % (ps_name, ps_name),
+                  "/UniqueID get 4200000 eq exch/FontType get 42 eq and}{pop false}ifelse",
+                  "{save true}{false}ifelse}{false}ifelse"]
+    lines += ["11 dict begin",
+              "/FontName /%s def" % ps_name,
+              "/FontType 42 def",
+              "/PaintType 0 def",
+              "/FontMatrix [%s] def" % ("2 0 0 2 0 0" if binary else "1 0 0 1 0 0"),
+              "/FontBBox [%s %s %s %s] def" % (em(head.xMin), em(head.yMin), em(head.xMax),
+                                                em(head.yMax)),
+              "/UniqueID 4200000 def",
+              "/FontInfo 10 dict dup begin",
+              "/version (%s) readonly def" % name.getDebugName(5),
+              "/Notice %s readonly def" % t1_ps_string(name.getDebugName(0)),
+              "/FullName (%s) readonly def" % name.getDebugName(4),
+              "/FamilyName (%s) readonly def" % name.getDebugName(1),
+              "/Weight (%s) readonly def" % name.getDebugName(2),
+              "/ItalicAngle 0 def",
+              "/isFixedPitch false def",
+              "/UnderlinePosition %d def" % post.underlinePosition,
+              "/UnderlineThickness %d def" % post.underlineThickness,
+              "/FSType 0 def",
+              "end readonly def"]
+    if binary:
+        cmap = font.getBestCmap()
+        enc = [".notdef"] * 256
+        for code, gname in cmap.items():
+            if code < 256:
+                enc[code] = gname
+        lines.append("/Encoding [")
+        for i in range(0, 256, 8):
+            lines.append(" ".join("/" + n for n in enc[i:i + 8]))
+        lines.append("] def")
+    else:
+        lines.append("/Encoding StandardEncoding def")
+    head_ps = ("\n".join(lines) + "\n/sfnts [\n").encode("latin-1")
+    body = bytearray()
+    for p in pieces:
+        if binary:
+            body += b"%d RD " % len(p) + p + b"\n"
+        else:
+            h = (p + b"\0").hex().upper()
+            body += b"<" + "\n".join(h[i:i + 72] for i in range(0, len(h), 72)).encode() + b">\n"
+    body += b"] def\n"
+    if binary:
+        # (FreeType counts the names of the `/name' entries, so the glyphs
+        # after the few `(name) cvn' ones go)
+        body += b"/CharStrings <<\n"
+        for i, gname in enumerate(order):
+            if i % 50 == 49:
+                body += b"(%s) cvn %d\n" % (gname.encode(), i)
+            else:
+                body += b"/%s %d\n" % (gname.encode(), i)
+        body += b">> def\n"
+    else:
+        names = order[1:20] + [order[0]] + order[20:] + ["missing"]
+        body += b"/CharStrings %d dict dup begin\n" % len(names)
+        for gname in names:
+            index = order.index(gname) if gname in order else 999
+            body += b"/%s %d def\n" % (gname.encode(), index)
+        body += b"end readonly def\n"
+    body += b"FontName currentdict end definefont pop\n"
+    if binary:
+        body += b"{restore}if\n"
+    with open(path, "wb") as f:
+        f.write(head_ps + bytes(body))
+
+
+def make_t42_fonts(out):
+    sans = os.path.join(out, "DejaVuSans.ttf")
+    t42_font(os.path.join(out, "DejaVuSans.t42"), sans, False)
+    t42_font(os.path.join(out, "DejaVuSans-bin.t42"), sans, True)
+
+
 def make_format_fonts(out):
     make_bitmap_fonts(out)
     make_pfr_fonts(out)
     make_type1_fonts(out)
+    make_cid_fonts(out)
+    make_t42_fonts(out)
 
 
 SHAPING_FONTS = [

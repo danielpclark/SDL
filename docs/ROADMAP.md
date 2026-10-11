@@ -141,7 +141,9 @@ In dependency order, after the core each one needs exists:
    writing systems), `smooth`, `raster`, `sdf` (signed distance fields
    from outlines and bitmaps), `gzip` (with its zlib), and the drivers
    of FreeType's other formats: `type1` (PFA and PFB fonts, multiple
-   masters, AFM and PFM metrics), `pfr` (PFR outlines, bitmaps and
+   masters, AFM and PFM metrics), `cid` (CID-keyed Type 1 fonts, binary
+   and hexadecimal), `type42` (TrueType fonts in a PostScript wrapper,
+   loaded through `truetype`), `pfr` (PFR outlines, bitmaps and
    kerning), `winfonts` (Windows FNT and FON), `pcf` (with `lzw` and the
    `bzip2` stub SDL_ttf builds) and `bdf`. The
    FreeType License (`sdl3-ttf/FTL.TXT`) applies to `src/freetype/`.
@@ -180,8 +182,8 @@ In dependency order, after the core each one needs exists:
    fonts with flipped bytes; FreeType alone was also checked against
    upstream's on more fonts and scripts, and on every truncation and byte
    flip of two small fonts. Not yet: HarfBuzz's AAT layout (`morx`,
-   `kerx`, `trak`) and state-machine `kern` subtables, and FreeType's other
-   font drivers (`cid`, `type42`), the hinter of `pshinter` (which only
+   `kerx`, `trak`) and state-machine `kern` subtables, the hinter
+   of FreeType's `pshinter` (which only
    the old Type 1 and CFF interpreters SDL_ttf's build leaves out use)
    and its `svg` renderer (which needs PlutoSVG).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
