@@ -206,7 +206,9 @@ In dependency order, after the core each one needs exists:
    gzip-compressed documents covering what PlutoSVG renders, alongside
    plain glyphs): metrics and glyphs at several sizes and DPIs, every
    render mode, styles, outlines, SDF, text objects, and corrupted SVG
-   tables and documents. Not yet: the hinter
+   tables and documents; and on 600,000 randomly mutated SVG tables and
+   documents (in release mode, and 60,000 with overflow checks), every
+   rendering identical. Not yet: the hinter
    of FreeType's `pshinter` (which only
    the old Type 1 and CFF interpreters SDL_ttf's build leaves out use),
    and SVG images in formats other than PNG and JPEG (SDL's stb_image
