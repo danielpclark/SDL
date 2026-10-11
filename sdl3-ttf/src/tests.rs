@@ -6,7 +6,8 @@
 //! `LICENSE`), and OpenType/CFF, CFF2 variable and bare CFF versions of
 //! the DejaVu Sans subset, and fonts of FreeType's other formats made from
 //! them (Windows FNT and FON, BDF, and PCF bitmap fonts, the latter also
-//! compressed, and PFR fonts), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
+//! compressed, PFR fonts, and Type 1 fonts with their AFM and PFM
+//! metrics), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
 //! font subsets (see their `OFL.txt`) of the shaping tests in
 //! `tests/shaping.rs`.
 //! `testdata/reference.txt` is the output of a C program built from
@@ -19,7 +20,8 @@
 //! fonts, text objects (layouts, clusters, substrings and edits) drawn
 //! with the surface and renderer (software, with several atlas sizes) text
 //! engines, signed distance field rendering, the CFF2 font's named
-//! instances, the faces of fonts with several, and the fonts truncated
+//! instances, the faces of fonts with several, the Type 1 fonts through
+//! FreeType (with their metrics attached), and the fonts truncated
 //! and with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
 //! rows and palette, their color key and blend mode.
@@ -57,6 +59,11 @@ static SANS_PCF_Z: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.Z");
 static SANS_PCF_BZ2: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-13.pcf.bz2");
 static SANS_PFR: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfr");
 static SANS_PFR_BITMAP: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-bitmap.pfr");
+static SANS_PFB: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfb");
+static SANS_AFM: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.afm");
+static SANS_PFA: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfa");
+static SANS_PFM: &[u8] = include_bytes!("testdata/fonts/DejaVuSans.pfm");
+static SANS_MM_PFB: &[u8] = include_bytes!("testdata/fonts/DejaVuSans-MM.pfb");
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -1150,6 +1157,207 @@ fn faces_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
     }
 }
 
+/// A Type 1 font through FreeType (memory stream): the face, charmaps,
+/// glyph names, advances, kerning before and after attaching its metrics
+/// file (`metrics`), a `seac' glyph's subglyphs, and the multiple masters
+/// axes.
+fn t1_cases(out: &mut Vec<String>, name: &str, data: &[u8], metrics: Option<&[u8]>) {
+    use crate::freetype::base::ftadvanc::ft_get_advances;
+    use crate::freetype::base::ftfntfmt::ft_get_font_format;
+    use crate::freetype::base::ftinit::{ft_done_freetype, ft_init_freetype};
+    use crate::freetype::base::ftmm::{ft_get_mm_var, ft_get_var_blend_coordinates};
+    use crate::freetype::base::ftobjs::*;
+    use crate::freetype::fttypes::*;
+    use std::sync::Arc;
+
+    fn code<T>(r: &FtResult<T>) -> i32 {
+        match r {
+            Ok(_) => 0,
+            Err(e) => *e,
+        }
+    }
+
+    out.push(format!("== type1 {name}"));
+    let lib = ft_init_freetype().unwrap();
+    let face = ft_new_memory_face(&lib, Arc::from(data), 0);
+    out.push(format!("open: {}", code(&face)));
+    let Ok(mut face) = face else {
+        let _ = ft_done_freetype(lib);
+        return;
+    };
+    let ps = ft_get_postscript_name(&mut face);
+    let format = ft_get_font_format(&face);
+    out.push(format!(
+        "face: glyphs={} flags={:x} style={:x} family={} style={} ps={} format={} upem={} \
+         asc={} desc={} height={} maxadv={} ul={},{} bbox={},{},{},{} charmaps={}",
+        face.num_glyphs,
+        face.face_flags,
+        face.style_flags,
+        face.family_name.as_deref().unwrap_or("(null)"),
+        face.style_name.as_deref().unwrap_or("(null)"),
+        ps.as_deref().unwrap_or("(null)"),
+        format.unwrap_or("(null)"),
+        face.units_per_EM,
+        face.ascender,
+        face.descender,
+        face.height,
+        face.max_advance_width,
+        face.underline_position,
+        face.underline_thickness,
+        face.bbox.xMin,
+        face.bbox.yMin,
+        face.bbox.xMax,
+        face.bbox.yMax,
+        face.num_charmaps
+    ));
+    let codes: [FtULong; 7] = [0x41, 0x61, 0x7A, 0xE9, 0xC9, 0xC1, 0x20AC];
+    for i in 0..face.num_charmaps as usize {
+        let cm = face.charmaps[i].charmap;
+        let mut line = format!(
+            "charmap {i}: {} {} {:08x}:",
+            cm.platform_id, cm.encoding_id, cm.encoding
+        );
+        let _ = ft_set_charmap(&mut face, i);
+        for c in codes {
+            line += &format!(" {}", ft_get_char_index(&face, c));
+        }
+        let mut gi: FtUInt = 0;
+        let first = ft_get_first_char(&mut face, &mut gi);
+        line += &format!(" first={first},{gi}");
+        let next = ft_get_next_char(&mut face, first, &mut gi);
+        line += &format!(" next={next},{gi}");
+        out.push(line);
+    }
+    let _ = ft_set_charmap(&mut face, 0);
+    for gi in [0u32, 1, 34, 100, 202, 203] {
+        let mut buf = [b'x'; 16];
+        let r = ft_get_glyph_name(&mut face, gi, &mut buf);
+        let n = buf.iter().position(|&c| c == 0).unwrap_or(16);
+        let s = if r.is_ok() {
+            String::from_utf8_lossy(&buf[..n]).into_owned()
+        } else {
+            String::new()
+        };
+        out.push(format!("glyph name {gi}: {} {s}", code(&r)));
+    }
+    out.push(format!(
+        "name index: {} {} {}",
+        ft_get_name_index(&mut face, b"eacute"),
+        ft_get_name_index(&mut face, b".notdef"),
+        ft_get_name_index(&mut face, b"nosuch")
+    ));
+    for vert in 0..2 {
+        let mut adv = [0 as FtFixed; 8];
+        let flags = FT_LOAD_NO_SCALE
+            | if vert != 0 {
+                FT_LOAD_VERTICAL_LAYOUT
+            } else {
+                0
+            };
+        let r = ft_get_advances(&mut face, 30, 8, flags, &mut adv);
+        let mut line = format!("advances {vert}: {}", code(&r));
+        for a in adv {
+            line += &format!(" {}", if r.is_err() { 0 } else { a });
+        }
+        out.push(line);
+    }
+    let pairs = [
+        (b'A', b'V'),
+        (b'T', b'o'),
+        (b'W', b'a'),
+        (b'f', b'j'),
+        (b'L', b'T'),
+    ];
+    let _ = ft_set_char_size(&mut face, 0, 16 * 64, 72, 72);
+    for attach in 0..2 {
+        if attach != 0 {
+            let Some(metrics) = metrics else {
+                break;
+            };
+            let args = FtOpenArgs {
+                flags: FT_OPEN_MEMORY,
+                memory_base: Some(Arc::from(metrics)),
+                ..Default::default()
+            };
+            let r = ft_attach_stream(&mut face, args);
+            out.push(format!(
+                "attach: {} flags={:x} asc={} desc={} bbox={},{},{},{}",
+                code(&r),
+                face.face_flags,
+                face.ascender,
+                face.descender,
+                face.bbox.xMin,
+                face.bbox.yMin,
+                face.bbox.xMax,
+                face.bbox.yMax
+            ));
+        }
+        for (a, b) in pairs {
+            let l = ft_get_char_index(&face, a as FtULong);
+            let r = ft_get_char_index(&face, b as FtULong);
+            let k1 = ft_get_kerning(&mut face, l, r, FT_KERNING_UNSCALED);
+            let k2 = ft_get_kerning(&mut face, l, r, FT_KERNING_DEFAULT);
+            let v1 = k1.as_ref().copied().unwrap_or_default();
+            let v2 = k2.as_ref().copied().unwrap_or_default();
+            out.push(format!(
+                "kern {attach} {}{}: {} {},{} {} {},{}",
+                a as char,
+                b as char,
+                code(&k1),
+                v1.x,
+                v1.y,
+                code(&k2),
+                v2.x,
+                v2.y
+            ));
+        }
+    }
+    let eacute = ft_get_char_index(&face, 0xE9);
+    let r = ft_load_glyph(&mut face, eacute, FT_LOAD_NO_RECURSE);
+    let mut line = format!(
+        "no recurse {eacute}: {} format={:x} subglyphs={} hbx={} adv={}",
+        code(&r),
+        face.glyph.format,
+        face.glyph.num_subglyphs,
+        face.glyph.metrics.horiBearingX,
+        face.glyph.metrics.horiAdvance
+    );
+    if r.is_ok() {
+        for i in 0..face.glyph.num_subglyphs {
+            if let Ok((index, flags, arg1, arg2, _)) = ft_get_subglyph_info(&face.glyph, i) {
+                line += &format!(" [{index} {flags:x} {arg1} {arg2}]");
+            }
+        }
+    }
+    out.push(line);
+    let mm = ft_get_mm_var(&mut face);
+    let mut line = format!("mm var: {}", code(&mm));
+    if let Ok(mm) = &mm {
+        line += &format!(
+            " axes={} designs={} styles={}",
+            mm.num_axis, mm.num_designs, mm.num_namedstyles
+        );
+        for a in &mm.axis {
+            line += &format!(
+                " [{} {} {} {} {:x}]",
+                a.name, a.minimum, a.def, a.maximum, a.tag
+            );
+        }
+    }
+    out.push(line);
+    let mut coords: [FtFixed; 3] = [1, 2, 3];
+    let r = ft_get_var_blend_coordinates(&mut face, &mut coords);
+    out.push(format!(
+        "blend coords: {} {} {} {}",
+        code(&r),
+        coords[0],
+        coords[1],
+        coords[2]
+    ));
+    ft_done_face(face);
+    let _ = ft_done_freetype(lib);
+}
+
 #[test]
 fn matches_upstream_reference() {
     crate::init().unwrap();
@@ -1174,6 +1382,9 @@ fn matches_upstream_reference() {
         ("DejaVuSans-13.pcf.bz2", SANS_PCF_BZ2),
         ("DejaVuSans.pfr", SANS_PFR),
         ("DejaVuSans-bitmap.pfr", SANS_PFR_BITMAP),
+        ("DejaVuSans.pfb", SANS_PFB),
+        ("DejaVuSans.pfa", SANS_PFA),
+        ("DejaVuSans-MM.pfb", SANS_MM_PFB),
     ] {
         /* (the other fonts: the font cases, the CFF2 font's named
         instances, the faces of fonts with several, and the corrupt
@@ -1190,6 +1401,15 @@ fn matches_upstream_reference() {
         }
         if name.contains(".fon") || name.contains(".pfr") {
             faces_cases(&mut out, name, data);
+        }
+        if name.contains(".pfa") || name.contains(".pfb") {
+            /* (the Type 1 fonts: with their AFM or PFM metrics) */
+            let metrics = match name {
+                "DejaVuSans.pfb" => Some(SANS_AFM),
+                "DejaVuSans.pfa" => Some(SANS_PFM),
+                _ => None,
+            };
+            t1_cases(&mut out, name, data, metrics);
         }
         corrupt_cases(&mut out, name, data);
     }

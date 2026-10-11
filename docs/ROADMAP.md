@@ -136,11 +136,12 @@ In dependency order, after the core each one needs exists:
    `ftbitmap.c`, `ftlcdfil.c`, `ftadvanc.c`), `sfnt` (with WOFF, color
    tables, embedded bitmaps), `truetype` (the v40 bytecode interpreter,
    GX/OpenType variations), `cff` (CFF, CFF2 variable and bare CFF fonts),
-   `psaux` (its CFF parts and Adobe's CFF engine), `pshinter` (its global
-   hints), `psnames`, `autofit` (with the CJK and Indic
+   `psaux` (with Adobe's CFF engine and its Type 1 mode), `pshinter` (its
+   global hints), `psnames`, `autofit` (with the CJK and Indic
    writing systems), `smooth`, `raster`, `sdf` (signed distance fields
    from outlines and bitmaps), `gzip` (with its zlib), and the drivers
-   of FreeType's other formats: `pfr` (PFR outlines, bitmaps and
+   of FreeType's other formats: `type1` (PFA and PFB fonts, multiple
+   masters, AFM and PFM metrics), `pfr` (PFR outlines, bitmaps and
    kerning), `winfonts` (Windows FNT and FON), `pcf` (with `lzw` and the
    `bzip2` stub SDL_ttf builds) and `bdf`. The
    FreeType License (`sdl3-ttf/FTL.TXT`) applies to `src/freetype/`.
@@ -172,16 +173,17 @@ In dependency order, after the core each one needs exists:
    test fonts.
    Checked against upstream's C (built the same way) on subsets of DejaVu
    fonts made by `tools/gen_sdl_ttf_testdata.py` (and CFF, CFF2 and
-   bare CFF versions of one, hinted by the AFDKO's otfautohint): metrics, every render and
+   bare CFF versions of one, hinted by the AFDKO's otfautohint, and fonts of
+   FreeType's other formats made from them): metrics, every render and
    hinting mode, styles, outlines, wrapping, SDF rendering, text objects
    drawn by the three engines (the GPU one on a Vulkan device), and truncated fonts and
    fonts with flipped bytes; FreeType alone was also checked against
    upstream's on more fonts and scripts, and on every truncation and byte
    flip of two small fonts. Not yet: HarfBuzz's AAT layout (`morx`,
    `kerx`, `trak`) and state-machine `kern` subtables, and FreeType's other
-   font drivers (`type1`, `cid`, `type42`, with the Type 1 parts of
-   `psaux` and the hinter of `pshinter` that only their old interpreters
-   use) and its `svg` renderer (which needs PlutoSVG).
+   font drivers (`cid`, `type42`), the hinter of `pshinter` (which only
+   the old Type 1 and CFF interpreters SDL_ttf's build leaves out use)
+   and its `svg` renderer (which needs PlutoSVG).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
    (`SDL_mixer.c`: mixers on devices or generating into buffers, audio
