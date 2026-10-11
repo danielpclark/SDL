@@ -1729,3 +1729,330 @@ fn hardware_gpu_d3d11_renderer() {
     drop(r);
     window.destroy();
 }
+
+/// The reference count of a COM object (one `AddRef()` and `Release()`).
+fn ref_count<V>(object: &ComPtr<V>) -> u32 {
+    let unknown = object.as_ptr().cast::<c_void>();
+    // SAFETY: a live object; every vtable starts with IUnknown's; the
+    // reference taken is given back.
+    unsafe {
+        let vtbl = &**unknown.cast::<*const IUnknownVtbl>();
+        (vtbl.add_ref)(unknown);
+        (vtbl.release)(unknown)
+    }
+}
+
+/// A texture the test makes on the renderer's device, with `pixels` (rows
+/// of `pitch` bytes) for a default texture.
+fn app_texture(device: &Device, desc: &Texture2dDesc, pixels: Option<(&[u8], u32)>) -> Texture2d {
+    let initial = pixels.map(|(data, pitch)| {
+        assert!(data.len() >= (pitch * desc.height) as usize);
+        SubresourceData {
+            sys_mem: data.as_ptr().cast(),
+            sys_mem_pitch: pitch,
+            sys_mem_slice_pitch: 0,
+        }
+    });
+    let f = device.vtbl().create_texture_2d;
+    let initial = initial.as_ref().map_or(std::ptr::null(), |d| d as *const _);
+    // SAFETY: a live device; the description and the initial data (the
+    // rows asserted above) outlive the call.
+    unsafe { ComPtr::from_out(|o| f(raw(device), desc, initial, o.cast())) }.unwrap()
+}
+
+/// The pixels of a B8G8R8A8 texture, read back through a staging texture
+/// on the device's immediate context, as an ARGB8888 surface.
+fn read_app_texture(device: &Device, texture: &Texture2d) -> Surface<'static> {
+    type GetImmediateContext = unsafe extern "system" fn(*mut c_void, *mut *mut c_void);
+    // SAFETY: slot 40 of ID3D11DeviceVtbl is GetImmediateContext, which
+    // stores an owned reference to the context.
+    let context: DeviceContext = unsafe {
+        let vtbl = *raw(device).cast::<*const usize>();
+        let get: GetImmediateContext = std::mem::transmute(*vtbl.add(40));
+        let mut context = null_mut();
+        get(raw(device), &mut context);
+        ComPtr::from_raw(context.cast()).unwrap()
+    };
+    let desc = texture.desc();
+    let staging = app_texture(
+        device,
+        &Texture2dDesc {
+            usage: D3D11_USAGE_STAGING,
+            bind_flags: 0,
+            cpu_access_flags: D3D11_CPU_ACCESS_READ,
+            misc_flags: 0,
+            ..desc
+        },
+        None,
+    );
+    context.copy_subresource_region(&staging, (0, 0), texture, None);
+    let mapped = context.map(&staging, D3D11_MAP_READ).unwrap();
+    let mut surface =
+        Surface::new(desc.width as i32, desc.height as i32, PixelFormat::ARGB8888).unwrap();
+    let pitch = surface.pitch() as usize;
+    let row = desc.width as usize * 4;
+    for y in 0..desc.height as usize {
+        // SAFETY: the mapped rows of the staging texture.
+        let src = unsafe {
+            std::slice::from_raw_parts(
+                mapped.data.cast::<u8>().add(y * mapped.row_pitch as usize),
+                row,
+            )
+        };
+        surface.pixels_mut().unwrap()[y * pitch..][..row].copy_from_slice(src);
+    }
+    context.unmap(&staging);
+    surface
+}
+
+/// Textures wrapping textures the test makes on the renderer's device
+/// (`SDL_PROP_TEXTURE_CREATE_D3D11_TEXTURE*_POINTER`): drawn from (a BGRA
+/// and an IYUV one, filled by the test), and drawn into as a target, read
+/// back by the test through its own staging texture, as the software
+/// renderer draws; the renderer holds a reference to them while it uses
+/// them.
+#[test]
+fn d3d11_textures_from_existing_d3d11_textures() {
+    use crate::render::NativeObject;
+
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((_window, mut r)) = d3d11_renderer(W, H) else {
+        return;
+    };
+    let device_ptr = r
+        .properties()
+        .get_number(PROP_RENDERER_D3D11_DEVICE_POINTER)
+        .unwrap() as usize as *mut c_void;
+    // SAFETY: the renderer's live device, borrowed (ManuallyDrop keeps its
+    // reference) while the renderer exists.
+    let device = std::mem::ManuallyDrop::new(
+        unsafe { ComPtr::<ID3D11DeviceVtbl>::from_raw(device_ptr.cast()) }.unwrap(),
+    );
+    let mut sw = software_renderer(W, H);
+    let draw = |r: &mut Renderer, t: Texture| {
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.set_texture_blend_mode(t, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        let (tw, th) = r.texture_size(t).unwrap();
+        r.render_texture(t, None, Some(&FRect::new(2.0, 2.0, tw * 2.0, th * 2.0)))
+            .unwrap();
+        r.read_pixels(None).unwrap()
+    };
+    let desc = |format, (w, h): (u32, u32), bind_flags| Texture2dDesc {
+        width: w,
+        height: h,
+        mip_levels: 1,
+        array_size: 1,
+        format,
+        sample_desc: SampleDesc {
+            count: 1,
+            quality: 0,
+        },
+        usage: D3D11_USAGE_DEFAULT,
+        bind_flags,
+        cpu_access_flags: 0,
+        misc_flags: 0,
+    };
+
+    // A BGRA texture filled by the test.
+    let (w, h) = (16u32, 12u32);
+    let bgra: Vec<u8> = pattern(w as i32, h as i32)
+        .chunks(4)
+        .flat_map(|p| [p[2], p[1], p[0], p[3]])
+        .collect();
+    let ours = app_texture(
+        &device,
+        &desc(
+            DXGI_FORMAT_B8G8R8A8_UNORM,
+            (w, h),
+            D3D11_BIND_SHADER_RESOURCE,
+        ),
+        Some((&bgra, w * 4)),
+    );
+    let count = ref_count(&ours);
+    // SAFETY: the test's live texture of the renderer's device, alive until
+    // after the renderer's texture is destroyed.
+    let object = unsafe { NativeObject::from_ptr(raw(&ours)) };
+    let t = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            width: w as i32,
+            height: h as i32,
+            d3d11_texture: object,
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    assert_eq!(
+        r.texture_properties(t)
+            .unwrap()
+            .get_number(PROP_TEXTURE_D3D11_TEXTURE_POINTER),
+        Some(raw(&ours) as i64)
+    );
+    assert!(ref_count(&ours) > count, "the renderer holds a reference");
+    let st = pattern_texture(&mut sw, PixelFormat::ARGB8888, w as i32, h as i32);
+    assert_close(
+        "existing D3D11 texture",
+        &draw(&mut r, t),
+        &draw(&mut sw, st),
+        0,
+    );
+    r.destroy_texture(t);
+    sw.destroy_texture(st);
+    r.flush().unwrap();
+    assert_eq!(
+        ref_count(&ours),
+        count,
+        "the renderer's references are given back"
+    );
+
+    // An object that isn't a texture fails as upstream's QueryInterface().
+    // SAFETY: the renderer's live device, alive while the renderer is.
+    let not_a_texture = unsafe { NativeObject::from_ptr(device_ptr) };
+    let e = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            width: 4,
+            height: 4,
+            d3d11_texture: not_a_texture,
+            ..TextureCreateInfo::default()
+        })
+        .unwrap_err();
+    assert!(
+        e.message().starts_with("SDL.texture.create.d3d11.texture"),
+        "{}",
+        e.message()
+    );
+
+    // A target of the test's texture: what's drawn into it reads back
+    // through the test's staging texture as the software renderer's target.
+    let (tw, th) = (24u32, 18u32);
+    let target_texture = app_texture(
+        &device,
+        &desc(
+            DXGI_FORMAT_B8G8R8A8_UNORM,
+            (tw, th),
+            D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
+        ),
+        None,
+    );
+    // SAFETY: as above.
+    let object = unsafe { NativeObject::from_ptr(raw(&target_texture)) };
+    let target = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::ARGB8888,
+            access: TextureAccess::Target,
+            width: tw as i32,
+            height: th as i32,
+            d3d11_texture: object,
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    let sw_target = sw
+        .create_texture(
+            PixelFormat::ARGB8888,
+            TextureAccess::Target,
+            tw as i32,
+            th as i32,
+        )
+        .unwrap();
+    let into_target = |r: &mut Renderer, target: Texture| {
+        let src = pattern_texture(r, PixelFormat::ARGB8888, 16, 12);
+        r.set_render_target(Some(target)).unwrap();
+        r.set_draw_color(250, 40, 10, 255);
+        r.clear().unwrap();
+        r.set_draw_color(10, 40, 250, 255);
+        r.render_fill_rect(Some(&FRect::new(2.0, 3.0, 10.0, 6.0)))
+            .unwrap();
+        r.render_point(22.0, 1.0).unwrap();
+        r.set_texture_blend_mode(src, BlendMode::NONE).unwrap();
+        r.set_texture_scale_mode(src, ScaleMode::Nearest).unwrap();
+        r.render_texture(src, None, Some(&FRect::new(6.0, 5.0, 16.0, 12.0)))
+            .unwrap();
+        let read = r.read_pixels(None).unwrap();
+        r.set_render_target(None).unwrap();
+        r.destroy_texture(src);
+        read
+    };
+    let expected = into_target(&mut sw, sw_target);
+    assert_close(
+        "existing D3D11 target",
+        &into_target(&mut r, target),
+        &expected,
+        0,
+    );
+    r.flush().unwrap();
+    assert_close(
+        "existing D3D11 target read back",
+        &read_app_texture(&device, &target_texture),
+        &expected,
+        0,
+    );
+    assert_close(
+        "existing D3D11 target drawn",
+        &draw(&mut r, target),
+        &draw(&mut sw, sw_target),
+        0,
+    );
+    r.destroy_texture(target);
+
+    // An IYUV texture of three planes filled by the test.
+    let (y, u, v) = yuv_planes(w as usize, h as usize);
+    let plane = |data: &[u8], (pw, ph): (u32, u32)| {
+        app_texture(
+            &device,
+            &desc(DXGI_FORMAT_R8_UNORM, (pw, ph), D3D11_BIND_SHADER_RESOURCE),
+            Some((data, pw)),
+        )
+    };
+    let planes = [
+        plane(&y, (w, h)),
+        plane(&u, (w / 2, h / 2)),
+        plane(&v, (w / 2, h / 2)),
+    ];
+    // SAFETY: as above.
+    let objects = planes
+        .each_ref()
+        .map(|p| unsafe { NativeObject::from_ptr(raw(p)) });
+    let t = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::IYUV,
+            width: w as i32,
+            height: h as i32,
+            d3d11_texture: objects[0],
+            d3d11_texture_u: objects[1],
+            d3d11_texture_v: objects[2],
+            ..TextureCreateInfo::default()
+        })
+        .unwrap();
+    let props = r.texture_properties(t).unwrap();
+    assert_eq!(
+        props.get_number(PROP_TEXTURE_D3D11_TEXTURE_U_POINTER),
+        Some(raw(&planes[1]) as i64)
+    );
+    assert_eq!(
+        props.get_number(PROP_TEXTURE_D3D11_TEXTURE_V_POINTER),
+        Some(raw(&planes[2]) as i64)
+    );
+    let st = sw
+        .create_texture(PixelFormat::IYUV, TextureAccess::Static, w as i32, h as i32)
+        .unwrap();
+    sw.update_yuv_texture(st, None, &y, w as i32, &u, w as i32 / 2, &v, w as i32 / 2)
+        .unwrap();
+    // (the shaders convert in floats, the software path in fixed point)
+    assert_close(
+        "existing D3D11 IYUV planes",
+        &draw(&mut r, t),
+        &draw(&mut sw, st),
+        3,
+    );
+    r.destroy_texture(t);
+    r.present().unwrap();
+    // The test's textures before the renderer: destroying it releases
+    // the device, and the last reference unloads the runtime's DLL.
+    drop((ours, target_texture, planes));
+    drop(r);
+}
