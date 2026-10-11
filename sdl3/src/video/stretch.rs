@@ -221,7 +221,9 @@ fn load_px(buf: &[u8], at: isize) -> [u8; 4] {
     [buf[i], buf[i + 1], buf[i + 2], buf[i + 3]]
 }
 
-/// Translation of `INTERPOL_BILINEAR_SSE()`, lane by lane.
+/// Translation of `INTERPOL_BILINEAR_SSE()`, lane by lane (and of
+/// `INTERPOL_BILINEAR_NEON()`, whose widening multiplies give the same
+/// bytes).
 fn interpol_bilinear_sse(
     src: &[u8],
     s0: isize,
@@ -286,8 +288,8 @@ fn interpol_bilinear(
     interpol(tmp0, tmp1, frac_w0, frac_w1)
 }
 
-/// Translation of `scale_mat()` and `scale_mat_SSE()`, which walk the
-/// image identically and differ in the per-pixel kernel.
+/// Translation of `scale_mat()`, `scale_mat_SSE()` and `scale_mat_NEON()`,
+/// which walk the image identically and differ in the per-pixel kernel.
 #[allow(clippy::too_many_arguments)]
 fn scale_mat(
     src: &[u8],
@@ -300,9 +302,9 @@ fn scale_mat(
     dst_w: i32,
     dst_h: i32,
     dst_pitch: i32,
-    sse2: bool,
+    simd: bool,
 ) -> Result<()> {
-    let kernel = if sse2 {
+    let kernel = if simd {
         interpol_bilinear_sse
     } else {
         interpol_bilinear
@@ -407,10 +409,21 @@ fn stretch_surface_unchecked_linear(
         .pixels
         .bytes_mut()
         .ok_or_else(|| Error::invalid_param("dst"))?;
-    let sse2 = crate::video::blit::simd_support().sse2;
+    // scale_mat_NEON() is tried first, then scale_mat_SSE(); NEON's lanes
+    // compute what the SSE kernel's do (one rounding, after both passes).
+    let simd = crate::video::blit::simd_support();
     scale_mat(
-        src, src_base, srcrect.w, srcrect.h, src_pitch, dst, dst_base, dstrect.w, dstrect.h,
-        dst_pitch, sse2,
+        src,
+        src_base,
+        srcrect.w,
+        srcrect.h,
+        src_pitch,
+        dst,
+        dst_base,
+        dstrect.w,
+        dstrect.h,
+        dst_pitch,
+        simd.neon || simd.sse2,
     )
 }
 

@@ -238,7 +238,20 @@ fn session() -> String {
 
 #[test]
 fn images_match_c() {
+    // The trace comes from upstream built for x86-64, whose SSE2 YUV to RGB
+    // kernel differs from the portable one an AArch64 build uses: pin the
+    // x86 selection so every architecture checks the same kernels.
+    let x86 = crate::video::blit::SimdSupport {
+        mmx: true,
+        sse: true,
+        sse2: true,
+        sse41: true,
+        avx2: true,
+        neon: false,
+    };
+    crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(Some(x86)));
     let out = session();
+    crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(None));
     let expected = include_str!("../testdata/image_trace.txt");
     if out != expected {
         let path = std::env::temp_dir().join("rust_image_trace.txt");

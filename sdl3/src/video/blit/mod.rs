@@ -132,10 +132,11 @@ macro_rules! named_blit {
 }
 pub(crate) use named_blit;
 
-/// The x86 vector extensions upstream's blitter selection looks at
-/// (`SDL_HasMMX()`, `SDL_HasSSE()`, `SDL_HasSSE2()`, `SDL_HasSSE41()`, `SDL_HasAVX2()`).
-/// Their kernels are computed in portable code; only the choice depends on
-/// the CPU, as upstream's does. Other architectures report none of them.
+/// The vector extensions upstream's blitter selection looks at
+/// (`SDL_HasMMX()`, `SDL_HasSSE()`, `SDL_HasSSE2()`, `SDL_HasSSE41()`,
+/// `SDL_HasAVX2()` on x86, `SDL_HasNEON()` on AArch64). Their kernels are
+/// computed in portable code; only the choice depends on the CPU, as
+/// upstream's does. Other architectures report none of them.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub(crate) struct SimdSupport {
     pub mmx: bool,
@@ -143,6 +144,8 @@ pub(crate) struct SimdSupport {
     pub sse2: bool,
     pub sse41: bool,
     pub avx2: bool,
+    /// Upstream's NEON kernels (`__ARM_ARCH >= 8` AArch64 builds only).
+    pub neon: bool,
 }
 
 #[cfg(test)]
@@ -163,6 +166,12 @@ pub(crate) fn simd_support() -> SimdSupport {
             sse2: crate::cpuinfo::has_sse2(),
             sse41: crate::cpuinfo::has_sse41(),
             avx2: crate::cpuinfo::has_avx2(),
+            neon: false,
+        }
+    } else if cfg!(target_arch = "aarch64") {
+        SimdSupport {
+            neon: crate::cpuinfo::has_neon(),
+            ..SimdSupport::default()
         }
     } else {
         SimdSupport::default()

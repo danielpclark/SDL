@@ -969,6 +969,9 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
 
 #[test]
 fn matches_upstream_reference() {
+    // The reference comes from upstream built for x86-64: pin libyuv's x86
+    // BLENDER() (AArch64 builds round the scaler's blends differently).
+    crate::avif::libyuv::X86_BLENDER.with(|x| x.set(true));
     let reference = include_str!("testdata/reference.txt");
     let tmp = std::env::temp_dir().join(format!("sdl3-image-test-{}", std::process::id()));
     std::fs::create_dir_all(&tmp).unwrap();

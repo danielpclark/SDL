@@ -11,7 +11,9 @@
 //! only the choice of kernel is kept. That choice matters for the 8888
 //! swizzle, which has no portable twin: without SSE4.1/AVX2 such blits fall
 //! through to the generic tables and fill an X channel with 0 instead of
-//! 0xFF. The AltiVec, NEON and SVE2 kernels are not translated.
+//! 0xFF. On AArch64 upstream picks `Blit8888to8888PixelSwizzleNEON`, the same
+//! byte shuffle, so it maps to the same kernel. The AltiVec and SVE2 kernels
+//! are not translated.
 
 use super::copy::blit_copy;
 use super::*;
@@ -575,9 +577,9 @@ fn blit_n_to_n_key_copy_alpha(info: &mut BlitInfo<'_>) {
     });
 }
 
-/// Translation of `Blit8888to8888PixelSwizzleSSE41()`/`...AVX2()` (their
-/// portable remainder loop, `SWIZZLE_8888_SRC_ALPHA`/`SWIZZLE_8888_DST_ALPHA`,
-/// gives the same bytes as the vector part).
+/// Translation of `Blit8888to8888PixelSwizzleSSE41()`/`...AVX2()`/`...NEON()`
+/// (their portable remainder loop, `SWIZZLE_8888_SRC_ALPHA`/
+/// `SWIZZLE_8888_DST_ALPHA`, gives the same bytes as the vector part).
 fn blit_8888_to_8888_pixel_swizzle(info: &mut BlitInfo<'_>) {
     let srcfmt = *info.src_fmt;
     let dstfmt = *info.dst_fmt;
@@ -1079,6 +1081,12 @@ pub(crate) fn calculate_blit_n(surface: &Surface<'_>, dst: &Surface<'_>) -> Opti
                     return Some(named_blit!(
                         blit_8888_to_8888_pixel_swizzle,
                         "Blit8888to8888PixelSwizzleSSE41"
+                    ));
+                }
+                if simd.neon {
+                    return Some(named_blit!(
+                        blit_8888_to_8888_pixel_swizzle,
+                        "Blit8888to8888PixelSwizzleNEON"
                     ));
                 }
             }
