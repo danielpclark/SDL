@@ -200,22 +200,66 @@ impl Renderer {
         )
     }
 
-    /// A GPU renderer for `window`, on `device`, or a device it creates
-    /// without one (the renderer's device is then
-    /// [`Renderer::gpu_renderer_device`]). Translation of
-    /// `SDL_CreateGPURenderer()` (with a window: there are no offscreen GPU
-    /// renderers).
+    /// A GPU renderer for `window`, or without a window (drawing only into
+    /// render targets), on `device`, or a device it creates without one
+    /// (the renderer's device is then [`Renderer::gpu_renderer_device`]).
+    /// Translation of `SDL_CreateGPURenderer()`.
     pub fn for_gpu_device(
         device: Option<&crate::gpu::Device>,
-        window: &Window,
+        window: Option<&Window>,
     ) -> Result<Renderer> {
-        Renderer::for_window_with(
-            window,
-            &RendererCreateInfo {
-                gpu_device: device.cloned(),
-                name: Some(super::GPU_RENDERER.to_owned()),
-                ..RendererCreateInfo::default()
-            },
+        let info = RendererCreateInfo {
+            gpu_device: device.cloned(),
+            name: Some(super::GPU_RENDERER.to_owned()),
+            ..RendererCreateInfo::default()
+        };
+        match window {
+            Some(window) => Renderer::for_window_with(window, &info),
+            None => Renderer::without_window(&info),
+        }
+    }
+
+    /// A renderer without a window or surface, with creation options: the
+    /// GPU renderer ([`RendererCreateInfo::name`] `"gpu"`) is the only one
+    /// that can be made so, drawing only into render targets. Translation
+    /// of `SDL_CreateRendererWithProperties()` with neither
+    /// `SDL_PROP_RENDERER_CREATE_WINDOW_POINTER` nor
+    /// `SDL_PROP_RENDERER_CREATE_SURFACE_POINTER`.
+    pub fn without_window(info: &RendererCreateInfo) -> Result<Renderer> {
+        // The GPU renderer is the only one that can be created without a window or surface
+        if info.name.as_deref() != Some(super::GPU_RENDERER) {
+            return Err(Error::invalid_param("window"));
+        }
+
+        let present_vsync = super::present_vsync_with_hint(info);
+
+        // (the driver name is "gpu", which only the GPU driver matches)
+        let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+        let backend = match super::gpu::GpuRenderer::new(
+            None,
+            output_colorspace,
+            (present_vsync != 0) as i32,
+            info,
+        ) {
+            Ok(backend) => backend,
+            Err(e) => {
+                crate::log::warn!(
+                    crate::log::Category::Render,
+                    "Couldn't create renderer {}: {}\n",
+                    super::GPU_RENDERER,
+                    e
+                );
+                return Err(e);
+            }
+        };
+
+        Renderer::finish_create(
+            Box::new(backend),
+            crate::video::PixelFormat::UNKNOWN,
+            (0, 0),
+            info,
+            present_vsync,
+            None,
         )
     }
 
@@ -583,8 +627,8 @@ fn create_for_window(
         }
         super::GPU_RENDERER => {
             let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
-            let backend = super::gpu::GpuRenderer::for_window(
-                window,
+            let backend = super::gpu::GpuRenderer::new(
+                Some(window),
                 output_colorspace,
                 present_vsync as i32,
                 info,
