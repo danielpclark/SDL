@@ -10,11 +10,7 @@
 
 //! The OpenType shaper ("ot"): the shape plan and the shaping steps.
 //!
-//! Translation notes: Apple Advanced Typography (`morx`, `kerx`, `trak`)
-//! is not translated; its tables are treated as absent (as for fonts
-//! without them, which is every font that has OpenType layout tables in
-//! practice).
-
+use super::hb_aat_layout::*;
 use super::hb_buffer::*;
 use super::hb_common::*;
 use super::hb_face::*;
@@ -132,16 +128,19 @@ impl HbOtShapePlan {
     pub(crate) fn position(&self, font: &mut HbFont, buffer: &mut HbBuffer) {
         if self.apply_gpos {
             self.map.position(self, font, buffer);
+        } else if self.apply_kerx {
+            hb_aat_layout_position(self, font, buffer);
         }
-        /* (apply_kerx: AAT is not translated) */
 
         if self.apply_kern {
-            hb_ot_layout_kern(self.requested_kerning, self.kern_mask, font, buffer);
+            hb_ot_layout_kern(self, font, buffer);
         } else if self.apply_fallback_kern {
             _hb_ot_shape_fallback_kern(self, font, buffer);
         }
 
-        /* (apply_trak: AAT is not translated) */
+        if self.apply_trak {
+            hb_aat_layout_track(self, font, buffer);
+        }
     }
 }
 
@@ -157,10 +156,11 @@ pub(crate) struct HbOtShapePlanner<'f> {
     pub(crate) shaper: &'static HbOtShaper,
 }
 
-/// `_hb_apply_morx`: `hb_aat_layout_has_substitution (face)` is false
-/// (AAT is not translated).
-fn _hb_apply_morx(_face: &HbFace, _props: &HbSegmentProperties) -> bool {
-    false
+/// `_hb_apply_morx`
+fn _hb_apply_morx(face: &HbFace, props: &HbSegmentProperties) -> bool {
+    /* https://github.com/harfbuzz/harfbuzz/issues/2124 */
+    hb_aat_layout_has_substitution(face)
+        && (hb_direction_is_horizontal(props.direction) || !hb_ot_layout_has_substitution(face))
 }
 
 impl<'f> HbOtShapePlanner<'f> {
@@ -235,8 +235,7 @@ impl<'f> HbOtShapePlanner<'f> {
          * Decide who does positioning. GPOS, kerx, kern, or fallback.
          */
 
-        /* (hb_aat_layout_has_positioning: AAT is not translated) */
-        let has_kerx = false;
+        let has_kerx = hb_aat_layout_has_positioning(self.face);
         let has_gsub = !self.apply_morx && hb_ot_layout_has_substitution(self.face);
         let has_gpos = !disable_gpos && hb_ot_layout_has_positioning(self.face);
         /* Prefer GPOS over kerx if GSUB is present;
@@ -277,8 +276,7 @@ impl<'f> HbOtShapePlanner<'f> {
         }
 
         /* Currently we always apply trak. */
-        /* (hb_aat_layout_has_tracking: AAT is not translated) */
-        plan.apply_trak = false;
+        plan.apply_trak = plan.requested_tracking && hb_aat_layout_has_tracking(self.face);
     }
 }
 
@@ -934,8 +932,11 @@ fn hb_ot_substitute_plan(c: &mut HbOtShapeContext) {
         hb_synthesize_glyph_classes(c.buffer);
     }
 
-    /* (apply_morx: AAT is not translated) */
-    c.plan.substitute(c.font, c.buffer);
+    if c.plan.apply_morx {
+        hb_aat_layout_substitute(c.plan, c.font, c.buffer, c.user_features);
+    } else {
+        c.plan.substitute(c.font, c.buffer);
+    }
 }
 
 /// `hb_ot_substitute_pre`
@@ -945,10 +946,18 @@ fn hb_ot_substitute_pre(c: &mut HbOtShapeContext) {
     _hb_buffer_allocate_gsubgpos_vars(c.buffer);
 
     hb_ot_substitute_plan(c);
+
+    if c.plan.apply_morx && c.plan.apply_gpos {
+        hb_aat_layout_remove_deleted_glyphs(c.buffer);
+    }
 }
 
 /// `hb_ot_substitute_post`
 fn hb_ot_substitute_post(c: &mut HbOtShapeContext) {
+    if c.plan.apply_morx && !c.plan.apply_gpos {
+        hb_aat_layout_remove_deleted_glyphs(c.buffer);
+    }
+
     hb_ot_hide_default_ignorables(c.buffer, c.font);
 
     if let Some(postprocess_glyphs) = c.plan.shaper.postprocess_glyphs {
@@ -1073,6 +1082,9 @@ fn hb_ot_position_plan(c: &mut HbOtShapeContext) {
     /* Finish off.  Has to follow a certain order. */
     hb_ot_layout_position_finish_advances(c.buffer);
     hb_ot_zero_width_default_ignorables(c.buffer);
+    if c.plan.apply_morx {
+        hb_aat_layout_zero_width_deleted_glyphs(c.buffer);
+    }
     hb_ot_layout_position_finish_offsets(c.font, c.buffer);
 
     /* The nil glyph_h_origin() func returns 0, so no need to apply it. */

@@ -15,9 +15,14 @@
 //!
 //! Translated: the buffer, the Unicode functions and their tables, the
 //! OpenType font tables the shaper reads, the layout engine (GSUB, GPOS,
-//! GDEF, feature variations, the `kern` table and its formats 0, 2 and
-//! 3), the tags, the shape plans and the shaping pipeline (normalization,
-//! fallback mark positioning, spacing and kerning), every shaper of the
+//! GDEF, feature variations, the `kern` table and its formats 0 to 3,
+//! with the state-machine subtables), Apple Advanced Typography (the
+//! `morx` and `mort` tables with all their subtable types, `kerx` with
+//! its formats 0, 1, 2, 4 and 6, `trak`, `ankr`, `feat` and `ltag`, the
+//! AAT state-machine driver and feature map, and the shaping that picks
+//! them over GSUB and GPOS), the tags, the shape plans and the shaping
+//! pipeline (normalization, fallback mark positioning, spacing and
+//! kerning), every shaper of the
 //! OpenType shaper's selection (default and dumber, Arabic with its
 //! fallback shaping and the Syriac/Mongolian/N'Ko joining scripts, Hebrew,
 //! Indic, Khmer, Myanmar and Myanmar Zawgyi, Thai and Lao, Hangul, the
@@ -29,18 +34,17 @@
 //! generates (UCD, tags, Arabic joining, Indic, USE, the Ragel machines)
 //! are generated from HarfBuzz's by `tools/gen_harfbuzz_tables.py`.
 //!
-//! Not translated: the AAT layout (`morx`, `kerx`, `trak`, `ankr`; those
-//! tables are treated as absent) and the state-machine `kern` subtables
-//! (format 1, skipped), the Windows-1256 Arabic fallback that C only
+//! Not translated: the Windows-1256 Arabic fallback that C only
 //! builds on Windows, the `HB_OPTIONS` environment variable (its
 //! `uniscribe-bug-compatible` option is always off), and the parts of
 //! HarfBuzz SDL_ttf does not use (other shapers than `ot`, the
 //! subsetter, drawing and painting, glyph names, the public C API beyond
 //! what SDL_ttf and FreeType call, debug messages), and of `hb-ot-font`
 //! the variation deltas (its fonts have no variation coordinates here)
-//! and the extents of CFF and color or bitmap glyphs. The lookup accelerators' digests and
-//! caches, which only skip work whose result is unchanged, are not
-//! translated either.
+//! and the extents of CFF and color or bitmap glyphs. The OpenType
+//! lookup accelerators' digests and caches, which only skip work whose
+//! result is unchanged, are not translated either (the glyph digests of
+//! the AAT and `kern` subtables, which can change the results, are).
 //!
 //! The translation keeps HarfBuzz's file layout (one Rust module per C++
 //! source file, `hb-ot-layout-gsub.hh` becoming `hb_ot_layout_gsub.rs`),
@@ -81,6 +85,15 @@
     clippy::upper_case_acronyms
 )]
 
+pub mod hb_aat_layout;
+pub mod hb_aat_layout_ankr_table;
+pub mod hb_aat_layout_common;
+pub mod hb_aat_layout_feat_table;
+pub mod hb_aat_layout_kerx_table;
+pub mod hb_aat_layout_morx_table;
+pub mod hb_aat_layout_trak_table;
+pub mod hb_aat_ltag_table;
+pub mod hb_aat_map;
 pub mod hb_algs;
 pub mod hb_buffer;
 pub mod hb_common;

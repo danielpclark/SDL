@@ -23,6 +23,7 @@
 
 use std::collections::HashMap;
 
+use super::hb_aat_layout_common::HbAatApplyContext;
 use super::hb_buffer::*;
 use super::hb_common::*;
 use super::hb_face::*;
@@ -31,6 +32,7 @@ use super::hb_ot_layout_common::*;
 use super::hb_ot_layout_gpos;
 use super::hb_ot_layout_gsub;
 use super::hb_ot_layout_gsubgpos::*;
+use super::hb_ot_shape::HbOtShapePlan;
 use super::hb_set::HbSet;
 use super::hb_unicode::*;
 
@@ -98,18 +100,16 @@ pub(crate) fn hb_ot_layout_has_cross_kerning(face: &HbFace) -> bool {
     face.kern().has_cross_stream()
 }
 
-/// `hb_ot_layout_kern`, with the plan's `requested_kerning` and
-/// `kern_mask`.
-pub(crate) fn hb_ot_layout_kern(
-    requested_kerning: bool,
-    kern_mask: HbMask,
-    font: &mut HbFont,
-    buffer: &mut HbBuffer,
-) {
+/// `hb_ot_layout_kern`
+pub(crate) fn hb_ot_layout_kern(plan: &HbOtShapePlan, font: &mut HbFont, buffer: &mut HbBuffer) {
     let face = font.p.face.clone();
     let kern = face.kern();
-    /* AAT::hb_aat_apply_context_t c (plan, font, buffer, blob); */
-    kern.apply(&face, font, buffer, requested_kerning, kern_mask);
+    let blob = kern.get_blob();
+
+    let mut c = HbAatApplyContext::new(plan, font, &face, buffer, blob);
+
+    /* (buffer->message: no message function) */
+    kern.apply(&mut c);
 }
 
 /*

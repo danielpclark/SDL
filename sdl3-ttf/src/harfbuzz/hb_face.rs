@@ -23,6 +23,12 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+use super::hb_aat_layout_ankr_table::ankr_sanitize;
+use super::hb_aat_layout_feat_table::Feat;
+use super::hb_aat_layout_kerx_table::KerxAccel;
+use super::hb_aat_layout_morx_table::MortMorxAccel;
+use super::hb_aat_layout_trak_table::trak_sanitize;
+use super::hb_aat_ltag_table::Ltag;
 use super::hb_common::*;
 use super::hb_ot_font::HbOtFace;
 use super::hb_ot_kern_table::KernAccel;
@@ -54,8 +60,15 @@ pub const HB_AAT_TAG_KERX: HbTag = hb_tag(b'k', b'e', b'r', b'x');
 /// `HB_AAT_TAG_trak`
 pub const HB_AAT_TAG_TRAK: HbTag = hb_tag(b't', b'r', b'a', b'k');
 
+/// `HB_AAT_TAG_ankr`
+pub const HB_AAT_TAG_ANKR: HbTag = hb_tag(b'a', b'n', b'k', b'r');
+/// `HB_AAT_TAG_feat`
+pub const HB_AAT_TAG_FEAT: HbTag = hb_tag(b'f', b'e', b'a', b't');
+/// `HB_AAT_TAG_ltag`
+pub const HB_AAT_TAG_LTAG: HbTag = hb_tag(b'l', b't', b'a', b'g');
+
 /// The tables a face loads for shaping (C loads them on demand).
-pub(crate) const HB_FACE_TABLES: [HbTag; 11] = [
+pub(crate) const HB_FACE_TABLES: [HbTag; 14] = [
     HB_OT_TAG_GDEF,
     HB_OT_TAG_GSUB,
     HB_OT_TAG_GPOS,
@@ -67,6 +80,9 @@ pub(crate) const HB_FACE_TABLES: [HbTag; 11] = [
     HB_AAT_TAG_MORT,
     HB_AAT_TAG_KERX,
     HB_AAT_TAG_TRAK,
+    HB_AAT_TAG_ANKR,
+    HB_AAT_TAG_FEAT,
+    HB_AAT_TAG_LTAG,
 ];
 
 /// `hb_face_t`
@@ -85,6 +101,13 @@ pub struct HbFace {
     gsub: OnceLock<GsubGposAccel>,
     gpos: OnceLock<GsubGposAccel>,
     kern: OnceLock<KernAccel>,
+    morx: OnceLock<MortMorxAccel>,
+    mort: OnceLock<MortMorxAccel>,
+    kerx: OnceLock<KerxAccel>,
+    ankr: OnceLock<Vec<u8>>,
+    trak: OnceLock<Vec<u8>>,
+    ltag: OnceLock<Vec<u8>>,
+    feat: OnceLock<Vec<u8>>,
     os2: OnceLock<Vec<u8>>,
     head: OnceLock<Vec<u8>>,
     ot: OnceLock<HbOtFace>,
@@ -115,6 +138,13 @@ impl HbFace {
             gsub: OnceLock::new(),
             gpos: OnceLock::new(),
             kern: OnceLock::new(),
+            morx: OnceLock::new(),
+            mort: OnceLock::new(),
+            kerx: OnceLock::new(),
+            ankr: OnceLock::new(),
+            trak: OnceLock::new(),
+            ltag: OnceLock::new(),
+            feat: OnceLock::new(),
             os2: OnceLock::new(),
             head: OnceLock::new(),
             ot: OnceLock::new(),
@@ -216,6 +246,65 @@ impl HbFace {
     /// `table.kern`
     pub(crate) fn kern(&self) -> &KernAccel {
         self.kern.get_or_init(|| KernAccel::new(self))
+    }
+
+    /// `table.morx`
+    pub(crate) fn morx(&self) -> &MortMorxAccel {
+        self.morx.get_or_init(|| MortMorxAccel::new(self, true))
+    }
+
+    /// `table.mort`
+    pub(crate) fn mort(&self) -> &MortMorxAccel {
+        self.mort.get_or_init(|| MortMorxAccel::new(self, false))
+    }
+
+    /// `table.kerx`
+    pub(crate) fn kerx(&self) -> &KerxAccel {
+        self.kerx.get_or_init(|| KerxAccel::new(self))
+    }
+
+    /// `table.ankr`: the sanitized 'ankr' table.
+    pub(crate) fn ankr(&self) -> &[u8] {
+        self.ankr.get_or_init(|| {
+            hb_sanitize_blob(
+                self.reference_table(HB_AAT_TAG_ANKR),
+                Some(self.get_num_glyphs()),
+                ankr_sanitize,
+            )
+        })
+    }
+
+    /// `table.trak`: the sanitized 'trak' table.
+    pub(crate) fn trak(&self) -> &[u8] {
+        self.trak.get_or_init(|| {
+            hb_sanitize_blob(
+                self.reference_table(HB_AAT_TAG_TRAK),
+                Some(self.get_num_glyphs()),
+                trak_sanitize,
+            )
+        })
+    }
+
+    /// `table.ltag`
+    pub(crate) fn ltag(&self) -> Ltag<'_> {
+        Ltag(self.ltag.get_or_init(|| {
+            hb_sanitize_blob(
+                self.reference_table(HB_AAT_TAG_LTAG),
+                Some(self.get_num_glyphs()),
+                Ltag::sanitize,
+            )
+        }))
+    }
+
+    /// `table.feat`
+    pub(crate) fn feat(&self) -> Feat<'_> {
+        Feat(self.feat.get_or_init(|| {
+            hb_sanitize_blob(
+                self.reference_table(HB_AAT_TAG_FEAT),
+                Some(self.get_num_glyphs()),
+                Feat::sanitize,
+            )
+        }))
     }
 
     /// The tables of the OpenType font functions (`table.cmap`,
