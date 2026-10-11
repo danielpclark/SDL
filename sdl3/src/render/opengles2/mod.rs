@@ -598,16 +598,23 @@ impl Gles2Renderer {
             if compile_successful {
                 break;
             }
-            let mut shader_src_list = Vec::with_capacity(4);
+            let mut shader_src_list = Vec::with_capacity(5);
 
-            // FIXME (upstream): the sources after this are GLSL ES 1.00
-            // (`attribute`, `varying`, `texture2D()`, `gl_FragColor`), which
-            // GLSL ES 3.00 doesn't have, so no shader compiles and the
-            // OPENGLES_300 build makes no renderer.
             if self.opengles_300 {
                 shader_src_list.push("#version 300 es\n");
             }
-            shader_src_list.push(ty.prologue());
+            shader_src_list.push(ty.prologue(self.opengles_300));
+
+            // Note (upstream): upstream's sources are GLSL ES 1.00
+            // (`attribute`, `varying`, `texture2D()`, `gl_FragColor`), which
+            // GLSL ES 3.00 doesn't have, so its OPENGLES_300 build compiles
+            // no shader and makes no renderer. Here the GLSL ES 1.00 names
+            // are defined as their GLSL ES 3.00 equivalents first.
+            if self.opengles_300 {
+                shader_src_list.push(shaders::glsl_es_100_names(
+                    shader_type == GL_FRAGMENT_SHADER,
+                ));
+            }
 
             if shader_type == GL_FRAGMENT_SHADER {
                 if attempt == 0 {
@@ -1339,7 +1346,10 @@ impl Gles2Renderer {
             F::NV12,
             F::NV21,
         ];
-        if gl::gl_extension_supported("GL_OES_EGL_image_external") {
+        // (and the OPENGLES_300 shader's GLSL ES 3.00 version of it)
+        if gl::gl_extension_supported("GL_OES_EGL_image_external")
+            && (!data.opengles_300 || gl::gl_extension_supported("GL_OES_EGL_image_external_essl3"))
+        {
             data.gl_oes_egl_image_external_supported = true;
             data.cache_shader(ShaderType::FragmentTextureExternalOes, GL_FRAGMENT_SHADER)?;
             data.texture_formats.push(F::EXTERNAL_OES);
