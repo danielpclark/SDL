@@ -15,6 +15,7 @@ use std::cmp::Ordering;
 
 use super::hb_aat_layout::*;
 use super::hb_aat_layout_common::RangeFlags;
+use super::hb_algs::hb_qsort;
 use super::hb_common::*;
 use super::hb_face::HbFace;
 
@@ -221,7 +222,7 @@ impl<'f> HbAatMapBuilder<'f> {
                 feature: feature.info,
             });
         }
-        feature_events.sort_by(FeatureEvent::cmp);
+        hb_qsort(&mut feature_events, |a, b| FeatureEvent::cmp(a, b) as i32);
         /* Add a strategic final event. */
         {
             /* (C leaves the feature's other fields uninitialized; they are
@@ -251,7 +252,7 @@ impl<'f> HbAatMapBuilder<'f> {
                 self.range_last = event.index.wrapping_sub(1);
                 if !self.current_features.is_empty() {
                     let current_features = &mut self.current_features;
-                    current_features.sort_by(FeatureInfo::cmp_sort);
+                    hb_qsort(current_features, |a, b| FeatureInfo::cmp_sort(a, b) as i32);
                     let mut j = 0;
                     for i in 1..current_features.len() {
                         if current_features[i].type_ != current_features[j].type_ ||
