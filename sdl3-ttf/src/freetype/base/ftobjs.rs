@@ -782,6 +782,8 @@ pub enum FtFace {
     Pcf(Box<super::super::pcf::pcf::PcfFaceRec>),
     /// a `BDF_Face` (the BDF driver's)
     Bdf(Box<super::super::bdf::bdfdrivr::BdfFaceRec>),
+    /// a `T1_Face` (the Type 1 driver's)
+    T1(Box<super::super::t1types::T1FaceRec>),
 }
 
 impl Deref for FtFace {
@@ -793,6 +795,7 @@ impl Deref for FtFace {
             FtFace::Pfr(f) => &f.root,
             FtFace::Pcf(f) => &f.root,
             FtFace::Bdf(f) => &f.root,
+            FtFace::T1(f) => &f.root,
         }
     }
 }
@@ -805,6 +808,7 @@ impl DerefMut for FtFace {
             FtFace::Pfr(f) => &mut f.root,
             FtFace::Pcf(f) => &mut f.root,
             FtFace::Bdf(f) => &mut f.root,
+            FtFace::T1(f) => &mut f.root,
         }
     }
 }
@@ -1350,8 +1354,12 @@ pub fn ft_load_glyph(
 
             /* only the new Adobe engine (for both CFF and Type 1) is `light'; */
             /* we use `strstr' to catch both `Type 1' and `CID Type 1'         */
-            /* (no Type 1 driver is translated)                                */
-            let is_light_type1 = false;
+            let is_light_type1 = super::ftfntfmt::ft_get_font_format(face)
+                .is_some_and(|format| format.contains("Type 1"))
+                && face
+                    .driver_module()
+                    .with_props(|d: &mut super::super::psaux::PsDriverRec| d.hinting_engine)
+                    == Some(super::super::psaux::FT_HINTING_ADOBE);
 
             /* the check for `num_locations' assures that we actually    */
             /* test for instructions in a TTF and not in a CFF-based OTF */

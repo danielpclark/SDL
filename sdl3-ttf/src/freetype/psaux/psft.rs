@@ -216,6 +216,18 @@ pub fn cf2_decoder_parse_charstrings(
     charstring_base: &Arc<[u8]>,
     charstring_len: FtULong,
 ) -> FtResult<()> {
+    cf2_decoder_parse_charstrings_at(decoder, charstring_base, 0, charstring_len)
+}
+
+/// `cf2_decoder_parse_charstrings` of a charstring at `charstring_start`
+/// in `charstring_base` (C's `charstring_base` pointer into a table's
+/// block).
+pub fn cf2_decoder_parse_charstrings_at(
+    decoder: &mut PsDecoder<'_, '_>,
+    charstring_base: &Arc<[u8]>,
+    charstring_start: usize,
+    charstring_len: FtULong,
+) -> FtResult<()> {
     let is_t1 = decoder.builder.is_t1;
 
     /* (a Type 1 decoder always has the subfont `t1_make_subfont' made) */
@@ -243,7 +255,13 @@ pub fn cf2_decoder_parse_charstrings(
     /* call                                                               */
     /* (the decoder is given to the functions using it) */
 
-    let r = cf2_decoder_parse_charstrings_font(&mut font, decoder, charstring_base, charstring_len);
+    let r = cf2_decoder_parse_charstrings_font(
+        &mut font,
+        decoder,
+        charstring_base,
+        charstring_start,
+        charstring_len,
+    );
 
     *decoder.cf2_instance() = Some(font);
 
@@ -254,6 +272,7 @@ fn cf2_decoder_parse_charstrings_font(
     font: &mut Cf2FontRec,
     decoder: &mut PsDecoder<'_, '_>,
     charstring_base: &Arc<[u8]>,
+    charstring_start: usize,
     charstring_len: FtULong,
 ) -> FtResult<()> {
     let is_t1 = decoder.builder.is_t1;
@@ -272,12 +291,13 @@ fn cf2_decoder_parse_charstrings_font(
 
     /* FreeType has already looked up the GID; convert to         */
     /* `RegionBuffer', assuming that the input has been validated */
-    let len = (charstring_len as usize).min(charstring_base.len());
+    let start = charstring_start.min(charstring_base.len());
+    let end = start + (charstring_len as usize).min(charstring_base.len() - start);
     let buf = Cf2BufferRec {
         bytes: charstring_base.clone(),
-        start: 0,
-        ptr: 0,
-        end: len,
+        start,
+        ptr: start,
+        end,
     };
 
     cf2_get_scale_and_hint_flag(

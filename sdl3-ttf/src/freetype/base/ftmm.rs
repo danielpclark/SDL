@@ -8,13 +8,15 @@
 //! Multiple Master font support (body).
 //!
 //! The multiple masters service of the faces SDL_ttf opens is the
-//! TrueType driver's (the CFF driver's forwards to it), so the service
-//! calls are those of `ttgxvar`.
+//! TrueType driver's (the CFF driver's forwards to it) or the Type 1
+//! driver's, so the service calls are those of `ttgxvar` or of the Type 1
+//! loader (`t1load`).
 
 use super::ftobjs::*;
 use crate::freetype::fttypes::*;
 use crate::freetype::sfnt::ttload::with_stream;
 use crate::freetype::truetype::ttgxvar::{tt_get_mm_blend, tt_get_mm_var, FtMMVar};
+use crate::freetype::type1::t1load::{t1_get_mm_blend, t1_get_mm_var};
 
 /// `ft_face_get_mm_service`: whether the face has the multiple masters
 /// service.
@@ -32,6 +34,10 @@ pub fn ft_get_mm_var(face: &mut FtFace) -> FtResult<FtMMVar> {
 
     ft_face_get_mm_service(face)?;
 
+    if let FtFace::T1(t1) = face {
+        return t1_get_mm_var(t1);
+    }
+
     let Some(tt) = face.tt_mut() else {
         return Err(FT_ERR_INVALID_ARGUMENT);
     };
@@ -44,6 +50,11 @@ pub fn ft_get_var_blend_coordinates(face: &mut FtFace, coords: &mut [FtFixed]) -
     /* check of `face' delayed to `ft_face_get_mm_service' */
 
     ft_face_get_mm_service(face)?;
+
+    /* (the service's `get_mm_blend') */
+    if let FtFace::T1(t1) = face {
+        return t1_get_mm_blend(t1, coords);
+    }
 
     let Some(tt) = face.tt_mut() else {
         return Err(FT_ERR_INVALID_ARGUMENT);
