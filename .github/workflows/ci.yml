@@ -99,8 +99,9 @@ jobs:
           cargo test -p sdl3 --lib --no-run 2>&1 | tail -3
           exe=$(ls -t target/debug/deps/sdl3-*.exe | head -1)
           echo "exe=$exe"
-          "$exe" render:: --test-threads=1 2>&1 | tail -60 || true
-          "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -lines -c 'sxd av; sxe -c2 ".echo AV-STACK; .ecxr; r; kn 60; q" av; g; q' "$exe" render:: --test-threads=1 2>&1 | grep -v "^ModLoad" | tail -150 || true
+          T=render::direct3d11::tests::d3d11_textures_from_existing_d3d11_textures
+          "$exe" $T --exact --test-threads=1 --nocapture 2>&1 | tail -40 || true
+          "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe" -lines -c 'sxe -c ".echo AV-STACK; r; .lines -e; kpn 60; q" av; g' "$exe" $T --exact --test-threads=1 --nocapture 2>&1 | grep -v "ModLoad\|NatVis" | tail -120 || true
       - run: cargo test --workspace
         env:
           # Skips are listed in the job summary; on Linux the capabilities
