@@ -6,7 +6,7 @@
 # versions of the DejaVu Sans subset, hinted with the AFDKO's otfautohint
 # (`pip install afdko`).
 #
-# Usage: tools/gen_sdl_ttf_testdata.py [--shaping | --formats] [OUTDIR]
+# Usage: tools/gen_sdl_ttf_testdata.py [--shaping | --formats | --aat] [OUTDIR]
 #
 # The subsets keep Basic Latin and Latin-1 (and, in the monospaced font
 # only, a few more characters that the fallback font test looks for), with
@@ -34,11 +34,17 @@
 # DejaVuSans-NoLayout.ttf, DejaVu Sans's Arabic and Hebrew without its
 # OpenType layout tables.
 #
+# The fonts of the AAT shaping tests (make_aat_fonts; only those with
+# --aat, after --shaping, as they copy two of its fonts) are DejaVu Sans
+# subsets and copies of Noto Sans subsets with Apple Advanced Typography
+# tables (see the comment above aat_lookup).
+#
 # The expected results in sdl3-ttf/src/testdata/reference.txt and
 # shaping_reference.txt come from upstream SDL_ttf's C (with its bundled
 # FreeType and HarfBuzz, without PlutoSVG), not from this script.
 
 import os
+import struct
 import sys
 import tempfile
 
@@ -2388,17 +2394,965 @@ def make_shaping_fonts(out):
     subset.save_font(font, os.path.join(out, "DejaVuSans-NoLayout.ttf"), options)
 
 
+
+# --- AAT test fonts -------------------------------------------------------
+#
+# The fonts of the AAT shaping tests (make_aat_fonts; only those with
+# --aat): small subsets of DejaVu Sans and of the Noto Sans subsets of the
+# shaping tests, with Apple Advanced Typography tables assembled below
+# (fontTools does not build these state machines): 'morx' (extended) and
+# 'mort' (obsolete) with every subtable type, 'kerx' with its formats 0,
+# 1, 2, 4 and 6, 'ankr', 'trak', 'feat', 'ltag', and Apple and OpenType
+# 'kern' tables with state-machine (format 1) subtables. The tables are
+# built to exercise HarfBuzz's AAT code paths, not to look good.
+
+
+def _u8(v):
+    return struct.pack(">B", v & 0xFF)
+
+
+def _u16(v):
+    return struct.pack(">H", v & 0xFFFF)
+
+
+def _s16(v):
+    return struct.pack(">h", v)
+
+
+def _u32(v):
+    return struct.pack(">I", v & 0xFFFFFFFF)
+
+
+def _bin_search_header(unit_size, n_units):
+    """VarSizedBinSearchHeader"""
+    sel = max(1, n_units.bit_length()) - 1
+    search_range = unit_size * (1 << sel)
+    return (_u16(unit_size) + _u16(n_units) + _u16(search_range) + _u16(sel)
+            + _u16(max(0, unit_size * n_units - search_range)))
+
+
+def aat_lookup(fmt, mapping, num_glyphs=0, value_size=2, terminate=True):
+    """An AAT lookup table (Lookup<T>) of format `fmt` mapping glyph ids
+    to values (of `value_size` bytes, or the given size for format 10)."""
+    pack = _u32 if value_size == 4 else _u16
+    glyphs = sorted(mapping)
+    if fmt == 0:
+        return _u16(0) + b"".join(pack(mapping.get(g, 0)) for g in range(num_glyphs))
+    if fmt in (2, 4):
+        segs = []
+        for g in glyphs:
+            same = fmt == 4 or mapping[g] == mapping[segs[-1][1]] if segs else False
+            if segs and segs[-1][1] == g - 1 and same:
+                segs[-1][1] = g
+            else:
+                segs.append([g, g])
+        unit = 4 + value_size if fmt == 2 else 6
+        n = len(segs) + (1 if terminate else 0)
+        head = _u16(fmt) + _bin_search_header(unit, n)
+        if fmt == 2:
+            body = b"".join(_u16(l) + _u16(f) + pack(mapping[f]) for f, l in segs)
+            if terminate:
+                body += _u16(0xFFFF) + _u16(0xFFFF) + pack(0)
+            return head + body
+        values_at = len(head) + unit * n
+        body = b""
+        values = b""
+        for f, l in segs:
+            body += _u16(l) + _u16(f) + _u16(values_at + len(values))
+            values += b"".join(pack(mapping[g]) for g in range(f, l + 1))
+        if terminate:
+            body += _u16(0xFFFF) + _u16(0xFFFF) + _u16(0)
+        return head + body + values
+    if fmt == 6:
+        unit = 2 + value_size
+        n = len(glyphs) + (1 if terminate else 0)
+        body = b"".join(_u16(g) + pack(mapping[g]) for g in glyphs)
+        if terminate:
+            body += _u16(0xFFFF) + pack(0)
+        return _u16(6) + _bin_search_header(unit, n) + body
+    if fmt == 8:
+        first = glyphs[0]
+        return (_u16(8) + _u16(first) + _u16(glyphs[-1] - first + 1)
+                + b"".join(pack(mapping.get(g, 0)) for g in range(first, glyphs[-1] + 1)))
+    if fmt == 10:
+        first = glyphs[0]
+        return (_u16(10) + _u16(value_size) + _u16(first) + _u16(glyphs[-1] - first + 1)
+                + b"".join(mapping.get(g, 0).to_bytes(value_size, "big")
+                           for g in range(first, glyphs[-1] + 1)))
+    raise ValueError(fmt)
+
+
+def aat_class_table(classes):
+    """An obsolete ClassTable<HBUINT8> (glyph -> class)."""
+    first = min(classes)
+    last = max(classes)
+    return (_u16(first) + _u16(last - first + 1)
+            + bytes(classes.get(g, 1) for g in range(first, last + 1)))
+
+
+def aat_state_table(extended, classes, n_classes, states, entries, entry_data_size, extra=b"",
+                    class_format=6, pad_to=4, num_glyphs=0, fields_len=0):
+    """An (extended) state table: `classes` maps glyphs to classes (4 and
+    up), `states` is a list of rows of entry indices, `entries` a list of
+    (new state, flags, data words); `extra` is appended after it (the
+    returned offsets are from the state table's start). Returns the table
+    and the offset of `extra`. `fields_len` bytes are reserved after the
+    header, for the fields of the subtable (see _with_fields).
+
+    In obsolete tables, the new states are state numbers here, converted
+    to byte offsets of their rows."""
+    hdr = 16 if extended else 8
+    if isinstance(classes, tuple):
+        class_format, num_glyphs, classes = classes
+    if extended:
+        class_table = aat_lookup(class_format, classes, num_glyphs)
+    else:
+        class_table = aat_class_table(classes)
+    class_table += b"\0" * (-len(class_table) % 2)
+    class_at = hdr + fields_len
+    state_at = class_at + len(class_table)
+    if extended:
+        state_array = b"".join(_u16(e) for row in states for e in row)
+    else:
+        state_array = bytes(e for row in states for e in row)
+    state_array += b"\0" * (-len(state_array) % 2)
+    entry_at = state_at + len(state_array)
+    entry_bytes = b""
+    for new_state, flags, data in entries:
+        if not extended:
+            new_state = state_at + new_state * n_classes
+        entry_bytes += _u16(new_state) + _u16(flags)
+        entry_bytes += b"".join(_u16(w) for w in data[:entry_data_size // 2])
+        entry_bytes += b"\0" * (entry_data_size - 2 * len(data[:entry_data_size // 2]))
+    extra_at = entry_at + len(entry_bytes)
+    extra_at += -extra_at % pad_to
+    pack = _u32 if extended else _u16
+    table = (pack(n_classes) + pack(class_at) + pack(state_at) + pack(entry_at)
+             + b"\0" * fields_len + class_table + state_array + entry_bytes)
+    table += b"\0" * (extra_at - len(table))
+    return table, extra_at
+
+
+def _with_fields(extended, table, fields):
+    """The state table `table` with the subtable's fields (which follow
+    the state table header) set."""
+    hdr = 16 if extended else 8
+    return table[:hdr] + fields + table[hdr + len(fields):]
+
+
+def aat_feat(features):
+    """A 'feat' table: features is a list of (type, exclusive, settings,
+    default index)."""
+    features = sorted(features)
+    head = _u32(0x00010000) + _u16(len(features)) + _u16(0) + _u32(0)
+    names = b""
+    settings = b""
+    settings_at = 12 + 12 * len(features)
+    for i, (ftype, exclusive, sets, default) in enumerate(features):
+        flags = (0x8000 if exclusive else 0) | ((0x4000 | default) if default else 0)
+        names += (_u16(ftype) + _u16(len(sets)) + _u32(settings_at + len(settings))
+                  + _u16(flags) + _s16(256 + i))
+        settings += b"".join(_u16(s) + _u16(300 + s) for s in sets)
+    return head + names + settings
+
+
+def aat_ltag(tags):
+    """An 'ltag' table of language tags."""
+    strings = b""
+    ranges = b""
+    base = 12 + 4 * len(tags)
+    for t in tags:
+        ranges += _u16(base + len(strings)) + _u16(len(t))
+        strings += t.encode()
+    return _u32(1) + _u32(0) + _u32(len(tags)) + ranges + strings
+
+
+def mortx_subtable(extended, stype, coverage, sub_feature_flags, body):
+    """A chain subtable: `coverage` is its coverage byte (vertical 0x80,
+    backwards 0x40, all directions 0x20, logical 0x10)."""
+    if extended:
+        hdr_len = 12
+        return (_u32(hdr_len + len(body)) + _u32((coverage << 24) | stype)
+                + _u32(sub_feature_flags) + body)
+    hdr_len = 8
+    return _u16(hdr_len + len(body)) + _u16((coverage << 8) | stype) + _u32(sub_feature_flags) + body
+
+
+def mortx_chain(extended, default_flags, features, subtables, coverage=None):
+    """A morx/mort chain: features are (type, setting, enable, disable);
+    `coverage` (morx version 3) is the glyph coverage offsets' list, None
+    or a bitfield per subtable."""
+    pack = _u32 if extended else _u16
+    feats = b"".join(_u16(t) + _u16(s) + _u32(e) + _u32(d) for t, s, e, d in features)
+    body = feats + b"".join(subtables)
+    if coverage is not None:
+        offsets_len = 4 * len(subtables)
+        offsets = b""
+        fields = b""
+        for c in coverage:
+            if c is None:
+                offsets += _u32(0xFFFFFFFF)
+            else:
+                offsets += _u32(offsets_len + len(fields))
+                fields += c
+        body += offsets + fields
+    hdr = 8 + 2 * (4 if extended else 2)
+    return (_u32(default_flags) + _u32(hdr + len(body)) + pack(len(features))
+            + pack(len(subtables)) + body)
+
+
+def mortx_table(extended, version, chains):
+    return _u16(version) + _u16(0) + _u32(len(chains)) + b"".join(chains)
+
+
+def _align(n, a):
+    return n + (-n % a)
+
+
+def morx_contextual(extended, classes, n_classes, states, entries, lookups):
+    """A contextual subtable body. The entries' data name substitutions:
+    in morx, indices into `lookups` (a list of (format, glyph -> glyph));
+    in mort, keys of `lookups` (a dict of name -> glyph -> glyph), whose
+    substitution array regions are laid out here (None: 0xFFFF)."""
+    hbuint = 4 if extended else 2
+    pack = _u32 if extended else _u16
+    if extended:
+        table, _ = aat_state_table(extended, classes, n_classes, states, entries, 4,
+                                   fields_len=hbuint)
+        subs_at = _align(len(table), 4)
+        offs = b""
+        data = b""
+        list_len = 4 * len(lookups)
+        for fmt, mapping in lookups:
+            offs += _u32(list_len + len(data))
+            lk = aat_lookup(fmt, mapping)
+            data += lk + b"\0" * (-len(lk) % 4)
+        body = _with_fields(extended, table, pack(subs_at))
+        body += b"\0" * (subs_at - len(body))
+        return body + offs + data
+
+    def resolved(index_of):
+        out = []
+        for ns, flags, data in entries:
+            out.append((ns, flags, [0xFFFF if d is None else index_of[d] for d in data]))
+        return out
+
+    names = list(lookups)
+    table, _ = aat_state_table(False, classes, n_classes, states,
+                               resolved({n: 0 for n in names}), 4, fields_len=hbuint)
+    subs_at = _align(len(table), 2)
+    words = {}
+    index_of = {}
+    w = subs_at // 2
+    for n in names:
+        mapping = lookups[n]
+        lo, hi = min(mapping), max(mapping)
+        index_of[n] = w - lo
+        for g, r in mapping.items():
+            words[w + g - lo] = r
+        w += hi - lo + 1
+    table2, _ = aat_state_table(False, classes, n_classes, states, resolved(index_of), 4,
+                                fields_len=hbuint)
+    assert len(table2) == len(table)
+    body = _with_fields(False, table2, pack(subs_at))
+    body += b"\0" * (subs_at - len(body))
+    return body + b"".join(_u16(words.get(i, 0)) for i in range(subs_at // 2, w))
+
+
+def morx_ligature(extended, classes, n_classes, states, entries, action_lists, ligatures):
+    """A ligature subtable body. `action_lists` maps names to lists of
+    (glyph, ligature index or None) actions in pop order (the glyph the
+    action pops; the ligature it stores, the last one always storing);
+    entries name their action list in their data (morx) or flags (mort)."""
+    hbuint = 4 if extended else 2
+    pack = _u32 if extended else _u16
+    names = list(action_lists)
+    index_of = {}
+    n_actions = 0
+    for n in names:
+        index_of[n] = n_actions
+        n_actions += len(action_lists[n])
+
+    def resolved(actions_at):
+        out = []
+        for ns, flags, data in entries:
+            if isinstance(data, str):
+                if extended:
+                    out.append((ns, flags | 0x2000, [index_of[data]]))
+                else:
+                    out.append((ns, flags | (actions_at + 4 * index_of[data]), []))
+            else:
+                out.append((ns, flags, data))
+        return out
+
+    table, _ = aat_state_table(extended, classes, n_classes, states, resolved(0),
+                               2 if extended else 0, fields_len=3 * hbuint)
+    actions_at = _align(len(table), 4)
+    comps_at = actions_at + 4 * n_actions
+    ligs_at = comps_at + 2 * n_actions
+    table, _ = aat_state_table(extended, classes, n_classes, states, resolved(actions_at),
+                               2 if extended else 0, fields_len=3 * hbuint)
+    acts = b""
+    comps = []
+    for n in names:
+        acc = 0
+        actions = action_lists[n]
+        for k, (glyph, target) in enumerate(actions):
+            last = k == len(actions) - 1
+            slot = len(comps)
+            if target is not None:
+                want = target if extended else ligs_at + 2 * target
+                assert want >= acc
+                comps.append(want - acc)
+                acc = target
+            else:
+                comps.append(0)
+            off = slot - glyph if extended else slot + comps_at // 2 - glyph
+            flags = (0x80000000 if last else 0) | (0x40000000 if target is not None and not last else 0)
+            acts += _u32(flags | (off & 0x3FFFFFFF))
+    body = _with_fields(extended, table, pack(actions_at) + pack(comps_at) + pack(ligs_at))
+    body += b"\0" * (actions_at - len(body))
+    return body + acts + b"".join(_u16(c) for c in comps) + b"".join(_u16(g) for g in ligatures)
+
+
+def morx_insertion(extended, classes, n_classes, states, entries, glyphs):
+    """An insertion subtable body (entries' data: current and marked
+    insertion indices into `glyphs`)."""
+    hbuint = 4 if extended else 2
+    pack = _u32 if extended else _u16
+    table, _ = aat_state_table(extended, classes, n_classes, states, entries, 4,
+                               fields_len=hbuint)
+    at = _align(len(table), 2)
+    body = _with_fields(extended, table, pack(at))
+    body += b"\0" * (at - len(body))
+    return body + b"".join(_u16(g) for g in glyphs)
+
+
+def morx_rearrangement(extended, classes, n_classes, states, entries):
+    return aat_state_table(extended, classes, n_classes, states, entries, 0)[0]
+
+
+def kerx_subtable(fmt, coverage, body, tuple_count=0):
+    """A kerx subtable: `coverage` is its coverage flags (vertical
+    0x80000000, cross-stream 0x40000000, variation 0x20000000, backwards
+    0x10000000)."""
+    return _u32(12 + len(body)) + _u32(coverage | fmt) + _u32(tuple_count) + body
+
+
+def _pairs(pairs, wide):
+    pack = _u32 if wide else _u16
+    items = sorted(pairs)
+    n = len(items)
+    sel = max(1, n.bit_length()) - 1
+    search_range = 6 * (1 << sel)
+    return (pack(n) + pack(search_range) + pack(sel) + pack(max(0, 6 * n - search_range))
+            + b"".join(_u16(l) + _u16(r) + _s16(pairs[(l, r)]) for l, r in items))
+
+
+def kerx_format0(pairs, tuples=None):
+    """Format 0 (pairs); with `tuples` (a dict of pairs to value lists),
+    the pairs' values are offsets of those lists."""
+    if tuples is None:
+        return _pairs(pairs, True)
+    n = len(tuples)
+    at = 12 + 16 + 6 * n
+    values = b""
+    offs = {}
+    for k in sorted(tuples):
+        offs[k] = at + len(values)
+        values += b"".join(_s16(v) for v in tuples[k])
+    return _pairs(offs, True) + values
+
+
+def kerx_format1(extended, classes, n_classes, states, entries, actions, header_size=12):
+    """Format 1 (state machine): `actions` is a list of value lists; the
+    entries' data (morx) / flags (kern) name them by index."""
+    hbuint = 4 if extended else 2
+    pack = _u32 if extended else _u16
+
+    def resolved(values_at, starts):
+        out = []
+        for ns, flags, data in entries:
+            if isinstance(data, int) and not isinstance(data, bool):
+                if extended:
+                    out.append((ns, flags, [2 * starts[data]]))
+                else:
+                    out.append((ns, flags | (values_at + 2 * starts[data]), []))
+            else:
+                out.append((ns, flags, data if extended else []))
+        return out
+
+    starts = []
+    n = 0
+    for a in actions:
+        starts.append(n)
+        n += len(a)
+    table, _ = aat_state_table(extended, classes, n_classes, states, resolved(0, starts),
+                               2 if extended else 0, fields_len=hbuint)
+    values_at = _align(len(table), 2)
+    table, _ = aat_state_table(extended, classes, n_classes, states,
+                               resolved(values_at, starts), 2 if extended else 0,
+                               fields_len=hbuint)
+    body = _with_fields(extended, table, pack(values_at))
+    body += b"\0" * (values_at - len(body))
+    return body + b"".join(_s16(v) for a in actions for v in a)
+
+
+def kerx_format2(left, right, values, n_cols, lookup_formats=(2, 6)):
+    """Format 2: left/right map glyphs to rows/columns of `values` (a row
+    major list of n_cols columns)."""
+    lt = aat_lookup(lookup_formats[0], {g: r * n_cols for g, r in left.items()})
+    lt += b"\0" * (-len(lt) % 4)
+    rt = aat_lookup(lookup_formats[1], {g: c for g, c in right.items()})
+    rt += b"\0" * (-len(rt) % 4)
+    left_at = 12 + 16
+    right_at = left_at + len(lt)
+    array_at = right_at + len(rt)
+    return (_u32(2 * n_cols) + _u32(left_at) + _u32(right_at) + _u32(array_at) + lt + rt
+            + b"".join(_s16(v) for v in values))
+
+
+def kerx_format4(classes, n_classes, states, entries, action_type, anchor_data):
+    """Format 4: `anchor_data` is the list of the actions' 16-bit words."""
+    table, _ = aat_state_table(True, classes, n_classes, states, entries, 2, fields_len=4)
+    data_at = _align(len(table), 2)
+    body = _with_fields(True, table, _u32((action_type << 30) | data_at))
+    body += b"\0" * (data_at - len(body))
+    return body + b"".join(_u16(v) for v in anchor_data)
+
+
+def kerx_format6(rows, cols, values, n_cols, long_values, tuples=None, lookup_formats=(6, 8)):
+    """Format 6: rows/cols map glyphs to row/column indices."""
+    pack = _u32 if long_values else _u16
+    vs = 4 if long_values else 2
+    rt = aat_lookup(lookup_formats[0], {g: r * n_cols for g, r in rows.items()}, value_size=vs)
+    rt += b"\0" * (-len(rt) % 4)
+    ct = aat_lookup(lookup_formats[1], cols, value_size=vs)
+    ct += b"\0" * (-len(ct) % 4)
+    row_at = 12 + 24
+    col_at = row_at + len(rt)
+    array_at = col_at + len(ct)
+    array = b"".join((struct.pack(">i", v) if long_values else _s16(v)) for v in values)
+    vector_at = array_at + len(array)
+    return (_u32(1 if long_values else 0) + _u16(len(set(rows.values()))) + _u16(n_cols)
+            + _u32(row_at) + _u32(col_at) + _u32(array_at) + _u32(vector_at) + rt + ct + array
+            + (tuples or b""))
+
+
+def kern_aat_subtable(fmt, coverage, body):
+    """An Apple 'kern' subtable (coverage: vertical 0x80, cross-stream
+    0x40, variation 0x20)."""
+    return _u32(8 + len(body)) + _u8(coverage) + _u8(fmt) + _u16(0) + body
+
+
+def kern_ot_subtable(fmt, coverage, body):
+    """An OpenType 'kern' subtable (coverage: horizontal 0x01, minimum
+    0x02, cross-stream 0x04, override 0x08)."""
+    return _u16(0) + _u16(6 + len(body)) + _u8(fmt) + _u8(coverage) + body
+
+
+def kern_format2(left, right, values, n_cols, header_size):
+    """A 'kern' format 2 subtable body: ClassTable<HBUINT16>s of byte
+    offsets from the subtable's start."""
+    row_width = 2 * n_cols
+    left_at = header_size + 8
+    lfirst, llast = min(left), max(left)
+    rfirst, rlast = min(right), max(right)
+    left_len = 4 + 2 * (llast - lfirst + 1)
+    right_at = left_at + left_len
+    right_len = 4 + 2 * (rlast - rfirst + 1)
+    array_at = right_at + right_len
+    lt = _u16(lfirst) + _u16(llast - lfirst + 1) + b"".join(
+        _u16(array_at + row_width * left[g] if g in left else 0) for g in range(lfirst, llast + 1))
+    rt = _u16(rfirst) + _u16(rlast - rfirst + 1) + b"".join(
+        _u16(2 * right[g] if g in right else 0) for g in range(rfirst, rlast + 1))
+    return (_u16(row_width) + _u16(left_at) + _u16(right_at) + _u16(array_at) + lt + rt
+            + b"".join(_s16(v) for v in values))
+
+
+def kern_format3(glyph_count, left, right, values, kern_index, n_left, n_right):
+    return (_u16(glyph_count) + _u8(len(values)) + _u8(n_left) + _u8(n_right) + _u8(0)
+            + b"".join(_s16(v) for v in values)
+            + bytes(left.get(g, 0) for g in range(glyph_count))
+            + bytes(right.get(g, 0) for g in range(glyph_count)) + bytes(kern_index))
+
+
+def aat_trak(horiz, vert):
+    """A 'trak' table: horiz/vert are None or (sizes, [(track, values)])."""
+    def track_data(spec, base):
+        sizes, tracks = spec
+        n_tracks = len(tracks)
+        size_at = base + 8 + 8 * n_tracks
+        values_at = size_at + 4 * len(sizes)
+        out = _u16(n_tracks) + _u16(len(sizes)) + _u32(size_at)
+        vals = b""
+        for track, values in tracks:
+            out += _u32(int(track * 65536)) + _u16(256) + _u16(values_at + len(vals))
+            vals += b"".join(_s16(v) for v in values)
+        out += b"".join(_u32(int(s * 65536)) for s in sizes)
+        return out + vals
+
+    body = b""
+    horiz_at = vert_at = 0
+    if horiz:
+        horiz_at = 12
+        body += track_data(horiz, 12)
+    if vert:
+        vert_at = 12 + len(body)
+        body += track_data(vert, vert_at)
+    return _u32(0x00010000) + _u16(0) + _u16(horiz_at) + _u16(vert_at) + _u16(0) + body
+
+
+def aat_ankr(anchors, lookup_format=2):
+    """An 'ankr' table: anchors maps glyphs to lists of (x, y)."""
+    data = b""
+    offs = {}
+    for g in sorted(anchors):
+        offs[g] = len(data)
+        data += _u32(len(anchors[g])) + b"".join(_s16(x) + _s16(y) for x, y in anchors[g])
+    lk = aat_lookup(lookup_format, offs)
+    lk += b"\0" * (-len(lk) % 4)
+    return _u16(0) + _u16(0) + _u32(12) + _u32(12 + len(lk)) + lk + data
+
+
+# The state machines of the test fonts (`g` maps characters to glyph ids;
+# `ext` is morx rather than mort). Entry flags: see the subtables'
+# definitions in HarfBuzz's hb-aat-layout-morx-table.hh.
+
+def _rearrangement(g, ext, chars="xyzwv", class_format=6):
+    """Marks the first glyph at x, the last at y (verb 1, Ax => xA), z
+    (verb 3, AxD => DxA), w (verb 15, ABxCD => DCxBA) or v (verb 2 and
+    DontAdvance); other glyphs in between stay in the marked state."""
+    x, y, z, w, v = (g(c) for c in chars)
+    classes = (class_format, 0, {x: 4, y: 5, z: 6, w: 7, v: 8})
+    entries = [(0, 0, []), (2, 0x8000, []), (0, 0x2000 | 1, []), (0, 0x2000 | 3, []),
+               (2, 0, []), (0, 0x2000 | 15, []), (0, 0x6000 | 2, [])]
+    states = [[0, 0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0, 0],
+              [0, 4, 4, 4, 1, 2, 3, 5, 6]]
+    return morx_rearrangement(ext, classes, 9, states, entries)
+
+
+def _swap_pair(g, ext, a, b, class_format=6, num_glyphs=0):
+    """Swaps a glyph `a` and a following `b`, or `b` and a following `a`."""
+    classes = (class_format, num_glyphs, {g(a): 4, g(b): 5})
+    entries = [(0, 0, []), (2, 0x8000, []), (0, 0x2000 | 1, []), (2, 0, [])]
+    states = [[0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 1, 1], [0, 3, 3, 3, 2, 2]]
+    return morx_rearrangement(ext, classes, 6, states, entries)
+
+
+def _contextual(g, ext):
+    """c marks; o after a marked c makes c C and o O; e after a marked c
+    makes e E; a marked c at the end of the text becomes C; k becomes K
+    (with DontAdvance)."""
+    c, o, k, e = (g(ch) for ch in "coke")
+    classes = {c: 4, o: 5, k: 6, e: 7}
+    N = 0xFFFF if ext else None
+    if ext:
+        lc, lo, lk, le = 0, 1, 2, 3
+        lookups = [(6, {c: g("C")}), (8, {o: g("O")}), (2, {k: g("K")}),
+                   (4, {e: g("E"), g("f"): g("F")})]
+    else:
+        lc, lo, lk, le = "c", "o", "k", "e"
+        lookups = {"c": {c: g("C")}, "o": {o: g("O")}, "k": {k: g("K")},
+                   "e": {e: g("E"), g("f"): g("F")}}
+    entries = [(0, 0, [N, N]), (2, 0x8000, [N, N]), (0, 0, [lc, lo]), (2, 0x8000, [N, N]),
+               (2, 0, [N, N]), (0, 0, [lc, N]), (0, 0x4000, [N, lk]), (0, 0, [N, le])]
+    states = [[0, 0, 0, 0, 1, 0, 6, 0], [0, 0, 0, 0, 1, 0, 6, 0], [5, 4, 4, 4, 3, 2, 6, 7]]
+    return morx_contextual(ext, classes, 8, states, entries, lookups)
+
+
+def _single_contextual(g, ext, subs):
+    """Substitutes the current glyph by `subs` (characters)."""
+    keys = list(subs)
+    classes = {g(ch): 4 + i for i, ch in enumerate(keys)}
+    N = 0xFFFF if ext else None
+    if ext:
+        lookups = [(6, {g(ch): g(subs[ch])}) for ch in keys]
+        names = list(range(len(keys)))
+    else:
+        lookups = {ch: {g(ch): g(subs[ch])} for ch in keys}
+        names = keys
+    entries = [(0, 0, [N, N])] + [(0, 0, [N, n]) for n in names]
+    row = [0, 0, 0, 0] + [1 + i for i in range(len(keys))]
+    return morx_contextual(ext, classes, 4 + len(keys), [row, row], entries, lookups)
+
+
+def _ligature(g, ext, ligs):
+    """f i, f l, f f i, f f l (storing fl at l, then overwritten) and f f
+    before another glyph; `ligs` are the glyphs of fi, fl, ffi, ffl, ff."""
+    f, i, l = g("f"), g("i"), g("l")
+    classes = {f: 4, i: 5, l: 6}
+    entries = [(0, 0, []), (2, 0x8000, []), (3, 0x8000, []), (0, 0x8000, "fi"),
+               (0, 0x8000, "fl"), (0, 0x8000, "ffi"), (0, 0x8000, "ffl"), (3, 0x8000, []),
+               (0, 0, "ff"), (0, 0x4000, [])]
+    states = [[0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0, 0], [0, 9, 9, 9, 2, 3, 4],
+              [0, 8, 8, 8, 7, 5, 6]]
+    actions = {
+        "fi": [(i, None), (f, 0)],
+        "fl": [(l, None), (f, 1)],
+        "ffi": [(i, None), (f, None), (f, 2)],
+        "ffl": [(l, 1), (f, None), (f, 4)],
+        "ff": [(f, None), (f, 4)],
+    }
+    return morx_ligature(ext, classes, 7, states, entries, actions, ligs)
+
+
+def _insertion(g, ext):
+    """m marks; n after a mark inserts - after it; q inserts [] before
+    itself; h inserts * after itself; h after a mark inserts - before the
+    mark and + after itself, without advancing."""
+    m, n, q, h = (g(ch) for ch in "mnqh")
+    classes = {m: 4, n: 5, q: 6, h: 7}
+    N = 0xFFFF
+    entries = [(0, 0, [N, N]), (2, 0x8000, [N, N]), (0, 1, [N, 0]),
+               (0, 0x0800 | (2 << 5), [1, N]), (0, 1 << 5, [3, N]), (2, 0, [N, N]),
+               (0, 0x4000 | (1 << 5) | 0x0400 | 1, [4, 0])]
+    states = [[0, 0, 0, 0, 1, 0, 3, 4], [0, 0, 0, 0, 1, 0, 3, 4], [0, 5, 5, 5, 1, 2, 3, 6]]
+    return morx_insertion(ext, classes, 8, states, entries, [g(ch) for ch in "-[]*+"])
+
+
+def _noncontextual(g, fmt, subs, num_glyphs=0):
+    mapping = {g(a): g(b) for a, b in subs.items()}
+    if fmt == 0:
+        full = {i: i for i in range(num_glyphs)}
+        full.update(mapping)
+        return aat_lookup(0, full, num_glyphs)
+    return aat_lookup(fmt, mapping)
+
+
+def _bitfield(num_glyphs, glyphs):
+    bits = bytearray((num_glyphs + 7) // 8)
+    for gl in glyphs:
+        bits[gl // 8] |= 1 << (gl % 8)
+    return bytes(bits)
+
+
+def _morx_font_chains(g, ext, num_glyphs, ligs, version):
+    """The chains of DejaVuSans-AAT-morx.ttf (ext) and -mort.ttf."""
+    def st(stype, cov, flags, body):
+        return mortx_subtable(ext, stype, cov, flags, body)
+    ALL = 0xFFFFFFFF
+    lower = "abcdefghijklmnopqrstuvwxyz"
+    subtables = [
+        st(0, 0x00, 0x1, _rearrangement(g, ext)),
+        st(1, 0x00, 0x2, _contextual(g, ext)),
+        st(2, 0x00, 0x4, _ligature(g, ext, ligs)),
+        st(4, 0x00, 0x8, _noncontextual(g, 6, {"j": "J"})),
+        st(5, 0x00, 0x10, _insertion(g, ext)),
+        st(0, 0x40, 0x20, _swap_pair(g, ext, "V", "W", class_format=0, num_glyphs=num_glyphs)),
+        st(4, 0x80, 0x40, _noncontextual(g, 8, {"a": "A"})),
+        st(4, 0xA0, 0x80, _noncontextual(g, 6, {"b": "B"})),
+        st(4, 0x00, 0x100, _noncontextual(g, 2, {ch: "A" for ch in "abcde"})),
+        st(4, 0x00, 0x200, _noncontextual(g, 4, {ch: ch.upper() for ch in lower})),
+        st(4, 0x00, 0x400, _noncontextual(g, 0, {str(d): lower[d] for d in range(10)},
+                                          num_glyphs)),
+        st(4, 0x00, 0x800, _noncontextual(g, 10, {"n": "N"})),
+        st(4, 0x00, 0x1000, _noncontextual(g, 8, {"r": "R", "s": "S", "t": "T"})),
+        st(0, 0x10, 0x2000, _rearrangement(g, ext, class_format=8)),
+        st(4, 0x00, 0x4000, _noncontextual(g, 6, {"g": "G"})),
+        st(4, 0x00, 0x8000, _noncontextual(g, 6, {"g": "q"})),
+        st(4, 0x00, 0x10000, _noncontextual(g, 6, {"i": "ı"})),
+        st(4, 0x00, 0x20000, _noncontextual(g, 6, {"o": "0"})),
+        st(4, 0x00, 0x40000, _noncontextual(g, 6, {"z": "Z"})),
+        st(3, 0x00, 0x1, b"\0" * 16),
+        st(1, 0x00, 0x80000, _single_contextual(g, ext, {"u": "U", "t": "T"})),
+    ]
+    feats = [
+        (1, 2, 0x4, ALL), (1, 3, 0, ~0x4), (1, 4, 0x40000, ALL), (1, 5, 0, ~0x40000),
+        (3, 3, 0x20000, ALL),
+        (17, 1, 0x4000, ~0x8000), (17, 2, 0x8000, ~0x4000),
+        (35, 2, 0x200, ALL), (35, 3, 0, ~0x200), (35, 4, 0x400, ALL), (35, 5, 0, ~0x400),
+        (35, 6, 0x800, ALL), (35, 7, 0, ~0x800), (35, 8, 0x1000, ALL), (35, 9, 0, ~0x1000),
+        (35, 10, 0x2000, ALL), (35, 11, 0, ~0x2000),
+        (36, 0, 0x2, ALL), (36, 1, 0, ~0x2),
+        (37, 0, 0, ~0x100), (37, 1, 0x100, ALL),
+        (39, 1, 0x10000, ALL), (39, 2, 0x80000, ALL),
+    ]
+    if not ext:
+        feats = [f for f in feats if f[0] in (1, 3, 35, 36, 39)]
+    coverage = None
+    if version >= 3:
+        coverage = [None] * len(subtables)
+        coverage[0] = _bitfield(num_glyphs, [g(ch) for ch in "xyzwv"])
+        coverage[2] = _bitfield(num_glyphs, [g(ch) for ch in "fil"])
+    chain0 = mortx_chain(ext, 0xFF, feats, subtables, coverage)
+    # Chain 1: a subtable of an unknown type before two state machines:
+    # HarfBuzz gives them the next subtables' glyph digests.
+    subtables1 = [
+        st(3, 0x00, 0x1, b"\0" * 8),
+        st(1, 0x00, 0x1, _single_contextual(g, ext, {"u": "U", "t": "T"})),
+        st(0, 0x00, 0x1, _swap_pair(g, ext, "p", "d")),
+        st(0, 0x00, 0x2, _swap_pair(g, ext, "p", "d", class_format=2)),
+    ]
+    coverage1 = [None, _bitfield(num_glyphs, [g("u")]), None, None] if version >= 3 else None
+    chain1 = mortx_chain(ext, 0x3, [(36, 1, 0, ~0x2)], subtables1, coverage1)
+    return [chain0, chain1]
+
+
+def _kern_machine(g, ext):
+    """A kerning state machine (kern / kerx format 1): A pushes; V after A
+    pushes and kerns V and A; T pushes and o after it pushes and kerns
+    only o (T stays on the stack until a later action); W pushes and
+    resets the stack in kerx; other glyphs after A or T go back to the
+    start without advancing."""
+    A, V, T, o, W = (g(c) for c in "AVTo" + "W")
+    classes = {A: 4, V: 5, T: 6, o: 7, W: 8}
+    N = 0xFFFF
+    reset = 0x2000 if ext else 0
+    entries = [(0, 0, [N]), (2, 0x8000, [N]), (0, 0x8000, 0), (3, 0x8000, [N]),
+               (0, 0x8000, 1), (0, 0x4000, [N]), (0, 0x8000 | reset, [N]), (0, 0x8000, 2)]
+    states = [[0, 0, 0, 0, 1, 0, 3, 0, 6], [0, 0, 0, 0, 1, 0, 3, 0, 6],
+              [0, 5, 5, 5, 1, 2, 3, 0, 6], [0, 5, 5, 5, 1, 0, 3, 4, 7]]
+    actions = [[-50, -31], [-81], [40, 61]]
+    return classes, states, entries, actions
+
+
+def _cross_machine(g, ext):
+    """A cross-stream kerning state machine: ^ pushes and raises itself; _
+    pushes and resets its attachment (-0x8000)."""
+    up, under = g("^"), g("_")
+    classes = {up: 4, under: 5}
+    N = 0xFFFF
+    entries = [(0, 0, [N]), (0, 0x8000, 0), (0, 0x8000, 1)]
+    states = [[0, 0, 0, 0, 1, 2], [0, 0, 0, 0, 1, 2]]
+    return classes, states, entries, [[201], [-0x8000]]
+
+
+def _kerx_table(g, num_glyphs):
+    pairs = {(g("A"), g("V")): -80, (g("V"), g("A")): -70, (g("T"), g("o")): -60,
+             (g("L"), g("T")): -90, (g("A"), g("A")): 30}
+    subtables = [kerx_subtable(0, 0, kerx_format0(pairs))]
+    subtables.append(kerx_subtable(0, 0, kerx_format0(
+        {}, {(g("W"), g("a")): [-44, -20], (g("Y"), g("e")): [-36, 10]}), tuple_count=2))
+    classes, states, entries, actions = _kern_machine(g, True)
+    subtables.append(kerx_subtable(1, 0, kerx_format1(True, classes, 9, states, entries,
+                                                      actions)))
+    classes, states, entries, actions = _cross_machine(g, True)
+    subtables.append(kerx_subtable(1, 0x40000000, kerx_format1(True, classes, 6, states,
+                                                               entries, actions)))
+    classes, states, entries, actions = _kern_machine(g, True)
+    subtables.append(kerx_subtable(1, 0x10000000, kerx_format1(True, classes, 9, states,
+                                                               entries, actions)))
+    left = {g("L"): 0, g("P"): 1, g("F"): 1}
+    right = {g("T"): 0, g("Y"): 1, g("a"): 2, g("o"): 2}
+    subtables.append(kerx_subtable(2, 0, kerx_format2(left, right, [-40, -50, 0, 0, 0, -30],
+                                                      3)))
+    # format 4: a, e or o marks; '.' after a mark is attached by the ankr
+    # anchor points, ',' by coordinates and ':' by control points.
+    letters = {g(c): 4 for c in "aeo"}
+    N = 0xFFFF
+    for action_type, ch, data in [(1, ".", [0, 1]), (2, ",", [120, 650, 10, 0]),
+                                  (0, ":", [3, 0])]:
+        classes = dict(letters)
+        classes[g(ch)] = 5
+        entries = [(0, 0, [N]), (2, 0x8000, [N]), (0, 0, [0]), (2, 0, [N])]
+        states = [[0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0], [0, 3, 3, 3, 1, 2]]
+        subtables.append(kerx_subtable(4, 0, kerx_format4(classes, 6, states, entries,
+                                                          action_type, data)))
+    rows = {g("H"): 0, g("I"): 1}
+    cols = {g("H"): 0, g("I"): 1, g("O"): 2}
+    subtables.append(kerx_subtable(6, 0, kerx_format6(rows, cols, [10, 20, 30, -10, -20, -30],
+                                                      3, False)))
+    subtables.append(kerx_subtable(6, 0, kerx_format6({g("D"): 0, g("E"): 1}, {g("D"): 0, g("E"): 1},
+                                                      [7, -7, 15, -15], 2, False,
+                                                      lookup_formats=(10, 4))))
+    subtables.append(kerx_subtable(6, 0, kerx_format6({g("O"): 0}, {g("O"): 0, g("Q"): 1},
+                                                      [0x10010, -0x30], 2, True)))
+    subtables.append(kerx_subtable(0, 0x80000000, kerx_format0({(g("A"), g("V")): -200})))
+    subtables.append(kerx_subtable(0, 0x20000000, kerx_format0({(g("A"), g("A")): -11})))
+    return _u16(2) + _u16(0) + _u32(len(subtables)) + b"".join(subtables)
+
+
+def _kern_aat_table(g, num_glyphs):
+    """An Apple 'kern' table (version 1.0) with state-machine subtables."""
+    pairs = {(g("A"), g("V")): -80, (g("L"), g("T")): -90}
+    subtables = []
+    classes, states, entries, actions = _kern_machine(g, False)
+    subtables.append(kern_aat_subtable(1, 0, kerx_format1(False, classes, 9, states, entries,
+                                                          actions)))
+    classes, states, entries, actions = _cross_machine(g, False)
+    subtables.append(kern_aat_subtable(1, 0x40, kerx_format1(False, classes, 6, states,
+                                                             entries, actions)))
+    subtables.append(kern_aat_subtable(0, 0, _pairs(pairs, False)))
+    left = {g("L"): 0, g("P"): 1, g("F"): 1}
+    right = {g("T"): 0, g("Y"): 1, g("a"): 2, g("o"): 2}
+    subtables.append(kern_aat_subtable(2, 0, kern_format2(left, right,
+                                                          [-40, -50, 0, 0, 0, -30], 3, 8)))
+    subtables.append(kern_aat_subtable(3, 0, kern_format3(
+        num_glyphs, {g("W"): 1, g("Y"): 2}, {g("a"): 1, g("e"): 1, g("o"): 2},
+        [0, -25, -45], [0, 0, 0, 0, 1, 2, 0, 2, 1], 3, 3)))
+    subtables.append(kern_aat_subtable(0, 0x20, _pairs({(g("A"), g("A")): -11}, False)))
+    subtables.append(kern_aat_subtable(0, 0x80, _pairs({(g("A"), g("V")): -200}, False)))
+    return _u32(0x00010000) + _u32(len(subtables)) + b"".join(subtables)
+
+
+def _kern_ot_table(g, num_glyphs):
+    """An OpenType 'kern' table (version 0) with a state-machine subtable."""
+    classes, states, entries, actions = _kern_machine(g, False)
+    subtables = [kern_ot_subtable(1, 0x01, kerx_format1(False, classes, 9, states, entries,
+                                                        actions))]
+    classes, states, entries, actions = _cross_machine(g, False)
+    subtables.append(kern_ot_subtable(1, 0x05, kerx_format1(False, classes, 6, states, entries,
+                                                            actions)))
+    subtables.append(kern_ot_subtable(0, 0x01, _pairs({(g("A"), g("V")): -80,
+                                                        (g("L"), g("T")): -90}, False)))
+    left = {g("L"): 0, g("P"): 1, g("F"): 1}
+    right = {g("T"): 0, g("Y"): 1, g("a"): 2, g("o"): 2}
+    subtables.append(kern_ot_subtable(2, 0x01, kern_format2(left, right,
+                                                            [-40, -50, 0, 0, 0, -30], 3, 6)))
+    return _u16(0) + _u16(len(subtables)) + b"".join(subtables)
+
+
+def _aat_feat_table(with_lower_case):
+    feats = [(1, False, [0, 1, 2, 3, 4, 5], 0), (17, True, [0, 1, 2], 0),
+             (35, False, list(range(12)), 0), (36, False, [0, 1], 0)]
+    if with_lower_case:
+        feats.append((37, True, [0, 1], 0))
+    else:
+        feats.append((3, True, [0, 3], 0))
+    return aat_feat(feats)
+
+
+def _aat_base_font(src, unicodes, drop):
+    options = subset.Options()
+    options.hinting = True
+    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]
+    options.notdef_outline = True
+    options.glyph_names = False
+    options.layout_features = ["*"]
+    options.legacy_kern = True
+    options.drop_tables += drop
+    font = subset.load_font(src, options)
+    subsetter = subset.Subsetter(options)
+    subsetter.populate(unicodes=unicodes)
+    subsetter.subset(font)
+    return font, options
+
+
+def _glyph_of(font):
+    cmap = font.getBestCmap()
+    return lambda ch: font.getGlyphID(cmap[ord(ch)])
+
+
+def _set_tables(font, tables):
+    from fontTools.ttLib.tables.DefaultTable import DefaultTable
+    for tag, data in tables.items():
+        t = DefaultTable(tag)
+        t.data = data
+        font[tag] = t
+
+
+def _gsub_ligatures(font):
+    """The ligature glyphs of the font's GSUB 'liga' (components -> glyph id)."""
+    out = {}
+    for lookup in font["GSUB"].table.LookupList.Lookup:
+        for st in lookup.SubTable:
+            if lookup.LookupType == 7:
+                st = st.ExtSubTable
+            if getattr(st, "ligatures", None) is None:
+                continue
+            for first, ligs in st.ligatures.items():
+                for lig in ligs:
+                    out[tuple([first] + lig.Component)] = font.getGlyphID(lig.LigGlyph)
+    return out
+
+
+def make_aat_fonts(out):
+    """The fonts of the AAT shaping tests: subsets of DejaVu Sans (see the
+    license note above) and copies of the Noto Sans subsets with AAT
+    tables (see the comment above aat_lookup)."""
+    src = os.environ.get("DEJAVU_DIR", "/usr/share/fonts/truetype/dejavu")
+    unicodes = list(range(0x20, 0x7F)) + [0x0131, 0xFB00, 0xFB01, 0xFB02, 0xFB03, 0xFB04]
+    layout = ["GPOS", "GSUB", "GDEF", "FFTM", "MATH"]
+
+    # morx (version 3) with every subtable type, feat and ltag
+    font, options = _aat_base_font(os.path.join(src, "DejaVuSans.ttf"), unicodes,
+                                   layout + ["kern"])
+    g = _glyph_of(font)
+    n = len(font.getGlyphOrder())
+    ligs = [g(chr(c)) for c in (0xFB01, 0xFB02, 0xFB03, 0xFB04, 0xFB00)]
+    _set_tables(font, {
+        "morx": mortx_table(True, 3, _morx_font_chains(g, True, n, ligs, 3)),
+        "feat": _aat_feat_table(True),
+        "ltag": aat_ltag(["tr", "en"]),
+    })
+    subset.save_font(font, os.path.join(out, "DejaVuSans-AAT-morx.ttf"), options)
+
+    # mort with every subtable type (the obsolete formats), feat (with the
+    # deprecated letter case small caps), and an Apple kern table with
+    # state-machine subtables
+    font, options = _aat_base_font(os.path.join(src, "DejaVuSans.ttf"), unicodes,
+                                   layout + ["kern"])
+    g = _glyph_of(font)
+    n = len(font.getGlyphOrder())
+    ligs = [g(chr(c)) for c in (0xFB01, 0xFB02, 0xFB03, 0xFB04, 0xFB00)]
+    _set_tables(font, {
+        "mort": mortx_table(False, 1, _morx_font_chains(g, False, n, ligs, 1)),
+        "feat": _aat_feat_table(False),
+        "ltag": aat_ltag(["tr", "en"]),
+        "kern": _kern_aat_table(g, n),
+    })
+    subset.save_font(font, os.path.join(out, "DejaVuSans-AAT-mort.ttf"), options)
+
+    # kerx with formats 0, 1, 2, 4 and 6, ankr and trak (and DejaVu's
+    # kern table, which kerx takes precedence over)
+    font, options = _aat_base_font(os.path.join(src, "DejaVuSans.ttf"), unicodes, layout)
+    g = _glyph_of(font)
+    n = len(font.getGlyphOrder())
+    _set_tables(font, {
+        "kerx": _kerx_table(g, n),
+        "ankr": aat_ankr({g("a"): [(300, 600), (250, 500)], g("e"): [(320, 640), (0, 0)],
+                          g("o"): [(310, 620), (310, 0)], g("."): [(100, 0), (90, -40)]}),
+        "trak": aat_trak(([9, 12, 24, 36], [(-1.0, [40, 20, 0, -10]), (0.0, [60, 30, -20, -50]),
+                                            (1.0, [90, 60, 30, 0])]),
+                         ([12], [(0.0, [-25])])),
+    })
+    subset.save_font(font, os.path.join(out, "DejaVuSans-AAT-kerx.ttf"), options)
+
+    # an OpenType kern table with state-machine subtables
+    font, options = _aat_base_font(os.path.join(src, "DejaVuSans.ttf"), unicodes,
+                                   layout + ["kern"])
+    g = _glyph_of(font)
+    n = len(font.getGlyphOrder())
+    _set_tables(font, {"kern": _kern_ot_table(g, n)})
+    subset.save_font(font, os.path.join(out, "DejaVuSans-AAT-kernot.ttf"), options)
+
+    # morx with GSUB and GPOS (Noto Sans), and with kerx and trak too (the
+    # unhinted Noto Sans, for the auto-hinter)
+    for name, outname, extra in [("NotoSans-Regular.ttf", "NotoSans-AAT.ttf", False),
+                                 ("NotoSans-Unhinted.ttf", "NotoSans-Unhinted-AAT.ttf", True)]:
+        font = TTFont(os.path.join(out, name), recalcTimestamp=False)
+        g = _glyph_of(font)
+        n = len(font.getGlyphOrder())
+        gl = _gsub_ligatures(font)
+        names = font.getGlyphOrder()
+        f, i, l = (names[g(c)] for c in "fil")
+        ligs = [gl[(f, i)], gl[(f, l)], gl[(f, f, i)], gl[(f, f, l)], gl[(f, f)]]
+        tables = {
+            "morx": mortx_table(True, 2, _morx_font_chains(g, True, n, ligs, 2)),
+            "feat": _aat_feat_table(True),
+        }
+        if extra:
+            tables["kerx"] = _kerx_table(g, n)
+            tables["trak"] = aat_trak(([10, 20], [(0.0, [100, -100])]), None)
+        _set_tables(font, tables)
+        font.save(os.path.join(out, outname))
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     shaping_only = "--shaping" in args
     formats_only = "--formats" in args
-    args = [a for a in args if a not in ("--shaping", "--formats")]
+    aat_only = "--aat" in args
+    args = [a for a in args if a not in ("--shaping", "--formats", "--aat")]
     outdir = args[0] if args else os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "sdl3-ttf", "src", "testdata", "fonts")
     if formats_only:
         make_format_fonts(outdir)
+    elif aat_only:
+        make_aat_fonts(outdir)
     else:
         if not shaping_only:
             main(outdir)
             make_format_fonts(outdir)
         make_shaping_fonts(outdir)
+        make_aat_fonts(outdir)

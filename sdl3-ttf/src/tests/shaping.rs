@@ -99,7 +99,7 @@ fn font_data(name: &str) -> &'static [u8] {
 }
 
 /// The text of a case, its `\xNN` escapes made bytes.
-fn unescape(s: &str) -> Vec<u8> {
+pub(super) fn unescape(s: &str) -> Vec<u8> {
     let b = s.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
@@ -115,7 +115,7 @@ fn unescape(s: &str) -> Vec<u8> {
     out
 }
 
-fn direction_of(s: &str) -> Direction {
+pub(super) fn direction_of(s: &str) -> Direction {
     match s {
         "ltr" => Direction::Ltr,
         "rtl" => Direction::Rtl,
@@ -126,7 +126,7 @@ fn direction_of(s: &str) -> Direction {
 }
 
 /// `TTF_TagToString()` printed with `%s`
-fn tag_str(tag: u32) -> String {
+pub(super) fn tag_str(tag: u32) -> String {
     tag_to_string(tag)
         .iter()
         .take_while(|&&c| c != 0)
@@ -224,7 +224,7 @@ fn glyph_scripts(out: &mut Vec<String>) {
 }
 
 /// The table directory entry of `tag`
-fn find_table(d: &[u8], tag: &[u8; 4]) -> Option<(usize, usize)> {
+pub(super) fn find_table(d: &[u8], tag: &[u8; 4]) -> Option<(usize, usize)> {
     if d.len() < 12 {
         return None;
     }
