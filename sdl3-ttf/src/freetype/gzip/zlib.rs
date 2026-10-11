@@ -5,8 +5,8 @@
 // This is an altered (translated) version of the original software; zlib is
 // used under the zlib license (see zlib.h and LICENSE.txt).
 
-//! The parts of zlib that FreeType's `ftgzip.c` compiles: one-shot
-//! `inflate()` with zlib and gzip wrappers.
+//! The parts of zlib that FreeType's `ftgzip.c` compiles: `inflate()`
+//! with zlib and gzip wrappers, and raw (for the gzip stream).
 //!
 //! Translation notes:
 //! - The fixed Huffman tables are built on first use, as zlib does with
@@ -85,6 +85,59 @@ impl<'a> ZStream<'a> {
             state: None,
             data_type: 0,
             adler: 0,
+        }
+    }
+}
+
+/// The state of a stream between `inflate()` calls that change its
+/// buffers (C assigns new `next_in` and `next_out` pointers): the inflate
+/// state and the counters.
+#[derive(Debug, Default)]
+pub struct ZStreamState {
+    state: Option<Box<InflateState>>,
+    pub total_in: u64,
+    pub total_out: u64,
+    pub msg: Option<&'static str>,
+    pub data_type: i32,
+    pub adler: u64,
+}
+
+impl<'a> ZStream<'a> {
+    /// A stream over new buffers, with the state of an earlier one.
+    pub fn with_state(
+        input: &'a [u8],
+        next_in: usize,
+        avail_in: u32,
+        output: &'a mut [u8],
+        next_out: usize,
+        avail_out: u32,
+        st: ZStreamState,
+    ) -> Self {
+        ZStream {
+            input,
+            next_in,
+            avail_in,
+            total_in: st.total_in,
+            output,
+            next_out,
+            avail_out,
+            total_out: st.total_out,
+            msg: st.msg,
+            state: st.state,
+            data_type: st.data_type,
+            adler: st.adler,
+        }
+    }
+
+    /// The stream's state, for [`ZStream::with_state`].
+    pub fn into_state(self) -> ZStreamState {
+        ZStreamState {
+            state: self.state,
+            total_in: self.total_in,
+            total_out: self.total_out,
+            msg: self.msg,
+            data_type: self.data_type,
+            adler: self.adler,
         }
     }
 }
@@ -673,7 +726,7 @@ fn inflate_reset_keep(strm: &mut ZStream) -> i32 {
 }
 
 /// `inflateReset`
-fn inflate_reset(strm: &mut ZStream) -> i32 {
+pub fn inflate_reset(strm: &mut ZStream) -> i32 {
     if inflate_state_check(strm) {
         return Z_STREAM_ERROR;
     }

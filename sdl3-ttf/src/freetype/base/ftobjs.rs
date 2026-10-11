@@ -504,6 +504,8 @@ pub enum FtCMapData {
     CffEncoding(Box<[FtUShort; 256]>),
     /// the Windows FNT driver's charmap (`FNT_CMapRec`)
     Fnt(super::super::winfonts::winfnt::FntCMapRec),
+    /// the PCF driver's charmap (`PCF_CMapRec`)
+    Pcf(super::super::pcf::pcfdrivr::PcfCMapRec),
     /// the BDF driver's charmap (`BDF_CMapRec`)
     Bdf(super::super::bdf::bdfdrivr::BdfCMapRec),
 }
@@ -766,6 +768,8 @@ pub enum FtFace {
     Tt(Box<TtFaceRec>),
     /// an `FNT_Face` (the Windows FNT driver's)
     Fnt(Box<super::super::winfonts::winfnt::FntFaceRec>),
+    /// a `PCF_Face` (the PCF driver's)
+    Pcf(Box<super::super::pcf::pcf::PcfFaceRec>),
     /// a `BDF_Face` (the BDF driver's)
     Bdf(Box<super::super::bdf::bdfdrivr::BdfFaceRec>),
 }
@@ -776,6 +780,7 @@ impl Deref for FtFace {
         match self {
             FtFace::Tt(f) => &f.root,
             FtFace::Fnt(f) => &f.root,
+            FtFace::Pcf(f) => &f.root,
             FtFace::Bdf(f) => &f.root,
         }
     }
@@ -786,6 +791,7 @@ impl DerefMut for FtFace {
         match self {
             FtFace::Tt(f) => &mut f.root,
             FtFace::Fnt(f) => &mut f.root,
+            FtFace::Pcf(f) => &mut f.root,
             FtFace::Bdf(f) => &mut f.root,
         }
     }

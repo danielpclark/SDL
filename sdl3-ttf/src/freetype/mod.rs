@@ -23,6 +23,7 @@
     clippy::collapsible_if,
     clippy::collapsible_match,
     clippy::explicit_counter_loop,
+    clippy::identity_op,
     clippy::if_same_then_else,
     clippy::implicit_saturating_sub,
     clippy::manual_clamp,
@@ -40,11 +41,14 @@
 pub mod autofit;
 pub mod base;
 pub mod bdf;
+pub mod bzip2;
 pub mod cff;
 pub mod cfftypes;
 pub mod ftimage;
 pub mod fttypes;
 pub mod gzip;
+pub mod lzw;
+pub mod pcf;
 pub mod psaux;
 pub mod pshinter;
 pub mod psnames;
