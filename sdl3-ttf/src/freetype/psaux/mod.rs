@@ -8,23 +8,26 @@
 // This is an altered (translated) version of the original software; it is
 // used under the FreeType License (see FTL.TXT and LICENSE.txt).
 
-//! The PostScript auxiliary module: the CFF glyph builder and decoder
-//! set-up (`psobjs`, `cffdecode`) and the Adobe CFF engine (`psft`,
+//! The PostScript auxiliary module: the PostScript table and parser and
+//! the Type 1, CFF and PS glyph builders and decoder set-up (`psobjs`,
+//! `cffdecode`), the Type 1 decoder set-up (`t1decode`), the Type 1
+//! charmaps (`t1cmap`), the AFM parser (`afmparse`), the PostScript
+//! number conversions (`psconv`) and the Adobe CFF engine (`psft`,
 //! `psfont`, `psintrp`, `pshints`, `psblues`, `psstack`, `psarrst`,
-//! `psread`, `pserror`), which renders CFF and CFF2 charstrings.
+//! `psread`, `pserror`), which renders CFF, CFF2 and (in its Type 1 mode,
+//! `font->isT1`) Type 1 charstrings.
 //!
 //! As SDL_ttf's bundled build configures it, `CFF_CONFIG_OPTION_OLD_ENGINE`
 //! and `T1_CONFIG_OPTION_OLD_ENGINE` are undefined, so the old charstring
-//! interpreters are not compiled. Not translated yet: the parts only the
-//! Type 1, CID and Type 42 drivers use (the PostScript table and parser of
-//! `psobjs`, `t1decode`, `t1cmap`, `afmparse`, `psconv`), and with them the
-//! Adobe engine's Type 1 mode (`font->isT1`, which only those drivers
-//! set); its branches are noted where C has them.
+//! interpreters (`cff_decoder_parse_charstrings`,
+//! `t1_decoder_parse_charstrings`) are not compiled.
 
+pub mod afmparse;
 pub mod cffdecode;
 pub mod psarrst;
 pub mod psauxmod;
 pub mod psblues;
+pub mod psconv;
 pub mod pserror;
 pub mod psfixed;
 pub mod psfont;
@@ -35,6 +38,8 @@ pub mod psintrp;
 pub mod psobjs;
 pub mod psread;
 pub mod psstack;
+pub mod t1cmap;
+pub mod t1decode;
 
 use super::fttypes::*;
 

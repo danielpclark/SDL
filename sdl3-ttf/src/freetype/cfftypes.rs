@@ -304,25 +304,8 @@ pub enum CffSubFontId {
     Sub(usize),
 }
 
-/// `PS_FontInfoRec` (the `font_info` cache of `FT_Get_PS_Font_Info`)
-#[derive(Debug, Clone, Default)]
-pub struct PsFontInfoRec {
-    pub version: Option<Vec<u8>>,
-    pub notice: Option<Vec<u8>>,
-    pub full_name: Option<Vec<u8>>,
-    pub family_name: Option<Vec<u8>>,
-    pub weight: Option<Vec<u8>>,
-    pub italic_angle: FtLong,
-    pub is_fixed_pitch: FtByte,
-    pub underline_position: FtShort,
-    pub underline_thickness: FtUShort,
-}
-
-/// `PS_FontExtraRec`
-#[derive(Debug, Clone, Copy, Default)]
-pub struct PsFontExtraRec {
-    pub fs_type: FtUShort,
-}
+pub use super::t1tables::PsFontInfoRec;
+pub use super::t1types::PsFontExtraRec;
 
 /// `CFF_FontRec`
 #[derive(Debug, Default)]

@@ -34,12 +34,12 @@
 
 //! FreeType Glue Component to Adobe's Interpreter (body).
 //!
-//! The decoder's font instance is the CFF font record's `cf2_instance`,
-//! taken out of it while a glyph is rendered. The glyph data callbacks
-//! are the CFF driver's `cff_get_glyph_data` (an element of the
-//! charstrings index), called directly. The Type 1 functions
-//! (`cf2_getT1SeacComponent`, `cf2_freeT1SeacComponent`) are not
-//! translated yet, with the Type 1 driver.
+//! The decoder's font instance (the CFF font record's `cf2_instance`, or
+//! the Type 1 decoder's) is taken out of it while a glyph is rendered.
+//! The glyph data callbacks are the CFF driver's `cff_get_glyph_data`
+//! (an element of the charstrings index), called directly; a Type 1
+//! seac component's data is the Type 1 font's charstring (the face's,
+//! without an incremental interface).
 
 use std::sync::Arc;
 
@@ -86,7 +86,9 @@ fn cf2_check_transform(transform: &Cf2Matrix, units_per_em: Cf2Int) -> FtResult<
 
 fn cf2_set_glyph_width(decoder: &mut PsDecoder<'_, '_>, width: Cf2Fixed) {
     if !decoder.builder.is_t1 {
-        *decoder.glyph_width = cf2_fixed_to_int(width) as FtPos;
+        if let PsDecoderFont::Cff { glyph_width, .. } = &mut decoder.font {
+            **glyph_width = cf2_fixed_to_int(width) as FtPos;
+        }
     }
 }
 
@@ -216,18 +218,19 @@ pub fn cf2_decoder_parse_charstrings(
 ) -> FtResult<()> {
     let is_t1 = decoder.builder.is_t1;
 
-    /* (Type 1 decoders are not translated yet, so there is always a */
-    /* subfont)                                                       */
+    /* (a Type 1 decoder always has the subfont `t1_make_subfont' made) */
 
     /* CF2 data is saved here across glyphs */
-    let mut font = match decoder.cff.cf2_instance.take() {
+    let mut font = match decoder.cf2_instance().take() {
         Some(font) => font,
         None => {
             /* on first glyph, allocate instance structure */
             let mut font = Box::new(Cf2FontRec::default());
 
             if !is_t1 {
-                font.cffload = decoder.cff.cffload;
+                if let Some(cff) = decoder.cff() {
+                    font.cffload = cff.cffload;
+                }
             }
 
             /* initialize a client outline, to be shared by each glyph rendered */
@@ -242,7 +245,7 @@ pub fn cf2_decoder_parse_charstrings(
 
     let r = cf2_decoder_parse_charstrings_font(&mut font, decoder, charstring_base, charstring_len);
 
-    decoder.cff.cf2_instance = Some(font);
+    *decoder.cf2_instance() = Some(font);
 
     r
 }
@@ -326,22 +329,29 @@ fn cf2_decoder_parse_charstrings_font(
 /// `cf2_getSubfont`: get pointer to current FreeType subfont (based on
 /// current glyphID)
 pub fn cf2_get_subfont(decoder: &PsDecoder<'_, '_>) -> CffSubFontId {
-    decoder.current_subfont
+    decoder.subfont_id()
 }
 
 /// The current subfont's record.
 fn current_subfont<'d>(decoder: &'d PsDecoder<'_, '_>) -> &'d CffSubFontRec {
-    decoder.cff.subfont(decoder.current_subfont)
+    decoder.subfont()
 }
 
-/// `cf2_getVStore`: get pointer to VStore structure
+/// `cf2_getVStore`: get pointer to VStore structure (CFF mode)
 pub fn cf2_get_vstore<'d>(decoder: &'d PsDecoder<'_, '_>) -> &'d CffVStoreRec {
-    &decoder.cff.vstore
+    static EMPTY: std::sync::OnceLock<CffVStoreRec> = std::sync::OnceLock::new();
+
+    match decoder.cff() {
+        Some(cff) => &cff.vstore,
+        None => EMPTY.get_or_init(CffVStoreRec::default),
+    }
 }
 
-/// `cf2_getMaxstack`: get maxstack value from CFF2 Top DICT
+/// `cf2_getMaxstack`: get maxstack value from CFF2 Top DICT (CFF mode)
 pub fn cf2_get_maxstack(decoder: &PsDecoder<'_, '_>) -> FtUInt {
-    decoder.cff.top_font.font_dict.maxstack
+    decoder
+        .cff()
+        .map_or(0, |cff| cff.top_font.font_dict.maxstack)
 }
 
 /// `cf2_getNormalizedVector`: get normalized design vector for current
@@ -466,18 +476,18 @@ pub fn cf2_get_seac_component(
 ) -> FtResult<()> {
     *buf = Cf2BufferRec::default();
 
-    let gid: Cf2Int = cff_lookup_glyph_by_stdcharcode(decoder.cff, code);
+    let PsDecoderFont::Cff { cff, stream, .. } = &mut decoder.font else {
+        return Err(FT_ERR_INVALID_GLYPH_FORMAT);
+    };
+
+    let gid: Cf2Int = cff_lookup_glyph_by_stdcharcode(cff, code);
     if gid < 0 {
         return Err(FT_ERR_INVALID_GLYPH_FORMAT);
     }
 
     /* `get_glyph_callback' (`cff_get_glyph_data') */
     /* TODO: for now, just pass the FreeType error through */
-    let charstring = cff_index_access_element(
-        &decoder.cff.charstrings_index,
-        decoder.stream,
-        gid as Cf2UInt,
-    )?;
+    let charstring = cff_index_access_element(&cff.charstrings_index, stream, gid as Cf2UInt)?;
 
     /* assume input has been validated */
     let len = charstring.len();
@@ -495,6 +505,40 @@ pub fn cf2_free_seac_component(_decoder: &mut PsDecoder<'_, '_>, buf: &mut Cf2Bu
     *buf = Cf2BufferRec::default();
 }
 
+/// `cf2_getT1SeacComponent`
+pub fn cf2_get_t1_seac_component(
+    decoder: &mut PsDecoder<'_, '_>,
+    glyph_index: FtUInt,
+    buf: &mut Cf2BufferRec,
+) -> FtResult<()> {
+    /* (FT_CONFIG_OPTION_INCREMENTAL: no incremental interface) */
+
+    /* For ordinary fonts get the character data stored in the face record. */
+    let Some(charstrings) = decoder.t1().and_then(|t1| t1.charstrings.as_ref()) else {
+        return Err(FT_ERR_INVALID_GLYPH_FORMAT);
+    };
+
+    let start = charstrings
+        .elements
+        .get(glyph_index as usize)
+        .copied()
+        .flatten()
+        .unwrap_or(0);
+    let charstring_len = charstrings.length(glyph_index as usize) as usize;
+
+    *buf = Cf2BufferRec {
+        bytes: charstrings.block.clone(),
+        start,
+        ptr: start,
+        end: start + charstring_len,
+    };
+
+    Ok(())
+}
+
+/// `cf2_freeT1SeacComponent` (no incremental interface)
+pub fn cf2_free_t1_seac_component(_decoder: &mut PsDecoder<'_, '_>, _buf: &mut Cf2BufferRec) {}
+
 /// `cf2_initLocalRegionBuffer`
 pub fn cf2_init_local_region_buffer(
     decoder: &PsDecoder<'_, '_>,
@@ -508,15 +552,45 @@ pub fn cf2_init_local_region_buffer(
         return true; /* error */
     }
 
-    let (Some(locals), Some(bytes)) = (decoder.locals.as_ref(), decoder.locals_bytes.as_ref())
-    else {
-        return true;
-    };
-    buf.bytes = bytes.clone();
-    buf.start = locals[idx as usize];
+    if decoder.builder.is_t1 {
+        let Some(t1) = decoder.t1() else {
+            return true;
+        };
 
-    /* (Type 1 mode is not translated yet) */
-    buf.end = locals[idx as usize + 1];
+        /* The Type 1 driver stores subroutines without the seed bytes. */
+        /* The CID driver stores subroutines with seed bytes.  This     */
+        /* case is taken care of when decoder->subrs_len == 0.          */
+        if let Some(locals) = t1.locals_t1.as_ref() {
+            match locals.elements.get(idx as usize).copied().flatten() {
+                Some(start) => {
+                    buf.bytes = locals.block.clone();
+                    buf.start = start;
+                    buf.end = start + locals.length(idx as usize) as usize;
+                }
+                None => { /* (a NULL subroutine is an empty buffer) */ }
+            }
+        } else {
+            let (Some(locals), Some(bytes)) =
+                (decoder.locals.as_ref(), decoder.locals_bytes.as_ref())
+            else {
+                return true;
+            };
+
+            /* We are using subroutines from a CID font.  We must adjust */
+            /* for the seed bytes.                                       */
+            buf.bytes = bytes.clone();
+            buf.start = locals[idx as usize] + if t1.lenIV >= 0 { t1.lenIV as usize } else { 0 };
+            buf.end = locals[idx as usize + 1];
+        }
+    } else {
+        let (Some(locals), Some(bytes)) = (decoder.locals.as_ref(), decoder.locals_bytes.as_ref())
+        else {
+            return true;
+        };
+        buf.bytes = bytes.clone();
+        buf.start = locals[idx as usize];
+        buf.end = locals[idx as usize + 1];
+    }
 
     buf.ptr = buf.start;
 
