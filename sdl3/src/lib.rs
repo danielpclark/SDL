@@ -198,7 +198,7 @@ pub(crate) mod test_support {
         ("alsa", "libasound with its file/null PCM plugins"),
         ("udev", "libudev and a udev database"),
         ("uinput", "a writable /dev/uinput"),
-        ("hidapi", "the HID backend: hidraw/libudev, or hid.dll"),
+        ("hidapi", "the HID backend: hidraw/libudev, hid.dll, or IOKit"),
         ("ipv6", "IPv6 sockets on the loopback interface (::1)"),
         ("tzdata", "the time zone database in /usr/share/zoneinfo"),
         (
@@ -228,6 +228,15 @@ pub(crate) mod test_support {
             "desktop",
             "an interactive Windows desktop that can show windows",
         ),
+        (
+            "cocoa",
+            "a macOS login session whose window server shows windows (Aqua)",
+        ),
+        (
+            "coreaudio",
+            "CoreAudio with default playback and recording devices",
+        ),
+        ("metal", "a Metal device (MTLCreateSystemDefaultDevice)"),
     ];
 
     /// Whether `SDL3_TEST_REQUIRE` (`all`, or a comma-separated list of
