@@ -72,6 +72,12 @@ pub const PROP_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER: &str =
     "SDL.window.create.win32.pixel_format_hwnd";
 /// Extra extended window styles for the new window (Windows).
 pub const PROP_WINDOW_CREATE_WIN32_STYLE_EX_NUMBER: &str = "SDL.window.create.win32.style_ex";
+/// The `NSWindow` of an existing window to wrap (macOS), as a number.
+/// Translation of `SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER`.
+pub const PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER: &str = "SDL.window.create.cocoa.window";
+/// The `NSView` of an existing window to wrap (macOS), as a number.
+/// Translation of `SDL_PROP_WINDOW_CREATE_COCOA_VIEW_POINTER`.
+pub const PROP_WINDOW_CREATE_COCOA_VIEW_POINTER: &str = "SDL.window.create.cocoa.view";
 
 /// The X11 `Window` to wrap (instead of creating one). Translation of
 /// `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`.
@@ -162,6 +168,12 @@ pub const PROP_WINDOW_WIN32_HWND_POINTER: &str = "SDL.window.win32.hwnd";
 pub const PROP_WINDOW_WIN32_HDC_POINTER: &str = "SDL.window.win32.hdc";
 /// The window's `HINSTANCE` (Windows), as a number.
 pub const PROP_WINDOW_WIN32_INSTANCE_POINTER: &str = "SDL.window.win32.instance";
+/// The window's `NSWindow` (macOS), as a number. Translation of
+/// `SDL_PROP_WINDOW_COCOA_WINDOW_POINTER`.
+pub const PROP_WINDOW_COCOA_WINDOW_POINTER: &str = "SDL.window.cocoa.window";
+/// The tag the window's Metal view gets (macOS). Translation of
+/// `SDL_PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER`.
+pub const PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER: &str = "SDL.window.cocoa.metal_view_tag";
 
 /// Translation of `SDL_PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY`.
 const PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY: &str =
@@ -2074,11 +2086,22 @@ impl Window {
         /* Copy to the current mode now, in case an asynchronous fullscreen window request
          * is in progress. It will be overwritten if a new request is made.
          */
-        let visible = with_window(self.id, |w| {
+        with_window(self.id, |w| {
             w.requested_fullscreen_mode = requested;
             w.current_fullscreen_mode = requested;
-            w.fullscreen_visible()
         })?;
+
+        /* If this is called while in the middle of a Cocoa fullscreen spaces transition,
+         * wait until the transition has completed, or the window can wind up in a weird,
+         * broken state if a mode switch occurs while in a fullscreen space.
+         */
+        #[cfg(target_os = "macos")]
+        if super::drivers::cocoa::is_current_driver()
+            && super::drivers::cocoa::window::is_window_in_fullscreen_space_transition(self.id)
+        {
+            let _ = self.sync();
+        }
+        let visible = with_window(self.id, |w| w.fullscreen_visible())?;
 
         if visible {
             let _ = update_fullscreen_mode(self.id, FullscreenOp::Update, true);

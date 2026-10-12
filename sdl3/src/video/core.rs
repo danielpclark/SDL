@@ -69,6 +69,8 @@ static VIDEO_DEVICE: ReentrantMutex<RefCell<Option<VideoDevice>>> =
 /// Available video drivers. Translation of `bootstrap`.
 #[cfg(not(test))]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
+    #[cfg(target_os = "macos")]
+    &drivers::cocoa::COCOA_BOOTSTRAP,
     #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
     #[cfg(all(unix, not(target_vendor = "apple")))]
@@ -82,6 +84,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
 ];
 #[cfg(test)]
 static BOOTSTRAP: &[&VideoBootStrap] = &[
+    #[cfg(target_os = "macos")]
+    &drivers::cocoa::COCOA_BOOTSTRAP,
     #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
     #[cfg(all(unix, not(target_vendor = "apple")))]
@@ -679,6 +683,68 @@ pub(crate) fn update_fullscreen_mode(
         })?;
     }
 
+    #[cfg(target_os = "macos")]
+    if super::drivers::cocoa::is_current_driver() {
+        // don't do this for X11, etc
+        use super::drivers::cocoa::window as cocoa;
+        /* if the window is going away and no resolution change is necessary,
+        do nothing, or else we may trigger an ugly double-transition
+         */
+        let (is_destroying, last_exclusive, exclusive) = with_window(window, |w| {
+            (
+                w.core.is_destroying,
+                w.last_fullscreen_exclusive_display,
+                w.fullscreen_exclusive,
+            )
+        })?;
+        if is_destroying && last_exclusive == 0 {
+            with_window(window, |w| w.fullscreen_exclusive = false)?;
+            if let Some(display) = display {
+                with_display(display, |d| d.fullscreen_window = None);
+            }
+            return finish_update_fullscreen(window, display);
+        }
+        if commit {
+            // If we're switching between a fullscreen Space and exclusive fullscreen, we need to get back to normal first.
+            if entering
+                && cocoa::is_window_in_fullscreen_space(window)
+                && last_exclusive == 0
+                && exclusive
+            {
+                if !cocoa::set_window_fullscreen_space(window, false, true) {
+                    // (upstream fails with whatever error was set last)
+                    return fullscreen_error(
+                        window,
+                        fullscreen,
+                        commit,
+                        Error::new("Couldn't leave the fullscreen space"),
+                    );
+                }
+            } else if entering && last_exclusive != 0 && !exclusive {
+                let last_displays: Vec<DisplayID> = with_device(|v| {
+                    v.displays
+                        .iter()
+                        .filter(|d| d.fullscreen_window == Some(window))
+                        .map(|d| d.id)
+                        .collect()
+                })?;
+                for last_display in last_displays {
+                    let _ = display::set_display_mode_for_display(last_display, None);
+                    let _ = driver.set_window_fullscreen(window, last_display, FullscreenOp::Leave);
+                    with_display(last_display, |d| d.fullscreen_window = None);
+                }
+            }
+
+            if cocoa::set_window_fullscreen_space(
+                window,
+                entering,
+                SYNC_HINT.load(Ordering::Relaxed),
+            ) {
+                return finish_update_fullscreen(window, display);
+            }
+        }
+    }
+
     if let Some(display) = display {
         // Restore the video mode on other displays if needed
         let others: Vec<DisplayID> = with_device(|v| {
@@ -1125,6 +1191,16 @@ fn should_minimize_on_focus_loss(window: WindowID) -> bool {
 
     if !fullscreen || destroying {
         return false;
+    }
+
+    #[cfg(target_os = "macos")]
+    if super::drivers::cocoa::is_current_driver() {
+        // don't do this for X11, etc
+        if super::drivers::cocoa::window::is_showing_modal_dialog(window) {
+            return false; // modal system dialogs can live over fullscreen windows, don't minimize.
+        } else if super::drivers::cocoa::window::is_window_in_fullscreen_space(window) {
+            return false;
+        }
     }
 
     // Real fullscreen windows should minimize on focus loss so the desktop video mode is restored
