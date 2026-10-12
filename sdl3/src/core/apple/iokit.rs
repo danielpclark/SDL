@@ -446,6 +446,7 @@ unsafe extern "C" {
         context: *mut CFRunLoopSourceContext,
     ) -> CFRunLoopSourceRef;
     pub(crate) fn CFRunLoopSourceSignal(source: CFRunLoopSourceRef);
+    pub(crate) fn CFStringGetSystemEncoding() -> CFStringEncoding;
 }
 
 #[link(name = "System", kind = "dylib")]

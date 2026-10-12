@@ -416,7 +416,7 @@ unsafe extern "C" fn joystick_device_was_removed_callback(
     _sender: *mut c_void,
 ) {
     let instance_id = ctx as usize as JoystickID;
-    let _ffservice = {
+    let ffservice = {
         let mut state = lock_state();
         let Some(device) = state.device_by_id(instance_id) else {
             return;
@@ -431,6 +431,7 @@ unsafe extern "C" fn joystick_device_was_removed_callback(
         release_force_feedback(device);
         device.ffservice
     };
+    crate::haptic::darwin::mac_haptic_maybe_remove_device(ffservice);
 
     private_joystick_removed(instance_id);
 }
@@ -878,6 +879,7 @@ unsafe extern "C" fn joystick_device_was_added_callback(
     // SAFETY: a valid service.
     if ioservice != 0 && unsafe { FFIsForceFeedback(ioservice) } == FF_OK {
         device.ffservice = ioservice;
+        crate::haptic::darwin::mac_haptic_maybe_add_device(ioservice);
     }
 
     // Add device to the end of the list
@@ -1394,7 +1396,6 @@ impl JoystickDriver for DarwinJoystickDriver {
 /// Whether an open joystick is one of this driver's with a force feedback
 /// service, and that service (the `joystick->hwdata->ffservice` the
 /// Darwin haptic driver reads).
-#[allow(dead_code)] // (used by the haptic driver)
 pub(crate) fn joystick_ffservice(joystick: JoystickID) -> Option<IoService> {
     assert_joysticks_locked();
     lock_state().hwdata(joystick).map(|d| d.ffservice)
