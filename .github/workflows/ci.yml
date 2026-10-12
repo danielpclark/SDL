@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -47,8 +47,12 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
+          # Intel Macs: the x86-64 build is linted on the Apple Silicon runner
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || '' }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      - if: matrix.os == 'macos-latest'
+        run: cargo clippy --workspace --all-targets --target x86_64-apple-darwin -- -D warnings
       # sdl3-mixer's zlib-only build (no `timidity` feature)
       - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
 
@@ -57,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         # the pinned toolchain, and the minimum supported version
         # (rust-version in Cargo.toml)
         toolchain: [pinned, "1.87"]
@@ -70,8 +74,9 @@ jobs:
       # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
       # the packages installed below provide on ubuntu: tests that would
       # skip without them fail instead. Not uinput (the runner can't use
-      # /dev/uinput); the Windows jobs require nothing, since what a hosted
-      # runner offers (an audio endpoint, a usable desktop) isn't pinned down.
+      # /dev/uinput); the Windows and macOS jobs require nothing, since what a
+      # hosted runner offers (an audio endpoint, a usable desktop, a Metal
+      # device) isn't pinned down.
       LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales
     steps:
       - uses: actions/checkout@v5
