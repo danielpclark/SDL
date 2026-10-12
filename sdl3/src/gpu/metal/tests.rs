@@ -6,7 +6,8 @@
 //! and the blit libraries against their format. The device tests make a
 //! headless device (the system default Metal device) through the front end
 //! on the offscreen video driver, with a bootstrap that doesn't ask the
-//! video driver for Metal views (which only the windows need), create and
+//! video driver for Metal views (which only the windows need:
+//! [`METAL_HEADLESS_TEST_DRIVER`]), create and
 //! release every kind of resource, and read the results back exactly:
 //! clears, uploads, copies, draws with vertex buffers, uniforms, samplers
 //! and storage resources (indexed and indirect too), compute dispatches,
@@ -175,26 +176,10 @@ impl Drop for Video {
     }
 }
 
-/// The Metal backend without its need for the video driver's Metal views
-/// (`PrepareDriver` checks the shader formats only), for devices without
-/// windows on the offscreen driver.
-static METAL_TEST_DRIVER: GpuBootstrap = GpuBootstrap {
-    name: "metal",
-    prepare_driver: |_video, props| {
-        props
-            .get_bool(crate::gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN)
-            .unwrap_or(false)
-            || props
-                .get_bool(crate::gpu::PROP_GPU_DEVICE_CREATE_SHADERS_METALLIB_BOOLEAN)
-                .unwrap_or(false)
-    },
-    create_device: metal_create_device,
-};
-
 /// A debug-mode device through the front end, or `None` (with the skip
 /// reported) without a Metal device.
 fn front_end_device() -> Option<Device> {
-    *crate::gpu::TEST_BACKENDS.lock().unwrap() = Some(vec![&METAL_TEST_DRIVER]);
+    *crate::gpu::TEST_BACKENDS.lock().unwrap() = Some(vec![&METAL_HEADLESS_TEST_DRIVER]);
     let device = Device::new(ShaderFormat::MSL, true, Some("metal"));
     *crate::gpu::TEST_BACKENDS.lock().unwrap() = None;
     match device {

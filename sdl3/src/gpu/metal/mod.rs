@@ -88,6 +88,24 @@ pub(crate) static METAL_DRIVER: GpuBootstrap = GpuBootstrap {
     create_device: metal_create_device,
 };
 
+/// The Metal backend without its need for the video driver's Metal views
+/// (`PrepareDriver` checks the shader formats only), for the tests' devices
+/// without windows on the offscreen driver (the GPU API's and the GPU
+/// renderer's).
+#[cfg(test)]
+pub(crate) static METAL_HEADLESS_TEST_DRIVER: GpuBootstrap = GpuBootstrap {
+    name: "metal",
+    prepare_driver: |_video, props| {
+        props
+            .get_bool(super::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN)
+            .unwrap_or(false)
+            || props
+                .get_bool(super::PROP_GPU_DEVICE_CREATE_SHADERS_METALLIB_BOOLEAN)
+                .unwrap_or(false)
+    },
+    create_device: metal_create_device,
+};
+
 /// `METAL_CreateDevice()` for the bootstrap: the renderer as a driver.
 fn metal_create_device(
     debug_mode: bool,
