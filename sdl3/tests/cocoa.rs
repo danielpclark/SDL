@@ -9,7 +9,8 @@
 //! windows (geometry, visibility, flags, fullscreen, popups), text input,
 //! the clipboard, cursors, the keymap, mouse warping and message boxes;
 //! OpenGL contexts (NSOpenGL: legacy and core profiles, sharing, swap
-//! intervals) drawn and read back, Metal views and their layers' drawable
+//! intervals) drawn and read back, the opengl 2D renderer against the
+//! software renderer, window surfaces through a renderer texture, Metal views and their layers' drawable
 //! sizes, Vulkan surfaces through MoltenVK (capability `vulkan`: the
 //! loader by its default names, or Homebrew's), and OpenGL ES through EGL
 //! with ANGLE
@@ -139,6 +140,8 @@ mod macos {
         mouse_warp();
         message_box();
         opengl();
+        renderer();
+        window_surface();
         metal();
         vulkan();
         opengl_es();
@@ -708,6 +711,288 @@ mod macos {
         window.destroy();
         hints::reset(hints::VULKAN_LIBRARY);
         println!("cocoa: vulkan ok");
+    }
+
+    // The opengl renderer against the software renderer (as
+    // render::opengl::tests on the other platforms).
+
+    const RW: i32 = 64;
+    const RH: i32 = 48;
+
+    /// The pixels of a surface as tightly packed RGBA32.
+    fn rgba(surface: &Surface<'_>) -> (i32, i32, Vec<u8>) {
+        let s = surface.convert(PixelFormat::RGBA32).unwrap();
+        let (w, h, pitch) = (s.width(), s.height(), s.pitch() as usize);
+        let pixels = s.pixels().unwrap();
+        let mut out = Vec::new();
+        for y in 0..h as usize {
+            out.extend_from_slice(&pixels[y * pitch..y * pitch + w as usize * 4]);
+        }
+        (w, h, out)
+    }
+
+    /// Compare two images: at most `max_bad` pixels may have a color
+    /// channel off by more than `tolerance`.
+    fn compare(
+        what: &str,
+        a: &(i32, i32, Vec<u8>),
+        b: &(i32, i32, Vec<u8>),
+        tolerance: u8,
+        max_bad: usize,
+    ) {
+        assert_eq!((a.0, a.1), (b.0, b.1), "{what}: sizes");
+        let mut bad = 0;
+        let mut first = None;
+        for (i, (pa, pb)) in a.2.chunks(4).zip(b.2.chunks(4)).enumerate() {
+            if (0..3).any(|c| pa[c].abs_diff(pb[c]) > tolerance) {
+                bad += 1;
+                if first.is_none() {
+                    first = Some((i as i32 % a.0, i as i32 / a.0, pa.to_vec(), pb.to_vec()));
+                }
+            }
+        }
+        assert!(
+            bad <= max_bad,
+            "{what}: {bad} pixels differ (first at {first:?}: opengl vs software)"
+        );
+    }
+
+    /// Draw a scene with the window's renderer and a software renderer and
+    /// compare the results.
+    fn compare_scene(
+        gl: &mut sdl3::render::Renderer,
+        what: &str,
+        tolerance: u8,
+        max_bad: usize,
+        scene: impl Fn(&mut sdl3::render::Renderer) -> sdl3::error::Result<()>,
+    ) {
+        scene(gl).unwrap_or_else(|e| panic!("{what}: opengl: {}", e.message()));
+        let a = rgba(&gl.read_pixels(None).unwrap());
+        gl.present().unwrap();
+        let mut sw =
+            sdl3::render::Renderer::software(Surface::new(RW, RH, PixelFormat::ARGB8888).unwrap())
+                .unwrap();
+        scene(&mut sw).unwrap_or_else(|e| panic!("{what}: software: {}", e.message()));
+        let b = rgba(&sw.read_pixels(None).unwrap());
+        compare(what, &a, &b, tolerance, max_bad);
+    }
+
+    /// A 16x16 texture of a pattern with varying alpha.
+    fn pattern_surface(format: PixelFormat) -> Surface<'static> {
+        let mut s = Surface::new(16, 16, format).unwrap();
+        for y in 0..16 {
+            for x in 0..16 {
+                let c = video::Color::new(
+                    (x * 16) as u8,
+                    (y * 16) as u8,
+                    ((x + y) * 8) as u8,
+                    if (x + y) % 3 == 0 {
+                        255
+                    } else {
+                        (x * 8 + y * 7) as u8
+                    },
+                );
+                s.write_pixel(x, y, c).unwrap();
+            }
+        }
+        s
+    }
+
+    fn renderer() {
+        use sdl3::render::{Renderer, TextureAccess};
+        use video::BlendMode;
+        use video::{FPoint, FRect};
+
+        let window = Window::create("SDL Cocoa renderer", RW, RH, WindowFlags::default()).unwrap();
+        pump_for(100);
+        let mut r = Renderer::for_window(&window, Some("opengl")).unwrap();
+        assert_eq!(r.name(), "opengl");
+        assert_eq!(r.output_size().unwrap(), (RW, RH));
+        // Apple's 4:2:2 YCbCr textures (GL_APPLE_ycbcr_422)
+        assert!(
+            r.texture_formats().contains(&PixelFormat::UYVY),
+            "{:?}",
+            r.texture_formats()
+        );
+
+        compare_scene(&mut r, "clear and fill", 0, 0, |r| {
+            r.set_draw_color(10, 20, 30, 255);
+            r.clear()?;
+            r.set_draw_color(200, 100, 50, 255);
+            r.render_fill_rect(Some(&FRect::new(8.0, 8.0, 32.0, 24.0)))?;
+            r.set_draw_color(0, 255, 0, 255);
+            r.render_fill_rects(&[
+                FRect::new(-5.0, -5.0, 10.0, 10.0),
+                FRect::new(50.0, 40.0, 30.0, 30.0),
+            ])?;
+            r.set_draw_color(255, 255, 255, 255);
+            r.render_rect(Some(&FRect::new(2.0, 30.0, 12.0, 10.0)))
+        });
+        compare_scene(&mut r, "points and lines", 0, 4, |r| {
+            r.set_draw_color(0, 0, 0, 255);
+            r.clear()?;
+            r.set_draw_color(255, 128, 0, 255);
+            let points: Vec<FPoint> = (0..40)
+                .map(|i| FPoint {
+                    x: (i * 7 % 64) as f32,
+                    y: (i * 5 % 48) as f32,
+                })
+                .collect();
+            r.render_points(&points)?;
+            r.set_draw_color(255, 255, 0, 255);
+            r.render_line(0.0, 0.0, 63.0, 0.0)?;
+            r.render_line(5.0, 3.0, 5.0, 40.0)?;
+            r.render_line(10.0, 10.0, 40.0, 30.0)
+        });
+        compare_scene(&mut r, "viewport and clip", 0, 0, |r| {
+            r.set_draw_color(0, 0, 0, 255);
+            r.clear()?;
+            r.set_viewport(Some(&video::Rect::new(10, 6, 40, 30)))?;
+            r.set_draw_color(255, 0, 0, 255);
+            r.render_fill_rect(None)?;
+            r.set_clip_rect(Some(&video::Rect::new(5, 5, 12, 8)))?;
+            r.set_draw_color(0, 0, 255, 255);
+            r.render_fill_rect(Some(&FRect::new(0.0, 0.0, 30.0, 30.0)))?;
+            r.set_clip_rect(None)?;
+            r.set_viewport(None)
+        });
+        compare_scene(&mut r, "blend modes", 2, 0, |r| {
+            r.set_draw_blend_mode(BlendMode::NONE)?;
+            r.set_draw_color(10, 20, 30, 255);
+            r.clear()?;
+            for (i, mode) in [
+                BlendMode::BLEND,
+                BlendMode::ADD,
+                BlendMode::MOD,
+                BlendMode::MUL,
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                r.set_draw_blend_mode(mode)?;
+                r.set_draw_color(220, 90, 40, 128);
+                r.render_fill_rect(Some(&FRect::new(i as f32 * 12.0, 12.0, 10.0, 30.0)))?;
+            }
+            Ok(())
+        });
+        for format in [
+            PixelFormat::ARGB8888,
+            PixelFormat::ABGR8888,
+            PixelFormat::RGB24,
+            PixelFormat::XRGB8888,
+        ] {
+            compare_scene(&mut r, &format!("texture {format:?}"), 2, 0, |r| {
+                r.set_draw_blend_mode(BlendMode::NONE)?;
+                r.set_draw_color(40, 50, 60, 255);
+                r.clear()?;
+                let tex = r.create_texture_from_surface(&mut pattern_surface(format))?;
+                r.set_texture_scale_mode(tex, video::ScaleMode::Nearest)?;
+                r.render_texture(tex, None, Some(&FRect::new(4.0, 4.0, 16.0, 16.0)))?;
+                r.set_texture_color_mod(tex, 255, 128, 64)?;
+                r.set_texture_alpha_mod(tex, 160)?;
+                r.render_texture(tex, None, Some(&FRect::new(24.0, 8.0, 32.0, 32.0)))?;
+                r.destroy_texture(tex);
+                Ok(())
+            });
+        }
+        // A streaming texture (Apple client storage when 8-aligned), updated twice
+        compare_scene(&mut r, "streaming texture", 0, 0, |r| {
+            r.set_draw_color(0, 0, 0, 255);
+            r.clear()?;
+            let tex = r.create_texture(PixelFormat::ARGB8888, TextureAccess::Streaming, 16, 8)?;
+            r.set_texture_scale_mode(tex, video::ScaleMode::Nearest)?;
+            let mut pixels = vec![0u8; 16 * 8 * 4];
+            for (i, p) in pixels.chunks_mut(4).enumerate() {
+                p.copy_from_slice(&[(i * 3) as u8, (i * 5) as u8, 200, 255]);
+            }
+            r.update_texture(tex, None, &pixels, 64)?;
+            r.render_texture(tex, None, Some(&FRect::new(0.0, 0.0, 16.0, 8.0)))?;
+            for p in pixels.chunks_mut(4) {
+                p[..3].iter_mut().for_each(|b| *b = b.wrapping_add(40));
+            }
+            r.update_texture(tex, None, &pixels, 64)?;
+            r.render_texture(tex, None, Some(&FRect::new(20.0, 20.0, 16.0, 8.0)))?;
+            r.destroy_texture(tex);
+            Ok(())
+        });
+        // Render targets
+        compare_scene(&mut r, "render target", 0, 0, |r| {
+            let target = r.create_texture(PixelFormat::ARGB8888, TextureAccess::Target, 32, 24)?;
+            r.set_render_target(Some(target))?;
+            r.set_draw_color(255, 0, 255, 255);
+            r.clear()?;
+            r.set_draw_color(0, 255, 0, 255);
+            r.render_fill_rect(Some(&FRect::new(4.0, 4.0, 8.0, 8.0)))?;
+            r.set_render_target(None)?;
+            r.set_draw_color(0, 0, 0, 255);
+            r.clear()?;
+            r.set_texture_scale_mode(target, video::ScaleMode::Nearest)?;
+            r.render_texture(target, None, Some(&FRect::new(8.0, 8.0, 32.0, 24.0)))?;
+            r.destroy_texture(target);
+            Ok(())
+        });
+        drop(r);
+        window.destroy();
+        println!("cocoa: opengl renderer ok");
+    }
+
+    fn window_surface() {
+        // Cocoa has no window framebuffer: surfaces go through a renderer's
+        // streaming texture (SDL_CreateWindowTexture()).
+        let window = Window::create("SDL Cocoa surface", 80, 60, WindowFlags::RESIZABLE).unwrap();
+        pump_for(100);
+        let surface = window.surface().unwrap();
+        assert!(window.has_surface().unwrap());
+        {
+            let mut s = surface.lock();
+            assert_eq!((s.width(), s.height()), window.size_in_pixels().unwrap());
+            println!(
+                "cocoa: window surface {:?} {}x{}",
+                s.format(),
+                s.width(),
+                s.height()
+            );
+            let color = s
+                .format()
+                .details()
+                .unwrap()
+                .map_rgba(None, video::Color::new(255, 0, 0, 255))
+                .unwrap();
+            s.fill_rect(None, color).unwrap();
+        }
+        surface.update().unwrap();
+        surface
+            .update_rects(&[
+                video::Rect::new(0, 0, 10, 10),
+                video::Rect::new(20, 30, 5, 5),
+            ])
+            .unwrap();
+        window.set_surface_vsync(1).unwrap();
+        assert_eq!(window.surface_vsync().unwrap(), 1);
+        window.set_surface_vsync(0).unwrap();
+        // The window's renderer is the surface's.
+        assert!(sdl3::render::Renderer::for_window(&window, None).is_err());
+
+        // A new size invalidates the surface; the next one has the new size.
+        window.set_size(100, 70).unwrap();
+        pump_for(200);
+        assert!(surface.update().is_err());
+        let surface = window.surface().unwrap();
+        assert_eq!(
+            {
+                let s = surface.lock();
+                (s.width(), s.height())
+            },
+            window.size_in_pixels().unwrap()
+        );
+        surface.update().unwrap();
+        window.destroy_surface().unwrap();
+        assert!(!window.has_surface().unwrap());
+        // The renderer went with the surface.
+        let r = sdl3::render::Renderer::for_window(&window, Some("opengl")).unwrap();
+        drop(r);
+        window.destroy();
+        println!("cocoa: window surfaces ok");
     }
 
     fn displays_and_modes() {

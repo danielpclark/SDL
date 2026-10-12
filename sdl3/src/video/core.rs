@@ -42,6 +42,9 @@ pub(crate) struct VideoDevice {
     pub(crate) caps: DeviceCaps,
     pub(crate) thread: ThreadID,
     pub(crate) checked_texture_framebuffer: bool,
+    /// Whether the window framebuffer functions are the texture ones
+    /// (`SDL_CreateWindowTexture()` and co. replaced the driver's).
+    pub(crate) texture_framebuffer: bool,
     pub(crate) suspend_screensaver: bool,
     pub(crate) wakeup_window: Option<WindowID>,
     pub(crate) displays: Vec<VideoDisplay>,
@@ -304,6 +307,7 @@ pub(crate) fn init_video(driver_name: Option<&str>) -> Result<()> {
         driver: driver.clone(),
         thread: current_thread_id(),
         checked_texture_framebuffer: false,
+        texture_framebuffer: false,
         suspend_screensaver: false,
         wakeup_window: None,
         displays: Vec::new(),
