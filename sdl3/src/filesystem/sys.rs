@@ -100,6 +100,7 @@ pub(super) fn get_pref_path(org: &str, app: &str) -> Result<String> {
      * http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
      */
     let envr = getenv("XDG_DATA_HOME");
+    #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
     let (mut org, mut app) = (org.to_owned(), app.to_owned());
 
     #[cfg(target_os = "linux")]

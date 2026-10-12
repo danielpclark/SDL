@@ -198,7 +198,10 @@ pub(crate) mod test_support {
         ("alsa", "libasound with its file/null PCM plugins"),
         ("udev", "libudev and a udev database"),
         ("uinput", "a writable /dev/uinput"),
-        ("hidapi", "the HID backend: hidraw/libudev, hid.dll, or IOKit"),
+        (
+            "hidapi",
+            "the HID backend: hidraw/libudev, hid.dll, or IOKit",
+        ),
         ("ipv6", "IPv6 sockets on the loopback interface (::1)"),
         ("tzdata", "the time zone database in /usr/share/zoneinfo"),
         (

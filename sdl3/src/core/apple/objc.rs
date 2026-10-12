@@ -275,6 +275,7 @@ pub(crate) use msg_send;
 
 /// `[super selector...]` in a method of `class` (the class that defines
 /// the method, whose superclass's implementation is called).
+#[allow(unused_macros)]
 macro_rules! msg_send_super {
     ($obj:expr, $class:expr, $name:ident) => {
         $crate::core::apple::objc::send_super(
@@ -846,6 +847,7 @@ impl DeclaredClass {
 }
 
 /// Cast a method implementation to [`Imp`] for [`ClassBuilder::add_method`].
+#[allow(unused_macros)]
 macro_rules! imp {
     ($f:expr) => {{
         // SAFETY: a function pointer, to be called with its own signature

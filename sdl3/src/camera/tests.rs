@@ -619,6 +619,7 @@ fn quit_while_open() {
 /// cameras, open the first one in its preferred format and grab ten frames,
 /// checking their size and format and that their timestamps advance. A
 /// driver that doesn't start skips as `capability`, no camera as `camera`.
+#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 pub(super) fn hardware_capture(driver: &str, capability: &str) {
     use std::time::{Duration, Instant};
     crate::hints::set(crate::hints::CAMERA_DRIVER, driver).unwrap();

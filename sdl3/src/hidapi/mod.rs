@@ -482,6 +482,7 @@ fn is_hidraw_node(name: &[u8]) -> bool {
 }
 
 /// Translation of `HIDAPI_UpdateDiscovery()`.
+#[cfg_attr(target_vendor = "apple", allow(clippy::needless_return))]
 fn update_discovery(state: &mut HidapiState) {
     if !state.discovery.initialized {
         initialize_discovery(state);
@@ -671,6 +672,8 @@ fn shutdown_discovery(state: &mut HidapiState) {
 /// If the platform has any backend other than libusb, try to avoid using
 /// libusb as the main backend for devices, since it detaches drivers and
 /// therefore makes devices inaccessible to the rest of the OS.
+// (until the macOS backend uses them)
+#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 const LIBUSB_REQUIRED: [(u16, u16); 6] = [
     (USB_VENDOR_NINTENDO, USB_PRODUCT_NINTENDO_GAMECUBE_ADAPTER),
     (
@@ -690,6 +693,7 @@ const LIBUSB_REQUIRED: [(u16, u16); 6] = [
 ];
 
 /// Translation of `RequiresLibUSB()`.
+#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 fn requires_libusb(vendor: u16, product: u16, libusb_xbox: bool) -> bool {
     if LIBUSB_REQUIRED.contains(&(vendor, product)) {
         return true;
@@ -720,6 +724,7 @@ static IGNORED_DEVICES: Mutex<Option<String>> = Mutex::new(None);
 
 /// Whether a device should be left out of the enumeration.
 /// Translation of `SDL_HIDAPI_ShouldIgnoreDevice()`.
+#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 pub(crate) fn should_ignore_device(
     bus: BusType,
     vendor_id: u16,
