@@ -165,7 +165,14 @@ fn errors() {
     // Help.
     let out = shadercross(&["--help".as_ref()]);
     assert_eq!(out.status.code(), Some(0));
+    // (the first line; on Apple platforms the log goes through NSLog(),
+    // which puts its timestamp and process in front)
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let first = stderr.lines().next().unwrap_or("");
     assert!(
-        String::from_utf8_lossy(&out.stderr).starts_with("Usage: shadercross <input> [options]\n")
+        first == "Usage: shadercross <input> [options]"
+            || (cfg!(target_vendor = "apple")
+                && first.ends_with("] Usage: shadercross <input> [options]")),
+        "{first:?}"
     );
 }
