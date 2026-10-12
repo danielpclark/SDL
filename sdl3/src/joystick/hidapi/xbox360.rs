@@ -5,9 +5,8 @@
 
 //! The wired Xbox 360 controller driver.
 //!
-//! Not translated: the macOS parts (the 360Controller driver and the
-//! GCController checks) and the XInput capabilities read through libusb,
-//! whose backends aren't translated.
+//! Not translated: the XInput capabilities read through libusb, whose
+//! backend isn't translated.
 
 use super::rumble::send_rumble;
 use super::{
@@ -82,14 +81,15 @@ impl DriverImpl for Xbox360Driver {
     }
 
     /// Translation of `HIDAPI_DriverXbox360_IsSupportedDevice()`.
+    #[cfg_attr(not(target_os = "macos"), allow(unused_variables))]
     fn is_supported_device(
         &self,
-        _device: Option<&HidapiDevice>,
+        device: Option<&HidapiDevice>,
         _name: &str,
         gamepad_type: GamepadType,
         vendor_id: u16,
         product_id: u16,
-        _version: u16,
+        version: u16,
         interface_number: i32,
         _interface_class: i32,
         _interface_subclass: i32,
@@ -122,12 +122,59 @@ impl DriverImpl for Xbox360Driver {
             // This is the chatpad or other input interface, not the Xbox 360 interface
             return false;
         }
+        #[cfg(target_os = "macos")]
+        if is_controlled_by_360_controller_driver_macos(device) {
+            // Wired Xbox controllers are handled by this driver, when they are
+            // controlled by the 360Controller driver available from:
+            // https://github.com/360Controller/360Controller/releases
+            return true;
+        }
+        #[cfg(target_os = "macos")]
+        if crate::joystick::JOYSTICK_MFI && hints::get_bool(hints::JOYSTICK_MFI, true) {
+            if is_joystick_steam_virtual_gamepad(vendor_id, product_id, version) {
+                // GCController support doesn't work with the Steam Virtual Gamepad
+                return true;
+            }
+            if device.is_some_and(|d| d.path().starts_with("DevSrvsID")) {
+                // On macOS when it isn't controlled by the 360Controller driver and
+                // it doesn't look like a Steam virtual gamepad and it's not
+                // available via libusb we should rely on GCController support.
+                return false;
+            }
+        }
         gamepad_type == GamepadType::Xbox360
     }
 
     fn new_context(&self) -> Box<dyn DriverContext> {
         Box::new(Xbox360Context::default())
     }
+}
+
+/// Whether the device is controlled by the 360Controller driver (its I/O
+/// Registry entry conforms to `Xbox360ControllerClass`). Translation of
+/// `IsControlledBy360ControllerDriverMacOS()`.
+#[cfg(target_os = "macos")]
+fn is_controlled_by_360_controller_driver_macos(device: Option<&HidapiDevice>) -> bool {
+    use crate::core::apple::iokit::{
+        IOObjectConformsTo, IOObjectRelease, IORegistryEntryIDMatching,
+        IOServiceGetMatchingService, MACH_PORT_NULL,
+    };
+
+    let mut controlled_by_360controller = false;
+    if let Some(rest) = device.and_then(|d| d.path().strip_prefix("DevSrvsID:")) {
+        let (entry_id, _) = crate::stdlib::string::strtoull(rest, 10);
+        // SAFETY: the matching dictionary is consumed by the call; the
+        // service is released once.
+        unsafe {
+            let service = IOServiceGetMatchingService(0, IORegistryEntryIDMatching(entry_id));
+            if service != MACH_PORT_NULL {
+                controlled_by_360controller =
+                    IOObjectConformsTo(service, c"Xbox360ControllerClass".as_ptr()) != 0;
+                IOObjectRelease(service);
+            }
+        }
+    }
+    controlled_by_360controller
 }
 
 /// Translation of `SDL_DriverXbox360_Context`.
@@ -139,6 +186,10 @@ struct Xbox360Context {
     #[allow(dead_code)] // (filled in through libusb upstream)
     capabilities: XInputCapabilities,
     last_state: [u8; USB_PACKET_LENGTH],
+    #[cfg(target_os = "macos")]
+    controlled_by_360controller: bool,
+    #[cfg(target_os = "macos")]
+    is_steam_virtual_gamepad: bool,
     /// The `SDL_PlayerLEDHintChanged()` callback.
     player_led_hint: Option<HintWatch>,
 }
@@ -151,6 +202,10 @@ impl Default for Xbox360Context {
             player_lights: false,
             capabilities: XInputCapabilities::default(),
             last_state: [0; USB_PACKET_LENGTH],
+            #[cfg(target_os = "macos")]
+            controlled_by_360controller: false,
+            #[cfg(target_os = "macos")]
+            is_steam_virtual_gamepad: false,
             player_led_hint: None,
         }
     }
@@ -203,7 +258,12 @@ impl Xbox360Context {
         data: &[u8],
         size: usize,
     ) {
-        const INVERT_Y_AXES: bool = true;
+        // For backwards compatibility reasons, the 360Controller driver and the Steam Virtual
+        // Gamepad require opposite Y axis inversion on macOS
+        #[cfg(target_os = "macos")]
+        let invert_y_axes = !(self.controlled_by_360controller || self.is_steam_virtual_gamepad);
+        #[cfg(not(target_os = "macos"))]
+        let invert_y_axes = true;
         let timestamp = crate::timer::ticks_ns();
 
         if self.last_state[2] != data[2] {
@@ -294,7 +354,7 @@ impl Xbox360Context {
             );
         }
 
-        send_state_axes(device, timestamp, joystick, data, INVERT_Y_AXES);
+        send_state_axes(device, timestamp, joystick, data, invert_y_axes);
 
         let n = size.min(self.last_state.len());
         self.last_state[..n].copy_from_slice(&data[..n]);
@@ -341,6 +401,17 @@ pub(crate) fn steam_virtual_gamepad_slot(product_string: &str) -> Option<i32> {
 impl DriverContext for Xbox360Context {
     /// Translation of `HIDAPI_DriverXbox360_InitDevice()`.
     fn init_device(&mut self, device: &mut DeviceCtx<'_>) -> Result<()> {
+        #[cfg(target_os = "macos")]
+        {
+            self.controlled_by_360controller =
+                is_controlled_by_360_controller_driver_macos(Some(device.device()));
+            self.is_steam_virtual_gamepad = is_joystick_steam_virtual_gamepad(
+                device.vendor_id(),
+                device.product_id(),
+                device.version(),
+            );
+        }
+
         device.set_gamepad_type(GamepadType::Xbox360);
 
         if is_joystick_steam_virtual_gamepad(
@@ -408,6 +479,18 @@ impl DriverContext for Xbox360Context {
         low_frequency_rumble: u16,
         high_frequency_rumble: u16,
     ) -> Result<()> {
+        #[cfg(target_os = "macos")]
+        if self.controlled_by_360controller {
+            // On macOS the 360Controller driver uses this short report,
+            // and we need to prefix it with a magic token so hidapi passes it through untouched
+            let mut rumble_packet = [b'M', b'A', b'G', b'I', b'C', b'0', 0x00, 0x04, 0x00, 0x00];
+            rumble_packet[6 + 2] = (low_frequency_rumble >> 8) as u8;
+            rumble_packet[6 + 3] = (high_frequency_rumble >> 8) as u8;
+            if send_rumble(device.device(), &rumble_packet).ok() != Some(rumble_packet.len()) {
+                return Err(Error::new("Couldn't send rumble packet"));
+            }
+            return Ok(());
+        }
         let mut rumble_packet = [0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
         rumble_packet[3] = (low_frequency_rumble >> 8) as u8;

@@ -3448,6 +3448,9 @@ impl DriverContext for SwitchContext {
         self.sync_write = true;
 
         if !self.input_only {
+            // Wait for the OS to finish its handshake with the controller
+            #[cfg(target_os = "macos")]
+            crate::timer::delay(std::time::Duration::from_millis(250));
             self.get_initial_input_mode(link);
             self.current_input_mode = self.initial_input_mode;
 

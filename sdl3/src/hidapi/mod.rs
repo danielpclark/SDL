@@ -12,11 +12,12 @@
 //! is the report number (0 for devices that only have one report).
 //!
 //! The backends are the platform's own HID interfaces: `hidraw` on Linux
-//! (devices found through libudev, which is loaded at run time) and the HID
+//! (devices found through libudev, which is loaded at run time), the HID
 //! class driver on Windows (`hid.dll` and `cfgmgr32.dll`, loaded at run
-//! time). The libusb, macOS (IOHIDManager), Android and iOS backends of
-//! upstream are not translated: on platforms other than Linux and Windows
-//! there are no devices, as in an SDL built without a HID backend.
+//! time) and the IOHIDManager on macOS (IOKit, linked as upstream links
+//! it). The libusb, Android and iOS backends of upstream are not
+//! translated: on other platforms there are no devices, as in an SDL built
+//! without a HID backend.
 //!
 //! Every function initializes the library on first use; [`init`] and
 //! [`exit`] are counted, like upstream's `SDL_hid_init()` and
@@ -32,6 +33,8 @@
 mod descriptor_reconstruct;
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod mac;
 #[cfg(windows)]
 mod windows;
 
@@ -46,6 +49,8 @@ use crate::properties::Properties;
 
 #[cfg(target_os = "linux")]
 use linux as platform;
+#[cfg(target_os = "macos")]
+use mac as platform;
 #[cfg(windows)]
 use windows as platform;
 
@@ -54,7 +59,7 @@ pub(crate) use windows::find_interface_path;
 
 /// The platform backend of a system without one (upstream's build without
 /// `HAVE_PLATFORM_BACKEND`): no devices, and nothing can be opened.
-#[cfg(not(any(target_os = "linux", windows)))]
+#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
 mod platform {
     use super::DeviceInfo;
     use crate::error::{Error, Result};
@@ -219,6 +224,14 @@ struct WindowsDiscovery {
     notify: windows_sys::Win32::UI::WindowsAndMessaging::HDEVNOTIFY,
 }
 
+/// The IOKit notifications of the discovery (`m_notificationPort`,
+/// `m_notificationMach`).
+#[cfg(target_os = "macos")]
+struct MacDiscovery {
+    notification_port: crate::core::apple::iokit::IONotificationPortRef,
+    notification_mach: crate::core::apple::iokit::MachPort,
+}
+
 /// Translation of `SDL_HIDAPI_discovery` (without the change counter).
 struct Discovery {
     initialized: bool,
@@ -231,6 +244,8 @@ struct Discovery {
     inotify_fd: std::ffi::c_int,
     #[cfg(windows)]
     windows: Option<WindowsDiscovery>,
+    #[cfg(target_os = "macos")]
+    mac: Option<MacDiscovery>,
 }
 
 /// The library state (the file-level statics of `SDL_hidapi.c`).
@@ -245,8 +260,8 @@ struct HidapiState {
     hint_watches: Vec<hints::Callback>,
 }
 
-// SAFETY: the udev and window handles are only used with the state mutex
-// held, so from one thread at a time.
+// SAFETY: the udev, window and IOKit notification handles are only used
+// with the state mutex held, so from one thread at a time.
 unsafe impl Send for HidapiState {}
 
 static STATE: Mutex<HidapiState> = Mutex::new(HidapiState {
@@ -261,6 +276,8 @@ static STATE: Mutex<HidapiState> = Mutex::new(HidapiState {
         inotify_fd: -1,
         #[cfg(windows)]
         windows: None,
+        #[cfg(target_os = "macos")]
+        mac: None,
     },
     #[cfg(target_os = "linux")]
     linux_enumeration_method: LinuxEnumerationMethod::Unset,
@@ -298,6 +315,67 @@ unsafe extern "system" fn controller_wnd_proc(
 
     // SAFETY: the arguments are the ones the window procedure was given.
     unsafe { DefWindowProcA(hwnd, message, wparam, lparam) }
+}
+
+/// Translation of `CallbackIOServiceFunc()`.
+#[cfg(target_os = "macos")]
+unsafe extern "C" fn callback_io_service_func(
+    _context: *mut std::ffi::c_void,
+    port_iterator: crate::core::apple::iokit::IoIterator,
+) {
+    use crate::core::apple::iokit::{IOIteratorNext, IOObjectRelease};
+
+    // Must drain the iterator, or we won't receive new notifications
+    loop {
+        // SAFETY: the iterator the notification was delivered for; each
+        // entry is released.
+        let entry = unsafe { IOIteratorNext(port_iterator) };
+        if entry == 0 {
+            break;
+        }
+        // SAFETY: as above.
+        unsafe { IOObjectRelease(entry) };
+        DEVICE_CHANGE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+/// Register for `notification` on HID devices (`IOServiceAddMatchingNotification()`
+/// of `kIOHIDDeviceKey` services), draining the existing entries; false
+/// when it failed, after which upstream destroys the port.
+#[cfg(target_os = "macos")]
+fn add_hid_notification(
+    port: crate::core::apple::iokit::IONotificationPortRef,
+    notification: &std::ffi::CStr,
+) -> bool {
+    use crate::core::apple::iokit::*;
+
+    let mut port_iterator: IoIterator = 0;
+    // SAFETY: a live notification port; the matching dictionary is
+    // consumed by the call; the iterator's entries are released.
+    unsafe {
+        let result = IOServiceAddMatchingNotification(
+            port,
+            notification.as_ptr(),
+            IOServiceMatching(K_IOHID_DEVICE_KEY.as_ptr()),
+            Some(callback_io_service_func),
+            std::ptr::null_mut(),
+            &mut port_iterator,
+        );
+
+        if result == 0 {
+            // Must drain the existing iterator, or we won't receive new notifications
+            loop {
+                let entry = IOIteratorNext(port_iterator);
+                if entry == 0 {
+                    break;
+                }
+                IOObjectRelease(entry);
+            }
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// The class name of the device detection window.
@@ -392,6 +470,40 @@ fn initialize_discovery(state: &mut HidapiState) {
         });
     }
 
+    #[cfg(target_os = "macos")]
+    {
+        use crate::core::apple::iokit::*;
+
+        // SAFETY: creating a notification port on the default main port.
+        let mut notification_port = unsafe { IONotificationPortCreate(K_IO_MAIN_PORT_DEFAULT) };
+        if !notification_port.is_null() {
+            for notification in [K_IO_FIRST_MATCH_NOTIFICATION, K_IO_TERMINATED_NOTIFICATION] {
+                // FIXME (upstream): when the first registration fails, the
+                // second one is made on the port just destroyed (a null
+                // port here, so it is skipped).
+                if !notification_port.is_null()
+                    && !add_hid_notification(notification_port, notification)
+                {
+                    // SAFETY: the port created above, destroyed once.
+                    unsafe { IONotificationPortDestroy(notification_port) };
+                    notification_port = std::ptr::null_mut();
+                }
+            }
+        }
+
+        let mut notification_mach = MACH_PORT_NULL;
+        if !notification_port.is_null() {
+            // SAFETY: a live notification port.
+            notification_mach = unsafe { IONotificationPortGetMachPort(notification_port) };
+        }
+
+        discovery.can_get_notifications = notification_mach != MACH_PORT_NULL;
+        discovery.mac = Some(MacDiscovery {
+            notification_port,
+            notification_mach,
+        });
+    }
+
     #[cfg(target_os = "linux")]
     {
         use crate::core::linux::udev;
@@ -482,7 +594,6 @@ fn is_hidraw_node(name: &[u8]) -> bool {
 }
 
 /// Translation of `HIDAPI_UpdateDiscovery()`.
-#[cfg_attr(target_vendor = "apple", allow(clippy::needless_return))]
 fn update_discovery(state: &mut HidapiState) {
     if !state.discovery.initialized {
         initialize_discovery(state);
@@ -524,6 +635,46 @@ fn update_discovery(state: &mut HidapiState) {
                             DispatchMessageA(&msg);
                         }
                     }
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    if let Some(mac) = &discovery.mac {
+        use crate::core::apple::iokit::*;
+
+        if !mac.notification_port.is_null() {
+            #[repr(C)]
+            struct Msg {
+                hdr: MachMsgHeader,
+                payload: [u8; 4096],
+            }
+            let mut msg = Msg {
+                hdr: MachMsgHeader::default(),
+                payload: [0; 4096],
+            };
+            // SAFETY: the message buffer is as large as said; the port is
+            // live while the discovery is.
+            while unsafe {
+                mach_msg(
+                    &mut msg.hdr,
+                    MACH_RCV_MSG | MACH_RCV_TIMEOUT,
+                    0,
+                    size_of::<Msg>() as u32,
+                    mac.notification_mach,
+                    0,
+                    MACH_PORT_NULL,
+                )
+            } == KERN_SUCCESS
+            {
+                // SAFETY: a message received on the port's mach port.
+                unsafe {
+                    IODispatchCalloutFromMessage(
+                        std::ptr::null_mut(),
+                        &mut msg.hdr,
+                        mac.notification_port,
+                    );
                 }
             }
         }
@@ -635,6 +786,14 @@ fn shutdown_discovery(state: &mut HidapiState) {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    if let Some(mac) = state.discovery.mac.take() {
+        if !mac.notification_port.is_null() {
+            // SAFETY: the port created by initialize_discovery(), destroyed once.
+            unsafe { crate::core::apple::iokit::IONotificationPortDestroy(mac.notification_port) };
+        }
+    }
+
     #[cfg(target_os = "linux")]
     {
         if state.linux_enumeration_method == LinuxEnumerationMethod::Libudev {
@@ -672,8 +831,6 @@ fn shutdown_discovery(state: &mut HidapiState) {
 /// If the platform has any backend other than libusb, try to avoid using
 /// libusb as the main backend for devices, since it detaches drivers and
 /// therefore makes devices inaccessible to the rest of the OS.
-// (until the macOS backend uses them)
-#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 const LIBUSB_REQUIRED: [(u16, u16); 6] = [
     (USB_VENDOR_NINTENDO, USB_PRODUCT_NINTENDO_GAMECUBE_ADAPTER),
     (
@@ -693,7 +850,6 @@ const LIBUSB_REQUIRED: [(u16, u16); 6] = [
 ];
 
 /// Translation of `RequiresLibUSB()`.
-#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 fn requires_libusb(vendor: u16, product: u16, libusb_xbox: bool) -> bool {
     if LIBUSB_REQUIRED.contains(&(vendor, product)) {
         return true;
@@ -711,7 +867,7 @@ fn requires_libusb(vendor: u16, product: u16, libusb_xbox: bool) -> bool {
 /// Translation of `SDL_HINT_HIDAPI_LIBUSB_WHITELIST_DEFAULT`: there is a
 /// platform backend where one is translated, so the whitelist is used to
 /// get the devices where libusb is preferred.
-const LIBUSB_WHITELIST_DEFAULT: bool = cfg!(any(target_os = "linux", windows));
+const LIBUSB_WHITELIST_DEFAULT: bool = cfg!(any(target_os = "linux", target_os = "macos", windows));
 
 /// Translation of `use_libusb_whitelist`.
 static USE_LIBUSB_WHITELIST: AtomicBool = AtomicBool::new(LIBUSB_WHITELIST_DEFAULT);
@@ -724,7 +880,6 @@ static IGNORED_DEVICES: Mutex<Option<String>> = Mutex::new(None);
 
 /// Whether a device should be left out of the enumeration.
 /// Translation of `SDL_HIDAPI_ShouldIgnoreDevice()`.
-#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 pub(crate) fn should_ignore_device(
     bus: BusType,
     vendor_id: u16,
@@ -868,9 +1023,9 @@ fn init_locked(state: &mut HidapiState) -> Result<()> {
 
     // (the libusb backend isn't translated, which leaves the platform
     // backend's attempt)
-    #[cfg(any(target_os = "linux", windows))]
+    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     let (attempts, success) = (1, i32::from(platform::hid_init().is_ok()));
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     let (attempts, success) = (0, 0);
 
     if attempts > 0 && success == 0 {
@@ -878,6 +1033,9 @@ fn init_locked(state: &mut HidapiState) -> Result<()> {
         // callbacks registered; they are replaced by the next init.
         return Err(Error::new("Couldn't initialize hidapi"));
     }
+
+    #[cfg(target_os = "macos")]
+    platform::hid_darwin_set_open_exclusive(false);
 
     state.refcount += 1;
     Ok(())
@@ -899,9 +1057,9 @@ pub fn exit() -> Result<()> {
 
     shutdown_discovery(&mut state);
 
-    #[cfg(any(target_os = "linux", windows))]
+    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     let result = platform::hid_exit();
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     let result = Ok(());
 
     state.hint_watches.clear();
@@ -948,9 +1106,9 @@ pub fn enumerate(vendor_id: u16, product_id: u16) -> Result<Vec<DeviceInfo>> {
     // Collect the available devices
     // (the libusb and Steam Xbox driver backends aren't translated, which
     // leaves the platform's devices, in their order)
-    #[cfg(any(target_os = "linux", windows))]
+    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     let raw_devs = platform::hid_enumerate(vendor_id, product_id);
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     let raw_devs: Vec<DeviceInfo> = {
         let _ = (vendor_id, product_id);
         Vec::new()
