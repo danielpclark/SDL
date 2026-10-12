@@ -10,8 +10,8 @@
 //! On Unix systems other than Apple's, Android and Haiku, the dialogs are
 //! shown by the XDG desktop portal over D-Bus, or else with `zenity` (see
 //! `unix/`); on Windows by `IFileDialog` (or the older common dialogs, see
-//! `windows.rs`); elsewhere the dummy backend reports that the operation is
-//! unsupported.
+//! `windows.rs`); on macOS by `NSOpenPanel`/`NSSavePanel` (see `cocoa.rs`);
+//! elsewhere the dummy backend reports that the operation is unsupported.
 //!
 //! The zenity message box (used by the X11 video driver) is in `unix/` too.
 
@@ -354,8 +354,14 @@ mod windows;
 #[cfg(windows)]
 use windows as sys;
 
+#[cfg(target_os = "macos")]
+mod cocoa;
+#[cfg(target_os = "macos")]
+use cocoa as sys;
+
 #[cfg(not(any(
     windows,
+    target_os = "macos",
     all(
         unix,
         not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
