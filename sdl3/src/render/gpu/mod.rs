@@ -7,9 +7,10 @@
 //! The GPU renderer ("gpu"): draws through the GPU API ([`crate::gpu`]),
 //! into a backbuffer texture that presenting blits to the window's
 //! swapchain, or without a window only into render targets. It runs on the GPU API's Vulkan backend with its SPIR-V
-//! shaders, and on Windows on the Direct3D 12 backend with its DXIL
+//! shaders, on Windows on the Direct3D 12 backend with its DXIL
 //! shaders (shader model 6.0: a Direct3D 12 device without it can't take
-//! them, and then the Vulkan backend is tried).
+//! them, and then the Vulkan backend is tried), and on Apple platforms on
+//! the Metal backend with its MSL shaders.
 //!
 //! A draw made while a GPU render state is set
 //! ([`Renderer::set_gpu_render_state`](crate::render::Renderer::set_gpu_render_state))
@@ -374,12 +375,12 @@ const SUPPORTED_FORMATS: [PixelFormat; 9] = [
 // SDL_shaders_gpu.c (the device parts; the tables are in shaders.rs)
 
 /// Whether the renderer has shaders for each format (upstream's
-/// `HAVE_*_SHADERS`, for the GPU backends compiled in: Vulkan, and
-/// Direct3D 12 on Windows).
+/// `HAVE_*_SHADERS`, for the GPU backends compiled in: Vulkan, Direct3D 12
+/// on Windows and Metal on Apple platforms).
 const HAVE_PRIVATE_SHADERS: bool = false;
 const HAVE_SPIRV_SHADERS: bool = true;
 const HAVE_DXIL60_SHADERS: bool = cfg!(windows);
-const HAVE_METAL_SHADERS: bool = false;
+const HAVE_METAL_SHADERS: bool = cfg!(target_vendor = "apple");
 
 /// The renderer's shaders. Translation of `GPU_Shaders`; dropping it is
 /// `GPU_ReleaseShaders()`.
@@ -401,11 +402,13 @@ fn compile_shader(
     let formats = device.shader_formats();
 
     // (SDL_GetGPUShaderFormats() can't fail: the device exists. There are
-    // no private or MSL shaders.)
+    // no private shaders.)
     let (code, format) = if HAVE_SPIRV_SHADERS && formats.contains(ShaderFormat::SPIRV) {
         (sources.spirv, ShaderFormat::SPIRV)
     } else if HAVE_DXIL60_SHADERS && formats.contains(ShaderFormat::DXIL) {
         (dxil60(sources), ShaderFormat::DXIL)
+    } else if HAVE_METAL_SHADERS && formats.contains(ShaderFormat::MSL) {
+        (msl(sources), ShaderFormat::MSL)
     } else {
         return Err(Error::new("Unsupported GPU backend"));
     };
@@ -414,8 +417,11 @@ fn compile_shader(
         code,
         format,
         // FIXME not sure if this is correct
-        // (the MSL shaders' entry point would be "main0")
-        entrypoint: "main",
+        entrypoint: if format == ShaderFormat::MSL {
+            "main0"
+        } else {
+            "main"
+        },
         num_samplers: sources.num_samplers,
         num_uniform_buffers: sources.num_uniform_buffers,
         stage,
@@ -434,6 +440,18 @@ fn dxil60(sources: &ShaderSources) -> &'static [u8] {
 
 #[cfg(not(windows))]
 fn dxil60(_sources: &ShaderSources) -> &'static [u8] {
+    &[]
+}
+
+/// The MSL of `sources` (`sources->msl`; off Apple platforms there is no
+/// Metal backend, and no MSL).
+#[cfg(target_vendor = "apple")]
+fn msl(sources: &ShaderSources) -> &'static [u8] {
+    sources.msl
+}
+
+#[cfg(not(target_vendor = "apple"))]
+fn msl(_sources: &ShaderSources) -> &'static [u8] {
     &[]
 }
 
