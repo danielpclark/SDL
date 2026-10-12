@@ -9,8 +9,9 @@
 //! On Unix systems other than Apple's and Android, trays are
 //! StatusNotifierItems over D-Bus with a dbusmenu menu (see `unix/`); on
 //! Windows they are notification area icons with Win32 popup menus (see
-//! `windows.rs`); elsewhere the dummy backend reports that the operation
-//! is unsupported.
+//! `windows.rs`); on macOS they are status items with `NSMenu`s (see
+//! `cocoa.rs`); elsewhere the dummy backend reports that the operation is
+//! unsupported.
 //!
 //! A [`Tray`] owns its icon: dropping it is `SDL_DestroyTray()`. Menus and
 //! entries are handles ([`TrayMenu`], [`TrayEntry`], and [`TrayRef`] for
@@ -24,6 +25,8 @@ use std::sync::{Arc, Mutex, Weak};
 use crate::error::{Error, Result};
 use crate::video::surface::Surface;
 
+#[cfg(target_os = "macos")]
+mod cocoa;
 #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
 mod unix;
 #[cfg(windows)]
@@ -109,12 +112,14 @@ pub(crate) type EntryKey = u64;
 #[cfg_attr(
     not(any(
         windows,
+        target_os = "macos",
         all(unix, not(target_vendor = "apple"), not(target_os = "android"))
     )),
     allow(dead_code) // (only the dummy backend, which creates none)
 )]
 pub(crate) trait TrayBackend: Send + Sync {
-    #[cfg_attr(windows, allow(dead_code))] // (SDL_UpdateTrays() is empty there)
+    // (SDL_UpdateTrays() is empty there)
+    #[cfg_attr(any(windows, target_os = "macos"), allow(dead_code))]
     fn update(&self);
     fn destroy(&self);
     fn set_icon(&self, icon: Option<&Surface<'_>>);
@@ -141,7 +146,8 @@ pub(crate) trait TrayBackend: Send + Sync {
     fn set_enabled(&self, entry: EntryKey, enabled: bool);
     fn enabled(&self, entry: EntryKey) -> bool;
     fn set_callback(&self, entry: EntryKey, callback: TrayCallback);
-    #[cfg_attr(not(windows), allow(dead_code))] // (unreachable: see TrayEntry::click)
+    // (unreachable on Unix: see TrayEntry::click)
+    #[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
     fn click(&self, entry: EntryKey);
 }
 
@@ -422,12 +428,13 @@ impl TrayEntry {
 
     /// Simulate a click on the entry. Translation of `SDL_ClickTrayEntry()`.
     pub fn click(&self) {
-        // (Windows has its own SDL_ClickTrayEntry(), which clicks)
-        #[cfg(windows)]
+        // (Windows and macOS have their own SDL_ClickTrayEntry(), which
+        // clicks)
+        #[cfg(any(windows, target_os = "macos"))]
         if let Ok(b) = self.valid() {
             b.click(self.key);
         }
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         if let Ok(b) = self.valid() {
             // FIXME (upstream): SDL_ClickTrayEntry() calls the driver's
             // GetTrayEntryEnabled() instead of its ClickTrayEntry(), so a
@@ -461,8 +468,12 @@ use unix as sys;
 #[cfg(windows)]
 use windows as sys;
 
+#[cfg(target_os = "macos")]
+use cocoa as sys;
+
 #[cfg(not(any(
     windows,
+    target_os = "macos",
     all(unix, not(target_vendor = "apple"), not(target_os = "android"))
 )))]
 mod sys {
@@ -584,6 +595,7 @@ mod tests {
 
     #[cfg(not(any(
         windows,
+        target_os = "macos",
         all(unix, not(target_vendor = "apple"), not(target_os = "android"))
     )))]
     #[test]
