@@ -713,7 +713,7 @@ fn dummy_driver_playback_and_recording() {
 
     // Disk and dummy are demand-only: without a platform driver, nothing
     // initializes without the hint.
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     {
         crate::hints::reset(crate::hints::AUDIO_DRIVER);
         assert_eq!(
