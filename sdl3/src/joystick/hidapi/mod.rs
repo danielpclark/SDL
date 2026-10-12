@@ -2132,7 +2132,12 @@ pub(crate) fn is_device_type_present(gamepad_type: GamepadType) -> bool {
 }
 
 /// Translation of `HIDAPI_IsDevicePresent()`.
-fn is_device_present(vendor_id: u16, product_id: u16, version: u16, name: Option<&str>) -> bool {
+pub(crate) fn is_device_present(
+    vendor_id: u16,
+    product_id: u16,
+    version: u16,
+    name: Option<&str>,
+) -> bool {
     // Make sure we're initialized, as this could be called from other drivers during startup
     if joystick_init().is_err() {
         return false;

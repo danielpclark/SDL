@@ -18,11 +18,14 @@
 //! through [`crate::hidapi`], with the Xbox 360, Xbox One, PS4, PS5 and
 //! Nintendo Switch device drivers), the Linux driver (evdev devices, found
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
-//! and XInput; Windows.Gaming.Input), the IOKit driver (macOS), the virtual driver
+//! and XInput; Windows.Gaming.Input), the IOKit and MFi (GameController)
+//! drivers (macOS), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the other HIDAPI device
 //! drivers and platform drivers arrive later.
 
+#[cfg(target_os = "macos")]
+pub(crate) mod apple;
 mod controller_type;
 #[cfg(target_os = "macos")]
 pub(crate) mod darwin;
@@ -539,11 +542,11 @@ pub(crate) trait JoystickDriver: Send + Sync {
 }
 
 /// `SDL_JOYSTICK_MFI`: whether the GameController framework (MFi) joystick
-/// driver is built. Upstream builds it on macOS; it isn't translated yet,
-/// so the checks that leave controllers to it (in the HIDAPI and IOKit
-/// drivers) are translated but off, as in an upstream build without it.
+/// driver is built, as upstream builds it on macOS (where both
+/// GameController and CoreHaptics are available). The HIDAPI and IOKit
+/// drivers leave the controllers it supports to it.
 #[cfg(target_os = "macos")]
-pub(crate) const JOYSTICK_MFI: bool = false;
+pub(crate) const JOYSTICK_MFI: bool = true;
 
 /// The index of the HIDAPI driver in [`JOYSTICK_DRIVERS`] (the highest
 /// priority driver for supported devices).
@@ -575,11 +578,17 @@ const LINUX_DRIVER_INDEX: usize = 1;
 #[cfg(target_os = "macos")]
 const DARWIN_DRIVER_INDEX: usize = 1;
 
+/// The index of the MFi (GameController) driver in [`JOYSTICK_DRIVERS`].
+#[cfg(target_os = "macos")]
+pub(crate) const MFI_DRIVER_INDEX: usize = 2;
+
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
-} else if cfg!(any(target_os = "linux", target_os = "macos")) {
+} else if cfg!(target_os = "macos") {
+    3
+} else if cfg!(target_os = "linux") {
     2
 } else {
     0
@@ -606,6 +615,8 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     &linux::LINUX_JOYSTICK_DRIVER,
     #[cfg(target_os = "macos")]
     &darwin::DARWIN_JOYSTICK_DRIVER,
+    #[cfg(target_os = "macos")]
+    &apple::MFI_JOYSTICK_DRIVER,
     &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER,
     #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     &dummy::DUMMY_JOYSTICK_DRIVER,
@@ -708,6 +719,13 @@ fn with_state<R>(f: impl FnOnce(&mut JoystickState) -> R) -> R {
     let guard = JOYSTICKS.lock();
     let mut state = guard.borrow_mut();
     f(&mut state)
+}
+
+/// The index in [`JOYSTICK_DRIVERS`] of an open joystick's driver
+/// (`joystick->driver`, for the checks that compare it with a driver).
+#[cfg(target_os = "macos")]
+pub(crate) fn joystick_driver_index(instance_id: JoystickID) -> Option<usize> {
+    with_joystick(instance_id, |j| j.driver)
 }
 
 /// Run `f` on the open joystick `instance_id` (the lock must be held).

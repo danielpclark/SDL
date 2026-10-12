@@ -3150,14 +3150,34 @@ impl Gamepad {
 
     /// The Apple SF Symbols name for a button (only available with the
     /// Apple MFI driver). Translation of `SDL_GetGamepadAppleSFSymbolsNameForButton()`.
-    pub fn apple_sf_symbols_name_for_button(&self, _button: GamepadButton) -> Option<String> {
-        None
+    pub fn apple_sf_symbols_name_for_button(&self, button: GamepadButton) -> Option<String> {
+        #[cfg(target_os = "macos")]
+        {
+            let _lock = lock_joysticks();
+            let joystick = self.joystick_view().ok()?;
+            super::apple::apple_sf_symbols_name_for_button(joystick.id(), button)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = button;
+            None
+        }
     }
 
     /// The Apple SF Symbols name for an axis (only available with the Apple
     /// MFI driver). Translation of `SDL_GetGamepadAppleSFSymbolsNameForAxis()`.
-    pub fn apple_sf_symbols_name_for_axis(&self, _axis: GamepadAxis) -> Option<String> {
-        None
+    pub fn apple_sf_symbols_name_for_axis(&self, axis: GamepadAxis) -> Option<String> {
+        #[cfg(target_os = "macos")]
+        {
+            let _lock = lock_joysticks();
+            let joystick = self.joystick_view().ok()?;
+            super::apple::apple_sf_symbols_name_for_axis(joystick.id(), axis)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = axis;
+            None
+        }
     }
 }
 

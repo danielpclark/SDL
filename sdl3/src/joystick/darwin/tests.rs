@@ -248,10 +248,13 @@ fn enumerate_through_the_joystick_subsystem() {
 }
 
 fn driver_label(index: usize) -> String {
-    use crate::joystick::{DARWIN_DRIVER_INDEX, HIDAPI_DRIVER_INDEX, VIRTUAL_DRIVER_INDEX};
+    use crate::joystick::{
+        DARWIN_DRIVER_INDEX, HIDAPI_DRIVER_INDEX, MFI_DRIVER_INDEX, VIRTUAL_DRIVER_INDEX,
+    };
     match index {
         HIDAPI_DRIVER_INDEX => "HIDAPI".to_owned(),
         DARWIN_DRIVER_INDEX => "IOKit".to_owned(),
+        MFI_DRIVER_INDEX => "MFi".to_owned(),
         VIRTUAL_DRIVER_INDEX => "virtual".to_owned(),
         _ => format!("driver #{index}"),
     }
@@ -304,16 +307,26 @@ fn list_joysticks(what: &str, config: &[(&str, &str)]) {
     }
 }
 
-/// Hardware: the controllers the HIDAPI and IOKit drivers see, together
-/// and each alone. There may be none; this lists them, it doesn't require
-/// any.
+/// Hardware: the controllers the HIDAPI, IOKit and MFi drivers see,
+/// together and each alone. There may be none; this lists them, it doesn't
+/// require any.
 #[test]
 #[ignore = "hardware: lists the connected controllers"]
 fn hardware_joysticks_per_driver() {
     let _l = crate::test_support::test_lock();
     list_joysticks("the default drivers", &[]);
-    list_joysticks("HIDAPI alone", &[(hints::JOYSTICK_IOKIT, "0")]);
-    list_joysticks("IOKit alone", &[(hints::JOYSTICK_HIDAPI, "0")]);
+    list_joysticks(
+        "HIDAPI alone",
+        &[(hints::JOYSTICK_IOKIT, "0"), (hints::JOYSTICK_MFI, "0")],
+    );
+    list_joysticks(
+        "IOKit alone",
+        &[(hints::JOYSTICK_HIDAPI, "0"), (hints::JOYSTICK_MFI, "0")],
+    );
+    list_joysticks(
+        "MFi alone",
+        &[(hints::JOYSTICK_HIDAPI, "0"), (hints::JOYSTICK_IOKIT, "0")],
+    );
 }
 
 /// Hardware: input from a connected controller, through the default

@@ -10,7 +10,7 @@
 use std::ffi::{c_char, c_void, CStr};
 use std::ptr;
 
-use super::objc::{class, msg_send, Bool, Id, NSUInteger, StrongPtr};
+use super::objc::{class, msg_send, Bool, Id, NSInteger, NSUInteger, StrongPtr};
 
 /// `CGFloat` (64-bit platforms).
 pub(crate) type CGFloat = f64;
@@ -715,6 +715,32 @@ pub(crate) fn cf_dictionary(pairs: &[(CFTypeRef, CFTypeRef)]) -> CfRef {
 
 /// Null for an absent CF object.
 pub(crate) const CF_NULL: CFTypeRef = ptr::null();
+
+/// `NSOperatingSystemVersion`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct NSOperatingSystemVersion {
+    pub(crate) major: NSInteger,
+    pub(crate) minor: NSInteger,
+    pub(crate) patch: NSInteger,
+}
+
+/// `@available(macOS major.minor.patch, *)`
+/// (`-[NSProcessInfo isOperatingSystemAtLeastVersion:]`).
+pub(crate) fn macos_at_least(major: NSInteger, minor: NSInteger, patch: NSInteger) -> bool {
+    let version = NSOperatingSystemVersion {
+        major,
+        minor,
+        patch,
+    };
+    // SAFETY: NSProcessInfo's class method, and an instance method taking
+    // the version structure by value.
+    unsafe {
+        let info: Id = msg_send![class!(NSProcessInfo), processInfo];
+        let r: Bool = msg_send![info, isOperatingSystemAtLeastVersion: version];
+        r.is_true()
+    }
+}
 
 #[cfg(test)]
 mod tests {

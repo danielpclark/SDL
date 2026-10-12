@@ -461,8 +461,11 @@ fn supported_devices() {
     let supported = |device: Option<&HidapiDevice>, gamepad_type| {
         driver.is_supported_device(device, "", gamepad_type, 0, 0, 0, 0, 0, 0, 0)
     };
-    assert!(supported(Some(&usb), GamepadType::XboxOne));
-    assert!(supported(None, GamepadType::XboxOne));
+    // On macOS (with SDL_JOYSTICK_MFI) the controllers that aren't Bluetooth
+    // Xbox One ones are left to GameController
+    let leaves_to_mfi = cfg!(target_os = "macos");
+    assert_eq!(supported(Some(&usb), GamepadType::XboxOne), !leaves_to_mfi);
+    assert_eq!(supported(None, GamepadType::XboxOne), !leaves_to_mfi);
     assert!(!supported(Some(&bluetooth), GamepadType::XboxOne));
     assert!(!supported(Some(&usb), GamepadType::Xbox360));
 
