@@ -382,6 +382,11 @@ fn x11_windows() {
 /// Draw into a window's framebuffer and read the window back.
 fn framebuffer_roundtrip() {
     let _video = Video::init();
+    // The X11 driver reports a slow framebuffer, so by default window
+    // surfaces go through a texture of a GPU renderer (which recreates the
+    // window): check the driver's own framebuffer, as with the hint off.
+    // (Set after the init: quitting resets the hints.)
+    hints::set(hints::FRAMEBUFFER_ACCELERATION, "0").unwrap();
     let client = Client::open().unwrap();
     let w = SdlWindow::create("framebuffer", 64, 48, WindowFlags::default()).unwrap();
     let xwin = xwindow_of(&w);
