@@ -507,12 +507,41 @@ pub fn log(category: Category, priority: Priority, message: &str) {
     LOG_FUNCTION_LOCK.unlock();
 }
 
-/// The default output: prefix + message to stderr. Translation of the stdio
-/// path of `SDL_LogOutput()` (the Windows debugger / Android logcat / Apple
-/// NSLog paths are platform backends).
+/// The default output: prefix + message to stderr, or through `NSLog()` on
+/// Apple platforms. Translation of the stdio and Apple paths of
+/// `SDL_LogOutput()` (the Windows debugger and Android logcat paths are
+/// platform backends).
 pub fn default_output(record: &Record<'_>) {
     let prefix = prefix_for(&fstate(), record.priority);
+    #[cfg(target_vendor = "apple")]
+    ns_log(&prefix, record.message);
+    #[cfg(not(target_vendor = "apple"))]
     eprintln!("{prefix}{}", record.message);
+}
+
+/// Translation of `SDL_NSLog()` (in upstream's `SDL_cocoavideo.m`).
+#[cfg(target_vendor = "apple")]
+fn ns_log(prefix: &str, text: &str) {
+    use crate::core::apple::foundation::ns_string;
+    use crate::core::apple::objc::{autoreleasepool, Id};
+
+    #[link(name = "Foundation", kind = "framework")]
+    unsafe extern "C" {
+        fn NSLog(format: Id, ...);
+    }
+
+    autoreleasepool(|| {
+        let ns_text = ns_string(text);
+        // SAFETY: NSString formats whose %@ take the NSString arguments.
+        unsafe {
+            if !prefix.is_empty() {
+                let ns_prefix = ns_string(prefix);
+                NSLog(ns_string("%@%@").get(), ns_prefix.get(), ns_text.get());
+            } else {
+                NSLog(ns_string("%@").get(), ns_text.get());
+            }
+        }
+    });
 }
 
 /// Replace the output function. It is called with a lock held, so it is
@@ -779,5 +808,42 @@ mod tests {
         assert!(!strncasecmp_eq("apx", "APP", 3));
         assert!(!strncasecmp_eq("application", "APP", 11));
         assert!(strncasecmp_eq("app=debug", "APP", 3));
+    }
+
+    /// NSLog() writes to the standard error descriptor, after its own
+    /// timestamp and process header.
+    #[cfg(target_vendor = "apple")]
+    #[test]
+    fn default_output_through_nslog() {
+        use std::io::Read;
+        use std::os::fd::AsRawFd;
+        let _l = crate::test_support::test_lock();
+        let (mut reader, writer) = std::io::pipe().unwrap();
+        // SAFETY: duplicating and restoring descriptor 2 around the calls.
+        let saved = unsafe { libc::dup(2) };
+        unsafe { libc::dup2(writer.as_raw_fd(), 2) };
+        drop(writer);
+        default_output(&Record {
+            category: Category::Application,
+            priority: Priority::Warn,
+            message: "through NSLog ✓",
+        });
+        default_output(&Record {
+            category: Category::Application,
+            priority: Priority::Info,
+            message: "no prefix",
+        });
+        unsafe {
+            libc::dup2(saved, 2);
+            libc::close(saved);
+        }
+        let mut out = String::new();
+        reader.read_to_string(&mut out).unwrap();
+        let lines: Vec<&str> = out.lines().collect();
+        assert_eq!(lines.len(), 2, "{out}");
+        let pid = format!("[{}:", std::process::id());
+        assert!(lines[0].contains(&pid), "{out}");
+        assert!(lines[0].ends_with("] WARNING: through NSLog ✓"), "{out}");
+        assert!(lines[1].ends_with("] no prefix"), "{out}");
     }
 }
