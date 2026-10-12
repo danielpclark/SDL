@@ -1,10 +1,13 @@
 // Audio drivers, one module per upstream driver directory. The platform
 // drivers are compiled for their platform only, as upstream's
 // SDL_AUDIO_DRIVER_* configuration does; the system libraries they use are
-// loaded at run time. (CoreAudio, AAudio and the others are still to come.)
+// loaded at run time (CoreAudio's frameworks are linked, as upstream links
+// them). (AAudio and the others are still to come.)
 
 #[cfg(target_os = "linux")]
 pub(crate) mod alsa;
+#[cfg(target_os = "macos")]
+pub(crate) mod coreaudio;
 pub(crate) mod disk;
 pub(crate) mod dummy;
 #[cfg(target_os = "linux")]
