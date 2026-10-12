@@ -199,9 +199,11 @@ fn driver_selection() {
         .collect();
     #[cfg(target_os = "linux")]
     assert_eq!(names, ["test", "v4l2", "pipewire", "dummy"]);
+    #[cfg(target_os = "macos")]
+    assert_eq!(names, ["test", "coremedia", "dummy"]);
     #[cfg(windows)]
     assert_eq!(names, ["test", "mediafoundation", "dummy"]);
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     assert_eq!(names, ["test", "dummy"]);
     assert!(camera_driver(names.len()).is_err());
     assert_eq!(
@@ -219,7 +221,7 @@ fn driver_selection() {
             stop();
         }
         Err(e) => {
-            assert!(names.len() == 2 || cfg!(windows), "{}", e.message()); // (V4L2 always starts)
+            assert!(names.len() == 2 || cfg!(windows), "{}", e.message()); // (V4L2 and CoreMedia always start)
             if names.len() == 2 {
                 assert_eq!(e.message(), "No available camera driver");
             }
@@ -619,7 +621,6 @@ fn quit_while_open() {
 /// cameras, open the first one in its preferred format and grab ten frames,
 /// checking their size and format and that their timestamps advance. A
 /// driver that doesn't start skips as `capability`, no camera as `camera`.
-#[cfg_attr(target_vendor = "apple", allow(dead_code))]
 pub(super) fn hardware_capture(driver: &str, capability: &str) {
     use std::time::{Duration, Instant};
     crate::hints::set(crate::hints::CAMERA_DRIVER, driver).unwrap();
@@ -676,7 +677,8 @@ pub(super) fn hardware_capture(driver: &str, capability: &str) {
     assert_eq!(
         camera.permission_state(),
         CameraPermissionState::Approved,
-        "camera access (Settings > Privacy > Camera on Windows)"
+        "camera access (Settings > Privacy > Camera on Windows, System Settings > \
+         Privacy & Security > Camera for the terminal on macOS)"
     );
     let spec = camera.format().unwrap();
     println!(
