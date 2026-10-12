@@ -505,10 +505,17 @@ fn finish_window_creation(window: WindowID, flags: WindowFlags) {
 }
 
 /// The graphics backends some platforms enable by default. Translation of
-/// `SDL_DefaultGraphicsBackends()` (whose cases are all for backends not
-/// translated yet: OpenGL on macOS/iOS/QNX, Metal on Apple platforms,
-/// OpenVR).
-fn default_graphics_backends() -> WindowFlags {
+/// `SDL_DefaultGraphicsBackends()` (the iOS, QNX and OpenVR cases aren't
+/// translated).
+fn default_graphics_backends(driver: &dyn super::sysvideo::VideoDriver) -> WindowFlags {
+    if cfg!(target_os = "macos") {
+        if driver.implements_gl_contexts() {
+            return WindowFlags::OPENGL;
+        }
+        if driver.implements_metal_views() {
+            return WindowFlags::METAL;
+        }
+    }
     WindowFlags::NONE
 }
 
@@ -817,26 +824,223 @@ fn should_attempt_texture_framebuffer(has_framebuffer: bool) -> bool {
     }
 }
 
-/// Create the framebuffer of a window through a texture of a GPU renderer.
-/// Translation of `SDL_CreateWindowTexture()`, whose renderer search finds
-/// no GPU renderers yet (they aren't translated).
-fn create_window_texture() -> Result<Surface<'static>> {
-    // See if there's a render driver being requested
-    let hint = hints::get(hints::FRAMEBUFFER_ACCELERATION).filter(|h| {
-        !h.starts_with('0')
-            && !h.starts_with('1')
-            && !h.eq_ignore_ascii_case("true")
-            && !h.eq_ignore_ascii_case("false")
-            && !h.eq_ignore_ascii_case(crate::render::SOFTWARE_RENDERER)
-    });
-    let render_driver = hint
-        .or_else(|| hints::get(hints::RENDER_DRIVER))
-        .filter(|d| !d.eq_ignore_ascii_case(crate::render::SOFTWARE_RENDERER) && !d.is_empty());
-    match render_driver {
-        Some(name) => Err(Error::new(format!(
-            "Couldn't find matching render driver ({name})"
-        ))),
-        None => Err(Error::new("No hardware accelerated renderers available")),
+/// The window texture framebuffer of a window (`SDL_WindowTextureData`,
+/// upstream's `SDL_PROP_WINDOW_TEXTUREDATA_POINTER`). The surface owns the
+/// pixels (`data->pixels`, `pitch`, `bytes_per_pixel`), which the update
+/// copies from.
+struct WindowTextureData {
+    renderer: crate::render::Renderer,
+    texture: Option<crate::render::Texture>,
+}
+
+// SAFETY: as upstream's window texture data, it is used by the thread
+// that uses the window surface (the video thread); the map below only
+// moves it around under its lock.
+unsafe impl Send for WindowTextureData {}
+
+/// The window texture data of the windows.
+static WINDOW_TEXTURES: Mutex<Option<std::collections::HashMap<WindowID, WindowTextureData>>> =
+    Mutex::new(None);
+
+/// Take a window's texture data out of the map (to use it without
+/// holding the lock).
+fn take_window_texture_data(window: WindowID) -> Option<WindowTextureData> {
+    WINDOW_TEXTURES
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .as_mut()
+        .and_then(|m| m.remove(&window))
+}
+
+/// Put a window's texture data (back) in the map.
+fn put_window_texture_data(window: WindowID, data: WindowTextureData) {
+    WINDOW_TEXTURES
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get_or_insert_with(Default::default)
+        .insert(window, data);
+}
+
+/// Create the framebuffer of a window through a streaming texture of a GPU
+/// renderer. Translation of `SDL_CreateWindowTexture()`.
+fn create_window_texture(window: WindowID) -> Result<Surface<'static>> {
+    let transparent = with_window(window, |w| w.flags().contains(WindowFlags::TRANSPARENT))?;
+    let (w, h) = Window { id: window }.size_in_pixels()?;
+
+    let mut data = match take_window_texture_data(window) {
+        Some(data) => data,
+        None => {
+            // See if there's a render driver being requested
+            let hint = hints::get(hints::FRAMEBUFFER_ACCELERATION).filter(|h| {
+                !h.is_empty()
+                    && !h.starts_with('0')
+                    && !h.starts_with('1')
+                    && !h.eq_ignore_ascii_case("true")
+                    && !h.eq_ignore_ascii_case("false")
+                    && !h.eq_ignore_ascii_case(crate::render::SOFTWARE_RENDERER)
+            });
+
+            let mut render_driver = hint.or_else(|| hints::get(hints::RENDER_DRIVER));
+            if render_driver
+                .as_deref()
+                .is_some_and(|d| d.eq_ignore_ascii_case(crate::render::SOFTWARE_RENDERER))
+            {
+                render_driver = None;
+            }
+
+            // turn any "software" requests into "xxxxxxxx" so we don't end up in infinite recursion.
+            let render_driver = render_driver.filter(|d| !d.is_empty()).map(|d| {
+                d.split(',')
+                    .map(|name| {
+                        if name.eq_ignore_ascii_case(crate::render::SOFTWARE_RENDERER) {
+                            "x".repeat(crate::render::SOFTWARE_RENDERER.len())
+                        } else {
+                            name.to_owned()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",")
+            });
+
+            // Check to see if there's a specific driver requested
+            let w_handle = Window { id: window };
+            let renderer = if let Some(render_driver) = render_driver {
+                // The error for this specific renderer has already been set
+                crate::render::Renderer::for_window(&w_handle, Some(&render_driver))?
+            } else {
+                let mut found = None;
+                for i in 0..crate::render::num_render_drivers() {
+                    let Ok(name) = crate::render::render_driver(i) else {
+                        continue;
+                    };
+                    if name != crate::render::SOFTWARE_RENDERER {
+                        if let Ok(r) = crate::render::Renderer::for_window(&w_handle, Some(name)) {
+                            found = Some(r);
+                            break; // this will work.
+                        }
+                    }
+                }
+                found.ok_or_else(|| Error::new("No hardware accelerated renderers available"))?
+            };
+
+            // Create the data after we successfully create the renderer (bug #1116)
+            WindowTextureData {
+                renderer,
+                texture: None,
+            }
+        }
+    };
+
+    let result = (|| {
+        // Free any old texture and pixel data
+        if let Some(texture) = data.texture.take() {
+            data.renderer.destroy_texture(texture);
+        }
+
+        let texture_formats = data.renderer.texture_formats();
+
+        // Find the first format with or without an alpha channel
+        let mut format = texture_formats[0];
+        for &texture_format in texture_formats {
+            if texture_format == PixelFormat::UNKNOWN {
+                break;
+            }
+            if !texture_format.is_fourcc()
+                && !texture_format.is_10bit()
+                && !texture_format.is_float()
+                && !texture_format.is_indexed()
+                && (!transparent || texture_format.has_alpha())
+            {
+                format = texture_format;
+                break;
+            }
+        }
+
+        let texture =
+            data.renderer
+                .create_texture(format, crate::render::TextureAccess::Streaming, w, h)?;
+        data.texture = Some(texture);
+        data.renderer
+            .set_texture_blend_mode(texture, crate::video::BlendMode::NONE)?;
+
+        // Create framebuffer data (the surface's pixels, with the pitch
+        // upstream computes: (((w * bytes_per_pixel) + 3) & ~3))
+        let surface = Surface::new(w, h, format)?;
+
+        // Make sure we're not double-scaling the viewport
+        data.renderer.set_viewport(None)?;
+
+        Ok(surface)
+    })();
+    put_window_texture_data(window, data);
+    result
+}
+
+/// Translation of `SDL_SetWindowTextureVSync()`.
+fn set_window_texture_vsync(window: WindowID, vsync: i32) -> Result<()> {
+    let Some(mut data) = take_window_texture_data(window) else {
+        return Err(Error::new("No window texture data"));
+    };
+    let result = data.renderer.set_vsync(vsync);
+    put_window_texture_data(window, data);
+    result
+}
+
+/// Translation of `SDL_GetWindowTextureVSync()`.
+fn get_window_texture_vsync(window: WindowID) -> Result<i32> {
+    let Some(data) = take_window_texture_data(window) else {
+        return Err(Error::new("No window texture data"));
+    };
+    let vsync = data.renderer.vsync();
+    put_window_texture_data(window, data);
+    Ok(vsync)
+}
+
+/// Translation of `SDL_UpdateWindowTexture()`.
+fn update_window_texture(
+    window: WindowID,
+    surface: &Surface<'static>,
+    rects: &[Rect],
+) -> Result<()> {
+    let (w, h) = Window { id: window }.size_in_pixels()?;
+
+    let Some(mut data) = take_window_texture_data(window) else {
+        return Err(Error::new("No window texture data"));
+    };
+    let result = (|| {
+        let Some(texture) = data.texture else {
+            return Err(Error::new("No window texture data"));
+        };
+
+        // Update a single rect that contains subrects for best DMA performance
+        if let Some(rect) = crate::video::rect::span_enclosing_rect(w, h, rects) {
+            let pitch = surface.pitch() as usize;
+            let bytes_per_pixel = surface.format().bytes_per_pixel() as usize;
+            let pixels = surface
+                .pixels()
+                .ok_or_else(|| Error::new("No window texture data"))?;
+            let start = rect.y as usize * pitch + rect.x as usize * bytes_per_pixel;
+            data.renderer
+                .update_texture(texture, Some(&rect), &pixels[start..], pitch as i32)?;
+
+            data.renderer.render_texture(texture, None, None)?;
+
+            let _ = data.renderer.present();
+        }
+        Ok(())
+    })();
+    put_window_texture_data(window, data);
+    result
+}
+
+/// Translation of `SDL_DestroyWindowTexture()`.
+fn destroy_window_texture(window: WindowID) {
+    if let Some(mut data) = take_window_texture_data(window) {
+        if let Some(texture) = data.texture.take() {
+            data.renderer.destroy_texture(texture);
+        }
+        // (the renderer is destroyed when dropped)
+        drop(data);
     }
 }
 
@@ -1018,7 +1222,7 @@ impl Window {
 
         // Some platforms have certain graphics backends enabled by default
         if graphics_flags.is_empty() && !external_graphics_context {
-            flags |= default_graphics_backends();
+            flags |= default_graphics_backends(&*driver);
         }
 
         if flags.contains(WindowFlags::OPENGL) {
@@ -2170,15 +2374,34 @@ impl Window {
         using a GPU texture through the 2D render API, if we think this would
         be more efficient. This only checks once, on demand. */
         if !with_device(|v| v.checked_texture_framebuffer)? {
+            let mut created = None;
             if should_attempt_texture_framebuffer(has_framebuffer) {
-                /* !!! FIXME: if this failed halfway (made renderer, failed to make texture, etc),
-                !!! FIXME:  we probably need to clean this up so it doesn't interfere with
-                !!! FIXME:  a software fallback at the system level (can we blit to an
-                !!! FIXME:  OpenGL window? etc). */
-                let _ = create_window_texture();
+                match create_window_texture(self.id) {
+                    Err(_) => {
+                        /* !!! FIXME: if this failed halfway (made renderer, failed to make texture, etc),
+                        !!! FIXME:  we probably need to clean this up so it doesn't interfere with
+                        !!! FIXME:  a software fallback at the system level (can we blit to an
+                        !!! FIXME:  OpenGL window? etc). */
+                    }
+                    Ok(surface) => {
+                        // future attempts will just try to use a texture framebuffer.
+                        /* !!! FIXME:  maybe we shouldn't override these but check if we used a texture
+                        !!! FIXME:  framebuffer at the right places; is it feasible we could have an
+                        !!! FIXME:  accelerated OpenGL window and a second ends up in software? */
+                        with_device(|v| v.texture_framebuffer = true)?;
+                        created = Some(surface);
+                    }
+                }
             }
 
             with_device(|v| v.checked_texture_framebuffer = true)?; // don't check this again.
+            if let Some(surface) = created {
+                return Ok(surface);
+            }
+        }
+
+        if with_device(|v| v.texture_framebuffer)? {
+            return create_window_texture(self.id);
         }
 
         if !has_framebuffer {
@@ -2240,6 +2463,9 @@ impl Window {
     /// Translation of `SDL_SetWindowSurfaceVSync()`.
     pub fn set_surface_vsync(&self, vsync: i32) -> Result<()> {
         with_window(self.id, |_| ())?;
+        if with_device(|v| v.texture_framebuffer)? {
+            return set_window_texture_vsync(self.id, vsync);
+        }
         driver()?
             .set_window_framebuffer_vsync(self.id, vsync)
             .unwrap_or_else(|| Err(Error::unsupported()))
@@ -2249,6 +2475,9 @@ impl Window {
     /// `SDL_GetWindowSurfaceVSync()`.
     pub fn surface_vsync(&self) -> Result<i32> {
         with_window(self.id, |_| ())?;
+        if with_device(|v| v.texture_framebuffer)? {
+            return get_window_texture_vsync(self.id);
+        }
         driver()?
             .window_framebuffer_vsync(self.id)
             .unwrap_or_else(|| Err(Error::unsupported()))
@@ -2282,6 +2511,9 @@ impl Window {
         let guard = surface
             .try_lock()
             .map_err(|_| Error::new("The window surface is locked"))?;
+        if with_device(|v| v.texture_framebuffer)? {
+            return update_window_texture(self.id, &guard, rects);
+        }
         driver()?
             .update_window_framebuffer(self.id, &guard, rects)
             .unwrap_or_else(|| Err(Error::new("Window framebuffer support not available")))
@@ -2296,7 +2528,11 @@ impl Window {
 
         if with_device(|v| v.checked_texture_framebuffer)? {
             // never checked? No framebuffer to destroy. Don't risk calling the wrong implementation.
-            let _ = driver()?.destroy_window_framebuffer(self.id);
+            if with_device(|v| v.texture_framebuffer)? {
+                destroy_window_texture(self.id);
+            } else {
+                let _ = driver()?.destroy_window_framebuffer(self.id);
+            }
         }
         Ok(())
     }
