@@ -1190,11 +1190,13 @@ fn handles_drop_their_backend_object_before_the_device() {
 fn no_backend_fails_cleanly() {
     let _l = crate::test_support::test_lock();
     *TEST_BACKENDS.lock().unwrap() = None;
-    // (Direct3D 12, on Windows, and Vulkan are the backends translated;
-    // neither takes SPIR-V on the dummy video driver, which has no Vulkan
-    // surfaces, below.)
+    // (Metal, on Apple platforms, Direct3D 12, on Windows, and Vulkan are
+    // the backends translated; none takes SPIR-V on the dummy video
+    // driver, which has no Vulkan surfaces or Metal views, below.)
     let expected: &[&str] = if cfg!(windows) {
         &["direct3d12", "vulkan"]
+    } else if cfg!(target_vendor = "apple") {
+        &["metal", "vulkan"]
     } else {
         &["vulkan"]
     };
