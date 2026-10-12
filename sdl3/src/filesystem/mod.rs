@@ -8,12 +8,17 @@
 //! everywhere. File names that are not valid UTF-8 are converted lossily
 //! when they are reported (by [`enumerate_directory`] and [`glob_directory`]).
 
-// The POSIX operations and the Unix paths everywhere but on Windows, which
-// has its own of both (upstream's SDL_FSOPS_POSIX/SDL_FILESYSTEM_UNIX and
-// SDL_FSOPS_WINDOWS/SDL_FILESYSTEM_WINDOWS).
+// The POSIX operations everywhere but on Windows, which has its own
+// (upstream's SDL_FSOPS_POSIX and SDL_FSOPS_WINDOWS), and the Unix paths
+// except on Windows and Apple platforms, which have their own
+// (SDL_FILESYSTEM_UNIX, SDL_FILESYSTEM_WINDOWS and SDL_FILESYSTEM_COCOA).
+#[cfg(target_vendor = "apple")]
+mod cocoa;
 #[cfg(not(windows))]
 mod fsops;
-#[cfg(not(windows))]
+#[cfg(target_vendor = "apple")]
+use cocoa as sys;
+#[cfg(not(any(windows, target_vendor = "apple")))]
 mod sys;
 #[cfg(windows)]
 mod windows;
@@ -586,9 +591,22 @@ fn cache() -> std::sync::MutexGuard<'static, Cache> {
 /// SDL caches the result of this call internally, but the first call to this
 /// function is not necessarily fast, so plan accordingly.
 ///
-/// **macOS and iOS Specific Functionality**: upstream returns the bundle's
-/// resource directory there; this translation uses the executable's
-/// directory on every platform.
+/// **macOS and iOS Specific Functionality**: If the application is in a
+/// ".app" bundle, this function returns the Resource directory (e.g.
+/// MyApp.app/Contents/Resources/). This behaviour can be overridden by
+/// adding a property to the Info.plist file. Adding a string key with the
+/// name SDL_FILESYSTEM_BASE_DIR_TYPE with a supported value will change the
+/// behaviour.
+///
+/// Supported values for the SDL_FILESYSTEM_BASE_DIR_TYPE property (Given an
+/// application in /Applications/SDLApp/MyApp.app):
+///
+/// - `resource`: bundle resource directory (the default). For example:
+///   `/Applications/SDLApp/MyApp.app/Contents/Resources`
+/// - `bundle`: the Bundle directory. For example:
+///   `/Applications/SDLApp/MyApp.app/`
+/// - `parent`: the containing directory of the bundle. For example:
+///   `/Applications/SDLApp/`
 ///
 /// The returned path is guaranteed to end with a path separator ('\\' on
 /// Windows, '/' on most other platforms).

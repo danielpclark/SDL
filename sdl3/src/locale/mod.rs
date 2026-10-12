@@ -1,16 +1,17 @@
 // Rust translation of src/locale/SDL_locale.c, SDL_syslocale.h,
 // src/locale/unix/SDL_syslocale.c, src/locale/windows/SDL_syslocale.c,
-// src/locale/dummy/SDL_syslocale.c and include/SDL3/SDL_locale.h from Simple
-// DirectMedia Layer.
+// src/locale/macos/SDL_syslocale.m, src/locale/dummy/SDL_syslocale.c and
+// include/SDL3/SDL_locale.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The user's preferred locales.
 //!
 //! The Unix backend (from the `LANG` and `LANGUAGE` environment variables)
-//! is used on Unix systems other than Apple's, Android and Haiku, and the
+//! is used on Unix systems other than Apple's, Android and Haiku, the
 //! Windows backend (`GetUserPreferredUILanguages()`, or the user locale's
-//! language and country where that's missing) on Windows; elsewhere the
+//! language and country where that's missing) on Windows, and the macOS
+//! one (`NSLocale.preferredLanguages`) on Apple platforms; elsewhere the
 //! dummy backend reports that the operation is unsupported until the
 //! platform layer arrives. `SDL_HINT_PREFERRED_LOCALES` overrides them.
 
@@ -369,8 +370,101 @@ fn ui_languages_to_csv(wbuf: &[u16], buflen: usize) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
+/// The loop of `SDL_SYS_GetPreferredLocales()` (macOS) over `numlangs`
+/// languages, `get_c_string(i, buflen)` standing for
+/// `[nsstr getCString:buf maxLength:buflen encoding:NSASCIIStringEncoding]`
+/// on the `i`th (`None` when it fails, which leaves upstream's buffer
+/// empty where it reads it).
+#[cfg(any(target_vendor = "apple", test))]
+fn languages_to_csv(
+    numlangs: usize,
+    mut get_c_string: impl FnMut(usize, usize) -> Option<String>,
+    mut buflen: usize,
+) -> String {
+    let mut buf = String::new();
+    for i in 0..numlangs {
+        let mut lang = get_c_string(i, buflen).unwrap_or_default();
+        let len = lang.len();
+
+        // convert '-' to '_'...
+        //  These are always full lang-COUNTRY, so we search from the back,
+        //  so things like zh-Hant-CN find the right '-' to convert.
+        if let Some(ptr) = lang.rfind('-') {
+            lang.replace_range(ptr..ptr + 1, "_");
+        }
+
+        if buflen <= len {
+            break; // drop this one and stop, we can't fit anymore.
+        }
+
+        buf.push_str(&lang);
+        buflen -= len;
+
+        if i < numlangs - 1 {
+            if buflen <= 1 {
+                break; // out of room, stop looking.
+            }
+            buf.push(','); // add a comma between entries.
+            buflen -= 1;
+        }
+    }
+    buf
+}
+
+#[cfg(target_vendor = "apple")]
+mod sys {
+    use crate::core::apple::foundation::{ns_array_count, ns_array_get};
+    use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id, NSUInteger};
+
+    /// `NSASCIIStringEncoding`.
+    const NS_ASCII_STRING_ENCODING: NSUInteger = 1;
+
+    /// `[nsstr getCString:buf maxLength:buflen encoding:NSASCIIStringEncoding]`:
+    /// the string, if it converts to ASCII and fits in `buflen` bytes with
+    /// its NUL.
+    ///
+    /// # Safety
+    ///
+    /// `nsstr` must be a valid `NSString`.
+    unsafe fn get_ascii_c_string(nsstr: Id, buflen: usize) -> Option<String> {
+        let mut buf = vec![0u8; buflen.max(1)];
+        // SAFETY: the caller's contract; the buffer has `buflen` bytes.
+        let ok: Bool = unsafe {
+            msg_send![nsstr, getCString: buf.as_mut_ptr()
+                             maxLength: buflen as NSUInteger
+                             encoding: NS_ASCII_STRING_ENCODING]
+        };
+        if !ok.is_true() {
+            return None;
+        }
+        let len = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+        buf.truncate(len);
+        String::from_utf8(buf).ok()
+    }
+
+    /// Translation of `SDL_SYS_GetPreferredLocales()` (macOS).
+    pub(super) fn get_preferred_locales(buf: &mut String, buflen: usize) -> crate::Result<()> {
+        autoreleasepool(|| {
+            // SAFETY: NSLocale's class property is an autoreleased NSArray
+            // of NSStrings, read while this pool lives.
+            unsafe {
+                let languages: Id = msg_send![class!(NSLocale), preferredLanguages];
+                let numlangs = ns_array_count(languages);
+                let csv = super::languages_to_csv(
+                    numlangs,
+                    |i, buflen| get_ascii_c_string(ns_array_get(languages, i), buflen),
+                    buflen,
+                );
+                buf.push_str(&csv);
+            }
+        });
+        Ok(())
+    }
+}
+
 #[cfg(not(any(
     windows,
+    target_vendor = "apple",
     all(
         unix,
         not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
@@ -513,6 +607,64 @@ mod tests {
             vec![l("ja", Some("JP")), l("en", None)]
         );
         hints::reset(hints::PREFERRED_LOCALES);
+    }
+
+    /// The macOS buffer handling, with `getCString:maxLength:encoding:`'s
+    /// rules (ASCII only, with room for the NUL).
+    #[test]
+    fn macos_languages_to_csv() {
+        let run = |langs: &[&str], buflen: usize| {
+            languages_to_csv(
+                langs.len(),
+                |i, buflen| {
+                    let s = langs[i];
+                    (s.is_ascii() && s.len() < buflen).then(|| s.to_owned())
+                },
+                buflen,
+            )
+        };
+        assert_eq!(
+            run(&["en-US", "zh-Hant-CN", "fr"], 128),
+            "en_US,zh-Hant_CN,fr"
+        );
+        assert_eq!(run(&[], 128), "");
+        // A language that doesn't convert leaves an empty entry.
+        assert_eq!(run(&["en-GB", "ελ", "de-DE"], 128), "en_GB,,de_DE");
+        // Out of room: what doesn't convert in the room left is an empty
+        // entry, and the list stops when there's no room for a comma.
+        assert_eq!(run(&["en-US", "de-DE"], 9), "en_US,");
+        assert_eq!(run(&["en-US", "de-DE"], 7), "en_US,");
+        assert_eq!(run(&["en-US", "de-DE"], 6), "en_US");
+        assert_eq!(run(&["en-US", "de-DE", "fr-FR"], 12), "en_US,de_DE");
+        assert_eq!(
+            build_locales_from_csv_string(&run(&["en-GB", "ελ", "de-DE"], 128)),
+            vec![l("en", Some("GB")), l("de", Some("DE"))]
+        );
+    }
+
+    /// `NSLocale.preferredLanguages`, as upstream reports it.
+    #[cfg(target_vendor = "apple")]
+    #[test]
+    fn macos_locales() {
+        use crate::core::apple::foundation::{ns_array_items, string_from_ns};
+        use crate::core::apple::objc::{autoreleasepool, class, msg_send, Id};
+        let _l = crate::test_support::test_lock();
+        hints::reset(hints::PREFERRED_LOCALES);
+        let expected: Vec<Locale> = autoreleasepool(|| unsafe {
+            let languages: Id = msg_send![class!(NSLocale), preferredLanguages];
+            ns_array_items(languages)
+                .into_iter()
+                .filter_map(|s| string_from_ns(s))
+                .map(|s| match s.rsplit_once('-') {
+                    Some((lang, country)) => l(lang, Some(country)),
+                    None => l(&s, None),
+                })
+                .collect()
+        });
+        let locales = preferred_locales().unwrap();
+        // (all of them, unless they overflow the 128-byte buffer)
+        assert!(!locales.is_empty());
+        assert_eq!(locales, expected[..locales.len()]);
     }
 
     #[cfg(all(
