@@ -7,7 +7,11 @@
 //! threads, so this is a program of its own (`harness = false`) whose
 //! `main` drives the driver through the public API: displays and modes,
 //! windows (geometry, visibility, flags, fullscreen, popups), text input,
-//! the clipboard, cursors, the keymap, mouse warping and message boxes.
+//! the clipboard, cursors, the keymap, mouse warping and message boxes;
+//! OpenGL contexts (NSOpenGL: legacy and core profiles, sharing, swap
+//! intervals) drawn and read back, and OpenGL ES through EGL with ANGLE
+//! (capability `egl`: `SDL3_TEST_ANGLE_DIR`, or the copy the Android
+//! emulator ships).
 //!
 //! Without a window server session (capability `cocoa`) it skips, unless
 //! `SDL3_TEST_REQUIRE` asks for `cocoa` (or `all`).
@@ -130,9 +134,255 @@ mod macos {
         keymap();
         mouse_warp();
         message_box();
+        opengl();
+        opengl_es();
 
         init::quit();
         println!("cocoa: all checks passed");
+    }
+
+    // The GL functions the checks call (through SDL_GL_GetProcAddress()).
+    type GlGetString = unsafe extern "C" fn(u32) -> *const c_char;
+    type GlClearColor = unsafe extern "C" fn(f32, f32, f32, f32);
+    type GlClear = unsafe extern "C" fn(u32);
+    type GlReadPixels = unsafe extern "C" fn(i32, i32, i32, i32, u32, u32, *mut c_void);
+    type GlFinish = unsafe extern "C" fn();
+    type GlGenTextures = unsafe extern "C" fn(i32, *mut u32);
+    type GlIsTexture = unsafe extern "C" fn(u32) -> u8;
+    type GlBindTexture = unsafe extern "C" fn(u32, u32);
+    type GlGetError = unsafe extern "C" fn() -> u32;
+    const GL_VERSION: u32 = 0x1F02;
+    const GL_RENDERER: u32 = 0x1F01;
+    const GL_COLOR_BUFFER_BIT: u32 = 0x4000;
+    const GL_RGBA: u32 = 0x1908;
+    const GL_UNSIGNED_BYTE: u32 = 0x1401;
+    const GL_TEXTURE_2D: u32 = 0x0DE1;
+
+    /// A GL function of the current library.
+    fn glfn<F: Copy>(name: &str) -> F {
+        let p = video::gl::gl_get_proc_address(name).unwrap_or_else(|| panic!("no {name}"));
+        assert_eq!(size_of::<F>(), size_of::<*const c_void>());
+        // SAFETY: the caller names F as the function's type.
+        unsafe { std::mem::transmute_copy(&p) }
+    }
+
+    fn gl_string(name: u32) -> String {
+        let get_string: GlGetString = glfn("glGetString");
+        // SAFETY: a current context; glGetString returns a static string.
+        let s = unsafe { get_string(name) };
+        assert!(!s.is_null());
+        // SAFETY: a NUL-terminated string.
+        unsafe { std::ffi::CStr::from_ptr(s) }
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    /// Clear the current context's back buffer to a color and read the
+    /// middle pixel back.
+    fn gl_clear_and_read(window: &Window, rgba: [f32; 4]) -> [u8; 4] {
+        let clear_color: GlClearColor = glfn("glClearColor");
+        let clear: GlClear = glfn("glClear");
+        let read_pixels: GlReadPixels = glfn("glReadPixels");
+        let finish: GlFinish = glfn("glFinish");
+        let (w, h) = window.size_in_pixels().unwrap();
+        let mut px = [0u8; 4];
+        // SAFETY: a current context; the buffer has room for one pixel.
+        unsafe {
+            clear_color(rgba[0], rgba[1], rgba[2], rgba[3]);
+            clear(GL_COLOR_BUFFER_BIT);
+            finish();
+            read_pixels(
+                w / 2,
+                h / 2,
+                1,
+                1,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                px.as_mut_ptr().cast(),
+            );
+        }
+        px
+    }
+
+    fn opengl() {
+        use video::gl::{self, GlAttr};
+
+        // The default (legacy) profile
+        gl::gl_reset_attributes();
+        let window = Window::create("SDL Cocoa GL", 96, 64, WindowFlags::OPENGL).unwrap();
+        assert!(window.flags().unwrap().contains(WindowFlags::OPENGL));
+        pump_for(200);
+        let ctx = gl::gl_create_context(&window).unwrap();
+        assert!(ctx.is_current());
+        assert_eq!(
+            gl::gl_current_window().unwrap().map(|w| w.id()),
+            Some(window.id())
+        );
+        let version = gl_string(GL_VERSION);
+        println!("cocoa: GL {version} on {}", gl_string(GL_RENDERER));
+        assert!(version.starts_with("2.1"), "{version}");
+        assert_eq!(
+            gl_clear_and_read(&window, [1.0, 0.0, 0.0, 1.0]),
+            [255, 0, 0, 255]
+        );
+        assert_eq!(
+            gl_clear_and_read(&window, [0.0, 0.5, 1.0, 1.0])[..3],
+            [0, 128, 255]
+        );
+
+        // Swap intervals, vsync through the display link
+        gl::gl_set_swap_interval(0).unwrap();
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 0);
+        let start = Instant::now();
+        for _ in 0..5 {
+            gl::gl_swap_window(&window).unwrap();
+        }
+        let unsynced = start.elapsed();
+        gl::gl_set_swap_interval(1).unwrap();
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), 1);
+        let start = Instant::now();
+        for _ in 0..5 {
+            gl::gl_swap_window(&window).unwrap();
+        }
+        let synced = start.elapsed();
+        println!("cocoa: 5 swaps in {unsynced:?} unsynced, {synced:?} with vsync");
+        // Five waits for a display refresh (at most 240 Hz).
+        assert!(synced >= Duration::from_millis(15), "{synced:?}");
+        assert!(synced < Duration::from_secs(2), "{synced:?}");
+        gl::gl_set_swap_interval(-1).unwrap();
+        assert_eq!(gl::gl_get_swap_interval().unwrap(), -1);
+        gl::gl_swap_window(&window).unwrap();
+        gl::gl_set_swap_interval(0).unwrap();
+
+        // A context sharing objects with the current one
+        let gen_textures: GlGenTextures = glfn("glGenTextures");
+        let bind_texture: GlBindTexture = glfn("glBindTexture");
+        let is_texture: GlIsTexture = glfn("glIsTexture");
+        let get_error: GlGetError = glfn("glGetError");
+        let mut tex = 0u32;
+        // SAFETY: a current context.
+        unsafe {
+            gen_textures(1, &mut tex);
+            bind_texture(GL_TEXTURE_2D, tex);
+            assert_eq!(get_error(), 0);
+        }
+        gl::gl_set_attribute(GlAttr::ShareWithCurrentContext, 1).unwrap();
+        let shared = gl::gl_create_context(&window).unwrap();
+        assert!(shared.is_current() && !ctx.is_current());
+        // SAFETY: the shared context is current.
+        assert_eq!(unsafe { is_texture(tex) }, 1);
+        gl::gl_set_attribute(GlAttr::ShareWithCurrentContext, 0).unwrap();
+        let unshared = gl::gl_create_context(&window).unwrap();
+        // SAFETY: the unshared context is current.
+        assert_eq!(unsafe { is_texture(tex) }, 0);
+        drop(unshared);
+        drop(shared);
+        ctx.make_current(Some(&window)).unwrap();
+        assert_eq!(
+            gl_clear_and_read(&window, [0.0, 1.0, 0.0, 1.0]),
+            [0, 255, 0, 255]
+        );
+        gl::gl_release_current().unwrap();
+        assert!(gl::gl_current_context().unwrap().is_none());
+        drop(ctx);
+        window.destroy();
+
+        // A core profile, at 3.2 or better
+        gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_CORE).unwrap();
+        gl::gl_set_attribute(GlAttr::ContextMajorVersion, 3).unwrap();
+        gl::gl_set_attribute(GlAttr::ContextMinorVersion, 2).unwrap();
+        let window = Window::create("SDL Cocoa GL core", 96, 64, WindowFlags::OPENGL).unwrap();
+        pump_for(100);
+        let ctx = gl::gl_create_context(&window).unwrap();
+        let version = gl_string(GL_VERSION);
+        println!("cocoa: core profile GL {version}");
+        let major: i32 = version.split('.').next().unwrap().parse().unwrap();
+        assert!(major >= 3 && !version.starts_with("3.0") && !version.starts_with("3.1"));
+        assert_eq!(
+            gl_clear_and_read(&window, [0.0, 0.0, 1.0, 1.0]),
+            [0, 0, 255, 255]
+        );
+        gl::gl_swap_window(&window).unwrap();
+        drop(ctx);
+
+        // A version the system doesn't have
+        gl::gl_set_attribute(GlAttr::ContextMajorVersion, 4).unwrap();
+        gl::gl_set_attribute(GlAttr::ContextMinorVersion, 6).unwrap();
+        let err = gl::gl_create_context(&window).unwrap_err();
+        assert_eq!(
+            err.message(),
+            "Failed creating OpenGL context at version requested"
+        );
+        assert!(gl::gl_current_context().unwrap().is_none());
+        window.destroy();
+        gl::gl_reset_attributes();
+        println!("cocoa: opengl ok");
+    }
+
+    /// The directory of ANGLE's libEGL.dylib and libGLESv2.dylib.
+    fn angle_dir() -> Option<std::path::PathBuf> {
+        let dir = match std::env::var_os("SDL3_TEST_ANGLE_DIR") {
+            Some(dir) => std::path::PathBuf::from(dir),
+            None => std::path::PathBuf::from(std::env::var_os("HOME")?)
+                .join("Library/Android/sdk/emulator/lib64/gles_angle"),
+        };
+        (dir.join("libEGL.dylib").exists() && dir.join("libGLESv2.dylib").exists()).then_some(dir)
+    }
+
+    fn opengl_es() {
+        use video::gl::{self, GlAttr};
+
+        let Some(dir) = angle_dir() else {
+            let required = std::env::var("SDL3_TEST_REQUIRE")
+                .unwrap_or_default()
+                .split(',')
+                .any(|c| c.trim() == "all" || c.trim() == "egl");
+            assert!(!required, "required capability egl unavailable: no ANGLE");
+            println!("note: skipping, egl unavailable: no ANGLE (set SDL3_TEST_ANGLE_DIR)");
+            return;
+        };
+        hints::set(
+            hints::EGL_LIBRARY,
+            dir.join("libEGL.dylib").to_str().unwrap(),
+        )
+        .unwrap();
+        hints::set(
+            hints::OPENGL_LIBRARY,
+            dir.join("libGLESv2.dylib").to_str().unwrap(),
+        )
+        .unwrap();
+        gl::gl_reset_attributes();
+        gl::gl_set_attribute(GlAttr::ContextProfileMask, gl::GL_CONTEXT_PROFILE_ES).unwrap();
+        gl::gl_set_attribute(GlAttr::ContextMajorVersion, 3).unwrap();
+        gl::gl_set_attribute(GlAttr::ContextMinorVersion, 0).unwrap();
+        let window = Window::create("SDL Cocoa GLES", 96, 64, WindowFlags::OPENGL).unwrap();
+        pump_for(100);
+        let ctx = gl::gl_create_context(&window).unwrap();
+        let version = gl_string(GL_VERSION);
+        println!("cocoa: {version} on {}", gl_string(GL_RENDERER));
+        assert!(version.starts_with("OpenGL ES 3"), "{version}");
+        assert!(gl::egl_window_surface(&window).unwrap().is_some());
+        assert_eq!(
+            gl_clear_and_read(&window, [1.0, 1.0, 0.0, 1.0]),
+            [255, 255, 0, 255]
+        );
+        gl::gl_set_swap_interval(1).unwrap();
+        gl::gl_swap_window(&window).unwrap();
+        gl::gl_set_swap_interval(0).unwrap();
+        drop(ctx);
+        window.destroy();
+
+        // Back to NSOpenGL for a desktop profile
+        gl::gl_reset_attributes();
+        hints::reset(hints::EGL_LIBRARY);
+        hints::reset(hints::OPENGL_LIBRARY);
+        let window = Window::create("SDL Cocoa GL again", 96, 64, WindowFlags::OPENGL).unwrap();
+        let ctx = gl::gl_create_context(&window).unwrap();
+        assert!(gl_string(GL_VERSION).starts_with("2.1"));
+        assert!(gl::egl_window_surface(&window).is_err());
+        drop(ctx);
+        window.destroy();
+        println!("cocoa: opengl es ok");
     }
 
     fn displays_and_modes() {

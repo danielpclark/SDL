@@ -3619,8 +3619,20 @@ pub(crate) fn create_window(
             let highdpi = Bool::from(f.contains(WindowFlags::HIGH_PIXEL_DENSITY));
             let _: () = msg_send![nsview, setWantsBestResolutionOpenGLSurface: highdpi];
 
-            // (The OpenGL ES layer setup of SDL_VIDEO_OPENGL_EGL comes with
-            // SDL_cocoaopengles.m.)
+            let gles = crate::video::gl::gl_config().profile_mask
+                == crate::video::gl::GL_CONTEXT_PROFILE_ES;
+            if f.contains(WindowFlags::OPENGL) && gles {
+                let _: () = msg_send![nsview, setWantsLayer: YES];
+                let layer: Id = msg_send![nsview, layer];
+                if f.contains(WindowFlags::HIGH_PIXEL_DENSITY) {
+                    let screen: Id = msg_send![nswindow, screen];
+                    let scale: crate::core::apple::foundation::CGFloat =
+                        msg_send![screen, backingScaleFactor];
+                    let _: () = msg_send![layer, setContentsScale: scale];
+                } else {
+                    let _: () = msg_send![layer, setContentsScale: 1.0f64];
+                }
+            }
             let _: () = msg_send![nswindow, setContentView: nsview];
 
             setup_window_data(videodata, window, nswindow, nsview)?;
@@ -3630,7 +3642,13 @@ pub(crate) fn create_window(
             }
 
             // The rest of this macro mess is for OpenGL or OpenGL ES windows
-            // (the OpenGL ES window surface comes with SDL_cocoaopengles.m)
+            if gles {
+                if let Err(e) = super::opengles::gles_setup_window(window) {
+                    destroy_window(window);
+                    return Err(e);
+                }
+                return Ok(());
+            }
             Ok(())
         }
     })

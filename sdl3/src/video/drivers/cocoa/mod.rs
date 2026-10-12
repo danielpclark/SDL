@@ -20,12 +20,10 @@
 //! As upstream, the driver only starts on the main thread: AppKit must be
 //! used from there.
 //!
-//! Not part of this module yet: OpenGL contexts (`SDL_cocoaopengl.m`), EGL
-//! (`SDL_cocoaopengles.m`), Metal views (`SDL_cocoametalview.m`) and Vulkan
-//! surfaces (`SDL_cocoavulkan.m`). The window data keeps their hooks
-//! ([`window::WindowData`]'s `nscontexts`, the `SDL_METALVIEW_TAG`
-//! property, [`VideoData::swaplock`]), and windows created with
-//! `WindowFlags::OPENGL` get a content view ready for an `NSOpenGLContext`.
+//! OpenGL contexts are `NSOpenGLContext`s ([`opengl`]); with an OpenGL ES
+//! profile, or [`hints::VIDEO_FORCE_EGL`], the driver switches to EGL
+//! ([`opengles`], with ANGLE). Windows are OpenGL windows by default, as
+//! upstream's `SDL_DefaultGraphicsBackends()` makes them on macOS.
 
 #![allow(non_upper_case_globals, non_snake_case)] // (the SDK's names are kept)
 
@@ -35,6 +33,8 @@ pub(crate) mod keyboard;
 pub(crate) mod messagebox;
 pub(crate) mod modes;
 pub(crate) mod mouse;
+pub(crate) mod opengl;
+pub(crate) mod opengles;
 pub(crate) mod pen;
 pub(crate) mod shape;
 pub(crate) mod sys;
@@ -52,6 +52,7 @@ use crate::events::mouse::{Cursor, CursorFrame, MouseButtonFlags, MouseFeature, 
 use crate::events::{DisplayID, WindowID};
 use crate::hints;
 use crate::properties::Properties;
+use crate::video::gl::RawGlContext;
 use crate::video::sysvideo::{
     DeviceCaps, DisplayMode, FlashOperation, FullscreenOp, FullscreenResult, SystemTheme,
     VideoBootStrap, VideoDriver,
@@ -92,7 +93,6 @@ pub(crate) struct VideoData {
     state: Mutex<VideoState>,
     /// `swaplock`: serializes the OpenGL contexts' buffer swaps (for
     /// `SDL_cocoaopengl.m`).
-    #[allow(dead_code)] // (used by the OpenGL contexts)
     pub(crate) swaplock: Mutex<()>,
 }
 
@@ -168,6 +168,13 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
             swaplock: Mutex::new(()),
         });
         *VIDEO_DATA.lock().unwrap_or_else(|e| e.into_inner()) = Some(data.clone());
+
+        // (the device's GL_* functions: NSOpenGL's, or EGL's when forced)
+        opengl::set_gl_backend(if hints::get_bool(hints::VIDEO_FORCE_EGL, false) {
+            opengl::GlBackend::Egl
+        } else {
+            opengl::GlBackend::Cgl
+        });
 
         let video: Arc<dyn VideoDriver> = Arc::new(CocoaVideo { data });
         Some(video)
@@ -508,6 +515,83 @@ impl VideoDriver for CocoaVideo {
                 "Timed out waiting for window operations to complete",
             ))
         })
+    }
+
+    // OpenGL support (`Cocoa_GL_*` or `Cocoa_GLES_*`)
+
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_load_library(path),
+            opengl::GlBackend::Egl => opengles::gles_load_library(path),
+        })
+    }
+    fn gl_unload_library(&self) -> Option<()> {
+        match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_unload_library(),
+            opengl::GlBackend::Egl => crate::video::egl::unload_library(),
+        }
+        Some(())
+    }
+    fn gl_get_proc_address(
+        &self,
+        proc_name: &str,
+    ) -> Option<Option<std::ptr::NonNull<std::ffi::c_void>>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_get_proc_address(proc_name),
+            opengl::GlBackend::Egl => crate::video::egl::get_proc_address_internal(proc_name),
+        })
+    }
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_create_context(window),
+            opengl::GlBackend::Egl => opengles::gles_create_context(window),
+        })
+    }
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_make_current(window, context),
+            opengl::GlBackend::Egl => opengles::gles_make_current(window, context),
+        })
+    }
+    fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_set_swap_interval(interval),
+            opengl::GlBackend::Egl => crate::video::egl::set_swap_interval(interval),
+        })
+    }
+    fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_get_swap_interval(),
+            opengl::GlBackend::Egl => crate::video::egl::get_swap_interval(),
+        })
+    }
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_swap_window(window),
+            opengl::GlBackend::Egl => opengles::gles_swap_window(window),
+        })
+    }
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
+        Some(match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => opengl::cgl_destroy_context(context),
+            opengl::GlBackend::Egl => {
+                opengles::gles_destroy_context(context);
+                Ok(())
+            }
+        })
+    }
+    fn gl_get_egl_surface(&self, window: WindowID) -> Option<*mut std::ffi::c_void> {
+        match opengl::gl_backend() {
+            opengl::GlBackend::Cgl => None,
+            opengl::GlBackend::Egl => Some(opengles::gles_get_egl_surface(window)),
+        }
     }
 
     // Event manager functions
