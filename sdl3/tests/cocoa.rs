@@ -9,7 +9,8 @@
 //! windows (geometry, visibility, flags, fullscreen, popups), text input,
 //! the clipboard, cursors, the keymap, mouse warping and message boxes;
 //! OpenGL contexts (NSOpenGL: legacy and core profiles, sharing, swap
-//! intervals) drawn and read back, and OpenGL ES through EGL with ANGLE
+//! intervals) drawn and read back, Metal views and their layers' drawable
+//! sizes, and OpenGL ES through EGL with ANGLE
 //! (capability `egl`: `SDL3_TEST_ANGLE_DIR`, or the copy the Android
 //! emulator ships).
 //!
@@ -82,6 +83,7 @@ mod macos {
         fn objc_getClass(name: *const c_char) -> *mut c_void;
         fn sel_registerName(name: *const c_char) -> *mut c_void;
         fn objc_msgSend();
+        fn object_getClassName(obj: *mut c_void) -> *const c_char;
         static _dispatch_main_q: c_void;
         fn dispatch_async_f(
             queue: *const c_void,
@@ -135,6 +137,7 @@ mod macos {
         mouse_warp();
         message_box();
         opengl();
+        metal();
         opengl_es();
 
         init::quit();
@@ -383,6 +386,118 @@ mod macos {
         drop(ctx);
         window.destroy();
         println!("cocoa: opengl es ok");
+    }
+
+    /// `[obj selector]` returning an object.
+    fn send_id(obj: *mut c_void, selector: &std::ffi::CStr) -> *mut c_void {
+        // SAFETY: a method without arguments returning an object.
+        unsafe {
+            let send: unsafe extern "C" fn(*mut c_void, *mut c_void) -> *mut c_void =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            send(obj, sel_registerName(selector.as_ptr()))
+        }
+    }
+
+    /// The class name of an object.
+    fn class_name(obj: *mut c_void) -> String {
+        // SAFETY: a valid object; the name is a static C string.
+        unsafe { std::ffi::CStr::from_ptr(object_getClassName(obj)) }
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    /// `[layer drawableSize]` of a CAMetalLayer, rounded.
+    fn drawable_size(layer: *mut c_void) -> (i32, i32) {
+        #[repr(C)]
+        struct CGSize {
+            w: f64,
+            h: f64,
+        }
+        // SAFETY: a CAMetalLayer's drawableSize (a CGSize, returned in
+        // registers on both architectures).
+        let size = unsafe {
+            let send: unsafe extern "C" fn(*mut c_void, *mut c_void) -> CGSize =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            send(layer, sel_registerName(c"drawableSize".as_ptr()))
+        };
+        (size.w.round() as i32, size.h.round() as i32)
+    }
+
+    fn metal() {
+        let window = Window::create(
+            "SDL Cocoa Metal",
+            120,
+            80,
+            WindowFlags::METAL | WindowFlags::RESIZABLE | WindowFlags::HIGH_PIXEL_DENSITY,
+        )
+        .unwrap();
+        pump_for(200);
+        let flags = window.flags().unwrap();
+        assert!(flags.contains(WindowFlags::METAL) && !flags.contains(WindowFlags::OPENGL));
+        let view = video::vulkan::metal_create_view(&window).unwrap();
+        assert_eq!(class_name(view as *mut c_void), "SDL3_cocoametalview");
+        let layer = video::vulkan::metal_get_layer(view).unwrap();
+        assert_eq!(class_name(layer as *mut c_void), "CAMetalLayer");
+        assert_eq!(
+            drawable_size(layer as *mut c_void),
+            window.size_in_pixels().unwrap()
+        );
+
+        // The view tags itself (SDL_METALVIEW_TAG) and is the content view's subview.
+        let props = window.properties().unwrap();
+        assert_eq!(
+            props.get_number(video::window::PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER),
+            Some(255)
+        );
+        let nswindow = props
+            .get_number(video::window::PROP_WINDOW_COCOA_WINDOW_POINTER)
+            .unwrap();
+        let content = send_id(nswindow as *mut c_void, c"contentView");
+        // SAFETY: -[NSView viewWithTag:].
+        let tagged = unsafe {
+            let send: unsafe extern "C" fn(*mut c_void, *mut c_void, isize) -> *mut c_void =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            send(content, sel_registerName(c"viewWithTag:".as_ptr()), 255)
+        };
+        assert_eq!(tagged as usize, view);
+
+        // The drawable follows the window's pixel size.
+        window.set_size(200, 150).unwrap();
+        let events = pump_for(300);
+        assert!(has_window_event(
+            &events,
+            &window,
+            EventType::WINDOW_PIXEL_SIZE_CHANGED
+        ));
+        let pixels = window.size_in_pixels().unwrap();
+        assert_eq!(drawable_size(layer as *mut c_void), pixels);
+        println!(
+            "cocoa: metal layer drawable {:?} for {:?}",
+            drawable_size(layer as *mut c_void),
+            window.size().unwrap()
+        );
+        video::vulkan::metal_destroy_view(view);
+        // SAFETY: as above.
+        let tagged = unsafe {
+            let send: unsafe extern "C" fn(*mut c_void, *mut c_void, isize) -> *mut c_void =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            send(content, sel_registerName(c"viewWithTag:".as_ptr()), 255)
+        };
+        assert!(tagged.is_null());
+        window.destroy();
+
+        // A view on an OpenGL window turns it into a Metal window.
+        let window =
+            Window::create("SDL Cocoa Metal from GL", 64, 64, WindowFlags::OPENGL).unwrap();
+        let view = video::vulkan::metal_create_view(&window).unwrap();
+        let flags = window.flags().unwrap();
+        assert!(flags.contains(WindowFlags::METAL) && !flags.contains(WindowFlags::OPENGL));
+        // Without high pixel density the drawable is in points.
+        let layer = video::vulkan::metal_get_layer(view).unwrap();
+        assert_eq!(drawable_size(layer as *mut c_void), (64, 64));
+        video::vulkan::metal_destroy_view(view);
+        window.destroy();
+        println!("cocoa: metal views ok");
     }
 
     fn displays_and_modes() {

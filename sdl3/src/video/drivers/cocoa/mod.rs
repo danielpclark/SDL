@@ -20,7 +20,8 @@
 //! As upstream, the driver only starts on the main thread: AppKit must be
 //! used from there.
 //!
-//! OpenGL contexts are `NSOpenGLContext`s ([`opengl`]); with an OpenGL ES
+//! Metal views are `CAMetalLayer`-backed subviews of the content view
+//! ([`metalview`]). OpenGL contexts are `NSOpenGLContext`s ([`opengl`]); with an OpenGL ES
 //! profile, or [`hints::VIDEO_FORCE_EGL`], the driver switches to EGL
 //! ([`opengles`], with ANGLE). Windows are OpenGL windows by default, as
 //! upstream's `SDL_DefaultGraphicsBackends()` makes them on macOS.
@@ -31,6 +32,7 @@ pub(crate) mod clipboard;
 pub(crate) mod events;
 pub(crate) mod keyboard;
 pub(crate) mod messagebox;
+pub(crate) mod metalview;
 pub(crate) mod modes;
 pub(crate) mod mouse;
 pub(crate) mod opengl;
@@ -592,6 +594,22 @@ impl VideoDriver for CocoaVideo {
             opengl::GlBackend::Cgl => None,
             opengl::GlBackend::Egl => Some(opengles::gles_get_egl_surface(window)),
         }
+    }
+
+    // Metal support
+
+    fn implements_metal_views(&self) -> bool {
+        true
+    }
+    fn metal_create_view(&self, window: WindowID) -> Option<Option<usize>> {
+        Some(metalview::metal_create_view(window))
+    }
+    fn metal_destroy_view(&self, view: usize) -> Option<()> {
+        metalview::metal_destroy_view(view);
+        Some(())
+    }
+    fn metal_get_layer(&self, view: usize) -> Option<Option<usize>> {
+        Some(metalview::metal_get_layer(view))
     }
 
     // Event manager functions
