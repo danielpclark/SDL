@@ -20,6 +20,9 @@
 
 pub(crate) mod block;
 pub(crate) mod foundation;
+/// IOKit (the HID manager, the I/O Registry) and ForceFeedback.
+#[cfg(target_os = "macos")]
+pub(crate) mod iokit;
 pub(crate) mod objc;
 
 // Foundation's classes (NSString, NSArray, NSNumber, NSThread...) are
