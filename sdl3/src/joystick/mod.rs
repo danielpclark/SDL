@@ -18,12 +18,14 @@
 //! through [`crate::hidapi`], with the Xbox 360, Xbox One, PS4, PS5 and
 //! Nintendo Switch device drivers), the Linux driver (evdev devices, found
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
-//! and XInput; Windows.Gaming.Input), the virtual driver
+//! and XInput; Windows.Gaming.Input), the IOKit driver (macOS), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the other HIDAPI device
 //! drivers and platform drivers arrive later.
 
 mod controller_type;
+#[cfg(target_os = "macos")]
+pub(crate) mod darwin;
 mod device_info;
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 mod dummy;
@@ -569,14 +571,16 @@ const WGI_DRIVER_INDEX: usize = 4;
 #[cfg(target_os = "linux")]
 const LINUX_DRIVER_INDEX: usize = 1;
 
+/// The index of the IOKit driver in [`JOYSTICK_DRIVERS`].
+#[cfg(target_os = "macos")]
+const DARWIN_DRIVER_INDEX: usize = 1;
+
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
-} else if cfg!(target_os = "linux") {
+} else if cfg!(any(target_os = "linux", target_os = "macos")) {
     2
-} else if cfg!(target_os = "macos") {
-    1
 } else {
     0
 };
@@ -600,6 +604,8 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     &windows::windows_gaming_input::WGI_JOYSTICK_DRIVER,
     #[cfg(target_os = "linux")]
     &linux::LINUX_JOYSTICK_DRIVER,
+    #[cfg(target_os = "macos")]
+    &darwin::DARWIN_JOYSTICK_DRIVER,
     &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER,
     #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     &dummy::DUMMY_JOYSTICK_DRIVER,

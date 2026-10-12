@@ -12,6 +12,9 @@
 //!
 //! IOKit and ForceFeedback are linked, as upstream links them.
 
+// (the SDK's names)
+#![allow(clippy::upper_case_acronyms)]
+
 use std::ffi::{c_char, c_void};
 
 use super::foundation::{
@@ -244,7 +247,9 @@ unsafe extern "C" {
     pub(crate) fn IOObjectRelease(object: IoObject) -> KernReturn;
     pub(crate) fn IOObjectRetain(object: IoObject) -> KernReturn;
     pub(crate) fn IOObjectConformsTo(object: IoObject, class_name: *const c_char) -> Boolean;
+    pub(crate) fn IOObjectIsEqualTo(object: IoObject, an_object: IoObject) -> Boolean;
     pub(crate) fn IOIteratorNext(iterator: IoIterator) -> IoObject;
+    pub(crate) fn IOIteratorIsValid(iterator: IoIterator) -> Boolean;
     pub(crate) fn IOServiceMatching(name: *const c_char) -> CFMutableDictionaryRef;
     pub(crate) fn IOServiceGetMatchingService(
         main_port: MachPort,
@@ -513,5 +518,555 @@ pub(crate) unsafe fn cf_string_utf32(s: CFStringRef, max_chars: usize) -> String
             .iter()
             .map(|&c| char::from_u32(u32::from_le(c)).unwrap_or('\u{fffd}'))
             .collect()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ForceFeedback (<ForceFeedback/ForceFeedback.h>, ForceFeedbackConstants.h);
+// the values and layouts checked against the SDK with a C harness.
+
+/// `HRESULT`.
+pub(crate) type HResult = i32;
+/// `FFDeviceObjectReference`.
+pub(crate) type FFDeviceObjectReference = *mut c_void;
+/// `FFEffectObjectReference`.
+pub(crate) type FFEffectObjectReference = *mut c_void;
+/// `CFUUIDRef`.
+pub(crate) type CFUUIDRef = *const c_void;
+
+/// `FF_OK`.
+pub(crate) const FF_OK: HResult = 0;
+/// `FF_INFINITE`.
+pub(crate) const FF_INFINITE: u32 = 0xFFFF_FFFF;
+/// `FFEB_NOTRIGGER`.
+pub(crate) const FFEB_NOTRIGGER: u32 = 0xFFFF_FFFF;
+
+/// `FFJOFS_BUTTON(n)`: the offset of button `n` in `FFJOYSTATE`.
+pub(crate) const fn ffjofs_button(n: u32) -> u32 {
+    48 + n
+}
+
+/// `FFERR_DEVICEFULL`.
+pub(crate) const FFERR_DEVICEFULL: HResult = 0x8004_0201_u32 as i32;
+/// `FFERR_DEVICEPAUSED`.
+pub(crate) const FFERR_DEVICEPAUSED: HResult = 0x8004_0301_u32 as i32;
+/// `FFERR_DEVICERELEASED`.
+pub(crate) const FFERR_DEVICERELEASED: HResult = 0x8004_0307_u32 as i32;
+/// `FFERR_EFFECTPLAYING`.
+pub(crate) const FFERR_EFFECTPLAYING: HResult = 0x8004_0208_u32 as i32;
+/// `FFERR_EFFECTTYPEMISMATCH`.
+pub(crate) const FFERR_EFFECTTYPEMISMATCH: HResult = 0x8004_0303_u32 as i32;
+/// `FFERR_EFFECTTYPENOTSUPPORTED`.
+pub(crate) const FFERR_EFFECTTYPENOTSUPPORTED: HResult = 0x8004_0306_u32 as i32;
+/// `FFERR_GENERIC`.
+pub(crate) const FFERR_GENERIC: HResult = 0x8000_0008_u32 as i32;
+/// `FFERR_HASEFFECTS`.
+pub(crate) const FFERR_HASEFFECTS: HResult = 0x8004_0204_u32 as i32;
+/// `FFERR_INCOMPLETEEFFECT`.
+pub(crate) const FFERR_INCOMPLETEEFFECT: HResult = 0x8004_0206_u32 as i32;
+/// `FFERR_INTERNAL`.
+pub(crate) const FFERR_INTERNAL: HResult = 0x8004_0302_u32 as i32;
+/// `FFERR_INVALIDDOWNLOADID`.
+pub(crate) const FFERR_INVALIDDOWNLOADID: HResult = 0x8004_0300_u32 as i32;
+/// `FFERR_INVALIDPARAM`.
+pub(crate) const FFERR_INVALIDPARAM: HResult = 0x8000_0003_u32 as i32;
+/// `FFERR_MOREDATA`.
+pub(crate) const FFERR_MOREDATA: HResult = 0x8004_0202_u32 as i32;
+/// `FFERR_NOINTERFACE`.
+pub(crate) const FFERR_NOINTERFACE: HResult = 0x8000_0004_u32 as i32;
+/// `FFERR_NOTDOWNLOADED`.
+pub(crate) const FFERR_NOTDOWNLOADED: HResult = 0x8004_0203_u32 as i32;
+/// `FFERR_NOTINITIALIZED`.
+pub(crate) const FFERR_NOTINITIALIZED: HResult = 0x8004_0305_u32 as i32;
+/// `FFERR_OUTOFMEMORY`.
+pub(crate) const FFERR_OUTOFMEMORY: HResult = 0x8000_0002_u32 as i32;
+/// `FFERR_UNPLUGGED`.
+pub(crate) const FFERR_UNPLUGGED: HResult = 0x8004_0209_u32 as i32;
+/// `FFERR_UNSUPPORTED`.
+pub(crate) const FFERR_UNSUPPORTED: HResult = 0x8000_0001_u32 as i32;
+/// `FFERR_UNSUPPORTEDAXIS`.
+pub(crate) const FFERR_UNSUPPORTEDAXIS: HResult = 0x8004_0304_u32 as i32;
+
+/// `FFSFFC_RESET`.
+pub(crate) const FFSFFC_RESET: u32 = 0x01;
+/// `FFSFFC_STOPALL`.
+pub(crate) const FFSFFC_STOPALL: u32 = 0x02;
+/// `FFSFFC_PAUSE`.
+pub(crate) const FFSFFC_PAUSE: u32 = 0x04;
+/// `FFSFFC_CONTINUE`.
+pub(crate) const FFSFFC_CONTINUE: u32 = 0x08;
+/// `FFSFFC_SETACTUATORSON`.
+pub(crate) const FFSFFC_SETACTUATORSON: u32 = 0x10;
+
+/// `FFEFF_OBJECTOFFSETS`.
+pub(crate) const FFEFF_OBJECTOFFSETS: u32 = 0x02;
+/// `FFEFF_CARTESIAN`.
+pub(crate) const FFEFF_CARTESIAN: u32 = 0x10;
+/// `FFEFF_POLAR`.
+pub(crate) const FFEFF_POLAR: u32 = 0x20;
+/// `FFEFF_SPHERICAL`.
+pub(crate) const FFEFF_SPHERICAL: u32 = 0x40;
+
+/// `FFEP_DURATION`.
+pub(crate) const FFEP_DURATION: u32 = 0x01;
+/// `FFEP_TRIGGERBUTTON`.
+pub(crate) const FFEP_TRIGGERBUTTON: u32 = 0x08;
+/// `FFEP_TRIGGERREPEATINTERVAL`.
+pub(crate) const FFEP_TRIGGERREPEATINTERVAL: u32 = 0x10;
+/// `FFEP_DIRECTION`.
+pub(crate) const FFEP_DIRECTION: u32 = 0x40;
+/// `FFEP_ENVELOPE`.
+pub(crate) const FFEP_ENVELOPE: u32 = 0x80;
+/// `FFEP_TYPESPECIFICPARAMS`.
+pub(crate) const FFEP_TYPESPECIFICPARAMS: u32 = 0x100;
+/// `FFEP_STARTDELAY`.
+pub(crate) const FFEP_STARTDELAY: u32 = 0x200;
+
+/// `FFPROP_FFGAIN`.
+pub(crate) const FFPROP_FFGAIN: u32 = 1;
+/// `FFPROP_AUTOCENTER`.
+pub(crate) const FFPROP_AUTOCENTER: u32 = 3;
+
+/// `FFCAP_ET_CONSTANTFORCE`.
+pub(crate) const FFCAP_ET_CONSTANTFORCE: u32 = 0x001;
+/// `FFCAP_ET_RAMPFORCE`.
+pub(crate) const FFCAP_ET_RAMPFORCE: u32 = 0x002;
+/// `FFCAP_ET_SQUARE`.
+pub(crate) const FFCAP_ET_SQUARE: u32 = 0x004;
+/// `FFCAP_ET_SINE`.
+pub(crate) const FFCAP_ET_SINE: u32 = 0x008;
+/// `FFCAP_ET_TRIANGLE`.
+pub(crate) const FFCAP_ET_TRIANGLE: u32 = 0x010;
+/// `FFCAP_ET_SAWTOOTHUP`.
+pub(crate) const FFCAP_ET_SAWTOOTHUP: u32 = 0x020;
+/// `FFCAP_ET_SAWTOOTHDOWN`.
+pub(crate) const FFCAP_ET_SAWTOOTHDOWN: u32 = 0x040;
+/// `FFCAP_ET_SPRING`.
+pub(crate) const FFCAP_ET_SPRING: u32 = 0x080;
+/// `FFCAP_ET_DAMPER`.
+pub(crate) const FFCAP_ET_DAMPER: u32 = 0x100;
+/// `FFCAP_ET_INERTIA`.
+pub(crate) const FFCAP_ET_INERTIA: u32 = 0x200;
+/// `FFCAP_ET_FRICTION`.
+pub(crate) const FFCAP_ET_FRICTION: u32 = 0x400;
+/// `FFCAP_ET_CUSTOMFORCE`.
+pub(crate) const FFCAP_ET_CUSTOMFORCE: u32 = 0x800;
+
+/// `FFENVELOPE`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FFENVELOPE {
+    pub(crate) dw_size: u32,
+    pub(crate) dw_attack_level: u32,
+    pub(crate) dw_attack_time: u32,
+    pub(crate) dw_fade_level: u32,
+    pub(crate) dw_fade_time: u32,
+}
+
+/// `FFCONSTANTFORCE`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FFCONSTANTFORCE {
+    pub(crate) l_magnitude: i32,
+}
+
+/// `FFPERIODIC`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FFPERIODIC {
+    pub(crate) dw_magnitude: u32,
+    pub(crate) l_offset: i32,
+    pub(crate) dw_phase: u32,
+    pub(crate) dw_period: u32,
+}
+
+/// `FFCONDITION`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FFCONDITION {
+    pub(crate) l_offset: i32,
+    pub(crate) l_positive_coefficient: i32,
+    pub(crate) l_negative_coefficient: i32,
+    pub(crate) dw_positive_saturation: u32,
+    pub(crate) dw_negative_saturation: u32,
+    pub(crate) l_dead_band: i32,
+}
+
+/// `FFRAMPFORCE`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FFRAMPFORCE {
+    pub(crate) l_start: i32,
+    pub(crate) l_end: i32,
+}
+
+/// `FFCUSTOMFORCE`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct FFCUSTOMFORCE {
+    pub(crate) c_channels: u32,
+    pub(crate) dw_sample_period: u32,
+    pub(crate) c_samples: u32,
+    pub(crate) rgl_force_data: *mut i32,
+}
+
+/// `FFEFFECT`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct FFEFFECT {
+    pub(crate) dw_size: u32,
+    pub(crate) dw_flags: u32,
+    pub(crate) dw_duration: u32,
+    pub(crate) dw_sample_period: u32,
+    pub(crate) dw_gain: u32,
+    pub(crate) dw_trigger_button: u32,
+    pub(crate) dw_trigger_repeat_interval: u32,
+    pub(crate) c_axes: u32,
+    pub(crate) rgdw_axes: *mut u32,
+    pub(crate) rgl_direction: *mut i32,
+    pub(crate) lp_envelope: *mut FFENVELOPE,
+    pub(crate) cb_type_specific_params: u32,
+    pub(crate) lpv_type_specific_params: *mut c_void,
+    pub(crate) dw_start_delay: u32,
+}
+
+impl Default for FFEFFECT {
+    /// All zeros (`SDL_zero()`).
+    fn default() -> FFEFFECT {
+        FFEFFECT {
+            dw_size: 0,
+            dw_flags: 0,
+            dw_duration: 0,
+            dw_sample_period: 0,
+            dw_gain: 0,
+            dw_trigger_button: 0,
+            dw_trigger_repeat_interval: 0,
+            c_axes: 0,
+            rgdw_axes: std::ptr::null_mut(),
+            rgl_direction: std::ptr::null_mut(),
+            lp_envelope: std::ptr::null_mut(),
+            cb_type_specific_params: 0,
+            lpv_type_specific_params: std::ptr::null_mut(),
+            dw_start_delay: 0,
+        }
+    }
+}
+
+/// `FFCAPABILITIES`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FFCAPABILITIES {
+    pub(crate) ff_spec_ver: [u8; 4],
+    pub(crate) supported_effects: u32,
+    pub(crate) emulated_effects: u32,
+    pub(crate) sub_type: u32,
+    pub(crate) num_ff_axes: u32,
+    pub(crate) ff_axes: [u8; 32],
+    pub(crate) storage_capacity: u32,
+    pub(crate) playback_capacity: u32,
+    pub(crate) firmware_ver: [u8; 4],
+    pub(crate) hardware_ver: [u8; 4],
+    pub(crate) driver_ver: [u8; 4],
+}
+
+#[link(name = "ForceFeedback", kind = "framework")]
+unsafe extern "C" {
+    pub(crate) fn FFIsForceFeedback(hid_device: IoService) -> HResult;
+    pub(crate) fn FFCreateDevice(
+        hid_device: IoService,
+        device: *mut FFDeviceObjectReference,
+    ) -> HResult;
+    pub(crate) fn FFReleaseDevice(device: FFDeviceObjectReference) -> HResult;
+    pub(crate) fn FFDeviceCreateEffect(
+        device: FFDeviceObjectReference,
+        uuid: CFUUIDRef,
+        effect_definition: *mut FFEFFECT,
+        effect: *mut FFEffectObjectReference,
+    ) -> HResult;
+    pub(crate) fn FFDeviceReleaseEffect(
+        device: FFDeviceObjectReference,
+        effect: FFEffectObjectReference,
+    ) -> HResult;
+    pub(crate) fn FFDeviceSendForceFeedbackCommand(
+        device: FFDeviceObjectReference,
+        command: u32,
+    ) -> HResult;
+    pub(crate) fn FFDeviceGetForceFeedbackCapabilities(
+        device: FFDeviceObjectReference,
+        capabilities: *mut FFCAPABILITIES,
+    ) -> HResult;
+    pub(crate) fn FFDeviceGetForceFeedbackProperty(
+        device: FFDeviceObjectReference,
+        property: u32,
+        value: *mut c_void,
+        value_size: u64,
+    ) -> HResult;
+    pub(crate) fn FFDeviceSetForceFeedbackProperty(
+        device: FFDeviceObjectReference,
+        property: u32,
+        value: *mut c_void,
+    ) -> HResult;
+    pub(crate) fn FFEffectStart(
+        effect: FFEffectObjectReference,
+        iterations: u32,
+        flags: u32,
+    ) -> HResult;
+    pub(crate) fn FFEffectStop(effect: FFEffectObjectReference) -> HResult;
+    pub(crate) fn FFEffectSetParameters(
+        effect: FFEffectObjectReference,
+        effect_definition: *mut FFEFFECT,
+        flags: u32,
+    ) -> HResult;
+    pub(crate) fn FFEffectGetEffectStatus(
+        effect: FFEffectObjectReference,
+        status: *mut u32,
+    ) -> HResult;
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    fn CFUUIDGetConstantUUIDWithBytes(
+        alloc: CFAllocatorRef,
+        byte0: u8,
+        byte1: u8,
+        byte2: u8,
+        byte3: u8,
+        byte4: u8,
+        byte5: u8,
+        byte6: u8,
+        byte7: u8,
+        byte8: u8,
+        byte9: u8,
+        byte10: u8,
+        byte11: u8,
+        byte12: u8,
+        byte13: u8,
+        byte14: u8,
+        byte15: u8,
+    ) -> CFUUIDRef;
+}
+
+/// The `kFFEffectType_*_ID` UUIDs, which differ in their fourth byte
+/// (`0x60` for `ConstantForce` to `0x6b` for `CustomForce`).
+pub(crate) fn ff_effect_type_uuid(fourth_byte: u8) -> CFUUIDRef {
+    // SAFETY: returns a constant UUID object the runtime keeps.
+    unsafe {
+        CFUUIDGetConstantUUIDWithBytes(
+            std::ptr::null(),
+            0xE5,
+            0x59,
+            0xC4,
+            fourth_byte,
+            0xC5,
+            0xCD,
+            0x11,
+            0xD6,
+            0x8A,
+            0x1C,
+            0x00,
+            0x03,
+            0x93,
+            0x53,
+            0xBD,
+            0x00,
+        )
+    }
+}
+
+/// `kFFEffectType_ConstantForce_ID`.
+pub(crate) fn k_ff_effect_type_constant_force_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x60)
+}
+/// `kFFEffectType_RampForce_ID`.
+pub(crate) fn k_ff_effect_type_ramp_force_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x61)
+}
+/// `kFFEffectType_Square_ID`.
+pub(crate) fn k_ff_effect_type_square_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x62)
+}
+/// `kFFEffectType_Sine_ID`.
+pub(crate) fn k_ff_effect_type_sine_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x63)
+}
+/// `kFFEffectType_Triangle_ID`.
+pub(crate) fn k_ff_effect_type_triangle_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x64)
+}
+/// `kFFEffectType_SawtoothUp_ID`.
+pub(crate) fn k_ff_effect_type_sawtooth_up_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x65)
+}
+/// `kFFEffectType_SawtoothDown_ID`.
+pub(crate) fn k_ff_effect_type_sawtooth_down_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x66)
+}
+/// `kFFEffectType_Spring_ID`.
+pub(crate) fn k_ff_effect_type_spring_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x67)
+}
+/// `kFFEffectType_Damper_ID`.
+pub(crate) fn k_ff_effect_type_damper_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x68)
+}
+/// `kFFEffectType_Inertia_ID`.
+pub(crate) fn k_ff_effect_type_inertia_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x69)
+}
+/// `kFFEffectType_Friction_ID`.
+pub(crate) fn k_ff_effect_type_friction_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x6A)
+}
+/// `kFFEffectType_CustomForce_ID`.
+pub(crate) fn k_ff_effect_type_custom_force_id() -> CFUUIDRef {
+    ff_effect_type_uuid(0x6B)
+}
+
+/// Like strerror but for force feedback errors. Translation of
+/// `FFStrError()` (of the IOKit joystick and Darwin haptic drivers).
+pub(crate) fn ff_str_error(err: HResult) -> &'static str {
+    match err {
+        FFERR_DEVICEFULL => "device full",
+        // This should be valid, but for some reason isn't defined...
+        /* case FFERR_DEVICENOTREG:
+        return "device not registered"; */
+        FFERR_DEVICEPAUSED => "device paused",
+        FFERR_DEVICERELEASED => "device released",
+        FFERR_EFFECTPLAYING => "effect playing",
+        FFERR_EFFECTTYPEMISMATCH => "effect type mismatch",
+        FFERR_EFFECTTYPENOTSUPPORTED => "effect type not supported",
+        FFERR_GENERIC => "undetermined error",
+        FFERR_HASEFFECTS => "device has effects",
+        FFERR_INCOMPLETEEFFECT => "incomplete effect",
+        FFERR_INTERNAL => "internal fault",
+        FFERR_INVALIDDOWNLOADID => "invalid download id",
+        FFERR_INVALIDPARAM => "invalid parameter",
+        FFERR_MOREDATA => "more data",
+        FFERR_NOINTERFACE => "interface not supported",
+        FFERR_NOTDOWNLOADED => "effect is not downloaded",
+        FFERR_NOTINITIALIZED => "object has not been initialized",
+        FFERR_OUTOFMEMORY => "out of memory",
+        FFERR_UNPLUGGED => "device is unplugged",
+        FFERR_UNSUPPORTED => "function call unsupported",
+        FFERR_UNSUPPORTEDAXIS => "axis unsupported",
+
+        _ => "unknown error",
+    }
+}
+
+// The HID usage tables (<IOKit/hid/IOHIDUsageTables.h>) the drivers look at.
+
+/// `kHIDPage_GenericDesktop`.
+pub(crate) const K_HID_PAGE_GENERIC_DESKTOP: u32 = 0x01;
+/// `kHIDPage_Simulation`.
+pub(crate) const K_HID_PAGE_SIMULATION: u32 = 0x02;
+/// `kHIDPage_Button`.
+pub(crate) const K_HID_PAGE_BUTTON: u32 = 0x09;
+/// `kHIDPage_Consumer`.
+pub(crate) const K_HID_PAGE_CONSUMER: u32 = 0x0C;
+/// `kHIDUsage_GD_Mouse`.
+pub(crate) const K_HID_USAGE_GD_MOUSE: u32 = 0x02;
+/// `kHIDUsage_GD_Joystick`.
+pub(crate) const K_HID_USAGE_GD_JOYSTICK: u32 = 0x04;
+/// `kHIDUsage_GD_GamePad`.
+pub(crate) const K_HID_USAGE_GD_GAMEPAD: u32 = 0x05;
+/// `kHIDUsage_GD_MultiAxisController`.
+pub(crate) const K_HID_USAGE_GD_MULTI_AXIS_CONTROLLER: u32 = 0x08;
+/// `kHIDUsage_GD_X`.
+pub(crate) const K_HID_USAGE_GD_X: u32 = 0x30;
+/// `kHIDUsage_GD_Y`.
+pub(crate) const K_HID_USAGE_GD_Y: u32 = 0x31;
+/// `kHIDUsage_GD_Z`.
+pub(crate) const K_HID_USAGE_GD_Z: u32 = 0x32;
+/// `kHIDUsage_GD_Rx`.
+pub(crate) const K_HID_USAGE_GD_RX: u32 = 0x33;
+/// `kHIDUsage_GD_Ry`.
+pub(crate) const K_HID_USAGE_GD_RY: u32 = 0x34;
+/// `kHIDUsage_GD_Rz`.
+pub(crate) const K_HID_USAGE_GD_RZ: u32 = 0x35;
+/// `kHIDUsage_GD_Slider`.
+pub(crate) const K_HID_USAGE_GD_SLIDER: u32 = 0x36;
+/// `kHIDUsage_GD_Dial`.
+pub(crate) const K_HID_USAGE_GD_DIAL: u32 = 0x37;
+/// `kHIDUsage_GD_Wheel`.
+pub(crate) const K_HID_USAGE_GD_WHEEL: u32 = 0x38;
+/// `kHIDUsage_GD_Hatswitch`.
+pub(crate) const K_HID_USAGE_GD_HATSWITCH: u32 = 0x39;
+/// `kHIDUsage_GD_Start`.
+pub(crate) const K_HID_USAGE_GD_START: u32 = 0x3D;
+/// `kHIDUsage_GD_Select`.
+pub(crate) const K_HID_USAGE_GD_SELECT: u32 = 0x3E;
+/// `kHIDUsage_GD_SystemMainMenu`.
+pub(crate) const K_HID_USAGE_GD_SYSTEM_MAIN_MENU: u32 = 0x85;
+/// `kHIDUsage_GD_DPadUp`.
+pub(crate) const K_HID_USAGE_GD_DPAD_UP: u32 = 0x90;
+/// `kHIDUsage_GD_DPadDown`.
+pub(crate) const K_HID_USAGE_GD_DPAD_DOWN: u32 = 0x91;
+/// `kHIDUsage_GD_DPadRight`.
+pub(crate) const K_HID_USAGE_GD_DPAD_RIGHT: u32 = 0x92;
+/// `kHIDUsage_GD_DPadLeft`.
+pub(crate) const K_HID_USAGE_GD_DPAD_LEFT: u32 = 0x93;
+/// `kHIDUsage_Sim_Rudder`.
+pub(crate) const K_HID_USAGE_SIM_RUDDER: u32 = 0xBA;
+/// `kHIDUsage_Sim_Throttle`.
+pub(crate) const K_HID_USAGE_SIM_THROTTLE: u32 = 0xBB;
+/// `kHIDUsage_Sim_Accelerator`.
+pub(crate) const K_HID_USAGE_SIM_ACCELERATOR: u32 = 0xC4;
+/// `kHIDUsage_Sim_Brake`.
+pub(crate) const K_HID_USAGE_SIM_BRAKE: u32 = 0xC5;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The layouts the C harness printed for the SDK's structures.
+    #[test]
+    fn force_feedback_layouts() {
+        assert_eq!(size_of::<FFEFFECT>(), 80);
+        assert_eq!(std::mem::offset_of!(FFEFFECT, rgdw_axes), 32);
+        assert_eq!(std::mem::offset_of!(FFEFFECT, lpv_type_specific_params), 64);
+        assert_eq!(std::mem::offset_of!(FFEFFECT, dw_start_delay), 72);
+        assert_eq!(size_of::<FFENVELOPE>(), 20);
+        assert_eq!(size_of::<FFPERIODIC>(), 16);
+        assert_eq!(size_of::<FFCONDITION>(), 24);
+        assert_eq!(size_of::<FFRAMPFORCE>(), 8);
+        assert_eq!(size_of::<FFCUSTOMFORCE>(), 24);
+        assert_eq!(std::mem::offset_of!(FFCUSTOMFORCE, rgl_force_data), 16);
+        assert_eq!(size_of::<FFCAPABILITIES>(), 72);
+        assert_eq!(std::mem::offset_of!(FFCAPABILITIES, ff_axes), 20);
+        assert_eq!(std::mem::offset_of!(FFCAPABILITIES, storage_capacity), 52);
+        assert_eq!(std::mem::offset_of!(FFCAPABILITIES, driver_ver), 68);
+        assert_eq!(size_of::<CFRunLoopSourceContext>(), 80);
+        assert_eq!(size_of::<MachMsgHeader>(), 24);
+        assert_eq!(ffjofs_button(3), 51);
+    }
+
+    #[test]
+    fn effect_type_uuids_are_constants() {
+        // The same object each time, and the twelve are distinct.
+        assert_eq!(k_ff_effect_type_sine_id(), k_ff_effect_type_sine_id());
+        let all = [
+            k_ff_effect_type_constant_force_id(),
+            k_ff_effect_type_ramp_force_id(),
+            k_ff_effect_type_square_id(),
+            k_ff_effect_type_sine_id(),
+            k_ff_effect_type_triangle_id(),
+            k_ff_effect_type_sawtooth_up_id(),
+            k_ff_effect_type_sawtooth_down_id(),
+            k_ff_effect_type_spring_id(),
+            k_ff_effect_type_damper_id(),
+            k_ff_effect_type_inertia_id(),
+            k_ff_effect_type_friction_id(),
+            k_ff_effect_type_custom_force_id(),
+        ];
+        for (i, a) in all.iter().enumerate() {
+            assert!(!a.is_null());
+            for b in &all[i + 1..] {
+                assert_ne!(a, b);
+            }
+        }
+        assert_eq!(ff_str_error(FFERR_UNPLUGGED), "device is unplugged");
+        assert_eq!(ff_str_error(FFERR_GENERIC), "undetermined error");
+        assert_eq!(ff_str_error(12345), "unknown error");
     }
 }
