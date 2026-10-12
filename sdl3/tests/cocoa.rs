@@ -342,14 +342,15 @@ mod macos {
         use video::gl::{self, GlAttr};
 
         let Some(dir) = angle_dir() else {
-            let required = std::env::var("SDL3_TEST_REQUIRE")
-                .unwrap_or_default()
-                .split(',')
-                .any(|c| c.trim() == "all" || c.trim() == "egl");
-            assert!(!required, "required capability egl unavailable: no ANGLE");
-            println!("note: skipping, egl unavailable: no ANGLE (set SDL3_TEST_ANGLE_DIR)");
+            skip_capability("egl", "no ANGLE (set SDL3_TEST_ANGLE_DIR)");
             return;
         };
+        // (a copy for another architecture doesn't load: under Rosetta, say)
+        let egl = dir.join("libEGL.dylib");
+        if let Err(e) = sdl3::loadso::SharedObject::load(egl.to_str().unwrap()) {
+            skip_capability("egl", &format!("ANGLE doesn't load ({})", e.message()));
+            return;
+        }
         hints::set(
             hints::EGL_LIBRARY,
             dir.join("libEGL.dylib").to_str().unwrap(),
