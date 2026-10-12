@@ -5,7 +5,7 @@
 
 //! Vulkan and Metal support: loading the Vulkan loader, the instance
 //! extensions a window needs, surfaces; Metal views. The handles are the
-//! raw Vulkan/Metal handles. No video driver implements these yet.
+//! raw Vulkan/Metal handles.
 
 use crate::error::{Error, Result};
 use crate::events::window::WindowFlags;

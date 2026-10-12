@@ -21,7 +21,8 @@
 //! used from there.
 //!
 //! Metal views are `CAMetalLayer`-backed subviews of the content view
-//! ([`metalview`]). OpenGL contexts are `NSOpenGLContext`s ([`opengl`]); with an OpenGL ES
+//! ([`metalview`]), on which Vulkan surfaces are made with MoltenVK
+//! ([`vulkan`]). OpenGL contexts are `NSOpenGLContext`s ([`opengl`]); with an OpenGL ES
 //! profile, or [`hints::VIDEO_FORCE_EGL`], the driver switches to EGL
 //! ([`opengles`], with ANGLE). Windows are OpenGL windows by default, as
 //! upstream's `SDL_DefaultGraphicsBackends()` makes them on macOS.
@@ -40,6 +41,7 @@ pub(crate) mod opengles;
 pub(crate) mod pen;
 pub(crate) mod shape;
 pub(crate) mod sys;
+pub(crate) mod vulkan;
 pub(crate) mod window;
 
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -594,6 +596,42 @@ impl VideoDriver for CocoaVideo {
             opengl::GlBackend::Cgl => None,
             opengl::GlBackend::Egl => Some(opengles::gles_get_egl_surface(window)),
         }
+    }
+
+    // Vulkan support
+
+    fn implements_vulkan_surfaces(&self) -> bool {
+        true
+    }
+    fn vulkan_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(vulkan::vulkan_load_library(path))
+    }
+    fn vulkan_unload_library(&self) -> Option<()> {
+        vulkan::vulkan_unload_library();
+        Some(())
+    }
+    fn vulkan_get_instance_proc_addr(&self) -> Option<usize> {
+        vulkan::vk_get_instance_proc_addr()
+    }
+    fn vulkan_instance_extensions(&self) -> Option<Vec<&'static str>> {
+        Some(vulkan::vulkan_get_instance_extensions())
+    }
+    fn vulkan_create_surface(
+        &self,
+        window: WindowID,
+        instance: usize,
+        allocator: usize,
+    ) -> Option<Result<u64>> {
+        Some(vulkan::vulkan_create_surface(window, instance, allocator))
+    }
+    fn vulkan_destroy_surface(
+        &self,
+        instance: usize,
+        surface: u64,
+        allocator: usize,
+    ) -> Option<()> {
+        vulkan::vulkan_destroy_surface(instance, surface, allocator);
+        Some(())
     }
 
     // Metal support

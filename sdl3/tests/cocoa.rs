@@ -10,7 +10,9 @@
 //! the clipboard, cursors, the keymap, mouse warping and message boxes;
 //! OpenGL contexts (NSOpenGL: legacy and core profiles, sharing, swap
 //! intervals) drawn and read back, Metal views and their layers' drawable
-//! sizes, and OpenGL ES through EGL with ANGLE
+//! sizes, Vulkan surfaces through MoltenVK (capability `vulkan`: the
+//! loader by its default names, or Homebrew's), and OpenGL ES through EGL
+//! with ANGLE
 //! (capability `egl`: `SDL3_TEST_ANGLE_DIR`, or the copy the Android
 //! emulator ships).
 //!
@@ -138,6 +140,7 @@ mod macos {
         message_box();
         opengl();
         metal();
+        vulkan();
         opengl_es();
 
         init::quit();
@@ -498,6 +501,213 @@ mod macos {
         video::vulkan::metal_destroy_view(view);
         window.destroy();
         println!("cocoa: metal views ok");
+    }
+
+    /// Report a missing capability (panicking when it's required).
+    fn skip_capability(capability: &str, reason: &str) {
+        let required = std::env::var("SDL3_TEST_REQUIRE")
+            .unwrap_or_default()
+            .split(',')
+            .any(|c| c.trim() == "all" || c.trim() == capability);
+        assert!(
+            !required,
+            "required capability {capability} unavailable: {reason}"
+        );
+        println!("note: skipping, {capability} unavailable: {reason}");
+    }
+
+    // The Vulkan bits the surface check needs.
+    #[repr(C)]
+    struct VkApplicationInfo {
+        s_type: i32,
+        p_next: *const c_void,
+        p_application_name: *const c_char,
+        application_version: u32,
+        p_engine_name: *const c_char,
+        engine_version: u32,
+        api_version: u32,
+    }
+    #[repr(C)]
+    struct VkInstanceCreateInfo {
+        s_type: i32,
+        p_next: *const c_void,
+        flags: u32,
+        p_application_info: *const VkApplicationInfo,
+        enabled_layer_count: u32,
+        pp_enabled_layer_names: *const *const c_char,
+        enabled_extension_count: u32,
+        pp_enabled_extension_names: *const *const c_char,
+    }
+    #[repr(C)]
+    #[derive(Default, Debug)]
+    struct VkExtent2D {
+        width: u32,
+        height: u32,
+    }
+    #[repr(C)]
+    #[derive(Default, Debug)]
+    struct VkSurfaceCapabilitiesKHR {
+        min_image_count: u32,
+        max_image_count: u32,
+        current_extent: VkExtent2D,
+        min_image_extent: VkExtent2D,
+        max_image_extent: VkExtent2D,
+        max_image_array_layers: u32,
+        supported_transforms: u32,
+        current_transform: u32,
+        supported_composite_alpha: u32,
+        supported_usage_flags: u32,
+    }
+    type VkGetInstanceProcAddr = unsafe extern "C" fn(*mut c_void, *const c_char) -> *const c_void;
+    type VkCreateInstance =
+        unsafe extern "C" fn(*const VkInstanceCreateInfo, *const c_void, *mut *mut c_void) -> i32;
+    type VkDestroyInstance = unsafe extern "C" fn(*mut c_void, *const c_void);
+    type VkEnumeratePhysicalDevices =
+        unsafe extern "C" fn(*mut c_void, *mut u32, *mut *mut c_void) -> i32;
+    type VkGetPhysicalDeviceSurfaceSupportKHR =
+        unsafe extern "C" fn(*mut c_void, u32, u64, *mut u32) -> i32;
+    type VkGetPhysicalDeviceSurfaceCapabilitiesKHR =
+        unsafe extern "C" fn(*mut c_void, u64, *mut VkSurfaceCapabilitiesKHR) -> i32;
+
+    fn vulkan() {
+        use std::ffi::CString;
+        use video::vulkan as vk;
+
+        let window = Window::create(
+            "SDL Cocoa Vulkan",
+            160,
+            100,
+            WindowFlags::VULKAN | WindowFlags::HIGH_PIXEL_DENSITY,
+        );
+        let window = match window {
+            Ok(w) => w,
+            Err(e) if vk::vulkan_load_library(None).is_err() => {
+                // Not on the default paths: try Homebrew's loader.
+                let brew = [
+                    "/opt/homebrew/lib/libvulkan.1.dylib",
+                    "/usr/local/lib/libvulkan.1.dylib",
+                ]
+                .into_iter()
+                .find(|p| std::path::Path::new(p).exists());
+                let Some(brew) = brew else {
+                    skip_capability("vulkan", &format!("no Vulkan loader ({})", e.message()));
+                    return;
+                };
+                hints::set(hints::VULKAN_LIBRARY, brew).unwrap();
+                match Window::create(
+                    "SDL Cocoa Vulkan",
+                    160,
+                    100,
+                    WindowFlags::VULKAN | WindowFlags::HIGH_PIXEL_DENSITY,
+                ) {
+                    Ok(w) => w,
+                    Err(e) => {
+                        skip_capability("vulkan", &format!("no Vulkan loader ({})", e.message()));
+                        return;
+                    }
+                }
+            }
+            Err(e) => panic!("{}", e.message()),
+        };
+        pump_for(200);
+        let extensions = vk::vulkan_instance_extensions().unwrap();
+        assert_eq!(extensions, ["VK_KHR_surface", "VK_EXT_metal_surface"]);
+
+        let gipa = vk::vulkan_get_vk_get_instance_proc_addr().unwrap();
+        // SAFETY: the loader's vkGetInstanceProcAddr.
+        let gipa: VkGetInstanceProcAddr = unsafe { std::mem::transmute(gipa) };
+        let proc_addr = |instance: *mut c_void, name: &std::ffi::CStr| -> *const c_void {
+            // SAFETY: a NUL-terminated name, a null or live instance.
+            let p = unsafe { gipa(instance, name.as_ptr()) };
+            assert!(!p.is_null(), "no {name:?}");
+            p
+        };
+
+        // An instance with SDL's extensions (and the portability
+        // enumeration MoltenVK's devices need through the loader).
+        let mut names: Vec<CString> = extensions
+            .iter()
+            .map(|e| CString::new(*e).unwrap())
+            .collect();
+        names.push(CString::new("VK_KHR_portability_enumeration").unwrap());
+        let ptrs: Vec<*const c_char> = names.iter().map(|n| n.as_ptr()).collect();
+        let app = VkApplicationInfo {
+            s_type: 0,
+            p_next: std::ptr::null(),
+            p_application_name: c"SDL Cocoa test".as_ptr(),
+            application_version: 0,
+            p_engine_name: std::ptr::null(),
+            engine_version: 0,
+            api_version: 1 << 22,
+        };
+        let create_info = VkInstanceCreateInfo {
+            s_type: 1,
+            p_next: std::ptr::null(),
+            flags: 1, // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+            p_application_info: &app,
+            enabled_layer_count: 0,
+            pp_enabled_layer_names: std::ptr::null(),
+            enabled_extension_count: ptrs.len() as u32,
+            pp_enabled_extension_names: ptrs.as_ptr(),
+        };
+        let mut instance: *mut c_void = std::ptr::null_mut();
+        // SAFETY: the global function, of this type, with a valid create info.
+        let rc = unsafe {
+            let create: VkCreateInstance =
+                std::mem::transmute(proc_addr(std::ptr::null_mut(), c"vkCreateInstance"));
+            create(&create_info, std::ptr::null(), &mut instance)
+        };
+        assert_eq!(rc, 0, "vkCreateInstance");
+
+        let surface = vk::vulkan_create_surface(&window, instance as usize, 0).unwrap();
+        assert_ne!(surface, 0);
+
+        // SAFETY: the instance's functions, of these types.
+        unsafe {
+            let enumerate: VkEnumeratePhysicalDevices =
+                std::mem::transmute(proc_addr(instance, c"vkEnumeratePhysicalDevices"));
+            let support: VkGetPhysicalDeviceSurfaceSupportKHR =
+                std::mem::transmute(proc_addr(instance, c"vkGetPhysicalDeviceSurfaceSupportKHR"));
+            let capabilities: VkGetPhysicalDeviceSurfaceCapabilitiesKHR = std::mem::transmute(
+                proc_addr(instance, c"vkGetPhysicalDeviceSurfaceCapabilitiesKHR"),
+            );
+            let mut count = 1u32;
+            let mut device: *mut c_void = std::ptr::null_mut();
+            let rc = enumerate(instance, &mut count, &mut device);
+            assert!(rc == 0 || rc == 5, "vkEnumeratePhysicalDevices {rc}"); // VK_INCOMPLETE
+            assert_eq!(count, 1, "no Vulkan devices");
+            assert!(
+                vk::vulkan_presentation_support(instance as usize, device as usize, 0).unwrap()
+            );
+            let mut supported = 0u32;
+            assert_eq!(support(device, 0, surface, &mut supported), 0);
+            assert_eq!(supported, 1);
+            let mut caps = VkSurfaceCapabilitiesKHR::default();
+            assert_eq!(capabilities(device, surface, &mut caps), 0);
+            let (pw, ph) = window.size_in_pixels().unwrap();
+            println!(
+                "cocoa: vulkan surface extent {}x{} for {pw}x{ph} pixels, {}..{} images",
+                caps.current_extent.width,
+                caps.current_extent.height,
+                caps.min_image_count,
+                caps.max_image_count
+            );
+            assert_eq!(
+                (caps.current_extent.width, caps.current_extent.height),
+                (pw as u32, ph as u32)
+            );
+        }
+
+        vk::vulkan_destroy_surface(instance as usize, surface, 0);
+        // SAFETY: the instance made above, its surfaces destroyed.
+        unsafe {
+            let destroy: VkDestroyInstance =
+                std::mem::transmute(proc_addr(instance, c"vkDestroyInstance"));
+            destroy(instance, std::ptr::null());
+        }
+        window.destroy();
+        hints::reset(hints::VULKAN_LIBRARY);
+        println!("cocoa: vulkan ok");
     }
 
     fn displays_and_modes() {
