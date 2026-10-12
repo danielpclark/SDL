@@ -97,3 +97,8 @@ harness = false
 [[test]]
 name = "cocoa_shell"
 harness = false
+
+# The Metal renderer and the GPU API on Cocoa windows (main thread too).
+[[test]]
+name = "cocoa_metal"
+harness = false
