@@ -796,10 +796,14 @@ unsafe fn get_device_info(hid_device: IOHIDDeviceRef, device: &mut RecDevice) ->
 }
 
 /// Whether the GameController (MFi) driver handles a device
-/// (`IOS_SupportedHIDDevice()`); the hook it fills in when it is
-/// translated ([`super::JOYSTICK_MFI`]).
-fn mfi_supported_hid_device(_device: IOHIDDeviceRef) -> bool {
-    false
+/// (`IOS_SupportedHIDDevice()`, with [`super::JOYSTICK_MFI`]).
+///
+/// # Safety
+///
+/// `device` must be a valid device.
+unsafe fn mfi_supported_hid_device(device: IOHIDDeviceRef) -> bool {
+    // SAFETY: the caller's contract.
+    unsafe { super::apple::supported_hid_device(device) }
 }
 
 /// Translation of `JoystickAlreadyKnown()`.
@@ -814,7 +818,7 @@ unsafe fn joystick_already_known(
     // SAFETY: the caller's contract.
     if super::JOYSTICK_MFI
         && !unsafe { is_controlled_by_360_controller_driver(io_hid_device_object) }
-        && mfi_supported_hid_device(io_hid_device_object)
+        && unsafe { mfi_supported_hid_device(io_hid_device_object) }
     {
         return true;
     }

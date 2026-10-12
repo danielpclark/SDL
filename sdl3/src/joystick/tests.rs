@@ -600,12 +600,22 @@ fn driver_order() {
     }
     #[cfg(target_os = "macos")]
     {
-        // HIDAPI, IOKit, then the virtual driver; no dummy driver
+        // HIDAPI, IOKit, MFi, then the virtual driver; no dummy driver
         let darwin_driver: &dyn JoystickDriver = &darwin::DARWIN_JOYSTICK_DRIVER;
         assert!(std::ptr::addr_eq(
             JOYSTICK_DRIVERS[DARWIN_DRIVER_INDEX],
             darwin_driver
         ));
-        assert_eq!(JOYSTICK_DRIVERS.len(), 3);
+        let mfi_driver: &dyn JoystickDriver = &apple::MFI_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[MFI_DRIVER_INDEX],
+            mfi_driver
+        ));
+        const {
+            assert!(HIDAPI_DRIVER_INDEX < DARWIN_DRIVER_INDEX);
+            assert!(DARWIN_DRIVER_INDEX < MFI_DRIVER_INDEX);
+            assert!(MFI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
+        }
+        assert_eq!(JOYSTICK_DRIVERS.len(), 4);
     }
 }

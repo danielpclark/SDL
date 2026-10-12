@@ -1,0 +1,42 @@
+xbox_series axes: [Left Thumbstick X Axis] [Left Thumbstick Y Axis] [Left Trigger] [Right Thumbstick X Axis] [Right Thumbstick Y Axis] [Right Trigger]
+xbox_series buttons: [Button A] [Button B] [Button Home] [Button Menu] [Button Options] [Button Share] [Button X] [Button Y] [Direction Pad Down] [Direction Pad Left] [Direction Pad Right] [Direction Pad Up] [Left Shoulder] [Left Thumbstick Button] [Left Trigger] [Right Shoulder] [Right Thumbstick Button] [Right Trigger]
+xbox_series mapping: a:b0 b:b1 x:b6 y:b7 back:b4 guide:b2 start:b3 leftstick:b13 rightstick:b16 leftshoulder:b12 rightshoulder:b15 dpup:b11 dpdown:b8 dpleft:b9 dpright:b10 misc1:b5 leftx:a0 lefty:a1~ rightx:a3 righty:a4~ lefttrigger:a2+ righttrigger:a5+
+xbox_elite axes: [Left Thumbstick X Axis] [Left Thumbstick Y Axis] [Left Trigger] [Right Thumbstick X Axis] [Right Thumbstick Y Axis] [Right Trigger]
+xbox_elite buttons: [Button A] [Button B] [Button Home] [Button Menu] [Button Options] [Button X] [Button Y] [Direction Pad Down] [Direction Pad Left] [Direction Pad Right] [Direction Pad Up] [Left Shoulder] [Left Thumbstick Button] [Left Trigger] [Paddle 1] [Paddle 2] [Paddle 3] [Paddle 4] [Right Shoulder] [Right Thumbstick Button] [Right Trigger]
+xbox_elite mapping: a:b0 b:b1 x:b5 y:b6 back:b4 guide:b2 start:b3 leftstick:b12 rightstick:b19 leftshoulder:b11 rightshoulder:b18 dpup:b10 dpdown:b7 dpleft:b8 dpright:b9 right_paddle1:b14 left_paddle1:b16 right_paddle2:b15 left_paddle2:b17 leftx:a0 lefty:a1~ rightx:a3 righty:a4~ lefttrigger:a2+ righttrigger:a5+
+dualshock4 axes: [Left Thumbstick X Axis] [Left Thumbstick Y Axis] [Left Trigger] [Right Thumbstick X Axis] [Right Thumbstick Y Axis] [Right Trigger]
+dualshock4 buttons: [Button A] [Button B] [Button Home] [Button Menu] [Button Options] [Button X] [Button Y] [Direction Pad Down] [Direction Pad Left] [Direction Pad Right] [Direction Pad Up] [Left Shoulder] [Left Thumbstick Button] [Left Trigger] [Right Shoulder] [Right Thumbstick Button] [Right Trigger] [Touchpad Button]
+dualshock4 mapping: a:b0 b:b1 x:b5 y:b6 back:b4 guide:b2 start:b3 leftstick:b12 rightstick:b15 leftshoulder:b11 rightshoulder:b14 dpup:b10 dpdown:b7 dpleft:b8 dpright:b9 leftx:a0 lefty:a1~ rightx:a3 righty:a4~ lefttrigger:a2+ righttrigger:a5+ touchpad:b17
+switch_pro axes: [Left Thumbstick X Axis] [Left Thumbstick Y Axis] [Right Thumbstick X Axis] [Right Thumbstick Y Axis]
+switch_pro buttons: [Button A] [Button B] [Button Home] [Button Menu] [Button Options] [Button Share] [Button X] [Button Y] [Direction Pad Down] [Direction Pad Left] [Direction Pad Right] [Direction Pad Up] [Left Shoulder] [Left Thumbstick Button] [Left Trigger] [Right Shoulder] [Right Thumbstick Button] [Right Trigger]
+switch_pro mapping: a:b1 b:b0 x:b7 y:b6 back:b4 guide:b2 start:b3 leftstick:b13 rightstick:b16 leftshoulder:b12 rightshoulder:b15 dpup:b11 dpdown:b8 dpleft:b9 dpright:b10 misc1:b5 leftx:a0 lefty:a1~ rightx:a2 righty:a3~ lefttrigger:b14 righttrigger:b17
+joycon_pair axes: [Left Thumbstick X Axis] [Left Thumbstick Y Axis] [Right Thumbstick X Axis] [Right Thumbstick Y Axis]
+joycon_pair buttons: [Button A] [Button B] [Button Menu] [Button Options] [Button Share] [Button X] [Button Y] [Direction Pad Down] [Direction Pad Left] [Direction Pad Right] [Direction Pad Up] [Left Shoulder] [Left Trigger] [Right Shoulder] [Right Trigger]
+joycon_pair mapping: a:b1 b:b0 x:b6 y:b5 back:b3 start:b2 leftshoulder:b11 rightshoulder:b13 dpup:b10 dpdown:b7 dpleft:b8 dpright:b9 misc1:b4 leftx:a0 lefty:a1~ rightx:a2 righty:a3~ lefttrigger:b12 righttrigger:b14
+joycon_left axes: [Direction Pad X Axis] [Direction Pad Y Axis]
+joycon_left buttons: [Button A] [Button B] [Button Options] [Button X] [Button Y] [Left Shoulder] [Right Shoulder]
+joycon_left mapping: a:b0 b:b3 x:b1 y:b4 back:b2 leftshoulder:b5 rightshoulder:b6 leftx:a0 lefty:a1~
+joycon_right axes: [Direction Pad X Axis] [Direction Pad Y Axis]
+joycon_right buttons: [Button A] [Button B] [Button Home] [Button Menu] [Button X] [Button Y] [Left Shoulder] [Right Shoulder]
+joycon_right mapping: a:b0 b:b4 x:b1 y:b5 guide:b2 start:b3 leftshoulder:b6 rightshoulder:b7 leftx:a0 lefty:a1~
+backbone axes: [Left Thumbstick X Axis] [Left Thumbstick Y Axis] [Left Trigger] [Right Thumbstick X Axis] [Right Thumbstick Y Axis] [Right Trigger]
+backbone buttons: [Button A] [Button B] [Button Home] [Button Menu] [Button Options] [Button X] [Button Y] [Direction Pad Down] [Direction Pad Left] [Direction Pad Right] [Direction Pad Up] [Left Shoulder] [Left Trigger] [Right Shoulder] [Right Trigger]
+backbone mapping: a:b0 b:b1 x:b5 y:b6 back:b4 guide:b2 start:b3 leftshoulder:b11 rightshoulder:b13 dpup:b10 dpdown:b7 dpleft:b8 dpright:b9 leftx:a0 lefty:a1~ rightx:a3 righty:a4~ lefttrigger:a2+ righttrigger:a5+
+siri_remote_2 axes: [Direction Pad X Axis] [Direction Pad Y Axis]
+siri_remote_2 buttons: [Button A] [Button Center] [Button Home] [Button Menu] [Cardinal Direction Pad Down] [Cardinal Direction Pad Left] [Cardinal Direction Pad Right] [Cardinal Direction Pad Up]
+siri_remote_2 mapping: a:b1 b:b3 guide:b2 dpup:b7 dpdown:b4 dpleft:b5 dpright:b6 leftx:a0 lefty:a1~
+siri_remote_1 axes: [Direction Pad X Axis] [Direction Pad Y Axis]
+siri_remote_1 buttons: [Button A] [Button Menu] [Button X]
+siri_remote_1 mapping: a:b0 b:b1 x:b2 leftx:a0 lefty:a1~
+cardinal_partial axes: [Cardinal Direction Pad Y Axis] [Direction Pad X Axis]
+cardinal_partial buttons: [Cardinal Direction Pad Left] [Cardinal Direction Pad Right] [Cardinal Direction Pad Up] [Direction Pad Left]
+cardinal_partial mapping: dpup:b2 dpleft:b0 dpright:b1 leftx:a1
+mixed_case axes: [Alpha] [alpha 2] [Left Trigger] [LEFT Triggers]
+mixed_case buttons: [10 Ten] [9 Nine] [_under] [Button A] [button b] [Left Trigger] [LEFT Triggers] [Ünicode] [zeta]
+mixed_case mapping: a:b3 lefttrigger:a2+
+duplicates axes: [Direction Pad X Axis] [Direction Pad Y Axis] [Left Thumbstick X Axis] [Left Thumbstick Y Axis]
+duplicates buttons: [Button Home] [Button Menu] [Left Trigger] [Right Trigger]
+duplicates mapping: guide:b0 start:b1 leftx:a2 lefty:a3~ lefttrigger:b2 righttrigger:b3
+empty axes:
+empty buttons:
+empty mapping:
