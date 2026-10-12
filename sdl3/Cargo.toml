@@ -91,3 +91,9 @@ features = [
 [[test]]
 name = "cocoa"
 harness = false
+
+# The macOS tray, file dialogs and notifications, which AppKit wants on the
+# main thread too.
+[[test]]
+name = "cocoa_shell"
+harness = false

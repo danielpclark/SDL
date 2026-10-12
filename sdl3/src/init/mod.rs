@@ -424,6 +424,10 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
     #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
     crate::core::linux::dbus::init();
 
+    // Apple platforms require the notification delegate to be registered early.
+    #[cfg(target_os = "macos")]
+    crate::notification::register_notification_delegate();
+
     #[cfg(windows)]
     if flags.intersects(InitFlags::HAPTIC | InitFlags::JOYSTICK) {
         crate::core::windows::helper_window::create()?;
