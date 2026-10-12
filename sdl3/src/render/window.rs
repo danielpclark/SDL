@@ -610,6 +610,12 @@ fn create_for_window(
             let backend = super::direct3d12::D3d12Renderer::for_window(window, output_colorspace)?;
             Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
         }
+        #[cfg(target_os = "macos")]
+        super::metal::METAL_RENDERER => {
+            let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
+            let backend = super::metal::MetalRenderer::for_window(window, output_colorspace, info)?;
+            Ok((Box::new(backend), crate::video::PixelFormat::UNKNOWN))
+        }
         super::opengl::OPENGL_RENDERER => {
             let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
             let backend = super::opengl::GlRenderer::for_window(window, output_colorspace)?;

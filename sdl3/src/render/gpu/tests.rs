@@ -54,7 +54,7 @@ const H: i32 = 48;
 // ---------------------------------------------------------------------------
 
 #[test]
-#[cfg(not(windows))] // (direct3d11 comes first there: see its tests)
+#[cfg(not(any(windows, target_os = "macos")))] // (direct3d11 and metal come first there: see their tests)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     // (render_drivers[] in SDL_render.c: ..., GLES2, ..., VULKAN, GPU, SW)

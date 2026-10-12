@@ -42,7 +42,7 @@ mod pipelines;
 mod resources;
 mod shaders;
 mod swapchain;
-mod sys;
+pub(crate) mod sys;
 mod tables;
 #[cfg(test)]
 mod tests;

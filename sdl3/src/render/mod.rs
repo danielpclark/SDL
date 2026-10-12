@@ -17,10 +17,11 @@
 //! ([`Renderer::software`]) or a window's surface, or for windows the
 //! Direct3D 11 backend ("direct3d11", Windows only, tried first by
 //! [`Renderer::for_window`]), the Direct3D 12 backend ("direct3d12",
-//! Windows only, next), the OpenGL backend ("opengl", first
-//! elsewhere), the OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend
-//! ("vulkan") or the GPU backend ("gpu", through the [GPU API](crate::gpu));
-//! the other GPU backends come with the platform layer.
+//! Windows only, next), the Metal backend ("metal", macOS only, tried
+//! first there), the OpenGL backend ("opengl", first elsewhere), the
+//! OpenGL ES 2.0 backend ("opengles2"), the Vulkan backend ("vulkan") or
+//! the GPU backend ("gpu", through the [GPU API](crate::gpu)); the other
+//! GPU backends come with the platform layer.
 //!
 //! A window renderer applies the window's changes (size, visibility, HDR
 //! state) at the start of its next drawing, presenting or state-setting
@@ -35,6 +36,8 @@ pub(crate) mod direct3d11;
 pub(crate) mod direct3d12;
 pub(crate) mod gpu;
 mod gpu_render_state;
+#[cfg(target_os = "macos")]
+pub(crate) mod metal;
 pub(crate) mod opengl;
 pub(crate) mod opengles2;
 pub(crate) mod software;
@@ -79,6 +82,12 @@ pub use gpu::{
 };
 pub use gpu_render_state::{
     GpuRenderState, GpuRenderStateCreateInfo, GpuRenderStateSamplerBinding,
+};
+#[cfg(target_os = "macos")]
+pub use metal::{
+    PROP_RENDERER_METAL_COMMAND_QUEUE_POINTER, PROP_RENDERER_METAL_DEVICE_POINTER,
+    PROP_TEXTURE_METAL_TEXTURE_POINTER, PROP_TEXTURE_METAL_TEXTURE_UV_POINTER,
+    PROP_TEXTURE_METAL_TEXTURE_U_POINTER, PROP_TEXTURE_METAL_TEXTURE_V_POINTER,
 };
 pub use opengl::{
     PROP_TEXTURE_OPENGL_TEXTURE_NUMBER, PROP_TEXTURE_OPENGL_TEXTURE_TARGET_NUMBER,
@@ -307,6 +316,14 @@ pub struct RendererCreateInfo {
     /// The queue family index the Vulkan renderer presents with
     /// (`SDL_PROP_RENDERER_CREATE_VULKAN_PRESENT_QUEUE_FAMILY_INDEX_NUMBER`)
     pub vulkan_present_queue_family_index: Option<u32>,
+    /// The `MTLDevice` for the Metal renderer to use (on macOS;
+    /// `SDL_PROP_RENDERER_CREATE_METAL_DEVICE_POINTER`)
+    pub metal_device: Option<NativeObject>,
+    /// The `MTLCommandQueue` for the Metal renderer to use, whose device
+    /// it renders with, taking precedence over
+    /// [`RendererCreateInfo::metal_device`]
+    /// (`SDL_PROP_RENDERER_CREATE_METAL_COMMAND_QUEUE_POINTER`)
+    pub metal_command_queue: Option<NativeObject>,
 }
 
 /// The rendering drivers compiled in, in order of preference.
@@ -315,6 +332,8 @@ const RENDER_DRIVERS: &[&str] = &[
     direct3d11::D3D11_RENDERER,
     #[cfg(windows)]
     direct3d12::D3D12_RENDERER,
+    #[cfg(target_os = "macos")]
+    metal::METAL_RENDERER,
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
     vulkan::VULKAN_RENDERER,
@@ -2277,6 +2296,31 @@ impl Renderer {
 
         // Clean up renderer-specific resources
         self.backend.destroy();
+    }
+
+    /// The `CAMetalLayer` a Metal renderer draws into, `None` for other
+    /// renderers. The queued commands are run first, in case the
+    /// application is going to use the layer. Translation of
+    /// `SDL_GetRenderMetalLayer()`.
+    pub fn metal_layer(&mut self) -> Option<NativeObject> {
+        self.sync_window().ok()?;
+        let _ = self.flush_render_commands(); // in case the app is going to mess with it.
+        let layer = self.backend.metal_layer()?;
+        // SAFETY: the renderer's own layer.
+        unsafe { NativeObject::from_ptr(layer as *mut std::ffi::c_void) }
+    }
+
+    /// The `MTLRenderCommandEncoder` of a Metal renderer's current render
+    /// pass, for the application to add its own drawing; `None` for other
+    /// renderers, or when no pass could be started (a minimized window has
+    /// no drawable). The queued commands are run first. Translation of
+    /// `SDL_GetRenderMetalCommandEncoder()`.
+    pub fn metal_command_encoder(&mut self) -> Option<NativeObject> {
+        self.sync_window().ok()?;
+        let _ = self.flush_render_commands(); // in case the app is going to mess with it.
+        let encoder = self.backend.metal_command_encoder()?;
+        // SAFETY: the renderer's own encoder.
+        unsafe { NativeObject::from_ptr(encoder as *mut std::ffi::c_void) }
     }
 
     /// Add the Vulkan semaphores to wait for before rendering the current

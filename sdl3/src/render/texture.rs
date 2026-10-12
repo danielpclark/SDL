@@ -125,6 +125,27 @@ pub struct TextureCreateInfo {
     /// and the views of the given ones
     /// (`SDL_PROP_TEXTURE_CREATE_VULKAN_USAGE_NUMBER`)
     pub vulkan_usage: u32,
+    /// A `CVPixelBufferRef` whose `IOSurface` planes the Metal renderer's
+    /// textures are made on (on macOS;
+    /// `SDL_PROP_TEXTURE_CREATE_METAL_PIXELBUFFER_POINTER`)
+    pub metal_pixelbuffer: Option<super::NativeObject>,
+    /// An `MTLTexture` to use instead of creating one (the Metal renderer,
+    /// on macOS; `SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_POINTER`), of the
+    /// renderer's device; the renderer holds a reference to it while the
+    /// texture exists
+    pub metal_texture: Option<super::NativeObject>,
+    /// The `MTLTexture` of the UV plane of an NV12 texture
+    /// (`SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_UV_POINTER`)
+    pub metal_texture_uv: Option<super::NativeObject>,
+    /// The `MTLTexture` of the U plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_U_POINTER`)
+    pub metal_texture_u: Option<super::NativeObject>,
+    /// The `MTLTexture` of the V plane of a YUV texture
+    /// (`SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_V_POINTER`)
+    pub metal_texture_v: Option<super::NativeObject>,
+    /// More `MTLTextureUsage` flags for the textures the Metal renderer
+    /// creates (`SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_USAGE_NUMBER`)
+    pub metal_texture_usage: u32,
     /// A GPU texture to use instead of creating one (the GPU renderer;
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`), of the renderer's
     /// device; the renderer shares it with the application
@@ -527,6 +548,15 @@ impl Renderer {
                     ]
                     .map(|o| o.map_or(0, super::NativeObject::raw)),
                     vulkan_usage: info.vulkan_usage,
+                    metal_pixelbuffer: info.metal_pixelbuffer.map_or(0, super::NativeObject::raw),
+                    metal_texture: [
+                        info.metal_texture,
+                        info.metal_texture_u,
+                        info.metal_texture_v,
+                    ]
+                    .map(|o| o.map_or(0, super::NativeObject::raw)),
+                    metal_texture_uv: info.metal_texture_uv.map_or(0, super::NativeObject::raw),
+                    metal_texture_usage: info.metal_texture_usage,
                     gpu_texture: info.gpu_texture.clone(),
                     gpu_texture_uv: info.gpu_texture_uv.clone(),
                     gpu_texture_u: info.gpu_texture_u.clone(),
