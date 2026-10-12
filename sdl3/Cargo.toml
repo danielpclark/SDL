@@ -85,3 +85,9 @@ features = [
     "Win32_UI_Shell_Common",
     "Win32_UI_WindowsAndMessaging",
 ]
+
+# The Cocoa video driver, which only starts on the main thread: a program of
+# its own without the test harness's threads.
+[[test]]
+name = "cocoa"
+harness = false
