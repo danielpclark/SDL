@@ -736,15 +736,14 @@ impl TrayBackend for TrayCocoa {
                 let nsitem = match label {
                     None => StrongPtr::retain(msg_send![class!(NSMenuItem), separatorItem]),
                     Some(label) => {
-                        // FIXME (upstream): the action is `menu`, which the
-                        // responder chain answers with NSResponder's `menu`
-                        // property (on NSApp) instead of the app delegate's
-                        // `menu:`, so choosing the item doesn't reach the
-                        // entry; only SDL_ClickTrayEntry() does.
+                        // Upstream's action is `menu`, which the responder
+                        // chain answers with NSResponder's `menu` property
+                        // (on NSApp), so choosing the item never reaches
+                        // the entry; fixed here: the app delegate's `menu:`.
                         let item: Id = msg_send![class!(NSMenuItem), alloc];
                         let item: Id = msg_send![item,
                             initWithTitle: ns_string(label).get()
-                            action: sel!(menu)
+                            action: sel!(menu:)
                             keyEquivalent: ns_string("").get()];
                         let item = StrongPtr::from_owned(item);
                         let _: () = msg_send![item,

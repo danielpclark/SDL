@@ -474,10 +474,13 @@ mod macos {
             2,
             "the tray's menu opened"
         );
-        // FIXME (upstream): the items' action is `menu`, which NSApp answers
-        // (NSResponder's `menu` property), so choosing an item doesn't reach
-        // the entry.
-        assert_eq!(hits.load(Ordering::SeqCst), 0);
+        // (the item's action reaches the app delegate's `menu:`: see the
+        // fix in tray/cocoa.rs)
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            1,
+            "choosing the item ran its callback"
+        );
         println!("cocoa_shell: tray menu ok");
         drop(tray);
     }
