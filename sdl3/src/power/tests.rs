@@ -190,8 +190,11 @@ fn power_info_is_consistent() {
         #[cfg(windows)]
         assert_eq!((info.time_left, info.percent), (None, None), "{info:?}");
     }
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     assert_eq!(info.state, PowerState::Unknown);
+    // (always a definitive answer on macOS)
+    #[cfg(target_os = "macos")]
+    assert_ne!(info.state, PowerState::Unknown);
 }
 
 #[cfg(windows)]

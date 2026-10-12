@@ -455,6 +455,40 @@ pub fn system_ram() -> i32 {
                 }
             }
         }
+        #[cfg(target_vendor = "apple")]
+        {
+            if ram <= 0 {
+                // SAFETY: sysconf() only reads configuration values.
+                let (pages, pagesize) = unsafe {
+                    (
+                        libc::sysconf(libc::_SC_PHYS_PAGES),
+                        libc::sysconf(libc::_SC_PAGESIZE),
+                    )
+                };
+                // (Sint64 arithmetic: long is 64 bits on Apple's platforms)
+                ram = (pages * pagesize / (1024 * 1024)) as i32;
+            }
+            if ram <= 0 {
+                // (64-bit): Darwin
+                let mut mib = [libc::CTL_HW, libc::HW_MEMSIZE];
+                let mut memsize: u64 = 0;
+                let mut len = size_of::<u64>();
+                // SAFETY: a two-level MIB and an out-buffer of `len` bytes.
+                let ok = unsafe {
+                    libc::sysctl(
+                        mib.as_mut_ptr(),
+                        2,
+                        &mut memsize as *mut u64 as *mut std::ffi::c_void,
+                        &mut len,
+                        std::ptr::null_mut(),
+                        0,
+                    )
+                } == 0;
+                if ok {
+                    ram = (memsize / (1024 * 1024)) as i32;
+                }
+            }
+        }
         SYSTEM_RAM.store(ram, Ordering::Relaxed);
     }
     ram
@@ -492,6 +526,33 @@ pub fn system_page_size() -> i32 {
         if cfg!(any(target_os = "linux", target_os = "android")) {
             page_size = auxv_page_size().unwrap_or(-1);
         }
+        #[cfg(target_vendor = "apple")]
+        {
+            if page_size <= 0 {
+                // SAFETY: sysconf() only reads a configuration value.
+                page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as i32;
+            }
+            if page_size <= 0 {
+                // NetBSD, OpenBSD, FreeBSD, Darwin...everything agrees to use HW_PAGESIZE.
+                let mut mib = [libc::CTL_HW, libc::HW_PAGESIZE];
+                let mut pagesize: i32 = 0;
+                let mut len = size_of::<i32>();
+                // SAFETY: a two-level MIB and an out-buffer of `len` bytes.
+                let ok = unsafe {
+                    libc::sysctl(
+                        mib.as_mut_ptr(),
+                        2,
+                        &mut pagesize as *mut i32 as *mut std::ffi::c_void,
+                        &mut len,
+                        std::ptr::null_mut(),
+                        0,
+                    )
+                } == 0;
+                if ok {
+                    page_size = pagesize;
+                }
+            }
+        }
         if page_size < 0 {
             // in case we got a weird result somewhere, or no better information, force it to 0.
             page_size = 0; // unknown page size, sorry.
@@ -524,9 +585,17 @@ mod tests {
         let line = cpu_cache_line_size();
         assert!(line > 0 && (line as u32).is_power_of_two(), "{line}");
         assert!(simd_alignment() >= std::mem::size_of::<*const ()>());
-        if cfg!(target_os = "linux") {
+        if cfg!(any(target_os = "linux", target_vendor = "apple")) {
             assert!(system_ram() > 0);
             assert!(system_page_size() >= 4096);
+        }
+        #[cfg(target_vendor = "apple")]
+        {
+            // What upstream reports: sysconf()'s physical pages and page size.
+            let pages = unsafe { libc::sysconf(libc::_SC_PHYS_PAGES) } as i64;
+            let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as i64;
+            assert_eq!(system_ram() as i64, pages * page / (1024 * 1024));
+            assert_eq!(system_page_size() as i64, page);
         }
         assert!(!cpu_type().is_empty());
         if cfg!(target_arch = "x86_64") {
