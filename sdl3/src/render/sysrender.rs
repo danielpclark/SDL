@@ -624,6 +624,16 @@ pub(crate) trait RenderBackend {
     ) -> Option<Result<()>> {
         None
     }
+    /// `GetMetalLayer`: the `CAMetalLayer` drawn into; `None` when not
+    /// implemented.
+    fn metal_layer(&mut self) -> Option<usize> {
+        None
+    }
+    /// `GetMetalCommandEncoder`: the current `MTLRenderCommandEncoder`
+    /// (0 if none could be made); `None` when not implemented.
+    fn metal_command_encoder(&mut self) -> Option<usize> {
+        None
+    }
     /// `WindowEvent`: a window event for the renderer's window.
     fn window_event(&mut self, _event_type: crate::events::EventType) {}
     /// `DestroyRenderer`: clean up renderer-specific resources.
@@ -679,6 +689,19 @@ pub(crate) struct TextureCreateProps {
     /// `_V_POINTER` (0: none)
     #[cfg_attr(not(windows), allow(dead_code))]
     pub(crate) d3d12_texture: [u64; 3],
+    /// `SDL_PROP_TEXTURE_CREATE_METAL_PIXELBUFFER_POINTER` (0: none)
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) metal_pixelbuffer: u64,
+    /// `SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_POINTER`, `_U_POINTER` and
+    /// `_V_POINTER` (0: none)
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) metal_texture: [u64; 3],
+    /// `SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_UV_POINTER` (0: none)
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) metal_texture_uv: u64,
+    /// `SDL_PROP_TEXTURE_CREATE_METAL_TEXTURE_USAGE_NUMBER`
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) metal_texture_usage: u32,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER`
     pub(crate) gpu_texture: Option<Arc<gpu::Texture>>,
     /// `SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_UV_POINTER`

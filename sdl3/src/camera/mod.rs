@@ -24,12 +24,14 @@
 //! stays valid (upstream's pointer dangles) and is freed when dropped.
 //!
 //! The camera backends are platform drivers: on Linux, V4L2 and PipeWire
-//! (in that order, as upstream); on Windows, Media Foundation; elsewhere,
-//! so far, only the dummy driver, which reports no cameras and is used
+//! (in that order, as upstream); on macOS, CoreMedia (AVFoundation); on
+//! Windows, Media Foundation; elsewhere, so far, only the dummy driver, which reports no cameras and is used
 //! only when requested with [`hints::CAMERA_DRIVER`]. Without a platform
 //! driver, initializing the camera subsystem fails with "No available
 //! camera driver", as upstream does on a platform without camera support.
 
+#[cfg(target_os = "macos")]
+mod coremedia;
 mod dummy;
 #[cfg(windows)]
 mod mediafoundation;
@@ -193,6 +195,8 @@ static BOOTSTRAP: &[&CameraBootStrap] = &[
     &v4l2::V4L2_BOOTSTRAP,
     #[cfg(target_os = "linux")]
     &pipewire::PIPEWIRECAMERA_BOOTSTRAP,
+    #[cfg(target_os = "macos")]
+    &coremedia::COREMEDIA_BOOTSTRAP,
     #[cfg(windows)]
     &mediafoundation::MEDIAFOUNDATION_BOOTSTRAP,
     &dummy::DUMMYCAMERA_BOOTSTRAP,
@@ -300,6 +304,13 @@ impl CameraDevice {
     #[allow(dead_code)] // (used by the camera drivers)
     pub(crate) fn actual_spec(&self) -> CameraSpec {
         self.lock().borrow().actual_spec
+    }
+
+    /// Whether the user has allowed access (`device->permission`, which
+    /// backends read as upstream's do).
+    #[allow(dead_code)] // (used by the camera drivers)
+    pub(crate) fn permission(&self) -> CameraPermissionState {
+        self.lock().borrow().permission
     }
 }
 

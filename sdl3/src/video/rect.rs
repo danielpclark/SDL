@@ -166,7 +166,6 @@ impl FRect {
 /// `width`×`height`. There's no float version of this at the moment, because
 /// it's not a public API and internally we only need the int version.
 /// Translation of the internal `SDL_GetSpanEnclosingRect()`.
-#[allow(dead_code)] // used by the surface/blit code in the next phase
 pub(crate) fn span_enclosing_rect(width: i32, height: i32, rects: &[Rect]) -> Option<Rect> {
     if width < 1 || height < 1 || rects.is_empty() {
         return None;

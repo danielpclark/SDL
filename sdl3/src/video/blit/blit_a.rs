@@ -18,8 +18,14 @@
 //!   same bytes as the portable one (`(x * 257) >> 16` equals
 //!   `(x + (x >> 8)) >> 8` for every value they see), so that one is used.
 //!
-//! The NEON, SVE2 and LSX kernels are not translated; other architectures
-//! use the portable functions, as an upstream build without them would.
+//! On AArch64, `Blit8888to8888PixelAlphaSwizzleNEON` computes
+//! `ALPHA_BLEND_SWIZZLE_8888` lane by lane (`1 + a * s + (255 - a) * d`,
+//! then `(x + (x >> 8)) >> 8`), so it is the portable swizzle kernel too,
+//! selected where upstream selects it: also for same-format blits, which
+//! use `Blit8888to8888PixelAlpha` without NEON.
+//!
+//! The SVE2 and LSX kernels are not translated; other architectures use the
+//! portable functions, as an upstream build without them would.
 
 use super::*;
 use crate::video::pixels::{Color, PackedLayout};
@@ -566,6 +572,12 @@ pub(crate) fn calculate_blit_a(surface: &Surface<'_>, dst: &Surface<'_>) -> Opti
                             return Some(named_blit!(
                                 blit_8888_to_8888_pixel_alpha_swizzle,
                                 "Blit8888to8888PixelAlphaSwizzleSSE41"
+                            ));
+                        }
+                        if simd.neon {
+                            return Some(named_blit!(
+                                blit_8888_to_8888_pixel_alpha_swizzle,
+                                "Blit8888to8888PixelAlphaSwizzleNEON"
                             ));
                         }
                         return Some(if sf.format == df.format {

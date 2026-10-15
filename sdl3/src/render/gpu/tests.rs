@@ -19,6 +19,13 @@
 //! shader model 6 (vkd3d under Wine has 5.1) the Direct3D 12 ones report a
 //! skip (capability `d3d12`) and pass.
 //!
+//! On Apple platforms the scenes are drawn again on the Metal backend with
+//! the MSL shaders, by a GPU renderer without a window into a render
+//! target (the unit tests' threads can't use the Cocoa video driver,
+//! which the Metal swapchains need), on the offscreen driver with a
+//! bootstrap that doesn't ask it for Metal views. Without a Metal device
+//! they report a skip (capability `metal`) and pass.
+//!
 //! The scaled copies avoid the exact 2:1 ties of nearest sampling (a
 //! downscale whose pixel centers fall on texel edges), where rasterizers
 //! differ.
@@ -47,7 +54,7 @@ const H: i32 = 48;
 // ---------------------------------------------------------------------------
 
 #[test]
-#[cfg(not(windows))] // (direct3d11 comes first there: see its tests)
+#[cfg(not(any(windows, target_os = "macos")))] // (direct3d11 and metal come first there: see their tests)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     // (render_drivers[] in SDL_render.c: ..., GLES2, ..., VULKAN, GPU, SW)
@@ -120,6 +127,43 @@ fn spirv_shaders() {
         &color[20..28],
         &[0x11, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00]
     );
+}
+
+#[test]
+#[cfg(target_vendor = "apple")]
+fn msl_shaders() {
+    // The `*_len` of upstream's shaders/*.msl.h: MSL source from
+    // SPIRV-Cross, with the main0 entry point CompileShader() names.
+    let lengths = [
+        (VertexShaderId::Linepoint.sources(), 653, "vertex"),
+        (VertexShaderId::TriColor.sources(), 727, "vertex"),
+        (VertexShaderId::TriTexture.sources(), 727, "vertex"),
+        (FragmentShaderId::Color.sources().unwrap(), 602, "fragment"),
+        (
+            FragmentShaderId::TextureRgb.sources().unwrap(),
+            782,
+            "fragment",
+        ),
+        (
+            FragmentShaderId::TextureRgba.sources().unwrap(),
+            789,
+            "fragment",
+        ),
+        (
+            FragmentShaderId::TextureAdvanced.sources().unwrap(),
+            17512,
+            "fragment",
+        ),
+    ];
+    for (s, len, stage) in lengths {
+        assert_eq!(s.msl.len(), len);
+        let text = std::str::from_utf8(s.msl).unwrap();
+        assert!(text.starts_with("#include <metal_stdlib>\n"));
+        assert!(
+            text.contains(&format!("{stage} main0_out main0(")),
+            "{stage}"
+        );
+    }
 }
 
 #[test]
@@ -321,7 +365,7 @@ fn vertex_layouts_and_uniforms() {
     }
 
     // The device is asked for the shader formats the renderer has: SPIR-V,
-    // and DXIL on Windows.
+    // DXIL on Windows and MSL on Apple platforms.
     let props = Properties::new();
     fill_supported_shader_formats(&props, &RendererCreateInfo::default()).unwrap();
     let get = |name| props.get_bool(name);
@@ -339,7 +383,7 @@ fn vertex_layouts_and_uniforms() {
     );
     assert_eq!(
         get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN),
-        Some(false)
+        Some(cfg!(target_vendor = "apple"))
     );
 
     // With the application's shader formats, only those are asked for, if
@@ -376,7 +420,7 @@ fn vertex_layouts_and_uniforms() {
     );
     assert_eq!(
         get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN),
-        Some(false)
+        Some(cfg!(target_vendor = "apple"))
     );
     assert_eq!(get(gpu::PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN), None);
 }
@@ -394,6 +438,10 @@ enum Backend {
     /// Direct3D 12 with the DXIL shaders, on the Windows video driver.
     #[cfg(windows)]
     D3d12,
+    /// Metal with the MSL shaders, without a window (into a render target),
+    /// on the offscreen driver.
+    #[cfg(target_vendor = "apple")]
+    Metal,
 }
 
 impl Backend {
@@ -403,6 +451,19 @@ impl Backend {
             Backend::Vulkan => "vulkan",
             #[cfg(windows)]
             Backend::D3d12 => "direct3d12",
+            #[cfg(target_vendor = "apple")]
+            Backend::Metal => "metal",
+        }
+    }
+
+    /// The capability a missing device of the backend skips as.
+    fn capability(self) -> &'static str {
+        match self {
+            Backend::Vulkan => "vulkan",
+            #[cfg(windows)]
+            Backend::D3d12 => "d3d12",
+            #[cfg(target_vendor = "apple")]
+            Backend::Metal => "metal",
         }
     }
 }
@@ -419,6 +480,12 @@ impl Video {
             Backend::Vulkan => "offscreen",
             #[cfg(windows)]
             Backend::D3d12 => "windows",
+            #[cfg(target_vendor = "apple")]
+            Backend::Metal => {
+                *gpu::TEST_BACKENDS.lock().unwrap() =
+                    Some(vec![&gpu::metal::METAL_HEADLESS_TEST_DRIVER]);
+                "offscreen"
+            }
         };
         hints::set(hints::VIDEO_DRIVER, video).unwrap();
         hints::set(hints::GPU_DRIVER, backend.driver()).unwrap();
@@ -436,6 +503,27 @@ impl Video {
             return None;
         }
         let window = Window::create("gpu", w, h, WindowFlags::default()).unwrap();
+        #[cfg(target_vendor = "apple")]
+        if self.0 == Backend::Metal {
+            // (a renderer without a window, drawing into a target of the
+            // window's size; the window is the tests')
+            let mut r = match Renderer::for_gpu_device(None, None) {
+                Ok(r) => r,
+                Err(e) => {
+                    crate::test_support::skip(
+                        "metal",
+                        format_args!("no GPU renderer ({})", e.message()),
+                    );
+                    window.destroy();
+                    return None;
+                }
+            };
+            let target = r
+                .create_texture(PixelFormat::ARGB8888, TextureAccess::Target, w, h)
+                .unwrap();
+            r.set_render_target(Some(target)).unwrap();
+            return Some((window, r));
+        }
         match Renderer::for_window(&window, Some(GPU_RENDERER)) {
             Ok(r) => Some((window, r)),
             Err(e) if self.0 == Backend::Vulkan => {
@@ -454,6 +542,10 @@ impl Video {
 
 impl Drop for Video {
     fn drop(&mut self) {
+        #[cfg(target_vendor = "apple")]
+        if self.0 == Backend::Metal {
+            *gpu::TEST_BACKENDS.lock().unwrap() = None;
+        }
         init::quit();
         hints::reset(hints::RENDER_GPU_DEBUG);
         hints::reset(hints::GPU_DRIVER);
@@ -641,6 +733,8 @@ fn gpu_renderer_basics_on(backend: Backend) {
         Backend::Vulkan => ShaderFormat::SPIRV,
         #[cfg(windows)]
         Backend::D3d12 => ShaderFormat::DXIL,
+        #[cfg(target_vendor = "apple")]
+        Backend::Metal => ShaderFormat::MSL,
     };
     assert!(device.shader_formats().contains(format));
 
@@ -1645,7 +1739,10 @@ fn gpu_pipelines_are_cached_on(backend: Backend) {
 /// The render state fragment shaders of the tests: the SPIR-V of
 /// [`test_spirv`] and the DXIL of `test_dxil` (made by
 /// `tools/gen_gpu_test_spirv.py --render` and
-/// `tools/gen_gpu_test_dxil.py --render`).
+/// `tools/gen_gpu_test_dxil.py --render`), and the same in MSL for Metal
+/// (taking the renderer's MSL vertex outputs, `user(locn0)` and
+/// `user(locn1)`, and binding as the Metal backend does: uniform buffers,
+/// then storage buffers, from buffer 0).
 #[derive(Clone, Copy, Debug)]
 enum StateShader {
     /// The color times the uniform of slot 0.
@@ -1660,7 +1757,7 @@ enum StateShader {
 
 impl StateShader {
     /// The shader on `device`, in the format it takes (SPIR-V on Vulkan,
-    /// DXIL on Direct3D 12).
+    /// DXIL on Direct3D 12, MSL on Metal).
     fn create(self, device: &gpu::Device) -> Arc<gpu::Shader> {
         let (spirv, num_samplers, num_storage_buffers, num_uniform_buffers) = match self {
             StateShader::Tint => (test_spirv::RENDER_TINT, 0, 0, 1),
@@ -1675,16 +1772,54 @@ impl StateShader {
         };
         #[cfg(not(windows))]
         let dxil: &[u8] = &[];
+        let msl = match self {
+            StateShader::Tint => {
+                "#include <metal_stdlib>
+using namespace metal;
+struct T { float4 tint; };
+struct main0_in { float4 v_color [[user(locn0)]]; };
+fragment float4 main0(main0_in in [[stage_in]], constant T& t [[buffer(0)]]) {
+    return in.v_color * t.tint;
+}
+"
+            }
+            StateShader::TwoTextures => {
+                "#include <metal_stdlib>
+using namespace metal;
+struct V { float4 v; };
+struct main0_in { float4 v_color [[user(locn0)]]; float2 v_uv [[user(locn1)]]; };
+fragment float4 main0(main0_in in [[stage_in]],
+                      constant V& tint [[buffer(0)]], constant V& scale [[buffer(1)]],
+                      texture2d<float> u_texture [[texture(0)]], sampler s0 [[sampler(0)]],
+                      texture2d<float> u_extra [[texture(1)]], sampler s1 [[sampler(1)]]) {
+    return u_texture.sample(s0, in.v_uv) * in.v_color * tint.v
+        + u_extra.sample(s1, in.v_uv) * scale.v;
+}
+"
+            }
+            StateShader::StorageBuffer => {
+                "#include <metal_stdlib>
+using namespace metal;
+struct main0_in { float4 v_color [[user(locn0)]]; };
+fragment float4 main0(main0_in in [[stage_in]], const device float4* colors [[buffer(0)]]) {
+    return in.v_color * colors[0];
+}
+"
+            }
+        };
         let spirv: Vec<u8> = spirv.iter().flat_map(|w| w.to_le_bytes()).collect();
-        let (code, format) = if device.shader_formats().contains(ShaderFormat::SPIRV) {
-            (&spirv[..], ShaderFormat::SPIRV)
+        let formats = device.shader_formats();
+        let (code, format, entrypoint) = if formats.contains(ShaderFormat::SPIRV) {
+            (&spirv[..], ShaderFormat::SPIRV, "main")
+        } else if formats.contains(ShaderFormat::MSL) {
+            (msl.as_bytes(), ShaderFormat::MSL, "main0")
         } else {
-            (dxil, ShaderFormat::DXIL)
+            (dxil, ShaderFormat::DXIL, "main")
         };
         let shader = device
             .create_shader(&gpu::ShaderCreateInfo {
                 code,
-                entrypoint: "main",
+                entrypoint,
                 format,
                 stage: gpu::ShaderStage::Fragment,
                 num_samplers,
@@ -2038,6 +2173,11 @@ fn gpu_render_states_on(backend: Backend) {
 
     // A state left to the renderer goes with it, after its device's other
     // objects.
+    #[cfg(target_vendor = "apple")]
+    if backend == Backend::Metal {
+        // (presenting a renderer without a window, off its render target)
+        r.set_render_target(None).unwrap();
+    }
     r.present().unwrap();
     drop(r);
     drop(tint);
@@ -2060,6 +2200,8 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
         Backend::Vulkan => ShaderFormat::SPIRV,
         #[cfg(windows)]
         Backend::D3d12 => ShaderFormat::DXIL,
+        #[cfg(target_vendor = "apple")]
+        Backend::Metal => ShaderFormat::MSL,
     };
     let device = match gpu::Device::new(format, true, Some(backend.driver())) {
         Ok(device) => device,
@@ -2146,13 +2288,19 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
             gpu_shaders_dxil: true,
             ..Default::default()
         }),
+        #[cfg(target_vendor = "apple")]
+        Backend::Metal => with(RendererCreateInfo {
+            gpu_shaders_msl: true,
+            ..Default::default()
+        }),
     }
     .unwrap();
     let formats = r.gpu_renderer_device().unwrap().shader_formats();
     assert!(formats.contains(format), "{formats:?}");
     assert!(!formats.contains(ShaderFormat::MSL), "{formats:?}");
     drop(r);
-    // (there are no MSL shaders: no device takes only those)
+    // (off Apple platforms there are no MSL shaders, and on the offscreen
+    // driver there is no Metal: no device takes only those)
     assert!(with(RendererCreateInfo {
         gpu_shaders_msl: true,
         ..Default::default()
@@ -2337,11 +2485,17 @@ fn gpu_renderer_without_a_window_on(backend: Backend) {
 
     let mut r = match Renderer::for_gpu_device(None, None) {
         Ok(r) => r,
-        Err(e) if backend == Backend::Vulkan => {
-            crate::test_support::skip("vulkan", format_args!("no GPU renderer ({})", e.message()));
+        #[cfg(windows)]
+        Err(e) if backend == Backend::D3d12 => {
+            panic!("no GPU renderer on Direct3D 12 ({})", e.message())
+        }
+        Err(e) => {
+            crate::test_support::skip(
+                backend.capability(),
+                format_args!("no GPU renderer ({})", e.message()),
+            );
             return;
         }
-        Err(e) => panic!("no GPU renderer on Direct3D 12 ({})", e.message()),
     };
     assert_eq!(r.name(), GPU_RENDERER);
     assert!(r.window().is_none());
@@ -2401,6 +2555,8 @@ fn gpu_renderer_without_a_window_on(backend: Backend) {
         Backend::Vulkan => ShaderFormat::SPIRV,
         #[cfg(windows)]
         Backend::D3d12 => ShaderFormat::DXIL,
+        #[cfg(target_vendor = "apple")]
+        Backend::Metal => ShaderFormat::MSL,
     };
     let device = gpu::Device::new(format, true, Some(backend.driver())).unwrap();
     let mut r = Renderer::for_gpu_device(Some(&device), None).unwrap();
@@ -2473,6 +2629,43 @@ mod d3d12 {
     #[test]
     fn gpu_renderer_without_a_window() {
         super::gpu_renderer_without_a_window_on(Backend::D3d12);
+    }
+}
+
+/// The scenes again on the Metal backend, with the MSL shaders, by a
+/// renderer without a window into a render target.
+#[cfg(target_vendor = "apple")]
+mod metal {
+    use super::Backend;
+
+    #[test]
+    fn gpu_matches_software_for_shapes() {
+        super::gpu_matches_software_for_shapes_on(Backend::Metal);
+    }
+
+    #[test]
+    fn gpu_matches_software_for_textures() {
+        super::gpu_matches_software_for_textures_on(Backend::Metal);
+    }
+
+    #[test]
+    fn gpu_matches_software_for_yuv() {
+        super::gpu_matches_software_for_yuv_on(Backend::Metal);
+    }
+
+    #[test]
+    fn gpu_line_methods() {
+        super::gpu_line_methods_on(Backend::Metal);
+    }
+
+    #[test]
+    fn gpu_render_states() {
+        super::gpu_render_states_on(Backend::Metal);
+    }
+
+    #[test]
+    fn gpu_renderer_without_a_window() {
+        super::gpu_renderer_without_a_window_on(Backend::Metal);
     }
 }
 

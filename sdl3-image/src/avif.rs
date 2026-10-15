@@ -47,7 +47,7 @@ mod io;
     clippy::needless_late_init,
     clippy::type_complexity
 )]
-mod libyuv;
+pub(crate) mod libyuv;
 #[allow(clippy::manual_is_multiple_of, clippy::needless_late_init)]
 mod obu;
 #[allow(dead_code)]

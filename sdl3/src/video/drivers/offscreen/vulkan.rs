@@ -320,11 +320,23 @@ mod tests {
 
     #[test]
     fn default_loader_names() {
-        assert_eq!(super::DEFAULT_PATHS.len(), 1);
         #[cfg(windows)]
-        assert_eq!(super::DEFAULT_PATHS[0], "vulkan-1.dll");
-        #[cfg(all(unix, not(target_os = "openbsd")))]
-        assert_eq!(super::DEFAULT_PATHS[0], "libvulkan.so.1");
+        assert_eq!(super::DEFAULT_PATHS, ["vulkan-1.dll"]);
+        #[cfg(target_vendor = "apple")]
+        assert_eq!(
+            super::DEFAULT_PATHS,
+            [
+                "vulkan.framework/vulkan",
+                "libvulkan.1.dylib",
+                "libvulkan.dylib",
+                "MoltenVK.framework/MoltenVK",
+                "libMoltenVK.dylib",
+            ]
+        );
+        #[cfg(target_os = "openbsd")]
+        assert_eq!(super::DEFAULT_PATHS, ["libvulkan.so"]);
+        #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "openbsd")))]
+        assert_eq!(super::DEFAULT_PATHS, ["libvulkan.so.1"]);
     }
 
     /// The loader, the instance extensions, and a headless surface for a

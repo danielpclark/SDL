@@ -1060,9 +1060,21 @@ fn corrupt_case(out: &mut Vec<String>, label: &str, data: &[u8]) {
         f.height(),
         f.line_skip()
     );
-    let tail = match f.render_text_blended("Hamburgefonstiv AVA", FG) {
-        Ok(s) => format!("{}x{} {:016x}", s.width(), s.height(), surface_hash(&s)),
-        Err(e) => format!("err: {e}"),
+    // A corrupt font can ask for a surface of many gigabytes, which the
+    // machine the reference was made on couldn't allocate ("Out of memory")
+    // and others (macOS, which reserves it lazily) can: refuse it here as
+    // the reference machine did, instead of rendering into it.
+    let huge = match f.string_size("Hamburgefonstiv AVA") {
+        Ok((w, h)) => w as u64 * h as u64 * 4 > 1 << 32,
+        Err(_) => false,
+    };
+    let tail = if huge {
+        "err: Out of memory".to_owned()
+    } else {
+        match f.render_text_blended("Hamburgefonstiv AVA", FG) {
+            Ok(s) => format!("{}x{} {:016x}", s.width(), s.height(), surface_hash(&s)),
+            Err(e) => format!("err: {e}"),
+        }
     };
     out.push(head + &tail);
 }

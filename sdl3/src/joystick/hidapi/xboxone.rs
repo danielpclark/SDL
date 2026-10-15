@@ -1927,8 +1927,8 @@ impl DriverImpl for XboxOneDriver {
         device: Option<&HidapiDevice>,
         _name: &str,
         gamepad_type: GamepadType,
-        _vendor_id: u16,
-        _product_id: u16,
+        vendor_id: u16,
+        product_id: u16,
         _version: u16,
         _interface_number: i32,
         interface_class: i32,
@@ -1938,6 +1938,20 @@ impl DriverImpl for XboxOneDriver {
         const LIBUSB_CLASS_VENDOR_SPEC: i32 = 0xFF;
         const XBONE_IFACE_SUBCLASS: i32 = 71;
         const XBONE_IFACE_PROTOCOL: i32 = 208;
+
+        #[cfg(target_os = "macos")]
+        if crate::joystick::JOYSTICK_MFI
+            && hints::get_bool(hints::JOYSTICK_MFI, true)
+            && !crate::joystick::is_joystick_bluetooth_xbox_one(vendor_id, product_id)
+            && device.is_some_and(|d| d.path().starts_with("DevSrvsID"))
+        {
+            // On macOS we get a shortened version of the real report and
+            // you can't write output reports for wired controllers, so
+            // we'll just use the GCController support instead, if available.
+            return false;
+        }
+        #[cfg(not(target_os = "macos"))]
+        let _ = (vendor_id, product_id);
 
         if cfg!(windows) && device.is_some_and(|d| d.path().starts_with(r"\\?\HID#")) {
             // Windows provides a fake HID endpoint for XGIP controllers, don't use this

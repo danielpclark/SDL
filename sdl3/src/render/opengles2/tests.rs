@@ -174,7 +174,7 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
-#[cfg(not(windows))] // (direct3d11 comes first there: see its tests)
+#[cfg(not(any(windows, target_os = "macos")))] // (direct3d11 and metal come first there: see their tests)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     assert_eq!(num_render_drivers(), 5);

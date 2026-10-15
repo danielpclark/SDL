@@ -1,7 +1,7 @@
 // Rust translation of src/misc/SDL_url.c, SDL_sysurl.h,
 // src/misc/unix/SDL_sysurl.c, src/misc/windows/SDL_sysurl.c,
-// src/misc/dummy/SDL_sysurl.c and include/SDL3/SDL_misc.h from Simple
-// DirectMedia Layer.
+// src/misc/macos/SDL_sysurl.m, src/misc/dummy/SDL_sysurl.c and
+// include/SDL3/SDL_misc.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -9,10 +9,11 @@
 //!
 //! The Unix backend prefers the D-Bus OpenURI portal and falls back to
 //! `xdg-open` (on Unix systems other than Apple's, Android and Haiku); the
-//! Windows backend hands the URL to `ShellExecuteW()`; elsewhere the dummy
-//! backend reports that the operation is unsupported until the platform
-//! layer arrives. Under Wayland, an activation token is
-//! passed along so that the browser may take focus.
+//! Windows backend hands the URL to `ShellExecuteW()`, and the macOS one to
+//! LaunchServices (`LSOpenCFURLRef()`); elsewhere the dummy backend reports
+//! that the operation is unsupported until the platform layer arrives.
+//! Under Wayland, an activation token is passed along so that the browser
+//! may take focus.
 
 use crate::error::Result;
 
@@ -104,8 +105,56 @@ fn sys_open_url(url: &str) -> Result<()> {
     Ok(())
 }
 
+/// Translation of `SDL_SYS_OpenURL()` (macOS): `LSOpenCFURLRef()`.
+#[cfg(target_os = "macos")]
+fn sys_open_url(url: &str) -> Result<()> {
+    use crate::core::apple::foundation::{
+        CFRelease, CFURLCreateWithBytes, CFURLRef, K_CF_STRING_ENCODING_UTF8,
+    };
+    use crate::core::apple::objc::autoreleasepool;
+
+    /// `OSStatus`.
+    type OSStatus = i32;
+    /// `noErr`.
+    const NO_ERR: OSStatus = 0;
+
+    #[link(name = "CoreServices", kind = "framework")]
+    unsafe extern "C" {
+        fn LSOpenCFURLRef(in_url: CFURLRef, out_launched_url: *mut CFURLRef) -> OSStatus;
+    }
+
+    autoreleasepool(|| {
+        // SAFETY: the URL's bytes and length; LaunchServices takes a valid
+        // URL (or NULL, which it refuses with paramErr).
+        let status = unsafe {
+            let cfurl = CFURLCreateWithBytes(
+                std::ptr::null(),
+                url.as_ptr(),
+                url.len() as isize,
+                K_CF_STRING_ENCODING_UTF8,
+                std::ptr::null(),
+            );
+            let status = LSOpenCFURLRef(cfurl, std::ptr::null_mut());
+            // Note (upstream): CFRelease(NULL) crashes where the URL
+            // couldn't be made (bytes that aren't UTF-8, which a &str can't
+            // hold): released only when there is one.
+            if !cfurl.is_null() {
+                CFRelease(cfurl);
+            }
+            status
+        };
+        if status != NO_ERR {
+            return Err(crate::error::Error::new(format!(
+                "LSOpenCFURLRef() failed: {status}"
+            )));
+        }
+        Ok(())
+    })
+}
+
 #[cfg(not(any(
     windows,
+    target_os = "macos",
     all(
         unix,
         not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
@@ -114,4 +163,24 @@ fn sys_open_url(url: &str) -> Result<()> {
 /// Translation of `SDL_SYS_OpenURL()` (dummy).
 fn sys_open_url(_url: &str) -> Result<()> {
     Err(crate::error::Error::unsupported())
+}
+
+#[cfg(test)]
+mod tests {
+    /// LaunchServices' answers for URLs no application opens (nothing is
+    /// launched): kLSApplicationNotFoundErr, and paramErr for an empty one.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_open_url_errors() {
+        assert_eq!(
+            super::open_url("sdl-no-such-scheme-for-tests://x")
+                .unwrap_err()
+                .message(),
+            "LSOpenCFURLRef() failed: -10814"
+        );
+        assert_eq!(
+            super::open_url("").unwrap_err().message(),
+            "LSOpenCFURLRef() failed: -50"
+        );
+    }
 }

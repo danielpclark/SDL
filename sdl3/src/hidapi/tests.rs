@@ -170,3 +170,67 @@ fn init_exit_and_enumerate() {
     // Exiting more often than initializing is harmless
     exit().unwrap();
 }
+
+/// The IOHIDManager backend with every device enumerated (not only
+/// controllers): the paths are registry entry IDs, the strings are never
+/// missing, IOKit notifications drive the change counter, and devices on a
+/// vendor usage page (never keyboards, which would need the Input Monitoring
+/// permission) open with their read thread, read nothing in time and close.
+#[cfg(target_os = "macos")]
+#[test]
+fn macos_enumerate_all_and_open_vendor_devices() {
+    let _l = crate::test_support::test_lock();
+
+    hints::set(hints::HIDAPI_ENUMERATE_ONLY_CONTROLLERS, "0").unwrap();
+    if let Err(e) = init() {
+        crate::test_support::skip(
+            "hidapi",
+            format_args!("hidapi couldn't be initialized ({})", e.message()),
+        );
+        hints::reset(hints::HIDAPI_ENUMERATE_ONLY_CONTROLLERS);
+        return;
+    }
+    assert_ne!(device_change_count(), 0);
+    assert!(lock_state().discovery.can_get_notifications);
+    // The devices aren't seized: SDL opens them shared
+    assert!(!mac::hid_darwin_get_open_exclusive());
+
+    let devices = enumerate(0, 0).unwrap();
+    println!("note: {} HID device interfaces", devices.len());
+    for info in &devices {
+        let path = info.path.as_deref().unwrap();
+        assert!(path.starts_with("DevSrvsID:"), "{path}");
+        assert!(info.serial_number.is_some());
+        assert!(info.manufacturer_string.is_some());
+        assert!(info.product_string.is_some());
+    }
+    let mut opened = 0;
+    for info in devices.iter().filter(|d| d.usage_page >= 0xff00).take(3) {
+        let Ok(device) = HidDevice::open_path(info.path.as_deref().unwrap()) else {
+            continue;
+        };
+        opened += 1;
+        let mut buf = [0u8; 64];
+        // (vendor interfaces rarely send anything unprompted)
+        let _ = device.read_timeout(&mut buf, Some(Duration::from_millis(10)));
+        device.set_nonblocking(true).unwrap();
+        assert_eq!(device.read(&mut buf).unwrap_or(0), 0);
+        let own = device.device_info().unwrap();
+        assert_eq!(own.path, info.path);
+        let mut descriptor = [0u8; MAX_REPORT_DESCRIPTOR_SIZE];
+        assert!(device.report_descriptor(&mut descriptor).is_ok());
+        assert_eq!(
+            device.indexed_string(1).unwrap_err().message(),
+            "hid_get_indexed_string: not available on this platform"
+        );
+        assert_eq!(device.write(&[]).unwrap_err().message(), "Invalid argument");
+    }
+    println!("note: opened {opened} vendor device interfaces");
+    assert_eq!(
+        HidDevice::open_path("DevSrvsID:1").unwrap_err().message(),
+        "hid_open_path: device mach entry not found with the given path"
+    );
+
+    exit().unwrap();
+    hints::reset(hints::HIDAPI_ENUMERATE_ONLY_CONTROLLERS);
+}

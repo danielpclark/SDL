@@ -227,7 +227,7 @@ fn enumerate_and_glob() {
     assert!(glob_directory(&tmp.path("missing"), None, GlobFlags::NONE).is_err());
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_vendor = "apple")))]
 #[test]
 fn xdg_paths() {
     use crate::stdlib::{setenv_unsafe, unsetenv_unsafe};
@@ -300,7 +300,7 @@ fn base_path_and_exe_name() {
 /// The SDL part of an error: on Windows, without the system's text for the
 /// error code that follows it (it depends on the language, and on Wine or
 /// Windows); elsewhere the whole message.
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_vendor = "apple", windows))]
 fn sdl_part(e: &Error) -> &str {
     let m = e.message();
     if cfg!(windows) {
@@ -312,10 +312,11 @@ fn sdl_part(e: &Error) -> &str {
 
 /// What upstream's `SDL_sysfsops.c` and `SDL_filesystem.c` report for the
 /// calls of `fsops_match_upstream` on a fresh tree: upstream's C built for
-/// Linux and run there, and built for Windows and run under Wine. Errors
+/// Linux and run there (and for macOS, which reports the same), and built
+/// for Windows and run under Wine. Errors
 /// are cut at the system's text on Windows; directory entries are sorted
 /// case-insensitively.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_vendor = "apple"))]
 const FSOPS_EXPECTED: &str = r"mkdir nested: ok
 mkdir again: ok
 save x: ok
@@ -394,7 +395,7 @@ glob a/b/* 0: [a\b\inner.txt]
 glob (null) 0: error Failed to enumerate directory
 ";
 
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_vendor = "apple", windows))]
 #[test]
 fn fsops_match_upstream() {
     let tmp = TempDir::new("fsopsref");

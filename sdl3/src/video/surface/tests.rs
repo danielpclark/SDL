@@ -1318,6 +1318,7 @@ pub(crate) fn with_simd(simd: bool, f: impl FnOnce(&mut Harness) -> u64) -> u64 
         sse2: simd,
         sse41: simd,
         avx2: simd,
+        neon: false,
     };
     crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(Some(s)));
     let h = f(&mut Harness::new());
@@ -1672,6 +1673,7 @@ fn blitter_selection() {
                 sse2: simd,
                 sse41: simd,
                 avx2: simd,
+                neon: false,
             };
             crate::video::blit::SIMD_OVERRIDE.with(|o| o.set(Some(s)));
             let mut src = Surface::new(4, 4, sf).unwrap();

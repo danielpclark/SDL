@@ -3160,8 +3160,8 @@ impl DriverImpl for GipDriver {
         device: Option<&HidapiDevice>,
         _name: &str,
         gamepad_type: GamepadType,
-        _vendor_id: u16,
-        _product_id: u16,
+        vendor_id: u16,
+        product_id: u16,
         _version: u16,
         _interface_number: i32,
         _interface_class: i32,
@@ -3172,6 +3172,17 @@ impl DriverImpl for GipDriver {
         if device.is_some_and(HidapiDevice::is_bluetooth) {
             return false;
         }
+        #[cfg(target_os = "macos")]
+        if crate::joystick::JOYSTICK_MFI
+            && !crate::joystick::is_joystick_bluetooth_xbox_one(vendor_id, product_id)
+        {
+            // On macOS we get a shortened version of the real report and
+            // you can't write output reports for wired controllers, so
+            // we'll just use the GCController support instead.
+            return false;
+        }
+        #[cfg(not(target_os = "macos"))]
+        let _ = (vendor_id, product_id);
         gamepad_type == GamepadType::XboxOne
     }
 

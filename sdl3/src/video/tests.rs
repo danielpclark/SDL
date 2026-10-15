@@ -562,7 +562,12 @@ fn session_matches_c() {
     #[cfg(all(unix, not(target_vendor = "apple")))]
     hints::set(hints::EGL_LIBRARY, "libSDL-test-no-such-EGL.so").unwrap();
     hints::set(hints::VULKAN_LIBRARY, "libSDL-test-no-such-vulkan.so").unwrap();
+    // Without them, the C reference's attempt at a texture framebuffer
+    // (the offscreen driver's framebuffer is slow) fails before any
+    // renderer recreates the window: skip the attempt here.
+    hints::set(hints::FRAMEBUFFER_ACCELERATION, "0").unwrap();
     session(&mut t, "offscreen");
+    hints::reset(hints::FRAMEBUFFER_ACCELERATION);
     hints::reset(hints::VULKAN_LIBRARY);
     {
         let offscreen = t.out.find("==== driver offscreen").unwrap();

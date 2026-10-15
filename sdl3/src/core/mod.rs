@@ -9,6 +9,10 @@
 
 /// Where upstream builds with `SDL_USE_LIBDBUS` (and the other
 /// `core/linux/` pieces).
+/// The Objective-C runtime and the system frameworks the Apple backends
+/// share.
+#[cfg(target_vendor = "apple")]
+pub(crate) mod apple;
 #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
 pub(crate) mod linux;
 #[cfg(unix)]

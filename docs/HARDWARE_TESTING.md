@@ -3,7 +3,7 @@
 Most of the test suite needs nothing but `cargo test`. The tests of the
 platform backends, though, talk to whatever the machine offers: an X server,
 a Wayland compositor, a PulseAudio or PipeWire server, libGL, a camera,
-Windows' WASAPI endpoints. When a piece is missing, such a test **skips**:
+Windows' WASAPI endpoints, a macOS window server session. When a piece is missing, such a test **skips**:
 it prints
 
 ```
@@ -25,8 +25,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `x11` | Linux | libX11 and the X extension libraries (libXext, libXi, libXrandr, libXfixes, libXcursor, libXss, libXtst) |
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
-| `egl` | Linux, Windows | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship) |
-| `vulkan` | Linux | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set) |
+| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`) |
+| `vulkan` | Linux, macOS | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS the loader with MoltenVK (by upstream's default names, or Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), for the Cocoa driver's Vulkan surfaces |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -34,7 +34,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `alsa` | Linux | libasound and its configuration (the tests use its `file` and `null` PCMs, no sound card) |
 | `udev` | Linux | libudev and a working udev (netlink) |
 | `uinput` | Linux | a writable `/dev/uinput`, and read access to the event node it creates |
-| `hidapi` | Linux, Windows | the HID backend: hidraw with libudev, or `hid.dll` |
+| `hidapi` | Linux, Windows, macOS | the HID backend: hidraw with libudev, `hid.dll`, or IOKit's HID manager |
 | `ipv6` | any | IPv6 sockets that can resolve and bind to the loopback address `::1` (`sdl3-net`'s IPv6 tests; containers often have IPv4 only) |
 | `tzdata` | Linux | the time zone database in `/usr/share/zoneinfo` (the local time tests set `TZ`) |
 | `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
@@ -49,6 +49,9 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `camera` | any | a camera (only the hardware checks need one) |
 | `controller` | any | a connected game controller (only the hardware checks need one) |
 | `desktop` | Windows | an interactive desktop the windows video driver can open windows on (and move the cursor on) |
+| `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
+| `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
+| `metal` | macOS | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
 
 Two environment variables control skips:
 
@@ -78,6 +81,11 @@ doesn't have, and print what they find (so run them with `--nocapture`):
 | `audio::drivers::wasapi::tests::hardware_default_playback_and_recording` | Windows | lists the WASAPI endpoints; plays half a second of a quiet 440 Hz tone on the default playback endpoint (it must drain), then records half a second from the default recording endpoint (it must arrive), printing formats, timing and the peak level |
 | `joystick::windows::tests::hardware_joysticks_per_driver` | Windows | lists the joysticks and gamepads (name, GUID, gamepad type) each joystick driver finds: with the default drivers, with every driver enabled, and with each of HIDAPI, RawInput, DirectInput, XInput, Windows.Gaming.Input and GameInput alone (GameInput alone skips as `gameinput` where GameInput isn't usable). Zero controllers is fine |
 | `joystick::windows::tests::hardware_controller_input` | Windows | opens the first controller through the default drivers and prints its name, driver, GUID, VID:PID, axes/buttons/hats and gamepad mapping; asks for a button press and release, then a full stick (or axis) movement, waiting up to 30 seconds for each; then sends a short rumble and prints whether the controller supports it. Run it on its own, as below |
+| `audio::drivers::coreaudio::tests::hardware_default_playback_and_recording` | macOS | lists the CoreAudio devices; plays half a second of a quiet 440 Hz tone on the default playback device (it must drain), then records half a second from the default recording device, printing formats, timing and the peak level. A recording of pure silence (no microphone permission, see below) skips |
+| `camera::coremedia::tests::hardware_capture_from_the_first_camera` | macOS | the camera check through AVFoundation |
+| `joystick::darwin::tests::hardware_joysticks_per_driver` | macOS | lists the controllers the HIDAPI, IOKit and MFi (GameController) drivers see, together and each alone. Zero controllers is fine |
+| `joystick::darwin::tests::hardware_controller_input` | macOS | the interactive controller check of Windows', through the default macOS drivers. Run it on its own |
+| `joystick::apple::tests::hardware_mfi_controllers` | macOS | what GameController reports through the MFi driver alone: names, GUIDs, the generated gamepad mapping, SF Symbols names, sensors, LED, battery and rumble. GameController discovers controllers on the main run loop, which a test thread doesn't run, so only the ones it already knew when the driver started are listed |
 
 When the hardware isn't there they skip like the other tests (as `camera`,
 `wasapi`, `wgl`, ...), so add the capabilities to `SDL3_TEST_REQUIRE` to
@@ -86,7 +94,8 @@ make that a failure. `cargo test -- --ignored` runs only these tests;
 
 The camera checks may need permission first: on Windows, Settings >
 Privacy & security > Camera (and Microphone, for WASAPI recording) must
-allow desktop apps; the tests wait 30 seconds for an answer.
+allow desktop apps; the tests wait 30 seconds for an answer. On macOS see
+below.
 
 ## Linux (Ubuntu 24.04)
 
@@ -202,6 +211,55 @@ the `GL_ARB_framebuffer_object`/`GL_EXT_framebuffer_object` extensions) must
 get the `opengl` renderer. A machine with only Microsoft's GDI Generic 1.1
 (no GPU driver installed, a VM) skips as `wgl`.
 
+## macOS
+
+Nothing needs installing for `cocoa`, `coreaudio`, `metal` and `hidapi`:
+they come with macOS, given a login session at the screen (not a plain SSH
+session), speakers and a microphone. `vulkan` needs a Vulkan loader with
+MoltenVK (`brew install vulkan-loader molten-vk`), and `egl` ANGLE (see
+the table), so leave that out normally.
+
+```sh
+cargo test --workspace
+# fail instead of skipping:
+SDL3_TEST_REQUIRE=cocoa,coreaudio,metal,hidapi,vulkan cargo test --workspace
+# the hardware checks (the speakers and microphone, a camera; controllers
+# are only listed):
+SDL3_TEST_REQUIRE=coreaudio,camera cargo test --workspace -- --ignored --nocapture \
+  --skip hardware_controller_input
+# with a controller connected, the interactive check:
+SDL3_TEST_REQUIRE=controller cargo test -p sdl3 --lib hardware_controller_input -- --ignored --nocapture
+```
+
+The Cocoa video driver only starts on the main thread (as upstream's), and
+the test harness runs tests on other threads, so the tests that need it
+are programs of their own (`harness = false`), run on the main thread by
+`cargo test`: `tests/cocoa.rs` (displays, windows, fullscreen, text input,
+the clipboard, cursors, the keymap, mouse warping, message boxes, OpenGL,
+OpenGL ES, Metal views, Vulkan surfaces, the opengl renderer and window
+surfaces), `tests/cocoa_shell.rs` (the tray, file panels, notifications)
+and `tests/cocoa_metal.rs` (the Metal renderer, the GPU API's swapchains
+and the GPU renderer on a window), and `sdl3-shadercross`'s
+`tests/metal.rs`. They show small windows, an alert, a status item in the
+menu bar and file panels for a moment (every panel and menu is answered
+from the main queue, so nothing waits for a person), move the mouse
+pointer, and set the clipboard, restoring the pointer and the clipboard
+afterwards. Notifications need an application bundle, which a test binary
+isn't: they skip. The user storage test makes a process-unique folder
+under `~/Library/Application Support` and removes it.
+
+Microphone and camera access is granted to the app the tests run in (the
+terminal: Terminal, iTerm2, ...), in System Settings > Privacy & Security
+> Microphone and Camera. macOS asks the first time; the camera check waits
+30 seconds for an answer. When the microphone was denied (or the request
+was answered for another app), CoreAudio still records, but pure
+silence, and the recording check skips; reset the decision to be asked
+again, for example for iTerm2:
+
+```sh
+tccutil reset Microphone com.googlecode.iterm2
+```
+
 ## Windows tests under Wine (from Linux)
 
 The Windows backends are also tested under Wine, which provides `desktop`
@@ -234,6 +292,7 @@ The ubuntu test jobs install the packages above, start the private
 PipeWire server with `tools/ci/start-pipewire.sh` and set
 `SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi`,
 so on Linux only the uinput test (the runner can't use `/dev/uinput`) and
-the hardware checks may skip. The Windows jobs require nothing, since what
-a hosted runner offers (a desktop, audio endpoints) isn't guaranteed. Every
-job lists its skips in the job summary.
+the hardware checks may skip. The Windows and macOS jobs require nothing,
+since what a hosted runner offers (a desktop, audio endpoints, a Metal
+device) isn't guaranteed; the macOS clippy job also lints the x86-64 build
+for Intel Macs. Every job lists its skips in the job summary.

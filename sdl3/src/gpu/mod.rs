@@ -36,13 +36,15 @@
 //! values out of range can't fail here: handles are references, passes
 //! borrow their command buffer, and the enums can't hold other values.
 //!
-//! The backends are "direct3d12" (on Windows, tried first; its devices
-//! and resources so far, see the `d3d12` module) and "vulkan" (see the
-//! `vulkan` module). Metal comes later. The OpenXR functions are not
-//! translated.
+//! The backends are "metal" (on Apple platforms, tried first; see the
+//! `metal` module), "direct3d12" (on Windows, tried first; see the `d3d12`
+//! module) and "vulkan" (see the `vulkan` module). The OpenXR functions
+//! are not translated.
 
 #[cfg(windows)]
 pub(crate) mod d3d12;
+#[cfg(target_vendor = "apple")]
+pub(crate) mod metal;
 pub(crate) mod sysgpu;
 #[cfg(test)]
 mod tests;
@@ -2015,9 +2017,11 @@ impl TextureFormat {
 /// The GPU backends compiled in, in order of preference (`backends[]`).
 ///
 /// Upstream's list is the private (console) driver, Metal, Direct3D 12 and
-/// Vulkan; Direct3D 12 (on Windows; its devices and resources so far: see
-/// `d3d12`) and Vulkan are translated.
+/// Vulkan; Metal (on Apple platforms), Direct3D 12 (on Windows) and Vulkan
+/// are translated.
 static BACKENDS: &[&GpuBootstrap] = &[
+    #[cfg(target_vendor = "apple")]
+    &metal::METAL_DRIVER,
     #[cfg(windows)]
     &d3d12::D3D12_DRIVER,
     &vulkan::VULKAN_DRIVER,

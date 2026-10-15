@@ -7,15 +7,17 @@
 //!
 //! Direct translation of `SDL_power.c`, with the Linux backends (UPower
 //! over D-Bus, `/sys/class/power_supply`, `/proc/acpi` and `/proc/apm`,
-//! tried in that order) and the Windows one (`GetSystemPowerStatus()`).
-//! Elsewhere (the macOS, iOS, Android, ... backends are not translated) no
-//! backend is compiled in, so the answer is [`PowerState::Unknown`], as in
-//! an `SDL_POWER_DISABLED` build.
+//! tried in that order), the Windows one (`GetSystemPowerStatus()`) and
+//! the macOS one (IOKit's power sources). Elsewhere (the iOS, Android, ...
+//! backends are not translated) no backend is compiled in, so the answer
+//! is [`PowerState::Unknown`], as in an `SDL_POWER_DISABLED` build.
 
 use std::time::Duration;
 
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
 #[cfg(windows)]
 mod windows;
 
@@ -66,6 +68,9 @@ static IMPLEMENTATIONS: &[GetPowerInfoImpl] = &[
     // handles Win32, Win64, PocketPC.
     #[cfg(windows)]
     windows::get_power_info_windows,
+    // handles macOS, Darwin.
+    #[cfg(target_os = "macos")]
+    macos::get_power_info_macosx,
 ];
 
 /// Get the current power supply details. Translation of `SDL_GetPowerInfo()`.

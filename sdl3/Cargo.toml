@@ -85,3 +85,20 @@ features = [
     "Win32_UI_Shell_Common",
     "Win32_UI_WindowsAndMessaging",
 ]
+
+# The Cocoa video driver, which only starts on the main thread: a program of
+# its own without the test harness's threads.
+[[test]]
+name = "cocoa"
+harness = false
+
+# The macOS tray, file dialogs and notifications, which AppKit wants on the
+# main thread too.
+[[test]]
+name = "cocoa_shell"
+harness = false
+
+# The Metal renderer and the GPU API on Cocoa windows (main thread too).
+[[test]]
+name = "cocoa_metal"
+harness = false

@@ -3,10 +3,12 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Video backends: Wayland and X11 (on Unix other than Apple platforms;
-//! Wayland not on Android), Windows (on Windows), and the dummy and
+//! Wayland not on Android), Cocoa (on macOS), Windows (on Windows), and the dummy and
 //! offscreen drivers, both only available when requested with
 //! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER).
 
+#[cfg(target_os = "macos")]
+pub(crate) mod cocoa;
 pub(crate) mod dummy;
 pub(crate) mod offscreen;
 #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]

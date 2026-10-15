@@ -642,7 +642,7 @@ mod tests {
     }
 
     /// " Y-M-D h:m:s.ns wDOW oOFFSET", as the C reference prints it.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_vendor = "apple"))]
     fn format_dt(dt: Result<DateTime>) -> String {
         match dt {
             Ok(dt) => format!(
@@ -665,7 +665,8 @@ mod tests {
     /// libSDL3 built from the C source, on glibc) for these times in these
     /// time zones, then `SDL_GetDateTimeLocalePreferences()` in these
     /// locales (compiled with `localedef`, used with `uselocale()`).
-    #[cfg(target_os = "linux")]
+    /// Upstream built for macOS converts the times identically there.
+    #[cfg(any(target_os = "linux", target_vendor = "apple"))]
     const ZONES: [&str; 9] = [
         "UTC",
         "America/New_York",
@@ -677,7 +678,7 @@ mod tests {
         "XYZ-5:30",
         "",
     ];
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_vendor = "apple"))]
     const TICKS: [i64; 23] = [
         0,
         -1,
@@ -704,13 +705,13 @@ mod tests {
         -9223372036000000000,
     ];
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_vendor = "apple"))]
     extern "C" {
         /// POSIX `tzset()` (the libc crate doesn't declare it).
         fn tzset();
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_vendor = "apple"))]
     #[test]
     fn unix_local_time_matches_upstream() {
         let _l = crate::test_support::test_lock();
@@ -752,7 +753,7 @@ mod tests {
 
     /// The preferences in `locale` (`None`: it isn't installed), used on
     /// this thread only.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_vendor = "apple"))]
     fn preferences_in(locale: &str) -> Option<(DateFormat, TimeFormat)> {
         let name = std::ffi::CString::new(locale).unwrap();
         // SAFETY: name is NUL-terminated; the locale object is freed after
@@ -817,6 +818,38 @@ mod tests {
         match saved {
             Some(p) => crate::stdlib::setenv_unsafe("LOCPATH", &p, true).unwrap(),
             None => crate::stdlib::unsetenv_unsafe("LOCPATH").unwrap(),
+        }
+    }
+
+    /// What upstream built for macOS reports in the locales macOS ships
+    /// (its en_US time format is 24-hour, `%H:%M:%S`).
+    #[cfg(target_vendor = "apple")]
+    #[test]
+    fn macos_locale_preferences_match_upstream() {
+        let _l = crate::test_support::test_lock();
+        let expected = [
+            ("C", (DateFormat::MonthDayYear, TimeFormat::Hour24)),
+            ("POSIX", (DateFormat::MonthDayYear, TimeFormat::Hour24)),
+            ("C.UTF-8", (DateFormat::MonthDayYear, TimeFormat::Hour24)),
+            (
+                "en_US.UTF-8",
+                (DateFormat::MonthDayYear, TimeFormat::Hour24),
+            ),
+            (
+                "en_GB.UTF-8",
+                (DateFormat::DayMonthYear, TimeFormat::Hour24),
+            ),
+            (
+                "de_DE.UTF-8",
+                (DateFormat::DayMonthYear, TimeFormat::Hour24),
+            ),
+            (
+                "ja_JP.UTF-8",
+                (DateFormat::YearMonthDay, TimeFormat::Hour24),
+            ),
+        ];
+        for (locale, prefs) in expected {
+            assert_eq!(preferences_in(locale), Some(prefs), "{locale}");
         }
     }
 

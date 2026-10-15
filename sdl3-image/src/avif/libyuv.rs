@@ -524,17 +524,31 @@ fn scale_cols_up2_16_c(
     }
 }
 
+#[cfg(test)]
+thread_local! {
+    /// Tests pin the x86 `BLENDER()` on any architecture, to compare with
+    /// upstream's results from an x86-64 build.
+    pub(crate) static X86_BLENDER: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Whether `BLENDER()` is the ARM one (`__arm__`/`__aarch64__` builds).
+#[inline]
+fn arm_blender() -> bool {
+    #[cfg(test)]
+    if X86_BLENDER.with(|x| x.get()) {
+        return false;
+    }
+    cfg!(any(target_arch = "arm", target_arch = "aarch64"))
+}
+
 // (1-f)a + fb can be replaced with a + f(b-a)
 /// `BLENDER()` of the 8-bit functions (x86: 7 bit math with rounding; on
 /// ARM upstream uses the 16-bit formula, see [`blender_16`]).
 #[inline]
 fn blender_8(a: i32, b: i32, f: i32) -> u8 {
-    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-    {
+    if arm_blender() {
         (a + ((f * (b - a) + 0x8000) >> 16)) as u8
-    }
-    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-    {
+    } else {
         // Intel uses 7 bit math with rounding.
         (a + (((f >> 9) * (b - a) + 0x40) >> 7)) as u8
     }
@@ -2305,4 +2319,34 @@ pub(crate) fn scale_plane_12(
     scale_plane_16(
         src, src_stride, src_width, src_height, dst, dst_stride, dst_width, dst_height, filtering,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Both `BLENDER()`s of scale_common.cc: they agree at the ends and
+    /// round the 16-bit fraction differently in between.
+    #[test]
+    fn blender_formulas() {
+        let arm = !X86_BLENDER.with(|x| x.get())
+            && cfg!(any(target_arch = "arm", target_arch = "aarch64"));
+        assert_eq!(arm_blender(), arm);
+        for x86 in [false, true] {
+            X86_BLENDER.with(|x| x.set(x86));
+            assert_eq!(blender_8(10, 200, 0), 10);
+            assert_eq!(blender_8(200, 10, 0), 200);
+            // (0xffff >> 9) = 127: the x86 one never quite reaches b
+            assert_eq!(
+                blender_8(0, 255, 0xffff),
+                if arm_blender() { 255 } else { 253 }
+            );
+            assert_eq!(blender_8(0, 255, 0x8000), 128);
+            assert_eq!(
+                blender_8(3, 250, 0x4321),
+                if arm_blender() { 68 } else { 67 }
+            );
+        }
+        X86_BLENDER.with(|x| x.set(false));
+    }
 }

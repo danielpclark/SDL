@@ -143,21 +143,45 @@ fn user_storage_and_driver_hints() {
     let tmp = TempDir::new("user");
     let saved = getenv("XDG_DATA_HOME");
     setenv_unsafe("XDG_DATA_HOME", &tmp.0, true).unwrap();
+    // (Apple platforms' pref path is in the user's Application Support
+    // folder, whatever XDG_DATA_HOME says: names of this process's own,
+    // removed at the end)
+    let (org, game) = if cfg!(target_vendor = "apple") {
+        let id = std::process::id();
+        (
+            format!("SDL3 Test Org {id}"),
+            format!("SDL3 Test Game {id}"),
+        )
+    } else {
+        ("Org".to_owned(), "Game".to_owned())
+    };
+    let root = if cfg!(target_vendor = "apple") {
+        let pref = crate::filesystem::get_pref_path(None, &game).unwrap();
+        std::fs::remove_dir(&pref).unwrap();
+        pref[..pref.len() - game.len() - 1].to_owned()
+    } else {
+        format!("{}/", tmp.0)
+    };
 
-    let user = Storage::open_user(Some("Org"), "Game", None).unwrap();
+    let user = Storage::open_user(Some(&org), &game, None).unwrap();
     user.write_file("save.txt", b"1").unwrap();
-    assert_eq!(std::fs::read(tmp.path("Org/Game/save.txt")).unwrap(), b"1");
+    assert_eq!(
+        std::fs::read(format!("{root}{org}/{game}/save.txt")).unwrap(),
+        b"1"
+    );
     drop(user);
 
     hints::set(hints::STORAGE_USER_DRIVER, "nope,GENERIC").unwrap();
-    assert!(Storage::open_user(None, "Game", None).is_ok());
+    assert!(Storage::open_user(None, &game, None).is_ok());
     hints::set(hints::STORAGE_USER_DRIVER, "nope").unwrap();
     assert_eq!(
-        Storage::open_user(None, "Game", None)
-            .unwrap_err()
-            .message(),
+        Storage::open_user(None, &game, None).unwrap_err().message(),
         "nope not available"
     );
+    if cfg!(target_vendor = "apple") {
+        std::fs::remove_dir_all(format!("{root}{org}")).unwrap();
+        std::fs::remove_dir_all(format!("{root}{game}")).unwrap();
+    }
     hints::reset(hints::STORAGE_USER_DRIVER);
     hints::set(hints::STORAGE_TITLE_DRIVER, "steam").unwrap();
     assert_eq!(

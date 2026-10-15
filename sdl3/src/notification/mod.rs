@@ -9,8 +9,9 @@
 //! On Unix systems other than Apple's and Android, notifications go over
 //! D-Bus (`org.freedesktop.Notifications`, or the notification portal in a
 //! sandbox; see `dbusnotification`); on Windows they are toasts through the
-//! Windows Runtime (see `windows.rs`); elsewhere the dummy backend reports
-//! that the operation is unsupported.
+//! Windows Runtime (see `windows.rs`); on macOS they go through
+//! UserNotifications, in an application bundle (see `cocoa.rs`); elsewhere
+//! the dummy backend reports that the operation is unsupported.
 
 use crate::error::{Error, Result};
 use crate::video::surface::Surface;
@@ -129,8 +130,21 @@ mod windows;
 #[cfg(windows)]
 use windows as sys;
 
+#[cfg(target_os = "macos")]
+mod cocoa;
+#[cfg(target_os = "macos")]
+use cocoa as sys;
+
+/// Register the notification delegate early, as Apple platforms require.
+/// Translation of `Cocoa_RegisterNotificationDelegate()`.
+#[cfg(target_os = "macos")]
+pub(crate) fn register_notification_delegate() {
+    cocoa::register_notification_delegate();
+}
+
 #[cfg(not(any(
     windows,
+    target_os = "macos",
     all(unix, not(target_vendor = "apple"), not(target_os = "android"))
 )))]
 mod sys {
@@ -213,6 +227,7 @@ mod tests {
 
     #[cfg(not(any(
         windows,
+        target_os = "macos",
         all(unix, not(target_vendor = "apple"), not(target_os = "android"))
     )))]
     #[test]
