@@ -1344,6 +1344,14 @@ mod tests {
             FileDialogType::OpenFolder,
         ] {
             let (tx, rx) = std::sync::mpsc::channel();
+            // (no filters for a folder dialog, as show_folder_dialog()
+            // passes none: IFileDialog::SetFileTypes() fails with
+            // E_UNEXPECTED on a folder picker)
+            let (filters, nfilters) = if dialog_type == FileDialogType::OpenFolder {
+                (None, 0)
+            } else {
+                (Some(&filters[..]), 1)
+            };
             let left = show_modern_file_folder_dialog(
                 dialog_type,
                 Some(&location),
@@ -1356,8 +1364,8 @@ mod tests {
                 Some("Title"),
                 Some("Accept"),
                 Some("Cancel"),
-                Some(&filters),
-                1,
+                filters,
+                nfilters,
             );
             if left.is_some() {
                 // (the dialog couldn't be set up: the caller would fall

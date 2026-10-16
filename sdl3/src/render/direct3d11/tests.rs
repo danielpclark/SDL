@@ -471,6 +471,25 @@ fn structures_match_the_headers() {
     assert_eq!(offset_of!(AdapterDesc, vendor_id), 256);
     assert_eq!(offset_of!(AdapterDesc, dedicated_video_memory), 272);
     assert_eq!(offset_of!(AdapterDesc, adapter_luid), 296);
+    // The video driver's (an MSVC harness, x86_64)
+    assert_eq!(size_of::<ModeDesc>(), 28);
+    assert_eq!(offset_of!(ModeDesc, refresh_rate), 8);
+    assert_eq!(offset_of!(ModeDesc, format), 16);
+    assert_eq!(offset_of!(ModeDesc, scanline_ordering), 20);
+    assert_eq!(offset_of!(ModeDesc, scaling), 24);
+    assert_eq!(size_of::<OutputDesc>(), 96);
+    assert_eq!(offset_of!(OutputDesc, desktop_coordinates), 64);
+    assert_eq!(offset_of!(OutputDesc, attached_to_desktop), 80);
+    assert_eq!(offset_of!(OutputDesc, rotation), 84);
+    assert_eq!(offset_of!(OutputDesc, monitor), 88);
+    assert_eq!(size_of::<OutputDesc1>(), 152);
+    assert_eq!(offset_of!(OutputDesc1, bits_per_color), 96);
+    assert_eq!(offset_of!(OutputDesc1, color_space), 100);
+    assert_eq!(offset_of!(OutputDesc1, red_primary), 104);
+    assert_eq!(offset_of!(OutputDesc1, white_point), 128);
+    assert_eq!(offset_of!(OutputDesc1, min_luminance), 136);
+    assert_eq!(offset_of!(OutputDesc1, max_luminance), 140);
+    assert_eq!(offset_of!(OutputDesc1, max_full_frame_luminance), 144);
 }
 
 #[test]
@@ -504,6 +523,17 @@ fn vtable_slots_match_the_headers() {
         28
     );
     assert_eq!(size_of::<IDXGIFactory5Vtbl>(), 29 * ptr);
+    // The video driver's (an MSVC harness, x86_64)
+    assert_eq!(slot(offset_of!(IDXGIFactoryVtbl, enum_adapters)), 7);
+    assert_eq!(size_of::<IDXGIFactoryVtbl>(), 12 * ptr);
+    assert_eq!(slot(offset_of!(IDXGIAdapterVtbl, enum_outputs)), 7);
+    assert_eq!(slot(offset_of!(IDXGIOutputVtbl, get_desc)), 7);
+    assert_eq!(
+        slot(offset_of!(IDXGIOutputVtbl, find_closest_matching_mode)),
+        9
+    );
+    assert_eq!(slot(offset_of!(IDXGIOutput6Vtbl, get_desc1)), 27);
+    assert_eq!(size_of::<IDXGIOutput6Vtbl>(), 29 * ptr);
     assert_eq!(slot(offset_of!(IDXGIAdapterVtbl, get_desc)), 8);
     assert_eq!(slot(offset_of!(IDXGIDevice1Vtbl, get_adapter)), 7);
     assert_eq!(
@@ -1031,8 +1061,10 @@ fn d3d11_matches_software_for_shapes() {
     }
 
     // Untextured geometry with per-vertex colors (the same color at each
-    // corner, so that the interpolation is exact).
-    compare("geometry", &mut r, 0, |r| {
+    // corner, so that the interpolation is exact; 0.5 is 127.5 in UNORM, a
+    // tie WARP and Wine round up like the software renderer and GPUs such
+    // as NVIDIA's round down, so the channels are allowed to differ by 1).
+    compare("geometry", &mut r, 1, |r| {
         r.set_draw_color(0, 0, 0, 255);
         r.clear().unwrap();
         let c = FColor::new(1.0, 0.5, 0.25, 1.0);

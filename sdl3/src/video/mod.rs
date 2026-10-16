@@ -73,6 +73,8 @@ pub use window::{grabbed_window, windows, Window, WindowBuilder, WindowSurface};
 pub use drivers::windows::events::{
     register_app, set_windows_message_hook, unregister_app, WindowsMessageHook,
 };
+#[cfg(windows)]
+pub use drivers::windows::{get_direct3d9_adapter_index, get_dxgi_output_info};
 
 pub use blendmode::*;
 pub use bmp::is_bmp;

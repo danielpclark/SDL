@@ -1034,8 +1034,10 @@ fn d3d12_matches_software_for_shapes() {
     }
 
     // Untextured geometry with per-vertex colors (the same color at each
-    // corner, so that the interpolation is exact).
-    compare("geometry", &mut r, 0, |r| {
+    // corner, so that the interpolation is exact; 0.5 is 127.5 in UNORM, a
+    // tie WARP and Wine round up like the software renderer and GPUs such
+    // as NVIDIA's round down, so the channels are allowed to differ by 1).
+    compare("geometry", &mut r, 1, |r| {
         r.set_draw_color(0, 0, 0, 255);
         r.clear().unwrap();
         let c = FColor::new(1.0, 0.5, 0.25, 1.0);

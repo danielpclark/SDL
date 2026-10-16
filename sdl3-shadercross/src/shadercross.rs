@@ -4,10 +4,15 @@
 
 //! The SDL_shadercross library (`SDL_shadercross.c`).
 //!
-//! This is the build without DXC (`SDL_SHADERCROSS_DXC` undefined): the
-//! DXIL and HLSL-to-SPIR-V paths fail with upstream's messages. DXBC comes
-//! from `d3dcompiler_47.dll` on Windows; upstream's non-Windows fallback,
-//! the vkd3d-utils library, isn't a system library and isn't loaded.
+//! Upstream's `SDL_SHADERCROSS_DXC` build links DXC in; DXC isn't a system
+//! library, so here [`init`] loads it at run time (`dxcompiler.dll` with
+//! `dxil.dll`, or `libdxcompiler.so`/`.dylib`) from where the system's
+//! library search looks, else from the newest Windows SDK (or the Vulkan
+//! SDK `VULKAN_SDK` names). With it the DXIL and HLSL-to-SPIR-V paths work
+//! as upstream's; without it they fail with upstream's messages for a build
+//! without DXC. DXBC comes from `d3dcompiler_47.dll` on Windows; upstream's
+//! non-Windows fallback, the vkd3d-utils library, isn't a system library
+//! and isn't loaded.
 
 use std::sync::Mutex;
 
@@ -28,7 +33,8 @@ use crate::{
 };
 
 /* Constants */
-// (MAX_DEFINES and MAX_DEFINE_STRING_LENGTH are only used by the DXC path.)
+const MAX_DEFINES: usize = 64;
+const MAX_DEFINE_STRING_LENGTH: usize = 256;
 
 fn get_boolean_property(props: Option<&Properties>, name: &str, default_value: bool) -> bool {
     props
@@ -42,18 +48,654 @@ fn get_string_property(props: Option<&Properties>, name: &str) -> Option<String>
 
 /* DXIL via DXC */
 
+/// DXC (the DirectX Shader Compiler), loaded at run time by [`init`] where
+/// upstream's `SDL_SHADERCROSS_DXC` build links it in: its COM interfaces
+/// declared by hand as upstream declares them (`dxcapi.h` is C++), called
+/// through `DxcCreateInstance()`.
+#[allow(unsafe_code)]
+mod dxc {
+    use std::ffi::{c_void, CString};
+    use std::path::{Path, PathBuf};
+    use std::ptr::NonNull;
+
+    use sdl3::loadso::SharedObject;
+    use sdl3::log::Category;
+    use sdl3::{Error, Result};
+
+    use super::{get_boolean_property, MAX_DEFINES, MAX_DEFINE_STRING_LENGTH};
+    use crate::{
+        HlslInfo, ShaderStage, PROP_SHADER_CULL_UNUSED_BINDINGS_BOOLEAN,
+        PROP_SHADER_DEBUG_ENABLE_BOOLEAN, PROP_SHADER_DEBUG_NAME_STRING,
+    };
+
+    /* dxcompiler Type Definitions */
+    #[allow(clippy::upper_case_acronyms)]
+    type HRESULT = i32;
+    /// A vtable slot SDL doesn't call.
+    type Slot = usize;
+    /// `wchar_t`: DXC takes its arguments as `LPCWSTR`s of the platform's
+    /// wide characters (UTF-16 on Windows, UTF-32 elsewhere).
+    #[cfg(windows)]
+    type WChar = u16;
+    #[cfg(not(windows))]
+    type WChar = u32;
+
+    /// A GUID, as `REFCLSID` and `REFIID` point to.
+    #[repr(C)]
+    struct Guid {
+        data1: u32,
+        data2: u16,
+        data3: u16,
+        data4: [u8; 8],
+    }
+
+    const fn guid(data1: u32, data2: u16, data3: u16, data4: [u8; 8]) -> Guid {
+        Guid {
+            data1,
+            data2,
+            data3,
+            data4,
+        }
+    }
+
+    /* Compiler Interface, _technically_ unofficial but it's MS C++, come on */
+
+    // DXC_OUT_KIND
+    const DXC_OUT_OBJECT: u32 = 1;
+    const DXC_OUT_ERRORS: u32 = 2;
+
+    const DXC_CP_ACP: u32 = 0;
+
+    /// `DxcBuffer`
+    #[repr(C)]
+    struct DxcBuffer {
+        ptr: *const c_void,
+        size: usize,
+        encoding: u32,
+    }
+
+    // (upstream spells these as byte arrays)
+    const IID_IDXC_BLOB: Guid = guid(
+        0x8ba5fb08,
+        0x5195,
+        0x40e2,
+        [0xac, 0x58, 0x0d, 0x98, 0x9c, 0x3a, 0x01, 0x02],
+    );
+    const IID_IDXC_BLOB_UTF8: Guid = guid(
+        0x3da636c9,
+        0xba71,
+        0x4024,
+        [0xa3, 0x01, 0x30, 0xcb, 0xf1, 0x25, 0x30, 0x5b],
+    );
+    const IID_IDXC_RESULT: Guid = guid(
+        0x58346cda,
+        0xdde7,
+        0x4497,
+        [0x94, 0x61, 0x6f, 0x87, 0xaf, 0x5e, 0x06, 0x59],
+    );
+    const CLSID_DXC_COMPILER: Guid = guid(
+        0x73e22d93,
+        0xe6ce,
+        0x47f3,
+        [0xb5, 0xbf, 0xf0, 0x66, 0x4f, 0x39, 0xc1, 0xb0],
+    );
+    const IID_IDXC_COMPILER3: Guid = guid(
+        0x228b4687,
+        0x5a6a,
+        0x4730,
+        [0x90, 0x0c, 0x97, 0x02, 0xb2, 0x20, 0x3f, 0x54],
+    );
+    const CLSID_DXC_UTILS: Guid = guid(
+        0x6245d6af,
+        0x66e0,
+        0x48fd,
+        [0x80, 0xb4, 0x4d, 0x27, 0x17, 0x96, 0x74, 0x8c],
+    );
+    const IID_IDXC_UTILS: Guid = guid(
+        0x4605c4cb,
+        0x2019,
+        0x492a,
+        [0xad, 0xa4, 0x65, 0xf2, 0x0b, 0xb7, 0xd6, 0x7f],
+    );
+
+    /// `IUnknown`'s methods, which every vtable starts with.
+    #[repr(C)]
+    struct IUnknownVtbl {
+        query_interface:
+            unsafe extern "system" fn(*mut c_void, *const Guid, *mut *mut c_void) -> HRESULT,
+        add_ref: unsafe extern "system" fn(*mut c_void) -> u32,
+        release: unsafe extern "system" fn(*mut c_void) -> u32,
+    }
+
+    /// `IDxcBlobVtbl`
+    #[repr(C)]
+    struct IDxcBlobVtbl {
+        unknown: IUnknownVtbl,
+        get_buffer_pointer: unsafe extern "system" fn(*mut c_void) -> *mut c_void,
+        get_buffer_size: unsafe extern "system" fn(*mut c_void) -> usize,
+    }
+
+    /// `IDxcBlobUtf8Vtbl`
+    #[repr(C)]
+    struct IDxcBlobUtf8Vtbl {
+        blob: IDxcBlobVtbl,
+        /// GetEncoding
+        _get_encoding: Slot,
+        get_string_pointer: unsafe extern "system" fn(*mut c_void) -> *const u8,
+        get_string_length: unsafe extern "system" fn(*mut c_void) -> usize,
+    }
+
+    /// `IDxcResultVtbl`
+    #[repr(C)]
+    struct IDxcResultVtbl {
+        unknown: IUnknownVtbl,
+        get_status: unsafe extern "system" fn(*mut c_void, *mut HRESULT) -> HRESULT,
+        /// GetResult, GetErrorBuffer, HasOutput
+        _get_result: [Slot; 3],
+        get_output: unsafe extern "system" fn(
+            *mut c_void,
+            u32,
+            *const Guid,
+            *mut *mut c_void,
+            *mut *mut c_void,
+        ) -> HRESULT,
+        /// GetNumOutputs, GetOutputByIndex, PrimaryOutput
+        _get_num_outputs: [Slot; 3],
+    }
+
+    /// `IDxcCompiler3Vtbl`
+    #[repr(C)]
+    struct IDxcCompiler3Vtbl {
+        unknown: IUnknownVtbl,
+        compile: unsafe extern "system" fn(
+            *mut c_void,
+            *const DxcBuffer,
+            *const *const WChar,
+            u32,
+            *mut c_void,
+            *const Guid,
+            *mut *mut c_void,
+        ) -> HRESULT,
+        _disassemble: Slot,
+    }
+
+    // We need all this DxcUtils garbage for DXC include dir support. Thanks Microsoft!
+    /// `IDxcUtilsVtbl`
+    #[repr(C)]
+    struct IDxcUtilsVtbl {
+        unknown: IUnknownVtbl,
+        /// CreateBlobFromBlob, CreateBlobFromPinned, MoveToBlob, CreateBlob,
+        /// LoadFile, CreateReadOnlyStreamFromBlob
+        _create_blob_from_blob: [Slot; 6],
+        create_default_include_handler:
+            unsafe extern "system" fn(*mut c_void, *mut *mut c_void) -> HRESULT,
+        /// GetBlobAsUtf8, GetBlobAsWide, GetDxilContainerPart,
+        /// CreateReflection, BuildArguments, GetPDBContents
+        _get_blob_as_utf8: [Slot; 6],
+    }
+
+    /// The vtable of an interface SDL calls no method of (the include
+    /// handler).
+    #[repr(C)]
+    struct OpaqueVtbl {
+        unknown: IUnknownVtbl,
+    }
+
+    /// `DxcCreateInstance()`
+    type PfnDxcCreateInstance =
+        unsafe extern "system" fn(*const Guid, *const Guid, *mut *mut c_void) -> HRESULT;
+
+    /// A COM object: its first word points to its vtable.
+    #[repr(C)]
+    struct ComObject<V> {
+        vtbl: *const V,
+    }
+
+    /// An owned reference to a DXC object, released when dropped (upstream
+    /// calls `Release()` by hand on every path).
+    struct ComPtr<V>(NonNull<ComObject<V>>);
+
+    impl<V> ComPtr<V> {
+        /// Call a function that stores a reference through an out parameter:
+        /// its `HRESULT`, and the object when it stored one.
+        ///
+        /// # Safety
+        ///
+        /// On success `f` must store NULL or an owned reference to an object
+        /// whose vtable is a `V`.
+        unsafe fn call_out(
+            f: impl FnOnce(*mut *mut c_void) -> HRESULT,
+        ) -> (HRESULT, Option<ComPtr<V>>) {
+            let mut out: *mut c_void = std::ptr::null_mut();
+            let hr = f(&mut out);
+            if hr < 0 {
+                return (hr, None);
+            }
+            (hr, NonNull::new(out.cast::<ComObject<V>>()).map(ComPtr))
+        }
+
+        /// The interface pointer, as the C code passes it.
+        fn as_ptr(&self) -> *mut c_void {
+            self.0.as_ptr().cast()
+        }
+
+        fn vtbl(&self) -> &V {
+            // SAFETY: the object is alive while we hold a reference, and
+            // its vtable is a `V` (call_out's contract).
+            unsafe { &*(*self.0.as_ptr()).vtbl }
+        }
+    }
+
+    impl<V> Drop for ComPtr<V> {
+        fn drop(&mut self) {
+            // SAFETY: every vtable starts with IUnknown's; we give back the
+            // one reference we hold.
+            unsafe {
+                let unknown = &*(*self.0.as_ptr()).vtbl.cast::<IUnknownVtbl>();
+                (unknown.release)(self.as_ptr());
+            }
+        }
+    }
+
+    /// The text of the compiler's error output, if it made one: the blob
+    /// and whether it has any bytes (upstream checks `GetBufferSize()`,
+    /// which counts the terminating NUL).
+    fn errors(dxc_result: &ComPtr<IDxcResultVtbl>) -> Option<String> {
+        // SAFETY: a live result; GetOutput stores an owned IDxcBlobUtf8, the
+        // interface asked for, and takes a NULL output name.
+        let (_, errors) = unsafe {
+            ComPtr::<IDxcBlobUtf8Vtbl>::call_out(|o| {
+                (dxc_result.vtbl().get_output)(
+                    dxc_result.as_ptr(),
+                    DXC_OUT_ERRORS,
+                    &IID_IDXC_BLOB_UTF8,
+                    o,
+                    std::ptr::null_mut(),
+                )
+            })
+        };
+        let errors = errors?;
+        // SAFETY: a live blob; the string is `GetStringLength()` bytes long.
+        unsafe {
+            if (errors.vtbl().blob.get_buffer_size)(errors.as_ptr()) == 0 {
+                return None;
+            }
+            let ptr = (errors.vtbl().get_string_pointer)(errors.as_ptr());
+            let len = (errors.vtbl().get_string_length)(errors.as_ptr());
+            if ptr.is_null() {
+                return Some(String::new());
+            }
+            Some(String::from_utf8_lossy(std::slice::from_raw_parts(ptr, len)).into_owned())
+        }
+    }
+
+    /// A NUL-terminated wide string for DXC (`SDL_iconv_string("WCHAR_T",
+    /// "UTF-8", ...)`, which can't fail on a Rust string).
+    fn wide(s: &str) -> Vec<WChar> {
+        #[cfg(windows)]
+        {
+            s.encode_utf16().chain(std::iter::once(0)).collect()
+        }
+        #[cfg(not(windows))]
+        {
+            s.chars()
+                .map(|c| c as u32)
+                .chain(std::iter::once(0))
+                .collect()
+        }
+    }
+
+    /// The DXC library, loaded.
+    #[derive(Debug)]
+    pub(super) struct DxCompiler {
+        dxc_create_instance: PfnDxcCreateInstance,
+        /// Kept loaded while `dxc_create_instance` is in use.
+        _dll: SharedObject,
+        /// The DXIL validator (`dxil.dll`), kept loaded so the compiler finds
+        /// it and signs its output (Direct3D 12 rejects unsigned DXIL).
+        _dxil_dll: Option<SharedObject>,
+    }
+
+    /// The library's file name on this platform.
+    const DXCOMPILER_LIBRARY: &str = if cfg!(windows) {
+        "dxcompiler.dll"
+    } else if cfg!(target_vendor = "apple") {
+        "libdxcompiler.dylib"
+    } else {
+        "libdxcompiler.so"
+    };
+
+    impl DxCompiler {
+        /// Load DXC from where the system's library search looks (the
+        /// program's directory, `PATH`...), else from the SDKs that ship it.
+        pub(super) fn load() -> Option<DxCompiler> {
+            if let Some(dxc) = DxCompiler::load_from(None) {
+                return Some(dxc);
+            }
+            sdk_library_dirs()
+                .iter()
+                .find_map(|dir| DxCompiler::load_from(Some(dir)))
+        }
+
+        /// Load DXC from a directory, or by name.
+        fn load_from(dir: Option<&Path>) -> Option<DxCompiler> {
+            let path = |file: &str| match dir {
+                Some(dir) => dir.join(file).to_string_lossy().into_owned(),
+                None => file.to_string(),
+            };
+            // dxil.dll first: dxcompiler.dll loads the validator by its bare
+            // name, and finds the module when it's already loaded.
+            let dxil_dll = if cfg!(windows) {
+                SharedObject::load(&path("dxil.dll")).ok()
+            } else {
+                None
+            };
+            let dll = SharedObject::load(&path(DXCOMPILER_LIBRARY)).ok()?;
+            // SAFETY: DxcCreateInstance has this signature (dxcapi.h).
+            let dxc_create_instance =
+                unsafe { dll.function::<PfnDxcCreateInstance>("DxcCreateInstance") }.ok()?;
+            Some(DxCompiler {
+                dxc_create_instance,
+                _dll: dll,
+                _dxil_dll: dxil_dll,
+            })
+        }
+
+        /// Translation of `SDL_ShaderCross_INTERNAL_CompileUsingDXC()`: the
+        /// DXIL, or with `spirv` the SPIR-V, compiled from `info`'s HLSL.
+        pub(super) fn compile(&self, info: &HlslInfo<'_>, spirv: bool) -> Result<Vec<u8>> {
+            /* Non-static DxcInstance, since the functions we call on it are not thread-safe */
+            // SAFETY: DxcCreateInstance stores an owned object of the
+            // interface asked for.
+            let (_, dxc_instance) = unsafe {
+                ComPtr::<IDxcCompiler3Vtbl>::call_out(|o| {
+                    (self.dxc_create_instance)(&CLSID_DXC_COMPILER, &IID_IDXC_COMPILER3, o)
+                })
+            };
+            // SAFETY: as above.
+            let (_, utils) = unsafe {
+                ComPtr::<IDxcUtilsVtbl>::call_out(|o| {
+                    (self.dxc_create_instance)(&CLSID_DXC_UTILS, &IID_IDXC_UTILS, o)
+                })
+            };
+
+            let Some(dxc_instance) = dxc_instance else {
+                return Err(Error::new("Could not create DXC instance!"));
+            };
+
+            let Some(utils) = utils else {
+                return Err(Error::new("Could not create DXC utils instance!"));
+            };
+
+            // SAFETY: a live IDxcUtils; it stores an owned include handler.
+            let (_, include_handler) = unsafe {
+                ComPtr::<OpaqueVtbl>::call_out(|o| {
+                    (utils.vtbl().create_default_include_handler)(utils.as_ptr(), o)
+                })
+            };
+            let Some(include_handler) = include_handler else {
+                return Err(Error::new("Failed to create a default include handler!"));
+            };
+
+            let entry_point_utf16 = wide(info.entrypoint);
+
+            let mut define_strings_utf16: Vec<Vec<WChar>> = Vec::new();
+            if let Some(defines) = info.defines {
+                for define in defines.iter().take(MAX_DEFINES) {
+                    let mut define_string = match &define.value {
+                        None => format!("-D{}={}", define.name, "1"),
+                        Some(value) => format!("-D{}={}", define.name, value),
+                    };
+                    // (SDL_snprintf() into a MAX_DEFINE_STRING_LENGTH buffer)
+                    let mut end = MAX_DEFINE_STRING_LENGTH - 1;
+                    if define_string.len() > end {
+                        while !define_string.is_char_boundary(end) {
+                            end -= 1;
+                        }
+                        define_string.truncate(end);
+                    }
+                    define_strings_utf16.push(wide(&define_string));
+                }
+            }
+
+            let mut args: Vec<*const WChar> = Vec::with_capacity(define_strings_utf16.len() + 13);
+
+            for define in &define_strings_utf16 {
+                args.push(define.as_ptr());
+            }
+
+            let dash_e = wide("-E");
+            args.push(dash_e.as_ptr());
+            args.push(entry_point_utf16.as_ptr());
+
+            let dash_i = wide("-I");
+            let include_dir_utf16 = info.include_dir.map(wide);
+            if let Some(include_dir_utf16) = &include_dir_utf16 {
+                args.push(dash_i.as_ptr());
+                args.push(include_dir_utf16.as_ptr());
+            }
+
+            // (the source up to its first NUL, with the NUL: SDL_strlen() + 1)
+            let source_bytes = info.source.as_bytes();
+            let source_len = source_bytes
+                .iter()
+                .position(|&b| b == 0)
+                .unwrap_or(source_bytes.len());
+            let source_c = CString::new(&source_bytes[..source_len]).expect("no interior NUL");
+            let source = DxcBuffer {
+                ptr: source_c.as_ptr().cast(),
+                size: source_c.as_bytes_with_nul().len(),
+                encoding: DXC_CP_ACP,
+            };
+
+            let dash_t = wide("-T");
+            let profile = wide(match info.shader_stage {
+                ShaderStage::Vertex => "vs_6_0",
+                ShaderStage::Fragment => "ps_6_0",
+                // compute
+                ShaderStage::Compute => "cs_6_0",
+            });
+            args.push(dash_t.as_ptr());
+            args.push(profile.as_ptr());
+
+            let spirv_args = [
+                wide("-spirv"),
+                wide("-fspv-flatten-resource-arrays"),
+                wide("-fspv-preserve-bindings"),
+                wide("-fspv-preserve-interface"),
+            ];
+            if spirv {
+                args.push(spirv_args[0].as_ptr());
+                args.push(spirv_args[1].as_ptr());
+
+                if !get_boolean_property(
+                    info.props,
+                    PROP_SHADER_CULL_UNUSED_BINDINGS_BOOLEAN,
+                    false,
+                ) {
+                    args.push(spirv_args[2].as_ptr());
+                }
+
+                args.push(spirv_args[3].as_ptr());
+            }
+
+            let debug = if spirv {
+                // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SPIR-V.rst#debugging
+                wide("-fspv-debug=vulkan-with-source")
+            } else {
+                // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SourceLevelDebuggingHLSL.rst#command-line-options
+                wide("-Zi")
+            };
+            if get_boolean_property(info.props, PROP_SHADER_DEBUG_ENABLE_BOOLEAN, false) {
+                args.push(debug.as_ptr());
+            }
+
+            let name_utf16 = info
+                .props
+                .and_then(|props| props.get_string(PROP_SHADER_DEBUG_NAME_STRING))
+                .map(|debug_name| wide(&debug_name));
+            if let Some(name_utf16) = &name_utf16 {
+                // a bare string inserted into the arguments is treated as the source file name
+                args.push(name_utf16.as_ptr());
+            }
+
+            // (SDL_PLATFORM_XBOXONE/XBOXSERIES's -D__XBOX_DISABLE_PRECOMPILE=1 isn't built)
+
+            // SAFETY: a live compiler; the source, arguments and include
+            // handler outlive the call; Compile stores an owned IDxcResult,
+            // the interface asked for.
+            let (ret, dxc_result) = unsafe {
+                ComPtr::<IDxcResultVtbl>::call_out(|o| {
+                    (dxc_instance.vtbl().compile)(
+                        dxc_instance.as_ptr(),
+                        &source,
+                        args.as_ptr(),
+                        args.len() as u32,
+                        include_handler.as_ptr(),
+                        &IID_IDXC_RESULT,
+                        o,
+                    )
+                })
+            };
+            // (the arguments and their strings are freed when they go out of scope)
+
+            if ret < 0 {
+                return Err(Error::new(format!(
+                    "IDxcShaderCompiler3::Compile failed: {:X}",
+                    ret as u32
+                )));
+            }
+            let Some(dxc_result) = dxc_result else {
+                return Err(Error::new("HLSL compilation failed with no IDxcResult"));
+            };
+
+            // SAFETY: a live result; GetOutput stores an owned IDxcBlob, the
+            // interface asked for, and takes a NULL output name.
+            let (ret, blob) = unsafe {
+                ComPtr::<IDxcBlobVtbl>::call_out(|o| {
+                    (dxc_result.vtbl().get_output)(
+                        dxc_result.as_ptr(),
+                        DXC_OUT_OBJECT,
+                        &IID_IDXC_BLOB,
+                        o,
+                        std::ptr::null_mut(),
+                    )
+                })
+            };
+
+            let mut ret_status: HRESULT = 0;
+            // SAFETY: a live result; a valid output.
+            let status =
+                unsafe { (dxc_result.vtbl().get_status)(dxc_result.as_ptr(), &mut ret_status) };
+            if ret < 0 || status < 0 || ret_status < 0 {
+                // Compilation failed, display errors
+                return Err(match errors(&dxc_result) {
+                    Some(text) => Error::new(format!("HLSL compilation failed: {text}")),
+                    None => Error::new("Compilation failed with unknown error"),
+                });
+                // teardown (the result, compiler and utils are released)
+            }
+
+            // If compilation succeeded, but there are errors, those are warnings
+            if let Some(text) = errors(&dxc_result) {
+                sdl3::log::warn!(
+                    Category::Application,
+                    "HLSL compiled with warnings: {}",
+                    text
+                );
+            }
+
+            // Note (upstream): a result without an object blob is dereferenced.
+            let Some(blob) = blob else {
+                return Err(Error::new("Compilation failed with unknown error"));
+            };
+            // SAFETY: a live blob; its buffer is `GetBufferSize()` bytes.
+            let buffer = unsafe {
+                let size = (blob.vtbl().get_buffer_size)(blob.as_ptr());
+                let ptr = (blob.vtbl().get_buffer_pointer)(blob.as_ptr()).cast::<u8>();
+                if ptr.is_null() || size == 0 {
+                    Vec::new()
+                } else {
+                    std::slice::from_raw_parts(ptr, size).to_vec()
+                }
+            };
+
+            // (the blob, result, compiler and utils are released here)
+            Ok(buffer)
+        }
+    }
+
+    /// The directories of the SDKs that ship DXC, newest first: the Windows
+    /// SDK's `bin\<version>\<arch>` (under `%ProgramFiles(x86)%\Windows
+    /// Kits\10`, with `dxil.dll` next to it), and the Vulkan SDK's `lib`
+    /// (`$VULKAN_SDK`).
+    fn sdk_library_dirs() -> Vec<PathBuf> {
+        let mut dirs = Vec::new();
+        if cfg!(windows) {
+            let arch = if cfg!(target_arch = "x86_64") {
+                "x64"
+            } else if cfg!(target_arch = "aarch64") {
+                "arm64"
+            } else {
+                "x86"
+            };
+            for var in ["ProgramFiles(x86)", "ProgramFiles"] {
+                let Some(program_files) = std::env::var_os(var) else {
+                    continue;
+                };
+                let bin = Path::new(&program_files)
+                    .join("Windows Kits")
+                    .join("10")
+                    .join("bin");
+                let Ok(entries) = std::fs::read_dir(&bin) else {
+                    continue;
+                };
+                let mut versions: Vec<PathBuf> = entries
+                    .flatten()
+                    .map(|entry| entry.path())
+                    .filter(|path| {
+                        path.file_name()
+                            .and_then(|name| name.to_str())
+                            .is_some_and(|name| name.starts_with("10."))
+                            && path.join(arch).join(DXCOMPILER_LIBRARY).is_file()
+                    })
+                    .collect();
+                // ("10.0.22621.0" and the like sort as versions)
+                versions.sort();
+                dirs.extend(versions.into_iter().rev().map(|v| v.join(arch)));
+            }
+        }
+        if let Some(vulkan_sdk) = std::env::var_os("VULKAN_SDK") {
+            let sdk = Path::new(&vulkan_sdk);
+            dirs.push(sdk.join(if cfg!(windows) { "Bin" } else { "lib" }));
+        }
+        dirs
+    }
+}
+
+/* DXCompiler */
+static DXCOMPILER: Mutex<Option<std::sync::Arc<dxc::DxCompiler>>> = Mutex::new(None);
+
+/// The loaded DXC, if [`init`] found one.
+fn dxcompiler() -> Option<std::sync::Arc<dxc::DxCompiler>> {
+    DXCOMPILER.lock().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
 fn compile_using_dxc(info: &HlslInfo<'_>, spirv: bool) -> Result<Vec<u8>> {
-    let _ = (info, spirv);
-    // (SDL_SHADERCROSS_DXC isn't defined in this build.)
-    Err(Error::new(
-        "Shadercross was not built with DXC support, cannot compile using DXC!",
-    ))
+    let Some(dxc) = dxcompiler() else {
+        // (upstream's build without SDL_SHADERCROSS_DXC)
+        return Err(Error::new(
+            "Shadercross was not built with DXC support, cannot compile using DXC!",
+        ));
+    };
+    dxc.compile(info, spirv)
 }
 
 /// Compile DXIL bytecode from HLSL code. Translation of
 /// `SDL_ShaderCross_CompileDXILFromHLSL()`.
 ///
-/// This build has no DXC, so this fails like upstream's build without it.
+/// Needs DXC, which [`init`] loads where it's installed; without it this
+/// fails like upstream's build without DXC.
 pub fn compile_dxil_from_hlsl(info: &HlslInfo<'_>) -> Result<Vec<u8>> {
     if get_boolean_property(info.props, PROP_HLSL_SKIP_SPIRV_ROUNDTRIP_BOOLEAN, false) {
         return compile_using_dxc(info, false);
@@ -80,7 +722,8 @@ pub fn compile_dxil_from_hlsl(info: &HlslInfo<'_>) -> Result<Vec<u8>> {
 /// Compile SPIR-V bytecode from HLSL code. Translation of
 /// `SDL_ShaderCross_CompileSPIRVFromHLSL()`.
 ///
-/// This build has no DXC, so this fails like upstream's build without it.
+/// Needs DXC, which [`init`] loads where it's installed; without it this
+/// fails like upstream's build without DXC.
 pub fn compile_spirv_from_hlsl(info: &HlslInfo<'_>) -> Result<Vec<u8>> {
     compile_using_dxc(info, true)
 }
@@ -1501,13 +2144,35 @@ pub fn compile_dxbc_from_spirv(info: &SpirvInfo<'_>) -> Result<Vec<u8>> {
 /// Compile DXIL bytecode from SPIR-V code. Translation of
 /// `SDL_ShaderCross_CompileDXILFromSPIRV()`.
 ///
-/// This build has no DXC, so this fails like upstream's build without it.
+/// Needs DXC, which [`init`] loads where it's installed; without it this
+/// fails like upstream's build without DXC.
 pub fn compile_dxil_from_spirv(info: &SpirvInfo<'_>) -> Result<Vec<u8>> {
-    // (SDL_SHADERCROSS_DXC isn't defined in this build.)
-    let _ = info;
-    Err(Error::new(
-        "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!",
-    ))
+    if dxcompiler().is_none() {
+        // (upstream's build without SDL_SHADERCROSS_DXC)
+        return Err(Error::new(
+            "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!",
+        ));
+    }
+
+    let context = transpile_from_spirv(
+        SpvcBackend::Hlsl,
+        60,
+        info.shader_stage,
+        info.bytecode,
+        info.entrypoint,
+        info.props,
+    )?;
+
+    let hlsl_info = HlslInfo {
+        source: &context.translated_source,
+        entrypoint: context.cleansed_entrypoint.as_deref().unwrap_or(""),
+        include_dir: None,
+        defines: None,
+        shader_stage: info.shader_stage,
+        props: info.props,
+    };
+
+    compile_using_dxc(&hlsl_info, false)
 }
 
 fn create_shader_from_spirv(
@@ -1604,16 +2269,28 @@ pub fn compile_compute_pipeline_from_spirv(
 }
 
 /// Initializes SDL_shadercross: loads the D3D shader compiler where there
-/// is one. Translation of `SDL_ShaderCross_Init()`.
+/// is one, and DXC (`dxcompiler.dll` with `dxil.dll`, or
+/// `libdxcompiler.so`/`.dylib`) from the library search path, the newest
+/// Windows SDK or the Vulkan SDK (`VULKAN_SDK`), where upstream's
+/// `SDL_SHADERCROSS_DXC` build links it in. Translation of
+/// `SDL_ShaderCross_Init()`.
 pub fn init() -> Result<()> {
     let mut guard = D3DCOMPILER.lock().unwrap_or_else(|e| e.into_inner());
     *guard = d3dcompiler::D3DCompiler::load(D3DCOMPILER_DLL);
+    drop(guard);
+
+    let mut guard = DXCOMPILER.lock().unwrap_or_else(|e| e.into_inner());
+    *guard = dxc::DxCompiler::load().map(std::sync::Arc::new);
     Ok(())
 }
 
 /// De-initializes SDL_shadercross. Translation of `SDL_ShaderCross_Quit()`.
 pub fn quit() {
     let mut guard = D3DCOMPILER.lock().unwrap_or_else(|e| e.into_inner());
+    *guard = None;
+    drop(guard);
+
+    let mut guard = DXCOMPILER.lock().unwrap_or_else(|e| e.into_inner());
     *guard = None;
 }
 
@@ -1624,7 +2301,10 @@ pub fn get_spirv_shader_formats() -> ShaderFormat {
     let mut supported_formats = ShaderFormat::SPIRV | ShaderFormat::MSL;
 
     /* SPIRV-Cross + DXC allows us to cross-compile to HLSL, then compile to DXIL */
-    // (SDL_SHADERCROSS_DXC isn't defined in this build.)
+    // (when init() found DXC, where upstream's DXC build always has it)
+    if dxcompiler().is_some() {
+        supported_formats |= ShaderFormat::DXIL;
+    }
 
     /* SPIRV-Cross + FXC allows us to cross-compile to HLSL, then compile to DXBC */
     if d3dcompiler_loaded() {
@@ -1640,7 +2320,10 @@ pub fn get_hlsl_shader_formats() -> ShaderFormat {
     let mut supported_formats = ShaderFormat::INVALID;
 
     /* DXC allows compilation from HLSL to SPIRV */
-    // (SDL_SHADERCROSS_DXC isn't defined in this build.)
+    // (when init() found DXC, where upstream's DXC build always has it)
+    if dxcompiler().is_some() {
+        supported_formats |= get_spirv_shader_formats();
+    }
 
     /* FXC allows compilation of HLSL to DXBC */
     if d3dcompiler_loaded() {

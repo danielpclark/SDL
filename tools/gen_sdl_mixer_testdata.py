@@ -13,7 +13,10 @@ here.
 Encoders change between versions, so regenerating the files will likely
 change them, and then sdl3-mixer's reference output
 (`testdata/reference.txt`, made by a C program built from upstream
-SDL_mixer and SDL3) must be regenerated too.
+SDL_mixer and SDL3) must be regenerated too. That program hashes the
+mixer's F32 output with every NaN sample replaced by the canonical NaN
+(0x7FC00000): the raw audio of random bytes taken as floats produces NaNs,
+whose payload bits depend on the operand order the compiler and CPU pick.
 
 usage: tools/gen_sdl_mixer_testdata.py [OUTDIR]
 """

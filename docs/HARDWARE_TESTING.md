@@ -26,7 +26,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
 | `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`) |
-| `vulkan` | Linux, macOS | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS the loader with MoltenVK (by upstream's default names, or Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), for the Cocoa driver's Vulkan surfaces |
+| `vulkan` | Linux, Windows, macOS | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS the loader with MoltenVK (by upstream's default names, or Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), for the Cocoa driver's Vulkan surfaces |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -43,6 +43,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
 | `d3d11` | Windows | `d3d11.dll` and `dxgi.dll` with a Direct3D 11 device (feature level 11.0 or 11.1) and a swap chain on a window: a GPU driver, WARP, or Wine's d3d11 (wined3d on Mesa) |
 | `d3d12` | Windows | `d3d12.dll` and `dxgi.dll` with a Direct3D 12 device (feature level 11.0) for the GPU API's backend: a GPU driver, WARP, or Wine's d3d12 (vkd3d on a Vulkan driver, with an X server for DXGI); the DXIL checks need shader model 6, which vkd3d under Wine 9 lacks (they skip there) |
+| `dxc` | any | a current DXC (1.7.2212 or later, with the `-fspv-preserve-*` options) for `sdl3-shadercross`'s DXIL and HLSL-to-SPIR-V checks: `dxcompiler.dll` with `dxil.dll` (`libdxcompiler.so` elsewhere) next to the test executable or in `PATH`, from [DXC's releases](https://github.com/microsoft/DirectXShaderCompiler/releases) or the Vulkan SDK. The Windows SDK's DXC (1.6 in SDK 10.0.22621) is found on its own and compiles DXIL, but is too old for the SPIR-V options: the test notes that and passes, unless `dxc` is required |
 | `wasapi` | Windows | WASAPI with a default playback and a default recording endpoint |
 | `mediafoundation` | Windows | Media Foundation (`mfplat.dll`, `mf.dll`, `mfreadwrite.dll`; missing on Windows N/Server without the Media Feature Pack) |
 | `v4l2` | Linux | the V4L2 camera driver |
@@ -137,21 +138,24 @@ then require `uinput` too.
 
 ## Windows 11
 
-Nothing needs installing for `desktop`, `wgl`, `d3d11`, `d3d12`, `wasapi`,
-`mediafoundation`, `xinput` and `hidapi`: they come with Windows and the GPU
-driver, given an
-interactive session (not a service, not a remote desktop session without a
-GPU), speakers or headphones, and a microphone (a webcam's counts).
-`gameinput` needs the GameInput redistributable; `egl` needs an EGL
-implementation such as ANGLE's `libEGL.dll` next to the test executable or
-in `PATH`, so leave it out normally.
+Nothing needs installing for `desktop`, `wgl`, `d3d11`, `d3d12`, `vulkan`,
+`wasapi`, `mediafoundation`, `xinput` and `hidapi`: they come with Windows
+and the GPU driver (`vulkan` with a driver that has Vulkan, as NVIDIA's,
+AMD's and Intel's do), given an interactive session (not a service, not a
+remote desktop session without a GPU), speakers or headphones, and a
+microphone (a webcam's counts). `gameinput` needs the GameInput
+redistributable; `egl` needs an EGL implementation such as ANGLE's
+`libEGL.dll` next to the test executable or in `PATH`, so leave it out
+normally; `dxc` needs a current DXC's `dxcompiler.dll` and `dxil.dll` next
+to the test executable or in `PATH` (the Windows SDK's, found on its own,
+only compiles DXIL), so leave it out unless you put one there.
 
 In PowerShell:
 
 ```powershell
 cargo test --workspace
 # fail instead of skipping:
-$env:SDL3_TEST_REQUIRE = "desktop,wgl,d3d11,d3d12,wasapi,mediafoundation,xinput,hidapi"
+$env:SDL3_TEST_REQUIRE = "desktop,wgl,d3d11,d3d12,vulkan,wasapi,mediafoundation,xinput,hidapi"
 cargo test --workspace
 # the hardware checks (a webcam; a GPU OpenGL and Direct3D 11 driver; audio
 # endpoints; controllers are only listed):

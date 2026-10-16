@@ -433,6 +433,16 @@ fn under_wine() -> bool {
             .is_ok()
 }
 
+/// Whether `SDL3_TEST_REQUIRE` (docs/HARDWARE_TESTING.md) makes a test
+/// capability mandatory here, so that a check that would skip fails.
+fn required(capability: &str) -> bool {
+    std::env::var("SDL3_TEST_REQUIRE")
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .any(|c| c == "all" || c == capability)
+}
+
 /// The formats shadercross can make here, as far as the system's tools go.
 fn usable_formats() -> sdl3::gpu::ShaderFormat {
     let formats = crate::get_spirv_shader_formats();
@@ -457,17 +467,24 @@ fn gpu_shaders_and_pipelines_from_spirv() {
         Err(e) => {
             // SDL3_TEST_REQUIRE (docs/HARDWARE_TESTING.md) makes a missing
             // GPU a failure.
-            let list = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
-            let required = list.split(',').any(|c| {
-                c == "all"
-                    || (cfg!(target_os = "linux") && c == "vulkan")
-                    || (cfg!(windows) && c == "d3d12")
-            });
-            assert!(!required, "no GPU device: {e}");
+            let capability = if cfg!(target_os = "linux") {
+                "vulkan"
+            } else if cfg!(windows) {
+                "d3d12"
+            } else {
+                "metal"
+            };
+            assert!(!required(capability), "no GPU device: {e}");
             eprintln!("skipped: no GPU device ({e})");
             return;
         }
     };
+    eprintln!(
+        "note: GPU device {} taking {:?} of shadercross's {:?}",
+        device.driver(),
+        device.shader_formats(),
+        usable_formats()
+    );
     // A device without SPIR-V or MSL gets its shaders through HLSL. vs_push's
     // std430 push constant block (a mat2 in 16 bytes, then a vec2) has no
     // HLSL cbuffer packing, and upstream's SPIRV-Cross writes the same
@@ -508,6 +525,215 @@ fn gpu_shaders_and_pipelines_from_spirv() {
         count += 1;
     }
     assert_eq!(count, if through_hlsl { 12 } else { 13 });
+}
+
+/// The DXC paths: DXIL from SPIR-V and from HLSL, SPIR-V from HLSL, with
+/// defines, debug options and errors; or, where init() finds no DXC
+/// library (capability `dxc`), upstream's errors for a build without DXC.
+#[test]
+fn dxil_and_spirv_through_dxc() {
+    crate::init().unwrap();
+    let vs_basic = crate::SpirvInfo {
+        bytecode: shader("vs_basic"),
+        entrypoint: "main",
+        shader_stage: crate::ShaderStage::Vertex,
+        props: None,
+    };
+    let formats = crate::get_spirv_shader_formats();
+    if !formats.contains(sdl3::gpu::ShaderFormat::DXIL) {
+        assert!(!required("dxc"), "no DXC library");
+        assert_eq!(
+            crate::compile_dxil_from_spirv(&vs_basic)
+                .unwrap_err()
+                .message(),
+            "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!"
+        );
+        let hlsl = crate::HlslInfo {
+            source: "float4 main() : SV_Position { return 0; }",
+            entrypoint: "main",
+            include_dir: None,
+            defines: None,
+            shader_stage: crate::ShaderStage::Vertex,
+            props: None,
+        };
+        assert_eq!(
+            crate::compile_spirv_from_hlsl(&hlsl).unwrap_err().message(),
+            "Shadercross was not built with DXC support, cannot compile using DXC!"
+        );
+        assert_eq!(
+            crate::compile_dxil_from_hlsl(&hlsl).unwrap_err().message(),
+            "Shadercross was not built with DXC support, cannot compile using DXC!"
+        );
+        assert!(!crate::get_hlsl_shader_formats().contains(sdl3::gpu::ShaderFormat::SPIRV));
+        eprintln!("skipped: no DXC library (dxcompiler)");
+        return;
+    }
+    // With DXC, HLSL goes to SPIR-V and from there anywhere SPIR-V goes
+    let hlsl_formats = crate::get_hlsl_shader_formats();
+    assert!(hlsl_formats.contains(sdl3::gpu::ShaderFormat::SPIRV | sdl3::gpu::ShaderFormat::DXIL));
+    assert!(hlsl_formats.contains(sdl3::gpu::ShaderFormat::MSL));
+
+    let dxil_container = |name: &str, code: &[u8]| {
+        // A DXIL container: a DXBC container with a DXIL part
+        assert_eq!(&code[..4], b"DXBC", "{name}");
+        assert!(
+            code.windows(4).any(|w| w == b"DXIL"),
+            "{name}: no DXIL part"
+        );
+    };
+    for name in ["vs_basic", "fs_textured", "cs_basic"] {
+        let shader_stage = stage(match name.as_bytes()[0] {
+            b'v' => "vertex",
+            b'f' => "fragment",
+            _ => "compute",
+        });
+        let info = crate::SpirvInfo {
+            bytecode: shader(name),
+            entrypoint: "main",
+            shader_stage,
+            props: None,
+        };
+        let dxil = crate::compile_dxil_from_spirv(&info)
+            .unwrap_or_else(|e| panic!("{name}: {}", e.message()));
+        dxil_container(name, &dxil);
+
+        // The HLSL SPIRV-Cross writes for shader model 6.0, back to SPIR-V
+        // (DXC's) and to DXIL through that round trip and directly
+        let hlsl = crate::transpile_hlsl_from_spirv(&info).unwrap();
+        let hlsl_info = crate::HlslInfo {
+            source: &hlsl,
+            entrypoint: "main",
+            include_dir: None,
+            defines: None,
+            shader_stage,
+            props: None,
+        };
+        let spirv = match crate::compile_spirv_from_hlsl(&hlsl_info) {
+            Ok(spirv) => Some(spirv),
+            // (the Windows SDK's DXC 1.6 predates the -fspv-preserve-*
+            // options upstream passes: HLSL to SPIR-V needs a newer DXC,
+            // from the Vulkan SDK or DXC's releases, next to the program)
+            Err(e) if e.message().contains("Unknown argument: '-fspv-") => {
+                // (SDL3_TEST_REQUIRE=dxc asks for a DXC that does it all)
+                assert!(!required("dxc"), "{name}: {}", e.message());
+                eprintln!(
+                    "note: this DXC is too old for HLSL to SPIR-V ({})",
+                    e.message()
+                );
+                None
+            }
+            Err(e) => panic!("{name}: {}", e.message()),
+        };
+        if let Some(spirv) = spirv {
+            assert_eq!(&spirv[..4], &0x0723_0203u32.to_le_bytes(), "{name}");
+            // and it reflects like glslang's SPIR-V
+            if shader_stage == crate::ShaderStage::Compute {
+                let reference = crate::reflect_compute_spirv(info.bytecode, None).unwrap();
+                let roundtrip = crate::reflect_compute_spirv(&spirv, None).unwrap();
+                assert_eq!(
+                    (
+                        roundtrip.threadcount_x,
+                        roundtrip.threadcount_y,
+                        roundtrip.threadcount_z
+                    ),
+                    (
+                        reference.threadcount_x,
+                        reference.threadcount_y,
+                        reference.threadcount_z
+                    ),
+                    "{name}"
+                );
+                assert_eq!(
+                    roundtrip.num_uniform_buffers, reference.num_uniform_buffers,
+                    "{name}"
+                );
+            } else {
+                let reference = crate::reflect_graphics_spirv(info.bytecode, None).unwrap();
+                let roundtrip = crate::reflect_graphics_spirv(&spirv, None).unwrap();
+                assert_eq!(
+                    roundtrip.resource_info.num_samplers, reference.resource_info.num_samplers,
+                    "{name}"
+                );
+                assert_eq!(
+                    roundtrip.resource_info.num_uniform_buffers,
+                    reference.resource_info.num_uniform_buffers,
+                    "{name}"
+                );
+            }
+            let dxil = crate::compile_dxil_from_hlsl(&hlsl_info)
+                .unwrap_or_else(|e| panic!("{name} (round trip): {}", e.message()));
+            dxil_container(name, &dxil);
+        }
+        let props = sdl3::properties::Properties::new();
+        props
+            .set(crate::PROP_HLSL_SKIP_SPIRV_ROUNDTRIP_BOOLEAN, true)
+            .unwrap();
+        props
+            .set(crate::PROP_SHADER_DEBUG_ENABLE_BOOLEAN, true)
+            .unwrap();
+        props
+            .set(crate::PROP_SHADER_DEBUG_NAME_STRING, format!("{name}.hlsl"))
+            .unwrap();
+        let direct = crate::HlslInfo {
+            props: Some(&props),
+            ..hlsl_info
+        };
+        let dxil = crate::compile_dxil_from_hlsl(&direct)
+            .unwrap_or_else(|e| panic!("{name} (direct, debug): {}", e.message()));
+        dxil_container(name, &dxil);
+    }
+
+    // Defines (a bare one is 1), and the errors of a shader without them
+    // (straight to DXIL, which every DXC does)
+    let direct = sdl3::properties::Properties::new();
+    direct
+        .set(crate::PROP_HLSL_SKIP_SPIRV_ROUNDTRIP_BOOLEAN, true)
+        .unwrap();
+    let source = "float4 main() : SV_Position { return float4(X, Y, 0, 1); }";
+    let defines = [
+        crate::HlslDefine {
+            name: "X".into(),
+            value: None,
+        },
+        crate::HlslDefine {
+            name: "Y".into(),
+            value: Some("0.5".into()),
+        },
+    ];
+    let with_defines = crate::HlslInfo {
+        source,
+        entrypoint: "main",
+        include_dir: None,
+        defines: Some(&defines),
+        shader_stage: crate::ShaderStage::Vertex,
+        props: Some(&direct),
+    };
+    dxil_container(
+        "defines",
+        &crate::compile_dxil_from_hlsl(&with_defines).unwrap(),
+    );
+    let without = crate::HlslInfo {
+        defines: None,
+        ..with_defines
+    };
+    let e = crate::compile_dxil_from_hlsl(&without).unwrap_err();
+    assert!(
+        e.message().starts_with("HLSL compilation failed: ")
+            && e.message().contains("undeclared identifier"),
+        "{}",
+        e.message()
+    );
+    // A wrong entry point
+    let wrong_entry = crate::HlslInfo {
+        entrypoint: "nope",
+        ..with_defines
+    };
+    let e = crate::compile_dxil_from_hlsl(&wrong_entry).unwrap_err();
+    assert!(
+        e.message().starts_with("HLSL compilation failed: "),
+        "{}",
+        e.message()
+    );
 }
 
 #[cfg(windows)]

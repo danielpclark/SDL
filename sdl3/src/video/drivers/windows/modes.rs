@@ -9,13 +9,18 @@
 //!
 //! Upstream keeps each mode's `DEVMODEW` in `SDL_DisplayMode::internal`;
 //! here the display's [`DisplayData`] keeps them next to the modes they
-//! belong to. As in a build without `dxgi.h`, refresh rates come from
-//! `EnumDisplaySettings()` alone and no HDR properties are reported.
+//! belong to. As in upstream's build with `dxgi.h` and `dxgi1_6.h`, the
+//! refresh rates are refined by the display's DXGI output (found through
+//! the driver's `IDXGIFactory`, [`VideoData::dxgi_factory`]) and the HDR
+//! properties come from `IDXGIOutput6::GetDesc1()` and the display
+//! configuration's SDR white level; without `dxgi.dll` the refresh rates
+//! come from `EnumDisplaySettings()` alone and no HDR is reported.
 
 use windows_sys::Win32::Devices::Display::{
     DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME,
-    DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
-    DISPLAYCONFIG_TARGET_DEVICE_NAME, QDC_ONLY_ACTIVE_PATHS,
+    DISPLAYCONFIG_DEVICE_INFO_HEADER, DISPLAYCONFIG_DEVICE_INFO_TYPE, DISPLAYCONFIG_MODE_INFO,
+    DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME,
+    QDC_ONLY_ACTIVE_PATHS,
 };
 use windows_sys::Win32::Foundation::{
     ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, LPARAM, RECT, S_OK,
@@ -38,17 +43,27 @@ use crate::core::windows::wide_to_utf8;
 use crate::error::{Error, Result};
 use crate::events::window::send_display_event;
 use crate::events::{DisplayID, EventType};
+use crate::loadso::SharedObject;
+use crate::render::direct3d11::d3d::{
+    out, DxgiOutput, IDXGIFactory1Vtbl, IDXGIOutput6Vtbl, ModeDesc, OutputDesc1,
+    PfnCreateDxgiFactory, Rational, DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
+    DXGI_FORMAT_R8G8B8A8_UNORM, IID_IDXGIFACTORY1, IID_IDXGIOUTPUT6,
+};
 use crate::video::core::{with_device, with_display};
 use crate::video::display::{
     add_fullscreen_display_mode, add_video_display, cmpmodes, del_video_display,
     display_properties, finalize_display_mode, reset_fullscreen_display_modes,
-    set_desktop_display_mode, set_display_content_scale, PROP_DISPLAY_WINDOWS_HMONITOR_POINTER,
+    set_desktop_display_mode, set_display_content_scale, set_display_hdr_properties,
+    PROP_DISPLAY_WINDOWS_HMONITOR_POINTER,
 };
-use crate::video::sysvideo::{DisplayMode, DisplayOrientation, VideoDisplay};
+use crate::video::sysvideo::{DisplayMode, DisplayOrientation, HdrOutputProperties, VideoDisplay};
 use crate::video::{PixelFormat, PixelMasks, Rect};
 
 // #define DEBUG_MODES
 // #define HIGHDPI_DEBUG_VERBOSE
+
+/// The SDR white level of scRGB content (`SCRGB_NITS`).
+const SCRGB_NITS: f32 = 80.0;
 
 /// Translation of `WIN_DisplayState`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -185,6 +200,40 @@ fn update_display_mode(
     }
 }
 
+/// The DXGI output of a display device, when the driver has a DXGI
+/// factory and one of its adapters' outputs has that name. Translation of
+/// `WIN_GetDXGIOutput()` (released when dropped: `WIN_ReleaseDXGIOutput()`).
+fn get_dxgi_output(videodata: &VideoData, device_name: &[u16]) -> Option<DxgiOutput> {
+    let factory = videodata
+        .dxgi_factory
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let factory = factory.as_ref()?;
+
+    let mut result = None;
+    let mut n_adapter = 0;
+    while result.is_none() {
+        let Ok(adapter) = factory.enum_adapters(n_adapter) else {
+            break;
+        };
+        let mut n_output = 0;
+        while result.is_none() {
+            let Ok(output) = adapter.enum_outputs(n_output) else {
+                break;
+            };
+            if let Ok(output_desc) = output.desc() {
+                if wide_eq(&output_desc.device_name, device_name) {
+                    result = Some(output);
+                }
+            }
+            // (an output that isn't the result is released here)
+            n_output += 1;
+        }
+        n_adapter += 1;
+    }
+    result
+}
+
 /// The orientation of a display when unrotated. Translation of
 /// `WIN_GetNaturalOrientation()`.
 fn get_natural_orientation(mode: &DEVMODEW) -> DisplayOrientation {
@@ -228,14 +277,34 @@ fn get_display_orientation(mode: &DEVMODEW) -> DisplayOrientation {
     }
 }
 
-/// The refresh rate of a mode as a fraction. Translation of
-/// `WIN_GetRefreshRate()` (without DXGI).
-fn get_refresh_rate(mode: &DEVMODEW) -> (i32, i32) {
+/// The refresh rate of a mode as a fraction, from the display's DXGI
+/// output's closest mode when there is one. Translation of
+/// `WIN_GetRefreshRate()`.
+fn get_refresh_rate(dxgi_output: Option<&DxgiOutput>, mode: &DEVMODEW) -> (i32, i32) {
     // We're not currently using DXGI to query display modes, so fake NTSC timings
-    match mode.dmDisplayFrequency {
+    let (mut numerator, mut denominator) = match mode.dmDisplayFrequency {
         119 | 59 | 29 => ((mode.dmDisplayFrequency as i32 + 1) * 1000, 1001),
         _ => (mode.dmDisplayFrequency as i32, 1),
+    };
+
+    if let Some(output) = dxgi_output {
+        let mode_to_match = ModeDesc {
+            width: mode.dmPelsWidth,
+            height: mode.dmPelsHeight,
+            refresh_rate: Rational {
+                numerator: numerator as u32,
+                denominator: denominator as u32,
+            },
+            format: DXGI_FORMAT_R8G8B8A8_UNORM,
+            ..Default::default()
+        };
+
+        if let Ok(closest_match) = output.find_closest_matching_mode(&mode_to_match) {
+            numerator = closest_match.refresh_rate.numerator as i32;
+            denominator = closest_match.refresh_rate.denominator as i32;
+        }
     }
+    (numerator, denominator)
 }
 
 /// The content scale of a monitor (its DPI over 96). Translation of
@@ -275,6 +344,7 @@ fn get_content_scale(videodata: &VideoData, h_monitor: HMONITOR) -> f32 {
 /// A mode of a display: the mode, its `DEVMODEW` and the orientations.
 /// Translation of `WIN_GetDisplayMode()`.
 fn get_display_mode(
+    dxgi_output: Option<&DxgiOutput>,
     device_name: &[u16; 32],
     index: u32,
 ) -> Option<(
@@ -294,7 +364,7 @@ fn get_display_mode(
     }
 
     let mut data = devmode;
-    let (num, den) = get_refresh_rate(&data);
+    let (num, den) = get_refresh_rate(dxgi_output, &data);
     let mut mode = DisplayMode {
         format: PixelFormat::UNKNOWN,
         w: data.dmPelsWidth as i32,
@@ -397,6 +467,177 @@ fn get_display_name_vista(videodata: &VideoData, device_name: &[u16; 32]) -> Opt
     result
 }
 
+/// The `DXGI_OUTPUT_DESC1` of a monitor, from a DXGI 1.1 factory made for
+/// the call (`dxgi.dll` is loaded and unloaded here, as upstream does).
+/// Translation of `WIN_GetMonitorDESC1()`.
+fn get_monitor_desc1(h_monitor: HMONITOR) -> Option<OutputDesc1> {
+    let h_dxgi_mod = SharedObject::load("dxgi.dll").ok();
+    // SAFETY: CreateDXGIFactory1 has this signature (dxgi.h).
+    let create_dxgi_factory1: Option<PfnCreateDxgiFactory> =
+        unsafe { super::load_function(h_dxgi_mod.as_ref(), "CreateDXGIFactory1") };
+
+    let mut found = None;
+    if let Some(create_dxgi_factory1) = create_dxgi_factory1 {
+        // SAFETY: the function stores an owned IDXGIFactory1, the interface
+        // asked for.
+        let dxgi_factory =
+            unsafe { out::<IDXGIFactory1Vtbl>(|o| create_dxgi_factory1(&IID_IDXGIFACTORY1, o)) };
+        if let Ok(dxgi_factory) = dxgi_factory {
+            let mut adapter = 0;
+            while found.is_none() {
+                let Ok(dxgi_adapter) = dxgi_factory.enum_adapters1(adapter) else {
+                    break;
+                };
+                let mut output = 0;
+                while found.is_none() {
+                    let Ok(dxgi_output) = dxgi_adapter.enum_outputs(output) else {
+                        break;
+                    };
+                    if let Ok(dxgi_output6) =
+                        dxgi_output.query::<IDXGIOutput6Vtbl>(&IID_IDXGIOUTPUT6)
+                    {
+                        if let Ok(desc) = dxgi_output6.desc1() {
+                            if desc.monitor == h_monitor {
+                                found = Some(desc);
+                            }
+                        }
+                    }
+                    output += 1;
+                }
+                adapter += 1;
+            }
+        }
+    }
+    // (the factory, adapters and outputs are released before h_dxgi_mod is
+    // unloaded, when it goes out of scope)
+    found
+}
+
+/// The display configuration path of a monitor. Translation of
+/// `WIN_GetMonitorPathInfo()`.
+fn get_monitor_path_info(
+    videodata: &VideoData,
+    h_monitor: HMONITOR,
+) -> Option<DISPLAYCONFIG_PATH_INFO> {
+    let (Some(get_buffer_sizes), Some(query_display_config), Some(get_device_info)) = (
+        videodata.get_display_config_buffer_sizes,
+        videodata.query_display_config,
+        videodata.display_config_get_device_info,
+    ) else {
+        return None;
+    };
+
+    let mut view_info = MONITORINFOEXW::default();
+    view_info.monitorInfo.cbSize = size_of::<MONITORINFOEXW>() as u32;
+    // SAFETY: view_info is a sized MONITORINFOEXW.
+    if unsafe { GetMonitorInfoW(h_monitor, (&mut view_info as *mut MONITORINFOEXW).cast()) } == 0 {
+        return None;
+    }
+
+    let mut path_infos: Vec<DISPLAYCONFIG_PATH_INFO>;
+    let mut mode_infos: Vec<DISPLAYCONFIG_MODE_INFO>;
+    let mut num_path_array_elements: u32 = 0;
+    let mut num_mode_info_array_elements: u32 = 0;
+    let result = loop {
+        // SAFETY: the functions were loaded with these signatures; the
+        // buffers hold the counts we pass.
+        let result = unsafe {
+            if get_buffer_sizes(
+                QDC_ONLY_ACTIVE_PATHS,
+                &mut num_path_array_elements,
+                &mut num_mode_info_array_elements,
+            ) as u32
+                != ERROR_SUCCESS
+            {
+                return None;
+            }
+
+            path_infos = vec![std::mem::zeroed(); num_path_array_elements as usize];
+            mode_infos = vec![std::mem::zeroed(); num_mode_info_array_elements as usize];
+
+            query_display_config(
+                QDC_ONLY_ACTIVE_PATHS,
+                &mut num_path_array_elements,
+                path_infos.as_mut_ptr(),
+                &mut num_mode_info_array_elements,
+                mode_infos.as_mut_ptr(),
+                std::ptr::null_mut(),
+            )
+        };
+        if result as u32 != ERROR_INSUFFICIENT_BUFFER {
+            break result;
+        }
+    };
+
+    if result as u32 == ERROR_SUCCESS {
+        for path_info in path_infos.iter().take(num_path_array_elements as usize) {
+            // SAFETY: plain data; all zeroes is valid.
+            let mut device_name: DISPLAYCONFIG_SOURCE_DEVICE_NAME = unsafe { std::mem::zeroed() };
+            device_name.header.r#type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+            device_name.header.size = size_of::<DISPLAYCONFIG_SOURCE_DEVICE_NAME>() as u32;
+            device_name.header.adapterId = path_info.sourceInfo.adapterId;
+            device_name.header.id = path_info.sourceInfo.id;
+            // SAFETY: the header heads a sized source name request.
+            if unsafe { get_device_info(&mut device_name.header) } as u32 == ERROR_SUCCESS
+                && wide_eq(&view_info.szDevice, &device_name.viewGdiDeviceName)
+            {
+                return Some(*path_info);
+            }
+        }
+    }
+
+    None
+}
+
+/// The SDR white level of a monitor, relative to 80 nits (1.0 when it
+/// can't be read). Translation of `WIN_GetSDRWhitePoint()`.
+fn get_sdr_white_point(videodata: &VideoData, h_monitor: HMONITOR) -> f32 {
+    let mut sdr_white_level = 1.0f32;
+
+    if let Some(path_info) = get_monitor_path_info(videodata, h_monitor) {
+        /* workarounds for https://github.com/libsdl-org/SDL/issues/11193 */
+        #[repr(C)]
+        struct SdlDisplayconfigSdrWhiteLevel {
+            header: DISPLAYCONFIG_DEVICE_INFO_HEADER,
+            sdr_white_level: u32,
+        }
+        const DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL: DISPLAYCONFIG_DEVICE_INFO_TYPE = 11;
+
+        // SAFETY: plain data; all zeroes is valid.
+        let mut white_level: SdlDisplayconfigSdrWhiteLevel = unsafe { std::mem::zeroed() };
+        white_level.header.r#type = DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL;
+        white_level.header.size = size_of::<SdlDisplayconfigSdrWhiteLevel>() as u32;
+        white_level.header.adapterId = path_info.targetInfo.adapterId;
+        white_level.header.id = path_info.targetInfo.id;
+        // WIN_GetMonitorPathInfo() succeeded: DisplayConfigGetDeviceInfo is not NULL
+        let get_device_info = videodata
+            .display_config_get_device_info
+            .expect("get_monitor_path_info() checked it");
+        // SAFETY: the header heads a sized white level request.
+        if unsafe { get_device_info(&mut white_level.header) } as u32 == ERROR_SUCCESS
+            && white_level.sdr_white_level > 0
+        {
+            sdr_white_level = white_level.sdr_white_level as f32 / 1000.0;
+        }
+    }
+    sdr_white_level
+}
+
+/// The HDR properties of a monitor: the headroom and SDR white level of
+/// one in HDR mode (its output's color space is PQ), else none.
+/// Translation of `WIN_GetHDRProperties()`.
+fn get_hdr_properties(videodata: &VideoData, h_monitor: HMONITOR) -> HdrOutputProperties {
+    let mut hdr = HdrOutputProperties::default();
+
+    if let Some(desc) = get_monitor_desc1(h_monitor) {
+        if desc.color_space == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 {
+            hdr.sdr_white_level = get_sdr_white_point(videodata, h_monitor);
+            hdr.hdr_headroom = (desc.max_luminance / SCRGB_NITS) / hdr.sdr_white_level;
+        }
+    }
+    hdr
+}
+
 /// Bounds from `GetMonitorInfo()`'s monitor rectangle (`WIN_GetDisplayBounds()`
 /// for a monitor handle).
 fn monitor_bounds(h_monitor: HMONITOR) -> Result<Rect> {
@@ -430,10 +671,10 @@ fn add_display(
     let index = *display_index;
     let content_scale = get_content_scale(videodata, h_monitor);
 
-    // (no DXGI output, see WIN_GetDXGIOutput())
-    let Some((mode, devmode, natural_orientation, current_orientation)) =
-        get_display_mode(&info.szDevice, ENUM_CURRENT_SETTINGS)
-    else {
+    let dxgi_output = get_dxgi_output(videodata, &info.szDevice);
+    let found = get_display_mode(dxgi_output.as_ref(), &info.szDevice, ENUM_CURRENT_SETTINGS);
+    drop(dxgi_output); // WIN_ReleaseDXGIOutput()
+    let Some((mode, devmode, natural_orientation, current_orientation)) = found else {
         return;
     };
 
@@ -515,6 +756,8 @@ fn add_display(
                     0,
                 );
                 set_display_content_scale(id, content_scale);
+                let hdr = get_hdr_properties(videodata, h_monitor);
+                set_display_hdr_properties(id, hdr);
             }
             *display_index += 1;
         }
@@ -537,6 +780,7 @@ fn add_display(
             display.current_orientation = current_orientation;
             display.content_scale = content_scale;
             let bounds = monitor_bounds(h_monitor).unwrap_or_default();
+            display.hdr = get_hdr_properties(videodata, h_monitor);
             display.internal = Some(Box::new(DisplayData {
                 device_name: info.szDevice,
                 monitor_handle: h_monitor,
@@ -663,14 +907,17 @@ pub(crate) fn get_display_usable_bounds(display: DisplayID) -> Result<Rect> {
 }
 
 /// List a display's modes. Translation of `WIN_GetDisplayModes()`.
-pub(crate) fn get_display_modes(_videodata: &VideoData, display: DisplayID) {
+pub(crate) fn get_display_modes(videodata: &VideoData, display: DisplayID) {
     let Some(device_name) = with_display_data(display, |d| d.device_name) else {
         return;
     };
 
+    let dxgi_output = get_dxgi_output(videodata, &device_name);
+
     // Make sure we add the current mode to the list in case it's a custom mode that doesn't enumerate
     let mut i = ENUM_CURRENT_SETTINGS;
-    while let Some((mode, devmode, _, _)) = get_display_mode(&device_name, i) {
+    while let Some((mode, devmode, _, _)) = get_display_mode(dxgi_output.as_ref(), &device_name, i)
+    {
         i = i.wrapping_add(1);
         if mode.format.is_indexed() {
             // We don't support palettized modes now
@@ -684,7 +931,7 @@ pub(crate) fn get_display_modes(_videodata: &VideoData, display: DisplayID) {
         }
     }
 
-    // (no DXGI output to release)
+    drop(dxgi_output); // WIN_ReleaseDXGIOutput()
 }
 
 /// Switch a display to a mode (its desktop mode resets the display).

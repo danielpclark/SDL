@@ -217,6 +217,10 @@ pub(crate) mod test_support {
         ("d3d11", "d3d11.dll and dxgi.dll with a Direct3D 11 device"),
         ("d3d12", "d3d12.dll and dxgi.dll with a Direct3D 12 device"),
         (
+            "dxc",
+            "the DXC library (dxcompiler.dll with dxil.dll, libdxcompiler.so) in the library path, the Windows SDK or the Vulkan SDK",
+        ),
+        (
             "wasapi",
             "WASAPI with default playback and recording endpoints",
         ),

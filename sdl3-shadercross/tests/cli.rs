@@ -145,7 +145,14 @@ fn errors() {
     assert!(String::from_utf8_lossy(&out.stderr)
         .contains("Input and output are both SPIRV. Did you mean to do that?"));
 
-    // DXIL needs DXC.
+    // DXIL needs DXC, which the tool loads where init() finds it (the
+    // Windows SDK's dxcompiler.dll, say); without it, the failure.
+    let has_dxc = {
+        sdl3_shadercross::init().unwrap();
+        let formats = sdl3_shadercross::get_spirv_shader_formats();
+        sdl3_shadercross::quit();
+        formats.contains(sdl3::gpu::ShaderFormat::DXIL)
+    };
     let dxil = dir.join("out.dxil");
     let out = shadercross(&[
         testdata("vs_basic.spv").as_os_str(),
@@ -154,8 +161,20 @@ fn errors() {
         "-o".as_ref(),
         dxil.as_os_str(),
     ]);
-    assert_eq!(out.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&out.stderr).contains("Failed to compile DXIL from SPIR-V: "));
+    if has_dxc {
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let code = std::fs::read(&dxil).unwrap();
+        assert_eq!(&code[..4], b"DXBC");
+    } else {
+        assert_eq!(out.status.code(), Some(1));
+        assert!(
+            String::from_utf8_lossy(&out.stderr).contains("Failed to compile DXIL from SPIR-V: ")
+        );
+    }
 
     // An unknown option.
     let out = shadercross(&["--nope".as_ref()]);
