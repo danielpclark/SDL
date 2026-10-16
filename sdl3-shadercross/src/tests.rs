@@ -610,16 +610,17 @@ fn dxil_and_spirv_through_dxc() {
         };
         let spirv = match crate::compile_spirv_from_hlsl(&hlsl_info) {
             Ok(spirv) => Some(spirv),
-            // (the Windows SDK's DXC 1.6 predates the -fspv-preserve-*
-            // options upstream passes: HLSL to SPIR-V needs a newer DXC,
-            // from the Vulkan SDK or DXC's releases, next to the program)
-            Err(e) if e.message().contains("Unknown argument: '-fspv-") => {
+            // (the Windows SDK's DXC can't do HLSL to SPIR-V: 1.6 predates
+            // the -fspv-preserve-* options upstream passes, and newer SDKs
+            // ship it built without SPIR-V code generation; that needs a
+            // DXC from the Vulkan SDK or DXC's releases next to the program)
+            Err(e)
+                if e.message().contains("Unknown argument: '-fspv-")
+                    || e.message().contains("SPIR-V CodeGen not available") =>
+            {
                 // (SDL3_TEST_REQUIRE=dxc asks for a DXC that does it all)
                 assert!(!required("dxc"), "{name}: {}", e.message());
-                eprintln!(
-                    "note: this DXC is too old for HLSL to SPIR-V ({})",
-                    e.message()
-                );
+                eprintln!("note: this DXC can't do HLSL to SPIR-V ({})", e.message());
                 None
             }
             Err(e) => panic!("{name}: {}", e.message()),
