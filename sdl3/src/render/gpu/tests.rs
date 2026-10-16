@@ -9,15 +9,17 @@
 //! tolerance where the GPU's float blending, modulation or YUV conversion
 //! rounds differently. Each device test runs on the GPU API's Vulkan
 //! backend with the SPIR-V shaders, through the offscreen driver's
-//! headless surface (Mesa's lavapipe on Linux CI), and on Windows again on
-//! the Direct3D 12 backend with the DXIL shaders, on the Windows video
-//! driver (WARP on Windows CI). The renderer's device is made in debug mode
+//! headless surface (Mesa's lavapipe on Linux CI) or, on Windows, the
+//! Windows video driver's Win32 surfaces (the GPU drivers there have no
+//! `VK_EXT_headless_surface`), and on Windows again on the Direct3D 12
+//! backend with the DXIL shaders, on the Windows video driver (WARP on
+//! Windows CI). The renderer's device is made in debug mode
 //! ([`hints::RENDER_GPU_DEBUG`]), so `VK_LAYER_KHRONOS_validation` or the
 //! Direct3D 12 debug layer checks it when it's installed. Without a Vulkan
-//! loader and driver with `VK_EXT_headless_surface` the Vulkan tests report
-//! a skip (capability `vulkan`) and pass; without a Direct3D 12 device with
-//! shader model 6 (vkd3d under Wine has 5.1) the Direct3D 12 ones report a
-//! skip (capability `d3d12`) and pass.
+//! loader and driver (with `VK_EXT_headless_surface` on the offscreen
+//! driver) the Vulkan tests report a skip (capability `vulkan`) and pass;
+//! without a Direct3D 12 device with shader model 6 (vkd3d under Wine has
+//! 5.1) the Direct3D 12 ones report a skip (capability `d3d12`) and pass.
 //!
 //! On Apple platforms the scenes are drawn again on the Metal backend with
 //! the MSL shaders, by a GPU renderer without a window into a render
@@ -433,7 +435,7 @@ fn vertex_layouts_and_uniforms() {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Backend {
     /// Vulkan with the SPIR-V shaders, on the offscreen driver's headless
-    /// surfaces.
+    /// surfaces (on Windows, the Windows video driver's surfaces).
     Vulkan,
     /// Direct3D 12 with the DXIL shaders, on the Windows video driver.
     #[cfg(windows)]
@@ -468,15 +470,19 @@ impl Backend {
     }
 }
 
-/// Video up for a backend (the offscreen driver for Vulkan, the Windows
-/// one for Direct3D 12), with the renderer's devices made by that backend
-/// in debug mode (validated); quit when dropped.
+/// Video up for a backend (the offscreen driver for Vulkan, except on
+/// Windows, and the Windows one for Direct3D 12), with the renderer's
+/// devices made by that backend in debug mode (validated); quit when
+/// dropped.
 struct Video(Backend);
 
 impl Video {
     fn init(backend: Backend) -> Video {
         init::quit();
         let video = match backend {
+            // (Windows' Vulkan drivers have no VK_EXT_headless_surface for
+            // the offscreen driver: Win32 surfaces there)
+            Backend::Vulkan if cfg!(windows) => "windows",
             Backend::Vulkan => "offscreen",
             #[cfg(windows)]
             Backend::D3d12 => "windows",
@@ -1002,8 +1008,11 @@ fn gpu_matches_software_for_shapes_on(backend: Backend) {
     }
 
     // Untextured geometry with per-vertex colors (the same color at each
-    // corner, so that the interpolation is exact).
-    compare("geometry", &mut r, 0, |r| {
+    // corner, so that the interpolation is exact; 0.5 is 127.5 in UNORM, a
+    // tie WARP, Wine and lavapipe round up like the software renderer and
+    // GPUs such as NVIDIA's round down, so the channels are allowed to
+    // differ by 1).
+    compare("geometry", &mut r, 1, |r| {
         r.set_draw_color(0, 0, 0, 255);
         r.clear().unwrap();
         let c = FColor::new(1.0, 0.5, 0.25, 1.0);

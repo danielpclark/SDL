@@ -772,6 +772,13 @@ mod macos {
             r.destroy_texture(tex);
             Ok(())
         });
+        // (the command buffer that drew with the texture retains it until
+        // its completion handler has run, which can be a moment after the
+        // readback's waitUntilCompleted returned on a slow software device)
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while retain_count(mtltexture) != before && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(5));
+        }
         assert_eq!(retain_count(mtltexture), before);
         // SAFETY: the reference new_rgba8_texture() returned.
         unsafe { objc_release(mtltexture) };

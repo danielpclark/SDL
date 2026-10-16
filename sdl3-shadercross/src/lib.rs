@@ -21,8 +21,12 @@
 //! DXBC is compiled from HLSL by Windows' `d3dcompiler_47.dll`, which
 //! [`init`] loads as upstream does; elsewhere (where upstream loads the
 //! non-system vkd3d-utils library) DXBC isn't available. DXIL and SPIR-V
-//! from HLSL need DXC, which this build doesn't have: those functions
-//! fail with upstream's messages for a build without DXC.
+//! from HLSL need DXC, which upstream's `SDL_SHADERCROSS_DXC` build links
+//! in: [`init`] loads it at run time instead (`dxcompiler.dll` with the
+//! `dxil.dll` that signs the DXIL, or `libdxcompiler.so`/`.dylib`) from
+//! the library search path, the newest Windows SDK or the Vulkan SDK; where
+//! there is none, those functions fail with upstream's messages for a build
+//! without DXC.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: buffers are [`Vec`]s and

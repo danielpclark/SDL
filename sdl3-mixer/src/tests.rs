@@ -286,6 +286,19 @@ fn generate(m: &Mixer, chunks: usize, h: &mut u64) {
         };
         *h = fnv(*h, &rc.to_ne_bytes());
         if rc > 0 {
+            // F32 output can carry NaNs (raw audio of random bytes taken as
+            // floats, in misc()): which NaN comes out of an operation on two
+            // depends on the operand order, which the optimizer and the CPU
+            // decide (a release build on an AMD CPU differs from a debug
+            // one), so NaNs are hashed as one canonical NaN. The reference's
+            // "raw 2" line was made the same way from upstream's bytes.
+            if spec.format == AudioFormat::F32 {
+                for sample in buf[..rc as usize].chunks_exact_mut(4) {
+                    if f32::from_ne_bytes([sample[0], sample[1], sample[2], sample[3]]).is_nan() {
+                        sample.copy_from_slice(&f32::NAN.to_ne_bytes());
+                    }
+                }
+            }
             *h = fnv(*h, &buf[..rc as usize]);
         }
     }

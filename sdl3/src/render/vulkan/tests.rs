@@ -4,15 +4,17 @@
 
 //! The tables are checked against upstream's values. The scenes are drawn
 //! by the Vulkan renderer on a real device, through the offscreen driver's
-//! headless surface (Mesa's lavapipe on Linux CI), and by the software
-//! renderer, and the pixels compared: exactly where the math is exact
-//! (clears, fills, points, 1:1 copies, palettes), within a small tolerance
-//! where the GPU's float blending or YUV conversion rounds differently.
-//! The renderer is also made on Vulkan objects the test makes itself, with
-//! the validation layer (when it's installed) and a messenger that fails
-//! the test on its errors, drawing with images the test made and filled.
-//! Without a Vulkan loader and driver with `VK_EXT_headless_surface` the
-//! device tests report a skip (capability `vulkan`) and pass.
+//! headless surface (Mesa's lavapipe on Linux CI) or, on Windows, the
+//! Windows video driver's Win32 surfaces (the GPU drivers there have no
+//! `VK_EXT_headless_surface`), and by the software renderer, and the
+//! pixels compared: exactly where the math is exact (clears, fills,
+//! points, 1:1 copies, palettes), within a small tolerance where the GPU's
+//! float blending or YUV conversion rounds differently. The renderer is
+//! also made on Vulkan objects the test makes itself, with the validation
+//! layer (when it's installed) and a messenger that fails the test on its
+//! errors, drawing with images the test made and filled. Without a Vulkan
+//! loader and driver (with `VK_EXT_headless_surface` on the offscreen
+//! driver) the device tests report a skip (capability `vulkan`) and pass.
 
 use super::shaders::Shader;
 use super::*;
@@ -283,13 +285,19 @@ fn matrices() {
 // With a device
 // ---------------------------------------------------------------------------
 
-/// Video up on the offscreen driver; quit when dropped.
+/// Video up on the offscreen driver (the Windows one on Windows, whose
+/// Vulkan drivers have no `VK_EXT_headless_surface`); quit when dropped.
 struct Video;
 
 impl Video {
     fn init() -> Video {
         init::quit();
-        hints::set(hints::VIDEO_DRIVER, "offscreen").unwrap();
+        let driver = if cfg!(windows) {
+            "windows"
+        } else {
+            "offscreen"
+        };
+        hints::set(hints::VIDEO_DRIVER, driver).unwrap();
         init::init(InitFlags::VIDEO).unwrap();
         Video
     }
@@ -638,8 +646,10 @@ fn vulkan_matches_software_for_shapes() {
     }
 
     // Untextured geometry with per-vertex colors (the same color at each
-    // corner, so that the interpolation is exact).
-    compare("geometry", &mut r, 0, |r| {
+    // corner, so that the interpolation is exact; 0.5 is 127.5 in UNORM, a
+    // tie lavapipe rounds up like the software renderer and GPUs such as
+    // NVIDIA's round down, so the channels are allowed to differ by 1).
+    compare("geometry", &mut r, 1, |r| {
         r.set_draw_color(0, 0, 0, 255);
         r.clear().unwrap();
         let c = FColor::new(1.0, 0.5, 0.25, 1.0);
@@ -896,7 +906,7 @@ fn vulkan_matches_software_for_targets() {
     ] {
         let scene = |r: &mut Renderer, src: Texture| -> (Surface<'static>, Surface<'static>) {
             let target = r
-                .create_texture(format, TextureAccess::Target, 32, 24)
+                .create_texture(format, TextureAccess::Target, 24, 18)
                 .unwrap();
             r.set_texture_scale_mode(target, ScaleMode::Nearest)
                 .unwrap();
@@ -912,16 +922,19 @@ fn vulkan_matches_software_for_targets() {
             r.set_draw_color(10, 40, 250, 255);
             r.render_fill_rect(Some(&FRect::new(2.0, 3.0, 10.0, 6.0)))
                 .unwrap();
-            r.render_point(30.0, 1.0).unwrap();
+            r.render_point(22.0, 1.0).unwrap();
             r.set_texture_blend_mode(src, BlendMode::NONE).unwrap();
             r.set_texture_scale_mode(src, ScaleMode::Nearest).unwrap();
-            r.render_texture(src, None, Some(&FRect::new(14.0, 10.0, 16.0, 12.0)))
+            r.render_texture(src, None, Some(&FRect::new(6.0, 5.0, 16.0, 12.0)))
                 .unwrap();
-            let read = r.read_pixels(Some(&Rect::new(1, 2, 30, 20))).unwrap();
+            let read = r.read_pixels(Some(&Rect::new(1, 2, 22, 15))).unwrap();
             r.set_render_target(None).unwrap();
             r.set_draw_color(0, 0, 0, 255);
             r.clear().unwrap();
-            r.render_texture(target, None, Some(&FRect::new(4.0, 4.0, 32.0, 24.0)))
+            // 1:1, and scaled down 3:2 (whose pixel centers stay off the
+            // texel edges; at an exact 2:1 nearest sampling is a tie
+            // rasterizers break differently)
+            r.render_texture(target, None, Some(&FRect::new(4.0, 4.0, 24.0, 18.0)))
                 .unwrap();
             r.render_texture(target, None, Some(&FRect::new(36.0, 20.0, 16.0, 12.0)))
                 .unwrap();

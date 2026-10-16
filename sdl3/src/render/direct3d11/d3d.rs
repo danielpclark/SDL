@@ -25,6 +25,7 @@ use std::ptr::{null, null_mut};
 
 use windows_sys::core::{BOOL, GUID, HRESULT};
 use windows_sys::Win32::Foundation::{HMODULE, HWND, RECT};
+use windows_sys::Win32::Graphics::Gdi::HMONITOR;
 
 use crate::core::windows::com::{ComObject, ComPtr, IUnknownVtbl};
 
@@ -245,6 +246,10 @@ pub(crate) const IID_IDXGIFACTORY5: GUID = GUID::from_u128(0x7632e1f5_ee65_4dca_
 pub(crate) const IID_IDXGIFACTORY6: GUID = GUID::from_u128(0xc1b6694f_ff09_44a9_b03c_77900a0a1d17);
 pub(crate) const IID_IDXGIADAPTER1: GUID = GUID::from_u128(0x29038f61_3839_4626_91fd_086879011a05);
 pub(crate) const IID_IDXGIDEVICE: GUID = GUID::from_u128(0x54ec77fa_1377_44e6_8c32_88fd5f44c84c);
+/// `IID_IDXGIFactory` (the video driver's `dxgiGUID`)
+pub(crate) const IID_IDXGIFACTORY: GUID = GUID::from_u128(0x7b7166ec_21c7_44ae_b21a_c9ae321ae369);
+/// `IID_IDXGIOutput6` (the video driver's `SDL_IID_IDXGIOutput6`)
+pub(crate) const IID_IDXGIOUTPUT6: GUID = GUID::from_u128(0x068346e8_aaec_4b84_add7_137f513f77a1);
 pub(super) const IID_IDXGIFACTORY2: GUID = GUID::from_u128(0x50c83a1c_e072_4c48_87b0_3630fa36a6d0);
 pub(super) const IID_IDXGIDEVICE1: GUID = GUID::from_u128(0x77db970f_6276_48ba_ba28_070143b4392c);
 pub(super) const IID_ID3D11TEXTURE2D: GUID =
@@ -564,6 +569,102 @@ impl Default for AdapterDesc1 {
     }
 }
 
+/// `DXGI_RATIONAL`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub(crate) struct Rational {
+    pub(crate) numerator: u32,
+    pub(crate) denominator: u32,
+}
+
+/// `DXGI_MODE_DESC`
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub(crate) struct ModeDesc {
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) refresh_rate: Rational,
+    pub(crate) format: DxgiFormat,
+    /// `DXGI_MODE_SCANLINE_ORDER`
+    pub(crate) scanline_ordering: u32,
+    /// `DXGI_MODE_SCALING`
+    pub(crate) scaling: u32,
+}
+
+/// `DXGI_OUTPUT_DESC` (the video driver's)
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(crate) struct OutputDesc {
+    pub(crate) device_name: [u16; 32],
+    pub(crate) desktop_coordinates: RECT,
+    pub(crate) attached_to_desktop: BOOL,
+    pub(crate) rotation: DxgiModeRotation,
+    pub(crate) monitor: HMONITOR,
+}
+
+impl Default for OutputDesc {
+    fn default() -> OutputDesc {
+        OutputDesc {
+            device_name: [0; 32],
+            desktop_coordinates: RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            },
+            attached_to_desktop: 0,
+            rotation: 0,
+            monitor: null_mut(),
+        }
+    }
+}
+
+/// `DXGI_OUTPUT_DESC1` (`dxgi1_6.h`; the video driver's HDR properties)
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(crate) struct OutputDesc1 {
+    pub(crate) device_name: [u16; 32],
+    pub(crate) desktop_coordinates: RECT,
+    pub(crate) attached_to_desktop: BOOL,
+    pub(crate) rotation: DxgiModeRotation,
+    pub(crate) monitor: HMONITOR,
+    pub(crate) bits_per_color: u32,
+    pub(crate) color_space: DxgiColorSpaceType,
+    pub(crate) red_primary: [f32; 2],
+    pub(crate) green_primary: [f32; 2],
+    pub(crate) blue_primary: [f32; 2],
+    pub(crate) white_point: [f32; 2],
+    pub(crate) min_luminance: f32,
+    pub(crate) max_luminance: f32,
+    pub(crate) max_full_frame_luminance: f32,
+}
+
+impl Default for OutputDesc1 {
+    fn default() -> OutputDesc1 {
+        OutputDesc1 {
+            device_name: [0; 32],
+            desktop_coordinates: RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            },
+            attached_to_desktop: 0,
+            rotation: 0,
+            monitor: null_mut(),
+            bits_per_color: 0,
+            color_space: 0,
+            red_primary: [0.0; 2],
+            green_primary: [0.0; 2],
+            blue_primary: [0.0; 2],
+            white_point: [0.0; 2],
+            min_luminance: 0.0,
+            max_luminance: 0.0,
+            max_full_frame_luminance: 0.0,
+        }
+    }
+}
+
 // --- entry points ---
 
 /// `CreateDXGIFactory()`
@@ -599,6 +700,19 @@ pub(crate) type DxgiObjectSlots = [Slot; 4];
 /// `ID3D11DeviceChild`'s methods: GetDevice, GetPrivateData,
 /// SetPrivateData, SetPrivateDataInterface.
 type DeviceChildSlots = [Slot; 4];
+
+/// `IDXGIFactoryVtbl` (the part SDL uses: the video driver's factory,
+/// made with `CreateDXGIFactory()`).
+#[repr(C)]
+pub(crate) struct IDXGIFactoryVtbl {
+    pub(crate) base: IUnknownVtbl,
+    _object: DxgiObjectSlots,
+    pub(crate) enum_adapters:
+        unsafe extern "system" fn(*mut c_void, u32, *mut *mut c_void) -> HRESULT,
+    /// MakeWindowAssociation, GetWindowAssociation, CreateSwapChain,
+    /// CreateSoftwareAdapter
+    _make_window_association: [Slot; 4],
+}
 
 /// `IDXGIFactory1Vtbl` (the part SDL uses).
 #[repr(C)]
@@ -673,7 +787,8 @@ pub(crate) struct IDXGIFactory6Vtbl {
 pub(crate) struct IDXGIAdapterVtbl {
     pub(crate) base: IUnknownVtbl,
     _object: DxgiObjectSlots,
-    _enum_outputs: Slot,
+    pub(crate) enum_outputs:
+        unsafe extern "system" fn(*mut c_void, u32, *mut *mut c_void) -> HRESULT,
     pub(crate) get_desc: unsafe extern "system" fn(*mut c_void, *mut AdapterDesc) -> HRESULT,
     pub(crate) check_interface_support:
         unsafe extern "system" fn(*mut c_void, *const GUID, *mut i64) -> HRESULT,
@@ -684,6 +799,41 @@ pub(crate) struct IDXGIAdapterVtbl {
 pub(crate) struct IDXGIAdapter1Vtbl {
     pub(crate) adapter: IDXGIAdapterVtbl,
     pub(crate) get_desc1: unsafe extern "system" fn(*mut c_void, *mut AdapterDesc1) -> HRESULT,
+}
+
+/// `IDXGIOutputVtbl` (the part SDL uses: the video driver's display
+/// outputs).
+#[repr(C)]
+pub(crate) struct IDXGIOutputVtbl {
+    pub(crate) base: IUnknownVtbl,
+    _object: DxgiObjectSlots,
+    pub(crate) get_desc: unsafe extern "system" fn(*mut c_void, *mut OutputDesc) -> HRESULT,
+    _get_display_mode_list: Slot,
+    pub(crate) find_closest_matching_mode: unsafe extern "system" fn(
+        *mut c_void,
+        *const ModeDesc,
+        *mut ModeDesc,
+        *mut c_void,
+    ) -> HRESULT,
+    /// WaitForVBlank, TakeOwnership, ReleaseOwnership,
+    /// GetGammaControlCapabilities, SetGammaControl, GetGammaControl,
+    /// SetDisplaySurface, GetDisplaySurfaceData, GetFrameStatistics
+    _wait_for_vblank: [Slot; 9],
+}
+
+/// `IDXGIOutput6Vtbl` (the part SDL uses: `GetDesc1()` for the HDR
+/// properties of a display).
+#[repr(C)]
+pub(crate) struct IDXGIOutput6Vtbl {
+    pub(crate) output: IDXGIOutputVtbl,
+    /// IDXGIOutput1's GetDisplayModeList1, FindClosestMatchingMode1,
+    /// GetDisplaySurfaceData1 and DuplicateOutput; IDXGIOutput2's
+    /// SupportsOverlays; IDXGIOutput3's CheckOverlaySupport;
+    /// IDXGIOutput4's CheckOverlayColorSpaceSupport; IDXGIOutput5's
+    /// DuplicateOutput1
+    _get_display_mode_list1: [Slot; 8],
+    pub(crate) get_desc1: unsafe extern "system" fn(*mut c_void, *mut OutputDesc1) -> HRESULT,
+    _check_hardware_composition_support: Slot,
 }
 
 /// `IDXGIDevice1Vtbl` (the part SDL uses).
@@ -946,6 +1096,7 @@ pub(super) struct OpaqueVtbl {
     pub(super) base: IUnknownVtbl,
 }
 
+pub(crate) type DxgiFactory = ComPtr<IDXGIFactoryVtbl>;
 pub(crate) type DxgiFactory1 = ComPtr<IDXGIFactory1Vtbl>;
 pub(crate) type DxgiFactory2 = ComPtr<IDXGIFactory2Vtbl>;
 pub(crate) type DxgiFactory4 = ComPtr<IDXGIFactory4Vtbl>;
@@ -953,6 +1104,8 @@ pub(crate) type DxgiFactory5 = ComPtr<IDXGIFactory5Vtbl>;
 pub(crate) type DxgiFactory6 = ComPtr<IDXGIFactory6Vtbl>;
 pub(crate) type DxgiAdapter = ComPtr<IDXGIAdapterVtbl>;
 pub(crate) type DxgiAdapter1 = ComPtr<IDXGIAdapter1Vtbl>;
+pub(crate) type DxgiOutput = ComPtr<IDXGIOutputVtbl>;
+pub(crate) type DxgiOutput6 = ComPtr<IDXGIOutput6Vtbl>;
 pub(super) type DxgiDevice1 = ComPtr<IDXGIDevice1Vtbl>;
 pub(super) type DxgiSwapChain1 = ComPtr<IDXGISwapChain1Vtbl>;
 pub(super) type DxgiSwapChain3 = ComPtr<IDXGISwapChain3Vtbl>;
@@ -1124,6 +1277,71 @@ impl DxgiAdapter {
         };
         // SAFETY: a live adapter; a valid output.
         check(unsafe { (self.vtbl().get_desc)(raw(self), &mut desc) })?;
+        Ok(desc)
+    }
+
+    /// `IDXGIAdapter::EnumOutputs()`
+    pub(crate) fn enum_outputs(&self, output: u32) -> Result<DxgiOutput, HRESULT> {
+        let f = self.vtbl().enum_outputs;
+        // SAFETY: a live adapter; EnumOutputs stores an owned output.
+        unsafe { out(|o| f(raw(self), output, o)) }
+    }
+}
+
+impl DxgiFactory {
+    /// `IDXGIFactory::EnumAdapters()`
+    pub(crate) fn enum_adapters(&self, adapter: u32) -> Result<DxgiAdapter, HRESULT> {
+        let f = self.vtbl().enum_adapters;
+        // SAFETY: a live factory; EnumAdapters stores an owned adapter.
+        unsafe { out(|o| f(raw(self), adapter, o)) }
+    }
+}
+
+impl DxgiAdapter1 {
+    /// `IDXGIAdapter::EnumOutputs()`
+    pub(crate) fn enum_outputs(&self, output: u32) -> Result<DxgiOutput, HRESULT> {
+        let f = self.vtbl().adapter.enum_outputs;
+        // SAFETY: a live adapter; EnumOutputs stores an owned output.
+        unsafe { out(|o| f(raw(self), output, o)) }
+    }
+}
+
+impl DxgiOutput {
+    /// `IDXGIOutput::GetDesc()`
+    pub(crate) fn desc(&self) -> Result<OutputDesc, HRESULT> {
+        let mut desc = OutputDesc::default();
+        // SAFETY: a live output; a valid output parameter.
+        check(unsafe { (self.vtbl().get_desc)(raw(self), &mut desc) })?;
+        Ok(desc)
+    }
+
+    /// `IDXGIOutput::FindClosestMatchingMode()`, without a device (any
+    /// mode the output supports).
+    pub(crate) fn find_closest_matching_mode(
+        &self,
+        mode_to_match: &ModeDesc,
+    ) -> Result<ModeDesc, HRESULT> {
+        let mut closest_match = ModeDesc::default();
+        // SAFETY: a live output; the descriptions outlive the call; a NULL
+        // device is allowed.
+        check(unsafe {
+            (self.vtbl().find_closest_matching_mode)(
+                raw(self),
+                mode_to_match,
+                &mut closest_match,
+                null_mut(),
+            )
+        })?;
+        Ok(closest_match)
+    }
+}
+
+impl DxgiOutput6 {
+    /// `IDXGIOutput6::GetDesc1()`
+    pub(crate) fn desc1(&self) -> Result<OutputDesc1, HRESULT> {
+        let mut desc = OutputDesc1::default();
+        // SAFETY: a live output; a valid output parameter.
+        check(unsafe { (self.vtbl().get_desc1)(raw(self), &mut desc) })?;
         Ok(desc)
     }
 }

@@ -5,7 +5,9 @@
 //! The tables are checked against upstream's values, and the allocator's
 //! bookkeeping against what upstream's lists hold after the same calls.
 //! The device tests make a device on the offscreen video driver (Mesa's
-//! lavapipe on Linux CI) through the front end and directly, create and
+//! lavapipe on Linux CI; on Windows the Windows video driver, since the
+//! GPU drivers there have no `VK_EXT_headless_surface` for the offscreen
+//! one) through the front end and directly, create and
 //! release every kind of resource, follow the allocator's regions and
 //! defragment an allocation. Then they record and submit command buffers
 //! and read the results back exactly: clears, uploads, copies, draws with
@@ -608,13 +610,19 @@ fn bytes(words: &[u32]) -> Vec<u8> {
     words.iter().flat_map(|w| w.to_ne_bytes()).collect()
 }
 
-/// Video up on the offscreen driver; quit when dropped.
+/// Video up on the offscreen driver (the Windows one on Windows, whose
+/// Vulkan drivers have no `VK_EXT_headless_surface`); quit when dropped.
 struct Video;
 
 impl Video {
     fn init() -> Video {
         init::quit();
-        hints::set(hints::VIDEO_DRIVER, "offscreen").unwrap();
+        let driver = if cfg!(windows) {
+            "windows"
+        } else {
+            "offscreen"
+        };
+        hints::set(hints::VIDEO_DRIVER, driver).unwrap();
         init::init(InitFlags::VIDEO).unwrap();
         Video
     }

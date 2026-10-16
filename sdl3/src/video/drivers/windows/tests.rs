@@ -29,7 +29,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 use super::clipboard::check_clipboard_update;
 use super::events::windows_scan_code_to_sdl_scan_code;
 use super::mouse::current_cursor;
-use super::video_data;
+use super::{get_direct3d9_adapter_index, get_dxgi_output_info, video_data};
 use crate::events::keyboard::Scancode;
 use crate::events::mouse::{self, CursorFrame, SystemCursor, BUTTON_LEFT};
 use crate::events::queue::{get_events, pump};
@@ -42,7 +42,7 @@ use crate::video::clipboard;
 use crate::video::display::{
     desktop_display_mode, display_bounds, display_content_scale, display_name, display_properties,
     display_usable_bounds, displays, fullscreen_display_modes, primary_display,
-    PROP_DISPLAY_WINDOWS_HMONITOR_POINTER,
+    PROP_DISPLAY_HDR_ENABLED_BOOLEAN, PROP_DISPLAY_WINDOWS_HMONITOR_POINTER,
 };
 use crate::video::window::{Window, PROP_WINDOW_WIN32_HWND_POINTER};
 use crate::video::{current_video_driver, PixelFormat, Rect, Surface};
@@ -169,12 +169,41 @@ fn driver_init_displays_and_modes() {
             assert!(mode.w > 0 && mode.h > 0);
         }
 
-        let hmonitor = display_properties(d)
-            .unwrap()
+        let props = display_properties(d).unwrap();
+        let hmonitor = props
             .get_number(PROP_DISPLAY_WINDOWS_HMONITOR_POINTER)
             .unwrap_or(0);
         assert_ne!(hmonitor, 0);
+
+        // DXGI: the display's output is found among the factory's adapters
+        // (dxgi.dll comes with Windows and Wine), as is its Direct3D 9
+        // adapter, and the HDR property is set from the output's
+        // description.
+        let (adapter, output) = get_dxgi_output_info(d).unwrap();
+        assert!(adapter >= 0 && output >= 0, "{adapter} {output}");
+        assert!(get_direct3d9_adapter_index(d).unwrap() >= 0);
+        assert!(props.get_bool(PROP_DISPLAY_HDR_ENABLED_BOOLEAN).is_some());
+        eprintln!(
+            "display {}: {}x{} @ {} Hz ({}/{}), DXGI adapter {adapter} output {output}, HDR {}",
+            display_name(d).unwrap(),
+            desktop.w,
+            desktop.h,
+            desktop.refresh_rate,
+            desktop.refresh_rate_numerator,
+            desktop.refresh_rate_denominator,
+            props.get_bool(PROP_DISPLAY_HDR_ENABLED_BOOLEAN).unwrap()
+        );
     }
+
+    // An unknown display has no adapter or output
+    assert_eq!(
+        get_dxgi_output_info(0).unwrap_err().message(),
+        "Invalid display index"
+    );
+    assert_eq!(
+        get_direct3d9_adapter_index(0).unwrap_err().message(),
+        "Invalid display index"
+    );
 
     // The primary display is the one at the origin, of the screen's size
     let bounds = display_bounds(primary).unwrap();

@@ -19,16 +19,16 @@
 //! input come from GameInput ([`gameinput`]) instead of the raw input
 //! thread, where GameInput is available.
 //!
-//! Not translated yet (each needs large COM interface declarations or a
-//! subsystem that isn't translated):
+//! `dxgi.dll` is loaded at run time too (upstream's `HAVE_DXGI_H` and
+//! `HAVE_DXGI1_6_H` parts), for the `IDXGIFactory` the displays' outputs
+//! are found through ([`VideoData::dxgi_factory`]: refresh rates, HDR
+//! properties, [`get_dxgi_output_info`]), and `d3d9.dll` by
+//! [`get_direct3d9_adapter_index`] alone. The DXGI interfaces are the
+//! Direct3D 11 renderer's hand-written declarations
+//! ([`crate::render::direct3d11::d3d`]).
 //!
-//! * The DXGI parts (`HAVE_DXGI_H`/`HAVE_DXGI1_6_H`): refresh rates come
-//!   from `EnumDisplaySettings` and displays report no HDR, like a build
-//!   without `dxgi.h`; `SDL_GetDXGIOutputInfo()` and
-//!   `SDL_GetDirect3D9AdapterIndex()` (Direct3D 9 COM) come with the
-//!   Direct3D renderers.
-//! * The Text Services Framework UI (`SDL_msctf.h`), which upstream no longer
-//!   compiles in.
+//! Not translated: the Text Services Framework UI (`SDL_msctf.h`), which
+//! upstream no longer compiles in.
 
 #![allow(clippy::upper_case_acronyms)]
 
@@ -92,6 +92,9 @@ use crate::hints;
 use crate::loadso::SharedObject;
 use crate::log::Category;
 use crate::properties::Properties;
+use crate::render::direct3d11::d3d::{
+    out, DxgiFactory, IDXGIFactoryVtbl, PfnCreateDxgiFactory, IID_IDXGIFACTORY,
+};
 use crate::thread::ReentrantMutex;
 use crate::video::gl::RawGlContext;
 use crate::video::sysvideo::{
@@ -313,10 +316,17 @@ pub(crate) struct VideoData {
     /// Translation of `gameinput_context`.
     pub(crate) gameinput: Mutex<Option<Arc<gameinput::GameInputData>>>,
 
-    // (dropped last: the functions above point into these)
+    /// The DXGI factory the displays' outputs are found through
+    /// (`pDXGIFactory`), when `dxgi.dll` loads (it does on Windows and
+    /// under Wine). Under a lock: [`get_dxgi_output_info`] may be called
+    /// from any thread.
+    pub(crate) dxgi_factory: Mutex<Option<DxgiFactory>>,
+
+    // (dropped last: the functions and the factory above point into these)
     _user_dll: Option<SharedObject>,
     _shcore_dll: Option<SharedObject>,
     _dwmapi_dll: Option<SharedObject>,
+    _dxgi_dll: Option<SharedObject>,
 }
 
 /// The device of the running driver (`SDL_GetVideoDevice()->internal`, for
@@ -472,6 +482,15 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
     let shcore_dll = SharedObject::load("SHCORE.DLL").ok();
     let dwmapi_dll = SharedObject::load("DWMAPI.DLL").ok();
 
+    let dxgi_dll = SharedObject::load("DXGI.DLL").ok();
+    // SAFETY: CreateDXGIFactory has this signature (dxgi.h), and stores an
+    // owned IDXGIFactory, the interface asked for.
+    let dxgi_factory = unsafe {
+        load_function::<PfnCreateDxgiFactory>(dxgi_dll.as_ref(), "CreateDXGIFactory").and_then(
+            |create_dxgi| out::<IDXGIFactoryVtbl>(|o| create_dxgi(&IID_IDXGIFACTORY, o)).ok(),
+        )
+    };
+
     // The OpenGL functions: WGL, or EGL when it is forced
     let gl_backend = if hints::get_bool(hints::VIDEO_FORCE_EGL, false) {
         opengl::GlBackend::Egl
@@ -536,10 +555,12 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
             ime: Shared::new(keyboard::ImeData::new()),
             gl: Mutex::new(opengl::WinGl::new(gl_backend)),
             gameinput: Mutex::new(None),
+            dxgi_factory: Mutex::new(dxgi_factory),
 
             _user_dll: user_dll,
             _shcore_dll: shcore_dll,
             _dwmapi_dll: dwmapi_dll,
+            _dxgi_dll: dxgi_dll,
         }
     };
     let data = Arc::new(data);
@@ -1296,4 +1317,214 @@ impl VideoDriver for WindowsVideo {
     fn has_clipboard_data(&self, mime_type: &str) -> Option<bool> {
         Some(clipboard::has_clipboard_data(mime_type))
     }
+}
+
+// The Direct3D 9 and DXGI entry points of SDL_system.h
+
+/// The Direct3D 9 declarations of `SDL_GetDirect3D9AdapterIndex()`
+/// (`d3d9.h`), written by hand like the renderers' DXGI ones.
+mod d3d9 {
+    use std::ffi::c_void;
+
+    use windows_sys::core::{GUID, HRESULT};
+
+    use crate::core::windows::com::{ComPtr, IUnknownVtbl};
+    use crate::hints;
+    use crate::loadso::SharedObject;
+    use crate::render::direct3d11::d3d::{check, out, raw, Slot};
+
+    /// `D3D_SDK_VERSION` as upstream has it, with `D3D_DEBUG_INFO` defined
+    /// before `d3d9.h` is included (`32 | 0x80000000`).
+    const D3D_SDK_VERSION: u32 = 32 | 0x8000_0000;
+    /// `D3DADAPTER_DEFAULT`
+    pub(super) const D3DADAPTER_DEFAULT: u32 = 0;
+    /// `MAX_DEVICE_IDENTIFIER_STRING`
+    const MAX_DEVICE_IDENTIFIER_STRING: usize = 512;
+    /// `IID_IDirect3D9` (upstream's `IDirect3D9_GUID`)
+    const IID_IDIRECT3D9: GUID = GUID::from_u128(0x81bdcbca_64d4_426d_ae8d_ad0147f4275c);
+
+    /// `D3DADAPTER_IDENTIFIER9`
+    #[repr(C)]
+    pub(super) struct AdapterIdentifier9 {
+        pub(super) driver: [u8; MAX_DEVICE_IDENTIFIER_STRING],
+        pub(super) description: [u8; MAX_DEVICE_IDENTIFIER_STRING],
+        pub(super) device_name: [u8; 32],
+        /// `DriverVersion` (a `LARGE_INTEGER`)
+        pub(super) driver_version: i64,
+        pub(super) vendor_id: u32,
+        pub(super) device_id: u32,
+        pub(super) sub_sys_id: u32,
+        pub(super) revision: u32,
+        pub(super) device_identifier: GUID,
+        pub(super) whql_level: u32,
+    }
+
+    /// `IDirect3D9Vtbl` (the part SDL uses; `IDirect3D9Ex`'s starts with
+    /// it).
+    #[repr(C)]
+    pub(super) struct IDirect3D9Vtbl {
+        pub(super) base: IUnknownVtbl,
+        _register_software_device: Slot,
+        pub(super) get_adapter_count: unsafe extern "system" fn(*mut c_void) -> u32,
+        pub(super) get_adapter_identifier:
+            unsafe extern "system" fn(*mut c_void, u32, u32, *mut AdapterIdentifier9) -> HRESULT,
+    }
+
+    pub(super) type Direct3D9 = ComPtr<IDirect3D9Vtbl>;
+
+    /// `Direct3DCreate9()`
+    type PfnDirect3DCreate9 = unsafe extern "system" fn(u32) -> *mut c_void;
+    /// `Direct3DCreate9Ex()`
+    type PfnDirect3DCreate9Ex = unsafe extern "system" fn(u32, *mut *mut c_void) -> HRESULT;
+
+    /// `d3d9.dll` with the `IDirect3D9` made from it (released before the
+    /// library is unloaded, when this is dropped).
+    pub(super) struct Direct3D9Dll {
+        pub(super) d3d: Direct3D9,
+        _dll: SharedObject,
+    }
+
+    impl Direct3D9 {
+        /// `IDirect3D9::GetAdapterCount()`
+        pub(super) fn adapter_count(&self) -> u32 {
+            // SAFETY: a live IDirect3D9.
+            unsafe { (self.vtbl().get_adapter_count)(raw(self)) }
+        }
+
+        /// `IDirect3D9::GetAdapterIdentifier()` without flags.
+        pub(super) fn adapter_identifier(
+            &self,
+            adapter: u32,
+        ) -> Result<AdapterIdentifier9, HRESULT> {
+            // SAFETY: plain data; all zeroes is valid.
+            let mut id: AdapterIdentifier9 = unsafe { std::mem::zeroed() };
+            // SAFETY: a live IDirect3D9; a valid output.
+            check(unsafe { (self.vtbl().get_adapter_identifier)(raw(self), adapter, 0, &mut id) })?;
+            Ok(id)
+        }
+    }
+
+    /// Load `d3d9.dll` and create its `IDirect3D9` (through
+    /// `Direct3DCreate9Ex()` first with the `SDL_WINDOWS_USE_D3D9EX` hint),
+    /// or `None` when either fails. Translation of `D3D_LoadDLL()`.
+    pub(super) fn load_dll() -> Option<Direct3D9Dll> {
+        let dll = SharedObject::load("D3D9.DLL").ok()?;
+
+        if hints::get_bool(hints::WINDOWS_USE_D3D9EX, false) {
+            // SAFETY: Direct3DCreate9Ex has this signature (d3d9.h).
+            let create9ex: Option<PfnDirect3DCreate9Ex> =
+                unsafe { super::load_function(Some(&dll), "Direct3DCreate9Ex") };
+            if let Some(create9ex) = create9ex {
+                // SAFETY: on success it stores an owned IDirect3D9Ex, whose
+                // vtable starts with IDirect3D9's.
+                let d3d_ex = unsafe { out::<IDirect3D9Vtbl>(|o| create9ex(D3D_SDK_VERSION, o)) };
+                if let Ok(d3d_ex) = d3d_ex {
+                    if let Ok(d3d) = d3d_ex.query::<IDirect3D9Vtbl>(&IID_IDIRECT3D9) {
+                        return Some(Direct3D9Dll { d3d, _dll: dll });
+                    }
+                }
+            }
+        }
+
+        // SAFETY: Direct3DCreate9 has this signature (d3d9.h).
+        let create9: Option<PfnDirect3DCreate9> =
+            unsafe { super::load_function(Some(&dll), "Direct3DCreate9") };
+        if let Some(create9) = create9 {
+            // SAFETY: Direct3DCreate9 returns an owned IDirect3D9, or NULL.
+            if let Some(d3d) = unsafe { ComPtr::from_raw(create9(D3D_SDK_VERSION).cast()) } {
+                return Some(Direct3D9Dll { d3d, _dll: dll });
+            }
+        }
+
+        // (the library is unloaded when dll is dropped)
+        None
+    }
+}
+
+/// The Direct3D 9 adapter index that matches a display, to pass to
+/// `IDirect3D9::CreateDevice()` (it controls the monitor a full screen
+/// application appears on). Translation of `SDL_GetDirect3D9AdapterIndex()`.
+///
+/// Fails when `d3d9.dll` can't be loaded, or `display` isn't a display of
+/// the running Windows video driver.
+pub fn get_direct3d9_adapter_index(display: DisplayID) -> Result<i32> {
+    let Some(d3d9) = d3d9::load_dll() else {
+        return Err(Error::new("Unable to create Direct3D interface"));
+    };
+
+    let Some(device_name) = modes::with_display_data(display, |d| d.device_name) else {
+        // make sure we return something invalid
+        return Err(Error::new("Invalid display index"));
+    };
+    let display_name = crate::core::windows::wide_to_utf8(&device_name);
+    let mut adapter_index = d3d9::D3DADAPTER_DEFAULT as i32;
+    let count = d3d9.d3d.adapter_count();
+    for i in 0..count {
+        // (upstream compares the name whether or not the call succeeded)
+        let Ok(id) = d3d9.d3d.adapter_identifier(i) else {
+            continue;
+        };
+        let len = id
+            .device_name
+            .iter()
+            .position(|&c| c == 0)
+            .unwrap_or(id.device_name.len());
+        if id.device_name[..len] == *display_name.as_bytes() {
+            adapter_index = i as i32;
+            break;
+        }
+    }
+
+    // free up the D3D stuff we inited (when d3d9 is dropped)
+    Ok(adapter_index)
+}
+
+/// The DXGI adapter and output indices of a display, to pass to
+/// `IDXGIFactory::EnumAdapters()` and `IDXGIAdapter::EnumOutputs()` for the
+/// objects a Direct3D 10 or 11 device and swap chain are created from.
+/// Translation of `SDL_GetDXGIOutputInfo()`.
+///
+/// Fails when `display` isn't a display of the running Windows video
+/// driver, when the driver has no DXGI factory (`dxgi.dll` didn't load),
+/// or when no adapter has an output of the display's name.
+pub fn get_dxgi_output_info(display: DisplayID) -> Result<(i32, i32)> {
+    let videodata = video_data();
+    let Some(device_name) = modes::with_display_data(display, |d| d.device_name) else {
+        return Err(Error::new("Invalid display index"));
+    };
+
+    let factory = videodata
+        .as_ref()
+        .map(|v| v.dxgi_factory.lock().unwrap_or_else(|e| e.into_inner()));
+    let Some(factory) = factory.as_ref().and_then(|f| f.as_ref()) else {
+        return Err(Error::new("Unable to create DXGI interface"));
+    };
+
+    let mut adapter_index = -1;
+    let mut output_index = -1;
+    let mut n_adapter = 0;
+    while adapter_index == -1 {
+        let Ok(dxgi_adapter) = factory.enum_adapters(n_adapter as u32) else {
+            break;
+        };
+        let mut n_output = 0;
+        while adapter_index == -1 {
+            let Ok(dxgi_output) = dxgi_adapter.enum_outputs(n_output as u32) else {
+                break;
+            };
+            if let Ok(output_desc) = dxgi_output.desc() {
+                if modes::wide_eq(&output_desc.device_name, &device_name) {
+                    adapter_index = n_adapter;
+                    output_index = n_output;
+                }
+            }
+            n_output += 1;
+        }
+        n_adapter += 1;
+    }
+
+    if adapter_index == -1 {
+        return Err(Error::new("Couldn't find matching adapter"));
+    }
+    Ok((adapter_index, output_index))
 }

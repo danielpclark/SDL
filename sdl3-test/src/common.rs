@@ -1552,9 +1552,23 @@ fn log_modes() {
             }
         }
 
-        // (upstream prints the D3D9 adapter index and the DXGI adapter and
-        // output indices on Windows here, from SDL_GetDirect3D9AdapterIndex()
-        // and SDL_GetDXGIOutputInfo(), which sdl3 doesn't have yet)
+        #[cfg(windows)]
+        {
+            /* Print the D3D9 adapter index */
+            let adapter_index = video::get_direct3d9_adapter_index(display_id).unwrap_or(-1);
+            sdl_log!("D3D9 Adapter Index: {}", adapter_index);
+
+            /* Print the DXGI adapter and output indices */
+            // (-1 and -1 when the lookup fails, as upstream's out
+            // parameters are left)
+            let (adapter_index, output_index) =
+                video::get_dxgi_output_info(display_id).unwrap_or((-1, -1));
+            sdl_log!(
+                "DXGI Adapter Index: {}  Output Index: {}",
+                adapter_index,
+                output_index
+            );
+        }
     }
 }
 

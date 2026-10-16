@@ -5,7 +5,7 @@ sine 1000: dur=-2 playing=1 24a432722a9e8e51
 sine 30: dur=336 playing=0 872ec7d62025ec85
 raw 0: dur=3000 e30825106988d160
 raw 1: dur=3000 2ad3d15630b5aac3
-raw 2: dur=1500 0f1f22281530a367
+raw 2: dur=1500 424057d38b4cf67f
 raw 3: dur=500 8c7f074f69a59066
 == aifc_alaw.aiff
 open: AIFF 0x8120 2 8000 frames=1600 | 12800 2a2074f145776802 end=0
