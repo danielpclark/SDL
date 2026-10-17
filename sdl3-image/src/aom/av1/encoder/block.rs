@@ -20,11 +20,16 @@
 //! `MacroBlockD`.
 
 use crate::aom::aom_dsp::aom_dsp_common::TranLowT;
-use crate::aom::av1::common::blockd::{Buf2d, MacroBlockD, MAX_MB_PLANE};
+use crate::aom::av1::common::blockd::{Buf2d, CandidateMv, MacroBlockD, MAX_MB_PLANE};
 use crate::aom::av1::common::entropy::*;
 use crate::aom::av1::common::entropymode::*;
+use crate::aom::av1::common::entropymv::{MV_JOINTS, MV_VALS};
 use crate::aom::av1::common::enums::*;
+use crate::aom::av1::common::filter::{SWITCHABLE_FILTERS, SWITCHABLE_FILTER_CONTEXTS};
 use crate::aom::av1::common::mv::IntMv;
+use crate::aom::av1::common::seg_common::{
+    MAX_SEGMENTS, SEG_TEMPORAL_PRED_CTXS, SPATIAL_PREDICTION_PROBS,
+};
 
 // (MODE_EVAL_TYPE)
 pub(crate) const DEFAULT_EVAL: i32 = 0;
@@ -148,10 +153,15 @@ pub(crate) struct CbCoeffBuffer {
     pub(crate) entropy_ctx: [Vec<u8>; MAX_MB_PLANE],
 }
 
-/// Translation of `MB_MODE_INFO_EXT`, without the reference MV stacks (an
-/// intra frame has none).
-#[derive(Debug, Clone, Copy, Default)]
+/// Translation of `MB_MODE_INFO_EXT`: extended mode info derived from mbmi.
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct MbModeInfoExt {
+    // TODO(angiebird): Reduce the buffer size according to sb_type
+    /// The reference mv list for the current block.
+    pub(crate) ref_mv_stack:
+        [[CandidateMv; USABLE_REF_MV_STACK_SIZE as usize]; MODE_CTX_REF_FRAMES as usize],
+    /// The weights used to compute the ref mvs.
+    pub(crate) weight: [[u16; USABLE_REF_MV_STACK_SIZE as usize]; MODE_CTX_REF_FRAMES as usize],
     /// Number of ref mvs in the drl.
     pub(crate) ref_mv_count: [u8; MODE_CTX_REF_FRAMES as usize],
     /// Global mvs
@@ -160,9 +170,27 @@ pub(crate) struct MbModeInfoExt {
     pub(crate) mode_context: [i16; MODE_CTX_REF_FRAMES as usize],
 }
 
-/// Translation of `MB_MODE_INFO_EXT_FRAME`, without the reference MV stack.
+impl Default for MbModeInfoExt {
+    fn default() -> Self {
+        MbModeInfoExt {
+            ref_mv_stack: [[CandidateMv::default(); USABLE_REF_MV_STACK_SIZE as usize];
+                MODE_CTX_REF_FRAMES as usize],
+            weight: [[0; USABLE_REF_MV_STACK_SIZE as usize]; MODE_CTX_REF_FRAMES as usize],
+            ref_mv_count: [0; MODE_CTX_REF_FRAMES as usize],
+            global_mvs: [IntMv::default(); REF_FRAMES as usize],
+            mode_context: [0; MODE_CTX_REF_FRAMES as usize],
+        }
+    }
+}
+
+/// Translation of `MB_MODE_INFO_EXT_FRAME`: stores best extended mode
+/// information at frame level.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct MbModeInfoExtFrame {
+    /// The reference mv list for the current block.
+    pub(crate) ref_mv_stack: [CandidateMv; USABLE_REF_MV_STACK_SIZE as usize],
+    /// The weights used to compute the ref mvs.
+    pub(crate) weight: [u16; USABLE_REF_MV_STACK_SIZE as usize],
     /// Number of ref mvs in the drl.
     pub(crate) ref_mv_count: u8,
     /// Global mvs
@@ -226,39 +254,122 @@ impl Default for TxfmSearchInfo {
     }
 }
 
-/// The intra-frame subset of `ModeCosts` (see the module documentation).
+/// Holds the costs of the mode symbols (`ModeCosts`).
 #[derive(Debug, Clone)]
 pub(crate) struct ModeCosts {
     /// Cost for coding the partition.
     pub(crate) partition_cost: [[i32; EXT_PARTITION_TYPES as usize]; PARTITION_CONTEXTS as usize],
-    /// Cost for coding the prediction mode at block level (for intra frames).
+    /// Luma mode cost for inter frame.
     pub(crate) mbmode_cost: [[i32; INTRA_MODES as usize]; BLOCK_SIZE_GROUPS as usize],
-    /// Cost for coding the prediction mode at block level (for key frames).
+    /// Luma mode cost for intra frame.
     pub(crate) y_mode_costs:
         [[[i32; INTRA_MODES as usize]; INTRA_MODES as usize]; INTRA_MODES as usize],
-    /// Cost for coding the uv prediction mode.
+    /// Chroma mode cost
     pub(crate) intra_uv_mode_cost:
         [[[i32; UV_INTRA_MODES as usize]; INTRA_MODES as usize]; CFL_ALLOWED_TYPES as usize],
-    /// Cost for coding the filter_intra flag.
+    /// filter_intra_cost
     pub(crate) filter_intra_cost: [[i32; 2]; BLOCK_SIZES_ALL as usize],
-    /// Cost for coding the filter_intra mode.
+    /// filter_intra_mode_cost
     pub(crate) filter_intra_mode_cost: [i32; FILTER_INTRA_MODES as usize],
-    /// Cost for coding the angle delta.
+    /// angle_delta_cost
     pub(crate) angle_delta_cost:
-        [[i32; 2 * MAX_ANGLE_DELTA as usize + 1]; DIRECTIONAL_MODES as usize],
-    /// Cost for coding the cfl alphas.
+        [[i32; (2 * MAX_ANGLE_DELTA + 1) as usize]; DIRECTIONAL_MODES as usize],
+    /// Rate rate associated with each alpha codeword
     pub(crate) cfl_cost:
         [[[i32; CFL_ALPHABET_SIZE as usize]; CFL_PRED_PLANES as usize]; CFL_JOINT_SIGNS as usize],
-    /// Cost for coding the intrabc flag.
+    /// intrabc_cost
     pub(crate) intrabc_cost: [i32; 2],
-    /// Cost for coding the skip_txfm flag.
+    /// palette_y_size_cost
+    pub(crate) palette_y_size_cost: [[i32; PALETTE_SIZES as usize]; PALATTE_BSIZE_CTXS as usize],
+    /// palette_uv_size_cost
+    pub(crate) palette_uv_size_cost: [[i32; PALETTE_SIZES as usize]; PALATTE_BSIZE_CTXS as usize],
+    /// palette_y_color_cost
+    pub(crate) palette_y_color_cost: [[[i32; PALETTE_COLORS as usize];
+        PALETTE_COLOR_INDEX_CONTEXTS as usize];
+        PALETTE_SIZES as usize],
+    /// palette_uv_color_cost
+    pub(crate) palette_uv_color_cost: [[[i32; PALETTE_COLORS as usize];
+        PALETTE_COLOR_INDEX_CONTEXTS as usize];
+        PALETTE_SIZES as usize],
+    /// palette_y_mode_cost
+    pub(crate) palette_y_mode_cost:
+        [[[i32; 2]; PALETTE_Y_MODE_CONTEXTS as usize]; PALATTE_BSIZE_CTXS as usize],
+    /// palette_uv_mode_cost
+    pub(crate) palette_uv_mode_cost: [[i32; 2]; PALETTE_UV_MODE_CONTEXTS as usize],
+    /// skip_mode_cost
+    pub(crate) skip_mode_cost: [[i32; 2]; SKIP_MODE_CONTEXTS as usize],
+    /// newmv_mode_cost
+    pub(crate) newmv_mode_cost: [[i32; 2]; NEWMV_MODE_CONTEXTS as usize],
+    /// zeromv_mode_cost
+    pub(crate) zeromv_mode_cost: [[i32; 2]; GLOBALMV_MODE_CONTEXTS as usize],
+    /// refmv_mode_cost
+    pub(crate) refmv_mode_cost: [[i32; 2]; REFMV_MODE_CONTEXTS as usize],
+    /// drl_mode_cost0
+    pub(crate) drl_mode_cost0: [[i32; 2]; DRL_MODE_CONTEXTS as usize],
+    /// single_ref_cost
+    pub(crate) single_ref_cost: [[[i32; 2]; (SINGLE_REFS - 1) as usize]; REF_CONTEXTS as usize],
+    /// comp_inter_cost
+    pub(crate) comp_inter_cost: [[i32; 2]; COMP_INTER_CONTEXTS as usize],
+    /// comp_ref_type_cost
+    pub(crate) comp_ref_type_cost:
+        [[i32; COMP_REFERENCE_TYPES as usize + 1]; COMP_REF_TYPE_CONTEXTS as usize],
+    /// uni_comp_ref_cost
+    pub(crate) uni_comp_ref_cost:
+        [[[i32; 2 + 1]; (UNIDIR_COMP_REFS - 1) as usize]; UNI_COMP_REF_CONTEXTS as usize],
+    /// Cost for signaling ref_frame[0] in bidir-comp mode * * Includes LAST_FRAME, LAST2_FRAME, LAST3_FRAME, and GOLDEN_FRAME.
+    pub(crate) comp_ref_cost: [[[i32; 2]; (FWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+    /// Cost for signaling ref_frame[1] in bidir-comp mode * * Includes ALTREF_FRAME, ALTREF2_FRAME, and BWDREF_FRAME.
+    pub(crate) comp_bwdref_cost: [[[i32; 2]; (BWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+    /// intra_inter_cost
+    pub(crate) intra_inter_cost: [[i32; 2]; INTRA_INTER_CONTEXTS as usize],
+    /// inter_compound_mode_cost
+    pub(crate) inter_compound_mode_cost:
+        [[i32; INTER_COMPOUND_MODES as usize]; INTER_MODE_CONTEXTS as usize],
+    /// compound_type_cost
+    pub(crate) compound_type_cost:
+        [[i32; MASKED_COMPOUND_TYPES as usize]; BLOCK_SIZES_ALL as usize],
+    /// wedge_idx_cost
+    pub(crate) wedge_idx_cost: [[i32; 16]; BLOCK_SIZES_ALL as usize],
+    /// interintra_cost
+    pub(crate) interintra_cost: [[i32; 2]; BLOCK_SIZE_GROUPS as usize],
+    /// wedge_interintra_cost
+    pub(crate) wedge_interintra_cost: [[i32; 2]; BLOCK_SIZES_ALL as usize],
+    /// interintra_mode_cost
+    pub(crate) interintra_mode_cost: [[i32; INTERINTRA_MODES as usize]; BLOCK_SIZE_GROUPS as usize],
+    /// comp_idx_cost
+    pub(crate) comp_idx_cost: [[i32; 2]; COMP_INDEX_CONTEXTS as usize],
+    /// comp_group_idx_cost
+    pub(crate) comp_group_idx_cost: [[i32; 2]; COMP_GROUP_IDX_CONTEXTS as usize],
+    /// motion_mode_cost
+    pub(crate) motion_mode_cost: [[i32; MOTION_MODES as usize]; BLOCK_SIZES_ALL as usize],
+    /// motion_mode_cost1
+    pub(crate) motion_mode_cost1: [[i32; 2]; BLOCK_SIZES_ALL as usize],
+    /// switchable_interp_costs
+    pub(crate) switchable_interp_costs:
+        [[i32; SWITCHABLE_FILTERS as usize]; SWITCHABLE_FILTER_CONTEXTS as usize],
+    /// skip_txfm_cost
     pub(crate) skip_txfm_cost: [[i32; 2]; SKIP_CONTEXTS as usize],
-    /// Cost for coding the tx size.
+    /// tx_size_cost
     pub(crate) tx_size_cost:
-        [[[i32; TX_SIZES as usize]; TX_SIZE_CONTEXTS as usize]; TX_SIZES as usize - 1],
-    /// Cost for coding the intra transform types.
+        [[[i32; TX_SIZES as usize]; TX_SIZE_CONTEXTS as usize]; (TX_SIZES - 1) as usize],
+    /// txfm_partition_cost
+    pub(crate) txfm_partition_cost: [[i32; 2]; TXFM_PARTITION_CONTEXTS as usize],
+    /// inter_tx_type_costs
+    pub(crate) inter_tx_type_costs:
+        [[[i32; TX_TYPES as usize]; EXT_TX_SIZES as usize]; EXT_TX_SETS_INTER as usize],
+    /// intra_tx_type_costs
     pub(crate) intra_tx_type_costs: [[[[i32; TX_TYPES as usize]; INTRA_MODES as usize];
         EXT_TX_SIZES as usize]; EXT_TX_SETS_INTRA as usize],
+    /// switchable_restore_cost
+    pub(crate) switchable_restore_cost: [i32; RESTORE_SWITCHABLE_TYPES as usize],
+    /// wiener_restore_cost
+    pub(crate) wiener_restore_cost: [i32; 2],
+    /// sgrproj_restore_cost
+    pub(crate) sgrproj_restore_cost: [i32; 2],
+    /// tmp_pred_cost
+    pub(crate) tmp_pred_cost: [[i32; 2]; SEG_TEMPORAL_PRED_CTXS as usize],
+    /// spatial_pred_cost
+    pub(crate) spatial_pred_cost: [[i32; MAX_SEGMENTS as usize]; SPATIAL_PREDICTION_PROBS as usize],
 }
 
 impl Default for ModeCosts {
@@ -271,16 +382,103 @@ impl Default for ModeCosts {
                 CFL_ALLOWED_TYPES as usize],
             filter_intra_cost: [[0; 2]; BLOCK_SIZES_ALL as usize],
             filter_intra_mode_cost: [0; FILTER_INTRA_MODES as usize],
-            angle_delta_cost: [[0; 2 * MAX_ANGLE_DELTA as usize + 1]; DIRECTIONAL_MODES as usize],
+            angle_delta_cost: [[0; (2 * MAX_ANGLE_DELTA + 1) as usize]; DIRECTIONAL_MODES as usize],
             cfl_cost: [[[0; CFL_ALPHABET_SIZE as usize]; CFL_PRED_PLANES as usize];
                 CFL_JOINT_SIGNS as usize],
             intrabc_cost: [0; 2],
+            palette_y_size_cost: [[0; PALETTE_SIZES as usize]; PALATTE_BSIZE_CTXS as usize],
+            palette_uv_size_cost: [[0; PALETTE_SIZES as usize]; PALATTE_BSIZE_CTXS as usize],
+            palette_y_color_cost: [[[0; PALETTE_COLORS as usize];
+                PALETTE_COLOR_INDEX_CONTEXTS as usize];
+                PALETTE_SIZES as usize],
+            palette_uv_color_cost: [[[0; PALETTE_COLORS as usize];
+                PALETTE_COLOR_INDEX_CONTEXTS as usize];
+                PALETTE_SIZES as usize],
+            palette_y_mode_cost: [[[0; 2]; PALETTE_Y_MODE_CONTEXTS as usize];
+                PALATTE_BSIZE_CTXS as usize],
+            palette_uv_mode_cost: [[0; 2]; PALETTE_UV_MODE_CONTEXTS as usize],
+            skip_mode_cost: [[0; 2]; SKIP_MODE_CONTEXTS as usize],
+            newmv_mode_cost: [[0; 2]; NEWMV_MODE_CONTEXTS as usize],
+            zeromv_mode_cost: [[0; 2]; GLOBALMV_MODE_CONTEXTS as usize],
+            refmv_mode_cost: [[0; 2]; REFMV_MODE_CONTEXTS as usize],
+            drl_mode_cost0: [[0; 2]; DRL_MODE_CONTEXTS as usize],
+            single_ref_cost: [[[0; 2]; (SINGLE_REFS - 1) as usize]; REF_CONTEXTS as usize],
+            comp_inter_cost: [[0; 2]; COMP_INTER_CONTEXTS as usize],
+            comp_ref_type_cost: [[0; COMP_REFERENCE_TYPES as usize + 1];
+                COMP_REF_TYPE_CONTEXTS as usize],
+            uni_comp_ref_cost: [[[0; 2 + 1]; (UNIDIR_COMP_REFS - 1) as usize];
+                UNI_COMP_REF_CONTEXTS as usize],
+            comp_ref_cost: [[[0; 2]; (FWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+            comp_bwdref_cost: [[[0; 2]; (BWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+            intra_inter_cost: [[0; 2]; INTRA_INTER_CONTEXTS as usize],
+            inter_compound_mode_cost: [[0; INTER_COMPOUND_MODES as usize];
+                INTER_MODE_CONTEXTS as usize],
+            compound_type_cost: [[0; MASKED_COMPOUND_TYPES as usize]; BLOCK_SIZES_ALL as usize],
+            wedge_idx_cost: [[0; 16]; BLOCK_SIZES_ALL as usize],
+            interintra_cost: [[0; 2]; BLOCK_SIZE_GROUPS as usize],
+            wedge_interintra_cost: [[0; 2]; BLOCK_SIZES_ALL as usize],
+            interintra_mode_cost: [[0; INTERINTRA_MODES as usize]; BLOCK_SIZE_GROUPS as usize],
+            comp_idx_cost: [[0; 2]; COMP_INDEX_CONTEXTS as usize],
+            comp_group_idx_cost: [[0; 2]; COMP_GROUP_IDX_CONTEXTS as usize],
+            motion_mode_cost: [[0; MOTION_MODES as usize]; BLOCK_SIZES_ALL as usize],
+            motion_mode_cost1: [[0; 2]; BLOCK_SIZES_ALL as usize],
+            switchable_interp_costs: [[0; SWITCHABLE_FILTERS as usize];
+                SWITCHABLE_FILTER_CONTEXTS as usize],
             skip_txfm_cost: [[0; 2]; SKIP_CONTEXTS as usize],
             tx_size_cost: [[[0; TX_SIZES as usize]; TX_SIZE_CONTEXTS as usize];
-                TX_SIZES as usize - 1],
+                (TX_SIZES - 1) as usize],
+            txfm_partition_cost: [[0; 2]; TXFM_PARTITION_CONTEXTS as usize],
+            inter_tx_type_costs: [[[0; TX_TYPES as usize]; EXT_TX_SIZES as usize];
+                EXT_TX_SETS_INTER as usize],
             intra_tx_type_costs: [[[[0; TX_TYPES as usize]; INTRA_MODES as usize];
                 EXT_TX_SIZES as usize];
                 EXT_TX_SETS_INTRA as usize],
+            switchable_restore_cost: [0; RESTORE_SWITCHABLE_TYPES as usize],
+            wiener_restore_cost: [0; 2],
+            sgrproj_restore_cost: [0; 2],
+            tmp_pred_cost: [[0; 2]; SEG_TEMPORAL_PRED_CTXS as usize],
+            spatial_pred_cost: [[0; MAX_SEGMENTS as usize]; SPATIAL_PREDICTION_PROBS as usize],
+        }
+    }
+}
+
+/// Holds mv costs for encoding and motion search (`MvCosts`). The
+/// `nmv_cost` and `nmv_cost_hp` pointers to the middle of the allocations
+/// are the offset `MV_MAX` into them, and `mv_cost_stack` (the table in
+/// use) is `mv_cost_stack_hp` choosing between them.
+#[derive(Debug, Clone)]
+pub(crate) struct MvCosts {
+    /// Costs for coding the zero components.
+    pub(crate) nmv_joint_cost: [i32; MV_JOINTS as usize],
+    /// Allocates memory for 1/4-pel motion vector costs.
+    pub(crate) nmv_cost_alloc: [Vec<i32>; 2],
+    /// Allocates memory for 1/8-pel motion vector costs.
+    pub(crate) nmv_cost_hp_alloc: [Vec<i32>; 2],
+    /// Whether `mv_cost_stack` points to `nmv_cost_hp` (else `nmv_cost`).
+    pub(crate) mv_cost_stack_hp: bool,
+}
+
+impl MvCosts {
+    /// The zeroed allocation (`aom_calloc()`).
+    pub(crate) fn new() -> Result<Box<MvCosts>, ()> {
+        let n = MV_VALS as usize;
+        let z = || crate::aom::av1::common::alloccommon::try_vec(n, 0i32);
+        Ok(Box::new(MvCosts {
+            nmv_joint_cost: [0; MV_JOINTS as usize],
+            nmv_cost_alloc: [z()?, z()?],
+            nmv_cost_hp_alloc: [z()?, z()?],
+            mv_cost_stack_hp: false,
+        }))
+    }
+
+    /// `mv_cost_stack[comp]`: the cost table in use, indexed by
+    /// `MV_MAX + v`.
+    #[inline]
+    pub(crate) fn mv_cost_stack(&self, comp: usize) -> &[i32] {
+        if self.mv_cost_stack_hp {
+            &self.nmv_cost_hp_alloc[comp]
+        } else {
+            &self.nmv_cost_alloc[comp]
         }
     }
 }
@@ -367,6 +565,7 @@ pub(crate) struct Macroblock {
     pub(crate) mode_costs: Box<ModeCosts>,
     /// The rate needed to encode a new motion vector to the bitstream and some
     /// multipliers for motion search.
+    pub(crate) mv_costs: Option<Box<MvCosts>>,
     /// The rate needed to signal the txfm coefficients to the bitstream.
     pub(crate) coeff_costs: Box<CoeffCosts>,
 
@@ -440,6 +639,7 @@ impl Default for Macroblock {
             mb_energy: 0,
             sb_energy_level: 0,
             mode_costs: Box::default(),
+            mv_costs: None,
             coeff_costs: Box::default(),
             errorperbit: 0,
             sadperbit: 0,

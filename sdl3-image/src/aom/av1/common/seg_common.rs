@@ -15,6 +15,13 @@ pub(crate) const SEG_TREE_PROBS: usize = MAX_SEGMENTS - 1;
 pub(crate) const SEG_TEMPORAL_PRED_CTXS: usize = 3;
 pub(crate) const SPATIAL_PREDICTION_PROBS: usize = 3;
 
+/// `struct segmentation_probs`
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct SegmentationProbs {
+    pub(crate) pred_cdf: [[u16; 2 + 1]; SEG_TEMPORAL_PRED_CTXS],
+    pub(crate) spatial_pred_seg_cdf: [[u16; MAX_SEGMENTS + 1]; SPATIAL_PREDICTION_PROBS],
+}
+
 // (SEG_LVL_FEATURES)
 pub(crate) type SegLvlFeatures = i32;
 pub(crate) const SEG_LVL_ALT_Q: SegLvlFeatures = 0; // Use alternate Quantizer ....

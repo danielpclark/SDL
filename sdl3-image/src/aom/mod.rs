@@ -28,6 +28,7 @@
     clippy::manual_swap,
     clippy::module_inception,
     clippy::neg_multiply,
+    clippy::needless_bool_assign,
     clippy::needless_late_init,
     clippy::needless_range_loop,
     clippy::needless_return,

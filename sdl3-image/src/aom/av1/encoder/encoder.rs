@@ -20,12 +20,17 @@
 use super::av1_quantize::*;
 use super::bitstream::av1_pack_bitstream;
 use super::block::*;
-use super::encode_strategy::av1_encode_strategy;
+use super::enc_enums::MAX_MODES;
+use super::encode_strategy::{
+    av1_encode_strategy, get_current_frame_ref_type, is_frame_droppable, EncodeFrameInput,
+};
 use super::encodeframe::av1_encode_frame;
 use super::encodeframe_utils::MAX_TPL_FRAME_IDX;
 use super::encoder_utils::*;
 use super::encodetxb::av1_alloc_txb_buf;
 use super::lookahead::*;
+use super::mcomp::*;
+use super::pickcdef::av1_cdef_search;
 use super::picklpf::av1_pick_filter_level;
 use super::ratectrl::*;
 use super::speed_features::*;
@@ -34,14 +39,19 @@ use super::var_based_part::{av1_set_variance_partition_thresholds, VP64x64};
 use crate::aom::aom_dsp::aom_dsp_common::get_msb;
 use crate::aom::aom_dsp::variance::AomVarianceFnPtr;
 use crate::aom::aom_scale::yv12config::*;
+use crate::aom::aom_scale::yv12extend::aom_extend_frame_borders_plane_row;
 use crate::aom::av1::common::alloccommon::*;
 use crate::aom::av1::common::av1_common_int::*;
-use crate::aom::av1::common::av1_loopfilter::av1_loop_filter_init;
+use crate::aom::av1::common::av1_loopfilter::{av1_loop_filter_frame, av1_loop_filter_init};
 use crate::aom::av1::common::blockd::*;
+use crate::aom::av1::common::cdef::av1_cdef_frame;
+use crate::aom::av1::common::entropy::av1_reset_cdf_symbol_counters;
 use crate::aom::av1::common::entropymode::FrameContext;
 use crate::aom::av1::common::enums::*;
+use crate::aom::av1::common::filter::{SWITCHABLE_FILTERS, SWITCHABLE_FILTER_CONTEXTS};
+use crate::aom::av1::common::mv::IDENTITY;
 use crate::aom::av1::common::quant_common::QINDEX_RANGE;
-use crate::aom::av1::common::scale::av1_setup_scale_factors_for_frame;
+use crate::aom::av1::common::scale::{av1_is_scaled, av1_setup_scale_factors_for_frame};
 use crate::aom::av1::common::seg_common::*;
 use crate::aom::av1::common::tile_common::*;
 use crate::aom::av1::common::timing::av1_max_level_bitrate;
@@ -507,6 +517,11 @@ pub(crate) struct Av1Primary {
     pub(crate) fn_ptr: AomVarianceFnPtr,
     /// `ppi->fb_of_context_type[]`
     pub(crate) fb_of_context_type: [i32; REF_FRAMES as usize],
+    pub(crate) mv_stats: MvStats,
+    pub(crate) valid_gm_model_found: [i32; FRAME_UPDATE_TYPES],
+    pub(crate) frame_probs: FrameProbInfo,
+    pub(crate) ts_start_last_show_frame: i64,
+    pub(crate) ts_end_last_show_frame: i64,
 }
 
 /// `RD_COUNTS`
@@ -531,6 +546,8 @@ pub(crate) struct ThreadData {
     pub(crate) coefficient_size: i64,
     pub(crate) max_mv_magnitude: i32,
     pub(crate) interp_filter_selected: [i32; SWITCHABLE as usize],
+    /// `*td->counts`
+    pub(crate) counts: FrameCounts,
 }
 
 /// `TileDataEnc`
@@ -595,19 +612,75 @@ pub(crate) struct RefFrameDistanceInfo {
 }
 
 /// The reached members of `MotionVectorSearchParams`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct MotionVectorSearchParams {
     pub(crate) max_mv_magnitude: i32,
     pub(crate) mv_step_param: i32,
     /// `find_fractional_mv_step`: the fractional search, a
     /// `SUBPEL_SEARCH_METHODS` value.
     pub(crate) find_fractional_mv_step: i32,
+    /// `search_site_cfg[SS_CFG_TOTAL][NUM_DISTINCT_SEARCH_METHODS]`
+    pub(crate) search_site_cfg:
+        Box<[[SearchSiteConfig; NUM_DISTINCT_SEARCH_METHODS as usize]; SS_CFG_TOTAL]>,
 }
 
-/// `RD_OPT` (only the frame's rate distortion multiplier is read).
+/// `FrameProbInfo` (the probabilities the real-time speed features use)
 #[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct FrameProbInfo {
+    pub(crate) warped_probs: [i32; FRAME_UPDATE_TYPES],
+}
+
+/// `MV_STATS` (never valid: the real-time speed features use quarter pel
+/// motion vectors only, `QTR_ONLY`, or the q index threshold)
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct MvStats {
+    pub(crate) valid: bool,
+}
+
+/// `ActiveMap` (never enabled)
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct ActiveMap {
+    pub(crate) enabled: bool,
+    pub(crate) update: bool,
+}
+
+/// The reached member of `GlobalMotionInfo`.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct GlobalMotionInfo {
+    pub(crate) search_done: bool,
+}
+
+/// The reached members of `FRAME_COUNTS`.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct FrameCounts {
+    pub(crate) switchable_interp: [[u32; SWITCHABLE_FILTERS as usize]; SWITCHABLE_FILTER_CONTEXTS],
+}
+
+/// `RD_OPT`
+#[derive(Debug, Clone)]
 pub(crate) struct RdOpt {
+    // Thresh_mult is used to set a threshold for the rd score. A higher value
+    // means that we will accept the best mode so far more often. This number
+    // is used in combination with the current block size, and thresh_freq_fact
+    // to pick a threshold.
+    pub(crate) thresh_mult: [i32; MAX_MODES as usize],
+
+    pub(crate) threshes: Vec<[[i32; MAX_MODES as usize]; BLOCK_SIZES_ALL as usize]>,
+
     pub(crate) rdmult: i32,
+
+    pub(crate) r0: f64,
+}
+
+impl Default for RdOpt {
+    fn default() -> Self {
+        RdOpt {
+            thresh_mult: [0; MAX_MODES as usize],
+            threshes: vec![[[0; MAX_MODES as usize]; BLOCK_SIZES_ALL as usize]; MAX_SEGMENTS],
+            rdmult: 0,
+            r0: 0.0,
+        }
+    }
 }
 
 /// `InitialDimensions`
@@ -656,6 +729,7 @@ pub(crate) struct Svc {
     pub(crate) temporal_layer_id: i32,
     pub(crate) number_spatial_layers: i32,
     pub(crate) number_temporal_layers: i32,
+    pub(crate) num_encoded_top_layer: i32,
 }
 
 impl Default for Svc {
@@ -667,6 +741,7 @@ impl Default for Svc {
             temporal_layer_id: 0,
             number_spatial_layers: 1,
             number_temporal_layers: 1,
+            num_encoded_top_layer: 0,
         }
     }
 }
@@ -763,6 +838,17 @@ pub(crate) struct Av1Comp {
     pub(crate) rt_reduce_num_ref_buffers: bool,
     pub(crate) src_sad_blk_64x64: Vec<u64>,
     pub(crate) resize_pending_params: ResizePendingParams,
+    pub(crate) refresh_idx_available: bool,
+    /// `cpi->consec_zero_mv`
+    pub(crate) consec_zero_mv: Vec<u8>,
+    pub(crate) last_show_frame_buf: Option<usize>,
+    pub(crate) existing_fb_idx_to_show: i32,
+    pub(crate) mv_stats: MvStats,
+    pub(crate) active_map: ActiveMap,
+    pub(crate) gm_info: GlobalMotionInfo,
+    /// `cpi->scaled_ref_buf[]`: buffer pool indices
+    pub(crate) scaled_ref_buf: [Option<usize>; INTER_REFS_PER_FRAME as usize],
+    pub(crate) is_dropped_frame: bool,
 }
 
 impl Av1Comp {
@@ -786,6 +872,7 @@ pub(crate) fn enc_move_frame_state_in(cpi: &mut Av1Comp, td: &mut ThreadData) {
     xd.above_contexts = std::mem::take(&mut cm.above_contexts);
     if cm.cur_frame.is_some() {
         xd.recon = std::mem::take(&mut cm.cur_frame_mut().buf);
+        xd.cur_frame_mvs = std::mem::take(&mut cm.cur_frame_mut().mvs);
     }
     td.mb.mbmi_ext_frame_base = std::mem::take(&mut cpi.mbmi_ext_info.frame_base);
     td.mb.cb_coeff_buffers = std::mem::take(&mut cpi.coeff_buffer_base);
@@ -801,6 +888,7 @@ pub(crate) fn enc_move_frame_state_out(cpi: &mut Av1Comp, td: &mut ThreadData) {
     cm.above_contexts = std::mem::take(&mut xd.above_contexts);
     if cm.cur_frame.is_some() {
         cm.cur_frame_mut().buf = std::mem::take(&mut xd.recon);
+        cm.cur_frame_mut().mvs = std::mem::take(&mut xd.cur_frame_mvs);
     }
     cpi.mbmi_ext_info.frame_base = std::mem::take(&mut td.mb.mbmi_ext_frame_base);
     cpi.coeff_buffer_base = std::mem::take(&mut td.mb.cb_coeff_buffers);
@@ -883,18 +971,80 @@ pub(crate) fn has_no_stats_stage(cpi: &Av1Comp) -> bool {
 /// Translation of `is_one_pass_rt_params()`.
 #[inline]
 pub(crate) fn is_one_pass_rt_params(cpi: &Av1Comp) -> bool {
-    has_no_stats_stage(cpi)
-        && cpi.oxcf.gf_cfg.lag_in_frames == 0
-        && (cpi.oxcf.mode == REALTIME || cpi.svc_used())
+    has_no_stats_stage(cpi) && cpi.oxcf.mode == REALTIME && cpi.oxcf.gf_cfg.lag_in_frames == 0
 }
 
-impl Av1Comp {
-    /// `cpi->svc.number_temporal_layers > 1 || cpi->svc.number_spatial_layers > 1`:
-    /// never (no scalable coding).
-    #[inline]
-    fn svc_used(&self) -> bool {
-        false
+// Use default/internal reference structure for single-layer RTC.
+/// Translation of `use_rtc_reference_structure_one_layer()`.
+#[inline]
+pub(crate) fn use_rtc_reference_structure_one_layer(cpi: &Av1Comp) -> bool {
+    is_one_pass_rt_params(cpi)
+        && cpi.ppi.number_spatial_layers == 1
+        && cpi.ppi.number_temporal_layers == 1
+        && !cpi.ppi.rtc_ref.set_ref_frame_config
+}
+
+/// Translation of `av1_apply_encoding_flags()`: libavif passes no flags
+/// but `AOM_EFLAG_FORCE_KF`, so no reference or update is disabled.
+pub(crate) fn av1_apply_encoding_flags(cpi: &mut Av1Comp, flags: u32) {
+    // TODO(yunqingwang): For what references to use, external encoding flags
+    // should be consistent with internal reference frame selection. Need to
+    // ensure that there is not conflict between the two. In AV1 encoder, the
+    // priority rank for 7 reference frames are: LAST, ALTREF, LAST2, LAST3,
+    // GOLDEN, BWDREF, ALTREF2.
+
+    debug_assert!(flags & !super::encode_strategy::AOM_EFLAG_FORCE_KF == 0);
+    let ext_flags = &mut cpi.ext_flags;
+    ext_flags.ref_frame_flags = AOM_REFFRAME_ALL;
+    // (no AOM_EFLAG_NO_REF_* flags; no external reference configuration)
+    debug_assert!(!cpi.ppi.rtc_ref.set_ref_frame_config);
+
+    // (no AOM_EFLAG_NO_UPD_* flags)
+    ext_flags.refresh_frame.update_pending = false;
+
+    ext_flags.use_ref_frame_mvs = cpi.oxcf.tool_cfg.enable_ref_frame_mvs;
+    ext_flags.use_error_resilient = cpi.oxcf.tool_cfg.error_resilient_mode;
+    ext_flags.use_s_frame = cpi.oxcf.kf_cfg.enable_sframe;
+    ext_flags.use_primary_ref_none = false;
+
+    // (no AOM_EFLAG_NO_UPD_ENTROPY)
+}
+
+/// `HIGH_PRECISION_MV_QTHRESH` (mv_prec.h)
+const HIGH_PRECISION_MV_QTHRESH: i32 = 128;
+
+/// Translation of `av1_pick_and_set_high_precision_mv()` (mv_prec.c).
+pub(crate) fn av1_pick_and_set_high_precision_mv(cpi: &mut Av1Comp, qindex: i32) {
+    let mut use_hp = qindex < HIGH_PRECISION_MV_QTHRESH;
+
+    if cpi.sf.hl_sf.high_precision_mv_usage == QTR_ONLY {
+        use_hp = false;
+    } else if cpi.sf.hl_sf.high_precision_mv_usage == LAST_MV_DATA && cpi.mv_stats.valid {
+        // (get_smart_mv_prec(): the motion vector statistics are never
+        // collected, see MvStats)
+        debug_assert!(false);
     }
+
+    let force_integer_mv = cpi.common.features.cur_frame_force_integer_mv;
+    av1_set_high_precision_mv(cpi, use_hp, force_integer_mv);
+}
+
+/// Translation of `av1_set_high_precision_mv()` (mv_prec.h).
+#[inline]
+pub(crate) fn av1_set_high_precision_mv(
+    cpi: &mut Av1Comp,
+    allow_high_precision_mv: bool,
+    cur_frame_force_integer_mv: bool,
+) {
+    // Avoid accessing 'mv_costs' when it is not allocated.
+    let Some(mv_costs) = cpi.td.mb.mv_costs.as_mut() else {
+        return;
+    };
+
+    let copy_hp = allow_high_precision_mv && !cur_frame_force_integer_mv;
+    cpi.common.features.allow_high_precision_mv = copy_hp;
+
+    mv_costs.mv_cost_stack_hp = copy_hp;
 }
 
 /// Translation of `av1_encoder_get_relative_dist()`.
@@ -911,11 +1061,9 @@ pub(crate) fn encode_show_existing_frame(cm: &Av1Common) -> bool {
         && (!cm.features.error_resilient_mode || cm.current_frame.frame_type == KEY_FRAME)
 }
 
-/// Translation of `enforce_max_ref_frames()`: an intra frame has no
-/// reference frames to disable.
-pub(crate) fn enforce_max_ref_frames(cpi: &mut Av1Comp) {
-    debug_assert!(frame_is_intra_only(&cpi.common) && cpi.ref_frame_flags == 0);
-}
+/// `disable_order`
+pub(crate) static DISABLE_ORDER: [MvReferenceFrame; 4] =
+    [LAST3_FRAME, LAST2_FRAME, ALTREF2_FRAME, BWDREF_FRAME];
 
 /// Translation of `is_loopfilter_used()`.
 #[inline]
@@ -1069,8 +1217,11 @@ fn alloc_compressor_data(cpi: &mut Av1Comp) -> Result<(), ()> {
         av1_alloc_txb_buf(cpi)?;
     }
 
-    // (mv_costs: avoided for all intra coding)
-    debug_assert!(cpi.oxcf.kf_cfg.key_freq_max == 0);
+    cpi.td.mb.mv_costs = None;
+    // Avoid the memory allocation of 'mv_costs' for allintra encoding mode.
+    if cpi.oxcf.kf_cfg.key_freq_max != 0 {
+        cpi.td.mb.mv_costs = Some(MvCosts::new()?);
+    }
     Ok(())
 }
 
@@ -1705,7 +1856,7 @@ pub(crate) fn av1_create_compressor(
     if oxcf.frm_dim_cfg.forced_max_frame_height != 0 {
         max_mi_rows = size_in_mi(oxcf.frm_dim_cfg.forced_max_frame_height);
     }
-    // (consec_zero_mv: a real-time feature)
+    cpi.consec_zero_mv = try_vec(((max_mi_rows * max_mi_cols) >> 2) as usize, 0u8)?;
 
     {
         let bsize = BLOCK_16X16;
@@ -1749,10 +1900,29 @@ pub(crate) fn av1_set_mv_search_params(cpi: &mut Av1Comp) {
     mv_search_params.mv_step_param = av1_init_search_range(max_mv_def);
 
     if cpi.sf.mv_sf.auto_mv_step_size != 0 {
-        debug_assert!(frame_is_intra_only(cm));
-        // Initialize max_mv_magnitude for use in the first INTER frame
-        // after a key/intra-only frame.
-        mv_search_params.max_mv_magnitude = max_mv_def;
+        if frame_is_intra_only(cm) {
+            // Initialize max_mv_magnitude for use in the first INTER frame
+            // after a key/intra-only frame.
+            mv_search_params.max_mv_magnitude = max_mv_def;
+        } else {
+            // Use adaptive mv steps based on previous frame stats for show frames and
+            // internal arfs.
+            let cur_update_type = cpi.ppi.gf_group.update_type[cpi.gf_frame_index as usize];
+            let use_auto_mv_step = (cm.show_frame != 0 || cur_update_type == INTNL_ARF_UPDATE)
+                && mv_search_params.max_mv_magnitude != -1
+                && cpi.sf.mv_sf.auto_mv_step_size >= 2;
+            if use_auto_mv_step {
+                // Allow mv_steps to correspond to twice the max mv magnitude found
+                // in the previous frame, capped by the default max_mv_magnitude based
+                // on resolution.
+                mv_search_params.mv_step_param =
+                    av1_init_search_range(max_mv_def.min(2 * mv_search_params.max_mv_magnitude));
+            }
+            // Reset max_mv_magnitude based on update flag.
+            if cpi.do_frame_data_update {
+                mv_search_params.max_mv_magnitude = -1;
+            }
+        }
     }
 }
 
@@ -1774,10 +1944,16 @@ fn av1_init_search_range(size: i32) -> i32 {
 }
 
 /// Translation of `av1_set_screen_content_options()` (the non-RD pick mode
-/// turns the screen content tools off).
+/// and the real-time mode turn the screen content tools off).
 pub(crate) fn av1_set_screen_content_options(cpi: &Av1Comp, features: &mut FeatureFlags) {
     debug_assert!(cpi.common.seq_params.force_screen_content_tools == 2);
-    debug_assert!(cpi.oxcf.tune_cfg.content != AOM_CONTENT_SCREEN && cpi.oxcf.mode != REALTIME);
+    debug_assert!(cpi.oxcf.tune_cfg.content != AOM_CONTENT_SCREEN);
+
+    if cpi.oxcf.mode == REALTIME {
+        features.allow_screen_content_tools = false;
+        features.allow_intrabc = false;
+        return;
+    }
 
     if cpi.sf.rt_sf.use_nonrd_pick_mode != 0 && cpi.sf.rt_sf.hybrid_intra_pickmode == 0 {
         features.allow_screen_content_tools = false;
@@ -1787,6 +1963,71 @@ pub(crate) fn av1_set_screen_content_options(cpi: &Av1Comp, features: &mut Featu
     // (the source estimate of screen content is only reached with the RD
     // pick mode)
     debug_assert!(false);
+}
+
+/// Translation of `init_motion_estimation()`.
+fn init_motion_estimation(cpi: &mut Av1Comp) {
+    let cm = &cpi.common;
+    let aligned_width = (cm.width + 7) & !7;
+    let y_stride = aom_calc_y_stride(aligned_width, cpi.oxcf.border_in_pixels);
+    let y_stride_src = if (cpi.oxcf.frm_dim_cfg.width != cm.width
+        || cpi.oxcf.frm_dim_cfg.height != cm.height)
+        || av1_superres_scaled(cm)
+    {
+        y_stride
+    } else {
+        match cpi.ppi.lookahead.as_ref() {
+            Some(l) => l.buf[0].img.y_stride(),
+            None => y_stride,
+        }
+    };
+    let fpf_y_stride = if cm.cur_frame.is_some() {
+        cm.cur_frame().buf.y_stride()
+    } else {
+        y_stride
+    };
+
+    let mv_search_params = &mut cpi.mv_search_params;
+    // Update if search_site_cfg is uninitialized or the current frame has a new
+    // stride
+    let should_update = mv_search_params.search_site_cfg[SS_CFG_SRC][DIAMOND as usize].stride == 0
+        || mv_search_params.search_site_cfg[SS_CFG_LOOKAHEAD][DIAMOND as usize].stride == 0
+        || (y_stride != mv_search_params.search_site_cfg[SS_CFG_SRC][DIAMOND as usize].stride);
+
+    if !should_update {
+        return;
+    }
+
+    // Initialization of search_site_cfg for NUM_DISTINCT_SEARCH_METHODS.
+    for i in DIAMOND..NUM_DISTINCT_SEARCH_METHODS {
+        let level = if i == NSTEP_8PT || i == CLAMPED_DIAMOND {
+            1
+        } else {
+            0
+        };
+        av1_init_motion_compensation(
+            i,
+            &mut mv_search_params.search_site_cfg[SS_CFG_SRC][i as usize],
+            y_stride,
+            level,
+        );
+        av1_init_motion_compensation(
+            i,
+            &mut mv_search_params.search_site_cfg[SS_CFG_LOOKAHEAD][i as usize],
+            y_stride_src,
+            level,
+        );
+    }
+
+    // First pass search site config initialization.
+    av1_init_motion_fpf(
+        &mut mv_search_params.search_site_cfg[SS_CFG_FPF][DIAMOND as usize],
+        fpf_y_stride,
+    );
+    for i in NSTEP..NUM_DISTINCT_SEARCH_METHODS {
+        mv_search_params.search_site_cfg[SS_CFG_FPF][i as usize] =
+            mv_search_params.search_site_cfg[SS_CFG_FPF][DIAMOND as usize].clone();
+    }
 }
 
 /// Translation of `init_ref_frame_bufs()`.
@@ -1825,12 +2066,11 @@ pub(crate) fn av1_check_initial_width(
         av1_set_speed_features_framesize_independent(cpi, speed);
         av1_set_speed_features_framesize_dependent(cpi, speed);
 
-        // (av1_tf_info_alloc(): temporal filtering is off for all intra
-        // coding)
+        // (av1_tf_info_alloc(): the temporal filter buffers, never used: the
+        // temporal filter is off)
         init_ref_frame_bufs(cpi);
 
-        // (init_motion_estimation(): the search site configurations only
-        // steer motion searches)
+        init_motion_estimation(cpi); // TODO(agrange) This can be removed.
 
         cpi.initial_dimensions.width = cpi.common.width;
         cpi.initial_dimensions.height = cpi.common.height;
@@ -1838,20 +2078,29 @@ pub(crate) fn av1_check_initial_width(
     }
 }
 
+/// Translation of `alloc_frame_mvs()` (encoder.h).
+#[inline]
+pub(crate) fn alloc_frame_mvs(cm: &mut Av1Common, buf: usize) -> Result<(), ()> {
+    ensure_mv_buffer(buf, cm)?;
+    let (w, h) = (cm.width, cm.height);
+    let b = &mut cm.buffer_pool.frame_bufs[buf];
+    b.width = w;
+    b.height = h;
+    Ok(())
+}
+
 /// Translation of `av1_set_frame_size()` (no size change, no restoration).
 pub(crate) fn av1_set_frame_size(cpi: &mut Av1Comp, width: i32, height: i32) -> Result<(), ()> {
     let cm = &mut cpi.common;
     let num_planes = av1_num_planes(cm) as i32;
 
-    // (a change of the coded frame size: the saver codes the configured
-    // size)
+    // (a change of the coded frame size: libavif codes the configured size)
     debug_assert!(width == cm.width && height == cm.height);
-    debug_assert!(!is_stat_consumption_stage(cpi));
 
-    // (alloc_frame_mvs(): an intra frame keeps no motion vectors)
+    let cur = cm.cur_frame.ok_or(())?;
+    alloc_frame_mvs(cm, cur)?;
 
     // Allocate above context buffers
-    let cm = &mut cpi.common;
     let above_contexts = &mut cm.above_contexts;
     if above_contexts.num_planes < num_planes
         || above_contexts.num_mi_cols < cm.mi_params.mi_cols
@@ -1891,10 +2140,25 @@ pub(crate) fn av1_set_frame_size(cpi: &mut Av1Comp, width: i32, height: i32) -> 
         0,
     )?;
 
-    // (av1_init_cdef_worker(): CDEF is off)
-    debug_assert!(!is_restoration_used(cm));
-    // (init_motion_estimation(): motion searches only)
-    // (the reference frames' scale factors: an intra frame has none)
+    // (av1_init_cdef_worker(): the CDEF workers of multi-threaded CDEF,
+    // which is never used, see cdef_restoration_frame())
+    debug_assert!(!is_restoration_used(&cpi.common));
+
+    init_motion_estimation(cpi);
+
+    let cm = &mut cpi.common;
+    for ref_frame in LAST_FRAME..=ALTREF_FRAME {
+        if let Some(buf) = get_ref_frame_buf(cm, ref_frame) {
+            let b = &cm.buffer_pool.frame_bufs[buf].buf;
+            let (rw, rh) = (b.y_crop_width(), b.y_crop_height());
+            let (cw, ch) = (cm.width, cm.height);
+            let sf = &mut cm.ref_scale_factors[get_ref_frame_map_idx(cm, ref_frame) as usize];
+            av1_setup_scale_factors_for_frame(sf, rw, rh, cw, ch);
+            // (av1_is_scaled(): the references have the frame's size)
+            debug_assert!(!av1_is_scaled(sf));
+        }
+    }
+
     av1_setup_scale_factors_for_frame(
         &mut cm.sf_identity,
         cm.width,
@@ -1903,15 +2167,55 @@ pub(crate) fn av1_set_frame_size(cpi: &mut Av1Comp, width: i32, height: i32) -> 
         cm.height,
     );
 
-    // (set_ref_ptrs(): no reference frames)
+    // (set_ref_ptrs(): the block level code looks the scale factors up)
     Ok(())
 }
 
-/// Translation of `loopfilter_frame()`: the filter levels are picked and
-/// written to the frame header; the filtering itself is skipped, as
-/// `skip_postproc_filtering` allows for all intra coding (the
-/// reconstruction is never used as a reference).
-fn loopfilter_frame(cpi: &mut Av1Comp) {
+/// Translation of `extend_frame_borders()` (no multi-threaded CDEF or loop
+/// restoration).
+fn extend_frame_borders(cpi: &mut Av1Comp) {
+    let cm = &mut cpi.common;
+    for plane in 0..av1_num_planes(cm) {
+        let ybf = &mut cm.cur_frame_mut().buf;
+        let h = ybf.crop_heights[(plane > 0) as usize];
+        aom_extend_frame_borders_plane_row(ybf, plane, 0, h);
+    }
+}
+
+/// Translation of `cdef_restoration_frame()`: CDEF is picked from the q
+/// index and applied single-threaded (the CDEF workers only exist with
+/// `num_mod_workers[MOD_CDEF] > 1`, see the module documentation of
+/// ethread.rs); no superres, no loop restoration.
+fn cdef_restoration_frame(
+    cpi: &mut Av1Comp,
+    use_cdef: bool,
+    skip_apply_postproc_filters: u32,
+) -> Result<(), ()> {
+    if use_cdef {
+        let use_screen_content_model = cpi.common.quant_params.base_qindex
+            > cpi
+                .sf
+                .rt_sf
+                .screen_content_cdef_filter_qindex_thresh
+                .max(cpi.rc.best_quality + 5)
+            && cpi.oxcf.tune_cfg.content == AOM_CONTENT_SCREEN;
+        // Find CDEF parameters
+        av1_cdef_search(cpi, use_screen_content_model)?;
+
+        // Apply the filter
+        if (skip_apply_postproc_filters & SKIP_APPLY_CDEF) == 0 {
+            debug_assert!(!cpi.ppi.rtc_ref.non_reference_frame);
+            av1_cdef_frame(&mut cpi.common)?;
+        }
+    }
+
+    debug_assert!(!av1_superres_scaled(&cpi.common));
+    Ok(())
+}
+
+/// Translation of `loopfilter_frame()`.
+fn loopfilter_frame(cpi: &mut Av1Comp) -> Result<(), ()> {
+    let num_planes = av1_num_planes(&cpi.common) as i32;
     cpi.td.mb.rdmult = cpi.rd.rdmult;
 
     let cm = &cpi.common;
@@ -1940,16 +2244,65 @@ fn loopfilter_frame(cpi: &mut Av1Comp) {
         if (lf.filter_level[0] != 0 || lf.filter_level[1] != 0)
             && (skip_apply_postproc_filters & SKIP_APPLY_LOOPFILTER) == 0
         {
-            // (av1_loop_filter_frame_mt(): the saver always sets
-            // skip_postproc_filtering, so the reconstruction is never
-            // filtered)
-            debug_assert!(false);
+            debug_assert!(!cpi.ppi.rtc_ref.non_reference_frame);
+            // lpf_opt_level = 1 : Enables dual/quad loop-filtering.
+            // lpf_opt_level is set to 1 if transform size search depth in inter
+            // blocks is limited to one as quad loop filtering assumes that all the
+            // transform blocks within a 16x8/8x16/16x16 prediction block are of the
+            // same size. lpf_opt_level = 2 : Filters both chroma planes together, in
+            // addition to enabling dual/quad loop-filtering. This is enabled when lpf
+            // pick method is LPF_PICK_FROM_Q as u and v plane filter levels are
+            // equal.
+            let lpf_opt_level = get_lpf_opt_level(&cpi.sf);
+            let lossless = cpi.td.mb.e_mbd.lossless;
+            av1_loop_filter_frame(
+                &mut cpi.common,
+                &lossless,
+                0,
+                num_planes as usize,
+                false,
+                lpf_opt_level,
+            )?;
         }
     }
 
-    // (cdef_restoration_frame(): CDEF, superres and loop restoration are
-    // off)
-    debug_assert!(!use_cdef && !use_superres && !use_restoration);
+    cdef_restoration_frame(cpi, use_cdef, skip_apply_postproc_filters)?;
+    debug_assert!(!use_restoration);
+    Ok(())
+}
+
+/// Translation of `get_lpf_opt_level()` (encoder.h).
+#[inline]
+fn get_lpf_opt_level(sf: &SpeedFeatures) -> i32 {
+    let mut lpf_opt_level = 0;
+    if is_inter_tx_size_search_level_one(&sf.tx_sf) {
+        lpf_opt_level = if sf.lpf_sf.lpf_pick == LPF_PICK_FROM_Q {
+            2
+        } else {
+            1
+        };
+    }
+    lpf_opt_level
+}
+
+/// Translation of `is_inter_tx_size_search_level_one()` (encoder.h).
+#[inline]
+fn is_inter_tx_size_search_level_one(tx_sf: &TxSpeedFeatures) -> bool {
+    tx_sf.inter_tx_size_search_init_depth_rect >= 1
+        && tx_sf.inter_tx_size_search_init_depth_sqr >= 1
+}
+
+/// Translation of `update_motion_stat()`.
+fn update_motion_stat(cpi: &mut Av1Comp) {
+    let mi_params = &cpi.common.mi_params;
+    let rc = &mut cpi.rc;
+    let avg_cnt_zeromv = 100 * rc.cnt_zeromv / (mi_params.mi_rows * mi_params.mi_cols);
+    // (no SVC)
+    rc.avg_frame_low_motion = if rc.avg_frame_low_motion == 0 {
+        avg_cnt_zeromv
+    } else {
+        (3 * rc.avg_frame_low_motion + avg_cnt_zeromv) / 4
+    };
 }
 
 /// Translation of `encode_without_recode()`.
@@ -1957,6 +2310,8 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
     let mut top_index = 0;
     let mut bottom_index = 0;
     let mut q = 0;
+    let resize_pending = is_frame_resize_pending(cpi);
+    // (no SVC: the scaler filter only matters with a scaled source)
 
     set_size_independent_vars(cpi);
     av1_setup_frame_size(cpi)?;
@@ -1966,23 +2321,70 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
 
     // (the unscaled source is coded as it is: no resizing, no spatial
     // layers)
+    debug_assert!(
+        cpi.source().y_crop_width() == cpi.common.width
+            && cpi.source().y_crop_height() == cpi.common.height
+    );
 
     // (allocate_gradient_info_for_hog() and
-    // allocate_src_var_of_4x4_sub_block_buf(): RD intra mode search only)
+    // allocate_src_var_of_4x4_sub_block_buf(): the macroblock's caches are
+    // sized when used)
 
     if cpi.sf.part_sf.partition_search_type == VAR_BASED_PARTITION {
         variance_partition_alloc(cpi);
     }
 
-    // (copy_frame_prob_info(): the frame probabilities only steer the RD
-    // transform type, OBMC, warp and filter searches)
+    if cpi.common.current_frame.frame_type == KEY_FRAME
+        || (cpi.sf.inter_sf.extra_prune_warped != 0 && cpi.refresh_frame.golden_frame)
+    {
+        copy_frame_prob_info(cpi);
+    }
 
     // (av1_realloc_and_scale_if_required(): no scaling, the source is the
     // unscaled source)
-    // (consec_zero_mv: a real-time feature)
+    if frame_is_intra_only(&cpi.common) || resize_pending {
+        let n = ((cpi.common.mi_params.mi_rows * cpi.common.mi_params.mi_cols) >> 2) as usize;
+        cpi.consec_zero_mv[..n].fill(0);
+    }
 
-    // (reference scaling: an intra frame has no references)
-    debug_assert!(frame_is_intra_only(&cpi.common));
+    // (cpi->last_source: the unscaled last source)
+
+    // (av1_update_noise_estimate(): use_temporal_noise_estimate is only set
+    // above 640x480)
+    if cpi.sf.rt_sf.use_temporal_noise_estimate != 0 {
+        return Err(());
+    }
+
+    // For 1 spatial layer encoding: if the (non-LAST) reference has different
+    // resolution from the source then disable that reference. This is to avoid
+    // significant increase in encode time from scaling the references in
+    // av1_scale_references. Note GOLDEN is forced to update on the (first/tigger)
+    // resized frame and ALTREF will be refreshed ~4 frames later, so both
+    // references become available again after few frames.
+    if cpi.svc.number_spatial_layers == 1 {
+        for (ref_frame, flag) in [(GOLDEN_FRAME, AOM_GOLD_FLAG), (ALTREF_FRAME, AOM_ALT_FLAG)] {
+            if cpi.ref_frame_flags & AV1_REF_FRAME_FLAG_LIST[ref_frame as usize] != 0 {
+                if let Some(buf) = get_ref_frame_buf(&cpi.common, ref_frame) {
+                    let r = &cpi.common.buffer_pool.frame_bufs[buf].buf;
+                    if r.y_crop_width() != cpi.common.width
+                        || r.y_crop_height() != cpi.common.height
+                    {
+                        cpi.ref_frame_flags ^= flag;
+                    }
+                }
+            }
+        }
+    }
+
+    if cpi.ppi.gf_group.frame_parallel_level[cpi.gf_frame_index as usize] == 0 {
+        // av1_scale_if_required will scale the references (avoiding an
+        // extra frame-copy). Only scale if the reference has different
+        // resolution from the source, or the TL0 reference for spatial layers
+        // (no SVC)
+        if !frame_is_intra_only(&cpi.common) {
+            av1_scale_references(cpi);
+        }
+    }
 
     let q_cfg = cpi.oxcf.q_cfg;
     av1_set_quantizer(
@@ -2005,8 +2407,16 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
     av1_set_variance_partition_thresholds(cpi, q);
     av1_setup_frame(cpi);
 
-    // (the high source SAD overshoot detection and cyclic refresh: real-time
-    // features)
+    // Check if this high_source_sad (scene/slide change) frame should be
+    // encoded at high/max QP, and if so, set the q and adjust some rate
+    // control parameters.
+    if cpi.sf.rt_sf.overshoot_detection_cbr == FAST_DETECTION_MAXQ && cpi.rc.high_source_sad != 0 {
+        // (av1_encodedframe_overshoot_cbr(): the overshoot re-encode of scene
+        // changes, not translated)
+        return Err(());
+    }
+
+    debug_assert!(q_cfg.aq_mode != CYCLIC_REFRESH_AQ);
     av1_apply_active_map(cpi);
     debug_assert!(cpi.common.seg.enabled == 0);
     cpi.common.seg = Segmentation::default();
@@ -2017,10 +2427,37 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
         cm.cur_frame_mut().seg.enabled = seg.enabled;
     }
 
+    // (the RTC temporal filter and the PSNR source copy: off)
+
+    // Set the motion vector precision based on mv stats from the last coded
+    // frame.
+    if !frame_is_intra_only(&cpi.common) {
+        av1_pick_and_set_high_precision_mv(cpi, q);
+    }
+
     // transform / motion compensation build reconstruction frame
     av1_encode_frame(cpi)?;
 
-    // (motion statistics and CBR frame dropping: inter frames only)
+    // Update some stats from cyclic refresh.
+    // (no cyclic refresh)
+
+    if !cpi.rc.rtc_external_ratectrl && !frame_is_intra_only(&cpi.common) {
+        update_motion_stat(cpi);
+    }
+
+    // Adjust the refresh of the golden (longer-term) reference based on QP
+    // selected for this frame. This is for CBR with 1 layer/non-svc RTC mode.
+    if !frame_is_intra_only(&cpi.common)
+        && cpi.oxcf.rc_cfg.mode == AOM_CBR
+        && cpi.oxcf.mode == REALTIME
+        && cpi.svc.number_spatial_layers == 1
+        && cpi.svc.number_temporal_layers == 1
+        && !cpi.rc.rtc_external_ratectrl
+        && cpi.sf.rt_sf.gf_refresh_based_on_qp != 0
+    {
+        av1_adjust_gf_refresh_qp_one_pass_rt(cpi);
+    }
+
     Ok(())
 }
 
@@ -2031,13 +2468,16 @@ fn encode_with_recode_loop_and_filter(
     dest: &mut [u8],
     largest_tile_id: &mut i32,
 ) -> Result<usize, ()> {
+    // (the frame probability update flags of the recodes: the probabilities
+    // are updated in encode_frame_internal())
     debug_assert!(cpi.sf.hl_sf.recode_loop == DISALLOW_RECODE);
     encode_without_recode(cpi)?;
 
     // Special case code to reduce pulsing when key frames are forced at a
     // fixed interval. Note the reconstruction error if it is the frame before
     // the force key frame
-    // (no forced key frames)
+    // (p_rc.next_key_frame_forced is a two pass flag)
+    debug_assert!(cpi.ppi.p_rc.next_key_frame_forced == 0);
 
     let cm = &mut cpi.common;
     let seq_params = cm.seq_params;
@@ -2057,11 +2497,13 @@ fn encode_with_recode_loop_and_filter(
     }
 
     if !cpi.common.features.allow_intrabc {
-        loopfilter_frame(cpi);
+        loopfilter_frame(cpi)?;
     }
 
-    // (extend_frame_borders(): all intra coding keeps no references)
-    debug_assert!(cpi.oxcf.mode == ALLINTRA);
+    if cpi.oxcf.mode != ALLINTRA && !cpi.ppi.rtc_ref.non_reference_frame {
+        extend_frame_borders(cpi);
+    }
+
     // (film grain: the content is never AOM_CONTENT_FILM)
 
     av1_finalize_encoded_frame(cpi);
@@ -2083,7 +2525,8 @@ fn encode_frame_to_data_rate(cpi: &mut Av1Comp, dest: &mut [u8]) -> Result<usize
         cpi.common.features = features;
     }
 
-    // (calculate_frame_avg_haar_energy(): perceptual delta q only)
+    // (calculate_frame_avg_haar_energy(): returns at once in one pass
+    // real-time and with no perceptual delta q)
 
     let cm = &mut cpi.common;
     // frame type has been decided outside of this function call
@@ -2111,7 +2554,7 @@ fn encode_frame_to_data_rate(cpi: &mut Av1Comp, dest: &mut [u8]) -> Result<usize
 
     debug_assert!(!frame_is_sframe(cm) && !encode_show_existing_frame(cm));
 
-    // (integer motion vectors: inter frames only)
+    // (integer motion vectors: the screen content tools are off)
     cm.features.cur_frame_force_integer_mv = false;
 
     // This is used by av1_pack_bitstream. So this needs to be set in case of
@@ -2137,7 +2580,17 @@ fn encode_frame_to_data_rate(cpi: &mut Av1Comp, dest: &mut [u8]) -> Result<usize
         cpi.num_tg = DEFAULT_MAX_NUM_TG;
     }
 
-    // (CBR rate control: the saver uses AOM_Q)
+    // For 1 pass CBR, check if we are dropping this frame.
+    // Never drop on key frame.
+    if has_no_stats_stage(cpi)
+        && cpi.oxcf.rc_cfg.mode == AOM_CBR
+        && cpi.common.current_frame.frame_type != KEY_FRAME
+        && av1_rc_drop_frame(cpi)
+    {
+        // (frame dropping needs rc_dropframe_thresh, which libavif leaves
+        // at 0)
+        return Err(());
+    }
 
     if cpi.oxcf.tune_cfg.tuning == AOM_TUNE_SSIM {
         av1_set_mb_ssim_rdmult_scaling(cpi);
@@ -2153,8 +2606,14 @@ fn encode_frame_to_data_rate(cpi: &mut Av1Comp, dest: &mut [u8]) -> Result<usize
         }
         1 => {
             // Enable CDF update for all frames.
-            // (disable_cdf_update_non_reference_frame: real-time)
-            cpi.common.features.disable_cdf_update = false;
+            if cpi.sf.rt_sf.disable_cdf_update_non_reference_frame
+                && cpi.ppi.rtc_ref.non_reference_frame
+                && cpi.rc.frames_since_key > 2
+            {
+                cpi.common.features.disable_cdf_update = true;
+            } else {
+                cpi.common.features.disable_cdf_update = false;
+            }
         }
         _ => {
             // Strategically determine at which frames to do CDF update.
@@ -2177,17 +2636,26 @@ fn encode_frame_to_data_rate(cpi: &mut Av1Comp, dest: &mut [u8]) -> Result<usize
     // Update reference frame ids for reference frames this frame will overwrite
     // (no frame ids)
 
+    if cpi.svc.spatial_layer_id == cpi.svc.number_spatial_layers - 1 {
+        cpi.svc.num_encoded_top_layer += 1;
+    }
+
+    debug_assert!(cpi.common.seg.enabled == 0);
+
+    if cpi.ppi.gf_group.frame_parallel_level[cpi.gf_frame_index as usize] == 0
+        && !frame_is_intra_only(&cpi.common)
+    {
+        release_scaled_references(cpi);
+    }
+
     let cm = &mut cpi.common;
-    debug_assert!(cm.seg.enabled == 0);
-
-    // (release_scaled_references(): an intra frame scales no references)
-
-    // (cpi->last_show_frame_buf: only read by inter frames)
+    if cm.show_frame != 0 {
+        cpi.last_show_frame_buf = cm.cur_frame;
+    }
 
     if cm.features.refresh_frame_context == REFRESH_FRAME_CONTEXT_BACKWARD {
         *cm.fc = (*cpi.tile_data[largest_tile_id as usize].tctx).clone();
-        // (av1_reset_cdf_symbol_counters(): the frame's contexts are never
-        // adapted from again, the compressor codes no later frame)
+        av1_reset_cdf_symbol_counters(&mut cm.fc);
     }
     if cm.tiles.large_scale == 0 {
         let fc = cm.fc.clone();
@@ -2236,13 +2704,17 @@ pub(crate) struct EncodeFrameParams {
     pub(crate) speed: i32,
 }
 
-/// Translation of `av1_encode()`: `frame_input.source` is moved into
-/// `cpi.source_buf` by the caller.
+/// Translation of `av1_encode()`: `frame_input`'s sources are
+/// `cpi.source_buf` and `cpi.last_source_buf` (moved there by the caller).
 pub(crate) fn av1_encode(
     cpi: &mut Av1Comp,
     dest: &mut [u8],
+    frame_input: &EncodeFrameInput,
     frame_params: &EncodeFrameParams,
 ) -> Result<usize, ()> {
+    // (cpi->unscaled_source = cpi->source = frame_input->source;
+    // cpi->unscaled_last_source = frame_input->last_source)
+    debug_assert!(frame_input.has_last_source == cpi.has_last_source);
     let cm = &mut cpi.common;
 
     cm.current_frame.refresh_frame_flags = frame_params.refresh_frame_flags;
@@ -2253,6 +2725,7 @@ pub(crate) fn av1_encode(
     cpi.ref_frame_flags = frame_params.ref_frame_flags;
     cpi.speed = frame_params.speed;
     cm.show_existing_frame = frame_params.show_existing_frame;
+    cpi.existing_fb_idx_to_show = frame_params.existing_fb_idx_to_show;
 
     cm.remapped_ref_idx = frame_params.remapped_ref_idx;
 
@@ -2296,7 +2769,7 @@ pub(crate) fn av1_receive_raw_frame(
     let subsampling_y = sd.subsampling_y;
     let use_highbitdepth = (sd.flags & YV12_FLAG_HIGHBITDEPTH) != 0;
 
-    // (no denoising)
+    // (no denoising: the noise level is 0)
     let lookahead = cpi.ppi.lookahead.as_mut().ok_or(())?;
     av1_lookahead_push(
         lookahead,
@@ -2344,33 +2817,162 @@ pub(crate) struct Av1CompData {
     pub(crate) timestamp_ratio: (i64, i64),
 }
 
-/// Translation of `update_rc_counts()` and `update_end_of_frame_stats()` of
-/// `av1_post_encode_updates()`: the counters only steer later frames, which
-/// a still picture compressor never codes; the reference buffers are
-/// refreshed and the lookahead entry popped.
+/// Translation of `update_keyframe_counters()`.
+#[inline]
+fn update_keyframe_counters(cpi: &mut Av1Comp) {
+    if cpi.common.show_frame != 0 && cpi.rc.frames_to_key != 0 {
+        // (!CONFIG_REALTIME_ONLY: the first pass statistics queue is empty
+        // in one pass)
+        if cpi.svc.spatial_layer_id == cpi.svc.number_spatial_layers - 1 {
+            cpi.rc.frames_since_key += 1;
+            cpi.rc.frames_to_key -= 1;
+            cpi.rc.frames_to_fwd_kf -= 1;
+        }
+    }
+}
+
+/// Translation of `update_frames_till_gf_update()`.
+#[inline]
+fn update_frames_till_gf_update(cpi: &mut Av1Comp) {
+    // TODO(weitinglin): Updating this counter for is_frame_droppable
+    // is a work-around to handle the condition when a frame is drop.
+    // We should fix the cpi->common.show_frame flag
+    // instead of checking the other condition to update the counter properly.
+    if cpi.common.show_frame != 0
+        || is_frame_droppable(&cpi.ppi.rtc_ref, &cpi.ext_flags.refresh_frame)
+    {
+        // Decrement count down till next gf
+        if cpi.rc.frames_till_gf_update_due > 0 {
+            cpi.rc.frames_till_gf_update_due -= 1;
+        }
+    }
+}
+
+/// Translation of `update_gf_group_index()`.
+#[inline]
+fn update_gf_group_index(cpi: &mut Av1Comp) {
+    // Increment the gf group index ready for the next frame.
+    cpi.gf_frame_index += 1;
+}
+
+/// Translation of `update_fb_of_context_type()`.
+fn update_fb_of_context_type(cpi: &Av1Comp, fb_of_context_type: &mut [i32; REF_FRAMES as usize]) {
+    let cm = &cpi.common;
+    let current_frame_ref_type = get_current_frame_ref_type(cpi) as usize;
+
+    if frame_is_intra_only(cm)
+        || cm.features.error_resilient_mode
+        || cpi.ext_flags.use_primary_ref_none
+    {
+        for i in 0..REF_FRAMES as usize {
+            fb_of_context_type[i] = -1;
+        }
+        fb_of_context_type[current_frame_ref_type] = if cm.show_frame != 0 {
+            get_ref_frame_map_idx(cm, GOLDEN_FRAME)
+        } else {
+            get_ref_frame_map_idx(cm, ALTREF_FRAME)
+        };
+    }
+
+    if !encode_show_existing_frame(cm) {
+        // Refresh fb_of_context_type[]: see encoder.h for explanation
+        if cm.current_frame.frame_type == KEY_FRAME {
+            // All ref frames are refreshed, pick one that will live long enough
+            fb_of_context_type[current_frame_ref_type] = 0;
+        } else {
+            // If more than one frame is refreshed, it doesn't matter which one we
+            // pick so pick the first.  LST sometimes doesn't refresh any: this is ok
+            for i in 0..REF_FRAMES {
+                if cm.current_frame.refresh_frame_flags & (1 << i) != 0 {
+                    fb_of_context_type[current_frame_ref_type] = i;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/// Translation of `update_rc_counts()`.
+fn update_rc_counts(cpi: &mut Av1Comp) {
+    update_keyframe_counters(cpi);
+    update_frames_till_gf_update(cpi);
+    update_gf_group_index(cpi);
+}
+
+/// Translation of `update_end_of_frame_stats()`.
+fn update_end_of_frame_stats(cpi: &mut Av1Comp) {
+    if cpi.do_frame_data_update {
+        // Store current frame loopfilter levels in ppi, if update flag is set.
+        if cpi.common.show_existing_frame == 0 {
+            let lf = &cpi.common.lf;
+            cpi.ppi.filter_level[0] = lf.filter_level[0];
+            cpi.ppi.filter_level[1] = lf.filter_level[1];
+            cpi.ppi.filter_level_u = lf.filter_level_u;
+            cpi.ppi.filter_level_v = lf.filter_level_v;
+        }
+    }
+    // Store frame level mv_stats from cpi to ppi.
+    cpi.ppi.mv_stats = cpi.mv_stats;
+}
+
+// Updates frame level stats related to global motion
+/// Translation of `update_gm_stats()`.
+fn update_gm_stats(cpi: &mut Av1Comp) {
+    let update_type = cpi.ppi.gf_group.update_type[cpi.gf_frame_index as usize] as usize;
+    let mut is_gm_present = 0;
+
+    // Check if the current frame has any valid global motion model across its
+    // reference frames
+    for i in 0..REF_FRAMES as usize {
+        if cpi.common.global_motion[i].wmtype != IDENTITY {
+            is_gm_present = 1;
+            break;
+        }
+    }
+    if cpi.ppi.valid_gm_model_found[update_type] == i32::MAX {
+        cpi.ppi.valid_gm_model_found[update_type] = is_gm_present;
+    } else {
+        cpi.ppi.valid_gm_model_found[update_type] |= is_gm_present;
+    }
+}
+
+/// Translation of `av1_post_encode_updates()`.
 pub(crate) fn av1_post_encode_updates(cpi: &mut Av1Comp, cpi_data: &Av1CompData) {
-    // (update_gm_stats(): global motion statistics of later frames)
-    debug_assert!(!is_stat_generation_stage(cpi));
-    refresh_reference_frames(cpi);
-    // (av1_rc_postencode_update(): the rate control history of later
-    // frames)
+    update_gm_stats(cpi);
+
+    // (!CONFIG_REALTIME_ONLY: no two pass statistics)
+
+    if !is_stat_generation_stage(cpi) && !cpi.is_dropped_frame {
+        // Before calling refresh_reference_frames(), copy ppi->ref_frame_map_copy
+        // to cm->ref_frame_map for frame_parallel_level 2 frame in a parallel
+        // encode set of lower layer frames.
+        // TODO(Remya): Move ref_frame_map from AV1_COMMON to AV1_PRIMARY to avoid
+        // copy.
+        // (no parallel frames)
+        refresh_reference_frames(cpi);
+        av1_rc_postencode_update(cpi, cpi_data.frame_size as u64);
+    }
 
     if cpi_data.pop_lookahead {
         if let Some(lookahead) = cpi.ppi.lookahead.as_mut() {
             av1_lookahead_pop(lookahead, cpi_data.flush, cpi.compressor_stage);
         }
     }
-
-    // (update_fb_of_context_type(), update_rc_counts(): later frames'
-    // bookkeeping)
-    if cpi.do_frame_data_update && cpi.common.show_existing_frame == 0 {
-        // Store current frame loopfilter levels in ppi, if update flag is set.
-        let lf = &cpi.common.lf;
-        cpi.ppi.filter_level[0] = lf.filter_level[0];
-        cpi.ppi.filter_level[1] = lf.filter_level[1];
-        cpi.ppi.filter_level_u = lf.filter_level_u;
-        cpi.ppi.filter_level_v = lf.filter_level_v;
+    if cpi.common.show_frame != 0 {
+        cpi.ppi.ts_start_last_show_frame = cpi_data.ts_frame_start;
+        cpi.ppi.ts_end_last_show_frame = cpi_data.ts_frame_end;
     }
+    // (no level statistics)
+
+    if !is_stat_generation_stage(cpi) {
+        let mut fb_of_context_type = cpi.ppi.fb_of_context_type;
+        update_fb_of_context_type(cpi, &mut fb_of_context_type);
+        cpi.ppi.fb_of_context_type = fb_of_context_type;
+        update_rc_counts(cpi);
+        update_end_of_frame_stats(cpi);
+    }
+
+    // (no third pass, no SVC, no PSNR, no second pass log)
 }
 
 /// Translation of `av1_get_compressed_data()`: returns `None` (the C code's
@@ -2380,10 +2982,12 @@ pub(crate) fn av1_get_compressed_data(
     cpi_data: &mut Av1CompData,
     dest: &mut [u8],
 ) -> Result<Option<()>, ()> {
+    debug_assert!(!(cpi.ppi.use_svc && cpi.ppi.number_spatial_layers > 1));
+
+    cpi.is_dropped_frame = false;
     cpi.common.showable_frame = 0;
     cpi_data.frame_size = 0;
-
-    // (av1_set_high_precision_mv(): inter frames only)
+    av1_set_high_precision_mv(cpi, true, false);
 
     // Normal defaults
     cpi.common.features.refresh_frame_context = if cpi.oxcf.tool_cfg.frame_parallel_decoding_mode {

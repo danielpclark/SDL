@@ -36,12 +36,28 @@ use crate::aom::av1::common::scan::{
     get_scan, DEFAULT_SCAN_8X8_TRANSPOSE, DEFAULT_SCAN_FP_16X16_TRANSPOSE,
 };
 
+use super::enc_enums::*;
+
 // (nonrd_opt.h)
 
 pub(crate) const RTC_INTER_MODES: i32 = 4;
 pub(crate) const RTC_INTRA_MODES: i32 = 4;
+pub(crate) const RTC_MODES: usize = 4; // AOMMAX(RTC_INTER_MODES, RTC_INTRA_MODES)
 
-static INTRA_MODE_LIST: [PredictionMode; 4] = [DC_PRED, V_PRED, H_PRED, SMOOTH_PRED];
+pub(crate) static INTRA_MODE_LIST: [PredictionMode; 4] = [DC_PRED, V_PRED, H_PRED, SMOOTH_PRED];
+
+pub(crate) static INTER_MODE_LIST: [PredictionMode; 4] = [NEARESTMV, NEARMV, GLOBALMV, NEWMV];
+
+pub(crate) static MODE_IDX: [[i32; RTC_MODES]; REF_FRAMES as usize] = [
+    [THR_DC, THR_V_PRED, THR_H_PRED, THR_SMOOTH],
+    [THR_NEARESTMV, THR_NEARMV, THR_GLOBALMV, THR_NEWMV],
+    [THR_NEARESTL2, THR_NEARL2, THR_GLOBALL2, THR_NEWL2],
+    [THR_NEARESTL3, THR_NEARL3, THR_GLOBALL3, THR_NEWL3],
+    [THR_NEARESTG, THR_NEARG, THR_GLOBALG, THR_NEWG],
+    [THR_NEARESTB, THR_NEARB, THR_GLOBALB, THR_NEWB],
+    [THR_NEARESTA2, THR_NEARA2, THR_GLOBALA2, THR_NEWA2],
+    [THR_NEARESTA, THR_NEARA, THR_GLOBALA, THR_NEWA],
+];
 
 // (rdopt.c)
 
@@ -76,7 +92,8 @@ pub(crate) fn av1_copy_mbmi_ext_to_mbmi_ext_frame(
     mbmi_ext: &MbModeInfoExt,
     ref_frame_type: u8,
 ) {
-    // (no reference MV stacks or weights in an intra frame)
+    mbmi_ext_best.ref_mv_stack = mbmi_ext.ref_mv_stack[ref_frame_type as usize];
+    mbmi_ext_best.weight = mbmi_ext.weight[ref_frame_type as usize];
     mbmi_ext_best.mode_context = mbmi_ext.mode_context[ref_frame_type as usize];
     mbmi_ext_best.ref_mv_count = mbmi_ext.ref_mv_count[ref_frame_type as usize];
     mbmi_ext_best.global_mvs = mbmi_ext.global_mvs;

@@ -658,7 +658,7 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
     // av1_fill_mode_rates(), which is in turn called in
     // av1_initialize_rd_consts(). Thus, av1_initialize_rd_consts()
     // has to be called after 'skip_mode_flag' is initialized.
-    av1_initialize_rd_consts(cpi, td);
+    av1_initialize_rd_consts(cpi, td)?;
     // (av1_set_sad_per_bit(): the SAD per bit only steers motion searches)
     // (populate_thresh_to_force_zeromv_skip(): a real-time feature)
 
