@@ -313,6 +313,11 @@ pub(crate) fn unpack_init(wpc: &mut WavpackContext<'_>, wps: &mut WavpackStream)
         return FALSE;
     }
 
+    // FIXME (upstream): when a seek fails after reading a block (in
+    // unpack_init() or for the correction block), it frees the block but
+    // leaves its header, and the next WavpackUnpackSamples() calls this on
+    // a stream with no block buffer, which upstream reads through NULL;
+    // here there's no metadata (so the block is muted).
     let blockbuff = wps.blockbuff.take();
     let mut ok = true;
     if let Some(blockbuff) = &blockbuff {

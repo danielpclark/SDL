@@ -326,6 +326,7 @@ fn decode_fast(wps: &mut WavpackStream, output: &mut [i32], sample_count: i32) -
         dsd.value_lookup.as_ref(),
         dsd.lookup_buffer.as_ref(),
     ) else {
+        // (only after a failed seek: see free_single_stream())
         return 0;
     };
 
@@ -585,6 +586,7 @@ fn decode_high(wps: &mut WavpackStream, output: &mut [i32], sample_count: i32) -
     let mut out = 0usize;
 
     let Some(mut ptable) = wps.dsd.ptable.take() else {
+        // (only after a failed seek: see free_single_stream())
         return 0;
     };
 
