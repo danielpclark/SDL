@@ -1,0 +1,23 @@
+[package]
+name = "sdl3-mixer-mpg123"
+description = "A direct, pure-Rust translation of the libmpg123 MPEG audio decoder bundled with SDL_mixer 3, for sdl3-mixer. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# libmpg123's own terms (see COPYING): the GNU LGPL, version 2.1 (COPYING
+# offers no later version). Not zlib, unlike the rest of this repository;
+# see NOTICE.
+license = "LGPL-2.1-only"
+repository.workspace = true
+readme = "NOTICE"
+keywords = ["sdl", "sdl3", "mp3", "mpg123", "pure-rust"]
+categories = ["multimedia::audio", "game-development"]
+
+[lib]
+name = "sdl3_mixer_mpg123"
+path = "src/lib.rs"
+
+# For SDL's math (its fdlibm pow() and log(), which give the tables the C
+# library's do) and strtod().
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }

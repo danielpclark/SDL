@@ -18,6 +18,12 @@ sdl3-mixer-timidity/testdata/** binary
 # TiMidity's license files, kept verbatim (a blank line at the end and all).
 sdl3-mixer-timidity/COPYING* -whitespace
 
+# sdl3-mixer-mpg123's test audio and reference log, and libmpg123's license
+# and authors files, kept verbatim (trailing spaces and all).
+sdl3-mixer-mpg123/testdata/** binary
+sdl3-mixer-mpg123/COPYING -whitespace
+sdl3-mixer-mpg123/AUTHORS -whitespace
+
 # sdl3-ttf's test fonts, their license (kept verbatim, trailing spaces and
 # all) and reference log.
 sdl3-ttf/src/testdata/** binary
