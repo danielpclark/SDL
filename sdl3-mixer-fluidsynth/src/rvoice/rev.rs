@@ -834,6 +834,10 @@ impl FluidRevmodel {
             return None;
         }
 
+        // FIXME (upstream): only the late reverb is cleared; the parameters
+        // stay uninitialized until fluid_revmodel_set(), whose event the
+        // synth only dispatches after its first API call, so the first
+        // blocks a synth renders read them uninitialized. Here they are 0.
         let mut rev = FluidRevmodel {
             roomsize: 0.0,
             damp: 0.0,

@@ -345,9 +345,28 @@ In dependency order, after the core each one needs exists:
    `tools/gen_sdl_mixer_testdata.py` (8- to 32-bit, mono to 8 channels,
    every subframe type and channel assignment, partition orders, escapes,
    Rice2, variable blocksizes, seek tables, tags and loop tags), truncated,
-   corrupted (also with their CRCs fixed), mixed, looped and seeked. Not
-   translated, as they need an external library or are LGPL: FluidSynth
-   and libgme.
+   corrupted (also with their CRCs fixed), mixed, looped and seeked. MIDI
+   through the FluidSynth that SDL_mixer vendors (`decoder_fluidsynth.c`
+   over FluidSynth 2.5.7, behind the `fluidsynth` feature, on by default
+   as upstream's SDLMIXER_MIDI_FLUIDSYNTH is, and registered before
+   TIMIDITY as upstream) is done: the parts of FluidSynth the decoder
+   reaches, built as SDL_mixer's CMake builds it (double samples, no
+   libsndfile, threads or drivers), are translated in their own crate,
+   `sdl3-mixer-fluidsynth`, which keeps FluidSynth's license
+   (`LGPL-2.1-or-later`, and `Apache-2.0` for the gcem math its lookup
+   tables are computed with, so effectively LGPL-3.0-or-later as a whole;
+   `default-features = false` leaves it out):
+   the settings, the synth with its channel messages, SYSEX, NRPNs and
+   monophonic modes, voices, modulators, tunings, the rvoice DSP, mixer,
+   reverb and chorus, the SoundFont 2 loader with its sample cache and
+   loader callbacks, and the MIDI file player; the drivers, shell,
+   sequencer, MIDI router, LADSPA, reading DLS files and SF3 samples are
+   left out. It is checked bit-for-bit against upstream's C on a synthetic
+   SoundFont and MIDI files from `tools/gen_fluidsynth_testdata.py` (sample
+   rates, settings, broken files, every message logged, and a fuzz pass;
+   upstream's IIR filter, which its CMake compiles with `-ffast-math`,
+   evaluated as written), and through the mixer. Not translated, as it
+   needs an external library SDL_mixer doesn't vendor: libgme.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

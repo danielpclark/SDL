@@ -38,6 +38,24 @@ pub(crate) const PROP_AUDIO_LOAD_ONDEMAND_BOOLEAN: &str = "SDL_mixer.audio.load.
 pub(crate) const PROP_DECODER_WAVPACK_WVC_IOSTREAM_POINTER: &str =
     "SDL_mixer.decoder.wavpack.wvc_iostream";
 pub(crate) const PROP_DECODER_WAVPACK_WVC_PATH_STRING: &str = "SDL_mixer.decoder.wavpack.wvc_path";
+/// The stream of a SoundFont for the FLUIDSYNTH decoder, as a
+/// `std::sync::Mutex<IoStream<'static>>` (set with
+/// [`Properties::set_any`]). It is read from where it is, and the caller
+/// keeps it (upstream closes it if `PROP_AUDIO_LOAD_CLOSEIO_BOOLEAN` is
+/// set).
+#[cfg_attr(not(feature = "fluidsynth"), allow(dead_code))]
+pub(crate) const PROP_DECODER_FLUIDSYNTH_SOUNDFONT_IOSTREAM_POINTER: &str =
+    "SDL_mixer.decoder.fluidsynth.soundfont_iostream";
+/// The path of a SoundFont for the FLUIDSYNTH decoder.
+#[cfg_attr(not(feature = "fluidsynth"), allow(dead_code))]
+pub(crate) const PROP_DECODER_FLUIDSYNTH_SOUNDFONT_PATH_STRING: &str =
+    "SDL_mixer.decoder.fluidsynth.soundfont_path";
+/// FluidSynth settings for the FLUIDSYNTH decoder (numbers, floats and
+/// strings, by their names), as a [`Properties`] (set with
+/// [`Properties::set_any`]; upstream's is the number of an
+/// `SDL_PropertiesID`).
+#[cfg_attr(not(feature = "fluidsynth"), allow(dead_code))]
+pub(crate) const PROP_DECODER_FLUIDSYNTH_PROPS_NUMBER: &str = "SDL_mixer.decoder.fluidsynth.props";
 
 // Clamp an IOStream to a subset of its available data...this is used to cut ID3 (etc) tags off
 //  both ends of an audio file, making it look like the file just doesn't have those bytes.

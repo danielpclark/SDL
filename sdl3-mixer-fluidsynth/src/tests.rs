@@ -36,9 +36,10 @@
 //! the `-ffast-math` upstream's CMake gives it (whose results depend on
 //! the compiler and the CPU); and patched where the translation works
 //! around upstream's memory errors and hangs (the `FIXME (upstream)` notes
-//! of fluid_voice.c and fluid_midi.c). The files here don't hit the other
-//! places where the translation does something defined where upstream
-//! reads or writes out of bounds.
+//! of fluid_voice.c, fluid_midi.c and fluid_rev.c, whose reverb renders
+//! its first blocks with uninitialized parameters). The files here don't
+//! hit the other places where the translation does something defined where
+//! upstream reads or writes out of bounds.
 //!
 //! `FSREF_CASES`, `FSREF_DIR` and `FSREF_DUMP` (a cases file, its data
 //! directory and where to write the output instead of comparing it) and
