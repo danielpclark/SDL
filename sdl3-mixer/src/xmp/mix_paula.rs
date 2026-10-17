@@ -147,7 +147,13 @@ fn mix_a500<const STEREOOUT: bool, const TAB: usize>(
     vr <<= 8;
     let mut b = 0usize;
     let paula = vi.paula.as_mut().unwrap();
-    let smp_at = |pos: u32| sptr[SAMPLE_GUARD + pos as usize] as i8 as i16;
+    /* FIXME (upstream): the steps between the output samples can reach
+     * past the end of the sample's data (and its guard bytes), where
+     * upstream reads out of bounds; here that reads 0. */
+    let smp_at = |pos: u32| {
+        sptr.get(SAMPLE_GUARD + pos as usize)
+            .map_or(0, |&b| b as i8 as i16)
+    };
 
     while count != 0 {
         // PAULA_SIMULATION(x)

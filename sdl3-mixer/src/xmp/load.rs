@@ -169,7 +169,17 @@ fn load_module(ctx: &mut ContextData, h: &mut HioHandle<'_>) -> i32 {
             break 'err_load;
         }
 
-        libxmp_adjust_string(&mut mod_.name);
+        {
+            /* (name and type are adjacent in upstream's struct xmp_module,
+             * so a name that fills its XMP_NAME_SIZE bytes runs on into the
+             * type) */
+            let mut both = [0u8; 2 * XMP_NAME_SIZE];
+            both[..XMP_NAME_SIZE].copy_from_slice(&mod_.name);
+            both[XMP_NAME_SIZE..].copy_from_slice(&mod_.type_);
+            libxmp_adjust_string(&mut both);
+            mod_.name.copy_from_slice(&both[..XMP_NAME_SIZE]);
+            mod_.type_.copy_from_slice(&both[XMP_NAME_SIZE..]);
+        }
         for i in 0..mod_.ins as usize {
             if let Some(xxi) = mod_.xxi.get_mut(i) {
                 libxmp_adjust_string(&mut xxi.name);
