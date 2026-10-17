@@ -4,11 +4,13 @@
 Everything is made from a synthetic signal (a few sines, a chirp and
 some LCG noise), so there's nothing copyrighted in the files and they stay
 small (a quarter second or so each). The encoded formats come from ffmpeg
-(with its libmp3lame, libvorbis, FLAC, ADPCM and PCM encoders and its WAV,
-AIFF, AU, VOC, MP3, MP2, Ogg and FLAC muxers); the files with chunks or tags
-ffmpeg doesn't write (WAV sample loops and ID3 chunks, VOC loops, silence and
-text blocks, APE tags, junk before the first MP3 frame) are put together
-here.
+(with its libmp3lame, libvorbis, libopus, FLAC, ADPCM and PCM encoders and
+its WAV, AIFF, AU, VOC, MP3, MP2, Ogg and FLAC muxers); the files with chunks
+or tags ffmpeg doesn't write (WAV sample loops and ID3 chunks, VOC loops,
+silence and text blocks, APE tags, junk before the first MP3 frame) and the
+Ogg Opus streams spliced from ffmpeg's packets (mode transitions, lost
+pages, an output gain) or patched (an unsupported channel mapping) are put
+together here.
 
 Encoders change between versions, so regenerating the files will likely
 change them, and then sdl3-mixer's reference output
@@ -71,11 +73,11 @@ def write(name, data):
         f.write(data)
 
 
-def ffmpeg(name, freq, channels, seconds, args, fmt=None, seed=1, metadata=()):
-    """Encode the test signal with ffmpeg."""
+def ffmpeg(name, freq, channels, seconds, args, fmt=None, seed=1, metadata=(), sig=None, save=True):
+    """Encode the test signal (or `sig`'s) with ffmpeg; `name` is written unless `save` is false."""
     with tempfile.TemporaryDirectory() as tmp:
         src = os.path.join(tmp, 'src.wav')
-        samples = signal(freq, channels, seconds, seed)
+        samples = (sig or signal)(freq, channels, seconds, seed)
         data = s16(samples)
         hdr = struct.pack('<4sI4s4sIHHIIHH4sI', b'RIFF', 36 + len(data), b'WAVE', b'fmt ', 16, 1,
                           channels, freq, freq * channels * 2, channels * 2, 16, b'data', len(data))
@@ -93,7 +95,8 @@ def ffmpeg(name, freq, channels, seconds, args, fmt=None, seed=1, metadata=()):
         subprocess.run(cmd, check=True)
         with open(dst, 'rb') as f:
             out = f.read()
-    write(name, out)
+    if save:
+        write(name, out)
     return out
 
 
@@ -275,6 +278,184 @@ def flac_files():
            metadata=(('TITLE', 'Ogg FLAC'),))
 
 
+def varied(freq, channels, seconds, seed=1):
+    """The test signal with noisy, quiet and buzzing stretches, which make
+    libopus switch between its SILK, hybrid and CELT modes."""
+    base = signal(freq, channels, seconds, seed)
+    rng = Lcg(seed + 1000)
+    out = []
+    for i in range(len(base) // channels):
+        seg = int(i / (freq * 0.15)) % 4
+        for c in range(channels):
+            v = base[i * channels + c]
+            if seg == 1:
+                v = 0.6 * rng.unit()
+            elif seg == 2:
+                v *= 0.02
+            elif seg == 3:
+                v = 0.5 * math.sin(2 * math.pi * 150 * i / freq) * (1 + 0.5 * math.sin(2 * math.pi * 4 * i / freq))
+            out.append(v)
+    return out
+
+
+def ogg_crc(data):
+    crc = 0
+    for b in data:
+        crc ^= b << 24
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x04C11DB7) & 0xFFFFFFFF if crc & 0x80000000 else (crc << 1) & 0xFFFFFFFF
+    return crc
+
+
+def ogg_page(serial, seq, gp, flags, lacing, body):
+    hdr = struct.pack('<4sBBqIII', b'OggS', 0, flags, gp, serial, seq, 0) + bytes([len(lacing)]) + bytes(lacing)
+    return hdr[:22] + struct.pack('<I', ogg_crc(hdr + body)) + hdr[26:] + body
+
+
+def ogg_packets(data):
+    """The packets of an Ogg file, in order (of whatever streams)."""
+    packets, pkt, p = [], b'', 0
+    while p + 27 <= len(data) and data[p:p + 4] == b'OggS':
+        lacing = data[p + 27:p + 27 + data[p + 26]]
+        q = p + 27 + len(lacing)
+        for n in lacing:
+            pkt += data[q:q + n]
+            q += n
+            if n < 255:
+                packets.append(pkt)
+                pkt = b''
+        p = q
+    return packets
+
+
+def opus_duration(pkt):
+    """An Opus packet's duration, in 48 kHz samples."""
+    cfg = pkt[0] >> 3
+    if cfg < 12:
+        size = [480, 960, 1920, 2880][cfg & 3]
+    elif cfg < 16:
+        size = [480, 960][cfg & 1]
+    else:
+        size = [120, 240, 480, 960][cfg & 3]
+    code = pkt[0] & 3
+    return size * (1 if code == 0 else 2 if code < 3 else pkt[1] & 0x3F)
+
+
+def opus_tags(comments):
+    out = b'OpusTags' + struct.pack('<I', 15) + b'sdl3-mixer test' + struct.pack('<I', len(comments))
+    for c in comments:
+        out += struct.pack('<I', len(c)) + c.encode('utf-8')
+    return out
+
+
+def ogg_opus(head, tags, packets, serial=0x0505, max_segments=7, drop_page=None):
+    """An Ogg Opus stream of the packets, `max_segments` lacing values a
+    page (so the longer packets continue on the next page), with page
+    `drop_page` (counting the audio pages) left out as if lost."""
+    pre_skip = struct.unpack('<H', head[10:12])[0]
+    out = ogg_page(serial, 0, 0, 2, [len(head)], head) + ogg_page(serial, 1, 0, 0, [len(tags)], tags)
+    segs = []  # (lacing value, data, granule position if it ends a packet)
+    gp = pre_skip
+    for pkt in packets:
+        gp += opus_duration(pkt)
+        n = len(pkt)
+        for k in range(n // 255 + 1):
+            last = k == n // 255
+            segs.append((n - 255 * k if last else 255, pkt[255 * k:255 * (k + 1)], gp if last else None))
+    seq, page = 2, 0
+    continued = False
+    for start in range(0, len(segs), max_segments):
+        chunk_ = segs[start:start + max_segments]
+        ends = [g for (_, _, g) in chunk_ if g is not None]
+        eos = start + max_segments >= len(segs)
+        flags = (1 if continued else 0) | (4 if eos else 0)
+        if page != drop_page:
+            out += ogg_page(serial, seq, ends[-1] if ends else -1, flags, [n for (n, _, _) in chunk_],
+                            b''.join(d for (_, d, _) in chunk_))
+        continued = chunk_[-1][2] is None
+        seq += 1
+        page += 1
+    return out
+
+
+def patch_head(data, offset, value):
+    """`data` (an Ogg Opus file) with bytes changed in its first page's
+    packet (the OpusHead), the page checksum fixed."""
+    out = bytearray(data)
+    hdr = 27 + out[26]
+    out[hdr + offset:hdr + offset + len(value)] = value
+    body = sum(out[27:hdr])
+    out[22:26] = b'\0\0\0\0'
+    out[22:26] = struct.pack('<I', ogg_crc(bytes(out[:hdr + body])))
+    return bytes(out)
+
+
+def opus_files():
+    opus = ['-c:a', 'libopus', '-page_duration', '100000']
+    ffmpeg('opus_silk_wb.opus', 16000, 1, 0.3, opus + ['-application', 'voip', '-b:a', '12k'], 'ogg', seed=80,
+           metadata=(('TITLE', 'Opus test'), ('ARTIST', 'sdl3-mixer'), ('ALBUM', 'Test data'),
+                     ('R128_TRACK_GAIN', '-256'), ('R128_ALBUM_GAIN', '+512')))
+    ffmpeg('opus_silk_nb_60ms.opus', 8000, 1, 0.5, opus + ['-application', 'voip', '-b:a', '6k', '-frame_duration', '60',
+                                                         '-fec', '1', '-packet_loss', '25'], 'ogg', seed=81)
+    ffmpeg('opus_silk_mb_stereo.opus', 12000, 2, 0.3, opus + ['-application', 'voip', '-b:a', '16k', '-frame_duration',
+                                                            '40'], 'ogg', seed=82)
+    ffmpeg('opus_hybrid_stereo.opus', 48000, 2, 0.4, opus + ['-application', 'audio', '-b:a', '24k'], 'ogg', seed=83,
+           metadata=(('TITLE', 'Opus loop'), ('LOOPSTART', '4800'), ('LOOPLENGTH', '9600')))
+    ffmpeg('opus_hybrid_10ms.opus', 24000, 1, 0.3, opus + ['-application', 'audio', '-b:a', '20k', '-frame_duration',
+                                                         '10'], 'ogg', seed=84)
+    ffmpeg('opus_celt_44k.opus', 44100, 2, 0.25, opus + ['-application', 'lowdelay', '-b:a', '96k', '-frame_duration',
+                                                       '10'], 'ogg', seed=85)
+    ffmpeg('opus_celt_2_5ms.opus', 48000, 1, 0.15, opus + ['-application', 'lowdelay', '-b:a', '64k', '-frame_duration',
+                                                         '2.5'], 'ogg', seed=86)
+    ffmpeg('opus_celt_nb_5ms.opus', 8000, 1, 0.2, opus + ['-application', 'lowdelay', '-b:a', '16k', '-frame_duration',
+                                                        '5'], 'ogg', seed=87)
+    # The encoder switches modes as the signal changes (and codes the
+    # transitions' redundant CELT frames).
+    ffmpeg('opus_switch_silk_celt.opus', 16000, 1, 1.2, opus + ['-application', 'audio', '-b:a', '16k'], 'ogg',
+           seed=88, sig=varied)
+    ffmpeg('opus_switch_hybrid_celt.opus', 24000, 2, 0.9, opus + ['-application', 'audio', '-b:a', '28k'], 'ogg',
+           seed=89, sig=varied)
+    ffmpeg('opus_6ch.opus', 48000, 6, 0.2, opus + ['-b:a', '160k'], 'ogg', seed=90)
+    ffmpeg('opus_quad.opus', 48000, 4, 0.2, opus + ['-ch_layout', 'quad', '-b:a', '96k'], 'ogg', seed=91)
+
+    # Packets of different modes, frame sizes and channel counts spliced
+    # into one stream, which the decoder takes as mode transitions.
+    def part(freq, channels, seconds, args, seed):
+        return [p for p in ogg_packets(ffmpeg('', freq, channels, seconds, opus + args, 'ogg', seed=seed, save=False))
+                if p[:8] not in (b'OpusHead', b'OpusTags')]
+    silk = part(16000, 1, 0.3, ['-application', 'voip', '-b:a', '12k'], 92)
+    celt = part(48000, 1, 0.1, ['-application', 'lowdelay', '-b:a', '128k', '-frame_duration', '20'], 93)
+    hybrid = part(48000, 1, 0.2, ['-application', 'audio', '-b:a', '24k'], 94)
+    celt_short = part(48000, 1, 0.05, ['-application', 'lowdelay', '-b:a', '64k', '-frame_duration', '2.5'], 95)
+    silk60 = part(8000, 1, 0.2, ['-application', 'voip', '-b:a', '6k', '-frame_duration', '60'], 96)
+    hybrid10 = part(24000, 1, 0.1, ['-application', 'audio', '-b:a', '20k', '-frame_duration', '10'], 97)
+    stereo_silk = part(16000, 2, 0.1, ['-application', 'voip', '-b:a', '20k'], 98)
+    stereo_celt = part(48000, 2, 0.1, ['-application', 'lowdelay', '-b:a', '96k', '-frame_duration', '10'], 99)
+    spliced = (silk[:6] + celt[:5] + silk[6:10] + hybrid[:5] + silk[10:14] + celt_short[:20] + hybrid[5:10]
+               + silk60[:3] + hybrid10[:10] + stereo_silk[:4] + celt[5:] + stereo_celt[:6] + hybrid[10:])
+    head = ogg_packets(ffmpeg('', 48000, 1, 0.05, opus, 'ogg', seed=100, save=False))[0]
+    tags = opus_tags(['TITLE=Opus spliced', 'LOOPSTART=2000', 'LOOPEND=12000'])
+    # with a -6 dB output gain in the header
+    write('opus_spliced_mono.opus', ogg_opus(head[:16] + struct.pack('<h', -1536) + head[18:], tags, spliced))
+    head2 = head[:9] + b'\x02' + head[10:]
+    spliced2 = (stereo_silk[:4] + silk[:5] + stereo_celt[:6] + celt[:4] + hybrid[:6] + stereo_silk[4:] + celt_short[:12]
+                + stereo_celt[6:])
+    write('opus_spliced_stereo.opus', ogg_opus(head2, opus_tags([]), spliced2, max_segments=5))
+    # a lost page
+    write('opus_hole.opus', ogg_opus(head2, opus_tags([]), spliced2, max_segments=5, drop_page=3))
+
+    # A chained file: three links with different channel counts.
+    chain = ffmpeg('', 48000, 2, 0.2, opus + ['-b:a', '64k', '-serial_offset', '11'], 'ogg', seed=101, save=False)
+    chain += ffmpeg('', 16000, 1, 0.25, opus + ['-application', 'voip', '-b:a', '10k', '-serial_offset', '22'], 'ogg',
+                    seed=102, save=False, metadata=(('TITLE', 'Second link'),))
+    chain += ffmpeg('', 48000, 6, 0.15, opus + ['-b:a', '128k', '-serial_offset', '33'], 'ogg', seed=103, save=False)
+    write('opus_chained.opus', chain)
+
+    # Channel mapping family 255, which opusfile doesn't play.
+    plain = ffmpeg('', 48000, 2, 0.1, opus + ['-b:a', '48k'], 'ogg', seed=104, save=False)
+    write('opus_family255.opus', patch_head(plain, 18, b'\xff'))
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     wav_files()
@@ -284,6 +465,7 @@ def main():
     mp3_files()
     ogg_files()
     flac_files()
+    opus_files()
 
 
 if __name__ == '__main__':
