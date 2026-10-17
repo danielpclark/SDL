@@ -283,6 +283,12 @@ pub(crate) trait TrackData: Send {
     fn decode(&mut self, stream: &AudioStream) -> bool;
     /// Seek to a sample frame.
     fn seek(&mut self, frame: u64) -> Result<()>;
+    /// [`seek()`](Self::seek) for a track that decodes into `stream`: the
+    /// FLAC decoder's seeks decode the frame they land in, which upstream
+    /// puts into the stream the last `decode()` got (`tdata->stream`).
+    fn seek_with_stream(&mut self, frame: u64, _stream: Option<&AudioStream>) -> Result<()> {
+        self.seek(frame)
+    }
     /// Jump to an order in a module (only the `XMP` decoder supports it; see
     /// [`Decoder::has_jump_to_order`]).
     fn jump_to_order(&mut self, _order: i32) -> Result<()> {

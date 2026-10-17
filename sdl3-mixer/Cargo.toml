@@ -7,7 +7,8 @@ rust-version.workspace = true
 # SDL_mixer's zlib license, the BSD licenses of libopus, opusfile and
 # libogg for the translations of them in src/opus/, src/opusfile/ and
 # src/ogg/, libvorbis's BSD license for the translation of it and of
-# libvorbisfile in src/vorbis/, WavPack's BSD license for the translation of it in src/wavpack/,
+# libvorbisfile in src/vorbis/, libFLAC's BSD license for the translation
+# of it in src/flac/, WavPack's BSD license for the translation of it in src/wavpack/,
 # and libxmp's MIT license for the translation of it in src/xmp/ (see
 # LICENSE.txt).
 license = "Zlib AND BSD-3-Clause AND MIT"
@@ -22,7 +23,7 @@ path = "src/lib.rs"
 
 # The decoders are self-contained, as upstream's are when it is built with
 # its bundled codecs: dr_mp3, dr_flac and stb_vorbis are translated here,
-# as are the libraries SDL_mixer vendors (libvorbis, libopus, WavPack...),
+# as are the libraries SDL_mixer vendors (libvorbis, libFLAC, libopus...),
 # with SDL_mixer's own WAV, AIFF, VOC and AU decoders. No system audio
 # library is linked or loaded.
 [dependencies]
@@ -31,7 +32,7 @@ sdl3 = { path = "../sdl3", version = "3.5.0" }
 # NOTE: TiMidity is not zlib-licensed: sdl3-mixer-timidity is under
 # "Artistic-1.0-Perl OR LGPL-2.1-only". Build with
 # `default-features = false` for an sdl3-mixer under the zlib license (and
-# the BSD licenses of the Vorbis, Opus and WavPack decoders' libraries, and
+# the BSD licenses of the Vorbis, FLAC, Opus and WavPack decoders' libraries, and
 # libxmp's MIT license) only.
 sdl3-mixer-timidity = { path = "../sdl3-mixer-timidity", version = "3.5.0", optional = true }
 

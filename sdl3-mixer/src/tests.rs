@@ -88,6 +88,13 @@ static FILES: &[(&str, &[u8])] = files![
     "au_s8_stereo.au",
     "au_ulaw.au",
     "flac_6ch.flac",
+    "flac_c_escape0.flac",
+    "flac_c_s12_8ch.flac",
+    "flac_c_s16_lpc.flac",
+    "flac_c_s20_stereo.flac",
+    "flac_c_s24_3ch.flac",
+    "flac_c_s32_mono.flac",
+    "flac_c_s8_mono.flac",
     "flac_fixed_mono.flac",
     "flac_ogg.oga",
     "flac_s16_stereo.flac",
@@ -294,6 +301,11 @@ static FORCED: &[(&str, &str)] = &[
     ("ogg_8k.ogg", "STBVORBIS"),
     ("ogg_mono.ogg", "STBVORBIS"),
     ("ogg_stereo.ogg", "STBVORBIS"),
+    ("flac_6ch.flac", "DRFLAC"),
+    ("flac_fixed_mono.flac", "DRFLAC"),
+    ("flac_ogg.oga", "DRFLAC"),
+    ("flac_s16_stereo.flac", "DRFLAC"),
+    ("flac_s24_mono.flac", "DRFLAC"),
 ];
 
 thread_local! {
@@ -1656,9 +1668,20 @@ fn vorbis_quality_short_matches_upstream() {
     files_with_prefix(&["ogg_q", "ogg_s"]);
 }
 
+// (the FLAC files in a few tests, so they run in parallel)
 #[test]
 fn flac_matches_upstream() {
-    files_with_prefix(&["flac_"]);
+    files_with_prefix(&["flac_6", "flac_f", "flac_o", "flac_s"]);
+}
+
+#[test]
+fn flac_crafted_matches_upstream() {
+    files_with_prefix(&["flac_c_e", "flac_c_s1", "flac_c_s8"]);
+}
+
+#[test]
+fn flac_crafted_wide_matches_upstream() {
+    files_with_prefix(&["flac_c_s2", "flac_c_s3"]);
 }
 
 #[test]
