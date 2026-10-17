@@ -6,7 +6,9 @@
 //! `tools/gen_sdl_mixer_testdata.py` (a synthetic signal, encoded by ffmpeg
 //! or put together by the script). `testdata/reference.txt` is the output
 //! of a C program built from upstream SDL_mixer (with its dr_mp3, dr_flac
-//! and stb_vorbis decoders) and SDL3, which these tests repeat and compare
+//! and stb_vorbis decoders, and its Opus decoder over the libopus 1.4,
+//! opusfile 0.12 and libogg 1.3.5 it vendors, built as its CMake builds
+//! them but without SIMD) and SDL3, which these tests repeat and compare
 //! line by line:
 //!
 //! - for every file, the decoder that opens it, its format, metadata and
@@ -16,7 +18,8 @@
 //!   upstream does), and for Ogg files, copies with corrupted packets in
 //!   intact pages (their checksums fixed);
 //! - the output of mixers (`MIX_Generate()`) playing each file, loaded on
-//!   demand and predecoded, with loops and seeks;
+//!   demand and predecoded, with loops and seeks (and, for the Opus files,
+//!   seeks all around them);
 //! - mixer features (gains, fades, stereo and 3D positioning, frequency
 //!   ratios, tags, groups and callbacks, channel maps, other output formats)
 //!   on a few files, the sine wave and raw audio decoders;
@@ -28,7 +31,8 @@
 //! Hashes are FNV-1a over the bytes. Upstream's C was patched where
 //! sdl3-mixer works around its crashes and memory errors (the
 //! `FIXME (upstream)` notes), and built to use SDL's bundled math functions,
-//! as sdl3's are, rather than the C library's.
+//! as sdl3's are, rather than the C library's (libopus's `exp()`, `log()`
+//! and `cos()` too).
 //!
 //! One thing can't be pinned: corrupt input can decode to NaNs, and when
 //! both operands of an x86 float operation are NaNs, the result is the
@@ -84,6 +88,23 @@ static FILES: &[(&str, &[u8])] = files![
     "ogg_8k.ogg",
     "ogg_mono.ogg",
     "ogg_stereo.ogg",
+    "opus_6ch.opus",
+    "opus_celt_2_5ms.opus",
+    "opus_celt_44k.opus",
+    "opus_celt_nb_5ms.opus",
+    "opus_chained.opus",
+    "opus_family255.opus",
+    "opus_hole.opus",
+    "opus_hybrid_10ms.opus",
+    "opus_hybrid_stereo.opus",
+    "opus_quad.opus",
+    "opus_silk_mb_stereo.opus",
+    "opus_silk_nb_60ms.opus",
+    "opus_silk_wb.opus",
+    "opus_spliced_mono.opus",
+    "opus_spliced_stereo.opus",
+    "opus_switch_hybrid_celt.opus",
+    "opus_switch_silk_celt.opus",
     "voc_blocks.voc",
     "voc_loop_infinite.voc",
     "voc_loop_nosize.voc",
@@ -344,6 +365,56 @@ fn mixtest(out: &mut String, label: &str, data: &[u8], predecode: bool) {
     .unwrap();
 }
 
+/// Seek a track around an Opus file.
+fn seektest(out: &mut String, data: &[u8]) {
+    let spec = AudioSpec {
+        format: AudioFormat::F32,
+        channels: 2,
+        freq: 48000,
+    };
+    let m = Mixer::new(&spec).unwrap();
+    let a = match Audio::load_io(Some(&m), &mut mem_io(data), false) {
+        Ok(a) => a,
+        Err(e) => {
+            writeln!(out, "seek: err: {e}").unwrap();
+            return;
+        }
+    };
+    let dur = a.duration().unwrap_or(-1);
+    let t = Track::new(&m).unwrap();
+    let _ = t.set_audio(Some(&a));
+    let ok = t.play(None).is_ok();
+    let targets = [
+        0,
+        1,
+        311,
+        960,
+        3840,
+        4801,
+        12345,
+        dur / 2,
+        dur - 500,
+        dur - 1,
+        0,
+        dur + 1000,
+        100,
+    ];
+    for target in targets {
+        let seeked = t.set_playback_position(target).is_ok();
+        let pos = t.playback_position().unwrap_or(-1);
+        let mut h = FNV0;
+        generate(&m, 1, &mut h);
+        writeln!(
+            out,
+            "seek {target}: play={} seek={} pos={pos} playing={} {h:016x}",
+            ok as i32,
+            seeked as i32,
+            t.playing() as i32
+        )
+        .unwrap();
+    }
+}
+
 struct Lcg(u32);
 
 impl Lcg {
@@ -474,6 +545,9 @@ fn test_file(out: &mut String, name: &str, data: &[u8]) {
 
     mixtest(out, "mix", data, false);
     mixtest(out, "mixpre", data, true);
+    if name.starts_with("opus_") {
+        seektest(out, data);
+    }
 }
 
 /// Mixer features on one file.
@@ -849,6 +923,11 @@ fn vorbis_matches_upstream() {
 #[test]
 fn flac_matches_upstream() {
     files_with_prefix(&["flac_"]);
+}
+
+#[test]
+fn opus_matches_upstream() {
+    files_with_prefix(&["opus_"]);
 }
 
 /// The MIDI files, in the reference's order (sdl3-mixer-timidity's, read

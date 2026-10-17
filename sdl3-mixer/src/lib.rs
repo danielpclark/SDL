@@ -23,7 +23,9 @@
 //! * Decoders: WAV (PCM, IEEE float, mu-law, a-law, MS and IMA ADPCM, with
 //!   `smpl` loops), AIFF and AIFF-C, Creative VOC, Sun/NeXT AU, MP3 (the
 //!   bundled dr_mp3), Ogg Vorbis (the bundled stb_vorbis), FLAC (the
-//!   bundled dr_flac), raw PCM and a sine wave generator; ID3v1/v2, APE,
+//!   bundled dr_flac), Ogg Opus (opusfile, libopus's decoder and libogg,
+//!   as SDL_mixer vendors them, translated here under their BSD licenses),
+//!   raw PCM and a sine wave generator; ID3v1/v2, APE,
 //!   Lyrics3 and MusicMatch tags and Ogg comments become metadata
 //!   properties, and Ogg `LOOPSTART`-style comments loop.
 //! * MIDI (the `TIMIDITY` decoder) through the bundled TiMidity, translated
@@ -34,11 +36,12 @@
 //!   `timidity` Cargo feature, on by default (as upstream builds it by
 //!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
 //!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
-//!   `default-features = false` for a purely zlib-licensed sdl3-mixer
-//!   without MIDI.
+//!   `default-features = false` for an sdl3-mixer without MIDI under the
+//!   zlib license only (and the BSD licenses of its Opus decoder's
+//!   libraries).
 //! * The decoders
-//!   upstream builds against an external library are not translated: Opus
-//!   (libopusfile), MOD and friends (libxmp), MIDI through FluidSynth,
+//!   upstream builds against another external library are not translated:
+//!   MOD and friends (libxmp), MIDI through FluidSynth,
 //!   WavPack, the game music formats (libgme), and the alternative MP3,
 //!   Vorbis and FLAC decoders (libmpg123, libvorbisfile, libFLAC), as in an
 //!   upstream build without them. [`audio_decoder`] lists the ones
@@ -79,6 +82,7 @@ mod decoder_aiff;
 mod decoder_au;
 mod decoder_drflac;
 mod decoder_drmp3;
+mod decoder_opus;
 mod decoder_raw;
 mod decoder_sinewave;
 mod decoder_stb_vorbis;
@@ -91,6 +95,9 @@ mod dr_mp3;
 mod internal;
 mod metadata_tags;
 mod mixer;
+mod ogg;
+mod opus;
+mod opusfile;
 mod spatialization;
 mod stb_vorbis;
 

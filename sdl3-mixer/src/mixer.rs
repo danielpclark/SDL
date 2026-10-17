@@ -70,6 +70,7 @@ use crate::{
 static DECODERS: &[&Decoder] = &[
     &crate::decoder_wav::DECODER,
     &crate::decoder_stb_vorbis::DECODER,
+    &crate::decoder_opus::DECODER,
     &crate::decoder_drflac::DECODER,
     #[cfg(feature = "timidity")]
     &crate::decoder_timidity::DECODER,

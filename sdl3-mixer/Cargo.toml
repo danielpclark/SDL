@@ -4,7 +4,10 @@ description = "A direct, pure-Rust translation of SDL_mixer 3, the audio mixer l
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+# SDL_mixer's zlib license, and the BSD licenses of libopus, opusfile and
+# libogg for the translations of them in src/opus/, src/opusfile/ and
+# src/ogg/ (see LICENSE.txt).
+license = "Zlib AND BSD-3-Clause"
 repository.workspace = true
 readme = "../README.md"
 keywords = ["sdl", "sdl3", "audio", "mixer", "pure-rust"]
@@ -23,7 +26,8 @@ sdl3 = { path = "../sdl3", version = "3.5.0" }
 # MIDI through the bundled TiMidity, which upstream builds by default.
 # NOTE: TiMidity is not zlib-licensed: sdl3-mixer-timidity is under
 # "Artistic-1.0-Perl OR LGPL-2.1-only". Build with
-# `default-features = false` for a purely zlib-licensed sdl3-mixer.
+# `default-features = false` for an sdl3-mixer under the zlib license (and
+# the BSD licenses of the Opus decoder's libraries) only.
 sdl3-mixer-timidity = { path = "../sdl3-mixer-timidity", version = "3.5.0", optional = true }
 
 [features]

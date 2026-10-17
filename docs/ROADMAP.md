@@ -231,8 +231,14 @@ In dependency order, after the core each one needs exists:
    MusicMatch, Ogg comments with loop points), and the self-contained
    decoders: WAV (PCM, float, mu-law, a-law, MS and IMA ADPCM, `smpl`
    loops), AIFF/AIFF-C, VOC, AU, raw PCM, the sine wave, MP3 (`dr_mp3.h`
-   with minimp3), Ogg Vorbis (`stb_vorbis.h`, with SDL_mixer's patches)
-   and FLAC and Ogg FLAC (`dr_flac.h`); checked against upstream's C on
+   with minimp3), Ogg Vorbis (`stb_vorbis.h`, with SDL_mixer's patches),
+   FLAC and Ogg FLAC (`dr_flac.h`) and Ogg Opus (`decoder_opus.c` over
+   translations of the opusfile 0.12, libopus 1.4 and libogg 1.3.5 that
+   SDL_mixer vendors: libopus's float decoder as SDL_mixer's CMake builds
+   it, with SILK, CELT, hybrid frames, mode transitions and redundancy,
+   packet loss concealment, FEC and multistream, in its plain C paths;
+   opusfile's opening, chained links, seeking and float reading); checked
+   against upstream's C on
    test audio from `tools/gen_sdl_mixer_testdata.py` (decoding in three
    formats, truncated and corrupted input, Ogg packets corrupted in intact
    pages, mixing with loops and seeks, and the mixer features).
@@ -241,14 +247,15 @@ In dependency order, after the core each one needs exists:
    is) is done: `src/timidity/` is translated in its own crate,
    `sdl3-mixer-timidity`, which keeps TiMidity's license
    (`Artistic-1.0-Perl OR LGPL-2.1-only`; `default-features = false`
-   leaves it out for a purely zlib-licensed `sdl3-mixer`). It reads
+   leaves it out for an `sdl3-mixer` under the zlib license and the
+   BSD licenses of its Opus decoder's libraries only). It reads
    `timidity.cfg` files, GUS patches and SoundFonts, and is checked
    bit-for-bit against upstream's C on synthetic patches, a SoundFont and
    MIDI files from `tools/gen_timidity_testdata.py` (eight output formats,
    seeks, truncated and corrupted files and broken patches, and through
-   the mixer). Not translated, as they need an external library: Opus
-   (libopusfile), libxmp, FluidSynth, WavPack, libgme, and the libmpg123,
-   libvorbisfile and libFLAC decoders.
+   the mixer). Not translated, as they need an external library: libxmp,
+   FluidSynth, WavPack, libgme, and the libmpg123, libvorbisfile and
+   libFLAC decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

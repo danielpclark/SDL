@@ -24,8 +24,9 @@
 //! 2.1, at your choice (see `COPYING`, `COPYING.artistic`, `COPYING.LGPL`
 //! and `NOTICE` in this crate). `sdl3-mixer` uses it through its
 //! `timidity` Cargo feature, which is on by default; build `sdl3-mixer`
-//! with `default-features = false` for a purely zlib-licensed build
-//! without MIDI.
+//! with `default-features = false` for a build without MIDI or this
+//! license (under the zlib license, and the BSD licenses of
+//! `sdl3-mixer`'s Opus decoder).
 //!
 //! The API is upstream's `Timidity_*` functions: [`init`] reads the
 //! configuration (global, as upstream's is), [`MidiSong::load`] reads a
