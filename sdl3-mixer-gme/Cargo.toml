@@ -1,0 +1,25 @@
+[package]
+name = "sdl3-mixer-gme"
+description = "A direct, pure-Rust translation of the Game_Music_Emu game music emulators bundled with SDL_mixer 3, for sdl3-mixer. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# Game_Music_Emu's own terms (see COPYING): the GNU LGPL, version 2.1 or
+# (at your option) any later version, as each of its files says; and, for
+# the translation of the emu2413 YM2413 emulator it carries for the NES
+# VRC7 (src/emu2413.rs), the MIT license (COPYING.emu2413). Not zlib,
+# unlike the rest of this repository; see NOTICE.
+license = "LGPL-2.1-or-later AND MIT"
+repository.workspace = true
+readme = "NOTICE"
+keywords = ["sdl", "sdl3", "gme", "chiptune", "pure-rust"]
+categories = ["multimedia::audio", "game-development"]
+
+[lib]
+name = "sdl3_mixer_gme"
+path = "src/lib.rs"
+
+# For SDL's math (its fdlibm sin(), cos() and pow(), which give the
+# filter kernels the C library's do).
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }

@@ -1,0 +1,96 @@
+// Game_Music_Emu 0.6.5: Game Music Emulators
+// Copyright (C) 2003-2006 Shay Green, and its other authors; see NOTICE.
+// Game_Music_Emu is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published
+// by the Free Software Foundation; either version 2.1 of the License, or
+// (at your option) any later version (see COPYING).
+// Modified 2026-10-17: translated into Rust from SDL_mixer 3.3.0's Game_Music_Emu 0.6.5 (see NOTICE).
+
+//! # sdl3-mixer-gme — SDL_mixer's Game_Music_Emu, translated to Rust
+//!
+//! A line-by-line translation of the Game_Music_Emu 0.6.5 that SDL_mixer
+//! 3.3.0 vendors (`external/libgme`, its `v0.6.5-SDL` branch), for
+//! SDL_mixer's `GME` decoder: the music of classic video game consoles and
+//! computers, emulated from the rips of their sound programs.
+//!
+//! Unlike the rest of this repository, which is under the zlib license,
+//! Game_Music_Emu is under the GNU LGPL, version 2.1 or later (see
+//! `COPYING` and `NOTICE` in this crate), and the emu2413 YM2413 emulator
+//! it carries for the NES VRC7 is under the MIT license
+//! (`COPYING.emu2413`).
+//!
+//! ## What is translated
+//!
+//! What SDL_mixer's build of libgme (its CMake project, as SDL_mixer's
+//! CMakeLists configures it: every emulator, the Nuked OPN2 YM2612 core,
+//! no zlib) reaches from SDL_mixer's `decoder_gme.c`, which identifies a
+//! file by its header, opens it from memory for its information and to
+//! play it, starts and switches tracks, plays and seeks:
+//!
+//! - `Music_Emu` and `Gme_File` (track starting, silence detection and
+//!   skipping, fades, seeking, tempo, voice muting, the equalizer), the
+//!   track information, `Classic_Emu` with its ROM handler, the readers;
+//! - `Blip_Buffer` (band-limited synthesis, its synths and equalization),
+//!   `Stereo_Buffer` and `Effects_Buffer` (with its stereo depth, echo and
+//!   reverb);
+//! - the NSF and NSFE emulators: the NES 6502 CPU, the 2A03 APU and the
+//!   VRC6, Namco 106, FME-7, FDS, MMC5 and VRC7 sound chips (the VRC7 over
+//!   emu2413).
+//!
+//! The API is upstream's `gme_*` functions (in [`gme`]), on [`MusicEmu`]
+//! trait objects.
+
+#![forbid(unsafe_code)]
+#![warn(missing_debug_implementations)]
+// The translation keeps upstream's code shape (its branches, constants,
+// counters and arithmetic, including its quirks), which these lints would
+// have rewritten.
+#![allow(
+    clippy::approx_constant,
+    clippy::collapsible_else_if,
+    clippy::collapsible_match,
+    clippy::explicit_counter_loop,
+    clippy::int_plus_one,
+    clippy::manual_clamp,
+    clippy::manual_div_ceil,
+    clippy::collapsible_if,
+    clippy::comparison_chain,
+    clippy::eq_op,
+    clippy::erasing_op,
+    clippy::excessive_precision,
+    clippy::identity_op,
+    clippy::if_same_then_else,
+    clippy::manual_range_contains,
+    clippy::needless_range_loop,
+    clippy::needless_return,
+    clippy::single_match,
+    clippy::too_many_arguments,
+    clippy::unnecessary_cast,
+    clippy::new_without_default
+)]
+
+pub mod blargg_common;
+pub mod blip_buffer;
+pub mod classic_emu;
+pub mod data_reader;
+pub mod effects_buffer;
+pub mod emu2413;
+pub mod gme;
+pub mod gme_file;
+pub mod multi_buffer;
+pub mod music_emu;
+pub mod nes_apu;
+pub mod nes_cpu;
+pub mod nes_fds_apu;
+pub mod nes_fme7_apu;
+pub mod nes_mmc5_apu;
+pub mod nes_namco_apu;
+pub mod nes_oscs;
+pub mod nes_vrc6_apu;
+pub mod nes_vrc7_apu;
+pub mod nsf_emu;
+pub mod nsfe_emu;
+
+pub use gme::*;
+pub use gme_file::{GmeType, GmeTypeT, TrackInfo};
+pub use music_emu::{Equalizer, MusicEmu};
