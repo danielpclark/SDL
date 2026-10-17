@@ -1,0 +1,602 @@
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=0ae26019728b2a95
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic48k sf=1 add=0 play=0 frames=194816 status=3 ticks=938 total=228 voices=0 hash=96b4030fdac37e27
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic22k sf=1 add=0 play=0 frames=89600 status=3 ticks=939 total=228 voices=0 hash=ac6d7906f68e7bc0
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic8k sf=1 add=0 play=0 frames=32768 status=3 ticks=943 total=228 voices=0 hash=1b4f9828bdb1d4d6
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic96k sf=1 add=0 play=0 frames=389120 status=3 ticks=937 total=228 voices=0 hash=01838831c9f347d4
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic_dry sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=5906e2f7cef6f24c
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic_fx sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=18b10c763dfbef50
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic_tri sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=23dd201857631eac
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic_gain sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=df5ca72a485f5267
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic_v201 sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=9735c2aca6422f18
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+basic_limit sf=1 add=0 play=0 frames=30080 status=1 ticks=131 total=228 voices=8 hash=13ee05aa96edf61b
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 Ignoring unrecognized meta event type 0x60
+format1 sf=1 add=0 play=0 frames=175872 status=3 ticks=851 total=192 voices=0 hash=72498d19bed3f0b3
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 Ignoring unrecognized meta event type 0x60
+format1_noreset sf=1 add=0 play=0 frames=127744 status=3 ticks=851 total=192 voices=0 hash=d18c8d7d1c172975
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 SysEx GS DT1: dropping invalid rhythm part message
+  log3 SysEx GS DT1: dropping message on addr 0x40007f due to incorrect checksum 0x0. Correct checksum: 0x41
+sysex sf=1 add=0 play=0 frames=188160 status=3 ticks=818 total=180 voices=0 hash=406a103fa258c679
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+sysex_dev sf=1 add=0 play=0 frames=188160 status=3 ticks=818 total=180 voices=0 hash=21d820f724d9f238
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 SysEx GS DT1: dropping invalid rhythm part message
+  log3 SysEx GS DT1: dropping message on addr 0x40007f due to incorrect checksum 0x0. Correct checksum: 0x41
+sysex_xg sf=1 add=0 play=0 frames=188160 status=3 ticks=818 total=180 voices=0 hash=406a103fa258c679
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x1
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+  log2 Failed to set channel 1 to POLY_OFF: Operation illegal, because channel is currently no basic channel.
+  log3 Successfully configured channel group, from channel 0 up to including chan 1 to mode 0x2
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+mono sf=1 add=0 play=0 frames=172544 status=3 ticks=751 total=324 voices=0 hash=3d933db7860e2693
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x1
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+  log2 Failed to set channel 1 to POLY_OFF: Operation illegal, because channel is currently no basic channel.
+  log3 Successfully configured channel group, from channel 0 up to including chan 1 to mode 0x2
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+mono_linear sf=1 add=0 play=0 frames=172544 status=3 ticks=751 total=324 voices=0 hash=3d933db7860e2693
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x1
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+  log2 Failed to set channel 1 to POLY_OFF: Operation illegal, because channel is currently no basic channel.
+  log3 Successfully configured channel group, from channel 0 up to including chan 1 to mode 0x2
+  log3 Successfully configured channel group, from channel 0 up to including chan 16 to mode 0x0
+mono_xg sf=1 add=0 play=0 frames=172544 status=3 ticks=751 total=324 voices=0 hash=608931891bc8b656
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 Instrument not found on channel 9 [bank=128 prog=99], substituted [bank=128 prog=0]
+  log2 Instrument not found on channel 4 [bank=0 prog=77], substituted [bank=0 prog=0]
+nrpn sf=1 add=0 play=0 frames=153984 status=3 ticks=670 total=216 voices=0 hash=c9a968bacba43976
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 Instrument not found on channel 9 [bank=128 prog=99], substituted [bank=128 prog=0]
+  log2 Instrument not found on channel 4 [bank=0 prog=77], substituted [bank=0 prog=0]
+nrpn_mma sf=1 add=0 play=0 frames=153984 status=3 ticks=670 total=216 voices=0 hash=82490dc58f998844
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 Instrument not found on channel 9 [bank=128 prog=99], substituted [bank=128 prog=0]
+  log2 Instrument not found on channel 4 [bank=0 prog=77], substituted [bank=0 prog=0]
+nrpn_gm sf=1 add=0 play=0 frames=153984 status=3 ticks=670 total=216 voices=0 hash=c9a968bacba43976
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+many sf=1 add=0 play=0 frames=216832 status=3 ticks=472 total=144 voices=0 hash=f4cebb73c8737d71
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+many_poly8 sf=1 add=0 play=0 frames=212992 status=3 ticks=463 total=144 voices=0 hash=5eeedc437693a27c
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+many_prio sf=1 add=0 play=0 frames=214656 status=3 ticks=467 total=144 voices=0 hash=d12e4ae45afed308
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+many_cut sf=1 add=0 play=0 frames=216832 status=3 ticks=472 total=144 voices=0 hash=f4cebb73c8737d71
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log2 End of the MIDI file reached, but not all notes have received a note off event! OFFing them now! Run with --verbose to spot pending voices.
+hanging sf=1 add=0 play=0 frames=172800 status=3 ticks=752 total=96 voices=0 hash=bc0118f5498fc25c
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+empty sf=1 add=0 play=0 frames=88320 status=3 ticks=384 total=0 voices=0 hash=9f78e25fae692364
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+notracks sf=1 add=0 play=0 frames=88320 status=3 ticks=384 total=0 voices=0 hash=9f78e25fae692364
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+slow sf=1 add=0 play=0 frames=148608 status=3 ticks=1 total=1 voices=0 hash=cf12177b1058b4c0
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+fast sf=1 add=0 play=0 frames=98816 status=3 ticks=-2147483648 total=500 voices=0 hash=0e2439b838a6c600
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+nosf sf=-2 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=821c475d4d809ed5
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+junk_chunk sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Failed to seek position in file
+negative_chunk sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 A non-ascii track header found, corrupt file
+nonascii_chunk sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Unexpected end of file
+truncated sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+header_only sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+short_header sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Sorry, but MIDI Format 2 is not supported by this player
+format2 sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 File uses SMPTE timing -- Not implemented yet
+smpte sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Doesn't look like a MIDI file: invalid MThd header
+bad_mthd_len sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+more_tracks sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=228 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+neg_tracks sf=1 add=0 play=0 frames=88320 status=3 ticks=384 total=0 voices=0 hash=9f78e25fae692364
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Invalid variable length number
+bad_varlen sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Undefined status and invalid running status (0x40, 0x0)
+no_status sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Invalid length for EndOfTrack event
+bad_eot sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Invalid length for SetTempo meta event
+bad_tempo sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Invalid length for TimeSignature meta event
+bad_timesig sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Invalid length for KeySignature meta event
+bad_keysig sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Invalid length for SMPTE Offset meta event
+bad_smpte_ofs sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+huge_meta sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+huge_sysex sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Unrecognized MIDI event 0xF2
+sys_common sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+no_eot sf=1 add=0 play=0 frames=109184 status=3 ticks=475 total=48 voices=0 hash=56cb7208c4185733
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Unexpected end of file
+short_track sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+long_track sf=1 add=0 play=0 frames=109184 status=3 ticks=475 total=48 voices=0 hash=56cb7208c4185733
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+big_param sf=1 add=0 play=0 frames=99328 status=3 ticks=432 total=48 voices=0 hash=f157e47d69448991
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Doesn't look like a MIDI file: invalid MThd header
+not_midi sf=1 add=0 play=0 frames=128 status=3 ticks=0 total=0 voices=0 hash=997210fd522b4a1f
+  log1 SoundFont file size mismatch
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_truncated sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log1 SoundFont file size mismatch
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_header sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log1 SoundFont file size mismatch
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_badsize sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log1 Sound font version is 1.0 which is not supported, convert to version 2.0x
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_version1 sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 Sound font version is 3.1 but fluidsynth was compiled without support for (v3.x)
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_version3 sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 Sound font version is 9.0 which is newer than what this version of fluidsynth was designed for (v2.0x)
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_version9 sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log1 Couldn't parse presets from soundfont file
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_nopdta sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log1 Couldn't parse presets from soundfont file
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_noshdr sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log1 Expected PDTA sub-chunk 'imod' found invalid id instead
+  log1 Couldn't parse presets from soundfont file
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_noimod sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 Well known INFO sub chunk ICOP has invalid chunk size of 300 bytes, discarding chunk.
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+sf_badinfo sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=0ae26019728b2a95
+  log1 INFO sub chunk IENG has odd size of 5 bytes, in violation of RIFF spec. Rejecting file as structurally defective.
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_oddinfo sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+sf_extra_pdta sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=0ae26019728b2a95
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Instrument 'Broken': Discarding invalid global zone (global zones must appear first in instruments per SoundFont spec 7.7).
+  log2 Instrument 'Broken': Some invalid generators were discarded, audible glitches are to be expected! Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'empty': invalid start/end file positions
+  log2 Sample 'badtype' has unknown flags, possibly using an unsupported compression; sample ignored
+  log2 Sample 'past': invalid start/end file positions
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Instrument zone 'iz:Broken/6': Invalid sample reference
+  log1 fluid_inst_zone_import_sfont() failed for instrument Broken
+  log1 Preset zone pz:Broken/0: Invalid instrument reference
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=1]
+  log2 No preset found on channel 1 [bank=0 prog=0]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_badsamples sf=-1 add=0 play=0 frames=154240 status=3 ticks=336 total=144 voices=0 hash=a22117003c84f0d0
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Instrument 'Broken': Discarding invalid global zone (global zones must appear first in instruments per SoundFont spec 7.7).
+  log2 Instrument 'Broken': Some invalid generators were discarded, audible glitches are to be expected! Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'empty': invalid start/end file positions
+  log2 Sample 'badtype' has unknown flags, possibly using an unsupported compression; sample ignored
+  log2 Sample 'past': invalid start/end file positions
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Instrument zone 'iz:Broken/6': Invalid sample reference
+  log1 fluid_inst_zone_import_sfont() failed for instrument Broken
+  log1 Preset zone pz:Broken/0: Invalid instrument reference
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=0]
+  log2 No preset found on channel 9 [bank=128 prog=8]
+  log2 No preset found on channel 9 [bank=128 prog=99]
+  log2 No preset found on channel 3 [bank=0 prog=5]
+  log2 No preset found on channel 4 [bank=0 prog=77]
+sf_badsamples9 sf=-1 add=0 play=0 frames=137856 status=3 ticks=600 total=216 voices=0 hash=0e2c8ee0bb62e4b7
+  log2 SM24 not equal to half the size of SMPL chunk (0xA != 0x2E56), ignoring SM24
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+sf_badsm24 sf=1 add=0 play=0 frames=178944 status=3 ticks=937 total=228 voices=0 hash=9735c2aca6422f18
+  log2 Preset 'Bad zones': Discarding invalid global zone (global zones must appear first in presets per SoundFont spec 7.3)
+  log2 Preset 'Bad zones': Some invalid generators were discarded, potentially resulting in a different timbre. Run fluidsynth in verbose mode for detailed information.
+  log2 Instrument 'Broken': Discarding invalid global zone (global zones must appear first in instruments per SoundFont spec 7.7).
+  log2 Instrument 'Broken': Some invalid generators were discarded, audible glitches are to be expected! Run fluidsynth in verbose mode for detailed information.
+  log2 Sample 'empty': invalid start/end file positions
+  log2 Sample 'badtype' has unknown flags, possibly using an unsupported compression; sample ignored
+  log2 Sample 'past': invalid start/end file positions
+  log2 Sample 'rom': ROM sample ignored
+  log2 Some invalid sample loops were sanitized! If you experience audible glitches, start fluidsynth in verbose mode for detailed information.
+  log2 Invalid modulator, using non-CC source iz:Pad/0/mod1.src1=127
+  log1 Instrument zone 'iz:Broken/6': Invalid sample reference
+  log1 fluid_inst_zone_import_sfont() failed for instrument Broken
+  log1 Preset zone pz:Broken/0: Invalid instrument reference
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Unable to open file '&FAKESFNAME&'
+  log1 fluid_sfloader_load(): Failed to open '&FAKESFNAME&': File does not exist.
+  log1 Exception thrown in fluid_dls_font constructor
+  log1 exc: Unable to open file '&FAKESFNAME&'
+  log1 Failed to load SoundFont "&FAKESFNAME&"
+  log2 No preset found on channel 0 [bank=0 prog=0]
+  log2 No preset found on channel 1 [bank=0 prog=1]
+  log2 No preset found on channel 2 [bank=0 prog=2]
+sf_badinst sf=-1 add=0 play=0 frames=136704 status=3 ticks=708 total=228 voices=0 hash=e08119cdb8ae78a9

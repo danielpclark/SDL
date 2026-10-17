@@ -24,6 +24,12 @@ sdl3-mixer-mpg123/testdata/** binary
 sdl3-mixer-mpg123/COPYING -whitespace
 sdl3-mixer-mpg123/AUTHORS -whitespace
 
+# sdl3-mixer-fluidsynth's test SoundFonts, MIDI files, cases and reference
+# log, and FluidSynth's and gcem's license files, kept verbatim.
+sdl3-mixer-fluidsynth/testdata/** binary
+sdl3-mixer-fluidsynth/COPYING -whitespace
+sdl3-mixer-fluidsynth/LICENSE.gcem -whitespace
+
 # sdl3-ttf's test fonts, their license (kept verbatim, trailing spaces and
 # all) and reference log.
 sdl3-ttf/src/testdata/** binary
