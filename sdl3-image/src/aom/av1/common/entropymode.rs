@@ -122,6 +122,24 @@ impl Default for FrameContext {
     }
 }
 
+pub(crate) static AV1_EXT_TX_IND: [[i32; TX_TYPES as usize]; EXT_TX_SET_TYPES as usize] = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0],
+    [3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0],
+    [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6],
+];
+
+pub(crate) static AV1_EXT_TX_INV: [[i32; TX_TYPES as usize]; EXT_TX_SET_TYPES as usize] = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [9, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [9, 0, 10, 11, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [9, 10, 11, 0, 1, 2, 4, 5, 3, 6, 7, 8, 0, 0, 0, 0],
+    [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8],
+];
+
 /// Translation of `av1_init_mode_probs()`, for the intra CDFs.
 pub(crate) fn av1_init_mode_probs(fc: &mut FrameContext) {
     fc.kf_y_cdf = DEFAULT_KF_Y_MODE_CDF;

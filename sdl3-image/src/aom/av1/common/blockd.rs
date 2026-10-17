@@ -41,6 +41,8 @@ pub(crate) const MAX_PALETTE_BLOCK_WIDTH: i32 = 64;
 pub(crate) const MAX_PALETTE_BLOCK_HEIGHT: i32 = 64;
 
 // (FRAME_TYPE)
+pub(crate) const USE_B_QUANT_NO_TRELLIS: i32 = 1;
+
 pub(crate) type FrameType = i32;
 pub(crate) const KEY_FRAME: FrameType = 0;
 pub(crate) const INTER_FRAME: FrameType = 1;
@@ -780,6 +782,11 @@ pub(crate) fn av1_allow_palette(allow_screen_content_tools: bool, sb_type: Block
 }
 
 #[inline]
+pub(crate) fn av1_use_angle_delta(bsize: BlockSize) -> bool {
+    bsize >= BLOCK_8X8
+}
+
+#[inline]
 pub(crate) fn get_plane_type(plane: usize) -> i32 {
     if plane == 0 {
         PLANE_TYPE_Y
@@ -823,6 +830,34 @@ pub(crate) fn av1_above_block_mode(above_mi: Option<&MbModeInfo>) -> PredictionM
             debug_assert!(!is_inter_block(above_mi) || is_intrabc_block(above_mi));
             above_mi.mode
         }
+    }
+}
+
+pub(crate) fn av1_reset_entropy_context(xd: &mut MacroBlockD, bsize: BlockSize, num_planes: usize) {
+    debug_assert!(bsize < BLOCK_SIZES_ALL);
+    let nplanes = 1 + (num_planes - 1) * xd.is_chroma_ref as usize;
+    let tile_row = xd.above_contexts_tile_row;
+    for i in 0..nplanes {
+        let pd = xd.plane[i];
+        let plane_bsize = get_plane_block_size(bsize, pd.subsampling_x, pd.subsampling_y);
+        let txs_wide = MI_SIZE_WIDE[plane_bsize as usize] as usize;
+        let txs_high = MI_SIZE_HIGH[plane_bsize as usize] as usize;
+        let a = pd.above_entropy_context;
+        xd.above_contexts.entropy[i][tile_row][a..a + txs_wide].fill(0);
+        let l = pd.left_entropy_context;
+        xd.left_entropy_context[i][l..l + txs_high].fill(0);
+    }
+}
+
+pub(crate) fn av1_reset_loop_filter_delta(xd: &mut MacroBlockD, num_planes: usize) {
+    xd.delta_lf_from_base = 0;
+    let frame_lf_count = if num_planes > 1 {
+        FRAME_LF_COUNT as usize
+    } else {
+        FRAME_LF_COUNT as usize - 2
+    };
+    for lf_id in 0..frame_lf_count {
+        xd.delta_lf[lf_id] = 0;
     }
 }
 

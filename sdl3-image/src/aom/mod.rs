@@ -25,6 +25,7 @@
     clippy::manual_memcpy,
     clippy::manual_range_contains,
     clippy::manual_swap,
+    clippy::module_inception,
     clippy::neg_multiply,
     clippy::needless_late_init,
     clippy::needless_range_loop,
@@ -38,3 +39,6 @@ pub(crate) mod aom_dsp;
 pub(crate) mod aom_integer;
 pub(crate) mod aom_scale;
 pub(crate) mod av1;
+
+#[cfg(test)]
+mod tests;

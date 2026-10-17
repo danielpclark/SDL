@@ -13,12 +13,44 @@
 
 const CHAR_BIT: u32 = 8;
 
-/// Translation of `struct aom_write_bit_buffer`, over the bytes from its
-/// `bit_buffer` on.
+/// Translation of `struct aom_write_bit_buffer`: `bit_buffer` is the byte
+/// offset of upstream's pointer in `buf`, the buffer it points into.
 #[derive(Debug)]
 pub(crate) struct AomWriteBitBuffer<'a> {
-    pub(crate) bit_buffer: &'a mut [u8],
+    pub(crate) buf: &'a mut [u8],
+    pub(crate) bit_buffer: usize,
     pub(crate) bit_offset: u32,
+}
+
+/// A copy of an `aom_write_bit_buffer` kept to overwrite bits later
+/// (`saved_wb`): the position, without the buffer.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct SavedWb {
+    pub(crate) bit_buffer: usize,
+    pub(crate) bit_offset: u32,
+}
+
+impl<'a> AomWriteBitBuffer<'a> {
+    pub(crate) fn new(buf: &'a mut [u8], bit_buffer: usize) -> Self {
+        AomWriteBitBuffer {
+            buf,
+            bit_buffer,
+            bit_offset: 0,
+        }
+    }
+    pub(crate) fn from_saved(buf: &'a mut [u8], saved: SavedWb) -> Self {
+        AomWriteBitBuffer {
+            buf,
+            bit_buffer: saved.bit_buffer,
+            bit_offset: saved.bit_offset,
+        }
+    }
+    pub(crate) fn save(&self) -> SavedWb {
+        SavedWb {
+            bit_buffer: self.bit_buffer,
+            bit_offset: self.bit_offset,
+        }
+    }
 }
 
 pub(crate) fn aom_wb_is_byte_aligned(wb: &AomWriteBitBuffer<'_>) -> bool {
@@ -31,14 +63,14 @@ pub(crate) fn aom_wb_bytes_written(wb: &AomWriteBitBuffer<'_>) -> u32 {
 
 pub(crate) fn aom_wb_write_bit(wb: &mut AomWriteBitBuffer<'_>, bit: i32) {
     let off = wb.bit_offset as i32;
-    let p = (off / CHAR_BIT as i32) as usize;
+    let p = wb.bit_buffer + (off / CHAR_BIT as i32) as usize;
     let q = CHAR_BIT as i32 - 1 - off % CHAR_BIT as i32;
     if q == CHAR_BIT as i32 - 1 {
         // Zero next char and write bit
-        wb.bit_buffer[p] = (bit << q) as u8;
+        wb.buf[p] = (bit << q) as u8;
     } else {
-        wb.bit_buffer[p] &= !(1u8 << q);
-        wb.bit_buffer[p] |= (bit << q) as u8;
+        wb.buf[p] &= !(1u8 << q);
+        wb.buf[p] |= (bit << q) as u8;
     }
     wb.bit_offset = (off + 1) as u32;
 }
@@ -46,10 +78,10 @@ pub(crate) fn aom_wb_write_bit(wb: &mut AomWriteBitBuffer<'_>, bit: i32) {
 pub(crate) fn aom_wb_overwrite_bit(wb: &mut AomWriteBitBuffer<'_>, bit: i32) {
     // Do not zero bytes but overwrite exisiting values
     let off = wb.bit_offset as i32;
-    let p = (off / CHAR_BIT as i32) as usize;
+    let p = wb.bit_buffer + (off / CHAR_BIT as i32) as usize;
     let q = CHAR_BIT as i32 - 1 - off % CHAR_BIT as i32;
-    wb.bit_buffer[p] &= !(1u8 << q);
-    wb.bit_buffer[p] |= (bit << q) as u8;
+    wb.buf[p] &= !(1u8 << q);
+    wb.buf[p] |= (bit << q) as u8;
     wb.bit_offset = (off + 1) as u32;
 }
 
@@ -68,4 +100,12 @@ pub(crate) fn aom_wb_overwrite_literal(wb: &mut AomWriteBitBuffer<'_>, data: i32
         aom_wb_overwrite_bit(wb, (data >> bit) & 1);
         bit -= 1;
     }
+}
+
+pub(crate) fn aom_wb_write_inv_signed_literal(
+    wb: &mut AomWriteBitBuffer<'_>,
+    data: i32,
+    bits: i32,
+) {
+    aom_wb_write_literal(wb, data, bits + 1);
 }
