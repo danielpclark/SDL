@@ -1,5 +1,5 @@
 == misc
-decoders: WAV STBVORBIS OPUS DRFLAC TIMIDITY VOC AIFF AU DRMP3 SINEWAVE RAW
+decoders: WAV STBVORBIS OPUS DRFLAC TIMIDITY XMP VOC AIFF AU DRMP3 SINEWAVE RAW
 sine 440: dur=4800 playing=0 956304aabfd120a9
 sine 1000: dur=-2 playing=1 24a432722a9e8e51
 sine 30: dur=336 playing=0 872ec7d62025ec85
@@ -1022,6 +1022,673 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=96479 play=1 pos=12288 replay=1 seek=1 pos=32159 playing=1 8cd4e88f636272a8
 mixpre: dur=96480 play=1 pos=12288 replay=1 seek=1 pos=32160 playing=1 fe0e83c11ee4a4f4
+== it_new.it
+open: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 476715b1fb5bcc90 end=0
+f32s48: 1686600 58d0cafca7b1caa5 end=0
+s16m22: 193696 e290ce9c084ec739 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4380: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8760: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 40103fc01825dd2e end=0
+trunc 13140: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 470adaa02584ab08 end=0
+trunc 17519: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 4c867bc50de672d1 end=0
+corrupt 0: XMP 0x8010 2 48000 title="IT new in truments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new in truments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 476715b1fb5bcc90 end=0
+corrupt 0 mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 a47699de5476ff68
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 c6d24c4e36dbe083 end=0
+corrupt 3 mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 69d1cc61836ed9ca
+corrupt 4: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 abf6040e00786dec end=0
+corrupt 4 mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 b33006b871335712
+corrupt 5: XMP 0x8010 2 48000 title="IT new instruments" copyright="IT song message
+line two
+..en" frames=210912 xmp.name="IT new instruments" xmp.type="Impulse Tracker 2.14 IT 2.14" xmp.comment="IT song message
+line two
+..en" | 843300 5f727bdf815196d5 end=0
+corrupt 5 mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 d1c035cd7a7febba
+mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 a47699de5476ff68
+mixpre: dur=210825 play=1 pos=12288 replay=1 seek=1 pos=70275 playing=1 24aba6548bb8ad85
+order 1: play=1 pos=4096 playing=1 433ec3b33cf3d9bd
+order 2: play=1 pos=4096 playing=1 54fce0663ab4f1d4
+order 0: play=1 pos=4096 playing=1 1377c09b2485a2ba
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 9f76f1dd34d3cf33
+order -5: play=1 pos=4096 playing=1 2b1b765f8fc03524
+order 3: play=1 pos=4096 playing=1 7e4e76c22bf2b524
+modseek 0: seek=1 pos=0 playing=1 a5634c81432053cf
+modseek 2205: seek=1 pos=2205 playing=1 806958b4213047e4
+modseek 105456: seek=1 pos=105456 playing=1 ee2dd61dc2bdd3b0
+modseek 209912: seek=1 pos=209912 playing=1 e287ef8df6436935
+modseek 215912: seek=1 pos=215912 playing=1 e287ef8df6436935
+modseek 100: seek=1 pos=100 playing=1 9b063b0e713896bc
+xmp: pat=3 trk=12 chn=4 ins=4 smp=8 spd=3 bpm=140 len=5 rst=0 gvl=128 seqs=1 vol=64 md5=f54ebb743c74503d5bc27f576dc1a0b6 b132305699316a7c
+xmp 0: set=0 mixer=0 frames=225 7e442fa005b4ade4 a79745787ac9e0b4 seek=0 pos=1 a4dab49ea70d3e83
+xmp 1: set=0 mixer=0 frames=225 c03837ef8142e274 20ef17410d9de734 seek=0 pos=1 5c0b75a8c5bf9419
+xmp 2: set=0 mixer=0 frames=225 7dcd2d7bf96349e6 0a8d872ea401c020 seek=0 pos=1 c6ff2233a5373904
+xmp 3: set=0 mixer=0 frames=225 04bb61bdadbd0818 41395d2ec4683046 seek=0 pos=1 7e7b0e12ad7cea25
+== it_old.it
+open: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 e5495af340af704c end=0
+f32s48: 2764800 7095d2d5cf40c613 end=0
+s16m22: 317520 32153308c644f74e end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 96de49a9ddd8ec59 end=0
+trunc 4096: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 b11b5bcaf961b6fe end=0
+trunc 1442: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2884: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 b11b5bcaf961b6fe end=0
+trunc 4326: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 1f0208785343b546 end=0
+trunc 5768: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 1f0208785343b546 end=0
+corrupt 0: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 e5495af340af704c end=0
+corrupt 0 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 e154c5dfadd6bc34
+corrupt 1: XMP 0x8010 2 48000 title="IT old instru'ents" frames=345600 xmp.name="IT old instru'ents" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 e5495af340af704c end=0
+corrupt 1 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 e154c5dfadd6bc34
+corrupt 2: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 e5495af340af704c end=0
+corrupt 2 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 e154c5dfadd6bc34
+corrupt 3: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 e78164f33a7467a3 end=0
+corrupt 3 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 a77bad7014307b52
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name="IT old instruments" xmp.type="Impulse Tracker 2.02 IT 1.00" | 1382400 32be87e3be5574e4 end=0
+corrupt 5 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 d284bdfc82a23cda
+mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 e154c5dfadd6bc34
+mixpre: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 b24082057db0165c
+order 1: play=1 pos=4096 playing=1 5c29f60c7f10e15a
+order 2: play=1 pos=4096 playing=1 f184e0343c5118a8
+order 0: play=1 pos=4096 playing=1 ec34e6778ee667f8
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 60cd5fb70b64c668
+order -5: play=1 pos=4096 playing=1 19fd9b7ad369d8d2
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a2fb266c67ba3cb4
+modseek 0: seek=1 pos=0 playing=1 10380e767a6f2543
+modseek 2205: seek=1 pos=2205 playing=1 16e8fe2089006525
+modseek 172800: seek=1 pos=172800 playing=1 e287ef8df6436935
+modseek 344600: seek=1 pos=344600 playing=1 16e8fe2089006525
+modseek 350600: seek=1 pos=350600 playing=1 16e8fe2089006525
+modseek 100: seek=1 pos=100 playing=1 16e8fe2089006525
+xmp: pat=2 trk=4 chn=2 ins=2 smp=3 spd=4 bpm=125 len=3 rst=0 gvl=128 seqs=1 vol=64 md5=07a7c91616c08cbb4e1421e697df1609 e6f4dc5717c93b5d
+xmp 0: set=0 mixer=0 frames=300 d5a5421aa325178a b9bda35533a3cd7e seek=0 pos=1 050b46c777f03209
+xmp 1: set=0 mixer=0 frames=300 9b59e535c9239cd2 04f5345f79d8c50e seek=0 pos=1 2cd7e9607a87cb8a
+xmp 2: set=0 mixer=0 frames=300 c2833ea09454614d 6a848efbd2466d92 seek=0 pos=1 2d37a2cbd7d7ffcf
+xmp 3: set=0 mixer=0 frames=300 c439b169b5d61fe8 8b83e9af7f3a3a0c seek=0 pos=1 4795626b01a3a1bc
+== it_smp.it
+open: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 5ccf24bbd8ca2667 end=0
+f32s48: 409320 28476267c17b0ba7 end=0
+s16m22: 47008 85d1dab2baeff3af end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 fe2105584ee7a491 end=0
+trunc 1000: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 a5a4c5a620695f5f end=0
+trunc 2000: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 eb3d9fae83f67cf2 end=0
+trunc 1019: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 2c6d3c2624f4cfd0 end=0
+trunc 2039: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 178d96c8b60d3296 end=0
+trunc 3059: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 b844885b35e18d19 end=0
+trunc 4078: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 e4b998c543166aa0 end=0
+corrupt 0: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 5ccf24bbd8ca2667 end=0
+corrupt 0 mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 9241390ef86f283e
+corrupt 1: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 5ccf24bbd8ca2667 end=0
+corrupt 1 mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 9241390ef86f283e
+corrupt 2: XMP 0x8010 2 48000 title="IT sample mo e" frames=51120 xmp.name="IT sample mo e" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 75ef4972dc8a9385 end=0
+corrupt 2 mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 ce43f59ca199324a
+corrupt 3: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 33f942af5c151ec7 end=0
+corrupt 3 mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 06036cc69e55ce15
+corrupt 4: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 8014fd396c676418 end=0
+corrupt 4 mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 a76931fe7f806034
+corrupt 5: XMP 0x8010 2 48000 title="IT sample mode" frames=51120 xmp.name="IT sample mode" xmp.type="Schism Tracker 2016-09-16 IT 2.14" | 204660 7d2eebd5b01f716b end=0
+corrupt 5 mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 ab0b77c1200cfe3a
+mix: dur=51120 play=1 pos=12288 replay=1 seek=1 pos=17040 playing=1 9241390ef86f283e
+mixpre: dur=51165 play=1 pos=12288 replay=1 seek=1 pos=17055 playing=1 ba4656ece798f818
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 5a7d05601113dbea
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 e4d004fe57cebf54
+order -5: play=1 pos=4096 playing=1 17a07f6f026a5bcc
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f41f07cd4a5da349
+modseek 0: seek=1 pos=0 playing=1 19d00e085ce55f61
+modseek 2205: seek=1 pos=2205 playing=1 1213bbd65e91571b
+modseek 25560: seek=1 pos=25560 playing=1 1213bbd65e91571b
+modseek 50120: seek=1 pos=50120 playing=1 1213bbd65e91571b
+modseek 56120: seek=1 pos=56120 playing=1 1213bbd65e91571b
+modseek 100: seek=1 pos=100 playing=1 1213bbd65e91571b
+xmp: pat=1 trk=3 chn=3 ins=3 smp=3 spd=6 bpm=125 len=1 rst=0 gvl=128 seqs=1 vol=64 md5=465e32d1a2c547a0b1cc058f8c1d3572 6c20e30e283bfd30
+xmp 0: set=0 mixer=0 frames=39 ce104438ff59efca 881127c1e2e21bc2 seek=0 pos=-7 ad731ed9245961b4
+xmp 1: set=0 mixer=0 frames=39 c670c67431df222b 35a5a8fcc25b4500 seek=0 pos=-7 d3e3a53ed2eaf67c
+xmp 2: set=0 mixer=0 frames=39 eaa63d718eb7ce70 0ea475945642ad6d seek=0 pos=-7 6565908221f01187
+xmp 3: set=0 mixer=0 frames=39 7e7647f2e96f6904 709676679b5378fe seek=0 pos=-7 dae28289928cd6b6
+== mod_6chn.mod
+open: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 90175231a1eb0ece end=0
+f32s48: 914640 47599b736bde93a7 end=0
+s16m22: 105042 72ccee4e32ba4043 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 938: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1876: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2814: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 150f973cd772a51f end=0
+trunc 3751: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 6abf84950329c854 end=0
+corrupt 0: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 90175231a1eb0ece end=0
+corrupt 0 mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 6d56bf9c83b7815b
+corrupt 1: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 3b02607b5e8964e0 end=0
+corrupt 1 mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 1fc345394442e946
+corrupt 2: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 90175231a1eb0ece end=0
+corrupt 2 mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 6d56bf9c83b7815b
+corrupt 3: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 275ed65361ba4b4a end=0
+corrupt 3 mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 5799c8e72fc9c69d
+corrupt 4: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 2452d35a3f2bf3fe end=0
+corrupt 4 mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 151d4f512619da11
+corrupt 5: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 42e4096db79cf89a end=0
+corrupt 5 mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 4a45e5ef1d61fe5f
+mix: dur=114336 play=1 pos=12288 replay=1 seek=1 pos=38112 playing=1 6d56bf9c83b7815b
+mixpre: dur=114330 play=1 pos=12288 replay=1 seek=1 pos=38110 playing=1 54bcb39fc580cb86
+order 1: play=1 pos=4096 playing=1 0a1bac67d3bee2b8
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 aa02b2909e94da93
+order 0: play=1 pos=4096 playing=1 a15eb006be64344b
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 54110bcd977002e0
+order -5: play=1 pos=4096 playing=1 0ffdeef0b3237a0c
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d8362109c93f4f1e
+modseek 0: seek=1 pos=0 playing=1 ec2249cdadb2c47c
+modseek 2205: seek=1 pos=2205 playing=1 c1d0b439635450e7
+modseek 57168: seek=1 pos=57168 playing=1 c1d0b439635450e7
+modseek 113336: seek=1 pos=113336 playing=1 c1d0b439635450e7
+modseek 119336: seek=1 pos=119336 playing=1 c1d0b439635450e7
+modseek 100: seek=1 pos=100 playing=1 c1d0b439635450e7
+xmp: pat=1 trk=6 chn=6 ins=31 smp=31 spd=6 bpm=125 len=2 rst=0 gvl=64 seqs=1 vol=64 md5=d63874aba31e8b0104edfd4acf128be9 838a2d36fb025324
+xmp 0: set=0 mixer=0 frames=130 6012cc19ea29c135 eb8c46d3f21e5cbf seek=0 pos=1 7ce5977b295ecfe5
+xmp 1: set=0 mixer=0 frames=130 0cca00aefbb3068e bdb4f2e9f5ab17ef seek=0 pos=1 8edb0fd1d702bbed
+xmp 2: set=0 mixer=0 frames=130 a2c5da3f87a8a989 fd9650d1294614b7 seek=0 pos=1 4b99b1a7e08238db
+xmp 3: set=0 mixer=0 frames=300 04a838551947847b 50768cf0684bc20e seek=0 pos=1 025ca176618080f7
+== mod_cd81.mod
+open: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="Octalyser CD81" | 138240 616ff8ba4cb557f1 end=0
+f32s48: 276480 22351c8493b78415 end=0
+s16m22: 31752 c51162380b98b52e end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="Octalyser CD81" | 138240 8d60503698fe0ef2 end=0
+trunc 1066: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2132: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3198: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="Octalyser CD81" | 138240 3b321ca4f45b9d74 end=0
+trunc 4263: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="Octalyser CD81" | 138240 9424ea6fc2d38bd1 end=0
+corrupt 0: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="Octalyser CD81" | 138240 616ff8ba4cb557f1 end=0
+corrupt 0 mix: dur=34560 play=1 pos=12288 replay=1 seek=1 pos=11520 playing=1 5e782f56476dd6b0
+corrupt 1: XMP 0x8010 2 48000 title="octalyse!" frames=34560 xmp.name="octalyse!" xmp.type="OpenMPT CD81" | 138240 d5f028bbeef95db9 end=0
+corrupt 1 mix: dur=34560 play=1 pos=12288 replay=1 seek=1 pos=11520 playing=1 9b10ff30f7bd3b0e
+corrupt 2: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="OpenMPT CD81" | 138240 d5f028bbeef95db9 end=0
+corrupt 2 mix: dur=34560 play=1 pos=12288 replay=1 seek=1 pos=11520 playing=1 9b10ff30f7bd3b0e
+corrupt 3: XMP 0x8010 2 48000 title="octalyser" frames=34560 xmp.name="octalyser" xmp.type="Octalyser CD81" | 138240 e4e2d6098b3645b5 end=0
+corrupt 3 mix: dur=34560 play=1 pos=12288 replay=1 seek=1 pos=11520 playing=1 185ca181136f3ccc
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=34560 play=1 pos=12288 replay=1 seek=1 pos=11520 playing=1 5e782f56476dd6b0
+mixpre: dur=34560 play=1 pos=12288 replay=1 seek=1 pos=11520 playing=1 8053488534b35e75
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 aa53f81d46c4f4fd
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5f16dc9ef4438781
+order -5: play=1 pos=4096 playing=1 a168ccd910fa64d0
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d8b427aecbf0e000
+modseek 0: seek=1 pos=0 playing=1 4a6e128d8287c023
+modseek 2205: seek=1 pos=2205 playing=1 938a6a41e34bb55d
+modseek 17280: seek=1 pos=17280 playing=1 938a6a41e34bb55d
+modseek 33560: seek=1 pos=33560 playing=1 938a6a41e34bb55d
+modseek 39560: seek=1 pos=39560 playing=1 938a6a41e34bb55d
+modseek 100: seek=1 pos=100 playing=1 938a6a41e34bb55d
+xmp: pat=1 trk=8 chn=8 ins=31 smp=31 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=0402a3df55e5bd0ecea6b19553491b18 838a2d36fb025324
+xmp 0: set=0 mixer=0 frames=36 7ce25b5d5070af24 5981b6ce67a7f206 seek=0 pos=-7 19c32b69d02f56b5
+xmp 1: set=0 mixer=0 frames=36 76b5869027e7de28 092513c55f03c8b2 seek=0 pos=-7 f2038a06d0c15018
+xmp 2: set=0 mixer=0 frames=36 bdfe625e77791ad5 ef3f43049858e5ae seek=0 pos=-7 81876136c2c1652e
+xmp 3: set=0 mixer=0 frames=36 9dd06ffe395ddc28 508309b6e545438a seek=0 pos=-7 809649cccc6e8d1c
+== mod_clone.mod
+open: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 d020df6be9bc487c end=0
+f32s48: 399360 1762f8083da7758a end=0
+s16m22: 45864 93f48902bff67160 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 810: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1620: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2430: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 a8dba02292f05e01 end=0
+trunc 3239: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 71fd0533c7a7df89 end=0
+corrupt 0: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 d020df6be9bc487c end=0
+corrupt 0 mix: dur=49920 play=1 pos=12288 replay=1 seek=1 pos=16640 playing=1 1e6726965e4236d4
+corrupt 1: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 d020df6be9bc487c end=0
+corrupt 1 mix: dur=49920 play=1 pos=12288 replay=1 seek=1 pos=16640 playing=1 1e6726965e4236d4
+corrupt 2: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 fc5679950cbdf6f3 end=0
+corrupt 2 mix: dur=49920 play=1 pos=12288 replay=1 seek=1 pos=16640 playing=1 a63a75882c6d068a
+corrupt 3: XMP 0x8010 2 48000 title="clone" frames=49920 xmp.name="clone" xmp.type="Protracker clone M.K." | 199680 88825c9c5715b6ec end=0
+corrupt 3 mix: dur=49920 play=1 pos=12288 replay=1 seek=1 pos=16640 playing=1 a4b7bcdad53eed93
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=49920 play=1 pos=12288 replay=1 seek=1 pos=16640 playing=1 1e6726965e4236d4
+mixpre: dur=49920 play=1 pos=12288 replay=1 seek=1 pos=16640 playing=1 3b4cf6bc4979cc78
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 bde7235b30cd85e7
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ff73e40066304de8
+order -5: play=1 pos=4096 playing=1 b8d6851f9db66d35
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3fdf316020518588
+modseek 0: seek=1 pos=0 playing=1 51eed34e35f10d44
+modseek 2205: seek=1 pos=2205 playing=1 791e3c249c9fffe1
+modseek 24960: seek=1 pos=24960 playing=1 791e3c249c9fffe1
+modseek 48920: seek=1 pos=48920 playing=1 791e3c249c9fffe1
+modseek 54920: seek=1 pos=54920 playing=1 791e3c249c9fffe1
+modseek 100: seek=1 pos=100 playing=1 791e3c249c9fffe1
+xmp: pat=1 trk=4 chn=4 ins=31 smp=31 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=b1c9d9641ddce2b28b54d6781c7fb10a 838a2d36fb025324
+xmp 0: set=0 mixer=0 frames=52 2144dd2dcbdf9c39 6548e903cffa89e5 seek=0 pos=-7 cb2d771e9dd52d94
+xmp 1: set=0 mixer=0 frames=52 c2f3a6c68f0a3dee 2234be38d54a387d seek=0 pos=-7 c81081a40cc2a1fc
+xmp 2: set=0 mixer=0 frames=52 afe4021a6c2babef 4a4649e2324439a1 seek=0 pos=-7 09e268d59dad0571
+xmp 3: set=0 mixer=0 frames=52 725bb1e84ea0e525 c6ec58023fb99a04 seek=0 pos=-7 ca709b5de915af7a
+== mod_fa04.mod
+open: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 ea805e3bb232c685 end=0
+f32s48: 483840 c251d5080f3c9222 end=0
+s16m22: 55566 ce1a158019ab9337 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 811: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1622: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2433: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 16805802e0f5167c end=0
+trunc 3243: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 4dda1d038a00bb6e end=0
+corrupt 0: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 ea805e3bb232c685 end=0
+corrupt 0 mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 c763154d7732eab1
+corrupt 1: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="OpenMPT FA04" | 241920 b88f170fecdda829 end=0
+corrupt 1 mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 95946902ae2e1b7d
+corrupt 2: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 5e73b3e2922c5fce end=0
+corrupt 2 mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 66a444c3eadc2f89
+corrupt 3: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 c1a78260d054297b end=0
+corrupt 3 mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 63b1e8ccc595271a
+corrupt 4: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="OpenMPT FA04" | 241920 80e2f3853aeee309 end=0
+corrupt 4 mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 8754fc67e7fa779e
+corrupt 5: XMP 0x8010 2 48000 title="digital" frames=60480 xmp.name="digital" xmp.type="Digital Tracker FA04" | 241920 ac7f6b8f53680b72 end=0
+corrupt 5 mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 964ce64fdf2d4e1d
+mix: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 c763154d7732eab1
+mixpre: dur=60480 play=1 pos=12288 replay=1 seek=1 pos=20160 playing=1 2144289366179dc8
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 744f8d8dcf0a2bf1
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c303ba937b390884
+order -5: play=1 pos=4096 playing=1 6e4a3b158c104fbe
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 931035db10a5913b
+modseek 0: seek=1 pos=0 playing=1 f8561d826375107c
+modseek 2205: seek=1 pos=2205 playing=1 21a202e0e8945f6b
+modseek 30240: seek=1 pos=30240 playing=1 21a202e0e8945f6b
+modseek 59480: seek=1 pos=59480 playing=1 21a202e0e8945f6b
+modseek 65480: seek=1 pos=65480 playing=1 21a202e0e8945f6b
+modseek 100: seek=1 pos=100 playing=1 21a202e0e8945f6b
+xmp: pat=1 trk=4 chn=4 ins=31 smp=31 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=e90810b128c30f849645ffb93bae528d 838a2d36fb025324
+xmp 0: set=0 mixer=0 frames=63 05d7af52c4c28dc6 614c27d32a8f78fb seek=0 pos=-7 3bfc81814ea0c230
+xmp 1: set=0 mixer=0 frames=63 19b6ebe197089a12 8e4d705653d56f86 seek=0 pos=-7 1fabdaf863bc1080
+xmp 2: set=0 mixer=1 frames=63 e649600059987a1d 710822828b70f78c seek=0 pos=-7 b519bb025a6b2a90
+xmp 3: set=0 mixer=1 frames=63 14fa755695db83c3 2c4fabf4c70b8225 seek=0 pos=-7 505e1c525783facb
+== mod_nt.mod
+open: XMP 0x8010 2 48000 title="noise" frames=69120 xmp.name="noise" xmp.type="Unknown tracker M.K." | 276480 43e18054c9c75b68 end=0
+f32s48: 552960 6280421db841eae4 end=0
+s16m22: 63504 e4941c035c097299 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 573: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1146: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1719: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2292: XMP 0x8010 2 48000 title="noise" frames=69120 xmp.name="noise" xmp.type="Unknown tracker M.K." | 276480 f6140de91bd9493c end=0
+corrupt 0: XMP 0x8010 2 48000 title="noiseD" frames=69120 xmp.name="noiseD" xmp.type="Unknown tracker M.K." | 276480 43e18054c9c75b68 end=0
+corrupt 0 mix: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 aebdb24201659e11
+corrupt 1: XMP 0x8010 2 48000 title="noVse" frames=69120 xmp.name="noVse" xmp.type="Unknown tracker M.K." | 276480 43e18054c9c75b68 end=0
+corrupt 1 mix: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 aebdb24201659e11
+corrupt 2: XMP 0x8010 2 48000 title=" oisw" frames=69120 xmp.name=" oisw" xmp.type="Unknown tracker M.K." | 276480 43e18054c9c75b68 end=0
+corrupt 2 mix: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 aebdb24201659e11
+corrupt 3: XMP 0x8010 2 48000 title="noise" frames=69120 xmp.name="noise" xmp.type="Unknown tracker M.K." | 276480 8a38febb2b08877d end=0
+corrupt 3 mix: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 edfb2efaf7d89c47
+corrupt 4: XMP 0x8010 2 48000 title="noise" frames=69120 xmp.name="noise" xmp.type="Unknown tracker M.K." | 276480 db8a13797ea8fc6b end=0
+corrupt 4 mix: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 b3b81ea5b099f875
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 aebdb24201659e11
+mixpre: dur=69120 play=1 pos=12288 replay=1 seek=1 pos=23040 playing=1 305352b5793bae52
+order 1: play=1 pos=4096 playing=1 cdb45da4b8810eee
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1e2497f98334492b
+order 0: play=1 pos=4096 playing=1 ba1e0e7358e6e7f6
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1b72d1122d4b8bad
+order -5: play=1 pos=4096 playing=1 3f7c6addb0cf0b30
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5b8ed0a998609255
+modseek 0: seek=1 pos=0 playing=1 c112c758fd0b61b6
+modseek 2205: seek=1 pos=2205 playing=1 121a448122fdacfe
+modseek 34560: seek=1 pos=34560 playing=1 121a448122fdacfe
+modseek 68120: seek=1 pos=68120 playing=1 121a448122fdacfe
+modseek 74120: seek=1 pos=74120 playing=1 121a448122fdacfe
+modseek 100: seek=1 pos=100 playing=1 121a448122fdacfe
+xmp: pat=1 trk=4 chn=4 ins=31 smp=31 spd=6 bpm=125 len=2 rst=0 gvl=64 seqs=1 vol=64 md5=ef13d30d0fee8da3a487a9af4e8708b1 536f79e484afed94
+xmp 0: set=0 mixer=0 frames=72 75e488a706325e29 cc907386131dc276 seek=0 pos=1 d8efc74afd0d4131
+xmp 1: set=0 mixer=0 frames=72 ee05d5993ed32f48 bfef04e6141b9566 seek=0 pos=1 cce7797dc66580fc
+xmp 2: set=0 mixer=0 frames=72 00de465bc50adf8d 0344ec71c6a82c9e seek=0 pos=1 f12f5116ddfee290
+xmp 3: set=0 mixer=0 frames=72 3cc19a989b278242 a23b5e56e79a81ec seek=0 pos=1 51958a962b5eca51
+== mod_pt.mod
+open: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Protracker test" xmp.type="Protracker M.K." | 564480 181f9ebf593f910d end=0
+f32s48: 1128960 f8c837ecdbfe2155 end=0
+s16m22: 129654 3312a23b99581d60 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1322: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2644: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3966: err: Audio data is in unknown/unsupported/corrupt format
+trunc 5287: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Protracker test" xmp.type="Protracker M.K." | 564480 febcdb0c12d09f6d end=0
+corrupt 0: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Protracker test" xmp.type="Protracker M.K." | 564480 181f9ebf593f910d end=0
+corrupt 0 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 7ac64f1961a93e20
+corrupt 1: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Protracker test" xmp.type="Protracker M.K." | 564480 4bcfb23db1faa449 end=0
+corrupt 1 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 1d8d6ced91a7e1e6
+corrupt 2: XMP 0x8010 2 48000 title="Protrack r test" frames=141120 xmp.name="Protrack r test" xmp.type="Protracker M.K." | 564480 181f9ebf593f910d end=0
+corrupt 2 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 7ac64f1961a93e20
+corrupt 3: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Protracker test" xmp.type="Scream Tracker M.K." | 564480 5f8bd2e7e4e62493 end=0
+corrupt 3 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 ba7d8bf0251c390b
+corrupt 4: XMP 0x8010 2 48000 title="Protracker te,t" frames=141120 xmp.name="Protracker te,t" xmp.type="Scream Tracker M.K." | 564480 1e9cd92249ae22f2 end=0
+corrupt 4 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 e663afab1550d9b3
+corrupt 5: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Protracker test" xmp.type="Scream Tracker M.K." | 564480 7024fbd482d3c159 end=0
+corrupt 5 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 5a179fa893357bba
+mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 7ac64f1961a93e20
+mixpre: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 d6cb363eef42ab5e
+order 1: play=1 pos=4096 playing=1 52fa7efc9cefcf47
+order 2: play=1 pos=4096 playing=1 79e1afcc8c46406c
+order 0: play=1 pos=4096 playing=1 9491b1a5a61aa2da
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 0eb4c43aa8e951fb
+order -5: play=1 pos=4096 playing=1 172f4145296bd9d8
+order 3: play=1 pos=4096 playing=1 b3a5066836f0fd74
+modseek 0: seek=1 pos=0 playing=1 af102c5e16d41ed4
+modseek 2205: seek=1 pos=2205 playing=1 39b42ff7da65dcf2
+modseek 70560: seek=1 pos=70560 playing=1 318a72c3fa2dad12
+modseek 140120: seek=1 pos=140120 playing=1 42b50f885df238bd
+modseek 146120: seek=1 pos=146120 playing=1 24610cdc33296f3b
+modseek 100: seek=1 pos=100 playing=1 df04cae537cedbc5
+xmp: pat=3 trk=12 chn=4 ins=31 smp=31 spd=6 bpm=125 len=4 rst=0 gvl=64 seqs=1 vol=64 md5=102e6d253b05841e806531382651b3f2 b38c7973dbb15f54
+xmp 0: set=0 mixer=0 frames=147 95fb293093674901 c9fc11ef0bc93550 seek=0 pos=1 f6624f222aa93649
+xmp 1: set=0 mixer=0 frames=147 32d75912e54c638e 9708baa7efe559f2 seek=0 pos=1 3b17313f0acfed8a
+xmp 2: set=0 mixer=1 frames=147 6dcf20449ca18150 870990aab13883d4 seek=0 pos=1 0d6b73354e97b7a6
+xmp 3: set=0 mixer=1 frames=300 bceab8b22d683698 533ae744ba961ba2 seek=0 pos=1 846f64fd496abbf6
+== mod_vblank.mod
+open: XMP 0x8010 2 48000 title="vblank" frames=345600 xmp.name="vblank" xmp.type="Noisetracker M.K." | 1382400 2f7f9933d0e1c9e0 end=0
+f32s48: 2764800 cdd553f4ae406edd end=0
+s16m22: 317520 2a47a9f51cac25e1 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: XMP 0x8010 2 48000 title="vblank" frames=345600 xmp.name="vblank" xmp.type="Noisetracker M.K." | 1382400 12d416290a727a0d end=0
+trunc 1066: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2132: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3198: XMP 0x8010 2 48000 title="vblank" frames=345600 xmp.name="vblank" xmp.type="Noisetracker M.K." | 1382400 d894b3576cad0b9b end=0
+trunc 4263: XMP 0x8010 2 48000 title="vblank" frames=345600 xmp.name="vblank" xmp.type="Noisetracker M.K." | 1382400 6cc26271e7b131e9 end=0
+corrupt 0: XMP 0x8010 2 48000 title="vblank" frames=345600 xmp.name="vblank" xmp.type="Noisetracker M.K." | 1382400 2f7f9933d0e1c9e0 end=0
+corrupt 0 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 27972a839dfe32e9
+corrupt 1: XMP 0x8010 2 48000 title="vblank" frames=152688 xmp.name="vblank" xmp.type="OpenMPT M.K." | 610800 ceb45fa5b11a4787 end=0
+corrupt 1 mix: dur=152688 play=1 pos=12288 replay=1 seek=1 pos=50896 playing=1 6bc46bac99732a3c
+corrupt 2: XMP 0x8010 2 48000 title="vblank" frames=152688 xmp.name="vblank" xmp.type="OpenMPT M.K." | 610800 ceb45fa5b11a4787 end=0
+corrupt 2 mix: dur=152688 play=1 pos=12288 replay=1 seek=1 pos=50896 playing=1 6bc46bac99732a3c
+corrupt 3: XMP 0x8010 2 48000 title="vblank" frames=345600 xmp.name="vblank" xmp.type="Unknown tracker M.K." | 1382400 19677a6859f6bdca end=0
+corrupt 3 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 c854d64e04d8857a
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 27972a839dfe32e9
+mixpre: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 ed5cf84daef1ceac
+order 1: play=1 pos=4096 playing=1 6a2837a5faafe269
+order 2: play=1 pos=4096 playing=1 2f8b0786d8c4678e
+order 0: play=1 pos=4096 playing=1 def11b7f82faf6f6
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1b72d1122d4b8bad
+order -5: play=1 pos=4096 playing=1 70f7da849be4197c
+order 3: play=1 pos=4096 playing=1 48354b1fa5dd1f72
+modseek 0: seek=1 pos=0 playing=1 d8c6327743dcd6a5
+modseek 2205: seek=1 pos=2205 playing=1 d8c6327743dcd6a5
+modseek 172800: seek=1 pos=172800 playing=1 1116c0af7381f089
+modseek 344600: seek=1 pos=344600 playing=1 c36dd8975b444747
+modseek 350600: seek=1 pos=350600 playing=1 c36dd8975b444747
+modseek 100: seek=1 pos=100 playing=1 8d346c17086130dc
+xmp: pat=2 trk=8 chn=4 ins=31 smp=31 spd=6 bpm=125 len=9 rst=0 gvl=64 seqs=1 vol=64 md5=a47ed1d8f9ff417f3200572ad38ea5cd 838a2d36fb025324
+xmp 0: set=0 mixer=0 frames=300 0be81c2bba82bf78 27659714eb4fbe72 seek=2 pos=1 cbabbe32c764a529
+xmp 1: set=0 mixer=0 frames=300 29156376d3a6496b 81900ba6b4e5e1c5 seek=2 pos=1 46a45734671d4137
+xmp 2: set=0 mixer=1 frames=300 34412eb0d67f7990 9694c88bacd66e78 seek=2 pos=1 acd6411d7fd33342
+xmp 3: set=0 mixer=1 frames=300 195255b2cc903d18 899703f00811afe3 seek=2 pos=1 ff61ca0f8281426d
 == mp2_stereo.mp2
 open: DRMP3 0x8120 2 32000 frames=8064 | 64512 fdd7ab4bb1338e6c end=0
 f32s48: 96768 a5901d2b7f701ffb end=0
@@ -3179,6 +3846,256 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: err: Audio data is in unknown/unsupported/corrupt format
 mixpre: err: Audio data is in unknown/unsupported/corrupt format
+== s3m_orpheus.s3m
+open: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 10612ffb74402b63 end=0
+f32s48: 153600 42dd6a0f3344b950 end=0
+s16m22: 17640 e151a4bbad5092f4 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 e2827283a40abdd8 end=0
+trunc 2000: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 cb0560cc30bfef97 end=0
+trunc 596: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1192: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 5733768608112981 end=0
+trunc 1788: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 c805ec29dd3507bc end=0
+trunc 2383: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 10612ffb74402b63 end=0
+corrupt 0: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 10612ffb74402b63 end=0
+corrupt 0 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 9a4680435a1d4db1
+corrupt 1: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 10612ffb74402b63 end=0
+corrupt 1 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 9a4680435a1d4db1
+corrupt 2: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 0e3ffb75b3dc873c end=0
+corrupt 2 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 e7d51e6887ce87c4
+corrupt 3: XMP 0x8010 2 48000 title="orpheus" frames=19200 xmp.name="orpheus" xmp.type="Imago Orpheus 1.04 S3M" | 76800 7d28c130744beaf8 end=0
+corrupt 3 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 44d9a95dce6c0889
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 9a4680435a1d4db1
+mixpre: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 f88a72894e907a2c
+order 1: play=1 pos=4096 playing=1 97592454ff8e4fe7
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 e7b7359eda71222f
+order 0: play=1 pos=4096 playing=1 91940b3062dcefed
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 58ab07671102dc78
+order -5: play=1 pos=4096 playing=1 e5c5858d310fcd5f
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ec5867e0df665f62
+modseek 0: seek=1 pos=0 playing=1 af4c35c3cdaf15a7
+modseek 2205: seek=1 pos=2205 playing=1 3ec8a857559a718c
+modseek 9600: seek=1 pos=9600 playing=1 3ec8a857559a718c
+modseek 18200: seek=1 pos=18200 playing=1 3ec8a857559a718c
+modseek 24200: seek=1 pos=24200 playing=1 3ec8a857559a718c
+modseek 100: seek=1 pos=100 playing=1 3ec8a857559a718c
+xmp: pat=2 trk=12 chn=6 ins=4 smp=4 spd=4 bpm=125 len=2 rst=0 gvl=64 seqs=2 vol=64 md5=26237809f7efd84def0ce40b9b45ca32 19c7ae4844a5a260
+xmp 0: set=0 mixer=0 frames=20 c982cce0696bbcc8 35e06677be897b9a seek=0 pos=1 28edee8f65dd52bb
+xmp 1: set=0 mixer=0 frames=20 443d0d177ce7e2e6 aafdc3a32fc26c9a seek=0 pos=1 1895dab88705bd34
+xmp 2: set=0 mixer=0 frames=20 164c7e5d923094c1 204ba7a02df48102 seek=0 pos=1 5ef1ad35f611612e
+xmp 3: set=0 mixer=0 frames=20 807ddc391bd10ad7 d08fd31c96ddbaa1 seek=0 pos=1 667621f9e516b9a4
+== s3m_schism.s3m
+open: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 854e8282136198db end=0
+f32s48: 685760 02e74f81b3eecd05 end=0
+s16m22: 78756 ac4b6d665e457f4b end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 d4ea756e7c6ff3db end=0
+trunc 2000: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 145fe51b8f56b8ec end=0
+trunc 572: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1144: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 6c8724dbfc825071 end=0
+trunc 1716: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 3a2407fb9ae5c5ce end=0
+trunc 2287: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 854e8282136198db end=0
+corrupt 0: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 854e8282136198db end=0
+corrupt 0 mix: dur=85680 play=1 pos=12288 replay=1 seek=1 pos=28560 playing=1 eb4eef88daf8e05c
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: XMP 0x8010 2 48000 title="schism" frames=72768 xmp.name="schism" xmp.type="Schism Tracker 2015-08-05 S3M" | 291040 5cac0280c9708a9f end=0
+corrupt 2 mix: dur=72768 play=1 pos=12288 replay=1 seek=1 pos=24256 playing=1 59ef75ebcd554d19
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 b06b7d12e376d169 end=0
+corrupt 4 mix: dur=85680 play=1 pos=12288 replay=1 seek=1 pos=28560 playing=1 b17c373d1884e41c
+corrupt 5: XMP 0x8010 2 48000 title="schism" frames=85680 xmp.name="schism" xmp.type="Schism Tracker 2015-03-23 S3M" | 342880 3cac3ece51bebb79 end=0
+corrupt 5 mix: dur=85680 play=1 pos=12288 replay=1 seek=1 pos=28560 playing=1 6a8bf1250ca805c2
+mix: dur=85680 play=1 pos=12288 replay=1 seek=1 pos=28560 playing=1 eb4eef88daf8e05c
+mixpre: dur=85720 play=1 pos=12288 replay=1 seek=1 pos=28573 playing=1 fe250a139a7fa660
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 97592454ff8e4fe7
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 e7b7359eda71222f
+order -5: play=1 pos=4096 playing=1 df0a69850843bff6
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 15af67c99eb2bb87
+modseek 0: seek=1 pos=0 playing=1 2d54e95aa1d64676
+modseek 2205: seek=1 pos=2205 playing=1 b0133d0399e693e9
+modseek 42840: seek=1 pos=42840 playing=1 b0133d0399e693e9
+modseek 84680: seek=1 pos=84680 playing=1 b0133d0399e693e9
+modseek 90680: seek=1 pos=90680 playing=1 b0133d0399e693e9
+modseek 100: seek=1 pos=100 playing=1 b0133d0399e693e9
+xmp: pat=1 trk=6 chn=6 ins=4 smp=4 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=ac6b5a0963714e57846a562f9f903531 19c7ae4844a5a260
+xmp 0: set=0 mixer=0 frames=76 30d0a58edac37f00 df167c7ea38fe12c seek=0 pos=-7 28edee8f65dd52bb
+xmp 1: set=0 mixer=0 frames=76 37e3b52f748ae0de 09a7325fda5ff08e seek=0 pos=-7 934479e40ab3acbd
+xmp 2: set=0 mixer=0 frames=76 bd51a3d9b61ab9d4 b1a716b32779dfa4 seek=0 pos=-7 61dcfc456be0c374
+xmp 3: set=0 mixer=0 frames=76 debbde5962d84f8c a4abe4831dfc0919 seek=0 pos=-7 484b6f5a7f47e759
+== s3m_st3.s3m
+open: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 a74352ff1b1b0272 end=0
+f32s48: 844800 8a2b132b81818e3f end=0
+s16m22: 97020 6b39be4d326746c8 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 751faf8fb57177d1 end=0
+trunc 2000: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 bfe6d6f084edbeca end=0
+trunc 600: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1200: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 a5d318cdfe26403b end=0
+trunc 1800: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 74ba1c4f4d120451 end=0
+trunc 2399: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 a74352ff1b1b0272 end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: XMP 0x8010 2 48000 title="S.. test" frames=95280 xmp.name="S.. test" xmp.type="Scream Tracker 3.20 S3M" | 381184 0e82003cbdc12993 end=0
+corrupt 1 mix: dur=95280 play=1 pos=12288 replay=1 seek=1 pos=31760 playing=1 49bc0426a5c10a91
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 4fd28aac5932bcd2 end=0
+corrupt 3 mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 c17cdee3b57331ff
+corrupt 4: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 b756c1e7165088c1 end=0
+corrupt 4 mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 22f5dc3aea11eb96
+corrupt 5: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test" xmp.type="Scream Tracker 3.20 S3M" | 422400 3183534eb1cf9e4c end=0
+corrupt 5 mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 26687d601cd08bcb
+mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 3be5bb13784a2e7d
+mixpre: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 5763e0ec333532cb
+order 1: play=1 pos=4096 playing=1 3b35fe9c6dbec89d
+order 2: play=1 pos=4096 playing=1 be62bd2ef2202792
+order 0: play=1 pos=4096 playing=1 6405906e68915013
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5e2e40901a7ba500
+order -5: play=1 pos=4096 playing=1 da5c4c6ce7983c9e
+order 3: play=1 pos=4096 playing=1 3db860292f9613c1
+modseek 0: seek=1 pos=0 playing=1 4bc20926b0fad70d
+modseek 2205: seek=1 pos=2205 playing=1 cfa8dda078d673ef
+modseek 52800: seek=1 pos=52800 playing=1 cfa8dda078d673ef
+modseek 104600: seek=1 pos=104600 playing=1 cfa8dda078d673ef
+modseek 110600: seek=1 pos=110600 playing=1 cfa8dda078d673ef
+modseek 100: seek=1 pos=100 playing=1 cfa8dda078d673ef
+xmp: pat=2 trk=12 chn=6 ins=4 smp=4 spd=3 bpm=150 len=5 rst=0 gvl=64 seqs=2 vol=64 md5=4d504f4434a5bd208390a39b7e7837a8 19c7ae4844a5a260
+xmp 0: set=0 mixer=0 frames=96 0d1c9e0d68394422 bc4ca60237e1ca97 seek=0 pos=1 e980bad54d17bf09
+xmp 1: set=0 mixer=0 frames=96 0e44eeb73fc10134 744b99e5214ed9a9 seek=0 pos=1 39a5bda9665b941b
+xmp 2: set=0 mixer=0 frames=96 d2a408cbee72c6b2 7d6ae4a79620af08 seek=0 pos=1 50a6d09731f32fdc
+xmp 3: set=0 mixer=0 frames=96 bc82427e2ad2d9f7 e2600b46aa1fe6ff seek=0 pos=1 50ab1f425ec1ad27
+== s3m_st301.s3m
+open: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 2117b8aa9ff1bf8d end=0
+f32s48: 230400 cebf41a6d0880ff1 end=0
+s16m22: 26460 3754f22f75e34962 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 84703795e9353011 end=0
+trunc 236: err: Audio data is in unknown/unsupported/corrupt format
+trunc 472: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 30404abd5574e361 end=0
+trunc 708: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 de162f088cda4e99 end=0
+trunc 943: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 2117b8aa9ff1bf8d end=0
+corrupt 0: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 2117b8aa9ff1bf8d end=0
+corrupt 0 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 38867e66b5fb2d95
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 93e92d063b75b5f1 end=0
+corrupt 3 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 87aec8f60f552f49
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: XMP 0x8010 2 48000 title="ST3.01" frames=28800 xmp.name="ST3.01" xmp.type="Scream Tracker 3.01 S3M" | 115200 04b3d972939dc211 end=0
+corrupt 5 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 910776d7600590c9
+mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 38867e66b5fb2d95
+mixpre: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 234f7086ce9d48b1
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 27d9b0a507ee99a1
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a3db602cb3e30455
+order -5: play=1 pos=4096 playing=1 0f7f36a248af349d
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3ac5f3222108ab35
+modseek 0: seek=1 pos=0 playing=1 144f5b1495aa167d
+modseek 2205: seek=1 pos=2205 playing=1 9bc03503d1cf9571
+modseek 14400: seek=1 pos=14400 playing=1 9bc03503d1cf9571
+modseek 27800: seek=1 pos=27800 playing=1 9bc03503d1cf9571
+modseek 33800: seek=1 pos=33800 playing=1 9bc03503d1cf9571
+modseek 100: seek=1 pos=100 playing=1 9bc03503d1cf9571
+xmp: pat=1 trk=2 chn=2 ins=2 smp=2 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=a1522249bc7dde5cb7ceb598d6143768 57fe26296718fbdb
+xmp 0: set=0 mixer=0 frames=30 5761101a25d29e42 cdbcb80557b049cb seek=0 pos=-7 0a5428150ef266e9
+xmp 1: set=0 mixer=0 frames=30 1329c3d5a392bf31 9810a3dc8905c253 seek=0 pos=-7 cddb7f53d85d31f9
+xmp 2: set=0 mixer=0 frames=30 70cb7c4f81d20789 b9d10f9323e3560b seek=0 pos=-7 0c050d67ed443460
+xmp 3: set=0 mixer=0 frames=30 7a4dc7e3f447c459 08b4b36b76163dc9 seek=0 pos=-7 56a50c18a7a1865d
 == voc_blocks.voc
 open: VOC 0x0008 1 8000 frames=1280 | 1040 5e958afa49ac5b8b end=0
 f32s48: 49920 31dc6c1c71f48e59 end=0
@@ -4106,6 +5023,270 @@ corrupt 5: WAV 0x8120 1 8000 frames=2000 | 8000 6f13d03151f8392c end=0
 corrupt 5 mix: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 5c429de9688b054b
 mix: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 7a63cd1449eefa5f
 mixpre: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 7a63cd1449eefa5f
+== xm_amiga.xm
+open: XMP 0x8010 2 48000 title="amiga" frames=241200 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.04" | 964800 42dbede4026c0420 end=0
+f32s48: 1929600 38916fbc86a0668b end=0
+s16m22: 221604 d855cdd1fb4f1454 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 479: err: Audio data is in unknown/unsupported/corrupt format
+trunc 959: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1439: XMP 0x8010 2 48000 title="amiga" frames=241200 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.04" | 964800 220a7cd7e18f4f95 end=0
+trunc 1918: XMP 0x8010 2 48000 title="amiga" frames=241200 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.04" | 964800 8ec8a9e331a801d0 end=0
+corrupt 0: XMP 0x8010 2 48000 title="amiga" frames=241200 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.04" | 964800 42dbede4026c0420 end=0
+corrupt 0 mix: dur=241200 play=1 pos=12288 replay=1 seek=1 pos=80400 playing=1 429ab19011504f33
+corrupt 1: XMP 0x8010 2 48000 title="amiga" frames=241200 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.164" | 964800 42dbede4026c0420 end=0
+corrupt 1 mix: dur=241200 play=1 pos=12288 replay=1 seek=1 pos=80400 playing=1 429ab19011504f33
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="amiga" frames=232799 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.04" | 931200 1d4eebb04eedce77 end=0
+corrupt 3 mix: dur=232799 play=1 pos=12288 replay=1 seek=1 pos=77599 playing=1 8a6afe271ec0a1c4
+corrupt 4: XMP 0x8010 2 48000 title="amiga" frames=230400 xmp.name="amiga" xmp.type="OpenMPT 1.28.00.00 XM 1.04" | 921600 dcb97748e8706dd6 end=0
+corrupt 4 mix: dur=230400 play=1 pos=12288 replay=1 seek=1 pos=76800 playing=1 b9a222aed64cb0e0
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=241200 play=1 pos=12288 replay=1 seek=1 pos=80400 playing=1 429ab19011504f33
+mixpre: dur=241200 play=1 pos=12288 replay=1 seek=1 pos=80400 playing=1 846f9fd82e40e107
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 c4a1ed00a0d9b258
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1f4b9c0e39ae5b94
+order -5: play=1 pos=4096 playing=1 6b6b2c2d0949343b
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 22d421542b38be21
+modseek 0: seek=1 pos=0 playing=1 a7491b0e8355a1f3
+modseek 2205: seek=1 pos=2205 playing=1 ed282a4e358fca6a
+modseek 120600: seek=1 pos=120600 playing=1 ed282a4e358fca6a
+modseek 240200: seek=1 pos=240200 playing=1 ed282a4e358fca6a
+modseek 246200: seek=1 pos=246200 playing=1 ed282a4e358fca6a
+modseek 100: seek=1 pos=100 playing=1 ed282a4e358fca6a
+xmp: pat=2 trk=3 chn=2 ins=2 smp=2 spd=2 bpm=200 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=15fe46e67238b9908fa9e22d12f5a192 653088d1fe59f25b
+xmp 0: set=0 mixer=0 frames=300 e333ea8f4065a420 d2e8208da7fe68c1 seek=0 pos=-7 ea1e356b1f45884a
+xmp 1: set=0 mixer=0 frames=300 63a1d95bddc82c9f 15662ebded3b2f4e seek=0 pos=-7 348ae175c05a4c9d
+xmp 2: set=0 mixer=0 frames=300 e6ffdf47bf391583 5cea1f816b489174 seek=0 pos=-7 36ff74eeec97c1a6
+xmp 3: set=0 mixer=0 frames=300 477285f208a7d31b 060e9ee8d3e7ad81 seek=0 pos=-7 5caded337752c7f6
+== xm_ft2.xm
+open: XMP 0x8010 2 48000 title="FT2 test" copyright="XM comment
+second.line .    " frames=178272 xmp.name="FT2 test" xmp.type="ModPlug Tracker 1.16 XM 1.04" xmp.comment="XM comment
+second.line .    " | 726736 7629a625fb8e9008 end=0
+f32s48: 1453472 35675e308b542ec2 end=0
+s16m22: 166924 e5b5e9b5e9da6da2 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: XMP 0x8010 2 48000 title="FT2 test" frames=178272 xmp.name="FT2 test" xmp.type="FastTracker v2.00 XM 1.04" | 726736 46bde93756d1c917 end=0
+trunc 2000: XMP 0x8010 2 48000 title="FT2 test" frames=178272 xmp.name="FT2 test" xmp.type="FastTracker v2.00 XM 1.04" | 726736 e71a45fe5a6ca807 end=0
+trunc 683: XMP 0x8010 2 48000 title="FT2 test" frames=178272 xmp.name="FT2 test" xmp.type="FastTracker v2.00 XM 1.04" | 726736 9acacfc346c78b65 end=0
+trunc 1367: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2050: XMP 0x8010 2 48000 title="FT2 test" frames=178272 xmp.name="FT2 test" xmp.type="FastTracker v2.00 XM 1.04" | 726736 e71a45fe5a6ca807 end=0
+trunc 2733: XMP 0x8010 2 48000 title="FT2 test" copyright="XM comment
+second.line .   " frames=178272 xmp.name="FT2 test" xmp.type="ModPlug Tracker 1.16 XM 1.04" xmp.comment="XM comment
+second.line .   " | 726736 7629a625fb8e9008 end=0
+corrupt 0: XMP 0x8010 2 48000 title="FT2 test" copyright="XM comment
+second.line .    " frames=178272 xmp.name="FT2 test" xmp.type="ModPlug Tracker 1.16 XM 1.04" xmp.comment="XM comment
+second.line .    " | 726736 7629a625fb8e9008 end=0
+corrupt 0 mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 f148e17fdebd8219
+corrupt 1: XMP 0x8010 2 48000 title="FT2 test" copyright="XM comment
+second.line .    " frames=178272 xmp.name="FT2 test" xmp.type="ModPlug Tracker 1.16 XM 1.04" xmp.comment="XM comment
+second.line .    " | 726736 7629a625fb8e9008 end=0
+corrupt 1 mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 f148e17fdebd8219
+corrupt 2: XMP 0x8010 2 48000 title="FT22test" copyright="XM comment
+second.line .    " frames=178272 xmp.name="FT22test" xmp.type="FaPtTracker v2.00 XM 1.04" xmp.comment="XM comment
+second.line .    " | 726736 7629a625fb8e9008 end=0
+corrupt 2 mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 f148e17fdebd8219
+corrupt 3: XMP 0x8010 2 48000 title="FT2 test" copyright="XM comment
+s.cond.line .    " frames=178272 xmp.name="FT2 test" xmp.type="ModPlug Tracker 1.16 XM 1.04" xmp.comment="XM comment
+s.cond.line .    " | 726736 c3f28779679908b4 end=0
+corrupt 3 mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 66b1c0b855ffb7d1
+corrupt 4: XMP 0x8010 2 48000 title="FT2 test" copyright="XM comment
+second.line .    " frames=178272 xmp.name="FT2 test" xmp.type="ModPlug Tracker 1.16 XM 1.04" xmp.comment="XM comment
+second.line .    " | 726736 c74778aedb04781d end=0
+corrupt 4 mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 c351cca40a0453c9
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 f148e17fdebd8219
+mixpre: dur=181684 play=1 pos=12288 replay=1 seek=1 pos=60561 playing=1 e8b31208dcf1633e
+order 1: play=1 pos=4096 playing=1 e3fe6f231915bb03
+order 2: play=1 pos=4096 playing=1 68d77c70ebc64b94
+order 0: play=1 pos=4096 playing=1 1aa2dc11e3458b1e
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3339a565cb5dcba9
+order -5: play=1 pos=4096 playing=1 b1f9396bb7681b1b
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5907768ee56e2e45
+modseek 0: seek=1 pos=0 playing=1 c86e9dcb062632a7
+modseek 2205: seek=1 pos=2205 playing=1 0cd5e9e7b37429ed
+modseek 89136: seek=1 pos=89136 playing=1 0cd5e9e7b37429ed
+modseek 177272: seek=1 pos=177272 playing=1 0cd5e9e7b37429ed
+modseek 183272: seek=1 pos=183272 playing=1 0cd5e9e7b37429ed
+modseek 100: seek=1 pos=100 playing=1 0cd5e9e7b37429ed
+xmp: pat=3 trk=9 chn=4 ins=3 smp=3 spd=4 bpm=140 len=3 rst=0 gvl=64 seqs=2 vol=64 md5=47351ee1bd2f4b0d73d640d024b75928 2c3bb93eca52c3fb
+xmp 0: set=0 mixer=0 frames=212 46966ac5358c90b9 7790a4231ac59abf seek=0 pos=1 ffd45643976aba9b
+xmp 1: set=0 mixer=0 frames=212 f19954e7b17a983a edc1e82e59e31250 seek=0 pos=1 2186998ef74061cd
+xmp 2: set=0 mixer=0 frames=212 3b190271da1e2ea8 9ad59a24a0388d17 seek=0 pos=1 efda987841ac2c4f
+xmp 3: set=0 mixer=0 frames=212 4d277fb6af446893 00880664eb291ffd seek=0 pos=1 19fe806185cee247
+== xm_old.xm
+open: XMP 0x8010 2 48000 title="old" frames=30816 xmp.name="old" xmp.type="MED2XM by J.Pynnone XM 1.02" | 123408 9aa6e07480212dc1 end=0
+f32s48: 246816 a6eff83fb0da3a61 end=0
+s16m22: 28346 13ef40dfe6c0a8ca end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 207: err: Audio data is in unknown/unsupported/corrupt format
+trunc 415: err: Audio data is in unknown/unsupported/corrupt format
+trunc 623: err: Audio data is in unknown/unsupported/corrupt format
+trunc 830: XMP 0x8010 2 48000 title="old" frames=30816 xmp.name="old" xmp.type="MED2XM by J.Pynnone XM 1.02" | 123408 2eb1443c67a9aef5 end=0
+corrupt 0: XMP 0x8010 2 48000 title="old" frames=216000 xmp.name="old" xmp.type="MED2XM by J.Pynno∆e XM 1.02" | 864000 0fb07783918f8249 end=0
+corrupt 0 mix: dur=216000 play=1 pos=12288 replay=1 seek=1 pos=72000 playing=1 d953bacc9563d221
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="old" frames=216000 xmp.name="old" xmp.type="MED2XM by J.PynnoOe XM 1.02" | 864000 d2490917e0fcd80c end=0
+corrupt 3 mix: dur=216000 play=1 pos=12288 replay=1 seek=1 pos=72000 playing=1 4e2e62ec034624fd
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: XMP 0x8010 2 48000 title="old" frames=216000 xmp.name="old" xmp.type="MED2XM by J„Pynnone XM 1.02" | 864000 c7a38e0bf3d355fd end=0
+corrupt 5 mix: dur=216000 play=1 pos=12288 replay=1 seek=1 pos=72000 playing=1 dba5f4e12b3df519
+mix: dur=30816 play=1 pos=12288 replay=1 seek=1 pos=10272 playing=1 16d583ee9eedba55
+mixpre: dur=30852 play=1 pos=12288 replay=1 seek=1 pos=10284 playing=1 11b1838119cdc165
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 af3310c572ffe95d
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 bc66e80c1c03a4dd
+order -5: play=1 pos=4096 playing=1 189190a829b61651
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 457c8c30531302d1
+modseek 0: seek=1 pos=0 playing=1 525dc56de723cd61
+modseek 2205: seek=1 pos=2205 playing=1 aad1bcbdae66e141
+modseek 15408: seek=1 pos=15408 playing=1 aad1bcbdae66e141
+modseek 29816: seek=1 pos=29816 playing=1 aad1bcbdae66e141
+modseek 35816: seek=1 pos=35816 playing=1 aad1bcbdae66e141
+modseek 100: seek=1 pos=100 playing=1 aad1bcbdae66e141
+xmp: pat=2 trk=3 chn=2 ins=1 smp=1 spd=3 bpm=140 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=0cceb04f2051d6606791f0cc1dbbad4e 7705de3d74672dba
+xmp 0: set=0 mixer=0 frames=36 553ef7945968c28a 8c2e23ec5665ac70 seek=0 pos=-7 0191d1f35df94381
+xmp 1: set=0 mixer=0 frames=36 575352741694fa79 d2af276376a51271 seek=0 pos=-7 3677aeba2f478875
+xmp 2: set=0 mixer=0 frames=36 45effcf300b0932a 72214406342564f1 seek=0 pos=-7 59f8751470ffb78b
+xmp 3: set=0 mixer=0 frames=36 c27300357739c875 84a2dbefa6d535aa seek=0 pos=-7 c0913250914a2fad
+== xm_oxm.xm
+open: XMP 0x8010 2 48000 title="vorbis" frames=23040 xmp.name="vorbis" xmp.type="unknown XM 1.04" | 92160 b4465b781d545259 end=0
+f32s48: 184320 d08d19d3dda4084d end=0
+s16m22: 21168 818c724b92e668c5 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2503: err: Audio data is in unknown/unsupported/corrupt format
+trunc 5007: err: Audio data is in unknown/unsupported/corrupt format
+trunc 7510: err: Audio data is in unknown/unsupported/corrupt format
+trunc 10013: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: XMP 0x8010 2 48000 title="vorbis" frames=23040 xmp.name="vorbis" xmp.type="unknown XM 1.04" | 92160 b4465b781d545259 end=0
+corrupt 0 mix: dur=23040 play=1 pos=12288 replay=1 seek=1 pos=7680 playing=1 7bad82b4e592285d
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: XMP 0x8010 2 48000 title="vorb s" frames=23040 xmp.name="vorb s" xmp.type="uÔknown XM 1.04" | 92160 b4465b781d545259 end=0
+corrupt 2 mix: dur=23040 play=1 pos=12288 replay=1 seek=1 pos=7680 playing=1 7bad82b4e592285d
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=23040 play=1 pos=12288 replay=1 seek=1 pos=7680 playing=1 7bad82b4e592285d
+mixpre: dur=23040 play=1 pos=12288 replay=1 seek=1 pos=7680 playing=1 2606e257a2252555
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 693163fd568025e5
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 05af8364958877d9
+order -5: play=1 pos=4096 playing=1 cbbe63f6363093bd
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 df6d2f36edab7381
+modseek 0: seek=1 pos=0 playing=1 6a7facc670020ee1
+modseek 2205: seek=1 pos=2205 playing=1 c851ac006365bb75
+modseek 11520: seek=1 pos=11520 playing=1 c851ac006365bb75
+modseek 22040: seek=1 pos=22040 playing=1 c851ac006365bb75
+modseek 28040: seek=1 pos=28040 playing=1 c851ac006365bb75
+modseek 100: seek=1 pos=100 playing=1 c851ac006365bb75
+xmp: pat=2 trk=3 chn=2 ins=2 smp=2 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=8b016a4e99b6ebfa25fd4bbc73407dee bb2e4a9137143905
+xmp 0: set=0 mixer=0 frames=24 2b7c46ed612a44c2 5add903a52a94a1f seek=0 pos=-7 15ea7164986b315a
+xmp 1: set=0 mixer=0 frames=24 4b4e6092f2154f31 ca8c6742079a0413 seek=0 pos=-7 c968d5530e19c20d
+xmp 2: set=0 mixer=0 frames=24 b7cc7b2d7ce084b3 62bc8deb033505ab seek=0 pos=-7 8bd3778f8a776065
+xmp 3: set=0 mixer=0 frames=24 d1143e5d86f7c019 d30df4538db317a6 seek=0 pos=-7 845b519aa1eef1cd
 == scenarios wav_s16_stereo.wav
 0: play=1 playing=0 paused=0 pos=5512 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 c3a1c893dbe57857
 1: play=1 playing=0 paused=0 pos=5522 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 2077d42d6bd222ec

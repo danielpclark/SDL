@@ -4,12 +4,15 @@
 
 //! The files in `testdata/audio/` are made by
 //! `tools/gen_sdl_mixer_testdata.py` (a synthetic signal, encoded by ffmpeg
-//! or put together by the script). `testdata/reference.txt` is the output
+//! or put together by the script), the tracker modules in
+//! `testdata/modules/` by `tools/gen_xmp_testdata.py`.
+//! `testdata/reference.txt` is the output
 //! of a C program built from upstream SDL_mixer (with its dr_mp3, dr_flac
-//! and stb_vorbis decoders, and its Opus decoder over the libopus 1.4,
+//! and stb_vorbis decoders, its Opus decoder over the libopus 1.4,
 //! opusfile 0.12 and libogg 1.3.5 it vendors, built as its CMake builds
-//! them but without SIMD) and SDL3, which these tests repeat and compare
-//! line by line:
+//! them but without SIMD, and its XMP decoder over the libxmp 4.7.3 it
+//! vendors, built as its CMake builds it) and SDL3, which these tests
+//! repeat and compare line by line:
 //!
 //! - for every file, the decoder that opens it, its format, metadata and
 //!   duration, and the audio decoded with an `MIX_AudioDecoder` in its own
@@ -19,7 +22,10 @@
 //!   intact pages (their checksums fixed);
 //! - the output of mixers (`MIX_Generate()`) playing each file, loaded on
 //!   demand and predecoded, with loops and seeks (and, for the Opus files,
-//!   seeks all around them);
+//!   seeks all around them; for the modules, starting at orders and seeks
+//!   around them, and libxmp's own API, loading from memory and playing in
+//!   the output formats, interpolations and player flags SDL_mixer doesn't
+//!   use);
 //! - mixer features (gains, fades, stereo and 3D positioning, frequency
 //!   ratios, tags, groups and callbacks, channel maps, other output formats)
 //!   on a few files, the sine wave and raw audio decoders;
@@ -32,7 +38,9 @@
 //! sdl3-mixer works around its crashes and memory errors (the
 //! `FIXME (upstream)` notes), and built to use SDL's bundled math functions,
 //! as sdl3's are, rather than the C library's (libopus's `exp()`, `log()`
-//! and `cos()` too).
+//! and `cos()` too, and libxmp's math, with its `powf()` as `pow()` on
+//! doubles), and libxmp's random seed (the time) fixed at 0, as it is in
+//! the tests here.
 //!
 //! One thing can't be pinned: corrupt input can decode to NaNs, and when
 //! both operands of an x86 float operation are NaNs, the result is the
@@ -127,6 +135,35 @@ static FILES: &[(&str, &[u8])] = files![
     "wav_ulaw.wav",
 ];
 
+macro_rules! modules {
+    ($($name:literal,)*) => {
+        &[$(($name, include_bytes!(concat!("testdata/modules/", $name)) as &[u8]),)*]
+    };
+}
+
+/// The tracker modules (made by `tools/gen_xmp_testdata.py`), in the
+/// reference's order.
+static MODULES: &[(&str, &[u8])] = modules![
+    "it_new.it",
+    "it_old.it",
+    "it_smp.it",
+    "mod_6chn.mod",
+    "mod_cd81.mod",
+    "mod_clone.mod",
+    "mod_fa04.mod",
+    "mod_nt.mod",
+    "mod_pt.mod",
+    "mod_vblank.mod",
+    "s3m_orpheus.s3m",
+    "s3m_schism.s3m",
+    "s3m_st3.s3m",
+    "s3m_st301.s3m",
+    "xm_amiga.xm",
+    "xm_ft2.xm",
+    "xm_old.xm",
+    "xm_oxm.xm",
+];
+
 /// The files the mixer feature scenarios play.
 static SCENARIO_FILES: &[&str] = &[
     "wav_s16_stereo.wav",
@@ -217,6 +254,11 @@ fn print_props(out: &mut String, p: &Properties) {
                 .unwrap_or(false) as i32
         )
         .unwrap();
+    }
+    for key in ["name", "type", "comment"] {
+        if let Some(s) = p.get_string(&format!("SDL_mixer.metadata.xmp.{key}")) {
+            write!(out, " xmp.{key}=\"{s}\"").unwrap();
+        }
     }
 }
 
@@ -415,6 +457,259 @@ fn seektest(out: &mut String, data: &[u8]) {
     }
 }
 
+/// Play a module from orders and around it.
+fn modtest(out: &mut String, data: &[u8]) {
+    let spec = AudioSpec {
+        format: AudioFormat::F32,
+        channels: 2,
+        freq: 48000,
+    };
+    let m = Mixer::new(&spec).unwrap();
+    let a = match Audio::load_io(Some(&m), &mut mem_io(data), false) {
+        Ok(a) => a,
+        Err(e) => {
+            writeln!(out, "modtest: err: {e}").unwrap();
+            return;
+        }
+    };
+    let dur = a.duration().unwrap_or(-1);
+    let t = Track::new(&m).unwrap();
+    let _ = t.set_audio(Some(&a));
+    for order in [1i64, 2, 0, 200, -5, 3] {
+        let p = Properties::new();
+        p.set(PROP_PLAY_START_ORDER_NUMBER, order).unwrap();
+        let played = t.play(Some(&p));
+        let mut h = FNV0;
+        generate(&m, 2, &mut h);
+        write!(out, "order {order}: play={}", played.is_ok() as i32).unwrap();
+        if let Err(e) = &played {
+            write!(out, " err: {e}").unwrap();
+        }
+        writeln!(
+            out,
+            " pos={} playing={} {h:016x}",
+            t.playback_position().unwrap_or(-1),
+            t.playing() as i32
+        )
+        .unwrap();
+    }
+    let _ = t.play(None);
+    for target in [0, 2205, dur / 2, dur - 1000, dur + 5000, 100] {
+        let seeked = t.set_playback_position(target).is_ok();
+        let pos = t.playback_position().unwrap_or(-1);
+        let mut h = FNV0;
+        generate(&m, 1, &mut h);
+        writeln!(
+            out,
+            "modseek {target}: seek={} pos={pos} playing={} {h:016x}",
+            seeked as i32,
+            t.playing() as i32
+        )
+        .unwrap();
+    }
+}
+
+fn fnv_int(h: u64, v: i32) -> u64 {
+    fnv(h, &v.to_ne_bytes())
+}
+
+/// libxmp itself, in the modes SDL_mixer doesn't use.
+fn xmptest(out: &mut String, data: &[u8]) {
+    use crate::xmp::*;
+
+    let mut c = xmp_create_context();
+    let r = load::xmp_load_module_from_memory(&mut c, data);
+    if r < 0 {
+        writeln!(out, "xmp: load {r}").unwrap();
+        xmp_free_context(c);
+        return;
+    }
+    let chn;
+    {
+        let mi = xmp_get_module_info(&c).unwrap();
+        let m = mi.mod_;
+        chn = m.chn;
+        write!(
+            out,
+            "xmp: pat={} trk={} chn={} ins={} smp={} spd={} bpm={} len={} rst={} gvl={} seqs={} vol={} md5=",
+            m.pat,
+            m.trk,
+            m.chn,
+            m.ins,
+            m.smp,
+            m.spd,
+            m.bpm,
+            m.len,
+            m.rst,
+            m.gvl,
+            mi.num_sequences,
+            mi.vol_base
+        )
+        .unwrap();
+        for b in mi.md5 {
+            write!(out, "{b:02x}").unwrap();
+        }
+        let mut hm = FNV0;
+        for xxi in &m.xxi[..m.ins as usize] {
+            hm = fnv(hm, cstr(&xxi.name));
+            hm = fnv_int(fnv_int(fnv_int(hm, xxi.vol), xxi.nsm), xxi.rls);
+            for sub in &xxi.sub[..xxi.nsm as usize] {
+                for v in [
+                    sub.vol, sub.gvl, sub.pan, sub.xpo, sub.fin, sub.vwf, sub.vde, sub.vra,
+                    sub.vsw, sub.rvv, sub.sid, sub.nna, sub.dct, sub.dca, sub.ifc, sub.ifr,
+                ] {
+                    hm = fnv_int(hm, v);
+                }
+            }
+        }
+        for xxs in &m.xxs[..m.smp as usize] {
+            hm = fnv(hm, cstr(&xxs.name));
+            hm = fnv_int(
+                fnv_int(fnv_int(fnv_int(hm, xxs.len), xxs.lps), xxs.lpe),
+                xxs.flg,
+            );
+            if let Some(d) = &xxs.data {
+                let bytes = xxs.len as usize
+                    * if xxs.flg & XMP_SAMPLE_16BIT != 0 {
+                        2
+                    } else {
+                        1
+                    }
+                    * if xxs.flg & XMP_SAMPLE_STEREO != 0 {
+                        2
+                    } else {
+                        1
+                    };
+                hm = fnv(hm, &d[SAMPLE_GUARD..SAMPLE_GUARD + bytes]);
+            }
+        }
+        writeln!(out, " {hm:016x}").unwrap();
+    }
+    let modes = [
+        (
+            22050,
+            XMP_FORMAT_8BIT | XMP_FORMAT_UNSIGNED | XMP_FORMAT_MONO,
+            XMP_INTERP_NEAREST,
+            70,
+            1,
+            XMP_DSP_LOWPASS,
+            0,
+        ),
+        (32000, 0, XMP_INTERP_SPLINE, 30, 2, 0, 0),
+        (
+            44100,
+            XMP_FORMAT_MONO,
+            XMP_INTERP_LINEAR,
+            100,
+            0,
+            XMP_DSP_LOWPASS,
+            XMP_FLAGS_A500,
+        ),
+        (
+            11025,
+            0,
+            XMP_INTERP_SPLINE,
+            -100,
+            3,
+            0,
+            XMP_FLAGS_VBLANK | XMP_FLAGS_FX9BUG | XMP_FLAGS_FIXLOOP | XMP_FLAGS_A500,
+        ),
+    ];
+    for (i, (rate, fmt, interp, mix, amp, dsp, flags)) in modes.into_iter().enumerate() {
+        let r = xmp_start_player(&mut c, rate, fmt);
+        if r < 0 {
+            writeln!(out, "xmp {i}: start {r}").unwrap();
+            continue;
+        }
+        let mut sr = control::xmp_set_player(&mut c, XMP_PLAYER_INTERP, interp);
+        sr += control::xmp_set_player(&mut c, XMP_PLAYER_MIX, mix);
+        sr += control::xmp_set_player(&mut c, XMP_PLAYER_AMP, amp);
+        sr += control::xmp_set_player(&mut c, XMP_PLAYER_DSP, dsp);
+        sr += control::xmp_set_player(&mut c, XMP_PLAYER_CFLAGS, flags);
+        let mut h = FNV0;
+        let mut hf = FNV0;
+        let mut frames = 0;
+        let mut fi = XmpFrameInfo::default();
+        while frames < 300 {
+            if xmp_play_frame(&mut c) < 0 {
+                break;
+            }
+            xmp_get_frame_info(&c, &mut fi);
+            if fi.loop_count > 0 {
+                break;
+            }
+            h = fnv(h, control::frame_buffer(&c, &fi));
+            for v in [
+                fi.pos,
+                fi.pattern,
+                fi.row,
+                fi.num_rows,
+                fi.frame,
+                fi.speed,
+                fi.bpm,
+                fi.time,
+                fi.total_time,
+                fi.frame_time,
+                fi.buffer_size,
+                fi.total_size,
+                fi.volume,
+                fi.virt_channels,
+                fi.virt_used,
+                fi.sequence,
+            ] {
+                hf = fnv_int(hf, v);
+            }
+            for ci in &fi.channel_info[..chn as usize] {
+                for v in [
+                    ci.period as i32,
+                    ci.position as i32,
+                    ci.pitchbend as i32,
+                    ci.note as i32,
+                    ci.instrument as i32,
+                    ci.sample as i32,
+                    ci.volume as i32,
+                    ci.pan as i32,
+                ] {
+                    hf = fnv_int(hf, v);
+                }
+            }
+            frames += 1;
+        }
+        let s1 = xmp_seek_time(&mut c, 700);
+        let s2 = xmp_set_position(&mut c, 1);
+        xmp_play_buffer(&mut c, None, 0, 0);
+        let mut buf = [0u8; 2000];
+        let mut h2 = FNV0;
+        for _ in 0..5 {
+            let pr = xmp_play_buffer(&mut c, Some(&mut buf), 2000, 1);
+            h2 = fnv_int(h2, pr);
+            h2 = fnv(h2, &buf);
+        }
+        writeln!(
+            out,
+            "xmp {i}: set={sr} mixer={} frames={frames} {h:016x} {hf:016x} seek={s1} pos={s2} {h2:016x}",
+            control::xmp_get_player(&c, XMP_PLAYER_MIXER_TYPE)
+        )
+        .unwrap();
+        xmp_end_player(&mut c);
+    }
+    xmp_release_module(&mut c);
+    xmp_free_context(c);
+}
+
+/// Whether a test file is a tracker module (anything but the audio files'
+/// formats).
+fn is_module(name: &str) -> bool {
+    let exts = [
+        ".wav", ".aiff", ".au", ".flac", ".oga", ".mp2", ".mp3", ".ogg", ".opus", ".voc", ".mid",
+        ".rmi",
+    ];
+    match name.rfind('.') {
+        None => true,
+        Some(dot) => !exts.contains(&&name[dot..]),
+    }
+}
+
 struct Lcg(u32);
 
 impl Lcg {
@@ -547,6 +842,10 @@ fn test_file(out: &mut String, name: &str, data: &[u8]) {
     mixtest(out, "mixpre", data, true);
     if name.starts_with("opus_") {
         seektest(out, data);
+    }
+    if is_module(name) {
+        modtest(out, data);
+        xmptest(out, data);
     }
 }
 
@@ -881,7 +1180,7 @@ fn files_with_prefix(prefixes: &[&str]) {
     setup();
     let mut out = String::new();
     let mut names = Vec::new();
-    for (name, data) in FILES {
+    for (name, data) in FILES.iter().chain(MODULES) {
         if prefixes.iter().any(|p| name.starts_with(p)) {
             test_file(&mut out, name, data);
             names.push(*name);
@@ -923,6 +1222,26 @@ fn vorbis_matches_upstream() {
 #[test]
 fn flac_matches_upstream() {
     files_with_prefix(&["flac_"]);
+}
+
+#[test]
+fn mod_matches_upstream() {
+    files_with_prefix(&["mod_"]);
+}
+
+#[test]
+fn xm_matches_upstream() {
+    files_with_prefix(&["xm_"]);
+}
+
+#[test]
+fn s3m_matches_upstream() {
+    files_with_prefix(&["s3m_"]);
+}
+
+#[test]
+fn it_matches_upstream() {
+    files_with_prefix(&["it_"]);
 }
 
 #[test]

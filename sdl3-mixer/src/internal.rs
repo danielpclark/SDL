@@ -275,8 +275,8 @@ pub(crate) trait TrackData: Send {
     fn decode(&mut self, stream: &AudioStream) -> bool;
     /// Seek to a sample frame.
     fn seek(&mut self, frame: u64) -> Result<()>;
-    /// Jump to an order in a module (none of the decoders translated here
-    /// support it; see [`Decoder::has_jump_to_order`]).
+    /// Jump to an order in a module (only the `XMP` decoder supports it; see
+    /// [`Decoder::has_jump_to_order`]).
     fn jump_to_order(&mut self, _order: i32) -> Result<()> {
         Err(Error::unsupported())
     }

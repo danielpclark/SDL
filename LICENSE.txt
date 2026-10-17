@@ -45,7 +45,8 @@ The default build of sdl3-mixer includes sdl3-mixer-timidity (sdl3-mixer's
 default), so a program using sdl3-mixer's default features is subject to
 those terms for that part. Build sdl3-mixer with `default-features = false`
 (leaving out `timidity`, and MIDI support) for a build under the zlib
-license (and the BSD licenses of sdl3-mixer's Opus decoder, below) only.
+license (and the BSD licenses of sdl3-mixer's Opus decoder and the MIT
+license of its libxmp, below) only.
 
 EXCEPT, likewise, sdl3-ttf/src/freetype/: that module is a translation of
 FreeType, and is under the FreeType License (FTL) (its BDF and PCF drivers
@@ -75,6 +76,12 @@ MIT), not the zlib license, except its SPIR-V token tables
 (sdl3-shadercross/src/spirv_cross/spirv.rs), which are under the Khronos
 MIT license; see the sdl3-shadercross section below and
 sdl3-shadercross/NOTICE.
+
+EXCEPT, likewise, sdl3-mixer/src/xmp/: that module is a translation of
+libxmp, as SDL_mixer vendors it for tracker modules, and is under libxmp's
+MIT license (SPDX: MIT; its md5.rs and loaders/itsex.rs translate
+public-domain code), not the zlib license; see the libxmp section below. It
+asks that its notice appear with copies of the software.
 
 ---------------------------------------------------------------------------
 
@@ -320,8 +327,9 @@ sdl3-mixer/src/spatialization.rs carries VBAP code originally from
 https://github.com/drbafflegab/vbap/, under the CC0 license (public domain).
 
 sdl3-mixer/src/stb_vorbis.rs (from SDL_mixer's bundled stb_vorbis.h,
-https://github.com/nothings/stb, written by Sean Barrett and contributors),
-available under either of two licenses:
+https://github.com/nothings/stb, written by Sean Barrett and contributors,
+and from the copy of it in libxmp's src/loaders/vorbis.c, which decodes the
+Ogg Vorbis samples of OXM modules), available under either of two licenses:
 
   ALTERNATIVE A - MIT License
   Copyright (c) 2017 Sean Barrett
@@ -511,6 +519,54 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --- end of libogg COPYING ---
+
+sdl3-mixer/src/xmp/ is a translation of libxmp (https://xmp.sourceforge.net),
+at the revision SDL_mixer's external/libxmp pins (libxmp 4.7.3), as SDL_mixer's
+CMake builds it (the full library, with LIBXMP_DISABLE_DEPACKERS and
+LIBXMP_DISABLE_PROWIZARD), which SDL_mixer's XMP decoder (decoder_xmp.c,
+translated in sdl3-mixer/src/decoder_xmp.rs) uses: an altered version of that
+software, distributed under its MIT license (SPDX: MIT), whose text (libxmp's
+docs/COPYING, verbatim) follows. The individual files carry the copyright lines
+of the files they translate.
+
+--- libxmp docs/COPYING ---
+Extended Module Player
+Copyright (C) 1996-2026 Claudio Matsuoka and Hipolito Carraro Jr
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+--- end of libxmp docs/COPYING ---
+
+sdl3-mixer/src/xmp/md5.rs translates libxmp's src/md5.c, which is in the
+public domain:
+
+  This code implements the MD5 message-digest algorithm.
+  The algorithm is due to Ron Rivest.  This code was
+  written by Colin Plumb in 1993, no copyright is claimed.
+  This code is in the public domain; do with it what you wish.
+
+sdl3-mixer/src/xmp/loaders/itsex.rs translates libxmp's src/loaders/itsex.c,
+which is in the public domain:
+
+  Public domain IT sample decompressor by Olivier Lapicque
+
+  Modified by Alice Rowan (2023-2024)- more or less complete
+  rewrite of the input stream to add buffering.
 
 sdl3-image/src/webp/ (from libwebp, https://chromium.googlesource.com/webm/libwebp,
 at the revision SDL_image's external/libwebp pins: libwebp 1.3.2 with
