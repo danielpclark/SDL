@@ -9,5 +9,6 @@ pub(crate) mod fwd_txfm;
 pub(crate) mod intrapred;
 pub(crate) mod prob;
 pub(crate) mod quantize;
+pub(crate) mod sad;
 pub(crate) mod subtract;
 pub(crate) mod variance;

@@ -17,6 +17,7 @@ pub(crate) mod encodetxb;
 pub(crate) mod extend;
 pub(crate) mod hybrid_fwd_txfm;
 pub(crate) mod lookahead;
+pub(crate) mod mcomp;
 pub(crate) mod nonrd_pickmode;
 pub(crate) mod partition_search;
 pub(crate) mod picklpf;

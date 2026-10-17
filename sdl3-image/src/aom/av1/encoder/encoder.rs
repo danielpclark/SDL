@@ -32,6 +32,7 @@ use super::speed_features::*;
 use super::superres_scale::{av1_setup_frame_size, av1_superres_in_recode_allowed};
 use super::var_based_part::{av1_set_variance_partition_thresholds, VP64x64};
 use crate::aom::aom_dsp::aom_dsp_common::get_msb;
+use crate::aom::aom_dsp::variance::AomVarianceFnPtr;
 use crate::aom::aom_scale::yv12config::*;
 use crate::aom::av1::common::alloccommon::*;
 use crate::aom::av1::common::av1_common_int::*;
@@ -138,7 +139,6 @@ pub(crate) const FRAMEFLAGS_ERROR_RESILIENT: u32 = 1 << 6;
 
 /// `av1_ref_frame_flag_list[]`
 pub(crate) const AV1_REF_FRAME_FLAG_LIST: [i32; REF_FRAMES as usize] = [0, 1, 2, 4, 8, 16, 32, 64];
-
 // ---------------------------------------------------------------------------
 // Configuration (AV1EncoderConfig and its parts)
 // ---------------------------------------------------------------------------
@@ -446,6 +446,7 @@ pub(crate) struct GfGroup {
     pub(crate) frame_parallel_level: [i32; MAX_STATIC_GF_GROUP_LENGTH],
     pub(crate) refbuf_state: [i32; MAX_STATIC_GF_GROUP_LENGTH],
     pub(crate) is_frame_non_ref: [bool; MAX_STATIC_GF_GROUP_LENGTH],
+    pub(crate) frame_type: [FrameType; MAX_STATIC_GF_GROUP_LENGTH],
     pub(crate) max_layer_depth: i32,
     pub(crate) size: i32,
 }
@@ -460,6 +461,7 @@ impl Default for GfGroup {
             frame_parallel_level: [0; MAX_STATIC_GF_GROUP_LENGTH],
             refbuf_state: [0; MAX_STATIC_GF_GROUP_LENGTH],
             is_frame_non_ref: [false; MAX_STATIC_GF_GROUP_LENGTH],
+            frame_type: [0; MAX_STATIC_GF_GROUP_LENGTH],
             max_layer_depth: 0,
             size: 0,
         }
@@ -499,6 +501,12 @@ pub(crate) struct Av1Primary {
     pub(crate) filter_level: [i32; 2],
     pub(crate) filter_level_u: i32,
     pub(crate) filter_level_v: i32,
+    /// `ppi->rtc_ref`
+    pub(crate) rtc_ref: RtcRef,
+    /// `ppi->fn_ptr[]`
+    pub(crate) fn_ptr: AomVarianceFnPtr,
+    /// `ppi->fb_of_context_type[]`
+    pub(crate) fb_of_context_type: [i32; REF_FRAMES as usize],
 }
 
 /// `RD_COUNTS`
@@ -591,6 +599,9 @@ pub(crate) struct RefFrameDistanceInfo {
 pub(crate) struct MotionVectorSearchParams {
     pub(crate) max_mv_magnitude: i32,
     pub(crate) mv_step_param: i32,
+    /// `find_fractional_mv_step`: the fractional search, a
+    /// `SUBPEL_SEARCH_METHODS` value.
+    pub(crate) find_fractional_mv_step: i32,
 }
 
 /// `RD_OPT` (only the frame's rate distortion multiplier is read).
@@ -614,16 +625,73 @@ pub(crate) struct RefreshFrameInfo {
     pub(crate) alt_ref_frame: bool,
 }
 
+/// `ExtRefreshFrameFlagsInfo`
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct ExtRefreshFrameFlagsInfo {
+    pub(crate) update_pending: bool,
+    pub(crate) last_frame: bool,
+    pub(crate) golden_frame: bool,
+    pub(crate) bwd_ref_frame: bool,
+    pub(crate) alt2_ref_frame: bool,
+    pub(crate) alt_ref_frame: bool,
+}
+
 /// The reached members of `ExternalFlags`.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ExternalFlags {
     pub(crate) ref_frame_flags: i32,
+    pub(crate) refresh_frame: ExtRefreshFrameFlagsInfo,
+    pub(crate) refresh_frame_context: bool,
+    pub(crate) refresh_frame_context_pending: bool,
     pub(crate) use_ref_frame_mvs: bool,
     pub(crate) use_error_resilient: bool,
     pub(crate) use_s_frame: bool,
     pub(crate) use_primary_ref_none: bool,
-    pub(crate) refresh_frame_update_pending: bool,
-    pub(crate) refresh_frame_context_pending: bool,
+}
+
+/// The reached members of `SVC`: one spatial and one temporal layer.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Svc {
+    pub(crate) spatial_layer_id: i32,
+    pub(crate) temporal_layer_id: i32,
+    pub(crate) number_spatial_layers: i32,
+    pub(crate) number_temporal_layers: i32,
+}
+
+impl Default for Svc {
+    fn default() -> Self {
+        // (scalable coding is off: av1_change_config() copies
+        // ppi->number_spatial_layers and number_temporal_layers, 1)
+        Svc {
+            spatial_layer_id: 0,
+            temporal_layer_id: 0,
+            number_spatial_layers: 1,
+            number_temporal_layers: 1,
+        }
+    }
+}
+
+/// `RTC_REF`
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct RtcRef {
+    /*
+     * LAST_FRAME (0), LAST2_FRAME(1), LAST3_FRAME(2), GOLDEN_FRAME(3),
+     * BWDREF_FRAME(4), ALTREF2_FRAME(5), ALTREF_FRAME(6).
+     */
+    pub(crate) reference: [i32; INTER_REFS_PER_FRAME as usize],
+    pub(crate) ref_idx: [i32; INTER_REFS_PER_FRAME as usize],
+    pub(crate) refresh: [i32; REF_FRAMES as usize],
+    pub(crate) set_ref_frame_config: bool,
+    pub(crate) non_reference_frame: bool,
+    pub(crate) ref_frame_comp: [i32; 3],
+    pub(crate) gld_idx_1layer: i32,
+}
+
+/// `ResizePendingParams`
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct ResizePendingParams {
+    pub(crate) width: i32,
+    pub(crate) height: i32,
 }
 
 /// `TimeStamps`
@@ -684,6 +752,17 @@ pub(crate) struct Av1Comp {
     /// `cpi->source`: the frame being coded, moved out of the lookahead
     /// queue while it is coded.
     pub(crate) source_buf: Yv12BufferConfig,
+    /// `cpi->last_source`: the previous source frame (the lookahead
+    /// queue's entry before the coded one), moved out of the queue while
+    /// the frame is coded; `has_last_source` tells whether there is one.
+    pub(crate) last_source_buf: Yv12BufferConfig,
+    pub(crate) has_last_source: bool,
+    pub(crate) svc: Svc,
+    pub(crate) use_screen_content_tools: i32,
+    pub(crate) rec_sse: u64,
+    pub(crate) rt_reduce_num_ref_buffers: bool,
+    pub(crate) src_sad_blk_64x64: Vec<u64>,
+    pub(crate) resize_pending_params: ResizePendingParams,
 }
 
 impl Av1Comp {
@@ -1538,7 +1617,7 @@ pub(crate) fn av1_change_config(
     let tile_cfg = cpi.oxcf.tile_cfg;
     set_tile_info(&mut cpi.common, &tile_cfg);
 
-    cpi.ext_flags.refresh_frame_update_pending = false;
+    cpi.ext_flags.refresh_frame.update_pending = false;
     cpi.ext_flags.refresh_frame_context_pending = false;
 
     // (check_reset_rc_flag(): a real-time rate control reset)

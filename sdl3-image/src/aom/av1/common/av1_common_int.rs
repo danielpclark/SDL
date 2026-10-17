@@ -68,9 +68,7 @@ pub(crate) struct MvRef {
     pub(crate) ref_frame: MvReferenceFrame,
 }
 
-pub(crate) const SWITCHABLE_FILTERS: usize = 3;
-pub(crate) const SWITCHABLE: i32 = 4;
-pub(crate) const EIGHTTAP_REGULAR: i32 = 0;
+pub(crate) use super::filter::{EIGHTTAP_REGULAR, SWITCHABLE};
 
 /// Translation of `RefCntBuffer`, without the film grain, global motion and
 /// external frame buffer data.

@@ -11,6 +11,7 @@ pub(crate) mod cfl;
 pub(crate) mod entropy;
 pub(crate) mod entropymode;
 pub(crate) mod enums;
+pub(crate) mod filter;
 pub(crate) mod idct;
 pub(crate) mod mv;
 pub(crate) mod mvref_common;
