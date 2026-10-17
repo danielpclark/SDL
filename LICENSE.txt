@@ -930,8 +930,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
 
 sdl3-image/src/avif/ is a translation of the parts of libavif
-(https://github.com/AOMediaCodec/libavif) SDL_image uses to decode AVIF
-images, at the revision SDL_image's external/libavif pins (libavif 1.1.1
+(https://github.com/AOMediaCodec/libavif) SDL_image uses to decode and
+save AVIF images, at the revision SDL_image's external/libavif pins (libavif 1.1.1
 with SDL's patches), including the subset of libyuv libavif bundles in its
 third_party/libyuv/ (its plane scaler), an altered version of that software,
 distributed under libavif's license. The sections of libavif's LICENSE that

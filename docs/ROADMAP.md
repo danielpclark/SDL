@@ -82,7 +82,11 @@ In dependency order, after the core each one needs exists:
    (`IMG_avif.c` over a translation of libavif 1.1.1's decoder as
    SDL_image builds it: the ISOBMFF/HEIF parser with items, grids, alpha
    items and tracks, the plain-C YUV to RGB conversion and alpha, the
-   libyuv plane scaler libavif bundles, and its dav1d codec), BMP/ICO/CUR,
+   libyuv plane scaler libavif bundles, and its dav1d codec; and libavif's
+   encoder for `IMG_SaveAVIF_IO()`: the plain-C RGB to YUV conversion, the
+   container writer and its aom codec, over a translation of libaom 3.6.1's
+   all intra AV1 encoder at the speed the saver asks, cpu-used 9),
+   BMP/ICO/CUR,
    GIF, LBM, PCX, PNM, QOI
    (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
    chosen size), TGA, WebP (`IMG_webp.c` over a translation of libwebp
@@ -102,7 +106,7 @@ In dependency order, after the core each one needs exists:
    filters, blending, color conversion and orientation), XCF, XPM
    (with its color table, also from arrays) and XV decoders, PNG and JPEG through the stb_image translation in `sdl3`
    (`IMG_stb.c`), the BMP, ICO, CUR, GIF (LZW, octree quantizer), PNG
-   (miniz), TGA, JPEG (`tiny_jpeg.h`) and WebP savers, the animation API
+   (miniz), TGA, JPEG (`tiny_jpeg.h`), WebP and AVIF savers, the animation API
    (`IMG_anim_decoder.c`, `IMG_anim_encoder.c`: frame-by-frame decoders and
    encoders with timebases and metadata) with GIF, ANI cursor and WebP
    animations and AVIF image sequences (decoding),
@@ -122,6 +126,11 @@ In dependency order, after the core each one needs exists:
    images covering modular and VarDCT, every sample type, alpha, the
    image features, orientations, color encodings, progressive passes,
    recompressed JPEGs and animations, truncated and corrupted.
+   AVIF saving is byte-identical to SDL_image built with libavif and libaom
+   (`AOM_TARGET_CPU=generic`, one thread) on synthetic surfaces of every
+   format path (8-bit RGB orders, converted formats, 10-bit GBR), sizes
+   from 1x1 to 2200x2200 (multi-tile and 4K-class) and qualities from 0 to
+   lossless, and decodes back through the translated decoder.
    APNG animations are a translation of `IMG_libpng.c`'s decoder and
    encoder over libpng 1.6.59's sequential reader and writer and zlib
    1.3.1's inflate and deflate (the revisions SDL_image's external/
@@ -129,7 +138,9 @@ In dependency order, after the core each one needs exists:
    covering every color type and bit depth, the dispose and blend
    operations, offsets, interlacing, delays and metadata, truncated and
    corrupted, and on every test image re-encoded.
-   Not yet: AVIF saving and the AVIF animation encoder (an AV1 encoder);
+   Not yet: the AVIF animation encoder (it needs libaom's inter frame
+   coding: the good quality and real-time usages, rate control across
+   frames and reference frames, none of which the still saver reaches);
    still PNGs and JPEG stay on stb_image (and PNG saving on miniz) as
    upstream's stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
