@@ -14,8 +14,12 @@
 //! them but without SIMD, its XMP decoder over the libxmp 4.7.3 it
 //! vendors, built as its CMake builds it, and its WAVPACK decoder over the
 //! WavPack 5.9.0 it vendors, built as its CMake builds it but with the C
-//! decorrelation passes rather than the assembly ones) and SDL3, which these tests
-//! repeat and compare line by line:
+//! decorrelation passes rather than the assembly ones, and its MPG123
+//! decoder over the libmpg123 1.33.7 it vendors, built as its CMake builds
+//! it but with only its generic C decoder) and SDL3, which these tests
+//! repeat and compare line by line (without the `mpg123` feature, the
+//! sections that changes come from `testdata/reference_nompg123.txt`, the
+//! output of the same program built without MPG123):
 //!
 //! - for every file, the decoder that opens it, its format, metadata and
 //!   duration, and the audio decoded with an `MIX_AudioDecoder` in its own
@@ -99,9 +103,16 @@ static FILES: &[(&str, &[u8])] = files![
     "flac_ogg.oga",
     "flac_s16_stereo.flac",
     "flac_s24_mono.flac",
+    "mp1_stereo.mp1",
+    "mp2_mono_lsf.mp2",
     "mp2_stereo.mp2",
     "mp3_ape_id3v1.mp3",
     "mp3_cbr_mono.mp3",
+    "mp3_frankenstein.mp3",
+    "mp3_free_format.mp3",
+    "mp3_id3v22.mp3",
+    "mp3_id3v2_notitle.mp3",
+    "mp3_intensity.mp3",
     "mp3_joint_stereo.mp3",
     "mp3_junk.mp3",
     "mp3_mpeg25.mp3",
@@ -293,9 +304,9 @@ static MODULES: &[(&str, &[u8])] = modules![
 ];
 
 /// Files tested again with another decoder forced (the reference's
-/// `name DECODER` sections): the Vorbis files with stb_vorbis and the
-/// FLAC ones with dr_flac, which upstream's default build tries after
-/// libvorbisfile and libFLAC.
+/// `name DECODER` sections): the Vorbis files with stb_vorbis, the FLAC
+/// ones with dr_flac and the MPEG audio ones with dr_mp3, which upstream's
+/// default build tries after libvorbisfile, libFLAC and libmpg123.
 static FORCED: &[(&str, &str)] = &[
     ("ogg_6ch.ogg", "STBVORBIS"),
     ("ogg_8k.ogg", "STBVORBIS"),
@@ -306,6 +317,22 @@ static FORCED: &[(&str, &str)] = &[
     ("flac_ogg.oga", "DRFLAC"),
     ("flac_s16_stereo.flac", "DRFLAC"),
     ("flac_s24_mono.flac", "DRFLAC"),
+    ("mp1_stereo.mp1", "DRMP3"),
+    ("mp2_mono_lsf.mp2", "DRMP3"),
+    ("mp2_stereo.mp2", "DRMP3"),
+    ("mp3_ape_id3v1.mp3", "DRMP3"),
+    ("mp3_cbr_mono.mp3", "DRMP3"),
+    ("mp3_frankenstein.mp3", "DRMP3"),
+    ("mp3_free_format.mp3", "DRMP3"),
+    ("mp3_id3v22.mp3", "DRMP3"),
+    ("mp3_id3v2_notitle.mp3", "DRMP3"),
+    ("mp3_intensity.mp3", "DRMP3"),
+    ("mp3_joint_stereo.mp3", "DRMP3"),
+    ("mp3_junk.mp3", "DRMP3"),
+    ("mp3_mpeg25.mp3", "DRMP3"),
+    ("mp3_mpeg25_mixed.mp3", "DRMP3"),
+    ("mp3_mpeg2_noxing.mp3", "DRMP3"),
+    ("mp3_vbr_stereo.mp3", "DRMP3"),
 ];
 
 thread_local! {
@@ -324,6 +351,29 @@ static SCENARIO_FILES: &[&str] = &[
 ];
 
 static REFERENCE: &[u8] = include_bytes!("testdata/reference.txt");
+
+/// The sections that differ without the `mpg123` feature (the MPEG audio
+/// files' own sections, the MP3 scenarios and the decoder list), from the
+/// same C program built without the MPG123 decoder.
+#[cfg(not(feature = "mpg123"))]
+static REFERENCE_NO_MPG123: &[u8] = include_bytes!("testdata/reference_nompg123.txt");
+
+/// The reference's sections (`== name` and its lines), by name.
+fn reference_sections(reference: &[u8]) -> std::collections::HashMap<String, String> {
+    let mut sections = std::collections::HashMap::new();
+    let mut name = None;
+    for line in String::from_utf8_lossy(reference).lines() {
+        if let Some(n) = line.strip_prefix("== ") {
+            name = Some(n.to_string());
+        }
+        if let Some(name) = &name {
+            let section: &mut String = sections.entry(name.clone()).or_default();
+            section.push_str(line);
+            section.push('\n');
+        }
+    }
+    sections
+}
 
 const FNV0: u64 = 14695981039346656037;
 
@@ -1523,14 +1573,18 @@ fn line_matches(got: &str, want: &str) -> bool {
 /// Compare `out` with the reference's lines for `sections` (the lines from
 /// `== section` up to the next section's).
 fn compare(out: &str, sections: &[&str]) {
-    let reference = String::from_utf8_lossy(REFERENCE);
+    #[allow(unused_mut)]
+    let mut reference = reference_sections(REFERENCE);
+    // (upstream was built with its MPG123 decoder; without the `mpg123`
+    // feature, the sections it changes are those of a build without it.)
+    #[cfg(not(feature = "mpg123"))]
+    reference.extend(reference_sections(REFERENCE_NO_MPG123));
     let mut want = String::new();
-    let mut keep = false;
-    for line in reference.lines() {
-        if let Some(name) = line.strip_prefix("== ") {
-            keep = sections.contains(&name);
-        }
-        if keep {
+    for name in sections {
+        let section = reference
+            .get(*name)
+            .unwrap_or_else(|| panic!("no reference for {name}"));
+        for line in section.lines() {
             // (upstream was built with its TIMIDITY decoder; without the
             // `timidity` feature, there is none.)
             if !cfg!(feature = "timidity") && line.starts_with("decoders:") {

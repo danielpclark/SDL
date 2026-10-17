@@ -22,9 +22,10 @@
 //!
 //! * Decoders: WAV (PCM, IEEE float, mu-law, a-law, MS and IMA ADPCM, with
 //!   `smpl` loops), AIFF and AIFF-C, Creative VOC, Sun/NeXT AU, MP3 (the
-//!   bundled dr_mp3), Ogg Vorbis (libvorbisfile and libvorbis's decoder
-//!   over libogg, as SDL_mixer vendors them, translated here under their
-//!   BSD licenses, then the bundled stb_vorbis), FLAC (libFLAC's decoder,
+//!   bundled dr_mp3, and libmpg123 ahead of it: see below), Ogg Vorbis
+//!   (libvorbisfile and libvorbis's decoder over libogg, as SDL_mixer
+//!   vendors them, translated here under their BSD licenses, then the
+//!   bundled stb_vorbis), FLAC (libFLAC's decoder,
 //!   as SDL_mixer vendors it, translated here under its BSD license, then
 //!   the bundled dr_flac, which also reads Ogg FLAC), Ogg Opus (opusfile,
 //!   libopus's decoder and libogg,
@@ -43,9 +44,16 @@
 //!   `timidity` Cargo feature, on by default (as upstream builds it by
 //!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
 //!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
-//!   `default-features = false` for an sdl3-mixer without MIDI under the
-//!   zlib license only (and the BSD licenses of its Vorbis, FLAC, Opus and
+//!   `default-features = false` for an sdl3-mixer without MIDI (and
+//!   without libmpg123, below) under the zlib license only (and the BSD licenses of its Vorbis, FLAC, Opus and
 //!   WavPack decoders' libraries, and libxmp's MIT license).
+//! * MP3 and MPEG audio layers I and II (the `MPG123` decoder, tried
+//!   before dr_mp3's `DRMP3`) through the libmpg123 SDL_mixer vendors,
+//!   translated in the `sdl3-mixer-mpg123` crate. This is the `mpg123`
+//!   Cargo feature, on by default (as upstream builds it by default).
+//!   **libmpg123 is not zlib-licensed**: `sdl3-mixer-mpg123` is under
+//!   `LGPL-2.1-only`. With `default-features = false`, MP3 goes to dr_mp3
+//!   alone, as in an upstream build without libmpg123.
 //! * Tracker modules (the `XMP` decoder) through libxmp, as SDL_mixer
 //!   vendors it, translated here under its MIT license: the player and its
 //!   software mixer, with all 52 of the loaders SDL_mixer's build enables
@@ -56,9 +64,8 @@
 //!   ([`PROP_PLAY_START_ORDER_NUMBER`]).
 //! * The decoders
 //!   upstream builds against another external library are not translated:
-//!   MIDI through FluidSynth,
-//!   the game music formats (libgme), and the alternative MP3 decoder
-//!   (libmpg123), as in an upstream build without them. [`audio_decoder`] lists the ones
+//!   MIDI through FluidSynth and
+//!   the game music formats (libgme), as in an upstream build without them. [`audio_decoder`] lists the ones
 //!   available.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
@@ -97,6 +104,8 @@ mod decoder_au;
 mod decoder_drflac;
 mod decoder_drmp3;
 mod decoder_flac;
+#[cfg(feature = "mpg123")]
+mod decoder_mpg123;
 mod decoder_opus;
 mod decoder_raw;
 mod decoder_sinewave;

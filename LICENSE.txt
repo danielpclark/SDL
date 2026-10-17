@@ -44,9 +44,22 @@ The default build of sdl3-mixer includes sdl3-mixer-timidity (sdl3-mixer's
 `timidity` Cargo feature, on by default, as upstream builds TiMidity by
 default), so a program using sdl3-mixer's default features is subject to
 those terms for that part. Build sdl3-mixer with `default-features = false`
-(leaving out `timidity`, and MIDI support) for a build under the zlib
-license (and the BSD licenses of sdl3-mixer's Vorbis, FLAC, Opus and
-WavPack decoders and the MIT license of its libxmp, below) only.
+(leaving out `timidity`, and MIDI support, and `mpg123`, below) for a
+build under the zlib license (and the BSD licenses of sdl3-mixer's Vorbis,
+FLAC, Opus and WavPack decoders and the MIT license of its libxmp, below)
+only.
+
+EXCEPT, likewise, sdl3-mixer-mpg123/: that crate is a translation of
+libmpg123 (Copyright (c) 1995-2020 by Michael Hipp and others, the mpg123
+project), as vendored with SDL_mixer, and is NOT under the zlib license.
+It is licensed, as libmpg123 is, under the GNU Lesser General Public
+License version 2.1 (SPDX: LGPL-2.1-only); see sdl3-mixer-mpg123/COPYING,
+AUTHORS and NOTICE, which also describes how and when it was modified.
+The default build of sdl3-mixer includes it (sdl3-mixer's `mpg123` Cargo
+feature, on by default, as upstream builds libmpg123 by default), so a
+program using sdl3-mixer's default features is subject to those terms for
+that part; `default-features = false` leaves it out (MP3 is then decoded
+by dr_mp3 only).
 
 EXCEPT, likewise, sdl3-ttf/src/freetype/: that module is a translation of
 FreeType, and is under the FreeType License (FTL) (its BDF and PCF drivers

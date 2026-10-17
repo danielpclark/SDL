@@ -23,9 +23,10 @@ path = "src/lib.rs"
 
 # The decoders are self-contained, as upstream's are when it is built with
 # its bundled codecs: dr_mp3, dr_flac and stb_vorbis are translated here,
-# as are the libraries SDL_mixer vendors (libvorbis, libFLAC, libopus...),
-# with SDL_mixer's own WAV, AIFF, VOC and AU decoders. No system audio
-# library is linked or loaded.
+# as are the libraries SDL_mixer vendors (libvorbis, libFLAC, libopus...,
+# and TiMidity and libmpg123 in crates of their own), with SDL_mixer's own
+# WAV, AIFF, VOC and AU decoders. No system audio library is linked or
+# loaded.
 [dependencies]
 sdl3 = { path = "../sdl3", version = "3.5.0" }
 # MIDI through the bundled TiMidity, which upstream builds by default.
@@ -35,11 +36,20 @@ sdl3 = { path = "../sdl3", version = "3.5.0" }
 # the BSD licenses of the Vorbis, FLAC, Opus and WavPack decoders' libraries, and
 # libxmp's MIT license) only.
 sdl3-mixer-timidity = { path = "../sdl3-mixer-timidity", version = "3.5.0", optional = true }
+# MP3 (and MPEG audio layers I and II) through the vendored libmpg123,
+# which upstream builds by default. NOTE: libmpg123 is not zlib-licensed:
+# sdl3-mixer-mpg123 is under "LGPL-2.1-only". Without it (with
+# `default-features = false`), MP3 goes to the bundled dr_mp3.
+sdl3-mixer-mpg123 = { path = "../sdl3-mixer-mpg123", version = "3.5.0", optional = true }
 
 [features]
-default = ["timidity"]
+default = ["timidity", "mpg123"]
 # The TIMIDITY decoder (upstream's SDLMIXER_MIDI_TIMIDITY, on by default):
 # MIDI files played with GUS patches or a SoundFont, as the TiMidity
 # configuration file (TIMIDITY_CFG, /etc/timidity.cfg...) or the
 # TIMIDITY_SOUNDFONT environment variable says.
 timidity = ["dep:sdl3-mixer-timidity"]
+# The MPG123 decoder (upstream's SDLMIXER_MP3_MPG123, on by default): MPEG
+# audio layers I, II and III, tried before dr_mp3 (DRMP3, which then only
+# gets the files libmpg123 refuses).
+mpg123 = ["dep:sdl3-mixer-mpg123"]
