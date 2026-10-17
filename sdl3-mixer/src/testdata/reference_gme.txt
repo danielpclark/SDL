@@ -1,0 +1,342 @@
+== gme nsf_apu.nsf
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 98304 b9c5112cb11eb5a1 end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 98304 67797b512c0c7d71 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 32768 bdf21928acf9b197 end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 5a5b2efe65889521 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1624: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 5a5b2efe65889521 end=1
+trunc 3247: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 5a5b2efe65889521 end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 5a5b2efe65889521 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 a735896b98f7b9fd
+corrupt 1: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 5a5b2efe65889521 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 a735896b98f7b9fd
+corrupt 2: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 5a5b2efe65889521 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 a735896b98f7b9fd
+corrupt 3: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 16384 9bfeafdc74adcaf5 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 44dd018f61a33325
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 a735896b98f7b9fd
+order 1: play=1 pos=4096 playing=1 41957111c58aea51
+order 2: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 41957111c58aea51
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 e1b5bfb956683981
+freshseek 2205: seek=1 pos=2205 playing=1 67bfa4ce337e7319
+freshseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+freshseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+freshseek 100: seek=1 pos=100 playing=1 7d0d5492a0fb5941
+== gme nsf_badaddr.nsf
+open: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+f32s48: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+s16m22: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+forced: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 96: err: Audio data is in unknown/unsupported/corrupt format
+trunc 191: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+corrupt 0: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+corrupt 0 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 1: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+corrupt 1 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+corrupt 2 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 3: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+corrupt 3 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+order 1: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 200: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order -5: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+replay: 0 err: No audio currently assigned to this track playing=0
+gmeseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+fresh: 0 err: No audio currently assigned to this track playing=0
+freshseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+== gme nsf_banks.nsf
+open: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 98304 b991b4ed217fcb39 end=1
+f32s48: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 98304 3c5c5f2826617d49 end=1
+s16m22: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 32768 29588a545977e46d end=1
+forced: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 d43d934013765ae1 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4118: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 a152cfd82b4b73a9 end=1
+trunc 8235: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 d43d934013765ae1 end=1
+corrupt 0: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 d43d934013765ae1 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 04b4ea6a8a572121
+corrupt 1: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 d43d934013765ae1 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 04b4ea6a8a572121
+corrupt 2: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 d43d934013765ae1 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 04b4ea6a8a572121
+corrupt 3: GME 0x8010 2 48000 artist="Nobody" album="Banks" gme.author="Nobody" gme.game="Banks" gme.system="Nintendo NES" | 16384 d43d934013765ae1 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 04b4ea6a8a572121
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 04b4ea6a8a572121
+order 1: play=1 pos=4096 playing=1 34390df65bbff495
+order 2: play=1 pos=4096 playing=1 34390df65bbff495
+order 0: play=1 pos=4096 playing=1 34390df65bbff495
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 a46bbc0fe95d658d
+freshseek 2205: seek=1 pos=2205 playing=1 bd986b06b94583bd
+freshseek 48000: seek=1 pos=48000 playing=1 6eb24267c90aaca1
+freshseek 20000: seek=1 pos=20000 playing=1 f3a844c6c0d44c85
+freshseek 100: seek=1 pos=100 playing=1 7e60b92621087b6d
+== gme nsf_exp.nsf
+open: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 98304 1bdb93eb11fea3fd end=1
+f32s48: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 98304 5588fdefefc7ed55 end=1
+s16m22: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 32768 ba1a4f41a4c72499 end=1
+forced: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 29cf06c5e6c235fd end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 323: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 2473d95487f80d79 end=1
+trunc 646: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 36e23ccf3ce91ddd end=1
+corrupt 0: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 d15d62df9ce2eecd end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 90756cead82e7fc1
+corrupt 1: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 024ed8748be8b655 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 58e4da7477669705
+corrupt 2: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 b9d8c336bbc7ead5 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 7ef1de6df502fce9
+corrupt 3: GME 0x8010 2 48000 artist="All Chips" album="Expansion" gme.author="All Chips" gme.game="Expansion" gme.system="Famicom" | 16384 10ba55c37d609025 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 91eefff5a950dc29
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 33304cda91916aa5
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 54fe7b6f60e5afd5
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 b2583290eb53458d
+freshseek 2205: seek=1 pos=2205 playing=1 78014359728ae019
+freshseek 48000: seek=1 pos=48000 playing=1 3180de20e3aeee7d
+freshseek 20000: seek=1 pos=20000 playing=1 41836b01bf8b5a51
+freshseek 100: seek=1 pos=100 playing=1 4a7acc6040951f35
+== gme nsf_odd.nsf
+open: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 98304 6f55a016b1a1e109 end=1
+f32s48: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 98304 037e231583ce4fb9 end=1
+s16m22: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 32768 c517da97db6da14b end=1
+forced: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2112: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+trunc 4223: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+corrupt 0: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1ea3df1cd7ba9c75
+corrupt 1: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1ea3df1cd7ba9c75
+corrupt 2: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1ea3df1cd7ba9c75
+corrupt 3: GME 0x8010 2 48000 artist="padded" album="Odd Programs" gme.author="padded" gme.game="Odd Programs" gme.system="Famicom" | 16384 5c071afa3ca03f2d end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1ea3df1cd7ba9c75
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1ea3df1cd7ba9c75
+order 1: play=1 pos=4096 playing=1 1ae80ddb6b546781
+order 2: play=1 pos=4096 playing=1 c626ecea457dc4fd
+order 0: play=1 pos=4096 playing=1 b256fd0cfb8539a5
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 66d232378e7110b5
+freshseek 2205: seek=1 pos=2205 playing=1 b8778e404af26bbd
+freshseek 48000: seek=1 pos=48000 playing=1 b66a3ec4a776e245
+freshseek 20000: seek=1 pos=20000 playing=1 5d0f4b4176f7ce59
+freshseek 100: seek=1 pos=100 playing=1 0b7911f51f1277d1
+== gme nsf_vrc7.nsf
+open: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 98304 e7b5e9f6e27b3aed end=1
+f32s48: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 98304 d3e8eeaf26e69d95 end=1
+s16m22: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 32768 b1b8116131afb286 end=1
+forced: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 16384 87500efe4fa3f1b9 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 121: err: Audio data is in unknown/unsupported/corrupt format
+trunc 241: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 16384 b95ea9207119de6d end=1
+corrupt 0: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 16384 87500efe4fa3f1b9 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 24c500596e1fa011
+corrupt 1: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 16384 c48c5f9f6d801365 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4f762ff8fefb8aa5
+corrupt 2: err: gme_open_data failed: Corrupt file (invalid load/init/play address)
+corrupt 2 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 3: GME 0x8010 2 48000 album="VRC7" gme.game="VRC7" gme.system="Famicom" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 24c500596e1fa011
+order 1: play=1 pos=4096 playing=1 ed82fb3d6556dba5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 6c105023d6ea1455
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 8b24756fc117dff5
+freshseek 2205: seek=1 pos=2205 playing=1 62056dc86a5fd2c1
+freshseek 48000: seek=1 pos=48000 playing=1 7e713ee1ca33ba01
+freshseek 20000: seek=1 pos=20000 playing=1 34bdbb1b3517ecc9
+freshseek 100: seek=1 pos=100 playing=1 081d73d4f19c7181
+== gme nsfe_full.nsfe
+open: GME 0x8010 2 48000 title="Fourth" artist="Some Author" album="NSFE Game" copyright="(C) 2026" frames=3120000 gme.song="Fourth" gme.author="Some Author" gme.game="NSFE Game" gme.copyright="(C) 2026" gme.system="Nintendo NES" gme.dumper="Ripper Name" | 98304 0fbab40ab0874d45 end=1
+f32s48: GME 0x8010 2 48000 title="Fourth" artist="Some Author" album="NSFE Game" copyright="(C) 2026" frames=3120000 gme.song="Fourth" gme.author="Some Author" gme.game="NSFE Game" gme.copyright="(C) 2026" gme.system="Nintendo NES" gme.dumper="Ripper Name" | 98304 d9e19c950dda7aa1 end=1
+s16m22: GME 0x8010 2 48000 title="Fourth" artist="Some Author" album="NSFE Game" copyright="(C) 2026" frames=3120000 gme.song="Fourth" gme.author="Some Author" gme.game="NSFE Game" gme.copyright="(C) 2026" gme.system="Nintendo NES" gme.dumper="Ripper Name" | 32768 fd195d692f26e286 end=1
+forced: GME 0x8010 2 48000 title="Fourth" artist="Some Author" album="NSFE Game" copyright="(C) 2026" frames=3120000 gme.song="Fourth" gme.author="Some Author" gme.game="NSFE Game" gme.copyright="(C) 2026" gme.system="Nintendo NES" gme.dumper="Ripper Name" | 16384 79ed2eba25eb7241 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 255: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: GME 0x8010 2 48000 title="Fourth" artist="Some Author" album="NSFE Game" copyright="(C) 2026" frames=3120000 gme.song="Fourth" gme.author="Some Author" gme.game="NSFE Game" gme.copyright="(C) 2026" gme.system="Nintendo NES" gme.dumper="Ripper Name" | 16384 7636ed94368fd7d9 end=1
+corrupt 0 mix: dur=3120000 play=1 pos=12288 replay=1 seek=1 pos=1040000 playing=0 cf90d7d30e9336c9
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: GME 0x8010 2 48000 title="Fourth" artist="Some AuthoP" album="NSFE Game" copyright="(C) 2026" gme.song="Fourth" gme.author="Some AuthoP" gme.game="NSFE Game" gme.copyright="(C) 2026" gme.system="Nintendo NES" gme.dumper="Ripper N3me" | 16384 f27fc587cdbae43d end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 ea0992e044d05111
+mix: dur=3120000 play=1 pos=12288 replay=1 seek=1 pos=1040000 playing=0 ebac2424f7f5af39
+order 1: play=1 pos=4096 playing=1 f12cd9407af52b0d
+order 2: play=1 pos=4096 playing=1 8f049a9b86012525
+order 0: play=1 pos=4096 playing=1 2ef0fec149ae2799
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 dded7c189fd22339
+freshseek 2205: seek=1 pos=2205 playing=1 5bc725d1e65dfc05
+freshseek 48000: seek=1 pos=48000 playing=1 a5f9b3f9d2414f29
+freshseek 20000: seek=1 pos=20000 playing=1 d4449af545c46391
+freshseek 100: seek=1 pos=100 playing=1 c9f40fd3bbbd229d
+== gme nsfe_min.nsfe
+open: GME 0x8010 2 48000 gme.system="Nintendo NES" | 98304 10f8b44865e0a62d end=1
+f32s48: GME 0x8010 2 48000 gme.system="Nintendo NES" | 98304 4e929b0def41e761 end=1
+s16m22: GME 0x8010 2 48000 gme.system="Nintendo NES" | 32768 363cc293954ce6ee end=1
+forced: GME 0x8010 2 48000 gme.system="Nintendo NES" | 16384 476ff21182189fe9 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 47: err: Audio data is in unknown/unsupported/corrupt format
+trunc 94: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: GME 0x8010 2 48000 gme.system="Nintendo NES" | 16384 7636ed94368fd7d9 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 c51c8d828a9c2cf9
+corrupt 1: err: gme_start_track failed: Invalid track
+corrupt 1 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: GME 0x8010 2 48000 gme.system="Nintendo NES" | 16384 9c1bda7f8c872325 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 b9d85d25d93fb741
+order 1: play=1 pos=4096 playing=1 8f049a9b86012525
+order 2: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 f12cd9407af52b0d
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 0cda3eb2d064c681
+freshseek 2205: seek=1 pos=2205 playing=1 e24959cfde66edf9
+freshseek 48000: seek=1 pos=48000 playing=1 ab28dc0e40d19be9
+freshseek 20000: seek=1 pos=20000 playing=1 c7ff1a6dee197af5
+freshseek 100: seek=1 pos=100 playing=1 d5b959f248e185f1
+== gme nsfe_order.nsfe
+open: err: gme_open_data failed: Corrupt file
+f32s48: err: gme_open_data failed: Corrupt file
+s16m22: err: gme_open_data failed: Corrupt file
+forced: err: gme_open_data failed: Corrupt file
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 61: err: Audio data is in unknown/unsupported/corrupt format
+trunc 122: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: err: gme_open_data failed: Corrupt file
+corrupt 0 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 1: err: gme_open_data failed: Corrupt file
+corrupt 1 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: err: gme_open_data failed: Corrupt file
+corrupt 2 mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+order 1: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 200: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order -5: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+replay: 0 err: No audio currently assigned to this track playing=0
+gmeseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+fresh: 0 err: No audio currently assigned to this track playing=0
+freshseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5

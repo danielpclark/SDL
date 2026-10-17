@@ -56,8 +56,9 @@
 //!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
 //!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
 //!   `default-features = false` for an sdl3-mixer without MIDI (neither
-//!   FluidSynth nor TiMidity) and without libmpg123 (below) under the zlib
-//!   license only (and the BSD licenses of its Vorbis, FLAC, Opus and
+//!   FluidSynth nor TiMidity), without libmpg123 and without game music
+//!   (below) under the zlib license only (and the BSD licenses of its
+//!   Vorbis, FLAC, Opus and
 //!   WavPack decoders' libraries, and libxmp's MIT license).
 //! * MP3 and MPEG audio layers I and II (the `MPG123` decoder, tried
 //!   before dr_mp3's `DRMP3`) through the libmpg123 SDL_mixer vendors,
@@ -74,11 +75,15 @@
 //!   many more formats); the module's name, type and comment become
 //!   metadata, and playback can start at an order
 //!   ([`PROP_PLAY_START_ORDER_NUMBER`]).
-//! * The decoders
-//!   upstream builds against another external library are not translated:
-//!   the game music formats (libgme), as in an upstream build without it.
-//!   [`audio_decoder`] lists the ones
-//!   available.
+//! * Game music (the `GME` decoder) through the Game_Music_Emu SDL_mixer
+//!   vendors, translated in the `sdl3-mixer-gme` crate: NSF and NSFE
+//!   (NES/Famicom, with its expansion sound chips); a rip's tracks are
+//!   started as orders ([`PROP_PLAY_START_ORDER_NUMBER`]), and its track
+//!   information becomes metadata. This is the `gme` Cargo feature, on by
+//!   default (as upstream builds it by default). **Game_Music_Emu is not
+//!   zlib-licensed**: `sdl3-mixer-gme` is under `LGPL-2.1-or-later AND
+//!   MIT`. With `default-features = false`, there is no game music decoder,
+//!   as in an upstream build without libgme.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: objects are owned handles
@@ -118,6 +123,8 @@ mod decoder_drmp3;
 mod decoder_flac;
 #[cfg(feature = "fluidsynth")]
 mod decoder_fluidsynth;
+#[cfg(feature = "gme")]
+mod decoder_gme;
 #[cfg(feature = "mpg123")]
 mod decoder_mpg123;
 mod decoder_opus;

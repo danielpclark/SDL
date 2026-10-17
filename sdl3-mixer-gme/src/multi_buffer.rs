@@ -68,7 +68,7 @@ impl MultiBufferBase {
 
 /// Interface to one or more Blip_Buffers mapped to one or more channels
 /// consisting of left, center, and right buffers.
-pub trait MultiBuffer {
+pub trait MultiBuffer: Send {
     fn base(&self) -> &MultiBufferBase;
 
     /// The buffers the channels' indices refer to.
