@@ -290,9 +290,8 @@ pub fn save(surface: &mut Surface<'_>, file: impl AsRef<Path>) -> Result<()> {
 
 /// Save a surface to a data source in the format named by `type_`, a file
 /// extension compared without case: `"bmp"`, `"cur"`, `"gif"`, `"ico"`,
-/// `"jpg"` or `"jpeg"` (at quality 90), `"png"`, `"tga"` or `"webp"` (at
-/// quality 90). AVIF saving needs an encoder this crate doesn't have, and
-/// reports so as an upstream build without it (see
+/// `"jpg"` or `"jpeg"` (at quality 90), `"png"`, `"tga"`, `"webp"` (at
+/// quality 90) or `"avif"` (at quality 90, see
 /// [`save_avif_io`](crate::save_avif_io)). Translation of
 /// `IMG_SaveTyped_IO()`.
 pub fn save_typed_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, type_: &str) -> Result<()> {
@@ -347,8 +346,9 @@ pub fn save_animation(anim: &mut Animation, file: impl AsRef<Path>) -> Result<()
 
 /// Save an animation to a data source in the format named by `type_`, a
 /// file extension compared without case: `"ani"`, `"apng"` or `"png"`,
-/// `"gif"` or `"webp"` (at quality 90); `"avif"` needs an AV1 encoder this
-/// crate doesn't have, and reports so as an upstream build without it.
+/// `"gif"` or `"webp"` (at quality 90); `"avif"` needs libaom's inter
+/// frame coding, which isn't translated, and reports so as an upstream
+/// build without it.
 /// Translation of `IMG_SaveAnimationTyped_IO()`.
 pub fn save_animation_typed_io(
     anim: &mut Animation,

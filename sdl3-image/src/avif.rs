@@ -1,18 +1,21 @@
 // Rust translation of src/IMG_avif.c from SDL_image (built with LOAD_AVIF,
-// libavif linked in, and SAVE_AVIF off).
+// libavif linked in, and SAVE_AVIF on).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! AVIF images: the detector, the loader and the animation decoder, over
-//! the translation of the parts of libavif they use (in `avif/`: the
-//! ISOBMFF/HEIF container parser and the `avifDecoder` API, `avifImage`,
-//! the YUV to RGB conversion and alpha, the plane scaler with the libyuv
-//! subset libavif bundles, the OBU sequence header parser, and the dav1d
-//! codec glue over the translation of dav1d in `crate::dav1d`), as
-//! SDL_image builds libavif (dav1d as the only decoder, without libyuv
-//! conversions, the experimental features off). Saving AVIF needs an AV1
-//! encoder, which is not translated: the savers fail as an upstream build
-//! without `SAVE_AVIF` does.
+//! AVIF images: the detector, the loader, the saver and the animation
+//! decoder, over the translation of the parts of libavif they use (in
+//! `avif/`: the ISOBMFF/HEIF container parser and the `avifDecoder` API,
+//! the encoder and container writer, `avifImage`, the YUV and RGB
+//! conversions and alpha, the plane scaler with the libyuv subset libavif
+//! bundles, the OBU sequence header parser, the dav1d codec glue over the
+//! translation of dav1d in `crate::dav1d` and the aom encoder glue over the
+//! translation of libaom's all intra encoder in `crate::aom`), as SDL_image
+//! builds libavif (dav1d as the only decoder, aom as the only encoder,
+//! without libyuv conversions or libsharpyuv, the experimental features
+//! off). The AVIF animation encoder needs libaom's inter frame coding,
+//! which is not translated: it fails as an upstream build without
+//! `SAVE_AVIF` does.
 
 /* This is a AVIF image file loading framework */
 
@@ -30,6 +33,8 @@ mod alpha;
     clippy::needless_range_loop
 )]
 mod avif;
+#[allow(clippy::collapsible_if, clippy::needless_range_loop)]
+mod codec_aom;
 #[allow(
     clippy::collapsible_if,
     clippy::field_reassign_with_default,
@@ -78,10 +83,18 @@ mod scale;
 #[allow(dead_code)]
 mod stream;
 mod utils;
+#[allow(
+    dead_code,
+    clippy::needless_late_init,
+    clippy::needless_range_loop,
+    clippy::too_many_arguments
+)]
+mod write;
 
 use sdl3::error::{Error, Result};
 use sdl3::io::{IoStatus, IoStream, IoWhence};
 use sdl3::properties::Properties;
+use sdl3::video::pixels::PackedOrder;
 use sdl3::video::{
     Colorspace, PixelFormat, Surface, PROP_SURFACE_HDR_HEADROOM_FLOAT,
     PROP_SURFACE_SDR_WHITE_POINT_FLOAT,
@@ -98,15 +111,18 @@ use crate::anim_decoder::{
 use crate::util::read_ok;
 use crate::xmlman;
 use avif::{
-    avif_result_to_string, AvifImage, AvifPixelFormat, AvifResult, AvifRgbFormat, AvifRgbImage,
-    AVIF_MATRIX_COEFFICIENTS_IDENTITY, AVIF_REPETITION_COUNT_UNKNOWN, AVIF_STRICT_DISABLED,
+    avif_image_create, avif_result_to_string, avif_rgb_image_set_defaults, AvifImage,
+    AvifPixelFormat, AvifRange, AvifResult, AvifRgbFormat, AvifRgbImage,
+    AVIF_ADD_IMAGE_FLAG_SINGLE, AVIF_MATRIX_COEFFICIENTS_IDENTITY, AVIF_QUALITY_LOSSLESS,
+    AVIF_REPETITION_COUNT_UNKNOWN, AVIF_SPEED_FASTEST, AVIF_STRICT_DISABLED,
     AVIF_TRANSFER_CHARACTERISTICS_HLG, AVIF_TRANSFER_CHARACTERISTICS_SMPTE2084,
 };
 use io::AvifIo;
 use read::{
     avif_decoder_next_image, avif_decoder_parse, avif_peek_compatible_file_type, AvifDecoder,
 };
-use reformat::avif_image_yuv_to_rgb;
+use reformat::{avif_image_rgb_to_yuv, avif_image_yuv_to_rgb};
+use write::{avif_encoder_add_image, avif_encoder_create, avif_encoder_finish};
 
 /*
  * - `SDL_PROP_SURFACE_MAXCLL_NUMBER`: MaxCLL (Maximum Content Light Level)
@@ -620,24 +636,194 @@ fn load_avif_io_internal(src: &mut IoStream<'_>, start: i64) -> Result<Surface<'
     Ok(surface)
 }
 
-// (IMG_SaveAVIF_IO_libavif() and the AVIF animation encoder need an AV1
-// encoder: as built without SAVE_AVIF)
+/// Translation of `IMG_SaveAVIF_IO_libavif()`.
+fn save_avif_io_libavif(
+    surface: &mut Surface<'_>,
+    dst: &mut IoStream<'_>,
+    quality: i32,
+) -> Result<()> {
+    // (IMG_InitAVIF(): nothing to load)
 
-/// Save `surface` as AVIF: this crate has no AV1 encoder, so this fails as
-/// upstream built without `SAVE_AVIF` does. Translation of
-/// `IMG_SaveAVIF_IO()`.
-pub fn save_avif_io(_surface: &Surface<'_>, _dst: &mut IoStream<'_>, _quality: i32) -> Result<()> {
-    Err(Error::new("SDL_image built without AVIF save support"))
+    /* Get the colorspace and light level properties, if any */
+    let colorspace = surface.colorspace();
+    let props = surface.properties();
+    let max_cll = props.get_number(PROP_SURFACE_MAXCLL_NUMBER).unwrap_or(0) as u16;
+    let max_fall = props.get_number(PROP_SURFACE_MAXFALL_NUMBER).unwrap_or(0) as u16;
+
+    let Some(mut image) = avif_image_create(
+        surface.width() as u32,
+        surface.height() as u32,
+        10,
+        AvifPixelFormat::Yuv444,
+    ) else {
+        return Err(Error::new("Couldn't create AVIF YUV image"));
+    };
+    image.yuv_range = AvifRange::Full;
+    image.color_primaries = colorspace.primaries() as u16;
+    image.transfer_characteristics = colorspace.transfer() as u16;
+    image.clli.max_cll = max_cll;
+    image.clli.max_pall = max_fall;
+
+    let mut rgb = AvifRgbImage::default();
+    avif_rgb_image_set_defaults(&mut rgb, &image);
+
+    let format = surface.format();
+    if format.is_10bit() {
+        const EXPAND_ALPHA: [u16; 4] = [0, 0x155, 0x2aa, 0x3ff];
+
+        /* We are not actually using YUV, but storing raw GBR (yes not RGB) data */
+        image.yuv_format = AvifPixelFormat::Yuv444;
+        image.depth = 10;
+        image.matrix_coefficients = AVIF_MATRIX_COEFFICIENTS_IDENTITY;
+
+        if format.pixel_order() == PackedOrder::Xrgb as u32
+            || format.pixel_order() == PackedOrder::Argb as u32
+        {
+            rgb.format = AvifRgbFormat::Rgba;
+        } else {
+            rgb.format = AvifRgbFormat::Bgra;
+        }
+        rgb.ignore_alpha = !format.has_alpha();
+        rgb.depth = 10;
+        rgb.row_bytes = image.width * 4 * std::mem::size_of::<u16>() as u32;
+        let size = image.height as usize * rgb.row_bytes as usize;
+        let mut pixels = Vec::new();
+        if pixels.try_reserve_exact(size).is_err() {
+            return Err(Error::new("Out of memory"));
+        }
+        pixels.resize(size, 0u8);
+
+        let src = surface.pixels().unwrap_or(&[]);
+        let pitch = surface.pitch() as usize;
+        let mut dst16 = 0;
+        for y in 0..image.height as usize {
+            for x in 0..image.width as usize {
+                let o = y * pitch + x * 4;
+                let pixelvalue = u32::from_ne_bytes([src[o], src[o + 1], src[o + 2], src[o + 3]]);
+
+                for v in [
+                    ((pixelvalue >> 20) & 0x3FF) as u16,
+                    ((pixelvalue >> 10) & 0x3FF) as u16,
+                    (pixelvalue & 0x3FF) as u16,
+                    EXPAND_ALPHA[((pixelvalue >> 30) & 0x3) as usize],
+                ] {
+                    pixels[dst16..dst16 + 2].copy_from_slice(&v.to_ne_bytes());
+                    dst16 += 2;
+                }
+            }
+        }
+        rgb.pixels = Some(&mut pixels);
+
+        let rc = avif_image_rgb_to_yuv(&mut image, &rgb);
+        if rc != AvifResult::Ok {
+            return Err(Error::new(format!(
+                "Couldn't convert to YUV: {}",
+                avif_result_to_string(rc)
+            )));
+        }
+    } else {
+        let mut temp = None;
+
+        rgb.depth = 8;
+        if format == PixelFormat::RGBX32 || format == PixelFormat::RGBA32 {
+            rgb.format = AvifRgbFormat::Rgba;
+        } else if format == PixelFormat::XRGB32 || format == PixelFormat::ARGB32 {
+            rgb.format = AvifRgbFormat::Argb;
+        } else if format == PixelFormat::BGRX32 || format == PixelFormat::BGRA32 {
+            rgb.format = AvifRgbFormat::Bgra;
+        } else if format == PixelFormat::XBGR32 || format == PixelFormat::ABGR32 {
+            rgb.format = AvifRgbFormat::Abgr;
+        } else {
+            /* Need to convert to a format libavif understands */
+            rgb.format = AvifRgbFormat::Rgba;
+            if format.has_alpha() {
+                temp = Some(surface.convert(PixelFormat::RGBA32)?);
+            } else {
+                temp = Some(surface.convert(PixelFormat::RGBX32)?);
+            }
+        }
+        rgb.ignore_alpha = !format.has_alpha();
+        // (the pixels are only read: a copy when the surface's own can't
+        // be borrowed writable)
+        let temp_surface: &Surface<'_> = temp.as_ref().unwrap_or(surface);
+        let mut pixels = temp_surface.pixels().map(|p| p.to_vec());
+        rgb.pixels = pixels.as_deref_mut();
+        rgb.row_bytes = temp_surface.pitch() as u32;
+
+        /* Convert to YUV */
+        let rc = avif_image_rgb_to_yuv(&mut image, &rgb);
+
+        /* Do any cleanup */
+        // FIXME (upstream): the converted surface is released with
+        // SDL_free(), which leaks its pixels; it is dropped here.
+        drop(temp);
+        // (rgb.pixels = NULL: the pixels aren't rgb's to free)
+
+        /* Check the result of the conversion */
+        if rc != AvifResult::Ok {
+            return Err(Error::new(format!(
+                "Couldn't convert to YUV: {}",
+                avif_result_to_string(rc)
+            )));
+        }
+    }
+
+    // FIXME (upstream): avifEncoderCreate() isn't checked for NULL (a failed
+    // allocation) before the encoder is used.
+    let Some(mut encoder) = avif_encoder_create() else {
+        return Err(Error::new("Out of memory"));
+    };
+    encoder.quality = quality;
+    encoder.quality_alpha = AVIF_QUALITY_LOSSLESS;
+    encoder.speed = AVIF_SPEED_FASTEST;
+
+    let rc = avif_encoder_add_image(&mut encoder, &image, 1, AVIF_ADD_IMAGE_FLAG_SINGLE);
+    if rc != AvifResult::Ok {
+        return Err(Error::new(format!(
+            "Failed to add image to avif encoder: {}",
+            avif_result_to_string(rc)
+        )));
+    }
+
+    let mut avif_output = Vec::new();
+    let rc = avif_encoder_finish(&mut encoder, &mut avif_output);
+    if rc != AvifResult::Ok {
+        return Err(Error::new(format!(
+            "Failed to finish encoder: {}",
+            avif_result_to_string(rc)
+        )));
+    }
+
+    if dst.write(&avif_output) == avif_output.len() {
+        Ok(())
+    } else {
+        Err(crate::util::write_error(dst))
+    }
+    // (done: dropping the image, the encoder and the output frees them)
 }
 
-/// Save `surface` to an AVIF file: fails as [`save_avif_io`] does.
-/// Translation of `IMG_SaveAVIF()`.
+/// Save `surface` as AVIF at `quality` (0 to 100; 100 is lossless): 10-bit
+/// YUV 4:4:4 (GBR for 10-bit surfaces), coded with libaom's all intra
+/// encoder at its fastest speed, with lossless alpha.
+/// Translation of `IMG_SaveAVIF_IO()` (without `closeio`: the caller keeps
+/// `dst`).
+pub fn save_avif_io(surface: &mut Surface<'_>, dst: &mut IoStream<'_>, quality: i32) -> Result<()> {
+    crate::img::verify_can_save_surface(surface)?;
+    save_avif_io_libavif(surface, dst, quality)
+}
+
+/// Save `surface` to an AVIF file (see [`save_avif_io`]). Translation of
+/// `IMG_SaveAVIF()`.
 pub fn save_avif(
-    _surface: &Surface<'_>,
-    _file: impl AsRef<std::path::Path>,
-    _quality: i32,
+    surface: &mut Surface<'_>,
+    file: impl AsRef<std::path::Path>,
+    quality: i32,
 ) -> Result<()> {
-    Err(Error::new("SDL_image built without AVIF save support"))
+    crate::img::verify_can_save_surface(surface)?;
+    let mut dst = IoStream::from_file(file, "wb")?;
+    let result = save_avif_io(surface, &mut dst, quality);
+    let closed = dst.close();
+    result.and(closed)
 }
 
 /// Translation of `SetHDRProperties()`.

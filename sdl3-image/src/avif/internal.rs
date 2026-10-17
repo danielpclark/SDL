@@ -283,6 +283,38 @@ pub(crate) struct AvifCodecDecodeInput {
 }
 
 // ---------------------------------------------------------------------------
+// avifCodecEncodeOutput
+
+/// Translation of `avifEncodeSample`.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct AvifEncodeSample {
+    pub(crate) data: Vec<u8>,
+    /// is sync sample (keyframe)
+    pub(crate) sync: bool,
+}
+
+/// Translation of `avifCodecEncodeOutput` (avifCodecEncodeOutputCreate()
+/// is `Default`, avifCodecEncodeOutputDestroy() dropping it).
+#[derive(Clone, Debug, Default)]
+pub(crate) struct AvifCodecEncodeOutput {
+    pub(crate) samples: Vec<AvifEncodeSample>,
+}
+
+// ---------------------------------------------------------------------------
+// avifCodecSpecificOptions (key/value string pairs for advanced tuning)
+
+/// Translation of `avifCodecSpecificOption`.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct AvifCodecSpecificOption {
+    /// Must be a simple lowercase alphanumeric string
+    pub(crate) key: String,
+    /// Free-form string to be interpreted by the codec
+    pub(crate) value: String,
+}
+/// Translation of `avifCodecSpecificOptions`.
+pub(crate) type AvifCodecSpecificOptions = Vec<AvifCodecSpecificOption>;
+
+// ---------------------------------------------------------------------------
 // avifCodecType (underlying video format)
 
 /// Alliance for Open Media video formats that can be used in the AVIF
@@ -293,6 +325,24 @@ pub(crate) enum AvifCodecType {
     Unknown,
     Av1,
 }
+
+// ---------------------------------------------------------------------------
+// avifCodec (abstraction layer to use different codec implementations)
+
+// avifEncoderChange
+pub(crate) const AVIF_ENCODER_CHANGE_MIN_QUANTIZER: i32 = 1 << 0;
+pub(crate) const AVIF_ENCODER_CHANGE_MAX_QUANTIZER: i32 = 1 << 1;
+pub(crate) const AVIF_ENCODER_CHANGE_MIN_QUANTIZER_ALPHA: i32 = 1 << 2;
+pub(crate) const AVIF_ENCODER_CHANGE_MAX_QUANTIZER_ALPHA: i32 = 1 << 3;
+pub(crate) const AVIF_ENCODER_CHANGE_TILE_ROWS_LOG2: i32 = 1 << 4;
+pub(crate) const AVIF_ENCODER_CHANGE_TILE_COLS_LOG2: i32 = 1 << 5;
+pub(crate) const AVIF_ENCODER_CHANGE_QUANTIZER: i32 = 1 << 6;
+pub(crate) const AVIF_ENCODER_CHANGE_QUANTIZER_ALPHA: i32 = 1 << 7;
+pub(crate) const AVIF_ENCODER_CHANGE_SCALING_MODE: i32 = 1 << 8;
+
+pub(crate) const AVIF_ENCODER_CHANGE_CODEC_SPECIFIC: i32 = 1 << 30;
+/// Translation of `avifEncoderChanges`.
+pub(crate) type AvifEncoderChanges = i32;
 
 // ---------------------------------------------------------------------------
 // avifStream
