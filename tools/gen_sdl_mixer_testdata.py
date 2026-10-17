@@ -7,7 +7,9 @@ small (a quarter second or so each). The encoded formats come from ffmpeg
 (with its libmp3lame, libvorbis, libopus, FLAC, ADPCM and PCM encoders and
 its WAV, AIFF, AU, VOC, MP3, MP2, Ogg and FLAC muxers); the files with chunks
 or tags ffmpeg doesn't write (WAV sample loops and ID3 chunks, VOC loops,
-silence and text blocks, APE tags, junk before the first MP3 frame) and the
+silence and text blocks, APE tags, junk before the first MP3 frame), the
+MPEG audio layer I streams (there's no layer I encoder) and the MP3 frames
+patched into intensity stereo and free format, and the
 Ogg Opus streams spliced from ffmpeg's packets (mode transitions, lost
 pages, an output gain) or patched (an unsupported channel mapping) are put
 together here, and so are a floor 0 Ogg Vorbis stream and the FLAC streams
@@ -256,6 +258,210 @@ def mp3_files():
     write('mp3_ape_id3v1.mp3', plain + ape_tag([('Title', 'APE title'), ('Artist', 'APE artist')]) + id3v1)
     rng = Lcg(57)
     write('mp3_junk.mp3', bytes(rng.next() >> 24 for _ in range(700)) + plain)
+
+
+MPEG_BITRATES = {
+    (1, 1): [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448],
+    (1, 2): [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384],
+    (1, 3): [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320],
+    (2, 1): [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256],
+    (2, 2): [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+    (2, 3): [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+}
+MPEG_RATES = {3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000]}
+
+
+def mpeg_frames(data, free_size=None):
+    """(offset, size) of each MPEG audio frame of `data` (after an ID3v2 tag);
+    a free format stream's frames are `free_size` bytes (without padding)."""
+    p = 0
+    if data[:3] == b'ID3':
+        p = 10 + ((data[6] << 21) | (data[7] << 14) | (data[8] << 7) | data[9])
+    out = []
+    while p + 4 <= len(data) and data[p] == 0xFF and data[p + 1] & 0xE0 == 0xE0:
+        ver, layer = (data[p + 1] >> 3) & 3, 4 - ((data[p + 1] >> 1) & 3)
+        bri, fi, pad = data[p + 2] >> 4, (data[p + 2] >> 2) & 3, (data[p + 2] >> 1) & 1
+        br = MPEG_BITRATES[(1 if ver == 3 else 2, layer)][bri] * 1000
+        freq = MPEG_RATES[ver][fi]
+        if layer == 1:
+            size = (12 * br // freq + pad) * 4 if br else (free_size + pad * 4)
+        else:
+            size = (144 if layer == 2 or ver == 3 else 72) * br // freq + pad if br else free_size + pad
+        out.append((p, size))
+        p += size
+    return out
+
+
+def patch_frames(data, fn, free_size=None):
+    """`data` with each frame's 4 header bytes replaced by `fn(index, header)`."""
+    out = bytearray(data)
+    for i, (p, _) in enumerate(mpeg_frames(data, free_size)):
+        out[p:p + 4] = fn(i, bytes(out[p:p + 4]))
+    return bytes(out)
+
+
+def subbands(x):
+    """32 subband sample streams of `x` (a polyphase filterbank of a
+    windowed-sinc prototype, as an MPEG audio encoder's analysis)."""
+    proto = []
+    for n in range(512):
+        t = (n - 255.5) / 64.0
+        sinc = math.sin(math.pi * t) / (math.pi * t)
+        proto.append(sinc * math.sin(math.pi * (n + 0.5) / 512) ** 2)
+    norm = 2.0 / sum(proto)
+    win = [v * norm * (-1 if (n // 64) & 1 else 1) for n, v in enumerate(proto)]
+    m = [[math.cos((2 * k + 1) * (i - 16) * math.pi / 64) for i in range(64)] for k in range(32)]
+    buf = [0.0] * 512
+    blocks = (len(x) + 31) // 32
+    out = []
+    for b in range(blocks):
+        new = x[b * 32:b * 32 + 32]
+        new = new + [0.0] * (32 - len(new))
+        buf = list(reversed(new)) + buf[:480]
+        z = [buf[i] * win[i] for i in range(512)]
+        y = [sum(z[i + 64 * j] for j in range(8)) for i in range(64)]
+        out.append([sum(m[k][i] * y[i] for i in range(64)) for k in range(32)])
+    return out
+
+
+def mp1_stream(freq, channels, seconds, kbps, seed, mode=None, bound=32, crc=False, free=None, sig=None):
+    """A Layer I stream, put together here (there's no Layer I encoder):
+    MPEG-1 or 2 (by `freq`), `mode` 0 stereo, 1 joint (with the subbands
+    from `bound` on shared), 2 dual channel or 3 mono; with CRCs if `crc`
+    and in free format (`free` bytes a frame) if `free` is set."""
+    lsf = freq < 32000
+    ver = 2 if lsf else 3
+    if mode is None:
+        mode = 3 if channels == 1 else 0
+    samples = (sig or signal)(freq, channels, seconds, seed)
+    sb = [subbands(samples[c::channels]) for c in range(channels)]
+    bri = 0 if free else MPEG_BITRATES[(2 if lsf else 1, 1)].index(kbps)
+    fi = MPEG_RATES[ver].index(freq)
+    mode_ext = {4: 0, 8: 1, 12: 2, 16: 3}[bound] if mode == 1 else 0
+    if mode != 1:
+        bound = 32
+    nframes = (len(sb[0]) + 11) // 12
+    out = b''
+    rest = 0
+    for f in range(nframes):
+        if free:
+            size, pad = free, 0
+        else:
+            rest += 12 * kbps * 1000 % freq
+            pad = int(rest >= freq)
+            rest -= pad * freq
+            size = (12 * kbps * 1000 // freq + pad) * 4
+        # Scalefactors (the smallest scale >= the peak of the 12 samples).
+        blk = [[[(sb[c][f * 12 + s][k] if f * 12 + s < len(sb[c]) else 0.0) for s in range(12)]
+                for k in range(32)] for c in range(channels)]
+        if bound < 32:
+            mid = [[[(blk[0][k][s] + blk[1][k][s]) / 2 for s in range(12)] for k in range(32)]]
+        scf = [[0] * 32 for _ in range(channels)]
+        for c in range(channels):
+            for k in range(32):
+                peak = max(abs(v) for v in blk[c][k])
+                i = 0
+                while i < 62 and 2.0 * 2 ** (-(i + 1) / 3) >= peak:
+                    i += 1
+                scf[c][k] = i
+        # Bits: greedy, by the largest peak-to-noise ratio.
+        budget = size * 8 - 32 - (16 if crc else 0) - 4 * (bound * channels + (32 - bound))
+        alloc = [[0] * 32 for _ in range(channels)]
+        while True:
+            best = None
+            for k in range(32):
+                for c in range(channels if k < bound else 1):
+                    n = alloc[c][k]
+                    if n == 14:
+                        continue
+                    cost = 12 * (2 if n == 0 else 1) + (6 * (channels if k >= bound else 1) if n == 0 else 0)
+                    if cost > budget:
+                        continue
+                    level = -scf[c][k] * 2.0 - 6.02 * (n + 1 if n else 0) - k * 0.3
+                    if k >= bound:
+                        level = -min(scf[0][k], scf[1][k]) * 2.0 - 6.02 * (n + 1 if n else 0) - k * 0.3
+                    if best is None or level > best[0]:
+                        best = (level, c, k, cost)
+            if best is None:
+                break
+            _, c, k, cost = best
+            alloc[c][k] += 1
+            budget -= cost
+        w = MsbWriter()
+        hdr = 0xFFE00000 | (ver << 19) | (3 << 17) | ((0 if crc else 1) << 16) | (bri << 12) | (fi << 10) | \
+            (pad << 9) | (mode << 6) | (mode_ext << 4) | (1 << 2)
+        w.write(hdr, 32)
+        if crc:
+            w.write(0, 16)
+        for k in range(32):
+            for c in range(channels if k < bound else 1):
+                w.write(alloc[c][k], 4)
+        for k in range(32):
+            for c in range(channels):
+                if alloc[c if k < bound else 0][k]:
+                    w.write(scf[c][k], 6)
+        for s in range(12):
+            for k in range(32):
+                for c in range(channels if k < bound else 1):
+                    n = alloc[c][k]
+                    if not n:
+                        continue
+                    if k < bound:
+                        x = blk[c][k][s] / (2.0 * 2 ** (-scf[c][k] / 3))
+                    else:
+                        x = mid[0][k][s] / (2.0 * 2 ** (-min(scf[0][k], scf[1][k]) / 3))
+                    q = int(round(x * (1 << n))) + (1 << n) - 1
+                    w.write(max(0, min((2 << n) - 2, q)), n + 1)
+        w.align()
+        frame = w.data()
+        frame += bytes(size - len(frame))
+        if crc:
+            nbits = 16 + 4 * (bound * channels + 32 - bound)
+            frame = frame[:4] + struct.pack('>H', mpeg_crc(frame[2:4] + frame[6:], nbits)) + frame[6:]
+        out += frame
+    return out
+
+
+def mpeg_crc(data, nbits):
+    """The CRC-16 (0x8005, from 0xFFFF) of an MPEG audio frame's first `nbits` protected bits."""
+    crc = 0xFFFF
+    for i in range(nbits):
+        bit = ((crc >> 15) ^ (data[i >> 3] >> (7 - (i & 7)))) & 1
+        crc = ((crc << 1) & 0xFFFF) ^ (0x8005 if bit else 0)
+    return crc
+
+
+def intensity(data):
+    """`data` with the intensity stereo bit set in each joint stereo frame's header."""
+    return patch_frames(data, lambda i, h: h[:3] + bytes([h[3] | 0x10]) if h[3] >> 6 == 1 else h)
+
+
+def mpg123_files():
+    # For the MPG123 decoder (libmpg123), which also decodes these: layer I
+    # (put together here), intensity stereo (LAME doesn't write it, so its
+    # joint stereo frames get the bit here), free format (LAME's CBR frames
+    # with their bitrate cleared), a stream that changes format halfway
+    # (two encodings put together), an ID3v2.2 tag (which SDL_mixer's tag
+    # check knows) and an ID3v2 tag without a title (so MPG123 sees "ID3"
+    # instead of a frame header, and passes the file on).
+    write('mp1_stereo.mp1', mp1_stream(44100, 2, 0.15, 192, seed=160))
+    joint = ffmpeg('', 44100, 2, 0.2, ['-c:a', 'libmp3lame', '-b:a', '96k', '-joint_stereo', '1',
+                                         '-id3v2_version', '0'], 'mp3', seed=161, save=False)
+    write('mp3_intensity.mp3', intensity(joint))
+    cbr = ffmpeg('', 32000, 1, 0.25, ['-c:a', 'libmp3lame', '-b:a', '64k', '-write_xing', '0',
+                                        '-id3v2_version', '0'], 'mp3', seed=162, save=False)
+    write('mp3_free_format.mp3', patch_frames(cbr, lambda i, h: h[:2] + bytes([h[2] & 0x0F]) + h[3:]))
+    first = ffmpeg('', 22050, 1, 0.15, ['-c:a', 'libmp3lame', '-b:a', '32k', '-id3v2_version', '0'], 'mp3',
+                   seed=163, save=False)
+    second = ffmpeg('', 44100, 2, 0.1, ['-c:a', 'libmp3lame', '-b:a', '64k', '-id3v2_version', '0'], 'mp3',
+                    seed=164, save=False)
+    write('mp3_frankenstein.mp3', first + second)
+    plain = ffmpeg('', 16000, 1, 0.2, ['-c:a', 'libmp3lame', '-b:a', '24k', '-id3v2_version', '0'], 'mp3',
+                   seed=165, save=False)
+    tt2 = b'TT2' + struct.pack('>I', 10)[1:] + b'\x00ID3v2.2 T'
+    write('mp3_id3v22.mp3', b'ID3\x02\x00\x00' + bytes([0, 0, 0, len(tt2)]) + tt2 + plain)
+    write('mp3_id3v2_notitle.mp3', id3v2([(b'TPE1', 'No title')]) + plain)
+    ffmpeg('mp2_mono_lsf.mp2', 22050, 1, 0.25, ['-c:a', 'mp2', '-b:a', '48k'], 'mp2', seed=166)
 
 
 def ogg_files():
@@ -1551,6 +1757,7 @@ def main():
     au_files()
     voc_files()
     mp3_files()
+    mpg123_files()
     ogg_files()
     vorbis_files()
     flac_files()
