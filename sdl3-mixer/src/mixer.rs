@@ -66,14 +66,15 @@ use crate::{
 //
 // (the decoders upstream builds against an external library it doesn't
 // vendor, or one that is LGPL, are left out, as in an upstream build
-// without them; VORBIS is libvorbisfile's, translated in `crate::vorbis`;
-// the bundled Timidity is the `timidity` feature's, as
-// DECODER_MIDI_TIMIDITY is upstream.)
+// without them; VORBIS is libvorbisfile's, translated in `crate::vorbis`,
+// and FLAC libFLAC's, translated in `crate::flac`; the bundled Timidity is
+// the `timidity` feature's, as DECODER_MIDI_TIMIDITY is upstream.)
 static DECODERS: &[&Decoder] = &[
     &crate::decoder_wav::DECODER,
     &crate::decoder_vorbis::DECODER,
     &crate::decoder_stb_vorbis::DECODER,
     &crate::decoder_opus::DECODER,
+    &crate::decoder_flac::DECODER,
     &crate::decoder_drflac::DECODER,
     #[cfg(feature = "timidity")]
     &crate::decoder_timidity::DECODER,
@@ -751,10 +752,11 @@ fn track_get_callback(track: &Arc<TrackInner>, stream: &AudioStream, additional_
                         track_stopped_now = true;
                     } else {
                         let loop_start = st.loop_start;
-                        let seeked = st
-                            .decoder
-                            .as_mut()
-                            .is_some_and(|d| d.seek(loop_start as i64 as u64).is_ok());
+                        let st = &mut *st;
+                        let stream = st.input_stream.as_deref();
+                        let seeked = st.decoder.as_mut().is_some_and(|d| {
+                            d.seek_with_stream(loop_start as i64 as u64, stream).is_ok()
+                        });
                         if !seeked {
                             track_stopped_now = true; // uhoh, can't seek! Abandon ship!
                         } else {
@@ -2446,8 +2448,11 @@ fn play_track(track: &Arc<TrackInner>, options: Option<&Properties>) -> Result<(
     // `else if`s goes on to the seek to `start_pos` (0 unless asked), which
     // takes a module back to that time.
     if st.input_audio.is_some() {
+        let st = &mut *st;
         match st.decoder.as_mut() {
-            Some(decoder) => decoder.seek(start_pos as u64)?,
+            Some(decoder) => {
+                decoder.seek_with_stream(start_pos as u64, st.input_stream.as_deref())?
+            }
             None => return Err(Error::new("No audio currently assigned to this track")),
         }
     } else if start_pos != 0 {
@@ -2863,8 +2868,9 @@ impl Track {
                 return Err(Error::new("No audio currently assigned to this track"));
             }
         }
+        let st = &mut *st;
         if let Some(decoder) = st.decoder.as_mut() {
-            decoder.seek(frames as u64)?;
+            decoder.seek_with_stream(frames as u64, st.input_stream.as_deref())?;
         }
         if let Some(s) = &st.input_stream {
             s.clear(); // make sure that any extra buffered input from before the seek is removed.

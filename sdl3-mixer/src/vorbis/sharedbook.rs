@@ -32,10 +32,10 @@ pub(crate) fn ov_ilog(mut v: u32) -> i32 {
 biased exponent) : neeeeeee eeemmmmm mmmmmmmm mmmmmmmm
 Why not IEEE?  It's just not that important here. */
 
+#[allow(dead_code)] // (only the encoder's _float32_pack() uses it)
 const VQ_FEXP: i32 = 10;
 const VQ_FMAN: i32 = 21;
 const VQ_FEXP_BIAS: i64 = 768; /* bias toward values smaller than 1. */
-const _: i32 = VQ_FEXP;
 
 /// Translation of `_float32_unpack()`.
 pub(crate) fn _float32_unpack(val: i64) -> f32 {

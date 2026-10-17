@@ -10,7 +10,9 @@ or tags ffmpeg doesn't write (WAV sample loops and ID3 chunks, VOC loops,
 silence and text blocks, APE tags, junk before the first MP3 frame) and the
 Ogg Opus streams spliced from ffmpeg's packets (mode transitions, lost
 pages, an output gain) or patched (an unsupported channel mapping) are put
-together here.
+together here, and so are a floor 0 Ogg Vorbis stream and the FLAC streams
+that need subframes, blocksizes or metadata ffmpeg's encoder doesn't pick
+(the `flac_c_*` files), which are encoded here.
 
 Encoders change between versions, so regenerating the files will likely
 change them, and then sdl3-mixer's reference output
@@ -550,6 +552,486 @@ def flac_files():
     ffmpeg('flac_6ch.flac', 8000, 6, 0.15, ['-c:a', 'flac', '-compression_level', '5'], 'flac', seed=73)
     ffmpeg('flac_ogg.oga', 16000, 2, 0.2, ['-c:a', 'flac'], 'ogg', seed=74,
            metadata=(('TITLE', 'Ogg FLAC'),))
+    flac_crafted_files()
+
+
+# ---- FLAC streams put together here ----
+#
+# ffmpeg's encoder picks its own subframes, so the streams that need
+# particular ones (constant, verbatim, every fixed order, LPC of several
+# orders and precisions on both of libFLAC's restore paths, wasted bits,
+# partition orders, escape codes and Rice2 parameters, every channel
+# assignment, the blocksize and sample rate codes and their hints,
+# variable-blocksize numbering, 8- to 32-bit samples, metadata blocks of
+# every kind with and without a seek table) are encoded here.
+
+class MsbWriter:
+    """An MSb-first bit packer, as FLAC's bit writer."""
+
+    def __init__(self):
+        self.out = bytearray()
+        self.acc = 0
+        self.n = 0
+
+    def write(self, value, bits):
+        for i in range(bits - 1, -1, -1):
+            self.acc = (self.acc << 1) | ((value >> i) & 1)
+            self.n += 1
+            if self.n == 8:
+                self.out.append(self.acc)
+                self.acc = 0
+                self.n = 0
+
+    def signed(self, value, bits):
+        self.write(value & ((1 << bits) - 1), bits)
+
+    def unary(self, zeros):
+        for _ in range(zeros):
+            self.write(0, 1)
+        self.write(1, 1)
+
+    def align(self):
+        if self.n:
+            self.write(0, 8 - self.n)
+
+    def data(self):
+        assert self.n == 0
+        return bytes(self.out)
+
+
+def flac_crc8(data):
+    crc = 0
+    for b in data:
+        crc ^= b
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x07) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+    return crc
+
+
+def flac_crc16(data):
+    crc = 0
+    for b in data:
+        crc ^= b << 8
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x8005) & 0xFFFF if crc & 0x8000 else (crc << 1) & 0xFFFF
+    return crc
+
+
+def flac_utf8(v):
+    if v < 0x80:
+        return bytes([v])
+    n = 2
+    while v >= 1 << (5 * n + 1):
+        n += 1
+    out = []
+    for _ in range(n - 1):
+        out.append(0x80 | (v & 0x3F))
+        v >>= 6
+    out.append(((0xFF00 >> n) & 0xFF) | v)
+    return bytes(reversed(out))
+
+
+def wrap32(v):
+    v &= 0xFFFFFFFF
+    return v - (1 << 32) if v & 0x80000000 else v
+
+
+def rice_param(part, limit):
+    """The Rice parameter the encoder would pick (about the log of the mean)."""
+    if not part:
+        return 0
+    mean = sum(((v << 1) if v >= 0 else ((-v) << 1) - 1) for v in part) / len(part)
+    k = 0
+    while k < limit and (1 << (k + 1)) <= mean:
+        k += 1
+    return k
+
+
+def flac_residual(w, residual, order, blocksize, porder, method=None, escapes=(), raw_bits=None, params=None):
+    """A partitioned Rice residual: `escapes` are the partitions coded raw
+    (with `raw_bits` bits, or as few as hold them), `params` forced
+    parameters by partition; the `method` is Rice2 (1) when not given and
+    a parameter would be over Rice's 14."""
+    if method is None:
+        method = 1 if rice_param(residual, 30) > 14 else 0
+    w.write(method, 2)
+    w.write(porder, 4)
+    plen, pesc = (5, 31) if method else (4, 15)
+    ps = blocksize >> porder
+    assert ps << porder == blocksize and ps >= order
+    idx = 0
+    for p in range(1 << porder):
+        cnt = ps - order if p == 0 else ps
+        part = residual[idx:idx + cnt]
+        idx += cnt
+        if p in escapes:
+            bits = raw_bits
+            if bits is None:
+                bits = 1
+                while any(not -(1 << (bits - 1)) <= v < (1 << (bits - 1)) for v in part):
+                    bits += 1
+            w.write(pesc, plen)
+            w.write(bits, 5)
+            for v in part:
+                w.signed(v, bits)
+        else:
+            k = params[p] if params and p in params else rice_param(part, pesc - 1)
+            w.write(k, plen)
+            for v in part:
+                u = (v << 1) if v >= 0 else ((-v) << 1) - 1
+                w.unary(u >> k)
+                w.write(u & ((1 << k) - 1), k)
+    assert idx == len(residual)
+
+
+def subframe_header(w, type6, wasted):
+    w.write(0, 1)
+    w.write(type6, 6)
+    if wasted:
+        w.write(1, 1)
+        w.unary(wasted - 1)
+    else:
+        w.write(0, 1)
+
+
+def fixed_residual(x, order):
+    res = []
+    for i in range(order, len(x)):
+        if order == 0:
+            p = 0
+        elif order == 1:
+            p = x[i - 1]
+        elif order == 2:
+            p = 2 * x[i - 1] - x[i - 2]
+        elif order == 3:
+            p = 3 * x[i - 1] - 3 * x[i - 2] + x[i - 3]
+        else:
+            p = 4 * x[i - 1] - 6 * x[i - 2] + 4 * x[i - 3] - x[i - 4]
+        res.append(x[i] - p)
+    return res
+
+
+def lpc_coeffs(order, precision, shift, seed):
+    """Quantized coefficients (and the shift, at most `shift`, that keeps
+    them in `precision` bits) of the fixed predictor of order up to 3,
+    with small random taps after it."""
+    rng = Lcg(seed)
+    base = [[1.0], [2.0, -1.0], [3.0, -3.0, 1.0]][min(order, 3) - 1]
+    shift = min(shift, precision - (2 if order == 1 else 3))
+    q = []
+    lim = (1 << (precision - 1)) - 1
+    for j in range(order):
+        c = base[j] if j < len(base) else (rng.unit() * 0.0005)
+        v = int(round(c * (1 << shift)))
+        assert -lim - 1 <= v <= lim
+        q.append(v)
+    return q, shift
+
+
+def lpc_residual(x, q, shift, wide):
+    order = len(q)
+    res = []
+    for i in range(order, len(x)):
+        s = 0
+        for j in range(order):
+            s += q[j] * x[i - j - 1]
+            if not wide:
+                s = wrap32(s)
+        res.append(x[i] - (s >> shift))
+    return res
+
+
+def flac_subframe(w, kind, x, bps, blocksize, wasted=0, order=0, porder=0, method=None, escapes=(),
+                  raw_bits=None, precision=12, shift=10, seed=1, params=None):
+    """One subframe of the `bps`-bit (wasted bits included) samples `x`."""
+    if wasted:
+        assert all(v % (1 << wasted) == 0 for v in x)
+        x = [v >> wasted for v in x]
+        bps -= wasted
+    if kind == 'constant':
+        assert all(v == x[0] for v in x)
+        subframe_header(w, 0, wasted)
+        w.signed(x[0], bps)
+    elif kind == 'verbatim':
+        subframe_header(w, 1, wasted)
+        for v in x:
+            w.signed(v, bps)
+    elif kind == 'fixed':
+        subframe_header(w, 8 | order, wasted)
+        for v in x[:order]:
+            w.signed(v, bps)
+        flac_residual(w, fixed_residual(x, order), order, blocksize, porder, method, escapes, raw_bits, params)
+    else:
+        q, shift = lpc_coeffs(order, precision, shift, seed)
+        wide = bps + precision + (order.bit_length() - 1) > 32
+        subframe_header(w, 0x20 | (order - 1), wasted)
+        for v in x[:order]:
+            w.signed(v, bps)
+        w.write(precision - 1, 4)
+        w.signed(shift, 5)
+        for c in q:
+            w.signed(c, precision)
+        flac_residual(w, lpc_residual(x, q, shift, wide), order, blocksize, porder, method, escapes, raw_bits,
+                      params)
+
+
+FLAC_BLOCKSIZE_CODES = {192: 1, 576: 2, 1152: 3, 2304: 4, 4608: 5, 256: 8, 512: 9, 1024: 10, 2048: 11, 4096: 12,
+                        8192: 13, 16384: 14, 32768: 15}
+FLAC_RATE_CODES = {88200: 1, 176400: 2, 192000: 3, 8000: 4, 16000: 5, 22050: 6, 24000: 7, 32000: 8, 44100: 9,
+                   48000: 10, 96000: 11}
+FLAC_BPS_CODES = {8: 1, 12: 2, 16: 4, 20: 5, 24: 6}
+
+
+def flac_frame(number, chans, bps, rate, subframes, variable=False, assign=None, rate_code=None, bs_code=None,
+               bps_code=None):
+    """A frame of the channels `chans` (lists of samples), each coded as
+    `subframes` (a list of flac_subframe() keyword arguments, one per
+    channel); `assign` is 'left', 'right' or 'mid' for stereo decorrelation."""
+    blocksize = len(chans[0])
+    if assign == 'left':
+        coded = [chans[0], [a - b for a, b in zip(chans[0], chans[1])]]
+        ch_code, extra = 8, (0, 1)
+    elif assign == 'right':
+        coded = [[a - b for a, b in zip(chans[0], chans[1])], chans[1]]
+        ch_code, extra = 9, (1, 0)
+    elif assign == 'mid':
+        coded = [[(a + b) >> 1 for a, b in zip(chans[0], chans[1])], [a - b for a, b in zip(chans[0], chans[1])]]
+        ch_code, extra = 10, (0, 1)
+    else:
+        coded = chans
+        ch_code, extra = len(chans) - 1, (0,) * len(chans)
+    if bs_code is None:
+        bs_code = FLAC_BLOCKSIZE_CODES.get(blocksize, 6 if blocksize <= 256 else 7)
+    if rate_code is None:
+        rate_code = FLAC_RATE_CODES.get(rate, 0)
+    if bps_code is None:
+        bps_code = FLAC_BPS_CODES.get(bps, 0)
+    hdr = bytearray([0xFF, 0xF8 | (1 if variable else 0), (bs_code << 4) | rate_code, (ch_code << 4) | (bps_code << 1)])
+    hdr += flac_utf8(number)
+    if bs_code == 6:
+        hdr.append(blocksize - 1)
+    elif bs_code == 7:
+        hdr += struct.pack('>H', blocksize - 1)
+    if rate_code == 12:
+        hdr.append(rate // 1000)
+    elif rate_code == 13:
+        hdr += struct.pack('>H', rate)
+    elif rate_code == 14:
+        hdr += struct.pack('>H', rate // 10)
+    hdr.append(flac_crc8(hdr))
+    w = MsbWriter()
+    for b in hdr:
+        w.write(b, 8)
+    for c, (x, sub) in enumerate(zip(coded, subframes)):
+        flac_subframe(w, x=x, bps=bps + extra[c], blocksize=blocksize, **sub)
+    w.align()
+    data = w.data()
+    return data + struct.pack('>H', flac_crc16(data))
+
+
+def flac_metadata_block(btype, body, last=False):
+    return bytes([(0x80 if last else 0) | btype]) + struct.pack('>I', len(body))[1:] + body
+
+
+def flac_streaminfo(min_bs, max_bs, min_fs, max_fs, rate, channels, bps, total):
+    v = (rate << 44) | ((channels - 1) << 41) | ((bps - 1) << 36) | total
+    return struct.pack('>HH', min_bs, max_bs) + struct.pack('>I', min_fs)[1:] + struct.pack('>I', max_fs)[1:] + \
+        struct.pack('>Q', v) + bytes(16)
+
+
+def flac_comments(vendor, comments):
+    body = struct.pack('<I', len(vendor)) + vendor + struct.pack('<I', len(comments))
+    for c in comments:
+        body += struct.pack('<I', len(c)) + c
+    return body
+
+
+def flac_stream(frames, rate, channels, bps, total, bs, lengths, blocks=(), seek_every=None, framesizes=True):
+    """fLaC, STREAMINFO (with the (min, max) blocksizes `bs`), the other
+    metadata `blocks` ((type, body), with 'SEEKTABLE' made from the frames,
+    of `lengths` samples, every `seek_every` of them), the frames."""
+    sizes = [len(f) for f in frames]
+    out = [(0, flac_streaminfo(bs[0], bs[1], min(sizes) if framesizes else 0, max(sizes) if framesizes else 0,
+                               rate, channels, bps, total))]
+    for btype, body in blocks:
+        if btype == 'SEEKTABLE':
+            pts = b''
+            off = 0
+            sample = 0
+            for i, f in enumerate(frames):
+                if i % seek_every == 0:
+                    pts += struct.pack('>QQH', sample, off, lengths[i])
+                off += len(f)
+                sample += lengths[i]
+            pts += struct.pack('>QQH', 0xFFFFFFFFFFFFFFFF, 0, 0)  # a placeholder
+            out.append((3, pts))
+        else:
+            out.append((btype, body))
+    meta = b''.join(flac_metadata_block(t, b, i == len(out) - 1) for i, (t, b) in enumerate(out))
+    return b'fLaC' + meta + b''.join(frames)
+
+
+def int_signal(freq, channels, seconds, bps, seed, amp=0.45, noise=2, quant=0):
+    """Smooth integer channels (lists), with `noise` LSBs of LCG noise and
+    the low `quant` bits zero."""
+    n = int(freq * seconds)
+    rng = Lcg(seed)
+    full = (1 << (bps - 1)) - 1
+    chans = [[] for _ in range(channels)]
+    for i in range(n):
+        t = i / freq
+        for c in range(channels):
+            f0 = 180.0 * (c + 1) + 37 * seed % 50
+            v = amp * math.sin(2 * math.pi * f0 * t) + 0.3 * amp * math.sin(2 * math.pi * f0 * 2.03 * t + c)
+            s = int(round(v * full)) + int(rng.unit() * noise)
+            if quant:
+                s &= ~((1 << quant) - 1)
+            chans[c].append(max(-full - 1, min(full, s)))
+    return chans
+
+
+def split(chans, sizes):
+    out = []
+    pos = 0
+    for n in sizes:
+        out.append([c[pos:pos + n] for c in chans])
+        pos += n
+    assert pos == len(chans[0])
+    return out
+
+
+def flac_crafted_files():
+    # 8-bit mono, 192-sample blocks (and a short last one): constant,
+    # verbatim, every fixed order, LPC, wasted bits, an escaped partition
+    # and Rice2; PADDING, APPLICATION, VORBIS_COMMENT (with an empty
+    # comment) and unknown blocks, no seek table.
+    chans = int_signal(8000, 1, (192 * 10 + 100) / 8000, 8, seed=80, amp=0.4, noise=3)
+    blocks = split(chans, [192] * 10 + [100])
+    blocks[0] = [[0] * 192]
+    blocks[8] = [[-36] * 192]
+    blocks[4] = [[v & ~3 for v in blocks[4][0]]]
+    blocks[9] = [[v & ~1 for v in blocks[9][0]]]
+    subs = [dict(kind='constant'), dict(kind='verbatim'), dict(kind='fixed', order=0),
+            dict(kind='fixed', order=1, porder=2), dict(kind='fixed', order=2, wasted=2, porder=1),
+            dict(kind='fixed', order=3, porder=3, escapes=(1, 5)), dict(kind='fixed', order=4, porder=3, method=1),
+            dict(kind='lpc', order=2, precision=12, shift=10), dict(kind='constant', wasted=2),
+            dict(kind='verbatim', wasted=1), dict(kind='lpc', order=1, precision=8, shift=6)]
+    frames = [flac_frame(i, b, 8, 8000, [s], rate_code=[4, 12, 14, 0][i % 4])
+              for i, (b, s) in enumerate(zip(blocks, subs))]
+    write('flac_c_s8_mono.flac', flac_stream(
+        frames, 8000, 1, 8, len(chans[0]), (192, 192), [192] * 10 + [100], blocks=(
+            (1, bytes(16)), (2, b'TEST' + b'abcdef'),
+            (4, flac_comments(b'sdl3-mixer crafted', [b'TITLE=Crafted FLAC', b'', b'ARTIST=sdl3-mixer'])),
+            (20, b'\x01\x02\x03\x04\x05'))))
+
+    # 16-bit stereo, 576-sample blocks: the four channel assignments,
+    # LPC orders 1 to 32 on the 16-bit, generic and wide restore paths,
+    # partition orders 0 to 4, escapes and Rice2; a seek table, loop tags.
+    chans = int_signal(22050, 2, 576 * 6 / 22050, 16, seed=81, amp=0.3, noise=4)
+    blocks = split(chans, [576] * 6)
+    plan = [(None, [dict(kind='lpc', order=8, precision=12, shift=11, porder=2),
+                    dict(kind='lpc', order=32, precision=15, shift=13, porder=4, seed=2)]),
+            ('left', [dict(kind='lpc', order=4, precision=14, shift=12, porder=3, escapes=(2,)),
+                      dict(kind='fixed', order=2, porder=1, method=1)]),
+            ('right', [dict(kind='lpc', order=12, precision=13, shift=11, porder=0),
+                       dict(kind='lpc', order=1, precision=15, shift=14, porder=4, method=1, escapes=(0, 7))]),
+            ('mid', [dict(kind='fixed', order=3, porder=2), dict(kind='lpc', order=16, precision=10, shift=8,
+                                                                  porder=3, seed=3)]),
+            ('mid', [dict(kind='verbatim'), dict(kind='lpc', order=2, precision=15, shift=13, porder=1,
+                                                 method=1, params={0: 17, 1: 3})]),
+            (None, [dict(kind='fixed', order=4, porder=4), dict(kind='constant')])]
+    blocks[5][1] = [123] * 576
+    frames = [flac_frame(i, b, 16, 22050, s, assign=a) for i, (b, (a, s)) in enumerate(zip(blocks, plan))]
+    write('flac_c_s16_lpc.flac', flac_stream(
+        frames, 22050, 2, 16, 576 * 6, (576, 576), [576] * 6, seek_every=2, blocks=(
+            ('SEEKTABLE', None),
+            (4, flac_comments(b'sdl3-mixer crafted', [b'TITLE=LPC', b'LOOPSTART=1152', b'LOOPLENGTH=1500'])))))
+
+    # 24-bit, 3 channels, variable blocksizes (sample numbers; 16- and
+    # 8-bit blocksize hints): fixed subframes at 24 bits, LPC on both
+    # restore paths, wasted bits; a seek table.
+    sizes = [1000, 77, 2048, 576, 300]
+    chans = int_signal(44100, 3, sum(sizes) / 44100, 24, seed=82, amp=0.005, noise=3)
+    chans[2] = [v & ~0xF for v in chans[2]]
+    blocks = split(chans, sizes)
+    rng = Lcg(87)
+    blocks[1][1] = [int(rng.unit() * 8388607) for _ in range(77)]  # full scale, verbatim
+    plan = [[dict(kind='fixed', order=2, porder=3), dict(kind='lpc', order=16, precision=15, shift=13, porder=3),
+             dict(kind='lpc', order=2, precision=6, shift=4, wasted=4)],
+            [dict(kind='fixed', order=0), dict(kind='verbatim'), dict(kind='fixed', order=4, wasted=4)],
+            [dict(kind='lpc', order=6, precision=15, shift=14, porder=4, method=1), dict(kind='fixed', order=1, porder=5),
+             dict(kind='fixed', order=3, wasted=4, porder=2, escapes=(3,))],
+            [dict(kind='lpc', order=2, precision=6, shift=4, porder=2), dict(kind='fixed', order=4, porder=6),
+             dict(kind='lpc', order=10, precision=14, shift=12, porder=1, wasted=2)],
+            [dict(kind='fixed', order=1, porder=2), dict(kind='lpc', order=3, precision=12, shift=10, porder=2),
+             dict(kind='constant', wasted=0)]]
+    blocks[4][2] = [-4096] * 300
+    starts = [sum(sizes[:i]) for i in range(len(sizes))]
+    frames = [flac_frame(starts[i], b, 24, 44100, s, variable=True) for i, (b, s) in enumerate(zip(blocks, plan))]
+    write('flac_c_s24_3ch.flac', flac_stream(
+        frames, 44100, 3, 24, sum(sizes), (77, 2048), sizes, seek_every=2, blocks=(('SEEKTABLE', None),)))
+
+    # 32-bit mono (the bits per sample from STREAMINFO), 16-bit sample
+    # rate hint: verbatim, constant, wide LPC, wasted bits, and a fixed
+    # subframe, which libFLAC 1.3.4 can't decode at 32 bits (the frame is
+    # skipped as unparseable).
+    chans = int_signal(16000, 1, 256 * 5 / 16000, 32, seed=83, amp=0.01, noise=1 << 8)
+    blocks = split(chans, [256] * 5)
+    blocks[2] = [[v & ~0xFF for v in blocks[2][0]]]
+    blocks[3] = [[1 << 20] * 256]
+    plan = [dict(kind='verbatim'), dict(kind='lpc', order=4, precision=14, shift=12, porder=2),
+            dict(kind='lpc', order=2, precision=15, shift=13, wasted=8, porder=1), dict(kind='constant'),
+            dict(kind='fixed', order=2)]
+    frames = [flac_frame(i, b, 32, 16000, [s], rate_code=13 if i % 2 else 0)
+              for i, (b, s) in enumerate(zip(blocks, plan))]
+    write('flac_c_s32_mono.flac', flac_stream(frames, 16000, 1, 32, 256 * 5, (256, 256), [256] * 5))
+
+    # 12-bit, 8 channels, 11025 Hz (a 16-bit Hz hint), 256-sample blocks,
+    # partition orders up to 6, Rice2 escapes; STREAMINFO without the total
+    # length or the frame sizes.
+    chans = int_signal(11025, 8, 256 * 2 / 11025, 12, seed=84, amp=0.2, noise=2)
+    blocks = split(chans, [256] * 2)
+    kinds = [dict(kind='fixed', order=2, porder=6), dict(kind='lpc', order=3, precision=9, shift=7, porder=5),
+             dict(kind='verbatim'), dict(kind='fixed', order=4, porder=6, method=1, escapes=(0, 9, 63)),
+             dict(kind='lpc', order=8, precision=11, shift=9, porder=3, method=1), dict(kind='fixed', order=1),
+             dict(kind='lpc', order=1, precision=5, shift=3, porder=4), dict(kind='fixed', order=0, porder=2)]
+    frames = [flac_frame(i, b, 12, 11025, kinds[i * 3:] + kinds[:i * 3], rate_code=13) for i, b in enumerate(blocks)]
+    write('flac_c_s12_8ch.flac', flac_stream(frames, 11025, 8, 12, 0, (256, 256), [256] * 2, framesizes=False))
+
+    # 20-bit stereo at 48 kHz, 1152-sample blocks, mid/side and left/side
+    # (21-bit side channels).
+    chans = int_signal(48000, 2, 1152 * 2 / 48000, 20, seed=85, amp=0.1, noise=3)
+    blocks = split(chans, [1152] * 2)
+    frames = [flac_frame(0, blocks[0], 20, 48000, [dict(kind='lpc', order=12, precision=15, shift=13, porder=4),
+                                                   dict(kind='lpc', order=12, precision=15, shift=13, porder=4)],
+                         assign='mid'),
+              flac_frame(1, blocks[1], 20, 48000, [dict(kind='fixed', order=2, porder=3),
+                                                   dict(kind='lpc', order=7, precision=12, shift=10, porder=2)],
+                         assign='left')]
+    write('flac_c_s20_stereo.flac', flac_stream(frames, 48000, 2, 20, 1152 * 2, (1152, 1152), [1152] * 2))
+
+    # A zero-bit escaped partition, which libFLAC 1.3.4 fails to read (so
+    # decoding stops at that frame).
+    chans = int_signal(8000, 1, 256 * 3 / 8000, 16, seed=86, amp=0.3, noise=0)
+    blocks = split(chans, [256] * 3)
+    blocks[1][0][1] = blocks[1][0][0]  # (so the zero residuals keep it constant)
+    blocks[1][0][2:66] = fixed_residual_inverse(blocks[1][0][:2], [0] * 64, 2)
+    frames = [flac_frame(0, blocks[0], 16, 8000, [dict(kind='fixed', order=2, porder=2)]),
+              flac_frame(1, blocks[1], 16, 8000, [dict(kind='fixed', order=2, porder=2, escapes=(0,), raw_bits=0)]),
+              flac_frame(2, blocks[2], 16, 8000, [dict(kind='fixed', order=2, porder=2)])]
+    write('flac_c_escape0.flac', flac_stream(frames, 8000, 1, 16, 256 * 3, (256, 256), [256] * 3))
+
+
+def fixed_residual_inverse(warm, residual, order):
+    """The order-`order` fixed prediction of `residual` after `warm` (so
+    its residual is `residual`)."""
+    x = list(warm)
+    for r in residual:
+        if order == 2:
+            x.append(r + 2 * x[-1] - x[-2])
+        else:
+            raise ValueError(order)
+    return x[len(warm):]
 
 
 def varied(freq, channels, seconds, seed=1):

@@ -298,9 +298,26 @@ In dependency order, after the core each one needs exists:
    ffmpeg's libvorbis encoder (mono to eight channels, qualities and
    bitrates, chained, multiplexed and with holes) and a crafted floor 0
    stream from `tools/gen_sdl_mixer_testdata.py`, truncated and corrupted,
-   mixed, looped and seeked. Not translated, as they need an external
-   library or are LGPL: FluidSynth, libgme, and the libmpg123 and libFLAC
-   decoders.
+   mixed, looped and seeked. FLAC through the libFLAC that SDL_mixer
+   vendors (`decoder_flac.c` over libFLAC 1.3.4's decoder, registered
+   before dr_flac as upstream, whose default build has both; built as
+   SDL_mixer's CMake builds it: `WITH_OGG` off, so Ogg FLAC goes on to
+   dr_flac, and the RelWithDebInfo build's `FLAC__OVERFLOW_DETECT`) is done
+   in `sdl3-mixer/src/flac/`, under libFLAC's BSD license (COPYING.Xiph):
+   the stream decoder (metadata, with seek tables and Vorbis comments, frame
+   sync, headers, the constant, verbatim, fixed and LPC subframes, wasted
+   bits, Rice and Rice2 residuals with escapes, stereo decorrelation,
+   seeking), the bit reader with 32-bit words, the CRCs and the plain C
+   fixed and LPC restore functions (which upstream's x86-64 build uses
+   too); the encoder, the metadata editing interfaces, the Ogg layer, MD5
+   (never turned on) and the SIMD versions are left out; checked
+   bit-for-bit against upstream's C on ffmpeg's files and streams encoded by
+   `tools/gen_sdl_mixer_testdata.py` (8- to 32-bit, mono to 8 channels,
+   every subframe type and channel assignment, partition orders, escapes,
+   Rice2, variable blocksizes, seek tables, tags and loop tags), truncated,
+   corrupted (also with their CRCs fixed), mixed, looped and seeked. Not
+   translated, as they need an external library or are LGPL: FluidSynth,
+   libgme, and the libmpg123 decoder.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to
