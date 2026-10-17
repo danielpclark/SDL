@@ -9,7 +9,7 @@
 //! Ogg framing: finding pages in a byte stream and reassembling packets
 //! from them. The encoding half (`ogg_stream_packetin()`,
 //! `ogg_stream_pageout()`, `ogg_stream_flush()` and friends) isn't
-//! translated; opusfile only decodes.
+//! translated; opusfile and vorbisfile only decode.
 //!
 //! The C structures point into each other's buffers; here an [`OggPage`]
 //! owns copies of its header and body, and an [`OggPacket`] holds the
@@ -905,6 +905,14 @@ pub(crate) fn ogg_stream_packetout(os: &mut OggStreamState, op: Option<&mut OggP
         return 0;
     }
     packetout(os, op, true)
+}
+
+/// Translation of `ogg_stream_packetpeek()`.
+pub(crate) fn ogg_stream_packetpeek(os: &mut OggStreamState, op: Option<&mut OggPacket>) -> i32 {
+    if ogg_stream_check(os) != 0 {
+        return 0;
+    }
+    packetout(os, op, false)
 }
 
 #[cfg(test)]
