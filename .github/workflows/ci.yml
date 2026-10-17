@@ -53,7 +53,8 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - if: matrix.os == 'macos-latest'
         run: cargo clippy --workspace --all-targets --target x86_64-apple-darwin -- -D warnings
-      # sdl3-mixer's zlib-only build (no `timidity` or `mpg123` feature)
+      # sdl3-mixer's zlib-only build (no `timidity`, `fluidsynth` or `mpg123`
+      # feature)
       - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
 
   test:
@@ -107,8 +108,9 @@ jobs:
           # fails instead of skipping.
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || '' }}
-      # sdl3-mixer without its default `timidity` and `mpg123` features: the
-      # zlib-only build, without sdl3-mixer-timidity and sdl3-mixer-mpg123.
+      # sdl3-mixer without its default `timidity`, `fluidsynth` and `mpg123`
+      # features: the zlib-only build, without sdl3-mixer-timidity,
+      # sdl3-mixer-fluidsynth and sdl3-mixer-mpg123.
       - name: cargo test -p sdl3-mixer --no-default-features
         run: cargo test -p sdl3-mixer --no-default-features
         env:

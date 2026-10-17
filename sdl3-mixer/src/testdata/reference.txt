@@ -1,5 +1,5 @@
 == misc
-decoders: WAV VORBIS STBVORBIS OPUS FLAC DRFLAC TIMIDITY WAVPACK XMP VOC AIFF AU MPG123 DRMP3 SINEWAVE RAW
+decoders: WAV VORBIS STBVORBIS OPUS FLAC DRFLAC FLUIDSYNTH TIMIDITY WAVPACK XMP VOC AIFF AU MPG123 DRMP3 SINEWAVE RAW
 sine 440: dur=4800 playing=0 956304aabfd120a9
 sine 1000: dur=-2 playing=1 24a432722a9e8e51
 sine 30: dur=336 playing=0 872ec7d62025ec85
@@ -929,6 +929,40 @@ corrupt 5 mix: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 100fbb80
 mix: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 c7114a898249175f
 mixpre: dur=2000 play=1 pos=49 replay=1 seek=1 pos=666 playing=1 c7114a898249175f
 == bad_no_eot.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 960512 3a128d66bd117f3b end=0
+f32s48: 960512 3a128d66bd117f3b end=0
+s16m22: 110310 f3f5417cf6429ebd end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 8: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 11: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 12: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 16: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 20: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 24: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 32: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 36: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 9: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 19: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 28: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 37: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 2 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 4 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+mixpre: dur=120064 play=1 pos=12288 replay=1 seek=1 pos=40021 playing=1 5716156325d2e143
+== bad_no_eot.mid TIMIDITY
 open: err: Audio data is in unknown/unsupported/corrupt format
 f32s48: err: Audio data is in unknown/unsupported/corrupt format
 s16m22: err: Audio data is in unknown/unsupported/corrupt format
@@ -963,6 +997,48 @@ corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: err: Audio data is in unknown/unsupported/corrupt format
 mixpre: err: Audio data is in unknown/unsupported/corrupt format
 == basic.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1957888 cb82c629cc03db89 end=0
+f32s48: 1957888 cb82c629cc03db89 end=0
+s16m22: 224852 d8b26d8b40451635 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 8: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 11: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 12: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 16: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 20: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 24: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 32: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 36: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 40: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 44: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 48: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 64: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 100: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 128: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 200: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 256: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 69: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 138: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 207: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 276: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 1: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 1 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 3 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 4: FLUIDSYNTH 0x8120 2 48000 | 912384 0bae90e0b16cf7a0 end=0
+corrupt 4 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+corrupt 5: FLUIDSYNTH 0x8120 2 48000 | 8388608 47bab4d930c2ab7b end=1
+corrupt 5 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+mixpre: dur=244736 play=1 pos=12288 replay=1 seek=1 pos=81578 playing=1 2401e8e6fd685d85
+== basic.mid TIMIDITY
 open: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 6a2861142251c396 end=0
 f32s48: 988800 344bccf87a3f83c3 end=0
 s16m22: 113558 cd2f47cb8edb8168 end=0
@@ -1381,6 +1457,39 @@ xmp 1: set=0 mixer=0 frames=292 6ef5f29873bdca86 56ab4026dbdbe55a seek=0 pos=1 e
 xmp 2: set=0 mixer=1 frames=292 4fdec9483bedfd76 51cd695ca535656c seek=0 pos=1 ae173ba03bfad491
 xmp 3: set=0 mixer=1 frames=292 7e43a049ae792b4e 1a1b984301778537 seek=0 pos=1 9c119708c813fb4c
 == empty.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 769024 02b243927c8712e8 end=0
+f32s48: 769024 02b243927c8712e8 end=0
+s16m22: 88318 d2d2e4a2a8e2ef9d end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 8: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 11: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 12: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 16: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 20: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 24: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 32: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 8: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 17: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 26: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 34: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 1 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 2: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 2 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+mixpre: dur=96128 play=1 pos=12288 replay=1 seek=1 pos=32042 playing=1 17728a994251707b
+== empty.mid TIMIDITY
 open: TIMIDITY 0x8020 2 48000 frames=0 | 0 cbf29ce484222325 end=0
 f32s48: 0 cbf29ce484222325 end=0
 s16m22: 0 cbf29ce484222325 end=0
@@ -2634,6 +2743,47 @@ xmp 1: set=0 mixer=0 frames=160 15cccffb019fc627 a749a87db7cce6f4 seek=0 pos=1 d
 xmp 2: set=0 mixer=0 frames=160 729dbd58cdf0d22a 49f99646846ba4f9 seek=0 pos=1 2ac2b4163f3323d9
 xmp 3: set=0 mixer=0 frames=160 acaf929f591f6958 3095ec9061d34077 seek=0 pos=1 8d28f5b61eb9356b
 == format1.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+f32s48: 1024 798d29f56f671725 end=0
+s16m22: 118 42da67e98bc2b3fd end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 8: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 11: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 12: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 16: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 20: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 24: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 32: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 36: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 40: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 44: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 48: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 64: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 100: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 128: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 200: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 58: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 116: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 174: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 232: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 1: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 1 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 2: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 2 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 3: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 3 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 4 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 5: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 5 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+mixpre: dur=128 play=1 pos=128 replay=1 seek=1 pos=42 playing=0 fe42657c0ae78bf7
+== format1.mid TIMIDITY
 open: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 0169cc083748299d end=0
 f32s48: 771840 f71d1b91c2b84bb5 end=0
 s16m22: 88642 b04bdc1c58d04911 end=0
@@ -7758,6 +7908,40 @@ xmp 1: set=0 mixer=0 frames=200 0d84335d6ecd6696 a003bfcf4b5358be seek=0 pos=1 f
 xmp 2: set=0 mixer=1 frames=200 9ce42ef6f2b0b526 374d565cc893728d seek=0 pos=1 42c9358f8aee9c60
 xmp 3: set=0 mixer=1 frames=200 e15c03a176a940eb 9f769b98692270a6 seek=0 pos=1 7d4887aaf1ac4b46
 == oom.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 864256 80e732e171ccd9ed end=0
+f32s48: 864256 80e732e171ccd9ed end=0
+s16m22: 99256 681b446befcbab85 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 8: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 11: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 12: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 16: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 20: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 24: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 32: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 36: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 9: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 18: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 27: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+trunc 36: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 0: FLUIDSYNTH 0x8120 2 48000 | 769024 02b243927c8712e8 end=0
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 3 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: FLUIDSYNTH 0x8120 2 48000 | 1024 798d29f56f671725 end=0
+corrupt 5 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
+mixpre: dur=108032 play=1 pos=12288 replay=1 seek=1 pos=36010 playing=1 698526636953a58b
+== oom.mid TIMIDITY
 open: err: Audio data is in unknown/unsupported/corrupt format
 f32s48: err: Audio data is in unknown/unsupported/corrupt format
 s16m22: err: Audio data is in unknown/unsupported/corrupt format
@@ -16893,16 +17077,141 @@ xmp 3: set=0 mixer=0 frames=104 f3e4d4f60ebc87f9 f168ad56797ad9e6 seek=0 pos=1 1
 11: play=1 playing=1 paused=0 pos=12288 remaining=1383 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 114a5e76195b2a9c
 12: play=1 playing=1 paused=0 pos=6523 remaining=7148 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 e187af022a874500
 == scenarios basic.mid
-0: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 54324b4aff8dfed3
-1: play=1 playing=0 paused=0 pos=6000 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 86f87d42c6cd4d6c
-2: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 33edc49e056d7351
-3: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 58b75f308a9a51ff
-4: play=1 playing=1 paused=0 pos=13823 remaining=109777 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 1aae886af1a06dee
-5: play=1 playing=1 paused=0 pos=12388 remaining=111212 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 33a147a1f083e7b5
-6: play=1 playing=1 paused=0 pos=12528 remaining=111072 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 e1d33fa2556d9642
-7: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 edf181b0b1df9f94
-8: play=1 playing=1 paused=0 pos=10240 remaining=113360 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 f9633616c7590a19
-9: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 d69a2d74a8de1d29
-10: play=1 playing=1 paused=0 pos=12288 remaining=111312 stopped=0 raw=51cfa2b8a490d160 post=7b765d570466ed41 3dfe2736cdb45329
-11: play=1 playing=1 paused=0 pos=12288 remaining=44468 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 09d975e1fe02d47c
-12: play=1 playing=1 paused=0 pos=12288 remaining=8304 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 4907beddca87310c
+0: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 ed17821cf86eac25
+1: play=1 playing=0 paused=0 pos=6000 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 0703a5d6f9d8ddb9
+2: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 ffb6c5419ab55a60
+3: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 a5375e7445672686
+4: play=1 playing=1 paused=0 pos=13823 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 5e14d8db390c846e
+5: play=1 playing=1 paused=0 pos=12388 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 4affe452d904f088
+6: play=1 playing=1 paused=0 pos=12528 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 4f072b72cd7faae3
+7: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 f4a55026f1f19f37
+8: play=1 playing=1 paused=0 pos=10240 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 7aba88d6f8811e30
+9: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 fb7c3a46bda2eeb6
+10: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=d470652be30d8563 post=6a43f3997525eed2 678e3f5ad52bd4ca
+11: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 30b8d1320a1275e5
+12: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 7e967b1fda5a6905
+== fluidsynth basic.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1558528 96b4030fdac37e27 end=0
+s16m22: 178988 c9d72430965e4ac7 end=0
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 e97d8f72bcc22b5c
+mixpre: dur=194816 play=1 pos=12288 replay=1 seek=1 pos=64938 playing=1 30c6cad646dbbfc3
+seek 0: play=1 seek=1 pos=0 playing=1 6fc21e09160f2ab4
+seek 1: play=1 seek=1 pos=1 playing=1 ecff8568144ce9f9
+seek 311: play=1 seek=1 pos=311 playing=1 201940367fd94beb
+seek 960: play=1 seek=1 pos=960 playing=1 3c9e48e6023b3a26
+seek 3840: play=1 seek=1 pos=3840 playing=1 29595404c575c54a
+seek 4801: play=1 seek=1 pos=4801 playing=1 1e8a64069b583654
+seek 12345: play=1 seek=1 pos=12345 playing=1 dcc46f5d3b50a68e
+seek 0: play=1 seek=1 pos=0 playing=1 6359e59f7683f4b0
+seek -501: play=1 seek=0 pos=2048 playing=1 cc7e33849d799953
+seek -2: play=1 seek=0 pos=4096 playing=1 fa6fd3b204d10c16
+seek 0: play=1 seek=1 pos=0 playing=1 09b4e402d0b1ce4f
+seek 999: play=1 seek=1 pos=999 playing=1 c53badcb5bc6f523
+seek 100: play=1 seek=1 pos=100 playing=1 8b81015c861136ce
+stream: FLUIDSYNTH 0x8120 2 48000 | 1558528 96b4030fdac37e27 end=0
+stream again: err: Failed to load FluidSynth soundfont
+settings: FLUIDSYNTH 0x8120 2 48000 | 1558528 7a86014b6bc1ecdc end=0
+settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 fb640340b7e38421
+badsf: err: Failed to load FluidSynth soundfont
+badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+nosf: FLUIDSYNTH 0x8120 2 48000 | 1189888 7e350389a1978fd6 end=0
+== fluidsynth format1.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1531904 b45db601f95542e0 end=0
+s16m22: 175930 5dedcb2ab90592ce end=0
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 cf405f3cff6795f6
+mixpre: dur=191488 play=1 pos=12288 replay=1 seek=1 pos=63829 playing=1 e6f10548e3bd6a0f
+seek 0: play=1 seek=1 pos=0 playing=1 8ea7264009856d0a
+seek 1: play=1 seek=1 pos=1 playing=1 784d7f2746d24514
+seek 311: play=1 seek=1 pos=311 playing=1 7bbae47514b793bb
+seek 960: play=1 seek=1 pos=960 playing=1 2c8804162c56de89
+seek 3840: play=1 seek=1 pos=3840 playing=1 58ca228d171faf81
+seek 4801: play=1 seek=1 pos=4801 playing=1 edb7a03ec7e2c3ae
+seek 12345: play=1 seek=1 pos=12345 playing=1 a64e151cfeb72024
+seek 0: play=1 seek=1 pos=0 playing=1 206f2e80828b97ed
+seek -501: play=1 seek=0 pos=2048 playing=1 646e9fd983125f99
+seek -2: play=1 seek=0 pos=4096 playing=1 6353d60d8778cfd1
+seek 0: play=1 seek=1 pos=0 playing=1 d3b16860bc4137a8
+seek 999: play=1 seek=1 pos=999 playing=1 73045ef668d371d4
+seek 100: play=1 seek=1 pos=100 playing=1 f8d2a6325773f288
+stream: FLUIDSYNTH 0x8120 2 48000 | 1531904 b45db601f95542e0 end=0
+stream again: err: Failed to load FluidSynth soundfont
+settings: FLUIDSYNTH 0x8120 2 48000 | 1531904 ca5664724237eafc end=0
+settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 97b6d6f42f10d901
+badsf: err: Failed to load FluidSynth soundfont
+badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+nosf: FLUIDSYNTH 0x8120 2 48000 | 1113088 bb7d42e54b0cb926 end=0
+== fluidsynth mono.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1502208 c73bda1be5a6538c end=0
+s16m22: 172520 2c87ceddf97ea562 end=0
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 95e8b29fcae22564
+mixpre: dur=187776 play=1 pos=12288 replay=1 seek=1 pos=62592 playing=1 84fb003dc4176f4d
+seek 0: play=1 seek=1 pos=0 playing=1 105f8f53ced022d3
+seek 1: play=1 seek=1 pos=1 playing=1 6ab5c85b46529cbc
+seek 311: play=1 seek=1 pos=311 playing=1 1a816ad79f939e36
+seek 960: play=1 seek=1 pos=960 playing=1 ba25305867cf6b2c
+seek 3840: play=1 seek=1 pos=3840 playing=1 8783b40efd49dbc8
+seek 4801: play=1 seek=1 pos=4801 playing=1 bd32aa020b1be8fa
+seek 12345: play=1 seek=1 pos=12345 playing=1 6e3e0c8f11fb60a9
+seek 0: play=1 seek=1 pos=0 playing=1 0a5985cb962d4356
+seek -501: play=1 seek=0 pos=2048 playing=1 7f4c055fbcd7f3e8
+seek -2: play=1 seek=0 pos=4096 playing=1 7041f1f079f98215
+seek 0: play=1 seek=1 pos=0 playing=1 17930fa210601782
+seek 999: play=1 seek=1 pos=999 playing=1 f5c37a1a5aec3c5e
+seek 100: play=1 seek=1 pos=100 playing=1 1fa060d1111c29ee
+stream: FLUIDSYNTH 0x8120 2 48000 | 1502208 c73bda1be5a6538c end=0
+stream again: err: Failed to load FluidSynth soundfont
+settings: FLUIDSYNTH 0x8120 2 48000 | 1502208 d2ded11faef921a8 end=0
+settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0bca9360effe09a9
+badsf: err: Failed to load FluidSynth soundfont
+badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+nosf: FLUIDSYNTH 0x8120 2 48000 | 1416192 41c4b0da6321df10 end=0
+== fluidsynth nrpn.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1339392 3cabd98662eb3fb9 end=0
+s16m22: 153822 4d50999b5cd57ab5 end=0
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 a12e974af1ea1182
+mixpre: dur=167424 play=1 pos=12288 replay=1 seek=1 pos=55808 playing=1 b8b8767c9d5a2613
+seek 0: play=1 seek=1 pos=0 playing=1 e5c4268b31331a7c
+seek 1: play=1 seek=1 pos=1 playing=1 3b582c1dfcb09e10
+seek 311: play=1 seek=1 pos=311 playing=1 782105998b1c228b
+seek 960: play=1 seek=1 pos=960 playing=1 8be3ede61c6c5f3a
+seek 3840: play=1 seek=1 pos=3840 playing=1 52cceba6c38bcacd
+seek 4801: play=1 seek=1 pos=4801 playing=1 36f9b674bd0204ac
+seek 12345: play=1 seek=1 pos=12345 playing=1 e492883e0bc731e7
+seek 0: play=1 seek=1 pos=0 playing=1 30231e676b72b5e3
+seek -501: play=1 seek=0 pos=2048 playing=1 b1714db634950e0f
+seek -2: play=1 seek=0 pos=4096 playing=1 b1cf146534c13a12
+seek 0: play=1 seek=1 pos=0 playing=1 aa8236622e6c7319
+seek 999: play=1 seek=1 pos=999 playing=1 ed07da7491d34064
+seek 100: play=1 seek=1 pos=100 playing=1 17b3ef08ee106ed3
+stream: FLUIDSYNTH 0x8120 2 48000 | 1339392 3cabd98662eb3fb9 end=0
+stream again: err: Failed to load FluidSynth soundfont
+settings: FLUIDSYNTH 0x8120 2 48000 | 1339392 5f7e4415cf7ca2ce end=0
+settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 e11c5367844a41b9
+badsf: err: Failed to load FluidSynth soundfont
+badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+nosf: FLUIDSYNTH 0x8120 2 48000 | 1200128 7737b7bd17574bda end=0
+== fluidsynth sysex.mid
+open: FLUIDSYNTH 0x8120 2 48000 | 1638400 a9758f463872fd87 end=0
+s16m22: 188160 b47774fafbfac2a7 end=0
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 921b1eb76a90251c
+mixpre: dur=204800 play=1 pos=12288 replay=1 seek=1 pos=68266 playing=1 9df7157e47cff6a5
+seek 0: play=1 seek=1 pos=0 playing=1 6fc21e09160f2ab4
+seek 1: play=1 seek=1 pos=1 playing=1 5e29a43edf3f6935
+seek 311: play=1 seek=1 pos=311 playing=1 5e29a43edf3f6935
+seek 960: play=1 seek=1 pos=960 playing=1 9f44597dd91969a9
+seek 3840: play=1 seek=1 pos=3840 playing=1 932f5d3a23365e41
+seek 4801: play=1 seek=1 pos=4801 playing=1 c574689d863bb690
+seek 12345: play=1 seek=1 pos=12345 playing=1 35c69bfbbb806e8a
+seek 0: play=1 seek=1 pos=0 playing=1 90a3ed8af450a7dc
+seek -501: play=1 seek=0 pos=2048 playing=1 1335ea38a8f44972
+seek -2: play=1 seek=0 pos=4096 playing=1 09045675e0d249fe
+seek 0: play=1 seek=1 pos=0 playing=1 1e8bf3f42483cf2b
+seek 999: play=1 seek=1 pos=999 playing=1 03daaee4bf958626
+seek 100: play=1 seek=1 pos=100 playing=1 ac5b186de58b1568
+stream: FLUIDSYNTH 0x8120 2 48000 | 1638400 a9758f463872fd87 end=0
+stream again: err: Failed to load FluidSynth soundfont
+settings: FLUIDSYNTH 0x8120 2 48000 | 1638400 4f69e23ad60d62c0 end=0
+settings mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 c29f2aa24b4ef08d
+badsf: err: Failed to load FluidSynth soundfont
+badsf mix: dur=-1 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+nosf: FLUIDSYNTH 0x8120 2 48000 | 1128448 c7618444131443be end=0

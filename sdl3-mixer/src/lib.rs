@@ -36,6 +36,17 @@
 //!   wave generator; ID3v1/v2, APE,
 //!   Lyrics3 and MusicMatch tags and Ogg comments become metadata
 //!   properties, and Ogg `LOOPSTART`-style comments loop.
+//! * MIDI (the `FLUIDSYNTH` decoder, tried first) through FluidSynth, as
+//!   SDL_mixer vendors it, translated in the `sdl3-mixer-fluidsynth` crate,
+//!   with a SoundFont 2 the app gives (the
+//!   `SDL_mixer.decoder.fluidsynth.soundfont_iostream` or
+//!   `SDL_mixer.decoder.fluidsynth.soundfont_path` load property, with
+//!   FluidSynth settings in `SDL_mixer.decoder.fluidsynth.props`) or, on
+//!   Unix systems but Apple's, one at `/usr/share/sounds/sf2/default-GM.sf2`
+//!   and the like; without one, it plays MIDI files silently, as upstream's
+//!   does. This is the `fluidsynth` Cargo feature, on by default (as
+//!   upstream builds it by default). **FluidSynth is not zlib-licensed**:
+//!   `sdl3-mixer-fluidsynth` is under `LGPL-2.1-or-later AND Apache-2.0`.
 //! * MIDI (the `TIMIDITY` decoder) through the bundled TiMidity, translated
 //!   in the `sdl3-mixer-timidity` crate, with GUS patches or a SoundFont,
 //!   as the TiMidity configuration file (the `TIMIDITY_CFG` environment
@@ -44,8 +55,9 @@
 //!   `timidity` Cargo feature, on by default (as upstream builds it by
 //!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
 //!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
-//!   `default-features = false` for an sdl3-mixer without MIDI (and
-//!   without libmpg123, below) under the zlib license only (and the BSD licenses of its Vorbis, FLAC, Opus and
+//!   `default-features = false` for an sdl3-mixer without MIDI (neither
+//!   FluidSynth nor TiMidity) and without libmpg123 (below) under the zlib
+//!   license only (and the BSD licenses of its Vorbis, FLAC, Opus and
 //!   WavPack decoders' libraries, and libxmp's MIT license).
 //! * MP3 and MPEG audio layers I and II (the `MPG123` decoder, tried
 //!   before dr_mp3's `DRMP3`) through the libmpg123 SDL_mixer vendors,
@@ -64,8 +76,8 @@
 //!   ([`PROP_PLAY_START_ORDER_NUMBER`]).
 //! * The decoders
 //!   upstream builds against another external library are not translated:
-//!   MIDI through FluidSynth and
-//!   the game music formats (libgme), as in an upstream build without them. [`audio_decoder`] lists the ones
+//!   the game music formats (libgme), as in an upstream build without it.
+//!   [`audio_decoder`] lists the ones
 //!   available.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
@@ -104,6 +116,8 @@ mod decoder_au;
 mod decoder_drflac;
 mod decoder_drmp3;
 mod decoder_flac;
+#[cfg(feature = "fluidsynth")]
+mod decoder_fluidsynth;
 #[cfg(feature = "mpg123")]
 mod decoder_mpg123;
 mod decoder_opus;

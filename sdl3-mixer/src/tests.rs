@@ -40,10 +40,18 @@
 //! - mixer features (gains, fades, stereo and 3D positioning, frequency
 //!   ratios, tags, groups and callbacks, channel maps, other output formats)
 //!   on a few files, the sine wave and raw audio decoders;
-//! - with the `timidity` feature, the same for a few of sdl3-mixer-timidity's
-//!   MIDI files, played with its test patches (upstream's C was built with
-//!   its TIMIDITY decoder, and run with `TIMIDITY_CFG` naming the same
-//!   configuration).
+//! - the same for a few of sdl3-mixer-timidity's MIDI files: with the
+//!   `fluidsynth` feature, as the FLUIDSYNTH decoder plays them without a
+//!   SoundFont (and, with the `timidity` feature, the RMID file); with the
+//!   `timidity` feature, as the TIMIDITY decoder plays them, with its test
+//!   patches (upstream's C was built with its FLUIDSYNTH decoder, over the
+//!   FluidSynth it vendors, built as its CMake builds it but with the IIR
+//!   filter without `-ffast-math` (see sdl3-mixer-fluidsynth), and its
+//!   TIMIDITY decoder, and run with `TIMIDITY_CFG` naming the same
+//!   configuration);
+//! - with the `fluidsynth` feature, sdl3-mixer-fluidsynth's MIDI files
+//!   played with its SoundFont, given as a path or a stream, with
+//!   FluidSynth settings, broken or missing.
 //!
 //! Hashes are FNV-1a over the bytes. Upstream's C was patched where
 //! sdl3-mixer works around its crashes and memory errors (the
@@ -1585,10 +1593,18 @@ fn compare(out: &str, sections: &[&str]) {
             .get(*name)
             .unwrap_or_else(|| panic!("no reference for {name}"));
         for line in section.lines() {
-            // (upstream was built with its TIMIDITY decoder; without the
-            // `timidity` feature, there is none.)
-            if !cfg!(feature = "timidity") && line.starts_with("decoders:") {
-                want.push_str(&line.replace(" TIMIDITY", ""));
+            // (upstream was built with its FLUIDSYNTH and TIMIDITY
+            // decoders; without the `fluidsynth` and `timidity` features,
+            // there are none.)
+            if line.starts_with("decoders:") {
+                let mut line = line.to_string();
+                if !cfg!(feature = "timidity") {
+                    line = line.replace(" TIMIDITY", "");
+                }
+                if !cfg!(feature = "fluidsynth") {
+                    line = line.replace(" FLUIDSYNTH", "");
+                }
+                want.push_str(&line);
             } else {
                 want.push_str(line);
             }
@@ -1626,7 +1642,7 @@ fn compare(out: &str, sections: &[&str]) {
 
 /// sdl3-mixer-timidity's test data: its configuration (which upstream's
 /// TIMIDITY decoder reads from `TIMIDITY_CFG`) and MIDI files.
-#[cfg(feature = "timidity")]
+#[cfg(any(feature = "timidity", feature = "fluidsynth"))]
 fn timidity_testdata() -> std::path::PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-timidity/testdata")
 }
@@ -1836,7 +1852,7 @@ fn wavpack_matches_upstream() {
 
 /// The MIDI files, in the reference's order (sdl3-mixer-timidity's, read
 /// at run time, as the decoder reads its patches).
-#[cfg(feature = "timidity")]
+#[cfg(any(feature = "timidity", feature = "fluidsynth"))]
 static MIDI_FILES: &[&str] = &[
     "bad_no_eot.mid",
     "basic.mid",
@@ -1846,11 +1862,28 @@ static MIDI_FILES: &[&str] = &[
     "rmid.rmi",
 ];
 
-/// MIDI through the TIMIDITY decoder, and the mixer's features on a MIDI
-/// file. TiMidity's MIDI reader keeps state from one file to the next (see
-/// sdl3-mixer-timidity), so this is the only test that plays MIDI, in the
-/// reference's order.
-#[cfg(feature = "timidity")]
+/// Whether there is a SoundFont where the FLUIDSYNTH decoder looks for one
+/// by itself (then it doesn't play the MIDI files silently without one, as
+/// the reference's C did).
+#[cfg(feature = "fluidsynth")]
+fn system_soundfont() -> bool {
+    cfg!(all(unix, not(target_vendor = "apple")))
+        && [
+            "/usr/share/sounds/sf2/default-GM.sf2",
+            "/usr/share/soundfonts/default.sf2",
+            "/usr/share/sounds/sf2/default.sf2",
+        ]
+        .iter()
+        .any(|p| std::path::Path::new(p).exists())
+}
+
+/// MIDI through the FLUIDSYNTH decoder without a SoundFont (the files
+/// starting with "MThd") and the TIMIDITY decoder (the RMID file, and the
+/// others with it forced), and the mixer's features on a MIDI file.
+/// TiMidity's MIDI reader keeps state from one file to the next (see
+/// sdl3-mixer-timidity), so this is the only test that plays MIDI with it,
+/// in the reference's order.
+#[cfg(any(feature = "timidity", feature = "fluidsynth"))]
 #[test]
 fn midi_matches_upstream() {
     setup();
@@ -1860,18 +1893,161 @@ fn midi_matches_upstream() {
         eprintln!("skipped: no {}", dir.display());
         return;
     }
+    #[cfg(feature = "fluidsynth")]
+    let fluidsynth = !system_soundfont();
+    #[cfg(not(feature = "fluidsynth"))]
+    let fluidsynth = false;
+    if cfg!(feature = "fluidsynth") && !fluidsynth {
+        eprintln!("skipped FLUIDSYNTH without a SoundFont: one is installed");
+    }
+    // (the reference's sections: each file, then with TIMIDITY forced)
+    let mut tests: Vec<(String, &str, Option<&'static str>)> = Vec::new();
+    for name in MIDI_FILES {
+        if name.ends_with(".mid") {
+            if fluidsynth {
+                tests.push((name.to_string(), name, None));
+            }
+            if cfg!(feature = "timidity") {
+                tests.push((format!("{name} TIMIDITY"), name, Some("TIMIDITY")));
+            }
+        } else if cfg!(feature = "timidity") {
+            tests.push((name.to_string(), name, None));
+        }
+    }
+    let mut out = String::new();
+    for (_, name, force) in &tests {
+        let data = std::fs::read(dir.join(name)).unwrap();
+        FORCE.set(*force);
+        test_file(&mut out, name, &data);
+        FORCE.set(None);
+    }
+    let names: Vec<&str> = tests.iter().map(|t| t.0.as_str()).collect();
+    compare(&out, &names);
+    if fluidsynth {
+        let data = std::fs::read(dir.join("basic.mid")).unwrap();
+        let mut out = String::new();
+        scenarios(&mut out, "basic.mid", &data);
+        compare(&out, &["scenarios basic.mid"]);
+    }
+}
+
+/// sdl3-mixer-fluidsynth's test data: its SoundFont and MIDI files.
+#[cfg(feature = "fluidsynth")]
+fn fluidsynth_testdata() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-fluidsynth/testdata")
+}
+
+/// The MIDI files the FLUIDSYNTH sections play, in the reference's order.
+#[cfg(feature = "fluidsynth")]
+static FLUIDSYNTH_FILES: &[&str] = &[
+    "basic.mid",
+    "format1.mid",
+    "mono.mid",
+    "nrpn.mid",
+    "sysex.mid",
+];
+
+/// The FLUIDSYNTH decoder with a SoundFont: by path, from a stream, with
+/// settings, and with broken or missing SoundFonts.
+#[cfg(feature = "fluidsynth")]
+fn fstest(out: &mut String, sf2path: &std::path::Path, name: &str, data: &[u8]) {
+    use crate::internal::{
+        PROP_DECODER_FLUIDSYNTH_PROPS_NUMBER, PROP_DECODER_FLUIDSYNTH_SOUNDFONT_IOSTREAM_POINTER,
+        PROP_DECODER_FLUIDSYNTH_SOUNDFONT_PATH_STRING,
+    };
+    let sf = std::fs::read(sf2path).unwrap();
+    writeln!(out, "== fluidsynth {name}").unwrap();
+    let extra = Properties::new();
+    extra
+        .set(
+            PROP_DECODER_FLUIDSYNTH_SOUNDFONT_PATH_STRING,
+            sf2path.to_str().unwrap(),
+        )
+        .unwrap();
+    write!(out, "open: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&extra));
+    let s16 = AudioSpec {
+        format: AudioFormat::S16,
+        channels: 1,
+        freq: 22050,
+    };
+    write!(out, "s16m22: ").unwrap();
+    decode_props(out, data, Some(&s16), false, None, Some(&extra));
+    mixtest_props(out, "mix", data, false, Some(&extra));
+    mixtest_props(out, "mixpre", data, true, Some(&extra));
+    seektest_props(out, "seek", data, Some(&extra));
+
+    let p2 = Properties::new();
+    p2.set_any(
+        PROP_DECODER_FLUIDSYNTH_SOUNDFONT_IOSTREAM_POINTER,
+        std::sync::Mutex::new(mem_io(&sf)),
+    )
+    .unwrap();
+    write!(out, "stream: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p2));
+    // (read to its end: the second time, the SoundFont is empty)
+    write!(out, "stream again: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p2));
+
+    let fsp = Properties::new();
+    fsp.set("synth.polyphony", 6i64).unwrap();
+    fsp.set("synth.reverb.room-size", 0.9f32).unwrap();
+    fsp.set("synth.midi-bank-select", "xg").unwrap();
+    fsp.set("synth.reverb.active", false).unwrap(); // (not a number, float or string: ignored)
+    fsp.set("synth.gain", 3i64).unwrap(); // (an int for a number setting: fails)
+    fsp.set("no.such.setting", "x").unwrap();
+    extra
+        .set_any(PROP_DECODER_FLUIDSYNTH_PROPS_NUMBER, fsp)
+        .unwrap();
+    write!(out, "settings: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&extra));
+    mixtest_props(out, "settings mix", data, false, Some(&extra));
+
+    let bad = std::env::temp_dir().join(format!(
+        "sdl3-mixer-fluidsynth-test-{}.sf2",
+        std::process::id()
+    ));
+    std::fs::write(&bad, &sf[..sf.len() / 2]).unwrap();
+    let p3 = Properties::new();
+    p3.set(
+        PROP_DECODER_FLUIDSYNTH_SOUNDFONT_PATH_STRING,
+        bad.to_str().unwrap(),
+    )
+    .unwrap();
+    write!(out, "badsf: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p3));
+    mixtest_props(out, "badsf mix", data, false, Some(&p3));
+    let _ = std::fs::remove_file(&bad);
+    write!(out, "nosf: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p3));
+}
+
+/// MIDI through the FLUIDSYNTH decoder with sdl3-mixer-fluidsynth's
+/// SoundFont.
+#[cfg(feature = "fluidsynth")]
+#[test]
+fn fluidsynth_matches_upstream() {
+    setup();
+    let dir = fluidsynth_testdata();
+    if !dir.is_dir() {
+        // (a packaged crate doesn't have sdl3-mixer-fluidsynth's test data.)
+        eprintln!("skipped: no {}", dir.display());
+        return;
+    }
+    if system_soundfont() {
+        eprintln!("skipped: a SoundFont is installed where FLUIDSYNTH looks for one");
+        return;
+    }
+    let sf2 = dir.join("test.sf2");
     let mut out = String::new();
     let mut names = Vec::new();
-    for name in MIDI_FILES {
-        let data = std::fs::read(dir.join(name)).unwrap();
-        test_file(&mut out, name, &data);
-        names.push(*name);
+    for name in FLUIDSYNTH_FILES {
+        let data = std::fs::read(dir.join("midi").join(name)).unwrap();
+        fstest(&mut out, &sf2, name, &data);
+        names.push(format!("fluidsynth {name}"));
     }
+    let names: Vec<&str> = names.iter().map(|n| n.as_str()).collect();
     compare(&out, &names);
-    let data = std::fs::read(dir.join("basic.mid")).unwrap();
-    let mut out = String::new();
-    scenarios(&mut out, "basic.mid", &data);
-    compare(&out, &["scenarios basic.mid"]);
 }
 
 #[test]

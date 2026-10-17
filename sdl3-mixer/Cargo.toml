@@ -24,9 +24,9 @@ path = "src/lib.rs"
 # The decoders are self-contained, as upstream's are when it is built with
 # its bundled codecs: dr_mp3, dr_flac and stb_vorbis are translated here,
 # as are the libraries SDL_mixer vendors (libvorbis, libFLAC, libopus...,
-# and TiMidity and libmpg123 in crates of their own), with SDL_mixer's own
-# WAV, AIFF, VOC and AU decoders. No system audio library is linked or
-# loaded.
+# and TiMidity, FluidSynth and libmpg123 in crates of their own), with
+# SDL_mixer's own WAV, AIFF, VOC and AU decoders. No system audio library
+# is linked or loaded.
 [dependencies]
 sdl3 = { path = "../sdl3", version = "3.5.0" }
 # MIDI through the bundled TiMidity, which upstream builds by default.
@@ -41,9 +41,24 @@ sdl3-mixer-timidity = { path = "../sdl3-mixer-timidity", version = "3.5.0", opti
 # sdl3-mixer-mpg123 is under "LGPL-2.1-only". Without it (with
 # `default-features = false`), MP3 goes to the bundled dr_mp3.
 sdl3-mixer-mpg123 = { path = "../sdl3-mixer-mpg123", version = "3.5.0", optional = true }
+# MIDI through the FluidSynth SoundFont synthesizer, which upstream builds
+# against the copy it vendors by default (and tries before TiMidity).
+# NOTE: FluidSynth is not zlib-licensed: sdl3-mixer-fluidsynth is under
+# "LGPL-2.1-or-later AND Apache-2.0" (effectively LGPL-3.0-or-later terms;
+# see its NOTICE). Build with `default-features = false` for an sdl3-mixer
+# under the zlib license (and the BSD licenses of the Vorbis, FLAC, Opus
+# and WavPack decoders' libraries, and libxmp's MIT license) only.
+sdl3-mixer-fluidsynth = { path = "../sdl3-mixer-fluidsynth", version = "3.5.0", optional = true }
 
 [features]
-default = ["timidity", "mpg123"]
+default = ["fluidsynth", "timidity", "mpg123"]
+# The FLUIDSYNTH decoder (upstream's SDLMIXER_MIDI_FLUIDSYNTH, on by
+# default): MIDI files played with a SoundFont the app gives (the
+# "SDL_mixer.decoder.fluidsynth.soundfont_iostream" or
+# "SDL_mixer.decoder.fluidsynth.soundfont_path" property) or, on Unix
+# systems but Apple's, one at /usr/share/sounds/sf2/default-GM.sf2 and the
+# like. Without one, it still plays MIDI files, silently, as upstream's.
+fluidsynth = ["dep:sdl3-mixer-fluidsynth"]
 # The TIMIDITY decoder (upstream's SDLMIXER_MIDI_TIMIDITY, on by default):
 # MIDI files played with GUS patches or a SoundFont, as the TiMidity
 # configuration file (TIMIDITY_CFG, /etc/timidity.cfg...) or the
