@@ -3,15 +3,18 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The files in `testdata/audio/` are made by
-//! `tools/gen_sdl_mixer_testdata.py` (a synthetic signal, encoded by ffmpeg
-//! or put together by the script), the tracker modules in
+//! `tools/gen_sdl_mixer_testdata.py` (a synthetic signal, encoded by ffmpeg,
+//! or by WavPack's encoder for the WavPack files, or put together by the
+//! script), the tracker modules in
 //! `testdata/modules/` by `tools/gen_xmp_testdata.py`.
 //! `testdata/reference.txt` is the output
 //! of a C program built from upstream SDL_mixer (with its dr_mp3, dr_flac
 //! and stb_vorbis decoders, its Opus decoder over the libopus 1.4,
 //! opusfile 0.12 and libogg 1.3.5 it vendors, built as its CMake builds
-//! them but without SIMD, and its XMP decoder over the libxmp 4.7.3 it
-//! vendors, built as its CMake builds it) and SDL3, which these tests
+//! them but without SIMD, its XMP decoder over the libxmp 4.7.3 it
+//! vendors, built as its CMake builds it, and its WAVPACK decoder over the
+//! WavPack 5.9.0 it vendors, built as its CMake builds it but with the C
+//! decorrelation passes rather than the assembly ones) and SDL3, which these tests
 //! repeat and compare line by line:
 //!
 //! - for every file, the decoder that opens it, its format, metadata and
@@ -19,10 +22,14 @@
 //!   format and converted to two others; the same for truncated copies and
 //!   for copies with corrupted bytes (which must decode, or fail, exactly as
 //!   upstream does), and for Ogg files, copies with corrupted packets in
-//!   intact pages (their checksums fixed);
+//!   intact pages (their checksums fixed), for WavPack files, copies with
+//!   corrupted block contents (their block checksums fixed);
 //! - the output of mixers (`MIX_Generate()`) playing each file, loaded on
-//!   demand and predecoded, with loops and seeks (and, for the Opus files,
-//!   seeks all around them; for the modules, starting at orders and seeks
+//!   demand and predecoded, with loops and seeks (and, for the Opus and
+//!   WavPack files, seeks all around them; for WavPack files with a
+//!   correction file, all of that with it, given as a stream, as a path,
+//!   found next to the file, truncated, corrupted or wrong; for the modules,
+//!   starting at orders and seeks
 //!   around them, and libxmp's own API, loading from memory and playing in
 //!   the output formats, interpolations and player flags SDL_mixer doesn't
 //!   use);
@@ -55,7 +62,9 @@ use sdl3::audio::{AudioFormat, AudioSpec};
 use sdl3::io::IoStream;
 use sdl3::properties::Properties;
 
-use crate::internal::PrecacheIo;
+use crate::internal::{
+    PrecacheIo, PROP_DECODER_WAVPACK_WVC_IOSTREAM_POINTER, PROP_DECODER_WAVPACK_WVC_PATH_STRING,
+};
 use crate::*;
 
 macro_rules! files {
@@ -133,6 +142,59 @@ static FILES: &[(&str, &[u8])] = files![
     "wav_s32_stereo.wav",
     "wav_u8_mono.wav",
     "wav_ulaw.wav",
+    "wv_10ch.wv",
+    "wv_37800.wv",
+    "wv_3ch.wv",
+    "wv_6ch.wv",
+    "wv_6ch_offset.wv",
+    "wv_apetag.wv",
+    "wv_correlated.wv",
+    "wv_dsd.wv",
+    "wv_dsd_3ch.wv",
+    "wv_dsd_spliced.wv",
+    "wv_f32_inf.wv",
+    "wv_f32_mono.wv",
+    "wv_f32_ones.wv",
+    "wv_f32_same.wv",
+    "wv_f32_stereo.wv",
+    "wv_false_stereo.wv",
+    "wv_gap.wv",
+    "wv_hybrid.wv",
+    "wv_hybrid.wvc",
+    "wv_hybrid_cc_s24.wv",
+    "wv_hybrid_cc_s24.wvc",
+    "wv_hybrid_f32.wv",
+    "wv_hybrid_f32.wvc",
+    "wv_hybrid_kbps.wv",
+    "wv_hybrid_lossy.wv",
+    "wv_hybrid_s32.wv",
+    "wv_hybrid_s32.wvc",
+    "wv_hybrid_s32_ones.wv",
+    "wv_hybrid_s8.wv",
+    "wv_hybrid_s8.wvc",
+    "wv_hybrid_silence.wv",
+    "wv_hybrid_silence.wvc",
+    "wv_hybrid_xdecorr.wv",
+    "wv_hybrid_xdecorr.wvc",
+    "wv_id3v1.wv",
+    "wv_id3v2.wv",
+    "wv_offset.wv",
+    "wv_quad_hybrid.wv",
+    "wv_quad_hybrid.wvc",
+    "wv_reorder.wv",
+    "wv_s12_stereo.wv",
+    "wv_s16_long.wv",
+    "wv_s16_raw.wv",
+    "wv_s16_stereo.wv",
+    "wv_s24_mono.wv",
+    "wv_s32_dups.wv",
+    "wv_s32_int32.wv",
+    "wv_s32_ones.wv",
+    "wv_s32_stereo.wv",
+    "wv_s32_zeros.wv",
+    "wv_silence.wv",
+    "wv_tags.wv",
+    "wv_u8_mono.wv",
 ];
 
 macro_rules! modules {
@@ -219,6 +281,7 @@ static SCENARIO_FILES: &[&str] = &[
     "ogg_mono.ogg",
     "mp3_vbr_stereo.mp3",
     "flac_s16_stereo.flac",
+    "wv_s16_long.wv",
 ];
 
 static REFERENCE: &[u8] = include_bytes!("testdata/reference.txt");
@@ -322,9 +385,26 @@ fn decode(
     describe: bool,
     force: Option<&str>,
 ) {
-    let props = force.map(|name| {
+    decode_props(out, data, want, describe, force, None);
+}
+
+/// [`decode()`], with the caller's properties.
+fn decode_props(
+    out: &mut String,
+    data: &[u8],
+    want: Option<&AudioSpec>,
+    describe: bool,
+    force: Option<&str>,
+    extra: Option<&Properties>,
+) {
+    let props = (force.is_some() || extra.is_some()).then(|| {
         let p = Properties::new();
-        p.set(PROP_AUDIO_DECODER_STRING, name).unwrap();
+        if let Some(extra) = extra {
+            p.copy_from(extra).unwrap();
+        }
+        if let Some(name) = force {
+            p.set(PROP_AUDIO_DECODER_STRING, name).unwrap();
+        }
         p
     });
     let d = match AudioDecoder::new_io(mem_io(data), props.as_ref()) {
@@ -416,14 +496,42 @@ fn generate(m: &Mixer, chunks: usize, h: &mut u64) {
     }
 }
 
+/// Load audio from memory, with the caller's properties.
+fn load_audio(
+    m: &Mixer,
+    data: &[u8],
+    predecode: bool,
+    extra: Option<&Properties>,
+) -> sdl3::Result<Audio> {
+    match extra {
+        None => Audio::load_io(Some(m), &mut mem_io(data), predecode),
+        Some(extra) => {
+            let p = Properties::new();
+            p.copy_from(extra).unwrap();
+            p.set(PROP_AUDIO_LOAD_PREDECODE_BOOLEAN, predecode).unwrap();
+            Audio::load_with_properties(Some(&mut mem_io(data)), Some(m), &p)
+        }
+    }
+}
+
 fn mixtest(out: &mut String, label: &str, data: &[u8], predecode: bool) {
+    mixtest_props(out, label, data, predecode, None);
+}
+
+fn mixtest_props(
+    out: &mut String,
+    label: &str,
+    data: &[u8],
+    predecode: bool,
+    extra: Option<&Properties>,
+) {
     let spec = AudioSpec {
         format: AudioFormat::F32,
         channels: 2,
         freq: 48000,
     };
     let m = Mixer::new(&spec).unwrap();
-    let a = match Audio::load_io(Some(&m), &mut mem_io(data), predecode) {
+    let a = match load_audio(&m, data, predecode, extra) {
         Ok(a) => a,
         Err(e) => {
             writeln!(out, "{label}: err: {e}").unwrap();
@@ -456,18 +564,22 @@ fn mixtest(out: &mut String, label: &str, data: &[u8], predecode: bool) {
     .unwrap();
 }
 
-/// Seek a track around an Opus file.
+/// Seek a track around an Opus (or WavPack) file.
 fn seektest(out: &mut String, data: &[u8]) {
+    seektest_props(out, "seek", data, None);
+}
+
+fn seektest_props(out: &mut String, label: &str, data: &[u8], extra: Option<&Properties>) {
     let spec = AudioSpec {
         format: AudioFormat::F32,
         channels: 2,
         freq: 48000,
     };
     let m = Mixer::new(&spec).unwrap();
-    let a = match Audio::load_io(Some(&m), &mut mem_io(data), false) {
+    let a = match load_audio(&m, data, false, extra) {
         Ok(a) => a,
         Err(e) => {
-            writeln!(out, "seek: err: {e}").unwrap();
+            writeln!(out, "{label}: err: {e}").unwrap();
             return;
         }
     };
@@ -497,9 +609,43 @@ fn seektest(out: &mut String, data: &[u8]) {
         generate(&m, 1, &mut h);
         writeln!(
             out,
-            "seek {target}: play={} seek={} pos={pos} playing={} {h:016x}",
+            "{label} {target}: play={} seek={} pos={pos} playing={} {h:016x}",
             ok as i32,
             seeked as i32,
+            t.playing() as i32
+        )
+        .unwrap();
+    }
+}
+
+/// Play a file loaded from its path (where a .wvc file next to a .wv one
+/// is found).
+fn pathtest(out: &mut String, path: &std::path::Path) {
+    let spec = AudioSpec {
+        format: AudioFormat::F32,
+        channels: 2,
+        freq: 48000,
+    };
+    let m = Mixer::new(&spec).unwrap();
+    for predecode in [false, true] {
+        let a = match Audio::load(Some(&m), path, predecode) {
+            Ok(a) => a,
+            Err(e) => {
+                writeln!(out, "path {}: err: {e}", predecode as i32).unwrap();
+                continue;
+            }
+        };
+        let t = Track::new(&m).unwrap();
+        let _ = t.set_audio(Some(&a));
+        let ok = t.play(None).is_ok();
+        let mut h = FNV0;
+        generate(&m, 3, &mut h);
+        writeln!(
+            out,
+            "path {}: dur={} play={} playing={} {h:016x}",
+            predecode as i32,
+            a.duration().unwrap_or(-1),
+            ok as i32,
             t.playing() as i32
         )
         .unwrap();
@@ -751,7 +897,7 @@ fn xmptest(out: &mut String, data: &[u8]) {
 fn is_module(name: &str) -> bool {
     let exts = [
         ".wav", ".aiff", ".au", ".flac", ".oga", ".mp2", ".mp3", ".ogg", ".opus", ".voc", ".mid",
-        ".rmi",
+        ".rmi", ".wv", ".wvc",
     ];
     match name.rfind('.') {
         None => true,
@@ -766,6 +912,169 @@ impl Lcg {
         self.0 = self.0.wrapping_mul(1664525).wrapping_add(1013904223);
         self.0
     }
+}
+
+/// The WavPack blocks of the data: their offsets and lengths.
+fn wv_blocks(d: &[u8]) -> Vec<(usize, usize)> {
+    let mut blocks = Vec::new();
+    let mut p = 0;
+    while p + 32 <= d.len() && blocks.len() < 512 && &d[p..p + 4] == b"wvpk" {
+        let size = u32::from_le_bytes(d[p + 4..p + 8].try_into().unwrap()) as usize + 8;
+        if size < 32 || p + size > d.len() {
+            break;
+        }
+        blocks.push((p, size));
+        p += size;
+    }
+    blocks
+}
+
+/// Redo the block checksums (`ID_BLOCK_CHECKSUM`), as
+/// `WavpackVerifySingleBlock()` checks them.
+fn wv_fix_checksums(d: &mut [u8], blocks: &[(usize, usize)]) {
+    for &(at, size) in blocks {
+        let b = &mut d[at..at + size];
+        let mut p = 32;
+        while p + 2 <= size {
+            let id = b[p];
+            let mut bc = (b[p + 1] as usize) << 1;
+            let mut h = 2;
+            if id & 0x80 != 0 {
+                if p + 4 > size {
+                    break;
+                }
+                bc += ((b[p + 2] as usize) << 9) + ((b[p + 3] as usize) << 17);
+                h = 4;
+            }
+            if (id & 0x3f) == 0x2f && p + h + bc <= size && (bc == 2 || bc == 4) {
+                let mut csum = 0xFFFF_FFFFu32;
+                let mut k = 0;
+                while k + 1 < p {
+                    csum = csum
+                        .wrapping_mul(3)
+                        .wrapping_add(b[k] as u32 + ((b[k + 1] as u32) << 8));
+                    k += 2;
+                }
+                if bc == 4 {
+                    b[p + h..p + h + 4].copy_from_slice(&csum.to_le_bytes());
+                } else {
+                    csum ^= csum >> 16;
+                    b[p + h] = csum as u8;
+                    b[p + h + 1] = (csum >> 8) as u8;
+                }
+            }
+            p += h + bc;
+        }
+    }
+}
+
+/// WavPack: corrupt the blocks' contents (and, for the later variants,
+/// their headers, but not their sizes), with the block checksums fixed
+/// after.
+fn wv_corrupt(data: &[u8], v: usize) -> Vec<u8> {
+    let blocks = wv_blocks(data);
+    let mut bad = data.to_vec();
+    if blocks.is_empty() {
+        return bad;
+    }
+    let mut lcg = Lcg((v * 104729 + data.len()) as u32);
+    let flips = 1 + v % 4;
+    for _ in 0..flips {
+        let r = lcg.next();
+        let (at, size) = blocks[(r >> 8) as usize % blocks.len()];
+        let from = if v >= 12 { 8 } else { 32 }; // the later variants hit the block headers too
+        let body = size - from;
+        let r2 = lcg.next();
+        let r3 = lcg.next();
+        if body == 0 {
+            continue;
+        }
+        bad[at + from + (r2 >> 8) as usize % body] ^= (1 + (r3 >> 24) % 255) as u8;
+    }
+    wv_fix_checksums(&mut bad, &blocks);
+    bad
+}
+
+/// A WavPack file with its correction file, given as a stream property, as
+/// a path property, and found next to it.
+fn wvtest(out: &mut String, name: &str, data: &[u8]) {
+    let wvcname = format!("{name}c");
+    let Some(&(_, wvc)) = FILES.iter().find(|(n, _)| *n == wvcname) else {
+        return;
+    };
+    let dir = std::env::temp_dir().join(format!("sdl3-mixer-wv-{}-{name}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join(name);
+    let wvcpath = dir.join(&wvcname);
+    std::fs::write(&path, data).unwrap();
+    std::fs::write(&wvcpath, wvc).unwrap();
+
+    let variants: [(&str, &[u8]); 5] = [
+        ("wvc", wvc),
+        ("wvc half", &wvc[..wvc.len() / 2]),
+        ("wvc short", &wvc[..wvc.len().min(40)]),
+        ("wvc empty", &wvc[..0]),
+        ("wvc self", data),
+    ];
+    let f32s48 = AudioSpec {
+        format: AudioFormat::F32,
+        channels: 2,
+        freq: 48000,
+    };
+    for i in 0..variants.len() + 6 {
+        let (label, wd) = if i < variants.len() {
+            (variants[i].0.to_string(), variants[i].1.to_vec())
+        } else {
+            let v = i - variants.len();
+            (format!("wvc corrupt {v}"), wv_corrupt(wvc, v))
+        };
+        let p = Properties::new();
+        p.set_any(
+            PROP_DECODER_WAVPACK_WVC_IOSTREAM_POINTER,
+            std::sync::Mutex::new(mem_io(&wd)),
+        )
+        .unwrap();
+        let rewind = || {
+            let wio = p
+                .get_any::<std::sync::Mutex<IoStream<'static>>>(
+                    PROP_DECODER_WAVPACK_WVC_IOSTREAM_POINTER,
+                )
+                .unwrap();
+            wio.lock()
+                .unwrap()
+                .seek(0, sdl3::io::IoWhence::Set)
+                .unwrap();
+        };
+        write!(out, "{label}: ").unwrap();
+        rewind();
+        decode_props(out, data, None, true, None, Some(&p));
+        if i == 0 {
+            write!(out, "{label} f32s48: ").unwrap();
+            rewind();
+            decode_props(out, data, Some(&f32s48), false, None, Some(&p));
+        }
+        rewind();
+        mixtest_props(out, &format!("{label} mix"), data, false, Some(&p));
+        if i == 0 || i == 1 || i == variants.len() {
+            rewind();
+            seektest_props(out, &format!("{label} seek"), data, Some(&p));
+        }
+    }
+    // the correction file by path, and next to the file
+    let p = Properties::new();
+    p.set(
+        PROP_DECODER_WAVPACK_WVC_PATH_STRING,
+        wvcpath.to_string_lossy().into_owned(),
+    )
+    .unwrap();
+    write!(out, "wvc path: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p));
+    p.set(PROP_DECODER_WAVPACK_WVC_PATH_STRING, "/nonexistent/x.wvc")
+        .unwrap();
+    write!(out, "wvc no path: ").unwrap();
+    decode_props(out, data, None, true, None, Some(&p));
+    pathtest(out, &path);
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 fn test_file(out: &mut String, name: &str, data: &[u8]) {
@@ -887,10 +1196,24 @@ fn test_file(out: &mut String, name: &str, data: &[u8]) {
         mixtest(out, &format!("ogg corrupt {v} mix"), &bad, false);
     }
 
+    // WavPack: corrupt the blocks (their contents, then their headers too),
+    // with the block checksums fixed after.
+    if name.ends_with(".wv") || name.ends_with(".wvc") {
+        for v in 0..18usize {
+            let bad = wv_corrupt(data, v);
+            write!(out, "wv corrupt {v}: ").unwrap();
+            decode(out, &bad, None, true, None);
+            mixtest(out, &format!("wv corrupt {v} mix"), &bad, false);
+        }
+    }
+
     mixtest(out, "mix", data, false);
     mixtest(out, "mixpre", data, true);
-    if name.starts_with("opus_") {
+    if name.starts_with("opus_") || name.ends_with(".wv") {
         seektest(out, data);
+    }
+    if name.ends_with(".wv") {
+        wvtest(out, name, data);
     }
     if is_module(name) {
         modtest(out, data);
@@ -1362,6 +1685,11 @@ module_tests! {
 #[test]
 fn opus_matches_upstream() {
     files_with_prefix(&["opus_"]);
+}
+
+#[test]
+fn wavpack_matches_upstream() {
+    files_with_prefix(&["wv_"]);
 }
 
 /// The MIDI files, in the reference's order (sdl3-mixer-timidity's, read

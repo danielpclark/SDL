@@ -266,9 +266,23 @@ In dependency order, after the core each one needs exists:
    bit-for-bit against upstream's C on modules from `tools/gen_xmp_testdata.py`
    (through the decoder, the mixer, orders and seeks, truncated and
    corrupted, and libxmp's own API in the output formats, interpolations
-   and player flags SDL_mixer doesn't use). Not translated, as they need an
-   external library: FluidSynth, WavPack, libgme, and the libmpg123,
-   libvorbisfile and libFLAC decoders.
+   and player flags SDL_mixer doesn't use). WavPack through the WavPack
+   that SDL_mixer vendors (`decoder_wavpack.c` over WavPack 5.9.0, built as
+   SDL_mixer's CMake builds it: no threads, no legacy formats, DSD on) is
+   done in `sdl3-mixer/src/wavpack/`, under WavPack's BSD license: opening
+   through the reader callbacks, block and metadata parsing with the block
+   checksums, lossless and hybrid unpacking (with or without the correction
+   file, which the decoder takes as a stream property, a path property or
+   finds next to a `.wv` file), every bit depth and floats, multichannel
+   streams, seeking, the ID3v1/APEv2 tag loading, and DSD blocks (raw, fast
+   and high; the decimation that only `OPEN_DSD_AS_PCM` uses isn't, as
+   SDL_mixer doesn't ask for it), the C decorrelation paths rather than
+   the assembly ones; checked bit-for-bit against upstream's C on files from
+   WavPack's own encoder (through `tools/gen_sdl_mixer_testdata.py`),
+   truncated, corrupted (with their block checksums fixed), with good, cut,
+   damaged and wrong correction files, mixed, looped and seeked. Not
+   translated, as they need an external library: FluidSynth, libgme, and
+   the libmpg123, libvorbisfile and libFLAC decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

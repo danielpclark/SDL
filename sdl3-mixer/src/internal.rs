@@ -30,6 +30,14 @@ pub(crate) const PROP_DECODER_SINEWAVE_AMPLITUDE_FLOAT: &str =
 pub(crate) const PROP_DECODER_SINEWAVE_MS_NUMBER: &str = "SDL_mixer.decoder.sinewave.ms";
 pub(crate) const PROP_AUDIO_LOAD_PATH_STRING: &str = "SDL_mixer.audio.load.path";
 pub(crate) const PROP_AUDIO_LOAD_ONDEMAND_BOOLEAN: &str = "SDL_mixer.audio.load.ondemand";
+/// The stream of a WavPack correction (.wvc) file, as a
+/// `std::sync::Mutex<IoStream<'static>>` (set with
+/// [`Properties::set_any`]). It is read from where it is, and the caller
+/// keeps it (upstream closes it if `PROP_AUDIO_LOAD_CLOSEIO_BOOLEAN` is
+/// set).
+pub(crate) const PROP_DECODER_WAVPACK_WVC_IOSTREAM_POINTER: &str =
+    "SDL_mixer.decoder.wavpack.wvc_iostream";
+pub(crate) const PROP_DECODER_WAVPACK_WVC_PATH_STRING: &str = "SDL_mixer.decoder.wavpack.wvc_path";
 
 // Clamp an IOStream to a subset of its available data...this is used to cut ID3 (etc) tags off
 //  both ends of an audio file, making it look like the file just doesn't have those bytes.

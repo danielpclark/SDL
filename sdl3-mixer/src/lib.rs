@@ -25,7 +25,10 @@
 //!   bundled dr_mp3), Ogg Vorbis (the bundled stb_vorbis), FLAC (the
 //!   bundled dr_flac), Ogg Opus (opusfile, libopus's decoder and libogg,
 //!   as SDL_mixer vendors them, translated here under their BSD licenses),
-//!   raw PCM and a sine wave generator; ID3v1/v2, APE,
+//!   WavPack (its library, as SDL_mixer vendors it, translated here under
+//!   its BSD license: lossless and hybrid files, with their .wvc correction
+//!   files, every bit depth, floats and multichannel), raw PCM and a sine
+//!   wave generator; ID3v1/v2, APE,
 //!   Lyrics3 and MusicMatch tags and Ogg comments become metadata
 //!   properties, and Ogg `LOOPSTART`-style comments loop.
 //! * MIDI (the `TIMIDITY` decoder) through the bundled TiMidity, translated
@@ -37,8 +40,8 @@
 //!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
 //!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
 //!   `default-features = false` for an sdl3-mixer without MIDI under the
-//!   zlib license only (and the BSD licenses of its Opus decoder's
-//!   libraries).
+//!   zlib license only (and the BSD licenses of its Opus and WavPack
+//!   decoders' libraries, and libxmp's MIT license).
 //! * Tracker modules (the `XMP` decoder) through libxmp, as SDL_mixer
 //!   vendors it, translated here under its MIT license: the player and its
 //!   software mixer, with all 52 of the loaders SDL_mixer's build enables
@@ -50,7 +53,7 @@
 //! * The decoders
 //!   upstream builds against another external library are not translated:
 //!   MIDI through FluidSynth,
-//!   WavPack, the game music formats (libgme), and the alternative MP3,
+//!   the game music formats (libgme), and the alternative MP3,
 //!   Vorbis and FLAC decoders (libmpg123, libvorbisfile, libFLAC), as in an
 //!   upstream build without them. [`audio_decoder`] lists the ones
 //!   available.
@@ -98,6 +101,7 @@ mod decoder_stb_vorbis;
 mod decoder_timidity;
 mod decoder_voc;
 mod decoder_wav;
+mod decoder_wavpack;
 mod decoder_xmp;
 mod dr_flac;
 mod dr_mp3;
@@ -109,6 +113,7 @@ mod opus;
 mod opusfile;
 mod spatialization;
 mod stb_vorbis;
+mod wavpack;
 mod xmp;
 
 pub use mixer::{
