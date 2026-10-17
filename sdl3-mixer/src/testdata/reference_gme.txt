@@ -1,3 +1,138 @@
+== gme ay_badtracks.ay
+open: err: Audio data is in unknown/unsupported/corrupt format
+f32s48: err: Audio data is in unknown/unsupported/corrupt format
+s16m22: err: Audio data is in unknown/unsupported/corrupt format
+forced: err: Audio data is in unknown/unsupported/corrupt format
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 63: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: err: Audio data is in unknown/unsupported/corrupt format
+gmetracks: err: Audio data is in unknown/unsupported/corrupt format
+== gme ay_cpc.ay
+open: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 98304 fa3f431d41f104ad end=1
+f32s48: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 98304 23952ca6ba62807d end=1
+s16m22: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 32768 d1656e27404008ed end=1
+forced: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 16384 eb8a1859485928cd end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 70: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 16384 9c1bda7f8c872325 end=1
+trunc 139: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 16384 eb8a1859485928cd end=1
+corrupt 0: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 16384 eb8a1859485928cd end=1
+corrupt 0 mix: dur=96000 play=1 pos=12288 replay=1 seek=1 pos=32000 playing=1 1aefaceee607b569
+corrupt 1: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 16384 76b4989e9d9f39d1 end=1
+corrupt 1 mix: dur=96000 play=1 pos=12288 replay=1 seek=1 pos=32000 playing=1 0d14a5bb804a2421
+corrupt 2: GME 0x8010 2 48000 title="CPC" artist="Someone" frames=96000 gme.song="CPC" gme.author="Someone" gme.system="ZX Spectrum" | 16384 9c1bda7f8c872325 end=1
+corrupt 2 mix: dur=96000 play=1 pos=12288 replay=1 seek=1 pos=32000 playing=1 0ce109223a52f5a5
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=96000 play=1 pos=12288 replay=1 seek=1 pos=32000 playing=1 1aefaceee607b569
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 ba3237c180318b35
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 19509e89a5d0d9c9
+freshseek 2205: seek=1 pos=2205 playing=1 5e3296641467b86d
+freshseek 48000: seek=1 pos=48000 playing=1 87f72a11d2291b31
+freshseek 20000: seek=1 pos=20000 playing=1 eb6a91d5cc1b11dd
+freshseek 100: seek=1 pos=100 playing=1 1776932df9ca85e5
+== gme ay_odd.ay
+open: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 98304 e81646d4d9a37651 end=1
+f32s48: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 98304 29297e02c77d3c81 end=1
+s16m22: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 32768 1d2838b69442c32c end=1
+forced: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 16384 b0b20dc748ce7651 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 118: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" | 16384 b0b20dc748ce7651 end=1
+trunc 235: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminato" | 16384 b0b20dc748ce7651 end=1
+corrupt 0: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 16384 b0b20dc748ce7651 end=1
+corrupt 0 mix: dur=0 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 c7280331dd4faca9
+corrupt 1: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 16384 9c1bda7f8c872325 end=1
+corrupt 1 mix: dur=0 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 2: GME 0x8010 2 48000 title="Wrap" artist="Odd" frames=0 gme.song="Wrap" gme.author="Odd" gme.system="ZX Spectrum" gme.comment="no terminator" | 16384 9c1bda7f8c872325 end=1
+corrupt 2 mix: dur=0 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 3: GME 0x8010 2 48000 title="Wrap" artist="Odd$" frames=0 gme.song="Wrap" gme.author="Odd$" gme.system="ZX Spectrum" gme.comment="no terminaºo_" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=0 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=0 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 c7280331dd4faca9
+order 1: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 2: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 0: play=1 pos=4096 playing=1 51adb6b41558f7e1
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 55c45cf08246cd11
+freshseek 2205: seek=1 pos=2205 playing=1 b60a9ab793dcd935
+freshseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+freshseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+freshseek 100: seek=1 pos=100 playing=1 3e75a56780a5da4d
+== gme ay_spectrum.ay
+open: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 98304 9a526fd62ce801e5 end=1
+f32s48: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 98304 8ec48fb395ea1499 end=1
+s16m22: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 32768 317e5984d8ab6ec0 end=1
+forced: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 0a8eb20baa5b0369 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1178: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 0a8eb20baa5b0369 end=1
+trunc 2356: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 0a8eb20baa5b0369 end=1
+corrupt 0: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 579febb8135e61bd end=1
+corrupt 0 mix: dur=480000 play=1 pos=12288 replay=1 seek=1 pos=160000 playing=1 512c03c84c46c661
+corrupt 1: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 0a8eb20baa5b0369 end=1
+corrupt 1 mix: dur=480000 play=1 pos=12288 replay=1 seek=1 pos=160000 playing=1 060ba3f73b2eb241
+corrupt 2: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 0a8eb20baa5b0369 end=1
+corrupt 2 mix: dur=480000 play=1 pos=12288 replay=1 seek=1 pos=160000 playing=1 060ba3f73b2eb241
+corrupt 3: GME 0x8010 2 48000 title="Tones" artist="gen_gme_testdata.py" frames=480000 gme.song="Tones" gme.author="gen_gme_testdata.py" gme.system="ZX Spectrum" gme.comment="AY Test" | 16384 0a8eb20baa5b0369 end=1
+corrupt 3 mix: dur=480000 play=1 pos=12288 replay=1 seek=1 pos=160000 playing=1 060ba3f73b2eb241
+mix: dur=480000 play=1 pos=12288 replay=1 seek=1 pos=160000 playing=1 060ba3f73b2eb241
+order 1: play=1 pos=4096 playing=1 1ff6149b2cf21a65
+order 2: play=1 pos=4096 playing=1 3640cd5fe1b9de59
+order 0: play=1 pos=4096 playing=1 2c86315e00717d65
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 a6c4c845530a4bed
+freshseek 2205: seek=1 pos=2205 playing=1 ea433d3df7b7b59d
+freshseek 48000: seek=1 pos=48000 playing=1 c2cb999d506d6735
+freshseek 20000: seek=1 pos=20000 playing=1 3ee93682c2a8930d
+freshseek 100: seek=1 pos=100 playing=1 eb94831e79e8ed21
 == gme gbs_apu.gbs
 open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="GBS Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="GBS Test" gme.copyright="2026 Public Domain" gme.system="Game Boy" | 98304 2299abf104e557b6 end=1
 f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="GBS Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="GBS Test" gme.copyright="2026 Public Domain" gme.system="Game Boy" | 98304 c16432c0972e4e79 end=1
@@ -150,6 +285,196 @@ freshseek 2205: seek=1 pos=2205 playing=1 b2393d978b0d0a41
 freshseek 48000: seek=1 pos=48000 playing=1 00dd025f10be0049
 freshseek 20000: seek=1 pos=20000 playing=1 6ca2ff78f9e545dd
 freshseek 100: seek=1 pos=100 playing=1 7ffe9cbefaa1b3a1
+== gme kss_ext.kss
+open: GME 0x8010 2 48000 gme.system="MSX" | 98304 820470abd0f07a1d end=1
+f32s48: GME 0x8010 2 48000 gme.system="MSX" | 98304 89213e81867ffed5 end=1
+s16m22: GME 0x8010 2 48000 gme.system="MSX" | 32768 cba615559a3871b6 end=1
+forced: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: gme_open_data failed: Wrong file type for this emulator
+trunc 39: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+trunc 78: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5c0ac7f27cce2ab9
+corrupt 1: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5c0ac7f27cce2ab9
+corrupt 2: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5c0ac7f27cce2ab9
+corrupt 3: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5c0ac7f27cce2ab9
+order 1: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 2: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 0: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 200: play=1 pos=4096 playing=1 a043447a06fe98b5
+order -5: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 3: play=1 pos=4096 playing=1 a043447a06fe98b5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 0bcfdef1a5401aa5
+gmeseek 2205: seek=1 pos=2205 playing=1 07382a9fbc999e55
+gmeseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+gmeseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+gmeseek 100: seek=1 pos=100 playing=1 9835474e2db7a559
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 0bcfdef1a5401aa5
+freshseek 2205: seek=1 pos=2205 playing=1 07382a9fbc999e55
+freshseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+freshseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+freshseek 100: seek=1 pos=100 playing=1 9835474e2db7a559
+== gme kss_gg.kss
+open: GME 0x8010 2 48000 gme.system="Game Gear" | 98304 623f9a051ee46b76 end=1
+f32s48: GME 0x8010 2 48000 gme.system="Game Gear" | 98304 9758c007dda404bf end=1
+s16m22: GME 0x8010 2 48000 gme.system="Game Gear" | 32768 9af08c95fb95e278 end=1
+forced: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 79f310f2db4f02ab end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: gme_open_data failed: Wrong file type for this emulator
+trunc 52: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 9c1bda7f8c872325 end=1
+trunc 103: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 b894a4c1d2580c2f end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 c5a7cc57a80c73db end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 d12126de64e0f8cb
+corrupt 1: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 075e9a5dc5fb30a9 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 b90c86774f139601
+corrupt 2: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 96b32c637ec5b47b end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1f1ba9f60fe3c225
+corrupt 3: GME 0x8010 2 48000 gme.system="Game Gear" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 19c3d445d16c29b1
+order 1: play=1 pos=4096 playing=1 a8c4910e3172a736
+order 2: play=1 pos=4096 playing=1 a8c4910e3172a736
+order 0: play=1 pos=4096 playing=1 a8c4910e3172a736
+order 200: play=1 pos=4096 playing=1 a8c4910e3172a736
+order -5: play=1 pos=4096 playing=1 a8c4910e3172a736
+order 3: play=1 pos=4096 playing=1 a8c4910e3172a736
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 cc6ab59f792bb5f1
+gmeseek 2205: seek=1 pos=2205 playing=1 2174d0e7c2454389
+gmeseek 48000: seek=1 pos=48000 playing=1 1eba1cd5456accac
+gmeseek 20000: seek=1 pos=20000 playing=1 d60ce8e5bedd9583
+gmeseek 100: seek=1 pos=100 playing=1 7fa58e67308e9be8
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 cc6ab59f792bb5f1
+freshseek 2205: seek=1 pos=2205 playing=1 2174d0e7c2454389
+freshseek 48000: seek=1 pos=48000 playing=1 1eba1cd5456accac
+freshseek 20000: seek=1 pos=20000 playing=1 d60ce8e5bedd9583
+freshseek 100: seek=1 pos=100 playing=1 7fa58e67308e9be8
+== gme kss_odd.kss
+open: GME 0x8010 2 48000 gme.system="MSX" | 98304 820470abd0f07a1d end=1
+f32s48: GME 0x8010 2 48000 gme.system="MSX" | 98304 89213e81867ffed5 end=1
+s16m22: GME 0x8010 2 48000 gme.system="MSX" | 32768 cba615559a3871b6 end=1
+forced: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: gme_open_data failed: Wrong file type for this emulator
+trunc 23: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+trunc 46: GME 0x8010 2 48000 gme.system="MSX" | 16384 44cb07541e1f7a1d end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 1: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 2: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 3: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5c0ac7f27cce2ab9
+order 1: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 2: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 0: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 200: play=1 pos=4096 playing=1 a043447a06fe98b5
+order -5: play=1 pos=4096 playing=1 a043447a06fe98b5
+order 3: play=1 pos=4096 playing=1 a043447a06fe98b5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 0bcfdef1a5401aa5
+gmeseek 2205: seek=1 pos=2205 playing=1 07382a9fbc999e55
+gmeseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+gmeseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+gmeseek 100: seek=1 pos=100 playing=1 9835474e2db7a559
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 0bcfdef1a5401aa5
+freshseek 2205: seek=1 pos=2205 playing=1 07382a9fbc999e55
+freshseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+freshseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+freshseek 100: seek=1 pos=100 playing=1 9835474e2db7a559
+== gme kss_scc.kss
+open: GME 0x8010 2 48000 gme.system="MSX" | 98304 5a6ca3e91cff70b5 end=1
+f32s48: GME 0x8010 2 48000 gme.system="MSX" | 98304 7df1467f78776c85 end=1
+s16m22: GME 0x8010 2 48000 gme.system="MSX" | 32768 992d9bbc93892a34 end=1
+forced: GME 0x8010 2 48000 gme.system="MSX" | 16384 a6d33351ae1030f5 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: gme_open_data failed: Wrong file type for this emulator
+trunc 380: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+trunc 760: GME 0x8010 2 48000 gme.system="MSX" | 16384 a6d33351ae1030f5 end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="MSX" | 16384 d5656ea058630335 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4e268344b20f9f81
+corrupt 1: GME 0x8010 2 48000 gme.system="MSX" | 16384 154c1adfde92519d end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 3e9ec80e2e6da179
+corrupt 2: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 3: GME 0x8010 2 48000 gme.system="MSX" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 9d33d2e1af5f69a9
+order 1: play=1 pos=4096 playing=1 3397eaae9fec56b9
+order 2: play=1 pos=4096 playing=1 3397eaae9fec56b9
+order 0: play=1 pos=4096 playing=1 3397eaae9fec56b9
+order 200: play=1 pos=4096 playing=1 3397eaae9fec56b9
+order -5: play=1 pos=4096 playing=1 3397eaae9fec56b9
+order 3: play=1 pos=4096 playing=1 3397eaae9fec56b9
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 12d6ac65bbec69ad
+gmeseek 2205: seek=1 pos=2205 playing=1 328587cc11597665
+gmeseek 48000: seek=1 pos=48000 playing=1 577fc6bfb5e8f965
+gmeseek 20000: seek=1 pos=20000 playing=1 8751a33320c62fed
+gmeseek 100: seek=1 pos=100 playing=1 09418186d5e506c1
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 12d6ac65bbec69ad
+freshseek 2205: seek=1 pos=2205 playing=1 328587cc11597665
+freshseek 48000: seek=1 pos=48000 playing=1 577fc6bfb5e8f965
+freshseek 20000: seek=1 pos=20000 playing=1 8751a33320c62fed
+freshseek 100: seek=1 pos=100 playing=1 09418186d5e506c1
+== gme kss_sms.kss
+open: GME 0x8010 2 48000 gme.system="Sega Master System" | 98304 20ad121843c02bd5 end=1
+f32s48: GME 0x8010 2 48000 gme.system="Sega Master System" | 98304 1178a53af6804af9 end=1
+s16m22: GME 0x8010 2 48000 gme.system="Sega Master System" | 32768 a1181be38f02126f end=1
+forced: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 1a1904159b46fbb1 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: gme_open_data failed: Wrong file type for this emulator
+trunc 52: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 9c1bda7f8c872325 end=1
+trunc 103: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 bb7204bd3a859ced end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 dc12cfeeebd13b75 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 52fea26b3de7db3d
+corrupt 1: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 9d57aa27af83aed5 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 3e32cb95f6dc2c05
+corrupt 2: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 cb4397aa05b89b31 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 36bb6cc12d057091
+corrupt 3: GME 0x8010 2 48000 gme.system="Sega Master System" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 258bd4fc9bec1d5d
+order 1: play=1 pos=4096 playing=1 7a50e80ea556f231
+order 2: play=1 pos=4096 playing=1 7a50e80ea556f231
+order 0: play=1 pos=4096 playing=1 7a50e80ea556f231
+order 200: play=1 pos=4096 playing=1 7a50e80ea556f231
+order -5: play=1 pos=4096 playing=1 7a50e80ea556f231
+order 3: play=1 pos=4096 playing=1 7a50e80ea556f231
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 05e073302a3026e9
+gmeseek 2205: seek=1 pos=2205 playing=1 694f50766486ad4d
+gmeseek 48000: seek=1 pos=48000 playing=1 1a55ff875f36434d
+gmeseek 20000: seek=1 pos=20000 playing=1 5dfa6695ea54c5a9
+gmeseek 100: seek=1 pos=100 playing=1 896384de7e941d3d
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 05e073302a3026e9
+freshseek 2205: seek=1 pos=2205 playing=1 694f50766486ad4d
+freshseek 48000: seek=1 pos=48000 playing=1 1a55ff875f36434d
+freshseek 20000: seek=1 pos=20000 playing=1 5dfa6695ea54c5a9
+freshseek 100: seek=1 pos=100 playing=1 896384de7e941d3d
 == gme nsf_apu.nsf
 open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 98304 b9c5112cb11eb5a1 end=1
 f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="APU Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="APU Test" gme.copyright="2026 Public Domain" gme.system="Nintendo NES" | 98304 67797b512c0c7d71 end=1

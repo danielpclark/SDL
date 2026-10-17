@@ -1,15 +1,15 @@
 == misc
-types: GBS/Game Boy/1/0 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
+types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
 ext nsf: NSF
 ext x.NSFE: NSFE
 ext a.b.spc: 
 ext vgz: 
 ext VGM: 
 ext gym: 
-ext kss: 
+ext kss: KSS
 ext hes: 
 ext sap: 
-ext ay: 
+ext ay: AY
 ext gbs: GBS
 ext nsfee: 
 ext toolong: 
@@ -32,6 +32,448 @@ header 12:
 header 13: 
 open short: Wrong file type for this emulator
 open junk: Wrong file type for this emulator
+== ay_badtracks.ay
+identify: AY
+info: err=Missing track data
+open 44100: err=Missing track data
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 21
+info: err=Missing track data
+open: err=Missing track data
+-- cut 32
+info: err=Missing track data
+open: err=Missing track data
+-- cut 63
+info: err=Missing track data
+open: err=Missing track data
+-- flip 0
+info: err=Missing track data
+open: err=Missing track data
+-- flip 1
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- flip 2
+info: err=Missing track data
+open: err=Missing track data
+-- flip 3
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- flip 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- flip 5
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+== ay_cpc.ay
+identify: AY
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open 44100: tracks=1 type=AY voices=4
+voices: Wave 1 Wave 2 Wave 3 Beeper
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+t0 16384: 023057b44394acc9 tell=185 samples=16384 ended=0
+t0 32768: d2655a34b9c4354d tell=371 samples=32768 ended=0
+t0 49152: e4aa0c37a469c099 tell=557 samples=49152 ended=0
+t0 65536: 7539dc3101cf25b9 tell=743 samples=65536 ended=0
+t0 81920: 12a71ef0222cab55 tell=928 samples=81920 ended=0
+t0 88200: 89fcf37f7096e02d tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 8c873f97ca3a12f1 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: cfcdb9f8c0106651 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 49055a7aec387e59 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 9065c0a027a980f1 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: d19aa476c8b10325 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 449a68f894c3818d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: ab9a28a03957d101 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=AY voices=4
+start 0: ok
+tempo 16000: d93e078617d7539e tell=250 samples=16000 ended=0
+tempo 32000: 31f06e841a32f8df tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: c8db4b1d16926f18 tell=238 samples=15294 ended=0
+slow 8000: 61e82cae7b1f8758 tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: 29928d4b254bc985 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 46
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: File data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- cut 70
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+warning: Missing file data
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 139
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+warning: Missing file data
+q 8192: c706a666980b09d9 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+q 8192: a608cb6074232c35 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+q 8192: a84bb3991ed23e1d tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+warning: Missing file data
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=AY voices=-1
+info 0: 2000 -1 -1 -1 2000|ZX Spectrum||CPC|Someone|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=AY voices=-1
+info 0: 89040 -1 -1 -1 89040|ZX Spectrum||sPC|Someo\x93e|||
+info 1: err=Invalid track
+open: tracks=1 type=AY voices=4
+start 0: ok
+warning: Missing file data
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 5
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+== ay_odd.ay
+identify: AY
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|Odd||no terminator|
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|Odd||no terminator|
+info 2: 200 -1 -1 -1 200|ZX Spectrum||Null|Odd||no terminator|
+info 3: err=Invalid track
+open 44100: tracks=3 type=AY voices=4
+warning: Unknown file version
+voices: Wave 1 Wave 2 Wave 3 Beeper
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|Odd||no terminator|
+t0 16384: b920b71d58254dd9 tell=185 samples=16384 ended=0
+t0 32768: 7b5521d3f8574dd9 tell=371 samples=32768 ended=0
+t0 49152: 7c9d15ee98894dd9 tell=557 samples=49152 ended=0
+t0 65536: e1c0936d38bb4dd9 tell=743 samples=65536 ended=0
+t0 81920: cf879a4fd8ed4dd9 tell=928 samples=81920 ended=0
+t0 88200: c1d853a0829e4019 tell=1000 samples=88200 ended=1
+start 1: ok
+warning: Missing file data
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|Odd||no terminator|
+t1 16384: 8f6955bf94ec2325 tell=185 samples=16384 ended=0
+t1 32768: eb05052ea5b62325 tell=371 samples=32768 ended=0
+t1 49152: f5edab31b6802325 tell=557 samples=49152 ended=0
+t1 65536: c74b47c8c74a2325 tell=743 samples=65536 ended=0
+t1 81920: 7645daf3d8142325 tell=928 samples=81920 ended=0
+t1 88200: 52dd209c5f3bb865 tell=1000 samples=88200 ended=1
+start 2: ok
+warning: Missing file data
+info 2: 200 -1 -1 -1 200|ZX Spectrum||Null|Odd||no terminator|
+t2 16384: 8f6955bf94ec2325 tell=185 samples=16384 ended=0
+t2 32768: eb05052ea5b62325 tell=371 samples=32768 ended=0
+t2 49152: f5edab31b6802325 tell=557 samples=49152 ended=0
+t2 65536: c74b47c8c74a2325 tell=743 samples=65536 ended=0
+t2 81920: 7645daf3d8142325 tell=928 samples=81920 ended=0
+t2 88200: 52dd209c5f3bb865 tell=1000 samples=88200 ended=1
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 00bde93dffffcdd9 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: b9d103fd6854a325 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 34816 7fa9f4d3d45d8dd9 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+open 32000: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 2: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+warning: Missing file data
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+warning: Missing file data
+slow 8000: 2c36c2471ceec525 tell=363 samples=23294 ended=0
+tracks=3
+start 0: ok
+acc 8000: 37b47a24bc650f71 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 78
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|Odd|||
+info 1: -1 -1 -1 -1 150000|ZX Spectrum|||Odd|||
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+warning: Missing file data
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 118
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|Odd|||
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|Odd|||
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+q 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+-- cut 235
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|Odd||no terminato|
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|Odd||no terminato|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+q 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|Odd||no terminator|
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|Odd||no terminator|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+q 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wr8p|Odd||no terminator|
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|Odd||no terminator|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+q 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+-- flip 2
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- flip 3
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|O\x15d||no ter\xE8inator|
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Long|O\x15d||no ter\xE8inator|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+q 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Wrap|WOdd||no terminator|
+info 1: 200 -1 -1 -1 200|ZX Spectrum||Lon|WOdd||no terminator|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+warning: Missing file data
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=3 type=AY voices=-1
+info 0: 0 -1 -1 -1 150000|ZX Spectrum||Xrap|O\x1Dd|||
+info 1: 200 -1 -1 -1 200|ZX Spectrum||L\xE0ng|O\x1Dd|||
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+warning: Unknown file version
+start 0: ok
+q 8192: 042f5547880c4dd9 tell=92 samples=8192 ended=0
+== ay_spectrum.ay
+identify: AY
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 2: 6000 -1 -1 -1 6000|ZX Spectrum||Passive|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open 44100: tracks=3 type=AY voices=4
+voices: Wave 1 Wave 2 Wave 3 Beeper
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+t0 16384: 625557e432e2d629 tell=185 samples=16384 ended=0
+t0 32768: 40e25be9bf824269 tell=371 samples=32768 ended=0
+t0 49152: 2856549037ec44dd tell=557 samples=49152 ended=0
+t0 65536: 47ddb83682fbdc4d tell=743 samples=65536 ended=0
+t0 81920: cd405471dd5e97d1 tell=928 samples=81920 ended=0
+t0 88200: e4d4c8bb38e6e5d9 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+t1 16384: f459a9894b596ca1 tell=185 samples=16384 ended=0
+t1 32768: 61aad62d082f3121 tell=371 samples=32768 ended=0
+t1 49152: 37333bee83214a51 tell=557 samples=49152 ended=0
+t1 65536: 0236ae77038c2a85 tell=743 samples=65536 ended=0
+t1 81920: 47ac129e22a7e599 tell=928 samples=81920 ended=0
+t1 88200: 76ab2f191365fa79 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: 6000 -1 -1 -1 6000|ZX Spectrum||Passive|gen_gme_testdata.py||AY Test|
+t2 16384: c92b3eb1031b414d tell=185 samples=16384 ended=0
+t2 32768: 56131053163707a5 tell=371 samples=32768 ended=0
+t2 49152: eb7177b6ed11abc1 tell=557 samples=49152 ended=0
+t2 65536: 96d8708c4a408c19 tell=743 samples=65536 ended=0
+t2 81920: da7567317edaf781 tell=928 samples=81920 ended=0
+t2 88200: 6c93086b78098ead tell=1000 samples=88200 ended=0
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 8311a5d38060fcd5 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: f1e866591cb861ad tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: ea3e77729912c699 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 1940ec7f7710b6b1 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 179669a6f8299615 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 8cff7d71cd36c569 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 7262708f0b90b405 tell=92 samples=8192 ended=0
+open 32000: tracks=3 type=AY voices=4
+start 2: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 8cc1605fbebdad80 tell=363 samples=23294 ended=0
+tracks=3
+start 0: ok
+acc 8000: 8665e0bafe115ee1 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 785
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: -1 -1 -1 -1 150000|ZX Spectrum|||gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+warning: Missing file data
+q 8192: 4df2432b4b9ac3a1 tell=92 samples=8192 ended=0
+-- cut 1178
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 7262708f0b90b405 tell=92 samples=8192 ended=0
+-- cut 2356
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 7262708f0b90b405 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 7262708f0b90b405 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 7262708f0b90b405 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 7262708f0b90b405 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: e21a10f288133915 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 75432ac499304001 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=3 type=AY voices=-1
+info 0: 10000 -1 -1 -1 10000|ZX Spectrum||Tones|gen_gme_testdata.py||AY Test|
+info 1: 0 -1 -1 -1 150000|ZX Spectrum||Beeper|gen_gme_testdata.py||AY Test|
+info 3: err=Invalid track
+open: tracks=3 type=AY voices=4
+start 0: ok
+q 8192: 29f31a135a1e0f95 tell=92 samples=8192 ended=0
 == gbs_apu.gbs
 identify: GBS
 info: tracks=3 type=GBS voices=-1
@@ -581,6 +1023,809 @@ info 1: err=Invalid track
 open: tracks=1 type=GBS voices=4
 start 0: ok
 q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+== kss_ext.kss
+identify: KSS
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 2: -1 -1 -1 -1 150000|MSX||||||
+info 3: -1 -1 -1 -1 150000|MSX||||||
+info 4: -1 -1 -1 -1 150000|MSX||||||
+info 5: -1 -1 -1 -1 150000|MSX||||||
+info 6: -1 -1 -1 -1 150000|MSX||||||
+info 7: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+voices: Square 1 Square 2 Square 3 Wave 1 Wave 2 Wave 3 Wave 4 Wave 5
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|MSX||||||
+t0 16384: 771e6aa9920cc79d tell=185 samples=16384 ended=0
+t0 32768: 7deef24167c6c79d tell=371 samples=32768 ended=0
+t0 49152: cc8af24d3d80c79d tell=557 samples=49152 ended=0
+t0 65536: 6dda6acd133ac79d tell=743 samples=65536 ended=0
+t0 81920: 6cc55bc0e8f4c79d tell=928 samples=81920 ended=0
+t0 88200: acf288338aa49add tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|MSX||||||
+t1 16384: 771e6aa9920cc79d tell=185 samples=16384 ended=0
+t1 32768: 7deef24167c6c79d tell=371 samples=32768 ended=0
+t1 49152: cc8af24d3d80c79d tell=557 samples=49152 ended=0
+t1 65536: 6dda6acd133ac79d tell=743 samples=65536 ended=0
+t1 81920: 6cc55bc0e8f4c79d tell=928 samples=81920 ended=0
+t1 88200: acf288338aa49add tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|MSX||||||
+t2 16384: 771e6aa9920cc79d tell=185 samples=16384 ended=0
+t2 32768: 7deef24167c6c79d tell=371 samples=32768 ended=0
+t2 49152: cc8af24d3d80c79d tell=557 samples=49152 ended=0
+t2 65536: 6dda6acd133ac79d tell=743 samples=65536 ended=0
+t2 81920: 6cc55bc0e8f4c79d tell=928 samples=81920 ended=0
+t2 88200: acf288338aa49add tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 1e8ffc03d1c1479d tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: b9d103fd6854a325 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 34816 6f3c0fac8a7e079d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 3b39f409272fc79d tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 255: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: b68d12b939feb6f5 tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: eceac88cd8574715 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: err=Wrong file type for this emulator
+-- cut 26
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 39
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 78
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 3b39f409272fc79d tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 3b39f409272fc79d tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 7cf3e2663fa21ebd tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 5c2a50e8a49c9de1 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== kss_gg.kss
+identify: KSS
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 2: -1 -1 -1 -1 150000|Game Gear||||||
+info 3: -1 -1 -1 -1 150000|Game Gear||||||
+info 4: -1 -1 -1 -1 150000|Game Gear||||||
+info 5: -1 -1 -1 -1 150000|Game Gear||||||
+info 6: -1 -1 -1 -1 150000|Game Gear||||||
+info 7: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=KSS voices=8
+voices: Square 1 Square 2 Square 3 Wave 1 Wave 2 Wave 3 Wave 4 Wave 5
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+t0 16384: eddb61711267d284 tell=185 samples=16384 ended=0
+t0 32768: 2fd565a107d97228 tell=371 samples=32768 ended=0
+t0 49152: 5033bd8bd000c2e1 tell=557 samples=49152 ended=0
+t0 65536: 8b4d33c5f386e646 tell=743 samples=65536 ended=0
+t0 81920: 0d0767b163341fbd tell=928 samples=81920 ended=0
+t0 88200: eb62b690b6fcd254 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+t1 16384: eddb61711267d284 tell=185 samples=16384 ended=0
+t1 32768: 2fd565a107d97228 tell=371 samples=32768 ended=0
+t1 49152: 5033bd8bd000c2e1 tell=557 samples=49152 ended=0
+t1 65536: 8b4d33c5f386e646 tell=743 samples=65536 ended=0
+t1 81920: 0d0767b163341fbd tell=928 samples=81920 ended=0
+t1 88200: eb62b690b6fcd254 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Game Gear||||||
+t2 16384: eddb61711267d284 tell=185 samples=16384 ended=0
+t2 32768: 2fd565a107d97228 tell=371 samples=32768 ended=0
+t2 49152: 5033bd8bd000c2e1 tell=557 samples=49152 ended=0
+t2 65536: 8b4d33c5f386e646 tell=743 samples=65536 ended=0
+t2 81920: 0d0767b163341fbd tell=928 samples=81920 ended=0
+t2 88200: eb62b690b6fcd254 tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c66ea6367fa6c648 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 9c0b3cbd12097cdd tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 32fe83e960277d0b tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 8f191dcc4d30f50a tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 4a2c04ec46bb1bad tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 88ca8cd2d5b86d01 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: fcd83ec1c9408a63 tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=KSS voices=8
+start 255: ok
+tempo 16000: 57c375925429e232 tell=250 samples=16000 ended=0
+tempo 32000: 33fbe6e0e89268bd tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: d91ac000b9b4af1b tell=238 samples=15294 ended=0
+slow 8000: 66765e393b75a1ff tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: 00f7c6a86c59cacd tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: err=Wrong file type for this emulator
+-- cut 34
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 52
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 103
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 854de8190b5941e3 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 1015f17b97b1dbd0 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 60ff3a635f6e3c48 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: c3ed9488a7c0414f tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 40fe03eb8aef795d tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Gear||||||
+info 1: -1 -1 -1 -1 150000|Game Gear||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== kss_odd.kss
+identify: KSS
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 2: -1 -1 -1 -1 150000|MSX||||||
+info 3: -1 -1 -1 -1 150000|MSX||||||
+info 4: -1 -1 -1 -1 150000|MSX||||||
+info 5: -1 -1 -1 -1 150000|MSX||||||
+info 6: -1 -1 -1 -1 150000|MSX||||||
+info 7: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+voices: Square 1 Square 2 Square 3 Wave 1 Wave 2 Wave 3 Wave 4 Wave 5
+eq: -1.000 60.000 multi=0
+start 0: ok
+warning: Bank data missing
+info 0: -1 -1 -1 -1 150000|MSX||||||
+t0 16384: 771e6aa9920cc79d tell=185 samples=16384 ended=0
+t0 32768: 7deef24167c6c79d tell=371 samples=32768 ended=0
+t0 49152: cc8af24d3d80c79d tell=557 samples=49152 ended=0
+t0 65536: 6dda6acd133ac79d tell=743 samples=65536 ended=0
+t0 81920: 6cc55bc0e8f4c79d tell=928 samples=81920 ended=0
+t0 88200: acf288338aa49add tell=1000 samples=88200 ended=0
+start 1: ok
+warning: Bank data missing
+info 1: -1 -1 -1 -1 150000|MSX||||||
+t1 16384: 771e6aa9920cc79d tell=185 samples=16384 ended=0
+t1 32768: 7deef24167c6c79d tell=371 samples=32768 ended=0
+t1 49152: cc8af24d3d80c79d tell=557 samples=49152 ended=0
+t1 65536: 6dda6acd133ac79d tell=743 samples=65536 ended=0
+t1 81920: 6cc55bc0e8f4c79d tell=928 samples=81920 ended=0
+t1 88200: acf288338aa49add tell=1000 samples=88200 ended=0
+start 2: ok
+warning: Bank data missing
+info 2: -1 -1 -1 -1 150000|MSX||||||
+t2 16384: 771e6aa9920cc79d tell=185 samples=16384 ended=0
+t2 32768: 7deef24167c6c79d tell=371 samples=32768 ended=0
+t2 49152: cc8af24d3d80c79d tell=557 samples=49152 ended=0
+t2 65536: 6dda6acd133ac79d tell=743 samples=65536 ended=0
+t2 81920: 6cc55bc0e8f4c79d tell=928 samples=81920 ended=0
+t2 88200: acf288338aa49add tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 1e8ffc03d1c1479d tell=46 samples=4096 ended=0
+warning: Bank data missing
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: b9d103fd6854a325 tell=159 samples=14096 ended=0
+warning: Bank data missing
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 34816 6f3c0fac8a7e079d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 3b39f409272fc79d tell=92 samples=8192 ended=0
+warning: Bank data missing
+open 32000: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 255: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+warning: Bank data missing
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+warning: Bank data missing
+slow 8000: b68d12b939feb6f5 tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: eceac88cd8574715 tell=125 samples=8000 ended=0
+warning: Bank data missing
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: err=Wrong file type for this emulator
+-- cut 15
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 23
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 46
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Bank data missing
+q 8192: 3b39f409272fc79d tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Bank data missing
+q 8192: d228342d199cc3dd tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Bank data missing
+q 8192: 3b39f409272fc79d tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: Unknown data in header
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: Unknown data in header
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+warning: FM sound not supported
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== kss_scc.kss
+identify: KSS
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 2: -1 -1 -1 -1 150000|MSX||||||
+info 3: -1 -1 -1 -1 150000|MSX||||||
+info 4: -1 -1 -1 -1 150000|MSX||||||
+info 5: -1 -1 -1 -1 150000|MSX||||||
+info 6: -1 -1 -1 -1 150000|MSX||||||
+info 7: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=KSS voices=8
+voices: Square 1 Square 2 Square 3 Wave 1 Wave 2 Wave 3 Wave 4 Wave 5
+eq: -1.000 60.000 multi=0
+start 0: ok
+warning: Bank data missing
+info 0: -1 -1 -1 -1 150000|MSX||||||
+t0 16384: 8c3143ce8b34f96d tell=185 samples=16384 ended=0
+t0 32768: 0f7c7d53b278f1f1 tell=371 samples=32768 ended=0
+t0 49152: 7fdb7e5185cd8bad tell=557 samples=49152 ended=0
+t0 65536: 92ba52e0c7318721 tell=743 samples=65536 ended=0
+t0 81920: fc5dc5bbb1b9cc51 tell=928 samples=81920 ended=0
+t0 88200: fe207c7a09e6622d tell=1000 samples=88200 ended=0
+start 1: ok
+warning: Bank data missing
+info 1: -1 -1 -1 -1 150000|MSX||||||
+t1 16384: 8c3143ce8b34f96d tell=185 samples=16384 ended=0
+t1 32768: 0f7c7d53b278f1f1 tell=371 samples=32768 ended=0
+t1 49152: 7fdb7e5185cd8bad tell=557 samples=49152 ended=0
+t1 65536: 92ba52e0c7318721 tell=743 samples=65536 ended=0
+t1 81920: fc5dc5bbb1b9cc51 tell=928 samples=81920 ended=0
+t1 88200: fe207c7a09e6622d tell=1000 samples=88200 ended=0
+start 2: ok
+warning: Bank data missing
+info 2: -1 -1 -1 -1 150000|MSX||||||
+t2 16384: 8c3143ce8b34f96d tell=185 samples=16384 ended=0
+t2 32768: 0f7c7d53b278f1f1 tell=371 samples=32768 ended=0
+t2 49152: 7fdb7e5185cd8bad tell=557 samples=49152 ended=0
+t2 65536: 92ba52e0c7318721 tell=743 samples=65536 ended=0
+t2 81920: fc5dc5bbb1b9cc51 tell=928 samples=81920 ended=0
+t2 88200: fe207c7a09e6622d tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: a257ad711744be41 tell=46 samples=4096 ended=0
+warning: Bank data missing
+seek_samples 30000: ok tell=30000
+s1 4096: b42762c2c5aff5f1 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 929318092f98cc4d tell=159 samples=14096 ended=0
+warning: Bank data missing
+seek 700: ok tell=700
+s3 2048: bf99291eefbaefc5 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: d834f50e2e04a839 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 b010f0f989777409 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 7b95534031e81b95 tell=92 samples=8192 ended=0
+warning: Bank data missing
+open 32000: tracks=256 type=KSS voices=8
+start 255: ok
+tempo 16000: 331c86b45336e548 tell=250 samples=16000 ended=0
+tempo 32000: 70bbb0666a33d4f7 tell=500 samples=32000 ended=0
+warning: Bank data missing
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: afa04f59c00b4288 tell=238 samples=15294 ended=0
+warning: Bank data missing
+slow 8000: 0793c99028ee41c0 tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: ca5844ddfeaabf95 tell=125 samples=8000 ended=0
+warning: Bank data missing
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: err=Wrong file type for this emulator
+-- cut 253
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 380
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 760
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 7b95534031e81b95 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 7b95534031e81b95 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|MSX||||||
+info 1: -1 -1 -1 -1 150000|MSX||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Bank data missing
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== kss_sms.kss
+identify: KSS
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 2: -1 -1 -1 -1 150000|Sega Master System||||||
+info 3: -1 -1 -1 -1 150000|Sega Master System||||||
+info 4: -1 -1 -1 -1 150000|Sega Master System||||||
+info 5: -1 -1 -1 -1 150000|Sega Master System||||||
+info 6: -1 -1 -1 -1 150000|Sega Master System||||||
+info 7: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=KSS voices=8
+voices: Square 1 Square 2 Square 3 Wave 1 Wave 2 Wave 3 Wave 4 Wave 5
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+t0 16384: 3f98b859024b2755 tell=185 samples=16384 ended=0
+t0 32768: 766fd81d1de7c99d tell=371 samples=32768 ended=0
+t0 49152: ce25ba55fcf94955 tell=557 samples=49152 ended=0
+t0 65536: 141e17b119e6c395 tell=743 samples=65536 ended=0
+t0 81920: a64c950f4c6f13d9 tell=928 samples=81920 ended=0
+t0 88200: 8ea61bd82af48b59 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+t1 16384: 3f98b859024b2755 tell=185 samples=16384 ended=0
+t1 32768: 766fd81d1de7c99d tell=371 samples=32768 ended=0
+t1 49152: ce25ba55fcf94955 tell=557 samples=49152 ended=0
+t1 65536: 141e17b119e6c395 tell=743 samples=65536 ended=0
+t1 81920: a64c950f4c6f13d9 tell=928 samples=81920 ended=0
+t1 88200: 8ea61bd82af48b59 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Sega Master System||||||
+t2 16384: 3f98b859024b2755 tell=185 samples=16384 ended=0
+t2 32768: 766fd81d1de7c99d tell=371 samples=32768 ended=0
+t2 49152: ce25ba55fcf94955 tell=557 samples=49152 ended=0
+t2 65536: 141e17b119e6c395 tell=743 samples=65536 ended=0
+t2 81920: a64c950f4c6f13d9 tell=928 samples=81920 ended=0
+t2 88200: 8ea61bd82af48b59 tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 0f5d5a031ee198c5 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: e8fb68d01b8b2cd5 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 7edabfcf13640b45 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 820acf58f5c2b8a9 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: c6a2b280c00bb399 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 0fcf0b286bea21f1 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: afc612b5dd1371bd tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=KSS voices=8
+start 255: ok
+tempo 16000: e6435b599276dab0 tell=250 samples=16000 ended=0
+tempo 32000: 47428aee686a96ad tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 7d53705a28ea6bca tell=238 samples=15294 ended=0
+slow 8000: a1c1357976a7a548 tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: 4c72eb521361da45 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: err=Wrong file type for this emulator
+-- cut 34
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 52
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 103
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 54f995177284a299 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: f3fd1024ba365e71 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 1b685866914419d1 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 5cf7a0028b10a8e5 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 40fe03eb8aef795d tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=KSS voices=-1
+info 0: -1 -1 -1 -1 150000|Sega Master System||||||
+info 1: -1 -1 -1 -1 150000|Sega Master System||||||
+info 256: err=Invalid track
+open: tracks=256 type=KSS voices=8
+start 0: ok
+warning: Excessive data size
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
 == nsf_apu.nsf
 identify: NSF
 info: tracks=2 type=NSF voices=-1

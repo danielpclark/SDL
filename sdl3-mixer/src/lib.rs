@@ -76,7 +76,8 @@
 //!   metadata, and playback can start at an order
 //!   ([`PROP_PLAY_START_ORDER_NUMBER`]).
 //! * Game music (the `GME` decoder) through the Game_Music_Emu SDL_mixer
-//!   vendors, translated in the `sdl3-mixer-gme` crate: GBS (Game Boy) and
+//!   vendors, translated in the `sdl3-mixer-gme` crate: AY (ZX Spectrum and
+//!   Amstrad CPC), GBS (Game Boy), KSS (MSX, Master System, Game Gear) and
 //!   NSF and NSFE (NES/Famicom, with its expansion sound chips); a rip's
 //!   tracks are started as orders ([`PROP_PLAY_START_ORDER_NUMBER`]), and
 //!   its track information becomes metadata. This is the `gme` Cargo
