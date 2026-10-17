@@ -424,6 +424,16 @@ impl Default for XmpModule {
 }
 
 impl XmpModule {
+    /// `mod->name` as a C string: one that fills its `XMP_NAME_SIZE` bytes
+    /// runs on into `type`, which follows it in upstream's structure.
+    pub fn name_cstr(&self) -> Vec<u8> {
+        let mut s = cstr(&self.name).to_vec();
+        if s.len() == self.name.len() {
+            s.extend_from_slice(cstr(&self.type_));
+        }
+        s
+    }
+
     /// `mod->xxp[i]`, which must exist.
     #[inline]
     pub fn pattern(&self, i: i32) -> &XmpPattern {

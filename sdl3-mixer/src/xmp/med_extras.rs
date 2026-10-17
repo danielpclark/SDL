@@ -158,7 +158,15 @@ pub(crate) fn libxmp_med_change_period(ctx: &mut ContextData, chn: usize) -> i32
 /// Translation of `libxmp_med_linear_bend()`.
 pub(crate) fn libxmp_med_linear_bend(ctx: &mut ContextData, chn: usize) -> i32 {
     let ins = ctx.p.xc_data[chn].ins as usize;
-    let wtlen = med_instrument_extras(&ctx.m.mod_.xxi[ins]).unwrap().wtlen;
+    /* (upstream only reads the instrument extras, in ARP(), when an
+     * arpeggio is set; MED4's sampled instruments have none) */
+    let wtlen = ctx
+        .m
+        .mod_
+        .xxi
+        .get(ins)
+        .and_then(med_instrument_extras)
+        .map_or(0, |ie| ie.wtlen);
     let me = med_module_extras(&ctx.m).unwrap();
     let wav = me.wav_table[ins].as_deref();
     let ce = med_channel_extras(&mut ctx.p.xc_data[chn]).unwrap();

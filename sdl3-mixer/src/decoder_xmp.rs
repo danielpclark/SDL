@@ -125,7 +125,7 @@ fn xmp_init_audio(
 
         let mod_ = info.mod_;
         if mod_.name[0] != 0 {
-            let name = prop_string(&mod_.name);
+            let name = prop_string(&mod_.name_cstr());
             let _ = props.set("SDL_mixer.metadata.xmp.name", name.clone());
             if !props.contains(PROP_METADATA_TITLE_STRING) {
                 let _ = props.set(PROP_METADATA_TITLE_STRING, name);

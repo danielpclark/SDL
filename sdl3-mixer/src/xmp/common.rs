@@ -712,6 +712,17 @@ pub(crate) fn strneq(a: &[u8], b: &[u8], n: usize) -> bool {
     true
 }
 
+/// C's `(int)` conversion of a `double`, as x86-64 does it: NaN and values
+/// out of `int`'s range (undefined behavior in C) become `INT_MIN`, where a
+/// Rust `as` would give 0 or saturate.
+pub(crate) fn c_int(x: f64) -> i32 {
+    if x.is_nan() || x >= 2147483648.0 || x <= -2147483649.0 {
+        i32::MIN
+    } else {
+        x as i32
+    }
+}
+
 /// `snprintf(dst, size, "%s", s)`: copy at most `size - 1` bytes and a NUL.
 pub(crate) fn snprintf_bytes(dst: &mut [u8], size: usize, s: &[u8]) {
     if size == 0 {

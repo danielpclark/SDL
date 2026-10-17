@@ -152,16 +152,19 @@ pub(crate) fn libxmp_period_to_bend(ctx: &ContextData, p: f64, n: i32, adj: f64)
         return 0;
     }
 
+    /* FIXME (upstream): with the Amiga mixer, notes out of the Protracker
+     * range have a period of -1, and the log() of a negative number is
+     * converted to int as x86-64 converts NaN (see c_int()). */
     match m.period_type {
-        PERIOD_LINEAR => (100.0 * (8.0 * (((240 - n) * 16) as f64 - p))) as i32,
+        PERIOD_LINEAR => c_int(100.0 * (8.0 * (((240 - n) * 16) as f64 - p))),
         PERIOD_CSPD => {
             let d = libxmp_note_to_period(ctx, n, 0, adj);
-            libxmp_round(100.0 * (1536.0 / M_LN2) * log(p / d)) as i32
+            c_int(libxmp_round(100.0 * (1536.0 / M_LN2) * log(p / d)))
         }
         _ => {
             /* Amiga */
             let d = libxmp_note_to_period(ctx, n, 0, adj);
-            libxmp_round(100.0 * (1536.0 / M_LN2) * log(d / p)) as i32
+            c_int(libxmp_round(100.0 * (1536.0 / M_LN2) * log(d / p)))
         }
     }
 }
