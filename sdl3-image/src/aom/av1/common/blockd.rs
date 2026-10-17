@@ -19,11 +19,12 @@
 //! encoder state can be shared immutably.
 
 use super::av1_common_int::CommonContexts;
+use super::av1_common_int::MvRef;
 use super::cfl::CflCtx;
 use super::entropy::EntropyContext;
 use super::entropymode::FrameContext;
 use super::enums::*;
-use super::mv::IntMv;
+use super::mv::{IntMv, TransformationType, TRANSLATION};
 use super::seg_common::MAX_SEGMENTS;
 use super::tile_common::TileInfo;
 use crate::aom::aom_scale::yv12config::Yv12BufferConfig;
@@ -160,6 +161,34 @@ pub(crate) struct MbModeInfo {
     pub(crate) cdef_strength: i8,
 }
 
+/// `CANDIDATE_MV`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct CandidateMv {
+    pub(crate) this_mv: IntMv,
+    pub(crate) comp_mv: IntMv,
+}
+
+/// Translation of `have_newmv_in_inter_mode()`.
+#[inline]
+pub(crate) fn have_newmv_in_inter_mode(mode: PredictionMode) -> bool {
+    mode == NEWMV
+        || mode == NEW_NEWMV
+        || mode == NEAREST_NEWMV
+        || mode == NEW_NEARESTMV
+        || mode == NEAR_NEWMV
+        || mode == NEW_NEARMV
+}
+
+/// Translation of `is_global_mv_block()`.
+#[inline]
+pub(crate) fn is_global_mv_block(mbmi: &MbModeInfo, type_: TransformationType) -> bool {
+    let mode = mbmi.mode;
+    let bsize = mbmi.bsize;
+    let block_size_allowed =
+        BLOCK_SIZE_WIDE[bsize as usize].min(BLOCK_SIZE_HIGH[bsize as usize]) >= 8;
+    (mode == GLOBALMV || mode == GLOBAL_GLOBALMV) && type_ > TRANSLATION && block_size_allowed
+}
+
 #[inline]
 pub(crate) fn is_intrabc_block(mbmi: &MbModeInfo) -> bool {
     mbmi.use_intrabc != 0
@@ -293,6 +322,11 @@ pub(crate) struct MacroBlockD {
     pub(crate) is_last_vertical_rect: bool,
     pub(crate) is_first_horizontal_rect: bool,
     pub(crate) neighbors_ref_counts: [u8; REF_FRAMES as usize],
+    /// ref_mv_stack and weight are populated by av1_find_mv_refs(); they keep
+    /// their values from one block to the next, as upstream's.
+    pub(crate) ref_mv_stack:
+        Box<[[CandidateMv; MAX_REF_MV_STACK_SIZE as usize]; MODE_CTX_REF_FRAMES as usize]>,
+    pub(crate) weight: Box<[[u16; MAX_REF_MV_STACK_SIZE as usize]; MODE_CTX_REF_FRAMES as usize]>,
     /// `xd->tile_ctx`: the tile's frame context, moved in while the tile is
     /// encoded or packed.
     pub(crate) tile_ctx: Box<FrameContext>,
@@ -311,6 +345,8 @@ pub(crate) struct MacroBlockD {
     pub(crate) mi_alloc: Vec<MbModeInfo>,
     /// `cm->mi_params.mi_grid_base`
     pub(crate) mi_grid_base: Vec<u32>,
+    /// `cm->cur_frame->mvs`
+    pub(crate) cur_frame_mvs: Vec<MvRef>,
     /// `cm->mi_params.tx_type_map`
     pub(crate) tx_type_map_frame: Vec<u8>,
     /// The macroblock's `txfm_search_info.tx_type_map_`
@@ -357,6 +393,11 @@ impl Default for MacroBlockD {
             is_last_vertical_rect: false,
             is_first_horizontal_rect: false,
             neighbors_ref_counts: [0; REF_FRAMES as usize],
+            ref_mv_stack: Box::new(
+                [[CandidateMv::default(); MAX_REF_MV_STACK_SIZE as usize];
+                    MODE_CTX_REF_FRAMES as usize],
+            ),
+            weight: Box::new([[0; MAX_REF_MV_STACK_SIZE as usize]; MODE_CTX_REF_FRAMES as usize]),
             tile_ctx: Box::default(),
             bd: 0,
             qindex: [0; MAX_SEGMENTS],
@@ -369,6 +410,7 @@ impl Default for MacroBlockD {
             cfl: CflCtx::default(),
             mi_alloc: Vec::new(),
             mi_grid_base: Vec::new(),
+            cur_frame_mvs: Vec::new(),
             tx_type_map_frame: Vec::new(),
             tx_type_map_blk: Vec::new(),
             above_contexts: CommonContexts::default(),

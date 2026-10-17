@@ -14,7 +14,7 @@
 
 use super::block::*;
 use super::context_tree::PickModeContext;
-use super::encoder::{Av1Comp, ThreadData};
+use super::encoder::*;
 use super::encoder::{AOM_TUNE_SSIM, NO_AQ};
 use super::rd::{av1_fill_coeff_costs, av1_fill_mode_rates, av1_set_error_per_bit};
 use super::speed_features::*;
@@ -81,7 +81,8 @@ fn copy_mbmi_ext_frame_to_mbmi_ext(
     mbmi_ext_best: &MbModeInfoExtFrame,
     ref_frame_type: u8,
 ) {
-    // (no reference MV stacks or weights in an intra frame)
+    mbmi_ext.ref_mv_stack[ref_frame_type as usize] = mbmi_ext_best.ref_mv_stack;
+    mbmi_ext.weight[ref_frame_type as usize] = mbmi_ext_best.weight;
     mbmi_ext.mode_context[ref_frame_type as usize] = mbmi_ext_best.mode_context;
     mbmi_ext.ref_mv_count[ref_frame_type as usize] = mbmi_ext_best.ref_mv_count;
     mbmi_ext.global_mvs = mbmi_ext_best.global_mvs;
@@ -494,4 +495,105 @@ pub(crate) fn av1_alloc_mb_data(cpi: &Av1Comp, mb: &mut Macroblock) -> Result<()
 
     // (allocate_winner_mode_stats(): not required with the non-RD pick mode)
     Ok(())
+}
+
+// This function will compute the number of reference frames to be disabled
+// based on selective_ref_frame speed feature.
+/// Translation of `get_num_refs_to_disable()`.
+fn get_num_refs_to_disable(
+    cpi: &Av1Comp,
+    ref_frame_flags: i32,
+    ref_display_order_hint: &[u32],
+    cur_frame_display_index: u32,
+) -> u32 {
+    let mut num_refs_to_disable = 0;
+    if cpi.sf.inter_sf.selective_ref_frame >= 3 {
+        num_refs_to_disable += 1;
+        if cpi.sf.inter_sf.selective_ref_frame >= 6 {
+            // Disable LAST2_FRAME  and ALTREF2_FRAME
+            num_refs_to_disable += 2;
+        } else if cpi.sf.inter_sf.selective_ref_frame == 5
+            && ref_frame_flags & AV1_REF_FRAME_FLAG_LIST[LAST2_FRAME as usize] != 0
+        {
+            let last2_frame_dist = av1_encoder_get_relative_dist(
+                ref_display_order_hint[(LAST2_FRAME - LAST_FRAME) as usize] as i32,
+                cur_frame_display_index as i32,
+            );
+            // Disable LAST2_FRAME if it is a temporally distant frame
+            if last2_frame_dist.abs() > 2 {
+                num_refs_to_disable += 1;
+            } else {
+                // (the coded error of the first pass statistics: one pass)
+                debug_assert!(!is_stat_consumption_stage_twopass(cpi));
+            }
+        }
+    }
+    num_refs_to_disable
+}
+
+/// Translation of `get_max_allowed_ref_frames()`.
+#[inline]
+fn get_max_allowed_ref_frames(
+    cpi: &Av1Comp,
+    ref_frame_flags: i32,
+    ref_display_order_hint: &[u32],
+    cur_frame_display_index: u32,
+) -> i32 {
+    let max_reference_frames = cpi.oxcf.ref_frm_cfg.max_reference_frames as u32;
+    let num_refs_to_disable = get_num_refs_to_disable(
+        cpi,
+        ref_frame_flags,
+        ref_display_order_hint,
+        cur_frame_display_index,
+    );
+    let max_allowed_refs_for_given_speed =
+        (INTER_REFS_PER_FRAME as u32).wrapping_sub(num_refs_to_disable);
+    max_allowed_refs_for_given_speed.min(max_reference_frames) as i32
+}
+
+// Enforce the number of references for each arbitrary frame based on user
+// options and speed.
+/// Translation of `enforce_max_ref_frames()` on `cpi->ref_frame_flags`
+/// with the current frame's display order hints.
+pub(crate) fn enforce_max_ref_frames(cpi: &mut Av1Comp) {
+    let mut ref_frame_flags = cpi.ref_frame_flags;
+    let ref_display_order_hint = cpi.common.cur_frame().ref_display_order_hint;
+    let cur_frame_display_index = cpi.common.current_frame.display_order_hint;
+    let mut total_valid_refs = 0;
+
+    for ref_frame in LAST_FRAME..=ALTREF_FRAME {
+        if ref_frame_flags & AV1_REF_FRAME_FLAG_LIST[ref_frame as usize] != 0 {
+            total_valid_refs += 1;
+        }
+    }
+
+    let max_allowed_refs = get_max_allowed_ref_frames(
+        cpi,
+        ref_frame_flags,
+        &ref_display_order_hint,
+        cur_frame_display_index,
+    );
+
+    let mut i = 0;
+    while i < 4 && total_valid_refs > max_allowed_refs {
+        let ref_frame_to_disable = DISABLE_ORDER[i];
+        i += 1;
+
+        if ref_frame_flags & AV1_REF_FRAME_FLAG_LIST[ref_frame_to_disable as usize] == 0 {
+            continue;
+        }
+
+        match ref_frame_to_disable {
+            LAST3_FRAME => ref_frame_flags &= !AOM_LAST3_FLAG,
+            LAST2_FRAME => ref_frame_flags &= !AOM_LAST2_FLAG,
+            ALTREF2_FRAME => ref_frame_flags &= !AOM_ALT2_FLAG,
+            // FIXME (upstream): disabling BWDREF_FRAME clears the GOLDEN_FRAME
+            // flag (kept: it is what libaom does).
+            BWDREF_FRAME => ref_frame_flags &= !AOM_GOLD_FLAG,
+            _ => debug_assert!(false),
+        }
+        total_valid_refs -= 1;
+    }
+    debug_assert!(total_valid_refs <= max_allowed_refs);
+    cpi.ref_frame_flags = ref_frame_flags;
 }

@@ -7,6 +7,7 @@ pub(crate) mod bitwriter_buffer;
 pub(crate) mod entenc;
 pub(crate) mod fwd_txfm;
 pub(crate) mod intrapred;
+pub(crate) mod loopfilter;
 pub(crate) mod prob;
 pub(crate) mod quantize;
 pub(crate) mod sad;

@@ -12,7 +12,11 @@
 //! the frame context saved for later frames.)
 
 use super::av1_common_int::Av1Common;
+use super::entropymode::*;
+use super::entropymv::*;
 use super::enums::*;
+use super::filter::SWITCHABLE_FILTERS;
+use super::seg_common::MAX_SEGMENTS;
 use crate::aom::aom_dsp::prob::cdf_pad;
 
 pub(crate) const TOKEN_CDF_Q_CTXS: i32 = 4;
@@ -4414,3 +4418,131 @@ pub(crate) static AV1_DEFAULT_COEFF_BASE_EOB_MULTI_CDFS: [[[[[u16; (NUM_BASE_LEV
         ],
     ],
 ];
+
+/// Translation of `reset_cdf_symbol_counter()` (`RESET_CDF_COUNTER` and
+/// `RESET_CDF_COUNTER_STRIDE`: the CDF arrays as rows of their stride).
+fn reset_cdf_symbol_counter<const N: usize>(cdfs: &mut [[u16; N]], nsymbs: i32) {
+    for cdf in cdfs {
+        cdf[nsymbs as usize] = 0;
+    }
+}
+
+/// Translation of `reset_nmv_counter()`.
+fn reset_nmv_counter(nmv: &mut NmvContext) {
+    reset_cdf_symbol_counter(std::slice::from_mut(&mut nmv.joints_cdf), 4);
+    for c in nmv.comps.iter_mut() {
+        reset_cdf_symbol_counter(std::slice::from_mut(&mut c.classes_cdf), MV_CLASSES);
+        reset_cdf_symbol_counter(&mut c.class0_fp_cdf, MV_FP_SIZE);
+        reset_cdf_symbol_counter(std::slice::from_mut(&mut c.fp_cdf), MV_FP_SIZE);
+        reset_cdf_symbol_counter(std::slice::from_mut(&mut c.sign_cdf), 2);
+        reset_cdf_symbol_counter(std::slice::from_mut(&mut c.class0_hp_cdf), 2);
+        reset_cdf_symbol_counter(std::slice::from_mut(&mut c.hp_cdf), 2);
+        reset_cdf_symbol_counter(std::slice::from_mut(&mut c.class0_cdf), CLASS0_SIZE);
+        reset_cdf_symbol_counter(&mut c.bits_cdf, 2);
+    }
+}
+
+/// Translation of `av1_reset_cdf_symbol_counters()`.
+pub(crate) fn av1_reset_cdf_symbol_counters(fc: &mut FrameContext) {
+    reset_cdf_symbol_counter(fc.txb_skip_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(fc.eob_extra_cdf.as_flattened_mut().as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(fc.dc_sign_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf16.as_flattened_mut(), 5);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf32.as_flattened_mut(), 6);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf64.as_flattened_mut(), 7);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf128.as_flattened_mut(), 8);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf256.as_flattened_mut(), 9);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf512.as_flattened_mut(), 10);
+    reset_cdf_symbol_counter(fc.eob_flag_cdf1024.as_flattened_mut(), 11);
+    reset_cdf_symbol_counter(
+        fc.coeff_base_eob_cdf.as_flattened_mut().as_flattened_mut(),
+        3,
+    );
+    reset_cdf_symbol_counter(fc.coeff_base_cdf.as_flattened_mut().as_flattened_mut(), 4);
+    reset_cdf_symbol_counter(
+        fc.coeff_br_cdf.as_flattened_mut().as_flattened_mut(),
+        BR_CDF_SIZE,
+    );
+    reset_cdf_symbol_counter(&mut fc.newmv_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.zeromv_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.refmv_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.drl_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.inter_compound_mode_cdf, INTER_COMPOUND_MODES);
+    reset_cdf_symbol_counter(&mut fc.compound_type_cdf, MASKED_COMPOUND_TYPES);
+    reset_cdf_symbol_counter(&mut fc.wedge_idx_cdf, 16);
+    reset_cdf_symbol_counter(&mut fc.interintra_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.wedge_interintra_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.interintra_mode_cdf, INTERINTRA_MODES);
+    reset_cdf_symbol_counter(&mut fc.motion_mode_cdf, MOTION_MODES);
+    reset_cdf_symbol_counter(&mut fc.obmc_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.palette_y_size_cdf, PALETTE_SIZES);
+    reset_cdf_symbol_counter(&mut fc.palette_uv_size_cdf, PALETTE_SIZES);
+    for j in 0..PALETTE_SIZES {
+        let nsymbs = j + PALETTE_MIN_SIZE;
+        reset_cdf_symbol_counter(&mut fc.palette_y_color_index_cdf[j as usize], nsymbs);
+        reset_cdf_symbol_counter(&mut fc.palette_uv_color_index_cdf[j as usize], nsymbs);
+    }
+    reset_cdf_symbol_counter(fc.palette_y_mode_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(&mut fc.palette_uv_mode_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.comp_inter_cdf, 2);
+    reset_cdf_symbol_counter(fc.single_ref_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(&mut fc.comp_ref_type_cdf, 2);
+    reset_cdf_symbol_counter(fc.uni_comp_ref_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(fc.comp_ref_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(fc.comp_bwdref_cdf.as_flattened_mut(), 2);
+    reset_cdf_symbol_counter(&mut fc.txfm_partition_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.compound_index_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.comp_group_idx_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.skip_mode_cdfs, 2);
+    reset_cdf_symbol_counter(&mut fc.skip_txfm_cdfs, 2);
+    reset_cdf_symbol_counter(&mut fc.intra_inter_cdf, 2);
+    reset_nmv_counter(&mut fc.nmvc);
+    reset_nmv_counter(&mut fc.ndvc);
+    reset_cdf_symbol_counter(std::slice::from_mut(&mut fc.intrabc_cdf), 2);
+    reset_cdf_symbol_counter(&mut fc.seg.pred_cdf, 2);
+    reset_cdf_symbol_counter(&mut fc.seg.spatial_pred_seg_cdf, MAX_SEGMENTS as i32);
+    reset_cdf_symbol_counter(&mut fc.filter_intra_cdfs, 2);
+    reset_cdf_symbol_counter(
+        std::slice::from_mut(&mut fc.filter_intra_mode_cdf),
+        FILTER_INTRA_MODES,
+    );
+    reset_cdf_symbol_counter(
+        std::slice::from_mut(&mut fc.switchable_restore_cdf),
+        RESTORE_SWITCHABLE_TYPES,
+    );
+    reset_cdf_symbol_counter(std::slice::from_mut(&mut fc.wiener_restore_cdf), 2);
+    reset_cdf_symbol_counter(std::slice::from_mut(&mut fc.sgrproj_restore_cdf), 2);
+    reset_cdf_symbol_counter(&mut fc.y_mode_cdf, INTRA_MODES);
+    reset_cdf_symbol_counter(&mut fc.uv_mode_cdf[0], UV_INTRA_MODES - 1);
+    reset_cdf_symbol_counter(&mut fc.uv_mode_cdf[1], UV_INTRA_MODES);
+    for (i, cdf) in fc.partition_cdf.iter_mut().enumerate() {
+        let cdf = std::slice::from_mut(cdf);
+        if i < 4 {
+            reset_cdf_symbol_counter(cdf, 4);
+        } else if i < 16 {
+            reset_cdf_symbol_counter(cdf, 10);
+        } else {
+            reset_cdf_symbol_counter(cdf, 8);
+        }
+    }
+    reset_cdf_symbol_counter(&mut fc.switchable_interp_cdf, SWITCHABLE_FILTERS);
+    reset_cdf_symbol_counter(fc.kf_y_cdf.as_flattened_mut(), INTRA_MODES);
+    reset_cdf_symbol_counter(&mut fc.angle_delta_cdf, 2 * MAX_ANGLE_DELTA + 1);
+    reset_cdf_symbol_counter(&mut fc.tx_size_cdf[0], MAX_TX_DEPTH);
+    reset_cdf_symbol_counter(&mut fc.tx_size_cdf[1], MAX_TX_DEPTH + 1);
+    reset_cdf_symbol_counter(&mut fc.tx_size_cdf[2], MAX_TX_DEPTH + 1);
+    reset_cdf_symbol_counter(&mut fc.tx_size_cdf[3], MAX_TX_DEPTH + 1);
+    reset_cdf_symbol_counter(std::slice::from_mut(&mut fc.delta_q_cdf), DELTA_Q_PROBS + 1);
+    reset_cdf_symbol_counter(
+        std::slice::from_mut(&mut fc.delta_lf_cdf),
+        DELTA_LF_PROBS + 1,
+    );
+    reset_cdf_symbol_counter(&mut fc.delta_lf_multi_cdf, DELTA_LF_PROBS + 1);
+    reset_cdf_symbol_counter(fc.intra_ext_tx_cdf[1].as_flattened_mut(), 7);
+    reset_cdf_symbol_counter(fc.intra_ext_tx_cdf[2].as_flattened_mut(), 5);
+    reset_cdf_symbol_counter(&mut fc.inter_ext_tx_cdf[1], 16);
+    reset_cdf_symbol_counter(&mut fc.inter_ext_tx_cdf[2], 12);
+    reset_cdf_symbol_counter(&mut fc.inter_ext_tx_cdf[3], 2);
+    reset_cdf_symbol_counter(std::slice::from_mut(&mut fc.cfl_sign_cdf), CFL_JOINT_SIGNS);
+    reset_cdf_symbol_counter(&mut fc.cfl_alpha_cdf, CFL_ALPHABET_SIZE);
+}

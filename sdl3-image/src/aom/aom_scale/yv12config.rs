@@ -7,9 +7,9 @@
 // Patent License 1.0 (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Frame buffers with borders. The encoder runs with high bit depth
-//! buffers only (SDL_image's AVIF saver hands libavif 10-bit images), so
-//! `buffer_alloc` holds 16-bit samples, and the plane "pointers" are
+//! Frame buffers with borders. `buffer_alloc` holds 16-bit samples for
+//! both the high bit depth buffers (`YV12_FLAG_HIGHBITDEPTH`) and the low
+//! bit depth ones (whose samples fit 8 bits), and the plane "pointers" are
 //! sample offsets into it (as upstream's CONVERT_TO_BYTEPTR() addresses
 //! are). No external frame buffer callbacks, no 8-bit copy of the luma
 //! plane (global motion is off), byte alignment 0.
@@ -113,8 +113,8 @@ fn realloc_frame_buffer_aligned(
     uv_border_h: i32,
     alloc_y_plane_only: i32,
 ) -> Result<(), ()> {
-    debug_assert!(use_highbitdepth != 0);
-    // (in samples: upstream's frame_size is in bytes, two per sample)
+    // (in samples: upstream's frame_size is in bytes, two per sample with
+    // high bit depth)
     let frame_size: u64 = yplane_size + 2 * uvplane_size;
 
     if frame_size as usize > ybf.buffer_alloc_sz {
@@ -153,12 +153,17 @@ fn realloc_frame_buffer_aligned(
     ybf.strides[1] = uv_stride;
 
     ybf.border = border;
-    ybf.frame_size = 2 * frame_size as usize;
+    ybf.frame_size = (1 + use_highbitdepth as usize) * frame_size as usize;
     ybf.subsampling_x = ss_x;
     ybf.subsampling_y = ss_y;
 
     // Store uint16 addresses when using 16bit framebuffers
-    ybf.flags = YV12_FLAG_HIGHBITDEPTH;
+    // (the samples are 16-bit either way)
+    if use_highbitdepth != 0 {
+        ybf.flags = YV12_FLAG_HIGHBITDEPTH;
+    } else {
+        ybf.flags = 0;
+    }
 
     ybf.buffers[0] = (border as i64 * y_stride as i64 + border as i64) as usize;
     if alloc_y_plane_only == 0 {

@@ -103,7 +103,8 @@ pub(crate) fn av1_copy_and_extend_frame(
     let eb_uv = eb_y >> uv_height_subsampling;
     let er_uv = er_y >> uv_width_subsampling;
 
-    debug_assert!(src.flags & YV12_FLAG_HIGHBITDEPTH != 0);
+    // (copy_and_extend_plane() and highbd_copy_and_extend_plane() are the
+    // same on 16-bit samples; libavif's planes are never NV12)
     let (y_off, u_off, v_off) = (dst.buffers[0], dst.buffers[1], dst.buffers[2]);
     let (y_stride, uv_stride) = (dst.y_stride(), dst.uv_stride());
     highbd_copy_and_extend_plane(

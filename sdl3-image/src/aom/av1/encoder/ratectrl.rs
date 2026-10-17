@@ -67,6 +67,7 @@ pub(crate) const ARF_UPDATE: u8 = 3;
 pub(crate) const OVERLAY_UPDATE: u8 = 4;
 pub(crate) const INTNL_OVERLAY_UPDATE: u8 = 5; // Internal Overlay Frame
 pub(crate) const INTNL_ARF_UPDATE: u8 = 6; // Internal Altref Frame
+pub(crate) const FRAME_UPDATE_TYPES: usize = 7;
 
 /// `REFBUF_STATE`
 pub(crate) const REFBUF_RESET: i32 = 0; // Clear reference frame buffer

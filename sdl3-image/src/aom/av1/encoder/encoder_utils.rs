@@ -65,30 +65,45 @@ pub(crate) fn enc_set_mb_mi(
 
 use super::encodeframe::av1_get_perpixel_variance_facade;
 use super::encoder::*;
-use super::ratectrl::av1_rc_pick_q_and_bounds;
+use super::ratectrl::{av1_rc_pick_q_and_bounds, FRAME_UPDATE_TYPES};
+use super::rd::av1_set_rd_speed_thresholds;
 use super::speed_features::*;
 use crate::aom::av1::common::av1_common_int::*;
 use crate::aom::av1::common::blockd::Buf2d;
 use crate::aom::av1::common::blockd::KEY_FRAME;
 use crate::aom::av1::common::entropymode::av1_setup_past_independence;
+use crate::aom::av1::common::filter::{
+    EIGHTTAP_REGULAR, SWITCHABLE_FILTERS, SWITCHABLE_FILTER_CONTEXTS,
+};
+use crate::aom::av1::common::mv::DEFAULT_WARP_PARAMS;
 use crate::aom::av1::common::seg_common::*;
 
 /// `AM_SEGMENT_ID_INACTIVE` (encoder_utils.h)
 const AM_SEGMENT_ID_INACTIVE: usize = 7;
 
-/// Translation of `av1_apply_active_map()`: an intra frame disables the
-/// active map.
+/// Translation of `av1_apply_active_map()`: the active map is never
+/// enabled (no `AOME_SET_ACTIVEMAP`), so it is only disabled again on
+/// intra frames.
 pub(crate) fn av1_apply_active_map(cpi: &mut Av1Comp) {
-    debug_assert!(frame_is_intra_only(&cpi.common));
-    let seg = &mut cpi.common.seg;
+    if frame_is_intra_only(&cpi.common) {
+        cpi.active_map.enabled = false;
+        cpi.active_map.update = true;
+    }
 
-    // (cpi->active_map.enabled = 0; cpi->active_map.update = 1;)
-    av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_SKIP);
-    av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_Y_H);
-    av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_Y_V);
-    av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_U);
-    av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_V);
-    debug_assert!(seg.enabled == 0);
+    if cpi.active_map.update {
+        debug_assert!(!cpi.active_map.enabled);
+        let seg = &mut cpi.common.seg;
+        av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_SKIP);
+        av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_Y_H);
+        av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_Y_V);
+        av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_U);
+        av1_disable_segfeature(seg, AM_SEGMENT_ID_INACTIVE, SEG_LVL_ALT_LF_V);
+        if seg.enabled != 0 {
+            seg.update_data = 1;
+            seg.update_map = 1;
+        }
+        cpi.active_map.update = false;
+    }
 }
 
 /// Translation of `av1_set_size_dependent_vars()` (no TPL statistics, no
@@ -152,9 +167,21 @@ pub(crate) fn av1_select_sb_size(
         } else {
             BLOCK_64X64
         };
+    } else if oxcf.mode == REALTIME {
+        if oxcf.tune_cfg.content == AOM_CONTENT_SCREEN {
+            return if width.min(height) >= 720 {
+                BLOCK_128X128
+            } else {
+                BLOCK_64X64
+            };
+        } else {
+            return if width.min(height) > 720 {
+                BLOCK_128X128
+            } else {
+                BLOCK_64X64
+            };
+        }
     }
-    // (the real-time choices: the saver codes with the all intra mode)
-    debug_assert!(oxcf.mode != REALTIME);
 
     // TODO(any): Possibly could improve this with a heuristic.
     // When superres / resize is on, 'cm->width / height' can change between
@@ -213,8 +240,15 @@ pub(crate) fn av1_setup_frame(cpi: &mut Av1Comp) {
             set_sb_size(&mut cm.seq_params, sb_size);
         }
     } else {
-        // (inter frames take the primary reference's contexts)
-        debug_assert!(false);
+        match get_primary_ref_frame_buf(cm) {
+            None => {
+                // Reset context to default settings
+                av1_setup_past_independence(cm);
+            }
+            Some(primary_ref_buf) => {
+                *cm.fc = (*cm.buffer_pool.frame_bufs[primary_ref_buf].frame_context).clone();
+            }
+        }
     }
 
     cm.cur_frame_mut().interp_filter_selected = [0; SWITCHABLE as usize];
@@ -222,8 +256,31 @@ pub(crate) fn av1_setup_frame(cpi: &mut Av1Comp) {
     // (cpi->vaq_refresh: variance AQ is off)
 }
 
-// (fix_interp_filter(): an intra frame counts no interpolation filters, so
-// the frame's filter stays SWITCHABLE)
+/// Translation of `fix_interp_filter()`.
+fn fix_interp_filter(interp_filter: &mut i32, counts: &FrameCounts) {
+    if *interp_filter == SWITCHABLE {
+        // Check to see if only one of the filters is actually used
+        let mut count = [0u32; SWITCHABLE_FILTERS as usize];
+        let mut num_filters_used = 0;
+        for i in 0..SWITCHABLE_FILTERS as usize {
+            for j in 0..SWITCHABLE_FILTER_CONTEXTS {
+                count[i] += counts.switchable_interp[j][i];
+            }
+            num_filters_used += (count[i] > 0) as i32;
+        }
+        if num_filters_used == 1 {
+            // Only one filter is used. So set the filter at frame level
+            for i in 0..SWITCHABLE_FILTERS as usize {
+                if count[i] != 0 {
+                    if i as i32 == EIGHTTAP_REGULAR {
+                        *interp_filter = i as i32;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
 
 /// Translation of `av1_finalize_encoded_frame()` (no shown existing frame,
 /// no film grain).
@@ -240,8 +297,9 @@ pub(crate) fn av1_finalize_encoded_frame(cpi: &mut Av1Comp) {
         }
     }
 
-    // (fix_interp_filter())
-    debug_assert!(cm.features.interp_filter == SWITCHABLE);
+    let mut interp_filter = cpi.common.features.interp_filter;
+    fix_interp_filter(&mut interp_filter, &cpi.td.counts);
+    cpi.common.features.interp_filter = interp_filter;
 }
 
 /// Translation of `av1_set_mb_ssim_rdmult_scaling()`.
@@ -318,15 +376,17 @@ pub(crate) fn av1_set_mb_ssim_rdmult_scaling(cpi: &mut Av1Comp) {
 // encoder_utils.h (continued)
 // ---------------------------------------------------------------------------
 
-/// Translation of `set_size_independent_vars()` (no global motion; the RD
-/// speed thresholds only steer the RD mode search).
+/// Translation of `set_size_independent_vars()`.
 #[inline]
 pub(crate) fn set_size_independent_vars(cpi: &mut Av1Comp) {
-    // (cm->global_motion[]: the default parameters, never changed in an
-    // intra frame)
+    for i in LAST_FRAME..=ALTREF_FRAME {
+        cpi.common.global_motion[i as usize] = DEFAULT_WARP_PARAMS;
+    }
+    cpi.gm_info.search_done = false;
+
     let speed = cpi.speed;
     av1_set_speed_features_framesize_independent(cpi, speed);
-    // (av1_set_rd_speed_thresholds(): RD mode search thresholds)
+    av1_set_rd_speed_thresholds(cpi);
     let enable_obmc = cpi.oxcf.motion_mode_cfg.enable_obmc;
     let features = &mut cpi.common.features;
     features.interp_filter = SWITCHABLE;
@@ -334,22 +394,40 @@ pub(crate) fn set_size_independent_vars(cpi: &mut Av1Comp) {
         is_switchable_motion_mode_allowed(features.allow_warped_motion, enable_obmc);
 }
 
+/// Translation of `release_scaled_references()`.
+#[inline]
+pub(crate) fn release_scaled_references(cpi: &mut Av1Comp) {
+    // TODO(isbs): only refresh the necessary frames, rather than all of them
+    for i in 0..INTER_REFS_PER_FRAME as usize {
+        if let Some(buf) = cpi.scaled_ref_buf[i].take() {
+            cpi.common.buffer_pool.frame_bufs[buf].ref_count -= 1;
+        }
+    }
+}
+
 /// Translation of `reduce_num_ref_buffers()`.
 #[inline]
 fn reduce_num_ref_buffers(cpi: &Av1Comp) -> bool {
     let seq_params = &cpi.common.seq_params;
     is_one_pass_rt_params(cpi)
-        && cpi.common.spatial_layer_id == 0
+        && use_rtc_reference_structure_one_layer(cpi)
         && seq_params.order_hint_info.enable_order_hint == 0
-        && cpi.sf.rt_sf.use_comp_ref_nonrd == 0
+        && cpi.rt_reduce_num_ref_buffers
 }
 
+// Refresh reference frame buffers according to refresh_frame_flags.
 /// Translation of `refresh_reference_frames()`.
 #[inline]
 pub(crate) fn refresh_reference_frames(cpi: &mut Av1Comp) {
-    let num_ref_buffers = REF_FRAMES;
-    // (real-time reference structures only)
-    debug_assert!(!reduce_num_ref_buffers(cpi));
+    // All buffers are refreshed for shown keyframes and S-frames.
+    // In case of RT, golden frame refreshes the 6th slot and other reference
+    // frames refresh slots 0 to 5. Slot 7 is not refreshed by any reference
+    // frame. Thus, only 7 buffers are refreshed for keyframes and S-frames
+    // instead of 8.
+    let mut num_ref_buffers = REF_FRAMES;
+    if reduce_num_ref_buffers(cpi) {
+        num_ref_buffers -= 1;
+    }
     let cm = &mut cpi.common;
     for ref_frame in 0..num_ref_buffers {
         if ((cm.current_frame.refresh_frame_flags >> ref_frame) & 1) == 1 {
@@ -360,6 +438,50 @@ pub(crate) fn refresh_reference_frames(cpi: &mut Av1Comp) {
                     cur,
                 );
             }
+        }
+    }
+}
+
+/// `default_warped_probs[]`
+const DEFAULT_WARPED_PROBS: [i32; FRAME_UPDATE_TYPES] = [64, 64, 64, 64, 64, 64, 64];
+
+/// Translation of `copy_frame_prob_info()`.
+#[inline]
+pub(crate) fn copy_frame_prob_info(cpi: &mut Av1Comp) {
+    let frame_probs = &mut cpi.ppi.frame_probs;
+    // (the transform type, OBMC and interpolation filter probabilities are
+    // not used by the real-time speed features)
+    debug_assert!(cpi.sf.tx_sf.tx_type_search.prune_tx_type_using_stats == 0);
+    debug_assert!(
+        !(cpi.sf.inter_sf.prune_obmc_prob_thresh > 0
+            && cpi.sf.inter_sf.prune_obmc_prob_thresh < i32::MAX)
+    );
+    if cpi.sf.inter_sf.prune_warped_prob_thresh > 0 {
+        frame_probs.warped_probs = DEFAULT_WARPED_PROBS;
+    }
+    debug_assert!(cpi.sf.interp_sf.adaptive_interp_filter_search != 2);
+}
+
+/// Translation of `av1_scale_references()`: the references are never
+/// scaled (no resizing), so the scaled references are the references.
+pub(crate) fn av1_scale_references(cpi: &mut Av1Comp) {
+    let no_stats = has_no_stats_stage(cpi);
+    let cm = &mut cpi.common;
+
+    for ref_frame in LAST_FRAME..=ALTREF_FRAME {
+        // Need to convert from AOM_REFFRAME to index into ref_mask (subtract 1).
+        if cpi.ref_frame_flags & AV1_REF_FRAME_FLAG_LIST[ref_frame as usize] != 0 {
+            let Some(buf) = get_ref_frame_buf(cm, ref_frame) else {
+                // (aom_internal_error(): "Inter ref is NULL")
+                cpi.scaled_ref_buf[(ref_frame - 1) as usize] = None;
+                continue;
+            };
+            let b = &mut cm.buffer_pool.frame_bufs[buf];
+            debug_assert!(b.buf.y_crop_width() == cm.width && b.buf.y_crop_height() == cm.height);
+            cpi.scaled_ref_buf[(ref_frame - 1) as usize] = Some(buf);
+            b.ref_count += 1;
+        } else if !no_stats {
+            cpi.scaled_ref_buf[(ref_frame - 1) as usize] = None;
         }
     }
 }

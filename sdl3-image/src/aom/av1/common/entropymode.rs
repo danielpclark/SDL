@@ -1,5 +1,5 @@
-// Rust translation of av1/common/entropymode.c, av1/common/entropymode.h and
-// av1/common/entropymv.c from aom (https://aomedia.googlesource.com/aom, at
+// Rust translation of av1/common/entropymode.c and av1/common/entropymode.h
+// from aom (https://aomedia.googlesource.com/aom, at
 // the revision SDL_image's external/aom pins: libaom 3.6.1 with SDL's
 // patches).
 // Copyright (c) 2016, Alliance for Open Media. All rights reserved
@@ -7,71 +7,135 @@
 // Patent License 1.0 (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The frame context (`FRAME_CONTEXT`) and its defaults. Only the CDFs of
-//! intra frames are kept: the encoder codes still images as single key
-//! frames without palettes, intra block copy, segmentation, delta loop
-//! filter levels or loop restoration; the inter-frame CDFs (and the motion
-//! vector contexts `av1_init_mv_probs()` sets) are never read.
+//! The frame context (`FRAME_CONTEXT`) and its defaults.
 
 use super::av1_common_int::Av1Common;
 use super::entropy::*;
+use super::entropymv::{NmvContext, DEFAULT_NMV_CONTEXT};
 use super::enums::*;
+use super::filter::{SWITCHABLE_FILTERS, SWITCHABLE_FILTER_CONTEXTS};
+use super::seg_common::{
+    SegmentationProbs, MAX_SEGMENTS, SEG_TEMPORAL_PRED_CTXS, SPATIAL_PREDICTION_PROBS,
+};
 use crate::aom::aom_dsp::prob::cdf_pad;
 
 pub(crate) const BLOCK_SIZE_GROUPS: i32 = 4;
 
 pub(crate) const TX_SIZE_CONTEXTS: i32 = 3;
 
+pub(crate) const PALETTE_COLOR_INDEX_CONTEXTS: i32 = 5;
+
+pub(crate) const PALETTE_Y_MODE_CONTEXTS: i32 = 3;
+
+pub(crate) const PALETTE_UV_MODE_CONTEXTS: i32 = 2;
+
+// Map the number of pixels in a block size to a context
+//   64(BLOCK_8X8, BLOCK_4x16, BLOCK_16X4)  -> 0
+//  128(BLOCK_8X16, BLOCK_16x8)             -> 1
+//   ...
+// 4096(BLOCK_64X64)                        -> 6
+pub(crate) const PALATTE_BSIZE_CTXS: i32 = 7;
+
+pub(crate) const MAX_COLOR_CONTEXT_HASH: i32 = 8;
+
+pub(crate) const NUM_PALETTE_NEIGHBORS: i32 = 3; // left, top-left and top.
+
 pub(crate) const KF_MODE_CONTEXTS: i32 = 5;
 
-/// Translation of `FRAME_CONTEXT` (`struct frame_contexts`), its intra
-/// subset.
+/// Translation of `FRAME_CONTEXT` (`struct frame_contexts`).
 #[derive(Debug, Clone)]
 pub(crate) struct FrameContext {
-    pub(crate) txb_skip_cdf: [[[u16; 3]; TXB_SKIP_CONTEXTS as usize]; TX_SIZES as usize],
+    pub(crate) txb_skip_cdf: [[[u16; 2 + 1]; TXB_SKIP_CONTEXTS as usize]; TX_SIZES as usize],
     pub(crate) eob_extra_cdf:
-        [[[[u16; 3]; EOB_COEF_CONTEXTS as usize]; PLANE_TYPES as usize]; TX_SIZES as usize],
-    pub(crate) dc_sign_cdf: [[[u16; 3]; DC_SIGN_CONTEXTS as usize]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf16: [[[u16; 6]; 2]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf32: [[[u16; 7]; 2]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf64: [[[u16; 8]; 2]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf128: [[[u16; 9]; 2]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf256: [[[u16; 10]; 2]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf512: [[[u16; 11]; 2]; PLANE_TYPES as usize],
-    pub(crate) eob_flag_cdf1024: [[[u16; 12]; 2]; PLANE_TYPES as usize],
+        [[[[u16; 2 + 1]; EOB_COEF_CONTEXTS as usize]; PLANE_TYPES as usize]; TX_SIZES as usize],
+    pub(crate) dc_sign_cdf: [[[u16; 2 + 1]; DC_SIGN_CONTEXTS as usize]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf16: [[[u16; 5 + 1]; 2]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf32: [[[u16; 6 + 1]; 2]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf64: [[[u16; 7 + 1]; 2]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf128: [[[u16; 8 + 1]; 2]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf256: [[[u16; 9 + 1]; 2]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf512: [[[u16; 10 + 1]; 2]; PLANE_TYPES as usize],
+    pub(crate) eob_flag_cdf1024: [[[u16; 11 + 1]; 2]; PLANE_TYPES as usize],
     pub(crate) coeff_base_eob_cdf:
-        [[[[u16; 4]; SIG_COEF_CONTEXTS_EOB as usize]; PLANE_TYPES as usize]; TX_SIZES as usize],
+        [[[[u16; 3 + 1]; SIG_COEF_CONTEXTS_EOB as usize]; PLANE_TYPES as usize]; TX_SIZES as usize],
     pub(crate) coeff_base_cdf:
-        [[[[u16; 5]; SIG_COEF_CONTEXTS as usize]; PLANE_TYPES as usize]; TX_SIZES as usize],
+        [[[[u16; 4 + 1]; SIG_COEF_CONTEXTS as usize]; PLANE_TYPES as usize]; TX_SIZES as usize],
     pub(crate) coeff_br_cdf: [[[[u16; BR_CDF_SIZE as usize + 1]; LEVEL_CONTEXTS as usize];
         PLANE_TYPES as usize]; TX_SIZES as usize],
-
-    pub(crate) skip_txfm_cdfs: [[u16; 3]; SKIP_CONTEXTS as usize],
-    pub(crate) intrabc_cdf: [u16; 3],
-    pub(crate) filter_intra_cdfs: [[u16; 3]; BLOCK_SIZES_ALL as usize],
+    pub(crate) newmv_cdf: [[u16; 2 + 1]; NEWMV_MODE_CONTEXTS as usize],
+    pub(crate) zeromv_cdf: [[u16; 2 + 1]; GLOBALMV_MODE_CONTEXTS as usize],
+    pub(crate) refmv_cdf: [[u16; 2 + 1]; REFMV_MODE_CONTEXTS as usize],
+    pub(crate) drl_cdf: [[u16; 2 + 1]; DRL_MODE_CONTEXTS as usize],
+    pub(crate) inter_compound_mode_cdf:
+        [[u16; INTER_COMPOUND_MODES as usize + 1]; INTER_MODE_CONTEXTS as usize],
+    pub(crate) compound_type_cdf:
+        [[u16; MASKED_COMPOUND_TYPES as usize + 1]; BLOCK_SIZES_ALL as usize],
+    pub(crate) wedge_idx_cdf: [[u16; 16 + 1]; BLOCK_SIZES_ALL as usize],
+    pub(crate) interintra_cdf: [[u16; 2 + 1]; BLOCK_SIZE_GROUPS as usize],
+    pub(crate) wedge_interintra_cdf: [[u16; 2 + 1]; BLOCK_SIZES_ALL as usize],
+    pub(crate) interintra_mode_cdf:
+        [[u16; INTERINTRA_MODES as usize + 1]; BLOCK_SIZE_GROUPS as usize],
+    pub(crate) motion_mode_cdf: [[u16; MOTION_MODES as usize + 1]; BLOCK_SIZES_ALL as usize],
+    pub(crate) obmc_cdf: [[u16; 2 + 1]; BLOCK_SIZES_ALL as usize],
+    pub(crate) palette_y_size_cdf: [[u16; PALETTE_SIZES as usize + 1]; PALATTE_BSIZE_CTXS as usize],
+    pub(crate) palette_uv_size_cdf:
+        [[u16; PALETTE_SIZES as usize + 1]; PALATTE_BSIZE_CTXS as usize],
+    pub(crate) palette_y_color_index_cdf: [[[u16; PALETTE_COLORS as usize + 1];
+        PALETTE_COLOR_INDEX_CONTEXTS as usize];
+        PALETTE_SIZES as usize],
+    pub(crate) palette_uv_color_index_cdf: [[[u16; PALETTE_COLORS as usize + 1];
+        PALETTE_COLOR_INDEX_CONTEXTS as usize];
+        PALETTE_SIZES as usize],
+    pub(crate) palette_y_mode_cdf:
+        [[[u16; 2 + 1]; PALETTE_Y_MODE_CONTEXTS as usize]; PALATTE_BSIZE_CTXS as usize],
+    pub(crate) palette_uv_mode_cdf: [[u16; 2 + 1]; PALETTE_UV_MODE_CONTEXTS as usize],
+    pub(crate) comp_inter_cdf: [[u16; 2 + 1]; COMP_INTER_CONTEXTS as usize],
+    pub(crate) single_ref_cdf: [[[u16; 2 + 1]; (SINGLE_REFS - 1) as usize]; REF_CONTEXTS as usize],
+    pub(crate) comp_ref_type_cdf: [[u16; 2 + 1]; COMP_REF_TYPE_CONTEXTS as usize],
+    pub(crate) uni_comp_ref_cdf:
+        [[[u16; 2 + 1]; (UNIDIR_COMP_REFS - 1) as usize]; UNI_COMP_REF_CONTEXTS as usize],
+    pub(crate) comp_ref_cdf: [[[u16; 2 + 1]; (FWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+    pub(crate) comp_bwdref_cdf: [[[u16; 2 + 1]; (BWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+    pub(crate) txfm_partition_cdf: [[u16; 2 + 1]; TXFM_PARTITION_CONTEXTS as usize],
+    pub(crate) compound_index_cdf: [[u16; 2 + 1]; COMP_INDEX_CONTEXTS as usize],
+    pub(crate) comp_group_idx_cdf: [[u16; 2 + 1]; COMP_GROUP_IDX_CONTEXTS as usize],
+    pub(crate) skip_mode_cdfs: [[u16; 2 + 1]; SKIP_MODE_CONTEXTS as usize],
+    pub(crate) skip_txfm_cdfs: [[u16; 2 + 1]; SKIP_CONTEXTS as usize],
+    pub(crate) intra_inter_cdf: [[u16; 2 + 1]; INTRA_INTER_CONTEXTS as usize],
+    pub(crate) nmvc: NmvContext,
+    pub(crate) ndvc: NmvContext,
+    pub(crate) intrabc_cdf: [u16; 2 + 1],
+    pub(crate) seg: SegmentationProbs,
+    pub(crate) filter_intra_cdfs: [[u16; 2 + 1]; BLOCK_SIZES_ALL as usize],
     pub(crate) filter_intra_mode_cdf: [u16; FILTER_INTRA_MODES as usize + 1],
+    pub(crate) switchable_restore_cdf: [u16; RESTORE_SWITCHABLE_TYPES as usize + 1],
+    pub(crate) wiener_restore_cdf: [u16; 2 + 1],
+    pub(crate) sgrproj_restore_cdf: [u16; 2 + 1],
     pub(crate) y_mode_cdf: [[u16; INTRA_MODES as usize + 1]; BLOCK_SIZE_GROUPS as usize],
     pub(crate) uv_mode_cdf:
         [[[u16; UV_INTRA_MODES as usize + 1]; INTRA_MODES as usize]; CFL_ALLOWED_TYPES as usize],
     pub(crate) partition_cdf:
         [[u16; EXT_PARTITION_TYPES as usize + 1]; PARTITION_CONTEXTS as usize],
+    pub(crate) switchable_interp_cdf:
+        [[u16; SWITCHABLE_FILTERS as usize + 1]; SWITCHABLE_FILTER_CONTEXTS as usize],
     /* kf_y_cdf is discarded after use, so does not require persistent storage.
        However, we keep it with the other CDFs in this struct since it needs to
        be copied to each tile to support parallelism just like the others.
     */
     pub(crate) kf_y_cdf:
         [[[u16; INTRA_MODES as usize + 1]; KF_MODE_CONTEXTS as usize]; KF_MODE_CONTEXTS as usize],
-
     pub(crate) angle_delta_cdf:
-        [[u16; 2 * MAX_ANGLE_DELTA as usize + 2]; DIRECTIONAL_MODES as usize],
-
+        [[u16; (2 * MAX_ANGLE_DELTA + 1) as usize + 1]; DIRECTIONAL_MODES as usize],
     pub(crate) tx_size_cdf:
-        [[[u16; MAX_TX_DEPTH as usize + 2]; TX_SIZE_CONTEXTS as usize]; MAX_TX_CATS as usize],
-    pub(crate) delta_q_cdf: [u16; DELTA_Q_PROBS as usize + 2],
-    pub(crate) delta_lf_multi_cdf: [[u16; DELTA_LF_PROBS as usize + 2]; FRAME_LF_COUNT as usize],
-    pub(crate) delta_lf_cdf: [u16; DELTA_LF_PROBS as usize + 2],
+        [[[u16; (MAX_TX_DEPTH + 1) as usize + 1]; TX_SIZE_CONTEXTS as usize]; MAX_TX_CATS as usize],
+    pub(crate) delta_q_cdf: [u16; (DELTA_Q_PROBS + 1) as usize + 1],
+    pub(crate) delta_lf_multi_cdf:
+        [[u16; (DELTA_LF_PROBS + 1) as usize + 1]; FRAME_LF_COUNT as usize],
+    pub(crate) delta_lf_cdf: [u16; (DELTA_LF_PROBS + 1) as usize + 1],
     pub(crate) intra_ext_tx_cdf: [[[[u16; TX_TYPES as usize + 1]; INTRA_MODES as usize];
         EXT_TX_SIZES as usize]; EXT_TX_SETS_INTRA as usize],
+    pub(crate) inter_ext_tx_cdf:
+        [[[u16; TX_TYPES as usize + 1]; EXT_TX_SIZES as usize]; EXT_TX_SETS_INTER as usize],
     pub(crate) cfl_sign_cdf: [u16; CFL_JOINT_SIGNS as usize + 1],
     pub(crate) cfl_alpha_cdf: [[u16; CFL_ALPHABET_SIZE as usize + 1]; CFL_ALPHA_CONTEXTS as usize],
     pub(crate) initialized: i32,
@@ -80,41 +144,88 @@ pub(crate) struct FrameContext {
 impl Default for FrameContext {
     fn default() -> Self {
         FrameContext {
-            txb_skip_cdf: [[[0; 3]; TXB_SKIP_CONTEXTS as usize]; TX_SIZES as usize],
-            eob_extra_cdf: [[[[0; 3]; EOB_COEF_CONTEXTS as usize]; PLANE_TYPES as usize];
+            txb_skip_cdf: [[[0; 2 + 1]; TXB_SKIP_CONTEXTS as usize]; TX_SIZES as usize],
+            eob_extra_cdf: [[[[0; 2 + 1]; EOB_COEF_CONTEXTS as usize]; PLANE_TYPES as usize];
                 TX_SIZES as usize],
-            dc_sign_cdf: [[[0; 3]; DC_SIGN_CONTEXTS as usize]; PLANE_TYPES as usize],
-            eob_flag_cdf16: [[[0; 6]; 2]; PLANE_TYPES as usize],
-            eob_flag_cdf32: [[[0; 7]; 2]; PLANE_TYPES as usize],
-            eob_flag_cdf64: [[[0; 8]; 2]; PLANE_TYPES as usize],
-            eob_flag_cdf128: [[[0; 9]; 2]; PLANE_TYPES as usize],
-            eob_flag_cdf256: [[[0; 10]; 2]; PLANE_TYPES as usize],
-            eob_flag_cdf512: [[[0; 11]; 2]; PLANE_TYPES as usize],
-            eob_flag_cdf1024: [[[0; 12]; 2]; PLANE_TYPES as usize],
-            coeff_base_eob_cdf: [[[[0; 4]; SIG_COEF_CONTEXTS_EOB as usize]; PLANE_TYPES as usize];
-                TX_SIZES as usize],
-            coeff_base_cdf: [[[[0; 5]; SIG_COEF_CONTEXTS as usize]; PLANE_TYPES as usize];
+            dc_sign_cdf: [[[0; 2 + 1]; DC_SIGN_CONTEXTS as usize]; PLANE_TYPES as usize],
+            eob_flag_cdf16: [[[0; 5 + 1]; 2]; PLANE_TYPES as usize],
+            eob_flag_cdf32: [[[0; 6 + 1]; 2]; PLANE_TYPES as usize],
+            eob_flag_cdf64: [[[0; 7 + 1]; 2]; PLANE_TYPES as usize],
+            eob_flag_cdf128: [[[0; 8 + 1]; 2]; PLANE_TYPES as usize],
+            eob_flag_cdf256: [[[0; 9 + 1]; 2]; PLANE_TYPES as usize],
+            eob_flag_cdf512: [[[0; 10 + 1]; 2]; PLANE_TYPES as usize],
+            eob_flag_cdf1024: [[[0; 11 + 1]; 2]; PLANE_TYPES as usize],
+            coeff_base_eob_cdf: [[[[0; 3 + 1]; SIG_COEF_CONTEXTS_EOB as usize];
+                PLANE_TYPES as usize]; TX_SIZES as usize],
+            coeff_base_cdf: [[[[0; 4 + 1]; SIG_COEF_CONTEXTS as usize]; PLANE_TYPES as usize];
                 TX_SIZES as usize],
             coeff_br_cdf: [[[[0; BR_CDF_SIZE as usize + 1]; LEVEL_CONTEXTS as usize];
                 PLANE_TYPES as usize]; TX_SIZES as usize],
-            skip_txfm_cdfs: [[0; 3]; SKIP_CONTEXTS as usize],
-            intrabc_cdf: [0; 3],
-            filter_intra_cdfs: [[0; 3]; BLOCK_SIZES_ALL as usize],
+            newmv_cdf: [[0; 2 + 1]; NEWMV_MODE_CONTEXTS as usize],
+            zeromv_cdf: [[0; 2 + 1]; GLOBALMV_MODE_CONTEXTS as usize],
+            refmv_cdf: [[0; 2 + 1]; REFMV_MODE_CONTEXTS as usize],
+            drl_cdf: [[0; 2 + 1]; DRL_MODE_CONTEXTS as usize],
+            inter_compound_mode_cdf: [[0; INTER_COMPOUND_MODES as usize + 1];
+                INTER_MODE_CONTEXTS as usize],
+            compound_type_cdf: [[0; MASKED_COMPOUND_TYPES as usize + 1]; BLOCK_SIZES_ALL as usize],
+            wedge_idx_cdf: [[0; 16 + 1]; BLOCK_SIZES_ALL as usize],
+            interintra_cdf: [[0; 2 + 1]; BLOCK_SIZE_GROUPS as usize],
+            wedge_interintra_cdf: [[0; 2 + 1]; BLOCK_SIZES_ALL as usize],
+            interintra_mode_cdf: [[0; INTERINTRA_MODES as usize + 1]; BLOCK_SIZE_GROUPS as usize],
+            motion_mode_cdf: [[0; MOTION_MODES as usize + 1]; BLOCK_SIZES_ALL as usize],
+            obmc_cdf: [[0; 2 + 1]; BLOCK_SIZES_ALL as usize],
+            palette_y_size_cdf: [[0; PALETTE_SIZES as usize + 1]; PALATTE_BSIZE_CTXS as usize],
+            palette_uv_size_cdf: [[0; PALETTE_SIZES as usize + 1]; PALATTE_BSIZE_CTXS as usize],
+            palette_y_color_index_cdf: [[[0; PALETTE_COLORS as usize + 1];
+                PALETTE_COLOR_INDEX_CONTEXTS as usize];
+                PALETTE_SIZES as usize],
+            palette_uv_color_index_cdf: [[[0; PALETTE_COLORS as usize + 1];
+                PALETTE_COLOR_INDEX_CONTEXTS as usize];
+                PALETTE_SIZES as usize],
+            palette_y_mode_cdf: [[[0; 2 + 1]; PALETTE_Y_MODE_CONTEXTS as usize];
+                PALATTE_BSIZE_CTXS as usize],
+            palette_uv_mode_cdf: [[0; 2 + 1]; PALETTE_UV_MODE_CONTEXTS as usize],
+            comp_inter_cdf: [[0; 2 + 1]; COMP_INTER_CONTEXTS as usize],
+            single_ref_cdf: [[[0; 2 + 1]; (SINGLE_REFS - 1) as usize]; REF_CONTEXTS as usize],
+            comp_ref_type_cdf: [[0; 2 + 1]; COMP_REF_TYPE_CONTEXTS as usize],
+            uni_comp_ref_cdf: [[[0; 2 + 1]; (UNIDIR_COMP_REFS - 1) as usize];
+                UNI_COMP_REF_CONTEXTS as usize],
+            comp_ref_cdf: [[[0; 2 + 1]; (FWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+            comp_bwdref_cdf: [[[0; 2 + 1]; (BWD_REFS - 1) as usize]; REF_CONTEXTS as usize],
+            txfm_partition_cdf: [[0; 2 + 1]; TXFM_PARTITION_CONTEXTS as usize],
+            compound_index_cdf: [[0; 2 + 1]; COMP_INDEX_CONTEXTS as usize],
+            comp_group_idx_cdf: [[0; 2 + 1]; COMP_GROUP_IDX_CONTEXTS as usize],
+            skip_mode_cdfs: [[0; 2 + 1]; SKIP_MODE_CONTEXTS as usize],
+            skip_txfm_cdfs: [[0; 2 + 1]; SKIP_CONTEXTS as usize],
+            intra_inter_cdf: [[0; 2 + 1]; INTRA_INTER_CONTEXTS as usize],
+            nmvc: NmvContext::default(),
+            ndvc: NmvContext::default(),
+            intrabc_cdf: [0; 2 + 1],
+            seg: SegmentationProbs::default(),
+            filter_intra_cdfs: [[0; 2 + 1]; BLOCK_SIZES_ALL as usize],
             filter_intra_mode_cdf: [0; FILTER_INTRA_MODES as usize + 1],
+            switchable_restore_cdf: [0; RESTORE_SWITCHABLE_TYPES as usize + 1],
+            wiener_restore_cdf: [0; 2 + 1],
+            sgrproj_restore_cdf: [0; 2 + 1],
             y_mode_cdf: [[0; INTRA_MODES as usize + 1]; BLOCK_SIZE_GROUPS as usize],
             uv_mode_cdf: [[[0; UV_INTRA_MODES as usize + 1]; INTRA_MODES as usize];
                 CFL_ALLOWED_TYPES as usize],
             partition_cdf: [[0; EXT_PARTITION_TYPES as usize + 1]; PARTITION_CONTEXTS as usize],
+            switchable_interp_cdf: [[0; SWITCHABLE_FILTERS as usize + 1];
+                SWITCHABLE_FILTER_CONTEXTS as usize],
             kf_y_cdf: [[[0; INTRA_MODES as usize + 1]; KF_MODE_CONTEXTS as usize];
                 KF_MODE_CONTEXTS as usize],
-            angle_delta_cdf: [[0; 2 * MAX_ANGLE_DELTA as usize + 2]; DIRECTIONAL_MODES as usize],
-            tx_size_cdf: [[[0; MAX_TX_DEPTH as usize + 2]; TX_SIZE_CONTEXTS as usize];
+            angle_delta_cdf: [[0; (2 * MAX_ANGLE_DELTA + 1) as usize + 1];
+                DIRECTIONAL_MODES as usize],
+            tx_size_cdf: [[[0; (MAX_TX_DEPTH + 1) as usize + 1]; TX_SIZE_CONTEXTS as usize];
                 MAX_TX_CATS as usize],
-            delta_q_cdf: [0; DELTA_Q_PROBS as usize + 2],
-            delta_lf_multi_cdf: [[0; DELTA_LF_PROBS as usize + 2]; FRAME_LF_COUNT as usize],
-            delta_lf_cdf: [0; DELTA_LF_PROBS as usize + 2],
+            delta_q_cdf: [0; (DELTA_Q_PROBS + 1) as usize + 1],
+            delta_lf_multi_cdf: [[0; (DELTA_LF_PROBS + 1) as usize + 1]; FRAME_LF_COUNT as usize],
+            delta_lf_cdf: [0; (DELTA_LF_PROBS + 1) as usize + 1],
             intra_ext_tx_cdf: [[[[0; TX_TYPES as usize + 1]; INTRA_MODES as usize];
                 EXT_TX_SIZES as usize]; EXT_TX_SETS_INTRA as usize],
+            inter_ext_tx_cdf: [[[0; TX_TYPES as usize + 1]; EXT_TX_SIZES as usize];
+                EXT_TX_SETS_INTER as usize],
             cfl_sign_cdf: [0; CFL_JOINT_SIGNS as usize + 1],
             cfl_alpha_cdf: [[0; CFL_ALPHABET_SIZE as usize + 1]; CFL_ALPHA_CONTEXTS as usize],
             initialized: 0,
@@ -140,17 +251,53 @@ pub(crate) static AV1_EXT_TX_INV: [[i32; TX_TYPES as usize]; EXT_TX_SET_TYPES as
     [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8],
 ];
 
-/// Translation of `av1_init_mode_probs()`, for the intra CDFs.
+/// Translation of `av1_init_mode_probs()`.
 pub(crate) fn av1_init_mode_probs(fc: &mut FrameContext) {
+    fc.palette_y_size_cdf = DEFAULT_PALETTE_Y_SIZE_CDF;
+    fc.palette_uv_size_cdf = DEFAULT_PALETTE_UV_SIZE_CDF;
+    fc.palette_y_color_index_cdf = DEFAULT_PALETTE_Y_COLOR_INDEX_CDF;
+    fc.palette_uv_color_index_cdf = DEFAULT_PALETTE_UV_COLOR_INDEX_CDF;
     fc.kf_y_cdf = DEFAULT_KF_Y_MODE_CDF;
     fc.angle_delta_cdf = DEFAULT_ANGLE_DELTA_CDF;
+    fc.comp_inter_cdf = DEFAULT_COMP_INTER_CDF;
+    fc.comp_ref_type_cdf = DEFAULT_COMP_REF_TYPE_CDF;
+    fc.uni_comp_ref_cdf = DEFAULT_UNI_COMP_REF_CDF;
+    fc.palette_y_mode_cdf = DEFAULT_PALETTE_Y_MODE_CDF;
+    fc.palette_uv_mode_cdf = DEFAULT_PALETTE_UV_MODE_CDF;
+    fc.comp_ref_cdf = DEFAULT_COMP_REF_CDF;
+    fc.comp_bwdref_cdf = DEFAULT_COMP_BWDREF_CDF;
+    fc.single_ref_cdf = DEFAULT_SINGLE_REF_CDF;
+    fc.txfm_partition_cdf = DEFAULT_TXFM_PARTITION_CDF;
+    fc.compound_index_cdf = DEFAULT_COMPOUND_IDX_CDFS;
+    fc.comp_group_idx_cdf = DEFAULT_COMP_GROUP_IDX_CDFS;
+    fc.newmv_cdf = DEFAULT_NEWMV_CDF;
+    fc.zeromv_cdf = DEFAULT_ZEROMV_CDF;
+    fc.refmv_cdf = DEFAULT_REFMV_CDF;
+    fc.drl_cdf = DEFAULT_DRL_CDF;
+    fc.motion_mode_cdf = DEFAULT_MOTION_MODE_CDF;
+    fc.obmc_cdf = DEFAULT_OBMC_CDF;
+    fc.inter_compound_mode_cdf = DEFAULT_INTER_COMPOUND_MODE_CDF;
+    fc.compound_type_cdf = DEFAULT_COMPOUND_TYPE_CDF;
+    fc.wedge_idx_cdf = DEFAULT_WEDGE_IDX_CDF;
+    fc.interintra_cdf = DEFAULT_INTERINTRA_CDF;
+    fc.wedge_interintra_cdf = DEFAULT_WEDGE_INTERINTRA_CDF;
+    fc.interintra_mode_cdf = DEFAULT_INTERINTRA_MODE_CDF;
+    fc.seg.pred_cdf = DEFAULT_SEGMENT_PRED_CDF;
     fc.filter_intra_cdfs = DEFAULT_FILTER_INTRA_CDFS;
     fc.filter_intra_mode_cdf = DEFAULT_FILTER_INTRA_MODE_CDF;
+    fc.switchable_restore_cdf = DEFAULT_SWITCHABLE_RESTORE_CDF;
+    fc.wiener_restore_cdf = DEFAULT_WIENER_RESTORE_CDF;
+    fc.sgrproj_restore_cdf = DEFAULT_SGRPROJ_RESTORE_CDF;
     fc.y_mode_cdf = DEFAULT_IF_Y_MODE_CDF;
     fc.uv_mode_cdf = DEFAULT_UV_MODE_CDF;
+    fc.switchable_interp_cdf = DEFAULT_SWITCHABLE_INTERP_CDF;
     fc.partition_cdf = DEFAULT_PARTITION_CDF;
     fc.intra_ext_tx_cdf = DEFAULT_INTRA_EXT_TX_CDF;
+    fc.inter_ext_tx_cdf = DEFAULT_INTER_EXT_TX_CDF;
+    fc.skip_mode_cdfs = DEFAULT_SKIP_MODE_CDFS;
     fc.skip_txfm_cdfs = DEFAULT_SKIP_TXFM_CDFS;
+    fc.intra_inter_cdf = DEFAULT_INTRA_INTER_CDF;
+    fc.seg.spatial_pred_seg_cdf = DEFAULT_SPATIAL_PRED_SEG_TREE_CDF;
     fc.tx_size_cdf = DEFAULT_TX_SIZE_CDF;
     fc.delta_q_cdf = DEFAULT_DELTA_Q_CDF;
     fc.delta_lf_cdf = DEFAULT_DELTA_LF_CDF;
@@ -184,6 +331,13 @@ fn set_default_lf_deltas(lf: &mut super::av1_loopfilter::Loopfilter) {
     av1_set_default_mode_deltas(&mut lf.mode_deltas);
 }
 
+/// Translation of `av1_init_mv_probs()` (av1/common/entropymv.c).
+pub(crate) fn av1_init_mv_probs(cm: &mut Av1Common) {
+    // NB: this sets CDFs too
+    cm.fc.nmvc = DEFAULT_NMV_CONTEXT;
+    cm.fc.ndvc = DEFAULT_NMV_CONTEXT;
+}
+
 /// Translation of `av1_setup_frame_contexts()` (no large scale tiles).
 pub(crate) fn av1_setup_frame_contexts(cm: &mut Av1Common) {
     // Store the frame context into a special slot (not associated with any
@@ -207,7 +361,7 @@ pub(crate) fn av1_setup_past_independence(cm: &mut Av1Common) {
 
     super::entropy::av1_default_coef_probs(cm);
     av1_init_mode_probs(&mut cm.fc);
-    // (av1_init_mv_probs(): the motion vector contexts are not kept)
+    av1_init_mv_probs(cm);
     cm.fc.initialized = 1;
     av1_setup_frame_contexts(cm);
 }
@@ -741,3 +895,601 @@ pub(crate) static DEFAULT_CFL_ALPHA_CDF: [[u16; (CFL_ALPHABET_SIZE) as usize + 1
 ];
 
 pub(crate) static DEFAULT_INTRABC_CDF: [u16; (2) as usize + 1] = cdf_pad(&[30531]);
+
+pub(crate) static DEFAULT_PALETTE_Y_SIZE_CDF: [[u16; (PALETTE_SIZES) as usize + 1];
+    PALATTE_BSIZE_CTXS as usize] = [
+    cdf_pad(&[7952, 13000, 18149, 21478, 25527, 29241]),
+    cdf_pad(&[7139, 11421, 16195, 19544, 23666, 28073]),
+    cdf_pad(&[7788, 12741, 17325, 20500, 24315, 28530]),
+    cdf_pad(&[8271, 14064, 18246, 21564, 25071, 28533]),
+    cdf_pad(&[12725, 19180, 21863, 24839, 27535, 30120]),
+    cdf_pad(&[9711, 14888, 16923, 21052, 25661, 27875]),
+    cdf_pad(&[14940, 20797, 21678, 24186, 27033, 28999]),
+];
+
+pub(crate) static DEFAULT_PALETTE_UV_SIZE_CDF: [[u16; (PALETTE_SIZES) as usize + 1];
+    PALATTE_BSIZE_CTXS as usize] = [
+    cdf_pad(&[8713, 19979, 27128, 29609, 31331, 32272]),
+    cdf_pad(&[5839, 15573, 23581, 26947, 29848, 31700]),
+    cdf_pad(&[4426, 11260, 17999, 21483, 25863, 29430]),
+    cdf_pad(&[3228, 9464, 14993, 18089, 22523, 27420]),
+    cdf_pad(&[3768, 8886, 13091, 17852, 22495, 27207]),
+    cdf_pad(&[2464, 8451, 12861, 21632, 25525, 28555]),
+    cdf_pad(&[1269, 5435, 10433, 18963, 21700, 25865]),
+];
+
+pub(crate) static DEFAULT_PALETTE_Y_COLOR_INDEX_CDF: [[[u16; (PALETTE_COLORS) as usize + 1];
+    PALETTE_COLOR_INDEX_CONTEXTS as usize];
+    PALETTE_SIZES as usize] = [
+    [
+        cdf_pad(&[28710]),
+        cdf_pad(&[16384]),
+        cdf_pad(&[10553]),
+        cdf_pad(&[27036]),
+        cdf_pad(&[31603]),
+    ],
+    [
+        cdf_pad(&[27877, 30490]),
+        cdf_pad(&[11532, 25697]),
+        cdf_pad(&[6544, 30234]),
+        cdf_pad(&[23018, 28072]),
+        cdf_pad(&[31915, 32385]),
+    ],
+    [
+        cdf_pad(&[25572, 28046, 30045]),
+        cdf_pad(&[9478, 21590, 27256]),
+        cdf_pad(&[7248, 26837, 29824]),
+        cdf_pad(&[19167, 24486, 28349]),
+        cdf_pad(&[31400, 31825, 32250]),
+    ],
+    [
+        cdf_pad(&[24779, 26955, 28576, 30282]),
+        cdf_pad(&[8669, 20364, 24073, 28093]),
+        cdf_pad(&[4255, 27565, 29377, 31067]),
+        cdf_pad(&[19864, 23674, 26716, 29530]),
+        cdf_pad(&[31646, 31893, 32147, 32426]),
+    ],
+    [
+        cdf_pad(&[23132, 25407, 26970, 28435, 30073]),
+        cdf_pad(&[7443, 17242, 20717, 24762, 27982]),
+        cdf_pad(&[6300, 24862, 26944, 28784, 30671]),
+        cdf_pad(&[18916, 22895, 25267, 27435, 29652]),
+        cdf_pad(&[31270, 31550, 31808, 32059, 32353]),
+    ],
+    [
+        cdf_pad(&[23105, 25199, 26464, 27684, 28931, 30318]),
+        cdf_pad(&[6950, 15447, 18952, 22681, 25567, 28563]),
+        cdf_pad(&[7560, 23474, 25490, 27203, 28921, 30708]),
+        cdf_pad(&[18544, 22373, 24457, 26195, 28119, 30045]),
+        cdf_pad(&[31198, 31451, 31670, 31882, 32123, 32391]),
+    ],
+    [
+        cdf_pad(&[21689, 23883, 25163, 26352, 27506, 28827, 30195]),
+        cdf_pad(&[6892, 15385, 17840, 21606, 24287, 26753, 29204]),
+        cdf_pad(&[5651, 23182, 25042, 26518, 27982, 29392, 30900]),
+        cdf_pad(&[19349, 22578, 24418, 25994, 27524, 29031, 30448]),
+        cdf_pad(&[31028, 31270, 31504, 31705, 31927, 32153, 32392]),
+    ],
+];
+
+pub(crate) static DEFAULT_PALETTE_UV_COLOR_INDEX_CDF: [[[u16; (PALETTE_COLORS) as usize + 1];
+    PALETTE_COLOR_INDEX_CONTEXTS as usize];
+    PALETTE_SIZES as usize] = [
+    [
+        cdf_pad(&[29089]),
+        cdf_pad(&[16384]),
+        cdf_pad(&[8713]),
+        cdf_pad(&[29257]),
+        cdf_pad(&[31610]),
+    ],
+    [
+        cdf_pad(&[25257, 29145]),
+        cdf_pad(&[12287, 27293]),
+        cdf_pad(&[7033, 27960]),
+        cdf_pad(&[20145, 25405]),
+        cdf_pad(&[30608, 31639]),
+    ],
+    [
+        cdf_pad(&[24210, 27175, 29903]),
+        cdf_pad(&[9888, 22386, 27214]),
+        cdf_pad(&[5901, 26053, 29293]),
+        cdf_pad(&[18318, 22152, 28333]),
+        cdf_pad(&[30459, 31136, 31926]),
+    ],
+    [
+        cdf_pad(&[22980, 25479, 27781, 29986]),
+        cdf_pad(&[8413, 21408, 24859, 28874]),
+        cdf_pad(&[2257, 29449, 30594, 31598]),
+        cdf_pad(&[19189, 21202, 25915, 28620]),
+        cdf_pad(&[31844, 32044, 32281, 32518]),
+    ],
+    [
+        cdf_pad(&[22217, 24567, 26637, 28683, 30548]),
+        cdf_pad(&[7307, 16406, 19636, 24632, 28424]),
+        cdf_pad(&[4441, 25064, 26879, 28942, 30919]),
+        cdf_pad(&[17210, 20528, 23319, 26750, 29582]),
+        cdf_pad(&[30674, 30953, 31396, 31735, 32207]),
+    ],
+    [
+        cdf_pad(&[21239, 23168, 25044, 26962, 28705, 30506]),
+        cdf_pad(&[6545, 15012, 18004, 21817, 25503, 28701]),
+        cdf_pad(&[3448, 26295, 27437, 28704, 30126, 31442]),
+        cdf_pad(&[15889, 18323, 21704, 24698, 26976, 29690]),
+        cdf_pad(&[30988, 31204, 31479, 31734, 31983, 32325]),
+    ],
+    [
+        cdf_pad(&[21442, 23288, 24758, 26246, 27649, 28980, 30563]),
+        cdf_pad(&[5863, 14933, 17552, 20668, 23683, 26411, 29273]),
+        cdf_pad(&[3415, 25810, 26877, 27990, 29223, 30394, 31618]),
+        cdf_pad(&[17965, 20084, 22232, 23974, 26274, 28402, 30390]),
+        cdf_pad(&[31190, 31329, 31516, 31679, 31825, 32026, 32322]),
+    ],
+];
+
+pub(crate) static DEFAULT_COMP_INTER_CDF: [[u16; (2) as usize + 1]; COMP_INTER_CONTEXTS as usize] = [
+    cdf_pad(&[26828]),
+    cdf_pad(&[24035]),
+    cdf_pad(&[12031]),
+    cdf_pad(&[10640]),
+    cdf_pad(&[2901]),
+];
+
+pub(crate) static DEFAULT_COMP_REF_TYPE_CDF: [[u16; (2) as usize + 1];
+    COMP_REF_TYPE_CONTEXTS as usize] = [
+    cdf_pad(&[1198]),
+    cdf_pad(&[2070]),
+    cdf_pad(&[9166]),
+    cdf_pad(&[7499]),
+    cdf_pad(&[22475]),
+];
+
+pub(crate) static DEFAULT_UNI_COMP_REF_CDF: [[[u16; (2) as usize + 1];
+    (UNIDIR_COMP_REFS - 1) as usize];
+    UNI_COMP_REF_CONTEXTS as usize] = [
+    [cdf_pad(&[5284]), cdf_pad(&[3865]), cdf_pad(&[3128])],
+    [cdf_pad(&[23152]), cdf_pad(&[14173]), cdf_pad(&[15270])],
+    [cdf_pad(&[31774]), cdf_pad(&[25120]), cdf_pad(&[26710])],
+];
+
+pub(crate) static DEFAULT_PALETTE_Y_MODE_CDF: [[[u16; (2) as usize + 1];
+    PALETTE_Y_MODE_CONTEXTS as usize];
+    PALATTE_BSIZE_CTXS as usize] = [
+    [cdf_pad(&[31676]), cdf_pad(&[3419]), cdf_pad(&[1261])],
+    [cdf_pad(&[31912]), cdf_pad(&[2859]), cdf_pad(&[980])],
+    [cdf_pad(&[31823]), cdf_pad(&[3400]), cdf_pad(&[781])],
+    [cdf_pad(&[32030]), cdf_pad(&[3561]), cdf_pad(&[904])],
+    [cdf_pad(&[32309]), cdf_pad(&[7337]), cdf_pad(&[1462])],
+    [cdf_pad(&[32265]), cdf_pad(&[4015]), cdf_pad(&[1521])],
+    [cdf_pad(&[32450]), cdf_pad(&[7946]), cdf_pad(&[129])],
+];
+
+pub(crate) static DEFAULT_PALETTE_UV_MODE_CDF: [[u16; (2) as usize + 1];
+    PALETTE_UV_MODE_CONTEXTS as usize] = [cdf_pad(&[32461]), cdf_pad(&[21488])];
+
+pub(crate) static DEFAULT_COMP_REF_CDF: [[[u16; (2) as usize + 1]; (FWD_REFS - 1) as usize];
+    REF_CONTEXTS as usize] = [
+    [cdf_pad(&[4946]), cdf_pad(&[9468]), cdf_pad(&[1503])],
+    [cdf_pad(&[19891]), cdf_pad(&[22441]), cdf_pad(&[15160])],
+    [cdf_pad(&[30731]), cdf_pad(&[31059]), cdf_pad(&[27544])],
+];
+
+pub(crate) static DEFAULT_COMP_BWDREF_CDF: [[[u16; (2) as usize + 1]; (BWD_REFS - 1) as usize];
+    REF_CONTEXTS as usize] = [
+    [cdf_pad(&[2235]), cdf_pad(&[1423])],
+    [cdf_pad(&[17182]), cdf_pad(&[15175])],
+    [cdf_pad(&[30606]), cdf_pad(&[30489])],
+];
+
+pub(crate) static DEFAULT_SINGLE_REF_CDF: [[[u16; (2) as usize + 1]; (SINGLE_REFS - 1) as usize];
+    REF_CONTEXTS as usize] = [
+    [
+        cdf_pad(&[4897]),
+        cdf_pad(&[1555]),
+        cdf_pad(&[4236]),
+        cdf_pad(&[8650]),
+        cdf_pad(&[904]),
+        cdf_pad(&[1444]),
+    ],
+    [
+        cdf_pad(&[16973]),
+        cdf_pad(&[16751]),
+        cdf_pad(&[19647]),
+        cdf_pad(&[24773]),
+        cdf_pad(&[11014]),
+        cdf_pad(&[15087]),
+    ],
+    [
+        cdf_pad(&[29744]),
+        cdf_pad(&[30279]),
+        cdf_pad(&[31194]),
+        cdf_pad(&[31895]),
+        cdf_pad(&[26875]),
+        cdf_pad(&[30304]),
+    ],
+];
+
+pub(crate) static DEFAULT_TXFM_PARTITION_CDF: [[u16; (2) as usize + 1];
+    TXFM_PARTITION_CONTEXTS as usize] = [
+    cdf_pad(&[28581]),
+    cdf_pad(&[23846]),
+    cdf_pad(&[20847]),
+    cdf_pad(&[24315]),
+    cdf_pad(&[18196]),
+    cdf_pad(&[12133]),
+    cdf_pad(&[18791]),
+    cdf_pad(&[10887]),
+    cdf_pad(&[11005]),
+    cdf_pad(&[27179]),
+    cdf_pad(&[20004]),
+    cdf_pad(&[11281]),
+    cdf_pad(&[26549]),
+    cdf_pad(&[19308]),
+    cdf_pad(&[14224]),
+    cdf_pad(&[28015]),
+    cdf_pad(&[21546]),
+    cdf_pad(&[14400]),
+    cdf_pad(&[28165]),
+    cdf_pad(&[22401]),
+    cdf_pad(&[16088]),
+];
+
+pub(crate) static DEFAULT_COMPOUND_IDX_CDFS: [[u16; (2) as usize + 1];
+    COMP_INDEX_CONTEXTS as usize] = [
+    cdf_pad(&[18244]),
+    cdf_pad(&[12865]),
+    cdf_pad(&[7053]),
+    cdf_pad(&[13259]),
+    cdf_pad(&[9334]),
+    cdf_pad(&[4644]),
+];
+
+pub(crate) static DEFAULT_COMP_GROUP_IDX_CDFS: [[u16; (2) as usize + 1];
+    COMP_GROUP_IDX_CONTEXTS as usize] = [
+    cdf_pad(&[26607]),
+    cdf_pad(&[22891]),
+    cdf_pad(&[18840]),
+    cdf_pad(&[24594]),
+    cdf_pad(&[19934]),
+    cdf_pad(&[22674]),
+];
+
+pub(crate) static DEFAULT_NEWMV_CDF: [[u16; (2) as usize + 1]; NEWMV_MODE_CONTEXTS as usize] = [
+    cdf_pad(&[24035]),
+    cdf_pad(&[16630]),
+    cdf_pad(&[15339]),
+    cdf_pad(&[8386]),
+    cdf_pad(&[12222]),
+    cdf_pad(&[4676]),
+];
+
+pub(crate) static DEFAULT_ZEROMV_CDF: [[u16; (2) as usize + 1]; GLOBALMV_MODE_CONTEXTS as usize] =
+    [cdf_pad(&[2175]), cdf_pad(&[1054])];
+
+pub(crate) static DEFAULT_REFMV_CDF: [[u16; (2) as usize + 1]; REFMV_MODE_CONTEXTS as usize] = [
+    cdf_pad(&[23974]),
+    cdf_pad(&[24188]),
+    cdf_pad(&[17848]),
+    cdf_pad(&[28622]),
+    cdf_pad(&[24312]),
+    cdf_pad(&[19923]),
+];
+
+pub(crate) static DEFAULT_DRL_CDF: [[u16; (2) as usize + 1]; DRL_MODE_CONTEXTS as usize] =
+    [cdf_pad(&[13104]), cdf_pad(&[24560]), cdf_pad(&[18945])];
+
+pub(crate) static DEFAULT_MOTION_MODE_CDF: [[u16; (MOTION_MODES) as usize + 1];
+    BLOCK_SIZES_ALL as usize] = [
+    cdf_pad(&[10923, 21845]),
+    cdf_pad(&[10923, 21845]),
+    cdf_pad(&[10923, 21845]),
+    cdf_pad(&[7651, 24760]),
+    cdf_pad(&[4738, 24765]),
+    cdf_pad(&[5391, 25528]),
+    cdf_pad(&[19419, 26810]),
+    cdf_pad(&[5123, 23606]),
+    cdf_pad(&[11606, 24308]),
+    cdf_pad(&[26260, 29116]),
+    cdf_pad(&[20360, 28062]),
+    cdf_pad(&[21679, 26830]),
+    cdf_pad(&[29516, 30701]),
+    cdf_pad(&[28898, 30397]),
+    cdf_pad(&[30878, 31335]),
+    cdf_pad(&[32507, 32558]),
+    cdf_pad(&[10923, 21845]),
+    cdf_pad(&[10923, 21845]),
+    cdf_pad(&[28799, 31390]),
+    cdf_pad(&[26431, 30774]),
+    cdf_pad(&[28973, 31594]),
+    cdf_pad(&[29742, 31203]),
+];
+
+pub(crate) static DEFAULT_OBMC_CDF: [[u16; (2) as usize + 1]; BLOCK_SIZES_ALL as usize] = [
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[10437]),
+    cdf_pad(&[9371]),
+    cdf_pad(&[9301]),
+    cdf_pad(&[17432]),
+    cdf_pad(&[14423]),
+    cdf_pad(&[15142]),
+    cdf_pad(&[25817]),
+    cdf_pad(&[22823]),
+    cdf_pad(&[22083]),
+    cdf_pad(&[30128]),
+    cdf_pad(&[31014]),
+    cdf_pad(&[31560]),
+    cdf_pad(&[32638]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[23664]),
+    cdf_pad(&[20901]),
+    cdf_pad(&[24008]),
+    cdf_pad(&[26879]),
+];
+
+pub(crate) static DEFAULT_INTER_COMPOUND_MODE_CDF: [[u16; (INTER_COMPOUND_MODES) as usize + 1];
+    INTER_MODE_CONTEXTS as usize] = [
+    cdf_pad(&[7760, 13823, 15808, 17641, 19156, 20666, 26891]),
+    cdf_pad(&[10730, 19452, 21145, 22749, 24039, 25131, 28724]),
+    cdf_pad(&[10664, 20221, 21588, 22906, 24295, 25387, 28436]),
+    cdf_pad(&[13298, 16984, 20471, 24182, 25067, 25736, 26422]),
+    cdf_pad(&[18904, 23325, 25242, 27432, 27898, 28258, 30758]),
+    cdf_pad(&[10725, 17454, 20124, 22820, 24195, 25168, 26046]),
+    cdf_pad(&[17125, 24273, 25814, 27492, 28214, 28704, 30592]),
+    cdf_pad(&[13046, 23214, 24505, 25942, 27435, 28442, 29330]),
+];
+
+pub(crate) static DEFAULT_COMPOUND_TYPE_CDF: [[u16; (MASKED_COMPOUND_TYPES) as usize + 1];
+    BLOCK_SIZES_ALL as usize] = [
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[23431]),
+    cdf_pad(&[13171]),
+    cdf_pad(&[11470]),
+    cdf_pad(&[9770]),
+    cdf_pad(&[9100]),
+    cdf_pad(&[8233]),
+    cdf_pad(&[6172]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[11820]),
+    cdf_pad(&[7701]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+];
+
+pub(crate) static DEFAULT_WEDGE_IDX_CDF: [[u16; (16) as usize + 1]; BLOCK_SIZES_ALL as usize] = [
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2438, 4440, 6599, 8663, 11005, 12874, 15751, 18094, 20359, 22362, 24127, 25702, 27752,
+        29450, 31171,
+    ]),
+    cdf_pad(&[
+        806, 3266, 6005, 6738, 7218, 7367, 7771, 14588, 16323, 17367, 18452, 19422, 22839, 26127,
+        29629,
+    ]),
+    cdf_pad(&[
+        2779, 3738, 4683, 7213, 7775, 8017, 8655, 14357, 17939, 21332, 24520, 27470, 29456, 30529,
+        31656,
+    ]),
+    cdf_pad(&[
+        1684, 3625, 5675, 7108, 9302, 11274, 14429, 17144, 19163, 20961, 22884, 24471, 26719,
+        28714, 30877,
+    ]),
+    cdf_pad(&[
+        1142, 3491, 6277, 7314, 8089, 8355, 9023, 13624, 15369, 16730, 18114, 19313, 22521, 26012,
+        29550,
+    ]),
+    cdf_pad(&[
+        2742, 4195, 5727, 8035, 8980, 9336, 10146, 14124, 17270, 20533, 23434, 25972, 27944, 29570,
+        31416,
+    ]),
+    cdf_pad(&[
+        1727, 3948, 6101, 7796, 9841, 12344, 15766, 18944, 20638, 22038, 23963, 25311, 26988,
+        28766, 31012,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        154, 987, 1925, 2051, 2088, 2111, 2151, 23033, 23703, 24284, 24985, 25684, 27259, 28883,
+        30911,
+    ]),
+    cdf_pad(&[
+        1135, 1322, 1493, 2635, 2696, 2737, 2770, 21016, 22935, 25057, 27251, 29173, 30089, 30960,
+        31933,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+    cdf_pad(&[
+        2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+        28672, 30720,
+    ]),
+];
+
+pub(crate) static DEFAULT_INTERINTRA_CDF: [[u16; (2) as usize + 1]; BLOCK_SIZE_GROUPS as usize] = [
+    cdf_pad(&[16384]),
+    cdf_pad(&[26887]),
+    cdf_pad(&[27597]),
+    cdf_pad(&[30237]),
+];
+
+pub(crate) static DEFAULT_WEDGE_INTERINTRA_CDF: [[u16; (2) as usize + 1];
+    BLOCK_SIZES_ALL as usize] = [
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[20036]),
+    cdf_pad(&[24957]),
+    cdf_pad(&[26704]),
+    cdf_pad(&[27530]),
+    cdf_pad(&[29564]),
+    cdf_pad(&[29444]),
+    cdf_pad(&[26872]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+    cdf_pad(&[16384]),
+];
+
+pub(crate) static DEFAULT_INTERINTRA_MODE_CDF: [[u16; (INTERINTRA_MODES) as usize + 1];
+    BLOCK_SIZE_GROUPS as usize] = [
+    cdf_pad(&[8192, 16384, 24576]),
+    cdf_pad(&[1875, 11082, 27332]),
+    cdf_pad(&[2473, 9996, 26388]),
+    cdf_pad(&[4238, 11537, 25926]),
+];
+
+pub(crate) static DEFAULT_SEGMENT_PRED_CDF: [[u16; (2) as usize + 1];
+    SEG_TEMPORAL_PRED_CTXS as usize] = [
+    cdf_pad(&[128 * 128]),
+    cdf_pad(&[128 * 128]),
+    cdf_pad(&[128 * 128]),
+];
+
+pub(crate) static DEFAULT_SWITCHABLE_RESTORE_CDF: [u16; (RESTORE_SWITCHABLE_TYPES) as usize + 1] =
+    cdf_pad(&[9413, 22581]);
+
+pub(crate) static DEFAULT_WIENER_RESTORE_CDF: [u16; (2) as usize + 1] = cdf_pad(&[11570]);
+
+pub(crate) static DEFAULT_SGRPROJ_RESTORE_CDF: [u16; (2) as usize + 1] = cdf_pad(&[16855]);
+
+pub(crate) static DEFAULT_SWITCHABLE_INTERP_CDF: [[u16; (SWITCHABLE_FILTERS) as usize + 1];
+    SWITCHABLE_FILTER_CONTEXTS as usize] = [
+    cdf_pad(&[31935, 32720]),
+    cdf_pad(&[5568, 32719]),
+    cdf_pad(&[422, 2938]),
+    cdf_pad(&[28244, 32608]),
+    cdf_pad(&[31206, 31953]),
+    cdf_pad(&[4862, 32121]),
+    cdf_pad(&[770, 1152]),
+    cdf_pad(&[20889, 25637]),
+    cdf_pad(&[31910, 32724]),
+    cdf_pad(&[4120, 32712]),
+    cdf_pad(&[305, 2247]),
+    cdf_pad(&[27403, 32636]),
+    cdf_pad(&[31022, 32009]),
+    cdf_pad(&[2963, 32093]),
+    cdf_pad(&[601, 943]),
+    cdf_pad(&[14969, 21398]),
+];
+
+pub(crate) static DEFAULT_INTER_EXT_TX_CDF: [[[u16; (TX_TYPES) as usize + 1];
+    EXT_TX_SIZES as usize];
+    EXT_TX_SETS_INTER as usize] = [
+    [cdf_pad(&[]), cdf_pad(&[]), cdf_pad(&[]), cdf_pad(&[])],
+    [
+        cdf_pad(&[
+            4458, 5560, 7695, 9709, 13330, 14789, 17537, 20266, 21504, 22848, 23934, 25474, 27727,
+            28915, 30631,
+        ]),
+        cdf_pad(&[
+            1645, 2573, 4778, 5711, 7807, 8622, 10522, 15357, 17674, 20408, 22517, 25010, 27116,
+            28856, 30749,
+        ]),
+        cdf_pad(&[
+            2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+            28672, 30720,
+        ]),
+        cdf_pad(&[
+            2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624,
+            28672, 30720,
+        ]),
+    ],
+    [
+        cdf_pad(&[
+            2731, 5461, 8192, 10923, 13653, 16384, 19115, 21845, 24576, 27307, 30037,
+        ]),
+        cdf_pad(&[
+            2731, 5461, 8192, 10923, 13653, 16384, 19115, 21845, 24576, 27307, 30037,
+        ]),
+        cdf_pad(&[
+            770, 2421, 5225, 12907, 15819, 18927, 21561, 24089, 26595, 28526, 30529,
+        ]),
+        cdf_pad(&[
+            2731, 5461, 8192, 10923, 13653, 16384, 19115, 21845, 24576, 27307, 30037,
+        ]),
+    ],
+    [
+        cdf_pad(&[16384]),
+        cdf_pad(&[4167]),
+        cdf_pad(&[1998]),
+        cdf_pad(&[748]),
+    ],
+];
+
+pub(crate) static DEFAULT_SKIP_MODE_CDFS: [[u16; (2) as usize + 1]; SKIP_MODE_CONTEXTS as usize] =
+    [cdf_pad(&[32621]), cdf_pad(&[20708]), cdf_pad(&[8127])];
+
+pub(crate) static DEFAULT_INTRA_INTER_CDF: [[u16; (2) as usize + 1];
+    INTRA_INTER_CONTEXTS as usize] = [
+    cdf_pad(&[806]),
+    cdf_pad(&[16662]),
+    cdf_pad(&[20186]),
+    cdf_pad(&[26538]),
+];
+
+pub(crate) static DEFAULT_SPATIAL_PRED_SEG_TREE_CDF: [[u16; (MAX_SEGMENTS) as usize + 1];
+    SPATIAL_PREDICTION_PROBS as usize] = [
+    cdf_pad(&[5622, 7893, 16093, 18233, 27809, 28373, 32533]),
+    cdf_pad(&[14274, 18230, 22557, 24935, 29980, 30851, 32344]),
+    cdf_pad(&[27527, 28487, 28723, 28890, 32397, 32647, 32679]),
+];

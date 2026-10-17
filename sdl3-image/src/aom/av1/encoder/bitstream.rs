@@ -23,6 +23,7 @@ use crate::aom::aom_dsp::bitwriter_buffer::*;
 use crate::aom::aom_integer::{aom_uleb_decode, aom_uleb_encode, aom_uleb_size_in_bytes};
 use crate::aom::av1::common::av1_common_int::*;
 use crate::aom::av1::common::blockd::*;
+use crate::aom::av1::common::cdef::CDEF_STRENGTH_BITS;
 use crate::aom::av1::common::cfl::is_cfl_allowed;
 use crate::aom::av1::common::entropymode::*;
 use crate::aom::av1::common::enums::*;
@@ -740,10 +741,23 @@ fn encode_loopfilter(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
     }
 }
 
-fn encode_cdef(cm: &Av1Common) {
+fn encode_cdef(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
     debug_assert!(!cm.features.coded_lossless);
-    // (CDEF is disabled in the sequence)
-    debug_assert!(cm.seq_params.enable_cdef == 0);
+    if cm.seq_params.enable_cdef == 0 {
+        return;
+    }
+    if cm.features.allow_intrabc {
+        return;
+    }
+    let num_planes = av1_num_planes(cm);
+    aom_wb_write_literal(wb, cm.cdef_info.cdef_damping - 3, 2);
+    aom_wb_write_literal(wb, cm.cdef_info.cdef_bits, 2);
+    for i in 0..cm.cdef_info.nb_cdef_strengths as usize {
+        aom_wb_write_literal(wb, cm.cdef_info.cdef_strengths[i], CDEF_STRENGTH_BITS);
+        if num_planes > 1 {
+            aom_wb_write_literal(wb, cm.cdef_info.cdef_uv_strengths[i], CDEF_STRENGTH_BITS);
+        }
+    }
 }
 
 fn write_delta_q(wb: &mut AomWriteBitBuffer, delta_q: i32) {
@@ -1088,7 +1102,7 @@ fn write_uncompressed_header_obu(
     } else {
         if !features.coded_lossless {
             encode_loopfilter(cm, wb);
-            encode_cdef(cm);
+            encode_cdef(cm, wb);
         }
         encode_restoration_mode(cm);
     }

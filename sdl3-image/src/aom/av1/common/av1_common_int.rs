@@ -18,7 +18,7 @@ use super::blockd::*;
 use super::entropy::EntropyContext;
 use super::entropymode::FrameContext;
 use super::enums::*;
-use super::mv::IntMv;
+use super::mv::{IntMv, WarpedMotionParams, DEFAULT_WARP_PARAMS};
 use super::scale::ScaleFactors;
 use super::seg_common::{Segmentation, MAX_SEGMENTS};
 use super::tile_common::TileInfo;
@@ -114,6 +114,8 @@ pub(crate) struct RefCntBuffer {
     pub(crate) mode_deltas: [i8; MAX_MODE_LF_DELTAS as usize],
 
     pub(crate) frame_context: Box<FrameContext>,
+
+    pub(crate) global_motion: [WarpedMotionParams; REF_FRAMES as usize],
 }
 
 /// Translation of `BufferPool` (no frame buffer callbacks; single-threaded,
@@ -731,6 +733,9 @@ pub(crate) struct Av1Common {
     /// Spatial layer ID of this frame
     /// (in the range 0 ... (number_spatial_layers - 1)).
     pub(crate) spatial_layer_id: i32,
+
+    /// Global motion parameters for each reference frame.
+    pub(crate) global_motion: [WarpedMotionParams; REF_FRAMES as usize],
 }
 
 impl Default for Av1Common {
@@ -778,6 +783,7 @@ impl Default for Av1Common {
             ref_frame_side: [0; REF_FRAMES as usize],
             temporal_layer_id: 0,
             spatial_layer_id: 0,
+            global_motion: [DEFAULT_WARP_PARAMS; REF_FRAMES as usize],
         }
     }
 }
