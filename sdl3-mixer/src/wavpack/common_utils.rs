@@ -192,6 +192,20 @@ pub(crate) fn free_single_stream(wps: &mut WavpackStream) {
     wps.blockbuff = None;
     wps.block2buff = None;
 
+    // FIXME (upstream): a seek that fails after freeing the streams can
+    // leave stream 0 with a header (the last one it found) that covers the
+    // current position, and its old decoder state, so the next
+    // WavpackUnpackSamples() carries on decoding without reading a block:
+    // from the freed block's bitstreams and DSD data (upstream reads freed
+    // memory) or the freed DSD tables (upstream reads through NULL). Here
+    // they go with the block, so those samples come out muted.
+    wps.wvbits = Bitstream::default();
+    wps.wvcbits = Bitstream::default();
+    wps.wvxbits = Bitstream::default();
+    wps.dsd.data = Vec::new();
+    wps.dsd.byteptr = 0;
+    wps.dsd.endptr = 0;
+
     free_dsd_tables(wps);
 }
 
