@@ -280,9 +280,27 @@ In dependency order, after the core each one needs exists:
    the assembly ones; checked bit-for-bit against upstream's C on files from
    WavPack's own encoder (through `tools/gen_sdl_mixer_testdata.py`),
    truncated, corrupted (with their block checksums fixed), with good, cut,
-   damaged and wrong correction files, mixed, looped and seeked. Not
-   translated, as they need an external library: FluidSynth, libgme, and
-   the libmpg123, libvorbisfile and libFLAC decoders.
+   damaged and wrong correction files, mixed, looped and seeked. Ogg
+   Vorbis through the libvorbis that SDL_mixer vendors (`decoder_vorbis.c`
+   over libvorbisfile and libvorbis 1.3.7's decoder, registered before
+   stb_vorbis as upstream, whose default build has both) is done in
+   `sdl3-mixer/src/vorbis/` with the reading half of libogg's `bitwise.c`
+   in `sdl3-mixer/src/ogg/`, under libvorbis's BSD license: the header and
+   comment parsing, codebooks, floor 0 (with the plain float LSP curve)
+   and floor 1, the three residue types, mapping 0, the MDCT, windows and
+   overlap-add, and vorbisfile's opening, chained links, PCM seeking and
+   float reading, with the loop tags as `decoder_vorbis.c` handles them;
+   the encoder-only files (`analysis.c`, `bitrate.c`, `envelope.c`,
+   `lpc.c`, `psy.c`, `smallft.c`, `vorbisenc.c` and the mode and book
+   tables) and the vorbisfile calls SDL_mixer doesn't make (`ov_read()`,
+   time and bitrate queries, page and lapped seeks, stdio opening) are
+   left out; checked bit-for-bit against upstream's C on files from
+   ffmpeg's libvorbis encoder (mono to eight channels, qualities and
+   bitrates, chained, multiplexed and with holes) and a crafted floor 0
+   stream from `tools/gen_sdl_mixer_testdata.py`, truncated and corrupted,
+   mixed, looped and seeked. Not translated, as they need an external
+   library or are LGPL: FluidSynth, libgme, and the libmpg123 and libFLAC
+   decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

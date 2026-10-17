@@ -266,6 +266,280 @@ def ogg_files():
     ffmpeg('ogg_8k.ogg', 8000, 1, 0.5, ['-c:a', 'libvorbis', '-q:a', '-1'], 'ogg', seed=63)
 
 
+class BitWriter:
+    """An LSb-first bit packer, as libogg's oggpack_write()."""
+
+    def __init__(self):
+        self.out = bytearray()
+        self.bits = 0
+
+    def write(self, value, bits):
+        for i in range(bits):
+            if self.bits % 8 == 0:
+                self.out.append(0)
+            if (value >> i) & 1:
+                self.out[-1] |= 1 << (self.bits % 8)
+            self.bits += 1
+
+    def string(self, data):
+        for b in data:
+            self.write(b, 8)
+
+    def data(self):
+        return bytes(self.out)
+
+
+def vq_float(v):
+    """A Vorbis codebook's packed float (21-bit mantissa, biased exponent)."""
+    sign = 0
+    if v < 0:
+        sign, v = 0x80000000, -v
+    exp = math.floor(math.log(v, 2) + .001)
+    mant = round(v * 2.0 ** (20 - exp))
+    return sign | ((exp + 768) << 21) | mant
+
+
+def vorbis_book(w, dim, lengths, maptype=0, ordered=False, q_min=0.0, q_delta=1.0, q_quant=1, seq=0, quant=()):
+    """Write a Vorbis codebook into the setup header being written."""
+    entries = len(lengths)
+    w.write(0x564342, 24)
+    w.write(dim, 16)
+    w.write(entries, 24)
+    if ordered:
+        w.write(1, 1)
+        w.write(lengths[0] - 1, 5)
+        i, cur = 0, lengths[0]
+        while i < entries:
+            n = 0
+            while i + n < entries and lengths[i + n] == cur:
+                n += 1
+            w.write(n, (entries - i).bit_length())
+            i += n
+            cur += 1
+    else:
+        w.write(0, 1)
+        sparse = 0 in lengths
+        w.write(int(sparse), 1)
+        for n in lengths:
+            if sparse:
+                w.write(int(n > 0), 1)
+                if n:
+                    w.write(n - 1, 5)
+            else:
+                w.write(n - 1, 5)
+    w.write(maptype, 4)
+    if maptype:
+        w.write(vq_float(q_min), 32)
+        w.write(vq_float(q_delta), 32)
+        w.write(q_quant - 1, 4)
+        w.write(seq, 1)
+        for q in quant:
+            w.write(q, q_quant)
+
+
+def vorbis_floor0_stream():
+    """A crafted stereo Vorbis stream with floor 0 (which no encoder in use
+    today writes), residues 0, 1 and 2, channel coupling and submaps, and
+    codebooks of every kind (ordered and sparse lengths, value mappings 1 and
+    2, a single-entry book); its audio packets are random bits, which decode
+    to deterministic garbage through all of it."""
+    rate, channels, serial = 22050, 2, 0x0f0f
+    w = BitWriter()
+    w.string(b'\x01vorbis')
+    w.write(0, 32)
+    w.write(channels, 8)
+    w.write(rate, 32)
+    w.write(0, 32)
+    w.write(64000, 32)
+    w.write(0, 32)
+    w.write(8, 4)  # 256-sample short blocks
+    w.write(11, 4)  # 2048-sample long blocks
+    w.write(1, 1)
+    ident = w.data()
+    w = BitWriter()
+    vendor = b'sdl3-mixer floor 0'
+    comments = [b'TITLE=Floor 0', b'LOOP_START=300', b'LOOP-LENGTH=4000']
+    w.string(b'\x03vorbis')
+    w.write(len(vendor), 32)
+    w.string(vendor)
+    w.write(len(comments), 32)
+    for c in comments:
+        w.write(len(c), 32)
+        w.string(c)
+    w.write(1, 1)
+    comment = w.data()
+    w = BitWriter()
+    w.string(b'\x05vorbis')
+    w.write(5 - 1, 8)
+    # 0: floor 0's LSP book: ordered lengths, value mapping 1, sequenced
+    vorbis_book(w, 4, [4] * 16, maptype=1, ordered=True, q_min=0.25, q_delta=0.05, q_quant=2, seq=1, quant=(0, 1))
+    # 1: the residues' partition book
+    vorbis_book(w, 2, [2, 2, 2, 2])
+    # 2: a sparse book, value mapping 1
+    vorbis_book(w, 2, [2, 0, 3, 3, 2, 0, 3, 3, 0], maptype=1, q_min=-0.01, q_delta=0.01, q_quant=2, quant=(0, 1, 2))
+    # 3: ordered lengths, value mapping 2
+    vorbis_book(w, 1, [3] * 8, maptype=2, ordered=True, q_min=-0.005, q_delta=0.00125, q_quant=4,
+                quant=(3, 9, 0, 15, 7, 1, 12, 5))
+    # 4: a single-entry book
+    vorbis_book(w, 2, [1], maptype=1, q_min=0.0003125, q_delta=1.0, q_quant=1, quant=(0,))
+    w.write(0, 6)  # one time backend
+    w.write(0, 16)
+    w.write(1 - 1, 6)  # one floor, of type 0
+    w.write(0, 16)
+    w.write(10, 8)  # order
+    w.write(rate, 16)
+    w.write(256, 16)  # bark map size
+    w.write(6, 6)  # amplitude bits
+    w.write(1, 8)  # amplitude offset (dB)
+    w.write(1 - 1, 4)
+    w.write(0, 8)
+    w.write(3 - 1, 6)  # three residues, of the three types
+    for rtype, begin, end in ((0, 0, 1024), (1, 16, 1000), (2, 0, 2048)):
+        w.write(rtype, 16)
+        w.write(begin, 24)
+        w.write(end, 24)
+        w.write(16 - 1, 24)  # grouping
+        w.write(2 - 1, 6)  # partitions
+        w.write(1, 8)  # partition book
+        w.write(0, 3)  # partition 0: no stages
+        w.write(0, 1)
+        w.write(7, 3)  # partition 1: three stages
+        w.write(0, 1)
+        for book in (2, 3, 4):
+            w.write(book, 8)
+    w.write(3 - 1, 6)  # three mappings
+    # 0: coupled, residue 0
+    w.write(0, 16)
+    w.write(0, 1)
+    w.write(1, 1)
+    w.write(0, 8)
+    w.write(0, 1)
+    w.write(1, 1)
+    w.write(0, 2)
+    w.write(0, 8)
+    w.write(0, 8)
+    w.write(0, 8)
+    # 1: two submaps, residues 1 and 2
+    w.write(0, 16)
+    w.write(1, 1)
+    w.write(2 - 1, 4)
+    w.write(0, 1)
+    w.write(0, 2)
+    w.write(0, 4)
+    w.write(1, 4)
+    for res in (1, 2):
+        w.write(0, 8)
+        w.write(0, 8)
+        w.write(res, 8)
+    # 2: coupled the other way, residue 2
+    w.write(0, 16)
+    w.write(0, 1)
+    w.write(1, 1)
+    w.write(0, 8)
+    w.write(1, 1)
+    w.write(0, 1)
+    w.write(0, 2)
+    w.write(0, 8)
+    w.write(0, 8)
+    w.write(2, 8)
+    w.write(3 - 1, 6)  # three modes
+    for blockflag, mapping in ((0, 0), (1, 1), (1, 2)):
+        w.write(blockflag, 1)
+        w.write(0, 16)
+        w.write(0, 16)
+        w.write(mapping, 8)
+    w.write(1, 1)
+    setup = w.data()
+
+    rng = Lcg(0x0f0f)
+    out = ogg_page(serial, 0, 0, 2, [len(ident)], ident)
+    lacing = []
+    for p in (comment, setup):
+        lacing += [255] * (len(p) // 255) + [len(p) % 255]
+    out += ogg_page(serial, 1, 0, 0, lacing, comment + setup)
+    blocksizes = (256, 2048)
+    modes = [0, 0, 1, 2, 2, 1, 0, 1, 2, 0, 0, 0, 1, 1, 2, 0, 2, 1, 0, 2, 1, 1, 0, 2]
+    gp, last, seq = 0, None, 2
+    packets = []
+    for mode in modes:
+        n = 24 + (rng.next() >> 24) % 96
+        pkt = bytearray(rng.next() >> 24 for _ in range(n))
+        pkt[0] = (pkt[0] & ~7) | (mode << 1)
+        bs = blocksizes[1 if mode else 0]
+        if last is not None:
+            gp += last // 4 + bs // 4
+        last = bs
+        packets.append((bytes(pkt), gp))
+    for start in range(0, len(packets), 4):
+        page = packets[start:start + 4]
+        eos = start + 4 >= len(packets)
+        out += ogg_page(serial, seq, page[-1][1], 4 if eos else 0, [len(p) for p, _ in page],
+                        b''.join(p for p, _ in page))
+        seq += 1
+    return out
+
+
+def ogg_pages(data):
+    """The pages of an Ogg file."""
+    pages, p = [], 0
+    while p + 27 <= len(data):
+        n = 27 + data[p + 26]
+        n += sum(data[p + 27:p + n])
+        pages.append(data[p:p + n])
+        p += n
+    return pages
+
+
+def reserial(data, serial):
+    """An Ogg stream's pages with another serial number (checksums fixed)."""
+    out = b''
+    for page in ogg_pages(data):
+        page = bytearray(page)
+        page[14:18] = struct.pack('<I', serial)
+        page[22:26] = b'\0\0\0\0'
+        page[22:26] = struct.pack('<I', ogg_crc(bytes(page)))
+        out += page
+    return out
+
+
+def vorbis_files():
+    vorbis = ['-c:a', 'libvorbis']
+    ffmpeg('ogg_q10_48k.ogg', 48000, 2, 0.08, vorbis + ['-q:a', '10'], 'ogg', seed=64)
+    ffmpeg('ogg_abr_mono.ogg', 44100, 1, 0.25, vorbis + ['-b:a', '48k'], 'ogg', seed=65,
+           metadata=(('TITLE', 'Vorbis ABR'), ('LOOPSTART', '2000'), ('LOOPEND', '5000')))
+    ffmpeg('ogg_3ch.ogg', 16000, 3, 0.15, vorbis + ['-q:a', '3'], 'ogg', seed=66)
+    ffmpeg('ogg_8ch.ogg', 11025, 8, 0.1, vorbis + ['-q:a', '0'], 'ogg', seed=67)
+    # a stream short enough for its only audio page to be the first and the last
+    ffmpeg('ogg_short.ogg', 8000, 1, 0.03, vorbis + ['-q:a', '0'], 'ogg', seed=68)
+    # A chained file: four links with different rates and channel counts
+    # (the 3- and 6-channel ones take the decoder's channel maps).
+    chain = [ffmpeg('', 22050, 2, 0.08, vorbis + ['-q:a', '1', '-serial_offset', '11'], 'ogg', seed=69, save=False),
+             ffmpeg('', 16000, 1, 0.08, vorbis + ['-q:a', '0', '-serial_offset', '22'], 'ogg', seed=70, save=False,
+                    metadata=(('TITLE', 'Second link'),)),
+             ffmpeg('', 11025, 3, 0.08, vorbis + ['-q:a', '2', '-serial_offset', '33'], 'ogg', seed=71, save=False),
+             ffmpeg('', 11025, 6, 0.08, vorbis + ['-q:a', '1', '-serial_offset', '44'], 'ogg', seed=72, save=False)]
+    write('ogg_chained.ogg', b''.join(chain))
+    # two links with junk between them
+    junk = bytes(Lcg(73).next() >> 24 for _ in range(300))
+    write('ogg_chained_junk.ogg', chain[1] + junk + reserial(chain[0], 55))
+    # A Vorbis stream multiplexed with an Opus one (whose BOS page comes first).
+    opus = ogg_pages(ffmpeg('', 48000, 1, 0.15, ['-c:a', 'libopus', '-b:a', '24k', '-serial_offset', '66'], 'ogg',
+                            seed=74, save=False))
+    vorb = ogg_pages(ffmpeg('', 22050, 1, 0.15, vorbis + ['-q:a', '0', '-serial_offset', '77'], 'ogg', seed=75,
+                            save=False))
+    mux = [opus[0], vorb[0]]
+    rest_o, rest_v = opus[1:], vorb[1:]
+    while rest_o or rest_v:
+        if rest_v:
+            mux.append(rest_v.pop(0))
+        if rest_o:
+            mux.append(rest_o.pop(0))
+    write('ogg_mux.ogg', b''.join(mux))
+    # a lost page
+    pages = ogg_pages(ffmpeg('', 22050, 2, 0.3, vorbis + ['-q:a', '1'], 'ogg', seed=76, save=False))
+    write('ogg_hole.ogg', b''.join(pages[:4] + pages[5:]))
+    write('ogg_floor0.ogg', vorbis_floor0_stream())
+
 def flac_files():
     ffmpeg('flac_s16_stereo.flac', 22050, 2, 0.25, ['-c:a', 'flac'], 'flac', seed=70,
            metadata=(('TITLE', 'FLAC test'), ('ARTIST', 'sdl3-mixer'), ('ALBUM', 'Test data'),
@@ -796,6 +1070,7 @@ def main():
     voc_files()
     mp3_files()
     ogg_files()
+    vorbis_files()
     flac_files()
     opus_files()
     wavpack_files()

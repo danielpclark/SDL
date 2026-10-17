@@ -22,8 +22,10 @@
 //!
 //! * Decoders: WAV (PCM, IEEE float, mu-law, a-law, MS and IMA ADPCM, with
 //!   `smpl` loops), AIFF and AIFF-C, Creative VOC, Sun/NeXT AU, MP3 (the
-//!   bundled dr_mp3), Ogg Vorbis (the bundled stb_vorbis), FLAC (the
-//!   bundled dr_flac), Ogg Opus (opusfile, libopus's decoder and libogg,
+//!   bundled dr_mp3), Ogg Vorbis (libvorbisfile and libvorbis's decoder
+//!   over libogg, as SDL_mixer vendors them, translated here under their
+//!   BSD licenses, then the bundled stb_vorbis), FLAC (the bundled
+//!   dr_flac), Ogg Opus (opusfile, libopus's decoder and libogg,
 //!   as SDL_mixer vendors them, translated here under their BSD licenses),
 //!   WavPack (its library, as SDL_mixer vendors it, translated here under
 //!   its BSD license: lossless and hybrid files, with their .wvc correction
@@ -40,8 +42,8 @@
 //!   default). **TiMidity is not zlib-licensed**: `sdl3-mixer-timidity` is
 //!   under `Artistic-1.0-Perl OR LGPL-2.1-only`. Build with
 //!   `default-features = false` for an sdl3-mixer without MIDI under the
-//!   zlib license only (and the BSD licenses of its Opus and WavPack
-//!   decoders' libraries, and libxmp's MIT license).
+//!   zlib license only (and the BSD licenses of its Vorbis, Opus and
+//!   WavPack decoders' libraries, and libxmp's MIT license).
 //! * Tracker modules (the `XMP` decoder) through libxmp, as SDL_mixer
 //!   vendors it, translated here under its MIT license: the player and its
 //!   software mixer, with all 52 of the loaders SDL_mixer's build enables
@@ -53,9 +55,8 @@
 //! * The decoders
 //!   upstream builds against another external library are not translated:
 //!   MIDI through FluidSynth,
-//!   the game music formats (libgme), and the alternative MP3,
-//!   Vorbis and FLAC decoders (libmpg123, libvorbisfile, libFLAC), as in an
-//!   upstream build without them. [`audio_decoder`] lists the ones
+//!   the game music formats (libgme), and the alternative MP3 and FLAC
+//!   decoders (libmpg123, libFLAC), as in an upstream build without them. [`audio_decoder`] lists the ones
 //!   available.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
@@ -100,6 +101,7 @@ mod decoder_stb_vorbis;
 #[cfg(feature = "timidity")]
 mod decoder_timidity;
 mod decoder_voc;
+mod decoder_vorbis;
 mod decoder_wav;
 mod decoder_wavpack;
 mod decoder_xmp;
@@ -113,6 +115,7 @@ mod opus;
 mod opusfile;
 mod spatialization;
 mod stb_vorbis;
+mod vorbis;
 mod wavpack;
 mod xmp;
 

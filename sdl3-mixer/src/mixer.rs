@@ -64,11 +64,14 @@ use crate::{
 // !!! FIXME: should RAW go first (only needs to check if it was explicitly
 // !!! FIXME: requested), and SINEWAVE last (must be requested, likely rare).
 //
-// (the decoders upstream builds against an external library are left out,
-// as in an upstream build without them; the bundled Timidity is the
-// `timidity` feature's, as DECODER_MIDI_TIMIDITY is upstream.)
+// (the decoders upstream builds against an external library it doesn't
+// vendor, or one that is LGPL, are left out, as in an upstream build
+// without them; VORBIS is libvorbisfile's, translated in `crate::vorbis`;
+// the bundled Timidity is the `timidity` feature's, as
+// DECODER_MIDI_TIMIDITY is upstream.)
 static DECODERS: &[&Decoder] = &[
     &crate::decoder_wav::DECODER,
+    &crate::decoder_vorbis::DECODER,
     &crate::decoder_stb_vorbis::DECODER,
     &crate::decoder_opus::DECODER,
     &crate::decoder_drflac::DECODER,

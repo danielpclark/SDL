@@ -101,9 +101,19 @@ static FILES: &[(&str, &[u8])] = files![
     "mp3_mpeg25_mixed.mp3",
     "mp3_mpeg2_noxing.mp3",
     "mp3_vbr_stereo.mp3",
+    "ogg_3ch.ogg",
     "ogg_6ch.ogg",
+    "ogg_8ch.ogg",
     "ogg_8k.ogg",
+    "ogg_abr_mono.ogg",
+    "ogg_chained.ogg",
+    "ogg_chained_junk.ogg",
+    "ogg_floor0.ogg",
+    "ogg_hole.ogg",
     "ogg_mono.ogg",
+    "ogg_mux.ogg",
+    "ogg_q10_48k.ogg",
+    "ogg_short.ogg",
     "ogg_stereo.ogg",
     "opus_6ch.opus",
     "opus_celt_2_5ms.opus",
@@ -275,6 +285,23 @@ static MODULES: &[(&str, &[u8])] = modules![
     "xmf_astroidea.xmf",
 ];
 
+/// Files tested again with another decoder forced (the reference's
+/// `name DECODER` sections): the Vorbis files with stb_vorbis and the
+/// FLAC ones with dr_flac, which upstream's default build tries after
+/// libvorbisfile and libFLAC.
+static FORCED: &[(&str, &str)] = &[
+    ("ogg_6ch.ogg", "STBVORBIS"),
+    ("ogg_8k.ogg", "STBVORBIS"),
+    ("ogg_mono.ogg", "STBVORBIS"),
+    ("ogg_stereo.ogg", "STBVORBIS"),
+];
+
+thread_local! {
+    /// The decoder every load of the file being tested asks for, if any
+    /// (the C program's `g_force`).
+    static FORCE: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+}
+
 /// The files the mixer feature scenarios play.
 static SCENARIO_FILES: &[&str] = &[
     "wav_s16_stereo.wav",
@@ -397,6 +424,7 @@ fn decode_props(
     force: Option<&str>,
     extra: Option<&Properties>,
 ) {
+    let force = force.or(FORCE.get());
     let props = (force.is_some() || extra.is_some()).then(|| {
         let p = Properties::new();
         if let Some(extra) = extra {
@@ -503,15 +531,19 @@ fn load_audio(
     predecode: bool,
     extra: Option<&Properties>,
 ) -> sdl3::Result<Audio> {
-    match extra {
-        None => Audio::load_io(Some(m), &mut mem_io(data), predecode),
-        Some(extra) => {
-            let p = Properties::new();
-            p.copy_from(extra).unwrap();
-            p.set(PROP_AUDIO_LOAD_PREDECODE_BOOLEAN, predecode).unwrap();
-            Audio::load_with_properties(Some(&mut mem_io(data)), Some(m), &p)
-        }
+    let force = FORCE.get();
+    if extra.is_none() && force.is_none() {
+        return Audio::load_io(Some(m), &mut mem_io(data), predecode);
     }
+    let p = Properties::new();
+    if let Some(extra) = extra {
+        p.copy_from(extra).unwrap();
+    }
+    if let Some(name) = force {
+        p.set(PROP_AUDIO_DECODER_STRING, name).unwrap();
+    }
+    p.set(PROP_AUDIO_LOAD_PREDECODE_BOOLEAN, predecode).unwrap();
+    Audio::load_with_properties(Some(&mut mem_io(data)), Some(m), &p)
 }
 
 fn mixtest(out: &mut String, label: &str, data: &[u8], predecode: bool) {
@@ -1079,7 +1111,10 @@ fn wvtest(out: &mut String, name: &str, data: &[u8]) {
 
 fn test_file(out: &mut String, name: &str, data: &[u8]) {
     let len = data.len();
-    writeln!(out, "== {name}").unwrap();
+    match FORCE.get() {
+        Some(force) => writeln!(out, "== {name} {force}").unwrap(),
+        None => writeln!(out, "== {name}").unwrap(),
+    }
 
     write!(out, "open: ").unwrap();
     decode(out, data, None, true, None);
@@ -1209,7 +1244,10 @@ fn test_file(out: &mut String, name: &str, data: &[u8]) {
 
     mixtest(out, "mix", data, false);
     mixtest(out, "mixpre", data, true);
-    if name.starts_with("opus_") || name.ends_with(".wv") {
+    if name.starts_with("opus_")
+        || name.ends_with(".wv")
+        || (FORCE.get().is_none() && (name.starts_with("ogg_") || name.starts_with("flac_")))
+    {
         seektest(out, data);
     }
     if name.ends_with(".wv") {
@@ -1550,14 +1588,25 @@ fn misc_matches_upstream() {
 
 fn files_with_prefix(prefixes: &[&str]) {
     setup();
-    let mut out = String::new();
-    let mut names = Vec::new();
+    // (the files, and those of them tested again with a forced decoder,
+    // in the reference's order)
+    let mut tests: Vec<(String, &str, &[u8], Option<&'static str>)> = Vec::new();
     for (name, data) in FILES.iter().chain(MODULES) {
         if prefixes.iter().any(|p| name.starts_with(p)) {
-            test_file(&mut out, name, data);
-            names.push(*name);
+            tests.push((name.to_string(), name, data, None));
+            for &(_, force) in FORCED.iter().filter(|(n, _)| n == name) {
+                tests.push((format!("{name} {force}"), name, data, Some(force)));
+            }
         }
     }
+    tests.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut out = String::new();
+    for (_, name, data, force) in &tests {
+        FORCE.set(*force);
+        test_file(&mut out, name, data);
+        FORCE.set(None);
+    }
+    let names: Vec<&str> = tests.iter().map(|t| t.0.as_str()).collect();
     compare(&out, &names);
 }
 
@@ -1586,9 +1635,25 @@ fn mp3_matches_upstream() {
     files_with_prefix(&["mp3_", "mp2_"]);
 }
 
+// (the Ogg Vorbis files in a few tests, so they run in parallel)
 #[test]
-fn vorbis_matches_upstream() {
-    files_with_prefix(&["ogg_"]);
+fn vorbis_channels_matches_upstream() {
+    files_with_prefix(&["ogg_3", "ogg_6", "ogg_8"]);
+}
+
+#[test]
+fn vorbis_abr_chained_matches_upstream() {
+    files_with_prefix(&["ogg_a", "ogg_c"]);
+}
+
+#[test]
+fn vorbis_floor0_holes_mux_matches_upstream() {
+    files_with_prefix(&["ogg_f", "ogg_h", "ogg_m"]);
+}
+
+#[test]
+fn vorbis_quality_short_matches_upstream() {
+    files_with_prefix(&["ogg_q", "ogg_s"]);
 }
 
 #[test]
