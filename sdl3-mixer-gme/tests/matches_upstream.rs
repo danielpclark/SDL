@@ -488,6 +488,15 @@ macro_rules! file_tests {
 }
 
 file_tests! {
+    ay_badtracks_matches_upstream: "ay_badtracks.ay",
+    ay_cpc_matches_upstream: "ay_cpc.ay",
+    ay_odd_matches_upstream: "ay_odd.ay",
+    ay_spectrum_matches_upstream: "ay_spectrum.ay",
+    kss_ext_matches_upstream: "kss_ext.kss",
+    kss_gg_matches_upstream: "kss_gg.kss",
+    kss_odd_matches_upstream: "kss_odd.kss",
+    kss_scc_matches_upstream: "kss_scc.kss",
+    kss_sms_matches_upstream: "kss_sms.kss",
     gbs_apu_matches_upstream: "gbs_apu.gbs",
     gbs_odd_matches_upstream: "gbs_odd.gbs",
     gbs_timer_matches_upstream: "gbs_timer.gbs",

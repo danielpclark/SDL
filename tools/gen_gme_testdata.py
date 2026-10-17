@@ -3,7 +3,8 @@
 
 Every file here is synthetic, made by this script: tiny game music rips
 whose sound programs are assembled here (for the 6502 of the NSF and NSFE
-files, the Game Boy CPU of the GBS files), driving the sound chips the emulators emulate, with their
+files, the Game Boy CPU of the GBS files, the Z80 of the AY and KSS
+files), driving the sound chips the emulators emulate, with their
 metadata, track lists and timing. Nothing comes from a real game.
 
 The output is deterministic, so regenerating the files gives the same
@@ -1610,6 +1611,1040 @@ play:
     write('gbs_odd.gbs', h + code)
 
 
+# ---------------------------------------------------------------------------
+# A small assembler for the Z80 (with the undocumented IXH/IXL/IYH/IYL
+# and SLL forms the emulators run), on the same two-pass assembler: the
+# usual syntax (`LD A,(IX+5)`, `JR NZ,label`, `OUT (C),A`, `EX AF,AF'`...).
+
+Z80_R8 = ['B', 'C', 'D', 'E', 'H', 'L', '(HL)', 'A']
+Z80_R16 = ['BC', 'DE', 'HL', 'SP']
+Z80_R16_STACK = ['BC', 'DE', 'HL', 'AF']
+Z80_CC = ['NZ', 'Z', 'NC', 'C', 'PO', 'PE', 'P', 'M']
+Z80_ALU = ['ADD', 'ADC', 'SUB', 'SBC', 'AND', 'XOR', 'OR', 'CP']
+Z80_CB_SHIFTS = ['RLC', 'RRC', 'RL', 'RR', 'SLA', 'SRA', 'SLL', 'SRL']
+Z80_IMPLIED = {
+    'NOP': [0x00], 'RLCA': [0x07], 'RRCA': [0x0F], 'RLA': [0x17], 'RRA': [0x1F],
+    'DAA': [0x27], 'CPL': [0x2F], 'SCF': [0x37], 'CCF': [0x3F], 'HALT': [0x76],
+    'EXX': [0xD9], 'DI': [0xF3], 'EI': [0xFB],
+    'NEG': [0xED, 0x44], 'RETN': [0xED, 0x45], 'RETI': [0xED, 0x4D],
+    'RRD': [0xED, 0x67], 'RLD': [0xED, 0x6F],
+    'LDI': [0xED, 0xA0], 'CPI': [0xED, 0xA1], 'INI': [0xED, 0xA2], 'OUTI': [0xED, 0xA3],
+    'LDD': [0xED, 0xA8], 'CPD': [0xED, 0xA9], 'IND': [0xED, 0xAA], 'OUTD': [0xED, 0xAB],
+    'LDIR': [0xED, 0xB0], 'CPIR': [0xED, 0xB1], 'INIR': [0xED, 0xB2], 'OTIR': [0xED, 0xB3],
+    'LDDR': [0xED, 0xB8], 'CPDR': [0xED, 0xB9], 'INDR': [0xED, 0xBA], 'OTDR': [0xED, 0xBB],
+}
+
+
+class Z80Asm(Asm):
+    """Assembles Z80 source text (see Asm for the directives and numbers)."""
+
+    def encode(self, mnem, arg, labels, final, pc, line):
+        ops = [o.strip() for o in arg.split(',')] if arg else []
+        ops_u = [o.upper() for o in ops]
+        val = lambda s: self.value(s, labels, final)
+
+        def b8(s):
+            return bytes([val(s) & 0xFF])
+
+        def w16(s):
+            return struct.pack('<H', val(s) & 0xFFFF)
+
+        def rel(s, size):
+            off = val(s) - (pc + size)
+            if final:
+                assert -128 <= off <= 127, (line, off)
+            return bytes([off & 0xFF])
+
+        def is_ind(s):
+            return s.startswith('(') and s.endswith(')')
+
+        def ixy(s):
+            """(prefix, displacement text) of `(IX+d)`/`(IY-d)`, or None."""
+            u = s.upper()
+            for reg, p in (('IX', 0xDD), ('IY', 0xFD)):
+                if u.startswith('(' + reg) and u.endswith(')'):
+                    inner = s[3:-1].strip()
+                    if inner == '':
+                        return p, '0'
+                    return p, ('0' + inner if inner[0] in '+-' else inner)
+            return None
+
+        def half(s):
+            """(prefix, register index) of IXH/IXL/IYH/IYL, or None."""
+            m = {'IXH': (0xDD, 4), 'IXL': (0xDD, 5), 'IYH': (0xFD, 4), 'IYL': (0xFD, 5)}
+            return m.get(s.upper())
+
+        if mnem in Z80_IMPLIED and not ops:
+            return bytes(Z80_IMPLIED[mnem])
+        if mnem == '.OP':
+            return bytes(val(o) & 0xFF for o in ops)
+        if mnem == 'EX':
+            if ops_u == ["AF", "AF'"]:
+                return bytes([0x08])
+            if ops_u == ['DE', 'HL']:
+                return bytes([0xEB])
+            if ops_u == ['(SP)', 'HL']:
+                return bytes([0xE3])
+            if ops_u == ['(SP)', 'IX']:
+                return bytes([0xDD, 0xE3])
+            if ops_u == ['(SP)', 'IY']:
+                return bytes([0xFD, 0xE3])
+        if mnem == 'IM':
+            return bytes([0xED, {0: 0x46, 1: 0x56, 2: 0x5E}[val(ops[0])]])
+        if mnem == 'OUT':
+            if ops_u[0] == '(C)':
+                if ops[1] == '0':
+                    return bytes([0xED, 0x71])
+                return bytes([0xED, 0x41 + Z80_R8.index(ops_u[1]) * 8])
+            return bytes([0xD3]) + b8(ops[0][1:-1])
+        if mnem == 'IN':
+            if ops_u[1] == '(C)':
+                return bytes([0xED, 0x40 + Z80_R8.index(ops_u[0]) * 8])
+            return bytes([0xDB]) + b8(ops[1][1:-1])
+        if mnem == 'LD':
+            d, s = ops_u
+            dx, sx = ixy(ops[0]), ixy(ops[1])
+            dh, sh = half(d), half(s)
+            if d in Z80_R8 and s in Z80_R8:
+                return bytes([0x40 + Z80_R8.index(d) * 8 + Z80_R8.index(s)])
+            if dx and s in Z80_R8:
+                return bytes([dx[0], 0x70 + Z80_R8.index(s)]) + b8(dx[1])
+            if dx:
+                return bytes([dx[0], 0x36]) + b8(dx[1]) + b8(ops[1])
+            if sx and d in Z80_R8:
+                return bytes([sx[0], 0x46 + Z80_R8.index(d) * 8]) + b8(sx[1])
+            if dh and (s in Z80_R8 or half(s)):
+                si = half(s)[1] if half(s) else Z80_R8.index(s)
+                return bytes([dh[0], 0x40 + dh[1] * 8 + si])
+            if sh and d in Z80_R8:
+                return bytes([sh[0], 0x40 + Z80_R8.index(d) * 8 + sh[1]])
+            if dh:
+                return bytes([dh[0], 0x06 + dh[1] * 8]) + b8(ops[1])
+            table = {
+                ('(BC)', 'A'): [0x02], ('(DE)', 'A'): [0x12], ('A', '(BC)'): [0x0A],
+                ('A', '(DE)'): [0x1A], ('SP', 'HL'): [0xF9], ('SP', 'IX'): [0xDD, 0xF9],
+                ('SP', 'IY'): [0xFD, 0xF9], ('I', 'A'): [0xED, 0x47], ('R', 'A'): [0xED, 0x4F],
+                ('A', 'I'): [0xED, 0x57], ('A', 'R'): [0xED, 0x5F],
+            }
+            if (d, s) in table:
+                return bytes(table[(d, s)])
+            if d in Z80_R8 and not is_ind(s):
+                return bytes([0x06 + Z80_R8.index(d) * 8]) + b8(ops[1])
+            if d in ('IX', 'IY'):
+                p = 0xDD if d == 'IX' else 0xFD
+                if is_ind(s):
+                    return bytes([p, 0x2A]) + w16(ops[1][1:-1])
+                return bytes([p, 0x21]) + w16(ops[1])
+            if s in ('IX', 'IY') and is_ind(d):
+                return bytes([0xDD if s == 'IX' else 0xFD, 0x22]) + w16(ops[0][1:-1])
+            if d in Z80_R16 and is_ind(s):
+                if d == 'HL':
+                    return bytes([0x2A]) + w16(ops[1][1:-1])
+                return bytes([0xED, 0x4B + Z80_R16.index(d) * 16]) + w16(ops[1][1:-1])
+            if s in Z80_R16 and is_ind(d):
+                if s == 'HL':
+                    return bytes([0x22]) + w16(ops[0][1:-1])
+                return bytes([0xED, 0x43 + Z80_R16.index(s) * 16]) + w16(ops[0][1:-1])
+            if d in Z80_R16:
+                return bytes([0x01 + Z80_R16.index(d) * 16]) + w16(ops[1])
+            if is_ind(d) and s == 'A':
+                return bytes([0x32]) + w16(ops[0][1:-1])
+            if d == 'A' and is_ind(s):
+                return bytes([0x3A]) + w16(ops[1][1:-1])
+            raise ValueError(line)
+        if mnem in Z80_ALU:
+            i = Z80_ALU.index(mnem)
+            if len(ops) == 2 and ops_u[0] in ('HL', 'IX', 'IY'):
+                if ops_u[0] == 'HL':
+                    r = Z80_R16.index(ops_u[1])
+                    if mnem == 'ADD':
+                        return bytes([0x09 + r * 16])
+                    return bytes([0xED, (0x4A if mnem == 'ADC' else 0x42) + r * 16])
+                p = 0xDD if ops_u[0] == 'IX' else 0xFD
+                src = ops_u[1]
+                r = 2 if src in ('IX', 'IY') else Z80_R16.index(src)
+                return bytes([p, 0x09 + r * 16])
+            if len(ops) == 2:
+                assert ops_u[0] == 'A', line
+                ops, ops_u = ops[1:], ops_u[1:]
+            o = ops[0]
+            x, hx = ixy(o), half(o)
+            if x:
+                return bytes([x[0], 0x86 + i * 8]) + b8(x[1])
+            if hx:
+                return bytes([hx[0], 0x80 + i * 8 + hx[1]])
+            if ops_u[0] in Z80_R8:
+                return bytes([0x80 + i * 8 + Z80_R8.index(ops_u[0])])
+            return bytes([0xC6 + i * 8]) + b8(o)
+        if mnem in ('INC', 'DEC'):
+            o = ops[0]
+            u = ops_u[0]
+            x, hx = ixy(o), half(o)
+            if x:
+                return bytes([x[0], 0x34 if mnem == 'INC' else 0x35]) + b8(x[1])
+            if hx:
+                return bytes([hx[0], (0x04 if mnem == 'INC' else 0x05) + hx[1] * 8])
+            if u in ('IX', 'IY'):
+                return bytes([0xDD if u == 'IX' else 0xFD, 0x23 if mnem == 'INC' else 0x2B])
+            if u in Z80_R8:
+                return bytes([(0x04 if mnem == 'INC' else 0x05) + Z80_R8.index(u) * 8])
+            return bytes([(0x03 if mnem == 'INC' else 0x0B) + Z80_R16.index(u) * 16])
+        if mnem in ('PUSH', 'POP'):
+            base = 0xC5 if mnem == 'PUSH' else 0xC1
+            if ops_u[0] in ('IX', 'IY'):
+                return bytes([0xDD if ops_u[0] == 'IX' else 0xFD, base + 0x20])
+            return bytes([base + Z80_R16_STACK.index(ops_u[0]) * 16])
+        if mnem == 'JP':
+            if ops_u[0] in ('(HL)', 'HL'):
+                return bytes([0xE9])
+            if ops_u[0] in ('(IX)', 'IX'):
+                return bytes([0xDD, 0xE9])
+            if ops_u[0] in ('(IY)', 'IY'):
+                return bytes([0xFD, 0xE9])
+            if len(ops) == 2:
+                return bytes([0xC2 + Z80_CC.index(ops_u[0]) * 8]) + w16(ops[1])
+            return bytes([0xC3]) + w16(ops[0])
+        if mnem == 'JR':
+            if len(ops) == 2:
+                return bytes([0x20 + Z80_CC.index(ops_u[0]) * 8]) + rel(ops[1], 2)
+            return bytes([0x18]) + rel(ops[0], 2)
+        if mnem == 'DJNZ':
+            return bytes([0x10]) + rel(ops[0], 2)
+        if mnem == 'CALL':
+            if len(ops) == 2:
+                return bytes([0xC4 + Z80_CC.index(ops_u[0]) * 8]) + w16(ops[1])
+            return bytes([0xCD]) + w16(ops[0])
+        if mnem == 'RET':
+            if ops:
+                return bytes([0xC0 + Z80_CC.index(ops_u[0]) * 8])
+            return bytes([0xC9])
+        if mnem == 'RST':
+            return bytes([0xC7 + (val(ops[0]) & 0x38)])
+        if mnem in Z80_CB_SHIFTS or mnem in ('BIT', 'RES', 'SET'):
+            if mnem in Z80_CB_SHIFTS:
+                op = Z80_CB_SHIFTS.index(mnem) * 8
+                o = ops[0]
+            else:
+                op = {'BIT': 0x40, 'RES': 0x80, 'SET': 0xC0}[mnem] + (val(ops[0]) & 7) * 8
+                o = ops[1]
+            x = ixy(o)
+            if x:
+                return bytes([x[0], 0xCB]) + b8(x[1]) + bytes([op + 6])
+            return bytes([0xCB, op + Z80_R8.index(o.upper())])
+        raise ValueError('unknown instruction: ' + line)
+
+
+def ay_rel(table, at, target):
+    """Store at `at` in `table` the AY format's pointer to `target`: a
+    big-endian 16-bit offset from the pointer itself."""
+    struct.pack_into('>h', table, at, target - at)
+
+
+def ay_file(tracks, author, comment, version=0, first=0, extra=None):
+    """An AY file. tracks: a list of dicts with name, sp, init, play,
+    length (frames), hi, lo (the register values) and blocks
+    [(addr, bytes)], or the raw bytes of a track's data (for broken ones).
+    extra(out, layout) can patch the result."""
+    out = bytearray(b'ZXAYEMUL' + bytes([version, 0, 0, 0]) + bytes(4)
+                    + bytes([len(tracks) - 1, first]) + bytes(2))
+    strings = {}
+
+    def add_string(s):
+        if s not in strings:
+            strings[s] = len(out)
+            out.extend(s.encode('latin-1') + b'\0')
+        return strings[s]
+
+    list_at = len(out)
+    out.extend(bytes(4 * len(tracks)))
+    ay_rel(out, 18, list_at)
+    ay_rel(out, 12, add_string(author))
+    ay_rel(out, 14, add_string(comment))
+    layout = {}
+    for i, t in enumerate(tracks):
+        ay_rel(out, list_at + i * 4, add_string(t['name']))
+        data_at = len(out)
+        out.extend(bytes(14))
+        ay_rel(out, list_at + i * 4 + 2, data_at)
+        struct.pack_into('>HH', out, data_at + 4, t['length'], 0)
+        out[data_at + 8] = t['hi']
+        out[data_at + 9] = t['lo']
+        points_at = len(out)
+        out.extend(struct.pack('>HHH', t['sp'], t['init'], t['play']))
+        ay_rel(out, data_at + 10, points_at)
+        blocks_at = len(out)
+        out.extend(bytes(6 * len(t['blocks']) + 2))
+        ay_rel(out, data_at + 12, blocks_at)
+        for j, (addr, code) in enumerate(t['blocks']):
+            code_at = len(out)
+            out.extend(code)
+            struct.pack_into('>HH', out, blocks_at + j * 6, addr, len(code))
+            ay_rel(out, blocks_at + j * 6 + 4, code_at)
+        layout[i] = (data_at, points_at, blocks_at)
+    if extra:
+        extra(out, layout)
+    return bytes(out)
+
+
+# The Z80 exercise: most instructions, on every register, (HL) and
+# (IX+d)/(IY+d), leaving a value at $C010 (and the stack as it found it)
+# that the songs use, so a mistake in any of them changes the sound.
+Z80_CPU_EXERCISE = '''
+cpu_test:
+    PUSH AF
+    PUSH BC
+    PUSH DE
+    PUSH HL
+    PUSH IX
+    PUSH IY
+    LD A,$5A
+    LD B,$13
+    LD C,$C4
+    LD D,$7F
+    LD E,$80
+    LD HL,$C100
+    LD (HL),$29
+    ADD A,B
+    ADC A,C
+    SUB D
+    SBC A,E
+    AND $F7
+    XOR H
+    OR L
+    CP (HL)
+    ADD A,(HL)
+    ADC A,$33
+    SUB $11
+    SBC A,(HL)
+    XOR (HL)
+    OR (HL)
+    AND (HL)
+    DAA
+    LD (HL),A
+    INC (HL)
+    DEC (HL)
+    INC A
+    DEC B
+    INC C
+    DEC D
+    INC E
+    INC H
+    DEC L
+    LD B,A
+    LD C,B
+    LD D,C
+    LD E,D
+    LD H,$C1
+    LD L,$02
+    LD (HL),E
+    LD A,(HL)
+    NEG
+    DAA
+    CPL
+    SCF
+    CCF
+    RLA
+    RRA
+    RLCA
+    RRCA
+    LD ($C101),A
+    ; 16-bit
+    LD BC,$1234
+    LD DE,$FEDC
+    LD HL,$0F0F
+    ADD HL,BC
+    ADC HL,DE
+    SBC HL,BC
+    ADD HL,HL
+    ADD HL,SP
+    INC BC
+    DEC DE
+    INC HL
+    INC SP
+    DEC SP
+    LD ($C102),HL
+    LD ($C104),BC
+    LD ($C106),DE
+    LD ($C108),SP
+    LD HL,($C104)
+    LD BC,($C106)
+    LD DE,($C102)
+    EX DE,HL
+    EXX
+    LD BC,$0101
+    LD DE,$0202
+    LD HL,$0303
+    EXX
+    EX AF,AF'
+    LD A,$77
+    EX AF,AF'
+    ; IX and IY
+    LD IX,$C120
+    LD IY,$C140
+    LD (IX+0),$11
+    LD (IX+5),A
+    LD (IY-3),$7E
+    LD B,(IX+5)
+    ADD A,(IX+0)
+    ADC A,(IY-3)
+    SUB (IX+5)
+    SBC A,(IY-3)
+    AND (IX+0)
+    XOR (IY-3)
+    OR (IX+5)
+    CP (IY-3)
+    INC (IX+0)
+    DEC (IY-3)
+    LD IXH,$12
+    LD IXL,B
+    LD IYL,IYH
+    ADD A,IXH
+    ADC A,IXL
+    SUB IYH
+    AND IYL
+    XOR IXL
+    OR IXH
+    CP IYL
+    INC IXH
+    DEC IYL
+    LD C,IXL
+    ADD IX,BC
+    ADD IY,DE
+    ADD IX,IX
+    ADD IY,SP
+    INC IX
+    DEC IY
+    LD ($C110),IX
+    LD IY,($C110)
+    PUSH IX
+    POP IY
+    EX (SP),IX
+    EX (SP),IY
+    RLC (IX+0)
+    RR (IY-3)
+    SLA (IX+5)
+    SRL (IY-3)
+    SET 3,(IX+0)
+    RES 0,(IY-3)
+    BIT 7,(IX+5)
+    LD A,(IX+0)
+    XOR (IY-3)
+    XOR (IX+5)
+    LD ($C111),A
+    ; the CB instructions
+    LD A,$96
+    LD B,$69
+    RLC A
+    RRC B
+    RL A
+    RR B
+    SLA A
+    SRA B
+    SLL A
+    SRL B
+    LD HL,$C107
+    LD (HL),$C3
+    RLC (HL)
+    RR (HL)
+    SLA (HL)
+    SRA (HL)
+    SRL (HL)
+    SLL (HL)
+    RL (HL)
+    RRC (HL)
+    BIT 7,(HL)
+    JR Z,ct_b0
+    SET 0,(HL)
+ct_b0:
+    BIT 0,C
+    JR NZ,ct_b1
+    RES 7,(HL)
+ct_b1:
+    SET 3,D
+    RES 1,C
+    BIT 6,D
+    RRD
+    RLD
+    LD A,(HL)
+    XOR C
+    XOR D
+    LD E,A
+    ; block instructions
+    LD HL,$C100
+    LD DE,$C180
+    LD BC,$0008
+    LDIR
+    LD HL,$C187
+    LD DE,$C197
+    LD BC,$0004
+    LDDR
+    LD HL,$C180
+    LD BC,$0010
+    LD A,$29
+    CPIR
+    LD A,C
+    XOR E
+    LD E,A
+    LD HL,$C18F
+    LD BC,$0003
+    LD A,$00
+    CPDR
+    LDI
+    LDD
+    CPI
+    CPD
+    LD A,C
+    ADD A,E
+    LD E,A
+    ; flags into the result
+    PUSH AF
+    POP BC
+    LD A,C
+    XOR E
+    LD E,A
+    LD A,I
+    LD A,$3C
+    LD I,A
+    LD A,I
+    ADD A,E
+    LD E,A
+    ; jumps, calls and returns, with every condition
+    CALL ct_sub
+    CALL Z,ct_sub
+    CALL NZ,ct_sub
+    CALL C,ct_sub
+    CALL NC,ct_sub
+    CALL PE,ct_sub
+    CALL PO,ct_sub
+    CALL M,ct_sub
+    CALL P,ct_sub
+    LD HL,ct_jp
+    JP (HL)
+ct_jp_back:
+    LD IX,ct_jp2
+    JP (IX)
+ct_jp2_back:
+    XOR A
+    JP Z,ct_jz
+    INC E
+ct_jz:
+    JP PE,ct_jpe
+    INC E
+ct_jpe:
+    JP M,ct_jm
+    INC E
+ct_jm:
+    LD B,5
+ct_djnz:
+    INC E
+    DJNZ ct_djnz
+    RST $28
+    LD A,E
+    LD ($C010),A
+    POP IY
+    POP IX
+    POP HL
+    POP DE
+    POP BC
+    POP AF
+    RET
+ct_jp:
+    INC E
+    JP ct_jp_back
+ct_jp2:
+    INC E
+    JP ct_jp2_back
+ct_sub:
+    INC E
+    LD A,E
+    AND $03
+    RET Z
+    CP $02
+    RET C
+    RET PO
+    RET PE
+'''
+
+AY_WRITE = '''
+ay_write:            ; register A <- E, through the Spectrum's ports
+    LD BC,$FFFD
+    OUT (C),A
+    LD B,$BF
+    OUT (C),E
+    RET
+'''
+
+
+def ay_spectrum():
+    a = Z80Asm(0x8000)
+    a('''
+init:
+    LD ($C000),A     ; (the track's A: the hi register value)
+    CALL cpu_test
+    LD HL,regs
+    XOR A
+init_regs:
+    LD E,(HL)
+    PUSH AF
+    CALL ay_write
+    POP AF
+    INC HL
+    INC A
+    CP 14
+    JR NZ,init_regs
+    XOR A
+    LD ($C001),A
+    RET
+
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    LD D,A
+    ; tone A from the exercise's value and the frame
+    LD A,($C010)
+    ADD A,D
+    LD E,A
+    XOR A
+    CALL ay_write
+    ; tone B, a slide
+    LD A,D
+    RLCA
+    RLCA
+    LD E,A
+    LD A,2
+    CALL ay_write
+    ; the envelope shape, every 8 frames (all 16 of them)
+    LD A,D
+    AND $07
+    JR NZ,play_e
+    LD A,D
+    RRCA
+    RRCA
+    RRCA
+    AND $0F
+    LD E,A
+    LD A,13
+    CALL ay_write
+play_e:
+    ; the noise period and the mixer, every 16 frames
+    LD A,D
+    AND $0F
+    JR NZ,play_m
+    LD A,D
+    RRCA
+    AND $1F
+    LD E,A
+    LD A,6
+    CALL ay_write
+    LD A,D
+    RRCA
+    RRCA
+    RRCA
+    RRCA
+    AND $3F
+    LD E,A
+    LD A,7
+    CALL ay_write
+play_m:
+    RET
+regs:
+    .db $40, $01, $80, $02, $20, $00, $07, $38, $0F, $10, $0C, $40, $00, $0E
+''')
+    a(AY_WRITE)
+    a('''
+beeper_init:
+    XOR A
+    LD ($C001),A
+    RET
+beeper_play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    AND $07
+    ADD A,4
+    LD D,A           ; half periods per frame
+    LD A,(HL)
+    AND $3F
+    ADD A,$20
+    LD C,A           ; loop count of each half period
+beeper_loop:
+    LD A,($C002)
+    XOR $10
+    LD ($C002),A
+    OUT ($FE),A
+    LD B,C
+beeper_wait:
+    DJNZ beeper_wait
+    DEC D
+    JR NZ,beeper_loop
+    RET
+
+passive_init:
+    ; IM 2 with the vector table's entry at $C2FF
+    LD A,$C2
+    LD I,A
+    LD HL,isr
+    LD ($C2FF),HL
+    LD A,7
+    LD E,$3E
+    CALL ay_write
+    LD A,8
+    LD E,$0F
+    CALL ay_write
+    XOR A
+    LD ($C001),A
+    RET
+isr:
+    PUSH AF
+    PUSH BC
+    PUSH DE
+    PUSH HL
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    ADD A,A
+    ADD A,A
+    LD E,A
+    XOR A
+    CALL ay_write
+    LD A,(HL)
+    AND $0F
+    LD E,A
+    LD A,8
+    CALL ay_write
+    POP HL
+    POP DE
+    POP BC
+    POP AF
+    RET
+''')
+    a(Z80_CPU_EXERCISE)
+    code = a.assemble()
+    L = a.labels
+    rst = Z80Asm(0x0028)
+    rst('''
+    INC E
+    RET
+''')
+    tracks = [
+        dict(name='Tones', sp=0xF000, init=L['init'], play=L['play'], length=500, hi=0x00,
+             lo=0x55, blocks=[(0x8000, code), (0x0028, rst.assemble())]),
+        dict(name='Beeper', sp=0xF000, init=L['beeper_init'], play=L['beeper_play'], length=0,
+             hi=0x01, lo=0x00, blocks=[(0x8000, code)]),
+        dict(name='Passive', sp=0xF000, init=L['passive_init'], play=0, length=300, hi=0x02,
+             lo=0xAA, blocks=[(0x8000, code)]),
+    ]
+    write('ay_spectrum.ay', ay_file(tracks, 'gen_gme_testdata.py', 'AY Test'))
+
+
+def ay_cpc():
+    # the Amstrad CPC's ports (which switch the emulator to the CPC's clock)
+    a = Z80Asm(0x4000)
+    a('''
+init:
+    LD HL,regs
+    LD D,0
+init_regs:
+    LD A,(HL)
+    CALL cpc_write
+    INC HL
+    INC D
+    LD A,D
+    CP 14
+    JR NZ,init_regs
+    RET
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    LD D,0
+    CALL cpc_write
+    LD A,(HL)
+    AND $0F
+    LD D,9
+    CALL cpc_write
+    RET
+cpc_write:           ; register D <- A
+    PUSH AF
+    LD C,0
+    LD B,$F4
+    OUT (C),D
+    LD B,$F6
+    LD A,$C0
+    OUT (C),A
+    LD B,$F4
+    POP AF
+    OUT (C),A
+    LD B,$F6
+    LD A,$80
+    OUT (C),A
+    RET
+regs:
+    .db $80, $00, $40, $01, $00, $00, $00, $3C, $0C, $0A, $00, $00, $00, $00
+''')
+    code = a.assemble()
+    L = a.labels
+    tracks = [dict(name='CPC', sp=0xBFF0, init=L['init'], play=L['play'], length=100, hi=0,
+                   lo=0, blocks=[(0x4000, code)])]
+    write('ay_cpc.ay', ay_file(tracks, 'Someone', '', version=2))
+
+
+def ay_odd():
+    # an unknown version; blocks too long for memory and for the file, a
+    # block with a null offset; a track without data blocks; strings that
+    # run to the end of the file; code with the instructions the CPU
+    # emulator warns about and that wraps around memory
+    a = Z80Asm(0xFFE8)
+    a('''
+    LD A,8
+    LD BC,$FFFD
+    OUT (C),A
+    LD A,$0F
+    LD B,$BF
+    OUT (C),A
+    LD A,R
+    .op $ED, $00     ; an ED opcode the emulator doesn't support
+    .op $DD, $00     ; a DD prefix on an instruction without IX
+    .op $DD, $CB, $00, $00
+    NOP
+''')
+    code = a.assemble()
+    tracks = [
+        dict(name='Wrap', sp=0xF000, init=0xFFE8, play=0, length=0, hi=0, lo=0,
+             blocks=[(0xFFE8, code)]),
+        dict(name='Long', sp=0xF000, init=0, play=0x8000, length=10, hi=0, lo=0,
+             blocks=[(0x8000, bytes([0xC9]) * 4), (0xFFF8, bytes([0xC9]) * 32),
+                     (0x9000, bytes([0x00]) * 8)]),
+        dict(name='Null', sp=0xF000, init=0x8000, play=0, length=10, hi=0, lo=0,
+             blocks=[(0x8000, bytes([0x3E, 0x07, 0xC9]))]),
+    ]
+
+    def extra(out, layout):
+        # track 2's block: a null offset
+        data_at, points_at, blocks_at = layout[2]
+        struct.pack_into('>h', out, blocks_at + 4, 0)
+        # track 1's last block runs past the end of the file
+        data_at, points_at, blocks_at = layout[1]
+        struct.pack_into('>H', out, blocks_at + 12 + 2, 0x7000)
+        # the comment runs on to the end of the file
+        n = len(out)
+        out.extend(b'no terminator')
+        ay_rel(out, 14, n)
+
+    write('ay_odd.ay', ay_file(tracks, '  Odd  ', '', version=3, extra=extra))
+
+    # more tracks than the file has room for in its track list
+    data = bytearray(ay_file(tracks[2:], 'x', 'y'))
+    data[16] = 200
+    write('ay_badtracks.ay', bytes(data))
+
+
+def kss_header(tag, load_addr, load_size, init, play, first_bank=0, bank_mode=0, extra=0,
+               device=0):
+    return tag + struct.pack('<HHHHBBBB', load_addr, load_size, init, play, first_bank,
+                             bank_mode, extra, device)
+
+
+def kss_scc():
+    # the MSX's PSG (through its ports and the BIOS) and Konami's SCC, two
+    # 8K banks switched by play
+    a = Z80Asm(0x4000)
+    a('''
+    JP init
+    JP play
+init:
+    LD ($C000),A
+    CALL cpu_test
+    ; the PSG, through the BIOS's WRTPSG
+    LD HL,psg
+    LD D,0
+init_psg:
+    LD A,D
+    LD E,(HL)
+    CALL $0093
+    INC HL
+    INC D
+    LD A,D
+    CP 14
+    JR NZ,init_psg
+    ; the SCC's waves (the fifth shares the fourth's)
+    LD HL,$9800
+    LD B,$80
+    LD C,0
+init_wave:
+    LD A,C
+    ADD A,A
+    ADD A,A
+    ADD A,A
+    XOR B
+    LD (HL),A
+    INC HL
+    INC C
+    DJNZ init_wave
+    LD HL,scc
+    LD DE,$9880
+    LD BC,16
+    LDIR
+    XOR A
+    LD ($C001),A
+    RET
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    LD B,A
+    ; bank 2 or 3 at $A000, then a byte of it as SCC frequency 1
+    AND 1
+    ADD A,2
+    LD ($B000),A
+    LD A,($A000)
+    ADD A,B
+    LD ($9880),A
+    ; and bank 2 at $8000 every 16 frames (OUT $FE), 3 (LD ($9000)) otherwise
+    LD A,B
+    AND $0F
+    JR NZ,play_b
+    LD A,2
+    OUT ($FE),A
+    JR play_c
+play_b:
+    LD A,3
+    LD ($9000),A
+play_c:
+    LD A,($8000)
+    LD ($9882),A
+    ; the PSG's tone A through its ports, and its envelope shape
+    LD A,0
+    OUT ($A0),A
+    LD A,B
+    ADD A,A
+    LD HL,$C000
+    ADD A,(HL)       ; (the track)
+    OUT ($A1),A
+    LD A,B
+    AND $07
+    RET NZ
+    LD A,13
+    OUT ($A0),A
+    LD A,B
+    RRCA
+    RRCA
+    RRCA
+    OUT ($A1),A
+    ; the SCC's enables
+    LD A,B
+    RRCA
+    RRCA
+    RRCA
+    RRCA
+    OR $11
+    LD ($988F),A
+    RET
+psg:
+    .db $80, $01, $00, $02, $40, $00, $1F, $30, $0D, $10, $00, $00, $08, $0C
+scc:
+    .dw $0123, $0234, $0155, $0080, $0300
+    .db $0C, $0A, $0F, $08, $0E, $1F
+''')
+    a(Z80_CPU_EXERCISE)
+    code = a.assemble()
+    # (bank 2 is short, read past its end as zeros; bank 3 isn't there:
+    # it maps RAM)
+    bank2 = bytes([0x40]) + bytes(range(1, 64))
+    data = code + bank2
+    h = kss_header(b'KSCC', 0x4000, len(code), 0x4000, 0x4003, first_bank=2, bank_mode=0x80 | 2)
+    write('kss_scc.kss', h + data)
+
+
+def kss_sms():
+    # the Sega Master System's SN76489 (and the Game Gear's stereo), at the
+    # PAL rate; a KSSX header with its extra header
+    a = Z80Asm(0x0100)
+    a('''
+init:
+    LD ($C000),A
+    LD HL,sn
+    LD B,sn_end-sn
+init_sn:
+    LD A,(HL)
+    OUT ($7F),A
+    INC HL
+    DJNZ init_sn
+    LD A,$F3
+    OUT ($06),A
+    RET
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    AND $0F
+    OR $80
+    OUT ($7F),A      ; tone 1, low bits
+    LD A,(HL)
+    RRCA
+    RRCA
+    RRCA
+    AND $3F
+    OUT ($7F),A      ; tone 1, high bits
+    LD A,(HL)
+    AND $07
+    OR $E0
+    OUT ($7E),A      ; noise mode
+    LD A,(HL)
+    RRCA
+    AND $0F
+    OR $F0
+    OUT ($7F),A      ; noise volume
+    LD A,(HL)
+    AND $1F
+    RET NZ
+    LD A,(HL)
+    OUT ($06),A      ; Game Gear stereo
+    RET
+sn:
+    .db $8E, $05, $90, $A0, $0A, $B4, $C4, $12, $D8, $E4, $F6
+sn_end:
+''')
+    code = a.assemble()
+    ext = struct.pack('<IIHHBBBB', len(code), 0, 0, 3, 0, 0, 0, 0)
+    for device, name in ((0x42, 'kss_sms.kss'), (0x46, 'kss_gg.kss')):
+        h = kss_header(b'KSSX', 0x0100, len(code), 0x0100, a.labels['play'], extra=0x10,
+                       device=device)
+        write(name, h + ext + code)
+
+
+def kss_odd():
+    # header warnings (extra header bytes, unknown and FM device flags in a
+    # KSCC header, a KSSX extra header longer than 16 bytes), a load size
+    # past the file, banks missing, code that runs to the end of memory
+    # and stops at the idle address, port reads
+    a = Z80Asm(0xFFE0)
+    a('''
+init:
+    IN A,($A2)
+    LD B,A
+    LD A,8
+    LD E,$0F
+    CALL $0093
+    CALL $0096       ; RDPSG
+    LD A,$55
+    LD ($9000),A     ; a bank that isn't there: RAM
+    LD A,($8000)
+    LD ($9800),A
+    LD A,$1F
+    LD ($988F),A
+    NOP
+    NOP
+''')
+    code = a.assemble()
+    h = kss_header(b'KSCC', 0xFFE0, 0x400, 0xFFE0, 0xFFE0, bank_mode=4, extra=3, device=0xF9)
+    write('kss_odd.kss', h + code)
+    ext = bytes(0x20)
+    h = kss_header(b'KSSX', 0xFFE0, len(code), 0xFFE0, 0, extra=0x20, device=0x01)
+    write('kss_ext.kss', h + ext + code)
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -1620,6 +2655,12 @@ def main():
     gbs_apu()
     gbs_timer()
     gbs_odd()
+    ay_spectrum()
+    ay_cpc()
+    ay_odd()
+    kss_scc()
+    kss_sms()
+    kss_odd()
 
 
 if __name__ == '__main__':

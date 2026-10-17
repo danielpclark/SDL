@@ -33,7 +33,12 @@
 //! - `Blip_Buffer` (band-limited synthesis, its synths and equalization),
 //!   `Stereo_Buffer` and `Effects_Buffer` (with its stereo depth, echo and
 //!   reverb);
+//! - the AY emulator: the Z80 CPU (its two upstream copies, `Ay_Cpu` and
+//!   `Kss_Cpu`, are one translation over each emulator's memory), the
+//!   AY-3-8910 and the ZX Spectrum's beeper;
 //! - the GBS emulator: the Game Boy CPU and its APU;
+//! - the KSS emulator: the MSX's banked memory, Konami's SCC, and the
+//!   Sega Master System's SN76489;
 //! - the NSF and NSFE emulators: the NES 6502 CPU, the 2A03 APU and the
 //!   VRC6, Namco 106, FME-7, FDS, MMC5 and VRC7 sound chips (the VRC7 over
 //!   emu2413).
@@ -56,6 +61,8 @@
     clippy::int_plus_one,
     clippy::manual_clamp,
     clippy::manual_div_ceil,
+    clippy::manual_rotate,
+    clippy::manual_swap,
     clippy::collapsible_if,
     clippy::comparison_chain,
     clippy::eq_op,
@@ -72,6 +79,9 @@
     clippy::new_without_default
 )]
 
+pub mod ay_apu;
+pub mod ay_cpu;
+pub mod ay_emu;
 pub mod blargg_common;
 pub mod blip_buffer;
 pub mod classic_emu;
@@ -84,6 +94,9 @@ pub mod gb_oscs;
 pub mod gbs_emu;
 pub mod gme;
 pub mod gme_file;
+pub mod kss_cpu;
+pub mod kss_emu;
+pub mod kss_scc_apu;
 pub mod multi_buffer;
 pub mod music_emu;
 pub mod nes_apu;
@@ -97,6 +110,7 @@ pub mod nes_vrc6_apu;
 pub mod nes_vrc7_apu;
 pub mod nsf_emu;
 pub mod nsfe_emu;
+pub mod sms_apu;
 
 pub use gme::*;
 pub use gme_file::{GmeType, GmeTypeT, TrackInfo};
