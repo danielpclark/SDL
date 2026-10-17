@@ -83,6 +83,8 @@ static DECODERS: &[&Decoder] = &[
     &crate::decoder_voc::DECODER,
     &crate::decoder_aiff::DECODER,
     &crate::decoder_au::DECODER,
+    #[cfg(feature = "mpg123")]
+    &crate::decoder_mpg123::DECODER,
     &crate::decoder_drmp3::DECODER,
     // these are always available.
     &crate::decoder_sinewave::DECODER,

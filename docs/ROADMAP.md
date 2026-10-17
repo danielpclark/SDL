@@ -264,7 +264,26 @@ In dependency order, after the core each one needs exists:
    bit-for-bit against upstream's C on synthetic patches, a SoundFont and
    MIDI files from `tools/gen_timidity_testdata.py` (eight output formats,
    seeks, truncated and corrupted files and broken patches, and through
-   the mixer). Tracker modules through the libxmp that SDL_mixer vendors
+   the mixer). MP3 through the libmpg123 that SDL_mixer vendors
+   (`decoder_mpg123.c`, behind the `mpg123` feature, on by default as
+   upstream's SDLMIXER_MP3_MPG123 is, and tried before dr_mp3 as upstream
+   does) is done: libmpg123 1.33.7 is translated in its own crate,
+   `sdl3-mixer-mpg123`, which keeps libmpg123's license
+   (`LGPL-2.1-only`), as far as SDL_mixer's build of it (its CMake port:
+   float decoding, accurate rounding, gapless, a frame index, ID3v2 and
+   ICY, no network, no modules) reaches from the decoder: the frame
+   parser, layers I, II and III, the generic C synths and every output
+   conversion, the stream readers, the ID3v2 store and exact and fuzzy
+   seeking. Its assembly decoders, the dithered and resampling synths, the
+   feeder reader and the equalizer API are left out. It is checked
+   bit-for-bit against upstream's C (built with only its generic decoder)
+   on streams from `tools/gen_mpg123_testdata.py` and
+   `tools/gen_sdl_mixer_testdata.py` (layer I streams put together there,
+   layer II from mp2 and libtwolame, layer III from libmp3lame and
+   libshine, with intensity stereo, free format, format changes, ReplayGain
+   and ID3v2.2 to 2.4 tags), with every output encoding, flags,
+   parameters, seeks, ICY, truncated and corrupted copies, and through the
+   mixer. Tracker modules through the libxmp that SDL_mixer vendors
    (`decoder_xmp.c` over libxmp 4.7.3, built as SDL_mixer's CMake builds
    it, without the depackers and ProWizard) are done in `sdl3-mixer/src/xmp/`,
    under libxmp's MIT license: the player, its effects, envelopes, new
@@ -327,8 +346,8 @@ In dependency order, after the core each one needs exists:
    every subframe type and channel assignment, partition orders, escapes,
    Rice2, variable blocksizes, seek tables, tags and loop tags), truncated,
    corrupted (also with their CRCs fixed), mixed, looped and seeked. Not
-   translated, as they need an external library or are LGPL: FluidSynth,
-   libgme, and the libmpg123 decoder.
+   translated, as they need an external library or are LGPL: FluidSynth
+   and libgme.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to
