@@ -1405,8 +1405,10 @@ pub(crate) fn get_partition(
     {
         // In this case, the block might be using an extended partition
         // type.
-        let mbmi_right = mi((bwide / 2) as usize);
-        let mbmi_below = mi((bhigh / 2 * mi_params.mi_stride) as usize);
+        // (the neighbors are only looked up when they are read: an entry the
+        // partition did not set is NULL)
+        let mbmi_right = || mi((bwide / 2) as usize);
+        let mbmi_below = || mi((bhigh / 2 * mi_params.mi_stride) as usize);
 
         if sswide == bwide {
             // Smaller height but same width. Is PARTITION_HORZ_4, PARTITION_HORZ or
@@ -1417,7 +1419,7 @@ pub(crate) fn get_partition(
             }
             debug_assert!(sshigh * 2 == bhigh);
 
-            if mbmi_below.bsize == subsize {
+            if mbmi_below().bsize == subsize {
                 return PARTITION_HORZ;
             } else {
                 return PARTITION_HORZ_B;
@@ -1433,7 +1435,7 @@ pub(crate) fn get_partition(
             // holds for the square blocks partitioned here.
             debug_assert!(sswide * 2 == bhigh);
 
-            if mbmi_right.bsize == subsize {
+            if mbmi_right().bsize == subsize {
                 return PARTITION_VERT;
             } else {
                 return PARTITION_VERT_B;
@@ -1450,10 +1452,10 @@ pub(crate) fn get_partition(
                 return PARTITION_SPLIT;
             }
 
-            if MI_SIZE_WIDE[mbmi_below.bsize as usize] as i32 == bwide {
+            if MI_SIZE_WIDE[mbmi_below().bsize as usize] as i32 == bwide {
                 return PARTITION_HORZ_A;
             }
-            if MI_SIZE_HIGH[mbmi_right.bsize as usize] as i32 == bhigh {
+            if MI_SIZE_HIGH[mbmi_right().bsize as usize] as i32 == bhigh {
                 return PARTITION_VERT_A;
             }
 

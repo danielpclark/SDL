@@ -184,6 +184,36 @@ pub(crate) const CFL_ALLOWED: i32 = CFL_DISALLOWED + 1;
 pub(crate) const CFL_ALLOWED_TYPES: i32 = CFL_ALLOWED + 1;
 pub(crate) const CFL_JOINT_SIGNS: i32 = CFL_SIGNS * CFL_SIGNS - 1;
 pub(crate) const CFL_ALPHA_CONTEXTS: i32 = CFL_JOINT_SIGNS + 1 - CFL_SIGNS;
+
+#[inline]
+pub(crate) const fn cfl_idx_u(idx: i32) -> i32 {
+    idx >> CFL_ALPHABET_SIZE_LOG2
+}
+#[inline]
+pub(crate) const fn cfl_idx_v(idx: i32) -> i32 {
+    idx & (CFL_ALPHABET_SIZE - 1)
+}
+// CFL_SIGN_U is equivalent to (js + 1) / 3 for js in 0 to 8
+#[inline]
+pub(crate) const fn cfl_sign_u(js: i32) -> i32 {
+    ((js + 1) * 11) >> 5
+}
+// CFL_SIGN_V is equivalent to (js + 1) % 3 for js in 0 to 8
+#[inline]
+pub(crate) const fn cfl_sign_v(js: i32) -> i32 {
+    (js + 1) - CFL_SIGNS * cfl_sign_u(js)
+}
+// There is no context when the alpha for a given plane is zero.
+// So there are 2 fewer contexts than joint signs.
+#[inline]
+pub(crate) const fn cfl_context_u(js: i32) -> i32 {
+    js + 1 - CFL_SIGNS
+}
+// Also, the contexts are symmetric under swapping the planes.
+#[inline]
+pub(crate) const fn cfl_context_v(js: i32) -> i32 {
+    cfl_sign_v(js) * CFL_SIGNS + cfl_sign_u(js) - CFL_SIGNS
+}
 // COLOR_MAP_TYPE
 pub(crate) const PALETTE_MAP: i32 = 0;
 pub(crate) const COLOR_MAP_TYPES: i32 = PALETTE_MAP + 1;
@@ -790,3 +820,26 @@ pub(crate) static PARTITION_CONTEXT_LOOKUP: [PartitionContextPair; BLOCK_SIZES_A
     pcl(28, 16), // 16X64 - {0b11100, 0b10000}
     pcl(16, 28), // 64X16 - {0b10000, 0b11100}
 ];
+
+// aom_bit_depth_t (aom/aom_codec.h)
+pub(crate) const AOM_BITS_8: i32 = 8; // 8 bits
+pub(crate) const AOM_BITS_10: i32 = 10; // 10 bits
+pub(crate) const AOM_BITS_12: i32 = 12; // 12 bits
+
+// The CICP values of aom/aom_image.h the encoder compares against.
+pub(crate) const AOM_CICP_CP_BT_709: i32 = 1; // BT.709
+pub(crate) const AOM_CICP_CP_UNSPECIFIED: i32 = 2; // Unspecified
+pub(crate) const AOM_CICP_CP_BT_2020: i32 = 9; // BT.2020, BT.2100
+pub(crate) const AOM_CICP_TC_UNSPECIFIED: i32 = 2; // Unspecified
+pub(crate) const AOM_CICP_TC_SRGB: i32 = 13; // sRGB or sYCC
+pub(crate) const AOM_CICP_MC_IDENTITY: i32 = 0; // Identity matrix
+pub(crate) const AOM_CICP_MC_UNSPECIFIED: i32 = 2; // Unspecified
+
+// (aom/aom_image.h)
+pub(crate) const AOM_PLANE_Y: usize = 0; // Y (Luminance) plane
+pub(crate) const AOM_PLANE_U: usize = 1; // U (Chroma) plane
+pub(crate) const AOM_PLANE_V: usize = 2; // V (Chroma) plane
+
+// (common_data.h)
+pub(crate) const TX_SIZE_W_MIN: i32 = 4;
+pub(crate) const TX_SIZE_H_MIN: i32 = 4;

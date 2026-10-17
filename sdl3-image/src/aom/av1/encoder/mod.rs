@@ -1,4 +1,29 @@
 //! av1/encoder: the AV1 encoder.
 
 pub(crate) mod av1_fwd_txfm1d;
+pub(crate) mod av1_fwd_txfm2d;
+pub(crate) mod av1_quantize;
+pub(crate) mod bitstream;
+pub(crate) mod block;
+pub(crate) mod context_tree;
+pub(crate) mod cost;
+pub(crate) mod encode_strategy;
+pub(crate) mod encodeframe;
+pub(crate) mod encodeframe_utils;
+pub(crate) mod encodemb;
+pub(crate) mod encoder;
 pub(crate) mod encoder_utils;
+pub(crate) mod encodetxb;
+pub(crate) mod extend;
+pub(crate) mod hybrid_fwd_txfm;
+pub(crate) mod lookahead;
+pub(crate) mod nonrd_pickmode;
+pub(crate) mod partition_search;
+pub(crate) mod picklpf;
+pub(crate) mod ratectrl;
+pub(crate) mod rd;
+pub(crate) mod rdopt_utils;
+pub(crate) mod speed_features;
+pub(crate) mod superres_scale;
+pub(crate) mod txb_rdopt;
+pub(crate) mod var_based_part;
