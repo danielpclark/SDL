@@ -479,7 +479,7 @@ fn populate_unified_cost_update_freq(
 fn should_force_mode_cost_update(cpi: &Av1Comp) -> bool {
     let rt_sf = &cpi.sf.rt_sf;
     // (frame-level mode cost updates are a real-time speed feature)
-    debug_assert!(rt_sf.frame_level_mode_cost_update == 0);
+    debug_assert!(!rt_sf.frame_level_mode_cost_update);
     false
 }
 

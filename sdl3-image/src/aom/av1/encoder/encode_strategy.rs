@@ -23,6 +23,7 @@
 use super::encoder::*;
 use super::lookahead::*;
 use super::ratectrl::*;
+use crate::aom::aom_scale::yv12config::Yv12BufferConfig;
 use crate::aom::av1::common::av1_common_int::*;
 use crate::aom::av1::common::blockd::{INTRA_ONLY_FRAME, KEY_FRAME, S_FRAME};
 use crate::aom::av1::common::enums::*;
@@ -33,6 +34,33 @@ const SELECT_ALL_BUF_SLOTS: i32 = 0xFF;
 pub(crate) const TICKS_PER_SEC: i64 = 10000000;
 /// `AOM_EFLAG_FORCE_KF`
 pub(crate) const AOM_EFLAG_FORCE_KF: u32 = 1 << 0;
+
+/// `EncodeFrameInput`: the source frames are `cpi.source_buf` and
+/// `cpi.last_source_buf` (moved out of the lookahead queue while the frame
+/// is coded).
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct EncodeFrameInput {
+    pub(crate) has_last_source: bool,
+    pub(crate) ts_duration: i64,
+}
+
+impl EncodeFrameInput {
+    /// `frame_input->source`
+    #[inline]
+    pub(crate) fn source<'a>(&self, cpi: &'a Av1Comp) -> Option<&'a Yv12BufferConfig> {
+        Some(&cpi.source_buf)
+    }
+
+    /// `frame_input->last_source`
+    #[inline]
+    pub(crate) fn last_source<'a>(&self, cpi: &'a Av1Comp) -> Option<&'a Yv12BufferConfig> {
+        if self.has_last_source {
+            Some(&cpi.last_source_buf)
+        } else {
+            None
+        }
+    }
+}
 
 /// Translation of `set_refresh_frame_flags()`.
 #[inline]
@@ -68,7 +96,7 @@ pub(crate) fn av1_configure_buffer_updates(
         }
     }
 
-    debug_assert!(!cpi.ext_flags.refresh_frame_update_pending);
+    debug_assert!(!cpi.ext_flags.refresh_frame.update_pending);
 
     if force_refresh_all {
         set_refresh_frame_flags(refresh_frame, true, true, true);

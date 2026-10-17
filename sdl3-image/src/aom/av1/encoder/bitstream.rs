@@ -1008,7 +1008,7 @@ fn write_uncompressed_header_obu(
     let cm = &mut cpi.common;
     let seq_params = &cm.seq_params;
 
-    if enable_ref_short_signaling == 0
+    if !enable_ref_short_signaling
         || seq_params.order_hint_info.enable_order_hint == 0
         || seq_params.order_hint_info.enable_ref_frame_mvs != 0
     {

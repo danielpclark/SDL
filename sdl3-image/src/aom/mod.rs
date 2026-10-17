@@ -20,6 +20,7 @@
     clippy::erasing_op,
     clippy::explicit_counter_loop,
     clippy::identity_op,
+    clippy::if_same_then_else,
     clippy::let_and_return,
     clippy::manual_is_multiple_of,
     clippy::manual_memcpy,
