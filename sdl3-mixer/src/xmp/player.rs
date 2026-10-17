@@ -1456,11 +1456,21 @@ fn process_volume(ctx: &mut ContextData, chn: usize, act: i32) {
     finalvol = finalvol * get_channel_vol(ctx, chn as i32) / 100;
 
     /* Volume translation table (for PTM, ARCH, COCO) */
+    // FIXME (upstream): the index isn't checked against the table's
+    // size; past it (only with volumes beyond their bases) this reads 0.
     if let Some(vol_table) = m.vol_table {
         finalvol = if m.volbase == 0xff {
-            vol_table[(finalvol >> 2) as usize] << 2
+            vol_table
+                .get((finalvol >> 2) as usize)
+                .copied()
+                .unwrap_or(0)
+                << 2
         } else {
-            vol_table[(finalvol >> 4) as usize] << 4
+            vol_table
+                .get((finalvol >> 4) as usize)
+                .copied()
+                .unwrap_or(0)
+                << 4
         };
     }
 

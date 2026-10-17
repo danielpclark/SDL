@@ -258,8 +258,11 @@ In dependency order, after the core each one needs exists:
    it, without the depackers and ProWizard) are done in `sdl3-mixer/src/xmp/`,
    under libxmp's MIT license: the player, its effects, envelopes, new
    note actions and IT filters, the software mixer with every
-   interpolation and the Amiga Paula simulator, and the MOD, XM (and OXM), S3M and IT
-   loaders, with IT sample decompression and OXM's Vorbis samples; checked
+   interpolation and the Amiga Paula simulator, and all 52 loaders the
+   build enables (MOD, XM and OXM, S3M, IT, the MED family, Oktalyzer,
+   Farandole, Digitrakker, and the rest of `format.c`'s list), with IT
+   sample decompression, OXM's Vorbis samples, MED synth instruments,
+   Digital Symphony's LZW samples and the MUSE loader's inflate; checked
    bit-for-bit against upstream's C on modules from `tools/gen_xmp_testdata.py`
    (through the decoder, the mixer, orders and seeks, truncated and
    corrupted, and libxmp's own API in the output formats, interpolations
