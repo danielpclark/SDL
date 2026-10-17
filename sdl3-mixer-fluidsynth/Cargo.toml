@@ -1,0 +1,28 @@
+[package]
+name = "sdl3-mixer-fluidsynth"
+description = "A direct, pure-Rust translation of the FluidSynth SoundFont synthesizer as SDL_mixer 3 vendors it, for sdl3-mixer. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+# FluidSynth's terms (see COPYING): the GNU LGPL, version 2.1 or (at your
+# option) any later version; and, for the translation of the gcem
+# constexpr math functions its lookup tables are computed with
+# (src/gcem.rs), the Apache License 2.0 (LICENSE.gcem). Not zlib, unlike
+# the rest of this repository; see NOTICE. The Apache License 2.0 is
+# compatible only with version 3 of the LGPL, so the crate as a whole is
+# effectively distributed under the terms of the LGPL 3.0 or later (which
+# FluidSynth's "or any later version" allows).
+license = "LGPL-2.1-or-later AND Apache-2.0"
+repository.workspace = true
+readme = "NOTICE"
+keywords = ["sdl", "sdl3", "midi", "fluidsynth", "soundfont"]
+categories = ["multimedia::audio", "game-development"]
+
+[lib]
+name = "sdl3_mixer_fluidsynth"
+path = "src/lib.rs"
+
+# SoundFonts are read through the file callbacks the caller gives (or from
+# the file system); none are bundled.
+[dependencies]
+sdl3 = { path = "../sdl3", version = "3.5.0" }

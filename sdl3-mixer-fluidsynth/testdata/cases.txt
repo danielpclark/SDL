@@ -1,0 +1,75 @@
+# name soundfont midi rate max-frames settings...
+basic test.sf2 midi/basic.mid 44100 400000
+basic48k test.sf2 midi/basic.mid 48000 400000
+basic22k test.sf2 midi/basic.mid 22050 200000
+basic8k test.sf2 midi/basic.mid 8000 100000
+basic96k test.sf2 midi/basic.mid 96000 400000
+basic_dry test.sf2 midi/basic.mid 44100 400000 synth.reverb.active=0 synth.chorus.active=0
+basic_fx test.sf2 midi/basic.mid 44100 400000 synth.reverb.room-size=0.95 synth.reverb.damp=0.1 synth.reverb.width=100 synth.reverb.level=1.0 synth.chorus.nr=7 synth.chorus.speed=3.5 synth.chorus.depth=40 synth.chorus.level=2
+basic_tri test.sf2 midi/basic.mid 44100 400000 synth.chorus.nr=0
+basic_gain test.sf2 midi/basic.mid 44100 400000 synth.gain=7.5 synth.min-note-length=50
+basic_v201 test_v201.sf2 midi/basic.mid 44100 400000
+basic_limit test.sf2 midi/basic.mid 44100 30000
+format1 test.sf2 midi/format1.mid 44100 400000
+format1_noreset test.sf2 midi/format1.mid 32000 400000 player.reset-synth=0
+sysex test.sf2 midi/sysex.mid 44100 400000
+sysex_dev test.sf2 midi/sysex.mid 44100 400000 synth.device-id=34
+sysex_xg test.sf2 midi/sysex.mid 44100 400000 synth.midi-bank-select=xg
+mono test.sf2 midi/mono.mid 44100 400000
+mono_linear test.sf2 midi/mono.mid 44100 400000 synth.portamento-time=linear
+mono_xg test.sf2 midi/mono.mid 44100 400000 synth.portamento-time=xg-gs
+nrpn test.sf2 midi/nrpn.mid 44100 400000
+nrpn_mma test.sf2 midi/nrpn.mid 44100 400000 synth.midi-bank-select=mma
+nrpn_gm test.sf2 midi/nrpn.mid 44100 400000 synth.midi-bank-select=gm
+many test.sf2 midi/many.mid 44100 400000
+many_poly8 test.sf2 midi/many.mid 44100 400000 synth.polyphony=8
+many_prio test.sf2 midi/many.mid 44100 400000 synth.polyphony=12 synth.overflow.percussion=-4000 synth.overflow.released=0 synth.overflow.sustained=500 synth.overflow.volume=0 synth.overflow.age=2000 synth.overflow.important=100 synth.overflow.important-channels=1,3
+many_cut test.sf2 midi/many.mid 44100 400000 synth.note-cut=2 synth.midi-channels=32
+hanging test.sf2 midi/hanging.mid 44100 300000
+empty test.sf2 midi/empty.mid 44100 300000
+notracks test.sf2 midi/notracks.mid 44100 300000
+slow test.sf2 midi/slow.mid 44100 300000
+fast test.sf2 midi/fast.mid 44100 300000
+nosf - midi/basic.mid 44100 300000
+junk_chunk test.sf2 midi/junk_chunk.mid 44100 300000
+negative_chunk test.sf2 midi/negative_chunk.mid 44100 300000
+nonascii_chunk test.sf2 midi/nonascii_chunk.mid 44100 300000
+truncated test.sf2 midi/truncated.mid 44100 300000
+header_only test.sf2 midi/header_only.mid 44100 300000
+short_header test.sf2 midi/short_header.mid 44100 300000
+format2 test.sf2 midi/format2.mid 44100 300000
+smpte test.sf2 midi/smpte.mid 44100 300000
+bad_mthd_len test.sf2 midi/bad_mthd_len.mid 44100 300000
+more_tracks test.sf2 midi/more_tracks.mid 44100 300000
+neg_tracks test.sf2 midi/neg_tracks.mid 44100 300000
+bad_varlen test.sf2 midi/bad_varlen.mid 44100 300000
+no_status test.sf2 midi/no_status.mid 44100 300000
+bad_eot test.sf2 midi/bad_eot.mid 44100 300000
+bad_tempo test.sf2 midi/bad_tempo.mid 44100 300000
+bad_timesig test.sf2 midi/bad_timesig.mid 44100 300000
+bad_keysig test.sf2 midi/bad_keysig.mid 44100 300000
+bad_smpte_ofs test.sf2 midi/bad_smpte_ofs.mid 44100 300000
+huge_meta test.sf2 midi/huge_meta.mid 44100 300000
+huge_sysex test.sf2 midi/huge_sysex.mid 44100 300000
+sys_common test.sf2 midi/sys_common.mid 44100 300000
+no_eot test.sf2 midi/no_eot.mid 44100 300000
+short_track test.sf2 midi/short_track.mid 44100 300000
+long_track test.sf2 midi/long_track.mid 44100 300000
+big_param test.sf2 midi/big_param.mid 44100 300000
+not_midi test.sf2 midi/not_midi.mid 44100 300000
+sf_truncated sf2_truncated.sf2 midi/basic.mid 44100 300000
+sf_header sf2_header.sf2 midi/basic.mid 44100 300000
+sf_badsize sf2_badsize.sf2 midi/basic.mid 44100 300000
+sf_version1 sf2_version1.sf2 midi/basic.mid 44100 300000
+sf_version3 sf2_version3.sf2 midi/basic.mid 44100 300000
+sf_version9 sf2_version9.sf2 midi/basic.mid 44100 300000
+sf_nopdta sf2_nopdta.sf2 midi/basic.mid 44100 300000
+sf_noshdr sf2_noshdr.sf2 midi/basic.mid 44100 300000
+sf_noimod sf2_noimod.sf2 midi/basic.mid 44100 300000
+sf_badinfo sf2_badinfo.sf2 midi/basic.mid 44100 300000
+sf_oddinfo sf2_oddinfo.sf2 midi/basic.mid 44100 300000
+sf_extra_pdta sf2_extra_pdta.sf2 midi/basic.mid 44100 300000
+sf_badsamples sf2_badsamples.sf2 midi/many.mid 44100 300000
+sf_badsamples9 sf2_badsamples.sf2 midi/nrpn.mid 44100 300000
+sf_badsm24 sf2_badsm24.sf2 midi/basic.mid 44100 300000
+sf_badinst sf2_badinst.sf2 midi/basic.mid 44100 300000
