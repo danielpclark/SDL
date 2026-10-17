@@ -33,6 +33,7 @@
 //! - `Blip_Buffer` (band-limited synthesis, its synths and equalization),
 //!   `Stereo_Buffer` and `Effects_Buffer` (with its stereo depth, echo and
 //!   reverb);
+//! - the GBS emulator: the Game Boy CPU and its APU;
 //! - the NSF and NSFE emulators: the NES 6502 CPU, the 2A03 APU and the
 //!   VRC6, Namco 106, FME-7, FDS, MMC5 and VRC7 sound chips (the VRC7 over
 //!   emu2413).
@@ -77,6 +78,10 @@ pub mod classic_emu;
 pub mod data_reader;
 pub mod effects_buffer;
 pub mod emu2413;
+pub mod gb_apu;
+pub mod gb_cpu;
+pub mod gb_oscs;
+pub mod gbs_emu;
 pub mod gme;
 pub mod gme_file;
 pub mod multi_buffer;

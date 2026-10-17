@@ -3,7 +3,7 @@
 
 Every file here is synthetic, made by this script: tiny game music rips
 whose sound programs are assembled here (for the 6502 of the NSF and NSFE
-files), driving the sound chips the emulators emulate, with their
+files, the Game Boy CPU of the GBS files), driving the sound chips the emulators emulate, with their
 metadata, track lists and timing. Nothing comes from a real game.
 
 The output is deterministic, so regenerating the files gives the same
@@ -175,21 +175,27 @@ class Asm:
                     out += bytes(target - pc)
                     pc = target
                     continue
-                m, v = self.mode(mnem, arg, labels, final)
-                opc = self.ops[mnem][m]
-                out.append(opc)
-                if m == 'rel':
-                    off = v - (pc + 2)
-                    if final:
-                        assert -128 <= off <= 127, (line, off)
-                    out.append(off & 0xFF)
-                elif SIZES[m] == 2:
-                    out.append(v & 0xFF)
-                elif SIZES[m] == 3:
-                    out += struct.pack('<H', v & 0xFFFF)
+                out += self.encode(mnem, arg, labels, final, pc, line)
                 pc = self.org + len(out)
         self.labels = labels
         return bytes(out)
+
+    def encode(self, mnem, arg, labels, final, pc, line):
+        """The bytes of one 6502 instruction."""
+        out = bytearray()
+        m, v = self.mode(mnem, arg, labels, final)
+        opc = self.ops[mnem][m]
+        out.append(opc)
+        if m == 'rel':
+            off = v - (pc + 2)
+            if final:
+                assert -128 <= off <= 127, (line, off)
+            out.append(off & 0xFF)
+        elif SIZES[m] == 2:
+            out.append(v & 0xFF)
+        elif SIZES[m] == 3:
+            out += struct.pack('<H', v & 0xFFFF)
+        return out
 
 
 # ---------------------------------------------------------------------------
@@ -971,6 +977,639 @@ play_r:
     write('nsfe_order.nsfe', data)
 
 
+# ---------------------------------------------------------------------------
+# A small assembler for the Game Boy's CPU (the LR35902), on the same
+# two-pass assembler: the operands are written as in the usual syntax
+# (`LD A,(HL+)`, `JR NZ,label`, `LDH ($80),A`, `BIT 7,(HL)`...).
+
+GB_R8 = ['B', 'C', 'D', 'E', 'H', 'L', '(HL)', 'A']
+GB_R16 = ['BC', 'DE', 'HL', 'SP']
+GB_R16_STACK = ['BC', 'DE', 'HL', 'AF']
+GB_CC = ['NZ', 'Z', 'NC', 'C']
+GB_ALU = ['ADD', 'ADC', 'SUB', 'SBC', 'AND', 'XOR', 'OR', 'CP']
+GB_CB_SHIFTS = ['RLC', 'RRC', 'RL', 'RR', 'SLA', 'SRA', 'SWAP', 'SRL']
+GB_IMPLIED = {
+    'NOP': 0x00, 'RLCA': 0x07, 'RRCA': 0x0F, 'RLA': 0x17, 'RRA': 0x1F, 'DAA': 0x27,
+    'CPL': 0x2F, 'SCF': 0x37, 'CCF': 0x3F, 'HALT': 0x76, 'RETI': 0xD9, 'DI': 0xF3,
+    'EI': 0xFB,
+}
+
+
+class GbAsm(Asm):
+    """Assembles Game Boy CPU source text (see Asm for the directives and
+    numbers)."""
+
+    def encode(self, mnem, arg, labels, final, pc, line):
+        ops = [o.strip() for o in arg.split(',')] if arg else []
+        ops_u = [o.upper() for o in ops]
+        val = lambda s: self.value(s, labels, final)
+
+        def imm8(s):
+            return bytes([val(s) & 0xFF])
+
+        def imm16(s):
+            return struct.pack('<H', val(s) & 0xFFFF)
+
+        def rel(s, size):
+            off = val(s) - (pc + size)
+            if final:
+                assert -128 <= off <= 127, (line, off)
+            return bytes([off & 0xFF])
+
+        def is_ind(s):
+            return s.startswith('(') and s.endswith(')')
+
+        if mnem in GB_IMPLIED and not ops:
+            return bytes([GB_IMPLIED[mnem]])
+        if mnem == 'STOP':
+            return bytes([0x10, 0x00])
+        if mnem == 'LD':
+            d, s = ops_u
+            if d in GB_R8 and s in GB_R8:
+                return bytes([0x40 + GB_R8.index(d) * 8 + GB_R8.index(s)])
+            table = {
+                ('(BC)', 'A'): 0x02, ('(DE)', 'A'): 0x12, ('(HL+)', 'A'): 0x22, ('(HL-)', 'A'): 0x32,
+                ('A', '(BC)'): 0x0A, ('A', '(DE)'): 0x1A, ('A', '(HL+)'): 0x2A, ('A', '(HL-)'): 0x3A,
+                ('(C)', 'A'): 0xE2, ('A', '(C)'): 0xF2, ('SP', 'HL'): 0xF9,
+            }
+            if (d, s) in table:
+                return bytes([table[(d, s)]])
+            if d in GB_R8 and not is_ind(s):
+                return bytes([0x06 + GB_R8.index(d) * 8]) + imm8(ops[1])
+            if d == 'HL' and (s.startswith('SP+') or s.startswith('SP-')):
+                return bytes([0xF8]) + imm8(('' if s[2] == '+' else '0-') + ops[1][3:])
+            if d in GB_R16 and not is_ind(s):
+                return bytes([0x01 + GB_R16.index(d) * 16]) + imm16(ops[1])
+            if is_ind(d) and s == 'A':
+                return bytes([0xEA]) + imm16(ops[0][1:-1])
+            if is_ind(d) and s == 'SP':
+                return bytes([0x08]) + imm16(ops[0][1:-1])
+            if d == 'A' and is_ind(s):
+                return bytes([0xFA]) + imm16(ops[1][1:-1])
+            raise ValueError(line)
+        if mnem == 'LDH':
+            d, s = ops_u
+            if s == 'A':
+                return bytes([0xE0]) + imm8(ops[0][1:-1])
+            return bytes([0xF0]) + imm8(ops[1][1:-1])
+        if mnem in GB_ALU:
+            if len(ops) == 2 and ops_u[0] == 'HL':
+                return bytes([0x09 + GB_R16.index(ops_u[1]) * 16])
+            if len(ops) == 2 and ops_u[0] == 'SP':
+                return bytes([0xE8]) + imm8(ops[1])
+            if len(ops) == 2:
+                assert ops_u[0] == 'A', line
+                ops, ops_u = ops[1:], ops_u[1:]
+            i = GB_ALU.index(mnem)
+            if ops_u[0] in GB_R8:
+                return bytes([0x80 + i * 8 + GB_R8.index(ops_u[0])])
+            return bytes([0xC6 + i * 8]) + imm8(ops[0])
+        if mnem in ('INC', 'DEC'):
+            o = ops_u[0]
+            if o in GB_R8:
+                return bytes([(0x04 if mnem == 'INC' else 0x05) + GB_R8.index(o) * 8])
+            return bytes([(0x03 if mnem == 'INC' else 0x0B) + GB_R16.index(o) * 16])
+        if mnem in ('PUSH', 'POP'):
+            return bytes([(0xC5 if mnem == 'PUSH' else 0xC1) + GB_R16_STACK.index(ops_u[0]) * 16])
+        if mnem == 'JP':
+            if ops_u == ['(HL)'] or ops_u == ['HL']:
+                return bytes([0xE9])
+            if len(ops) == 2:
+                return bytes([0xC2 + GB_CC.index(ops_u[0]) * 8]) + imm16(ops[1])
+            return bytes([0xC3]) + imm16(ops[0])
+        if mnem == 'JR':
+            if len(ops) == 2:
+                return bytes([0x20 + GB_CC.index(ops_u[0]) * 8]) + rel(ops[1], 2)
+            return bytes([0x18]) + rel(ops[0], 2)
+        if mnem == 'CALL':
+            if len(ops) == 2:
+                return bytes([0xC4 + GB_CC.index(ops_u[0]) * 8]) + imm16(ops[1])
+            return bytes([0xCD]) + imm16(ops[0])
+        if mnem == 'RET':
+            if ops:
+                return bytes([0xC0 + GB_CC.index(ops_u[0]) * 8])
+            return bytes([0xC9])
+        if mnem == 'RST':
+            return bytes([0xC7 + (val(ops[0]) & 0x38)])
+        if mnem in GB_CB_SHIFTS:
+            return bytes([0xCB, GB_CB_SHIFTS.index(mnem) * 8 + GB_R8.index(ops_u[0])])
+        if mnem in ('BIT', 'RES', 'SET'):
+            base = {'BIT': 0x40, 'RES': 0x80, 'SET': 0xC0}[mnem]
+            return bytes([0xCB, base + (val(ops[0]) & 7) * 8 + GB_R8.index(ops_u[1])])
+        if mnem == '.OP':
+            # a raw opcode (the ones the CPU emulator doesn't run)
+            return bytes([val(ops[0]) & 0xFF])
+        raise ValueError('unknown instruction: ' + line)
+
+
+def gbs_header(tracks, first, load, init, play, sp, game, author, copyright, timer_modulo=0,
+               timer_mode=0, version=1):
+    def s32(s):
+        b = s.encode('latin-1')[:32]
+        return b + bytes(32 - len(b))
+    h = b'GBS' + bytes([version, tracks, first]) + struct.pack('<HHHH', load, init, play, sp)
+    h += bytes([timer_modulo, timer_mode]) + s32(game) + s32(author) + s32(copyright)
+    assert len(h) == 112
+    return h
+
+
+# The Game Boy CPU exercise: most instructions, on every register and
+# (HL), leaving a value in $C010 (and the stack as it found it) that the
+# songs use, so a mistake in any of them changes the sound.
+GB_CPU_EXERCISE = '''
+cpu_test:
+    PUSH AF
+    PUSH BC
+    PUSH DE
+    PUSH HL
+    LD A,$5A
+    LD B,$13
+    LD C,$C4
+    LD D,$7F
+    LD E,$80
+    LD HL,$C100
+    ; 8-bit loads and arithmetic on every register
+    LD (HL),$29
+    ADD A,B
+    ADC A,C
+    SUB D
+    SBC A,E
+    AND $F7
+    XOR H
+    OR L
+    CP (HL)
+    ADD A,(HL)
+    ADC A,$33
+    SUB $11
+    SBC A,(HL)
+    XOR (HL)
+    OR (HL)
+    AND (HL)
+    LD (HL+),A
+    LD (HL-),A
+    LD A,(HL+)
+    LD A,(HL-)
+    CP $40
+    JR C,ct_lt
+    CPL
+ct_lt:
+    LD B,A
+    LD C,B
+    LD D,C
+    LD E,D
+    LD H,$C1
+    LD L,$02
+    LD (HL),E
+    INC (HL)
+    INC (HL)
+    DEC (HL)
+    LD A,(HL)
+    INC A
+    DEC B
+    INC C
+    DEC D
+    INC E
+    ADD A,A
+    ADC A,B
+    SBC A,C
+    SUB E
+    ADD A,D
+    ADD A,H
+    ADD A,L
+    LD (HL),A
+    ; 16-bit
+    LD BC,$1234
+    LD DE,$FEDC
+    LD HL,$0F0F
+    ADD HL,BC
+    ADD HL,DE
+    ADD HL,HL
+    INC BC
+    DEC DE
+    INC HL
+    ADD HL,SP
+    LD A,H
+    XOR L
+    LD ($C103),A
+    LD HL,SP+$05
+    LD A,L
+    LD ($C104),A
+    LD HL,SP-$03
+    LD A,L
+    LD ($C105),A
+    ADD SP,$08
+    ADD SP,$F8
+    LD ($C106),SP
+    ; the CB instructions
+    LD A,$96
+    LD B,$69
+    RLC A
+    RRC B
+    RL A
+    RR B
+    SLA A
+    SRA B
+    SWAP A
+    SRL B
+    LD C,A
+    LD D,B
+    RLCA
+    RRCA
+    RLA
+    RRA
+    LD HL,$C107
+    LD (HL),$C3
+    RLC (HL)
+    RR (HL)
+    SLA (HL)
+    SRA (HL)
+    SRL (HL)
+    SWAP (HL)
+    RL (HL)
+    RRC (HL)
+    BIT 7,(HL)
+    JR Z,ct_b0
+    SET 0,(HL)
+ct_b0:
+    BIT 0,C
+    JR NZ,ct_b1
+    RES 7,(HL)
+ct_b1:
+    SET 3,D
+    RES 1,C
+    BIT 6,D
+    LD A,(HL)
+    XOR C
+    XOR D
+    LD E,A
+    ; flags
+    SCF
+    CCF
+    JR NC,ct_f0
+    INC E
+ct_f0:
+    SCF
+    LD A,E
+    ADC A,$00
+    LD E,A
+    AND A
+    OR A
+    XOR A
+    JR NZ,ct_f1
+    INC E
+ct_f1:
+    ; the stack and AF
+    LD BC,$12F0
+    PUSH BC
+    POP AF
+    PUSH AF
+    POP BC
+    LD A,C
+    XOR E
+    LD E,A
+    ; memory through BC and DE, the high page
+    LD BC,$C108
+    LD DE,$C109
+    LD A,E
+    LD (BC),A
+    LD (DE),A
+    LD A,(BC)
+    LD H,A
+    LD A,(DE)
+    ADD A,H
+    LDH ($80),A
+    LD C,$81
+    LD (C),A
+    LDH A,($80)
+    LD B,A
+    LD A,(C)
+    ADD A,B
+    XOR E
+    LD E,A
+    ; calls, returns and jumps
+    CALL ct_sub
+    CALL Z,ct_sub
+    CALL NZ,ct_sub
+    CALL C,ct_sub
+    CALL NC,ct_sub
+    LD HL,ct_jp
+    JP HL
+ct_jp_back:
+    XOR A
+    JP Z,ct_jz
+    INC E
+ct_jz:
+    JP NZ,ct_jnz
+    SCF
+    JP C,ct_jc
+    INC E
+ct_jc:
+    JP NC,ct_jnz
+    INC E
+    INC E
+ct_jnz:
+    RST $08
+    LD A,E
+    LD ($C010),A
+    POP HL
+    POP DE
+    POP BC
+    POP AF
+    RET
+ct_jp:
+    INC E
+    JP ct_jp_back
+ct_sub:
+    INC E
+    LD A,E
+    AND $03
+    RET Z
+    CP $02
+    RET C
+    SCF
+    RET NC
+    RET NZ
+    RET
+'''
+
+
+def gbs_apu():
+    a = GbAsm(0x400)
+    a('''
+    .org $0408
+rst_08:
+    INC E
+    RET
+    .org $0410
+init:
+    LD ($C000),A     ; track
+    CALL cpu_test
+    LD A,$80
+    LDH ($26),A      ; power on
+    LD A,$77
+    LDH ($24),A
+    LD A,$FF
+    LDH ($25),A
+    ; square 1: sweep and envelope
+    LD A,$35
+    LDH ($10),A
+    LD A,$80
+    LDH ($11),A
+    LD A,$F3
+    LDH ($12),A
+    LD A,($C010)
+    LDH ($13),A
+    LD A,$86
+    LDH ($14),A
+    ; square 2: duty 3, rising envelope, a length
+    LD A,$D0
+    LDH ($16),A
+    LD A,$2F
+    LDH ($17),A
+    LD A,$40
+    LDH ($18),A
+    LD A,$C7
+    LDH ($19),A
+    ; wave: its RAM, then on
+    LD A,$00
+    LDH ($1A),A
+    LD HL,$FF30
+    LD B,$10
+    LD A,($C000)
+    LD C,A
+init_wave:
+    LD A,B
+    SWAP A
+    XOR C
+    ADD A,B
+    LD (HL+),A
+    DEC B
+    JR NZ,init_wave
+    LD A,$80
+    LDH ($1A),A
+    LD A,$20
+    LDH ($1C),A
+    LD A,$30
+    LDH ($1D),A
+    LD A,$87
+    LDH ($1E),A
+    ; noise: 7-bit for track 1
+    LD A,$A1
+    LDH ($21),A
+    LD A,($C000)
+    AND A
+    LD A,$35
+    JR Z,init_n7
+    LD A,$3D
+init_n7:
+    LDH ($22),A
+    LD A,$80
+    LDH ($23),A
+    XOR A
+    LD ($C001),A
+    RET
+
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    LD B,A
+    AND $07
+    LD E,A
+    LD D,$00
+    LD HL,notes
+    ADD HL,DE
+    LD A,(HL)
+    LDH ($18),A
+    LD A,$87
+    LDH ($19),A
+    ; the status, read back into the wave's volume
+    LDH A,($26)
+    LD ($C002),A
+    AND $04
+    RLCA
+    RLCA
+    RLCA
+    OR $20
+    LDH ($1C),A
+    ; panning every 8 frames, master volume every 16
+    LD A,B
+    AND $07
+    JR NZ,play_p
+    LD A,B
+    RRCA
+    RRCA
+    RRCA
+    XOR $5A
+    LDH ($25),A
+play_p:
+    LD A,B
+    AND $0F
+    JR NZ,play_v
+    LD A,B
+    SWAP A
+    AND $77
+    OR $11
+    LDH ($24),A
+play_v:
+    ; retrigger square 1 and noise every 32
+    LD A,B
+    AND $1F
+    JR NZ,play_t
+    LD A,$86
+    LDH ($14),A
+    LD A,$80
+    LDH ($23),A
+play_t:
+    ; power off and on at frame 100 of track 2
+    LD A,($C000)
+    CP $02
+    RET NZ
+    LD A,B
+    CP 100
+    RET NZ
+    XOR A
+    LDH ($26),A
+    LD A,$80
+    LDH ($26),A
+    LD A,$F0
+    LDH ($12),A
+    LD A,$87
+    LDH ($14),A
+    RET
+notes:
+    .db $10, $40, $70, $90, $A8, $C0, $D0, $E0
+''')
+    a(GB_CPU_EXERCISE)
+    code = a.assemble()
+    h = gbs_header(3, 1, 0x400, 0x410, a.labels['play'], 0xFFFE, 'GBS Test',
+                   'gen_gme_testdata.py', '2026 Public Domain')
+    write('gbs_apu.gbs', h + code)
+
+
+def gbs_timer():
+    # the timer drives play; the ROM crosses into a second bank (loaded
+    # just below it), switched by play (banks 1, 2, which wraps to 0, and
+    # 3, past the ROM); the timer rate changed while playing
+    a = GbAsm(0x3F00)
+    a('''
+init:
+    LD ($C000),A
+    LD A,$80
+    LDH ($26),A
+    LD A,$77
+    LDH ($24),A
+    LD A,$FF
+    LDH ($25),A
+    LD A,$C2
+    LDH ($11),A
+    LD A,$F0
+    LDH ($12),A
+    LD A,$87
+    LDH ($14),A
+    LD A,$00
+    LD ($C001),A
+    RET
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    AND $03
+    LD ($2000),A     ; bank 0 (as 1), 1, 2 or 3 at $4000
+    LD A,($4000)
+    ADD A,$40
+    LDH ($13),A
+    LD A,$86
+    LDH ($14),A
+    LD A,(HL)
+    CP $40
+    RET NZ
+    LD A,$06         ; faster timer
+    LDH ($07),A
+    LD A,$E0
+    LDH ($06),A
+    RET
+    .org $4000
+    .db $20, $30, $40
+''')
+    code = a.assemble()
+    h = gbs_header(2, 1, 0x3F00, 0x3F00, a.labels['play'], 0xDFFF, 'Timer Banks', 'Nobody', '',
+                   timer_modulo=0xC0, timer_mode=0x04)
+    write('gbs_timer.gbs', h + code)
+
+    # the same, with the timer at its other rates and the double-speed bit
+    h = gbs_header(1, 1, 0x3F00, 0x3F00, a.labels['play'], 0xDFFF, 'Timer Fast', '', '',
+                   timer_modulo=0x80, timer_mode=0x87)
+    write('gbs_timer2.gbs', h + code)
+
+
+def gbs_odd():
+    # an invalid timer mode and a load address below
+    # $400 (warnings), the instructions the CPU emulator stops at, code
+    # that runs off the end of memory (track 1), the bank register past
+    # the ROM, writes to the unmapped and I/O pages, a stack over the APU
+    a = GbAsm(0x100)
+    a('''
+init:
+    LD ($C000),A
+    AND A
+    JR Z,init0
+    DEC A
+    JR Z,init1
+    ; track 2: the stack over the APU's registers (triggering the wave)
+    LD A,$80
+    LDH ($26),A
+    LDH ($1A),A
+    LD A,$20
+    LDH ($1C),A
+    LD SP,$FF20
+    LD BC,$F387
+    PUSH BC
+    LD SP,$FFFC
+    RET
+init1:
+    LD A,$80
+    LDH ($26),A
+    LD A,$F0
+    LDH ($17),A
+    LD A,$87
+    LDH ($19),A
+    LD HL,$FFF0
+    JP HL            ; runs off the end of memory, through NOPs
+init0:
+    LD A,$80
+    LDH ($26),A
+    LD A,$1F
+    LD ($2000),A     ; a bank past the ROM
+    LD A,$55
+    LD ($8000),A     ; unmapped
+    LD ($E000),A     ; echo RAM, reads back as $FF
+    LD A,($E000)
+    LDH ($13),A
+    LDH A,($00)      ; joypad
+    LDH ($11),A
+    LD A,$F1
+    LDH ($12),A
+    LD A,$87
+    LDH ($14),A
+    .op $76          ; HALT, which stops the CPU
+    .op $D3          ; and an unknown opcode
+    .op $10          ; STOP
+    RET
+play:
+    LD HL,$C001
+    INC (HL)
+    LD A,(HL)
+    LDH ($13),A
+    .op $DB
+    RET
+''')
+    code = a.assemble()
+    h = gbs_header(3, 2, 0x100, 0x100, a.labels['play'], 0xFFFE, 'Odd GBS', '', '(C)',
+                   timer_mode=0x7B)
+    write('gbs_odd.gbs', h + code)
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -978,6 +1617,9 @@ def main():
     nsf_vrc7()
     nsf_odd()
     nsfe_files()
+    gbs_apu()
+    gbs_timer()
+    gbs_odd()
 
 
 if __name__ == '__main__':

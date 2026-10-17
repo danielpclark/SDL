@@ -373,12 +373,13 @@ In dependency order, after the core each one needs exists:
    Game_Music_Emu's license (`LGPL-2.1-or-later AND MIT`, the MIT part
    being the emu2413 YM2413 emulator; `default-features = false` leaves it
    out): the decoder, the core (`Music_Emu`, `Gme_File`, `Classic_Emu`,
-   `Blip_Buffer`, the stereo and effects buffers, the `gme_*` API) and the
-   NSF and NSFE emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS,
-   MMC5, Namco 106 and FME-7 chips) are done, checked bit-for-bit against
-   upstream's C++ (and through the decoder and the mixer, upstream's C) on
-   rips from `tools/gen_gme_testdata.py`, truncated and corrupted; not yet:
-   the AY, GBS, GYM, HES, KSS, SAP, SPC and VGM emulators.
+   `Blip_Buffer`, the stereo and effects buffers, the `gme_*` API), the GBS
+   emulator (the Game Boy CPU and APU) and the NSF and NSFE emulators (the
+   6502, the 2A03 APU and the VRC6, VRC7, FDS, MMC5, Namco 106 and FME-7
+   chips) are done, checked bit-for-bit against upstream's C++ (and through
+   the decoder and the mixer, upstream's C) on rips from
+   `tools/gen_gme_testdata.py`, truncated and corrupted; not yet: the AY,
+   GYM, HES, KSS, SAP, SPC and VGM emulators.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

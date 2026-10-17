@@ -2301,6 +2301,12 @@ fn gme_files(prefix: &str) {
 
 #[cfg(feature = "gme")]
 #[test]
+fn gme_gbs_matches_upstream() {
+    gme_files("gbs_");
+}
+
+#[cfg(feature = "gme")]
+#[test]
 fn gme_nsf_matches_upstream() {
     gme_files("nsf_");
 }

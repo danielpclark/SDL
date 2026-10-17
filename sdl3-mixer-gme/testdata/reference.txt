@@ -1,5 +1,5 @@
 == misc
-types: NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
+types: GBS/Game Boy/1/0 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
 ext nsf: NSF
 ext x.NSFE: NSFE
 ext a.b.spc: 
@@ -10,7 +10,7 @@ ext kss:
 ext hes: 
 ext sap: 
 ext ay: 
-ext gbs: 
+ext gbs: GBS
 ext nsfee: 
 ext toolong: 
 ext : 
@@ -32,6 +32,555 @@ header 12:
 header 13: 
 open short: Wrong file type for this emulator
 open junk: Wrong file type for this emulator
+== gbs_apu.gbs
+identify: GBS
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 3: err=Invalid track
+open 44100: tracks=3 type=GBS voices=4
+voices: Square 1 Square 2 Wave Noise
+eq: -1.000 120.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+t0 16384: 4dad6d58503c2904 tell=185 samples=16384 ended=0
+t0 32768: eecf263f7e963d53 tell=371 samples=32768 ended=0
+t0 49152: 3a2efca1a32d3919 tell=557 samples=49152 ended=0
+t0 65536: 2ad8f25e1d033da9 tell=743 samples=65536 ended=0
+t0 81920: af5b973031bc51cf tell=928 samples=81920 ended=0
+t0 88200: 03e2fa5484ae64e7 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+t1 16384: 0e1224831ca42f5a tell=185 samples=16384 ended=0
+t1 32768: 51ff4b795b093825 tell=371 samples=32768 ended=0
+t1 49152: 6158fb628d41b51c tell=557 samples=49152 ended=0
+t1 65536: 7e8076d8427a3c3a tell=743 samples=65536 ended=0
+t1 81920: 2642c08111570503 tell=928 samples=81920 ended=0
+t1 88200: 01e38b2bfe7ccf53 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+t2 16384: 6eb0119352628e8c tell=185 samples=16384 ended=0
+t2 32768: 4dc8e4bfb4c4c2c3 tell=371 samples=32768 ended=0
+t2 49152: 9f4f1089dde723fc tell=557 samples=49152 ended=0
+t2 65536: b728e5eace3ef18f tell=743 samples=65536 ended=0
+t2 81920: fd7a86316db5bd0a tell=928 samples=81920 ended=0
+t2 88200: 06beb747cbb4845e tell=1000 samples=88200 ended=0
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 00cefbaddf51e6dd tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: c3ea2c544ee4a615 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 33397b847939f4ba tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: fbfb8a9119d3c676 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 1849d7046797095e tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 7f8dde6b9da7010d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 5b602ed63ad1737d tell=92 samples=8192 ended=0
+open 32000: tracks=3 type=GBS voices=4
+start 2: ok
+tempo 16000: c70be069634bec61 tell=250 samples=16000 ended=0
+tempo 32000: a90c13a301c70381 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: c059838727c7ca41 tell=238 samples=15294 ended=0
+slow 8000: 216efe3dcbe2eba8 tell=363 samples=23294 ended=0
+tracks=3
+start 0: ok
+acc 8000: d75edeedbcb968c1 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 217
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: c44d7b8083a64fd5 tell=92 samples=8192 ended=0
+-- cut 325
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: 4ab42f2ac70b4fc5 tell=92 samples=8192 ended=0
+-- cut 650
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: 0996da68d22bcefd tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026\x15Public Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026\x15Public Domain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: 5b602ed63ad1737d tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public Domain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: a366e7cd55b21eb5 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public D\x02main||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Public D\x02main||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: 1ad4a75c997fb031 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Publi\x80 Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Publi\x80 Domain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test\xFF||gen_gme_testdata.py|2026 Public \xB9omain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test\xFF||gen_gme_testdata.py|2026 Public \xB9omain||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+start 0: ok
+q 8192: a7597cfb36cdd171 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=4 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Publi\x5C Domain||
+info 1: -1 -1 -1 -1 150000|Game Boy|GBS Test||gen_gme_testdata.py|2026 Publi\x5C Domain||
+info 4: err=Invalid track
+open: tracks=4 type=GBS voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== gbs_odd.gbs
+identify: GBS
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 2: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 3: err=Invalid track
+open 44100: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+voices: Square 1 Square 2 Wave Noise
+eq: -1.000 120.000 multi=0
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+t0 16384: 82b86589218d9bd5 tell=185 samples=16384 ended=0
+t0 32768: 2162fc06f5883231 tell=371 samples=32768 ended=0
+t0 49152: 02f6a5afca6a3231 tell=557 samples=49152 ended=0
+t0 65536: c3311a1c9f4c3231 tell=743 samples=65536 ended=0
+t0 81920: b99a594d742e3231 tell=928 samples=81920 ended=0
+t0 88200: a123f18e8d7bda71 tell=1000 samples=88200 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+t1 16384: cc0229d5baf4a825 tell=185 samples=16384 ended=0
+t1 32768: 4d36ac24a70f0089 tell=371 samples=32768 ended=0
+t1 49152: f128e6f73b17fd31 tell=557 samples=49152 ended=0
+t1 65536: 1da422a22d9bc3d5 tell=743 samples=65536 ended=0
+t1 81920: 5ce8f52789d42371 tell=928 samples=81920 ended=0
+t1 88200: 4b34ca06d17febe9 tell=1000 samples=88200 ended=0
+start 2: ok
+warning: Emulation error (illegal/unsupported instruction)
+info 2: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+t2 16384: b1ecc4b8e018dce3 tell=185 samples=16384 ended=0
+t2 32768: 941f1d924d09bf9c tell=371 samples=32768 ended=0
+t2 49152: 3954246d46a3a5cc tell=557 samples=49152 ended=0
+t2 65536: 6568615e8fe45d76 tell=743 samples=65536 ended=0
+t2 81920: df3419c08c94f559 tell=928 samples=81920 ended=0
+t2 88200: a84e3fd3b53f8698 tell=1000 samples=88200 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c23f6725ac545d29 tell=46 samples=4096 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+seek_samples 10000: ok tell=10000
+s2 4096: 8f8684191a98fc29 tell=159 samples=14096 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+start 0: ok
+fade: 34816 21a543c5c4a15be1 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 38e6e756a30d24cd tell=92 samples=8192 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+open 32000: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 2: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+slow 8000: 2c36c2471ceec525 tell=363 samples=23294 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+tracks=3
+start 0: ok
+acc 8000: 9093dd0634134335 tell=125 samples=8000 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 68
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 102
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 204
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: c031a137f1ec3f25 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: 38e6e756a30d24cd tell=92 samples=8192 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+-- flip 1
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: 278325d9a351abb1 tell=92 samples=8192 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+-- flip 2
+info: tracks=236 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GSS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GSS|||(C)||
+info 236: err=Invalid track
+open: tracks=236 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: 1f575775702d694d tell=92 samples=8192 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+-- flip 3
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||\xAD\xE8)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||\xAD\xE8)||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: 91e5119fa97af94f tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: dda94f3f89127591 tell=92 samples=8192 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+-- flip 5
+info: tracks=3 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 1: -1 -1 -1 -1 150000|Game Boy|Odd GBS|||(C)||
+info 3: err=Invalid track
+open: tracks=3 type=GBS voices=4
+warning: Invalid load/init/play address
+start 0: ok
+warning: Emulation error (illegal/unsupported instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+warning: Emulation error (illegal/unsupported instruction)
+== gbs_timer.gbs
+identify: GBS
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open 44100: tracks=2 type=GBS voices=4
+voices: Square 1 Square 2 Wave Noise
+eq: -1.000 120.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+t0 16384: 5b7bd5f6616a8359 tell=185 samples=16384 ended=0
+t0 32768: 58e7fd11afd645d5 tell=371 samples=32768 ended=0
+t0 49152: cfc909205cfc3f4d tell=557 samples=49152 ended=0
+t0 65536: 74d4785dde4c17fd tell=743 samples=65536 ended=0
+t0 81920: 959c5a79557bdfb1 tell=928 samples=81920 ended=0
+t0 88200: 8f02fe0240e27251 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+t1 16384: 5b7bd5f6616a8359 tell=185 samples=16384 ended=0
+t1 32768: 58e7fd11afd645d5 tell=371 samples=32768 ended=0
+t1 49152: cfc909205cfc3f4d tell=557 samples=49152 ended=0
+t1 65536: 74d4785dde4c17fd tell=743 samples=65536 ended=0
+t1 81920: 959c5a79557bdfb1 tell=928 samples=81920 ended=0
+t1 88200: 8f02fe0240e27251 tell=1000 samples=88200 ended=0
+start 2: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 98aa8a32a59dd585 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 71ec84761e37a67d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 200e813b717a6235 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: c217466ab1a93b89 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 2c7c55128806a675 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 d231570c2e03c6c1 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: a4b4cf8cab1c5ca9 tell=92 samples=8192 ended=0
+open 32000: tracks=2 type=GBS voices=4
+start 1: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 16e84adfccb4014e tell=363 samples=23294 ended=0
+tracks=2
+start 0: ok
+acc 8000: be66b6f69e130621 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 123
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 185
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: 1d2f14de2f2e9439 tell=92 samples=8192 ended=0
+-- cut 370
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: a4b4cf8cab1c5ca9 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: a4b4cf8cab1c5ca9 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: a4b4cf8cab1c5ca9 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobod\xD2|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||Nobod\xD2|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: 1dcf3b30cfe853ed tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Banks||kobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Timer Banks||kobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: 12486e36102b5b5d tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=2 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Time\x0B Banks||Aobody|||
+info 1: -1 -1 -1 -1 150000|Game Boy|Time\x0B Banks||Aobody|||
+info 2: err=Invalid track
+open: tracks=2 type=GBS voices=4
+start 0: ok
+q 8192: a4b4cf8cab1c5ca9 tell=92 samples=8192 ended=0
+== gbs_timer2.gbs
+identify: GBS
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open 44100: tracks=1 type=GBS voices=4
+voices: Square 1 Square 2 Wave Noise
+eq: -1.000 120.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+t0 16384: 9e221c41dc20dc39 tell=185 samples=16384 ended=0
+t0 32768: b1fd84b848609e1d tell=371 samples=32768 ended=0
+t0 49152: d3e2de47d2f56265 tell=557 samples=49152 ended=0
+t0 65536: 5120eb11a1643b5d tell=743 samples=65536 ended=0
+t0 81920: 3a247fd7ef0e8fe5 tell=928 samples=81920 ended=0
+t0 88200: 5f44c59be0f0ae29 tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: da41cdd34bcd88e1 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: c29e8b2ba3ea1ec5 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: b9b802bd1178fbf1 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: f5ec8262ac4f8085 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 351eb8ecae3e8721 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 2421b1516b370119 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=GBS voices=4
+start 0: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 6be06de5b1338c08 tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: 15b9b88a84faa2f1 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 123
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 185
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: 5420326d985f578d tell=92 samples=8192 ended=0
+-- cut 370
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: 82bdb5977b8c67e1 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Timer Fast||%|||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: 42d38cab38e24eb1 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=GBS voices=-1
+info 0: -1 -1 -1 -1 150000|Game Boy|Time\x0B Fast|||||
+info 1: err=Invalid track
+open: tracks=1 type=GBS voices=4
+start 0: ok
+q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
 == nsf_apu.nsf
 identify: NSF
 info: tracks=2 type=NSF voices=-1
