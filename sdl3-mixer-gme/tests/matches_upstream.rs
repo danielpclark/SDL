@@ -488,6 +488,10 @@ macro_rules! file_tests {
 }
 
 file_tests! {
+    gbs_apu_matches_upstream: "gbs_apu.gbs",
+    gbs_odd_matches_upstream: "gbs_odd.gbs",
+    gbs_timer_matches_upstream: "gbs_timer.gbs",
+    gbs_timer2_matches_upstream: "gbs_timer2.gbs",
     nsf_apu_matches_upstream: "nsf_apu.nsf",
     nsf_badaddr_matches_upstream: "nsf_badaddr.nsf",
     nsf_banks_matches_upstream: "nsf_banks.nsf",

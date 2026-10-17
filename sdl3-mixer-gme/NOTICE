@@ -25,23 +25,25 @@ Blip_Buffer.cpp, Multi_Buffer.h, Multi_Buffer.cpp (its stereo buffer),
 Effects_Buffer.h, Effects_Buffer.cpp, Data_Reader.h, Data_Reader.cpp (its
 memory, subset and remaining readers), Gme_File.h, Gme_File.cpp,
 Music_Emu.h, Music_Emu.cpp, Classic_Emu.h, Classic_Emu.cpp, gme.h,
-gme.cpp, Nes_Cpu.h, Nes_Cpu.cpp, nes_cpu_io.h, Nes_Apu.h, Nes_Apu.cpp,
-Nes_Oscs.h, Nes_Oscs.cpp, Nes_Vrc6_Apu.h, Nes_Vrc6_Apu.cpp,
-Nes_Fme7_Apu.h, Nes_Fme7_Apu.cpp, Nes_Namco_Apu.h, Nes_Namco_Apu.cpp,
-Nes_Fds_Apu.h, Nes_Fds_Apu.cpp, Nes_Mmc5_Apu.h, Nes_Vrc7_Apu.h,
-Nes_Vrc7_Apu.cpp, Nsf_Emu.h, Nsf_Emu.cpp, Nsfe_Emu.h, Nsfe_Emu.cpp, and
-ext/emu2413.h and ext/emu2413.c (what the VRC7 uses). Not translated, as
-SDL_mixer can't reach them: the file readers and gme_open_file(), M3U
-playlists (M3u_Playlist), the custom reader, gme_load_tracks(), the user
-data functions, the state saving functions of the sound chips,
-Mono_Buffer and Silent_Buffer, and emu2413's rate converter and patch
-dump functions. The translation works on Rust types (slices, vectors,
-traits and indices rather than pointers, inheritance and unions), and
-does something defined where corrupt input makes the C++ code read out of
-bounds, read memory it never initialized, crash or hang (the places marked
-"FIXME (upstream)" in the source). Otherwise it emulates bit-for-bit what
-the C++ code does, which its tests check. The changes are freely
-available as part of https://github.com/danielpclark/SDL.
+gme.cpp, Gb_Apu.h, Gb_Apu.cpp, Gb_Oscs.h, Gb_Oscs.cpp, Gb_Cpu.h,
+Gb_Cpu.cpp, gb_cpu_io.h, Gbs_Emu.h, Gbs_Emu.cpp, Nes_Cpu.h, Nes_Cpu.cpp,
+nes_cpu_io.h, Nes_Apu.h, Nes_Apu.cpp, Nes_Oscs.h, Nes_Oscs.cpp,
+Nes_Vrc6_Apu.h, Nes_Vrc6_Apu.cpp, Nes_Fme7_Apu.h, Nes_Fme7_Apu.cpp,
+Nes_Namco_Apu.h, Nes_Namco_Apu.cpp, Nes_Fds_Apu.h, Nes_Fds_Apu.cpp,
+Nes_Mmc5_Apu.h, Nes_Vrc7_Apu.h, Nes_Vrc7_Apu.cpp, Nsf_Emu.h, Nsf_Emu.cpp,
+Nsfe_Emu.h, Nsfe_Emu.cpp, and ext/emu2413.h and ext/emu2413.c (what the
+VRC7 uses). Not translated, as SDL_mixer can't reach them: the file
+readers and gme_open_file(), M3U playlists (M3u_Playlist), the custom
+reader, gme_load_tracks(), the user data functions, the state saving
+functions of the sound chips, Mono_Buffer and Silent_Buffer, and
+emu2413's rate converter and patch dump functions. The translation works
+on Rust types (slices, vectors, traits and indices rather than pointers,
+inheritance and unions), and does something defined where corrupt input
+makes the C++ code read out of bounds, read memory it never initialized,
+crash or hang (the places marked "FIXME (upstream)" in the source).
+Otherwise it emulates bit-for-bit what the C++ code does, which its tests
+check. The changes are freely available as part of
+https://github.com/danielpclark/SDL.
 
 License
 -------
