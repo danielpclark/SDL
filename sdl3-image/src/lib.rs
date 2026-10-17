@@ -64,6 +64,7 @@
 mod ani;
 mod anim_decoder;
 mod anim_encoder;
+mod aom;
 mod avif;
 mod bmp;
 mod dav1d;
