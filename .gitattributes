@@ -30,6 +30,12 @@ sdl3-mixer-fluidsynth/testdata/** binary
 sdl3-mixer-fluidsynth/COPYING -whitespace
 sdl3-mixer-fluidsynth/LICENSE.gcem -whitespace
 
+# sdl3-mixer-gme's test rips and reference log, and the license files of
+# Game_Music_Emu (CRLF line endings and all) and emu2413, kept verbatim.
+sdl3-mixer-gme/testdata/** binary
+sdl3-mixer-gme/COPYING -text -whitespace
+sdl3-mixer-gme/COPYING.emu2413 -whitespace
+
 # sdl3-ttf's test fonts, their license (kept verbatim, trailing spaces and
 # all) and reference log.
 sdl3-ttf/src/testdata/** binary

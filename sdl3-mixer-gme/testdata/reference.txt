@@ -1,0 +1,1028 @@
+== misc
+types: NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
+ext nsf: NSF
+ext x.NSFE: NSFE
+ext a.b.spc: 
+ext vgz: 
+ext VGM: 
+ext gym: 
+ext kss: 
+ext hes: 
+ext sap: 
+ext ay: 
+ext gbs: 
+ext nsfee: 
+ext toolong: 
+ext : 
+ext .: 
+ext song.mp3: 
+header 0: AY
+header 1: GBS
+header 2: GYM
+header 3: HES
+header 4: KSS
+header 5: KSS
+header 6: NSF
+header 7: NSFE
+header 8: SAP
+header 9: SPC
+header 10: VGM
+header 11: VGZ
+header 12: 
+header 13: 
+open short: Wrong file type for this emulator
+open junk: Wrong file type for this emulator
+== nsf_apu.nsf
+identify: NSF
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open 44100: tracks=2 type=NSF voices=5
+voices: Square 1 Square 2 Triangle Noise DMC
+eq: -1.000 80.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+t0 16384: 629f7c721f7e7c15 tell=185 samples=16384 ended=0
+t0 32768: b624c69a33bda87d tell=371 samples=32768 ended=0
+t0 49152: 24966aedce233fa5 tell=557 samples=49152 ended=0
+t0 65536: 3ec874619ab95af1 tell=743 samples=65536 ended=0
+t0 81920: 948a4971b1840ae5 tell=928 samples=81920 ended=0
+t0 88200: 001b52fbe40e9025 tell=1000 samples=88200 ended=0
+start 1: ok
+warning: Emulation error (illegal instruction)
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+t1 16384: 629f7c721f7e7c15 tell=185 samples=16384 ended=0
+t1 32768: c5e7d9d51396c86d tell=371 samples=32768 ended=0
+t1 49152: 9deb08888fac6f15 tell=557 samples=49152 ended=0
+t1 65536: 7be06d5607cf4c61 tell=743 samples=65536 ended=0
+t1 81920: 88432322c49a5141 tell=928 samples=81920 ended=0
+t1 88200: b404420a51917d81 tell=1000 samples=88200 ended=0
+start 2: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 031c149ed104efc5 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: b9d103fd6854a325 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 1c445f4af38c64b1 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+open 32000: tracks=2 type=NSF voices=5
+start 1: ok
+tempo 16000: b99bbe4595437d5f tell=250 samples=16000 ended=0
+tempo 32000: b8b36e130dad24bd tell=500 samples=32000 ended=0
+warning: Emulation error (illegal instruction)
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 21dd98f6bf9cd9dd tell=238 samples=15294 ended=0
+warning: Emulation error (illegal instruction)
+slow 8000: 036a5ced331d1501 tell=363 samples=23294 ended=0
+tracks=2
+start 0: ok
+acc 8000: 2c36c2471ceec525 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 1082
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- cut 1624
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- cut 3247
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.\xDDy|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.\xDDy|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+warning: Unknown file version
+start 0: ok
+q 8192: 66b99b1c42297c15 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|APU Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=5
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 802151e5c9c663d1 tell=92 samples=8192 ended=0
+== nsf_badaddr.nsf
+identify: NSF
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Bad|||||
+info 1: err=Invalid track
+open 44100: err=Corrupt file (invalid load/init/play address)
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 64
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 96
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 191
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Bad|||||
+info 1: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+-- flip 0
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Bad|||||
+info 1: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+-- flip 1
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Bad|||||
+info 1: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+-- flip 2
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Bad|||||
+info 1: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+-- flip 3
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Bad|||||
+info 1: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+-- flip 4
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Bad|||||
+info 1: err=Invalid track
+open: err=Unknown file version
+-- flip 5
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Bad|||||
+info 1: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+== nsf_banks.nsf
+identify: NSF
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 2: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open 44100: tracks=3 type=NSF voices=5
+voices: Square 1 Square 2 Triangle Noise DMC
+eq: -1.000 80.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+t0 16384: 97b6ead3bdc4f21d tell=185 samples=16384 ended=0
+t0 32768: 701ea05b347fd9b5 tell=371 samples=32768 ended=0
+t0 49152: 42b86f36f6d1f0ad tell=557 samples=49152 ended=0
+t0 65536: 9525c84ac1e75155 tell=743 samples=65536 ended=0
+t0 81920: f3e0e460630a12e1 tell=928 samples=81920 ended=0
+t0 88200: 81d9971c097bba11 tell=1000 samples=88200 ended=0
+warning: Invalid bank
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+t1 16384: 97b6ead3bdc4f21d tell=185 samples=16384 ended=0
+t1 32768: 701ea05b347fd9b5 tell=371 samples=32768 ended=0
+t1 49152: 42b86f36f6d1f0ad tell=557 samples=49152 ended=0
+t1 65536: 9525c84ac1e75155 tell=743 samples=65536 ended=0
+t1 81920: f3e0e460630a12e1 tell=928 samples=81920 ended=0
+t1 88200: 81d9971c097bba11 tell=1000 samples=88200 ended=0
+warning: Invalid bank
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+t2 16384: 97b6ead3bdc4f21d tell=185 samples=16384 ended=0
+t2 32768: 701ea05b347fd9b5 tell=371 samples=32768 ended=0
+t2 49152: 42b86f36f6d1f0ad tell=557 samples=49152 ended=0
+t2 65536: 9525c84ac1e75155 tell=743 samples=65536 ended=0
+t2 81920: f3e0e460630a12e1 tell=928 samples=81920 ended=0
+t2 88200: 81d9971c097bba11 tell=1000 samples=88200 ended=0
+warning: Invalid bank
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 9d7e873dc00c14f1 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: e83dfa6b25b7d2c1 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: aa6cc098d462ad09 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 2b786c6588593c85 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: aae517573e4f1ab9 tell=2290 samples=202048 ended=0
+warning: Invalid bank
+start 0: ok
+fade: 34816 8de9b6b5e656c1b9 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+open 32000: tracks=3 type=NSF voices=5
+start 2: ok
+tempo 16000: c96c6264705691dc tell=250 samples=16000 ended=0
+tempo 32000: ab969830f597ca0f tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 3c9415830682c9cd tell=238 samples=15294 ended=0
+slow 8000: 5952b0beba5dbcd3 tell=363 samples=23294 ended=0
+tracks=3
+start 0: ok
+acc 8000: 585d86f7c61f2385 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 2745
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 4118
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: 6fd464140bac4009 tell=92 samples=8192 ended=0
+-- cut 8235
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=3 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Banks||Nobody|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+start 0: ok
+q 8192: aa71e863ee317d89 tell=92 samples=8192 ended=0
+== nsf_exp.nsf
+identify: NSF
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open 44100: tracks=1 type=NSF voices=29
+voices: Square 1 Square 2 Triangle Noise DMC Saw Wave Square 3 Square 4 Wave 1 Wave 2 Wave 3 Wave 4 Wave 5 Wave 6 Wave 7 Wave 8 Square 3 Square 4 Square 5 Wave Square 3 Square 4 PCM FM 1 FM 2 FM 3 FM 4 FM 5 FM 6
+eq: -1.000 80.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+t0 16384: ed62f766874d93b5 tell=185 samples=16384 ended=0
+t0 32768: 07b0d289935d76d1 tell=371 samples=32768 ended=0
+t0 49152: c05a656698991859 tell=557 samples=49152 ended=0
+t0 65536: e3b7e32837e9e159 tell=743 samples=65536 ended=0
+t0 81920: 073545d61d1d7661 tell=928 samples=81920 ended=0
+t0 88200: 2432320c1ef570e5 tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: d596cf6d369b4791 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 0854225d0ef2865d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 8daa03ef02353219 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 592b647ab860e341 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: fe619f2b07eecb05 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 129c3755d005b26d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 03fb90d144bdb401 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=NSF voices=29
+start 0: ok
+tempo 16000: 125c8f81014318de tell=250 samples=16000 ended=0
+tempo 32000: 504b25ff7bc7957d tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 4085088b566c028a tell=238 samples=15294 ended=0
+slow 8000: 6470ac1e378e147c tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: e7f14e23103b0b51 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 215
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+q 8192: 3593e733678dfa61 tell=92 samples=8192 ended=0
+-- cut 323
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+q 8192: 75a905967416282d tell=92 samples=8192 ended=0
+-- cut 646
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+q 8192: 7f68bd225c82b701 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 5aab1a19ecc3eea9 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+q 8192: e22eb09d53eac499 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+q 8192: 1255dd4ae09b3ee1 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+warning: Unknown file version
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+q 8192: 7fd7ff679e001449 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|Expansion||All Chips|||
+info 1: err=Invalid track
+open: tracks=1 type=NSF voices=29
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 31ed820260d20bbd tell=92 samples=8192 ended=0
+warning: Emulation error (illegal instruction)
+== nsf_odd.nsf
+identify: NSF
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 2: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open 44100: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+voices: Square 1 Square 2 Triangle Noise DMC
+eq: -1.000 80.000 multi=0
+start 0: ok
+warning: Emulation error (illegal instruction)
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+t0 16384: 74a98d1cae7c5b2d tell=185 samples=16384 ended=0
+t0 32768: a7864e24afad0bf1 tell=371 samples=32768 ended=0
+t0 49152: 470a80cbfa3743fd tell=557 samples=49152 ended=0
+t0 65536: d740d88eccab4ed9 tell=743 samples=65536 ended=0
+t0 81920: 41111bf4c8f07145 tell=928 samples=81920 ended=0
+t0 88200: 70c5ad4738285435 tell=1000 samples=88200 ended=0
+start 1: ok
+warning: Emulation error (illegal instruction)
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+t1 16384: 6045947da1461885 tell=185 samples=16384 ended=0
+t1 32768: 033230266cf35e39 tell=371 samples=32768 ended=0
+t1 49152: 779408e96f319795 tell=557 samples=49152 ended=0
+t1 65536: 6ecbe3ab04bb2839 tell=743 samples=65536 ended=0
+t1 81920: 004b315d57971611 tell=928 samples=81920 ended=0
+t1 88200: 763eeb083f7465a1 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+t2 16384: de4f296323f4899d tell=185 samples=16384 ended=0
+t2 32768: 805912ba2f13a201 tell=371 samples=32768 ended=0
+t2 49152: 3cb7a850aa83fac9 tell=557 samples=49152 ended=0
+t2 65536: 34e0da6e9c5f96a1 tell=743 samples=65536 ended=0
+t2 81920: efea3f955f653cb5 tell=928 samples=81920 ended=0
+t2 88200: 51a2ac86ea9c5631 tell=1000 samples=88200 ended=0
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 87ca870d965c2ef1 tell=46 samples=4096 ended=0
+warning: Emulation error (illegal instruction)
+seek_samples 30000: ok tell=30000
+s1 4096: 637f293ddc73ccf5 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: a6375d04702a8249 tell=159 samples=14096 ended=0
+warning: Emulation error (illegal instruction)
+seek 700: ok tell=700
+s3 2048: f0411a02d54485fd tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 487861dd915a5049 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+warning: Emulation error (illegal instruction)
+open 32000: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 2: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: fb92b71f5276d021 tell=363 samples=23294 ended=0
+tracks=3
+start 0: ok
+acc 8000: 4e0cbaf7002541f5 tell=125 samples=8000 ended=0
+warning: Emulation error (illegal instruction)
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 1408
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- cut 2112
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- cut 4223
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded \xD7|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded \xD7|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=3 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 1: -1 -1 -1 -1 150000|Famicom|Odd Programs||padded|||
+info 3: err=Invalid track
+open: tracks=3 type=NSF voices=5
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: fddd8e7af8a946e5 tell=92 samples=8192 ended=0
+== nsf_vrc7.nsf
+identify: NSF
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open 44100: tracks=2 type=NSF voices=11
+voices: Square 1 Square 2 Triangle Noise DMC FM 1 FM 2 FM 3 FM 4 FM 5 FM 6
+eq: -1.000 80.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+t0 16384: 30a8bc303f5f4899 tell=185 samples=16384 ended=0
+t0 32768: d2109520a1819e41 tell=371 samples=32768 ended=0
+t0 49152: 232f70bbed49724d tell=557 samples=49152 ended=0
+t0 65536: e1b1dc32960f3bc1 tell=743 samples=65536 ended=0
+t0 81920: ea7dc8faf5c4dbcd tell=928 samples=81920 ended=0
+t0 88200: e19aa30d4d45383d tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+t1 16384: c8e114279a3a80d5 tell=185 samples=16384 ended=0
+t1 32768: 7ded5c91e153fff9 tell=371 samples=32768 ended=0
+t1 49152: f53440e5ccaeafb5 tell=557 samples=49152 ended=0
+t1 65536: 612b0d578cab7e2d tell=743 samples=65536 ended=0
+t1 81920: 0ffc10718f9c5db5 tell=928 samples=81920 ended=0
+t1 88200: 9ab542f98f65a325 tell=1000 samples=88200 ended=0
+start 2: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 70cbe149c0f2addd tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: a7eca953f5fd8d9d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 4b538eb65763338d tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 6b3670cf39ca7d11 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 0fdaf7fbd40aa9e5 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 4c4b0728285383cd tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: fd8d0c5703246d1d tell=92 samples=8192 ended=0
+open 32000: tracks=2 type=NSF voices=11
+start 1: ok
+tempo 16000: 2a4c458465e3cf4c tell=250 samples=16000 ended=0
+tempo 32000: f15af72b6923fbf6 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 1b2f59561f945221 tell=238 samples=15294 ended=0
+slow 8000: 52938bd46f090133 tell=363 samples=23294 ended=0
+tracks=2
+start 0: ok
+acc 8000: 1f0117987ae9de59 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 80
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 121
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 241
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=11
+start 0: ok
+q 8192: 56a715c5137ca28d tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=11
+start 0: ok
+q 8192: eef25520e5af0ffd tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=11
+start 0: ok
+q 8192: e5198ad35234b5ed tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=11
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: f9d2be2c2cfd9a79 tell=92 samples=8192 ended=0
+warning: Emulation error (illegal instruction)
+-- flip 3
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: err=Unknown file version
+-- flip 4
+info: tracks=2 type=NSF voices=-1
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: err=Corrupt file (invalid load/init/play address)
+-- flip 5
+info: tracks=2 type=NSF voices=-1
+warning: Uses unsupported audio expansion hardware
+info 0: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 1: -1 -1 -1 -1 150000|Famicom|VRC7|||||
+info 2: err=Invalid track
+open: tracks=2 type=NSF voices=12
+warning: Uses unsupported audio expansion hardware
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+warning: Emulation error (illegal instruction)
+== nsfe_full.nsfe
+identify: NSFE
+info: tracks=3 type=NSFE voices=-1
+info 0: 65000 -1 -1 -1 65000|Nintendo NES|NSFE Game|Fourth|Some Author|(C) 2026||Ripper Name
+info 1: 12000 -1 -1 -1 12000|Nintendo NES|NSFE Game|First|Some Author|(C) 2026||Ripper Name
+info 2: -1 -1 -1 -1 150000|Nintendo NES|NSFE Game|Second|Some Author|(C) 2026||Ripper Name
+info 3: err=Invalid track
+open 44100: tracks=3 type=NSFE voices=5
+voices: Square 1 Square 2 Triangle Noise DMC
+eq: -1.000 80.000 multi=0
+start 0: ok
+info 0: 65000 -1 -1 -1 65000|Nintendo NES|NSFE Game|Fourth|Some Author|(C) 2026||Ripper Name
+t0 16384: 123fbd7a4392060d tell=185 samples=16384 ended=0
+t0 32768: 3f8384c087b975e1 tell=371 samples=32768 ended=0
+t0 49152: 2779f0f622df545d tell=557 samples=49152 ended=0
+t0 65536: 6d67ff554f28f659 tell=743 samples=65536 ended=0
+t0 81920: 96b2a08bf6bdf439 tell=928 samples=81920 ended=0
+t0 88200: 3eafedcfea874211 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: 12000 -1 -1 -1 12000|Nintendo NES|NSFE Game|First|Some Author|(C) 2026||Ripper Name
+t1 16384: 132450e6ec77fec9 tell=185 samples=16384 ended=0
+t1 32768: 81af0a86ef6880b1 tell=371 samples=32768 ended=0
+t1 49152: cdbb7818a0da1119 tell=557 samples=49152 ended=0
+t1 65536: ccac411bccdebcf5 tell=743 samples=65536 ended=0
+t1 81920: f89deec9e6acca85 tell=928 samples=81920 ended=0
+t1 88200: e005fb0af06fa7f1 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Nintendo NES|NSFE Game|Second|Some Author|(C) 2026||Ripper Name
+t2 16384: ebc09bd1ab75f7e5 tell=185 samples=16384 ended=0
+t2 32768: 00a692751ba52f15 tell=371 samples=32768 ended=0
+t2 49152: 906764378f4d2141 tell=557 samples=49152 ended=0
+t2 65536: f4b28cc7bb92ad7d tell=743 samples=65536 ended=0
+t2 81920: 535ed43f483bd271 tell=928 samples=81920 ended=0
+t2 88200: c1254e09484cf8f5 tell=1000 samples=88200 ended=0
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: f182b36141b7f60d tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: d968ba1fb986f13d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 82b6c25ae6db5075 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 373aec2d439cb11d tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 3134772c12b1598d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 630335c92d35a37d tell=92 samples=8192 ended=0
+open 32000: tracks=3 type=NSFE voices=5
+start 2: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 43b53ce9eb8f1466 tell=363 samples=23294 ended=0
+tracks=4
+start 0: ok
+acc 8000: 2605981a9095bbc9 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 16
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 85
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 128
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 255
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 0
+info: tracks=3 type=NSFE voices=-1
+info 0: 65000 -1 -1 -1 65000|Nintendo NES|NSFE Game|Fourth|Some Author|(C) 2026||Ripper Name
+info 1: 12000 -1 -1 -1 12000|Nintendo NES|NSFE Game|First|Some Author|(C) 2026||Ripper Name
+info 3: err=Invalid track
+open: tracks=3 type=NSFE voices=5
+start 0: ok
+q 8192: 5e0bdc61a80b9095 tell=92 samples=8192 ended=0
+-- flip 1
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 2
+info: tracks=3 type=NSFE voices=-1
+info 0: 60648 -1 -1 -1 60648|Nintendo NES||Fourth||||
+info 1: -1 -1 -1 -1 150000|Nintendo NES||First||||
+info 3: err=Invalid track
+open: tracks=3 type=NSFE voices=5
+start 0: ok
+q 8192: 1e8365ce8fe8c5ed tell=92 samples=8192 ended=0
+-- flip 3
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 4
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 5
+info: err=Corrupt file
+open: err=Corrupt file
+== nsfe_min.nsfe
+identify: NSFE
+info: tracks=2 type=NSFE voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES||||||
+info 1: -1 -1 -1 -1 150000|Nintendo NES||||||
+info 2: err=Invalid track
+open 44100: tracks=2 type=NSFE voices=5
+voices: Square 1 Square 2 Triangle Noise DMC
+eq: -1.000 80.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Nintendo NES||||||
+t0 16384: 132450e6ec77fec9 tell=185 samples=16384 ended=0
+t0 32768: 81af0a86ef6880b1 tell=371 samples=32768 ended=0
+t0 49152: cdbb7818a0da1119 tell=557 samples=49152 ended=0
+t0 65536: ccac411bccdebcf5 tell=743 samples=65536 ended=0
+t0 81920: f89deec9e6acca85 tell=928 samples=81920 ended=0
+t0 88200: e005fb0af06fa7f1 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Nintendo NES||||||
+t1 16384: ebc09bd1ab75f7e5 tell=185 samples=16384 ended=0
+t1 32768: 00a692751ba52f15 tell=371 samples=32768 ended=0
+t1 49152: 906764378f4d2141 tell=557 samples=49152 ended=0
+t1 65536: f4b28cc7bb92ad7d tell=743 samples=65536 ended=0
+t1 81920: 535ed43f483bd271 tell=928 samples=81920 ended=0
+t1 88200: c1254e09484cf8f5 tell=1000 samples=88200 ended=0
+start 2: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: dacbe256df595aa1 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 0d360f54fca57831 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 888cd24918f0dbf5 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: a1acf9bddef474e1 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 66eda18967ce1211 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: da23dd979e2ea5e1 tell=92 samples=8192 ended=0
+open 32000: tracks=2 type=NSFE voices=5
+start 1: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 43b53ce9eb8f1466 tell=363 samples=23294 ended=0
+tracks=2
+start 0: ok
+acc 8000: 2605981a9095bbc9 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 16
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 31
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 47
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 94
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 0
+info: tracks=2 type=NSFE voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES||||||
+info 1: -1 -1 -1 -1 150000|Nintendo NES||||||
+info 2: err=Invalid track
+open: tracks=2 type=NSFE voices=5
+start 0: ok
+q 8192: 3fcfa2c9b0d239b9 tell=92 samples=8192 ended=0
+-- flip 1
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 2
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 3
+info: err=Corrupt file
+open: err=Corrupt file
+-- flip 4
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 5
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+== nsfe_order.nsfe
+identify: NSFE
+info: tracks=4 type=NSFE voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 2: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 3: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 4: err=Invalid track
+open 44100: err=Corrupt file
+-- cut 4
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 16
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 41
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 61
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- cut 122
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 0
+info: tracks=4 type=NSFE voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 4: err=Invalid track
+open: err=Corrupt file
+-- flip 1
+info: tracks=4 type=NSFE voices=-1
+info 0: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 1: -1 -1 -1 -1 150000|Nintendo NES|Only Game|||||
+info 4: err=Invalid track
+open: err=Corrupt file
+-- flip 2
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 3
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 4
+info: err=Unexpected end of file
+open: err=Unexpected end of file
+-- flip 5
+info: err=Unexpected end of file
+open: err=Unexpected end of file
