@@ -37,6 +37,8 @@
 //!   `Kss_Cpu`, are one translation over each emulator's memory), the
 //!   AY-3-8910 and the ZX Spectrum's beeper;
 //! - the GBS emulator: the Game Boy CPU and its APU;
+//! - the HES emulator: the PC Engine's HuC6280 CPU, its PSG and the ADPCM
+//!   chip;
 //! - the KSS emulator: the MSX's banked memory, Konami's SCC, and the
 //!   Sega Master System's SN76489;
 //! - the NSF and NSFE emulators: the NES 6502 CPU, the 2A03 APU and the
@@ -94,6 +96,10 @@ pub mod gb_oscs;
 pub mod gbs_emu;
 pub mod gme;
 pub mod gme_file;
+pub mod hes_apu;
+pub mod hes_apu_adpcm;
+pub mod hes_cpu;
+pub mod hes_emu;
 pub mod kss_cpu;
 pub mod kss_emu;
 pub mod kss_scc_apu;

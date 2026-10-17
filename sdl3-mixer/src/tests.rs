@@ -2313,6 +2313,12 @@ fn gme_gbs_matches_upstream() {
 
 #[cfg(feature = "gme")]
 #[test]
+fn gme_hes_matches_upstream() {
+    gme_files("hes_");
+}
+
+#[cfg(feature = "gme")]
+#[test]
 fn gme_kss_matches_upstream() {
     gme_files("kss_");
 }

@@ -4,8 +4,9 @@
 Every file here is synthetic, made by this script: tiny game music rips
 whose sound programs are assembled here (for the 6502 of the NSF and NSFE
 files, the Game Boy CPU of the GBS files, the Z80 of the AY and KSS
-files), driving the sound chips the emulators emulate, with their
-metadata, track lists and timing. Nothing comes from a real game.
+files, the HuC6280 of the HES files), driving the sound chips the
+emulators emulate, with their metadata, track lists and timing. Nothing
+comes from a real game.
 
 The output is deterministic, so regenerating the files gives the same
 bytes. If they change, the reference output (`testdata/reference.txt`,
@@ -2645,6 +2646,814 @@ init:
     write('kss_ext.kss', h + ext + code)
 
 
+# ---------------------------------------------------------------------------
+# A HuC6280 (the PC Engine's 65C02 with its own instructions) on the 6502
+# assembler: the 65C02's (zp) mode and instructions, and the HuC6280's
+# swaps, clears, VDP stores, mapping registers, TST, RMB/SMB, BBR/BBS and
+# block transfers (`TII src,dst,len`).
+
+HUC_OPS = {k: dict(v) for k, v in OPS_6502.items() if k not in ('LAX', 'SAX', 'SBX')}
+for _m, _op in (('ORA', 0x12), ('AND', 0x32), ('EOR', 0x52), ('ADC', 0x72), ('STA', 0x92),
+                ('LDA', 0xB2), ('CMP', 0xD2), ('SBC', 0xF2)):
+    HUC_OPS[_m]['zpind'] = _op
+HUC_OPS['BIT'].update({'imm': 0x89, 'zpx': 0x34, 'absx': 0x3C})
+HUC_OPS['INC']['acc'] = 0x1A
+HUC_OPS['DEC']['acc'] = 0x3A
+HUC_OPS['JMP']['indabsx'] = 0x7C
+HUC_OPS.update({
+    'BRA': {'rel': 0x80}, 'BSR': {'rel': 0x44},
+    'PHX': {'imp': 0xDA}, 'PHY': {'imp': 0x5A}, 'PLX': {'imp': 0xFA}, 'PLY': {'imp': 0x7A},
+    'STZ': {'zp': 0x64, 'zpx': 0x74, 'abs': 0x9C, 'absx': 0x9E},
+    'TSB': {'zp': 0x04, 'abs': 0x0C}, 'TRB': {'zp': 0x14, 'abs': 0x1C},
+    'SXY': {'imp': 0x02}, 'SAX': {'imp': 0x22}, 'SAY': {'imp': 0x42},
+    'CLA': {'imp': 0x62}, 'CLX': {'imp': 0x82}, 'CLY': {'imp': 0xC2},
+    'CSL': {'imp': 0x54}, 'CSH': {'imp': 0xD4}, 'SET': {'imp': 0xF4},
+    'ST0': {'imm': 0x03}, 'ST1': {'imm': 0x13}, 'ST2': {'imm': 0x23},
+    'TAM': {'imm': 0x53}, 'TMA': {'imm': 0x43},
+    'TST': {'zp': 0x83, 'abs': 0x93, 'zpx': 0xA3, 'absx': 0xB3},
+})
+for _n in range(8):
+    HUC_OPS['RMB%d' % _n] = {'zp': 0x07 + _n * 0x10}
+    HUC_OPS['SMB%d' % _n] = {'zp': 0x87 + _n * 0x10}
+HUC_BLOCK = {'TII': 0x73, 'TDD': 0xC3, 'TIN': 0xD3, 'TIA': 0xE3, 'TAI': 0xF3}
+SIZES['zpind'] = 2
+SIZES['indabsx'] = 3
+
+
+class HucAsm(Asm):
+    """Assembles HuC6280 source text (see Asm)."""
+
+    def __init__(self, org):
+        super().__init__(org, HUC_OPS)
+
+    def mode(self, mnem, arg, labels, final):
+        modes = self.ops[mnem]
+        u = arg.upper()
+        if mnem == 'JMP' and arg.startswith('(') and u.endswith(',X)'):
+            return 'indabsx', self.value(arg[1:-3], labels, final)
+        if 'zpind' in modes and arg.startswith('(') and not u.endswith(',X)') \
+                and not u.endswith('),Y'):
+            return 'zpind', self.value(arg[1:-1], labels, final)
+        return super().mode(mnem, arg, labels, final)
+
+    def encode(self, mnem, arg, labels, final, pc, line):
+        val = lambda s: self.value(s, labels, final)
+        if mnem in HUC_BLOCK:
+            src, dst, n = [x.strip() for x in arg.split(',')]
+            return bytes([HUC_BLOCK[mnem]]) + struct.pack('<HHH', val(src) & 0xFFFF,
+                                                          val(dst) & 0xFFFF, val(n) & 0xFFFF)
+        if len(mnem) == 4 and mnem[:3] in ('BBR', 'BBS'):
+            zp, target = [x.strip() for x in arg.split(',')]
+            op = (0x0F if mnem[2] == 'R' else 0x8F) + int(mnem[3]) * 0x10
+            off = val(target) - (pc + 3)
+            if final:
+                assert -128 <= off <= 127, (line, off)
+            return bytes([op, val(zp) & 0xFF, off & 0xFF])
+        if mnem == 'TST':
+            imm, rest = [x.strip() for x in arg.split(',', 1)]
+            assert imm.startswith('#'), line
+            m, v = self.mode(mnem, rest, labels, final)
+            out = bytes([self.ops[mnem][m], val(imm[1:]) & 0xFF])
+            return out + (bytes([v & 0xFF]) if m in ('zp', 'zpx') else struct.pack('<H', v & 0xFFFF))
+        return super().encode(mnem, arg, labels, final, pc, line)
+
+
+# ---------------------------------------------------------------------------
+# HES
+
+def hes_header(init, banks, size, addr, version=0, data_tag=b'DATA', unused=bytes(4), first=0):
+    h = b'HESM' + bytes([version, first]) + struct.pack('<H', init) + bytes(banks)
+    h += data_tag + struct.pack('<II', size, addr) + unused
+    assert len(h) == 0x20
+    return h
+
+
+def hes_fields(*fields, size=0x20):
+    """The text fields (each `size` bytes, zero-padded)."""
+    out = b''
+    for f in fields:
+        b = f.encode('latin-1') if isinstance(f, str) else f
+        out += b + bytes(size - len(b))
+    return out
+
+
+# The HuC6280 exercise: most instructions and addressing modes, the
+# HuC6280's own among them, leaving a value in $10 (zero page, in RAM at
+# $2000) and the stack as it found it, which the songs use, so a mistake in
+# any of them changes the sound. It uses BRK (see brk_irq).
+HUC_CPU_EXERCISE = '''
+cpu_test:
+    LDA #$5A
+    STA $20
+    STZ $21
+    LDX #$07
+ct_loop:
+    LDA $20
+    ASL A
+    ROL $21
+    BCC ct_nc
+    EOR #$1D
+ct_nc:
+    STA $20
+    CLC
+    ADC $21
+    STA $30,X
+    SEC
+    SBC #$37
+    BVS ct_ov
+    ORA #$01
+ct_ov:
+    DEX
+    BPL ct_loop
+    ; indirect modes, (zp) among them
+    LDA #$30
+    STA $40
+    LDA #$20         ; $2030: zero page $30, through page 1
+    STA $41
+    LDY #$03
+    LDA ($40),Y
+    LDX #$02
+    EOR ($3E,X)
+    ADC ($40)
+    STA $22
+    ORA ($40)
+    AND ($40)
+    SEC
+    SBC ($40)
+    CMP ($40)
+    STA ($40)
+    EOR ($40)
+    STA $23
+    LDA ($40)
+    STA ($40),Y
+    STA ($3E,X)
+    ; swaps and clears
+    LDX #$11
+    LDY #$22
+    LDA #$33
+    SXY
+    SAX
+    SAY
+    STX $24
+    STY $25
+    CLA
+    CLX
+    CLY
+    INC A
+    INC A
+    DEC A
+    CLC
+    ADC $24
+    ADC $25
+    STA $26
+    ; the stack
+    LDX #$C3
+    LDY #$3C
+    PHX
+    PHY
+    PLX
+    PLY
+    STX $27
+    TYA
+    EOR $27
+    STA $27
+    PHP
+    SED
+    CLC
+    LDA #$19
+    ADC #$28         ; (in binary: decimal mode isn't emulated)
+    CLD
+    PLP
+    STA $28
+    ; BIT, TST, TSB and TRB
+    LDA #$C0
+    STA $2222
+    BIT #$40
+    BIT $20
+    LDX #$02
+    BIT $20,X
+    BIT $2220,X
+    PHP
+    PLA
+    STA $29
+    TST #$81,$20
+    TST #$81,$20,X
+    TST #$C3,$2222
+    TST #$C3,$2220,X
+    PHP
+    PLA
+    EOR $29
+    STA $29
+    LDA #$0F
+    TSB $28
+    TRB $27
+    LDA #$3C
+    TSB $2222
+    TRB $2222
+    ; RMB, SMB, BBR and BBS
+    LDA #$A5
+    STA $2A
+    RMB0 $2A
+    SMB1 $2A
+    RMB2 $2A
+    SMB3 $2A
+    RMB4 $2A
+    SMB5 $2A
+    RMB6 $2A
+    SMB7 $2A
+    BBR0 $2A,ct_b0
+    INC $2A
+ct_b0:
+    BBS1 $2A,ct_b1
+    INC $2A
+ct_b1:
+    BBS0 $2A,ct_b2
+    INC $2A
+ct_b2:
+    BBR7 $2A,ct_b3
+    INC $2A
+ct_b3:
+    ; STZ
+    LDA #$77
+    STA $2B
+    STA $2C
+    STA $2224
+    STA $2225
+    STZ $2B
+    LDX #$01
+    STZ $2B,X
+    STZ $2224
+    STZ $2224,X
+    LDA $2224
+    ORA $2C
+    ORA #$80
+    STA $2B
+    ; read-modify-write
+    LDA #$81
+    STA $2200
+    STA $2205
+    ASL $2200
+    LSR $2205
+    LDX #$05
+    ROL $2200,X
+    ROR $2200,X
+    INC $2200,X
+    DEC $2200
+    LSR $2200,X
+    ASL $2200,X
+    DEC $2200,X
+    ASL $30
+    ROL $31
+    LSR $32,X
+    ROR $33
+    INC $34,X
+    DEC $35
+    ASL $30,X
+    ROL $31,X
+    ROR $32,X
+    DEC $33,X
+    LSR $34
+    INC $35
+    LDA $2200
+    CLC
+    ADC $2205
+    ADC $2204,X
+    ADC $30
+    ADC $37
+    LDY #$02
+    ADC $2201,Y
+    EOR $2203,X
+    AND $2203,Y
+    ORA $36
+    SBC $2205
+    CMP $2205,X
+    CMP $2203,Y
+    STA $2D
+    ; compares
+    LDA $22
+    CMP $23
+    BCS ct_ge
+    INC $2D
+ct_ge:
+    LDX $25
+    CPX #$40
+    BNE ct_ne
+    DEC $2D
+ct_ne:
+    LDY $26
+    CPY $2205
+    BEQ ct_eq
+    INY
+ct_eq:
+    CPX $24
+    BCC ct_lt
+    INY
+ct_lt:
+    CPY $2200
+    ROL A
+    CPX $2200
+    ROR A
+    CPY $28
+    ROL A
+    STA $2E
+    STY $2F
+    ; loads of every kind
+    LDX $2B
+    LDY $2C
+    LDA $2200,Y
+    LDX $2202,Y
+    LDY $2203,X
+    LDX $24,Y
+    LDY $25,X
+    LDA $24,X
+    STX $2226
+    STY $2227
+    LDY #$04
+    STX $26,Y
+    STY $27,X
+    STA $2228,Y
+    EOR $2226
+    EOR $2227
+    EOR $2E
+    STA $2E
+    ; block transfers
+    TII ct_table,$2240,8
+    TDD ct_table+7,$224F,8
+    TIN ct_table,$2250,4
+    TIA ct_table,$2258,8
+    TAI ct_table,$2260,8
+    LDA $2240
+    EOR $224B
+    EOR $2250
+    EOR $2259
+    EOR $2263
+    EOR $2266
+    STA $2C
+    ; the mapping registers: SGX RAM into page 2, and back
+    TMA #$04
+    PHA
+    LDA #$F9
+    TAM #$04
+    LDA #$5C
+    STA $4000
+    LDA #$FA
+    TAM #$04
+    LDA #$A3
+    STA $4000
+    LDA #$F9
+    TAM #$04
+    LDA $4000
+    EOR $2C
+    STA $2C
+    PLA
+    TAM #$04
+    TMA #$06
+    EOR $2C
+    STA $2C
+    ; JMP (abs,X), JMP (abs), BSR, BRA, BRK
+    LDX #$02
+    JMP (ct_vec,X)
+ct_back:
+    BSR ct_sub
+    BRA ct_fin
+ct_sub:
+    LDA #$7F
+    CLC
+    ADC #$01
+    BVC ct_sub_done
+    INC $27
+ct_sub_done:
+    CLV
+    RTS
+ct_fin:
+    BRK
+    .db $00
+    LDA $20
+    EOR $22
+    EOR $23
+    EOR $26
+    EOR $27
+    EOR $28
+    EOR $29
+    EOR $2A
+    EOR $2B
+    EOR $2C
+    EOR $2D
+    EOR $2E
+    EOR $2F
+    EOR $0F
+    STA $10
+    RTS
+ct_jmp:
+    LDA #<ct_back
+    STA $2230
+    LDA #>ct_back
+    STA $2231
+    JMP ($2230)
+ct_vec:
+    .dw ct_back, ct_jmp
+ct_table:
+    .db $01, $12, $23, $34, $45, $56, $67, $78
+brk_irq:
+    INC $0F
+    RTI
+'''
+
+
+def hes_psg():
+    # The PSG: four wave channels and two that can play noise, through
+    # their waveform writes and DDA, the balances, the timer and VDP
+    # interrupts, the ADPCM's registers. Track 0 runs on the timer, track 1
+    # also on the VDP's vertical blank, the others (track 2 and up) change
+    # the balances and the waves' periods as they go.
+    a = HucAsm(0xF800)
+    a('''
+    .org $F880
+init:
+    SEI
+    CSH
+    STA $00          ; the track
+    STZ $01
+    STZ $02
+    STZ $0F
+    JSR cpu_test
+    LDA #$FF
+    STA $0801        ; global balance
+    CLX
+init_ch:
+    STX $0800
+    LDA #$40
+    STA $0804        ; DDA on (write mode reset)
+    STZ $0804
+    LDA periods_lo,X
+    EOR $10
+    STA $0802
+    LDA periods_hi,X
+    STA $0803
+    LDY #$00
+init_wave:
+    TYA
+    ASL A
+    STA $03
+    TXA
+    ASL A
+    ASL A
+    EOR $03
+    AND #$1F
+    STA $0806
+    INY
+    CPY #32
+    BNE init_wave
+    LDA balances,X
+    STA $0805
+    LDA controls,X
+    STA $0804
+    INX
+    CPX #6
+    BNE init_ch
+    ; channel 0's wave again, by block transfer
+    STZ $0800
+    STZ $0804
+    TIN wave,$0806,32
+    LDA #$9F
+    STA $0804
+    ; channel 4 noise, channel 5 DDA
+    LDA #$04
+    STA $0800
+    LDA #$9A
+    STA $0807
+    LDA #$05
+    STA $0800
+    LDA #$DC
+    STA $0804
+    LDA #$10
+    STA $0806
+    LDA #$80
+    STA $0809        ; the LFO (not emulated)
+    ; the ADPCM: 16 bytes at 0, played at 16 kHz with a fade
+    STZ $1808
+    STZ $1809
+    LDA #$03
+    STA $180D
+    LDY #$10
+init_adpcm:
+    TYA
+    EOR #$9C
+    STA $180A
+    DEY
+    BNE init_adpcm
+    LDA #$10
+    STA $1808
+    LDA #$18
+    STA $180D
+    LDA #$0E
+    STA $180E
+    LDA #$0A
+    STA $180F
+    LDA #$58
+    STA $180D
+    ; the timer, and on track 1 the VDP
+    LDA #$1F
+    STA $0C00
+    LDA #$01
+    STA $0C01
+    LDA $00
+    CMP #$01
+    BNE init_novdp
+    ST0 #$05
+    ST1 #$08
+    ST2 #$00
+    LDA #$01
+    BRA init_irq
+init_novdp:
+    LDA #$03
+init_irq:
+    STA $1402
+    CLI
+    RTS
+
+timer_irq:
+    PHA
+    PHX
+    PHY
+    STA $1403        ; acknowledge
+    INC $01
+    LDA $01
+    AND #$07
+    TAX
+    STZ $0800
+    LDA notes,X
+    STA $0802
+    LDA #$05
+    STA $0800
+    LDA $01
+    AND #$1F
+    STA $0806        ; DDA sample
+    LDA $0C00        ; the timer's count
+    STA $04
+    LDA $180C        ; ADPCM status
+    EOR $04
+    STA $05
+    LDA $180A        ; ADPCM data
+    EOR $05
+    AND #$1F
+    ORA #$80
+    LDY #$04
+    STY $0800
+    STA $0807        ; the noise's frequency
+    LDA $00
+    CMP #$02
+    BCC timer_done
+    ; tracks 2 and up: balances and periods
+    LDA $01
+    AND #$0F
+    BNE timer_done
+    LDA $01
+    STA $0801        ; global balance
+    LDA #$02
+    STA $0800
+    LDA $01
+    LSR A
+    LSR A
+    LSR A
+    LSR A
+    AND #$07
+    STA $0802        ; a period too short to sound, or none
+    STZ $0803
+    LDA $01
+    AND #$30
+    BNE timer_bal
+    LDA #$1F
+    STA $0804        ; DDA off: the wave plays from its start again
+timer_bal:
+    LDA $01
+    STA $0805
+    LDA #$03
+    STA $0800
+    LDA $01
+    AND #$40
+    ORA #$9C
+    STA $0804        ; DDA on and off
+timer_done:
+    PLY
+    PLX
+    PLA
+    RTI
+
+vdp_irq:
+    PHA
+    LDA $0000        ; acknowledge (the status)
+    STA $06
+    INC $02
+    LDA #$01
+    STA $0800
+    LDA $02
+    AND #$1F
+    ORA #$80
+    STA $0804
+    LDA $1403        ; the interrupt status
+    STA $07
+    PLA
+    RTI
+
+periods_lo:
+    .db $FE, $7F, $54, $3F, $2A, $11
+periods_hi:
+    .db $01, $01, $01, $01, $00, $00
+balances:
+    .db $FF, $F8, $8F, $CC, $FF, $AA
+controls:
+    .db $9F, $98, $9C, $93, $9F, $DC
+notes:
+    .db $FE, $E2, $C9, $BE, $A9, $97, $86, $7F
+wave:
+    .db $00, $04, $08, $0C, $10, $14, $18, $1C, $1F, $1F, $1F, $1F, $1F, $1F, $1F, $1F
+    .db $1F, $1B, $17, $13, $0F, $0B, $07, $03, $00, $00, $00, $00, $00, $00, $00, $00
+''')
+    a(HUC_CPU_EXERCISE)
+    a('''
+    .org $FFF6
+    .dw brk_irq, vdp_irq, timer_irq, init, init
+''')
+    code = bytearray(a.assemble())
+    code[0x20:0x80] = hes_fields('PSG Test', 'gen_gme_testdata.py', '2026 Public Domain')
+    banks = [0xFF, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    h = hes_header(a.labels['init'], banks, len(code), 0x1800)
+    write('hes_psg.hes', h + code)
+
+
+def hes_odd():
+    # header warnings (an unknown version, the DATA tag missing, unknown
+    # header data, an address past the 1 MB ROM, a size past the file),
+    # fields of 0x30 bytes, the instructions that are illegal or not
+    # emulated, writes to ROM pages (which go to the I/O page), the I/O
+    # page mapped elsewhere, code at the end of RAM reading past it, code
+    # running past the end of memory (track 1), interrupts enabled and
+    # disabled by PLP and RTI, a scanline interrupt (a warning), a block
+    # transfer to the PSG, banks with nothing in them
+    a = HucAsm(0x7C00)
+    a('''
+    .org $7CC0
+init:
+    STA $00
+    STZ $FF          ; (BBS7 on the unmapped page's $FF bytes doesn't branch)
+    STZ $0804
+    TIN odd_wave,$0806,32
+    LDA #$01
+    STA $0800
+    STZ $0804
+    TIN odd_wave+3,$0806,32
+    STZ $0800
+    LDA #$9F
+    STA $0804
+    LDA #$A0
+    STA $0802
+    LDA #$FF
+    STA $0805
+    LDA $00
+    BEQ odd0
+    CMP #$01
+    BNE odd2
+    ; track 1: off the end of memory, through the unmapped page (in
+    ; page 7 too)
+    LDA #$80
+    TAM #$80
+    JMP $FFF0
+odd2:
+    ; tracks 2 and up: a scanline interrupt, the timer read when it is
+    ; disabled, the PSG by block transfer, illegal instructions
+    ST0 #$05
+    ST1 #$0C
+    LDA $0C00
+    STA $0802
+    TIA odd_wave,$0806,64
+    CSL
+    SET
+    .db $0B, $1B, $33
+    LDA #$01
+    STA $0C01
+    LDA #$00
+    STA $0C00
+    STZ $1402
+    LDA #$00
+    PHA
+    PLP              ; I clear: interrupts on
+    LDA #$04
+    PHA
+    PLP              ; I set: off
+    LDA #>odd2_ret
+    PHA
+    LDA #<odd2_ret
+    PHA
+    LDA #$00
+    PHA
+    RTI              ; I clear again
+odd2_ret:
+    SEI
+    LDA $0C00
+    STA $0802
+    LDA #$01
+    STA $0803
+    CLI
+    RTS
+odd0:
+    ; a write to a ROM page: the I/O page's PSG
+    LDA #$01
+    STA $6800
+    LDA #$9C
+    STA $6804
+    LDA #$C0
+    STA $6802
+    ; the I/O page also in page 4, and RAM in page 0: a write to page 4
+    ; is dropped
+    LDA #$FF
+    TAM #$10
+    LDA #$F8
+    TAM #$01
+    LDA #$55
+    STA $8800
+    LDA #$FF
+    TAM #$01
+    ; code at the end of RAM: LDA abs with its operand past it
+    LDA #$AD
+    STA $3FFF
+    LDA #$F9
+    TAM #$04         ; SGX RAM after it
+    LDA #$60         ; RTS
+    STA $4002
+    JSR $3FFF
+    STA $0802
+    ; banks that aren't there
+    LDA #$80
+    TAM #$10
+    LDA $8000
+    STA $0803
+    LDA #$7F
+    TAM #$10
+    LDA $8000
+    ORA #$01
+    STA $0803
+    LDA #$F8
+    TAM #$10
+    CLI
+    RTS
+timer_irq:
+vdp_irq:
+brk_irq:
+    STA $1403
+    LDA $0000
+    INC $01
+    LDA $01
+    STA $0806
+    RTI
+odd_wave:
+    .db $00, $1F, $02, $1D, $04, $1B, $06, $19, $08, $17, $0A, $15, $0C, $13, $0E, $11
+    .org $7FF6
+    .dw brk_irq, vdp_irq, timer_irq, init, init
+''')
+    code = bytearray(a.assemble())
+    long_field = b'Odd HES, its name in 0x30 bytes' + b'!' * 16
+    code[0x20:0xB0] = hes_fields(long_field, 'gen_gme_testdata.py', '(C) 2026', size=0x30)
+    banks = [0xFF, 0xF8, 0x10, 0x11, 0x12, 0x13, 0x00, 0x11]
+    h = hes_header(a.labels['init'], banks, 0x1000, 0x123C00, version=1, data_tag=b'DATB',
+                   unused=b'\x00\x01\x00\x00')
+    write('hes_odd.hes', h + code)
+
+
+def hes_multi():
+    # a second DATA block (a warning), a field that isn't text (and the
+    # ones after it left out), the RAM's initial zeros
+    a = HucAsm(0xE000)
+    a('''
+    .org $E0C0
+init:
+    STZ $0804
+    TIN init,$0806,32
+    LDA #$9F
+    STA $0804
+    LDA $2200
+    ORA #$40
+    STA $0802
+    LDA #$FF
+    STA $0805
+    RTS
+irq:
+    RTI
+    .org $E1F6
+    .dw irq, irq, irq, init, init
+''')
+    code = bytearray(a.assemble())
+    code[0x20:0x80] = hes_fields(b'Multi\x01', 'not shown', 'not shown')
+    second = b'DATA' + struct.pack('<II', 4, 0) + b'\xEA\xEA\xEA\xEA'
+    banks = [0xFF, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    h = hes_header(a.labels['init'], banks, len(code), 0x0000)
+    write('hes_multi.hes', h + code + second)
+    # data after the size (a warning), no fields at all
+    code[0x20] = 0x1F
+    h = hes_header(a.labels['init'], banks, len(code) - 0x10, 0x0000)
+    write('hes_extra.hes', h + code)
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -2661,6 +3470,9 @@ def main():
     kss_scc()
     kss_sms()
     kss_odd()
+    hes_psg()
+    hes_odd()
+    hes_multi()
 
 
 if __name__ == '__main__':

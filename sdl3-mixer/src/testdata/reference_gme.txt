@@ -285,6 +285,158 @@ freshseek 2205: seek=1 pos=2205 playing=1 b2393d978b0d0a41
 freshseek 48000: seek=1 pos=48000 playing=1 00dd025f10be0049
 freshseek 20000: seek=1 pos=20000 playing=1 6ca2ff78f9e545dd
 freshseek 100: seek=1 pos=100 playing=1 7ffe9cbefaa1b3a1
+== gme hes_extra.hes
+open: GME 0x8010 2 48000 gme.system="PC Engine" | 98304 12d73793c7b1e389 end=1
+f32s48: GME 0x8010 2 48000 gme.system="PC Engine" | 98304 bf38eff18794f6f9 end=1
+s16m22: GME 0x8010 2 48000 gme.system="PC Engine" | 32768 0a0c62ce068c7d70 end=1
+forced: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 272: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+trunc 543: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+corrupt 1: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+corrupt 2: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+corrupt 3: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 4b62f9d78e4b7fa1 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 d2d18a7ccdfbe7ed
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+order 1: play=1 pos=4096 playing=1 852de95caae3db91
+order 2: play=1 pos=4096 playing=1 852de95caae3db91
+order 0: play=1 pos=4096 playing=1 852de95caae3db91
+order 200: play=1 pos=4096 playing=1 852de95caae3db91
+order -5: play=1 pos=4096 playing=1 852de95caae3db91
+order 3: play=1 pos=4096 playing=1 852de95caae3db91
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 a4e87753b6c79ed5
+gmeseek 2205: seek=1 pos=2205 playing=1 0f25cb9bca71e5ad
+gmeseek 48000: seek=1 pos=48000 playing=1 3358caca5ea6c561
+gmeseek 20000: seek=1 pos=20000 playing=1 7e2bc6f373351571
+gmeseek 100: seek=1 pos=100 playing=1 83da1ab6264754b5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 a4e87753b6c79ed5
+freshseek 2205: seek=1 pos=2205 playing=1 0f25cb9bca71e5ad
+freshseek 48000: seek=1 pos=48000 playing=1 3358caca5ea6c561
+freshseek 20000: seek=1 pos=20000 playing=1 7e2bc6f373351571
+freshseek 100: seek=1 pos=100 playing=1 83da1ab6264754b5
+== gme hes_multi.hes
+open: GME 0x8010 2 48000 gme.system="PC Engine" | 98304 12d73793c7b1e389 end=1
+f32s48: GME 0x8010 2 48000 gme.system="PC Engine" | 98304 bf38eff18794f6f9 end=1
+s16m22: GME 0x8010 2 48000 gme.system="PC Engine" | 32768 0a0c62ce068c7d70 end=1
+forced: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 280: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+trunc 559: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 0: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+corrupt 1: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+corrupt 2: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 98870d94476c6ad5 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 9cee0718e66b5185
+corrupt 3: GME 0x8010 2 48000 gme.system="PC Engine" | 16384 2c51ce9dd87f4f49 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f79c29affb581645
+order 1: play=1 pos=4096 playing=1 852de95caae3db91
+order 2: play=1 pos=4096 playing=1 852de95caae3db91
+order 0: play=1 pos=4096 playing=1 852de95caae3db91
+order 200: play=1 pos=4096 playing=1 852de95caae3db91
+order -5: play=1 pos=4096 playing=1 852de95caae3db91
+order 3: play=1 pos=4096 playing=1 852de95caae3db91
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 a4e87753b6c79ed5
+gmeseek 2205: seek=1 pos=2205 playing=1 0f25cb9bca71e5ad
+gmeseek 48000: seek=1 pos=48000 playing=1 3358caca5ea6c561
+gmeseek 20000: seek=1 pos=20000 playing=1 7e2bc6f373351571
+gmeseek 100: seek=1 pos=100 playing=1 83da1ab6264754b5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 a4e87753b6c79ed5
+freshseek 2205: seek=1 pos=2205 playing=1 0f25cb9bca71e5ad
+freshseek 48000: seek=1 pos=48000 playing=1 3358caca5ea6c561
+freshseek 20000: seek=1 pos=20000 playing=1 7e2bc6f373351571
+freshseek 100: seek=1 pos=100 playing=1 83da1ab6264754b5
+== gme hes_odd.hes
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 98304 8d78f7ad7059da41 end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 98304 4d0efd08c3acf2b1 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 32768 e6296bd4b7e8d72d end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 822c9894366ee9e5 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 528: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 822c9894366ee9e5 end=1
+trunc 1055: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 822c9894366ee9e5 end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 822c9894366ee9e5 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 2cf9d3c1ae16baf9
+corrupt 1: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 822c9894366ee9e5 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 2cf9d3c1ae16baf9
+corrupt 2: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_testdata.py" gme.game="Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 b6f40f94a098e7a9 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 bfa5b7ba9ff432f9
+corrupt 3: GME 0x8010 2 48000 artist="gen_gme_tèstdata.py" album="Odd HEv, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.author="gen_gme_tèstdata.py" gme.game="Odd HEv, its name in 0x30 bytes!!!!!!!!!!!!!!!!" gme.system="PC Engine" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 2cf9d3c1ae16baf9
+order 1: play=1 pos=4096 playing=1 2f06f5ffb7670a29
+order 2: play=1 pos=4096 playing=1 203b7a969b82d1d5
+order 0: play=1 pos=4096 playing=1 e2ec9b3c2d27fc75
+order 200: play=1 pos=4096 playing=1 203b7a969b82d1d5
+order -5: play=1 pos=4096 playing=1 0dde73817f724605
+order 3: play=1 pos=4096 playing=1 0dde73817f724605
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 840f2d43fef5da09
+gmeseek 2205: seek=1 pos=2205 playing=1 f56f5d4ac7f47fd1
+gmeseek 48000: seek=1 pos=48000 playing=1 95f5a49b34bb1125
+gmeseek 20000: seek=1 pos=20000 playing=1 2b656a8bcc80ae99
+gmeseek 100: seek=1 pos=100 playing=1 0b0b3d16a88e9c89
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 3bdd0efab0768275
+freshseek 2205: seek=1 pos=2205 playing=1 ea70345e58f26ec5
+freshseek 48000: seek=1 pos=48000 playing=1 b351e4108b17fc51
+freshseek 20000: seek=1 pos=20000 playing=1 71c6ebddfe7dce7d
+freshseek 100: seek=1 pos=100 playing=1 b381208ce3a41e1d
+== gme hes_psg.hes
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 98304 24803d75047fcd6e end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 98304 bf01bd88a0b55086 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 32768 4810a9ed1372b4fd end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 fae7551439a048c5 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1040: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 9c1bda7f8c872325 end=1
+trunc 2079: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 fae7551439a048c5 end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 fae7551439a048c5 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1337fb1fabf9b42e
+corrupt 1: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 8dab3d62693f7378 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 847ec65315073c58
+corrupt 2: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 964fe97334d1a34b end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 2cc49436322da107
+corrupt 3: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copyright="2026 Public Domain" gme.author="gen_gme_testdata.py" gme.game="PSG Test" gme.copyright="2026 Public Domain" gme.system="PC Engine" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1337fb1fabf9b42e
+order 1: play=1 pos=4096 playing=1 4eca4ab43e98a979
+order 2: play=1 pos=4096 playing=1 f6e042f616ea5037
+order 0: play=1 pos=4096 playing=1 87a28f55a6bbc42f
+order 200: play=1 pos=4096 playing=1 f6e042f616ea5037
+order -5: play=1 pos=4096 playing=1 f6e042f616ea5037
+order 3: play=1 pos=4096 playing=1 f6e042f616ea5037
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 33c3382dbb704a21
+gmeseek 2205: seek=1 pos=2205 playing=1 6f796c951be16822
+gmeseek 48000: seek=1 pos=48000 playing=1 7de6db951516ed00
+gmeseek 20000: seek=1 pos=20000 playing=1 e03f649004472600
+gmeseek 100: seek=1 pos=100 playing=1 db4914027affd206
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 33c3382dbb704a21
+freshseek 2205: seek=1 pos=2205 playing=1 6f796c951be16822
+freshseek 48000: seek=1 pos=48000 playing=1 9725324889711a41
+freshseek 20000: seek=1 pos=20000 playing=1 37c108b902d45445
+freshseek 100: seek=1 pos=100 playing=1 db4914027affd206
 == gme kss_ext.kss
 open: GME 0x8010 2 48000 gme.system="MSX" | 98304 820470abd0f07a1d end=1
 f32s48: GME 0x8010 2 48000 gme.system="MSX" | 98304 89213e81867ffed5 end=1
