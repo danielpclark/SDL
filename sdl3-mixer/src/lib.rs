@@ -41,9 +41,12 @@
 //!   libraries).
 //! * Tracker modules (the `XMP` decoder) through libxmp, as SDL_mixer
 //!   vendors it, translated here under its MIT license: the player and its
-//!   software mixer, with the MOD, XM (and OXM), S3M and IT loaders; the
-//!   module's name, type and comment become metadata, and playback can
-//!   start at an order ([`PROP_PLAY_START_ORDER_NUMBER`]).
+//!   software mixer, with all 52 of the loaders SDL_mixer's build enables
+//!   (MOD and its relatives, XM and OXM, S3M, IT, the MED, Oktalyzer,
+//!   Farandole, Digitrakker, Ultra Tracker, Poly Tracker, Composer 669 and
+//!   many more formats); the module's name, type and comment become
+//!   metadata, and playback can start at an order
+//!   ([`PROP_PLAY_START_ORDER_NUMBER`]).
 //! * The decoders
 //!   upstream builds against another external library are not translated:
 //!   MIDI through FluidSynth,

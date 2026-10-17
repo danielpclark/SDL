@@ -1037,12 +1037,610 @@ def it_files():
                                sep=64, rsvd=0x05, chpan=[0, 64, 32] + [32] * 61))
 
 
+# ---------------------------------------------------------------------------
+# The other formats libxmp loads. Each gets one or two small modules (a few
+# samples, a pattern or two), in the order of upstream's loader list.
+
+def be16(v):
+    return struct.pack('>H', v & 0xFFFF)
+
+
+def be32(v):
+    return struct.pack('>I', v & 0xFFFFFFFF)
+
+
+def le16(v):
+    return struct.pack('<H', v & 0xFFFF)
+
+
+def le32(v):
+    return struct.pack('<I', v & 0xFFFFFFFF)
+
+
+def pt_track(cells, rows=64):
+    """One channel of Protracker events: {row: cell}."""
+    return mod_pattern(1, rows, {r: {0: c} for r, c in cells.items()})
+
+
+def iff(cid, data, le=False, align=False):
+    out = cid + (le32(len(data)) if le else be32(len(data))) + data
+    if align and len(data) & 1:
+        out += b'\0'
+    return out
+
+
+SQ8 = s8(square(64, 16, 100))
+SW8 = s8(decay(saw(512, 32, 110)))
+SN8 = s8(sine(256, 64, 90))
+NZ8 = s8(noise(300, 60, 7))
+
+
+def amiga_samples():
+    return [
+        ('square', SQ8, 0, 64, 0, 64),
+        ('saw down', SW8, 0xE, 48, 0, 2),
+        ('sine', SN8, 3, 40, 128, 128),
+        ('noise', NZ8, 0, 30, 100, 200),
+    ]
+
+
+def amiga_files():
+    smp = amiga_samples()
+    # Startrekker FLT8: paired 4 channel patterns
+    a = {0: {0: 'C-2 01 F04', 1: 'E-2 02 ...', 2: 'G-2 03 C30', 3: 'C-3 04 ...'},
+         2: {0: '--- .. A02', 1: '--- .. 102', 3: '--- .. E11'},
+         4: {0: 'D-2 01 ...', 2: '--- .. 404', 3: '--- .. E31'},
+         6: {1: '--- .. 0C3', 2: '--- .. ED2'}}
+    b = {0: {0: 'G-1 03 ...', 1: 'C-2 04 E62', 2: 'E-2 01 ...', 3: 'B-2 02 ...'},
+         3: {0: '--- .. 302', 1: '--- .. E83', 3: '--- .. EC2'},
+         7: {0: '--- .. D00'}}
+    c = {0: {0: 'C-2 02 ...', 2: 'G-2 04 ...'}, 4: {1: 'E-1 03 F03'}}
+    d = {0: {3: 'C-3 01 ...'}, 2: {0: 'D-2 03 ...'}, 5: {0: '--- .. D00'}}
+    write('flt_flt8.mod', mod_file('flt8 test', smp, [0, 2], [a, b, c, d], magic=b'FLT8'))
+
+    # Soundtracker 2.x: 15 instruments, no magic
+    st = smp[:3] + [('st four', s8(sine(128, 32, 70)), 0, 50, 0, 2)]
+    hdr = pad('soundtracker', 20)
+    for i in range(15):
+        if i < len(st):
+            name, data, fin, vol, ls, ll = st[i]
+            hdr += pad(name, 22) + struct.pack('>HBBHH', len(data) // 2, 0, vol, ls, ll // 2)
+        else:
+            hdr += pad('', 22) + struct.pack('>HBBHH', 0, 0, 0, 0, 1)
+    p0 = {0: {0: 'C-2 01 F05', 1: 'E-2 02 ...', 2: 'G-2 03 ...', 3: 'C-3 04 ...'},
+          2: {0: '--- .. 102', 1: '--- .. 201', 3: '--- .. C20'},
+          4: {0: 'D-2 01 ...', 2: '--- .. 037'}, 12: {3: '--- .. B01'}}
+    p1 = {0: {0: 'G-1 03 ...', 1: 'C-2 04 E01', 2: 'A-2 01 ...'}, 8: {1: 'C-2 02 ...'}, 16: {0: '--- .. D00'}}
+    hdr += bytes([2, 0x78]) + pad(bytes([0, 1]), 128)
+    write('st_soundtracker.mod', hdr + mod_pattern(4, 64, p0) + mod_pattern(4, 64, p1) +
+          b''.join(s[1] for s in st))
+
+    # Ice Tracker: a track table per order
+    hdr = pad('ice tracker', 20)
+    for i in range(31):
+        if i < len(smp):
+            name, data, fin, vol, ls, ll = smp[i]
+            hdr += pad(name, 22) + struct.pack('>HBBHH', len(data) // 2, 0, vol, ls // 2, ll // 2)
+        else:
+            hdr += pad('', 22) + struct.pack('>HBBHH', 0, 0, 0, 0, 1)
+    tracks = [
+        pt_track({0: 'C-2 01 F44', 8: 'E-2 01 ...', 16: '--- .. D00'}),
+        pt_track({0: 'G-2 02 ...', 4: '--- .. 302', 12: 'C-3 03 C20'}),
+        pt_track({2: 'C-2 04 ...', 10: 'D-2 04 A02'}),
+        pt_track({0: 'C-1 03 F03', 6: 'E-1 03 ...', 20: '--- .. D00'}),
+    ]
+    order = [[0, 1, 2, 2], [3, 2, 1, 0]]
+    hdr += bytes([2, len(tracks)]) + b''.join(bytes(o) for o in order) + b'\0' * (4 * (128 - len(order)))
+    write('ice_ice.mod', hdr + b'IT10' + b''.join(tracks) + b''.join(s[1] for s in smp))
+
+    # His Master's Noise: FEST magic, a Mupp chip instrument
+    hm = smp[:2] + [None, None]
+    hp0 = {0: {0: 'C-2 01 F04', 1: 'E-2 02 ...', 2: 'C-2 05 ...', 3: 'G-2 03 703'},
+           4: {0: '--- .. 047', 2: 'E-2 05 ...'},
+           8: {1: 'G-2 02 E01', 2: '--- .. C20'},
+           12: {0: '--- .. D00'}}
+    mupp = b''.join(s8(saw(32, 32, 100 - 3 * w)) for w in range(22)) + bytes(32 * 6)
+    mupp += bytes([(i * 3) % 22 for i in range(64)]) + bytes([64 - (i % 32) for i in range(64)])
+    mupp = mupp[:1024]
+    hdr = pad('hmn test', 20)
+    insts = [('square', SQ8, 0, 64, 0, 64), ('saw down', SW8, 0, 48, 0, 2), ('sine', SN8, 0, 40, 128, 128),
+             None, None]
+    for i in range(31):
+        if i == 4:
+            hdr += b'Mupp' + bytes([1, 2, 40]) + pad('', 15) + struct.pack('>HBBHH', 0, 0, 60, 0, 1)
+        elif i < len(insts) and insts[i] is not None:
+            name, data, fin, vol, ls, ll = insts[i]
+            hdr += pad(name, 22) + struct.pack('>HBBHH', len(data) // 2, fin, vol, ls // 2, ll // 2)
+        else:
+            hdr += pad('', 22) + struct.pack('>HBBHH', 0, 0, 0, 0, 1)
+    hdr += bytes([1, 0x7F]) + pad(bytes([0]), 128) + b'FEST'
+    del hm
+    write('hmn_fest.mod', hdr + mod_pattern(4, 64, hp0) + mupp + SQ8 + SW8 + SN8)
+
+
+class Para:
+    """A file built up in 16-byte paragraphs (for formats with segment pointers)."""
+
+    def __init__(self, data=b''):
+        self.data = bytearray(data)
+
+    def align(self):
+        while len(self.data) % 16:
+            self.data.append(0)
+        return len(self.data) // 16
+
+    def add(self, b):
+        p = self.align()
+        self.data += b
+        return p
+
+    def put(self, at, b):
+        self.data[at:at + len(b)] = b
+
+
+def oct_note(note):
+    """'C-4' -> (octave, semitone)."""
+    return int(note[2]), NOTES.index(note[:2])
+
+
+def stm_files():
+    # Scream Tracker 2.21: 4 channels, 31 instruments
+    smp = [('square.smp', u8(square(64, 16, 100)), 0, 64), ('saw.smp', u8(saw(512, 32, 110)), 0, 0xffff),
+           ('sine.smp', u8(sine(256, 64, 90)), 64, 256)]
+    f = Para(pad('stm test', 20) + b'!Scream!' + bytes([0x1a, 2, 2, 21, 0x60, 2, 64]) + bytes(13))
+    ins_at = len(f.data)
+    f.data += bytes(32 * 31)
+    orders = [0, 1, 0, 99]
+    f.data += pad(bytes(orders), 128, b'\x63')
+
+    def stm_ev(note, ins, vol, fx):
+        if note is None:
+            b0 = 255
+        elif note == '===':
+            b0 = 254
+        else:
+            o, s = oct_note(note)
+            b0 = ((o - 3) << 4) | s
+        fxt, fxp = (0, 0) if fx is None else (int(fx[0], 36) - 9, int(fx[1:], 16))
+        return bytes([b0, ((ins & 0x1f) << 3) | (vol & 7), ((vol & 0x78) << 1) | fxt, fxp])
+
+    def stm_pat(cells):
+        out = b''
+        for r in range(64):
+            for c in range(4):
+                cell = cells.get(r, {}).get(c)
+                out += stm_ev(*cell) if cell else b'\xfb\x00\x00\x00'
+        return out
+
+    p0 = {0: {0: ('C-4', 1, 64, 'A50'), 1: ('E-4', 2, 40, None), 2: ('G-4', 3, 64, 'H44')},
+          2: {0: (None, 0, 65, 'D04'), 1: (None, 0, 65, 'E08'), 3: ('C-5', 2, 50, 'J37')},
+          4: {0: ('G-3', 1, 64, 'G10'), 2: (None, 0, 65, 'I23')},
+          6: {1: ('===', 0, 65, None), 3: (None, 0, 65, 'F10')},
+          8: {0: ('C-4', 3, 30, 'A30')}, 12: {0: (None, 0, 65, 'C00')}}
+    p1 = {0: {0: ('C-5', 1, 64, None), 1: ('G-4', 3, 64, 'D40')},
+          4: {2: ('E-4', 2, 64, 'B02')}}
+    f.data += stm_pat(p0) + stm_pat(p1)
+    for i in range(31):
+        hdr = bytes(32)
+        if i < len(smp):
+            name, data, ls, le = smp[i]
+            seg = f.add(s8([b - 128 for b in data]))
+            hdr = pad(name, 13) + b'\0' + struct.pack('<HHHHBBHIH', seg, len(data), ls, le, 48 + 8 * i, 0,
+                                                      8363 + 1000 * i, 0, 0)
+        f.put(ins_at + 32 * i, hdr)
+    write('stm_st221.stm', bytes(f.data))
+
+
+def stx_files():
+    # STMIK 0.2 (STM2STX 1.1): S3M-style packed patterns, paragraph pointers
+    smp = [('square', s8(square(64, 16, 100)), 0, 64), ('sine', s8(sine(256, 64, 90)), 64, 256)]
+    f = Para(bytes(64))
+
+    def stx_pat(cells):
+        out = b''
+        for r in range(64):
+            for c, (note, ins, vol, fx) in sorted(cells.get(r, {}).items()):
+                b = c
+                ev = b''
+                if note is not None:
+                    b |= 0x20
+                    o, s = oct_note(note) if note != '===' else (0, 0)
+                    ev += bytes([254 if note == '===' else (o << 4) | s, ins])
+                if vol is not None:
+                    b |= 0x40
+                    ev += bytes([vol])
+                if fx is not None:
+                    b |= 0x80
+                    ev += bytes([int(fx[0], 36) - 9, int(fx[1:], 16)])
+                out += bytes([b]) + ev
+            out += b'\0'
+        return out
+
+    p0 = {0: {0: ('C-4', 1, 63, 'A60'), 1: ('G-4', 2, None, 'H34')},
+          2: {0: (None, 0, None, 'D02'), 2: ('E-4', 1, 40, None)},
+          4: {1: (None, 0, None, 'E04'), 3: ('C-5', 2, 50, 'J47')},
+          8: {0: ('D-4', 1, None, 'G08'), 2: ('===', 0, None, None)},
+          16: {0: (None, 0, None, 'C00')}}
+    p1 = {0: {0: ('E-4', 2, None, None), 1: ('C-4', 1, 20, 'F04')}, 8: {2: (None, 0, None, 'B00')}}
+    pats = [stx_pat(p0), stx_pat(p1)]
+    orders = [0, 1, 0]
+    pp_ins_list = []
+    ins_hdrs = []
+    pp_pat = f.add(b''.join(le16(0) for _ in pats))
+    pp_ins = f.add(b''.join(le16(0) for _ in smp))
+    pp_chn = f.add(bytes(32) + b''.join(bytes([o]) + bytes(4) for o in orders))
+    for i, (name, data, ls, le) in enumerate(smp):
+        ins_hdrs.append(len(f.data))
+        pp_ins_list.append(f.add(bytes(80)))
+    seg = []
+    for p in pats:
+        seg.append(f.add(p))
+    sdata = b''.join(s[1] for s in smp)
+    f.data += sdata
+    for i, (name, data, ls, le) in enumerate(smp):
+        f.put(ins_hdrs[i], bytes([1]) + pad(name, 13) + struct.pack('<HIIIBBBBHH', 0, len(data), ls, le, 50, 0, 0,
+                                                                   0, 8363, 0) + bytes(12) + pad(name, 28) +
+              b'SCRS')
+    for i, s in enumerate(seg):
+        f.put(pp_pat * 16 + 2 * i, le16(s))
+    for i, s in enumerate(pp_ins_list):
+        f.put(pp_ins * 16 + 2 * i, le16(s))
+    hdr = pad('stx test', 20) + b'!Scream!' + struct.pack('<HHHHHHHBBHHHHHHHH', 0, 0, pp_pat, pp_ins, pp_chn, 0, 0,
+                                                          64, 0x60, 0, 0, len(pats), len(smp), len(orders), 0, 0,
+                                                          0) + b'SCRM'
+    f.put(0, hdr)
+    write('stx_stm2stx.stx', bytes(f.data))
+
+
+def mtm_files():
+    smp = [('square', u8(square(64, 16, 100)), 0, 64, 0, 64, 0), ('sine16', u16le(sine(256, 64, 20000)), 128, 512, 2, 60, 1),
+           ('saw', u8(decay(saw(512, 32, 110))), 0, 0, 0xf, 48, 0)]
+
+    def mtm_track(cells):
+        out = b''
+        for r in range(64):
+            c = cells.get(r)
+            if c is None:
+                out += b'\0\0\0'
+                continue
+            note, ins, fx = c
+            n = 0 if note is None else note_index(note) - 25
+            fxt, fxp = (0, 0) if fx is None else (int(fx[0], 16), int(fx[1:], 16))
+            out += bytes([(n << 2) | (ins >> 4), ((ins & 0xf) << 4) | fxt, fxp])
+        return out
+
+    tracks = [
+        mtm_track({0: ('C-4', 1, 'F05'), 4: ('E-4', 1, '0C3'), 8: ('G-4', 2, None), 16: (None, 0, 'D10')}),
+        mtm_track({0: ('C-3', 3, 'F80'), 6: (None, 0, 'A04'), 12: ('G-3', 2, 'E88')}),
+        mtm_track({2: ('E-5', 2, '447'), 10: ('C-5', 1, '305')}),
+        mtm_track({0: ('A-4', 1, 'B02'), 3: (None, 0, 'EC2')}),
+    ]
+    pats = [[1, 2, 3, 0], [4, 0, 2, 1]]
+    comment = pad('MTM comment line', 40) + pad('second line', 40) + bytes(40)
+    hdr = b'MTM\x10' + pad('mtm test', 20) + struct.pack('<HBBHBBBB', len(tracks), len(pats) - 1, 2, len(comment),
+                                                         len(smp), 0, 64, 4)
+    hdr += bytes([0, 15, 7, 8] + [0] * 28)
+    for name, data, ls, le, fin, vol, attr in smp:
+        hdr += pad(name, 22) + struct.pack('<IIIBBB', len(data), ls, le, fin, vol, attr)
+    hdr += pad(bytes([0, 1, 0]), 128)
+    body = b''.join(tracks) + b''.join(b''.join(le16(t) for t in p + [0] * 28) for p in pats)
+    write('mtm_mtm.mtm', hdr + body + comment + b''.join(s[1] for s in smp))
+
+
+def imf_files():
+    hdr = pad('imf test', 32) + struct.pack('<HHHH', 2, 2, 2, 1) + bytes(8) + bytes([5, 130, 56, 48]) + bytes(8)
+    hdr += b'IM10'
+    for c in range(32):
+        hdr += pad('ch%d' % c, 12) + bytes([0, 0, (c * 80) & 0xff, 0 if c < 4 else 2])
+    hdr += pad(bytes([0, 1]), 256, b'\xff')
+
+    def imf_pat(rows, cells):
+        out = b''
+        for r in range(rows):
+            for c, (note, ins, fx, f2) in sorted(cells.get(r, {}).items()):
+                b = c
+                ev = b''
+                if note is not None:
+                    b |= 0x20
+                    if note == '===':
+                        nb = 160
+                    else:
+                        o, s = oct_note(note)
+                        nb = (o << 4) | s
+                    ev += bytes([nb, ins])
+                if fx is not None:
+                    b |= 0x80
+                    ev += bytes(fx)
+                if f2 is not None:
+                    b |= 0x40
+                    ev += bytes(f2)
+                out += bytes([b]) + ev
+            out += b'\0'
+        return le16(len(out) + 4) + le16(rows) + out
+
+    p0 = imf_pat(32, {0: {0: ('C-4', 1, (1, 4), (0x0c, 48)), 1: ('E-4', 2, None, None)},
+                      2: {0: (None, 0, (0x0d, 0x02), None), 2: ('G-4', 1, (0x05, 0x34), (0x0a, 0x40))},
+                      4: {1: (None, 0, (0x21, 0x32), None), 3: ('C-5', 2, (0x09, 0x37), None)},
+                      8: {0: ('D-4', 1, (0x03, 0x10), None), 2: ('===', 0, None, None)},
+                      10: {1: (None, 0, (0x1b, 0x23), (0x12, 4))},
+                      12: {3: (None, 0, (0x1f, 0x30), (0x1a, 0))},
+                      16: {0: (None, 0, (0x1e, 0x00), None)}})
+    p1 = imf_pat(16, {0: {0: ('E-4', 2, (0x02, 140), None), 1: ('C-4', 1, (0x16, 0x80), (0x17, 0x40))},
+                      6: {2: ('G-3', 1, (0x10, 0x14), None), 3: (None, 0, (0x0e, 0x0f), None)},
+                      10: {0: (None, 0, (0x1d, 0x01), None)}})
+
+    def imf_ins(name, samples, env=None):
+        ii = pad(name, 32) + bytes([0] * 60 + [1] * 60) + bytes(8)
+        pts = env[0] if env else []
+        words = []
+        for x, y in pts:
+            words += [x, y]
+        ii += struct.pack('<32H', *(words + [0] * (32 - len(words)))) + bytes(128)
+        ii += bytes([len(pts), env[1] if env else 0, env[2] if env else 0, env[3] if env else 0,
+                     env[4] if env else 0, 0, 0, 0]) + bytes(16)
+        ii += struct.pack('<HH', 0x100, len(samples)) + b'II10'
+        for sname, data, ls, le, rate, vol, pan, flg in samples:
+            n = len(data)
+            ii += pad(sname, 13) + bytes(3) + struct.pack('<IIIIBB', n, ls, le, rate, vol, pan) + bytes(14)
+            ii += bytes([flg]) + bytes(5) + struct.pack('<HI', 0, 0) + b'IS10' + data
+        return ii
+
+    i1 = imf_ins('env', [('square', s8(square(64, 16, 100)), 0, 64, 8363, 64, 0x40, 0x09),
+                         ('sine', s8(sine(256, 64, 90)), 0, 256, 16726, 50, 0, 0x03)],
+                 env=([(0, 64), (8, 32), (20, 48), (40, 0)], 1, 1, 2, 0x07))
+    i2 = imf_ins('saw16', [('saw16', s16le(decay(saw(512, 64, 20000))), 0, 0, 22050, 60, 0, 0x04)])
+    write('imf_orpheus.imf', hdr + p0 + p1 + i1 + i2)
+
+
+def ptm_files():
+    smp = [('square', SQ8, 0, 64, 0x05), ('sine16', s16le(sine(256, 64, 20000)), 0, 512, 0x0d | 0x10),
+           ('saw', SW8, 0, 0, 0x01)]
+    hdr = pad('ptm test', 28) + bytes([0x1a, 0x03, 0x02, 0]) + struct.pack('<HHHHHH', 3, len(smp), 2, 4, 0, 0)
+    hdr += b'PTMF' + bytes(16) + bytes([0, 15, 7, 8] + [7] * 28) + pad(bytes([0, 1, 0]), 256, b'\xff')
+    f = Para(hdr + bytes(256) + bytes(80 * len(smp)))
+
+    def ptm_pat(cells):
+        out = b''
+        for r in range(64):
+            for c, (note, ins, fx, vol) in sorted(cells.get(r, {}).items()):
+                b = c
+                ev = b''
+                if note is not None:
+                    b |= 0x20
+                    ev += bytes([254 if note == '===' else note_index(note) - 11, ins])
+                if fx is not None:
+                    b |= 0x40
+                    ev += bytes(fx)
+                if vol is not None:
+                    b |= 0x80
+                    ev += bytes([vol])
+                out += bytes([b]) + ev
+            out += b'\0'
+        return out
+
+    p0 = {0: {0: ('C-4', 1, (0x0f, 5), 63), 1: ('E-4', 2, None, None), 2: ('G-4', 3, (0x0e, 0x80), None)},
+          2: {0: (None, 0, (0x0a, 0x04), None), 3: ('C-5', 1, (0x10, 0x30), 40)},
+          4: {1: (None, 0, (0x11, 0x23), None), 2: (None, 0, (0x13, 0x14), None)},
+          8: {0: ('D-4', 3, (0x12, 0x44), None), 3: ('===', 0, None, None)},
+          12: {1: (None, 0, (0x16, 0x21), None)}, 16: {0: (None, 0, (0x0d, 0x00), None)}}
+    p1 = {0: {0: ('E-4', 2, (0x03, 0x08), None), 1: ('C-4', 1, (0x15, 0x22), 20)},
+          8: {2: (None, 0, (0x0b, 0x02), None)}}
+    segs = [f.add(ptm_pat(p0)), f.add(ptm_pat(p1))]
+    ofs = []
+    for s in smp:
+        f.align()
+        ofs.append(len(f.data))
+        if s[4] & 0x10:
+            f.data += delta16le([int.from_bytes(s[1][i:i + 2], 'little', signed=True) for i in range(0, len(s[1]), 2)])
+        else:
+            f.data += delta8(list(struct.unpack('%db' % len(s[1]), s[1])))
+    for i, s in enumerate(segs):
+        f.put(608 - 256 + 2 * i, le16(s))
+    for i, (name, data, ls, le, typ) in enumerate(smp):
+        f.put(608 + 80 * i, bytes([typ]) + pad(name, 12) + struct.pack('<BHHIIIIIIIBB', 48 + 8 * i, 8363 + 2000 * i,
+                                                                         0, ofs[i], len(data), ls, le, 0, 0, 0, 0, 0) +
+              pad(name, 28) + b'PTMS')
+    write('ptm_ptm.ptm', bytes(f.data))
+
+
+def ult_files():
+    smp = [('square', SQ8, 0, 64, 8), ('sine16', s16le(sine(256, 64, 20000)), 64, 256, 12), ('saw', SW8, 0, 0, 0)]
+    hdr = b'MAS_UTrack_V004' + pad('ult test', 32) + bytes([2]) + pad('ULT comment', 32) + pad('line two', 32)
+    hdr += bytes([len(smp)])
+    for i, (name, data, ls, le, bidi) in enumerate(smp):
+        hdr += pad(name, 32) + pad(name, 12) + struct.pack('<IIIIBBHH', ls, le, 0, len(data) >> (1 if bidi & 4 else 0),
+                                                           200 - 40 * i, bidi, 8363 + 1000 * i, 0)
+    hdr += pad(bytes([0, 1, 0]), 256, b'\xff') + bytes([3, 1]) + bytes([0, 15, 5, 10])
+
+    def ult_chan(cells, npat):
+        out = b''
+        for j in range(64 * npat):
+            c = cells.get(j)
+            if c is None:
+                out += b'\0' * 5
+                continue
+            note, ins, fx, fxp, f2p = c
+            n = 0 if note is None else note_index(note) - 35
+            out += bytes([n, ins, fx, f2p, fxp])
+        # pack runs of empty events with the 0xfc repeat code
+        packed = b''
+        i = 0
+        while i < len(out):
+            ev = out[i:i + 5]
+            k = 1
+            while i + 5 * k < len(out) and out[i + 5 * k:i + 5 * k + 5] == ev and k < 255:
+                k += 1
+            if k >= 3:
+                packed += b'\xfc' + bytes([k]) + ev
+            else:
+                packed += ev * k
+            i += 5 * k
+        return packed
+
+    chans = [
+        {0: ('C-4', 1, 0xf0, 0x03, 0), 4: (None, 0, 0xa0, 0x04, 0), 8: ('G-4', 2, 0x30, 0x10, 0), 14: (None, 0, 0xd0, 0, 0),
+         72: (None, 0, 0xd0, 0, 0)},
+        {0: ('E-4', 2, 0xb0, 0x0f, 0), 6: (None, 0, 0x4c, 0x44, 0x30), 64: ('C-5', 3, 0x90, 0x02, 0)},
+        {2: ('G-3', 3, 0x1c, 0x04, 0x20), 10: (None, 0, 0xe0, 0xc2, 0), 66: ('A-4', 1, 0xf0, 0x90, 0)},
+        {16: ('C-3', 1, 0x50, 0x00, 0), 80: (None, 0, 0x2a, 0x08, 0x30)},
+    ]
+    write('ult_v004.ult', hdr + b''.join(ult_chan(c, 2) for c in chans) + b''.join(s[1] for s in smp))
+
+
+class BitsLsb:
+    """A little-endian bit stream, least significant bit first."""
+
+    def __init__(self):
+        self.out = bytearray()
+        self.acc = 0
+        self.n = 0
+
+    def put(self, v, bits):
+        self.acc |= (v & ((1 << bits) - 1)) << self.n
+        self.n += bits
+        while self.n >= 8:
+            self.out.append(self.acc & 0xFF)
+            self.acc >>= 8
+            self.n -= 8
+
+    def bytes(self):
+        out = bytes(self.out) + (bytes([self.acc & 0xFF]) if self.n else b'')
+        return out + bytes(8)
+
+
+def mdl_pack_byte(bs, delta):
+    """One byte of Digitrakker's sample packing (method 1)."""
+    b = delta & 0xFF
+    s = 0
+    if b >= 128:
+        s = 1
+        b ^= 0xFF
+    bs.put(s, 1)
+    if b < 8:
+        bs.put(1, 1)
+        bs.put(b, 3)
+    else:
+        bs.put(0, 1)
+        for _ in range((b - 8) // 16):
+            bs.put(0, 1)
+        bs.put(1, 1)
+        bs.put((b - 8) % 16, 4)
+
+
+def mdl_pack8(samples):
+    bs = BitsLsb()
+    prev = 0
+    for s in samples:
+        mdl_pack_byte(bs, (s & 0xFF) - prev)
+        prev = s & 0xFF
+    data = bs.bytes()
+    return le32(len(data)) + data
+
+
+def mdl_pack16(samples):
+    bs = BitsLsb()
+    prev = 0
+    for s in samples:
+        v = s & 0xFFFF
+        bs.put(v & 0xFF, 8)
+        mdl_pack_byte(bs, (v >> 8) - prev)
+        prev = v >> 8
+    data = bs.bytes()
+    return le32(len(data)) + data
+
+
+def mdl_files():
+    def chunk(cid, data):
+        return cid + le32(len(data)) + data
+
+    orders = [0, 1, 0]
+    info = pad('mdl test', 32) + pad('composer', 20) + struct.pack('<HHBBB', len(orders), 0, 255, 5, 135)
+    info += bytes([0, 64, 32, 127, 0x80]) + bytes(27) + bytes(orders)
+
+    def mdl_track(cells):
+        out = b''
+        row = 0
+        for r in sorted(cells):
+            if r > row:
+                out += bytes([(r - row - 1) << 2])
+            c = cells[r]
+            if c == 'repeat':
+                out += bytes([(1 << 2) | 1])
+                row = r + 2
+                continue
+            note, ins, vol, fx1, fx2 = c
+            flags = 3
+            ev = b''
+            if note is not None:
+                flags |= 0x04
+                ev += bytes([0xff if note == '===' else note_index(note) - 11])
+            if ins:
+                flags |= 0x08
+                ev += bytes([ins])
+            if vol is not None:
+                flags |= 0x10
+                ev += bytes([vol])
+            if fx1 or fx2:
+                flags |= 0x20 | 0x40 | 0x80
+                ev += bytes([(fx1[0] if fx1 else 0) | ((fx2[0] if fx2 else 0) << 4), fx1[1] if fx1 else 0,
+                             fx2[1] if fx2 else 0])
+            out += bytes([flags]) + ev
+            row = r + 1
+        return le16(len(out)) + out
+
+    tracks = [
+        mdl_track({0: ('C-4', 7, 200, (0xf, 4), (0x1, 0x10)), 4: (None, 0, None, (0x3, 0x10), None),
+                   8: ('G-4', 9, None, (0x5, 0x37), (0x2, 0x08)), 20: (None, 0, None, (0xd, 0), None)}),
+        mdl_track({2: ('E-4', 9, 128, None, (0x4, 0x44)), 3: 'repeat', 10: ('===', 0, None, None, None),
+                   12: ('C-5', 7, None, (0x4, 0x46), (0x3, 0x23))}),
+        mdl_track({0: ('G-3', 7, None, (0xe, 0x13), (0x5, 0x32)), 6: (None, 0, None, (0x1, 0x08), (0x7, 150)),
+                   16: (None, 0, None, (0xb, 0x01), None)}),
+    ]
+    pa = bytes([2])
+    for idx in ([1, 2, 3, 0], [3, 0, 1, 2]):
+        pa += bytes([4, 31]) + pad('pattern', 16) + b''.join(le16(t) for t in idx)
+    tr = le16(len(tracks)) + b''.join(tracks)
+    ii = bytes([2])
+
+    def sub(sid, mapend, vol, venv, pan, penv, fade, vib, fenv):
+        return bytes([sid, mapend, vol, venv, pan, penv]) + le16(fade) + bytes(vib) + bytes([0, fenv])
+    ii += bytes([7, 2]) + pad('two samples', 32) + sub(1, 47, 200, 0xc0 | 1, 64, 0x40 | 2, 0x200, (4, 8, 0, 0), 0)
+    ii += sub(2, 95, 128, 0x40, 0, 0, 0, (0, 0, 0, 0), 0)
+    ii += bytes([9, 1]) + pad('packed', 32) + sub(3, 95, 255, 0x40, 128, 0x40, 0x400, (2, 4, 1, 1), 0x80 | 3)
+    sq = square(64, 16, 100)
+    sn16 = sine(256, 64, 20000)
+    sw = decay(saw(512, 32, 110))
+    smp = [(1, 'square', 8363, s8(sq), 0, 64, 0x00, s8(sq)),
+           (2, 'sine16', 16726, s16le(sn16), 0, 256, 0x01 | 0x08, mdl_pack16(sn16)),
+           (3, 'saw packed', 8363, s8(sw), 32, 64, 0x02 | 0x04, mdl_pack8(sw))]
+    is_ = bytes([len(smp)])
+    sa = b''
+    for idx, name, c5, raw, ls, ll, flg, packed in smp:
+        is_ += bytes([idx]) + pad(name, 32) + pad('file', 8) + struct.pack('<IIII', c5, len(raw), ls, ll)
+        is_ += bytes([64, flg])
+        sa += packed
+    ve = bytes([1, 1]) + bytes([1, 64, 4, 32, 8, 48, 10, 0]) + bytes(22) + bytes([0x10 | 1, 0x21])
+    pe = bytes([1, 2]) + bytes([1, 0, 10, 127, 10, 64]) + bytes(24) + bytes([0, 0])
+    fe = bytes([1, 3]) + bytes([1, 64, 5, 80, 5, 48]) + bytes(24) + bytes([0x20, 0x20])
+    body = chunk(b'IN', info) + chunk(b'PA', pa) + chunk(b'TR', tr) + chunk(b'II', ii) + chunk(b'VE', ve)
+    body += chunk(b'PE', pe) + chunk(b'FE', fe) + chunk(b'IS', is_) + chunk(b'SA', sa)
+    write('mdl_v11.mdl', b'DMDL\x11' + body)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     mod_files()
     xm_files()
     s3m_files()
     it_files()
+    amiga_files()
+    stm_files()
+    stx_files()
+    mtm_files()
+    imf_files()
+    ptm_files()
+    mdl_files()
+    ult_files()
 
 
 if __name__ == '__main__':

@@ -144,9 +144,14 @@ macro_rules! modules {
 /// The tracker modules (made by `tools/gen_xmp_testdata.py`), in the
 /// reference's order.
 static MODULES: &[(&str, &[u8])] = modules![
+    "flt_flt8.mod",
+    "hmn_fest.mod",
+    "ice_ice.mod",
+    "imf_orpheus.imf",
     "it_new.it",
     "it_old.it",
     "it_smp.it",
+    "mdl_v11.mdl",
     "mod_6chn.mod",
     "mod_cd81.mod",
     "mod_clone.mod",
@@ -154,10 +159,16 @@ static MODULES: &[(&str, &[u8])] = modules![
     "mod_nt.mod",
     "mod_pt.mod",
     "mod_vblank.mod",
+    "mtm_mtm.mtm",
+    "ptm_ptm.ptm",
     "s3m_orpheus.s3m",
     "s3m_schism.s3m",
     "s3m_st3.s3m",
     "s3m_st301.s3m",
+    "st_soundtracker.mod",
+    "stm_st221.stm",
+    "stx_stm2stx.stx",
+    "ult_v004.ult",
     "xm_amiga.xm",
     "xm_ft2.xm",
     "xm_old.xm",
@@ -1243,6 +1254,34 @@ fn s3m_matches_upstream() {
 fn it_matches_upstream() {
     files_with_prefix(&["it_"]);
 }
+
+/// One reference test per module format prefix.
+macro_rules! module_tests {
+    ($($name:ident: $prefix:literal,)*) => {
+        $(
+            #[test]
+            fn $name() {
+                files_with_prefix(&[$prefix]);
+            }
+        )*
+    };
+}
+
+// The other formats libxmp loads (one test each, so they run in parallel).
+module_tests! {
+    flt_matches_upstream: "flt_",
+    hmn_matches_upstream: "hmn_",
+    ice_matches_upstream: "ice_",
+    imf_matches_upstream: "imf_",
+    mdl_matches_upstream: "mdl_",
+    mtm_matches_upstream: "mtm_",
+    ptm_matches_upstream: "ptm_",
+    st_matches_upstream: "st_",
+    stm_matches_upstream: "stm_",
+    stx_matches_upstream: "stx_",
+    ult_matches_upstream: "ult_",
+}
+// (end of the other formats)
 
 #[test]
 fn opus_matches_upstream() {

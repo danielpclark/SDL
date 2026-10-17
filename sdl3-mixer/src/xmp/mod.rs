@@ -10,7 +10,9 @@
 //! `XMP` decoder (`decoder_xmp.rs`).
 //!
 //! libxmp is under the MIT license (see LICENSE.txt); `md5.rs` and
-//! `loaders/itsex.rs` translate public-domain code.
+//! `loaders/itsex.rs` translate public-domain code, `miniz_tinfl.rs` is
+//! under miniz's MIT license, and `loaders/lzw.rs`, `loaders/xmf_load.rs`
+//! and `loaders/abk_load.rs` carry their own copyright lines.
 //!
 //! Only the API SDL_mixer's decoder calls, and what it reaches, is
 //! translated: loading a module through callbacks, playing it frame by
@@ -19,8 +21,10 @@
 //! effect player (`smix.c`, beyond what the player consults), event
 //! injection, tempo factors, channel muting and the format list aren't,
 //! nor are the depackers and the ProWizard loaders, which SDL_mixer's
-//! build leaves out. Of the loaders, the MOD, XM, S3M and IT ones are
-//! translated so far ([`format`] lists them).
+//! build leaves out. All 52 loaders that build enables are translated, in
+//! upstream's order ([`format`] lists them); the Magnetic Fields Packer
+//! one only takes `FILE *` handles, so it never matches here, as it never
+//! does under SDL_mixer.
 //!
 //! The C structures are kept, with indices where upstream keeps pointers
 //! into them, and `Vec`s (allocated fallibly where a size comes from a
@@ -35,6 +39,7 @@
 #![allow(clippy::field_reassign_with_default)]
 #![allow(clippy::needless_late_init)]
 #![allow(clippy::collapsible_if)]
+#![allow(clippy::manual_range_patterns)]
 
 pub(crate) mod common;
 pub(crate) mod control;
@@ -55,6 +60,7 @@ pub(crate) mod load_helpers;
 pub(crate) mod loaders;
 pub(crate) mod md5;
 pub(crate) mod med_extras;
+pub(crate) mod miniz_tinfl;
 pub(crate) mod mix_all;
 pub(crate) mod mix_paula;
 pub(crate) mod mixer;
