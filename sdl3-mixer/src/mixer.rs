@@ -74,6 +74,7 @@ static DECODERS: &[&Decoder] = &[
     &crate::decoder_drflac::DECODER,
     #[cfg(feature = "timidity")]
     &crate::decoder_timidity::DECODER,
+    &crate::decoder_wavpack::DECODER,
     &crate::decoder_xmp::DECODER,
     &crate::decoder_voc::DECODER,
     &crate::decoder_aiff::DECODER,

@@ -45,8 +45,8 @@ The default build of sdl3-mixer includes sdl3-mixer-timidity (sdl3-mixer's
 default), so a program using sdl3-mixer's default features is subject to
 those terms for that part. Build sdl3-mixer with `default-features = false`
 (leaving out `timidity`, and MIDI support) for a build under the zlib
-license (and the BSD licenses of sdl3-mixer's Opus decoder and the MIT
-license of its libxmp, below) only.
+license (and the BSD licenses of sdl3-mixer's Opus and WavPack decoders and
+the MIT license of its libxmp, below) only.
 
 EXCEPT, likewise, sdl3-ttf/src/freetype/: that module is a translation of
 FreeType, and is under the FreeType License (FTL) (its BDF and PCF drivers
@@ -82,6 +82,12 @@ libxmp, as SDL_mixer vendors it for tracker modules, and is under libxmp's
 MIT license (SPDX: MIT; its md5.rs and loaders/itsex.rs translate
 public-domain code), not the zlib license; see the libxmp section below. It
 asks that its notice appear with copies of the software.
+
+EXCEPT, likewise, sdl3-mixer/src/wavpack/: that module is a translation of
+WavPack's library, as SDL_mixer vendors it for WavPack files, and is under
+WavPack's BSD license (SPDX: BSD-3-Clause), not the zlib license; see the
+WavPack section below. It asks that its notice appear with copies of the
+software (in their documentation, for binaries).
 
 ---------------------------------------------------------------------------
 
@@ -612,6 +618,49 @@ and the declarations it takes from libxmp's src/miniz.h, whose header reads
 reading/writing/appending, PNG writing ... Rich Geldreich
 <richgel99@gmail.com>, last updated Oct. 13, 2013" (the "unlicense"
 statement it points to isn't in libxmp's copy).
+
+sdl3-mixer/src/wavpack/ is a translation of the decoding half of WavPack's
+library (https://www.wavpack.com), at the revision SDL_mixer's
+external/wavpack pins (WavPack 5.9.0), as SDL_mixer's CMake builds it, which
+SDL_mixer's WAVPACK decoder (decoder_wavpack.c, translated in
+sdl3-mixer/src/decoder_wavpack.rs) uses: an altered version of that software,
+distributed under its BSD license (SPDX: BSD-3-Clause), whose text (WavPack's
+license.txt, verbatim; its COPYING, which SDL_mixer's CMake registers as
+WavPack's license, is the same text) follows. The files translated carry these
+lines, over "All Rights Reserved. Distributed under the BSD Software License
+(see license.txt)": "Copyright (c) 1998 - 2024 David Bryant." (include/wavpack.h,
+src/wavpack_local.h and src/open_utils.c), "Copyright (c) 1998 - 2013 Conifer
+Software." (src/common_utils.c, decorr_utils.c, entropy_utils.c, read_words.c,
+tags.c, unpack.c, unpack_floats.c, unpack_seek.c and unpack_utils.c) and
+"DSDPACK ... Copyright (c) 2013 - 2024 David Bryant." (src/unpack_dsd.c).
+
+--- WavPack license.txt ---
+                  Copyright (c) 1998 - 2025 David Bryant
+                          All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--- end of WavPack license.txt ---
 
 sdl3-image/src/webp/ (from libwebp, https://chromium.googlesource.com/webm/libwebp,
 at the revision SDL_image's external/libwebp pins: libwebp 1.3.2 with

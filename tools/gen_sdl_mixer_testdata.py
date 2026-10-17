@@ -456,6 +456,338 @@ def opus_files():
     write('opus_family255.opus', patch_head(plain, 18, b'\xff'))
 
 
+
+def wav_header(freq, channels, bits, nbytes, fmt=1, mask=None, valid=None):
+    """A RIFF/WAVE header for PCM (fmt 1) or IEEE float (fmt 3) data,
+    WAVE_FORMAT_EXTENSIBLE when there's a channel mask or valid bits."""
+    block = channels * ((bits + 7) // 8)
+    if mask is None and valid is None:
+        fmtck = struct.pack('<HHIIHH', fmt, channels, freq, freq * block, block, bits)
+    else:
+        guid = struct.pack('<H', fmt) + b'\x00\x00\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71'
+        fmtck = struct.pack('<HHIIHHHHI', 0xFFFE, channels, freq, freq * block, block, bits, 22,
+                            valid or bits, mask or 0) + guid
+    body = b'WAVE' + chunk(b'fmt ', fmtck) + b'data' + struct.pack('<I', nbytes)
+    return b'RIFF' + struct.pack('<I', len(body) + nbytes + (nbytes & 1)) + body
+
+
+def correlated(freq, channels, seconds, seed=1):
+    """The test signal's first channel in every channel, a little louder or
+    quieter and with a little noise of its own, which WavPack's
+    cross-channel decorrelation terms are for."""
+    base = signal(freq, 1, seconds, seed)
+    rng = Lcg(seed + 2000)
+    return [base[i] * (0.95 - 0.2 * c) + 0.003 * rng.unit() for i in range(len(base)) for c in range(channels)]
+
+
+def identical(freq, channels, seconds, seed=1):
+    """The same samples in every channel."""
+    return [v for v in signal(freq, 1, seconds, seed) for _ in range(channels)]
+
+
+def sparse(freq, channels, seconds, seed=1):
+    """Silence, with a few short bursts of the test signal and loud clicks."""
+    base = signal(freq, channels, seconds, seed)
+    rng = Lcg(seed + 3000)
+    out = []
+    n = len(base) // channels
+    for i in range(n):
+        burst = (i // (freq // 20)) % 5 == 2
+        click = rng.next() % 997 == 0
+        for c in range(channels):
+            out.append(base[i * channels + c] if burst else (0.9 if click else 0.0))
+    return out
+
+
+def pcm(samples, bits, rng=None, zeros=0, low=None):
+    """Samples in [-1, 1] as little-endian PCM (8-bit unsigned, or signed),
+    with random low bits from `rng` for 32-bit data and `zeros` low bits
+    cleared; or, for 32-bit data, the low byte all ones (`low='ones'`), or
+    all copies of the bit above it (`'dups'`), or the samples rounded to
+    floats and scaled up (`'float'`)."""
+    out = bytearray()
+    for s in samples:
+        if bits == 8:
+            out.append(int(round(s * 127)) + 128)
+            continue
+        full = (1 << (bits - 1)) - 1
+        if low == 'float':
+            v = int(struct.unpack('<f', struct.pack('<f', s))[0] * 2147483648.0)
+            v = max(-2147483648, min(2147483647, v))
+        elif bits == 32:
+            v = int(round(s * (full >> 8))) << 8
+            if low == 'ones':
+                v |= 0xff
+            elif low == 'dups':
+                v |= 0xff if v & 0x100 else 0
+            elif rng:
+                v |= rng.next() >> 24
+        else:
+            v = int(round(s * full))
+        v &= ~((1 << zeros) - 1)
+        out += (v & ((1 << bits) - 1)).to_bytes(bits // 8, 'little')
+    return bytes(out)
+
+
+def floats(samples, special=False, shifted=None):
+    """IEEE float data, with some zeros, negative zeros, denormals and
+    values past +/-1 among the samples if `special`, or infinities if it's
+    `'inf'`; with `shifted`, the samples (kept under 1) have the low
+    mantissa bits that WavPack shifts out set to ones (`'ones'`) or, every
+    other sample, to ones or zeros (`'same'`)."""
+    out = bytearray()
+    extra = [0.0, -0.0, 1.5e-42, -3.0e-41, 2.75, -3.5, 1.0, -1.0]
+    for i, s in enumerate(samples):
+        if special == 'inf' and i % 101 == 50:
+            s = math.inf if (i // 101) % 2 else -math.inf
+        elif special and special != 'inf' and i % 37 < len(extra) and (i // 37) % 3 == 1:
+            s = extra[i % 37]
+        if shifted:
+            bits = struct.unpack('<I', struct.pack('<f', s * 0.98))[0]
+            shift = 126 - ((bits >> 23) & 0xff)
+            if 0 < shift < 23:
+                mask = (1 << shift) - 1
+                if shifted == 'ones' or i % 2:
+                    bits |= mask
+                else:
+                    bits &= ~mask
+            out += struct.pack('<I', bits)
+        else:
+            out += struct.pack('<f', s)
+    return bytes(out)
+
+
+WAVPACK = os.environ.get('WAVPACK', 'wavpack')
+
+
+def wavpack(name, wav, args, src='src.wav'):
+    """Encode `wav` (a source file's bytes) with WavPack's command-line
+    encoder; writes `name` (and its .wvc, with -c) unless it's empty, and
+    returns the data of both."""
+    with tempfile.TemporaryDirectory() as tmp:
+        with open(os.path.join(tmp, src), 'wb') as f:
+            f.write(wav)
+        dst = os.path.join(tmp, 'out.wv')
+        subprocess.run([WAVPACK, '-q', '-y', '--no-threads'] + list(args) + [os.path.join(tmp, src), '-o', dst],
+                       check=True)
+        with open(dst, 'rb') as f:
+            out = f.read()
+        wvc = None
+        if os.path.exists(dst + 'c'):
+            with open(dst + 'c', 'rb') as f:
+                wvc = f.read()
+    if name:
+        write(name, out)
+        if wvc is not None:
+            write(name + 'c', wvc)
+    return out, wvc
+
+
+def wv_pcm(name, freq, channels, seconds, bits, args, seed, mask=None, valid=None, zeros=0, sig=None, low=None):
+    samples = (sig or signal)(freq, channels, seconds, seed)
+    data = pcm(samples, bits, Lcg(seed + 500), zeros, low)
+    pad = b'\0' if len(data) & 1 else b''
+    return wavpack(name, wav_header(freq, channels, bits, len(data), 1, mask, valid) + data + pad, args)
+
+
+def wv_float(name, freq, channels, seconds, args, seed, special=False, shifted=None):
+    data = floats(signal(freq, channels, seconds, seed), special, shifted)
+    return wavpack(name, wav_header(freq, channels, 32, len(data), 3) + data, args)
+
+
+def dsf(channels, seconds, seed, noise=False, same=False):
+    """A Sony DSF file (2.8224 MHz 1-bit DSD, LSB first) of the test signal
+    through a second-order sigma-delta modulator, or of random bits; with
+    `same`, every channel has the first one's bits."""
+    rate = 2822400
+    nbits = int(rate * seconds) // 8 * 8
+    pcm_rate = 44100
+    base = signal(pcm_rate, channels, seconds + 0.01, seed)
+    rng = Lcg(seed)
+    chans = []
+    for c in range(channels):
+        if same and c:
+            chans.append(chans[0])
+            continue
+        bits = bytearray(nbits // 8)
+        i1 = i2 = 0.0
+        y = 1.0
+        for n in range(nbits):
+            if noise:
+                b = rng.next() >> 31
+            else:
+                x = 0.5 * base[(n * pcm_rate // rate) * channels + c]
+                i1 += x - y
+                i2 += i1 - y
+                b = 1 if i2 >= 0 else 0
+                y = 1.0 if b else -1.0
+            if b:
+                bits[n >> 3] |= 1 << (n & 7)
+        chans.append(bytes(bits))
+    block = 4096
+    nblocks = (nbits // 8 + block - 1) // block
+    data = b''
+    for k in range(nblocks):
+        for c in range(channels):
+            data += chans[c][k * block:(k + 1) * block].ljust(block, b'\0')
+    chantype = {1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 7}[channels]
+    fmtck = b'fmt ' + struct.pack('<qIIIIIIqII', 52, 1, 0, chantype, channels, rate, 1, nbits, block, 0)
+    datack = b'data' + struct.pack('<q', 12 + len(data)) + data
+    total = 28 + len(fmtck) + len(datack)
+    return b'DSD ' + struct.pack('<qqq', 28, total, 0) + fmtck + datack
+
+
+def wv_blocks(data):
+    """The WavPack blocks of a file: (offset, length) pairs."""
+    out, at = [], 0
+    while at + 32 <= len(data) and data[at:at + 4] == b'wvpk':
+        size = struct.unpack_from('<I', data, at + 4)[0] + 8
+        out.append((at, size))
+        at += size
+    return out
+
+
+def wv_checksum(block):
+    """`block` with its block checksum (ID_BLOCK_CHECKSUM metadata) redone,
+    as WavpackVerifySingleBlock() checks it."""
+    out = bytearray(block)
+    at = 32
+    while at + 2 <= len(out):
+        mid, n = out[at], out[at + 1] << 1
+        hdr = 2
+        if mid & 0x80:
+            n += (out[at + 2] << 9) + (out[at + 3] << 17)
+            hdr = 4
+        if (mid & 0x3f) == 0x2f:
+            csum = 0xFFFFFFFF
+            for k in range(0, at, 2):
+                csum = (csum * 3 + out[k] + (out[k + 1] << 8)) & 0xFFFFFFFF
+            if n == 4:
+                out[at + hdr:at + hdr + 4] = struct.pack('<I', csum)
+            else:
+                csum ^= csum >> 16
+                out[at + hdr:at + hdr + 2] = struct.pack('<H', csum & 0xFFFF)
+        at += hdr + n
+    return bytes(out)
+
+
+def wv_renumber(data, first, total):
+    """`data`'s blocks with their block indexes moved up by `first` and the
+    total sample count set to `total` (0xFFFFFFFF for unknown), checksums
+    redone."""
+    out = b''
+    for at, size in wv_blocks(data):
+        block = bytearray(data[at:at + size])
+        index = struct.unpack_from('<I', block, 16)[0] + (block[10] << 32) + first
+        struct.pack_into('<I', block, 16, index & 0xFFFFFFFF)
+        block[10] = index >> 32
+        struct.pack_into('<I', block, 12, total)
+        block[11] = 0
+        out += wv_checksum(bytes(block))
+    return out
+
+
+def wv_samples(data):
+    """The sample count in the first block's header."""
+    return struct.unpack_from('<I', data, 12)[0]
+
+
+def wv_splice(parts, gaps=None, start=0, total=None):
+    """The blocks of the encoded `parts` one after the other (with `gaps`
+    samples missing before each), all numbered from `start`, with `total`
+    (or the sum) as the sample count."""
+    gaps = gaps or [0] * len(parts)
+    if total is None:
+        total = sum(wv_samples(p) for p in parts) + sum(gaps)
+    out, first = b'', start
+    for p, gap in zip(parts, gaps):
+        first += gap
+        out += wv_renumber(p, first, total)
+        first += wv_samples(p)
+    return out
+
+
+def wavpack_files():
+    # Lossless, in each bit depth, and the encoder's modes.
+    wv_pcm('wv_s16_long.wv', 22050, 1, 0.62, 16, ['--blocksize=4096', '-m'], seed=110)
+    wv_pcm('wv_s16_stereo.wv', 11025, 2, 0.2, 16, [], seed=109)
+    wv_pcm('wv_u8_mono.wv', 8000, 1, 0.3, 8, ['-f'], seed=111)
+    wv_pcm('wv_s24_mono.wv', 11025, 1, 0.3, 24, ['-hh', '-x6'], seed=112)
+    wv_pcm('wv_s32_stereo.wv', 8000, 2, 0.25, 32, ['-h', '-x3'], seed=113)
+    wv_pcm('wv_s32_zeros.wv', 8000, 1, 0.25, 32, ['-x1'], seed=114, zeros=7)
+    wv_pcm('wv_s32_int32.wv', 8000, 1, 0.25, 32, ['--optimize-int32', '-x4'], seed=115, low='float')
+    wv_pcm('wv_s32_ones.wv', 8000, 2, 0.15, 32, [], seed=140, low='ones')
+    wv_pcm('wv_s32_dups.wv', 8000, 1, 0.15, 32, ['-h'], seed=141, low='dups')
+    wv_pcm('wv_s12_stereo.wv', 11025, 2, 0.25, 16, ['-j0', '-f', '-x2'], seed=116, valid=12, zeros=4)
+    wv_float('wv_f32_stereo.wv', 11025, 2, 0.25, ['-h'], seed=117, special=True)
+    wv_float('wv_f32_mono.wv', 16000, 1, 0.25, ['-f', '-x5'], seed=118)
+    wv_float('wv_f32_ones.wv', 8000, 1, 0.15, [], seed=142, shifted='ones')
+    wv_float('wv_f32_same.wv', 8000, 2, 0.15, [], seed=143, shifted='same')
+    wv_float('wv_f32_inf.wv', 8000, 1, 0.1, [], seed=144, special='inf')
+    wv_pcm('wv_s16_raw.wv', 16000, 1, 0.3, 16, ['-r', '--blocksize=1000', '-j1'], seed=119)
+    wv_pcm('wv_correlated.wv', 11025, 2, 0.25, 16, ['-hh', '-x6'], seed=145, sig=correlated)
+    wv_pcm('wv_false_stereo.wv', 8000, 2, 0.2, 16, [], seed=146, sig=identical)
+    wv_pcm('wv_silence.wv', 8000, 1, 0.5, 16, [], seed=147, sig=sparse)
+    wv_pcm('wv_37800.wv', 37800, 1, 0.08, 16, [], seed=148)
+
+    # Hybrid: lossy, and lossless with a correction file.
+    wv_pcm('wv_hybrid_lossy.wv', 22050, 2, 0.6, 16, ['-b3', '-s0.5', '--blocksize=2048'], seed=120)
+    wv_pcm('wv_hybrid.wv', 22050, 2, 0.6, 16, ['-b3.5', '-c', '--blocksize=3000', '-j1'], seed=121)
+    wv_pcm('wv_hybrid_cc_s24.wv', 11025, 1, 0.3, 24, ['-b4', '-cc', '-h', '--use-dns'], seed=122)
+    wv_pcm('wv_hybrid_s8.wv', 8000, 2, 0.3, 8, ['-b2.5', '-c', '-s-0.5', '--cross-decorr'], seed=123)
+    wv_pcm('wv_hybrid_kbps.wv', 16000, 1, 0.3, 16, ['-b48', '-x3', '-hh'], seed=124)
+    wv_pcm('wv_hybrid_s32.wv', 8000, 2, 0.25, 32, ['-b5', '-c', '-f'], seed=125)
+    wv_pcm('wv_hybrid_s32_ones.wv', 8000, 1, 0.15, 32, ['-b4'], seed=149, low='ones')
+    wv_float('wv_hybrid_f32.wv', 11025, 1, 0.25, ['-b3', '-c'], seed=126)
+    wv_pcm('wv_hybrid_xdecorr.wv', 11025, 2, 0.25, 16, ['-b3', '-c', '-hh', '--cross-decorr', '-x6'], seed=150,
+           sig=correlated)
+    wv_pcm('wv_hybrid_silence.wv', 8000, 2, 0.5, 16, ['-b6', '-c'], seed=151, sig=sparse)
+
+    # Multichannel.
+    wv_pcm('wv_6ch.wv', 8000, 6, 0.2, 16, ['-h', '--blocksize=512'], seed=127, mask=0x3F)
+    wv_pcm('wv_quad_hybrid.wv', 8000, 4, 0.2, 16, ['-b3', '-c', '--blocksize=600'], seed=128, mask=0x33)
+    wv_pcm('wv_3ch.wv', 8000, 3, 0.2, 24, ['--pair-unassigned-chans', '-x2'], seed=129, mask=0)
+    wv_pcm('wv_10ch.wv', 8000, 10, 0.05, 8, [], seed=152, mask=0)
+    wv_pcm('wv_reorder.wv', 8000, 4, 0.05, 16, ['--channel-order=FR,FL,...'], seed=153)
+
+    # APEv2 tags (written by the encoder), an ID3v1 tag after them, and loop
+    # tags (that only Ogg files honor); an ID3v2 tag before the blocks; one
+    # of each alone at the end.
+    tagged, _ = wv_pcm('', 11025, 2, 0.2, 16, ['-w', 'Title=WavPack test', '-w', 'Artist=sdl3-mixer',
+                                                '-w', 'Album=Test data', '-w', 'Year=2004', '-w', 'Track=5/9',
+                                                '-w', 'LOOPSTART=100', '-w', 'LOOPLENGTH=1000'], seed=130)
+    id3v1 = b'TAG' + b'ID3v1 title'.ljust(30, b'\0') + b'ID3v1 artist'.ljust(30, b'\0') + \
+        b'ID3v1 album'.ljust(30, b'\0') + b'1987' + b'comment'.ljust(28, b'\0') + b'\0\x05' + b'\x0c'
+    write('wv_tags.wv', tagged + id3v1)
+    plain, _ = wv_pcm('', 8000, 1, 0.2, 16, [], seed=131)
+    write('wv_id3v2.wv', id3v2([(b'TIT2', 'ID3 before WavPack')]) + plain)
+    write('wv_apetag.wv', plain + ape_tag([('Title', 'APE title'), ('Artist', 'APE artist')]))
+    write('wv_id3v1.wv', plain + id3v1)
+
+    # DSD, which SDL_mixer opens without OPEN_DSD_AS_PCM (so the library
+    # refuses it), and DSD blocks (fast, high and raw, stereo, mono and
+    # "false stereo") after PCM ones, and multichannel.
+    fast, _ = wavpack('wv_dsd.wv', dsf(2, 0.003, 132), [], src='src.dsf')
+    high, _ = wavpack('', dsf(2, 0.003, 133), ['-h'], src='src.dsf')
+    fast1, _ = wavpack('', dsf(1, 0.002, 136), [], src='src.dsf')
+    high1, _ = wavpack('', dsf(1, 0.002, 137), ['-h'], src='src.dsf')
+    same, _ = wavpack('', dsf(2, 0.002, 138, same=True), [], src='src.dsf')
+    raw, _ = wavpack('', dsf(2, 0.002, 134, noise=True), [], src='src.dsf')
+    head, _ = wv_pcm('', 44100, 2, 0.02, 16, ['--blocksize=300'], seed=135)
+    write('wv_dsd_spliced.wv', wv_splice([head, fast, high, fast1, high1, same, raw]))
+    head3, _ = wv_pcm('', 44100, 3, 0.01, 16, [], seed=139, mask=0x7)
+    dsd3, _ = wavpack('', dsf(3, 0.002, 139), [], src='src.dsf')
+    write('wv_dsd_3ch.wv', wv_splice([head3, dsd3]))
+
+    # Blocks that don't start at 0 (with the total unknown), and missing
+    # blocks: a short gap, then a long one.
+    parts = [wv_pcm('', 11025, 2, 0.05, 16, [], seed=154 + k)[0] for k in range(3)]
+    write('wv_offset.wv', wv_splice(parts, start=50000, total=0xFFFFFFFF))
+    six, _ = wv_pcm('', 8000, 6, 0.1, 16, ['--blocksize=256'], seed=157, mask=0x3F)
+    write('wv_6ch_offset.wv', wv_splice([six], start=3000, total=0xFFFFFFFF))
+    write('wv_gap.wv', wv_splice(parts, gaps=[0, 1000, 300000]))
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     wav_files()
@@ -466,6 +798,7 @@ def main():
     ogg_files()
     flac_files()
     opus_files()
+    wavpack_files()
 
 
 if __name__ == '__main__':
