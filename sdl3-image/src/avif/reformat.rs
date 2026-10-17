@@ -1,4 +1,5 @@
-// Rust translation of the YUV to RGB conversion of src/reformat.c from
+// Rust translation of the YUV to RGB and RGB to YUV conversions of
+// src/reformat.c from
 // libavif (https://github.com/AOMediaCodec/libavif, at the revision
 // SDL_image's external/libavif pins: libavif 1.1.1 with SDL's patches).
 // Copyright 2019 Joe Drago. All rights reserved.
@@ -9,8 +10,8 @@
 //! that handles every combination, bilinear chroma upsampling and alpha
 //! (un)multiplication), as libavif runs them built without libyuv, as
 //! SDL_image builds it (`AVIF_LIBYUV` off: every `*LibYUV()` function is
-//! `AVIF_RESULT_NOT_IMPLEMENTED`). RGB to YUV (`avifImageRGBToYUV()`) is
-//! for encoding, which is not translated. The conversion jobs that
+//! `AVIF_RESULT_NOT_IMPLEMENTED`), and RGB to YUV (`avifImageRGBToYUV()`),
+//! for the saver, built-in too. The conversion jobs that
 //! upstream may run on threads (`rgb->maxThreads`, 0 in SDL_image) run one
 //! after the other here.
 
@@ -27,11 +28,15 @@ use super::avif::{
     AVIF_MATRIX_COEFFICIENTS_IDENTITY, AVIF_MATRIX_COEFFICIENTS_LAST,
     AVIF_MATRIX_COEFFICIENTS_SMPTE2085, AVIF_MATRIX_COEFFICIENTS_YCGCO, AVIF_PIXEL_FORMAT_COUNT,
 };
+use super::avif::{
+    avif_image_allocate_planes, AvifChromaDownsampling, AvifPlane, AVIF_PLANES_ALL, AVIF_PLANES_YUV,
+};
 use super::colr::avif_calc_yuv_coefficients;
 use super::internal::{
     avif_check, avif_checkerr, AlphaSrc, AvifAlphaMultiplyMode, AvifAlphaParams, AvifReformatMode,
     AvifReformatState, AvifRgbColorSpaceInfo, AvifYuvColorSpaceInfo,
 };
+use super::utils::avif_roundf;
 
 /// A `uint16_t` store into a byte buffer.
 fn st16(p: &mut [u8], i: usize, v: u16) {
@@ -211,8 +216,406 @@ fn avif_prepare_reformat_state(
     true
 }
 
-// (avifYUVColorSpaceInfoYToUNorm(), avifYUVColorSpaceInfoUVToUNorm() and
-// avifImageRGBToYUV() are for encoding: not translated.)
+/// `struct YUVBlock`
+#[derive(Clone, Copy, Default)]
+struct YuvBlock {
+    y: f32,
+    u: f32,
+    v: f32,
+}
+
+// Formulas 20-31 from https://www.itu.int/rec/T-REC-H.273-201612-I/en
+/// Translation of `avifYUVColorSpaceInfoYToUNorm()`.
+fn avif_yuv_color_space_info_y_to_unorm(info: &AvifYuvColorSpaceInfo, v: f32) -> i32 {
+    let unorm = avif_roundf(v * info.range_y + info.bias_y) as i32;
+    unorm.clamp(0, info.max_channel)
+}
+
+/// Translation of `avifYUVColorSpaceInfoUVToUNorm()`.
+fn avif_yuv_color_space_info_uv_to_unorm(info: &AvifYuvColorSpaceInfo, v: f32) -> i32 {
+    let unorm;
+
+    // YCgCo performs limited-full range adjustment on R,G,B but the current implementation performs range adjustment
+    // on Y,U,V. So YCgCo with limited range is unsupported.
+    debug_assert!((info.mode != AvifReformatMode::Ycgco) || (info.range == AvifRange::Full));
+
+    if info.mode == AvifReformatMode::Identity {
+        unorm = avif_roundf(v * info.range_y + info.bias_y) as i32;
+    } else {
+        unorm = avif_roundf(v * info.range_uv + info.bias_uv) as i32;
+    }
+
+    unorm.clamp(0, info.max_channel)
+}
+
+/// Translation of `avifImageRGBToYUV()`. SDL_image builds libavif without
+/// libyuv (`avifImageRGBToYUVLibYUV()` is `AVIF_RESULT_NOT_IMPLEMENTED`);
+/// it never asks for sharp YUV downsampling, which fails here as it does
+/// upstream built without libsharpyuv.
+pub(crate) fn avif_image_rgb_to_yuv(image: &mut AvifImage, rgb: &AvifRgbImage<'_>) -> AvifResult {
+    let Some(pixels) = rgb.pixels.as_deref() else {
+        return AvifResult::ReformatFailed;
+    };
+    if rgb.format == AvifRgbFormat::Rgb565 {
+        return AvifResult::ReformatFailed;
+    }
+
+    let mut state = AvifReformatState::default();
+    if !avif_prepare_reformat_state(image, rgb, &mut state) {
+        return AvifResult::ReformatFailed;
+    }
+
+    if rgb.is_float {
+        return AvifResult::NotImplemented;
+    }
+
+    let has_alpha = avif_rgb_format_has_alpha(rgb.format) && !rgb.ignore_alpha;
+    let allocation_result = avif_image_allocate_planes(
+        image,
+        if has_alpha {
+            AVIF_PLANES_ALL
+        } else {
+            AVIF_PLANES_YUV
+        },
+    );
+    if allocation_result != AvifResult::Ok {
+        return allocation_result;
+    }
+
+    let mut alpha_mode = AvifAlphaMultiplyMode::NoOp;
+    if has_alpha {
+        if !rgb.alpha_premultiplied && image.alpha_premultiplied {
+            alpha_mode = AvifAlphaMultiplyMode::Multiply;
+        } else if rgb.alpha_premultiplied && !image.alpha_premultiplied {
+            alpha_mode = AvifAlphaMultiplyMode::Unmultiply;
+        }
+    }
+
+    let mut converted = false;
+
+    // Try converting with libsharpyuv.
+    if (rgb.chroma_downsampling == AvifChromaDownsampling::SharpYuv)
+        && (image.yuv_format == AvifPixelFormat::Yuv420)
+    {
+        // (avifImageRGBToYUVLibSharpYUV(): not translated, see above)
+        // Return the error if sharpyuv was requested but failed for any reason, including libsharpyuv not being available.
+        return AvifResult::NotImplemented;
+    }
+
+    if !converted && !rgb.avoid_lib_yuv && (alpha_mode == AvifAlphaMultiplyMode::NoOp) {
+        // (avifImageRGBToYUVLibYUV(): AVIF_RESULT_NOT_IMPLEMENTED without
+        // libyuv)
+        converted = false;
+    }
+
+    if !converted {
+        let kr = state.yuv.kr;
+        let kg = state.yuv.kg;
+        let kb = state.yuv.kb;
+
+        let mut yuv_block = [[YuvBlock::default(); 2]; 2];
+        let mut rgb_pixel = [0f32; 3];
+        let rgb_pixel_bytes = state.rgb.pixel_bytes as usize;
+        let offset_bytes_r = state.rgb.offset_bytes_r as usize;
+        let offset_bytes_g = state.rgb.offset_bytes_g as usize;
+        let offset_bytes_b = state.rgb.offset_bytes_b as usize;
+        let offset_bytes_a = state.rgb.offset_bytes_a as usize;
+        let rgb_row_bytes = rgb.row_bytes as usize;
+        let rgb_max_channel_f = state.rgb.max_channel_f;
+        // (the planes' rows in samples: upstream's row bytes over the sample
+        // size)
+        let sample_bytes = if state.yuv.channel_bytes > 1 { 2 } else { 1 };
+        let y_row = image.yuv_row_bytes[AVIF_CHAN_Y] as usize / sample_bytes;
+        let u_row = image.yuv_row_bytes[AVIF_CHAN_U] as usize / sample_bytes;
+        let v_row = image.yuv_row_bytes[AVIF_CHAN_V] as usize / sample_bytes;
+        let (width, height, yuv_format) = (image.width, image.height, image.yuv_format);
+        let [y_plane, u_plane, v_plane] = &mut image.yuv_planes;
+        // (a 16-bit RGB sample at byte offset k)
+        let rd16 = |k: usize| u16::from_ne_bytes([pixels[k], pixels[k + 1]]);
+        let mut outer_j = 0u32;
+        while outer_j < height {
+            let mut outer_i = 0u32;
+            while outer_i < width {
+                let mut block_w: usize = 2;
+                let mut block_h: usize = 2;
+                if (outer_i + 1) >= width {
+                    block_w = 1;
+                }
+                if (outer_j + 1) >= height {
+                    block_h = 1;
+                }
+
+                // Convert an entire 2x2 block to YUV, and populate any fully sampled channels as we go
+                for b_j in 0..block_h {
+                    for b_i in 0..block_w {
+                        let i = outer_i as usize + b_i;
+                        let j = outer_j as usize + b_j;
+
+                        // Unpack RGB into normalized float
+                        let at = (i * rgb_pixel_bytes) + (j * rgb_row_bytes);
+                        if state.rgb.channel_bytes > 1 {
+                            rgb_pixel[0] = rd16(offset_bytes_r + at) as f32 / rgb_max_channel_f;
+                            rgb_pixel[1] = rd16(offset_bytes_g + at) as f32 / rgb_max_channel_f;
+                            rgb_pixel[2] = rd16(offset_bytes_b + at) as f32 / rgb_max_channel_f;
+                        } else {
+                            rgb_pixel[0] = pixels[offset_bytes_r + at] as f32 / rgb_max_channel_f;
+                            rgb_pixel[1] = pixels[offset_bytes_g + at] as f32 / rgb_max_channel_f;
+                            rgb_pixel[2] = pixels[offset_bytes_b + at] as f32 / rgb_max_channel_f;
+                        }
+
+                        if alpha_mode != AvifAlphaMultiplyMode::NoOp {
+                            let a = if state.rgb.channel_bytes > 1 {
+                                rd16(offset_bytes_a + at) as f32 / rgb_max_channel_f
+                            } else {
+                                pixels[offset_bytes_a + at] as f32 / rgb_max_channel_f
+                            };
+
+                            if alpha_mode == AvifAlphaMultiplyMode::Multiply {
+                                if a == 0.0 {
+                                    rgb_pixel[0] = 0.0;
+                                    rgb_pixel[1] = 0.0;
+                                    rgb_pixel[2] = 0.0;
+                                } else if a < 1.0f32 {
+                                    rgb_pixel[0] *= a;
+                                    rgb_pixel[1] *= a;
+                                    rgb_pixel[2] *= a;
+                                }
+                            } else {
+                                // alphaMode == AVIF_ALPHA_MULTIPLY_MODE_UNMULTIPLY
+                                if a == 0.0 {
+                                    rgb_pixel[0] = 0.0;
+                                    rgb_pixel[1] = 0.0;
+                                    rgb_pixel[2] = 0.0;
+                                } else if a < 1.0f32 {
+                                    rgb_pixel[0] /= a;
+                                    rgb_pixel[1] /= a;
+                                    rgb_pixel[2] /= a;
+                                    rgb_pixel[0] = min_f32(rgb_pixel[0], 1.0f32);
+                                    rgb_pixel[1] = min_f32(rgb_pixel[1], 1.0f32);
+                                    rgb_pixel[2] = min_f32(rgb_pixel[2], 1.0f32);
+                                }
+                            }
+                        }
+
+                        // RGB -> YUV conversion
+                        let blk = &mut yuv_block[b_i][b_j];
+                        if state.yuv.mode == AvifReformatMode::Identity {
+                            // Formulas 41,42,43 from https://www.itu.int/rec/T-REC-H.273-201612-I/en
+                            blk.y = rgb_pixel[1]; // G
+                            blk.u = rgb_pixel[2]; // B
+                            blk.v = rgb_pixel[0]; // R
+                        } else if state.yuv.mode == AvifReformatMode::Ycgco {
+                            // Formulas 44,45,46 from https://www.itu.int/rec/T-REC-H.273-201612-I/en
+                            blk.y = 0.5f32 * rgb_pixel[1] + 0.25f32 * (rgb_pixel[0] + rgb_pixel[2]);
+                            blk.u = 0.5f32 * rgb_pixel[1] - 0.25f32 * (rgb_pixel[0] + rgb_pixel[2]);
+                            blk.v = 0.5f32 * (rgb_pixel[0] - rgb_pixel[2]);
+                        } else {
+                            let y = (kr * rgb_pixel[0]) + (kg * rgb_pixel[1]) + (kb * rgb_pixel[2]);
+                            blk.y = y;
+                            blk.u = (rgb_pixel[2] - y) / (2.0f32 * (1.0f32 - kb));
+                            blk.v = (rgb_pixel[0] - y) / (2.0f32 * (1.0f32 - kr));
+                        }
+                        let blk = *blk;
+
+                        if state.yuv.channel_bytes > 1 {
+                            if let Some(p) = y_plane {
+                                p.u16s_mut()[i + (j * y_row)] =
+                                    avif_yuv_color_space_info_y_to_unorm(&state.yuv, blk.y) as u16;
+                            }
+                            if yuv_format == AvifPixelFormat::Yuv444 {
+                                // YUV444, full chroma
+                                if let Some(p) = u_plane {
+                                    p.u16s_mut()[i + (j * u_row)] =
+                                        avif_yuv_color_space_info_uv_to_unorm(&state.yuv, blk.u)
+                                            as u16;
+                                }
+                                if let Some(p) = v_plane {
+                                    p.u16s_mut()[i + (j * v_row)] =
+                                        avif_yuv_color_space_info_uv_to_unorm(&state.yuv, blk.v)
+                                            as u16;
+                                }
+                            }
+                        } else {
+                            if let Some(p) = y_plane {
+                                p.u8s_mut()[i + (j * y_row)] =
+                                    avif_yuv_color_space_info_y_to_unorm(&state.yuv, blk.y) as u8;
+                            }
+                            if yuv_format == AvifPixelFormat::Yuv444 {
+                                // YUV444, full chroma
+                                if let Some(p) = u_plane {
+                                    p.u8s_mut()[i + (j * u_row)] =
+                                        avif_yuv_color_space_info_uv_to_unorm(&state.yuv, blk.u)
+                                            as u8;
+                                }
+                                if let Some(p) = v_plane {
+                                    p.u8s_mut()[i + (j * v_row)] =
+                                        avif_yuv_color_space_info_uv_to_unorm(&state.yuv, blk.v)
+                                            as u8;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Populate any subsampled channels with averages from the 2x2 block
+                if yuv_format == AvifPixelFormat::Yuv400 {
+                    // Do nothing on chroma planes.
+                } else if yuv_format == AvifPixelFormat::Yuv420 {
+                    // YUV420, average 4 samples (2x2)
+
+                    let mut sum_u = 0.0f32;
+                    let mut sum_v = 0.0f32;
+                    for b_j in 0..block_h {
+                        for b_i in 0..block_w {
+                            sum_u += yuv_block[b_i][b_j].u;
+                            sum_v += yuv_block[b_i][b_j].v;
+                        }
+                    }
+                    let total_samples = (block_w * block_h) as f32;
+                    let avg_u = sum_u / total_samples;
+                    let avg_v = sum_v / total_samples;
+
+                    let chroma_shift_x = 1;
+                    let chroma_shift_y = 1;
+                    let uv_i = (outer_i >> chroma_shift_x) as usize;
+                    let uv_j = (outer_j >> chroma_shift_y) as usize;
+                    store_uv(
+                        &state.yuv,
+                        u_plane,
+                        v_plane,
+                        uv_i + (uv_j * u_row),
+                        uv_i + (uv_j * v_row),
+                        avg_u,
+                        avg_v,
+                    );
+                } else if yuv_format == AvifPixelFormat::Yuv422 {
+                    // YUV422, average 2 samples (1x2), twice
+
+                    for b_j in 0..block_h {
+                        let mut sum_u = 0.0f32;
+                        let mut sum_v = 0.0f32;
+                        for b_i in 0..block_w {
+                            sum_u += yuv_block[b_i][b_j].u;
+                            sum_v += yuv_block[b_i][b_j].v;
+                        }
+                        let total_samples = block_w as f32;
+                        let avg_u = sum_u / total_samples;
+                        let avg_v = sum_v / total_samples;
+
+                        let chroma_shift_x = 1;
+                        let uv_i = (outer_i >> chroma_shift_x) as usize;
+                        let uv_j = (outer_j as usize) + b_j;
+                        store_uv(
+                            &state.yuv,
+                            u_plane,
+                            v_plane,
+                            uv_i + (uv_j * u_row),
+                            uv_i + (uv_j * v_row),
+                            avg_u,
+                            avg_v,
+                        );
+                    }
+                }
+                outer_i += 2;
+            }
+            outer_j += 2;
+        }
+    }
+
+    if image.alpha_plane.is_some() && image.alpha_row_bytes != 0 {
+        // (the alpha plane's samples go through a byte buffer, upstream's
+        // `uint8_t *` view of them, and back; a 16-bit RGB source is read
+        // as samples)
+        let dst_u16 = state.yuv.channel_bytes > 1;
+        let alpha_bytes = image.alpha_row_bytes as usize * image.height as usize;
+        let mut dst_bytes = vec![0u8; alpha_bytes];
+        let src16: Vec<u16>;
+        let mut params = AvifAlphaParams {
+            width: image.width,
+            height: image.height,
+            dst_depth: image.depth,
+            dst_plane: &mut dst_bytes,
+            dst_row_bytes: image.alpha_row_bytes,
+            dst_offset_bytes: 0,
+            dst_pixel_bytes: state.yuv.channel_bytes,
+            src_depth: 0,
+            src_plane: AlphaSrc::None,
+            src_row_bytes: 0,
+            src_offset_bytes: 0,
+            src_pixel_bytes: 0,
+        };
+
+        if avif_rgb_format_has_alpha(rgb.format) && !rgb.ignore_alpha {
+            params.src_depth = rgb.depth;
+            params.src_plane = if rgb.depth > 8 {
+                src16 = pixels
+                    .chunks_exact(2)
+                    .map(|b| u16::from_ne_bytes([b[0], b[1]]))
+                    .collect();
+                AlphaSrc::U16(&src16)
+            } else {
+                AlphaSrc::U8(pixels)
+            };
+            params.src_row_bytes = rgb.row_bytes;
+            params.src_offset_bytes = state.rgb.offset_bytes_a;
+            params.src_pixel_bytes = state.rgb.pixel_bytes;
+
+            avif_reformat_alpha(&mut params);
+        } else {
+            // libyuv does not fill alpha when converting from RGB to YUV so
+            // fill it regardless of the value of convertedWithLibYUV.
+            avif_fill_alpha(&mut params);
+        }
+        if let Some(alpha) = &mut image.alpha_plane {
+            if dst_u16 {
+                for (d, s) in alpha.u16s_mut().iter_mut().zip(dst_bytes.chunks_exact(2)) {
+                    *d = u16::from_ne_bytes([s[0], s[1]]);
+                }
+            } else {
+                let d = alpha.u8s_mut();
+                let n = d.len().min(dst_bytes.len());
+                d[..n].copy_from_slice(&dst_bytes[..n]);
+            }
+        }
+    }
+    AvifResult::Ok
+}
+
+/// `AVIF_MIN()` of two floats.
+fn min_f32(a: f32, b: f32) -> f32 {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+/// The chroma stores of a subsampled block (`*pU = ...; *pV = ...;`).
+fn store_uv(
+    yuv: &AvifYuvColorSpaceInfo,
+    u_plane: &mut Option<AvifPlane>,
+    v_plane: &mut Option<AvifPlane>,
+    u_at: usize,
+    v_at: usize,
+    avg_u: f32,
+    avg_v: f32,
+) {
+    if yuv.channel_bytes > 1 {
+        if let Some(p) = u_plane {
+            p.u16s_mut()[u_at] = avif_yuv_color_space_info_uv_to_unorm(yuv, avg_u) as u16;
+        }
+        if let Some(p) = v_plane {
+            p.u16s_mut()[v_at] = avif_yuv_color_space_info_uv_to_unorm(yuv, avg_v) as u16;
+        }
+    } else {
+        if let Some(p) = u_plane {
+            p.u8s_mut()[u_at] = avif_yuv_color_space_info_uv_to_unorm(yuv, avg_u) as u8;
+        }
+        if let Some(p) = v_plane {
+            p.u8s_mut()[v_at] = avif_yuv_color_space_info_uv_to_unorm(yuv, avg_v) as u8;
+        }
+    }
+}
 
 /// Allocates and fills look-up tables for going from YUV limited/full unorm -> full range RGB FP32.
 /// Review this when implementing YCgCo limited range support.

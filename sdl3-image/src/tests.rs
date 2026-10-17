@@ -10,7 +10,8 @@
 //! libjxl, the latter five as SDL_image's external/ builds them, libpng and
 //! zlib at its pins for the APNG code only, libwebp
 //! without its SIMD code and with its encoder and muxer, libavif and dav1d
-//! as plain C, libjxl for Highway's scalar target, without AVIF saving) and
+//! as plain C, libjxl for Highway's scalar target, without AVIF saving: the
+//! AVIF saver's references are separate, below) and
 //! SDL3: for every image, the
 //! detectors that accept it, the surfaces loaded from the file, from memory
 //! and by type, from truncations and from a corrupted copy, and the files
@@ -1399,7 +1400,7 @@ fn saving_through_files_and_types() {
     let (w, h) = (surface.width(), surface.height());
 
     for ext in [
-        "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "webp", "BMP",
+        "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "webp", "avif", "BMP",
     ] {
         let path = tmp.join(format!("out.{ext}"));
         crate::save(&mut surface, &path).unwrap();
@@ -1415,19 +1416,16 @@ fn saving_through_files_and_types() {
     crate::save_cur(&mut surface, tmp.join("direct.cur")).unwrap();
     crate::save_gif(&mut surface, tmp.join("direct.gif")).unwrap();
     crate::save_webp(&mut surface, tmp.join("direct.webp"), 100.0).unwrap();
+    crate::save_avif(&mut surface, tmp.join("direct.avif"), 100).unwrap();
     assert_eq!(
         std::fs::read(&path).unwrap(),
         dump(|io| crate::save_png_io(&mut surface, io))
     );
 
     let mut io = IoStream::from_dynamic_mem();
-    for (t, message) in [
-        ("avif", "SDL_image built without AVIF save support"),
-        ("xyz", "Unsupported image format"),
-    ] {
-        let e = crate::save_typed_io(&mut surface, &mut io, t).unwrap_err();
-        assert_eq!(e.to_string(), message);
-    }
+    crate::save_typed_io(&mut surface, &mut io, "AVIF").unwrap();
+    let e = crate::save_typed_io(&mut surface, &mut io, "xyz").unwrap_err();
+    assert_eq!(e.to_string(), "Unsupported image format");
     assert!(crate::save_typed_io(&mut surface, &mut io, "").is_err());
     let e = crate::save(&mut surface, tmp.join("noext")).unwrap_err();
     assert_eq!(e.to_string(), "Couldn't determine file type");
@@ -2462,4 +2460,335 @@ fn apng_zero_denominators_are_100() {
     assert_eq!(frames.len(), 3);
     assert_eq!(frames, decode("apng_den100.png"));
     assert_eq!(frames.iter().map(|f| f.1).collect::<Vec<_>>(), [50, 0, 300]);
+}
+
+/// The generated surfaces of the AVIF saver's reference runs: upstream
+/// SDL_image saving them with libavif and libaom as SDL_image's CMake
+/// builds them (libaom with `AOM_TARGET_CPU=generic`). `gen` is the
+/// reference harness's component generator (pattern 0 gradient, 1 noise,
+/// 2 edges, 3 flat, 4 screen content; alpha 0 opaque, 1 gradient, 2 binary,
+/// 3 noise), drawing noise from a xorshift generator seeded per case.
+mod avif_save_gen {
+    use sdl3::video::pixels::PackedOrder;
+    use sdl3::video::{PixelFormat, Surface};
+
+    struct Rng(u32);
+
+    impl Rng {
+        fn next(&mut self) -> u32 {
+            let mut r = self.0;
+            r ^= r << 13;
+            r ^= r >> 17;
+            r ^= r << 5;
+            self.0 = r;
+            r
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn gen(
+        rng: &mut Rng,
+        pattern: i32,
+        alpha: i32,
+        c: i32,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        max: u32,
+        amax: u32,
+    ) -> u32 {
+        if c == 3 {
+            return match alpha {
+                0 => amax,
+                1 => {
+                    let span = if w + h - 2 > 0 { w + h - 2 } else { 1 };
+                    ((x + y) as u64 * amax as u64 / span as u64) as u32
+                }
+                2 => {
+                    if ((x / 2 + y / 3) & 1) != 0 {
+                        amax
+                    } else {
+                        0
+                    }
+                }
+                _ => rng.next() % (amax + 1),
+            };
+        }
+        match pattern {
+            0 => {
+                let d = if c == 0 {
+                    x * 2
+                } else if c == 1 {
+                    y * 3
+                } else {
+                    x + y
+                };
+                let span = if c == 0 {
+                    2 * (w - 1)
+                } else if c == 1 {
+                    3 * (h - 1)
+                } else {
+                    w + h - 2
+                };
+                if span > 0 {
+                    (d as u64 * max as u64 / span as u64) as u32
+                } else {
+                    max / 2
+                }
+            }
+            1 => rng.next() % (max + 1),
+            2 => {
+                let mut v = if ((x / 4 + y / 4) & 1) != 0 {
+                    max - max / 10
+                } else {
+                    max / 12
+                };
+                if c == 1 {
+                    v = if x == y || x == w - 1 - y {
+                        max
+                    } else if y < h / 2 {
+                        max / 3
+                    } else {
+                        max * 2 / 3
+                    };
+                }
+                if c == 2 {
+                    v = if x > w / 2 { max * 4 / 5 } else { max / 6 };
+                }
+                v
+            }
+            4 => {
+                const PAL: [[u8; 3]; 4] =
+                    [[255, 255, 255], [0, 0, 0], [200, 30, 40], [20, 90, 220]];
+                let k = ((x / 3) ^ (y / 5)) % 7;
+                let idx = if k < 4 { 0 } else { (k - 4 + 1) as usize };
+                PAL[idx][c as usize] as u32 * max / 255
+            }
+            _ => {
+                if c == 0 {
+                    max * 3 / 4
+                } else if c == 1 {
+                    max / 4
+                } else {
+                    max / 2
+                }
+            }
+        }
+    }
+
+    /// The reference harness's `make()`.
+    pub(super) fn make(
+        w: i32,
+        h: i32,
+        fmt: PixelFormat,
+        pattern: i32,
+        alpha: i32,
+        seed: u32,
+    ) -> Surface<'static> {
+        let mut rng = Rng(seed);
+        if fmt.is_10bit() {
+            let mut s = Surface::new(w, h, fmt).unwrap();
+            let abgr = fmt.pixel_order() == PackedOrder::Abgr as u32
+                || fmt.pixel_order() == PackedOrder::Xbgr as u32;
+            let pitch = s.pitch() as usize;
+            let pixels = s.pixels_mut().unwrap();
+            for y in 0..h {
+                for x in 0..w {
+                    let r = gen(&mut rng, pattern, alpha, 0, x, y, w, h, 1023, 3);
+                    let g = gen(&mut rng, pattern, alpha, 1, x, y, w, h, 1023, 3);
+                    let b = gen(&mut rng, pattern, alpha, 2, x, y, w, h, 1023, 3);
+                    let a = gen(&mut rng, pattern, alpha, 3, x, y, w, h, 1023, 3);
+                    let v = if abgr {
+                        (a << 30) | (b << 20) | (g << 10) | r
+                    } else {
+                        (a << 30) | (r << 20) | (g << 10) | b
+                    };
+                    let o = y as usize * pitch + x as usize * 4;
+                    pixels[o..o + 4].copy_from_slice(&v.to_ne_bytes());
+                }
+            }
+            return s;
+        }
+        let mut s = Surface::new(w, h, PixelFormat::RGBA32).unwrap();
+        let pitch = s.pitch() as usize;
+        let pixels = s.pixels_mut().unwrap();
+        for y in 0..h {
+            for x in 0..w {
+                for c in 0..4 {
+                    pixels[y as usize * pitch + x as usize * 4 + c as usize] =
+                        gen(&mut rng, pattern, alpha, c, x, y, w, h, 255, 255) as u8;
+                }
+            }
+        }
+        if fmt == PixelFormat::RGBA32 {
+            return s;
+        }
+        s.convert(fmt).unwrap()
+    }
+}
+
+/// `(name, width, height, format, pattern, alpha, [(quality, size, FNV-1a
+/// 64 hash of the file)])`
+type AvifSaveCase = (
+    &'static str,
+    i32,
+    i32,
+    PixelFormat,
+    i32,
+    i32,
+    &'static [(i32, usize, u64)],
+);
+
+/// The reference harness's cases (case `i` is seeded with
+/// `0x12345678 + i`).
+#[rustfmt::skip]
+const AVIF_SAVE_CASES: &[AvifSaveCase] = &[
+    ("rgba_1x1", 1, 1, PixelFormat::RGBA32, 3, 0, &[(0, 305, 0x5a9ac34c005ec226), (50, 310, 0x4688e807cde48da8), (90, 314, 0x36f1157fd20bdf60), (100, 314, 0x22476e5e6ed02fe8)]),
+    ("rgbx_3x5_grad", 3, 5, PixelFormat::RGBX32, 0, 0, &[(0, 308, 0xa81f9732c3ccd34b), (50, 329, 0x5cca2a284e892394), (90, 355, 0x100c43ae47ddd35a), (100, 405, 0x9618d5a30ddf2180)]),
+    ("rgba_3x5_noise_a", 3, 5, PixelFormat::RGBA32, 1, 3, &[(50, 595, 0x0204ace30e14eb65), (100, 711, 0xfa981bd62983768c)]),
+    ("rgba_16x16_grad_a", 16, 16, PixelFormat::RGBA32, 0, 1, &[(0, 759, 0x184645c82fa2643f), (50, 779, 0x7a9d27e6cbbb66aa), (90, 851, 0x4e40da9077fe3bc8), (100, 1284, 0x2b175dd8b64ea1b6)]),
+    ("rgba_16x16_opaque", 16, 16, PixelFormat::RGBA32, 2, 0, &[(50, 517, 0x87dc3a64c17a2f5b)]),
+    ("argb_17x9_edges_bin", 17, 9, PixelFormat::ARGB32, 2, 2, &[(50, 866, 0xf38b676cdc61ead0), (100, 1274, 0x54c702439f832121)]),
+    ("xrgb_9x17_noise", 9, 17, PixelFormat::XRGB32, 1, 0, &[(90, 816, 0x6c4f1ce30101c013)]),
+    ("bgra_8x8_edges_a", 8, 8, PixelFormat::BGRA32, 2, 1, &[(75, 649, 0xc0223ab98c27fd87)]),
+    ("bgrx_8x8_grad", 8, 8, PixelFormat::BGRX32, 0, 0, &[(25, 316, 0xb4d59e6a8eb03c91)]),
+    ("abgr_12x7_noise_a", 12, 7, PixelFormat::ABGR32, 1, 3, &[(90, 1104, 0x499374cd7b250459)]),
+    ("xbgr_7x12_edges", 7, 12, PixelFormat::XBGR32, 2, 0, &[(100, 634, 0xccd97888d4acebeb)]),
+    ("rgb24_10x6_grad", 10, 6, PixelFormat::RGB24, 0, 0, &[(50, 338, 0xb83307adc3999989)]),
+    ("rgb565_6x10_edges", 6, 10, PixelFormat::RGB565, 2, 0, &[(90, 516, 0x57922218b1087f6d)]),
+    ("argb4444_5x5_noise", 5, 5, PixelFormat::ARGB4444, 1, 3, &[(50, 624, 0x33d83bcaf1898522)]),
+    ("xrgb2101010_9x9_grad", 9, 9, PixelFormat::XRGB2101010, 0, 0, &[(50, 349, 0x59515034286485c1), (100, 564, 0xbb129dc3ed81aa87)]),
+    ("argb2101010_8x5_noise_a", 8, 5, PixelFormat::ARGB2101010, 1, 3, &[(90, 789, 0x7b77ea9765ac0a97)]),
+    ("abgr2101010_5x8_edges_a", 5, 8, PixelFormat::ABGR2101010, 2, 2, &[(0, 527, 0x302280494937f076), (100, 645, 0x55be305c19a550aa)]),
+    ("xbgr2101010_4x4_flat", 4, 4, PixelFormat::XBGR2101010, 3, 0, &[(90, 314, 0xc6214618d290cd2c)]),
+    ("rgba_65x33_grad_a", 65, 33, PixelFormat::RGBA32, 0, 1, &[(0, 1924, 0xbb773de99b068e3a), (50, 2015, 0x866971a9b2454f4a), (90, 2219, 0x8a80d803a7acc291), (100, 5117, 0xdaa932bef8602fe0)]),
+    ("rgbx_65x33_edges", 65, 33, PixelFormat::RGBX32, 2, 0, &[(50, 1629, 0xd15a11d91988dba7), (90, 3201, 0x3b6ac71a8f2506fd)]),
+    ("rgbx_65x33_noise", 65, 33, PixelFormat::RGBX32, 1, 0, &[(50, 3238, 0x36578dea7a6903e7), (100, 12842, 0xf8f9091b2f97dee7)]),
+    ("rgba_33x70_edges_bin", 33, 70, PixelFormat::RGBA32, 2, 2, &[(90, 5605, 0xd9c5a15468c1c5a0)]),
+    ("rgbx_130x66_grad", 130, 66, PixelFormat::RGBX32, 0, 0, &[(50, 579, 0xaddafad48fc8b8ef)]),
+    ("rgbx_64x64_screen", 64, 64, PixelFormat::RGBX32, 4, 0, &[(50, 3180, 0x0de0a0b24b82ad0a), (100, 6668, 0x331215abdbb65ce3)]),
+    ("rgba_40x24_screen_bin", 40, 24, PixelFormat::RGBA32, 4, 2, &[(90, 2676, 0x1aec4f6a334afc88)]),
+    ("rgba_1x7_noise_a", 1, 7, PixelFormat::RGBA32, 1, 3, &[(50, 546, 0x66314d64168284f2), (100, 624, 0x8a030da90d4e4533)]),
+    ("rgbx_9x1_grad", 9, 1, PixelFormat::RGBX32, 0, 0, &[(50, 322, 0x760a838a5eda8679), (100, 437, 0xe610ca9684b96197)]),
+    ("xrgb2101010_1x3_noise", 1, 3, PixelFormat::XRGB2101010, 1, 0, &[(90, 355, 0x3af846cde6eb1a82)]),
+    ("argb_2x2_noise_a", 2, 2, PixelFormat::ARGB32, 1, 3, &[(0, 512, 0x7a45a265e5bc24eb), (100, 666, 0x00a7b73a4cf37eb3)]),
+    ("rgba_1x1_opaque_half", 1, 1, PixelFormat::RGBA32, 0, 2, &[(50, 478, 0xae710a4c54df7957)]),
+];
+
+#[test]
+fn avif_saves_match_reference() {
+    for (i, &(name, w, h, fmt, pattern, alpha, quals)) in AVIF_SAVE_CASES.iter().enumerate() {
+        for &(q, size, hash) in quals {
+            let mut s = avif_save_gen::make(w, h, fmt, pattern, alpha, 0x12345678u32 + i as u32);
+            let bytes = dump(|io| crate::save_avif_io(&mut s, io, q));
+            assert_eq!(
+                (bytes.len(), fnv(FNV0, &bytes)),
+                (size, hash),
+                "still {name} q{q}"
+            );
+        }
+    }
+}
+
+#[test]
+fn avif_saves_fail_as_upstream() {
+    // (the reference harness's messages for surfaces without pixels: the
+    // 10-bit path converts its own (empty) copy)
+    for (w, h, fmt, message) in [
+        (
+            0,
+            0,
+            PixelFormat::RGBA32,
+            "Couldn't convert to YUV: Reformat failed",
+        ),
+        (
+            0,
+            0,
+            PixelFormat::RGB24,
+            "Couldn't convert to YUV: Reformat failed",
+        ),
+        (
+            0,
+            0,
+            PixelFormat::XRGB2101010,
+            "Couldn't convert to YUV: Invalid argument",
+        ),
+        (
+            5,
+            0,
+            PixelFormat::RGBA32,
+            "Couldn't convert to YUV: Reformat failed",
+        ),
+    ] {
+        let mut s = Surface::new(w, h, fmt).unwrap();
+        let mut io = IoStream::from_dynamic_mem();
+        let e = crate::save_avif_io(&mut s, &mut io, 50).unwrap_err();
+        assert_eq!(e.to_string(), message, "{w}x{h} {fmt:?}");
+        assert_eq!(io.size().unwrap(), 0);
+    }
+    let mut indexed = Surface::new(4, 4, PixelFormat::INDEX8).unwrap();
+    let mut io = IoStream::from_dynamic_mem();
+    let e = crate::save_avif_io(&mut indexed, &mut io, 50).unwrap_err();
+    assert_eq!(e.to_string(), "Indexed surfaces must have a palette");
+}
+
+#[test]
+fn avif_saves_round_trip() {
+    // Lossless saves decode (with the translated decoder) to the source:
+    // 8-bit RGB through 10-bit BT.601 YUV 4:4:4 within one step, alpha
+    // exactly; 10-bit surfaces (HDR10, so decoded as PQ) store GBR and
+    // decode to the same 10-bit values.
+    for (i, (fmt, pattern, alpha)) in [
+        (PixelFormat::RGBA32, 1, 3),
+        (PixelFormat::RGBX32, 0, 0),
+        (PixelFormat::ARGB32, 2, 2),
+        (PixelFormat::BGRA32, 4, 1),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut s = avif_save_gen::make(13, 11, fmt, pattern, alpha, 7 + i as u32);
+        let bytes = dump(|io| crate::save_avif_io(&mut s, io, 100));
+        let back = crate::load_avif_io(&mut IoStream::from_const_mem(&bytes)).unwrap();
+        let a = s.convert(PixelFormat::RGBA32).unwrap();
+        let b = back.convert(PixelFormat::RGBA32).unwrap();
+        assert_eq!((b.width(), b.height()), (13, 11));
+        let (pa, pb) = (a.pixels().unwrap(), b.pixels().unwrap());
+        for y in 0..11 {
+            for x in 0..13 * 4 {
+                let (va, vb) = (
+                    pa[y * a.pitch() as usize + x],
+                    pb[y * b.pitch() as usize + x],
+                );
+                let tolerance = if x % 4 == 3 { 0 } else { 1 };
+                assert!(
+                    va.abs_diff(vb) <= tolerance,
+                    "{fmt:?} ({x}, {y}): {va} {vb}"
+                );
+            }
+        }
+    }
+    let mut s = avif_save_gen::make(9, 6, PixelFormat::XRGB2101010, 1, 0, 3);
+    let bytes = dump(|io| crate::save_avif_io(&mut s, io, 100));
+    let back = crate::load_avif_io(&mut IoStream::from_const_mem(&bytes)).unwrap();
+    assert_eq!(back.format(), PixelFormat::XBGR2101010);
+    let (ps, pb) = (s.pixels().unwrap(), back.pixels().unwrap());
+    for y in 0..6 {
+        for x in 0..9 {
+            let get = |p: &[u8], pitch: i32| {
+                let o = y * pitch as usize + x * 4;
+                u32::from_ne_bytes([p[o], p[o + 1], p[o + 2], p[o + 3]])
+            };
+            let (vs, vb) = (get(ps, s.pitch()), get(pb, back.pitch()));
+            let (rs, gs, bs) = ((vs >> 20) & 0x3ff, (vs >> 10) & 0x3ff, vs & 0x3ff);
+            let (rb, gb, bb) = (vb & 0x3ff, (vb >> 10) & 0x3ff, (vb >> 20) & 0x3ff);
+            assert_eq!((rs, gs, bs), (rb, gb, bb), "({x}, {y})");
+        }
+    }
+    // Lossy saves decode with the source's size
+    let mut s = avif_save_gen::make(37, 21, PixelFormat::RGBA32, 1, 1, 5);
+    let bytes = dump(|io| crate::save_avif_io(&mut s, io, 30));
+    let back = crate::load_avif_io(&mut IoStream::from_const_mem(&bytes)).unwrap();
+    assert_eq!((back.width(), back.height()), (37, 21));
 }

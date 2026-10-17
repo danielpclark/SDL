@@ -14,9 +14,8 @@
 //! picture the codec decoded (upstream's pointers into the decoder's
 //! buffers, which are shared `Arc`s here), each with a byte offset into
 //! the buffer (for views, `avifImageSetViewRect()`). Row strides stay in
-//! bytes, as upstream's `yuvRowBytes` and `alphaRowBytes`. The encoder API
-//! (`avifEncoder*()`, `avifImageRGBToYUV()`) is not translated: no AV1
-//! encoder is.
+//! bytes, as upstream's `yuvRowBytes` and `alphaRowBytes`. The encoder's
+//! settings (`avifEncoder`) are here; its functions are in `write.rs`.
 
 use std::sync::Arc;
 
@@ -49,7 +48,20 @@ pub(crate) const AVIF_DEFAULT_IMAGE_DIMENSION_LIMIT: u32 = 32768;
 /// a 12 hour AVIF image sequence, running at 60 fps (a basic sanity check as this is quite ridiculous)
 pub(crate) const AVIF_DEFAULT_IMAGE_COUNT_LIMIT: u32 = 12 * 3600 * 60;
 
+pub(crate) const AVIF_QUALITY_DEFAULT: i32 = -1;
+pub(crate) const AVIF_QUALITY_LOSSLESS: i32 = 100;
+pub(crate) const AVIF_QUALITY_WORST: i32 = 0;
+pub(crate) const AVIF_QUALITY_BEST: i32 = 100;
+
+pub(crate) const AVIF_QUANTIZER_LOSSLESS: i32 = 0;
+pub(crate) const AVIF_QUANTIZER_BEST_QUALITY: i32 = 0;
+pub(crate) const AVIF_QUANTIZER_WORST_QUALITY: i32 = 63;
+
 pub(crate) const AVIF_PLANE_COUNT_YUV: usize = 3;
+
+pub(crate) const AVIF_SPEED_DEFAULT: i32 = -1;
+pub(crate) const AVIF_SPEED_SLOWEST: i32 = 0;
+pub(crate) const AVIF_SPEED_FASTEST: i32 = 10;
 
 /// This value is used to indicate that an animated AVIF file has to be repeated infinitely.
 pub(crate) const AVIF_REPETITION_COUNT_INFINITE: i32 = -1;
@@ -118,6 +130,17 @@ pub(crate) enum AvifResult {
     IncompatibleImage = 28,
     /// some invariants have not been satisfied (likely a bug in libavif)
     InternalError = 29,
+}
+
+// ---------------------------------------------------------------------------
+// avifHeaderFormat
+
+/// Translation of `avifHeaderFormat`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub(crate) enum AvifHeaderFormat {
+    /// AVIF file with an "avif" brand, a MetaBox and all its required boxes for maximum compatibility.
+    #[default]
+    Full,
 }
 
 // ---------------------------------------------------------------------------
@@ -264,7 +287,7 @@ pub(crate) type AvifMatrixCoefficients = u16;
 // Fraction utility
 
 /// Translation of `avifFraction`.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub(crate) struct AvifFraction {
     pub(crate) n: i32,
     pub(crate) d: i32,
@@ -757,6 +780,107 @@ pub(crate) struct AvifExtent {
     pub(crate) offset: u64,
     pub(crate) size: usize,
 }
+
+// ---------------------------------------------------------------------------
+// avifEncoder
+
+/// Translation of `avifScalingMode`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct AvifScalingMode {
+    pub(crate) horizontal: AvifFraction,
+    pub(crate) vertical: AvifFraction,
+}
+
+// Notes:
+// * The avifEncoder struct may be extended in a future release. Code outside the libavif library
+//   must allocate avifEncoder by calling the avifEncoderCreate() function.
+// * If avifEncoderWrite() returns AVIF_RESULT_OK, output must be freed with avifRWDataFree()
+// * If (maxThreads < 2), multithreading is disabled
+//   * NOTE: Please see the "Understanding maxThreads" comment block above
+// * Quality range: [AVIF_QUALITY_WORST - AVIF_QUALITY_BEST]
+// * Quantizer range: [AVIF_QUANTIZER_BEST_QUALITY - AVIF_QUANTIZER_WORST_QUALITY]
+// * In older versions of libavif, the avifEncoder struct doesn't have the quality and qualityAlpha
+//   fields. For backward compatibility, if the quality field is not set, the default value of
+//   quality is based on the average of minQuantizer and maxQuantizer. Similarly the default value
+//   of qualityAlpha is based on the average of minQuantizerAlpha and maxQuantizerAlpha. New code
+//   should set quality and qualityAlpha and leave minQuantizer, maxQuantizer, minQuantizerAlpha,
+//   and maxQuantizerAlpha initialized to their default values.
+// * To enable tiling, set tileRowsLog2 > 0 and/or tileColsLog2 > 0.
+//   Tiling values range [0-6], where the value indicates a request for 2^n tiles in that dimension.
+//   If autoTiling is set to AVIF_TRUE, libavif ignores tileRowsLog2 and tileColsLog2 and
+//   automatically chooses suitable tiling values.
+// * Speed range: [AVIF_SPEED_SLOWEST - AVIF_SPEED_FASTEST]. Slower should make for a better quality
+//   image in less bytes. AVIF_SPEED_DEFAULT means "Leave the AV1 codec to its default speed settings"./
+//   If avifEncoder uses rav1e, the speed value is directly passed through (0-10). If libaom is used,
+//   a combination of settings are tweaked to simulate this speed range.
+// * Extra layer count: [0 - (AVIF_MAX_AV1_LAYER_COUNT-1)]. Non-zero value indicates a layered
+//   (progressive) image.
+// * Some encoder settings can be changed after encoding starts. Changes will take effect in the next
+//   call to avifEncoderAddImage().
+/// Translation of `avifEncoder`. avifEncoderCreate() is
+/// [`avif_encoder_create`](super::write::avif_encoder_create) and
+/// avifEncoderDestroy() dropping it.
+#[derive(Debug)]
+pub(crate) struct AvifEncoder {
+    /// Defaults to AVIF_CODEC_CHOICE_AUTO: Preference determined by order in availableCodecs table (avif.c)
+    pub(crate) codec_choice: AvifCodecChoice,
+
+    // settings (see Notes above)
+    pub(crate) max_threads: i32,
+    pub(crate) speed: i32,
+    /// Any set of |keyframeInterval| consecutive frames will have at least one keyframe. When it is 0,
+    /// there is no such restriction.
+    pub(crate) keyframe_interval: i32,
+    /// timescale of the media (Hz)
+    pub(crate) timescale: u64,
+    /// Number of times the image sequence should be repeated. This can also be set to
+    /// AVIF_REPETITION_COUNT_INFINITE for infinite repetitions.  Only applicable for image sequences.
+    /// Essentially, if repetitionCount is a non-negative integer `n`, then the image sequence should be
+    /// played back `n + 1` times. Defaults to AVIF_REPETITION_COUNT_INFINITE.
+    pub(crate) repetition_count: i32,
+    /// EXPERIMENTAL: Non-zero value encodes layered image.
+    pub(crate) extra_layer_count: u32,
+
+    // changeable encoder settings
+    pub(crate) quality: i32,
+    pub(crate) quality_alpha: i32,
+    pub(crate) min_quantizer: i32,
+    pub(crate) max_quantizer: i32,
+    pub(crate) min_quantizer_alpha: i32,
+    pub(crate) max_quantizer_alpha: i32,
+    pub(crate) tile_rows_log2: i32,
+    pub(crate) tile_cols_log2: i32,
+    pub(crate) auto_tiling: bool,
+    pub(crate) scaling_mode: AvifScalingMode,
+
+    /// stats from the most recent write
+    pub(crate) io_stats: AvifIoStats,
+
+    /// Additional diagnostics (such as detailed error state)
+    pub(crate) diag: super::diag::AvifDiagnostics,
+
+    // Internals used by the encoder
+    pub(crate) data: Box<super::write::AvifEncoderData>,
+    pub(crate) cs_options: super::internal::AvifCodecSpecificOptions,
+
+    // Version 1.0.0 ends here.
+    /// Defaults to AVIF_HEADER_FULL
+    pub(crate) header_format: AvifHeaderFormat,
+    // Version 1.1.0 ends here. Add any new members after this line.
+}
+
+// avifAddImageFlag
+pub(crate) const AVIF_ADD_IMAGE_FLAG_NONE: u32 = 0;
+
+/// Force this frame to be a keyframe (sync frame).
+pub(crate) const AVIF_ADD_IMAGE_FLAG_FORCE_KEYFRAME: u32 = 1 << 0;
+
+/// Use this flag when encoding a single frame, single layer image.
+/// Signals "still_picture" to AV1 encoders, which tweaks various compression rules.
+/// This is enabled automatically when using the avifEncoderWrite() single-image encode path.
+pub(crate) const AVIF_ADD_IMAGE_FLAG_SINGLE: u32 = 1 << 1;
+/// Translation of `avifAddImageFlags`.
+pub(crate) type AvifAddImageFlags = u32;
 
 // ---------------------------------------------------------------------------
 // avif.c
@@ -1659,26 +1783,69 @@ pub(crate) fn avif_are_grid_dimensions_valid(
 
 // ---------------------------------------------------------------------------
 // avifCodecSpecificOption
-// (encoder options: not translated)
+
+// (avifStrdup(): the strings are owned `String`s)
+
+/// Translation of `avifCodecSpecificOptionsCreate()`.
+pub(crate) fn avif_codec_specific_options_create() -> super::internal::AvifCodecSpecificOptions {
+    Vec::new()
+}
+
+/// Translation of `avifCodecSpecificOptionsClear()`.
+pub(crate) fn avif_codec_specific_options_clear(
+    cs_options: &mut super::internal::AvifCodecSpecificOptions,
+) {
+    cs_options.clear();
+}
+
+// (avifCodecSpecificOptionsDestroy() is dropping them)
+
+/// Translation of `avifCodecSpecificOptionsSet()` (`value` `None`
+/// deletes the key).
+pub(crate) fn avif_codec_specific_options_set(
+    cs_options: &mut super::internal::AvifCodecSpecificOptions,
+    key: &str,
+    value: Option<&str>,
+) -> AvifResult {
+    // Check to see if a key must be replaced
+    for i in 0..cs_options.len() {
+        if cs_options[i].key == key {
+            if let Some(value) = value {
+                // Update the value
+                cs_options[i].value = value.to_owned();
+            } else {
+                // Delete the value
+                cs_options.remove(i);
+            }
+            return AvifResult::Ok;
+        }
+    }
+
+    if let Some(value) = value {
+        // Add a new key
+        avif_checkerr!(cs_options.try_reserve(1).is_ok(), AvifResult::OutOfMemory);
+        cs_options.push(super::internal::AvifCodecSpecificOption {
+            key: key.to_owned(),
+            value: value.to_owned(),
+        });
+    }
+    AvifResult::Ok
+}
 
 // ---------------------------------------------------------------------------
 // Codec availability and versions
 
 /// Translation of `struct AvailableCodec` (`create` is
 /// [`avif_codec_create_dav1d`](super::codec_dav1d::avif_codec_create_dav1d)
-/// for the only codec that can decode).
+/// for the only codec that can decode and
+/// [`avif_codec_create_aom`](super::codec_aom::avif_codec_create_aom) for
+/// the only one that can encode).
 struct AvailableCodec {
     choice: AvifCodecChoice,
     type_: super::internal::AvifCodecType,
     name: &'static str,
     version: fn() -> &'static str,
     flags: u32,
-}
-
-/// The libaom version SDL_image builds (`avifCodecVersionAOM()`, for
-/// avifCodecVersions(): its encoder isn't translated).
-fn avif_codec_version_aom() -> &'static str {
-    "v3.6.1"
 }
 
 // This is the main codec table; it determines all usage/availability in libavif.
@@ -1696,7 +1863,7 @@ static AVAILABLE_CODECS: &[AvailableCodec] = &[
         choice: AvifCodecChoice::Aom,
         type_: super::internal::AvifCodecType::Av1,
         name: "aom",
-        version: avif_codec_version_aom,
+        version: super::codec_aom::avif_codec_version_aom,
         flags: AVIF_CODEC_FLAG_CAN_ENCODE,
     },
 ];
@@ -1772,6 +1939,27 @@ pub(crate) fn avif_codec_create(
         return AvifResult::NoCodecAvailable;
     }
     *codec = Some(super::codec_dav1d::avif_codec_create_dav1d());
+    AvifResult::Ok
+}
+
+/// Translation of `avifCodecCreate()` for the codec that can encode
+/// (`requiredFlags` with `AVIF_CODEC_FLAG_CAN_ENCODE`): AOM's.
+pub(crate) fn avif_codec_create_encoder(
+    choice: AvifCodecChoice,
+    required_flags: AvifCodecFlags,
+    codec: &mut Option<Box<super::codec_aom::AvifCodec>>,
+) -> AvifResult {
+    *codec = None;
+    let available_codec = find_available_codec(choice, required_flags);
+    avif_checkerr!(available_codec.is_some(), AvifResult::NoCodecAvailable);
+    let Some(available_codec) = available_codec else {
+        return AvifResult::NoCodecAvailable;
+    };
+    // (only AOM is in the table with the encode flag)
+    if available_codec.choice != AvifCodecChoice::Aom {
+        return AvifResult::NoCodecAvailable;
+    }
+    *codec = Some(super::codec_aom::avif_codec_create_aom());
     AvifResult::Ok
 }
 

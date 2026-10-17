@@ -7,11 +7,13 @@
 
 //! The read-only byte stream the box parsers read: big-endian integers,
 //! bits, strings and box headers, failing (with a diagnostic) where the
-//! data runs out. The writable stream (`avifRWStream`) is for encoding,
-//! which is not translated.
+//! data runs out, and the writable stream the encoder writes boxes with
+//! (`avifRWStream`).
 
+use super::avif::AvifResult;
 use super::diag::{fourcc, printf, AvifDiagnostics};
-use super::internal::{avif_check, AvifBoxHeader};
+use super::internal::{avif_check, avif_checkerr, avif_checkres, AvifBoxHeader};
+use super::rawdata::avif_rw_data_realloc;
 
 /// Translation of `avifROStream`. In network byte order (big-endian)
 /// unless otherwise specified.
@@ -408,4 +410,233 @@ impl<'a, 'd> AvifROStream<'a, 'd> {
 /// The type of a box header, for diagnostics (`%.4s`).
 pub(crate) fn box_type(header: &AvifBoxHeader) -> String {
     fourcc(&header.type_)
+}
+
+// ---------------------------------------------------------------------------
+// avifRWStream
+
+/// `avifBoxMarker`: the offset of a box being written.
+pub(crate) type AvifBoxMarker = usize;
+
+/// This is to make it clear that the box size is currently unknown, and will be determined later (with a call to avifRWStreamFinishBox)
+pub(crate) const AVIF_BOX_SIZE_TBD: usize = 0;
+
+/// Translation of `avifRWStream`. The stream owns the `avifRWData` it
+/// writes to (`raw`, whose length is the data's size): avifRWStreamStart()
+/// is [`AvifRWStream::start`], and the data is taken back from `raw`
+/// after avifRWStreamFinishWrite().
+#[derive(Debug, Default)]
+pub(crate) struct AvifRWStream {
+    pub(crate) raw: Vec<u8>,
+
+    /// Index of the next byte in the raw stream.
+    pub(crate) offset: usize,
+
+    /// If 0, byte-aligned functions can be used (avifRWStreamWrite() etc.).
+    /// Otherwise, it represents the number of bits already used in the last byte
+    /// (located at offset-1).
+    pub(crate) num_used_bits_in_partial_byte: usize,
+}
+
+const AVIF_STREAM_BUFFER_INCREMENT: usize = 1024 * 1024;
+
+impl AvifRWStream {
+    /// Translation of `makeRoom()`.
+    fn make_room(&mut self, size: usize) -> AvifResult {
+        if size > usize::MAX - self.offset {
+            return AvifResult::OutOfMemory;
+        }
+        let needed_size = self.offset + size;
+        let mut new_size = self.raw.len();
+        while new_size < needed_size {
+            new_size += AVIF_STREAM_BUFFER_INCREMENT;
+        }
+        avif_rw_data_realloc(&mut self.raw, new_size)
+    }
+
+    /// Translation of `avifRWStreamStart()`.
+    pub(crate) fn start(raw: Vec<u8>) -> AvifRWStream {
+        AvifRWStream {
+            raw,
+            offset: 0,
+            num_used_bits_in_partial_byte: 0,
+        }
+    }
+
+    /// Translation of `avifRWStreamOffset()`.
+    pub(crate) fn offset(&self) -> usize {
+        self.offset
+    }
+
+    /// Translation of `avifRWStreamSetOffset()`.
+    pub(crate) fn set_offset(&mut self, offset: usize) {
+        self.offset = offset;
+        if self.offset > self.raw.len() {
+            self.offset = self.raw.len();
+        }
+    }
+
+    /// Translation of `avifRWStreamFinishWrite()`.
+    pub(crate) fn finish_write(&mut self) {
+        if self.raw.len() != self.offset {
+            if self.offset != 0 {
+                self.raw.truncate(self.offset);
+            } else {
+                self.raw = Vec::new();
+            }
+        }
+    }
+
+    /// Translation of `avifRWStreamWrite()`.
+    pub(crate) fn write(&mut self, data: &[u8]) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        let size = data.len();
+        if size != 0 {
+            avif_checkres!(self.make_room(size));
+            self.raw[self.offset..self.offset + size].copy_from_slice(data);
+            self.offset += size;
+        }
+        AvifResult::Ok
+    }
+
+    /// Translation of `avifRWStreamWriteChars()`.
+    pub(crate) fn write_chars(&mut self, chars: &[u8]) -> AvifResult {
+        self.write(chars)
+    }
+
+    /// Translation of `avifRWStreamWriteFullBox()` (`version` -1 for a
+    /// plain box; `marker` optional).
+    pub(crate) fn write_full_box(
+        &mut self,
+        type_: &[u8],
+        content_size: usize,
+        version: i32,
+        flags: u32,
+        marker: Option<&mut AvifBoxMarker>,
+    ) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        if let Some(marker) = marker {
+            *marker = self.offset;
+        }
+        let mut header_size = std::mem::size_of::<u32>() + 4 /* size of type */;
+        if version != -1 {
+            header_size += 4;
+        }
+
+        avif_checkres!(self.make_room(header_size));
+        let o = self.offset;
+        self.raw[o..o + header_size].fill(0);
+        let no_size = ((header_size + content_size) as u32).to_be_bytes();
+        self.raw[o..o + 4].copy_from_slice(&no_size);
+        self.raw[o + 4..o + 8].copy_from_slice(&type_[..4]);
+        if version != -1 {
+            self.raw[o + 8] = version as u8;
+            self.raw[o + 9] = ((flags >> 16) & 0xff) as u8;
+            self.raw[o + 10] = ((flags >> 8) & 0xff) as u8;
+            self.raw[o + 11] = (flags & 0xff) as u8;
+        }
+        self.offset += header_size;
+
+        AvifResult::Ok
+    }
+
+    /// Translation of `avifRWStreamWriteBox()`.
+    pub(crate) fn write_box(
+        &mut self,
+        type_: &[u8],
+        content_size: usize,
+        marker: Option<&mut AvifBoxMarker>,
+    ) -> AvifResult {
+        self.write_full_box(type_, content_size, -1, 0, marker)
+    }
+
+    /// Translation of `avifRWStreamFinishBox()`.
+    pub(crate) fn finish_box(&mut self, marker: AvifBoxMarker) {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        let no_size = ((self.offset - marker) as u32).to_be_bytes();
+        self.raw[marker..marker + 4].copy_from_slice(&no_size);
+    }
+
+    /// Translation of `avifRWStreamWriteU8()`.
+    pub(crate) fn write_u8(&mut self, v: u8) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        avif_checkres!(self.make_room(1));
+        self.raw[self.offset] = v;
+        self.offset += 1;
+        AvifResult::Ok
+    }
+
+    /// Translation of `avifRWStreamWriteU16()`.
+    pub(crate) fn write_u16(&mut self, v: u16) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        let size = std::mem::size_of::<u16>();
+        avif_checkres!(self.make_room(size));
+        self.raw[self.offset..self.offset + size].copy_from_slice(&v.to_be_bytes());
+        self.offset += size;
+        AvifResult::Ok
+    }
+
+    /// Translation of `avifRWStreamWriteU32()`.
+    pub(crate) fn write_u32(&mut self, v: u32) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        let size = std::mem::size_of::<u32>();
+        avif_checkres!(self.make_room(size));
+        self.raw[self.offset..self.offset + size].copy_from_slice(&v.to_be_bytes());
+        self.offset += size;
+        AvifResult::Ok
+    }
+
+    /// Translation of `avifRWStreamWriteU64()`.
+    pub(crate) fn write_u64(&mut self, v: u64) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        let size = std::mem::size_of::<u64>();
+        avif_checkres!(self.make_room(size));
+        self.raw[self.offset..self.offset + size].copy_from_slice(&v.to_be_bytes());
+        self.offset += size;
+        AvifResult::Ok
+    }
+
+    /// Translation of `avifRWStreamWriteZeros()`.
+    pub(crate) fn write_zeros(&mut self, byte_count: usize) -> AvifResult {
+        debug_assert!(self.num_used_bits_in_partial_byte == 0); // Byte alignment is required.
+        avif_checkres!(self.make_room(byte_count));
+        self.raw[self.offset..self.offset + byte_count].fill(0);
+        self.offset += byte_count;
+        AvifResult::Ok
+    }
+
+    /// The following functions can write non-aligned bits. Translation of
+    /// `avifRWStreamWriteBits()`.
+    pub(crate) fn write_bits(&mut self, v: u32, mut bit_count: usize) -> AvifResult {
+        avif_checkerr!(
+            bit_count >= 32 || (v >> bit_count) == 0,
+            AvifResult::InvalidArgument
+        );
+        while bit_count != 0 {
+            if self.num_used_bits_in_partial_byte == 0 {
+                avif_checkres!(self.make_room(1)); // Book a new partial byte in the stream.
+                self.raw[self.offset] = 0;
+                self.offset += 1;
+            }
+            debug_assert!(self.offset > 0);
+            let packed_bits = self.offset - 1;
+
+            let num_bits = bit_count.min(8 - self.num_used_bits_in_partial_byte);
+            self.num_used_bits_in_partial_byte += num_bits;
+            bit_count -= num_bits;
+            // Order the input bits from the most significant bit to the least significant bit.
+            // In the case where avifRWStreamWriteBits() is used to write the unsigned integer value v
+            // over multiple aligned bytes, this order corresponds to big endianness.
+            let bits = (((v as u64) >> bit_count) & ((1u64 << num_bits) - 1)) as u32;
+            // Pack bits starting with the most significant bit of the first output byte.
+            // This way, packed bits can be found in the same order in the bit stream.
+            self.raw[packed_bits] |= (bits << (8 - self.num_used_bits_in_partial_byte)) as u8;
+
+            if self.num_used_bits_in_partial_byte == 8 {
+                // Start a new partial byte the next time a bit is needed.
+                self.num_used_bits_in_partial_byte = 0;
+            }
+        }
+        AvifResult::Ok
+    }
 }

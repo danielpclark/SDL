@@ -4,9 +4,9 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation encoders: frames one at a time to a file or a stream, by
-//! format (GIF, ANI, APNG and WebP here; AVIF needs an AV1 encoder, which
-//! this crate doesn't have, and reports so as an upstream build without
-//! it), and whole [`Animation`](crate::Animation)s.
+//! format (GIF, ANI, APNG and WebP here; AVIF needs libaom's inter frame
+//! coding, which isn't translated, and reports so as an upstream build
+//! without it), and whole [`Animation`](crate::Animation)s.
 
 use std::path::Path;
 
@@ -366,8 +366,10 @@ pub fn save_apng_animation_io(anim: &mut Animation, dst: &mut IoStream<'_>) -> R
     encode_animation(anim, dst, "png", -1)
 }
 
-/// Save an animation as an AVIF image sequence: not without libavif, as
-/// upstream built without it. Translation of `IMG_SaveAVIFAnimation_IO()`.
+/// Save an animation as an AVIF image sequence: not without libaom's inter
+/// frame coding (only its all intra encoder, for still images, is
+/// translated), as upstream built without `SAVE_AVIF`. Translation of
+/// `IMG_SaveAVIFAnimation_IO()`.
 pub fn save_avif_animation_io(
     anim: &mut Animation,
     dst: &mut IoStream<'_>,

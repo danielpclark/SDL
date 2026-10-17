@@ -33,8 +33,10 @@
 //!   thumbnails.
 //! * Savers: [`save`] and [`save_typed_io`] pick the format from a file
 //!   extension; BMP, ICO, CUR, GIF, JPEG (tiny_jpeg), PNG (miniz, in
-//!   `sdl3`), TGA and WebP (lossy, or lossless at quality 100, through a
-//!   translation of libwebp's encoder).
+//!   `sdl3`), TGA, WebP (lossy, or lossless at quality 100, through a
+//!   translation of libwebp's encoder) and AVIF (10-bit YUV 4:4:4 with
+//!   lossless alpha, through translations of libavif's encoder and of
+//!   libaom's all intra AV1 encoder).
 //! * Animations: [`load_animation`] and friends read whole [`Animation`]s
 //!   (GIF, WebP, APNG, AVIF image sequences and ANI cursors, or any still
 //!   image as one frame), and
@@ -46,9 +48,9 @@
 //!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
 //!   and [`create_animated_cursor`] makes a cursor from an animation.
 //!
-//! Not translated yet: the AVIF saver and animation encoder (which need an
-//! AV1 encoder); they fail with upstream's messages for a build without
-//! them.
+//! Not translated yet: the AVIF animation encoder (which needs libaom's
+//! inter frame coding); it fails with upstream's message for a build
+//! without it.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: the `closeio` flags are
