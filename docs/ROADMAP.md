@@ -375,13 +375,14 @@ In dependency order, after the core each one needs exists:
    out): the decoder, the core (`Music_Emu`, `Gme_File`, `Classic_Emu`,
    `Blip_Buffer`, the stereo and effects buffers, the `gme_*` API), the AY
    emulator (the Z80, the AY-3-8910, the Spectrum's beeper and the CPC's
-   ports), the GBS emulator (the Game Boy CPU and APU), the KSS emulator
-   (the MSX's banked memory, Konami's SCC and the Master System's SN76489)
-   and the NSF and NSFE emulators (the 6502, the 2A03 APU and the VRC6,
-   VRC7, FDS, MMC5, Namco 106 and FME-7 chips) are done, checked
-   bit-for-bit against upstream's C++ (and through the decoder and the
-   mixer, upstream's C) on rips from `tools/gen_gme_testdata.py`, truncated
-   and corrupted; not yet: the GYM, HES, SAP, SPC and VGM emulators.
+   ports), the GBS emulator (the Game Boy CPU and APU), the HES emulator
+   (the HuC6280, its PSG and the ADPCM chip), the KSS emulator (the MSX's
+   banked memory, Konami's SCC and the Master System's SN76489) and the NSF
+   and NSFE emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS,
+   MMC5, Namco 106 and FME-7 chips) are done, checked bit-for-bit against
+   upstream's C++ (and through the decoder and the mixer, upstream's C) on
+   rips from `tools/gen_gme_testdata.py`, truncated and corrupted; not yet:
+   the GYM, SAP, SPC and VGM emulators.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

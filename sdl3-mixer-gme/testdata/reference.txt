@@ -1,5 +1,5 @@
 == misc
-types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
+types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
 ext nsf: NSF
 ext x.NSFE: NSFE
 ext a.b.spc: 
@@ -7,7 +7,7 @@ ext vgz:
 ext VGM: 
 ext gym: 
 ext kss: KSS
-ext hes: 
+ext hes: HES
 ext sap: 
 ext ay: AY
 ext gbs: GBS
@@ -1023,6 +1023,622 @@ info 1: err=Invalid track
 open: tracks=1 type=GBS voices=4
 start 0: ok
 q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+== hes_extra.hes
+identify: HES
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 2: -1 -1 -1 -1 150000|PC Engine||||||
+info 3: -1 -1 -1 -1 150000|PC Engine||||||
+info 4: -1 -1 -1 -1 150000|PC Engine||||||
+info 5: -1 -1 -1 -1 150000|PC Engine||||||
+info 6: -1 -1 -1 -1 150000|PC Engine||||||
+info 7: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=HES voices=6
+warning: Extra file data
+voices: Wave 1 Wave 2 Wave 3 Wave 4 Multi 1 Multi 2
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+t0 16384: d164fdf1c431d8f1 tell=185 samples=16384 ended=0
+t0 32768: b3710aa68c13cea5 tell=371 samples=32768 ended=0
+t0 49152: 437c79ad89a4b0ad tell=557 samples=49152 ended=0
+t0 65536: 0a2dec8709cb1aed tell=743 samples=65536 ended=0
+t0 81920: 566465c24c4949a1 tell=928 samples=81920 ended=0
+t0 88200: aa53578de716de79 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+t1 16384: d164fdf1c431d8f1 tell=185 samples=16384 ended=0
+t1 32768: b3710aa68c13cea5 tell=371 samples=32768 ended=0
+t1 49152: 437c79ad89a4b0ad tell=557 samples=49152 ended=0
+t1 65536: 0a2dec8709cb1aed tell=743 samples=65536 ended=0
+t1 81920: 566465c24c4949a1 tell=928 samples=81920 ended=0
+t1 88200: aa53578de716de79 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|PC Engine||||||
+t2 16384: d164fdf1c431d8f1 tell=185 samples=16384 ended=0
+t2 32768: b3710aa68c13cea5 tell=371 samples=32768 ended=0
+t2 49152: 437c79ad89a4b0ad tell=557 samples=49152 ended=0
+t2 65536: 0a2dec8709cb1aed tell=743 samples=65536 ended=0
+t2 81920: 566465c24c4949a1 tell=928 samples=81920 ended=0
+t2 88200: aa53578de716de79 tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c9498ae600145065 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: b689b707394bab7d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 1c664336f70c4acd tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 6b4933d0e28bef95 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: c8773789ced65f35 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 c1bbace62272400d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=HES voices=6
+warning: Extra file data
+start 255: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 726a5cc624c1a64a tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: b92b41ed098fee5d tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 181
+info: err=Wrong file type for this emulator
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 272
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- cut 543
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 882a2f7f1ee1b2f5 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== hes_multi.hes
+identify: HES
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 2: -1 -1 -1 -1 150000|PC Engine||||||
+info 3: -1 -1 -1 -1 150000|PC Engine||||||
+info 4: -1 -1 -1 -1 150000|PC Engine||||||
+info 5: -1 -1 -1 -1 150000|PC Engine||||||
+info 6: -1 -1 -1 -1 150000|PC Engine||||||
+info 7: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open 44100: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+voices: Wave 1 Wave 2 Wave 3 Wave 4 Multi 1 Multi 2
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+t0 16384: d164fdf1c431d8f1 tell=185 samples=16384 ended=0
+t0 32768: b3710aa68c13cea5 tell=371 samples=32768 ended=0
+t0 49152: 437c79ad89a4b0ad tell=557 samples=49152 ended=0
+t0 65536: 0a2dec8709cb1aed tell=743 samples=65536 ended=0
+t0 81920: 566465c24c4949a1 tell=928 samples=81920 ended=0
+t0 88200: aa53578de716de79 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+t1 16384: d164fdf1c431d8f1 tell=185 samples=16384 ended=0
+t1 32768: b3710aa68c13cea5 tell=371 samples=32768 ended=0
+t1 49152: 437c79ad89a4b0ad tell=557 samples=49152 ended=0
+t1 65536: 0a2dec8709cb1aed tell=743 samples=65536 ended=0
+t1 81920: 566465c24c4949a1 tell=928 samples=81920 ended=0
+t1 88200: aa53578de716de79 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|PC Engine||||||
+t2 16384: d164fdf1c431d8f1 tell=185 samples=16384 ended=0
+t2 32768: b3710aa68c13cea5 tell=371 samples=32768 ended=0
+t2 49152: 437c79ad89a4b0ad tell=557 samples=49152 ended=0
+t2 65536: 0a2dec8709cb1aed tell=743 samples=65536 ended=0
+t2 81920: 566465c24c4949a1 tell=928 samples=81920 ended=0
+t2 88200: aa53578de716de79 tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c9498ae600145065 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: b689b707394bab7d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 1c664336f70c4acd tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 6b4933d0e28bef95 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: c8773789ced65f35 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 c1bbace62272400d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 255: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+slow 8000: 726a5cc624c1a64a tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: b92b41ed098fee5d tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 186
+info: err=Wrong file type for this emulator
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 280
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- cut 559
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Extra file data
+start 0: ok
+q 8192: 1e5de896dbb6c211 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 0: ok
+q 8192: 5957d9d958744a51 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Multiple DATA not supported
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== hes_odd.hes
+identify: HES
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 2: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 3: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 4: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 5: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 6: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 7: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open 44100: tracks=256 type=HES voices=6
+warning: Missing file data
+voices: Wave 1 Wave 2 Wave 3 Wave 4 Multi 1 Multi 2
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+t0 16384: fdc55ba7588b8a65 tell=185 samples=16384 ended=0
+t0 32768: 3dbd124bf2c057c5 tell=371 samples=32768 ended=0
+t0 49152: 4f5cf8c1fbe0447d tell=557 samples=49152 ended=0
+t0 65536: 11ff64effa943c05 tell=743 samples=65536 ended=0
+t0 81920: 327839d1f1a015c5 tell=928 samples=81920 ended=0
+t0 88200: 92ebd0d382459849 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+t1 16384: aa6f774f089d3e75 tell=185 samples=16384 ended=0
+t1 32768: 8a183163f8937c5d tell=371 samples=32768 ended=0
+t1 49152: bc8c2d00c43b4921 tell=557 samples=49152 ended=0
+t1 65536: 8b971339940808a1 tell=743 samples=65536 ended=0
+t1 81920: d85d8c33508dd7e5 tell=928 samples=81920 ended=0
+t1 88200: 063d029f8a24488d tell=1000 samples=88200 ended=0
+start 2: ok
+warning: Emulation error (illegal instruction)
+info 2: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+t2 16384: 57d9d92479848d81 tell=185 samples=16384 ended=0
+t2 32768: cf07922d1ab033cd tell=371 samples=32768 ended=0
+t2 49152: a9d48b57ca806845 tell=557 samples=49152 ended=0
+t2 65536: b8bb2385db3e812d tell=743 samples=65536 ended=0
+t2 81920: ee14bc7074221ecd tell=928 samples=81920 ended=0
+t2 88200: 114c30ad566b3af9 tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: e4e368faf90d6679 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 92a1339ab1012aa5 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 62c3638e52016da9 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: a92727d0f3aff775 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 81775ef1e01b12b5 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 accce05f46f12381 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=HES voices=6
+warning: Missing file data
+start 255: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+warning: Emulation error (illegal instruction)
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+warning: Emulation error (illegal instruction)
+slow 8000: df80dedd521233e2 tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: 9fc40f4edcdb0d11 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 352
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 5f4822f5dc3470e9 tell=92 samples=8192 ended=0
+-- cut 528
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+-- cut 1055
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 1a66578e71b120d5 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 05121279984937cd tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in !x30 bytes!!>!\xE8!!!!!!!!!!!||gen_gme_testd\x9Cta.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in !x30 bytes!!>!\xE8!!!!!!!!!!!||gen_gme_testd\x9Cta.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: f642edc2b603881d tell=92 samples=8192 ended=0
+warning: Emulation error (illegal instruction)
+-- flip 5
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 900b81c05ad279a9 tell=92 samples=8192 ended=0
+== hes_psg.hes
+identify: HES
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 2: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 3: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 4: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 5: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 6: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 7: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open 44100: tracks=256 type=HES voices=6
+voices: Wave 1 Wave 2 Wave 3 Wave 4 Multi 1 Multi 2
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+t0 16384: 739f58a9daa58d90 tell=185 samples=16384 ended=0
+t0 32768: 576ea19ee256bced tell=371 samples=32768 ended=0
+t0 49152: 36d7d4ef69c4e6d1 tell=557 samples=49152 ended=0
+t0 65536: 0815d443d8aa68da tell=743 samples=65536 ended=0
+t0 81920: 90ba196cf82defd9 tell=928 samples=81920 ended=0
+t0 88200: 86623829412d7df2 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+t1 16384: 8e2e51d6f0214163 tell=185 samples=16384 ended=0
+t1 32768: 58685735f514e133 tell=371 samples=32768 ended=0
+t1 49152: de62cad25e973e57 tell=557 samples=49152 ended=0
+t1 65536: ba2b83f84ca3d185 tell=743 samples=65536 ended=0
+t1 81920: 41d80cc105cca277 tell=928 samples=81920 ended=0
+t1 88200: 63c0a84d77b938a1 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+t2 16384: 5971132aacb66a7c tell=185 samples=16384 ended=0
+t2 32768: 8f46224e3b100f57 tell=371 samples=32768 ended=0
+t2 49152: ece62357a113914f tell=557 samples=49152 ended=0
+t2 65536: 1a691767ba846819 tell=743 samples=65536 ended=0
+t2 81920: 2ad133824535c885 tell=928 samples=81920 ended=0
+t2 88200: e308ef2fcbad0258 tell=1000 samples=88200 ended=0
+start 256: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 972da4c90ae7b80a tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 96498a7cf382789c tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: ac5c9deba9618e66 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: c65379fb32f3bcba tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 5fb6c8b3c31321f1 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 8bfb7e187c73f20e tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: a6819f4b45dbc4f4 tell=92 samples=8192 ended=0
+open 32000: tracks=256 type=HES voices=6
+start 255: ok
+tempo 16000: 495a3fc5f46cef28 tell=250 samples=16000 ended=0
+tempo 32000: ddea18db3ad55442 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 567fcaa318a006e1 tell=238 samples=15294 ended=0
+slow 8000: 2a9994e11a645173 tell=363 samples=23294 ended=0
+tracks=256
+start 0: ok
+acc 8000: a548e25f8428dd99 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 693
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 1040
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 2079
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+warning: Missing file data
+start 0: ok
+q 8192: a6819f4b45dbc4f4 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+start 0: ok
+q 8192: a6819f4b45dbc4f4 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 87de086be515590a tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+start 0: ok
+q 8192: f2f674b5b8734bd9 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 1: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 23596131610ee562 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=256 type=HES voices=-1
+info 0: -1 -1 -1 -1 150000|PC Engine||||||
+info 1: -1 -1 -1 -1 150000|PC Engine||||||
+info 256: err=Invalid track
+open: tracks=256 type=HES voices=6
+start 0: ok
+q 8192: 3a6eecb1a5ad3e15 tell=92 samples=8192 ended=0
 == kss_ext.kss
 identify: KSS
 info: tracks=256 type=KSS voices=-1
