@@ -1,5 +1,7 @@
 // Rust translation of src/stb_vorbis/stb_vorbis.h (stb_vorbis v1.22, with
-// SDL_mixer's patches) from SDL_mixer.
+// SDL_mixer's patches) from SDL_mixer, and of the same code in libxmp 4.7.3's
+// src/loaders/vorbis.c (stb_vorbis v1.22 as libxmp configures it), which
+// SDL_mixer vendors in external/libxmp.
 // Ogg Vorbis audio decoder - public domain. Original version written by Sean
 // Barrett in 2007; see the credits below and LICENSE.txt. This is an
 // altered (translated) version of the original software.
@@ -11,11 +13,15 @@
 //! functions (sdl3's translations of them).
 //!
 //! Only what SDL_mixer uses is translated: opening a stream, its info,
-//! comments and length, decoding frames as floats, and seeking to a frame.
-//! Not translated: the pushdata API, the memory and stdio initializers, the
-//! user-supplied allocation buffer, `stb_vorbis_seek()` (sample-exact
-//! seeking within a frame), the `get_samples` functions and the integer
-//! conversions.
+//! comments and length, decoding frames as floats, and seeking to a frame;
+//! and for libxmp, which keeps its own copy of stb_vorbis v1.22 (its
+//! `src/loaders/vorbis.c`, the same code with `STB_VORBIS_NO_COMMENTS`,
+//! `STB_VORBIS_NO_SEEK_API`, `STB_VORBIS_NO_FLOAT_CONVERSION`, and 16
+//! channels at most), `stb_vorbis_decode_memory()`: the memory input and
+//! the integer conversion it uses. Not translated: the pushdata API, the
+//! stdio initializers, the user-supplied allocation buffer,
+//! `stb_vorbis_seek()` (sample-exact seeking within a frame), the
+//! `get_samples` functions and the conversions that mix channels down.
 //!
 //! Original version written by Sean Barrett in 2007.
 //!
@@ -57,6 +63,8 @@ use sdl3::stdlib::math;
 use crate::internal::try_alloc;
 
 const STB_VORBIS_MAX_CHANNELS: usize = 8; /* For 7.1 surround sound */
+/// libxmp's (stb_vorbis' default).
+const LIBXMP_STB_VORBIS_MAX_CHANNELS: i32 = 16; /* enough for anyone? */
 const STB_VORBIS_FAST_HUFFMAN_LENGTH: i32 = 10;
 const IO_BUFFER_SIZE: usize = 2048;
 
@@ -205,12 +213,14 @@ struct ProbedPage {
 /// SDL_mixer's buffering), the page, packet and bit reading state, and the
 /// error.
 struct Reader<'a> {
-    io: IoStream<'a>,
-    io_start: u32,
-    io_virtual_pos: u32,
-    io_buffer_pos: u32,
-    io_buffer_fill: u32,
-    io_buffer: Box<[u8; IO_BUFFER_SIZE]>,
+    input: Input<'a>,
+
+    // the configuration: libxmp's (`STB_VORBIS_NO_COMMENTS`,
+    // `STB_VORBIS_MAX_CHANNELS` 16, and the C library's `M_PI`, a double)
+    // or SDL_mixer's
+    no_comments: bool,
+    max_channels: i32,
+    double_pi: bool,
 
     stream_len: u32,
 
@@ -237,6 +247,25 @@ struct Reader<'a> {
     packet_bytes: i32,
     end_seg_with_known_loc: i32,
     known_loc_for_packet: u32,
+}
+
+/// Where the stream is read from: through an [`IoStream`] with SDL_mixer's
+/// buffering (`STB_VORBIS_SDL`), or from memory (upstream's `USE_MEMORY()`
+/// input, which libxmp uses: `stream`, `stream_start` and `stream_end` are
+/// `pos` in `data`).
+enum Input<'a> {
+    Io(IoInput<'a>),
+    Memory { data: &'a [u8], pos: usize },
+}
+
+/// SDL_mixer's `STB_VORBIS_SDL` input fields of `struct stb_vorbis`.
+struct IoInput<'a> {
+    io: IoStream<'a>,
+    io_start: u32,
+    io_virtual_pos: u32,
+    io_buffer_pos: u32,
+    io_buffer_fill: u32,
+    io_buffer: Box<[u8; IO_BUFFER_SIZE]>,
 }
 
 /// The setup data of `struct stb_vorbis`: what the headers say.
@@ -441,6 +470,9 @@ fn ilog(n: i32) -> i32 {
 
 // (`M_PI`, which SDL_mixer's build gets from stb_vorbis's own fallback: a float.)
 const M_PI: f32 = 3.14159265358979323846264;
+// (libxmp's build includes <math.h>, whose `M_PI` is a double, on the C
+// libraries that define one.)
+const M_PI_F64: f64 = 3.14159265358979323846;
 
 // code length assigned to a value with no huffman encoding
 const NO_CODE: u8 = 255;
@@ -710,10 +742,30 @@ fn lookup1_values(entries: i32, dim: i32) -> i32 {
 }
 
 // called twice per file
-/// Translation of `compute_twiddle_factors()`.
-fn compute_twiddle_factors(n: i32, a: &mut [f32], b: &mut [f32], c: &mut [f32]) {
+/// Translation of `compute_twiddle_factors()` (with a double `M_PI` if
+/// `double_pi`).
+fn compute_twiddle_factors(n: i32, a: &mut [f32], b: &mut [f32], c: &mut [f32], double_pi: bool) {
     let n4 = n >> 2;
     let n8 = n >> 3;
+
+    if double_pi {
+        let n = n as f64;
+        let mut k2 = 0usize;
+        for k in 0..n4 {
+            a[k2] = math::cos((4 * k) as f64 * M_PI_F64 / n) as f32;
+            a[k2 + 1] = -(math::sin((4 * k) as f64 * M_PI_F64 / n) as f32);
+            b[k2] = (math::cos((k2 as i32 + 1) as f64 * M_PI_F64 / n / 2.0) as f32) * 0.5;
+            b[k2 + 1] = (math::sin((k2 as i32 + 1) as f64 * M_PI_F64 / n / 2.0) as f32) * 0.5;
+            k2 += 2;
+        }
+        let mut k2 = 0usize;
+        for _ in 0..n8 {
+            c[k2] = math::cos((2 * (k2 as i32 + 1)) as f64 * M_PI_F64 / n) as f32;
+            c[k2 + 1] = -(math::sin((2 * (k2 as i32 + 1)) as f64 * M_PI_F64 / n) as f32);
+            k2 += 2;
+        }
+        return;
+    }
 
     let mut k2 = 0usize;
     for k in 0..n4 {
@@ -732,9 +784,20 @@ fn compute_twiddle_factors(n: i32, a: &mut [f32], b: &mut [f32], c: &mut [f32]) 
     }
 }
 
-/// Translation of `compute_window()`.
-fn compute_window(n: i32, window: &mut [f32]) {
+/// Translation of `compute_window()` (with a double `M_PI` if
+/// `double_pi`).
+fn compute_window(n: i32, window: &mut [f32], double_pi: bool) {
     let n2 = n >> 1;
+    if double_pi {
+        for i in 0..n2 {
+            window[i as usize] = math::sin(
+                0.5 * M_PI_F64
+                    * square(math::sin((i as f64 - 0.0 + 0.5) / n2 as f64 * 0.5 * M_PI_F64) as f32)
+                        as f64,
+            ) as f32;
+        }
+        return;
+    }
     for i in 0..n2 {
         window[i as usize] = math::sin(
             0.5 * M_PI as f64
@@ -793,17 +856,29 @@ impl Reader<'_> {
 
     /// Translation of `get8()`.
     fn get8(&mut self) -> u8 {
-        if self.io_buffer_pos >= self.io_buffer_fill {
-            self.io_buffer_fill = self.io.read(&mut self.io_buffer[..]) as u32;
-            self.io_buffer_pos = 0;
-            if self.io_buffer_fill == 0 {
+        let z = match &mut self.input {
+            Input::Memory { data, pos } => {
+                if *pos >= data.len() {
+                    self.eof = true;
+                    return 0;
+                }
+                let b = data[*pos];
+                *pos += 1;
+                return b;
+            }
+            Input::Io(z) => z,
+        };
+        if z.io_buffer_pos >= z.io_buffer_fill {
+            z.io_buffer_fill = z.io.read(&mut z.io_buffer[..]) as u32;
+            z.io_buffer_pos = 0;
+            if z.io_buffer_fill == 0 {
                 self.eof = true;
                 return 0;
             }
         }
-        self.io_virtual_pos = self.io_virtual_pos.wrapping_add(1);
-        let b = self.io_buffer[self.io_buffer_pos as usize];
-        self.io_buffer_pos += 1;
+        z.io_virtual_pos = z.io_virtual_pos.wrapping_add(1);
+        let b = z.io_buffer[z.io_buffer_pos as usize];
+        z.io_buffer_pos += 1;
         b
     }
 
@@ -819,26 +894,38 @@ impl Reader<'_> {
     /// Translation of `getn()`.
     fn getn(&mut self, data: &mut [u8]) -> bool {
         let mut n = data.len();
+        let z = match &mut self.input {
+            Input::Memory { data: mem, pos } => {
+                if pos.saturating_add(n) > mem.len() {
+                    self.eof = true;
+                    return false;
+                }
+                data.copy_from_slice(&mem[*pos..*pos + n]);
+                *pos += n;
+                return true;
+            }
+            Input::Io(z) => z,
+        };
         let mut at = 0;
         while n > 0 {
-            if self.io_buffer_pos >= self.io_buffer_fill {
-                self.io_buffer_fill = self.io.read(&mut self.io_buffer[..]) as u32;
-                self.io_buffer_pos = 0;
-                if self.io_buffer_fill == 0 {
+            if z.io_buffer_pos >= z.io_buffer_fill {
+                z.io_buffer_fill = z.io.read(&mut z.io_buffer[..]) as u32;
+                z.io_buffer_pos = 0;
+                if z.io_buffer_fill == 0 {
                     self.eof = true;
                     return false;
                 }
             }
 
-            let mut chunk = (self.io_buffer_fill - self.io_buffer_pos) as usize;
+            let mut chunk = (z.io_buffer_fill - z.io_buffer_pos) as usize;
             if chunk > n {
                 chunk = n;
             }
 
-            let pos = self.io_buffer_pos as usize;
-            data[at..at + chunk].copy_from_slice(&self.io_buffer[pos..pos + chunk]);
-            self.io_buffer_pos += chunk as u32;
-            self.io_virtual_pos = self.io_virtual_pos.wrapping_add(chunk as u32);
+            let pos = z.io_buffer_pos as usize;
+            data[at..at + chunk].copy_from_slice(&z.io_buffer[pos..pos + chunk]);
+            z.io_buffer_pos += chunk as u32;
+            z.io_virtual_pos = z.io_virtual_pos.wrapping_add(chunk as u32);
             at += chunk;
             n -= chunk;
         }
@@ -847,42 +934,69 @@ impl Reader<'_> {
 
     /// Translation of `skip()`.
     fn skip(&mut self, n: i32) {
-        self.set_file_offset(self.io_virtual_pos.wrapping_add(n as u32));
+        let virtual_pos = match &mut self.input {
+            Input::Memory { data, pos } => {
+                *pos = pos.saturating_add_signed(n as isize);
+                if *pos >= data.len() {
+                    self.eof = true;
+                }
+                return;
+            }
+            Input::Io(z) => z.io_virtual_pos,
+        };
+        self.set_file_offset(virtual_pos.wrapping_add(n as u32));
     }
 
     /// Translation of `set_file_offset()`.
     fn set_file_offset(&mut self, loc: u32) -> bool {
         self.eof = false;
 
-        let buffer_start = self.io_virtual_pos.wrapping_sub(self.io_buffer_pos);
-        let buffer_end = buffer_start.wrapping_add(self.io_buffer_fill);
-        self.io_virtual_pos = loc;
+        let f = match &mut self.input {
+            Input::Memory { data, pos } => {
+                if loc as usize >= data.len() {
+                    *pos = data.len();
+                    self.eof = true;
+                    return false;
+                } else {
+                    *pos = loc as usize;
+                    return true;
+                }
+            }
+            Input::Io(f) => f,
+        };
+
+        let buffer_start = f.io_virtual_pos.wrapping_sub(f.io_buffer_pos);
+        let buffer_end = buffer_start.wrapping_add(f.io_buffer_fill);
+        f.io_virtual_pos = loc;
 
         // Move within buffer if possible
         if loc >= buffer_start && loc < buffer_end {
-            self.io_buffer_pos = loc - buffer_start;
+            f.io_buffer_pos = loc - buffer_start;
             return true;
         }
 
-        let mut io_pos = loc.wrapping_add(self.io_start);
+        let mut io_pos = loc.wrapping_add(f.io_start);
         if io_pos < loc || loc >= 0x80000000 {
             io_pos = 0x7fffffff;
             self.eof = true;
         }
 
-        self.io_buffer_pos = 0; // Invalidate buffer
-        self.io_buffer_fill = 0;
-        if self.io.seek(io_pos as i64, IoWhence::Set).is_ok() {
+        f.io_buffer_pos = 0; // Invalidate buffer
+        f.io_buffer_fill = 0;
+        if f.io.seek(io_pos as i64, IoWhence::Set).is_ok() {
             return true;
         }
         self.eof = true;
-        let _ = self.io.seek(self.io_start as i64, IoWhence::End);
+        let _ = f.io.seek(f.io_start as i64, IoWhence::End);
         false
     }
 
     /// Translation of `stb_vorbis_get_file_offset()`.
     fn get_file_offset(&self) -> u32 {
-        self.io_virtual_pos
+        match &self.input {
+            Input::Memory { pos, .. } => *pos as u32,
+            Input::Io(f) => f.io_virtual_pos,
+        }
     }
 
     /// Translation of `capture_pattern()`.
@@ -3019,7 +3133,7 @@ impl<'a> StbVorbis<'a> {
         if s.channels == 0 {
             return f.error(VORBIS_INVALID_FIRST_PAGE);
         }
-        if s.channels > STB_VORBIS_MAX_CHANNELS as i32 {
+        if s.channels > f.max_channels {
             return f.error(VORBIS_TOO_MANY_CHANNELS);
         }
         s.sample_rate = f.get32();
@@ -3061,60 +3175,62 @@ impl<'a> StbVorbis<'a> {
             return false;
         }
 
-        if f.next_segment() == 0 {
-            return false;
-        }
-
-        if f.get8_packet() != VORBIS_PACKET_COMMENT {
-            return f.error(VORBIS_INVALID_SETUP);
-        }
-        for i in 0..6 {
-            header[i] = f.get8_packet() as u8;
-        }
-        if !vorbis_validate(&header) {
-            return f.error(VORBIS_INVALID_SETUP);
-        }
-        //file vendor
-        let len = f.get32_packet();
-        let mut vendor = setup_malloc!(f, u8, len.wrapping_add(1) as i64 as u64);
-        for i in 0..len.max(0) as usize {
-            vendor[i] = f.get8_packet() as u8;
-        }
-        vendor[len as usize] = b'\0';
-        s.vendor = vendor;
-        //user comments
-        let comment_list_length = f.get32_packet();
-        s.comment_list = Vec::new();
-        if comment_list_length > 0 {
-            if i32::MAX / 8 < comment_list_length {
-                // (no_comment:)
-                return f.error(VORBIS_OUTOFMEM);
+        if !f.no_comments {
+            if f.next_segment() == 0 {
+                return false;
             }
-            let len = 8 * comment_list_length;
-            if setup_alloc::<u8>(len as u64, 1).is_none() {
-                return f.error(VORBIS_OUTOFMEM);
-            }
-        }
 
-        for _ in 0..comment_list_length.max(0) {
+            if f.get8_packet() != VORBIS_PACKET_COMMENT {
+                return f.error(VORBIS_INVALID_SETUP);
+            }
+            for i in 0..6 {
+                header[i] = f.get8_packet() as u8;
+            }
+            if !vorbis_validate(&header) {
+                return f.error(VORBIS_INVALID_SETUP);
+            }
+            //file vendor
             let len = f.get32_packet();
-            let mut comment = setup_malloc!(f, u8, len.wrapping_add(1) as i64 as u64);
-
-            for j in 0..len.max(0) as usize {
-                comment[j] = f.get8_packet() as u8;
+            let mut vendor = setup_malloc!(f, u8, len.wrapping_add(1) as i64 as u64);
+            for i in 0..len.max(0) as usize {
+                vendor[i] = f.get8_packet() as u8;
             }
-            comment[len as usize] = b'\0';
-            s.comment_list.push(comment);
-        }
+            vendor[len as usize] = b'\0';
+            s.vendor = vendor;
+            //user comments
+            let comment_list_length = f.get32_packet();
+            s.comment_list = Vec::new();
+            if comment_list_length > 0 {
+                if i32::MAX / 8 < comment_list_length {
+                    // (no_comment:)
+                    return f.error(VORBIS_OUTOFMEM);
+                }
+                let len = 8 * comment_list_length;
+                if setup_alloc::<u8>(len as u64, 1).is_none() {
+                    return f.error(VORBIS_OUTOFMEM);
+                }
+            }
 
-        // framing_flag
-        let x = f.get8_packet();
-        if x & 1 == 0 {
-            return f.error(VORBIS_INVALID_SETUP);
-        }
+            for _ in 0..comment_list_length.max(0) {
+                let len = f.get32_packet();
+                let mut comment = setup_malloc!(f, u8, len.wrapping_add(1) as i64 as u64);
 
-        f.skip(f.bytes_in_seg as i32);
-        f.bytes_in_seg = 0;
+                for j in 0..len.max(0) as usize {
+                    comment[j] = f.get8_packet() as u8;
+                }
+                comment[len as usize] = b'\0';
+                s.comment_list.push(comment);
+            }
+
+            // framing_flag
+            let x = f.get8_packet();
+            if x & 1 == 0 {
+                return f.error(VORBIS_INVALID_SETUP);
+            }
+
+            f.skip(f.bytes_in_seg as i32);
+            f.bytes_in_seg = 0;
+        }
 
         loop {
             let len = f.next_segment();
@@ -3749,14 +3865,14 @@ fn init_blocksize(f: &mut Reader<'_>, s: &mut Setup, b: usize, n: i32) -> bool {
     let (Some(mut a), Some(mut bb), Some(mut c)) = (a, bb, c) else {
         return f.error(VORBIS_OUTOFMEM);
     };
-    compute_twiddle_factors(n, &mut a, &mut bb, &mut c);
+    compute_twiddle_factors(n, &mut a, &mut bb, &mut c, f.double_pi);
     s.a[b] = a;
     s.b[b] = bb;
     s.c[b] = c;
     let Some(mut window) = setup_alloc::<f32>(n2 as u64, 4) else {
         return f.error(VORBIS_OUTOFMEM);
     };
-    compute_window(n, &mut window);
+    compute_window(n, &mut window, f.double_pi);
     s.window[b] = window;
     let Some(mut bit_reverse) = setup_alloc::<u16>(n8 as u64, 2) else {
         return f.error(VORBIS_OUTOFMEM);
@@ -3767,16 +3883,19 @@ fn init_blocksize(f: &mut Reader<'_>, s: &mut Setup, b: usize, n: i32) -> bool {
 }
 
 impl<'a> StbVorbis<'a> {
-    /// Translation of `vorbis_init()`.
-    fn new(io: IoStream<'a>) -> StbVorbis<'a> {
+    /// Translation of `vorbis_init()`, for `input` and libxmp's or
+    /// SDL_mixer's configuration.
+    fn new(input: Input<'a>, libxmp: bool) -> StbVorbis<'a> {
         StbVorbis {
             r: Reader {
-                io,
-                io_start: 0,
-                io_virtual_pos: 0,
-                io_buffer_pos: 0,
-                io_buffer_fill: 0,
-                io_buffer: Box::new([0; IO_BUFFER_SIZE]),
+                input,
+                no_comments: libxmp,
+                double_pi: libxmp,
+                max_channels: if libxmp {
+                    LIBXMP_STB_VORBIS_MAX_CHANNELS
+                } else {
+                    STB_VORBIS_MAX_CHANNELS as i32
+                },
                 stream_len: 0,
                 p_first: ProbedPage::default(),
                 eof: false,
@@ -4429,8 +4548,19 @@ impl<'a> StbVorbis<'a> {
 
     /// Translation of `stb_vorbis_open_io_section()`: on failure, the error.
     pub fn open_io_section(io: IoStream<'a>, length: u32) -> Result<StbVorbis<'a>, StbVorbisError> {
-        let mut p = StbVorbis::new(io);
-        p.r.io_start = p.r.io.tell().unwrap_or(-1) as u32;
+        let mut io = io;
+        let io_start = io.tell().unwrap_or(-1) as u32;
+        let mut p = StbVorbis::new(
+            Input::Io(IoInput {
+                io,
+                io_start,
+                io_virtual_pos: 0,
+                io_buffer_pos: 0,
+                io_buffer_fill: 0,
+                io_buffer: Box::new([0; IO_BUFFER_SIZE]),
+            }),
+            false,
+        );
         p.r.stream_len = length;
         if p.start_decoder() {
             p.vorbis_pump_first_frame();
@@ -4456,4 +4586,157 @@ fn f64_to_u32(f: f64) -> u32 {
     } else {
         f as i64 as u32
     }
+}
+
+/* The memory input and the integer conversion, which libxmp uses (its
+ * src/loaders/vorbis.c is stb_vorbis v1.22 built with
+ * STB_VORBIS_NO_PUSHDATA_API, STB_VORBIS_NO_STDIO, STB_VORBIS_NO_COMMENTS,
+ * STB_VORBIS_NO_SEEK_API and STB_VORBIS_NO_FLOAT_CONVERSION), for the
+ * Ogg Vorbis samples of OXM modules. Only stb_vorbis_decode_memory()'s
+ * path is translated: it asks for the stream's own channels, so the
+ * mixing down of compute_samples() and compute_stereo_samples() isn't
+ * reached. */
+
+impl<'a> StbVorbis<'a> {
+    /// Translation of `stb_vorbis_open_memory()` (in libxmp's
+    /// configuration): on failure, the error.
+    pub fn open_memory(data: &'a [u8]) -> Result<StbVorbis<'a>, StbVorbisError> {
+        let mut p = StbVorbis::new(Input::Memory { data, pos: 0 }, true);
+        p.r.stream_len = data.len() as u32;
+        if p.start_decoder() {
+            p.vorbis_pump_first_frame();
+            return Ok(p);
+        }
+        Err(p.r.error)
+    }
+
+    /// Translation of `stb_vorbis_get_frame_short()` (into one channel's
+    /// buffer: libxmp's mono samples).
+    fn get_frame_short(&mut self, num_c: i32, buffer: &mut [i16], num_samples: i32) -> i32 {
+        let mut len = self.get_frame_float();
+        if len > num_samples {
+            len = num_samples;
+        }
+        if len != 0 {
+            /* convert_samples_short(num_c, buffer, 0, f->channels, output, 0, len) */
+            let data_c = self.s.channels;
+            let limit = if num_c < data_c { num_c } else { data_c };
+            let start = self.output_start();
+            if limit > 0 {
+                copy_samples(buffer, &self.channel_buffers[0][start..], len as usize);
+            } else {
+                buffer[..len as usize].fill(0);
+            }
+        }
+        len
+    }
+
+    /// Translation of `stb_vorbis_get_frame_short_interleaved()`.
+    fn get_frame_short_interleaved(
+        &mut self,
+        num_c: i32,
+        buffer: &mut [i16],
+        num_shorts: i32,
+    ) -> i32 {
+        if num_c == 1 {
+            return self.get_frame_short(num_c, buffer, num_shorts);
+        }
+        let mut len = self.get_frame_float();
+        if len != 0 {
+            if len * num_c > num_shorts {
+                len = num_shorts / num_c;
+            }
+            self.convert_channels_short_interleaved(num_c, buffer, len);
+        }
+        len
+    }
+
+    /// Translation of `convert_channels_short_interleaved()` (from the
+    /// frame's start, for as many channels as the stream has).
+    fn convert_channels_short_interleaved(&self, buf_c: i32, buffer: &mut [i16], len: i32) {
+        let data_c = self.s.channels;
+        let limit = if buf_c < data_c { buf_c } else { data_c };
+        let start = self.output_start();
+        let mut b = 0;
+        for j in 0..len as usize {
+            let mut i = 0;
+            while i < limit {
+                let f = self.channel_buffers[i as usize][start + j];
+                buffer[b] = float_to_short(f);
+                b += 1;
+                i += 1;
+            }
+            while i < buf_c {
+                buffer[b] = 0;
+                b += 1;
+                i += 1;
+            }
+        }
+    }
+}
+
+/// `FAST_SCALED_FLOAT_TO_INT(temp, x, 15)` and the clamping to 16 bits
+/// after it: adding 1.5 * 2^8 + 0.5/2^15 to the float puts the rounded
+/// 2^15-scaled sample in the low bits of its mantissa.
+#[inline]
+fn float_to_short(x: f32) -> i16 {
+    const MAGIC: f32 = 1.5 * (1 << (23 - 15)) as f32 + 0.5 / (1 << 15) as f32;
+    const ADDEND: i32 = ((150 - 15) << 23) + (1 << 22);
+    let temp = x + MAGIC;
+    let mut v = (temp.to_bits() as i32).wrapping_sub(ADDEND);
+    if (v.wrapping_add(32768) as u32) > 65535 {
+        v = if v < 0 { -32768 } else { 32767 };
+    }
+    v as i16
+}
+
+/// Translation of `copy_samples()`.
+fn copy_samples(dest: &mut [i16], src: &[f32], len: usize) {
+    for i in 0..len {
+        dest[i] = float_to_short(src[i]);
+    }
+}
+
+/// Translation of `stb_vorbis_decode_memory()` (in libxmp's
+/// configuration): the number of samples per channel, or -1 if the stream
+/// can't be opened (-2 if memory runs out), with the stream's channels,
+/// sample rate and its interleaved samples.
+pub(crate) fn stb_vorbis_decode_memory(
+    mem: &[u8],
+    channels: &mut i32,
+    sample_rate: &mut i32,
+    output: &mut Option<Vec<i16>>,
+) -> i32 {
+    let Ok(mut v) = StbVorbis::open_memory(mem) else {
+        return -1;
+    };
+    let limit = v.s.channels * 4096;
+    *channels = v.s.channels;
+    *sample_rate = v.s.sample_rate as i32;
+    let mut offset = 0;
+    let mut data_len = 0;
+    let mut total = limit;
+    let Ok(mut data) = try_alloc::<i16>(total as usize) else {
+        return -2;
+    };
+    loop {
+        let channels = v.s.channels;
+        let n =
+            v.get_frame_short_interleaved(channels, &mut data[offset as usize..], total - offset);
+        if n == 0 {
+            break;
+        }
+        data_len += n;
+        offset += n * channels;
+        if offset + limit > total {
+            total *= 2;
+            let extra = (total as usize).saturating_sub(data.len());
+            if data.try_reserve_exact(extra).is_err() {
+                return -2;
+            }
+            data.resize(total as usize, 0);
+        }
+    }
+    *output = Some(data);
+    data_len
 }

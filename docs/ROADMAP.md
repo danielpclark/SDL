@@ -253,9 +253,19 @@ In dependency order, after the core each one needs exists:
    bit-for-bit against upstream's C on synthetic patches, a SoundFont and
    MIDI files from `tools/gen_timidity_testdata.py` (eight output formats,
    seeks, truncated and corrupted files and broken patches, and through
-   the mixer). Not translated, as they need an external library: libxmp,
-   FluidSynth, WavPack, libgme, and the libmpg123, libvorbisfile and
-   libFLAC decoders.
+   the mixer). Tracker modules through the libxmp that SDL_mixer vendors
+   (`decoder_xmp.c` over libxmp 4.7.3, built as SDL_mixer's CMake builds
+   it, without the depackers and ProWizard) are done in `sdl3-mixer/src/xmp/`,
+   under libxmp's MIT license: the player, its effects, envelopes, new
+   note actions and IT filters, the software mixer with every
+   interpolation and the Amiga Paula simulator, and the MOD, XM (and OXM), S3M and IT
+   loaders, with IT sample decompression and OXM's Vorbis samples; checked
+   bit-for-bit against upstream's C on modules from `tools/gen_xmp_testdata.py`
+   (through the decoder, the mixer, orders and seeks, truncated and
+   corrupted, and libxmp's own API in the output formats, interpolations
+   and player flags SDL_mixer doesn't use). Not translated, as they need an
+   external library: FluidSynth, WavPack, libgme, and the libmpg123,
+   libvorbisfile and libFLAC decoders.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

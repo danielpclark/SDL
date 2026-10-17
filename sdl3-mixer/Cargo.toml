@@ -4,10 +4,11 @@ description = "A direct, pure-Rust translation of SDL_mixer 3, the audio mixer l
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-# SDL_mixer's zlib license, and the BSD licenses of libopus, opusfile and
+# SDL_mixer's zlib license, the BSD licenses of libopus, opusfile and
 # libogg for the translations of them in src/opus/, src/opusfile/ and
-# src/ogg/ (see LICENSE.txt).
-license = "Zlib AND BSD-3-Clause"
+# src/ogg/, and libxmp's MIT license for the translation of it in src/xmp/
+# (see LICENSE.txt).
+license = "Zlib AND BSD-3-Clause AND MIT"
 repository.workspace = true
 readme = "../README.md"
 keywords = ["sdl", "sdl3", "audio", "mixer", "pure-rust"]

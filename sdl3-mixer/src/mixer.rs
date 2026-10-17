@@ -74,6 +74,7 @@ static DECODERS: &[&Decoder] = &[
     &crate::decoder_drflac::DECODER,
     #[cfg(feature = "timidity")]
     &crate::decoder_timidity::DECODER,
+    &crate::decoder_xmp::DECODER,
     &crate::decoder_voc::DECODER,
     &crate::decoder_aiff::DECODER,
     &crate::decoder_au::DECODER,
@@ -2436,7 +2437,11 @@ fn play_track(track: &Arc<TrackInner>, options: Option<&Properties>) -> Result<(
         if let Some(decoder) = st.decoder.as_mut() {
             decoder.jump_to_order(start_order)?;
         }
-    } else if st.input_audio.is_some() {
+    }
+    // FIXME (upstream): after a successful jump to an order, the chain of
+    // `else if`s goes on to the seek to `start_pos` (0 unless asked), which
+    // takes a module back to that time.
+    if st.input_audio.is_some() {
         match st.decoder.as_mut() {
             Some(decoder) => decoder.seek(start_pos as u64)?,
             None => return Err(Error::new("No audio currently assigned to this track")),

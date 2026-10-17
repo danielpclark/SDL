@@ -39,9 +39,14 @@
 //!   `default-features = false` for an sdl3-mixer without MIDI under the
 //!   zlib license only (and the BSD licenses of its Opus decoder's
 //!   libraries).
+//! * Tracker modules (the `XMP` decoder) through libxmp, as SDL_mixer
+//!   vendors it, translated here under its MIT license: the player and its
+//!   software mixer, with the MOD, XM (and OXM), S3M and IT loaders; the
+//!   module's name, type and comment become metadata, and playback can
+//!   start at an order ([`PROP_PLAY_START_ORDER_NUMBER`]).
 //! * The decoders
 //!   upstream builds against another external library are not translated:
-//!   MOD and friends (libxmp), MIDI through FluidSynth,
+//!   MIDI through FluidSynth,
 //!   WavPack, the game music formats (libgme), and the alternative MP3,
 //!   Vorbis and FLAC decoders (libmpg123, libvorbisfile, libFLAC), as in an
 //!   upstream build without them. [`audio_decoder`] lists the ones
@@ -90,6 +95,7 @@ mod decoder_stb_vorbis;
 mod decoder_timidity;
 mod decoder_voc;
 mod decoder_wav;
+mod decoder_xmp;
 mod dr_flac;
 mod dr_mp3;
 mod internal;
@@ -100,6 +106,7 @@ mod opus;
 mod opusfile;
 mod spatialization;
 mod stb_vorbis;
+mod xmp;
 
 pub use mixer::{
     audio_decoder, frames_to_ms, init, ms_to_frames, num_audio_decoders, quit, version, Audio,
@@ -190,8 +197,8 @@ pub const PROP_PLAY_START_FRAME_NUMBER: &str = "SDL_mixer.play.start_frame";
 /// Start at this millisecond (a number). Translation of
 /// `MIX_PROP_PLAY_START_MILLISECOND_NUMBER`.
 pub const PROP_PLAY_START_MILLISECOND_NUMBER: &str = "SDL_mixer.play.start_millisecond";
-/// Start at this order of a module (a number; ignored by the decoders
-/// translated here). Translation of `MIX_PROP_PLAY_START_ORDER_NUMBER`.
+/// Start at this order of a module (a number; for the `XMP` decoder, ignored
+/// by the others). Translation of `MIX_PROP_PLAY_START_ORDER_NUMBER`.
 pub const PROP_PLAY_START_ORDER_NUMBER: &str = "SDL_mixer.play.start_order";
 /// Loops start at this sample frame (a number). Translation of
 /// `MIX_PROP_PLAY_LOOP_START_FRAME_NUMBER`.
