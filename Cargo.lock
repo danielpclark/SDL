@@ -29,6 +29,7 @@ version = "3.5.0"
 dependencies = [
  "sdl3",
  "sdl3-mixer-fluidsynth",
+ "sdl3-mixer-gme",
  "sdl3-mixer-mpg123",
  "sdl3-mixer-timidity",
 ]

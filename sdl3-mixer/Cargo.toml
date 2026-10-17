@@ -24,9 +24,9 @@ path = "src/lib.rs"
 # The decoders are self-contained, as upstream's are when it is built with
 # its bundled codecs: dr_mp3, dr_flac and stb_vorbis are translated here,
 # as are the libraries SDL_mixer vendors (libvorbis, libFLAC, libopus...,
-# and TiMidity, FluidSynth and libmpg123 in crates of their own), with
-# SDL_mixer's own WAV, AIFF, VOC and AU decoders. No system audio library
-# is linked or loaded.
+# and TiMidity, FluidSynth, libmpg123 and Game_Music_Emu in crates of their
+# own), with SDL_mixer's own WAV, AIFF, VOC and AU decoders. No system audio
+# library is linked or loaded.
 [dependencies]
 sdl3 = { path = "../sdl3", version = "3.5.0" }
 # MIDI through the bundled TiMidity, which upstream builds by default.
@@ -50,8 +50,14 @@ sdl3-mixer-mpg123 = { path = "../sdl3-mixer-mpg123", version = "3.5.0", optional
 # and WavPack decoders' libraries, and libxmp's MIT license) only.
 sdl3-mixer-fluidsynth = { path = "../sdl3-mixer-fluidsynth", version = "3.5.0", optional = true }
 
+# Game music (NSF and NSFE so far) through the vendored Game_Music_Emu, which
+# upstream builds by default. NOTE: Game_Music_Emu is not zlib-licensed:
+# sdl3-mixer-gme is under "LGPL-2.1-or-later AND MIT". Without it (with
+# `default-features = false`), there is no game music decoder.
+sdl3-mixer-gme = { path = "../sdl3-mixer-gme", version = "3.5.0", optional = true }
+
 [features]
-default = ["fluidsynth", "timidity", "mpg123"]
+default = ["fluidsynth", "timidity", "mpg123", "gme"]
 # The FLUIDSYNTH decoder (upstream's SDLMIXER_MIDI_FLUIDSYNTH, on by
 # default): MIDI files played with a SoundFont the app gives (the
 # "SDL_mixer.decoder.fluidsynth.soundfont_iostream" or
@@ -68,3 +74,6 @@ timidity = ["dep:sdl3-mixer-timidity"]
 # audio layers I, II and III, tried before dr_mp3 (DRMP3, which then only
 # gets the files libmpg123 refuses).
 mpg123 = ["dep:sdl3-mixer-mpg123"]
+# The GME decoder (upstream's SDLMIXER_GME, on by default): the music of
+# classic consoles and computers from rips of their sound programs.
+gme = ["dep:sdl3-mixer-gme"]

@@ -251,8 +251,8 @@ impl MusicEmuState {
 }
 
 /// Common interface to game music file emulators (`Gme_File` and
-/// `Music_Emu`).
-pub trait MusicEmu {
+/// `Music_Emu`). (`Send`, so an emulator can play on SDL's audio thread.)
+pub trait MusicEmu: Send {
     /// The fields of `Gme_File` and `Music_Emu`.
     fn emu(&self) -> &MusicEmuState;
     fn emu_mut(&mut self) -> &mut MusicEmuState;

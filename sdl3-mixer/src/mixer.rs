@@ -64,13 +64,12 @@ use crate::{
 // !!! FIXME: should RAW go first (only needs to check if it was explicitly
 // !!! FIXME: requested), and SINEWAVE last (must be requested, likely rare).
 //
-// (the decoder upstream builds against an external library it doesn't
-// vendor, GME, is left out, as in an upstream build without it; VORBIS is
-// libvorbisfile's, translated in `crate::vorbis`, and FLAC libFLAC's,
-// translated in `crate::flac`; the bundled Timidity is the `timidity`
-// feature's, as DECODER_MIDI_TIMIDITY is upstream, the vendored FluidSynth
-// the `fluidsynth` feature's, as DECODER_MIDI_FLUIDSYNTH, and the vendored
-// libmpg123 the `mpg123` feature's, as DECODER_MP3_MPG123.)
+// (VORBIS is libvorbisfile's, translated in `crate::vorbis`, and FLAC
+// libFLAC's, translated in `crate::flac`; the bundled Timidity is the
+// `timidity` feature's, as DECODER_MIDI_TIMIDITY is upstream, the vendored
+// FluidSynth the `fluidsynth` feature's, as DECODER_MIDI_FLUIDSYNTH, the
+// vendored libmpg123 the `mpg123` feature's, as DECODER_MP3_MPG123, and
+// the vendored Game_Music_Emu the `gme` feature's, as DECODER_GME.)
 static DECODERS: &[&Decoder] = &[
     &crate::decoder_wav::DECODER,
     &crate::decoder_vorbis::DECODER,
@@ -83,6 +82,8 @@ static DECODERS: &[&Decoder] = &[
     #[cfg(feature = "timidity")]
     &crate::decoder_timidity::DECODER,
     &crate::decoder_wavpack::DECODER,
+    #[cfg(feature = "gme")]
+    &crate::decoder_gme::DECODER,
     &crate::decoder_xmp::DECODER,
     &crate::decoder_voc::DECODER,
     &crate::decoder_aiff::DECODER,

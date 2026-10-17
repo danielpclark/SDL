@@ -347,15 +347,14 @@ In dependency order, after the core each one needs exists:
    Rice2, variable blocksizes, seek tables, tags and loop tags), truncated,
    corrupted (also with their CRCs fixed), mixed, looped and seeked. MIDI
    through the FluidSynth that SDL_mixer vendors (`decoder_fluidsynth.c`
-   over FluidSynth 2.5.7, behind the `fluidsynth` feature, on by default
-   as upstream's SDLMIXER_MIDI_FLUIDSYNTH is, and registered before
-   TIMIDITY as upstream) is done: the parts of FluidSynth the decoder
-   reaches, built as SDL_mixer's CMake builds it (double samples, no
-   libsndfile, threads or drivers), are translated in their own crate,
-   `sdl3-mixer-fluidsynth`, which keeps FluidSynth's license
-   (`LGPL-2.1-or-later`, and `Apache-2.0` for the gcem math its lookup
-   tables are computed with, so effectively LGPL-3.0-or-later as a whole;
-   `default-features = false` leaves it out):
+   over FluidSynth 2.5.7, behind the `fluidsynth` feature, on by default as
+   upstream's SDLMIXER_MIDI_FLUIDSYNTH is, and registered before TIMIDITY
+   as upstream) is done: the parts of FluidSynth the decoder reaches, built
+   as SDL_mixer's CMake builds it (double samples, no libsndfile, threads
+   or drivers), are translated in their own crate, `sdl3-mixer-fluidsynth`,
+   which keeps FluidSynth's license (`LGPL-2.1-or-later`, and `Apache-2.0`
+   for the gcem math its lookup tables are computed with, so effectively
+   LGPL-3.0-or-later as a whole; `default-features = false` leaves it out):
    the settings, the synth with its channel messages, SYSEX, NRPNs and
    monophonic modes, voices, modulators, tunings, the rvoice DSP, mixer,
    reverb and chorus, the SoundFont 2 loader with its sample cache and
@@ -365,8 +364,21 @@ In dependency order, after the core each one needs exists:
    SoundFont and MIDI files from `tools/gen_fluidsynth_testdata.py` (sample
    rates, settings, broken files, every message logged, and a fuzz pass;
    upstream's IIR filter, which its CMake compiles with `-ffast-math`,
-   evaluated as written), and through the mixer. Not translated, as it
-   needs an external library SDL_mixer doesn't vendor: libgme.
+   evaluated as written), and through the mixer. Game music through the
+   Game_Music_Emu that SDL_mixer vendors (`decoder_gme.c` over
+   Game_Music_Emu 0.6.5, behind the `gme` feature, on by default as
+   upstream's SDLMIXER_GME is, registered after WavPack as upstream; built
+   as SDL_mixer's CMake builds it: every emulator, the Nuked YM2612 core,
+   no zlib) is in progress in its own crate, `sdl3-mixer-gme`, which keeps
+   Game_Music_Emu's license (`LGPL-2.1-or-later AND MIT`, the MIT part
+   being the emu2413 YM2413 emulator; `default-features = false` leaves it
+   out): the decoder, the core (`Music_Emu`, `Gme_File`, `Classic_Emu`,
+   `Blip_Buffer`, the stereo and effects buffers, the `gme_*` API) and the
+   NSF and NSFE emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS,
+   MMC5, Namco 106 and FME-7 chips) are done, checked bit-for-bit against
+   upstream's C++ (and through the decoder and the mixer, upstream's C) on
+   rips from `tools/gen_gme_testdata.py`, truncated and corrupted; not yet:
+   the AY, GBS, GYM, HES, KSS, SAP, SPC and VGM emulators.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

@@ -44,8 +44,8 @@ The default build of sdl3-mixer includes sdl3-mixer-timidity (sdl3-mixer's
 `timidity` Cargo feature, on by default, as upstream builds TiMidity by
 default), so a program using sdl3-mixer's default features is subject to
 those terms for that part. Build sdl3-mixer with `default-features = false`
-(leaving out `timidity` and MIDI support, and `mpg123` and `fluidsynth`,
-below) for a build under the zlib license (and the BSD licenses of
+(leaving out `timidity` and MIDI support, and `mpg123`, `fluidsynth` and
+`gme`, below) for a build under the zlib license (and the BSD licenses of
 sdl3-mixer's Vorbis, FLAC, Opus and WavPack decoders and the MIT license
 of its libxmp, below) only.
 
@@ -87,6 +87,11 @@ translation of the emu2413 YM2413 emulator (Copyright (C) 2001-2020
 Mitsutaka Okazaki; src/emu2413.rs), which is under the MIT license (SPDX:
 LGPL-2.1-or-later AND MIT); see sdl3-mixer-gme/COPYING, COPYING.emu2413
 and NOTICE, which also describes how and when it was modified.
+The default build of sdl3-mixer includes it (sdl3-mixer's `gme` Cargo
+feature, on by default, as upstream builds libgme by default), so a
+program using sdl3-mixer's default features is subject to those terms for
+that part; `default-features = false` leaves it out (and game music
+support).
 
 EXCEPT, likewise, sdl3-ttf/src/freetype/: that module is a translation of
 FreeType, and is under the FreeType License (FTL) (its BDF and PCF drivers

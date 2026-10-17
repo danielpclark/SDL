@@ -38,7 +38,9 @@
 //!   emu2413).
 //!
 //! The API is upstream's `gme_*` functions (in [`gme`]), on [`MusicEmu`]
-//! trait objects.
+//! trait objects. `sdl3-mixer` uses it for its `GME` decoder through its
+//! `gme` Cargo feature, on by default (`default-features = false` leaves
+//! it out).
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]

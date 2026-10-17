@@ -51,7 +51,12 @@
 //!   configuration);
 //! - with the `fluidsynth` feature, sdl3-mixer-fluidsynth's MIDI files
 //!   played with its SoundFont, given as a path or a stream, with
-//!   FluidSynth settings, broken or missing.
+//!   FluidSynth settings, broken or missing;
+//! - with the `gme` feature, sdl3-mixer-gme's rips through the GME decoder
+//!   (`testdata/reference_gme.txt`; upstream's C was built with its GME
+//!   decoder over the libgme it vendors, built as its CMake builds it,
+//!   with only the emulators sdl3-mixer-gme translates so far): decoded,
+//!   truncated and corrupted, mixed, started at tracks (orders) and seeked.
 //!
 //! Hashes are FNV-1a over the bytes. Upstream's C was patched where
 //! sdl3-mixer works around its crashes and memory errors (the
@@ -1581,8 +1586,13 @@ fn line_matches(got: &str, want: &str) -> bool {
 /// Compare `out` with the reference's lines for `sections` (the lines from
 /// `== section` up to the next section's).
 fn compare(out: &str, sections: &[&str]) {
+    compare_with(REFERENCE, out, sections);
+}
+
+/// [`compare()`], with another reference.
+fn compare_with(reference: &[u8], out: &str, sections: &[&str]) {
     #[allow(unused_mut)]
-    let mut reference = reference_sections(REFERENCE);
+    let mut reference = reference_sections(reference);
     // (upstream was built with its MPG123 decoder; without the `mpg123`
     // feature, the sections it changes are those of a build without it.)
     #[cfg(not(feature = "mpg123"))]
@@ -1593,9 +1603,9 @@ fn compare(out: &str, sections: &[&str]) {
             .get(*name)
             .unwrap_or_else(|| panic!("no reference for {name}"));
         for line in section.lines() {
-            // (upstream was built with its FLUIDSYNTH and TIMIDITY
-            // decoders; without the `fluidsynth` and `timidity` features,
-            // there are none.)
+            // (upstream was built with its FLUIDSYNTH, TIMIDITY and GME
+            // decoders; without the `fluidsynth`, `timidity` and `gme`
+            // features, there are none.)
             if line.starts_with("decoders:") {
                 let mut line = line.to_string();
                 if !cfg!(feature = "timidity") {
@@ -1603,6 +1613,9 @@ fn compare(out: &str, sections: &[&str]) {
                 }
                 if !cfg!(feature = "fluidsynth") {
                     line = line.replace(" FLUIDSYNTH", "");
+                }
+                if !cfg!(feature = "gme") {
+                    line = line.replace(" GME", "");
                 }
                 want.push_str(&line);
             } else {
@@ -2048,6 +2061,254 @@ fn fluidsynth_matches_upstream() {
     }
     let names: Vec<&str> = names.iter().map(|n| n.as_str()).collect();
     compare(&out, &names);
+}
+
+/// The reference for the GME decoder (sdl3-mixer-gme's rips, read at run
+/// time).
+#[cfg(feature = "gme")]
+static REFERENCE_GME: &[u8] = include_bytes!("testdata/reference_gme.txt");
+
+/// sdl3-mixer-gme's test data: rips of tiny sound programs.
+#[cfg(feature = "gme")]
+fn gme_testdata() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../sdl3-mixer-gme/testdata")
+}
+
+/// A GME decoder over the data (a bounded amount of it: libgme plays on
+/// and on), with its track information.
+#[cfg(feature = "gme")]
+fn gme_decode(
+    out: &mut String,
+    data: &[u8],
+    want: Option<&AudioSpec>,
+    force: Option<&str>,
+    cap: usize,
+) {
+    let props = force.map(|name| {
+        let p = Properties::new();
+        p.set(PROP_AUDIO_DECODER_STRING, name).unwrap();
+        p
+    });
+    let d = match AudioDecoder::new_io(mem_io(data), props.as_ref()) {
+        Ok(d) => d,
+        Err(e) => {
+            writeln!(out, "err: {e}").unwrap();
+            return;
+        }
+    };
+    let mut spec = d.format().unwrap();
+    let p = d.properties().unwrap();
+    write!(
+        out,
+        "{} 0x{:04x} {} {}",
+        p.get_string(PROP_AUDIO_DECODER_STRING)
+            .unwrap_or_else(|| "?".into()),
+        spec.format.0,
+        spec.channels,
+        spec.freq
+    )
+    .unwrap();
+    print_props(out, &p);
+    for key in [
+        "song",
+        "author",
+        "game",
+        "copyright",
+        "system",
+        "comment",
+        "dumper",
+    ] {
+        if let Some(s) = p.get_string(&format!("SDL_mixer.metadata.gme.{key}")) {
+            write!(out, " gme.{key}=\"{s}\"").unwrap();
+        }
+    }
+    write!(out, " | ").unwrap();
+    if let Some(want) = want {
+        spec = *want;
+    }
+    let mut buf = [0u8; 4096];
+    let mut h = FNV0;
+    let mut total = 0usize;
+    let mut error = None;
+    let mut rc: i32;
+    loop {
+        rc = match d.decode(&mut buf, &spec) {
+            Ok(n) => n as i32,
+            Err(e) => {
+                error = Some(e);
+                -1
+            }
+        };
+        if rc <= 0 {
+            break;
+        }
+        h = fnv(h, &buf[..rc as usize]);
+        total += rc as usize;
+        if total >= cap {
+            rc = 1;
+            break;
+        }
+    }
+    write!(out, "{total} {h:016x} end={rc}").unwrap();
+    if let Some(e) = error {
+        write!(out, " err: {e}").unwrap();
+    }
+    writeln!(out).unwrap();
+}
+
+/// Seek a track around a rip, printing what happens.
+#[cfg(feature = "gme")]
+fn gme_seeks(out: &mut String, label: &str, m: &Mixer, t: &Track) {
+    for target in [0i64, 2205, 48000, 20000, 100] {
+        let seeked = t.set_playback_position(target).is_ok();
+        let pos = t.playback_position().unwrap_or(-1);
+        let mut h = FNV0;
+        generate(m, 1, &mut h);
+        writeln!(
+            out,
+            "{label} {target}: seek={} pos={pos} playing={} {h:016x}",
+            seeked as i32,
+            t.playing() as i32
+        )
+        .unwrap();
+    }
+}
+
+/// One of sdl3-mixer-gme's rips through the GME decoder: decoded, mixed,
+/// started at tracks (orders) and seeked, truncated and corrupted.
+#[cfg(feature = "gme")]
+fn gmetest(out: &mut String, name: &str, data: &[u8]) {
+    let len = data.len();
+    writeln!(out, "== gme {name}").unwrap();
+    write!(out, "open: ").unwrap();
+    gme_decode(out, data, None, None, 96 * 1024);
+    let f32s48 = AudioSpec {
+        format: AudioFormat::F32,
+        channels: 2,
+        freq: 48000,
+    };
+    write!(out, "f32s48: ").unwrap();
+    gme_decode(out, data, Some(&f32s48), None, 96 * 1024);
+    let s16m22 = AudioSpec {
+        format: AudioFormat::S16,
+        channels: 1,
+        freq: 22050,
+    };
+    write!(out, "s16m22: ").unwrap();
+    gme_decode(out, data, Some(&s16m22), None, 32 * 1024);
+    write!(out, "forced: ").unwrap();
+    gme_decode(out, data, None, Some("GME"), 16 * 1024);
+    for cut in [0, 3, 4, 16, len / 2, len - 1] {
+        write!(out, "trunc {cut}: ").unwrap();
+        gme_decode(out, &data[..cut], None, None, 16 * 1024);
+    }
+    for v in 0..4usize {
+        let mut bad = data.to_vec();
+        let mut lcg = Lcg((v * 7919 + len) as u32);
+        let flips = 1 + v * 3;
+        for _ in 0..flips {
+            let r = lcg.next();
+            let at = 4 + (r >> 8) as usize % (len - 4);
+            bad[at] ^= (1 + (lcg.next() >> 24) % 255) as u8;
+        }
+        write!(out, "corrupt {v}: ").unwrap();
+        gme_decode(out, &bad, None, None, 16 * 1024);
+        mixtest(out, &format!("corrupt {v} mix"), &bad, false);
+    }
+    mixtest(out, "mix", data, false);
+
+    let spec = AudioSpec {
+        format: AudioFormat::F32,
+        channels: 2,
+        freq: 48000,
+    };
+    let m = Mixer::new(&spec).unwrap();
+    let a = match Audio::load_io(Some(&m), &mut mem_io(data), false) {
+        Ok(a) => a,
+        Err(e) => {
+            writeln!(out, "gmetracks: err: {e}").unwrap();
+            return;
+        }
+    };
+    let t = Track::new(&m).unwrap();
+    let _ = t.set_audio(Some(&a));
+    for order in [1i64, 2, 0, 200, -5, 3] {
+        let p = Properties::new();
+        p.set(PROP_PLAY_START_ORDER_NUMBER, order).unwrap();
+        let played = t.play(Some(&p));
+        let mut h = FNV0;
+        generate(&m, 2, &mut h);
+        write!(out, "order {order}: play={}", played.is_ok() as i32).unwrap();
+        if let Err(e) = &played {
+            write!(out, " err: {e}").unwrap();
+        }
+        writeln!(
+            out,
+            " pos={} playing={} {h:016x}",
+            t.playback_position().unwrap_or(-1),
+            t.playing() as i32
+        )
+        .unwrap();
+    }
+    let replay = t.play(None);
+    write!(out, "replay: {}", replay.is_ok() as i32).unwrap();
+    if let Err(e) = &replay {
+        write!(out, " err: {e}").unwrap();
+    }
+    writeln!(out, " playing={}", t.playing() as i32).unwrap();
+    gme_seeks(out, "gmeseek", &m, &t);
+    // the same on a fresh track (the one above may have stopped)
+    drop(t);
+    let t = Track::new(&m).unwrap();
+    let _ = t.set_audio(Some(&a));
+    let replay = t.play(None);
+    write!(out, "fresh: {}", replay.is_ok() as i32).unwrap();
+    if let Err(e) = &replay {
+        write!(out, " err: {e}").unwrap();
+    }
+    writeln!(out, " playing={}", t.playing() as i32).unwrap();
+    gme_seeks(out, "freshseek", &m, &t);
+}
+
+/// The GME decoder on sdl3-mixer-gme's rips whose names start with
+/// `prefix`, in the reference's order.
+#[cfg(feature = "gme")]
+fn gme_files(prefix: &str) {
+    setup();
+    let dir = gme_testdata();
+    if !dir.is_dir() {
+        // (a packaged crate doesn't have sdl3-mixer-gme's test data.)
+        eprintln!("skipped: no {}", dir.display());
+        return;
+    }
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| n.starts_with(prefix) && !n.starts_with("reference"))
+        .collect();
+    names.sort();
+    assert!(!names.is_empty(), "no {prefix}* rips");
+    let mut out = String::new();
+    let mut sections = Vec::new();
+    for name in &names {
+        let data = std::fs::read(dir.join(name)).unwrap();
+        gmetest(&mut out, name, &data);
+        sections.push(format!("gme {name}"));
+    }
+    let sections: Vec<&str> = sections.iter().map(|s| s.as_str()).collect();
+    compare_with(REFERENCE_GME, &out, &sections);
+}
+
+#[cfg(feature = "gme")]
+#[test]
+fn gme_nsf_matches_upstream() {
+    gme_files("nsf_");
+}
+
+#[cfg(feature = "gme")]
+#[test]
+fn gme_nsfe_matches_upstream() {
+    gme_files("nsfe_");
 }
 
 #[test]
