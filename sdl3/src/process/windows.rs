@@ -152,9 +152,15 @@ impl HandleStream {
             return Err(IoStop::error(0, set_error("Error writing to datastream")));
         }
 
-        // FIXME (upstream): a short write (a non-blocking pipe that is
-        // full) drops the bytes that weren't written.
-        self.write_pos = 0;
+        // Note (upstream): a short write (to a non-blocking pipe that is
+        // full) drops the bytes that weren't written; the translation keeps
+        // them buffered and reports the stream not ready.
+        let bytes = bytes as usize;
+        self.write_data.copy_within(bytes..self.write_pos, 0);
+        self.write_pos -= bytes;
+        if self.write_pos != 0 {
+            return Err(IoStop::status(0, IoStatus::NotReady));
+        }
         Ok(())
     }
 
@@ -319,9 +325,16 @@ impl IoInterface for HandleStream {
             total_written += to_buffer;
 
             if self.write_pos == WRITEBEHIND_BUFFER_SIZE {
-                if let Err(mut stop) = self.flush_write_buffer() {
-                    stop.bytes = total_written;
-                    return Err(stop);
+                match self.flush_write_buffer() {
+                    Ok(()) => {}
+                    // (written in part: the rest stays buffered)
+                    Err(stop)
+                        if stop.status == IoStatus::NotReady
+                            && self.write_pos < WRITEBEHIND_BUFFER_SIZE => {}
+                    Err(mut stop) => {
+                        stop.bytes = total_written;
+                        return Err(stop);
+                    }
                 }
             }
         }
@@ -346,6 +359,16 @@ impl IoInterface for HandleStream {
     fn close(&mut self) -> Result<()> {
         let mut result = Ok(());
 
+        // (what a full pipe didn't take is written in blocking mode, so the
+        // bytes buffered and reported written aren't dropped)
+        if self.write_pos != 0 {
+            let wait_mode: NAMED_PIPE_MODE = PIPE_WAIT;
+            // SAFETY: the stream's handle; the mode outlives the call. (A
+            // handle that isn't a pipe's is left as it is: its writes block.)
+            unsafe {
+                SetNamedPipeHandleState(self.h, &wait_mode, std::ptr::null(), std::ptr::null())
+            };
+        }
         if let Err(stop) = self.flush_write_buffer() {
             result = Err(stop
                 .error
@@ -1198,6 +1221,47 @@ mod tests {
         assert_eq!(payload(&data), expected);
         assert_eq!(code, 0);
         assert_eq!(p.error().unwrap().load_all().unwrap(), b"oops\n");
+    }
+
+    /// Small writes to a child that isn't reading yet fill the pipe: what
+    /// it doesn't take stays buffered (upstream drops it), the stream is
+    /// not ready once its buffer is full too, and closing it writes the
+    /// rest.
+    #[test]
+    fn input_waits_for_a_full_pipe() {
+        let _lock = lock();
+        let mut p = helper("echo")
+            .stdin(ProcessIo::App)
+            .stdout(ProcessIo::App)
+            .stderr(ProcessIo::Null)
+            .spawn()
+            .unwrap();
+        let data: Vec<u8> = (0..1 << 20).map(|i| (i % 251) as u8).collect();
+        let (mut sent, mut not_ready) = (0, false);
+        let start = std::time::Instant::now();
+        while sent < data.len() {
+            let chunk = &data[sent..data.len().min(sent + 100)];
+            let input = p.input().unwrap();
+            let n = input.write(chunk);
+            sent += n;
+            if n < chunk.len() {
+                assert_eq!(input.status(), IoStatus::NotReady);
+                not_ready = true;
+                assert!(start.elapsed().as_secs() < 60, "{sent} bytes taken");
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+        }
+        p.close_input().unwrap();
+        let (out, code) = p.read().unwrap();
+        assert_eq!(code, 0);
+        let out = payload(&out);
+        assert!(
+            out.len() == data.len() + 4 && out[..4] == *b"got " && out[4..] == data[..],
+            "{} bytes echoed of {}",
+            out.len(),
+            data.len() + 4
+        );
+        assert!(not_ready, "the pipe never filled");
     }
 
     #[test]
