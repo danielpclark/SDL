@@ -1,0 +1,101 @@
+# The AVIF animation encoder's results for the cases of tests/avif_anim.rs
+# from upstream SDL_image (libavif and libaom as its CMake builds them, libaom
+# with AOM_TARGET_CPU=generic, on 4 logical cores): "size hash" of each file
+# with its boxes' creation and modification times zeroed, or the error, with
+# the default threads (2), with 1 thread and with 4 threads.
+[threads default]
+anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
+anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
+anim rgbx_16x16_grad_f3 q50: 1141 e90ceb37d1b31c66
+anim rgbx_16x16_grad_f3 q90: 1228 e908a75f3d6665e1
+anim rgbx_16x16_grad_f3 q100: frame 0 err: Failed to add image to avif encoder: No YUV format selected
+anim rgba_17x9_shapes_a_f4 q50: 3998 f4af78681808df1e
+anim rgba_17x9_shapes_a_f4 q90: 4590 fc55c6a8fb5bd4be
+anim rgbx_33x21_tex_f6 q25: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_33x21_tex_f6 q75: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgba_24x24_noise_a_f2 q50: 4264 5335b5a084a978bc
+anim argb_40x30_shapes_bin_f5 q60: 5085 67e74e465e7b5fd4
+anim rgbx_48x40_still_f4 q50: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
+anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
+anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
+anim argb2101010_13x11_shapes_a_f4 q80: 3513 fe698cb377c768f3
+anim argb4444_70x37_tex_a_f4 q40: 4855 7ee09f93df3f145f
+anim rgba64_8x8_grad_f2 q50: frame 0 err: Failed to add image to avif encoder: Unsupported depth
+anim rgbx_1x1_grad_f2 q50: 1069 b5afb14e4cdfe723
+anim rgba_3x7_noise_a_f3 q50: 2293 6df4cf5b97dd60d9
+anim rgbx_130x66_tex_f3 q50: 5085 54b030946fa540bb
+anim rgba_24x24_noise_a_f1 q50: 1676 8cafda2559b3f11d
+anim xrgb2101010_20x12_tex_f1 q50: 473 fd7f17d23a13f1ba
+anim rgbx_130x66_tex_f1 q50: 3491 200b95b5950b85d5
+anim rgbx_130x66_tex_f1 q10: 1385 8bd131c49740de8c
+anim rgbx_64x64_screen_f1 q90: 5022 8dae7e867256ae5e
+anim argb2101010_13x11_shapes_a_f1 q80: 870 d185eecbe5a8cb25
+anim rgbx_368x360_tex_f4 q50: 48033 7b527d42256db1b4
+anim rgba_400x376_shapes_a_f3 q60: 5846 151ced7c9cedc541
+anim rgbx_48x32_tex_f40 q50: 7441 2d99fadced6f7bcc
+anim rgbx_96x64_shapes_f12 q30: 3919 cb452c1d4d211418
+[threads 1]
+anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
+anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
+anim rgbx_16x16_grad_f3 q50: 1141 e90ceb37d1b31c66
+anim rgbx_16x16_grad_f3 q90: 1228 e908a75f3d6665e1
+anim rgbx_16x16_grad_f3 q100: frame 0 err: Failed to add image to avif encoder: No YUV format selected
+anim rgba_17x9_shapes_a_f4 q50: 3998 f4af78681808df1e
+anim rgba_17x9_shapes_a_f4 q90: 4590 fc55c6a8fb5bd4be
+anim rgbx_33x21_tex_f6 q25: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_33x21_tex_f6 q75: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgba_24x24_noise_a_f2 q50: 4264 5335b5a084a978bc
+anim argb_40x30_shapes_bin_f5 q60: 5085 67e74e465e7b5fd4
+anim rgbx_48x40_still_f4 q50: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
+anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
+anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
+anim argb2101010_13x11_shapes_a_f4 q80: 3513 fe698cb377c768f3
+anim argb4444_70x37_tex_a_f4 q40: 4855 7ee09f93df3f145f
+anim rgba64_8x8_grad_f2 q50: frame 0 err: Failed to add image to avif encoder: Unsupported depth
+anim rgbx_1x1_grad_f2 q50: 1069 b5afb14e4cdfe723
+anim rgba_3x7_noise_a_f3 q50: 2293 6df4cf5b97dd60d9
+anim rgbx_130x66_tex_f3 q50: 5086 babf987c5fa1f4e3
+anim rgba_24x24_noise_a_f1 q50: 1676 8cafda2559b3f11d
+anim xrgb2101010_20x12_tex_f1 q50: 473 fd7f17d23a13f1ba
+anim rgbx_130x66_tex_f1 q50: 3491 0092f424f285d48a
+anim rgbx_130x66_tex_f1 q10: 1385 8bd131c49740de8c
+anim rgbx_64x64_screen_f1 q90: 5022 8dae7e867256ae5e
+anim argb2101010_13x11_shapes_a_f1 q80: 870 d185eecbe5a8cb25
+anim rgbx_368x360_tex_f4 q50: 47915 76d011d1d7a02f18
+anim rgba_400x376_shapes_a_f3 q60: 5834 326e11544e802fc0
+anim rgbx_48x32_tex_f40 q50: 7441 2d99fadced6f7bcc
+anim rgbx_96x64_shapes_f12 q30: 3919 cb452c1d4d211418
+[threads 4]
+anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
+anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
+anim rgbx_16x16_grad_f3 q50: 1141 e90ceb37d1b31c66
+anim rgbx_16x16_grad_f3 q90: 1228 e908a75f3d6665e1
+anim rgbx_16x16_grad_f3 q100: frame 0 err: Failed to add image to avif encoder: No YUV format selected
+anim rgba_17x9_shapes_a_f4 q50: 3998 f4af78681808df1e
+anim rgba_17x9_shapes_a_f4 q90: 4590 fc55c6a8fb5bd4be
+anim rgbx_33x21_tex_f6 q25: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_33x21_tex_f6 q75: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgba_24x24_noise_a_f2 q50: 4264 5335b5a084a978bc
+anim argb_40x30_shapes_bin_f5 q60: 5085 67e74e465e7b5fd4
+anim rgbx_48x40_still_f4 q50: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
+anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
+anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
+anim argb2101010_13x11_shapes_a_f4 q80: 3513 fe698cb377c768f3
+anim argb4444_70x37_tex_a_f4 q40: 4855 7ee09f93df3f145f
+anim rgba64_8x8_grad_f2 q50: frame 0 err: Failed to add image to avif encoder: Unsupported depth
+anim rgbx_1x1_grad_f2 q50: 1069 b5afb14e4cdfe723
+anim rgba_3x7_noise_a_f3 q50: 2293 6df4cf5b97dd60d9
+anim rgbx_130x66_tex_f3 q50: 5085 54b030946fa540bb
+anim rgba_24x24_noise_a_f1 q50: 1676 8cafda2559b3f11d
+anim xrgb2101010_20x12_tex_f1 q50: 473 fd7f17d23a13f1ba
+anim rgbx_130x66_tex_f1 q50: 3491 200b95b5950b85d5
+anim rgbx_130x66_tex_f1 q10: 1385 8bd131c49740de8c
+anim rgbx_64x64_screen_f1 q90: 5022 8dae7e867256ae5e
+anim argb2101010_13x11_shapes_a_f1 q80: 870 d185eecbe5a8cb25
+anim rgbx_368x360_tex_f4 q50: 48033 7b527d42256db1b4
+anim rgba_400x376_shapes_a_f3 q60: 5846 151ced7c9cedc541
+anim rgbx_48x32_tex_f40 q50: 7441 2d99fadced6f7bcc
+anim rgbx_96x64_shapes_f12 q30: 3919 cb452c1d4d211418

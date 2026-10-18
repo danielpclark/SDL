@@ -85,7 +85,13 @@ In dependency order, after the core each one needs exists:
    libyuv plane scaler libavif bundles, and its dav1d codec; and libavif's
    encoder for `IMG_SaveAVIF_IO()`: the plain-C RGB to YUV conversion, the
    container writer and its aom codec, over a translation of libaom 3.6.1's
-   all intra AV1 encoder at the speed the saver asks, cpu-used 9),
+   all intra AV1 encoder at the speed the saver asks, cpu-used 9; and for
+   the AVIF animation encoder (`IMG_SaveAVIFAnimation_IO()`) libavif's
+   image sequence writer over libaom's real-time encoder at cpu-used 9:
+   CBR rate control, the real-time reference structure, variance-based
+   partitioning, the non-RD inter and intra mode search with motion
+   search, interpolation filter search and compound prediction, and the
+   output of row multi-threading),
    BMP/ICO/CUR,
    GIF, LBM, PCX, PNM, QOI
    (`qoi.h`), SVG (the bundled nanosvg parser and rasterizer, also at a
@@ -109,7 +115,7 @@ In dependency order, after the core each one needs exists:
    (miniz), TGA, JPEG (`tiny_jpeg.h`), WebP and AVIF savers, the animation API
    (`IMG_anim_decoder.c`, `IMG_anim_encoder.c`: frame-by-frame decoders and
    encoders with timebases and metadata) with GIF, ANI cursor and WebP
-   animations and AVIF image sequences (decoding),
+   animations and AVIF image sequences (decoding and encoding),
    and `IMG_gpu.c` (GPU textures through a copy pass); checked against
    upstream's C on its test images and synthetic ones (detection, loading,
    truncated and corrupted input, saving, animation decoding and encoding).
@@ -138,11 +144,16 @@ In dependency order, after the core each one needs exists:
    covering every color type and bit depth, the dispose and blend
    operations, offsets, interlacing, delays and metadata, truncated and
    corrupted, and on every test image re-encoded.
-   Not yet: the AVIF animation encoder (it needs libaom's inter frame
-   coding: the good quality and real-time usages, rate control across
-   frames and reference frames, none of which the still saver reaches);
-   still PNGs and JPEG stay on stb_image (and PNG saving on miniz) as
-   upstream's stb backend.
+   The AVIF animation encoder is byte-identical to SDL_image built with
+   libavif and libaom (`AOM_TARGET_CPU=generic`) with one thread, the
+   default threads and four threads on synthetic animations (every pixel
+   format path, alpha, sizes from 1x1 to 400x376, up to 40 frames, key
+   frame intervals, time bases, loop counts, metadata and qualities from 0
+   to lossless) and on every test image's animation, with the image
+   sequences' wall-clock creation and modification times zeroed, and
+   decodes back through the translated decoder.
+   Not yet: still PNGs and JPEG stay on stb_image (and PNG saving on
+   miniz) as upstream's stb backend.
 2. **SDL_ttf** — needs surfaces, renderer, GPU. Includes a FreeType and HarfBuzz translation or pure-Rust equivalents; the largest satellite by far.
    **Done** (`sdl3-ttf`, SDL_ttf 3.2.2 with its bundled FreeType
    2.13.2, HarfBuzz 8.5.0, PlutoSVG 0.0.6 and PlutoVG 0.0.12): all of `SDL_ttf.c`

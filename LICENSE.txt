@@ -1020,7 +1020,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 sdl3-image/src/avif/ is a translation of the parts of libavif
 (https://github.com/AOMediaCodec/libavif) SDL_image uses to decode and
-save AVIF images, at the revision SDL_image's external/libavif pins (libavif 1.1.1
+save AVIF images and image sequences, at the revision SDL_image's external/libavif pins (libavif 1.1.1
 with SDL's patches), including the subset of libyuv libavif bundles in its
 third_party/libyuv/ (its plane scaler), an altered version of that software,
 distributed under libavif's license. The sections of libavif's LICENSE that
@@ -1122,7 +1122,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 sdl3-image/src/aom/ is a translation of the parts of aom
 (https://aomedia.googlesource.com/aom), at the revision SDL_image's
 external/aom pins (libaom 3.6.1 with SDL's patches), the AV1 encoder
-SDL_image's libavif uses to save AVIF images, an altered version of that
+SDL_image's libavif uses to save AVIF images and image sequences (its all
+intra and real-time encoders), an altered version of that
 software, distributed under aom's license and the Alliance for Open Media
 Patent License 1.0; aom's LICENSE and PATENTS files follow verbatim. The
 individual files carry aom's copyright line.

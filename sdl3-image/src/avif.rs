@@ -4,18 +4,26 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! AVIF images: the detector, the loader, the saver and the animation
-//! decoder, over the translation of the parts of libavif they use (in
-//! `avif/`: the ISOBMFF/HEIF container parser and the `avifDecoder` API,
-//! the encoder and container writer, `avifImage`, the YUV and RGB
-//! conversions and alpha, the plane scaler with the libyuv subset libavif
-//! bundles, the OBU sequence header parser, the dav1d codec glue over the
-//! translation of dav1d in `crate::dav1d` and the aom encoder glue over the
-//! translation of libaom's all intra encoder in `crate::aom`), as SDL_image
-//! builds libavif (dav1d as the only decoder, aom as the only encoder,
-//! without libyuv conversions or libsharpyuv, the experimental features
-//! off). The AVIF animation encoder needs libaom's inter frame coding,
-//! which is not translated: it fails as an upstream build without
-//! `SAVE_AVIF` does.
+//! decoder and encoder, over the translation of the parts of libavif they
+//! use (in `avif/`: the ISOBMFF/HEIF container parser and the
+//! `avifDecoder` API, the encoder and container writer for images and
+//! image sequences, `avifImage`, the YUV and RGB conversions and alpha, the
+//! plane scaler with the libyuv subset libavif bundles, the OBU sequence
+//! header parser, the dav1d codec glue over the translation of dav1d in
+//! `crate::dav1d` and the aom encoder glue over the translation of
+//! libaom's all intra and real-time encoders in `crate::aom`), as
+//! SDL_image builds libavif (dav1d as the only decoder, aom as the only
+//! encoder, without libyuv conversions or libsharpyuv, the experimental
+//! features off).
+//!
+//! The animation encoder writes an image sequence whose movie, track and
+//! media headers carry the current time as their creation and
+//! modification times, as libavif's do (the tests compare the files with
+//! those zeroed). Its default threads, half the logical CPU cores, change
+//! the coded frames between one thread and more: libaom codes the rows of
+//! superblocks in turn with one thread and with its row multi-threading
+//! (contexts taken from the row above) with more, which the translation
+//! does in turn on the calling thread.
 
 /* This is a AVIF image file loading framework */
 
@@ -108,12 +116,18 @@ use crate::anim_decoder::{
     PROP_METADATA_IGNORE_PROPS_BOOLEAN, PROP_METADATA_LOOP_COUNT_NUMBER,
     PROP_METADATA_TITLE_STRING,
 };
+use crate::anim_encoder::{
+    EncoderCore, PROP_ANIMATION_ENCODER_CREATE_AVIF_KEYFRAME_INTERVAL_NUMBER,
+    PROP_ANIMATION_ENCODER_CREATE_AVIF_MAX_THREADS_NUMBER,
+};
 use crate::util::read_ok;
 use crate::xmlman;
 use avif::{
-    avif_image_create, avif_result_to_string, avif_rgb_image_set_defaults, AvifImage,
-    AvifPixelFormat, AvifRange, AvifResult, AvifRgbFormat, AvifRgbImage,
-    AVIF_ADD_IMAGE_FLAG_SINGLE, AVIF_MATRIX_COEFFICIENTS_IDENTITY, AVIF_QUALITY_LOSSLESS,
+    avif_image_create, avif_image_set_metadata_xmp, avif_result_to_string,
+    avif_rgb_image_set_defaults, AvifChromaUpsampling, AvifEncoder, AvifImage, AvifPixelFormat,
+    AvifRange, AvifResult, AvifRgbFormat, AvifRgbImage, AVIF_ADD_IMAGE_FLAG_FORCE_KEYFRAME,
+    AVIF_ADD_IMAGE_FLAG_NONE, AVIF_ADD_IMAGE_FLAG_SINGLE, AVIF_MATRIX_COEFFICIENTS_BT709,
+    AVIF_MATRIX_COEFFICIENTS_IDENTITY, AVIF_QUALITY_DEFAULT, AVIF_QUALITY_LOSSLESS,
     AVIF_REPETITION_COUNT_UNKNOWN, AVIF_SPEED_FASTEST, AVIF_STRICT_DISABLED,
     AVIF_TRANSFER_CHARACTERISTICS_HLG, AVIF_TRANSFER_CHARACTERISTICS_SMPTE2084,
 };
@@ -1243,5 +1257,452 @@ pub(crate) fn create_avif_animation_decoder(
         total_frames,
         width,
         height,
+    }))
+}
+
+/// Translation of `struct IMG_AnimationEncoderContext` of the AVIF
+/// animation encoder.
+pub(crate) struct AvifEncoderContext {
+    encoder: Option<Box<AvifEncoder>>,
+    first_frame_added: bool,
+    metadata: Option<Properties>,
+}
+
+impl AvifEncoderContext {
+    /// Translation of `AnimationEncoder_AddFrame()`.
+    pub(crate) fn add_frame(
+        &mut self,
+        e: &mut EncoderCore<'_, '_>,
+        surface: &mut Surface<'_>,
+        duration: u64,
+    ) -> Result<()> {
+        let mut rc: AvifResult;
+        let mut temp: Option<Surface<'static>> = None;
+        let is_lossless = e.quality == 100;
+        let format = surface.format();
+        let is10bit = format.is_10bit();
+        let is16bit = format == PixelFormat::RGB48
+            || format == PixelFormat::BGR48
+            || format == PixelFormat::RGBA64
+            || format == PixelFormat::ARGB64
+            || format == PixelFormat::BGRA64
+            || format == PixelFormat::ABGR64;
+        let has_alpha = format.has_alpha();
+
+        let duration_in_timescales = duration.wrapping_mul(e.timebase_numerator as u64);
+        let colorspace = surface.colorspace();
+        let props = surface.properties();
+        let max_cll = props.get_number(PROP_SURFACE_MAXCLL_NUMBER).unwrap_or(0) as u16;
+        let max_fall = props.get_number(PROP_SURFACE_MAXFALL_NUMBER).unwrap_or(0) as u16;
+
+        let depth: u32 = if is16bit {
+            16
+        } else if is10bit {
+            10
+        } else {
+            8
+        };
+        let pixel_format = if is_lossless {
+            AvifPixelFormat::None
+        } else {
+            AvifPixelFormat::Yuv444
+        };
+
+        let Some(mut image) = avif_image_create(
+            surface.width() as u32,
+            surface.height() as u32,
+            depth,
+            pixel_format,
+        ) else {
+            return Err(Error::new("Couldn't create AVIF image"));
+        };
+
+        if !self.first_frame_added {
+            if let Some(metadata) = self
+                .metadata
+                .as_ref()
+                .filter(|m| crate::anim_encoder::has_metadata(m))
+            {
+                // FIXME (upstream): any metadata property (the loop count
+                // alone, say) gets here, and without one of the five XMP
+                // strings no XMP is constructed, which fails the frame.
+                let xmp_data = xmlman::construct_xmp_with_rdf_description(
+                    metadata.get_string(PROP_METADATA_TITLE_STRING).as_deref(),
+                    metadata.get_string(PROP_METADATA_AUTHOR_STRING).as_deref(),
+                    metadata
+                        .get_string(PROP_METADATA_DESCRIPTION_STRING)
+                        .as_deref(),
+                    metadata
+                        .get_string(PROP_METADATA_COPYRIGHT_STRING)
+                        .as_deref(),
+                    metadata
+                        .get_string(PROP_METADATA_CREATION_TIME_STRING)
+                        .as_deref(),
+                );
+                let Some(xmp_data) = xmp_data.filter(|d| !d.is_empty()) else {
+                    return Err(Error::new("Couldn't create XMP data for AVIF image"));
+                };
+                let ar = avif_image_set_metadata_xmp(&mut image, &xmp_data);
+                if ar != AvifResult::Ok {
+                    return Err(Error::new(format!(
+                        "Couldn't set XMP metadata for AVIF image: {}",
+                        avif_result_to_string(ar)
+                    )));
+                }
+            }
+        }
+
+        image.yuv_range = AvifRange::Full;
+        image.color_primaries = colorspace.primaries() as u16;
+        image.transfer_characteristics = colorspace.transfer() as u16;
+
+        if is10bit || is16bit || is_lossless {
+            image.matrix_coefficients = AVIF_MATRIX_COEFFICIENTS_IDENTITY;
+        } else {
+            image.matrix_coefficients = AVIF_MATRIX_COEFFICIENTS_BT709;
+        }
+
+        image.clli.max_cll = max_cll;
+        image.clli.max_pall = max_fall;
+
+        let mut rgb = AvifRgbImage::default();
+        avif_rgb_image_set_defaults(&mut rgb, &image);
+
+        // (SDL_LockSurface(): the pixels are readable here; the conversions
+        // read a copy of them)
+        let mut pixels: Vec<u8>;
+        if is16bit {
+            rgb.depth = 16;
+
+            rgb.format = if format == PixelFormat::RGB48 {
+                AvifRgbFormat::Rgb
+            } else if format == PixelFormat::BGR48 {
+                AvifRgbFormat::Bgr
+            } else if format == PixelFormat::RGBA64 {
+                AvifRgbFormat::Rgba
+            } else if format == PixelFormat::ARGB64 {
+                AvifRgbFormat::Argb
+            } else if format == PixelFormat::BGRA64 {
+                AvifRgbFormat::Bgra
+            } else {
+                // (SDL_PIXELFORMAT_ABGR64, the last of the 16-bit formats:
+                // the default case can't be reached)
+                AvifRgbFormat::Abgr
+            };
+
+            rgb.ignore_alpha = !has_alpha;
+            pixels = surface.pixels().map(|p| p.to_vec()).unwrap_or_default();
+            rgb.pixels = Some(&mut pixels);
+            rgb.row_bytes = surface.pitch() as u32;
+
+            if !is_lossless {
+                rc = avif_image_rgb_to_yuv(&mut image, &rgb);
+
+                if rc != AvifResult::Ok {
+                    return Err(Error::new(format!(
+                        "Couldn't convert 16-bit RGB to YUV: {}",
+                        avif_result_to_string(rc)
+                    )));
+                }
+            }
+        } else if is10bit {
+            const EXPAND_ALPHA: [u16; 4] = [0, 0x155, 0x2aa, 0x3ff];
+
+            rgb.depth = 10;
+            rgb.format = if format.pixel_order() == PackedOrder::Xrgb as u32
+                || format.pixel_order() == PackedOrder::Argb as u32
+            {
+                AvifRgbFormat::Rgba
+            } else {
+                AvifRgbFormat::Bgra
+            };
+            rgb.ignore_alpha = !has_alpha;
+            rgb.row_bytes = image.width * 4 * std::mem::size_of::<u16>() as u32;
+            let size = image.height as usize * rgb.row_bytes as usize;
+            pixels = Vec::new();
+            if pixels.try_reserve_exact(size).is_err() {
+                return Err(Error::new("Out of memory for RGB pixels"));
+            }
+            pixels.resize(size, 0u8);
+
+            // Convert 10-bit packed format to planar format for libavif
+            let src = surface.pixels().unwrap_or(&[]);
+            let pitch = surface.pitch() as usize;
+            let mut dst16 = 0;
+            for y in 0..image.height as usize {
+                for x in 0..image.width as usize {
+                    let o = y * pitch + x * 4;
+                    let pixelvalue =
+                        u32::from_ne_bytes([src[o], src[o + 1], src[o + 2], src[o + 3]]);
+
+                    // Extract 10-bit components
+                    // Handle alpha - use full opacity for non-alpha formats
+                    let alpha = if has_alpha {
+                        EXPAND_ALPHA[((pixelvalue >> 30) & 0x3) as usize] // A
+                    } else {
+                        0x3FF // Full opacity
+                    };
+                    for v in [
+                        ((pixelvalue >> 20) & 0x3FF) as u16, // R
+                        ((pixelvalue >> 10) & 0x3FF) as u16, // G
+                        (pixelvalue & 0x3FF) as u16,         // B
+                        alpha,
+                    ] {
+                        pixels[dst16..dst16 + 2].copy_from_slice(&v.to_ne_bytes());
+                        dst16 += 2;
+                    }
+                }
+            }
+            rgb.pixels = Some(&mut pixels);
+
+            if !is_lossless {
+                rc = avif_image_rgb_to_yuv(&mut image, &rgb);
+
+                // (SDL_free(rgb.pixels): dropped with `pixels`)
+
+                if rc != AvifResult::Ok {
+                    return Err(Error::new(format!(
+                        "Couldn't convert to YUV: {}",
+                        avif_result_to_string(rc)
+                    )));
+                }
+            }
+        } else {
+            let mut needs_conversion = true;
+
+            let rgb_format = if format == PixelFormat::RGBA32 {
+                needs_conversion = false;
+                AvifRgbFormat::Rgba
+            } else if format == PixelFormat::ARGB32 {
+                needs_conversion = false;
+                AvifRgbFormat::Argb
+            } else if format == PixelFormat::BGRA32 {
+                needs_conversion = false;
+                AvifRgbFormat::Bgra
+            } else if format == PixelFormat::ABGR32 {
+                needs_conversion = false;
+                AvifRgbFormat::Abgr
+            } else if format == PixelFormat::RGB24 {
+                // FIXME (upstream): the surface is converted to RGBX32
+                // below, which this format reads as 3 bytes a pixel (the X
+                // bytes, which upstream leaves uninitialized, among them)
+                AvifRgbFormat::Rgb
+            } else if format == PixelFormat::BGR24 {
+                // FIXME (upstream): as for RGB24
+                AvifRgbFormat::Bgr
+            } else if format == PixelFormat::RGBX32
+                || format == PixelFormat::XRGB32
+                || format == PixelFormat::BGRX32
+                || format == PixelFormat::XBGR32
+            {
+                AvifRgbFormat::Rgba
+            } else if cfg!(target_endian = "little") {
+                // FIXME (upstream): the surface is converted to RGBA32 or
+                // RGBX32 below, whose bytes this format reads reversed (for
+                // RGBX32 the X bytes, which upstream leaves uninitialized,
+                // as red)
+                AvifRgbFormat::Abgr
+            } else {
+                AvifRgbFormat::Rgba
+            };
+
+            let source: &Surface<'_> = if needs_conversion {
+                let target_format = if has_alpha {
+                    PixelFormat::RGBA32
+                } else {
+                    PixelFormat::RGBX32
+                };
+                match surface.convert(target_format) {
+                    Ok(t) => temp = Some(t),
+                    Err(_) => {
+                        return Err(Error::new("Couldn't convert surface to compatible format"));
+                    }
+                }
+                temp.as_ref().expect("the converted surface")
+            } else {
+                surface
+            };
+            rgb.format = rgb_format;
+            pixels = source.pixels().map(|p| p.to_vec()).unwrap_or_default();
+            rgb.row_bytes = source.pitch() as u32;
+            rgb.pixels = Some(&mut pixels);
+
+            rgb.depth = 8;
+            rgb.ignore_alpha = !has_alpha;
+            rgb.alpha_premultiplied = false;
+            rgb.chroma_upsampling = AvifChromaUpsampling::Automatic;
+
+            if !is_lossless {
+                rc = avif_image_rgb_to_yuv(&mut image, &rgb);
+
+                if rc != AvifResult::Ok {
+                    return Err(Error::new(format!(
+                        "Couldn't convert to YUV: {}",
+                        avif_result_to_string(rc)
+                    )));
+                }
+            }
+        }
+
+        let mut add_image_flags = AVIF_ADD_IMAGE_FLAG_NONE;
+        if is_lossless || !self.first_frame_added {
+            add_image_flags = AVIF_ADD_IMAGE_FLAG_FORCE_KEYFRAME;
+        }
+
+        // (the lossless 10-bit, the other lossless and the lossy branches
+        // make the same call)
+        let Some(encoder) = self.encoder.as_mut() else {
+            return Err(Error::new("Invalid context or encoder"));
+        };
+        rc = avif_encoder_add_image(encoder, &image, duration_in_timescales, add_image_flags);
+
+        // (SDL_DestroySurface(temp), SDL_UnlockSurface() and
+        // avifImageDestroy(): dropped)
+        drop(temp);
+        drop(image);
+
+        if rc != AvifResult::Ok {
+            return Err(Error::new(format!(
+                "Failed to add image to avif encoder: {}",
+                avif_result_to_string(rc)
+            )));
+        }
+
+        if !self.first_frame_added {
+            self.first_frame_added = true;
+        }
+
+        Ok(())
+    }
+
+    /// Translation of `AnimationEncoder_End()` (the metadata, the encoder
+    /// and the context are released with the context).
+    pub(crate) fn end(&mut self, e: &mut EncoderCore<'_, '_>) -> Result<()> {
+        self.metadata = None;
+        let Some(mut encoder) = self.encoder.take() else {
+            return Err(Error::new("Invalid context or encoder"));
+        };
+
+        let mut avif_output = Vec::new();
+        let rc = avif_encoder_finish(&mut encoder, &mut avif_output);
+        if rc != AvifResult::Ok {
+            return Err(Error::new(format!(
+                "Failed to finish encoder: {}",
+                avif_result_to_string(rc)
+            )));
+        }
+
+        let dst = e.dst();
+        if dst.write(&avif_output) == avif_output.len() {
+            Ok(())
+        } else {
+            Err(Error::new("Failed to write AVIF data to IOStream"))
+        }
+    }
+}
+
+/// `SDL_GetNumLogicalCPUCores()`, which the encoder's default threads come
+/// from. The tests pin it to 4 (2 threads), as their reference harness's
+/// `FAKE_CORES=4` does: one thread and more code the frames differently
+/// (rows of superblocks coded in turn, or with libaom's row
+/// multi-threading).
+fn logical_cpu_cores() -> i32 {
+    if cfg!(test) {
+        4
+    } else {
+        sdl3::cpuinfo::num_logical_cpu_cores()
+    }
+}
+
+/// Create the AVIF encoder of an animation encoder: libavif's encoder at
+/// its fastest speed (libaom's real-time usage), the quality (75 by
+/// default) for color and libavif's default for alpha, the threads and
+/// key frame interval of the properties, and unless ignored the loop count
+/// and the metadata. Translation of `IMG_CreateAVIFAnimationEncoder()`.
+pub(crate) fn create_avif_animation_encoder(
+    e: &mut EncoderCore<'_, '_>,
+    props: &Properties,
+) -> Result<Box<AvifEncoderContext>> {
+    // (IMG_InitAVIF(): nothing to load)
+
+    let Some(mut encoder) = avif_encoder_create() else {
+        return Err(Error::new("Couldn't create AVIF encoder"));
+    };
+
+    if e.quality < 0 {
+        e.quality = 75;
+    } else if e.quality > 100 {
+        e.quality = 100;
+    }
+
+    let available_l_cores = logical_cpu_cores();
+    let mut threads = props
+        .get_number(PROP_ANIMATION_ENCODER_CREATE_AVIF_MAX_THREADS_NUMBER)
+        .unwrap_or((available_l_cores / 2) as i64) as i32;
+    threads = if threads < 1 {
+        1
+    } else if threads > available_l_cores {
+        available_l_cores
+    } else {
+        threads
+    };
+
+    let key_frame_interval = props
+        .get_number(PROP_ANIMATION_ENCODER_CREATE_AVIF_KEYFRAME_INTERVAL_NUMBER)
+        .unwrap_or(0) as i32;
+
+    encoder.max_threads = threads;
+    encoder.quality = e.quality;
+
+    encoder.quality_alpha = AVIF_QUALITY_DEFAULT;
+    encoder.speed = AVIF_SPEED_FASTEST;
+
+    if encoder.quality >= 100 {
+        encoder.keyframe_interval = 1.min(key_frame_interval);
+        encoder.min_quantizer = 0;
+        encoder.max_quantizer = 0;
+
+        encoder.min_quantizer_alpha = 0;
+        encoder.max_quantizer_alpha = 0;
+        encoder.auto_tiling = false;
+    } else {
+        encoder.keyframe_interval = key_frame_interval;
+        encoder.min_quantizer = 8;
+        encoder.max_quantizer = 63;
+
+        encoder.min_quantizer_alpha = 0;
+        encoder.max_quantizer_alpha = 63;
+        encoder.auto_tiling = true;
+    }
+
+    encoder.tile_rows_log2 = 0;
+    encoder.tile_cols_log2 = 0;
+
+    encoder.timescale = e.timebase_denominator as u64;
+
+    let ignore_props = props
+        .get_bool(PROP_METADATA_IGNORE_PROPS_BOOLEAN)
+        .unwrap_or(false);
+    let mut metadata = None;
+    if !ignore_props {
+        encoder.repetition_count = (props
+            .get_number(PROP_METADATA_LOOP_COUNT_NUMBER)
+            .unwrap_or(0)
+            .max(0)
+            - 1) as i32;
+
+        let m = Properties::new();
+        if m.copy_from(props).is_err() {
+            return Err(Error::new(
+                "Couldn't copy properties to AVIF encoder metadata",
+            ));
+        }
+        metadata = Some(m);
+    }
+
+    Ok(Box::new(AvifEncoderContext {
+        encoder: Some(encoder),
+        first_frame_added: false,
+        metadata,
     }))
 }

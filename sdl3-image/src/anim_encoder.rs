@@ -4,9 +4,8 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Animation encoders: frames one at a time to a file or a stream, by
-//! format (GIF, ANI, APNG and WebP here; AVIF needs libaom's inter frame
-//! coding, which isn't translated, and reports so as an upstream build
-//! without it), and whole [`Animation`](crate::Animation)s.
+//! format (ANI, APNG, AVIF, GIF and WebP), and whole
+//! [`Animation`](crate::Animation)s.
 
 use std::path::Path;
 
@@ -18,6 +17,7 @@ use sdl3::video::Surface;
 
 use crate::ani::{create_ani_animation_encoder, AniEncoderContext};
 use crate::anim_decoder::Stream;
+use crate::avif::{create_avif_animation_encoder, AvifEncoderContext};
 use crate::gif::{create_gif_animation_encoder, GifEncoderContext};
 use crate::img::{timebase_duration, Animation};
 use crate::libpng::{create_apng_animation_encoder, ApngEncoderContext};
@@ -52,12 +52,14 @@ pub const PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER: &str =
 /// of `IMG_PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER`.
 pub const PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER: &str =
     "SDL_image.animation_encoder.create.timebase.denominator";
-/// Translation of `IMG_PROP_ANIMATION_ENCODER_CREATE_AVIF_MAX_THREADS_NUMBER`
-/// (for the AVIF encoder, not in this crate).
+/// The most threads the AVIF encoder codes with (a number, default half the
+/// logical CPU cores, clamped to 1 and their count). Translation of
+/// `IMG_PROP_ANIMATION_ENCODER_CREATE_AVIF_MAX_THREADS_NUMBER`.
 pub const PROP_ANIMATION_ENCODER_CREATE_AVIF_MAX_THREADS_NUMBER: &str =
     "SDL_image.animation_encoder.create.avif.max_threads";
-/// Translation of `IMG_PROP_ANIMATION_ENCODER_CREATE_AVIF_KEYFRAME_INTERVAL_NUMBER`
-/// (for the AVIF encoder, not in this crate).
+/// The AVIF encoder's maximum key frame interval in frames (a number,
+/// default 0: only the first frame is a key frame). Translation of
+/// `IMG_PROP_ANIMATION_ENCODER_CREATE_AVIF_KEYFRAME_INTERVAL_NUMBER`.
 pub const PROP_ANIMATION_ENCODER_CREATE_AVIF_KEYFRAME_INTERVAL_NUMBER: &str =
     "SDL_image.animation_encoder.create.avif.keyframe_interval";
 /// Whether the GIF encoder maps the frames after the first to the first
@@ -107,6 +109,7 @@ pub(crate) enum EncoderContext {
     Gif(Box<GifEncoderContext>),
     Ani(Box<AniEncoderContext>),
     Apng(Box<ApngEncoderContext>),
+    Avif(Box<AvifEncoderContext>),
     Webp(Box<WebpEncoderContext>),
 }
 
@@ -125,6 +128,7 @@ impl std::fmt::Debug for AnimationEncoder<'_, '_> {
             EncoderContext::Gif(_) => "gif",
             EncoderContext::Ani(_) => "ani",
             EncoderContext::Apng(_) => "apng",
+            EncoderContext::Avif(_) => "avif",
             EncoderContext::Webp(_) => "webp",
         };
         f.debug_struct("AnimationEncoder")
@@ -236,9 +240,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
         } else if is("apng") || is("png") {
             create_apng_animation_encoder(e, props).map(EncoderContext::Apng)
         } else if is("avifs") || is("avif") {
-            Err(Error::new(
-                "SDL_image built without AVIF animation save support",
-            ))
+            create_avif_animation_encoder(e, props).map(EncoderContext::Avif)
         } else if is("gif") {
             create_gif_animation_encoder(e, props).map(EncoderContext::Gif)
         } else if is("webp") {
@@ -277,6 +279,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
             EncoderContext::Gif(ctx) => ctx.add_frame(e, surface, duration),
             EncoderContext::Ani(ctx) => ctx.add_frame(surface, duration),
             EncoderContext::Apng(ctx) => ctx.add_frame(e, surface, duration),
+            EncoderContext::Avif(ctx) => ctx.add_frame(e, surface, duration),
             EncoderContext::Webp(ctx) => ctx.add_frame(e, surface, duration),
         }
     }
@@ -295,6 +298,7 @@ impl<'s, 'a> AnimationEncoder<'s, 'a> {
             EncoderContext::Gif(mut ctx) => ctx.end(e),
             EncoderContext::Ani(mut ctx) => ctx.end(e),
             EncoderContext::Apng(mut ctx) => ctx.end(e),
+            EncoderContext::Avif(mut ctx) => ctx.end(e),
             EncoderContext::Webp(mut ctx) => ctx.end(e),
         };
         let dst = std::mem::replace(
@@ -366,10 +370,10 @@ pub fn save_apng_animation_io(anim: &mut Animation, dst: &mut IoStream<'_>) -> R
     encode_animation(anim, dst, "png", -1)
 }
 
-/// Save an animation as an AVIF image sequence: not without libaom's inter
-/// frame coding (only its all intra encoder, for still images, is
-/// translated), as upstream built without `SAVE_AVIF`. Translation of
-/// `IMG_SaveAVIFAnimation_IO()`.
+/// Save an animation as an AVIF image sequence: 8-bit (10-bit for 10-bit
+/// surfaces) YUV 4:4:4 coded with libaom's real-time encoder at its
+/// fastest speed, at `quality` (0 to 100, 75 if negative; 100, lossless,
+/// fails as upstream's does). Translation of `IMG_SaveAVIFAnimation_IO()`.
 pub fn save_avif_animation_io(
     anim: &mut Animation,
     dst: &mut IoStream<'_>,
