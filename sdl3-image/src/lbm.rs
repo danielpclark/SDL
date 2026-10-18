@@ -194,9 +194,11 @@ fn load_lbm(src: &mut IoStream<'_>) -> std::result::Result<Surface<'static>, Fai
                 return Err(E("error reading CAMG chunk"));
             }
 
-            // FIXME (upstream): the whole chunk counts as loaded, so the
-            // bytes of a chunk longer than 4 aren't skipped.
-            bytesloaded = size;
+            // Note (upstream): upstream counts the whole chunk as loaded, so
+            // the bytes of a chunk longer than 4 aren't skipped and the
+            // chunks after it are misread; the translation fixes it (the 4
+            // bytes read count).
+            bytesloaded = raw.len() as u32;
             let viewmodes = u32::from_be_bytes(raw);
             if viewmodes & 0x0800 != 0 {
                 flag_ham = true;

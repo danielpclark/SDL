@@ -116,11 +116,14 @@ def main(out):
 
     # LBM: a PBM whose body is too short for its padded rows, and complete
     # pictures: compressed PBM, interleaved planes with a stencil, EHB with
-    # a transparent color, HAM6, 24 planes
+    # a transparent color, EHB with a CAMG chunk longer than its 4 bytes
+    # (whose rest upstream doesn't skip), HAM6, 24 planes
     write_lbm(p("lbm_pbm.lbm"))
     write_lbm_pbm(p("lbm_pbm8.lbm"))
     write_ilbm(p("lbm_ilbm.lbm"), 4, compress=True, mask=1, ncolors=16)
     write_ilbm(p("lbm_ehb.lbm"), 6, compress=False, mask=2, ncolors=32, camg=0x80)
+    write_ilbm(p("lbm_camg8.lbm"), 6, compress=True, mask=0, ncolors=32, camg=0x80,
+               camg_extra=b"\0\0\0\x01")
     write_ilbm(p("lbm_ham.lbm"), 6, compress=True, mask=0, ncolors=16, camg=0x800)
     write_ilbm(p("lbm_24.lbm"), 24, compress=False, mask=0, ncolors=0)
 
@@ -411,9 +414,10 @@ def write_lbm_pbm(path):
     open(path, "wb").write(iff(b"PBM ", [(b"BMHD", bmhd), (b"CMAP", cmap), (b"BODY", body)]))
 
 
-def write_ilbm(path, nplanes, compress, mask, ncolors, camg=None):
+def write_ilbm(path, nplanes, compress, mask, ncolors, camg=None, camg_extra=b""):
     """An interleaved-planes ILBM picture, 21 pixels wide (padded to 32),
-    with an optional stencil plane (mask 1) or transparent color (mask 2)."""
+    with an optional stencil plane (mask 1) or transparent color (mask 2),
+    and a CAMG chunk with `camg_extra` after its view modes."""
     w, h = 21, 6
     bpl = ((w + 15) // 16) * 2
     bmhd = struct.pack(">HHhhBBBBHBBhh", w, h, 0, 0, nplanes, mask, 1 if compress else 0, 0,
@@ -423,7 +427,7 @@ def write_ilbm(path, nplanes, compress, mask, ncolors, camg=None):
     if ncolors:
         chunks.append((b"CMAP", cmap))
     if camg is not None:
-        chunks.append((b"CAMG", struct.pack(">I", camg)))
+        chunks.append((b"CAMG", struct.pack(">I", camg) + camg_extra))
     body = b""
     for y in range(h):
         if nplanes == 24:
