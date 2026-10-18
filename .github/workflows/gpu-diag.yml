@@ -136,13 +136,11 @@ jobs:
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
           grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
           T=render::gpu::tests::gpu_render_states
-          bis() { echo "=== $*"; cargo test -q -p sdl3 --lib -- --test-threads=1 "$@" $T 2>&1 | grep -E "test result|^without|panicked" | cut -c1-200; }
-          bis gpu::
-          bis gpu::vulkan
-          bis gpu::metal
-          bis app:: assert:: atomic:: audio:: camera:: core:: cpuinfo:: dialog:: error:: events::
-          bis filesystem:: guid:: haptic:: hidapi:: hints:: init:: io:: joystick:: loadso:: locale::
-          bis log:: misc:: notification:: power:: process:: properties::
+          echo "=== MTL_DEBUG_LAYER=1 alone"
+          MTL_DEBUG_LAYER=1 MVK_CONFIG_LOG_LEVEL=2 cargo test -q -p sdl3 --lib $T -- --nocapture > "$RUNNER_TEMP/dbg.log" 2>&1 || true
+          grep -v "^ *[0-9]*: \|^ *at \|^\s*Compiling" "$RUNNER_TEMP/dbg.log" | tail -60 | cut -c1-300
+          echo "=== MTL_DEBUG_LAYER=1 all render::gpu"
+          MTL_DEBUG_LAYER=1 cargo test -q -p sdl3 --lib render::gpu:: -- --test-threads=1 2>&1 | grep -E "test result|^without|panicked|mvk-err|failed assertion" | cut -c1-300
       - name: cargo test
         continue-on-error: true
         env:
