@@ -577,10 +577,13 @@ impl Xcf<'_, '_> {
                 } else {
                     64
                 };
-                // FIXME (upstream): the last tile, with no next offset to
-                // measure it, is read as the largest RLE data could be (6
-                // bytes a pixel); an uncompressed one near the end of the
-                // file reads short and fails the load.
+                // Note (upstream): the last tile, with no next offset to
+                // measure it, is given the length the largest RLE data could
+                // be (6 bytes a pixel), which upstream's
+                // load_xcf_tile_none() reads whole, so an uncompressed one
+                // near the end of the file reads short and fails the load;
+                // the translation fixes it there, reading only the tile's
+                // own bytes.
                 let mut length: u64 = (ox * oy * 6) as u64;
 
                 if level.tile_file_offsets[j + 1] > level.tile_file_offsets[j] {
@@ -758,11 +761,14 @@ fn load_xcf_tile_none(
         return None;
     }
 
-    let Some(load) = read_up_to(xcf.src, len) else {
+    // (upstream reads `len` bytes, more than the tile has when `len` is the
+    // last tile's guess: see do_layer_surface())
+    let size = (x * y * bpp) as usize;
+    let Some(load) = read_up_to(xcf.src, size) else {
         xcf.set_error("Out of memory");
         return None;
     };
-    if load.len() != len {
+    if load.len() != size {
         return None;
     }
     Some(load)

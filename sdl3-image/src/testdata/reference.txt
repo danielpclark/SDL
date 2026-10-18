@@ -17128,9 +17128,9 @@ save_webp 0: bytes=66 hash=6c63c800820a99eb | reload: 23x13 SDL_PIXELFORMAT_RGB2
 == xcf_gray.xcf
 is: XCF
 is_extra:
-load: err: 
-load_io: err: 
-typed: err: 
+load: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+load_io: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+typed: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
 trunc 0: err: Unsupported image format
 trunc 1: err: Unsupported image format
 trunc 2: err: Unsupported image format
@@ -17144,12 +17144,48 @@ trunc 256: err:
 trunc 512: err: 
 trunc 275: err: 
 trunc 412: err: 
-trunc 549: err: 
+trunc 549: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
 xor: err: Couldn't read header
-anim_io: err: 
-anim_typed: err: 
-decoder: ok | status=1 err= | reset=1 none
-decoder tb100: ok | status=1 err= | reset=1 none
+anim_io: n=1 23x13 | 0: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1 delay=0
+anim_typed: n=1 23x13 | 0: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1 delay=0
+decoder: ok | 0:23x13:SDL_PIXELFORMAT_ARGB8888:b430260ffb979e8f | status=2 | reset=1 0:23x13:SDL_PIXELFORMAT_ARGB8888:b430260ffb979e8f
+decoder tb100: ok | 0:23x13:SDL_PIXELFORMAT_ARGB8888:b430260ffb979e8f | status=2 | reset=1 0:23x13:SDL_PIXELFORMAT_ARGB8888:b430260ffb979e8f
+save_anim gif: bytes=1141 hash=099db502c2377b4b | reload: n=1 23x13 loop=0 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=606bf806e96562e0 blend=1 delay=100
+save_anim ani: bytes=1108 hash=4881ecf2a7c3f300 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1 hot=0,0 delay=0
+save_anim png: bytes=157 hash=be2d4f12ac50c6bf | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1 delay=0
+save_anim webp: bytes=148 hash=ab38d650c451a0fc | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=a3cc53b76f4e97a2 blend=0 delay=0
+save_anim avif: bytes=585 hash=b405e36e13a6fb73 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=167e8b8a335386b9 blend=1 delay=1
+save_anim xyz: err: Unsupported image format
+gif_enc lut16: bytes=229 hash=41c63a7d9290d88d | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1d703e118dfaeb09 blend=1 delay=100
+ani_enc meta: bytes=1160 hash=34335de60664bb90 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1 hot=0,0 delay=17
+webp_enc ll meta: err: WebPMuxGetAnimationParams() failed
+webp_enc q30 dup: bytes=98 hash=0e66bc0efd32e70f | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=c1285e2f0bec7ef3 blend=0 delay=0
+apng_enc q100 meta: bytes=325 hash=5b208c6694778042 | reload: n=1 23x13 loop=5 frames=1 desc="a ?description?" title="apng title" author="apng author" rights="(c) the harness" created="2025-06-07" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1 delay=0
+apng_enc q50 ignore: bytes=152 hash=61bd82b332c3f12f | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1 delay=0
+apng_enc q0 tb: bytes=157 hash=94ff4f6598d34112 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1 delay=0
+save bmp: bytes=1334 hash=48483f0c7cac20df | reload: err: Unsupported TGA format
+save png: bytes=998 hash=38e50ce4e8089424 | reload: err: Unsupported TGA format
+save tga: bytes=1214 hash=0f546d67e4ad33bf | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+save jpg: bytes=923 hash=cc87c2f1f1bf80cd | reload: err: Unsupported TGA format
+save ico: bytes=1020 hash=706066b353f50add | reload: err: Unsupported TGA format
+save cur: bytes=1020 hash=607fc2959a54dea2 | reload: err: Unsupported TGA format
+save_jpg 10: bytes=724 hash=5df220b1399f3cfe | reload: err: Unsupported TGA format
+save_jpg 50: bytes=839 hash=e183680a3b8231b0 | reload: err: Unsupported TGA format
+save_tga SDL_PIXELFORMAT_RGB24: bytes=915 hash=6d86121e0d9b17e8 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=27739e70c2e42908 blend=0
+save_tga SDL_PIXELFORMAT_BGR24: bytes=915 hash=6d86121e0d9b17e8 | reload: 23x13 SDL_PIXELFORMAT_BGR24 pitch=72 hash=27739e70c2e42908 blend=0
+save_tga SDL_PIXELFORMAT_ABGR8888: bytes=1214 hash=0f546d67e4ad33bf | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=0f546d67e4ad33bf | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+save_tga SDL_PIXELFORMAT_XRGB8888: bytes=1214 hash=0f546d67e4ad33bf | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+save_tga SDL_PIXELFORMAT_XRGB1555: bytes=616 hash=f414ddd875dade2d | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=4d2bd757e8ab5095 blend=0
+save_tga SDL_PIXELFORMAT_ARGB1555: bytes=616 hash=b79f8d33d41c607a | reload: 23x13 SDL_PIXELFORMAT_XRGB1555 pitch=48 hash=4d2bd757e8ab5095 blend=0
+save_tga SDL_PIXELFORMAT_ARGB8888: bytes=1214 hash=0f546d67e4ad33bf | reload: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=b430260ffb979e8f blend=1
+qoi_encode 3: bytes=619 hash=3f8a150d10d95402 | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1
+qoi_encode 4: bytes=619 hash=f39f86fad1f8a0bb | reload: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b430260ffb979e8f blend=1
+save gif: bytes=1141 hash=099db502c2377b4b | reload: err: Unsupported TGA format
+save_webp 100: bytes=118 hash=32e882d0fbe8c3e5 | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=b9be3a99085ce476 blend=0
+save_webp 90: bytes=148 hash=e1ff73bd835f99b4 | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=29ea425c297e0823 blend=0
+save_webp 50: bytes=106 hash=af361fe668df3223 | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=478ca31e3ed1ec86 blend=0
+save_webp 0: bytes=74 hash=682b82ba0c08af0b | reload: 23x13 SDL_PIXELFORMAT_RGB24 pitch=72 hash=79c23e210d0134a5 blend=0
 == xcf_indexed.xcf
 is: XCF
 is_extra:
@@ -17229,8 +17265,8 @@ trunc 128: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
 trunc 256: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
 trunc 512: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=c0705cca2605e915 blend=1
 trunc 1024: err: 
-trunc 2048: err: 
-trunc 1794: err: 
+trunc 2048: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
+trunc 1794: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
 trunc 2691: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
 trunc 3587: 23x13 SDL_PIXELFORMAT_ARGB8888 pitch=92 hash=5270af5cfa8be62d blend=1
 xor: err: Couldn't read header
