@@ -2909,12 +2909,12 @@ anim trunc 349: err: Couldn't get AVIF frame 1: Truncated data
 anim trunc 523: err: Couldn't get AVIF frame 2: Truncated data
 anim trunc 697: err: Couldn't get AVIF frame 2: Truncated data
 anim xor: err: Couldn't parse AVIF image: IO Error
-decoder: ok loop=1 frames=2 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
-decoder tb100: ok loop=1 frames=2 | 100:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 100:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 100:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+decoder: ok loop=1 frames=2 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a
+decoder tb100: ok loop=1 frames=2 | 100:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 100:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 100:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a
 hdr: 32x24 SDL_PIXELFORMAT_ARGB8888 pitch=128 hash=396f5f29cdf2c068 blend=1 cs=120005a0
-decoder hdr: ok loop=1 frames=2 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a cs=120005a6 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc cs=120005a6 | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+decoder hdr: ok loop=1 frames=2 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a cs=120005a6 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc cs=120005a6 | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a
 decoder noprog: ok loop=1 frames=1 | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
-decoder ignore: ok | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc
+decoder ignore: ok | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a | 1000:32x24:SDL_PIXELFORMAT_ABGR8888:efad11130db2aafc | status=2 | reset=1 1000:32x24:SDL_PIXELFORMAT_ABGR8888:c0093ffdb07be02a
 == avif_scaled_10bit.avif
 is: AVIF
 is_extra:
