@@ -496,7 +496,7 @@ fn show_core_notification(
     let ok = {
         let mut iter = msg.writer();
         // App ID
-        // FIXME (upstream): without a name, SDL_GetAppID()'s result is
+        // Note (upstream): without a name, SDL_GetAppID()'s result is
         // dropped and NULL is appended (the name always has a default
         // here, so this doesn't happen).
         let app_name = crate::init::app_metadata_property(crate::init::AppMetadata::Name)
@@ -509,7 +509,7 @@ fn show_core_notification(
             // Summary
             && iter.append(&Arg::Str(title))
             // Body
-            // FIXME (upstream): the message pointer itself is appended,
+            // Note (upstream): the message pointer itself is appended,
             // not the "" fallback computed for it (NULL crashes libdbus);
             // the fallback is appended here.
             && iter.append(&Arg::Str(message.unwrap_or("")))
@@ -541,7 +541,7 @@ fn show_core_notification(
     let reply = conn
         .send_with_reply_and_block(&msg, -1)
         .map_err(|e| Error::new(format!("Notification failed: {}", error_message(&e))))?;
-    // FIXME (upstream): when the reply isn't a UINT32, the request message
+    // Note (upstream): when the reply isn't a UINT32, the request message
     // is released a second time (a double unref); RAII releases it once.
     let message_id = match reply.args().first() {
         Some(Value::U32(id)) => *id,
@@ -646,7 +646,7 @@ fn portal_notification_filter(msg: &Message) -> HandlerResult {
         }
 
         // System properties array.
-        // FIXME (upstream): the dictionary entries are entered from the
+        // Note (upstream): the dictionary entries are entered from the
         // array's iterator instead of the dictionary's, so libdbus reads a
         // container as a basic value; the entries are read here.
         if let Some(Value::Array(pdata)) = params.peek() {
@@ -1024,7 +1024,7 @@ fn show_portal_notification(
             };
 
             append_string_option(array, "title", title)
-                // FIXME (upstream): a missing message is appended as a NULL
+                // Note (upstream): a missing message is appended as a NULL
                 // string (crashing libdbus); "" is appended here.
                 && append_string_option(array, "body", message.unwrap_or(""))
                 && append_string_option(array, "default-action", "default")
@@ -1043,7 +1043,7 @@ fn show_portal_notification(
         return Err(failure());
     }
 
-    // FIXME (upstream): on a failed call the request message is released a
+    // Note (upstream): on a failed call the request message is released a
     // second time (a double unref); RAII releases it once.
     conn.send_with_reply_and_block(&msg, -1)
         .map_err(|e| Error::new(format!("Notification failed: {}", error_message(&e))))?;

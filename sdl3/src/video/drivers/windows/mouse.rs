@@ -832,7 +832,8 @@ pub(crate) fn apply_system_scale(
 
     let xs = data.xs;
     let ys = data.ys;
-    // FIXME (upstream): SDL_abs() takes an int, so the 64-bit motion is truncated first.
+    // Note (upstream): SDL_abs() takes an int, so the 64-bit motion is truncated first, in C as
+    // here; only motion that doesn't fit in an int is affected.
     let absx = (ix as i32).wrapping_abs() as i64 as u64;
     let absy = (iy as i32).wrapping_abs() as i64 as u64;
     let speed = absx.min(absy).wrapping_add(absx.max(absy) << 1); // super cursed approximation used by Windows

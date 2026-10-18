@@ -188,8 +188,9 @@ pub(crate) fn create_animated_cursor(
                 }
                 _ => {
                     // (the cursors made so far are released with the vector)
-                    // FIXME (upstream): the cleanup releases frames[i], the
-                    // failed frame, i times instead of each earlier frame.
+                    // Note (upstream): the C cleanup releases frames[i], the
+                    // failed frame, i times instead of each earlier frame;
+                    // here the vector releases each one once.
                     return Err(Error::new("Couldn't create the cursor"));
                 }
             }

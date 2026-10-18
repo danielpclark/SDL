@@ -957,7 +957,7 @@ fn default_imu_scale_data() -> ImuScaleData {
 }
 
 /// The value of a remapped axis (`(Sint16)HIDAPI_RemapVal(...)`).
-// FIXME (upstream): a stick extent of 0 makes the remapped value NaN or
+// Note (upstream): a stick extent of 0 makes the remapped value NaN or
 // infinite, which is undefined behaviour to convert; here it saturates
 // (NaN is 0).
 fn remap_axis(value: i16, value_min: i16, value_max: i16, output_min: i16, output_max: i16) -> i16 {
@@ -1128,7 +1128,7 @@ impl SwitchContext {
     /// then in the read buffer.
     fn write_subcommand(&mut self, link: Link<'_>, command_id: u8, buf: &[u8]) -> bool {
         if buf.len() > SUBCOMMAND_DATA_SIZE {
-            // FIXME (upstream): subcommand data longer than the packet's
+            // Note (upstream): subcommand data longer than the packet's
             // (from SDL_SendJoystickEffect()) is copied past the packet;
             // here it isn't sent.
             return false;

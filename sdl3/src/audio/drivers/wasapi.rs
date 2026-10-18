@@ -745,7 +745,7 @@ impl WasapiDevice {
             wasapi_disconnect_device(device, Some(self));
             return false;
         }
-        // FIXME (upstream): PrepDevice applies the new format with
+        // Note (upstream): PrepDevice applies the new format with
         // SDL_AudioDeviceFormatChangedAlreadyLocked() here although nothing
         // holds the device lock; here it takes the lock.
         let prepared = self
@@ -772,7 +772,7 @@ impl WasapiDevice {
         } else if self.device_dead.load(Ordering::Acquire) {
             // had a fatal error elsewhere, clean up and quit
             let client = self.client();
-            // FIXME (upstream): this calls IAudioClient_Stop() without
+            // Note (upstream): this calls IAudioClient_Stop() without
             // checking for a NULL client; here a NULL one is skipped.
             if !client.is_null() {
                 // SAFETY: a live client.

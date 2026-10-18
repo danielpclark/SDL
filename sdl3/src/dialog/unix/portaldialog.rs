@@ -249,8 +249,9 @@ pub(super) fn portal_show_file_dialog(
     options: FileDialogOptions,
 ) {
     let Some(ctx) = dbus::context() else {
-        // FIXME (upstream): dbus->error_init() is called before the check
-        // for a missing D-Bus context (a NULL dereference).
+        // Note (upstream): C calls dbus->error_init() before the check for
+        // a missing D-Bus context (a NULL dereference); here the context is
+        // checked first and its absence reported.
         return callback(Err(Error::new("Failed to connect to DBus")), None);
     };
     portal_show_file_dialog_on(&ctx.session_conn, dialog_type, callback, options);

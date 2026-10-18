@@ -1241,7 +1241,7 @@ fn preedit_draw_callback(window: WindowID, call_data: &mut XIMPreeditDrawCallbac
             // Insert text in range
             crate::sdl_assert!(text.encoding_is_wchar == 0);
 
-            // FIXME (upstream): a NULL multi-byte string is passed to
+            // Note (upstream): a NULL multi-byte string is passed to
             // SDL_strlen(); it is taken as empty here.
             let string: &[u8] = if text.string.is_null() {
                 &[]
@@ -1278,7 +1278,7 @@ fn preedit_draw_callback(window: WindowID, call_data: &mut XIMPreeditDrawCallbac
             );
             feedback.resize(pre_size, 0);
             feedback.extend_from_slice(text_feedback);
-            // FIXME (upstream): a NULL feedback array is copied from; it
+            // Note (upstream): a NULL feedback array is copied from; it
             // reads as no highlighting here.
             feedback.resize(pre_size + text.length as usize, 0);
             let post_end = (pre_size + post_size).min(data.preedit_feedback.len());

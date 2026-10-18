@@ -463,7 +463,7 @@ fn cursor_frame_done(cell: &Weak<Mutex<CursorState>>, cb: usize) {
     let elapsed = if total_duration_ms != 0 {
         ((now - state.last_frame_callback_time_ms) % total_duration_ms as u64) as u32
     } else {
-        // FIXME (upstream): a cursor whose frame durations add up to 0
+        // Note (upstream): a cursor whose frame durations add up to 0
         // divides by zero here; Rust panics on that, so no time elapses.
         0
     };
@@ -598,7 +598,7 @@ impl WaylandVideo {
                         shm.raw(),
                     )
                 };
-                // FIXME (upstream): a theme that fails to load (NULL) is
+                // Note (upstream): a theme that fails to load (NULL) is
                 // cached and then used; libwayland-cursor's
                 // wl_cursor_theme_get_cursor() would crash on it. It isn't
                 // cached here.

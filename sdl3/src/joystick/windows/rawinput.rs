@@ -1267,7 +1267,7 @@ impl StatePacket<'_> {
         let naxes = self.naxes - self.trigger_hack as usize * 2;
         let nhats = self.nhats;
 
-        // FIXME (upstream): the button mask is 32 bits, shifted by the
+        // Note (upstream): the button mask is 32 bits, shifted by the
         // button index, which is undefined past 31 buttons; here each
         // button's state is kept.
         let pressed: Vec<bool> = (0..nbuttons)
@@ -1942,7 +1942,7 @@ impl RawinputJoystickDriver {
                 }
                 unload_xinput_dll();
             }
-            // FIXME (upstream): a correlated WGI gamepad isn't freed here: it
+            // Note (upstream): a correlated WGI gamepad isn't freed here: it
             // stays marked used, its correlated_context pointing to the
             // freed context (which RAWINPUT_UpdateWindowsGamingInput()
             // writes to when the gamepad goes away); here the context is
@@ -2168,7 +2168,7 @@ impl JoystickDriver for RawinputJoystickDriver {
             // don't happen on these devices.)
             value_caps.sort_by_key(|cap| cap.u.usage());
 
-            // FIXME (upstream): a range with DataIndexMax < DataIndexMin
+            // Note (upstream): a range with DataIndexMax < DataIndexMin
             // counts negatively, and upstream then writes more indices than
             // it allocated; here the indices are collected in a Vec.
             let mut nbuttons: i32 = 0;

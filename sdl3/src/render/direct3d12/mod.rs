@@ -1837,9 +1837,10 @@ impl D3d12Renderer {
             self.srv_pool_head = self.srv_pool_nodes[head].next;
             Ok(index)
         } else {
-            // FIXME (upstream): this returns SDL_D3D12_MAX_NUM_TEXTURES + 1,
+            // Note (upstream): C returns SDL_D3D12_MAX_NUM_TEXTURES + 1,
             // which the callers make a view at, past the end of the heap
-            // (and later free into the pool, past the end of its nodes).
+            // (and later free into the pool, past the end of its nodes);
+            // here running out is an error.
             Err(Error::new(format!(
                 "[d3d12] Cannot allocate more than {} textures!",
                 SDL_D3D12_MAX_NUM_TEXTURES
@@ -2380,8 +2381,8 @@ impl D3d12Renderer {
             let _ = self.create_vertex_buffer(vbidx, data_size_in_bytes);
         }
 
-        // FIXME (upstream): when the buffer couldn't be made, its resource
-        // is NULL here, and mapped.
+        // Note (upstream): when the buffer couldn't be made, its resource
+        // is NULL, and C maps it; here that's a device-lost error.
         let vertex_buffer = self.vertex_buffers[vbidx]
             .resource
             .clone()

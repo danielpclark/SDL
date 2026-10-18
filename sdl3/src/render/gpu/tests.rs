@@ -796,8 +796,9 @@ fn gpu_renderer_basics_on(backend: Backend) {
     assert_eq!(y.info.format, TextureFormat::R8_UNORM);
     assert_eq!((u.info.width, u.info.height), (5, 4));
     assert!(!Arc::ptr_eq(&u, &v));
-    // (FIXME (upstream): P010's default colorspace, HDR10, has no YCbCr
-    // matrix, so a P010 texture needs a YCbCr colorspace)
+    // (Note (upstream): P010's default colorspace, HDR10, has no YCbCr
+    // matrix, so a P010 texture needs a YCbCr colorspace; see the FIXME in
+    // create_texture())
     assert!(r
         .create_texture(PixelFormat::P010, TextureAccess::Static, 8, 8)
         .is_err());
@@ -816,7 +817,8 @@ fn gpu_renderer_basics_on(backend: Backend) {
         .unwrap();
     assert_eq!(uv.info.format, TextureFormat::R16G16_UNORM);
     assert_eq!((uv.info.width, uv.info.height), (4, 4));
-    // (FIXME (upstream): an I444 texture's V property is its U texture)
+    // (Note (upstream): an I444 texture's V property is its U texture;
+    // see the FIXME in create_texture())
     let i444 = r
         .create_texture(PixelFormat::I444, TextureAccess::Static, 8, 8)
         .unwrap();
@@ -1134,10 +1136,10 @@ fn gpu_matches_software_for_textures_on(backend: Backend) {
         sw.destroy_texture(ts);
     }
 
-    // FIXME (upstream): an ARGB4444 texture (one with alpha other than
+    // Note (upstream): an ARGB4444 texture (one with alpha other than
     // RGBA32 and BGRA32) is drawn with the RGB shader, as if it were
-    // opaque: compare it with the software renderer's copy of the same
-    // texture made opaque.
+    // opaque (see the FIXME in draw()): compare it with the software
+    // renderer's copy of the same texture made opaque.
     {
         let mut opaque = pattern(16, 12);
         for p in opaque.chunks_mut(4) {

@@ -312,10 +312,10 @@ pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
         if at(src, 0) == b'/' {
             return Some(uri_decode(&src[1..], 0));
         }
-        // FIXME (upstream): for a path without a "file:/" scheme, upstream
+        // Note (upstream): for a path without a "file:/" scheme, upstream
         // steps `src` back one byte before the start of the string and
         // decodes from there. Only the "file:" case has a byte to step back
-        // to (the scheme's slash).
+        // to (the scheme's slash); the others give None here.
         if !had_file_scheme {
             return None;
         }

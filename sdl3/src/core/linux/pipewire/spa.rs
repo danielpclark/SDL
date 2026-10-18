@@ -672,7 +672,7 @@ const SPA_DICT_FLAG_SORTED: u32 = 1 << 0;
 /// `dict` must be NULL or a valid dictionary whose keys and values are C strings.
 pub(crate) unsafe fn spa_dict_lookup<'a>(dict: *const SpaDict, key: &str) -> Option<&'a CStr> {
     if dict.is_null() {
-        // FIXME (upstream): SDL passes the props of an info struct without
+        // Note (upstream): SDL passes the props of an info struct without
         // checking them for NULL; a NULL dict has nothing in it here.
         return None;
     }

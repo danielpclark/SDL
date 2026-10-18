@@ -392,7 +392,7 @@ pub(crate) fn update_text_input_area(window: Option<WindowID>) {
     x += cursor.x;
     y += cursor.y;
 
-    // FIXME (upstream): the call is made even without an input context,
+    // Note (upstream): the call is made even without an input context,
     // with a NULL path; it is skipped here.
     let Some(ic_path) = ic_path else {
         return;

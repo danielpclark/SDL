@@ -595,7 +595,7 @@ unsafe extern "system" fn impl_on_activated_invoke(
         borrowed
     };
 
-    // FIXME (upstream): pEventArgs and the tag and arguments strings are
+    // Note (upstream): pEventArgs and the tag and arguments strings are
     // never released; here they are.
     let Ok(p_event_args) =
         args.query::<IToastActivatedEventArgsVtbl>(&IID_ITOAST_ACTIVATED_EVENT_ARGS)
@@ -1662,7 +1662,8 @@ mod tests {
         ));
         assert!(!xml.contains("<actions>"));
 
-        // (FIXME (upstream): a notification without a message fails)
+        // (Note (upstream): a notification without a message fails; see
+        // the FIXME in append_xml_text())
         let notification = Notification {
             title: Some("T".into()),
             ..Notification::default()

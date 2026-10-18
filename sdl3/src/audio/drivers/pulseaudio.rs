@@ -657,7 +657,7 @@ impl PulseDevice {
                 // SAFETY: the stream is live; we hold the lock.
                 unsafe { (self.lib().pa_stream_drop)(self.stream) };
             }
-            // FIXME (upstream): WriteCallback's userdata (the device's
+            // Note (upstream): WriteCallback's userdata (the device's
             // private data) is freed right after this while libpulse may
             // still call it; the write callback is unregistered first here.
             // SAFETY: the stream is live and released once, here.
@@ -774,7 +774,7 @@ impl DeviceBackend for PulseDevice {
         }
 
         //SDL_Log("PULSEAUDIO FEED! nbytes=%d", buffer_size);
-        // FIXME (upstream): this is updated without the main loop lock,
+        // Note (upstream): this is updated without the main loop lock,
         // racing WriteCallback's update; an atomic keeps both here.
         self.bytes_requested
             .fetch_sub(buffer_size as i32, Ordering::AcqRel);

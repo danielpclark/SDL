@@ -753,7 +753,7 @@ pub(crate) fn update_menu(
     mut cb: Option<&mut dyn FnMut(Option<&'static str>)>,
     flags: UpdateMenuFlags,
 ) {
-    // FIXME (upstream): with an empty menu, `revision` is sent in the
+    // Note (upstream): with an empty menu, `revision` is sent in the
     // LayoutUpdated signal without having been set (indeterminate in C);
     // it is 0 here.
     let mut revision: u32 = 0;

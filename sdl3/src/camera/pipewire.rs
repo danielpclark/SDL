@@ -1277,7 +1277,7 @@ impl CameraBackend for PwCamera {
             }
         };
         let Some((pixels, pitch)) = copied else {
-            // FIXME (upstream): a buffer without mapped data becomes a frame
+            // Note (upstream): a buffer without mapped data becomes a frame
             // without pixels there; here it's given back and skipped.
             // SAFETY: a buffer we dequeued, given back.
             unsafe { (lib.pw_stream_queue_buffer)(stream, b) };

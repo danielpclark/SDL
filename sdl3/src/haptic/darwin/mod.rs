@@ -794,7 +794,7 @@ pub(crate) fn to_ffeffect(naxes: i32, hw_axes: &[u8; 3], src: &HapticEffect) -> 
     } else {
         naxes as u32
     };
-    // FIXME (upstream): with more than 3 axes (the haptic axes hint can set
+    // Note (upstream): with more than 3 axes (the haptic axes hint can set
     // that), the axes after the third are left uninitialized, and condition
     // effects read past their 3-entry arrays; here those read as 0.
     let rgdw_axes: Vec<u32> = (0..c_axes as usize)
@@ -882,7 +882,7 @@ pub(crate) fn to_ffeffect(naxes: i32, hw_axes: &[u8; 3], src: &HapticEffect) -> 
 
         HapticEffect::Custom(hap_custom) => {
             // Specifics
-            // FIXME (upstream): the samples are read for channels * samples
+            // Note (upstream): the samples are read for channels * samples
             // entries whatever the size of the data array; missing ones read
             // as 0 here.
             let count = usize::from(hap_custom.samples) * usize::from(hap_custom.channels);
@@ -1022,7 +1022,7 @@ impl HapticDriver for DarwinHapticDriver {
     /// Opens a haptic device from first mouse it finds for usage.
     /// Translation of `SDL_SYS_HapticMouse()`.
     fn mouse(&self) -> Option<usize> {
-        // FIXME (upstream): without a mouse this returns device index 0,
+        // Note (upstream): without a mouse this returns device index 0,
         // which SDL_OpenHapticFromMouse() passes to SDL_OpenHaptic() as an
         // instance ID, never a valid one; the open fails, as `None` makes
         // it fail here.

@@ -190,7 +190,7 @@ fn tray_handle_get_all_props(tray: &TrayDBus, msg: &Message) -> HandlerResult {
     {
         let state = tray.state();
         let menu_path = state.menu.as_ref().and_then(|m| m.menu_path);
-        // FIXME (upstream): the dictionary is only closed when the tray has
+        // Note (upstream): the dictionary is only closed when the tray has
         // a tooltip, which leaves the reply malformed otherwise (libdbus
         // refuses to send it with checks enabled); it is always closed here.
         reply.writer().container(b'a', Some("{sv}"), |dict| {
@@ -640,7 +640,7 @@ impl TrayBackend for TrayDBus {
         let key = state.next_key;
 
         let mut item = menu::create_menu_item();
-        // FIXME (upstream): the label pointer is stored without a copy (it
+        // Note (upstream): the label pointer is stored without a copy (it
         // dangles once the caller frees it); it is copied here.
         item.utf8 = label.map(str::to_owned);
         item.kind = if label.is_none() {
@@ -678,7 +678,7 @@ impl TrayBackend for TrayDBus {
         state.next_key += 1;
 
         // (the parent entry's item holds the submenu list itself)
-        // FIXME (upstream): the parent item keeps a pointer to the
+        // Note (upstream): the parent item keeps a pointer to the
         // submenu's first list node, set on each insertion but not on
         // removal, so removing a submenu's first entry leaves it dangling
         // (and an emptied submenu still reads as one); the current list is
@@ -810,7 +810,7 @@ impl TrayBackend for TrayDBus {
             .as_mut()
             .and_then(|m| find_item(&mut m.menu, entry))
         {
-            // FIXME (upstream): the label pointer is stored without a copy;
+            // Note (upstream): the label pointer is stored without a copy;
             // it is copied here.
             item.utf8 = label.map(str::to_owned);
         }
@@ -911,7 +911,7 @@ impl TrayBackend for TrayDBus {
                 self.update_main_menu(&mut state);
             }
         }
-        // FIXME (upstream): the callback is called even when none is set
+        // Note (upstream): the callback is called even when none is set
         // (a NULL function pointer call); it is skipped here.
         self.item_activated(entry);
     }

@@ -958,7 +958,7 @@ impl X11Video {
                     // Return the first transparent Visual
                     for &fbconfig in configs {
                         vinfo = get_visual_from_fb_config(display, fbconfig);
-                        // FIXME (upstream): a config without a visual (NULL)
+                        // Note (upstream): a config without a visual (NULL)
                         // is dereferenced; it is skipped here.
                         if vinfo.is_null() {
                             continue;
@@ -1256,7 +1256,7 @@ impl X11Video {
         context: Option<RawGlContext>,
     ) -> Result<()> {
         let display = self.display;
-        // FIXME (upstream): a context made current without a window (which
+        // Note (upstream): a context made current without a window (which
         // EGL may have allowed earlier) dereferences the NULL window; no
         // drawable is used here.
         let drawable: Window = match (context, window) {
@@ -1291,7 +1291,7 @@ impl X11Video {
     /// The X window of the thread's current GL window (upstream's
     /// `SDL_GL_GetCurrentWindow()->internal->xwindow`).
     fn current_gl_drawable(&self) -> Result<Window> {
-        // FIXME (upstream): with no current window this dereferences NULL;
+        // Note (upstream): with no current window this dereferences NULL;
         // it fails here.
         let window = gl::current_thread_window().ok_or_else(|| Error::new("Invalid window"))?;
         with_x11_window(window, |_, d| d.xwindow)

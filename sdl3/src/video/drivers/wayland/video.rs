@@ -1135,7 +1135,7 @@ impl WaylandVideo {
                      * NOTE: This path is needed for old versions of GNOME that predate fractional scaling.
                      */
                     internal.scale_factor = internal.integer_scale_factor as f64;
-                    // FIXME (upstream): a compositor sending a wl_output
+                    // Note (upstream): a compositor sending a wl_output
                     // scale of 0 divides by zero here (and below); Rust
                     // panics on that, so the division is skipped for 0.
                     if internal.integer_scale_factor != 0 {

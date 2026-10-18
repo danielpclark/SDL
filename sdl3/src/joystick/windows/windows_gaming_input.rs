@@ -492,7 +492,7 @@ fn invoke_added(e: &ComPtr<IRawGameControllerVtbl>) -> HRESULT {
                 product = USB_PRODUCT_XBOX360_XUSB_CONTROLLER;
             }
         }
-        // FIXME (upstream): game_controller is released here, and used
+        // Note (upstream): game_controller is released here, and used
         // below for the controller type; here it's kept until then.
     }
 
@@ -1153,7 +1153,7 @@ impl JoystickDriver for WgiJoystickDriver {
                 with_wgi(|wgi| wgi.controllers.last().map(|c| c.controller.clone()))
             {
                 invoke_removed(&controller);
-                // FIXME (upstream): if InvokeRemoved() can't remove the
+                // Note (upstream): if InvokeRemoved() can't remove the
                 // controller (its QueryInterface() fails), this loops
                 // forever; here the controller is dropped anyway.
                 with_wgi(|wgi| {

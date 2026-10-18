@@ -740,8 +740,9 @@ fn decode_cta_block(edid: &[u8], info: &mut MonitorInfo) {
         if length == 0 {
             break;
         }
-        // FIXME (upstream): a data block is read without checking that it
-        // fits in the 128-byte extension block (here: in the EDID).
+        // Note (upstream): C reads a data block without checking that it
+        // fits in the 128-byte extension block; here the reads stop at the
+        // end of the EDID.
         if type_ == 7 {
             type_ <<= 8;
             let Some(&ext) = edid.get(offset + 1) else {
@@ -770,8 +771,8 @@ pub(crate) fn decode_edid(edid: &[u8]) -> Option<MonitorInfo> {
     if !edid.len().is_multiple_of(EDID_PAGE_SIZE) {
         return None;
     }
-    // FIXME (upstream): an empty EDID passes the size check and is then
-    // read as a 128-byte block.
+    // Note (upstream): an empty EDID passes the size check and C then
+    // reads it as a 128-byte block; it is rejected here.
     if edid.is_empty() {
         return None;
     }

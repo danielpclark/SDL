@@ -781,7 +781,7 @@ fn video_init(data: &Arc<VideoData>) -> Result<()> {
 /// Translation of `WIN_VideoQuit()`.
 fn video_quit(data: &Arc<VideoData>) {
     // (the raw mouse "no legacy" callback is removed too: upstream leaks it)
-    // FIXME (upstream): WIN_VideoQuit() never removes the
+    // Note (upstream): WIN_VideoQuit() never removes the
     // SDL_HINT_WINDOWS_RAW_MOUSE_NOLEGACY callback it added.
     let callbacks = data.state.with(|s| std::mem::take(&mut s.hint_callbacks));
     drop(callbacks);

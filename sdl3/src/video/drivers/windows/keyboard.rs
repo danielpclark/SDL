@@ -750,12 +750,12 @@ fn ime_get_reading_string(videodata: &VideoData, hwnd: HWND) {
             }
             len
         };
-        // FIXME (upstream): the buffer GetReadingString() fills isn't NUL-terminated, and is read uninitialized when len is 0; here reading stops at its end.
+        // Note (upstream): the buffer GetReadingString() fills isn't NUL-terminated, and is read uninitialized when len is 0; here reading stops at its end.
         ime(videodata, |d| {
             wcslcpy(&mut d.readingstring, buffer.iter().copied(), len as usize)
         });
     } else {
-        // FIXME (upstream): the ImmLockIMC()... pointers and the locked context are used unchecked; here a missing one skips the reading string.
+        // Note (upstream): the ImmLockIMC()... pointers and the locked context are used unchecked; here a missing one skips the reading string.
         let (Some(lock_imc), Some(unlock_imc), Some(lock_imcc), Some(unlock_imcc)) =
             (lock_imc, unlock_imc, lock_imcc, unlock_imcc)
         else {

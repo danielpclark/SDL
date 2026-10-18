@@ -246,7 +246,7 @@ fn bmp_parse_header(s: &mut Context<'_>, info: &mut BmpData) -> Result<()> {
 
 /// Translation of `stbi__bmp_load()`.
 pub(crate) fn bmp_load(s: &mut Context<'_>, req_comp: i32) -> Result<Image<Pixels>> {
-    /* FIXME (upstream): the palette is uninitialized in C, and the
+    /* Note (upstream): the palette is uninitialized in C, and the
     pixels' indices aren't checked against the number of entries read
     (stb reads whatever its stack holds for the others); it is zeroed
     here. */

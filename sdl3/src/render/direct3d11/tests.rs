@@ -1223,9 +1223,10 @@ fn d3d11_matches_software_for_textures() {
         r.set_texture_palette(tv, Some(shared.clone())).unwrap();
         sw.set_texture_palette(ts, Some(shared)).unwrap();
     }
-    // (FIXME (upstream) in D3D11_SetDrawState(): the texture is bound
-    // already, so without the flush, which invalidates the cached state,
-    // the previous palette would stay bound)
+    // (Note (upstream): see the FIXME in set_draw_state(), the
+    // translation of D3D11_SetDrawState(): the texture is bound already,
+    // so without the flush, which invalidates the cached state, the
+    // previous palette would stay bound)
     r.flush().unwrap();
     for rr in [&mut r, &mut sw] {
         let t = if rr.name() == "direct3d11" { tv } else { ts };

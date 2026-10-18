@@ -445,7 +445,7 @@ pub(crate) fn set_output_crc(data: &mut [u8]) {
     let hdr = 0xA2; // hidp header is part of the CRC calculation
     let size = data.len();
     let crc = crate::stdlib::crc32(crate::stdlib::crc32(0, &[hdr]), &data[..size - 4]);
-    // FIXME (upstream): the CRC is copied in host byte order, which is
+    // Note (upstream): the CRC is copied in host byte order, which is
     // wrong on big endian hosts; it's little endian here.
     data[size - 4..].copy_from_slice(&crc.to_le_bytes());
 }

@@ -329,7 +329,7 @@ pub(crate) fn key_sym_to_ucs4(keysym: u32) -> u32 {
     } else if keysym > 0x4a0 && keysym < 0x4e0 {
         KEYSYM_TO_UNICODE_4A1_4DF[k - 0x4a1]
     } else if keysym > 0x589 && keysym < 0x5ff {
-        // FIXME (upstream): keysyms 0x58a-0x58f index the 0x590 table at
+        // Note (upstream): keysyms 0x58a-0x58f index the 0x590 table at
         // -6..-1 (out of bounds); they are taken as unmapped here.
         match (k).checked_sub(0x590) {
             Some(i) => KEYSYM_TO_UNICODE_590_5FE[i],

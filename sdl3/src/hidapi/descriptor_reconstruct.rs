@@ -518,7 +518,7 @@ impl MainItemList {
         report_id: u8,
         mut list: usize,
     ) -> usize {
-        // FIXME (upstream): the search dereferences the next node without
+        // Note (upstream): the search dereferences the next node without
         // checking for the end of the list; here it stops at the last node.
         while let Some(next) = self.nodes[list].next {
             let next = &self.nodes[next];

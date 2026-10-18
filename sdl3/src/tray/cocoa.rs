@@ -689,7 +689,7 @@ impl TrayBackend for TrayCocoa {
 
         /* Don't set menu on statusItem - we handle menu display manually in the click handler */
 
-        // FIXME (upstream): a previous menu is leaked; here it is destroyed.
+        // Note (upstream): a previous menu is leaked; here it is destroyed.
         if let Some(old) = state.menu.take() {
             destroy_sdl_menu(*old, MenuOwner::Tray(state.status_item.get()));
         }

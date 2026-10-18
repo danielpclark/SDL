@@ -52,8 +52,9 @@ impl X11Video {
         window: WindowID,
         shape: Option<&Surface<'static>>,
     ) -> Result<()> {
-        // FIXME (upstream): SDL_X11_HAVE_XSHAPE isn't checked before the
-        // XShape functions are called (NULL when libXext lacks them).
+        // Note (upstream): C doesn't check SDL_X11_HAVE_XSHAPE before it
+        // calls the XShape functions (NULL when libXext lacks them); here
+        // their absence reports "unsupported".
         let Some(xshape) = &self.x.xshape else {
             return Err(Error::unsupported());
         };

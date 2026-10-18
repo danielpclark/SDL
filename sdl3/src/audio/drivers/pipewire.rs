@@ -713,10 +713,10 @@ unsafe extern "C" fn node_event_param(
         return;
     };
 
-    // FIXME (upstream): the node's format is preset to S16 when it's
-    // created, so this never runs; and spa_format_audio_raw_parse()
-    // returns the number of fields it read, so `== 0` only holds when
-    // it read none.
+    // Note (upstream): this never runs, in C as here: the node's format
+    // is preset to S16 when it's created. (If it did run,
+    // spa_format_audio_raw_parse() returns the number of fields it read,
+    // so `== 0` would only hold when it read none.)
     if id == SPA_PARAM_FORMAT && io.spec.format == AudioFormat::UNKNOWN {
         let mut info = SpaAudioInfoRaw::default();
         if spa_format_audio_raw_parse(param, &mut info) == 0 {
@@ -1248,9 +1248,9 @@ impl PwDevice {
         let stream = self.stream();
         let pw_buf = self.pw_buf.swap(ptr::null_mut(), Ordering::AcqRel);
         if pw_buf.is_null() {
-            // FIXME (upstream): output_callback() calls PIPEWIRE_PlayDevice()
+            // Note (upstream): output_callback() calls PIPEWIRE_PlayDevice()
             // even when GetDeviceBuf found no buffer, which dereferences a NULL
-            // pw_buf; there's nothing to queue here.
+            // pw_buf in C; here there's nothing to queue, so it returns.
             return;
         }
         // SAFETY: we dequeued `pw_buf`; its first data has a chunk.
@@ -1371,7 +1371,7 @@ unsafe extern "C" fn stream_add_buffer_callback(data: *mut c_void, buffer: *mut 
         let maxsize = unsafe { (*(*(*buffer).buffer).datas).maxsize } as usize;
         let sample_frames = maxsize as i32 / h.stride;
         if h.stream_init_status.load(Ordering::Acquire) & PW_READY_FLAG_OPEN_COMPLETE == 0 {
-            // FIXME (upstream): this locks the device here, but OpenDevice is
+            // Note (upstream): this locks the device here, but OpenDevice is
             // holding the device lock while it waits for this callback, so
             // that deadlocks; the change is applied when the open finishes.
             if h.buffer_size.load(Ordering::Acquire) > maxsize {

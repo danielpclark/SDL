@@ -658,8 +658,9 @@ unsafe extern "system" fn sdlmm_notification_client_on_default_device_changed(
     pwstr_device_id: PCWSTR,
 ) -> HRESULT {
     if role == SDL_IMMDEVICE_ROLE {
-        // FIXME (upstream): the device id is NULL when there's no default
-        // device left; SDL_IMMDevice_FindByDevID() then finds nothing.
+        // Note (upstream): the device id is NULL when there's no default
+        // device left, and C passes it on to SDL_IMMDevice_FindByDevID();
+        // here a NULL id finds no device.
         let device = if pwstr_device_id.is_null() {
             None
         } else {

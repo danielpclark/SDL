@@ -86,7 +86,7 @@ impl X11Video {
             }
 
             let counter_id: u32 = counter as u32;
-            // FIXME (upstream): the property is set from a 4-byte CARD32,
+            // Note (upstream): the property is set from a 4-byte CARD32,
             // but Xlib reads format-32 data as longs (8 bytes on LP64);
             // a long is passed here.
             let counter_long = counter_id as std::ffi::c_long;

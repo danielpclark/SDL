@@ -1235,7 +1235,7 @@ impl Device {
              * and versions of BlueZ >= 5.56 include 2 copies of the report.
              * We'll fix it so that there is a single copy of the report in both cases
              */
-            // FIXME (upstream): both moves copy `res` bytes, one past the
+            // Note (upstream): both moves copy `res` bytes, one past the
             // end of the buffer when the report fills it; here they stop
             // at its end.
             if length > 1 && data[0] == report && data[1] == report {
