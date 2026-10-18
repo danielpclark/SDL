@@ -197,9 +197,9 @@ def voc_files():
 
     # Old style blocks: sound data, silence, text, a repeated block, and an
     # extended (stereo) block. The format gives the end-of-repeat block a
-    # (zero) size like every other block, but SDL_mixer reads it without
-    # one (and stops at what it takes for a terminator block), so there's a
-    # file of each.
+    # (zero) size like every other block; upstream SDL_mixer read it without
+    # one (and stopped at what it took for a terminator block), sdl3-mixer
+    # and the patched C reference read it, and there's a file of each.
     hdr = b'Creative Voice File\x1a' + struct.pack('<HHH', 26, 0x010A, (~0x010A + 0x1234) & 0xFFFF)
     rate = 256 - 1000000 // 8000
     u8 = lambda samples: bytes(int(round(s * 127)) + 128 for s in samples)

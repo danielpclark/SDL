@@ -125,30 +125,27 @@ fn parse_voc_file(
 
     loop {
         let mut block = [0u8; 1];
-        let mut blen: u32 = 0;
         if io.read(&mut block) != 1 {
             break; // assume that's the end of the file.
         }
         let block = block[0];
         if block == VOC_TERM {
             break; // that's the (optional) end.
-        } else if block != VOC_LOOPEND {
-            // TERM and LOOPEND don't have a size field.
-            // FIXME (upstream): the VOC format gives LOOPEND blocks a (zero)
-            // size field like the others, so files that have one end at it
-            // here (its first byte reads as a TERM block).
-            let mut bits24 = [0u8; 3];
-            if io.read(&mut bits24) != bits24.len() {
-                return Err(voc_error());
-            }
-            // Size is a 24-bit value. Ugh.
-            blen = (bits24[0] as u32) | ((bits24[1] as u32) << 8) | ((bits24[2] as u32) << 16);
         }
+        // TERM doesn't have a size field.
+        // Note (upstream): LOOPEND blocks don't either there, but the VOC
+        // format gives them a (zero) size field like the others, so files
+        // that have one ended at it (its first byte read as a TERM block);
+        // the translation reads it.
+        let mut bits24 = [0u8; 3];
+        if io.read(&mut bits24) != bits24.len() {
+            return Err(voc_error());
+        }
+        // Size is a 24-bit value. Ugh.
+        let blen = (bits24[0] as u32) | ((bits24[1] as u32) << 8) | ((bits24[2] as u32) << 16);
 
         pos += 1;
-        if (block != VOC_TERM) && (block != VOC_LOOPEND) {
-            pos += 3; // size fields on everything but VOC_TERM and VOC_LOOPEND.
-        }
+        pos += 3; // size fields on everything but VOC_TERM.
 
         match block {
             VOC_DATA => {
@@ -541,12 +538,15 @@ impl TrackData for VocTrackData<'_> {
 
         if block.iopos == 0 {
             // zero position means write silence (you can't have a data block at position 0 because of headers, etc).
-            // FIXME (upstream): this pushes one NULL channel buffer as
-            // planar data, which pushes silence only for multichannel
-            // audio: mono audio (all of SDL's own VOC data blocks) gets
-            // nothing, as SDL_PutAudioStreamPlanarData passes a single
-            // channel's NULL buffer to SDL_PutAudioStreamData, which fails.
-            if stream.put_planar_data(&[None], frames as usize).is_ok() {
+            // Note (upstream): this pushes one NULL channel buffer as planar
+            // data there, which pushes silence only for multichannel audio:
+            // mono audio (all of SDL's own VOC data blocks) gets nothing,
+            // as SDL_PutAudioStreamPlanarData passes a single channel's
+            // NULL buffer to SDL_PutAudioStreamData, which fails. The
+            // translation pushes the silent frames itself.
+            let silence =
+                vec![self.spec.format.silence_value(); frames as usize * self.spec.frame_size()];
+            if stream.put_data(&silence).is_ok() {
                 // push silence to the stream.
                 self.frames_in_loop += 1;
             }
