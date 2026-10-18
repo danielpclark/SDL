@@ -25,8 +25,8 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `x11` | Linux | libX11 and the X extension libraries (libXext, libXi, libXrandr, libXfixes, libXcursor, libXss, libXtst) |
 | `xvfb` | Linux | an X server: `Xvfb` in `PATH` (each X11 test starts its own), or `DISPLAY` |
 | `glx` | Linux | libGL with GLX on that server (Mesa's llvmpipe is enough) |
-| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`) |
-| `vulkan` | Linux, Windows, macOS | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS the loader with MoltenVK (by upstream's default names, or Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), for the Cocoa driver's Vulkan surfaces |
+| `egl` | Linux, Windows, macOS | libEGL and the GL/GLES libraries (Mesa on Linux; on Windows an EGL such as ANGLE's `libEGL.dll`, which Windows doesn't ship, or Mesa's (below) with `EGL_PLATFORM=windows`; on macOS ANGLE's `libEGL.dylib` and `libGLESv2.dylib`, from the directory `SDL3_TEST_ANGLE_DIR` names or the copy the Android emulator ships in `~/Library/Android/sdk/emulator/lib64/gles_angle`). The offscreen driver has EGL only on Linux and the other Unix systems, so the OpenGL ES 2 renderer's checks, which draw on it, skip on Windows and macOS, as the OpenGL renderer's checks on it do on macOS |
+| `vulkan` | Linux, Windows, macOS | a Vulkan loader and a driver with the surface extensions, `VK_EXT_headless_surface` included for the tests of the Vulkan and GPU renderers and of the GPU API's swapchains on offscreen windows (Mesa's lavapipe is enough; on Windows those tests present to the Windows video driver's windows instead, since the GPU drivers there (NVIDIA's, say) have no `VK_EXT_headless_surface`, and only the offscreen driver's own headless-surface check skips; the tests of the GPU API's Vulkan backend and of the GPU renderer run under `VK_LAYER_KHRONOS_validation` when it is installed, and present to an X11 window too when `DISPLAY` is set); on macOS MoltenVK, by upstream's default names: `libMoltenVK.dylib` itself (in `/usr/local/lib`, say), which runs every check, or the Vulkan loader with it (the Cocoa driver's surface check also tries Homebrew's `/opt/homebrew/lib/libvulkan.1.dylib`), through which the Vulkan renderer's checks skip with `VK_ERROR_INCOMPATIBLE_DRIVER`: MoltenVK's devices then need portability enumeration, which upstream's renderer doesn't ask for. Under Metal's API validation, which the GPU API's Metal devices in debug mode turn on for the rest of the process (as upstream's do, setting `MTL_DEBUG_LAYER=1` unless it's set), MoltenVK misdraws the fills after another render state's in a pass in the GPU renderer's render-state test on the CI runners' Apple Paravirtual device (1.3.0 to 1.4.2, reporting no error), so with a MoltenVK device and `MTL_DEBUG_LAYER` set and not `0` those three checks skip (run the test again with `MTL_DEBUG_LAYER=0` for them; with discrete descriptor binding, `MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0`, more of the renderer's checks misdraw under the layer; Khronos' validation layer, with synchronization validation, finds nothing in them on lavapipe, and they pass on Metal under the same validation) |
 | `wayland` | Linux | libwayland-client/-egl/-cursor, libxkbcommon and `sway` (or `weston`) in `PATH`; the input and clipboard tests need sway |
 | `dbus` | Linux | libdbus and `dbus-daemon` (the tests start private buses) |
 | `pulseaudio` | Linux | libpulse, and the `pulseaudio` and `pactl` binaries (the tests start a private server) |
@@ -40,7 +40,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `locales` | Linux | glibc's `localedef` and its locale sources in `/usr/share/i18n/locales` (the tests compile the locales they read the date and time formats of) |
 | `xinput` | Windows | an XInput DLL (`XInput1_4.dll` ships with Windows) |
 | `gameinput` | Windows | a GameInput DLL with the v3 API (one that exports `GameInputInitialize`): the GameInput redistributable's `GameInputRedist.dll`, or a recent enough `GameInput.dll` from Windows (an older inbox one only has the v0 API) |
-| `wgl` | Windows | `opengl32.dll` with a pixel format and context; the hardware check wants the GPU's driver, not GDI Generic |
+| `wgl` | Windows | `opengl32.dll` with a pixel format and context (GDI Generic's 1.1 is enough for most checks; Mesa's, below, for all of them); the hardware check wants the GPU's driver, not GDI Generic |
 | `d3d11` | Windows | `d3d11.dll` and `dxgi.dll` with a Direct3D 11 device (feature level 11.0 or 11.1) and a swap chain on a window: a GPU driver, WARP, or Wine's d3d11 (wined3d on Mesa) |
 | `d3d12` | Windows | `d3d12.dll` and `dxgi.dll` with a Direct3D 12 device (feature level 11.0) for the GPU API's backend: a GPU driver, WARP, or Wine's d3d12 (vkd3d on a Vulkan driver, with an X server for DXGI); the DXIL checks need shader model 6, which vkd3d under Wine 9 lacks (they skip there) |
 | `dxc` | any | a current DXC (1.7.2212 or later, with the `-fspv-preserve-*` options) for `sdl3-shadercross`'s DXIL and HLSL-to-SPIR-V checks: `dxcompiler.dll` with `dxil.dll` (`libdxcompiler.so` elsewhere) next to the test executable or in `PATH`, from [DXC's releases](https://github.com/microsoft/DirectXShaderCompiler/releases) or the Vulkan SDK. The Windows SDK's DXC is found on its own and compiles DXIL, but can't do HLSL to SPIR-V (1.6 in SDK 10.0.22621 is too old for the SPIR-V options; the SDKs on the CI runners ship a DXC built without SPIR-V code generation): the test notes that and passes, unless `dxc` is required |
@@ -145,10 +145,11 @@ AMD's and Intel's do), given an interactive session (not a service, not a
 remote desktop session without a GPU), speakers or headphones, and a
 microphone (a webcam's counts). `gameinput` needs the GameInput
 redistributable; `egl` needs an EGL implementation such as ANGLE's
-`libEGL.dll` next to the test executable or in `PATH`, so leave it out
-normally; `dxc` needs a current DXC's `dxcompiler.dll` and `dxil.dll` next
-to the test executable or in `PATH` (the Windows SDK's, found on its own,
-only compiles DXIL), so leave it out unless you put one there.
+`libEGL.dll` (or Mesa's, [below](#without-a-gpu-driver-mesa)) next to the
+test executable or in `PATH`, so leave it out normally; `dxc` needs a
+current DXC's `dxcompiler.dll` and `dxil.dll` next to the test executable
+or in `PATH` (the Windows SDK's, found on its own, only compiles DXIL), so
+leave it out unless you put one there.
 
 In PowerShell:
 
@@ -188,6 +189,32 @@ set `SDL3_TEST_SKIP_LOG` to a file first and read it after each run:
 $env:SDL3_TEST_SKIP_LOG = "$env:TEMP\sdl3-skips.tsv"
 ```
 
+### Without a GPU driver: Mesa
+
+A machine without a GPU driver (a VM, the CI runners) gets OpenGL, EGL and
+Vulkan from Mesa's software drivers, as the CI does: the MSVC build of
+[mesa-dist-win](https://github.com/pal1000/mesa-dist-win/releases) (`x64`
+folder) and a Vulkan loader (`vulkan-1.dll`, from the Vulkan SDK or
+[built](https://github.com/KhronosGroup/Vulkan-Loader) from its SDK tag):
+
+* copy Mesa's `opengl32.dll`, `libgallium_wgl.dll`, `libEGL.dll` and
+  `libGLESv2.dll`, and `vulkan-1.dll`, next to the test executables
+  (`target\debug\deps`, `target\release\deps`), where they're found
+  before System32's (Mesa's per-application deployment);
+* register lavapipe's ICD, `lvp_icd.x86_64.json`, under
+  `HKLM\SOFTWARE\Khronos\Vulkan\Drivers` (a `REG_DWORD` 0 named by its
+  path), or name it in `VK_DRIVER_FILES`, which the loader ignores in an
+  elevated process;
+* set `GALLIUM_DRIVER=llvmpipe`: on Microsoft's Basic Render Driver Mesa
+  picks its d3d12 driver, whose `glReadPixels` ends the process (exit code
+  `0x80070057`);
+* set `EGL_PLATFORM=windows`: the build's default EGL display is
+  surfaceless, which has no window surfaces (`EGL_BAD_NATIVE_WINDOW`).
+
+Then `wgl` and `vulkan` are there (lavapipe has no
+`VK_EXT_headless_surface` on Windows, so the offscreen driver's Vulkan
+check skips) and `egl` too, for the windows video driver's EGL contexts.
+
 ### Running them from a Claude Code session on that machine
 
 A session on the Windows machine (the Claude desktop app, or
@@ -219,9 +246,18 @@ get the `opengl` renderer. A machine with only Microsoft's GDI Generic 1.1
 
 Nothing needs installing for `cocoa`, `coreaudio`, `metal` and `hidapi`:
 they come with macOS, given a login session at the screen (not a plain SSH
-session), speakers and a microphone. `vulkan` needs a Vulkan loader with
-MoltenVK (`brew install vulkan-loader molten-vk`), and `egl` ANGLE (see
-the table), so leave that out normally.
+session), speakers and a microphone. `vulkan` needs MoltenVK where
+upstream's default names find it: `libMoltenVK.dylib` from
+[MoltenVK's releases](https://github.com/KhronosGroup/MoltenVK/releases)
+(`MoltenVK-macos.tar`, `MoltenVK/dynamic/dylib/macOS`) or Homebrew's
+`molten-vk` copied or linked into `/usr/local/lib`, as the CI does, runs
+every check; a loader (`brew install vulkan-loader molten-vk`) is found by
+the Cocoa driver's check only, and the Vulkan renderer's checks skip
+through it (see the table). After the Metal tests three render-state
+checks skip `vulkan` (see the table too); `MTL_DEBUG_LAYER=0 cargo test
+-p sdl3 --lib render::gpu::tests::gpu_render_states -- --exact` runs it.
+`egl` needs ANGLE (see the table), and the offscreen driver's
+checks skip it anyway, so leave that out.
 
 ```sh
 cargo test --workspace
@@ -294,9 +330,23 @@ Windows.
 
 The ubuntu test jobs install the packages above, start the private
 PipeWire server with `tools/ci/start-pipewire.sh` and set
-`SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi`,
+`SDL3_TEST_REQUIRE=x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales`,
 so on Linux only the uinput test (the runner can't use `/dev/uinput`) and
-the hardware checks may skip. The Windows and macOS jobs require nothing,
-since what a hosted runner offers (a desktop, audio endpoints, a Metal
-device) isn't guaranteed; the macOS clippy job also lints the x86-64 build
-for Intel Macs. Every job lists its skips in the job summary.
+the hardware checks may skip.
+
+The Windows and macOS jobs install pinned GPU drivers (versions and
+checksums in `.github/workflows/ci.yml`, cached between runs). On Windows
+that's Mesa as [above](#without-a-gpu-driver-mesa), from mesa-dist-win's
+release, with the Vulkan loader built from its SDK tag, and the jobs
+require `wgl`. On macOS it's MoltenVK's release `libMoltenVK.dylib` in
+`/usr/local/lib`, and the jobs run the render-state test whose checks
+MoltenVK misdraws under the Metal debug layer (see the `vulkan` row above)
+once more without it, requiring `vulkan`; the Cocoa programs find ANGLE in the
+Android emulator the runner image ships. Both fail on any skip of `vulkan`
+and `egl` but the ones by design: the offscreen driver's headless-surface
+check on Windows, those render-state checks on macOS, and the OpenGL and
+OpenGL ES 2 renderers' checks on the offscreen driver, which has no EGL
+on either. What else a hosted runner offers (audio endpoints, GameInput,
+a camera) isn't guaranteed, so nothing more is required. The
+macOS clippy job also lints the x86-64 build for Intel Macs. Every job
+lists its skips in the job summary.
