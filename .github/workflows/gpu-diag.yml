@@ -22,7 +22,7 @@ jobs:
         os: [windows-latest, macos-latest]
         # the pinned toolchain, and the minimum supported version
         # (rust-version in Cargo.toml)
-        toolchain: [pinned]
+        toolchain: [pinned, "1.87"]
     runs-on: ${{ matrix.os }}
     # The pinned Windows job (debug, the zlib-only mixer, then release) takes
     # close to 30 minutes; this still stops a hung run.
@@ -32,19 +32,21 @@ jobs:
       # at the end, so a run that then hangs still shows what went wrong.
       RUST_TEST_NOCAPTURE: 1
       # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
-      # the packages and drivers installed below provide: tests that would
-      # skip without them fail instead. Not uinput on ubuntu (the runner
-      # can't use /dev/uinput), nor what a hosted runner doesn't pin down
-      # (an audio endpoint, GameInput, a camera); not vulkan and egl on
-      # Windows, where a check of each skips by design (see "Check the
-      # Windows skips" below).
+      # the packages and GPU drivers installed below provide: tests that
+      # would skip without them fail instead. Not uinput on ubuntu (the
+      # runner can't use /dev/uinput), nor what a hosted runner doesn't pin
+      # down (an audio endpoint, GameInput, a camera). On Windows not vulkan
+      # and egl either, which a few checks skip by design: "Check the
+      # Windows skips" below fails on any other skip of them. (egl isn't
+      # required on macOS for the same reason: the offscreen driver has no
+      # EGL there.)
       LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales
       WINDOWS_REQUIRE: wgl
       MACOS_REQUIRE: vulkan
       # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
-      # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and EGL,
-      # lavapipe Vulkan), the Khronos Vulkan loader built from its SDK tag
-      # (Windows has none), and MoltenVK's release build for macOS.
+      # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and
+      # EGL, lavapipe Vulkan) with the Khronos Vulkan loader built from its
+      # SDK tag (Windows has none), and MoltenVK's release build.
       MESA_VERSION: "26.2.4"
       MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
       VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
@@ -73,72 +75,72 @@ jobs:
             pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
             libudev1 libasound2t64 libdbus-1-3 dbus-daemon tzdata locales
           XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" tools/ci/start-pipewire.sh
-      # The GPU driver downloads and the Vulkan loader build, kept between
+      # The GPU driver archives and the Vulkan loader build, kept between
       # runs (the archives are checked again on every run).
       - name: Cache the GPU drivers
         if: runner.os != 'Linux'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          path: ${{ runner.temp }}/gpu
-          key: gpu-${{ runner.os }}-mesa-${{ env.MESA_VERSION }}-loader-${{ env.VULKAN_LOADER_COMMIT }}-moltenvk-${{ env.MOLTENVK_VERSION }}
+          path: ${{ runner.temp }}/gpu-cache
+          key: gpu-${{ runner.os }}-${{ runner.os == 'Windows' && format('mesa-{0}-loader-{1}', env.MESA_VERSION, env.VULKAN_LOADER_COMMIT) || format('moltenvk-{0}', env.MOLTENVK_VERSION) }}
       # Mesa's opengl32.dll next to the test executables, where it's found
       # before System32's (Mesa's per-application deployment), with its
       # libgallium_wgl.dll, libEGL.dll and libGLESv2.dll and the Vulkan
       # loader; lavapipe's ICD in the registry (the loader ignores
-      # VK_DRIVER_FILES in an elevated process, as the runner's). Mesa's
-      # settings: llvmpipe (on the runner's Microsoft Basic Render Driver
-      # Mesa picks its d3d12 driver, whose glReadPixels ends the process),
-      # and EGL's Windows platform for the default display (whose windows
-      # SDL's EGL surfaces are made on; this build defaults to surfaceless).
+      # VK_DRIVER_FILES in an elevated process, as the runner's). And two
+      # Mesa settings: llvmpipe (on the runner's Microsoft Basic Render
+      # Driver Mesa picks its d3d12 driver, whose glReadPixels ends the
+      # process), and EGL's Windows platform for the default display, which
+      # SDL's EGL window surfaces need (this build's default is surfaceless).
       - name: Install the GPU drivers (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
+          C="$RUNNER_TEMP/gpu-cache"
           G="$RUNNER_TEMP/gpu"
-          mkdir -p "$G"
-          cd "$G"
+          mkdir -p "$C" "$G"
+          cd "$C"
           if [ ! -f mesa.7z ]; then
             curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
           fi
           echo "$MESA_SHA256  mesa.7z" | sha256sum -c
-          7z x -y -omesa mesa.7z x64 > /dev/null
+          7z x -y -o"$G" mesa.7z x64 > /dev/null
           if [ ! -f vulkan-1.dll ]; then
-            git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader loader
-            test "$(git -C loader rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
-            cmake -S loader -B loader/build -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > cmake.log 2>&1 || { tail -50 cmake.log; exit 1; }
-            cmake --build loader/build --config Release --parallel > build.log 2>&1 || { tail -80 build.log; exit 1; }
-            cp loader/build/loader/Release/vulkan-1.dll .
-            rm -rf loader
+            git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader "$G/loader"
+            test "$(git -C "$G/loader" rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
+            cmake -S "$G/loader" -B "$G/loader/build" -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > "$G/cmake.log" 2>&1 || { tail -50 "$G/cmake.log"; exit 1; }
+            cmake --build "$G/loader/build" --config Release --parallel > "$G/build.log" 2>&1 || { tail -80 "$G/build.log"; exit 1; }
+            cp "$G/loader/build/loader/Release/vulkan-1.dll" .
           fi
           cd "$GITHUB_WORKSPACE"
           for d in target/debug/deps target/release/deps; do
             mkdir -p "$d"
-            cp "$G"/mesa/x64/{opengl32,libgallium_wgl,libEGL,libGLESv2}.dll "$G/vulkan-1.dll" "$d/"
+            cp "$G"/x64/{opengl32,libgallium_wgl,libEGL,libGLESv2}.dll "$C/vulkan-1.dll" "$d/"
           done
-          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/mesa/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
+          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
           echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
           echo "EGL_PLATFORM=windows" >> "$GITHUB_ENV"
       # MoltenVK's dylib in /usr/local/lib, where upstream's default
       # libMoltenVK.dylib is found, without a loader: through one, MoltenVK's
       # devices need portability enumeration, which upstream's Vulkan
       # renderer doesn't ask for. MTL_DEBUG_LAYER=0: the GPU API's Metal
-      # devices in debug mode turn Metal's API validation on for the rest of
-      # the process (as upstream's do), and under it MoltenVK (1.3.0 to
+      # devices in debug mode turn Metal's API validation on for the rest
+      # of the process (as upstream's do), and under it MoltenVK (1.3.0 to
       # 1.4.2) draws some of the GPU renderer's checks wrongly
       # (docs/HARDWARE_TESTING.md).
       - name: Install the GPU drivers (macOS)
         if: runner.os == 'macOS'
         run: |
-          G="$RUNNER_TEMP/gpu"
-          mkdir -p "$G"
-          cd "$G"
+          C="$RUNNER_TEMP/gpu-cache"
+          mkdir -p "$C"
+          cd "$C"
           if [ ! -f moltenvk.tar ]; then
             curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
           fi
           echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
-          tar xf moltenvk.tar MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
           sudo mkdir -p /usr/local/lib
-          sudo cp MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib /usr/local/lib/
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
           echo "MTL_DEBUG_LAYER=0" >> "$GITHUB_ENV"
       - run: cargo test --workspace
         env:
@@ -179,26 +181,128 @@ jobs:
           else
             echo "no checks skipped"
           fi
-      # On Windows lavapipe has no VK_EXT_headless_surface, so the offscreen
-      # driver's Vulkan check skips, and the offscreen driver has no EGL
-      # there (nor on macOS), so the OpenGL ES 2 renderer's checks skip:
-      # `vulkan` and `egl` can't be required, but any other skip of them
-      # fails the job.
+      # The Windows skips of vulkan and egl by design: lavapipe has no
+      # VK_EXT_headless_surface there, for the offscreen driver's Vulkan
+      # check, and the offscreen driver has no EGL there, for the OpenGL ES
+      # 2 renderer's checks. Any other skip of them fails the job.
       - name: Check the Windows skips
         if: runner.os == 'Windows'
         shell: bash
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: |
-          if [ -f "$SDL3_TEST_SKIP_LOG" ] && grep -P '^(vulkan|egl)\t' "$SDL3_TEST_SKIP_LOG" \
-              | grep -vP '^vulkan\tvideo::drivers::offscreen::vulkan::tests::offscreen_vulkan_surfaces\tno VK_EXT_headless_surface$' \
-              | grep -vP '^egl\trender::opengles2::tests::\w+\tno OpenGL ES [23] (renderer|window) \(.*video driver \(offscreen\) or platform\)$'; then
+          touch "$SDL3_TEST_SKIP_LOG"
+          awk -F '\t' '($1 == "vulkan" && $2 != "video::drivers::offscreen::vulkan::tests::offscreen_vulkan_surfaces") ||
+            ($1 == "egl" && !($2 ~ /^render::opengles2::tests::/ && $3 ~ /video driver \(offscreen\)/))' \
+            "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
+          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
+            cat "$RUNNER_TEMP/unexpected.tsv"
             echo "::error::vulkan or egl checks skipped (above)"
             exit 1
           fi
-      - name: Skips (for the diag log)
-        if: always()
+
+  install-again:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Print a failing test's panic as it happens rather than in the summary
+      # at the end, so a run that then hangs still shows what went wrong.
+      RUST_TEST_NOCAPTURE: 1
+      # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
+      # the packages and GPU drivers installed below provide: tests that
+      # would skip without them fail instead. Not uinput on ubuntu (the
+      # runner can't use /dev/uinput), nor what a hosted runner doesn't pin
+      # down (an audio endpoint, GameInput, a camera). On Windows not vulkan
+      # and egl either, which a few checks skip by design: "Check the
+      # Windows skips" below fails on any other skip of them. (egl isn't
+      # required on macOS for the same reason: the offscreen driver has no
+      # EGL there.)
+      LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales
+      WINDOWS_REQUIRE: wgl
+      MACOS_REQUIRE: vulkan
+      # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
+      # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and
+      # EGL, lavapipe Vulkan) with the Khronos Vulkan loader built from its
+      # SDK tag (Windows has none), and MoltenVK's release build.
+      MESA_VERSION: "26.2.4"
+      MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
+      VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
+      VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
+      MOLTENVK_VERSION: v1.4.2
+      MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+    steps:
+      - uses: actions/checkout@v5
+      # The GPU driver archives and the Vulkan loader build, kept between
+      # runs (the archives are checked again on every run).
+      - name: Cache the GPU drivers
+        if: runner.os != 'Linux'
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/gpu-cache
+          key: gpu-${{ runner.os }}-${{ runner.os == 'Windows' && format('mesa-{0}-loader-{1}', env.MESA_VERSION, env.VULKAN_LOADER_COMMIT) || format('moltenvk-{0}', env.MOLTENVK_VERSION) }}
+      # Mesa's opengl32.dll next to the test executables, where it's found
+      # before System32's (Mesa's per-application deployment), with its
+      # libgallium_wgl.dll, libEGL.dll and libGLESv2.dll and the Vulkan
+      # loader; lavapipe's ICD in the registry (the loader ignores
+      # VK_DRIVER_FILES in an elevated process, as the runner's). And two
+      # Mesa settings: llvmpipe (on the runner's Microsoft Basic Render
+      # Driver Mesa picks its d3d12 driver, whose glReadPixels ends the
+      # process), and EGL's Windows platform for the default display, which
+      # SDL's EGL window surfaces need (this build's default is surfaceless).
+      - name: Install the GPU drivers (Windows)
+        if: runner.os == 'Windows'
         shell: bash
         run: |
-          cut -f1 "$RUNNER_TEMP/skips.tsv" | sort | uniq -c || true
-          sort -u "$RUNNER_TEMP/skips.tsv" | cut -c1-250 || true
+          C="$RUNNER_TEMP/gpu-cache"
+          G="$RUNNER_TEMP/gpu"
+          mkdir -p "$C" "$G"
+          cd "$C"
+          if [ ! -f mesa.7z ]; then
+            curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
+          fi
+          echo "$MESA_SHA256  mesa.7z" | sha256sum -c
+          7z x -y -o"$G" mesa.7z x64 > /dev/null
+          if [ ! -f vulkan-1.dll ]; then
+            git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader "$G/loader"
+            test "$(git -C "$G/loader" rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
+            cmake -S "$G/loader" -B "$G/loader/build" -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > "$G/cmake.log" 2>&1 || { tail -50 "$G/cmake.log"; exit 1; }
+            cmake --build "$G/loader/build" --config Release --parallel > "$G/build.log" 2>&1 || { tail -80 "$G/build.log"; exit 1; }
+            cp "$G/loader/build/loader/Release/vulkan-1.dll" .
+          fi
+          cd "$GITHUB_WORKSPACE"
+          for d in target/debug/deps target/release/deps; do
+            mkdir -p "$d"
+            cp "$G"/x64/{opengl32,libgallium_wgl,libEGL,libGLESv2}.dll "$C/vulkan-1.dll" "$d/"
+          done
+          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
+          echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
+          echo "EGL_PLATFORM=windows" >> "$GITHUB_ENV"
+      # MoltenVK's dylib in /usr/local/lib, where upstream's default
+      # libMoltenVK.dylib is found, without a loader: through one, MoltenVK's
+      # devices need portability enumeration, which upstream's Vulkan
+      # renderer doesn't ask for. MTL_DEBUG_LAYER=0: the GPU API's Metal
+      # devices in debug mode turn Metal's API validation on for the rest
+      # of the process (as upstream's do), and under it MoltenVK (1.3.0 to
+      # 1.4.2) draws some of the GPU renderer's checks wrongly
+      # (docs/HARDWARE_TESTING.md).
+      - name: Install the GPU drivers (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          C="$RUNNER_TEMP/gpu-cache"
+          mkdir -p "$C"
+          cd "$C"
+          if [ ! -f moltenvk.tar ]; then
+            curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          fi
+          echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
+          tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+          echo "MTL_DEBUG_LAYER=0" >> "$GITHUB_ENV"
+      - name: Deployed
+        shell: bash
+        run: ls -la target/debug/deps /usr/local/lib/libMoltenVK.dylib 2>/dev/null | head; ls "$RUNNER_TEMP/gpu-cache"
