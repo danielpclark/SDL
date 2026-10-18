@@ -1298,6 +1298,15 @@ fn seek_eof_information(
             };
             let meta_id = meta_id[0] & ID_UNIQUE;
 
+            // Note (upstream): a metadata length that runs past the end of
+            // the block wrapped `bcount` around there (below), and the loop
+            // went on parsing what follows the block as metadata (until a
+            // read failed); the translation stops at the block's end (the
+            // next header is looked for from here).
+            if bcount < meta_bc {
+                break;
+            }
+
             if get_wrapper
                 && (meta_id == ID_RIFF_TRAILER || (alt_types && meta_id == ID_ALT_TRAILER))
                 && meta_bc != 0
@@ -1332,10 +1341,7 @@ fn seek_eof_information(
                 reader.set_pos_rel(meta_bc as i64, SEEK_CUR);
             }
 
-            // FIXME (upstream): this wraps around when a metadata length runs
-            // past the end of the block, and the loop goes on parsing what
-            // follows the block as metadata (until a read fails).
-            bcount = bcount.wrapping_sub(meta_bc);
+            bcount -= meta_bc;
         }
     }
 }
