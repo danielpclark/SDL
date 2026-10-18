@@ -1218,3 +1218,231 @@ freshseek 2205: seek=1 pos=2205 playing=0 10bbefa07567208d
 freshseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
 freshseek 20000: seek=1 pos=20000 playing=0 4d25767f9dce13f5
 freshseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+== gme vgm_badrate.vgm
+open: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+f32s48: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+s16m22: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+forced: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 322: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+trunc 643: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+corrupt 0: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+corrupt 0 mix: dur=21744 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 1: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+corrupt 1 mix: dur=21744 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+corrupt 2 mix: dur=21744 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 3: err: gme_open_data failed: Unsupported YM2612 FM sound rate
+corrupt 3 mix: dur=21744 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=21744 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+order 1: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 200: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order -5: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+replay: 0 err: No audio currently assigned to this track playing=0
+gmeseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+fresh: 0 err: No audio currently assigned to this track playing=0
+freshseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+== gme vgm_dual.vgm
+open: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 98304 97e30221e4c90f82 end=1
+f32s48: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 98304 4da300a108489ff3 end=1
+s16m22: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 32768 b4ea6e86722960b8 end=1
+forced: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 16384 0fe46e9590fa49b1 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1027: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 0 cbf29ce484222325 end=0
+trunc 2054: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 16384 0fe46e9590fa49b1 end=1
+corrupt 0: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 16384 0fe46e9590fa49b1 end=1
+corrupt 0 mix: dur=43824 play=1 pos=12288 replay=1 seek=1 pos=14608 playing=1 7bb4c6870ae91215
+corrupt 1: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 16384 eeb25e80a0211cd6 end=1
+corrupt 1 mix: dur=43824 play=1 pos=12288 replay=1 seek=1 pos=14608 playing=1 c7f857b0aa7703aa
+corrupt 2: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 16384 ff6beff48d714993 end=1
+corrupt 2 mix: dur=43824 play=1 pos=12288 replay=1 seek=1 pos=14608 playing=1 f59386414789edb1
+corrupt 3: GME 0x8010 2 48000 frames=43824 gme.system="Sega SMS/Genesis" | 16384 70a1155a953b96d1 end=1
+corrupt 3 mix: dur=43824 play=1 pos=12288 replay=1 seek=1 pos=14608 playing=1 df324592a71ade84
+mix: dur=43824 play=1 pos=12288 replay=1 seek=1 pos=14608 playing=1 7bb4c6870ae91215
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 f8cc9c3cf43bf3ec
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 9bea4feb1b3bd23d
+freshseek 2205: seek=1 pos=2205 playing=1 bd2037ab4042bc03
+freshseek 48000: seek=1 pos=48000 playing=1 bb4b3a60ff00756e
+freshseek 20000: seek=1 pos=20000 playing=1 7cddc31d80859a76
+freshseek 100: seek=1 pos=100 playing=1 a232ce044cd94845
+== gme vgm_fm.vgm
+open: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 98304 4e84c044ddbfaa99 end=1
+f32s48: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 98304 258aadc79825911e end=1
+s16m22: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 32768 613005777de20c1d end=1
+forced: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 16384 9b6f059e449b581a end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2410: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 9b6f059e449b581a end=1
+trunc 4819: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 9b6f059e449b581a end=1
+corrupt 0: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 16384 9b6f059e449b581a end=1
+corrupt 0 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 e6b256452f24f4eb
+corrupt 1: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 16384 28d518308a78462f end=1
+corrupt 1 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 8c8e0bff30c88003
+corrupt 2: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 50bf0c114a80b3b0 end=1
+corrupt 2 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 216ec630056eb79f
+corrupt 3: GME 0x8010 2 48000 title="FM test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="FM test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Mega Drive" gme.dumper="gen_gme_testdata.py" | 16384 554349d33d791283 end=1
+corrupt 3 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 e908b45ee1119d97
+mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 e6b256452f24f4eb
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 bc5c2e3c49b65afd
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 3c9bbd14502fda3c
+freshseek 2205: seek=1 pos=2205 playing=1 409d619788271fa2
+freshseek 48000: seek=1 pos=48000 playing=1 dce75d7df8e4c682
+freshseek 20000: seek=1 pos=20000 playing=1 80ff982e396c30e9
+freshseek 100: seek=1 pos=100 playing=1 b6cc25a061ea7bc2
+== gme vgm_odd.vgm
+open: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 98304 b5335e91ac1872a9 end=1
+f32s48: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 98304 42fa76983cf7fbd1 end=1
+s16m22: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 32768 f6e1d84c1600d53c end=1
+forced: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 ef94e818d58a1e05 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 819: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 0 cbf29ce484222325 end=0
+trunc 1637: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 ef94e818d58a1e05 end=1
+corrupt 0: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 ef94e818d58a1e05 end=1
+corrupt 0 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5ce11fa677e79405
+corrupt 1: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 ef94e818d58a1e05 end=1
+corrupt 1 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5ce11fa677e79405
+corrupt 2: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 4cad9580e8e5f881 end=1
+corrupt 2 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 270fb4c67b07c41d
+corrupt 3: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 ef94e818d58a1e05 end=1
+corrupt 3 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5ce11fa677e79405
+mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 5ce11fa677e79405
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 b3a984c36289a5f1
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 a99bf9444585b521
+freshseek 2205: seek=1 pos=2205 playing=1 db0461401d669419
+freshseek 48000: seek=1 pos=48000 playing=1 bae86e4f50592bd5
+freshseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+freshseek 100: seek=1 pos=100 playing=1 177aaef964508fb9
+== gme vgm_psg.vgm
+open: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 98304 5b7d027e8151791a end=1
+f32s48: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 98304 87d659bcf13eb2ba end=1
+s16m22: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 32768 c17f89c18e584d8f end=1
+forced: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 16384 bc30b04309aa2fd2 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 475: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 bc30b04309aa2fd2 end=1
+trunc 949: GME 0x8010 2 48000 infinite=1 gme.system="Sega SMS/Genesis" | 16384 bc30b04309aa2fd2 end=1
+corrupt 0: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 16384 bc30b04309aa2fd2 end=1
+corrupt 0 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 440177693e540351
+corrupt 1: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_g•e_testdata.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_g•e_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 16384 bc30b04309aa2fd2 end=1
+corrupt 1 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 ce993d005543ebb9
+corrupt 2: GME 0x8010 2 48000 title="PSG test" artist="gen" album="gen_gme_testd?ta.py" copyright="2026" infinite=1 gme.song="PSG test" gme.author="gen" gme.game="gen_gme_testd?ta.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 16384 bc30b04309aa2fd2 end=1
+corrupt 2 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 97fe5b9c29b44ab1
+corrupt 3: GME 0x8010 2 48000 title="PSG 8e?t" artist="gen" album="gen_gme_testdata.py" copyright="2026" infinite=1 gme.song="PSG 8e?t" gme.author="gen" gme.game="gen_gme_testdata.py" gme.copyright="2026" gme.system="Sega Game Gear" gme.dumper="gen_gme_testdata.py" | 16384 bc30b04309aa2fd2 end=1
+corrupt 3 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 73396baf1a3c4951
+mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 47f7f98dd2e95b75
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 8b95b8ee1a87ed19
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 3cca437c163f42a8
+freshseek 2205: seek=1 pos=2205 playing=1 9a948a68370b0739
+freshseek 48000: seek=1 pos=48000 playing=1 395a336f26c5a61d
+freshseek 20000: seek=1 pos=20000 playing=1 ef38ed6a82e07f7d
+freshseek 100: seek=1 pos=100 playing=1 aef1a3415fe966c7
+== gme vgm_ym2413.vgm
+open: err: gme_open_data failed: YM2413 FM sound isn't supported
+f32s48: err: gme_open_data failed: YM2413 FM sound isn't supported
+s16m22: err: gme_open_data failed: YM2413 FM sound isn't supported
+forced: err: gme_open_data failed: YM2413 FM sound isn't supported
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 108: err: gme_open_data failed: YM2413 FM sound isn't supported
+trunc 216: err: gme_open_data failed: YM2413 FM sound isn't supported
+corrupt 0: err: gme_open_data failed: YM2413 FM sound isn't supported
+corrupt 0 mix: dur=48000 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 1: err: gme_open_data failed: YM2413 FM sound isn't supported
+corrupt 1 mix: dur=48000 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: err: gme_open_data failed: YM2413 FM sound isn't supported
+corrupt 2 mix: dur=48000 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 3: err: gme_open_data failed: YM2413 FM sound isn't supported
+corrupt 3 mix: dur=48000 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=48000 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+order 1: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 200: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order -5: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: No audio currently assigned to this track pos=0 playing=0 a8c7f832281a39c5
+replay: 0 err: No audio currently assigned to this track playing=0
+gmeseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+fresh: 0 err: No audio currently assigned to this track playing=0
+freshseek 0: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
+freshseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5

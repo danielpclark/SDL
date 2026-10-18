@@ -10,22 +10,23 @@ df66ae893c91b0f6fa5d026a195bb278213d007d, https://github.com/libsdl-org/SDL_mixe
 the v0.6.5-SDL branch of https://github.com/libsdl-org/game-music-emu at
 7079627509eeb30153f29167baf63d81ab1dfbe7), with the emu2413 1.5.9 YM2413
 emulator it carries in gme/ext/ (Copyright (C) 2001-2020 Mitsutaka
-Okazaki).
+Okazaki) and the Nuked OPN2 1.0.7 YM2612 emulator it carries in
+gme/Ym2612_Nuked.cpp (Copyright (C) 2017 Alexey Khokholov).
 
 It is NOT the original Game_Music_Emu, nor SDL_mixer's copy of it.
 
-How and when it was changed: on 2026-10-17, the parts of that copy that
-SDL_mixer's build of it (its CMake project, as SDL_mixer's CMakeLists.txt
-configures it: static, every emulator, no zlib) reaches from SDL_mixer's
-GME decoder were translated, function by function, into the Rust source
-files in src/, which keep the original copyright notices and comments;
-each file says so in a line under its copyright notice. Those are, from
-gme/: blargg_common.h, blargg_source.h, blargg_endian.h, Blip_Buffer.h,
-Blip_Buffer.cpp, Multi_Buffer.h, Multi_Buffer.cpp (its stereo buffer),
-Effects_Buffer.h, Effects_Buffer.cpp, Data_Reader.h, Data_Reader.cpp (its
-memory, subset and remaining readers), Gme_File.h, Gme_File.cpp,
-Music_Emu.h, Music_Emu.cpp, Classic_Emu.h, Classic_Emu.cpp, gme.h,
-gme.cpp, Ay_Apu.h, Ay_Apu.cpp, Ay_Cpu.h, Ay_Cpu.cpp, Ay_Emu.h,
+How and when it was changed: on 2026-10-17 and 2026-10-18, the parts of
+that copy that SDL_mixer's build of it (its CMake project, as SDL_mixer's
+CMakeLists.txt configures it: static, every emulator, no zlib) reaches
+from SDL_mixer's GME decoder were translated, function by function, into
+the Rust source files in src/, which keep the original copyright notices
+and comments; each file says so in a line under its copyright notice.
+Those are, from gme/: blargg_common.h, blargg_source.h, blargg_endian.h,
+Blip_Buffer.h, Blip_Buffer.cpp, Multi_Buffer.h, Multi_Buffer.cpp (its
+stereo buffer), Effects_Buffer.h, Effects_Buffer.cpp, Data_Reader.h,
+Data_Reader.cpp (its memory, subset and remaining readers), Gme_File.h,
+Gme_File.cpp, Music_Emu.h, Music_Emu.cpp, Classic_Emu.h, Classic_Emu.cpp,
+gme.h, gme.cpp, Ay_Apu.h, Ay_Apu.cpp, Ay_Cpu.h, Ay_Cpu.cpp, Ay_Emu.h,
 Ay_Emu.cpp, Gb_Apu.h, Gb_Apu.cpp, Gb_Oscs.h, Gb_Oscs.cpp, Gb_Cpu.h,
 Gb_Cpu.cpp, gb_cpu_io.h, Gbs_Emu.h, Gbs_Emu.cpp, Hes_Apu.h, Hes_Apu.cpp,
 Hes_Apu_Adpcm.h, Hes_Apu_Adpcm.cpp, Hes_Cpu.h, Hes_Cpu.cpp, hes_cpu_io.h,
@@ -39,18 +40,23 @@ Nsf_Emu.h, Nsf_Emu.cpp, Nsfe_Emu.h, Nsfe_Emu.cpp, Sap_Apu.h, Sap_Apu.cpp,
 Sap_Cpu.h, Sap_Cpu.cpp, sap_cpu_io.h, Sap_Emu.h, Sap_Emu.cpp, Snes_Spc.h,
 Snes_Spc.cpp, Spc_Cpu.h, Spc_Cpu.cpp, Spc_Dsp.h, Spc_Dsp.cpp,
 Spc_Filter.h, Spc_Filter.cpp, Fir_Resampler.h, Fir_Resampler.cpp,
-Spc_Emu.h, Spc_Emu.cpp, and ext/emu2413.h and ext/emu2413.c (what the
-VRC7 uses). Not translated, as SDL_mixer can't reach them: the file
-readers and gme_open_file(), M3U playlists (M3u_Playlist), the custom
-reader, gme_load_tracks(), the user data functions, the state saving
-functions of the sound chips, Mono_Buffer and Silent_Buffer, and
-emu2413's rate converter and patch dump functions. The translation works
-on Rust types (slices, vectors, traits and indices rather than pointers,
-inheritance and unions), and does something defined where corrupt input
-makes the C++ code read out of bounds, read memory it never initialized,
-crash or hang (the places marked "FIXME (upstream)" in the source).
-Otherwise it emulates bit-for-bit what the C++ code does, which its tests
-check. The changes are freely available as part of
+Spc_Emu.h, Spc_Emu.cpp, Dual_Resampler.h, Dual_Resampler.cpp,
+Ym2612_Emu.h, Ym2612_Nuked.h, Ym2612_Nuked.cpp, Ym2413_Emu.h,
+Ym2413_Emu.cpp, Vgm_Emu.h, Vgm_Emu.cpp, Vgm_Emu_Impl.h, Vgm_Emu_Impl.cpp,
+and ext/emu2413.h and ext/emu2413.c (what the VRC7 uses). Not translated,
+as SDL_mixer can't reach them: the file readers and gme_open_file(), M3U
+playlists (M3u_Playlist), the custom reader, gme_load_tracks(), the user
+data functions, the state saving functions of the sound chips,
+Mono_Buffer and Silent_Buffer, the YM2612 emulators SDL_mixer's build
+leaves out (Ym2612_GENS, and Ym2612_MAME, which is under the GPL), the
+compressed (VGZ) files' reading (zlib is off), and emu2413's rate
+converter and patch dump functions. The translation works on Rust types
+(slices, vectors, traits and indices rather than pointers, inheritance
+and unions), and does something defined where corrupt input makes the C++
+code read out of bounds, read memory it never initialized, crash or hang
+(the places marked "FIXME (upstream)" in the source). Otherwise it
+emulates bit-for-bit what the C++ code does, which its tests check. The
+changes are freely available as part of
 https://github.com/danielpclark/SDL.
 
 License
@@ -71,5 +77,6 @@ play game music through its `gme` Cargo feature, which is on by default;
 build sdl3-mixer with `default-features = false` to leave it (and game
 music) out.
 
-The test data in testdata/ (tiny rips, with sound programs assembled for
-them) is generated by tools/gen_gme_testdata.py in the repository.
+The test data in testdata/ (tiny rips, with sound programs assembled or
+command streams written for them) is generated by tools/gen_gme_testdata.py
+in the repository.

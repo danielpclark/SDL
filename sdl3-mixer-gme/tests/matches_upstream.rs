@@ -521,6 +521,12 @@ file_tests! {
     sap_stereo_matches_upstream: "sap_stereo.sap",
     spc_dsp_matches_upstream: "spc_dsp.spc",
     spc_odd_matches_upstream: "spc_odd.spc",
+    vgm_badrate_matches_upstream: "vgm_badrate.vgm",
+    vgm_dual_matches_upstream: "vgm_dual.vgm",
+    vgm_fm_matches_upstream: "vgm_fm.vgm",
+    vgm_odd_matches_upstream: "vgm_odd.vgm",
+    vgm_psg_matches_upstream: "vgm_psg.vgm",
+    vgm_ym2413_matches_upstream: "vgm_ym2413.vgm",
 }
 
 /// Every file in `testdata/` has its test above.

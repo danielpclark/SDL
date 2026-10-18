@@ -46,7 +46,10 @@
 //!   emu2413);
 //! - the SAP emulator: the Atari XL's 6502 CPU and its POKEY;
 //! - the SPC emulator: the SPC-700 CPU, the (fast) S-DSP, the output filter
-//!   and the FIR resampler.
+//!   and the FIR resampler;
+//! - the VGM emulator: the SN76489 PSG, the YM2612 (the Nuked OPN2 core),
+//!   the FM chips' resampling and mixing (`Dual_Resampler`), and the
+//!   YM2413 stub SDL_mixer's build has.
 //!
 //! The API is upstream's `gme_*` functions (in [`gme`]), on [`MusicEmu`]
 //! trait objects. `sdl3-mixer` uses it for its `GME` decoder through its
@@ -91,6 +94,7 @@ pub mod blargg_common;
 pub mod blip_buffer;
 pub mod classic_emu;
 pub mod data_reader;
+pub mod dual_resampler;
 pub mod effects_buffer;
 pub mod emu2413;
 pub mod fir_resampler;
@@ -129,6 +133,10 @@ pub mod spc_cpu;
 pub mod spc_dsp;
 pub mod spc_emu;
 pub mod spc_filter;
+pub mod vgm_emu;
+pub mod vgm_emu_impl;
+pub mod ym2413_emu;
+pub mod ym2612_nuked;
 
 pub use gme::*;
 pub use gme_file::{GmeType, GmeTypeT, TrackInfo};

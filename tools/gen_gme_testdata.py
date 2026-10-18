@@ -4,10 +4,11 @@
 Every file here is synthetic, made by this script: tiny game music rips
 whose sound programs are assembled here (for the 6502 of the NSF, NSFE
 and SAP files, the Game Boy CPU of the GBS files, the Z80 of the AY and
-KSS files, the HuC6280 of the HES files, the SPC-700 of the SPC files),
-driving the sound chips the emulators emulate, with their metadata,
-track lists and timing. Nothing comes from a real game. (An SPC file is
-always a 64K memory image, so those two are not tiny.)
+KSS files, the HuC6280 of the HES files, the SPC-700 of the SPC files)
+or written as command streams (the VGM files), driving the sound chips
+the emulators emulate, with their metadata, track lists and timing.
+Nothing comes from a real game. (An SPC file is always a 64K memory
+image, so those two are not tiny.)
 
 The output is deterministic, so regenerating the files gives the same
 bytes. If they change, the reference output (`testdata/reference.txt`,
@@ -4455,6 +4456,447 @@ odd_t:
     write('spc_odd.spc', spc)
 
 
+# ---------------------------------------------------------------------------
+# VGM: command streams for the Sega Master System's and Game Gear's SN76489
+# (the PSG) and the Mega Drive's YM2612, with its DAC.
+
+class Vgm:
+    """A VGM command stream, with the samples it has waited."""
+
+    def __init__(self):
+        self.b = bytearray()
+        self.samples = 0
+        self.loop_pos = None
+        self.loop_samples = 0
+        self.waits = 0
+
+    def psg(self, *vals, chip=0):
+        for v in vals:
+            self.b += bytes([0x50 if chip == 0 else 0x30, v])
+
+    def gg(self, v, chip=0):
+        self.b += bytes([0x4F if chip == 0 else 0x3F, v])
+
+    def ym(self, port, a, d, chip=0):
+        self.b += bytes([(0x52, 0x53, 0xA2, 0xA3)[chip * 2 + port], a, d])
+
+    def ym2413(self, a, d, chip=0):
+        self.b += bytes([0x51 if chip == 0 else 0xA1, a, d])
+
+    def raw(self, *vals):
+        self.b += bytes(vals)
+
+    def wait(self, n):
+        """Wait n samples, with every kind of delay command in turn."""
+        self.samples += n
+        while n > 0:
+            self.waits += 1
+            if n == 735:
+                self.raw(0x62)
+                n = 0
+            elif n == 882:
+                self.raw(0x63)
+                n = 0
+            elif n <= 16 and self.waits % 2:
+                self.raw(0x70 | (n - 1))
+                n = 0
+            elif n <= 255 and self.waits % 3 == 0:
+                self.raw(0x64, n)
+                n = 0
+            else:
+                k = min(n, 65535)
+                self.raw(0x61, k & 0xFF, k >> 8)
+                n -= k
+
+    def pcm(self, n):
+        """Play the next PCM sample and wait n (0 to 15) samples."""
+        self.samples += n
+        self.raw(0x80 | n)
+
+    def data_block(self, data, type_=0):
+        self.raw(0x67, 0x66, type_)
+        self.b += struct.pack('<I', len(data)) + bytes(data)
+
+    def pcm_seek(self, at):
+        self.raw(0xE0)
+        self.b += struct.pack('<I', at)
+
+    def mark_loop(self):
+        self.loop_pos = len(self.b)
+        self.loop_samples = self.samples
+
+    def end(self):
+        self.raw(0x66)
+
+
+def gd3(*strings, version=0x100):
+    """A GD3 tag with these strings (track, its Japanese, game, ..., notes)."""
+    data = b''.join(s.encode('utf-16-le') + b'\0\0' for s in strings)
+    return b'Gd3 ' + struct.pack('<II', version, len(data)) + data
+
+
+def vgm_file(v, version=0x150, psg=3579545, ym2413=0, ym2612=0, ym2151=0, tag=b'',
+             extra=b'', noise=(0x0009, 16), rate=60, total=None, loop_samples=None,
+             data_offset=None):
+    """A VGM file of the stream v, with the header's clocks and its tag;
+    extra is put between the header and the data (version 1.50 and later)."""
+    if version < 0x150:
+        extra = b''
+    start = 0x40 + len(extra)
+    body = bytes(v.b)
+    f = bytearray(0x40) + extra + body
+    tag_at = len(f)
+    f += tag
+    h = bytearray(0x40)
+    h[0:4] = b'Vgm '
+    total = v.samples if total is None else total
+    loop_pos = v.loop_pos
+    if loop_samples is None:
+        loop_samples = v.samples - v.loop_samples if loop_pos is not None else 0
+    struct.pack_into('<IIIIIIIII', h, 4, len(f) - 4, version, psg, ym2413,
+                     tag_at - 0x14 if tag else 0,
+                     total, loop_pos + start - 0x1C if loop_pos is not None else 0,
+                     loop_samples, rate)
+    struct.pack_into('<HBB', h, 0x28, noise[0], noise[1], 0)
+    if data_offset is None:
+        data_offset = start - 0x34 if version >= 0x150 else 0
+    struct.pack_into('<III', h, 0x2C, ym2612, ym2151, data_offset)
+    f[0:0x40] = h
+    return f
+
+
+YM_CLOCK = 7670453
+# the register offsets of operators 1 to 4
+YM_OPS = [0, 8, 4, 12]
+
+
+def ym_fnum(freq, block, clock=YM_CLOCK):
+    return min(0x7FF, round(freq * 144 * (1 << 20) / clock / (1 << (block - 1))))
+
+
+def ym_patch(v, ch, alg, fb, ops, ams=0, pms=0, pan=3, chip=0):
+    """Set channel ch (0 to 5)'s instrument: ops are the operators'
+    (DT/MUL, TL, KS/AR, AM/DR, SR, SL/RR, SSG-EG)."""
+    port, c = divmod(ch, 3)
+    for k, op in enumerate(ops):
+        for base, val in zip((0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90), op):
+            v.ym(port, base + YM_OPS[k] + c, val, chip)
+    v.ym(port, 0xB0 + c, fb << 3 | alg, chip)
+    v.ym(port, 0xB4 + c, pan << 6 | ams << 4 | pms, chip)
+
+
+def ym_note(v, ch, block, fnum, chip=0):
+    port, c = divmod(ch, 3)
+    v.ym(port, 0xA4 + c, block << 3 | fnum >> 8, chip)
+    v.ym(port, 0xA0 + c, fnum & 0xFF, chip)
+
+
+def ym_key(v, ch, ops=0xF, chip=0):
+    v.ym(0, 0x28, ops << 4 | (ch % 3) | (4 if ch >= 3 else 0), chip)
+
+
+def psg_tone(v, ch, period, vol, chip=0):
+    v.psg(0x80 | ch << 5 | (period & 15), period >> 4 & 0x3F, 0x90 | ch << 5 | vol, chip=chip)
+
+
+# Six instruments, one an algorithm (0 to 5): (alg, fb, ops, ams, pms, pan)
+YM_PATCHES = [
+    (0, 7, [(0x71, 0x23, 0x1F, 0x05, 0x02, 0x11, 0), (0x0D, 0x2D, 0x99, 0x05, 0x02, 0x11, 0),
+            (0x33, 0x26, 0x5F, 0x05, 0x02, 0x11, 0), (0x01, 0x00, 0x94, 0x87, 0x02, 0xA6, 0)], 2, 3, 3),
+    (1, 5, [(0x32, 0x1E, 0x1F, 0x0E, 0x00, 0x1F, 0x08), (0x14, 0x24, 0x1F, 0x0B, 0x00, 0x1F, 0x09),
+            (0x51, 0x18, 0x1F, 0x0E, 0x00, 0x1F, 0x0A), (0x02, 0x04, 0x1F, 0x0A, 0x00, 0x1F, 0x0B)], 0, 0, 2),
+    (2, 3, [(0x02, 0x16, 0x1A, 0x12, 0x04, 0x4F, 0), (0x22, 0x30, 0x58, 0x0C, 0x03, 0x3F, 0),
+            (0x46, 0x22, 0x1C, 0x0D, 0x05, 0x2F, 0), (0x01, 0x02, 0x1F, 0x05, 0x02, 0x5C, 0)], 1, 6, 1),
+    (3, 0, [(0x0F, 0x18, 0xDF, 0x1F, 0x1F, 0x0F, 0x0C), (0x61, 0x1A, 0x9F, 0x12, 0x10, 0x2F, 0x0D),
+            (0x13, 0x28, 0x5F, 0x14, 0x08, 0x3F, 0x0E), (0x03, 0x06, 0x1F, 0x10, 0x05, 0x4F, 0x0F)], 0, 0, 3),
+    (4, 6, [(0x00, 0x1C, 0x1F, 0x8C, 0x0A, 0x2F, 0), (0x01, 0x10, 0x1F, 0x0C, 0x0A, 0x2F, 0),
+            (0x70, 0x22, 0x1F, 0x8C, 0x0A, 0x2F, 0), (0x02, 0x0A, 0x1F, 0x0C, 0x0A, 0x2F, 0)], 3, 7, 3),
+    (5, 2, [(0x04, 0x20, 0x14, 0x16, 0x01, 0x4A, 0), (0x51, 0x0C, 0x14, 0x16, 0x01, 0x4A, 0),
+            (0x22, 0x0E, 0x14, 0x16, 0x01, 0x4A, 0), (0x13, 0x10, 0x14, 0x16, 0x01, 0x4A, 0)], 2, 1, 3),
+]
+
+# A sine-ish 8-bit sample for the DAC
+PCM_WAVE = [128 + round(100 * ((i % 32) - 16) / 16 * (1 - abs((i % 32) - 16) / 32)) for i in range(256)]
+
+
+def ym_setup(v, chip=0):
+    v.ym(0, 0x22, 0x0B, chip)     # LFO on
+    v.ym(0, 0x27, 0x00, chip)
+    v.ym(0, 0x2B, 0x00, chip)
+    for ch in range(6):
+        ym_key(v, ch, 0, chip)
+        alg, fb, ops, ams, pms, pan = YM_PATCHES[ch]
+        ym_patch(v, ch, alg, fb, ops, ams, pms, pan, chip)
+
+
+def vgm_fm():
+    """The YM2612 (every algorithm, feedback, detune and multiple, the
+    envelopes and SSG-EG, the LFO, channel 3's special and CSM modes, the
+    timers, the DAC from a data block and by its register, the test
+    registers, panning) with the PSG."""
+    v = Vgm()
+    ym_setup(v)
+    psg_tone(v, 0, 0x1FC, 6)
+    psg_tone(v, 1, 0x0FE, 10)
+    v.psg(0x9F | 2 << 5, 0xFF)
+    v.wait(300)
+    # an arpeggio over the six channels, keyed in turn
+    notes = [262, 330, 392, 523, 659, 784, 988, 1175]
+    for step in range(12):
+        for ch in range(6):
+            f = notes[(step + ch) % 8] / (2 if ch < 2 else 1)
+            block = 3 + ch % 3
+            ym_note(v, ch, block, ym_fnum(f, block))
+            if step % 3 == 0 or ch == step % 6:
+                ym_key(v, ch, 0)
+                ym_key(v, ch, 0xF if ch != 4 else 0x5)
+            v.wait(40 + ch * 7)
+        if step == 5:
+            v.ym(0, 0x22, 0x0F)  # LFO faster
+            psg_tone(v, 1, 0x150, 4)
+            v.psg(0xE4, 0xF3)    # white noise
+        if step == 8:
+            v.ym(0, 0x22, 0x00)  # LFO off
+            v.psg(0xE1, 0xF5)    # periodic noise
+        v.wait(1500)
+    # key off, releasing
+    for ch in range(6):
+        ym_key(v, ch, 0)
+    v.wait(4000)
+    # channel 3's special mode: an operator frequency each
+    v.ym(0, 0x27, 0x40)
+    for reg, block, f in ((0xAD, 4, 440), (0xAE, 5, 554), (0xAC, 3, 659)):
+        v.ym(0, reg, block << 3 | ym_fnum(f, block) >> 8)
+        v.ym(0, reg - 4, ym_fnum(f, block) & 0xFF)
+    ym_note(v, 2, 4, ym_fnum(880, 4))
+    ym_key(v, 2)
+    v.wait(6000)
+    # CSM: timer A keying channel 3, timer B running
+    v.ym(0, 0x24, 0xF8)
+    v.ym(0, 0x25, 0x02)
+    v.ym(0, 0x26, 0xC0)
+    v.ym(0, 0x27, 0x80 | 0x3F)
+    v.wait(6000)
+    v.ym(0, 0x27, 0x30)          # reset the flags, the timers off
+    ym_key(v, 2, 0)
+    v.wait(1000)
+    # the DAC: a data block played with the PCM commands, a seek, and its
+    # register written directly
+    v.data_block(PCM_WAVE)
+    v.data_block([1, 2, 3, 4], type_=1)  # not PCM
+    v.ym(0, 0x2B, 0x80)
+    v.pcm_seek(0)
+    for i in range(400):
+        v.pcm(i % 4 + 1)
+    v.pcm_seek(64)
+    for i in range(200):
+        v.pcm(2)
+    for i in range(300):
+        v.ym(0, 0x2A, PCM_WAVE[(i * 3) % 256])
+        v.wait(2)
+    v.ym(0, 0x2B, 0x00)          # DAC off: the writes after are ignored
+    for i in range(40):
+        v.ym(0, 0x2A, PCM_WAVE[i])
+        v.wait(3)
+    v.ym(0, 0x2B, 0x80)
+    for i in range(40):
+        v.ym(0, 0x2A, 255 - PCM_WAVE[i])
+        v.wait(3)
+    v.ym(0, 0x2B, 0x00)
+    v.mark_loop()
+    # the other two algorithms, extreme notes, the test registers
+    ym_patch(v, 0, 6, 4, YM_PATCHES[0][2], 1, 4, 3)
+    ym_patch(v, 1, 7, 1, YM_PATCHES[2][2], 0, 0, 3)
+    ym_note(v, 0, 7, 0x7FF)
+    ym_note(v, 1, 1, 0x050)
+    ym_note(v, 3, 6, 0x6A0)
+    ym_key(v, 0)
+    ym_key(v, 1)
+    ym_key(v, 3)
+    v.ym(0, 0x28, 0xF3)          # an invalid channel
+    v.ym(0, 0x28, 0xF7)
+    v.wait(3000)
+    v.ym(0, 0x21, 0x04)          # timer test
+    v.wait(200)
+    v.ym(0, 0x21, 0x00)
+    v.ym(0, 0x2C, 0x28)          # the DAC test
+    v.wait(150)
+    v.ym(0, 0x2C, 0x00)
+    v.ym(0, 0x21, 0x10)          # FM output inverted
+    v.wait(150)
+    v.ym(0, 0x21, 0x00)
+    v.wait(2000)
+    psg_tone(v, 0, 0x0A0, 0)
+    v.gg(0x5A)
+    v.wait(2500)
+    v.gg(0xFF)
+    for ch in range(6):
+        ym_key(v, ch, 0)
+    v.wait(5000)
+    v.end()
+    tag = gd3('FM test', '', 'gen_gme_testdata.py', '', 'Sega Mega Drive', '', 'gen', '',
+              '2026', 'gen_gme_testdata.py', 'every YM2612 feature')
+    write('vgm_fm.vgm', vgm_file(v, version=0x150, ym2612=YM_CLOCK, tag=tag))
+
+
+def vgm_psg():
+    """The PSG alone (as Classic_Emu plays it): the squares, both noises
+    and their rates, volumes, Game Gear stereo; a header's noise feedback
+    and width, a data offset past junk, a loop and a GD3 tag in English and
+    Japanese; with FM, PCM and unknown commands for chips not there."""
+    v = Vgm()
+    for ch, period, vol in ((0, 0x11C, 2), (1, 0x0E2, 5), (2, 0x0BE, 8)):
+        psg_tone(v, ch, period, vol)
+    v.psg(0xFF)
+    v.wait(735)
+    v.wait(882)
+    v.gg(0xF0)
+    v.wait(441)
+    v.gg(0x0F)
+    v.wait(441)
+    v.gg(0xA5)
+    v.wait(600)
+    v.gg(0xFF)
+    # sweeps, latching only the low bits sometimes
+    for i in range(30):
+        v.psg(0x80 | (i & 15))
+        if i % 3:
+            v.psg(0x08 + i)
+        v.wait(13 + i % 4)
+        v.wait(200)
+    # the noises: periodic and white at each rate, and at square 3's
+    for n in (0xE0, 0xE1, 0xE2, 0xE4, 0xE5, 0xE6):
+        v.psg(n, 0xF1)
+        v.wait(1200)
+    psg_tone(v, 2, 0x020, 15)
+    v.psg(0xE3, 0xF0)
+    v.wait(1500)
+    psg_tone(v, 2, 0x3FF, 15)
+    v.psg(0xE7)
+    v.wait(1500)
+    v.mark_loop()
+    # FM, PCM and unknown commands (for no chip, the YM2612 being off)
+    v.ym(0, 0x2A, 0x80)
+    v.ym(0, 0x28, 0xF0)
+    v.ym(1, 0x30, 0x01)
+    v.ym2413(0x10, 0x20)
+    v.ym(0, 0x2B, 0x80)
+    v.pcm(3)
+    v.pcm(5)
+    v.raw(0x40, 0x00)
+    v.raw(0x55, 0x01, 0x02)
+    v.raw(0xB0, 0x01, 0x02)
+    v.raw(0xC0, 0x01, 0x02, 0x03)
+    v.raw(0xD5, 0x01, 0x02, 0x03)
+    v.raw(0xE1, 0x01, 0x02, 0x03, 0x04)
+    v.raw(0xF0, 0x01, 0x02, 0x03, 0x04)
+    v.raw(0x6F)
+    v.data_block([9, 9, 9], type_=0x40)
+    for i in range(20):
+        psg_tone(v, i % 3, 0x80 + i * 20, i % 16)
+        v.psg(0xF0 | (15 - i % 16))
+        v.wait(1100)
+    v.end()
+    tag = gd3('PSG test', 'テスト', 'gen_gme_testdata.py', 'ゲーム',
+              'Sega Game Gear', '', 'gen', '', '2026', 'gen_gme_testdata.py',
+              'squares, noises, stereo')
+    write('vgm_psg.vgm', vgm_file(v, version=0x150, noise=(0x0006, 15), tag=tag,
+                                  extra=bytes(range(0x40, 0x54))))
+
+
+def vgm_dual():
+    """Two YM2612s and the second PSG's commands (a dual PSG's clock is
+    limited before its flag is read); a YM2413 clock and a YM2151's
+    alongside, data at its 1.51 offset 0."""
+    v = Vgm()
+    ym_setup(v, 0)
+    ym_setup(v, 1)
+    for i in range(16):
+        for chip in (0, 1):
+            ch = (i + chip * 3) % 6
+            block = 4 + chip
+            ym_note(v, ch, block, ym_fnum((330, 392, 494, 587)[i % 4], block), chip)
+            ym_key(v, ch, 0, chip)
+            ym_key(v, ch, 0xF, chip)
+        v.psg(0x80 | (i & 15), 0x10, 0x91, chip=1)
+        v.gg(0x33 if i % 2 else 0xCC, chip=1)
+        if i == 6:
+            v.ym(0, 0x2B, 0x80, chip=1)
+            for k in range(60):
+                v.ym(0, 0x2A, PCM_WAVE[k * 4 % 256], chip=1)
+                v.wait(5)
+            v.ym(0, 0x2B, 0x00, chip=1)
+        v.wait(2500)
+    v.end()
+    write('vgm_dual.vgm', vgm_file(v, version=0x151, psg=0xC0000000 | 3579545,
+                                   ym2612=0x40000000 | YM_CLOCK, ym2413=3579545,
+                                   ym2151=3579545, rate=50, data_offset=0))
+
+
+def vgm_ym2413():
+    """A YM2413 (which SDL_mixer's build has no emulator for: opening it to
+    play fails, its information reads)."""
+    v = Vgm()
+    v.ym2413(0x30, 0x10)
+    v.ym2413(0x10, 0x80)
+    v.ym2413(0x20, 0x15)
+    v.wait(44100)
+    v.end()
+    tag = gd3('YM2413', '', 'gen_gme_testdata.py', '', 'Sega Master System', '', 'gen', '',
+              '2026', 'gen', '')
+    write('vgm_ym2413.vgm', vgm_file(v, version=0x110, ym2413=3579545, tag=tag))
+
+
+def vgm_badrate():
+    """A YM2612 whose clock is only a flag (0 Hz, dual)."""
+    v = Vgm()
+    ym_setup(v)
+    ym_note(v, 0, 4, 0x400)
+    ym_key(v, 0)
+    v.wait(20000)
+    v.end()
+    write('vgm_badrate.vgm', vgm_file(v, version=0x150, ym2612=0x40000000))
+
+
+def vgm_odd():
+    """A 1.01 file (its YM2413 clock found to be a YM2612's by scanning the
+    commands), a YM2612 at 100 kHz and a PSG at 1 Hz, a noise width past 32,
+    a GD3 tag of an unknown version, a duration past 32 bits in
+    milliseconds, a PCM seek past the data, and a loop to its own end."""
+    v = Vgm()
+    v.psg(0x9F, 0xBF)
+    v.wait(100)
+    v.gg(0x0F)
+    v.data_block(PCM_WAVE[:64])
+    v.raw(0x40, 0x00)
+    ym_setup(v)
+    for ch in range(6):
+        ym_patch(v, ch, 7, 0, [(0x01, 0x00, 0x1F, 0x00, 0x00, 0x0F, 0)] * 4, 0, 0, 3)
+        ym_note(v, ch, 4, 0x200 + ch * 0x40, )
+        ym_key(v, ch)
+    v.psg(0xE4, 0xF0)
+    v.wait(12000)
+    v.ym(0, 0x2B, 0x80)
+    v.pcm_seek(0x10000)
+    for i in range(50):
+        v.pcm(3)
+    v.pcm_seek(8)
+    for i in range(50):
+        v.pcm(3)
+    v.wait(8000)
+    v.ym(0, 0x2B, 0x00)
+    for i in range(10):
+        v.ym(0, 0x2A, 0x10 * i)
+        v.wait(50)
+    v.wait(30000)
+    v.mark_loop()
+    v.end()
+    tag = gd3('Odd VGM', '', 'gen_gme_testdata.py', '', 'Sega', '', 'gen', '', '2026', 'gen',
+              'unknown version', version=0x200)
+    write('vgm_odd.vgm', vgm_file(v, version=0x101, psg=1, ym2413=100000, noise=(0x8005, 40),
+                                  tag=tag, total=0xFFFFFFF0, loop_samples=1000))
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -4479,6 +4921,12 @@ def main():
     sap_odd()
     spc_dsp()
     spc_odd()
+    vgm_fm()
+    vgm_psg()
+    vgm_dual()
+    vgm_ym2413()
+    vgm_badrate()
+    vgm_odd()
 
 
 if __name__ == '__main__':

@@ -2347,6 +2347,12 @@ fn gme_spc_matches_upstream() {
     gme_files("spc_");
 }
 
+#[cfg(feature = "gme")]
+#[test]
+fn gme_vgm_matches_upstream() {
+    gme_files("vgm_");
+}
+
 #[test]
 fn scenarios_match_upstream() {
     setup();
