@@ -699,7 +699,7 @@ xmp 3: set=0 mixer=0 frames=215 e6fdf82837b2da54 82a6ce87b8a71d55 seek=0 pos=1 8
 open: err: Audio data is in unknown/unsupported/corrupt format
 f32s48: err: Audio data is in unknown/unsupported/corrupt format
 s16m22: err: Audio data is in unknown/unsupported/corrupt format
-forced AU: AU 0x8010 1 8000 frames=2000 | 8000 959faf00baa71ac0 end=0
+forced AU: AU 0x8120 1 8000 frames=2000 | 8000 959faf00baa71ac0 end=0
 forced RAW: err: Audio data is in unknown/unsupported/corrupt format
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format

@@ -147,9 +147,10 @@ fn au_init_audio(
 
         hdr = AuFileHdr::default();
 
-        // FIXME (upstream): this says signed 16-bit, but the data is
-        // decoded as mu-law to floats.
-        spec.format = AudioFormat::S16;
+        // Note (upstream): this says signed 16-bit there, but the data is
+        // decoded as mu-law to floats, so it plays as noise; the
+        // translation says floats, as the header path does.
+        spec.format = AudioFormat::F32;
         spec.freq = 8000;
         spec.channels = 1;
 
