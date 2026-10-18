@@ -1513,12 +1513,15 @@ impl AvifEncoderContext {
                 needs_conversion = false;
                 AvifRgbFormat::Abgr
             } else if format == PixelFormat::RGB24 {
-                // FIXME (upstream): the surface is converted to RGBX32
+                // Note (upstream): upstream converts the surface to RGBX32
                 // below, which this format reads as 3 bytes a pixel (the X
-                // bytes, which upstream leaves uninitialized, among them)
+                // bytes, which it leaves uninitialized, among them); the
+                // translation fixes it, reading the surface as it is.
+                needs_conversion = false;
                 AvifRgbFormat::Rgb
             } else if format == PixelFormat::BGR24 {
-                // FIXME (upstream): as for RGB24
+                // Note (upstream): as for RGB24
+                needs_conversion = false;
                 AvifRgbFormat::Bgr
             } else if format == PixelFormat::RGBX32
                 || format == PixelFormat::XRGB32
@@ -1526,13 +1529,13 @@ impl AvifEncoderContext {
                 || format == PixelFormat::XBGR32
             {
                 AvifRgbFormat::Rgba
-            } else if cfg!(target_endian = "little") {
-                // FIXME (upstream): the surface is converted to RGBA32 or
-                // RGBX32 below, whose bytes this format reads reversed (for
-                // RGBX32 the X bytes, which upstream leaves uninitialized,
-                // as red)
-                AvifRgbFormat::Abgr
             } else {
+                // Note (upstream): upstream reads the RGBA32 or RGBX32
+                // surface converted below as ABGR on little-endian machines,
+                // its bytes reversed (for RGBX32 the X bytes, which it
+                // leaves uninitialized, as red); the translation fixes it,
+                // reading those bytes, red, green, blue and alpha, as RGBA
+                // on any machine, as for the four formats above.
                 AvifRgbFormat::Rgba
             };
 
