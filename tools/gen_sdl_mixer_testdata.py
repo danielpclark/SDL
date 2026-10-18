@@ -488,6 +488,9 @@ def ogg_files():
            metadata=(('LOOPSTART', '00:00:00.010'), ('LOOPEND', '0.2')))
     ffmpeg('ogg_6ch.ogg', 11025, 6, 0.2, ['-c:a', 'libvorbis', '-q:a', '1'], 'ogg', seed=62)
     ffmpeg('ogg_8k.ogg', 8000, 1, 0.5, ['-c:a', 'libvorbis', '-q:a', '-1'], 'ogg', seed=63)
+    # a loop that plays twice, then on to the end
+    ffmpeg('ogg_loopcount.ogg', 11025, 1, 0.3, ['-c:a', 'libvorbis', '-q:a', '0'], 'ogg', seed=170,
+           metadata=(('LOOPSTART', '1000'), ('LOOPLENGTH', '1500'), ('LOOPCOUNT', '2')))
 
 
 class BitWriter:
@@ -774,6 +777,9 @@ def flac_files():
     ffmpeg('flac_6ch.flac', 8000, 6, 0.15, ['-c:a', 'flac', '-compression_level', '5'], 'flac', seed=73)
     ffmpeg('flac_ogg.oga', 16000, 2, 0.2, ['-c:a', 'flac'], 'ogg', seed=74,
            metadata=(('TITLE', 'Ogg FLAC'),))
+    # a loop that plays three times, then on to the end
+    ffmpeg('flac_loopcount.flac', 11025, 1, 0.3, ['-c:a', 'flac'], 'flac', seed=171,
+           metadata=(('LOOPSTART', '500'), ('LOOPLENGTH', '1500'), ('LOOPCOUNT', '3')))
     flac_crafted_files()
 
 
@@ -1379,6 +1385,9 @@ def opus_files():
                                                             '40'], 'ogg', seed=82)
     ffmpeg('opus_hybrid_stereo.opus', 48000, 2, 0.4, opus + ['-application', 'audio', '-b:a', '24k'], 'ogg', seed=83,
            metadata=(('TITLE', 'Opus loop'), ('LOOPSTART', '4800'), ('LOOPLENGTH', '9600')))
+    # a loop that plays twice, then on to the end
+    ffmpeg('opus_loopcount.opus', 24000, 1, 0.3, opus + ['-application', 'audio', '-b:a', '24k'], 'ogg', seed=172,
+           metadata=(('LOOPSTART', '2400'), ('LOOPLENGTH', '4800'), ('LOOPCOUNT', '2')))
     ffmpeg('opus_hybrid_10ms.opus', 24000, 1, 0.3, opus + ['-application', 'audio', '-b:a', '20k', '-frame_duration',
                                                          '10'], 'ogg', seed=84)
     ffmpeg('opus_celt_44k.opus', 44100, 2, 0.25, opus + ['-application', 'lowdelay', '-b:a', '96k', '-frame_duration',

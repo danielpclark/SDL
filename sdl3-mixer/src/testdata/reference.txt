@@ -2245,6 +2245,113 @@ corrupt 5: DRFLAC 0x8120 1 8000 frames=2400 | 6528 e5ae39e977a9361b end=0
 corrupt 5 mix: dur=2400 play=1 pos=417 replay=1 seek=1 pos=800 playing=1 eeab7a1d220b854f
 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 mixpre: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
+== flac_loopcount.flac
+open: FLAC 0x8010 1 11025 frames=9921 | 11614 eaaa0423e63e7182 end=0
+f32s48: 202264 982d3fc4b33f9a85 end=0
+s16m22: 23228 36199455506e58d0 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: FLAC__stream_decoder_process_until_end_of_metadata() failed
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
+trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
+trunc 10375: FLAC 0x8010 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
+trunc 13833: FLAC 0x8010 1 11025 frames=9921 | 2304 190fa1c2e966e351 end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: FLAC 0x8010 1 11025 frames=3307 | 4310 a734c36f22035e66 end=0
+corrupt 1 mix: dur=3307 play=1 pos=668 replay=1 seek=1 pos=1102 playing=1 1e22e44e3cdcd594
+corrupt 2: FLAC 0x8010 1 11025 frames=3307 | 4310 a734c36f22035e66 end=0
+corrupt 2 mix: dur=3307 play=1 pos=668 replay=1 seek=1 pos=1102 playing=1 1e22e44e3cdcd594
+corrupt 3: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
+corrupt 3 mix: dur=9921 play=1 pos=1671 replay=1 seek=1 pos=3307 playing=0 2c65109f31f539f8
+corrupt 4: FLAC 0x8010 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
+corrupt 4 mix: dur=9921 play=1 pos=1152 replay=1 seek=0 pos=0 playing=1 7c50193c6a9c78e4
+corrupt 5: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
+corrupt 5 mix: dur=9921 play=1 pos=1671 replay=1 seek=1 pos=3307 playing=0 2c65109f31f539f8
+mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 6c332b509c9bec10
+mixpre: dur=5807 play=1 pos=2823 replay=1 seek=1 pos=1935 playing=1 be0b42d576924378
+seek 0: play=1 seek=1 pos=0 playing=1 6dbdac8e40061d70
+seek 1: play=1 seek=1 pos=1 playing=1 9e9992986d110f0d
+seek 311: play=1 seek=1 pos=311 playing=1 ba8bc33b3c8e0301
+seek 960: play=1 seek=1 pos=960 playing=1 e6c2da9f7a800e25
+seek 3840: play=1 seek=1 pos=3840 playing=1 cce4e6424c7143fd
+seek 4801: play=1 seek=1 pos=4801 playing=1 f0a6c8e371486629
+seek 12345: play=1 seek=0 pos=5271 playing=1 a744fdc8d031f435
+seek 4960: play=1 seek=1 pos=4960 playing=1 998a4ce1773b6f21
+seek 9421: play=1 seek=0 pos=5430 playing=1 604c0d55467af95d
+seek 9920: play=1 seek=0 pos=5901 playing=1 6ea33241c9838779
+seek 0: play=1 seek=1 pos=0 playing=1 ea6b915367aec251
+seek 10921: play=1 seek=0 pos=470 playing=1 3b5b19a59312a5c9
+seek 100: play=1 seek=1 pos=100 playing=1 398f828727e6e26d
+== flac_loopcount.flac DRFLAC
+open: DRFLAC 0x8120 1 11025 frames=9921 | 24204 aa9730516a8940f5 end=0
+f32s48: 210760 29cd38b418c0e885 end=0
+s16m22: 24204 dd49feee29132ebb end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
+trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
+trunc 10375: DRFLAC 0x8120 1 11025 frames=9921 | 4608 62914be1393e4487 end=0
+trunc 13833: DRFLAC 0x8120 1 11025 frames=9921 | 20192 0adc1ba234215ff0 end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: DRFLAC 0x8120 1 11025 frames=3307 | 0 cbf29ce484222325 end=0
+corrupt 1 mix: dur=3307 play=1 pos=0 replay=1 seek=0 pos=0 playing=1 b230c008416f7e7c
+corrupt 2: DRFLAC 0x8120 1 11025 frames=3307 | 13228 2cd8f80db8b50e12 end=0
+corrupt 2 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
+corrupt 3: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
+corrupt 3 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 4: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
+corrupt 4 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 5: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
+corrupt 5 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 be819466c45e9574
+mixpre: dur=6051 play=1 pos=2823 replay=1 seek=1 pos=2017 playing=1 001da54582994624
 == flac_ogg.oga
 open: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 25600 1b96619f10769541 end=0
 f32s48: 76800 7dad53ad4f07fc73 end=0
@@ -7283,6 +7390,159 @@ seek 6614: play=1 seek=1 pos=6614 playing=0 4d25767f9dce13f5
 seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 7615: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
+== ogg_loopcount.ogg
+open: VORBIS 0x8120 1 11025 frames=6614 | 19228 278ff97887e4ad31 end=0
+f32s48: 167432 8ca49235cc91bb6d end=0
+s16m22: 19228 345d0f618e92c993 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 890: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1781: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2671: err: stb_vorbis_seek: VORBIS_seek_without_length
+trunc 3561: VORBIS 0x8120 1 11025 frames=0 | 0 cbf29ce484222325 end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: VORBIS 0x8120 1 11025 frames=6614 | 19228 b92d8798ab344d87 end=0
+ogg corrupt 0 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 3440ca4c3a507e30
+ogg corrupt 1: VORBIS 0x8120 1 11025 frames=6656 | 19312 c478c0120579fce4 end=0
+ogg corrupt 1 mix: dur=6656 play=1 pos=2823 replay=1 seek=1 pos=2218 playing=1 bf2c6f5b7522e31c
+ogg corrupt 2: VORBIS 0x8120 1 11025 frames=6614 | 19228 da274f10704144a5 end=0
+ogg corrupt 2 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 6230ba257ffe2964
+ogg corrupt 3: VORBIS 0x8120 1 11025 frames=6614 | 19228 ea89b2c397a9f336 end=0
+ogg corrupt 3 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 32374e8a2f107108
+ogg corrupt 4: VORBIS 0x8120 1 11025 frames=6614 | 19228 568a984eaa6256d1 end=0
+ogg corrupt 4 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a186930588b3a5f4
+ogg corrupt 5: VORBIS 0x8120 1 11025 frames=6614 | 19228 26f566e7b31a589f end=0
+ogg corrupt 5 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 93d589f6acf8d748
+ogg corrupt 6: VORBIS 0x8120 1 11025 frames=6614 | 19228 d49dc712eb057a9b end=0
+ogg corrupt 6 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 0be78a1a33ca5a38
+ogg corrupt 7: VORBIS 0x8120 1 11025 frames=6614 | 19228 4fef60335575e410 end=0
+ogg corrupt 7 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 5aaee64140e79e74
+ogg corrupt 8: VORBIS 0x8120 1 11025 frames=6614 | 19228 7becdc661e68d50d end=0
+ogg corrupt 8 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 bf206d95130d3364
+ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10: VORBIS 0x8120 1 11025 frames=6614 | 0 cbf29ce484222325 end=0
+ogg corrupt 10 mix: dur=6614 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+ogg corrupt 11: VORBIS 0x8120 1 11025 frames=6614 | 0 cbf29ce484222325 end=0
+ogg corrupt 11 mix: dur=6614 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a186930588b3a5f4
+mixpre: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 edca9fe36a10d390
+seek 0: play=1 seek=1 pos=0 playing=1 5254250f1a3f6c44
+seek 1: play=1 seek=1 pos=1 playing=1 ae10dff6f6c1a451
+seek 311: play=1 seek=1 pos=311 playing=1 cd4f0cf448044c51
+seek 960: play=1 seek=1 pos=960 playing=1 87190cf3bd0d4d79
+seek 3840: play=1 seek=1 pos=3840 playing=1 9749a7e9ed232461
+seek 4801: play=1 seek=1 pos=4801 playing=1 c91d5feb0ed64959
+seek 12345: play=1 seek=0 pos=5271 playing=1 dedcf6c977e326dd
+seek 3307: play=1 seek=1 pos=3307 playing=1 4dd74377a09c66e9
+seek 6114: play=1 seek=1 pos=6114 playing=0 cc18f6e3be37a327
+seek 6613: play=1 seek=0 pos=6307 playing=0 4d25767f9dce13f5
+seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
+seek 7614: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
+seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
+== ogg_loopcount.ogg STBVORBIS
+open: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 ff2f50228faeb2cf end=0
+f32s48: 167432 00d9611b3a29a6c9 end=0
+s16m22: 19228 8aba6169febc9733 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 890: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1781: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2671: err: stb_vorbis_seek: VORBIS_seek_without_length
+trunc 3561: err: stb_vorbis_seek: VORBIS_seek_without_length
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 4691b2fcb4a3caef end=0
+ogg corrupt 0 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 23c0192be4677018
+ogg corrupt 1: STBVORBIS 0x8120 1 11025 frames=8589934588 | 19228 b4250d901cdc0565 end=0
+ogg corrupt 1 mix: dur=8589934588 play=1 pos=2823 replay=1 seek=0 pos=0 playing=1 2d546c15eae5a910
+ogg corrupt 2: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 0c48ee5b5e0bc636 end=0
+ogg corrupt 2 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 cbdcdd7b02f9e954
+ogg corrupt 3: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 d02ed0895348b70a end=0
+ogg corrupt 3 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 d31450aa86a06e4c
+ogg corrupt 4: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 ba114c24d6719951 end=0
+ogg corrupt 4 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a05ce32025daa080
+ogg corrupt 5: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 920ef483a1d6c51a end=0
+ogg corrupt 5 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 64174f85790efa08
+ogg corrupt 6: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 9b164a8e8a1c28c2 end=0
+ogg corrupt 6 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 e25eae158c9ea53c
+ogg corrupt 7: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 82d2c7649f40e2b5 end=0
+ogg corrupt 7 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 107ac3ee285563cc
+ogg corrupt 8: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 8fceda2a100718a3 end=0
+ogg corrupt 8 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 269f3a6a715de6e0
+ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 10 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a05ce32025daa080
+mixpre: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 02f944e1559982c4
 == ogg_mono.ogg
 open: VORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 cd2feb78f62371e8 end=1
 f32s48: 8388608 190cd01b9487b73d end=1
@@ -8706,6 +8966,88 @@ seek -3: play=1 seek=0 pos=18489 playing=1 9cab306b51fd5db6
 seek 0: play=1 seek=1 pos=0 playing=1 cad2961eed3453de
 seek 998: play=1 seek=1 pos=998 playing=1 0bea1b5fe4655746
 seek 100: play=1 seek=1 pos=100 playing=1 877fa828bca27a2c
+== opus_loopcount.opus
+open: OPUS 0x8120 1 48000 frames=28800 | 76800 e6eaa6d2d813093c end=0
+f32s48: 153600 66a4e01028e162d9 end=0
+s16m22: 17640 ddc13a1c6c0b4748 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: OPUS 0x8120 1 48000 frames=18576 | 56352 1888a2e1f010a47b end=0
+trunc 339: err: Audio data is in unknown/unsupported/corrupt format
+trunc 679: OPUS 0x8120 1 48000 frames=4488 | 17952 0399fc3bdc6fdf0f end=0
+trunc 1019: OPUS 0x8120 1 48000 frames=18576 | 56352 1888a2e1f010a47b end=0
+trunc 1358: OPUS 0x8120 1 48000 frames=28176 | 75552 6b5caf9ea643e6cb end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 0: OPUS 0x8120 1 48000 frames=28800 | 76800 665b0f32d4f06e4b end=0
+ogg corrupt 0 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 c25bd9a7addf892d
+ogg corrupt 1: OPUS 0x8120 1 48000 frames=28800 | 76800 c12b9768fdf60dec end=0
+ogg corrupt 1 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 e4febd4c439a1f7d
+ogg corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 3: OPUS 0x8120 1 48000 frames=28800 | 76800 1ae0518ba37976b4 end=0
+ogg corrupt 3 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 ddabc66855ecf191
+ogg corrupt 4: OPUS 0x8120 1 48000 frames=28800 | 76800 08abdbc36d78f558 end=0
+ogg corrupt 4 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 f3b10966f4c46eb9
+ogg corrupt 5: OPUS 0x8120 1 48000 frames=28800 | 76800 2a1aa3550509f179 end=0
+ogg corrupt 5 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 592b16802a13c961
+ogg corrupt 6: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 6 mix: err: Audio data is in unknown/unsupported/corrupt format
+ogg corrupt 7: OPUS 0x8120 1 48000 frames=28800 | 76800 a5fcade74906a88d end=0
+ogg corrupt 7 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 2ee829fdb4570c49
+ogg corrupt 8: OPUS 0x8120 1 48000 frames=28800 | 76800 678d032c1d7ebf88 end=0
+ogg corrupt 8 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 8512a1a0f16114c5
+ogg corrupt 9: OPUS 0x8120 1 48000 frames=343597412480 | 79392 9c3426e413e1ea9a end=0
+ogg corrupt 9 mix: dur=343597412480 play=1 pos=12288 replay=1 seek=0 pos=0 playing=0 5102df4075888e25
+ogg corrupt 10: OPUS 0x8120 1 48000 frames=28800 | 76800 e9ca71b0763d305e end=0
+ogg corrupt 10 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 8084f024e75af795
+ogg corrupt 11: OPUS 0x8120 1 48000 frames=28800 | 56352 c275c3e0f9733c7a end=0
+ogg corrupt 11 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 e22427e622cbaecd
+mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 c25bd9a7addf892d
+mixpre: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 b8b1a949e1e8cff1
+seek 0: play=1 seek=1 pos=0 playing=1 b99351d7088b309d
+seek 1: play=1 seek=1 pos=1 playing=1 1d1f3864f9b3ddf9
+seek 311: play=1 seek=1 pos=311 playing=1 f6cb3c0589dc773d
+seek 960: play=1 seek=1 pos=960 playing=1 3a5410f7ff7a4b99
+seek 3840: play=1 seek=1 pos=3840 playing=1 59ebc99b6032dcdd
+seek 4801: play=1 seek=1 pos=4801 playing=1 09268958533610c1
+seek 12345: play=1 seek=1 pos=12345 playing=1 a463c91e4f4b42b5
+seek 14400: play=1 seek=1 pos=14400 playing=1 375ec3e586ca41e9
+seek 28300: play=1 seek=0 pos=16448 playing=1 b89cbc288f5565c5
+seek 28799: play=1 seek=0 pos=18496 playing=1 f43227e54d2588b5
+seek 0: play=1 seek=1 pos=0 playing=1 b99351d7088b309d
+seek 29800: play=1 seek=0 pos=2048 playing=1 35b0990dc328f4c1
+seek 100: play=1 seek=1 pos=100 playing=1 d334a21ede62c0b5
 == opus_quad.opus
 open: OPUS 0x8120 4 48000 frames=9600 | 153600 31759449ceaaa470 end=0
 f32s48: 76800 1d7bb9c6d5b5fb40 end=0

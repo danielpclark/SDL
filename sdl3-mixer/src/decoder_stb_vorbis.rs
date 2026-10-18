@@ -181,7 +181,7 @@ impl TrackData for StbVorbisTrackData<'_> {
         }
 
         let loop_ = self.adata.loop_;
-        if self.current_iteration < 0
+        if self.current_iteration == -1
             && loop_.active
             && (self.current_iteration_frames.wrapping_add(amount as i64) >= loop_.start)
         {
@@ -224,7 +224,12 @@ impl TrackData for StbVorbisTrackData<'_> {
                         return false;
                     }
                 } else {
-                    self.current_iteration = -1;
+                    // Note (upstream): this sets current_iteration back to -1
+                    // (before the loop) there, so with current_iteration_frames
+                    // back at 0, the check above saw the loop start again
+                    // `loop.start` frames later and a loop with a LOOPCOUNT
+                    // played forever; the translation's -2 means it's done.
+                    self.current_iteration = -2; // done looping.
                 }
                 self.current_iteration_frames = 0;
             }
@@ -262,6 +267,14 @@ impl TrackData for StbVorbisTrackData<'_> {
         let mut final_iteration: i64 = -1;
         let mut final_iteration_frames: i64 = 0;
 
+        // FIXME (upstream): a frame before the loop leaves
+        // current_iteration_frames at 0, where it means `frame` (so the
+        // loop starts that many frames late). And for a loop with a
+        // LOOPCOUNT, the test below leaves out the loop's start (`frame <
+        // start + len * count` is meant), the frames past the loop land a
+        // loop's length early (they're `len * (count - 1)` on), and the
+        // duration init_audio() reports, the whole file `count` times, is
+        // off too.
         // frame has hit the loop point?
         if loop_.active && (frame as i64 >= loop_.start) {
             // figure out the _actual_ frame in the vorbis file we're aiming for.
@@ -281,6 +294,8 @@ impl TrackData for StbVorbisTrackData<'_> {
                 debug_assert!(loop_.count > 0); // can't be infinite loop if we passed it.
                 frame = frame.wrapping_sub(loop_.len.wrapping_mul(loop_.count) as u64);
                 // drop the iterations to get the physical frame index.
+                // Note (upstream): -1 there, which loops again.
+                final_iteration = -2; // done looping.
             }
         }
 

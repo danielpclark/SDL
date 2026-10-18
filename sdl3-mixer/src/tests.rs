@@ -113,6 +113,7 @@ static FILES: &[(&str, &[u8])] = files![
     "flac_c_s32_mono.flac",
     "flac_c_s8_mono.flac",
     "flac_fixed_mono.flac",
+    "flac_loopcount.flac",
     "flac_ogg.oga",
     "flac_s16_stereo.flac",
     "flac_s24_mono.flac",
@@ -141,6 +142,7 @@ static FILES: &[(&str, &[u8])] = files![
     "ogg_chained_junk.ogg",
     "ogg_floor0.ogg",
     "ogg_hole.ogg",
+    "ogg_loopcount.ogg",
     "ogg_mono.ogg",
     "ogg_mux.ogg",
     "ogg_q10_48k.ogg",
@@ -155,6 +157,7 @@ static FILES: &[(&str, &[u8])] = files![
     "opus_hole.opus",
     "opus_hybrid_10ms.opus",
     "opus_hybrid_stereo.opus",
+    "opus_loopcount.opus",
     "opus_quad.opus",
     "opus_silk_mb_stereo.opus",
     "opus_silk_nb_60ms.opus",
@@ -324,10 +327,12 @@ static MODULES: &[(&str, &[u8])] = modules![
 static FORCED: &[(&str, &str)] = &[
     ("ogg_6ch.ogg", "STBVORBIS"),
     ("ogg_8k.ogg", "STBVORBIS"),
+    ("ogg_loopcount.ogg", "STBVORBIS"),
     ("ogg_mono.ogg", "STBVORBIS"),
     ("ogg_stereo.ogg", "STBVORBIS"),
     ("flac_6ch.flac", "DRFLAC"),
     ("flac_fixed_mono.flac", "DRFLAC"),
+    ("flac_loopcount.flac", "DRFLAC"),
     ("flac_ogg.oga", "DRFLAC"),
     ("flac_s16_stereo.flac", "DRFLAC"),
     ("flac_s24_mono.flac", "DRFLAC"),
@@ -1743,8 +1748,8 @@ fn vorbis_abr_chained_matches_upstream() {
 }
 
 #[test]
-fn vorbis_floor0_holes_mux_matches_upstream() {
-    files_with_prefix(&["ogg_f", "ogg_h", "ogg_m"]);
+fn vorbis_floor0_holes_loop_mux_matches_upstream() {
+    files_with_prefix(&["ogg_f", "ogg_h", "ogg_l", "ogg_m"]);
 }
 
 #[test]
@@ -1755,7 +1760,7 @@ fn vorbis_quality_short_matches_upstream() {
 // (the FLAC files in a few tests, so they run in parallel)
 #[test]
 fn flac_matches_upstream() {
-    files_with_prefix(&["flac_6", "flac_f", "flac_o", "flac_s"]);
+    files_with_prefix(&["flac_6", "flac_f", "flac_l", "flac_o", "flac_s"]);
 }
 
 #[test]
