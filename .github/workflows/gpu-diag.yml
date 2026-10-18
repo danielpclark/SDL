@@ -135,8 +135,13 @@ jobs:
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
           grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
           T=render::gpu::tests::gpu_render_states
-          echo "=== MTL_DEBUG_LAYER=1 assert mode"
-          MTL_DEBUG_LAYER=1 MTL_DEBUG_LAYER_ERROR_MODE=assert MTL_DEBUG_LAYER_WARNING_MODE=assert MVK_CONFIG_LOG_LEVEL=4 cargo test -q -p sdl3 --lib $T -- --nocapture > "$RUNNER_TEMP/dbg.log" 2>&1 || true
+          ( echo "=== MTL_DEBUG_LAYER=1, no argument buffers"
+            MTL_DEBUG_LAYER=1 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 cargo test -q -p sdl3 --lib $T -- --nocapture 2>&1 | grep -E "DIAG|without|test result|mvk-(err|warn)"
+            echo "=== MTL_DEBUG_LAYER=1, argument buffers"
+            MTL_DEBUG_LAYER=1 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=1 cargo test -q -p sdl3 --lib $T -- --nocapture 2>&1 | grep -E "DIAG|without|test result|mvk-(err|warn)"
+            echo "=== MTL_DEBUG_LAYER=1, all of render::gpu with no argument buffers"
+            MTL_DEBUG_LAYER=1 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 cargo test -q -p sdl3 --lib render::gpu:: 2>&1 | grep -E "test result|panicked"
+          ) > "$RUNNER_TEMP/dbg.log" 2>&1 || true
       - name: cargo test
         continue-on-error: true
         env:

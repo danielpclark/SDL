@@ -1627,7 +1627,10 @@ fn surface_attribs(
 /// Create a window surface for the native window `nw` (of `window`, if
 /// any), choosing the config first. Translation of `SDL_EGL_CreateSurface()`.
 pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> Result<EGLSurface> {
-    choose_config()?;
+    if let Err(err) = choose_config() {
+        eprintln!("DIAG egl choose_config: {}", err.message());
+        return Err(err);
+    }
     let Some(e) = egl() else {
         return Err(Error::new("EGL not initialized"));
     };
@@ -1678,7 +1681,9 @@ pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> 
         //  use EGL_PRESENT_OPAQUE_EXT, even when EGL_EXT_present_opaque is reported as available.
         //  If we used it, try a second time without this attribute.
         // SAFETY: eglGetError has no preconditions.
-        if unsafe { (e.f.eglGetError)() } == EGL_BAD_ATTRIBUTE {
+        let diag_err = unsafe { (e.f.eglGetError)() };
+        eprintln!("DIAG eglCreateWindowSurface: {diag_err:#x} attribs {attribs:x?} config {:p} hwnd {:p}", e.egl_config, nw as *const ());
+        if diag_err == EGL_BAD_ATTRIBUTE {
             if let Some(idx) = opaque_ext_idx {
                 attribs.drain(idx..idx + 2);
                 // SAFETY: as above.
