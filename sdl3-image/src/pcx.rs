@@ -179,11 +179,13 @@ fn load_pcx(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
                         for k in (0..=7).rev() {
                             let bit = (byte >> k) & 1;
                             /* skip padding bits */
-                            // FIXME (upstream): for a width that isn't a
-                            // multiple of 8 this keeps the low bits of the
-                            // row's last byte, where the pixels are its
-                            // high bits.
-                            if j * 8 + k >= width {
+                            // Note (upstream): upstream tests `j * 8 + k`,
+                            // which for a width that isn't a multiple of 8
+                            // keeps the low bits of the row's last byte,
+                            // where the pixels are its high bits; the
+                            // translation fixes it (the bit's pixel is
+                            // `j * 8 + 7 - k`).
+                            if j * 8 + (7 - k) >= width {
                                 continue;
                             }
                             row[x] |= bit << plane;

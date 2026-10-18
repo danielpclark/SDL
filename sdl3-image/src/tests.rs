@@ -28,6 +28,8 @@
 //! decoder walk without metadata, truncations and corruption as
 //! animations, and the APNG encoder's runs with no frames and a frame of
 //! another size; the APNG encoder runs with its options on every image.
+//! Where the translation fixes an upstream bug (a `Note (upstream)` says
+//! so), the C program is built with the same fix.
 //!
 //! Where upstream's results can't be had here, the comparison says why: the
 //! GIFs whose header the GIF decoder rejects (which upstream loads through an
