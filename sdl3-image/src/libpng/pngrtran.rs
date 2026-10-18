@@ -14,14 +14,15 @@
 //! Transformations that are used in both reading and writing are
 //! in pngtrans.c.
 //!
-//! SDL_image asks for three transformations: `png_set_palette_to_rgb()`
-//! (for color-mapped images), `png_set_strip_16()` and `png_set_filler()`,
-//! and its frame streams carry no gamma, sRGB, iCCP, cHRM or cICP chunk; so
-//! the gamma, background, alpha mode, quantizing, RGB to gray, gray to RGB,
-//! expand-16, shift, invert, swap and user transformations (and
-//! `png_do_expand()`, which only non-palette images with PNG_EXPAND reach)
-//! are not translated, and `png_init_read_transformations()` keeps the
-//! steps that apply.
+//! SDL_image asks for four transformations: `png_set_palette_to_rgb()`
+//! (for color-mapped images), `png_set_strip_16()`, `png_set_gray_to_rgb()`
+//! (for gray ones, the translation's fix of an upstream bug: see
+//! libpng.rs) and `png_set_filler()`, and its frame streams carry no gamma,
+//! sRGB, iCCP, cHRM or cICP chunk; so the gamma, background, alpha mode,
+//! quantizing, RGB to gray, expand-16, shift, invert, swap and user
+//! transformations (and the tRNS expansion of `png_do_expand()`, which only
+//! `png_set_tRNS_to_alpha()` asks for) are not translated, and
+//! `png_init_read_transformations()` keeps the steps that apply.
 
 use super::png::*;
 use super::pngerror::{png_app_error, png_error};
@@ -92,6 +93,29 @@ pub(crate) fn png_set_palette_to_rgb(png_ptr: &mut PngStruct<'_, '_>) -> PngResu
     }
 
     png_ptr.transformations |= PNG_EXPAND | PNG_EXPAND_tRNS;
+    Ok(())
+}
+
+/// Expand grayscale images of less than 8-bit depth to 8 bits.
+/// (`png_set_expand_gray_1_2_4_to_8`)
+pub(crate) fn png_set_expand_gray_1_2_4_to_8(png_ptr: &mut PngStruct<'_, '_>) -> PngResult<()> {
+    if !png_rtran_ok(png_ptr, false)? {
+        return Ok(());
+    }
+
+    png_ptr.transformations |= PNG_EXPAND;
+    Ok(())
+}
+
+/// `png_set_gray_to_rgb`
+pub(crate) fn png_set_gray_to_rgb(png_ptr: &mut PngStruct<'_, '_>) -> PngResult<()> {
+    if !png_rtran_ok(png_ptr, false)? {
+        return Ok(());
+    }
+
+    /* Because rgb must be 8 bits or more: */
+    png_set_expand_gray_1_2_4_to_8(png_ptr)?;
+    png_ptr.transformations |= PNG_GRAY_TO_RGB;
     Ok(())
 }
 
@@ -799,6 +823,185 @@ fn png_do_expand_palette(
     }
 }
 
+/// Expand grayscale files to RGB, with or without alpha
+/// (`png_do_gray_to_rgb`; `sp` and `dp` are one past the bytes upstream's
+/// pointers point to)
+fn png_do_gray_to_rgb(row_info: &mut PngRowInfo, row: &mut [u8]) {
+    let row_width = row_info.width as usize;
+
+    if row_info.bit_depth >= 8 && (row_info.color_type & PNG_COLOR_MASK_COLOR) == 0 {
+        if row_info.color_type == PNG_COLOR_TYPE_GRAY {
+            if row_info.bit_depth == 8 {
+                /* This changes G to RGB */
+                let mut sp = row_width;
+                let mut dp = sp + row_width * 2;
+                for _ in 0..row_width {
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                }
+            } else {
+                /* This changes GG to RRGGBB */
+                let mut sp = row_width * 2;
+                let mut dp = sp + row_width * 4;
+                for _ in 0..row_width {
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    row[dp] = row[sp - 2];
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    row[dp] = row[sp - 2];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                }
+            }
+        } else if row_info.color_type == PNG_COLOR_TYPE_GRAY_ALPHA {
+            if row_info.bit_depth == 8 {
+                /* This changes GA to RGBA */
+                let mut sp = row_width * 2;
+                let mut dp = sp + row_width * 2;
+                for _ in 0..row_width {
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                }
+            } else {
+                /* This changes GGAA to RRGGBBAA */
+                let mut sp = row_width * 4;
+                let mut dp = sp + row_width * 4;
+                for _ in 0..row_width {
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    row[dp] = row[sp - 2];
+                    dp -= 1;
+                    row[dp] = row[sp - 1];
+                    dp -= 1;
+                    row[dp] = row[sp - 2];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                    dp -= 1;
+                    sp -= 1;
+                    row[dp] = row[sp];
+                }
+            }
+        }
+        row_info.channels += 2;
+        row_info.color_type |= PNG_COLOR_MASK_COLOR;
+        row_info.pixel_depth = row_info.channels * row_info.bit_depth;
+        row_info.rowbytes = png_rowbytes(row_info.pixel_depth as u32, row_width);
+    }
+}
+
+/// If the bit depth < 8, it is expanded to 8.  Also, if the already
+/// expanded transparency value is supplied, an alpha channel is built.
+/// (`png_do_expand`, without a transparency value: the tRNS expansion
+/// isn't asked for here, so the gray value and the RGB case, which only it
+/// uses, aren't translated)
+fn png_do_expand(row_info: &mut PngRowInfo, row: &mut [u8]) {
+    let mut shift: i32;
+    let mut value: u8;
+    let row_width = row_info.width as usize;
+
+    if row_info.color_type == PNG_COLOR_TYPE_GRAY && row_info.bit_depth < 8 {
+        match row_info.bit_depth {
+            1 => {
+                let mut sp = (row_width - 1) >> 3;
+                let mut dp = row_width - 1;
+                shift = 7 - ((row_width + 7) & 0x07) as i32;
+                for i in 0..row_width {
+                    if ((row[sp] >> shift) & 0x01) != 0 {
+                        row[dp] = 0xff;
+                    } else {
+                        row[dp] = 0;
+                    }
+
+                    if shift == 7 {
+                        shift = 0;
+                        sp = sp.wrapping_sub(1);
+                    } else {
+                        shift += 1;
+                    }
+
+                    if i + 1 < row_width {
+                        dp -= 1;
+                    }
+                }
+            }
+
+            2 => {
+                let mut sp = (row_width - 1) >> 2;
+                let mut dp = row_width - 1;
+                shift = ((3 - ((row_width + 3) & 0x03)) << 1) as i32;
+                for i in 0..row_width {
+                    value = (row[sp] >> shift) & 0x03;
+                    row[dp] = value | (value << 2) | (value << 4) | (value << 6);
+                    if shift == 6 {
+                        shift = 0;
+                        sp = sp.wrapping_sub(1);
+                    } else {
+                        shift += 2;
+                    }
+
+                    if i + 1 < row_width {
+                        dp -= 1;
+                    }
+                }
+            }
+
+            4 => {
+                let mut sp = (row_width - 1) >> 1;
+                let mut dp = row_width - 1;
+                shift = ((1 - ((row_width + 1) & 0x01)) << 2) as i32;
+                for i in 0..row_width {
+                    value = (row[sp] >> shift) & 0x0f;
+                    row[dp] = value | (value << 4);
+                    if shift == 4 {
+                        shift = 0;
+                        sp = sp.wrapping_sub(1);
+                    } else {
+                        shift = 4;
+                    }
+
+                    if i + 1 < row_width {
+                        dp -= 1;
+                    }
+                }
+            }
+
+            _ => {}
+        }
+
+        row_info.bit_depth = 8;
+        row_info.pixel_depth = 8;
+        row_info.rowbytes = row_width;
+    }
+}
+
 /// Transform the row.  The order of transformations is significant,
 /// and is very touchy.  If you add a transformation, take care to
 /// decide how it fits in with the other transformations here.
@@ -845,12 +1048,24 @@ pub(crate) fn png_do_read_transformations(
             png_ptr.trans_alpha.as_deref(),
             png_ptr.num_trans as i32,
         );
+    } else if (png_ptr.transformations & PNG_EXPAND) != 0 {
+        /* (png_ptr->num_trans != 0 with PNG_EXPAND_tRNS, the tRNS expansion:
+         * PNG_EXPAND_tRNS is only set with palettes here) */
+        png_do_expand(row_info, row);
     }
-    /* (png_do_expand(), for other color types: SDL_image only expands
-     * palettes) */
 
-    /* (PNG_STRIP_ALPHA, PNG_RGB_TO_GRAY, PNG_GRAY_TO_RGB, PNG_COMPOSE,
-     * PNG_GAMMA, PNG_ENCODE_ALPHA and PNG_SCALE_16_TO_8: not set) */
+    /* (PNG_STRIP_ALPHA and PNG_RGB_TO_GRAY: not set) */
+
+    /* If gray -> RGB, do so now only if background is non-gray; else do later
+     * for performance reasons
+     * (PNG_BACKGROUND_IS_GRAY: never set, with no background)
+     */
+    if (png_ptr.transformations & PNG_GRAY_TO_RGB) != 0 {
+        png_do_gray_to_rgb(row_info, row);
+    }
+
+    /* (PNG_COMPOSE, PNG_GAMMA, PNG_ENCODE_ALPHA and PNG_SCALE_16_TO_8: not
+     * set) */
 
     /* There is no harm in doing both of these because only one has any effect,
      * by putting the 'scale' option first if the app asks for scale (either by
@@ -860,8 +1075,9 @@ pub(crate) fn png_do_read_transformations(
         png_do_chop(row_info, row);
     }
 
-    /* (PNG_QUANTIZE, PNG_EXPAND_16, PNG_GRAY_TO_RGB, PNG_INVERT_MONO,
-     * PNG_INVERT_ALPHA, PNG_SHIFT and PNG_PACK: not set) */
+    /* (PNG_QUANTIZE and PNG_EXPAND_16: not set; PNG_GRAY_TO_RGB with
+     * PNG_BACKGROUND_IS_GRAY: never; PNG_INVERT_MONO, PNG_INVERT_ALPHA,
+     * PNG_SHIFT and PNG_PACK: not set) */
 
     /* (Added at libpng-1.5.10: png_do_check_palette_indexes() for rows still
      * color-mapped here, which SDL_image's never are, as it expands them) */
