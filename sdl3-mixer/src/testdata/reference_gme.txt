@@ -969,3 +969,176 @@ freshseek 2205: seek=0 pos=0 playing=0 4d25767f9dce13f5
 freshseek 48000: seek=0 pos=0 playing=0 4d25767f9dce13f5
 freshseek 20000: seek=0 pos=0 playing=0 4d25767f9dce13f5
 freshseek 100: seek=0 pos=0 playing=0 4d25767f9dce13f5
+== gme sap_b.sap
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 98304 d02178d1ef96218d end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 98304 45f9b38ccda7ec89 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 32768 b9bc8fccfe72148a end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 16384 8e224a813ed9ff05 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 277: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+trunc 554: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 0 cbf29ce484222325 end=0
+corrupt 0 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+corrupt 1: GME 0x8010 2 48000 album="POKEY Test" copyright="2026" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 2: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEY Test" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="POKEY Test" gme.copyright="2026" gme.system="Atari XL" | 0 cbf29ce484222325 end=0
+corrupt 2 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+corrupt 3: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="POKEYfTst" copyright="2­26" gme.author="gen_gme_testdata.py" gme.game="POKEYfTst" gme.copyright="2­26" gme.system="Atari XL" | 0 cbf29ce484222325 end=0
+corrupt 3 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 d4c9c3ea79f511bd
+order 1: play=1 pos=4096 playing=1 3f77cf3aeb4adff5
+order 2: play=1 pos=4096 playing=1 aa1143bf909f2d19
+order 0: play=1 pos=4096 playing=1 aa1143bf909f2d19
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 bd8030f99ab15ae1
+freshseek 2205: seek=1 pos=2205 playing=1 3d12774ebc67777d
+freshseek 48000: seek=1 pos=48000 playing=1 b68407c6c8ac3ac9
+freshseek 20000: seek=1 pos=20000 playing=1 6a8b069f25ec165d
+freshseek 100: seek=1 pos=100 playing=1 122a0f5641b54919
+== gme sap_c.sap
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 98304 ff4cce972332fe31 end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 98304 26c01647d957fd39 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 32768 c8f2a5f776d6f988 end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 16384 c9a8216b304ee021 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 110: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+trunc 219: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 16384 7e05f1edaee49879 end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 16384 ea7381cfc601cba5 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 829818c604b58a39
+corrupt 1: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Type C" gme.author="gen_gme_testdata.py" gme.game="Type C" gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 c98406edb9c02ed9
+order 1: play=1 pos=4096 playing=1 c740f26a935a3bb5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 3a176cb44a47c921
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 c6794f4b1ee4d3dd
+freshseek 2205: seek=1 pos=2205 playing=1 c45131060a92f0c5
+freshseek 48000: seek=1 pos=48000 playing=1 f39c7f9eeebec579
+freshseek 20000: seek=1 pos=20000 playing=1 0cdd26581458a019
+freshseek 100: seek=1 pos=100 playing=1 1f2f158faa0ace01
+== gme sap_digi.sap
+open: err: Audio data is in unknown/unsupported/corrupt format
+f32s48: err: Audio data is in unknown/unsupported/corrupt format
+s16m22: err: Audio data is in unknown/unsupported/corrupt format
+forced: err: Audio data is in unknown/unsupported/corrupt format
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 19: err: Audio data is in unknown/unsupported/corrupt format
+trunc 37: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: GME 0x8010 2 48000 gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: err: Audio data is in unknown/unsupported/corrupt format
+gmetracks: err: Audio data is in unknown/unsupported/corrupt format
+== gme sap_odd.sap
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 98304 1eb9471aa342f391 end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 98304 6795159409c8cd65 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 32768 aa33d1da6c1629b2 end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 16384 63b518085fac482d end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 91: err: Audio data is in unknown/unsupported/corrupt format
+trunc 181: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 16384 63b518085fac482d end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 16384 1b8ac11202c3580d end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 a66ff14cdcce0ddd
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: GME 0x8010 2 48000 artist="gen_gme_testdat`.py" album="Odd SAP" copyright="2026" gme.author="gen_gme_testdat`.py" gme.game="Odd SAP" gme.copyright="2026" gme.system="Atari XL" | 0 cbf29ce484222325 end=0
+corrupt 2 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+corrupt 3: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Odd SAP" gme.author="gen_gme_testdata.py" gme.game="Odd SAP" gme.system="Atari XL" | 16384 3bda833e175198ed end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 9f78724bc479945d
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 f0c96c63b8c1df0d
+order 1: play=1 pos=1152 playing=0 04fa17aa5db08d71
+order 2: play=1 pos=1152 playing=0 04fa17aa5db08d71
+order 0: play=1 pos=4096 playing=1 aeb12ea5e2ed617d
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=1 pos=4096 playing=1 b0a85729086f2dc5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=1 e287ef8df6436935
+gmeseek 2205: seek=1 pos=2205 playing=1 e287ef8df6436935
+gmeseek 48000: seek=1 pos=48000 playing=1 e287ef8df6436935
+gmeseek 20000: seek=1 pos=20000 playing=1 e287ef8df6436935
+gmeseek 100: seek=1 pos=100 playing=1 e287ef8df6436935
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 d36bb8d26874fe6d
+freshseek 2205: seek=1 pos=2205 playing=1 6f5ff42be843d959
+freshseek 48000: seek=1 pos=48000 playing=1 404304a65e88f78d
+freshseek 20000: seek=1 pos=20000 playing=1 50134d045b7edc99
+freshseek 100: seek=1 pos=100 playing=1 e24c13ffec2c4511
+== gme sap_stereo.sap
+open: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Stereo" gme.author="gen_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 98304 de1bccc706bab441 end=1
+f32s48: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Stereo" gme.author="gen_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 98304 2a36663f6d622964 end=1
+s16m22: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Stereo" gme.author="gen_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 32768 0a83599f5a9023a9 end=1
+forced: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Stereo" gme.author="gen_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 16384 ec259489b44fcf42 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 115: err: Audio data is in unknown/unsupported/corrupt format
+trunc 229: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Stereo" gme.author="gen_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 16384 743741d01e2e5b35 end=1
+corrupt 0: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="Stereo" gme.author="gen_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 16384 b7406792df33e37a end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 34eb7ace647249e3
+corrupt 1: GME 0x8010 2 48000 artist="ge_gme_testdata.py" album="Stereo" gme.author="ge_gme_testdata.py" gme.game="Stereo" gme.system="Atari XL" | 16384 c9cb636352dc70c6 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 d1035250d20065f5
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: GME 0x8010 2 48000 artist="gen_gme_testdata.py" gme.author="gen_gme_testdata.py" gme.system="Atari XL" | 16384 9c1bda7f8c872325 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 2bb2da1aeb735e9b
+order 1: play=1 pos=4096 playing=1 9c9380b95cd62e66
+order 2: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 b9c998a62768cd7c
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 a5af56541831f57d
+freshseek 2205: seek=1 pos=2205 playing=1 2595472de7a0a787
+freshseek 48000: seek=1 pos=48000 playing=1 c64fd9f6fd4defea
+freshseek 20000: seek=1 pos=20000 playing=1 6f63bfa6a7387636
+freshseek 100: seek=1 pos=100 playing=1 265a96c8c2e9c777

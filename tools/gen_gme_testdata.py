@@ -2,9 +2,9 @@
 """Generate sdl3-mixer-gme's test data (sdl3-mixer-gme/testdata/).
 
 Every file here is synthetic, made by this script: tiny game music rips
-whose sound programs are assembled here (for the 6502 of the NSF and NSFE
-files, the Game Boy CPU of the GBS files, the Z80 of the AY and KSS
-files, the HuC6280 of the HES files), driving the sound chips the
+whose sound programs are assembled here (for the 6502 of the NSF, NSFE
+and SAP files, the Game Boy CPU of the GBS files, the Z80 of the AY and
+KSS files, the HuC6280 of the HES files), driving the sound chips the
 emulators emulate, with their metadata, track lists and timing. Nothing
 comes from a real game.
 
@@ -3454,6 +3454,278 @@ irq:
     write('hes_extra.hes', h + code)
 
 
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# SAP
+
+def sap_file(tags, blocks, separators=True):
+    """A SAP file: its text header (`tags`, lines without their CR LF),
+    then the binary blocks (start address, data), each after an $FFFF."""
+    out = b'SAP\r\n'
+    for t in tags:
+        out += (t.encode('latin-1') if isinstance(t, str) else t) + b'\r\n'
+    for i, (start, data) in enumerate(blocks):
+        if i == 0 or separators:
+            out += b'\xFF\xFF'
+        out += struct.pack('<HH', start, start + len(data) - 1) + data
+    return out
+
+
+# The CPU exercise for the SAP files: the NSF's, without the unofficial
+# instructions the Atari's CPU emulator doesn't run (see SAP_UNOFFICIAL),
+# and keeping the stack where the player's return address is.
+SAP_CPU_EXERCISE = CPU_EXERCISE.replace('''    LAX ($40),Y
+    STX $23
+    SAX $0624
+    LDA #$F0
+    LDX #$3C
+    SBX #$11
+    STX $25''', '''    LDA ($40),Y
+    STA $23
+    STA $0624
+    LDA #$F0
+    LDX #$3C
+    STX $25''').replace('''    PHA
+    LDX #$FF
+    TXS
+    TSX
+    PLA''', '''    PHA
+    TSX
+    PLA''')
+assert 'LAX' not in SAP_CPU_EXERCISE and 'SBX' not in SAP_CPU_EXERCISE
+
+# The unofficial instructions the Atari's CPU emulator runs: the skips
+# (of a byte and of a word), the NOPs and SBC #imm's copy.
+SAP_UNOFFICIAL = '''
+unofficial:
+    .db $80, $12     ; SKB
+    .db $04, $12, $14, $12, $34, $12, $44, $12, $54, $12, $64, $12, $74, $12
+    .db $82, $12, $89, $12, $C2, $12, $D4, $12, $E2, $12, $F4, $12
+    .db $0C, $34, $12 ; SKW
+    LDX #$F0
+    .db $1C, $34, $12, $3C, $34, $12, $5C, $34, $12, $7C, $34, $12, $DC, $34, $12, $FC, $34, $12
+    .db $1A, $3A, $5A, $7A, $DA, $FA ; NOPs
+    SEC
+    LDA $10
+    .db $EB, $21     ; SBC #$21
+    STA $10
+    RTS
+'''
+
+
+def sap_b():
+    # A type B player: three tracks, the POKEY's four channels with their
+    # distortions (pure tones, the 4-, 5-, 9- and 17-bit polynomials, the
+    # volume-only mode), and AUDCTL's clocks, joined channels and high-pass
+    # filters, track 2 changing them as it plays
+    a = Asm(0x2000)
+    a('''
+init:
+    STA $80          ; the track
+    LDA #$00
+    STA $81
+    JSR cpu_test
+    JSR unofficial
+    LDX $80
+    LDA audctl,X
+    STA $D208
+    LDA #$03
+    STA $D20F        ; SKCTL (unmapped)
+    LDA #$A8
+    STA $D201
+    LDA $10
+    ORA #$40
+    STA $D200
+    LDA #$28
+    STA $D203
+    LDA #$79
+    STA $D202
+    LDA #$C6
+    STA $D205
+    LDA #$20
+    STA $D204
+    LDA #$06
+    STA $D207
+    LDA #$10
+    STA $D206
+    STA $D209        ; STIMER
+    RTS
+
+play:
+    INC $81
+    LDA $81
+    AND #$07
+    TAX
+    LDA notes,X
+    CLC
+    ADC $10
+    STA $D200
+    LDA $81
+    LSR A
+    LSR A
+    AND #$07
+    TAX
+    LDA notes,X
+    STA $D202
+    LDA $81
+    AND #$10
+    BEQ play_poly
+    LDA $81
+    AND #$0F
+    ORA #$10         ; volume only
+    STA $D207
+    BNE play_ctl
+play_poly:
+    LDA $81
+    AND #$E0
+    ORA #$06
+    STA $D207
+play_ctl:
+    LDA $80
+    CMP #$02
+    BNE play_done
+    LDA $81
+    AND #$1F
+    BNE play_done
+    LDA $81
+    LSR A
+    LSR A
+    LSR A
+    LSR A
+    LSR A
+    AND #$07
+    TAX
+    LDA audctl_seq,X
+    STA $D208
+play_done:
+    RTS
+
+audctl:
+    .db $00, $81, $00
+audctl_seq:
+    .db $10, $18, $06, $60, $78, $FF, $04, $01
+notes:
+    .db $F3, $D9, $C1, $B6, $A2, $90, $80, $79
+''')
+    a(SAP_CPU_EXERCISE)
+    a(SAP_UNOFFICIAL)
+    code = a.assemble()
+    tags = ['AUTHOR "gen_gme_testdata.py"', 'NAME "POKEY Test"', 'DATE "2026"', 'SONGS 3',
+            'TYPE B', 'INIT %04X' % a.labels['init'], 'PLAYER %04X' % a.labels['play']]
+    write('sap_b.sap', sap_file(tags, [(0x2000, code)]))
+
+
+def sap_c():
+    # A type C player (initialized through its address + 3 with the music's
+    # address, then the track; played through its address + 6), at twice
+    # the rate, its music in a second block; and a stereo rip, its second
+    # POKEY at $D210
+    a = Asm(0x3000)
+    a('''
+player:
+    RTS
+    NOP
+    NOP
+    JMP c_init
+    JMP c_play
+c_init:
+    CMP #$70
+    BNE c_song
+    STX $90          ; the music's address
+    STY $91
+    RTS
+c_song:
+    STX $92          ; the track
+    LDA #$00
+    STA $93
+    STA $D208
+    LDA #$AA
+    STA $D201
+    LDA #$A6
+    STA $D203
+    STA $D211
+    LDA #$AC
+    STA $D213
+    LDA #$00
+    STA $D218
+    RTS
+c_play:
+    INC $93
+    LDA $93
+    AND #$0F
+    TAY
+    LDA ($90),Y
+    CLC
+    ADC $92
+    STA $D200
+    STA $D212
+    LSR A
+    STA $D202
+    STA $D210
+    LDA $93
+    AND #$1F
+    BNE c_done
+    LDA $93
+    STA $D218        ; the second POKEY's AUDCTL
+c_done:
+    RTS
+''')
+    code = a.assemble()
+    music = bytes([0x51, 0x48, 0x40, 0x3C, 0x35, 0x2F, 0x2A, 0x28,
+                   0x51, 0x5B, 0x66, 0x6C, 0x79, 0x88, 0x99, 0xA2])
+    tags = ['AUTHOR "gen_gme_testdata.py"', 'NAME "Type C"', 'SONGS 2', 'TYPE C',
+            'PLAYER 3000', 'MUSIC 4000', 'FASTPLAY 156']
+    write('sap_c.sap', sap_file(tags, [(0x3000, code), (0x4000, music)], separators=False))
+    write('sap_stereo.sap', sap_file(tags[:1] + ['NAME "Stereo"', 'STEREO'] + tags[2:],
+                                     [(0x3000, code), (0x4000, music)]))
+
+
+def sap_odd():
+    # tags that are prefixes ("IN" is INIT) or unknown, strings without
+    # quotes, an empty line; code returning by RTI (through the NOP at
+    # $FEFE), an illegal instruction (track 1), a BRK past the idle address
+    # (track 2), an init that never returns (track 3), a block ending
+    # before it starts (a warning); and a Digimusic rip (an error)
+    a = Asm(0x2000)
+    a('''
+init:
+    STA $80
+    TAX
+    BEQ init_done
+    DEX
+    BEQ init_done
+    DEX
+    BEQ init_brk
+init_loop:
+    JMP init_loop
+init_brk:
+    JMP $FF00
+init_done:
+    LDA #$A6
+    STA $D201
+    LDA #$40
+    STA $D200
+    RTS
+play:
+    INC $81
+    LDA $81
+    STA $D200
+    LDA $80
+    BEQ play_rti
+    .db $02          ; KIL: illegal
+play_rti:
+    RTI
+''')
+    code = a.assemble()
+    tags = ['AUTHOR gen_gme_testdata.py', 'NAME "Odd SAP', 'DATE "2026"', 'SONGS 4',
+            'IN 2000', 'PLAYER %04X' % a.labels['play'], 'FASTPLAY 100', 'TIME 01:00', '']
+    blocks = [(0x2000, code), (0xFEFE, b'\xEA')]
+    data = sap_file(tags, blocks)
+    data += b'\xFF\xFF' + struct.pack('<HH', 0x0600, 0x05FF) + b'\x00\x00'
+    write('sap_odd.sap', data)
+    write('sap_digi.sap', sap_file(['TYPE D', 'INIT 2000'], [(0x2000, b'\x60' * 8)]))
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -3473,6 +3745,9 @@ def main():
     hes_psg()
     hes_odd()
     hes_multi()
+    sap_b()
+    sap_c()
+    sap_odd()
 
 
 if __name__ == '__main__':

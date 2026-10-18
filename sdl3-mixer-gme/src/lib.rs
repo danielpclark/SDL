@@ -43,7 +43,8 @@
 //!   Sega Master System's SN76489;
 //! - the NSF and NSFE emulators: the NES 6502 CPU, the 2A03 APU and the
 //!   VRC6, Namco 106, FME-7, FDS, MMC5 and VRC7 sound chips (the VRC7 over
-//!   emu2413).
+//!   emu2413);
+//! - the SAP emulator: the Atari XL's 6502 CPU and its POKEY.
 //!
 //! The API is upstream's `gme_*` functions (in [`gme`]), on [`MusicEmu`]
 //! trait objects. `sdl3-mixer` uses it for its `GME` decoder through its
@@ -116,6 +117,9 @@ pub mod nes_vrc6_apu;
 pub mod nes_vrc7_apu;
 pub mod nsf_emu;
 pub mod nsfe_emu;
+pub mod sap_apu;
+pub mod sap_cpu;
+pub mod sap_emu;
 pub mod sms_apu;
 
 pub use gme::*;
