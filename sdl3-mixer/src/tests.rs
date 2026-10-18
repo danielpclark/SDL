@@ -2341,6 +2341,12 @@ fn gme_sap_matches_upstream() {
     gme_files("sap_");
 }
 
+#[cfg(feature = "gme")]
+#[test]
+fn gme_spc_matches_upstream() {
+    gme_files("spc_");
+}
+
 #[test]
 fn scenarios_match_upstream() {
     setup();

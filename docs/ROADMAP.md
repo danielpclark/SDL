@@ -379,11 +379,12 @@ In dependency order, after the core each one needs exists:
    (the HuC6280, its PSG and the ADPCM chip), the KSS emulator (the MSX's
    banked memory, Konami's SCC and the Master System's SN76489), the NSF
    and NSFE emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS,
-   MMC5, Namco 106 and FME-7 chips) and the SAP emulator (the Atari's 6502
-   and POKEY) are done, checked bit-for-bit against upstream's C++ (and
-   through the decoder and the mixer, upstream's C) on rips from
-   `tools/gen_gme_testdata.py`, truncated and corrupted; not yet: the GYM,
-   SPC and VGM emulators.
+   MMC5, Namco 106 and FME-7 chips), the SAP emulator (the Atari's 6502 and
+   POKEY) and the SPC emulator (the SPC-700, the fast DSP, the output
+   filter and the FIR resampler) are done, checked bit-for-bit against
+   upstream's C++ (and through the decoder and the mixer, upstream's C) on
+   rips from `tools/gen_gme_testdata.py`, truncated and corrupted; not yet:
+   the GYM and VGM emulators.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

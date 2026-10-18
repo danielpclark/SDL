@@ -4,9 +4,10 @@
 Every file here is synthetic, made by this script: tiny game music rips
 whose sound programs are assembled here (for the 6502 of the NSF, NSFE
 and SAP files, the Game Boy CPU of the GBS files, the Z80 of the AY and
-KSS files, the HuC6280 of the HES files), driving the sound chips the
-emulators emulate, with their metadata, track lists and timing. Nothing
-comes from a real game.
+KSS files, the HuC6280 of the HES files, the SPC-700 of the SPC files),
+driving the sound chips the emulators emulate, with their metadata,
+track lists and timing. Nothing comes from a real game. (An SPC file is
+always a 64K memory image, so those two are not tiny.)
 
 The output is deterministic, so regenerating the files gives the same
 bytes. If they change, the reference output (`testdata/reference.txt`,
@@ -3726,6 +3727,734 @@ play_rti:
     write('sap_digi.sap', sap_file(['TYPE D', 'INIT 2000'], [(0x2000, b'\x60' * 8)]))
 
 
+# ---------------------------------------------------------------------------
+# A small assembler for the SPC-700, on the same two-pass assembler, in
+# the usual syntax with explicit operand kinds: `$12` a direct page
+# address, `!label` or `!$1234` an absolute one, `#$12` an immediate,
+# `$12.3` a direct page bit, `!label.3` an absolute bit (MOV1 and the
+# other bit instructions), branch targets as labels.
+
+def _spc_ops():
+    t = {}
+
+    def op(code, text, order=None):
+        assert code not in t.values(), hex(code)
+        t[text] = (code, order)
+
+    alu = [('OR', 0x00), ('AND', 0x20), ('EOR', 0x40), ('CMP', 0x60), ('ADC', 0x80), ('SBC', 0xA0)]
+    for name, b in alu:
+        op(b + 0x04, name + ' A,D')
+        op(b + 0x05, name + ' A,!W')
+        op(b + 0x06, name + ' A,(X)')
+        op(b + 0x07, name + ' A,[D+X]')
+        op(b + 0x08, name + ' A,#I')
+        op(b + 0x09, name + ' D,S', 'SD')
+        op(b + 0x14, name + ' A,D+X')
+        op(b + 0x15, name + ' A,!W+X')
+        op(b + 0x16, name + ' A,!W+Y')
+        op(b + 0x17, name + ' A,[D]+Y')
+        op(b + 0x18, name + ' D,#I', 'ID')
+        op(b + 0x19, name + ' (X),(Y)')
+    for n in range(16):
+        op(n * 0x10 + 0x01, 'TCALL %d' % n)
+    for bit in range(8):
+        op(0x02 + bit * 0x20, 'SET1 D.%d' % bit)
+        op(0x12 + bit * 0x20, 'CLR1 D.%d' % bit)
+        op(0x03 + bit * 0x20, 'BBS D.%d,R' % bit)
+        op(0x13 + bit * 0x20, 'BBC D.%d,R' % bit)
+    for code, text in [
+            (0x00, 'NOP'), (0x0A, 'OR1 C,M'), (0x2A, 'OR1 C,/M'), (0x4A, 'AND1 C,M'),
+            (0x6A, 'AND1 C,/M'), (0x8A, 'EOR1 C,M'), (0xAA, 'MOV1 C,M'), (0xCA, 'MOV1 M,C'),
+            (0xEA, 'NOT1 M'),
+            (0x0B, 'ASL D'), (0x0C, 'ASL !W'), (0x1B, 'ASL D+X'), (0x1C, 'ASL A'),
+            (0x2B, 'ROL D'), (0x2C, 'ROL !W'), (0x3B, 'ROL D+X'), (0x3C, 'ROL A'),
+            (0x4B, 'LSR D'), (0x4C, 'LSR !W'), (0x5B, 'LSR D+X'), (0x5C, 'LSR A'),
+            (0x6B, 'ROR D'), (0x6C, 'ROR !W'), (0x7B, 'ROR D+X'), (0x7C, 'ROR A'),
+            (0x0D, 'PUSH PSW'), (0x2D, 'PUSH A'), (0x4D, 'PUSH X'), (0x6D, 'PUSH Y'),
+            (0x8E, 'POP PSW'), (0xAE, 'POP A'), (0xCE, 'POP X'), (0xEE, 'POP Y'),
+            (0x0E, 'TSET1 !W'), (0x4E, 'TCLR1 !W'),
+            (0x0F, 'BRK'), (0x1F, 'JMP [!W+X]'), (0x5F, 'JMP !W'), (0x3F, 'CALL !W'),
+            (0x4F, 'PCALL U'), (0x6F, 'RET'), (0x7F, 'RETI'),
+            (0x10, 'BPL R'), (0x30, 'BMI R'), (0x50, 'BVC R'), (0x70, 'BVS R'),
+            (0x90, 'BCC R'), (0xB0, 'BCS R'), (0xD0, 'BNE R'), (0xF0, 'BEQ R'), (0x2F, 'BRA R'),
+            (0x1A, 'DECW D'), (0x3A, 'INCW D'), (0x5A, 'CMPW YA,D'), (0x7A, 'ADDW YA,D'),
+            (0x9A, 'SUBW YA,D'), (0xBA, 'MOVW YA,D'), (0xDA, 'MOVW D,YA'),
+            (0x1D, 'DEC X'), (0x3D, 'INC X'), (0x5D, 'MOV X,A'), (0x7D, 'MOV A,X'),
+            (0x9D, 'MOV X,SP'), (0xBD, 'MOV SP,X'), (0xDD, 'MOV A,Y'), (0xFD, 'MOV Y,A'),
+            (0x1E, 'CMP X,!W'), (0x3E, 'CMP X,D'), (0x5E, 'CMP Y,!W'), (0x7E, 'CMP Y,D'),
+            (0xC8, 'CMP X,#I'), (0xAD, 'CMP Y,#I'),
+            (0x20, 'CLRP'), (0x40, 'SETP'), (0x60, 'CLRC'), (0x80, 'SETC'), (0xA0, 'EI'),
+            (0xC0, 'DI'), (0xE0, 'CLRV'), (0xED, 'NOTC'),
+            (0x2E, 'CBNE D,R'), (0xDE, 'CBNE D+X,R'), (0x6E, 'DBNZ D,R'), (0xFE, 'DBNZ Y,R'),
+            (0x8B, 'DEC D'), (0x8C, 'DEC !W'), (0x9B, 'DEC D+X'), (0x9C, 'DEC A'),
+            (0xAB, 'INC D'), (0xAC, 'INC !W'), (0xBB, 'INC D+X'), (0xBC, 'INC A'),
+            (0xDC, 'DEC Y'), (0xFC, 'INC Y'),
+            (0x8D, 'MOV Y,#I'), (0x9E, 'DIV YA,X'), (0x9F, 'XCN A'),
+            (0xBE, 'DAS A'), (0xDF, 'DAA A'), (0xCF, 'MUL YA'),
+            (0xAF, 'MOV (X)+,A'), (0xBF, 'MOV A,(X)+'),
+            (0xC4, 'MOV D,A'), (0xC5, 'MOV !W,A'), (0xC6, 'MOV (X),A'), (0xC7, 'MOV [D+X],A'),
+            (0xC9, 'MOV !W,X'), (0xCB, 'MOV D,Y'), (0xCC, 'MOV !W,Y'), (0xCD, 'MOV X,#I'),
+            (0xD4, 'MOV D+X,A'), (0xD5, 'MOV !W+X,A'), (0xD6, 'MOV !W+Y,A'), (0xD7, 'MOV [D]+Y,A'),
+            (0xD8, 'MOV D,X'), (0xD9, 'MOV D+Y,X'), (0xDB, 'MOV D+X,Y'),
+            (0xE4, 'MOV A,D'), (0xE5, 'MOV A,!W'), (0xE6, 'MOV A,(X)'), (0xE7, 'MOV A,[D+X]'),
+            (0xE8, 'MOV A,#I'), (0xE9, 'MOV X,!W'), (0xEB, 'MOV Y,D'), (0xEC, 'MOV Y,!W'),
+            (0xF4, 'MOV A,D+X'), (0xF5, 'MOV A,!W+X'), (0xF6, 'MOV A,!W+Y'), (0xF7, 'MOV A,[D]+Y'),
+            (0xF8, 'MOV X,D'), (0xF9, 'MOV X,D+Y'), (0xFB, 'MOV Y,D+X'),
+            (0xEF, 'SLEEP'), (0xFF, 'STOP')]:
+        op(code, text)
+    op(0x8F, 'MOV D,#I', 'ID')
+    op(0xFA, 'MOV D,S', 'SD')
+    assert sorted(c for c, _ in t.values()) == list(range(256))
+    return t
+
+
+SPC_OPS = _spc_ops()
+
+
+def _spc_patterns():
+    import re
+    regex = {
+        'D': r'(\$[0-9A-Fa-f]{1,2})',
+        'S': r'(\$[0-9A-Fa-f]{1,2})',
+        'W': r'([\w$<>]+)',
+        'I': r'([^,\s]+)',
+        'R': r'([\w$]+)',
+        'M': r'!([\w$<>]+)\.([0-7])',
+        'U': r'(\$[0-9A-Fa-f]{1,2})',
+    }
+    pats = []
+    for text, (code, order) in SPC_OPS.items():
+        rx = ''
+        kinds = []
+        # (the operand placeholders are D, S, W, I, R, M and U standing
+        # alone, not in a name like PSW or SP)
+        for i, ch in enumerate(text):
+            alone = ch in regex and not (i > 0 and text[i - 1].isalpha()) and \
+                not (i + 1 < len(text) and text[i + 1].isalpha())
+            if alone and ' ' in text[:i]:
+                rx += regex[ch]
+                kinds.append(ch)
+            elif ch == ' ':
+                rx += r'\s+'
+            else:
+                rx += re.escape(ch)
+        pats.append((re.compile('^' + rx + '$', re.I), code, kinds, order))
+    return pats
+
+
+SPC_PATTERNS = _spc_patterns()
+
+
+class SpcAsm(Asm):
+    """Assembles SPC-700 source text (see Asm and the operand kinds above)."""
+
+    def __init__(self, org):
+        super().__init__(org, {})
+
+    def encode(self, mnem, arg, labels, final, pc, line):
+        text = (mnem + ' ' + arg).strip() if arg else mnem
+        text = ' '.join(text.split(None, 1)) if ' ' in text else text
+        text = text.replace(', ', ',')
+        for rx, code, kinds, order in SPC_PATTERNS:
+            m = rx.match(text)
+            if not m:
+                continue
+            vals = {}
+            gi = 1
+            for k in kinds:
+                if k == 'M':
+                    vals['M'] = (self.value(m.group(gi), labels, final) & 0x1FFF) | \
+                        int(m.group(gi + 1)) << 13
+                    gi += 2
+                else:
+                    vals[k] = self.value(m.group(gi), labels, final)
+                    gi += 1
+            out = bytearray([code])
+            size = 1 + sum(2 if k in 'WM' else 1 for k in kinds)
+            for k in (order if order else kinds):
+                v = vals[k]
+                if k in 'WM':
+                    out += struct.pack('<H', v & 0xFFFF)
+                elif k == 'R':
+                    off = v - (pc + size)
+                    if final:
+                        assert -128 <= off <= 127, (line, off)
+                    out.append(off & 0xFF)
+                else:
+                    out.append(v & 0xFF)
+            return bytes(out)
+        raise ValueError('bad SPC-700 instruction: ' + line)
+
+
+# ---------------------------------------------------------------------------
+# SPC
+
+def spc_file(pc, ram_blocks, dsp_regs, text=None, regs=(0, 0, 0, 0x02, 0xEF), trailer=b'',
+             size=0x10200, has_id666=26):
+    """An SPC file: its header (with the ID666 `text`, 210 bytes), the 64K
+    RAM made of `ram_blocks` (address, data), the DSP registers, the
+    unused bytes and the IPL ROM's, then any `trailer`."""
+    a, x, y, psw, sp = regs
+    h = b'SNES-SPC700 Sound File Data v0.30\x1A\x1A' + bytes([has_id666, 30])
+    h += struct.pack('<H', pc) + bytes([a, x, y, psw, sp]) + bytes(2)
+    text = text if text is not None else bytes(210)
+    assert len(text) == 210
+    h += text
+    assert len(h) == 0x100
+    ram = bytearray(0x10000)
+    for addr, data in ram_blocks:
+        ram[addr:addr + len(data)] = data
+    dsp = bytearray(128)
+    for r, v in dsp_regs.items():
+        dsp[r] = v
+    data = h + bytes(ram) + bytes(dsp) + bytes(0x40) + bytes(0x40)
+    return data[:size] + trailer
+
+
+def id666_text(song, game, dumper, comment, date, length, fade, author, binary=False):
+    def f(s, n):
+        b = s.encode('latin-1') if isinstance(s, str) else s
+        return b[:n] + bytes(n - len(b[:n]))
+    t = f(song, 32) + f(game, 32) + f(dumper, 16) + f(comment, 32)
+    if binary:
+        t += f(date, 4) + bytes(7) + struct.pack('<H', length) + bytes(1) + struct.pack('<I', fade)
+    else:
+        t += f(date, 11) + f(str(length), 3) + f(str(fade), 4)
+    t += f(author, 32) + bytes([0, 0]) + bytes(46)
+    assert len(t) == 210, len(t)
+    return t
+
+
+def brr_block(samples, shift, filt, end=False, loop=False):
+    """One BRR block: 16 four-bit samples, with its header."""
+    header = shift << 4 | filt << 2 | (2 if loop else 0) | (1 if end else 0)
+    out = bytearray([header])
+    for i in range(0, 16, 2):
+        out.append((samples[i] & 0xF) << 4 | (samples[i + 1] & 0xF))
+    return bytes(out)
+
+
+# The SPC-700 exercise: most instructions and addressing modes, leaving a
+# value in $10 (and the stack as it found it), which the song uses, so a
+# mistake in any of them changes the sound.
+SPC_CPU_EXERCISE = '''
+cpu_test:
+    MOV A,#$5A
+    MOV $20,A
+    MOV $21,#$00
+    MOV X,#$07
+ct_loop:
+    MOV A,$20
+    ASL A
+    ROL $21
+    BCC ct_nc
+    EOR A,#$1D
+ct_nc:
+    MOV $20,A
+    CLRC
+    ADC A,$21
+    MOV $30+X,A
+    SETC
+    SBC A,#$37
+    BVS ct_ov
+    OR A,#$01
+ct_ov:
+    DEC X
+    BPL ct_loop
+    ; indirect modes
+    MOV $40,#$30
+    MOV $41,#$00
+    MOV Y,#$03
+    MOV A,[$40]+Y
+    MOV X,#$02
+    EOR A,[$3E+X]
+    ADC A,(X)
+    MOV X,#$30
+    AND A,(X)
+    OR A,!$0031
+    SBC A,!$0030+X
+    CMP A,!$0030+Y
+    MOV $22,A
+    MOV [$40]+Y,A
+    MOV [$3E+X],A
+    MOV (X),A
+    MOV (X)+,A
+    MOV A,(X)+
+    MOV !$0640,A
+    MOV !$0640+X,A
+    MOV !$0640+Y,A
+    MOV $23,X
+    ; dp to dp
+    MOV $24,$22
+    OR $24,$23
+    AND $25,#$F0
+    EOR $25,$24
+    ADC $25,#$11
+    SBC $24,$25
+    CMP $24,$25
+    CMP $24,#$40
+    MOV X,#$24
+    MOV Y,#$25
+    OR (X),(Y)
+    AND (X),(Y)
+    EOR (X),(Y)
+    ADC (X),(Y)
+    SBC (X),(Y)
+    CMP (X),(Y)
+    ; 16 bits
+    MOVW YA,$24
+    ADDW YA,$20
+    SUBW YA,$22
+    CMPW YA,$24
+    MOVW $26,YA
+    INCW $26
+    DECW $27
+    MOV A,#$9C
+    MOV Y,#$13
+    MUL YA
+    MOV X,#$07
+    DIV YA,X
+    MOV $28,A
+    MOV $29,Y
+    MOV A,#$90
+    MOV Y,#$45
+    MOV X,#$21
+    DIV YA,X
+    XCN A
+    ADC A,$29
+    DAA A
+    DAS A
+    MOV $29,A
+    ; bits
+    SET1 $2A.0
+    SET1 $2A.3
+    SET1 $2A.7
+    CLR1 $2A.3
+    BBS $2A.0,ct_b0
+    INC $2A
+ct_b0:
+    BBC $2A.1,ct_b1
+    INC $2A
+ct_b1:
+    BBS $2A.1,ct_b2
+    INC $2A
+ct_b2:
+    MOV1 C,!$002A.7
+    AND1 C,!$002A.0
+    OR1 C,/!$002A.2
+    EOR1 C,!$002A.5
+    AND1 C,/!$002A.6
+    OR1 C,!$002A.6
+    MOV1 !$002B.4,C
+    NOT1 !$002B.1
+    MOV A,#$0F
+    TSET1 !$002B
+    TCLR1 !$002C
+    ; read-modify-write
+    MOV A,#$81
+    MOV !$0600,A
+    MOV !$0605,A
+    ASL !$0600
+    LSR !$0605
+    ROL !$0605
+    ROR !$0600
+    INC !$0600
+    DEC !$0605
+    ASL $30
+    ROL $31
+    MOV X,#$05
+    LSR $32+X
+    ROR $33+X
+    INC $34+X
+    DEC $35+X
+    ASL $30+X
+    ROL $31+X
+    LSR $36
+    ROR $37
+    INC $36
+    DEC $37
+    MOV A,!$0600
+    CLRC
+    ADC A,!$0605
+    ADC A,$30
+    ADC A,$37
+    MOV $2D,A
+    ; registers
+    MOV X,#$11
+    MOV Y,#$22
+    MOV A,X
+    MOV X,A
+    MOV A,Y
+    MOV Y,A
+    INC A
+    INC X
+    INC Y
+    DEC A
+    DEC X
+    DEC Y
+    MOV $2E,X
+    MOV $2F,Y
+    MOV X,$2E
+    MOV Y,$2F
+    MOV X,$2E+Y
+    MOV Y,$2E+X
+    MOV $2E+Y,X
+    MOV $2F+X,Y
+    MOV X,!$002E
+    MOV Y,!$002F
+    MOV !$0641,X
+    MOV !$0642,Y
+    CMP X,#$12
+    CMP X,$2E
+    CMP X,!$002F
+    CMP Y,#$23
+    CMP Y,$2F
+    CMP Y,!$002E
+    CBNE $2E,ct_c1
+    INC $2D
+ct_c1:
+    MOV X,#$01
+    CBNE $2D+X,ct_c2
+    INC $2D
+ct_c2:
+    MOV $2C,#$03
+ct_dbnz:
+    INC $2D
+    DBNZ $2C,ct_dbnz
+    MOV Y,#$03
+ct_dbnz_y:
+    DEC $2D
+    DBNZ Y,ct_dbnz_y
+    ; flags, the stack and the direct page
+    PUSH PSW
+    PUSH A
+    PUSH X
+    PUSH Y
+    SETC
+    NOTC
+    CLRV
+    SETP
+    MOV $10,#$77
+    MOV A,$10
+    CLRP
+    POP Y
+    POP X
+    POP A
+    POP PSW
+    MOV X,SP
+    MOV SP,X
+    EI
+    DI
+    ; calls and jumps
+    MOV X,#$02
+    JMP [!ct_vec+X]
+ct_back:
+    CALL !ct_sub
+    TCALL 1
+    PCALL $80
+    BRK
+    BRA ct_fin
+ct_sub:
+    MOV A,#$7F
+    CLRC
+    ADC A,#$01
+    BVC ct_sub_done
+    INC $2D
+ct_sub_done:
+    RET
+ct_fin:
+    MOV A,$20
+    EOR A,$22
+    EOR A,$24
+    EOR A,$25
+    EOR A,$26
+    EOR A,$27
+    EOR A,$28
+    EOR A,$29
+    EOR A,$2A
+    EOR A,$2B
+    EOR A,$2C
+    EOR A,$2D
+    EOR A,$0F
+    MOV $10,A
+    RET
+ct_jmp:
+    JMP !ct_back
+ct_vec:
+    .dw ct_back, ct_jmp
+'''
+
+# The vectors and routines the exercise reaches: TCALL 1 at $FFDC, PCALL
+# $80 at $FF80, BRK at $FFDE (and RETI back), in RAM (the IPL ROM is
+# disabled).
+SPC_HIGH = '''
+    .org $FF80
+pcall80:
+    INC $0F
+    RET
+    .org $FFC0
+brk_routine:
+    INC $0F
+    INC $0F
+    RETI
+tcall1:
+    MOV A,$0F
+    ADC A,#$10
+    MOV $0F,A
+    RET
+    .org $FFDC
+    .dw tcall1, brk_routine
+'''
+
+
+def spc_dsp():
+    # The DSP: eight voices of BRR samples (every filter and shift range,
+    # looped), ADSR and every GAIN mode, noise, pitch modulation, echo with
+    # its FIR filter and feedback, key on and off, driven by timer 0; and
+    # through the CPU exercise, the SPC-700
+    a = SpcAsm(0x0200)
+    a('''
+start:
+    MOV X,#$EF
+    MOV SP,X
+    MOV $0F,#$00
+    CALL !cpu_test
+    MOV X,#$00
+init_dsp:
+    MOV A,!dsp_init+X
+    MOV $F2,A
+    INC X
+    MOV A,!dsp_init+X
+    MOV $F3,A
+    INC X
+    CMP X,#dsp_init_end-dsp_init
+    BNE init_dsp
+    MOV A,$10
+    AND A,#$3F
+    MOV $F2,#$02
+    MOV $F3,A        ; voice 0's pitch from the exercise
+    MOV $F2,#$4C
+    MOV $F3,#$FF     ; KON
+    MOV $FA,#$40     ; timer 0: 125 Hz
+    MOV $F1,#$01
+    MOV $50,#$00
+main:
+    MOV A,$FD
+    BEQ main
+    INC $50
+    MOV A,$50
+    AND A,#$07
+    BNE main
+    MOV A,$50
+    LSR A
+    LSR A
+    LSR A
+    AND A,#$07
+    MOV Y,A
+    MOV A,!notes+Y
+    MOV $F2,#$13
+    MOV $F3,A        ; voice 1's pitch
+    MOV $F2,#$22
+    MOV $F3,A        ; voice 2's
+    MOV A,$50
+    AND A,#$3F
+    BNE main_kon
+    MOV $F2,#$5C
+    MOV $F3,#$0C     ; KOFF voices 2 and 3
+    MOV $F2,#$5C
+    MOV $F3,#$00
+main_kon:
+    MOV A,$50
+    AND A,#$3F
+    CMP A,#$20
+    BNE main_kon2
+    MOV $F2,#$57
+    MOV $F3,#$9A     ; voice 5: GAIN linear dec
+    MOV $F2,#$67
+    MOV $F3,#$B8     ; voice 6: GAIN exp dec
+main_kon2:
+    MOV A,$50
+    AND A,#$1F
+    BNE main_read
+    MOV $F2,#$4C
+    MOV $F3,#$0E     ; KON voices 1-3
+main_read:
+    MOV $F2,#$08
+    MOV A,$F3        ; voice 0's ENVX
+    MOV $F2,#$7C
+    MOV A,$F3        ; ENDX
+    MOV $F2,#$7C
+    MOV $F3,A
+    MOV $F2,#$6C
+    MOV A,$50
+    AND A,#$C0
+    BNE main_noise
+    MOV $F3,#$02     ; FLG: noise clock
+    BRA main
+main_noise:
+    MOV $F3,#$3C     ; noise clock up, echo writes off
+    BRA main
+
+notes:
+    .db $08, $09, $0A, $0B, $0C, $0E, $10, $12
+dsp_init:
+    .db $0C, $60, $1C, $50, $2C, $30, $3C, $D0 ; main and echo volumes (surround)
+    .db $5D, $30, $6D, $80, $7D, $02, $0D, $40 ; DIR, ESA, EDL, EFB
+    .db $0F, $7F, $1F, $00, $2F, $10, $3F, $F0, $4F, $08, $5F, $00, $6F, $FC, $7F, $04 ; FIR
+    .db $2D, $40, $3D, $80, $4D, $C3, $6C, $00 ; PMON, NON, EON, FLG
+    .db $00, $40, $01, $40, $03, $10, $04, $00, $05, $8F, $06, $E0 ; voice 0: ADSR
+    .db $10, $38, $11, $28, $13, $08, $14, $01, $15, $FA, $16, $8B ; voice 1: ADSR, slow
+    .db $20, $30, $21, $D0, $23, $0C, $24, $02, $25, $00, $27, $7F ; voice 2: GAIN direct
+    .db $30, $20, $31, $20, $33, $06, $34, $03, $35, $00, $37, $DA ; voice 3: GAIN linear inc
+    .db $40, $28, $41, $18, $43, $09, $44, $02, $45, $00, $47, $FC ; voice 4: GAIN bent inc
+    .db $50, $18, $51, $28, $53, $07, $54, $03, $55, $00, $57, $DF ; voice 5: GAIN linear inc, then dec
+    .db $60, $20, $61, $20, $63, $10, $64, $01, $65, $00, $67, $DF ; voice 6: GAIN linear inc, then exp dec
+    .db $70, $10, $71, $30, $73, $04, $74, $00, $75, $9F, $76, $11 ; voice 7: noise
+dsp_init_end:
+''')
+    a(SPC_CPU_EXERCISE)
+    a(SPC_HIGH)
+    code = a.assemble()
+    # the sample directory and the samples: a square, a saw, a sine-ish
+    # wave, a pulse and a noise-like one, with every filter and shift range
+    import math
+    dir_ = bytearray()
+    samples = bytearray()
+    base = 0x3100
+
+    def add(blocks, loop_at=0):
+        nonlocal samples
+        start = base + len(samples)
+        dir_.extend(struct.pack('<HH', start, start + 9 * loop_at))
+        samples += b''.join(blocks)
+
+    add([brr_block([7] * 8 + [-8] * 8, 10, 0, end=True, loop=True)])
+    add([brr_block([(i - 8) for i in range(16)], 9, 1),
+         brr_block([(7 - i) for i in range(16)], 8, 2, end=True, loop=True)], 1)
+    add([brr_block([int(7 * math.sin(i * math.pi / 8)) for i in range(16)], 11, 0),
+         brr_block([int(7 * math.sin(i * math.pi / 8 + 0.5)) for i in range(16)], 12, 3),
+         brr_block([int(-7 * math.sin(i * math.pi / 8)) for i in range(16)], 0, 0,
+                   end=True, loop=True)], 0)
+    add([brr_block([7, 7, 7, 7, -8, -8, -8, -8] * 2, 13, 1),
+         brr_block([3, -4] * 8, 14, 2),
+         brr_block([1, -2] * 8, 15, 3, end=True, loop=True)], 1)
+    add([brr_block([((i * 5) % 16) - 8 for i in range(16)], 7, 0),
+         brr_block([((i * 11) % 16) - 8 for i in range(16)], 6, 2, end=True)], 0)
+    add([brr_block([0] * 16, 1, 0, end=True, loop=True)])
+    text = id666_text('DSP Test', 'gen_gme_testdata.py', 'gen', 'every DSP feature',
+                      '10/17/2026', 60, 5000, 'gen_gme_testdata.py')
+    blocks = [(0x0200, code[:0x10000 - 0x0200])]
+    spc = spc_file(0x0200, blocks + [(0x3000, bytes(dir_)), (base, bytes(samples)),
+                                     (0x00F0, bytes([0x0A, 0x00, 0x00, 0x00, 0, 0, 0, 0,
+                                                     0, 0, 0, 0, 0, 0x0F, 0x0F, 0x0F]))],
+                   {0x6C: 0xE0, 0x5D: 0x30}, text=text)
+    write('spc_dsp.spc', spc)
+
+
+def xid6_block(id_, data=None, value=0, pad=True, pad_byte=0):
+    """One xid6 block: a string or data (type 1 or 4) or a value (type 0)."""
+    if data is None:
+        return bytes([id_, 0]) + struct.pack('<H', value)
+    b = data.encode('latin-1') if isinstance(data, str) else data
+    out = bytes([id_, 1 if isinstance(data, str) else 4]) + struct.pack('<H', len(b)) + b
+    if pad:
+        while len(out) & 3:
+            out += bytes([pad_byte])
+    return out
+
+
+def spc_odd():
+    # a binary ID666 header with a length too long to use (and an author
+    # starting with a digit), an xid6 trailer (every field, a year and a
+    # copyright, a block without padding, one with bad padding, unknown
+    # blocks, data after its size, a block past its end); the timers and
+    # their registers, the ports, the IPL ROM switched in (and written
+    # under), a DSP register past $7F, the sample directory in the last
+    # page (with a source number past it), the CPU stopping (an error)
+    a = SpcAsm(0x0200)
+    a('''
+start:
+    MOV X,#$CF
+    MOV SP,X
+    MOV $F2,#$5D
+    MOV $F3,#$FF     ; DIR in the last page
+    MOV $F2,#$04
+    MOV $F3,#$FF     ; voice 0's SRCN past it
+    MOV $F2,#$14
+    MOV $F3,#$01
+    MOV $F2,#$4C
+    MOV $F3,#$03     ; KON 0, 1
+    MOV $F2,#$80
+    MOV $F3,#$12     ; past the registers
+    MOV $F2,#$80
+    MOV A,$F3
+    MOV $F0,#$0A     ; test
+    MOV $F8,#$55
+    MOV $F9,$F8
+    MOV A,$F9
+    MOV $F4,A        ; ports
+    MOV $F5,#$66
+    MOV A,$F6
+    MOV $F7,A
+    MOV $F1,#$B0     ; clear the ports, the IPL ROM in
+    MOV A,!$FFC0
+    MOV !$FFC1,A     ; under the ROM
+    MOV $F1,#$07     ; the ROM out, the timers on
+    MOV A,!$FFC1
+    MOV $FA,#$10
+    MOV $FB,#$00
+    MOV $FC,#$80
+    MOV $FD,A        ; a counter write
+    MOV $51,#$00
+    MOV $52,#$00
+odd_loop:
+    MOV A,$FD
+    ADC A,$FE
+    ADC A,$FF
+    BEQ odd_loop
+    MOV $F2,#$02
+    MOV $F3,A
+    INC $51
+    MOV A,$51
+    CMP A,#$40
+    BNE odd_t
+    MOV $FA,#$20     ; a new target while running
+odd_t:
+    CMP A,#$00
+    BNE odd_loop
+    INC $52
+    MOV A,$52
+    CMP A,#$06
+    BNE odd_loop
+    STOP
+''')
+    code = a.assemble()
+    text = id666_text('Odd SPC', 'gen_gme_testdata.py', 'gen', 'odd', b'\x17\x10\xEA\x07',
+                      0xFFFF, 0x12345678, '9 the author', binary=True)
+    trailer = b''.join([
+        xid6_block(0x01, 'xid6 song'),
+        xid6_block(0x02, 'xid6 game'),
+        xid6_block(0x03, 'xid6 author'),
+        xid6_block(0x04, 'xid6 dumper'),
+        xid6_block(0x07, 'xid6 comment!', pad=False),
+        xid6_block(0x14, value=2026),
+        xid6_block(0x30, struct.pack('<I', 64000 * 3)),
+        xid6_block(0x50, value=7),
+        xid6_block(0x09, b'\x01\x02\x03'),
+        xid6_block(0x13, 'gen_gme_testdata.py', pad_byte=0x20),
+    ])
+    info = b'xid6' + struct.pack('<I', len(trailer) + 4) + trailer + xid6_block(0x01, 'past')
+    spc = spc_file(0x0200, [(0x0200, code), (0xFF00, bytes([0x40, 0xFF, 0x40, 0xFF]) * 4),
+                            (0xFF40, brr_block([7, 3, -2, -8, -4, 0, 5, 7] * 2, 11, 1,
+                                               end=True, loop=True)),
+                            (0x00F0, bytes([0x0A, 0x00, 0, 0, 0x11, 0x22, 0x33, 0x44,
+                                            0, 0, 0, 0, 0, 0, 0, 0]))],
+                   {0x6C: 0x00, 0x0C: 0x7F, 0x1C: 0x7F, 0x00: 0x7F, 0x01: 0x7F, 0x03: 0x10,
+                    0x10: 0x40, 0x11: 0x40, 0x13: 0x08, 0x17: 0x7F, 0x07: 0x7F},
+                   text=text, trailer=info, has_id666=26)
+    write('spc_odd.spc', spc)
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -3748,6 +4477,8 @@ def main():
     sap_b()
     sap_c()
     sap_odd()
+    spc_dsp()
+    spc_odd()
 
 
 if __name__ == '__main__':

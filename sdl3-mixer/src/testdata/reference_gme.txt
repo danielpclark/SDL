@@ -1142,3 +1142,79 @@ freshseek 2205: seek=1 pos=2205 playing=1 2595472de7a0a787
 freshseek 48000: seek=1 pos=48000 playing=1 c64fd9f6fd4defea
 freshseek 20000: seek=1 pos=20000 playing=1 6f63bfa6a7387636
 freshseek 100: seek=1 pos=100 playing=1 265a96c8c2e9c777
+== gme spc_dsp.spc
+open: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 98304 41f01269bdccfed4 end=1
+f32s48: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 98304 c84422114db165c5 end=1
+s16m22: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 32768 d32fb88685abfd30 end=1
+forced: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 16384 3e53b434a12694ba end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 33024: err: Audio data is in unknown/unsupported/corrupt format
+trunc 66047: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 16384 3e53b434a12694ba end=1
+corrupt 0: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 16384 3e53b434a12694ba end=1
+corrupt 0 mix: dur=2880000 play=1 pos=12288 replay=1 seek=1 pos=960000 playing=1 7bdcb6071ed31db6
+corrupt 1: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 16384 3e53b434a12694ba end=1
+corrupt 1 mix: dur=2880000 play=1 pos=12288 replay=1 seek=1 pos=960000 playing=1 7bdcb6071ed31db6
+corrupt 2: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 16384 9aee13d08f4c0131 end=1
+corrupt 2 mix: dur=2880000 play=1 pos=12288 replay=1 seek=1 pos=960000 playing=1 655348e6406f060c
+corrupt 3: GME 0x8010 2 48000 title="DSP Test" artist="gen_gme_testdata.py" album="gen_gme_testdata.py" frames=2880000 gme.song="DSP Test" gme.author="gen_gme_testdata.py" gme.game="gen_gme_testdata.py" gme.system="Super Nintendo" gme.comment="every DSP feature" gme.dumper="gen" | 16384 3e53b434a12694ba end=1
+corrupt 3 mix: dur=2880000 play=1 pos=12288 replay=1 seek=1 pos=960000 playing=1 7bdcb6071ed31db6
+mix: dur=2880000 play=1 pos=12288 replay=1 seek=1 pos=960000 playing=1 7bdcb6071ed31db6
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 4c71d8e8c19e9ef3
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 c8f02643816fa2bb
+freshseek 2205: seek=1 pos=2205 playing=1 1e3d70224d04492a
+freshseek 48000: seek=1 pos=48000 playing=1 69a30b5c365a16fe
+freshseek 20000: seek=1 pos=20000 playing=1 396f7af2c2045cbc
+freshseek 100: seek=1 pos=100 playing=1 5371cd9f6766aa7d
+== gme spc_odd.spc
+open: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+f32s48: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 19456 e2d39e36908f02b9 end=0
+s16m22: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 2236 dc9476694b699c1f end=0
+forced: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 33096: err: Audio data is in unknown/unsupported/corrupt format
+trunc 66192: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+corrupt 0: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+corrupt 0 mix: dur=-1 play=1 pos=2432 replay=1 seek=1 pos=100 playing=0 bc84772a132b1445
+corrupt 1: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+corrupt 1 mix: dur=-1 play=1 pos=2432 replay=1 seek=1 pos=100 playing=0 bc84772a132b1445
+corrupt 2: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+corrupt 2 mix: dur=-1 play=1 pos=2432 replay=1 seek=1 pos=100 playing=0 bc84772a132b1445
+corrupt 3: GME 0x8010 2 48000 title="xid6 song" artist="xid6 author" album="xid6 game" copyright="2026" gme.song="xid6 song" gme.author="xid6 author" gme.game="xid6 game" gme.copyright="2026" gme.system="Super Nintendo" gme.comment="xid6 comment!" gme.dumper="xid6 dumper" | 9728 9acb99040c1cc349 end=0
+corrupt 3 mix: dur=-1 play=1 pos=2432 replay=1 seek=1 pos=100 playing=0 bc84772a132b1445
+mix: dur=-1 play=1 pos=2432 replay=1 seek=1 pos=100 playing=0 bc84772a132b1445
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=2432 playing=0 f412af84372de8fd
+order 200: play=0 err: gme_start_track failed: Invalid track pos=2432 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 bc7784c57efa16f9
+freshseek 2205: seek=1 pos=2205 playing=0 10bbefa07567208d
+freshseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+freshseek 20000: seek=1 pos=20000 playing=0 4d25767f9dce13f5
+freshseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5

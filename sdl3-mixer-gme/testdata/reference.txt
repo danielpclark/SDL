@@ -1,8 +1,8 @@
 == misc
-types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0
+types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0 SPC/Super Nintendo/0/1
 ext nsf: NSF
 ext x.NSFE: NSFE
-ext a.b.spc: 
+ext a.b.spc: SPC
 ext vgz: 
 ext VGM: 
 ext gym: 
@@ -3985,3 +3985,227 @@ q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
 -- flip 5
 info: err=Invalid track count
 open: err=Invalid track count
+== spc_dsp.spc
+identify: SPC
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open 44100: tracks=1 type=SPC voices=8
+voices: DSP 1 DSP 2 DSP 3 DSP 4 DSP 5 DSP 6 DSP 7 DSP 8
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+t0 16384: 816be0daec7ecc4e tell=185 samples=16384 ended=0
+t0 32768: bb3a7259b6cc70db tell=371 samples=32768 ended=0
+t0 49152: 37df46c9a1bdc83b tell=557 samples=49152 ended=0
+t0 65536: 1ab2783e3b570895 tell=743 samples=65536 ended=0
+t0 81920: 6247effe82a61929 tell=928 samples=81920 ended=0
+t0 88200: 9c08a35fa22f29fb tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 55a85fc35c9e14cc tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: e434e83e7971c8f7 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 5c4560e967003cc5 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: d0e3d9f5895c8e14 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 4e87748d45e53651 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 47f5d25f4102f5c6 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 7923719facba8f3a tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=SPC voices=8
+start 0: ok
+tempo 16000: 3153f0ba6ce229f1 tell=250 samples=16000 ended=0
+tempo 32000: 4084e12654ac247e tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: d748809596ac906a tell=238 samples=15294 ended=0
+slow 8000: a2b888571f99d51e tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: 0c15f0f2da512b16 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 22016
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 33024
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 66047
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 7923719facba8f3a tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 7923719facba8f3a tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 7923719facba8f3a tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 7923719facba8f3a tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: dda5305a6db04818 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=SPC voices=-1
+info 0: 60000 -1 -1 5000 60000|Super Nintendo|gen_gme_testdata.py|DSP Test|gen_gme_testdata.py||every DSP feature|gen
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 7923719facba8f3a tell=92 samples=8192 ended=0
+== spc_odd.spc
+identify: SPC
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open 44100: tracks=1 type=SPC voices=8
+voices: DSP 1 DSP 2 DSP 3 DSP 4 DSP 5 DSP 6 DSP 7 DSP 8
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+t0 16384: 3793b71ca84bb2d1 tell=185 samples=16384 ended=1
+t0 32768: efea0053ce6db2d1 tell=371 samples=32768 ended=1
+t0 49152: 493a56cef48fb2d1 tell=557 samples=49152 ended=1
+t0 65536: 600cba8e1ab1b2d1 tell=743 samples=65536 ended=1
+t0 81920: 50e92b9140d3b2d1 tell=928 samples=81920 ended=1
+t0 88200: e44459dbdf6b0311 tell=1000 samples=88200 ended=1
+warning: SPC emulation error
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 46918f9e4f38f325 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=1
+warning: SPC emulation error
+seek_samples 10000: ok tell=10000
+s2 4096: b9d103fd6854a325 tell=159 samples=14096 ended=1
+warning: SPC emulation error
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=1
+seek_samples 200000: ok tell=200000 ended=1
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 5120 e9dbe538b01452d1 tell=58
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+open 32000: tracks=1 type=SPC voices=8
+start 0: ok
+tempo 16000: d55ce2408b6ff2f1 tell=250 samples=16000 ended=1
+tempo 32000: 1dd69f6b6d53a6f1 tell=500 samples=32000 ended=1
+warning: SPC emulation error
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=1
+warning: SPC emulation error
+slow 8000: 2c36c2471ceec525 tell=363 samples=23294 ended=1
+tracks=1
+start 0: ok
+acc 8000: 2c36c2471ceec525 tell=125 samples=8000 ended=1
+warning: SPC emulation error
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 22064
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 33096
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 66192
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+-- flip 0
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+-- flip 1
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+-- flip 2
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+-- flip 3
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+-- flip 4
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error
+-- flip 5
+info: tracks=1 type=SPC voices=-1
+info 0: -1 -1 -1 0 150000|Super Nintendo|xid6 game|xid6 song|xid6 author|2026|xid6 comment!|xid6 dumper
+info 1: err=Invalid track
+open: tracks=1 type=SPC voices=8
+start 0: ok
+q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
+warning: SPC emulation error

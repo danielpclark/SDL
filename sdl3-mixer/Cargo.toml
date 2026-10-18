@@ -50,7 +50,7 @@ sdl3-mixer-mpg123 = { path = "../sdl3-mixer-mpg123", version = "3.5.0", optional
 # and WavPack decoders' libraries, and libxmp's MIT license) only.
 sdl3-mixer-fluidsynth = { path = "../sdl3-mixer-fluidsynth", version = "3.5.0", optional = true }
 
-# Game music (AY, GBS, HES, KSS, NSF, NSFE and SAP so far) through the vendored Game_Music_Emu, which
+# Game music (AY, GBS, HES, KSS, NSF, NSFE, SAP and SPC so far) through the vendored Game_Music_Emu, which
 # upstream builds by default. NOTE: Game_Music_Emu is not zlib-licensed:
 # sdl3-mixer-gme is under "LGPL-2.1-or-later AND MIT". Without it (with
 # `default-features = false`), there is no game music decoder.
