@@ -89,14 +89,14 @@ use crate::anim_encoder::{has_metadata, EncoderCore};
 use crate::util::{read_error, read_ok, read_up_to};
 use png::{
     png_create_info_struct, png_get_io_ptr, png_sig_cmp, PngColor, PngError, PngResult,
-    PNG_COLOR_MASK_ALPHA, PNG_COLOR_TYPE_PALETTE, PNG_COLOR_TYPE_RGBA, PNG_COMPRESSION_TYPE_BASE,
-    PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILLER_AFTER, PNG_FILTER_TYPE_BASE, PNG_FILTER_TYPE_DEFAULT,
-    PNG_INTERLACE_NONE, PNG_LIBPNG_VER_STRING,
+    PNG_COLOR_MASK_ALPHA, PNG_COLOR_MASK_COLOR, PNG_COLOR_TYPE_PALETTE, PNG_COLOR_TYPE_RGBA,
+    PNG_COMPRESSION_TYPE_BASE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILLER_AFTER,
+    PNG_FILTER_TYPE_BASE, PNG_FILTER_TYPE_DEFAULT, PNG_INTERLACE_NONE, PNG_LIBPNG_VER_STRING,
 };
 use pngerror::png_error;
 use pngread::{png_create_read_struct, png_read_image, png_read_info, png_read_update_info};
 use pngrio::png_set_read_fn;
-use pngrtran::{png_set_palette_to_rgb, png_set_strip_16};
+use pngrtran::{png_set_gray_to_rgb, png_set_palette_to_rgb, png_set_strip_16};
 use pngrutil::png_get_uint_32 as libpng_get_uint_32;
 use pngset::{png_set_IHDR, png_set_PLTE, png_set_tRNS};
 use pngstruct::PngStruct;
@@ -366,10 +366,15 @@ fn decompress_png_frame_data(
         png_set_strip_16(&mut png_ptr).map_err(png_read_failed)?;
     }
 
-    // FIXME (upstream): a gray (or gray and alpha) frame is read as gray and
-    // alpha, 2 bytes a pixel, into the RGBA surface below (and the filler
-    // of a gray frame under 8 bits fails with libpng's "internal row size
-    // calculation error" for most widths).
+    // Note (upstream): upstream doesn't convert a gray (or gray and alpha)
+    // frame, which is then read as gray and alpha, 2 bytes a pixel, into
+    // the RGBA surface below (and the filler of a gray frame under 8 bits
+    // fails with libpng's "internal row size calculation error" for most
+    // widths); the translation fixes it, reading them as RGB.
+    if (png_color_type & PNG_COLOR_MASK_COLOR as i32) == 0 {
+        png_set_gray_to_rgb(&mut png_ptr).map_err(png_read_failed)?;
+    }
+
     if (png_color_type & PNG_COLOR_MASK_ALPHA as i32) == 0 {
         png_set_filler(&mut png_ptr, 0xFF, PNG_FILLER_AFTER).map_err(png_read_failed)?;
     }
