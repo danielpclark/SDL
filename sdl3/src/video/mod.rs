@@ -36,10 +36,15 @@ pub(crate) mod stb;
 /// The stb_image decoder SDL bundles (PNG and JPEG, scalar kernels), shared
 /// with the satellite libraries: SDL_image builds its own copy of
 /// `stb_image.h` with the same configuration (`IMG_stb.c`), and the
-/// `sdl3-image` crate uses this one instead of a second translation.
+/// `sdl3-image` crate uses this one instead of a second translation. With
+/// [`load_from_memory_all_formats`](stb_image::load_from_memory_all_formats),
+/// stb_image's other formats too (BMP, GIF, HDR, PIC, PNM, PSD, TGA), as
+/// PlutoVG builds its copy of the same release (for the `sdl3-ttf` crate's
+/// SVG images).
 pub mod stb_image {
     pub use super::image::stb_image::{
-        load_from_callbacks, load_from_callbacks_with_palette, Callbacks, Image,
+        load_from_callbacks, load_from_callbacks_with_palette, load_from_memory_all_formats,
+        Callbacks, Image,
     };
 }
 mod stretch;
