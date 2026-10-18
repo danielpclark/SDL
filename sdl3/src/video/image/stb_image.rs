@@ -17,6 +17,12 @@
 //! Where stb returns a failure without setting a message (and SDL reports
 //! whatever error was already set), these return "Corrupt PNG" or
 //! "Corrupt JPEG".
+//!
+//! [`load_from_memory_all_formats`] is stb_image's default configuration
+//! instead (every format; PlutoVG's, for sdl3-ttf's SVG images): its BMP,
+//! GIF, HDR, PIC, PNM, PSD and TGA loaders are translated from PlutoVG's
+//! copy of the same stb_image release (`source/plutovg-stb-image.h`), as
+//! SDL compiles them out of its own.
 
 // stb's and miniz's constants are written with more digits than f32
 // holds, and their loops index several arrays at once; both kept as written.
@@ -28,8 +34,15 @@
 
 use crate::error::{Error, Result};
 
+use super::bmp::{bmp_load, bmp_test};
+use super::gif::{gif_load, gif_test};
+use super::hdr::{hdr_load, hdr_test, hdr_to_ldr};
 pub(crate) use super::jpeg::{jpeg_load, jpeg_test};
+use super::pic::{pic_load, pic_test};
 use super::png::{png_load, png_test};
+use super::pnm::{pnm_load, pnm_test};
+use super::psd::{psd_load, psd_test};
+use super::tga::{tga_load, tga_test};
 
 /// The largest width or height accepted. Translation of `STBI_MAX_DIMENSIONS`.
 pub(crate) const STBI_MAX_DIMENSIONS: u32 = 1 << 24;
@@ -255,6 +268,25 @@ impl<'a> Context<'a> {
     pub(crate) fn get32be(&mut self) -> u32 {
         let z = self.get16be() as u32;
         (z << 16) + self.get16be() as u32
+    }
+
+    /// Translation of `stbi__get16le()`.
+    pub(crate) fn get16le(&mut self) -> i32 {
+        let z = self.get8() as i32;
+        z + ((self.get8() as i32) << 8)
+    }
+
+    /// Translation of `stbi__get32le()`.
+    pub(crate) fn get32le(&mut self) -> u32 {
+        let z = self.get16le() as u32;
+        z + ((self.get16le() as u32) << 16)
+    }
+
+    /// The number of bytes read so far: `s->callback_already_read +
+    /// (int)(s->img_buffer - s->img_buffer_original)`.
+    pub(crate) fn bytes_read(&self) -> i32 {
+        self.callback_already_read
+            .wrapping_add((self.img_buffer as i32).wrapping_sub(self.img_buffer_original as i32))
     }
 }
 
@@ -529,6 +561,65 @@ fn load_main(
     err("Image not of any known type, or corrupt")
 }
 
+/// Translation of `stbi__load_main()` in stb_image's default
+/// configuration, with every format (as PlutoVG builds it, with no
+/// `STBI_ONLY_*` or `STBI_NO_*`): the PNG and JPEG decoders are SDL's
+/// (whose changes don't apply to these loads: SDL zeroes the PNG palette
+/// that stock stb_image leaves uninitialized), the others those of
+/// PlutoVG's copy of stb_image.
+fn load_main_all_formats(s: &mut Context<'_>, req_comp: i32, bpc: i32) -> Result<Image<Pixels>> {
+    // test the formats with a very explicit header first (at least a FOURCC
+    // or distinctive magic number first)
+    if png_test(s) {
+        return png_load(s, req_comp, None);
+    }
+    if bmp_test(s) {
+        return bmp_load(s, req_comp);
+    }
+    if gif_test(s) {
+        return gif_load(s, req_comp);
+    }
+    if psd_test(s) {
+        return psd_load(s, req_comp, bpc);
+    }
+    if pic_test(s) {
+        return pic_load(s, req_comp);
+    }
+
+    // then the formats that can end up attempting to load with just 1 or 2
+    // bytes matching expectations; these are prone to false positives, so
+    // try them later
+    if jpeg_test(s) {
+        return jpeg_load(s, req_comp, None).map(|i| Image {
+            x: i.x,
+            y: i.y,
+            comp: i.comp,
+            data: Pixels::Bits8(i.data),
+        });
+    }
+    if pnm_test(s) {
+        return pnm_load(s, req_comp);
+    }
+
+    if hdr_test(s) {
+        let hdr = hdr_load(s, req_comp)?;
+        let comp = if req_comp != 0 { req_comp } else { 3 };
+        return Ok(Image {
+            x: hdr.x,
+            y: hdr.y,
+            comp: 3,
+            data: Pixels::Bits8(hdr_to_ldr(&hdr.data, hdr.x, hdr.y, comp)?),
+        });
+    }
+
+    // test tga last because it's a crappy test!
+    if tga_test(s) {
+        return tga_load(s, req_comp);
+    }
+
+    err("Image not of any known type, or corrupt")
+}
+
 /// Translation of `stbi__convert_16_to_8()`.
 fn convert_16_to_8(orig: Vec<u16>) -> Vec<u8> {
     // top half of each byte is sufficient approx of 16->8 bit scaling
@@ -586,6 +677,31 @@ fn load_and_postprocess_8bit(s: &mut Context<'_>, req_comp: i32) -> Result<Image
 pub(crate) fn load_from_memory(buffer: &[u8], req_comp: i32) -> Result<Image<Vec<u8>>> {
     let mut s = Context::from_mem(buffer);
     load_and_postprocess_8bit(&mut s, req_comp)
+}
+
+/// Decode an image in memory in any of the formats stb_image reads in its
+/// default configuration (JPEG, PNG, BMP, PSD, TGA, GIF, HDR, PIC, PNM;
+/// the first frame of a GIF, HDR converted with gamma 2.2) to 8 bits per
+/// channel: `req_comp` components per pixel, or the file's number for 0.
+/// Translation of `stbi_load_from_memory()` without SDL's `STBI_ONLY_PNG`
+/// and `STBI_ONLY_JPEG`, as PlutoVG (SDL_ttf's SVG renderer) builds it.
+pub fn load_from_memory_all_formats(buffer: &[u8], req_comp: i32) -> Result<Image<Vec<u8>>> {
+    let mut s = Context::from_mem(buffer);
+    let result = load_main_all_formats(&mut s, req_comp, 8)?;
+
+    // it is the responsibility of the loaders to make sure we get either 8 or 16 bit.
+    let data = match result.data {
+        Pixels::Bits8(d) => d,
+        Pixels::Bits16(d) => convert_16_to_8(d),
+    };
+
+    // (stbi__vertically_flip_on_load is never set)
+    Ok(Image {
+        x: result.x,
+        y: result.y,
+        comp: result.comp,
+        data,
+    })
 }
 
 /// Decode a PNG or JPEG image read through `clbk` to 8 bits per channel:
