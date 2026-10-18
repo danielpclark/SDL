@@ -3363,9 +3363,10 @@ impl RenderBackend for D3d12Renderer {
         {
             // (SDL_CreateTexture() destroys the texture that failed, which
             // frees its SRV slots)
-            // FIXME (upstream): D3D12_DestroyTexture() frees the slot of
-            // mainSRVIndex even if it was never taken (index 0, then handed
-            // out twice).
+            // Note (upstream): D3D12_DestroyTexture() frees the slots of
+            // mainSRVIndex (and U, V, NV) even if they were never taken:
+            // index 0, a live texture's, is then handed out again; here
+            // only the slots taken are freed.
             self.free_texture_srvs(&texture_data);
             return Err(e);
         }
