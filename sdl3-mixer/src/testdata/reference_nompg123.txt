@@ -703,7 +703,7 @@ corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=6336 play=1 pos=4097 replay=1 seek=1 pos=2112 playing=1 bd4d11b3a2eee520
 mixpre: dur=6336 play=1 pos=4097 replay=1 seek=1 pos=2112 playing=1 4ae8a64e54406e18
 == mp3_vbr_stereo.mp3
-open: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
+open: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
 f32s48: 96000 14e7168076bc093e end=0
 s16m22: 11026 9e05920194bf92b2 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
@@ -727,25 +727,25 @@ trunc 128: err: Seek before start of data
 trunc 200: err: Audio data is in unknown/unsupported/corrupt format
 trunc 256: err: Audio data is in unknown/unsupported/corrupt format
 trunc 300: err: Audio data is in unknown/unsupported/corrupt format
-trunc 512: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=0 | 0 cbf29ce484222325 end=0
-trunc 1000: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=0 | 0 cbf29ce484222325 end=0
-trunc 2000: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=1152 | 376 c67f4bc540d11e42 end=0
-trunc 4096: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=6912 | 46456 f6dae3d1d0e7d50d end=0
-trunc 1629: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=1152 | 376 c67f4bc540d11e42 end=0
-trunc 3259: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=4608 | 28024 a0ea9796183ced14 end=0
-trunc 4889: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=9216 | 64888 4422aa3aabd709a0 end=0
-trunc 6518: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=11520 | 83320 1df02359bbf75f23 end=0
-corrupt 0: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
+trunc 512: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=0 | 0 cbf29ce484222325 end=0
+trunc 1000: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=0 | 0 cbf29ce484222325 end=0
+trunc 2000: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=1152 | 376 c67f4bc540d11e42 end=0
+trunc 4096: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=6912 | 46456 f6dae3d1d0e7d50d end=0
+trunc 1629: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=1152 | 376 c67f4bc540d11e42 end=0
+trunc 3259: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=4608 | 28024 a0ea9796183ced14 end=0
+trunc 4889: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=9216 | 64888 4422aa3aabd709a0 end=0
+trunc 6518: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=11520 | 83320 1df02359bbf75f23 end=0
+corrupt 0: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
 corrupt 0 mix: dur=12672 play=1 pos=264 replay=1 seek=1 pos=4224 playing=1 665e6d741e2841d4
-corrupt 1: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixe}" album="Test daia" copyright="³one" track=3 total=3 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
+corrupt 1: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixe}" album="Test daia" copyright="³one" track=3 total=12 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
 corrupt 1 mix: dur=12672 play=1 pos=264 replay=1 seek=1 pos=4224 playing=1 665e6d741e2841d4
 corrupt 2: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" track=3 year=2001 frames=12672 | 88200 7f1852b60ca2723c end=0
 corrupt 2 mix: dur=12672 play=1 pos=264 replay=1 seek=1 pos=4224 playing=1 665e6d741e2841d4
-corrupt 3: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=12672 | 88200 d42bd67780f2f4b6 end=0
+corrupt 3: DRMP3 0x8120 2 44100 title="MP3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=12672 | 88200 d42bd67780f2f4b6 end=0
 corrupt 3 mix: dur=12672 play=1 pos=264 replay=1 seek=1 pos=4224 playing=1 375b199e9c781f03
-corrupt 4: DRMP3 0x8120 2 44100 title="MP3 test" artist="Bdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=10368 | 82944 7892720ff047e4ac end=0
+corrupt 4: DRMP3 0x8120 2 44100 title="MP3 test" artist="Bdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=10368 | 82944 7892720ff047e4ac end=0
 corrupt 4 mix: dur=10368 play=1 pos=921 replay=1 seek=1 pos=3456 playing=1 25d90b2c0bb79103
-corrupt 5: DRMP3 0x8120 2 44100 title="MQ3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=3 year=2001 frames=12672 | 88200 a31dd5f3870759d2 end=0
+corrupt 5: DRMP3 0x8120 2 44100 title="MQ3 test" artist="sdl3-mixer" album="Test data" copyright="none" track=3 total=12 year=2001 frames=12672 | 88200 a31dd5f3870759d2 end=0
 corrupt 5 mix: dur=12672 play=1 pos=264 replay=1 seek=1 pos=4224 playing=1 67eb006081d64033
 mix: dur=12672 play=1 pos=264 replay=1 seek=1 pos=4224 playing=1 665e6d741e2841d4
 mixpre: dur=11025 play=1 pos=264 replay=1 seek=1 pos=3675 playing=1 a30b1939c4c5f2b2
