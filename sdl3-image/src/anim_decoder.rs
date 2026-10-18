@@ -53,14 +53,13 @@ pub const PROP_ANIMATION_DECODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER: &str =
 /// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER`.
 pub const PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER: &str =
     "SDL_image.animation_decoder.create.avif.max_threads";
-/// Translation of `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN`
-/// (which upstream's AVIF decoder doesn't read: it takes the incremental
-/// mode from [`PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN`]).
+/// Whether the AVIF decoder decodes incrementally (a boolean, default
+/// false). Translation of
+/// `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN`.
 pub const PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN: &str =
     "SDL_image.animation_decoder.create.avif.allow_incremental";
 /// Whether the AVIF decoder decodes the layers of a progressive image as
-/// frames (a boolean, default true; also its incremental mode, default
-/// false). Translation of
+/// frames (a boolean, default true). Translation of
 /// `IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN`.
 pub const PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN: &str =
     "SDL_image.animation_decoder.create.avif.allow_progressive";

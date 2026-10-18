@@ -109,7 +109,8 @@ use sdl3::video::{
 };
 
 use crate::anim_decoder::{
-    DecoderCore, PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN,
+    DecoderCore, PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN,
+    PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN,
     PROP_ANIMATION_DECODER_CREATE_AVIF_MAX_THREADS_NUMBER, PROP_METADATA_AUTHOR_STRING,
     PROP_METADATA_COPYRIGHT_STRING, PROP_METADATA_CREATION_TIME_STRING,
     PROP_METADATA_DESCRIPTION_STRING, PROP_METADATA_FRAME_COUNT_NUMBER,
@@ -915,6 +916,13 @@ pub(crate) struct AvifDecoderContext {
     /// Height of the animation
     #[allow(dead_code)]
     height: i32,
+
+    /// The decoder's thread count, progressive and incremental modes and
+    /// metadata setting, for the one a reset creates
+    max_threads: i32,
+    allow_progressive: bool,
+    allow_incremental: bool,
+    ignore_props: bool,
 }
 
 impl AvifDecoderContext {
@@ -929,13 +937,19 @@ impl AvifDecoderContext {
         }
 
         // Recreate the decoder
-        // FIXME (upstream): the new decoder doesn't get the thread count,
-        // progressive and incremental modes and metadata settings the
-        // first one was created with.
         let mut decoder = Box::new(AvifDecoder::new());
 
         // Be permissive to decode as many frames as possible
         decoder.strict_flags = AVIF_STRICT_DISABLED;
+        // Note (upstream): upstream's new decoder doesn't get the thread
+        // count, progressive and incremental modes and metadata settings
+        // the first one was created with (libavif's defaults, without the
+        // progressive mode, are used); the translation fixes it.
+        decoder.max_threads = self.max_threads;
+        decoder.allow_progressive = self.allow_progressive;
+        decoder.allow_incremental = self.allow_incremental;
+        decoder.ignore_exif = self.ignore_props;
+        decoder.ignore_xmp = self.ignore_props;
 
         // Set up IO
         self.io_context = AvifIoContext {
@@ -1178,10 +1192,11 @@ pub(crate) fn create_avif_animation_decoder(
         .unwrap_or(true);
     decoder.allow_progressive = allow_progressive;
 
-    // FIXME (upstream): reads the progressive property, not
-    // IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN.
+    // Note (upstream): upstream reads the progressive property here, not
+    // IMG_PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN; the
+    // translation fixes it.
     let allow_incremental = props
-        .get_bool(PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_PROGRESSIVE_BOOLEAN)
+        .get_bool(PROP_ANIMATION_DECODER_CREATE_AVIF_ALLOW_INCREMENTAL_BOOLEAN)
         .unwrap_or(false);
     decoder.allow_incremental = allow_incremental;
 
@@ -1268,6 +1283,10 @@ pub(crate) fn create_avif_animation_decoder(
         total_frames,
         width,
         height,
+        max_threads,
+        allow_progressive,
+        allow_incremental,
+        ignore_props,
     }))
 }
 
