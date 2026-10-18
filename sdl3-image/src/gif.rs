@@ -2002,14 +2002,16 @@ fn quantize_surface_to_indexed_pixels(
         }
 
         let (w, h) = (psurf.width() as usize, psurf.height() as usize);
-        // FIXME (upstream): without a color key the key compared is 0, so
-        // the pixels of index 0 are made transparent.
+        // Note (upstream): upstream maps the color key to the transparent
+        // index whether or not the surface has one, when the key compared
+        // is 0, so the pixels of index 0 are made transparent; the
+        // translation fixes it, mapping only a color key the surface has.
         return with_pixels(psurf, "Failed to lock INDEX8 surface", |pixels, pitch| {
             for y in 0..h {
                 let src_row = &pixels[y * pitch..y * pitch + w];
                 let dst_row = &mut indexed_pixels[y * w..(y + 1) * w];
 
-                if has_transparency {
+                if has_transparency && psurf_has_color_key {
                     for x in 0..w {
                         let index = src_row[x];
                         let pixel = index as u32;
