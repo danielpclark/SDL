@@ -1180,10 +1180,14 @@ fn build_seek_blocks(adata: &mut WavAudioData) -> Result<()> {
                 let stop_frame_block = loop_stop_frame / frames_per_block;
                 let offset_into_stop_block = loop_stop_frame % frames_per_block;
                 let frames_left_in_stop_block = frames_per_block - offset_into_stop_block;
-                // FIXME (upstream): this divides the data's size in bytes by
-                // the frames per block, where it means the block size.
-                let all_blocks_in_file = (adata.stop - adata.start) / frames_per_block;
-                let blocks_left_after_stop_block = all_blocks_in_file - stop_frame_block;
+                // Note (upstream): this divides the data's size in bytes by
+                // the frames per block there, where it means the block size,
+                // and counts the stop block among the blocks after it, so
+                // the frames after the loop came out wrong; the translation
+                // fixes both.
+                let all_blocks_in_file =
+                    (adata.stop - adata.start) / adata.adpcm_info.blocksize as i64;
+                let blocks_left_after_stop_block = all_blocks_in_file - stop_frame_block - 1;
                 seekblocks[s].num_frames =
                     frames_left_in_stop_block + (blocks_left_after_stop_block * frames_per_block);
             } else {

@@ -172,6 +172,7 @@ static FILES: &[(&str, &[u8])] = files![
     "wav_alaw.wav",
     "wav_f32_mono.wav",
     "wav_f64_stereo.wav",
+    "wav_ima_loop.wav",
     "wav_ima_mono.wav",
     "wav_ima_stereo.wav",
     "wav_loop.wav",
