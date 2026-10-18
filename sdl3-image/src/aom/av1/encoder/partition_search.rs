@@ -514,12 +514,44 @@ fn encode_superblock(
         && cpi.oxcf.pass == AOM_RC_ONE_PASS
         && cpi.svc.temporal_layer_id == 0
         && cpi.sf.rt_sf.use_temporal_noise_estimate != 0
+        && !cpi.ppi.use_svc
     {
-        // (av1_update_noise_estimate(): use_temporal_noise_estimate is off
-        // for the saver's speed)
-        return Err(());
+        let (mi_row, mi_col) = (x.e_mbd.mi_row, x.e_mbd.mi_col);
+        update_zeromv_cnt(cpi, &mbmi, mi_row, mi_col, bsize);
     }
     Ok(())
+}
+
+/// Translation of `update_zeromv_cnt()`.
+fn update_zeromv_cnt(cpi: &Av1Comp, mi: &MbModeInfo, mi_row: i32, mi_col: i32, bsize: BlockSize) {
+    if mi.ref_frame[0] != LAST_FRAME || !is_inter_block(mi) || mi.segment_id > 2
+    /* CR_SEGMENT_ID_BOOST2 */
+    {
+        return;
+    }
+    let cm = &cpi.common;
+    let mv = mi.mv[0].as_mv();
+    let bw = MI_SIZE_WIDE[bsize as usize] as i32 >> 1;
+    let bh = MI_SIZE_HIGH[bsize as usize] as i32 >> 1;
+    let xmis = ((cm.mi_params.mi_cols - mi_col) >> 1).min(bw);
+    let ymis = ((cm.mi_params.mi_rows - mi_row) >> 1).min(bh);
+    let block_index = (mi_row >> 1) * (cm.mi_params.mi_cols >> 1) + (mi_col >> 1);
+    for y in 0..ymis {
+        for x in 0..xmis {
+            // consec_zero_mv is in the scale of 8x8 blocks
+            let map_offset = (block_index + y * (cm.mi_params.mi_cols >> 1) + x) as usize;
+            let Some(c) = cpi.consec_zero_mv.get(map_offset) else {
+                continue;
+            };
+            if (mv.row as i32).abs() < 10 && (mv.col as i32).abs() < 10 {
+                if c.get() < 255 {
+                    c.set(c.get() + 1);
+                }
+            } else {
+                c.set(0);
+            }
+        }
+    }
 }
 
 fn setup_block_rdmult(

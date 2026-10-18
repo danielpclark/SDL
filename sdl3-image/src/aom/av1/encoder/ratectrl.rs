@@ -2315,3 +2315,52 @@ fn round_power_of_two(value: i32, n: i32) -> i32 {
 fn round_power_of_two_64(value: i64, n: i32) -> i64 {
     (value + ((1i64 << n) >> 1)) >> n
 }
+
+/// Translation of `av1_encodedframe_overshoot_cbr()`: the rate control's
+/// reset for a scene or slide change coded at a high quantizer.
+pub(crate) fn av1_encodedframe_overshoot_cbr(cpi: &mut Av1Comp, q: &mut i32) -> bool {
+    let mut rate_correction_factor = cpi.ppi.p_rc.rate_correction_factors[INTER_NORMAL];
+    let target_size = cpi.rc.avg_frame_bandwidth;
+    let is_screen_content = (cpi.oxcf.tune_cfg.content == AOM_CONTENT_SCREEN) as i32;
+    *q = (3 * cpi.rc.worst_quality + *q) >> 2;
+    // For screen content use the max-q set by the user to allow for less
+    // overshoot on slide changes.
+    if is_screen_content != 0 {
+        *q = cpi.rc.worst_quality;
+    }
+    cpi.cyclic_refresh.counter_encode_maxq_scene_change = 0;
+    // Adjust avg_frame_qindex, buffer_level, and rate correction factors, as
+    // these parameters will affect QP selection for subsequent frames. If they
+    // have settled down to a very different (low QP) state, then not adjusting
+    // them may cause next frame to select low QP and overshoot again.
+    let p_rc = &mut cpi.ppi.p_rc;
+    p_rc.avg_frame_qindex[INTER_FRAME as usize] = *q;
+    p_rc.buffer_level = p_rc.optimal_buffer_level;
+    p_rc.bits_off_target = p_rc.optimal_buffer_level;
+    // Reset rate under/over-shoot flags.
+    cpi.rc.rc_1_frame = 0;
+    cpi.rc.rc_2_frame = 0;
+    // Adjust rate correction factor.
+    let target_bits_per_mb =
+        (((target_size as u64) << BPER_MB_NORMBITS) / cpi.common.mi_params.mbs as u64) as i32;
+    // Reset rate correction factor: for now base it on target_bits_per_mb
+    // and qp (==max_QP). This comes from the inverse computation of
+    // av1_rc_bits_per_mb().
+    let q2 = av1_convert_qindex_to_q(*q, cpi.common.seq_params.bit_depth);
+    // FIXME (upstream): the rate factor level INTER_NORMAL is passed as the
+    // frame type, which makes it KEY_FRAME's enumerator.
+    let enumerator = av1_get_bpmb_enumerator(INTER_NORMAL as FrameType, is_screen_content);
+    let new_correction_factor = target_bits_per_mb as f64 * q2 / enumerator as f64;
+    if new_correction_factor > rate_correction_factor {
+        rate_correction_factor = (new_correction_factor + rate_correction_factor) / 2.0;
+        if rate_correction_factor > MAX_BPB_FACTOR {
+            rate_correction_factor = MAX_BPB_FACTOR;
+        }
+        cpi.ppi.p_rc.rate_correction_factors[INTER_NORMAL] = rate_correction_factor;
+    }
+    // For temporal layers: reset the rate control parameters across all
+    // temporal layers.
+    // (one temporal layer)
+    debug_assert!(cpi.svc.number_temporal_layers <= 1);
+    true
+}
