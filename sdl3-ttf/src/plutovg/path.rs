@@ -669,7 +669,7 @@ fn dash_traverse_func(dasher: &mut Dasher<'_, '_>, command: PathCommand, points:
         dasher.toggle = !dasher.toggle;
         dasher.index = dasher.index.wrapping_add(1);
         if dasher.index < 0 {
-            /* FIXME (upstream): C's int index overflows here (after 2^31
+            /* Note (upstream): C's int index overflows here (after 2^31
             dashes on a segment); it is kept non-negative here */
             dasher.index &= i32::MAX;
         }

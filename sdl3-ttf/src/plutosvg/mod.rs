@@ -319,8 +319,9 @@ fn find_attribute(doc: &Document, element: u32, id: i32, inherit: bool) -> Optio
     let mut element = Some(element);
     let mut steps = 0;
     while let Some(e) = element {
-        /* FIXME (upstream): `render_use` can make the parents a cycle (a
-        `use` within the element it refers to); C loops forever then */
+        /* Note (upstream): `render_use` can make the parents a cycle (a
+        `use` within the element it refers to); C loops forever then, and
+        here the walk stops after as many steps as there are elements */
         steps += 1;
         if steps > doc.elements.len() {
             return None;

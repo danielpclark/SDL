@@ -162,7 +162,7 @@ fn load_webp(src: &mut IoStream<'_>, start: i64) -> Result<Surface<'static>> {
         if src.seek(start, IoWhence::Set).is_err() {
             return error("Failed to seek IO to read animated WebP");
         } else {
-            // FIXME (upstream): IMG_DecodeAsAnimation(src, "webp", 1) falls
+            // Note (upstream): IMG_DecodeAsAnimation(src, "webp", 1) falls
             // back to the single-frame decoder when the WebP animation
             // decoder can't be created (an animation the demuxer rejects),
             // which loads the image with IMG_LoadTyped_IO(): that detects a

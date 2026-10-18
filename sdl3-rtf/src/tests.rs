@@ -375,7 +375,8 @@ fn family_indices() {
 }
 
 /// Loading again into a context frees the previous document (upstream
-/// frees the color table a second time there, FIXME (upstream))
+/// frees the color table a second time there: see the Note (upstream) in
+/// `rtfreadr.rs`)
 #[test]
 fn reload_context() {
     sdl3_ttf::init().unwrap();

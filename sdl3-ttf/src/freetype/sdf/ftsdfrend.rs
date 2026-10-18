@@ -80,7 +80,7 @@ fn sdf_renderer(module: &FtModuleRec) -> SdfRendererModule {
 
 /// The `FT_Int` a property value points to (`*(const FT_Int*)value`).
 ///
-/// FIXME (upstream): C reads the string of a property given as a string
+/// Note (upstream): C reads the string of a property given as a string
 /// (through `FREETYPE_PROPERTIES`) as an integer too; it is parsed as a
 /// decimal number here.
 fn property_int(value: &FtPropertyValue) -> FtResult<FtInt> {

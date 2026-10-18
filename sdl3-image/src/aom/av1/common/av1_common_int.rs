@@ -1435,8 +1435,8 @@ pub(crate) fn get_partition(
             if sswide * 4 == bwide {
                 return PARTITION_VERT_4;
             }
-            // FIXME (upstream): this compares the width with the height; it
-            // holds for the square blocks partitioned here.
+            // Note (upstream): this compares the width with the height, in C
+            // as here; it holds for the square blocks partitioned here.
             debug_assert!(sswide * 2 == bhigh);
 
             if mbmi_right().bsize == subsize {

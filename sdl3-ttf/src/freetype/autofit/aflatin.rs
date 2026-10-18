@@ -2927,10 +2927,10 @@ fn af_latin_hint_edges(hints: &mut AfGlyphHintsRec, metrics: &AfStyleMetricsRec,
             {
                 /* don't move if stem would (almost) disappear otherwise; */
                 /* the ad-hoc value 16 corresponds to 1/4px               */
-                /* FIXME (upstream): this compares with `edge[-1]', which */
-                /* is before the edges array for the first edge; the     */
-                /* edges hinted here have no link, though, so it isn't   */
-                /* reached                                               */
+                /* Note (upstream): this compares with `edge[-1]', which  */
+                /* is before the edges array for the first edge, in C as  */
+                /* here; the edges hinted here have no link, though, so   */
+                /* it isn't reached                                       */
                 if let Some(link) = edges[edge].link {
                     if edge > 0 && ft_abs(edges[link].pos - edges[edge - 1].pos) > 16 {
                         edges[edge].pos = edges[edge + 1].pos;

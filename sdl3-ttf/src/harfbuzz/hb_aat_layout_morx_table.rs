@@ -903,7 +903,7 @@ impl ChainAccel {
         /* FIXME (upstream): ChainSubtable::dispatch only calls the context
          * for the known subtable types, so the digests of the subtables
          * after one of an unknown type land one entry early (and the last
-         * ones stay empty). */
+         * ones stay empty) (danielpclark/SDL#140). */
         let mut i = 0;
         let mut subtable = chain_first_subtable(d, chain, extended);
         for _ in 0..count {

@@ -66,7 +66,7 @@ fn pfr_glyph_close_contour(glyph: &mut PfrGlyphRec) {
 
     /* FIXME (upstream): this is the last point of the previous contour, */
     /* not the first point of this one (so only the first contour loses  */
-    /* a last point on its first one)                                    */
+    /* a last point on its first one) (danielpclark/SDL#139)             */
     if n_contours > 0 {
         first = loader.current_contours()[n_contours as usize - 1] as FtInt;
     }

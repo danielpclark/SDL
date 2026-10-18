@@ -2348,7 +2348,8 @@ pub(crate) fn av1_encodedframe_overshoot_cbr(cpi: &mut Av1Comp, q: &mut i32) -> 
     // av1_rc_bits_per_mb().
     let q2 = av1_convert_qindex_to_q(*q, cpi.common.seq_params.bit_depth);
     // FIXME (upstream): the rate factor level INTER_NORMAL is passed as the
-    // frame type, which makes it KEY_FRAME's enumerator.
+    // frame type, which makes it KEY_FRAME's enumerator
+    // (danielpclark/SDL#134).
     let enumerator = av1_get_bpmb_enumerator(INTER_NORMAL as FrameType, is_screen_content);
     let new_correction_factor = target_bits_per_mb as f64 * q2 / enumerator as f64;
     if new_correction_factor > rate_correction_factor {

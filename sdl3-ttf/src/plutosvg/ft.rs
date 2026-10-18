@@ -19,7 +19,7 @@
 //! address and length of its data (an SVG table's document, or the
 //! buffer FreeType decompresses a gzipped one into); this translation
 //! recognizes it by its data and the face's units per EM. The two differ
-//! only where C's addresses are reused for other data (FIXME (upstream):
+//! only where C's addresses are reused for other data (Note (upstream):
 //! C then renders the document it parsed before, from the new data).
 
 use crate::freetype::base::ftcolor::{ft_palette_data_get, ft_palette_select};
@@ -93,8 +93,8 @@ fn plutosvg_ft_palette_func(ft_face: Option<&mut FtFace>, name: &[u8]) -> Option
     if index >= ft_palette_data.num_palette_entries as FtInt {
         return None;
     }
-    /* FIXME (upstream): C reads before the palette for the negative
-    indices a long digit string overflows to */
+    /* Note (upstream): C reads before the palette for the negative
+    indices a long digit string overflows to; here they find no color */
     let ft_color = ft_palette?.get(usize::try_from(index).ok()?)?;
     Some(Color {
         r: ft_color.red as f32 / 255.0,

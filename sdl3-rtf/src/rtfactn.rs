@@ -395,7 +395,7 @@ impl<E: FontEngine> Context<E> {
     /// `ctx->data[ctx->datapos] = '\0';` then the C string in `data`, or
     /// `None` when it is empty (`*ctx->data ? SDL_strdup(ctx->data) : NULL`)
     fn take_data_string(&mut self) -> Option<String> {
-        // FIXME (upstream): data is NULL when no character was printed
+        // Note (upstream): data is NULL when no character was printed
         // since the document started loading ({\title} as the first
         // text), and this dereferences it; it is an empty string here.
         if self.data.is_empty() {

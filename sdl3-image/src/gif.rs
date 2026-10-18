@@ -1242,7 +1242,7 @@ pub fn load_gif_io(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
     let mut ctx = match create_gif_animation_decoder(&mut d, &props) {
         Ok(ctx) => ctx,
         Err(e) => {
-            // FIXME (upstream): when the GIF decoder can't be created,
+            // Note (upstream): when the GIF decoder can't be created,
             // IMG_CreateAnimationDecoderWithProperties() falls back to its
             // single-frame decoder, which loads the image with
             // IMG_LoadTyped_IO(): that detects a GIF and calls

@@ -220,7 +220,7 @@ fn create_atlas(renderer: &mut Renderer, atlas_texture_size: i32) -> Result<Atla
 
     let num_nodes = atlas_texture_size / 4;
     if num_nodes == 0 {
-        // FIXME (upstream): stbrp_init_target() divides by the number of
+        // Note (upstream): stbrp_init_target() divides by the number of
         // nodes (and writes past the empty node array) for atlas sizes
         // below 4; fail instead.
         renderer.destroy_texture(texture);
@@ -553,7 +553,7 @@ fn create_missing_glyphs(
             checked.insert(key);
 
             let (surface, image_type) = glyph_font.glyph_image_for_index(glyph_index)?;
-            // FIXME (upstream): a glyph that doesn't fit an empty atlas
+            // Note (upstream): a glyph that doesn't fit an empty atlas
             // once stb_rect_pack aligns its width is never packed, and C then
             // creates atlases without end; fail as for larger glyphs.
             if surface.width() > atlas_texture_size

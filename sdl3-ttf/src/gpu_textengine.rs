@@ -252,7 +252,7 @@ fn create_atlas(device: &Device, atlas_texture_size: i32) -> Result<AtlasTexture
 
     let num_nodes = atlas_texture_size / 4;
     if num_nodes == 0 {
-        // FIXME (upstream): stbrp_init_target() divides by the number of
+        // Note (upstream): stbrp_init_target() divides by the number of
         // nodes (and writes past the empty node array) for atlas sizes
         // below 4; fail instead.
         return Err(Error::new(
@@ -393,7 +393,7 @@ fn update_gpu_texture(
         let mut output = tbuf.map(false)?;
         let output = &mut output[..];
 
-        // FIXME (upstream): a reused atlas area can be a pixel wider and
+        // Note (upstream): a reused atlas area can be a pixel wider and
         // taller than the glyph (FindUnusedGlyph() compares the padded size
         // of the glyph with the unpadded size of the area), and C then reads
         // past the glyph's pixels; the bytes past them are zeros here.
@@ -657,7 +657,7 @@ fn create_missing_glyphs(
             checked.insert(key);
 
             let (surface, image_type) = glyph_font.glyph_image_for_index(glyph_index)?;
-            // FIXME (upstream): a glyph whose padded size doesn't fit an
+            // Note (upstream): a glyph whose padded size doesn't fit an
             // empty atlas is never packed, and C then creates atlases
             // without end; fail as for larger glyphs.
             if surface.width() > atlas_texture_size

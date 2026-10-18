@@ -658,7 +658,7 @@ fn af_cjk_hints_compute_segments(
 ) -> FtResult<()> {
     /* FIXME (upstream): the segment limit is taken before the segments */
     /* are computed (when there are none: `af_glyph_hints_reload' resets */
-    /* them), so the loop below never runs                              */
+    /* them), so the loop below never runs (danielpclark/SDL#139)       */
     let segment_limit = hints.axis[dim].num_segments as usize;
 
     af_latin_hints_compute_segments(hints, metrics, dim)?;

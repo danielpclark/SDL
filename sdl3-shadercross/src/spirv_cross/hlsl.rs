@@ -765,7 +765,8 @@ impl Compiler {
                             statement!(self, "float gl_ClipDistance[1] : SV_ClipDistance;");
                         } else {
                             // Replace array with vector directly, avoids any weird fixup path.
-                            // FIXME (upstream): a count of 0 indexes types[-1].
+                            // Note (upstream): a count of 0 indexes types[-1] in C; here
+                            // the index wraps around to the last type.
                             let t = TYPES[(self.clip_distance_count as usize).wrapping_sub(1) % 4];
                             statement!(self, t, " gl_ClipDistance : SV_ClipDistance;");
                         }
@@ -810,7 +811,8 @@ impl Compiler {
                             statement!(self, "float gl_CullDistance[1] : SV_CullDistance;");
                         } else {
                             // Replace array with vector directly, avoids any weird fixup path.
-                            // FIXME (upstream): a count of 0 indexes types[-1].
+                            // Note (upstream): a count of 0 indexes types[-1] in C; here
+                            // the index wraps around to the last type.
                             let t = TYPES[(self.cull_distance_count as usize).wrapping_sub(1) % 4];
                             statement!(self, t, " gl_CullDistance : SV_CullDistance;");
                         }
@@ -1455,7 +1457,8 @@ impl Compiler {
                     || self.has_decoration(var.self_, DecorationPerVertexKHR)
                 {
                     // The per-vertex/per-CP dimension is the outermost (last element in array vector).
-                    // FIXME (upstream): pop_back() on an empty array is undefined.
+                    // Note (upstream): pop_back() on an empty array is undefined in C;
+                    // here it throws.
                     if decl_type.array.pop().is_none()
                         || decl_type.array_size_literal.pop().is_none()
                     {

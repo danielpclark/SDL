@@ -153,7 +153,7 @@ pub(crate) fn vp8_record_coeff_tokens(
                     // VP8Cat5  (5b)
                     add_token(tokens, true, base_id + 8, &mut s[8]);
                     // FIXME (upstream): the statistics of proba #10 are
-                    // recorded in those of #9 (s + 9).
+                    // recorded in those of #9 (s + 9) (danielpclark/SDL#135).
                     add_token(tokens, false, base_id + 10, &mut s[9]);
                     residue -= 8 << 2;
                     mask = 1 << 4;
@@ -161,7 +161,8 @@ pub(crate) fn vp8_record_coeff_tokens(
                 } else {
                     // VP8Cat6 (11b)
                     add_token(tokens, true, base_id + 8, &mut s[8]);
-                    // FIXME (upstream): as above, s + 9 for proba #10.
+                    // FIXME (upstream): as above, s + 9 for proba #10
+                    // (danielpclark/SDL#135).
                     add_token(tokens, true, base_id + 10, &mut s[9]);
                     residue -= 8 << 3;
                     mask = 1 << 10;

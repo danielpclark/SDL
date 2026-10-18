@@ -168,7 +168,7 @@ pub fn tt_face_find_bdf_prop(
                         /* string */
                         /* atoms */
                         /* check that the content is really 0-terminated */
-                        /* FIXME (upstream): C searches `strings_size' bytes from */
+                        /* Note (upstream): C searches `strings_size' bytes from  */
                         /* `strings + value', reading past the table's end; the   */
                         /* search stops at the end of the table here.             */
                         if (value as usize) < strings_size {

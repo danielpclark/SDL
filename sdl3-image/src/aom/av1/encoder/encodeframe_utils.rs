@@ -876,7 +876,7 @@ pub(crate) fn enforce_max_ref_frames(cpi: &mut Av1Comp) {
             LAST2_FRAME => ref_frame_flags &= !AOM_LAST2_FLAG,
             ALTREF2_FRAME => ref_frame_flags &= !AOM_ALT2_FLAG,
             // FIXME (upstream): disabling BWDREF_FRAME clears the GOLDEN_FRAME
-            // flag (kept: it is what libaom does).
+            // flag (kept: it is what libaom does; danielpclark/SDL#134).
             BWDREF_FRAME => ref_frame_flags &= !AOM_GOLD_FLAG,
             _ => debug_assert!(false),
         }
@@ -1174,7 +1174,8 @@ fn update_filter_type_count(counts: &mut FrameCounts, xd: &MacroBlockD, mbmi: &M
         // FIXME (upstream): the intra blocks of inter frames count their
         // filter too, SWITCHABLE_FILTERS (one past a row): the rows are
         // contiguous, so the count lands in the next context's first
-        // filter, as here (an intra block's context is never the last).
+        // filter, as here (an intra block's context is never the last)
+        // (danielpclark/SDL#134).
         let flat = ctx * SWITCHABLE_FILTERS as usize + filter;
         if let Some(c) = counts.switchable_interp.as_flattened_mut().get_mut(flat) {
             *c += 1;

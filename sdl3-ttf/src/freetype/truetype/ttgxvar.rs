@@ -2883,7 +2883,8 @@ fn tt_face_vary_cvt_frame(
                 } else {
                     /* FIXME (upstream): the test above is `localpoints ==   */
                     /* ALL_POINTS', so shared `ALL_POINTS' point numbers end */
-                    /* up here with a point count of zero and are ignored.   */
+                    /* up here with a point count of zero and are ignored    */
+                    /* (danielpclark/SDL#139).                               */
                     if let PackedPoints::Points(points) = points {
                         for j in 0..point_count as usize {
                             let pindex = points[j] as usize;

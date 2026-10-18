@@ -94,7 +94,7 @@ fn create_colorhash(maxnum: i32) -> Option<ColorHash> {
     everything here */
 
     /* use power-of-2 sized hash table for decoding speed */
-    // FIXME (upstream): for more than 2^30 colors the size overflows and
+    // Note (upstream): for more than 2^30 colors the size overflows and
     // the loop doesn't end; refused here.
     if maxnum > 1 << 30 {
         return None;
@@ -181,7 +181,7 @@ fn color_to_argb(spec: &[u8]) -> Option<u32> {
                 buf[4] = spec[9];
                 buf[5] = spec[10];
             }
-            // FIXME (upstream): for other lengths the buffer is left
+            // Note (upstream): for other lengths the buffer is left
             // uninitialized; it is empty here (and the color black).
             _ => {}
         }
@@ -228,7 +228,7 @@ impl LineReader<'_, '_, '_> {
     fn get_next_line(&mut self, len: usize) -> std::result::Result<&[u8], Failure> {
         let src = match &mut self.lines {
             Lines::Array(lines) => {
-                // FIXME (upstream): an array with too few lines is read past
+                // Note (upstream): an array with too few lines is read past
                 // its end; that is an error here.
                 return match lines.next() {
                     Some(line) => Ok(line.as_bytes()),
@@ -425,7 +425,7 @@ fn load_xpm(
     let cpp_u = cpp as usize;
     for y in 0..h as usize {
         let line = reader.get_next_line(pixels_len)?;
-        // FIXME (upstream): where the product of the width and the
+        // Note (upstream): where the product of the width and the
         // characters per pixel overflows, or an array's line is short, the
         // pixels are read past the line; those read as NUL here.
         let at = |i: usize| line.get(i).copied().unwrap_or(0);

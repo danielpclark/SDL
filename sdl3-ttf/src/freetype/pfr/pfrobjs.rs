@@ -480,7 +480,7 @@ pub fn pfr_face_get_kerning(
 /// The search of `pfr_face_get_kerning` in the kerning item `item` of
 /// the stream frame: the adjustment of `pair` (0 if not found).
 fn pfr_kern_lookup(stream: &FtStreamRec, item: &PfrKernItemRec, pair: FtUInt32) -> FtPos {
-    /* FIXME (upstream): when the first probe is below `pair', the search */
+    /* Note (upstream): when the first probe is below `pair', the search  */
     /* goes on over `power' more pairs, one past the item's last (of a    */
     /* font whose pairs are not sorted); here a memory stream's bytes     */
     /* after the frame are those of the font, as C's, and a callback      */

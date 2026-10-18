@@ -711,7 +711,8 @@ fn estimate_block_intra(
     if plane == 0 {
         // FIXME (upstream): each transform block's block_yrd() overwrites
         // args->skippable, so after the loop over the block's transform
-        // blocks it only tells whether the last one is skippable.
+        // blocks it only tells whether the last one is skippable
+        // (danielpclark/SDL#134).
         block_yrd(
             x,
             args.src,

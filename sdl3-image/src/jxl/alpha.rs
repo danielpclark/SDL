@@ -107,7 +107,8 @@ pub(crate) fn perform_alpha_blending(
             out[x] = 1.0f32 - (1.0f32 - fa) * (1.0f32 - bga[x]);
         }
     } else if alpha_is_premultiplied {
-        // FIXME (upstream): the clamp flag is inverted in this overload.
+        // FIXME (upstream): the clamp flag is inverted in this overload
+        // (danielpclark/SDL#137).
         for x in 0..num_pixels {
             let fa = if clamp_alpha { fga[x] } else { clamp(fga[x]) };
             out[x] = fg[x] + bg[x] * (1.0f32 - fa);

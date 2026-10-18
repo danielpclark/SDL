@@ -62,7 +62,7 @@ pub struct Cf2StackRec {
 /// `cf2_stack_init`: allocate and initialize an instance of CF2_Stack.
 /// Note: This function returns NULL on error (does not set `error').
 ///
-/// FIXME (upstream): `cf2_stack_setReal` accepts an index equal to the
+/// Note (upstream): `cf2_stack_setReal` accepts an index equal to the
 /// count, which writes one element past a full stack; the buffer has that
 /// extra element here.
 pub fn cf2_stack_init(stack_size: FtUInt) -> Option<Cf2StackRec> {

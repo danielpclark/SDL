@@ -75,7 +75,7 @@ pub struct PcfPropertyRec {
 impl PcfPropertyRec {
     /// `value.l` of any property.
     ///
-    /// FIXME (upstream): the driver reads the size and resolution
+    /// Note (upstream): the driver reads the size and resolution
     /// properties as integers without checking `isString`; of a string
     /// property, C reads the atom's pointer: a large positive value, as
     /// the address of any heap block (this value).
