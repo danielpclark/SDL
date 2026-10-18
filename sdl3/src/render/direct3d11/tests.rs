@@ -415,6 +415,19 @@ fn constants_match_the_headers() {
     );
     assert_eq!(IID_IDXGIINFOQUEUE.data2, 0x672A);
     assert_eq!(IID_ID3D11DEVICE1.data3, 0x43d6);
+    // The swap chain is queried for IDXGISwapChain3 (whose vtable it is
+    // used through), not IDXGISwapChain2 (a8be2ac4-199f-4946-b331-
+    // 79599fb98de7), the name upstream gives this GUID.
+    let g = IID_IDXGISWAPCHAIN3;
+    assert_eq!(
+        (g.data1, g.data2, g.data3, g.data4),
+        (
+            0x94d99bdb,
+            0xf1f8,
+            0x4ab0,
+            [0xb2, 0x36, 0x7d, 0xa0, 0x17, 0x0e, 0xda, 0xb1]
+        )
+    );
 }
 
 #[test]

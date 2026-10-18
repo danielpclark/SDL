@@ -257,7 +257,8 @@ pub(super) const IID_ID3D11TEXTURE2D: GUID =
 pub(super) const IID_ID3D11DEVICE1: GUID = GUID::from_u128(0xa04bfb29_08ef_43d6_a49c_a9bdbdcbe686);
 pub(super) const IID_ID3D11DEVICECONTEXT1: GUID =
     GUID::from_u128(0xbb2c6faa_b5fb_4082_8e6b_388b8cfa90e1);
-pub(super) const IID_IDXGISWAPCHAIN2: GUID =
+/// `IID_IDXGISwapChain3` (upstream's misnamed `SDL_IID_IDXGISwapChain2`)
+pub(super) const IID_IDXGISWAPCHAIN3: GUID =
     GUID::from_u128(0x94d99bdb_f1f8_4ab0_b236_7da0170edab1);
 pub(crate) const IID_IDXGIDEBUG: GUID = GUID::from_u128(0x119e7452_de9e_40fe_8806_88f90c12b441);
 pub(crate) const IID_IDXGIDEBUG1: GUID = GUID::from_u128(0xc5a05f0c_16f2_4adf_9f4d_a8c4d58ac550);
