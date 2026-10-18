@@ -141,6 +141,15 @@ mod macos {
         unsafe { dispatch_async_f(std::ptr::addr_of!(_dispatch_main_q), ctx, work) };
     }
 
+    /// Run `work` on the main queue after `ms` milliseconds.
+    fn on_main_queue_after(ms: i64, work: unsafe extern "C" fn(*mut c_void), ctx: *mut c_void) {
+        // SAFETY: as above; DISPATCH_TIME_NOW is 0.
+        unsafe {
+            let when = dispatch_time(0, ms * 1_000_000);
+            dispatch_after_f(when, std::ptr::addr_of!(_dispatch_main_q), ctx, work);
+        }
+    }
+
     /// Pump events for a while (or until `done`).
     fn pump_until(ms: u64, done: impl Fn() -> bool) -> bool {
         let end = Instant::now() + Duration::from_millis(ms);
@@ -492,8 +501,16 @@ mod macos {
     /// `NSModalResponseOK`.
     const NS_MODAL_RESPONSE_OK: isize = 1;
 
+    /// The folder a save panel [`stop_modal`] accepts must be showing
+    /// first: the panel applies the location it was given asynchronously,
+    /// so right after it opens it can still be at its default folder.
+    static SAVE_PANEL_FOLDER: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);
+    /// How many times [`stop_modal`] has waited for that folder.
+    static SAVE_PANEL_WAITS: AtomicUsize = AtomicUsize::new(0);
+
     /// `[NSApp stopModalWithCode:STOP_CODE]`, from the main queue inside a
-    /// panel's modal loop.
+    /// panel's modal loop (once a save panel is at [`SAVE_PANEL_FOLDER`],
+    /// or after about 5 seconds).
     unsafe extern "C" fn stop_modal(ctx: *mut c_void) {
         // SAFETY: NSApp is running a modal loop.
         unsafe {
@@ -502,6 +519,24 @@ mod macos {
                 // (not up yet: try again)
                 on_main_queue(stop_modal, ctx);
                 return;
+            }
+            let folder = SAVE_PANEL_FOLDER.lock().unwrap().clone();
+            if let Some(folder) = folder {
+                // the save panel's URL: the file it would return now
+                let url: Id = send0(window, c"URL");
+                let path = if url.is_null() {
+                    String::new()
+                } else {
+                    to_string(send0(url, c"path"))
+                };
+                let at_folder = std::path::Path::new(&path)
+                    .parent()
+                    .and_then(|p| p.canonicalize().ok())
+                    .is_some_and(|p| p == folder);
+                if !at_folder && SAVE_PANEL_WAITS.fetch_add(1, Ordering::SeqCst) < 500 {
+                    on_main_queue_after(10, stop_modal, ctx);
+                    return;
+                }
             }
             let code = STOP_CODE.load(Ordering::SeqCst);
             let _: () = send1(ns_app(), c"stopModalWithCode:", code);
@@ -548,6 +583,8 @@ mod macos {
         let location = dir.join("saved.txt");
         let (result, callback) = dialog_result();
         STOP_CODE.store(NS_MODAL_RESPONSE_OK, Ordering::SeqCst);
+        *SAVE_PANEL_FOLDER.lock().unwrap() = Some(dir.clone());
+        SAVE_PANEL_WAITS.store(0, Ordering::SeqCst);
         on_main_queue(stop_modal, std::ptr::null_mut());
         show_file_dialog(
             FileDialogType::SaveFile,
@@ -559,6 +596,7 @@ mod macos {
             },
             callback,
         );
+        *SAVE_PANEL_FOLDER.lock().unwrap() = None;
         let (files, filter) = result
             .lock()
             .unwrap()
