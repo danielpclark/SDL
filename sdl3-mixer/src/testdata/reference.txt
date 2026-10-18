@@ -54,8 +54,8 @@ corrupt 5: XMP 0x8010 2 48000 title="Composer 669 test" copyright="Composer 669 
 corrupt 5 mix: dur=233808 play=1 pos=12288 replay=1 seek=1 pos=77936 playing=1 6627f7c792cc05c5
 mix: dur=233808 play=1 pos=12288 replay=1 seek=1 pos=77936 playing=1 542e80c477732c62
 mixpre: dur=233776 play=1 pos=12288 replay=1 seek=1 pos=77925 playing=1 ef67577dddc377b9
-order 1: play=1 pos=4096 playing=1 572697879d840dfa
-order 2: play=1 pos=4096 playing=1 c037b82c9ce1f5d6
+order 1: play=1 pos=4096 playing=1 b5d200d01f7c2066
+order 2: play=1 pos=4096 playing=1 f8491cb511ce53b0
 order 0: play=1 pos=4096 playing=1 f6e069cf90cd66fd
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 b8957fb2893f865b
 order -5: play=1 pos=4096 playing=1 620c074f668753fd
@@ -116,8 +116,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=250560 play=1 pos=12288 replay=1 seek=1 pos=83520 playing=1 ad3b7ced8e844534
 mixpre: dur=250560 play=1 pos=12288 replay=1 seek=1 pos=83520 playing=1 a037b0f30ba82011
-order 1: play=1 pos=4096 playing=1 8dcd4c2753764217
-order 2: play=1 pos=4096 playing=1 235f4ed6a919c306
+order 1: play=1 pos=4096 playing=1 86a0aa09aaa8daad
+order 2: play=1 pos=4096 playing=1 560460536677780e
 order 0: play=1 pos=4096 playing=1 fbacd6e8eb882087
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3c3eeceab40f2471
 order -5: play=1 pos=4096 playing=1 e393d135eac71f46
@@ -551,8 +551,8 @@ corrupt 5: XMP 0x8010 2 48000 title="amf test" frames=152016 xmp.name="amf test"
 corrupt 5 mix: dur=152016 play=1 pos=12288 replay=1 seek=1 pos=50672 playing=1 714e3ba925f04e1b
 mix: dur=152016 play=1 pos=12288 replay=1 seek=1 pos=50672 playing=1 b266eb814813d30b
 mixpre: dur=152055 play=1 pos=12288 replay=1 seek=1 pos=50685 playing=1 02e85f26c346a5be
-order 1: play=1 pos=4096 playing=1 3489991f00cad1ea
-order 2: play=1 pos=4096 playing=1 36dd48d7d85198f3
+order 1: play=1 pos=4096 playing=1 2e6cd0134a736545
+order 2: play=1 pos=4096 playing=1 952cf8de8e623d8c
 order 0: play=1 pos=4096 playing=1 702da63b1f0f6244
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 db1390d5f63f30e7
 order -5: play=1 pos=4096 playing=1 16e14f4def4b7047
@@ -614,8 +614,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=120000 play=1 pos=12288 replay=1 seek=1 pos=40000 playing=1 7682fdb86969b238
 mixpre: dur=120000 play=1 pos=12288 replay=1 seek=1 pos=40000 playing=1 b1dc63fc25982a48
-order 1: play=1 pos=4096 playing=1 0cfe7f7dd92ab0d7
-order 2: play=1 pos=4096 playing=1 74ce19792054ec7f
+order 1: play=1 pos=4096 playing=1 cef6659e35b669c6
+order 2: play=1 pos=4096 playing=1 0b6ea56f6ab38ad8
 order 0: play=1 pos=4096 playing=1 f8d303d8687ec5a4
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 bdbf4ce3744a14ba
 order -5: play=1 pos=4096 playing=1 387a66d4d0c7ffd9
@@ -678,8 +678,8 @@ corrupt 5: XMP 0x8010 2 48000 frames=206400 xmp.type="Asylum Music Format v1.0" 
 corrupt 5 mix: dur=206400 play=1 pos=12288 replay=1 seek=1 pos=68800 playing=1 c72fea07d2ffd98e
 mix: dur=206400 play=1 pos=12288 replay=1 seek=1 pos=68800 playing=1 c2e9fabef3cd074a
 mixpre: dur=206400 play=1 pos=12288 replay=1 seek=1 pos=68800 playing=1 890ae84f9eb30148
-order 1: play=1 pos=4096 playing=1 c5d9aefd24cb0044
-order 2: play=1 pos=4096 playing=1 c7ed2edc0fc3ac23
+order 1: play=1 pos=4096 playing=1 9870ebd508017c37
+order 2: play=1 pos=4096 playing=1 9e81c2978ad47941
 order 0: play=1 pos=4096 playing=1 8f85b3b41e679360
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 4db0cc1e751e8b1c
 order -5: play=1 pos=4096 playing=1 f6964c9ca1bcc012
@@ -1126,11 +1126,11 @@ corrupt 5: XMP 0x8010 2 48000 title="chiptracker" frames=130560 xmp.name="chiptr
 corrupt 5 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 31a41149bf685750
 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 704ee3a806b343fd
 mixpre: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 262c6c7c56a4749e
-order 1: play=1 pos=4096 playing=1 b2774393d89ee11f
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 0fe10776e460d28a
-order 0: play=1 pos=4096 playing=1 31c88c9e08bb1e11
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 40673044b1b87448
-order -5: play=1 pos=4096 playing=1 9fd218183017a10e
+order 1: play=1 pos=4096 playing=1 afad3abeab53ef0e
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ac5531a4f53912e4
+order 0: play=1 pos=4096 playing=1 96f01187299b85f4
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1b49dda7a03915c6
+order -5: play=1 pos=4096 playing=1 48d7f9858ab31d9a
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 8c12d05506f06a38
 modseek 0: seek=1 pos=0 playing=1 0eec2f5cf82ce964
 modseek 2205: seek=1 pos=2205 playing=1 91020d36b41bb0f8
@@ -1189,8 +1189,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 64a22cda878037ca
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 9d9bd7137abf35af
-order 1: play=1 pos=4096 playing=1 961fbeae72433df1
-order 2: play=1 pos=4096 playing=1 437a166d9410f6d4
+order 1: play=1 pos=4096 playing=1 3c9df37bd9940d4d
+order 2: play=1 pos=4096 playing=1 6a31b9e62185e0bc
 order 0: play=1 pos=4096 playing=1 1dac492b2f2c3a49
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 57f6870620fbd453
 order -5: play=1 pos=4096 playing=1 15e9823a7ad765c5
@@ -1251,12 +1251,12 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=186336 play=1 pos=12288 replay=1 seek=1 pos=62112 playing=1 8fb166b5dc75f4d2
 mixpre: dur=186315 play=1 pos=12288 replay=1 seek=1 pos=62105 playing=1 defed93d6245bb9e
-order 1: play=1 pos=4096 playing=1 a15089a78c15b952
-order 2: play=1 pos=4096 playing=1 dd565a9c656749b9
-order 0: play=1 pos=4096 playing=1 bc57a2050bf96e49
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 0a9f3e2c294c9b22
-order -5: play=1 pos=4096 playing=1 5c6dc8f4b360f658
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 7178813f800a59de
+order 1: play=1 pos=4096 playing=1 f0d04f19221ecdc8
+order 2: play=1 pos=4096 playing=1 2914c1e50dc6ea45
+order 0: play=1 pos=4096 playing=1 ff157155c602c9cd
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 02e5e8dec1004abe
+order -5: play=1 pos=4096 playing=1 5ea717507e776f8d
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 abe1bd03efca09bf
 modseek 0: seek=1 pos=0 playing=1 cacf252f331540cd
 modseek 2205: seek=1 pos=2205 playing=1 158ea3ccd1e41f63
 modseek 93168: seek=1 pos=93168 playing=1 03a4c5dd666c1b07
@@ -1314,8 +1314,8 @@ corrupt 5: XMP 0x8010 2 48000 title="digi test" frames=272640 xmp.name="digi tes
 corrupt 5 mix: dur=272640 play=1 pos=12288 replay=1 seek=1 pos=90880 playing=1 439ba465f7b10310
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 663718d96049ae66
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 32bbe8fb42ce6be1
-order 1: play=1 pos=4096 playing=1 7cc2310130196a1d
-order 2: play=1 pos=4096 playing=1 5c4f39f6a960ca48
+order 1: play=1 pos=4096 playing=1 8e15274bf12ddbaf
+order 2: play=1 pos=4096 playing=1 d457c2cc0dd0bef0
 order 0: play=1 pos=4096 playing=1 a9e39ae8fe762dd3
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f0caa6b71037ff5c
 order -5: play=1 pos=4096 playing=1 ffc9b5121bbbea8f
@@ -1377,8 +1377,8 @@ corrupt 5: XMP 0x8010 2 48000 title="dt test" copyright="DT text" frames=286656 
 corrupt 5 mix: dur=286656 play=1 pos=12288 replay=1 seek=1 pos=95552 playing=1 048e83e696c103c3
 mix: dur=204719 play=1 pos=12288 replay=1 seek=1 pos=68239 playing=1 cde441ccf6babae4
 mixpre: dur=204680 play=1 pos=12288 replay=1 seek=1 pos=68226 playing=1 efe4c2b575e914e2
-order 1: play=1 pos=4096 playing=1 ed8b6f135a607668
-order 2: play=1 pos=4096 playing=1 a58f3f013d4d7ee3
+order 1: play=1 pos=4096 playing=1 e46c6975859854d7
+order 2: play=1 pos=4096 playing=1 4894a00762c6e6ce
 order 0: play=1 pos=4096 playing=1 63c7a32929aad720
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 69948c73ab0046e9
 order -5: play=1 pos=4096 playing=1 27d6768931882b99
@@ -1439,9 +1439,9 @@ corrupt 5: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod tes
 corrupt 5 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 bc684c454350f8e9
 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 352065f8fc07f0eb
 mixpre: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 0397d0402f99236b
-order 1: play=1 pos=4096 playing=1 116098b72ad44dca
-order 2: play=1 pos=4096 playing=1 0bc0ca5b19a4f0c1
-order 0: play=1 pos=4096 playing=1 d036fd4d46c2e304
+order 1: play=1 pos=4096 playing=1 06bc3028d678d65c
+order 2: play=1 pos=4096 playing=1 6231f00d3f25f6b4
+order 0: play=1 pos=4096 playing=1 880678f8aae63ec9
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1e1269775ff42c9c
 order -5: play=1 pos=4096 playing=1 30819e84bf441cc8
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5457e324c6e60b61
@@ -1599,8 +1599,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=192624 play=1 pos=12288 replay=1 seek=1 pos=64208 playing=1 b6a3a1540db86eb4
 mixpre: dur=192640 play=1 pos=12288 replay=1 seek=1 pos=64213 playing=1 69a334f46b78139d
-order 1: play=1 pos=4096 playing=1 895a7bd6722517a6
-order 2: play=1 pos=4096 playing=1 9b6f58b9837e1243
+order 1: play=1 pos=4096 playing=1 d9dc1d2b1db920a8
+order 2: play=1 pos=4096 playing=1 2a2902691513d097
 order 0: play=1 pos=4096 playing=1 fbbe414b17532b91
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f57f93da8bef9ea2
 order -5: play=1 pos=4096 playing=1 65ab3e9eee84932a
@@ -2768,9 +2768,9 @@ corrupt 5: XMP 0x8010 2 48000 title="flt8 test" frames=51840 xmp.name="flt8 test
 corrupt 5 mix: dur=51840 play=1 pos=12288 replay=1 seek=1 pos=17280 playing=1 63152ac3b2bf704d
 mix: dur=51840 play=1 pos=12288 replay=1 seek=1 pos=17280 playing=1 77845b2b5a90ae8d
 mixpre: dur=51840 play=1 pos=12288 replay=1 seek=1 pos=17280 playing=1 e0077d10f7aa00d1
-order 1: play=1 pos=4096 playing=1 31b01463104d3fc1
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c3e1629fb8527486
-order 0: play=1 pos=4096 playing=1 0a1132d5c32cd19f
+order 1: play=1 pos=4096 playing=1 fc27ed1db4ccad1a
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 76b079ea48efd5bc
+order 0: play=1 pos=4096 playing=1 cd7a3cb928e636e5
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 edabb6aa743c55d4
 order -5: play=1 pos=4096 playing=1 052e07b54a033af9
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5cb308d32be460d9
@@ -2832,8 +2832,8 @@ corrupt 5: DRMP3 0x8120 1 44100 frames=14208 | 1536 6ab05ef9aa8b9b25 end=0
 corrupt 5 mix: dur=14208 play=1 pos=384 replay=1 seek=0 pos=0 playing=0 50896a28136805ba
 mix: dur=192000 play=1 pos=12288 replay=1 seek=1 pos=64000 playing=1 c8b8956ad40cffea
 mixpre: dur=192000 play=1 pos=12288 replay=1 seek=1 pos=64000 playing=1 bb803b7dcf18cb7f
-order 1: play=1 pos=4096 playing=1 4fa4cd006485689e
-order 2: play=1 pos=4096 playing=1 135f5e8e80c6207d
+order 1: play=1 pos=4096 playing=1 d71b18598e1d1277
+order 2: play=1 pos=4096 playing=1 02fb0a870ccd24c3
 order 0: play=1 pos=4096 playing=1 2c48f5b9c689455d
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 fd577826abf00906
 order -5: play=1 pos=4096 playing=1 7ac17abecfd5b8eb
@@ -2976,8 +2976,8 @@ corrupt 5: XMP 0x8010 2 48000 title="gal4 test" frames=99840 xmp.name="gal4 test
 corrupt 5 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 563db2f68b73e08d
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 bde5b1388cd189df
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 31a830d309a6ef76
-order 1: play=1 pos=4096 playing=1 3f0210dbb97cefca
-order 2: play=1 pos=4096 playing=1 c55ae052c00feeb6
+order 1: play=1 pos=4096 playing=1 f47d2614b7a1afd8
+order 2: play=1 pos=4096 playing=1 f7b959e0304a6780
 order 0: play=1 pos=4096 playing=1 4117ad0c7fa1e4d5
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c4621736dff6d70b
 order -5: play=1 pos=4096 playing=1 8e9c94f146312689
@@ -3038,8 +3038,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 fcfb0196a7ff55d6
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 27c4f5865762510c
-order 1: play=1 pos=4096 playing=1 cf62ac6b0b46a394
-order 2: play=1 pos=4096 playing=1 271d71254ec1651d
+order 1: play=1 pos=4096 playing=1 82be9d3bc0cd6abf
+order 2: play=1 pos=4096 playing=1 f1c9564ba78b0442
 order 0: play=1 pos=4096 playing=1 884c53f9074f1bb9
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 7d176b783731630d
 order -5: play=1 pos=4096 playing=1 dab761dcb7e34256
@@ -3100,8 +3100,8 @@ corrupt 5: XMP 0x8010 2 48000 title="gdm"test" frames=110736 xmp.name="gdm"test"
 corrupt 5 mix: dur=110736 play=1 pos=12288 replay=1 seek=1 pos=36912 playing=1 a3b3d994a7942cf1
 mix: dur=110736 play=1 pos=12288 replay=1 seek=1 pos=36912 playing=1 3a794ea7e1b3597c
 mixpre: dur=110760 play=1 pos=12288 replay=1 seek=1 pos=36920 playing=1 f11c3e2f4715f0a6
-order 1: play=1 pos=4096 playing=1 8d83f53b60633812
-order 2: play=1 pos=4096 playing=1 e560b087841b2864
+order 1: play=1 pos=4096 playing=1 3ae3e59671936ef1
+order 2: play=1 pos=4096 playing=1 7bd84d83a67f2ef9
 order 0: play=1 pos=4096 playing=1 b52413a5c2f52358
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 421390e64acd65c9
 order -5: play=1 pos=4096 playing=1 613ae0216b2b6018
@@ -3226,11 +3226,11 @@ corrupt 5: XMP 0x8010 2 48000 title="ice tracker" frames=130560 xmp.name="ice tr
 corrupt 5 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 52e660a607e75573
 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 0d3c37e635012c02
 mixpre: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 3a9fa2e118c8979d
-order 1: play=1 pos=4096 playing=1 6e625fa28db22c98
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5ea3e1574c4988af
-order 0: play=1 pos=4096 playing=1 54e4644d980518ba
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ff5c0d4270217b79
-order -5: play=1 pos=4096 playing=1 cec0373ca1433dc3
+order 1: play=1 pos=4096 playing=1 b27b01994ae4cc11
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3f023c0cce396855
+order 0: play=1 pos=4096 playing=1 eaa58c63e9565f64
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d24e91ebb1745fa0
+order -5: play=1 pos=4096 playing=1 e703826735009e60
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5b8ed0a998609255
 modseek 0: seek=1 pos=0 playing=1 6aa28c218243529d
 modseek 2205: seek=1 pos=2205 playing=1 e7039a37fe92736f
@@ -3289,12 +3289,12 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=100464 play=1 pos=12288 replay=1 seek=1 pos=33488 playing=1 d310abf29df5e86c
 mixpre: dur=100472 play=1 pos=12288 replay=1 seek=1 pos=33490 playing=1 58a9cad3b1cad1c4
-order 1: play=1 pos=4096 playing=1 1b37675567ab2b9e
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c5c0c097d8b81968
-order 0: play=1 pos=4096 playing=1 f097e1b4625d6eae
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 b7995e49918f06b2
-order -5: play=1 pos=4096 playing=1 cff6d084198a288a
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a6f7d9b5d993cdeb
+order 1: play=1 pos=4096 playing=1 9928430d87a6bc2f
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 423915c60b4f8ebd
+order 0: play=1 pos=4096 playing=1 f3d8dfbaa6da8e56
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 206e0e766eaf3abe
+order -5: play=1 pos=4096 playing=1 d83b72f82c462c97
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 481424ff4f6cd27a
 modseek 0: seek=1 pos=0 playing=1 1bf154e8d1b74933
 modseek 2205: seek=1 pos=2205 playing=1 04e895fbbe4cedf9
 modseek 50232: seek=1 pos=50232 playing=1 04e895fbbe4cedf9
@@ -3352,8 +3352,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=84480 play=1 pos=12288 replay=1 seek=1 pos=28160 playing=1 5f1d4db70091d4a7
 mixpre: dur=84480 play=1 pos=12288 replay=1 seek=1 pos=28160 playing=1 9ed71110d66c8aab
-order 1: play=1 pos=4096 playing=1 c6b6cb34396d6b57
-order 2: play=1 pos=4096 playing=1 43398022bd30ac88
+order 1: play=1 pos=4096 playing=1 92786e6aaf943837
+order 2: play=1 pos=4096 playing=1 892d69975b026bf8
 order 0: play=1 pos=4096 playing=1 2f66229d84688595
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c1f1961c4dadbda9
 order -5: play=1 pos=4096 playing=1 7d9e92e7a829e8aa
@@ -3448,18 +3448,18 @@ line two
 corrupt 5 mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 d1c035cd7a7febba
 mix: dur=210912 play=1 pos=12288 replay=1 seek=1 pos=70304 playing=1 a47699de5476ff68
 mixpre: dur=210825 play=1 pos=12288 replay=1 seek=1 pos=70275 playing=1 24aba6548bb8ad85
-order 1: play=1 pos=4096 playing=1 433ec3b33cf3d9bd
-order 2: play=1 pos=4096 playing=1 54fce0663ab4f1d4
-order 0: play=1 pos=4096 playing=1 1377c09b2485a2ba
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 9f76f1dd34d3cf33
-order -5: play=1 pos=4096 playing=1 2b1b765f8fc03524
-order 3: play=1 pos=4096 playing=1 7e4e76c22bf2b524
-modseek 0: seek=1 pos=0 playing=1 a5634c81432053cf
-modseek 2205: seek=1 pos=2205 playing=1 806958b4213047e4
-modseek 105456: seek=1 pos=105456 playing=1 ee2dd61dc2bdd3b0
+order 1: play=1 pos=4096 playing=1 91f35a770e8fe1cd
+order 2: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 0: play=1 pos=4096 playing=1 4bb44083611709fd
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 adbf537557ca4a2a
+order -5: play=1 pos=4096 playing=1 11f69fdde6051be2
+order 3: play=1 pos=4096 playing=1 2b20b3ee7858cfc7
+modseek 0: seek=1 pos=0 playing=1 86396860ebe7ce73
+modseek 2205: seek=1 pos=2205 playing=1 ee2dd61dc2bdd3b0
+modseek 105456: seek=1 pos=105456 playing=1 9b063b0e713896bc
 modseek 209912: seek=1 pos=209912 playing=1 e287ef8df6436935
 modseek 215912: seek=1 pos=215912 playing=1 e287ef8df6436935
-modseek 100: seek=1 pos=100 playing=1 9b063b0e713896bc
+modseek 100: seek=1 pos=100 playing=1 8d0ca975ce6c64da
 xmp: pat=3 trk=12 chn=4 ins=4 smp=8 spd=3 bpm=140 len=5 rst=0 gvl=128 seqs=1 vol=64 md5=f54ebb743c74503d5bc27f576dc1a0b6 b132305699316a7c
 xmp 0: set=0 mixer=0 frames=225 7e442fa005b4ade4 a79745787ac9e0b4 seek=0 pos=1 a4dab49ea70d3e83
 xmp 1: set=0 mixer=0 frames=225 c03837ef8142e274 20ef17410d9de734 seek=0 pos=1 5c0b75a8c5bf9419
@@ -3512,8 +3512,8 @@ corrupt 5: XMP 0x8010 2 48000 title="IT old instruments" frames=345600 xmp.name=
 corrupt 5 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 d284bdfc82a23cda
 mix: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 e154c5dfadd6bc34
 mixpre: dur=345600 play=1 pos=12288 replay=1 seek=1 pos=115200 playing=1 b24082057db0165c
-order 1: play=1 pos=4096 playing=1 5c29f60c7f10e15a
-order 2: play=1 pos=4096 playing=1 f184e0343c5118a8
+order 1: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 2: play=1 pos=4096 playing=1 b7dd2cd49857b495
 order 0: play=1 pos=4096 playing=1 ec34e6778ee667f8
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 60cd5fb70b64c668
 order -5: play=1 pos=4096 playing=1 19fd9b7ad369d8d2
@@ -3637,13 +3637,13 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=185712 play=1 pos=12288 replay=1 seek=1 pos=61904 playing=1 1788df21474ef332
 mixpre: dur=185700 play=1 pos=12288 replay=1 seek=1 pos=61900 playing=1 88f843b8eaa63376
-order 1: play=1 pos=4096 playing=1 da5af78085633d7c
-order 2: play=1 pos=4096 playing=1 0941452183164f36
-order 0: play=1 pos=4096 playing=1 24883e4442535e48
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 dd57a6d955316ae3
-order -5: play=1 pos=4096 playing=1 68f63ed4320d42e0
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a71e1d1c47b85a6c
-modseek 0: seek=1 pos=0 playing=1 d85acda9bea27ceb
+order 1: play=1 pos=4096 playing=1 31c048b5c7977334
+order 2: play=1 pos=4096 playing=1 4c6ab52331004761
+order 0: play=1 pos=4096 playing=1 e26963c75784935c
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 92714666974e7497
+order -5: play=1 pos=4096 playing=1 360c69cf2cbe4449
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 4683afe9f32dd513
+modseek 0: seek=1 pos=0 playing=1 aa3ac8fa6fc9b24e
 modseek 2205: seek=1 pos=2205 playing=1 06f19a7ebb19d5d4
 modseek 92856: seek=1 pos=92856 playing=1 02815f5eb0246526
 modseek 184712: seek=1 pos=184712 playing=1 d5225420641e491d
@@ -3699,12 +3699,12 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=176352 play=1 pos=12288 replay=1 seek=1 pos=58784 playing=1 3c8f17e0cd04c389
 mixpre: dur=176344 play=1 pos=12288 replay=1 seek=1 pos=58781 playing=1 62baf9c16464561e
-order 1: play=1 pos=4096 playing=1 f5502bae2bcdca07
-order 2: play=1 pos=4096 playing=1 560552e82f5ef95b
-order 0: play=1 pos=4096 playing=1 d78c2b3868cc61c1
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c9836946a9f0402e
-order -5: play=1 pos=4096 playing=1 dd8b0cd0b3021ac2
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 badeb8a4522a1257
+order 1: play=1 pos=4096 playing=1 54e8e53537e576c9
+order 2: play=1 pos=4096 playing=1 425466fbbb8d378a
+order 0: play=1 pos=4096 playing=1 72d23a80d4789fed
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 00b89b80c76f36e0
+order -5: play=1 pos=4096 playing=1 78992a0a625978c2
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 9c4a9b925e6ce8aa
 modseek 0: seek=1 pos=0 playing=1 c19f743ae1cc501d
 modseek 2205: seek=1 pos=2205 playing=1 a4f0ff67f9724fa5
 modseek 88176: seek=1 pos=88176 playing=1 625f7536a2217118
@@ -3761,8 +3761,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=151344 play=1 pos=12288 replay=1 seek=1 pos=50448 playing=1 aa17ef945828a35a
 mixpre: dur=151372 play=1 pos=12288 replay=1 seek=1 pos=50457 playing=1 b638bff2838dd665
-order 1: play=1 pos=4096 playing=1 85a6ebb417e22b57
-order 2: play=1 pos=4096 playing=1 dc19a439db947a08
+order 1: play=1 pos=4096 playing=1 d1f743347b3adf22
+order 2: play=1 pos=4096 playing=1 f2cc071a2089ebb5
 order 0: play=1 pos=4096 playing=1 50fad6d90e4ef086
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 77f8e189612d2a62
 order -5: play=1 pos=4096 playing=1 63457554f44194ec
@@ -3823,13 +3823,13 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 cb9d2ea070ecce4f
 mixpre: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 bce3a3d6dfdb884c
-order 1: play=1 pos=4096 playing=1 35fc5615ce203c1e
-order 2: play=1 pos=4096 playing=1 1b809363297a2f95
-order 0: play=1 pos=4096 playing=1 1eeeb9d14361352c
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 122ab2c93cd62bb8
-order -5: play=1 pos=4096 playing=1 c6b968957ab72cda
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 794d6c797ac885b6
-modseek 0: seek=1 pos=0 playing=1 2844ee948b83237a
+order 1: play=1 pos=4096 playing=1 1f3f5e9210f11c18
+order 2: play=1 pos=4096 playing=1 097b50d1033c93bf
+order 0: play=1 pos=4096 playing=1 6abd8246a0a767f6
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 cc5fe2b5d0057cf3
+order -5: play=1 pos=4096 playing=1 e888fd2e01265b1a
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a85b2d4dc8f9dc1d
+modseek 0: seek=1 pos=0 playing=1 d96e7a3112f3e47b
 modseek 2205: seek=1 pos=2205 playing=1 376f56788006046e
 modseek 70176: seek=1 pos=70176 playing=1 376f56788006046e
 modseek 139352: seek=1 pos=139352 playing=1 ee5294ae2320e5c8
@@ -3948,12 +3948,12 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=116207 play=1 pos=12288 replay=1 seek=1 pos=38735 playing=1 f58dd590ebfca785
 mixpre: dur=116196 play=1 pos=12288 replay=1 seek=1 pos=38732 playing=1 1663764206afb930
-order 1: play=1 pos=4096 playing=1 f19753306a73f1a3
-order 2: play=1 pos=4096 playing=1 ffc5812cb59e7a1e
-order 0: play=1 pos=4096 playing=1 f781d9dfc9997dc0
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 9a447e45d30fb0f0
-order -5: play=1 pos=4096 playing=1 b48e9fbd52dd1d8f
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 cce62a4347ed5e28
+order 1: play=1 pos=4096 playing=1 c545597989d7c59d
+order 2: play=1 pos=4096 playing=1 c2da45f591d1f214
+order 0: play=1 pos=4096 playing=1 04846f4225f8b3e6
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f49ff51bc6e4dd49
+order -5: play=1 pos=4096 playing=1 edfc74cd294e9377
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 2116f204b09f5f27
 modseek 0: seek=1 pos=0 playing=1 74e033ce1da3add6
 modseek 2205: seek=1 pos=2205 playing=1 748c5379dac54964
 modseek 58103: seek=1 pos=58103 playing=1 31f3868225b5b874
@@ -4010,13 +4010,13 @@ corrupt 5: XMP 0x8010 2 48000 copyright="MED4 comment" frames=228480 xmp.type="M
 corrupt 5 mix: dur=228480 play=1 pos=12288 replay=1 seek=1 pos=76160 playing=1 62f1b8a2e8ca1575
 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 5b5851c8c7f0ee88
 mixpre: dur=73390 play=1 pos=12288 replay=1 seek=1 pos=24463 playing=1 2db5ea045206759f
-order 1: play=1 pos=4096 playing=1 9391be4f366771f8
-order 2: play=1 pos=4096 playing=1 58686e46c9aa4e31
-order 0: play=1 pos=4096 playing=1 fb02b3575df46476
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 e7d873faa6040f63
-order -5: play=1 pos=4096 playing=1 7c41b82d7f86b4d2
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a36d72a1a47eec5e
-modseek 0: seek=1 pos=0 playing=1 76ee340a8042fd39
+order 1: play=1 pos=4096 playing=1 e3f16065a50003be
+order 2: play=1 pos=4096 playing=1 c4df8c15e5834ffd
+order 0: play=1 pos=4096 playing=1 9d76e7270f8cd1fb
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 fa35916f0a0a0e1a
+order -5: play=1 pos=4096 playing=1 abc5e80cbb4f9b8b
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f1b6a020d04a0f7c
+modseek 0: seek=1 pos=0 playing=1 820a039547d866b2
 modseek 2205: seek=1 pos=2205 playing=1 0d4e07e83f8f505f
 modseek 36696: seek=1 pos=36696 playing=1 0286b2fdba00b299
 modseek 72392: seek=1 pos=72392 playing=1 1ed90493e19fe0e2
@@ -4072,15 +4072,15 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=278400 play=1 pos=12288 replay=1 seek=1 pos=92800 playing=1 9cc7316bca7c91ca
 mixpre: dur=278400 play=1 pos=12288 replay=1 seek=1 pos=92800 playing=1 3ac5e544cd96c5f8
-order 1: play=1 pos=4096 playing=1 43259b974add1c65
-order 2: play=1 pos=4096 playing=1 9d7b135e68a36812
+order 1: play=1 pos=4096 playing=1 66c6f81fac9ef225
+order 2: play=1 pos=4096 playing=1 5440eef063529cf6
 order 0: play=1 pos=4096 playing=1 1e12cf61682453e4
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 8a3c0205c5ce9615
 order -5: play=1 pos=4096 playing=1 ffbb4318cfe43327
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 7e498e49dca78119
 modseek 0: seek=1 pos=0 playing=1 002cf383671f2725
 modseek 2205: seek=1 pos=2205 playing=1 a6a0797a4f995049
-modseek 139200: seek=1 pos=139200 playing=1 207931a3d16d27c8
+modseek 139200: seek=1 pos=139200 playing=1 d738cd12001fa676
 modseek 277400: seek=1 pos=277400 playing=1 301c7d91bf41bdf7
 modseek 283400: seek=1 pos=283400 playing=1 a6a0797a4f995049
 modseek 100: seek=1 pos=100 playing=1 a6a0797a4f995049
@@ -4135,13 +4135,13 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 a4f37a829b1ded04
 mixpre: dur=28117 play=1 pos=12288 replay=1 seek=1 pos=9372 playing=1 8427df6fb9045d80
-order 1: play=1 pos=4096 playing=1 610da1bae690f88e
-order 2: play=1 pos=4096 playing=1 d0d5989298b5b86c
-order 0: play=1 pos=4096 playing=1 08dbcd8e4bc9628b
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 6d6c2cda313b047d
-order -5: play=1 pos=4096 playing=1 07ec1871c40d556f
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 728f246df6b4a081
-modseek 0: seek=1 pos=0 playing=1 27654d7f8989b96f
+order 1: play=1 pos=4096 playing=1 6986ce253a9f1e4e
+order 2: play=1 pos=4096 playing=1 17b7a7ee1f60f097
+order 0: play=1 pos=4096 playing=1 5e6f0602893dbd43
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d904c958ab6ef22c
+order -5: play=1 pos=4096 playing=1 f03133816f8f3287
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 87e7c406ee2159c9
+modseek 0: seek=1 pos=0 playing=1 ea0198456293ed37
 modseek 2205: seek=1 pos=2205 playing=1 8c7d8adca1e930eb
 modseek 14064: seek=1 pos=14064 playing=1 8c7d8adca1e930eb
 modseek 27128: seek=1 pos=27128 playing=1 17eaa2d897b08215
@@ -4198,12 +4198,12 @@ corrupt 5: XMP 0x8010 2 48000 title="mmd1 test" frames=173040 xmp.name="mmd1 tes
 corrupt 5 mix: dur=173040 play=1 pos=12288 replay=1 seek=1 pos=57680 playing=1 844ed62fbeacb94a
 mix: dur=173040 play=1 pos=12288 replay=1 seek=1 pos=57680 playing=1 a3502111e734f9cf
 mixpre: dur=173022 play=1 pos=12288 replay=1 seek=1 pos=57674 playing=1 adc53407346d583b
-order 1: play=1 pos=4096 playing=1 05aff3960f2be02d
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 9d7cccbce59676f7
-order 0: play=1 pos=4096 playing=1 1e030778836226f5
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 449c58cb63d5d114
-order -5: play=1 pos=4096 playing=1 4cdd3475ee4dff2d
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ff330923fc53cf4d
+order 1: play=1 pos=4096 playing=1 b8295b4b9e5b4df0
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1ead2403cdd85a1d
+order 0: play=1 pos=4096 playing=1 5346318c08baf3bc
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 4695f2fb8dee6d50
+order -5: play=1 pos=4096 playing=1 a33f1d15f6f7d543
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 16dca38432d707a7
 modseek 0: seek=1 pos=0 playing=1 1e59b5190c66f579
 modseek 2205: seek=1 pos=2205 playing=1 1e59b5190c66f579
 modseek 86520: seek=1 pos=86520 playing=1 d97bf6bf906d2e53
@@ -4261,8 +4261,8 @@ corrupt 5: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157
 corrupt 5 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 cdda289667120d26
 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 eedae3561fb365be
 mixpre: dur=157560 play=1 pos=12288 replay=1 seek=1 pos=52520 playing=1 75364db5775539d5
-order 1: play=1 pos=4096 playing=1 57aa6544fe17592c
-order 2: play=1 pos=4096 playing=1 d349fc0f9a45dc23
+order 1: play=1 pos=4096 playing=1 46165fdc22fab832
+order 2: play=1 pos=4096 playing=1 c629e854751b76ff
 order 0: play=1 pos=4096 playing=1 3f8bac6dfc1ea9cf
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 663a7e393a2ee367
 order -5: play=1 pos=4096 playing=1 e57db539d220b1de
@@ -4324,8 +4324,8 @@ corrupt 5: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157
 corrupt 5 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 05ad7783bedd938a
 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 61a131180bc3ab72
 mixpre: dur=157560 play=1 pos=12288 replay=1 seek=1 pos=52520 playing=1 a16bfabf5dc213b8
-order 1: play=1 pos=4096 playing=1 ce96af838d21d86e
-order 2: play=1 pos=4096 playing=1 cd4a0b5fc476438a
+order 1: play=1 pos=4096 playing=1 9bd4a108bfdda4e6
+order 2: play=1 pos=4096 playing=1 a288af59742420a1
 order 0: play=1 pos=4096 playing=1 ec65d2ef024c7bd8
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f29a6003c6bb919c
 order -5: play=1 pos=4096 playing=1 736b3679b6566d5c
@@ -4704,13 +4704,13 @@ corrupt 5: XMP 0x8010 2 48000 title="Protracker test" frames=141120 xmp.name="Pr
 corrupt 5 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 5a179fa893357bba
 mix: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 7ac64f1961a93e20
 mixpre: dur=141120 play=1 pos=12288 replay=1 seek=1 pos=47040 playing=1 d6cb363eef42ab5e
-order 1: play=1 pos=4096 playing=1 52fa7efc9cefcf47
-order 2: play=1 pos=4096 playing=1 79e1afcc8c46406c
-order 0: play=1 pos=4096 playing=1 9491b1a5a61aa2da
+order 1: play=1 pos=4096 playing=1 276f4bf379ef9367
+order 2: play=1 pos=4096 playing=1 cb042b333b902a22
+order 0: play=1 pos=4096 playing=1 217dbe7c8ab72c7c
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 0eb4c43aa8e951fb
 order -5: play=1 pos=4096 playing=1 172f4145296bd9d8
-order 3: play=1 pos=4096 playing=1 b3a5066836f0fd74
-modseek 0: seek=1 pos=0 playing=1 af102c5e16d41ed4
+order 3: play=1 pos=4096 playing=1 d279b05cbeeaaf07
+modseek 0: seek=1 pos=0 playing=1 ee37ceb5172633ed
 modseek 2205: seek=1 pos=2205 playing=1 39b42ff7da65dcf2
 modseek 70560: seek=1 pos=70560 playing=1 318a72c3fa2dad12
 modseek 140120: seek=1 pos=140120 playing=1 42b50f885df238bd
@@ -6351,8 +6351,8 @@ second line
 corrupt 5 mix: dur=23424 play=1 pos=12288 replay=1 seek=1 pos=7808 playing=1 54156af4b00a6ca2
 mix: dur=89040 play=1 pos=12288 replay=1 seek=1 pos=29680 playing=1 20255e8223748ece
 mixpre: dur=89015 play=1 pos=12288 replay=1 seek=1 pos=29671 playing=1 4840100bf2573044
-order 1: play=1 pos=4096 playing=1 b13019d285d4f67c
-order 2: play=1 pos=4096 playing=1 5d5eae5322fce5e0
+order 1: play=1 pos=4096 playing=1 38832801f628a0a3
+order 2: play=1 pos=4096 playing=1 4438a5e385824909
 order 0: play=1 pos=4096 playing=1 cc177fdd4cf3e80f
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 80ee83c59257b9c9
 order -5: play=1 pos=4096 playing=1 c9f9f0016827698d
@@ -6412,8 +6412,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 bde5b1388cd189df
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 31a830d309a6ef76
-order 1: play=1 pos=4096 playing=1 3f0210dbb97cefca
-order 2: play=1 pos=4096 playing=1 c55ae052c00feeb6
+order 1: play=1 pos=4096 playing=1 f47d2614b7a1afd8
+order 2: play=1 pos=4096 playing=1 f7b959e0304a6780
 order 0: play=1 pos=4096 playing=1 4117ad0c7fa1e4d5
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c4621736dff6d70b
 order -5: play=1 pos=4096 playing=1 8e9c94f146312689
@@ -6476,8 +6476,8 @@ corrupt 5: XMP 0x8010 2 48000 title="no test" frames=165120 xmp.name="no test" x
 corrupt 5 mix: dur=165120 play=1 pos=12288 replay=1 seek=1 pos=55040 playing=1 eaad0b718145630b
 mix: dur=165120 play=1 pos=12288 replay=1 seek=1 pos=55040 playing=1 eaad0b718145630b
 mixpre: dur=165120 play=1 pos=12288 replay=1 seek=1 pos=55040 playing=1 551f0b66683fd883
-order 1: play=1 pos=4096 playing=1 929e42b9016b8bc8
-order 2: play=1 pos=4096 playing=1 71f9221f33f062ad
+order 1: play=1 pos=4096 playing=1 a189a17963956871
+order 2: play=1 pos=4096 playing=1 45a1b9e5fcb10dda
 order 0: play=1 pos=4096 playing=1 cb366d1846d7d000
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 7a75305fc290ccdb
 order -5: play=1 pos=4096 playing=1 e89f0f9e4ccbea7e
@@ -8150,8 +8150,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=192000 play=1 pos=12288 replay=1 seek=1 pos=64000 playing=1 2fd4c80b622c4232
 mixpre: dur=192000 play=1 pos=12288 replay=1 seek=1 pos=64000 playing=1 40f76e6d79d5515c
-order 1: play=1 pos=4096 playing=1 7c5bec1f3d49d863
-order 2: play=1 pos=4096 playing=1 cd32e5593c753010
+order 1: play=1 pos=4096 playing=1 dbaa155b1bab48c5
+order 2: play=1 pos=4096 playing=1 7a30bb07b740c141
 order 0: play=1 pos=4096 playing=1 1c0f350fda98b7d3
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 b6cd04d7fd99dfc2
 order -5: play=1 pos=4096 playing=1 06b3813602afa8bd
@@ -9755,9 +9755,9 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=107520 play=1 pos=12288 replay=1 seek=1 pos=35840 playing=1 3b63df94b5df476b
 mixpre: dur=107520 play=1 pos=12288 replay=1 seek=1 pos=35840 playing=1 e27d81adeed2b206
-order 1: play=1 pos=4096 playing=1 5bb88791cdbe0d89
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 7ee10fd5b67e59ed
-order 0: play=1 pos=4096 playing=1 7b648c0731379788
+order 1: play=1 pos=4096 playing=1 e14f99de482a8427
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 96bc7f9a33f763a6
+order 0: play=1 pos=4096 playing=1 e9da618cda389c5c
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 eb66b67cf76afefd
 order -5: play=1 pos=4096 playing=1 f261022923479357
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 976dd0c79b3f5f83
@@ -9818,9 +9818,9 @@ corrupt 5: XMP 0x8010 2 48000 title="ptm test" frames=206400 xmp.name="ptm test"
 corrupt 5 mix: dur=206400 play=1 pos=12288 replay=1 seek=1 pos=68800 playing=1 0331f5131fc9f3aa
 mix: dur=206400 play=1 pos=12288 replay=1 seek=1 pos=68800 playing=1 1a45072394df6c94
 mixpre: dur=206400 play=1 pos=12288 replay=1 seek=1 pos=68800 playing=1 bb6664c1e295b056
-order 1: play=1 pos=4096 playing=1 7b80061e7665e90e
-order 2: play=1 pos=4096 playing=1 92dbe54c6628d7d0
-order 0: play=1 pos=4096 playing=1 08ef384a6ba71217
+order 1: play=1 pos=4096 playing=1 2b1b6c33882a04a2
+order 2: play=1 pos=4096 playing=1 89ef2a4b7913e901
+order 0: play=1 pos=4096 playing=1 affb1b1791de2b14
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 549c55c60603fe3c
 order -5: play=1 pos=4096 playing=1 7c4a65859c40b0a1
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 c77ad47ec9d87d3c
@@ -9919,9 +9919,9 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=162240 play=1 pos=12288 replay=1 seek=1 pos=54080 playing=1 32ef8af5f09d5cee
 mixpre: dur=162240 play=1 pos=12288 replay=1 seek=1 pos=54080 playing=1 2ae6b50339c61c53
-order 1: play=1 pos=4096 playing=1 df7743acb101d7b5
-order 2: play=1 pos=4096 playing=1 4d8f5d31adc6d41f
-order 0: play=1 pos=4096 playing=1 d87ff97be1f4625a
+order 1: play=1 pos=4096 playing=1 eee3822c1d659373
+order 2: play=1 pos=4096 playing=1 a9eb3b4a4fcb7aea
+order 0: play=1 pos=4096 playing=1 533e4f2a9d371165
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 fa6815bef155a320
 order -5: play=1 pos=4096 playing=1 013824760e0ad1fd
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 91d5855c7a6143ea
@@ -10108,12 +10108,12 @@ corrupt 5: XMP 0x8010 2 48000 title="ST3 test" frames=105600 xmp.name="ST3 test"
 corrupt 5 mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 26687d601cd08bcb
 mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 3be5bb13784a2e7d
 mixpre: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 5763e0ec333532cb
-order 1: play=1 pos=4096 playing=1 3b35fe9c6dbec89d
-order 2: play=1 pos=4096 playing=1 be62bd2ef2202792
-order 0: play=1 pos=4096 playing=1 6405906e68915013
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5e2e40901a7ba500
-order -5: play=1 pos=4096 playing=1 da5c4c6ce7983c9e
-order 3: play=1 pos=4096 playing=1 3db860292f9613c1
+order 1: play=1 pos=4096 playing=1 b28e13d9e73442d2
+order 2: play=1 pos=4096 playing=1 9e7862e60ee67ed8
+order 0: play=1 pos=4096 playing=1 7f3441e45f7cd2c5
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 83cc2bdc0d9aaef7
+order -5: play=1 pos=4096 playing=1 dc73a46138443afc
+order 3: play=1 pos=4096 playing=1 90ef37c3b3c9b971
 modseek 0: seek=1 pos=0 playing=1 4bc20926b0fad70d
 modseek 2205: seek=1 pos=2205 playing=1 cfa8dda078d673ef
 modseek 52800: seek=1 pos=52800 playing=1 cfa8dda078d673ef
@@ -10295,9 +10295,9 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=144000 play=1 pos=12288 replay=1 seek=1 pos=48000 playing=1 03f65631711df0d8
 mixpre: dur=144000 play=1 pos=12288 replay=1 seek=1 pos=48000 playing=1 74848077b5f9a807
-order 1: play=1 pos=4096 playing=1 163e137f750686f7
-order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 4d6cf1307b9aa692
-order 0: play=1 pos=4096 playing=1 74692394d00b2de6
+order 1: play=1 pos=4096 playing=1 b9295cad1f601a64
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3e83ec5164b29e97
+order 0: play=1 pos=4096 playing=1 4b0602f80546e2b1
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 531a484e35e61ae1
 order -5: play=1 pos=4096 playing=1 559c211050d310f3
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a95d52c6d1ea7685
@@ -10357,8 +10357,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 456225007d7e11b6
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 acb66c3895224994
-order 1: play=1 pos=4096 playing=1 19174c06e38bbe28
-order 2: play=1 pos=4096 playing=1 3e2a347f9a1621bb
+order 1: play=1 pos=4096 playing=1 74756271cfa359a7
+order 2: play=1 pos=4096 playing=1 5ca328c3b2ed6de9
 order 0: play=1 pos=4096 playing=1 6b519ad296fe8bf1
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5db599bded8dff33
 order -5: play=1 pos=4096 playing=1 00167dc3e5b356ad
@@ -10420,8 +10420,8 @@ corrupt 5: XMP 0x8010 2 48000 title="stm test" frames=48000 xmp.name="stm test" 
 corrupt 5 mix: dur=48000 play=1 pos=12288 replay=1 seek=1 pos=16000 playing=1 3230b75bddc7b416
 mix: dur=48000 play=1 pos=12288 replay=1 seek=1 pos=16000 playing=1 7b5df423b73e23f4
 mixpre: dur=48000 play=1 pos=12288 replay=1 seek=1 pos=16000 playing=1 2e71f081371e7e48
-order 1: play=1 pos=4096 playing=1 3a12959a84f7e22c
-order 2: play=1 pos=4096 playing=1 ddf9ba58249f9bbd
+order 1: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 2: play=1 pos=4096 playing=1 32632bdc39d57a87
 order 0: play=1 pos=4096 playing=1 4d395f715081bcd3
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 254b0d9e8cf24a46
 order -5: play=1 pos=4096 playing=1 28bcfaab48874510
@@ -10481,8 +10481,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 713b2c217af75a5d
 mixpre: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 8c4785445f0dba07
-order 1: play=1 pos=4096 playing=1 b8d45c802b81d445
-order 2: play=1 pos=4096 playing=1 76b74de723f3850d
+order 1: play=1 pos=4096 playing=1 aab6a22abe91d08d
+order 2: play=1 pos=4096 playing=1 94f683c85dbb1cb7
 order 0: play=1 pos=4096 playing=1 40a2e5691ab2ee1e
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d04722c034ce202a
 order -5: play=1 pos=4096 playing=1 b5b9df5e6d9aebd8
@@ -10543,8 +10543,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=241920 play=1 pos=12288 replay=1 seek=1 pos=80640 playing=1 df2abefea9d9f5ad
 mixpre: dur=241920 play=1 pos=12288 replay=1 seek=1 pos=80640 playing=1 aeafc8df059a931d
-order 1: play=1 pos=4096 playing=1 b87838835bfebdad
-order 2: play=1 pos=4096 playing=1 32d2f3b51e1e6e29
+order 1: play=1 pos=4096 playing=1 413214736540b1b3
+order 2: play=1 pos=4096 playing=1 cdd87fd7dd84e03f
 order 0: play=1 pos=4096 playing=1 3183d7c7b7aeaadb
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 008fff4a238011c5
 order -5: play=1 pos=4096 playing=1 1f450404a7bffc00
@@ -10605,13 +10605,13 @@ corrupt 5: XMP 0x8010 2 48000 title="ult test" copyright="ULT comment" frames=14
 corrupt 5 mix: dur=14400 play=1 pos=12288 replay=1 seek=1 pos=4800 playing=1 7bc68fbc964751b4
 mix: dur=103920 play=1 pos=12288 replay=1 seek=1 pos=34640 playing=1 0816ea341c20d062
 mixpre: dur=103938 play=1 pos=12288 replay=1 seek=1 pos=34646 playing=1 b6dcdb651c451095
-order 1: play=1 pos=4096 playing=1 53de95e162a04262
-order 2: play=1 pos=4096 playing=1 56a9824c3b9c564c
-order 0: play=1 pos=4096 playing=1 62050b0ea4478106
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ab939dce621912c5
-order -5: play=1 pos=4096 playing=1 9dce3368dc51d984
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a3cabba3dbb28be4
-modseek 0: seek=1 pos=0 playing=1 418b0b9b0b0a9a85
+order 1: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 2: play=1 pos=4096 playing=1 0672f79a55cc37ba
+order 0: play=1 pos=4096 playing=1 32fb993505d6ea7a
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3b5c6adfa26867ee
+order -5: play=1 pos=4096 playing=1 5b101b85e95ea16b
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 290f441ae1bb1d08
+modseek 0: seek=1 pos=0 playing=1 904deea718fdabc3
 modseek 2205: seek=1 pos=2205 playing=1 e6aee49c7d5ec75f
 modseek 51960: seek=1 pos=51960 playing=1 4e21234dd1ee8853
 modseek 102920: seek=1 pos=102920 playing=1 f4e63bbfec169dce
@@ -10668,12 +10668,12 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 3be5bb13784a2e7d
 mixpre: dur=105600 play=1 pos=12288 replay=1 seek=1 pos=35200 playing=1 5763e0ec333532cb
-order 1: play=1 pos=4096 playing=1 3b35fe9c6dbec89d
-order 2: play=1 pos=4096 playing=1 be62bd2ef2202792
-order 0: play=1 pos=4096 playing=1 6405906e68915013
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5e2e40901a7ba500
-order -5: play=1 pos=4096 playing=1 da5c4c6ce7983c9e
-order 3: play=1 pos=4096 playing=1 3db860292f9613c1
+order 1: play=1 pos=4096 playing=1 b28e13d9e73442d2
+order 2: play=1 pos=4096 playing=1 9e7862e60ee67ed8
+order 0: play=1 pos=4096 playing=1 7f3441e45f7cd2c5
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 83cc2bdc0d9aaef7
+order -5: play=1 pos=4096 playing=1 dc73a46138443afc
+order 3: play=1 pos=4096 playing=1 90ef37c3b3c9b971
 modseek 0: seek=1 pos=0 playing=1 4bc20926b0fad70d
 modseek 2205: seek=1 pos=2205 playing=1 cfa8dda078d673ef
 modseek 52800: seek=1 pos=52800 playing=1 cfa8dda078d673ef
@@ -17190,8 +17190,8 @@ corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=178272 play=1 pos=12288 replay=1 seek=1 pos=59424 playing=1 f148e17fdebd8219
 mixpre: dur=181684 play=1 pos=12288 replay=1 seek=1 pos=60561 playing=1 e8b31208dcf1633e
 order 1: play=1 pos=4096 playing=1 e3fe6f231915bb03
-order 2: play=1 pos=4096 playing=1 68d77c70ebc64b94
-order 0: play=1 pos=4096 playing=1 1aa2dc11e3458b1e
+order 2: play=1 pos=4096 playing=1 55afdc31590535d7
+order 0: play=1 pos=4096 playing=1 ba6c3f5defb126d8
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 3339a565cb5dcba9
 order -5: play=1 pos=4096 playing=1 b1f9396bb7681b1b
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5907768ee56e2e45
@@ -17378,8 +17378,8 @@ corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 d272a8f92da0f4a9
 mixpre: dur=99840 play=1 pos=12288 replay=1 seek=1 pos=33280 playing=1 e57bea1a466d9813
-order 1: play=1 pos=4096 playing=1 ff9288fbd5903049
-order 2: play=1 pos=4096 playing=1 a24a05c8d46e06cc
+order 1: play=1 pos=4096 playing=1 a938aab8665f238b
+order 2: play=1 pos=4096 playing=1 301f547dc3d41def
 order 0: play=1 pos=4096 playing=1 fdcf5327f05b5dff
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 639e07f1772b9b8f
 order -5: play=1 pos=4096 playing=1 5d74c49059dfeac0

@@ -2446,15 +2446,16 @@ fn play_track(track: &Arc<TrackInner>, options: Option<&Properties>) -> Result<(
         start_order = -1; // ignore this option, it doesn't mean anything on this decoder.
     }
 
+    // Note (upstream): after a successful jump to an order, the chain of
+    // `else if`s there goes on to the seek to `start_pos` (0 unless asked),
+    // which took a module back to that time; the translation seeks only
+    // when there's no order to jump to (the start position is ignored
+    // then, as MIX_PROP_PLAY_START_ORDER_NUMBER's documentation says).
     if start_order >= 0 {
         if let Some(decoder) = st.decoder.as_mut() {
             decoder.jump_to_order(start_order)?;
         }
-    }
-    // FIXME (upstream): after a successful jump to an order, the chain of
-    // `else if`s goes on to the seek to `start_pos` (0 unless asked), which
-    // takes a module back to that time.
-    if st.input_audio.is_some() {
+    } else if st.input_audio.is_some() {
         let st = &mut *st;
         match st.decoder.as_mut() {
             Some(decoder) => {
