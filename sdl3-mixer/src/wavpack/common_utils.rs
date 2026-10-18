@@ -192,7 +192,7 @@ pub(crate) fn free_single_stream(wps: &mut WavpackStream) {
     wps.blockbuff = None;
     wps.block2buff = None;
 
-    // FIXME (upstream): a seek that fails after freeing the streams can
+    // Note (upstream): a seek that fails after freeing the streams can
     // leave stream 0 with a header (the last one it found) that covers the
     // current position, and its old decoder state, so the next
     // WavpackUnpackSamples() carries on decoding without reading a block:

@@ -60,7 +60,7 @@
 //!
 //! Hashes are FNV-1a over the bytes. Upstream's C was patched where
 //! sdl3-mixer works around its crashes and memory errors (the
-//! `FIXME (upstream)` notes), and built to use SDL's bundled math functions,
+//! `Note (upstream)` notes), and built to use SDL's bundled math functions,
 //! as sdl3's are, rather than the C library's (libopus's `exp()`, `log()`
 //! and `cos()` too, and libxmp's math, with its `powf()` as `pow()` on
 //! doubles), and libxmp's random seed (the time) fixed at 0, as it is in

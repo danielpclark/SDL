@@ -197,8 +197,9 @@ fn read_config_file(g: &mut Globals, name: &[u8], rcf_count: i32) -> i32 {
         }
         w.push(w0);
 
-        // FIXME (upstream): a line with nine or more arguments writes its
-        // terminating NULL past the end of w[].
+        // Note (upstream): a line with nine or more arguments writes its
+        // terminating NULL past the end of w[] in C; here the words stop
+        // at MAXWORDS.
         while words < MAXWORDS - 1 {
             /* -1 : next arg */
             while is_delim(tmp[endp]) {
@@ -837,8 +838,9 @@ fn do_song_load(
 
     song.rate = audio.freq;
     if song.rate <= 0 {
-        // FIXME (upstream): a rate of 0 divides by zero (and a negative
-        // one reads outside the samples).
+        // Note (upstream): a rate of 0 divides by zero in C (and a
+        // negative one reads outside the samples); here they're an
+        // invalid-parameter error.
         return Err(Some(Error::invalid_param("audio->freq")));
     }
     song.encoding = 0;
@@ -869,7 +871,7 @@ fn do_song_load(
     };
 
     song.buffer_size = samples;
-    // FIXME (upstream): rs_plain() can write one sample past the resample
+    // Note (upstream): rs_plain() can write one sample past the resample
     // buffer; it has room for it here.
     song.resample_buffer = alloc(samples as i64 + 1).ok_or(None)?;
     song.common_buffer = alloc(samples as i64 * 2).ok_or(None)?;

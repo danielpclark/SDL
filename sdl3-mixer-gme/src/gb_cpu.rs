@@ -174,7 +174,7 @@ impl GbCpu {
     }
 }
 
-/// The code map entry for an address. FIXME (upstream): the program
+/// The code map entry for an address. Note (upstream): the program
 /// counter isn't kept to 16 bits while running (only when the CPU stops),
 /// so code running on past 0xFFFF (through the unmapped page after it) goes
 /// on to index past the code map; this maps the addresses past it to that

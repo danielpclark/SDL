@@ -228,7 +228,7 @@ struct DelayLine {
 }
 
 impl DelayLine {
-    /// `dl->line[i]` (FIXME (upstream): nothing but the parameter ranges
+    /// `dl->line[i]` (Note (upstream): nothing but the parameter ranges
     /// keeps the positions inside the line; outside, this reads 0).
     #[inline]
     fn at(&self, i: i32) -> FluidReal {
@@ -834,7 +834,7 @@ impl FluidRevmodel {
             return None;
         }
 
-        // FIXME (upstream): only the late reverb is cleared; the parameters
+        // Note (upstream): only the late reverb is cleared; the parameters
         // stay uninitialized until fluid_revmodel_set(), whose event the
         // synth only dispatches after its first API call, so the first
         // blocks a synth renders read them uninitialized. Here they are 0.

@@ -728,7 +728,7 @@ pub(crate) fn libxmp_get_sequence(ctx: &ContextData, ord: i32) -> i32 {
     if ord < 0 || ord > ctx.m.mod_.len {
         return NO_SEQUENCE;
     }
-    // FIXME (upstream): `ord == len` reads one past the orders, which for
+    // Note (upstream): `ord == len` reads one past the orders, which for
     // a 256-order module is past the array (into `smix_vol`): here, as if
     // that order had no sequence.
     p.sequence_control

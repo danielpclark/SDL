@@ -67,7 +67,7 @@ const ST_C: u8 = 0x01;
 
 #[derive(Clone, Debug)]
 pub struct NesCpu {
-    /// 2KB of RAM at address 0. FIXME (upstream): an instruction at the end
+    /// 2KB of RAM at address 0. Note (upstream): an instruction at the end
     /// of it has its operand read past it (upstream reads the fields after
     /// it); the eight bytes after it are kept zero here, and upstream's
     /// build for the tests has the same padding.

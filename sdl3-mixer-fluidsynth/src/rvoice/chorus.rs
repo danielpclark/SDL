@@ -354,7 +354,7 @@ fn get_mod_triang(mod_: &mut TriangModulator) -> FluidReal {
 }
 
 impl FluidChorus {
-    /// `chorus->line[i]` (FIXME (upstream): nothing but the parameter
+    /// `chorus->line[i]` (Note (upstream): nothing but the parameter
     /// ranges keeps the read position inside the line; outside, this reads
     /// 0).
     #[inline]

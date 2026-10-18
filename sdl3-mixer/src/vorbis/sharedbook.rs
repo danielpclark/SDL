@@ -160,7 +160,7 @@ that's portable and totally safe against roundoff, but I haven't
 thought of it.  Therefore, we opt on the side of caution */
 /// Translation of `_book_maptype1_quantvals()`.
 ///
-/// FIXME (upstream): with a `dim` of 0, the search never ends (no `vals`
+/// Note (upstream): with a `dim` of 0, the search never ends (no `vals`
 /// passes `acc1>b->entries` when the loop over the dimensions is empty),
 /// so libvorbis hangs setting up a value mapping 1 book of no dimensions
 /// (`vorbis_staticbook_unpack()` guards its own call, but not

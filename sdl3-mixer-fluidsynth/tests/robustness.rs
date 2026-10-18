@@ -22,7 +22,7 @@
 //! Corrupt SoundFonts and MIDI files must load or fail, and play, without
 //! panicking (where upstream's C would read or write out of bounds or
 //! spin, the translation does something defined; see the
-//! `FIXME (upstream)` notes). The same kinds of corruption, many more of
+//! `Note (upstream)` notes). The same kinds of corruption, many more of
 //! them, rendered bit for bit as upstream's C renders them when it was
 //! checked.
 

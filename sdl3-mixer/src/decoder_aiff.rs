@@ -98,7 +98,7 @@ impl AiffTrackData<'_> {
         if length % framesize != 0 {
             length -= length % framesize;
         }
-        // FIXME (upstream): this writes through a pointer to the last float
+        // Note (upstream): this writes through a pointer to the last float
         // (`&buffer[(length - 1) * 4]`) indexed by `i` again, which writes
         // past the buffer; it's meant to be the buffer itself, as here (the
         // C reference harness is patched the same way).
@@ -470,9 +470,9 @@ fn aiff_init_audio_internal(
         return Err(Error::new("AIFF: unsupported data format"));
     }
 
-    // FIXME (upstream): zero channels (also 256, as the count is stored in
+    // Note (upstream): zero channels (also 256, as the count is stored in
     // a byte) make a zero frame size, which upstream divides by (and
-    // crashes) later.
+    // crashes) later; here they're an error.
     if channels as u8 == 0 {
         return Err(Error::new("AIFF: Invalid number of channels"));
     }

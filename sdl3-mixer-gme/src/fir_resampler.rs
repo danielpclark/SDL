@@ -358,7 +358,7 @@ impl FirResampler {
 
         self.imp_phase = self.res - remain;
 
-        // FIXME (upstream): at a ratio of 24 or more, a step can go past the
+        // Note (upstream): at a ratio of 24 or more, a step can go past the
         // end of the input, leaving a negative count of samples; this
         // leaves none, and upstream's build for the tests is patched the
         // same.

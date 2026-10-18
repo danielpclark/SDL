@@ -6,7 +6,7 @@
 //! `testdata/reference.txt` is the output of a C++ program linked with the
 //! libgme that SDL_mixer vendors, built as SDL_mixer's CMake builds it
 //! (patched where the translation works around its out-of-bounds reads and
-//! uninitialized memory: the `FIXME (upstream)` notes; and with its math
+//! uninitialized memory: the `Note (upstream)` notes; and with its math
 //! routed through SDL's bundled fdlibm, as sdl3's is), which this repeats
 //! on the translation and compares line by line. For each file in
 //! `testdata/` (made by `tools/gen_gme_testdata.py`) it records the

@@ -417,9 +417,9 @@ impl FluidSynthInner {
     /// `fluid_preset_noteon(channel->preset, synth, chan, key, vel)`.
     fn fluid_preset_noteon(&mut self, chan: i32, key: i32, vel: i32) -> i32 {
         let Some(preset) = self.channel[chan as usize].preset.clone() else {
-            // FIXME (upstream): reached without a preset (through breath
-            // sync mode, which only the API can set), this dereferences
-            // NULL.
+            // Note (upstream): reached without a preset (through breath
+            // sync mode, which only the API can set), C dereferences NULL;
+            // here it fails.
             return FLUID_FAILED;
         };
         self.fluid_defpreset_noteon(&preset.data, chan, key, vel)

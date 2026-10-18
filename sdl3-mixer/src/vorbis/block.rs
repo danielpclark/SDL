@@ -86,7 +86,7 @@ The init is here because some of it is shared */
 
 /// Translation of `_vds_shared_init()` for decoding (`encp` is 0).
 ///
-/// FIXME (upstream): when a codebook fails to set up, the static books are
+/// Note (upstream): when a codebook fails to set up, the static books are
 /// freed but the half set-up `fullbooks` stay in the `codec_setup_info`,
 /// so the next `vorbis_synthesis_init()` (vorbisfile tries again on the
 /// next read or seek) skips the book setup and decodes with the zeroed

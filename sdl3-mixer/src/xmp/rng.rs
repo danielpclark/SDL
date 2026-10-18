@@ -10,7 +10,8 @@ use super::common::RngState;
 
 /// Translation of `libxmp_random_step_xorshift32()`.
 // FIXME (upstream): the final xorshift32 step is `state << 5` instead of
-// `state ^= state << 5`, which makes this a much poorer generator.
+// `state ^= state << 5`, which makes this a much poorer generator
+// (danielpclark/SDL#141).
 fn libxmp_random_step_xorshift32(mut state: u32) -> u32 {
     if state == 0 {
         state = 1;

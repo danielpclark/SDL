@@ -132,8 +132,9 @@ fn mgt_load(m: &mut ModuleData, f: &mut HioHandle<'_>, start: i32) -> i32 {
             return -1;
         }
 
-        // FIXME (upstream): a name of 32 bytes fills the name without its
-        // terminator.
+        // Note (upstream): a name of 32 bytes fills the name without its
+        // terminator, which C's string functions then read past; here it
+        // is read within the name's array.
         hio_read(&mut mod_.xxi[iu].name, 1, 32, f);
         sdata[iu] = hio_read32b(f) as i32;
         let xxs = &mut mod_.xxs[iu];

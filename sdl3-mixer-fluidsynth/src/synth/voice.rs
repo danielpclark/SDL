@@ -790,7 +790,7 @@ fn fluid_voice_calculate_runtime_synthesis_parameters(
         let mod_ = voice.mod_[i];
         let modval = fluid_mod_get_value(&mod_, voice, channel);
         let dest_gen_index = mod_.dest as usize;
-        // FIXME (upstream): a modulator destination past the generators
+        // Note (upstream): a modulator destination past the generators
         // (from a SoundFont file) writes out of bounds; it is ignored here.
         if let Some(dest_gen) = voice.gen.get_mut(dest_gen_index) {
             dest_gen.mod_ += modval;
@@ -928,8 +928,9 @@ pub(crate) fn fluid_voice_update_param(voice: &mut FluidVoice, env: &mut VoiceEn
     let count: u32;
     let z: u32;
     if gen >= GEN_LAST {
-        // FIXME (upstream): a modulator destination past the generators
-        // (from a SoundFont file) reads out of bounds here.
+        // Note (upstream): a modulator destination past the generators
+        // (from a SoundFont file) reads out of bounds here in C; here it
+        // returns.
         return;
     }
     let mut x: FluidReal = fluid_voice_gen_value(voice, gen);
@@ -1529,9 +1530,9 @@ pub(crate) fn fluid_voice_modulate(
         if ctrl < 0 || fluid_mod_has_source(&mod_, cc, ctrl) {
             let gen = mod_.dest as u32;
 
-            // FIXME (upstream): a modulator destination past the
+            // Note (upstream): a modulator destination past the
             // generators (from a SoundFont file) reads and writes out of
-            // bounds here; it is ignored.
+            // bounds here in C; it is ignored here.
             if gen as usize >= GEN_LAST {
                 continue;
             }

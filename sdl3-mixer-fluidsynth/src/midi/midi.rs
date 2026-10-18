@@ -684,7 +684,7 @@ fn fluid_midi_file_read_track(
 
             let skip = fluid_getlength(&length) as i32;
 
-            // FIXME (upstream): the loop reads no new chunk ID, so it reads
+            // Note (upstream): the loop reads no new chunk ID, so it reads
             // lengths and skips until it fails; a negative skip that stays
             // inside the file can make that loop forever. Fail on it (the
             // loop could only end in failure anyway).
@@ -1674,7 +1674,7 @@ fn fluid_player_callback(
 
         player.cur_msec = msec;
         let deltatime = player.deltatime;
-        // FIXME (upstream): the conversion to int is undefined when the
+        // Note (upstream): the conversion to int is undefined when the
         // ticks are out of its range (a fast tempo and a fine division);
         // this converts as x86-64 does.
         player.cur_ticks = player.start_ticks.wrapping_add(c_double_to_int(

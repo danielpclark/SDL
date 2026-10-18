@@ -325,7 +325,7 @@ fn do_layer1_on(fr: &mut Mpg123Handle<'_>, fraction: &mut [[f32; SBLIMIT]; 2]) -
         single = SINGLE_LEFT;
     }
 
-    // FIXME (upstream): mono flags other than MPG123_MONO_LEFT, _RIGHT or _MIX
+    // Note (upstream): mono flags other than MPG123_MONO_LEFT, _RIGHT or _MIX
     // alone (MPG123_FORCE_MONO, the test mask, say) make single 2, 4, 5 or 6,
     // and upstream reads the fractions of that "channel", past the buffer;
     // this decodes the left channel instead, as layer III does then.

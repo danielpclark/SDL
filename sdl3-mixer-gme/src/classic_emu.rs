@@ -154,7 +154,7 @@ pub fn classic_mute_voices_<E: ClassicEmu + ?Sized>(this: &mut E, mask: i32) {
             this.set_voice(i, None, None, None);
         } else {
             let c = this.classic();
-            // FIXME (upstream): emulators with more voices than voice types
+            // Note (upstream): emulators with more voices than voice types
             // (NSF with several sound chips) read past the end of their
             // table; this gives those voices type 0, as upstream's patched
             // build for the tests does.

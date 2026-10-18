@@ -400,9 +400,10 @@ fn load_instrument(
                 return Err(Fail::Nomem);
             }
             if data_length < 0 {
-                // FIXME (upstream): a length of -4 to -1 allocates 0 to 3
-                // bytes, then reads the rest of the file into them (it
-                // can't read -1 bytes, which fails the read).
+                // Note (upstream): a length of -4 to -1 allocates 0 to 3
+                // bytes, then C reads the rest of the file into them (it
+                // can't read -1 bytes, which fails the read); here any
+                // negative length is a read error.
                 return Err(Fail::Badread);
             }
             let mut bytes: Vec<u8> = Vec::new();

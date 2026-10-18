@@ -270,8 +270,10 @@ fn mmd1_load(m: &mut ModuleData, f: &mut HioHandle<'_>, start: i32) -> i32 {
         expdata.songnamelen = hio_read32b(f);
 
         hio_seek(f, at(start, songname_offset), SEEK_SET);
-        // FIXME (upstream): a song name of XMP_NAME_SIZE or more bytes
-        // fills the name without its terminator.
+        // Note (upstream): a song name of XMP_NAME_SIZE or more bytes
+        // fills the name without its terminator, which C's string
+        // functions then read past; here it is read within the name's
+        // array.
         for i in 0..expdata.songnamelen as usize {
             if i >= XMP_NAME_SIZE {
                 break;

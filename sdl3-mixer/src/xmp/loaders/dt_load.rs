@@ -365,8 +365,9 @@ fn get_d_t_(m: &mut ModuleData, size: u32, f: &mut HioHandle<'_>, data: &mut Loc
     }
 
     name_len = name_len.min(XMP_NAME_SIZE as u32);
-    // FIXME (upstream): a name of XMP_NAME_SIZE bytes fills the name
-    // without its terminator.
+    // Note (upstream): a name of XMP_NAME_SIZE bytes fills the name
+    // without its terminator, which C's string functions then read past;
+    // here it is read within the name's array.
     hio_read(&mut mod_.name, name_len as usize, 1, f);
     libxmp_set_type(m, b"Digital Tracker DTM");
 

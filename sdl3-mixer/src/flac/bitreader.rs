@@ -615,7 +615,7 @@ impl BitReader {
     /// the buffer consumed, the jump to `process_tail` reads a value
     /// anyway, into `vals[0]` (the next partition's first residual, which
     /// it then overwrites), consuming its bits. That is kept: `vals` may
-    /// go on past `nvals`.
+    /// go on past `nvals` (danielpclark/SDL#142).
     ///
     /// this is by far the most heavily used reader call.  it ain't pretty but it's fast
     pub(crate) fn read_rice_signed_block(

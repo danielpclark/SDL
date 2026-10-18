@@ -182,7 +182,7 @@ impl BlipBuffer {
 
     pub fn clock_rate_factor(&self, rate: u32) -> BlipResampledTime {
         let ratio = self.sample_rate_ as f64 / rate as f64;
-        // FIXME (upstream): a factor past what blip_long holds (a clock
+        // Note (upstream): a factor past what blip_long holds (a clock
         // rate under 1/32768 of the sample rate, as a VGM's PSG clock can
         // be) overflows the conversion; it is held at its most, here and in
         // upstream's build for the tests.
@@ -267,7 +267,7 @@ impl BlipBuffer {
 
             // copy remaining samples to beginning and clear old samples
             let mut remain = self.samples_avail() + BLIP_BUFFER_EXTRA_ as i64;
-            // FIXME (upstream): when a frame ended past the end of the buffer
+            // Note (upstream): when a frame ended past the end of the buffer
             // (a clock so slow that one clock is more samples than it holds),
             // what is left after the removal can be more than the buffer
             // holds past them, and upstream copies past its end; only what it
@@ -739,7 +739,7 @@ impl BlipSynth {
         let quality = self.quality as usize;
         let fwd = (BLIP_WIDEST_IMPULSE_ as usize - quality) / 2;
         let half = quality / 2;
-        // FIXME (upstream): a time past the end of the buffer (which the
+        // Note (upstream): a time past the end of the buffer (which the
         // assertion above catches in debug builds) writes past it; this
         // leaves the buffer alone then.
         let Some(buf) = blip_buf.buffer_.get_mut(base + fwd..base + fwd + quality) else {

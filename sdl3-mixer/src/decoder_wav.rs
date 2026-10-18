@@ -242,8 +242,9 @@ fn ms_adpcm_init(info: &mut AdpcmDecoderInfo, chunk_data: &[u8], chunk_length: u
     let blockheadersize = channels as usize * 7;
     let blockdatasize = (blockalign as usize).wrapping_sub(blockheadersize);
     let blockframebitsize = bitspersample as usize * channels as usize;
-    // FIXME (upstream): this divides by zero (and crashes) for zero
-    // channels or bits per sample, before the checks below reject them.
+    // Note (upstream): C divides by zero (and crashes) here for zero
+    // channels or bits per sample, before the checks below reject them;
+    // here they're rejected first.
     if blockframebitsize == 0 {
         return Err(Error::new("WAV: Invalid MS ADPCM format header"));
     }
@@ -401,8 +402,9 @@ fn ms_adpcm_decode_block_header(
 
         // Load the coefficient pair into the channel state.
         let coeffindex = state.block_data[o] as usize;
-        // FIXME (upstream): this checks `coeffindex > coeffcount`, which
-        // lets an index equal to the count read past the coefficients.
+        // Note (upstream): C checks `coeffindex > coeffcount`, which lets
+        // an index equal to the count read past the coefficients; here
+        // `>=` rejects it.
         if coeffindex >= coeffcount {
             return Err(Error::new(
                 "Invalid MS ADPCM coefficient index in block header",
@@ -504,8 +506,9 @@ fn ima_adpcm_init(info: &mut AdpcmDecoderInfo, chunk_data: &[u8], chunk_length: 
     let blockheadersize = channels as usize * 4;
     let blockdatasize = (blockalign as usize).wrapping_sub(blockheadersize);
     let blockframebitsize = bitspersample as usize * channels as usize;
-    // FIXME (upstream): this divides by zero (and crashes) for zero
-    // channels or bits per sample, before the checks below reject them.
+    // Note (upstream): C divides by zero (and crashes) here for zero
+    // channels or bits per sample, before the checks below reject them;
+    // here they're rejected first.
     if blockframebitsize == 0 {
         return Err(Error::new("WAV: Invalid IMA ADPCM format header"));
     }
@@ -694,7 +697,7 @@ fn ima_adpcm_decode_block_data(
         }
         // Signal the truncation.
         retval = Err(Error::new("Truncated IMA ADPCM block"));
-        // FIXME (upstream): for a block of few samples, the frames counted
+        // Note (upstream): for a block of few samples, the frames counted
         // in a truncated block can be more than the block holds, which
         // writes past the output buffer; they're clamped here (the C
         // reference harness is patched the same way).
@@ -838,9 +841,9 @@ fn parse_fmt(
         adata.channelmask = standard_sdl_wav_channel_mask(fmt.channels as i32);
     }
 
-    // FIXME (upstream): zero channels (also 256, as the count is stored in
+    // Note (upstream): zero channels (also 256, as the count is stored in
     // a byte) make a zero frame size, which upstream divides by (and
-    // crashes) later.
+    // crashes) later; here they're an error.
     if fmt.channels as u8 == 0 {
         return Err(Error::new("WAV: Invalid number of channels"));
     }
@@ -958,7 +961,7 @@ fn parse_smpl(adata: &mut WavAudioData, io: &mut IoStream<'_>, chunk_length: u32
     }
 
     // SamplerChunk: nine Uint32s, then the SampleLoops (six Uint32s each).
-    // FIXME (upstream): the loop count isn't checked against the chunk's
+    // Note (upstream): the loop count isn't checked against the chunk's
     // length, so the loops are read past its end; here the loops (and the
     // count) that aren't in the chunk aren't read.
     let sample_loops = if data.len() >= 32 { le32(&data, 28) } else { 0 };
@@ -1601,7 +1604,7 @@ impl WavTrackData<'_> {
         if length % framesize != 0 {
             length -= length % framesize;
         }
-        // FIXME (upstream): this writes through a pointer to the last float
+        // Note (upstream): this writes through a pointer to the last float
         // (`&buffer[(length - 1) * 4]`) indexed by `i` again, which writes
         // past the buffer; it's meant to be the buffer itself, as here (the
         // C reference harness is patched the same way).
@@ -1758,7 +1761,7 @@ impl TrackData for WavTrackData<'_> {
 
         buflen = (buflen as i64).min(available_bytes as i64) as i32;
         debug_assert!(buflen > 0); // we should have caught this in the seekblock code.
-                                   // FIXME (upstream): a seekblock with a negative length (loops that
+                                   // Note (upstream): a seekblock with a negative length (loops that
                                    // overlap or end past the data) gets here with a negative buffer
                                    // length, which upstream reads into its stack buffer as a huge
                                    // size; that's the end of the data here (and in the patched C

@@ -485,7 +485,8 @@ impl XmpModule {
     /// restart position check), which can be one past the array, into the
     /// module data that follows (a `NULL` pointer when loading from
     /// callbacks): 0 here.
-    // FIXME (upstream): xxo[mod->rst] is read with rst == len == 256.
+    // Note (upstream): xxo[mod->rst] is read with rst == len == 256, one
+    // past the array in C.
     #[inline]
     pub fn xxo(&self, i: i32) -> i32 {
         self.xxo.get(i as usize).map_or(0, |&v| v as i32)

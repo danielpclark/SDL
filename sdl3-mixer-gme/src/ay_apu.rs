@@ -248,7 +248,7 @@ impl AyApu {
                 // convert modes 0-7 to proper equivalents
                 data = if data & 4 != 0 { 15 } else { 9 };
             }
-            // FIXME (upstream): the envelope positions are -48 to -1 from
+            // Note (upstream): the envelope positions are -48 to -1 from
             // `wave`, so they index the row before `modes [(data - 7) & 7]`;
             // for mode 15 that is row 0, and they read the 48 bytes before
             // the table (the fields before it); this uses row 8, so mode 15

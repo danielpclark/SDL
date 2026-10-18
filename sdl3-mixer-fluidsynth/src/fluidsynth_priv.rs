@@ -91,7 +91,7 @@ pub(crate) const FLUID_NUM_MOD: usize = 64;
 /* Math constants */
 /// C's conversion of a `double` to `int` as x86-64 does it (`cvttsd2si`):
 /// truncation toward zero, and `INT_MIN` for NaN or a value out of
-/// range, where C's conversion is undefined (FIXME (upstream) at the
+/// range, where C's conversion is undefined (Note (upstream) at the
 /// places that use this).
 #[inline]
 pub(crate) fn c_double_to_int(x: f64) -> i32 {

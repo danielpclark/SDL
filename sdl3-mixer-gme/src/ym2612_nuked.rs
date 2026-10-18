@@ -1214,7 +1214,7 @@ pub fn opn2_reset(chip: &mut Ym3438, rate: u32, clock: u32) {
         chip.pan_r[i] = 1;
     }
 
-    // FIXME (upstream): a clock rate of 0 divides by zero; it keeps the
+    // Note (upstream): a clock rate of 0 divides by zero; it keeps the
     // ratio then, as a rate of 0 does (which set_rate() refuses), and
     // upstream's build for the tests is patched the same.
     if rate != 0 && clock != 0 {
@@ -1492,7 +1492,7 @@ pub fn opn2_generate_resampled(chip: &mut Ym3438, buf: &mut [i16; 2]) {
         chip.samples[1] = buffer[1] as i32 * 11;
         chip.samplecnt -= chip.rateratio;
     }
-    // FIXME (upstream): the products overflow (int) at ratios past about
+    // Note (upstream): the products overflow (int) at ratios past about
     // 6000 (clock rates under about a megahertz); they're in 64 bits here,
     // and in upstream's build for the tests.
     let (r, c) = (chip.rateratio as i64, chip.samplecnt as i64);
@@ -1570,7 +1570,7 @@ impl Ym2612NukedEmu {
     pub fn new() -> Self {
         opn2_set_chip_type(YM3438_TYPE_ASIC);
         Ym2612NukedEmu {
-            // FIXME (upstream): the chip is left uninitialized until
+            // Note (upstream): the chip is left uninitialized until
             // set_rate(), where OPN2_Reset() reads its ratio first (to keep
             // it when the rate is 0); it starts zeroed here, and in
             // upstream's build for the tests.
@@ -1587,7 +1587,7 @@ impl Ym2612NukedEmu {
         self.prev_sample_rate = sample_rate;
         self.prev_clock_rate = clock_rate;
         opn2_reset(chip_r, sample_rate as u32, clock_rate as u32);
-        // FIXME (upstream): a resampling ratio (from the rates) under 1
+        // Note (upstream): a resampling ratio (from the rates) under 1
         // (none was made, or the rate is too low) divides by zero or never
         // ends, and one past what the sample count holds overflows it; the
         // rates fail then, here and in upstream's build for the tests.

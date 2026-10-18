@@ -51,7 +51,7 @@
 //! (`fluid_player_t`). Every item names the C symbol it translates.
 //! Where corrupt input makes upstream's C read or write out of bounds or
 //! spin forever, the translation does something defined instead; those
-//! places are marked `FIXME (upstream)`.
+//! places are marked `Note (upstream)`.
 //!
 //! Otherwise it renders bit for bit what upstream's C renders, which the
 //! tests check against upstream built with the same math functions as

@@ -147,7 +147,7 @@ fn mix_a500<const STEREOOUT: bool, const TAB: usize>(
     vr <<= 8;
     let mut b = 0usize;
     let paula = vi.paula.as_mut().unwrap();
-    /* FIXME (upstream): the steps between the output samples can reach
+    /* Note (upstream): the steps between the output samples can reach
      * past the end of the sample's data (and its guard bytes), where
      * upstream reads out of bounds; here that reads 0. */
     let smp_at = |pos: u32| {

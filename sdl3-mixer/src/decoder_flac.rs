@@ -178,7 +178,7 @@ impl StreamDecoderClient for FlacProbe<'_, '_> {
             }
             StreamMetadataData::VorbisComment(vc) => {
                 let num_comments = vc.num_comments as i32;
-                // FIXME (upstream): a comment of no bytes has a NULL entry,
+                // Note (upstream): a comment of no bytes has a NULL entry,
                 // which MIX_ParseOggComments() passes to SDL_strdup(), and
                 // crashes; it is an empty comment here (and in the patched
                 // C reference harness).
@@ -280,7 +280,7 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
 
         if t.current_iteration >= 0 {
             debug_assert!(loop_.active);
-            // FIXME (upstream): SDL_assert(current_iteration_frames <= loop->len)
+            // Note (upstream): SDL_assert(current_iteration_frames <= loop->len)
             // here and below fails on damaged files (where a looping seek
             // doesn't land where it asked), so it's left out.
             let available = loop_.len.wrapping_sub(t.current_iteration_frames);
@@ -519,7 +519,7 @@ impl AudioData for FlacAudioData {
         }) {
             decoder.finish();
             decoder.delete();
-            // FIXME (upstream): this sets the error but goes on to return
+            // Note (upstream): this sets the error but goes on to return
             // true with the track data it just freed; it fails here (and
             // in the patched C reference harness).
             return Err(Error::new(

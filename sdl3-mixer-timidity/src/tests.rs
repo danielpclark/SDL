@@ -19,7 +19,7 @@
 //! upstream does; and songs played with a SoundFont.
 //!
 //! Upstream's C was patched where the translation works around its memory
-//! errors (the `FIXME (upstream)` notes: buffers it leaves uninitialized
+//! errors (the `Note (upstream)` notes: buffers it leaves uninitialized
 //! are zeroed, as the translation's are), and built to use SDL's bundled
 //! math functions, as sdl3's are, rather than the C library's. The files
 //! here don't hit the places where the translation does something defined

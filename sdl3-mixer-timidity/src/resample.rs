@@ -18,7 +18,7 @@
 //! they start, sample increments of 0) make upstream read outside the
 //! sample data, divide by zero, spin forever or write past its buffer;
 //! here reads outside the data are 0, and the loops below stop where
-//! upstream would never finish (the `FIXME (upstream)` notes).
+//! upstream would never finish (the `Note (upstream)` notes).
 
 use std::sync::Arc;
 
@@ -41,7 +41,7 @@ pub(crate) enum Resampled {
 #[inline]
 fn precalc_loop_count(start: i32, end: i32, incr: i32) -> i32 {
     if incr == 0 {
-        // FIXME (upstream): a sample increment of 0 (a corrupt patch's
+        // Note (upstream): a sample increment of 0 (a corrupt patch's
         // frequencies) divides by zero. The position never moves: go on
         // as long as asked.
         return i32::MAX;
@@ -180,8 +180,8 @@ fn rs_loop(dest: &mut [SampleT], vp: &mut Voice, mut count: i32) {
 
     while count != 0 {
         if ofs >= le && ll <= 0 {
-            // FIXME (upstream): a loop that ends before it starts never
-            // gets back into it upstream.
+            // Note (upstream): a loop that ends before it starts never
+            // gets back into it upstream (which spins); here it gives up.
             give_up(dest, d, count);
             break;
         }
@@ -190,8 +190,9 @@ fn rs_loop(dest: &mut [SampleT], vp: &mut Voice, mut count: i32) {
         }
         /* Precalc how many times we should go through the loop */
         let mut i = precalc_loop_count(ofs, le, incr);
-        // FIXME (upstream): with a negative increment, this can make no
-        // progress (or grow the count past the buffer) for ever.
+        // Note (upstream): with a negative increment, this can make no
+        // progress (or grow the count past the buffer) for ever upstream;
+        // here the guard gives up.
         if guard.give_up(i, d) {
             give_up(dest, d, count);
             break;
@@ -247,7 +248,7 @@ fn rs_bidir(dest: &mut [SampleT], vp: &mut Voice, mut count: i32) {
     while count != 0 {
         /* Precalc how many times we should go through the loop */
         let mut i = precalc_loop_count(ofs, if incr > 0 { le } else { ls }, incr);
-        // FIXME (upstream): an increment longer than the loop can
+        // Note (upstream): an increment longer than the loop can
         // overshoot it by more than its length, which grows the count, and
         // upstream writes past its buffer (here the extra samples are
         // dropped); and a loop that ends before it starts can make no
@@ -365,7 +366,7 @@ fn update_vibrato(rate: i32, vp: &mut Voice, sign: bool) -> i32 {
 
 /// `bend_coarse[i]`.
 fn bend_coarse(i: i32) -> f64 {
-    // FIXME (upstream): a corrupt patch's sweep can make the depth huge,
+    // Note (upstream): a corrupt patch's sweep can make the depth huge,
     // and the index outside bend_coarse; use 1.
     BEND_COARSE.get(i as usize).copied().unwrap_or(1.0)
 }
@@ -433,7 +434,7 @@ fn rs_vib_loop(rate: i32, dest: &mut [SampleT], vp: &mut Voice, mut count: i32) 
 
     while count != 0 {
         if ofs >= le && ll <= 0 {
-            // FIXME (upstream): see rs_loop().
+            // Note (upstream): see rs_loop().
             give_up(dest, d, count);
             break;
         }
@@ -453,7 +454,7 @@ fn rs_vib_loop(rate: i32, dest: &mut [SampleT], vp: &mut Voice, mut count: i32) 
         } else {
             cc = cc.wrapping_sub(i);
         }
-        // FIXME (upstream): see rs_loop().
+        // Note (upstream): see rs_loop().
         if guard.give_up(i, d) {
             give_up(dest, d, count);
             break;
@@ -503,7 +504,7 @@ fn rs_vib_bidir(rate: i32, dest: &mut [SampleT], vp: &mut Voice, mut count: i32)
         } else {
             cc = cc.wrapping_sub(i);
         }
-        // FIXME (upstream): see rs_bidir().
+        // Note (upstream): see rs_bidir().
         if guard.give_up(i, d) {
             give_up(dest, d, count);
             count = 0;
@@ -534,7 +535,7 @@ fn rs_vib_bidir(rate: i32, dest: &mut [SampleT], vp: &mut Voice, mut count: i32)
         } else {
             cc = cc.wrapping_sub(i);
         }
-        // FIXME (upstream): see rs_bidir().
+        // Note (upstream): see rs_bidir().
         if guard.give_up(i, d) {
             give_up(dest, d, count);
             break;
@@ -641,7 +642,7 @@ pub(crate) fn pre_resample(song: &mut MidiSong, sp: &mut Sample) {
 
     crate::snddbg!(" * pre-resampling for note {}\n", sp.note_to_use);
 
-    // FIXME (upstream): a SoundFont's drum keynote over 127 is negative as
+    // Note (upstream): a SoundFont's drum keynote over 127 is negative as
     // a Sint8, and indexes before freq_table; use its low 7 bits.
     let a = ((sp.root_freq as f64) * song.rate as f64)
         / ((sp.sample_rate as f64) * FREQ_TABLE[(sp.note_to_use as i32 & 0x7F) as usize] as f64);
@@ -654,7 +655,7 @@ pub(crate) fn pre_resample(song: &mut MidiSong, sp: &mut Sample) {
     let newlen = c_f64_to_i32(sp.data_length as f64 * a);
     let mut count = (newlen >> FRACTION_BITS) - 1;
     if count == 0 {
-        // FIXME (upstream): a sample that resamples to one or two samples
+        // Note (upstream): a sample that resamples to one or two samples
         // divides by zero here. Leave it as it is.
         return;
     }
@@ -668,7 +669,7 @@ pub(crate) fn pre_resample(song: &mut MidiSong, sp: &mut Sample) {
     }
 
     // SDL_malloc((newlen >> (FRACTION_BITS - 1)) + 2): a negative length
-    // fails, as does an allocation too large. FIXME (upstream): a sample
+    // fails, as does an allocation too large. Note (upstream): a sample
     // that resamples to less than two samples gets a buffer too small for
     // the four written below; the ones past it are dropped here.
     let bytes = (newlen >> (FRACTION_BITS - 1)).wrapping_add(2);

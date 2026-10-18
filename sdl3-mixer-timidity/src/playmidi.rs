@@ -240,7 +240,7 @@ fn find_samples(song: &mut MidiSong, e: &crate::MidiEvent, vlist: &mut [usize; 3
     let Some(ip) = find_instrument(song, e) else {
         return 0; /* No instrument? Then we can't play. */
     };
-    // FIXME (upstream): an instrument without samples (a patch that says
+    // Note (upstream): an instrument without samples (a patch that says
     // it has none) is read past its (empty) array; it can't play.
     if ip.sample.is_empty() || ip.samples <= 0 {
         return 0;
@@ -258,7 +258,7 @@ fn find_samples(song: &mut MidiSong, e: &crate::MidiEvent, vlist: &mut [usize; 3
     } else {
         (e.a & 0x7f) as i32
     };
-    // FIXME (upstream): note_to_use is 0 to 127 for patches, but a
+    // Note (upstream): note_to_use is 0 to 127 for patches, but a
     // SoundFont's drum keynote can be more (negative as a Sint8), which
     // reads outside freq_table; use 0.
     let f = FREQ_TABLE.get(note as usize).copied().unwrap_or(0);

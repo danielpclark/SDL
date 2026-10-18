@@ -158,7 +158,7 @@ impl TrackData for GmeTrackData<'_> {
             return false; // all done.
         }
 
-        // FIXME (upstream): left uninitialized, and when the emulator stops
+        // Note (upstream): left uninitialized, and when the emulator stops
         // with an error (as the SPC emulator does at a STOP instruction),
         // libgme leaves the rest of the samples unwritten, and they are
         // played; they start zeroed here, and upstream's build for the
@@ -181,7 +181,7 @@ impl TrackData for GmeTrackData<'_> {
     /// as a count of samples, of which there are two per (stereo) frame,
     /// so this seeks to half the frame asked for.
     fn seek(&mut self, frame: u64) -> Result<()> {
-        // FIXME (upstream): an odd count of samples never finishes
+        // Note (upstream): an odd count of samples never finishes
         // (Game_Music_Emu plays whole stereo frames, so its Classic_Emu
         // play_() loops forever for the half frame left, running its
         // emulator past its buffers): this rounds it down to an even one.

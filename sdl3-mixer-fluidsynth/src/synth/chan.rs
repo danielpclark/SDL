@@ -652,7 +652,7 @@ impl FluidChannel {
         if i < 0 || i >= FLUID_CHANNEL_SIZE_MONOLIST as i32 || self.n_notes == 0 {
             *i_prev = FLUID_FAILED;
             if i < 0 || i >= FLUID_CHANNEL_SIZE_MONOLIST as i32 {
-                // FIXME (upstream): the function goes on with an invalid
+                // Note (upstream): the function goes on with an invalid
                 // index, indexing the list out of bounds; its callers only
                 // pass indices fluid_channel_search_monolist() found, but
                 // this stops here all the same.
@@ -668,7 +668,7 @@ impl FluidChannel {
             /* keeps trace of the note prior last note */
             self.prev_note = self.monolist[i_last as usize].note;
             /* moves i_last backward to the previous  */
-            // (kept inside the list: FIXME (upstream), see above)
+            // (kept inside the list: Note (upstream), see above)
             self.i_last = ((*i_prev as u32 as usize) % FLUID_CHANNEL_SIZE_MONOLIST) as u8;
         /* i_last index is moved backward */
         } else {
@@ -681,8 +681,9 @@ impl FluidChannel {
                 /* i is between i_first and i_last */
                 /* Unlinks element i and inserts after i_last */
                 // (*i_prev is an index fluid_channel_search_monolist() found
-                // here, or FLUID_FAILED after an empty list, out of bounds
-                // upstream: FIXME (upstream))
+                // here, or FLUID_FAILED after an empty list, which indexes out
+                // of bounds upstream; Note (upstream): here it wraps around
+                // into the list)
                 let prev = (*i_prev as u32 as usize) % FLUID_CHANNEL_SIZE_MONOLIST;
                 self.monolist[prev].next = self.monolist[i as usize].next; /* unlinks i */
                 /*inserts i after i_last */

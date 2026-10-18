@@ -26,7 +26,7 @@ use crate::{FinalVolumeT, MidiSong, SampleT};
 
 /// `vol_table[x]`.
 fn vol_table(x: i32) -> f64 {
-    // FIXME (upstream): an envelope volume that overflowed (with a corrupt
+    // Note (upstream): an envelope volume that overflowed (with a corrupt
     // patch's rates) indexes outside vol_table; use 0.
     VOL_TABLE.get(x as usize).copied().unwrap_or(0.0)
 }
@@ -492,7 +492,7 @@ pub(crate) fn mix_voice(song: &mut MidiSong, buf: &mut [i32], v: usize, mut c: i
         song.voice[v].status = VOICE_FREE;
     } else {
         let res = resample_voice(song, &mut rbuf, v, &mut c);
-        // FIXME (upstream): a voice whose sample ends where it starts (an
+        // Note (upstream): a voice whose sample ends where it starts (an
         // empty one, say) is left with a count of -1, which upstream mixes
         // as some four billion samples. Mix none.
         if c < 0 {
