@@ -497,10 +497,11 @@ fn check_round_trip(i: usize, c: &Case, q: i32, bytes: &[u8]) -> Result<(), Stri
     let mut rng = Rng(0x2468ace0u32.wrapping_add(i as u32));
     for f in 0..frames as usize {
         // (the default time base, milliseconds, is the decoder's; a single
-        // frame is written as a still image, which decodes with a delay of
-        // 1, as do the frames of duration 0)
+        // frame is written as a still image, which decodes with libavif's
+        // still image duration, a second; the frames of duration 0 are
+        // written with 1)
         let duration = if frames == 1 {
-            1
+            1000
         } else {
             durations[f % durations.len()].max(1)
         };

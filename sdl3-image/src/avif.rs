@@ -1101,12 +1101,21 @@ impl AvifDecoderContext {
             Some(s)
         };
 
-        // FIXME (upstream): the duration is in the file's timescale, only
-        // multiplied by the time base's numerator.
-        let duration = decoder
-            .image_timing
-            .duration_in_timescales
-            .wrapping_mul(d.timebase_numerator as u64);
+        // Note (upstream): upstream takes the duration, which is in the
+        // file's timescale, as one in the decoder's time base (only
+        // multiplying it by the numerator), so the delays are wrong unless
+        // the timescale is the time base's denominator; the translation
+        // fixes it, converting it from the timescale (and taking no
+        // duration for a zero one, which libavif leaves without a duration
+        // too).
+        let duration = if decoder.timescale != 0 {
+            d.decoder_duration(
+                decoder.image_timing.duration_in_timescales,
+                decoder.timescale,
+            )
+        } else {
+            0
+        };
 
         self.current_frame += 1;
 
@@ -1139,9 +1148,11 @@ pub(crate) fn create_avif_animation_decoder(
     let mut decoder = Box::new(AvifDecoder::new());
 
     decoder.strict_flags = AVIF_STRICT_DISABLED;
-    // FIXME (upstream): the timescale is the decoder's output, which
-    // avifDecoderParse() overwrites.
-    decoder.timescale = d.timebase_denominator as u64;
+    // Note (upstream): upstream sets the timescale to the time base's
+    // denominator here, but it is the decoder's output, the file's, which
+    // avifDecoderParse() overwrites; the translation leaves it out (the
+    // durations are converted from the file's timescale in
+    // get_next_frame()).
 
     let mut io_context = AvifIoContext {
         start: start_pos as u64,
