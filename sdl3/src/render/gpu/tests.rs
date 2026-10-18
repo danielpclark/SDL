@@ -1855,6 +1855,21 @@ fn rgba_at(r: &mut Renderer, x: i32, y: i32) -> [u8; 4] {
 
 /// Check the pixel at (`x`, `y`), each channel within 1 (the GPU's float
 /// math rounds).
+/// Whether `device` is MoltenVK's with Metal's API validation on: in the
+/// environment, or set by the GPU API's Metal devices in debug mode, which
+/// turn it on for the rest of the process (as upstream's do, without
+/// overwriting a value already there). Under it, on the CI runners'
+/// Apple Paravirtual device, MoltenVK (1.3.0 to 1.4.2) misdraws a fill
+/// after a render state's, reporting no error (docs/HARDWARE_TESTING.md).
+fn moltenvk_under_metal_debug_layer(device: &gpu::Device) -> bool {
+    cfg!(target_vendor = "apple")
+        && device
+            .properties()
+            .get_string(gpu::PROP_GPU_DEVICE_DRIVER_NAME_STRING)
+            .is_some_and(|name| name.contains("MoltenVK"))
+        && std::env::var_os("MTL_DEBUG_LAYER").is_some_and(|v| !v.is_empty() && v != "0")
+}
+
 fn assert_rgba_at(what: &str, r: &mut Renderer, (x, y): (i32, i32), want: [u8; 4]) {
     let got = rgba_at(r, x, y);
     assert!(
@@ -2035,7 +2050,14 @@ fn gpu_render_states_on(backend: Backend) {
         .unwrap();
     assert_rgba_at("tinted", &mut r, (5, 5), [100, 100, 10, 255]);
     assert_rgba_at("tinted again", &mut r, (15, 5), [200, 0, 40, 255]);
-    assert_rgba_at("without the state", &mut r, (25, 5), [200, 100, 40, 255]);
+    if moltenvk_under_metal_debug_layer(&device) {
+        crate::test_support::skip(
+            "vulkan",
+            "MoltenVK misdraws a fill after a render state's under the Metal debug layer (MTL_DEBUG_LAYER)",
+        );
+    } else {
+        assert_rgba_at("without the state", &mut r, (25, 5), [200, 100, 40, 255]);
+    }
     assert_rgba_at("not drawn", &mut r, (35, 5), [0, 0, 0, 255]);
 
     // Two states queued one after the other aren't drawn together; a
