@@ -148,10 +148,11 @@ impl TrackData for SinewaveTrackData {
             self.position += total_frames;
         }
 
-        // FIXME (upstream): this pushes the whole buffer, past the last
-        // frame of a finite wave too; upstream's samples there are
-        // uninitialized, here they're silence.
-        let _ = put_f32(stream, &samples);
+        // Note (upstream): this pushes the whole buffer there, past the
+        // last frame of a finite wave too (uninitialized samples, and a
+        // wave that runs long); the translation pushes only the frames it
+        // made.
+        let _ = put_f32(stream, &samples[..total_frames as usize]);
 
         true
     }
