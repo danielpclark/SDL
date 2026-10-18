@@ -1,14 +1,14 @@
 // Rust translation of the parts of av1/encoder/encodemb.c and
 // av1/encoder/encodemb.h from aom (https://aomedia.googlesource.com/aom, at
 // the revision SDL_image's external/aom pins: libaom 3.6.1 with SDL's
-// patches) the saver reaches.
+// patches) the encoder reaches.
 // Copyright (c) 2016, Alliance for Open Media. All rights reserved
 // SPDX-License-Identifier: BSD-2-Clause, and the Alliance for Open Media
 // Patent License 1.0 (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Coding of an intra block's transform blocks: prediction, residual,
-//! forward transform, quantization (with trellis and dropout
+//! Coding of a block's transform blocks: prediction (for intra blocks),
+//! residual, forward transform, quantization (with trellis and dropout
 //! optimization) and reconstruction. The source frame's samples come in as
 //! `src` (the source frame's buffer; `x->plane[].src` holds offsets into
 //! it), the reconstruction is `xd.recon`.
@@ -23,7 +23,8 @@ use super::txb_rdopt::{av1_cost_skip_txb, av1_optimize_txb};
 use crate::aom::aom_dsp::aom_dsp_common::TranLowT;
 use crate::aom::aom_dsp::subtract::aom_highbd_subtract_block;
 use crate::aom::av1::common::av1_common_int::CommonQuantParams;
-use crate::aom::av1::common::av1_common_int::{frame_is_intra_only, Av1Common};
+use crate::aom::av1::common::av1_common_int::{av1_num_planes, frame_is_intra_only, Av1Common};
+use crate::aom::av1::common::av1_loopfilter::av1_get_txb_size_index;
 use crate::aom::av1::common::blockd::*;
 use crate::aom::av1::common::cfl::cfl_store_tx;
 use crate::aom::av1::common::entropy::EntropyContext;
@@ -856,13 +857,376 @@ pub(crate) fn av1_encode_intra_block_plane(
     )
 }
 
-/// Translation of `av1_encode_sb()`.
+/// Translation of `av1_subtract_plane()` (`src_buf` is the source frame's
+/// samples).
+pub(crate) fn av1_subtract_plane(
+    x: &mut Macroblock,
+    src_buf: &[u16],
+    plane_bsize: BlockSize,
+    plane: usize,
+) {
+    let Macroblock {
+        plane: planes,
+        e_mbd: xd,
+        ..
+    } = x;
+    let p = &mut planes[plane];
+    let pd = &xd.plane[plane];
+    debug_assert!(plane_bsize < BLOCK_SIZES_ALL);
+    let bw = BLOCK_SIZE_WIDE[plane_bsize as usize] as i32;
+    let bh = BLOCK_SIZE_HIGH[plane_bsize as usize] as i32;
+    let bd_info = get_bit_depth_info(xd);
+
+    av1_subtract_block(
+        bd_info,
+        bh,
+        bw,
+        &mut p.src_diff,
+        0,
+        bw as usize,
+        src_buf,
+        p.src.buf,
+        p.src.stride as usize,
+        &xd.recon.buffer_alloc,
+        pd.dst.buf,
+        pd.dst.stride as usize,
+    );
+}
+
+fn encode_block(
+    plane: usize,
+    block: i32,
+    blk_row: i32,
+    blk_col: i32,
+    plane_bsize: BlockSize,
+    tx_size: TxSize,
+    args: &mut EncodeBArgs,
+    dry_run: i32,
+) -> Result<(), ()> {
+    let cpi = args.cpi;
+    let cm = &cpi.common;
+    let x = &mut *args.x;
+    let mbmi = *x.e_mbd.mbmi();
+    let off = block_offset(block);
+    let mut dummy_rate_cost = 0;
+
+    let bw = MI_SIZE_WIDE[plane_bsize as usize] as i32;
+
+    let mut tx_type = DCT_DCT;
+    let blk_skip_idx = if cpi.sf.rt_sf.use_nonrd_pick_mode != 0 && is_inter_block(&mbmi) {
+        blk_row * bw / 4 + blk_col / 2
+    } else {
+        blk_row * bw + blk_col
+    };
+    if !is_blk_skip(&x.txfm_search_info.blk_skip, plane, blk_skip_idx as usize)
+        && mbmi.skip_mode == 0
+    {
+        tx_type = av1_get_tx_type(
+            &x.e_mbd,
+            x.e_mbd.plane[plane].plane_type,
+            blk_row,
+            blk_col,
+            tx_size,
+            cm.features.reduced_tx_set_used as i32,
+        );
+        let mut txfm_param = TxfmParam::default();
+        let mut quant_param = QuantParam::default();
+        let use_trellis = is_trellis_used(args.enable_optimize_b, dry_run);
+        let quant_idx = if use_trellis {
+            AV1_XFORM_QUANT_FP
+        } else if USE_B_QUANT_NO_TRELLIS != 0 {
+            AV1_XFORM_QUANT_B
+        } else {
+            AV1_XFORM_QUANT_FP
+        };
+        av1_setup_xform(cm, x, tx_size, tx_type, &mut txfm_param);
+        av1_setup_quant(
+            tx_size,
+            use_trellis as i32,
+            quant_idx,
+            cpi.oxcf.q_cfg.quant_b_adapt as i32,
+            &mut quant_param,
+        );
+        av1_setup_qmatrix(
+            &cm.quant_params,
+            &x.e_mbd,
+            plane,
+            tx_size,
+            tx_type,
+            &mut quant_param,
+        );
+        av1_xform_quant(
+            x,
+            plane,
+            block,
+            blk_row,
+            blk_col,
+            plane_bsize,
+            &txfm_param,
+            &quant_param,
+        )?;
+
+        // Whether trellis or dropout optimization is required for inter frames.
+        let do_trellis =
+            INTER_BLOCK_OPT_TYPE == TRELLIS_OPT || INTER_BLOCK_OPT_TYPE == TRELLIS_DROPOUT_OPT;
+        let do_dropout =
+            INTER_BLOCK_OPT_TYPE == DROPOUT_OPT || INTER_BLOCK_OPT_TYPE == TRELLIS_DROPOUT_OPT;
+
+        if quant_param.use_optimize_b != 0 && do_trellis {
+            let mut txb_ctx = TxbCtx::default();
+            get_txb_ctx(
+                plane_bsize,
+                tx_size,
+                plane,
+                &args.ta[blk_col as usize..],
+                &args.tl[blk_row as usize..],
+                &mut txb_ctx,
+            );
+            av1_optimize_b(
+                cpi,
+                x,
+                plane,
+                block,
+                tx_size,
+                tx_type,
+                &txb_ctx,
+                &mut dummy_rate_cost,
+            );
+        }
+        if quant_param.use_optimize_b == 0 && do_dropout {
+            av1_dropout_qcoeff(
+                x,
+                plane,
+                block,
+                tx_size,
+                tx_type,
+                cm.quant_params.base_qindex,
+            );
+        }
+    } else {
+        x.plane[plane].eobs[block as usize] = 0;
+        x.plane[plane].txb_entropy_ctx[block as usize] = 0;
+    }
+
+    av1_set_txb_context(
+        x,
+        plane,
+        block,
+        tx_size,
+        &mut args.ta[blk_col as usize..],
+        &mut args.tl[blk_row as usize..],
+    );
+
+    let x = &mut *args.x;
+    let eob = x.plane[plane].eobs[block as usize];
+    if eob != 0 {
+        // (*(args->skip) = 0: xd->mi[0]->skip_txfm)
+        x.e_mbd.mbmi_mut().skip_txfm = 0;
+        let Macroblock {
+            plane: planes,
+            e_mbd: xd,
+            ..
+        } = x;
+        let pd = &xd.plane[plane];
+        let dst_stride = pd.dst.stride;
+        let dst = pd.dst.buf + ((blk_row * dst_stride + blk_col) << MI_SIZE_LOG2) as usize;
+        // (av1_inverse_transform_block(xd, ...): the block's lossless flag
+        // and bit depth)
+        let lossless = xd.lossless[xd.mbmi().segment_id as usize];
+        let bd = xd.bd;
+        av1_inverse_transform_block(
+            lossless,
+            bd,
+            &planes[plane].dqcoeff[off..],
+            tx_type,
+            tx_size,
+            &mut xd.recon.buffer_alloc,
+            dst,
+            dst_stride as usize,
+            eob as i32,
+            cm.features.reduced_tx_set_used as i32,
+        )?;
+    }
+
+    // TODO(debargha, jingning): Temporarily disable txk_type check for eob=0
+    // case. It is possible that certain collision in hash index would cause
+    // the assertion failure. To further optimize the rate-distortion
+    // performance, we need to re-visit this part and enable this assert
+    // again.
+    if eob == 0 && plane == 0 {
+        update_txk_array(&mut x.e_mbd, blk_row, blk_col, tx_size, DCT_DCT);
+    }
+    // (CONFIG_MISMATCH_DEBUG is off)
+    Ok(())
+}
+
+fn encode_block_inter(
+    plane: usize,
+    mut block: i32,
+    blk_row: i32,
+    blk_col: i32,
+    plane_bsize: BlockSize,
+    tx_size: TxSize,
+    args: &mut EncodeBArgs,
+    dry_run: i32,
+) -> Result<(), ()> {
+    let xd = &args.x.e_mbd;
+    let mbmi = xd.mbmi();
+    let pd = &xd.plane[plane];
+    let max_blocks_high = max_block_high(xd, plane_bsize, plane);
+    let max_blocks_wide = max_block_wide(xd, plane_bsize, plane);
+
+    if blk_row >= max_blocks_high || blk_col >= max_blocks_wide {
+        return Ok(());
+    }
+
+    let plane_tx_size = if plane != 0 {
+        av1_get_max_uv_txsize(mbmi.bsize, pd.subsampling_x, pd.subsampling_y)
+    } else {
+        mbmi.inter_tx_size[av1_get_txb_size_index(plane_bsize, blk_row, blk_col)]
+    };
+    if plane == 0 {
+        debug_assert!(
+            TX_SIZE_WIDE[tx_size as usize] >= TX_SIZE_WIDE[plane_tx_size as usize]
+                && TX_SIZE_HIGH[tx_size as usize] >= TX_SIZE_HIGH[plane_tx_size as usize]
+        );
+    }
+
+    if tx_size == plane_tx_size || plane != 0 {
+        encode_block(
+            plane,
+            block,
+            blk_row,
+            blk_col,
+            plane_bsize,
+            tx_size,
+            args,
+            dry_run,
+        )?;
+    } else {
+        debug_assert!(tx_size < TX_SIZES_ALL);
+        let sub_txs = SUB_TX_SIZE_MAP[tx_size as usize];
+        debug_assert!(tx_size > TX_4X4 || sub_txs == tx_size);
+        debug_assert!(tx_size <= TX_4X4 || sub_txs < tx_size);
+        // This is the square transform block partition entry point.
+        let bsw = TX_SIZE_WIDE_UNIT[sub_txs as usize] as i32;
+        let bsh = TX_SIZE_HIGH_UNIT[sub_txs as usize] as i32;
+        let step = bsh * bsw;
+        let row_end = (TX_SIZE_HIGH_UNIT[tx_size as usize] as i32).min(max_blocks_high - blk_row);
+        let col_end = (TX_SIZE_WIDE_UNIT[tx_size as usize] as i32).min(max_blocks_wide - blk_col);
+        debug_assert!(bsw > 0 && bsh > 0);
+
+        let mut row = 0;
+        while row < row_end {
+            let offsetr = blk_row + row;
+            let mut col = 0;
+            while col < col_end {
+                let offsetc = blk_col + col;
+
+                encode_block_inter(
+                    plane,
+                    block,
+                    offsetr,
+                    offsetc,
+                    plane_bsize,
+                    sub_txs,
+                    args,
+                    dry_run,
+                )?;
+                block += step;
+                col += bsw;
+            }
+            row += bsh;
+        }
+    }
+    Ok(())
+}
+
+/// Translation of `av1_encode_sb()` (it reads the source frame's samples:
+/// see `with_source()`).
 pub(crate) fn av1_encode_sb(
     cpi: &Av1Comp,
     x: &mut Macroblock,
     bsize: BlockSize,
     dry_run: i32,
 ) -> Result<(), ()> {
-    let _ = (cpi, x, bsize, dry_run);
-    Err(())
+    debug_assert!(bsize < BLOCK_SIZES_ALL);
+    x.e_mbd.mbmi_mut().skip_txfm = 1;
+    if x.txfm_search_info.skip_txfm != 0 {
+        return Ok(());
+    }
+
+    with_source(x, |x, src| {
+        // (struct optimize_ctx ctx: the entropy contexts are the arguments')
+        let segment_id = x.e_mbd.mbmi().segment_id;
+        let mut arg = EncodeBArgs {
+            cpi,
+            x,
+            src,
+            ta: [0; MAX_MIB_SIZE as usize],
+            tl: [0; MAX_MIB_SIZE as usize],
+            dry_run,
+            enable_optimize_b: cpi.optimize_seg_arr[segment_id as usize],
+        };
+        let cm = &cpi.common;
+        let num_planes = av1_num_planes(cm);
+        for plane in 0..num_planes {
+            let xd = &arg.x.e_mbd;
+            let pd = &xd.plane[plane];
+            let subsampling_x = pd.subsampling_x;
+            let subsampling_y = pd.subsampling_y;
+            if plane != 0 && !xd.is_chroma_ref {
+                break;
+            }
+            let plane_bsize = get_plane_block_size(bsize, subsampling_x, subsampling_y);
+            debug_assert!(plane_bsize < BLOCK_SIZES_ALL);
+            let mi_width = MI_SIZE_WIDE[plane_bsize as usize] as i32;
+            let mi_height = MI_SIZE_HIGH[plane_bsize as usize] as i32;
+            let max_tx_size = get_vartx_max_txsize(xd, plane_bsize, plane);
+            let txb_size = TXSIZE_TO_BSIZE[max_tx_size as usize];
+            let bw = MI_SIZE_WIDE[txb_size as usize] as i32;
+            let bh = MI_SIZE_HIGH[txb_size as usize] as i32;
+            let mut block = 0;
+            let step = TX_SIZE_WIDE_UNIT[max_tx_size as usize] as i32
+                * TX_SIZE_HIGH_UNIT[max_tx_size as usize] as i32;
+            av1_get_entropy_contexts(plane_bsize, xd, plane, &mut arg.ta, &mut arg.tl);
+            av1_subtract_plane(arg.x, src, plane_bsize, plane);
+            let max_unit_bsize = get_plane_block_size(BLOCK_64X64, subsampling_x, subsampling_y);
+            let mut mu_blocks_wide = MI_SIZE_WIDE[max_unit_bsize as usize] as i32;
+            let mut mu_blocks_high = MI_SIZE_HIGH[max_unit_bsize as usize] as i32;
+            mu_blocks_wide = mi_width.min(mu_blocks_wide);
+            mu_blocks_high = mi_height.min(mu_blocks_high);
+
+            let mut idy = 0;
+            while idy < mi_height {
+                let mut idx = 0;
+                while idx < mi_width {
+                    let unit_height = (mu_blocks_high + idy).min(mi_height);
+                    let unit_width = (mu_blocks_wide + idx).min(mi_width);
+                    let mut blk_row = idy;
+                    while blk_row < unit_height {
+                        let mut blk_col = idx;
+                        while blk_col < unit_width {
+                            encode_block_inter(
+                                plane,
+                                block,
+                                blk_row,
+                                blk_col,
+                                plane_bsize,
+                                max_tx_size,
+                                &mut arg,
+                                dry_run,
+                            )?;
+                            block += step;
+                            blk_col += bw;
+                        }
+                        blk_row += bh;
+                    }
+                    idx += mu_blocks_wide;
+                }
+                idy += mu_blocks_high;
+            }
+        }
+        Ok(())
+    })
 }

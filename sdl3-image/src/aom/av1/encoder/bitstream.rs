@@ -2,7 +2,8 @@
 // (https://aomedia.googlesource.com/aom, at the revision SDL_image's
 // external/aom pins: libaom 3.6.1 with SDL's patches) the saver reaches:
 // the packing of a still picture's key frame (reduced still picture
-// header), with one thread and one tile group.
+// header) or of an image sequence's frames (real-time coding), with one
+// thread and one tile group.
 // Copyright (c) 2016, Alliance for Open Media. All rights reserved
 // SPDX-License-Identifier: BSD-2-Clause, and the Alliance for Open Media
 // Patent License 1.0 (see LICENSE.txt)
@@ -10,34 +11,47 @@
 
 //! The bitstream writer: the sequence header OBU, then the frame OBU (the
 //! uncompressed frame header and the tiles' entropy-coded modes and
-//! coefficients). The paths of inter frames, of headers that are not
-//! reduced still picture headers, of segmentation, palettes, intra block
-//! copy, delta q and loop restoration are left out (the saver's frames use
-//! none of them).
+//! coefficients). The paths of segmentation, palettes, intra block copy,
+//! masked compound predictions, delta q and loop restoration are left out
+//! (the saver's and the animation encoder's frames use none of them).
 
 use super::encoder::*;
-use super::encodetxb::{av1_get_cb_coeff_buffer, av1_write_intra_coeffs_mb};
+use super::encodetxb::{av1_get_cb_coeff_buffer, av1_write_coeffs_txb, av1_write_intra_coeffs_mb};
 use crate::aom::aom_dsp::aom_dsp_common::ceil_power_of_two;
 use crate::aom::aom_dsp::bitwriter::*;
 use crate::aom::aom_dsp::bitwriter_buffer::*;
 use crate::aom::aom_integer::{aom_uleb_decode, aom_uleb_encode, aom_uleb_size_in_bytes};
 use crate::aom::av1::common::av1_common_int::*;
+use crate::aom::av1::common::av1_loopfilter::av1_get_txb_size_index;
 use crate::aom::av1::common::blockd::*;
 use crate::aom::av1::common::cdef::CDEF_STRENGTH_BITS;
 use crate::aom::av1::common::cfl::is_cfl_allowed;
 use crate::aom::av1::common::entropymode::*;
 use crate::aom::av1::common::enums::*;
 use crate::aom::av1::common::filter::LOG_SWITCHABLE_FILTERS;
+use crate::aom::av1::common::filter::{
+    av1_broadcast_interp_filter, av1_extract_interp_filter, av1_unswitchable_filter, SWITCHABLE,
+    SWITCHABLE_FILTERS,
+};
+use crate::aom::av1::common::mv::IntMv;
 use crate::aom::av1::common::mv::{WarpedMotionParams, DEFAULT_WARP_PARAMS, IDENTITY, TRANSLATION};
-use crate::aom::av1::common::pred_common::{av1_get_skip_txfm_context, get_tx_size_context};
+use crate::aom::av1::common::mvref_common::{
+    av1_collect_neighbors_ref_counts, av1_drl_ctx, av1_ref_frame_type, COMPOUND_MODE_CTX_MAP,
+};
+use crate::aom::av1::common::pred_common::*;
 use crate::aom::av1::common::quant_common::QINDEX_BITS;
+use crate::aom::av1::common::reconinter::{
+    av1_is_interp_needed, av1_is_wedge_used, is_any_masked_compound_used,
+};
 use crate::aom::av1::common::reconintra::{
     av1_allow_intrabc, av1_filter_intra_allowed, av1_is_directional_mode,
 };
 use crate::aom::av1::common::restoration::av1_loop_restoration_corners_in_sb;
 use crate::aom::av1::common::seg_common::*;
 use crate::aom::av1::common::tile_common::*;
+use crate::aom::av1::encoder::block::MbModeInfoExtFrame;
 use crate::aom::av1::encoder::block::{tx_size_to_depth, Macroblock};
+use crate::aom::av1::encoder::encodemv::av1_encode_mv;
 
 /// `AV1_MIN_TILE_SIZE_BYTES` (bitstream.h)
 pub(crate) const AV1_MIN_TILE_SIZE_BYTES: u32 = 1;
@@ -286,9 +300,7 @@ fn write_intra_prediction_modes(
     let bsize = mbmi.bsize;
 
     // Y mode.
-    // (the saver's frames are key frames)
-    debug_assert!(is_keyframe);
-    {
+    if is_keyframe {
         let above_mi = xd.above_mbmi.map(|i| xd.mi_alloc[i as usize]);
         let left_mi = xd.left_mbmi.map(|i| xd.mi_alloc[i as usize]);
         write_intra_y_mode_kf(
@@ -299,6 +311,8 @@ fn write_intra_prediction_modes(
             mode,
             w,
         );
+    } else {
+        write_intra_y_mode_nonkf(&mut xd.tile_ctx, bsize, mode, w);
     }
 
     // Y angle delta.
@@ -365,13 +379,850 @@ fn write_mb_modes_kf(cpi: &Av1Comp, xd: &mut MacroBlockD, w: &mut AomWriter) {
     write_intra_prediction_modes(cm, xd, true, w);
 }
 
-fn write_mbmi_b(cpi: &Av1Comp, td: &mut ThreadData, w: &mut AomWriter) {
+#[inline]
+fn write_inter_mode(
+    w: &mut AomWriter,
+    mode: PredictionMode,
+    ec_ctx: &mut FrameContext,
+    mode_ctx: i16,
+) {
+    let newmv_ctx = (mode_ctx & NEWMV_CTX_MASK as i16) as usize;
+
+    aom_write_symbol(
+        w,
+        (mode != NEWMV) as i32,
+        &mut ec_ctx.newmv_cdf[newmv_ctx],
+        2,
+    );
+
+    if mode != NEWMV {
+        let zeromv_ctx = ((mode_ctx >> GLOBALMV_OFFSET) & GLOBALMV_CTX_MASK as i16) as usize;
+        aom_write_symbol(
+            w,
+            (mode != GLOBALMV) as i32,
+            &mut ec_ctx.zeromv_cdf[zeromv_ctx],
+            2,
+        );
+
+        if mode != GLOBALMV {
+            let refmv_ctx = ((mode_ctx >> REFMV_OFFSET) & REFMV_CTX_MASK as i16) as usize;
+            aom_write_symbol(
+                w,
+                (mode != NEARESTMV) as i32,
+                &mut ec_ctx.refmv_cdf[refmv_ctx],
+                2,
+            );
+        }
+    }
+}
+
+#[inline]
+fn write_drl_idx(
+    ec_ctx: &mut FrameContext,
+    mbmi: &MbModeInfo,
+    mbmi_ext_frame: &MbModeInfoExtFrame,
+    w: &mut AomWriter,
+) {
+    debug_assert!(mbmi.ref_mv_idx < 3);
+
+    let new_mv = mbmi.mode == NEWMV || mbmi.mode == NEW_NEWMV;
+    let ref_mv_idx = mbmi.ref_mv_idx as i32;
+    if new_mv {
+        for idx in 0..2 {
+            if mbmi_ext_frame.ref_mv_count as i32 > idx + 1 {
+                let drl_ctx = av1_drl_ctx(&mbmi_ext_frame.weight, idx as usize) as usize;
+
+                aom_write_symbol(
+                    w,
+                    (ref_mv_idx != idx) as i32,
+                    &mut ec_ctx.drl_cdf[drl_ctx],
+                    2,
+                );
+                if ref_mv_idx == idx {
+                    return;
+                }
+            }
+        }
+        return;
+    }
+
+    if have_nearmv_in_inter_mode(mbmi.mode) {
+        // TODO(jingning): Temporary solution to compensate the NEARESTMV offset.
+        for idx in 1..3 {
+            if mbmi_ext_frame.ref_mv_count as i32 > idx + 1 {
+                let drl_ctx = av1_drl_ctx(&mbmi_ext_frame.weight, idx as usize) as usize;
+                aom_write_symbol(
+                    w,
+                    (ref_mv_idx != (idx - 1)) as i32,
+                    &mut ec_ctx.drl_cdf[drl_ctx],
+                    2,
+                );
+                if ref_mv_idx == (idx - 1) {
+                    return;
+                }
+            }
+        }
+    }
+}
+
+#[inline]
+fn write_inter_compound_mode(
+    xd: &mut MacroBlockD,
+    w: &mut AomWriter,
+    mode: PredictionMode,
+    mode_ctx: i16,
+) {
+    debug_assert!(is_inter_compound_mode(mode));
+    aom_write_symbol(
+        w,
+        mode - NEAREST_NEARESTMV,
+        &mut xd.tile_ctx.inter_compound_mode_cdf[mode_ctx as usize],
+        INTER_COMPOUND_MODES,
+    );
+}
+
+fn write_tx_size_vartx(
+    xd: &mut MacroBlockD,
+    mbmi: &MbModeInfo,
+    tx_size: TxSize,
+    depth: i32,
+    blk_row: i32,
+    blk_col: i32,
+    w: &mut AomWriter,
+) {
+    let max_blocks_high = max_block_high(xd, mbmi.bsize, 0);
+    let max_blocks_wide = max_block_wide(xd, mbmi.bsize, 0);
+
+    if blk_row >= max_blocks_high || blk_col >= max_blocks_wide {
+        return;
+    }
+
+    let tile_row = xd.above_contexts_tile_row;
+    let a = xd.above_txfm_context + blk_col as usize;
+    let l = xd.left_txfm_context + blk_row as usize;
+    if depth == MAX_VARTX_DEPTH {
+        txfm_partition_update(
+            &mut xd.above_contexts.txfm[tile_row][a..],
+            &mut xd.left_txfm_context_buffer[l..],
+            tx_size,
+            tx_size,
+        );
+        return;
+    }
+
+    let ctx = txfm_partition_context(
+        xd.above_contexts.txfm[tile_row][a],
+        xd.left_txfm_context_buffer[l],
+        mbmi.bsize,
+        tx_size,
+    ) as usize;
+    let txb_size_index = av1_get_txb_size_index(mbmi.bsize, blk_row, blk_col);
+    let write_txfm_partition = tx_size == mbmi.inter_tx_size[txb_size_index];
+    if write_txfm_partition {
+        aom_write_symbol(w, 0, &mut xd.tile_ctx.txfm_partition_cdf[ctx], 2);
+
+        txfm_partition_update(
+            &mut xd.above_contexts.txfm[tile_row][a..],
+            &mut xd.left_txfm_context_buffer[l..],
+            tx_size,
+            tx_size,
+        );
+        // TODO(yuec): set correct txfm partition update for qttx
+    } else {
+        let sub_txs = SUB_TX_SIZE_MAP[tx_size as usize];
+        let bsw = TX_SIZE_WIDE_UNIT[sub_txs as usize] as i32;
+        let bsh = TX_SIZE_HIGH_UNIT[sub_txs as usize] as i32;
+
+        aom_write_symbol(w, 1, &mut xd.tile_ctx.txfm_partition_cdf[ctx], 2);
+
+        if sub_txs == TX_4X4 {
+            txfm_partition_update(
+                &mut xd.above_contexts.txfm[tile_row][a..],
+                &mut xd.left_txfm_context_buffer[l..],
+                sub_txs,
+                tx_size,
+            );
+            return;
+        }
+
+        debug_assert!(bsw > 0 && bsh > 0);
+        let mut row = 0;
+        while row < TX_SIZE_HIGH_UNIT[tx_size as usize] as i32 {
+            let offsetr = blk_row + row;
+            let mut col = 0;
+            while col < TX_SIZE_WIDE_UNIT[tx_size as usize] as i32 {
+                let offsetc = blk_col + col;
+                write_tx_size_vartx(xd, mbmi, sub_txs, depth + 1, offsetr, offsetc, w);
+                col += bsw;
+            }
+            row += bsh;
+        }
+    }
+}
+
+fn write_skip_mode(
+    cm: &Av1Common,
+    xd: &mut MacroBlockD,
+    segment_id: u8,
+    mi: &MbModeInfo,
+    w: &mut AomWriter,
+) -> i32 {
+    if cm.current_frame.skip_mode_info.skip_mode_flag == 0 {
+        return 0;
+    }
+    if segfeature_active(&cm.seg, segment_id, SEG_LVL_SKIP) {
+        return 0;
+    }
+    let skip_mode = mi.skip_mode as i32;
+    if !is_comp_ref_allowed(mi.bsize) {
+        debug_assert!(skip_mode == 0);
+        return 0;
+    }
+    if segfeature_active(&cm.seg, segment_id, SEG_LVL_REF_FRAME)
+        || segfeature_active(&cm.seg, segment_id, SEG_LVL_GLOBALMV)
+    {
+        // These features imply single-reference mode, while skip mode implies
+        // compound reference. Hence, the two are mutually exclusive.
+        // In other words, skip_mode is implicitly 0 here.
+        debug_assert!(skip_mode == 0);
+        return 0;
+    }
+    let ctx = av1_get_skip_mode_context(xd) as usize;
+    aom_write_symbol(w, skip_mode, &mut xd.tile_ctx.skip_mode_cdfs[ctx], 2);
+    skip_mode
+}
+
+#[inline]
+fn write_is_inter(
+    cm: &Av1Common,
+    xd: &mut MacroBlockD,
+    segment_id: u8,
+    w: &mut AomWriter,
+    is_inter: bool,
+) {
+    if !segfeature_active(&cm.seg, segment_id, SEG_LVL_REF_FRAME) {
+        if segfeature_active(&cm.seg, segment_id, SEG_LVL_GLOBALMV) {
+            debug_assert!(is_inter);
+            return;
+        }
+        let ctx = av1_get_intra_inter_context(xd) as usize;
+        aom_write_symbol(w, is_inter as i32, &mut xd.tile_ctx.intra_inter_cdf[ctx], 2);
+    }
+}
+
+#[inline]
+fn write_motion_mode(cm: &Av1Common, xd: &mut MacroBlockD, mbmi: &MbModeInfo, w: &mut AomWriter) {
+    let last_motion_mode_allowed = if cm.features.switchable_motion_mode {
+        motion_mode_allowed(&cm.global_motion, xd, mbmi, cm.features.allow_warped_motion)
+    } else {
+        SIMPLE_TRANSLATION
+    };
+    debug_assert!(mbmi.motion_mode <= last_motion_mode_allowed);
+    match last_motion_mode_allowed {
+        SIMPLE_TRANSLATION => {}
+        OBMC_CAUSAL => {
+            aom_write_symbol(
+                w,
+                (mbmi.motion_mode == OBMC_CAUSAL) as i32,
+                &mut xd.tile_ctx.obmc_cdf[mbmi.bsize as usize],
+                2,
+            );
+        }
+        _ => {
+            aom_write_symbol(
+                w,
+                mbmi.motion_mode as i32,
+                &mut xd.tile_ctx.motion_mode_cdf[mbmi.bsize as usize],
+                MOTION_MODES,
+            );
+        }
+    }
+}
+
+// (no token stats: CONFIG_RD_DEBUG is off)
+fn pack_txb_tokens(
+    w: &mut AomWriter,
+    cm: &Av1Common,
+    x: &mut Macroblock,
+    mbmi: &MbModeInfo,
+    plane: usize,
+    plane_bsize: BlockSize,
+    mut block: i32,
+    blk_row: i32,
+    blk_col: i32,
+    tx_size: TxSize,
+) {
+    let xd = &x.e_mbd;
+    let max_blocks_high = max_block_high(xd, plane_bsize, plane);
+    let max_blocks_wide = max_block_wide(xd, plane_bsize, plane);
+
+    if blk_row >= max_blocks_high || blk_col >= max_blocks_wide {
+        return;
+    }
+
+    let pd = &xd.plane[plane];
+    let plane_tx_size = if plane != 0 {
+        av1_get_max_uv_txsize(mbmi.bsize, pd.subsampling_x, pd.subsampling_y)
+    } else {
+        mbmi.inter_tx_size[av1_get_txb_size_index(plane_bsize, blk_row, blk_col)]
+    };
+
+    if tx_size == plane_tx_size || plane != 0 {
+        av1_write_coeffs_txb(cm, x, w, blk_row, blk_col, plane, block, tx_size);
+    } else {
+        let sub_txs = SUB_TX_SIZE_MAP[tx_size as usize];
+        let bsw = TX_SIZE_WIDE_UNIT[sub_txs as usize] as i32;
+        let bsh = TX_SIZE_HIGH_UNIT[sub_txs as usize] as i32;
+        let step = bsh * bsw;
+        let row_end = (TX_SIZE_HIGH_UNIT[tx_size as usize] as i32).min(max_blocks_high - blk_row);
+        let col_end = (TX_SIZE_WIDE_UNIT[tx_size as usize] as i32).min(max_blocks_wide - blk_col);
+
+        debug_assert!(bsw > 0 && bsh > 0);
+
+        let mut r = 0;
+        while r < row_end {
+            let offsetr = blk_row + r;
+            let mut c = 0;
+            while c < col_end {
+                let offsetc = blk_col + c;
+                pack_txb_tokens(
+                    w,
+                    cm,
+                    x,
+                    mbmi,
+                    plane,
+                    plane_bsize,
+                    block,
+                    offsetr,
+                    offsetc,
+                    sub_txs,
+                );
+                block += step;
+                c += bsw;
+            }
+            r += bsh;
+        }
+    }
+}
+
+// This function encodes the reference frame
+fn write_ref_frames(cm: &Av1Common, xd: &mut MacroBlockD, w: &mut AomWriter) {
+    let mbmi = *xd.mbmi();
+    let is_compound = has_second_ref(&mbmi);
+    let segment_id = mbmi.segment_id;
+
+    // If segment level coding of this signal is disabled...
+    // or the segment allows multiple reference frame options
+    if segfeature_active(&cm.seg, segment_id, SEG_LVL_REF_FRAME) {
+        debug_assert!(!is_compound);
+        debug_assert!(
+            mbmi.ref_frame[0] as i32 == get_segdata(&cm.seg, segment_id as i32, SEG_LVL_REF_FRAME)
+        );
+    } else if segfeature_active(&cm.seg, segment_id, SEG_LVL_SKIP)
+        || segfeature_active(&cm.seg, segment_id, SEG_LVL_GLOBALMV)
+    {
+        debug_assert!(!is_compound);
+        debug_assert!(mbmi.ref_frame[0] == LAST_FRAME);
+    } else {
+        // does the feature use compound prediction or not
+        // (if not specified at the frame/segment level)
+        if cm.current_frame.reference_mode == REFERENCE_MODE_SELECT {
+            if is_comp_ref_allowed(mbmi.bsize) {
+                let ctx = av1_get_reference_mode_context(xd) as usize;
+                aom_write_symbol(
+                    w,
+                    is_compound as i32,
+                    &mut xd.tile_ctx.comp_inter_cdf[ctx],
+                    2,
+                );
+            }
+        } else {
+            debug_assert!((!is_compound) == (cm.current_frame.reference_mode == SINGLE_REFERENCE));
+        }
+
+        // (WRITE_REF_BIT(bname, pname): the bit with the cdf of
+        // av1_get_pred_cdf_pname(xd))
+        if is_compound {
+            let comp_ref_type = if has_uni_comp_refs(&mbmi) {
+                UNIDIR_COMP_REFERENCE
+            } else {
+                BIDIR_COMP_REFERENCE
+            };
+            let ctx = av1_get_comp_reference_type_context(xd) as usize;
+            aom_write_symbol(w, comp_ref_type, &mut xd.tile_ctx.comp_ref_type_cdf[ctx], 2);
+
+            if comp_ref_type == UNIDIR_COMP_REFERENCE {
+                let bit = (mbmi.ref_frame[0] == BWDREF_FRAME) as i32;
+                let ctx = av1_get_pred_context_uni_comp_ref_p(xd) as usize;
+                aom_write_symbol(w, bit, &mut xd.tile_ctx.uni_comp_ref_cdf[ctx][0], 2);
+
+                if bit == 0 {
+                    debug_assert!(mbmi.ref_frame[0] == LAST_FRAME);
+                    let bit1 = (mbmi.ref_frame[1] == LAST3_FRAME
+                        || mbmi.ref_frame[1] == GOLDEN_FRAME) as i32;
+                    let ctx = av1_get_pred_context_uni_comp_ref_p1(xd) as usize;
+                    aom_write_symbol(w, bit1, &mut xd.tile_ctx.uni_comp_ref_cdf[ctx][1], 2);
+                    if bit1 != 0 {
+                        let bit2 = (mbmi.ref_frame[1] == GOLDEN_FRAME) as i32;
+                        let ctx = av1_get_pred_context_uni_comp_ref_p2(xd) as usize;
+                        aom_write_symbol(w, bit2, &mut xd.tile_ctx.uni_comp_ref_cdf[ctx][2], 2);
+                    }
+                } else {
+                    debug_assert!(mbmi.ref_frame[1] == ALTREF_FRAME);
+                }
+
+                return;
+            }
+
+            debug_assert!(comp_ref_type == BIDIR_COMP_REFERENCE);
+
+            let bit =
+                (mbmi.ref_frame[0] == GOLDEN_FRAME || mbmi.ref_frame[0] == LAST3_FRAME) as i32;
+            let ctx = av1_get_pred_context_comp_ref_p(xd) as usize;
+            aom_write_symbol(w, bit, &mut xd.tile_ctx.comp_ref_cdf[ctx][0], 2);
+
+            if bit == 0 {
+                let bit1 = (mbmi.ref_frame[0] == LAST2_FRAME) as i32;
+                let ctx = av1_get_pred_context_comp_ref_p1(xd) as usize;
+                aom_write_symbol(w, bit1, &mut xd.tile_ctx.comp_ref_cdf[ctx][1], 2);
+            } else {
+                let bit2 = (mbmi.ref_frame[0] == GOLDEN_FRAME) as i32;
+                let ctx = av1_get_pred_context_comp_ref_p2(xd) as usize;
+                aom_write_symbol(w, bit2, &mut xd.tile_ctx.comp_ref_cdf[ctx][2], 2);
+            }
+
+            let bit_bwd = (mbmi.ref_frame[1] == ALTREF_FRAME) as i32;
+            let ctx = av1_get_pred_context_comp_bwdref_p(xd) as usize;
+            aom_write_symbol(w, bit_bwd, &mut xd.tile_ctx.comp_bwdref_cdf[ctx][0], 2);
+
+            if bit_bwd == 0 {
+                let ctx = av1_get_pred_context_comp_bwdref_p1(xd) as usize;
+                aom_write_symbol(
+                    w,
+                    (mbmi.ref_frame[1] == ALTREF2_FRAME) as i32,
+                    &mut xd.tile_ctx.comp_bwdref_cdf[ctx][1],
+                    2,
+                );
+            }
+        } else {
+            let bit0 =
+                (mbmi.ref_frame[0] <= ALTREF_FRAME && mbmi.ref_frame[0] >= BWDREF_FRAME) as i32;
+            let ctx = av1_get_pred_context_single_ref_p1(xd) as usize;
+            aom_write_symbol(w, bit0, &mut xd.tile_ctx.single_ref_cdf[ctx][0], 2);
+
+            if bit0 != 0 {
+                let bit1 = (mbmi.ref_frame[0] == ALTREF_FRAME) as i32;
+                let ctx = av1_get_pred_context_single_ref_p2(xd) as usize;
+                aom_write_symbol(w, bit1, &mut xd.tile_ctx.single_ref_cdf[ctx][1], 2);
+
+                if bit1 == 0 {
+                    let ctx = av1_get_pred_context_single_ref_p6(xd) as usize;
+                    aom_write_symbol(
+                        w,
+                        (mbmi.ref_frame[0] == ALTREF2_FRAME) as i32,
+                        &mut xd.tile_ctx.single_ref_cdf[ctx][5],
+                        2,
+                    );
+                }
+            } else {
+                let bit2 =
+                    (mbmi.ref_frame[0] == LAST3_FRAME || mbmi.ref_frame[0] == GOLDEN_FRAME) as i32;
+                let ctx = av1_get_pred_context_single_ref_p3(xd) as usize;
+                aom_write_symbol(w, bit2, &mut xd.tile_ctx.single_ref_cdf[ctx][2], 2);
+
+                if bit2 == 0 {
+                    let bit3 = (mbmi.ref_frame[0] != LAST_FRAME) as i32;
+                    let ctx = av1_get_pred_context_single_ref_p4(xd) as usize;
+                    aom_write_symbol(w, bit3, &mut xd.tile_ctx.single_ref_cdf[ctx][3], 2);
+                } else {
+                    let bit4 = (mbmi.ref_frame[0] != LAST3_FRAME) as i32;
+                    let ctx = av1_get_pred_context_single_ref_p5(xd) as usize;
+                    aom_write_symbol(w, bit4, &mut xd.tile_ctx.single_ref_cdf[ctx][4], 2);
+                }
+            }
+        }
+    }
+}
+
+fn write_mb_interp_filter(cm: &Av1Common, td: &mut ThreadData, w: &mut AomWriter) {
+    let xd = &mut td.mb.e_mbd;
+    let mbmi = *xd.mbmi();
+
+    if !av1_is_interp_needed(xd, &cm.global_motion) {
+        let filters =
+            av1_broadcast_interp_filter(av1_unswitchable_filter(cm.features.interp_filter));
+        debug_assert!(mbmi.interp_filters == filters);
+        let _ = filters;
+        return;
+    }
+    if cm.features.interp_filter == SWITCHABLE {
+        for dir in 0..2 {
+            let ctx = av1_get_pred_context_switchable_interp(xd, dir) as usize;
+            let filter = av1_extract_interp_filter(mbmi.interp_filters, dir);
+            aom_write_symbol(
+                w,
+                filter,
+                &mut xd.tile_ctx.switchable_interp_cdf[ctx],
+                SWITCHABLE_FILTERS,
+            );
+            td.interp_filter_selected[filter as usize] += 1;
+            if cm.seq_params.enable_dual_filter == 0 {
+                return;
+            }
+        }
+    }
+}
+
+#[inline]
+fn write_intra_y_mode_nonkf(
+    frame_ctx: &mut FrameContext,
+    bsize: BlockSize,
+    mode: PredictionMode,
+    w: &mut AomWriter,
+) {
+    aom_write_symbol(
+        w,
+        mode,
+        &mut frame_ctx.y_mode_cdf[SIZE_GROUP_LOOKUP[bsize as usize] as usize],
+        INTRA_MODES,
+    );
+}
+
+// (`Err` for segment map updates: segmentation is off)
+#[inline]
+fn write_inter_segment_id(seg: &Segmentation, skip: i32, preskip: i32) -> Result<(), ()> {
+    let _ = (skip, preskip);
+    if seg.update_map != 0 {
+        // (write_segment_id(), set_spatial_segment_id())
+        return Err(());
+    }
+    Ok(())
+}
+
+#[inline]
+fn mode_context_analyzer(mode_context: i16, rf: &[MvReferenceFrame; 2]) -> i16 {
+    if rf[1] <= INTRA_FRAME {
+        return mode_context;
+    }
+
+    let newmv_ctx = mode_context & NEWMV_CTX_MASK as i16;
+    let refmv_ctx = (mode_context >> REFMV_OFFSET) & REFMV_CTX_MASK as i16;
+
+    COMPOUND_MODE_CTX_MAP[(refmv_ctx >> 1) as usize]
+        [(newmv_ctx as i32).min(COMP_NEWMV_CTXS - 1) as usize] as i16
+}
+
+#[inline]
+fn get_ref_mv_from_stack(
+    ref_idx: i32,
+    ref_frame: &[MvReferenceFrame; 2],
+    ref_mv_idx: i32,
+    mbmi_ext_frame: &MbModeInfoExtFrame,
+) -> IntMv {
+    let ref_frame_type = av1_ref_frame_type(ref_frame) as usize;
+    let curr_ref_mv_stack = &mbmi_ext_frame.ref_mv_stack;
+
+    if ref_frame[1] > INTRA_FRAME {
+        debug_assert!(ref_idx == 0 || ref_idx == 1);
+        return if ref_idx != 0 {
+            curr_ref_mv_stack[ref_mv_idx as usize].comp_mv
+        } else {
+            curr_ref_mv_stack[ref_mv_idx as usize].this_mv
+        };
+    }
+
+    debug_assert!(ref_idx == 0);
+    if ref_mv_idx < mbmi_ext_frame.ref_mv_count as i32 {
+        curr_ref_mv_stack[ref_mv_idx as usize].this_mv
+    } else {
+        mbmi_ext_frame.global_mvs[ref_frame_type]
+    }
+}
+
+#[inline]
+fn get_ref_mv(x: &Macroblock, ref_idx: i32) -> IntMv {
+    let xd = &x.e_mbd;
+    let mbmi = xd.mbmi();
+    let mut ref_mv_idx = mbmi.ref_mv_idx as i32;
+    if mbmi.mode == NEAR_NEWMV || mbmi.mode == NEW_NEARMV {
+        debug_assert!(has_second_ref(mbmi));
+        ref_mv_idx += 1;
+    }
+    get_ref_mv_from_stack(
+        ref_idx,
+        &mbmi.ref_frame,
+        ref_mv_idx,
+        &x.mbmi_ext_frame_base[x.mbmi_ext_frame],
+    )
+}
+
+fn pack_inter_mode_mvs(cpi: &Av1Comp, td: &mut ThreadData, w: &mut AomWriter) -> Result<(), ()> {
+    let cm = &cpi.common;
+    let seg = &cm.seg;
+    let mbmi = *td.mb.e_mbd.mbmi();
+    let mbmi_ext_frame = td.mb.mbmi_ext_frame_base[td.mb.mbmi_ext_frame];
+    let mode = mbmi.mode;
+    let segment_id = mbmi.segment_id;
+    let bsize = mbmi.bsize;
+    let allow_hp = cm.features.allow_high_precision_mv;
+    let is_inter = is_inter_block(&mbmi);
+    let is_compound = has_second_ref(&mbmi);
+
+    write_inter_segment_id(seg, 0, 1)?;
+
+    write_skip_mode(cm, &mut td.mb.e_mbd, segment_id, &mbmi, w);
+
+    debug_assert!(mbmi.skip_mode == 0 || mbmi.skip_txfm != 0);
+    let skip = if mbmi.skip_mode != 0 {
+        1
+    } else {
+        write_skip(cm, &mut td.mb.e_mbd, segment_id, &mbmi, w)
+    };
+
+    write_inter_segment_id(seg, skip, 0)?;
+
+    write_cdef(cm, &mut td.mb.e_mbd, w, skip);
+
+    write_delta_q_params(cm);
+
+    if mbmi.skip_mode == 0 {
+        write_is_inter(cm, &mut td.mb.e_mbd, mbmi.segment_id, w, is_inter);
+    }
+
+    if mbmi.skip_mode != 0 {
+        return Ok(());
+    }
+
+    if !is_inter {
+        write_intra_prediction_modes(cm, &mut td.mb.e_mbd, false, w);
+    } else {
+        let xd = &mut td.mb.e_mbd;
+        av1_collect_neighbors_ref_counts(xd);
+
+        write_ref_frames(cm, xd, w);
+
+        let mode_ctx = mode_context_analyzer(mbmi_ext_frame.mode_context, &mbmi.ref_frame);
+
+        // If segment skip is not enabled code the mode.
+        if !segfeature_active(seg, segment_id, SEG_LVL_SKIP) {
+            if is_inter_compound_mode(mode) {
+                write_inter_compound_mode(xd, w, mode, mode_ctx);
+            } else if is_inter_singleref_mode(mode) {
+                write_inter_mode(w, mode, &mut xd.tile_ctx, mode_ctx);
+            }
+
+            if mode == NEWMV || mode == NEW_NEWMV || have_nearmv_in_inter_mode(mode) {
+                write_drl_idx(&mut xd.tile_ctx, &mbmi, &mbmi_ext_frame, w);
+            } else {
+                debug_assert!(mbmi.ref_mv_idx == 0);
+            }
+        }
+
+        let cur_frame_force_integer_mv = cm.features.cur_frame_force_integer_mv;
+        let auto_mv_step_size = cpi.sf.mv_sf.auto_mv_step_size != 0;
+        if mode == NEWMV || mode == NEW_NEWMV {
+            for ref_ in 0..1 + is_compound as usize {
+                let ref_mv = get_ref_mv(&td.mb, ref_ as i32);
+                av1_encode_mv(
+                    cur_frame_force_integer_mv,
+                    auto_mv_step_size,
+                    w,
+                    &mut td.max_mv_magnitude,
+                    &mbmi.mv[ref_].as_mv(),
+                    &ref_mv.as_mv(),
+                    &mut td.mb.e_mbd.tile_ctx.nmvc,
+                    allow_hp as i32,
+                );
+            }
+        } else if mode == NEAREST_NEWMV || mode == NEAR_NEWMV {
+            let ref_mv = get_ref_mv(&td.mb, 1);
+            av1_encode_mv(
+                cur_frame_force_integer_mv,
+                auto_mv_step_size,
+                w,
+                &mut td.max_mv_magnitude,
+                &mbmi.mv[1].as_mv(),
+                &ref_mv.as_mv(),
+                &mut td.mb.e_mbd.tile_ctx.nmvc,
+                allow_hp as i32,
+            );
+        } else if mode == NEW_NEARESTMV || mode == NEW_NEARMV {
+            let ref_mv = get_ref_mv(&td.mb, 0);
+            av1_encode_mv(
+                cur_frame_force_integer_mv,
+                auto_mv_step_size,
+                w,
+                &mut td.max_mv_magnitude,
+                &mbmi.mv[0].as_mv(),
+                &ref_mv.as_mv(),
+                &mut td.mb.e_mbd.tile_ctx.nmvc,
+                allow_hp as i32,
+            );
+        }
+
+        let xd = &mut td.mb.e_mbd;
+        let ec_ctx: &mut FrameContext = &mut xd.tile_ctx;
+        if cpi.common.current_frame.reference_mode != COMPOUND_REFERENCE
+            && cpi.common.seq_params.enable_interintra_compound != 0
+            && is_interintra_allowed(&mbmi)
+        {
+            let interintra = (mbmi.ref_frame[1] == INTRA_FRAME) as i32;
+            let bsize_group = SIZE_GROUP_LOOKUP[bsize as usize] as usize;
+            aom_write_symbol(w, interintra, &mut ec_ctx.interintra_cdf[bsize_group], 2);
+            if interintra != 0 {
+                aom_write_symbol(
+                    w,
+                    mbmi.interintra_mode,
+                    &mut ec_ctx.interintra_mode_cdf[bsize_group],
+                    INTERINTRA_MODES,
+                );
+                if av1_is_wedge_used(bsize) {
+                    aom_write_symbol(
+                        w,
+                        mbmi.use_wedge_interintra as i32,
+                        &mut ec_ctx.wedge_interintra_cdf[bsize as usize],
+                        2,
+                    );
+                    if mbmi.use_wedge_interintra != 0 {
+                        aom_write_symbol(
+                            w,
+                            mbmi.interintra_wedge_index as i32,
+                            &mut ec_ctx.wedge_idx_cdf[bsize as usize],
+                            16, /* MAX_WEDGE_TYPES */
+                        );
+                    }
+                }
+            }
+        }
+
+        if mbmi.ref_frame[1] != INTRA_FRAME {
+            write_motion_mode(cm, xd, &mbmi, w);
+        }
+
+        // First write idx to indicate current compound inter prediction mode group
+        // Group A (0): dist_wtd_comp, compound_average
+        // Group B (1): interintra, compound_diffwtd, wedge
+        if has_second_ref(&mbmi) {
+            let masked_compound_used =
+                is_any_masked_compound_used(bsize) && cm.seq_params.enable_masked_compound != 0;
+
+            if masked_compound_used {
+                let ctx_comp_group_idx = get_comp_group_idx_context(xd) as usize;
+                aom_write_symbol(
+                    w,
+                    mbmi.comp_group_idx as i32,
+                    &mut xd.tile_ctx.comp_group_idx_cdf[ctx_comp_group_idx],
+                    2,
+                );
+            } else {
+                debug_assert!(mbmi.comp_group_idx == 0);
+            }
+
+            if mbmi.comp_group_idx == 0 {
+                if mbmi.compound_idx != 0 {
+                    debug_assert!(mbmi.interinter_comp.type_ == COMPOUND_AVERAGE);
+                }
+
+                if cm.seq_params.order_hint_info.enable_dist_wtd_comp != 0 {
+                    let comp_index_ctx = get_comp_index_context(cm, xd) as usize;
+                    aom_write_symbol(
+                        w,
+                        mbmi.compound_idx as i32,
+                        &mut xd.tile_ctx.compound_index_cdf[comp_index_ctx],
+                        2,
+                    );
+                } else {
+                    debug_assert!(mbmi.compound_idx == 1);
+                }
+            } else {
+                debug_assert!(
+                    cpi.common.current_frame.reference_mode != SINGLE_REFERENCE
+                        && is_inter_compound_mode(mbmi.mode)
+                        && mbmi.motion_mode == SIMPLE_TRANSLATION
+                );
+                debug_assert!(masked_compound_used);
+                // compound_diffwtd, wedge
+                // (the masked compounds are never picked by the non-RD mode
+                // search)
+                return Err(());
+            }
+        }
+        write_mb_interp_filter(cm, td, w);
+    }
+    Ok(())
+}
+
+fn write_inter_txb_coeff(
+    cm: &Av1Common,
+    x: &mut Macroblock,
+    mbmi: &MbModeInfo,
+    w: &mut AomWriter,
+    row: i32,
+    col: i32,
+    block: &mut i32,
+    plane: usize,
+) {
+    let xd = &x.e_mbd;
+    let pd = &xd.plane[plane];
+    let bsize = mbmi.bsize;
+    debug_assert!(bsize < BLOCK_SIZES_ALL);
+    let ss_x = pd.subsampling_x;
+    let ss_y = pd.subsampling_y;
+    let plane_bsize = get_plane_block_size(bsize, ss_x, ss_y);
+    debug_assert!(plane_bsize < BLOCK_SIZES_ALL);
+    let max_tx_size = get_vartx_max_txsize(xd, plane_bsize, plane);
+    let step = TX_SIZE_WIDE_UNIT[max_tx_size as usize] as i32
+        * TX_SIZE_HIGH_UNIT[max_tx_size as usize] as i32;
+    let bkw = TX_SIZE_WIDE_UNIT[max_tx_size as usize] as i32;
+    let bkh = TX_SIZE_HIGH_UNIT[max_tx_size as usize] as i32;
+    let max_unit_bsize = get_plane_block_size(BLOCK_64X64, ss_x, ss_y);
+    let num_4x4_w = MI_SIZE_WIDE[plane_bsize as usize] as i32;
+    let num_4x4_h = MI_SIZE_HIGH[plane_bsize as usize] as i32;
+    let mu_blocks_wide = MI_SIZE_WIDE[max_unit_bsize as usize] as i32;
+    let mu_blocks_high = MI_SIZE_HIGH[max_unit_bsize as usize] as i32;
+    let unit_height = (mu_blocks_high + (row >> ss_y)).min(num_4x4_h);
+    let unit_width = (mu_blocks_wide + (col >> ss_x)).min(num_4x4_w);
+    let mut blk_row = row >> ss_y;
+    while blk_row < unit_height {
+        let mut blk_col = col >> ss_x;
+        while blk_col < unit_width {
+            pack_txb_tokens(
+                w,
+                cm,
+                x,
+                mbmi,
+                plane,
+                plane_bsize,
+                *block,
+                blk_row,
+                blk_col,
+                max_tx_size,
+            );
+            *block += step;
+            blk_col += bkw;
+        }
+        blk_row += bkh;
+    }
+}
+
+fn write_mbmi_b(cpi: &Av1Comp, td: &mut ThreadData, w: &mut AomWriter) -> Result<(), ()> {
     let cm = &cpi.common;
     let xd = &mut td.mb.e_mbd;
+    let m = *xd.mbmi();
 
-    // (inter frames: pack_inter_mode_mvs())
-    debug_assert!(frame_is_intra_only(cm));
-    write_mb_modes_kf(cpi, xd, w);
+    if frame_is_intra_only(cm) {
+        write_mb_modes_kf(cpi, xd, w);
+    } else {
+        // has_subpel_mv_component needs the ref frame buffers set up to look
+        // up if they are scaled. has_subpel_mv_component is in turn needed by
+        // write_switchable_interp_filter, which is called by pack_inter_mode_mvs.
+        set_ref_ptrs(cm, xd, m.ref_frame[0], m.ref_frame[1])?;
+
+        // (ENC_MISMATCH_DEBUG is off)
+
+        pack_inter_mode_mvs(cpi, td, w)?;
+    }
+    Ok(())
 }
 
 fn write_tokens_b(cpi: &Av1Comp, x: &mut Macroblock, w: &mut AomWriter) {
@@ -381,9 +1232,46 @@ fn write_tokens_b(cpi: &Av1Comp, x: &mut Macroblock, w: &mut AomWriter) {
 
     debug_assert!(mbmi.skip_txfm == 0);
 
-    // (intra blocks only)
-    debug_assert!(!is_inter_block(&mbmi));
-    av1_write_intra_coeffs_mb(cm, x, w, bsize);
+    let is_inter = is_inter_block(&mbmi);
+    if !is_inter {
+        av1_write_intra_coeffs_mb(cm, x, w, bsize);
+    } else {
+        let mut block = [0i32; MAX_MB_PLANE];
+        let xd = &x.e_mbd;
+        debug_assert!(
+            bsize
+                == get_plane_block_size(
+                    bsize,
+                    xd.plane[0].subsampling_x,
+                    xd.plane[0].subsampling_y
+                )
+        );
+        let num_4x4_w = MI_SIZE_WIDE[bsize as usize] as i32;
+        let num_4x4_h = MI_SIZE_HIGH[bsize as usize] as i32;
+        // (init_token_stats(): CONFIG_RD_DEBUG is off)
+
+        let max_unit_bsize = BLOCK_64X64;
+        let mut mu_blocks_wide = MI_SIZE_WIDE[max_unit_bsize as usize] as i32;
+        let mut mu_blocks_high = MI_SIZE_HIGH[max_unit_bsize as usize] as i32;
+        mu_blocks_wide = num_4x4_w.min(mu_blocks_wide);
+        mu_blocks_high = num_4x4_h.min(mu_blocks_high);
+
+        let num_planes = av1_num_planes(cm);
+        let mut row = 0;
+        while row < num_4x4_h {
+            let mut col = 0;
+            while col < num_4x4_w {
+                for plane in 0..num_planes {
+                    if plane != 0 && !x.e_mbd.is_chroma_ref {
+                        break;
+                    }
+                    write_inter_txb_coeff(cm, x, &mbmi, w, row, col, &mut block[plane], plane);
+                }
+                col += mu_blocks_wide;
+            }
+            row += mu_blocks_high;
+        }
+    }
 }
 
 fn write_modes_b(
@@ -393,7 +1281,7 @@ fn write_modes_b(
     w: &mut AomWriter,
     mi_row: i32,
     mi_col: i32,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let mi_params = &cm.mi_params;
     let grid_idx = (mi_row * mi_params.mi_stride + mi_col) as usize;
@@ -432,7 +1320,7 @@ fn write_modes_b(
     xd.above_contexts_tile_row = tile.tile_row as usize;
     xd.left_txfm_context = (mi_row & MAX_MIB_MASK) as usize;
 
-    write_mbmi_b(cpi, td, w);
+    write_mbmi_b(cpi, td, w)?;
 
     // (palette color maps: no palettes)
     debug_assert!(mbmi.palette_mode_info.palette_size == [0, 0]);
@@ -446,11 +1334,27 @@ fn write_modes_b(
         && !(is_inter_tx && skip_txfm != 0)
         && xd.lossless[segment_id as usize] == 0
     {
-        // (intra: the inter transform partition is not written)
-        debug_assert!(!is_inter_tx);
-        write_selected_tx_size(xd, w);
-        let (wd, ht) = (xd.width as i32, xd.height as i32);
-        set_txfm_ctxs(mbmi.tx_size, wd, ht, false, xd);
+        if is_inter_tx {
+            // This implies skip flag is 0.
+            let max_tx_size = get_vartx_max_txsize(xd, bsize, 0);
+            let txbh = TX_SIZE_HIGH_UNIT[max_tx_size as usize] as i32;
+            let txbw = TX_SIZE_WIDE_UNIT[max_tx_size as usize] as i32;
+            let width = MI_SIZE_WIDE[bsize as usize] as i32;
+            let height = MI_SIZE_HIGH[bsize as usize] as i32;
+            let mut idy = 0;
+            while idy < height {
+                let mut idx = 0;
+                while idx < width {
+                    write_tx_size_vartx(xd, &mbmi, max_tx_size, 0, idy, idx, w);
+                    idx += txbw;
+                }
+                idy += txbh;
+            }
+        } else {
+            write_selected_tx_size(xd, w);
+            let (wd, ht) = (xd.width as i32, xd.height as i32);
+            set_txfm_ctxs(mbmi.tx_size, wd, ht, false, xd);
+        }
     } else {
         let (wd, ht) = (xd.width as i32, xd.height as i32);
         set_txfm_ctxs(mbmi.tx_size, wd, ht, skip_txfm != 0 && is_inter_tx, xd);
@@ -464,6 +1368,7 @@ fn write_modes_b(
         let end = aom_tell_size(w);
         td.coefficient_size += (end - start) as i64;
     }
+    Ok(())
 }
 
 fn write_partition(
@@ -523,7 +1428,7 @@ fn write_modes_sb(
     mi_row: i32,
     mi_col: i32,
     bsize: BlockSize,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let mi_params = &cm.mi_params;
     debug_assert!(bsize < BLOCK_SIZES_ALL);
@@ -533,7 +1438,7 @@ fn write_modes_sb(
     let subsize = get_partition_subsize(bsize, partition);
 
     if mi_row >= mi_params.mi_rows || mi_col >= mi_params.mi_cols {
-        return;
+        return Ok(());
     }
 
     let num_planes = av1_num_planes(cm);
@@ -554,44 +1459,44 @@ fn write_modes_sb(
         w,
     );
     match partition {
-        PARTITION_NONE => write_modes_b(cpi, td, tile, w, mi_row, mi_col),
+        PARTITION_NONE => write_modes_b(cpi, td, tile, w, mi_row, mi_col)?,
         PARTITION_HORZ => {
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col);
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col)?;
             if mi_row + hbs < mi_params.mi_rows {
-                write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col);
+                write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col)?;
             }
         }
         PARTITION_VERT => {
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col);
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col)?;
             if mi_col + hbs < mi_params.mi_cols {
-                write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs);
+                write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs)?;
             }
         }
         PARTITION_SPLIT => {
-            write_modes_sb(cpi, td, tile, w, mi_row, mi_col, subsize);
-            write_modes_sb(cpi, td, tile, w, mi_row, mi_col + hbs, subsize);
-            write_modes_sb(cpi, td, tile, w, mi_row + hbs, mi_col, subsize);
-            write_modes_sb(cpi, td, tile, w, mi_row + hbs, mi_col + hbs, subsize);
+            write_modes_sb(cpi, td, tile, w, mi_row, mi_col, subsize)?;
+            write_modes_sb(cpi, td, tile, w, mi_row, mi_col + hbs, subsize)?;
+            write_modes_sb(cpi, td, tile, w, mi_row + hbs, mi_col, subsize)?;
+            write_modes_sb(cpi, td, tile, w, mi_row + hbs, mi_col + hbs, subsize)?;
         }
         PARTITION_HORZ_A => {
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col);
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs);
-            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col);
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col)?;
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs)?;
+            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col)?;
         }
         PARTITION_HORZ_B => {
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col);
-            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col);
-            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col + hbs);
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col)?;
+            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col)?;
+            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col + hbs)?;
         }
         PARTITION_VERT_A => {
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col);
-            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col);
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs);
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col)?;
+            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col)?;
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs)?;
         }
         PARTITION_VERT_B => {
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col);
-            write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs);
-            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col + hbs);
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col)?;
+            write_modes_b(cpi, td, tile, w, mi_row, mi_col + hbs)?;
+            write_modes_b(cpi, td, tile, w, mi_row + hbs, mi_col + hbs)?;
         }
         PARTITION_HORZ_4 => {
             for i in 0..4 {
@@ -600,7 +1505,7 @@ fn write_modes_sb(
                     break;
                 }
 
-                write_modes_b(cpi, td, tile, w, this_mi_row, mi_col);
+                write_modes_b(cpi, td, tile, w, this_mi_row, mi_col)?;
             }
         }
         PARTITION_VERT_4 => {
@@ -610,7 +1515,7 @@ fn write_modes_sb(
                     break;
                 }
 
-                write_modes_b(cpi, td, tile, w, mi_row, this_mi_col);
+                write_modes_b(cpi, td, tile, w, mi_row, this_mi_col)?;
             }
         }
         _ => debug_assert!(false),
@@ -618,9 +1523,15 @@ fn write_modes_sb(
 
     // update partition context
     update_ext_partition_context(&mut td.mb.e_mbd, mi_row, mi_col, subsize, bsize, partition);
+    Ok(())
 }
 
-fn write_modes(cpi: &Av1Comp, td: &mut ThreadData, tile: &TileInfo, w: &mut AomWriter) {
+fn write_modes(
+    cpi: &Av1Comp,
+    td: &mut ThreadData,
+    tile: &TileInfo,
+    w: &mut AomWriter,
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let mi_row_start = tile.mi_row_start;
     let mi_row_end = tile.mi_row_end;
@@ -649,11 +1560,12 @@ fn write_modes(cpi: &Av1Comp, td: &mut ThreadData, tile: &TileInfo, w: &mut AomW
         let mut mi_col = mi_col_start;
         while mi_col < mi_col_end {
             td.mb.cb_coef_buff = av1_get_cb_coeff_buffer(cpi, mi_row, mi_col);
-            write_modes_sb(cpi, td, tile, w, mi_row, mi_col, cm.seq_params.sb_size);
+            write_modes_sb(cpi, td, tile, w, mi_row, mi_col, cm.seq_params.sb_size)?;
             mi_col += cm.seq_params.mib_size;
         }
         mi_row += cm.seq_params.mib_size;
     }
+    Ok(())
 }
 
 fn encode_restoration_mode(cm: &Av1Common) -> Result<(), ()> {
@@ -1765,7 +2677,7 @@ fn av1_pack_tile_info(
 
     // Pack tile data
     aom_start_encode(&mut mode_bc);
-    write_modes(cpi, td, &tile_info, &mut mode_bc);
+    write_modes(cpi, td, &tile_info, &mut mode_bc)?;
     let ts = *total_size as usize;
     if aom_stop_encode(&mut mode_bc, &mut dst[ts..]) < 0 {
         return Err(());

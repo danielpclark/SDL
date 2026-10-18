@@ -19,6 +19,7 @@
 //! in while the tiles are encoded or packed, like the frame state of
 //! `MacroBlockD`.
 
+use super::enc_enums::MAX_MODES;
 use crate::aom::aom_dsp::aom_dsp_common::TranLowT;
 use crate::aom::av1::common::blockd::{Buf2d, CandidateMv, MacroBlockD, MAX_MB_PLANE};
 use crate::aom::av1::common::entropy::*;
@@ -537,6 +538,17 @@ pub(crate) struct ContentStateSb {
     pub(crate) low_sumdiff: i32,
 }
 
+/// Translation of `WARP_SAMPLE_INFO`: the warp motion samples.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct WarpSampleInfo {
+    /// Number of samples.
+    pub(crate) num: i32,
+    /// Sample locations in current frame.
+    pub(crate) pts: [i32; 16],
+    /// Sample location in the reference frame.
+    pub(crate) pts_inref: [i32; 16],
+}
+
 /// Translation of `MACROBLOCK` (see the module documentation).
 #[derive(Debug)]
 pub(crate) struct Macroblock {
@@ -636,6 +648,13 @@ pub(crate) struct Macroblock {
     /// The largest candidate motion vector component of each reference
     /// (in full pixels).
     pub(crate) max_mv_context: [i32; REF_FRAMES as usize],
+    /// The sum of squared errors of the last prediction of each reference.
+    pub(crate) pred_sse: [u32; REF_FRAMES as usize],
+    /// Warp motion samples buffer.
+    pub(crate) warp_sample_info: [WarpSampleInfo; REF_FRAMES as usize],
+    /// The adaptive mode search thresholds' factors
+    /// (`thresh_freq_fact[BLOCK_SIZES_ALL][MAX_MODES]`).
+    pub(crate) thresh_freq_fact: Box<[[i32; MAX_MODES as usize]; BLOCK_SIZES_ALL as usize]>,
 
     /// Whether to reuse the prediction for an inter block.
     pub(crate) reuse_inter_pred: bool,
@@ -717,6 +736,9 @@ impl Default for Macroblock {
             pred_mv0_sad: [0; REF_FRAMES as usize],
             pred_mv1_sad: [0; REF_FRAMES as usize],
             max_mv_context: [0; REF_FRAMES as usize],
+            pred_sse: [0; REF_FRAMES as usize],
+            warp_sample_info: [WarpSampleInfo::default(); REF_FRAMES as usize],
+            thresh_freq_fact: Box::new([[0; MAX_MODES as usize]; BLOCK_SIZES_ALL as usize]),
             reuse_inter_pred: false,
             txfm_search_params: TxfmSearchParams::default(),
             txfm_search_info: TxfmSearchInfo::default(),

@@ -757,6 +757,22 @@ fn sad_per_bit_lut(qindex: i32, bit_depth: i32) -> i32 {
 
 const RD_THRESH_POW: f64 = 1.25;
 
+pub(crate) const RD_THRESH_FAC_FRAC_BITS: i32 = 5;
+pub(crate) const RD_THRESH_FAC_FRAC_VAL: i32 = 1 << RD_THRESH_FAC_FRAC_BITS;
+pub(crate) const RD_THRESH_MAX_FACT: i32 = RD_THRESH_FAC_FRAC_VAL << 1;
+pub(crate) const RD_THRESH_LOG_DEC_FACTOR: i32 = 4;
+pub(crate) const RD_THRESH_INC: i32 = 1;
+
+/// Translation of `reset_thresh_freq_fact()` (rd.h).
+#[inline]
+pub(crate) fn reset_thresh_freq_fact(x: &mut Macroblock) {
+    for i in 0..BLOCK_SIZES_ALL as usize {
+        for j in 0..MAX_MODES as usize {
+            x.thresh_freq_fact[i][j] = RD_THRESH_FAC_FRAC_VAL;
+        }
+    }
+}
+
 // The baseline rd thresholds for breaking out of the rd loop for
 // certain modes are assumed to be based on 8x8 blocks.
 // This table is used to correct for block size.
