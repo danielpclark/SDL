@@ -1353,31 +1353,39 @@ impl AvifEncoderContext {
                 .as_ref()
                 .filter(|m| crate::anim_encoder::has_metadata(m))
             {
-                // FIXME (upstream): any metadata property (the loop count
-                // alone, say) gets here, and without one of the five XMP
-                // strings no XMP is constructed, which fails the frame.
-                let xmp_data = xmlman::construct_xmp_with_rdf_description(
-                    metadata.get_string(PROP_METADATA_TITLE_STRING).as_deref(),
-                    metadata.get_string(PROP_METADATA_AUTHOR_STRING).as_deref(),
-                    metadata
-                        .get_string(PROP_METADATA_DESCRIPTION_STRING)
-                        .as_deref(),
-                    metadata
-                        .get_string(PROP_METADATA_COPYRIGHT_STRING)
-                        .as_deref(),
-                    metadata
-                        .get_string(PROP_METADATA_CREATION_TIME_STRING)
-                        .as_deref(),
-                );
-                let Some(xmp_data) = xmp_data.filter(|d| !d.is_empty()) else {
-                    return Err(Error::new("Couldn't create XMP data for AVIF image"));
-                };
-                let ar = avif_image_set_metadata_xmp(&mut image, &xmp_data);
-                if ar != AvifResult::Ok {
-                    return Err(Error::new(format!(
-                        "Couldn't set XMP metadata for AVIF image: {}",
-                        avif_result_to_string(ar)
-                    )));
+                let title = metadata.get_string(PROP_METADATA_TITLE_STRING);
+                let author = metadata.get_string(PROP_METADATA_AUTHOR_STRING);
+                let description = metadata.get_string(PROP_METADATA_DESCRIPTION_STRING);
+                let copyright = metadata.get_string(PROP_METADATA_COPYRIGHT_STRING);
+                let creation_time = metadata.get_string(PROP_METADATA_CREATION_TIME_STRING);
+                // Note (upstream): upstream constructs the XMP for any
+                // metadata property (the loop count alone, say), and without
+                // one of the five XMP strings none is constructed, which
+                // fails the frame; the translation fixes it, writing no XMP
+                // then.
+                if title.is_some()
+                    || author.is_some()
+                    || description.is_some()
+                    || copyright.is_some()
+                    || creation_time.is_some()
+                {
+                    let xmp_data = xmlman::construct_xmp_with_rdf_description(
+                        title.as_deref(),
+                        author.as_deref(),
+                        description.as_deref(),
+                        copyright.as_deref(),
+                        creation_time.as_deref(),
+                    );
+                    let Some(xmp_data) = xmp_data.filter(|d| !d.is_empty()) else {
+                        return Err(Error::new("Couldn't create XMP data for AVIF image"));
+                    };
+                    let ar = avif_image_set_metadata_xmp(&mut image, &xmp_data);
+                    if ar != AvifResult::Ok {
+                        return Err(Error::new(format!(
+                            "Couldn't set XMP metadata for AVIF image: {}",
+                            avif_result_to_string(ar)
+                        )));
+                    }
                 }
             }
         }

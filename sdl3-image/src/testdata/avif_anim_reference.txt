@@ -11,11 +11,11 @@ anim rgbx_16x16_grad_f3 q90: 1228 e908a75f3d6665e1
 anim rgbx_16x16_grad_f3 q100: frame 0 err: Failed to add image to avif encoder: No YUV format selected
 anim rgba_17x9_shapes_a_f4 q50: 3998 f4af78681808df1e
 anim rgba_17x9_shapes_a_f4 q90: 4590 fc55c6a8fb5bd4be
-anim rgbx_33x21_tex_f6 q25: frame 0 err: Couldn't create XMP data for AVIF image
-anim rgbx_33x21_tex_f6 q75: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_33x21_tex_f6 q25: 1545 3849a185352caceb
+anim rgbx_33x21_tex_f6 q75: 2810 1eca8b4680306902
 anim rgba_24x24_noise_a_f2 q50: 4264 5335b5a084a978bc
 anim argb_40x30_shapes_bin_f5 q60: 5085 67e74e465e7b5fd4
-anim rgbx_48x40_still_f4 q50: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_48x40_still_f4 q50: 1389 bd182ae697bdea2f
 anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
 anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
 anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
@@ -57,11 +57,11 @@ anim rgbx_16x16_grad_f3 q90: 1228 e908a75f3d6665e1
 anim rgbx_16x16_grad_f3 q100: frame 0 err: Failed to add image to avif encoder: No YUV format selected
 anim rgba_17x9_shapes_a_f4 q50: 3998 f4af78681808df1e
 anim rgba_17x9_shapes_a_f4 q90: 4590 fc55c6a8fb5bd4be
-anim rgbx_33x21_tex_f6 q25: frame 0 err: Couldn't create XMP data for AVIF image
-anim rgbx_33x21_tex_f6 q75: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_33x21_tex_f6 q25: 1545 3849a185352caceb
+anim rgbx_33x21_tex_f6 q75: 2810 1eca8b4680306902
 anim rgba_24x24_noise_a_f2 q50: 4264 5335b5a084a978bc
 anim argb_40x30_shapes_bin_f5 q60: 5085 67e74e465e7b5fd4
-anim rgbx_48x40_still_f4 q50: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_48x40_still_f4 q50: 1389 bd182ae697bdea2f
 anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
 anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
 anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
@@ -103,11 +103,11 @@ anim rgbx_16x16_grad_f3 q90: 1228 e908a75f3d6665e1
 anim rgbx_16x16_grad_f3 q100: frame 0 err: Failed to add image to avif encoder: No YUV format selected
 anim rgba_17x9_shapes_a_f4 q50: 3998 f4af78681808df1e
 anim rgba_17x9_shapes_a_f4 q90: 4590 fc55c6a8fb5bd4be
-anim rgbx_33x21_tex_f6 q25: frame 0 err: Couldn't create XMP data for AVIF image
-anim rgbx_33x21_tex_f6 q75: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_33x21_tex_f6 q25: 1545 3849a185352caceb
+anim rgbx_33x21_tex_f6 q75: 2810 1eca8b4680306902
 anim rgba_24x24_noise_a_f2 q50: 4264 5335b5a084a978bc
 anim argb_40x30_shapes_bin_f5 q60: 5085 67e74e465e7b5fd4
-anim rgbx_48x40_still_f4 q50: frame 0 err: Couldn't create XMP data for AVIF image
+anim rgbx_48x40_still_f4 q50: 1389 bd182ae697bdea2f
 anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
 anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
 anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
