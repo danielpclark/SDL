@@ -225,8 +225,14 @@ fn seek_sample_streams(
                 put_header(&mut blockbuff, &wps.wphdr);
             }
 
-            // FIXME (upstream): unlike WavpackUnpackSamples(), this doesn't take
-            // the initial index off the block index of the other streams.
+            // Note (upstream): unlike WavpackUnpackSamples(), this doesn't take
+            // the initial index off the block index of the other streams
+            // there (so in a file that doesn't start at 0, their blocks
+            // matched no correction block and started at the wrong sample);
+            // the translation does, as WavpackUnpackSamples() does.
+            let index = get_block_index(&wps.wphdr) - wpc.initial_index;
+            set_block_index(&mut wps.wphdr, index);
+            put_header(&mut blockbuff, &wps.wphdr);
             wps.blockbuff = Some(blockbuff);
             wps.init_done = FALSE;
 
