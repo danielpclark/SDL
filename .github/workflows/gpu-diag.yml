@@ -9,172 +9,196 @@ permissions:
 
 env:
   RUST_TOOLCHAIN: "1.99"
-  CARGO_TERM_COLOR: never
+  CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
-  MESA_VERSION: "26.2.4"
-  MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
-  MOLTENVK_VERSION: "v1.4.2"
-  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
-  VULKAN_LOADER_TAG: "vulkan-sdk-1.4.363.0"
-  VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
 
 jobs:
-  windows:
-    runs-on: windows-latest
-    timeout-minutes: 60
+  test:
+    name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+        # the pinned toolchain, and the minimum supported version
+        # (rust-version in Cargo.toml)
+        toolchain: [pinned]
+    runs-on: ${{ matrix.os }}
+    # The pinned Windows job (debug, the zlib-only mixer, then release) takes
+    # close to 30 minutes; this still stops a hung run.
+    timeout-minutes: 45
     env:
-      GALLIUM_DRIVER: llvmpipe
+      # Print a failing test's panic as it happens rather than in the summary
+      # at the end, so a run that then hangs still shows what went wrong.
+      RUST_TEST_NOCAPTURE: 1
+      # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
+      # the packages and drivers installed below provide: tests that would
+      # skip without them fail instead. Not uinput on ubuntu (the runner
+      # can't use /dev/uinput), nor what a hosted runner doesn't pin down
+      # (an audio endpoint, GameInput, a camera); not vulkan and egl on
+      # Windows, where a check of each skips by design (see "Check the
+      # Windows skips" below).
+      LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales
+      WINDOWS_REQUIRE: wgl
+      MACOS_REQUIRE: vulkan
+      # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
+      # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and EGL,
+      # lavapipe Vulkan), the Khronos Vulkan loader built from its SDK tag
+      # (Windows has none), and MoltenVK's release build for macOS.
+      MESA_VERSION: "26.2.4"
+      MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
+      VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
+      VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
+      MOLTENVK_VERSION: v1.4.2
+      MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          toolchain: ${{ matrix.toolchain == 'pinned' && env.RUST_TOOLCHAIN || matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: diag
-      - name: Mesa
+          key: ${{ matrix.toolchain }}
+      # What the Linux tests that would otherwise skip need (see
+      # docs/HARDWARE_TESTING.md): an X server, Mesa's software GL, EGL and
+      # Vulkan, a headless Wayland compositor, the PulseAudio binary, and a
+      # PipeWire server with WirePlumber and null devices.
+      - name: Install the test environment
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libegl1 libgles2 \
+            mesa-vulkan-drivers libvulkan1 libxtst6 libwayland-client0 \
+            libwayland-egl1 libwayland-cursor0 libxkbcommon0 sway \
+            pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
+            libudev1 libasound2t64 libdbus-1-3 dbus-daemon tzdata locales
+          XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" tools/ci/start-pipewire.sh
+      # The GPU driver downloads and the Vulkan loader build, kept between
+      # runs (the archives are checked again on every run).
+      - name: Cache the GPU drivers
+        if: runner.os != 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/gpu
+          key: gpu-${{ runner.os }}-mesa-${{ env.MESA_VERSION }}-loader-${{ env.VULKAN_LOADER_COMMIT }}-moltenvk-${{ env.MOLTENVK_VERSION }}
+      # Mesa's opengl32.dll next to the test executables, where it's found
+      # before System32's (Mesa's per-application deployment), with its
+      # libgallium_wgl.dll, libEGL.dll and libGLESv2.dll and the Vulkan
+      # loader; lavapipe's ICD in the registry (the loader ignores
+      # VK_DRIVER_FILES in an elevated process, as the runner's). Mesa's
+      # settings: llvmpipe (on the runner's Microsoft Basic Render Driver
+      # Mesa picks its d3d12 driver, whose glReadPixels ends the process),
+      # and EGL's Windows platform for the default display (whose windows
+      # SDL's EGL surfaces are made on; this build defaults to surfaceless).
+      - name: Install the GPU drivers (Windows)
+        if: runner.os == 'Windows'
         shell: bash
         run: |
-          set -x
-          mkdir -p "$RUNNER_TEMP/mesa" && cd "$RUNNER_TEMP/mesa"
-          curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
+          G="$RUNNER_TEMP/gpu"
+          mkdir -p "$G"
+          cd "$G"
+          if [ ! -f mesa.7z ]; then
+            curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
+          fi
           echo "$MESA_SHA256  mesa.7z" | sha256sum -c
-          7z x -y mesa.7z x64 > /dev/null
-          ls x64
-      - name: Vulkan loader
-        shell: bash
-        run: |
-          cd "$RUNNER_TEMP"
-          git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader
-          cd Vulkan-Loader
-          test "$(git rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
-          time cmake -S . -B build -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > cmake.log 2>&1 || { tail -50 cmake.log; exit 1; }
-          time cmake --build build --config Release --parallel > build.log 2>&1 || { tail -80 build.log; exit 1; }
-      - name: Deploy
-        shell: bash
-        run: |
-          set -x
-          M="$RUNNER_TEMP/mesa/x64"
-          L="$RUNNER_TEMP/Vulkan-Loader/build/loader/Release"
+          7z x -y -omesa mesa.7z x64 > /dev/null
+          if [ ! -f vulkan-1.dll ]; then
+            git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader loader
+            test "$(git -C loader rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
+            cmake -S loader -B loader/build -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > cmake.log 2>&1 || { tail -50 cmake.log; exit 1; }
+            cmake --build loader/build --config Release --parallel > build.log 2>&1 || { tail -80 build.log; exit 1; }
+            cp loader/build/loader/Release/vulkan-1.dll .
+            rm -rf loader
+          fi
+          cd "$GITHUB_WORKSPACE"
           for d in target/debug/deps target/release/deps; do
-            mkdir -p $d
-            cp "$M"/opengl32.dll "$M"/libgallium_wgl.dll "$M"/libEGL.dll "$M"/libGLESv2.dll "$L/vulkan-1.dll" $d/
+            mkdir -p "$d"
+            cp "$G"/mesa/x64/{opengl32,libgallium_wgl,libEGL,libGLESv2}.dll "$G/vulkan-1.dll" "$d/"
           done
-          # (the loader ignores VK_DRIVER_FILES in an elevated process, as the
-          # runner's)
-          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$M/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
-          MSYS_NO_PATHCONV=1 reg query 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers'
-      - name: EGL logged
-        shell: bash
-        continue-on-error: true
-        env:
-          EGL_LOG_LEVEL: debug
-          SDL_LOGGING: "*=verbose"
+          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/mesa/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
+          echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
+          echo "EGL_PLATFORM=windows" >> "$GITHUB_ENV"
+      # MoltenVK's dylib in /usr/local/lib, where upstream's default
+      # libMoltenVK.dylib is found, without a loader: through one, MoltenVK's
+      # devices need portability enumeration, which upstream's Vulkan
+      # renderer doesn't ask for. MTL_DEBUG_LAYER=0: the GPU API's Metal
+      # devices in debug mode turn Metal's API validation on for the rest of
+      # the process (as upstream's do), and under it MoltenVK (1.3.0 to
+      # 1.4.2) draws some of the GPU renderer's checks wrongly
+      # (docs/HARDWARE_TESTING.md).
+      - name: Install the GPU drivers (macOS)
+        if: runner.os == 'macOS'
         run: |
-          cargo test -p sdl3 --lib forced_egl_context -- --nocapture > "$RUNNER_TEMP/egl.log" 2>&1 || true
-          set +e
-          B="https://gitlab.freedesktop.org/mesa/mesa/-/raw/mesa-$MESA_VERSION"
-          curl -fsSL "$B/src/egl/main/eglapi.c" -o eglapi.c
-          curl -fsSL "$B/src/egl/drivers/wgl/egl_wgl.c" -o egl_wgl.c
-          curl -fsSL "$B/src/egl/main/eglsurface.c" -o eglsurface.c
-          {
-            echo "=== eglapi.c"; grep -n -B8 -A2 "BAD_NATIVE_WINDOW" eglapi.c | head -80
-            echo "=== eglsurface.c"; grep -n -B8 -A2 "BAD_NATIVE_WINDOW" eglsurface.c | head -40
-            echo "=== egl_wgl.c"; grep -n -A45 "^wgl_create_window_surface" egl_wgl.c | head -60
-          } >> "$RUNNER_TEMP/egl.log"
-          true
-      - name: GL under cdb
-        if: false
-        shell: bash
-        continue-on-error: true
-        run: |
-          ls "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/" | head -5 || true
-          cargo test -p sdl3 --lib wgl_context -- --nocapture 2>&1 | grep -E "GL_|test |panicked" | cut -c1-300
-          EXE=$(ls -t target/debug/deps/sdl3-*.exe | head -1)
-          echo "EXE=$EXE"
-          cd "$RUNNER_TEMP/mesa"
-          curl -fsSL -o dbg.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-debug-info-msvc.7z"
-          7z x -y dbg.7z > /dev/null; ls; find . -name 'libgallium_wgl.pdb' -o -name 'opengl32.pdb' | head
-          cd -
-          PDBS=$(find "$RUNNER_TEMP/mesa" -name libgallium_wgl.pdb -printf '%h;' 2>/dev/null)
-          CDB="/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe"
-          "$CDB" -g -lines -y "$(cygpath -w "$RUNNER_TEMP/mesa/x64");$PDBS;$(cygpath -w target/debug/deps)" -c ".symopt+0x40; kn 60; ~*kn 8; q" "$EXE" render::opengl::tests::debug_context_reports_errors --nocapture --test-threads=1 > "$RUNNER_TEMP/cdb.log" 2>&1 || true
-          grep -v "^ModLoad\|^\*\*\*\|Symbol search" "$RUNNER_TEMP/cdb.log" | tail -150 | cut -c1-300
-      - name: Summary
-        if: always()
-        shell: bash
-        run: |
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/egl.log" | tail -330 | cut -c1-200 || true
-          echo "=== failures"
-          sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
-          grep -A6 "panicked at" "$RUNNER_TEMP/test.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
-          echo "=== skip counts"
-          cut -f1 "$RUNNER_TEMP/skips.tsv" | sort | uniq -c || true
-          echo "=== skips"
-          sort -u "$RUNNER_TEMP/skips.tsv" | cut -c1-300 || true
-          grep -E "^test result|GL_VERSION|GL_RENDERER" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test1.log" | cut -c1-300 || true
-
-  macos:
-    runs-on: macos-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: diag
-      - name: MoltenVK
-        run: |
-          set -x
-          mkdir -p "$RUNNER_TEMP/mvk" && cd "$RUNNER_TEMP/mvk"
-          curl -fsSL -o mvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
-          echo "$MOLTENVK_SHA256  mvk.tar" | shasum -a 256 -c
-          tar xf mvk.tar
-          D=$(dirname "$(find . -path '*dynamic*macOS*' -name libMoltenVK.dylib | head -1)")
-          ls -la "$D"
+          G="$RUNNER_TEMP/gpu"
+          mkdir -p "$G"
+          cd "$G"
+          if [ ! -f moltenvk.tar ]; then
+            curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          fi
+          echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
+          tar xf moltenvk.tar MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
           sudo mkdir -p /usr/local/lib
-          sudo cp "$D/libMoltenVK.dylib" /usr/local/lib/
-      - name: cargo test gpu_render_states (alone, module, render)
-        continue-on-error: true
+          sudo cp MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib /usr/local/lib/
+          echo "MTL_DEBUG_LAYER=0" >> "$GITHUB_ENV"
+      - run: cargo test --workspace
         env:
-          MVK_CONFIG_LOG_LEVEL: "4"
-          SDL_LOGGING: "gpu=verbose,render=verbose"
-        run: |
-          cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
-          T=render::gpu::tests::gpu_render_states
-          ( for v in v1.4.2 v1.4.1 v1.3.0 v1.2.11; do
-              echo "=== MoltenVK $v, validation: render::gpu"
-              mkdir -p "$RUNNER_TEMP/m-$v" && cd "$RUNNER_TEMP/m-$v"
-              curl -fsSL -o m.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$v/MoltenVK-macos.tar" && tar xf m.tar
-              D=$(dirname "$(find . -path '*dynamic*macOS*' -name libMoltenVK.dylib | head -1)")
-              sudo cp "$D/libMoltenVK.dylib" /usr/local/lib/
-              cd "$GITHUB_WORKSPACE"
-              MTL_DEBUG_LAYER=1 cargo test -q -p sdl3 --lib render::gpu:: 2>&1 | grep -E "test result|pixels differ|^without|MoltenVK [0-9]" | cut -c1-200
-            done
-            sudo cp "$RUNNER_TEMP/m-v1.4.2/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
-          ) > "$RUNNER_TEMP/dbg.log" 2>&1 || true
-      - name: cargo test
-        continue-on-error: true
+          # Skips are listed in the job summary; the capabilities installed
+          # above are required, so a test that can't find one fails instead
+          # of skipping.
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || env.MACOS_REQUIRE }}
+      # sdl3-mixer without its default `timidity`, `fluidsynth`, `mpg123` and
+      # `gme` features: the zlib-only build, without sdl3-mixer-timidity,
+      # sdl3-mixer-fluidsynth, sdl3-mixer-mpg123 and sdl3-mixer-gme.
+      - name: cargo test -p sdl3-mixer --no-default-features
+        run: cargo test -p sdl3-mixer --no-default-features
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-          RUST_TEST_NOCAPTURE: 1
-        run: |
-          time cargo test -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1 || true
-          time cargo test -p sdl3 --test cocoa --test cocoa_metal > "$RUNNER_TEMP/test2.log" 2>&1 || true
-          grep -E "cocoa:|panicked|skipping" "$RUNNER_TEMP/test2.log" | tail -40
-      - name: Summary
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || env.MACOS_REQUIRE }}
+      - name: cargo test --release
+        if: matrix.toolchain == 'pinned'
+        run: cargo test --workspace --release
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || env.MACOS_REQUIRE }}
+      - name: List the skipped checks
         if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: |
-          grep -v "^ *[0-9]*: \|^ *at \|^\s*Compiling\|^\t" "$RUNNER_TEMP/dbg.log" | tail -80 | cut -c1-300 || true
-          echo "=== failures"
-          sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
-          grep -A6 "panicked at" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test2.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
-          echo "=== skip counts"
+          if [ -s "$SDL3_TEST_SKIP_LOG" ]; then
+            {
+              echo "### Skipped checks (${{ matrix.os }}, ${{ matrix.toolchain }})"
+              echo
+              echo "| capability | test | reason |"
+              echo "|---|---|---|"
+              sort -u "$SDL3_TEST_SKIP_LOG" | sed 's/|/\\|/g; s/\t/ | /g; s/^/| /; s/$/ |/'
+            } >> "$GITHUB_STEP_SUMMARY"
+            cut -f1 "$SDL3_TEST_SKIP_LOG" | sort | uniq -c
+          else
+            echo "no checks skipped"
+          fi
+      # On Windows lavapipe has no VK_EXT_headless_surface, so the offscreen
+      # driver's Vulkan check skips, and the offscreen driver has no EGL
+      # there (nor on macOS), so the OpenGL ES 2 renderer's checks skip:
+      # `vulkan` and `egl` can't be required, but any other skip of them
+      # fails the job.
+      - name: Check the Windows skips
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          if [ -f "$SDL3_TEST_SKIP_LOG" ] && grep -P '^(vulkan|egl)\t' "$SDL3_TEST_SKIP_LOG" \
+              | grep -vP '^vulkan\tvideo::drivers::offscreen::vulkan::tests::offscreen_vulkan_surfaces\tno VK_EXT_headless_surface$' \
+              | grep -vP '^egl\trender::opengles2::tests::\w+\tno OpenGL ES [23] (renderer|window) \(.*video driver \(offscreen\) or platform\)$'; then
+            echo "::error::vulkan or egl checks skipped (above)"
+            exit 1
+          fi
+      - name: Skips (for the diag log)
+        if: always()
+        shell: bash
+        run: |
           cut -f1 "$RUNNER_TEMP/skips.tsv" | sort | uniq -c || true
-          echo "=== skips"
-          sort -u "$RUNNER_TEMP/skips.tsv" | cut -c1-300 || true
-          grep -E "^test result" "$RUNNER_TEMP/test.log" || true
+          sort -u "$RUNNER_TEMP/skips.tsv" | cut -c1-250 || true

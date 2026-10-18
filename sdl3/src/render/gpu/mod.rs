@@ -1013,10 +1013,8 @@ impl GpuRenderer {
         }
 
         let Some((_, attachment_format)) = self.target_texture(textures) else {
-            eprintln!("DIAG draw: no target");
             return;
         };
-        eprintln!("DIAG draw {:?} {:?} {:?} n={} off={} custom={}", v_shader, f_shader, prim, num_verts, offset, custom_frag_shader.is_some());
         let pipe_params = PipelineParameters {
             blend_mode: cmd.blend,
             vert_shader: v_shader,
@@ -1029,15 +1027,11 @@ impl GpuRenderer {
         let Some(shaders) = &self.shaders else {
             return;
         };
-        let pipe = match self
+        let Ok(pipe) = self
             .pipeline_cache
             .get_pipeline(shaders, &self.device, &pipe_params)
-        {
-            Ok(p) => p,
-            Err(e) => {
-                eprintln!("DIAG draw: no pipeline: {}", e.message());
-                return;
-            }
+        else {
+            return;
         };
 
         pass.bind_graphics_pipeline(pipe);
