@@ -20,7 +20,8 @@
 //!
 //! Upstream's C was patched where the translation works around its memory
 //! errors (the `Note (upstream)` notes: buffers it leaves uninitialized
-//! are zeroed, as the translation's are), and built to use SDL's bundled
+//! are zeroed, as the translation's are) and where the translation fixes
+//! its bugs (`Timidity_PlaySome()`'s output), and built to use SDL's bundled
 //! math functions, as sdl3's are, rather than the C library's. The files
 //! here don't hit the places where the translation does something defined
 //! where upstream reads or writes out of bounds.
@@ -188,7 +189,7 @@ fn render(out: &mut String, data: &[u8], v: &Variant, seek: u32) {
             h = fnv(h, &buf[..r as usize]);
         }
         write!(out, " rc={r} {h:016x}").unwrap();
-        /* three buffers at once: each goes to the start */
+        /* three buffers at once */
         song.start();
         buf.fill(0xAA);
         r = song.play_some(&mut buf);

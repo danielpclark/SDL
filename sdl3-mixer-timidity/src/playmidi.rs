@@ -625,17 +625,27 @@ fn do_compute_data(song: &mut MidiSong, count: i32) {
 
 /* count=0 means flush remaining buffered data to output device, then
 flush the device itself */
-fn compute_data(song: &mut MidiSong, stream: &mut [u8], mut count: i32) {
+// (`pos` is where in `stream` the next buffer goes; see the Note below.)
+fn compute_data(song: &mut MidiSong, stream: &mut [u8], pos: &mut usize, mut count: i32) {
     let channels = if song.encoding & PE_MONO != 0 { 1 } else { 2 };
+    let bytes = if song.encoding & PE_32BIT != 0 {
+        4
+    } else if song.encoding & PE_16BIT != 0 {
+        2
+    } else {
+        1
+    };
 
     if count == 0 {
         if song.buffered_count != 0 {
+            let at = (*pos).min(stream.len());
             write(
                 song.write,
-                stream,
+                &mut stream[at..],
                 &song.common_buffer,
                 channels * song.buffered_count,
             );
+            *pos += (channels * song.buffered_count) as usize * bytes;
         }
         song.buffer_pointer = 0;
         song.buffered_count = 0;
@@ -645,15 +655,17 @@ fn compute_data(song: &mut MidiSong, stream: &mut [u8], mut count: i32) {
     while (count + song.buffered_count) >= song.buffer_size {
         do_compute_data(song, song.buffer_size - song.buffered_count);
         count -= song.buffer_size - song.buffered_count;
-        // FIXME (upstream): every buffer goes to the start of `stream`
+        // Note (upstream): every buffer goes to the start of `stream` there
         // (the caller's sole buffer when it asks for buffer_size samples,
-        // as SDL_mixer does).
+        // as SDL_mixer does); the translation puts each after the last.
+        let at = (*pos).min(stream.len());
         write(
             song.write,
-            stream,
+            &mut stream[at..],
             &song.common_buffer,
             channels * song.buffer_size,
         );
+        *pos += (channels * song.buffer_size) as usize * bytes;
         song.buffer_pointer = 0;
         song.buffered_count = 0;
     }
@@ -722,10 +734,10 @@ impl MidiSong {
     /// at the end of the song, and 0 when it isn't playing. Translation of
     /// `Timidity_PlaySome()`.
     ///
-    /// As upstream, audio is written to `stream` a buffer (the `samples`
-    /// given to [`MidiSong::load`]) at a time, each to the start of
-    /// `stream`: ask for exactly a buffer at a time. At the end of the
-    /// song, the audio rendered since the last full buffer isn't written.
+    /// All of the bytes it returns are written (upstream wrote every
+    /// buffer, the `samples` given to [`MidiSong::load`], to the start of
+    /// `stream`, and at the end of the song didn't write what it had
+    /// rendered since the last full buffer).
     pub fn play_some(&mut self, stream: &mut [u8]) -> i32 {
         let len = stream.len().min(i32::MAX as usize) as i32;
 
@@ -746,6 +758,7 @@ impl MidiSong {
 
         let start_sample = self.current_sample;
         let end_sample = self.current_sample.wrapping_add(samples);
+        let mut pos = 0;
         while self.current_sample < end_sample {
             /* Handle all events that should happen at this time */
             while self.events[self.current_event].time <= self.current_sample {
@@ -828,6 +841,11 @@ impl MidiSong {
                         crate::snddbg!("Notes cut: {}\n", self.cut_notes);
                         crate::snddbg!("Notes lost totally: {}\n", self.lost_notes);
                         self.playing = 0;
+                        // Note (upstream): this returns the samples rendered
+                        // since the last full buffer without writing them
+                        // there (the end of the song is lost); the
+                        // translation writes them first.
+                        compute_data(self, stream, &mut pos, 0);
                         return self
                             .current_sample
                             .wrapping_sub(start_sample)
@@ -840,11 +858,14 @@ impl MidiSong {
             }
             let next_time = self.events[self.current_event].time;
             if next_time > end_sample {
-                compute_data(self, stream, end_sample - self.current_sample);
+                compute_data(self, stream, &mut pos, end_sample - self.current_sample);
             } else {
-                compute_data(self, stream, next_time - self.current_sample);
+                compute_data(self, stream, &mut pos, next_time - self.current_sample);
             }
         }
+        // (and what isn't a full buffer goes out with the rest: it's
+        // counted in what this returns.)
+        compute_data(self, stream, &mut pos, 0);
         samples * bytes_per_sample
     }
 
