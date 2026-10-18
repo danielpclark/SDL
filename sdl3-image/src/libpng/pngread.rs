@@ -13,8 +13,8 @@
 //! read a PNG file or stream.
 //!
 //! (The simplified API, png_read_png(), png_read_rows() and png_read_end()
-//! are not translated: SDL_image's APNG code calls none of them. Neither
-//! is the deinterlacing, as its frame streams are never interlaced.)
+//! are not translated: SDL_image's APNG code calls none of them. Nor is
+//! png_read_row()'s display row, which png_read_image() never passes.)
 
 use super::png::*;
 use super::pngerror::{png_app_error, png_error, png_warning};
@@ -166,7 +166,7 @@ pub(crate) fn png_start_read_image(png_ptr: &mut PngStruct<'_, '_>) -> PngResult
     Ok(())
 }
 
-/// `png_read_row` (with no display row, for a non-interlaced image)
+/// `png_read_row` (with no display row)
 pub(crate) fn png_read_row(
     png_ptr: &mut PngStruct<'_, '_>,
     row: Option<&mut [u8]>,
@@ -192,7 +192,28 @@ pub(crate) fn png_read_row(
     /* (the warnings for transforms that have been set but were defined out:
      * none are defined out) */
 
-    /* (png_ptr->interlaced with PNG_INTERLACE: never the case here) */
+    /* If interlaced and we do not need a new row, combine row and return.
+     * Notice that the pixels we have from previous rows have been transformed
+     * already; we can only combine like with like (transformed or
+     * untransformed) and, because of the libpng API for interlaced images, this
+     * means we must transform before de-interlacing.
+     * (no display row: its png_combine_row() calls are left out)
+     */
+    if png_ptr.interlaced != 0 && (png_ptr.transformations & PNG_INTERLACE) != 0 {
+        let skip = match png_ptr.pass {
+            0 => (png_ptr.row_number & 0x07) != 0,
+            1 => (png_ptr.row_number & 0x07) != 0 || png_ptr.width < 5,
+            2 => (png_ptr.row_number & 0x07) != 4,
+            3 => (png_ptr.row_number & 3) != 0 || png_ptr.width < 3,
+            4 => (png_ptr.row_number & 3) != 2,
+            5 => (png_ptr.row_number & 1) != 0 || png_ptr.width < 2,
+            _ => (png_ptr.row_number & 1) == 0,
+        };
+        if skip {
+            png_read_finish_row(png_ptr)?;
+            return Ok(());
+        }
+    }
 
     if (png_ptr.mode & PNG_HAVE_IDAT) == 0 {
         return Err(png_error(png_ptr, "Invalid attempt to read row data"));
@@ -255,7 +276,18 @@ pub(crate) fn png_read_row(
         ));
     }
 
-    if let Some(row) = row {
+    /* Expand interlaced rows to full size */
+    if png_ptr.interlaced != 0 && (png_ptr.transformations & PNG_INTERLACE) != 0 {
+        if png_ptr.pass < 6 {
+            let mut row_buf = std::mem::take(&mut png_ptr.row_buf);
+            png_do_read_interlace(&mut row_info, &mut row_buf[1..], png_ptr.pass as usize);
+            png_ptr.row_buf = row_buf;
+        }
+
+        if let Some(row) = row {
+            png_combine_row(png_ptr, row, 0 /*row*/)?;
+        }
+    } else if let Some(row) = row {
         png_combine_row(png_ptr, row, -1 /*ignored*/)?;
     }
 

@@ -100,7 +100,7 @@ use pngrtran::{png_set_gray_to_rgb, png_set_palette_to_rgb, png_set_strip_16};
 use pngrutil::png_get_uint_32 as libpng_get_uint_32;
 use pngset::{png_set_IHDR, png_set_PLTE, png_set_tRNS};
 use pngstruct::PngStruct;
-use pngtrans::png_set_filler;
+use pngtrans::{png_set_filler, png_set_interlace_handling};
 use pngwio::png_set_write_fn;
 use pngwrite::{
     png_create_write_struct, png_set_compression_level, png_set_filter, png_write_end,
@@ -235,6 +235,7 @@ fn decompress_png_frame_data(
     height: i32,
     png_color_type: i32,
     bit_depth: i32,
+    interlace_method: i32,
     chunk_PLTE: Option<&RawChunk>,
     chunk_tRNS: Option<&RawChunk>,
 ) -> Result<Surface<'static>> {
@@ -245,9 +246,11 @@ fn decompress_png_frame_data(
      * tricking libpng to believe this is a normal PNG file, then make it defilter (if any) and deinterlace
      * (if any) for us.
      */
-    // FIXME (upstream): the synthetic IHDR always says PNG_INTERLACE_NONE,
-    // so an interlaced APNG's frames are read as if they weren't
-    // interlaced (garbled, or failing to decode).
+    // Note (upstream): upstream's synthetic IHDR always says
+    // PNG_INTERLACE_NONE, so an interlaced APNG's frames are read as if
+    // they weren't interlaced (garbled, or failing to decode); the
+    // translation fixes it, writing the APNG's interlace method and
+    // turning libpng's interlace handling on.
 
     // Create a memory stream to hold our synthetic PNG
     // (a buffer here: the size is known, and SDL_IOFromDynamicMem()'s
@@ -286,9 +289,12 @@ fn decompress_png_frame_data(
         custom_png_save_uint_32(&mut ihdr_data[4..], height as u32);
         ihdr_data[8] = bit_depth as u8;
         ihdr_data[9] = png_color_type as u8;
-        ihdr_data[10] = PNG_INTERLACE_NONE as u8;
-        ihdr_data[11] = PNG_COMPRESSION_TYPE_DEFAULT as u8;
-        ihdr_data[12] = PNG_FILTER_TYPE_DEFAULT as u8;
+        // (the interlace method is the last byte: upstream writes
+        // PNG_INTERLACE_NONE first, which, as all three are 0, reads the
+        // same)
+        ihdr_data[10] = PNG_COMPRESSION_TYPE_DEFAULT as u8;
+        ihdr_data[11] = PNG_FILTER_TYPE_DEFAULT as u8;
+        ihdr_data[12] = interlace_method as u8;
 
         buffer.extend_from_slice(&ihdr_data);
 
@@ -379,6 +385,8 @@ fn decompress_png_frame_data(
         png_set_filler(&mut png_ptr, 0xFF, PNG_FILLER_AFTER).map_err(png_read_failed)?;
     }
 
+    png_set_interlace_handling(&mut png_ptr);
+
     png_read_update_info(&mut png_ptr, &mut info_ptr).map_err(png_read_failed)?;
 
     let mut surface = Surface::new(width, height, PixelFormat::RGBA32)?;
@@ -450,6 +458,7 @@ pub(crate) struct ApngDecoderContext {
     height: i32,
     bit_depth: i32,
     png_color_type: i32,
+    interlace_method: i32,
 
     palette: Option<Palette>,
     chunk_PLTE: Option<RawChunk>,
@@ -601,6 +610,7 @@ impl ApngDecoderContext {
             fctl.height as i32,
             self.png_color_type,
             self.bit_depth,
+            self.interlace_method,
             self.chunk_PLTE.as_ref(),
             self.chunk_tRNS.as_ref(),
         );
@@ -680,6 +690,7 @@ pub(crate) fn create_apng_animation_decoder(
         height: 0,
         bit_depth: 0,
         png_color_type: 0,
+        interlace_method: 0,
         palette: None,
         chunk_PLTE: None,
         chunk_tRNS: None,
@@ -725,6 +736,7 @@ pub(crate) fn create_apng_animation_decoder(
             ctx.height = be32(&chunk_data[4..]) as i32;
             ctx.bit_depth = chunk_data[8] as i32;
             ctx.png_color_type = chunk_data[9] as i32;
+            ctx.interlace_method = chunk_data[12] as i32;
         } else if &chunk_type == b"acTL" {
             if chunk_length != 8 {
                 return Err(Error::new("Invalid acTL chunk size"));

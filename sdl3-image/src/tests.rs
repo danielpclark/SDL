@@ -69,6 +69,7 @@ static IMAGES: &[(&str, &[u8])] = images![
     "apng_graya.png",
     "apng_graya16.png",
     "apng_interlaced.png",
+    "apng_interlaced_gray2.png",
     "apng_nodata.png",
     "apng_oddops.png",
     "apng_pal.png",

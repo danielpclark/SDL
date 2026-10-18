@@ -307,6 +307,12 @@ def main(out):
          chunk(b"IDAT", frame_data(rgba_pixels(W, H, 0), W, H, 6, 8, interlace=True)),
          fctl(1, W, H, 0, 0, 1, 10), fdat(2, frame_data(rgba_pixels(W, H, 1), W, H, 6, 8, interlace=True)), iend()]
     write(out, "apng_interlaced.png", c)
+    # and gray ones of 2 bits, narrow enough for passes with no pixels
+    c = [ihdr(3, 5, 2, 0, 1), actl(2, 0), fctl(0, 3, 5, 0, 0, 1, 10),
+         chunk(b"IDAT", frame_data(gray_pixels(3, 5, 0, 2), 3, 5, 0, 2, interlace=True)),
+         fctl(1, 2, 3, 1, 1, 1, 10, 0, 1),
+         fdat(2, frame_data(gray_pixels(2, 3, 1, 2), 2, 3, 0, 2, interlace=True)), iend()]
+    write(out, "apng_interlaced_gray2.png", c)
 
     # Zero delay denominators (upstream divides by zero), and the same with
     # the APNG specification's 100 for them
