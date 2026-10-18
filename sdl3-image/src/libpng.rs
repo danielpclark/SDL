@@ -1060,9 +1060,12 @@ fn compress_surface_to_png_data(
             None => Vec::new(),
         };
         if !colors.is_empty() {
-            // FIXME (upstream): the palette's SDL_Colors (red, green, blue
+            // Note (upstream): the palette's SDL_Colors (red, green, blue
             // and alpha) are passed as png_colors (red, green and blue), so
-            // libpng takes every 3 bytes of them as a color.
+            // libpng takes every 3 bytes of them as a color. It does no
+            // harm: this palette only goes into the frame's temporary PNG,
+            // of which only the IDAT data is kept, and the APNG's own PLTE
+            // is written from the colors correctly.
             let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
             let png_colors: Vec<PngColor> = bytes
                 .chunks_exact(3)
