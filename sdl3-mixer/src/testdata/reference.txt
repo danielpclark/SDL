@@ -2247,7 +2247,7 @@ corrupt 5 mix: dur=2400 play=1 pos=417 replay=1 seek=1 pos=800 playing=1 eeab7a1
 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 mixpre: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 == flac_loopcount.flac
-open: FLAC 0x8010 1 11025 frames=9921 | 12614 dbb68274c91ed979 end=0
+open: FLAC 0x8010 1 11025 frames=6307 | 12614 dbb68274c91ed979 end=0
 f32s48: 219680 d72cbd3b7353dd29 end=0
 s16m22: 25228 ffa92fcb47502ee4 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
@@ -2277,37 +2277,37 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
-trunc 10375: FLAC 0x8010 1 11025 frames=9921 | 2304 945bd0093a736de6 end=0
-trunc 13833: FLAC 0x8010 1 11025 frames=9921 | 10608 003e23354afc5d52 end=0
+trunc 10375: FLAC 0x8010 1 11025 frames=6307 | 2304 945bd0093a736de6 end=0
+trunc 13833: FLAC 0x8010 1 11025 frames=6307 | 10608 003e23354afc5d52 end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1: FLAC 0x8010 1 11025 frames=3307 | 6614 95176a30b5bbd279 end=0
 corrupt 1 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
 corrupt 2: FLAC 0x8010 1 11025 frames=3307 | 6614 95176a30b5bbd279 end=0
 corrupt 2 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
-corrupt 3: FLAC 0x8010 1 11025 frames=9921 | 10608 938332488adb2fe5 end=0
-corrupt 3 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 8502c32934302df8
-corrupt 4: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
-corrupt 4 mix: dur=9921 play=1 pos=1152 replay=1 seek=0 pos=0 playing=0 907bf2b9cd6a6f8b
-corrupt 5: FLAC 0x8010 1 11025 frames=9921 | 10608 938332488adb2fe5 end=0
-corrupt 5 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 8502c32934302df8
-mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 be819466c45e9574
+corrupt 3: FLAC 0x8010 1 11025 frames=6307 | 10608 938332488adb2fe5 end=0
+corrupt 3 mix: dur=6307 play=1 pos=2823 replay=1 seek=1 pos=2102 playing=1 8502c32934302df8
+corrupt 4: FLAC 0x8010 1 11025 frames=6307 | 2304 d3f7ec18a0f85725 end=0
+corrupt 4 mix: dur=6307 play=1 pos=1152 replay=1 seek=1 pos=2102 playing=0 51e4140f48d69cd1
+corrupt 5: FLAC 0x8010 1 11025 frames=6307 | 10608 938332488adb2fe5 end=0
+corrupt 5 mix: dur=6307 play=1 pos=2823 replay=1 seek=1 pos=2102 playing=1 8502c32934302df8
+mix: dur=6307 play=1 pos=2823 replay=1 seek=1 pos=2102 playing=1 c26a77057a2c0afc
 mixpre: dur=6307 play=1 pos=2823 replay=1 seek=1 pos=2102 playing=1 c26a77057a2c0afc
 seek 0: play=1 seek=1 pos=0 playing=1 274d225aea6f1e94
 seek 1: play=1 seek=1 pos=1 playing=1 acb2ce95fc1fac65
 seek 311: play=1 seek=1 pos=311 playing=1 2e9406b0a4cf5fd9
 seek 960: play=1 seek=1 pos=960 playing=1 804becbf9139e2ad
 seek 3840: play=1 seek=1 pos=3840 playing=1 79bb8f4080bff73d
-seek 4801: play=1 seek=1 pos=4801 playing=1 b329748cda20e19d
-seek 12345: play=1 seek=0 pos=5271 playing=1 771aee91de06c3d1
-seek 4960: play=1 seek=1 pos=4960 playing=1 013c31a02a264b39
-seek 9421: play=1 seek=0 pos=5430 playing=1 69de65def0aa6db9
-seek 9920: play=1 seek=0 pos=5901 playing=1 e5617504b568f5d1
-seek 0: play=1 seek=1 pos=0 playing=1 a9fff5abccf5ad49
-seek 10921: play=1 seek=0 pos=470 playing=1 17eaaaa25d8c8209
-seek 100: play=1 seek=1 pos=100 playing=1 55789347db5ecc0d
+seek 4801: play=1 seek=1 pos=4801 playing=1 97447afc65e7a595
+seek 12345: play=1 seek=0 pos=5271 playing=1 3105997a65b18089
+seek 3153: play=1 seek=1 pos=3153 playing=1 ce21e90b8c55d555
+seek 5807: play=1 seek=1 pos=5807 playing=1 50d75d7d42a85311
+seek 6306: play=1 seek=1 pos=6306 playing=0 43f88839a7ba034d
+seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
+seek 7307: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
+seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_loopcount.flac DRFLAC
-open: DRFLAC 0x8120 1 11025 frames=9921 | 24396 7698340823b04778 end=0
+open: DRFLAC 0x8120 1 11025 frames=6307 | 24396 7698340823b04778 end=0
 f32s48: 212432 72ea152f1f9aa171 end=0
 s16m22: 24396 288be52a91e1f3f4 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
@@ -2337,21 +2337,21 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
-trunc 10375: DRFLAC 0x8120 1 11025 frames=9921 | 4608 62914be1393e4487 end=0
-trunc 13833: DRFLAC 0x8120 1 11025 frames=9921 | 20384 2aaf1c6f0555bc45 end=0
+trunc 10375: DRFLAC 0x8120 1 11025 frames=6307 | 4608 62914be1393e4487 end=0
+trunc 13833: DRFLAC 0x8120 1 11025 frames=6307 | 20384 2aaf1c6f0555bc45 end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1: DRFLAC 0x8120 1 11025 frames=3307 | 0 cbf29ce484222325 end=0
 corrupt 1 mix: dur=3307 play=1 pos=0 replay=1 seek=0 pos=0 playing=1 b230c008416f7e7c
 corrupt 2: DRFLAC 0x8120 1 11025 frames=3307 | 13228 2cd8f80db8b50e12 end=0
 corrupt 2 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
-corrupt 3: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
-corrupt 3 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-corrupt 4: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
-corrupt 4 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-corrupt 5: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
-corrupt 5 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 be819466c45e9574
+corrupt 3: DRFLAC 0x8120 1 11025 frames=6307 | 0 cbf29ce484222325 end=0
+corrupt 3 mix: dur=6307 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 4: DRFLAC 0x8120 1 11025 frames=6307 | 0 cbf29ce484222325 end=0
+corrupt 4 mix: dur=6307 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 5: DRFLAC 0x8120 1 11025 frames=6307 | 0 cbf29ce484222325 end=0
+corrupt 5 mix: dur=6307 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=6307 play=1 pos=2823 replay=1 seek=1 pos=2102 playing=1 c26a77057a2c0afc
 mixpre: dur=6099 play=1 pos=2823 replay=1 seek=1 pos=2033 playing=1 46f305cbc4075ca4
 == flac_ogg.oga
 open: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 25600 1b96619f10769541 end=0
@@ -7482,7 +7482,7 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 7615: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == ogg_loopcount.ogg
-open: VORBIS 0x8120 1 11025 frames=6614 | 19228 278ff97887e4ad31 end=0
+open: VORBIS 0x8120 1 11025 frames=4807 | 19228 278ff97887e4ad31 end=0
 f32s48: 167432 8ca49235cc91bb6d end=0
 s16m22: 19228 345d0f618e92c993 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
@@ -7525,47 +7525,47 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
-ogg corrupt 0: VORBIS 0x8120 1 11025 frames=6614 | 19228 b92d8798ab344d87 end=0
-ogg corrupt 0 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 3440ca4c3a507e30
-ogg corrupt 1: VORBIS 0x8120 1 11025 frames=6656 | 19312 c478c0120579fce4 end=0
-ogg corrupt 1 mix: dur=6656 play=1 pos=2823 replay=1 seek=1 pos=2218 playing=1 bf2c6f5b7522e31c
-ogg corrupt 2: VORBIS 0x8120 1 11025 frames=6614 | 19228 da274f10704144a5 end=0
-ogg corrupt 2 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 6230ba257ffe2964
-ogg corrupt 3: VORBIS 0x8120 1 11025 frames=6614 | 19228 ea89b2c397a9f336 end=0
-ogg corrupt 3 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 32374e8a2f107108
-ogg corrupt 4: VORBIS 0x8120 1 11025 frames=6614 | 19228 568a984eaa6256d1 end=0
-ogg corrupt 4 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a186930588b3a5f4
-ogg corrupt 5: VORBIS 0x8120 1 11025 frames=6614 | 19228 26f566e7b31a589f end=0
-ogg corrupt 5 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 93d589f6acf8d748
-ogg corrupt 6: VORBIS 0x8120 1 11025 frames=6614 | 19228 d49dc712eb057a9b end=0
-ogg corrupt 6 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 0be78a1a33ca5a38
-ogg corrupt 7: VORBIS 0x8120 1 11025 frames=6614 | 19228 4fef60335575e410 end=0
-ogg corrupt 7 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 5aaee64140e79e74
-ogg corrupt 8: VORBIS 0x8120 1 11025 frames=6614 | 19228 7becdc661e68d50d end=0
-ogg corrupt 8 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 bf206d95130d3364
+ogg corrupt 0: VORBIS 0x8120 1 11025 frames=4807 | 19228 b92d8798ab344d87 end=0
+ogg corrupt 0 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 6ba050013e3e77ac
+ogg corrupt 1: VORBIS 0x8120 1 11025 frames=4828 | 19312 c478c0120579fce4 end=0
+ogg corrupt 1 mix: dur=4828 play=1 pos=2823 replay=1 seek=1 pos=1609 playing=1 9ba4cad769f49f00
+ogg corrupt 2: VORBIS 0x8120 1 11025 frames=4807 | 19228 da274f10704144a5 end=0
+ogg corrupt 2 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 1803d512d4d75f08
+ogg corrupt 3: VORBIS 0x8120 1 11025 frames=4807 | 19228 ea89b2c397a9f336 end=0
+ogg corrupt 3 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 d9521fc6217a7db4
+ogg corrupt 4: VORBIS 0x8120 1 11025 frames=4807 | 19228 568a984eaa6256d1 end=0
+ogg corrupt 4 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 edca9fe36a10d390
+ogg corrupt 5: VORBIS 0x8120 1 11025 frames=4807 | 19228 26f566e7b31a589f end=0
+ogg corrupt 5 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 35e1e0f23cdb3ce0
+ogg corrupt 6: VORBIS 0x8120 1 11025 frames=4807 | 19228 d49dc712eb057a9b end=0
+ogg corrupt 6 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 ab1eef043946e4a4
+ogg corrupt 7: VORBIS 0x8120 1 11025 frames=4807 | 19228 4fef60335575e410 end=0
+ogg corrupt 7 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 0eed1ec2dd6cd0c0
+ogg corrupt 8: VORBIS 0x8120 1 11025 frames=4807 | 19228 7becdc661e68d50d end=0
+ogg corrupt 8 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 648e5e365e968ee8
 ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
-ogg corrupt 10: VORBIS 0x8120 1 11025 frames=6614 | 0 cbf29ce484222325 end=0
-ogg corrupt 10 mix: dur=6614 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-ogg corrupt 11: VORBIS 0x8120 1 11025 frames=6614 | 0 cbf29ce484222325 end=0
-ogg corrupt 11 mix: dur=6614 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a186930588b3a5f4
+ogg corrupt 10: VORBIS 0x8120 1 11025 frames=4807 | 0 cbf29ce484222325 end=0
+ogg corrupt 10 mix: dur=4807 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+ogg corrupt 11: VORBIS 0x8120 1 11025 frames=4807 | 0 cbf29ce484222325 end=0
+ogg corrupt 11 mix: dur=4807 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
+mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 edca9fe36a10d390
 mixpre: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 edca9fe36a10d390
 seek 0: play=1 seek=1 pos=0 playing=1 5254250f1a3f6c44
 seek 1: play=1 seek=1 pos=1 playing=1 ae10dff6f6c1a451
 seek 311: play=1 seek=1 pos=311 playing=1 cd4f0cf448044c51
 seek 960: play=1 seek=1 pos=960 playing=1 87190cf3bd0d4d79
-seek 3840: play=1 seek=1 pos=3840 playing=1 9749a7e9ed232461
-seek 4801: play=1 seek=1 pos=4801 playing=1 c91d5feb0ed64959
-seek 12345: play=1 seek=0 pos=5271 playing=1 dedcf6c977e326dd
-seek 3307: play=1 seek=1 pos=3307 playing=1 4dd74377a09c66e9
-seek 6114: play=1 seek=1 pos=6114 playing=0 cc18f6e3be37a327
-seek 6613: play=1 seek=0 pos=6307 playing=0 4d25767f9dce13f5
+seek 3840: play=1 seek=1 pos=3840 playing=1 f7b0fd320d88dcf5
+seek 4801: play=1 seek=1 pos=4801 playing=0 4f27dd403ef9cd41
+seek 12345: play=1 seek=0 pos=4807 playing=0 4d25767f9dce13f5
+seek 2403: play=1 seek=1 pos=2403 playing=0 4d25767f9dce13f5
+seek 4307: play=1 seek=1 pos=4307 playing=0 4d25767f9dce13f5
+seek 4806: play=1 seek=1 pos=4806 playing=0 4d25767f9dce13f5
 seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
-seek 7614: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
+seek 5807: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == ogg_loopcount.ogg STBVORBIS
-open: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 ff2f50228faeb2cf end=0
+open: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 ff2f50228faeb2cf end=0
 f32s48: 167432 00d9611b3a29a6c9 end=0
 s16m22: 19228 8aba6169febc9733 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
@@ -7608,31 +7608,31 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
-ogg corrupt 0: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 4691b2fcb4a3caef end=0
-ogg corrupt 0 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 23c0192be4677018
-ogg corrupt 1: STBVORBIS 0x8120 1 11025 frames=8589934588 | 19228 b4250d901cdc0565 end=0
-ogg corrupt 1 mix: dur=8589934588 play=1 pos=2823 replay=1 seek=0 pos=0 playing=1 2d546c15eae5a910
-ogg corrupt 2: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 0c48ee5b5e0bc636 end=0
-ogg corrupt 2 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 cbdcdd7b02f9e954
-ogg corrupt 3: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 d02ed0895348b70a end=0
-ogg corrupt 3 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 d31450aa86a06e4c
-ogg corrupt 4: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 ba114c24d6719951 end=0
-ogg corrupt 4 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a05ce32025daa080
-ogg corrupt 5: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 920ef483a1d6c51a end=0
-ogg corrupt 5 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 64174f85790efa08
-ogg corrupt 6: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 9b164a8e8a1c28c2 end=0
-ogg corrupt 6 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 e25eae158c9ea53c
-ogg corrupt 7: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 82d2c7649f40e2b5 end=0
-ogg corrupt 7 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 107ac3ee285563cc
-ogg corrupt 8: STBVORBIS 0x8120 1 11025 frames=6614 | 19228 8fceda2a100718a3 end=0
-ogg corrupt 8 mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 269f3a6a715de6e0
+ogg corrupt 0: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 4691b2fcb4a3caef end=0
+ogg corrupt 0 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 26d3183c6b36b1bc
+ogg corrupt 1: STBVORBIS 0x8120 1 11025 frames=4294968794 | 19228 b4250d901cdc0565 end=0
+ogg corrupt 1 mix: dur=4294968794 play=1 pos=2823 replay=1 seek=0 pos=0 playing=1 2d546c15eae5a910
+ogg corrupt 2: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 0c48ee5b5e0bc636 end=0
+ogg corrupt 2 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 6247ccb51c980064
+ogg corrupt 3: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 d02ed0895348b70a end=0
+ogg corrupt 3 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 330392048c8db9c8
+ogg corrupt 4: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 ba114c24d6719951 end=0
+ogg corrupt 4 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 02f944e1559982c4
+ogg corrupt 5: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 920ef483a1d6c51a end=0
+ogg corrupt 5 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 0d12fed6ac36a8e4
+ogg corrupt 6: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 9b164a8e8a1c28c2 end=0
+ogg corrupt 6 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 b3da6f9576b8951c
+ogg corrupt 7: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 82d2c7649f40e2b5 end=0
+ogg corrupt 7 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 30662f2653674344
+ogg corrupt 8: STBVORBIS 0x8120 1 11025 frames=4807 | 19228 8fceda2a100718a3 end=0
+ogg corrupt 8 mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 1104f5e64bbf5fa8
 ogg corrupt 9: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 9 mix: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 10: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 10 mix: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 11: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 11 mix: err: Audio data is in unknown/unsupported/corrupt format
-mix: dur=6614 play=1 pos=2823 replay=1 seek=1 pos=2204 playing=1 a05ce32025daa080
+mix: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 02f944e1559982c4
 mixpre: dur=4807 play=1 pos=2823 replay=1 seek=1 pos=1602 playing=1 02f944e1559982c4
 == ogg_mono.ogg
 open: VORBIS 0x8120 1 22050 title="Vorbis test" artist="sdl3-mixer" infinite=1 | 8388608 cd2feb78f62371e8 end=1
@@ -9058,7 +9058,7 @@ seek 0: play=1 seek=1 pos=0 playing=1 cad2961eed3453de
 seek 998: play=1 seek=1 pos=998 playing=1 0bea1b5fe4655746
 seek 100: play=1 seek=1 pos=100 playing=1 877fa828bca27a2c
 == opus_loopcount.opus
-open: OPUS 0x8120 1 48000 frames=28800 | 76800 e6eaa6d2d813093c end=0
+open: OPUS 0x8120 1 48000 frames=19200 | 76800 e6eaa6d2d813093c end=0
 f32s48: 153600 66a4e01028e162d9 end=0
 s16m22: 17640 ddc13a1c6c0b4748 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
@@ -9083,11 +9083,11 @@ trunc 200: err: Audio data is in unknown/unsupported/corrupt format
 trunc 256: err: Audio data is in unknown/unsupported/corrupt format
 trunc 300: err: Audio data is in unknown/unsupported/corrupt format
 trunc 512: err: Audio data is in unknown/unsupported/corrupt format
-trunc 1000: OPUS 0x8120 1 48000 frames=18576 | 56352 1888a2e1f010a47b end=0
+trunc 1000: OPUS 0x8120 1 48000 frames=14088 | 56352 1888a2e1f010a47b end=0
 trunc 339: err: Audio data is in unknown/unsupported/corrupt format
 trunc 679: OPUS 0x8120 1 48000 frames=4488 | 17952 0399fc3bdc6fdf0f end=0
-trunc 1019: OPUS 0x8120 1 48000 frames=18576 | 56352 1888a2e1f010a47b end=0
-trunc 1358: OPUS 0x8120 1 48000 frames=28176 | 75552 6b5caf9ea643e6cb end=0
+trunc 1019: OPUS 0x8120 1 48000 frames=14088 | 56352 1888a2e1f010a47b end=0
+trunc 1358: OPUS 0x8120 1 48000 frames=18888 | 75552 6b5caf9ea643e6cb end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
@@ -9100,31 +9100,31 @@ corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
-ogg corrupt 0: OPUS 0x8120 1 48000 frames=28800 | 76800 665b0f32d4f06e4b end=0
-ogg corrupt 0 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 c25bd9a7addf892d
-ogg corrupt 1: OPUS 0x8120 1 48000 frames=28800 | 76800 c12b9768fdf60dec end=0
-ogg corrupt 1 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 e4febd4c439a1f7d
+ogg corrupt 0: OPUS 0x8120 1 48000 frames=19200 | 76800 665b0f32d4f06e4b end=0
+ogg corrupt 0 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 8d81d1eb0fb72e59
+ogg corrupt 1: OPUS 0x8120 1 48000 frames=19200 | 76800 c12b9768fdf60dec end=0
+ogg corrupt 1 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 052f5ec777776fc5
 ogg corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-ogg corrupt 3: OPUS 0x8120 1 48000 frames=28800 | 76800 1ae0518ba37976b4 end=0
-ogg corrupt 3 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 ddabc66855ecf191
-ogg corrupt 4: OPUS 0x8120 1 48000 frames=28800 | 76800 08abdbc36d78f558 end=0
-ogg corrupt 4 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 f3b10966f4c46eb9
-ogg corrupt 5: OPUS 0x8120 1 48000 frames=28800 | 76800 2a1aa3550509f179 end=0
-ogg corrupt 5 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 592b16802a13c961
+ogg corrupt 3: OPUS 0x8120 1 48000 frames=19200 | 76800 1ae0518ba37976b4 end=0
+ogg corrupt 3 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 5c953fe679c45229
+ogg corrupt 4: OPUS 0x8120 1 48000 frames=19200 | 76800 08abdbc36d78f558 end=0
+ogg corrupt 4 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 777e20f91ba7ae05
+ogg corrupt 5: OPUS 0x8120 1 48000 frames=19200 | 76800 2a1aa3550509f179 end=0
+ogg corrupt 5 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 2b9c0088881d0d89
 ogg corrupt 6: err: Audio data is in unknown/unsupported/corrupt format
 ogg corrupt 6 mix: err: Audio data is in unknown/unsupported/corrupt format
-ogg corrupt 7: OPUS 0x8120 1 48000 frames=28800 | 76800 a5fcade74906a88d end=0
-ogg corrupt 7 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 2ee829fdb4570c49
-ogg corrupt 8: OPUS 0x8120 1 48000 frames=28800 | 76800 678d032c1d7ebf88 end=0
-ogg corrupt 8 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 8512a1a0f16114c5
-ogg corrupt 9: OPUS 0x8120 1 48000 frames=343597412480 | 79392 9c3426e413e1ea9a end=0
-ogg corrupt 9 mix: dur=343597412480 play=1 pos=12288 replay=1 seek=0 pos=0 playing=0 5102df4075888e25
-ogg corrupt 10: OPUS 0x8120 1 48000 frames=28800 | 76800 e9ca71b0763d305e end=0
-ogg corrupt 10 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 8084f024e75af795
-ogg corrupt 11: OPUS 0x8120 1 48000 frames=28800 | 56352 c275c3e0f9733c7a end=0
-ogg corrupt 11 mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 e22427e622cbaecd
-mix: dur=28800 play=1 pos=12288 replay=1 seek=1 pos=9600 playing=1 c25bd9a7addf892d
+ogg corrupt 7: OPUS 0x8120 1 48000 frames=19200 | 76800 a5fcade74906a88d end=0
+ogg corrupt 7 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 514af07287e5d051
+ogg corrupt 8: OPUS 0x8120 1 48000 frames=19200 | 76800 678d032c1d7ebf88 end=0
+ogg corrupt 8 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 b21122832a606a61
+ogg corrupt 9: OPUS 0x8120 1 48000 frames=171798711040 | 79392 9c3426e413e1ea9a end=0
+ogg corrupt 9 mix: dur=171798711040 play=1 pos=12288 replay=1 seek=0 pos=0 playing=0 5102df4075888e25
+ogg corrupt 10: OPUS 0x8120 1 48000 frames=19200 | 76800 e9ca71b0763d305e end=0
+ogg corrupt 10 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 b62fe1401c2b2921
+ogg corrupt 11: OPUS 0x8120 1 48000 frames=19200 | 56352 c275c3e0f9733c7a end=0
+ogg corrupt 11 mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 cfce68d8229200a9
+mix: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 8d81d1eb0fb72e59
 mixpre: dur=19200 play=1 pos=12288 replay=1 seek=1 pos=6400 playing=1 b8b1a949e1e8cff1
 seek 0: play=1 seek=1 pos=0 playing=1 b99351d7088b309d
 seek 1: play=1 seek=1 pos=1 playing=1 1d1f3864f9b3ddf9
@@ -9132,13 +9132,13 @@ seek 311: play=1 seek=1 pos=311 playing=1 f6cb3c0589dc773d
 seek 960: play=1 seek=1 pos=960 playing=1 3a5410f7ff7a4b99
 seek 3840: play=1 seek=1 pos=3840 playing=1 59ebc99b6032dcdd
 seek 4801: play=1 seek=1 pos=4801 playing=1 09268958533610c1
-seek 12345: play=1 seek=1 pos=12345 playing=1 a463c91e4f4b42b5
-seek 14400: play=1 seek=1 pos=14400 playing=1 375ec3e586ca41e9
-seek 28300: play=1 seek=0 pos=16448 playing=1 b89cbc288f5565c5
-seek 28799: play=1 seek=0 pos=18496 playing=1 f43227e54d2588b5
-seek 0: play=1 seek=1 pos=0 playing=1 b99351d7088b309d
-seek 29800: play=1 seek=0 pos=2048 playing=1 35b0990dc328f4c1
-seek 100: play=1 seek=1 pos=100 playing=1 d334a21ede62c0b5
+seek 12345: play=1 seek=1 pos=12345 playing=1 ee0b061fc1438cad
+seek 9600: play=1 seek=1 pos=9600 playing=1 375ec3e586ca41e9
+seek 18700: play=1 seek=1 pos=18700 playing=0 e703b9ff2a4e7390
+seek 19199: play=1 seek=1 pos=19199 playing=0 4d25767f9dce13f5
+seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
+seek 20200: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
+seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == opus_quad.opus
 open: OPUS 0x8120 4 48000 frames=9600 | 153600 31759449ceaaa470 end=0
 f32s48: 76800 1d7bb9c6d5b5fb40 end=0
@@ -17506,8 +17506,8 @@ xmp 3: set=0 mixer=0 frames=104 f3e4d4f60ebc87f9 f168ad56797ad9e6 seek=0 pos=1 1
 2: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 d1945157ca2bdcdf
 3: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 7ae61028c1a58d1f
 4: play=1 playing=1 paused=0 pos=6350 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 8be6b922c8a6e5f8
-5: play=1 playing=1 paused=0 pos=5745 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 97ef9a55daf2e5b4
-6: play=1 playing=1 paused=0 pos=5755 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 f199907a2a71275c
+5: play=1 playing=1 paused=0 pos=5745 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 7b9d7c778f21c698
+6: play=1 playing=1 paused=0 pos=5755 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 666af1d0aabfaec4
 7: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 8f6e854c90954f20
 8: play=1 playing=1 paused=0 pos=4705 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 9ca89c1c1141d060
 9: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 d0155a26f501a84f
@@ -17534,8 +17534,8 @@ xmp 3: set=0 mixer=0 frames=104 f3e4d4f60ebc87f9 f168ad56797ad9e6 seek=0 pos=1 1
 2: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 27e0ccc36b582657
 3: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 93391054b3d4323e
 4: play=1 playing=1 paused=0 pos=6350 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 7082e9e24b330001
-5: play=1 playing=1 paused=0 pos=5745 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 521875bae7a342e5
-6: play=1 playing=1 paused=0 pos=5755 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 027d53f1decf3e1a
+5: play=1 playing=1 paused=0 pos=5745 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 ce8bda360627c0cd
+6: play=1 playing=1 paused=0 pos=5755 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 62ad3afc4017e604
 7: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 640999b44ec473de
 8: play=1 playing=1 paused=0 pos=4705 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 26a0271ba7d01898
 9: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 dad2c1a09489f538

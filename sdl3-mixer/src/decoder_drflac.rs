@@ -120,7 +120,11 @@ fn drflac_init_audio(
         *duration_frames = if loop_.count < 0 {
             DURATION_INFINITE
         } else {
-            (decoder.total_pcm_frame_count as i64).wrapping_mul(loop_.count)
+            // Note (upstream): this is the whole file `count` times there, where
+            // only the loop plays `count` times; the translation counts the rest
+            // of the file once.
+            (decoder.total_pcm_frame_count as i64)
+                .wrapping_add(loop_.len.wrapping_mul(loop_.count - 1))
         };
     } else {
         *duration_frames = decoder.total_pcm_frame_count as i64;
@@ -232,20 +236,29 @@ impl TrackData for DrflacTrackData<'_> {
     fn seek(&mut self, mut frame: u64) -> Result<()> {
         let loop_ = self.adata.loop_;
         let mut final_iteration: i64 = -1;
-        let mut final_iteration_frames: i64 = 0;
+        // Note (upstream): this starts at 0 there, so a frame before the loop
+        // left current_iteration_frames at 0, where it means `frame` (and the
+        // loop started that many frames late); the translation starts it at
+        // `frame`.
+        let mut final_iteration_frames: i64 = frame as i64;
 
-        // FIXME (upstream): a frame before the loop leaves
-        // current_iteration_frames at 0, where it means `frame` (so the
-        // loop starts that many frames late). And for a loop with a
-        // LOOPCOUNT, the test below leaves out the loop's start (`frame <
-        // start + len * count` is meant), the frames past the loop land a
-        // loop's length early (they're `len * (count - 1)` on), and the
-        // duration init_audio() reports, the whole file `count` times, is
-        // off too.
+        // Note (upstream): for a loop with a LOOPCOUNT, the test below leaves
+        // out the loop's start there (`frame < len * count`), and the frames
+        // past the loop land a loop's length early (`len * count` comes off,
+        // where the loop's first iteration is the file's own), so seeks into
+        // the loop's last `start` frames or past the loop went wrong (and so
+        // did the looping seek to the last iteration of a loop that starts
+        // no sooner than its length); the translation tests `frame < start +
+        // len * count` and takes `len * (count - 1)` off.
         // frame has hit the loop point?
         if loop_.active && (frame as i64 >= loop_.start) {
             // figure out the _actual_ frame in the vorbis file we're aiming for.
-            if (loop_.count < 0) || ((frame as i64) < loop_.len.wrapping_mul(loop_.count)) {
+            if (loop_.count < 0)
+                || ((frame as i64)
+                    < loop_
+                        .start
+                        .wrapping_add(loop_.len.wrapping_mul(loop_.count)))
+            {
                 // literally in the loop right now.
                 frame = frame.wrapping_sub(loop_.start as u64); // make logical frame index relative to start of loop.
                 final_iteration = if loop_.count < 0 {
@@ -259,7 +272,7 @@ impl TrackData for DrflacTrackData<'_> {
             } else {
                 // past the loop point?
                 debug_assert!(loop_.count > 0); // can't be infinite loop if we passed it.
-                frame = frame.wrapping_sub(loop_.len.wrapping_mul(loop_.count) as u64);
+                frame = frame.wrapping_sub(loop_.len.wrapping_mul(loop_.count - 1) as u64);
                 // drop the iterations to get the physical frame index.
                 // Note (upstream): -1 there, which loops again.
                 final_iteration = -2; // done looping.
