@@ -13,28 +13,13 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
   MESA_VERSION: "26.2.4"
-  MOLTENVK_VERSION: "v1.4.1"
-  VULKAN_LOADER_TAG: "vulkan-sdk-1.4.357.0"
+  MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
+  MOLTENVK_VERSION: "v1.4.2"
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+  VULKAN_LOADER_TAG: "vulkan-sdk-1.4.363.0"
+  VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
 
 jobs:
-  discover:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for t in 26.2.4 26.2.3 26.2.2 26.2.0; do
-            gh api repos/pal1000/mesa-dist-win/releases/tags/$t --jq '.tag_name + " " + .published_at, (.assets[] | "  " + .name + " " + (.size|tostring) + " " + (.digest // "-"))' || true
-          done
-          gh api repos/KhronosGroup/MoltenVK/releases --jq '.[0:4][] | .tag_name + " " + .published_at, (.assets[] | "  " + .name + " " + (.size|tostring) + " " + (.digest // "-"))'
-          for t in vulkan-sdk-1.4.363.0 vulkan-sdk-1.4.357.0 vulkan-sdk-1.4.350.1; do
-            sha=$(gh api repos/KhronosGroup/Vulkan-Loader/commits/$t --jq '.sha + " " + .commit.committer.date')
-            echo "loader $t $sha"
-            sha=$(gh api repos/KhronosGroup/Vulkan-Headers/commits/$t --jq '.sha + " " + .commit.committer.date' || true)
-            echo "headers $t $sha"
-          done
-
   windows:
     runs-on: windows-latest
     timeout-minutes: 60
@@ -46,50 +31,44 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: diag
-      - name: Probe
-        shell: pwsh
-        run: |
-          Get-ChildItem C:\Windows\System32\vulkan-1.dll, C:\Windows\System32\opengl32.dll, C:\Windows\System32\libEGL.dll -ErrorAction SilentlyContinue | Format-List FullName, Length, VersionInfo
-          Get-ItemProperty 'HKLM:\SOFTWARE\Khronos\Vulkan\Drivers' -ErrorAction SilentlyContinue
-          Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers\*' -ErrorAction SilentlyContinue
-          Get-CimInstance Win32_VideoController | Format-List Name, DriverVersion
-          where.exe cmake python 7z
       - name: Mesa
         shell: bash
         run: |
           set -x
           mkdir -p "$RUNNER_TEMP/mesa" && cd "$RUNNER_TEMP/mesa"
           curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
-          sha256sum mesa.7z
-          7z x -y mesa.7z > /dev/null
-          ls
-          ls -la x64
-          cat x64/*.json
+          echo "$MESA_SHA256  mesa.7z" | sha256sum -c
+          7z x -y mesa.7z x64 > /dev/null
+          ls x64
       - name: Vulkan loader
         shell: bash
         run: |
-          set -x
           cd "$RUNNER_TEMP"
-          git clone --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader
+          git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader
           cd Vulkan-Loader
-          git rev-parse HEAD
+          test "$(git rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
           time cmake -S . -B build -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > cmake.log 2>&1 || { tail -50 cmake.log; exit 1; }
           time cmake --build build --config Release --parallel > build.log 2>&1 || { tail -80 build.log; exit 1; }
-          find build -name 'vulkan-1.dll'
-          cat external/*/Vulkan-Headers/.git/HEAD 2>/dev/null || true
       - name: Deploy
         shell: bash
         run: |
           set -x
           M="$RUNNER_TEMP/mesa/x64"
-          L=$(dirname "$(find "$RUNNER_TEMP/Vulkan-Loader/build" -name vulkan-1.dll | head -1)")
+          L="$RUNNER_TEMP/Vulkan-Loader/build/loader/Release"
           for d in target/debug/deps target/release/deps; do
             mkdir -p $d
-            cp "$M"/opengl32.dll "$M"/libgallium_wgl.dll "$M"/libEGL.dll "$M"/libGLESv2.dll $d/
-            [ -f "$M/libglapi.dll" ] && cp "$M/libglapi.dll" $d/
-            cp "$L/vulkan-1.dll" $d/
+            cp "$M"/opengl32.dll "$M"/libgallium_wgl.dll "$M"/libEGL.dll "$M"/libGLESv2.dll "$L/vulkan-1.dll" $d/
           done
           echo "VK_DRIVER_FILES=$(cygpath -w "$M/lvp_icd.x86_64.json")" >> "$GITHUB_ENV"
+      - name: cargo test (one GPU test, logged)
+        shell: bash
+        continue-on-error: true
+        env:
+          SDL_LOGGING: "*=verbose"
+          VK_LOADER_DEBUG: "error,warn,driver"
+        run: |
+          cargo test -p sdl3 --lib gpu::vulkan::tests::device_formats_and_properties -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | tail -120 | cut -c1-400
       - name: cargo test
         shell: bash
         continue-on-error: true
@@ -97,20 +76,31 @@ jobs:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           RUST_TEST_NOCAPTURE: 1
         run: |
-          set -o pipefail
-          cargo test -p sdl3 --lib 2>&1 | tee "$RUNNER_TEMP/test.log" | grep -E "^test result|panicked|GL_VERSION|^error" || true
+          time cargo test -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1 || true
+          echo "=== tail"
+          tail -40 "$RUNNER_TEMP/test.log" | cut -c1-400
+      - name: cargo test, one thread
+        shell: bash
+        continue-on-error: true
+        env:
+          RUST_TEST_NOCAPTURE: 1
+        run: |
+          timeout 900 cargo test -p sdl3 --lib -- --test-threads=1 > "$RUNNER_TEMP/test1.log" 2>&1 || true
+          echo "=== tail one thread"
+          grep -E "^test |error|exit code|STATUS" "$RUNNER_TEMP/test1.log" | tail -15 | cut -c1-400
+          tail -30 "$RUNNER_TEMP/test1.log" | cut -c1-400
       - name: Summary
         if: always()
         shell: bash
         run: |
           echo "=== failures"
-          sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -60 || true
-          grep -B2 -A12 "panicked at" "$RUNNER_TEMP/test.log" | head -300 || true
+          sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
+          grep -A6 "panicked at" "$RUNNER_TEMP/test.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
           echo "=== skip counts"
           cut -f1 "$RUNNER_TEMP/skips.tsv" | sort | uniq -c || true
           echo "=== skips"
           sort -u "$RUNNER_TEMP/skips.tsv" | cut -c1-300 || true
-          grep -E "^test result" "$RUNNER_TEMP/test.log" || true
+          grep -E "^test result|GL_VERSION|GL_RENDERER" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test1.log" | cut -c1-300 || true
 
   macos:
     runs-on: macos-latest
@@ -123,72 +113,42 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: diag
-      - name: Probe
-        run: |
-          set -x
-          uname -a; sw_vers
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la "$ANDROID_HOME/emulator/lib64/gles_angle" || true
-          ls "$HOME/Library/Android/sdk" || true
-          file "$ANDROID_HOME/emulator/lib64/gles_angle/"*.dylib || true
-          otool -L "$ANDROID_HOME/emulator/lib64/gles_angle/libEGL.dylib" || true
-          otool -D "$ANDROID_HOME/emulator/lib64/gles_angle/libEGL.dylib" || true
-          ls -ld /usr/local /usr/local/lib || true
-          ls /usr/local/lib | head -50 || true
-          which cmake python3
-          brew info --json=v2 molten-vk vulkan-loader | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f["name"], f["versions"]["stable"], bool(f.get("installed"))) for f in d["formulae"]]' || true
-          system_profiler SPDisplaysDataType | head -30
       - name: MoltenVK
         run: |
           set -x
           mkdir -p "$RUNNER_TEMP/mvk" && cd "$RUNNER_TEMP/mvk"
           curl -fsSL -o mvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
-          shasum -a 256 mvk.tar
+          echo "$MOLTENVK_SHA256  mvk.tar" | shasum -a 256 -c
           tar xf mvk.tar
-          find . -name '*.dylib' -o -name '*.json' | head -20
-          cat $(find . -name 'MoltenVK_icd.json' | head -1)
-      - name: Vulkan loader
-        run: |
-          set -x
-          cd "$RUNNER_TEMP"
-          git clone --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader
-          cd Vulkan-Loader
-          git rev-parse HEAD
-          time cmake -S . -B build -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/usr/local > cmake.log 2>&1 || { tail -50 cmake.log; exit 1; }
-          time cmake --build build --parallel > build.log 2>&1 || { tail -80 build.log; exit 1; }
-          sudo cmake --install build
-          ls -la /usr/local/lib/libvulkan*
-      - name: Deploy
-        run: |
-          set -x
-          D=$(dirname "$(find "$RUNNER_TEMP/mvk" -path '*dynamic*macOS*' -name libMoltenVK.dylib | head -1)")
-          sudo mkdir -p /usr/local/share/vulkan/icd.d
+          D=$(dirname "$(find . -path '*dynamic*macOS*' -name libMoltenVK.dylib | head -1)")
+          ls -la "$D"
+          sudo mkdir -p /usr/local/lib
           sudo cp "$D/libMoltenVK.dylib" /usr/local/lib/
-          sed 's#"library_path" *: *"[^"]*"#"library_path": "../../../lib/libMoltenVK.dylib"#' "$D/MoltenVK_icd.json" | sudo tee /usr/local/share/vulkan/icd.d/MoltenVK_icd.json
-          A="$ANDROID_HOME/emulator/lib64/gles_angle"
-          if [ -f "$A/libEGL.dylib" ]; then
-            mkdir -p "$HOME/lib"
-            cp "$A"/*.dylib "$HOME/lib/"
-            ls -la "$HOME/lib"
-            echo "SDL3_TEST_ANGLE_DIR=$A" >> "$GITHUB_ENV"
-          fi
+      - name: cargo test gpu_render_states (logged)
+        continue-on-error: true
+        env:
+          MVK_CONFIG_LOG_LEVEL: "4"
+          SDL_LOGGING: "gpu=verbose,render=verbose"
+        run: |
+          cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -150 | cut -c1-400
       - name: cargo test
         continue-on-error: true
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           RUST_TEST_NOCAPTURE: 1
         run: |
-          set -o pipefail
-          cargo test -p sdl3 --lib 2>&1 | tee "$RUNNER_TEMP/test.log" | grep -E "^test result|panicked|^error" || true
-          cargo test -p sdl3 --test cocoa --test cocoa_metal 2>&1 | tee "$RUNNER_TEMP/test2.log" | grep -E "^test result|panicked|^error|cocoa:" || true
+          time cargo test -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1 || true
+          time cargo test -p sdl3 --test cocoa --test cocoa_metal > "$RUNNER_TEMP/test2.log" 2>&1 || true
+          grep -E "cocoa:|panicked|skipping" "$RUNNER_TEMP/test2.log" | tail -40
       - name: Summary
         if: always()
         run: |
           echo "=== failures"
-          sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -60 || true
-          grep -B2 -A12 "panicked at" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test2.log" | head -300 || true
+          sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
+          grep -A6 "panicked at" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test2.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
           echo "=== skip counts"
           cut -f1 "$RUNNER_TEMP/skips.tsv" | sort | uniq -c || true
           echo "=== skips"
           sort -u "$RUNNER_TEMP/skips.tsv" | cut -c1-300 || true
-          grep -E "^test result" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test2.log" || true
+          grep -E "^test result" "$RUNNER_TEMP/test.log" || true
