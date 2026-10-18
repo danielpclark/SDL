@@ -12634,8 +12634,8 @@ corrupt 0: WAVPACK 0x8010 2 44100 frames=5518 | 22072 ae7adda5d727a13c end=0
 corrupt 0 mix: dur=5518 play=1 pos=5518 replay=0 seek=0 pos=5518 playing=0 624dde28cd2c0276
 corrupt 1: WAVPACK 0x8010 2 44100 frames=5518 | 22072 ae7adda5d727a13c end=0
 corrupt 1 mix: dur=5518 play=1 pos=5518 replay=1 seek=1 pos=1839 playing=0 8bdcce08a94dba8c
-corrupt 2: err: 
-corrupt 2 mix: dur=-300 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: WAVPACK 0x8010 2 44100 frames=5218 | 20872 38567a25bda30b0c end=0
+corrupt 2 mix: dur=5218 play=1 pos=5218 replay=0 seek=0 pos=5218 playing=0 c85f44a52c2ca457
 corrupt 3: WAVPACK 0x8010 2 44100 frames=5818 | 3528 cc09dd9592a21288 end=0
 corrupt 3 mix: dur=5818 play=1 pos=882 replay=1 seek=1 pos=1939 playing=0 8232c26f6ae4d67a
 corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
@@ -13395,8 +13395,8 @@ trunc 3156: WAVPACK 0x8010 2 22050 frames=13230 | 12000 89def067b28c6b69 end=0
 trunc 6313: WAVPACK 0x8010 2 22050 frames=13230 | 24000 2860655500ed675a end=0
 trunc 9469: WAVPACK 0x8010 2 22050 frames=13230 | 36000 86180bd1b5e7a851 end=0
 trunc 12625: WAVPACK 0x8010 2 22050 frames=13230 | 44460 f0206f56aaf6e530 end=0
-corrupt 0: err: 
-corrupt 0 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 0: WAVPACK 0x8010 2 22050 frames=10230 | 40920 c2a61fca24bdd744 end=0
+corrupt 0 mix: dur=10230 play=1 pos=5645 replay=0 seek=0 pos=5645 playing=1 fa98f1ed35767ab8
 corrupt 1: WAVPACK 0x8010 2 22050 frames=10230 | 40920 c2a61fca24bdd744 end=0
 corrupt 1 mix: dur=10230 play=1 pos=5645 replay=0 seek=0 pos=5645 playing=1 fa98f1ed35767ab8
 corrupt 2: WAVPACK 0x8010 2 22050 frames=10230 | 40920 c2a61fca24bdd744 end=0
@@ -14850,8 +14850,8 @@ corrupt 0: WAVPACK 0x8010 2 8000 frames=3256 | 13024 45eb00a94ce3eaf5 end=0
 corrupt 0 mix: dur=3256 play=1 pos=2049 replay=0 seek=0 pos=2049 playing=1 efd95359cc2cd546
 corrupt 1: WAVPACK 0x8010 2 8000 frames=3256 | 13024 45eb00a94ce3eaf5 end=0
 corrupt 1 mix: dur=3256 play=1 pos=2049 replay=1 seek=1 pos=1085 playing=1 85056b527272f21c
-corrupt 2: err: 
-corrupt 2 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 2: WAVPACK 0x8010 2 8000 frames=3256 | 13024 45eb00a94ce3eaf5 end=0
+corrupt 2 mix: dur=3256 play=1 pos=2049 replay=0 seek=0 pos=2049 playing=1 efd95359cc2cd546
 corrupt 3: WAVPACK 0x8010 2 8000 frames=4000 | 16000 735037caa639bf10 end=0
 corrupt 3 mix: dur=4000 play=1 pos=2049 replay=1 seek=1 pos=1333 playing=1 de29ebe0e1b83a25
 corrupt 4: WAVPACK 0x8010 2 8000 frames=4000 | 16000 1cb4826f204067a2 end=0
@@ -16149,8 +16149,8 @@ corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 5: err: 
-corrupt 5 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 5: WAVPACK 0x8010 1 16000 frames=1800 | 2000 43336e562bba6a8e end=0
+corrupt 5 mix: dur=1800 play=1 pos=1000 replay=0 seek=0 pos=1000 playing=0 5f8267a29b43b213
 wv corrupt 0: WAVPACK 0x8010 1 16000 frames=4800 | 9600 5236bd56f290d044 end=0
 wv corrupt 0 mix: dur=4800 play=1 pos=4097 replay=1 seek=1 pos=1600 playing=1 f147cf3db01bc320
 wv corrupt 1: WAVPACK 0x8010 1 16000 frames=4800 | 9600 7b4dd16e5dd68c96 end=0
