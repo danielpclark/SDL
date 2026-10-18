@@ -63,7 +63,20 @@ jobs:
           # runner's)
           MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$M/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
           MSYS_NO_PATHCONV=1 reg query 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers'
+      - name: cargo test, llvmpipe
+        shell: bash
+        continue-on-error: true
+        env:
+          GALLIUM_DRIVER: llvmpipe
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          RUST_TEST_NOCAPTURE: 1
+        run: |
+          cargo test -p sdl3 --lib wgl_context -- --nocapture 2>&1 | grep -E "GL_|test |panicked" | cut -c1-300 || true
+          time cargo test -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1 || true
+          echo "=== tail"
+          tail -25 "$RUNNER_TEMP/test.log" | cut -c1-300
       - name: GL under cdb
+        if: false
         shell: bash
         continue-on-error: true
         run: |
@@ -122,18 +135,14 @@ jobs:
         run: |
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
           grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
-          for i in 1 2 3 4 5 6; do (yes > /dev/null &) ; done
-          for i in 1 2 3 4 5 6 7 8; do
-            cargo test -q -p sdl3 --lib render::gpu::tests::gpu_render_states 2>&1 | grep -E "test result|^without|^tinted|^first|^second" | cut -c1-200
-          done
-          pkill yes || true
-          cargo test -p sdl3 --lib -- --test-threads=1 > "$RUNNER_TEMP/one1.log" 2>&1 || true
-          grep -E "panicked|^without|test result" "$RUNNER_TEMP/one1.log" | cut -c1-200
-          cargo test -p sdl3 --lib render::gpu:: -- --test-threads=1 > "$RUNNER_TEMP/mod.log" 2>&1 || true
-          grep -E "^test |panicked|^without|^tinted" "$RUNNER_TEMP/mod.log" | grep -v "\.\.\. ok$" | tail -30 | cut -c1-300
-          cargo test -p sdl3 --lib render:: -- --test-threads=1 > "$RUNNER_TEMP/mod2.log" 2>&1 || true
-          grep -E "^test |panicked" "$RUNNER_TEMP/mod2.log" | grep -v "\.\.\. ok$" | tail -30 | cut -c1-300
-          grep -E "^test result" "$RUNNER_TEMP/mod.log" "$RUNNER_TEMP/mod2.log"
+          T=render::gpu::tests::gpu_render_states
+          bis() { echo "=== $*"; cargo test -q -p sdl3 --lib -- --test-threads=1 "$@" $T 2>&1 | grep -E "test result|^without|panicked" | cut -c1-200; }
+          bis gpu::
+          bis gpu::vulkan
+          bis gpu::metal
+          bis app:: assert:: atomic:: audio:: camera:: core:: cpuinfo:: dialog:: error:: events::
+          bis filesystem:: guid:: haptic:: hidapi:: hints:: init:: io:: joystick:: loadso:: locale::
+          bis log:: misc:: notification:: power:: process:: properties::
       - name: cargo test
         continue-on-error: true
         env:
