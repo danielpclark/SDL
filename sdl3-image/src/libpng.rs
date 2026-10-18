@@ -1516,6 +1516,14 @@ impl ApngEncoderContext {
             return Err(Error::new("APNG animation write not in progress."));
         }
 
+        // Note (upstream): upstream goes on with no frames added, when there
+        // is no acTL chunk and its position is 0: the acTL is written over
+        // the start of the stream (the PNG signature), and the IEND after
+        // it; the translation fixes it, failing as the WebP encoder does.
+        if self.current_frame_index == 0 {
+            return Err(Error::new("No frames added to animation"));
+        }
+
         let dst = e.dst();
         let current_pos = match dst.tell() {
             Ok(pos) => pos,
@@ -1526,9 +1534,6 @@ impl ApngEncoderContext {
             }
         };
 
-        // FIXME (upstream): with no frames added, there is no acTL chunk and
-        // its position is 0: the acTL is written over the start of the
-        // stream (the PNG signature), and the IEND after it.
         if let Err(err) = dst.seek(self.acTL_chunk_start_pos, IoWhence::Set) {
             return Err(Error::new(format!("Failed to seek to acTL chunk: {err}")));
         }
