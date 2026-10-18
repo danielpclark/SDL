@@ -566,6 +566,13 @@ mod macos {
     type VkCreateInstance =
         unsafe extern "C" fn(*const VkInstanceCreateInfo, *const c_void, *mut *mut c_void) -> i32;
     type VkDestroyInstance = unsafe extern "C" fn(*mut c_void, *const c_void);
+    #[repr(C)]
+    struct VkExtensionProperties {
+        extension_name: [c_char; 256],
+        spec_version: u32,
+    }
+    type VkEnumerateInstanceExtensionProperties =
+        unsafe extern "C" fn(*const c_char, *mut u32, *mut VkExtensionProperties) -> i32;
     type VkEnumeratePhysicalDevices =
         unsafe extern "C" fn(*mut c_void, *mut u32, *mut *mut c_void) -> i32;
     type VkGetPhysicalDeviceSurfaceSupportKHR =
@@ -627,13 +634,44 @@ mod macos {
             p
         };
 
-        // An instance with SDL's extensions (and the portability
-        // enumeration MoltenVK's devices need through the loader).
+        // An instance with SDL's extensions, and the portability
+        // enumeration MoltenVK's devices need through the loader (the
+        // loader has it; MoltenVK loaded directly, by upstream's
+        // libMoltenVK.dylib default, doesn't, and needs none).
+        // SAFETY: the global function, of this type; the count is the
+        // array's.
+        let portability = unsafe {
+            let enumerate: VkEnumerateInstanceExtensionProperties = std::mem::transmute(proc_addr(
+                std::ptr::null_mut(),
+                c"vkEnumerateInstanceExtensionProperties",
+            ));
+            let mut count = 0u32;
+            assert_eq!(
+                enumerate(std::ptr::null(), &mut count, std::ptr::null_mut()),
+                0
+            );
+            let mut props: Vec<VkExtensionProperties> = (0..count)
+                .map(|_| VkExtensionProperties {
+                    extension_name: [0; 256],
+                    spec_version: 0,
+                })
+                .collect();
+            assert_eq!(
+                enumerate(std::ptr::null(), &mut count, props.as_mut_ptr()),
+                0
+            );
+            props[..count as usize].iter().any(|p| {
+                std::ffi::CStr::from_ptr(p.extension_name.as_ptr())
+                    == c"VK_KHR_portability_enumeration"
+            })
+        };
         let mut names: Vec<CString> = extensions
             .iter()
             .map(|e| CString::new(*e).unwrap())
             .collect();
-        names.push(CString::new("VK_KHR_portability_enumeration").unwrap());
+        if portability {
+            names.push(CString::new("VK_KHR_portability_enumeration").unwrap());
+        }
         let ptrs: Vec<*const c_char> = names.iter().map(|n| n.as_ptr()).collect();
         let app = VkApplicationInfo {
             s_type: 0,
@@ -647,7 +685,7 @@ mod macos {
         let create_info = VkInstanceCreateInfo {
             s_type: 1,
             p_next: std::ptr::null(),
-            flags: 1, // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+            flags: u32::from(portability), // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
             p_application_info: &app,
             enabled_layer_count: 0,
             pp_enabled_layer_names: std::ptr::null(),
