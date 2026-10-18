@@ -115,7 +115,7 @@ pub(crate) fn vorbis_book_decode(book: &Codebook, b: &mut OggpackBuffer<'_>) -> 
 /* decode vector / dim granularity gaurding is done in the upper layer */
 /// Translation of `vorbis_book_decodevs_add()`.
 ///
-/// FIXME (upstream): a residue 0 partition book of no dimensions divides
+/// Note (upstream): a residue 0 partition book of no dimensions divides
 /// by zero here (`n/book->dim`); here (and in the reference C, patched the
 /// same way) it decodes nothing.
 pub(crate) fn vorbis_book_decodevs_add(

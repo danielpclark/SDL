@@ -62,7 +62,7 @@ pub struct NsfeInfo {
     track_names: Vec<usize>,
     playlist: Vec<u8>,
     track_times: Vec<[u8; 4]>,
-    /// FIXME (upstream): this is left uninitialized when there is no INFO
+    /// Note (upstream): this is left uninitialized when there is no INFO
     /// block; it is zero here, as in upstream's patched build for the tests.
     actual_track_count_: i32,
     playlist_disabled: bool,
@@ -181,7 +181,7 @@ pub fn nsfe_info_load<H: NsfeInfoHost + ?Sized>(
         info.track_names = Vec::new();
         info.playlist = Vec::new();
         info.track_times = Vec::new();
-        // FIXME (upstream): the strings are left as they were (uninitialized
+        // Note (upstream): the strings are left as they were (uninitialized
         // at first) where there is no auth block; they are cleared here, as
         // in upstream's patched build for the tests.
         info.info.game = [0; 256];
@@ -293,7 +293,7 @@ pub fn nsfe_info_load<H: NsfeInfoHost + ?Sized>(
             }
         } else if tag == blargg_4char(b'D', b'N', b'E', b'N') {
             // check( phase == 2 );
-            // FIXME (upstream): an emulator loading a file without a DATA
+            // Note (upstream): an emulator loading a file without a DATA
             // block went on to play from memory never set up; this fails
             // the load then, as upstream's patched build for the tests does.
             if phase != 2 && h.load_nsf_wanted() {

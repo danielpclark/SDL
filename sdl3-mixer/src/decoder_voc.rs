@@ -216,7 +216,8 @@ fn parse_voc_file(
                 } else if ((codec == 0) && (bits != 8)) || ((codec == 4) && (bits != 16)) {
                     return Err(Error::new("Corrupt VOC data"));
                 }
-                // FIXME (upstream): zero channels divide by zero (and crash) below.
+                // Note (upstream): zero channels divide by zero (and crash) below
+                // in C; here they're an error.
                 if channels == 0 {
                     return Err(Error::new("Corrupt VOC data"));
                 }
@@ -393,7 +394,7 @@ fn parse_voc_file(
         total_frames += loop_frames;
     }
 
-    // FIXME (upstream): an infinite loop leaves the duration at -1, which is
+    // Note (upstream): an infinite loop leaves the duration at -1, which is
     // MIX_DURATION_UNKNOWN, not MIX_DURATION_INFINITE, so predecoding such
     // a file decodes forever (until memory runs out); it's reported as
     // infinite here (and in the patched C reference harness).
@@ -498,7 +499,7 @@ impl TrackData for VocTrackData<'_> {
                 }
             } else if block.loop_count == -2 {
                 // it's an endloop block.
-                // FIXME (upstream): an infinite loop with no audio in it
+                // Note (upstream): an infinite loop with no audio in it
                 // makes the decoder return true forever without decoding
                 // anything, hanging the caller; that's the end of the data
                 // here (and in the patched C reference harness).

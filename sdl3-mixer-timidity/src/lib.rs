@@ -34,7 +34,7 @@
 //! Every item names the C symbol it translates. Where corrupt input makes
 //! upstream's C read or write out of bounds, divide by zero or spin
 //! forever, the translation does something defined instead; those places
-//! are marked `FIXME (upstream)`.
+//! are marked `Note (upstream)`.
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]

@@ -70,7 +70,7 @@ pub struct Registers {
 
 #[derive(Clone, Debug)]
 pub struct HesCpu {
-    /// FIXME (upstream): an instruction at the end of the RAM page has its
+    /// Note (upstream): an instruction at the end of the RAM page has its
     /// operands read past it (upstream reads the registers after it); the
     /// eight bytes after it are kept zero here, and upstream's build for
     /// the tests has the same padding.
@@ -136,7 +136,7 @@ const ST_C: u8 = 0x01;
 // reduce efficiency quite a bit
 const RAM_ADDR: u64 = 0x2000;
 
-/// The code map entry for an address. FIXME (upstream): the program
+/// The code map entry for an address. Note (upstream): the program
 /// counter isn't kept to 16 bits while running (only when the CPU stops),
 /// so code running on past 0xFFFF (through the unmapped page after it) goes
 /// on to index past the code map; this maps the addresses past it to that
@@ -1588,7 +1588,8 @@ pub fn run<H: HesCpuHost + ?Sized>(h: &mut H, end_time: HesTime) -> bool {
                         // (the destination's for TIA, the source's for TAI)
                         // starts at 0, so negating it never alternates: TIA
                         // writes every byte to its first address and TAI reads
-                        // every byte from its first. Kept, as upstream plays it.
+                        // every byte from its first. Kept, as upstream plays it
+                        // (danielpclark/SDL#143).
                         in_alt = (opcode == 0xF3) as u64;
                         // bxfer_alt:
                         in_inc = (in_alt ^ 1) as i64;

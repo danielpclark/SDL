@@ -169,7 +169,7 @@ pub(crate) struct FluidRvoice {
 pub(crate) fn fluid_rvoice_get_sample24(dsp_msb: &[i16], dsp_lsb: &[u8], idx: u32) -> i32 {
     /* cast sample to unsigned type, so we can safely shift and bitwise or
      * without relying on undefined behaviour (should never happen anyway ofc...) */
-    // FIXME (upstream): nothing keeps the index inside the sample data;
+    // Note (upstream): nothing keeps the index inside the sample data;
     // past it, this reads 0.
     let msb = dsp_msb.get(idx as usize).copied().unwrap_or(0) as i32 as u32;
     let lsb = dsp_lsb.get(idx as usize).copied().unwrap_or(0);
@@ -181,7 +181,7 @@ pub(crate) fn fluid_rvoice_get_sample24(dsp_msb: &[i16], dsp_lsb: &[u8], idx: u3
 pub(crate) fn fluid_rvoice_get_sample16(dsp_msb: &[i16], idx: u32) -> i32 {
     /* cast sample to unsigned type, so we can safely shift and bitwise or
      * without relying on undefined behaviour (should never happen anyway ofc...) */
-    // FIXME (upstream): nothing keeps the index inside the sample data;
+    // Note (upstream): nothing keeps the index inside the sample data;
     // past it, this reads 0.
     let msb = dsp_msb.get(idx as usize).copied().unwrap_or(0) as i32 as u32;
     ((msb << 8) | 0) as i32

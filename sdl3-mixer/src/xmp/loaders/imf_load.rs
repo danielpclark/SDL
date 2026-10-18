@@ -545,8 +545,9 @@ fn imf_load(m: &mut ModuleData, f: &mut HioHandle<'_>, _start: i32) -> i32 {
                 return -1;
             }
 
-            // FIXME (upstream): the instruments' samples aren't checked
-            // against the 1024 allocated, which upstream overflows.
+            // Note (upstream): C doesn't check the instruments' samples
+            // against the 1024 allocated, and overflows them; here too many
+            // fail the load.
             if smp_num >= m.mod_.xxs.len() {
                 return -1;
             }

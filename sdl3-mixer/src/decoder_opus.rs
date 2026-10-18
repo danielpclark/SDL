@@ -165,7 +165,7 @@ impl TrackData for OpusTrackData<'_> {
             return false; // EOF
         }
 
-        // FIXME (upstream): SDL_assert((amount * channels) <= SDL_arraysize(samples)),
+        // Note (upstream): SDL_assert((amount * channels) <= SDL_arraysize(samples)),
         // but `channels` is the previous link's channel count, so a chained
         // file whose next link has fewer channels fails it (op_read_float()
         // never returns more than fits); it's left out.
@@ -198,7 +198,7 @@ impl TrackData for OpusTrackData<'_> {
 
         if self.current_iteration >= 0 {
             debug_assert!(loop_.active);
-            // FIXME (upstream): SDL_assert(current_iteration_frames <= loop->len)
+            // Note (upstream): SDL_assert(current_iteration_frames <= loop->len)
             // here and below fails on damaged files (where a looping seek
             // doesn't land where it asked), so it's left out.
             let available = loop_.len.wrapping_sub(self.current_iteration_frames);

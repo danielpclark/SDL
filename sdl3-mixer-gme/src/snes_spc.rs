@@ -169,7 +169,7 @@ pub struct SnesSpc {
 
     /// The 64K RAM shared by the SPC-700 and the DSP, and the padding
     /// after it ("padding to neutralize address overflow -- but this is
-    /// still undefined behavior!"). FIXME (upstream): the DSP reads the
+    /// still undefined behavior!"). Note (upstream): the DSP reads the
     /// sample directory past even the padding (with the directory in the
     /// last page and a source number past 0xC0); this has 0x300 more bytes
     /// of padding, zeros, and upstream's build for the tests is patched

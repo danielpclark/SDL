@@ -299,7 +299,7 @@ impl AudioData for FluidsynthAudioData {
             // Translation of `SoundFontOpen()` (which parses the stream's
             // address back out of the name).
             sfloader.set_callbacks(Arc::new(move |filename: &str| -> Option<Box<dyn SfFile>> {
-                // FIXME (upstream): opened again, upstream hands out the
+                // Note (upstream): opened again, upstream hands out the
                 // stream it already closed; here it fails.
                 if filename != expected {
                     return None;

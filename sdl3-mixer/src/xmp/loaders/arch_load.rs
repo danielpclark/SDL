@@ -408,8 +408,9 @@ fn get_samp(m: &mut ModuleData, _size: u32, f: &mut HioHandle<'_>, data: &mut Lo
             return -1;
         }
 
-        // FIXME (upstream): a name of 32 bytes fills the name without its
-        // terminator.
+        // Note (upstream): a name of 32 bytes fills the name without its
+        // terminator, which C's string functions then read past; here it
+        // is read within the name's array.
         hio_read(&mut mod_.xxi[iu].name, 1, name_len as usize, f);
     }
 

@@ -58,7 +58,7 @@ pub(crate) fn FLAC__lpc_restore_signal(
 /// with 64-bit sums; it stops at the first sample whose prediction or
 /// value doesn't fit in 32 bits, leaving the rest of `data` as it was.
 ///
-/// FIXME (upstream): what it was is the previous frames' samples, or, in a
+/// Note (upstream): what it was is the previous frames' samples, or, in a
 /// buffer `allocate_output_()` has just allocated, uninitialized memory
 /// (here, zeros); the frame's CRC check zeroes the block only when the
 /// CRC doesn't match.

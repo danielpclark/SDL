@@ -176,7 +176,7 @@ impl NesNamcoApu {
 
                 loop {
                     // read wave sample
-                    // FIXME (upstream): the address can be past the 128
+                    // Note (upstream): the address can be past the 128
                     // registers (upstream reads past them, into the synth);
                     // it wraps at 256 samples here, as it does in the chip,
                     // and in upstream's patched build for the tests.

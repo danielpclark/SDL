@@ -17,7 +17,7 @@
 //!
 //! Upstream indexes its arrays (and the songs' banks) with the file's
 //! numbers unchecked; here numbers out of range are skipped (the
-//! `FIXME (upstream)` notes).
+//! `Note (upstream)` notes).
 
 #![allow(dead_code)]
 
@@ -263,7 +263,7 @@ pub(crate) fn init_soundfont(song: &mut MidiSong, g: &mut Globals, order: i32) -
             continue;
         }
         if bank == 128 {
-            // FIXME (upstream): a drum set number over 127 indexes past
+            // Note (upstream): a drum set number over 127 indexes past
             // song->drumset; skip the preset.
             let Some(slot) = song.drumset.get_mut(preset as usize) else {
                 continue;
@@ -272,7 +272,7 @@ pub(crate) fn init_soundfont(song: &mut MidiSong, g: &mut Globals, order: i32) -
                 *slot = Some(ToneBank::new(ToneSrc::Own(vec![Default::default(); 128])));
             }
         } else {
-            // FIXME (upstream): likewise for a bank over 127.
+            // Note (upstream): likewise for a bank over 127.
             let Some(slot) = song.tonebank.get_mut(bank as usize) else {
                 continue;
             };
@@ -366,9 +366,10 @@ fn load_from_file(song: &mut MidiSong, rec: &mut SFInsts, ipi: usize) -> Option<
             return None;
         }
         if sp.endsample < 0 {
-            // FIXME (upstream): a length of -6 to -1 allocates 0 to 5
-            // bytes, then reads the rest of the file into them (it can't
-            // read -1 bytes, which fails the read).
+            // Note (upstream): a length of -6 to -1 allocates 0 to 5
+            // bytes, then C reads the rest of the file into them (it can't
+            // read -1 bytes, which fails the read); here any negative
+            // length is a read error.
             return None; /* badread */
         }
         let _ = io.seek(sp.startsample as i64, IoWhence::Set);
@@ -517,7 +518,8 @@ fn free_order(sf: &mut SfState) {
 
 fn parse_preset(song: &mut MidiSong, g: &mut Globals, preset: i32, order: i32) {
     let sf = &g.sf.sfinfo;
-    // FIXME (upstream): bag indexes past the bags read past them.
+    // Note (upstream): bag indexes past the bags read past them in C;
+    // here the preset is skipped.
     let (Some(from), Some(to)) = (
         sf.presethdr.get(preset as usize),
         sf.presethdr.get(preset as usize + 1),
@@ -544,7 +546,7 @@ fn parse_preset(song: &mut MidiSong, g: &mut Globals, preset: i32, order: i32) {
 
 /* map a generator operation to the layer structure */
 fn parse_gen(lay: &mut Layer, gen: &Tgenrec) {
-    // FIXME (upstream): an operator past the ones known writes past the
+    // Note (upstream): an operator past the ones known writes past the
     // layer; skip it.
     let Ok(oper) = usize::try_from(gen.oper) else {
         return;
@@ -691,7 +693,8 @@ fn make_inst(
     let keynote;
     let n_order;
 
-    // FIXME (upstream): a sample number past the samples reads past them.
+    // Note (upstream): a sample number past the samples reads past them
+    // in C; here no instrument is made from it.
     let Some(&sample) = sf.sampleinfo.get(lay.val[SF_SAMPLE_ID] as usize) else {
         return;
     };
@@ -723,7 +726,7 @@ fn make_inst(
         order = n_order;
     }
 
-    // FIXME (upstream): a drum key, or a preset, over 127 indexes past the
+    // Note (upstream): a drum key, or a preset, over 127 indexes past the
     // bank's tones; skip it.
     let (Some(Some(tone_bank)), Some(master)) = (tone_bank, master) else {
         return;
@@ -895,7 +898,7 @@ fn make_inst(
 
 /// `freq_table[i]`.
 fn freq_table(i: i32) -> i32 {
-    // FIXME (upstream): a key over 127 reads past freq_table; use 0.
+    // Note (upstream): a key over 127 reads past freq_table; use 0.
     FREQ_TABLE.get(i as usize).copied().unwrap_or(0)
 }
 

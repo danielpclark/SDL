@@ -113,7 +113,7 @@ fn get_data(file: &FileT, data: &[u8], ptr: usize, min_size: i32) -> Option<usiz
         return None; // Don't read farther than buffer allows
     }
     let offset = get_be16(&data[ptr..]) as i16 as i64;
-    // FIXME (upstream): with a minimum size larger than the file, the
+    // Note (upstream): with a minimum size larger than the file, the
     // check below wraps around and passes any offset; that fails here
     // (upstream's build for the tests is patched the same).
     if offset == 0
@@ -147,7 +147,7 @@ fn parse_header(data: &[u8], begin: usize, size: usize, out: &mut FileT) -> Blar
     Ok(())
 }
 
-/// `Gme_File::copy_field_()` of a string in the file. FIXME (upstream): the
+/// `Gme_File::copy_field_()` of a string in the file. Note (upstream): the
 /// string can run on past the end of the file, which upstream reads past;
 /// this stops at the end (upstream's build for the tests is patched the
 /// same).
@@ -265,7 +265,7 @@ impl AyEmu {
             beeper_output: None,
             beeper_delta: 0,
             last_beeper: 0,
-            // FIXME (upstream): left uninitialized, and an AY register
+            // Note (upstream): left uninitialized, and an AY register
             // write before the address is selected uses it as the register
             // index (out of the registers' bounds); it starts at 0 here
             // (upstream's build for the tests is patched the same).
@@ -359,7 +359,7 @@ impl AyEmu {
             // check( len );
             let input = get_data(&file, fd, blocks, 0);
             blocks += 2;
-            // FIXME (upstream): when the offset is bad, upstream copies from
+            // Note (upstream): when the offset is bad, upstream copies from
             // a null pointer (and crashes); this copies nothing (upstream's
             // build for the tests is patched the same).
             match input {

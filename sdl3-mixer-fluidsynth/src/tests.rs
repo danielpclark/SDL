@@ -35,7 +35,7 @@
 //! are, rather than the C library's; with its IIR filter compiled without
 //! the `-ffast-math` upstream's CMake gives it (whose results depend on
 //! the compiler and the CPU); and patched where the translation works
-//! around upstream's memory errors and hangs (the `FIXME (upstream)` notes
+//! around upstream's memory errors and hangs (the `Note (upstream)` notes
 //! of fluid_voice.c, fluid_midi.c and fluid_rev.c, whose reverb renders
 //! its first blocks with uninitialized parameters). The files here don't
 //! hit the other places where the translation does something defined where

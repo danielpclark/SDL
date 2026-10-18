@@ -14,7 +14,7 @@
 //! here. Upstream's readers look ahead up to two bytes past the bits they
 //! take; where corrupt data makes them go past the end of `bsspace` (into
 //! the handle's next members in upstream's C), they read zeros here.
-//! FIXME (upstream): that would be a read past `bsspace`.
+//! Note (upstream): that would be a read past `bsspace`.
 
 use crate::frame::Mpg123Handle;
 

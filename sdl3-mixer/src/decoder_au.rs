@@ -109,7 +109,8 @@ fn au_init_audio(
             _ => return Err(Error::new("AU: Unsupported .au encoding")),
         }
 
-        // FIXME (upstream): zero channels divide by zero (and crash) here.
+        // Note (upstream): zero channels divide by zero (and crash) here in
+        // C; here they're an error.
         if hdr.channels == 0 {
             return Err(Error::new("AU: Invalid number of channels"));
         }

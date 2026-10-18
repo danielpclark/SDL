@@ -232,7 +232,7 @@ impl VgmEmuImpl {
         VgmEmuImpl {
             state,
             classic,
-            // FIXME (upstream): left uninitialized until a track with the
+            // Note (upstream): left uninitialized until a track with the
             // FM chips starts, and read without them, for their commands;
             // zeroed here, and in upstream's build for the tests.
             fm_time_offset: 0,
@@ -269,7 +269,7 @@ impl VgmEmuImpl {
 
     /// The byte at `data + o`.
     ///
-    /// FIXME (upstream): the commands are read without checking where the
+    /// Note (upstream): the commands are read without checking where the
     /// data ends (a command cut short by the end, a data block, a PCM seek
     /// or the loop past it, the data offset), past it; zeros are read
     /// there, here and in upstream's build for the tests.
@@ -329,7 +329,7 @@ impl VgmEmuImpl {
             }
         }
 
-        // FIXME (upstream): a loop that takes no time (back to its end
+        // Note (upstream): a loop that takes no time (back to its end
         // command, or through no delay) never ends; the stream ends at its
         // end command when no time has passed since it last looped there,
         // here and in upstream's build for the tests.
@@ -490,7 +490,7 @@ impl VgmEmuImpl {
 
                 CMD_DELAY => p += 3,
 
-                // FIXME (upstream): the block's size (read past the end
+                // Note (upstream): the block's size (read past the end
                 // of the data, as at() does) is added in 32 bits, which
                 // wrap to no advance at all (and the scan never ends) at
                 // 0xFFFFFFF9; it is added in 64 bits here, and in

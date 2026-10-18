@@ -134,9 +134,10 @@ fn channel_extras_volume(xc: &ChannelData) -> i32 {
         ChannelExtras::Med(ce) => ce.volume,
         ChannelExtras::Hmn(ce) => ce.volume,
         ChannelExtras::Flt(ce) => ce.volume,
-        // FIXME (upstream): an instrument's extras of another type than
-        // its channel's (or none) are read as the channel's: can't happen
-        // with the loaders, which give both the same type.
+        // Note (upstream): C reads an instrument's extras of another type
+        // than its channel's (or none) as the channel's; here they read as
+        // 0. It can't happen with the loaders, which give both the same
+        // type.
         _ => 0,
     }
 }

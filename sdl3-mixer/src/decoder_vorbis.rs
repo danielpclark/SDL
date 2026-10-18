@@ -273,7 +273,7 @@ impl TrackData for VorbisTrackData<'_> {
 
         if self.current_iteration >= 0 {
             debug_assert!(loop_.active);
-            // FIXME (upstream): SDL_assert(current_iteration_frames <= loop->len)
+            // Note (upstream): SDL_assert(current_iteration_frames <= loop->len)
             // here and below fails on damaged files (where a looping seek
             // doesn't land where it asked), so it's left out.
             let available = loop_.len.wrapping_sub(self.current_iteration_frames);
@@ -318,8 +318,8 @@ impl TrackData for VorbisTrackData<'_> {
             // Note (upstream): the planar pointers point into libvorbis's
             // PCM buffers, which a looping seek above decodes into, so the
             // samples output when looping are from that seek's decoding
-            // (and, if that seek went to another link, from freed memory:
-            // FIXME (upstream); here they're from the new link's buffers).
+            // (and, if that seek went to another link, from freed memory in
+            // C; here they're from the new link's buffers).
             let n = amount as usize;
             let pcm = &self.vf.vd.pcm;
             let planes: Vec<Vec<u8>> = (0..self.current_channels.max(0) as usize)

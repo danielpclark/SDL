@@ -10,7 +10,7 @@
 //! Corrupt MIDI files, patches and SoundFonts must load or fail, and play,
 //! without panicking (where upstream's C would read or write out of
 //! bounds, divide by zero or spin, the translation does something defined;
-//! see the `FIXME (upstream)` notes). These run in their own process, as
+//! see the `Note (upstream)` notes). These run in their own process, as
 //! TiMidity's configuration is global, and its MIDI reader keeps state
 //! from one file to the next (which `matches_upstream` must start without).
 

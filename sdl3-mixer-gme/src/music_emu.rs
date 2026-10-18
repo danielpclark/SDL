@@ -371,7 +371,7 @@ pub trait MusicEmu: Send {
     fn set_sample_rate(&mut self, rate: i64) -> BlarggErr {
         // require( !sample_rate() ); // sample rate can't be changed once set
         self.set_sample_rate_(rate)?;
-        // FIXME (upstream): the buffer is left uninitialized (blargg_vector's
+        // Note (upstream): the buffer is left uninitialized (blargg_vector's
         // realloc), and when an emulator stops with an error before filling
         // it (as the SAP emulator does at an illegal instruction),
         // fill_buf() plays the rest of it; it starts zeroed here, and
@@ -817,7 +817,7 @@ pub fn music_emu_skip_<E: MusicEmu + ?Sized>(this: &mut E, mut count: i64) -> Bl
 fn int_log(x: i32, step: i32, unit: i32) -> i32 {
     let shift = x / step;
     let fraction = x.wrapping_sub(shift.wrapping_mul(step)).wrapping_mul(unit) / step;
-    // FIXME (upstream): a shift past 31 (or a negative one, before the
+    // Note (upstream): a shift past 31 (or a negative one, before the
     // fade starts) is undefined; this shifts by its low five bits, as the
     // x86 instruction upstream's build uses does.
     ((unit - fraction) + (fraction >> 1)).wrapping_shr(shift as u32)

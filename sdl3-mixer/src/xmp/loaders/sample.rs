@@ -311,7 +311,7 @@ pub(crate) fn libxmp_load_sample(
 
         if flags & SAMPLE_FLAG_NOLOAD != 0 {
             let buffer = buffer.unwrap_or(&[]);
-            // FIXME (upstream): memcpy() of bytelen bytes from a buffer
+            // Note (upstream): memcpy() of bytelen bytes from a buffer
             // the loader may have made shorter; the rest stays zero here.
             let n = bytelen_u.min(buffer.len());
             dest[..n].copy_from_slice(&buffer[..n]);

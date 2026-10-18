@@ -187,7 +187,7 @@ fn get_spc_xid6(begin: &[u8], out: &mut TrackInfo) {
         };
         if let Some(field) = field {
             // check( type == 1 );
-            // (FIXME (upstream): with an empty block at the very end of
+            // (Note (upstream): with an empty block at the very end of
             // the data, upstream reads the byte past it; this reads
             // nothing, and leaves the field as it was)
             copy_field_n(field, &begin[input..], len);
@@ -436,7 +436,7 @@ impl MusicEmu for SpcEmu {
         self.filter
             .set_gain((self.state.gain() * spc_filter::GAIN_UNIT as f64) as i32);
         self.apu.clear_echo();
-        // FIXME (upstream): left uninitialized, and its length is read when
+        // Note (upstream): left uninitialized, and its length is read when
         // the header's length is too long to set it; it starts zeroed here,
         // and upstream's build for the tests is patched the same.
         let mut spc_info = TrackInfo::default();

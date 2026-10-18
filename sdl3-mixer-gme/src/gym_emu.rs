@@ -322,7 +322,7 @@ impl GymEmuImpl {
 
     /// The byte at `data + o`.
     ///
-    /// FIXME (upstream): the sequence is read until a frame's end (a 0)
+    /// Note (upstream): the sequence is read until a frame's end (a 0)
     /// without checking where the data ends, past it (a last frame without
     /// its end, and the frames after the end, which go on until the track
     /// ends); zeros are read there, here and in upstream's build for the

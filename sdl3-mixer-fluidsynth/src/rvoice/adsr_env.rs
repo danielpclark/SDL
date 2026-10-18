@@ -58,7 +58,7 @@ pub(crate) struct FluidAdsrEnv {
 pub(crate) fn fluid_adsr_env_calc(env: &mut FluidAdsrEnv) {
     let mut x: FluidReal;
 
-    // FIXME (upstream): the section runs past FINISHED (whose count is
+    // Note (upstream): the section runs past FINISHED (whose count is
     // 0xffffffff, so it stays there in practice); a section beyond the
     // table reads the FINISHED data here.
     let sec = |s: u32| (s as usize).min(FLUID_VOICE_ENVLAST - 1);
