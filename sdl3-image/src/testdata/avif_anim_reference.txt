@@ -35,6 +35,17 @@ anim rgbx_368x360_tex_f4 q50: 48033 7b527d42256db1b4
 anim rgba_400x376_shapes_a_f3 q60: 5846 151ced7c9cedc541
 anim rgbx_48x32_tex_f40 q50: 7441 2d99fadced6f7bcc
 anim rgbx_96x64_shapes_f12 q30: 3919 cb452c1d4d211418
+anim sc_rgbx_200x120_ui_f8 q30: 3434 e70b404ab379c739
+anim sc_xrgb2101010_200x120_text_f8 q60: 63934 6ba3e8cfd2a024e4
+anim sc_rgba_200x120_dither_a_f8 q30: 46303 f8ce0b04799c2f46
+anim sc_rgbx_200x120_slides_f8 q0: 2581 56b3f2e2f8708886
+anim sc_rgbx_200x120_slides_f8 q60: 4002 2d03ee0221c0868b
+anim sc_argb_200x120_slides_a_f8 q30: 4464 385f6c51870a2539
+anim sc_rgbx_704x480_text_f3 q50: 16241 0977edecbceae375
+anim lg_rgbx_1000x700_slides_f7 q70: 34152 d9814cf0e264fb2b
+anim lg_argb_1080x1080_text_a_f2 q35: 14206 c10b1dbd3f5dc611
+anim lg_xrgb2101010_1080x1088_ui_f2 q60: 8027 78553052900dfad3
+anim lg_rgbx_4200x64_ui_f2 q50: 9788 64131c63960d16df
 [threads 1]
 anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
 anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
@@ -67,6 +78,17 @@ anim rgbx_368x360_tex_f4 q50: 47915 76d011d1d7a02f18
 anim rgba_400x376_shapes_a_f3 q60: 5834 326e11544e802fc0
 anim rgbx_48x32_tex_f40 q50: 7441 2d99fadced6f7bcc
 anim rgbx_96x64_shapes_f12 q30: 3919 cb452c1d4d211418
+anim sc_rgbx_200x120_ui_f8 q30: 3433 c15ac881e1c0bc3a
+anim sc_xrgb2101010_200x120_text_f8 q60: 63934 6ba3e8cfd2a024e4
+anim sc_rgba_200x120_dither_a_f8 q30: 46294 fec2c0e14163198f
+anim sc_rgbx_200x120_slides_f8 q0: 2589 bf8cf0c77df3e173
+anim sc_rgbx_200x120_slides_f8 q60: 4003 6942d271394830c6
+anim sc_argb_200x120_slides_a_f8 q30: 4463 bf3f140249a3ea23
+anim sc_rgbx_704x480_text_f3 q50: 16241 0977edecbceae375
+anim lg_rgbx_1000x700_slides_f7 q70: 34142 727189251c638864
+anim lg_argb_1080x1080_text_a_f2 q35: 14189 a2fbafd5a581f7fd
+anim lg_xrgb2101010_1080x1088_ui_f2 q60: 8007 9a33bd2ee1a34fe6
+anim lg_rgbx_4200x64_ui_f2 q50: 9788 64131c63960d16df
 [threads 4]
 anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
 anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
@@ -99,3 +121,14 @@ anim rgbx_368x360_tex_f4 q50: 48033 7b527d42256db1b4
 anim rgba_400x376_shapes_a_f3 q60: 5846 151ced7c9cedc541
 anim rgbx_48x32_tex_f40 q50: 7441 2d99fadced6f7bcc
 anim rgbx_96x64_shapes_f12 q30: 3919 cb452c1d4d211418
+anim sc_rgbx_200x120_ui_f8 q30: 3434 e70b404ab379c739
+anim sc_xrgb2101010_200x120_text_f8 q60: 63934 6ba3e8cfd2a024e4
+anim sc_rgba_200x120_dither_a_f8 q30: 46303 f8ce0b04799c2f46
+anim sc_rgbx_200x120_slides_f8 q0: 2581 56b3f2e2f8708886
+anim sc_rgbx_200x120_slides_f8 q60: 4002 2d03ee0221c0868b
+anim sc_argb_200x120_slides_a_f8 q30: 4464 385f6c51870a2539
+anim sc_rgbx_704x480_text_f3 q50: 16241 0977edecbceae375
+anim lg_rgbx_1000x700_slides_f7 q70: 34152 d9814cf0e264fb2b
+anim lg_argb_1080x1080_text_a_f2 q35: 14206 c10b1dbd3f5dc611
+anim lg_xrgb2101010_1080x1088_ui_f2 q60: 8027 78553052900dfad3
+anim lg_rgbx_4200x64_ui_f2 q50: 9788 64131c63960d16df

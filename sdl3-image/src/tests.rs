@@ -994,6 +994,18 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
     }
 }
 
+/// Whether a debug build checks the `n`th AVIF animation save of the
+/// reference (of image `name`): the release builds check them all, the
+/// debug builds (whose encodes are many times slower) every second one,
+/// leaving out the larger `rgbrgb` animations but their GIF.
+fn avif_save_checked_in_debug(n: usize, name: &str) -> bool {
+    if name.starts_with("rgbrgb") {
+        name == "rgbrgb.gif"
+    } else {
+        n % 2 == 1
+    }
+}
+
 #[test]
 fn matches_upstream_reference() {
     // The reference comes from upstream built for x86-64: pin libyuv's x86
@@ -1021,6 +1033,7 @@ fn matches_upstream_reference() {
         PixelFormat::ARGB8888,
     ];
     let mut tga_index = 0;
+    let mut avif_saves = 0;
 
     for line in reference.lines() {
         if let Some(n) = line.strip_prefix("== ") {
@@ -1150,6 +1163,12 @@ fn matches_upstream_reference() {
         } else if label == "decoder ignore" {
             decoder_walk_with(data, ext_of(name), 0, AvifWalk::IgnoreProps)
         } else if let Some(t) = label.strip_prefix("save_anim ") {
+            if t == "avif" {
+                avif_saves += 1;
+                if cfg!(debug_assertions) && !avif_save_checked_in_debug(avif_saves, name) {
+                    continue;
+                }
+            }
             let Some(anim) = loaded_anim.as_mut() else {
                 failures.push(format!("{name}: {label}: the animation didn't load"));
                 continue;

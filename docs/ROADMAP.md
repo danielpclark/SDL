@@ -147,7 +147,9 @@ In dependency order, after the core each one needs exists:
    The AVIF animation encoder is byte-identical to SDL_image built with
    libavif and libaom (`AOM_TARGET_CPU=generic`) with one thread, the
    default threads and four threads on synthetic animations (every pixel
-   format path, alpha, sizes from 1x1 to 400x376, up to 40 frames, key
+   format path, alpha, sizes from 1x1 to 1080x1088 and 4200x64 (multi-tile,
+   the frame size dependent speed features and the CDEF search from
+   1080p), up to 40 frames, screen-like content and slide changes, key
    frame intervals, time bases, loop counts, metadata and qualities from 0
    to lossless) and on every test image's animation, with the image
    sequences' wall-clock creation and modification times zeroed, and
