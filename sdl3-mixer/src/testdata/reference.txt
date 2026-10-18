@@ -12134,9 +12134,9 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 2600: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == wv_6ch_offset.wv
-open: err: 
-f32s48: err: 
-s16m22: err: 
+open: WAVPACK 0x8010 6 8000 frames=800 | 9600 c9fdef63803289f7 end=0
+f32s48: 38400 2e390695fc4d4d7e end=0
+s16m22: 4410 28687533c4214555 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -12161,11 +12161,11 @@ trunc 300: err: Audio data is in unknown/unsupported/corrupt format
 trunc 512: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2000: err: 
-trunc 4096: err: 
+trunc 4096: WAVPACK 0x8010 6 8000 frames=512 | 3072 c0dcb5cafc6003b5 end=0
 trunc 2461: err: 
-trunc 4923: err: 
-trunc 7384: err: 
-trunc 9845: err: 
+trunc 4923: WAVPACK 0x8010 6 8000 frames=512 | 3072 c0dcb5cafc6003b5 end=0
+trunc 7384: WAVPACK 0x8010 6 8000 frames=656 | 6144 81356abc8441f67f end=0
+trunc 9845: WAVPACK 0x8010 6 8000 frames=800 | 7872 749d23d388c770a3 end=0
 corrupt 0: err: 
 corrupt 0 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 1: err: 
@@ -12177,58 +12177,58 @@ corrupt 3 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8a
 corrupt 4: err: 
 corrupt 4 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 5: WAVPACK 0x8010 2 8000 frames=800 | 2624 a06dde78de0d26c8 end=0
-corrupt 5 mix: dur=800 play=1 pos=656 replay=0 seek=1 pos=266 playing=0 06f676d181cf9555
-wv corrupt 0: err: 
-wv corrupt 0 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 1: err: 
-wv corrupt 1 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 2: err: 
-wv corrupt 2 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 3: err: 
-wv corrupt 3 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 4: err: 
-wv corrupt 4 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 5: err: 
-wv corrupt 5 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 6: err: 
-wv corrupt 6 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 7: err: 
-wv corrupt 7 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 8: err: 
-wv corrupt 8 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 9: err: 
-wv corrupt 9 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 10: err: 
-wv corrupt 10 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 11: err: 
-wv corrupt 11 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 12: err: 
-wv corrupt 12 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 13: err: 
-wv corrupt 13 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 14: err: 
-wv corrupt 14 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 15: err: 
-wv corrupt 15 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 16: err: 
-wv corrupt 16 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-wv corrupt 17: err: 
-wv corrupt 17 mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=800 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mixpre: dur=0 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-seek 0: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 1: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 311: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 960: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 3840: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 4801: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 12345: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 400: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 300: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 799: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 0: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 1800: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
-seek 100: play=0 seek=0 pos=0 playing=0 4d25767f9dce13f5
+corrupt 5 mix: dur=800 play=1 pos=0 replay=1 seek=1 pos=266 playing=0 9afd13a1d72e0c85
+wv corrupt 0: WAVPACK 0x8010 6 8000 frames=800 | 9600 5e2fc803db6c8b39 end=0
+wv corrupt 0 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 97471b4fd0500fac
+wv corrupt 1: WAVPACK 0x8010 6 8000 frames=800 | 9600 70d06fbbb28a0c56 end=0
+wv corrupt 1 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 32ad4c8ec750bead
+wv corrupt 2: WAVPACK 0x8010 6 8000 frames=800 | 9600 0dcadfcb3064e47b end=0
+wv corrupt 2 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 23948c2429b28e9f
+wv corrupt 3: WAVPACK 0x8010 6 8000 frames=800 | 9600 e1deff98499c8c89 end=0
+wv corrupt 3 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 8fb4249b6eb61e41
+wv corrupt 4: WAVPACK 0x8010 6 8000 frames=800 | 9600 dff411955ebbdc0f end=0
+wv corrupt 4 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 b39ad7710f3e34f5
+wv corrupt 5: WAVPACK 0x8010 6 8000 frames=800 | 9600 41c272b124e34e1a end=0
+wv corrupt 5 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 1112ffcfb38b5f17
+wv corrupt 6: WAVPACK 0x8010 6 8000 frames=800 | 9600 c1c4a4c6b00d9025 end=0
+wv corrupt 6 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 488d3e60a2418872
+wv corrupt 7: WAVPACK 0x8010 6 8000 frames=800 | 9600 ac7004148fa4252d end=0
+wv corrupt 7 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 1af7b585c611db3c
+wv corrupt 8: WAVPACK 0x8010 6 8000 frames=800 | 9600 aa4f8431e45d8e86 end=0
+wv corrupt 8 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 dfe618b43417d266
+wv corrupt 9: WAVPACK 0x8010 6 8000 frames=800 | 9600 45f5ffb8e8cf937f end=0
+wv corrupt 9 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 84172283bdafebec
+wv corrupt 10: WAVPACK 0x8010 6 8000 frames=800 | 9600 a52b7b43ae4c6638 end=0
+wv corrupt 10 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 2f3b7133b76db63d
+wv corrupt 11: WAVPACK 0x8010 6 8000 frames=800 | 9600 098c70bd1c18e2f8 end=0
+wv corrupt 11 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 912bf84cf36c2a08
+wv corrupt 12: WAVPACK 0x8010 6 8000 frames=800 | 9600 393d965dc97f2892 end=0
+wv corrupt 12 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 d5b03adfcde61a86
+wv corrupt 13: WAVPACK 0x8010 6 8000 frames=800 | 9600 91c22fe52c51e579 end=0
+wv corrupt 13 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 dc5f390c599fdbfa
+wv corrupt 14: WAVPACK 0x8010 6 8000 frames=800 | 9600 70d06fbbb28a0c56 end=0
+wv corrupt 14 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 32ad4c8ec750bead
+wv corrupt 15: WAVPACK 0x8010 6 8000 frames=800 | 9600 4e197af97e231fc3 end=0
+wv corrupt 15 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 d62724c48f164c9f
+wv corrupt 16: WAVPACK 0x8010 6 8000 frames=800 | 9600 7727a41e21959c9f end=0
+wv corrupt 16 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 32f930a229de4a75
+wv corrupt 17: WAVPACK 0x8010 6 8000 frames=800 | 9600 a4a8dccded67fc5c end=0
+wv corrupt 17 mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 4b69e99c84631fb2
+mix: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 bb201acf3bb9ad51
+mixpre: dur=800 play=1 pos=800 replay=1 seek=1 pos=266 playing=0 bb201acf3bb9ad51
+seek 0: play=1 seek=1 pos=0 playing=1 17834f72bbe3ca4d
+seek 1: play=1 seek=1 pos=1 playing=1 f3d73b8db6d0384e
+seek 311: play=1 seek=1 pos=311 playing=1 8fc428ca2cdf2a05
+seek 960: play=1 seek=0 pos=652 playing=0 e7b167a03a337465
+seek 3840: play=1 seek=0 pos=800 playing=0 4d25767f9dce13f5
+seek 4801: play=1 seek=0 pos=800 playing=0 4d25767f9dce13f5
+seek 12345: play=1 seek=0 pos=800 playing=0 4d25767f9dce13f5
+seek 400: play=1 seek=1 pos=400 playing=0 4d25767f9dce13f5
+seek 300: play=1 seek=1 pos=300 playing=0 4d25767f9dce13f5
+seek 799: play=1 seek=1 pos=799 playing=0 4d25767f9dce13f5
+seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
+seek 1800: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
+seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == wv_apetag.wv
 open: WAVPACK 0x8010 1 8000 frames=1600 | 3200 26908ae91c5eff1c end=0
 f32s48: 76800 51d2fe92b8450ba9 end=0
