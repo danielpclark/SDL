@@ -236,14 +236,18 @@ impl TrackData for VorbisTrackData<'_> {
         }
 
         if bitstream != self.current_bitstream {
-            // FIXME (upstream): only a link whose channel count or rate
+            // Note (upstream): only a link whose channel count or rate
             // differs from the last one's sets the stream's format and
-            // channel map, so the first link's 3- and 5-channel audio
-            // isn't padded out to 5.1, and its 6- to 8-channel audio isn't
-            // reordered to SDL's channel order.
+            // channel map there, so the first link's 3- and 5-channel audio
+            // wasn't padded out to 5.1, and its 6- to 8-channel audio
+            // wasn't reordered to SDL's channel order; the translation sets
+            // them for the first link too.
             if let Some(vi) = ov_info(&self.vf, -1) {
                 // this _shouldn't_ be NULL, but if it is, we're just going on without it and hoping the stream format didn't change.
-                if (self.current_channels != vi.channels) || (self.current_freq != vi.rate as i32) {
+                if (self.current_bitstream < 0)
+                    || (self.current_channels != vi.channels)
+                    || (self.current_freq != vi.rate as i32)
+                {
                     let spec = AudioSpec {
                         format: VORBIS_AUDIO_FORMAT,
                         channels: vi.channels,
