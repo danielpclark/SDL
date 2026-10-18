@@ -619,7 +619,7 @@ pub(crate) fn init() -> Result<()> {
 
         guard = lock();
         if guard.is_none() {
-            // FIXME (upstream): when the initial scan fails, SDL_UDEV_Scan()
+            // Note (upstream): when the initial scan fails, SDL_UDEV_Scan()
             // calls SDL_UDEV_Quit(), which frees _this, and SDL_UDEV_Init()
             // then dereferences NULL; the error is returned instead.
             return scanned;
@@ -866,7 +866,7 @@ pub(crate) fn poll() {
 /// Register a callback for device additions and removals.
 /// Translation of `SDL_UDEV_AddCallback()`.
 pub(crate) fn add_callback(cb: UdevCallback) -> Result<()> {
-    // FIXME (upstream): SDL_UDEV_AddCallback() dereferences _this without
+    // Note (upstream): SDL_UDEV_AddCallback() dereferences _this without
     // checking that udev is initialized; an error is returned instead.
     let mut guard = lock();
     let this = guard

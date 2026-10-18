@@ -50,7 +50,7 @@ impl<'f> Codec<'f> {
     /// only has entries for up to 8 bits.
     fn generic(fmt: &'f PixelFormatDetails, alpha: bool) -> Result<Codec<'f>> {
         let bpp = fmt.bytes_per_pixel as usize;
-        // FIXME (upstream): wider channels (the 10-bit formats) index past
+        // Note (upstream): wider channels (the 10-bit formats) index past
         // the end of SDL_expand_byte; they are reported as unsupported here.
         if fmt.Rbits > 8 || fmt.Gbits > 8 || fmt.Bbits > 8 || fmt.Abits > 8 {
             return Err(Error::unsupported());

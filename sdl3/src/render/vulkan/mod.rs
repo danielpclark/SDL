@@ -1403,8 +1403,9 @@ impl VulkanRenderer {
             ..Default::default()
         };
 
-        // FIXME (upstream): always true (a format has at least one plane),
-        // so every image is created with VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT.
+        // Note (upstream): always true (a format has at least one plane),
+        // so every image is created with VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
+        // in C as here; that only costs performance.
         if vk_format_get_num_planes(format) > 0 {
             // We'll take image views with a different format
             image_create_info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
@@ -2779,7 +2780,7 @@ impl VulkanRenderer {
             return Err(error_code("vkCreateCommandPool()", result));
         }
 
-        // FIXME (upstream): on failure, upstream returns the stale result of
+        // Note (upstream): on failure, upstream returns the stale result of
         // vkCreateCommandPool() (VK_SUCCESS), so the creation goes on with
         // everything destroyed; here the failure is returned.
         if let Err(e) = self.get_surface_formats() {

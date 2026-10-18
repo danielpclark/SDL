@@ -911,7 +911,8 @@ impl X11Video {
             && self.x11_gl_window_uses_egl()
         {
             if !crate::video::egl::is_loaded() {
-                // FIXME (upstream): this fails without setting an error.
+                // Note (upstream): C fails here without setting an error;
+                // an error is returned here.
                 self.x11_destroy_input_context(&mut data);
                 return Err(Error::new("EGL not initialized"));
             }
@@ -1044,7 +1045,8 @@ impl X11Video {
             unsafe {
                 let vi = (x.XGetVisualInfo)(display, VisualIDMask, &mut template, &mut nvis);
                 if vi.is_null() {
-                    // FIXME (upstream): this fails without setting an error.
+                    // Note (upstream): C fails here without setting an
+                    // error; an error is returned here.
                     return Err(Error::new("Couldn't find the forced X11 visual"));
                 }
                 let r = ((*vi).visual, (*vi).depth);
@@ -1389,7 +1391,7 @@ impl X11Video {
 
         // Tooltips do not receive input
         if window_flags.contains(WindowFlags::TOOLTIP) {
-            // FIXME (upstream): XShapeCombineRegion is called without
+            // Note (upstream): XShapeCombineRegion is called without
             // checking SDL_X11_HAVE_XSHAPE (skipped here without it).
             if let Some(xshape) = &x.xshape {
                 // SAFETY: the display is open; the region is created and

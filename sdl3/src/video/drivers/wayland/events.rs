@@ -266,7 +266,7 @@ impl XkbKeymap {
                 // SAFETY: as above.
                 let index =
                     unsafe { (xkb.xkb_keymap_mod_get_index)(self.raw(), legacy_name.as_ptr()) };
-                // FIXME (upstream): `1 << GET_MOD_INDEX(mod)` shifts by
+                // Note (upstream): `1 << GET_MOD_INDEX(mod)` shifts by
                 // XKB_MOD_INVALID when the keymap lacks the modifier
                 // (undefined behaviour in C); the mask is 0 here.
                 1u32.checked_shl(index).unwrap_or(0)
@@ -2551,7 +2551,7 @@ impl WaylandVideo {
             BTN_LEFT => BUTTON_LEFT,
             BTN_MIDDLE => BUTTON_MIDDLE,
             BTN_RIGHT => BUTTON_RIGHT,
-            // FIXME (upstream): buttons below BTN_SIDE (other than the three
+            // Note (upstream): buttons below BTN_SIDE (other than the three
             // above) wrap around, and buttons past BTN_SIDE + 27 make
             // SDL_BUTTON_MASK() shift out of range (undefined behaviour in
             // C); the C truncation to Uint8 is kept, and the out of range
@@ -4543,7 +4543,7 @@ impl WaylandVideo {
             }
             ZwpTextInputV3Event::CommitString { text } => {
                 // Translation of `text_input_commit_string()`.
-                // FIXME (upstream): a commit with a NULL text (allowed by
+                // Note (upstream): a commit with a NULL text (allowed by
                 // the protocol) is passed on to SDL_SendKeyboardText(),
                 // which dereferences it; nothing is sent here.
                 if let Some(text) = text {
@@ -5204,7 +5204,7 @@ impl WaylandVideo {
                 &mut d.current_primary_selection_seat,
             ] {
                 if *k == Some(seat) {
-                    // FIXME (upstream): the device keeps pointers to a
+                    // Note (upstream): the device keeps pointers to a
                     // destroyed seat in last_implicit_grab_seat and friends
                     // (followed later, a use after free); cleared here.
                     *k = None;
@@ -5381,7 +5381,7 @@ impl WaylandVideo {
                     // Creating a lock on a surface with an active confinement region on the same seat is a protocol error.
                     s.pointer.confined_pointer = None;
 
-                    // FIXME (upstream): with relative motion but no pointer
+                    // Note (upstream): with relative motion but no pointer
                     // focus, the lock is made on the NULL focus's surface (a
                     // crash); nothing is locked here.
                     let Some(surface) = surface else {

@@ -474,7 +474,7 @@ pub(crate) struct X11Syms {
     /// `SDL_X11_HAVE_XSYNC`
     pub(crate) xsync: Option<XSync>,
     /// `SDL_X11_HAVE_XTEST`
-    // FIXME (upstream): SDL_x11sym.h lists XGetEventData, XFreeEventData and
+    // Note (upstream): SDL_x11sym.h lists XGetEventData, XFreeEventData and
     // the Xkb* functions after SDL_X11_MODULE(XTEST), so a missing one of
     // those also clears SDL_X11_HAVE_XTEST (kept: `xtest` needs `xkb`).
     pub(crate) xtest: Option<XTest>,

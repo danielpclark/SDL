@@ -1510,7 +1510,7 @@ impl Device {
         if res != WAIT_OBJECT_0 {
             // There was a Timeout.
             let error = winapi_error("hid_write/WaitForSingleObject");
-            // FIXME (upstream): the timed out write is left in flight,
+            // Note (upstream): the timed out write is left in flight,
             // reading the buffer and using the OVERLAPPED after hid_write()
             // returned; here it is cancelled and finished first.
             // SAFETY: the OVERLAPPED is the one of the pending write.
@@ -1765,7 +1765,7 @@ impl Device {
             bytes_returned += 1;
         }
 
-        // FIXME (upstream): with the extra report number byte the length
+        // Note (upstream): with the extra report number byte the length
         // can be one more than the buffer; here it stays within it.
         Ok(bytes_returned.min(data.len()))
     }

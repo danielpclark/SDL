@@ -1498,7 +1498,7 @@ impl D3d11Renderer {
                 return Ok(());
             }
             // Copy the UV plane as well
-            // FIXME (upstream): after the single-copy branch above, `src`
+            // Note (upstream): after the single-copy branch above, `src`
             // still points at the Y plane here. No caller gets here with an
             // NV12 or P010 texture (D3D11_UpdateTexture() sends them to
             // D3D11_UpdateTextureNV()), so it doesn't show.

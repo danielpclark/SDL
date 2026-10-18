@@ -1203,7 +1203,7 @@ unsafe extern "system" fn debug_callback(
         .into_owned();
     eprintln!("validation: {message}");
     // (upstream's query of VK_EXT_4444_formats' formats, an extension the
-    // device isn't made with: see the FIXME (upstream) in for_window())
+    // device isn't made with: see the FIXME in for_window())
     let format_query = message
         .contains("VUID-vkGetPhysicalDeviceImageFormatProperties-format-parameter")
         && (message.contains("format (1000340000)") || message.contains("format (1000340001)"));

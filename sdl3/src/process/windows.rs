@@ -490,7 +490,7 @@ fn join_arguments_utf8(args: &[String]) -> String {
 
 /// Translation of `join_arguments()`.
 fn join_arguments(args: &[String]) -> Vec<u16> {
-    // FIXME (upstream): the conversion's failure is checked as `!args_out`
+    // Note (upstream): the conversion's failure is checked as `!args_out`
     // (the out pointer) rather than `!*args_out`; a conversion here can't fail.
     utf8_to_wide(&join_arguments_utf8(args))
 }

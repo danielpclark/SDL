@@ -841,7 +841,7 @@ fn adjust_popup_offset(syms: &WaylandSyms, parent: &WaylandWindowData, x: &mut i
                 (l.libdecor_frame_translate_coordinate)(frame.raw(), *x, *y, &mut adj_x, &mut adj_y)
             };
         }
-        // FIXME (upstream): with no frame yet, the frame is NULL here (and
+        // Note (upstream): with no frame yet, the frame is NULL here (and
         // libdecor dereferences it); the offset becomes 0 instead.
         *x = adj_x;
         *y = adj_y;

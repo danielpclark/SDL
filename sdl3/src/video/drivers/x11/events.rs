@@ -1791,8 +1791,9 @@ impl X11Video {
                  * expected by SDL and its clients. Defer emitting the size/move events until the corresponding
                  * PropertyNotify arrives for consistency.
                  */
-                // FIXME (upstream): this reads xevent->xproperty.window of a
-                // ConfigureNotify (the same offset as xconfigure.event).
+                // Note (upstream): this reads xevent->xproperty.window of a
+                // ConfigureNotify, in C as here; it's at the same offset as
+                // xconfigure.event, so it's the right window.
                 let property_window = xevent.property().window;
                 let net_wm_state = self.x11_get_net_wm_state(window, property_window);
                 let flags = with_window(window, |w| w.flags()).unwrap_or_default();

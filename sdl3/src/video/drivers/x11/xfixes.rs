@@ -19,7 +19,7 @@ use crate::video::Rect;
 
 pub(crate) const X11_BARRIER_HANDLED_BY_EVENT: i32 = 1;
 
-// FIXME (upstream): xfixes_initialized starts out true, so the barrier
+// Note (upstream): xfixes_initialized starts out true, so the barrier
 // functions run even without XFixes (where upstream would call NULL
 // function pointers; here they report "unsupported").
 static XFIXES_INITIALIZED: AtomicBool = AtomicBool::new(true);

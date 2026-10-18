@@ -967,7 +967,7 @@ impl FormatEnumerator for DeviceFd {
 /// The values `start`, `start + step`, ... up to `end`, as upstream's
 /// `for (v = start; v <= end; v += step)` loops count.
 ///
-/// FIXME (upstream): a step of 0 (or one past `INT_MAX`, negative as an
+/// Note (upstream): a step of 0 (or one past `INT_MAX`, negative as an
 /// `int`) never ends those loops, which then overflow (undefined behavior
 /// in C); so does counting past `INT_MAX`. Here such a step gives just
 /// `start`, and the counting stops before it would overflow.
@@ -1010,9 +1010,9 @@ fn add_camera_format(
         ..V4l2Frmivalenum::default()
     };
 
-    // FIXME (upstream): an interval type that's none of the three never
-    // advances the index, so this loops forever (the kernel only reports
-    // the three).
+    // Note (upstream): an interval type that's none of the three never
+    // advances the index, so this would loop forever, in C as here; it
+    // can't happen, since the kernel only reports the three.
     while dev.enum_frameintervals(&mut frmivalenum) {
         if frmivalenum.type_ == V4L2_FRMIVAL_TYPE_DISCRETE {
             let discrete = frmivalenum.discrete();
@@ -1087,9 +1087,9 @@ fn gather_specs(dev: &impl FormatEnumerator) -> Vec<CameraSpec> {
             ..V4l2Frmsizeenum::default()
         };
 
-        // FIXME (upstream): a size type that's none of the three never
-        // advances the index, so this loops forever (the kernel only
-        // reports the three).
+        // Note (upstream): a size type that's none of the three never
+        // advances the index, so this would loop forever, in C as here; it
+        // can't happen, since the kernel only reports the three.
         while dev.enum_framesizes(&mut frmsizeenum) {
             if frmsizeenum.type_ == V4L2_FRMSIZE_TYPE_DISCRETE {
                 let (w, h) = frmsizeenum.discrete();

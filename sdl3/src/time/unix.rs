@@ -102,7 +102,7 @@ pub(super) fn time_to_date_time(ticks: Time, local_time: bool) -> Result<DateTim
     let mut rem_ns = (ticks % NS_PER_SECOND) as i32;
     if rem_ns < 0 {
         // Prevent rounding errors if the remaining nanoseconds are less than one unit of system time.
-        // FIXME (upstream): within a second of SDL_MIN_TIME this overflows
+        // Note (upstream): within a second of SDL_MIN_TIME this overflows
         // (undefined behaviour in C; it wraps around, as here).
         ticks = ticks.wrapping_sub(NS_PER_SECOND);
         rem_ns += NS_PER_SECOND as i32;

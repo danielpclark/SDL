@@ -160,7 +160,7 @@ pub(crate) fn tga_load(s: &mut Context<'_>, req_comp: i32) -> Result<Image<Pixel
         return err("Corrupt TGA");
     }
 
-    /* FIXME (upstream): C leaves the pixels uninitialized, and the rows
+    /* Note (upstream): C leaves the pixels uninitialized, and the rows
     of an uncompressed image that stbi__getn() can't read whole keep
     whatever the allocation held; they are zero here. */
     let Some(mut tga_data) = malloc_mad3(tga_width, tga_height, tga_comp, 0) else {

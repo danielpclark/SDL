@@ -443,8 +443,9 @@ struct DeviceMetadata {
     in_system_messages: [u32; 8],
     out_system_messages: [u32; 8],
 
-    // FIXME (upstream): the audio formats are two bytes each, but only
-    // as many bytes as there are formats are copied. They aren't used.
+    // Note (upstream): the audio formats are two bytes each, but only
+    // as many bytes as there are formats are copied, in C as here. They
+    // aren't used, so it does no harm.
     audio_formats: Vec<u8>,
     /// The types, up to their first NUL (as the C strings)
     preferred_types: Vec<Vec<u8>>,
@@ -592,7 +593,7 @@ impl<'a, 'b> Io<'a, 'b> {
 
 /// The bytes of a message for the handlers that read fixed offsets: the
 /// message in a buffer of at least a USB packet.
-// FIXME (upstream): the handlers of the guide button, the gamepad and the
+// Note (upstream): the handlers of the guide button, the gamepad and the
 // Elite 2 paddles read fixed offsets past the end of a short message (into
 // the read buffer, or past the reassembled fragments); here the bytes past
 // the message read as 0.
@@ -611,7 +612,7 @@ fn decode_length(bytes: &[u8]) -> (u64, usize) {
 
     while offset < bytes.len() {
         let byte = bytes[offset];
-        // FIXME (upstream): past nine bytes, the shift is wider than the
+        // Note (upstream): past nine bytes, the shift is wider than the
         // length (undefined in C); here it wraps, as the x86 shift does.
         length |= u64::from(byte & 0x7f).wrapping_shl((offset * 7) as u32);
         offset += 1;
@@ -1551,8 +1552,8 @@ impl Attachment {
                 }
                 // (the events, their type, fault tag and fault address,
                 // aren't used)
-                // FIXME (upstream): the fault address is read into the
-                // fault tag.
+                // Note (upstream): the fault address is read into the
+                // fault tag, in C as here (harmless: neither is used).
             }
         }
 
@@ -2144,7 +2145,7 @@ impl Attachment {
             );
             // Align pickup selector mappings with PS3 instruments
             const EFFECTS_MAPPINGS: [i16; 5] = [-26880, -13568, -1792, 11008, 24576];
-            // FIXME (upstream): a selector past the table (above 4) reads
+            // Note (upstream): a selector past the table (above 4) reads
             // past it; here the axis isn't sent.
             if let Some(&value) = EFFECTS_MAPPINGS.get(usize::from(bytes[4] >> 4)) {
                 io.device
@@ -2454,7 +2455,7 @@ impl Attachment {
                 function_map_offset = Some(num_bytes - 18);
             }
             if let Some(offset) = function_map_offset.filter(|&offset| offset >= 5) {
-                // FIXME (upstream): past the saved input (a report of more
+                // Note (upstream): past the saved input (a report of more
                 // than 82 bytes, reassembled from fragments), the last
                 // input is read past its buffer; here it reads as changed.
                 if self.last_input.get(offset) != Some(&bytes[offset]) {
@@ -2791,7 +2792,7 @@ impl GipContext {
                 let (claimed_offset, offset_size) = decode_length(&bytes[offset..]);
                 fragment_offset = claimed_offset;
                 offset += offset_size;
-                // FIXME (upstream): the end of the fragment can wrap
+                // Note (upstream): the end of the fragment can wrap
                 // around, passing the length check (and the copy then runs
                 // far past both buffers); here it counts as too long.
                 let fragment_end = fragment_offset.checked_add(header.length);
@@ -2825,13 +2826,13 @@ impl GipContext {
                 bytes_remaining = attachment
                     .total_length
                     .wrapping_sub(fragment_offset.wrapping_add(header.length) as u16);
-                // FIXME (upstream): after an initial fragment that was too
+                // Note (upstream): after an initial fragment that was too
                 // long, the fragments go to a buffer that was never made
                 // (a null pointer); here they're dropped, and so is the
                 // message.
                 if header.length != 0 {
                     if let Some(fragment_data) = attachment.fragment_data.as_mut() {
-                        // FIXME (upstream): the fragment's claimed length
+                        // Note (upstream): the fragment's claimed length
                         // isn't checked against the report, and the copy
                         // reads past it; here the bytes past the report
                         // read as 0.

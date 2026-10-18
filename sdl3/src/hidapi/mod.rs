@@ -478,7 +478,7 @@ fn initialize_discovery(state: &mut HidapiState) {
         let mut notification_port = unsafe { IONotificationPortCreate(K_IO_MAIN_PORT_DEFAULT) };
         if !notification_port.is_null() {
             for notification in [K_IO_FIRST_MATCH_NOTIFICATION, K_IO_TERMINATED_NOTIFICATION] {
-                // FIXME (upstream): when the first registration fails, the
+                // Note (upstream): when the first registration fails, the
                 // second one is made on the port just destroyed (a null
                 // port here, so it is skipped).
                 if !notification_port.is_null()

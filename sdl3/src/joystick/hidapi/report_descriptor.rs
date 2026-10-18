@@ -85,7 +85,7 @@ struct DescriptorContext {
 fn read_value(data: &[u8]) -> u32 {
     let mut value = 0u32;
     for (i, &byte) in data.iter().enumerate() {
-        // FIXME (upstream): more than four bytes shift past the width of
+        // Note (upstream): more than four bytes shift past the width of
         // the value (undefined in C); here the extra bytes are ignored.
         if i < 4 {
             value |= u32::from(byte) << (8 * i);
@@ -162,7 +162,7 @@ impl DescriptorContext {
                 self.add_input_fields();
             }
             MAIN_TAG_COLLECTION => {
-                // FIXME (upstream): the collection type is read (only for
+                // Note (upstream): the collection type is read (only for
                 // its debug trace) even when the item has no data, one byte
                 // past the item, possibly past the descriptor; it isn't read
                 // here.
@@ -268,7 +268,7 @@ pub(crate) fn read_report_data(
         return Err(Error::new("Out of bounds reading report data"));
     }
 
-    // FIXME (upstream): the bytes of the field aren't checked against the
+    // Note (upstream): the bytes of the field aren't checked against the
     // report size; they are read from the buffer (past its end they read as
     // 0 here, where C would read past it).
     let num_bytes = ((bit_size + 7) / 8).max(0) as usize;

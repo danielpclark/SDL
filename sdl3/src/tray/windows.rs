@@ -602,7 +602,7 @@ impl TrayBackend for TrayWin {
     /// Translation of `SDL_CreateTrayMenu()`.
     fn create_menu(&self) -> Result<()> {
         let mut state = self.state();
-        // FIXME (upstream): the previous menu (if any) is leaked; here it
+        // Note (upstream): the previous menu (if any) is leaked; here it
         // is destroyed.
         if let Some(old) = state.menu.take() {
             destroy_sdl_menu(*old);
@@ -1042,7 +1042,8 @@ mod tests {
         assert_eq!(sep.label().unwrap().as_deref(), Some(""));
         assert_ne!(menu_item_state(hm, disabled.key as usize) & MFS_DISABLED, 0);
         assert_eq!(menu_item_state(hm, quit.key as usize) & MFS_DISABLED, 0);
-        // (FIXME (upstream): enabled() always reports false)
+        // (Note (upstream): enabled() always reports false; see the FIXME
+        // in enabled())
         assert!(!quit.enabled().unwrap());
         disabled.set_enabled(true);
         assert_eq!(menu_item_state(hm, disabled.key as usize) & MFS_DISABLED, 0);

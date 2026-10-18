@@ -781,7 +781,7 @@ pub fn gl_extension_supported(extension: &str) -> bool {
             // SAFETY: i < GL_NUM_EXTENSIONS; the result is NULL or a
             // NUL-terminated string owned by GL.
             let thisext = unsafe { gl_get_stringi_func(GL_EXTENSIONS, i as GLuint) };
-            // FIXME (upstream): strcmp() on a NULL glGetStringi() result
+            // Note (upstream): strcmp() on a NULL glGetStringi() result
             // crashes; NULL is skipped here.
             if thisext.is_null() {
                 continue;
@@ -1066,7 +1066,7 @@ pub fn gl_get_attribute(attr: GlAttr) -> Result<i32> {
             return Ok(rsize + gsize + bsize + asize);
         }
         AttrQuery::Unknown => return Err(Error::new("Unknown OpenGL attribute")),
-        // FIXME (upstream): SDL_GL_FLOATBUFFERS fails ("return 0") without
+        // Note (upstream): SDL_GL_FLOATBUFFERS fails ("return 0") without
         // setting an error when GL_ARB_color_buffer_float is unknown; and
         // only WGL ever finds that out. This reports "unsupported".
         AttrQuery::Unavailable => return Err(Error::unsupported()),

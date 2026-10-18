@@ -919,7 +919,7 @@ pub(crate) fn initialize_offscreen(device: i32) -> Result<()> {
     if let Some(egl_device_hint) = hints::get("SDL_HINT_EGL_DEVICE") {
         let device = crate::stdlib::atoi(&egl_device_hint);
 
-        // FIXME (upstream): a negative device indexes before the array; it
+        // Note (upstream): a negative device indexes before the array; it
         // is rejected here like one past the end.
         if device >= num_egl_devices || device < 0 {
             return Err(Error::new("Invalid EGL device is requested."));
@@ -1547,7 +1547,7 @@ pub(crate) fn get_swap_interval() -> Result<i32> {
 
 /// Translation of `SDL_EGL_SwapBuffers()`.
 pub(crate) fn swap_buffers(egl_surface: EGLSurface) -> Result<()> {
-    // FIXME (upstream): SDL_EGL_SwapBuffers() dereferences egl_data
+    // Note (upstream): SDL_EGL_SwapBuffers() dereferences egl_data
     // without checking it; this fails instead.
     let Some(e) = egl() else {
         return Err(Error::new("EGL not initialized"));

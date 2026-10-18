@@ -452,7 +452,8 @@ pub(super) fn create_mapping_for_hidapi_gamepad(guid: Guid) -> Option<u64> {
     } else if vendor == USB_VENDOR_8BITDO
         && (product == USB_PRODUCT_8BITDO_SF30_PRO || product == USB_PRODUCT_8BITDO_SF30_PRO_BT)
     {
-        // FIXME (upstream): unreachable, the branch above takes these devices
+        // Note (upstream): unreachable, in C as here: the branch above takes
+        // these devices
         // This controller has no guide button
         cat("a:b1,b:b0,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b3,y:b2,hint:!SDL_GAMECONTROLLER_USE_BUTTON_LABELS:=1,");
     } else if is_joystick_sinput_controller(vendor, product) {

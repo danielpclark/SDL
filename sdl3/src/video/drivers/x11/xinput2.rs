@@ -710,7 +710,7 @@ impl X11Video {
                 if proev.what == XIPropertyModified
                     && proev.property == self.atoms().pen_atom_wacom_serial_ids
                 {
-                    // FIXME (upstream): the property event is read as an
+                    // Note (upstream): the property event is read as an
                     // XIDeviceEvent for its `event` window, past the end of
                     // the XIPropertyEvent; no window is passed here.
                     self.x11_notify_pen_proximity_change(Option::None, proev.deviceid);
@@ -803,8 +803,8 @@ impl X11Video {
                         /* Ignore slave button events on non-focused windows, as they can arrive before FocusIn events,
                          * or result in focus being incorrectly set while a grab is active.
                          */
-                        // FIXME (upstream): windowdata can be NULL here
-                        // (dereferenced upstream).
+                        // Note (upstream): windowdata can be NULL here
+                        // (dereferenced upstream); here it returns.
                         if windowdata.is_none() || mouse::mouse_focus() != windowdata {
                             return;
                         }
@@ -812,7 +812,8 @@ impl X11Video {
                         // Slave pointer devices don't have button remapping applied automatically, so do it manually.
                         let st = state();
                         if button as usize <= st.pointer_button_map.len() {
-                            // FIXME (upstream): button 0 reads the map at -1.
+                            // Note (upstream): button 0 reads the map at -1
+                            // in C; here it isn't remapped.
                             if let Some(&mapped) = st.pointer_button_map.get((button - 1) as usize)
                             {
                                 button = mapped as c_int;
@@ -829,8 +830,9 @@ impl X11Video {
                         return;
                     }
 
-                    // FIXME (upstream): the handlers dereference windowdata,
-                    // which is NULL for an event on an unknown window.
+                    // Note (upstream): the C handlers dereference windowdata,
+                    // which is NULL for an event on an unknown window; here
+                    // such an event is dropped.
                     let Some(windowdata) = windowdata else {
                         return;
                     };

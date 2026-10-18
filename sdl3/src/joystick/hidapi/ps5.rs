@@ -1268,7 +1268,7 @@ impl Ps5Context {
                 }
                 true
             }
-            // FIXME (upstream): a report of under 4 bytes has its CRC read
+            // Note (upstream): a report of under 4 bytes has its CRC read
             // from before the buffer; here it isn't valid.
             REPORT_ID_BLUETOOTH_STATE => size >= 4 && verify_crc(&data[..size]),
             _ => false,

@@ -547,8 +547,9 @@ impl ToolkitWindow {
                             libc::shmat(self.shm_info.shmid, std::ptr::null(), 0) as *mut c_char;
                         (*self.image).data = self.shm_info.shmaddr;
                         if self.shm_info.shmaddr as isize == -1 {
-                            // FIXME (upstream): the image is destroyed with
-                            // its data pointing at (char *)-1.
+                            // Note (upstream): C destroys the image with
+                            // its data pointing at (char *)-1; here the
+                            // pointer is cleared first.
                             (*self.image).data = std::ptr::null_mut();
                             XDestroyImage(self.image);
                             self.shm = false;
@@ -1712,7 +1713,7 @@ impl ToolkitWindow {
             let default_out = (rr.XRRGetOutputPrimary)(display, root_win);
             if default_out != None {
                 let out_info = (rr.XRRGetOutputInfo)(display, screen_res, default_out);
-                // FIXME (upstream): the output info isn't checked for NULL
+                // Note (upstream): the output info isn't checked for NULL
                 // (C dereferences it; here NULL goes on as "not connected").
                 if !out_info.is_null() && (*out_info).connection == RR_Connected {
                     let crtc_info = crtc_of(out_info);
@@ -2934,7 +2935,7 @@ fn x11_toolkit_count_lines_of_text(text: &str) -> usize {
 /// `SDL_BlitSurfaceScaled(scale_surface, NULL, scale_surface, &rect,
 /// SDL_SCALEMODE_LINEAR)` over pixel memory.
 ///
-/// FIXME (upstream): the surface is blitted onto itself (overlapping
+/// Note (upstream): the surface is blitted onto itself (overlapping
 /// source and destination); the source is a copy here.
 fn scale_in_place(
     pixels: &mut [u8],

@@ -428,7 +428,7 @@ pub(super) fn haptic_open_from_joystick(
 
     haptic.instance_id = instance_id;
     haptic.name = Some(name);
-    // FIXME (upstream): the haptic device uses the joystick's device without
+    // Note (upstream): the haptic device uses the joystick's device without
     // a reference of its own, so closing the joystick first leaves it
     // dangling; here it takes a reference (released on close, where
     // upstream skips the release).
@@ -713,7 +713,7 @@ pub(super) fn to_dieffect(naxes: i32, hw_axes: &[u32; 3], src: &HapticEffect) ->
     } else {
         naxes as u32
     };
-    // FIXME (upstream): with more than 3 axes (the haptic axes hint can set
+    // Note (upstream): with more than 3 axes (the haptic axes hint can set
     // that), the axes after the third are left uninitialized, and condition
     // effects read past their 3-entry arrays; here those read as 0.
     let rgdw_axes: Vec<u32> = (0..c_axes as usize)
@@ -804,7 +804,7 @@ pub(super) fn to_dieffect(naxes: i32, hw_axes: &[u32; 3], src: &HapticEffect) ->
 
         HapticEffect::Custom(hap_custom) => {
             // Specifics
-            // FIXME (upstream): the samples are read for channels * samples
+            // Note (upstream): the samples are read for channels * samples
             // entries whatever the size of the data array; missing ones read
             // as 0 here.
             let count = hap_custom.samples as usize * hap_custom.channels as usize;
@@ -1046,7 +1046,7 @@ pub(super) fn haptic_destroy_effect(reference: Effect) {
         // ("Haptic error Removing effect from the device", which nobody reads)
         let _ = di_set_error("Removing effect from the device");
     }
-    // FIXME (upstream): the effect object is unloaded but never released,
+    // Note (upstream): the effect object is unloaded but never released,
     // which leaks it; here dropping it releases it.
 }
 

@@ -420,7 +420,7 @@ fn gip_decode_header(data: &[u8]) -> (GipHeader, usize) {
 
 /// A packet for the handlers that read fixed offsets: the bytes of `data`
 /// in a buffer of at least a USB packet.
-// FIXME (upstream): the handlers read fixed offsets past the end of the
+// Note (upstream): the handlers read fixed offsets past the end of the
 // packet (into the read buffer, or past a short reassembled chunk); here
 // the bytes past the data read as 0.
 fn padded(data: &[u8]) -> Vec<u8> {
@@ -1812,7 +1812,7 @@ impl XboxOneContext {
             let size = data.len();
             let (mut hdr, hdr_len) = gip_decode_header(data);
             if hdr_len > size {
-                // FIXME (upstream): a header longer than the rest of the
+                // Note (upstream): a header longer than the rest of the
                 // report makes the packet length wrap around, and the
                 // packet is processed from past the report; here the
                 // report ends.

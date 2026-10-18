@@ -222,7 +222,7 @@ pub(crate) fn hdr_load(s: &mut Context<'_>, req_comp: i32) -> Result<HdrImage> {
     let rc = req_comp as usize;
     let w = width as usize;
 
-    /* FIXME (upstream): the C's rgbe array is uninitialized, and a pixel
+    /* Note (upstream): the C's rgbe array is uninitialized, and a pixel
     that stbi__getn() can't read whole keeps what it held (in practice the
     previous pixel's bytes); it starts zeroed here and keeps the previous
     pixel's. */

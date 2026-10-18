@@ -83,7 +83,7 @@ pub(crate) fn convert_pixels_stb(
                 | PixelFormat::P010
         ) {
             let (temp_size, temp_pitch) = calculate_yuv_size(dst_format, width, height)?;
-            // FIXME (upstream): the temporary buffer is sized for the
+            // Note (upstream): the temporary buffer is sized for the
             // destination format but filled as NV12 with its pitch, which
             // for the packed formats (YUY2/UYVY/YVYU) writes past its end;
             // here it is made large enough for the NV12 planes.

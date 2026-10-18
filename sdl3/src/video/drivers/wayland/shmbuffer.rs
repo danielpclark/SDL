@@ -262,7 +262,7 @@ pub(crate) fn wayland_create_single_pixel_buffer(
 
         let (wl_buffer, mem) = pool.alloc_buffer(1, 1)?;
 
-        // FIXME (upstream): ARGB8888 is B, G, R, A in memory on little-endian
+        // Note (upstream): ARGB8888 is B, G, R, A in memory on little-endian
         // machines, so red and blue are swapped here (harmless for the black
         // masks SDL makes, kept as upstream).
         let pixel: [u8; 4] = [

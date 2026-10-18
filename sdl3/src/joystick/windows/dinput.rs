@@ -645,7 +645,7 @@ pub(super) fn joystick_open(
 ) -> Result<DinputHwData> {
     let dinput = dinput().ok_or_else(|| set_di_error("IDirectInput::CreateDevice", -1))?;
 
-    // FIXME (upstream): on any failure below, the device created here stays
+    // Note (upstream): on any failure below, the device created here stays
     // in joystick->hwdata, which the caller frees without releasing it; here
     // it is released when the error drops it.
     let input_device = dinput
@@ -790,7 +790,7 @@ fn joystick_init_rumble(hwdata: &mut DinputHwData, magnitude: i16) -> Result<()>
     }
 
     // Create the effect
-    // FIXME (upstream): when CreateEffect() fails, the effect data stays
+    // Note (upstream): when CreateEffect() fails, the effect data stays
     // allocated while ff_initialized stays false, so the next rumble
     // allocates another and leaks this one; here it is replaced (and freed).
     let ffeffect = hwdata.ffeffect.insert(RumbleEffect::new(magnitude));
@@ -913,7 +913,7 @@ pub(super) fn polled_state_inputs(inputs: &[DeviceInput], state: &DIJOYSTATE2) -
                 out.push(Input::Axis(input.num, value as i16));
             }
             InputType::Button => {
-                // FIXME (upstream): a device with more than 128 buttons
+                // Note (upstream): a device with more than 128 buttons
                 // gets offsets past rgbButtons, which the C code reads out
                 // of bounds; those buttons read as released here.
                 let index = input.ofs.wrapping_sub(DIJOFS_BUTTON0) as usize;
@@ -1020,7 +1020,7 @@ pub(super) fn joystick_update(hwdata: &mut DinputHwData) -> Vec<Input> {
 pub(super) fn joystick_close(mut hwdata: DinputHwData) {
     if let Some(effect_ref) = hwdata.ffeffect_ref.take() {
         effect_ref.unload();
-        // FIXME (upstream): the effect is unloaded but never released, which
+        // Note (upstream): the effect is unloaded but never released, which
         // leaks it; here dropping it releases it.
     }
     hwdata.ffeffect = None;

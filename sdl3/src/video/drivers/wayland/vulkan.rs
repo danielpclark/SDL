@@ -154,7 +154,7 @@ impl WaylandVideo {
         instance: usize,
         allocator: usize,
     ) -> Result<u64> {
-        // FIXME (upstream): vkGetInstanceProcAddr is called before checking
+        // Note (upstream): vkGetInstanceProcAddr is called before checking
         // that the loader is loaded (calling NULL when it isn't); the check
         // comes first here, as calling a missing function can't be expressed.
         let get = self.with_data(|d| d.vulkan.vk_get_instance_proc_addr);
@@ -241,7 +241,7 @@ impl WaylandVideo {
         physical_device: usize,
         queue_family_index: u32,
     ) -> bool {
-        // FIXME (upstream): as in Wayland_Vulkan_CreateSurface(), the loader
+        // Note (upstream): as in Wayland_Vulkan_CreateSurface(), the loader
         // is checked after calling its vkGetInstanceProcAddr; first here.
         let Some(vk_get_instance_proc_addr) =
             self.with_data(|d| d.vulkan.vk_get_instance_proc_addr)

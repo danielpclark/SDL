@@ -4757,8 +4757,9 @@ mod tests {
 
     #[test]
     fn distance_to_rect_keeps_upstream_bottom_edge() {
-        // FIXME (upstream): the bottom edge is the rectangle's minimum x, so
-        // a rectangle from x = 100 has its "bottom" at y = 100.
+        // Note (upstream): the bottom edge is the rectangle's minimum x (see
+        // the FIXME in sq_distance_to_rect()), so a rectangle from x = 100
+        // has its "bottom" at y = 100.
         let r = NSRect::new(100.0, 0.0, 50.0, 50.0);
         // Inside the real rectangle, 75 units under that bottom.
         assert_eq!(

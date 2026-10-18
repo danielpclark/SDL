@@ -687,7 +687,7 @@ impl SensorDriver for WindowsSensorDriver {
                                 );
                             }
                         }
-                        // FIXME (upstream): released as an ISensorManager
+                        // Note (upstream): released as an ISensorManager
                         // (ISensorManager_Release(sensor)), which works
                         // since Release() is at the same place in every
                         // vtable.

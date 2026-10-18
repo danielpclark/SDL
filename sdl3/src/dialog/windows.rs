@@ -703,7 +703,7 @@ fn show_file_dialog_thread(args: WinArgs) {
     let mut initfolder = [0u16; MAX_PATH as usize]; // lpstrInitialDir
 
     if let Some(default_file) = default_file.as_deref().filter(|f| !f.is_empty()) {
-        // FIXME (upstream): an empty default location reads the byte before
+        // Note (upstream): an empty default location reads the byte before
         // the string; it is no default location here.
         legacy_initial_paths(default_file, &mut initfolder, &mut filebuffer);
     }
@@ -956,7 +956,7 @@ fn show_folder_dialog_thread(args: WinFArgs) {
 
     let mut buffer = [0u16; MAX_PATH as usize];
 
-    // FIXME (upstream): the default folder is sent as UTF-8 to
+    // Note (upstream): the default folder is sent as UTF-8 to
     // BFFM_SETSELECTION, which (in a Unicode build) is BFFM_SETSELECTIONW
     // and reads UTF-16; it is sent as UTF-16 here.
     let default_folder_w = default_folder.as_deref().map(utf8_to_wide);
