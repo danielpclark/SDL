@@ -1435,13 +1435,21 @@ fn scenarios(out: &mut String, name: &str, data: &[u8]) {
             }
             7 => t.set_output_channel_map(Some(&[1, 0])).unwrap(),
             8 => {}
-            9 => t
-                .set_3d_position(Some(&Point3D {
+            9 => {
+                // (then moved along Y only)
+                t.set_3d_position(Some(&Point3D {
+                    x: -1.0,
+                    y: 0.0,
+                    z: 0.5,
+                }))
+                .unwrap();
+                t.set_3d_position(Some(&Point3D {
                     x: -1.0,
                     y: 0.5,
-                    z: 1.0,
+                    z: 0.5,
                 }))
-                .unwrap(),
+                .unwrap();
+            }
             10 => {
                 let gv = Group::new(&m).unwrap();
                 t.set_group(Some(&gv)).unwrap();

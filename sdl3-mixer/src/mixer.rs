@@ -3188,9 +3188,10 @@ impl Track {
             }
             Some(position) => {
                 let p = st.position3d;
-                // FIXME (upstream): the Y test compares `tposition3d[2]`,
-                // where it means `[1]`, so moving only along Y isn't noticed.
-                if toggling || (p[0] != position.x) || (p[2] != position.y) || (p[2] != position.z)
+                // Note (upstream): the Y test compares `tposition3d[2]` there,
+                // where it means `[1]`, so moving only along Y wasn't
+                // noticed; the translation compares `[1]`.
+                if toggling || (p[0] != position.x) || (p[1] != position.y) || (p[2] != position.z)
                 {
                     st.position3d[0] = position.x;
                     st.position3d[1] = position.y;
