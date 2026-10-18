@@ -32,8 +32,8 @@ use windows_sys::Win32::System::Pipes::{
 };
 use windows_sys::Win32::System::Threading::{
     CreateProcessW, GetCurrentProcess, GetExitCodeProcess, TerminateProcess, WaitForSingleObject,
-    CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT, INFINITE, PROCESS_INFORMATION,
-    STARTF_USESTDHANDLES, STARTUPINFOW,
+    CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT, INFINITE,
+    PROCESS_INFORMATION, STARTF_USESTDHANDLES, STARTUPINFOW,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     EnumWindows, GetWindowThreadProcessId, PostMessageW, PostThreadMessageW, WM_CLOSE,
@@ -659,7 +659,9 @@ pub(super) fn sys_create_process(process: &mut Process, builder: ProcessBuilder)
         },
     });
 
-    let mut creation_flags = CREATE_UNICODE_ENVIRONMENT;
+    // (and a process group of its own, for the break of sys_kill_process();
+    // as the first process of a group, it ignores CTRL+C until it asks for it)
+    let mut creation_flags = CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_PROCESS_GROUP;
 
     // SAFETY: STARTUPINFOW is plain data; all zeroes is valid.
     let mut startup_info: STARTUPINFOW = unsafe { std::mem::zeroed() };
@@ -880,10 +882,11 @@ pub(super) fn sys_kill_process(process: &mut Process, force: bool) -> Result<()>
             if term_info[1] != 0 || PostThreadMessageW(info.dwThreadId, WM_CLOSE, 0, 0) != 0 {
                 return Ok(());
             }
-            // FIXME (upstream): the process wasn't created with
-            // CREATE_NEW_PROCESS_GROUP, so its ID names no process group,
-            // and the break goes to every process on this console (this
-            // one included).
+            // Note (upstream): the process isn't created with
+            // CREATE_NEW_PROCESS_GROUP there, so its ID names no process
+            // group, and the break goes to every process on the console
+            // (the caller included, which it ends); the translation creates
+            // it in a group of its own.
             if GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, term_info[0]) != 0 {
                 return Ok(());
             }
@@ -1376,12 +1379,89 @@ mod tests {
         assert!(e.starts_with("CreateProcess: "), "{e}");
     }
 
+    /// The breaks this process got (see [`count_break`]).
+    static BREAKS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+    /// A console control handler that counts the breaks and takes them.
+    unsafe extern "system" fn count_break(ctrl_type: u32) -> BOOL {
+        if ctrl_type == CTRL_BREAK_EVENT {
+            BREAKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            return 1;
+        }
+        0
+    }
+
+    /// A child without windows is sent a break, to its own process group:
+    /// it ends, and this process, on the same console, gets none (upstream
+    /// sends it to every process on the console).
+    #[test]
+    fn kill_breaks_only_the_child() {
+        use windows_sys::Win32::Foundation::STATUS_CONTROL_C_EXIT;
+        use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+
+        let _lock = lock();
+        // SAFETY: the handler only counts; it is removed below.
+        assert_ne!(unsafe { SetConsoleCtrlHandler(Some(count_break), 1) }, 0);
+        let mut p = helper("sleep").stdout(ProcessIo::App).spawn().unwrap();
+        read_until(&mut p, &[MARK]);
+        // kill(false) sends the break only when the child takes no WM_CLOSE:
+        // when its main thread has no message queue (on the Windows runner
+        // it has one, and the sleeping child leaves the WM_CLOSE posted to
+        // it unread, as upstream's would).
+        let thread_id = p.internal.as_ref().unwrap().process_information.dwThreadId;
+        // SAFETY: WM_NULL to the child's main thread does nothing.
+        if unsafe { PostThreadMessageW(thread_id, 0, 0, 0) } != 0 {
+            p.kill(false).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            assert_eq!(
+                p.wait(false).unwrap(),
+                None,
+                "the child ended on a WM_CLOSE"
+            );
+            p.kill(true).unwrap();
+            // SAFETY: removes the handler added above.
+            unsafe { SetConsoleCtrlHandler(Some(count_break), 0) };
+            assert_eq!(BREAKS.load(std::sync::atomic::Ordering::SeqCst), 0);
+            eprintln!("note: the child's thread takes a WM_CLOSE: no break is sent");
+            return;
+        }
+        p.kill(false).unwrap();
+        let start = std::time::Instant::now();
+        let code = loop {
+            if let Some(code) = p.wait(false).unwrap() {
+                break Some(code);
+            }
+            if start.elapsed().as_secs() >= 10 {
+                // (Wine's GenerateConsoleCtrlEvent() reports a break sent
+                // to a process group that it doesn't deliver)
+                assert!(crate::core::windows::is_wine(), "the child didn't end");
+                p.kill(true).unwrap();
+                break None;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        };
+        // (a handler runs on a thread of its own: time for one to run)
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        // SAFETY: removes the handler added above.
+        unsafe { SetConsoleCtrlHandler(Some(count_break), 0) };
+        assert_eq!(
+            BREAKS.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "this process got the break"
+        );
+        match code {
+            // (GenerateConsoleCtrlEvent() fails without a console)
+            Some(1) => eprintln!("note: no console to send a break on: the child was terminated"),
+            None => eprintln!("note: the break didn't reach the child: it was terminated"),
+            Some(code) => assert_eq!(code, STATUS_CONTROL_C_EXIT, "the child's exit code"),
+        }
+    }
+
     #[test]
     fn kill_asks_windows_to_close() {
         let _lock = lock();
-        // (kill(false) falls back to GenerateConsoleCtrlEvent(), which would
-        // reach this process too, so only once the child has a window that
-        // takes the WM_CLOSE)
+        // (only once the child has a window to take the WM_CLOSE: before,
+        // kill(false) would send it a break)
         let mut p = helper("window").stdout(ProcessIo::App).spawn().unwrap();
         let data = read_until(&mut p, &[b"ready\n", b"nowindow\n"]);
         if data.ends_with(b"nowindow\n") {
