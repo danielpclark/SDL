@@ -213,6 +213,7 @@ static IMAGES: &[(&str, &[u8])] = images![
     "jxl_progressive_qac_alpha.jxl",
     "jxl_splines.jxl",
     "lbm_24.lbm",
+    "lbm_camg8.lbm",
     "lbm_ehb.lbm",
     "lbm_ham.lbm",
     "lbm_ilbm.lbm",
