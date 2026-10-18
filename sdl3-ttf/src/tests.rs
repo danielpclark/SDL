@@ -10,7 +10,8 @@
 //! CID-keyed and Type 42 fonts), made by `tools/gen_sdl_ttf_testdata.py`, and the Noto
 //! font subsets (see their `OFL.txt`) of the shaping tests in
 //! `tests/shaping.rs`, the fonts with AAT tables of `tests/aat.rs`, and
-//! the fonts with SVG tables of `tests/svg.rs`.
+//! the fonts with SVG tables of `tests/svg.rs` (one of them with images,
+//! which `tests/images.rs` also decodes from `testdata/images/`).
 //! `testdata/reference.txt` is the output of a C program built from
 //! upstream SDL_ttf (with its bundled FreeType and HarfBuzz, without
 //! PlutoSVG) and SDL3, which runs the cases below in the same order: font
@@ -1918,5 +1919,6 @@ fn renderer_engine_rejects_glyphs_that_never_pack() {
 }
 
 mod aat;
+mod images;
 mod shaping;
 mod svg;

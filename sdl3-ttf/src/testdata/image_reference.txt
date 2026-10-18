@@ -1,0 +1,2310 @@
+bmp1.bmp rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp cut 15 rgba: null
+bmp1.bmp cut 15 surface: null
+bmp1.bmp cut 31 rgba: 9x4 c=3 bbb24379a9033cc5
+bmp1.bmp cut 31 surface: 9x4 stride=36 bbb24379a9033cc5
+bmp1.bmp cut 46 rgba: 9x4 c=3 bbb24379a9033cc5
+bmp1.bmp cut 46 surface: 9x4 stride=36 bbb24379a9033cc5
+bmp1.bmp cut 62 rgba: 9x4 c=3 676de3f65359ccdd
+bmp1.bmp cut 62 surface: 9x4 stride=36 77c7d0c1fde71d3d
+bmp1.bmp mut 0 at 2 ce rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 0 at 2 ce surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 1 at 75 02 rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 1 at 75 02 surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 2 at 19 08 rgba: 2057x4 c=3 7efd9aec7ee6a78d
+bmp1.bmp mut 2 at 19 08 surface: 2057x4 stride=8228 5b2b2cfd4bef1a8d
+bmp1.bmp mut 3 at 58 ef rgba: 9x4 c=3 0be778992d38dfad
+bmp1.bmp mut 3 at 58 ef surface: 9x4 stride=36 cb61415e6ed407ad
+bmp1.bmp mut 4 at 31 40 rgba: null
+bmp1.bmp mut 4 at 31 40 surface: null
+bmp1.bmp mut 5 at 37 08 rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 5 at 37 08 surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 6 at 74 54 rgba: 9x4 c=3 bc37d5710439c7f5
+bmp1.bmp mut 6 at 74 54 surface: 9x4 stride=36 f5984e882c7a9c25
+bmp1.bmp mut 7 at 69 04 rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 7 at 69 04 surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 8 at 3 08 rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 8 at 3 08 surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 9 at 60 80 rgba: 9x4 c=3 82b7d2a4264e188d
+bmp1.bmp mut 9 at 60 80 surface: 9x4 stride=36 2abadaf37e5f8a8d
+bmp1.bmp mut 10 at 10 3c rgba: 9x4 c=3 676de3f65359ccdd
+bmp1.bmp mut 10 at 10 3c surface: 9x4 stride=36 77c7d0c1fde71d3d
+bmp1.bmp mut 11 at 16 04 rgba: null
+bmp1.bmp mut 11 at 16 04 surface: null
+bmp1.bmp mut 12 at 5 70 rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 12 at 5 70 surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 13 at 32 d9 rgba: null
+bmp1.bmp mut 13 at 32 d9 surface: null
+bmp1.bmp mut 14 at 9 70 rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 14 at 9 70 surface: 9x4 stride=36 99673f6bba4e398d
+bmp1.bmp mut 15 at 76 9d rgba: 9x4 c=3 26cc371e9024668d
+bmp1.bmp mut 15 at 76 9d surface: 9x4 stride=36 99673f6bba4e398d
+bmp16.bmp rgba: 6x5 c=3 46da80dcc1df4b13
+bmp16.bmp surface: 6x5 stride=24 f6ac5f0700690ee7
+bmp16.bmp cut 22 rgba: null
+bmp16.bmp cut 22 surface: null
+bmp16.bmp cut 45 rgba: 6x5 c=3 8118e40a9be1f2d5
+bmp16.bmp cut 45 surface: 6x5 stride=24 8118e40a9be1f2d5
+bmp16.bmp cut 68 rgba: 6x5 c=3 58d3904b0c498bef
+bmp16.bmp cut 68 surface: 6x5 stride=24 e69ab6ed591adebf
+bmp16.bmp cut 91 rgba: 6x5 c=3 10d03c36c94f03e1
+bmp16.bmp cut 91 surface: 6x5 stride=24 bceba72e96428145
+bmp16.bmp mut 0 at 110 2b rgba: 6x5 c=3 700d469abf3b129d
+bmp16.bmp mut 0 at 110 2b surface: 6x5 stride=24 2d6d837be62da8f1
+bmp16.bmp mut 1 at 35 08 rgba: 6x5 c=3 46da80dcc1df4b13
+bmp16.bmp mut 1 at 35 08 surface: 6x5 stride=24 f6ac5f0700690ee7
+bmp16.bmp mut 2 at 75 7f rgba: 6x5 c=3 4b3824569e556c83
+bmp16.bmp mut 2 at 75 7f surface: 6x5 stride=24 010996b719cfd197
+bmp16.bmp mut 3 at 76 ff rgba: 6x5 c=3 797e4927699d941b
+bmp16.bmp mut 3 at 76 ff surface: 6x5 stride=24 09aeaff3c7b866ef
+bmp16.bmp mut 4 at 67 98 rgba: 6x5 c=3 46da80dcc1df4b13
+bmp16.bmp mut 4 at 67 98 surface: 6x5 stride=24 f6ac5f0700690ee7
+bmp16.bmp mut 5 at 40 04 rgba: 6x5 c=3 46da80dcc1df4b13
+bmp16.bmp mut 5 at 40 04 surface: 6x5 stride=24 f6ac5f0700690ee7
+bmp16.bmp mut 6 at 50 01 rgba: 6x5 c=3 46da80dcc1df4b13
+bmp16.bmp mut 6 at 50 01 surface: 6x5 stride=24 f6ac5f0700690ee7
+bmp16.bmp mut 7 at 108 42 rgba: 6x5 c=3 035082435b75d09b
+bmp16.bmp mut 7 at 108 42 surface: 6x5 stride=24 5fd10f61a526f27f
+bmp16.bmp mut 8 at 92 c8 rgba: 6x5 c=3 7526bfd482c109b6
+bmp16.bmp mut 8 at 92 c8 surface: 6x5 stride=24 fe0eb9e304a6835e
+bmp16.bmp mut 9 at 56 86 rgba: 6x5 c=3 4cb8e22c82af71a3
+bmp16.bmp mut 9 at 56 86 surface: 6x5 stride=24 e31459c93fc19317
+bmp16.bmp mut 10 at 17 10 rgba: null
+bmp16.bmp mut 10 at 17 10 surface: null
+bmp16.bmp mut 11 at 14 20 rgba: null
+bmp16.bmp mut 11 at 14 20 surface: null
+bmp16.bmp mut 12 at 16 a0 rgba: null
+bmp16.bmp mut 12 at 16 a0 surface: null
+bmp16.bmp mut 13 at 108 eb rgba: 6x5 c=3 7fdacb3a7581f172
+bmp16.bmp mut 13 at 108 eb surface: 6x5 stride=24 b0bf0d4a0348a82e
+bmp16.bmp mut 14 at 37 e5 rgba: 6x5 c=3 46da80dcc1df4b13
+bmp16.bmp mut 14 at 37 e5 surface: 6x5 stride=24 f6ac5f0700690ee7
+bmp16.bmp mut 15 at 11 74 rgba: null
+bmp16.bmp mut 15 at 11 74 surface: null
+bmp16bf.bmp rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16bf.bmp surface: 6x5 stride=24 ddef563a4a37d243
+bmp16bf.bmp cut 25 rgba: null
+bmp16bf.bmp cut 25 surface: null
+bmp16bf.bmp cut 50 rgba: null
+bmp16bf.bmp cut 50 surface: null
+bmp16bf.bmp cut 75 rgba: 6x5 c=3 cad8cb3b20c9710f
+bmp16bf.bmp cut 75 surface: 6x5 stride=24 33f9b5a2d4334663
+bmp16bf.bmp cut 100 rgba: 6x5 c=3 c2ea70c60330d84c
+bmp16bf.bmp cut 100 surface: 6x5 stride=24 4d3104efad760ce8
+bmp16bf.bmp mut 0 at 89 5d rgba: 6x5 c=3 a35d4b39a4a94768
+bmp16bf.bmp mut 0 at 89 5d surface: 6x5 stride=24 bee6193b27adf178
+bmp16bf.bmp mut 1 at 0 4a rgba: null
+bmp16bf.bmp mut 1 at 0 4a surface: null
+bmp16bf.bmp mut 2 at 32 04 rgba: null
+bmp16bf.bmp mut 2 at 32 04 surface: null
+bmp16bf.bmp mut 3 at 111 8e rgba: 6x5 c=3 20c2f77180840921
+bmp16bf.bmp mut 3 at 111 8e surface: 6x5 stride=24 69e3035df8140539
+bmp16bf.bmp mut 4 at 110 44 rgba: 6x5 c=3 fa3fec08fff7bf6d
+bmp16bf.bmp mut 4 at 110 44 surface: 6x5 stride=24 59e1448293f80d2d
+bmp16bf.bmp mut 5 at 4 20 rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16bf.bmp mut 5 at 4 20 surface: 6x5 stride=24 ddef563a4a37d243
+bmp16bf.bmp mut 6 at 12 20 rgba: null
+bmp16bf.bmp mut 6 at 12 20 surface: null
+bmp16bf.bmp mut 7 at 56 40 rgba: 6x5 c=3 8bab936b7d29cd8c
+bmp16bf.bmp mut 7 at 56 40 surface: 6x5 stride=24 e24b7e9bdeb0d18c
+bmp16bf.bmp mut 8 at 102 8c rgba: 6x5 c=3 c06bfe5fc0db4adf
+bmp16bf.bmp mut 8 at 102 8c surface: 6x5 stride=24 c83ab5815d4b2bf3
+bmp16bf.bmp mut 9 at 116 82 rgba: 6x5 c=3 8371586c93f423b7
+bmp16bf.bmp mut 9 at 116 82 surface: 6x5 stride=24 14bd610353c6941b
+bmp16bf.bmp mut 10 at 103 90 rgba: 6x5 c=3 3fb685ae40d68abb
+bmp16bf.bmp mut 10 at 103 90 surface: 6x5 stride=24 6ca873dca330fb27
+bmp16bf.bmp mut 11 at 20 08 rgba: 524294x5 c=3 73bcf0eeab5f8777
+bmp16bf.bmp mut 11 at 20 08 surface: 524294x5 stride=2097176 fca220675569539b
+bmp16bf.bmp mut 12 at 101 03 rgba: 6x5 c=3 cb3fd9af014899e3
+bmp16bf.bmp mut 12 at 101 03 surface: 6x5 stride=24 6f62337bfb7e221f
+bmp16bf.bmp mut 13 at 33 a1 rgba: null
+bmp16bf.bmp mut 13 at 33 a1 surface: null
+bmp16bf.bmp mut 14 at 37 42 rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16bf.bmp mut 14 at 37 42 surface: 6x5 stride=24 ddef563a4a37d243
+bmp16bf.bmp mut 15 at 64 06 rgba: 6x5 c=3 c2c23b40a13098c7
+bmp16bf.bmp mut 15 at 64 06 surface: 6x5 stride=24 4431437907492e5b
+bmp16v3.bmp rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp surface: 6x5 stride=24 ddef563a4a37d243
+bmp16v3.bmp cut 28 rgba: null
+bmp16v3.bmp cut 28 surface: null
+bmp16v3.bmp cut 56 rgba: null
+bmp16v3.bmp cut 56 surface: null
+bmp16v3.bmp cut 85 rgba: 6x5 c=3 6613822e330a25f7
+bmp16v3.bmp cut 85 surface: 6x5 stride=24 b79db9dd0a841047
+bmp16v3.bmp cut 113 rgba: 6x5 c=3 bcd18f285f93cd43
+bmp16v3.bmp cut 113 surface: 6x5 stride=24 b82b260d35ad2bf3
+bmp16v3.bmp mut 0 at 71 e8 rgba: 6x5 c=3 c23ceba321f0266a
+bmp16v3.bmp mut 0 at 71 e8 surface: 6x5 stride=24 347f1175289ad3d6
+bmp16v3.bmp mut 1 at 45 80 rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp mut 1 at 45 80 surface: 6x5 stride=24 ddef563a4a37d243
+bmp16v3.bmp mut 2 at 12 40 rgba: null
+bmp16v3.bmp mut 2 at 12 40 surface: null
+bmp16v3.bmp mut 3 at 7 10 rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp mut 3 at 7 10 surface: 6x5 stride=24 ddef563a4a37d243
+bmp16v3.bmp mut 4 at 87 2b rgba: 6x5 c=3 ec75b6806fc66c37
+bmp16v3.bmp mut 4 at 87 2b surface: 6x5 stride=24 148a5dda0e512c2b
+bmp16v3.bmp mut 5 at 9 01 rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp mut 5 at 9 01 surface: 6x5 stride=24 ddef563a4a37d243
+bmp16v3.bmp mut 6 at 28 90 rgba: null
+bmp16v3.bmp mut 6 at 28 90 surface: null
+bmp16v3.bmp mut 7 at 135 d3 rgba: 6x5 c=3 8a82296ee5207527
+bmp16v3.bmp mut 7 at 135 d3 surface: 6x5 stride=24 5cc55c80f3420dbb
+bmp16v3.bmp mut 8 at 14 39 rgba: null
+bmp16v3.bmp mut 8 at 14 39 surface: null
+bmp16v3.bmp mut 9 at 109 d1 rgba: 6x5 c=3 54e48565fed260bd
+bmp16v3.bmp mut 9 at 109 d1 surface: 6x5 stride=24 a64b756542e40771
+bmp16v3.bmp mut 10 at 62 3f rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp mut 10 at 62 3f surface: 6x5 stride=24 ddef563a4a37d243
+bmp16v3.bmp mut 11 at 124 2c rgba: 6x5 c=3 135c7284ffbed51f
+bmp16v3.bmp mut 11 at 124 2c surface: 6x5 stride=24 355afc67e69ca6d3
+bmp16v3.bmp mut 12 at 19 ae rgba: 44550x5 c=3 c6e66f70b23f7777
+bmp16v3.bmp mut 12 at 19 ae surface: 44550x5 stride=178200 72882500196f439b
+bmp16v3.bmp mut 13 at 92 1e rgba: 6x5 c=3 1cea2eb717e13f9d
+bmp16v3.bmp mut 13 at 92 1e surface: 6x5 stride=24 bf138081f07f2a95
+bmp16v3.bmp mut 14 at 8 7c rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp mut 14 at 8 7c surface: 6x5 stride=24 ddef563a4a37d243
+bmp16v3.bmp mut 15 at 40 7a rgba: 6x5 c=3 4e6256b6a349a94f
+bmp16v3.bmp mut 15 at 40 7a surface: 6x5 stride=24 ddef563a4a37d243
+bmp24.bmp rgba: 6x5 c=3 0be20e5f2dccba54
+bmp24.bmp surface: 6x5 stride=24 489d280c1eff3178
+bmp24.bmp cut 30 rgba: 6x5 c=3 8118e40a9be1f2d5
+bmp24.bmp cut 30 surface: 6x5 stride=24 8118e40a9be1f2d5
+bmp24.bmp cut 61 rgba: 6x5 c=3 f0d0e7aee4d320a2
+bmp24.bmp cut 61 surface: 6x5 stride=24 8462ea146d99eea6
+bmp24.bmp cut 92 rgba: 6x5 c=3 a306ac3103b42697
+bmp24.bmp cut 92 surface: 6x5 stride=24 2946c177a03619bb
+bmp24.bmp cut 123 rgba: 6x5 c=3 2402fd4feab56f02
+bmp24.bmp cut 123 surface: 6x5 stride=24 18bd42946230b5c2
+bmp24.bmp mut 0 at 145 4f rgba: 6x5 c=3 31d8659d42e80a92
+bmp24.bmp mut 0 at 145 4f surface: 6x5 stride=24 0a5f1ba8c65f7afe
+bmp24.bmp mut 1 at 100 8a rgba: 6x5 c=3 39a77913fe083df4
+bmp24.bmp mut 1 at 100 8a surface: 6x5 stride=24 20e192b5e9bd44d8
+bmp24.bmp mut 2 at 49 02 rgba: 6x5 c=3 0be20e5f2dccba54
+bmp24.bmp mut 2 at 49 02 surface: 6x5 stride=24 489d280c1eff3178
+bmp24.bmp mut 3 at 15 80 rgba: null
+bmp24.bmp mut 3 at 15 80 surface: null
+bmp24.bmp mut 4 at 85 88 rgba: 6x5 c=3 f2b4f305a9d73c6c
+bmp24.bmp mut 4 at 85 88 surface: 6x5 stride=24 92e84274f59cb040
+bmp24.bmp mut 5 at 25 04 rgba: null
+bmp24.bmp mut 5 at 25 04 surface: null
+bmp24.bmp mut 6 at 84 86 rgba: 6x5 c=3 d6d970fe970292c4
+bmp24.bmp mut 6 at 84 86 surface: 6x5 stride=24 6d89070f2aae01a8
+bmp24.bmp mut 7 at 64 9e rgba: 6x5 c=3 a419c25ccb96273c
+bmp24.bmp mut 7 at 64 9e surface: 6x5 stride=24 5f5f6a9ec6e7eb30
+bmp24.bmp mut 8 at 150 da rgba: 6x5 c=3 7db0f22c07f6a0b4
+bmp24.bmp mut 8 at 150 da surface: 6x5 stride=24 1efa795f37a4ff98
+bmp24.bmp mut 9 at 79 e2 rgba: 6x5 c=3 2de78ab2a7c8ed14
+bmp24.bmp mut 9 at 79 e2 surface: 6x5 stride=24 744a1fb97b23a2b8
+bmp24.bmp mut 10 at 119 00 rgba: 6x5 c=3 a73697b3737f82d4
+bmp24.bmp mut 10 at 119 00 surface: 6x5 stride=24 1bac4f898907a3f8
+bmp24.bmp mut 11 at 91 5a rgba: 6x5 c=3 91371ca4c0887830
+bmp24.bmp mut 11 at 91 5a surface: 6x5 stride=24 e1e0aa2c8ea3d01c
+bmp24.bmp mut 12 at 75 2d rgba: 6x5 c=3 66a8b347050ba057
+bmp24.bmp mut 12 at 75 2d surface: 6x5 stride=24 192f025b75640963
+bmp24.bmp mut 13 at 9 f1 rgba: 6x5 c=3 0be20e5f2dccba54
+bmp24.bmp mut 13 at 9 f1 surface: 6x5 stride=24 489d280c1eff3178
+bmp24.bmp mut 14 at 53 ac rgba: 6x5 c=3 0be20e5f2dccba54
+bmp24.bmp mut 14 at 53 ac surface: 6x5 stride=24 489d280c1eff3178
+bmp24.bmp mut 15 at 69 7a rgba: 6x5 c=3 0b320e5f2d37cea8
+bmp24.bmp mut 15 at 69 7a surface: 6x5 stride=24 086de23d8030b09c
+bmp24td.bmp rgba: 6x5 c=3 101d44acc16859ce
+bmp24td.bmp surface: 6x5 stride=24 09bdd712c266db6e
+bmp24td.bmp cut 31 rgba: 6x5 c=3 8118e40a9be1f2d5
+bmp24td.bmp cut 31 surface: 6x5 stride=24 8118e40a9be1f2d5
+bmp24td.bmp cut 62 rgba: 6x5 c=3 758edf4554ce19ba
+bmp24td.bmp cut 62 surface: 6x5 stride=24 2a95e181ca38c932
+bmp24td.bmp cut 93 rgba: 6x5 c=3 1a4c4df999c1f8e5
+bmp24td.bmp cut 93 surface: 6x5 stride=24 22ec60cb7e9aaedd
+bmp24td.bmp cut 124 rgba: 6x5 c=3 5ee1b1d6455e8a61
+bmp24td.bmp cut 124 surface: 6x5 stride=24 45da69ea37f366b9
+bmp24td.bmp mut 0 at 103 74 rgba: 6x5 c=3 562b857e9075fa5e
+bmp24td.bmp mut 0 at 103 74 surface: 6x5 stride=24 9939d7bd615b1c3e
+bmp24td.bmp mut 1 at 80 3a rgba: 6x5 c=3 38927ff797738066
+bmp24td.bmp mut 1 at 80 3a surface: 6x5 stride=24 287248eeed89c456
+bmp24td.bmp mut 2 at 29 40 rgba: null
+bmp24td.bmp mut 2 at 29 40 surface: null
+bmp24td.bmp mut 3 at 135 04 rgba: 6x5 c=3 7ff74952e742ac8a
+bmp24td.bmp mut 3 at 135 04 surface: 6x5 stride=24 01bca1c7fa7c78fa
+bmp24td.bmp mut 4 at 55 04 rgba: 6x5 c=3 101d44acc16859ce
+bmp24td.bmp mut 4 at 55 04 surface: 6x5 stride=24 09bdd712c266db6e
+bmp24td.bmp mut 5 at 119 f4 rgba: 6x5 c=3 f5905b74eae9e972
+bmp24td.bmp mut 5 at 119 f4 surface: 6x5 stride=24 c759ca973d6087a2
+bmp24td.bmp mut 6 at 18 46 rgba: 70x5 c=3 8a1ed8337c8483d0
+bmp24td.bmp mut 6 at 18 46 surface: 70x5 stride=280 ef6c51c7f44b0418
+bmp24td.bmp mut 7 at 60 12 rgba: 6x5 c=3 d1ad0c6e727ad1ae
+bmp24td.bmp mut 7 at 60 12 surface: 6x5 stride=24 929bab34d2df1ece
+bmp24td.bmp mut 8 at 2 9d rgba: 6x5 c=3 101d44acc16859ce
+bmp24td.bmp mut 8 at 2 9d surface: 6x5 stride=24 09bdd712c266db6e
+bmp24td.bmp mut 9 at 85 66 rgba: 6x5 c=3 646137ed8c95e6cc
+bmp24td.bmp mut 9 at 85 66 surface: 6x5 stride=24 d7ab3269e5302388
+bmp24td.bmp mut 10 at 136 16 rgba: 6x5 c=3 101d44acc16859ce
+bmp24td.bmp mut 10 at 136 16 surface: 6x5 stride=24 09bdd712c266db6e
+bmp24td.bmp mut 11 at 83 66 rgba: 6x5 c=3 c55ff6434143a9c8
+bmp24td.bmp mut 11 at 83 66 surface: 6x5 stride=24 2b4a00f894fe0cb0
+bmp24td.bmp mut 12 at 138 ad rgba: 6x5 c=3 195d6d77f4b7ebf7
+bmp24td.bmp mut 12 at 138 ad surface: 6x5 stride=24 0a03543ae3caeb03
+bmp24td.bmp mut 13 at 70 5c rgba: 6x5 c=3 41e1cff9c11f412e
+bmp24td.bmp mut 13 at 70 5c surface: 6x5 stride=24 a0c51471802b5b8e
+bmp24td.bmp mut 14 at 61 c8 rgba: 6x5 c=3 371de4dc38cf2449
+bmp24td.bmp mut 14 at 61 c8 surface: 6x5 stride=24 3758ff382a183ba5
+bmp24td.bmp mut 15 at 131 90 rgba: 6x5 c=3 73b8bdf50f8fd6ae
+bmp24td.bmp mut 15 at 131 90 surface: 6x5 stride=24 a644b281b8da0d0e
+bmp32.bmp rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32.bmp surface: 6x5 stride=24 489d280c1eff3178
+bmp32.bmp cut 34 rgba: 6x5 c=4 8118e40a9be1f2d5
+bmp32.bmp cut 34 surface: 6x5 stride=24 8118e40a9be1f2d5
+bmp32.bmp cut 69 rgba: 6x5 c=4 3a385a2b4db89421
+bmp32.bmp cut 69 surface: 6x5 stride=24 8a6bcb2c2d0c77b9
+bmp32.bmp cut 104 rgba: 6x5 c=4 08c81b15cf9b228d
+bmp32.bmp cut 104 surface: 6x5 stride=24 96a26474fcb298c9
+bmp32.bmp cut 139 rgba: 6x5 c=4 4a2f381dcba600b6
+bmp32.bmp cut 139 surface: 6x5 stride=24 7da2fbf801594a26
+bmp32.bmp mut 0 at 160 df rgba: 6x5 c=4 d65dffa6f647e0a5
+bmp32.bmp mut 0 at 160 df surface: 6x5 stride=24 8775a2151b0d2b71
+bmp32.bmp mut 1 at 52 80 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32.bmp mut 1 at 52 80 surface: 6x5 stride=24 489d280c1eff3178
+bmp32.bmp mut 2 at 6 80 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32.bmp mut 2 at 6 80 surface: 6x5 stride=24 489d280c1eff3178
+bmp32.bmp mut 3 at 128 15 rgba: 6x5 c=4 86b766bac7339e20
+bmp32.bmp mut 3 at 128 15 surface: 6x5 stride=24 5467a4fe4206161c
+bmp32.bmp mut 4 at 34 58 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32.bmp mut 4 at 34 58 surface: 6x5 stride=24 489d280c1eff3178
+bmp32.bmp mut 5 at 5 01 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32.bmp mut 5 at 5 01 surface: 6x5 stride=24 489d280c1eff3178
+bmp32.bmp mut 6 at 33 04 rgba: null
+bmp32.bmp mut 6 at 33 04 surface: null
+bmp32.bmp mut 7 at 129 10 rgba: 6x5 c=4 f8b6abfac5b4d430
+bmp32.bmp mut 7 at 129 10 surface: 6x5 stride=24 c855a0abaca2a11a
+bmp32.bmp mut 8 at 16 20 rgba: null
+bmp32.bmp mut 8 at 16 20 surface: null
+bmp32.bmp mut 9 at 20 04 rgba: 262150x5 c=4 49a6fdcc16004c34
+bmp32.bmp mut 9 at 20 04 surface: 262150x5 stride=1048600 e83978e4baa858d8
+bmp32.bmp mut 10 at 66 16 rgba: 6x5 c=4 348b2efe28d03c74
+bmp32.bmp mut 10 at 66 16 surface: 6x5 stride=24 11cfe2b6bdab8d58
+bmp32.bmp mut 11 at 107 33 rgba: 6x5 c=4 ff5433c6f13b238f
+bmp32.bmp mut 11 at 107 33 surface: 6x5 stride=24 e7b892a6d494ed9b
+bmp32.bmp mut 12 at 157 a5 rgba: 6x5 c=4 eecc83bf60106097
+bmp32.bmp mut 12 at 157 a5 surface: 6x5 stride=24 0b0239d4baa08192
+bmp32.bmp mut 13 at 89 31 rgba: 6x5 c=4 414310dab1e3fe07
+bmp32.bmp mut 13 at 89 31 surface: 6x5 stride=24 2400f10cf31ab7aa
+bmp32.bmp mut 14 at 103 e0 rgba: 6x5 c=4 4d9bc2380ea15274
+bmp32.bmp mut 14 at 103 e0 surface: 6x5 stride=24 91f958dd32b52758
+bmp32.bmp mut 15 at 39 11 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32.bmp mut 15 at 39 11 surface: 6x5 stride=24 489d280c1eff3178
+bmp32v4.bmp rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp cut 48 rgba: null
+bmp32v4.bmp cut 48 surface: null
+bmp32v4.bmp cut 96 rgba: 6x5 c=4 de9fa0da6fc22a85
+bmp32v4.bmp cut 96 surface: 6x5 stride=24 de9fa0da6fc22a85
+bmp32v4.bmp cut 145 rgba: 6x5 c=4 1ed99a4978d8ba85
+bmp32v4.bmp cut 145 surface: 6x5 stride=24 5cdb64bdb1c32e89
+bmp32v4.bmp cut 193 rgba: 6x5 c=4 738fb9e545c3baa7
+bmp32v4.bmp cut 193 surface: 6x5 stride=24 156dc13ef5e2f3ae
+bmp32v4.bmp mut 0 at 38 33 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 0 at 38 33 surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 1 at 162 e0 rgba: 6x5 c=4 9cceef23e5210f3c
+bmp32v4.bmp mut 1 at 162 e0 surface: 6x5 stride=24 4f6d3773c2388a92
+bmp32v4.bmp mut 2 at 76 02 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 2 at 76 02 surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 3 at 183 86 rgba: 6x5 c=4 e3028ccd0663f85c
+bmp32v4.bmp mut 3 at 183 86 surface: 6x5 stride=24 05179677eb46c501
+bmp32v4.bmp mut 4 at 188 ce rgba: 6x5 c=4 b8cf6ae99a4c4e5c
+bmp32v4.bmp mut 4 at 188 ce surface: 6x5 stride=24 b3d0aa1cb5058408
+bmp32v4.bmp mut 5 at 28 60 rgba: null
+bmp32v4.bmp mut 5 at 28 60 surface: null
+bmp32v4.bmp mut 6 at 202 44 rgba: 6x5 c=4 d74e1a359b17f96c
+bmp32v4.bmp mut 6 at 202 44 surface: 6x5 stride=24 4713a52253aedc55
+bmp32v4.bmp mut 7 at 216 3d rgba: 6x5 c=4 2ca64c8aa5b6ac2d
+bmp32v4.bmp mut 7 at 216 3d surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 8 at 21 40 rgba: null
+bmp32v4.bmp mut 8 at 21 40 surface: null
+bmp32v4.bmp mut 9 at 108 20 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 9 at 108 20 surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 10 at 76 80 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 10 at 76 80 surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 11 at 106 20 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 11 at 106 20 surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 12 at 222 fb rgba: 6x5 c=4 9a5427cf73a56c31
+bmp32v4.bmp mut 12 at 222 fb surface: 6x5 stride=24 7f1ff34b6ffe76f3
+bmp32v4.bmp mut 13 at 179 18 rgba: 6x5 c=4 2ff368f6f5e60330
+bmp32v4.bmp mut 13 at 179 18 surface: 6x5 stride=24 64f8516a4a2757fe
+bmp32v4.bmp mut 14 at 8 d2 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 14 at 8 d2 surface: 6x5 stride=24 af98069861e46445
+bmp32v4.bmp mut 15 at 80 73 rgba: 6x5 c=4 1dc388edf07b0c8c
+bmp32v4.bmp mut 15 at 80 73 surface: 6x5 stride=24 af98069861e46445
+bmp32v5.bmp rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp cut 51 rgba: null
+bmp32v5.bmp cut 51 surface: null
+bmp32v5.bmp cut 103 rgba: 6x5 c=4 de9fa0da6fc22a85
+bmp32v5.bmp cut 103 surface: 6x5 stride=24 de9fa0da6fc22a85
+bmp32v5.bmp cut 154 rgba: 6x5 c=4 ee3028d5d8c5b3ad
+bmp32v5.bmp cut 154 surface: 6x5 stride=24 0aeedd302b629f3c
+bmp32v5.bmp cut 206 rgba: 6x5 c=4 70e8bb2a3470709d
+bmp32v5.bmp cut 206 surface: 6x5 stride=24 01f8bc08a4500781
+bmp32v5.bmp mut 0 at 84 40 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 0 at 84 40 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 1 at 101 40 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 1 at 101 40 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 2 at 43 0f rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 2 at 43 0f surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 3 at 221 01 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 3 at 221 01 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 4 at 226 c4 rgba: 6x5 c=4 31cc38da25f59c28
+bmp32v5.bmp mut 4 at 226 c4 surface: 6x5 stride=24 68483738604da0ed
+bmp32v5.bmp mut 5 at 72 5a rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 5 at 72 5a surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 6 at 132 40 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 6 at 132 40 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 7 at 179 ea rgba: 6x5 c=4 eaef82f788fc5bce
+bmp32v5.bmp mut 7 at 179 ea surface: 6x5 stride=24 87eb69fdada2cd98
+bmp32v5.bmp mut 8 at 176 80 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 8 at 176 80 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 9 at 43 0f rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 9 at 43 0f surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 10 at 53 80 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 10 at 53 80 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 11 at 201 04 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 11 at 201 04 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 12 at 66 b2 rgba: 6x5 c=4 d09a481adfc42016
+bmp32v5.bmp mut 12 at 66 b2 surface: 6x5 stride=24 96fba603be0cc3ec
+bmp32v5.bmp mut 13 at 70 69 rgba: 6x5 c=4 628eaa3b67a53eb2
+bmp32v5.bmp mut 13 at 70 69 surface: 6x5 stride=24 a1b36ffdb7ec6fd8
+bmp32v5.bmp mut 14 at 158 87 rgba: 6x5 c=4 dbd5293a8a11add3
+bmp32v5.bmp mut 14 at 158 87 surface: 6x5 stride=24 c29fca4986f497a9
+bmp32v5.bmp mut 15 at 155 36 rgba: 6x5 c=4 3b158f5aac5fbcc8
+bmp32v5.bmp mut 15 at 155 36 surface: 6x5 stride=24 7190d889703f10e0
+bmp32v5a0.bmp rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32v5a0.bmp surface: 6x5 stride=24 489d280c1eff3178
+bmp32v5a0.bmp cut 51 rgba: 6x5 c=4 8118e40a9be1f2d5
+bmp32v5a0.bmp cut 51 surface: 6x5 stride=24 8118e40a9be1f2d5
+bmp32v5a0.bmp cut 103 rgba: 6x5 c=4 8118e40a9be1f2d5
+bmp32v5a0.bmp cut 103 surface: 6x5 stride=24 8118e40a9be1f2d5
+bmp32v5a0.bmp cut 154 rgba: 6x5 c=4 3a385a2b4db89421
+bmp32v5a0.bmp cut 154 surface: 6x5 stride=24 8a6bcb2c2d0c77b9
+bmp32v5a0.bmp cut 206 rgba: 6x5 c=4 ea7d53b2161e3f0f
+bmp32v5a0.bmp cut 206 surface: 6x5 stride=24 4785dd083afbedbb
+bmp32v5a0.bmp mut 0 at 234 5e rgba: 6x5 c=4 32d1092479e86314
+bmp32v5a0.bmp mut 0 at 234 5e surface: 6x5 stride=24 e9d76b6e649114b8
+bmp32v5a0.bmp mut 1 at 24 40 rgba: 6x4194309 c=4 17bc92ef69ccba54
+bmp32v5a0.bmp mut 1 at 24 40 surface: 6x4194309 stride=24 5477ac9c5aff3178
+bmp32v5a0.bmp mut 2 at 132 20 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32v5a0.bmp mut 2 at 132 20 surface: 6x5 stride=24 489d280c1eff3178
+bmp32v5a0.bmp mut 3 at 1 4f rgba: null
+bmp32v5a0.bmp mut 3 at 1 4f surface: null
+bmp32v5a0.bmp mut 4 at 143 3a rgba: 6x5 c=4 95845f7e807c951c
+bmp32v5a0.bmp mut 4 at 143 3a surface: 6x5 stride=24 1f8b85d002526620
+bmp32v5a0.bmp mut 5 at 134 01 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32v5a0.bmp mut 5 at 134 01 surface: 6x5 stride=24 489d280c1eff3178
+bmp32v5a0.bmp mut 6 at 12 20 rgba: null
+bmp32v5a0.bmp mut 6 at 12 20 surface: null
+bmp32v5a0.bmp mut 7 at 23 02 rgba: 6x517 c=4 224a5181064e9a54
+bmp32v5a0.bmp mut 7 at 23 02 surface: 6x517 stride=24 5f056b2df7811178
+bmp32v5a0.bmp mut 8 at 32 10 rgba: null
+bmp32v5a0.bmp mut 8 at 32 10 surface: null
+bmp32v5a0.bmp mut 9 at 147 65 rgba: 6x5 c=4 88b13b8b0a86f8bb
+bmp32v5a0.bmp mut 9 at 147 65 surface: 6x5 stride=24 ff6558b6f53b8097
+bmp32v5a0.bmp mut 10 at 15 10 rgba: null
+bmp32v5a0.bmp mut 10 at 15 10 surface: null
+bmp32v5a0.bmp mut 11 at 181 10 rgba: 6x5 c=4 cba770fd727d1710
+bmp32v5a0.bmp mut 11 at 181 10 surface: 6x5 stride=24 3439aea7f01fcca8
+bmp32v5a0.bmp mut 12 at 115 13 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32v5a0.bmp mut 12 at 115 13 surface: 6x5 stride=24 489d280c1eff3178
+bmp32v5a0.bmp mut 13 at 242 75 rgba: 6x5 c=4 4fbc5d10c53820bf
+bmp32v5a0.bmp mut 13 at 242 75 surface: 6x5 stride=24 64b074f7d9ebb4f3
+bmp32v5a0.bmp mut 14 at 251 a9 rgba: 6x5 c=4 62f679c4169c93ef
+bmp32v5a0.bmp mut 14 at 251 a9 surface: 6x5 stride=24 254683124d9253c7
+bmp32v5a0.bmp mut 15 at 7 41 rgba: 6x5 c=4 0be20e5f2dccba54
+bmp32v5a0.bmp mut 15 at 7 41 surface: 6x5 stride=24 489d280c1eff3178
+bmp4.bmp rgba: 7x5 c=3 9a58516d59a2563d
+bmp4.bmp surface: 7x5 stride=28 8f5b243e46d2da3d
+bmp4.bmp cut 27 rgba: null
+bmp4.bmp cut 27 surface: null
+bmp4.bmp cut 55 rgba: 7x5 c=3 41fd7595f2b8b208
+bmp4.bmp cut 55 surface: 7x5 stride=28 41fd7595f2b8b208
+bmp4.bmp cut 82 rgba: 7x5 c=3 484d468c9db82afd
+bmp4.bmp cut 82 surface: 7x5 stride=28 484d468c9db82afd
+bmp4.bmp cut 110 rgba: 7x5 c=3 484d468c9db82afd
+bmp4.bmp cut 110 surface: 7x5 stride=28 484d468c9db82afd
+bmp4.bmp mut 0 at 8 04 rgba: 7x5 c=3 9a58516d59a2563d
+bmp4.bmp mut 0 at 8 04 surface: 7x5 stride=28 8f5b243e46d2da3d
+bmp4.bmp mut 1 at 62 82 rgba: 7x5 c=3 b503dcfe862f043d
+bmp4.bmp mut 1 at 62 82 surface: 7x5 stride=28 22d3077e4fca393d
+bmp4.bmp mut 2 at 76 52 rgba: 7x5 c=3 2f079fd36e9feb3d
+bmp4.bmp mut 2 at 76 52 surface: 7x5 stride=28 e3bc3a98feab383d
+bmp4.bmp mut 3 at 1 0d rgba: null
+bmp4.bmp mut 3 at 1 0d surface: null
+bmp4.bmp mut 4 at 32 08 rgba: null
+bmp4.bmp mut 4 at 32 08 surface: null
+bmp4.bmp mut 5 at 17 80 rgba: null
+bmp4.bmp mut 5 at 17 80 surface: null
+bmp4.bmp mut 6 at 71 af rgba: 7x5 c=3 3127116e54349f3d
+bmp4.bmp mut 6 at 71 af surface: 7x5 stride=28 3cd51bcbae1be03d
+bmp4.bmp mut 7 at 87 77 rgba: 7x5 c=3 b0124a9ad3b4a83d
+bmp4.bmp mut 7 at 87 77 surface: 7x5 stride=28 e0cfd1a8b216f93d
+bmp4.bmp mut 8 at 19 40 rgba: 16391x5 c=3 64a52cd0923fe1fd
+bmp4.bmp mut 8 at 19 40 surface: 16391x5 stride=65564 c6a7a81d6e2186fd
+bmp4.bmp mut 9 at 118 c7 rgba: 7x5 c=3 459b9935093a693d
+bmp4.bmp mut 9 at 118 c7 surface: 7x5 stride=28 d100008269f2fb3d
+bmp4.bmp mut 10 at 56 08 rgba: 7x5 c=3 feeed6d6c1eb64c5
+bmp4.bmp mut 10 at 56 08 surface: 7x5 stride=28 a4270ff8cf664615
+bmp4.bmp mut 11 at 11 20 rgba: null
+bmp4.bmp mut 11 at 11 20 surface: null
+bmp4.bmp mut 12 at 33 51 rgba: null
+bmp4.bmp mut 12 at 33 51 surface: null
+bmp4.bmp mut 13 at 127 5e rgba: 7x5 c=3 2c95fc56120e16bd
+bmp4.bmp mut 13 at 127 5e surface: 7x5 stride=28 74a3f8b223f9525d
+bmp4.bmp mut 14 at 20 de rgba: 14548999x5 c=3 b5867d73a555e1fd
+bmp4.bmp mut 14 at 20 de surface: 14548999x5 stride=58195996 3ba604ce4d3786fd
+bmp4.bmp mut 15 at 82 c5 rgba: 7x5 c=3 85694f8eb9f0103d
+bmp4.bmp mut 15 at 82 c5 surface: 7x5 stride=28 53d6d9fcd900b03d
+bmp8.bmp rgba: 5x4 c=3 bf9b457c12b09d18
+bmp8.bmp surface: 5x4 stride=20 9f93ea93bdb7dba0
+bmp8.bmp cut 22 rgba: null
+bmp8.bmp cut 22 surface: null
+bmp8.bmp cut 45 rgba: 5x4 c=3 802e57a64e7b4a45
+bmp8.bmp cut 45 surface: 5x4 stride=20 802e57a64e7b4a45
+bmp8.bmp cut 68 rgba: 5x4 c=3 4810e547497e451d
+bmp8.bmp cut 68 surface: 5x4 stride=20 30e44a12d8b77a1d
+bmp8.bmp cut 91 rgba: 5x4 c=3 f9c8d9fc670c6215
+bmp8.bmp cut 91 surface: 5x4 stride=20 669760f1d040c7e5
+bmp8.bmp mut 0 at 19 08 rgba: 2053x4 c=3 83c5003aa103e4ec
+bmp8.bmp mut 0 at 19 08 surface: 2053x4 stride=8212 66d496c3745d053c
+bmp8.bmp mut 1 at 90 0b rgba: undefined
+bmp8.bmp mut 1 at 90 0b surface: undefined
+bmp8.bmp mut 2 at 55 16 rgba: 5x4 c=3 ab86096fddf902e0
+bmp8.bmp mut 2 at 55 16 surface: 5x4 stride=20 85f4f06a9b3dedc8
+bmp8.bmp mut 3 at 46 0f rgba: 5x4 c=3 bf9b457c12b09d18
+bmp8.bmp mut 3 at 46 0f surface: 5x4 stride=20 9f93ea93bdb7dba0
+bmp8.bmp mut 4 at 9 04 rgba: 5x4 c=3 bf9b457c12b09d18
+bmp8.bmp mut 4 at 9 04 surface: 5x4 stride=20 9f93ea93bdb7dba0
+bmp8.bmp mut 5 at 67 e0 rgba: 5x4 c=3 d86ccea69de72398
+bmp8.bmp mut 5 at 67 e0 surface: 5x4 stride=20 34e2b5f41d932be0
+bmp8.bmp mut 6 at 106 10 rgba: undefined
+bmp8.bmp mut 6 at 106 10 surface: undefined
+bmp8.bmp mut 7 at 33 08 rgba: null
+bmp8.bmp mut 7 at 33 08 surface: null
+bmp8.bmp mut 8 at 72 01 rgba: 5x4 c=3 c11687c470d53998
+bmp8.bmp mut 8 at 72 01 surface: 5x4 stride=20 3b203840e45889e0
+bmp8.bmp mut 9 at 54 0e rgba: 5x4 c=3 770279833bebc708
+bmp8.bmp mut 9 at 54 0e surface: 5x4 stride=20 dee7ece3af48cff0
+bmp8.bmp mut 10 at 95 40 rgba: 5x4 c=3 bf9b457c12b09d18
+bmp8.bmp mut 10 at 95 40 surface: 5x4 stride=20 9f93ea93bdb7dba0
+bmp8.bmp mut 11 at 50 10 rgba: 5x4 c=3 bf9b457c12b09d18
+bmp8.bmp mut 11 at 50 10 surface: 5x4 stride=20 9f93ea93bdb7dba0
+bmp8.bmp mut 12 at 80 b6 rgba: 5x4 c=3 7c9e68f69598b5de
+bmp8.bmp mut 12 at 80 b6 surface: 5x4 stride=20 4b25f498ff994636
+bmp8.bmp mut 13 at 72 64 rgba: 5x4 c=3 4bad4b7c4e45acd0
+bmp8.bmp mut 13 at 72 64 surface: 5x4 stride=20 74544fc5710f57b8
+bmp8.bmp mut 14 at 49 7f rgba: 5x4 c=3 bf9b457c12b09d18
+bmp8.bmp mut 14 at 49 7f surface: 5x4 stride=20 9f93ea93bdb7dba0
+bmp8.bmp mut 15 at 72 9b rgba: 5x4 c=3 709d955c174fb158
+bmp8.bmp mut 15 at 72 9b surface: 5x4 stride=20 76e94d1a0685dd00
+bmp8os2.bmp rgba: 5x3 c=3 d19f7249f1ecb668
+bmp8os2.bmp surface: 5x3 stride=20 0d82fa37acb01268
+bmp8os2.bmp cut 14 rgba: null
+bmp8os2.bmp cut 14 surface: null
+bmp8os2.bmp cut 29 rgba: 5x3 c=3 eb7f12e55e73924c
+bmp8os2.bmp cut 29 surface: 5x3 stride=20 51c67d83e3c21db4
+bmp8os2.bmp cut 44 rgba: 5x3 c=3 eb7f12e55e73924c
+bmp8os2.bmp cut 44 surface: 5x3 stride=20 51c67d83e3c21db4
+bmp8os2.bmp cut 59 rgba: 5x3 c=3 1da87eab0871b278
+bmp8os2.bmp cut 59 surface: 5x3 stride=20 aa60306d03385858
+bmp8os2.bmp mut 0 at 61 82 rgba: undefined
+bmp8os2.bmp mut 0 at 61 82 surface: undefined
+bmp8os2.bmp mut 1 at 60 01 rgba: 5x3 c=3 5569170338af5120
+bmp8os2.bmp mut 1 at 60 01 surface: 5x3 stride=20 37ef346397909b20
+bmp8os2.bmp mut 2 at 7 10 rgba: 5x3 c=3 d19f7249f1ecb668
+bmp8os2.bmp mut 2 at 7 10 surface: 5x3 stride=20 0d82fa37acb01268
+bmp8os2.bmp mut 3 at 11 20 rgba: null
+bmp8os2.bmp mut 3 at 11 20 surface: null
+bmp8os2.bmp mut 4 at 21 80 rgba: 5x32771 c=3 b83a32314c13b668
+bmp8os2.bmp mut 4 at 21 80 surface: 5x32771 stride=20 6eeb1c5f31b91268
+bmp8os2.bmp mut 5 at 54 42 rgba: undefined
+bmp8os2.bmp mut 5 at 54 42 surface: undefined
+bmp8os2.bmp mut 6 at 24 48 rgba: null
+bmp8os2.bmp mut 6 at 24 48 surface: null
+bmp8os2.bmp mut 7 at 50 0a rgba: undefined
+bmp8os2.bmp mut 7 at 50 0a surface: undefined
+bmp8os2.bmp mut 8 at 68 22 rgba: undefined
+bmp8os2.bmp mut 8 at 68 22 surface: undefined
+bmp8os2.bmp mut 9 at 3 20 rgba: 5x3 c=3 d19f7249f1ecb668
+bmp8os2.bmp mut 9 at 3 20 surface: 5x3 stride=20 0d82fa37acb01268
+bmp8os2.bmp mut 10 at 18 85 rgba: 133x3 c=3 3a0bbf56d61e087c
+bmp8os2.bmp mut 10 at 18 85 surface: 133x3 stride=532 d9ec01686b5d1384
+bmp8os2.bmp mut 11 at 58 03 rgba: 5x3 c=3 36d57cff0ee98c40
+bmp8os2.bmp mut 11 at 58 03 surface: 5x3 stride=20 58931d3e1a60a3a0
+bmp8os2.bmp mut 12 at 68 4c rgba: undefined
+bmp8os2.bmp mut 12 at 68 4c surface: undefined
+bmp8os2.bmp mut 13 at 43 b7 rgba: 5x3 c=3 d19f7249f1ecb668
+bmp8os2.bmp mut 13 at 43 b7 surface: 5x3 stride=20 0d82fa37acb01268
+bmp8os2.bmp mut 14 at 47 d4 rgba: 5x3 c=3 d19f7249f1ecb668
+bmp8os2.bmp mut 14 at 47 d4 surface: 5x3 stride=20 0d82fa37acb01268
+bmp8os2.bmp mut 15 at 40 29 rgba: 5x3 c=3 d19f7249f1ecb668
+bmp8os2.bmp mut 15 at 40 29 surface: 5x3 stride=20 0d82fa37acb01268
+bmpbadmask.bmp rgba: null
+bmpbadmask.bmp surface: null
+bmpbadmask.bmp cut 51 rgba: null
+bmpbadmask.bmp cut 51 surface: null
+bmpbadmask.bmp cut 103 rgba: null
+bmpbadmask.bmp cut 103 surface: null
+bmpbadmask.bmp cut 154 rgba: null
+bmpbadmask.bmp cut 154 surface: null
+bmpbadmask.bmp cut 206 rgba: null
+bmpbadmask.bmp cut 206 surface: null
+bmpbadmask.bmp mut 0 at 178 f1 rgba: null
+bmpbadmask.bmp mut 0 at 178 f1 surface: null
+bmpbadmask.bmp mut 1 at 31 10 rgba: null
+bmpbadmask.bmp mut 1 at 31 10 surface: null
+bmpbadmask.bmp mut 2 at 116 01 rgba: null
+bmpbadmask.bmp mut 2 at 116 01 surface: null
+bmpbadmask.bmp mut 3 at 34 58 rgba: null
+bmpbadmask.bmp mut 3 at 34 58 surface: null
+bmpbadmask.bmp mut 4 at 179 ca rgba: null
+bmpbadmask.bmp mut 4 at 179 ca surface: null
+bmpbadmask.bmp mut 5 at 201 33 rgba: null
+bmpbadmask.bmp mut 5 at 201 33 surface: null
+bmpbadmask.bmp mut 6 at 34 68 rgba: null
+bmpbadmask.bmp mut 6 at 34 68 surface: null
+bmpbadmask.bmp mut 7 at 144 a3 rgba: null
+bmpbadmask.bmp mut 7 at 144 a3 surface: null
+bmpbadmask.bmp mut 8 at 68 02 rgba: null
+bmpbadmask.bmp mut 8 at 68 02 surface: null
+bmpbadmask.bmp mut 9 at 187 40 rgba: null
+bmpbadmask.bmp mut 9 at 187 40 surface: null
+bmpbadmask.bmp mut 10 at 170 70 rgba: null
+bmpbadmask.bmp mut 10 at 170 70 surface: null
+bmpbadmask.bmp mut 11 at 95 01 rgba: null
+bmpbadmask.bmp mut 11 at 95 01 surface: null
+bmpbadmask.bmp mut 12 at 90 05 rgba: null
+bmpbadmask.bmp mut 12 at 90 05 surface: null
+bmpbadmask.bmp mut 13 at 104 c8 rgba: null
+bmpbadmask.bmp mut 13 at 104 c8 surface: null
+bmpbadmask.bmp mut 14 at 181 cb rgba: null
+bmpbadmask.bmp mut 14 at 181 cb surface: null
+bmpbadmask.bmp mut 15 at 103 c1 rgba: null
+bmpbadmask.bmp mut 15 at 103 c1 surface: null
+bmprle.bmp rgba: null
+bmprle.bmp surface: null
+bmprle.bmp cut 22 rgba: null
+bmprle.bmp cut 22 surface: null
+bmprle.bmp cut 45 rgba: null
+bmprle.bmp cut 45 surface: null
+bmprle.bmp cut 68 rgba: null
+bmprle.bmp cut 68 surface: null
+bmprle.bmp cut 91 rgba: null
+bmprle.bmp cut 91 surface: null
+bmprle.bmp mut 0 at 21 80 rgba: null
+bmprle.bmp mut 0 at 21 80 surface: null
+bmprle.bmp mut 1 at 87 08 rgba: null
+bmprle.bmp mut 1 at 87 08 surface: null
+bmprle.bmp mut 2 at 24 04 rgba: null
+bmprle.bmp mut 2 at 24 04 surface: null
+bmprle.bmp mut 3 at 46 27 rgba: null
+bmprle.bmp mut 3 at 46 27 surface: null
+bmprle.bmp mut 4 at 94 21 rgba: null
+bmprle.bmp mut 4 at 94 21 surface: null
+bmprle.bmp mut 5 at 59 cc rgba: null
+bmprle.bmp mut 5 at 59 cc surface: null
+bmprle.bmp mut 6 at 107 43 rgba: null
+bmprle.bmp mut 6 at 107 43 surface: null
+bmprle.bmp mut 7 at 113 02 rgba: null
+bmprle.bmp mut 7 at 113 02 surface: null
+bmprle.bmp mut 8 at 29 20 rgba: null
+bmprle.bmp mut 8 at 29 20 surface: null
+bmprle.bmp mut 9 at 58 1a rgba: null
+bmprle.bmp mut 9 at 58 1a surface: null
+bmprle.bmp mut 10 at 110 07 rgba: null
+bmprle.bmp mut 10 at 110 07 surface: null
+bmprle.bmp mut 11 at 20 08 rgba: null
+bmprle.bmp mut 11 at 20 08 surface: null
+bmprle.bmp mut 12 at 17 64 rgba: null
+bmprle.bmp mut 12 at 17 64 surface: null
+bmprle.bmp mut 13 at 14 18 rgba: null
+bmprle.bmp mut 13 at 14 18 surface: null
+bmprle.bmp mut 14 at 41 2f rgba: null
+bmprle.bmp mut 14 at 41 2f surface: null
+bmprle.bmp mut 15 at 37 81 rgba: null
+bmprle.bmp mut 15 at 37 81 surface: null
+gif87.gif rgba: 6x4 c=4 9b6e8acacc01e329
+gif87.gif surface: 6x4 stride=24 c3668f303a4c8e59
+gif87.gif cut 10 rgba: null
+gif87.gif cut 10 surface: null
+gif87.gif cut 20 rgba: null
+gif87.gif cut 20 surface: null
+gif87.gif cut 30 rgba: 6x4 c=4 0243cfa845185aa5
+gif87.gif cut 30 surface: 6x4 stride=24 0243cfa845185aa5
+gif87.gif cut 40 rgba: 6x4 c=4 a690ea9e789b7449
+gif87.gif cut 40 surface: 6x4 stride=24 94e89538c18b2919
+gif87.gif mut 0 at 28 40 rgba: null
+gif87.gif mut 0 at 28 40 surface: null
+gif87.gif mut 1 at 3 30 rgba: null
+gif87.gif mut 1 at 3 30 surface: null
+gif87.gif mut 2 at 45 d0 rgba: 6x4 c=4 c8e08f1f0f93e9e3
+gif87.gif mut 2 at 45 d0 surface: 6x4 stride=24 1a6e0f868eea8efb
+gif87.gif mut 3 at 18 08 rgba: 6x4 c=4 156bbc2ec6d6e309
+gif87.gif mut 3 at 18 08 surface: 6x4 stride=24 bca899de16e92f79
+gif87.gif mut 4 at 16 40 rgba: 6x4 c=4 d02f336fffcba0a9
+gif87.gif mut 4 at 16 40 surface: 6x4 stride=24 986913043439e8d9
+gif87.gif mut 5 at 32 44 rgba: null
+gif87.gif mut 5 at 32 44 surface: null
+gif87.gif mut 6 at 7 20 rgba: 8198x4 c=4 4d5b69ef8041e329
+gif87.gif mut 6 at 7 20 surface: 8198x4 stride=32792 fc10786dce4c8e59
+gif87.gif mut 7 at 8 14 rgba: 6x20 c=4 47640a3295bc5929
+gif87.gif mut 7 at 8 14 surface: 6x20 stride=24 fdfe958bcfb22459
+gif87.gif mut 8 at 24 f7 rgba: 6x4 c=4 007449ba4ee74849
+gif87.gif mut 8 at 24 f7 surface: 6x4 stride=24 ec93578aa89b1039
+gif87.gif mut 9 at 16 01 rgba: 6x4 c=4 d437382e317a3949
+gif87.gif mut 9 at 16 01 surface: 6x4 stride=24 08d9dadd17a07179
+gif87.gif mut 10 at 41 26 rgba: 6x4 c=4 9738d5269db0732f
+gif87.gif mut 10 at 41 26 surface: 6x4 stride=24 5123354c3a611777
+gif87.gif mut 11 at 29 02 rgba: null
+gif87.gif mut 11 at 29 02 surface: null
+gif87.gif mut 12 at 14 a5 rgba: 6x4 c=4 27f71c0d7487d841
+gif87.gif mut 12 at 14 a5 surface: 6x4 stride=24 515f8ea788a843d9
+gif87.gif mut 13 at 38 8f rgba: null
+gif87.gif mut 13 at 38 8f surface: null
+gif87.gif mut 14 at 28 66 rgba: null
+gif87.gif mut 14 at 28 66 surface: null
+gif87.gif mut 15 at 7 b6 rgba: 46598x4 c=4 4d1c3f74452de329
+gif87.gif mut 15 at 7 b6 surface: 46598x4 stride=186392 166578ea6c0c8e59
+gifbg.gif rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif cut 10 rgba: null
+gifbg.gif cut 10 surface: null
+gifbg.gif cut 20 rgba: null
+gifbg.gif cut 20 surface: null
+gifbg.gif cut 30 rgba: null
+gifbg.gif cut 30 surface: null
+gifbg.gif cut 40 rgba: 6x5 c=4 4ca8fd0a4dac1329
+gifbg.gif cut 40 surface: 6x5 stride=24 895dda27c9ce0d79
+gifbg.gif mut 0 at 12 10 rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 0 at 12 10 surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 1 at 37 01 rgba: null
+gifbg.gif mut 1 at 37 01 surface: null
+gifbg.gif mut 2 at 12 02 rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 2 at 12 02 surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 3 at 16 10 rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 3 at 16 10 surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 4 at 34 41 rgba: null
+gifbg.gif mut 4 at 34 41 surface: null
+gifbg.gif mut 5 at 29 1a rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 5 at 29 1a surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 6 at 5 e1 rgba: null
+gifbg.gif mut 6 at 5 e1 surface: null
+gifbg.gif mut 7 at 33 3c rgba: null
+gifbg.gif mut 7 at 33 3c surface: null
+gifbg.gif mut 8 at 25 31 rgba: null
+gifbg.gif mut 8 at 25 31 surface: null
+gifbg.gif mut 9 at 25 23 rgba: null
+gifbg.gif mut 9 at 25 23 surface: null
+gifbg.gif mut 10 at 16 01 rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 10 at 16 01 surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 11 at 14 80 rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 11 at 14 80 surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 12 at 48 68 rgba: 6x5 c=4 d77a0c2928ea575b
+gifbg.gif mut 12 at 48 68 surface: 6x5 stride=24 d2f3e57aed573b83
+gifbg.gif mut 13 at 1 45 rgba: null
+gifbg.gif mut 13 at 1 45 surface: null
+gifbg.gif mut 14 at 33 a6 rgba: null
+gifbg.gif mut 14 at 33 a6 surface: null
+gifbg.gif mut 15 at 43 bb rgba: null
+gifbg.gif mut 15 at 43 bb surface: null
+gifbig.gif rgba: 32x32 c=4 ffaae4b223941c25
+gifbig.gif surface: 32x32 stride=128 7c2b97c6080c0725
+gifbig.gif cut 97 rgba: 32x32 c=4 ee7f34dab749f07c
+gifbig.gif cut 97 surface: 32x32 stride=128 4eba216f91817c10
+gifbig.gif cut 194 rgba: 32x32 c=4 8ef1c767a0ab25d2
+gifbig.gif cut 194 surface: 32x32 stride=128 ab6c10739e9e2d42
+gifbig.gif cut 292 rgba: 32x32 c=4 cb783122d0297eef
+gifbig.gif cut 292 surface: 32x32 stride=128 3a5ed9d50f8d55c7
+gifbig.gif cut 389 rgba: 32x32 c=4 73689026c52e1c28
+gifbig.gif cut 389 surface: 32x32 stride=128 d39140b5014d0ca4
+gifbig.gif mut 0 at 353 20 rgba: 32x32 c=4 e381d70d064a363d
+gifbig.gif mut 0 at 353 20 surface: 32x32 stride=128 a187e02a0fcf5d75
+gifbig.gif mut 1 at 74 84 rgba: 32x32 c=4 885df8db55f10925
+gifbig.gif mut 1 at 74 84 surface: 32x32 stride=128 044e86d6afba6425
+gifbig.gif mut 2 at 447 23 rgba: null
+gifbig.gif mut 2 at 447 23 surface: null
+gifbig.gif mut 3 at 122 47 rgba: 32x32 c=4 c9ca33de1ebd1f61
+gifbig.gif mut 3 at 122 47 surface: 32x32 stride=128 f6cf31877cdfca21
+gifbig.gif mut 4 at 301 7f rgba: 32x32 c=4 f5950e0085a49dfc
+gifbig.gif mut 4 at 301 7f surface: 32x32 stride=128 68fa9165dd585c40
+gifbig.gif mut 5 at 42 2f rgba: 32x32 c=4 9dc545ebffac0025
+gifbig.gif mut 5 at 42 2f surface: 32x32 stride=128 24d3c642cedd7a25
+gifbig.gif mut 6 at 69 01 rgba: null
+gifbig.gif mut 6 at 69 01 surface: null
+gifbig.gif mut 7 at 338 65 rgba: 32x32 c=4 2505ad455993ca01
+gifbig.gif mut 7 at 338 65 surface: 32x32 stride=128 5e70244f9547d471
+gifbig.gif mut 8 at 54 af rgba: 32x32 c=4 f843748a17d41c25
+gifbig.gif mut 8 at 54 af surface: 32x32 stride=128 8663614044735725
+gifbig.gif mut 9 at 228 23 rgba: 32x32 c=4 8edef9104d437f9b
+gifbig.gif mut 9 at 228 23 surface: 32x32 stride=128 c5bec50709d155cf
+gifbig.gif mut 10 at 70 01 rgba: 32x32 c=4 ffaae4b223941c25
+gifbig.gif mut 10 at 70 01 surface: 32x32 stride=128 7c2b97c6080c0725
+gifbig.gif mut 11 at 210 6e rgba: 32x32 c=4 09cfb6c3d4f54ea0
+gifbig.gif mut 11 at 210 6e surface: 32x32 stride=128 3370e7d0463618fc
+gifbig.gif mut 12 at 289 db rgba: 32x32 c=4 475d37fe90e5e4f1
+gifbig.gif mut 12 at 289 db surface: 32x32 stride=128 e2437a9a23f98a61
+gifbig.gif mut 13 at 129 d9 rgba: 32x32 c=4 c37790cd2cd32c8f
+gifbig.gif mut 13 at 129 d9 surface: 32x32 stride=128 db8b0874d114826b
+gifbig.gif mut 14 at 331 af rgba: null
+gifbig.gif mut 14 at 331 af surface: null
+gifbig.gif mut 15 at 72 5c rgba: null
+gifbig.gif mut 15 at 72 5c surface: null
+giflocal.gif rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif cut 26 rgba: null
+giflocal.gif cut 26 surface: null
+giflocal.gif cut 53 rgba: null
+giflocal.gif cut 53 surface: null
+giflocal.gif cut 80 rgba: 7x9 c=4 2fba1332b14beb55
+giflocal.gif cut 80 surface: 7x9 stride=28 2fba1332b14beb55
+giflocal.gif cut 107 rgba: 7x9 c=4 08d06bd4f2cc3003
+giflocal.gif cut 107 surface: 7x9 stride=28 d29289ca2145da43
+giflocal.gif mut 0 at 121 35 rgba: 7x9 c=4 ec08a0536110413f
+giflocal.gif mut 0 at 121 35 surface: 7x9 stride=28 2c917508a6e3bca7
+giflocal.gif mut 1 at 79 bc rgba: 7x9 c=4 bea091365845cd4d
+giflocal.gif mut 1 at 79 bc surface: 7x9 stride=28 32a52364a8db481d
+giflocal.gif mut 2 at 21 fd rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 2 at 21 fd surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 3 at 11 04 rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 3 at 11 04 surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 4 at 74 5e rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 4 at 74 5e surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 5 at 105 09 rgba: 7x9 c=4 ea485f25641485cf
+giflocal.gif mut 5 at 105 09 surface: 7x9 stride=28 300edbacdbb5e277
+giflocal.gif mut 6 at 65 10 rgba: null
+giflocal.gif mut 6 at 65 10 surface: null
+giflocal.gif mut 7 at 37 6e rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 7 at 37 6e surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 8 at 60 02 rgba: null
+giflocal.gif mut 8 at 60 02 surface: null
+giflocal.gif mut 9 at 15 80 rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 9 at 15 80 surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 10 at 15 04 rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 10 at 15 04 surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 11 at 106 f5 rgba: 7x9 c=4 6d0bcf3688f4c759
+giflocal.gif mut 11 at 106 f5 surface: 7x9 stride=28 4de44f509da42ef9
+giflocal.gif mut 12 at 52 5d rgba: null
+giflocal.gif mut 12 at 52 5d surface: null
+giflocal.gif mut 13 at 21 40 rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 13 at 21 40 surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 14 at 58 06 rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 14 at 58 06 surface: 7x9 stride=28 ccd0e30c190a787d
+giflocal.gif mut 15 at 41 b7 rgba: 7x9 c=4 b689a6342664919d
+giflocal.gif mut 15 at 41 b7 surface: 7x9 stride=28 ccd0e30c190a787d
+gifnoimage.gif rgba: null
+gifnoimage.gif surface: null
+gifnoimage.gif cut 5 rgba: null
+gifnoimage.gif cut 5 surface: null
+gifnoimage.gif cut 10 rgba: null
+gifnoimage.gif cut 10 surface: null
+gifnoimage.gif cut 15 rgba: null
+gifnoimage.gif cut 15 surface: null
+gifnoimage.gif cut 20 rgba: null
+gifnoimage.gif cut 20 surface: null
+gifnoimage.gif mut 0 at 13 fe rgba: null
+gifnoimage.gif mut 0 at 13 fe surface: null
+gifnoimage.gif mut 1 at 23 7f rgba: null
+gifnoimage.gif mut 1 at 23 7f surface: null
+gifnoimage.gif mut 2 at 20 01 rgba: null
+gifnoimage.gif mut 2 at 20 01 surface: null
+gifnoimage.gif mut 3 at 20 01 rgba: null
+gifnoimage.gif mut 3 at 20 01 surface: null
+gifnoimage.gif mut 4 at 11 08 rgba: null
+gifnoimage.gif mut 4 at 11 08 surface: null
+gifnoimage.gif mut 5 at 15 08 rgba: null
+gifnoimage.gif mut 5 at 15 08 surface: null
+gifnoimage.gif mut 6 at 5 41 rgba: null
+gifnoimage.gif mut 6 at 5 41 surface: null
+gifnoimage.gif mut 7 at 12 80 rgba: null
+gifnoimage.gif mut 7 at 12 80 surface: null
+gifnoimage.gif mut 8 at 0 07 rgba: null
+gifnoimage.gif mut 8 at 0 07 surface: null
+gifnoimage.gif mut 9 at 1 41 rgba: null
+gifnoimage.gif mut 9 at 1 41 surface: null
+gifnoimage.gif mut 10 at 4 19 rgba: null
+gifnoimage.gif mut 10 at 4 19 surface: null
+gifnoimage.gif mut 11 at 23 f7 rgba: null
+gifnoimage.gif mut 11 at 23 f7 surface: null
+gifnoimage.gif mut 12 at 18 ae rgba: null
+gifnoimage.gif mut 12 at 18 ae surface: null
+gifnoimage.gif mut 13 at 17 15 rgba: null
+gifnoimage.gif mut 13 at 17 15 surface: null
+gifnoimage.gif mut 14 at 19 aa rgba: null
+gifnoimage.gif mut 14 at 19 aa surface: null
+gifnoimage.gif mut 15 at 0 99 rgba: null
+gifnoimage.gif mut 15 at 0 99 surface: null
+gifnotable.gif rgba: null
+gifnotable.gif surface: null
+gifnotable.gif cut 7 rgba: null
+gifnotable.gif cut 7 surface: null
+gifnotable.gif cut 14 rgba: null
+gifnotable.gif cut 14 surface: null
+gifnotable.gif cut 21 rgba: null
+gifnotable.gif cut 21 surface: null
+gifnotable.gif cut 28 rgba: null
+gifnotable.gif cut 28 surface: null
+gifnotable.gif mut 0 at 24 09 rgba: null
+gifnotable.gif mut 0 at 24 09 surface: null
+gifnotable.gif mut 1 at 22 08 rgba: null
+gifnotable.gif mut 1 at 22 08 surface: null
+gifnotable.gif mut 2 at 0 43 rgba: null
+gifnotable.gif mut 2 at 0 43 surface: null
+gifnotable.gif mut 3 at 21 40 rgba: null
+gifnotable.gif mut 3 at 21 40 surface: null
+gifnotable.gif mut 4 at 10 04 rgba: null
+gifnotable.gif mut 4 at 10 04 surface: null
+gifnotable.gif mut 5 at 34 39 rgba: null
+gifnotable.gif mut 5 at 34 39 surface: null
+gifnotable.gif mut 6 at 15 40 rgba: null
+gifnotable.gif mut 6 at 15 40 surface: null
+gifnotable.gif mut 7 at 19 10 rgba: null
+gifnotable.gif mut 7 at 19 10 surface: null
+gifnotable.gif mut 8 at 12 10 rgba: null
+gifnotable.gif mut 8 at 12 10 surface: null
+gifnotable.gif mut 9 at 6 14 rgba: null
+gifnotable.gif mut 9 at 6 14 surface: null
+gifnotable.gif mut 10 at 11 40 rgba: null
+gifnotable.gif mut 10 at 11 40 surface: null
+gifnotable.gif mut 11 at 25 c5 rgba: null
+gifnotable.gif mut 11 at 25 c5 surface: null
+gifnotable.gif mut 12 at 30 96 rgba: null
+gifnotable.gif mut 12 at 30 96 surface: null
+gifnotable.gif mut 13 at 25 6b rgba: null
+gifnotable.gif mut 13 at 25 6b surface: null
+gifnotable.gif mut 14 at 32 50 rgba: null
+gifnotable.gif mut 14 at 32 50 surface: null
+gifnotable.gif mut 15 at 16 65 rgba: null
+gifnotable.gif mut 15 at 16 65 surface: null
+gifoutside.gif rgba: null
+gifoutside.gif surface: null
+gifoutside.gif cut 9 rgba: null
+gifoutside.gif cut 9 surface: null
+gifoutside.gif cut 18 rgba: null
+gifoutside.gif cut 18 surface: null
+gifoutside.gif cut 28 rgba: 4x4 c=4 b9b23f3a46fd0825
+gifoutside.gif cut 28 surface: 4x4 stride=16 b9b23f3a46fd0825
+gifoutside.gif cut 37 rgba: null
+gifoutside.gif cut 37 surface: null
+gifoutside.gif mut 0 at 6 24 rgba: null
+gifoutside.gif mut 0 at 6 24 surface: null
+gifoutside.gif mut 1 at 16 02 rgba: null
+gifoutside.gif mut 1 at 16 02 surface: null
+gifoutside.gif mut 2 at 32 84 rgba: null
+gifoutside.gif mut 2 at 32 84 surface: null
+gifoutside.gif mut 3 at 36 18 rgba: null
+gifoutside.gif mut 3 at 36 18 surface: null
+gifoutside.gif mut 4 at 14 20 rgba: null
+gifoutside.gif mut 4 at 14 20 surface: null
+gifoutside.gif mut 5 at 8 14 rgba: null
+gifoutside.gif mut 5 at 8 14 surface: null
+gifoutside.gif mut 6 at 3 78 rgba: null
+gifoutside.gif mut 6 at 3 78 surface: null
+gifoutside.gif mut 7 at 9 20 rgba: null
+gifoutside.gif mut 7 at 9 20 surface: null
+gifoutside.gif mut 8 at 25 0c rgba: null
+gifoutside.gif mut 8 at 25 0c surface: null
+gifoutside.gif mut 9 at 25 0c rgba: null
+gifoutside.gif mut 9 at 25 0c surface: null
+gifoutside.gif mut 10 at 32 0c rgba: null
+gifoutside.gif mut 10 at 32 0c surface: null
+gifoutside.gif mut 11 at 23 df rgba: null
+gifoutside.gif mut 11 at 23 df surface: null
+gifoutside.gif mut 12 at 20 0a rgba: null
+gifoutside.gif mut 12 at 20 0a surface: null
+gifoutside.gif mut 13 at 46 20 rgba: null
+gifoutside.gif mut 13 at 46 20 surface: null
+gifoutside.gif mut 14 at 11 1d rgba: null
+gifoutside.gif mut 14 at 11 1d surface: null
+gifoutside.gif mut 15 at 2 72 rgba: null
+gifoutside.gif mut 15 at 2 72 surface: null
+hdrbadsize.hdr rgba: null
+hdrbadsize.hdr surface: null
+hdrbadsize.hdr cut 22 rgba: null
+hdrbadsize.hdr cut 22 surface: null
+hdrbadsize.hdr cut 45 rgba: null
+hdrbadsize.hdr cut 45 surface: null
+hdrbadsize.hdr cut 67 rgba: null
+hdrbadsize.hdr cut 67 surface: null
+hdrbadsize.hdr cut 90 rgba: null
+hdrbadsize.hdr cut 90 surface: null
+hdrbadsize.hdr mut 0 at 31 e2 rgba: null
+hdrbadsize.hdr mut 0 at 31 e2 surface: null
+hdrbadsize.hdr mut 1 at 50 24 rgba: null
+hdrbadsize.hdr mut 1 at 50 24 surface: null
+hdrbadsize.hdr mut 2 at 26 64 rgba: null
+hdrbadsize.hdr mut 2 at 26 64 surface: null
+hdrbadsize.hdr mut 3 at 58 c7 rgba: null
+hdrbadsize.hdr mut 3 at 58 c7 surface: null
+hdrbadsize.hdr mut 4 at 79 88 rgba: null
+hdrbadsize.hdr mut 4 at 79 88 surface: null
+hdrbadsize.hdr mut 5 at 58 df rgba: null
+hdrbadsize.hdr mut 5 at 58 df surface: null
+hdrbadsize.hdr mut 6 at 59 09 rgba: null
+hdrbadsize.hdr mut 6 at 59 09 surface: null
+hdrbadsize.hdr mut 7 at 91 c0 rgba: null
+hdrbadsize.hdr mut 7 at 91 c0 surface: null
+hdrbadsize.hdr mut 8 at 100 83 rgba: null
+hdrbadsize.hdr mut 8 at 100 83 surface: null
+hdrbadsize.hdr mut 9 at 80 88 rgba: null
+hdrbadsize.hdr mut 9 at 80 88 surface: null
+hdrbadsize.hdr mut 10 at 23 76 rgba: null
+hdrbadsize.hdr mut 10 at 23 76 surface: null
+hdrbadsize.hdr mut 11 at 105 ac rgba: null
+hdrbadsize.hdr mut 11 at 105 ac surface: null
+hdrbadsize.hdr mut 12 at 0 db rgba: null
+hdrbadsize.hdr mut 12 at 0 db surface: null
+hdrbadsize.hdr mut 13 at 30 a8 rgba: null
+hdrbadsize.hdr mut 13 at 30 a8 surface: null
+hdrbadsize.hdr mut 14 at 65 da rgba: null
+hdrbadsize.hdr mut 14 at 65 da surface: null
+hdrbadsize.hdr mut 15 at 28 e9 rgba: null
+hdrbadsize.hdr mut 15 at 28 e9 surface: null
+hdrflat.hdr rgba: 5x3 c=3 900545354fe82d69
+hdrflat.hdr surface: 5x3 stride=20 42690be95d1a78c1
+hdrflat.hdr cut 22 rgba: null
+hdrflat.hdr cut 22 surface: null
+hdrflat.hdr cut 45 rgba: null
+hdrflat.hdr cut 45 surface: null
+hdrflat.hdr cut 67 rgba: undefined
+hdrflat.hdr cut 67 surface: undefined
+hdrflat.hdr cut 90 rgba: undefined
+hdrflat.hdr cut 90 surface: undefined
+hdrflat.hdr mut 0 at 35 01 rgba: 5x3 c=3 900545354fe82d69
+hdrflat.hdr mut 0 at 35 01 surface: 5x3 stride=20 42690be95d1a78c1
+hdrflat.hdr mut 1 at 57 0d rgba: 5x3 c=3 e6a1a1280282719d
+hdrflat.hdr mut 1 at 57 0d surface: 5x3 stride=20 c1fd924ebbd66715
+hdrflat.hdr mut 2 at 51 31 rgba: 1x3 c=3 4ce6aaf375b0bad6
+hdrflat.hdr mut 2 at 51 31 surface: 1x3 stride=4 0cfca9a8055386f2
+hdrflat.hdr mut 3 at 82 34 rgba: 5x3 c=3 d16ac4e79e14cdc7
+hdrflat.hdr mut 3 at 82 34 surface: 5x3 stride=20 846f977bab5d7a5f
+hdrflat.hdr mut 4 at 107 e0 rgba: 5x3 c=3 900545354fe82d69
+hdrflat.hdr mut 4 at 107 e0 surface: 5x3 stride=20 42690be95d1a78c1
+hdrflat.hdr mut 5 at 109 2d rgba: 5x3 c=3 900545354fe82d69
+hdrflat.hdr mut 5 at 109 2d surface: 5x3 stride=20 42690be95d1a78c1
+hdrflat.hdr mut 6 at 8 47 rgba: null
+hdrflat.hdr mut 6 at 8 47 surface: null
+hdrflat.hdr mut 7 at 76 7d rgba: 5x3 c=3 7881309cd19c7289
+hdrflat.hdr mut 7 at 76 7d surface: 5x3 stride=20 894495301e859261
+hdrflat.hdr mut 8 at 60 7c rgba: 5x3 c=3 6b9448e17d0ece85
+hdrflat.hdr mut 8 at 60 7c surface: 5x3 stride=20 3a1bada9e36a9381
+hdrflat.hdr mut 9 at 73 c6 rgba: 5x3 c=3 caee04ce7c074bc0
+hdrflat.hdr mut 9 at 73 c6 surface: 5x3 stride=20 2e6c7cab1a603bc8
+hdrflat.hdr mut 10 at 24 4f rgba: null
+hdrflat.hdr mut 10 at 24 4f surface: null
+hdrflat.hdr mut 11 at 83 82 rgba: 5x3 c=3 900545354fe82d69
+hdrflat.hdr mut 11 at 83 82 surface: 5x3 stride=20 42690be95d1a78c1
+hdrflat.hdr mut 12 at 14 db rgba: null
+hdrflat.hdr mut 12 at 14 db surface: null
+hdrflat.hdr mut 13 at 95 66 rgba: 5x3 c=3 08f9f6c26c3d1291
+hdrflat.hdr mut 13 at 95 66 surface: 5x3 stride=20 22b34d1d065ed5e9
+hdrflat.hdr mut 14 at 66 b3 rgba: 5x3 c=3 bcde39131491b2b7
+hdrflat.hdr mut 14 at 66 b3 surface: 5x3 stride=20 ff6e3d0505551537
+hdrflat.hdr mut 15 at 72 2d rgba: 5x3 c=3 2d3bdf0830afeab2
+hdrflat.hdr mut 15 at 72 2d surface: 5x3 stride=20 db94c3259a424fb2
+hdrnoformat.hdr rgba: null
+hdrnoformat.hdr surface: null
+hdrnoformat.hdr cut 16 rgba: null
+hdrnoformat.hdr cut 16 surface: null
+hdrnoformat.hdr cut 32 rgba: null
+hdrnoformat.hdr cut 32 surface: null
+hdrnoformat.hdr cut 49 rgba: null
+hdrnoformat.hdr cut 49 surface: null
+hdrnoformat.hdr cut 65 rgba: null
+hdrnoformat.hdr cut 65 surface: null
+hdrnoformat.hdr mut 0 at 41 7c rgba: null
+hdrnoformat.hdr mut 0 at 41 7c surface: null
+hdrnoformat.hdr mut 1 at 80 88 rgba: null
+hdrnoformat.hdr mut 1 at 80 88 surface: null
+hdrnoformat.hdr mut 2 at 67 40 rgba: null
+hdrnoformat.hdr mut 2 at 67 40 surface: null
+hdrnoformat.hdr mut 3 at 16 00 rgba: null
+hdrnoformat.hdr mut 3 at 16 00 surface: null
+hdrnoformat.hdr mut 4 at 40 00 rgba: null
+hdrnoformat.hdr mut 4 at 40 00 surface: null
+hdrnoformat.hdr mut 5 at 2 72 rgba: null
+hdrnoformat.hdr mut 5 at 2 72 surface: null
+hdrnoformat.hdr mut 6 at 49 88 rgba: null
+hdrnoformat.hdr mut 6 at 49 88 surface: null
+hdrnoformat.hdr mut 7 at 70 0e rgba: null
+hdrnoformat.hdr mut 7 at 70 0e surface: null
+hdrnoformat.hdr mut 8 at 38 63 rgba: null
+hdrnoformat.hdr mut 8 at 38 63 surface: null
+hdrnoformat.hdr mut 9 at 60 90 rgba: null
+hdrnoformat.hdr mut 9 at 60 90 surface: null
+hdrnoformat.hdr mut 10 at 17 3b rgba: null
+hdrnoformat.hdr mut 10 at 17 3b surface: null
+hdrnoformat.hdr mut 11 at 17 29 rgba: null
+hdrnoformat.hdr mut 11 at 17 29 surface: null
+hdrnoformat.hdr mut 12 at 59 86 rgba: null
+hdrnoformat.hdr mut 12 at 59 86 surface: null
+hdrnoformat.hdr mut 13 at 38 77 rgba: null
+hdrnoformat.hdr mut 13 at 38 77 surface: null
+hdrnoformat.hdr mut 14 at 0 6c rgba: null
+hdrnoformat.hdr mut 14 at 0 6c surface: null
+hdrnoformat.hdr mut 15 at 35 b5 rgba: null
+hdrnoformat.hdr mut 15 at 35 b5 surface: null
+hdrnotrle.hdr rgba: 9x2 c=3 d46c4d572e41d05a
+hdrnotrle.hdr surface: 9x2 stride=36 4241e047c64c01fe
+hdrnotrle.hdr cut 25 rgba: null
+hdrnotrle.hdr cut 25 surface: null
+hdrnotrle.hdr cut 50 rgba: null
+hdrnotrle.hdr cut 50 surface: null
+hdrnotrle.hdr cut 75 rgba: undefined
+hdrnotrle.hdr cut 75 surface: undefined
+hdrnotrle.hdr cut 100 rgba: undefined
+hdrnotrle.hdr cut 100 surface: undefined
+hdrnotrle.hdr mut 0 at 40 33 rgba: 9x2 c=3 d46c4d572e41d05a
+hdrnotrle.hdr mut 0 at 40 33 surface: 9x2 stride=36 4241e047c64c01fe
+hdrnotrle.hdr mut 1 at 32 e5 rgba: null
+hdrnotrle.hdr mut 1 at 32 e5 surface: null
+hdrnotrle.hdr mut 2 at 86 df rgba: 9x2 c=3 917b11aadc8dcbe9
+hdrnotrle.hdr mut 2 at 86 df surface: 9x2 stride=36 9607323e5a2988b1
+hdrnotrle.hdr mut 3 at 57 15 rgba: 9x2 c=3 33d875eaffacf301
+hdrnotrle.hdr mut 3 at 57 15 surface: 9x2 stride=36 56bc5bfb0d7a8e6d
+hdrnotrle.hdr mut 4 at 38 01 rgba: 9x2 c=3 d46c4d572e41d05a
+hdrnotrle.hdr mut 4 at 38 01 surface: 9x2 stride=36 4241e047c64c01fe
+hdrnotrle.hdr mut 5 at 90 57 rgba: 9x2 c=3 bbaa4e6019767f40
+hdrnotrle.hdr mut 5 at 90 57 surface: 9x2 stride=36 2c8d629fd6af36e0
+hdrnotrle.hdr mut 6 at 60 6e rgba: 9x2 c=3 03f6b2c5e8de8e8a
+hdrnotrle.hdr mut 6 at 60 6e surface: 9x2 stride=36 68b1374e37736cde
+hdrnotrle.hdr mut 7 at 33 4a rgba: null
+hdrnotrle.hdr mut 7 at 33 4a surface: null
+hdrnotrle.hdr mut 8 at 115 70 rgba: 9x2 c=3 d46c4d572e41d05a
+hdrnotrle.hdr mut 8 at 115 70 surface: 9x2 stride=36 4241e047c64c01fe
+hdrnotrle.hdr mut 9 at 39 39 rgba: 9x2 c=3 d46c4d572e41d05a
+hdrnotrle.hdr mut 9 at 39 39 surface: 9x2 stride=36 4241e047c64c01fe
+hdrnotrle.hdr mut 10 at 18 23 rgba: null
+hdrnotrle.hdr mut 10 at 18 23 surface: null
+hdrnotrle.hdr mut 11 at 32 e5 rgba: null
+hdrnotrle.hdr mut 11 at 32 e5 surface: null
+hdrnotrle.hdr mut 12 at 44 2f rgba: null
+hdrnotrle.hdr mut 12 at 44 2f surface: null
+hdrnotrle.hdr mut 13 at 36 04 rgba: 9x2 c=3 d46c4d572e41d05a
+hdrnotrle.hdr mut 13 at 36 04 surface: 9x2 stride=36 4241e047c64c01fe
+hdrnotrle.hdr mut 14 at 52 1b rgba: undefined
+hdrnotrle.hdr mut 14 at 52 1b surface: undefined
+hdrnotrle.hdr mut 15 at 2 72 rgba: null
+hdrnotrle.hdr mut 15 at 2 72 surface: null
+hdrrle.hdr rgba: 12x3 c=3 38d9d587a48a24ad
+hdrrle.hdr surface: 12x3 stride=48 c7101d8d6adabf7d
+hdrrle.hdr cut 20 rgba: null
+hdrrle.hdr cut 20 surface: null
+hdrrle.hdr cut 40 rgba: null
+hdrrle.hdr cut 40 surface: null
+hdrrle.hdr cut 61 rgba: null
+hdrrle.hdr cut 61 surface: null
+hdrrle.hdr cut 81 rgba: null
+hdrrle.hdr cut 81 surface: null
+hdrrle.hdr mut 0 at 71 0a rgba: 12x3 c=3 eca4ff0de6f20fb5
+hdrrle.hdr mut 0 at 71 0a surface: 12x3 stride=48 eca4ff0de6f20fb5
+hdrrle.hdr mut 1 at 62 85 rgba: null
+hdrrle.hdr mut 1 at 62 85 surface: null
+hdrrle.hdr mut 2 at 101 a2 rgba: 12x3 c=3 d106df61b1159e95
+hdrrle.hdr mut 2 at 101 a2 surface: 12x3 stride=48 e72550bb5ea7adf5
+hdrrle.hdr mut 3 at 72 01 rgba: null
+hdrrle.hdr mut 3 at 72 01 surface: null
+hdrrle.hdr mut 4 at 69 83 rgba: 12x3 c=3 b6838719c6319065
+hdrrle.hdr mut 4 at 69 83 surface: 12x3 stride=48 b268f940c208b665
+hdrrle.hdr mut 5 at 44 49 rgba: null
+hdrrle.hdr mut 5 at 44 49 surface: null
+hdrrle.hdr mut 6 at 81 28 rgba: 12x3 c=3 20e21d57cd52432d
+hdrrle.hdr mut 6 at 81 28 surface: 12x3 stride=48 a73baa15d7c6b35d
+hdrrle.hdr mut 7 at 20 2f rgba: null
+hdrrle.hdr mut 7 at 20 2f surface: null
+hdrrle.hdr mut 8 at 87 00 rgba: 12x3 c=3 a3f6345fbd7a0264
+hdrrle.hdr mut 8 at 87 00 surface: 12x3 stride=48 a3f6345fbd7a0264
+hdrrle.hdr mut 9 at 73 8c rgba: null
+hdrrle.hdr mut 9 at 73 8c surface: null
+hdrrle.hdr mut 10 at 35 61 rgba: 12x3 c=3 38d9d587a48a24ad
+hdrrle.hdr mut 10 at 35 61 surface: 12x3 stride=48 c7101d8d6adabf7d
+hdrrle.hdr mut 11 at 70 06 rgba: 12x3 c=3 eca4ff0de6f20fb5
+hdrrle.hdr mut 11 at 70 06 surface: 12x3 stride=48 eca4ff0de6f20fb5
+hdrrle.hdr mut 12 at 44 a2 rgba: null
+hdrrle.hdr mut 12 at 44 a2 surface: null
+hdrrle.hdr mut 13 at 38 16 rgba: 12x3 c=3 38d9d587a48a24ad
+hdrrle.hdr mut 13 at 38 16 surface: 12x3 stride=48 c7101d8d6adabf7d
+hdrrle.hdr mut 14 at 0 62 rgba: null
+hdrrle.hdr mut 14 at 0 62 surface: null
+hdrrle.hdr mut 15 at 25 ae rgba: null
+hdrrle.hdr mut 15 at 25 ae surface: null
+hdrrle2.hdr rgba: 9x2 c=3 d46c4d572e41d05a
+hdrrle2.hdr surface: 9x2 stride=36 4241e047c64c01fe
+hdrrle2.hdr cut 23 rgba: null
+hdrrle2.hdr cut 23 surface: null
+hdrrle2.hdr cut 46 rgba: null
+hdrrle2.hdr cut 46 surface: null
+hdrrle2.hdr cut 70 rgba: null
+hdrrle2.hdr cut 70 surface: null
+hdrrle2.hdr cut 93 rgba: null
+hdrrle2.hdr cut 93 surface: null
+hdrrle2.hdr mut 0 at 13 7d rgba: null
+hdrrle2.hdr mut 0 at 13 7d surface: null
+hdrrle2.hdr mut 1 at 50 1c rgba: 9x2 c=3 223134e385591faa
+hdrrle2.hdr mut 1 at 50 1c surface: 9x2 stride=36 6b491b49e5976ace
+hdrrle2.hdr mut 2 at 113 02 rgba: null
+hdrrle2.hdr mut 2 at 113 02 surface: null
+hdrrle2.hdr mut 3 at 39 48 rgba: null
+hdrrle2.hdr mut 3 at 39 48 surface: null
+hdrrle2.hdr mut 4 at 96 90 rgba: 9x2 c=3 d46c4d572e41d05a
+hdrrle2.hdr mut 4 at 96 90 surface: 9x2 stride=36 4241e047c64c01fe
+hdrrle2.hdr mut 5 at 62 05 rgba: 9x2 c=3 8bc228d66e3c741e
+hdrrle2.hdr mut 5 at 62 05 surface: 9x2 stride=36 1fdae9c513107472
+hdrrle2.hdr mut 6 at 27 72 rgba: null
+hdrrle2.hdr mut 6 at 27 72 surface: null
+hdrrle2.hdr mut 7 at 18 6d rgba: null
+hdrrle2.hdr mut 7 at 18 6d surface: null
+hdrrle2.hdr mut 8 at 112 03 rgba: 9x2 c=3 00e5a76694eda3b5
+hdrrle2.hdr mut 8 at 112 03 surface: 9x2 stride=36 dabefe495edc9a09
+hdrrle2.hdr mut 9 at 105 02 rgba: null
+hdrrle2.hdr mut 9 at 105 02 surface: null
+hdrrle2.hdr mut 10 at 2 72 rgba: null
+hdrrle2.hdr mut 10 at 2 72 surface: null
+hdrrle2.hdr mut 11 at 55 83 rgba: null
+hdrrle2.hdr mut 11 at 55 83 surface: null
+hdrrle2.hdr mut 12 at 96 56 rgba: 9x2 c=3 9485984817457774
+hdrrle2.hdr mut 12 at 96 56 surface: 9x2 stride=36 c0b9ed02e1d26974
+hdrrle2.hdr mut 13 at 27 e4 rgba: null
+hdrrle2.hdr mut 13 at 27 e4 surface: null
+hdrrle2.hdr mut 14 at 54 28 rgba: 9x2 c=3 4ec85e2e21738eb9
+hdrrle2.hdr mut 14 at 54 28 surface: 9x2 stride=36 a6c92c64de417725
+hdrrle2.hdr mut 15 at 22 6b rgba: null
+hdrrle2.hdr mut 15 at 22 6b surface: null
+pic.pic rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic surface: 6x3 stride=24 6404815b773bde90
+pic.pic cut 32 rgba: null
+pic.pic cut 32 surface: null
+pic.pic cut 64 rgba: null
+pic.pic cut 64 surface: null
+pic.pic cut 97 rgba: null
+pic.pic cut 97 surface: null
+pic.pic cut 129 rgba: null
+pic.pic cut 129 surface: null
+pic.pic mut 0 at 80 20 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 0 at 80 20 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 1 at 8 7b rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 1 at 8 7b surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 2 at 134 e4 rgba: 6x3 c=3 43da782143fb68a4
+pic.pic mut 2 at 134 e4 surface: 6x3 stride=24 3c7344d165442210
+pic.pic mut 3 at 132 cd rgba: 6x3 c=3 d05e0e362dac9151
+pic.pic mut 3 at 132 cd surface: 6x3 stride=24 5e8a0b41bfb9525d
+pic.pic mut 4 at 66 80 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 4 at 66 80 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 5 at 78 20 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 5 at 78 20 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 6 at 87 20 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 6 at 87 20 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 7 at 80 40 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 7 at 80 40 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 8 at 12 34 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 8 at 12 34 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 9 at 86 04 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 9 at 86 04 surface: 6x3 stride=24 6404815b773bde90
+pic.pic mut 10 at 117 22 rgba: 6x3 c=3 f8d53505cfea250c
+pic.pic mut 10 at 117 22 surface: 6x3 stride=24 3061e4fbf71c94e8
+pic.pic mut 11 at 121 06 rgba: 6x3 c=3 ef65021f00025ea2
+pic.pic mut 11 at 121 06 surface: 6x3 stride=24 f243a636640029ba
+pic.pic mut 12 at 146 0d rgba: 6x3 c=3 f35e40f8bc7caf7f
+pic.pic mut 12 at 146 0d surface: 6x3 stride=24 21e789ee1f41c413
+pic.pic mut 13 at 127 a5 rgba: 6x3 c=3 6f2b33385fbcd3b7
+pic.pic mut 13 at 127 a5 surface: 6x3 stride=24 39383f3aead91ac7
+pic.pic mut 14 at 133 d0 rgba: 6x3 c=3 66337c41e28d16f4
+pic.pic mut 14 at 133 d0 surface: 6x3 stride=24 da8ff2084aba2c60
+pic.pic mut 15 at 81 48 rgba: 6x3 c=3 38d4ab5014768c24
+pic.pic mut 15 at 81 48 surface: 6x3 stride=24 6404815b773bde90
+picbad.pic rgba: null
+picbad.pic surface: null
+picbad.pic cut 32 rgba: null
+picbad.pic cut 32 surface: null
+picbad.pic cut 64 rgba: null
+picbad.pic cut 64 surface: null
+picbad.pic cut 97 rgba: null
+picbad.pic cut 97 surface: null
+picbad.pic cut 129 rgba: null
+picbad.pic cut 129 surface: null
+picbad.pic mut 0 at 119 1f rgba: null
+picbad.pic mut 0 at 119 1f surface: null
+picbad.pic mut 1 at 101 07 rgba: null
+picbad.pic mut 1 at 101 07 surface: null
+picbad.pic mut 2 at 48 08 rgba: null
+picbad.pic mut 2 at 48 08 surface: null
+picbad.pic mut 3 at 39 04 rgba: null
+picbad.pic mut 3 at 39 04 surface: null
+picbad.pic mut 4 at 158 ea rgba: null
+picbad.pic mut 4 at 158 ea surface: null
+picbad.pic mut 5 at 30 04 rgba: null
+picbad.pic mut 5 at 30 04 surface: null
+picbad.pic mut 6 at 100 20 rgba: null
+picbad.pic mut 6 at 100 20 surface: null
+picbad.pic mut 7 at 0 43 rgba: null
+picbad.pic mut 7 at 0 43 surface: null
+picbad.pic mut 8 at 9 75 rgba: null
+picbad.pic mut 8 at 9 75 surface: null
+picbad.pic mut 9 at 160 34 rgba: null
+picbad.pic mut 9 at 160 34 surface: null
+picbad.pic mut 10 at 126 e6 rgba: null
+picbad.pic mut 10 at 126 e6 surface: null
+picbad.pic mut 11 at 40 20 rgba: null
+picbad.pic mut 11 at 40 20 surface: null
+picbad.pic mut 12 at 44 03 rgba: null
+picbad.pic mut 12 at 44 03 surface: null
+picbad.pic mut 13 at 57 e1 rgba: null
+picbad.pic mut 13 at 57 e1 surface: null
+picbad.pic mut 14 at 109 f3 rgba: null
+picbad.pic mut 14 at 109 f3 surface: null
+picbad.pic mut 15 at 12 e0 rgba: null
+picbad.pic mut 15 at 12 e0 surface: null
+picrle.pic rgba: 6x3 c=4 fb23bf4f08a2616f
+picrle.pic surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic cut 35 rgba: null
+picrle.pic cut 35 surface: null
+picrle.pic cut 70 rgba: null
+picrle.pic cut 70 surface: null
+picrle.pic cut 105 rgba: null
+picrle.pic cut 105 surface: null
+picrle.pic cut 140 rgba: null
+picrle.pic cut 140 surface: null
+picrle.pic mut 0 at 40 01 rgba: 6x3 c=4 fb23bf4f08a2616f
+picrle.pic mut 0 at 40 01 surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 1 at 120 bf rgba: 6x3 c=4 6e280d6b8d1b76cb
+picrle.pic mut 1 at 120 bf surface: 6x3 stride=24 81e1d75c85d26abc
+picrle.pic mut 2 at 109 09 rgba: null
+picrle.pic mut 2 at 109 09 surface: null
+picrle.pic mut 3 at 113 cd rgba: 6x3 c=4 397f68ead74078ff
+picrle.pic mut 3 at 113 cd surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 4 at 110 81 rgba: null
+picrle.pic mut 4 at 110 81 surface: null
+picrle.pic mut 5 at 118 1c rgba: 6x3 c=4 f01cebb95db1b395
+picrle.pic mut 5 at 118 1c surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 6 at 75 40 rgba: 6x3 c=4 fb23bf4f08a2616f
+picrle.pic mut 6 at 75 40 surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 7 at 168 22 rgba: 6x3 c=4 cfe0cf0b1c0fa387
+picrle.pic mut 7 at 168 22 surface: 6x3 stride=24 b3e2a5b7ed89e085
+picrle.pic mut 8 at 152 22 rgba: 6x3 c=4 fb23bf4f08a2616f
+picrle.pic mut 8 at 152 22 surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 9 at 128 0e rgba: 6x3 c=4 334967396b45175f
+picrle.pic mut 9 at 128 0e surface: 6x3 stride=24 14ec1551f4e9da96
+picrle.pic mut 10 at 39 20 rgba: 6x3 c=4 fb23bf4f08a2616f
+picrle.pic mut 10 at 39 20 surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 11 at 127 16 rgba: 6x3 c=4 f0577056d4a0fccf
+picrle.pic mut 11 at 127 16 surface: 6x3 stride=24 b98c08fc0b162e9a
+picrle.pic mut 12 at 120 96 rgba: 6x3 c=4 27b12932c0d823ce
+picrle.pic mut 12 at 120 96 surface: 6x3 stride=24 782a22b33d621b1c
+picrle.pic mut 13 at 96 42 rgba: 6x3 c=4 fb23bf4f08a2616f
+picrle.pic mut 13 at 96 42 surface: 6x3 stride=24 b43a81b7edd4192f
+picrle.pic mut 14 at 3 9a rgba: null
+picrle.pic mut 14 at 3 9a surface: null
+picrle.pic mut 15 at 141 ab rgba: 6x3 c=4 676b063e04eb76fc
+picrle.pic mut 15 at 141 ab surface: 6x3 stride=24 75f8486df58b99f9
+pnm5.pgm rgba: 4x3 c=1 e061738f4d263e7d
+pnm5.pgm surface: 4x3 stride=16 e061738f4d263e7d
+pnm5.pgm cut 7 rgba: null
+pnm5.pgm cut 7 surface: null
+pnm5.pgm cut 14 rgba: null
+pnm5.pgm cut 14 surface: null
+pnm5.pgm cut 21 rgba: null
+pnm5.pgm cut 21 surface: null
+pnm5.pgm cut 28 rgba: null
+pnm5.pgm cut 28 surface: null
+pnm5.pgm mut 0 at 16 24 rgba: null
+pnm5.pgm mut 0 at 16 24 surface: null
+pnm5.pgm mut 1 at 1 15 rgba: null
+pnm5.pgm mut 1 at 1 15 surface: null
+pnm5.pgm mut 2 at 12 66 rgba: 4x3 c=1 e061738f4d263e7d
+pnm5.pgm mut 2 at 12 66 surface: 4x3 stride=16 e061738f4d263e7d
+pnm5.pgm mut 3 at 7 23 rgba: 4x3 c=1 e061738f4d263e7d
+pnm5.pgm mut 3 at 7 23 surface: 4x3 stride=16 e061738f4d263e7d
+pnm5.pgm mut 4 at 30 5a rgba: 4x3 c=1 ca7eeb5664534cfd
+pnm5.pgm mut 4 at 30 5a surface: 4x3 stride=16 ca7eeb5664534cfd
+pnm5.pgm mut 5 at 11 6d rgba: 4x3 c=1 e061738f4d263e7d
+pnm5.pgm mut 5 at 11 6d surface: 4x3 stride=16 e061738f4d263e7d
+pnm5.pgm mut 6 at 13 34 rgba: 4x3 c=1 e061738f4d263e7d
+pnm5.pgm mut 6 at 13 34 surface: 4x3 stride=16 e061738f4d263e7d
+pnm5.pgm mut 7 at 27 9d rgba: 4x3 c=1 777991caee0fdbcd
+pnm5.pgm mut 7 at 27 9d surface: 4x3 stride=16 777991caee0fdbcd
+pnm5.pgm mut 8 at 21 15 rgba: 4x3 c=1 8970c02fcaf7f7b6
+pnm5.pgm mut 8 at 21 15 surface: 4x3 stride=16 8970c02fcaf7f7b6
+pnm5.pgm mut 9 at 8 4f rgba: 4x3 c=1 e061738f4d263e7d
+pnm5.pgm mut 9 at 8 4f surface: 4x3 stride=16 e061738f4d263e7d
+pnm5.pgm mut 10 at 16 22 rgba: null
+pnm5.pgm mut 10 at 16 22 surface: null
+pnm5.pgm mut 11 at 18 08 rgba: 4x3 c=1 fa73abd0ca4217b9
+pnm5.pgm mut 11 at 18 08 surface: 4x3 stride=16 fa73abd0ca4217b9
+pnm5.pgm mut 12 at 25 6c rgba: 4x3 c=1 a0edbffe2a390beb
+pnm5.pgm mut 12 at 25 6c surface: 4x3 stride=16 a0edbffe2a390beb
+pnm5.pgm mut 13 at 29 e3 rgba: 4x3 c=1 da3f33e4b30666a5
+pnm5.pgm mut 13 at 29 e3 surface: 4x3 stride=16 da3f33e4b30666a5
+pnm5.pgm mut 14 at 0 f6 rgba: null
+pnm5.pgm mut 14 at 0 f6 surface: null
+pnm5.pgm mut 15 at 15 5e rgba: null
+pnm5.pgm mut 15 at 15 5e surface: null
+pnm5x16.pgm rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm cut 6 rgba: null
+pnm5x16.pgm cut 6 surface: null
+pnm5x16.pgm cut 12 rgba: null
+pnm5x16.pgm cut 12 surface: null
+pnm5x16.pgm cut 18 rgba: null
+pnm5x16.pgm cut 18 surface: null
+pnm5x16.pgm cut 24 rgba: null
+pnm5x16.pgm cut 24 surface: null
+pnm5x16.pgm mut 0 at 21 70 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 0 at 21 70 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 1 at 3 a3 rgba: null
+pnm5x16.pgm mut 1 at 3 a3 surface: null
+pnm5x16.pgm mut 2 at 18 0e rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 2 at 18 0e surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 3 at 27 8a rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 3 at 27 8a surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 4 at 23 1c rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 4 at 23 1c surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 5 at 7 67 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 5 at 7 67 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 6 at 27 02 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 6 at 27 02 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 7 at 10 33 rgba: null
+pnm5x16.pgm mut 7 at 10 33 surface: null
+pnm5x16.pgm mut 8 at 26 1d rgba: 2x3 c=1 3c06afd8e9997d4c
+pnm5x16.pgm mut 8 at 26 1d surface: 2x3 stride=8 3c06afd8e9997d4c
+pnm5x16.pgm mut 9 at 29 1c rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 9 at 29 1c surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 10 at 14 39 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 10 at 14 39 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 11 at 15 32 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 11 at 15 32 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 12 at 25 20 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 12 at 25 20 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 13 at 8 27 rgba: 2x3 c=1 4b959873e0f740cc
+pnm5x16.pgm mut 13 at 8 27 surface: 2x3 stride=8 4b959873e0f740cc
+pnm5x16.pgm mut 14 at 10 99 rgba: null
+pnm5x16.pgm mut 14 at 10 99 surface: null
+pnm5x16.pgm mut 15 at 17 cf rgba: 2x3 c=1 9ddd1ee3e408b26a
+pnm5x16.pgm mut 15 at 17 cf surface: 2x3 stride=8 9ddd1ee3e408b26a
+pnm6.ppm rgba: 4x3 c=3 42aa15967196476d
+pnm6.ppm surface: 4x3 stride=16 f67c358490c34645
+pnm6.ppm cut 9 rgba: null
+pnm6.ppm cut 9 surface: null
+pnm6.ppm cut 19 rgba: null
+pnm6.ppm cut 19 surface: null
+pnm6.ppm cut 28 rgba: null
+pnm6.ppm cut 28 surface: null
+pnm6.ppm cut 38 rgba: null
+pnm6.ppm cut 38 surface: null
+pnm6.ppm mut 0 at 31 bc rgba: 4x3 c=3 c70ba7347ba845b5
+pnm6.ppm mut 0 at 31 bc surface: 4x3 stride=16 a9c22c3cdaea015d
+pnm6.ppm mut 1 at 21 cd rgba: 4x3 c=3 59532d23cb7ac051
+pnm6.ppm mut 1 at 21 cd surface: 4x3 stride=16 c8f5368b9d2326b1
+pnm6.ppm mut 2 at 14 1f rgba: 4x3 c=3 a90aec68478e4d84
+pnm6.ppm mut 2 at 14 1f surface: 4x3 stride=16 3cee3b49ecdaf2cc
+pnm6.ppm mut 3 at 12 74 rgba: 4x3 c=3 b4d6b826e2952775
+pnm6.ppm mut 3 at 12 74 surface: 4x3 stride=16 a0aa7e87068be95d
+pnm6.ppm mut 4 at 32 66 rgba: 4x3 c=3 4cb5684b23daafbf
+pnm6.ppm mut 4 at 32 66 surface: 4x3 stride=16 6d0738e30319f6e7
+pnm6.ppm mut 5 at 47 8a rgba: 4x3 c=3 423e1596713b288d
+pnm6.ppm mut 5 at 47 8a surface: 4x3 stride=16 22743473a755da65
+pnm6.ppm mut 6 at 8 3a rgba: 4x3 c=3 835de2a601a64fb8
+pnm6.ppm mut 6 at 8 3a surface: 4x3 stride=16 e9e4892306628ba8
+pnm6.ppm mut 7 at 17 1a rgba: 4x3 c=3 48d5f0f83ad94431
+pnm6.ppm mut 7 at 17 1a surface: 4x3 stride=16 6708aa581d5c8c09
+pnm6.ppm mut 8 at 13 51 rgba: 4x3 c=3 5d409d88c5c8f25a
+pnm6.ppm mut 8 at 13 51 surface: 4x3 stride=16 ebc31fd00949051e
+pnm6.ppm mut 9 at 46 e2 rgba: 4x3 c=3 1f2b71965d3ed659
+pnm6.ppm mut 9 at 46 e2 surface: 4x3 stride=16 13d2d9849fe079a9
+pnm6.ppm mut 10 at 46 e4 rgba: 4x3 c=3 2d5bc396646460cf
+pnm6.ppm mut 10 at 46 e4 surface: 4x3 stride=16 051a87849847559b
+pnm6.ppm mut 11 at 20 16 rgba: 4x3 c=3 58ed7cff45a35515
+pnm6.ppm mut 11 at 20 16 surface: 4x3 stride=16 c827f684018c526d
+pnm6.ppm mut 12 at 42 67 rgba: 4x3 c=3 b9a243e692b0ac12
+pnm6.ppm mut 12 at 42 67 surface: 4x3 stride=16 4621927d740b45da
+pnm6.ppm mut 13 at 11 03 rgba: 4x3 c=3 42aa15967196476d
+pnm6.ppm mut 13 at 11 03 surface: 4x3 stride=16 f67c358490c34645
+pnm6.ppm mut 14 at 25 30 rgba: 4x3 c=3 d35c1586145ff78d
+pnm6.ppm mut 14 at 25 30 surface: 4x3 stride=16 ee4f500ccb81c865
+pnm6.ppm mut 15 at 42 51 rgba: 4x3 c=3 4819e93a0d4de36c
+pnm6.ppm mut 15 at 42 51 surface: 4x3 stride=16 5a662b4ee0021e3c
+pnm6x16.ppm rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm cut 17 rgba: null
+pnm6x16.ppm cut 17 surface: null
+pnm6x16.ppm cut 34 rgba: null
+pnm6x16.ppm cut 34 surface: null
+pnm6x16.ppm cut 51 rgba: null
+pnm6x16.ppm cut 51 surface: null
+pnm6x16.ppm cut 68 rgba: null
+pnm6x16.ppm cut 68 surface: null
+pnm6x16.ppm mut 0 at 43 bc rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 0 at 43 bc surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 1 at 31 89 rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 1 at 31 89 surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 2 at 79 cb rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 2 at 79 cb surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 3 at 11 34 rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 3 at 11 34 surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 4 at 47 60 rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 4 at 47 60 surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 5 at 9 75 rgba: 4x3 c=3 0e28e22ce4228418
+pnm6x16.ppm mut 5 at 9 75 surface: 4x3 stride=16 7d9c1637a85de16c
+pnm6x16.ppm mut 6 at 30 94 rgba: 4x3 c=3 8997058b610525b9
+pnm6x16.ppm mut 6 at 30 94 surface: 4x3 stride=16 aa24c6b9514836b9
+pnm6x16.ppm mut 7 at 71 a8 rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 7 at 71 a8 surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 8 at 79 e3 rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 8 at 79 e3 surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 9 at 15 d0 rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 9 at 15 d0 surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 10 at 60 4b rgba: 4x3 c=3 e46920fe5ee6d601
+pnm6x16.ppm mut 10 at 60 4b surface: 4x3 stride=16 a302d4fa505fbfd1
+pnm6x16.ppm mut 11 at 38 de rgba: 4x3 c=3 45ea4817978ec6b9
+pnm6x16.ppm mut 11 at 38 de surface: 4x3 stride=16 86e56c4c0ef9e0b9
+pnm6x16.ppm mut 12 at 64 bd rgba: 4x3 c=3 5a853c33b9ca8d2c
+pnm6x16.ppm mut 12 at 64 bd surface: 4x3 stride=16 1bbfe5adfcd1afc4
+pnm6x16.ppm mut 13 at 6 d3 rgba: 4x3 c=3 ba8040914be290fa
+pnm6x16.ppm mut 13 at 6 d3 surface: 4x3 stride=16 5761cc89b41560b6
+pnm6x16.ppm mut 14 at 35 bb rgba: 4x3 c=3 e89bea7d59ff1b39
+pnm6x16.ppm mut 14 at 35 bb surface: 4x3 stride=16 a98a24ebe8115b39
+pnm6x16.ppm mut 15 at 68 9b rgba: 4x3 c=3 4e18227525513a23
+pnm6x16.ppm mut 15 at 68 9b surface: 4x3 stride=16 f5c4614d98241837
+pnmmaxv.pgm rgba: null
+pnmmaxv.pgm surface: null
+pnmmaxv.pgm cut 5 rgba: null
+pnmmaxv.pgm cut 5 surface: null
+pnmmaxv.pgm cut 10 rgba: null
+pnmmaxv.pgm cut 10 surface: null
+pnmmaxv.pgm cut 15 rgba: null
+pnmmaxv.pgm cut 15 surface: null
+pnmmaxv.pgm cut 20 rgba: null
+pnmmaxv.pgm cut 20 surface: null
+pnmmaxv.pgm mut 0 at 18 f4 rgba: null
+pnmmaxv.pgm mut 0 at 18 f4 surface: null
+pnmmaxv.pgm mut 1 at 15 7a rgba: null
+pnmmaxv.pgm mut 1 at 15 7a surface: null
+pnmmaxv.pgm mut 2 at 15 4a rgba: null
+pnmmaxv.pgm mut 2 at 15 4a surface: null
+pnmmaxv.pgm mut 3 at 2 0e rgba: null
+pnmmaxv.pgm mut 3 at 2 0e surface: null
+pnmmaxv.pgm mut 4 at 19 69 rgba: null
+pnmmaxv.pgm mut 4 at 19 69 surface: null
+pnmmaxv.pgm mut 5 at 24 ef rgba: null
+pnmmaxv.pgm mut 5 at 24 ef surface: null
+pnmmaxv.pgm mut 6 at 17 85 rgba: null
+pnmmaxv.pgm mut 6 at 17 85 surface: null
+pnmmaxv.pgm mut 7 at 15 58 rgba: null
+pnmmaxv.pgm mut 7 at 15 58 surface: null
+pnmmaxv.pgm mut 8 at 19 63 rgba: null
+pnmmaxv.pgm mut 8 at 19 63 surface: null
+pnmmaxv.pgm mut 9 at 21 1e rgba: null
+pnmmaxv.pgm mut 9 at 21 1e surface: null
+pnmmaxv.pgm mut 10 at 3 36 rgba: null
+pnmmaxv.pgm mut 10 at 3 36 surface: null
+pnmmaxv.pgm mut 11 at 18 bc rgba: null
+pnmmaxv.pgm mut 11 at 18 bc surface: null
+pnmmaxv.pgm mut 12 at 9 8d rgba: 4x3 c=1 ca41c057737c62dd
+pnmmaxv.pgm mut 12 at 9 8d surface: 4x3 stride=16 ca41c057737c62dd
+pnmmaxv.pgm mut 13 at 20 a9 rgba: null
+pnmmaxv.pgm mut 13 at 20 a9 surface: null
+pnmmaxv.pgm mut 14 at 6 47 rgba: 4x3 c=1 0c6a08d90038d855
+pnmmaxv.pgm mut 14 at 6 47 surface: 4x3 stride=16 0c6a08d90038d855
+pnmmaxv.pgm mut 15 at 11 25 rgba: null
+pnmmaxv.pgm mut 15 at 11 25 surface: null
+pnmzero.pgm rgba: null
+pnmzero.pgm surface: null
+pnmzero.pgm cut 4 rgba: null
+pnmzero.pgm cut 4 surface: null
+pnmzero.pgm cut 9 rgba: null
+pnmzero.pgm cut 9 surface: null
+pnmzero.pgm cut 13 rgba: null
+pnmzero.pgm cut 13 surface: null
+pnmzero.pgm cut 18 rgba: null
+pnmzero.pgm cut 18 surface: null
+pnmzero.pgm mut 0 at 9 75 rgba: null
+pnmzero.pgm mut 0 at 9 75 surface: null
+pnmzero.pgm mut 1 at 17 2b rgba: null
+pnmzero.pgm mut 1 at 17 2b surface: null
+pnmzero.pgm mut 2 at 0 52 rgba: null
+pnmzero.pgm mut 2 at 0 52 surface: null
+pnmzero.pgm mut 3 at 17 69 rgba: null
+pnmzero.pgm mut 3 at 17 69 surface: null
+pnmzero.pgm mut 4 at 5 32 rgba: null
+pnmzero.pgm mut 4 at 5 32 surface: null
+pnmzero.pgm mut 5 at 12 ab rgba: null
+pnmzero.pgm mut 5 at 12 ab surface: null
+pnmzero.pgm mut 6 at 13 da rgba: null
+pnmzero.pgm mut 6 at 13 da surface: null
+pnmzero.pgm mut 7 at 22 6b rgba: null
+pnmzero.pgm mut 7 at 22 6b surface: null
+pnmzero.pgm mut 8 at 7 3a rgba: null
+pnmzero.pgm mut 8 at 7 3a surface: null
+pnmzero.pgm mut 9 at 2 8a rgba: null
+pnmzero.pgm mut 9 at 2 8a surface: null
+pnmzero.pgm mut 10 at 5 73 rgba: null
+pnmzero.pgm mut 10 at 5 73 surface: null
+pnmzero.pgm mut 11 at 18 fa rgba: null
+pnmzero.pgm mut 11 at 18 fa surface: null
+pnmzero.pgm mut 12 at 15 d6 rgba: null
+pnmzero.pgm mut 12 at 15 d6 surface: null
+pnmzero.pgm mut 13 at 17 1f rgba: null
+pnmzero.pgm mut 13 at 17 1f surface: null
+pnmzero.pgm mut 14 at 22 23 rgba: null
+pnmzero.pgm mut 14 at 22 23 surface: null
+pnmzero.pgm mut 15 at 22 0b rgba: null
+pnmzero.pgm mut 15 at 22 0b surface: null
+psd1.psd rgba: 5x4 c=4 3627341c67aca6a9
+psd1.psd surface: 5x4 stride=20 fc1ed42cf62e20a9
+psd1.psd cut 12 rgba: null
+psd1.psd cut 12 surface: null
+psd1.psd cut 24 rgba: null
+psd1.psd cut 24 surface: null
+psd1.psd cut 36 rgba: 5x4 c=4 802e57a64e7b4a45
+psd1.psd cut 36 surface: 5x4 stride=20 802e57a64e7b4a45
+psd1.psd cut 48 rgba: 5x4 c=4 b2249d483b9ab0af
+psd1.psd cut 48 surface: 5x4 stride=20 b46bcf7cafcb6d9f
+psd1.psd mut 0 at 58 fe rgba: 5x4 c=4 7dcab195a2fa8c69
+psd1.psd mut 0 at 58 fe surface: 5x4 stride=20 7f14b232d2083a69
+psd1.psd mut 1 at 13 09 rgba: 5x4 c=4 d1d138bb332ce0dd
+psd1.psd mut 1 at 13 09 surface: 5x4 stride=20 f14b84b8290b8965
+psd1.psd mut 2 at 11 40 rgba: 5x4 c=4 3627341c67aca6a9
+psd1.psd mut 2 at 11 40 surface: 5x4 stride=20 fc1ed42cf62e20a9
+psd1.psd mut 3 at 25 0b rgba: null
+psd1.psd mut 3 at 25 0b surface: null
+psd1.psd mut 4 at 17 06 rgba: 5x6 c=4 d558b9d8f0755bb9
+psd1.psd mut 4 at 17 06 surface: 5x6 stride=20 cf632c86874715b9
+psd1.psd mut 5 at 36 01 rgba: 5x4 c=4 802e57a64e7b4a45
+psd1.psd mut 5 at 36 01 surface: 5x4 stride=20 802e57a64e7b4a45
+psd1.psd mut 6 at 55 79 rgba: 5x4 c=4 55e32889ea73a921
+psd1.psd mut 6 at 55 79 surface: 5x4 stride=20 4e6cbcec2e7ecc61
+psd1.psd mut 7 at 57 5f rgba: 5x4 c=4 7ad18239178817f9
+psd1.psd mut 7 at 57 5f surface: 5x4 stride=20 e875109dbad6be19
+psd1.psd mut 8 at 25 0b rgba: null
+psd1.psd mut 8 at 25 0b surface: null
+psd1.psd mut 9 at 2 d0 rgba: null
+psd1.psd mut 9 at 2 d0 surface: null
+psd1.psd mut 10 at 26 08 rgba: 5x4 c=4 802e57a64e7b4a45
+psd1.psd mut 10 at 26 08 surface: 5x4 stride=20 802e57a64e7b4a45
+psd1.psd mut 11 at 0 3c rgba: null
+psd1.psd mut 11 at 0 3c surface: null
+psd1.psd mut 12 at 46 59 rgba: 5x4 c=4 c69864c7d84f93f6
+psd1.psd mut 12 at 46 59 surface: 5x4 stride=20 0166ac0aeb76156e
+psd1.psd mut 13 at 1 a9 rgba: null
+psd1.psd mut 13 at 1 a9 surface: null
+psd1.psd mut 14 at 51 a1 rgba: 5x4 c=4 1033684bd4d53f4b
+psd1.psd mut 14 at 51 a1 surface: 5x4 stride=20 8cee4a48706dbc7b
+psd1.psd mut 15 at 10 6a rgba: 5x4 c=4 3627341c67aca6a9
+psd1.psd mut 15 at 10 6a surface: 5x4 stride=20 fc1ed42cf62e20a9
+psd16.psd rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd cut 40 rgba: 5x4 c=4 f14b84b8290b8965
+psd16.psd cut 40 surface: 5x4 stride=20 f14b84b8290b8965
+psd16.psd cut 80 rgba: 5x4 c=4 d1d138bb332ce0dd
+psd16.psd cut 80 surface: 5x4 stride=20 f14b84b8290b8965
+psd16.psd cut 120 rgba: 5x4 c=4 102b18d85442c50d
+psd16.psd cut 120 surface: 5x4 stride=20 f14b84b8290b8965
+psd16.psd cut 160 rgba: 5x4 c=4 5d823b47742100e5
+psd16.psd cut 160 surface: 5x4 stride=20 f14b84b8290b8965
+psd16.psd mut 0 at 99 f5 rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd mut 0 at 99 f5 surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd mut 1 at 8 04 rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd mut 1 at 8 04 surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd mut 2 at 47 cb rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd mut 2 at 47 cb surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd mut 3 at 166 17 rgba: 5x4 c=4 d893fd1fdc55179f
+psd16.psd mut 3 at 166 17 surface: 5x4 stride=20 0a4251102157622e
+psd16.psd mut 4 at 45 0c rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd mut 4 at 45 0c surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd mut 5 at 88 d0 rgba: 5x4 c=4 916e5b1ac5cf4462
+psd16.psd mut 5 at 88 d0 surface: 5x4 stride=20 5ac6cf7cd4c4bbfe
+psd16.psd mut 6 at 168 2f rgba: 5x4 c=4 b41d06dfb681028d
+psd16.psd mut 6 at 168 2f surface: 5x4 stride=20 3f673b5fcb7b0695
+psd16.psd mut 7 at 3 13 rgba: null
+psd16.psd mut 7 at 3 13 surface: null
+psd16.psd mut 8 at 193 1a rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd mut 8 at 193 1a surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd mut 9 at 128 5e rgba: 5x4 c=4 a2588ea604744782
+psd16.psd mut 9 at 128 5e surface: 5x4 stride=20 5ae820770dbacdb5
+psd16.psd mut 10 at 52 ae rgba: 5x4 c=4 75d9949fa832029b
+psd16.psd mut 10 at 52 ae surface: 5x4 stride=20 67a089062469aa99
+psd16.psd mut 11 at 122 3e rgba: 5x4 c=4 daeb7d1e41aefe9b
+psd16.psd mut 11 at 122 3e surface: 5x4 stride=20 1f9345cfd3bebfc9
+psd16.psd mut 12 at 79 40 rgba: 5x4 c=4 7bb8a53df0958ac2
+psd16.psd mut 12 at 79 40 surface: 5x4 stride=20 09bad1ca58541069
+psd16.psd mut 13 at 27 66 rgba: 5x4 c=4 f14b84b8290b8965
+psd16.psd mut 13 at 27 66 surface: 5x4 stride=20 f14b84b8290b8965
+psd16.psd mut 14 at 36 46 rgba: 5x4 c=4 f14b84b8290b8965
+psd16.psd mut 14 at 36 46 surface: 5x4 stride=20 f14b84b8290b8965
+psd16.psd mut 15 at 98 48 rgba: 5x4 c=4 cdb4ae663ac28970
+psd16.psd mut 15 at 98 48 surface: 5x4 stride=20 030974956ac92341
+psd3.psd rgba: 5x4 c=4 387d3ceef7062fa9
+psd3.psd surface: 5x4 stride=20 74d6e85d934029e1
+psd3.psd cut 20 rgba: null
+psd3.psd cut 20 surface: null
+psd3.psd cut 40 rgba: 5x4 c=4 802e57a64e7b4a45
+psd3.psd cut 40 surface: 5x4 stride=20 802e57a64e7b4a45
+psd3.psd cut 60 rgba: 5x4 c=4 3627341c67aca6a9
+psd3.psd cut 60 surface: 5x4 stride=20 fc1ed42cf62e20a9
+psd3.psd cut 80 rgba: 5x4 c=4 7f5b6b49316f5779
+psd3.psd cut 80 surface: 5x4 stride=20 79f5479e6d395a81
+psd3.psd mut 0 at 75 a8 rgba: 5x4 c=4 88386ddc1c5ae029
+psd3.psd mut 0 at 75 a8 surface: 5x4 stride=20 4d4bd056addbf061
+psd3.psd mut 1 at 62 84 rgba: 5x4 c=4 7ae7fe7de7baebe1
+psd3.psd mut 1 at 62 84 surface: 5x4 stride=20 14351412f58744f9
+psd3.psd mut 2 at 90 2a rgba: 5x4 c=4 0850a8f56bb2b029
+psd3.psd mut 2 at 90 2a surface: 5x4 stride=20 f0ba7651e1b2a561
+psd3.psd mut 3 at 29 01 rgba: null
+psd3.psd mut 3 at 29 01 surface: null
+psd3.psd mut 4 at 92 ab rgba: 5x4 c=4 5578ef2729980514
+psd3.psd mut 4 at 92 ab surface: 5x4 stride=20 e6f71e8ebe8ae834
+psd3.psd mut 5 at 52 be rgba: 5x4 c=4 b3a0d9aae7179c29
+psd3.psd mut 5 at 52 be surface: 5x4 stride=20 bdf64a6f08b57861
+psd3.psd mut 6 at 67 84 rgba: 5x4 c=4 dd13c74dbd9ebf91
+psd3.psd mut 6 at 67 84 surface: 5x4 stride=20 0538f4a90c546ac9
+psd3.psd mut 7 at 82 9e rgba: 5x4 c=4 ee3a53ac2ab7c329
+psd3.psd mut 7 at 82 9e surface: 5x4 stride=20 9d0d23bf7d125861
+psd3.psd mut 8 at 5 00 rgba: null
+psd3.psd mut 8 at 5 00 surface: null
+psd3.psd mut 9 at 78 bf rgba: 5x4 c=4 0f55cf338172b10a
+psd3.psd mut 9 at 78 bf surface: 5x4 stride=20 a653ddd1f88a9b66
+psd3.psd mut 10 at 78 b6 rgba: 5x4 c=4 12309531e279a381
+psd3.psd mut 10 at 78 b6 surface: 5x4 stride=20 48912ad5b94ec0e9
+psd3.psd mut 11 at 63 fe rgba: 5x4 c=4 b67094946190ac69
+psd3.psd mut 11 at 63 fe surface: 5x4 stride=20 19d639b90ce2f8a1
+psd3.psd mut 12 at 66 49 rgba: 5x4 c=4 24818e92f4d247a8
+psd3.psd mut 12 at 66 49 surface: 5x4 stride=20 7b987a758bd61e34
+psd3.psd mut 13 at 76 6c rgba: 5x4 c=4 b3e6cb278940a8df
+psd3.psd mut 13 at 76 6c surface: 5x4 stride=20 516674dd98cc2def
+psd3.psd mut 14 at 35 8a rgba: 5x4 c=4 802e57a64e7b4a45
+psd3.psd mut 14 at 35 8a surface: 5x4 stride=20 802e57a64e7b4a45
+psd3.psd mut 15 at 25 ef rgba: null
+psd3.psd mut 15 at 25 ef surface: null
+psd4.psd rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd4.psd surface: 5x4 stride=20 47444b86e661fa8c
+psd4.psd cut 26 rgba: 5x4 c=4 f14b84b8290b8965
+psd4.psd cut 26 surface: 5x4 stride=20 f14b84b8290b8965
+psd4.psd cut 53 rgba: 5x4 c=4 f14b84b8290b8965
+psd4.psd cut 53 surface: 5x4 stride=20 f14b84b8290b8965
+psd4.psd cut 80 rgba: 5x4 c=4 1da00886ce104e69
+psd4.psd cut 80 surface: 5x4 stride=20 f14b84b8290b8965
+psd4.psd cut 107 rgba: 5x4 c=4 591e4961f76f0db5
+psd4.psd cut 107 surface: 5x4 stride=20 f14b84b8290b8965
+psd4.psd mut 0 at 43 08 rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd4.psd mut 0 at 43 08 surface: 5x4 stride=20 47444b86e661fa8c
+psd4.psd mut 1 at 66 3f rgba: 5x4 c=4 c7699994e1ba454c
+psd4.psd mut 1 at 66 3f surface: 5x4 stride=20 001b0c9f7adfad43
+psd4.psd mut 2 at 6 80 rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd4.psd mut 2 at 6 80 surface: 5x4 stride=20 47444b86e661fa8c
+psd4.psd mut 3 at 112 d0 rgba: 5x4 c=4 a068b7e5131450ee
+psd4.psd mut 3 at 112 d0 surface: 5x4 stride=20 3f7faaffd946ad6c
+psd4.psd mut 4 at 89 2c rgba: 5x4 c=4 075c46e4b220fe9a
+psd4.psd mut 4 at 89 2c surface: 5x4 stride=20 47444b86e661fa8c
+psd4.psd mut 5 at 55 af rgba: 5x4 c=4 35345a4694db6c2c
+psd4.psd mut 5 at 55 af surface: 5x4 stride=20 e0157acdd6e36ea6
+psd4.psd mut 6 at 99 6c rgba: 5x4 c=4 d6acc1c052700ae6
+psd4.psd mut 6 at 99 6c surface: 5x4 stride=20 47444b86e661fa8c
+psd4.psd mut 7 at 115 fb rgba: 5x4 c=4 7acaafdd5fda49f3
+psd4.psd mut 7 at 115 fb surface: 5x4 stride=20 eccd3aae7d8923fb
+psd4.psd mut 8 at 51 08 rgba: null
+psd4.psd mut 8 at 51 08 surface: null
+psd4.psd mut 9 at 81 84 rgba: 5x4 c=4 1b90a5f5b79f32be
+psd4.psd mut 9 at 81 84 surface: 5x4 stride=20 b626e34b364cc304
+psd4.psd mut 10 at 97 16 rgba: 5x4 c=4 ff148cc2b2fbdcce
+psd4.psd mut 10 at 97 16 surface: 5x4 stride=20 cd89e529a0c4df24
+psd4.psd mut 11 at 52 01 rgba: null
+psd4.psd mut 11 at 52 01 surface: null
+psd4.psd mut 12 at 0 68 rgba: null
+psd4.psd mut 12 at 0 68 surface: null
+psd4.psd mut 13 at 88 a0 rgba: 5x4 c=4 287a139b0a492f3e
+psd4.psd mut 13 at 88 a0 surface: 5x4 stride=20 47444b86e661fa8c
+psd4.psd mut 14 at 115 0e rgba: 5x4 c=4 c9a1c038bc0d7839
+psd4.psd mut 14 at 115 0e surface: 5x4 stride=20 0a09b7b9392407f8
+psd4.psd mut 15 at 103 d1 rgba: 5x4 c=4 fe21c0deec130a91
+psd4.psd mut 15 at 103 d1 surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd5.psd surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd cut 28 rgba: 5x4 c=4 f14b84b8290b8965
+psd5.psd cut 28 surface: 5x4 stride=20 f14b84b8290b8965
+psd5.psd cut 56 rgba: 5x4 c=4 b43314a370464d41
+psd5.psd cut 56 surface: 5x4 stride=20 f14b84b8290b8965
+psd5.psd cut 84 rgba: 5x4 c=4 722328eb0ce619cd
+psd5.psd cut 84 surface: 5x4 stride=20 f14b84b8290b8965
+psd5.psd cut 112 rgba: 5x4 c=4 81480b490dfc90d5
+psd5.psd cut 112 surface: 5x4 stride=20 65e1d6a1ab73f610
+psd5.psd mut 0 at 74 b0 rgba: 5x4 c=4 213b51f8f03b612e
+psd5.psd mut 0 at 74 b0 surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 1 at 126 66 rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd5.psd mut 1 at 126 66 surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 2 at 54 1e rgba: 5x4 c=4 10d7158ae8486c50
+psd5.psd mut 2 at 54 1e surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 3 at 8 02 rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd5.psd mut 3 at 8 02 surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 4 at 29 10 rgba: 5x4 c=4 f14b84b8290b8965
+psd5.psd mut 4 at 29 10 surface: 5x4 stride=20 f14b84b8290b8965
+psd5.psd mut 5 at 54 3c rgba: 5x4 c=4 453652016ce9ba0e
+psd5.psd mut 5 at 54 3c surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 6 at 119 41 rgba: 5x4 c=4 dbeb5895dbe24650
+psd5.psd mut 6 at 119 41 surface: 5x4 stride=20 39c7f80f0ddb0ea8
+psd5.psd mut 7 at 27 01 rgba: 5x4 c=4 f14b84b8290b8965
+psd5.psd mut 7 at 27 01 surface: 5x4 stride=20 f14b84b8290b8965
+psd5.psd mut 8 at 97 f8 rgba: 5x4 c=4 64871a3b6de0b05e
+psd5.psd mut 8 at 97 f8 surface: 5x4 stride=20 94f60a75db6d20d4
+psd5.psd mut 9 at 99 f4 rgba: 5x4 c=4 4ff03ec44ff95212
+psd5.psd mut 9 at 99 f4 surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 10 at 121 3e rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd5.psd mut 10 at 121 3e surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 11 at 74 e0 rgba: 5x4 c=4 2bdd17f76658537e
+psd5.psd mut 11 at 74 e0 surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 12 at 134 fb rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd5.psd mut 12 at 134 fb surface: 5x4 stride=20 47444b86e661fa8c
+psd5.psd mut 13 at 110 04 rgba: 5x4 c=4 267e5be25943e67d
+psd5.psd mut 13 at 110 04 surface: 5x4 stride=20 4d8ec22e093fb5b5
+psd5.psd mut 14 at 62 54 rgba: 5x4 c=4 2abc334cf7ee6704
+psd5.psd mut 14 at 62 54 surface: 5x4 stride=20 de476c2188e94bbb
+psd5.psd mut 15 at 124 e5 rgba: 5x4 c=4 4fe2a6c44fedc56e
+psd5.psd mut 15 at 124 e5 surface: 5x4 stride=20 47444b86e661fa8c
+psdgrey.psd rgba: null
+psdgrey.psd surface: null
+psdgrey.psd cut 12 rgba: null
+psdgrey.psd cut 12 surface: null
+psdgrey.psd cut 24 rgba: null
+psdgrey.psd cut 24 surface: null
+psdgrey.psd cut 36 rgba: null
+psdgrey.psd cut 36 surface: null
+psdgrey.psd cut 48 rgba: null
+psdgrey.psd cut 48 surface: null
+psdgrey.psd mut 0 at 0 3c rgba: null
+psdgrey.psd mut 0 at 0 3c surface: null
+psdgrey.psd mut 1 at 25 03 rgba: 5x4 c=4 3627341c67aca6a9
+psdgrey.psd mut 1 at 25 03 surface: 5x4 stride=20 fc1ed42cf62e20a9
+psdgrey.psd mut 2 at 48 8c rgba: null
+psdgrey.psd mut 2 at 48 8c surface: null
+psdgrey.psd mut 3 at 26 80 rgba: null
+psdgrey.psd mut 3 at 26 80 surface: null
+psdgrey.psd mut 4 at 44 da rgba: null
+psdgrey.psd mut 4 at 44 da surface: null
+psdgrey.psd mut 5 at 20 01 rgba: null
+psdgrey.psd mut 5 at 20 01 surface: null
+psdgrey.psd mut 6 at 33 80 rgba: null
+psdgrey.psd mut 6 at 33 80 surface: null
+psdgrey.psd mut 7 at 8 08 rgba: null
+psdgrey.psd mut 7 at 8 08 surface: null
+psdgrey.psd mut 8 at 40 3f rgba: null
+psdgrey.psd mut 8 at 40 3f surface: null
+psdgrey.psd mut 9 at 56 e1 rgba: null
+psdgrey.psd mut 9 at 56 e1 surface: null
+psdgrey.psd mut 10 at 56 f0 rgba: null
+psdgrey.psd mut 10 at 56 f0 surface: null
+psdgrey.psd mut 11 at 34 10 rgba: null
+psdgrey.psd mut 11 at 34 10 surface: null
+psdgrey.psd mut 12 at 51 6a rgba: null
+psdgrey.psd mut 12 at 51 6a surface: null
+psdgrey.psd mut 13 at 50 87 rgba: null
+psdgrey.psd mut 13 at 50 87 surface: null
+psdgrey.psd mut 14 at 38 f9 rgba: null
+psdgrey.psd mut 14 at 38 f9 surface: null
+psdgrey.psd mut 15 at 11 91 rgba: null
+psdgrey.psd mut 15 at 11 91 surface: null
+psdrle.psd rgba: 5x4 c=4 dee4a65462d39779
+psdrle.psd surface: 5x4 stride=20 69fa0977b0cdcd4d
+psdrle.psd cut 31 rgba: 5x4 c=4 f14b84b8290b8965
+psdrle.psd cut 31 surface: 5x4 stride=20 f14b84b8290b8965
+psdrle.psd cut 63 rgba: 5x4 c=4 f14b84b8290b8965
+psdrle.psd cut 63 surface: 5x4 stride=20 f14b84b8290b8965
+psdrle.psd cut 94 rgba: 5x4 c=4 2c1c7ccd6ba48b37
+psdrle.psd cut 94 surface: 5x4 stride=20 f14b84b8290b8965
+psdrle.psd cut 126 rgba: 5x4 c=4 5dcc54efd104b5fd
+psdrle.psd cut 126 surface: 5x4 stride=20 f14b84b8290b8965
+psdrle.psd mut 0 at 64 10 rgba: 5x4 c=4 dee4a65462d39779
+psdrle.psd mut 0 at 64 10 surface: 5x4 stride=20 69fa0977b0cdcd4d
+psdrle.psd mut 1 at 25 13 rgba: null
+psdrle.psd mut 1 at 25 13 surface: null
+psdrle.psd mut 2 at 136 ef rgba: 5x4 c=4 753f7fa17285f349
+psdrle.psd mut 2 at 136 ef surface: 5x4 stride=20 3704dccabc2d7c4c
+psdrle.psd mut 3 at 107 fe rgba: 5x4 c=4 6d9fad4f4a51876b
+psdrle.psd mut 3 at 107 fe surface: 5x4 stride=20 bf19c4044bdea8fe
+psdrle.psd mut 4 at 108 f4 rgba: 5x4 c=4 f3ff2cdd1f06b095
+psdrle.psd mut 4 at 108 f4 surface: 5x4 stride=20 69fa0977b0cdcd4d
+psdrle.psd mut 5 at 26 80 rgba: 5x4 c=4 f14b84b8290b8965
+psdrle.psd mut 5 at 26 80 surface: 5x4 stride=20 f14b84b8290b8965
+psdrle.psd mut 6 at 8 20 rgba: 5x4 c=4 dee4a65462d39779
+psdrle.psd mut 6 at 8 20 surface: 5x4 stride=20 69fa0977b0cdcd4d
+psdrle.psd mut 7 at 147 40 rgba: 5x4 c=4 f251024930ab7608
+psdrle.psd mut 7 at 147 40 surface: 5x4 stride=20 249bbcd3e94f2576
+psdrle.psd mut 8 at 107 bf rgba: 5x4 c=4 3f6f9b735cfbf5e6
+psdrle.psd mut 8 at 107 bf surface: 5x4 stride=20 9164f086070e6ff8
+psdrle.psd mut 9 at 79 ef rgba: null
+psdrle.psd mut 9 at 79 ef surface: null
+psdrle.psd mut 10 at 116 10 rgba: 5x4 c=4 66b55367afdc0019
+psdrle.psd mut 10 at 116 10 surface: 5x4 stride=20 b3209c8ba1140bed
+psdrle.psd mut 11 at 98 20 rgba: 5x4 c=4 cdd52438276abb61
+psdrle.psd mut 11 at 98 20 surface: 5x4 stride=20 69fa0977b0cdcd4d
+psdrle.psd mut 12 at 135 53 rgba: 5x4 c=4 d927922c51bb8191
+psdrle.psd mut 12 at 135 53 surface: 5x4 stride=20 00fd2c97c4b47c4a
+psdrle.psd mut 13 at 3 56 rgba: null
+psdrle.psd mut 13 at 3 56 surface: null
+psdrle.psd mut 14 at 156 71 rgba: 5x4 c=4 3926fdf13416e829
+psdrle.psd mut 14 at 156 71 surface: 5x4 stride=20 ef2c9ad1b6e83a12
+psdrle.psd mut 15 at 116 fe rgba: 5x4 c=4 650d42ffe777c6af
+psdrle.psd mut 15 at 116 fe surface: 5x4 stride=20 3d6fad3beea6533c
+tga16.tga rgba: 6x4 c=3 3621907dc94d101e
+tga16.tga surface: 6x4 stride=24 a0e716dbe3e4c05e
+tga16.tga cut 13 rgba: null
+tga16.tga cut 13 surface: null
+tga16.tga cut 26 rgba: 6x4 c=3 31d7e9699302c96a
+tga16.tga cut 26 surface: 6x4 stride=24 77b8d09842db4726
+tga16.tga cut 39 rgba: 6x4 c=3 710e3ebe3561da3f
+tga16.tga cut 39 surface: 6x4 stride=24 127e8d0e9bde5e2f
+tga16.tga cut 52 rgba: 6x4 c=3 443fbaac8870da4c
+tga16.tga cut 52 surface: 6x4 stride=24 03fdc1f69783ecdc
+tga16.tga mut 0 at 57 b1 rgba: 6x4 c=3 ed03a24176ee7a49
+tga16.tga mut 0 at 57 b1 surface: 6x4 stride=24 843daf6519217531
+tga16.tga mut 1 at 54 5c rgba: 6x4 c=3 500553e4211f80ee
+tga16.tga mut 1 at 54 5c surface: 6x4 stride=24 c141d24cad1f0a2e
+tga16.tga mut 2 at 12 26 rgba: 38x4 c=3 0844c6b6a749e5de
+tga16.tga mut 2 at 12 26 surface: 38x4 stride=152 4a247ff5d267b696
+tga16.tga mut 3 at 22 e1 rgba: 6x4 c=3 60ffd5eb2a25bfae
+tga16.tga mut 3 at 22 e1 surface: 6x4 stride=24 dd1f8fc56fd2740e
+tga16.tga mut 4 at 42 75 rgba: 6x4 c=3 d07314ae236cf336
+tga16.tga mut 4 at 42 75 surface: 6x4 stride=24 86749197f0d70386
+tga16.tga mut 5 at 49 a6 rgba: 6x4 c=3 1ce22eb15a790ba0
+tga16.tga mut 5 at 49 a6 surface: 6x4 stride=24 01ff0d05af754a90
+tga16.tga mut 6 at 37 f6 rgba: 6x4 c=3 4ed36ed5a75932bb
+tga16.tga mut 6 at 37 f6 surface: 6x4 stride=24 1d54f1c06be90a33
+tga16.tga mut 7 at 15 80 rgba: 6x32772 c=3 e7425315ecc5101e
+tga16.tga mut 7 at 15 80 surface: 6x32772 stride=24 5207d974075cc05e
+tga16.tga mut 8 at 54 5c rgba: 6x4 c=3 500553e4211f80ee
+tga16.tga mut 8 at 54 5c surface: 6x4 stride=24 c141d24cad1f0a2e
+tga16.tga mut 9 at 38 7c rgba: 6x4 c=3 1e42574963578dc2
+tga16.tga mut 9 at 38 7c surface: 6x4 stride=24 647797fcf98c6c62
+tga16.tga mut 10 at 2 82 rgba: null
+tga16.tga mut 10 at 2 82 surface: null
+tga16.tga mut 11 at 62 76 rgba: 6x4 c=3 435d3397f388b394
+tga16.tga mut 11 at 62 76 surface: 6x4 stride=24 857a3949455bbcb4
+tga16.tga mut 12 at 59 33 rgba: 6x4 c=3 8b23993f80b08fe8
+tga16.tga mut 12 at 59 33 surface: 6x4 stride=24 cfb85c0b659b116c
+tga16.tga mut 13 at 0 b1 rgba: 6x4 c=3 66a367a70686dee5
+tga16.tga mut 13 at 0 b1 surface: 6x4 stride=24 66a367a70686dee5
+tga16.tga mut 14 at 14 3b rgba: 6x59 c=3 e483d35d2f7ce62e
+tga16.tga mut 14 at 14 3b surface: 6x59 stride=24 ac28dfbc3a56c8ae
+tga16.tga mut 15 at 2 07 rgba: null
+tga16.tga mut 15 at 2 07 surface: null
+tga24.tga rgba: 6x4 c=3 08c4974e3bf17859
+tga24.tga surface: 6x4 stride=24 c5aa6337e0b9c6e9
+tga24.tga cut 18 rgba: undefined
+tga24.tga cut 18 surface: undefined
+tga24.tga cut 37 rgba: undefined
+tga24.tga cut 37 surface: undefined
+tga24.tga cut 55 rgba: undefined
+tga24.tga cut 55 surface: undefined
+tga24.tga cut 74 rgba: undefined
+tga24.tga cut 74 surface: undefined
+tga24.tga mut 0 at 32 fc rgba: 6x4 c=3 0ed3454dd73574e9
+tga24.tga mut 0 at 32 fc surface: 6x4 stride=24 f4a99f073b53f199
+tga24.tga mut 1 at 61 56 rgba: 6x4 c=3 e1d3a735fa2a8ae9
+tga24.tga mut 1 at 61 56 surface: 6x4 stride=24 924d1d0d2170c179
+tga24.tga mut 2 at 17 02 rgba: 6x4 c=3 08c4974e3bf17859
+tga24.tga mut 2 at 17 02 surface: 6x4 stride=24 c5aa6337e0b9c6e9
+tga24.tga mut 3 at 59 c0 rgba: 6x4 c=3 76f44350420e241c
+tga24.tga mut 3 at 59 c0 surface: 6x4 stride=24 a410e8cb4238c09c
+tga24.tga mut 4 at 87 f8 rgba: 6x4 c=3 ee2172ea4b300fc1
+tga24.tga mut 4 at 87 f8 surface: 6x4 stride=24 e787058efdd96c71
+tga24.tga mut 5 at 50 fc rgba: 6x4 c=3 5c0fa586506af034
+tga24.tga mut 5 at 50 fc surface: 6x4 stride=24 6fce366b1d482970
+tga24.tga mut 6 at 46 68 rgba: 6x4 c=3 1259370ed6eaede9
+tga24.tga mut 6 at 46 68 surface: 6x4 stride=24 13c22079fd4165f9
+tga24.tga mut 7 at 59 c0 rgba: 6x4 c=3 76f44350420e241c
+tga24.tga mut 7 at 59 c0 surface: 6x4 stride=24 a410e8cb4238c09c
+tga24.tga mut 8 at 60 ba rgba: 6x4 c=3 cec6347213f33629
+tga24.tga mut 8 at 60 ba surface: 6x4 stride=24 28d6cc2cf57e1399
+tga24.tga mut 9 at 26 0a rgba: 6x4 c=3 16a3d140d42e0225
+tga24.tga mut 9 at 26 0a surface: 6x4 stride=24 88e887539024e63d
+tga24.tga mut 10 at 1 40 rgba: null
+tga24.tga mut 10 at 1 40 surface: null
+tga24.tga mut 11 at 54 6c rgba: 6x4 c=3 5d39584d0a4d4861
+tga24.tga mut 11 at 54 6c surface: 6x4 stride=24 9a6cbc4b7188b351
+tga24.tga mut 12 at 19 92 rgba: 6x4 c=3 08c4974e3bf17859
+tga24.tga mut 12 at 19 92 surface: 6x4 stride=24 c5aa6337e0b9c6e9
+tga24.tga mut 13 at 31 35 rgba: 6x4 c=3 d88e82e0e8e99fb8
+tga24.tga mut 13 at 31 35 surface: 6x4 stride=24 e3e8fc6475b32c2c
+tga24.tga mut 14 at 12 9b rgba: undefined
+tga24.tga mut 14 at 12 9b surface: undefined
+tga24.tga mut 15 at 53 8d rgba: 6x4 c=3 40faa16c6bad46d8
+tga24.tga mut 15 at 53 8d surface: 6x4 stride=24 dcee7aa711efae48
+tga32td.tga rgba: 6x4 c=4 54462e1a81689401
+tga32td.tga surface: 6x4 stride=24 aa80e05d2a84d94f
+tga32td.tga cut 22 rgba: undefined
+tga32td.tga cut 22 surface: undefined
+tga32td.tga cut 45 rgba: undefined
+tga32td.tga cut 45 surface: undefined
+tga32td.tga cut 68 rgba: undefined
+tga32td.tga cut 68 surface: undefined
+tga32td.tga cut 91 rgba: undefined
+tga32td.tga cut 91 surface: undefined
+tga32td.tga mut 0 at 82 2a rgba: 6x4 c=4 8b23e17ba31eb381
+tga32td.tga mut 0 at 82 2a surface: 6x4 stride=24 48c09e18b16d3f03
+tga32td.tga mut 1 at 77 b7 rgba: 6x4 c=4 e8605a42d0204a81
+tga32td.tga mut 1 at 77 b7 surface: 6x4 stride=24 ada9a4d785d088d0
+tga32td.tga mut 2 at 81 07 rgba: 6x4 c=4 3d0fa6c93fd357a9
+tga32td.tga mut 2 at 81 07 surface: 6x4 stride=24 142f6ee428fd5f47
+tga32td.tga mut 3 at 86 8a rgba: 6x4 c=4 7256b6da49720921
+tga32td.tga mut 3 at 86 8a surface: 6x4 stride=24 54d0b542380f0947
+tga32td.tga mut 4 at 72 20 rgba: 6x4 c=4 115369fb6f4dcbd1
+tga32td.tga mut 4 at 72 20 surface: 6x4 stride=24 0984df6557828f45
+tga32td.tga mut 5 at 70 ea rgba: 6x4 c=4 5693bb4d2fb3e241
+tga32td.tga mut 5 at 70 ea surface: 6x4 stride=24 52af5c0c7baff6d7
+tga32td.tga mut 6 at 5 40 rgba: 6x4 c=4 54462e1a81689401
+tga32td.tga mut 6 at 5 40 surface: 6x4 stride=24 aa80e05d2a84d94f
+tga32td.tga mut 7 at 6 80 rgba: 6x4 c=4 54462e1a81689401
+tga32td.tga mut 7 at 6 80 surface: 6x4 stride=24 aa80e05d2a84d94f
+tga32td.tga mut 8 at 38 5e rgba: 6x4 c=4 b73a9d05353c6cc1
+tga32td.tga mut 8 at 38 5e surface: 6x4 stride=24 f94c27fd52dc23d3
+tga32td.tga mut 9 at 95 47 rgba: 6x4 c=4 4697be8e2f6a1e76
+tga32td.tga mut 9 at 95 47 surface: 6x4 stride=24 aa80e05d2a84d94f
+tga32td.tga mut 10 at 113 87 rgba: 6x4 c=4 54461e1a816878d1
+tga32td.tga mut 10 at 113 87 surface: 6x4 stride=24 25f572b9f20c2aaf
+tga32td.tga mut 11 at 8 20 rgba: 6x4 c=4 54462e1a81689401
+tga32td.tga mut 11 at 8 20 surface: 6x4 stride=24 aa80e05d2a84d94f
+tga32td.tga mut 12 at 75 a6 rgba: 6x4 c=4 9714f70ed78d00cf
+tga32td.tga mut 12 at 75 a6 surface: 6x4 stride=24 f7a1fce813951a71
+tga32td.tga mut 13 at 111 b5 rgba: 6x4 c=4 0706b11d2a4c5448
+tga32td.tga mut 13 at 111 b5 surface: 6x4 stride=24 767ff95b5ae0e2ca
+tga32td.tga mut 14 at 12 d8 rgba: undefined
+tga32td.tga mut 14 at 12 d8 surface: undefined
+tga32td.tga mut 15 at 58 63 rgba: 6x4 c=4 6c3f47fc99066712
+tga32td.tga mut 15 at 58 63 surface: 6x4 stride=24 aa80e05d2a84d94f
+tgagrey.tga rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga cut 8 rgba: null
+tgagrey.tga cut 8 surface: null
+tgagrey.tga cut 16 rgba: null
+tgagrey.tga cut 16 surface: null
+tgagrey.tga cut 25 rgba: undefined
+tgagrey.tga cut 25 surface: undefined
+tgagrey.tga cut 33 rgba: undefined
+tgagrey.tga cut 33 surface: undefined
+tgagrey.tga mut 0 at 3 04 rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 0 at 3 04 surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 1 at 7 01 rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 1 at 7 01 surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 2 at 33 5e rgba: 6x4 c=1 813c077df2311aed
+tgagrey.tga mut 2 at 33 5e surface: 6x4 stride=24 813c077df2311aed
+tgagrey.tga mut 3 at 5 80 rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 3 at 5 80 surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 4 at 0 01 rgba: undefined
+tgagrey.tga mut 4 at 0 01 surface: undefined
+tgagrey.tga mut 5 at 24 42 rgba: 6x4 c=1 90bf39e1b15635af
+tgagrey.tga mut 5 at 24 42 surface: 6x4 stride=24 90bf39e1b15635af
+tgagrey.tga mut 6 at 8 10 rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 6 at 8 10 surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 7 at 31 bb rgba: 6x4 c=1 dabee5be1aa04b8f
+tgagrey.tga mut 7 at 31 bb surface: 6x4 stride=24 dabee5be1aa04b8f
+tgagrey.tga mut 8 at 23 ec rgba: 6x4 c=1 177f11478766b98f
+tgagrey.tga mut 8 at 23 ec surface: 6x4 stride=24 177f11478766b98f
+tgagrey.tga mut 9 at 17 02 rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 9 at 17 02 surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 10 at 33 1c rgba: 6x4 c=1 0ce75128599537cf
+tgagrey.tga mut 10 at 33 1c surface: 6x4 stride=24 0ce75128599537cf
+tgagrey.tga mut 11 at 1 10 rgba: null
+tgagrey.tga mut 11 at 1 10 surface: null
+tgagrey.tga mut 12 at 33 80 rgba: 6x4 c=1 fa0be390469d9c8b
+tgagrey.tga mut 12 at 33 80 surface: 6x4 stride=24 fa0be390469d9c8b
+tgagrey.tga mut 13 at 11 84 rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 13 at 11 84 surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 14 at 10 ee rgba: 6x4 c=1 67de957514d1100f
+tgagrey.tga mut 14 at 10 ee surface: 6x4 stride=24 67de957514d1100f
+tgagrey.tga mut 15 at 37 a6 rgba: 6x4 c=1 6ed13c24344d585c
+tgagrey.tga mut 15 at 37 a6 surface: 6x4 stride=24 6ed13c24344d585c
+tgagreya.tga rgba: 6x4 c=2 a50cfc54157ee0af
+tgagreya.tga surface: 6x4 stride=24 492b4a6cad47c860
+tgagreya.tga cut 13 rgba: null
+tgagreya.tga cut 13 surface: null
+tgagreya.tga cut 26 rgba: undefined
+tgagreya.tga cut 26 surface: undefined
+tgagreya.tga cut 39 rgba: undefined
+tgagreya.tga cut 39 surface: undefined
+tgagreya.tga cut 52 rgba: undefined
+tgagreya.tga cut 52 surface: undefined
+tgagreya.tga mut 0 at 14 0c rgba: undefined
+tgagreya.tga mut 0 at 14 0c surface: undefined
+tgagreya.tga mut 1 at 58 d4 rgba: 6x4 c=2 ef186be1bc4b45ef
+tgagreya.tga mut 1 at 58 d4 surface: 6x4 stride=24 3992b97a18fd3e54
+tgagreya.tga mut 2 at 31 ad rgba: 6x4 c=2 96dbaf3d82a4d285
+tgagreya.tga mut 2 at 31 ad surface: 6x4 stride=24 bbc42bfd58885695
+tgagreya.tga mut 3 at 11 80 rgba: 6x4 c=2 a50cfc54157ee0af
+tgagreya.tga mut 3 at 11 80 surface: 6x4 stride=24 492b4a6cad47c860
+tgagreya.tga mut 4 at 34 93 rgba: 6x4 c=2 4c1667040cd9749f
+tgagreya.tga mut 4 at 34 93 surface: 6x4 stride=24 5514b99a86e4cf1a
+tgagreya.tga mut 5 at 62 a5 rgba: 6x4 c=2 9ab2a316aed9287f
+tgagreya.tga mut 5 at 62 a5 surface: 6x4 stride=24 47dfc5596b1b87fc
+tgagreya.tga mut 6 at 58 9c rgba: 6x4 c=2 a1a04a681d6bb8f7
+tgagreya.tga mut 6 at 58 9c surface: 6x4 stride=24 759ea54a0fab0ba7
+tgagreya.tga mut 7 at 7 08 rgba: 6x4 c=2 a50cfc54157ee0af
+tgagreya.tga mut 7 at 7 08 surface: 6x4 stride=24 492b4a6cad47c860
+tgagreya.tga mut 8 at 3 08 rgba: 6x4 c=2 a50cfc54157ee0af
+tgagreya.tga mut 8 at 3 08 surface: 6x4 stride=24 492b4a6cad47c860
+tgagreya.tga mut 9 at 29 8f rgba: 6x4 c=2 103f1d30e8103a2f
+tgagreya.tga mut 9 at 29 8f surface: 6x4 stride=24 afda6a67e06f8c5e
+tgagreya.tga mut 10 at 41 ef rgba: 6x4 c=2 c76c55c2052059a7
+tgagreya.tga mut 10 at 41 ef surface: 6x4 stride=24 736afe5f5f77616b
+tgagreya.tga mut 11 at 54 33 rgba: 6x4 c=2 8ff201e6a7063c6f
+tgagreya.tga mut 11 at 54 33 surface: 6x4 stride=24 ffad1b5bd97cad9f
+tgagreya.tga mut 12 at 62 b4 rgba: 6x4 c=2 ff1e8db5c304f260
+tgagreya.tga mut 12 at 62 b4 surface: 6x4 stride=24 242f4c4b442ce98f
+tgagreya.tga mut 13 at 31 49 rgba: 6x4 c=2 8d8931f6d82b3ae1
+tgagreya.tga mut 13 at 31 49 surface: 6x4 stride=24 68f4f3e50d8e4d0f
+tgagreya.tga mut 14 at 14 cc rgba: undefined
+tgagreya.tga mut 14 at 14 cc surface: undefined
+tgagreya.tga mut 15 at 57 a5 rgba: 6x4 c=2 4603e06669e1b595
+tgagreya.tga mut 15 at 57 a5 surface: 6x4 stride=24 e6d98a9f792986c9
+tganopal.tga rgba: null
+tganopal.tga surface: null
+tganopal.tga cut 8 rgba: null
+tganopal.tga cut 8 surface: null
+tganopal.tga cut 16 rgba: null
+tganopal.tga cut 16 surface: null
+tganopal.tga cut 25 rgba: null
+tganopal.tga cut 25 surface: null
+tganopal.tga cut 33 rgba: null
+tganopal.tga cut 33 surface: null
+tganopal.tga mut 0 at 22 05 rgba: null
+tganopal.tga mut 0 at 22 05 surface: null
+tganopal.tga mut 1 at 2 41 rgba: null
+tganopal.tga mut 1 at 2 41 surface: null
+tganopal.tga mut 2 at 33 41 rgba: null
+tganopal.tga mut 2 at 33 41 surface: null
+tganopal.tga mut 3 at 27 07 rgba: null
+tganopal.tga mut 3 at 27 07 surface: null
+tganopal.tga mut 4 at 3 40 rgba: null
+tganopal.tga mut 4 at 3 40 surface: null
+tganopal.tga mut 5 at 18 02 rgba: null
+tganopal.tga mut 5 at 18 02 surface: null
+tganopal.tga mut 6 at 36 02 rgba: null
+tganopal.tga mut 6 at 36 02 surface: null
+tganopal.tga mut 7 at 20 22 rgba: null
+tganopal.tga mut 7 at 20 22 surface: null
+tganopal.tga mut 8 at 35 13 rgba: null
+tganopal.tga mut 8 at 35 13 surface: null
+tganopal.tga mut 9 at 25 43 rgba: null
+tganopal.tga mut 9 at 25 43 surface: null
+tganopal.tga mut 10 at 16 0a rgba: null
+tganopal.tga mut 10 at 16 0a surface: null
+tganopal.tga mut 11 at 7 38 rgba: null
+tganopal.tga mut 11 at 7 38 surface: null
+tganopal.tga mut 12 at 0 84 rgba: null
+tganopal.tga mut 12 at 0 84 surface: null
+tganopal.tga mut 13 at 15 53 rgba: null
+tganopal.tga mut 13 at 15 53 surface: null
+tganopal.tga mut 14 at 41 0a rgba: null
+tganopal.tga mut 14 at 41 0a surface: null
+tganopal.tga mut 15 at 9 3e rgba: null
+tganopal.tga mut 15 at 9 3e surface: null
+tgapal.tga rgba: 6x4 c=3 2e2786aef3fb90c1
+tgapal.tga surface: 6x4 stride=24 ac34c6d9141c4a31
+tgapal.tga cut 10 rgba: null
+tgapal.tga cut 10 surface: null
+tgapal.tga cut 21 rgba: null
+tgapal.tga cut 21 surface: null
+tgapal.tga cut 32 rgba: 6x4 c=3 086d5b0c9c70678f
+tgapal.tga cut 32 surface: 6x4 stride=24 e6f37ce589cf9137
+tgapal.tga cut 43 rgba: 6x4 c=3 eb835c987a097b21
+tgapal.tga cut 43 surface: 6x4 stride=24 8926388bb4f3de11
+tgapal.tga mut 0 at 32 00 rgba: 6x4 c=3 e667f10391e27dd9
+tgapal.tga mut 0 at 32 00 surface: 6x4 stride=24 76752bd610312f19
+tgapal.tga mut 1 at 28 fb rgba: 6x4 c=3 604dd655d3a7ef19
+tgapal.tga mut 1 at 28 fb surface: 6x4 stride=24 9dc31ec56ce26be1
+tgapal.tga mut 2 at 24 fe rgba: 6x4 c=3 91a969e031be6fc1
+tgapal.tga mut 2 at 24 fe surface: 6x4 stride=24 f29e1d5df4316331
+tgapal.tga mut 3 at 43 25 rgba: 6x4 c=3 2e2786aef3fb90c1
+tgapal.tga mut 3 at 43 25 surface: 6x4 stride=24 ac34c6d9141c4a31
+tgapal.tga mut 4 at 2 09 rgba: 6x4 c=3 66c3ec4b0a716005
+tgapal.tga mut 4 at 2 09 surface: 6x4 stride=24 56338392d7a37b35
+tgapal.tga mut 5 at 31 05 rgba: 6x4 c=3 b41551b8a7dc4b5b
+tgapal.tga mut 5 at 31 05 surface: 6x4 stride=24 cd84c0be42284c33
+tgapal.tga mut 6 at 5 05 rgba: 6x4 c=3 3ab1374e7a564617
+tgapal.tga mut 6 at 5 05 surface: 6x4 stride=24 2c25bb4d6cac3767
+tgapal.tga mut 7 at 40 80 rgba: 6x4 c=3 2e2786aef3fb90c1
+tgapal.tga mut 7 at 40 80 surface: 6x4 stride=24 ac34c6d9141c4a31
+tgapal.tga mut 8 at 47 13 rgba: 6x4 c=3 0b564db533dd3fec
+tgapal.tga mut 8 at 47 13 surface: 6x4 stride=24 5d097cea72f94018
+tgapal.tga mut 9 at 11 02 rgba: 6x4 c=3 2e2786aef3fb90c1
+tgapal.tga mut 9 at 11 02 surface: 6x4 stride=24 ac34c6d9141c4a31
+tgapal.tga mut 10 at 13 40 rgba: 16390x4 c=3 231c402c7b39e909
+tgapal.tga mut 10 at 13 40 surface: 16390x4 stride=65560 2787c136b24b0b99
+tgapal.tga mut 11 at 34 06 rgba: 6x4 c=3 2e2786aef3fb90c1
+tgapal.tga mut 11 at 34 06 surface: 6x4 stride=24 ac34c6d9141c4a31
+tgapal.tga mut 12 at 10 83 rgba: 6x4 c=3 2e2786aef3fb90c1
+tgapal.tga mut 12 at 10 83 surface: 6x4 stride=24 ac34c6d9141c4a31
+tgapal.tga mut 13 at 41 62 rgba: 6x4 c=3 adc1e718d2c1349b
+tgapal.tga mut 13 at 41 62 surface: 6x4 stride=24 6676b8dea7f5d473
+tgapal.tga mut 14 at 18 25 rgba: 6x4 c=3 4d146a0f69e4fed1
+tgapal.tga mut 14 at 18 25 surface: 6x4 stride=24 d9bb758688a827c9
+tgapal.tga mut 15 at 13 c0 rgba: 49158x4 c=3 ae5a88c4ef9de909
+tgapal.tga mut 15 at 13 c0 surface: 49158x4 stride=196632 ae666c7e937f0b99
+tgapal16.tga rgba: 6x4 c=3 6eb63b2a004109bd
+tgapal16.tga surface: 6x4 stride=24 a26d12493cb5451d
+tgapal16.tga cut 8 rgba: null
+tgapal16.tga cut 8 surface: null
+tgapal16.tga cut 16 rgba: null
+tgapal16.tga cut 16 surface: null
+tgapal16.tga cut 25 rgba: 6x4 c=3 eb30ab0e11214ef5
+tgapal16.tga cut 25 surface: 6x4 stride=24 bb9e692b79a3d135
+tgapal16.tga cut 33 rgba: 6x4 c=3 eb30ab0e11214ef5
+tgapal16.tga cut 33 surface: 6x4 stride=24 bb9e692b79a3d135
+tgapal16.tga mut 0 at 1 11 rgba: null
+tgapal16.tga mut 0 at 1 11 surface: null
+tgapal16.tga mut 1 at 13 04 rgba: 1030x4 c=3 e014e954acb099bd
+tgapal16.tga mut 1 at 13 04 surface: 1030x4 stride=4120 946d8f16b87aed1d
+tgapal16.tga mut 2 at 16 0c rgba: null
+tgapal16.tga mut 2 at 16 0c surface: null
+tgapal16.tga mut 3 at 3 03 rgba: 6x4 c=3 2bc40cf3d5a73e82
+tgapal16.tga mut 3 at 3 03 surface: 6x4 stride=24 af9f077c27f7a8fa
+tgapal16.tga mut 4 at 33 11 rgba: 6x4 c=3 d2307c245eaf1995
+tgapal16.tga mut 4 at 33 11 surface: 6x4 stride=24 a53b4e8a41eef255
+tgapal16.tga mut 5 at 19 08 rgba: 6x4 c=3 6eb63b2a004109bd
+tgapal16.tga mut 5 at 19 08 surface: 6x4 stride=24 a26d12493cb5451d
+tgapal16.tga mut 6 at 0 10 rgba: 6x4 c=3 e389155c00e032a5
+tgapal16.tga mut 6 at 0 10 surface: 6x4 stride=24 24046c3f4fd3f665
+tgapal16.tga mut 7 at 12 46 rgba: 70x4 c=3 6f713a626ff51dbd
+tgapal16.tga mut 7 at 12 46 surface: 70x4 stride=280 7986a9c8b6293d1d
+tgapal16.tga mut 8 at 16 28 rgba: null
+tgapal16.tga mut 8 at 16 28 surface: null
+tgapal16.tga mut 9 at 6 04 rgba: 6x4 c=3 eb30ab0e11214ef5
+tgapal16.tga mut 9 at 6 04 surface: 6x4 stride=24 bb9e692b79a3d135
+tgapal16.tga mut 10 at 19 04 rgba: 6x4 c=3 6eb63b2a004109bd
+tgapal16.tga mut 10 at 19 04 surface: 6x4 stride=24 a26d12493cb5451d
+tgapal16.tga mut 11 at 33 21 rgba: 6x4 c=3 d2307c245eaf1995
+tgapal16.tga mut 11 at 33 21 surface: 6x4 stride=24 a53b4e8a41eef255
+tgapal16.tga mut 12 at 35 c7 rgba: 6x4 c=3 0c3865c088c0d85d
+tgapal16.tga mut 12 at 35 c7 surface: 6x4 stride=24 7094feb7ede6f87d
+tgapal16.tga mut 13 at 32 02 rgba: 6x4 c=3 649a32153d5e8b07
+tgapal16.tga mut 13 at 32 02 surface: 6x4 stride=24 18869e7cf5b518df
+tgapal16.tga mut 14 at 29 34 rgba: 6x4 c=3 f9192297f95cd8bd
+tgapal16.tga mut 14 at 29 34 surface: 6x4 stride=24 f6f4b8769dff049d
+tgapal16.tga mut 15 at 3 4b rgba: 6x4 c=3 66a367a70686dee5
+tgapal16.tga mut 15 at 3 4b surface: 6x4 stride=24 66a367a70686dee5
+tgapalidx16.tga rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga cut 15 rgba: null
+tgapalidx16.tga cut 15 surface: null
+tgapalidx16.tga cut 31 rgba: 6x4 c=3 eb30ab0e11214ef5
+tgapalidx16.tga cut 31 surface: 6x4 stride=24 bb9e692b79a3d135
+tgapalidx16.tga cut 46 rgba: 6x4 c=3 fb662f704abf231d
+tgapalidx16.tga cut 46 surface: 6x4 stride=24 3c06f6595d1729fd
+tgapalidx16.tga cut 62 rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga cut 62 surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga mut 0 at 64 06 rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga mut 0 at 64 06 surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga mut 1 at 25 10 rgba: 6x4 c=3 d1f5f50abca994a5
+tgapalidx16.tga mut 1 at 25 10 surface: 6x4 stride=24 a7784e65e9493e25
+tgapalidx16.tga mut 2 at 73 01 rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga mut 2 at 73 01 surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga mut 3 at 35 40 rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga mut 3 at 35 40 surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga mut 4 at 38 03 rgba: 6x4 c=3 6cf719d3b4b420ea
+tgapalidx16.tga mut 4 at 38 03 surface: 6x4 stride=24 3a5df14b547ec58e
+tgapalidx16.tga mut 5 at 3 02 rgba: 6x4 c=3 5ee682d0ca8ac755
+tgapalidx16.tga mut 5 at 3 02 surface: 6x4 stride=24 7a2b725cdd044755
+tgapalidx16.tga mut 6 at 52 03 rgba: 6x4 c=3 8f906a9dc401dbd8
+tgapalidx16.tga mut 6 at 52 03 surface: 6x4 stride=24 e2e0a75e1fd08ce4
+tgapalidx16.tga mut 7 at 12 86 rgba: 134x4 c=3 c5ce197234f367e5
+tgapalidx16.tga mut 7 at 12 86 surface: 134x4 stride=536 7402c50d5ed67c25
+tgapalidx16.tga mut 8 at 6 01 rgba: null
+tgapalidx16.tga mut 8 at 6 01 surface: null
+tgapalidx16.tga mut 9 at 66 06 rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga mut 9 at 66 06 surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga mut 10 at 29 f7 rgba: 6x4 c=3 dcec3dcff45a0d05
+tgapalidx16.tga mut 10 at 29 f7 surface: 6x4 stride=24 d9908133ef3e6205
+tgapalidx16.tga mut 11 at 15 10 rgba: 6x4100 c=3 7363299eb35123e5
+tgapalidx16.tga mut 11 at 15 10 surface: 6x4100 stride=24 b24f55383a4be825
+tgapalidx16.tga mut 12 at 68 8a rgba: 6x4 c=3 373e412da5c063e5
+tgapalidx16.tga mut 12 at 68 8a surface: 6x4 stride=24 996356d80f5c2825
+tgapalidx16.tga mut 13 at 16 54 rgba: null
+tgapalidx16.tga mut 13 at 16 54 surface: null
+tgapalidx16.tga mut 14 at 2 26 rgba: null
+tgapalidx16.tga mut 14 at 2 26 surface: null
+tgapalidx16.tga mut 15 at 1 b6 rgba: null
+tgapalidx16.tga mut 15 at 1 b6 surface: null
+tgarle24.tga rgba: 6x4 c=3 cf6388e4147e30f7
+tgarle24.tga surface: 6x4 stride=24 3939c7b996fd7fff
+tgarle24.tga cut 17 rgba: 6x4 c=3 66a367a70686dee5
+tgarle24.tga cut 17 surface: 6x4 stride=24 66a367a70686dee5
+tgarle24.tga cut 34 rgba: 6x4 c=3 ecfc36e838c6c276
+tgarle24.tga cut 34 surface: 6x4 stride=24 e71f3e8000417ca6
+tgarle24.tga cut 52 rgba: 6x4 c=3 4ec81c39c16188ea
+tgarle24.tga cut 52 surface: 6x4 stride=24 42e54579695878e6
+tgarle24.tga cut 69 rgba: 6x4 c=3 d6154265bfcabea2
+tgarle24.tga cut 69 surface: 6x4 stride=24 9485f504c3489b76
+tgarle24.tga mut 0 at 74 b0 rgba: 6x4 c=3 33afac7cb5cfe0b7
+tgarle24.tga mut 0 at 74 b0 surface: 6x4 stride=24 4218579f2bafda3f
+tgarle24.tga mut 1 at 5 02 rgba: 6x4 c=3 cf6388e4147e30f7
+tgarle24.tga mut 1 at 5 02 surface: 6x4 stride=24 3939c7b996fd7fff
+tgarle24.tga mut 2 at 36 2e rgba: 6x4 c=3 ba3468e3777ec857
+tgarle24.tga mut 2 at 36 2e surface: 6x4 stride=24 4cb6e7ba328d071f
+tgarle24.tga mut 3 at 68 06 rgba: 6x4 c=3 187a75addfb0ceaf
+tgarle24.tga mut 3 at 68 06 surface: 6x4 stride=24 b3db8ee737d84cf7
+tgarle24.tga mut 4 at 86 b4 rgba: 6x4 c=3 c4c56cb71e9ac603
+tgarle24.tga mut 4 at 86 b4 surface: 6x4 stride=24 a990db949c067763
+tgarle24.tga mut 5 at 63 ea rgba: 6x4 c=3 90d9178b33540737
+tgarle24.tga mut 5 at 63 ea surface: 6x4 stride=24 1f34cca5515ef7bf
+tgarle24.tga mut 6 at 44 66 rgba: 6x4 c=3 9ed5c05325cc6b25
+tgarle24.tga mut 6 at 44 66 surface: 6x4 stride=24 49ce4e9b7b4b9ed5
+tgarle24.tga mut 7 at 36 1e rgba: 6x4 c=3 5a6818e4635ab727
+tgarle24.tga mut 7 at 36 1e surface: 6x4 stride=24 b05537b949ef602f
+tgarle24.tga mut 8 at 44 60 rgba: 6x4 c=3 0b44bbd4077e5e0b
+tgarle24.tga mut 8 at 44 60 surface: 6x4 stride=24 705db9c47a6201d3
+tgarle24.tga mut 9 at 71 ab rgba: 6x4 c=3 926490fffe41e297
+tgarle24.tga mut 9 at 71 ab surface: 6x4 stride=24 80f0dab8d3815fa7
+tgarle24.tga mut 10 at 10 01 rgba: 6x4 c=3 cf6388e4147e30f7
+tgarle24.tga mut 10 at 10 01 surface: 6x4 stride=24 3939c7b996fd7fff
+tgarle24.tga mut 11 at 68 06 rgba: 6x4 c=3 187a75addfb0ceaf
+tgarle24.tga mut 11 at 68 06 surface: 6x4 stride=24 b3db8ee737d84cf7
+tgarle24.tga mut 12 at 68 57 rgba: 6x4 c=3 13dfc655dab7f352
+tgarle24.tga mut 12 at 68 57 surface: 6x4 stride=24 6eb846b38d8d158e
+tgarle24.tga mut 13 at 19 62 rgba: 6x4 c=3 b615968901d22693
+tgarle24.tga mut 13 at 19 62 surface: 6x4 stride=24 ee2a15247e97060b
+tgarle24.tga mut 14 at 83 76 rgba: 6x4 c=3 f23f76159b6ac0a7
+tgarle24.tga mut 14 at 83 76 surface: 6x4 stride=24 d884542c9903694f
+tgarle24.tga mut 15 at 75 e6 rgba: 6x4 c=3 d1000a989e8e322d
+tgarle24.tga mut 15 at 75 e6 surface: 6x4 stride=24 5a02b46473bda155
+tgarlegrey.tga rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga cut 6 rgba: null
+tgarlegrey.tga cut 6 surface: null
+tgarlegrey.tga cut 12 rgba: null
+tgarlegrey.tga cut 12 surface: null
+tgarlegrey.tga cut 18 rgba: 6x4 c=1 66a367a70686dee5
+tgarlegrey.tga cut 18 surface: 6x4 stride=24 66a367a70686dee5
+tgarlegrey.tga cut 24 rgba: 6x4 c=1 cee329112f0ce965
+tgarlegrey.tga cut 24 surface: 6x4 stride=24 cee329112f0ce965
+tgarlegrey.tga mut 0 at 6 80 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 0 at 6 80 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 1 at 9 01 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 1 at 9 01 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 2 at 27 bc rgba: 6x4 c=1 785f1f7d1ed0b535
+tgarlegrey.tga mut 2 at 27 bc surface: 6x4 stride=24 785f1f7d1ed0b535
+tgarlegrey.tga mut 3 at 1 04 rgba: null
+tgarlegrey.tga mut 3 at 1 04 surface: null
+tgarlegrey.tga mut 4 at 8 01 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 4 at 8 01 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 5 at 0 02 rgba: 6x4 c=1 b17d1e4cc3653075
+tgarlegrey.tga mut 5 at 0 02 surface: 6x4 stride=24 b17d1e4cc3653075
+tgarlegrey.tga mut 6 at 8 02 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 6 at 8 02 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 7 at 20 c3 rgba: 6x4 c=1 a4068437e2d37485
+tgarlegrey.tga mut 7 at 20 c3 surface: 6x4 stride=24 a4068437e2d37485
+tgarlegrey.tga mut 8 at 10 02 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 8 at 10 02 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 9 at 5 04 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 9 at 5 04 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 10 at 25 4a rgba: 6x4 c=1 ae357b94605c2cb5
+tgarlegrey.tga mut 10 at 25 4a surface: 6x4 stride=24 ae357b94605c2cb5
+tgarlegrey.tga mut 11 at 17 00 rgba: 6x4 c=1 1e396962caf48535
+tgarlegrey.tga mut 11 at 17 00 surface: 6x4 stride=24 1e396962caf48535
+tgarlegrey.tga mut 12 at 13 b2 rgba: 45574x4 c=1 574ffaf8871da535
+tgarlegrey.tga mut 12 at 13 b2 surface: 45574x4 stride=182296 574ffaf8871da535
+tgarlegrey.tga mut 13 at 8 f1 rgba: 6x4 c=1 3d285754f9fe6535
+tgarlegrey.tga mut 13 at 8 f1 surface: 6x4 stride=24 3d285754f9fe6535
+tgarlegrey.tga mut 14 at 24 67 rgba: 6x4 c=1 4fd7105a1256f107
+tgarlegrey.tga mut 14 at 24 67 surface: 6x4 stride=24 4fd7105a1256f107
+tgarlegrey.tga mut 15 at 25 bb rgba: 6x4 c=1 19bcd6e626416385
+tgarlegrey.tga mut 15 at 25 bb surface: 6x4 stride=24 19bcd6e626416385

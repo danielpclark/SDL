@@ -42,12 +42,15 @@
 # The OpenType SVG test fonts (make_svg_fonts; only those with --svg, after
 # --shaping, as they copy its Noto Sans subset) are copies of the DejaVu
 # Sans and Noto Sans subsets with `SVG ' tables (see the comment above
-# _png_rgba).
+# _png_rgba), and a copy of the DejaVu Sans subset whose SVG glyphs are
+# images in stb_image's other formats, which also go, as files, to
+# sdl3-ttf/src/testdata/images (see the comment above _rgb_pattern).
 #
 # The expected results in sdl3-ttf/src/testdata/reference.txt,
-# shaping_reference.txt, aat_reference.txt and svg_reference.txt come from
-# upstream SDL_ttf's C (with its bundled FreeType and HarfBuzz, and for
-# svg_reference.txt PlutoSVG), not from this script.
+# shaping_reference.txt, aat_reference.txt, svg_reference.txt,
+# svg_image_reference.txt and image_reference.txt come from upstream
+# SDL_ttf's C (with its bundled FreeType and HarfBuzz, and for the last
+# three PlutoSVG and PlutoVG), not from this script.
 
 import os
 import struct
@@ -3710,10 +3713,501 @@ def _noto_svg_docs(g):
     return sorted(docs, key=lambda d: d[1])
 
 
+# The images of stb_image's other formats (BMP, GIF, HDR, PIC, PNM, PSD,
+# TGA), which PlutoVG's copy of stb_image decodes in `<image>` elements
+# (whatever their data URI's type says, as long as it is PNG or JPEG):
+# small images covering each loader's paths (bit depths, palettes, bit
+# masks, header versions, orientations, RLE, interlacing, transparency,
+# 16-bit samples), and broken ones. They go in the documents of
+# DejaVuSans-SVG-images.ttf and, as files, in sdl3-ttf/src/testdata/images
+# (whose test also decodes them truncated and with bytes changed).
+
+def _rgb_pattern(w, h, seed=0):
+    """Rows of (r, g, b, a) tuples: a deterministic pattern."""
+    rows = []
+    for y in range(h):
+        row = []
+        for x in range(w):
+            v = (x * 37 + y * 91 + seed * 53) & 0xFF
+            row.append(((v * 3) & 0xFF, (x * 50 + seed * 20) & 0xFF, (y * 70 + 30) & 0xFF,
+                        (255 - ((x + y + seed) * 40)) & 0xFF))
+        rows.append(row)
+    return rows
+
+
+def _bmp(w, h, bpp, rows, palette=(), hsz=40, compress=0, masks=None, top_down=False,
+         extra=b"", alpha_masks=False):
+    """A BMP: `rows` are lists of pixel values (palette indices, or
+    integers in the file's bit layout), top row first."""
+    def row_bytes(row):
+        if bpp == 1:
+            b = bytearray((w + 7) // 8)
+            for x, v in enumerate(row):
+                b[x // 8] |= (v & 1) << (7 - x % 8)
+        elif bpp == 4:
+            b = bytearray((w + 1) // 2)
+            for x, v in enumerate(row):
+                b[x // 2] |= (v & 15) << (4 if x % 2 == 0 else 0)
+        elif bpp == 8:
+            b = bytearray(row)
+        elif bpp == 16:
+            b = b"".join(struct.pack("<H", v) for v in row)
+        elif bpp == 24:
+            b = b"".join(struct.pack("<I", v)[:3] for v in row)
+        else:
+            b = b"".join(struct.pack("<I", v) for v in row)
+        return bytes(b) + b"\0" * (-len(b) % 4)
+
+    data = b"".join(row_bytes(r) for r in (rows if top_down else rows[::-1]))
+    if hsz == 12:
+        pal = b"".join(bytes([b, g, r]) for r, g, b in palette)
+        header = struct.pack("<IHHHH", 12, w, h, 1, bpp)
+    else:
+        pal = b"".join(bytes([b, g, r, 0]) for r, g, b in palette)
+        header = struct.pack("<IiiHHIIiiII", hsz, w, -h if top_down else h, 1, bpp, compress,
+                             len(data), 2835, 2835, len(palette), 0)
+        if hsz == 56:
+            # (stb_image reads the BI_BITFIELDS masks after the header)
+            header += struct.pack("<IIII", *(masks or (0, 0, 0, 0)))
+            if masks:
+                header += struct.pack("<III", *masks[:3])
+        elif hsz in (108, 124):
+            header += struct.pack("<IIII", *(masks or (0, 0, 0, 0)))
+            header += struct.pack("<I", 0x73524742) + b"\0" * 48
+            if hsz == 124:
+                header += struct.pack("<IIII", 4, 0, 0, 0)
+        elif masks:
+            # BI_BITFIELDS masks after a 40 byte header
+            header += struct.pack("<III", *masks[:3])
+    offset = 14 + len(header) + len(pal) + len(extra)
+    return (b"BM" + struct.pack("<IHHI", offset + len(data), 0, 0, offset) + header + pal
+            + extra + data)
+
+
+def _bmp_images():
+    pal16 = [(i * 16, 255 - i * 16, (i * 64) & 0xFF) for i in range(16)]
+    pal7 = [(200, 30, 30), (30, 200, 30), (30, 30, 200), (240, 240, 0), (0, 0, 0),
+            (255, 255, 255), (128, 64, 0)]
+    idx = lambda w, h, n: [[(x * 3 + y * 5) % n for x in range(w)] for y in range(h)]
+    pat = _rgb_pattern(6, 5)
+    rgb = [[(r << 16) | (g << 8) | b for r, g, b, a in row] for row in pat]
+    rgba = [[(a << 24) | (r << 16) | (g << 8) | b for r, g, b, a in row] for row in pat]
+    rgb555 = [[((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3) for r, g, b, a in row] for row in pat]
+    rgb565 = [[((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3) for r, g, b, a in row] for row in pat]
+    argb4 = [[((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4)
+              for r, g, b, a in row] for row in pat]
+    return [
+        ("bmp1.bmp", _bmp(9, 4, 1, idx(9, 4, 2), [(255, 0, 0), (0, 0, 255)])),
+        ("bmp4.bmp", _bmp(7, 5, 4, idx(7, 5, 16), pal16)),
+        ("bmp8.bmp", _bmp(5, 4, 8, idx(5, 4, 7), pal7)),
+        ("bmp8os2.bmp", _bmp(5, 3, 8, idx(5, 3, 4), pal7[:8] + [(9, 9, 9)], hsz=12)),
+        ("bmp16.bmp", _bmp(6, 5, 16, rgb555)),
+        ("bmp16bf.bmp", _bmp(6, 5, 16, rgb565, compress=3, masks=(0xF800, 0x07E0, 0x001F))),
+        ("bmp16v3.bmp", _bmp(6, 5, 16, rgb565, hsz=56, compress=3,
+                             masks=(0xF800, 0x07E0, 0x001F, 0))),
+        ("bmp24.bmp", _bmp(6, 5, 24, rgb)),
+        ("bmp24td.bmp", _bmp(6, 5, 24, rgb, top_down=True, extra=b"\0\0")),
+        ("bmp32.bmp", _bmp(6, 5, 32, rgb)),
+        ("bmp32v4.bmp", _bmp(6, 5, 32, rgba, hsz=108, compress=3,
+                             masks=(0xFF0000, 0xFF00, 0xFF, 0xFF000000))),
+        ("bmp32v5.bmp", _bmp(6, 5, 32, argb4, hsz=124, compress=3,
+                             masks=(0xF00, 0xF0, 0xF, 0xF000))),
+        ("bmp32v5a0.bmp", _bmp(6, 5, 32, rgb, hsz=124, compress=0,
+                               masks=(0, 0, 0, 0))),
+        ("bmpbadmask.bmp", _bmp(6, 5, 32, rgba, hsz=124, compress=3,
+                                masks=(0xFFF00000, 0xFF00, 0xFF, 0))),
+        ("bmprle.bmp", _bmp(5, 4, 8, idx(5, 4, 7), pal7, compress=1)),
+    ]
+
+
+def _tga(w, h, image_type, bpp, data, desc=0, cmap=None, cmap_start=0, ident=b""):
+    """A TGA: `cmap` is (entry bits, entries bytes, number of entries)."""
+    cbits, cdata, clen = cmap or (0, b"", 0)
+    return (struct.pack("<BBBHHBHHHHBB", len(ident), 1 if cmap else 0, image_type, cmap_start,
+                        clen, cbits, 0, 0, w, h, bpp, desc)
+            + ident + b"\0" * cmap_start + cdata + data)
+
+
+def _tga_rle(pixels, size):
+    """TGA RLE packets of `pixels` (byte strings of `size` bytes): runs
+    of repeated pixels and raw packets."""
+    out, i = bytearray(), 0
+    while i < len(pixels):
+        j = i
+        while j + 1 < len(pixels) and pixels[j + 1] == pixels[i] and j - i < 127:
+            j += 1
+        if j > i:
+            out += bytes([0x80 | (j - i)]) + pixels[i]
+            i = j + 1
+        else:
+            j = i
+            while j + 1 < len(pixels) and pixels[j + 1] != pixels[j] and j - i < 127:
+                j += 1
+            out += bytes([j - i]) + b"".join(pixels[i:j + 1])
+            i = j + 1
+    return bytes(out)
+
+
+def _tga_images():
+    w, h = 6, 4
+    pat = _rgb_pattern(w, h, 1)
+    bgr = [bytes([b, g, r]) for row in pat for r, g, b, a in row]
+    bgra = [bytes([b, g, r, a]) for row in pat for r, g, b, a in row]
+    grey = [bytes([(r + g) // 2]) for row in pat for r, g, b, a in row]
+    greya = [bytes([(r + g) // 2, a]) for row in pat for r, g, b, a in row]
+    rgb16 = [struct.pack("<H", ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3) | 0x8000)
+             for row in pat for r, g, b, a in row]
+    # runs for RLE
+    runs = [bgr[(i // 5) * 5] if (i // 3) % 2 else bgr[i] for i in range(w * h)]
+    gruns = [grey[(i // 4) * 4] for i in range(w * h)]
+    pal = b"".join(bytes([b, g, r]) for r, g, b in [(255, 0, 0), (0, 255, 0), (0, 0, 255),
+                                                     (255, 255, 0)])
+    pal16 = b"".join(struct.pack("<H", v) for v in (0x7C00, 0x03E0, 0x001F, 0x7FFF, 0x4210))
+    indices = bytes((x + y * 2) % 6 for y in range(h) for x in range(w))  # 4, 5 are out of range
+    idx_runs = [bytes([(i // 4) % 5]) for i in range(w * h)]
+    return [
+        ("tga24.tga", _tga(w, h, 2, 24, b"".join(bgr), ident=b"id!")),
+        ("tga32td.tga", _tga(w, h, 2, 32, b"".join(bgra), desc=0x28)),
+        ("tgagrey.tga", _tga(w, h, 3, 8, b"".join(grey))),
+        ("tgagreya.tga", _tga(w, h, 3, 16, b"".join(greya), desc=0x20)),
+        ("tga16.tga", _tga(w, h, 2, 16, b"".join(rgb16))),
+        ("tgarle24.tga", _tga(w, h, 10, 24, _tga_rle(runs, 3))),
+        ("tgarlegrey.tga", _tga(w, h, 11, 8, _tga_rle(gruns, 1), desc=0x20)),
+        ("tgapal.tga", _tga(w, h, 1, 8, indices, cmap=(24, pal, 4))),
+        ("tgapal16.tga", _tga(w, h, 9, 8, _tga_rle(idx_runs, 1), cmap=(16, pal16, 5),
+                              cmap_start=2)),
+        ("tgapalidx16.tga", _tga(w, h, 1, 16, b"".join(struct.pack("<H", v[0]) for v in idx_runs),
+                                 cmap=(24, pal, 4), desc=0x20)),
+        ("tganopal.tga", _tga(w, h, 1, 8, indices, cmap=(24, b"", 0))),
+    ]
+
+
+def _psd(w, h, channels, depth, planes, compression=0, resources=b""):
+    """A PSD of `planes` (one byte string per channel)."""
+    head = (b"8BPS" + struct.pack(">H", 1) + b"\0" * 6
+            + struct.pack(">HIIHH", channels, h, w, depth, 3) + struct.pack(">I", 0)
+            + struct.pack(">I", len(resources)) + resources + struct.pack(">I", 0)
+            + struct.pack(">H", compression))
+    if compression:
+        counts, body = b"", b""
+        row = w * depth // 8
+        for p in planes:
+            for y in range(h):
+                packed = _packbits(p[y * row:(y + 1) * row])
+                counts += struct.pack(">H", len(packed))
+                body += packed
+        return head + counts + body
+    return head + b"".join(planes)
+
+
+def _packbits(data):
+    out, i = bytearray(), 0
+    while i < len(data):
+        j = i
+        while j + 1 < len(data) and data[j + 1] == data[i] and j - i < 127:
+            j += 1
+        if j > i:
+            out += bytes([257 - (j - i + 1)]) + data[i:i + 1]
+            i = j + 1
+        else:
+            j = i
+            while j + 1 < len(data) and data[j + 1] != data[j] and j - i < 127:
+                j += 1
+            out += bytes([j - i]) + data[i:j + 1]
+            i = j + 1
+    return bytes(out)
+
+
+def _psd_images():
+    w, h = 5, 4
+    pat = _rgb_pattern(w, h, 2)
+    plane = lambda c: bytes(px[c] for row in pat for px in row)
+    alpha = bytes([0, 255, 128, 64, 1] * h)
+    runs = bytes([(i // 3) * 40 & 0xFF for i in range(w * h)])
+    plane16 = lambda c: b"".join(struct.pack(">H", px[c] * 257 + c) for row in pat for px in row)
+    return [
+        ("psd3.psd", _psd(w, h, 3, 8, [plane(0), plane(1), plane(2)])),
+        ("psd4.psd", _psd(w, h, 4, 8, [plane(0), plane(1), plane(2), alpha],
+                          resources=b"8BIM\x03\xed\0\0\0\0\0\x02xy")),
+        ("psdrle.psd", _psd(w, h, 4, 8, [runs, plane(1), runs, alpha], compression=1)),
+        ("psd16.psd", _psd(w, h, 4, 16, [plane16(0), plane16(1), plane16(2), plane16(3)])),
+        ("psd1.psd", _psd(w, h, 1, 8, [plane(0)])),
+        ("psd5.psd", _psd(w, h, 5, 8, [plane(0), plane(1), plane(2), alpha, plane(2)])),
+        ("psdgrey.psd", _psd(w, h, 1, 8, [plane(0)])[:24] + b"\0\x01"
+         + _psd(w, h, 1, 8, [plane(0)])[26:]),
+    ]
+
+
+def _pic(w, h, packets, body):
+    """A Softimage PIC: `packets` are (type, channel bits) tuples."""
+    head = (b"\x53\x80\xF6\x34" + struct.pack(">f", 3.71) + b"stb test".ljust(80, b"\0")
+            + b"PICT" + struct.pack(">HHfHH", w, h, 1.0, 3, 0))
+    pk = b"".join(bytes([1 if i + 1 < len(packets) else 0, 8, t, c])
+                  for i, (t, c) in enumerate(packets))
+    return head + pk + body
+
+
+def _pic_images():
+    w, h = 6, 3
+    pat = _rgb_pattern(w, h, 3)
+    raw = b"".join(bytes(px[:3]) for row in pat for px in row)
+    # mixed RLE (type 2) RGB rows: a raw packet, a short run and a long
+    # (16-bit counted) run; then pure RLE (type 1) alpha rows
+    rows = b""
+    for y, row in enumerate(pat):
+        rows += bytes([1]) + bytes(row[0][:3]) + bytes(row[1][:3])     # 2 raw
+        rows += bytes([128 + 2]) + bytes(row[2][:3])                    # run of 3
+        rows += bytes([128]) + struct.pack(">H", 1) + bytes(row[5][:3])  # run of 1
+        rows += bytes([4, 40 * y]) + bytes([2, 200])                    # alpha
+    return [
+        ("pic.pic", _pic(w, h, [(0, 0xE0)], raw)),
+        ("picrle.pic", _pic(w, h, [(2, 0xE0), (1, 0x10)], rows)),
+        ("picbad.pic", _pic(w, h, [(3, 0xE0)], raw)),
+    ]
+
+
+def _gif_lzw(indices, min_size):
+    """GIF LZW data (sub-blocks) of `indices`."""
+    clear, eoi = 1 << min_size, (1 << min_size) + 1
+    bits, nbits, out = 0, 0, bytearray()
+
+    def emit(code, size):
+        nonlocal bits, nbits
+        bits |= code << nbits
+        nbits += size
+        while nbits >= 8:
+            out.append(bits & 0xFF)
+            bits >>= 8
+            nbits -= 8
+
+    size = min_size + 1
+    table = {bytes([i]): i for i in range(clear)}
+    next_code = eoi + 1
+    emit(clear, size)
+    w = b""
+    for v in indices:
+        wc = w + bytes([v])
+        if wc in table:
+            w = wc
+            continue
+        emit(table[w], size)
+        table[wc] = next_code
+        next_code += 1
+        if next_code - 1 == (1 << size) and size < 12:
+            size += 1
+        w = bytes([v])
+    emit(table[w], size)
+    # (the decoder adds an entry for the last code too)
+    if next_code == (1 << size) and size < 12:
+        size += 1
+    emit(eoi, size)
+    if nbits:
+        out.append(bits & 0xFF)
+    blocks = b"".join(bytes([len(out[i:i + 255])]) + bytes(out[i:i + 255])
+                      for i in range(0, len(out), 255))
+    return bytes([min_size]) + blocks + b"\0"
+
+
+def _gif(sw, sh, gpal, frames, bg=0, version=b"89a", pre=b""):
+    """A GIF: `frames` are (x, y, w, h, indices, local palette, interlaced,
+    transparent index or None)."""
+    def table(pal):
+        n = 1
+        while (2 << (n - 1)) < len(pal):
+            n += 1
+        return n - 1, b"".join(bytes(c) for c in pal) + b"\0\0\0" * ((2 << (n - 1)) - len(pal))
+
+    flags, gdata = 0, b""
+    if gpal:
+        bits, gdata = table(gpal)
+        flags = 0x80 | 0x70 | bits
+    out = b"GIF" + version + struct.pack("<HHBBB", sw, sh, flags, bg, 0) + gdata + pre
+    for x, y, w, h, ind, lpal, inter, transp in frames:
+        if transp is not None:
+            out += b"\x21\xF9\x04" + bytes([1]) + struct.pack("<H", 10) + bytes([transp, 0])
+        lflags, ldata = 0, b""
+        if lpal:
+            bits, ldata = table(lpal)
+            lflags = 0x80 | bits
+        if inter:
+            lflags |= 0x40
+            rows = [ind[r * w:(r + 1) * w] for r in range(h)]
+            order = (list(range(0, h, 8)) + list(range(4, h, 8)) + list(range(2, h, 4))
+                     + list(range(1, h, 2)))
+            ind = [v for r in order for v in rows[r]]
+        out += b"\x2C" + struct.pack("<HHHHB", x, y, w, h, lflags) + ldata
+        min_size = max(2, (len(lpal or gpal or [0] * 4) - 1).bit_length())
+        out += _gif_lzw(ind, min_size)
+    return out + b"\x3B"
+
+
+def _gif_images():
+    gpal = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 255)]
+    lpal = [(i * 30, 255 - i * 30, (i * 90) & 0xFF) for i in range(8)]
+    pal16 = [(i * 16, (i * 37) & 0xFF, 255 - i * 16) for i in range(16)]
+    ind = lambda w, h, n: [(x * 3 + y * 7 + (x * y) % 5) % n for y in range(h) for x in range(w)]
+    big = [((x * x + y * 3) ^ (x * y)) % 16 for y in range(32) for x in range(32)]
+    comment = b"\x21\xFE\x05hello\x00" + b"\x21\xFF\x0bNETSCAPE2.0\x03\x01\x00\x00\x00"
+    return [
+        ("gif87.gif", _gif(6, 4, gpal, [(0, 0, 6, 4, ind(6, 4, 4), None, False, None)],
+                           version=b"87a")),
+        ("giflocal.gif", _gif(7, 9, gpal, [(0, 0, 7, 9, ind(7, 9, 8), lpal, True, 1)],
+                              pre=comment)),
+        ("gifbg.gif", _gif(6, 5, gpal, [(1, 1, 3, 2, ind(3, 2, 4), None, False, 0)], bg=2)),
+        ("gifbig.gif", _gif(32, 32, pal16, [(0, 0, 32, 32, big, None, False, None)])),
+        ("gifnotable.gif", _gif(4, 4, None, [(0, 0, 4, 4, ind(4, 4, 4), None, False, None)])),
+        ("gifnoimage.gif", _gif(4, 4, gpal, [])),
+        ("gifoutside.gif", _gif(4, 4, gpal, [(2, 2, 4, 4, ind(4, 4, 4), None, False, None)])),
+    ]
+
+
+def _rgbe(r, g, b):
+    import math
+    m = max(r, g, b)
+    if m < 1e-32:
+        return b"\0\0\0\0"
+    f, e = math.frexp(m)
+    s = f * 256.0 / m
+    return bytes([int(r * s), int(g * s), int(b * s), e + 128])
+
+
+def _hdr_rle(channel):
+    """Radiance RLE of one channel of a scanline: runs (count > 128) and
+    dumps."""
+    out, i = bytearray(), 0
+    while i < len(channel):
+        j = i
+        while j + 1 < len(channel) and channel[j + 1] == channel[i] and j - i < 126:
+            j += 1
+        if j - i >= 2:
+            out += bytes([128 + j - i + 1, channel[i]])
+            i = j + 1
+        else:
+            j = min(len(channel), i + 3)
+            out += bytes([j - i]) + bytes(channel[i:j])
+            i = j
+    return bytes(out)
+
+
+def _hdr(w, h, pixels, rle, header=b"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\nGAMMA=1\n\n",
+         size=None):
+    out = header + (size or b"-Y %d +X %d\n" % (h, w))
+    for y in range(h):
+        row = pixels[y * w:(y + 1) * w]
+        if rle:
+            out += bytes([2, 2, w >> 8, w & 0xFF])
+            for c in range(4):
+                out += _hdr_rle([p[c] for p in row])
+        else:
+            out += b"".join(row)
+    return out
+
+
+def _hdr_images():
+    vals = lambda w, h: [_rgbe(((x + 1) * 0.37) ** 2 * (1 if y else 0.01), (y + 1) * 0.21,
+                               (x * y) * 0.5 + 0.001) for y in range(h) for x in range(w)]
+    runs = [_rgbe(0.25 * (x // 4), 0.5, 2.0) for y in range(3) for x in range(12)]
+    return [
+        ("hdrflat.hdr", _hdr(5, 3, vals(5, 3), False)),
+        ("hdrrle.hdr", _hdr(12, 3, runs, True)),
+        ("hdrrle2.hdr", _hdr(9, 2, vals(9, 2), True, header=b"#?RGBE\nFORMAT=32-bit_rle_rgbe\n\n",
+                             size=b"-Y  2  +X 9\n")),
+        ("hdrnotrle.hdr", _hdr(9, 2, vals(9, 2), False)),
+        ("hdrnoformat.hdr", _hdr(5, 3, vals(5, 3), False, header=b"#?RADIANCE\n\n")),
+        ("hdrbadsize.hdr", _hdr(5, 3, vals(5, 3), False, size=b"+X 5 -Y 3\n")),
+    ]
+
+
+def _pnm_images():
+    pat = _rgb_pattern(4, 3, 4)
+    grey = bytes(px[0] for row in pat for px in row)
+    rgb = bytes(c for row in pat for px in row for c in px[:3])
+    rgb16 = b"".join(struct.pack(">H", c * 257 - c // 3) for row in pat for px in row
+                     for c in px[:3])
+    return [
+        ("pnm5.pgm", b"P5\n# a comment\n4 3\n255\n" + grey),
+        ("pnm6.ppm", b"P6 4\t3\r\n255 " + rgb),
+        ("pnm6x16.ppm", b"P6\n4 3\n65535\n" + rgb16),
+        ("pnm5x16.pgm", b"P5\n#\n#two\n2 3 1000\n" + rgb16[:12]),
+        ("pnmmaxv.pgm", b"P5\n4 3\n70000\n" + grey),
+        ("pnmzero.pgm", b"P5\n0 3\n255\n" + grey),
+    ]
+
+
+def stb_test_images():
+    """The test images of stb_image's other formats: (file name, data)."""
+    return (_bmp_images() + _tga_images() + _psd_images() + _pic_images() + _gif_images()
+            + _hdr_images() + _pnm_images())
+
+
+def write_stb_test_images(out):
+    os.makedirs(out, exist_ok=True)
+    for name, data in stb_test_images():
+        with open(os.path.join(out, name), "wb") as f:
+            f.write(data)
+
+
+# Images whose truncated copies C decodes from uninitialized memory
+# (uncompressed TGA rows stbi__getn() can't read whole, flat HDR pixels):
+# not truncated in DejaVuSans-SVG-images.ttf.
+_UNINIT_WHEN_TRUNCATED = ("tga24.tga", "tga32td.tga", "tgagrey.tga", "tgagreya.tga",
+                          "hdrflat.hdr", "hdrnotrle.hdr")
+
+
+def _image_svg_docs(g):
+    """The SVG documents of DejaVuSans-SVG-images.ttf: four images per
+    glyph (each test image, then truncated copies and copies with a
+    header byte changed), drawn with the aspect ratio alignments."""
+    import base64
+    images = stb_test_images()
+    broken = []
+    for name, data in images:
+        if name not in _UNINIT_WHEN_TRUNCATED:
+            broken.append((name + " cut", data[:len(data) * 3 // 5]))
+        changed = bytearray(data)
+        changed[len(data) * 2 // 5] ^= 0x5A
+        broken.append((name + " changed", bytes(changed)))
+    uris = [("data:image/png;base64," + base64.b64encode(d).decode(), n)
+            for n, d in images + broken]
+    # the type of the data URI: PNG and JPEG accepted (whatever the data)
+    gif = dict(images)["gif87.gif"]
+    uris += [("data:image/jpeg;base64," + base64.b64encode(gif).decode(), "jpeg gif"),
+             ("data:image/jpg;base64," + base64.b64encode(dict(images)["psd4.psd"]).decode(),
+              "jpg psd"),
+             ("data:image/bmp;base64," + base64.b64encode(dict(images)["bmp24.bmp"]).decode(),
+              "bmp bmp"),
+             ("data:image/png;base64," + base64.b64encode(_png_rgba(
+                 2, 2, [[(255, 0, 0, 255), (0, 255, 0, 128)],
+                        [(0, 0, 255, 64), (0, 0, 0, 0)]])).decode(), "png")]
+    aspect = ["none", "xMidYMid meet", "xMinYMax slice", "xMaxYMin meet"]
+    chars = [chr(c) for c in range(ord("A"), ord("Z") + 1)] + [
+        chr(c) for c in range(ord("a"), ord("z") + 1)]
+    docs = []
+    for k in range(0, len(uris), 4):
+        ch = chars[k // 4]
+        body = ['<rect x="50" y="-1500" width="1400" height="1450" fill="#cde"/>']
+        for i, (uri, _) in enumerate(uris[k:k + 4]):
+            body.append('<image x="%d" y="%d" width="600" height="%d" preserveAspectRatio="%s" '
+                        'xlink:href="%s"/>' % (100 + 700 * (i % 2), -1450 + 700 * (i // 2),
+                                               600 - 100 * (i % 2), aspect[i], uri))
+        docs.append((_svg(g(ch), "".join(body)), g(ch), g(ch), False))
+    return sorted(docs, key=lambda d: d[1])
+
+
+def image_svg_chars():
+    """The characters of DejaVuSans-SVG-images.ttf's SVG glyphs."""
+    n = (len(stb_test_images()) * 3 - len(_UNINIT_WHEN_TRUNCATED) + 4 + 3) // 4
+    chars = [chr(c) for c in range(ord("A"), ord("Z") + 1)] + [
+        chr(c) for c in range(ord("a"), ord("z") + 1)]
+    return "".join(chars[:n])
+
+
 def make_svg_fonts(out):
-    """The OpenType SVG test fonts: DejaVuSans-SVG.ttf and NotoSans-SVG.ttf,
-    the DejaVu Sans and Noto Sans subsets (see their licenses above) with
-    `SVG ' tables (see the comment above _png_rgba)."""
+    """The OpenType SVG test fonts: DejaVuSans-SVG.ttf, NotoSans-SVG.ttf
+    and DejaVuSans-SVG-images.ttf, the DejaVu Sans and Noto Sans subsets
+    (see their licenses above) with `SVG ' tables (see the comments above
+    _png_rgba and _rgb_pattern); and the images of the last one, as files,
+    in the images directory next to `out`."""
     from fontTools.ttLib import newTable
     from fontTools.ttLib.tables.C_P_A_L_ import Color
     from fontTools.ttLib.tables.S_V_G_ import SVGDocument
@@ -3722,7 +4216,8 @@ def make_svg_fonts(out):
             ("DejaVuSans.ttf", "DejaVuSans-SVG.ttf", _dejavu_svg_docs,
              [[(255, 128, 0, 255), (0, 128, 255, 192), (32, 160, 32, 255)],
               [(20, 20, 20, 255), (200, 0, 200, 255), (255, 255, 255, 128)]]),
-            ("NotoSans-Regular.ttf", "NotoSans-SVG.ttf", _noto_svg_docs, None)]:
+            ("NotoSans-Regular.ttf", "NotoSans-SVG.ttf", _noto_svg_docs, None),
+            ("DejaVuSans.ttf", "DejaVuSans-SVG-images.ttf", _image_svg_docs, None)]:
         font = TTFont(os.path.join(out, name), recalcTimestamp=False)
         g = _glyph_of(font)
         svg = newTable("SVG ")
@@ -3737,6 +4232,7 @@ def make_svg_fonts(out):
                              for p in palettes]
             font["CPAL"] = cpal
         font.save(os.path.join(out, outname))
+    write_stb_test_images(os.path.join(out, "..", "images"))
 
 if __name__ == "__main__":
     args = sys.argv[1:]

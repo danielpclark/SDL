@@ -39,6 +39,11 @@ use crate::{
     STYLE_NORMAL, STYLE_STRIKETHROUGH, STYLE_UNDERLINE,
 };
 
+/// Held by the tests that render SVG glyphs: FreeType's SVG renderer keeps
+/// PlutoSVG's state in the library SDL_ttf shares between threads (as
+/// upstream's does), so two of them can't render at once.
+static SVG_RENDERER: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 static FONTS: [(&str, &[u8]); 2] = [
     (
         "DejaVuSans-SVG.ttf",
@@ -289,6 +294,7 @@ fn svg_corrupt_cases(out: &mut Vec<String>, name: &str, data: &[u8]) {
 
 #[test]
 fn matches_upstream_svg_reference() {
+    let _lock = SVG_RENDERER.lock().unwrap_or_else(|e| e.into_inner());
     crate::init().unwrap();
     let mut out = Vec::new();
     for (name, data) in FONTS {
@@ -332,5 +338,79 @@ fn matches_upstream_svg_reference() {
             .cloned()
             .collect::<Vec<_>>()
             .join("\n")
+    );
+}
+
+/// The characters of `DejaVuSans-SVG-images.ttf`'s SVG glyphs.
+const IMAGE_CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno";
+
+/// `testdata/fonts/DejaVuSans-SVG-images.ttf` (made by
+/// `tools/gen_sdl_ttf_testdata.py --svg`): the DejaVu Sans subset with SVG
+/// glyphs of four `image` elements each, in every format PlutoVG's
+/// stb_image decodes (BMP, GIF, HDR, PIC, PNM, PSD and TGA; the images in
+/// `testdata/images`), truncated and with a byte changed, with data URIs
+/// of the types PlutoSVG accepts (PNG and JPEG, whatever the data) and
+/// one it doesn't. `testdata/svg_image_reference.txt` is the output of a
+/// C program built from upstream SDL_ttf as above, running these cases.
+#[test]
+fn matches_upstream_svg_image_reference() {
+    let _lock = SVG_RENDERER.lock().unwrap_or_else(|e| e.into_inner());
+    crate::init().unwrap();
+    let mut out = vec!["== svg images".to_string()];
+    let f = open_mem(
+        include_bytes!("../testdata/fonts/DejaVuSans-SVG-images.ttf"),
+        16.5,
+    )
+    .unwrap();
+    for size in [12.0f32, 40.0, 96.0] {
+        f.set_size(size).unwrap();
+        for ch in IMAGE_CHARS.chars().map(|c| c as u32) {
+            out.push(format!(
+                "glyph {size} U+{ch:04X}: {}",
+                render_glyph(&f, 2, ch)
+            ));
+        }
+    }
+    f.set_size(40.0).unwrap();
+    for ch in IMAGE_CHARS.chars().map(|c| c as u32) {
+        let (ty, s) = match f.glyph_image(ch) {
+            Ok((s, ty)) => (ty, Ok(s)),
+            Err(e) => (ImageType::Invalid, Err(e)),
+        };
+        out.push(format!(
+            "glyph_image U+{ch:04X}: type={} {}",
+            ty as i32,
+            describe(s)
+        ));
+    }
+    f.set_size(16.5).unwrap();
+    for (m, mname) in MODES.iter().enumerate().take(3) {
+        out.push(format!("render {mname}: {}", render(&f, m, IMAGE_CHARS)));
+    }
+    drop(f);
+    crate::quit();
+
+    let reference: Vec<&str> = include_str!("../testdata/svg_image_reference.txt")
+        .lines()
+        .collect();
+    let failures: Vec<String> = reference
+        .iter()
+        .enumerate()
+        .filter(|&(i, expected)| out.get(i).map(String::as_str) != Some(*expected))
+        .map(|(i, expected)| {
+            format!(
+                "line {}:\n  expected {expected}\n  actual   {}",
+                i + 1,
+                out.get(i).map(String::as_str).unwrap_or("<missing>")
+            )
+        })
+        .collect();
+    assert!(
+        failures.is_empty() && out.len() == reference.len(),
+        "{} of {} lines differ from upstream ({} lines):\n{}",
+        failures.len(),
+        reference.len(),
+        out.len(),
+        failures.join("\n")
     );
 }

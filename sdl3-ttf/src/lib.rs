@@ -50,11 +50,11 @@
 //! with HarfBuzz, as SDL_ttf builds it: the auto-hinter finds the glyphs
 //! of OpenType features such as small capitals and superscripts).
 //!
-//! Not translated yet: the hinter of `pshinter` (which only the old Type 1
+//! Not translated: the hinter of `pshinter` (which only the old Type 1
 //! and CFF interpreters SDL_ttf's build leaves out use). SVG `image`
-//! elements are decoded with SDL's stb_image (PNG and JPEG; PlutoVG's own
-//! copy of stb_image also reads its other formats, which are not decoded
-//! here).
+//! elements are decoded with the `sdl3` crate's stb_image in PlutoVG's
+//! configuration (every format of stb_image's: PNG, JPEG, BMP, GIF, PSD,
+//! TGA, HDR, PIC and PNM).
 
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]

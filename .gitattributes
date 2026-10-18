@@ -45,3 +45,7 @@ sdl3-rtf/src/testdata/** binary
 
 # sdl3-shadercross's test shaders and their reference outputs.
 sdl3-shadercross/testdata/** binary
+
+# sdl3-ttf's test images (some with text headers ending in CRLF) are
+# decoded byte for byte: never convert them.
+sdl3-ttf/src/testdata/images/** binary
