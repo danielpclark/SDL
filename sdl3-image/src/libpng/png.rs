@@ -517,3 +517,19 @@ pub(crate) fn png_gamma_significant(gamma_val: i32) -> bool {
     gamma_val < PNG_FP_1 - PNG_GAMMA_THRESHOLD_FIXED
         || gamma_val > PNG_FP_1 + PNG_GAMMA_THRESHOLD_FIXED
 }
+
+/* These are the parameters of the Adam7 interlace passes, for the pixels in
+ * the pass (a value of 'pass' is 0 to 6).
+ */
+/// The first column of a pass (`PNG_PASS_START_COL`)
+#[allow(non_snake_case)]
+pub(crate) const fn PNG_PASS_START_COL(pass: u32) -> u32 {
+    ((1 & pass) << (3 - ((pass + 1) >> 1))) & 7
+}
+
+/// The offset between the pixels of a pass in the output row
+/// (`PNG_PASS_COL_OFFSET`)
+#[allow(non_snake_case)]
+pub(crate) const fn PNG_PASS_COL_OFFSET(pass: u32) -> u32 {
+    1 << ((7 - pass) >> 1)
+}

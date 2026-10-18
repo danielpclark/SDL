@@ -13,14 +13,14 @@
 //! libpng itself during the course of reading an image.
 //!
 //! The PNG streams SDL_image hands libpng (one per APNG frame, which it
-//! assembles itself) only ever hold IHDR (never interlaced), PLTE, tRNS,
-//! IDAT and IEND chunks, so only those chunks' handlers are translated;
-//! the table that names the others keeps their positions and lengths, and
-//! they are handled as unknown chunks (as in a libpng built without their
-//! support). The deinterlacing (`png_do_read_interlace()` and the
-//! interlaced paths of `png_combine_row()`), the decompression of
-//! compressed text and profiles and the unknown chunk cache are not
-//! translated either, for the same reason.
+//! assembles itself) only ever hold IHDR, PLTE, tRNS, IDAT and IEND chunks,
+//! so only those chunks' handlers are translated; the table that names the
+//! others keeps their positions and lengths, and they are handled as
+//! unknown chunks (as in a libpng built without their support). The
+//! decompression of compressed text and profiles and the unknown chunk
+//! cache are not translated either, for the same reason, nor are the
+//! deinterlacing paths for pixels under 8 bits (`png_do_read_interlace()`
+//! and `png_combine_row()` only see the transformed RGBA rows).
 
 use super::png::*;
 use super::pngerror::*;
@@ -32,6 +32,17 @@ use super::pngstruct::PngStruct;
 use crate::zlib::{
     inflate, inflate_init2, inflate_reset2, Z_DATA_ERROR, Z_NO_FLUSH, Z_OK, Z_STREAM_END,
 };
+
+/* Arrays to facilitate interlacing - use pass (0 - 6) as index. */
+
+/* Start of interlace block */
+const png_pass_start: [u8; 7] = [0, 4, 0, 2, 0, 1, 0];
+/* Offset to next interlace block */
+const png_pass_inc: [u8; 7] = [8, 8, 4, 4, 2, 2, 1];
+/* Start of interlace block in the y direction */
+const png_pass_ystart: [u8; 7] = [0, 0, 4, 0, 2, 0, 1];
+/* Offset to next interlace block in the y direction */
+const png_pass_yinc: [u8; 7] = [8, 8, 8, 4, 4, 2, 2];
 
 /// `png_get_uint_31`
 pub(crate) fn png_get_uint_31(png_ptr: &PngStruct<'_, '_>, buf: &[u8]) -> PngResult<u32> {
@@ -1003,15 +1014,16 @@ pub(crate) fn png_handle_chunk(
 /// depending on the 'display' value; if 'display' is true then the whole row
 /// (dp) is filled from the start by replicating the available pixels.  If
 /// 'display' is false only those pixels present in the pass are filled in.
-/// (`png_combine_row`, for a non-interlaced read)
+/// (`png_combine_row`)
 pub(crate) fn png_combine_row(
     png_ptr: &PngStruct<'_, '_>,
     dp: &mut [u8],
-    _display: i32,
+    display: i32,
 ) -> PngResult<()> {
-    let pixel_depth = png_ptr.transformed_pixel_depth as u32;
+    let mut pixel_depth = png_ptr.transformed_pixel_depth as u32;
     let sp = &png_ptr.row_buf[1..];
-    let row_width = png_ptr.width as usize;
+    let mut row_width = png_ptr.width as usize;
+    let pass = png_ptr.pass as u32;
     let mut end_ptr: Option<usize> = None;
     let mut end_byte: u8 = 0;
     let mut end_mask: u32;
@@ -1056,9 +1068,81 @@ pub(crate) fn png_combine_row(
      * does not call png_set_interlace_handling().  In the latter cases the
      * caller just gets a sequence of the unexpanded rows from each interlace
      * pass.
-     * (The interlaced combination isn't translated: SDL_image's frame
-     * streams are never interlaced.)
      */
+    if png_ptr.interlaced != 0
+        && (png_ptr.transformations & PNG_INTERLACE) != 0
+        && pass < 6
+        && (display == 0 ||
+        /* The following copies everything for 'display' on passes 0, 2 and 4. */
+        (display == 1 && (pass & 1) != 0))
+    {
+        /* Narrow images may have no bits in a pass; the caller should handle
+         * this, but this test is cheap:
+         */
+        if row_width <= PNG_PASS_START_COL(pass) as usize {
+            return Ok(());
+        }
+
+        if pixel_depth < 8 {
+            /* (The masked copy of pixels under 8 bits isn't translated: the
+             * rows are RGBA here) */
+            return Err(png_error(png_ptr, "internal row logic error"));
+        }
+
+        /* Validate the depth - it must be a multiple of 8 */
+        if (pixel_depth & 7) != 0 {
+            return Err(png_error(png_ptr, "invalid user transform pixel depth"));
+        }
+
+        pixel_depth >>= 3; /* now in bytes */
+        row_width *= pixel_depth as usize;
+
+        /* Regardless of pass number the Adam 7 interlace always results in a
+         * fixed number of pixels to copy then to skip.  There may be a
+         * different number of pixels to skip at the start though.
+         */
+        let offset = (PNG_PASS_START_COL(pass) * pixel_depth) as usize;
+        row_width -= offset;
+        let mut d = offset;
+        let mut s = offset;
+
+        /* Work out the bytes to copy. */
+        let mut bytes_to_copy = if display != 0 {
+            /* When doing the 'block' algorithm the pixel in the pass gets
+             * replicated to adjacent pixels.  This is why the even (0,2,4,6)
+             * passes are skipped above - the entire expanded row is copied.
+             */
+            let n = ((1 << ((6 - pass) >> 1)) * pixel_depth) as usize;
+
+            /* But don't allow this number to exceed the actual row width. */
+            n.min(row_width)
+        } else {
+            /* normal row; Adam7 only ever gives us one pixel to copy. */
+            pixel_depth as usize
+        };
+
+        /* In Adam7 there is a constant offset between where the pixels go. */
+        let bytes_to_jump = (PNG_PASS_COL_OFFSET(pass) * pixel_depth) as usize;
+
+        /* And simply copy these bytes.  (Upstream special-cases the low byte
+         * counts and aligned 16 and 32-bit copies; each copies the same bytes
+         * as the memcpy() of its true default, which is what is done here.)
+         */
+        loop {
+            dp[d..d + bytes_to_copy].copy_from_slice(&sp[s..s + bytes_to_copy]);
+
+            if row_width <= bytes_to_jump {
+                return Ok(());
+            }
+
+            s += bytes_to_jump;
+            d += bytes_to_jump;
+            row_width -= bytes_to_jump;
+            if bytes_to_copy > row_width {
+                bytes_to_copy = row_width;
+            }
+        }
+    }
 
     /* If here then the switch above wasn't used so just memcpy the whole row
      * from the temporary row buffer (notice that this overwrites the end of the
@@ -1072,6 +1156,39 @@ pub(crate) fn png_combine_row(
         dp[e] = ((end_byte as u32 & end_mask) | (dp[e] as u32 & !end_mask)) as u8;
     }
     Ok(())
+}
+
+/// Expand an interlace pass's row to the full width, each pixel repeated
+/// over the pass's columns (`png_do_read_interlace`; only for pixels of 8
+/// bits or more: the rows are RGBA here)
+pub(crate) fn png_do_read_interlace(row_info: &mut PngRowInfo, row: &mut [u8], pass: usize) {
+    let final_width = row_info.width * png_pass_inc[pass] as u32;
+
+    if row_info.pixel_depth >= 8 {
+        let pixel_bytes = (row_info.pixel_depth >> 3) as usize;
+
+        /* (one past the pixels upstream's pointers point to) */
+        let mut sp = row_info.width as usize * pixel_bytes;
+        let mut dp = final_width as usize * pixel_bytes;
+
+        let jstop = png_pass_inc[pass] as usize;
+
+        for _ in 0..row_info.width {
+            let mut v = [0u8; 8]; /* SAFE; pixel_depth does not exceed 64 */
+            v[..pixel_bytes].copy_from_slice(&row[sp - pixel_bytes..sp]);
+
+            for _ in 0..jstop {
+                row[dp - pixel_bytes..dp].copy_from_slice(&v[..pixel_bytes]);
+                dp -= pixel_bytes;
+            }
+
+            sp -= pixel_bytes;
+        }
+    }
+    /* (pixel depths 1, 2 and 4: not translated) */
+
+    row_info.width = final_width;
+    row_info.rowbytes = png_rowbytes(row_info.pixel_depth as u32, final_width as usize);
 }
 
 /// `png_read_filter_row_sub`
@@ -1457,7 +1574,48 @@ pub(crate) fn png_read_finish_row(png_ptr: &mut PngStruct<'_, '_>) -> PngResult<
         return Ok(());
     }
 
-    /* (png_ptr->interlaced != 0: the next pass; never the case here) */
+    if png_ptr.interlaced != 0 {
+        png_ptr.row_number = 0;
+
+        /* TO DO: don't do this if prev_row isn't needed (requires
+         * read-ahead of the next row's filter byte.
+         */
+        let n = png_ptr.rowbytes + 1;
+        if let Some(prev) = png_ptr.prev_row.as_mut() {
+            prev[..n].fill(0);
+        }
+
+        loop {
+            png_ptr.pass += 1;
+
+            if png_ptr.pass >= 7 {
+                break;
+            }
+
+            let pass = png_ptr.pass as usize;
+            png_ptr.iwidth =
+                (png_ptr.width + png_pass_inc[pass] as u32 - 1 - png_pass_start[pass] as u32)
+                    / png_pass_inc[pass] as u32;
+
+            if (png_ptr.transformations & PNG_INTERLACE) == 0 {
+                png_ptr.num_rows = (png_ptr.height + png_pass_yinc[pass] as u32
+                    - 1
+                    - png_pass_ystart[pass] as u32)
+                    / png_pass_yinc[pass] as u32;
+            } else {
+                /* if (png_ptr->transformations & PNG_INTERLACE) */
+                break; /* libpng deinterlacing sees every row */
+            }
+
+            if !(png_ptr.num_rows == 0 || png_ptr.iwidth == 0) {
+                break;
+            }
+        }
+
+        if png_ptr.pass < 7 {
+            return Ok(());
+        }
+    }
 
     /* Here after at the end of the last row of the last pass. */
     png_read_finish_IDAT(png_ptr)
@@ -1470,9 +1628,23 @@ pub(crate) fn png_read_start_row(png_ptr: &mut PngStruct<'_, '_>) -> PngResult<(
 
     super::pngrtran::png_init_read_transformations(png_ptr);
 
-    /* (png_ptr->interlaced != 0: never the case here) */
-    png_ptr.num_rows = png_ptr.height;
-    png_ptr.iwidth = png_ptr.width;
+    if png_ptr.interlaced != 0 {
+        if (png_ptr.transformations & PNG_INTERLACE) == 0 {
+            png_ptr.num_rows =
+                (png_ptr.height + png_pass_yinc[0] as u32 - 1 - png_pass_ystart[0] as u32)
+                    / png_pass_yinc[0] as u32;
+        } else {
+            png_ptr.num_rows = png_ptr.height;
+        }
+
+        let pass = png_ptr.pass as usize;
+        png_ptr.iwidth =
+            (png_ptr.width + png_pass_inc[pass] as u32 - 1 - png_pass_start[pass] as u32)
+                / png_pass_inc[pass] as u32;
+    } else {
+        png_ptr.num_rows = png_ptr.height;
+        png_ptr.iwidth = png_ptr.width;
+    }
 
     max_pixel_depth = png_ptr.pixel_depth as u32;
 
