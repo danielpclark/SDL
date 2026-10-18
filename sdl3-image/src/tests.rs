@@ -38,7 +38,10 @@
 //! divides by) decodes as its twin with 100 there, and where upstream
 //! leaves the error message empty
 //! (libtiff only prints its errors, and a WebP or APNG animation
-//! encoder's successful write clears a frame's error) any message is taken.
+//! encoder's successful write clears a frame's error), or replaces a
+//! saved animation's frame error with the encoder's "No frames added to
+//! animation" as it closes (where the translation keeps the first error),
+//! any message is taken.
 
 use sdl3::io::IoStream;
 use sdl3::video::{
@@ -974,8 +977,11 @@ fn check(name: &str, label: &str, expected: &str, actual: &str, failures: &mut V
         // upstream's endless recursion on an animated WebP the WebP
         // animation decoder rejects
         actual.starts_with("err: ")
-    } else if expected == "err: " {
-        // upstream leaves the error message empty (or stale) here
+    } else if expected == "err: "
+        || (label.starts_with("save_anim ") && expected == "err: No frames added to animation")
+    {
+        // upstream leaves the error message empty (or stale) here, or, an
+        // animation's frame failing, the encoder's close replaces it
         actual.starts_with("err: ")
     } else if expected.contains(" err= | ") {
         // the same, for an animation decoder's failure (libtiff's)
