@@ -1793,26 +1793,40 @@ fn gpu_pass(
 fn gpu_text_engine_matches_upstream_reference() {
     use sdl3::gpu::{Device, ShaderFormat};
 
+    // The engine compiles no shaders, so any backend does: everything
+    // dumped is backend independent (the atlases are B8G8R8A8_UNORM, which
+    // every backend renders to, cleared to zero and filled and read back
+    // as raw bytes, and the draw sequences are computed on the CPU).
+    let formats = ShaderFormat::SPIRV | ShaderFormat::DXBC | ShaderFormat::DXIL | ShaderFormat::MSL;
     // Declared before the device, so dropped after it.
     let video = OffscreenVideo::init();
     let device = match video
         .as_ref()
         .map_err(Clone::clone)
-        .and_then(|_| Device::new(ShaderFormat::SPIRV, false, None))
+        .and_then(|_| Device::new(formats, false, None))
     {
         Ok(device) => device,
         Err(e) => {
             // SDL3_TEST_REQUIRE (docs/HARDWARE_TESTING.md) makes a missing
             // GPU a failure.
+            let capability = if cfg!(target_os = "linux") {
+                "vulkan"
+            } else if cfg!(windows) {
+                "d3d12"
+            } else {
+                "metal"
+            };
             let list = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
             let required = list
                 .split(',')
-                .any(|c| c == "all" || (cfg!(target_os = "linux") && c == "vulkan"));
+                .map(str::trim)
+                .any(|c| c == "all" || c == capability);
             assert!(!required, "no GPU device: {e}");
             eprintln!("skipped: no GPU device ({e})");
             return;
         }
     };
+    eprintln!("note: GPU device {}", device.driver());
 
     crate::init().unwrap();
     let mut out = Vec::new();
