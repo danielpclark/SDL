@@ -2733,11 +2733,13 @@ impl<'a> Drmp3<'a> {
                         && &ape[..8] == b"APETAGEX"
                     {
                         /* We have an APE tag. */
-                        // FIXME (upstream): `ape` is a `char` array, so on
-                        // targets where `char` is signed (x86) a size byte
-                        // of 0x80 or more is sign extended over the higher
-                        // ones. Done the same here.
-                        let c = |b: u8| b as i8 as i32 as u32;
+                        // Note (upstream): `ape` is a `char` array there, so
+                        // on targets where `char` is signed (x86) a size
+                        // byte of 0x80 or more was sign extended over the
+                        // higher ones; the translation's bytes are unsigned.
+                        // FIXME (upstream): the APEv2 footer's tag size is
+                        // its bytes 12 to 15; 24 to 31 are reserved (zero).
+                        let c = |b: u8| b as u32;
                         let tag_size: u32 = c(ape[24])
                             | (c(ape[25]) << 8)
                             | (c(ape[26]) << 16)

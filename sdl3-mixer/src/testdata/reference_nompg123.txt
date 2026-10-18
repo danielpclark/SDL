@@ -203,6 +203,51 @@ corrupt 5: err:
 corrupt 5 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 691be785f148cf21
 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 0872126e4572e17f
 mixpre: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 5c8430610cf9c37a
+== mp3_ape_reserved.mp3
+open: DRMP3 0x8120 2 22050 frames=5184 | 41472 8380e3ac17a9cf3e end=0
+f32s48: 90280 92e382006d51a5f7 end=0
+s16m22: 10368 3cde5cf139cf9e5d end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: DRMP3 0x8120 2 22050 frames=576 | 4608 54522ab7825c790d end=0
+trunc 256: DRMP3 0x8120 2 22050 frames=576 | 4608 54522ab7825c790d end=0
+trunc 300: DRMP3 0x8120 2 22050 frames=576 | 4608 54522ab7825c790d end=0
+trunc 512: DRMP3 0x8120 2 22050 frames=1728 | 13824 f9e43679c7a801b3 end=0
+trunc 1000: DRMP3 0x8120 2 22050 frames=3456 | 27648 431ea082e67b32ef end=0
+trunc 399: DRMP3 0x8120 2 22050 frames=1152 | 9216 237db3b6947bda12 end=0
+trunc 799: DRMP3 0x8120 2 22050 frames=2880 | 23040 4088a5d7d18b3f8a end=0
+trunc 1199: DRMP3 0x8120 2 22050 frames=4032 | 32256 356329cd1c4f51af end=0
+trunc 1598: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: DRMP3 0x8120 2 22050 frames=5184 | 41472 b4dfaa1f97ad6409 end=0
+corrupt 0 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 649d436a3d6b7007
+corrupt 1: DRMP3 0x8120 2 22050 frames=5184 | 41472 840392dec9175c2a end=0
+corrupt 1 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 dabf5281cba9bfdb
+corrupt 2: DRMP3 0x8120 2 22050 frames=5184 | 41472 d30ab468284f0e19 end=0
+corrupt 2 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 2fca73e32c6da075
+corrupt 3: DRMP3 0x8120 2 22050 frames=4032 | 32256 e65412e15b5fa513 end=0
+corrupt 3 mix: dur=4032 play=1 pos=1613 replay=1 seek=1 pos=1344 playing=1 2c3a4f6800c6d530
+corrupt 4: DRMP3 0x8120 2 22050 frames=5184 | 41472 c069845abad51524 end=0
+corrupt 4 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 64e07e6e3c617482
+corrupt 5: DRMP3 0x8120 2 22050 frames=5184 | 41472 f17f4ccd401ce781 end=0
+corrupt 5 mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 36fb141069676740
+mix: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 0872126e4572e17f
+mixpre: dur=5184 play=1 pos=461 replay=1 seek=1 pos=1728 playing=1 5c8430610cf9c37a
 == mp3_cbr_mono.mp3
 open: DRMP3 0x8120 1 22050 frames=8064 | 26460 053a45e37fec5d01 end=0
 f32s48: 115200 725e318bcf51f511 end=0

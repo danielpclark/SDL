@@ -272,6 +272,11 @@ def mp3_files():
     id3v1 = b'TAG' + b'ID3v1 title'.ljust(30, b'\0') + b'ID3v1 artist'.ljust(30, b'\0') + \
         b'ID3v1 album'.ljust(30, b'\0') + b'1987' + b'comment'.ljust(28, b'\0') + b'\0\x05' + b'\x0c'
     write('mp3_ape_id3v1.mp3', plain + ape_tag([('Title', 'APE title'), ('Artist', 'APE artist')]) + id3v1)
+    # An APE footer but for its reserved bytes, so SDL_mixer doesn't take it
+    # for a tag, and dr_mp3 reads them as the tag's size (0x90: over the
+    # last frame), a byte that's negative as a signed char.
+    footer = b'APETAGEX' + struct.pack('<IIII', 2000, 32, 0, 0) + bytes([0x90, 0, 0, 0, 0, 0, 0, 0])
+    write('mp3_ape_reserved.mp3', plain + footer)
     rng = Lcg(57)
     write('mp3_junk.mp3', bytes(rng.next() >> 24 for _ in range(700)) + plain)
 
