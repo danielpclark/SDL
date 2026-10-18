@@ -45,6 +45,8 @@ use sdl3::video::{
 
 use crate::qoi::codec;
 
+mod avif_anim;
+
 macro_rules! images {
     ($($name:literal,)*) => {
         &[$(($name, include_bytes!(concat!("testdata/images/", $name)) as &[u8]),)*]
@@ -748,6 +750,30 @@ fn dump_saved_anim(saved: sdl3::Result<IoStream<'_>>) -> String {
     }
 }
 
+/// `dump_saved_anim()` for an AVIF image sequence: its hash is of the file
+/// with the boxes' wall-clock creation and modification times zeroed (see
+/// `avif_anim`), as the harness's.
+fn dump_saved_avif_anim(saved: sdl3::Result<IoStream<'_>>) -> String {
+    match saved {
+        Err(e) => format!("err: {e}"),
+        Ok(io) => {
+            let bytes = io.dynamic_memory().unwrap_or(&[]).to_vec();
+            let mut normalized = bytes.clone();
+            let n = normalized.len();
+            avif_anim::normalize(&mut normalized, 0, n, 0);
+            format!(
+                "bytes={} hash={:016x} | reload: {}",
+                bytes.len(),
+                fnv(FNV0, &normalized),
+                describe_anim(crate::load_animation_typed_io(
+                    &mut IoStream::from_const_mem(&bytes),
+                    None
+                ))
+            )
+        }
+    }
+}
+
 /// The harness's encoder runs over an animation's frames: the GIF encoder
 /// with options and the ANI encoder with metadata.
 fn encode_with(anim: &mut crate::Animation, gif: bool) -> sdl3::Result<IoStream<'static>> {
@@ -1129,7 +1155,12 @@ fn matches_upstream_reference() {
                 continue;
             };
             let mut io = IoStream::from_dynamic_mem();
-            dump_saved_anim(crate::save_animation_typed_io(anim, &mut io, t).map(|()| io))
+            let saved = crate::save_animation_typed_io(anim, &mut io, t).map(|()| io);
+            if t == "avif" {
+                dump_saved_avif_anim(saved)
+            } else {
+                dump_saved_anim(saved)
+            }
         } else if label == "gif_enc lut16" || label == "ani_enc meta" {
             let Some(anim) = loaded_anim.as_mut() else {
                 failures.push(format!("{name}: {label}: the animation didn't load"));
@@ -1789,11 +1820,8 @@ fn animation_api_errors() {
     let mut out = IoStream::from_dynamic_mem();
     let e = crate::AnimationEncoder::from_io(&mut out, "xyz").unwrap_err();
     assert_eq!(e.to_string(), "Unrecognized output type");
-    let e = crate::AnimationEncoder::from_io(&mut out, "avif").unwrap_err();
-    assert_eq!(
-        e.to_string(),
-        "SDL_image built without AVIF animation save support"
-    );
+    // (the AVIF encoder: see avif_anim)
+    assert!(crate::AnimationEncoder::from_io(&mut out, "avif").is_ok());
     // APNG frames must keep the first frame's size (the message counts in
     // sequence numbers)
     {

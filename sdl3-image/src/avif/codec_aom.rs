@@ -12,14 +12,15 @@
 //! methods; the codec specific options and the diagnostics it shares with
 //! the encoder are the encoder's, passed in).
 //!
-//! The translated libaom codes what SDL_image's saver asks of it: a single
-//! still frame (`AOM_USAGE_ALL_INTRA`) of 10-bit samples, 4:4:4 color or
-//! monochrome alpha. Other requests fail where libaom would be called for
-//! what is not translated: the good quality and real-time usages (image
-//! sequences, `aom_codec_enc_config_default()` fails), other bit depths and
+//! The translated libaom codes what SDL_image's saver and animation
+//! encoder ask of it: a single still frame (`AOM_USAGE_ALL_INTRA`) of
+//! 10-bit samples, or a sequence (`AOM_USAGE_REALTIME`) of 8-bit or 10-bit
+//! frames, 4:4:4 color or monochrome alpha. Other requests fail where
+//! libaom would be called for what is not translated: the good quality
+//! usage (`aom_codec_enc_config_default()` fails), other bit depths and
 //! chroma subsamplings, `aom_codec_set_option()` (codec specific options),
 //! `aom_codec_enc_config_set()`, spatial layers, scaling modes and frame
-//! flags.
+//! flags other than `AOM_EFLAG_FORCE_KF`.
 
 use crate::aom::av1::av1_cx_iface::{
     aom_codec_enc_config_default, ctrl_set_chroma_sample_position, ctrl_set_color_primaries,
@@ -467,9 +468,11 @@ impl AvifCodec {
             if self.internal.aom_format == AOM_IMG_FMT_NONE {
                 return AvifResult::UnknownError;
             }
-            // (the translated libaom codes 10-bit 4:4:4 color and monochrome
-            // alpha: see the module documentation)
-            if image.depth != 10 || (!alpha && image.yuv_format != AvifPixelFormat::Yuv444) {
+            // (the translated libaom codes 8-bit and 10-bit 4:4:4 color and
+            // monochrome alpha: see the module documentation)
+            if (image.depth != 8 && image.depth != 10)
+                || (!alpha && image.yuv_format != AvifPixelFormat::Yuv444)
+            {
                 printf(
                     diag,
                     format_args!(
@@ -882,6 +885,28 @@ impl AvifCodec {
         let aom_image_allocated = (image.width == 1) || (image.height == 1);
         // (the planes aom_img_alloc() allocates)
         let mut allocated_planes: [Vec<u16>; 3] = Default::default();
+        // (libaom reads 8-bit planes as bytes; the translated libaom takes
+        // samples, so the planes of an 8-bit image are widened: the Y, U, V
+        // and alpha planes, and the samples a row strides over)
+        let mut widened: [Vec<u16>; 4] = Default::default();
+        let sample_bytes = if image.depth > 8 { 2 } else { 1 };
+        if image.depth <= 8 {
+            let planes = [
+                image.yuv_planes[0].as_ref(),
+                image.yuv_planes[1].as_ref(),
+                image.yuv_planes[2].as_ref(),
+                image.alpha_plane.as_ref(),
+            ];
+            for (w, plane) in widened.iter_mut().zip(planes) {
+                if let Some(plane) = plane {
+                    let src = plane.u8s();
+                    if w.try_reserve_exact(src.len()).is_err() {
+                        return AvifResult::OutOfMemory;
+                    }
+                    w.extend(src.iter().map(|&b| b as u16));
+                }
+            }
+        }
         let mut aom_image = AomImage {
             fmt: aom_format,
             cp: 0,
@@ -902,26 +927,26 @@ impl AvifCodec {
         };
         if aom_image_allocated {
             // (aom_img_alloc(&aomImage, aomFormat, width, height, 16): the
-            // 16-bit sample formats, with strides aligned to 16 bytes)
+            // strides aligned to 16 bytes, in samples here)
             let (xcs, ycs) = match aom_format {
-                AOM_IMG_FMT_I42016 => (1, 1),
-                AOM_IMG_FMT_I42216 => (1, 0),
+                AOM_IMG_FMT_I420 | AOM_IMG_FMT_I42016 => (1, 1),
+                AOM_IMG_FMT_I422 | AOM_IMG_FMT_I42216 => (1, 0),
                 _ => (0, 0),
             };
             let w = (image.width + ((1 << xcs) - 1)) & !((1 << xcs) - 1);
             let h = (image.height + ((1 << ycs) - 1)) & !((1 << ycs) - 1);
-            let stride_in_bytes = ((w * 2 + 16 - 1) & !(16 - 1)) as usize;
+            let stride_in_bytes = (w as usize * sample_bytes + 16 - 1) & !(16 - 1);
             aom_image.w = w;
             aom_image.h = h;
             aom_image.x_chroma_shift = xcs;
             aom_image.y_chroma_shift = ycs;
-            aom_image.stride[0] = (stride_in_bytes / 2) as i32;
-            aom_image.stride[1] = ((stride_in_bytes >> xcs) / 2) as i32;
+            aom_image.stride[0] = (stride_in_bytes / sample_bytes) as i32;
+            aom_image.stride[1] = ((stride_in_bytes >> xcs) / sample_bytes) as i32;
             aom_image.stride[2] = aom_image.stride[1];
             let sizes = [
-                h as usize * (stride_in_bytes / 2),
-                (h >> ycs) as usize * ((stride_in_bytes >> xcs) / 2),
-                (h >> ycs) as usize * ((stride_in_bytes >> xcs) / 2),
+                h as usize * (stride_in_bytes / sample_bytes),
+                (h >> ycs) as usize * ((stride_in_bytes >> xcs) / sample_bytes),
+                (h >> ycs) as usize * ((stride_in_bytes >> xcs) / sample_bytes),
             ];
             for (plane, size) in allocated_planes.iter_mut().zip(sizes) {
                 if plane.try_reserve_exact(size).is_err() {
@@ -953,8 +978,12 @@ impl AvifCodec {
             let Some(alpha_plane) = &image.alpha_plane else {
                 return AvifResult::UnknownError;
             };
-            let src = alpha_plane.u16s();
-            let src_stride = image.alpha_row_bytes as usize / 2;
+            let src: &[u16] = if sample_bytes == 2 {
+                alpha_plane.u16s()
+            } else {
+                &widened[3]
+            };
+            let src_stride = image.alpha_row_bytes as usize / sample_bytes;
             if aom_image_allocated {
                 let samples_per_row = image.width as usize;
                 let dst_stride = aom_image.stride[0] as usize;
@@ -981,8 +1010,12 @@ impl AvifCodec {
                     let Some(src_plane) = &image.yuv_planes[yuv_plane] else {
                         return AvifResult::UnknownError;
                     };
-                    let src = src_plane.u16s();
-                    let src_stride = image.yuv_row_bytes[yuv_plane] as usize / 2;
+                    let src: &[u16] = if sample_bytes == 2 {
+                        src_plane.u16s()
+                    } else {
+                        &widened[yuv_plane]
+                    };
+                    let src_stride = image.yuv_row_bytes[yuv_plane] as usize / sample_bytes;
                     let dst_stride = aom_image.stride[yuv_plane] as usize;
 
                     for j in 0..plane_height {
@@ -995,8 +1028,13 @@ impl AvifCodec {
                     let Some(src_plane) = &image.yuv_planes[yuv_plane] else {
                         return AvifResult::UnknownError;
                     };
-                    aom_image.planes[yuv_plane] = src_plane.u16s();
-                    aom_image.stride[yuv_plane] = (image.yuv_row_bytes[yuv_plane] / 2) as i32;
+                    aom_image.planes[yuv_plane] = if sample_bytes == 2 {
+                        src_plane.u16s()
+                    } else {
+                        &widened[yuv_plane]
+                    };
+                    aom_image.stride[yuv_plane] =
+                        (image.yuv_row_bytes[yuv_plane] as usize / sample_bytes) as i32;
                 }
             }
 
@@ -1033,12 +1071,7 @@ impl AvifCodec {
         let Some(ctx) = self.internal.encoder.as_mut() else {
             return AvifResult::UnknownError;
         };
-        // (av1_apply_encoding_flags(): frame flags are not translated)
-        let encode_result = if encode_flags != 0 {
-            Err(())
-        } else {
-            encoder_encode(ctx, Some(&aom_image), 0, 1, encode_flags)
-        };
+        let encode_result = encoder_encode(ctx, Some(&aom_image), 0, 1, encode_flags);
         let Ok(pkts) = encode_result else {
             printf(
                 diag,

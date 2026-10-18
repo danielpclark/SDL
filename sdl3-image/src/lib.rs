@@ -40,17 +40,14 @@
 //! * Animations: [`load_animation`] and friends read whole [`Animation`]s
 //!   (GIF, WebP, APNG, AVIF image sequences and ANI cursors, or any still
 //!   image as one frame), and
-//!   [`save_animation`] writes them (GIF, ANI, APNG and WebP, the latter
-//!   through translations of libwebp's animation encoder and muxer, APNG
-//!   through translations of libpng's reader and writer and zlib's inflate
-//!   and deflate);
+//!   [`save_animation`] writes them (GIF, ANI, APNG, WebP and AVIF image
+//!   sequences: WebP through translations of libwebp's animation encoder
+//!   and muxer, APNG through translations of libpng's reader and writer and
+//!   zlib's inflate and deflate, AVIF through translations of libavif's
+//!   image sequence writer and of libaom's real-time AV1 encoder);
 //!   [`AnimationDecoder`] and
 //!   [`AnimationEncoder`] work frame by frame with timebases and metadata,
 //!   and [`create_animated_cursor`] makes a cursor from an animation.
-//!
-//! Not translated yet: the AVIF animation encoder (which needs libaom's
-//! inter frame coding); it fails with upstream's message for a build
-//! without it.
 //!
 //! As in the [`sdl3`] crate, the implementation is a line-by-line
 //! translation and the API is designed for Rust: the `closeio` flags are
