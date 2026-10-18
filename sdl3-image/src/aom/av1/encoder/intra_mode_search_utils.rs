@@ -442,15 +442,11 @@ pub(crate) fn model_intra_yrd_and_prune(
     let tx_size = TX_32X32.min(MAX_TXSIZE_LOOKUP[bsize as usize]);
     let plane = 0;
     let cm = &cpi.common;
-    let this_model_rd = intra_model_rd(
-        cm,
-        x,
-        &cpi.source().buffer_alloc,
-        plane,
-        bsize,
-        tx_size,
-        /*use_hadamard=*/ true,
-    )?;
+    let this_model_rd = with_source(x, |x, src| {
+        intra_model_rd(
+            cm, x, src, plane, bsize, tx_size, /*use_hadamard=*/ true,
+        )
+    })?;
     if *best_model_rd != i64::MAX && this_model_rd > *best_model_rd + (*best_model_rd >> 2) {
         return Ok(true);
     } else if this_model_rd < *best_model_rd {

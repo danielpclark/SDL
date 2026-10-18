@@ -1524,6 +1524,30 @@ pub(crate) fn get_ref_frame_buf(cm: &Av1Common, ref_frame: MvReferenceFrame) -> 
     }
 }
 
+/// Translation of `get_ref_frame_yv12_buf()`: the frame buffer and its
+/// buffer pool index.
+#[inline]
+pub(crate) fn get_ref_frame_yv12_buf(
+    cm: &Av1Common,
+    ref_frame: MvReferenceFrame,
+) -> Option<(&Yv12BufferConfig, usize)> {
+    get_ref_frame_buf(cm, ref_frame).map(|i| (&cm.buffer_pool.frame_bufs[i].buf, i))
+}
+
+/// Translation of `get_ref_scale_factors_const()`.
+#[inline]
+pub(crate) fn get_ref_scale_factors_const(
+    cm: &Av1Common,
+    ref_frame: MvReferenceFrame,
+) -> Option<&ScaleFactors> {
+    let map_idx = get_ref_frame_map_idx(cm, ref_frame);
+    if map_idx != INVALID_IDX {
+        Some(&cm.ref_scale_factors[map_idx as usize])
+    } else {
+        None
+    }
+}
+
 #[inline]
 pub(crate) fn get_primary_ref_frame_buf(cm: &Av1Common) -> Option<usize> {
     let primary_ref_frame = cm.features.primary_ref_frame;
@@ -1548,6 +1572,49 @@ pub(crate) fn get_sqr_tx_size(tx_dim: i32) -> TxSize {
         8 => TX_8X8,
         _ => TX_4X4,
     }
+}
+
+/// Translation of `get_tx_size()`.
+#[inline]
+pub(crate) fn get_tx_size(width: i32, height: i32) -> TxSize {
+    if width == height {
+        return get_sqr_tx_size(width);
+    }
+    if width < height {
+        if width + width == height {
+            match width {
+                4 => return TX_4X8,
+                8 => return TX_8X16,
+                16 => return TX_16X32,
+                32 => return TX_32X64,
+                _ => {}
+            }
+        } else {
+            match width {
+                4 => return TX_4X16,
+                8 => return TX_8X32,
+                16 => return TX_16X64,
+                _ => {}
+            }
+        }
+    } else if height + height == width {
+        match height {
+            4 => return TX_8X4,
+            8 => return TX_16X8,
+            16 => return TX_32X16,
+            32 => return TX_64X32,
+            _ => {}
+        }
+    } else {
+        match height {
+            4 => return TX_16X4,
+            8 => return TX_32X8,
+            16 => return TX_64X16,
+            _ => {}
+        }
+    }
+    debug_assert!(false);
+    TX_4X4
 }
 
 /// Translation of `txfm_partition_context()`: the above and left contexts

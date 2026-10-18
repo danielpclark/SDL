@@ -26,7 +26,7 @@ use crate::aom::av1::common::entropymode::*;
 use crate::aom::av1::common::entropymv::{MV_JOINTS, MV_VALS};
 use crate::aom::av1::common::enums::*;
 use crate::aom::av1::common::filter::{SWITCHABLE_FILTERS, SWITCHABLE_FILTER_CONTEXTS};
-use crate::aom::av1::common::mv::IntMv;
+use crate::aom::av1::common::mv::{FullMvLimits, IntMv};
 use crate::aom::av1::common::seg_common::{
     MAX_SEGMENTS, SEG_TEMPORAL_PRED_CTXS, SPATIAL_PREDICTION_PROBS,
 };
@@ -508,6 +508,27 @@ pub(crate) const K_LOW_SAD: i32 = 2;
 pub(crate) const K_MED_SAD: i32 = 3;
 pub(crate) const K_HIGH_SAD: i32 = 4;
 
+/// `PartitionSearchInfo` (the reached member)
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PartitionSearchInfo {
+    /// Stores the flags of the blocks of the superblock whose temporal
+    /// variance is low (the variance-based partitioning sets it, the
+    /// non-RD mode search reads it):
+    /// - 0 - 128x128 (or 64x64 for the 64x64 superblocks)
+    /// - 1-2 - 128x64, 3-4 - 64x128, 5-8 - 64x64 (or 32x32)
+    /// - 9-16 - 64x32 (or 16x16), 17-24 - 32x64, 25-40 - 32x32
+    /// - 41-104 - 16x16
+    pub(crate) variance_low: [u8; 105],
+}
+
+impl Default for PartitionSearchInfo {
+    fn default() -> Self {
+        PartitionSearchInfo {
+            variance_low: [0; 105],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct ContentStateSb {
     pub(crate) source_sad_nonrd: i32,
@@ -594,6 +615,27 @@ pub(crate) struct Macroblock {
 
     /// Information on the source content of the superblock.
     pub(crate) content_state_sb: ContentStateSb,
+    /// Stores some partition-search related buffers.
+    pub(crate) part_search_info: PartitionSearchInfo,
+    /// Reference frame search pruning level of the non-RD mode search.
+    pub(crate) nonrd_prune_ref_frame_search: i32,
+    /// The fullpel motion vector limits of the current block.
+    pub(crate) mv_limits: FullMvLimits,
+    /// The samples of `cpi->source` (`buffer_alloc`), moved in while the
+    /// frame is coded: the in-place temporal filter of
+    /// `av1_source_content_sb()` writes them (see `with_source()`).
+    pub(crate) source_alloc: Vec<u16>,
+    /// The sum of absolute differences of the best reference motion vector
+    /// candidate of each reference (`av1_mv_pred()`).
+    pub(crate) pred_mv_sad: [i32; REF_FRAMES as usize],
+    /// The best `pred_mv_sad` of the past and the future references.
+    pub(crate) best_pred_mv_sad: [i32; 2],
+    /// The sums of absolute differences of the first and second candidates.
+    pub(crate) pred_mv0_sad: [i32; REF_FRAMES as usize],
+    pub(crate) pred_mv1_sad: [i32; REF_FRAMES as usize],
+    /// The largest candidate motion vector component of each reference
+    /// (in full pixels).
+    pub(crate) max_mv_context: [i32; REF_FRAMES as usize],
 
     /// Whether to reuse the prediction for an inter block.
     pub(crate) reuse_inter_pred: bool,
@@ -666,6 +708,15 @@ impl Default for Macroblock {
             force_zeromv_skip_for_blk: 0,
             prev_segment_id: 0,
             content_state_sb: ContentStateSb::default(),
+            part_search_info: PartitionSearchInfo::default(),
+            nonrd_prune_ref_frame_search: 0,
+            mv_limits: FullMvLimits::default(),
+            source_alloc: Vec::new(),
+            pred_mv_sad: [0; REF_FRAMES as usize],
+            best_pred_mv_sad: [0; 2],
+            pred_mv0_sad: [0; REF_FRAMES as usize],
+            pred_mv1_sad: [0; REF_FRAMES as usize],
+            max_mv_context: [0; REF_FRAMES as usize],
             reuse_inter_pred: false,
             txfm_search_params: TxfmSearchParams::default(),
             txfm_search_info: TxfmSearchInfo::default(),
@@ -679,6 +730,20 @@ impl Default for Macroblock {
             row_ctx: Vec::new(),
         }
     }
+}
+
+/// Runs `f` on the macroblock and the source samples (`x.source_alloc`,
+/// moved out of `x` while `f` runs, so `f` must not read them through
+/// `x`).
+#[inline]
+pub(crate) fn with_source<R>(
+    x: &mut Macroblock,
+    f: impl FnOnce(&mut Macroblock, &[u16]) -> R,
+) -> R {
+    let src = std::mem::take(&mut x.source_alloc);
+    let r = f(x, &src);
+    x.source_alloc = src;
+    r
 }
 
 // Only consider full SB, MAX_SB_SIZE_LOG2 - 1 = 6 (64x64)

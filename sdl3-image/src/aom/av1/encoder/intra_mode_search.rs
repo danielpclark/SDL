@@ -334,15 +334,17 @@ fn cfl_compute_rd(
     };
     let res = (|| -> Result<i64, ()> {
         if fast_mode {
-            intra_model_rd(
-                cm,
-                x,
-                &cpi.source().buffer_alloc,
-                plane,
-                plane_bsize,
-                tx_size,
-                /*use_hadamard=*/ false,
-            )
+            with_source(x, |x, src| {
+                intra_model_rd(
+                    cm,
+                    x,
+                    src,
+                    plane,
+                    plane_bsize,
+                    tx_size,
+                    /*use_hadamard=*/ false,
+                )
+            })
         } else {
             let rd_stats = rd_stats.ok_or(())?;
             av1_init_rd_stats(rd_stats);
@@ -658,15 +660,17 @@ pub(crate) fn av1_rd_pick_intra_sbuv_mode(
         // potential speed up here if we cache the result to avoid redundant
         // computation.
         let mbmi = *x.e_mbd.mbmi();
-        av1_encode_intra_block_plane(
-            cpi,
-            x,
-            &cpi.source().buffer_alloc,
-            mbmi.bsize,
-            AOM_PLANE_Y,
-            DRY_RUN_NORMAL,
-            cpi.optimize_seg_arr[mbmi.segment_id as usize],
-        )?;
+        with_source(x, |x, src| {
+            av1_encode_intra_block_plane(
+                cpi,
+                x,
+                src,
+                mbmi.bsize,
+                AOM_PLANE_Y,
+                DRY_RUN_NORMAL,
+                cpi.optimize_seg_arr[mbmi.segment_id as usize],
+            )
+        })?;
         x.e_mbd.cfl.store_y = 0;
     }
     // (init_intra_mode_search_state(): the state is only read by the chroma
@@ -925,7 +929,7 @@ pub(crate) fn av1_rd_pick_intra_sby_mode(
         let is_chroma = false;
         prune_intra_mode_with_hog(
             x,
-            &cpi.source().buffer_alloc,
+            &x.source_alloc,
             bsize,
             thresh[(intra_sf.intra_pruning_with_hog - 1) as usize],
             &mut directional_mode_skip_mask,
@@ -1039,15 +1043,17 @@ pub(crate) fn av1_rd_pick_intra_sby_mode(
         }
 
         let tx_size = TX_32X32.min(MAX_TXSIZE_LOOKUP[bsize as usize]);
-        let this_model_rd = intra_model_rd(
-            &cpi.common,
-            x,
-            &cpi.source().buffer_alloc,
-            0,
-            bsize,
-            tx_size,
-            /*use_hadamard=*/ true,
-        )?;
+        let this_model_rd = with_source(x, |x, src| {
+            intra_model_rd(
+                &cpi.common,
+                x,
+                src,
+                0,
+                bsize,
+                tx_size,
+                /*use_hadamard=*/ true,
+            )
+        })?;
 
         let model_rd_index_for_pruning = get_model_rd_index_for_pruning(intra_sf)?;
 

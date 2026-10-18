@@ -297,3 +297,70 @@ pub(crate) fn aom_satd_lp(coeff: &[i16], length: i32) -> i32 {
     // satd: 26 bits, dynamic range [-32640 * 1024, 32640 * 1024]
     satd
 }
+
+/// Translation of `aom_int_pro_row_c()`: `ref_` from `ref_off`.
+pub(crate) fn aom_int_pro_row(
+    hbuf: &mut [i16],
+    ref_: &[u16],
+    ref_off: usize,
+    ref_stride: usize,
+    width: i32,
+    height: i32,
+    norm_factor: i32,
+) {
+    debug_assert!(height >= 2);
+    for idx in 0..width as usize {
+        hbuf[idx] = 0;
+        // hbuf[idx]: 14 bit, dynamic range [0, 32640].
+        for i in 0..height as usize {
+            hbuf[idx] = hbuf[idx].wrapping_add(ref_[ref_off + idx + i * ref_stride] as i16);
+        }
+        // hbuf[idx]: 9 bit, dynamic range [0, 1020].
+        hbuf[idx] >>= norm_factor;
+    }
+}
+
+// width: value range {16, 32, 64, 128}.
+/// Translation of `aom_int_pro_col_c()`: `ref_` from `ref_off`.
+pub(crate) fn aom_int_pro_col(
+    vbuf: &mut [i16],
+    ref_: &[u16],
+    ref_off: usize,
+    ref_stride: usize,
+    width: i32,
+    height: i32,
+    norm_factor: i32,
+) {
+    let mut o = ref_off;
+    for ht in 0..height as usize {
+        let mut sum: i16 = 0;
+        // sum: 14 bit, dynamic range [0, 32640]
+        for idx in 0..width as usize {
+            sum = sum.wrapping_add(ref_[o + idx] as i16);
+        }
+        vbuf[ht] = sum >> norm_factor;
+        o += ref_stride;
+    }
+}
+
+// ref: [0 - 510]
+// src: [0 - 510]
+// bwl: {2, 3, 4, 5}
+/// Translation of `aom_vector_var_c()`.
+pub(crate) fn aom_vector_var(ref_: &[i16], src: &[i16], bwl: i32) -> i32 {
+    let width = 4usize << bwl;
+    let mut sse: i32 = 0;
+    let mut mean: i32 = 0;
+
+    for i in 0..width {
+        let diff = ref_[i] as i32 - src[i] as i32; // diff: dynamic range [-510, 510], 10 bits.
+        mean += diff; // mean: dynamic range 16 bits.
+        sse += diff * diff; // sse:  dynamic range 26 bits.
+    }
+
+    // (mean * mean): dynamic range 31 bits.
+    // If width == 128, the mean can be 510 * 128 = 65280, and log2(65280 ** 2) ~=
+    // 31.99, so it needs to be casted to unsigned int to compute its square.
+    let mean_abs = mean.unsigned_abs();
+    sse.wrapping_sub((mean_abs.wrapping_mul(mean_abs) >> (bwl + 2)) as i32)
+}

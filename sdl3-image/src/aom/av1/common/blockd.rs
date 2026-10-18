@@ -24,7 +24,8 @@ use super::cfl::CflCtx;
 use super::entropy::EntropyContext;
 use super::entropymode::FrameContext;
 use super::enums::*;
-use super::mv::{IntMv, TransformationType, TRANSLATION};
+use super::mv::{IntMv, TransformationType, WarpedMotionParams, TRANSLATION};
+use super::scale::ScaleFactors;
 use super::seg_common::MAX_SEGMENTS;
 use super::tile_common::TileInfo;
 use crate::aom::aom_scale::yv12config::Yv12BufferConfig;
@@ -54,6 +55,206 @@ pub(crate) const FRAME_TYPES: FrameType = 4;
 #[inline]
 pub(crate) fn is_comp_ref_allowed(bsize: BlockSize) -> bool {
     BLOCK_SIZE_WIDE[bsize as usize].min(BLOCK_SIZE_HIGH[bsize as usize]) >= 8
+}
+
+#[inline]
+pub(crate) fn is_inter_mode(mode: PredictionMode) -> bool {
+    (INTER_MODE_START..INTER_MODE_END).contains(&mode)
+}
+
+#[inline]
+pub(crate) fn is_inter_singleref_mode(mode: PredictionMode) -> bool {
+    (SINGLE_INTER_MODE_START..SINGLE_INTER_MODE_END).contains(&mode)
+}
+
+#[inline]
+pub(crate) fn is_inter_compound_mode(mode: PredictionMode) -> bool {
+    (COMP_INTER_MODE_START..COMP_INTER_MODE_END).contains(&mode)
+}
+
+#[inline]
+pub(crate) fn compound_ref0_mode(mode: PredictionMode) -> PredictionMode {
+    static LUT: [PredictionMode; MB_MODE_COUNT as usize] = [
+        DC_PRED,       // DC_PRED
+        V_PRED,        // V_PRED
+        H_PRED,        // H_PRED
+        D45_PRED,      // D45_PRED
+        D135_PRED,     // D135_PRED
+        D113_PRED,     // D113_PRED
+        D157_PRED,     // D157_PRED
+        D203_PRED,     // D203_PRED
+        D67_PRED,      // D67_PRED
+        SMOOTH_PRED,   // SMOOTH_PRED
+        SMOOTH_V_PRED, // SMOOTH_V_PRED
+        SMOOTH_H_PRED, // SMOOTH_H_PRED
+        PAETH_PRED,    // PAETH_PRED
+        NEARESTMV,     // NEARESTMV
+        NEARMV,        // NEARMV
+        GLOBALMV,      // GLOBALMV
+        NEWMV,         // NEWMV
+        NEARESTMV,     // NEAREST_NEARESTMV
+        NEARMV,        // NEAR_NEARMV
+        NEARESTMV,     // NEAREST_NEWMV
+        NEWMV,         // NEW_NEARESTMV
+        NEARMV,        // NEAR_NEWMV
+        NEWMV,         // NEW_NEARMV
+        GLOBALMV,      // GLOBAL_GLOBALMV
+        NEWMV,         // NEW_NEWMV
+    ];
+    debug_assert!(is_inter_compound_mode(mode) || is_inter_singleref_mode(mode));
+    LUT[mode as usize]
+}
+
+#[inline]
+pub(crate) fn compound_ref1_mode(mode: PredictionMode) -> PredictionMode {
+    static LUT: [PredictionMode; MB_MODE_COUNT as usize] = [
+        MB_MODE_COUNT, // DC_PRED
+        MB_MODE_COUNT, // V_PRED
+        MB_MODE_COUNT, // H_PRED
+        MB_MODE_COUNT, // D45_PRED
+        MB_MODE_COUNT, // D135_PRED
+        MB_MODE_COUNT, // D113_PRED
+        MB_MODE_COUNT, // D157_PRED
+        MB_MODE_COUNT, // D203_PRED
+        MB_MODE_COUNT, // D67_PRED
+        MB_MODE_COUNT, // SMOOTH_PRED
+        MB_MODE_COUNT, // SMOOTH_V_PRED
+        MB_MODE_COUNT, // SMOOTH_H_PRED
+        MB_MODE_COUNT, // PAETH_PRED
+        MB_MODE_COUNT, // NEARESTMV
+        MB_MODE_COUNT, // NEARMV
+        MB_MODE_COUNT, // GLOBALMV
+        MB_MODE_COUNT, // NEWMV
+        NEARESTMV,     // NEAREST_NEARESTMV
+        NEARMV,        // NEAR_NEARMV
+        NEWMV,         // NEAREST_NEWMV
+        NEARESTMV,     // NEW_NEARESTMV
+        NEWMV,         // NEAR_NEWMV
+        NEARMV,        // NEW_NEARMV
+        GLOBALMV,      // GLOBAL_GLOBALMV
+        NEWMV,         // NEW_NEWMV
+    ];
+    debug_assert!(is_inter_compound_mode(mode));
+    LUT[mode as usize]
+}
+
+#[inline]
+pub(crate) fn have_nearmv_in_inter_mode(mode: PredictionMode) -> bool {
+    mode == NEARMV || mode == NEAR_NEARMV || mode == NEAR_NEWMV || mode == NEW_NEARMV
+}
+
+#[inline]
+pub(crate) fn is_masked_compound_type(type_: i32) -> bool {
+    type_ == COMPOUND_WEDGE || type_ == COMPOUND_DIFFWTD
+}
+
+#[inline]
+pub(crate) fn has_uni_comp_refs(mbmi: &MbModeInfo) -> bool {
+    has_second_ref(mbmi)
+        && !((mbmi.ref_frame[0] >= BWDREF_FRAME) ^ (mbmi.ref_frame[1] >= BWDREF_FRAME))
+}
+
+#[inline]
+pub(crate) fn is_interintra_mode(mbmi: &MbModeInfo) -> bool {
+    mbmi.ref_frame[0] > INTRA_FRAME && mbmi.ref_frame[1] == INTRA_FRAME
+}
+
+#[inline]
+pub(crate) fn is_interintra_allowed_bsize(bsize: BlockSize) -> bool {
+    (BLOCK_8X8..=BLOCK_32X32).contains(&bsize)
+}
+
+#[inline]
+pub(crate) fn is_interintra_allowed_mode(mode: PredictionMode) -> bool {
+    (SINGLE_INTER_MODE_START..SINGLE_INTER_MODE_END).contains(&mode)
+}
+
+#[inline]
+pub(crate) fn is_interintra_allowed_ref(rf: &[MvReferenceFrame; 2]) -> bool {
+    rf[0] > INTRA_FRAME && rf[1] <= INTRA_FRAME
+}
+
+#[inline]
+pub(crate) fn is_interintra_allowed(mbmi: &MbModeInfo) -> bool {
+    is_interintra_allowed_bsize(mbmi.bsize)
+        && is_interintra_allowed_mode(mbmi.mode)
+        && is_interintra_allowed_ref(&mbmi.ref_frame)
+}
+
+#[inline]
+pub(crate) fn is_interintra_pred(mbmi: &MbModeInfo) -> bool {
+    mbmi.ref_frame[0] > INTRA_FRAME
+        && mbmi.ref_frame[1] == INTRA_FRAME
+        && is_interintra_allowed(mbmi)
+}
+
+#[inline]
+pub(crate) fn get_vartx_max_txsize(xd: &MacroBlockD, bsize: BlockSize, plane: usize) -> TxSize {
+    if xd.lossless[xd.mbmi().segment_id as usize] != 0 {
+        return TX_4X4;
+    }
+    let max_txsize = MAX_TXSIZE_RECT_LOOKUP[bsize as usize];
+    if plane == 0 {
+        return max_txsize; // luma
+    }
+    av1_get_adjusted_tx_size(max_txsize) // chroma
+}
+
+#[inline]
+pub(crate) fn is_motion_variation_allowed_bsize(bsize: BlockSize) -> bool {
+    debug_assert!(bsize < BLOCK_SIZES_ALL);
+    BLOCK_SIZE_WIDE[bsize as usize].min(BLOCK_SIZE_HIGH[bsize as usize]) >= 8
+}
+
+#[inline]
+pub(crate) fn is_motion_variation_allowed_compound(mbmi: &MbModeInfo) -> bool {
+    !has_second_ref(mbmi)
+}
+
+#[inline]
+pub(crate) fn check_num_overlappable_neighbors(mbmi: &MbModeInfo) -> bool {
+    mbmi.overlappable_neighbors != 0
+}
+
+/// Translation of `motion_mode_allowed()`: `xd` gives
+/// `cur_frame_force_integer_mv` and the first reference's scale factors.
+#[inline]
+pub(crate) fn motion_mode_allowed(
+    gm_params: &[WarpedMotionParams],
+    xd: &MacroBlockD,
+    mbmi: &MbModeInfo,
+    allow_warped_motion: bool,
+) -> MotionMode {
+    if !check_num_overlappable_neighbors(mbmi) {
+        return SIMPLE_TRANSLATION;
+    }
+    if xd.cur_frame_force_integer_mv == 0 {
+        let gm_type = gm_params[mbmi.ref_frame[0] as usize].wmtype;
+        if is_global_mv_block(mbmi, gm_type) {
+            return SIMPLE_TRANSLATION;
+        }
+    }
+    if is_motion_variation_allowed_bsize(mbmi.bsize)
+        && is_inter_mode(mbmi.mode)
+        && mbmi.ref_frame[1] != INTRA_FRAME
+        && is_motion_variation_allowed_compound(mbmi)
+    {
+        debug_assert!(!has_second_ref(mbmi));
+        if mbmi.num_proj_ref >= 1
+            && allow_warped_motion
+            && xd.cur_frame_force_integer_mv == 0
+            && !super::scale::av1_is_scaled(&xd.block_ref_scale_factors[0])
+        {
+            return WARPED_CAUSAL;
+        }
+        return OBMC_CAUSAL;
+    }
+    SIMPLE_TRANSLATION
+}
+
+#[inline]
+pub(crate) fn is_neighbor_overlappable(mbmi: &MbModeInfo) -> bool {
+    is_inter_block(mbmi)
 }
 
 /// An empty mode info grid entry (a NULL `MB_MODE_INFO *`).
@@ -110,6 +311,8 @@ pub(crate) struct MbModeInfo {
     /// The number of overlapped neighbors above/left for obmc/warp motion
     /// mode.
     pub(crate) overlappable_neighbors: u8,
+    /// The parameters used in warp motion mode.
+    pub(crate) wm_params: WarpedMotionParams,
     /// The type of intra mode used by inter-intra
     pub(crate) interintra_mode: i32,
     /// The type of wedge used in interintra mode.
@@ -155,10 +358,23 @@ pub(crate) struct MbModeInfo {
     pub(crate) comp_group_idx: u8,
     /// Indicates whether dist_wtd_comp(0) is used or not (0).
     pub(crate) compound_idx: u8,
+    /// Struct that stores the data used in interinter compound mode.
+    pub(crate) interinter_comp: InterinterCompoundData,
     /// Whether to use interintra wedge
     pub(crate) use_wedge_interintra: u8,
     /// CDEF strength per BLOCK_64X64
     pub(crate) cdef_strength: i8,
+}
+
+/// Translation of `INTERINTER_COMPOUND_DATA` (the mask buffer pointer
+/// `seg_mask` is only set by the masked compound predictions, which the
+/// saver never makes).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct InterinterCompoundData {
+    pub(crate) wedge_index: i8,
+    pub(crate) wedge_sign: i8,
+    pub(crate) mask_type: u8,
+    pub(crate) type_: i32,
 }
 
 /// `CANDIDATE_MV`
@@ -232,7 +448,9 @@ pub(crate) fn has_second_ref(mbmi: &MbModeInfo) -> bool {
 }
 
 /// Translation of `struct buf_2d`: `buf` and `buf0` are sample offsets
-/// into the frame buffer the plane belongs to.
+/// into the frame buffer the plane belongs to; for the planes of a
+/// reference frame (`pd->pre[]`), `frame_buf` is the frame's buffer pool
+/// index.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Buf2d {
     pub(crate) buf: usize,
@@ -240,6 +458,7 @@ pub(crate) struct Buf2d {
     pub(crate) width: i32,
     pub(crate) height: i32,
     pub(crate) stride: i32,
+    pub(crate) frame_buf: usize,
 }
 
 /// Translation of `MACROBLOCKD_PLANE`. The entropy context pointers are
@@ -253,6 +472,7 @@ pub(crate) struct MacroblockdPlane {
     pub(crate) subsampling_x: i32,
     pub(crate) subsampling_y: i32,
     pub(crate) dst: Buf2d,
+    pub(crate) pre: [Buf2d; 2],
     pub(crate) above_entropy_context: usize,
     pub(crate) left_entropy_context: usize,
     // The dequantizers below are true dequantizers used only in the
@@ -358,6 +578,12 @@ pub(crate) struct MacroBlockD {
     pub(crate) above_contexts: CommonContexts,
     /// `cm->cur_frame->buf`, the reconstructed frame
     pub(crate) recon: Yv12BufferConfig,
+    /// The scale factors of the block's references (copies of
+    /// `cm->ref_scale_factors[]`'s).
+    pub(crate) block_ref_scale_factors: [ScaleFactors; 2],
+    /// `xd->tmp_conv_dst`: the compound predictions' intermediate buffer
+    /// (`MAX_SB_SIZE * MAX_SB_SIZE` entries).
+    pub(crate) tmp_conv_dst: Vec<u16>,
 }
 
 impl Default for MacroBlockD {
@@ -418,6 +644,8 @@ impl Default for MacroBlockD {
             tx_type_map_blk: Vec::new(),
             above_contexts: CommonContexts::default(),
             recon: Yv12BufferConfig::default(),
+            block_ref_scale_factors: [ScaleFactors::default(); 2],
+            tmp_conv_dst: Vec::new(),
         }
     }
 }
@@ -438,6 +666,14 @@ impl MacroBlockD {
     pub(crate) fn mbmi_mut(&mut self) -> &mut MbModeInfo {
         let i = self.mi_grid_base[self.mi] as usize;
         &mut self.mi_alloc[i]
+    }
+    /// The mode info `mi_grid_base[idx]` points to (`None` for NULL).
+    #[inline]
+    pub(crate) fn mi_at_grid(&self, idx: usize) -> Option<&MbModeInfo> {
+        match self.mi_grid_base.get(idx) {
+            Some(&i) if i != MI_NONE => self.mi_alloc.get(i as usize),
+            _ => None,
+        }
     }
     /// The mode info a neighbor index (`xd->above_mbmi` and the like) names.
     #[inline]

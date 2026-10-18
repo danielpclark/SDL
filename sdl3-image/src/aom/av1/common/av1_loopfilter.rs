@@ -1318,6 +1318,7 @@ fn setup_lf_planes(
             src.strides[is_uv],
             mi_row,
             mi_col,
+            None,
             pd.subsampling_x,
             pd.subsampling_y,
         );

@@ -20,9 +20,11 @@ use super::encodeframe_utils::*;
 use super::encoder::*;
 use super::encodetxb::av1_get_cb_coeff_buffer;
 use super::ethread::{av1_encode_tiles_row_mt, MOD_PACK_BS};
+use super::global_motion_facade::av1_compute_global_motion_facade;
 use super::partition_search::{av1_nonrd_use_partition, av1_set_offsets};
 use super::ratectrl::LF_UPDATE;
 use super::rd::av1_initialize_rd_consts;
+use super::rd::av1_set_sad_per_bit;
 use super::rdopt_utils::select_tx_mode;
 use super::speed_features::*;
 use super::var_based_part::av1_choose_var_based_partitioning;
@@ -176,6 +178,7 @@ pub(crate) fn av1_setup_src_planes(
             src.strides[is_uv],
             mi_row,
             mi_col,
+            None,
             ss_x,
             ss_y,
         );
@@ -220,8 +223,22 @@ fn encode_nonrd_sb(
     td.mb.cb_offset = [0, 0];
 
     // Initialize the flag to skip cdef to 1.
-    // (skip_cdef_sb is a real-time feature)
-    debug_assert!(sf.rt_sf.skip_cdef_sb == 0);
+    if sf.rt_sf.skip_cdef_sb != 0 {
+        let block64_in_sb = if sb_size == BLOCK_128X128 { 2 } else { 1 };
+        // If 128x128 block is used, we need to set the flag for all 4 64x64 sub
+        // "blocks".
+        let xd = &mut td.mb.e_mbd;
+        let mi = get_mi_grid_idx(&cm.mi_params, mi_row, mi_col) as i32;
+        for r in 0..block64_in_sb {
+            for c in 0..block64_in_sb {
+                let idx_in_sb = r * MI_SIZE_64X64 * cm.mi_params.mi_stride + c * MI_SIZE_64X64;
+                let i = xd.mi_grid_base[(mi + idx_in_sb) as usize];
+                if i != MI_NONE {
+                    xd.mi_alloc[i as usize].cdef_strength = 1;
+                }
+            }
+        }
+    }
     av1_nonrd_use_partition(cpi, td, tile_data, mi_row, mi_col, sb_size)
 }
 
@@ -256,15 +273,130 @@ fn delay_wait_for_top_right_sb(cpi: &Av1Comp) -> bool {
     }
 }
 
+/*\brief Calculate source SAD at superblock level using 64x64 block source SAD
+ */
+#[inline]
+fn get_sb_source_sad(cpi: &Av1Comp, mi_row: i32, mi_col: i32) -> u64 {
+    if cpi.src_sad_blk_64x64.is_empty() {
+        return u64::MAX;
+    }
+
+    let cm = &cpi.common;
+    let blk_64x64_in_mis = if cm.seq_params.sb_size == BLOCK_128X128 {
+        cm.seq_params.mib_size >> 1
+    } else {
+        cm.seq_params.mib_size
+    };
+    let num_blk_64x64_cols = (cm.mi_params.mi_cols + blk_64x64_in_mis - 1) / blk_64x64_in_mis;
+    let num_blk_64x64_rows = (cm.mi_params.mi_rows + blk_64x64_in_mis - 1) / blk_64x64_in_mis;
+    let blk_64x64_col_index = mi_col / blk_64x64_in_mis;
+    let blk_64x64_row_index = mi_row / blk_64x64_in_mis;
+    let mut curr_sb_sad = u64::MAX;
+    let i = (blk_64x64_col_index + blk_64x64_row_index * num_blk_64x64_cols) as usize;
+    let d = |o: usize| cpi.src_sad_blk_64x64.get(i + o).copied().unwrap_or(0);
+    if cm.seq_params.sb_size == BLOCK_128X128
+        && blk_64x64_col_index + 1 < num_blk_64x64_cols
+        && blk_64x64_row_index + 1 < num_blk_64x64_rows
+    {
+        // Calculate SB source SAD by accumulating source SAD of 64x64 blocks in the
+        // superblock
+        let n = num_blk_64x64_cols as usize;
+        curr_sb_sad = d(0)
+            .wrapping_add(d(1))
+            .wrapping_add(d(n))
+            .wrapping_add(d(n + 1));
+    } else if cm.seq_params.sb_size == BLOCK_64X64 {
+        curr_sb_sad = d(0);
+    }
+    curr_sb_sad
+}
+
 /*\brief Determine whether grading content can be skipped based on sad stat
  */
-// (grade_source_content_sb(): returns at once for key frames)
 #[inline]
-fn grade_source_content_sb(cpi: &Av1Comp, x: &Macroblock) {
+fn is_calc_src_content_needed(cpi: &Av1Comp, x: &mut Macroblock, mi_row: i32, mi_col: i32) -> bool {
+    if cpi.svc.spatial_layer_id < cpi.svc.number_spatial_layers - 1 {
+        return true;
+    }
+    let curr_sb_sad = get_sb_source_sad(cpi, mi_row, mi_col);
+    if curr_sb_sad == u64::MAX {
+        return true;
+    }
+    if curr_sb_sad == 0 {
+        x.content_state_sb.source_sad_nonrd = K_ZERO_SAD;
+        return false;
+    }
     let cm = &cpi.common;
-    debug_assert!(cm.current_frame.frame_type == KEY_FRAME);
-    debug_assert!(x.content_state_sb.source_sad_nonrd == K_MED_SAD);
-    debug_assert!(x.content_state_sb.source_sad_rd == K_MED_SAD);
+    let mut do_calc_src_content = true;
+
+    if cpi.oxcf.speed < 9 {
+        return do_calc_src_content;
+    }
+
+    // TODO(yunqing): Tune/validate the thresholds for 128x128 SB size.
+    if cm.width.min(cm.height) < 360 {
+        // Derive Average 64x64 block source SAD from SB source SAD
+        let avg_64x64_blk_sad = if cm.seq_params.sb_size == BLOCK_128X128 {
+            (curr_sb_sad + 2) >> 2
+        } else {
+            curr_sb_sad
+        };
+
+        // The threshold is determined based on kLowSad and kHighSad threshold and
+        // test results.
+        let thresh_low: u64 = 15000;
+        let thresh_high: u64 = 40000;
+
+        if avg_64x64_blk_sad > thresh_low && avg_64x64_blk_sad < thresh_high {
+            do_calc_src_content = false;
+            // Note: set x->content_state_sb.source_sad_rd as well if this is extended
+            // to RTC rd path.
+            x.content_state_sb.source_sad_nonrd = K_MED_SAD;
+        }
+    }
+
+    do_calc_src_content
+}
+
+/*\brief Determine whether grading content is needed based on sf and frame stat
+ */
+// TODO(any): consolidate sfs to make interface cleaner
+#[inline]
+fn grade_source_content_sb(
+    cpi: &Av1Comp,
+    x: &mut Macroblock,
+    tile_data: &TileDataEnc,
+    mi_row: i32,
+    mi_col: i32,
+) {
+    let cm = &cpi.common;
+    if cm.current_frame.frame_type == KEY_FRAME || {
+        // (no SVC)
+        debug_assert!(!cpi.ppi.use_svc);
+        false
+    } {
+        debug_assert!(x.content_state_sb.source_sad_nonrd == K_MED_SAD);
+        debug_assert!(x.content_state_sb.source_sad_rd == K_MED_SAD);
+        return;
+    }
+    let mut calc_src_content = false;
+
+    if cpi.sf.rt_sf.source_metrics_sb_nonrd != 0 {
+        if cpi.sf.rt_sf.check_scene_detection == 0 || cpi.rc.frame_source_sad > 0 {
+            calc_src_content = is_calc_src_content_needed(cpi, x, mi_row, mi_col);
+        } else {
+            x.content_state_sb.source_sad_nonrd = K_ZERO_SAD;
+        }
+    } else if cpi.sf.rt_sf.var_part_based_on_qidx >= 1 && cm.width * cm.height <= 352 * 288 {
+        if cpi.rc.frame_source_sad > 0 {
+            calc_src_content = true;
+        } else {
+            x.content_state_sb.source_sad_rd = K_ZERO_SAD;
+        }
+    }
+    if calc_src_content {
+        av1_source_content_sb(cpi, x, tile_data, mi_row, mi_col);
+    }
 }
 
 /*\brief Encode a superblock row by breaking it into superblocks
@@ -357,7 +489,7 @@ fn encode_sb_row(
 
         // Grade the temporal variation of the sb, the grade will be used to decide
         // fast mode search strategy for coding blocks
-        grade_source_content_sb(cpi, x);
+        grade_source_content_sb(cpi, x, tile_data, mi_row, mi_col);
 
         // encode the superblock
         debug_assert!(use_nonrd_mode != 0);
@@ -546,22 +678,109 @@ fn set_rel_frame_dist(
     }
 }
 
-// (check_skip_mode_enabled(): skip mode is never allowed in an intra frame)
-fn check_skip_mode_enabled(cpi: &mut Av1Comp) -> i32 {
+#[inline]
+fn refs_are_one_sided(cm: &Av1Common) -> i32 {
+    debug_assert!(!frame_is_intra_only(cm));
+
+    let mut one_sided_refs = 1;
+    let cur_display_order_hint = cm.current_frame.display_order_hint as i32;
+    for ref_ in LAST_FRAME..=ALTREF_FRAME {
+        let Some(buf) = get_ref_frame_buf(cm, ref_) else {
+            continue;
+        };
+        if av1_encoder_get_relative_dist(
+            cm.buffer_pool.frame_bufs[buf].display_order_hint as i32,
+            cur_display_order_hint,
+        ) > 0
+        {
+            one_sided_refs = 0; // bwd reference
+            break;
+        }
+    }
+    one_sided_refs
+}
+
+#[inline]
+fn get_skip_mode_ref_offsets(cm: &Av1Common, ref_order_hint: &mut [i32; 2]) -> Result<(), ()> {
+    let skip_mode_info = &cm.current_frame.skip_mode_info;
+    ref_order_hint[0] = 0;
+    ref_order_hint[1] = 0;
+    if skip_mode_info.skip_mode_allowed == 0 {
+        return Ok(());
+    }
+
+    let buf_0 = get_ref_frame_buf(cm, LAST_FRAME + skip_mode_info.ref_frame_idx_0);
+    let buf_1 = get_ref_frame_buf(cm, LAST_FRAME + skip_mode_info.ref_frame_idx_1);
+    let (Some(buf_0), Some(buf_1)) = (buf_0, buf_1) else {
+        return Err(());
+    };
+
+    ref_order_hint[0] = cm.buffer_pool.frame_bufs[buf_0].order_hint as i32;
+    ref_order_hint[1] = cm.buffer_pool.frame_bufs[buf_1].order_hint as i32;
+    Ok(())
+}
+
+fn check_skip_mode_enabled(cpi: &mut Av1Comp) -> Result<i32, ()> {
     let cm = &mut cpi.common;
 
     av1_setup_skip_mode_allowed(cm);
     if cm.current_frame.skip_mode_info.skip_mode_allowed == 0 {
-        return 0;
+        return Ok(0);
     }
-    // (the rest compares the distances of the reference pair: inter frames
-    // only)
-    debug_assert!(false);
-    0
+
+    // Turn off skip mode if the temporal distances of the reference pair to the
+    // current frame are different by more than 1 frame.
+    let cur_offset = cm.current_frame.order_hint as i32;
+    let mut ref_offset = [0i32; 2];
+    get_skip_mode_ref_offsets(cm, &mut ref_offset)?;
+    let cur_to_ref0 = get_relative_dist(&cm.seq_params.order_hint_info, cur_offset, ref_offset[0]);
+    let cur_to_ref1 =
+        get_relative_dist(&cm.seq_params.order_hint_info, cur_offset, ref_offset[1]).abs();
+    if (cur_to_ref0 - cur_to_ref1).abs() > 1 {
+        return Ok(0);
+    }
+
+    // High Latency: Turn off skip mode if all refs are fwd.
+    if cpi.all_one_sided_refs != 0 && cpi.oxcf.gf_cfg.lag_in_frames > 0 {
+        return Ok(0);
+    }
+
+    static FLAG_LIST: [i32; REF_FRAMES as usize] = [
+        0,
+        AOM_LAST_FLAG,
+        AOM_LAST2_FLAG,
+        AOM_LAST3_FLAG,
+        AOM_GOLD_FLAG,
+        AOM_BWD_FLAG,
+        AOM_ALT2_FLAG,
+        AOM_ALT_FLAG,
+    ];
+    let skip_mode_info = &cpi.common.current_frame.skip_mode_info;
+    let ref_frame = [
+        (skip_mode_info.ref_frame_idx_0 + LAST_FRAME) as usize,
+        (skip_mode_info.ref_frame_idx_1 + LAST_FRAME) as usize,
+    ];
+    if cpi.ref_frame_flags & FLAG_LIST[ref_frame[0]] == 0
+        || cpi.ref_frame_flags & FLAG_LIST[ref_frame[1]] == 0
+    {
+        return Ok(0);
+    }
+
+    Ok(1)
 }
 
-// (setup_prune_ref_frame_mask(): no reference frames to prune in an intra
-// frame)
+fn setup_prune_ref_frame_mask(cpi: &mut Av1Comp) -> Result<(), ()> {
+    if (!cpi.oxcf.ref_frm_cfg.enable_onesided_comp || cpi.sf.inter_sf.disable_onesided_comp != 0)
+        && cpi.all_one_sided_refs != 0
+    {
+        // Disable all compound references
+        cpi.prune_ref_frame_mask = (1 << MODE_CTX_REF_FRAMES) - (1 << REF_FRAMES);
+    } else if cpi.sf.rt_sf.use_nonrd_pick_mode == 0 && cpi.sf.inter_sf.selective_ref_frame >= 2 {
+        // (the RD pick mode's pruning of compound references)
+        return Err(());
+    }
+    Ok(())
+}
 
 /// Translation of `allow_deltaq_mode()`.
 fn allow_deltaq_mode(cpi: &Av1Comp) -> bool {
@@ -585,8 +804,45 @@ fn allow_deltaq_mode(cpi: &Av1Comp) -> bool {
     delta_rdcost < 0
 }
 
-// (populate_thresh_to_force_zeromv_skip(): part_early_exit_zeromv is a
-// real-time feature)
+/// `FORCE_ZMV_SKIP_128X128_BLK_DIFF`
+const FORCE_ZMV_SKIP_128X128_BLK_DIFF: u32 = 10000;
+/// `FORCE_ZMV_SKIP_MAX_PER_PIXEL_DIFF`
+const FORCE_ZMV_SKIP_MAX_PER_PIXEL_DIFF: u32 = 4;
+
+// Populates block level thresholds for force zeromv-skip decision
+fn populate_thresh_to_force_zeromv_skip(cpi: &mut Av1Comp) {
+    if cpi.sf.rt_sf.part_early_exit_zeromv == 0 {
+        return;
+    }
+
+    // Threshold for forcing zeromv-skip decision is as below:
+    // For 128x128 blocks, threshold is 10000 and per pixel threshold is 0.6103.
+    // For 64x64 blocks, threshold is 5000 and per pixel threshold is 1.221
+    // allowing slightly higher error for smaller blocks.
+    // Per Pixel Threshold of 64x64 block        Area of 64x64 block         1  1
+    // ------------------------------------=sqrt(---------------------)=sqrt(-)=-
+    // Per Pixel Threshold of 128x128 block      Area of 128x128 block       4  2
+    // Thus, per pixel thresholds for blocks of size 32x32, 16x16,...  can be
+    // chosen as 2.442, 4.884,.... As the per pixel error tends to be higher for
+    // small blocks, the same is clipped to 4.
+    let thresh_exit_128x128_part = FORCE_ZMV_SKIP_128X128_BLK_DIFF;
+    let num_128x128_pix = BLOCK_SIZE_WIDE[BLOCK_128X128 as usize] as i32
+        * BLOCK_SIZE_HIGH[BLOCK_128X128 as usize] as i32;
+
+    for bsize in BLOCK_4X4..BLOCK_SIZES_ALL {
+        let num_block_pix =
+            BLOCK_SIZE_WIDE[bsize as usize] as i32 * BLOCK_SIZE_HIGH[bsize as usize] as i32;
+
+        // Calculate the threshold for zeromv-skip decision based on area of the
+        // partition
+        let mut thresh_exit_part_blk = (thresh_exit_128x128_part as f64
+            * (num_block_pix as f64 / num_128x128_pix as f64).sqrt()
+            + 0.5) as u32;
+        thresh_exit_part_blk =
+            thresh_exit_part_blk.min(FORCE_ZMV_SKIP_MAX_PER_PIXEL_DIFF * num_block_pix as u32);
+        cpi.zeromv_skip_thresh_exit_part[bsize as usize] = thresh_exit_part_blk;
+    }
+}
 
 /*\brief Encoder setup(only for the current frame), encoding, and recontruction
  * for a single frame
@@ -625,10 +881,17 @@ fn encode_frame_internal(cpi: &mut Av1Comp) -> Result<(), ()> {
 fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<(), ()> {
     let deltaq_mode = cpi.oxcf.q_cfg.deltaq_mode;
 
-    debug_assert!(cpi.sf.rt_sf.use_nonrd_pick_mode != 0);
+    if cpi.sf.rt_sf.use_nonrd_pick_mode == 0 {
+        // (mi_params->setup_mi(): the RD pick mode)
+        return Err(());
+    }
+
     set_mi_offsets(&cpi.common.mi_params, &mut td.mb.e_mbd, 0, 0);
 
+    td.counts = FrameCounts::default();
     td.rd_counts.tx_type_used = [[0; TX_TYPES as usize]; TX_SIZES_ALL as usize];
+    td.rd_counts.obmc_used = [[0; 2]; BLOCK_SIZES_ALL as usize];
+    td.rd_counts.warped_used = [0; 2];
     td.rd_counts.seg_tmp_pred_cost = [0; 2];
 
     // Reset the flag.
@@ -640,15 +903,26 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
 
     cpi.common.features.allow_intrabc &= cpi.oxcf.kf_cfg.enable_intrabc;
 
-    // (warped motion and hash-based motion estimation: inter frames only)
-    debug_assert!(!cpi.common.features.allow_warped_motion);
+    if cpi.common.features.allow_warped_motion && cpi.sf.inter_sf.prune_warped_prob_thresh > 0 {
+        let update_type = get_frame_update_type(&cpi.ppi.gf_group, cpi.gf_frame_index as i32);
+        let warped_probability = cpi.ppi.frame_probs.warped_probs[update_type as usize];
+        if warped_probability < cpi.sf.inter_sf.prune_warped_prob_thresh {
+            cpi.common.features.allow_warped_motion = false;
+        }
+    }
+
+    // (av1_use_hash_me(): the hash-based motion estimation of the RD pick
+    // mode)
 
     {
         let cm = &cpi.common;
         let quant_params = &cm.quant_params;
         let xd = &mut td.mb.e_mbd;
+        if cm.seg.enabled != 0 {
+            // (av1_get_qindex(): segmentation is off for the saver)
+            return Err(());
+        }
         for i in 0..MAX_SEGMENTS {
-            debug_assert!(cm.seg.enabled == 0);
             let qindex = quant_params.base_qindex;
             xd.lossless[i] = (qindex == 0
                 && quant_params.y_dc_delta_q == 0
@@ -744,22 +1018,26 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
         cm.cur_frame_mut().mode_deltas = mode_deltas;
     }
 
-    debug_assert!(frame_is_intra_only(&cpi.common));
-    cpi.all_one_sided_refs = 0;
+    cpi.all_one_sided_refs = if frame_is_intra_only(&cpi.common) {
+        0
+    } else {
+        refs_are_one_sided(&cpi.common)
+    };
 
     cpi.prune_ref_frame_mask = 0;
     // Figure out which ref frames can be skipped at frame level.
-    // (setup_prune_ref_frame_mask(): none in an intra frame)
+    setup_prune_ref_frame_mask(cpi)?;
 
     td.mb.txfm_search_info.txb_split_count = 0;
 
-    // (av1_compute_global_motion_facade(): no global motion in an intra
-    // frame)
+    av1_compute_global_motion_facade(cpi)?;
 
     av1_calculate_ref_frame_side(&mut cpi.common);
-    debug_assert!(!cpi.common.features.allow_ref_frame_mvs);
+    if cpi.common.features.allow_ref_frame_mvs {
+        av1_setup_motion_field(&mut cpi.common);
+    }
 
-    cpi.common.current_frame.skip_mode_info.skip_mode_flag = check_skip_mode_enabled(cpi);
+    cpi.common.current_frame.skip_mode_info.skip_mode_flag = check_skip_mode_enabled(cpi)?;
 
     // Initialization of skip mode cost depends on the value of
     // 'skip_mode_flag'. This initialization happens in the function
@@ -767,8 +1045,12 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
     // av1_initialize_rd_consts(). Thus, av1_initialize_rd_consts()
     // has to be called after 'skip_mode_flag' is initialized.
     av1_initialize_rd_consts(cpi, td)?;
-    // (av1_set_sad_per_bit(): the SAD per bit only steers motion searches)
-    // (populate_thresh_to_force_zeromv_skip(): a real-time feature)
+    av1_set_sad_per_bit(
+        cpi,
+        &mut td.mb.sadperbit,
+        cpi.common.quant_params.base_qindex,
+    );
+    populate_thresh_to_force_zeromv_skip(cpi);
 
     // (the row synchronization: the rows are coded in order, see ethread.rs)
     cpi.mt_info.row_mt_enabled = false;
@@ -818,13 +1100,61 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
     // Retain the frame level probability update conditions for parallel frames.
     // These conditions will be consumed during postencode stage to update the
     // probability.
-    // (no parallel frames)
+    if cpi.ppi.gf_group.frame_parallel_level[cpi.gf_frame_index as usize] > 0 {
+        // (no parallel frames)
+        return Err(());
+    }
 
-    // (the transform type probabilities of prune_tx_type_using_stats only
-    // steer the RD transform type search)
+    if cpi.sf.tx_sf.tx_type_search.prune_tx_type_using_stats != 0
+        || (cpi.sf.tx_sf.tx_type_search.fast_inter_tx_type_prob_thresh != i32::MAX
+            && !frame_is_intra_only(&cpi.common))
+    {
+        // (the transform type probabilities: they only steer the RD transform
+        // type search)
+        return Err(());
+    }
 
-    // (segmentation, OBMC, warped motion and interpolation filter
-    // statistics: off, or inter frames only)
+    if cpi.common.seg.enabled != 0 {
+        // (segmentation is off for the saver)
+        return Err(());
+    }
+
+    if cpi.sf.inter_sf.prune_obmc_prob_thresh > 0
+        && cpi.sf.inter_sf.prune_obmc_prob_thresh < i32::MAX
+    {
+        // (the OBMC probabilities: they only steer the RD motion mode search)
+        return Err(());
+    }
+
+    if cpi.common.features.allow_warped_motion && cpi.sf.inter_sf.prune_warped_prob_thresh > 0 {
+        let update_type = get_frame_update_type(&cpi.ppi.gf_group, cpi.gf_frame_index as i32);
+        let update_warp_frameprobs = true;
+        let mut sum = 0;
+        for i in 0..2 {
+            sum += td.rd_counts.warped_used[i];
+        }
+        let new_prob = if sum != 0 {
+            128 * td.rd_counts.warped_used[1] / sum
+        } else {
+            0
+        };
+        // Track the frame probabilities of parallel encode frames to update
+        // during postencode stage.
+        // (no parallel frames)
+        if update_warp_frameprobs {
+            let p = &mut cpi.ppi.frame_probs.warped_probs[update_type as usize];
+            *p = (*p + new_prob) >> 1;
+        }
+    }
+
+    if cpi.common.current_frame.frame_type != KEY_FRAME
+        && cpi.sf.interp_sf.adaptive_interp_filter_search == 2
+        && cpi.common.features.interp_filter == SWITCHABLE
+    {
+        // (the switchable filter probabilities: they only steer the RD
+        // interpolation filter search)
+        return Err(());
+    }
     Ok(())
 }
 

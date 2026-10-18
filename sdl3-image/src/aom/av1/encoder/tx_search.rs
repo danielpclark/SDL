@@ -1040,15 +1040,9 @@ fn block_rd_txfm(
 
     if !is_inter {
         av1_predict_intra_block_facade(cm, &mut x.e_mbd, plane, blk_col, blk_row, tx_size)?;
-        av1_subtract_txb(
-            x,
-            &cpi.source().buffer_alloc,
-            plane,
-            plane_bsize,
-            blk_col,
-            blk_row,
-            tx_size,
-        );
+        with_source(x, |x, src| {
+            av1_subtract_txb(x, src, plane, plane_bsize, blk_col, blk_row, tx_size)
+        });
         if x.txfm_search_params.enable_nn_prune_intra_tx_depths {
             // (ml_predict_intra_tx_depth_prune(): off for the saver's speed
             // features)

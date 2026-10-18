@@ -855,3 +855,14 @@ pub(crate) fn av1_encode_intra_block_plane(
         },
     )
 }
+
+/// Translation of `av1_encode_sb()`.
+pub(crate) fn av1_encode_sb(
+    cpi: &Av1Comp,
+    x: &mut Macroblock,
+    bsize: BlockSize,
+    dry_run: i32,
+) -> Result<(), ()> {
+    let _ = (cpi, x, bsize, dry_run);
+    Err(())
+}
