@@ -67,7 +67,9 @@ jobs:
         # (rust-version in Cargo.toml)
         toolchain: [pinned, "1.87"]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # The pinned Windows job (debug, the zlib-only mixer, then release) takes
+    # close to 30 minutes; this still stops a hung run.
+    timeout-minutes: 45
     env:
       # Print a failing test's panic as it happens rather than in the summary
       # at the end, so a run that then hangs still shows what went wrong.
