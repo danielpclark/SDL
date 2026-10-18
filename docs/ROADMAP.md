@@ -450,7 +450,7 @@ In dependency order, after the core each one needs exists:
    empty text buffer (an unnamed first font, an empty title before any
    text), its unbounded keyword and parameter buffers, and its color
    table freed twice when a context loads a second document are worked
-   around (FIXME (upstream)). Checked bit for bit against upstream's C
+   around (Note (upstream)). Checked bit for bit against upstream's C
    over SDL_ttf (with FreeType and HarfBuzz) and SDL3 on test documents
    written for it (fonts, colors, styles, alignment, indents, tabs,
    escapes, binary data, skipped destinations, a table, out-of-range
@@ -474,13 +474,13 @@ In dependency order, after the core each one needs exists:
    `spirv_cross.cpp`, and the GLSL, MSL and HLSL backends in full, with
    the subset of the C API SDL_shadercross calls. Upstream's bugs are kept
    where output depends on them and marked FIXME (upstream) (among them
-   SDL_shadercross's uninitialized MSL buffer index for unused compute
-   bindings, which the translation zeroes, and the CLI's property
-   mix-ups); where C++ reads out of bounds, recurses without limit,
-   loops forever or allocates for impossible sizes on malformed SPIR-V
-   (member indices past any struct, vectors of more than 16 components,
-   block chains that come back around), the translation returns an
-   error. Checked byte for byte against SDL_shadercross and SPIRV-Cross's C++ on
+   the CLI's property mix-ups). Where C++ reads out of bounds, recurses
+   without limit, loops forever or allocates for impossible sizes on
+   malformed SPIR-V (member indices past any struct, vectors of more
+   than 16 components, block chains that come back around), the
+   translation returns an error, and SDL_shadercross's uninitialized MSL
+   buffer index for unused compute bindings is zeroed; those places are
+   marked Note (upstream). Checked byte for byte against SDL_shadercross and SPIRV-Cross's C++ on
    13 glslang-built shaders (tools/gen_shadercross_testdata.py): GLSL
    (450, ES 310, Vulkan), MSL (1.2 and 2.1), HLSL (SM 6.0, 5.1 and 5.0
    with PSSL) and the reflection, and on malformed variants of them

@@ -163,7 +163,8 @@ of a scripted virtual-joystick session with upstream's. Upstream bugs found
 this way are fixed here, and their expected results come from the C reference
 patched the same way. The ones not fixed yet are marked `FIXME (upstream)` and
 tracked in issues. Where the C code would read or write out of bounds, the
-Rust code returns an error instead.
+Rust code returns an error instead; such places, where the translation can't
+have the bug, are marked `Note (upstream)`.
 
 Not yet translated from these files: the render backends other than
 software, OpenGL, OpenGL ES 2.0, Vulkan, Direct3D 11 and 12, Metal and the
