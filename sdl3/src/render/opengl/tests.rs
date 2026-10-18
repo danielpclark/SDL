@@ -822,13 +822,20 @@ fn debug_context_reports_errors() {
         assert!(e.message().contains("GL_CreateTexture"), "{}", e.message());
 
         // The renderer goes on
+        eprintln!("DIAG a");
         r.set_draw_color(9, 8, 7, 255);
         r.clear().unwrap();
+        eprintln!("DIAG b");
         let s = r.read_pixels(Some(&Rect::new(0, 0, 1, 1))).unwrap();
+        eprintln!("DIAG c");
         let c = s.read_pixel(0, 0).unwrap();
         assert_eq!((c.r, c.g, c.b), (9, 8, 7));
+        drop(s);
+        eprintln!("DIAG d");
         drop(r);
+        eprintln!("DIAG e");
         window.destroy();
+        eprintln!("DIAG f");
     }
 }
 
