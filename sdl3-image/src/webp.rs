@@ -537,12 +537,15 @@ fn save_webp_body(
         return Err(Error::new("Failed to initialize WebPPicture"));
     }
 
+    // Note (upstream): upstream leaves pic.use_argb 0, so the RGBA pixels
+    // are imported as YUV 4:2:0 even at quality 100, and the lossless
+    // encoder codes them as converted back to ARGB: not losslessly; the
+    // translation fixes it, importing them as ARGB for the lossless
+    // encoder, as the WebP animation encoder does.
+    pic.use_argb = config.lossless != 0;
     pic.width = surface.width();
     pic.height = surface.height();
 
-    // FIXME (upstream): pic.use_argb is left 0, so the RGBA pixels are
-    // imported as YUV 4:2:0 even at quality 100, and the lossless encoder
-    // codes them as converted back to ARGB: not losslessly.
     let converted;
     let converted_surface: &Surface<'_> = if surface.format() != PixelFormat::RGBA32 {
         converted = surface.convert(PixelFormat::RGBA32)?;
