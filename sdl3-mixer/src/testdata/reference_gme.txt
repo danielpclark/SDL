@@ -285,6 +285,103 @@ freshseek 2205: seek=1 pos=2205 playing=1 b2393d978b0d0a41
 freshseek 48000: seek=1 pos=48000 playing=1 00dd025f10be0049
 freshseek 20000: seek=1 pos=20000 playing=1 6ca2ff78f9e545dd
 freshseek 100: seek=1 pos=100 playing=1 7ffe9cbefaa1b3a1
+== gme gym_fm.gym
+open: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 98304 9d861cff9e8177a3 end=1
+f32s48: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 98304 da74852f9433f50d end=1
+s16m22: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 32768 ab0f043167fb3b55 end=1
+forced: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 4ee1da25371469be end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1365: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 4ee1da25371469be end=1
+trunc 2729: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 4ee1da25371469be end=1
+corrupt 0: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 4ee1da25371469be end=1
+corrupt 0 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 36acc779e5726ccf
+corrupt 1: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 4ee1da25371469be end=1
+corrupt 1 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 36acc779e5726ccf
+corrupt 2: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 72aac88e090b3944 end=1
+corrupt 2 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 464440ea7ca1affe
+corrupt 3: GME 0x8010 2 48000 title="GYM test" album="gen_gme_testdata.py" copyright="2026 gen" infinite=1 gme.song="GYM test" gme.game="gen_gme_testdata.py" gme.copyright="2026 gen" gme.system="Sega Genesis" gme.comment="the YM2612, the PSG and the DAC" gme.dumper="gen" | 16384 4ee1da25371469be end=1
+corrupt 3 mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 36acc779e5726ccf
+mix: dur=-2 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 36acc779e5726ccf
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 68b9fb1ed9914ed0
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 65614fd43e9e18eb
+freshseek 2205: seek=1 pos=2205 playing=1 f7a0dc73d4c88ebe
+freshseek 48000: seek=1 pos=48000 playing=1 62f390a7e2ceab51
+freshseek 20000: seek=1 pos=20000 playing=1 6f50db1e3b5b8aa0
+freshseek 100: seek=1 pos=100 playing=1 58a8081e10699795
+== gme gym_odd.gym
+open: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 80384 0df814194748e385 end=0
+f32s48: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 98304 14eea95f00f5e679 end=1
+s16m22: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 18464 17650f14a16e0584 end=0
+forced: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 16384 f357f392048717f1 end=1
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2264: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 13312 fb76a05b3226c9f9 end=0
+trunc 4528: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 16384 f357f392048717f1 end=1
+corrupt 0: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 16384 92ff17966c9b057d end=1
+corrupt 0 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 061e738607eb0955
+corrupt 1: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 16384 ac7f02b6bfef6469 end=1
+corrupt 1 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 b64f838822f666c1
+corrupt 2: GME 0x8010 2 48000 album="Unknown Game, not unkn/wn at all" gme.game="Unknown Game, not unkn/wn at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 16384 7d0b32dcf7e77851 end=1
+corrupt 2 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 897a4a9412ffe0c5
+corrupt 3: GME 0x8010 2 48000 album="Unknown Game, not unknown at all" gme.game="Unknown Game, not unknown at all" gme.system="Sega Genesis" gme.dumper="Unknown Person!" | 16384 8bf2211c3882ba59 end=1
+corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0a26553951f043c9
+mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 81eab5b7ab18ff85
+order 1: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 a12af0f7d8407a61
+order 200: play=0 err: gme_start_track failed: Invalid track pos=4096 playing=0 a8c7f832281a39c5
+order -5: play=1 pos=0 playing=0 a8c7f832281a39c5
+order 3: play=0 err: gme_start_track failed: Invalid track pos=0 playing=0 a8c7f832281a39c5
+replay: 1 playing=1
+gmeseek 0: seek=1 pos=0 playing=0 4d25767f9dce13f5
+gmeseek 2205: seek=1 pos=2205 playing=0 4d25767f9dce13f5
+gmeseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 20000: seek=0 pos=48000 playing=0 4d25767f9dce13f5
+gmeseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+fresh: 1 playing=1
+freshseek 0: seek=1 pos=0 playing=1 37fb9e10b38ef801
+freshseek 2205: seek=1 pos=2205 playing=1 4aae90b5fed7d0ed
+freshseek 48000: seek=1 pos=48000 playing=0 4d25767f9dce13f5
+freshseek 20000: seek=1 pos=20000 playing=0 4d25767f9dce13f5
+freshseek 100: seek=1 pos=100 playing=0 4d25767f9dce13f5
+== gme gym_packed.gym
+open: err: Audio data is in unknown/unsupported/corrupt format
+f32s48: err: Audio data is in unknown/unsupported/corrupt format
+s16m22: err: Audio data is in unknown/unsupported/corrupt format
+forced: err: Audio data is in unknown/unsupported/corrupt format
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 220: err: Audio data is in unknown/unsupported/corrupt format
+trunc 439: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: err: Audio data is in unknown/unsupported/corrupt format
+gmetracks: err: Audio data is in unknown/unsupported/corrupt format
 == gme hes_extra.hes
 open: GME 0x8010 2 48000 gme.system="PC Engine" | 98304 12d73793c7b1e389 end=1
 f32s48: GME 0x8010 2 48000 gme.system="PC Engine" | 98304 bf38eff18794f6f9 end=1

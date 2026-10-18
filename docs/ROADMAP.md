@@ -369,24 +369,24 @@ In dependency order, after the core each one needs exists:
    Game_Music_Emu 0.6.5, behind the `gme` feature, on by default as
    upstream's SDLMIXER_GME is, registered after WavPack as upstream; built
    as SDL_mixer's CMake builds it: every emulator, the Nuked YM2612 core,
-   no zlib) is in progress in its own crate, `sdl3-mixer-gme`, which keeps
+   no zlib) is done in its own crate, `sdl3-mixer-gme`, which keeps
    Game_Music_Emu's license (`LGPL-2.1-or-later AND MIT`, the MIT part
    being the emu2413 YM2413 emulator; `default-features = false` leaves it
    out): the decoder, the core (`Music_Emu`, `Gme_File`, `Classic_Emu`,
    `Blip_Buffer`, the stereo and effects buffers, the `gme_*` API), the AY
    emulator (the Z80, the AY-3-8910, the Spectrum's beeper and the CPC's
-   ports), the GBS emulator (the Game Boy CPU and APU), the HES emulator
-   (the HuC6280, its PSG and the ADPCM chip), the KSS emulator (the MSX's
-   banked memory, Konami's SCC and the Master System's SN76489), the NSF
-   and NSFE emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS,
-   MMC5, Namco 106 and FME-7 chips), the SAP emulator (the Atari's 6502 and
-   POKEY), the SPC emulator (the SPC-700, the fast DSP, the output filter
-   and the FIR resampler) and the VGM emulator (the SN76489, the YM2612
-   over the Nuked OPN2 core and the FM resampling; the YM2413 left out, as
-   in SDL_mixer's build) are done, checked bit-for-bit against upstream's
-   C++ (and through the decoder and the mixer, upstream's C) on rips from
-   `tools/gen_gme_testdata.py`, truncated and corrupted; not yet: the GYM
-   emulator.
+   ports), the GBS emulator (the Game Boy CPU and APU), the GYM emulator
+   (the Mega Drive's YM2612 and PSG, frame by frame), the HES emulator (the
+   HuC6280, its PSG and the ADPCM chip), the KSS emulator (the MSX's banked
+   memory, Konami's SCC and the Master System's SN76489), the NSF and NSFE
+   emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS, MMC5, Namco
+   106 and FME-7 chips), the SAP emulator (the Atari's 6502 and POKEY), the
+   SPC emulator (the SPC-700, the fast DSP, the output filter and the FIR
+   resampler) and the VGM emulator (the SN76489, the YM2612 over the Nuked
+   OPN2 core and the FM resampling; the YM2413 left out, as in SDL_mixer's
+   build) are done, checked bit-for-bit against upstream's C++ (and through
+   the decoder and the mixer, upstream's C) on rips from
+   `tools/gen_gme_testdata.py`, truncated and corrupted.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

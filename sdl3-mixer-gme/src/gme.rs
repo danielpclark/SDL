@@ -39,9 +39,10 @@ pub use crate::gme_file::GME_WRONG_FILE_TYPE as gme_wrong_file_type;
 /// `gme_type_list()`: the music types the library supports, in upstream's
 /// order (`USE_GME_*` all on, as SDL_mixer's CMake builds it).
 pub fn gme_type_list() -> &'static [GmeType] {
-    static LIST: [GmeType; 10] = [
+    static LIST: [GmeType; 11] = [
         &crate::ay_emu::GME_AY_TYPE_,
         &crate::gbs_emu::GME_GBS_TYPE_,
+        &crate::gym_emu::GME_GYM_TYPE_,
         &crate::hes_emu::GME_HES_TYPE_,
         &crate::kss_emu::GME_KSS_TYPE_,
         &crate::nsf_emu::GME_NSF_TYPE_,
@@ -56,6 +57,7 @@ pub fn gme_type_list() -> &'static [GmeType] {
 
 pub static GME_AY_TYPE: GmeType = &crate::ay_emu::GME_AY_TYPE_;
 pub static GME_GBS_TYPE: GmeType = &crate::gbs_emu::GME_GBS_TYPE_;
+pub static GME_GYM_TYPE: GmeType = &crate::gym_emu::GME_GYM_TYPE_;
 pub static GME_HES_TYPE: GmeType = &crate::hes_emu::GME_HES_TYPE_;
 pub static GME_KSS_TYPE: GmeType = &crate::kss_emu::GME_KSS_TYPE_;
 pub static GME_NSF_TYPE: GmeType = &crate::nsf_emu::GME_NSF_TYPE_;

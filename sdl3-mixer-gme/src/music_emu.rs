@@ -210,6 +210,10 @@ impl MusicEmuState {
     pub fn emu_track_ended(&self) -> bool {
         self.emu_track_ended_
     }
+    /// `track_ended()`
+    pub fn track_ended(&self) -> bool {
+        self.track_ended_
+    }
     pub fn set_tempo_value(&mut self, t: f64) {
         self.tempo_ = t;
     }
