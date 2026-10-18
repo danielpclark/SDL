@@ -73,12 +73,17 @@ jobs:
           SDL_LOGGING: "*=verbose"
         run: |
           cargo test -p sdl3 --lib forced_egl_context -- --nocapture > "$RUNNER_TEMP/egl.log" 2>&1 || true
-          for f in src/egl/drivers/wgl/egl_wgl.c src/egl/main/eglapi.c src/gallium/frontends/wgl/stw_framebuffer.c; do
-            echo "=== $f" >> "$RUNNER_TEMP/egl.log"
-            curl -fsSL "https://gitlab.freedesktop.org/mesa/mesa/-/raw/mesa-$MESA_VERSION/$f" -o src.c || continue
-            grep -n -B12 -A3 "BAD_NATIVE_WINDOW" src.c | head -120 >> "$RUNNER_TEMP/egl.log"
-          done
-          curl -fsSL "https://gitlab.freedesktop.org/mesa/mesa/-/raw/mesa-$MESA_VERSION/src/gallium/frontends/wgl/stw_framebuffer.c" | grep -n -A60 "^stw_framebuffer_create" | head -90 >> "$RUNNER_TEMP/egl.log" || true
+          set +e
+          B="https://gitlab.freedesktop.org/mesa/mesa/-/raw/mesa-$MESA_VERSION"
+          curl -fsSL "$B/src/egl/main/eglapi.c" -o eglapi.c
+          curl -fsSL "$B/src/egl/drivers/wgl/egl_wgl.c" -o egl_wgl.c
+          curl -fsSL "$B/src/egl/main/eglsurface.c" -o eglsurface.c
+          {
+            echo "=== eglapi.c"; grep -n -B8 -A2 "BAD_NATIVE_WINDOW" eglapi.c | head -80
+            echo "=== eglsurface.c"; grep -n -B8 -A2 "BAD_NATIVE_WINDOW" eglsurface.c | head -40
+            echo "=== egl_wgl.c"; grep -n -A45 "^wgl_create_window_surface" egl_wgl.c | head -60
+          } >> "$RUNNER_TEMP/egl.log"
+          true
       - name: GL under cdb
         if: false
         shell: bash
@@ -141,14 +146,16 @@ jobs:
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
           grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
           T=render::gpu::tests::gpu_render_states
-          ( echo "=== no validation, no argument buffers: render::gpu"
-            MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 cargo test -q -p sdl3 --lib render::gpu:: 2>&1 | grep -E "test result|panicked|pixels differ|^without" | cut -c1-250
-            echo "=== no validation, no argument buffers: render::vulkan gpu::vulkan"
-            MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 cargo test -q -p sdl3 --lib render::vulkan gpu::vulkan 2>&1 | grep -E "test result|panicked|pixels differ" | cut -c1-250
-            echo "=== validation, argument buffers: render::vulkan gpu::vulkan"
-            MTL_DEBUG_LAYER=1 cargo test -q -p sdl3 --lib render::vulkan gpu::vulkan 2>&1 | grep -E "test result|panicked|pixels differ" | cut -c1-250
-            echo "=== validation, no argument buffers: render::gpu"
-            MTL_DEBUG_LAYER=1 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 cargo test -q -p sdl3 --lib render::gpu:: 2>&1 | grep -E "test result|pixels differ|^without" | cut -c1-250
+          ( for v in v1.4.2 v1.4.1 v1.3.0 v1.2.11; do
+              echo "=== MoltenVK $v, validation: render::gpu"
+              mkdir -p "$RUNNER_TEMP/m-$v" && cd "$RUNNER_TEMP/m-$v"
+              curl -fsSL -o m.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$v/MoltenVK-macos.tar" && tar xf m.tar
+              D=$(dirname "$(find . -path '*dynamic*macOS*' -name libMoltenVK.dylib | head -1)")
+              sudo cp "$D/libMoltenVK.dylib" /usr/local/lib/
+              cd "$GITHUB_WORKSPACE"
+              MTL_DEBUG_LAYER=1 cargo test -q -p sdl3 --lib render::gpu:: 2>&1 | grep -E "test result|pixels differ|^without|MoltenVK [0-9]" | cut -c1-200
+            done
+            sudo cp "$RUNNER_TEMP/m-v1.4.2/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
           ) > "$RUNNER_TEMP/dbg.log" 2>&1 || true
       - name: cargo test
         continue-on-error: true
