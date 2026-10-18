@@ -164,6 +164,22 @@ def wav_files():
         chunk(b'data', data) + chunk(b'id3 ', id3)
     write('wav_loop.wav', b'RIFF' + struct.pack('<I', len(body)) + body)
 
+    # A sample loop in IMA ADPCM, which counts the frames after the loop in
+    # ADPCM blocks (four of them here).
+    ima = ffmpeg('', 11025, 1, 0.6, ['-c:a', 'adpcm_ima_wav'], 'wav', seed=15, save=False)
+    write('wav_ima_loop.wav', with_smpl(ima, 11025, struct.pack('<IIIIII', 0, 0, 1000, 3000, 0, 1)))
+
+
+def with_smpl(wav, freq, loop):
+    """The RIFF WAVE `wav` with a smpl chunk of one sample `loop` before its data chunk."""
+    at = 12
+    while wav[at:at + 4] != b'data':
+        at += 8 + struct.unpack('<I', wav[at + 4:at + 8])[0]
+        at += at & 1
+    smpl = struct.pack('<IIIIIIIII', 0, 0, 1000000000 // freq, 60, 0, 0, 0, 1, 0) + loop
+    body = wav[8:at] + chunk(b'smpl', smpl) + wav[at:]
+    return b'RIFF' + struct.pack('<I', len(body)) + body
+
 
 def aiff_files():
     meta = (('title', 'AIFF test'), ('author', 'sdl3-mixer'), ('copyright', 'none'), ('comment', 'a note'))
