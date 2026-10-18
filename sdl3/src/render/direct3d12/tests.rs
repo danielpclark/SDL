@@ -1343,6 +1343,55 @@ fn d3d12_matches_software_for_textures() {
     r.destroy_texture(t);
 }
 
+/// A palette replaced after a draw is destroyed only once the draw is done:
+/// the draw uses its colors, not those of the next palette, which takes
+/// its SRV slot (upstream releases it while the draw is still recorded).
+#[test]
+fn d3d12_palette_outlives_its_draws() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    let scene = |r: &mut Renderer| {
+        let palette = |color| {
+            let mut palette = Palette::new(256).unwrap();
+            palette.set_colors(0, &[color; 256]).unwrap();
+            share_palette(palette)
+        };
+        let t = r
+            .create_texture(PixelFormat::INDEX8, TextureAccess::Static, 4, 4)
+            .unwrap();
+        r.set_texture_palette(t, Some(palette(Color::new(200, 10, 20, 255))))
+            .unwrap();
+        r.update_texture(t, None, &[0; 16], 4).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.render_texture(t, None, Some(&FRect::new(4.0, 4.0, 16.0, 16.0)))
+            .unwrap();
+        // (the first palette's last reference goes: it's destroyed)
+        r.set_texture_palette(t, Some(palette(Color::new(10, 30, 220, 255))))
+            .unwrap();
+        r.render_texture(t, None, Some(&FRect::new(32.0, 4.0, 16.0, 16.0)))
+            .unwrap();
+        t
+    };
+    let tv = scene(&mut r);
+    let mut sw = software_renderer(W, H);
+    let ts = scene(&mut sw);
+    assert_close(
+        "replaced palette",
+        &r.read_pixels(None).unwrap(),
+        &sw.read_pixels(None).unwrap(),
+        0,
+    );
+    r.destroy_texture(tv);
+    sw.destroy_texture(ts);
+}
+
 #[test]
 fn d3d12_matches_software_for_targets() {
     let _l = crate::test_support::test_lock();
