@@ -62,7 +62,7 @@ fn av1_highbd_inv_txfm_add_4x4(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     let eob = txfm_param.eob;
     let bd = txfm_param.bd;
     let lossless = txfm_param.lossless;
@@ -70,10 +70,10 @@ fn av1_highbd_inv_txfm_add_4x4(
     if lossless != 0 {
         debug_assert!(tx_type == DCT_DCT);
         av1_highbd_iwht4x4_add(input, dest, dest_off, stride, eob, bd);
-        return;
+        return Ok(());
     }
 
-    av1_inv_txfm2d_add_4x4(input, dest, dest_off, stride, tx_type, bd);
+    av1_inv_txfm2d_add_4x4(input, dest, dest_off, stride, tx_type, bd)
 }
 
 fn av1_highbd_inv_txfm_add_16x32(
@@ -82,7 +82,7 @@ fn av1_highbd_inv_txfm_add_16x32(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     av1_inv_txfm2d_add_16x32(
         input,
         dest,
@@ -90,7 +90,7 @@ fn av1_highbd_inv_txfm_add_16x32(
         stride,
         txfm_param.tx_type,
         txfm_param.bd,
-    );
+    )
 }
 
 fn av1_highbd_inv_txfm_add_32x16(
@@ -99,7 +99,7 @@ fn av1_highbd_inv_txfm_add_32x16(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     av1_inv_txfm2d_add_32x16(
         input,
         dest,
@@ -107,7 +107,7 @@ fn av1_highbd_inv_txfm_add_32x16(
         stride,
         txfm_param.tx_type,
         txfm_param.bd,
-    );
+    )
 }
 
 fn av1_highbd_inv_txfm_add_8x8(
@@ -116,11 +116,11 @@ fn av1_highbd_inv_txfm_add_8x8(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     let bd = txfm_param.bd;
     let tx_type = txfm_param.tx_type;
 
-    av1_inv_txfm2d_add_8x8(input, dest, dest_off, stride, tx_type, bd);
+    av1_inv_txfm2d_add_8x8(input, dest, dest_off, stride, tx_type, bd)
 }
 
 fn av1_highbd_inv_txfm_add_16x16(
@@ -129,11 +129,11 @@ fn av1_highbd_inv_txfm_add_16x16(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     let bd = txfm_param.bd;
     let tx_type = txfm_param.tx_type;
 
-    av1_inv_txfm2d_add_16x16(input, dest, dest_off, stride, tx_type, bd);
+    av1_inv_txfm2d_add_16x16(input, dest, dest_off, stride, tx_type, bd)
 }
 
 fn av1_highbd_inv_txfm_add_8x16(
@@ -142,7 +142,7 @@ fn av1_highbd_inv_txfm_add_8x16(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     av1_inv_txfm2d_add_8x16(
         input,
         dest,
@@ -150,7 +150,7 @@ fn av1_highbd_inv_txfm_add_8x16(
         stride,
         txfm_param.tx_type,
         txfm_param.bd,
-    );
+    )
 }
 
 fn av1_highbd_inv_txfm_add_16x8(
@@ -159,7 +159,7 @@ fn av1_highbd_inv_txfm_add_16x8(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     av1_inv_txfm2d_add_16x8(
         input,
         dest,
@@ -167,7 +167,7 @@ fn av1_highbd_inv_txfm_add_16x8(
         stride,
         txfm_param.tx_type,
         txfm_param.bd,
-    );
+    )
 }
 
 fn av1_highbd_inv_txfm_add_32x32(
@@ -176,11 +176,11 @@ fn av1_highbd_inv_txfm_add_32x32(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     let bd = txfm_param.bd;
     let tx_type = txfm_param.tx_type;
 
-    av1_inv_txfm2d_add_32x32(input, dest, dest_off, stride, tx_type, bd);
+    av1_inv_txfm2d_add_32x32(input, dest, dest_off, stride, tx_type, bd)
 }
 
 /// Translation of `init_txfm_param()`; it takes the block's
@@ -212,7 +212,7 @@ pub(crate) fn av1_highbd_inv_txfm_add(
     dest_off: usize,
     stride: usize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     let tx_size = txfm_param.tx_size;
     match tx_size {
         TX_32X32 => av1_highbd_inv_txfm_add_32x32(input, dest, dest_off, stride, txfm_param),
@@ -228,7 +228,8 @@ pub(crate) fn av1_highbd_inv_txfm_add(
             // case.
             av1_highbd_inv_txfm_add_4x4(input, dest, dest_off, stride, txfm_param)
         }
-        _ => debug_assert!(false, "Invalid transform size"),
+        // (the 64-sample, 4:1 and 4-sample rectangular sizes)
+        _ => Err(()),
     }
 }
 
@@ -245,9 +246,9 @@ pub(crate) fn av1_inverse_transform_block(
     stride: usize,
     eob: i32,
     reduced_tx_set: i32,
-) {
+) -> Result<(), ()> {
     if eob == 0 {
-        return;
+        return Ok(());
     }
 
     let mut txfm_param = TxfmParam::default();
@@ -261,5 +262,5 @@ pub(crate) fn av1_inverse_transform_block(
         &mut txfm_param,
     );
 
-    av1_highbd_inv_txfm_add(dqcoeff, dst, dst_off, stride, &txfm_param);
+    av1_highbd_inv_txfm_add(dqcoeff, dst, dst_off, stride, &txfm_param)
 }

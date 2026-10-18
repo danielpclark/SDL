@@ -19,15 +19,17 @@ use super::block::*;
 use super::encodeframe_utils::*;
 use super::encoder::*;
 use super::encodetxb::av1_get_cb_coeff_buffer;
+use super::ethread::{av1_encode_tiles_row_mt, MOD_PACK_BS};
 use super::partition_search::{av1_nonrd_use_partition, av1_set_offsets};
 use super::ratectrl::LF_UPDATE;
 use super::rd::av1_initialize_rd_consts;
 use super::rdopt_utils::select_tx_mode;
 use super::speed_features::*;
 use super::var_based_part::av1_choose_var_based_partitioning;
-use crate::aom::aom_dsp::variance::aom_highbd_10_variance;
+use crate::aom::aom_dsp::variance::{aom_highbd_10_variance, aom_variance};
 use crate::aom::aom_scale::yv12config::Yv12BufferConfig;
 use crate::aom::av1::common::av1_common_int::*;
+use crate::aom::av1::common::av1_loopfilter::av1_loop_filter_frame;
 use crate::aom::av1::common::blockd::*;
 use crate::aom::av1::common::cfl::cfl_init;
 use crate::aom::av1::common::entropymode::{
@@ -39,6 +41,11 @@ use crate::aom::av1::common::reconinter::setup_pred_plane;
 use crate::aom::av1::common::seg_common::MAX_SEGMENTS;
 use crate::aom::av1::common::tile_common::*;
 
+/// `AVG_CDF_WEIGHT_LEFT`
+const AVG_CDF_WEIGHT_LEFT: i32 = 3;
+/// `AVG_CDF_WEIGHT_TOP_RIGHT`
+const AVG_CDF_WEIGHT_TOP_RIGHT: i32 = 1;
+
 pub(crate) fn av1_init_rtc_counters(x: &mut Macroblock) {
     // (av1_init_cyclic_refresh_counters())
     x.actual_num_seg1_blocks = 0;
@@ -46,11 +53,27 @@ pub(crate) fn av1_init_rtc_counters(x: &mut Macroblock) {
     x.cnt_zeromv = 0;
 }
 
+pub(crate) fn av1_accumulate_rtc_counters(cpi: &mut Av1Comp, x: &Macroblock) {
+    // (av1_accumulate_cyclic_refresh_counters(): the cyclic refresh is off
+    // for the saver)
+    debug_assert!(cpi.oxcf.q_cfg.aq_mode != CYCLIC_REFRESH_AQ);
+    cpi.rc.cnt_zeromv += x.cnt_zeromv;
+}
+
+// This is used as a reference when computing the source variance for the
+//  purposes of activity masking.
+// Eventually this should be replaced by custom no-reference routines,
+//  which will be faster.
+static AV1_VAR_OFFS: [u16; MAX_SB_SIZE as usize] = [128; MAX_SB_SIZE as usize];
+
+static AV1_HIGH_VAR_OFFS_8: [u16; MAX_SB_SIZE as usize] = [128; MAX_SB_SIZE as usize];
+
 static AV1_HIGH_VAR_OFFS_10: [u16; MAX_SB_SIZE as usize] = [128 * 4; MAX_SB_SIZE as usize];
 
-/// Translation of `av1_get_perpixel_variance()` for the saver's 10-bit
-/// buffers (`cpi->ppi->fn_ptr[plane_bsize].vf` is
-/// `aom_highbd_10_variance<w>x<h>`).
+/// Translation of `av1_get_perpixel_variance()`
+/// (`cpi->ppi->fn_ptr[plane_bsize].vf` is `aom_variance<w>x<h>`, or
+/// `aom_highbd_<bd>_variance<w>x<h>` for high bit depth buffers; the saver's
+/// buffers are of 8 or 10 bits).
 pub(crate) fn av1_get_perpixel_variance(
     xd: &MacroBlockD,
     src: &[u16],
@@ -58,27 +81,59 @@ pub(crate) fn av1_get_perpixel_variance(
     bsize: BlockSize,
     plane: usize,
     use_hbd: bool,
-) -> u32 {
+) -> Result<u32, ()> {
     let subsampling_x = xd.plane[plane].subsampling_x;
     let subsampling_y = xd.plane[plane].subsampling_y;
     let plane_bsize = get_plane_block_size(bsize, subsampling_x, subsampling_y);
     let mut sse: u32 = 0;
-    debug_assert!(use_hbd);
-    let bd = xd.bd;
-    debug_assert!(bd == 10);
-    let var = aom_highbd_10_variance(
-        src,
-        r.buf,
-        r.stride as usize,
-        &AV1_HIGH_VAR_OFFS_10,
-        0,
-        0,
-        BLOCK_SIZE_WIDE[plane_bsize as usize] as i32,
-        BLOCK_SIZE_HIGH[plane_bsize as usize] as i32,
-        &mut sse,
-    );
-    ((var as u64 + ((1u64 << NUM_PELS_LOG2_LOOKUP[plane_bsize as usize]) >> 1))
-        >> NUM_PELS_LOG2_LOOKUP[plane_bsize as usize]) as u32
+    let w = BLOCK_SIZE_WIDE[plane_bsize as usize] as i32;
+    let h = BLOCK_SIZE_HIGH[plane_bsize as usize] as i32;
+    let var = if use_hbd {
+        let bd = xd.bd;
+        debug_assert!(bd == 8 || bd == 10 || bd == 12);
+        match bd {
+            8 => aom_variance(
+                src,
+                r.buf,
+                r.stride as usize,
+                &AV1_HIGH_VAR_OFFS_8,
+                0,
+                0,
+                w,
+                h,
+                &mut sse,
+            ),
+            10 => aom_highbd_10_variance(
+                src,
+                r.buf,
+                r.stride as usize,
+                &AV1_HIGH_VAR_OFFS_10,
+                0,
+                0,
+                w,
+                h,
+                &mut sse,
+            ),
+            // (12-bit buffers: the saver's are of 8 or 10 bits)
+            _ => return Err(()),
+        }
+    } else {
+        aom_variance(
+            src,
+            r.buf,
+            r.stride as usize,
+            &AV1_VAR_OFFS,
+            0,
+            0,
+            w,
+            h,
+            &mut sse,
+        )
+    };
+    Ok(
+        ((var as u64 + ((1u64 << NUM_PELS_LOG2_LOOKUP[plane_bsize as usize]) >> 1))
+            >> NUM_PELS_LOG2_LOOKUP[plane_bsize as usize]) as u32,
+    )
 }
 
 pub(crate) fn av1_get_perpixel_variance_facade(
@@ -88,7 +143,7 @@ pub(crate) fn av1_get_perpixel_variance_facade(
     r: &Buf2d,
     bsize: BlockSize,
     plane: usize,
-) -> u32 {
+) -> Result<u32, ()> {
     let use_hbd = is_cur_buf_hbd(xd);
     av1_get_perpixel_variance(xd, src, r, bsize, plane, use_hbd)
 }
@@ -155,7 +210,7 @@ fn encode_nonrd_sb(
     } else if sf.part_sf.partition_search_type == VAR_BASED_PARTITION {
         // set a variance-based partition
         av1_set_offsets(cpi, tile_info, &mut td.mb, mi_row, mi_col, sb_size);
-        av1_choose_var_based_partitioning(cpi, tile_info, td, mi_row, mi_col);
+        av1_choose_var_based_partitioning(cpi, tile_info, td, mi_row, mi_col)?;
     }
     debug_assert!(
         sf.part_sf.partition_search_type == FIXED_PARTITION
@@ -226,6 +281,7 @@ fn encode_sb_row(
     let cm = &cpi.common;
     let tile_info = &tile_data.tile_info;
     let row_mt_enabled = cpi.mt_info.row_mt_enabled;
+    let sb_cols_in_tile = av1_get_sb_cols_in_tile(cm, tile_info);
     let mib_size = cm.seq_params.mib_size;
     let use_nonrd_mode = cpi.sf.rt_sf.use_nonrd_pick_mode;
 
@@ -245,14 +301,33 @@ fn encode_sb_row(
 
     // Code each SB in the row
     let mut mi_col = tile_info.mi_col_start;
+    let mut sb_col_in_tile = 0usize;
     while mi_col < tile_info.mi_col_end {
         // In realtime/allintra mode and when frequency of cost updates is off/tile,
         // wait for the top superblock to finish encoding. Otherwise, wait for the
         // top-right superblock to finish encoding.
-        // (one thread: the row synchronization never waits)
+        // (the rows are coded one after the other: see ethread.rs)
         let update_cdf = tile_data.allow_update_cdf && row_mt_enabled;
-        debug_assert!(!update_cdf);
-        av1_set_cost_upd_freq(cpi, td, tile_info, mi_row, mi_col);
+        if update_cdf && tile_info.mi_row_start != mi_row {
+            let x = &mut td.mb;
+            if tile_info.mi_col_start == mi_col {
+                // restore frame context at the 1st column sb
+                *x.e_mbd.tile_ctx = x.row_ctx[0].clone();
+            } else {
+                // update context
+                let wt_left = AVG_CDF_WEIGHT_LEFT;
+                let wt_tr = AVG_CDF_WEIGHT_TOP_RIGHT;
+                let i = if tile_info.mi_col_end > mi_col + mib_size {
+                    sb_col_in_tile
+                } else {
+                    sb_col_in_tile - 1
+                };
+                av1_avg_cdf_symbols(&mut x.e_mbd.tile_ctx, &x.row_ctx[i], wt_left, wt_tr);
+            }
+        }
+
+        // Update the rate cost tables for some symbols
+        av1_set_cost_upd_freq(cpi, td, tile_info, mi_row, mi_col)?;
 
         let x = &mut td.mb;
         // Reset color coding related parameters
@@ -287,7 +362,18 @@ fn encode_sb_row(
         // encode the superblock
         debug_assert!(use_nonrd_mode != 0);
         encode_nonrd_sb(cpi, td, tile_data, mi_row, mi_col, seg_skip)?;
+
+        // Update the top-right context in row_mt coding
+        if update_cdf && tile_info.mi_row_end > mi_row + mib_size {
+            let x = &mut td.mb;
+            if sb_cols_in_tile == 1 {
+                x.row_ctx[0] = (*x.e_mbd.tile_ctx).clone();
+            } else if sb_col_in_tile >= 1 {
+                x.row_ctx[sb_col_in_tile - 1] = (*x.e_mbd.tile_ctx).clone();
+            }
+        }
         mi_col += mib_size;
+        sb_col_in_tile += 1;
     }
     Ok(())
 }
@@ -416,7 +502,9 @@ fn encode_tiles(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<(), ()> {
             std::mem::swap(&mut td.mb.e_mbd.tile_ctx, &mut cpi.tile_data[i].tctx);
             res?;
             cpi.tile_data[i].abs_sum_level = td.abs_sum_level;
-            debug_assert!(frame_is_intra_only(&cpi.common));
+            if !frame_is_intra_only(&cpi.common) {
+                av1_accumulate_rtc_counters(cpi, &td.mb);
+            }
             cpi.intrabc_used |= td.intrabc_used;
             cpi.deltaq_used |= td.deltaq_used;
         }
@@ -511,7 +599,27 @@ fn encode_frame_internal(cpi: &mut Av1Comp) -> Result<(), ()> {
     let res = encode_frame_internal_td(cpi, &mut td);
     enc_move_frame_state_out(cpi, &mut td);
     cpi.td = td;
-    res
+    res?;
+    if cpi.mt_info.pipelined_lpf_pending {
+        // (launch_loop_filter_rows(): libaom's encoding workers filter the
+        // rows once they and the rows below them are coded; the filter's
+        // output does not depend on the order, and the rows' coding never
+        // reads the filtered pixels)
+        cpi.mt_info.pipelined_lpf_pending = false;
+        let num_planes = av1_num_planes(&cpi.common);
+        let lpf_opt_level = get_lpf_opt_level(&cpi.sf);
+        debug_assert!(lpf_opt_level == 2);
+        let lossless = cpi.td.mb.e_mbd.lossless;
+        av1_loop_filter_frame(
+            &mut cpi.common,
+            &lossless,
+            0,
+            num_planes,
+            false,
+            lpf_opt_level,
+        )?;
+    }
+    Ok(())
 }
 
 fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<(), ()> {
@@ -662,13 +770,27 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
     // (av1_set_sad_per_bit(): the SAD per bit only steers motion searches)
     // (populate_thresh_to_force_zeromv_skip(): a real-time feature)
 
-    // (one thread: the dummy row synchronization, no row or tile
-    // multi-threading)
+    // (the row synchronization: the rows are coded in order, see ethread.rs)
     cpi.mt_info.row_mt_enabled = false;
-    cpi.mt_info.pack_bs_mt_enabled = false;
+    cpi.mt_info.pack_bs_mt_enabled = cpi.mt_info.num_mod_workers[MOD_PACK_BS]
+        .min(cpi.common.tiles.cols * cpi.common.tiles.rows)
+        > 1;
 
-    // (td->rt_pc_root: the partition tree is implicit, see context_tree.rs)
-    encode_tiles(cpi, td)?;
+    if cpi.oxcf.row_mt && cpi.mt_info.num_workers > 1 {
+        cpi.mt_info.row_mt_enabled = true;
+        av1_encode_tiles_row_mt(cpi, td)?;
+    } else if cpi
+        .mt_info
+        .num_workers
+        .min(cpi.common.tiles.cols * cpi.common.tiles.rows)
+        > 1
+    {
+        // (av1_encode_tiles_mt(): libavif leaves row multi-threading on)
+        return Err(());
+    } else {
+        // (td->rt_pc_root: the partition tree is implicit, see context_tree.rs)
+        encode_tiles(cpi, td)?;
+    }
 
     let cm = &mut cpi.common;
     // If intrabc is allowed but never selected, reset the allow_intrabc flag.
@@ -714,7 +836,10 @@ pub(crate) fn av1_encode_frame(cpi: &mut Av1Comp) -> Result<(), ()> {
     cpi.common.features.reduced_tx_set_used = cpi.oxcf.txfm_cfg.reduced_tx_type_set;
 
     // Make sure segment_id is no larger than last_active_segid.
-    debug_assert!(cpi.common.seg.enabled == 0);
+    if cpi.common.seg.enabled != 0 && cpi.common.seg.update_map != 0 {
+        // (segmentation is off for the saver)
+        return Err(());
+    }
 
     av1_setup_frame_buf_refs(&mut cpi.common);
     enforce_max_ref_frames(cpi);
@@ -726,10 +851,13 @@ pub(crate) fn av1_encode_frame(cpi: &mut Av1Comp) -> Result<(), ()> {
 
     cpi.td.rd_counts.newmv_or_intra_blocks = 0;
 
-    debug_assert!(cpi.sf.hl_sf.frame_parameter_update != 0 || cpi.sf.rt_sf.use_comp_ref_nonrd != 0);
-    {
-        debug_assert!(frame_is_intra_only(&cpi.common));
-        cpi.common.current_frame.reference_mode = SINGLE_REFERENCE;
+    if cpi.sf.hl_sf.frame_parameter_update != 0 || cpi.sf.rt_sf.use_comp_ref_nonrd != 0 {
+        if frame_is_intra_only(&cpi.common) {
+            cpi.common.current_frame.reference_mode = SINGLE_REFERENCE;
+        } else {
+            cpi.common.current_frame.reference_mode = REFERENCE_MODE_SELECT;
+        }
+
         cpi.common.features.interp_filter = SWITCHABLE;
         if cpi.common.tiles.large_scale != 0 {
             cpi.common.features.interp_filter = EIGHTTAP_REGULAR;
@@ -746,6 +874,14 @@ pub(crate) fn av1_encode_frame(cpi: &mut Av1Comp) -> Result<(), ()> {
         encode_frame_internal(cpi)?;
 
         let cm = &mut cpi.common;
+        if cm.current_frame.reference_mode == REFERENCE_MODE_SELECT {
+            // Use a flag that includes 4x4 blocks
+            if cpi.td.rd_counts.compound_ref_used_flag == 0 {
+                cm.current_frame.reference_mode = SINGLE_REFERENCE;
+            }
+        }
+        // Re-check on the skip mode status as reference mode may have been
+        // changed.
         if frame_is_intra_only(cm) || cm.current_frame.reference_mode == SINGLE_REFERENCE {
             let skip_mode_info = &mut cm.current_frame.skip_mode_info;
             skip_mode_info.skip_mode_allowed = 0;
@@ -763,6 +899,13 @@ pub(crate) fn av1_encode_frame(cpi: &mut Av1Comp) -> Result<(), ()> {
         {
             cm.features.tx_mode = TX_MODE_LARGEST;
         }
+    } else {
+        // This is needed if real-time speed setting is changed on the fly
+        // from one using compound prediction to one using single reference.
+        if cpi.common.current_frame.reference_mode == REFERENCE_MODE_SELECT {
+            cpi.common.current_frame.reference_mode = SINGLE_REFERENCE;
+        }
+        encode_frame_internal(cpi)?;
     }
     Ok(())
 }

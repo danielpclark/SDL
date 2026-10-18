@@ -169,6 +169,9 @@ pub(crate) struct CandidateMv {
 }
 
 /// Translation of `have_newmv_in_inter_mode()`.
+pub(crate) static FIMODE_TO_INTRADIR: [PredictionMode; FILTER_INTRA_MODES as usize] =
+    [DC_PRED, V_PRED, H_PRED, D157_PRED, DC_PRED];
+
 #[inline]
 pub(crate) fn have_newmv_in_inter_mode(mode: PredictionMode) -> bool {
     mode == NEWMV
@@ -532,6 +535,81 @@ pub(crate) fn get_partition_subsize(bsize: BlockSize, partition: PartitionType) 
     }
 }
 
+/// Translation of `get_default_tx_type()`.
+#[inline]
+pub(crate) fn get_default_tx_type(
+    plane_type: i32,
+    xd: &MacroBlockD,
+    tx_size: TxSize,
+    use_screen_content_tools: bool,
+) -> TxType {
+    let mbmi = xd.mbmi();
+
+    if is_inter_block(mbmi)
+        || plane_type != PLANE_TYPE_Y
+        || xd.lossless[mbmi.segment_id as usize] != 0
+        || tx_size >= TX_32X32
+        || use_screen_content_tools
+    {
+        return DEFAULT_INTER_TX_TYPE;
+    }
+
+    intra_mode_to_tx_type(mbmi, plane_type)
+}
+
+// The bitmask corresponds to the transform types as defined in
+// enums.h TX_TYPE enumeration type. Setting the bit 0 means to disable
+// the use of the corresponding transform type in that table.
+// The av1_derived_intra_tx_used_flag table is used when
+// use_reduced_intra_txset is set to 2, where one only searches
+// the transform types derived from residual statistics.
+pub(crate) static AV1_DERIVED_INTRA_TX_USED_FLAG: [u16; INTRA_MODES as usize] = [
+    0x0209, // DC_PRED:       0000 0010 0000 1001
+    0x0403, // V_PRED:        0000 0100 0000 0011
+    0x0805, // H_PRED:        0000 1000 0000 0101
+    0x020F, // D45_PRED:      0000 0010 0000 1111
+    0x0009, // D135_PRED:     0000 0000 0000 1001
+    0x0009, // D113_PRED:     0000 0000 0000 1001
+    0x0009, // D157_PRED:     0000 0000 0000 1001
+    0x0805, // D203_PRED:     0000 1000 0000 0101
+    0x0403, // D67_PRED:      0000 0100 0000 0011
+    0x0205, // SMOOTH_PRED:   0000 0010 0000 1001
+    0x0403, // SMOOTH_V_PRED: 0000 0100 0000 0011
+    0x0805, // SMOOTH_H_PRED: 0000 1000 0000 0101
+    0x0209, // PAETH_PRED:    0000 0010 0000 1001
+];
+
+// The bitmask corresponds to the transform types as defined in
+// enums.h TX_TYPE enumeration type. Setting the bit 0 means to disable
+// the use of the corresponding transform type in that table.
+// The av1_reduced_intra_tx_used_flag table is used when
+// use_reduced_intra_txset is set to 1, where one only searches
+// the transform types derived from residual statistics.
+pub(crate) static AV1_REDUCED_INTRA_TX_USED_FLAG: [u16; INTRA_MODES as usize] = [
+    0x080F, // DC_PRED:       0000 1000 0000 1111
+    0x040F, // V_PRED:        0000 0100 0000 1111
+    0x080F, // H_PRED:        0000 1000 0000 1111
+    0x020F, // D45_PRED:      0000 0010 0000 1111
+    0x080F, // D135_PRED:     0000 1000 0000 1111
+    0x040F, // D113_PRED:     0000 0100 0000 1111
+    0x080F, // D157_PRED:     0000 1000 0000 1111
+    0x080F, // D203_PRED:     0000 1000 0000 1111
+    0x040F, // D67_PRED:      0000 0100 0000 1111
+    0x080F, // SMOOTH_PRED:   0000 1000 0000 1111
+    0x040F, // SMOOTH_V_PRED: 0000 0100 0000 1111
+    0x080F, // SMOOTH_H_PRED: 0000 1000 0000 1111
+    0x0C0E, // PAETH_PRED:    0000 1100 0000 1110
+];
+
+pub(crate) static AV1_EXT_TX_USED_FLAG: [u16; EXT_TX_SET_TYPES as usize] = [
+    0x0001, // 0000 0000 0000 0001
+    0x0201, // 0000 0010 0000 0001
+    0x020F, // 0000 0010 0000 1111
+    0x0E0F, // 0000 1110 0000 1111
+    0x0FFF, // 0000 1111 1111 1111
+    0xFFFF, // 1111 1111 1111 1111
+];
+
 pub(crate) fn intra_mode_to_tx_type(mbmi: &MbModeInfo, plane_type: i32) -> TxType {
     static INTRA_MODE_TO_TX_TYPE: [TxType; INTRA_MODES as usize] = [
         DCT_DCT,   // DC_PRED
@@ -717,9 +795,18 @@ pub(crate) fn av1_get_tx_type(
         tx_type =
             xd.tx_type_map_get((blk_row * xd.tx_type_map_stride + blk_col) as usize) as TxType;
     } else {
-        // (the saver's blocks are all intra)
-        debug_assert!(!is_inter_block(mbmi));
-        tx_type = intra_mode_to_tx_type(mbmi, PLANE_TYPE_UV);
+        if is_inter_block(mbmi) {
+            // scale back to y plane's coordinate
+            let pd = &xd.plane[plane_type as usize];
+            let blk_row = blk_row << pd.subsampling_y;
+            let blk_col = blk_col << pd.subsampling_x;
+            tx_type =
+                xd.tx_type_map_get((blk_row * xd.tx_type_map_stride + blk_col) as usize) as TxType;
+        } else {
+            // In intra mode, uv planes don't share the same prediction mode as y
+            // plane, so the tx_type should not be shared
+            tx_type = intra_mode_to_tx_type(mbmi, PLANE_TYPE_UV);
+        }
         let tx_set_type =
             av1_get_ext_tx_set_type(tx_size, is_inter_block(mbmi) as i32, reduced_tx_set);
         if AV1_EXT_TX_USED[tx_set_type as usize][tx_type as usize] == 0 {

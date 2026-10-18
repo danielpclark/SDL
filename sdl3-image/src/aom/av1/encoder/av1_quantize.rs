@@ -16,7 +16,7 @@ use super::block::{Macroblock, MacroblockPlane};
 use super::encoder::Av1Comp;
 use super::rd::{av1_compute_rd_mult, av1_set_error_per_bit};
 use crate::aom::aom_dsp::aom_dsp_common::{clamp64, round_power_of_two, TranLowT};
-use crate::aom::aom_dsp::quantize::aom_highbd_quantize_b;
+use crate::aom::aom_dsp::quantize::{aom_highbd_quantize_b, aom_quantize_b_helper};
 use crate::aom::av1::common::av1_common_int::{Av1Common, CommonQuantParams};
 use crate::aom::av1::common::blockd::MacroBlockD;
 use crate::aom::av1::common::enums::*;
@@ -188,6 +188,45 @@ pub(crate) fn av1_quantize_fp_no_qmatrix(
     eob
 }
 
+/// Translation of `av1_quantize_lp_c()`.
+pub(crate) fn av1_quantize_lp(
+    coeff_ptr: &[i16],
+    n_coeffs: i32,
+    round_ptr: &[i16],
+    quant_ptr: &[i16],
+    qcoeff_ptr: &mut [i16],
+    dqcoeff_ptr: &mut [i16],
+    dequant_ptr: &[i16],
+    eob_ptr: &mut u16,
+    scan: &[i16],
+) {
+    let mut eob: i32 = -1;
+
+    qcoeff_ptr[..n_coeffs as usize].fill(0);
+    dqcoeff_ptr[..n_coeffs as usize].fill(0);
+
+    // Quantization pass: All coefficients with index >= zero_flag are
+    // skippable. Note: zero_flag can be zero.
+    for i in 0..n_coeffs as usize {
+        let rc = scan[i] as usize;
+        let rc01 = (rc != 0) as usize;
+        let coeff = coeff_ptr[rc] as i32;
+        let coeff_sign = aomsign(coeff);
+        let abs_coeff = (coeff ^ coeff_sign) - coeff_sign;
+
+        let mut tmp = (abs_coeff + round_ptr[rc01] as i32).clamp(i16::MIN as i32, i16::MAX as i32);
+        tmp = (tmp * quant_ptr[rc01] as i32) >> 16;
+
+        qcoeff_ptr[rc] = ((tmp ^ coeff_sign) - coeff_sign) as i16;
+        dqcoeff_ptr[rc] = (qcoeff_ptr[rc] as i32 * dequant_ptr[rc01] as i32) as i16;
+
+        if tmp != 0 {
+            eob = i as i32;
+        }
+    }
+    *eob_ptr = (eob + 1) as u16;
+}
+
 /// Translation of `quantize_fp_helper_c()` with flat quantizer matrices.
 fn quantize_fp_helper_c(
     coeff_ptr: &[TranLowT],
@@ -270,7 +309,8 @@ fn highbd_quantize_fp_helper_c(
 }
 
 /// Translation of `av1_quantize_fp_c()` (zbin, quant_shift and iscan are
-/// unused upstream too).
+/// unused upstream too), and with `log_scale` 1 and 2 of
+/// `av1_quantize_fp_32x32_c()` and `av1_quantize_fp_64x64_c()`.
 pub(crate) fn av1_quantize_fp(
     coeff_ptr: &[TranLowT],
     n_coeffs: i32,
@@ -281,6 +321,7 @@ pub(crate) fn av1_quantize_fp(
     dequant_ptr: &[i16],
     eob_ptr: &mut u16,
     scan: &[i16],
+    log_scale: i32,
 ) {
     quantize_fp_helper_c(
         coeff_ptr,
@@ -292,8 +333,78 @@ pub(crate) fn av1_quantize_fp(
         dequant_ptr,
         eob_ptr,
         scan,
-        0,
+        log_scale,
     );
+}
+
+/// Translation of `av1_quantize_fp_facade()` (flat matrices).
+pub(crate) fn av1_quantize_fp_facade(
+    coeff_ptr: &[TranLowT],
+    n_coeffs: i32,
+    p: &MacroblockPlane,
+    qcoeff_ptr: &mut [TranLowT],
+    dqcoeff_ptr: &mut [TranLowT],
+    eob_ptr: &mut u16,
+    sc: &ScanOrder,
+    qparam: &QuantParam,
+) -> Result<(), ()> {
+    if qparam.qmatrix.is_some() || qparam.iqmatrix.is_some() {
+        return Err(());
+    }
+    if !(0..=2).contains(&qparam.log_scale) {
+        return Err(());
+    }
+    av1_quantize_fp(
+        coeff_ptr,
+        n_coeffs,
+        &p.round_fp_qtx,
+        &p.quant_fp_qtx,
+        qcoeff_ptr,
+        dqcoeff_ptr,
+        &p.dequant_qtx,
+        eob_ptr,
+        sc.scan,
+        qparam.log_scale,
+    );
+    Ok(())
+}
+
+/// Translation of `av1_quantize_b_facade()` (flat matrices, no adaptive
+/// quantization): `aom_quantize_b_c()`, `aom_quantize_b_32x32_c()` and
+/// `aom_quantize_b_64x64_c()` by log scale.
+pub(crate) fn av1_quantize_b_facade(
+    coeff_ptr: &[TranLowT],
+    n_coeffs: i32,
+    p: &MacroblockPlane,
+    qcoeff_ptr: &mut [TranLowT],
+    dqcoeff_ptr: &mut [TranLowT],
+    eob_ptr: &mut u16,
+    sc: &ScanOrder,
+    qparam: &QuantParam,
+) -> Result<(), ()> {
+    // (the adaptive quantizers and quantization matrices are off)
+    if qparam.use_quant_b_adapt != 0 || qparam.qmatrix.is_some() || qparam.iqmatrix.is_some() {
+        return Err(());
+    }
+    if !(0..=2).contains(&qparam.log_scale) {
+        return Err(());
+    }
+    aom_quantize_b_helper(
+        coeff_ptr,
+        n_coeffs as isize,
+        &p.zbin_qtx,
+        &p.round_qtx,
+        &p.quant_qtx,
+        &p.quant_shift_qtx,
+        qcoeff_ptr,
+        dqcoeff_ptr,
+        &p.dequant_qtx,
+        eob_ptr,
+        sc.scan,
+        sc.iscan,
+        qparam.log_scale,
+    );
+    Ok(())
 }
 
 /// Translation of `av1_highbd_quantize_fp_facade()` (flat matrices).
@@ -306,8 +417,10 @@ pub(crate) fn av1_highbd_quantize_fp_facade(
     eob_ptr: &mut u16,
     sc: &ScanOrder,
     qparam: &QuantParam,
-) {
-    debug_assert!(qparam.qmatrix.is_none() && qparam.iqmatrix.is_none());
+) -> Result<(), ()> {
+    if qparam.qmatrix.is_some() || qparam.iqmatrix.is_some() {
+        return Err(());
+    }
     av1_highbd_quantize_fp(
         coeff_ptr,
         n_coeffs,
@@ -320,12 +433,11 @@ pub(crate) fn av1_highbd_quantize_fp_facade(
         sc.scan,
         qparam.log_scale,
     );
+    Ok(())
 }
 
 /// Translation of `av1_highbd_quantize_b_facade()` (flat matrices, no
-/// adaptive quantization). The "b" quantizer only quantizes the lossless
-/// 4x4 blocks (lossy blocks use trellis and the "fp" quantizer), so the
-/// log scale is always 0.
+/// adaptive quantization).
 pub(crate) fn av1_highbd_quantize_b_facade(
     coeff_ptr: &[TranLowT],
     n_coeffs: i32,
@@ -335,11 +447,12 @@ pub(crate) fn av1_highbd_quantize_b_facade(
     eob_ptr: &mut u16,
     sc: &ScanOrder,
     qparam: &QuantParam,
-) {
-    debug_assert!(qparam.use_quant_b_adapt == 0);
-    debug_assert!(qparam.qmatrix.is_none() && qparam.iqmatrix.is_none());
+) -> Result<(), ()> {
+    if qparam.use_quant_b_adapt != 0 || qparam.qmatrix.is_some() || qparam.iqmatrix.is_some() {
+        return Err(());
+    }
     match qparam.log_scale {
-        0 => aom_highbd_quantize_b(
+        0..=2 => aom_highbd_quantize_b(
             coeff_ptr,
             n_coeffs as isize,
             &p.zbin_qtx,
@@ -352,9 +465,11 @@ pub(crate) fn av1_highbd_quantize_b_facade(
             eob_ptr,
             sc.scan,
             sc.iscan,
+            qparam.log_scale,
         ),
-        _ => debug_assert!(false),
+        _ => return Err(()),
     }
+    Ok(())
 }
 
 /// Translation of `av1_highbd_quantize_fp_c()`.

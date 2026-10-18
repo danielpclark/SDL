@@ -12,4 +12,5 @@ pub(crate) mod prob;
 pub(crate) mod quantize;
 pub(crate) mod sad;
 pub(crate) mod subtract;
+pub(crate) mod sum_squares;
 pub(crate) mod variance;

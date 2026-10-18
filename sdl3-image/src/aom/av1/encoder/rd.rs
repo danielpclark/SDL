@@ -51,6 +51,67 @@ pub(crate) fn rdcost<T: Into<i64>>(rm: T, r: i32, d: i64) -> i64 {
         .wrapping_add(d.wrapping_mul(1 << RDDIV_BITS))
 }
 
+/// `RDCOST_NEG_R(RM, R, D)`
+#[inline]
+pub(crate) fn rdcost_neg_r(rm: i32, r: i32, d: i64) -> i64 {
+    (d.wrapping_mul(1 << RDDIV_BITS)).wrapping_sub(
+        ((r as i64).wrapping_mul(rm as i64) + (1 << (AV1_PROB_COST_SHIFT - 1)))
+            >> AV1_PROB_COST_SHIFT,
+    )
+}
+
+/// Translation of `av1_init_rd_stats()`.
+#[inline]
+pub(crate) fn av1_init_rd_stats(rd_stats: &mut RdStats) {
+    rd_stats.rate = 0;
+    rd_stats.dist = 0;
+    rd_stats.rdcost = 0;
+    rd_stats.sse = 0;
+    rd_stats.skip_txfm = 1;
+    rd_stats.zero_rate = 0;
+}
+
+/// Translation of `av1_merge_rd_stats()`.
+#[inline]
+pub(crate) fn av1_merge_rd_stats(rd_stats_dst: &mut RdStats, rd_stats_src: &RdStats) {
+    if rd_stats_dst.rate == i32::MAX || rd_stats_src.rate == i32::MAX {
+        // If rd_stats_dst or rd_stats_src has invalid rate, we will make
+        // rd_stats_dst invalid.
+        av1_invalid_rd_stats(rd_stats_dst);
+        return;
+    }
+    rd_stats_dst.rate =
+        (rd_stats_dst.rate as i64 + rd_stats_src.rate as i64).min(i32::MAX as i64) as i32;
+    if rd_stats_dst.zero_rate == 0 {
+        rd_stats_dst.zero_rate = rd_stats_src.zero_rate;
+    }
+    rd_stats_dst.dist += rd_stats_src.dist;
+    if rd_stats_dst.sse < i64::MAX && rd_stats_src.sse < i64::MAX {
+        rd_stats_dst.sse += rd_stats_src.sse;
+    }
+    rd_stats_dst.skip_txfm &= rd_stats_src.skip_txfm;
+}
+
+/// Translation of `av1_calculate_rd_cost()`.
+#[inline]
+pub(crate) fn av1_calculate_rd_cost(mult: i32, rate: i32, dist: i64) -> i64 {
+    debug_assert!(mult >= 0);
+    if rate >= 0 {
+        return rdcost(mult, rate, dist);
+    }
+    rdcost_neg_r(mult, -rate, dist)
+}
+
+/// Translation of `av1_rd_cost_update()`.
+#[inline]
+pub(crate) fn av1_rd_cost_update(mult: i32, rd_cost: &mut RdStats) {
+    if rd_cost.rate < i32::MAX && rd_cost.dist < i64::MAX && rd_cost.rdcost < i64::MAX {
+        rd_cost.rdcost = av1_calculate_rd_cost(mult, rd_cost.rate, rd_cost.dist);
+    } else {
+        av1_invalid_rd_stats(rd_cost);
+    }
+}
+
 #[inline]
 pub(crate) fn av1_invalid_rd_stats(rd_stats: &mut RdStats) {
     rd_stats.rate = i32::MAX;
@@ -1121,8 +1182,28 @@ fn populate_unified_cost_update_freq(
 #[inline]
 fn should_force_mode_cost_update(cpi: &Av1Comp) -> bool {
     let rt_sf = &cpi.sf.rt_sf;
-    // (frame-level mode cost updates are a real-time speed feature)
-    debug_assert!(!rt_sf.frame_level_mode_cost_update);
+    if !rt_sf.frame_level_mode_cost_update {
+        return false;
+    }
+
+    if cpi.oxcf.algo_cfg.cdf_update_mode == 2 {
+        return cpi.frames_since_last_update == 1;
+    } else if cpi.oxcf.algo_cfg.cdf_update_mode == 1 {
+        if cpi.svc.number_spatial_layers == 1 && cpi.svc.number_temporal_layers == 1 {
+            let cm = &cpi.common;
+            let rc = &cpi.rc;
+
+            return frame_is_intra_only(cm)
+                || super::ratectrl::is_frame_resize_pending(cpi)
+                || rc.high_source_sad != 0
+                || rc.frames_since_key < 10
+                || cpi.cyclic_refresh.counter_encode_maxq_scene_change < 10
+                || cm.current_frame.frame_number % 8 == 0;
+        } else if cpi.svc.number_temporal_layers > 1 {
+            return cpi.svc.temporal_layer_id != cpi.svc.number_temporal_layers - 1;
+        }
+    }
+
     false
 }
 

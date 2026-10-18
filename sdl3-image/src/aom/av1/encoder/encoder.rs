@@ -28,6 +28,7 @@ use super::encodeframe::av1_encode_frame;
 use super::encodeframe_utils::MAX_TPL_FRAME_IDX;
 use super::encoder_utils::*;
 use super::encodetxb::av1_alloc_txb_buf;
+use super::ethread::NUM_MT_MODULES;
 use super::lookahead::*;
 use super::mcomp::*;
 use super::pickcdef::av1_cdef_search;
@@ -133,10 +134,6 @@ pub(crate) const AOM_CONTENT_FILM: i32 = 2;
 
 /// `CDEF_CONTROL`
 pub(crate) const CDEF_NONE: i32 = 0;
-
-/// `REFRESH_FRAME_CONTEXT_MODE`
-pub(crate) const REFRESH_FRAME_CONTEXT_DISABLED: i32 = 0;
-pub(crate) const REFRESH_FRAME_CONTEXT_BACKWARD: i32 = 1;
 
 /// The frame flags of `av1_get_compressed_data()`.
 pub(crate) const FRAMEFLAGS_KEY: u32 = 1 << 0;
@@ -522,6 +519,8 @@ pub(crate) struct Av1Primary {
     pub(crate) frame_probs: FrameProbInfo,
     pub(crate) ts_start_last_show_frame: i64,
     pub(crate) ts_end_last_show_frame: i64,
+    /// `ppi->p_mt_info`
+    pub(crate) p_mt_info: PrimaryMultiThreadInfo,
 }
 
 /// `RD_COUNTS`
@@ -557,6 +556,10 @@ pub(crate) struct TileDataEnc {
     pub(crate) allow_update_cdf: bool,
     pub(crate) tctx: Box<FrameContext>,
     pub(crate) abs_sum_level: i32,
+    /// `row_ctx`: the contexts the superblocks of a row leave for the row
+    /// below (row multi-threading); moved into the macroblock while the
+    /// tile is coded.
+    pub(crate) row_ctx: Vec<FrameContext>,
 }
 
 /// `WinnerModeParams`
@@ -584,9 +587,25 @@ pub(crate) struct MbmiExtFrameBufferInfo {
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct MultiThreadInfo {
     pub(crate) num_workers: i32,
+    /// Number of workers used for different MT modules.
+    pub(crate) num_mod_workers: [i32; NUM_MT_MODULES],
     pub(crate) row_mt_enabled: bool,
     pub(crate) pack_bs_mt_enabled: bool,
     pub(crate) pipeline_lpf_mt_with_enc: bool,
+    /// Whether the loop filter libaom pipelines with the encoding workers
+    /// is still to run on the coded frame (see `av1_encode_tiles_row_mt()`).
+    pub(crate) pipelined_lpf_pending: bool,
+}
+
+/// `PrimaryMultiThreadInfo` (the worker counts: see ethread.rs).
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct PrimaryMultiThreadInfo {
+    /// Number of workers created for multi-threading.
+    pub(crate) num_workers: i32,
+    /// Number of workers used for different MT modules.
+    pub(crate) num_mod_workers: [i32; NUM_MT_MODULES],
+    /// The number of workers encoding frames before the current one.
+    pub(crate) prev_num_enc_workers: i32,
 }
 
 /// `EncSegmentationInfo`
@@ -642,6 +661,15 @@ pub(crate) struct MvStats {
 pub(crate) struct ActiveMap {
     pub(crate) enabled: bool,
     pub(crate) update: bool,
+}
+
+/// The reached member of `CYCLIC_REFRESH` (aq_cyclicrefresh.h): the
+/// cyclic refresh is off for the saver (`av1_cyclic_refresh_alloc()`
+/// allocates it anyway), and its counter is only set to 0, which the
+/// real-time decisions read.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct CyclicRefresh {
+    pub(crate) counter_encode_maxq_scene_change: i32,
 }
 
 /// The reached member of `GlobalMotionInfo`.
@@ -793,6 +821,8 @@ pub(crate) struct Av1Comp {
     pub(crate) tile_data: Vec<TileDataEnc>,
     pub(crate) allocated_tiles: i32,
     pub(crate) mt_info: MultiThreadInfo,
+    /// Block size used for the weber statistics of all intra coding.
+    pub(crate) weber_bsize: BlockSize,
     pub(crate) enc_seg: EncSegmentationInfo,
     pub(crate) optimize_seg_arr: [i32; MAX_SEGMENTS],
     pub(crate) ssim_rdmult_scaling_factors: Vec<f64>,
@@ -849,6 +879,8 @@ pub(crate) struct Av1Comp {
     /// `cpi->scaled_ref_buf[]`: buffer pool indices
     pub(crate) scaled_ref_buf: [Option<usize>; INTER_REFS_PER_FRAME as usize],
     pub(crate) is_dropped_frame: bool,
+    /// `*cpi->cyclic_refresh`
+    pub(crate) cyclic_refresh: CyclicRefresh,
 }
 
 impl Av1Comp {
@@ -1652,10 +1684,71 @@ pub(crate) fn av1_change_config_seq(
     }
     seq_params.timing_info_present &= (seq_params.reduced_still_picture_hdr == 0) as i32;
 
-    // (highbd_set_var_fns(): the variance functions are called directly)
-    // (set_primary_rc_buffer_sizes(): the buffer model only steers CBR and
-    // VBR rate control)
+    highbd_set_var_fns(&mut ppi.fn_ptr, seq_params);
+
+    set_primary_rc_buffer_sizes(oxcf, ppi);
     Ok(())
+}
+
+/// Translation of `highbd_set_var_fns()` (encoder_utils.h): the high bit
+/// depth variance functions of the sequence's bit depth (the 8-bit ones of
+/// a low bit depth sequence behave as the high bit depth ones of depth 8 on
+/// the translation's 16-bit samples).
+#[inline]
+pub(crate) fn highbd_set_var_fns(fn_ptr: &mut AomVarianceFnPtr, seq_params: &SequenceHeader) {
+    fn_ptr.hbd_bd = if seq_params.use_highbitdepth != 0 {
+        seq_params.bit_depth
+    } else {
+        8
+    };
+}
+
+/// Translation of `check_reset_rc_flag()` (rc_utils.h).
+#[inline]
+fn check_reset_rc_flag(cpi: &mut Av1Comp) {
+    let rc = &mut cpi.rc;
+    let p_rc = &mut cpi.ppi.p_rc;
+    if cpi.common.current_frame.frame_number > cpi.svc.number_spatial_layers as u32 {
+        // (av1_svc_check_reset_layer_rc_flag(): no SVC)
+        debug_assert!(!cpi.ppi.use_svc);
+        if rc.avg_frame_bandwidth > (3 * rc.prev_avg_frame_bandwidth >> 1)
+            || rc.avg_frame_bandwidth < (rc.prev_avg_frame_bandwidth >> 1)
+        {
+            rc.rc_1_frame = 0;
+            rc.rc_2_frame = 0;
+            p_rc.bits_off_target = p_rc.optimal_buffer_level;
+            p_rc.buffer_level = p_rc.optimal_buffer_level;
+        }
+    }
+}
+
+/// Translation of `set_primary_rc_buffer_sizes()` (rc_utils.h).
+#[inline]
+fn set_primary_rc_buffer_sizes(oxcf: &Av1EncoderConfig, ppi: &mut Av1Primary) {
+    let p_rc = &mut ppi.p_rc;
+    let rc_cfg = &oxcf.rc_cfg;
+
+    let bandwidth = rc_cfg.target_bandwidth;
+    let starting = rc_cfg.starting_buffer_level_ms;
+    let optimal = rc_cfg.optimal_buffer_level_ms;
+    let maximum = rc_cfg.maximum_buffer_size_ms;
+
+    p_rc.starting_buffer_level = starting * bandwidth / 1000;
+    p_rc.optimal_buffer_level = if optimal == 0 {
+        bandwidth / 8
+    } else {
+        optimal * bandwidth / 1000
+    };
+    p_rc.maximum_buffer_size = if maximum == 0 {
+        bandwidth / 8
+    } else {
+        maximum * bandwidth / 1000
+    };
+
+    // Under a configuration change, where maximum_buffer_size may change,
+    // keep buffer level clipped to the maximum allowed buffer size.
+    p_rc.bits_off_target = p_rc.bits_off_target.min(p_rc.maximum_buffer_size);
+    p_rc.buffer_level = p_rc.buffer_level.min(p_rc.maximum_buffer_size);
 }
 
 /// Translation of `av1_change_config()`.
@@ -1702,22 +1795,23 @@ pub(crate) fn av1_change_config(
         features.refresh_frame_context = REFRESH_FRAME_CONTEXT_DISABLED;
     }
 
-    // (the palette buffer and the convolution buffer: no palette, no inter
-    // prediction)
+    // (the palette buffer and the convolution buffer: the block state keeps
+    // its buffers itself)
     // The buffers 'tmp_pred_bufs[]' and 'comp_rd_buffer' are used in inter frames
     // to store intermediate inter mode prediction results and are not required
     // for allintra encoding mode. Hence, the memory allocations for these buffers
     // are avoided for allintra encoding mode.
-    debug_assert!(cpi.oxcf.kf_cfg.key_freq_max == 0);
+    // (the macroblock's prediction buffers are sized when used)
 
     av1_reset_segment_features(&mut cpi.common);
 
-    // (av1_set_high_precision_mv(): motion vector precision is an inter
-    // frame setting)
+    av1_set_high_precision_mv(cpi, true, false);
 
     // Under a configuration change, where maximum_buffer_size may change,
     // keep buffer level clipped to the maximum allowed buffer size.
-    // (the buffer levels only steer CBR and VBR rate control)
+    let p_rc = &mut cpi.ppi.p_rc;
+    p_rc.bits_off_target = p_rc.bits_off_target.min(p_rc.maximum_buffer_size);
+    p_rc.buffer_level = p_rc.buffer_level.min(p_rc.maximum_buffer_size);
 
     // Set up frame rate and related parameters rate control values.
     av1_new_framerate(cpi, cpi.framerate);
@@ -1768,10 +1862,17 @@ pub(crate) fn av1_change_config(
     let tile_cfg = cpi.oxcf.tile_cfg;
     set_tile_info(&mut cpi.common, &tile_cfg);
 
-    cpi.ext_flags.refresh_frame.update_pending = false;
+    if !cpi.ppi.rtc_ref.set_ref_frame_config {
+        cpi.ext_flags.refresh_frame.update_pending = false;
+    }
     cpi.ext_flags.refresh_frame_context_pending = false;
 
-    // (check_reset_rc_flag(): a real-time rate control reset)
+    // (av1_update_layer_context_change_config(): no SVC)
+    debug_assert!(!cpi.ppi.use_svc);
+
+    check_reset_rc_flag(cpi);
+
+    // (lap_lag_in_frames: no lookahead processing)
     Ok(())
 }
 
@@ -2273,7 +2374,7 @@ fn loopfilter_frame(cpi: &mut Av1Comp) -> Result<(), ()> {
 
 /// Translation of `get_lpf_opt_level()` (encoder.h).
 #[inline]
-fn get_lpf_opt_level(sf: &SpeedFeatures) -> i32 {
+pub(crate) fn get_lpf_opt_level(sf: &SpeedFeatures) -> i32 {
     let mut lpf_opt_level = 0;
     if is_inter_tx_size_search_level_one(&sf.tx_sf) {
         lpf_opt_level = if sf.lpf_sf.lpf_pick == LPF_PICK_FROM_Q {
@@ -2593,7 +2694,7 @@ fn encode_frame_to_data_rate(cpi: &mut Av1Comp, dest: &mut [u8]) -> Result<usize
     }
 
     if cpi.oxcf.tune_cfg.tuning == AOM_TUNE_SSIM {
-        av1_set_mb_ssim_rdmult_scaling(cpi);
+        av1_set_mb_ssim_rdmult_scaling(cpi)?;
     }
 
     // (the perceptual and user rating based delta q modes are not used)

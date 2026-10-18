@@ -10,7 +10,9 @@
 //! saver reaches). The `av1_range_check_buf()` calls do nothing in this
 //! configuration and are left out.
 
-use crate::aom::av1::common::av1_txfm::{cospi_arr, half_btf};
+use crate::aom::av1::common::av1_txfm::{
+    cospi_arr, half_btf, round_shift, NEW_SQRT2, NEW_SQRT2_BITS,
+};
 
 pub(crate) fn av1_fdct4(input: &[i32], output: &mut [i32], cos_bit: i8, _stage_range: &[i8]) {
     let cospi: &[i32; 64];
@@ -646,4 +648,324 @@ pub(crate) fn av1_fdct32(input: &[i32], output: &mut [i32], cos_bit: i8, _stage_
         bf1[30] = bf0[15];
         bf1[31] = bf0[31];
     }
+}
+
+pub(crate) fn av1_fadst8(input: &[i32], output: &mut [i32], cos_bit: i8, _stage_range: &[i8]) {
+    let mut cospi: &[i32; 64];
+    let mut step = [0i32; 8];
+    // stage 0;
+    // stage 1;
+    {
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = input[0];
+        bf1[1] = -input[7];
+        bf1[2] = -input[3];
+        bf1[3] = input[4];
+        bf1[4] = -input[1];
+        bf1[5] = input[6];
+        bf1[6] = input[2];
+        bf1[7] = -input[5];
+    }
+    // stage 2
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = bf0[0];
+        bf1[1] = bf0[1];
+        bf1[2] = half_btf(cospi[32], bf0[2], cospi[32], bf0[3], cos_bit);
+        bf1[3] = half_btf(cospi[32], bf0[2], -cospi[32], bf0[3], cos_bit);
+        bf1[4] = bf0[4];
+        bf1[5] = bf0[5];
+        bf1[6] = half_btf(cospi[32], bf0[6], cospi[32], bf0[7], cos_bit);
+        bf1[7] = half_btf(cospi[32], bf0[6], -cospi[32], bf0[7], cos_bit);
+    }
+    // stage 3
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[0] + bf0[2];
+        bf1[1] = bf0[1] + bf0[3];
+        bf1[2] = bf0[0] - bf0[2];
+        bf1[3] = bf0[1] - bf0[3];
+        bf1[4] = bf0[4] + bf0[6];
+        bf1[5] = bf0[5] + bf0[7];
+        bf1[6] = bf0[4] - bf0[6];
+        bf1[7] = bf0[5] - bf0[7];
+    }
+    // stage 4
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = bf0[0];
+        bf1[1] = bf0[1];
+        bf1[2] = bf0[2];
+        bf1[3] = bf0[3];
+        bf1[4] = half_btf(cospi[16], bf0[4], cospi[48], bf0[5], cos_bit);
+        bf1[5] = half_btf(cospi[48], bf0[4], -cospi[16], bf0[5], cos_bit);
+        bf1[6] = half_btf(-cospi[48], bf0[6], cospi[16], bf0[7], cos_bit);
+        bf1[7] = half_btf(cospi[16], bf0[6], cospi[48], bf0[7], cos_bit);
+    }
+    // stage 5
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[0] + bf0[4];
+        bf1[1] = bf0[1] + bf0[5];
+        bf1[2] = bf0[2] + bf0[6];
+        bf1[3] = bf0[3] + bf0[7];
+        bf1[4] = bf0[0] - bf0[4];
+        bf1[5] = bf0[1] - bf0[5];
+        bf1[6] = bf0[2] - bf0[6];
+        bf1[7] = bf0[3] - bf0[7];
+    }
+    // stage 6
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = half_btf(cospi[4], bf0[0], cospi[60], bf0[1], cos_bit);
+        bf1[1] = half_btf(cospi[60], bf0[0], -cospi[4], bf0[1], cos_bit);
+        bf1[2] = half_btf(cospi[20], bf0[2], cospi[44], bf0[3], cos_bit);
+        bf1[3] = half_btf(cospi[44], bf0[2], -cospi[20], bf0[3], cos_bit);
+        bf1[4] = half_btf(cospi[36], bf0[4], cospi[28], bf0[5], cos_bit);
+        bf1[5] = half_btf(cospi[28], bf0[4], -cospi[36], bf0[5], cos_bit);
+        bf1[6] = half_btf(cospi[52], bf0[6], cospi[12], bf0[7], cos_bit);
+        bf1[7] = half_btf(cospi[12], bf0[6], -cospi[52], bf0[7], cos_bit);
+    }
+    // stage 7
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[1];
+        bf1[1] = bf0[6];
+        bf1[2] = bf0[3];
+        bf1[3] = bf0[4];
+        bf1[4] = bf0[5];
+        bf1[5] = bf0[2];
+        bf1[6] = bf0[7];
+        bf1[7] = bf0[0];
+    }
+}
+
+pub(crate) fn av1_fadst16(input: &[i32], output: &mut [i32], cos_bit: i8, _stage_range: &[i8]) {
+    let mut cospi: &[i32; 64];
+    let mut step = [0i32; 16];
+    // stage 0;
+    // stage 1;
+    {
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = input[0];
+        bf1[1] = -input[15];
+        bf1[2] = -input[7];
+        bf1[3] = input[8];
+        bf1[4] = -input[3];
+        bf1[5] = input[12];
+        bf1[6] = input[4];
+        bf1[7] = -input[11];
+        bf1[8] = -input[1];
+        bf1[9] = input[14];
+        bf1[10] = input[6];
+        bf1[11] = -input[9];
+        bf1[12] = input[2];
+        bf1[13] = -input[13];
+        bf1[14] = -input[5];
+        bf1[15] = input[10];
+    }
+    // stage 2
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = bf0[0];
+        bf1[1] = bf0[1];
+        bf1[2] = half_btf(cospi[32], bf0[2], cospi[32], bf0[3], cos_bit);
+        bf1[3] = half_btf(cospi[32], bf0[2], -cospi[32], bf0[3], cos_bit);
+        bf1[4] = bf0[4];
+        bf1[5] = bf0[5];
+        bf1[6] = half_btf(cospi[32], bf0[6], cospi[32], bf0[7], cos_bit);
+        bf1[7] = half_btf(cospi[32], bf0[6], -cospi[32], bf0[7], cos_bit);
+        bf1[8] = bf0[8];
+        bf1[9] = bf0[9];
+        bf1[10] = half_btf(cospi[32], bf0[10], cospi[32], bf0[11], cos_bit);
+        bf1[11] = half_btf(cospi[32], bf0[10], -cospi[32], bf0[11], cos_bit);
+        bf1[12] = bf0[12];
+        bf1[13] = bf0[13];
+        bf1[14] = half_btf(cospi[32], bf0[14], cospi[32], bf0[15], cos_bit);
+        bf1[15] = half_btf(cospi[32], bf0[14], -cospi[32], bf0[15], cos_bit);
+    }
+    // stage 3
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[0] + bf0[2];
+        bf1[1] = bf0[1] + bf0[3];
+        bf1[2] = bf0[0] - bf0[2];
+        bf1[3] = bf0[1] - bf0[3];
+        bf1[4] = bf0[4] + bf0[6];
+        bf1[5] = bf0[5] + bf0[7];
+        bf1[6] = bf0[4] - bf0[6];
+        bf1[7] = bf0[5] - bf0[7];
+        bf1[8] = bf0[8] + bf0[10];
+        bf1[9] = bf0[9] + bf0[11];
+        bf1[10] = bf0[8] - bf0[10];
+        bf1[11] = bf0[9] - bf0[11];
+        bf1[12] = bf0[12] + bf0[14];
+        bf1[13] = bf0[13] + bf0[15];
+        bf1[14] = bf0[12] - bf0[14];
+        bf1[15] = bf0[13] - bf0[15];
+    }
+    // stage 4
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = bf0[0];
+        bf1[1] = bf0[1];
+        bf1[2] = bf0[2];
+        bf1[3] = bf0[3];
+        bf1[4] = half_btf(cospi[16], bf0[4], cospi[48], bf0[5], cos_bit);
+        bf1[5] = half_btf(cospi[48], bf0[4], -cospi[16], bf0[5], cos_bit);
+        bf1[6] = half_btf(-cospi[48], bf0[6], cospi[16], bf0[7], cos_bit);
+        bf1[7] = half_btf(cospi[16], bf0[6], cospi[48], bf0[7], cos_bit);
+        bf1[8] = bf0[8];
+        bf1[9] = bf0[9];
+        bf1[10] = bf0[10];
+        bf1[11] = bf0[11];
+        bf1[12] = half_btf(cospi[16], bf0[12], cospi[48], bf0[13], cos_bit);
+        bf1[13] = half_btf(cospi[48], bf0[12], -cospi[16], bf0[13], cos_bit);
+        bf1[14] = half_btf(-cospi[48], bf0[14], cospi[16], bf0[15], cos_bit);
+        bf1[15] = half_btf(cospi[16], bf0[14], cospi[48], bf0[15], cos_bit);
+    }
+    // stage 5
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[0] + bf0[4];
+        bf1[1] = bf0[1] + bf0[5];
+        bf1[2] = bf0[2] + bf0[6];
+        bf1[3] = bf0[3] + bf0[7];
+        bf1[4] = bf0[0] - bf0[4];
+        bf1[5] = bf0[1] - bf0[5];
+        bf1[6] = bf0[2] - bf0[6];
+        bf1[7] = bf0[3] - bf0[7];
+        bf1[8] = bf0[8] + bf0[12];
+        bf1[9] = bf0[9] + bf0[13];
+        bf1[10] = bf0[10] + bf0[14];
+        bf1[11] = bf0[11] + bf0[15];
+        bf1[12] = bf0[8] - bf0[12];
+        bf1[13] = bf0[9] - bf0[13];
+        bf1[14] = bf0[10] - bf0[14];
+        bf1[15] = bf0[11] - bf0[15];
+    }
+    // stage 6
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = bf0[0];
+        bf1[1] = bf0[1];
+        bf1[2] = bf0[2];
+        bf1[3] = bf0[3];
+        bf1[4] = bf0[4];
+        bf1[5] = bf0[5];
+        bf1[6] = bf0[6];
+        bf1[7] = bf0[7];
+        bf1[8] = half_btf(cospi[8], bf0[8], cospi[56], bf0[9], cos_bit);
+        bf1[9] = half_btf(cospi[56], bf0[8], -cospi[8], bf0[9], cos_bit);
+        bf1[10] = half_btf(cospi[40], bf0[10], cospi[24], bf0[11], cos_bit);
+        bf1[11] = half_btf(cospi[24], bf0[10], -cospi[40], bf0[11], cos_bit);
+        bf1[12] = half_btf(-cospi[56], bf0[12], cospi[8], bf0[13], cos_bit);
+        bf1[13] = half_btf(cospi[8], bf0[12], cospi[56], bf0[13], cos_bit);
+        bf1[14] = half_btf(-cospi[24], bf0[14], cospi[40], bf0[15], cos_bit);
+        bf1[15] = half_btf(cospi[40], bf0[14], cospi[24], bf0[15], cos_bit);
+    }
+    // stage 7
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[0] + bf0[8];
+        bf1[1] = bf0[1] + bf0[9];
+        bf1[2] = bf0[2] + bf0[10];
+        bf1[3] = bf0[3] + bf0[11];
+        bf1[4] = bf0[4] + bf0[12];
+        bf1[5] = bf0[5] + bf0[13];
+        bf1[6] = bf0[6] + bf0[14];
+        bf1[7] = bf0[7] + bf0[15];
+        bf1[8] = bf0[0] - bf0[8];
+        bf1[9] = bf0[1] - bf0[9];
+        bf1[10] = bf0[2] - bf0[10];
+        bf1[11] = bf0[3] - bf0[11];
+        bf1[12] = bf0[4] - bf0[12];
+        bf1[13] = bf0[5] - bf0[13];
+        bf1[14] = bf0[6] - bf0[14];
+        bf1[15] = bf0[7] - bf0[15];
+    }
+    // stage 8
+    cospi = cospi_arr(cos_bit as i32);
+    {
+        let bf0: &[i32] = &*output;
+        let bf1: &mut [i32] = &mut step;
+        bf1[0] = half_btf(cospi[2], bf0[0], cospi[62], bf0[1], cos_bit);
+        bf1[1] = half_btf(cospi[62], bf0[0], -cospi[2], bf0[1], cos_bit);
+        bf1[2] = half_btf(cospi[10], bf0[2], cospi[54], bf0[3], cos_bit);
+        bf1[3] = half_btf(cospi[54], bf0[2], -cospi[10], bf0[3], cos_bit);
+        bf1[4] = half_btf(cospi[18], bf0[4], cospi[46], bf0[5], cos_bit);
+        bf1[5] = half_btf(cospi[46], bf0[4], -cospi[18], bf0[5], cos_bit);
+        bf1[6] = half_btf(cospi[26], bf0[6], cospi[38], bf0[7], cos_bit);
+        bf1[7] = half_btf(cospi[38], bf0[6], -cospi[26], bf0[7], cos_bit);
+        bf1[8] = half_btf(cospi[34], bf0[8], cospi[30], bf0[9], cos_bit);
+        bf1[9] = half_btf(cospi[30], bf0[8], -cospi[34], bf0[9], cos_bit);
+        bf1[10] = half_btf(cospi[42], bf0[10], cospi[22], bf0[11], cos_bit);
+        bf1[11] = half_btf(cospi[22], bf0[10], -cospi[42], bf0[11], cos_bit);
+        bf1[12] = half_btf(cospi[50], bf0[12], cospi[14], bf0[13], cos_bit);
+        bf1[13] = half_btf(cospi[14], bf0[12], -cospi[50], bf0[13], cos_bit);
+        bf1[14] = half_btf(cospi[58], bf0[14], cospi[6], bf0[15], cos_bit);
+        bf1[15] = half_btf(cospi[6], bf0[14], -cospi[58], bf0[15], cos_bit);
+    }
+    // stage 9
+    {
+        let bf0: &[i32] = &step;
+        let bf1: &mut [i32] = &mut *output;
+        bf1[0] = bf0[1];
+        bf1[1] = bf0[14];
+        bf1[2] = bf0[3];
+        bf1[3] = bf0[12];
+        bf1[4] = bf0[5];
+        bf1[5] = bf0[10];
+        bf1[6] = bf0[7];
+        bf1[7] = bf0[8];
+        bf1[8] = bf0[9];
+        bf1[9] = bf0[6];
+        bf1[10] = bf0[11];
+        bf1[11] = bf0[4];
+        bf1[12] = bf0[13];
+        bf1[13] = bf0[2];
+        bf1[14] = bf0[15];
+        bf1[15] = bf0[0];
+    }
+}
+
+pub(crate) fn av1_fidentity8_c(
+    input: &[i32],
+    output: &mut [i32],
+    _cos_bit: i8,
+    _stage_range: &[i8],
+) {
+    for i in 0..8 {
+        output[i] = input[i] * 2;
+    }
+}
+
+pub(crate) fn av1_fidentity16_c(
+    input: &[i32],
+    output: &mut [i32],
+    _cos_bit: i8,
+    stage_range: &[i8],
+) {
+    for i in 0..16 {
+        output[i] = round_shift(input[i] as i64 * 2 * NEW_SQRT2 as i64, NEW_SQRT2_BITS);
+    }
+    debug_assert!(stage_range[0] as i32 + NEW_SQRT2_BITS <= 32);
 }

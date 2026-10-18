@@ -119,18 +119,21 @@ pub(crate) fn av1_highbd_iwht4x4_1_add(
 }
 
 /// Translation of `inv_txfm_type_to_func()` over the 1D transforms the
-/// saver reaches (the DCTs of 4 to 32 points).
+/// saver reaches (no 4-point ADST or identity: the 4x4 transforms are DCTs
+/// or the lossless Walsh-Hadamard transform, and no 64-point transforms).
 #[inline]
-fn inv_txfm_type_to_func(txfm_type: TxfmType) -> TxfmFunc {
-    match txfm_type {
+fn inv_txfm_type_to_func(txfm_type: TxfmType) -> Option<TxfmFunc> {
+    Some(match txfm_type {
         TXFM_TYPE_DCT4 => av1_idct4,
         TXFM_TYPE_DCT8 => av1_idct8,
         TXFM_TYPE_DCT16 => av1_idct16,
-        _ => {
-            debug_assert!(txfm_type == TXFM_TYPE_DCT32);
-            av1_idct32
-        }
-    }
+        TXFM_TYPE_DCT32 => av1_idct32,
+        TXFM_TYPE_ADST8 => av1_iadst8,
+        TXFM_TYPE_ADST16 => av1_iadst16,
+        TXFM_TYPE_IDENTITY8 => av1_iidentity8_c,
+        TXFM_TYPE_IDENTITY16 => av1_iidentity16_c,
+        _ => return None,
+    })
 }
 
 static INV_SHIFT_4X4: [i8; 2] = [0, -4];
@@ -291,7 +294,7 @@ fn inv_txfm2d_add_c(
     txfm_buf: &mut [i32],
     tx_size: TxSize,
     bd: i32,
-) {
+) -> Result<(), ()> {
     // Note when assigning txfm_size_col, we use the txfm_size from the
     // row configuration and vice versa. This is intentionally done to
     // accurately perform rectangular transforms. When the transform is
@@ -311,8 +314,12 @@ fn inv_txfm2d_add_c(
 
     let cos_bit_col = cfg.cos_bit_col;
     let cos_bit_row = cfg.cos_bit_row;
-    let txfm_func_col = inv_txfm_type_to_func(cfg.txfm_type_col);
-    let txfm_func_row = inv_txfm_type_to_func(cfg.txfm_type_row);
+    let (Some(txfm_func_col), Some(txfm_func_row)) = (
+        inv_txfm_type_to_func(cfg.txfm_type_col),
+        inv_txfm_type_to_func(cfg.txfm_type_row),
+    ) else {
+        return Err(());
+    };
 
     // txfm_buf's length is  txfm_size_row * txfm_size_col + 2 *
     // AOMMAX(txfm_size_row, txfm_size_col)
@@ -381,6 +388,7 @@ fn inv_txfm2d_add_c(
             }
         }
     }
+    Ok(())
 }
 
 #[inline]
@@ -393,12 +401,12 @@ fn inv_txfm2d_add_facade(
     tx_type: TxType,
     tx_size: TxSize,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut cfg = Txfm2dFlipCfg::default();
     av1_get_inv_txfm_cfg(tx_type, tx_size, &mut cfg);
     // Forward shift sum uses larger square size, to be consistent with what
     // av1_gen_inv_stage_range() does for inverse shifts.
-    inv_txfm2d_add_c(input, output, out_off, stride, &cfg, txfm_buf, tx_size, bd);
+    inv_txfm2d_add_c(input, output, out_off, stride, &cfg, txfm_buf, tx_size, bd)
 }
 
 pub(crate) fn av1_inv_txfm2d_add_8x16(
@@ -408,7 +416,7 @@ pub(crate) fn av1_inv_txfm2d_add_8x16(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 8 * 16 + 16 + 16];
     inv_txfm2d_add_facade(
         input,
@@ -419,7 +427,7 @@ pub(crate) fn av1_inv_txfm2d_add_8x16(
         tx_type,
         TX_8X16,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_16x8(
@@ -429,7 +437,7 @@ pub(crate) fn av1_inv_txfm2d_add_16x8(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 16 * 8 + 16 + 16];
     inv_txfm2d_add_facade(
         input,
@@ -440,7 +448,7 @@ pub(crate) fn av1_inv_txfm2d_add_16x8(
         tx_type,
         TX_16X8,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_16x32(
@@ -450,7 +458,7 @@ pub(crate) fn av1_inv_txfm2d_add_16x32(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 16 * 32 + 32 + 32];
     inv_txfm2d_add_facade(
         input,
@@ -461,7 +469,7 @@ pub(crate) fn av1_inv_txfm2d_add_16x32(
         tx_type,
         TX_16X32,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_32x16(
@@ -471,7 +479,7 @@ pub(crate) fn av1_inv_txfm2d_add_32x16(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 32 * 16 + 32 + 32];
     inv_txfm2d_add_facade(
         input,
@@ -482,7 +490,7 @@ pub(crate) fn av1_inv_txfm2d_add_32x16(
         tx_type,
         TX_32X16,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_4x4(
@@ -492,7 +500,7 @@ pub(crate) fn av1_inv_txfm2d_add_4x4(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 4 * 4 + 4 + 4];
     inv_txfm2d_add_facade(
         input,
@@ -503,7 +511,7 @@ pub(crate) fn av1_inv_txfm2d_add_4x4(
         tx_type,
         TX_4X4,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_8x8(
@@ -513,7 +521,7 @@ pub(crate) fn av1_inv_txfm2d_add_8x8(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 8 * 8 + 8 + 8];
     inv_txfm2d_add_facade(
         input,
@@ -524,7 +532,7 @@ pub(crate) fn av1_inv_txfm2d_add_8x8(
         tx_type,
         TX_8X8,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_16x16(
@@ -534,7 +542,7 @@ pub(crate) fn av1_inv_txfm2d_add_16x16(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 16 * 16 + 16 + 16];
     inv_txfm2d_add_facade(
         input,
@@ -545,7 +553,7 @@ pub(crate) fn av1_inv_txfm2d_add_16x16(
         tx_type,
         TX_16X16,
         bd,
-    );
+    )
 }
 
 pub(crate) fn av1_inv_txfm2d_add_32x32(
@@ -555,7 +563,7 @@ pub(crate) fn av1_inv_txfm2d_add_32x32(
     stride: usize,
     tx_type: TxType,
     bd: i32,
-) {
+) -> Result<(), ()> {
     let mut txfm_buf = [0i32; 32 * 32 + 32 + 32];
     inv_txfm2d_add_facade(
         input,
@@ -566,5 +574,5 @@ pub(crate) fn av1_inv_txfm2d_add_32x32(
         tx_type,
         TX_32X32,
         bd,
-    );
+    )
 }

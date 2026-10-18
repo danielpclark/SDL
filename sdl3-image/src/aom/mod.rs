@@ -11,13 +11,15 @@
 //! sets for SDL_image's saver.
 
 // (the translation keeps upstream's loops over indices, argument lists,
-// late initializations, explicit arithmetic and switch layouts as they are)
+// late initializations, explicit arithmetic and switch layouts as they are,
+// and its model tables' literals as they are written)
 #![allow(
     dead_code,
     clippy::collapsible_else_if,
     clippy::collapsible_if,
     clippy::eq_op,
     clippy::erasing_op,
+    clippy::excessive_precision,
     clippy::explicit_counter_loop,
     clippy::identity_op,
     clippy::if_same_then_else,

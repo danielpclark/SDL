@@ -25,16 +25,21 @@ use super::encoder::av1_quantize::av1_quantizer_to_qindex;
 use super::encoder::bitstream::{
     av1_write_obu_header, av1_write_uleb_obu_size, OBU_TEMPORAL_DELIMITER,
 };
+use super::encoder::encode_strategy::AOM_EFLAG_FORCE_KF;
 use super::encoder::encode_strategy::{timebase_units_to_ticks, TICKS_PER_SEC};
 use super::encoder::encoder::*;
 use super::encoder::encoder_utils::av1_select_sb_size;
+use super::encoder::ethread::*;
 use super::encoder::lookahead::*;
+use super::encoder::ratectrl::MAX_STATIC_GF_GROUP_LENGTH;
 use crate::aom::aom_integer::aom_uleb_size_in_bytes;
 use crate::aom::aom_scale::yv12config::*;
 
 /// `aom_codec_flags_t` `AOM_CODEC_USE_HIGHBITDEPTH`
 pub(crate) const AOM_CODEC_USE_HIGHBITDEPTH: u32 = 0x40000;
 
+/// `AOM_USAGE_REALTIME`
+pub(crate) const AOM_USAGE_REALTIME: u32 = 1;
 /// `AOM_USAGE_ALL_INTRA`
 pub(crate) const AOM_USAGE_ALL_INTRA: u32 = 2;
 
@@ -115,14 +120,75 @@ pub(crate) struct AomCodecEncCfg {
     pub(crate) use_fixed_qp_offsets: u32,
 }
 
-/// Translation of `aom_codec_enc_config_default()` for the all intra usage
-/// (the `encoder_usage_cfg[]` entry of `AOM_USAGE_ALL_INTRA`).
-pub(crate) fn aom_codec_enc_config_default(usage: u32) -> Option<AomCodecEncCfg> {
-    if usage != AOM_USAGE_ALL_INTRA {
-        // (the good quality and real-time usages are not translated)
-        return None;
+/// The `encoder_usage_cfg[]` entry of `AOM_USAGE_REALTIME`.
+fn realtime_usage_cfg() -> AomCodecEncCfg {
+    AomCodecEncCfg {
+        g_usage: AOM_USAGE_REALTIME, // g_usage - real-time usage
+        g_threads: 0,                // g_threads
+        g_profile: 0,                // g_profile
+
+        g_w: 320,                     // g_w
+        g_h: 240,                     // g_h
+        g_limit: 0,                   // g_limit
+        g_forced_max_frame_width: 0,  // g_forced_max_frame_width
+        g_forced_max_frame_height: 0, // g_forced_max_frame_height
+        g_bit_depth: AOM_BITS_8,      // g_bit_depth
+        g_input_bit_depth: 8,         // g_input_bit_depth
+
+        g_timebase: (1, 30), // g_timebase
+
+        g_error_resilient: 0, // g_error_resilient
+
+        g_pass: AOM_RC_ONE_PASS, // g_pass
+
+        g_lag_in_frames: 0, // g_lag_in_frames
+
+        rc_dropframe_thresh: 0,                        // rc_dropframe_thresh
+        rc_resize_mode: RESIZE_NONE as u32,            // rc_resize_mode
+        rc_resize_denominator: SCALE_NUMERATOR as u32, // rc_resize_denominator
+        rc_resize_kf_denominator: SCALE_NUMERATOR as u32, // rc_resize_kf_denominator
+
+        rc_superres_mode: AOM_SUPERRES_NONE as u32, // rc_superres_mode
+        rc_superres_denominator: SCALE_NUMERATOR as u32, // rc_superres_denominator
+        rc_superres_kf_denominator: SCALE_NUMERATOR as u32, // rc_superres_kf_denominator
+        rc_superres_qthresh: 63,                    // rc_superres_qthresh
+        rc_superres_kf_qthresh: 32,                 // rc_superres_kf_qthresh
+
+        rc_end_usage: AOM_CBR,  // rc_end_usage
+        rc_target_bitrate: 256, // rc_target_bitrate
+        rc_min_quantizer: 0,    // rc_min_quantizer
+        rc_max_quantizer: 63,   // rc_max_quantizer
+        rc_undershoot_pct: 25,  // rc_undershoot_pct
+        rc_overshoot_pct: 25,   // rc_overshoot_pct
+
+        rc_buf_sz: 6000,         // rc_max_buffer_size
+        rc_buf_initial_sz: 4000, // rc_buffer_initial_size
+        rc_buf_optimal_sz: 5000, // rc_buffer_optimal_size
+
+        rc_2pass_vbr_bias_pct: 50,         // rc_two_pass_vbrbias
+        rc_2pass_vbr_minsection_pct: 0,    // rc_two_pass_vbrmin_section
+        rc_2pass_vbr_maxsection_pct: 2000, // rc_two_pass_vbrmax_section
+
+        // keyframing settings (kf)
+        fwd_kf_enabled: 0,         // fwd_kf_enabled
+        kf_mode: AOM_KF_AUTO,      // kf_mode
+        kf_min_dist: 0,            // kf_min_dist
+        kf_max_dist: 9999,         // kf_max_dist
+        sframe_dist: 0,            // sframe_dist
+        sframe_mode: 1,            // sframe_mode
+        large_scale_tile: 0,       // large_scale_tile
+        monochrome: 0,             // monochrome
+        full_still_picture_hdr: 0, // full_still_picture_hdr
+        save_as_annexb: 0,         // save_as_annexb
+        tile_width_count: 0,       // tile_width_count
+        tile_height_count: 0,      // tile_height_count
+        use_fixed_qp_offsets: 0,   // use_fixed_qp_offsets
     }
-    Some(AomCodecEncCfg {
+}
+
+/// The `encoder_usage_cfg[]` entry of `AOM_USAGE_ALL_INTRA`.
+fn all_intra_usage_cfg() -> AomCodecEncCfg {
+    AomCodecEncCfg {
         g_usage: AOM_USAGE_ALL_INTRA, // g_usage - all intra usage
         g_threads: 0,                 // g_threads
         g_profile: 0,                 // g_profile
@@ -183,7 +249,19 @@ pub(crate) fn aom_codec_enc_config_default(usage: u32) -> Option<AomCodecEncCfg>
         tile_width_count: 0,       // tile_width_count
         tile_height_count: 0,      // tile_height_count
         use_fixed_qp_offsets: 0,   // use_fixed_qp_offsets
-    })
+    }
+}
+
+/// Translation of `aom_codec_enc_config_default()` (aom_encoder.c) for the
+/// real-time and all intra usages (`None` for the good quality usage,
+/// which libavif never asks for SDL_image).
+pub(crate) fn aom_codec_enc_config_default(usage: u32) -> Option<AomCodecEncCfg> {
+    match usage {
+        AOM_USAGE_REALTIME => Some(realtime_usage_cfg()),
+        AOM_USAGE_ALL_INTRA => Some(all_intra_usage_cfg()),
+        // (the good quality usage is not translated)
+        _ => None,
+    }
 }
 
 /// The reached members of `struct av1_extracfg`.
@@ -459,6 +537,7 @@ pub(crate) struct AomCodecAlgPriv {
     pub(crate) pending_cx_data_sz: usize,
     pub(crate) next_frame_flags: u32,
     pub(crate) init_flags: u32,
+    pub(crate) fixed_kf_cntr: u32,
 }
 
 /// One `AOM_CODEC_CX_FRAME_PKT` packet.
@@ -1069,6 +1148,7 @@ pub(crate) fn encoder_init(cfg: &AomCodecEncCfg, init_flags: u32) -> Result<AomC
         pending_cx_data_sz: 0,
         next_frame_flags: 0,
         init_flags,
+        fixed_kf_cntr: 0,
     })
 }
 
@@ -1098,13 +1178,23 @@ fn get_frame_pkt_flags(cpi: &Av1Comp, lib_flags: u32) -> u32 {
 /// Translation of `get_src_border_in_pixels()`.
 #[inline]
 fn get_src_border_in_pixels(cpi: &Av1Comp, sb_size: BlockSize) -> i32 {
-    let _ = sb_size;
-    debug_assert!(cpi.oxcf.mode != REALTIME || av1_is_resize_needed(&cpi.oxcf));
-    cpi.oxcf.border_in_pixels
+    if cpi.oxcf.mode != REALTIME || av1_is_resize_needed(&cpi.oxcf) {
+        return cpi.oxcf.border_in_pixels;
+    }
+
+    let sb_size_in_pixels_log2 = MI_SIZE_WIDE_LOG2[sb_size as usize] as i32 + MI_SIZE_LOG2;
+    let align = |v: i32, n: i32| (v + (1 << n) - 1) & !((1 << n) - 1);
+    let sb_aligned_width = align(cpi.oxcf.frm_dim_cfg.width, sb_size_in_pixels_log2);
+    let sb_aligned_height = align(cpi.oxcf.frm_dim_cfg.height, sb_size_in_pixels_log2);
+    // Align the border pixels to a multiple of 32.
+    let border_pixels_width = align(sb_aligned_width - cpi.oxcf.frm_dim_cfg.width, 5);
+    let border_pixels_height = align(sb_aligned_height - cpi.oxcf.frm_dim_cfg.height, 5);
+    border_pixels_width.max(border_pixels_height).max(32)
 }
 
-/// `aom_image_t` as libavif fills it: high bit depth planes, with the
-/// strides in samples (upstream's are in bytes).
+/// `aom_image_t` as libavif fills it, with the planes as 16-bit samples
+/// at either bit depth and the strides in samples (upstream's are in bytes,
+/// the same number for 8-bit images).
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AomImage<'a> {
     pub(crate) fmt: u32,
@@ -1150,9 +1240,12 @@ fn image2yuvconfig(img: &AomImage) -> Yv12BufferConfig {
     yv12.chroma_sample_position = img.csp;
     yv12.color_range = img.range;
 
-    debug_assert!(img.fmt & AOM_IMG_FMT_HIGHBITDEPTH != 0);
-    // (the strides are already in samples)
-    yv12.flags = YV12_FLAG_HIGHBITDEPTH;
+    if img.fmt & AOM_IMG_FMT_HIGHBITDEPTH != 0 {
+        // (the strides are already in samples)
+        yv12.flags = YV12_FLAG_HIGHBITDEPTH;
+    } else {
+        yv12.flags = 0;
+    }
 
     // Note(yunqing): if img is allocated the same as the frame buffer, y_stride
     // is 32-byte aligned. Also, handle the cases while allocating img without a
@@ -1214,11 +1307,33 @@ pub(crate) fn encoder_encode(
         }
     }
 
-    let flags = enc_flags;
-
-    // (av1_apply_encoding_flags(): the saver passes no flags)
-    debug_assert!(flags == 0);
+    let mut flags = enc_flags;
     let cpi = &mut *ctx.cpi;
+
+    // (the scalable video coding fixed mode: no SVC)
+    debug_assert!(!cpi.ppi.use_svc);
+
+    // Note(yunqing): While applying encoding flags, always start from enabling
+    // all, and then modifying according to the flags. Previous frame's flags are
+    // overwritten.
+    av1_apply_encoding_flags(cpi, flags);
+
+    // Handle fixed keyframe intervals
+    if (is_stat_generation_stage(cpi) || is_one_pass_rt_params(cpi))
+        && ctx.cfg.kf_mode == AOM_KF_AUTO
+        && ctx.cfg.kf_min_dist == ctx.cfg.kf_max_dist
+    {
+        if cpi.common.spatial_layer_id == 0 && {
+            ctx.fixed_kf_cntr += 1;
+            ctx.fixed_kf_cntr > ctx.cfg.kf_min_dist
+        } {
+            flags |= AOM_EFLAG_FORCE_KF;
+            ctx.fixed_kf_cntr = 1;
+        }
+    }
+
+    // (av1_alloc_layer_context(): one spatial and one temporal layer, whose
+    // context the non-SVC coding never reads)
 
     // Set up internal flags
     // (no PSNR)
@@ -1294,13 +1409,40 @@ pub(crate) fn encoder_encode(
         ctx.next_frame_flags = 0;
     }
 
-    // (no pending invisible frames: all intra coding shows every frame)
+    // (no pending invisible frames: every frame is shown)
     debug_assert!(ctx.pending_cx_data_sz == 0);
 
     let mut is_frame_visible = false;
     let mut cx_off = 0usize;
 
-    // (one thread: no worker setup)
+    debug_assert!(cpi.oxcf.pass != AOM_RC_FIRST_PASS);
+    av1_compute_num_workers_for_mt(cpi);
+    let num_workers = av1_get_max_num_workers(cpi);
+    if num_workers > 1 && cpi.ppi.p_mt_info.num_workers == 0 {
+        // (one frame at a time: no frame parallel contexts)
+        av1_create_workers(cpi, num_workers);
+        // (av1_init_tile_thread_data() and av1_init_mt_sync(): see ethread.rs)
+        cpi.ppi.p_mt_info.prev_num_enc_workers =
+            av1_get_num_mod_workers_for_alloc(&cpi.ppi.p_mt_info, MOD_ENC);
+    }
+
+    // Re-allocate thread data if workers for encoder multi-threading stage
+    // exceeds prev_num_enc_workers.
+    let num_enc_workers = av1_get_num_mod_workers_for_alloc(&cpi.ppi.p_mt_info, MOD_ENC);
+    if cpi.ppi.p_mt_info.prev_num_enc_workers < num_enc_workers
+        && num_enc_workers <= cpi.ppi.p_mt_info.num_workers
+    {
+        // (free_thread_data() and av1_init_tile_thread_data(): no thread data)
+        cpi.ppi.p_mt_info.prev_num_enc_workers = num_enc_workers;
+    }
+
+    av1_init_frame_mt(cpi);
+
+    // Reset gf_frame_index in case it reaches MAX_STATIC_GF_GROUP_LENGTH for
+    // real time encoding.
+    if is_one_pass_rt_params(cpi) && cpi.gf_frame_index == MAX_STATIC_GF_GROUP_LENGTH as u8 {
+        cpi.gf_frame_index = 0;
+    }
 
     // Call for LAP stage
     // (no lookahead processing)
@@ -1309,6 +1451,9 @@ pub(crate) fn encoder_encode(
     // visible frame.
     while ctx.cx_data.len() - cx_off >= ctx.cx_data.len() / 2 && !is_frame_visible {
         cpi.do_frame_data_update = true;
+        // (ref_idx_to_skip and ref_refresh_index: frame parallel encoding
+        // only)
+        cpi.refresh_idx_available = false;
         // (one frame at a time: no parallel frames)
         let status = av1_get_compressed_data(cpi, &mut cpi_data, &mut ctx.cx_data[cx_off..])?;
         if status.is_none() {
