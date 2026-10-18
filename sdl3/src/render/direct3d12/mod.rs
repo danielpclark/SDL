@@ -3861,9 +3861,12 @@ impl RenderBackend for D3d12Renderer {
             return;
         };
         if let Some(palettedata) = self.palettes.remove(&palette.0) {
-            // FIXME (upstream): the palette's texture is released without
-            // the batch being issued first (as D3D12_DestroyTexture() does),
-            // while a recorded draw may still refer to it.
+            // Note (upstream): the palette's texture is released, and its
+            // SRV slot freed, without the batch being issued first, while a
+            // recorded draw may still use them (the next palette takes the
+            // slot, and the draw reads that one); the translation issues
+            // it first, as D3D12_DestroyTexture() does.
+            let _ = self.issue_batch();
             if let Some(index) = palettedata.srv_index {
                 self.free_srv_index(index);
             }
