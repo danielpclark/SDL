@@ -63,33 +63,22 @@ jobs:
           # runner's)
           MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$M/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
           MSYS_NO_PATHCONV=1 reg query 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers'
-      - name: cargo test (one GPU test, logged)
+      - name: GL under cdb
         shell: bash
         continue-on-error: true
-        env:
-          SDL_LOGGING: "gpu=verbose"
-          VK_LOADER_DEBUG: "error,warn"
         run: |
-          cargo test -p sdl3 --lib gpu::vulkan::tests::device_formats_and_properties -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | tail -40 | cut -c1-400
-      - name: cargo test (the GL debug test, logged)
-        shell: bash
-        continue-on-error: true
-        env:
-          SDL_LOGGING: "*=verbose"
-        run: |
-          cargo test -p sdl3 --lib render::opengl::tests::debug_context_reports_errors -- --nocapture > "$RUNNER_TEMP/gl.log" 2>&1 || true
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/gl.log" | tail -60 | cut -c1-400
-      - name: cargo test
-        shell: bash
-        continue-on-error: true
-        env:
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-          RUST_TEST_NOCAPTURE: 1
-        run: |
-          time cargo test -p sdl3 --lib -- --skip debug_context_reports_errors > "$RUNNER_TEMP/test.log" 2>&1 || true
-          echo "=== tail"
-          tail -40 "$RUNNER_TEMP/test.log" | cut -c1-400
+          ls "/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/" | head -5 || true
+          cargo test -p sdl3 --lib wgl_context -- --nocapture 2>&1 | grep -E "GL_|test |panicked" | cut -c1-300
+          EXE=$(ls -t target/debug/deps/sdl3-*.exe | head -1)
+          echo "EXE=$EXE"
+          cd "$RUNNER_TEMP/mesa"
+          curl -fsSL -o dbg.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-debug-info-msvc.7z"
+          7z x -y dbg.7z > /dev/null; ls; find . -name 'libgallium_wgl.pdb' -o -name 'opengl32.pdb' | head
+          cd -
+          PDBS=$(find "$RUNNER_TEMP/mesa" -name libgallium_wgl.pdb -printf '%h;' 2>/dev/null)
+          CDB="/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/cdb.exe"
+          "$CDB" -g -lines -y "$(cygpath -w "$RUNNER_TEMP/mesa/x64");$PDBS;$(cygpath -w target/debug/deps)" -c ".symopt+0x40; kn 60; ~*kn 8; q" "$EXE" render::opengl::tests::debug_context_reports_errors --nocapture --test-threads=1 > "$RUNNER_TEMP/cdb.log" 2>&1 || true
+          grep -v "^ModLoad\|^\*\*\*\|Symbol search" "$RUNNER_TEMP/cdb.log" | tail -150 | cut -c1-300
       - name: Summary
         if: always()
         shell: bash
@@ -133,6 +122,13 @@ jobs:
         run: |
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
           grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
+          for i in 1 2 3 4 5 6; do (yes > /dev/null &) ; done
+          for i in 1 2 3 4 5 6 7 8; do
+            cargo test -q -p sdl3 --lib render::gpu::tests::gpu_render_states 2>&1 | grep -E "test result|^without|^tinted|^first|^second" | cut -c1-200
+          done
+          pkill yes || true
+          cargo test -p sdl3 --lib -- --test-threads=1 > "$RUNNER_TEMP/one1.log" 2>&1 || true
+          grep -E "panicked|^without|test result" "$RUNNER_TEMP/one1.log" | cut -c1-200
           cargo test -p sdl3 --lib render::gpu:: -- --test-threads=1 > "$RUNNER_TEMP/mod.log" 2>&1 || true
           grep -E "^test |panicked|^without|^tinted" "$RUNNER_TEMP/mod.log" | grep -v "\.\.\. ok$" | tail -30 | cut -c1-300
           cargo test -p sdl3 --lib render:: -- --test-threads=1 > "$RUNNER_TEMP/mod2.log" 2>&1 || true
