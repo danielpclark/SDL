@@ -33,17 +33,17 @@ pub(crate) const CDEF_STRENGTH_BITS: i32 = 6;
 pub(crate) const CDEF_PRI_STRENGTHS: i32 = 16;
 pub(crate) const CDEF_SEC_STRENGTHS: i32 = 4;
 
-const CDEF_NBLOCKS: usize = (1 << MAX_SB_SIZE_LOG2) / 8;
+pub(crate) const CDEF_NBLOCKS: usize = (1 << MAX_SB_SIZE_LOG2) / 8;
 
 /* We need to buffer two vertical lines. */
-const CDEF_VBORDER: i32 = 2;
+pub(crate) const CDEF_VBORDER: i32 = 2;
 /* We only need to buffer three horizontal pixels too, but let's align to
 16 bytes (8 x 16 bits) to make vectorization easier. */
-const CDEF_HBORDER: i32 = 8;
-const CDEF_BSTRIDE: i32 = ((1 << MAX_SB_SIZE_LOG2) + 2 * CDEF_HBORDER + 7) & !7;
+pub(crate) const CDEF_HBORDER: i32 = 8;
+pub(crate) const CDEF_BSTRIDE: i32 = ((1 << MAX_SB_SIZE_LOG2) + 2 * CDEF_HBORDER + 7) & !7;
 
-const CDEF_VERY_LARGE: u16 = 0x4000;
-const CDEF_INBUF_SIZE: i32 = CDEF_BSTRIDE * ((1 << MAX_SB_SIZE_LOG2) + 2 * CDEF_VBORDER);
+pub(crate) const CDEF_VERY_LARGE: u16 = 0x4000;
+pub(crate) const CDEF_INBUF_SIZE: i32 = CDEF_BSTRIDE * ((1 << MAX_SB_SIZE_LOG2) + 2 * CDEF_VBORDER);
 
 const CDEF_BLOCKSIZE: i32 = 64;
 
@@ -53,9 +53,9 @@ const BOTTOM: usize = 2;
 const RIGHT: usize = 3;
 
 #[derive(Debug, Clone, Copy, Default)]
-struct CdefList {
-    by: u8,
-    bx: u8,
+pub(crate) struct CdefList {
+    pub(crate) by: u8,
+    pub(crate) bx: u8,
 }
 
 /// Translation of `constrain()`.
@@ -91,7 +91,7 @@ fn is_8x8_block_skip(
 }
 
 /// `mi_params->mi_grid_base[idx]` (`None` for a NULL pointer).
-fn grid_mbmi<'a>(
+pub(crate) fn grid_mbmi<'a>(
     mi_params: &CommonModeInfoParams,
     mi_alloc: &'a [MbModeInfo],
     idx: i32,
@@ -107,7 +107,7 @@ fn grid_mbmi<'a>(
 }
 
 /// Translation of `av1_cdef_compute_sb_list()`.
-fn av1_cdef_compute_sb_list(
+pub(crate) fn av1_cdef_compute_sb_list(
     mi_params: &CommonModeInfoParams,
     mi_alloc: &[MbModeInfo],
     mi_row: i32,
@@ -156,7 +156,7 @@ fn av1_cdef_compute_sb_list(
 /// samples at either bit depth here, so both are the same copy), through
 /// `av1_cdef_copy_sb8_16()`.
 #[allow(clippy::too_many_arguments)]
-fn av1_cdef_copy_sb8_16(
+pub(crate) fn av1_cdef_copy_sb8_16(
     dst: &mut [u16],
     dst_off: usize,
     dstride: i32,
@@ -203,7 +203,7 @@ fn copy_rect(
 }
 
 /// Translation of `fill_rect()`.
-fn fill_rect(
+pub(crate) fn fill_rect(
     dst: &mut [u16],
     dst_off: usize,
     dstride: i32,
@@ -614,7 +614,7 @@ const CDEF_SEC_TAPS: [i32; 2] = [2, 1];
 /// `cdef_filter_8_*_c()` and `cdef_filter_16_*_c()` wrappers): smooth in
 /// the direction detected.
 #[allow(clippy::too_many_arguments)]
-fn cdef_filter_block_internal(
+pub(crate) fn cdef_filter_block_internal(
     dst: &mut [u16],
     dst_off: usize,
     is_dst8: bool,
@@ -719,7 +719,7 @@ either have a low contrast edge, or a non-directional texture, so
 we want to be careful not to blur. */
 /// Translation of `adjust_strength()`.
 #[inline]
-fn adjust_strength(strength: i32, var: i32) -> i32 {
+pub(crate) fn adjust_strength(strength: i32, var: i32) -> i32 {
     let i = if (var >> 6) != 0 {
         get_msb((var >> 6) as u32).min(12)
     } else {
@@ -734,7 +734,7 @@ fn adjust_strength(strength: i32, var: i32) -> i32 {
 }
 
 /// Translation of `aom_cdef_find_dir()` (with `cdef_find_dir_dual_c()`).
-fn aom_cdef_find_dir(
+pub(crate) fn aom_cdef_find_dir(
     input: &[u16],
     in_off: usize,
     dlist: &[CdefList],

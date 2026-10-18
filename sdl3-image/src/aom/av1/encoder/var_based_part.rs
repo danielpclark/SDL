@@ -586,8 +586,8 @@ fn tune_thresh_based_on_qindex_window(
 }
 
 /// Translation of `set_vbp_thresholds()` (the noise estimate is never
-/// enabled: `av1_update_noise_estimate()` is not reached, so
-/// `content_lowsumdiff` does not matter).
+/// enabled, see av1_noise_estimate.rs, so `content_lowsumdiff` does not
+/// matter).
 fn set_vbp_thresholds(
     cpi: &Av1Comp,
     thresholds: &mut [i64; 5],

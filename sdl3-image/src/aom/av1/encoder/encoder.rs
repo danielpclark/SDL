@@ -17,6 +17,9 @@
 //! is updated where it can change the coded frame and otherwise left out,
 //! with a note at each place.
 
+use super::av1_noise_estimate::{
+    av1_noise_estimate_init, av1_update_noise_estimate, NoiseEstimate,
+};
 use super::av1_quantize::*;
 use super::bitstream::av1_pack_bitstream;
 use super::block::*;
@@ -871,8 +874,9 @@ pub(crate) struct Av1Comp {
     pub(crate) src_sad_blk_64x64: Vec<u64>,
     pub(crate) resize_pending_params: ResizePendingParams,
     pub(crate) refresh_idx_available: bool,
-    /// `cpi->consec_zero_mv`
-    pub(crate) consec_zero_mv: Vec<u8>,
+    /// `cpi->consec_zero_mv` (in cells: the blocks update it through the
+    /// shared `AV1_COMP`)
+    pub(crate) consec_zero_mv: Vec<std::cell::Cell<u8>>,
     pub(crate) last_show_frame_buf: Option<usize>,
     pub(crate) existing_fb_idx_to_show: i32,
     pub(crate) mv_stats: MvStats,
@@ -886,6 +890,8 @@ pub(crate) struct Av1Comp {
     /// Block size dependent thresholds used to force zeromv-skip at
     /// partition level.
     pub(crate) zeromv_skip_thresh_exit_part: [u32; BLOCK_SIZES_ALL as usize],
+    /// `cpi->noise_estimate`
+    pub(crate) noise_estimate: NoiseEstimate,
 }
 
 impl Av1Comp {
@@ -1640,7 +1646,7 @@ fn init_config(cpi: &mut Av1Comp, oxcf: &Av1EncoderConfig) -> Result<(), ()> {
         cpi.common.remapped_ref_idx[fb_idx] = fb_idx as i32;
     }
 
-    // (av1_noise_estimate_init(): the noise estimate is a real-time feature)
+    av1_noise_estimate_init(&mut cpi.noise_estimate, cpi.common.width, cpi.common.height);
     Ok(())
 }
 
@@ -1987,7 +1993,10 @@ pub(crate) fn av1_create_compressor(
     if oxcf.frm_dim_cfg.forced_max_frame_height != 0 {
         max_mi_rows = size_in_mi(oxcf.frm_dim_cfg.forced_max_frame_height);
     }
-    cpi.consec_zero_mv = try_vec(((max_mi_rows * max_mi_cols) >> 2) as usize, 0u8)?;
+    cpi.consec_zero_mv = try_vec(
+        ((max_mi_rows * max_mi_cols) >> 2) as usize,
+        std::cell::Cell::new(0u8),
+    )?;
 
     {
         let bsize = BLOCK_16X16;
@@ -2314,9 +2323,10 @@ fn extend_frame_borders(cpi: &mut Av1Comp) {
 }
 
 /// Translation of `cdef_restoration_frame()`: CDEF is picked from the q
-/// index and applied single-threaded (the CDEF workers only exist with
-/// `num_mod_workers[MOD_CDEF] > 1`, see the module documentation of
-/// ethread.rs); no superres, no loop restoration.
+/// index or searched (the search's workers compute the same errors as one
+/// thread, see pickcdef.rs) and applied single-threaded (the CDEF workers
+/// only exist with `num_mod_workers[MOD_CDEF] > 1`, see the module
+/// documentation of ethread.rs); no superres, no loop restoration.
 fn cdef_restoration_frame(
     cpi: &mut Av1Comp,
     use_cdef: bool,
@@ -2475,15 +2485,13 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
     // unscaled source)
     if frame_is_intra_only(&cpi.common) || resize_pending {
         let n = ((cpi.common.mi_params.mi_rows * cpi.common.mi_params.mi_cols) >> 2) as usize;
-        cpi.consec_zero_mv[..n].fill(0);
+        cpi.consec_zero_mv[..n].fill(std::cell::Cell::new(0));
     }
 
     // (cpi->last_source: the unscaled last source)
 
-    // (av1_update_noise_estimate(): use_temporal_noise_estimate is only set
-    // above 640x480)
     if cpi.sf.rt_sf.use_temporal_noise_estimate != 0 {
-        return Err(());
+        av1_update_noise_estimate(cpi)?;
     }
 
     // For 1 spatial layer encoding: if the (non-LAST) reference has different
@@ -2541,10 +2549,35 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
     // Check if this high_source_sad (scene/slide change) frame should be
     // encoded at high/max QP, and if so, set the q and adjust some rate
     // control parameters.
-    if cpi.sf.rt_sf.overshoot_detection_cbr == FAST_DETECTION_MAXQ && cpi.rc.high_source_sad != 0 {
-        // (av1_encodedframe_overshoot_cbr(): the overshoot re-encode of scene
-        // changes, not translated)
-        return Err(());
+    if cpi.sf.rt_sf.overshoot_detection_cbr == FAST_DETECTION_MAXQ
+        && cpi.rc.high_source_sad != 0
+        && av1_encodedframe_overshoot_cbr(cpi, &mut q)
+    {
+        let q_cfg = cpi.oxcf.q_cfg;
+        av1_set_quantizer(
+            &mut cpi.common,
+            q_cfg.qm_minlevel,
+            q_cfg.qm_maxlevel,
+            q,
+            q_cfg.enable_chroma_deltaq,
+            q_cfg.enable_hdr_deltaq,
+        );
+        let speed = cpi.oxcf.speed;
+        av1_set_speed_features_qindex_dependent(cpi, speed);
+        if q_cfg.deltaq_mode != NO_DELTA_Q || q_cfg.enable_chroma_deltaq != 0 {
+            av1_init_quantizer(
+                &mut cpi.enc_quant_dequant_params,
+                &cpi.common.quant_params,
+                cpi.common.seq_params.bit_depth,
+            );
+        }
+        av1_set_variance_partition_thresholds(cpi, q, 0);
+        if frame_is_intra_only(&cpi.common)
+            || cpi.common.features.error_resilient_mode
+            || cpi.common.features.primary_ref_frame == PRIMARY_REF_NONE
+        {
+            av1_setup_frame(cpi);
+        }
     }
 
     debug_assert!(q_cfg.aq_mode != CYCLIC_REFRESH_AQ);

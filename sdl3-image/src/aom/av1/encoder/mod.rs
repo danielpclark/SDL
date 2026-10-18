@@ -2,6 +2,7 @@
 
 pub(crate) mod av1_fwd_txfm1d;
 pub(crate) mod av1_fwd_txfm2d;
+pub(crate) mod av1_noise_estimate;
 pub(crate) mod av1_quantize;
 pub(crate) mod bitstream;
 pub(crate) mod block;
