@@ -1859,8 +1859,9 @@ fn rgba_at(r: &mut Renderer, x: i32, y: i32) -> [u8; 4] {
 /// environment, or set by the GPU API's Metal devices in debug mode, which
 /// turn it on for the rest of the process (as upstream's do, without
 /// overwriting a value already there). Under it, on the CI runners'
-/// Apple Paravirtual device, MoltenVK (1.3.0 to 1.4.2) misdraws a fill
-/// after a render state's, reporting no error (docs/HARDWARE_TESTING.md).
+/// Apple Paravirtual device, MoltenVK (1.3.0 to 1.4.2) misdraws the fills
+/// after another render state's in a pass, reporting no error
+/// (docs/HARDWARE_TESTING.md).
 fn moltenvk_under_metal_debug_layer(device: &gpu::Device) -> bool {
     cfg!(target_vendor = "apple")
         && device
@@ -1872,11 +1873,6 @@ fn moltenvk_under_metal_debug_layer(device: &gpu::Device) -> bool {
 
 fn assert_rgba_at(what: &str, r: &mut Renderer, (x, y): (i32, i32), want: [u8; 4]) {
     let got = rgba_at(r, x, y);
-    if std::env::var_os("DIAG_NOPANIC").is_some() {
-        let ok = got.iter().zip(&want).all(|(g, w)| g.abs_diff(*w) <= 1);
-        eprintln!("DIAG {} {what}: ({x}, {y}) is {got:?}, want {want:?}", if ok { "ok " } else { "BAD" });
-        return;
-    }
     assert!(
         got.iter().zip(&want).all(|(g, w)| g.abs_diff(*w) <= 1),
         "{what}: ({x}, {y}) is {got:?}, not {want:?}"
@@ -2055,14 +2051,22 @@ fn gpu_render_states_on(backend: Backend) {
         .unwrap();
     assert_rgba_at("tinted", &mut r, (5, 5), [100, 100, 10, 255]);
     assert_rgba_at("tinted again", &mut r, (15, 5), [200, 0, 40, 255]);
-    if moltenvk_under_metal_debug_layer(&device) && std::env::var_os("DIAG_NOPANIC").is_none() {
-        crate::test_support::skip(
-            "vulkan",
-            "MoltenVK misdraws a fill after a render state's under the Metal debug layer (MTL_DEBUG_LAYER)",
-        );
-    } else {
-        assert_rgba_at("without the state", &mut r, (25, 5), [200, 100, 40, 255]);
-    }
+    // (the fills after another state's in the same pass, which MoltenVK
+    // misdraws under the Metal debug layer)
+    let moltenvk_misdraws = moltenvk_under_metal_debug_layer(&device);
+    let assert_after_switch = |what: &str, r: &mut Renderer, at, want| {
+        if moltenvk_misdraws {
+            crate::test_support::skip(
+                "vulkan",
+                format_args!(
+                    "MoltenVK misdraws a fill after another state's ({what}) under the Metal debug layer (MTL_DEBUG_LAYER)"
+                ),
+            );
+        } else {
+            assert_rgba_at(what, r, at, want);
+        }
+    };
+    assert_after_switch("without the state", &mut r, (25, 5), [200, 100, 40, 255]);
     assert_rgba_at("not drawn", &mut r, (35, 5), [0, 0, 0, 255]);
 
     // Two states queued one after the other aren't drawn together; a
@@ -2085,8 +2089,8 @@ fn gpu_render_states_on(backend: Backend) {
     r.render_fill_rect(Some(&FRect::new(20.0, 0.0, 10.0, 10.0)))
         .unwrap();
     assert_rgba_at("first state", &mut r, (5, 5), [200, 0, 40, 255]);
-    assert_rgba_at("second state", &mut r, (15, 5), [200, 0, 0, 255]);
-    assert_rgba_at("first state again", &mut r, (25, 5), [200, 0, 40, 255]);
+    assert_after_switch("second state", &mut r, (15, 5), [200, 0, 0, 255]);
+    assert_after_switch("first state again", &mut r, (25, 5), [200, 0, 40, 255]);
     // (new storage buffers)
     let half = storage_buffer(&device, &vec4([0.5, 0.5, 0.5, 1.0]));
     r.set_gpu_render_state(Some(buffer_state)).unwrap();

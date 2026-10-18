@@ -14,11 +14,20 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  metal-debug-layer:
-    runs-on: macos-latest
+  test:
+    name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+        # the pinned toolchain, and the minimum supported version
+        # (rust-version in Cargo.toml)
+        toolchain: [pinned, "1.87"]
+    runs-on: ${{ matrix.os }}
+    # The pinned Windows job (debug, the zlib-only mixer, then release) takes
+    # close to 30 minutes; this still stops a hung run.
+    timeout-minutes: 45
     env:
-      MTL_DEBUG_LAYER: 1
-      MATRIX_TOOLCHAIN: pinned
       # Print a failing test's panic as it happens rather than in the summary
       # at the end, so a run that then hangs still shows what went wrong.
       RUST_TEST_NOCAPTURE: 1
@@ -45,10 +54,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          toolchain: ${{ matrix.toolchain == 'pinned' && env.RUST_TOOLCHAIN || matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: pinned
+          key: ${{ matrix.toolchain }}
       # What the Linux tests that would otherwise skip need (see
       # docs/HARDWARE_TESTING.md): an X server, Mesa's software GL, EGL and
       # Vulkan, a headless Wayland compositor, the PulseAudio binary, and a
@@ -125,8 +134,85 @@ jobs:
           tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
           sudo mkdir -p /usr/local/lib
           sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
-      - name: render states under the Metal debug layer
+      - run: cargo test --workspace
+        env:
+          # Skips are listed in the job summary; the capabilities installed
+          # above are required, so a test that can't find one fails instead
+          # of skipping.
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # sdl3-mixer without its default `timidity`, `fluidsynth`, `mpg123` and
+      # `gme` features: the zlib-only build, without sdl3-mixer-timidity,
+      # sdl3-mixer-fluidsynth, sdl3-mixer-mpg123 and sdl3-mixer-gme.
+      - name: cargo test -p sdl3-mixer --no-default-features
+        run: cargo test -p sdl3-mixer --no-default-features
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      - name: cargo test --release
+        if: matrix.toolchain == 'pinned'
+        run: cargo test --workspace --release
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
+      # The render-state check MoltenVK misdraws under the Metal debug layer
+      # (which the Metal tests turn on in the main run's process, so it
+      # skips there), without the layer: it must run.
+      - name: cargo test the MoltenVK render states without the Metal debug layer
+        if: runner.os == 'macOS'
+        run: cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --exact
+        env:
+          MTL_DEBUG_LAYER: 0
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips-moltenvk.tsv
+          SDL3_TEST_REQUIRE: vulkan
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
         run: |
-          MTL_DEBUG_LAYER=1 DIAG_NOPANIC=1 cargo test -q -p sdl3 --lib render::gpu::tests::gpu_render_states -- --exact --nocapture 2>&1 | grep -E "DIAG|test result|panicked" | cut -c1-200
-          echo "=== without"
-          MTL_DEBUG_LAYER=0 DIAG_NOPANIC=1 cargo test -q -p sdl3 --lib render::gpu::tests::gpu_render_states -- --exact --nocapture 2>&1 | grep -E "DIAG BAD|test result|panicked" | cut -c1-200
+          if [ -s "$SDL3_TEST_SKIP_LOG" ]; then
+            {
+              echo "### Skipped checks (${{ matrix.os }}, ${{ matrix.toolchain }})"
+              echo
+              echo "| capability | test | reason |"
+              echo "|---|---|---|"
+              sort -u "$SDL3_TEST_SKIP_LOG" | sed 's/|/\\|/g; s/\t/ | /g; s/^/| /; s/$/ |/'
+            } >> "$GITHUB_STEP_SUMMARY"
+            cut -f1 "$SDL3_TEST_SKIP_LOG" | sort | uniq -c
+          else
+            echo "no checks skipped"
+          fi
+      # The skips of vulkan and egl by design: on Windows, lavapipe has no
+      # VK_EXT_headless_surface (the offscreen driver's Vulkan check); on
+      # macOS, MoltenVK misdraws a render-state check under the Metal debug
+      # layer (run again without it above); on both, the offscreen
+      # driver has no EGL (the OpenGL and OpenGL ES 2 renderers' checks on
+      # it). Any other skip of them fails the job.
+      - name: Check the GPU skips
+        if: runner.os != 'Linux'
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          touch "$SDL3_TEST_SKIP_LOG"
+          awk -F '\t' -v os="$RUNNER_OS" '
+            $1 == "vulkan" && os == "Windows" && $2 == "video::drivers::offscreen::vulkan::tests::offscreen_vulkan_surfaces" && $3 == "no VK_EXT_headless_surface" { next }
+            $1 == "vulkan" && os == "macOS" && $2 == "render::gpu::tests::gpu_render_states" && $3 ~ /^MoltenVK misdraws .* \(MTL_DEBUG_LAYER\)$/ { next }
+            $1 == "egl" && $2 ~ /^render::opengl(es2)?::tests::/ && $3 ~ /offscreen/ { next }
+            $1 == "vulkan" || $1 == "egl"' "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
+          if [ -f "$RUNNER_TEMP/skips-moltenvk.tsv" ]; then
+            cat "$RUNNER_TEMP/skips-moltenvk.tsv" >> "$RUNNER_TEMP/unexpected.tsv"
+          fi
+          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
+            cat "$RUNNER_TEMP/unexpected.tsv"
+            echo "::error::vulkan or egl checks skipped (above)"
+            exit 1
+          fi
+      - name: Skips (for the diag log)
+        if: always()
+        shell: bash
+        run: |
+          cut -f1 "$RUNNER_TEMP/skips.tsv" | sort | uniq -c || true
+          grep -v "^egl" "$RUNNER_TEMP/skips.tsv" | sort | uniq -c | cut -c1-250 || true
+          cat "$RUNNER_TEMP/skips-moltenvk.tsv" 2>/dev/null || echo "no moltenvk rerun skips"
