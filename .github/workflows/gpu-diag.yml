@@ -73,6 +73,12 @@ jobs:
           SDL_LOGGING: "*=verbose"
         run: |
           cargo test -p sdl3 --lib forced_egl_context -- --nocapture > "$RUNNER_TEMP/egl.log" 2>&1 || true
+          for f in src/egl/drivers/wgl/egl_wgl.c src/egl/main/eglapi.c src/gallium/frontends/wgl/stw_framebuffer.c; do
+            echo "=== $f" >> "$RUNNER_TEMP/egl.log"
+            curl -fsSL "https://gitlab.freedesktop.org/mesa/mesa/-/raw/mesa-$MESA_VERSION/$f" -o src.c || continue
+            grep -n -B12 -A3 "BAD_NATIVE_WINDOW" src.c | head -120 >> "$RUNNER_TEMP/egl.log"
+          done
+          curl -fsSL "https://gitlab.freedesktop.org/mesa/mesa/-/raw/mesa-$MESA_VERSION/src/gallium/frontends/wgl/stw_framebuffer.c" | grep -n -A60 "^stw_framebuffer_create" | head -90 >> "$RUNNER_TEMP/egl.log" || true
       - name: GL under cdb
         if: false
         shell: bash
@@ -94,7 +100,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/egl.log" | tail -70 | cut -c1-300 || true
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/egl.log" | tail -330 | cut -c1-200 || true
           echo "=== failures"
           sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
           grep -A6 "panicked at" "$RUNNER_TEMP/test.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
