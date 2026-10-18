@@ -828,6 +828,37 @@ fn srv_pool_allocator() {
     window.destroy();
 }
 
+/// A texture whose creation fails frees only the SRV slots it took
+/// (upstream frees slot 0 for each one it didn't).
+#[test]
+fn failed_texture_frees_only_its_srv_slots() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some(window) = window(8, 8, WindowFlags::HIDDEN) else {
+        return;
+    };
+    let mut data = D3d12Renderer::new(window, Colorspace::SRGB);
+    data.init_srv_pool();
+    assert_eq!(data.get_available_srv_index().unwrap(), 0);
+    // (failed before any view was made, and after the main one)
+    data.free_texture_srvs(&D3d12Texture {
+        yuv: true,
+        nv12: true,
+        ..Default::default()
+    });
+    assert_eq!(data.get_available_srv_index().unwrap(), 1);
+    data.free_texture_srvs(&D3d12Texture {
+        main_srv_index: Some(1),
+        yuv: true,
+        ..Default::default()
+    });
+    assert_eq!(data.get_available_srv_index().unwrap(), 1);
+    assert_eq!(data.get_available_srv_index().unwrap(), 2);
+    window.destroy();
+}
+
 #[test]
 fn d3d12_renderer_basics() {
     let _l = crate::test_support::test_lock();
@@ -901,6 +932,22 @@ fn d3d12_renderer_basics() {
             ..Default::default()
         })
         .is_err());
+    // (upstream frees slot 0, t's, for it: the next texture would take it,
+    // and t would be drawn with that texture's pixels)
+    r.update_texture(t, None, &[[20, 10, 200, 255]; 64].concat(), 32)
+        .unwrap();
+    let other = r
+        .create_texture(PixelFormat::ARGB8888, TextureAccess::Static, 8, 8)
+        .unwrap();
+    r.update_texture(other, None, &[[200, 30, 10, 255]; 64].concat(), 32)
+        .unwrap();
+    r.set_draw_color(0, 0, 0, 255);
+    r.clear().unwrap();
+    r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 8.0, 8.0)))
+        .unwrap();
+    let s = r.read_pixels(Some(&Rect::new(0, 0, 8, 8))).unwrap();
+    assert_eq!(rows(&s), [[20, 10, 200, 255]; 64].concat());
+    r.destroy_texture(other);
     r.destroy_texture(t);
     r.destroy_texture(yuv);
 
