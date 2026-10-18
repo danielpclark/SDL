@@ -1617,9 +1617,9 @@ xmp 1: set=0 mixer=0 frames=128 6f1905e256e364ba 00124edd597d6924 seek=0 pos=1 a
 xmp 2: set=0 mixer=0 frames=128 6411ba693be00443 b7bc19e3e9f2408f seek=0 pos=1 da557401f1a7f848
 xmp 3: set=0 mixer=0 frames=128 eae0193d033a44d2 e2a929e6bbd7fb4a seek=0 pos=1 72574eb9b7db42c9
 == flac_6ch.flac
-open: FLAC 0x8010 6 8000 frames=1200 | 7488 f068d86b0d63c59b end=0
-f32s48: 29952 3de6eecb67339485 end=0
-s16m22: 3440 abc46bfa81dd42e1 end=0
+open: FLAC 0x8010 6 8000 frames=1200 | 14400 042f58b8503459c3 end=0
+f32s48: 57600 870b04de4ba859ed end=0
+s16m22: 6616 827b48a5d2d8a096 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1647,29 +1647,29 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 5062: err: Audio data is in unknown/unsupported/corrupt format
 trunc 10124: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 15186: FLAC 0x8010 6 8000 frames=1200 | 0 cbf29ce484222325 end=0
-trunc 20248: FLAC 0x8010 6 8000 frames=1200 | 6912 9fcab7ab9ef35740 end=0
-corrupt 0: FLAC 0x8010 6 8000 frames=1200 | 7488 f068d86b0d63c59b end=0
-corrupt 0 mix: dur=1200 play=1 pos=1200 replay=1 seek=1 pos=400 playing=0 36487972c55ab02a
-corrupt 1: FLAC 0x8010 6 8000 frames=1200 | 7488 f068d86b0d63c59b end=0
-corrupt 1 mix: dur=1200 play=1 pos=1200 replay=1 seek=1 pos=400 playing=0 36487972c55ab02a
+trunc 15186: FLAC 0x8010 6 8000 frames=1200 | 6912 9e0572c57896f4bd end=0
+trunc 20248: FLAC 0x8010 6 8000 frames=1200 | 13824 4db82ab6aa650658 end=0
+corrupt 0: FLAC 0x8010 6 8000 frames=1200 | 14400 042f58b8503459c3 end=0
+corrupt 0 mix: dur=1200 play=1 pos=849 replay=1 seek=1 pos=400 playing=1 453fa2a7a1082bae
+corrupt 1: FLAC 0x8010 6 8000 frames=1200 | 14400 042f58b8503459c3 end=0
+corrupt 1 mix: dur=1200 play=1 pos=849 replay=1 seek=1 pos=400 playing=1 453fa2a7a1082bae
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: FLAC 0x8010 6 8000 frames=1200 | 576 ff1acdbc8dec7d0e end=0
-corrupt 3 mix: dur=1200 play=1 pos=624 replay=1 seek=1 pos=400 playing=0 59ba1cb97a03cd47
+corrupt 3: FLAC 0x8010 6 8000 frames=1200 | 7488 3e8aa31702db190e end=0
+corrupt 3 mix: dur=1200 play=1 pos=624 replay=1 seek=1 pos=400 playing=0 fb9a330c5e0b5446
 corrupt 4: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 4 mix: dur=1200 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-corrupt 5: FLAC 0x8010 6 8000 frames=1200 | 576 ff1acdbc8dec7d0e end=0
-corrupt 5 mix: dur=1200 play=1 pos=624 replay=1 seek=1 pos=400 playing=0 59ba1cb97a03cd47
-mix: dur=1200 play=1 pos=1200 replay=1 seek=1 pos=400 playing=0 36487972c55ab02a
-mixpre: dur=624 play=1 pos=624 replay=1 seek=1 pos=208 playing=0 74b6d34e071b30f6
-seek 0: play=1 seek=1 pos=0 playing=1 454751fe08da59a5
-seek 1: play=1 seek=1 pos=1 playing=1 d9f60d15fe0beb36
-seek 311: play=1 seek=1 pos=311 playing=1 766a18b60167ca14
-seek 960: play=1 seek=1 pos=960 playing=0 dcbe2b0de9f73d9d
-seek 3840: play=1 seek=0 pos=1008 playing=0 4d25767f9dce13f5
-seek 4801: play=1 seek=0 pos=1008 playing=0 4d25767f9dce13f5
-seek 12345: play=1 seek=0 pos=1008 playing=0 4d25767f9dce13f5
+corrupt 5: FLAC 0x8010 6 8000 frames=1200 | 7488 3e8aa31702db190e end=0
+corrupt 5 mix: dur=1200 play=1 pos=624 replay=1 seek=1 pos=400 playing=0 fb9a330c5e0b5446
+mix: dur=1200 play=1 pos=849 replay=1 seek=1 pos=400 playing=1 453fa2a7a1082bae
+mixpre: dur=1200 play=1 pos=849 replay=1 seek=1 pos=400 playing=1 453fa2a7a1082bae
+seek 0: play=1 seek=1 pos=0 playing=1 aed5024af8cd00c8
+seek 1: play=1 seek=1 pos=1 playing=1 465bad9ff3ba29b6
+seek 311: play=1 seek=1 pos=311 playing=1 94ede3708e53da79
+seek 960: play=1 seek=1 pos=960 playing=0 7d3fa952e105489e
+seek 3840: play=1 seek=0 pos=1200 playing=0 4d25767f9dce13f5
+seek 4801: play=1 seek=0 pos=1200 playing=0 4d25767f9dce13f5
+seek 12345: play=1 seek=0 pos=1200 playing=0 4d25767f9dce13f5
 seek 600: play=1 seek=1 pos=600 playing=0 4d25767f9dce13f5
 seek 700: play=1 seek=1 pos=700 playing=0 4d25767f9dce13f5
 seek 1199: play=1 seek=1 pos=1199 playing=0 4d25767f9dce13f5
@@ -1724,9 +1724,9 @@ corrupt 5 mix: dur=1200 play=1 pos=48 replay=1 seek=0 pos=0 playing=0 7784448160
 mix: dur=1200 play=1 pos=849 replay=1 seek=1 pos=400 playing=1 453fa2a7a1082bae
 mixpre: dur=1200 play=1 pos=849 replay=1 seek=1 pos=400 playing=1 453fa2a7a1082bae
 == flac_c_escape0.flac
-open: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
-f32s48: 0 cbf29ce484222325 end=0
-s16m22: 0 cbf29ce484222325 end=0
+open: FLAC 0x8010 1 8000 frames=768 | 1024 5b8115188d689b58 end=0
+f32s48: 24576 71bf9e0cf85a64fd end=0
+s16m22: 2824 66d9abea0b491abc end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1748,14 +1748,14 @@ trunc 128: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 200: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 256: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 300: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 512: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
-trunc 1000: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
+trunc 512: FLAC 0x8010 1 8000 frames=768 | 512 0da9eae39eeae04c end=0
+trunc 1000: FLAC 0x8010 1 8000 frames=768 | 512 0da9eae39eeae04c end=0
 trunc 254: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 509: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
-trunc 764: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
-trunc 1018: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
-corrupt 0: FLAC 0x8010 1 8000 frames=768 | 0 cbf29ce484222325 end=0
-corrupt 0 mix: dur=768 play=1 pos=512 replay=1 seek=0 pos=0 playing=0 f48f724a7f9ee85a
+trunc 509: FLAC 0x8010 1 8000 frames=768 | 512 0da9eae39eeae04c end=0
+trunc 764: FLAC 0x8010 1 8000 frames=768 | 512 0da9eae39eeae04c end=0
+trunc 1018: FLAC 0x8010 1 8000 frames=768 | 512 0da9eae39eeae04c end=0
+corrupt 0: FLAC 0x8010 1 8000 frames=768 | 1024 5b8115188d689b58 end=0
+corrupt 0 mix: dur=768 play=1 pos=512 replay=1 seek=0 pos=0 playing=0 ab8fe917c358d4fa
 corrupt 1: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 1 mix: dur=768 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 2: err: Seeking of FLAC stream failed: libFLAC seek failed.
@@ -1766,25 +1766,25 @@ corrupt 4: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 4 mix: dur=768 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 5: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 5 mix: dur=768 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=768 play=1 pos=512 replay=1 seek=0 pos=0 playing=0 f48f724a7f9ee85a
-mixpre: dur=0 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
-seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
-seek 1: play=1 seek=1 pos=1 playing=0 4d25767f9dce13f5
-seek 311: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 960: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 3840: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 4801: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 12345: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 384: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 268: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
-seek 767: play=1 seek=0 pos=1 playing=0 4d25767f9dce13f5
+mix: dur=768 play=1 pos=512 replay=1 seek=0 pos=0 playing=0 ab8fe917c358d4fa
+mixpre: dur=256 play=1 pos=256 replay=1 seek=1 pos=85 playing=0 1d37673731d6fad2
+seek 0: play=1 seek=1 pos=0 playing=1 039b58c374141597
+seek 1: play=1 seek=1 pos=1 playing=1 951dd190d4e51471
+seek 311: play=1 seek=0 pos=343 playing=0 ceaab6811ea76ae4
+seek 960: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 3840: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 4801: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 12345: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 384: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 268: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 767: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
 seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 1768: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_c_s12_8ch.flac
-open: FLAC 0x8010 8 11025 frames=0 | 4096 9eb018fe98b86d85 end=0
-f32s48: 8920 807bc788cd8e8ac8 end=0
-s16m22: 1024 089a5e1812896d7e end=0
+open: FLAC 0x8010 8 11025 frames=0 | 8192 92a6ec5329f17b03 end=0
+f32s48: 17840 ca67aefdd6501528 end=0
+s16m22: 2048 1419cb6cddf9e8be end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1809,32 +1809,32 @@ trunc 300: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 512: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 1000: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 2000: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 4096: FLAC 0x8010 8 11025 frames=0 | 0 cbf29ce484222325 end=0
+trunc 4096: FLAC 0x8010 8 11025 frames=0 | 4096 117f24a3e7068f63 end=0
 trunc 1199: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 2399: FLAC 0x8010 8 11025 frames=0 | 0 cbf29ce484222325 end=0
-trunc 3599: FLAC 0x8010 8 11025 frames=0 | 0 cbf29ce484222325 end=0
-trunc 4798: FLAC 0x8010 8 11025 frames=0 | 0 cbf29ce484222325 end=0
+trunc 2399: FLAC 0x8010 8 11025 frames=0 | 4096 117f24a3e7068f63 end=0
+trunc 3599: FLAC 0x8010 8 11025 frames=0 | 4096 117f24a3e7068f63 end=0
+trunc 4798: FLAC 0x8010 8 11025 frames=0 | 4096 117f24a3e7068f63 end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 1 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: FLAC 0x8010 8 11025 frames=0 | 0 cbf29ce484222325 end=0
-corrupt 3 mix: dur=0 play=1 pos=256 replay=1 seek=1 pos=100 playing=0 4886e9df2e25f7f2
+corrupt 3: FLAC 0x8010 8 11025 frames=0 | 4096 b93a0c83ce3b6325 end=0
+corrupt 3 mix: dur=0 play=1 pos=256 replay=1 seek=1 pos=100 playing=0 a64828cd8e28e790
 corrupt 4: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 4 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
 corrupt 5: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 5 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=0 play=1 pos=512 replay=1 seek=1 pos=100 playing=0 93a688d4d0978cb6
-mixpre: dur=256 play=1 pos=256 replay=1 seek=1 pos=85 playing=0 433587b291c69bb2
-seek 0: play=1 seek=1 pos=0 playing=0 4239d240074734e6
-seek 1: play=1 seek=1 pos=1 playing=0 4d25767f9dce13f5
-seek 311: play=1 seek=1 pos=311 playing=0 4d25767f9dce13f5
-seek 960: play=1 seek=0 pos=311 playing=0 4d25767f9dce13f5
-seek 3840: play=1 seek=0 pos=311 playing=0 4d25767f9dce13f5
-seek 4801: play=1 seek=0 pos=311 playing=0 4d25767f9dce13f5
-seek 12345: play=1 seek=0 pos=311 playing=0 4d25767f9dce13f5
+mix: dur=0 play=1 pos=512 replay=1 seek=1 pos=100 playing=0 0ef8980d936fbef8
+mixpre: dur=512 play=1 pos=512 replay=1 seek=1 pos=170 playing=0 3144b8ca79b46dac
+seek 0: play=1 seek=1 pos=0 playing=1 5741ebe298b3aa3d
+seek 1: play=1 seek=1 pos=1 playing=1 4ab727e81c06753c
+seek 311: play=1 seek=1 pos=311 playing=0 bbab2276861ca0c4
+seek 960: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 3840: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 4801: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
+seek 12345: play=1 seek=0 pos=512 playing=0 4d25767f9dce13f5
 seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek -500: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek -1: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
@@ -1842,9 +1842,9 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 1000: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_c_s16_lpc.flac
-open: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 8388608 03f9c3d9cdb5ab55 end=1
-f32s48: 8388608 3cb3bd45f938c428 end=1
-s16m22: 8388608 87b5163cafe92827 end=1
+open: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 8388608 e4a36322cd1a917f end=1
+f32s48: 8388608 93e6c971ae49bd28 end=1
+s16m22: 8388608 4988d3a4da5d68df end=1
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1868,43 +1868,43 @@ trunc 256: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 300: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 512: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 1000: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 2000: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 0 cbf29ce484222325 end=0
-trunc 4096: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 4608 51d494b91c1e9cd8 end=0
-trunc 2108: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 0 cbf29ce484222325 end=0
-trunc 4217: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 4608 51d494b91c1e9cd8 end=0
-trunc 6325: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 6912 7ed8bd21e44905f8 end=0
-trunc 8433: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 9216 fb45c8d036d629e1 end=0
-corrupt 0: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 9216 fb45c8d036d629e1 end=0
-corrupt 0 mix: dur=-2 play=1 pos=0 replay=1 seek=1 pos=100 playing=1 af3dcb5f672c7479
-corrupt 1: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 8388608 03f9c3d9cdb5ab55 end=1
-corrupt 1 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 2edc63399660a910
+trunc 2000: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 2304 3058c4c76ee78baa end=0
+trunc 4096: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 6912 0d0422fbe5f70b77 end=0
+trunc 2108: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 2304 3058c4c76ee78baa end=0
+trunc 4217: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 6912 0d0422fbe5f70b77 end=0
+trunc 6325: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 9216 b1e06a9498fc633f end=0
+trunc 8433: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 8388608 e4a36322cd1a917f end=1
+corrupt 0: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 10608 c1ce4d23d73c926b end=0
+corrupt 0 mix: dur=-2 play=1 pos=2652 replay=0 seek=0 pos=2652 playing=0 a3ca02c2c12052cd
+corrupt 1: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 8388608 e4a36322cd1a917f end=1
+corrupt 1 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 4cedbdd0b7cc3c36
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 9216 315286313ad82ef2 end=0
-corrupt 3 mix: dur=-2 play=1 pos=0 replay=1 seek=1 pos=100 playing=1 5c8f10a3119c6e98
+corrupt 3: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 10608 d043ec4a7b688230 end=0
+corrupt 3 mix: dur=-2 play=1 pos=2652 replay=0 seek=0 pos=2652 playing=0 0d54057ba74b88f4
 corrupt 4: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 8388608 637a2df54e222325 end=1
 corrupt 4 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0f4711efbdf3c350
-corrupt 5: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 9216 f3fb6a6deb5af325 end=0
-corrupt 5 mix: dur=-2 play=1 pos=0 replay=1 seek=1 pos=100 playing=1 8e6b394be171d4cc
-mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 2edc63399660a910
-mixpre: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 2edc63399660a910
-seek 0: play=1 seek=1 pos=0 playing=1 3b27030466880405
-seek 1: play=1 seek=1 pos=1 playing=1 c6f5deb9dc9b03f0
-seek 311: play=1 seek=1 pos=311 playing=1 8dbad9baea05d5dd
-seek 960: play=1 seek=1 pos=960 playing=1 32562ec11b45f667
-seek 3840: play=1 seek=1 pos=3840 playing=1 9e78b0c5f3e05078
-seek 4801: play=1 seek=1 pos=4801 playing=1 ed8454413b486e65
-seek 12345: play=1 seek=1 pos=12345 playing=1 727c9fa032d7202c
-seek -1: play=1 seek=0 pos=13286 playing=1 dfc540f371b33bad
-seek -502: play=1 seek=0 pos=14227 playing=1 7556342953b4b174
-seek -3: play=1 seek=0 pos=15168 playing=1 c357cb57a9906863
-seek 0: play=1 seek=1 pos=0 playing=1 ae9a960149860194
-seek 998: play=1 seek=1 pos=998 playing=1 b4f883c94bc2b410
-seek 100: play=1 seek=1 pos=100 playing=1 4cc0652682e25339
+corrupt 5: FLAC 0x8010 2 22050 title="LPC" infinite=1 | 10608 938332488adb2fe5 end=0
+corrupt 5 mix: dur=-2 play=1 pos=2652 replay=0 seek=0 pos=2652 playing=0 456e1400b7c42d4c
+mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 4cedbdd0b7cc3c36
+mixpre: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 4cedbdd0b7cc3c36
+seek 0: play=1 seek=1 pos=0 playing=1 f557622260f12769
+seek 1: play=1 seek=1 pos=1 playing=1 99483a1e34774513
+seek 311: play=1 seek=1 pos=311 playing=1 321924e629a9ac1d
+seek 960: play=1 seek=1 pos=960 playing=1 0af59f2c70b71acd
+seek 3840: play=1 seek=1 pos=3840 playing=1 81c14a9097cd71ba
+seek 4801: play=1 seek=1 pos=4801 playing=1 6ecbeb7d9dd6708b
+seek 12345: play=1 seek=1 pos=12345 playing=1 232ec7371712c666
+seek -1: play=1 seek=0 pos=13286 playing=1 e7f2e608c593f395
+seek -502: play=1 seek=0 pos=14227 playing=1 420063aac5ce29b3
+seek -3: play=1 seek=0 pos=15168 playing=1 e2cec6b672d1e87a
+seek 0: play=1 seek=1 pos=0 playing=1 0e34c1e0183bb87c
+seek 998: play=1 seek=1 pos=998 playing=1 692e3c0e6427bb83
+seek 100: play=1 seek=1 pos=100 playing=1 4457bbe0bc4d0862
 == flac_c_s20_stereo.flac
-open: FLAC 0x8020 2 48000 frames=2304 | 9216 b5b36a257823a934 end=0
-f32s48: 9216 c82346c087a4f559 end=0
-s16m22: 1060 fe8167176f672d9a end=0
+open: FLAC 0x8020 2 48000 frames=2304 | 18432 7501c1eaa28393d7 end=0
+f32s48: 18432 2244d9b4ef5b07b0 end=0
+s16m22: 2118 f0a24846fe903d46 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1929,28 +1929,28 @@ trunc 300: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 512: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 1000: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 2000: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 4096: FLAC 0x8020 2 48000 frames=2304 | 0 cbf29ce484222325 end=0
+trunc 4096: FLAC 0x8020 2 48000 frames=2304 | 9216 a2b678ca6beefe0a end=0
 trunc 1118: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 2236: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 3354: FLAC 0x8020 2 48000 frames=2304 | 0 cbf29ce484222325 end=0
-trunc 4472: FLAC 0x8020 2 48000 frames=2304 | 0 cbf29ce484222325 end=0
-corrupt 0: FLAC 0x8020 2 48000 frames=2304 | 9216 b5b36a257823a934 end=0
-corrupt 0 mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 1151afc345914dec
-corrupt 1: FLAC 0x8020 2 48000 frames=2304 | 9216 b5b36a257823a934 end=0
-corrupt 1 mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 291cd5130ce75781
-corrupt 2: FLAC 0x8020 2 48000 frames=2304 | 9216 b5b36a257823a934 end=0
-corrupt 2 mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 291cd5130ce75781
-corrupt 3: FLAC 0x8020 2 48000 frames=2304 | 0 cbf29ce484222325 end=0
-corrupt 3 mix: dur=2304 play=1 pos=1152 replay=1 seek=1 pos=768 playing=0 481378721c671919
-corrupt 4: FLAC 0x8020 2 48000 frames=2304 | 0 cbf29ce484222325 end=0
-corrupt 4 mix: dur=2304 play=1 pos=1152 replay=1 seek=1 pos=768 playing=0 481378721c671919
+trunc 3354: FLAC 0x8020 2 48000 frames=2304 | 9216 a2b678ca6beefe0a end=0
+trunc 4472: FLAC 0x8020 2 48000 frames=2304 | 9216 a2b678ca6beefe0a end=0
+corrupt 0: FLAC 0x8020 2 48000 frames=2304 | 18432 7501c1eaa28393d7 end=0
+corrupt 0 mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 b1c1d4db5fcd97e3
+corrupt 1: FLAC 0x8020 2 48000 frames=2304 | 18432 2a205c00145c7934 end=0
+corrupt 1 mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 74b7f9875aea0c29
+corrupt 2: FLAC 0x8020 2 48000 frames=2304 | 18432 2a205c00145c7934 end=0
+corrupt 2 mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 74b7f9875aea0c29
+corrupt 3: FLAC 0x8020 2 48000 frames=2304 | 9216 f3fb6a6deb5af325 end=0
+corrupt 3 mix: dur=2304 play=1 pos=1152 replay=1 seek=1 pos=768 playing=0 1a497e513b886bf9
+corrupt 4: FLAC 0x8020 2 48000 frames=2304 | 9216 f3fb6a6deb5af325 end=0
+corrupt 4 mix: dur=2304 play=1 pos=1152 replay=1 seek=1 pos=768 playing=0 1a497e513b886bf9
 corrupt 5: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 5 mix: dur=2304 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 1151afc345914dec
-mixpre: dur=1152 play=1 pos=1152 replay=1 seek=1 pos=384 playing=0 c728c7749f3b7e5d
-seek 0: play=1 seek=1 pos=0 playing=0 4b3d2ec404f2e3f5
-seek 1: play=1 seek=1 pos=1 playing=0 4d25767f9dce13f5
-seek 311: play=1 seek=1 pos=311 playing=0 4d25767f9dce13f5
+mix: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 b1c1d4db5fcd97e3
+mixpre: dur=2304 play=1 pos=2304 replay=1 seek=1 pos=768 playing=0 b1c1d4db5fcd97e3
+seek 0: play=1 seek=1 pos=0 playing=1 8d51d59d05ace58c
+seek 1: play=1 seek=1 pos=1 playing=1 ed1b5014009d563b
+seek 311: play=1 seek=1 pos=311 playing=0 6fabd6692b4945b6
 seek 960: play=1 seek=1 pos=960 playing=0 4d25767f9dce13f5
 seek 3840: play=1 seek=0 pos=960 playing=0 4d25767f9dce13f5
 seek 4801: play=1 seek=0 pos=960 playing=0 4d25767f9dce13f5
@@ -1962,9 +1962,9 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 3304: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_c_s24_3ch.flac
-open: FLAC 0x8020 3 44100 frames=4001 | 36012 3ab0238c1c62a20f end=0
-f32s48: 26136 0a3cc89b1a6d8118 end=0
-s16m22: 3002 f1a403f297d81332 end=0
+open: FLAC 0x8020 3 44100 frames=4001 | 48012 f0e886fde72f04e2 end=0
+f32s48: 34840 0619f5169a07254a end=0
+s16m22: 4002 502679eef5a88956 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1989,32 +1989,32 @@ trunc 300: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 512: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 1000: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 2000: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 4096: FLAC 0x8020 3 44100 frames=4001 | 924 5b8772b800dd6501 end=0
+trunc 4096: FLAC 0x8020 3 44100 frames=4001 | 12924 f2c0a7f033322d8d end=0
 trunc 2912: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 5824: FLAC 0x8020 3 44100 frames=4001 | 924 5b8772b800dd6501 end=0
-trunc 8736: FLAC 0x8020 3 44100 frames=4001 | 924 5b8772b800dd6501 end=0
-trunc 11647: FLAC 0x8020 3 44100 frames=4001 | 32412 5e93b366a4c61d31 end=0
-corrupt 0: FLAC 0x8020 3 44100 frames=4001 | 36012 3ab0238c1c62a20f end=0
-corrupt 0 mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 d2805f8aba25fd5f
-corrupt 1: FLAC 0x8020 3 35908 frames=4001 | 36012 3ab0238c1c62a20f end=0
-corrupt 1 mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 e424d8fc62adfe93
+trunc 5824: FLAC 0x8020 3 44100 frames=4001 | 12924 f2c0a7f033322d8d end=0
+trunc 8736: FLAC 0x8020 3 44100 frames=4001 | 12924 f2c0a7f033322d8d end=0
+trunc 11647: FLAC 0x8020 3 44100 frames=4001 | 44412 5c4630e37a9cb298 end=0
+corrupt 0: FLAC 0x8020 3 44100 frames=4001 | 48012 f0e886fde72f04e2 end=0
+corrupt 0 mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 d3e5bfbe9a7f8d93
+corrupt 1: FLAC 0x8020 3 35908 frames=4001 | 39096 6008e7dff3a4e828 end=0
+corrupt 1 mix: dur=4001 play=1 pos=3258 replay=1 seek=1 pos=1333 playing=0 2ed30237ed940660
 corrupt 2: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 2 mix: dur=4001 play=0 pos=0 replay=0 seek=1 pos=1333 playing=0 0c8210784d8af5a5
-corrupt 3: FLAC 0x8020 3 44100 frames=4001 | 36012 981946ca68a2d33b end=0
-corrupt 3 mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 ce117e53040c70d8
+corrupt 3: FLAC 0x8020 3 44100 frames=4001 | 48012 13116ee4e805ee77 end=0
+corrupt 3 mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 9657c2d45e2b45c7
 corrupt 4: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 4 mix: dur=4001 play=0 pos=0 replay=0 seek=1 pos=1333 playing=0 0c8210784d8af5a5
 corrupt 5: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 5 mix: dur=4001 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
-mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 d2805f8aba25fd5f
-mixpre: dur=3001 play=1 pos=3001 replay=1 seek=1 pos=1000 playing=0 36fb7013d044e92e
-seek 0: play=1 seek=1 pos=0 playing=1 a83a281407a36baf
-seek 1: play=1 seek=1 pos=1 playing=1 ddf0a81f5f6c4874
-seek 311: play=1 seek=1 pos=311 playing=1 b359e2a3bc8e021c
-seek 960: play=1 seek=1 pos=960 playing=1 4db373f7fe30648e
-seek 3840: play=1 seek=1 pos=3840 playing=0 4d25767f9dce13f5
-seek 4801: play=1 seek=0 pos=3840 playing=0 4d25767f9dce13f5
-seek 12345: play=1 seek=0 pos=3840 playing=0 4d25767f9dce13f5
+mix: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 d3e5bfbe9a7f8d93
+mixpre: dur=4001 play=1 pos=4001 replay=1 seek=1 pos=1333 playing=0 65758060a3b2d632
+seek 0: play=1 seek=1 pos=0 playing=1 bd2df4675e29ce7c
+seek 1: play=1 seek=1 pos=1 playing=1 b67d896bf81d6b1b
+seek 311: play=1 seek=1 pos=311 playing=1 9188ebac2bed3ab2
+seek 960: play=1 seek=1 pos=960 playing=1 449ef18d9d401b93
+seek 3840: play=1 seek=1 pos=3840 playing=0 3a258c4ce091f1e8
+seek 4801: play=1 seek=0 pos=4001 playing=0 4d25767f9dce13f5
+seek 12345: play=1 seek=0 pos=4001 playing=0 4d25767f9dce13f5
 seek 2000: play=1 seek=1 pos=2000 playing=0 4d25767f9dce13f5
 seek 3501: play=1 seek=1 pos=3501 playing=0 4d25767f9dce13f5
 seek 4000: play=1 seek=1 pos=4000 playing=0 4d25767f9dce13f5
@@ -2022,9 +2022,9 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 5001: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_c_s32_mono.flac
-open: FLAC 0x8020 1 16000 frames=1280 | 3072 bc3eacfe36319e48 end=0
-f32s48: 18432 ccfcfad3397ff831 end=0
-s16m22: 2118 76380e2c35b68c9f end=0
+open: FLAC 0x8020 1 16000 frames=1280 | 4096 a40da1685207cc9e end=0
+f32s48: 24576 fe55d16af6ff3c01 end=0
+s16m22: 2824 157c9391c7ea0ce7 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2048,32 +2048,32 @@ trunc 256: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 300: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 512: err: Seeking of FLAC stream failed: libFLAC seek failed.
 trunc 1000: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 2000: FLAC 0x8020 1 16000 frames=1280 | 1024 97274f89bd9ae9a5 end=0
+trunc 2000: FLAC 0x8020 1 16000 frames=1280 | 2048 3edaec2791f12477 end=0
 trunc 667: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 1335: FLAC 0x8020 1 16000 frames=1280 | 0 cbf29ce484222325 end=0
-trunc 2003: FLAC 0x8020 1 16000 frames=1280 | 1024 97274f89bd9ae9a5 end=0
-trunc 2670: FLAC 0x8020 1 16000 frames=1280 | 3072 bc3eacfe36319e48 end=0
-corrupt 0: FLAC 0x8020 1 16000 frames=1280 | 3072 bc3eacfe36319e48 end=0
-corrupt 0 mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 70c52161efef4ae9
+trunc 1335: FLAC 0x8020 1 16000 frames=1280 | 1024 812881b28445e1df end=0
+trunc 2003: FLAC 0x8020 1 16000 frames=1280 | 2048 3edaec2791f12477 end=0
+trunc 2670: FLAC 0x8020 1 16000 frames=1280 | 4096 a40da1685207cc9e end=0
+corrupt 0: FLAC 0x8020 1 16000 frames=1280 | 4096 f6eaa9da8037ee48 end=0
+corrupt 0 mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 d67615e43f2c8049
 corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 2: FLAC 0x8020 1 16000 frames=1280 | 3072 bc3eacfe36319e48 end=0
-corrupt 2 mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 70c52161efef4ae9
-corrupt 3: FLAC 0x8020 1 16000 frames=1280 | 2048 4a301fb893b8d325 end=0
-corrupt 3 mix: dur=1280 play=1 pos=768 replay=1 seek=1 pos=426 playing=0 635efe43d4bb26c1
-corrupt 4: FLAC 0x8020 1 16000 frames=1280 | 3072 9ffb126738bf2325 end=0
-corrupt 4 mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 9a6245db803bc49d
+corrupt 2: FLAC 0x8020 1 16000 frames=1280 | 4096 f6eaa9da8037ee48 end=0
+corrupt 2 mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 d67615e43f2c8049
+corrupt 3: FLAC 0x8020 1 16000 frames=1280 | 3072 9ffb126738bf2325 end=0
+corrupt 3 mix: dur=1280 play=1 pos=768 replay=1 seek=1 pos=426 playing=0 4ff2a44ae8fc01c5
+corrupt 4: FLAC 0x8020 1 16000 frames=1280 | 4096 daa70f4382c57325 end=0
+corrupt 4 mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 ca8a14b3e19635f1
 corrupt 5: err: Seeking of FLAC stream failed: libFLAC seek failed.
 corrupt 5 mix: dur=1280 play=0 pos=0 replay=0 seek=1 pos=426 playing=0 0c8210784d8af5a5
-mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 59830982fa46ddf9
-mixpre: dur=768 play=1 pos=768 replay=1 seek=1 pos=256 playing=0 08479596eddcff85
-seek 0: play=1 seek=1 pos=0 playing=1 5a4d93da13288a7c
-seek 1: play=1 seek=1 pos=1 playing=1 8a4510b9154f1c59
-seek 311: play=1 seek=1 pos=311 playing=0 44ba1ecc33207db1
-seek 960: play=1 seek=1 pos=960 playing=0 4d25767f9dce13f5
-seek 3840: play=1 seek=0 pos=960 playing=0 4d25767f9dce13f5
-seek 4801: play=1 seek=0 pos=960 playing=0 4d25767f9dce13f5
-seek 12345: play=1 seek=0 pos=960 playing=0 4d25767f9dce13f5
+mix: dur=1280 play=1 pos=1024 replay=1 seek=1 pos=426 playing=0 b47a9d0fc9914329
+mixpre: dur=1024 play=1 pos=1024 replay=1 seek=1 pos=341 playing=0 579fad9bfb9515fd
+seek 0: play=1 seek=1 pos=0 playing=1 6fe5ad6548cc7fa8
+seek 1: play=1 seek=1 pos=1 playing=1 71532eb97336bd19
+seek 311: play=1 seek=1 pos=311 playing=1 04960d4bfa4ad299
+seek 960: play=1 seek=1 pos=960 playing=0 e7ab223ebecd5fdb
+seek 3840: play=1 seek=0 pos=1024 playing=0 4d25767f9dce13f5
+seek 4801: play=1 seek=0 pos=1024 playing=0 4d25767f9dce13f5
+seek 12345: play=1 seek=0 pos=1024 playing=0 4d25767f9dce13f5
 seek 640: play=1 seek=1 pos=640 playing=0 4d25767f9dce13f5
 seek 780: play=1 seek=1 pos=780 playing=0 4d25767f9dce13f5
 seek 1279: play=1 seek=0 pos=780 playing=0 4d25767f9dce13f5
@@ -2081,9 +2081,9 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 2280: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_c_s8_mono.flac
-open: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1828 c4205e8d54b63b11 end=0
-f32s48: 87744 ba2a527b077464f1 end=0
-s16m22: 10078 f91be42077151254 end=0
+open: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 2020 d68a71b21cbfda11 end=0
+f32s48: 96960 736676b91b4cdfb5 end=0
+s16m22: 11136 bc1c9414eabb5344 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2102,36 +2102,36 @@ trunc 48: err: Audio data is in unknown/unsupported/corrupt format
 trunc 64: err: Audio data is in unknown/unsupported/corrupt format
 trunc 100: err: Audio data is in unknown/unsupported/corrupt format
 trunc 128: err: Audio data is in unknown/unsupported/corrupt format
-trunc 200: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 0 cbf29ce484222325 end=0
-trunc 256: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 0 cbf29ce484222325 end=0
-trunc 300: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 0 cbf29ce484222325 end=0
-trunc 512: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 192 55585129211f5920 end=0
-trunc 1000: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 960 6bad743384acd54f end=0
-trunc 359: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 0 cbf29ce484222325 end=0
-trunc 718: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 576 86d1e122d997750f end=0
-trunc 1077: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1152 82ec9c4ec4a781db end=0
-trunc 1435: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1728 3d377534d2585b1c end=0
-corrupt 0: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1828 c4205e8d54b63b11 end=0
-corrupt 0 mix: dur=2020 play=1 pos=221 replay=1 seek=1 pos=673 playing=1 0c53364517221927
+trunc 200: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 192 ab0c262759a1d225 end=0
+trunc 256: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 192 ab0c262759a1d225 end=0
+trunc 300: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 192 ab0c262759a1d225 end=0
+trunc 512: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 384 72baee47886c0820 end=0
+trunc 1000: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1152 de81ba7ab92d844f end=0
+trunc 359: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 192 ab0c262759a1d225 end=0
+trunc 718: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 768 6cabbbc6597e240f end=0
+trunc 1077: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1344 88ec5457cdf530db end=0
+trunc 1435: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1920 1d71f3bf440d0a1c end=0
+corrupt 0: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 2020 d68a71b21cbfda11 end=0
+corrupt 0 mix: dur=2020 play=1 pos=29 replay=1 seek=1 pos=673 playing=1 d910e95885fefb77
 corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1060 42c4fee9a081320b end=0
-corrupt 3 mix: dur=2020 play=1 pos=989 replay=1 seek=1 pos=673 playing=0 45c230e43cdcc869
-corrupt 4: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1636 12b4972a2ba9cc5a end=0
-corrupt 4 mix: dur=2020 play=1 pos=413 replay=1 seek=1 pos=673 playing=1 a96e2e4c66579e1b
-corrupt 5: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1636 1b9e91280b14f357 end=0
-corrupt 5 mix: dur=2020 play=1 pos=413 replay=1 seek=1 pos=673 playing=1 8754df2b500a9b17
-mix: dur=2020 play=1 pos=221 replay=1 seek=1 pos=673 playing=1 0c53364517221927
-mixpre: dur=1828 play=1 pos=221 replay=1 seek=1 pos=609 playing=1 8dac247c90a6f64f
-seek 0: play=1 seek=1 pos=0 playing=1 09d9d93e08f10247
-seek 1: play=1 seek=1 pos=1 playing=1 97e2f48af9affc69
-seek 311: play=1 seek=1 pos=311 playing=1 eb7f0f9e430dd42d
-seek 960: play=1 seek=1 pos=960 playing=1 5fafccbc31c81121
-seek 3840: play=1 seek=0 pos=1301 playing=1 399f3bf4980371cd
-seek 4801: play=1 seek=0 pos=1643 playing=0 807978c12688660f
-seek 12345: play=1 seek=0 pos=1828 playing=0 4d25767f9dce13f5
+corrupt 3: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1252 d927ade4e016d10b end=0
+corrupt 3 mix: dur=2020 play=1 pos=797 replay=1 seek=1 pos=673 playing=1 066a86a94eb3ecab
+corrupt 4: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1828 2a456af9ef166b5a end=0
+corrupt 4 mix: dur=2020 play=1 pos=221 replay=1 seek=1 pos=673 playing=1 00243731da9e86a3
+corrupt 5: FLAC 0x8008 1 8000 title="Crafted FLAC" artist="sdl3-mixer" frames=2020 | 1828 332f64f7ce819257 end=0
+corrupt 5 mix: dur=2020 play=1 pos=221 replay=1 seek=1 pos=673 playing=1 b37275485c2fc177
+mix: dur=2020 play=1 pos=29 replay=1 seek=1 pos=673 playing=1 d910e95885fefb77
+mixpre: dur=2020 play=1 pos=29 replay=1 seek=1 pos=673 playing=1 d910e95885fefb77
+seek 0: play=1 seek=1 pos=0 playing=1 201ec462d1b12cfb
+seek 1: play=1 seek=1 pos=1 playing=1 ac29c2dc1c9c4d7d
+seek 311: play=1 seek=1 pos=311 playing=1 94fd41fd7a5844cd
+seek 960: play=1 seek=1 pos=960 playing=1 a2cb8c96833fb389
+seek 3840: play=1 seek=0 pos=1301 playing=1 a2112d83749146ed
+seek 4801: play=1 seek=0 pos=1643 playing=1 ca1c82c357e70a95
+seek 12345: play=1 seek=0 pos=1984 playing=0 81374cefc019e957
 seek 1010: play=1 seek=1 pos=1010 playing=0 4d25767f9dce13f5
 seek 1520: play=1 seek=1 pos=1520 playing=0 4d25767f9dce13f5
 seek 2019: play=1 seek=1 pos=2019 playing=0 4d25767f9dce13f5
@@ -2139,9 +2139,9 @@ seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 3020: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
 == flac_fixed_mono.flac
-open: FLAC 0x8010 1 8000 frames=2400 | 4416 1a6255361373d12d end=0
-f32s48: 105984 e3607fe3bb82ff35 end=0
-s16m22: 12172 7f0c093c43e8c051 end=0
+open: FLAC 0x8010 1 8000 frames=2400 | 4800 8f5665dad9bdbcd0 end=0
+f32s48: 115200 b1fa70f272d00539 end=0
+s16m22: 13230 15d4e231453ab5c9 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2169,32 +2169,32 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3159: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6319: err: Audio data is in unknown/unsupported/corrupt format
-trunc 9478: FLAC 0x8010 1 8000 frames=2400 | 768 150d7de93cb1e5db end=0
-trunc 12637: FLAC 0x8010 1 8000 frames=2400 | 4224 c0510b955d124136 end=0
-corrupt 0: FLAC 0x8010 1 8000 frames=2400 | 4416 1a6255361373d12d end=0
-corrupt 0 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 bddfd6b70139ebfb
-corrupt 1: FLAC 0x8010 1 8000 frames=67936 | 4416 1a6255361373d12d end=0
-corrupt 1 mix: dur=67936 play=1 pos=2049 replay=1 seek=0 pos=0 playing=0 db30fd667d6339ae
+trunc 9478: FLAC 0x8010 1 8000 frames=2400 | 1152 b0767b86c241fdae end=0
+trunc 12637: FLAC 0x8010 1 8000 frames=2400 | 4608 b4fd13bd8d4f92bb end=0
+corrupt 0: FLAC 0x8010 1 8000 frames=2400 | 4800 8f5665dad9bdbcd0 end=0
+corrupt 0 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
+corrupt 1: FLAC 0x8010 1 8000 frames=67936 | 4800 8f5665dad9bdbcd0 end=0
+corrupt 1 mix: dur=67936 play=1 pos=2049 replay=1 seek=0 pos=0 playing=0 22935c3f5d57552e
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: FLAC 0x8010 1 8000 frames=2400 | 4416 c002a653542a46a5 end=0
-corrupt 3 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 51cdffb7f543170b
-corrupt 4: FLAC 0x8010 1 8000 frames=2400 | 4416 7cee97bd04424d0f end=0
-corrupt 4 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 bac09f2fcb3947f7
-corrupt 5: FLAC 0x8010 1 8000 frames=2400 | 4032 44585630255fb747 end=0
-corrupt 5 mix: dur=2400 play=1 pos=33 replay=1 seek=1 pos=800 playing=1 ebc825b52c355ebf
-mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 bddfd6b70139ebfb
-mixpre: dur=2208 play=1 pos=2049 replay=1 seek=1 pos=736 playing=1 cb39d0facb662903
-seek 0: play=1 seek=1 pos=0 playing=1 99a9524b947e562b
-seek 1: play=1 seek=1 pos=1 playing=1 91a6012ee5717bb9
-seek 311: play=1 seek=1 pos=311 playing=1 af7e1c1e683d1cc1
-seek 960: play=1 seek=1 pos=960 playing=1 d7b0ee32771245c5
-seek 3840: play=1 seek=0 pos=1301 playing=1 99dc221f49e0f04d
-seek 4801: play=1 seek=0 pos=1643 playing=1 a160285d95be8e41
-seek 12345: play=1 seek=0 pos=1984 playing=0 6998a952cf56dc57
-seek 1200: play=1 seek=1 pos=1200 playing=0 4d25767f9dce13f5
-seek 1900: play=1 seek=1 pos=1900 playing=0 4d25767f9dce13f5
-seek 2399: play=1 seek=1 pos=2399 playing=0 4d25767f9dce13f5
+corrupt 3: FLAC 0x8010 1 8000 frames=2400 | 4800 370f75dddacca4a5 end=0
+corrupt 3 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 a243510209aa9727
+corrupt 4: FLAC 0x8010 1 8000 frames=2400 | 4800 503bf7361fe3562a end=0
+corrupt 4 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 0a98371b793f777b
+corrupt 5: FLAC 0x8010 1 8000 frames=2400 | 4416 cbdb1819fcce1547 end=0
+corrupt 5 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 80a8bc00de2efa7b
+mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
+mixpre: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
+seek 0: play=1 seek=1 pos=0 playing=1 7a69dbda457bafc7
+seek 1: play=1 seek=1 pos=1 playing=1 ba5ea4555c7774c1
+seek 311: play=1 seek=1 pos=311 playing=1 c22ab5ef09a8b6f5
+seek 960: play=1 seek=1 pos=960 playing=1 ca18ead897f5795d
+seek 3840: play=1 seek=0 pos=1301 playing=1 819545b2a603494d
+seek 4801: play=1 seek=0 pos=1643 playing=1 2e6dac985adcff9d
+seek 12345: play=1 seek=0 pos=1984 playing=1 d0d713d04db44661
+seek 1200: play=1 seek=1 pos=1200 playing=1 ee88cdd1946432ed
+seek 1900: play=1 seek=1 pos=1900 playing=1 0086b729a08b4b6d
+seek 2399: play=1 seek=1 pos=2399 playing=0 c1b9eba64ae53659
 seek 0: play=1 seek=1 pos=0 playing=0 4d25767f9dce13f5
 seek 3400: play=1 seek=0 pos=0 playing=0 4d25767f9dce13f5
 seek 100: play=1 seek=1 pos=100 playing=0 4d25767f9dce13f5
@@ -2246,9 +2246,9 @@ corrupt 5 mix: dur=2400 play=1 pos=417 replay=1 seek=1 pos=800 playing=1 eeab7a1
 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 mixpre: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 == flac_loopcount.flac
-open: FLAC 0x8010 1 11025 frames=9921 | 11614 eaaa0423e63e7182 end=0
-f32s48: 202264 982d3fc4b33f9a85 end=0
-s16m22: 23228 36199455506e58d0 end=0
+open: FLAC 0x8010 1 11025 frames=9921 | 12006 fd596261ad9ef95e end=0
+f32s48: 209088 a1188fbe6514e945 end=0
+s16m22: 24012 5a61cec7a5162dd3 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2276,35 +2276,35 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
-trunc 10375: FLAC 0x8010 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
-trunc 13833: FLAC 0x8010 1 11025 frames=9921 | 2304 190fa1c2e966e351 end=0
+trunc 10375: FLAC 0x8010 1 11025 frames=9921 | 2304 945bd0093a736de6 end=0
+trunc 13833: FLAC 0x8010 1 11025 frames=9921 | 10000 783a77a191148d69 end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 1: FLAC 0x8010 1 11025 frames=3307 | 4310 a734c36f22035e66 end=0
-corrupt 1 mix: dur=3307 play=1 pos=668 replay=1 seek=1 pos=1102 playing=1 1e22e44e3cdcd594
-corrupt 2: FLAC 0x8010 1 11025 frames=3307 | 4310 a734c36f22035e66 end=0
-corrupt 2 mix: dur=3307 play=1 pos=668 replay=1 seek=1 pos=1102 playing=1 1e22e44e3cdcd594
-corrupt 3: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
-corrupt 3 mix: dur=9921 play=1 pos=1671 replay=1 seek=1 pos=3307 playing=0 2c65109f31f539f8
-corrupt 4: FLAC 0x8010 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
-corrupt 4 mix: dur=9921 play=1 pos=1152 replay=1 seek=0 pos=0 playing=1 7c50193c6a9c78e4
-corrupt 5: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
-corrupt 5 mix: dur=9921 play=1 pos=1671 replay=1 seek=1 pos=3307 playing=0 2c65109f31f539f8
-mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 6c332b509c9bec10
-mixpre: dur=5807 play=1 pos=2823 replay=1 seek=1 pos=1935 playing=1 be0b42d576924378
-seek 0: play=1 seek=1 pos=0 playing=1 6dbdac8e40061d70
-seek 1: play=1 seek=1 pos=1 playing=1 9e9992986d110f0d
-seek 311: play=1 seek=1 pos=311 playing=1 ba8bc33b3c8e0301
-seek 960: play=1 seek=1 pos=960 playing=1 e6c2da9f7a800e25
-seek 3840: play=1 seek=1 pos=3840 playing=1 cce4e6424c7143fd
-seek 4801: play=1 seek=1 pos=4801 playing=1 f0a6c8e371486629
-seek 12345: play=1 seek=0 pos=5271 playing=1 a744fdc8d031f435
-seek 4960: play=1 seek=1 pos=4960 playing=1 998a4ce1773b6f21
-seek 9421: play=1 seek=0 pos=5430 playing=1 604c0d55467af95d
-seek 9920: play=1 seek=0 pos=5901 playing=1 6ea33241c9838779
-seek 0: play=1 seek=1 pos=0 playing=1 ea6b915367aec251
-seek 10921: play=1 seek=0 pos=470 playing=1 3b5b19a59312a5c9
-seek 100: play=1 seek=1 pos=100 playing=1 398f828727e6e26d
+corrupt 1: FLAC 0x8010 1 11025 frames=3307 | 6614 95176a30b5bbd279 end=0
+corrupt 1 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
+corrupt 2: FLAC 0x8010 1 11025 frames=3307 | 6614 95176a30b5bbd279 end=0
+corrupt 2 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
+corrupt 3: FLAC 0x8010 1 11025 frames=9921 | 10000 a6e4f0723147f065 end=0
+corrupt 3 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 8502c32934302df8
+corrupt 4: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
+corrupt 4 mix: dur=9921 play=1 pos=1152 replay=1 seek=0 pos=0 playing=0 907bf2b9cd6a6f8b
+corrupt 5: FLAC 0x8010 1 11025 frames=9921 | 10000 a6e4f0723147f065 end=0
+corrupt 5 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 8502c32934302df8
+mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 be819466c45e9574
+mixpre: dur=6003 play=1 pos=2823 replay=1 seek=1 pos=2001 playing=1 52fe72e73fcd3f5c
+seek 0: play=1 seek=1 pos=0 playing=1 274d225aea6f1e94
+seek 1: play=1 seek=1 pos=1 playing=1 acb2ce95fc1fac65
+seek 311: play=1 seek=1 pos=311 playing=1 2e9406b0a4cf5fd9
+seek 960: play=1 seek=1 pos=960 playing=1 804becbf9139e2ad
+seek 3840: play=1 seek=1 pos=3840 playing=1 79bb8f4080bff73d
+seek 4801: play=1 seek=1 pos=4801 playing=1 b329748cda20e19d
+seek 12345: play=1 seek=0 pos=5271 playing=1 771aee91de06c3d1
+seek 4960: play=1 seek=1 pos=4960 playing=1 013c31a02a264b39
+seek 9421: play=1 seek=0 pos=5430 playing=1 69de65def0aa6db9
+seek 9920: play=1 seek=0 pos=5901 playing=1 e5617504b568f5d1
+seek 0: play=1 seek=1 pos=0 playing=1 a9fff5abccf5ad49
+seek 10921: play=1 seek=0 pos=470 playing=1 17eaaaa25d8c8209
+seek 100: play=1 seek=1 pos=100 playing=1 55789347db5ecc0d
 == flac_loopcount.flac DRFLAC
 open: DRFLAC 0x8120 1 11025 frames=9921 | 24204 aa9730516a8940f5 end=0
 f32s48: 210760 29cd38b418c0e885 end=0
@@ -2508,9 +2508,9 @@ ogg corrupt 11 mix: dur=-1 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210
 mix: dur=-1 play=1 pos=897 replay=1 seek=1 pos=100 playing=1 d36b049cb05acaa2
 mixpre: dur=3200 play=1 pos=897 replay=1 seek=1 pos=1066 playing=1 f04c999eccc47557
 == flac_s16_stereo.flac
-open: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 12832 77aaa6bd38f5d91b end=0
-f32s48: 55872 f1863c2edd62d99a end=0
-s16m22: 6416 4f18745218a02167 end=0
+open: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 8388608 ad3a03d83ad8f249 end=1
+f32s48: 8388608 5fbd2ecdc5aad85f end=1
+s16m22: 8388608 9b4fb7d2684a2748 end=1
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2538,35 +2538,35 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6500: err: Audio data is in unknown/unsupported/corrupt format
 trunc 13000: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 19500: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 0 cbf29ce484222325 end=0
-trunc 25999: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 9216 dfec465a5aab24d2 end=0
-corrupt 0: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" frames=5512 | 12832 77aaa6bd38f5d91b end=0
-corrupt 0 mix: dur=5512 play=1 pos=2437 replay=1 seek=1 pos=1837 playing=1 d65bb9c1bca385a8
-corrupt 1: FLAC 0x8010 2 22050 artist="sdl3-mixer" album="Test data" frames=5512 | 12832 77aaa6bd38f5d91b end=0
-corrupt 1 mix: dur=5512 play=1 pos=2437 replay=1 seek=1 pos=1837 playing=0 1fb1f440051e496b
-corrupt 2: FLAC 0x8010 2 54386 title="FLAC test" artist="sdl3-mi$er" album="Test=d«ta" frames=5512 | 12832 77aaa6bd38f5d91b end=0
-corrupt 2 mix: dur=5512 play=1 pos=5512 replay=1 seek=1 pos=1837 playing=0 69214b71985e76dc
-corrupt 3: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 12832 6d50afe5342ddda5 end=0
-corrupt 3 mix: dur=-2 play=1 pos=2437 replay=1 seek=1 pos=100 playing=1 0f4711efbdf3c350
-corrupt 4: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 9216 f3fb6a6deb5af325 end=0
-corrupt 4 mix: dur=-2 play=1 pos=3341 replay=1 seek=1 pos=100 playing=1 0f4711efbdf3c350
-corrupt 5: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 3616 17e55f7f8f0d0da5 end=0
-corrupt 5 mix: dur=-2 play=1 pos=3208 replay=1 seek=1 pos=100 playing=0 2a6106f9858aff4e
-mix: dur=-2 play=1 pos=2437 replay=1 seek=1 pos=100 playing=1 5b9472b73e5a5640
-mixpre: dur=-2 play=1 pos=2437 replay=1 seek=1 pos=100 playing=1 5b9472b73e5a5640
-seek 0: play=1 seek=1 pos=0 playing=1 de4b8124fb2dabf6
-seek 1: play=1 seek=1 pos=1 playing=1 9596ac88e01df94e
-seek 311: play=1 seek=1 pos=311 playing=1 541731ddc8b21238
-seek 960: play=1 seek=1 pos=960 playing=1 33da7badaefadbd9
-seek 3840: play=1 seek=1 pos=3840 playing=1 031c8e41f7f72caf
-seek 4801: play=1 seek=1 pos=4801 playing=1 f788b71d4082cc18
-seek 12345: play=1 seek=1 pos=12345 playing=1 4adcdc6586852f31
-seek -1: play=1 seek=0 pos=13286 playing=1 9ea854c34a5b1f49
-seek -502: play=1 seek=0 pos=14227 playing=1 8b9df12557603644
-seek -3: play=1 seek=0 pos=15168 playing=1 48fc24c901c84a92
-seek 0: play=1 seek=1 pos=0 playing=1 d10c6c527fb1ece3
-seek 998: play=1 seek=1 pos=998 playing=1 5ff5a6efd62a83fc
-seek 100: play=1 seek=1 pos=100 playing=1 b9aeefc9f7d2901a
+trunc 19500: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 9216 02f49baf91dd0532 end=0
+trunc 25999: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 8388608 ad3a03d83ad8f249 end=1
+corrupt 0: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" frames=5512 | 22048 1b8f43dfc0f09ebc end=0
+corrupt 0 mix: dur=5512 play=1 pos=133 replay=1 seek=1 pos=1837 playing=1 329c62d5de3f8001
+corrupt 1: FLAC 0x8010 2 22050 artist="sdl3-mixer" album="Test data" frames=5512 | 22048 1b8f43dfc0f09ebc end=0
+corrupt 1 mix: dur=5512 play=1 pos=133 replay=1 seek=1 pos=1837 playing=0 7e5226716fc91cbe
+corrupt 2: FLAC 0x8010 2 54386 title="FLAC test" artist="sdl3-mi$er" album="Test=d«ta" frames=5512 | 54384 02212fbc12d4869c end=0
+corrupt 2 mix: dur=5512 play=1 pos=326 replay=1 seek=1 pos=1837 playing=1 5c2895403e257770
+corrupt 3: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 8388608 637a2df54e222325 end=1
+corrupt 3 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0f4711efbdf3c350
+corrupt 4: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 8388608 637a2df54e222325 end=1
+corrupt 4 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 0f4711efbdf3c350
+corrupt 5: FLAC 0x8010 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 12832 6d50afe5342ddda5 end=0
+corrupt 5 mix: dur=-2 play=1 pos=2437 replay=1 seek=1 pos=100 playing=1 0f4711efbdf3c350
+mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 402bfc4e7b4c54a4
+mixpre: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 402bfc4e7b4c54a4
+seek 0: play=1 seek=1 pos=0 playing=1 173f2b05a60b324a
+seek 1: play=1 seek=1 pos=1 playing=1 5b1ebd386ca7a674
+seek 311: play=1 seek=1 pos=311 playing=1 ecebfab4bfccf73d
+seek 960: play=1 seek=1 pos=960 playing=1 824a6deafe96736a
+seek 3840: play=1 seek=1 pos=3840 playing=1 9de5c324272e42d6
+seek 4801: play=1 seek=1 pos=4801 playing=1 3a6a7cfe3a4a060f
+seek 12345: play=1 seek=1 pos=12345 playing=1 9b47fbd46017b938
+seek -1: play=1 seek=0 pos=13286 playing=1 70dbd9f77d4e68b7
+seek -502: play=1 seek=0 pos=14227 playing=1 dabff4331b022fa9
+seek -3: play=1 seek=0 pos=15168 playing=1 1464e04019fbc14b
+seek 0: play=1 seek=1 pos=0 playing=1 ebe8fe8f75f87893
+seek 998: play=1 seek=1 pos=998 playing=1 e6eea8122758562a
+seek 100: play=1 seek=1 pos=100 playing=1 69a8c0dd68f02a95
 == flac_s16_stereo.flac DRFLAC
 open: DRFLAC 0x8120 2 22050 title="FLAC test" artist="sdl3-mixer" album="Test data" infinite=1 | 8388608 fc855fe5feb9c75b end=1
 f32s48: 8388608 d189e55fa81d7bb6 end=1
@@ -2615,9 +2615,9 @@ corrupt 5 mix: dur=-2 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af
 mix: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 402bfc4e7b4c54a4
 mixpre: dur=-2 play=1 pos=5645 replay=1 seek=1 pos=100 playing=1 402bfc4e7b4c54a4
 == flac_s24_mono.flac
-open: FLAC 0x8020 1 11025 frames=2756 | 6416 9f37c71466b765d0 end=0
-f32s48: 55872 7d7fad10af82dded end=0
-s16m22: 6416 4b38ff0b03c4c296 end=0
+open: FLAC 0x8020 1 11025 frames=2756 | 11024 554accb31496eb91 end=0
+f32s48: 95992 3858c73a10fb6cd9 end=0
+s16m22: 11024 04b50db9ca708f2f end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2646,28 +2646,28 @@ trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3206: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6413: err: Audio data is in unknown/unsupported/corrupt format
 trunc 9619: err: Seeking of FLAC stream failed: libFLAC seek failed.
-trunc 12825: FLAC 0x8020 1 11025 frames=2756 | 4608 54bbd344ecf1d90b end=0
-corrupt 0: FLAC 0x8020 1 11025 frames=2756 | 6416 9f37c71466b765d0 end=0
-corrupt 0 mix: dur=2756 play=1 pos=1219 replay=1 seek=1 pos=918 playing=1 a5edf17b629663cc
-corrupt 1: FLAC 0x8020 1 11025 frames=2756 | 6416 9f37c71466b765d0 end=0
-corrupt 1 mix: dur=2756 play=1 pos=1219 replay=1 seek=1 pos=918 playing=1 a5edf17b629663cc
+trunc 12825: FLAC 0x8020 1 11025 frames=2756 | 9216 4708da3db34ffb56 end=0
+corrupt 0: FLAC 0x8020 1 11025 frames=2756 | 11024 554accb31496eb91 end=0
+corrupt 0 mix: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 cad814af31c62900
+corrupt 1: FLAC 0x8020 1 11025 frames=2756 | 11024 554accb31496eb91 end=0
+corrupt 1 mix: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 cad814af31c62900
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: FLAC 0x8020 1 11025 frames=2756 | 6416 5d1771f5e3e757cb end=0
-corrupt 3 mix: dur=2756 play=1 pos=1219 replay=1 seek=1 pos=918 playing=1 c78712b1de61a460
-corrupt 4: FLAC 0x8020 1 11025 frames=2756 | 6416 68a659ac750dcbc2 end=0
-corrupt 4 mix: dur=2756 play=1 pos=1219 replay=1 seek=1 pos=918 playing=1 726b40a7bac55834
-corrupt 5: FLAC 0x8020 1 11025 frames=2756 | 0 cbf29ce484222325 end=0
-corrupt 5 mix: dur=2756 play=1 pos=1152 replay=1 seek=0 pos=0 playing=1 7c50193c6a9c78e4
-mix: dur=2756 play=1 pos=1219 replay=1 seek=1 pos=918 playing=1 a5edf17b629663cc
-mixpre: dur=1604 play=1 pos=1219 replay=1 seek=1 pos=534 playing=1 58b4615aab8d2cc8
-seek 0: play=1 seek=1 pos=0 playing=1 6669519b3985645c
-seek 1: play=1 seek=1 pos=1 playing=1 b7685c586e950a35
-seek 311: play=1 seek=1 pos=311 playing=1 3f83c0902c08c51d
-seek 960: play=1 seek=1 pos=960 playing=1 997627766523b3f1
-seek 3840: play=1 seek=0 pos=1431 playing=1 be2fb12d95dc067d
-seek 4801: play=1 seek=0 pos=1901 playing=1 45c7a5608c783f45
-seek 12345: play=1 seek=0 pos=2371 playing=0 7672c8b7c97796e3
+corrupt 3: FLAC 0x8020 1 11025 frames=2756 | 11024 1dcec7af8a5dbfcb end=0
+corrupt 3 mix: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 075da27b6fadb330
+corrupt 4: FLAC 0x8020 1 11025 frames=2756 | 11024 295daf661b8433c2 end=0
+corrupt 4 mix: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 dc971a4198b633f8
+corrupt 5: FLAC 0x8020 1 11025 frames=2756 | 4608 b54ec33c111e8b25 end=0
+corrupt 5 mix: dur=2756 play=1 pos=1152 replay=1 seek=0 pos=0 playing=0 907bf2b9cd6a6f8b
+mix: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 cad814af31c62900
+mixpre: dur=2756 play=1 pos=67 replay=1 seek=1 pos=918 playing=1 cad814af31c62900
+seek 0: play=1 seek=1 pos=0 playing=1 d7e641e1290f9b34
+seek 1: play=1 seek=1 pos=1 playing=1 a71040e08f39e431
+seek 311: play=1 seek=1 pos=311 playing=1 e509b451c77236e9
+seek 960: play=1 seek=1 pos=960 playing=1 a405b6fc92029e31
+seek 3840: play=1 seek=0 pos=1431 playing=1 ca4e74df3720860d
+seek 4801: play=1 seek=0 pos=1901 playing=1 1ed52ce3f3c641e9
+seek 12345: play=1 seek=0 pos=2371 playing=0 7f2b73d7e2a18e41
 seek 1378: play=1 seek=1 pos=1378 playing=0 4d25767f9dce13f5
 seek 2256: play=1 seek=1 pos=2256 playing=0 4d25767f9dce13f5
 seek 2755: play=1 seek=1 pos=2755 playing=0 4d25767f9dce13f5
@@ -17438,19 +17438,19 @@ xmp 3: set=0 mixer=0 frames=104 f3e4d4f60ebc87f9 f168ad56797ad9e6 seek=0 pos=1 1
 11: play=1 playing=1 paused=0 pos=2524 remaining=8501 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 24d98554c5ec8d2b
 12: play=1 playing=1 paused=0 pos=1579 remaining=9446 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 b6a80e1c4dc5fa98
 == scenarios flac_s16_stereo.flac
-0: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 6249c8a7aab4e6aa
-1: play=1 playing=0 paused=0 pos=3082 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 eeea1c35aab27a93
-2: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 3f277f01cab77aed
-3: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 89a8807c4877f830
-4: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 b274daaab8bd55e4
-5: play=1 playing=0 paused=0 pos=3308 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 5903c088d67a7e76
-6: play=1 playing=1 paused=0 pos=3437 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 ea4762013c9e642b
-7: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 28c7c85c85a8bd14
-8: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 35bfe4176a7ac8fc
-9: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=cbf29ce484222325 post=cbf29ce484222325 28314ac0f8b3df22
-10: play=1 playing=0 paused=0 pos=3208 remaining=0 stopped=1 raw=633f4782b48d8a90 post=0c33fcb184d02e83 5c16eea69a0e96e4
-11: play=1 playing=1 paused=0 pos=1496 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 07ce0606c200d8c3
-12: play=1 playing=1 paused=0 pos=321 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 b254870fa681819c
+0: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 e5a9a4eecc9fe826
+1: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 1fde33c0514584ab
+2: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 27e0ccc36b582657
+3: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 93391054b3d4323e
+4: play=1 playing=1 paused=0 pos=6350 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 7082e9e24b330001
+5: play=1 playing=1 paused=0 pos=5745 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 521875bae7a342e5
+6: play=1 playing=1 paused=0 pos=5755 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 027d53f1decf3e1a
+7: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 640999b44ec473de
+8: play=1 playing=1 paused=0 pos=4705 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 26a0271ba7d01898
+9: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 01c666f075ad028e
+10: play=1 playing=1 paused=0 pos=5645 remaining=-1 stopped=0 raw=4caf2192fc43435a post=a16e1c38946c7beb 5d99d84cf27ed4b2
+11: play=1 playing=1 paused=0 pos=12288 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 5a69814819e7297c
+12: play=1 playing=1 paused=0 pos=33865 remaining=-1 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 c38725c4e92b6e07
 == scenarios wv_s16_long.wv
 0: play=1 playing=1 paused=0 pos=5645 remaining=8026 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 ff068e5f02b77be4
 1: play=1 playing=1 paused=0 pos=5645 remaining=8026 stopped=0 raw=cbf29ce484222325 post=cbf29ce484222325 63f901da987decc0

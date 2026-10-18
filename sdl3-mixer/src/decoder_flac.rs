@@ -29,9 +29,9 @@ struct FlacAudioData {
 }
 
 /// Translation of `FLAC_TrackData` for a track. `stream` is the stream
-/// the last `FLAC_decode()` got (`tdata->stream`), which the write
-/// callback puts the audio into, also when a seek decodes; `None` before
-/// the first one (C's NULL).
+/// `FLAC_decode()` got (`tdata->stream`), which the write callback puts
+/// the audio into (`None` in a seek, whose audio the write callback holds
+/// for the next `FLAC_decode()`).
 struct FlacClient<'a, 's> {
     t: &'a mut FlacTrack<'s>,
     stream: Option<&'a AudioStream>,
@@ -46,11 +46,18 @@ struct FlacTrack<'s> {
     cvtbuf: Vec<u8>,
     current_iteration: i64,
     current_iteration_frames: i64,
-    /// (whether `FLAC_decode()` has set `tdata->stream` yet)
-    has_stream: bool,
-    /// (whether `FLAC_IoWrite()` is in its looping seek; see the FIXME
-    /// there)
-    in_loop_seek: bool,
+    /// (whether `FLAC_seek()` is in libFLAC's seek; see the write
+    /// callback)
+    seeking: bool,
+    /// (what libFLAC decoded for the last seek, for the next
+    /// `FLAC_decode()`: the frame's header and its channels' samples, one
+    /// channel after another)
+    pending: Option<(FrameHeader, Vec<i32>)>,
+    /// (the samples of the frame the write callback has from `pending`,
+    /// rather than from the decoder's output)
+    replay: Option<Vec<i32>>,
+    /// (a looping seek failed: the track is done, until a seek)
+    loop_seek_failed: bool,
 }
 
 /// Translation of `FLAC_TrackData` while `FLAC_init_audio()` reads the
@@ -236,6 +243,30 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
         frame: &FrameHeader,
         offset: usize,
     ) -> StreamDecoderWriteStatus {
+        if self.t.seeking {
+            // Note (upstream): libFLAC's seek decodes the frame it lands in
+            // and hands it to this callback, which puts it into
+            // `tdata->stream` there; before the first FLAC_decode() that
+            // is NULL, so predecoding (which seeks to 0 first) lost the
+            // first frame, and a seek that the mixer follows with clearing
+            // the stream (a new playback position) lost the rest of the
+            // frame it landed in. The translation holds the frame for the
+            // next FLAC_decode().
+            let blocksize = frame.blocksize as usize;
+            let mut samples = Vec::new();
+            if samples
+                .try_reserve_exact(blocksize * frame.channels as usize)
+                .is_err()
+            {
+                return StreamDecoderWriteStatus::Abort;
+            }
+            for out in decoder.output().iter().take(frame.channels as usize) {
+                samples.extend_from_slice(&out[offset..offset + blocksize]);
+            }
+            self.t.pending = Some((*frame, samples));
+            return StreamDecoderWriteStatus::Continue;
+        }
+
         let stream = self.stream;
         let channels = frame.channels as i32;
 
@@ -269,6 +300,7 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
         }
 
         let loop_ = t.adata.loop_;
+        let mut loop_seek = None;
         if t.current_iteration == -1
             && loop_.active
             && (t.current_iteration_frames.wrapping_add(amount as i64) >= loop_.start)
@@ -290,19 +322,18 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
                 amount = available.max(0) as usize;
             }
 
-            // FIXME (upstream): the looping seek below decodes the loop's
-            // first frame, and libFLAC hands it to this callback before the
-            // seek returns, with current_iteration_frames not yet reset; so
-            // that call loops again, and so on: an infinite loop (or one
-            // with many iterations) recurses until the stack overflows.
-            // Here (and in the patched C reference harness) the callback
-            // that comes from the looping seek doesn't loop again. Also,
-            // `amount` frames are then put from the decoder's output, which
-            // that seek has decoded the loop's first frame into, rather than
-            // this frame's last ones.
-            if !t.in_loop_seek
-                && (t.current_iteration_frames.wrapping_add(amount as i64) >= loop_.len)
-            {
+            // Note (upstream): the looping seek below decodes the loop's
+            // first frame there, and libFLAC hands it to this callback
+            // before the seek returns, with current_iteration_frames not yet
+            // reset; so that call looped again, and so on: an infinite loop
+            // (or one with many iterations) recursed until the stack
+            // overflowed. And `amount` frames were then put from the
+            // decoder's output, which that seek had decoded the loop's first
+            // frame into, rather than this frame's last ones. In the
+            // translation (and the patched C reference) the seek's frame is
+            // held for the next FLAC_decode(), and the looping seek comes
+            // after this frame's frames are put.
+            if t.current_iteration_frames.wrapping_add(amount as i64) >= loop_.len {
                 // time to loop?
                 let mut should_loop = false;
                 if loop_.count < 0 {
@@ -317,30 +348,22 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
                 }
 
                 if should_loop {
-                    let nextframe = (loop_.start as u64)
-                        .wrapping_add((loop_.len as u64).wrapping_mul(t.current_iteration as u64));
-                    t.in_loop_seek = true;
-                    let ok = flac_seek(decoder, self, nextframe).is_ok();
-                    self.t.in_loop_seek = false;
-                    if !ok {
-                        // FIXME (upstream): this returns `false`, which is
-                        // FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE, so
-                        // decoding goes on after a failed looping seek.
-                        return StreamDecoderWriteStatus::Continue;
-                    }
+                    loop_seek =
+                        Some((loop_.start as u64).wrapping_add(
+                            (loop_.len as u64).wrapping_mul(t.current_iteration as u64),
+                        ));
                 } else {
                     // Note (upstream): this sets current_iteration back to -1
                     // (before the loop) there, so with current_iteration_frames
                     // back at 0, the check above saw the loop start again
                     // `loop.start` frames later and a loop with a LOOPCOUNT
                     // played forever; the translation's -2 means it's done.
-                    self.t.current_iteration = -2; // done looping.
+                    t.current_iteration = -2; // done looping.
                 }
-                self.t.current_iteration_frames = 0;
+                t.current_iteration_frames = 0;
             }
         }
 
-        let t = &mut *self.t;
         if amount > 0 {
             // (If we padded out to 5.1 to get a front-center channel, the unnecessary channels happen
             //   to be at the end, so it'll assume those padded channels are silent.)
@@ -353,9 +376,11 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
                 debug_assert!(false, "Unexpected audio data type");
                 return StreamDecoderWriteStatus::Abort;
             }
-            let output = decoder.output();
-            for (channel, out) in output.iter().enumerate().take(channels as usize) {
-                let src = &out[offset..];
+            for channel in 0..channels as usize {
+                let src = match &t.replay {
+                    Some(samples) => &samples[channel * frame.blocksize as usize..],
+                    None => &decoder.output()[channel][offset..],
+                };
                 let dst = &mut t.cvtbuf[channel * onebuflen..];
                 for i in 0..amount {
                     let v = (src[i] as u32).wrapping_shl(shift as u32);
@@ -375,6 +400,17 @@ impl StreamDecoderClient for FlacClient<'_, '_> {
                 let _ = stream.put_planar_data(&channel_arrays, amount);
             }
             t.current_iteration_frames = t.current_iteration_frames.wrapping_add(amount as i64);
+        }
+
+        if let Some(nextframe) = loop_seek {
+            if flac_seek(decoder, self, nextframe).is_err() {
+                // Note (upstream): this returns `false` there, which is
+                // FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE, so decoding
+                // went on after a failed looping seek; the translation
+                // aborts, and the track is done.
+                self.t.loop_seek_failed = true;
+                return StreamDecoderWriteStatus::Abort;
+            }
         }
 
         StreamDecoderWriteStatus::Continue
@@ -502,8 +538,10 @@ impl AudioData for FlacAudioData {
             cvtbuf: Vec::new(),
             current_iteration: -1,
             current_iteration_frames: 0,
-            has_stream: false,
-            in_loop_seek: false,
+            seeking: false,
+            pending: None,
+            replay: None,
+            loop_seek_failed: false,
         };
         let mut decoder = StreamDecoder::new();
 
@@ -581,7 +619,12 @@ fn flac_seek(
         }
     }
 
-    if !decoder.seek_absolute(client, frame) {
+    client.t.pending = None; // (what an earlier seek decoded is stale now)
+    client.t.seeking = true;
+    let ok = decoder.seek_absolute(client, frame);
+    client.t.seeking = false;
+    if !ok {
+        client.t.pending = None;
         if decoder.get_state() == StreamDecoderState::SeekError {
             decoder.flush();
         }
@@ -592,42 +635,28 @@ fn flac_seek(
 
     client.t.current_iteration = final_iteration;
     client.t.current_iteration_frames = final_iteration_frames;
+    client.t.loop_seek_failed = false;
 
     Ok(())
-}
-
-impl FlacTrackData<'_> {
-    /// `FLAC_seek()` on the track, the write callback putting what the
-    /// seek decodes into `stream` (`tdata->stream`).
-    ///
-    /// FIXME (upstream): libFLAC's seek decodes the frame it lands in and
-    /// hands it to the write callback, which puts it into `tdata->stream`;
-    /// before the first `FLAC_decode()` that is NULL, so that frame's audio
-    /// goes nowhere: predecoding (which seeks to 0 first) loses the first
-    /// frame. A seek that the mixer follows with clearing the stream (a
-    /// new playback position) loses the rest of that frame, too. Kept.
-    fn seek_into(&mut self, frame: u64, stream: Option<&AudioStream>) -> Result<()> {
-        let stream = if self.t.has_stream { stream } else { None };
-        flac_seek(
-            &mut self.decoder,
-            &mut FlacClient {
-                t: &mut self.t,
-                stream,
-            },
-            frame,
-        )
-    }
 }
 
 impl TrackData for FlacTrackData<'_> {
     /// Translation of `FLAC_decode()`.
     fn decode(&mut self, stream: &AudioStream) -> bool {
-        self.t.has_stream = true;
-
         let mut client = FlacClient {
             t: &mut self.t,
             stream: Some(stream),
         };
+        if client.t.loop_seek_failed {
+            return false; // (a looping seek failed: we're done.)
+        }
+        if let Some((frame, samples)) = client.t.pending.take() {
+            // what the last seek decoded goes first.
+            client.t.replay = Some(samples);
+            let status = client.write(&mut self.decoder, &frame, 0);
+            client.t.replay = None;
+            return status != StreamDecoderWriteStatus::Abort;
+        }
         if !self.decoder.process_single(&mut client) {
             // write callback will fill in stream. Might fill 0 if it hit a metadata block, but the higher level loops to get what it needs.
             return false;
@@ -638,16 +667,16 @@ impl TrackData for FlacTrackData<'_> {
         true
     }
 
-    /// Translation of `FLAC_seek()`, before any `FLAC_decode()` gave the
-    /// track a stream (or where the mixer has none to give).
+    /// Translation of `FLAC_seek()`.
     fn seek(&mut self, frame: u64) -> Result<()> {
-        self.seek_into(frame, None)
-    }
-
-    /// Translation of `FLAC_seek()`: what libFLAC decodes for the seek goes
-    /// to the stream the decoding goes to.
-    fn seek_with_stream(&mut self, frame: u64, stream: Option<&AudioStream>) -> Result<()> {
-        self.seek_into(frame, stream)
+        flac_seek(
+            &mut self.decoder,
+            &mut FlacClient {
+                t: &mut self.t,
+                stream: None,
+            },
+            frame,
+        )
     }
 }
 
