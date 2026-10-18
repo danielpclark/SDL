@@ -80,13 +80,19 @@ fn context() -> Ps5Context {
 }
 
 /// The events with the sensor timestamps of the time of the report as
-/// NOW.
-fn with_now(events: Vec<String>, before: u64, after: u64) -> Vec<String> {
+/// NOW, where the expected events have NOW. (Only there: a timestamp from
+/// the report itself can fall within the report's time too, early in the
+/// process.)
+fn with_now(events: Vec<String>, expected: &[&str], before: u64, after: u64) -> Vec<String> {
     events
         .into_iter()
-        .map(|e| {
+        .enumerate()
+        .map(|(i, e)| {
             let mut words: Vec<String> = e.split(' ').map(str::to_owned).collect();
-            if words[0] == "sensor" {
+            let expects_now = expected
+                .get(i)
+                .is_some_and(|x| x.split(' ').nth(2) == Some("NOW"));
+            if words[0] == "sensor" && expects_now {
                 let t: u64 = words[2].parse().unwrap();
                 if (before..=after).contains(&t) {
                     words[2] = "NOW".to_owned();
@@ -120,7 +126,7 @@ fn state_reports() {
             let (_, events) = run(&device, |d| {
                 ctx.handle_report(d, Some(1), &data, report.len())
             });
-            let events = with_now(events, before, crate::timer::ticks_ns());
+            let events = with_now(events, expected, before, crate::timer::ticks_ns());
             assert_eq!(events, *expected, "{} report {n}", case.name);
         }
     }

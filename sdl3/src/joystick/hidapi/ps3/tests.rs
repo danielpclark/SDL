@@ -178,12 +178,18 @@ fn state_reports() {
                 }
             });
             let after = crate::timer::ticks_ns();
-            // (a sensor timestamp of the time the report came in is NOW)
+            // (a sensor timestamp of the time the report came in is NOW, where
+            // the expected events have NOW: a timestamp from the report itself
+            // can fall within that time too, early in the process)
             let mut events: Vec<String> = events
                 .into_iter()
-                .map(|e| {
+                .enumerate()
+                .map(|(i, e)| {
                     let mut words: Vec<String> = e.split(' ').map(str::to_owned).collect();
-                    if words[0] == "sensor" {
+                    let expects_now = expected
+                        .get(i)
+                        .is_some_and(|x| x.split(' ').nth(2) == Some("NOW"));
+                    if words[0] == "sensor" && expects_now {
                         let t: u64 = words[2].parse().unwrap();
                         if (before..=after).contains(&t) {
                             words[2] = "NOW".to_owned();
