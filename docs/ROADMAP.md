@@ -226,12 +226,22 @@ In dependency order, after the core each one needs exists:
    render mode, styles, outlines, SDF, text objects, and corrupted SVG
    tables and documents; and on 600,000 randomly mutated SVG tables and
    documents (in release mode, and 60,000 with overflow checks), every
-   rendering identical. Not yet: the hinter
-   of FreeType's `pshinter` (which only
-   the old Type 1 and CFF interpreters SDL_ttf's build leaves out use),
-   and SVG images in formats other than PNG and JPEG (SDL's stb_image
-   decodes them; PlutoVG's copy of stb_image also reads BMP, GIF, TGA
-   and the others).
+   rendering identical. SVG `image` elements are decoded as PlutoVG's
+   copy of stb_image 2.30 decodes them (every format, whatever type the
+   data URI names among PNG and JPEG): PNG and JPEG with `sdl3`'s
+   translation of SDL's stb_image, and BMP, GIF (the first frame), PSD,
+   TGA, HDR (to 8 bits with gamma 2.2), PIC and PNM with the loaders
+   `sdl3::video::stb_image::load_from_memory_all_formats` adds from
+   PlutoVG's copy; checked on images of each loader's paths, broken ones,
+   and truncated and mutated copies (and 165,000 more mutated copies in
+   release mode), decoded and converted bit for bit as upstream except
+   where C reads uninitialized memory, and in SVG glyphs rendered bit for
+   bit as upstream. Not translated, as SDL_ttf's
+   build never reaches them: the hinter of FreeType's `pshinter` (which
+   only the old Type 1 and CFF interpreters use, compiled out without
+   `T1_CONFIG_OPTION_OLD_ENGINE` and `CFF_CONFIG_OPTION_OLD_ENGINE`), and
+   HarfBuzz's AAT feature queries (`hb_aat_layout_get_feature_types` and
+   the like, which nothing in SDL_ttf, FreeType or PlutoSVG calls).
 3. **SDL_mixer** — needs audio streams. Decoders for WAV, MP3 (minimp3), OGG/Vorbis (stb_vorbis), FLAC (dr_flac), Opus, MOD/XM (libxmp), MIDI (Timidity/FluidSynth).
    **Mostly done** (`sdl3-mixer`, SDL_mixer 3.3.0): the mixer
    (`SDL_mixer.c`: mixers on devices or generating into buffers, audio

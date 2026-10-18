@@ -8,12 +8,13 @@
 //! Surfaces: ARGB32 premultiplied pixel buffers, and the decoding of
 //! images (base64 data) into them.
 //!
-//! PlutoVG decodes images with its bundled stb_image (every format it
-//! supports); this translation decodes them with the stb_image of the
-//! `sdl3` crate, SDL's configuration of the same stb_image release (2.30),
-//! which has its PNG and JPEG decoders only: images of stb_image's other
-//! formats (BMP, GIF, PSD, TGA, HDR, PIC, PNM) are not decoded (they are
-//! not drawn).
+//! PlutoVG decodes images with its bundled stb_image (2.30, every format it
+//! supports: PNG, JPEG, BMP, GIF (the first frame), PSD, TGA, HDR, PIC and
+//! PNM); this translation decodes them with the `sdl3` crate's translation
+//! of the same stb_image release in that configuration
+//! ([`stb_image::load_from_memory_all_formats`]), whose PNG and JPEG
+//! decoders are SDL's (SDL's copy has only those two) and whose other
+//! decoders are translated from PlutoVG's copy.
 
 use sdl3::video::stb_image;
 
@@ -103,33 +104,11 @@ fn plutovg_surface_load_from_image(image: &[u8], width: i32, height: i32) -> Opt
     Some(surface)
 }
 
-/// A memory buffer as stb_image's I/O callbacks (`stbi_load_from_memory`).
-struct MemoryCallbacks<'a> {
-    data: &'a [u8],
-    pos: usize,
-}
-
-impl stb_image::Callbacks for MemoryCallbacks<'_> {
-    fn read(&mut self, data: &mut [u8]) -> usize {
-        let n = data.len().min(self.data.len() - self.pos);
-        data[..n].copy_from_slice(&self.data[self.pos..self.pos + n]);
-        self.pos += n;
-        n
-    }
-    fn skip(&mut self, n: i32) {
-        let pos = self.pos as i64 + n as i64;
-        self.pos = pos.clamp(0, self.data.len() as i64) as usize;
-    }
-    fn eof(&mut self) -> bool {
-        self.pos >= self.data.len()
-    }
-}
-
-/// Loads an image surface from in-memory image data (PNG and JPEG: see
-/// the module documentation).
+/// Loads an image surface from in-memory image data (any format of
+/// stb_image's: see the module documentation), converted to premultiplied
+/// ARGB.
 pub fn plutovg_surface_load_from_image_data(data: &[u8]) -> Option<Surface> {
-    let mut io = MemoryCallbacks { data, pos: 0 };
-    let image = stb_image::load_from_callbacks(&mut io, 4 /* STBI_rgb_alpha */).ok()?;
+    let image = stb_image::load_from_memory_all_formats(data, 4 /* STBI_rgb_alpha */).ok()?;
     plutovg_surface_load_from_image(&image.data, image.x, image.y)
 }
 
