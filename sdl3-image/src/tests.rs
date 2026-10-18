@@ -676,7 +676,7 @@ fn decoder_walk_with(data: &[u8], type_: Option<&str>, den: i64, avif_walk: Avif
     if den != 0 {
         props
             .set(
-                crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
+                crate::PROP_ANIMATION_DECODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
                 den,
             )
             .unwrap();
@@ -1830,10 +1830,17 @@ fn animation_api_errors() {
         .unwrap();
     let e = crate::AnimationDecoder::with_properties(None, &props).unwrap_err();
     assert_eq!(e.to_string(), "No input properties set");
-    // (the decoder reads its time base from the encoder's properties)
+    // (the decoder's time base is its own, not the encoder's)
     props
         .set(
             crate::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
+            0,
+        )
+        .unwrap();
+    assert!(crate::AnimationDecoder::with_properties(Some(&mut io), &props).is_ok());
+    props
+        .set(
+            crate::PROP_ANIMATION_DECODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
             0,
         )
         .unwrap();

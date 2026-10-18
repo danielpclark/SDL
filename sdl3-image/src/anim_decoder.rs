@@ -302,17 +302,14 @@ impl<'s, 'a> AnimationDecoder<'s, 'a> {
     ) -> Result<AnimationDecoder<'s, 'a>> {
         let file = props.get_string(PROP_ANIMATION_DECODER_CREATE_FILENAME_STRING);
         let mut type_ = props.get_string(PROP_ANIMATION_DECODER_CREATE_TYPE_STRING);
-        // FIXME (upstream): the time base is read from the encoder's
-        // properties, not the decoder's.
+        // Note (upstream): upstream reads the time base from the encoder's
+        // property names (IMG_PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_*), so
+        // the decoder's are ignored; the translation fixes it.
         let timebase_numerator = props
-            .get_number(
-                crate::anim_encoder::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_NUMERATOR_NUMBER,
-            )
+            .get_number(PROP_ANIMATION_DECODER_CREATE_TIMEBASE_NUMERATOR_NUMBER)
             .unwrap_or(1) as i32;
         let timebase_denominator = props
-            .get_number(
-                crate::anim_encoder::PROP_ANIMATION_ENCODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER,
-            )
+            .get_number(PROP_ANIMATION_DECODER_CREATE_TIMEBASE_DENOMINATOR_NUMBER)
             .unwrap_or(1000) as i32;
 
         if type_.as_deref().is_none_or(str::is_empty) {
@@ -547,10 +544,10 @@ fn decode_as_animation_and_fallback(
     let _ = decoder.close();
 
     if frames.is_empty() {
-        // FIXME (upstream): "Animation didn't contain any frames" is set, but
-        // the error path closes the already-closed (NULL) decoder, which
-        // replaces it with an invalid-parameter error.
-        return Err(Error::invalid_param("decoder"));
+        // Note (upstream): upstream's error path then closes the
+        // already-closed (NULL) decoder, which replaces this error with an
+        // invalid-parameter one; the translation fixes it.
+        return Err(Error::new("Animation didn't contain any frames"));
     }
 
     Ok(Animation {
