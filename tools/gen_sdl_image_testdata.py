@@ -88,7 +88,9 @@ def main(out):
     write_ico24(p("ico_24.ico"))
     write_cur_from_ico(p("ico_multi.ico"), p("cur_multi.cur"), [(3, 4), (9, 10)])
 
-    # GIF: plain, interlaced, transparent, two frames, an offset frame
+    # GIF: plain, interlaced, transparent, two frames, an offset frame (and
+    # the same with the RESTORE_PREVIOUS disposal), which upstream's
+    # IMG_LoadGIF_IO() fails to load
     run(tmp, "-colors", "64", p("gif_plain.gif"))
     run(tmp, "-colors", "64", "-interlace", "GIF", p("gif_interlace.gif"))
     run(tmpa, "-channel", "A", "-threshold", "50%", "+channel", "-colors", "32",
@@ -96,6 +98,8 @@ def main(out):
     run("-delay", "20", tmp, "-delay", "30", "-negate", tmp, "-colors", "32",
         p("gif_anim.gif"))
     run("-size", "10x5", "xc:red", "-set", "page", "23x13+3+2", p("gif_offset.gif"))
+    run("-dispose", "Previous", "-size", "10x5", "xc:red", "-set", "page", "23x13+3+2",
+        p("gif_offset_prev.gif"))
 
     # JPEG: 4:4:4, 4:2:0, gray, progressive, CMYK
     run(tmp, "-quality", "90", "-sampling-factor", "1x1", p("jpg444.jpg"))

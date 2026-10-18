@@ -841,35 +841,38 @@ impl GifContext {
                 let _ = src.seek(stream_pos, IoWhence::Set);
             }
 
-            if !ctx.single_frame {
-                if ctx.canvas.is_none() {
-                    let Ok(mut canvas) = Surface::new(ctx.width, ctx.height, PixelFormat::RGBA32)
-                    else {
-                        return Err(Error::new("Failed to create canvas surface"));
-                    };
+            // Note (upstream): upstream creates the canvases only for an
+            // animation decoder, not in single-frame mode (IMG_LoadGIF_IO()),
+            // where a first frame that doesn't cover the whole screen then
+            // fails to load (it has no canvas to be composited on), as does
+            // one whose disposal is RESTORE_PREVIOUS (no canvas to save);
+            // the translation fixes it, creating them in both modes.
+            if ctx.canvas.is_none() {
+                let Ok(mut canvas) = Surface::new(ctx.width, ctx.height, PixelFormat::RGBA32)
+                else {
+                    return Err(Error::new("Failed to create canvas surface"));
+                };
 
-                    if canvas.fill_rect(None, 0).is_err() {
-                        return Err(Error::new(
-                            "Failed to fill canvas surface with transparent color",
-                        ));
-                    }
-                    ctx.canvas = Some(canvas);
+                if canvas.fill_rect(None, 0).is_err() {
+                    return Err(Error::new(
+                        "Failed to fill canvas surface with transparent color",
+                    ));
                 }
+                ctx.canvas = Some(canvas);
+            }
 
-                if ctx.prev_canvas.is_none() {
-                    let Ok(mut prev_canvas) =
-                        Surface::new(ctx.width, ctx.height, PixelFormat::RGBA32)
-                    else {
-                        return Err(Error::new("Failed to create previous canvas surface"));
-                    };
+            if ctx.prev_canvas.is_none() {
+                let Ok(mut prev_canvas) = Surface::new(ctx.width, ctx.height, PixelFormat::RGBA32)
+                else {
+                    return Err(Error::new("Failed to create previous canvas surface"));
+                };
 
-                    if prev_canvas.fill_rect(None, 0).is_err() {
-                        return Err(Error::new(
-                            "Failed to fill previous canvas surface with transparent color",
-                        ));
-                    }
-                    ctx.prev_canvas = Some(prev_canvas);
+                if prev_canvas.fill_rect(None, 0).is_err() {
+                    return Err(Error::new(
+                        "Failed to fill previous canvas surface with transparent color",
+                    ));
                 }
+                ctx.prev_canvas = Some(prev_canvas);
             }
 
             ctx.got_header = true;
@@ -1075,9 +1078,6 @@ impl GifContext {
                 retval = Some(image);
             } else {
                 /* Composite the frame onto the canvas */
-                // FIXME (upstream): in single-frame mode (IMG_LoadGIF_IO())
-                // there is no canvas, so a first frame that doesn't cover
-                // the whole screen fails to load here.
                 let dest = Rect::new(left, top, width, height);
                 let blitted = match &mut ctx.canvas {
                     Some(canvas) => image.blit(None, canvas, Some(&dest)),

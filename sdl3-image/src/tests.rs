@@ -117,6 +117,7 @@ static IMAGES: &[(&str, &[u8])] = images![
     "gif_dispose.gif",
     "gif_interlace.gif",
     "gif_offset.gif",
+    "gif_offset_prev.gif",
     "gif_plain.gif",
     "gif_trans.gif",
     "ico_24.ico",
