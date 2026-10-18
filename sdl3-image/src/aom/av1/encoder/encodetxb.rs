@@ -634,14 +634,29 @@ fn update_tx_type_count(
         tx_size,
         reduced_tx_set_used,
     );
-    // (the saver's blocks are all intra)
-    debug_assert!(is_inter == 0);
-    if cpi.oxcf.txfm_cfg.use_intra_dct_only {
-        debug_assert!(tx_type == DCT_DCT);
-    } else if cpi.oxcf.txfm_cfg.use_intra_default_tx_only {
-        // (upstream only asserts here; with the saver's non-RD pick mode the
-        // assertion always holds)
-        debug_assert!(cpi.sf.rt_sf.use_nonrd_pick_mode != 0);
+    if is_inter != 0 {
+        if cpi.oxcf.txfm_cfg.use_inter_dct_only {
+            debug_assert!(tx_type == DCT_DCT);
+        }
+    } else {
+        if cpi.oxcf.txfm_cfg.use_intra_dct_only {
+            debug_assert!(tx_type == DCT_DCT);
+        } else if cpi.oxcf.txfm_cfg.use_intra_default_tx_only {
+            let default_type =
+                get_default_tx_type(PLANE_TYPE_Y, xd, tx_size, cpi.use_screen_content_tools != 0);
+            let _ = default_type;
+            // TODO(kyslov): We don't always respect use_intra_default_tx_only flag in
+            // NonRD and REALTIME case. Specifically we ignore it in hybrid inta mode
+            // search, when picking up intra mode in nonRD inter mode search and in RD
+            // REALTIME mode when we limit TX type usage.
+            // We need to fix txfm cfg for these cases. Meanwhile relieving the
+            // assert.
+            debug_assert!(
+                tx_type == default_type
+                    || cpi.sf.rt_sf.use_nonrd_pick_mode != 0
+                    || cpi.oxcf.mode == super::encoder::REALTIME
+            );
+        }
     }
 
     if get_ext_tx_types(tx_size, is_inter, reduced_tx_set_used) > 1
@@ -652,16 +667,30 @@ fn update_tx_type_count(
         let eset = get_ext_tx_set(tx_size, is_inter, reduced_tx_set_used);
         if eset > 0 {
             let tx_set_type = av1_get_ext_tx_set_type(tx_size, is_inter, reduced_tx_set_used);
-            // (no filter intra)
-            debug_assert!(mbmi.filter_intra_mode_info.use_filter_intra == 0);
-            let intra_dir = mbmi.mode;
-            if allow_update_cdf != 0 {
-                update_cdf(
-                    &mut xd.tile_ctx.intra_ext_tx_cdf[eset as usize]
-                        [TXSIZE_SQR_MAP[tx_size as usize] as usize][intra_dir as usize],
-                    AV1_EXT_TX_IND[tx_set_type as usize][tx_type as usize] as i8,
-                    AV1_NUM_EXT_TX_SET[tx_set_type as usize],
-                );
+            if is_inter != 0 {
+                if allow_update_cdf != 0 {
+                    update_cdf(
+                        &mut xd.tile_ctx.inter_ext_tx_cdf[eset as usize]
+                            [TXSIZE_SQR_MAP[tx_size as usize] as usize],
+                        AV1_EXT_TX_IND[tx_set_type as usize][tx_type as usize] as i8,
+                        AV1_NUM_EXT_TX_SET[tx_set_type as usize],
+                    );
+                }
+            } else {
+                let intra_dir = if mbmi.filter_intra_mode_info.use_filter_intra != 0 {
+                    FIMODE_TO_INTRADIR[mbmi.filter_intra_mode_info.filter_intra_mode as usize]
+                } else {
+                    mbmi.mode
+                };
+                if allow_update_cdf != 0 {
+                    update_cdf(
+                        &mut xd.tile_ctx.intra_ext_tx_cdf[eset as usize]
+                            [TXSIZE_SQR_MAP[tx_size as usize] as usize]
+                            [intra_dir as usize],
+                        AV1_EXT_TX_IND[tx_set_type as usize][tx_type as usize] as i8,
+                        AV1_NUM_EXT_TX_SET[tx_set_type as usize],
+                    );
+                }
             }
         }
     }
@@ -1013,7 +1042,7 @@ pub(crate) fn av1_update_intra_mb_txb_context(
     dry_run: i32,
     bsize: BlockSize,
     allow_update_cdf: u8,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let num_planes = av1_num_planes(cm);
     let mut arg = TokenizeBArgs {
@@ -1025,7 +1054,7 @@ pub(crate) fn av1_update_intra_mb_txb_context(
     };
     if arg.td.mb.e_mbd.mbmi().skip_txfm != 0 {
         av1_reset_entropy_context(&mut arg.td.mb.e_mbd, bsize, num_planes);
-        return;
+        return Ok(());
     }
     let visit: fn(usize, i32, i32, i32, BlockSize, TxSize, &mut TokenizeBArgs) =
         if allow_update_cdf != 0 {
@@ -1048,10 +1077,12 @@ pub(crate) fn av1_update_intra_mb_txb_context(
             plane_bsize,
             plane,
             |a, plane, block, blk_row, blk_col, plane_bsize, tx_size| {
-                visit(plane, block, blk_row, blk_col, plane_bsize, tx_size, a)
+                visit(plane, block, blk_row, blk_col, plane_bsize, tx_size, a);
+                Ok(())
             },
-        );
+        )?;
     }
+    Ok(())
 }
 
 /// Translation of `av1_get_cb_coeff_buffer()`: the index of the

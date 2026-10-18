@@ -16,16 +16,25 @@ use super::block::*;
 use super::context_tree::PickModeContext;
 use super::encoder::*;
 use super::encoder::{AOM_TUNE_SSIM, NO_AQ};
-use super::rd::{av1_fill_coeff_costs, av1_fill_mode_rates, av1_set_error_per_bit};
+use super::rd::{
+    av1_fill_coeff_costs, av1_fill_mode_rates, av1_fill_mv_costs, av1_set_error_per_bit,
+};
 use super::speed_features::*;
-use crate::aom::aom_dsp::prob::update_cdf;
+use crate::aom::aom_dsp::prob::{update_cdf, CDF_PROB_TOP};
 use crate::aom::av1::common::alloccommon::try_vec;
 use crate::aom::av1::common::av1_common_int::*;
 use crate::aom::av1::common::blockd::*;
 use crate::aom::av1::common::cfl::is_cfl_allowed;
+use crate::aom::av1::common::entropy::BR_CDF_SIZE;
+use crate::aom::av1::common::entropymode::FrameContext;
+use crate::aom::av1::common::entropymv::{NmvContext, CLASS0_SIZE, MV_CLASSES, MV_FP_SIZE};
 use crate::aom::av1::common::enums::*;
-use crate::aom::av1::common::mvref_common::av1_ref_frame_type;
-use crate::aom::av1::common::reconintra::{av1_filter_intra_allowed, av1_is_directional_mode};
+use crate::aom::av1::common::filter::SWITCHABLE_FILTERS;
+use crate::aom::av1::common::mvref_common::{av1_copy_frame_mvs, av1_ref_frame_type};
+use crate::aom::av1::common::reconintra::{
+    av1_allow_intrabc, av1_filter_intra_allowed, av1_is_directional_mode,
+};
+use crate::aom::av1::common::seg_common::MAX_SEGMENTS;
 use crate::aom::av1::common::tile_common::TileInfo;
 
 pub(crate) const SUB_PARTITIONS_SPLIT: i32 = 4;
@@ -96,7 +105,7 @@ pub(crate) fn av1_update_state(
     mi_col: i32,
     bsize: BlockSize,
     dry_run: i32,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let mi_params = &cm.mi_params;
     let x = &mut td.mb;
@@ -166,13 +175,20 @@ pub(crate) fn av1_update_state(
     }
 
     if dry_run != 0 {
-        return;
+        return Ok(());
     }
 
-    // (an intra frame: no interpolation filter statistics)
-    debug_assert!(frame_is_intra_only(cm));
-    // (av1_copy_frame_mvs(): reference frame MVs are off without order hints)
-    debug_assert!(cm.seq_params.order_hint_info.enable_ref_frame_mvs == 0);
+    if !frame_is_intra_only(cm) {
+        // (update_filter_type_count())
+        return Err(());
+    }
+
+    let x_mis = bw.min(mi_params.mi_cols - mi_col);
+    let y_mis = bh.min(mi_params.mi_rows - mi_row);
+    if cm.seq_params.order_hint_info.enable_ref_frame_mvs != 0 {
+        av1_copy_frame_mvs(cm, &mut xd.cur_frame_mvs, mi, mi_row, mi_col, x_mis, y_mis);
+    }
+    Ok(())
 }
 
 pub(crate) fn av1_sum_intra_stats(cm: &Av1Common, xd: &mut MacroBlockD, intraonly: bool) {
@@ -380,6 +396,42 @@ fn skip_cost_update(
     false
 }
 
+// Checks for skip status of mv cost update.
+fn skip_mv_cost_update(cpi: &Av1Comp, tile_info: &TileInfo, mi_row: i32, mi_col: i32) -> bool {
+    let cm = &cpi.common;
+    // For intra frames, mv cdfs are not updated during the encode. Hence, the mv
+    // cost calculation is skipped in this case.
+    if frame_is_intra_only(cm) {
+        return true;
+    }
+
+    skip_cost_update(
+        &cm.seq_params,
+        tile_info,
+        mi_row,
+        mi_col,
+        cpi.sf.inter_sf.mv_cost_upd_level,
+    )
+}
+
+// Checks for skip status of dv cost update.
+fn skip_dv_cost_update(cpi: &Av1Comp, tile_info: &TileInfo, mi_row: i32, mi_col: i32) -> bool {
+    let cm = &cpi.common;
+    // Intrabc is only applicable to intra frames. So skip if intrabc is not
+    // allowed.
+    if !av1_allow_intrabc(cm) || is_stat_generation_stage(cpi) {
+        return true;
+    }
+
+    skip_cost_update(
+        &cm.seq_params,
+        tile_info,
+        mi_row,
+        mi_col,
+        cpi.sf.intra_sf.dv_cost_upd_level,
+    )
+}
+
 // Update the rate costs of some symbols according to the frequency directed
 // by speed features
 pub(crate) fn av1_set_cost_upd_freq(
@@ -388,13 +440,13 @@ pub(crate) fn av1_set_cost_upd_freq(
     tile_info: &TileInfo,
     mi_row: i32,
     mi_col: i32,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let num_planes = av1_num_planes(cm);
     let x = &mut td.mb;
 
     if cm.features.disable_cdf_update {
-        return;
+        return Ok(());
     }
 
     match cpi.sf.inter_sf.coeff_cost_upd_level {
@@ -431,17 +483,243 @@ pub(crate) fn av1_set_cost_upd_freq(
         _ => debug_assert!(false),
     }
 
-    // (the motion vector and displacement vector costs: never updated in
-    // the saver's intra frames, whose speed features leave their update
-    // levels at off or tile level)
-    debug_assert!(
-        cpi.sf.inter_sf.mv_cost_upd_level == INTERNAL_COST_UPD_OFF
-            || cpi.sf.inter_sf.mv_cost_upd_level == INTERNAL_COST_UPD_TILE
+    match cpi.sf.inter_sf.mv_cost_upd_level {
+        INTERNAL_COST_UPD_OFF | INTERNAL_COST_UPD_TILE => {} // Tile level
+        // SB row set level in tile, SB row level in tile, SB level
+        INTERNAL_COST_UPD_SBROW_SET | INTERNAL_COST_UPD_SBROW | INTERNAL_COST_UPD_SB => {
+            // Checks for skip status of mv cost update.
+            if !skip_mv_cost_update(cpi, tile_info, mi_row, mi_col) {
+                av1_fill_mv_costs(
+                    &x.e_mbd.tile_ctx.nmvc,
+                    cm.features.cur_frame_force_integer_mv,
+                    cm.features.allow_high_precision_mv,
+                    x.mv_costs.as_deref_mut(),
+                );
+            }
+        }
+        _ => debug_assert!(false),
+    }
+
+    match cpi.sf.intra_sf.dv_cost_upd_level {
+        INTERNAL_COST_UPD_OFF | INTERNAL_COST_UPD_TILE => {} // Tile level
+        // SB row set level in tile, SB row level in tile, SB level
+        INTERNAL_COST_UPD_SBROW_SET | INTERNAL_COST_UPD_SBROW | INTERNAL_COST_UPD_SB => {
+            // Checks for skip status of dv cost update.
+            if !skip_dv_cost_update(cpi, tile_info, mi_row, mi_col) {
+                // (av1_fill_dv_costs(): intra block copy needs screen
+                // content tools, which are off)
+                return Err(());
+            }
+        }
+        _ => debug_assert!(false),
+    }
+    Ok(())
+}
+
+/// The CDF arrays of a frame context, for `AVG_CDF_STRIDE()`: visits the
+/// innermost arrays (one CDF each, of `CDF_SIZE()` entries) of two arrays
+/// of the same shape in step.
+trait CdfArrays {
+    fn each_cdf(&mut self, other: &Self, f: &mut dyn FnMut(&mut [u16], &[u16]));
+}
+
+impl<const N: usize> CdfArrays for [u16; N] {
+    fn each_cdf(&mut self, other: &Self, f: &mut dyn FnMut(&mut [u16], &[u16])) {
+        f(self, other);
+    }
+}
+
+impl<T: CdfArrays, const N: usize> CdfArrays for [T; N] {
+    fn each_cdf(&mut self, other: &Self, f: &mut dyn FnMut(&mut [u16], &[u16])) {
+        for (a, b) in self.iter_mut().zip(other.iter()) {
+            a.each_cdf(b, f);
+        }
+    }
+}
+
+fn avg_cdf_symbol(
+    cdf_ptr_left: &mut [u16],
+    cdf_ptr_tr: &[u16],
+    nsymbs: i32,
+    wt_left: i32,
+    wt_tr: i32,
+) {
+    for j in 0..=nsymbs as usize {
+        cdf_ptr_left[j] = ((cdf_ptr_left[j] as i32 * wt_left
+            + cdf_ptr_tr[j] as i32 * wt_tr
+            + ((wt_left + wt_tr) / 2))
+            / (wt_left + wt_tr)) as u16;
+        debug_assert!((cdf_ptr_left[j] as u32) < CDF_PROB_TOP);
+    }
+}
+
+/// `AVG_CDF_STRIDE()` (and `AVERAGE_CDF()`: the stride, the size of the
+/// innermost arrays, is always `CDF_SIZE()` of the arrays' type).
+fn avg_cdf_stride<T: CdfArrays>(
+    cname_left: &mut T,
+    cname_tr: &T,
+    nsymbs: i32,
+    wt_left: i32,
+    wt_tr: i32,
+) {
+    cname_left.each_cdf(cname_tr, &mut |l, t| {
+        avg_cdf_symbol(l, t, nsymbs, wt_left, wt_tr)
+    });
+}
+
+fn avg_nmv(nmv_left: &mut NmvContext, nmv_tr: &NmvContext, wt_left: i32, wt_tr: i32) {
+    avg_cdf_stride(
+        &mut nmv_left.joints_cdf,
+        &nmv_tr.joints_cdf,
+        4,
+        wt_left,
+        wt_tr,
     );
-    debug_assert!(
-        cpi.sf.intra_sf.dv_cost_upd_level == INTERNAL_COST_UPD_OFF
-            || cpi.sf.intra_sf.dv_cost_upd_level == INTERNAL_COST_UPD_TILE
+    for i in 0..2 {
+        let (l, t) = (&mut nmv_left.comps[i], &nmv_tr.comps[i]);
+        avg_cdf_stride(
+            &mut l.classes_cdf,
+            &t.classes_cdf,
+            MV_CLASSES,
+            wt_left,
+            wt_tr,
+        );
+        avg_cdf_stride(
+            &mut l.class0_fp_cdf,
+            &t.class0_fp_cdf,
+            MV_FP_SIZE,
+            wt_left,
+            wt_tr,
+        );
+        avg_cdf_stride(&mut l.fp_cdf, &t.fp_cdf, MV_FP_SIZE, wt_left, wt_tr);
+        avg_cdf_stride(&mut l.sign_cdf, &t.sign_cdf, 2, wt_left, wt_tr);
+        avg_cdf_stride(&mut l.class0_hp_cdf, &t.class0_hp_cdf, 2, wt_left, wt_tr);
+        avg_cdf_stride(&mut l.hp_cdf, &t.hp_cdf, 2, wt_left, wt_tr);
+        avg_cdf_stride(
+            &mut l.class0_cdf,
+            &t.class0_cdf,
+            CLASS0_SIZE,
+            wt_left,
+            wt_tr,
+        );
+        avg_cdf_stride(&mut l.bits_cdf, &t.bits_cdf, 2, wt_left, wt_tr);
+    }
+}
+
+// In case of row-based multi-threading of encoder, since we always
+// keep a top - right sync, we can average the top - right SB's CDFs and
+// the left SB's CDFs and use the same for current SB's encoding to
+// improve the performance. This function facilitates the averaging
+// of CDF and used only when row-mt is enabled in encoder.
+/// Translation of `av1_avg_cdf_symbols()`.
+pub(crate) fn av1_avg_cdf_symbols(
+    ctx_left: &mut FrameContext,
+    ctx_tr: &FrameContext,
+    wt_left: i32,
+    wt_tr: i32,
+) {
+    let (l, t) = (ctx_left, ctx_tr);
+    macro_rules! average_cdf {
+        ($f:ident, $n:expr) => {
+            avg_cdf_stride(&mut l.$f, &t.$f, $n as i32, wt_left, wt_tr)
+        };
+        ($f:ident [$i:expr], $n:expr) => {
+            avg_cdf_stride(&mut l.$f[$i], &t.$f[$i], $n as i32, wt_left, wt_tr)
+        };
+    }
+    average_cdf!(txb_skip_cdf, 2);
+    average_cdf!(eob_extra_cdf, 2);
+    average_cdf!(dc_sign_cdf, 2);
+    average_cdf!(eob_flag_cdf16, 5);
+    average_cdf!(eob_flag_cdf32, 6);
+    average_cdf!(eob_flag_cdf64, 7);
+    average_cdf!(eob_flag_cdf128, 8);
+    average_cdf!(eob_flag_cdf256, 9);
+    average_cdf!(eob_flag_cdf512, 10);
+    average_cdf!(eob_flag_cdf1024, 11);
+    average_cdf!(coeff_base_eob_cdf, 3);
+    average_cdf!(coeff_base_cdf, 4);
+    average_cdf!(coeff_br_cdf, BR_CDF_SIZE);
+    average_cdf!(newmv_cdf, 2);
+    average_cdf!(zeromv_cdf, 2);
+    average_cdf!(refmv_cdf, 2);
+    average_cdf!(drl_cdf, 2);
+    average_cdf!(inter_compound_mode_cdf, INTER_COMPOUND_MODES);
+    average_cdf!(compound_type_cdf, MASKED_COMPOUND_TYPES);
+    average_cdf!(wedge_idx_cdf, 16);
+    average_cdf!(interintra_cdf, 2);
+    average_cdf!(wedge_interintra_cdf, 2);
+    average_cdf!(interintra_mode_cdf, INTERINTRA_MODES);
+    average_cdf!(motion_mode_cdf, MOTION_MODES);
+    average_cdf!(obmc_cdf, 2);
+    average_cdf!(palette_y_size_cdf, PALETTE_SIZES);
+    average_cdf!(palette_uv_size_cdf, PALETTE_SIZES);
+    for j in 0..PALETTE_SIZES as usize {
+        let nsymbs = j as i32 + PALETTE_MIN_SIZE;
+        average_cdf!(palette_y_color_index_cdf[j], nsymbs);
+        average_cdf!(palette_uv_color_index_cdf[j], nsymbs);
+    }
+    average_cdf!(palette_y_mode_cdf, 2);
+    average_cdf!(palette_uv_mode_cdf, 2);
+    average_cdf!(comp_inter_cdf, 2);
+    average_cdf!(single_ref_cdf, 2);
+    average_cdf!(comp_ref_type_cdf, 2);
+    average_cdf!(uni_comp_ref_cdf, 2);
+    average_cdf!(comp_ref_cdf, 2);
+    average_cdf!(comp_bwdref_cdf, 2);
+    average_cdf!(txfm_partition_cdf, 2);
+    average_cdf!(compound_index_cdf, 2);
+    average_cdf!(comp_group_idx_cdf, 2);
+    average_cdf!(skip_mode_cdfs, 2);
+    average_cdf!(skip_txfm_cdfs, 2);
+    average_cdf!(intra_inter_cdf, 2);
+    avg_nmv(&mut l.nmvc, &t.nmvc, wt_left, wt_tr);
+    avg_nmv(&mut l.ndvc, &t.ndvc, wt_left, wt_tr);
+    average_cdf!(intrabc_cdf, 2);
+    avg_cdf_stride(&mut l.seg.pred_cdf, &t.seg.pred_cdf, 2, wt_left, wt_tr);
+    avg_cdf_stride(
+        &mut l.seg.spatial_pred_seg_cdf,
+        &t.seg.spatial_pred_seg_cdf,
+        MAX_SEGMENTS as i32,
+        wt_left,
+        wt_tr,
     );
+    average_cdf!(filter_intra_cdfs, 2);
+    average_cdf!(filter_intra_mode_cdf, FILTER_INTRA_MODES);
+    average_cdf!(switchable_restore_cdf, RESTORE_SWITCHABLE_TYPES);
+    average_cdf!(wiener_restore_cdf, 2);
+    average_cdf!(sgrproj_restore_cdf, 2);
+    average_cdf!(y_mode_cdf, INTRA_MODES);
+    average_cdf!(uv_mode_cdf[0], UV_INTRA_MODES - 1);
+    average_cdf!(uv_mode_cdf[1], UV_INTRA_MODES);
+    for i in 0..PARTITION_CONTEXTS as usize {
+        if i < 4 {
+            average_cdf!(partition_cdf[i], 4);
+        } else if i < 16 {
+            average_cdf!(partition_cdf[i], 10);
+        } else {
+            average_cdf!(partition_cdf[i], 8);
+        }
+    }
+    average_cdf!(switchable_interp_cdf, SWITCHABLE_FILTERS);
+    average_cdf!(kf_y_cdf, INTRA_MODES);
+    average_cdf!(angle_delta_cdf, 2 * MAX_ANGLE_DELTA + 1);
+    average_cdf!(tx_size_cdf[0], MAX_TX_DEPTH);
+    average_cdf!(tx_size_cdf[1], MAX_TX_DEPTH + 1);
+    average_cdf!(tx_size_cdf[2], MAX_TX_DEPTH + 1);
+    average_cdf!(tx_size_cdf[3], MAX_TX_DEPTH + 1);
+    average_cdf!(delta_q_cdf, DELTA_Q_PROBS + 1);
+    average_cdf!(delta_lf_cdf, DELTA_LF_PROBS + 1);
+    for i in 0..FRAME_LF_COUNT as usize {
+        average_cdf!(delta_lf_multi_cdf[i], DELTA_LF_PROBS + 1);
+    }
+    average_cdf!(intra_ext_tx_cdf[1], 7);
+    average_cdf!(intra_ext_tx_cdf[2], 5);
+    average_cdf!(inter_ext_tx_cdf[1], 16);
+    average_cdf!(inter_ext_tx_cdf[2], 12);
+    average_cdf!(inter_ext_tx_cdf[3], 2);
+    average_cdf!(cfl_sign_cdf, CFL_JOINT_SIGNS);
+    average_cdf!(cfl_alpha_cdf, CFL_ALPHABET_SIZE);
 }
 
 // (encodeframe_utils.h)

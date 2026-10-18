@@ -612,6 +612,21 @@ pub(crate) struct Macroblock {
 
     /// Variance of the source frame.
     pub(crate) source_variance: u32,
+
+    /// Determines the RD model used by the transform search
+    /// (`FULL_TXFM_RD` or `LOW_TXFM_RD`).
+    pub(crate) rd_model: i32,
+    /// The scratch buffer `search_tx_type()` swaps with a plane's
+    /// `dqcoeff` (upstream's `this_dqcoeff`, on its stack).
+    pub(crate) search_tx_dqcoeff: Vec<TranLowT>,
+    /// The low precision coefficients of `block_yrd()`'s dual Hadamard
+    /// transform (upstream's `p->coeff` of the luma plane, viewed as an
+    /// `int16_t` array).
+    pub(crate) coeff_lp: Vec<i16>,
+    /// `row_ctx`: the tile's contexts for the rows below (row
+    /// multi-threading), moved in from the tile data while the tile is
+    /// coded.
+    pub(crate) row_ctx: Vec<FrameContext>,
 }
 
 impl Default for Macroblock {
@@ -658,6 +673,10 @@ impl Default for Macroblock {
             color_sensitivity_sb_g: [0; 2],
             color_sensitivity: [0; 2],
             source_variance: 0,
+            rd_model: 0,
+            search_tx_dqcoeff: Vec::new(),
+            coeff_lp: Vec::new(),
+            row_ctx: Vec::new(),
         }
     }
 }
@@ -673,6 +692,16 @@ pub(crate) fn tx_size_to_depth(tx_size: TxSize, bsize: BlockSize) -> i32 {
         debug_assert!(depth <= MAX_TX_DEPTH);
     }
     depth
+}
+
+/// Translation of `set_blk_skip()`.
+#[inline]
+pub(crate) fn set_blk_skip(txb_skip: &mut [u8], plane: usize, blk_idx: usize, skip: bool) {
+    if skip {
+        txb_skip[blk_idx] |= 1 << plane;
+    } else {
+        txb_skip[blk_idx] &= !(1 << plane);
+    }
 }
 
 #[inline]

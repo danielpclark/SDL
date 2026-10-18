@@ -13,15 +13,20 @@
 //! estimated with Hadamard transforms of the residual (chroma always uses
 //! DC).
 
-use super::av1_quantize::av1_quantize_fp;
+use super::av1_quantize::{av1_quantize_fp, av1_quantize_lp};
 use super::block::*;
 use super::context_tree::PickModeContext;
 use super::cost::AV1_PROB_COST_SHIFT;
 use super::encodemb::av1_foreach_transformed_block_in_plane;
 use super::encoder::Av1Comp;
+use super::encodetxb::block_offset;
 use super::rd::{av1_invalid_rd_stats, rdcost};
+use super::rdopt::av1_block_error_lp;
 use crate::aom::aom_dsp::aom_dsp_common::{get_msb, TranLowT};
-use crate::aom::aom_dsp::avg::{aom_hadamard_16x16, aom_hadamard_8x8, aom_satd};
+use crate::aom::aom_dsp::avg::{
+    aom_hadamard_16x16, aom_hadamard_8x8, aom_hadamard_lp_16x16, aom_hadamard_lp_8x8,
+    aom_hadamard_lp_8x8_dual, aom_satd, aom_satd_lp,
+};
 use crate::aom::aom_dsp::fwd_txfm::aom_fdct4x4;
 use crate::aom::aom_dsp::subtract::aom_highbd_subtract_block;
 use crate::aom::av1::common::av1_common_int::Av1Common;
@@ -101,6 +106,25 @@ pub(crate) fn av1_copy_mbmi_ext_to_mbmi_ext_frame(
 
 // (nonrd_pickmode.c)
 
+// The original scan order (default_scan_16x16) is modified according to the
+// extra transpose in hadamard c implementation in lp case, i.e.,
+// aom_hadamard_lp_16x16_c.
+static DEFAULT_SCAN_LP_16X16_TRANSPOSE: [i16; 256] = [
+    0, 8, 2, 4, 10, 16, 24, 18, 12, 6, 64, 14, 20, 26, 32, 40, 34, 28, 22, 72, 66, 68, 74, 80, 30,
+    36, 42, 48, 56, 50, 44, 38, 88, 82, 76, 70, 128, 78, 84, 90, 96, 46, 52, 58, 1, 9, 3, 60, 54,
+    104, 98, 92, 86, 136, 130, 132, 138, 144, 94, 100, 106, 112, 62, 5, 11, 17, 25, 19, 13, 7, 120,
+    114, 108, 102, 152, 146, 140, 134, 192, 142, 148, 154, 160, 110, 116, 122, 65, 15, 21, 27, 33,
+    41, 35, 29, 23, 73, 67, 124, 118, 168, 162, 156, 150, 200, 194, 196, 202, 208, 158, 164, 170,
+    176, 126, 69, 75, 81, 31, 37, 43, 49, 57, 51, 45, 39, 89, 83, 77, 71, 184, 178, 172, 166, 216,
+    210, 204, 198, 206, 212, 218, 224, 174, 180, 186, 129, 79, 85, 91, 97, 47, 53, 59, 61, 55, 105,
+    99, 93, 87, 137, 131, 188, 182, 232, 226, 220, 214, 222, 228, 234, 240, 190, 133, 139, 145, 95,
+    101, 107, 113, 63, 121, 115, 109, 103, 153, 147, 141, 135, 248, 242, 236, 230, 238, 244, 250,
+    193, 143, 149, 155, 161, 111, 117, 123, 125, 119, 169, 163, 157, 151, 201, 195, 252, 246, 254,
+    197, 203, 209, 159, 165, 171, 177, 127, 185, 179, 173, 167, 217, 211, 205, 199, 207, 213, 219,
+    225, 175, 181, 187, 189, 183, 233, 227, 221, 215, 223, 229, 235, 241, 191, 249, 243, 237, 231,
+    239, 245, 251, 253, 247, 255,
+];
+
 #[inline(always)]
 fn update_yrd_loop_vars_hbd(
     x: &mut Macroblock,
@@ -129,6 +153,74 @@ fn update_yrd_loop_vars_hbd(
     this_rdc.dist += av1_block_error(coeff, dqcoeff, (step << 4) as usize, &mut dummy) >> 2;
 }
 
+#[inline(always)]
+fn update_yrd_loop_vars(
+    x: &mut Macroblock,
+    skippable: &mut i32,
+    step: i32,
+    ncoeffs: i32,
+    low_coeff: &[i16],
+    low_qcoeff: &[i16],
+    low_dqcoeff: &[i16],
+    this_rdc: &mut RdStats,
+    eob_cost: &mut i32,
+    tx_blk_id: i32,
+) {
+    let is_txfm_skip = (ncoeffs == 0) as i32;
+    *skippable &= is_txfm_skip;
+    x.txfm_search_info.blk_skip[tx_blk_id as usize] = is_txfm_skip as u8;
+    *eob_cost += get_msb((ncoeffs + 1) as u32);
+    if ncoeffs == 1 {
+        this_rdc.rate += (low_qcoeff[0] as i32).abs();
+    } else if ncoeffs > 1 {
+        this_rdc.rate += aom_satd_lp(low_qcoeff, step << 4);
+    }
+
+    this_rdc.dist += av1_block_error_lp(low_coeff, low_dqcoeff, (step << 4) as usize) >> 2;
+}
+
+/// Translation of `aom_process_hadamard_lp_8x16()`: the coefficients go to
+/// the macroblock's low precision coefficient buffer (upstream writes them
+/// to `p->coeff` viewed as an `int16_t` array, which nothing reads as
+/// `tran_low_t` before it is rewritten).
+#[inline]
+fn aom_process_hadamard_lp_8x16(
+    x: &mut Macroblock,
+    max_blocks_high: i32,
+    max_blocks_wide: i32,
+    num_4x4_w: i32,
+    step: i32,
+    block_step: i32,
+) {
+    let bw = 4 * num_4x4_w;
+    let num_4x4 = num_4x4_w.min(max_blocks_wide);
+    let mut block = 0;
+    let Macroblock {
+        plane: planes,
+        coeff_lp,
+        ..
+    } = x;
+    let p = &planes[0];
+
+    let mut r = 0;
+    while r < max_blocks_high {
+        let mut c = 0;
+        while c < num_4x4 {
+            let src_diff = ((r * bw + c) << 2) as usize;
+            let low_coeff = block_offset(block);
+            aom_hadamard_lp_8x8_dual(
+                &p.src_diff,
+                src_diff,
+                bw as usize,
+                &mut coeff_lp[low_coeff..],
+            );
+            block += 2 * step;
+            c += 2 * block_step;
+        }
+        r += block_step;
+    }
+}
+
 /*\brief Calculates RD Cost using Hadamard transform.
 *
 * Calculates RD Cost using Hadamard transform. For low bit depth this function
@@ -145,9 +237,8 @@ fn update_yrd_loop_vars_hbd(
 * \c this_rdc. \c skippable flag is set if there is no non-zero quantized
 * coefficients for Hadamard transform
 */
-// (`src` is the source frame's samples; the buffers are always high bit
-// depth, so the low bit depth paths are left out)
-fn block_yrd(
+// (`src` is the source frame's samples)
+pub(crate) fn block_yrd(
     x: &mut Macroblock,
     src: &[u16],
     this_rdc: &mut RdStats,
@@ -155,7 +246,7 @@ fn block_yrd(
     bsize: BlockSize,
     tx_size: TxSize,
     is_inter_mode: i32,
-) {
+) -> Result<(), ()> {
     debug_assert!(bsize < BLOCK_SIZES_ALL);
     let num_4x4_w = MI_SIZE_WIDE[bsize as usize] as i32;
     let num_4x4_h = MI_SIZE_HIGH[bsize as usize] as i32;
@@ -180,7 +271,6 @@ fn block_yrd(
     let bw = 4 * num_4x4_w;
     let bh = 4 * num_4x4_h;
     let use_hbd = is_cur_buf_hbd(xd);
-    debug_assert!(use_hbd);
     let mut num_blk_skip_w = num_4x4_w;
     let mut sh_blk_skip = 0;
     if is_inter_mode != 0 {
@@ -196,6 +286,8 @@ fn block_yrd(
         } = &mut *x;
         let p = &mut planes[0];
         let pd = &xd.plane[0];
+        // (aom_subtract_block() computes what aom_highbd_subtract_block()
+        // computes)
         aom_highbd_subtract_block(
             bh,
             bw,
@@ -220,13 +312,36 @@ fn block_yrd(
     // For block sizes 8x16 or above, Hadamard txfm of two adjacent 8x8 blocks
     // can be done per function call. Hence the call of Hadamard txfm is
     // abstracted here for the specified cases.
-    // (As of now, dual implementation of hadamard txfm is available for low
-    // bitdepth: with the high bit depth buffers is_tx_8x8_dual_applicable is
-    // 0.)
+    let mut is_tx_8x8_dual_applicable = tx_size == TX_8X8
+        && BLOCK_SIZE_WIDE[bsize as usize] >= 16
+        && BLOCK_SIZE_HIGH[bsize as usize] >= 8;
+
+    // As of now, dual implementation of hadamard txfm is available for low
+    // bitdepth.
+    if use_hbd {
+        is_tx_8x8_dual_applicable = false;
+    }
+
+    if is_tx_8x8_dual_applicable {
+        if x.coeff_lp.len() < MAX_SB_SQUARE_USIZE {
+            x.coeff_lp = vec![0; MAX_SB_SQUARE_USIZE];
+        }
+        aom_process_hadamard_lp_8x16(
+            x,
+            max_blocks_high,
+            max_blocks_wide,
+            num_4x4_w,
+            step,
+            block_step,
+        );
+    }
 
     let mut dqcoeff_buf = [0 as TranLowT; 16 * 16];
     let mut qcoeff_buf = [0 as TranLowT; 16 * 16];
     let mut coeff_buf = [0 as TranLowT; 16 * 16];
+    let mut low_coeff_buf = [0i16; 16 * 16];
+    let mut low_qcoeff = [0i16; 16 * 16];
+    let mut low_dqcoeff = [0i16; 16 * 16];
     let mut eob: u16 = 0;
     let scan_order = get_scan(tx_size, DCT_DCT);
     let diff_stride = bw;
@@ -241,48 +356,117 @@ fn block_yrd(
             let src_diff_off = ((r * diff_stride + c) << 2) as usize;
             let src_diff = &x.plane[0].src_diff;
             let p = &x.plane[0];
+            // (low_coeff: the dual Hadamard transform's coefficients, or
+            // low_coeff_buf)
+            let mut low_coeff_dual: Option<usize> = None;
             match tx_size {
                 TX_16X16 => {
-                    aom_hadamard_16x16(
-                        src_diff,
-                        src_diff_off,
-                        diff_stride as usize,
-                        &mut coeff_buf,
-                    );
-                    av1_quantize_fp(
-                        &coeff_buf,
-                        16 * 16,
-                        &p.round_fp_qtx,
-                        &p.quant_fp_qtx,
-                        &mut qcoeff_buf,
-                        &mut dqcoeff_buf,
-                        &p.dequant_qtx,
-                        &mut eob,
-                        // default_scan_fp_16x16_transpose and
-                        // av1_default_iscan_fp_16x16_transpose have to be
-                        // used together.
-                        &DEFAULT_SCAN_FP_16X16_TRANSPOSE,
-                    );
+                    if use_hbd {
+                        aom_hadamard_16x16(
+                            src_diff,
+                            src_diff_off,
+                            diff_stride as usize,
+                            &mut coeff_buf,
+                        );
+                        av1_quantize_fp(
+                            &coeff_buf,
+                            16 * 16,
+                            &p.round_fp_qtx,
+                            &p.quant_fp_qtx,
+                            &mut qcoeff_buf,
+                            &mut dqcoeff_buf,
+                            &p.dequant_qtx,
+                            &mut eob,
+                            // default_scan_fp_16x16_transpose and
+                            // av1_default_iscan_fp_16x16_transpose have to be
+                            // used together.
+                            &DEFAULT_SCAN_FP_16X16_TRANSPOSE,
+                            0,
+                        );
+                    } else {
+                        aom_hadamard_lp_16x16(
+                            src_diff,
+                            src_diff_off,
+                            diff_stride as usize,
+                            &mut low_coeff_buf,
+                        );
+                        av1_quantize_lp(
+                            &low_coeff_buf,
+                            16 * 16,
+                            &p.round_fp_qtx,
+                            &p.quant_fp_qtx,
+                            &mut low_qcoeff,
+                            &mut low_dqcoeff,
+                            &p.dequant_qtx,
+                            &mut eob,
+                            // default_scan_lp_16x16_transpose and
+                            // av1_default_iscan_lp_16x16_transpose have to be
+                            // used together.
+                            &DEFAULT_SCAN_LP_16X16_TRANSPOSE,
+                        );
+                    }
                 }
                 TX_8X8 => {
-                    aom_hadamard_8x8(src_diff, src_diff_off, diff_stride as usize, &mut coeff_buf);
-                    av1_quantize_fp(
-                        &coeff_buf,
-                        8 * 8,
-                        &p.round_fp_qtx,
-                        &p.quant_fp_qtx,
-                        &mut qcoeff_buf,
-                        &mut dqcoeff_buf,
-                        &p.dequant_qtx,
-                        &mut eob,
-                        &DEFAULT_SCAN_8X8_TRANSPOSE,
-                    );
+                    if use_hbd {
+                        aom_hadamard_8x8(
+                            src_diff,
+                            src_diff_off,
+                            diff_stride as usize,
+                            &mut coeff_buf,
+                        );
+                        av1_quantize_fp(
+                            &coeff_buf,
+                            8 * 8,
+                            &p.round_fp_qtx,
+                            &p.quant_fp_qtx,
+                            &mut qcoeff_buf,
+                            &mut dqcoeff_buf,
+                            &p.dequant_qtx,
+                            &mut eob,
+                            &DEFAULT_SCAN_8X8_TRANSPOSE,
+                            0,
+                        );
+                    } else {
+                        let low_coeff: &[i16] = if is_tx_8x8_dual_applicable {
+                            // The coeffs are pre-computed for the whole block, so re-assign
+                            // low_coeff to the appropriate location.
+                            let off = block_offset(block + s);
+                            low_coeff_dual = Some(off);
+                            &x.coeff_lp[off..]
+                        } else {
+                            aom_hadamard_lp_8x8(
+                                src_diff,
+                                src_diff_off,
+                                diff_stride as usize,
+                                &mut low_coeff_buf,
+                            );
+                            &low_coeff_buf
+                        };
+                        av1_quantize_lp(
+                            low_coeff,
+                            8 * 8,
+                            &p.round_fp_qtx,
+                            &p.quant_fp_qtx,
+                            &mut low_qcoeff,
+                            &mut low_dqcoeff,
+                            &p.dequant_qtx,
+                            &mut eob,
+                            // default_scan_8x8_transpose and
+                            // av1_default_iscan_8x8_transpose have to be used together.
+                            &DEFAULT_SCAN_8X8_TRANSPOSE,
+                        );
+                    }
                 }
                 _ => {
                     debug_assert!(tx_size == TX_4X4);
                     // In tx_size=4x4 case, aom_fdct4x4 and aom_fdct4x4_lp generate
                     // normal coefficients order, so we don't need to change the scan
                     // order here.
+                    if !use_hbd {
+                        // (aom_fdct4x4_lp(): the 4x4 transforms are never
+                        // reached, the variance partition stopping at 8x8)
+                        return Err(());
+                    }
                     aom_fdct4x4(src_diff, src_diff_off, &mut coeff_buf, diff_stride as usize);
                     av1_quantize_fp(
                         &coeff_buf,
@@ -294,30 +478,51 @@ fn block_yrd(
                         &p.dequant_qtx,
                         &mut eob,
                         scan_order.scan,
+                        0,
                     );
                 }
             }
             debug_assert!(eob <= 1024);
-            update_yrd_loop_vars_hbd(
-                x,
-                &mut temp_skippable,
-                step,
-                eob as i32,
-                &coeff_buf,
-                &qcoeff_buf,
-                &dqcoeff_buf,
-                this_rdc,
-                &mut eob_cost,
-                (r * num_blk_skip_w + c) >> sh_blk_skip,
-            );
+            let tx_blk_id = (r * num_blk_skip_w + c) >> sh_blk_skip;
+            if use_hbd {
+                update_yrd_loop_vars_hbd(
+                    x,
+                    &mut temp_skippable,
+                    step,
+                    eob as i32,
+                    &coeff_buf,
+                    &qcoeff_buf,
+                    &dqcoeff_buf,
+                    this_rdc,
+                    &mut eob_cost,
+                    tx_blk_id,
+                );
+            } else {
+                let coeff_lp = std::mem::take(&mut x.coeff_lp);
+                let low_coeff: &[i16] = match low_coeff_dual {
+                    Some(off) => &coeff_lp[off..],
+                    None => &low_coeff_buf,
+                };
+                update_yrd_loop_vars(
+                    x,
+                    &mut temp_skippable,
+                    step,
+                    eob as i32,
+                    low_coeff,
+                    &low_qcoeff,
+                    &low_dqcoeff,
+                    this_rdc,
+                    &mut eob_cost,
+                    tx_blk_id,
+                );
+                x.coeff_lp = coeff_lp;
+            }
             c += block_step;
             s += step;
         }
-        let _ = s;
         block += row_step;
         r += block_step;
     }
-    let _ = block;
 
     *skippable = temp_skippable;
     this_rdc.skip_txfm = temp_skippable as u8;
@@ -326,13 +531,14 @@ fn block_yrd(
         if temp_skippable != 0 {
             this_rdc.dist = 0;
             this_rdc.dist = this_rdc.sse;
-            return;
+            return Ok(());
         }
     }
 
     // If skippable is set, rate gets clobbered later.
     this_rdc.rate <<= 2 + AV1_PROB_COST_SHIFT;
     this_rdc.rate += eob_cost << AV1_PROB_COST_SHIFT;
+    Ok(())
 }
 
 #[inline]
@@ -425,7 +631,7 @@ fn estimate_block_intra(
     plane_bsize: BlockSize,
     tx_size: TxSize,
     args: &mut EstimateBlockIntraArgs,
-) {
+) -> Result<(), ()> {
     let cpi = args.cpi;
     let cm = &cpi.common;
     let x = &mut *args.x;
@@ -439,7 +645,7 @@ fn estimate_block_intra(
     let _ = block;
     let _ = plane_bsize;
 
-    av1_predict_intra_block_facade(cm, &mut x.e_mbd, plane, col, row, tx_size);
+    av1_predict_intra_block_facade(cm, &mut x.e_mbd, plane, col, row, tx_size)?;
     av1_invalid_rd_stats(&mut this_rdc);
 
     x.plane[plane].src.buf =
@@ -459,15 +665,16 @@ fn estimate_block_intra(
             bsize_tx,
             tx_size.min(TX_16X16),
             0,
-        );
+        )?;
     } else {
-        // (model_rd_for_sb_uv(): the intra search only estimates luma)
-        debug_assert!(plane == 0);
+        // (model_rd_for_sb_uv(): the inter frames' intra estimate)
+        return Err(());
     }
     x.plane[plane].src.buf = src_buf_base;
     x.e_mbd.plane[plane].dst.buf = dst_buf_base;
     args.rdc.rate += this_rdc.rate;
     args.rdc.dist += this_rdc.dist;
+    Ok(())
 }
 
 pub(crate) fn av1_nonrd_pick_intra_mode(
@@ -477,7 +684,7 @@ pub(crate) fn av1_nonrd_pick_intra_mode(
     rd_cost: &mut RdStats,
     bsize: BlockSize,
     ctx: &mut PickModeContext,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let mut this_rdc = RdStats::default();
     let mut best_rdc = RdStats::default();
@@ -550,7 +757,7 @@ pub(crate) fn av1_nonrd_pick_intra_mode(
             |a, plane, block, row, col, plane_bsize, tx_size| {
                 estimate_block_intra(plane, block, row, col, plane_bsize, tx_size, a)
             },
-        );
+        )?;
         this_rdc = args.rdc;
         let x = &*args.x;
         let skip_ctx = av1_get_skip_txfm_context(&x.e_mbd) as usize;
@@ -581,4 +788,5 @@ pub(crate) fn av1_nonrd_pick_intra_mode(
     }
     *rd_cost = best_rdc;
     store_coding_context(x, ctx);
+    Ok(())
 }

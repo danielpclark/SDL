@@ -6,12 +6,14 @@
 // Patent License 1.0 (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The high bit depth intra predictors the encoder reaches (its mode
-//! search tries DC, V, H and SMOOTH only): V, H, SMOOTH and the four DC
-//! variants, over every block size (`aom_highbd_<type>_predictor_<w>x<h>_c()`
-//! are the functions here with the size as arguments). `dst` is the
-//! destination buffer from `dst_off` on; `above` and `left` start at the
-//! first above and left neighbors.
+//! The intra predictors, over every block size (`aom_highbd_<type>_predictor_<w>x<h>_c()`
+//! and `aom_<type>_predictor_<w>x<h>_c()` are the functions here with the
+//! size as arguments). `dst` is the destination buffer from `dst_off` on;
+//! `above` and `left` start at the first above and left neighbors (the
+//! Paeth predictor's `above` at the above-left one). The low bit depth
+//! predictors compute what the high bit depth ones compute at 8 bits,
+//! except the rectangular DC predictors, whose multipliers differ (see
+//! `dc_predictor()`).
 
 // Weights are quadratic from '1' to '1 / block_size', scaled by
 // 2^SMOOTH_WEIGHT_LOG2_SCALE.
@@ -227,6 +229,12 @@ const HIGHBD_DC_MULTIPLIER_1X4: i32 = 0x6667;
 
 const HIGHBD_DC_SHIFT2: i32 = 17;
 
+// (the low bit depth multipliers of dc_predictor_rect())
+const DC_MULTIPLIER_1X2: i32 = 0x5556;
+const DC_MULTIPLIER_1X4: i32 = 0x3334;
+
+const DC_SHIFT2: i32 = 16;
+
 fn highbd_dc_predictor_rect(
     dst: &mut [u16],
     dst_off: usize,
@@ -238,6 +246,7 @@ fn highbd_dc_predictor_rect(
     bd: i32,
     shift1: i32,
     multiplier: i32,
+    shift2: i32,
 ) {
     let mut sum: i32 = 0;
 
@@ -249,7 +258,7 @@ fn highbd_dc_predictor_rect(
     }
 
     let expected_dc =
-        divide_using_multiply_shift(sum + ((bw + bh) >> 1), shift1, multiplier, HIGHBD_DC_SHIFT2);
+        divide_using_multiply_shift(sum + ((bw + bh) >> 1), shift1, multiplier, shift2);
     debug_assert!(expected_dc < (1 << bd));
 
     let mut d = dst_off;
@@ -286,6 +295,159 @@ pub(crate) fn highbd_dc_predictor(
         }
     };
     highbd_dc_predictor_rect(
-        dst, dst_off, stride, bw, bh, above, left, bd, shift1, multiplier,
+        dst,
+        dst_off,
+        stride,
+        bw,
+        bh,
+        above,
+        left,
+        bd,
+        shift1,
+        multiplier,
+        HIGHBD_DC_SHIFT2,
     );
+}
+
+/// `aom_dc_predictor_<w>x<h>_c()`: as `highbd_dc_predictor()` at 8 bits,
+/// with the low bit depth multipliers and shift for the rectangular sizes.
+pub(crate) fn dc_predictor(
+    dst: &mut [u16],
+    dst_off: usize,
+    stride: usize,
+    bw: i32,
+    bh: i32,
+    above: &[u16],
+    left: &[u16],
+) {
+    let (shift1, multiplier) = match (bw, bh) {
+        (4, 8) | (8, 4) => (2, DC_MULTIPLIER_1X2),
+        (4, 16) | (16, 4) => (2, DC_MULTIPLIER_1X4),
+        (8, 16) | (16, 8) => (3, DC_MULTIPLIER_1X2),
+        (8, 32) | (32, 8) => (3, DC_MULTIPLIER_1X4),
+        (16, 32) | (32, 16) => (4, DC_MULTIPLIER_1X2),
+        (16, 64) | (64, 16) => (4, DC_MULTIPLIER_1X4),
+        (32, 64) | (64, 32) => (5, DC_MULTIPLIER_1X2),
+        _ => {
+            highbd_dc_predictor_square(dst, dst_off, stride, bw, bh, above, left, 8);
+            return;
+        }
+    };
+    highbd_dc_predictor_rect(
+        dst, dst_off, stride, bw, bh, above, left, 8, shift1, multiplier, DC_SHIFT2,
+    );
+}
+
+#[inline]
+fn abs_diff(a: i32, b: i32) -> i32 {
+    if a > b {
+        a - b
+    } else {
+        b - a
+    }
+}
+
+#[inline]
+fn paeth_predictor_single(left: u16, top: u16, top_left: u16) -> u16 {
+    let base = top as i32 + left as i32 - top_left as i32;
+    let p_left = abs_diff(base, left as i32);
+    let p_top = abs_diff(base, top as i32);
+    let p_top_left = abs_diff(base, top_left as i32);
+
+    // Return nearest to base of left, top and top_left.
+    if p_left <= p_top && p_left <= p_top_left {
+        left
+    } else if p_top <= p_top_left {
+        top
+    } else {
+        top_left
+    }
+}
+
+/// `paeth_predictor()` and `highbd_paeth_predictor()`: `above_m1` starts at
+/// the above-left neighbor (`above[-1]`).
+pub(crate) fn highbd_paeth_predictor(
+    dst: &mut [u16],
+    dst_off: usize,
+    stride: usize,
+    bw: i32,
+    bh: i32,
+    above_m1: &[u16],
+    left: &[u16],
+    _bd: i32,
+) {
+    let ytop_left = above_m1[0];
+    let above = &above_m1[1..];
+
+    let mut d = dst_off;
+    for r in 0..bh as usize {
+        for c in 0..bw as usize {
+            dst[d + c] = paeth_predictor_single(left[r], above[c], ytop_left);
+        }
+        d += stride;
+    }
+}
+
+pub(crate) fn highbd_smooth_v_predictor(
+    dst: &mut [u16],
+    dst_off: usize,
+    stride: usize,
+    bw: i32,
+    bh: i32,
+    above: &[u16],
+    left: &[u16],
+    _bd: i32,
+) {
+    let below_pred = left[bh as usize - 1]; // estimated by bottom-left pixel
+    let sm_weights = &SMOOTH_WEIGHTS[bh as usize - 4..];
+    // scale = 2^SMOOTH_WEIGHT_LOG2_SCALE
+    let log2_scale = SMOOTH_WEIGHT_LOG2_SCALE;
+    let scale: u16 = 1 << SMOOTH_WEIGHT_LOG2_SCALE;
+
+    let mut d = dst_off;
+    for r in 0..bh as usize {
+        for c in 0..bw as usize {
+            let pixels = [above[c], below_pred];
+            let weights = [sm_weights[r], (scale - sm_weights[r] as u16) as u8];
+            let mut this_pred: u32 = 0;
+            debug_assert!(scale >= sm_weights[r] as u16);
+            for i in 0..2 {
+                this_pred += weights[i] as u32 * pixels[i] as u32;
+            }
+            dst[d + c] = divide_round(this_pred, log2_scale) as u16;
+        }
+        d += stride;
+    }
+}
+
+pub(crate) fn highbd_smooth_h_predictor(
+    dst: &mut [u16],
+    dst_off: usize,
+    stride: usize,
+    bw: i32,
+    bh: i32,
+    above: &[u16],
+    left: &[u16],
+    _bd: i32,
+) {
+    let right_pred = above[bw as usize - 1]; // estimated by top-right pixel
+    let sm_weights = &SMOOTH_WEIGHTS[bw as usize - 4..];
+    // scale = 2^SMOOTH_WEIGHT_LOG2_SCALE
+    let log2_scale = SMOOTH_WEIGHT_LOG2_SCALE;
+    let scale: u16 = 1 << SMOOTH_WEIGHT_LOG2_SCALE;
+
+    let mut d = dst_off;
+    for r in 0..bh as usize {
+        for c in 0..bw as usize {
+            let pixels = [left[r], right_pred];
+            let weights = [sm_weights[c], (scale - sm_weights[c] as u16) as u8];
+            let mut this_pred: u32 = 0;
+            debug_assert!(scale >= sm_weights[c] as u16);
+            for i in 0..2 {
+                this_pred += weights[i] as u32 * pixels[i] as u32;
+            }
+            dst[d + c] = divide_round(this_pred, log2_scale) as u16;
+        }
+        d += stride;
+    }
 }

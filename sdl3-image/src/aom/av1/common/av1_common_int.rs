@@ -1537,3 +1537,69 @@ pub(crate) fn get_primary_ref_frame_buf(cm: &Av1Common) -> Option<usize> {
         None
     }
 }
+
+/// Translation of `get_sqr_tx_size()`.
+#[inline]
+pub(crate) fn get_sqr_tx_size(tx_dim: i32) -> TxSize {
+    match tx_dim {
+        128 | 64 => TX_64X64,
+        32 => TX_32X32,
+        16 => TX_16X16,
+        8 => TX_8X8,
+        _ => TX_4X4,
+    }
+}
+
+/// Translation of `txfm_partition_context()`: the above and left contexts
+/// are the values `*above_ctx` and `*left_ctx`.
+#[inline]
+pub(crate) fn txfm_partition_context(
+    above_ctx: TxfmContext,
+    left_ctx: TxfmContext,
+    bsize: BlockSize,
+    tx_size: TxSize,
+) -> i32 {
+    let txw = TX_SIZE_WIDE[tx_size as usize];
+    let txh = TX_SIZE_HIGH[tx_size as usize];
+    let above = ((above_ctx as i32) < txw) as i32;
+    let left = ((left_ctx as i32) < txh) as i32;
+    let mut category = TXFM_PARTITION_CONTEXTS;
+
+    // dummy return, not used by others.
+    if tx_size <= TX_4X4 {
+        return 0;
+    }
+
+    let max_tx_size = get_sqr_tx_size(
+        (BLOCK_SIZE_WIDE[bsize as usize] as i32).max(BLOCK_SIZE_HIGH[bsize as usize] as i32),
+    );
+
+    if max_tx_size >= TX_8X8 {
+        category = (TXSIZE_SQR_UP_MAP[tx_size as usize] != max_tx_size && max_tx_size > TX_8X8)
+            as i32
+            + (TX_SIZES - 1 - max_tx_size) * 2;
+    }
+    debug_assert!(category != TXFM_PARTITION_CONTEXTS);
+    category * 3 + above + left
+}
+
+/// Translation of `txfm_partition_update()`.
+#[inline]
+pub(crate) fn txfm_partition_update(
+    above_ctx: &mut [TxfmContext],
+    left_ctx: &mut [TxfmContext],
+    tx_size: TxSize,
+    txb_size: TxSize,
+) {
+    let bsize = TXSIZE_TO_BSIZE[txb_size as usize];
+    let bh = MI_SIZE_HIGH[bsize as usize] as usize;
+    let bw = MI_SIZE_WIDE[bsize as usize] as usize;
+    let txw = TX_SIZE_WIDE[tx_size as usize];
+    let txh = TX_SIZE_HIGH[tx_size as usize];
+    for l in left_ctx[..bh].iter_mut() {
+        *l = txh as TxfmContext;
+    }
+    for a in above_ctx[..bw].iter_mut() {
+        *a = txw as TxfmContext;
+    }
+}

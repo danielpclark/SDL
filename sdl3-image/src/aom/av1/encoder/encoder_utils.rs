@@ -303,7 +303,7 @@ pub(crate) fn av1_finalize_encoded_frame(cpi: &mut Av1Comp) {
 }
 
 /// Translation of `av1_set_mb_ssim_rdmult_scaling()`.
-pub(crate) fn av1_set_mb_ssim_rdmult_scaling(cpi: &mut Av1Comp) {
+pub(crate) fn av1_set_mb_ssim_rdmult_scaling(cpi: &mut Av1Comp) -> Result<(), ()> {
     let mut factors = std::mem::take(&mut cpi.ssim_rdmult_scaling_factors);
     let mi_params = &cpi.common.mi_params;
     let xd = &cpi.td.mb.e_mbd;
@@ -339,14 +339,18 @@ pub(crate) fn av1_set_mb_ssim_rdmult_scaling(cpi: &mut Av1Comp) {
                         ..Buf2d::default()
                     };
 
-                    var += av1_get_perpixel_variance_facade(
+                    let Ok(v) = av1_get_perpixel_variance_facade(
                         cpi,
                         xd,
                         src,
                         &buf,
                         BLOCK_8X8,
                         AOM_PLANE_Y,
-                    ) as f64;
+                    ) else {
+                        cpi.ssim_rdmult_scaling_factors = factors;
+                        return Err(());
+                    };
+                    var += v as f64;
                     num_of_var += 1.0;
                     mi_col += 2;
                 }
@@ -370,6 +374,7 @@ pub(crate) fn av1_set_mb_ssim_rdmult_scaling(cpi: &mut Av1Comp) {
         }
     }
     cpi.ssim_rdmult_scaling_factors = factors;
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

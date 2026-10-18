@@ -6,10 +6,38 @@
 // Patent License 1.0 (see LICENSE.txt)
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The averages, Hadamard transforms and SATD the real-time-style mode
-//! decision and partitioning reach (high bit depth: no `_lp` versions).
+//! The averages, Hadamard transforms and SATD the real-time mode decision
+//! and partitioning reach (the samples are kept in 16 bits for any bit
+//! depth, so the low bit depth averages are the high bit depth ones').
 
 use super::aom_dsp_common::TranLowT;
+
+/// Translation of `aom_avg_8x8_quad_c()`.
+pub(crate) fn aom_avg_8x8_quad(
+    s: &[u16],
+    s_off: usize,
+    p: usize,
+    x16_idx: i32,
+    y16_idx: i32,
+    avg: &mut [i32; 4],
+) {
+    for (k, a) in avg.iter_mut().enumerate() {
+        let x8_idx = x16_idx + ((k as i32 & 1) << 3);
+        let y8_idx = y16_idx + ((k as i32 >> 1) << 3);
+        let s_tmp = (s_off as i64 + y8_idx as i64 * p as i64 + x8_idx as i64) as usize;
+        *a = aom_avg_8x8(s, s_tmp, p) as i32;
+    }
+}
+
+/// Translation of `aom_avg_8x8_c()`.
+pub(crate) fn aom_avg_8x8(s: &[u16], s_off: usize, p: usize) -> u32 {
+    aom_highbd_avg_8x8(s, s_off, p)
+}
+
+/// Translation of `aom_avg_4x4_c()`.
+pub(crate) fn aom_avg_4x4(s: &[u16], s_off: usize, p: usize) -> u32 {
+    aom_highbd_avg_4x4(s, s_off, p)
+}
 
 /// Translation of `aom_highbd_avg_4x4_c()`.
 pub(crate) fn aom_highbd_avg_4x4(s: &[u16], s_off: usize, p: usize) -> u32 {
@@ -177,6 +205,93 @@ pub(crate) fn aom_satd(coeff: &[TranLowT], length: i32) -> i32 {
     let mut satd: i32 = 0;
     for i in 0..length as usize {
         satd += coeff[i].abs();
+    }
+
+    // satd: 26 bits, dynamic range [-32640 * 1024, 32640 * 1024]
+    satd
+}
+
+/// Translation of `aom_hadamard_lp_8x8_c()`.
+pub(crate) fn aom_hadamard_lp_8x8(
+    src_diff: &[i16],
+    src_off: usize,
+    src_stride: usize,
+    coeff: &mut [i16],
+) {
+    let mut buffer = [0i16; 64];
+    let mut buffer2 = [0i16; 64];
+    for idx in 0..8 {
+        hadamard_col8(src_diff, src_off + idx, src_stride, &mut buffer[idx * 8..]);
+        // src_diff: 9 bit
+        // dynamic range [-255, 255]
+    }
+
+    for idx in 0..8 {
+        hadamard_col8(&buffer, idx, 8, &mut buffer2[8 * idx..]); // tmp_buf: 12 bit
+                                                                 // dynamic range [-2040, 2040]
+                                                                 // buffer2: 15 bit
+                                                                 // dynamic range [-16320, 16320]
+    }
+
+    coeff[..64].copy_from_slice(&buffer2);
+
+    // Extra transpose to match SSE2 behavior(i.e., aom_hadamard_lp_8x8_sse2).
+    for i in 0..8 {
+        for j in 0..8 {
+            coeff[i * 8 + j] = buffer2[j * 8 + i];
+        }
+    }
+}
+
+/// Translation of `aom_hadamard_lp_8x8_dual_c()`.
+pub(crate) fn aom_hadamard_lp_8x8_dual(
+    src_diff: &[i16],
+    src_off: usize,
+    src_stride: usize,
+    coeff: &mut [i16],
+) {
+    for i in 0..2 {
+        aom_hadamard_lp_8x8(src_diff, src_off + i * 8, src_stride, &mut coeff[i * 64..]);
+    }
+}
+
+/// Translation of `aom_hadamard_lp_16x16_c()` (the int16_t intermediates
+/// wrap as upstream's do).
+pub(crate) fn aom_hadamard_lp_16x16(
+    src_diff: &[i16],
+    src_off: usize,
+    src_stride: usize,
+    coeff: &mut [i16],
+) {
+    for idx in 0..4 {
+        // src_diff: 9 bit, dynamic range [-255, 255]
+        let src_ptr = src_off + (idx >> 1) * 8 * src_stride + (idx & 0x01) * 8;
+        aom_hadamard_lp_8x8(src_diff, src_ptr, src_stride, &mut coeff[idx * 64..]);
+    }
+
+    for idx in 0..64 {
+        let a0 = coeff[idx] as i32;
+        let a1 = coeff[idx + 64] as i32;
+        let a2 = coeff[idx + 128] as i32;
+        let a3 = coeff[idx + 192] as i32;
+
+        let b0 = ((a0 + a1) >> 1) as i16 as i32; // (a0 + a1): 16 bit, [-32640, 32640]
+        let b1 = ((a0 - a1) >> 1) as i16 as i32; // b0-b3: 15 bit, dynamic range
+        let b2 = ((a2 + a3) >> 1) as i16 as i32; // [-16320, 16320]
+        let b3 = ((a2 - a3) >> 1) as i16 as i32;
+
+        coeff[idx] = (b0 + b2) as i16; // 16 bit, [-32640, 32640]
+        coeff[idx + 64] = (b1 + b3) as i16;
+        coeff[idx + 128] = (b0 - b2) as i16;
+        coeff[idx + 192] = (b1 - b3) as i16;
+    }
+}
+
+/// Translation of `aom_satd_lp_c()`.
+pub(crate) fn aom_satd_lp(coeff: &[i16], length: i32) -> i32 {
+    let mut satd: i32 = 0;
+    for i in 0..length as usize {
+        satd += (coeff[i] as i32).abs();
     }
 
     // satd: 26 bits, dynamic range [-32640 * 1024, 32640 * 1024]

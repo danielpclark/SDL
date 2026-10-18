@@ -9,15 +9,17 @@
 
 //! Trellis-like coefficient optimization of a transform block: lowering
 //! levels (and the end of block) where that lowers the rate-distortion
-//! cost. The quantizer matrices are flat (no `QM_PSNR` distortion), and
-//! only the 2D transform class occurs (all of the saver's transforms are
-//! DCTs; the one-dimensional classes are unreachable).
+//! cost, and the rate of a transform block's coefficients. The quantizer
+//! matrices are flat (no `QM_PSNR` distortion). The trellis optimization
+//! only runs for the still image saver, whose transforms are all DCTs: only
+//! the 2D transform class occurs there.
 
 use super::block::*;
 use super::cost::av1_cost_literal;
 use super::encoder::Av1Comp;
 use super::encodetxb::{
-    av1_get_eob_pos_token, av1_get_txb_entropy_context, av1_txb_init_levels, PLANE_RD_MULT,
+    av1_get_eob_pos_token, av1_get_nz_map_contexts, av1_get_txb_entropy_context,
+    av1_txb_init_levels, block_offset, PLANE_RD_MULT,
 };
 use super::rd::rdcost;
 use crate::aom::aom_dsp::aom_dsp_common::{get_msb, TranLowT};
@@ -687,10 +689,17 @@ fn get_tx_type_cost(
         && xd.lossless[mbmi.segment_id as usize] == 0
     {
         let ext_tx_set = get_ext_tx_set(tx_size, is_inter, reduced_tx_set_used);
-        // (intra blocks only, without filter intra)
-        debug_assert!(is_inter == 0 && mbmi.filter_intra_mode_info.use_filter_intra == 0);
-        if ext_tx_set > 0 {
-            let intra_dir = mbmi.mode;
+        if is_inter != 0 {
+            if ext_tx_set > 0 {
+                return mode_costs.inter_tx_type_costs[ext_tx_set as usize]
+                    [square_tx_size as usize][tx_type as usize];
+            }
+        } else if ext_tx_set > 0 {
+            let intra_dir = if mbmi.filter_intra_mode_info.use_filter_intra != 0 {
+                FIMODE_TO_INTRADIR[mbmi.filter_intra_mode_info.filter_intra_mode as usize]
+            } else {
+                mbmi.mode
+            };
             return mode_costs.intra_tx_type_costs[ext_tx_set as usize][square_tx_size as usize]
                 [intra_dir as usize][tx_type as usize];
         }
@@ -943,4 +952,165 @@ pub(crate) fn av1_cost_skip_txb(
     let plane_type = get_plane_type(plane);
     let coeff_costs_ = &coeff_costs.coeff_costs[txs_ctx as usize][plane_type as usize];
     coeff_costs_.txb_skip_cost[txb_ctx.txb_skip_ctx as usize][1]
+}
+
+#[inline]
+fn aomsign(x: i32) -> i32 {
+    x >> 31
+}
+
+/// Translation of `warehouse_efficients_txb()`.
+fn warehouse_efficients_txb(
+    x: &Macroblock,
+    plane: usize,
+    block: i32,
+    tx_size: TxSize,
+    txb_ctx: &TxbCtx,
+    eob: i32,
+    plane_type: i32,
+    coeff_costs: &LvMapCoeffCost,
+    tx_type: TxType,
+    tx_class: TxClass,
+    reduced_tx_set_used: i32,
+) -> i32 {
+    let p = &x.plane[plane];
+    let xd = &x.e_mbd;
+    let qcoeff = &p.qcoeff[block_offset(block)..];
+    let txb_skip_ctx = txb_ctx.txb_skip_ctx as usize;
+    let bwl = get_txb_bwl(tx_size);
+    let width = get_txb_wide(tx_size);
+    let height = get_txb_high(tx_size);
+    let scan_order = get_scan(tx_size, tx_type);
+    let scan = scan_order.scan;
+    let mut levels_buf = [0u8; TX_PAD_2D as usize];
+    let levels = set_levels(width);
+    let mut coeff_contexts = [0i8; MAX_TX_SQUARE as usize];
+    let eob_multi_size = TXSIZE_LOG2_MINUS4[tx_size as usize] as usize;
+    let eob_costs = &x.coeff_costs.eob_costs[eob_multi_size][plane_type as usize];
+    let mut cost = coeff_costs.txb_skip_cost[txb_skip_ctx][0];
+
+    av1_txb_init_levels(qcoeff, width, height, &mut levels_buf, levels);
+
+    cost += get_tx_type_cost(
+        &x.mode_costs,
+        xd,
+        plane,
+        tx_size,
+        tx_type,
+        reduced_tx_set_used,
+    );
+
+    cost += get_eob_cost(eob, eob_costs, coeff_costs, tx_class);
+
+    av1_get_nz_map_contexts(
+        &levels_buf,
+        levels,
+        scan,
+        eob as u16,
+        tx_size,
+        tx_class,
+        &mut coeff_contexts,
+    );
+
+    let lps_cost = &coeff_costs.lps_cost;
+    let mut c = eob - 1;
+    {
+        let pos = scan[c as usize] as usize;
+        let v = qcoeff[pos];
+        let sign = aomsign(v);
+        let level = (v ^ sign) - sign;
+        let coeff_ctx = coeff_contexts[pos] as usize;
+        cost += coeff_costs.base_eob_cost[coeff_ctx][(level.min(3) - 1) as usize];
+
+        if v != 0 {
+            // sign bit cost
+            if level > NUM_BASE_LEVELS {
+                let ctx = get_br_ctx_eob(pos as i32, bwl, tx_class) as usize;
+                cost += get_br_cost(level, &lps_cost[ctx]);
+            }
+            if c != 0 {
+                cost += av1_cost_literal(1);
+            } else {
+                let sign01 = ((sign ^ sign) - sign) as usize;
+                let dc_sign_ctx = txb_ctx.dc_sign_ctx as usize;
+                cost += coeff_costs.dc_sign_cost[dc_sign_ctx][sign01];
+                return cost;
+            }
+        }
+    }
+    let base_cost = &coeff_costs.base_cost;
+    c = eob - 2;
+    while c >= 1 {
+        let pos = scan[c as usize] as usize;
+        let coeff_ctx = coeff_contexts[pos] as usize;
+        let v = qcoeff[pos];
+        let level = v.abs();
+        cost += base_cost[coeff_ctx][level.min(3) as usize];
+        if v != 0 {
+            // sign bit cost
+            cost += av1_cost_literal(1);
+            if level > NUM_BASE_LEVELS {
+                let ctx = get_br_ctx(&levels_buf, levels, pos as i32, bwl, tx_class) as usize;
+                cost += get_br_cost(level, &lps_cost[ctx]);
+            }
+        }
+        c -= 1;
+    }
+    // c == 0 after previous loop
+    {
+        let pos = scan[0] as usize;
+        let v = qcoeff[pos];
+        let coeff_ctx = coeff_contexts[pos] as usize;
+        let sign = aomsign(v);
+        let level = (v ^ sign) - sign;
+        cost += base_cost[coeff_ctx][level.min(3) as usize];
+
+        if v != 0 {
+            // sign bit cost
+            let sign01 = ((sign ^ sign) - sign) as usize;
+            let dc_sign_ctx = txb_ctx.dc_sign_ctx as usize;
+            cost += coeff_costs.dc_sign_cost[dc_sign_ctx][sign01];
+            if level > NUM_BASE_LEVELS {
+                let ctx = get_br_ctx(&levels_buf, levels, pos as i32, bwl, tx_class) as usize;
+                cost += get_br_cost(level, &lps_cost[ctx]);
+            }
+        }
+    }
+    cost
+}
+
+/// Translation of `av1_cost_coeffs_txb()`.
+pub(crate) fn av1_cost_coeffs_txb(
+    x: &Macroblock,
+    plane: usize,
+    block: i32,
+    tx_size: TxSize,
+    tx_type: TxType,
+    txb_ctx: &TxbCtx,
+    reduced_tx_set_used: i32,
+) -> i32 {
+    let p = &x.plane[plane];
+    let eob = p.eobs[block as usize] as i32;
+    let txs_ctx = get_txsize_entropy_ctx(tx_size) as usize;
+    let plane_type = get_plane_type(plane);
+    let coeff_costs = &x.coeff_costs.coeff_costs[txs_ctx][plane_type as usize];
+    if eob == 0 {
+        return coeff_costs.txb_skip_cost[txb_ctx.txb_skip_ctx as usize][1];
+    }
+
+    let tx_class = TX_TYPE_TO_CLASS[tx_type as usize];
+
+    warehouse_efficients_txb(
+        x,
+        plane,
+        block,
+        tx_size,
+        txb_ctx,
+        eob,
+        plane_type,
+        coeff_costs,
+        tx_type,
+        tx_class,
+        reduced_tx_set_used,
+    )
 }

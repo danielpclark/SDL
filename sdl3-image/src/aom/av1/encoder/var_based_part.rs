@@ -12,7 +12,7 @@
 //! variances of 4x4 averages of its source samples, before any mode search.
 
 use super::encoder::{Av1Comp, ThreadData, ALLINTRA};
-use crate::aom::aom_dsp::avg::aom_highbd_avg_4x4;
+use crate::aom::aom_dsp::avg::{aom_avg_4x4, aom_highbd_avg_4x4};
 use crate::aom::aom_scale::yv12config::YV12_FLAG_HIGHBITDEPTH;
 use crate::aom::av1::common::av1_common_int::*;
 use crate::aom::av1::common::blockd::*;
@@ -329,7 +329,7 @@ fn fill_variance_4x4avg(
     pixels_high: i32,
     is_key_frame: bool,
     border_offset_4x4: i32,
-) {
+) -> Result<(), ()> {
     for k in 0..4 {
         let x4_idx = x8_idx + ((k & 1) << 2);
         let y4_idx = y8_idx + ((k >> 1) << 2);
@@ -337,19 +337,29 @@ fn fill_variance_4x4avg(
         let mut sum: i32 = 0;
         if x4_idx < pixels_wide - border_offset_4x4 && y4_idx < pixels_high - border_offset_4x4 {
             let d_avg: i32 = 128;
-            // (the saver's buffers are high bit depth; on key frames the
-            // average is compared with 128)
-            debug_assert!(highbd_flag & YV12_FLAG_HIGHBITDEPTH != 0 && is_key_frame);
-            let s_avg = aom_highbd_avg_4x4(
-                src,
-                (s as i64 + (y4_idx * sp + x4_idx) as i64) as usize,
-                sp as usize,
-            ) as i32;
+            // (the inter frames' references: see choose_var_based_partitioning)
+            if !is_key_frame {
+                return Err(());
+            }
+            let s_avg = if highbd_flag & YV12_FLAG_HIGHBITDEPTH != 0 {
+                aom_highbd_avg_4x4(
+                    src,
+                    (s as i64 + (y4_idx * sp + x4_idx) as i64) as usize,
+                    sp as usize,
+                ) as i32
+            } else {
+                aom_avg_4x4(
+                    src,
+                    (s as i64 + (y4_idx * sp + x4_idx) as i64) as usize,
+                    sp as usize,
+                ) as i32
+            };
             sum = s_avg - d_avg;
             sse = sum.wrapping_mul(sum) as u32;
         }
         fill_variance(sse, sum, 0, &mut vst.split[k as usize].part_variances.none);
     }
+    Ok(())
 }
 
 fn set_vbp_thresholds(cpi: &Av1Comp, thresholds: &mut [i64; 5], q: i32) {
@@ -412,7 +422,7 @@ fn fill_variance_tree_leaves(
     s: usize,
     src_stride: i32,
     is_key_frame: bool,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let is_small_sb = cm.seq_params.sb_size == BLOCK_64X64;
     let num_64x64_blocks = if is_small_sb { 1 } else { 4 };
@@ -484,12 +494,13 @@ fn fill_variance_tree_leaves(
                             pixels_high,
                             is_key_frame,
                             border_offset_4x4,
-                        );
+                        )?;
                     }
                 }
             }
         }
     }
+    Ok(())
 }
 
 // Decides whether to split or merge a 16x16 partition block in variance based
@@ -523,7 +534,7 @@ pub(crate) fn av1_choose_var_based_partitioning(
     td: &mut ThreadData,
     mi_row: i32,
     mi_col: i32,
-) -> i32 {
+) -> Result<i32, ()> {
     let cm = &cpi.common;
     let vbp_thresholds = &cpi.vbp_info.thresholds;
     let mut force_split = [0i32; 85];
@@ -594,7 +605,7 @@ pub(crate) fn av1_choose_var_based_partitioning(
         s,
         sp,
         is_key_frame,
-    );
+    )?;
 
     avg_64x64 = 0;
     for m in 0..num_64x64_blocks {
@@ -768,6 +779,5 @@ pub(crate) fn av1_choose_var_based_partitioning(
     }
 
     // (short_circuit_low_temp_var: inter frames only)
-    debug_assert!(cpi.sf.rt_sf.short_circuit_low_temp_var == 0);
-    0
+    Ok(0)
 }

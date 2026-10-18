@@ -21,6 +21,7 @@ use super::encoder::*;
 use super::encodetxb::av1_update_intra_mb_txb_context;
 use super::nonrd_pickmode::{av1_copy_mbmi_ext_to_mbmi_ext_frame, av1_nonrd_pick_intra_mode};
 use super::rd::{av1_invalid_rd_stats, av1_set_error_per_bit};
+use super::rdopt::av1_rd_pick_intra_mode_sb;
 use super::rdopt_utils::{set_mode_eval_params, set_tx_size_search_method};
 use crate::aom::aom_dsp::prob::update_cdf;
 use crate::aom::av1::common::av1_common_int::*;
@@ -67,7 +68,7 @@ fn encode_superblock(
     td: &mut ThreadData,
     dry_run: i32,
     bsize: BlockSize,
-) {
+) -> Result<(), ()> {
     let cm = &cpi.common;
     let num_planes = av1_num_planes(cm);
     let x = &mut td.mb;
@@ -77,8 +78,9 @@ fn encode_superblock(
     let mi_width = MI_SIZE_WIDE[bsize as usize] as i32;
     let mi_height = MI_SIZE_HIGH[bsize as usize] as i32;
     let is_inter = is_inter_block(&mbmi);
-    // (the saver's frames are all intra)
-    debug_assert!(!is_inter);
+    if is_inter {
+        return Err(());
+    }
 
     // Initialize tx_mode and tx_size_search_method
     set_tx_size_search_method(
@@ -105,7 +107,7 @@ fn encode_superblock(
                 plane,
                 dry_run,
                 cpi.optimize_seg_arr[segment_id],
-            );
+            )?;
         }
 
         // If there is at least one lossless segment, force the skip for intra
@@ -125,7 +127,7 @@ fn encode_superblock(
             bsize
         ));
 
-        av1_update_intra_mb_txb_context(cpi, td, dry_run, bsize, tile_data.allow_update_cdf as u8);
+        av1_update_intra_mb_txb_context(cpi, td, dry_run, bsize, tile_data.allow_update_cdf as u8)?;
     }
 
     let x = &mut td.mb;
@@ -200,8 +202,16 @@ fn encode_superblock(
 
     // (cfl_store_block(): inter blocks only)
     debug_assert!(!(is_inter_block(xd.mbmi()) && !xd.is_chroma_ref && is_cfl_allowed(xd) != 0));
-    // (the temporal noise estimate is a real-time feature)
-    debug_assert!(dry_run != 0 || cpi.sf.rt_sf.use_temporal_noise_estimate == 0);
+    if dry_run == 0
+        && cpi.oxcf.pass == AOM_RC_ONE_PASS
+        && cpi.svc.temporal_layer_id == 0
+        && cpi.sf.rt_sf.use_temporal_noise_estimate != 0
+    {
+        // (av1_update_noise_estimate(): use_temporal_noise_estimate is off
+        // for the saver's speed)
+        return Err(());
+    }
+    Ok(())
 }
 
 fn setup_block_rdmult(
@@ -320,27 +330,38 @@ fn hybrid_intra_mode_search(
     rd_cost: &mut RdStats,
     bsize: BlockSize,
     ctx: &mut PickModeContext,
-) {
+) -> Result<(), ()> {
+    let mut use_rdopt = false;
     let hybrid_intra_pickmode = cpi.sf.rt_sf.hybrid_intra_pickmode;
     // Use rd pick for intra mode search based on block size and variance.
-    // (hybrid_intra_pickmode is off for the saver's speed: the RD intra
-    // search is never used)
-    debug_assert!(!(hybrid_intra_pickmode != 0 && bsize < BLOCK_16X16));
-    av1_nonrd_pick_intra_mode(cpi, x, &cpi.source().buffer_alloc, rd_cost, bsize, ctx);
+    if hybrid_intra_pickmode != 0 && bsize < BLOCK_16X16 {
+        let var_thresh: [u32; 3] = [0, 101, 201];
+        debug_assert!(hybrid_intra_pickmode <= 3);
+        if x.source_variance >= var_thresh[(hybrid_intra_pickmode - 1) as usize] {
+            use_rdopt = true;
+        }
+    }
+
+    if use_rdopt {
+        av1_rd_pick_intra_mode_sb(cpi, x, rd_cost, bsize, ctx, i64::MAX)
+    } else {
+        av1_nonrd_pick_intra_mode(cpi, x, &cpi.source().buffer_alloc, rd_cost, bsize, ctx)
+    }
 }
 
 // (wait_for_top_right_sb(): one thread, so the row synchronization never
 // waits)
 
-fn update_stats(cm: &Av1Common, td: &mut ThreadData) {
+fn update_stats(cm: &Av1Common, td: &mut ThreadData) -> Result<(), ()> {
     let x = &mut td.mb;
     let xd = &mut x.e_mbd;
     let mbmi = *xd.mbmi();
     let current_frame = &cm.current_frame;
     let seg_ref_active = segfeature_active(&cm.seg, mbmi.segment_id, SEG_LVL_REF_FRAME);
 
-    // (skip mode: inter frames only)
-    debug_assert!(current_frame.skip_mode_info.skip_mode_flag == 0);
+    if current_frame.skip_mode_info.skip_mode_flag != 0 && !seg_ref_active {
+        return Err(());
+    }
 
     if mbmi.skip_mode == 0 && !seg_ref_active {
         let skip_ctx = av1_get_skip_txfm_context(xd) as usize;
@@ -358,8 +379,10 @@ fn update_stats(cm: &Av1Common, td: &mut ThreadData) {
     // (intra block copy is off: allow_intrabc stays 0 with screen content
     // tools off)
     debug_assert!(!(av1_allow_intrabc(cm) && cm.features.allow_intrabc));
-    // (frame_is_intra_only(cm): the rest is for inter frames)
-    debug_assert!(frame_is_intra_only(cm) || mbmi.skip_mode != 0);
+    if frame_is_intra_only(cm) || mbmi.skip_mode != 0 {
+        return Ok(());
+    }
+    Err(())
 }
 
 fn encode_b_nonrd(
@@ -372,14 +395,14 @@ fn encode_b_nonrd(
     bsize: BlockSize,
     partition: PartitionType,
     ctx: &PickModeContext,
-) {
+) -> Result<(), ()> {
     let tile = &tile_data.tile_info;
     let x = &mut td.mb;
     av1_set_offsets_without_segment_id(cpi, tile, x, mi_row, mi_col, bsize);
     let origin_mult = x.rdmult;
     setup_block_rdmult(cpi, x, mi_row, mi_col, bsize, NO_AQ);
     x.e_mbd.mbmi_mut().partition = partition;
-    av1_update_state(cpi, td, ctx, mi_row, mi_col, bsize, dry_run);
+    av1_update_state(cpi, td, ctx, mi_row, mi_col, bsize, dry_run)?;
     let subsampling_x = cpi.common.seq_params.subsampling_x;
     let subsampling_y = cpi.common.seq_params.subsampling_y;
     let x = &mut td.mb;
@@ -401,22 +424,34 @@ fn encode_b_nonrd(
         );
     }
 
-    encode_superblock(cpi, tile_data, td, dry_run, bsize);
+    encode_superblock(cpi, tile_data, td, dry_run, bsize)?;
     let x = &mut td.mb;
     if dry_run == 0 {
         update_cb_offsets(x, bsize, subsampling_x, subsampling_y);
         let mbmi = *x.e_mbd.mbmi();
-        // (compound prediction, skip mode, reference frame counts: inter
-        // blocks only)
-        debug_assert!(!has_second_ref(&mbmi) && mbmi.skip_mode == 0 && !is_inter_block(&mbmi));
-        // (the selective loop filter control is a real-time feature)
-        debug_assert!(cpi.oxcf.algo_cfg.loopfilter_control != LOOPFILTER_SELECTIVELY);
+        if has_second_ref(&mbmi) || mbmi.skip_mode != 0 || is_inter_block(&mbmi) {
+            return Err(());
+        }
+        if cpi.oxcf.algo_cfg.loopfilter_control == LOOPFILTER_SELECTIVELY
+            && (mbmi.mode == NEWMV || mbmi.mode < INTRA_MODE_END)
+        {
+            // (the selective loop filter control is off for the saver)
+            return Err(());
+        }
         if tile_data.allow_update_cdf {
-            update_stats(&cpi.common, td);
+            update_stats(&cpi.common, td)?;
         }
     }
-    // (the cyclic refresh is a real-time feature)
-    debug_assert!(cpi.oxcf.q_cfg.aq_mode != CYCLIC_REFRESH_AQ);
+    let x = &mut td.mb;
+    if cpi.oxcf.q_cfg.aq_mode == CYCLIC_REFRESH_AQ
+        && x.e_mbd.mbmi().skip_txfm != 0
+        && !cpi.rc.rtc_external_ratectrl
+        && cpi.common.seg.enabled != 0
+    {
+        // (av1_cyclic_reset_segment_skip(): the cyclic refresh is off for
+        // the saver)
+        return Err(());
+    }
     let x = &mut td.mb;
     let ref_frame_type = av1_ref_frame_type(&x.e_mbd.mbmi().ref_frame) as u8;
     let i = x.mbmi_ext_frame;
@@ -427,6 +462,7 @@ fn encode_b_nonrd(
     } = x;
     av1_copy_mbmi_ext_to_mbmi_ext_frame(&mut mbmi_ext_frame_base[i], mbmi_ext, ref_frame_type);
     x.rdmult = origin_mult;
+    Ok(())
 }
 
 fn get_force_zeromv_skip_flag_for_blk(x: &Macroblock) -> i32 {
@@ -459,7 +495,7 @@ fn pick_sb_modes_nonrd(
     rd_cost: &mut RdStats,
     bsize: BlockSize,
     ctx: &mut PickModeContext,
-) {
+) -> Result<(), ()> {
     // For nonrd mode, av1_set_offsets is already called at the superblock level
     // in encode_nonrd_sb when we determine the partitioning.
     if bsize != cpi.common.seq_params.sb_size || cpi.sf.rt_sf.nonrd_check_partition_split == 1 {
@@ -487,7 +523,7 @@ fn pick_sb_modes_nonrd(
             &x.plane[0].src,
             bsize,
             AOM_PLANE_Y,
-        );
+        )?;
     }
     // Save rdmult before it might be changed, so it can be restored later.
     let orig_rdmult = x.rdmult;
@@ -496,14 +532,41 @@ fn pick_sb_modes_nonrd(
     av1_set_error_per_bit(&mut x.errorperbit, x.rdmult);
     // Find best coding mode & reconstruct the MB so it is available
     // as a predictor for MBs that follow in the SB
-    debug_assert!(frame_is_intra_only(cm));
-    hybrid_intra_mode_search(cpi, x, rd_cost, bsize, ctx);
-    // (skip_cdef_sb is a real-time feature)
-    debug_assert!(cpi.sf.rt_sf.skip_cdef_sb == 0);
+    if frame_is_intra_only(cm) {
+        hybrid_intra_mode_search(cpi, x, rd_cost, bsize, ctx)?;
+    } else {
+        // (av1_nonrd_pick_inter_mode_sb())
+        return Err(());
+    }
+    if cpi.sf.rt_sf.skip_cdef_sb != 0 {
+        // cdef_strength is initialized to 1 which means skip_cdef, and is updated
+        // here. Check to see is skipping cdef is allowed.
+        let allow_cdef_skipping = cpi.rc.frames_since_key > 10
+            && cpi.rc.high_source_sad == 0
+            && !(x.color_sensitivity[0] != 0 || x.color_sensitivity[1] != 0);
+
+        // Find the corresponding 64x64 block. It'll be the 128x128 block if that's
+        // the block size.
+        let mi_row_sb = mi_row - mi_row % MI_SIZE_64X64;
+        let mi_col_sb = mi_col - mi_col % MI_SIZE_64X64;
+        let xd = &mut x.e_mbd;
+        let mode = xd.mbmi().mode;
+        let sb =
+            xd.mi_grid_base[get_mi_grid_idx(&cm.mi_params, mi_row_sb, mi_col_sb) as usize] as usize;
+        // Do not skip if intra or new mv is picked, or color sensitivity is set.
+        // Never skip on slide/scene change.
+        xd.mi_alloc[sb].cdef_strength = (xd.mi_alloc[sb].cdef_strength != 0
+            && allow_cdef_skipping
+            && !(mode < INTRA_MODES || mode == NEWMV))
+            as i8;
+        // Store in the pickmode context.
+        ctx.mic.cdef_strength = xd.mi_alloc[sb].cdef_strength;
+    }
     x.rdmult = orig_rdmult;
     ctx.rd_stats.rate = rd_cost.rate;
     ctx.rd_stats.dist = rd_cost.dist;
     ctx.rd_stats.rdcost = rd_cost.rdcost;
+    Ok(())
 }
 
 /// The pick and encode of one coding block along the partition
@@ -530,11 +593,10 @@ fn pick_and_encode_b_nonrd(
         &mut dummy_cost,
         bsize,
         &mut ctx,
-    );
+    )?;
     encode_b_nonrd(
         cpi, tile_data, td, mi_row, mi_col, 0, bsize, partition, &ctx,
-    );
-    Ok(())
+    )
 }
 
 /*\brief AV1 block partition application (minimal RD search).

@@ -15,18 +15,20 @@ use crate::aom::av1::common::av1_txfm::*;
 use crate::aom::av1::common::enums::*;
 
 /// Translation of `fwd_txfm_type_to_func()` over the 1D transforms the
-/// saver reaches (the DCTs of 4 to 32 points).
+/// saver reaches (no 4-point ADST or identity, and no 64-point transforms).
 #[inline]
-fn fwd_txfm_type_to_func(txfm_type: TxfmType) -> TxfmFunc {
-    match txfm_type {
+fn fwd_txfm_type_to_func(txfm_type: TxfmType) -> Option<TxfmFunc> {
+    Some(match txfm_type {
         TXFM_TYPE_DCT4 => av1_fdct4,
         TXFM_TYPE_DCT8 => av1_fdct8,
         TXFM_TYPE_DCT16 => av1_fdct16,
-        _ => {
-            debug_assert!(txfm_type == TXFM_TYPE_DCT32);
-            av1_fdct32
-        }
-    }
+        TXFM_TYPE_DCT32 => av1_fdct32,
+        TXFM_TYPE_ADST8 => av1_fadst8,
+        TXFM_TYPE_ADST16 => av1_fadst16,
+        TXFM_TYPE_IDENTITY8 => av1_fidentity8_c,
+        TXFM_TYPE_IDENTITY16 => av1_fidentity16_c,
+        _ => return None,
+    })
 }
 
 pub(crate) fn av1_gen_fwd_stage_range(
@@ -61,7 +63,7 @@ fn fwd_txfm2d_c(
     cfg: &Txfm2dFlipCfg,
     buf: &mut [i32],
     bd: i32,
-) {
+) -> Result<(), ()> {
     // Note when assigning txfm_size_col, we use the txfm_size from the
     // row configuration and vice versa. This is intentionally done to
     // accurately perform rectangular transforms. When the transform is
@@ -81,8 +83,12 @@ fn fwd_txfm2d_c(
 
     let cos_bit_col = cfg.cos_bit_col;
     let cos_bit_row = cfg.cos_bit_row;
-    let txfm_func_col = fwd_txfm_type_to_func(cfg.txfm_type_col);
-    let txfm_func_row = fwd_txfm_type_to_func(cfg.txfm_type_row);
+    let (Some(txfm_func_col), Some(txfm_func_row)) = (
+        fwd_txfm_type_to_func(cfg.txfm_type_col),
+        fwd_txfm_type_to_func(cfg.txfm_type_row),
+    ) else {
+        return Err(());
+    };
     let txfm_size_col = txfm_size_col as usize;
     let txfm_size_row = txfm_size_row as usize;
 
@@ -132,6 +138,7 @@ fn fwd_txfm2d_c(
             }
         }
     }
+    Ok(())
 }
 
 macro_rules! fwd_txfm2d_fn {
@@ -142,11 +149,11 @@ macro_rules! fwd_txfm2d_fn {
             stride: usize,
             tx_type: TxType,
             bd: i32,
-        ) {
+        ) -> Result<(), ()> {
             let mut txfm_buf = [0i32; $w * $h];
             let mut cfg = Txfm2dFlipCfg::default();
             av1_get_fwd_txfm_cfg(tx_type, $tx, &mut cfg);
-            fwd_txfm2d_c(input, output, stride, &cfg, &mut txfm_buf, bd);
+            fwd_txfm2d_c(input, output, stride, &cfg, &mut txfm_buf, bd)
         }
     };
 }

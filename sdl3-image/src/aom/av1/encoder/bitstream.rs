@@ -27,6 +27,8 @@ use crate::aom::av1::common::cdef::CDEF_STRENGTH_BITS;
 use crate::aom::av1::common::cfl::is_cfl_allowed;
 use crate::aom::av1::common::entropymode::*;
 use crate::aom::av1::common::enums::*;
+use crate::aom::av1::common::filter::LOG_SWITCHABLE_FILTERS;
+use crate::aom::av1::common::mv::{WarpedMotionParams, DEFAULT_WARP_PARAMS, IDENTITY, TRANSLATION};
 use crate::aom::av1::common::pred_common::{av1_get_skip_txfm_context, get_tx_size_context};
 use crate::aom::av1::common::quant_common::QINDEX_BITS;
 use crate::aom::av1::common::reconintra::{
@@ -165,17 +167,27 @@ pub(crate) fn av1_write_tx_type(
         // is no need to send the tx_type
         debug_assert!(eset > 0);
         debug_assert!(AV1_EXT_TX_USED[tx_set_type as usize][tx_type as usize] != 0);
-        // (intra blocks only)
-        debug_assert!(is_inter == 0);
-        // (no filter intra: the intra direction is the mode)
-        debug_assert!(mbmi.filter_intra_mode_info.use_filter_intra == 0);
-        let intra_dir = mbmi.mode;
-        aom_write_symbol(
-            w,
-            AV1_EXT_TX_IND[tx_set_type as usize][tx_type as usize],
-            &mut xd.tile_ctx.intra_ext_tx_cdf[eset as usize][square_tx_size][intra_dir as usize],
-            AV1_NUM_EXT_TX_SET[tx_set_type as usize],
-        );
+        if is_inter != 0 {
+            aom_write_symbol(
+                w,
+                AV1_EXT_TX_IND[tx_set_type as usize][tx_type as usize],
+                &mut xd.tile_ctx.inter_ext_tx_cdf[eset as usize][square_tx_size],
+                AV1_NUM_EXT_TX_SET[tx_set_type as usize],
+            );
+        } else {
+            let intra_dir = if mbmi.filter_intra_mode_info.use_filter_intra != 0 {
+                FIMODE_TO_INTRADIR[mbmi.filter_intra_mode_info.filter_intra_mode as usize]
+            } else {
+                mbmi.mode
+            };
+            aom_write_symbol(
+                w,
+                AV1_EXT_TX_IND[tx_set_type as usize][tx_type as usize],
+                &mut xd.tile_ctx.intra_ext_tx_cdf[eset as usize][square_tx_size]
+                    [intra_dir as usize],
+                AV1_NUM_EXT_TX_SET[tx_set_type as usize],
+            );
+        }
     }
 }
 
@@ -644,10 +656,13 @@ fn write_modes(cpi: &Av1Comp, td: &mut ThreadData, tile: &TileInfo, w: &mut AomW
     }
 }
 
-fn encode_restoration_mode(cm: &Av1Common) {
+fn encode_restoration_mode(cm: &Av1Common) -> Result<(), ()> {
     debug_assert!(!cm.features.all_lossless);
-    // (loop restoration is disabled in the sequence)
-    debug_assert!(cm.seq_params.enable_restoration == 0);
+    if cm.seq_params.enable_restoration == 0 {
+        return Ok(());
+    }
+    // (loop restoration is disabled in the saver's sequences)
+    Err(())
 }
 
 // Only write out the ref delta section if any of the elements
@@ -795,21 +810,33 @@ fn encode_quantization(
     debug_assert!(!quant_params.using_qmatrix);
 }
 
-fn encode_segmentation(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
+fn encode_segmentation(cm: &Av1Common, wb: &mut AomWriteBitBuffer) -> Result<(), ()> {
     let seg = &cm.seg;
 
     aom_wb_write_bit(wb, seg.enabled as i32);
-    // (segmentation is off)
-    debug_assert!(seg.enabled == 0);
+    if seg.enabled == 0 {
+        return Ok(());
+    }
+    // (segmentation is off for the saver)
+    Err(())
 }
 
-fn write_tile_info_max_tile(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
+fn write_frame_interp_filter(filter: i32, wb: &mut AomWriteBitBuffer) {
+    aom_wb_write_bit(wb, (filter == SWITCHABLE) as i32);
+    if filter != SWITCHABLE {
+        aom_wb_write_literal(wb, filter, LOG_SWITCHABLE_FILTERS);
+    }
+}
+
+fn write_tile_info_max_tile(cm: &Av1Common, wb: &mut AomWriteBitBuffer) -> Result<(), ()> {
     let tiles = &cm.tiles;
 
     aom_wb_write_bit(wb, tiles.uniform_spacing as i32);
 
-    // (the saver's tiles are uniformly spaced)
-    debug_assert!(tiles.uniform_spacing != 0);
+    if tiles.uniform_spacing == 0 {
+        // (the saver's tiles are uniformly spaced)
+        return Err(());
+    }
     let mut ones = tiles.log2_cols - tiles.min_log2_cols;
     while ones > 0 {
         aom_wb_write_bit(wb, 1);
@@ -832,10 +859,15 @@ fn write_tile_info_max_tile(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
         ceil_power_of_two(cm.mi_params.mi_cols, cm.seq_params.mib_size_log2),
         ceil_power_of_two(cm.mi_params.mi_rows, cm.seq_params.mib_size_log2),
     );
+    Ok(())
 }
 
-fn write_tile_info(cm: &Av1Common, saved_wb: &mut SavedWb, wb: &mut AomWriteBitBuffer) {
-    write_tile_info_max_tile(cm, wb);
+fn write_tile_info(
+    cm: &Av1Common,
+    saved_wb: &mut SavedWb,
+    wb: &mut AomWriteBitBuffer,
+) -> Result<(), ()> {
+    write_tile_info_max_tile(cm, wb)?;
 
     *saved_wb = wb.save();
     if cm.tiles.rows * cm.tiles.cols > 1 {
@@ -844,6 +876,7 @@ fn write_tile_info(cm: &Av1Common, saved_wb: &mut SavedWb, wb: &mut AomWriteBitB
         // Number of bytes in tile size - 1
         aom_wb_write_literal(wb, 3, 2);
     }
+    Ok(())
 }
 
 fn write_render_size(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
@@ -855,19 +888,29 @@ fn write_render_size(cm: &Av1Common, wb: &mut AomWriteBitBuffer) {
     }
 }
 
-fn write_superres_scale(cm: &Av1Common) {
+fn write_superres_scale(cm: &Av1Common) -> Result<(), ()> {
     let seq_params = &cm.seq_params;
-    // (superres is disabled in the sequence)
-    debug_assert!(seq_params.enable_superres == 0);
-    debug_assert!(cm.superres_scale_denominator as i32 == SCALE_NUMERATOR);
+    if seq_params.enable_superres == 0 {
+        debug_assert!(cm.superres_scale_denominator as i32 == SCALE_NUMERATOR);
+        return Ok(());
+    }
+    // (superres is disabled in the saver's sequences)
+    Err(())
 }
 
-fn write_frame_size(cm: &Av1Common, frame_size_override: bool, wb: &mut AomWriteBitBuffer) {
-    // (no frame size override in a reduced still picture header)
-    debug_assert!(!frame_size_override);
+fn write_frame_size(
+    cm: &Av1Common,
+    frame_size_override: bool,
+    wb: &mut AomWriteBitBuffer,
+) -> Result<(), ()> {
+    if frame_size_override {
+        // (the saver's frames all have the sequence's size)
+        return Err(());
+    }
 
-    write_superres_scale(cm);
+    write_superres_scale(cm)?;
     write_render_size(cm, wb);
+    Ok(())
 }
 
 #[inline]
@@ -985,7 +1028,10 @@ fn write_sb_size(seq_params: &SequenceHeader, wb: &mut AomWriteBitBuffer) {
     );
 }
 
-fn write_sequence_header(seq_params: &SequenceHeader, wb: &mut AomWriteBitBuffer) {
+fn write_sequence_header(
+    seq_params: &SequenceHeader,
+    wb: &mut AomWriteBitBuffer,
+) -> Result<(), ()> {
     aom_wb_write_literal(wb, seq_params.num_bits_width - 1, 4);
     aom_wb_write_literal(wb, seq_params.num_bits_height - 1, 4);
     aom_wb_write_literal(
@@ -999,17 +1045,100 @@ fn write_sequence_header(seq_params: &SequenceHeader, wb: &mut AomWriteBitBuffer
         seq_params.num_bits_height,
     );
 
-    // (the saver writes reduced still picture headers)
-    debug_assert!(seq_params.reduced_still_picture_hdr != 0);
+    if seq_params.reduced_still_picture_hdr == 0 {
+        aom_wb_write_bit(wb, seq_params.frame_id_numbers_present_flag as i32);
+        if seq_params.frame_id_numbers_present_flag != 0 {
+            // (frame ids are off for the saver)
+            return Err(());
+        }
+    }
 
     write_sb_size(seq_params, wb);
 
     aom_wb_write_bit(wb, seq_params.enable_filter_intra as i32);
     aom_wb_write_bit(wb, seq_params.enable_intra_edge_filter as i32);
 
+    if seq_params.reduced_still_picture_hdr == 0 {
+        aom_wb_write_bit(wb, seq_params.enable_interintra_compound as i32);
+        aom_wb_write_bit(wb, seq_params.enable_masked_compound as i32);
+        aom_wb_write_bit(wb, seq_params.enable_warped_motion as i32);
+        aom_wb_write_bit(wb, seq_params.enable_dual_filter as i32);
+
+        aom_wb_write_bit(wb, seq_params.order_hint_info.enable_order_hint);
+
+        if seq_params.order_hint_info.enable_order_hint != 0 {
+            aom_wb_write_bit(wb, seq_params.order_hint_info.enable_dist_wtd_comp);
+            aom_wb_write_bit(wb, seq_params.order_hint_info.enable_ref_frame_mvs);
+        }
+        if seq_params.force_screen_content_tools == 2 {
+            aom_wb_write_bit(wb, 1);
+        } else {
+            aom_wb_write_bit(wb, 0);
+            aom_wb_write_bit(wb, seq_params.force_screen_content_tools as i32);
+        }
+        if seq_params.force_screen_content_tools > 0 {
+            if seq_params.force_integer_mv == 2 {
+                aom_wb_write_bit(wb, 1);
+            } else {
+                aom_wb_write_bit(wb, 0);
+                aom_wb_write_bit(wb, seq_params.force_integer_mv as i32);
+            }
+        } else {
+            debug_assert!(seq_params.force_integer_mv == 2);
+        }
+        if seq_params.order_hint_info.enable_order_hint != 0 {
+            aom_wb_write_literal(wb, seq_params.order_hint_info.order_hint_bits_minus_1, 3);
+        }
+    }
+
     aom_wb_write_bit(wb, seq_params.enable_superres as i32);
     aom_wb_write_bit(wb, seq_params.enable_cdef as i32);
     aom_wb_write_bit(wb, seq_params.enable_restoration as i32);
+    Ok(())
+}
+
+fn write_global_motion_params(
+    params: &WarpedMotionParams,
+    _ref_params: &WarpedMotionParams,
+    wb: &mut AomWriteBitBuffer,
+    _allow_hp: bool,
+) -> Result<(), ()> {
+    let type_ = params.wmtype;
+
+    // As a workaround for an AV1 spec bug, we avoid choosing TRANSLATION
+    // type models. Check here that we don't accidentally pick one somehow.
+    // See comments in gm_get_motion_vector() for details on the bug we're
+    // working around here
+    debug_assert!(type_ != TRANSLATION);
+
+    aom_wb_write_bit(wb, (type_ != IDENTITY) as i32);
+    if type_ != IDENTITY {
+        // (the global motion search is off for the saver's speed: the
+        // models stay the identity)
+        return Err(());
+    }
+    Ok(())
+}
+
+fn write_global_motion(cpi: &Av1Comp, wb: &mut AomWriteBitBuffer) -> Result<(), ()> {
+    let cm = &cpi.common;
+    for frame in LAST_FRAME..=ALTREF_FRAME {
+        let ref_params = match cm.prev_frame {
+            Some(prev) => &cm.buffer_pool.frame_bufs[prev].global_motion[frame as usize],
+            None => &DEFAULT_WARP_PARAMS,
+        };
+        write_global_motion_params(
+            &cm.global_motion[frame as usize],
+            ref_params,
+            wb,
+            cm.features.allow_high_precision_mv,
+        )?;
+        // TODO(sarahparker, debargha): The logic in the commented out code below
+        // does not work currently and causes mismatches when resize is on.
+        // Fix it before turning the optimization back on.
+        // (the commented out code)
+    }
+    Ok(())
 }
 
 // New function based on HLS R18
@@ -1017,7 +1146,7 @@ fn write_uncompressed_header_obu(
     cpi: &mut Av1Comp,
     saved_wb: &mut SavedWb,
     wb: &mut AomWriteBitBuffer,
-) {
+) -> Result<(), ()> {
     let enable_ref_short_signaling = cpi.sf.rt_sf.enable_ref_short_signaling;
     let cm = &mut cpi.common;
     let seq_params = &cm.seq_params;
@@ -1042,9 +1171,34 @@ fn write_uncompressed_header_obu(
         debug_assert!(cm.show_frame == 1);
         debug_assert!(current_frame.frame_type == KEY_FRAME);
     }
-    // (the saver writes reduced still picture headers: no show existing
-    // frame, frame type, show frame or error resilient flags)
-    debug_assert!(seq_params.reduced_still_picture_hdr != 0);
+    if seq_params.reduced_still_picture_hdr == 0 {
+        if encode_show_existing_frame(cm) {
+            // (the saver never shows an existing frame)
+            return Err(());
+        } else {
+            aom_wb_write_bit(wb, 0); // show_existing_frame
+        }
+
+        aom_wb_write_literal(wb, current_frame.frame_type as i32, 2);
+
+        aom_wb_write_bit(wb, cm.show_frame);
+        if cm.show_frame != 0 {
+            if seq_params.decoder_model_info_present_flag != 0
+                && seq_params.timing_info.equal_picture_interval == 0
+            {
+                // (no decoder model info)
+                return Err(());
+            }
+        } else {
+            // (the saver's frames are all shown)
+            return Err(());
+        }
+        if frame_is_sframe(cm) {
+            debug_assert!(features.error_resilient_mode);
+        } else if !(current_frame.frame_type == KEY_FRAME && cm.show_frame != 0) {
+            aom_wb_write_bit(wb, features.error_resilient_mode as i32);
+        }
+    }
     aom_wb_write_bit(wb, features.disable_cdf_update as i32);
 
     if seq_params.force_screen_content_tools == 2 {
@@ -1055,37 +1209,153 @@ fn write_uncompressed_header_obu(
         );
     }
 
-    // (screen content tools are off)
-    debug_assert!(!features.allow_screen_content_tools);
-    debug_assert!(!features.cur_frame_force_integer_mv);
+    if features.allow_screen_content_tools {
+        // (screen content tools are off)
+        return Err(());
+    } else {
+        debug_assert!(!features.cur_frame_force_integer_mv);
+    }
 
-    let frame_size_override_flag = false;
+    let mut frame_size_override_flag = false;
 
-    debug_assert!(
-        cm.superres_upscaled_width == seq_params.max_frame_width
-            && cm.superres_upscaled_height == seq_params.max_frame_height
-    );
+    if seq_params.reduced_still_picture_hdr != 0 {
+        debug_assert!(
+            cm.superres_upscaled_width == seq_params.max_frame_width
+                && cm.superres_upscaled_height == seq_params.max_frame_height
+        );
+    } else {
+        if seq_params.frame_id_numbers_present_flag != 0 {
+            // (frame ids are off for the saver)
+            return Err(());
+        }
 
-    // (no decoder model info; a shown key frame refreshes all the
-    // references: no refresh flags or order hints)
-    debug_assert!(seq_params.decoder_model_info_present_flag == 0);
-    debug_assert!(current_frame.frame_type == KEY_FRAME && cm.show_frame != 0);
-    debug_assert!(current_frame.refresh_frame_flags == 0xff);
+        if cm.superres_upscaled_width > seq_params.max_frame_width
+            || cm.superres_upscaled_height > seq_params.max_frame_height
+        {
+            // "Frame dimensions are larger than the maximum values"
+            // (AOM_CODEC_UNSUP_BITSTREAM)
+            return Err(());
+        }
 
-    write_frame_size(cm, frame_size_override_flag, wb);
-    debug_assert!(!av1_superres_scaled(cm) || !features.allow_intrabc);
+        frame_size_override_flag = if frame_is_sframe(cm) {
+            true
+        } else {
+            cm.superres_upscaled_width != seq_params.max_frame_width
+                || cm.superres_upscaled_height != seq_params.max_frame_height
+        };
+        if !frame_is_sframe(cm) {
+            aom_wb_write_bit(wb, frame_size_override_flag as i32);
+        }
+
+        if seq_params.order_hint_info.enable_order_hint != 0 {
+            aom_wb_write_literal(
+                wb,
+                current_frame.order_hint as i32,
+                seq_params.order_hint_info.order_hint_bits_minus_1 + 1,
+            );
+        }
+
+        if !features.error_resilient_mode && !frame_is_intra_only(cm) {
+            aom_wb_write_literal(wb, features.primary_ref_frame, PRIMARY_REF_BITS);
+        }
+    }
+
+    if seq_params.decoder_model_info_present_flag != 0 {
+        // (no decoder model info)
+        return Err(());
+    }
+
+    // Shown keyframes and switch-frames automatically refreshes all reference
+    // frames.  For all other frame types, we need to write refresh_frame_flags.
+    if (current_frame.frame_type == KEY_FRAME && cm.show_frame == 0)
+        || current_frame.frame_type == INTER_FRAME
+        || current_frame.frame_type == INTRA_ONLY_FRAME
+    {
+        aom_wb_write_literal(wb, current_frame.refresh_frame_flags, REF_FRAMES as i32);
+    }
+
+    if !frame_is_intra_only(cm) || current_frame.refresh_frame_flags != 0xff {
+        // Write all ref frame order hints if error_resilient_mode == 1
+        if features.error_resilient_mode && seq_params.order_hint_info.enable_order_hint != 0 {
+            // (the saver's frames are not error resilient)
+            return Err(());
+        }
+    }
+
+    if current_frame.frame_type == KEY_FRAME {
+        write_frame_size(cm, frame_size_override_flag, wb)?;
+        debug_assert!(!av1_superres_scaled(cm) || !features.allow_intrabc);
+        if features.allow_screen_content_tools && !av1_superres_scaled(cm) {
+            aom_wb_write_bit(wb, features.allow_intrabc as i32);
+        }
+    } else if current_frame.frame_type == INTRA_ONLY_FRAME {
+        // (the saver's intra frames are key frames)
+        return Err(());
+    } else if current_frame.frame_type == INTER_FRAME || frame_is_sframe(cm) {
+        // NOTE: Error resilient mode turns off frame_refs_short_signaling
+        //       automatically.
+        // (FRAME_REFS_SHORT_SIGNALING is 0)
+
+        if current_frame.frame_refs_short_signaling != 0 {
+            // (enable_ref_short_signaling is off for the saver's speed)
+            return Err(());
+        }
+
+        if seq_params.order_hint_info.enable_order_hint != 0 {
+            aom_wb_write_bit(wb, current_frame.frame_refs_short_signaling);
+        }
+
+        for ref_frame in LAST_FRAME..=ALTREF_FRAME {
+            debug_assert!(get_ref_frame_map_idx(cm, ref_frame) != INVALID_IDX);
+            if current_frame.frame_refs_short_signaling == 0 {
+                aom_wb_write_literal(wb, get_ref_frame_map_idx(cm, ref_frame), REF_FRAMES_LOG2);
+            }
+            if seq_params.frame_id_numbers_present_flag != 0 {
+                // (frame ids are off for the saver)
+                return Err(());
+            }
+        }
+
+        if !features.error_resilient_mode && frame_size_override_flag {
+            // (write_frame_size_with_refs(): the saver's frames all have the
+            // sequence's size)
+            return Err(());
+        } else {
+            write_frame_size(cm, frame_size_override_flag, wb)?;
+        }
+
+        if !features.cur_frame_force_integer_mv {
+            aom_wb_write_bit(wb, features.allow_high_precision_mv as i32);
+        }
+        write_frame_interp_filter(features.interp_filter, wb);
+        aom_wb_write_bit(wb, features.switchable_motion_mode as i32);
+        if frame_might_allow_ref_frame_mvs(cm) {
+            aom_wb_write_bit(wb, features.allow_ref_frame_mvs as i32);
+        } else {
+            debug_assert!(!features.allow_ref_frame_mvs);
+        }
+    }
 
     let might_bwd_adapt = seq_params.reduced_still_picture_hdr == 0 && !features.disable_cdf_update;
-    debug_assert!(!might_bwd_adapt);
+    if cm.tiles.large_scale != 0 {
+        debug_assert!(features.refresh_frame_context == REFRESH_FRAME_CONTEXT_DISABLED);
+    }
 
-    write_tile_info(cm, saved_wb, wb);
+    if might_bwd_adapt {
+        aom_wb_write_bit(
+            wb,
+            (features.refresh_frame_context == REFRESH_FRAME_CONTEXT_DISABLED) as i32,
+        );
+    }
+
+    write_tile_info(cm, saved_wb, wb)?;
     encode_quantization(
         quant_params,
         av1_num_planes(cm),
         cm.seq_params.separate_uv_delta_q != 0,
         wb,
     );
-    encode_segmentation(cm, wb);
+    encode_segmentation(cm, wb)?;
 
     let delta_q_info = &cm.delta_q_info;
     if delta_q_info.delta_q_present_flag != 0 {
@@ -1093,8 +1363,11 @@ fn write_uncompressed_header_obu(
     }
     if quant_params.base_qindex > 0 {
         aom_wb_write_bit(wb, delta_q_info.delta_q_present_flag);
-        // (delta q is never present)
-        debug_assert!(delta_q_info.delta_q_present_flag == 0);
+        if delta_q_info.delta_q_present_flag != 0 {
+            // (delta q is never present: the TPL statistics the objective
+            // needs are never there)
+            return Err(());
+        }
     }
 
     if features.all_lossless {
@@ -1104,7 +1377,7 @@ fn write_uncompressed_header_obu(
             encode_loopfilter(cm, wb);
             encode_cdef(cm, wb);
         }
-        encode_restoration_mode(cm);
+        encode_restoration_mode(cm)?;
     }
 
     // Write TX mode
@@ -1114,8 +1387,11 @@ fn write_uncompressed_header_obu(
         aom_wb_write_bit(wb, (features.tx_mode == TX_MODE_SELECT) as i32);
     }
 
-    // (an intra frame: no reference mode)
-    debug_assert!(frame_is_intra_only(cm));
+    if !frame_is_intra_only(cm) {
+        let use_hybrid_pred = current_frame.reference_mode == REFERENCE_MODE_SELECT;
+
+        aom_wb_write_bit(wb, use_hybrid_pred as i32);
+    }
 
     if current_frame.skip_mode_info.skip_mode_allowed != 0 {
         aom_wb_write_bit(wb, current_frame.skip_mode_info.skip_mode_flag);
@@ -1129,10 +1405,20 @@ fn write_uncompressed_header_obu(
 
     aom_wb_write_bit(wb, features.reduced_tx_set_used as i32);
 
-    // (no global motion in an intra frame, no film grain, no large scale
-    // tiles)
-    debug_assert!(seq_params.film_grain_params_present == 0);
-    debug_assert!(cm.tiles.large_scale == 0);
+    if !frame_is_intra_only(cm) {
+        write_global_motion(cpi, wb)?;
+    }
+
+    if seq_params.film_grain_params_present != 0 && (cm.show_frame != 0 || cm.showable_frame != 0) {
+        // (no film grain)
+        return Err(());
+    }
+
+    if cm.tiles.large_scale != 0 {
+        // (write_ext_tile_info(): no large scale tiles)
+        return Err(());
+    }
+    Ok(())
 }
 
 fn choose_size_bytes(mut size: u32, spare_msbs: i32) -> i32 {
@@ -1290,7 +1576,10 @@ fn write_bitstream_level(seq_level_idx: Av1Level, wb: &mut AomWriteBitBuffer) {
     aom_wb_write_literal(wb, seq_level_idx, LEVEL_BITS);
 }
 
-pub(crate) fn av1_write_sequence_header_obu(seq_params: &SequenceHeader, dst: &mut [u8]) -> u32 {
+pub(crate) fn av1_write_sequence_header_obu(
+    seq_params: &SequenceHeader,
+    dst: &mut [u8],
+) -> Result<u32, ()> {
     let mut wb = AomWriteBitBuffer::new(dst, 0);
 
     write_profile(seq_params.profile, &mut wb);
@@ -1301,14 +1590,45 @@ pub(crate) fn av1_write_sequence_header_obu(seq_params: &SequenceHeader, dst: &m
     // whether to use reduced still picture header
     aom_wb_write_bit(&mut wb, seq_params.reduced_still_picture_hdr as i32);
 
-    // (the saver writes reduced still picture headers)
-    debug_assert!(seq_params.reduced_still_picture_hdr != 0);
-    debug_assert!(seq_params.timing_info_present == 0);
-    debug_assert!(seq_params.decoder_model_info_present_flag == 0);
-    debug_assert!(seq_params.display_model_info_present_flag == 0);
-    write_bitstream_level(seq_params.seq_level_idx[0], &mut wb);
+    if seq_params.reduced_still_picture_hdr != 0 {
+        debug_assert!(seq_params.timing_info_present == 0);
+        debug_assert!(seq_params.decoder_model_info_present_flag == 0);
+        debug_assert!(seq_params.display_model_info_present_flag == 0);
+        write_bitstream_level(seq_params.seq_level_idx[0], &mut wb);
+    } else {
+        aom_wb_write_bit(&mut wb, seq_params.timing_info_present); // timing info present flag
 
-    write_sequence_header(seq_params, &mut wb);
+        if seq_params.timing_info_present != 0 {
+            // (libavif sets no timing info)
+            return Err(());
+        }
+        aom_wb_write_bit(&mut wb, seq_params.display_model_info_present_flag as i32);
+        aom_wb_write_literal(
+            &mut wb,
+            seq_params.operating_points_cnt_minus_1,
+            OP_POINTS_CNT_MINUS_1_BITS,
+        );
+        for i in 0..(seq_params.operating_points_cnt_minus_1 + 1) as usize {
+            aom_wb_write_literal(
+                &mut wb,
+                seq_params.operating_point_idc[i],
+                OP_POINTS_IDC_BITS,
+            );
+            write_bitstream_level(seq_params.seq_level_idx[i], &mut wb);
+            if seq_params.seq_level_idx[i] >= SEQ_LEVEL_4_0 {
+                aom_wb_write_bit(&mut wb, seq_params.tier[i] as i32);
+            }
+            if seq_params.decoder_model_info_present_flag != 0 {
+                // (no decoder model info)
+                return Err(());
+            }
+            if seq_params.display_model_info_present_flag != 0 {
+                // (no display model info)
+                return Err(());
+            }
+        }
+    }
+    write_sequence_header(seq_params, &mut wb)?;
 
     write_color_config(seq_params, &mut wb);
 
@@ -1316,7 +1636,7 @@ pub(crate) fn av1_write_sequence_header_obu(seq_params: &SequenceHeader, dst: &m
 
     add_trailing_bits(&mut wb);
 
-    aom_wb_bytes_written(&wb)
+    Ok(aom_wb_bytes_written(&wb))
 }
 
 fn write_frame_header_obu(
@@ -1325,13 +1645,13 @@ fn write_frame_header_obu(
     buf: &mut [u8],
     dst: usize,
     append_trailing_bits: bool,
-) -> u32 {
+) -> Result<u32, ()> {
     let mut wb = AomWriteBitBuffer::new(buf, dst);
-    write_uncompressed_header_obu(cpi, saved_wb, &mut wb);
+    write_uncompressed_header_obu(cpi, saved_wb, &mut wb)?;
     if append_trailing_bits {
         add_trailing_bits(&mut wb);
     }
-    aom_wb_bytes_written(&wb)
+    Ok(aom_wb_bytes_written(&wb))
 }
 
 fn write_tile_group_header(
@@ -1380,7 +1700,7 @@ fn av1_write_obu_tg_tile_headers(
     total_size: &mut u32,
     pack_bs_params: &mut PackBsParams,
     tile_idx: i32,
-) {
+) -> Result<(), ()> {
     let tiles = cpi.common.tiles;
     let tg_size = (tiles.rows * tiles.cols + cpi.num_tg - 1) / cpi.num_tg;
 
@@ -1399,7 +1719,7 @@ fn av1_write_obu_tg_tile_headers(
 
     if cpi.num_tg == 1 {
         curr_tg_hdr_size +=
-            write_frame_header_obu(cpi, saved_wb, dst, tdc + curr_tg_hdr_size as usize, false)
+            write_frame_header_obu(cpi, saved_wb, dst, tdc + curr_tg_hdr_size as usize, false)?
                 as i32;
     }
     curr_tg_hdr_size += write_tile_group_header(
@@ -1411,6 +1731,7 @@ fn av1_write_obu_tg_tile_headers(
     ) as i32;
     pack_bs_params.curr_tg_hdr_size = curr_tg_hdr_size;
     *total_size += curr_tg_hdr_size as u32;
+    Ok(())
 }
 
 // Pack tile data in the bitstream with tile_group, frame
@@ -1592,7 +1913,7 @@ fn write_tile_obu(
                 buf_size: 0,
             };
 
-            if new_tg {
+            let hdr = if new_tg {
                 av1_write_obu_tg_tile_headers(
                     cpi,
                     dst,
@@ -1600,10 +1921,13 @@ fn write_tile_obu(
                     total_size,
                     &mut pack_bs_params,
                     tile_idx,
-                );
-            }
+                )
+            } else {
+                Ok(())
+            };
 
-            let res = av1_pack_tile_info(cpi, td, dst, total_size, &mut pack_bs_params);
+            let res = hdr
+                .and_then(|()| av1_pack_tile_info(cpi, td, dst, total_size, &mut pack_bs_params));
             std::mem::swap(
                 &mut td.mb.e_mbd.tile_ctx,
                 &mut cpi.tile_data[tile_idx as usize].tctx,
@@ -1830,7 +2154,7 @@ fn av1_pack_bitstream_td(
         let obu_payload_size = av1_write_sequence_header_obu(
             &cpi.common.seq_params,
             &mut dst[data + obu_header_size..],
-        ) as usize;
+        )? as usize;
         let length_field_size =
             av1_obu_memmove(obu_header_size, obu_payload_size, &mut dst[data..]);
         av1_write_uleb_obu_size(obu_header_size, obu_payload_size, &mut dst[data..])?;

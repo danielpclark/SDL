@@ -25,6 +25,7 @@ use crate::aom::aom_dsp::subtract::aom_highbd_subtract_block;
 use crate::aom::av1::common::av1_common_int::CommonQuantParams;
 use crate::aom::av1::common::av1_common_int::{frame_is_intra_only, Av1Common};
 use crate::aom::av1::common::blockd::*;
+use crate::aom::av1::common::cfl::cfl_store_tx;
 use crate::aom::av1::common::entropy::EntropyContext;
 use crate::aom::av1::common::enums::*;
 use crate::aom::av1::common::idct::{av1_get_tx_scale, av1_inverse_transform_block, TxfmParam};
@@ -98,8 +99,9 @@ pub(crate) fn av1_subtract_block(
     pred_stride: usize,
 ) {
     debug_assert!(rows >= 4 && cols >= 4);
-    // (the saver's buffers are always high bit depth)
-    debug_assert!(bd_info.use_highbitdepth_buf);
+    // (aom_subtract_block() computes what aom_highbd_subtract_block()
+    // computes)
+    let _ = bd_info;
     aom_highbd_subtract_block(
         rows,
         cols,
@@ -374,9 +376,9 @@ pub(crate) fn av1_xform_quant(
     plane_bsize: BlockSize,
     txfm_param: &TxfmParam,
     qparam: &QuantParam,
-) {
-    av1_xform(x, plane, block, blk_row, blk_col, plane_bsize, txfm_param);
-    av1_quant(x, plane, block, txfm_param, qparam);
+) -> Result<(), ()> {
+    av1_xform(x, plane, block, blk_row, blk_col, plane_bsize, txfm_param)?;
+    av1_quant(x, plane, block, txfm_param, qparam)
 }
 
 pub(crate) fn av1_xform(
@@ -387,7 +389,7 @@ pub(crate) fn av1_xform(
     blk_col: i32,
     plane_bsize: BlockSize,
     txfm_param: &TxfmParam,
-) {
+) -> Result<(), ()> {
     let p = &mut x.plane[plane];
     let block_offset = block_offset(block);
     let diff_stride = BLOCK_SIZE_WIDE[plane_bsize as usize] as i32;
@@ -400,7 +402,7 @@ pub(crate) fn av1_xform(
         &mut p.coeff[block_offset..],
         diff_stride as usize,
         txfm_param,
-    );
+    )
 }
 
 pub(crate) fn av1_quant(
@@ -409,7 +411,7 @@ pub(crate) fn av1_quant(
     block: i32,
     txfm_param: &TxfmParam,
     qparam: &QuantParam,
-) {
+) -> Result<(), ()> {
     let seg_skip_block = x.seg_skip_block;
     let p = &mut x.plane[plane];
     let scan_order = get_scan(txfm_param.tx_size, txfm_param.tx_type);
@@ -420,24 +422,32 @@ pub(crate) fn av1_quant(
         let n_coeffs = av1_get_max_eob(txfm_param.tx_size);
         if seg_skip_block == 0 {
             // (quant_func_list[qparam->xform_quant_idx][txfm_param->is_hbd]:
-            // the saver's buffers are always high bit depth, and the
-            // quantizer is "fp" or "b"; the coefficient buffers are taken out
-            // of the plane for the call, which reads the plane's quantizers)
-            debug_assert!(txfm_param.is_hbd != 0);
+            // the quantizer is "fp" or "b"; the coefficient buffers are taken
+            // out of the plane for the call, which reads the plane's
+            // quantizers)
+            type Facade = fn(
+                &[TranLowT],
+                i32,
+                &MacroblockPlane,
+                &mut [TranLowT],
+                &mut [TranLowT],
+                &mut u16,
+                &crate::aom::av1::common::scan::ScanOrder,
+                &QuantParam,
+            ) -> Result<(), ()>;
+            let facade: Facade = match (qparam.xform_quant_idx, txfm_param.is_hbd != 0) {
+                (AV1_XFORM_QUANT_FP, false) => av1_quantize_fp_facade,
+                (AV1_XFORM_QUANT_B, false) => av1_quantize_b_facade,
+                (AV1_XFORM_QUANT_FP, true) => av1_highbd_quantize_fp_facade,
+                (AV1_XFORM_QUANT_B, true) => av1_highbd_quantize_b_facade,
+                // (the "dc" quantizers: never used)
+                _ => return Err(()),
+            };
             let coeff = std::mem::take(&mut p.coeff);
             let mut qcoeff = std::mem::take(&mut p.qcoeff);
             let mut dqcoeff = std::mem::take(&mut p.dqcoeff);
             let mut eob = p.eobs[block];
-            debug_assert!(
-                qparam.xform_quant_idx == AV1_XFORM_QUANT_FP
-                    || qparam.xform_quant_idx == AV1_XFORM_QUANT_B
-            );
-            let facade = if qparam.xform_quant_idx == AV1_XFORM_QUANT_B {
-                av1_highbd_quantize_b_facade
-            } else {
-                av1_highbd_quantize_fp_facade
-            };
-            facade(
+            let res = facade(
                 &coeff[block_offset..],
                 n_coeffs,
                 p,
@@ -451,6 +461,7 @@ pub(crate) fn av1_quant(
             p.coeff = coeff;
             p.qcoeff = qcoeff;
             p.dqcoeff = dqcoeff;
+            res?;
         } else {
             av1_quantize_skip(
                 n_coeffs,
@@ -471,6 +482,7 @@ pub(crate) fn av1_quant(
             p.eobs[block] as i32,
         );
     }
+    Ok(())
 }
 
 pub(crate) fn av1_setup_xform(
@@ -535,14 +547,15 @@ pub(crate) fn av1_setup_qmatrix(
 
 /// Translation of `av1_foreach_transformed_block_in_plane()`: `visit` gets
 /// `arg` (the visitor's `void *arg`) and the block's position; `xd` finds
-/// the block's `MACROBLOCKD` in `arg`, read before the first visit.
+/// the block's `MACROBLOCKD` in `arg`, read before the first visit. A
+/// visitor's error stops the walk.
 pub(crate) fn av1_foreach_transformed_block_in_plane<T>(
     arg: &mut T,
     xd: impl Fn(&T) -> &MacroBlockD,
     plane_bsize: BlockSize,
     plane: usize,
-    mut visit: impl FnMut(&mut T, usize, i32, i32, i32, BlockSize, TxSize),
-) {
+    mut visit: impl FnMut(&mut T, usize, i32, i32, i32, BlockSize, TxSize) -> Result<(), ()>,
+) -> Result<(), ()> {
     let xd = xd(arg);
     let pd = &xd.plane[plane];
     // block and transform sizes, in number of 4x4 blocks log 2 ("*_b")
@@ -576,7 +589,7 @@ pub(crate) fn av1_foreach_transformed_block_in_plane<T>(
             while blk_row < unit_height {
                 let mut blk_col = c;
                 while blk_col < unit_width {
-                    visit(arg, plane, i, blk_row, blk_col, plane_bsize, tx_size);
+                    visit(arg, plane, i, blk_row, blk_col, plane_bsize, tx_size)?;
                     i += step;
                     blk_col += txw_unit;
                 }
@@ -586,6 +599,7 @@ pub(crate) fn av1_foreach_transformed_block_in_plane<T>(
         }
         r += mu_blocks_high;
     }
+    Ok(())
 }
 
 fn encode_block_intra_and_set_context(
@@ -596,8 +610,8 @@ fn encode_block_intra_and_set_context(
     plane_bsize: BlockSize,
     tx_size: TxSize,
     args: &mut EncodeBArgs,
-) {
-    av1_encode_block_intra(plane, block, blk_row, blk_col, plane_bsize, tx_size, args);
+) -> Result<(), ()> {
+    av1_encode_block_intra(plane, block, blk_row, blk_col, plane_bsize, tx_size, args)?;
 
     let EncodeBArgs { x, ta, tl, .. } = args;
     av1_set_txb_context(
@@ -608,6 +622,7 @@ fn encode_block_intra_and_set_context(
         &mut ta[blk_col as usize..],
         &mut tl[blk_row as usize..],
     );
+    Ok(())
 }
 
 pub(crate) fn av1_encode_block_intra(
@@ -618,14 +633,14 @@ pub(crate) fn av1_encode_block_intra(
     plane_bsize: BlockSize,
     tx_size: TxSize,
     args: &mut EncodeBArgs,
-) {
+) -> Result<(), ()> {
     let cpi = args.cpi;
     let cm = &cpi.common;
     let off = block_offset(block);
     let plane_type = get_plane_type(plane);
     let mut dummy_rate_cost = 0;
 
-    av1_predict_intra_block_facade(cm, &mut args.x.e_mbd, plane, blk_col, blk_row, tx_size);
+    av1_predict_intra_block_facade(cm, &mut args.x.e_mbd, plane, blk_col, blk_row, tx_size)?;
 
     let mut tx_type = DCT_DCT;
     let bw = MI_SIZE_WIDE[plane_bsize as usize] as i32;
@@ -693,7 +708,7 @@ pub(crate) fn av1_encode_block_intra(
             plane_bsize,
             &txfm_param,
             &quant_param,
-        );
+        )?;
 
         // Whether trellis or dropout optimization is required for key frames and
         // intra frames.
@@ -767,7 +782,7 @@ pub(crate) fn av1_encode_block_intra(
             dst_stride as usize,
             eob as i32,
             cm.features.reduced_tx_set_used as i32,
-        );
+        )?;
     }
 
     // TODO(jingning): Temporarily disable txk_type check for eob=0 case.
@@ -783,8 +798,10 @@ pub(crate) fn av1_encode_block_intra(
     // very expensive.
     x.e_mbd.mbmi_mut().skip_txfm = 0;
 
-    // (cfl_store_tx(): CfL is never used, so xd->cfl.store_y stays 0)
-    debug_assert!(!(plane == AOM_PLANE_Y && x.e_mbd.cfl.store_y != 0));
+    if plane == AOM_PLANE_Y && x.e_mbd.cfl.store_y != 0 {
+        cfl_store_tx(&mut x.e_mbd, blk_row, blk_col, tx_size, plane_bsize)?;
+    }
+    Ok(())
 }
 
 pub(crate) fn av1_encode_intra_block_plane(
@@ -795,11 +812,11 @@ pub(crate) fn av1_encode_intra_block_plane(
     plane: usize,
     dry_run: i32,
     enable_optimize_b: i32,
-) {
+) -> Result<(), ()> {
     debug_assert!(bsize < BLOCK_SIZES_ALL);
     let xd = &x.e_mbd;
     if plane != 0 && !xd.is_chroma_ref {
-        return;
+        return Ok(());
     }
 
     let pd = &xd.plane[plane];
@@ -836,5 +853,5 @@ pub(crate) fn av1_encode_intra_block_plane(
                 a,
             )
         },
-    );
+    )
 }
