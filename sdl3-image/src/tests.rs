@@ -2400,8 +2400,9 @@ fn webp_rgba(s: &Surface<'_>) -> Vec<u8> {
 #[test]
 fn webp_encoders_round_trip() {
     // The still saver: typed as "webp" it is quality 90; the lossy and the
-    // lossless (by way of YUV, as upstream's) outputs decode to the image's
-    // size, close to its pixels.
+    // lossless outputs decode to the image's size, close to its pixels, and
+    // the lossless one to its pixels (where upstream's goes by way of YUV:
+    // see save_webp_io()).
     let mut s = webp_pattern(37, 21, 1);
     let dump = |s: &mut Surface<'_>, q: f32| {
         let mut io = IoStream::from_dynamic_mem();
@@ -2426,6 +2427,9 @@ fn webp_encoders_round_trip() {
             .sum();
         let mean = total as f32 / source.len() as f32;
         assert!(mean < 4.0, "q{q}: {mean}");
+        if q == 100.0 {
+            assert!(back == source, "q100 isn't lossless");
+        }
     }
     // Above 100, libwebp's configuration rejects the quality.
     let e = crate::save_webp_io(&mut s, &mut IoStream::from_dynamic_mem(), 101.0).unwrap_err();
