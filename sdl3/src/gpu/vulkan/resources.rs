@@ -1765,8 +1765,10 @@ impl VulkanRenderer {
                 // SAFETY: the image just created.
                 unsafe { (self.dev.destroy_image)(self.logical_device, texture.image, null()) };
 
-                // FIXME (upstream): DestroyTexture destroys the image a
-                // second time (texture->image is still set).
+                // Note (upstream): texture->image is still set here, so
+                // DestroyTexture destroys the image a second time (a double
+                // vkDestroyImage); the translation clears it first.
+                texture.image = VK_NULL_HANDLE;
                 self.destroy_unfinished_texture(&texture);
                 return Err(self.set_string_error("Unable to bind memory for texture!"));
             }

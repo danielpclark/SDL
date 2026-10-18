@@ -2550,6 +2550,73 @@ fn submission_frees_empty_allocations() {
     r.wait_internal().unwrap();
 }
 
+/// The real `vkDestroyImage` and the images destroyed through
+/// [`recording_destroy_image`].
+static REAL_DESTROY_IMAGE: std::sync::Mutex<
+    Option<unsafe extern "system" fn(VkDevice, VkImage, Alloc)>,
+> = std::sync::Mutex::new(None);
+static DESTROYED_IMAGES: std::sync::Mutex<Vec<VkImage>> = std::sync::Mutex::new(Vec::new());
+
+/// `vkDestroyImage` that records the image, passing only its first destroy
+/// on to the driver.
+unsafe extern "system" fn recording_destroy_image(device: VkDevice, image: VkImage, alloc: Alloc) {
+    let mut destroyed = lock(&DESTROYED_IMAGES);
+    let again = destroyed.contains(&image);
+    destroyed.push(image);
+    drop(destroyed);
+    if !again {
+        let real = lock(&REAL_DESTROY_IMAGE).unwrap();
+        // SAFETY: the caller's arguments, for the driver's function.
+        unsafe { real(device, image, alloc) };
+    }
+}
+
+/// `vkBindImageMemory` that always fails.
+unsafe extern "system" fn failing_bind_image_memory(
+    _device: VkDevice,
+    _image: VkImage,
+    _memory: VkDeviceMemory,
+    _offset: VkDeviceSize,
+) -> VkResult {
+    VK_ERROR_OUT_OF_DEVICE_MEMORY
+}
+
+/// A texture whose memory can't be bound fails, destroying its image once
+/// (upstream destroys it twice).
+#[test]
+fn texture_bind_failure_destroys_the_image_once() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(mut r) = renderer() else {
+        return;
+    };
+
+    let (real_bind, real_destroy) = (r.0.dev.bind_image_memory, r.0.dev.destroy_image);
+    *lock(&REAL_DESTROY_IMAGE) = Some(real_destroy);
+    lock(&DESTROYED_IMAGES).clear();
+    r.0.dev.bind_image_memory = failing_bind_image_memory;
+    r.0.dev.destroy_image = recording_destroy_image;
+
+    let result = r.create_texture_internal(&texture_info(
+        TextureType::Texture2D,
+        TextureFormat::R8G8B8A8_UNORM,
+        TextureUsageFlags::SAMPLER,
+        1,
+        1,
+    ));
+
+    r.0.dev.bind_image_memory = real_bind;
+    r.0.dev.destroy_image = real_destroy;
+    let destroyed = std::mem::take(&mut *lock(&DESTROYED_IMAGES));
+
+    assert_eq!(
+        result.err().map(|e| e.message().to_owned()).as_deref(),
+        Some("Unable to bind memory for texture!")
+    );
+    assert_eq!(destroyed.len(), 1, "images destroyed: {destroyed:?}");
+    assert_ne!(destroyed[0], VK_NULL_HANDLE);
+}
+
 /// The video drivers whose windows the swapchain test presents to: the
 /// offscreen driver's headless surfaces, and X11's when there is a
 /// display (Windows' on Windows).
