@@ -1872,6 +1872,11 @@ fn moltenvk_under_metal_debug_layer(device: &gpu::Device) -> bool {
 
 fn assert_rgba_at(what: &str, r: &mut Renderer, (x, y): (i32, i32), want: [u8; 4]) {
     let got = rgba_at(r, x, y);
+    if std::env::var_os("DIAG_NOPANIC").is_some() {
+        let ok = got.iter().zip(&want).all(|(g, w)| g.abs_diff(*w) <= 1);
+        eprintln!("DIAG {} {what}: ({x}, {y}) is {got:?}, want {want:?}", if ok { "ok " } else { "BAD" });
+        return;
+    }
     assert!(
         got.iter().zip(&want).all(|(g, w)| g.abs_diff(*w) <= 1),
         "{what}: ({x}, {y}) is {got:?}, not {want:?}"
@@ -2050,7 +2055,7 @@ fn gpu_render_states_on(backend: Backend) {
         .unwrap();
     assert_rgba_at("tinted", &mut r, (5, 5), [100, 100, 10, 255]);
     assert_rgba_at("tinted again", &mut r, (15, 5), [200, 0, 40, 255]);
-    if moltenvk_under_metal_debug_layer(&device) {
+    if moltenvk_under_metal_debug_layer(&device) && std::env::var_os("DIAG_NOPANIC").is_none() {
         crate::test_support::skip(
             "vulkan",
             "MoltenVK misdraws a fill after a render state's under the Metal debug layer (MTL_DEBUG_LAYER)",
