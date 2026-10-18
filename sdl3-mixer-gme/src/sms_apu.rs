@@ -327,7 +327,10 @@ impl SmsApu {
             noise_width = 16;
         }
         // convert to "Galios configuration"
-        self.looped_feedback = 1u32 << (noise_width - 1);
+        // FIXME (upstream): a noise width past 32 (from a VGM header)
+        // shifts past the feedback's bits; the shift is kept to 5 bits, as
+        // x86 keeps it, here and in upstream's build for the tests.
+        self.looped_feedback = 1u32 << ((noise_width - 1) & 31);
         self.noise_feedback = 0;
         while noise_width != 0 {
             noise_width -= 1;

@@ -182,7 +182,16 @@ impl BlipBuffer {
 
     pub fn clock_rate_factor(&self, rate: u32) -> BlipResampledTime {
         let ratio = self.sample_rate_ as f64 / rate as f64;
-        let factor = floor(ratio * (1i64 << BLIP_BUFFER_ACCURACY) as f64 + 0.5) as BlipLong;
+        // FIXME (upstream): a factor past what blip_long holds (a clock
+        // rate under 1/32768 of the sample rate, as a VGM's PSG clock can
+        // be) overflows the conversion; it is held at its most, here and in
+        // upstream's build for the tests.
+        let f = floor(ratio * (1i64 << BLIP_BUFFER_ACCURACY) as f64 + 0.5);
+        let factor = if f < BlipLong::MAX as f64 {
+            f as BlipLong
+        } else {
+            BlipLong::MAX
+        };
         // assert( factor > 0 || !sample_rate_ ); // fails if clock/output ratio is too large
         factor as BlipResampledTime
     }
@@ -257,7 +266,17 @@ impl BlipBuffer {
             self.remove_silence(count);
 
             // copy remaining samples to beginning and clear old samples
-            let remain = (self.samples_avail() + BLIP_BUFFER_EXTRA_ as i64) as usize;
+            let mut remain = self.samples_avail() + BLIP_BUFFER_EXTRA_ as i64;
+            // FIXME (upstream): when a frame ended past the end of the buffer
+            // (a clock so slow that one clock is more samples than it holds),
+            // what is left after the removal can be more than the buffer
+            // holds past them, and upstream copies past its end; only what it
+            // holds is copied, here and in upstream's build for the tests.
+            let room = self.buffer_size_ as i64 + BLIP_BUFFER_EXTRA_ as i64 - count;
+            if remain > room {
+                remain = room.max(0);
+            }
+            let remain = remain as usize;
             let count = count as usize;
             self.buffer_.copy_within(count..count + remain, 0);
             self.buffer_[remain..remain + count].fill(0);

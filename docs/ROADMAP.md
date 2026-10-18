@@ -380,11 +380,13 @@ In dependency order, after the core each one needs exists:
    banked memory, Konami's SCC and the Master System's SN76489), the NSF
    and NSFE emulators (the 6502, the 2A03 APU and the VRC6, VRC7, FDS,
    MMC5, Namco 106 and FME-7 chips), the SAP emulator (the Atari's 6502 and
-   POKEY) and the SPC emulator (the SPC-700, the fast DSP, the output
-   filter and the FIR resampler) are done, checked bit-for-bit against
-   upstream's C++ (and through the decoder and the mixer, upstream's C) on
-   rips from `tools/gen_gme_testdata.py`, truncated and corrupted; not yet:
-   the GYM and VGM emulators.
+   POKEY), the SPC emulator (the SPC-700, the fast DSP, the output filter
+   and the FIR resampler) and the VGM emulator (the SN76489, the YM2612
+   over the Nuked OPN2 core and the FM resampling; the YM2413 left out, as
+   in SDL_mixer's build) are done, checked bit-for-bit against upstream's
+   C++ (and through the decoder and the mixer, upstream's C) on rips from
+   `tools/gen_gme_testdata.py`, truncated and corrupted; not yet: the GYM
+   emulator.
 4. **SDL_net** — needs the event/timer core; sockets via the platform layer.
    **Done** (`sdl3-net`, SDL_net 3.2.0): all of `SDL_net.c` — `NET_Init`/
    `NET_Quit`, hostname resolution on resolver threads (a pool of two to

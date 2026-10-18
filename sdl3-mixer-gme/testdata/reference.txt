@@ -1,10 +1,10 @@
 == misc
-types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0 SPC/Super Nintendo/0/1
+types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0 SPC/Super Nintendo/0/1 VGM/Sega SMS/Genesis/0/1 VGZ/Sega SMS/Genesis/0/1
 ext nsf: NSF
 ext x.NSFE: NSFE
 ext a.b.spc: SPC
-ext vgz: 
-ext VGM: 
+ext vgz: VGZ
+ext VGM: VGM
 ext gym: 
 ext kss: KSS
 ext hes: HES
@@ -4209,3 +4209,598 @@ open: tracks=1 type=SPC voices=8
 start 0: ok
 q 8192: 0edbd77a953ab2d1 tell=92 samples=8192 ended=1
 warning: SPC emulation error
+== vgm_badrate.vgm
+identify: VGM
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open 44100: err=Unsupported YM2612 FM sound rate
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 214
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- cut 322
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- cut 643
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- flip 0
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- flip 1
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- flip 2
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- flip 3
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- flip 4
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+-- flip 5
+info: tracks=1 type=VGM voices=-1
+info 0: 453 453 0 -1 453|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=Unsupported YM2612 FM sound rate
+== vgm_dual.vgm
+identify: VGM
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open 44100: tracks=1 type=VGM voices=8
+voices: FM 1 FM 2 FM 3 FM 4 FM 5 FM 6 PCM PSG
+eq: -14.000 80.000 multi=0
+start 0: ok
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+t0 16384: ed3ee1ac6ed7c3cb tell=185 samples=16384 ended=0
+t0 32768: 390624d76b0e4b13 tell=371 samples=32768 ended=0
+t0 49152: dcf2d03ced45a18e tell=557 samples=49152 ended=0
+t0 65536: 11fa0310413ee0a3 tell=743 samples=65536 ended=0
+t0 81920: 0270e5002fb588c2 tell=928 samples=81920 ended=1
+t0 88200: 10e4fc1d1d7c7142 tell=1000 samples=88200 ended=1
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c02806a245fdb531 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 5ea473d77207c53b tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 0a217eabb08d7f7f tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: d8258e778f054632 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=1
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 34816 d225b48ae89710b9 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 44e158cf9f5d2b61 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=VGM voices=8
+start 0: ok
+tempo 16000: 488eaa2e4c41142f tell=250 samples=16000 ended=0
+tempo 32000: 41ac53083ad9a4d7 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: db264f0ecfa845bc tell=238 samples=15294 ended=0
+slow 8000: 67f0671a4292a355 tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: ff76890a0a66771b tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 685
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- cut 1027
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- cut 2054
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 44e158cf9f5d2b61 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: c38f4066a00b66c4 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 44e158cf9f5d2b61 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: 302f6f0fb617b8f3 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: 3e3421f16ce99569 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: 661cf9997f3bd4d6 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=VGM voices=-1
+info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: 882c03877d233370 tell=92 samples=8192 ended=0
+== vgm_fm.vgm
+identify: VGM
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open 44100: tracks=1 type=VGM voices=8
+voices: FM 1 FM 2 FM 3 FM 4 FM 5 FM 6 PCM PSG
+eq: -14.000 80.000 multi=0
+start 0: ok
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_testdata.py
+t0 16384: f3bbc2fdb4bb9054 tell=185 samples=16384 ended=0
+t0 32768: efeb14e0f2c885d7 tell=371 samples=32768 ended=0
+t0 49152: b0d0a30f8a77df54 tell=557 samples=49152 ended=0
+t0 65536: 3ac6ade5ffbd89af tell=743 samples=65536 ended=0
+t0 81920: c7507fc8250978df tell=928 samples=81920 ended=0
+t0 88200: 0c959bd97f79be73 tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: e3141a46d808ecc2 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 5d3b58d44dd06e0d tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: a736aedd5ce4e690 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: cd9e8ac77ee5b3a4 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: dcfdc81de1697ff5 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 386953ae5a533963 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 799217915a5597f8 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=VGM voices=8
+start 0: ok
+tempo 16000: 36efed78d0e514c5 tell=250 samples=16000 ended=0
+tempo 32000: b13e7a5c8dab9479 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 2ebcd60678f5a9e0 tell=238 samples=15294 ended=0
+slow 8000: 10ae26399179e08d tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: 72204d462b3e56d2 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 1606
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 799217915a5597f8 tell=92 samples=8192 ended=0
+-- cut 2410
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 799217915a5597f8 tell=92 samples=8192 ended=0
+-- cut 4819
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 799217915a5597f8 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 799217915a5597f8 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ba7e15658207265c tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 799217915a5597f8 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 9c0396fb40530981 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega Mega Drive|gen_gme_testdata.py|FM test|gen|2026||gen_gme_test?ata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: d062ba3be663cc87 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=VGM voices=-1
+info 0: -1 945 294 -1 1533|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+q 8192: 31bb508e5ca3dd30 tell=92 samples=8192 ended=0
+== vgm_odd.vgm
+identify: VGM
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open 44100: tracks=1 type=VGM voices=8
+voices: FM 1 FM 2 FM 3 FM 4 FM 5 FM 6 PCM PSG
+eq: -14.000 80.000 multi=0
+start 0: ok
+warning: Unknown stream event
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+t0 16384: 7381ba2110cf1e05 tell=185 samples=16384 ended=0
+t0 32768: d3ae57c087591e05 tell=371 samples=32768 ended=0
+t0 49152: 23772a0787d19ee1 tell=557 samples=49152 ended=0
+t0 65536: ba51c7355f0e6b95 tell=743 samples=65536 ended=0
+t0 81920: c43eb3c541bb42d5 tell=928 samples=81920 ended=0
+t0 88200: adf0d2dd0930b1d9 tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c89fe7512ca149a5 tell=46 samples=4096 ended=0
+warning: Unknown stream event
+seek_samples 30000: ok tell=30000
+s1 4096: b9d103fd6854a325 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: b9d103fd6854a325 tell=159 samples=14096 ended=0
+warning: Unknown stream event
+seek 700: ok tell=700
+s3 2048: 08d954c80b25ae81 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=1
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 34816 62ddb8d9de2a5e05 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+warning: Unknown stream event
+open 32000: tracks=1 type=VGM voices=8
+start 0: ok
+tempo 16000: 598370efca3089e5 tell=250 samples=16000 ended=0
+tempo 32000: 4028e92e3f63b409 tell=500 samples=32000 ended=0
+warning: Unknown stream event
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+warning: Unknown stream event
+slow 8000: 2c36c2471ceec525 tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: 13ad58f389e067e5 tell=125 samples=8000 ended=0
+warning: Unknown stream event
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 546
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Stream lacked end event
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- cut 819
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Stream lacked end event
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- cut 1637
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: defe6ddabb184359 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=VGM voices=-1
+info 0: -1 9739132 22 -1 9739176|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Unknown stream event
+q 8192: ef94e818d58a1e05 tell=92 samples=8192 ended=0
+== vgm_psg.vgm
+identify: VGM
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open 44100: tracks=1 type=VGM voices=4
+voices: Square 1 Square 2 Square 3 Noise
+eq: -14.000 80.000 multi=0
+start 0: ok
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG test|gen|2026||gen_gme_testdata.py
+t0 16384: 06b6c9eb0b4d22f6 tell=185 samples=16384 ended=0
+t0 32768: 2bca43c3ec108322 tell=371 samples=32768 ended=0
+t0 49152: 011be6e8b4f1b86e tell=557 samples=49152 ended=0
+t0 65536: aac393976aa3cbb2 tell=743 samples=65536 ended=0
+t0 81920: 2ee9de8f96f9d9aa tell=928 samples=81920 ended=0
+t0 88200: 2de6ec84af5867fe tell=1000 samples=88200 ended=0
+warning: Unknown stream event
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c694c45c368d4d43 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 9aa87abb324b5f71 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 3218613a927e7f21 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 9cce03091466d0bd tell=723 samples=63788 ended=0
+warning: Unknown stream event
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: a51a278bb812f3d9 tell=2290 samples=202048 ended=0
+warning: Unknown stream event
+start 0: ok
+fade: 34816 e845ac452cce6566 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=VGM voices=4
+start 0: ok
+tempo 16000: 0259f96e0ec5bb34 tell=250 samples=16000 ended=0
+tempo 32000: d22a4dcd72d015cc tell=500 samples=32000 ended=0
+warning: Unknown stream event
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 821b189bc79033e3 tell=238 samples=15294 ended=0
+slow 8000: 5cc015b2a76a86eb tell=363 samples=23294 ended=0
+warning: Unknown stream event
+tracks=1
+start 0: ok
+acc 8000: 11bfb28e65abd4d3 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 316
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+-- cut 475
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+-- cut 949
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG ?est|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 9a0c2cbb9568cb53 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG test|gen|2026||?en_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+warning: Unknown stream event
+q 8192: 09dc8bafc15069d0 tell=92 samples=8192 ended=0
+warning: Unknown stream event
+-- flip 4
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game?Gear|gen_g?e_testdata.py|PSG test|gen|2026||gen_gme_testdata.py
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=4
+start 0: ok
+q 8192: 6d3a5738a53fe376 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=VGM voices=-1
+info 0: -1 447 499 -1 1445|Sega Game Gear|gen_gme_testdata.py|PSG test|gen|2026||gen_gme_te?tdata?py
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+== vgm_ym2413.vgm
+identify: VGM
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega Master System|gen_gme_testdata.py|YM2413|gen|2026||gen
+info 1: err=Invalid track
+open 44100: err=YM2413 FM sound isn't supported
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 72
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- cut 108
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- cut 216
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- flip 0
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- flip 1
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega Master System|gen_gme_testdata.)y|YM2413|gen|2026||gHn
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- flip 2
+info: tracks=1 type=VGM voices=-1
+info 0: 356172 356172 0 -1 356172|Sega Ma\xDEter System|gen_gme_tes??ata.py|YM_413|gen|2026||\xACen
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- flip 3
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: tracks=1 type=VGM voices=8
+start 0: ok
+warning: Stream lacked end event
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- flip 4
+info: tracks=1 type=VGM voices=-1
+info 0: 1002 1002 0 -1 1002|Sega Mast?c System|gen_gme_\xF9e\xE8td?ta.py|Y?2413|gen/|||
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
+-- flip 5
+info: tracks=1 type=VGM voices=-1
+info 0: 1000 1000 0 -1 1000|Sega SMS/Genesis||||||
+info 1: err=Invalid track
+open: err=YM2413 FM sound isn't supported
