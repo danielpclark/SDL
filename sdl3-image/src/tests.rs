@@ -1314,6 +1314,73 @@ impl sdl3::io::IoInterface for Unseekable {
     }
 }
 
+/// A memory stream to write that counts its seeks from the start, and
+/// fails the `fail_at`th (from 1; never if 0).
+struct FailingSeek {
+    data: Vec<u8>,
+    pos: usize,
+    seeks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    fail_at: usize,
+}
+
+impl sdl3::io::IoInterface for FailingSeek {
+    fn seek(&mut self, offset: i64, whence: sdl3::io::IoWhence) -> sdl3::Result<i64> {
+        let base = match whence {
+            sdl3::io::IoWhence::Set => {
+                let n = self
+                    .seeks
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                    + 1;
+                if n == self.fail_at {
+                    return Err(sdl3::Error::new("seek failed"));
+                }
+                0
+            }
+            sdl3::io::IoWhence::Cur => self.pos as i64,
+            sdl3::io::IoWhence::End => self.data.len() as i64,
+        };
+        self.pos = usize::try_from(base + offset).map_err(|_| sdl3::Error::new("bad seek"))?;
+        Ok(self.pos as i64)
+    }
+    fn can_write(&self) -> bool {
+        true
+    }
+    fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, sdl3::io::IoStop> {
+        let end = self.pos + buf.len();
+        if self.data.len() < end {
+            self.data.resize(end, 0);
+        }
+        self.data[self.pos..end].copy_from_slice(buf);
+        self.pos = end;
+        Ok(buf.len())
+    }
+}
+
+#[test]
+fn ani_save_fails_on_a_failed_seek() {
+    // The ANI saver writes each chunk's size seeking back to it and then
+    // forward again: a failure of the last seek forward (the RIFF chunk's)
+    // fails the save (where upstream only takes a seek to offset 0 for one).
+    let mut anim =
+        crate::load_animation_io(&mut IoStream::from_const_mem(image("ani_seq.ani"))).unwrap();
+    let save = |anim: &mut crate::Animation, fail_at: usize| {
+        let seeks = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let mut io = IoStream::open(FailingSeek {
+            data: Vec::new(),
+            pos: 0,
+            seeks: seeks.clone(),
+            fail_at,
+        });
+        let result = crate::save_ani_animation_io(anim, &mut io);
+        (result, seeks.load(std::sync::atomic::Ordering::Relaxed))
+    };
+    let (result, seeks) = save(&mut anim, 0);
+    result.unwrap();
+    assert!(seeks > 2, "{seeks} seeks");
+    let (result, _) = save(&mut anim, seeks);
+    assert!(result.is_err());
+}
+
 #[test]
 fn every_detector_on_every_image() {
     // Each detector accepts exactly the images of its format (the PNG inside

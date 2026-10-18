@@ -545,9 +545,10 @@ fn save_chunk_size(dst: &mut IoStream<'_>, offset: i64) -> bool {
     if dst.write_u32_le(size).is_err() {
         return false;
     }
-    // FIXME (upstream): the result of SDL_SeekIO() is tested as a bool, so
-    // only seeking to offset 0 counts as a failure.
-    if dst.seek(here, IoWhence::Set).ok() == Some(0) {
+    // Note (upstream): upstream tests the result of SDL_SeekIO() as a bool,
+    // so only seeking to offset 0 counts as a failure; the translation fixes
+    // it, failing on a failed seek, as for the seek above.
+    if dst.seek(here, IoWhence::Set).is_err() {
         return false;
     }
     if size & 1 != 0 && dst.write_u8(0).is_err() {
