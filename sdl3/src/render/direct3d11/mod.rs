@@ -1255,11 +1255,10 @@ impl D3d11Renderer {
         self.swap_effect = swap_chain_desc.swap_effect;
 
         let mut result = Ok(());
-        // FIXME (upstream): the swap chain is asked for IDXGISwapChain2 and
-        // then used as an IDXGISwapChain3, whose methods come after
-        // IDXGISwapChain2's: on a system with IDXGISwapChain2 but not
-        // IDXGISwapChain3 (Windows 8.1), the calls go past its vtable.
-        if let Ok(swap_chain3) = swap_chain.query::<IDXGISwapChain3Vtbl>(&IID_IDXGISWAPCHAIN2) {
+        // Note (upstream): the GUID is named SDL_IID_IDXGISwapChain2 there,
+        // but it is IDXGISwapChain3's, so the interface queried is the one
+        // used.
+        if let Ok(swap_chain3) = swap_chain.query::<IDXGISwapChain3Vtbl>(&IID_IDXGISWAPCHAIN3) {
             let colorspace = match self.output_colorspace {
                 Colorspace::SRGB_LINEAR => DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709,
                 Colorspace::HDR10 => DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
