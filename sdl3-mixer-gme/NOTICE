@@ -36,19 +36,22 @@ Nes_Oscs.cpp, Nes_Vrc6_Apu.h, Nes_Vrc6_Apu.cpp, Nes_Fme7_Apu.h,
 Nes_Fme7_Apu.cpp, Nes_Namco_Apu.h, Nes_Namco_Apu.cpp, Nes_Fds_Apu.h,
 Nes_Fds_Apu.cpp, Nes_Mmc5_Apu.h, Nes_Vrc7_Apu.h, Nes_Vrc7_Apu.cpp,
 Nsf_Emu.h, Nsf_Emu.cpp, Nsfe_Emu.h, Nsfe_Emu.cpp, Sap_Apu.h, Sap_Apu.cpp,
-Sap_Cpu.h, Sap_Cpu.cpp, sap_cpu_io.h, Sap_Emu.h, Sap_Emu.cpp, and
-ext/emu2413.h and ext/emu2413.c (what the VRC7 uses). Not translated, as
-SDL_mixer can't reach them: the file readers and gme_open_file(), M3U
-playlists (M3u_Playlist), the custom reader, gme_load_tracks(), the user
-data functions, the state saving functions of the sound chips,
-Mono_Buffer and Silent_Buffer, and emu2413's rate converter and patch
-dump functions. The translation works on Rust types (slices, vectors,
-traits and indices rather than pointers, inheritance and unions), and
-does something defined where corrupt input makes the C++ code read out of
-bounds, read memory it never initialized, crash or hang (the places
-marked "FIXME (upstream)" in the source). Otherwise it emulates
-bit-for-bit what the C++ code does, which its tests check. The changes
-are freely available as part of https://github.com/danielpclark/SDL.
+Sap_Cpu.h, Sap_Cpu.cpp, sap_cpu_io.h, Sap_Emu.h, Sap_Emu.cpp, Snes_Spc.h,
+Snes_Spc.cpp, Spc_Cpu.h, Spc_Cpu.cpp, Spc_Dsp.h, Spc_Dsp.cpp,
+Spc_Filter.h, Spc_Filter.cpp, Fir_Resampler.h, Fir_Resampler.cpp,
+Spc_Emu.h, Spc_Emu.cpp, and ext/emu2413.h and ext/emu2413.c (what the
+VRC7 uses). Not translated, as SDL_mixer can't reach them: the file
+readers and gme_open_file(), M3U playlists (M3u_Playlist), the custom
+reader, gme_load_tracks(), the user data functions, the state saving
+functions of the sound chips, Mono_Buffer and Silent_Buffer, and
+emu2413's rate converter and patch dump functions. The translation works
+on Rust types (slices, vectors, traits and indices rather than pointers,
+inheritance and unions), and does something defined where corrupt input
+makes the C++ code read out of bounds, read memory it never initialized,
+crash or hang (the places marked "FIXME (upstream)" in the source).
+Otherwise it emulates bit-for-bit what the C++ code does, which its tests
+check. The changes are freely available as part of
+https://github.com/danielpclark/SDL.
 
 License
 -------

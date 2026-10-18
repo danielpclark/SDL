@@ -519,6 +519,8 @@ file_tests! {
     sap_digi_matches_upstream: "sap_digi.sap",
     sap_odd_matches_upstream: "sap_odd.sap",
     sap_stereo_matches_upstream: "sap_stereo.sap",
+    spc_dsp_matches_upstream: "spc_dsp.spc",
+    spc_odd_matches_upstream: "spc_odd.spc",
 }
 
 /// Every file in `testdata/` has its test above.

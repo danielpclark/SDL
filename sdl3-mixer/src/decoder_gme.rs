@@ -158,6 +158,11 @@ impl TrackData for GmeTrackData<'_> {
             return false; // all done.
         }
 
+        // FIXME (upstream): left uninitialized, and when the emulator stops
+        // with an error (as the SPC emulator does at a STOP instruction),
+        // libgme leaves the rest of the samples unwritten, and they are
+        // played; they start zeroed here, and upstream's build for the
+        // tests is patched the same.
         let mut samples = [0i16; 256];
         if gme::gme_play(emu, &mut samples).is_err() {
             return false; // i guess we're done. (upstream sets the error)
