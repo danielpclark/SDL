@@ -113,7 +113,12 @@ unsafe impl Send for HandleStream {}
 impl HandleStream {
     /// Translation of `SDL_IOFromHandle()`.
     fn open(handle: HANDLE, mode: &str, autoclose: bool) -> IoStream<'static> {
-        IoStream::open(HandleStream {
+        IoStream::open(HandleStream::new(handle, mode, autoclose))
+    }
+
+    /// The stream's data (`SDL_IOFromHandle()` before the stream is made).
+    fn new(handle: HANDLE, mode: &str, autoclose: bool) -> HandleStream {
+        HandleStream {
             h: handle,
             data: Box::new([0; READAHEAD_BUFFER_SIZE]),
             size: 0,
@@ -123,7 +128,7 @@ impl HandleStream {
             writable: mode.contains('w') || mode.contains('a') || mode.contains('+'),
             append: mode.contains('a'),
             autoclose,
-        })
+        }
     }
 
     /// Translation of `windows_flush_write_buffer()`.
@@ -278,9 +283,12 @@ impl IoInterface for HandleStream {
                     FILE_CURRENT,
                 )
             };
-            // FIXME (upstream): SetFilePointer() fails with
-            // INVALID_SET_FILE_POINTER, not 0 (which is a valid offset).
-            if ret == 0 || ret == INVALID_SET_FILE_POINTER {
+            // Note (upstream): `!SetFilePointer()` is the check there, but
+            // it fails with INVALID_SET_FILE_POINTER, and 0 is the valid
+            // offset of a write after a read-ahead from the start (of a
+            // file: the process's pipes are read or written, not both);
+            // the translation checks for the failure only.
+            if ret == INVALID_SET_FILE_POINTER {
                 return Err(IoStop::error(0, set_error("Error seeking in datastream")));
             }
             self.left = 0;
@@ -1262,6 +1270,27 @@ mod tests {
             data.len() + 4
         );
         assert!(not_ready, "the pipe never filled");
+    }
+
+    /// Writing after a read-ahead that took nothing seeks back to offset 0,
+    /// which isn't a failure (upstream takes it for one).
+    #[test]
+    fn write_after_read_ahead_from_the_start() {
+        let dir = crate::test_support::TempDir::new("process-win-seek");
+        let path = dir.path("data.txt");
+        std::fs::write(&path, b"abc").unwrap();
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        let mut stream = HandleStream::new(file.into_raw_handle() as HANDLE, "r+b", true);
+        // (the read-ahead takes the file, the read none of it)
+        assert_eq!(stream.read(&mut []).unwrap(), 0);
+        assert_eq!(stream.left, 3);
+        assert_eq!(stream.write(b"X").unwrap(), 1);
+        stream.close().unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"Xbc");
     }
 
     #[test]
