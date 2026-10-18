@@ -21,6 +21,7 @@ use super::rd::{
 };
 use super::speed_features::*;
 use crate::aom::aom_dsp::prob::{update_cdf, CDF_PROB_TOP};
+use crate::aom::aom_scale::yv12config::YV12_FLAG_HIGHBITDEPTH;
 use crate::aom::av1::common::alloccommon::try_vec;
 use crate::aom::av1::common::av1_common_int::*;
 use crate::aom::av1::common::blockd::*;
@@ -29,8 +30,11 @@ use crate::aom::av1::common::entropy::BR_CDF_SIZE;
 use crate::aom::av1::common::entropymode::FrameContext;
 use crate::aom::av1::common::entropymv::{NmvContext, CLASS0_SIZE, MV_CLASSES, MV_FP_SIZE};
 use crate::aom::av1::common::enums::*;
-use crate::aom::av1::common::filter::SWITCHABLE_FILTERS;
+use crate::aom::av1::common::filter::{av1_extract_interp_filter, SWITCHABLE, SWITCHABLE_FILTERS};
 use crate::aom::av1::common::mvref_common::{av1_copy_frame_mvs, av1_ref_frame_type};
+use crate::aom::av1::common::pred_common::av1_get_pred_context_switchable_interp;
+use crate::aom::av1::common::quant_common::av1_ac_quant_qtx;
+use crate::aom::av1::common::reconinter::is_nontrans_global_motion;
 use crate::aom::av1::common::reconintra::{
     av1_allow_intrabc, av1_filter_intra_allowed, av1_is_directional_mode,
 };
@@ -179,9 +183,15 @@ pub(crate) fn av1_update_state(
     }
 
     if !frame_is_intra_only(cm) {
-        // (update_filter_type_count())
-        return Err(());
+        let mbmi = *xd.mbmi();
+        if cm.features.interp_filter == SWITCHABLE
+            && mbmi.motion_mode != WARPED_CAUSAL
+            && !is_nontrans_global_motion(&cm.global_motion, &mbmi)
+        {
+            update_filter_type_count(&mut td.counts, &td.mb.e_mbd, &mbmi);
+        }
     }
+    let xd = &mut td.mb.e_mbd;
 
     let x_mis = bw.min(mi_params.mi_cols - mi_col);
     let y_mis = bh.min(mi_params.mi_rows - mi_row);
@@ -874,4 +884,337 @@ pub(crate) fn enforce_max_ref_frames(cpi: &mut Av1Comp) {
     }
     debug_assert!(total_valid_refs <= max_allowed_refs);
     cpi.ref_frame_flags = ref_frame_flags;
+}
+
+// Check neighbor blocks' motion information.
+fn check_neighbor_blocks(
+    xd: &MacroBlockD,
+    mi: usize,
+    mi_stride: i32,
+    tile_info: &TileInfo,
+    mi_row: i32,
+    mi_col: i32,
+) -> bool {
+    let mut is_above_low_motion = true;
+    let mut is_left_low_motion = true;
+    let thr = 24;
+    let at = |off: isize| xd.mi_at_grid((mi as isize + off) as usize);
+
+    // Check above block.
+    if mi_row > tile_info.mi_row_start {
+        if let Some(above_mbmi) = at(-(mi_stride as isize)) {
+            let above_mv = above_mbmi.mv[0].as_mv();
+            if above_mbmi.mode >= INTRA_MODE_END
+                && ((above_mv.row as i32).abs() > thr || (above_mv.col as i32).abs() > thr)
+            {
+                is_above_low_motion = false;
+            }
+        }
+    }
+
+    // Check left block.
+    if mi_col > tile_info.mi_col_start {
+        if let Some(left_mbmi) = at(-1) {
+            let left_mv = left_mbmi.mv[0].as_mv();
+            if left_mbmi.mode >= INTRA_MODE_END
+                && ((left_mv.row as i32).abs() > thr || (left_mv.col as i32).abs() > thr)
+            {
+                is_left_low_motion = false;
+            }
+        }
+    }
+
+    is_above_low_motion && is_left_low_motion
+}
+
+// Check this block's motion in a fast way.
+fn fast_detect_non_zero_motion(
+    cpi: &Av1Comp,
+    src: &[u16],
+    src_y: usize,
+    src_ystride: i32,
+    last_src: &[u16],
+    last_src_y: usize,
+    last_src_ystride: i32,
+    mi_row: i32,
+    mi_col: i32,
+) -> bool {
+    let cm = &cpi.common;
+    let bsize = cm.seq_params.sb_size;
+    let mut blk_sad: u32;
+    let fn_ptr = &cpi.ppi.fn_ptr;
+    if !cpi.src_sad_blk_64x64.is_empty() {
+        let sb_size_by_mb = if bsize == BLOCK_128X128 {
+            cm.seq_params.mib_size >> 1
+        } else {
+            cm.seq_params.mib_size
+        };
+        let sb_cols = (cm.mi_params.mi_cols + sb_size_by_mb - 1) / sb_size_by_mb;
+        let sbi_col = mi_col / sb_size_by_mb;
+        let sbi_row = mi_row / sb_size_by_mb;
+        blk_sad = cpi
+            .src_sad_blk_64x64
+            .get((sbi_col + sbi_row * sb_cols) as usize)
+            .copied()
+            .unwrap_or(0) as u32;
+    } else {
+        blk_sad = fn_ptr.sdf(
+            bsize,
+            src,
+            src_y,
+            src_ystride as usize,
+            last_src,
+            last_src_y,
+            last_src_ystride as usize,
+        );
+    }
+
+    // Search 4 1-away points.
+    let off = |d: i32| (last_src_y as i64 + d as i64) as usize;
+    let search_pos = [
+        off(-last_src_ystride),
+        off(-1),
+        off(1),
+        off(last_src_ystride),
+    ];
+    let mut sad_arr = [0u32; 4];
+    fn_ptr.sdx4df(
+        bsize,
+        src,
+        src_y,
+        src_ystride as usize,
+        last_src,
+        &search_pos,
+        last_src_ystride as usize,
+        &mut sad_arr,
+    );
+
+    blk_sad = blk_sad.wrapping_mul(5) >> 3;
+    blk_sad < sad_arr[0] && blk_sad < sad_arr[1] && blk_sad < sad_arr[2] && blk_sad < sad_arr[3]
+}
+
+// Grade the temporal variation of the source by comparing the current sb and
+// its collocated block in the last frame.
+/// Translation of `av1_source_content_sb()`: the source samples are
+/// `x.source_alloc` (the in-place temporal filter writes them).
+pub(crate) fn av1_source_content_sb(
+    cpi: &Av1Comp,
+    x: &mut Macroblock,
+    tile_data: &TileDataEnc,
+    mi_row: i32,
+    mi_col: i32,
+) {
+    let source = cpi.source();
+    // (cpi->last_source is set for every frame after the first)
+    if !cpi.has_last_source {
+        return;
+    }
+    let last_source = &cpi.last_source_buf;
+    if last_source.y_width() != source.y_width() || last_source.y_height() != source.y_height() {
+        return;
+    }
+    if x.e_mbd.cur_buf_flags & YV12_FLAG_HIGHBITDEPTH != 0 {
+        return;
+    }
+
+    let mut tmp_sse = 0u32;
+    let bsize = cpi.common.seq_params.sb_size;
+    let src_ystride = source.y_stride();
+    let src_offset = src_ystride * (mi_row << 2) + (mi_col << 2);
+    let last_src_ystride = last_source.y_stride();
+    let last_src_offset = last_src_ystride * (mi_row << 2) + (mi_col << 2);
+    let avg_source_sse_threshold_verylow: u64 = 10000; // ~1.5*1.5*(64*64)
+    let avg_source_sse_threshold_low: [u64; 2] = [100000, 36000]; // ~5*5*(64*64), ~3*3*(64*64)
+
+    let avg_source_sse_threshold_high: u64 = 1000000; // ~15*15*(64*64)
+    let sum_sq_thresh: u64 = 10000; // sum = sqrt(thresh / 64*64)) ~1.5
+    let src_y = (source.buffers[0] as i64 + src_offset as i64) as usize;
+    let last_src_y = (last_source.buffers[0] as i64 + last_src_offset as i64) as usize;
+    let tmp_variance = cpi.ppi.fn_ptr.vf(
+        bsize,
+        &x.source_alloc,
+        src_y,
+        src_ystride as usize,
+        &last_source.buffer_alloc,
+        last_src_y,
+        last_src_ystride as usize,
+        &mut tmp_sse,
+    );
+    let tmp_sse64 = tmp_sse as u64;
+    // rd thresholds
+    if tmp_sse64 < avg_source_sse_threshold_low[1] {
+        x.content_state_sb.source_sad_rd = K_LOW_SAD;
+    }
+
+    // nonrd thresholds
+    if tmp_sse == 0 {
+        x.content_state_sb.source_sad_nonrd = K_ZERO_SAD;
+        return;
+    }
+    if tmp_sse64 < avg_source_sse_threshold_verylow {
+        x.content_state_sb.source_sad_nonrd = K_VERY_LOW_SAD;
+    } else if tmp_sse64 < avg_source_sse_threshold_low[0] {
+        x.content_state_sb.source_sad_nonrd = K_LOW_SAD;
+    } else if tmp_sse64 > avg_source_sse_threshold_high {
+        x.content_state_sb.source_sad_nonrd = K_HIGH_SAD;
+    }
+
+    // Detect large lighting change.
+    // Note: tmp_sse - tmp_variance = ((sum * sum) >> 12)
+    let diff = tmp_sse.wrapping_sub(tmp_variance) as u64;
+    if tmp_variance < (tmp_sse >> 1) && diff > sum_sq_thresh {
+        x.content_state_sb.lighting_change = 1;
+    }
+    if diff < (sum_sq_thresh >> 1) {
+        x.content_state_sb.low_sumdiff = 1;
+    }
+
+    if cpi.sf.rt_sf.use_rtc_tf == 0
+        || cpi.rc.high_source_sad != 0
+        || cpi.rc.frame_source_sad > 20000
+        || cpi.svc.number_spatial_layers > 1
+    {
+        return;
+    }
+
+    // In-place temporal filter. If psnr calculation is enabled, we store the
+    // source for that.
+    let cm = &cpi.common;
+    // Calculate n*mean^2
+    let nmean2 = tmp_sse.wrapping_sub(tmp_variance);
+    let ac_q_step =
+        av1_ac_quant_qtx(cm.quant_params.base_qindex, 0, cm.seq_params.bit_depth) as i32;
+    let p_rc = &cpi.ppi.p_rc;
+    let avg_q_step = av1_ac_quant_qtx(
+        p_rc.avg_frame_qindex[INTER_FRAME as usize],
+        0,
+        cm.seq_params.bit_depth,
+    ) as i32;
+
+    let threshold: u32 = if cpi.sf.rt_sf.use_rtc_tf == 1 {
+        (avg_q_step.clamp(250, 1000) * ac_q_step) as u32
+    } else {
+        (250 * ac_q_step) as u32
+    };
+
+    // TODO(yunqing): use a weighted sum instead of averaging in filtering.
+    if tmp_variance <= threshold && nmean2 <= 15 {
+        // Check neighbor blocks. If neighbor blocks aren't low-motion blocks,
+        // skip temporal filtering for this block.
+        let mi = get_mi_grid_idx(&cm.mi_params, mi_row, mi_col) as usize;
+        let tile_info = &tile_data.tile_info;
+        let is_neighbor_blocks_low_motion = check_neighbor_blocks(
+            &x.e_mbd,
+            mi,
+            cm.mi_params.mi_stride,
+            tile_info,
+            mi_row,
+            mi_col,
+        );
+        if !is_neighbor_blocks_low_motion {
+            return;
+        }
+
+        // Only consider 64x64 SB for now. Need to extend to 128x128 for large SB
+        // size.
+        // Test several nearby points. If non-zero mv exists, don't do temporal
+        // filtering.
+        let is_this_blk_low_motion = fast_detect_non_zero_motion(
+            cpi,
+            &x.source_alloc,
+            src_y,
+            src_ystride,
+            &last_source.buffer_alloc,
+            last_src_y,
+            last_src_ystride,
+            mi_row,
+            mi_col,
+        );
+
+        if !is_this_blk_low_motion {
+            return;
+        }
+
+        let shift_x = [0, source.subsampling_x];
+        let shift_y = [0, source.subsampling_y];
+        let h = BLOCK_SIZE_HIGH[bsize as usize] as i32;
+        let w = BLOCK_SIZE_WIDE[bsize as usize] as i32;
+
+        for plane in 0..av1_num_planes(cm) {
+            let uv = (plane != 0) as usize;
+            let src_stride = source.strides[uv];
+            let last_src_stride = last_source.strides[uv];
+            let mut src = source.buffers[plane] as i64
+                + (src_stride * (mi_row << (2 - shift_y[uv])) + (mi_col << (2 - shift_x[uv])))
+                    as i64;
+            let mut last_src = last_source.buffers[plane] as i64
+                + (last_src_stride * (mi_row << (2 - shift_y[uv])) + (mi_col << (2 - shift_x[uv])))
+                    as i64;
+
+            for _i in 0..(h >> shift_y[uv]) {
+                for j in 0..(w >> shift_x[uv]) as i64 {
+                    let l = last_source.buffer_alloc.get((last_src + j) as usize);
+                    if let (Some(&l), Some(s)) = (l, x.source_alloc.get_mut((src + j) as usize)) {
+                        *s = ((l as u32 + *s as u32) >> 1) as u16;
+                    }
+                }
+                src += src_stride as i64;
+                last_src += last_src_stride as i64;
+            }
+        }
+    }
+}
+
+/// Translation of `update_filter_type_count()`.
+#[inline]
+fn update_filter_type_count(counts: &mut FrameCounts, xd: &MacroBlockD, mbmi: &MbModeInfo) {
+    for dir in 0..2 {
+        let ctx = av1_get_pred_context_switchable_interp(xd, dir) as usize;
+        let filter = av1_extract_interp_filter(mbmi.interp_filters, dir) as usize;
+        counts.switchable_interp[ctx][filter] += 1;
+    }
+}
+
+/// Translation of `update_filter_type_cdf()` (encodeframe_utils.h).
+#[inline]
+pub(crate) fn update_filter_type_cdf(xd: &mut MacroBlockD, mbmi: &MbModeInfo, dual_filter: bool) {
+    for dir in 0..2 {
+        if dir != 0 && !dual_filter {
+            break;
+        }
+        let ctx = av1_get_pred_context_switchable_interp(xd, dir) as usize;
+        let filter = av1_extract_interp_filter(mbmi.interp_filters, dir);
+        update_cdf(
+            &mut xd.tile_ctx.switchable_interp_cdf[ctx],
+            filter as i8,
+            SWITCHABLE_FILTERS as i32,
+        );
+    }
+}
+
+/// Translation of `av1_update_inter_mode_stats()` (the counts are only kept
+/// with `CONFIG_ENTROPY_STATS`).
+pub(crate) fn av1_update_inter_mode_stats(
+    fc: &mut FrameContext,
+    mode: PredictionMode,
+    mode_context: i16,
+) {
+    let mut mode_ctx = (mode_context & NEWMV_CTX_MASK as i16) as usize;
+    if mode == NEWMV {
+        update_cdf(&mut fc.newmv_cdf[mode_ctx], 0, 2);
+        return;
+    }
+
+    update_cdf(&mut fc.newmv_cdf[mode_ctx], 1, 2);
+
+    mode_ctx = ((mode_context >> GLOBALMV_OFFSET) & GLOBALMV_CTX_MASK as i16) as usize;
+    if mode == GLOBALMV {
+        update_cdf(&mut fc.zeromv_cdf[mode_ctx], 0, 2);
+        return;
+    }
+
+    update_cdf(&mut fc.zeromv_cdf[mode_ctx], 1, 2);
+
+    mode_ctx = ((mode_context >> REFMV_OFFSET) & REFMV_CTX_MASK as i16) as usize;
+    update_cdf(&mut fc.refmv_cdf[mode_ctx], (mode != NEARESTMV) as i8, 2);
 }

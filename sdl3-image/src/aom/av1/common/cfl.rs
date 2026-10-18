@@ -16,8 +16,11 @@
 //! bit depth path copies bytes in and out of a 16-bit array, which keeps
 //! the values).
 
-use super::av1_common_int::SequenceHeader;
-use super::blockd::{get_plane_block_size, is_cur_buf_hbd, is_inter_block, MacroBlockD};
+use super::av1_common_int::{get_tx_size, SequenceHeader};
+use super::blockd::{
+    get_plane_block_size, is_cur_buf_hbd, is_inter_block, max_block_high, max_block_wide,
+    MacroBlockD,
+};
 use super::enums::*;
 use crate::aom::aom_dsp::aom_dsp_common::{clip_pixel_highbd, round_power_of_two_signed};
 
@@ -486,6 +489,59 @@ fn sub8x8_adjust_offset(
         debug_assert!(*col_out == 0);
         *col_out += 1;
     }
+}
+
+#[inline]
+fn max_intra_block_width(
+    xd: &MacroBlockD,
+    plane_bsize: BlockSize,
+    plane: usize,
+    tx_size: TxSize,
+) -> i32 {
+    let max_blocks_wide = max_block_wide(xd, plane_bsize, plane) << MI_SIZE_LOG2;
+    let n = TX_SIZE_WIDE_LOG2[tx_size as usize] as i32;
+    (max_blocks_wide + ((1 << n) - 1)) & !((1 << n) - 1)
+}
+
+#[inline]
+fn max_intra_block_height(
+    xd: &MacroBlockD,
+    plane_bsize: BlockSize,
+    plane: usize,
+    tx_size: TxSize,
+) -> i32 {
+    let max_blocks_high = max_block_high(xd, plane_bsize, plane) << MI_SIZE_LOG2;
+    let n = TX_SIZE_HIGH_LOG2[tx_size as usize] as i32;
+    (max_blocks_high + ((1 << n) - 1)) & !((1 << n) - 1)
+}
+
+/// Translation of `cfl_store_block()`.
+pub(crate) fn cfl_store_block(
+    xd: &mut MacroBlockD,
+    bsize: BlockSize,
+    tx_size: TxSize,
+) -> Result<(), ()> {
+    let mut row = 0;
+    let mut col = 0;
+
+    if BLOCK_SIZE_HIGH[bsize as usize] == 4 || BLOCK_SIZE_WIDE[bsize as usize] == 4 {
+        sub8x8_adjust_offset(&xd.cfl, xd.mi_row, xd.mi_col, &mut row, &mut col);
+    }
+    let width = max_intra_block_width(xd, bsize, AOM_PLANE_Y, tx_size);
+    let height = max_intra_block_height(xd, bsize, AOM_PLANE_Y, tx_size);
+    let tx_size = get_tx_size(width, height);
+    let pd = &xd.plane[AOM_PLANE_Y];
+    let (dst, stride) = (pd.dst.buf, pd.dst.stride);
+    let MacroBlockD { cfl, recon, .. } = xd;
+    cfl_store(
+        cfl,
+        &recon.buffer_alloc,
+        dst,
+        stride as usize,
+        row,
+        col,
+        tx_size,
+    )
 }
 
 /// Translation of `cfl_store_tx()`.

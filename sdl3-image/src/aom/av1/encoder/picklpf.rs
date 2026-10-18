@@ -28,6 +28,7 @@ pub(crate) fn av1_get_max_filter_level(cpi: &Av1Comp) -> i32 {
 /// method (the source is not read).
 pub(crate) fn av1_pick_filter_level(cpi: &mut Av1Comp, method: i32) {
     let max_filter_level = av1_get_max_filter_level(cpi);
+    let use_nonrd_pick_mode = cpi.sf.rt_sf.use_nonrd_pick_mode;
     let cm = &mut cpi.common;
     let seq_params = &cm.seq_params;
     let lf = &mut cm.lf;
@@ -43,7 +44,14 @@ pub(crate) fn av1_pick_filter_level(cpi: &mut Av1Comp, method: i32) {
     let q = av1_ac_quant_qtx(cm.quant_params.base_qindex, 0, seq_params.bit_depth) as i32;
     // based on tests result for rtc test set
     // 0.04590 boosted or 0.02295 non-booseted in 18-bit fixed point
-    // (the inter frame multiplier is only read for inter frames)
+    let strength_boost_q_treshold = 0;
+    let inter_frame_multiplier = if q > strength_boost_q_treshold
+        || (use_nonrd_pick_mode != 0 && cm.width * cm.height > 352 * 288)
+    {
+        12034
+    } else {
+        6017
+    };
     // These values were determined by linear fitting the result of the
     // searched level for 8 bit depth:
     // Keyframes: filt_guess = q * 0.06699 - 1.60817
@@ -56,8 +64,7 @@ pub(crate) fn av1_pick_filter_level(cpi: &mut Av1Comp, method: i32) {
             if cm.current_frame.frame_type == KEY_FRAME {
                 round_power_of_two(q * 17563 - 421574, 18)
             } else {
-                debug_assert!(false);
-                0
+                round_power_of_two(q * inter_frame_multiplier + 650707, 18)
             }
         }
         AOM_BITS_10 => round_power_of_two(q * 20723 + 4060632, 20),
@@ -78,5 +85,5 @@ pub(crate) fn av1_pick_filter_level(cpi: &mut Av1Comp, method: i32) {
     lf.filter_level[1] = filt_guess.clamp(min_filter_level, max_filter_level);
     lf.filter_level_u = filt_guess.clamp(min_filter_level, max_filter_level);
     lf.filter_level_v = filt_guess.clamp(min_filter_level, max_filter_level);
-    // (LOOPFILTER_SELECTIVELY: inter frames only)
+    // (LOOPFILTER_SELECTIVELY: the loop filter control is LOOPFILTER_ALL)
 }

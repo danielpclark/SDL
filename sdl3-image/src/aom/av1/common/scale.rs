@@ -47,6 +47,48 @@ pub(crate) fn valid_ref_frame_size(
         && this_height <= 16 * ref_height
 }
 
+/// `SCALE_EXTRA_BITS`
+pub(crate) const SCALE_EXTRA_BITS: i32 = SCALE_SUBPEL_BITS - super::filter::SUBPEL_BITS;
+/// `SCALE_SUBPEL_SHIFTS`
+pub(crate) const SCALE_SUBPEL_SHIFTS: i32 = 1 << SCALE_SUBPEL_BITS;
+/// `SCALE_SUBPEL_MASK`
+pub(crate) const SCALE_SUBPEL_MASK: i32 = SCALE_SUBPEL_SHIFTS - 1;
+/// `SCALE_EXTRA_OFF`
+pub(crate) const SCALE_EXTRA_OFF: i32 = (1 << SCALE_EXTRA_BITS) / 2;
+
+// Note: Expect val to be in q4 precision
+#[inline]
+pub(crate) fn av1_scaled_x(val: i32, sf: &ScaleFactors) -> i32 {
+    let off = (sf.x_scale_fp - (1 << REF_SCALE_SHIFT)) * (1 << (super::filter::SUBPEL_BITS - 1));
+    let tval = val as i64 * sf.x_scale_fp as i64 + off as i64;
+    round_power_of_two_signed_64(tval, REF_SCALE_SHIFT - SCALE_EXTRA_BITS) as i32
+}
+
+// Note: Expect val to be in q4 precision
+#[inline]
+pub(crate) fn av1_scaled_y(val: i32, sf: &ScaleFactors) -> i32 {
+    let off = (sf.y_scale_fp - (1 << REF_SCALE_SHIFT)) * (1 << (super::filter::SUBPEL_BITS - 1));
+    let tval = val as i64 * sf.y_scale_fp as i64 + off as i64;
+    round_power_of_two_signed_64(tval, REF_SCALE_SHIFT - SCALE_EXTRA_BITS) as i32
+}
+
+// Note: Expect val to be in q4 precision
+#[inline]
+pub(crate) fn av1_unscaled_value(val: i32, sf: &ScaleFactors) -> i32 {
+    let _ = sf;
+    val * (1 << SCALE_EXTRA_BITS)
+}
+
+/// `ROUND_POWER_OF_TWO_SIGNED_64()`
+#[inline]
+fn round_power_of_two_signed_64(value: i64, n: i32) -> i64 {
+    if value < 0 {
+        -((-value + ((1i64 << n) >> 1)) >> n)
+    } else {
+        (value + ((1i64 << n) >> 1)) >> n
+    }
+}
+
 // (scale.c)
 
 fn get_fixed_point_scale_factor(other_size: i32, this_size: i32) -> i32 {

@@ -2,8 +2,7 @@
 // av1/encoder/partition_search.h from aom
 // (https://aomedia.googlesource.com/aom, at the revision SDL_image's
 // external/aom pins: libaom 3.6.1 with SDL's patches) the saver reaches:
-// the non-RD coding of a superblock along a given partition, for key
-// frames, with one thread.
+// the non-RD coding of a superblock along a given partition.
 // Copyright (c) 2020, Alliance for Open Media. All rights reserved
 // SPDX-License-Identifier: BSD-2-Clause, and the Alliance for Open Media
 // Patent License 1.0 (see LICENSE.txt)
@@ -16,21 +15,39 @@ use super::block::*;
 use super::context_tree::{av1_alloc_pmc, PickModeContext};
 use super::encodeframe::{av1_get_perpixel_variance_facade, av1_setup_src_planes};
 use super::encodeframe_utils::*;
-use super::encodemb::av1_encode_intra_block_plane;
+use super::encodemb::{av1_encode_intra_block_plane, av1_encode_sb};
+use super::encodemv::{av1_get_ref_mv, av1_update_mv_stats};
 use super::encoder::*;
 use super::encodetxb::av1_update_intra_mb_txb_context;
-use super::nonrd_pickmode::{av1_copy_mbmi_ext_to_mbmi_ext_frame, av1_nonrd_pick_intra_mode};
+use super::mcomp::av1_set_mv_limits;
+use super::nonrd_pickmode::{
+    av1_copy_mbmi_ext_to_mbmi_ext_frame, av1_nonrd_pick_inter_mode_sb, av1_nonrd_pick_intra_mode,
+};
+use super::rd::av1_setup_pred_block;
 use super::rd::{av1_invalid_rd_stats, av1_set_error_per_bit};
 use super::rdopt::av1_rd_pick_intra_mode_sb;
 use super::rdopt_utils::{set_mode_eval_params, set_tx_size_search_method};
+use super::reconinter_enc::av1_enc_build_inter_predictor;
+use super::tokenize::av1_tokenize_sb_vartx;
+use super::var_based_part::calc_chroma_thresh_for_zeromv_skip;
 use crate::aom::aom_dsp::prob::update_cdf;
 use crate::aom::av1::common::av1_common_int::*;
+use crate::aom::av1::common::av1_loopfilter::av1_get_txb_size_index;
 use crate::aom::av1::common::blockd::*;
+use crate::aom::av1::common::cfl::cfl_store_block;
 use crate::aom::av1::common::cfl::{is_cfl_allowed, store_cfl_required};
+use crate::aom::av1::common::entropymode::FrameContext;
+use crate::aom::av1::common::entropymv::MV_SUBPEL_NONE;
 use crate::aom::av1::common::enums::*;
-use crate::aom::av1::common::mvref_common::av1_ref_frame_type;
-use crate::aom::av1::common::pred_common::{av1_get_skip_txfm_context, get_tx_size_context};
-use crate::aom::av1::common::reconinter::av1_setup_dst_planes;
+use crate::aom::av1::common::mv::Mv;
+use crate::aom::av1::common::mvref_common::{
+    av1_collect_neighbors_ref_counts, av1_drl_ctx, av1_mode_context_analyzer, av1_ref_frame_type,
+};
+use crate::aom::av1::common::pred_common::*;
+use crate::aom::av1::common::reconinter::{
+    av1_is_wedge_used, av1_setup_dst_planes, av1_setup_pre_planes, is_any_masked_compound_used,
+    is_interinter_compound_used, is_nontrans_global_motion,
+};
 use crate::aom::av1::common::reconintra::av1_allow_intrabc;
 use crate::aom::av1::common::seg_common::*;
 use crate::aom::av1::common::tile_common::TileInfo;
@@ -62,6 +79,235 @@ fn update_cb_offsets(x: &mut Macroblock, bsize: BlockSize, subsampling_x: i32, s
 
 // (partition_search.c)
 
+fn update_txfm_count(
+    x: &mut Macroblock,
+    tx_size: TxSize,
+    depth: i32,
+    blk_row: i32,
+    blk_col: i32,
+    allow_update_cdf: bool,
+) {
+    let xd = &mut x.e_mbd;
+    let mbmi = *xd.mbmi();
+    let bsize = mbmi.bsize;
+    let max_blocks_high = max_block_high(xd, bsize, 0);
+    let max_blocks_wide = max_block_wide(xd, bsize, 0);
+    let ctx = txfm_partition_context(
+        xd.above_contexts.txfm[xd.above_contexts_tile_row]
+            [xd.above_txfm_context + blk_col as usize],
+        xd.left_txfm_context_buffer[xd.left_txfm_context + blk_row as usize],
+        mbmi.bsize,
+        tx_size,
+    ) as usize;
+    let txb_size_index = av1_get_txb_size_index(bsize, blk_row, blk_col) as usize;
+    let plane_tx_size = mbmi.inter_tx_size[txb_size_index];
+
+    if blk_row >= max_blocks_high || blk_col >= max_blocks_wide {
+        return;
+    }
+    debug_assert!(tx_size > TX_4X4);
+
+    let above = xd.above_txfm_context + blk_col as usize;
+    let left = xd.left_txfm_context + blk_row as usize;
+    let tile_row = xd.above_contexts_tile_row;
+    if depth == MAX_VARTX_DEPTH {
+        // Don't add to counts in this case
+        xd.mbmi_mut().tx_size = tx_size;
+        let MacroBlockD {
+            above_contexts,
+            left_txfm_context_buffer,
+            ..
+        } = xd;
+        txfm_partition_update(
+            &mut above_contexts.txfm[tile_row][above..],
+            &mut left_txfm_context_buffer[left..],
+            tx_size,
+            tx_size,
+        );
+        return;
+    }
+
+    if tx_size == plane_tx_size {
+        if allow_update_cdf {
+            update_cdf(&mut xd.tile_ctx.txfm_partition_cdf[ctx], 0, 2);
+        }
+        xd.mbmi_mut().tx_size = tx_size;
+        let MacroBlockD {
+            above_contexts,
+            left_txfm_context_buffer,
+            ..
+        } = xd;
+        txfm_partition_update(
+            &mut above_contexts.txfm[tile_row][above..],
+            &mut left_txfm_context_buffer[left..],
+            tx_size,
+            tx_size,
+        );
+    } else {
+        let sub_txs = SUB_TX_SIZE_MAP[tx_size as usize];
+        let bsw = TX_SIZE_WIDE_UNIT[sub_txs as usize] as i32;
+        let bsh = TX_SIZE_HIGH_UNIT[sub_txs as usize] as i32;
+
+        if allow_update_cdf {
+            update_cdf(&mut xd.tile_ctx.txfm_partition_cdf[ctx], 1, 2);
+        }
+        x.txfm_search_info.txb_split_count += 1;
+
+        if sub_txs == TX_4X4 {
+            let xd = &mut x.e_mbd;
+            {
+                let mbmi = xd.mbmi_mut();
+                mbmi.inter_tx_size[txb_size_index] = TX_4X4;
+                mbmi.tx_size = TX_4X4;
+            }
+            let MacroBlockD {
+                above_contexts,
+                left_txfm_context_buffer,
+                ..
+            } = xd;
+            txfm_partition_update(
+                &mut above_contexts.txfm[tile_row][above..],
+                &mut left_txfm_context_buffer[left..],
+                TX_4X4,
+                tx_size,
+            );
+            return;
+        }
+
+        let mut row = 0;
+        while row < TX_SIZE_HIGH_UNIT[tx_size as usize] as i32 {
+            let mut col = 0;
+            while col < TX_SIZE_WIDE_UNIT[tx_size as usize] as i32 {
+                let offsetr = row;
+                let offsetc = col;
+
+                update_txfm_count(
+                    x,
+                    sub_txs,
+                    depth + 1,
+                    blk_row + offsetr,
+                    blk_col + offsetc,
+                    allow_update_cdf,
+                );
+                col += bsw;
+            }
+            row += bsh;
+        }
+    }
+}
+
+fn tx_partition_count_update(x: &mut Macroblock, plane_bsize: BlockSize, allow_update_cdf: bool) {
+    let xd = &mut x.e_mbd;
+    let mi_width = MI_SIZE_WIDE[plane_bsize as usize] as i32;
+    let mi_height = MI_SIZE_HIGH[plane_bsize as usize] as i32;
+    let max_tx_size = get_vartx_max_txsize(xd, plane_bsize, 0);
+    let bh = TX_SIZE_HIGH_UNIT[max_tx_size as usize] as i32;
+    let bw = TX_SIZE_WIDE_UNIT[max_tx_size as usize] as i32;
+
+    xd.above_txfm_context = xd.mi_col as usize;
+    xd.left_txfm_context = (xd.mi_row & MAX_MIB_MASK) as usize;
+
+    let mut idy = 0;
+    while idy < mi_height {
+        let mut idx = 0;
+        while idx < mi_width {
+            update_txfm_count(x, max_tx_size, 0, idy, idx, allow_update_cdf);
+            idx += bw;
+        }
+        idy += bh;
+    }
+}
+
+fn set_txfm_context(xd: &mut MacroBlockD, tx_size: TxSize, blk_row: i32, blk_col: i32) {
+    let mbmi = *xd.mbmi();
+    let bsize = mbmi.bsize;
+    let max_blocks_high = max_block_high(xd, bsize, 0);
+    let max_blocks_wide = max_block_wide(xd, bsize, 0);
+    let txb_size_index = av1_get_txb_size_index(bsize, blk_row, blk_col) as usize;
+    let plane_tx_size = mbmi.inter_tx_size[txb_size_index];
+
+    if blk_row >= max_blocks_high || blk_col >= max_blocks_wide {
+        return;
+    }
+
+    let above = xd.above_txfm_context + blk_col as usize;
+    let left = xd.left_txfm_context + blk_row as usize;
+    let tile_row = xd.above_contexts_tile_row;
+    if tx_size == plane_tx_size {
+        xd.mbmi_mut().tx_size = tx_size;
+        let MacroBlockD {
+            above_contexts,
+            left_txfm_context_buffer,
+            ..
+        } = xd;
+        txfm_partition_update(
+            &mut above_contexts.txfm[tile_row][above..],
+            &mut left_txfm_context_buffer[left..],
+            tx_size,
+            tx_size,
+        );
+    } else {
+        if tx_size == TX_8X8 {
+            {
+                let mbmi = xd.mbmi_mut();
+                mbmi.inter_tx_size[txb_size_index] = TX_4X4;
+                mbmi.tx_size = TX_4X4;
+            }
+            let MacroBlockD {
+                above_contexts,
+                left_txfm_context_buffer,
+                ..
+            } = xd;
+            txfm_partition_update(
+                &mut above_contexts.txfm[tile_row][above..],
+                &mut left_txfm_context_buffer[left..],
+                TX_4X4,
+                tx_size,
+            );
+            return;
+        }
+        let sub_txs = SUB_TX_SIZE_MAP[tx_size as usize];
+        let bsw = TX_SIZE_WIDE_UNIT[sub_txs as usize] as i32;
+        let bsh = TX_SIZE_HIGH_UNIT[sub_txs as usize] as i32;
+        let mut row = 0;
+        while row < TX_SIZE_HIGH_UNIT[tx_size as usize] as i32 {
+            let mut col = 0;
+            while col < TX_SIZE_WIDE_UNIT[tx_size as usize] as i32 {
+                let offsetr = blk_row + row;
+                let offsetc = blk_col + col;
+                if offsetr >= max_blocks_high || offsetc >= max_blocks_wide {
+                    col += bsw;
+                    continue;
+                }
+                set_txfm_context(xd, sub_txs, offsetr, offsetc);
+                col += bsw;
+            }
+            row += bsh;
+        }
+    }
+}
+
+fn tx_partition_set_contexts(xd: &mut MacroBlockD, plane_bsize: BlockSize) {
+    let mi_width = MI_SIZE_WIDE[plane_bsize as usize] as i32;
+    let mi_height = MI_SIZE_HIGH[plane_bsize as usize] as i32;
+    let max_tx_size = get_vartx_max_txsize(xd, plane_bsize, 0);
+    let bh = TX_SIZE_HIGH_UNIT[max_tx_size as usize] as i32;
+    let bw = TX_SIZE_WIDE_UNIT[max_tx_size as usize] as i32;
+
+    xd.above_txfm_context = xd.mi_col as usize;
+    xd.left_txfm_context = (xd.mi_row & MAX_MIB_MASK) as usize;
+
+    let mut idy = 0;
+    while idy < mi_height {
+        let mut idx = 0;
+        while idx < mi_width {
+            set_txfm_context(xd, max_tx_size, idy, idx);
+            idx += bw;
+        }
+        idy += bh;
+    }
+}
+
 fn encode_superblock(
     cpi: &Av1Comp,
     tile_data: &TileDataEnc,
@@ -78,9 +324,6 @@ fn encode_superblock(
     let mi_width = MI_SIZE_WIDE[bsize as usize] as i32;
     let mi_height = MI_SIZE_HIGH[bsize as usize] as i32;
     let is_inter = is_inter_block(&mbmi);
-    if is_inter {
-        return Err(());
-    }
 
     // Initialize tx_mode and tx_size_search_method
     set_tx_size_search_method(
@@ -93,21 +336,62 @@ fn encode_superblock(
 
     let mi_row = x.e_mbd.mi_row;
     let mi_col = x.e_mbd.mi_col;
-    {
+    if is_inter {
+        let is_compound = has_second_ref(&mbmi);
+        let xd = &mut x.e_mbd;
+        set_ref_ptrs(cm, xd, mbmi.ref_frame[0], mbmi.ref_frame[1])?;
+        for r in 0..1 + is_compound as usize {
+            let cfg = get_ref_frame_yv12_buf(cm, mbmi.ref_frame[r]);
+            debug_assert!(is_intrabc_block(&mbmi) || cfg.is_some());
+            let sf = xd.block_ref_scale_factors[r];
+            av1_setup_pre_planes(xd, r, cfg, mi_row, mi_col, Some(&sf), num_planes);
+        }
+        // Predicted sample of inter mode (for Luma plane) cannot be reused if
+        // nonrd_check_partition_split speed feature is enabled, Since in such cases
+        // the buffer may not contain the predicted sample of best mode.
+        let start_plane = if x.reuse_inter_pred
+            && cpi.sf.rt_sf.nonrd_check_partition_split == 0
+            && cm.seq_params.bit_depth == AOM_BITS_8
+        {
+            1
+        } else {
+            0
+        };
+        av1_enc_build_inter_predictor(
+            cm,
+            &mut x.e_mbd,
+            mi_row,
+            mi_col,
+            None,
+            bsize,
+            start_plane,
+            av1_num_planes(cm) - 1,
+        )?;
+        if x.e_mbd.mbmi().motion_mode == OBMC_CAUSAL {
+            debug_assert!(cpi.oxcf.motion_mode_cfg.enable_obmc);
+            // (av1_build_obmc_inter_predictors_sb(): OBMC is never picked by
+            // the non-RD mode search)
+            return Err(());
+        }
+
+        av1_encode_sb(cpi, x, bsize, dry_run)?;
+        av1_tokenize_sb_vartx(cpi, td, dry_run, bsize, tile_data.allow_update_cdf)?;
+    } else {
         x.e_mbd.cfl.store_y = store_cfl_required(&cm.seq_params, &x.e_mbd);
         x.e_mbd.mbmi_mut().skip_txfm = 1;
-        let src = &cpi.source().buffer_alloc;
         for plane in 0..num_planes {
             let segment_id = x.e_mbd.mbmi().segment_id as usize;
-            av1_encode_intra_block_plane(
-                cpi,
-                x,
-                src,
-                bsize,
-                plane,
-                dry_run,
-                cpi.optimize_seg_arr[segment_id],
-            )?;
+            with_source(x, |x, src| {
+                av1_encode_intra_block_plane(
+                    cpi,
+                    x,
+                    src,
+                    bsize,
+                    plane,
+                    dry_run,
+                    cpi.optimize_seg_arr[segment_id],
+                )
+            })?;
         }
 
         // If there is at least one lossless segment, force the skip for intra
@@ -144,26 +428,38 @@ fn encode_superblock(
             && mbmi.bsize > BLOCK_4X4
             && !(is_inter && (mbmi.skip_txfm != 0 || seg_skip))
         {
-            if mbmi.tx_size != MAX_TXSIZE_RECT_LOOKUP[bsize as usize] {
-                x.txfm_search_info.txb_split_count += 1;
-            }
-            if block_signals_txsize(bsize) {
-                let tx_size_ctx = get_tx_size_context(xd) as usize;
-                let tx_size_cat = bsize_to_tx_size_cat(bsize) as usize;
-                let depth = tx_size_to_depth(mbmi.tx_size, bsize);
-                let max_depths = bsize_to_max_depth(bsize);
+            if is_inter {
+                tx_partition_count_update(x, bsize, tile_data.allow_update_cdf);
+            } else {
+                if mbmi.tx_size != MAX_TXSIZE_RECT_LOOKUP[bsize as usize] {
+                    x.txfm_search_info.txb_split_count += 1;
+                }
+                if block_signals_txsize(bsize) {
+                    let tx_size_ctx = get_tx_size_context(xd) as usize;
+                    let tx_size_cat = bsize_to_tx_size_cat(bsize) as usize;
+                    let depth = tx_size_to_depth(mbmi.tx_size, bsize);
+                    let max_depths = bsize_to_max_depth(bsize);
 
-                if tile_data.allow_update_cdf {
-                    update_cdf(
-                        &mut xd.tile_ctx.tx_size_cdf[tx_size_cat][tx_size_ctx],
-                        depth as i8,
-                        max_depths + 1,
-                    );
+                    if tile_data.allow_update_cdf {
+                        update_cdf(
+                            &mut xd.tile_ctx.tx_size_cdf[tx_size_cat][tx_size_ctx],
+                            depth as i8,
+                            max_depths + 1,
+                        );
+                    }
                 }
             }
         } else {
             // The new intra coding scheme requires no change of transform size
-            let intra_tx_size = mbmi.tx_size;
+            let intra_tx_size = if is_inter {
+                if xd.lossless[mbmi.segment_id as usize] != 0 {
+                    TX_4X4
+                } else {
+                    tx_size_from_tx_mode(bsize, txfm_params.tx_mode_search_type)
+                }
+            } else {
+                mbmi.tx_size
+            };
 
             let cols = (cm.mi_params.mi_cols - mi_col).min(mi_width);
             let rows = (cm.mi_params.mi_rows - mi_row).min(mi_height);
@@ -189,19 +485,31 @@ fn encode_superblock(
         && !(mbmi.skip_txfm != 0 || seg_skip)
         && xd.lossless[mbmi.segment_id as usize] == 0
     {
-        // (tx_partition_set_contexts(): inter blocks only)
+        if dry_run != 0 {
+            tx_partition_set_contexts(xd, bsize);
+        }
     } else {
         let mut tx_size = mbmi.tx_size;
         // The new intra coding scheme requires no change of transform size
-        tx_size = if bsize > BLOCK_4X4 { tx_size } else { TX_4X4 };
+        if is_inter {
+            if xd.lossless[mbmi.segment_id as usize] != 0 {
+                tx_size = TX_4X4;
+            } else {
+                tx_size = tx_size_from_tx_mode(bsize, txfm_params.tx_mode_search_type);
+            }
+        } else {
+            tx_size = if bsize > BLOCK_4X4 { tx_size } else { TX_4X4 };
+        }
         xd.mbmi_mut().tx_size = tx_size;
         let (w, h) = (xd.width as i32, xd.height as i32);
         let skip = (mbmi.skip_txfm != 0 || seg_skip) && is_inter_block(&mbmi);
         set_txfm_ctxs(tx_size, w, h, skip, xd);
     }
 
-    // (cfl_store_block(): inter blocks only)
-    debug_assert!(!(is_inter_block(xd.mbmi()) && !xd.is_chroma_ref && is_cfl_allowed(xd) != 0));
+    if is_inter_block(xd.mbmi()) && !xd.is_chroma_ref && is_cfl_allowed(xd) != 0 {
+        let (b, t) = (xd.mbmi().bsize, xd.mbmi().tx_size);
+        cfl_store_block(xd, b, t)?;
+    }
     if dry_run == 0
         && cpi.oxcf.pass == AOM_RC_ONE_PASS
         && cpi.svc.temporal_layer_id == 0
@@ -280,8 +588,17 @@ pub(crate) fn av1_set_offsets_without_segment_id(
 
     // Set up limit values for MV components.
     // Mv beyond the range do not produce new/different prediction block.
-    // (av1_set_mv_limits(): the MV limits are only read by motion searches)
+    av1_set_mv_limits(
+        &cm.mi_params,
+        &mut x.mv_limits,
+        mi_row,
+        mi_col,
+        mi_height,
+        mi_width,
+        cpi.oxcf.border_in_pixels,
+    );
 
+    let xd = &mut x.e_mbd;
     set_plane_n4(xd, mi_width, mi_height, num_planes);
 
     // Set up distance of MB to edge of frame in 1/8th pel units.
@@ -345,22 +662,39 @@ fn hybrid_intra_mode_search(
     if use_rdopt {
         av1_rd_pick_intra_mode_sb(cpi, x, rd_cost, bsize, ctx, i64::MAX)
     } else {
-        av1_nonrd_pick_intra_mode(cpi, x, &cpi.source().buffer_alloc, rd_cost, bsize, ctx)
+        with_source(x, |x, src| {
+            av1_nonrd_pick_intra_mode(cpi, x, src, rd_cost, bsize, ctx)
+        })
     }
 }
 
-// (wait_for_top_right_sb(): one thread, so the row synchronization never
-// waits)
+// (wait_for_top_right_sb(): the rows are coded one after the other, so the
+// row synchronization never waits)
+
+/// `INTER_COMPOUND_OFFSET()`
+#[inline]
+fn inter_compound_offset(mode: PredictionMode) -> i8 {
+    (mode - NEAREST_NEARESTMV) as i8
+}
 
 fn update_stats(cm: &Av1Common, td: &mut ThreadData) -> Result<(), ()> {
     let x = &mut td.mb;
     let xd = &mut x.e_mbd;
     let mbmi = *xd.mbmi();
     let current_frame = &cm.current_frame;
+    let bsize = mbmi.bsize;
     let seg_ref_active = segfeature_active(&cm.seg, mbmi.segment_id, SEG_LVL_REF_FRAME);
 
-    if current_frame.skip_mode_info.skip_mode_flag != 0 && !seg_ref_active {
-        return Err(());
+    if current_frame.skip_mode_info.skip_mode_flag != 0
+        && !seg_ref_active
+        && is_comp_ref_allowed(bsize)
+    {
+        let skip_mode_ctx = av1_get_skip_mode_context(xd) as usize;
+        update_cdf(
+            &mut xd.tile_ctx.skip_mode_cdfs[skip_mode_ctx],
+            mbmi.skip_mode as i8,
+            2,
+        );
     }
 
     if mbmi.skip_mode == 0 && !seg_ref_active {
@@ -376,13 +710,325 @@ fn update_stats(cm: &Av1Common, td: &mut ThreadData) -> Result<(), ()> {
         av1_sum_intra_stats(cm, xd, frame_is_intra_only(cm));
     }
 
-    // (intra block copy is off: allow_intrabc stays 0 with screen content
-    // tools off)
-    debug_assert!(!(av1_allow_intrabc(cm) && cm.features.allow_intrabc));
+    if av1_allow_intrabc(cm) {
+        // (intra block copy is off: allow_intrabc stays 0 with screen
+        // content tools off)
+        return Err(());
+    }
+
     if frame_is_intra_only(cm) || mbmi.skip_mode != 0 {
         return Ok(());
     }
-    Err(())
+
+    let inter_block = is_inter_block(&mbmi);
+
+    if !seg_ref_active {
+        let ctx = av1_get_intra_inter_context(xd) as usize;
+        update_cdf(&mut xd.tile_ctx.intra_inter_cdf[ctx], inter_block as i8, 2);
+        // If the segment reference feature is enabled we have only a single
+        // reference frame allowed for the segment so exclude it from
+        // the reference frame counts used to work out probabilities.
+        if inter_block {
+            let ref0 = mbmi.ref_frame[0];
+            let ref1 = mbmi.ref_frame[1];
+            if current_frame.reference_mode == REFERENCE_MODE_SELECT && is_comp_ref_allowed(bsize) {
+                let ctx = av1_get_reference_mode_context(xd) as usize;
+                update_cdf(
+                    &mut xd.tile_ctx.comp_inter_cdf[ctx],
+                    has_second_ref(&mbmi) as i8,
+                    2,
+                );
+            }
+
+            if has_second_ref(&mbmi) {
+                let comp_ref_type = if has_uni_comp_refs(&mbmi) {
+                    UNIDIR_COMP_REFERENCE
+                } else {
+                    BIDIR_COMP_REFERENCE
+                };
+                let ctx = av1_get_comp_reference_type_context(xd) as usize;
+                update_cdf(
+                    &mut xd.tile_ctx.comp_ref_type_cdf[ctx],
+                    comp_ref_type as i8,
+                    COMP_REFERENCE_TYPES,
+                );
+
+                if comp_ref_type == UNIDIR_COMP_REFERENCE {
+                    let bit = (ref0 == BWDREF_FRAME) as i8;
+                    let ctx = av1_get_pred_context_uni_comp_ref_p(xd) as usize;
+                    update_cdf(&mut xd.tile_ctx.uni_comp_ref_cdf[ctx][0], bit, 2);
+                    if bit == 0 {
+                        let bit1 = (ref1 == LAST3_FRAME || ref1 == GOLDEN_FRAME) as i8;
+                        let ctx = av1_get_pred_context_uni_comp_ref_p1(xd) as usize;
+                        update_cdf(&mut xd.tile_ctx.uni_comp_ref_cdf[ctx][1], bit1, 2);
+                        if bit1 != 0 {
+                            let ctx = av1_get_pred_context_uni_comp_ref_p2(xd) as usize;
+                            update_cdf(
+                                &mut xd.tile_ctx.uni_comp_ref_cdf[ctx][2],
+                                (ref1 == GOLDEN_FRAME) as i8,
+                                2,
+                            );
+                        }
+                    }
+                } else {
+                    let bit = (ref0 == GOLDEN_FRAME || ref0 == LAST3_FRAME) as i8;
+                    let ctx = av1_get_pred_context_comp_ref_p(xd) as usize;
+                    update_cdf(&mut xd.tile_ctx.comp_ref_cdf[ctx][0], bit, 2);
+                    if bit == 0 {
+                        let ctx = av1_get_pred_context_comp_ref_p1(xd) as usize;
+                        update_cdf(
+                            &mut xd.tile_ctx.comp_ref_cdf[ctx][1],
+                            (ref0 == LAST2_FRAME) as i8,
+                            2,
+                        );
+                    } else {
+                        let ctx = av1_get_pred_context_comp_ref_p2(xd) as usize;
+                        update_cdf(
+                            &mut xd.tile_ctx.comp_ref_cdf[ctx][2],
+                            (ref0 == GOLDEN_FRAME) as i8,
+                            2,
+                        );
+                    }
+                    let ctx = av1_get_pred_context_comp_bwdref_p(xd) as usize;
+                    update_cdf(
+                        &mut xd.tile_ctx.comp_bwdref_cdf[ctx][0],
+                        (ref1 == ALTREF_FRAME) as i8,
+                        2,
+                    );
+                    if ref1 != ALTREF_FRAME {
+                        let ctx = av1_get_pred_context_comp_bwdref_p1(xd) as usize;
+                        update_cdf(
+                            &mut xd.tile_ctx.comp_bwdref_cdf[ctx][1],
+                            (ref1 == ALTREF2_FRAME) as i8,
+                            2,
+                        );
+                    }
+                }
+            } else {
+                let bit = (ref0 >= BWDREF_FRAME) as i8;
+                let ctx = av1_get_pred_context_single_ref_p1(xd) as usize;
+                update_cdf(&mut xd.tile_ctx.single_ref_cdf[ctx][0], bit, 2);
+                if bit != 0 {
+                    debug_assert!(ref0 <= ALTREF_FRAME);
+                    let ctx = av1_get_pred_context_single_ref_p2(xd) as usize;
+                    update_cdf(
+                        &mut xd.tile_ctx.single_ref_cdf[ctx][1],
+                        (ref0 == ALTREF_FRAME) as i8,
+                        2,
+                    );
+                    if ref0 != ALTREF_FRAME {
+                        let ctx = av1_get_pred_context_single_ref_p6(xd) as usize;
+                        update_cdf(
+                            &mut xd.tile_ctx.single_ref_cdf[ctx][5],
+                            (ref0 == ALTREF2_FRAME) as i8,
+                            2,
+                        );
+                    }
+                } else {
+                    let bit1 = (!(ref0 == LAST2_FRAME || ref0 == LAST_FRAME)) as i8;
+                    let ctx = av1_get_pred_context_single_ref_p3(xd) as usize;
+                    update_cdf(&mut xd.tile_ctx.single_ref_cdf[ctx][2], bit1, 2);
+                    if bit1 == 0 {
+                        let ctx = av1_get_pred_context_single_ref_p4(xd) as usize;
+                        update_cdf(
+                            &mut xd.tile_ctx.single_ref_cdf[ctx][3],
+                            (ref0 != LAST_FRAME) as i8,
+                            2,
+                        );
+                    } else {
+                        let ctx = av1_get_pred_context_single_ref_p5(xd) as usize;
+                        update_cdf(
+                            &mut xd.tile_ctx.single_ref_cdf[ctx][4],
+                            (ref0 != LAST3_FRAME) as i8,
+                            2,
+                        );
+                    }
+                }
+            }
+
+            let fc: &mut FrameContext = &mut xd.tile_ctx;
+            if cm.seq_params.enable_interintra_compound != 0 && is_interintra_allowed(&mbmi) {
+                let bsize_group = SIZE_GROUP_LOOKUP[bsize as usize] as usize;
+                if mbmi.ref_frame[1] == INTRA_FRAME {
+                    update_cdf(&mut fc.interintra_cdf[bsize_group], 1, 2);
+                    update_cdf(
+                        &mut fc.interintra_mode_cdf[bsize_group],
+                        mbmi.interintra_mode as i8,
+                        INTERINTRA_MODES,
+                    );
+                    if av1_is_wedge_used(bsize) {
+                        update_cdf(
+                            &mut fc.wedge_interintra_cdf[bsize as usize],
+                            mbmi.use_wedge_interintra as i8,
+                            2,
+                        );
+                        if mbmi.use_wedge_interintra != 0 {
+                            update_cdf(
+                                &mut fc.wedge_idx_cdf[bsize as usize],
+                                mbmi.interintra_wedge_index as i8,
+                                16,
+                            );
+                        }
+                    }
+                } else {
+                    update_cdf(&mut fc.interintra_cdf[bsize_group], 0, 2);
+                }
+            }
+
+            let motion_allowed = if cm.features.switchable_motion_mode {
+                motion_mode_allowed(
+                    &cm.global_motion,
+                    xd,
+                    &mbmi,
+                    cm.features.allow_warped_motion,
+                )
+            } else {
+                SIMPLE_TRANSLATION
+            };
+            let fc: &mut FrameContext = &mut xd.tile_ctx;
+            if mbmi.ref_frame[1] != INTRA_FRAME {
+                if motion_allowed == WARPED_CAUSAL {
+                    update_cdf(
+                        &mut fc.motion_mode_cdf[bsize as usize],
+                        mbmi.motion_mode as i8,
+                        MOTION_MODES,
+                    );
+                } else if motion_allowed == OBMC_CAUSAL {
+                    update_cdf(
+                        &mut fc.obmc_cdf[bsize as usize],
+                        (mbmi.motion_mode == OBMC_CAUSAL) as i8,
+                        2,
+                    );
+                }
+            }
+
+            if has_second_ref(&mbmi) {
+                debug_assert!(
+                    current_frame.reference_mode != SINGLE_REFERENCE
+                        && is_inter_compound_mode(mbmi.mode)
+                        && mbmi.motion_mode == SIMPLE_TRANSLATION
+                );
+
+                let masked_compound_used =
+                    is_any_masked_compound_used(bsize) && cm.seq_params.enable_masked_compound != 0;
+                if masked_compound_used {
+                    let comp_group_idx_ctx = get_comp_group_idx_context(xd) as usize;
+                    update_cdf(
+                        &mut xd.tile_ctx.comp_group_idx_cdf[comp_group_idx_ctx],
+                        mbmi.comp_group_idx as i8,
+                        2,
+                    );
+                }
+
+                if mbmi.comp_group_idx == 0 {
+                    let comp_index_ctx = get_comp_index_context(cm, xd) as usize;
+                    update_cdf(
+                        &mut xd.tile_ctx.compound_index_cdf[comp_index_ctx],
+                        mbmi.compound_idx as i8,
+                        2,
+                    );
+                } else {
+                    debug_assert!(masked_compound_used);
+                    if is_interinter_compound_used(COMPOUND_WEDGE, bsize) {
+                        update_cdf(
+                            &mut xd.tile_ctx.compound_type_cdf[bsize as usize],
+                            (mbmi.interinter_comp.type_ as i32 - COMPOUND_WEDGE) as i8,
+                            MASKED_COMPOUND_TYPES,
+                        );
+                    }
+                }
+            }
+            if mbmi.interinter_comp.type_ as i32 == COMPOUND_WEDGE
+                && is_interinter_compound_used(COMPOUND_WEDGE, bsize)
+            {
+                update_cdf(
+                    &mut xd.tile_ctx.wedge_idx_cdf[bsize as usize],
+                    mbmi.interinter_comp.wedge_index as i8,
+                    16,
+                );
+            }
+        }
+    }
+
+    if inter_block
+        && cm.features.interp_filter == SWITCHABLE
+        && mbmi.motion_mode != WARPED_CAUSAL
+        && !is_nontrans_global_motion(&cm.global_motion, &mbmi)
+    {
+        update_filter_type_cdf(xd, &mbmi, cm.seq_params.enable_dual_filter != 0);
+    }
+    if inter_block && !segfeature_active(&cm.seg, mbmi.segment_id, SEG_LVL_SKIP) {
+        let mode = mbmi.mode;
+        let mbmi_ext = &x.mbmi_ext;
+        let mode_ctx = av1_mode_context_analyzer(&mbmi_ext.mode_context, &mbmi.ref_frame);
+        let fc: &mut FrameContext = &mut x.e_mbd.tile_ctx;
+        if has_second_ref(&mbmi) {
+            update_cdf(
+                &mut fc.inter_compound_mode_cdf[mode_ctx as usize],
+                inter_compound_offset(mode),
+                INTER_COMPOUND_MODES,
+            );
+        } else {
+            av1_update_inter_mode_stats(fc, mode, mode_ctx);
+        }
+
+        let new_mv = mbmi.mode == NEWMV || mbmi.mode == NEW_NEWMV;
+        if new_mv {
+            let ref_frame_type = av1_ref_frame_type(&mbmi.ref_frame) as usize;
+            for idx in 0..2 {
+                if mbmi_ext.ref_mv_count[ref_frame_type] as i32 > idx + 1 {
+                    let drl_ctx = av1_drl_ctx(&mbmi_ext.weight[ref_frame_type], idx as usize);
+                    update_cdf(
+                        &mut fc.drl_cdf[drl_ctx as usize],
+                        (mbmi.ref_mv_idx as i32 != idx) as i8,
+                        2,
+                    );
+                    if mbmi.ref_mv_idx as i32 == idx {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if have_nearmv_in_inter_mode(mbmi.mode) {
+            let ref_frame_type = av1_ref_frame_type(&mbmi.ref_frame) as usize;
+            for idx in 1..3 {
+                if mbmi_ext.ref_mv_count[ref_frame_type] as i32 > idx + 1 {
+                    let drl_ctx = av1_drl_ctx(&mbmi_ext.weight[ref_frame_type], idx as usize);
+                    update_cdf(
+                        &mut fc.drl_cdf[drl_ctx as usize],
+                        (mbmi.ref_mv_idx as i32 != idx - 1) as i8,
+                        2,
+                    );
+                    if mbmi.ref_mv_idx as i32 == idx - 1 {
+                        break;
+                    }
+                }
+            }
+        }
+        if have_newmv_in_inter_mode(mbmi.mode) {
+            let allow_hp = if cm.features.cur_frame_force_integer_mv {
+                MV_SUBPEL_NONE
+            } else {
+                cm.features.allow_high_precision_mv as i32
+            };
+            let update = |x: &mut Macroblock, r: usize| {
+                let ref_mv = av1_get_ref_mv(x, r as i32);
+                let mv: Mv = mbmi.mv[r].as_mv();
+                av1_update_mv_stats(&mv, &ref_mv.as_mv(), &mut x.e_mbd.tile_ctx.nmvc, allow_hp);
+            };
+            if new_mv {
+                for r in 0..1 + has_second_ref(&mbmi) as usize {
+                    update(x, r);
+                }
+            } else if mbmi.mode == NEAREST_NEWMV || mbmi.mode == NEAR_NEWMV {
+                update(x, 1);
+            } else if mbmi.mode == NEW_NEARESTMV || mbmi.mode == NEW_NEARMV {
+                update(x, 0);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn encode_b_nonrd(
@@ -425,18 +1071,52 @@ fn encode_b_nonrd(
     }
 
     encode_superblock(cpi, tile_data, td, dry_run, bsize)?;
+    let cm = &cpi.common;
     let x = &mut td.mb;
     if dry_run == 0 {
         update_cb_offsets(x, bsize, subsampling_x, subsampling_y);
-        let mbmi = *x.e_mbd.mbmi();
-        if has_second_ref(&mbmi) || mbmi.skip_mode != 0 || is_inter_block(&mbmi) {
-            return Err(());
+        let xd = &mut x.e_mbd;
+        if has_second_ref(xd.mbmi()) {
+            let mbmi = xd.mbmi_mut();
+            if mbmi.compound_idx == 0 || mbmi.interinter_comp.type_ as i32 == COMPOUND_AVERAGE {
+                mbmi.comp_group_idx = 0;
+            } else {
+                mbmi.comp_group_idx = 1;
+            }
+            mbmi.compound_idx = 1;
+        }
+        let mbmi = *xd.mbmi();
+        let rdc = &mut td.rd_counts;
+        if mbmi.skip_mode != 0 {
+            debug_assert!(!frame_is_intra_only(cm));
+            rdc.skip_mode_used_flag = 1;
+            if cm.current_frame.reference_mode == REFERENCE_MODE_SELECT && has_second_ref(&mbmi) {
+                rdc.compound_ref_used_flag = 1;
+            }
+            set_ref_ptrs(cm, xd, mbmi.ref_frame[0], mbmi.ref_frame[1])?;
+        } else {
+            let seg_ref_active = segfeature_active(&cm.seg, mbmi.segment_id, SEG_LVL_REF_FRAME);
+            if !seg_ref_active {
+                // If the segment reference feature is enabled we have only a single
+                // reference frame allowed for the segment so exclude it from
+                // the reference frame counts used to work out probabilities.
+                if is_inter_block(&mbmi) {
+                    av1_collect_neighbors_ref_counts(xd);
+                    if cm.current_frame.reference_mode == REFERENCE_MODE_SELECT
+                        && has_second_ref(&mbmi)
+                    {
+                        // This flag is also updated for 4x4 blocks
+                        rdc.compound_ref_used_flag = 1;
+                    }
+                    set_ref_ptrs(cm, xd, mbmi.ref_frame[0], mbmi.ref_frame[1])?;
+                }
+            }
         }
         if cpi.oxcf.algo_cfg.loopfilter_control == LOOPFILTER_SELECTIVELY
             && (mbmi.mode == NEWMV || mbmi.mode < INTRA_MODE_END)
         {
-            // (the selective loop filter control is off for the saver)
-            return Err(());
+            let blocks = MI_SIZE_HIGH[bsize as usize] as i32 * MI_SIZE_WIDE[bsize as usize] as i32;
+            rdc.newmv_or_intra_blocks += blocks;
         }
         if tile_data.allow_update_cdf {
             update_stats(&cpi.common, td)?;
@@ -465,12 +1145,51 @@ fn encode_b_nonrd(
     Ok(())
 }
 
-fn get_force_zeromv_skip_flag_for_blk(x: &Macroblock) -> i32 {
+fn get_force_zeromv_skip_flag_for_blk(cpi: &Av1Comp, x: &Macroblock, bsize: BlockSize) -> i32 {
     // Force zero MV skip based on SB level decision
-    // (x->force_zeromv_skip_for_sb is 0 for the saver: the decision is an
-    // inter frame one)
-    debug_assert!(x.force_zeromv_skip_for_sb < 2);
-    x.force_zeromv_skip_for_sb
+    if x.force_zeromv_skip_for_sb < 2 {
+        return x.force_zeromv_skip_for_sb;
+    }
+
+    // For blocks of size equal to superblock size, the decision would have been
+    // already done at superblock level. Hence zeromv-skip decision is skipped.
+    let cm = &cpi.common;
+    if bsize == cm.seq_params.sb_size {
+        return 0;
+    }
+
+    let num_planes = av1_num_planes(cm);
+    let xd = &x.e_mbd;
+    let thresh_exit_part_y = cpi.zeromv_skip_thresh_exit_part[bsize as usize];
+    let thresh_exit_part_uv = calc_chroma_thresh_for_zeromv_skip(thresh_exit_part_y);
+    let thresh_exit_part = [thresh_exit_part_y, thresh_exit_part_uv, thresh_exit_part_uv];
+    let Some((yv12, yv12_idx)) = get_ref_frame_yv12_buf(cm, LAST_FRAME) else {
+        return 0;
+    };
+    let sf = get_ref_scale_factors_const(cm, LAST_FRAME);
+
+    let mut yv12_mb = [Buf2d::default(); MAX_MB_PLANE];
+    av1_setup_pred_block(xd, &mut yv12_mb, yv12, yv12_idx, sf, sf, num_planes);
+
+    for plane in 0..num_planes {
+        let p = &x.plane[plane];
+        let pd = &xd.plane[plane];
+        let bs = get_plane_block_size(bsize, pd.subsampling_x, pd.subsampling_y);
+        let plane_sad = cpi.ppi.fn_ptr.sdf(
+            bs,
+            &x.source_alloc,
+            p.src.buf,
+            p.src.stride as usize,
+            &yv12.buffer_alloc,
+            yv12_mb[plane].buf,
+            yv12_mb[plane].stride as usize,
+        );
+        debug_assert!(plane < MAX_MB_PLANE);
+        if plane_sad >= thresh_exit_part[plane] {
+            return 0;
+        }
+    }
+    1
 }
 
 /*\brief Top level function to pick block mode for non-RD optimized case
@@ -513,13 +1232,13 @@ fn pick_sb_modes_nonrd(
     x.e_mbd.tx_type_map_stride = MI_SIZE_WIDE[bsize as usize] as i32;
     // (the coefficient buffers are the planes': see context_tree.rs)
 
-    x.force_zeromv_skip_for_blk = get_force_zeromv_skip_flag_for_blk(x);
+    x.force_zeromv_skip_for_blk = get_force_zeromv_skip_flag_for_blk(cpi, x, bsize);
 
     if x.force_zeromv_skip_for_blk == 0 {
         x.source_variance = av1_get_perpixel_variance_facade(
             cpi,
             &x.e_mbd,
-            &cpi.source().buffer_alloc,
+            &x.source_alloc,
             &x.plane[0].src,
             bsize,
             AOM_PLANE_Y,
@@ -534,9 +1253,12 @@ fn pick_sb_modes_nonrd(
     // as a predictor for MBs that follow in the SB
     if frame_is_intra_only(cm) {
         hybrid_intra_mode_search(cpi, x, rd_cost, bsize, ctx)?;
-    } else {
-        // (av1_nonrd_pick_inter_mode_sb())
+    } else if segfeature_active(&cm.seg, x.e_mbd.mbmi().segment_id, SEG_LVL_SKIP) {
+        // TODO(kyslov): add av1_nonrd_pick_inter_mode_sb_seg_skip
+        // (av1_rd_pick_inter_mode_sb_seg_skip(): segmentation is off)
         return Err(());
+    } else {
+        av1_nonrd_pick_inter_mode_sb(cpi, tile_data, x, rd_cost, bsize, ctx)?;
     }
     if cpi.sf.rt_sf.skip_cdef_sb != 0 {
         // cdef_strength is initialized to 1 which means skip_cdef, and is updated
@@ -635,7 +1357,6 @@ pub(crate) fn av1_nonrd_use_partition(
     } else {
         0
     };
-    let _ = pl;
 
     if mi_row >= mi_params.mi_rows || mi_col >= mi_params.mi_cols {
         return Ok(());
@@ -690,8 +1411,14 @@ pub(crate) fn av1_nonrd_use_partition(
             }
         }
         PARTITION_SPLIT => {
-            // (try_merge(): inter frames only)
-            debug_assert!(frame_is_intra_only(cm));
+            if cpi.sf.rt_sf.nonrd_check_partition_merge_mode != 0
+                && av1_is_leaf_split_partition(cm, &x.e_mbd, mi_row, mi_col, bsize)
+                && !frame_is_intra_only(cm)
+                && bsize <= BLOCK_64X64
+            {
+                // (try_merge(): the speed features' merge mode check is off)
+                return Err(());
+            }
             for i in 0..SUB_PARTITIONS_SPLIT {
                 let x_idx = (i & 1) * hbs;
                 let y_idx = (i >> 1) * hbs;
@@ -710,7 +1437,19 @@ pub(crate) fn av1_nonrd_use_partition(
 
             if change_none_to_split == 0 {
                 // Note: Palette, cfl are not supported.
-                // (direct_partition_merging(): inter frames only)
+                let x = &td.mb;
+                if !frame_is_intra_only(cm)
+                    && !tile_data.allow_update_cdf
+                    && cpi.sf.rt_sf.partition_direct_merging != 0
+                    && x.mode_costs.partition_cost[pl as usize][PARTITION_NONE as usize]
+                        < x.mode_costs.partition_cost[pl as usize][PARTITION_SPLIT as usize]
+                    && (mi_row + bs <= mi_params.mi_rows)
+                    && (mi_col + bs <= mi_params.mi_cols)
+                {
+                    // (direct_partition_merging(): the CDFs are updated, which
+                    // rules the merging out)
+                    return Err(());
+                }
             }
         }
         _ => {

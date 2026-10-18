@@ -790,3 +790,16 @@ pub(crate) fn av1_nonrd_pick_intra_mode(
     store_coding_context(x, ctx);
     Ok(())
 }
+
+/// Translation of `av1_nonrd_pick_inter_mode_sb()`.
+pub(crate) fn av1_nonrd_pick_inter_mode_sb(
+    cpi: &Av1Comp,
+    tile_data: &super::encoder::TileDataEnc,
+    x: &mut Macroblock,
+    rd_cost: &mut RdStats,
+    bsize: BlockSize,
+    ctx: &mut PickModeContext,
+) -> Result<(), ()> {
+    let _ = (cpi, tile_data, x, rd_cost, bsize, ctx);
+    Err(())
+}

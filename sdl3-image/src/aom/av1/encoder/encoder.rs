@@ -529,6 +529,8 @@ pub(crate) struct RdCounts {
     pub(crate) compound_ref_used_flag: i32,
     pub(crate) skip_mode_used_flag: i32,
     pub(crate) tx_type_used: [[i32; TX_TYPES as usize]; TX_SIZES_ALL as usize],
+    pub(crate) obmc_used: [[i32; 2]; BLOCK_SIZES_ALL as usize],
+    pub(crate) warped_used: [i32; 2],
     pub(crate) seg_tmp_pred_cost: [i32; 2],
     pub(crate) newmv_or_intra_blocks: i32,
 }
@@ -881,6 +883,9 @@ pub(crate) struct Av1Comp {
     pub(crate) is_dropped_frame: bool,
     /// `*cpi->cyclic_refresh`
     pub(crate) cyclic_refresh: CyclicRefresh,
+    /// Block size dependent thresholds used to force zeromv-skip at
+    /// partition level.
+    pub(crate) zeromv_skip_thresh_exit_part: [u32; BLOCK_SIZES_ALL as usize],
 }
 
 impl Av1Comp {
@@ -894,7 +899,8 @@ impl Av1Comp {
 /// Moves the frame-wide state the blocks read and write into the thread
 /// data while a frame is coded or packed: `cm->mi_params` arrays,
 /// `cm->above_contexts`, the reconstruction `cm->cur_frame->buf`,
-/// `cpi->mbmi_ext_info.frame_base` and `cpi->coeff_buffer_base`.
+/// `cpi->mbmi_ext_info.frame_base`, `cpi->coeff_buffer_base` and the
+/// samples of the source.
 pub(crate) fn enc_move_frame_state_in(cpi: &mut Av1Comp, td: &mut ThreadData) {
     let cm = &mut cpi.common;
     let xd = &mut td.mb.e_mbd;
@@ -908,6 +914,7 @@ pub(crate) fn enc_move_frame_state_in(cpi: &mut Av1Comp, td: &mut ThreadData) {
     }
     td.mb.mbmi_ext_frame_base = std::mem::take(&mut cpi.mbmi_ext_info.frame_base);
     td.mb.cb_coeff_buffers = std::mem::take(&mut cpi.coeff_buffer_base);
+    td.mb.source_alloc = std::mem::take(&mut cpi.source_buf.buffer_alloc);
 }
 
 /// The reverse of `enc_move_frame_state_in()`.
@@ -924,6 +931,7 @@ pub(crate) fn enc_move_frame_state_out(cpi: &mut Av1Comp, td: &mut ThreadData) {
     }
     cpi.mbmi_ext_info.frame_base = std::mem::take(&mut td.mb.mbmi_ext_frame_base);
     cpi.coeff_buffer_base = std::mem::take(&mut td.mb.cb_coeff_buffers);
+    cpi.source_buf.buffer_alloc = std::mem::take(&mut td.mb.source_alloc);
 }
 
 // ---------------------------------------------------------------------------
@@ -1084,6 +1092,28 @@ pub(crate) fn av1_set_high_precision_mv(
 pub(crate) fn av1_encoder_get_relative_dist(a: i32, b: i32) -> i32 {
     debug_assert!(a >= 0 && b >= 0);
     a - b
+}
+
+/// Translation of `set_ref_ptrs()`: `Err` where upstream would store a NULL
+/// scale factors pointer (a reference without a buffer map index).
+#[inline]
+pub(crate) fn set_ref_ptrs(
+    cm: &Av1Common,
+    xd: &mut MacroBlockD,
+    ref0: MvReferenceFrame,
+    ref1: MvReferenceFrame,
+) -> Result<(), ()> {
+    xd.block_ref_scale_factors[0] =
+        *get_ref_scale_factors_const(cm, if ref0 >= LAST_FRAME { ref0 } else { 1 }).ok_or(())?;
+    xd.block_ref_scale_factors[1] =
+        *get_ref_scale_factors_const(cm, if ref1 >= LAST_FRAME { ref1 } else { 1 }).ok_or(())?;
+    Ok(())
+}
+
+/// Translation of `get_frame_update_type()`.
+#[inline]
+pub(crate) fn get_frame_update_type(gf_group: &GfGroup, gf_frame_index: i32) -> i32 {
+    gf_group.update_type[gf_frame_index as usize] as i32
 }
 
 /// Translation of `encode_show_existing_frame()`.
@@ -2505,7 +2535,7 @@ fn encode_without_recode(cpi: &mut Av1Comp) -> Result<(), ()> {
             cpi.common.seq_params.bit_depth,
         );
     }
-    av1_set_variance_partition_thresholds(cpi, q);
+    av1_set_variance_partition_thresholds(cpi, q, 0);
     av1_setup_frame(cpi);
 
     // Check if this high_source_sad (scene/slide change) frame should be

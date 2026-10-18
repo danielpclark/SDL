@@ -9,6 +9,7 @@ pub(crate) mod av1_txfm;
 pub(crate) mod blockd;
 pub(crate) mod cdef;
 pub(crate) mod cfl;
+pub(crate) mod convolve;
 pub(crate) mod entropy;
 pub(crate) mod entropymode;
 pub(crate) mod entropymv;
