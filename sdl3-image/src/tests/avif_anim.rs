@@ -48,8 +48,10 @@ fn tex(u: u32, v: u32, c: u32) -> u32 {
 
 /// The harness's `gen()`: component `c` (0 red, 1 green, 2 blue, 3 alpha)
 /// of frame `f` of a pattern (0 moving gradient, 1 noise, 2 moving shapes,
-/// 3 still shapes, 4 moving texture, 5 scrolling screen content; alpha 0
-/// opaque, 1 moving gradient, 2 moving binary, 3 noise).
+/// 3 still shapes, 4 moving texture, 5 scrolling screen content, 6 flat
+/// windows, 7 scrolling text, 8 a moving checkerboard and stripes, 9 slides
+/// changing every third frame; alpha 0 opaque, 1 moving gradient, 2 moving
+/// binary, 3 noise).
 #[allow(clippy::too_many_arguments)]
 fn gen(
     rng: &mut Rng,
@@ -132,6 +134,85 @@ fn gen(
                 c as u32,
             ) * max
                 / 255
+        }
+        6 => {
+            // flat UI: windows of flat colors with 1-pixel borders, one moving
+            const PAL: [[u8; 3]; 6] = [
+                [240, 240, 240],
+                [30, 30, 30],
+                [0, 120, 215],
+                [255, 255, 255],
+                [200, 200, 200],
+                [230, 80, 20],
+            ];
+            let mut idx = 0;
+            let wx = [w / 8, w / 3 + 5 * f, w / 2 - 3 * f];
+            let wy = [h / 6, h / 4 + 3 * f, h / 2];
+            let ww = [w / 2, w / 3, w / 4 + 3];
+            let wh = [h / 2, h / 3, h / 3];
+            for k in 0..3 {
+                let (xx, yy) = (x - wx[k], y - wy[k]);
+                if xx >= 0 && yy >= 0 && xx < ww[k] && yy < wh[k] {
+                    idx = if xx == 0 || yy == 0 || xx == ww[k] - 1 || yy == wh[k] - 1 {
+                        1
+                    } else if yy < 6 {
+                        2 + (k == 2) as usize * 3
+                    } else {
+                        3 + (k == 1) as usize
+                    };
+                }
+            }
+            PAL[idx][c as usize] as u32 * max / 255
+        }
+        7 => {
+            // text: 6x9 glyph cells, black on white, scrolling up a row a
+            // frame, typed in
+            let yy = y + f;
+            let (cx, cy, gx, gy) = (x / 6, yy / 9, x % 6, yy % 9);
+            let n = cy * 64 + cx;
+            let mut on = false;
+            if gx < 5
+                && gy < 7
+                && (cy * 13 + cx) < 40 + 25 * f
+                && !hash2(n as u32, 7).is_multiple_of(9)
+            {
+                let bits =
+                    hash2(n as u32, (gy * 5 + gx) as u32) ^ hash2((n % 37) as u32, gy as u32);
+                on = (bits & 3) == 0 || ((gx == 0 || gy == 3) && (bits & 4) != 0);
+            }
+            let mut v = if on { 0 } else { 255 };
+            if c == 2 && !on && cy % 4 == 0 {
+                v = 230;
+            }
+            v * max / 255
+        }
+        8 => {
+            // dither: a 1-pixel checkerboard of two colors and palette
+            // stripes, moving left 2 pixels a frame
+            let xx = x + 2 * f;
+            if y < h / 2 {
+                return if ((xx ^ y) & 1) != 0 {
+                    max
+                } else if c == 1 {
+                    max / 2
+                } else {
+                    0
+                };
+            }
+            const PAL: [[u8; 3]; 4] = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0]];
+            PAL[((xx / 3) & 3) as usize][c as usize] as u32 * max / 255
+        }
+        9 => {
+            // slides: a new flat layout every third frame
+            let sl = f / 3;
+            let bg = hash2(sl as u32, 99);
+            if y > h / 5 && y < h / 5 + 8 && x > w / 10 && x < w - w / 10 {
+                return if c == sl % 3 { 255 } else { 20 } * max / 255;
+            }
+            if (x / 16 + y / 16 + sl) % 5 == 0 {
+                return ((bg + 128 * (c == 0) as u32) & 255) * max / 255;
+            }
+            ((bg * (c as u32 + 1)) & 255) * max / 255
         }
         _ => {
             const PAL: [[u8; 3]; 4] = [[255, 255, 255], [0, 0, 0], [200, 30, 40], [20, 90, 220]];
@@ -360,6 +441,16 @@ const CASES: &[Case] = &[
     ("rgba_400x376_shapes_a_f3", 400, 376, PixelFormat::RGBA32, 2, 1, 3, "100", "60", ""),
     ("rgbx_48x32_tex_f40", 48, 32, PixelFormat::RGBX32, 4, 0, 40, "40", "50", ""),
     ("rgbx_96x64_shapes_f12", 96, 64, PixelFormat::RGBX32, 2, 0, 12, "100", "30", ""),
+    ("sc_rgbx_200x120_ui_f8", 200, 120, PixelFormat::RGBX32, 6, 0, 8, "100", "30", ""),
+    ("sc_xrgb2101010_200x120_text_f8", 200, 120, PixelFormat::XRGB2101010, 7, 0, 8, "100", "60", "1"),
+    ("sc_rgba_200x120_dither_a_f8", 200, 120, PixelFormat::RGBA32, 8, 2, 8, "100", "30", "k"),
+    ("sc_rgbx_200x120_slides_f8", 200, 120, PixelFormat::RGBX32, 9, 0, 8, "100", "0,60", ""),
+    ("sc_argb_200x120_slides_a_f8", 200, 120, PixelFormat::ARGB32, 9, 1, 8, "100", "30", "t"),
+    ("sc_rgbx_704x480_text_f3", 704, 480, PixelFormat::RGBX32, 7, 0, 3, "100", "50", ""),
+    ("lg_rgbx_1000x700_slides_f7", 1000, 700, PixelFormat::RGBX32, 9, 0, 7, "100", "70", ""),
+    ("lg_argb_1080x1080_text_a_f2", 1080, 1080, PixelFormat::ARGB32, 7, 1, 2, "100", "35", ""),
+    ("lg_xrgb2101010_1080x1088_ui_f2", 1080, 1088, PixelFormat::XRGB2101010, 6, 0, 2, "100", "60", ""),
+    ("lg_rgbx_4200x64_ui_f2", 4200, 64, PixelFormat::RGBX32, 6, 0, 2, "100", "50", ""),
 ];
 
 /// Development aid: print the harness's lines for the cases whose label
@@ -462,10 +553,26 @@ fn check_round_trip(i: usize, c: &Case, q: i32, bytes: &[u8]) -> Result<(), Stri
     Ok(())
 }
 
+/// Whether case `c` is checked with `threads_label`: every case with the
+/// default threads and one thread, and with four threads the cases up to
+/// 100x100 (four threads code the same files as the default two: with more
+/// than one, libaom's row multi-threading codes the same rows with the same
+/// contexts whatever the number of workers); the debug builds, whose
+/// encodes are many times slower, only the cases up to 100x100 with the
+/// default threads and one thread.
+fn checked(c: &Case, threads_label: &str) -> bool {
+    let small = c.1 * c.2 <= 100 * 100;
+    if cfg!(debug_assertions) {
+        small && threads_label != "4"
+    } else {
+        small || threads_label != "4"
+    }
+}
+
 /// Every case, with the default threads (as on 4 logical cores: see
 /// `avif::logical_cpu_cores()`), one thread and 4 threads, against the
 /// reference harness's results; the default threads' files also decode
-/// back to their frames.
+/// back to their frames (see `checked()` for the subsets checked).
 #[test]
 fn avif_animations_match_reference() {
     let reference = include_str!("../testdata/avif_anim_reference.txt");
@@ -487,6 +594,10 @@ fn avif_animations_match_reference() {
         let mut k = 0;
         for (i, c) in CASES.iter().enumerate() {
             for q in c.8.split(',') {
+                if !checked(c, threads_label) {
+                    k += 1;
+                    continue;
+                }
                 let q: i32 = q.parse().unwrap();
                 let r = encode(i, c, q, threads);
                 let actual = format!("anim {} q{q}: {}", c.0, line(&r));
@@ -512,6 +623,6 @@ fn avif_animations_match_reference() {
         );
     }
     assert_eq!(expected.len(), 3);
-    assert!(round_trips > 20);
+    assert!(round_trips > 15);
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
