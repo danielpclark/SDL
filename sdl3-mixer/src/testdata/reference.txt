@@ -2246,9 +2246,9 @@ corrupt 5 mix: dur=2400 play=1 pos=417 replay=1 seek=1 pos=800 playing=1 eeab7a1
 mix: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 mixpre: dur=2400 play=1 pos=2049 replay=1 seek=1 pos=800 playing=1 c75f3679b51c425b
 == flac_loopcount.flac
-open: FLAC 0x8010 1 11025 frames=9921 | 12006 fd596261ad9ef95e end=0
-f32s48: 209088 a1188fbe6514e945 end=0
-s16m22: 24012 5a61cec7a5162dd3 end=0
+open: FLAC 0x8010 1 11025 frames=9921 | 12614 dbb68274c91ed979 end=0
+f32s48: 219680 d72cbd3b7353dd29 end=0
+s16m22: 25228 ffa92fcb47502ee4 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2277,21 +2277,21 @@ trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
 trunc 10375: FLAC 0x8010 1 11025 frames=9921 | 2304 945bd0093a736de6 end=0
-trunc 13833: FLAC 0x8010 1 11025 frames=9921 | 10000 783a77a191148d69 end=0
+trunc 13833: FLAC 0x8010 1 11025 frames=9921 | 10608 003e23354afc5d52 end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1: FLAC 0x8010 1 11025 frames=3307 | 6614 95176a30b5bbd279 end=0
 corrupt 1 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
 corrupt 2: FLAC 0x8010 1 11025 frames=3307 | 6614 95176a30b5bbd279 end=0
 corrupt 2 mix: dur=3307 play=1 pos=2823 replay=1 seek=1 pos=1102 playing=1 06455c7fc5bf83e8
-corrupt 3: FLAC 0x8010 1 11025 frames=9921 | 10000 a6e4f0723147f065 end=0
+corrupt 3: FLAC 0x8010 1 11025 frames=9921 | 10608 938332488adb2fe5 end=0
 corrupt 3 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 8502c32934302df8
 corrupt 4: FLAC 0x8010 1 11025 frames=9921 | 2304 d3f7ec18a0f85725 end=0
 corrupt 4 mix: dur=9921 play=1 pos=1152 replay=1 seek=0 pos=0 playing=0 907bf2b9cd6a6f8b
-corrupt 5: FLAC 0x8010 1 11025 frames=9921 | 10000 a6e4f0723147f065 end=0
+corrupt 5: FLAC 0x8010 1 11025 frames=9921 | 10608 938332488adb2fe5 end=0
 corrupt 5 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 8502c32934302df8
 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 be819466c45e9574
-mixpre: dur=6003 play=1 pos=2823 replay=1 seek=1 pos=2001 playing=1 52fe72e73fcd3f5c
+mixpre: dur=6307 play=1 pos=2823 replay=1 seek=1 pos=2102 playing=1 c26a77057a2c0afc
 seek 0: play=1 seek=1 pos=0 playing=1 274d225aea6f1e94
 seek 1: play=1 seek=1 pos=1 playing=1 acb2ce95fc1fac65
 seek 311: play=1 seek=1 pos=311 playing=1 2e9406b0a4cf5fd9
@@ -2306,9 +2306,9 @@ seek 0: play=1 seek=1 pos=0 playing=1 a9fff5abccf5ad49
 seek 10921: play=1 seek=0 pos=470 playing=1 17eaaaa25d8c8209
 seek 100: play=1 seek=1 pos=100 playing=1 55789347db5ecc0d
 == flac_loopcount.flac DRFLAC
-open: DRFLAC 0x8120 1 11025 frames=9921 | 24204 aa9730516a8940f5 end=0
-f32s48: 210760 29cd38b418c0e885 end=0
-s16m22: 24204 dd49feee29132ebb end=0
+open: DRFLAC 0x8120 1 11025 frames=9921 | 24396 7698340823b04778 end=0
+f32s48: 212432 72ea152f1f9aa171 end=0
+s16m22: 24396 288be52a91e1f3f4 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2337,7 +2337,7 @@ trunc 4096: err: Audio data is in unknown/unsupported/corrupt format
 trunc 3458: err: Audio data is in unknown/unsupported/corrupt format
 trunc 6917: err: Audio data is in unknown/unsupported/corrupt format
 trunc 10375: DRFLAC 0x8120 1 11025 frames=9921 | 4608 62914be1393e4487 end=0
-trunc 13833: DRFLAC 0x8120 1 11025 frames=9921 | 20192 0adc1ba234215ff0 end=0
+trunc 13833: DRFLAC 0x8120 1 11025 frames=9921 | 20384 2aaf1c6f0555bc45 end=0
 corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1: DRFLAC 0x8120 1 11025 frames=3307 | 0 cbf29ce484222325 end=0
@@ -2351,7 +2351,7 @@ corrupt 4 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8
 corrupt 5: DRFLAC 0x8120 1 11025 frames=9921 | 0 cbf29ce484222325 end=0
 corrupt 5 mix: dur=9921 play=1 pos=0 replay=1 seek=0 pos=0 playing=0 0c8210784d8af5a5
 mix: dur=9921 play=1 pos=2823 replay=1 seek=1 pos=3307 playing=1 be819466c45e9574
-mixpre: dur=6051 play=1 pos=2823 replay=1 seek=1 pos=2017 playing=1 001da54582994624
+mixpre: dur=6099 play=1 pos=2823 replay=1 seek=1 pos=2033 playing=1 46f305cbc4075ca4
 == flac_ogg.oga
 open: DRFLAC 0x8120 2 16000 title="Ogg FLAC" | 25600 1b96619f10769541 end=0
 f32s48: 76800 7dad53ad4f07fc73 end=0
