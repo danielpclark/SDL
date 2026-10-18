@@ -3501,7 +3501,7 @@ anim trunc 4: err: Unsupported image format
 anim trunc 8: crash
 anim trunc 16: crash
 anim trunc 32: crash
-anim trunc 64: err: Parameter 'decoder' is invalid
+anim trunc 64: err: Animation didn't contain any frames
 anim trunc 38: crash
 anim trunc 57: crash
 anim trunc 76: n=1 23x13 loop=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6457e7f3eb9eacd1 blend=1 delay=100
@@ -3571,7 +3571,7 @@ anim trunc 4: err: Unsupported image format
 anim trunc 8: crash
 anim trunc 16: crash
 anim trunc 32: crash
-anim trunc 64: err: Parameter 'decoder' is invalid
+anim trunc 64: err: Animation didn't contain any frames
 anim trunc 38: crash
 anim trunc 57: crash
 anim trunc 76: n=1 23x13 loop=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6457e7f3eb9eacd1 blend=1 delay=100
@@ -8444,7 +8444,7 @@ anim trunc 8: err: Out of memory
 anim trunc 16: err: Out of memory
 anim trunc 32: err: Out of memory
 anim trunc 64: err: Out of memory
-anim trunc 128: err: Parameter 'decoder' is invalid
+anim trunc 128: err: Animation didn't contain any frames
 anim trunc 256: n=1 256x256 loop=0 desc="GIF created with https://ezgif.com/maker" | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=1ae0842349a42325 blend=1 delay=20
 anim trunc 512: n=1 256x256 loop=0 desc="GIF created with https://ezgif.com/maker" | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=1ae0842349a42325 blend=1 delay=20
 anim trunc 1024: n=3 256x256 loop=0 desc="GIF created with https://ezgif.com/maker" | 0: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=1ae0842349a42325 blend=1 delay=20 | 1: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=66648495c9ea2325 blend=1 delay=20 | 2: 256x256 SDL_PIXELFORMAT_ABGR8888 pitch=1024 hash=1ae0842349a42325 blend=1 delay=20
