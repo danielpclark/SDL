@@ -125,13 +125,14 @@ def id3v2(frames, version=3):
     return b'ID3' + bytes([version, 0, 0]) + syncsafe + body
 
 
-def ape_tag(items):
+def ape_tag(items, footer_flags=0):
+    """An APEv2 tag, header and all, of text `items` (or (key, bytes, item flags))."""
     body = b''
-    for k, v in items:
-        v = v.encode('utf-8')
-        body += struct.pack('<II', len(v), 0) + k.encode('ascii') + b'\0' + v
+    for k, v, *flags in items:
+        v = v if flags else v.encode('utf-8')
+        body += struct.pack('<II', len(v), flags[0] if flags else 0) + k.encode('ascii') + b'\0' + v
     size = len(body) + 32
-    footer = b'APETAGEX' + struct.pack('<IIII', 2000, size, len(items), 0) + b'\0' * 8
+    footer = b'APETAGEX' + struct.pack('<IIII', 2000, size, len(items), footer_flags) + b'\0' * 8
     header = b'APETAGEX' + struct.pack('<IIII', 2000, size, len(items), 0xA0000000) + b'\0' * 8
     return header + body + footer
 
@@ -273,10 +274,21 @@ def mp3_files():
         b'ID3v1 album'.ljust(30, b'\0') + b'1987' + b'comment'.ljust(28, b'\0') + b'\0\x05' + b'\x0c'
     write('mp3_ape_id3v1.mp3', plain + ape_tag([('Title', 'APE title'), ('Artist', 'APE artist')]) + id3v1)
     # An APE footer but for its reserved bytes, so SDL_mixer doesn't take it
-    # for a tag, and dr_mp3 reads them as the tag's size (0x90: over the
-    # last frame), a byte that's negative as a signed char.
+    # for a tag, and upstream dr_mp3 read them as the tag's size (0x90: over
+    # the last frame), a byte that's negative as a signed char.
     footer = b'APETAGEX' + struct.pack('<IIII', 2000, 32, 0, 0) + bytes([0x90, 0, 0, 0, 0, 0, 0, 0])
     write('mp3_ape_reserved.mp3', plain + footer)
+    # A whole APE tag, its footer's flags saying it has a header, whose size
+    # (in bytes 12 to 15, where upstream dr_mp3 looked in the reserved ones)
+    # has a byte of 0x80 or more. Its last item, a binary one, holds a copy
+    # of the last two frames, which upstream dr_mp3 played (it left only
+    # the footer out of the stream).
+    frames = mpeg_frames(plain)
+    copy = plain[frames[-2][0]:]
+    title = 'APE title'
+    while (len(ape_tag([('Title', title), ('Frames', copy, 2)])) - 32) & 0xFF < 0x80:
+        title += '.'
+    write('mp3_ape_header.mp3', plain + ape_tag([('Title', title), ('Frames', copy, 2)], 0x80000000))
     rng = Lcg(57)
     write('mp3_junk.mp3', bytes(rng.next() >> 24 for _ in range(700)) + plain)
 

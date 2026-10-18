@@ -2737,15 +2737,31 @@ impl<'a> Drmp3<'a> {
                         // on targets where `char` is signed (x86) a size
                         // byte of 0x80 or more was sign extended over the
                         // higher ones; the translation's bytes are unsigned.
-                        // FIXME (upstream): the APEv2 footer's tag size is
-                        // its bytes 12 to 15; 24 to 31 are reserved (zero).
+                        // Note (upstream): the tag's size is taken from the
+                        // footer's bytes 24 to 27 there, which APE reserves
+                        // (zero), so only the footer was left out of the
+                        // stream, and the rest of the tag was read as audio;
+                        // the translation takes the size from bytes 12 to 15
+                        // (the items and the footer), and a header before
+                        // them when the flags (bytes 20 to 23) say there's
+                        // one.
                         let c = |b: u8| b as u32;
-                        let tag_size: u32 = c(ape[24])
-                            | (c(ape[25]) << 8)
-                            | (c(ape[26]) << 16)
-                            | (c(ape[27]) << 24);
+                        let ape_size: u32 = c(ape[12])
+                            | (c(ape[13]) << 8)
+                            | (c(ape[14]) << 16)
+                            | (c(ape[15]) << 24);
+                        let ape_flags: u32 = c(ape[20])
+                            | (c(ape[21]) << 8)
+                            | (c(ape[22]) << 16)
+                            | (c(ape[23]) << 24);
+                        let header: u32 = if (ape_flags & 0x8000_0000) != 0 {
+                            32
+                        } else {
+                            0
+                        };
+                        let tag_size: u32 = ape_size.wrapping_sub(32).wrapping_add(header);
 
-                        if (32u32.wrapping_add(tag_size) as i64) < stream_len {
+                        if ape_size >= 32 && (32u32.wrapping_add(tag_size) as i64) < stream_len {
                             stream_end_offset = (stream_end_offset as u32)
                                 .wrapping_sub(32u32.wrapping_add(tag_size))
                                 as i32;
