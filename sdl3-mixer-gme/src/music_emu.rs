@@ -367,6 +367,11 @@ pub trait MusicEmu: Send {
     fn set_sample_rate(&mut self, rate: i64) -> BlarggErr {
         // require( !sample_rate() ); // sample rate can't be changed once set
         self.set_sample_rate_(rate)?;
+        // FIXME (upstream): the buffer is left uninitialized (blargg_vector's
+        // realloc), and when an emulator stops with an error before filling
+        // it (as the SAP emulator does at an illegal instruction),
+        // fill_buf() plays the rest of it; it starts zeroed here, and
+        // upstream's build for the tests is patched the same.
         let buf = try_vec(BUF_SIZE as usize)?;
         let s = self.emu_mut();
         s.buf = buf;

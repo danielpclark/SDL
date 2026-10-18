@@ -1,5 +1,5 @@
 == misc
-types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0
+types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0
 ext nsf: NSF
 ext x.NSFE: NSFE
 ext a.b.spc: 
@@ -8,7 +8,7 @@ ext VGM:
 ext gym: 
 ext kss: KSS
 ext hes: HES
-ext sap: 
+ext sap: SAP
 ext ay: AY
 ext gbs: GBS
 ext nsfee: 
@@ -3436,3 +3436,552 @@ open: err=Unexpected end of file
 -- flip 5
 info: err=Unexpected end of file
 open: err=Unexpected end of file
+== sap_b.sap
+identify: SAP
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 2: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 3: err=Invalid track
+open 44100: tracks=3 type=SAP voices=4
+voices: Wave 1 Wave 2 Wave 3 Wave 4
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+t0 16384: 21d58244c495b225 tell=185 samples=16384 ended=0
+t0 32768: a21c1bc6412d5041 tell=371 samples=32768 ended=0
+t0 49152: f2158be8a1292ce9 tell=557 samples=49152 ended=0
+t0 65536: f23c3d83e1aa99e9 tell=743 samples=65536 ended=0
+t0 81920: 3bc4edf8a0c3e579 tell=928 samples=81920 ended=0
+t0 88200: 95fd31cfe7307a89 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+t1 16384: ffd4d22a451ab5e1 tell=185 samples=16384 ended=0
+t1 32768: 308b420abb777561 tell=371 samples=32768 ended=0
+t1 49152: 29513f1e8a44c285 tell=557 samples=49152 ended=0
+t1 65536: a6020d6411e25d31 tell=743 samples=65536 ended=0
+t1 81920: daf641b445da4805 tell=928 samples=81920 ended=0
+t1 88200: 1702dbd28ef63335 tell=1000 samples=88200 ended=0
+start 2: ok
+info 2: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+t2 16384: 21d58244c495b225 tell=185 samples=16384 ended=0
+t2 32768: a21c1bc6412d5041 tell=371 samples=32768 ended=0
+t2 49152: f2158be8a1292ce9 tell=557 samples=49152 ended=0
+t2 65536: f76ab7bb3d03514d tell=743 samples=65536 ended=0
+t2 81920: d76ec3a69ce7f8f1 tell=928 samples=81920 ended=0
+t2 88200: 14c75a8154cd3f11 tell=1000 samples=88200 ended=0
+start 3: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: b221f9041f40ec2d tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 17bbcef798fb0f99 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 6339b1c8f0b0b8e5 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: eb8babcced689915 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 91df57409bffc9e5 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 bc54ec6bc132c91d tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 8c46922d7a90b96d tell=92 samples=8192 ended=0
+open 32000: tracks=3 type=SAP voices=4
+start 2: ok
+tempo 16000: 949e422656e6e9b5 tell=250 samples=16000 ended=0
+tempo 32000: 4946d7b5be5ed644 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: c21541330a9a8d08 tell=238 samples=15294 ended=0
+slow 8000: eb430f02fc77e1e2 tell=363 samples=23294 ended=0
+tracks=3
+start 0: ok
+acc 8000: 00fd12e9e39abe31 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 185
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 277
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 554
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+q 8192: 8c46922d7a90b96d tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|2026||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+q 8192: 8c46922d7a90b96d tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_testdata.py|||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- flip 3
+info: tracks=3 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_test\x81ata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|POKEY Test||gen_gme_test\x81ata.py|||
+info 3: err=Invalid track
+open: tracks=3 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- flip 4
+info: err=Invalid play address
+open: err=Invalid play address
+-- flip 5
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|POKEY Test|||2026||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+== sap_c.sap
+identify: SAP
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open 44100: tracks=2 type=SAP voices=4
+voices: Wave 1 Wave 2 Wave 3 Wave 4
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+t0 16384: 8f8722dd75240f1d tell=185 samples=16384 ended=0
+t0 32768: 539352c43b8c2c49 tell=371 samples=32768 ended=0
+t0 49152: b2307774ec2b8e5d tell=557 samples=49152 ended=0
+t0 65536: 6d221ba00111525d tell=743 samples=65536 ended=0
+t0 81920: a4972e547d579915 tell=928 samples=81920 ended=0
+t0 88200: 8e71e2cbb8770529 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+t1 16384: 76366651e59a8295 tell=185 samples=16384 ended=0
+t1 32768: dbd6d50a218631d5 tell=371 samples=32768 ended=0
+t1 49152: 3e4b9d114856e86d tell=557 samples=49152 ended=0
+t1 65536: 8e3c8ab224151f85 tell=743 samples=65536 ended=0
+t1 81920: 26c59e6d49cfcd65 tell=928 samples=81920 ended=0
+t1 88200: 3768da8456eb1215 tell=1000 samples=88200 ended=0
+start 2: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: a7047498b8468299 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 0d9cf02fc3bd7fa5 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 4bb3726734761c61 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 2c3f4f8e1561b931 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 86da780bf1637925 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 8e77f995e94e1531 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 2d34b9d0a51ed881 tell=92 samples=8192 ended=0
+open 32000: tracks=2 type=SAP voices=4
+start 1: ok
+tempo 16000: 5fbd8a8dfd0604f7 tell=250 samples=16000 ended=0
+tempo 32000: 288832e2685ebad1 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 99c2e30e6ea24fa4 tell=238 samples=15294 ended=0
+slow 8000: dd27336d28992ae5 tell=363 samples=23294 ended=0
+tracks=2
+start 0: ok
+acc 8000: 2f69027f4bdd3d49 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 73
+info: err=Invalid play address
+open: err=Invalid play address
+-- cut 110
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- cut 219
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: d56b2825ed34a349 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=4
+start 0: ok
+q 8192: 63d81107c3f68021 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- flip 2
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_eestdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_eestdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=4
+start 0: ok
+q 8192: d56b2825ed34a349 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|||en_gme_testdata.py|||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- flip 5
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Type C|||||
+info 1: -1 -1 -1 -1 150000|Atari XL|Type C|||||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+== sap_digi.sap
+identify: SAP
+info: err=Digimusic not supported
+open 44100: err=Digimusic not supported
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Digimusic not supported
+open: err=Digimusic not supported
+-- cut 12
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 19
+info: err=Digimusic not supported
+open: err=Digimusic not supported
+-- cut 37
+info: err=Digimusic not supported
+open: err=Digimusic not supported
+-- flip 0
+info: err=Digimusic not supported
+open: err=Digimusic not supported
+-- flip 1
+info: err=Unsupported player type
+open: err=Unsupported player type
+-- flip 2
+info: err=ROM data missing
+open: err=ROM data missing
+-- flip 3
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL||||||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: err=ROM data missing
+open: err=ROM data missing
+-- flip 5
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL||||||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=4
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+== sap_odd.sap
+identify: SAP
+info: tracks=4 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 2: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 3: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 4: err=Invalid track
+open 44100: tracks=4 type=SAP voices=4
+voices: Wave 1 Wave 2 Wave 3 Wave 4
+eq: -1.000 60.000 multi=0
+start 0: ok
+warning: Invalid file data block
+info 0: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+t0 16384: ff6c4e997c5382b1 tell=185 samples=16384 ended=0
+t0 32768: 4cf13d64a17ab0dd tell=371 samples=32768 ended=0
+t0 49152: 847a0b6025df1955 tell=557 samples=49152 ended=0
+t0 65536: 693ba75c51b1a2b1 tell=743 samples=65536 ended=0
+t0 81920: 7947dda21d442d95 tell=928 samples=81920 ended=0
+t0 88200: 5440693a7c6e21cd tell=1000 samples=88200 ended=0
+start 1: ok
+warning: Emulation error (illegal instruction)
+info 1: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+t1 16384: afc41fb666de8ef9 tell=185 samples=16384 ended=1
+t1 32768: 2cb33a3319508ef9 tell=371 samples=32768 ended=1
+t1 49152: 78312293cbc28ef9 tell=557 samples=49152 ended=1
+t1 65536: 8005d8d87e348ef9 tell=743 samples=65536 ended=1
+t1 81920: 31f95d0130a68ef9 tell=928 samples=81920 ended=1
+t1 88200: 1ec51ee6457f4939 tell=1000 samples=88200 ended=1
+start 2: ok
+warning: Emulation error (illegal instruction)
+info 2: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+t2 16384: afc41fb666de8ef9 tell=185 samples=16384 ended=1
+t2 32768: 2cb33a3319508ef9 tell=371 samples=32768 ended=1
+t2 49152: 78312293cbc28ef9 tell=557 samples=49152 ended=1
+t2 65536: 8005d8d87e348ef9 tell=743 samples=65536 ended=1
+t2 81920: 31f95d0130a68ef9 tell=928 samples=81920 ended=1
+t2 88200: 1ec51ee6457f4939 tell=1000 samples=88200 ended=1
+start 4: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: c26c299d93e02e51 tell=46 samples=4096 ended=0
+warning: Invalid file data block
+seek_samples 30000: ok tell=30000
+s1 4096: 09a9ea45c0dbcfa1 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: ac83ea0ff7f17229 tell=159 samples=14096 ended=0
+warning: Invalid file data block
+seek 700: ok tell=700
+s3 2048: 99e87cc4aa70f075 tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: e5beacdf194fec05 tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 c1de2c5039189221 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 6ba5193525a9a389 tell=92 samples=8192 ended=0
+warning: Invalid file data block
+open 32000: tracks=4 type=SAP voices=4
+start 3: ok
+tempo 16000: ca662abe6cef6725 tell=250 samples=16000 ended=0
+tempo 32000: dd14fcc6528cab25 tell=500 samples=32000 ended=0
+warning: Invalid file data block
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 51e78e744621f425 tell=238 samples=15294 ended=0
+warning: Invalid file data block
+slow 8000: 2c36c2471ceec525 tell=363 samples=23294 ended=0
+tracks=4
+start 0: ok
+acc 8000: b1fa9e4375641141 tell=125 samples=8000 ended=0
+warning: Invalid file data block
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 60
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 91
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 181
+info: tracks=4 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 4: err=Invalid track
+open: tracks=4 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 6ba5193525a9a389 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=4 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 1: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|2026||
+info 4: err=Invalid track
+open: tracks=4 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 6ba5193525a9a389 tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=4 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Odd SAP||gen_gme_testdata.py|||
+info 4: err=Invalid track
+open: tracks=4 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: e7f8c1399ab66bd5 tell=92 samples=8192 ended=0
+-- flip 2
+info: err=ROM data missing
+open: err=ROM data missing
+-- flip 3
+info: tracks=4 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Odd SAP|||\x892026"||
+info 1: -1 -1 -1 -1 150000|Atari XL|Odd SAP|||\x892026"||
+info 4: err=Invalid track
+open: tracks=4 type=SAP voices=4
+start 0: ok
+warning: Invalid file data block
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 4
+info: err=Invalid fastplay value
+open: err=Invalid fastplay value
+-- flip 5
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Od_ SAP|||2?26||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=4
+start 0: ok
+warning: Emulation error (illegal instruction)
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+== sap_stereo.sap
+identify: SAP
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open 44100: tracks=2 type=SAP voices=8
+voices: Wave 1 Wave 2 Wave 3 Wave 4 Wave 5 Wave 6 Wave 7 Wave 8
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+t0 16384: 307828b803d0f3f1 tell=185 samples=16384 ended=0
+t0 32768: c8941e4acd362519 tell=371 samples=32768 ended=0
+t0 49152: c6fa9c59babbcd3a tell=557 samples=49152 ended=0
+t0 65536: 61aadae1a16c390b tell=743 samples=65536 ended=0
+t0 81920: 888c1816688ca975 tell=928 samples=81920 ended=0
+t0 88200: 0ada9d70b1a2dab8 tell=1000 samples=88200 ended=0
+start 1: ok
+info 1: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+t1 16384: ab648983e04bda96 tell=185 samples=16384 ended=0
+t1 32768: 185d9959d4fd2d4c tell=371 samples=32768 ended=0
+t1 49152: f0cd99a7c732e6ee tell=557 samples=49152 ended=0
+t1 65536: 33718f4508b2380d tell=743 samples=65536 ended=0
+t1 81920: c6eb67aa0bfdef82 tell=928 samples=81920 ended=0
+t1 88200: 7566cd8576f55b55 tell=1000 samples=88200 ended=0
+start 2: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 53a3de01223307e7 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 9e20e6d5fbe1bdce tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: c378a808897d1cbf tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 0e5e848d86a5becd tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: a104815bbebb4e9c tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 1718f4830f633956 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: e9ee7de5d68163eb tell=92 samples=8192 ended=0
+open 32000: tracks=2 type=SAP voices=8
+start 1: ok
+tempo 16000: 025ff961639c423a tell=250 samples=16000 ended=0
+tempo 32000: 4fa63c5f5bd3f66b tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: ae90373cb9fc2d92 tell=238 samples=15294 ended=0
+slow 8000: 360270ec7f5d5a76 tell=363 samples=23294 ended=0
+tracks=2
+start 0: ok
+acc 8000: 0a7523e0ca26b843 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 76
+info: err=Unsupported player type
+open: err=Unsupported player type
+-- cut 115
+info: err=ROM data missing
+open: err=ROM data missing
+-- cut 229
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=8
+start 0: ok
+warning: Invalid file data block
+q 8192: 3a24e6142a877d3c tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=2 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+info 1: -1 -1 -1 -1 150000|Atari XL|Stereo||gen_gme_testdata.py|||
+info 2: err=Invalid track
+open: tracks=2 type=SAP voices=8
+start 0: ok
+q 8192: 950bbdbd7de4c219 tell=92 samples=8192 ended=0
+-- flip 1
+info: err=Unsupported player type
+open: err=Unsupported player type
+-- flip 2
+info: err=Invalid track count
+open: err=Invalid track count
+-- flip 3
+info: err=Invalid play address
+open: err=Invalid play address
+-- flip 4
+info: tracks=1 type=SAP voices=-1
+info 0: -1 -1 -1 -1 150000|Atari XL|Stereo||\xB2en_gme_te\x04tdata.py|||
+info 1: err=Invalid track
+open: tracks=1 type=SAP voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=0
+-- flip 5
+info: err=Invalid track count
+open: err=Invalid track count

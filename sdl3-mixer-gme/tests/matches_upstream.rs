@@ -514,6 +514,11 @@ file_tests! {
     nsfe_full_matches_upstream: "nsfe_full.nsfe",
     nsfe_min_matches_upstream: "nsfe_min.nsfe",
     nsfe_order_matches_upstream: "nsfe_order.nsfe",
+    sap_b_matches_upstream: "sap_b.sap",
+    sap_c_matches_upstream: "sap_c.sap",
+    sap_digi_matches_upstream: "sap_digi.sap",
+    sap_odd_matches_upstream: "sap_odd.sap",
+    sap_stereo_matches_upstream: "sap_stereo.sap",
 }
 
 /// Every file in `testdata/` has its test above.

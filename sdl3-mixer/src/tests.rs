@@ -2335,6 +2335,12 @@ fn gme_nsfe_matches_upstream() {
     gme_files("nsfe_");
 }
 
+#[cfg(feature = "gme")]
+#[test]
+fn gme_sap_matches_upstream() {
+    gme_files("sap_");
+}
+
 #[test]
 fn scenarios_match_upstream() {
     setup();
