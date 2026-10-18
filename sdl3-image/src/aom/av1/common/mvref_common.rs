@@ -244,7 +244,7 @@ pub(crate) fn av1_set_ref_frame(rf: &mut [MvReferenceFrame; 2], ref_frame_type: 
     }
 }
 
-static COMPOUND_MODE_CTX_MAP: [[u16; COMP_NEWMV_CTXS as usize]; 3] =
+pub(crate) static COMPOUND_MODE_CTX_MAP: [[u16; COMP_NEWMV_CTXS as usize]; 3] =
     [[0, 1, 1, 1, 1], [1, 2, 3, 4, 4], [4, 4, 5, 6, 7]];
 
 /// Translation of `av1_mode_context_analyzer()`.

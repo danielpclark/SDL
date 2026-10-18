@@ -1171,7 +1171,14 @@ fn update_filter_type_count(counts: &mut FrameCounts, xd: &MacroBlockD, mbmi: &M
     for dir in 0..2 {
         let ctx = av1_get_pred_context_switchable_interp(xd, dir) as usize;
         let filter = av1_extract_interp_filter(mbmi.interp_filters, dir) as usize;
-        counts.switchable_interp[ctx][filter] += 1;
+        // FIXME (upstream): the intra blocks of inter frames count their
+        // filter too, SWITCHABLE_FILTERS (one past a row): the rows are
+        // contiguous, so the count lands in the next context's first
+        // filter, as here (an intra block's context is never the last).
+        let flat = ctx * SWITCHABLE_FILTERS as usize + filter;
+        if let Some(c) = counts.switchable_interp.as_flattened_mut().get_mut(flat) {
+            *c += 1;
+        }
     }
 }
 

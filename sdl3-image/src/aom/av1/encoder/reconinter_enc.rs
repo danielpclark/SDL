@@ -57,6 +57,12 @@ fn build_one_inter_predictor(
     let (src, src_stride) = enc_calc_subpel_params(src_mv, inter_pred_params, &mut subpel_params);
     if inter_pred_params.comp_mode == UNIFORM_SINGLE || inter_pred_params.comp_mode == UNIFORM_COMP
     {
+        // (xd->tmp_conv_dst: td->tmp_conv_dst, MAX_SB_SIZE * MAX_SB_SIZE
+        // samples, allocated on first use)
+        if xd.tmp_conv_dst.len() < MAX_SB_SQUARE as usize {
+            xd.tmp_conv_dst =
+                crate::aom::av1::common::alloccommon::try_vec(MAX_SB_SQUARE as usize, 0u16)?;
+        }
         let ref_buf = &cm.buffer_pool.frame_bufs[inter_pred_params.ref_frame_buf.frame_buf]
             .buf
             .buffer_alloc;

@@ -25,6 +25,7 @@ use super::partition_search::{av1_nonrd_use_partition, av1_set_offsets};
 use super::ratectrl::LF_UPDATE;
 use super::rd::av1_initialize_rd_consts;
 use super::rd::av1_set_sad_per_bit;
+use super::rd::reset_thresh_freq_fact;
 use super::rdopt_utils::select_tx_mode;
 use super::speed_features::*;
 use super::var_based_part::av1_choose_var_based_partitioning;
@@ -429,7 +430,8 @@ fn encode_sb_row(
             av1_reset_loop_filter_delta(&mut td.mb.e_mbd, av1_num_planes(cm));
         }
     }
-    // (reset_thresh_freq_fact(): the thresholds only steer inter mode search)
+
+    reset_thresh_freq_fact(&mut td.mb);
 
     // Code each SB in the row
     let mut mi_col = tile_info.mi_col_start;
@@ -1106,8 +1108,8 @@ fn encode_frame_internal_td(cpi: &mut Av1Comp, td: &mut ThreadData) -> Result<()
     }
 
     if cpi.sf.tx_sf.tx_type_search.prune_tx_type_using_stats != 0
-        || (cpi.sf.tx_sf.tx_type_search.fast_inter_tx_type_prob_thresh != i32::MAX
-            && !frame_is_intra_only(&cpi.common))
+        || ((cpi.sf.tx_sf.tx_type_search.fast_inter_tx_type_prob_thresh != i32::MAX)
+            && (cpi.sf.tx_sf.tx_type_search.fast_inter_tx_type_prob_thresh != 0))
     {
         // (the transform type probabilities: they only steer the RD transform
         // type search)

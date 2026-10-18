@@ -7,8 +7,11 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! aom, the AV1 encoder SDL_image's libavif uses, as SDL_image builds it
-//! (the encoder only, high bit depth on), for the configuration libavif
-//! sets for SDL_image's saver.
+//! (the encoder only, high bit depth on), for the configurations libavif
+//! sets for SDL_image's saver (all intra, one frame) and animation encoder
+//! (real-time usage at cpu-used 9, CBR rate control, key frames and inter
+//! frames from the LAST, GOLDEN and ALTREF references, the non-RD mode
+//! search, with or without row multi-threading).
 
 // (the translation keeps upstream's loops over indices, argument lists,
 // late initializations, explicit arithmetic and switch layouts as they are,
