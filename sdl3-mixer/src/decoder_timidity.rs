@@ -143,10 +143,10 @@ impl TrackData for TimidityTrackData<'_> {
     /// Translation of `TIMIDITY_decode()`.
     fn decode(&mut self, stream: &AudioStream) -> bool {
         // (Sint32 samples[SAMPLES_PER_DECODE * 2/*channels*/], as bytes.)
-        // FIXME (upstream): at the end of the song, Timidity_PlaySome()
+        // Note (upstream): at the end of the song, Timidity_PlaySome()
         // reports the samples it rendered since its last full buffer
-        // without writing them, so upstream pushes whatever its
-        // uninitialized buffer held; here, silence.
+        // without writing them there, so upstream pushed whatever its
+        // uninitialized buffer held; sdl3-mixer-timidity writes them.
         let mut samples = [0u8; SAMPLES_PER_DECODE as usize * 2 * 4];
         let amount = self.song.play_some(&mut samples);
         if amount <= 0 {

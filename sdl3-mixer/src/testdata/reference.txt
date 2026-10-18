@@ -1040,9 +1040,9 @@ corrupt 5 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c07510
 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 4c075108812149d2
 mixpre: dur=244736 play=1 pos=12288 replay=1 seek=1 pos=81578 playing=1 2401e8e6fd685d85
 == basic.mid TIMIDITY
-open: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 6a2861142251c396 end=0
-f32s48: 988800 344bccf87a3f83c3 end=0
-s16m22: 113558 cd2f47cb8edb8168 end=0
+open: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 3080dc7416483302 end=0
+f32s48: 988800 08001fa87372867b end=0
+s16m22: 113558 065866f53fc6bead end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1066,10 +1066,10 @@ trunc 256: err: Audio data is in unknown/unsupported/corrupt format
 trunc 69: err: Audio data is in unknown/unsupported/corrupt format
 trunc 138: err: Audio data is in unknown/unsupported/corrupt format
 trunc 207: err: Audio data is in unknown/unsupported/corrupt format
-trunc 276: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 6a2861142251c396 end=0
-corrupt 0: TIMIDITY 0x8020 2 48000 frames=677328 | 5418800 d7f0d1fd46cd90d7 end=0
+trunc 276: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 3080dc7416483302 end=0
+corrupt 0: TIMIDITY 0x8020 2 48000 frames=677328 | 5418800 27f5053c96bb7d73 end=0
 corrupt 0 mix: dur=677328 play=1 pos=12288 replay=1 seek=1 pos=225776 playing=1 1e9aef8191baa40b
-corrupt 1: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 80a881edc561b2ad end=0
+corrupt 1: TIMIDITY 0x8020 2 48000 frames=123600 | 988800 dbc667a7035a2879 end=0
 corrupt 1 mix: dur=123600 play=1 pos=12288 replay=1 seek=1 pos=41200 playing=1 7e264a5c3456e359
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
@@ -2892,9 +2892,9 @@ corrupt 5 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674
 mix: dur=-1 play=1 pos=128 replay=1 seek=1 pos=100 playing=0 2c3f7f674252c5cd
 mixpre: dur=128 play=1 pos=128 replay=1 seek=1 pos=42 playing=0 fe42657c0ae78bf7
 == format1.mid TIMIDITY
-open: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 0169cc083748299d end=0
-f32s48: 771840 f71d1b91c2b84bb5 end=0
-s16m22: 88642 b04bdc1c58d04911 end=0
+open: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 2e738fcae11f0d35 end=0
+f32s48: 771840 751db1965952be59 end=0
+s16m22: 88642 983bc9898503be2e end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -2917,8 +2917,8 @@ trunc 200: err: Audio data is in unknown/unsupported/corrupt format
 trunc 58: err: Audio data is in unknown/unsupported/corrupt format
 trunc 116: err: Audio data is in unknown/unsupported/corrupt format
 trunc 174: err: Audio data is in unknown/unsupported/corrupt format
-trunc 232: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 0169cc083748299d end=0
-corrupt 0: TIMIDITY 0x8020 2 48000 frames=104015 | 832320 972e0cd40d907eb2 end=0
+trunc 232: TIMIDITY 0x8020 2 48000 frames=96479 | 771840 2e738fcae11f0d35 end=0
+corrupt 0: TIMIDITY 0x8020 2 48000 frames=104015 | 832320 1acf4269251bbfc2 end=0
 corrupt 0 mix: dur=104015 play=1 pos=12288 replay=1 seek=1 pos=34671 playing=1 521eeaeb694a06c5
 corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
