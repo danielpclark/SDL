@@ -1127,11 +1127,10 @@ fn parse_track_num_string(s: Option<&[u8]>) -> (i64, i64) {
 
     if track > 0 {
         if let Some(totalstr) = totalstr {
-            // FIXME (upstream): this parses `trackstr` again where it means
-            // `totalstr`, so "3/10" reports 3 total tracks (when the total
-            // is a valid number).
-            let (ivalue, consumed) = strtoll(trackstr, 10);
-            if !totalstr.is_empty() && consumed == trackstr.len() {
+            // Note (upstream): this parses `trackstr` again there, where it
+            // means `totalstr`, so "3/10" reported 3 total tracks; the
+            // translation parses `totalstr`.
+            if let Some(ivalue) = parse_whole_number(totalstr) {
                 // if true, entire string was a valid number.
                 if ivalue >= 0 {
                     // reject negative numbers, though.
