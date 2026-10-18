@@ -5,10 +5,10 @@ Every file here is synthetic, made by this script: tiny game music rips
 whose sound programs are assembled here (for the 6502 of the NSF, NSFE
 and SAP files, the Game Boy CPU of the GBS files, the Z80 of the AY and
 KSS files, the HuC6280 of the HES files, the SPC-700 of the SPC files)
-or written as command streams (the VGM files), driving the sound chips
-the emulators emulate, with their metadata, track lists and timing.
-Nothing comes from a real game. (An SPC file is always a 64K memory
-image, so those two are not tiny.)
+or written as command streams (the VGM and GYM files), driving the sound
+chips the emulators emulate, with their metadata, track lists and
+timing. Nothing comes from a real game. (An SPC file is always a 64K
+memory image, so those two are not tiny.)
 
 The output is deterministic, so regenerating the files gives the same
 bytes. If they change, the reference output (`testdata/reference.txt`,
@@ -4897,6 +4897,128 @@ def vgm_odd():
                                   tag=tag, total=0xFFFFFFF0, loop_samples=1000))
 
 
+# ---------------------------------------------------------------------------
+# GYM: the Mega Drive's YM2612 and PSG writes, frame by frame (1/60 s).
+
+class Gym:
+    """A GYM sequence (with the ym_* and psg_* helpers of the VGM files)."""
+
+    def __init__(self):
+        self.b = bytearray()
+        self.frames = 0
+
+    def ym(self, port, a, d, chip=0):
+        self.b += bytes([1 + port, a, d])
+
+    def psg(self, *vals, chip=0):
+        for v in vals:
+            self.b += bytes([3, v])
+
+    def raw(self, *vals):
+        self.b += bytes(vals)
+
+    def frame(self, n=1):
+        self.b += bytes(n)
+        self.frames += n
+
+
+def gym_file(g, song, game, copyright, emulator, dumper, comment, loop_start=0, packed=0):
+    def field(s, n):
+        b = s.encode('latin-1')[:n]
+        return b + bytes(n - len(b))
+    h = (b'GYMX' + field(song, 32) + field(game, 32) + field(copyright, 32) +
+         field(emulator, 32) + field(dumper, 32) + field(comment, 256) +
+         struct.pack('<II', loop_start, packed))
+    assert len(h) == 428
+    return h + bytes(g.b)
+
+
+def gym_fm():
+    """The YM2612 and the PSG, frame by frame, with a DAC stream whose
+    samples are spread over each frame (and its beginning and end found
+    from the frames around), and a loop."""
+    g = Gym()
+    ym_setup(g)
+    psg_tone(g, 0, 0x1AC, 8)
+    g.frame()
+    notes = [262, 294, 330, 349, 392, 440, 494, 523]
+    for step in range(48):
+        ch = step % 6
+        f = notes[(step * 3) % 8] * (1 + step // 24)
+        block = 3 + ch % 3
+        ym_note(g, ch, block, ym_fnum(f, block))
+        ym_key(g, ch, 0)
+        ym_key(g, ch)
+        if step % 8 == 0:
+            psg_tone(g, 1, 0x100 + step * 4, 6)
+        if step == 20:
+            g.ym(0, 0x22, 0x0C)
+            g.psg(0xE5, 0xF4)
+        g.frame(1 + step % 3)
+    for ch in range(6):
+        ym_key(g, ch, 0)
+    g.frame(4)
+    # the DAC: a stream starting, at full rate, ending
+    g.ym(0, 0x2B, 0x80)
+    i = 0
+    for n in (0, 12, 24, 36, 36, 36, 36, 20, 0, 0, 30, 30, 30, 5):
+        for k in range(n):
+            g.ym(0, 0x2A, PCM_WAVE[i % 256])
+            i += 7
+        g.frame()
+    g.ym(0, 0x2B, 0x00)
+    for ch in range(3):
+        ym_note(g, ch, 4, ym_fnum((330, 415, 494)[ch], 4))
+        ym_key(g, ch)
+    g.frame(30)
+    for ch in range(3):
+        ym_key(g, ch, 0)
+    g.frame(20)
+    write('gym_fm.gym', gym_file(g, 'GYM test', 'gen_gme_testdata.py', '2026 gen', 'gen_gme_testdata.py',
+                                 'gen', 'the YM2612, the PSG and the DAC', loop_start=60))
+
+
+def gym_odd():
+    """Fields left out as "Unknown" (and one that only starts so, one
+    without its end), commands for no chip, DAC writes while it's off and
+    more in a frame than the emulator keeps, a loop found after the end,
+    and a last frame cut short."""
+    g = Gym()
+    ym_setup(g)
+    ym_note(g, 0, 4, 0x300)
+    ym_key(g, 0)
+    g.raw(0x05, 0x10)
+    g.raw(0xFF)
+    g.frame(3)
+    for k in range(40):
+        g.ym(0, 0x2A, k * 5)     # the DAC off: kept, not counted
+    g.frame()
+    g.ym(0, 0x2B, 0x80)
+    for k in range(1100):
+        g.ym(0, 0x2A, PCM_WAVE[k % 256])
+    g.frame()
+    for k in range(20):
+        g.ym(0, 0x2A, 255 - k)
+        if k == 10:
+            g.ym(0, 0x2B, 0x00)
+    g.frame(10)
+    g.psg(0x80, 0x10, 0x90)
+    g.frame(10)
+    g.ym(0, 0x28, 0x00)
+    g.raw(0x01, 0x2A)
+    write('gym_odd.gym', gym_file(g, 'Unknown Song', 'Unknown Game, not unknown at all!',
+                                  'Unknown Publisher', 'x' * 32, 'Unknown Person!',
+                                  'Header added by YMAMP', loop_start=1000))
+
+
+def gym_packed():
+    """A packed GYM, which the emulator doesn't read."""
+    g = Gym()
+    g.psg(0x90)
+    g.frame(10)
+    write('gym_packed.gym', gym_file(g, 'Packed', '', '', '', '', '', packed=1234))
+
+
 def main():
     nsf_apu()
     nsf_banks()
@@ -4927,6 +5049,9 @@ def main():
     vgm_ym2413()
     vgm_badrate()
     vgm_odd()
+    gym_fm()
+    gym_odd()
+    gym_packed()
 
 
 if __name__ == '__main__':

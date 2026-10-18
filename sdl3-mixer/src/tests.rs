@@ -54,9 +54,9 @@
 //!   FluidSynth settings, broken or missing;
 //! - with the `gme` feature, sdl3-mixer-gme's rips through the GME decoder
 //!   (`testdata/reference_gme.txt`; upstream's C was built with its GME
-//!   decoder over the libgme it vendors, built as its CMake builds it,
-//!   with only the emulators sdl3-mixer-gme translates so far): decoded,
-//!   truncated and corrupted, mixed, started at tracks (orders) and seeked.
+//!   decoder over the libgme it vendors, built as its CMake builds it):
+//!   decoded, truncated and corrupted, mixed, started at tracks (orders)
+//!   and seeked.
 //!
 //! Hashes are FNV-1a over the bytes. Upstream's C was patched where
 //! sdl3-mixer works around its crashes and memory errors (the
@@ -2309,6 +2309,12 @@ fn gme_ay_matches_upstream() {
 #[test]
 fn gme_gbs_matches_upstream() {
     gme_files("gbs_");
+}
+
+#[cfg(feature = "gme")]
+#[test]
+fn gme_gym_matches_upstream() {
+    gme_files("gym_");
 }
 
 #[cfg(feature = "gme")]

@@ -1,11 +1,11 @@
 == misc
-types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0 SPC/Super Nintendo/0/1 VGM/Sega SMS/Genesis/0/1 VGZ/Sega SMS/Genesis/0/1
+types: AY/ZX Spectrum/1/0 GBS/Game Boy/1/0 GYM/Sega Genesis/0/1 HES/PC Engine/1/256 KSS/MSX/1/256 NSF/Nintendo NES/1/0 NSFE/Nintendo NES/1/0 SAP/Atari XL/1/0 SPC/Super Nintendo/0/1 VGM/Sega SMS/Genesis/0/1 VGZ/Sega SMS/Genesis/0/1
 ext nsf: NSF
 ext x.NSFE: NSFE
 ext a.b.spc: SPC
 ext vgz: VGZ
 ext VGM: VGM
-ext gym: 
+ext gym: GYM
 ext kss: KSS
 ext hes: HES
 ext sap: SAP
@@ -1023,6 +1023,269 @@ info 1: err=Invalid track
 open: tracks=1 type=GBS voices=4
 start 0: ok
 q 8192: b95e36acda3232bd tell=92 samples=8192 ended=0
+== gym_fm.gym
+identify: GYM
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1750 -1 4500|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open 44100: tracks=1 type=GYM voices=8
+voices: FM 1 FM 2 FM 3 FM 4 FM 5 FM 6 PCM PSG
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 1000 1750 -1 4500|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+t0 16384: 7fbe47e72a46dae3 tell=185 samples=16384 ended=0
+t0 32768: cf15e6c78a7821b7 tell=371 samples=32768 ended=0
+t0 49152: 3ad4bee9b07113e6 tell=557 samples=49152 ended=0
+t0 65536: ec568ed835292861 tell=743 samples=65536 ended=0
+t0 81920: 55fa165137faeb49 tell=928 samples=81920 ended=0
+t0 88200: ec373ed776f8d735 tell=1000 samples=88200 ended=0
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: 9a596f41ef56d0f4 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 95550d3998084516 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: ee90af0e3d756623 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: 14e2cd26d1b4dc6a tell=723 samples=63788 ended=0
+seek_samples 200000: ok tell=200000 ended=0
+s4 2048: 01c7f7977777814f tell=2290 samples=202048 ended=0
+start 0: ok
+fade: 34816 4cfe1a8f07439c74 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 9d25b1cf3b228818 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=GYM voices=8
+start 0: ok
+tempo 16000: 76eb784e43437515 tell=250 samples=16000 ended=0
+tempo 32000: bc17d47798bdf873 tell=500 samples=32000 ended=0
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: c312662f20161154 tell=238 samples=15294 ended=0
+slow 8000: a500af9d2dd99e1b tell=363 samples=23294 ended=0
+tracks=1
+start 0: ok
+acc 8000: 1e8713de7ced40cc tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 910
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 -1000 -1 150000|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 9c1bda7f8c872325 tell=92 samples=8192 ended=1
+-- cut 1365
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 -184 -1 632|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 9d25b1cf3b228818 tell=92 samples=8192 ended=0
+-- cut 2729
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1733 -1 4466|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 9d25b1cf3b228818 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1750 -1 4500|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 43c33b33fb9ce47b tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1750 -1 4500|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 9d25b1cf3b228818 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1750 -1 4500|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 9d25b1cf3b228818 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1750 -1 4500|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 515e04d8dffd9f7c tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1733 -1 4466|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 95899b0f8e328620 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=GYM voices=-1
+info 0: -1 1000 1733 -1 4466|Sega Genesis|gen_gme_testdata.py|GYM test||2026 gen|the YM2612, the PSG and the DAC|gen
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: ab9b524e629cc10a tell=92 samples=8192 ended=0
+== gym_odd.gym
+identify: GYM
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open 44100: tracks=1 type=GYM voices=8
+voices: FM 1 FM 2 FM 3 FM 4 FM 5 FM 6 PCM PSG
+eq: -1.000 60.000 multi=0
+start 0: ok
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+t0 16384: 5cb04d6d0651561d tell=185 samples=16384 ended=0
+t0 32768: e20240ba6ba67411 tell=371 samples=32768 ended=0
+t0 49152: 33c24b5025415349 tell=557 samples=49152 ended=1
+t0 65536: 672df37808535349 tell=743 samples=65536 ended=1
+t0 81920: cede1ac3eb655349 tell=928 samples=81920 ended=1
+t0 88200: e280251aed53e189 tell=1000 samples=88200 ended=1
+start 1: Invalid track
+start -1: Invalid track
+start 0: ok
+pre 4096: ae4c6316b8140749 tell=46 samples=4096 ended=0
+seek_samples 30000: ok tell=30000
+s1 4096: 8fd8e25ab42dcba5 tell=386 samples=34096 ended=0
+seek_samples 10000: ok tell=10000
+s2 4096: 0712d3e4a6f161d9 tell=159 samples=14096 ended=0
+seek 700: ok tell=700
+s3 2048: b93a0c83ce3b6325 tell=723 samples=63788 ended=1
+seek_samples 200000: ok tell=200000 ended=1
+s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
+start 0: ok
+fade: 34816 0cc5bbb10db831b5 tell=394
+after: 28c31cf8df2ec325
+start 0: ok
+nofade 8192: 2a224d2b7c381881 tell=92 samples=8192 ended=0
+open 32000: tracks=1 type=GYM voices=8
+start 0: ok
+tempo 16000: a20f7e9d0ba319d5 tell=250 samples=16000 ended=1
+tempo 32000: 6cc5c90610b01dd5 tell=500 samples=32000 ended=1
+tell_scaled=850
+seek_scaled 300: ok tell_scaled=299
+sc 4000: 64d1041b6d1c9125 tell=238 samples=15294 ended=0
+slow 8000: 1aaaead3ad8bb341 tell=363 samples=23294 ended=1
+tracks=1
+start 0: ok
+acc 8000: 7b69a44d5a2cd629 tell=125 samples=8000 ended=0
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 1509
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16600 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 6554e5f8113bc565 tell=92 samples=8192 ended=1
+-- cut 2264
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16600 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 40de1ce583013c75 tell=92 samples=8192 ended=1
+-- cut 4528
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 2a224d2b7c381881 tell=92 samples=8192 ended=0
+-- flip 0
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 2c8f0a697e51257d tell=92 samples=8192 ended=0
+-- flip 1
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 63029490ebf82519 tell=92 samples=8192 ended=0
+-- flip 2
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: a79e91bfe66090b1 tell=92 samples=8192 ended=0
+-- flip 3
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||Unknown Publisher\x85||Unk\x8Bown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: 545bad6567f9e099 tell=92 samples=8192 ended=0
+-- flip 4
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person!
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: ba480527742ebd71 tell=92 samples=8192 ended=0
+-- flip 5
+info: tracks=1 type=GYM voices=-1
+info 0: -1 16666 -16250 -1 150000|Sega Genesis|Unknown Game, not unknown at all|||||Unknown Person
+info 1: err=Invalid track
+open: tracks=1 type=GYM voices=8
+start 0: ok
+q 8192: f2fb6063cca76351 tell=92 samples=8192 ended=0
+== gym_packed.gym
+identify: GYM
+info: err=Packed GYM file not supported
+open 44100: err=Packed GYM file not supported
+-- cut 4
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 16
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 146
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 220
+info: err=Wrong file type for this emulator
+open: err=Wrong file type for this emulator
+-- cut 439
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
+-- flip 0
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
+-- flip 1
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
+-- flip 2
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
+-- flip 3
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
+-- flip 4
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
+-- flip 5
+info: err=Packed GYM file not supported
+open: err=Packed GYM file not supported
 == hes_extra.hes
 identify: HES
 info: tracks=256 type=HES voices=-1
