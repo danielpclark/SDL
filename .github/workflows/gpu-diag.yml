@@ -73,18 +73,6 @@ jobs:
           SDL_LOGGING: "*=verbose"
         run: |
           cargo test -p sdl3 --lib forced_egl_context -- --nocapture > "$RUNNER_TEMP/egl.log" 2>&1 || true
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/egl.log" | tail -60 | cut -c1-300
-      - name: cargo test, llvmpipe
-        shell: bash
-        continue-on-error: true
-        env:
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-          RUST_TEST_NOCAPTURE: 1
-        run: |
-          cargo test -p sdl3 --lib wgl_context -- --nocapture 2>&1 | grep -E "GL_|test |panicked" | cut -c1-300 || true
-          time cargo test -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1 || true
-          echo "=== tail"
-          tail -25 "$RUNNER_TEMP/test.log" | cut -c1-300
       - name: GL under cdb
         if: false
         shell: bash
@@ -106,6 +94,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/egl.log" | tail -70 | cut -c1-300 || true
           echo "=== failures"
           sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
           grep -A6 "panicked at" "$RUNNER_TEMP/test.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
@@ -146,13 +135,8 @@ jobs:
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
           grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
           T=render::gpu::tests::gpu_render_states
-          echo "=== MTL_DEBUG_LAYER=1 alone"
-          MTL_DEBUG_LAYER=1 MVK_CONFIG_LOG_LEVEL=2 cargo test -q -p sdl3 --lib $T -- --nocapture > "$RUNNER_TEMP/dbg.log" 2>&1 || true
-          grep -E "DIAG|without|mvk|tinted|panicked" "$RUNNER_TEMP/dbg.log" | head -60 | cut -c1-300
-          echo "=== no validation"
-          cargo test -q -p sdl3 --lib $T -- --nocapture 2>&1 | grep -E "DIAG|without|panicked" | head -30 | cut -c1-300
-          echo "=== MTL_DEBUG_LAYER=1 all render::gpu"
-          MTL_DEBUG_LAYER=1 cargo test -q -p sdl3 --lib render::gpu:: -- --test-threads=1 2>&1 | grep -E "test result|^without|panicked|mvk-err|failed assertion" | cut -c1-300
+          echo "=== MTL_DEBUG_LAYER=1 assert mode"
+          MTL_DEBUG_LAYER=1 MTL_DEBUG_LAYER_ERROR_MODE=assert MTL_DEBUG_LAYER_WARNING_MODE=assert MVK_CONFIG_LOG_LEVEL=4 cargo test -q -p sdl3 --lib $T -- --nocapture > "$RUNNER_TEMP/dbg.log" 2>&1 || true
       - name: cargo test
         continue-on-error: true
         env:
@@ -165,6 +149,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          grep -v "^ *[0-9]*: \|^ *at \|^\s*Compiling\|^\t" "$RUNNER_TEMP/dbg.log" | tail -80 | cut -c1-300 || true
           echo "=== failures"
           sed -n '/^failures:$/,$p' "$RUNNER_TEMP/test.log" | grep -v "^    " | tail -40 || true
           grep -A6 "panicked at" "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/test2.log" | grep -v "^ *[0-9]*: \|^ *at " | head -150 | cut -c1-400 || true
