@@ -59,16 +59,27 @@ jobs:
             mkdir -p $d
             cp "$M"/opengl32.dll "$M"/libgallium_wgl.dll "$M"/libEGL.dll "$M"/libGLESv2.dll "$L/vulkan-1.dll" $d/
           done
-          echo "VK_DRIVER_FILES=$(cygpath -w "$M/lvp_icd.x86_64.json")" >> "$GITHUB_ENV"
+          # (the loader ignores VK_DRIVER_FILES in an elevated process, as the
+          # runner's)
+          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$M/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
+          MSYS_NO_PATHCONV=1 reg query 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers'
       - name: cargo test (one GPU test, logged)
         shell: bash
         continue-on-error: true
         env:
-          SDL_LOGGING: "*=verbose"
-          VK_LOADER_DEBUG: "error,warn,driver"
+          SDL_LOGGING: "gpu=verbose"
+          VK_LOADER_DEBUG: "error,warn"
         run: |
           cargo test -p sdl3 --lib gpu::vulkan::tests::device_formats_and_properties -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | tail -120 | cut -c1-400
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | tail -40 | cut -c1-400
+      - name: cargo test (the GL debug test, logged)
+        shell: bash
+        continue-on-error: true
+        env:
+          SDL_LOGGING: "*=verbose"
+        run: |
+          cargo test -p sdl3 --lib render::opengl::tests::debug_context_reports_errors -- --nocapture > "$RUNNER_TEMP/gl.log" 2>&1 || true
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/gl.log" | tail -60 | cut -c1-400
       - name: cargo test
         shell: bash
         continue-on-error: true
@@ -76,19 +87,9 @@ jobs:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
           RUST_TEST_NOCAPTURE: 1
         run: |
-          time cargo test -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1 || true
+          time cargo test -p sdl3 --lib -- --skip debug_context_reports_errors > "$RUNNER_TEMP/test.log" 2>&1 || true
           echo "=== tail"
           tail -40 "$RUNNER_TEMP/test.log" | cut -c1-400
-      - name: cargo test, one thread
-        shell: bash
-        continue-on-error: true
-        env:
-          RUST_TEST_NOCAPTURE: 1
-        run: |
-          timeout 900 cargo test -p sdl3 --lib -- --test-threads=1 > "$RUNNER_TEMP/test1.log" 2>&1 || true
-          echo "=== tail one thread"
-          grep -E "^test |error|exit code|STATUS" "$RUNNER_TEMP/test1.log" | tail -15 | cut -c1-400
-          tail -30 "$RUNNER_TEMP/test1.log" | cut -c1-400
       - name: Summary
         if: always()
         shell: bash
@@ -124,14 +125,19 @@ jobs:
           ls -la "$D"
           sudo mkdir -p /usr/local/lib
           sudo cp "$D/libMoltenVK.dylib" /usr/local/lib/
-      - name: cargo test gpu_render_states (logged)
+      - name: cargo test gpu_render_states (alone, module, render)
         continue-on-error: true
         env:
           MVK_CONFIG_LOG_LEVEL: "4"
           SDL_LOGGING: "gpu=verbose,render=verbose"
         run: |
           cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --nocapture > "$RUNNER_TEMP/one.log" 2>&1 || true
-          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -150 | cut -c1-400
+          grep -v "^\s*Compiling" "$RUNNER_TEMP/one.log" | grep -v "^ *[0-9]*: \|^ *at " | tail -10 | cut -c1-400
+          cargo test -p sdl3 --lib render::gpu:: -- --test-threads=1 > "$RUNNER_TEMP/mod.log" 2>&1 || true
+          grep -E "^test |panicked|^without|^tinted" "$RUNNER_TEMP/mod.log" | grep -v "\.\.\. ok$" | tail -30 | cut -c1-300
+          cargo test -p sdl3 --lib render:: -- --test-threads=1 > "$RUNNER_TEMP/mod2.log" 2>&1 || true
+          grep -E "^test |panicked" "$RUNNER_TEMP/mod2.log" | grep -v "\.\.\. ok$" | tail -30 | cut -c1-300
+          grep -E "^test result" "$RUNNER_TEMP/mod.log" "$RUNNER_TEMP/mod2.log"
       - name: cargo test
         continue-on-error: true
         env:
