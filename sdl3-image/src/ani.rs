@@ -246,7 +246,7 @@ fn parse_info_list(src: &mut IoStream<'_>, parse: &mut ParseContext, list_size: 
             if data.is_empty() {
                 return Err(Error::new("Couldn't read the ANI info list"));
             }
-            // FIXME (upstream): a short read leaves the rest of the string
+            // Note (upstream): a short read leaves the rest of the string
             // uninitialized there; it ends with what was read here.
             if data.len() == size as usize {
                 data[size as usize - 1] = 0;

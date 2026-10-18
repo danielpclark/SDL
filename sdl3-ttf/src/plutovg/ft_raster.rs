@@ -694,8 +694,9 @@ impl TWorker<'_, '_> {
             let mut split: i32 = 1;
             while (draw & split) == 0 {
                 if arc + 4 >= bez_stack.len() {
-                    /* FIXME (upstream): C overflows its stack of arcs here,
-                    for deviations beyond 32 bits (huge coordinates) */
+                    /* Note (upstream): C overflows its stack of arcs here,
+                    for deviations beyond 32 bits (huge coordinates); here it
+                    stops */
                     return Ok(());
                 }
                 gray_split_conic(&mut bez_stack[arc..]);

@@ -793,7 +793,8 @@ impl<'a> StateTable<'a> {
          */
         /* FIXME (upstream): hb_unsigned_mul_overflows (min_state, num_classes)
          * below converts the negative min_state to unsigned, which always
-         * overflows: any negative state fails sanitizing. */
+         * overflows: any negative state fails sanitizing
+         * (danielpclark/SDL#140). */
 
         let mut min_state: i32 = 0;
         let mut max_state: i32 = 0;

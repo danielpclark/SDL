@@ -233,7 +233,7 @@ impl Parser {
     }
 
     fn maybe_get<T: IVariant>(&self, id: u32) -> Result<Option<&T>> {
-        // FIXME (upstream): C++ indexes ids[] unchecked here; past the end
+        // Note (upstream): C++ indexes ids[] unchecked here; past the end
         // it reads memory that (in practice) isn't of the type asked for,
         // so an out-of-range ID is "not a T" here.
         let Some(v) = self.ir.ids.get(id as usize) else {

@@ -560,7 +560,7 @@ fn load_avif_io_internal(src: &mut IoStream<'_>, start: i64) -> Result<Surface<'
                         surface = Some(s);
                     }
                     // Invalid image, let avif take care of it
-                    // FIXME (upstream): the surface is freed with SDL_free()
+                    // Note (upstream): the surface is freed with SDL_free()
                     // instead of SDL_DestroySurface(), leaking its pixels
                     // (dropped here).
                 }
@@ -768,7 +768,7 @@ fn save_avif_io_libavif(
         let rc = avif_image_rgb_to_yuv(&mut image, &rgb);
 
         /* Do any cleanup */
-        // FIXME (upstream): the converted surface is released with
+        // Note (upstream): the converted surface is released with
         // SDL_free(), which leaks its pixels; it is dropped here.
         drop(temp);
         // (rgb.pixels = NULL: the pixels aren't rgb's to free)
@@ -782,8 +782,8 @@ fn save_avif_io_libavif(
         }
     }
 
-    // FIXME (upstream): avifEncoderCreate() isn't checked for NULL (a failed
-    // allocation) before the encoder is used.
+    // Note (upstream): C doesn't check avifEncoderCreate() for NULL (a
+    // failed allocation) before it uses the encoder; here that's an error.
     let Some(mut encoder) = avif_encoder_create() else {
         return Err(Error::new("Out of memory"));
     };
@@ -975,8 +975,8 @@ impl AvifDecoderContext {
             return Ok(None);
         }
 
-        // FIXME (upstream): after a failed reset there is no decoder, which
-        // upstream dereferences.
+        // Note (upstream): after a failed reset there is no decoder, which
+        // upstream dereferences; here that's an error.
         let Some(decoder) = self.decoder.as_deref_mut() else {
             return Err(Error::invalid_param("decoder"));
         };

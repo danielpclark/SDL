@@ -777,7 +777,7 @@ fn avif_encoder_write_color_properties(
 /// Same as 'avifEncoderWriteColorProperties' but for properties related to High Dynamic Range only.
 /// Translation of `avifEncoderWriteHDRProperties()`.
 ///
-/// FIXME (upstream): the track path calls it with a NULL `dedupStream`
+/// Note (upstream): the track path calls it with a NULL `dedupStream`
 /// (and no dedup), which it dereferences when the image has content light
 /// level information; here the `clli` box then goes to the output stream.
 fn avif_encoder_write_hdr_properties(
@@ -1182,8 +1182,9 @@ fn avif_encoder_add_image_items(
     let infe_name = get_infe_name(item_category);
 
     if cell_count > 1 {
-        // FIXME (upstream): the grid item isn't checked for NULL (a failed
-        // allocation) before it is used.
+        // Note (upstream): C doesn't check the grid item for NULL (a failed
+        // allocation) before it uses it; here that's an out-of-memory
+        // error.
         let Some(grid_item) =
             avif_encoder_data_create_item(&mut encoder.data, b"grid", infe_name, 0)
         else {

@@ -1000,7 +1000,7 @@ impl ParsedIR {
 
     /// `get<T>(id)`.
     ///
-    /// FIXME (upstream): C++ indexes `ids[]` unchecked; past the end it
+    /// Note (upstream): C++ indexes `ids[]` unchecked; past the end it
     /// reads whatever the heap holds there, throwing "nullptr" when that's
     /// zeroed (as an out-of-range ID does here), "Bad cast" or crashing
     /// otherwise.

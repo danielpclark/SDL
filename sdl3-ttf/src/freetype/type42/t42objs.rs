@@ -68,7 +68,7 @@ fn ft_strtol(s: &[u8]) -> FtLong {
 /// The TrueType glyph index of the Type 42 glyph `glyph_index` (its
 /// charstring, a decimal number).
 pub fn t42_ttf_glyph_index(type1: &T1FontRec, glyph_index: usize) -> FtUInt {
-    /* FIXME (upstream): C reads `charstrings[glyph_index]' without */
+    /* Note (upstream): C reads `charstrings[glyph_index]' without  */
     /* checking the index, which FT_Load_Glyph does not check       */
     /* either; a missing charstring is glyph 0 here                 */
     ft_strtol(type1.charstrings.name(glyph_index).unwrap_or(b"0")) as FtUInt

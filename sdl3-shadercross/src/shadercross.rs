@@ -1084,7 +1084,7 @@ fn resource_list<'a>(
 }
 
 fn binding_2(stage: ExecutionModel, desc_set: u32, binding: u32) -> SpvcMslResourceBinding2 {
-    // FIXME (upstream): the compute path doesn't zero its binding arrays,
+    // Note (upstream): the compute path doesn't zero its binding arrays,
     // leaving the MSL indices each resource doesn't use uninitialized, and
     // the buffer of an emulated image atomic takes its texture binding's
     // uninitialized msl_buffer; zero here (as a zero-initializing build).
@@ -1180,7 +1180,7 @@ fn transpile_from_spirv(
 
     // MSL doesn't have descriptor sets, so we have to set up index remapping
     if backend == SpvcBackend::Msl && shader_stage != ShaderStage::Compute {
-        // FIXME (upstream): the binding lists are fixed arrays of 32, overrun by
+        // Note (upstream): the binding lists are fixed arrays of 32, overrun by
         // a shader with more resources; they grow here.
         let mut buffer_bindings: Vec<SpvcMslResourceBinding2> = Vec::new();
         let mut texture_bindings: Vec<SpvcMslResourceBinding2> = Vec::new();
@@ -1373,7 +1373,7 @@ fn transpile_from_spirv(
     }
 
     if backend == SpvcBackend::Msl && shader_stage == ShaderStage::Compute {
-        // FIXME (upstream): the binding lists are fixed arrays of 32, overrun by
+        // Note (upstream): the binding lists are fixed arrays of 32, overrun by
         // a shader with more resources; they grow here.
         let mut buffer_bindings: Vec<SpvcMslResourceBinding2> = Vec::new();
         let mut texture_bindings: Vec<SpvcMslResourceBinding2> = Vec::new();
@@ -1695,7 +1695,8 @@ fn get_io_vars(
         return Err(Error::out_of_memory());
     }
     for resource in reflected_resources {
-        // FIXME (upstream): a NULL type handle is dereferenced.
+        // Note (upstream): C dereferences a NULL type handle; here it's an
+        // error.
         let Some(type_) = compiler.get_type_handle(context, resource.base_type_id) else {
             return Err(spvc_error("spvc_compiler_get_type_handle", context));
         };
@@ -2027,7 +2028,8 @@ fn compile_from_spirv(
     };
 
     if info.shader_stage == ShaderStage::Compute {
-        // FIXME (upstream): a reflection failure here is dereferenced as NULL.
+        // Note (upstream): C dereferences a reflection failure here as NULL;
+        // here the error is returned.
         let pipeline_info = reflect_compute_spirv(info.bytecode, metadata_props)?;
         let code = compiled_code(target_format, &hlsl_info)?;
 
@@ -2220,8 +2222,9 @@ fn create_shader_from_spirv(
                 };
                 return Ok(ShaderObject::Shader(device.create_shader(&create_info)?));
             }
-            // FIXME (upstream): the metadata pointer is reinterpreted as the
-            // other struct when the shader stage doesn't match the function.
+            // Note (upstream): C reinterprets the metadata pointer as the
+            // other struct when the shader stage doesn't match the function;
+            // here that's an invalid-parameter error.
             _ => return Err(Error::invalid_param("metadata")),
         }
     } else if shader_formats.contains(ShaderFormat::MSL) {

@@ -431,7 +431,7 @@ fn should_simulate_loss(percent_likely_to_lose: i32) -> bool {
     debug_assert!(percent_likely_to_lose >= 0);
     debug_assert!(percent_likely_to_lose <= 100);
     if percent_likely_to_lose > 0 {
-        // FIXME (upstream): this draws from 0 to 100, 101 values, so 100
+        // Note (upstream): this draws from 0 to 100, 101 values, so 100
         // percent loses only 100 of 101 times; the documentation promises
         // that 100 "means _everything_ fails unconditionally". Drawn from
         // 0 to 99 here.
@@ -743,7 +743,7 @@ mod ifaces {
                                 std::mem::size_of::<SOCKADDR_IN>()
                             );
                             let mut bcast: SOCKADDR_IN = std::ptr::read_unaligned(saddr.cast());
-                            // FIXME (upstream): `1 << 32` for a prefix length
+                            // Note (upstream): `1 << 32` for a prefix length
                             // of zero is undefined behavior in C; here it is
                             // all host bits, as the formula means.
                             let prefix = unicast.OnLinkPrefixLength as u32;
@@ -1562,7 +1562,7 @@ pub fn init() -> Result<()> {
         // SAFETY: a valid out-parameter.
         let rc = unsafe { sys::WSAStartup(0x0101, &mut data) };
         if rc != 0 {
-            // FIXME (upstream): this returns without undoing the
+            // Note (upstream): this returns without undoing the
             // `initialize_count` bump above, so every later NET_Init()
             // would report success with WinSock down; it is undone here.
             // (And WSAStartup() returns its error rather than setting

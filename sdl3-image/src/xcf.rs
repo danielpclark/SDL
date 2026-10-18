@@ -58,7 +58,7 @@ struct XcfProp {
 
 impl XcfProp {
     fn new() -> XcfProp {
-        // FIXME (upstream): the property is an uninitialized local there, so
+        // Note (upstream): the property is an uninitialized local there, so
         // a short COMPRESSION or COLOR property reads stack garbage; zeros
         // here.
         XcfProp {
@@ -791,7 +791,7 @@ fn load_xcf_tile_rle(
     if amount_read == 0 {
         return None;
     }
-    // FIXME (upstream): the run headers are read without checking for the
+    // Note (upstream): the run headers are read without checking for the
     // end of the buffer, up to 3 bytes past it; those read as 0 here.
     let at = |t: usize| load.get(t).copied().unwrap_or(0);
     let mut t = 0usize;

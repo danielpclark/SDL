@@ -430,7 +430,7 @@ fn load_lbm(src: &mut IoStream<'_>) -> std::result::Result<Surface<'static>, Fai
                         /* HAM : 12 bits RGB image (4 bits per color component) */
                         /* HAM8 : 18 bits RGB image (6 bits per color component) */
                         if flag_ham {
-                            // FIXME (upstream): with fewer than 2 or more
+                            // Note (upstream): with fewer than 2 or more
                             // than 26 planes the shift counts are out of
                             // range (here, as on x86, taken modulo 32), and
                             // with more than 10 a direct color can index

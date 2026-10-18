@@ -2012,7 +2012,7 @@ fn sdf_generate_with_overlaps(
     let contours = std::mem::take(&mut shape.contours);
 
     /* Iterate over all contours and generate SDF separately. */
-    /* (FIXME (upstream): C keeps iterating through the `next' field of */
+    /* (Note (upstream): C keeps iterating through the `next' field of  */
     /* the contour that `split_sdf_shape' has freed; this iterates over */
     /* the original contours)                                          */
     for (i, contour) in contours.into_iter().enumerate() {

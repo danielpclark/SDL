@@ -553,7 +553,8 @@ fn nsvg_xform_inverse(inv: &mut [f32; 6], t: &mut [f32; 6]) {
     let det = t[0] as f64 * t[3] as f64 - t[2] as f64 * t[1] as f64;
     if det > -1e-6 && det < 1e-6 {
         // FIXME (upstream): for a singular matrix the source is reset to
-        // the identity and the inverse left as it was.
+        // the identity and the inverse left as it was
+        // (danielpclark/SDL#136).
         nsvg_xform_identity(t);
         return;
     }
@@ -1558,7 +1559,7 @@ fn nsvg_parse_matrix(xform: &mut [f32; 6], s: &[u8]) -> usize {
     len
 }
 
-// FIXME (upstream): the argument arrays below are uninitialized there, so
+// Note (upstream): the argument arrays below are uninitialized there, so
 // arguments that are missing take stack garbage; they are 0 here.
 
 /// Translation of `nsvg__parseTranslate()`.
@@ -2823,7 +2824,7 @@ impl NsvgParser {
                         grad.spread = NSVG_SPREAD_REPEAT;
                     }
                 } else if name == b"xlink:href" {
-                    // FIXME (upstream): an empty reference is read past its
+                    // Note (upstream): an empty reference is read past its
                     // end there; it is empty here.
                     let href = value.get(1..).unwrap_or(&[]);
                     strlcpy(&mut grad.ref_.0, href, 62);
@@ -3174,7 +3175,7 @@ impl NsvgParser {
                 let mut type_ = paint.type_;
                 let mut gradient = None;
                 if gradient_id.0[0] != 0 {
-                    // FIXME (upstream): for a singular transform the
+                    // Note (upstream): for a singular transform the
                     // inverse is left uninitialized there (and the shape's
                     // transform reset); it is zeros here.
                     let mut inv = [0.0f32; 6];

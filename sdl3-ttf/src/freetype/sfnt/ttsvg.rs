@@ -159,7 +159,7 @@ fn find_doc(
         mid_doc = extract_svg_doc(table, rec(i, 12));
         let comp_res = compare_svg_doc(mid_doc, glyph_index);
 
-        /* FIXME (upstream): C re-reads `start_doc` and `end_doc` here with */
+        /* Note (upstream): C re-reads `start_doc` and `end_doc` here with  */
         /* a record stride of 4 instead of 12 (the values are unused), and  */
         /* `i - 1` wraps around for unsorted records, making C read out of  */
         /* bounds; the reads here return zero beyond the table instead.     */

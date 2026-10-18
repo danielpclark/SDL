@@ -975,7 +975,8 @@ fn read_histogram(precision_bits: i32, counts: &mut Vec<i32>, input: &mut BitRea
             return jxl_failure!("Invalid histogram.");
         }
         // FIXME (upstream): this compares with ANS_TAB_SIZE + 1 where the RLE
-        // symbol is ANS_LOG_TAB_SIZE + 1, so it never matches.
+        // symbol is ANS_LOG_TAB_SIZE + 1, so it never matches
+        // (danielpclark/SDL#137).
         if (omit_pos as usize) + 1 < n
             && logcounts[omit_pos as usize + 1] == ANS_TAB_SIZE as i32 + 1
         {

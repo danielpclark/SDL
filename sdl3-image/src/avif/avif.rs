@@ -1450,8 +1450,8 @@ pub(crate) fn avif_dimensions_too_large(
     image_size_limit: u32,
     image_dimension_limit: u32,
 ) -> bool {
-    // FIXME (upstream): divides by zero for a height of 0 (the callers
-    // check for it first).
+    // Note (upstream): this divides by zero for a height of 0, in C as
+    // here; it can't happen, since the callers check for it first.
     if width > (image_size_limit / height) {
         return true;
     }

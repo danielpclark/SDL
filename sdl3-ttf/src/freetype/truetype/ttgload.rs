@@ -1929,7 +1929,8 @@ fn tt_loader_init(
         /* backward compatibility mode.                             */
         /* FIXME (upstream): `loader->load_flags' is still zero here (the  */
         /* loader was just cleared with FT_ZERO), so neither the hinting   */
-        /* flag nor FT_LOAD_COMPUTE_METRICS is honored by this test.       */
+        /* flag nor FT_LOAD_COMPUTE_METRICS is honored by this test        */
+        /* (danielpclark/SDL#139).                                         */
         if is_hinted(loader.load_flags)
             && (loader.load_flags & FT_LOAD_COMPUTE_METRICS as FtULong) == 0
             && !(interpreter_version == TT_INTERPRETER_VERSION_40 && backward_compatibility)

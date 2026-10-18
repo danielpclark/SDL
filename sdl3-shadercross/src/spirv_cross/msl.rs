@@ -15408,7 +15408,8 @@ impl Compiler {
                             }
                             type_ = self.maybe_get::<SPIRType>(t.parent_type);
                         }
-                        // FIXME (upstream): a null type here is dereferenced; treated as not a cooperative matrix.
+                        // Note (upstream): C dereferences a null type here; here it's
+                        // treated as not a cooperative matrix.
                         if type_.is_some_and(|t| t.op == OpTypeCooperativeMatrixKHR) {
                             spirv_cross_throw!(
                                 "Unsupported operation on cooperative matrix in MSL backend."
@@ -16210,7 +16211,8 @@ impl Compiler {
                         }
                     }
                 } else if ptr_type.storage == StorageClassImage {
-                    // FIXME (upstream): res_type is dereferenced without a backing variable.
+                    // Note (upstream): C dereferences res_type without a backing
+                    // variable; here that throws.
                     let Some(res_image) = res_image else {
                         spirv_cross_throw!("Image atomic without a backing variable.");
                     };
@@ -16230,7 +16232,8 @@ impl Compiler {
             exp += "(";
             // Emulate texture2D atomic operations
             if ptr_type.storage == StorageClassImage {
-                // FIXME (upstream): var is dereferenced without a backing variable.
+                // Note (upstream): C dereferences var without a backing variable;
+                // here that throws.
                 let Some(v) = var else {
                     spirv_cross_throw!("Image atomic without a backing variable.");
                 };
@@ -19397,7 +19400,8 @@ impl Compiler {
             }
             let locn = self.get_member_location(type_.self_, index, None);
             // Metal will likely complain about missing color attachments, too.
-            // FIXME (upstream): (1 << locn) is undefined for a location of 32 or more.
+            // Note (upstream): (1 << locn) is undefined in C for a location of 32
+            // or more; here the shift wraps, as x86's does.
             if locn != k_unknown_location
                 && (self.msl.options.enable_frag_output_mask & 1u32.wrapping_shl(locn)) == 0
             {
@@ -26563,7 +26567,8 @@ impl Compiler {
                                 }
                             }
                             _ => {
-                                // FIXME (upstream): any other base type adds no padding, so this loop never ends.
+                                // Note (upstream): any other base type adds no padding, so the
+                                // C loop never ends; here it throws.
                                 spirv_cross_throw!("Argument buffer padding resource has an unsupported base type.");
                             }
                         }

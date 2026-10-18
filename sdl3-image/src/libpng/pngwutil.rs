@@ -272,9 +272,9 @@ fn png_deflate_claim(
     }
 
     /* Check against the previous initialized values, if any. */
-    // FIXME (upstream): libpng never assigns zlib_set_*, so a second claim
-    // with any non-zero setting always ends and reinitializes the stream
-    // (each struct here claims it once).
+    // Note (upstream): libpng never assigns zlib_set_*, so a second claim
+    // with any non-zero setting always ends and reinitializes the stream, in
+    // C as here; it does no harm, since each struct here claims it once.
     if (png_ptr.flags & PNG_FLAG_ZSTREAM_INITIALIZED) != 0
         && (png_ptr.zlib_set_level != level
             || png_ptr.zlib_set_method != method

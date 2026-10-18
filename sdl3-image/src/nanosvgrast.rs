@@ -932,7 +932,8 @@ impl NsvgRasterizer {
                 // FIXME (upstream): for an odd dash count the pattern is
                 // twice as long as the dashes, but the dashes are indexed
                 // modulo their count; a NaN offset never ends the walk
-                // through them there, and leaves it as it is here.
+                // through them there, and leaves it as it is here
+                // (danielpclark/SDL#136).
                 while dash_offset > shape.stroke_dash_array[idash] {
                     dash_offset -= shape.stroke_dash_array[idash];
                     idash = (idash + 1) % count;

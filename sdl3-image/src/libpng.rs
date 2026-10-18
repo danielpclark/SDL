@@ -170,10 +170,10 @@ fn png_write_data(png_ptr: &mut PngStruct<'_, '_>, src: &[u8]) -> PngResult<()> 
 
 /// The flush function SDL_image gives libpng (`png_flush_data`).
 fn png_flush_data(png_ptr: &mut PngStruct<'_, '_>) -> PngResult<()> {
-    // FIXME (upstream): png_write_flush() flushes through this function,
-    // which would call png_write_flush() again, without end; libpng never
-    // flushes here, though (SDL_image sets no flush interval, and libpng
-    // isn't built to flush after IEND).
+    // Note (upstream): png_write_flush() flushes through this function,
+    // which would call png_write_flush() again, without end, in C as here;
+    // it can't happen, since libpng never flushes here (SDL_image sets no
+    // flush interval, and libpng isn't built to flush after IEND).
     png_write_flush(png_ptr)
 }
 
@@ -523,7 +523,7 @@ impl ApngDecoderContext {
         let prev_canvas_copy = self.prev_canvas_copy.as_mut().expect("the canvas copy");
 
         let fctl = &self.fctl_frames[index];
-        // FIXME (upstream): a zero delay_den divides by zero in
+        // Note (upstream): a zero delay_den divides by zero in
         // IMG_TimebaseDuration() (a crash); the APNG specification's
         // denominator for it, 100 (APNG_DEFAULT_DENOMINATOR, which upstream
         // defines but doesn't use), is used here.

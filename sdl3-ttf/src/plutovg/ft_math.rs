@@ -71,9 +71,9 @@ pub const PVG_FT_ANGLE_PI4: PvgFtAngle = PVG_FT_ANGLE_PI / 4;
 #[inline]
 fn pvg_ft_msb(x: u32) -> i32 {
     if x == 0 {
-        /* FIXME (upstream): __builtin_clz(0) is undefined (x86's bsr leaves
+        /* Note (upstream): __builtin_clz(0) is undefined (x86's bsr leaves
         its destination unchanged); C gets here for vectors whose
-        coordinates are multiples of 2^32 */
+        coordinates are multiples of 2^32; it is 0 here */
         return 0;
     }
     31 - x.leading_zeros() as i32

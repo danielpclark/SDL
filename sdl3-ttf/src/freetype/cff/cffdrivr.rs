@@ -99,6 +99,7 @@ fn cff_glyph_load(face: &mut FtFace, glyph_index: FtUInt, load_flags: FtInt32) -
     /* passes `cffsize', which it does not reset, to `cff_slot_load'; so */
     /* the size is always passed (its `y_ppem' sets the outline's        */
     /* FT_OUTLINE_HIGH_PRECISION flag even for unscaled loads)           */
+    /* (danielpclark/SDL#139)                                            */
 
     /* (`size->face != slot->face' cannot happen: both are the face's) */
 

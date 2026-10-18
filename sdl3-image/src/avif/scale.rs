@@ -200,8 +200,8 @@ pub(crate) fn avif_image_scale_with_limit(
                 "Allocation of alpha plane failed: {}",
                 avif_result_to_string(allocation_result)
             );
-            // FIXME (upstream): returns without freeing the source planes
-            // (dropped here).
+            // Note (upstream): C returns without freeing the source planes;
+            // here they're dropped.
             return AvifResult::OutOfMemory;
         }
 

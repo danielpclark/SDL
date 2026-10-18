@@ -161,7 +161,7 @@ impl<E: FontEngine> Context<E> {
      * %%Function: ecClearColors
      */
     pub(crate) fn ec_clear_colors(&mut self) -> i32 {
-        // FIXME (upstream): the color table isn't reset to NULL after it is
+        // Note (upstream): the color table isn't reset to NULL after it is
         // freed, so loading a second document into a context frees it
         // again and adds the new colors to the freed list; it is emptied
         // here.
@@ -483,7 +483,7 @@ impl<E: FontEngine> Context<E> {
         let mut f_param = false;
         let mut f_neg = false;
         let mut param = 0;
-        // FIXME (upstream): the keyword (char szKeyword[30]) and its
+        // Note (upstream): the keyword (char szKeyword[30]) and its
         // parameter (char szParameter[20]) are read into fixed buffers
         // without a bound, overflowing them on a longer keyword or
         // parameter; they grow as needed here.
@@ -566,7 +566,7 @@ impl<E: FontEngine> Context<E> {
             }
             Rds::FontTable => {
                 if ch == b';' as i32 {
-                    // FIXME (upstream): data is NULL when no character was
+                    // Note (upstream): data is NULL when no character was
                     // printed since the document started loading (a first
                     // font without a name), and this dereferences it; the
                     // name is empty here.

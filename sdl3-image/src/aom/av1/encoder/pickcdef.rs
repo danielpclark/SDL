@@ -546,7 +546,8 @@ fn init_src_params(bsize: BlockSize) -> (i32, i32, i32, i32, i32) {
     let h = BLOCK_SIZE_HIGH[bsize as usize] as i32;
     let wl2 = MI_SIZE_LOG2 + MI_SIZE_WIDE_LOG2[bsize as usize] as i32;
     // FIXME (upstream): the height's log2 is the width's, which only
-    // matters for the 4:2:2 and 4:4:0 subsamplings' blocks.
+    // matters for the 4:2:2 and 4:4:0 subsamplings' blocks
+    // (danielpclark/SDL#134).
     let hl2 = MI_SIZE_LOG2 + MI_SIZE_WIDE_LOG2[bsize as usize] as i32;
     (w, w, h, wl2, hl2)
 }

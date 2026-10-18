@@ -232,9 +232,10 @@ fn af_face_globals_compute_style_coverage(
         }
 
         /* ... and finally the default OpenType features of the default script */
-        /* (FIXME (upstream): `dflt' stays 0xFFFF, past the style classes, if */
-        /* the default script has no default style; this build's shaper     */
-        /* doesn't look at the style class)                                 */
+        /* (Note (upstream): `dflt' stays 0xFFFF, past the style classes,   */
+        /* if the default script has no default style, and C indexes them   */
+        /* with it; here no style class is found, and the step is skipped.  */
+        /* This build's shaper doesn't look at the style class anyway.)     */
         if let Some(style_class) = AF_STYLE_CLASSES.get(dflt as usize) {
             let mut gstyles = std::mem::take(&mut globals.glyph_styles);
             let _ = af_shaper_get_coverage(globals, face, style_class, &mut gstyles, true);

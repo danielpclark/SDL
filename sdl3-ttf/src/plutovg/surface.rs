@@ -51,7 +51,7 @@ fn plutovg_surface_create_uninitialized(width: i32, height: i32) -> Option<Surfa
     if width > STBI_MAX_DIMENSIONS || height > STBI_MAX_DIMENSIONS {
         return None;
     }
-    /* FIXME (upstream): C computes `width * height * 4` in int, which
+    /* Note (upstream): C computes `width * height * 4` in int, which
     overflows (and then allocates less than it writes) for the large sizes
     the check above lets through; the size is computed without overflow
     here, and the allocation fails gracefully instead. */

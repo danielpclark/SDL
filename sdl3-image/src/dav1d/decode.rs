@@ -2853,7 +2853,8 @@ fn read_restoration_info(
     let mut unit: Av1RestorationUnit = lr_mask[lr.0].lr[p][lr.1];
     // FIXME (upstream): ts->lr_ref[p] is left as it was (possibly from an
     // earlier tile or frame) when setup_tile() skips this plane's
-    // reference unit; this reads the same stale unit then.
+    // reference unit; this reads the same stale unit then
+    // (danielpclark/SDL#138).
     let lr_ref = ts.lr_ref[p]
         .map(|r| lr_mask[r.0].lr[p][r.1])
         .unwrap_or_default();
