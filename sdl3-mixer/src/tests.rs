@@ -1541,6 +1541,9 @@ fn misc(out: &mut String) {
         freq: 48000,
     };
     let m = Mixer::new(&spec).unwrap();
+    // (a request for no bytes isn't a failure)
+    let generated = m.generate(&mut []).map_or(-1, |n| n as i64);
+    writeln!(out, "generate 0: {generated}").unwrap();
     for (hz, amp, ms) in [(440, 0.25f32, 100i64), (1000, 1.0, -1), (30, 0.5, 7)] {
         let a = Audio::sine_wave(Some(&m), hz, amp, ms).unwrap();
         let t = Track::new(&m).unwrap();
