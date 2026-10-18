@@ -516,6 +516,10 @@ impl ApngDecoderContext {
             if prev_canvas_copy.fill_rect(None, 0x00000000).is_err() {
                 return Err(Error::new("Failed to fill previous canvas copy"));
             }
+            // (copied back over the canvas, not blended: see below)
+            if prev_canvas_copy.set_blend_mode(BlendMode::NONE).is_err() {
+                return Err(Error::new("Failed to set previous canvas copy blend mode"));
+            }
         }
 
         let index = self.current_frame_index as usize;
@@ -558,10 +562,11 @@ impl ApngDecoderContext {
                     }
                 }
                 PNG_DISPOSE_OP_PREVIOUS => {
-                    // FIXME (upstream): the copy has the blend mode of a new
-                    // RGBA surface, BLEND, so it is blended over the canvas
-                    // rather than copied (and the same below, when the canvas
-                    // is saved into it).
+                    // Note (upstream): upstream's copy has the blend mode of
+                    // a new RGBA surface, BLEND, so it is blended over the
+                    // canvas rather than copied (and the canvas over it, when
+                    // it is saved below); the translation fixes it, copying
+                    // them with BlendMode::NONE.
                     if prev_canvas_copy.blit(None, canvas, None).is_err() {
                         return Err(Error::new(
                             "Failed to restore previous canvas copy for dispose operation",
@@ -572,12 +577,16 @@ impl ApngDecoderContext {
             }
         }
 
-        if fctl.dispose_op == PNG_DISPOSE_OP_PREVIOUS
-            && canvas.blit(None, prev_canvas_copy, None).is_err()
-        {
-            return Err(Error::new(
-                "Failed to copy current canvas to previous canvas copy",
-            ));
+        if fctl.dispose_op == PNG_DISPOSE_OP_PREVIOUS {
+            // (copied, not blended: the canvas keeps its blend mode, which
+            // the frames duplicated from it have)
+            let copied = canvas.set_blend_mode(BlendMode::NONE).is_ok()
+                && canvas.blit(None, prev_canvas_copy, None).is_ok();
+            if canvas.set_blend_mode(BlendMode::BLEND).is_err() || !copied {
+                return Err(Error::new(
+                    "Failed to copy current canvas to previous canvas copy",
+                ));
+            }
         }
 
         // (DecompressionContext: the function's locals)
