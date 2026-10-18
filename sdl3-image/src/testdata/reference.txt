@@ -4265,7 +4265,7 @@ save_anim gif: bytes=1164 hash=1ed5db89e97b052e | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=1248 hash=577b71271785f378 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=7525287c5c70e768 blend=1 hot=0,0 delay=0
 save_anim png: bytes=927 hash=2c2d3042c34a0a08 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=7525287c5c70e768 blend=1 delay=0
 save_anim webp: bytes=246 hash=61916de031c7b770 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=20ff6427481c5daa blend=0 delay=0
-save_anim avif: bytes=793 hash=6248bb8462c6ebb6 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b2a9341654986154 blend=1 delay=1000
+save_anim avif: bytes=575 hash=12fb8c739deb3215 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=625c07103a60bd73 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=242 hash=b36d7badb2f53457 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=63f5261bdea57120 blend=1 delay=100
 ani_enc meta: bytes=1300 hash=e4a8e3a801ec66eb | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=7525287c5c70e768 blend=1 hot=0,0 delay=17
@@ -4326,7 +4326,7 @@ save_anim gif: bytes=1166 hash=0c2c24a09616c6ea | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=1246 hash=4eff73cf141cbe2e | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ab27f3151cd1bdac blend=1 hot=0,0 delay=0
 save_anim png: bytes=1054 hash=b5e57a4ce5fa1ccd | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ab27f3151cd1bdac blend=1 delay=0
 save_anim webp: bytes=298 hash=4c703800dc81538b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=9f80ecbfaafe51f7 blend=0 delay=0
-save_anim avif: bytes=1047 hash=214756525ce9e6f5 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=3a1dab48f4645a6e blend=1 delay=1000
+save_anim avif: bytes=788 hash=fc6246b417d18fe7 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b3b158ddf36eff35 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=243 hash=61ea6a4cd31cceec | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ee38bded498b1935 blend=1 delay=100
 ani_enc meta: bytes=1298 hash=73abdea8762bd245 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ab27f3151cd1bdac blend=1 hot=0,0 delay=17
@@ -4388,7 +4388,7 @@ save_anim gif: bytes=1168 hash=5b8d656e3e4735d2 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=1224 hash=98c2f67db121ae11 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=4c8a4b4cbfef777b blend=1 hot=0,0 delay=0
 save_anim png: bytes=1031 hash=6a01c9a0479d5548 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=4c8a4b4cbfef777b blend=1 delay=0
 save_anim webp: bytes=294 hash=fe65d77762551894 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f14b8ff7cb84bcb0 blend=0 delay=0
-save_anim avif: bytes=1033 hash=bdb3f1c1693ece10 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b725f34b8998a814 blend=1 delay=1000
+save_anim avif: bytes=809 hash=aec6704393869efa | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=bd36d898e685d076 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=244 hash=2c4ef1b9671b4259 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b1411f7d92b43658 blend=1 delay=100
 ani_enc meta: bytes=1276 hash=6142dd3539b09221 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=4c8a4b4cbfef777b blend=1 hot=0,0 delay=17
@@ -4448,7 +4448,7 @@ save_anim gif: err:
 save_anim ani: bytes=1538 hash=6d164abae4535743 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=c1c47161c35df104 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1231 hash=5dea28b894bc668b | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1cd02d9c53818d02 blend=1 delay=0
 save_anim webp: bytes=164 hash=0260444ea0131f07 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=6770014ce3fd44cf blend=0 delay=0
-save_anim avif: bytes=441 hash=a4771b545a324799 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=8bb30967b74dcbd3 blend=1 delay=1000
+save_anim avif: bytes=432 hash=d2d744c825de7b4a | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=055bb0291f0d95e9 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1590 hash=fce9d924a5fe5bbe | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=c1c47161c35df104 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -4510,7 +4510,7 @@ save_anim gif: bytes=1168 hash=22447a7ba4f5957c | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=1238 hash=50065f1b7de7c05c | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2de1a561faa410a8 blend=1 hot=0,0 delay=0
 save_anim png: bytes=1035 hash=4efc52cb3c405ee4 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2de1a561faa410a8 blend=1 delay=0
 save_anim webp: bytes=298 hash=d1430eef54c596c0 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=c2514913cf640049 blend=0 delay=0
-save_anim avif: bytes=1034 hash=d6b2264863036f78 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1fb1e6c7246e15a0 blend=1 delay=1000
+save_anim avif: bytes=792 hash=3f461618470021aa | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=01a416c100cefb7f blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=3294e3c6a9485d4b | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=0feba274bacccb38 blend=1 delay=100
 ani_enc meta: bytes=1290 hash=f43f676ccd4e0297 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2de1a561faa410a8 blend=1 hot=0,0 delay=17
@@ -6652,7 +6652,7 @@ save_anim gif: bytes=983 hash=5b75b75de28928d0 | reload: n=1 32x6 loop=0 | 0: 32
 save_anim ani: bytes=542 hash=dd258fd80e871cbb | reload: n=1 32x6 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=fe48358a2a314dbe blend=1 hot=0,0 delay=0
 save_anim png: bytes=200 hash=ee5038a5f96eda7d | reload: n=1 32x6 loop=0 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=fe48358a2a314dbe blend=1 delay=0
 save_anim webp: bytes=200 hash=8af9faad7ad064cb | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_XBGR8888 pitch=128 hash=cc80a0f2d1e45513 blend=0 delay=0
-save_anim avif: bytes=684 hash=7329acdaf2c69705 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=25e1f22074f44b19 blend=1 delay=1000
+save_anim avif: bytes=463 hash=5fb589186e8664ec | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=c1254d65b753fcc2 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=179 hash=ad3ca9c82e485031 | reload: n=1 32x6 loop=3 desc="made by the harness" | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=8463f9083fa2b6c4 blend=1 delay=100
 ani_enc meta: bytes=594 hash=ff3631f40afafc33 | reload: n=1 32x6 frames=1 title="harness title" author="an author" | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=fe48358a2a314dbe blend=1 hot=0,0 delay=17
@@ -6712,7 +6712,7 @@ save_anim gif: bytes=950 hash=b02f09986fdb2cce | reload: n=1 32x6 loop=0 | 0: 32
 save_anim ani: bytes=552 hash=1d16310e8bc08881 | reload: n=1 32x6 frames=1 | 0: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=256:63d748939ac6ef65 blend=0 hot=0,0 delay=0
 save_anim png: bytes=434 hash=62aa350c5aaccdc9 | reload: n=1 32x6 loop=0 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=b3d6801937e268f8 blend=1 delay=0
 save_anim webp: bytes=266 hash=1f97bd2792c96917 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_XBGR8888 pitch=128 hash=5317584b2d1aed7b blend=0 delay=0
-save_anim avif: bytes=590 hash=867e754289e8e0b2 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=0b16d9ae454d039a blend=1 delay=1000
+save_anim avif: bytes=665 hash=8e283a2331898b05 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=a0a9fa4e74bcf5b4 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=604 hash=5e001d70e25bd62d | reload: n=1 32x6 frames=1 title="harness title" author="an author" | 0: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=256:63d748939ac6ef65 blend=0 hot=0,0 delay=17
@@ -6773,7 +6773,7 @@ save_anim gif: bytes=950 hash=c65aba2e563c233e | reload: n=1 32x6 loop=0 | 0: 32
 save_anim ani: bytes=552 hash=1d16310e8bc08881 | reload: n=1 32x6 frames=1 | 0: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=256:63d748939ac6ef65 blend=0 hot=0,0 delay=0
 save_anim png: bytes=434 hash=62aa350c5aaccdc9 | reload: n=1 32x6 loop=0 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=b3d6801937e268f8 blend=1 delay=0
 save_anim webp: bytes=314 hash=869b55f1b5c1f175 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=be4fecb5bea12a11 blend=1 delay=0
-save_anim avif: bytes=590 hash=867e754289e8e0b2 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=0b16d9ae454d039a blend=1 delay=1000
+save_anim avif: bytes=665 hash=8e283a2331898b05 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=a0a9fa4e74bcf5b4 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=604 hash=5e001d70e25bd62d | reload: n=1 32x6 frames=1 title="harness title" author="an author" | 0: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=09d451342d7b2438 pal=256:63d748939ac6ef65 blend=0 hot=0,0 delay=17
@@ -6834,7 +6834,7 @@ save_anim gif: bytes=960 hash=90a4980387c45df6 | reload: n=1 32x6 loop=0 | 0: 32
 save_anim ani: bytes=412 hash=cebc505facea3b6d | reload: n=1 32x6 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=d860d7f05722f3b4 blend=1 hot=0,0 delay=0
 save_anim png: bytes=357 hash=61da0c1a67e2ede8 | reload: n=1 32x6 loop=0 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=d860d7f05722f3b4 blend=1 delay=0
 save_anim webp: bytes=292 hash=d04ecab19f42b859 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_XBGR8888 pitch=128 hash=9d80634240cfcc91 blend=0 delay=0
-save_anim avif: bytes=877 hash=20a7bf7313cadffb | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=40350762c762bcce blend=1 delay=1000
+save_anim avif: bytes=676 hash=f5a55579bfac6682 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=009fa49ab700c384 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=189 hash=642858bf575734d0 | reload: n=1 32x6 loop=3 desc="made by the harness" | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=4660f35bbb39b197 blend=1 delay=100
 ani_enc meta: bytes=464 hash=7b30ad749ede6091 | reload: n=1 32x6 frames=1 title="harness title" author="an author" | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=d860d7f05722f3b4 blend=1 hot=0,0 delay=17
@@ -6893,7 +6893,7 @@ save_anim gif: bytes=939 hash=73ced808a260e229 | reload: n=1 32x6 loop=0 | 0: 32
 save_anim ani: bytes=332 hash=6d2ac76235612309 | reload: n=1 32x6 frames=1 | 0: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=6d3ec5535b4f80b8 pal=256:ff587da1e6abf1e5 blend=0 hot=0,0 delay=0
 save_anim png: err: 
 save_anim webp: bytes=290 hash=000d4bb0b5c479d4 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=9bbf8bed27f12b4c blend=1 delay=0
-save_anim avif: bytes=601 hash=e493e9cf319a4eed | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=c46a6507248e4944 blend=1 delay=1000
+save_anim avif: bytes=691 hash=1caca1c36ef1dbe8 | reload: n=1 32x6 loop=1 frames=1 | 0: 32x6 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=00a917b636e4447a blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=384 hash=9f82c05d8d6ff475 | reload: n=1 32x6 frames=1 title="harness title" author="an author" | 0: 32x6 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=6d3ec5535b4f80b8 pal=256:ff587da1e6abf1e5 blend=0 hot=0,0 delay=17
@@ -6980,7 +6980,7 @@ save_anim gif: err:
 save_anim ani: bytes=1374 hash=3ba7e5446788874e | reload: n=1 32x7 frames=1 | 0: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=8708d4e45eb6d960 pal=256:7f3e7202da080025 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1071 hash=39dc2da78ebc6029 | reload: n=1 32x7 loop=0 frames=1 | 0: 32x7 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=36acb6973541c6b9 blend=1 delay=0
 save_anim webp: bytes=206 hash=3fd34e62db30d871 | reload: n=1 32x7 loop=1 frames=1 | 0: 32x7 SDL_PIXELFORMAT_XBGR8888 pitch=128 hash=50905dfbe5fbee75 blend=0 delay=0
-save_anim avif: bytes=515 hash=5cde342838f5d979 | reload: n=1 32x7 loop=1 frames=1 | 0: 32x7 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=7391c477201b0dbe blend=1 delay=1000
+save_anim avif: bytes=535 hash=18efe3565d348080 | reload: n=1 32x7 loop=1 frames=1 | 0: 32x7 SDL_PIXELFORMAT_ABGR8888 pitch=128 hash=53d6dceeb2adadbe blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1426 hash=d8f4be72e3f9a136 | reload: n=1 32x7 frames=1 title="harness title" author="an author" | 0: 32x7 SDL_PIXELFORMAT_INDEX8 pitch=32 hash=8708d4e45eb6d960 pal=256:7f3e7202da080025 blend=0 hot=0,0 delay=17
@@ -7042,7 +7042,7 @@ save_anim gif: bytes=873 hash=18557772dcf149d1 | reload: n=1 23x13 loop=0 | 0: 2
 save_anim ani: bytes=240 hash=06053102f1feb3b7 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=af46afbb81e6cb6b pal=256:fbfe7a227e9d9d74 blend=0 hot=0,0 delay=0
 save_anim png: bytes=193 hash=a7bd5b2896e52e5c | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e2197d4abbd9a874 blend=1 delay=0
 save_anim webp: bytes=176 hash=057df24f7d04f27c | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ca4719dbc9ba066e blend=0 delay=0
-save_anim avif: bytes=418 hash=10d7e923c45e0391 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=752c93e72970ee77 blend=1 delay=1000
+save_anim avif: bytes=403 hash=2583c69c4c97d5e1 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b71888bbd2ebaec blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=157 hash=414fdc29f7299ce4 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=0203a653536825b5 blend=1 delay=100
 ani_enc meta: bytes=292 hash=83b68c89ddbd66c8 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=af46afbb81e6cb6b pal=256:fbfe7a227e9d9d74 blend=0 hot=0,0 delay=17
@@ -7105,7 +7105,7 @@ save_anim gif: err:
 save_anim ani: bytes=1538 hash=6f77e67ef4324681 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=7ea7ec5837549b19 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1231 hash=2818942b09cb73e5 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e8159b9fedacd99d blend=1 delay=0
 save_anim webp: bytes=164 hash=a010905f3235cb0f | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=b02226d191f2e090 blend=0 delay=0
-save_anim avif: bytes=446 hash=3a102c79482ac808 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=7ce7f02e93d11fce blend=1 delay=1000
+save_anim avif: bytes=435 hash=554215724ddb7eab | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b156ef51d280aa99 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1590 hash=2401d6812631e9e8 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=7ea7ec5837549b19 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -7169,7 +7169,7 @@ save_anim gif: bytes=1168 hash=0af5524ac1f4b660 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=748 hash=49b17c70f487f089 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=0
 save_anim png: bytes=279 hash=80689d1171ca3420 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 delay=0
 save_anim webp: bytes=290 hash=a88402ff465be7f5 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f874e3e1f16ab45a blend=0 delay=0
-save_anim avif: bytes=1037 hash=f03a80b25c03d8c4 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ba6dd6d1dbd702fb blend=1 delay=1000
+save_anim avif: bytes=732 hash=f39bd61fc917dbf9 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6a3d57b49c033798 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=57da12a4529597a1 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=46291ef193df6cb9 blend=1 delay=100
 ani_enc meta: bytes=800 hash=b193387e892ca0b6 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=17
@@ -7232,7 +7232,7 @@ save_anim gif: bytes=1168 hash=6c700702a25f3c39 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=710 hash=0f7db47d54ab2b43 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d5760e0399a783e0 blend=1 hot=0,0 delay=0
 save_anim png: bytes=302 hash=f4dbed5d70bf4410 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d5760e0399a783e0 blend=1 delay=0
 save_anim webp: bytes=288 hash=27d788c916a25a97 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=1c3fd7163bd97b9e blend=0 delay=0
-save_anim avif: bytes=1035 hash=9f7ff100ed4aaac9 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=74023074073b354b blend=1 delay=1000
+save_anim avif: bytes=736 hash=a46a91e6ea77b9ef | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=54c87ea70e24ffc0 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=466d929e8d8a1c55 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ad027caa4818f6d8 blend=1 delay=100
 ani_enc meta: bytes=762 hash=89b58a866a8d490b | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d5760e0399a783e0 blend=1 hot=0,0 delay=17
@@ -7289,7 +7289,7 @@ save_anim gif: bytes=873 hash=18557772dcf149d1 | reload: n=1 23x13 loop=0 | 0: 2
 save_anim ani: bytes=240 hash=06053102f1feb3b7 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=af46afbb81e6cb6b pal=256:fbfe7a227e9d9d74 blend=0 hot=0,0 delay=0
 save_anim png: bytes=193 hash=a7bd5b2896e52e5c | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e2197d4abbd9a874 blend=1 delay=0
 save_anim webp: bytes=176 hash=057df24f7d04f27c | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ca4719dbc9ba066e blend=0 delay=0
-save_anim avif: bytes=418 hash=10d7e923c45e0391 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=752c93e72970ee77 blend=1 delay=1000
+save_anim avif: bytes=403 hash=2583c69c4c97d5e1 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b71888bbd2ebaec blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=157 hash=414fdc29f7299ce4 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=0203a653536825b5 blend=1 delay=100
 ani_enc meta: bytes=292 hash=83b68c89ddbd66c8 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=af46afbb81e6cb6b pal=256:fbfe7a227e9d9d74 blend=0 hot=0,0 delay=17
@@ -7350,7 +7350,7 @@ save_anim gif: err:
 save_anim ani: bytes=1538 hash=6f77e67ef4324681 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=7ea7ec5837549b19 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1231 hash=2818942b09cb73e5 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e8159b9fedacd99d blend=1 delay=0
 save_anim webp: bytes=164 hash=a010905f3235cb0f | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=b02226d191f2e090 blend=0 delay=0
-save_anim avif: bytes=446 hash=3a102c79482ac808 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=7ce7f02e93d11fce blend=1 delay=1000
+save_anim avif: bytes=435 hash=554215724ddb7eab | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b156ef51d280aa99 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1590 hash=2401d6812631e9e8 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=7ea7ec5837549b19 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -7411,7 +7411,7 @@ save_anim gif: err:
 save_anim ani: bytes=1336 hash=b1003a01097ec420 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=a1146f89fd59bd29 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1039 hash=a65c8185243cf8f4 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=0d52ebc07d03a695 blend=1 delay=0
 save_anim webp: bytes=186 hash=99651687b83f641a | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=df955423f124aada blend=0 delay=0
-save_anim avif: bytes=467 hash=f760252641e1f594 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6ca7612c9c3e6348 blend=1 delay=1000
+save_anim avif: bytes=454 hash=b5fea959a69163ca | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=38530ab24fc73a72 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1388 hash=5f89b805f480029c | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=a1146f89fd59bd29 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -7473,7 +7473,7 @@ save_anim gif: bytes=1168 hash=0af5524ac1f4b660 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=748 hash=49b17c70f487f089 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=0
 save_anim png: bytes=279 hash=80689d1171ca3420 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 delay=0
 save_anim webp: bytes=290 hash=a88402ff465be7f5 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f874e3e1f16ab45a blend=0 delay=0
-save_anim avif: bytes=1037 hash=f03a80b25c03d8c4 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ba6dd6d1dbd702fb blend=1 delay=1000
+save_anim avif: bytes=732 hash=f39bd61fc917dbf9 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6a3d57b49c033798 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=57da12a4529597a1 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=46291ef193df6cb9 blend=1 delay=100
 ani_enc meta: bytes=800 hash=b193387e892ca0b6 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=17
@@ -7535,7 +7535,7 @@ save_anim gif: bytes=1333 hash=293dbae9f657b2b5 | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=690 hash=4265584b14db1476 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=41c0997bf47f93d9 pal=256:84c984e1c5e1a44e blend=0 hot=0,0 delay=0
 save_anim png: bytes=628 hash=4ea9b2da70550455 | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2bf2d6ed1813e198 blend=1 delay=0
 save_anim webp: bytes=728 hash=d49767f15db0a6a9 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f8211db4cbb49a69 blend=0 delay=0
-save_anim avif: bytes=1361 hash=549d377e65e8985b | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=620caf33065f78ec blend=1 delay=1000
+save_anim avif: bytes=1811 hash=8a970cc39111e069 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=42604b4d2151bfde blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=742 hash=bdc8509b1f64a1fe | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=41c0997bf47f93d9 pal=256:84c984e1c5e1a44e blend=0 hot=0,0 delay=17
@@ -7674,7 +7674,7 @@ save_anim gif: bytes=873 hash=f3daa252050b5a87 | reload: n=1 23x13 loop=0 | 0: 2
 save_anim ani: bytes=240 hash=e2c16fa1720d384d | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=af46afbb81e6cb6b pal=256:e89be9c51a24403c blend=0 hot=0,0 delay=0
 save_anim png: bytes=193 hash=399ed5f31a6f055a | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6255cea4d76fbbed blend=1 delay=0
 save_anim webp: bytes=176 hash=5b904bfbf60ff6d7 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=6e4800c123744159 blend=0 delay=0
-save_anim avif: bytes=467 hash=9f189d9cbcd277ff | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=904e598292be84d2 blend=1 delay=1000
+save_anim avif: bytes=403 hash=8a77927e6ccee6de | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=34b8236970779dbc blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=157 hash=bcc7ea4579e7a76e | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6255cea4d76fbbed blend=1 delay=100
 ani_enc meta: bytes=292 hash=8b20c381d65ff4b6 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=af46afbb81e6cb6b pal=256:e89be9c51a24403c blend=0 hot=0,0 delay=17
@@ -7736,7 +7736,7 @@ save_anim gif: bytes=1168 hash=0af5524ac1f4b660 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=748 hash=49b17c70f487f089 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=0
 save_anim png: bytes=279 hash=80689d1171ca3420 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 delay=0
 save_anim webp: bytes=290 hash=a88402ff465be7f5 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f874e3e1f16ab45a blend=0 delay=0
-save_anim avif: bytes=1037 hash=f03a80b25c03d8c4 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ba6dd6d1dbd702fb blend=1 delay=1000
+save_anim avif: bytes=732 hash=f39bd61fc917dbf9 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6a3d57b49c033798 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=57da12a4529597a1 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=46291ef193df6cb9 blend=1 delay=100
 ani_enc meta: bytes=800 hash=b193387e892ca0b6 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=17
@@ -7795,7 +7795,7 @@ save_anim gif: bytes=862 hash=87b1c0a088c964a8 | reload: n=1 21x6 loop=0 | 0: 21
 save_anim ani: bytes=242 hash=d7943c22840f7a1a | reload: n=1 21x6 frames=1 | 0: 21x6 SDL_PIXELFORMAT_INDEX8 pitch=21 hash=189fba24415f139a pal=256:aa68688c03777e05 blend=0 hot=0,0 delay=0
 save_anim png: bytes=185 hash=79fede2d8fe2343b | reload: n=1 21x6 loop=0 frames=1 | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=3807bbb3c4a92170 blend=1 delay=0
 save_anim webp: bytes=132 hash=7a33161d0eb7092b | reload: n=1 21x6 loop=1 frames=1 | 0: 21x6 SDL_PIXELFORMAT_XBGR8888 pitch=84 hash=2b822ffc92486b67 blend=0 delay=0
-save_anim avif: bytes=442 hash=aca18201ac97f594 | reload: n=1 21x6 loop=1 frames=1 | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=a5dc45684930b078 blend=1 delay=1000
+save_anim avif: bytes=524 hash=c475e60d67004a19 | reload: n=1 21x6 loop=1 frames=1 | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=7c9777486878c535 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=150 hash=2d506e4e7692bc29 | reload: n=1 21x6 loop=3 desc="made by the harness" | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=545ccca454ebd833 blend=1 delay=100
 ani_enc meta: bytes=294 hash=86d058a0f6baf17d | reload: n=1 21x6 frames=1 title="harness title" author="an author" | 0: 21x6 SDL_PIXELFORMAT_INDEX8 pitch=21 hash=189fba24415f139a pal=256:aa68688c03777e05 blend=0 hot=0,0 delay=17
@@ -7855,7 +7855,7 @@ save_anim gif: bytes=890 hash=e45583cbfd3a72b1 | reload: n=1 21x6 loop=0 | 0: 21
 save_anim ani: bytes=306 hash=9b020035cbbe5c4c | reload: n=1 21x6 frames=1 | 0: 21x6 SDL_PIXELFORMAT_INDEX8 pitch=21 hash=332c8f8cbef2befe pal=256:e880026712968625 blend=0 hot=0,0 delay=0
 save_anim png: bytes=237 hash=21bc1d864544c18c | reload: n=1 21x6 loop=0 frames=1 | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=fe98eed1a29abefc blend=1 delay=0
 save_anim webp: bytes=304 hash=336a40715a7aabc2 | reload: n=1 21x6 loop=1 frames=1 | 0: 21x6 SDL_PIXELFORMAT_XBGR8888 pitch=84 hash=d046e0cc915072b5 blend=0 delay=0
-save_anim avif: bytes=601 hash=688c62815d76ae69 | reload: n=1 21x6 loop=1 frames=1 | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=0a456f33fb6dd719 blend=1 delay=1000
+save_anim avif: bytes=644 hash=300d5c339d0f7c45 | reload: n=1 21x6 loop=1 frames=1 | 0: 21x6 SDL_PIXELFORMAT_ABGR8888 pitch=84 hash=ac654b254ab8b32a blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=358 hash=7533e9f75bdb09fc | reload: n=1 21x6 frames=1 title="harness title" author="an author" | 0: 21x6 SDL_PIXELFORMAT_INDEX8 pitch=21 hash=332c8f8cbef2befe pal=256:e880026712968625 blend=0 hot=0,0 delay=17
@@ -7918,7 +7918,7 @@ save_anim gif: err:
 save_anim ani: bytes=1434 hash=08b5f15cd1f6bc24 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=445356c6a3ea90b5 pal=256:a0e6d7043c19e00a blend=0 hot=0,0 delay=0
 save_anim png: bytes=1128 hash=b771811530ee5d40 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ad6a2e612ce8c5a7 blend=1 delay=0
 save_anim webp: bytes=330 hash=15f2aade42be0c38 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=9adb9ad8bfd93bdc blend=0 delay=0
-save_anim avif: bytes=772 hash=6eb11a00b0742399 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=a7176414120013ad blend=1 delay=1000
+save_anim avif: bytes=934 hash=52124f415190d161 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=a402d578d69d0bfe blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1486 hash=ade1c84a61cbf5ec | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=445356c6a3ea90b5 pal=256:a0e6d7043c19e00a blend=0 hot=0,0 delay=17
@@ -7978,7 +7978,7 @@ save_anim gif: err:
 save_anim ani: bytes=1538 hash=b7ac6caa7768d768 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=e40e58d3531c340c pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1231 hash=25048a3afb71f9dc | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9e43bebeed1c4338 blend=1 delay=0
 save_anim webp: bytes=168 hash=390372faa025134d | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=04c336fed9a15821 blend=0 delay=0
-save_anim avif: bytes=448 hash=7cda189493437de2 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=c42e578d05383d42 blend=1 delay=1000
+save_anim avif: bytes=437 hash=c3016194c7daa73b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=69f568d714014e15 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1590 hash=1fb2fa766ad83751 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=e40e58d3531c340c pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -8099,7 +8099,7 @@ save_anim gif: bytes=1168 hash=0af5524ac1f4b660 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=748 hash=49b17c70f487f089 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=0
 save_anim png: bytes=279 hash=80689d1171ca3420 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 delay=0
 save_anim webp: bytes=290 hash=a88402ff465be7f5 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=f874e3e1f16ab45a blend=0 delay=0
-save_anim avif: bytes=1037 hash=f03a80b25c03d8c4 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ba6dd6d1dbd702fb blend=1 delay=1000
+save_anim avif: bytes=732 hash=f39bd61fc917dbf9 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=6a3d57b49c033798 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=57da12a4529597a1 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=46291ef193df6cb9 blend=1 delay=100
 ani_enc meta: bytes=800 hash=b193387e892ca0b6 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=9b8b72f056c74f9a blend=1 hot=0,0 delay=17
@@ -8159,7 +8159,7 @@ save_anim gif: err:
 save_anim ani: bytes=1366 hash=7bec33245d7e4385 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=55a8b098caf231d0 pal=256:f57224d533d8e1b8 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1063 hash=9f100b8f71f37bf5 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1fd6c4edfec7e404 blend=1 delay=0
 save_anim webp: bytes=356 hash=4c0bf21225862257 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=17720579def6157c blend=0 delay=0
-save_anim avif: bytes=806 hash=a0a3b256a460a497 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=38b8fa28bfed26f2 blend=1 delay=1000
+save_anim avif: bytes=964 hash=cca6efa650031d68 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=eb92b11060f54a0c blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1418 hash=5c5c20c43678de4d | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=55a8b098caf231d0 pal=256:f57224d533d8e1b8 blend=0 hot=0,0 delay=17
@@ -8220,7 +8220,7 @@ save_anim gif: err:
 save_anim ani: bytes=1318 hash=7c473a8d31932d71 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=319ace6b1b155412 pal=256:bc8b05a6640a72eb key=0 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1016 hash=a9eebca9d9403558 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=31f8ea214db75b76 blend=1 delay=0
 save_anim webp: bytes=288 hash=ad6630e6ac7dff5d | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=cf7332e577dbf590 blend=1 delay=0
-save_anim avif: bytes=714 hash=576e3d102cf47a1b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=feb1384edf422495 blend=1 delay=1000
+save_anim avif: bytes=758 hash=9f3989e5c68b7fa2 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=eca47407d0accd7c blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1370 hash=8a14d84d4e54d869 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=319ace6b1b155412 pal=256:bc8b05a6640a72eb key=0 blend=0 hot=0,0 delay=17
@@ -8281,7 +8281,7 @@ save_anim gif: err:
 save_anim ani: bytes=1330 hash=afafee8864a4fe07 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=069916f252b9cd81 pal=256:d473e56b954f3b5a key=0 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1028 hash=fc5b218279a37ebc | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ee1d055a7a7e13a0 blend=1 delay=0
 save_anim webp: bytes=312 hash=2d325dd650acb4e0 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=0f4539aed6deb6a2 blend=1 delay=0
-save_anim avif: bytes=672 hash=68a0d2c67889ef82 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=76cd2d4f7c92c0d5 blend=1 delay=1000
+save_anim avif: bytes=793 hash=6a291f008ac5e4cb | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=f03991fad60e23d0 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1382 hash=67dde4c01bcdde4f | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=069916f252b9cd81 pal=256:d473e56b954f3b5a key=0 blend=0 hot=0,0 delay=17
@@ -8925,7 +8925,7 @@ save_anim gif: bytes=1638 hash=0c94f48a5cb9725a | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=2112 hash=932d435cc99d3ca6 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=0
 save_anim png: bytes=1240 hash=08a37dc6f1d140a0 | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 delay=0
 save_anim webp: bytes=158 hash=2b0c74f146344376 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=2a813e1c6991f1e7 blend=0 delay=0
-save_anim avif: bytes=822 hash=d530993f52cdc421 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=a25ae2596a2e821c blend=1 delay=1000
+save_anim avif: bytes=463 hash=e835a7b9dad38e46 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5b069127ffe5bc0e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=366 hash=319a115aa497c849 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2075ebc3450d9e5d blend=1 delay=100
 ani_enc meta: bytes=2164 hash=7bdc9dd671627fbe | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=17
@@ -9112,7 +9112,7 @@ save_anim gif: bytes=1769 hash=e9c200a695fa63d2 | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=2300 hash=e1f928e4d4976bb9 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ad2c06465078e47e blend=1 hot=0,0 delay=0
 save_anim png: bytes=1260 hash=d8ea2740affdafee | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ad2c06465078e47e blend=1 delay=0
 save_anim webp: bytes=172 hash=36cbe7de577ff0d7 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=b2a173b918d0fbca blend=0 delay=0
-save_anim avif: bytes=823 hash=ea045f49d777ca5e | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=f60bbd73483e3cd9 blend=1 delay=1000
+save_anim avif: bytes=462 hash=e832a458a15f7951 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=8b3d16e567e5abc4 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=360 hash=a3be58c5cc0d3cfa | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=4f62f654803deec4 blend=1 delay=100
 ani_enc meta: bytes=2352 hash=8b5e07956cacceee | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ad2c06465078e47e blend=1 hot=0,0 delay=17
@@ -9234,7 +9234,7 @@ save_anim gif: bytes=1638 hash=0c94f48a5cb9725a | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=2112 hash=932d435cc99d3ca6 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=0
 save_anim png: bytes=1240 hash=08a37dc6f1d140a0 | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 delay=0
 save_anim webp: bytes=158 hash=2b0c74f146344376 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=2a813e1c6991f1e7 blend=0 delay=0
-save_anim avif: bytes=834 hash=e55e942f16cbcedc | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1071d975a3c4dbc0 blend=1 delay=1000
+save_anim avif: bytes=463 hash=e835a7b9dad38e46 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5b069127ffe5bc0e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=366 hash=319a115aa497c849 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2075ebc3450d9e5d blend=1 delay=100
 ani_enc meta: bytes=2164 hash=7bdc9dd671627fbe | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=17
@@ -9295,7 +9295,7 @@ save_anim gif: bytes=1638 hash=0c94f48a5cb9725a | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=2112 hash=932d435cc99d3ca6 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=0
 save_anim png: bytes=1240 hash=08a37dc6f1d140a0 | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 delay=0
 save_anim webp: bytes=158 hash=2b0c74f146344376 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=2a813e1c6991f1e7 blend=0 delay=0
-save_anim avif: bytes=834 hash=e55e942f16cbcedc | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1071d975a3c4dbc0 blend=1 delay=1000
+save_anim avif: bytes=463 hash=e835a7b9dad38e46 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5b069127ffe5bc0e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=366 hash=319a115aa497c849 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2075ebc3450d9e5d blend=1 delay=100
 ani_enc meta: bytes=2164 hash=7bdc9dd671627fbe | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=17
@@ -9358,7 +9358,7 @@ save_anim gif: bytes=1638 hash=0c94f48a5cb9725a | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=2112 hash=932d435cc99d3ca6 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=0
 save_anim png: bytes=1240 hash=08a37dc6f1d140a0 | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 delay=0
 save_anim webp: bytes=158 hash=2b0c74f146344376 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=2a813e1c6991f1e7 blend=0 delay=0
-save_anim avif: bytes=834 hash=e55e942f16cbcedc | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=1071d975a3c4dbc0 blend=1 delay=1000
+save_anim avif: bytes=463 hash=e835a7b9dad38e46 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5b069127ffe5bc0e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=366 hash=319a115aa497c849 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2075ebc3450d9e5d blend=1 delay=100
 ani_enc meta: bytes=2164 hash=7bdc9dd671627fbe | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=17
@@ -9483,7 +9483,7 @@ save_anim gif: bytes=1638 hash=0c94f48a5cb9725a | reload: n=1 23x42 loop=0 | 0: 
 save_anim ani: bytes=2112 hash=932d435cc99d3ca6 | reload: n=1 23x42 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=0
 save_anim png: bytes=1240 hash=08a37dc6f1d140a0 | reload: n=1 23x42 loop=0 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 delay=0
 save_anim webp: bytes=158 hash=2b0c74f146344376 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=2a813e1c6991f1e7 blend=0 delay=0
-save_anim avif: bytes=822 hash=d530993f52cdc421 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=a25ae2596a2e821c blend=1 delay=1000
+save_anim avif: bytes=463 hash=e835a7b9dad38e46 | reload: n=1 23x42 loop=1 frames=1 | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=5b069127ffe5bc0e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=366 hash=319a115aa497c849 | reload: n=1 23x42 loop=3 desc="made by the harness" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=2075ebc3450d9e5d blend=1 delay=100
 ani_enc meta: bytes=2164 hash=7bdc9dd671627fbe | reload: n=1 23x42 frames=1 title="harness title" author="an author" | 0: 23x42 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=895dc4b3d55cc9e6 blend=1 hot=0,0 delay=17
@@ -10336,7 +10336,7 @@ save_anim gif: bytes=864 hash=6cf09b0d297a3a77 | reload: n=1 7x5 loop=0 | 0: 7x5
 save_anim ani: bytes=266 hash=fe611d2ccef9d3c8 | reload: n=1 7x5 frames=1 | 0: 7x5 SDL_PIXELFORMAT_ABGR8888 pitch=28 hash=b28b88855efa10bc blend=1 hot=0,0 delay=0
 save_anim png: bytes=158 hash=0ad07a7fed7ca6d2 | reload: n=1 7x5 loop=0 frames=1 | 0: 7x5 SDL_PIXELFORMAT_ABGR8888 pitch=28 hash=b28b88855efa10bc blend=1 delay=0
 save_anim webp: bytes=96 hash=2b534dcf383a5632 | reload: n=1 7x5 loop=1 frames=1 | 0: 7x5 SDL_PIXELFORMAT_XBGR8888 pitch=28 hash=e82d8af7c55280e6 blend=0 delay=0
-save_anim avif: bytes=345 hash=1bea8aa065392bdc | reload: n=1 7x5 loop=1 frames=1 | 0: 7x5 SDL_PIXELFORMAT_ABGR8888 pitch=28 hash=004797436d6b2eac blend=1 delay=1000
+save_anim avif: bytes=347 hash=5e7fb98c4c766a7f | reload: n=1 7x5 loop=1 frames=1 | 0: 7x5 SDL_PIXELFORMAT_ABGR8888 pitch=28 hash=e9103001ec8d13d3 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=147 hash=70e3d5fda0ebf9d5 | reload: n=1 7x5 loop=3 desc="made by the harness" | 0: 7x5 SDL_PIXELFORMAT_ABGR8888 pitch=28 hash=8d1f9290067d133c blend=1 delay=100
 ani_enc meta: bytes=318 hash=a1c4b0bac19a06a8 | reload: n=1 7x5 frames=1 title="harness title" author="an author" | 0: 7x5 SDL_PIXELFORMAT_ABGR8888 pitch=28 hash=b28b88855efa10bc blend=1 hot=0,0 delay=17
@@ -10397,7 +10397,7 @@ save_anim gif: bytes=1168 hash=fac8d3b616fc05ac | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=748 hash=ac6447f6101a1339 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=03cf10f4acf77682 blend=1 hot=0,0 delay=0
 save_anim png: bytes=306 hash=e3897cacd955ea5a | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=03cf10f4acf77682 blend=1 delay=0
 save_anim webp: bytes=288 hash=c699c144844cf08b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ceee99f1a95da75e blend=0 delay=0
-save_anim avif: bytes=1041 hash=e13c310bcfc4be4b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=f90918101d9910f7 blend=1 delay=1000
+save_anim avif: bytes=740 hash=446db412baa5312f | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=966c944122321dd7 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=8a471f9b225bedeb | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ab5f6c3f6a59edb5 blend=1 delay=100
 ani_enc meta: bytes=800 hash=f6aa189c6af8ca1a | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=03cf10f4acf77682 blend=1 hot=0,0 delay=17
@@ -10458,7 +10458,7 @@ save_anim gif: bytes=1168 hash=fac8d3b616fc05ac | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=748 hash=ac6447f6101a1339 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=03cf10f4acf77682 blend=1 hot=0,0 delay=0
 save_anim png: bytes=306 hash=e3897cacd955ea5a | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=03cf10f4acf77682 blend=1 delay=0
 save_anim webp: bytes=288 hash=c699c144844cf08b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ceee99f1a95da75e blend=0 delay=0
-save_anim avif: bytes=1041 hash=e13c310bcfc4be4b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=f90918101d9910f7 blend=1 delay=1000
+save_anim avif: bytes=740 hash=446db412baa5312f | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=966c944122321dd7 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=241 hash=8a471f9b225bedeb | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=ab5f6c3f6a59edb5 blend=1 delay=100
 ani_enc meta: bytes=800 hash=f6aa189c6af8ca1a | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=03cf10f4acf77682 blend=1 hot=0,0 delay=17
@@ -10642,7 +10642,7 @@ save_anim gif: bytes=1058 hash=779bd6ce5f43bbe0 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=556 hash=cb2a6cc7261fd3a4 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=c09a0ce47aabd437 pal=256:e0abc50199da41cd blend=0 hot=0,0 delay=0
 save_anim png: bytes=466 hash=da3cae50f55bd1fe | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=04637aa21100ef0a blend=1 delay=0
 save_anim webp: bytes=336 hash=fce3017baf3d99de | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=1a681b0fd4baaa8a blend=0 delay=0
-save_anim avif: bytes=754 hash=ab83b52f9c79ba5b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=556d2f44b5751eda blend=1 delay=1000
+save_anim avif: bytes=946 hash=3b82d1df51225552 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=983185e974f8d77e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=608 hash=31723547ddff9e50 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=c09a0ce47aabd437 pal=256:e0abc50199da41cd blend=0 hot=0,0 delay=17
@@ -10703,7 +10703,7 @@ save_anim gif: bytes=1058 hash=779bd6ce5f43bbe0 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=556 hash=cb2a6cc7261fd3a4 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=c09a0ce47aabd437 pal=256:e0abc50199da41cd blend=0 hot=0,0 delay=0
 save_anim png: bytes=466 hash=da3cae50f55bd1fe | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=04637aa21100ef0a blend=1 delay=0
 save_anim webp: bytes=336 hash=fce3017baf3d99de | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=1a681b0fd4baaa8a blend=0 delay=0
-save_anim avif: bytes=754 hash=ab83b52f9c79ba5b | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=556d2f44b5751eda blend=1 delay=1000
+save_anim avif: bytes=946 hash=3b82d1df51225552 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=983185e974f8d77e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=608 hash=31723547ddff9e50 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=c09a0ce47aabd437 pal=256:e0abc50199da41cd blend=0 hot=0,0 delay=17
@@ -10762,7 +10762,7 @@ save_anim gif: bytes=847 hash=e9ec23cc94c5b8a7 | reload: n=1 6x4 loop=0 | 0: 6x4
 save_anim ani: bytes=270 hash=954b45807308034f | reload: n=1 6x4 frames=1 | 0: 6x4 SDL_PIXELFORMAT_INDEX8 pitch=6 hash=8494aedbdaae943d pal=256:d7d6bf14d25f0615 blend=0 hot=0,0 delay=0
 save_anim png: bytes=206 hash=e747d8b3fa6154be | reload: n=1 6x4 loop=0 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=275a1d9f93157a95 blend=1 delay=0
 save_anim webp: bytes=90 hash=babe3e2dc9e54497 | reload: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_XBGR8888 pitch=24 hash=46fe42f26fd465fc blend=0 delay=0
-save_anim avif: bytes=354 hash=1f1156a098ddcbe0 | reload: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=9e655ae177dca667 blend=1 delay=1000
+save_anim avif: bytes=381 hash=c4801f855dd710ce | reload: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=1db0d51b6bb2b090 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=139 hash=ac6c32290de81ad8 | reload: n=1 6x4 loop=3 desc="made by the harness" | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=a7062ab866b8f0c5 blend=1 delay=100
 ani_enc meta: bytes=322 hash=e64724520c0b52df | reload: n=1 6x4 frames=1 title="harness title" author="an author" | 0: 6x4 SDL_PIXELFORMAT_INDEX8 pitch=6 hash=8494aedbdaae943d pal=256:d7d6bf14d25f0615 blend=0 hot=0,0 delay=17
@@ -10821,7 +10821,7 @@ save_anim gif: bytes=847 hash=d795726490af61bb | reload: n=1 6x4 loop=0 | 0: 6x4
 save_anim ani: bytes=270 hash=5f00304fac9587de | reload: n=1 6x4 frames=1 | 0: 6x4 SDL_PIXELFORMAT_INDEX8 pitch=6 hash=8494aedbdaae943d pal=256:268aa648c7ff9491 blend=0 hot=0,0 delay=0
 save_anim png: bytes=206 hash=3c79c96986897703 | reload: n=1 6x4 loop=0 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=20c2a32025026239 blend=1 delay=0
 save_anim webp: bytes=148 hash=30f013f743d0723e | reload: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=9fa00c44f94c392e blend=1 delay=0
-save_anim avif: bytes=357 hash=e50eb0530c5c86a3 | reload: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=0e1b544607dacb13 blend=1 delay=1000
+save_anim avif: bytes=359 hash=48621f2b2959581e | reload: n=1 6x4 loop=1 frames=1 | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=568a4e6ae01aed48 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=140 hash=3cfdcac362ef965e | reload: n=1 6x4 loop=3 desc="made by the harness" | 0: 6x4 SDL_PIXELFORMAT_ABGR8888 pitch=24 hash=4b849c0351bb4465 blend=1 delay=100
 ani_enc meta: bytes=322 hash=372b13bfa5e0dd4e | reload: n=1 6x4 frames=1 title="harness title" author="an author" | 0: 6x4 SDL_PIXELFORMAT_INDEX8 pitch=6 hash=8494aedbdaae943d pal=256:268aa648c7ff9491 blend=0 hot=0,0 delay=17
@@ -10882,7 +10882,7 @@ save_anim gif: err:
 save_anim ani: bytes=1538 hash=d92a7f0dbd3d975b | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=d4239baeba1f5099 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1231 hash=5b77df1e73a72153 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=cdf599419e8c315d blend=1 delay=0
 save_anim webp: bytes=164 hash=0b5ba3b77227336c | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ce4fb1ef2d31a06c blend=0 delay=0
-save_anim avif: bytes=441 hash=e003a660167900f6 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d70c2bc289b9ae80 blend=1 delay=1000
+save_anim avif: bytes=434 hash=46ddd2a92de12924 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=98f626edb67a2dc5 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1590 hash=12fc66b368833cda | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=d4239baeba1f5099 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -10943,7 +10943,7 @@ save_anim gif: err:
 save_anim ani: bytes=1538 hash=d92a7f0dbd3d975b | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=d4239baeba1f5099 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=0
 save_anim png: bytes=1231 hash=5b77df1e73a72153 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=cdf599419e8c315d blend=1 delay=0
 save_anim webp: bytes=164 hash=0b5ba3b77227336c | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=ce4fb1ef2d31a06c blend=0 delay=0
-save_anim avif: bytes=441 hash=e003a660167900f6 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=d70c2bc289b9ae80 blend=1 delay=1000
+save_anim avif: bytes=434 hash=46ddd2a92de12924 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=98f626edb67a2dc5 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1590 hash=12fc66b368833cda | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=d4239baeba1f5099 pal=256:12d903f0f6e0a125 blend=0 hot=0,0 delay=17
@@ -11002,7 +11002,7 @@ save_anim gif: bytes=831 hash=91351fb21b81abf8 | reload: n=1 3x2 loop=0 | 0: 3x2
 save_anim ani: bytes=192 hash=9ad89787a1a705b2 | reload: n=1 3x2 frames=1 | 0: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=86bc33b0037d4477 blend=1 hot=0,0 delay=0
 save_anim png: bytes=142 hash=15d4c571c7f91d02 | reload: n=1 3x2 loop=0 frames=1 | 0: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=86bc33b0037d4477 blend=1 delay=0
 save_anim webp: bytes=112 hash=ee9de5d8a17ef9f4 | reload: n=1 3x2 loop=1 frames=1 | 0: 3x2 SDL_PIXELFORMAT_XBGR8888 pitch=12 hash=41eb3bd42da1c998 blend=0 delay=0
-save_anim avif: bytes=397 hash=3e1cd8f9e8a8db85 | reload: n=1 3x2 loop=1 frames=1 | 0: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=fdbea7c2b0b6a9e1 blend=1 delay=1000
+save_anim avif: bytes=422 hash=196033445b7a2a83 | reload: n=1 3x2 loop=1 frames=1 | 0: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=f5f2059c97c75b5f blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=130 hash=e83481466820c261 | reload: n=1 3x2 loop=3 desc="made by the harness" | 0: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=86bc33b0037d4477 blend=1 delay=100
 ani_enc meta: bytes=244 hash=72c3ef81912e51da | reload: n=1 3x2 frames=1 title="harness title" author="an author" | 0: 3x2 SDL_PIXELFORMAT_ABGR8888 pitch=12 hash=86bc33b0037d4477 blend=1 hot=0,0 delay=17
@@ -17603,7 +17603,7 @@ save_anim gif: bytes=854 hash=25e4942163432eb8 | reload: n=1 9x5 loop=0 | 0: 9x5
 save_anim ani: bytes=258 hash=c04010e8aeef2e33 | reload: n=1 9x5 frames=1 | 0: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=9 hash=e1971f68721c08eb pal=256:77ca6a4a3f9ec913 key=0 blend=0 hot=0,0 delay=0
 save_anim png: bytes=199 hash=4aa66a5adfdeefbe | reload: n=1 9x5 loop=0 frames=1 | 0: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=431f3329dc467937 blend=1 delay=0
 save_anim webp: bytes=220 hash=afb9e0800444c766 | reload: n=1 9x5 loop=1 frames=1 | 0: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=3bc0582b895803c9 blend=1 delay=0
-save_anim avif: bytes=444 hash=c513ddd6a0fe1540 | reload: n=1 9x5 loop=1 frames=1 | 0: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=8326cb8ef3a869ce blend=1 delay=1000
+save_anim avif: bytes=504 hash=1fca1865710304c7 | reload: n=1 9x5 loop=1 frames=1 | 0: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=66b090858443639e blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=144 hash=f05321933fd17d2c | reload: n=1 9x5 loop=3 desc="made by the harness" | 0: 9x5 SDL_PIXELFORMAT_ABGR8888 pitch=36 hash=6cc66f1630c0f64b blend=1 delay=100
 ani_enc meta: bytes=310 hash=b4ab03ff6bf2cda0 | reload: n=1 9x5 frames=1 title="harness title" author="an author" | 0: 9x5 SDL_PIXELFORMAT_INDEX8 pitch=9 hash=e1971f68721c08eb pal=256:77ca6a4a3f9ec913 key=0 blend=0 hot=0,0 delay=17
@@ -17668,7 +17668,7 @@ save_anim gif: bytes=1168 hash=000c1bf94cd56387 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=1442 hash=b81840bb247cd1f6 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=fcccdbbb28f2b31d pal=256:934e03a48fa5e06d blend=0 hot=0,0 delay=0
 save_anim png: bytes=1159 hash=2b6609c4f7504852 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=f309abf442e31436 blend=1 delay=0
 save_anim webp: bytes=302 hash=d365b256f529baee | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=96f66e356bb46632 blend=0 delay=0
-save_anim avif: bytes=732 hash=922689f3460f1b1e | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=fb4a8dc7b5bea58e blend=1 delay=1000
+save_anim avif: bytes=832 hash=474edd06755fee37 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=4fa1422d50dca451 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: err: 
 ani_enc meta: bytes=1494 hash=863baabf8950d19e | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=fcccdbbb28f2b31d pal=256:934e03a48fa5e06d blend=0 hot=0,0 delay=17
@@ -17730,7 +17730,7 @@ save_anim gif: bytes=946 hash=072b8496ab45c4b8 | reload: n=1 23x13 loop=0 | 0: 2
 save_anim ani: bytes=336 hash=214212a00310cd1f | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=35af5ba2983a0954 pal=256:5de8c0d2916c62e7 key=10 blend=0 hot=0,0 delay=0
 save_anim png: bytes=277 hash=ca6dce1c6c1328d8 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=e0c561f889be7713 blend=1 delay=0
 save_anim webp: bytes=306 hash=dce8aca76da37932 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=00a5bcbcc84d1527 blend=1 delay=0
-save_anim avif: bytes=654 hash=33ae6357a0b9b381 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=c4e0bfb92ce1cb32 blend=1 delay=1000
+save_anim avif: bytes=776 hash=a4295982925f5cd9 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=08fbd845ce61ae09 blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=210 hash=6bae351ab095b460 | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=324dfe966647568c blend=1 delay=100
 ani_enc meta: bytes=388 hash=150f324294416fc3 | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_INDEX8 pitch=23 hash=35af5ba2983a0954 pal=256:5de8c0d2916c62e7 key=10 blend=0 hot=0,0 delay=17
@@ -17791,7 +17791,7 @@ save_anim gif: bytes=1100 hash=6254438520fba1d8 | reload: n=1 23x13 loop=0 | 0: 
 save_anim ani: bytes=440 hash=da2b0130243879e8 | reload: n=1 23x13 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=fe7771132f823d93 blend=1 hot=0,0 delay=0
 save_anim png: bytes=194 hash=637f47be4460d1b1 | reload: n=1 23x13 loop=0 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=fe7771132f823d93 blend=1 delay=0
 save_anim webp: bytes=208 hash=3131ca74159cdd58 | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_XBGR8888 pitch=92 hash=0b0975dc1a100cfb blend=0 delay=0
-save_anim avif: bytes=506 hash=09363145782d74ae | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=b4a9e6d9292a858e blend=1 delay=1000
+save_anim avif: bytes=511 hash=e14ed539c14703fb | reload: n=1 23x13 loop=1 frames=1 | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=997f295d7c09486a blend=1 delay=1000
 save_anim xyz: err: Unsupported image format
 gif_enc lut16: bytes=215 hash=93fb480f1ffbac8a | reload: n=1 23x13 loop=3 desc="made by the harness" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=c995c1adfe6acf33 blend=1 delay=100
 ani_enc meta: bytes=492 hash=fd513f127691f6fc | reload: n=1 23x13 frames=1 title="harness title" author="an author" | 0: 23x13 SDL_PIXELFORMAT_ABGR8888 pitch=92 hash=fe7771132f823d93 blend=1 hot=0,0 delay=17

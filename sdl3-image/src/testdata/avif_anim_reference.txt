@@ -20,7 +20,7 @@ anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
 anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
 anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
 anim argb2101010_13x11_shapes_a_f4 q80: 3513 fe698cb377c768f3
-anim argb4444_70x37_tex_a_f4 q40: 4855 7ee09f93df3f145f
+anim argb4444_70x37_tex_a_f4 q40: 3720 1d34417bfccd94cc
 anim rgba64_8x8_grad_f2 q50: frame 0 err: Failed to add image to avif encoder: Unsupported depth
 anim rgbx_1x1_grad_f2 q50: 1069 b5afb14e4cdfe723
 anim rgba_3x7_noise_a_f3 q50: 2293 6df4cf5b97dd60d9
@@ -46,6 +46,9 @@ anim lg_rgbx_1000x700_slides_f7 q70: 34152 d9814cf0e264fb2b
 anim lg_argb_1080x1080_text_a_f2 q35: 14206 c10b1dbd3f5dc611
 anim lg_xrgb2101010_1080x1088_ui_f2 q60: 8027 78553052900dfad3
 anim lg_rgbx_4200x64_ui_f2 q50: 9788 64131c63960d16df
+anim rgb24_19x13_tex_f3 q50: 1311 e7070006787a06c4
+anim bgr24_21x9_shapes_f2 q60: 1395 d23470d4f9963e0a
+anim rgb565_15x10_grad_f2 q50: 1110 5baa17ac245033b8
 [threads 1]
 anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
 anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
@@ -63,7 +66,7 @@ anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
 anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
 anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
 anim argb2101010_13x11_shapes_a_f4 q80: 3513 fe698cb377c768f3
-anim argb4444_70x37_tex_a_f4 q40: 4855 7ee09f93df3f145f
+anim argb4444_70x37_tex_a_f4 q40: 3720 1d34417bfccd94cc
 anim rgba64_8x8_grad_f2 q50: frame 0 err: Failed to add image to avif encoder: Unsupported depth
 anim rgbx_1x1_grad_f2 q50: 1069 b5afb14e4cdfe723
 anim rgba_3x7_noise_a_f3 q50: 2293 6df4cf5b97dd60d9
@@ -89,6 +92,9 @@ anim lg_rgbx_1000x700_slides_f7 q70: 34142 727189251c638864
 anim lg_argb_1080x1080_text_a_f2 q35: 14189 a2fbafd5a581f7fd
 anim lg_xrgb2101010_1080x1088_ui_f2 q60: 8007 9a33bd2ee1a34fe6
 anim lg_rgbx_4200x64_ui_f2 q50: 9788 64131c63960d16df
+anim rgb24_19x13_tex_f3 q50: 1311 e7070006787a06c4
+anim bgr24_21x9_shapes_f2 q60: 1395 d23470d4f9963e0a
+anim rgb565_15x10_grad_f2 q50: 1110 5baa17ac245033b8
 [threads 4]
 anim rgbx_16x16_grad_f1 q50: 352 c3e39335fe7ec089
 anim rgbx_16x16_grad_f3 q0: 1104 adb96b8f4746d324
@@ -106,7 +112,7 @@ anim rgbx_64x64_screen_f3 q50: 4664 87d2235a3fe504d2
 anim rgbx_64x64_screen_f3 q90: 7587 11f352e4cb0f72c4
 anim xrgb2101010_20x12_tex_f3 q50: 1364 71cb5a71a73e167a
 anim argb2101010_13x11_shapes_a_f4 q80: 3513 fe698cb377c768f3
-anim argb4444_70x37_tex_a_f4 q40: 4855 7ee09f93df3f145f
+anim argb4444_70x37_tex_a_f4 q40: 3720 1d34417bfccd94cc
 anim rgba64_8x8_grad_f2 q50: frame 0 err: Failed to add image to avif encoder: Unsupported depth
 anim rgbx_1x1_grad_f2 q50: 1069 b5afb14e4cdfe723
 anim rgba_3x7_noise_a_f3 q50: 2293 6df4cf5b97dd60d9
@@ -132,3 +138,6 @@ anim lg_rgbx_1000x700_slides_f7 q70: 34152 d9814cf0e264fb2b
 anim lg_argb_1080x1080_text_a_f2 q35: 14206 c10b1dbd3f5dc611
 anim lg_xrgb2101010_1080x1088_ui_f2 q60: 8027 78553052900dfad3
 anim lg_rgbx_4200x64_ui_f2 q50: 9788 64131c63960d16df
+anim rgb24_19x13_tex_f3 q50: 1311 e7070006787a06c4
+anim bgr24_21x9_shapes_f2 q60: 1395 d23470d4f9963e0a
+anim rgb565_15x10_grad_f2 q50: 1110 5baa17ac245033b8

@@ -451,6 +451,9 @@ const CASES: &[Case] = &[
     ("lg_argb_1080x1080_text_a_f2", 1080, 1080, PixelFormat::ARGB32, 7, 1, 2, "100", "35", ""),
     ("lg_xrgb2101010_1080x1088_ui_f2", 1080, 1088, PixelFormat::XRGB2101010, 6, 0, 2, "100", "60", ""),
     ("lg_rgbx_4200x64_ui_f2", 4200, 64, PixelFormat::RGBX32, 6, 0, 2, "100", "50", ""),
+    ("rgb24_19x13_tex_f3", 19, 13, PixelFormat::RGB24, 4, 0, 3, "100", "50", ""),
+    ("bgr24_21x9_shapes_f2", 21, 9, PixelFormat::BGR24, 2, 0, 2, "100", "60", ""),
+    ("rgb565_15x10_grad_f2", 15, 10, PixelFormat::RGB565, 0, 0, 2, "100", "50", ""),
 ];
 
 /// Development aid: print the harness's lines for the cases whose label
