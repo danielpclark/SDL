@@ -1403,13 +1403,10 @@ impl Mixer {
             ));
         }
         let output_spec = self.inner.stream().dst_format()?;
-        // FIXME (upstream): this tests `!SDL_GetAudioStreamData()`, so a read
-        // of zero bytes fails and a failed read (-1) goes on.
-        match self.inner.stream().get_data(buffer) {
-            // will fire MixerCallback() to generate audio.
-            Ok(0) => return Err(Error::new("No audio was generated")),
-            Ok(_) | Err(_) => {}
-        }
+        // Note (upstream): this tests `!SDL_GetAudioStreamData()` there, so a
+        // read of zero bytes failed and a failed read (-1) went on; the
+        // translation fails only a failed read.
+        self.inner.stream().get_data(buffer)?; // will fire MixerCallback() to generate audio.
 
         let actual = self.inner.state.lock().borrow().actual_mixed_bytes;
         Ok((actual as usize / 4) * output_spec.format.bytesize() as usize)
