@@ -201,6 +201,7 @@ impl TrackData for OpusTrackData<'_> {
             // Note (upstream): SDL_assert(current_iteration_frames <= loop->len)
             // here and below fails on damaged files (where a looping seek
             // doesn't land where it asked), so it's left out.
+            let full_amount = amount;
             let available = loop_.len.wrapping_sub(self.current_iteration_frames);
             if amount as i64 > available {
                 amount = available as i32;
@@ -233,8 +234,11 @@ impl TrackData for OpusTrackData<'_> {
                     // (before the loop) there, so with current_iteration_frames
                     // back at 0, the check above saw the loop start again
                     // `loop.start` frames later and a loop with a LOOPCOUNT
-                    // played forever; the translation's -2 means it's done.
+                    // played forever; the translation's -2 means it's done. And
+                    // the rest of this chunk, past the loop's end, was cut off
+                    // there; here it plays on.
                     self.current_iteration = -2; // done looping.
+                    amount = full_amount;
                 }
                 self.current_iteration_frames = 0;
             }
