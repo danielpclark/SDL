@@ -1744,6 +1744,49 @@ fn d3d11_fails_when_its_shaders_or_states_fail() {
     window.destroy();
 }
 
+/// After a device loss, the palettes have textures of the new device, with
+/// their colors (upstream keeps the lost device's).
+#[test]
+fn d3d11_palettes_survive_a_device_loss() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some(window) = window(W, H, window_flags()) else {
+        return;
+    };
+    let Ok(mut data) = D3d11Renderer::for_window(window, Colorspace::SRGB) else {
+        crate::test_support::skip("d3d11", "no Direct3D 11 device");
+        window.destroy();
+        return;
+    };
+    let colors: Vec<Color> = (0..16u8)
+        .map(|i| Color::new(i * 16, 255 - i * 8, i * 3, 255 - i))
+        .collect();
+    let mut palette = data.create_palette().unwrap();
+    data.update_palette(palette.as_mut(), &colors).unwrap();
+    let unused = data.create_palette().unwrap();
+    assert!(data.handle_device_lost());
+    let _ = get_events(EventType::FIRST, EventType::LAST, 100); // (the reset)
+    let device = data.device().unwrap().clone();
+    let expected: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
+    for (id, data) in &data.palettes {
+        let (texture, _) = data.resources.as_ref().unwrap();
+        let read = read_app_texture(&device, texture);
+        if *id == palette.downcast_ref::<PaletteRef>().unwrap().0 {
+            assert_eq!(&read.pixels().unwrap()[..expected.len()], &expected[..]);
+        }
+    }
+    // (the test's reference to the device goes before the renderer, which
+    // unloads d3d11.dll)
+    drop(device);
+    data.destroy_palette(unused);
+    data.destroy_palette(palette);
+    data.destroy();
+    drop(data);
+    window.destroy();
+}
+
 /// The Direct3D 11 renderer on the machine's GPU: run on Windows with
 /// `--ignored --nocapture` (see docs/HARDWARE_TESTING.md).
 #[test]
