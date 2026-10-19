@@ -7,13 +7,16 @@ use crate::events::window::WindowFlags;
 use crate::hints;
 use crate::init::{self, InitFlags};
 use crate::render::{
-    Renderer, Texture, TextureAccess, Vertex, PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER,
-    PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN, PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER,
-    PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER,
-    PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER,
-    SOFTWARE_RENDERER,
+    Renderer, Texture, TextureAccess, TextureCreateInfo, Vertex,
+    PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, PROP_RENDERER_TEXTURE_WRAPPING_BOOLEAN,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER, PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER,
+    PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER, SOFTWARE_RENDERER,
 };
-use crate::video::pixels::{Color, FColor, Palette, PixelFormat};
+use crate::video::pixels::{
+    define_colorspace, ChromaLocation, Color, ColorPrimaries, ColorRange, ColorType, Colorspace,
+    FColor, MatrixCoefficients, Palette, PixelFormat, TransferCharacteristics,
+};
 use crate::video::rect::{FPoint, FRect, Rect};
 use crate::video::surface::{share_palette, ScaleMode, Surface};
 use crate::video::{BlendMode, FlipMode, Window};
@@ -720,6 +723,64 @@ fn gles2_matches_software_for_yuv() {
         .create_texture(PixelFormat::IYUV, TextureAccess::Static, w as i32, h as i32)
         .unwrap();
     assert!(r.update_texture(t, None, &y, w as i32).is_err());
+
+    // A colorspace without matrix coefficients converts HD video (over
+    // 576 rows) as BT.709 and SD video as BT.601 (upstream's shaders always
+    // take BT.601, see the Note in select_program_inner()). The software
+    // renderer refuses such colorspaces, so the textures are compared with
+    // ones in the colorspaces they stand for.
+    let unspecified = define_colorspace(
+        ColorType::Ycbcr,
+        ColorRange::Limited,
+        ColorPrimaries::Bt709,
+        TransferCharacteristics::Bt709,
+        MatrixCoefficients::Unspecified,
+        ChromaLocation::Left,
+    );
+    let scene = |r: &mut Renderer, colorspace: Colorspace, h: usize| {
+        let w = 16usize;
+        let y = vec![128u8; w * h];
+        let u: Vec<u8> = (0..w * h / 4).map(|i| (64 + i % 8 * 16) as u8).collect();
+        let v: Vec<u8> = (0..w * h / 4)
+            .map(|i| (192 - i / 8 % 8 * 16) as u8)
+            .collect();
+        let t = r
+            .create_texture_with(&TextureCreateInfo {
+                format: PixelFormat::IYUV,
+                width: w as i32,
+                height: h as i32,
+                colorspace: Some(colorspace),
+                ..Default::default()
+            })
+            .unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        r.update_yuv_texture(t, None, &y, w as i32, &u, w as i32 / 2, &v, w as i32 / 2)
+            .unwrap();
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.render_texture(
+            t,
+            Some(&FRect::new(0.0, 0.0, 16.0, 12.0)),
+            Some(&FRect::new(3.0, 3.0, 16.0, 12.0)),
+        )
+        .unwrap();
+        r.destroy_texture(t);
+        r.read_pixels(None).unwrap()
+    };
+    let hd = scene(&mut r, unspecified, 600);
+    assert_close(
+        "HD IYUV, unspecified matrix",
+        &hd,
+        &scene(&mut r, Colorspace::BT709_LIMITED, 600),
+        0,
+    );
+    assert!(!differences(&hd, &scene(&mut r, Colorspace::BT601_LIMITED, 600), 3).is_empty());
+    assert_close(
+        "SD IYUV, unspecified matrix",
+        &scene(&mut r, unspecified, 12),
+        &scene(&mut r, Colorspace::BT601_LIMITED, 12),
+        0,
+    );
 }
 
 /// More programs than the cache holds, used in turn (upstream's linked list
