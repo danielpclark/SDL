@@ -714,12 +714,15 @@ impl Gles2Renderer {
         let yuv_params;
         let mut shader_params: Option<&[f32]> = None;
 
-        // FIXME (upstream): the YUV matrix is looked up for a height of 0,
-        // so a colorspace without matrix coefficients always converts as
-        // BT.601 here, while the texture was checked (and the software
-        // conversion picks the matrix) with its real height.
+        // Note (upstream): the YUV matrix is looked up for a height of 0
+        // there, so a colorspace without matrix coefficients always
+        // converts as BT.601, while the texture was checked (and the
+        // software conversion picks the matrix) with its real height. Here
+        // it is looked up with the texture's height.
+        let height = texture.map_or(0, |t| t.h);
         let yuv_matrix = || {
-            yuv_shader_params(colorspace, 0).ok_or_else(|| Error::new("Unsupported YUV colorspace"))
+            yuv_shader_params(colorspace, height)
+                .ok_or_else(|| Error::new("Unsupported YUV colorspace"))
         };
 
         // Select an appropriate shader pair for the specified modes
