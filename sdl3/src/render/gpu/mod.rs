@@ -978,18 +978,17 @@ impl GpuRenderer {
                     tdata,
                     self.output_headroom(textures),
                 );
-                // FIXME (upstream): the textures with an alpha channel
-                // other than RGBA32 and BGRA32 (ARGB4444, ARGB1555,
-                // ABGR2101010, RGBA64_FLOAT) get the RGB shader, which
-                // drops their alpha.
+                // Note (upstream): only RGBA32 and BGRA32 get the RGBA
+                // shader there, so the other formats with an alpha channel
+                // (ARGB4444, ARGB1555, ABGR2101010, RGBA64_FLOAT) get the
+                // RGB shader, which drops their alpha. Here every format
+                // with alpha gets the RGBA shader.
                 let f_shader = if (advanced_constants.texture_type == TEXTURETYPE_RGB
                     || advanced_constants.texture_type == TEXTURETYPE_RGBA)
                     && advanced_constants.input_type == INPUTTYPE_UNSPECIFIED
                     && advanced_constants.tonemap_method == TONEMAP_NONE
                 {
-                    if texture.format == PixelFormat::RGBA32
-                        || texture.format == PixelFormat::BGRA32
-                    {
+                    if texture.format.has_alpha() {
                         FragmentShaderId::TextureRgba
                     } else {
                         FragmentShaderId::TextureRgb
