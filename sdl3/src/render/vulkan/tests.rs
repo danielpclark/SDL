@@ -1385,6 +1385,49 @@ fn vulkan_4444_formats_with_their_extension() {
     window.destroy();
 }
 
+/// I0FL and I4FL textures are uploaded and drawn (upstream asks for an
+/// upload buffer of 0 bytes for their 16-bit planes).
+#[test]
+fn vulkan_16_bit_yuv_textures() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((_window, mut r)) = vulkan_renderer(W, H) else {
+        return;
+    };
+    let y: Vec<u8> = (0..64u16)
+        .flat_map(|i| ((64 + i * 12) << 6).to_le_bytes())
+        .collect();
+    for (format, n, pitch) in [(PixelFormat::I0FL, 16, 8), (PixelFormat::I4FL, 64, 16)] {
+        if !r.texture_formats().contains(&format) {
+            continue;
+        }
+        let t = r
+            .create_texture_with(&TextureCreateInfo {
+                format,
+                width: 8,
+                height: 8,
+                colorspace: Some(Colorspace::BT2020_LIMITED),
+                ..Default::default()
+            })
+            .unwrap();
+        let u: Vec<u8> = (0..n)
+            .flat_map(|i: u16| ((300 + i * 10) << 6).to_le_bytes())
+            .collect();
+        let v: Vec<u8> = (0..n)
+            .flat_map(|i: u16| ((900 - i * 10) << 6).to_le_bytes())
+            .collect();
+        r.update_yuv_texture(t, None, &y, 16, &u, pitch, &v, pitch)
+            .unwrap();
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 8.0, 8.0)))
+            .unwrap();
+        let drawn = rows(&r.read_pixels(Some(&Rect::new(0, 0, 8, 8))).unwrap());
+        assert!(drawn.chunks(4).any(|p| p[..3] != [0, 0, 0]), "{format:?}");
+        r.destroy_texture(t);
+    }
+}
+
 #[test]
 fn vulkan_line_methods() {
     let _l = crate::test_support::test_lock();

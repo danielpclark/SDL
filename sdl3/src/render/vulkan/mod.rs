@@ -797,6 +797,10 @@ fn get_bytes_per_pixel(vk_format: VkFormat, plane: u32) -> VkDeviceSize {
         VK_FORMAT_R8_UNORM => 1,
         VK_FORMAT_R8G8_UNORM => 2,
         VK_FORMAT_R16G16_UNORM => 4,
+        // Note (upstream): the planes of I0FL and I4FL textures aren't
+        // here, so their uploads ask for a buffer of 0 bytes (invalid in
+        // Vulkan; lavapipe crashes); here they're 2 bytes a pixel.
+        VK_FORMAT_R16_UNORM => 2,
         VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM | VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM => 1,
         VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM | VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM => 2,
         VK_FORMAT_G8_B8R8_2PLANE_420_UNORM => {
