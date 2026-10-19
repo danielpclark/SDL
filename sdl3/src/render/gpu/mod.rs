@@ -69,8 +69,8 @@ use crate::hints;
 use crate::log::Category;
 use crate::properties::{Properties, Value};
 use crate::render::sysrender::{
-    CopyEx, DrawCmd, DrawKind, Geometry, GpuRenderStates, RenderBackend, RenderCommand,
-    TextureCreateProps, TextureData, TextureStore,
+    ycbcr_matrix_colorspace, CopyEx, DrawCmd, DrawKind, Geometry, GpuRenderStates, RenderBackend,
+    RenderCommand, TextureCreateProps, TextureData, TextureStore,
 };
 use crate::render::{RendererCreateInfo, Texture, TextureAccess, TextureAddressMode, GPU_RENDERER};
 use crate::video::blendmode::{BlendFactor, BlendOperation};
@@ -2064,13 +2064,7 @@ impl RenderBackend for GpuRenderer {
         // there they fail without a YCbCr colorspace. Here HDR10 is read as
         // its YCbCr counterpart for these formats: BT2020_LIMITED, with the
         // same primaries and transfer.
-        let matrix_colorspace = if matches!(texture.format, F::P010 | F::I0FL | F::I4FL)
-            && texture.colorspace == Colorspace::HDR10
-        {
-            Colorspace::BT2020_LIMITED
-        } else {
-            texture.colorspace
-        };
+        let matrix_colorspace = ycbcr_matrix_colorspace(texture.format, texture.colorspace);
         let ycbcr_matrix = |bits_per_pixel: u32| -> Result<[f32; 16]> {
             let Some(matrix) =
                 matrix_colorspace.ycbcr_to_rgb_matrix(texture.h.max(0) as u32, bits_per_pixel)

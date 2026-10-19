@@ -1428,6 +1428,18 @@ fn vulkan_16_bit_yuv_textures() {
     }
 }
 
+/// P010, I0FL and I4FL textures in their default colorspace draw as
+/// BT2020_LIMITED ones (upstream's renderer refuses them).
+#[test]
+fn vulkan_hdr10_yuv_textures() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((_window, mut r)) = vulkan_renderer(W, H) else {
+        return;
+    };
+    crate::render::tests::hdr10_yuv_draws_as_bt2020_limited(&mut r);
+}
+
 #[test]
 fn vulkan_line_methods() {
     let _l = crate::test_support::test_lock();

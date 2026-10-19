@@ -1787,6 +1787,20 @@ fn d3d11_palettes_survive_a_device_loss() {
     window.destroy();
 }
 
+/// P010, I0FL and I4FL textures in their default colorspace draw as
+/// BT2020_LIMITED ones (upstream's renderer refuses them).
+#[test]
+fn d3d11_hdr10_yuv_textures() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((_window, mut r)) = d3d11_renderer(W, H) else {
+        return;
+    };
+    crate::render::tests::hdr10_yuv_draws_as_bt2020_limited(&mut r);
+}
+
 /// The Direct3D 11 renderer on the machine's GPU: run on Windows with
 /// `--ignored --nocapture` (see docs/HARDWARE_TESTING.md).
 #[test]

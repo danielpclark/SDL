@@ -974,6 +974,20 @@ fn d3d12_failed_lock_leaves_the_texture_unlocked() {
     window.destroy();
 }
 
+/// P010, I0FL and I4FL textures in their default colorspace draw as
+/// BT2020_LIMITED ones (upstream's renderer refuses them).
+#[test]
+fn d3d12_hdr10_yuv_textures() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((_window, mut r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    crate::render::tests::hdr10_yuv_draws_as_bt2020_limited(&mut r);
+}
+
 /// A texture whose creation fails frees only the SRV slots it took
 /// (upstream frees slot 0 for each one it didn't).
 #[test]

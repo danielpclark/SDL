@@ -42,8 +42,8 @@ use crate::gpu::metal::sys::*;
 use crate::hints;
 use crate::properties::Properties;
 use crate::render::sysrender::{
-    invalid_texture, CopyEx, DrawCmd, DrawKind, Geometry, GpuRenderStates, RenderBackend,
-    RenderCommand, TextureCreateProps, TextureData, TextureStore,
+    invalid_texture, ycbcr_matrix_colorspace, CopyEx, DrawCmd, DrawKind, Geometry, GpuRenderStates,
+    RenderBackend, RenderCommand, TextureCreateProps, TextureData, TextureStore,
 };
 use crate::render::{RendererCreateInfo, Texture, TextureAccess, TextureAddressMode};
 use crate::video::blendmode::{BlendFactor, BlendOperation};
@@ -2376,8 +2376,13 @@ impl RenderBackend for MetalRenderer {
                 texturedata.yuv = yuv;
                 texturedata.nv12 = nv12;
                 if yuv || nv12 {
+                    // Note (upstream): the default colorspace of P010, I0FL
+                    // and I4FL textures (HDR10) is an RGB one, which has no
+                    // YCbCr matrix, so there they fail without a YCbCr
+                    // colorspace. Here HDR10 is read as BT2020_LIMITED for
+                    // these formats.
                     let offset = get_ycbcr_to_rgb_conversion_matrix(
-                        texture.colorspace,
+                        ycbcr_matrix_colorspace(format, texture.colorspace),
                         texture.w,
                         texture.h,
                         8,
