@@ -149,7 +149,7 @@ pub(crate) fn mmd_xlat_fx(
                 event.fxp = 0;
             }
         }
-        0x0a | 0x0b | 0x0c => {
+        0x0a | 0x0b => {
             /* 0A not mentioned but it's Protracker-compatible */
             /* fall-through */
             /* POSITION JUMP 0B
@@ -159,16 +159,19 @@ pub(crate) fn mmd_xlat_fx(
              * forever. The purpose is to allow for introductions that
              * play only once.
              */
-            /* fall-through */
+            // Note (upstream): C falls through to 0C's decimal conversion
+            // (which did nothing, as below); only a volume is decimal.
+        }
+        0x0c => {
             /* SET VOLUME 0C
              * Overrides the default volume of an instrument.
              */
             if !hexvol {
-                // FIXME (upstream): the decimal conversion shifts by 8 and
+                // Note (upstream): C's decimal conversion shifts by 8 and
                 // masks with 0xff, which leaves the 8 bit parameter as it
-                // is.
+                // is; the digits are the nibbles.
                 let p = event.fxp as i32;
-                event.fxp = ((p >> 8) * 10 + (p & 0xff)) as u8;
+                event.fxp = ((p >> 4) * 10 + (p & 0x0f)) as u8;
             }
         }
         0x0d => {
