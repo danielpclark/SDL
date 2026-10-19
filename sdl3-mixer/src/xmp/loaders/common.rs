@@ -485,10 +485,10 @@ pub(crate) fn libxmp_check_filename_case(sp: &mut LibxmpPath, dir: &[u8], name: 
         #[cfg(not(unix))]
         let d_name = d_name.to_string_lossy().into_owned().into_bytes();
         if d_name.eq_ignore_ascii_case(name_str) {
-            // FIXME (upstream): the path is built from the name asked for,
+            // Note (upstream): C builds the path from the name asked for,
             // not the one found, so a file whose name differs in case
-            // isn't opened.
-            if libxmp_path_join(sp, Some(dir), Some(name)) == 0 {
+            // isn't opened (on a case-sensitive file system).
+            if libxmp_path_join(sp, Some(dir), Some(&d_name)) == 0 {
                 ret = 0;
                 break;
             }
@@ -642,4 +642,28 @@ pub(crate) fn libxmp_apply_mpt_preamp(m: &mut ModuleData) {
 
     channel_volume_16bit = (channel_volume_16bit * preamp) >> 7;
     */
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::os::unix::ffi::OsStrExt;
+
+    /// A file found under another case is joined by the name it has.
+    #[test]
+    fn check_filename_case_joins_the_name_found() {
+        let dir = std::env::temp_dir().join(format!("sdl3-mixer-xmp-case-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("Sample.IFF"), b"data").unwrap();
+
+        let mut sp = LibxmpPath::default();
+        libxmp_path_init(&mut sp);
+        let ret = libxmp_check_filename_case(&mut sp, dir.as_os_str().as_bytes(), b"sample.iff\0");
+        let path = sp.path.clone().unwrap_or_default();
+        libxmp_path_free(&mut sp);
+        std::fs::remove_dir_all(&dir).unwrap();
+
+        assert_eq!(ret, 0);
+        assert!(path[..strlen(&path)].ends_with(b"/Sample.IFF"));
+    }
 }
