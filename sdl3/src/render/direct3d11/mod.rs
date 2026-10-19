@@ -310,6 +310,18 @@ impl VertexPositionColor {
     }
 }
 
+/// The tests' fault injection: an error when they make `step` fail.
+#[cfg(test)]
+fn injected_failure(step: &str) -> Result<()> {
+    tests::injected_failure(step)
+}
+
+/// The tests' fault injection (none outside them).
+#[cfg(not(test))]
+fn injected_failure(_step: &str) -> Result<()> {
+    Ok(())
+}
+
 /// Per-palette data. Translation of `D3D11_PaletteData`.
 struct PaletteData {
     texture: Texture2d,
@@ -1061,18 +1073,13 @@ impl D3d11Renderer {
          */
         // (max_texture_size())
 
-        match Self::create_vertex_shader(device) {
-            Ok((vertex_shader, input_layout)) => {
-                self.vertex_shader = Some(vertex_shader);
-                self.input_layout = Some(input_layout);
-            }
-            Err(_) => {
-                // FIXME (upstream): this `goto done` returns the S_OK of
-                // SetMaximumFrameLatency(), so the renderer is made without
-                // its shaders and states.
-                return Ok(());
-            }
-        }
+        // Note (upstream): this `goto done` returns the S_OK of
+        // SetMaximumFrameLatency(), so the renderer is made without its
+        // shaders and states; here the failure is returned.
+        injected_failure("vertex shader")?;
+        let (vertex_shader, input_layout) = Self::create_vertex_shader(device)?;
+        self.vertex_shader = Some(vertex_shader);
+        self.input_layout = Some(input_layout);
 
         // Setup space to hold vertex shader constants:
         let constant_buffer_desc = BufferDesc {
@@ -1117,12 +1124,11 @@ impl D3d11Renderer {
             })?);
 
         // Create blending states:
-        if self.create_blend_state(BlendMode::BLEND).is_err() {
-            // D3D11_CreateBlendState will set the SDL error, if it fails
-            // FIXME (upstream): returning the S_OK of the rasterizer states,
-            // as for the vertex shader above.
-            return Ok(());
-        }
+        // D3D11_CreateBlendState will set the SDL error, if it fails
+        // Note (upstream): this returns the S_OK of the rasterizer states,
+        // as for the vertex shader above; here the failure is returned.
+        injected_failure("blend state")?;
+        self.create_blend_state(BlendMode::BLEND)?;
 
         // Setup render state that doesn't change
         let context = self.context()?;
