@@ -3138,10 +3138,21 @@ impl D3d12Renderer {
         );
 
         // Copy the desired portion of the back buffer to the staging texture:
-        // FIXME (upstream): on this error the render target is left in the
-        // copy source state (no rotation makes it fail yet).
+        // Note (upstream): on this error the render target is left in the
+        // copy source state (only an unknown rotation makes it fail); here
+        // it's transitioned back.
         // (D3D12_GetViewportAlignedD3DRect will have set the SDL error)
-        let src_rect = self.get_viewport_aligned_d3d_rect(rect, false)?;
+        let src_rect = match self.get_viewport_aligned_d3d_rect(rect, false) {
+            Ok(src_rect) => src_rect,
+            Err(e) => {
+                self.transition_resource(
+                    &back_buffer,
+                    D3D12_RESOURCE_STATE_COPY_SOURCE,
+                    D3D12_RESOURCE_STATE_RENDER_TARGET,
+                );
+                return Err(e);
+            }
+        };
         let src_box = D3d12Box {
             left: src_rect.left as u32,
             right: src_rect.right as u32,
