@@ -630,6 +630,49 @@ fn textures_match_software() {
             r.render_texture(tex, None, Some(&FRect::new(20.0, 12.0, 8.0, 8.0)))?;
             r.render_texture(tex, None, Some(&FRect::new(40.0, 30.0, 8.0, 8.0)))
         });
+        // A texture given a palette that exists already while it is bound
+        // (upstream draws it with its previous palette, see the Note in
+        // change_texture_palette())
+        compare_scene(t, "palette changed", 0, 0, |r| {
+            background(r)?;
+            let mut palettes = Vec::new();
+            for k in 0..2 {
+                let mut palette = Palette::new(256)?;
+                let colors: Vec<Color> = (0..256)
+                    .map(|i| {
+                        Color::new(
+                            (i * (k + 1)) as u8,
+                            (255 - i) as u8,
+                            (i * 3 + k * 99) as u8,
+                            255,
+                        )
+                    })
+                    .collect();
+                palette.set_colors(0, &colors)?;
+                palettes.push(share_palette(palette));
+            }
+            let indices: Vec<u8> = (0..64).map(|i| (i * 37 % 256) as u8).collect();
+            let mut texs = Vec::new();
+            for palette in &palettes {
+                let tex = r.create_texture_with(&TextureCreateInfo {
+                    format: PixelFormat::INDEX8,
+                    access: TextureAccess::Static,
+                    width: 8,
+                    height: 8,
+                    palette: Some(palette.clone()),
+                    ..TextureCreateInfo::default()
+                })?;
+                r.update_texture(tex, None, &indices, 8)?;
+                r.set_texture_scale_mode(tex, ScaleMode::Nearest)?;
+                texs.push(tex);
+            }
+            r.render_texture(texs[1], None, Some(&FRect::new(4.0, 4.0, 8.0, 8.0)))?;
+            r.render_texture(texs[0], None, Some(&FRect::new(20.0, 12.0, 8.0, 8.0)))?;
+            // (the queue runs: the first texture is bound)
+            r.read_pixels(None)?;
+            r.set_texture_palette(texs[0], Some(palettes[1].clone()))?;
+            r.render_texture(texs[0], None, Some(&FRect::new(40.0, 30.0, 8.0, 8.0)))
+        });
         // (GL converts YUV with float shaders, the software path with
         // fixed point)
         compare_scene(t, "yuv", 4, 0, |r| {

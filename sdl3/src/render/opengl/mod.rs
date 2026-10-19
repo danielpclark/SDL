@@ -2530,12 +2530,15 @@ impl RenderBackend for GlRenderer {
         let palette = palette
             .and_then(|p| p.downcast_ref::<GlPaletteData>())
             .map(|p| p.texture);
-        // FIXME (upstream): the palette is bound with the texture, only when
-        // the texture isn't the one bound already, so a texture given a
-        // palette that exists already (no GL_CreatePalette() to trash the
+        // Note (upstream): the palette is bound with the texture, only when
+        // the texture isn't the one bound already, so there a texture given
+        // a palette that exists already (no GL_CreatePalette() to trash the
         // bound texture) is drawn with its previous palette until another
-        // texture is drawn.
+        // texture is drawn. Here a new palette trashes the bound texture.
         if let Some(data) = gl_data_mut(texture) {
+            if data.palette != palette {
+                self.drawstate.texture = None; // we trash this state.
+            }
             data.palette = palette;
         }
         Some(Ok(()))
