@@ -2875,6 +2875,22 @@ def emod_files():
     body = b'EMOD' + iff(b'EMIC', emic) + iff(b'PATT', patt) + iff(b'8SMP', b''.join(s[1] for s in smp))
     write('emod_quadra.emod', b'FORM' + be32(len(body)) + body)
 
+    # sample offsets (in 512 bytes) into a long sample, a pattern break to
+    # row 20 and a position jump to order 2 (both binary)
+    long = s8(decay(saw(4096, 50, 100), 1.0, 0.3))
+    emic = be16(1) + pad('emod jumps', 20) + pad('composer', 20) + bytes([125, 1])
+    emic += bytes([1, 64]) + be16(len(long) // 2) + pad('long', 20) + bytes([0, 0]) + be16(0) + be16(0) + be32(0)
+    emic += bytes([0, 3])
+    emic += b''.join(bytes([i, 31 if i == 1 else 15]) + pad('p%d' % i, 20) + be32(0) for i in range(3))
+    emic += bytes([3, 0, 1, 2])
+    patt = pat(16, {0: {0: ('C-4', 1, 0x09, 0x01)}, 2: {0: ('C-4', 1, 0x09, 0x03)}, 4: {0: ('C-4', 1, 0x09, 0x05)},
+                    6: {0: (None, 0, 0x0d, 20)}})
+    patt += pat(32, {0: {1: ('C-5', 1, 0, 0)}, 14: {1: ('A-4', 1, 0, 0)}, 20: {1: ('G-4', 1, 0x09, 0x02)},
+                     22: {1: (None, 0, 0x0b, 2)}})
+    patt += pat(16, {0: {2: ('E-4', 1, 0, 0)}, 4: {2: ('C-4', 1, 0x09, 0x04)}})
+    body = b'EMOD' + iff(b'EMIC', emic) + iff(b'PATT', patt) + iff(b'8SMP', long)
+    write('emod_jumps.emod', b'FORM' + be32(len(body)) + body)
+
 
 def okt_files():
     smp = [('square', SQ8, 0, 64, 64, 0), ('saw', SW8, 0, 0, 48, 1), ('sine', SN8, 64, 128, 40, 2)]

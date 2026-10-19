@@ -8,6 +8,70 @@ raw 0: dur=3000 e30825106988d160
 raw 1: dur=3000 2ad3d15630b5aac3
 raw 2: dur=1500 424057d38b4cf67f
 raw 3: dur=500 8c7f074f69a59066
+== emod_jumps.emod
+open: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 784d007245589a42 end=0
+f32s48: 1198080 7158c20b08971ec5 end=0
+s16m22: 137592 5736b074c7c19c50 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: XMP 0x8010 2 48000 title="emod jumps" frames=376012800 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 8388608 637a2df54e222325 end=1
+trunc 128: XMP 0x8010 2 48000 title="emod jumps" frames=376012800 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 8388608 637a2df54e222325 end=1
+trunc 200: XMP 0x8010 2 48000 title="emod jumps" frames=180672 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 721920 ad33000d10847325 end=0
+trunc 256: XMP 0x8010 2 48000 title="emod jumps" frames=192432 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 768960 5f98cddb4ac0ee25 end=0
+trunc 300: XMP 0x8010 2 48000 title="emod jumps" frames=116399 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 465360 e45e647fe8e74765 end=0
+trunc 512: XMP 0x8010 2 48000 title="emod jumps" frames=119376 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 477120 23b0312d97c9de25 end=0
+trunc 1000: XMP 0x8010 2 48000 title="emod jumps" frames=108624 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 434400 77d8d2e6ced6a4a5 end=0
+trunc 2000: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 06707966799cab69 end=0
+trunc 4096: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 b9b1be16f94fe3a8 end=0
+trunc 1329: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 cef67ef9db04fe18 end=0
+trunc 2659: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 31bd0f45ad3cdca4 end=0
+trunc 3988: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 7af7c08e67f5b1a5 end=0
+trunc 5317: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 234135b6e040909a end=0
+corrupt 0: XMP 0x8010 2 48000 title="emod jumps" frames=61007 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 243960 10b08e76d369a8fa end=0
+corrupt 0 mix: dur=61007 play=1 pos=12288 replay=1 seek=1 pos=20335 playing=1 19b034fc1e8e6d27
+corrupt 1: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 784d007245589a42 end=0
+corrupt 1 mix: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 0b1425c35b958689
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 a51ee39663692a0c end=0
+corrupt 3 mix: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 0d9ccec40a0b6fed
+corrupt 4: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 ba5e4757dcae3cc3 end=0
+corrupt 4 mix: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 1f5467c08b0cc6ad
+corrupt 5: XMP 0x8010 2 48000 title="emod jumps" frames=149760 xmp.name="emod jumps" xmp.type="Quadra Composer EMOD v1" | 599040 fa28bd76276c585a end=0
+corrupt 5 mix: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 d2648e2216a26763
+mix: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 0b1425c35b958689
+mixpre: dur=149760 play=1 pos=12288 replay=1 seek=1 pos=49920 playing=1 114a5ac6073b007d
+order 1: play=1 pos=4096 playing=1 0b477b4d95458541
+order 2: play=1 pos=4096 playing=1 2217b8400631860b
+order 0: play=1 pos=4096 playing=1 16aa21df3dc24736
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 886887c30a99d3e8
+order -5: play=1 pos=4096 playing=1 e3020da2fae308a8
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d0bb16d299833131
+modseek 0: seek=1 pos=0 playing=1 9392a864ff507504
+modseek 2205: seek=1 pos=2205 playing=1 f83fc606693b8958
+modseek 74880: seek=1 pos=74880 playing=1 def939fb59624ed2
+modseek 148760: seek=1 pos=148760 playing=1 76c89af4a9d507e4
+modseek 154760: seek=1 pos=154760 playing=1 76c89af4a9d507e4
+modseek 100: seek=1 pos=100 playing=1 9adcf1a93a76f137
+xmp: pat=3 trk=12 chn=4 ins=1 smp=1 spd=6 bpm=125 len=3 rst=0 gvl=64 seqs=1 vol=64 md5=b7bd6a461e99384de3ee06fcfacfe3d3 79c119f83317c20c
+xmp 0: set=0 mixer=0 frames=156 8cb9c1bfbed6a6b0 f1fd03c30c1b6391 seek=0 pos=1 d9e5c8195c47c53e
+xmp 1: set=0 mixer=0 frames=156 56ed7b921fb4ef07 694bf21f87751d39 seek=0 pos=1 31b1b66e0eab04c2
+xmp 2: set=0 mixer=1 frames=156 e18a30d2a0d645c3 4a59f9a185776609 seek=0 pos=1 80c9327f9bea9390
+xmp 3: set=0 mixer=1 frames=156 b2993ce2ceba9567 9dee343d0afc6360 seek=0 pos=1 824eb844477ccf49
 == 669_composer.669
 open: XMP 0x8010 2 48000 title="Composer 669 test" copyright="Composer 669 test" frames=233808 xmp.name="Composer 669 test" xmp.type="Composer 669" xmp.comment="Composer 669 test" | 935104 35010657dca348de end=0
 f32s48: 1870208 e92d932d37d4fc48 end=0
@@ -1458,9 +1522,9 @@ xmp 1: set=0 mixer=0 frames=215 37a6f565b27fd461 10807ec5472f41a9 seek=0 pos=1 5
 xmp 2: set=0 mixer=0 frames=215 040356823bbd0481 8552d767e15eb38f seek=0 pos=1 9cd0781cead03307
 xmp 3: set=0 mixer=0 frames=215 f622d0562bd3d645 15deced7deba4f8f seek=0 pos=1 7f93ca881e768f43
 == emod_quadra.emod
-open: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 571729e3b5f2eccd end=0
-f32s48: 2242560 18f6a47b92e04741 end=0
-s16m22: 257544 53958d9917896a29 end=0
+open: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 61030273b920717b end=0
+f32s48: 1044480 949544398219abfb end=0
+s16m22: 119952 a0f5c90314eafbb3 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -1482,43 +1546,43 @@ trunc 128: err: Audio data is in unknown/unsupported/corrupt format
 trunc 200: XMP 0x8010 2 48000 title="emod test" frames=47001600 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 8388608 637a2df54e222325 end=1
 trunc 256: XMP 0x8010 2 48000 title="emod test" frames=152544 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 609440 9186709daa4eafa5 end=0
 trunc 300: XMP 0x8010 2 48000 title="emod test" frames=158400 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 632960 9d2600af44fa0d25 end=0
-trunc 512: XMP 0x8010 2 48000 title="emod test" frames=183840 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 734880 2edd9fed9ee7f7a5 end=0
-trunc 1000: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 351c2aa385225325 end=0
+trunc 512: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 033a8643c9b58325 end=0
+trunc 1000: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 033a8643c9b58325 end=0
 trunc 460: XMP 0x8010 2 48000 title="emod test" frames=177984 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 711360 24319f1c19b9da25 end=0
-trunc 920: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 351c2aa385225325 end=0
-trunc 1380: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 ac291fb446dab74a end=0
-trunc 1839: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 571729e3b5f2eccd end=0
-corrupt 0: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 571729e3b5f2eccd end=0
-corrupt 0 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 352065f8fc07f0eb
-corrupt 1: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 571729e3b5f2eccd end=0
-corrupt 1 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 352065f8fc07f0eb
+trunc 920: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 033a8643c9b58325 end=0
+trunc 1380: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 3802a9e55cf8329a end=0
+trunc 1839: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 61030273b920717b end=0
+corrupt 0: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 61030273b920717b end=0
+corrupt 0 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 352065f8fc07f0eb
+corrupt 1: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 61030273b920717b end=0
+corrupt 1 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 352065f8fc07f0eb
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 03f024f06be12059 end=0
-corrupt 3 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 c0644063b085f595
-corrupt 4: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 e8e8de3a4c0a3a84 end=0
-corrupt 4 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 6fe03ce03a55fc2b
-corrupt 5: XMP 0x8010 2 48000 title="emod test" frames=280320 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 1121280 cf86ae5e21c4779d end=0
-corrupt 5 mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 bc684c454350f8e9
-mix: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 352065f8fc07f0eb
-mixpre: dur=280320 play=1 pos=12288 replay=1 seek=1 pos=93440 playing=1 0397d0402f99236b
-order 1: play=1 pos=4096 playing=1 06bc3028d678d65c
-order 2: play=1 pos=4096 playing=1 6231f00d3f25f6b4
-order 0: play=1 pos=4096 playing=1 880678f8aae63ec9
+corrupt 3: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 56a4e03f7b190c9f end=0
+corrupt 3 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 c0644063b085f595
+corrupt 4: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 569e670d428201ad end=0
+corrupt 4 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 6fe03ce03a55fc2b
+corrupt 5: XMP 0x8010 2 48000 title="emod test" frames=130560 xmp.name="emod test" xmp.type="Quadra Composer EMOD v1" | 522240 a3d780eab460aa99 end=0
+corrupt 5 mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 bc684c454350f8e9
+mix: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 352065f8fc07f0eb
+mixpre: dur=130560 play=1 pos=12288 replay=1 seek=1 pos=43520 playing=1 7103f71ce22f2dd8
+order 1: play=1 pos=4096 playing=1 cbff6b833c8ed9a8
+order 2: play=1 pos=4096 playing=1 cd3c92f2857943a2
+order 0: play=1 pos=4096 playing=1 d036fd4d46c2e304
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1e1269775ff42c9c
 order -5: play=1 pos=4096 playing=1 30819e84bf441cc8
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 5457e324c6e60b61
 modseek 0: seek=1 pos=0 playing=1 ad1b844110e6fc47
 modseek 2205: seek=1 pos=2205 playing=1 2fc5474f78a9d18b
-modseek 140160: seek=1 pos=140160 playing=1 c0c740855f314914
-modseek 279320: seek=1 pos=279320 playing=1 11febac46fbab02b
-modseek 285320: seek=1 pos=285320 playing=1 58be43db418e400c
-modseek 100: seek=1 pos=100 playing=1 55da78a295601f16
-xmp: pat=2 trk=8 chn=4 ins=3 smp=3 spd=6 bpm=125 len=3 rst=0 gvl=64 seqs=1 vol=64 md5=e74210744d7a7875a1659f95867e6bc0 cba82f99cac32e59
-xmp 0: set=0 mixer=0 frames=292 8ed622799c7774b0 06f2073822802cc6 seek=0 pos=1 f97215fcc53b1f0d
-xmp 1: set=0 mixer=0 frames=292 6ef5f29873bdca86 56ab4026dbdbe55a seek=0 pos=1 e45ab6f9bd41af45
-xmp 2: set=0 mixer=1 frames=292 4fdec9483bedfd76 51cd695ca535656c seek=0 pos=1 ae173ba03bfad491
-xmp 3: set=0 mixer=1 frames=292 7e43a049ae792b4e 1a1b984301778537 seek=0 pos=1 9c119708c813fb4c
+modseek 65280: seek=1 pos=65280 playing=1 2fc5474f78a9d18b
+modseek 129560: seek=1 pos=129560 playing=1 2fc5474f78a9d18b
+modseek 135560: seek=1 pos=135560 playing=1 2fc5474f78a9d18b
+modseek 100: seek=1 pos=100 playing=1 2fc5474f78a9d18b
+xmp: pat=2 trk=8 chn=4 ins=3 smp=3 spd=6 bpm=125 len=3 rst=0 gvl=64 seqs=2 vol=64 md5=e74210744d7a7875a1659f95867e6bc0 cba82f99cac32e59
+xmp 0: set=0 mixer=0 frames=136 1ea7b7f4f9e1980d 560691d8c3b08286 seek=0 pos=1 000bb7a44a2e0fc1
+xmp 1: set=0 mixer=0 frames=136 93d57499593c3a1e 48159ddf30e3c9fa seek=0 pos=1 9700dab45a9e44bb
+xmp 2: set=0 mixer=1 frames=136 967849315c3899b2 df922f16eb5f0e6e seek=0 pos=1 93baaa1190443905
+xmp 3: set=0 mixer=1 frames=136 dfafaed815a27202 8fa827f3cb4db5e9 seek=0 pos=1 0105a86fdf27b423
 == empty.mid
 open: FLUIDSYNTH 0x8120 2 48000 | 769024 02b243927c8712e8 end=0
 f32s48: 769024 02b243927c8712e8 end=0
