@@ -3445,11 +3445,18 @@ impl VulkanRenderer {
         }
 
         // Create descriptor pools - start by allocating one per swapchain image, let it grow if more are needed
-        // FIXME (upstream): a failed pool allocation isn't noticed (the
-        // stale result is checked instead), leaving a null pool.
         for _ in 0..image_count {
             // Start by just allocating one pool, it will grow if needed
-            let pool = self.allocate_descriptor_pool().unwrap_or(VK_NULL_HANDLE);
+            // Note (upstream): a failed pool allocation isn't noticed (the
+            // stale result is checked instead), leaving a null pool; here
+            // it fails.
+            let pool = match self.allocate_descriptor_pool() {
+                Ok(pool) => pool,
+                Err(failure) => {
+                    self.destroy_all();
+                    return Err(failure);
+                }
+            };
             self.descriptor_pools.push(vec![pool]);
         }
 
@@ -4177,7 +4184,7 @@ impl VulkanRenderer {
     }
 
     /// Translation of `VULKAN_AllocateDescriptorPool()`.
-    fn allocate_descriptor_pool(&self) -> Result<VkDescriptorPool> {
+    fn allocate_descriptor_pool(&self) -> VkResultOr<VkDescriptorPool> {
         let mut descriptor_pool = VK_NULL_HANDLE;
         let descriptor_pool_sizes = [
             VkDescriptorPoolSize {
@@ -4211,7 +4218,9 @@ impl VulkanRenderer {
                 &mut descriptor_pool,
             )
         };
-        check("vkCreateDescrptorPool()", result)?;
+        if result != VK_SUCCESS {
+            return Err(failure("vkCreateDescrptorPool()", result));
+        }
 
         Ok(descriptor_pool)
     }
@@ -4367,7 +4376,7 @@ impl VulkanRenderer {
             // We are out of pools, create a new one
             else {
                 // (the error comes from VULKAN_AllocateDescriptorPool() if we failed to allocate a new pool)
-                descriptor_pool = self.allocate_descriptor_pool()?;
+                descriptor_pool = self.allocate_descriptor_pool().map_err(|(_, e)| e)?;
                 self.descriptor_pools[index].push(descriptor_pool);
                 self.current_descriptor_pool_index = current_descriptor_pool_index;
                 self.current_descriptor_set_index = 0;

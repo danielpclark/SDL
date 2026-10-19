@@ -327,6 +327,46 @@ fn vulkan_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
     }
 }
 
+/// The Vulkan renderer's backend itself for an offscreen window, or
+/// `None` (with the skip reported) when there is no Vulkan.
+fn vulkan_backend(w: i32, h: i32) -> Option<(Window, VulkanRenderer)> {
+    let window = Window::create("vulkan", w, h, WindowFlags::VULKAN).unwrap();
+    match VulkanRenderer::for_window(window, Colorspace::SRGB, &Default::default()) {
+        Ok(data) => Some((window, data)),
+        Err(e) => {
+            crate::test_support::skip(
+                "vulkan",
+                format_args!("no Vulkan renderer ({})", e.message()),
+            );
+            window.destroy();
+            None
+        }
+    }
+}
+
+/// The device functions of `data`, with `name` replaced by `f` (the
+/// tests' fault injection).
+fn device_functions_with(
+    data: &VulkanRenderer,
+    name: &CStr,
+    f: PfnVkVoidFunction,
+) -> DeviceFunctions {
+    let inst = data.inst();
+    let device = data.device;
+    // SAFETY: the instance's vkGetDeviceProcAddr returns the functions of
+    // the names; the caller's replacement has the type of its name's.
+    unsafe {
+        DeviceFunctions::load(|n| {
+            if n == name {
+                Some(f)
+            } else {
+                (inst.get_device_proc_addr)(device, n.as_ptr())
+            }
+        })
+    }
+    .unwrap()
+}
+
 /// A software renderer drawing into an ARGB8888 surface (the format the
 /// Vulkan renderer reads its B8G8R8A8 swapchain back in).
 fn software_renderer(w: i32, h: i32) -> Renderer {
@@ -1127,6 +1167,50 @@ fn vulkan_matches_software_for_yuv() {
         pixels
     };
     assert_close("constant buffers", &scene(&mut r), &scene(&mut sw), 3);
+}
+
+/// A descriptor pool that can't be made fails the swapchain's resources
+/// (upstream's goes on with a null pool).
+#[test]
+fn vulkan_fails_without_its_descriptor_pools() {
+    unsafe extern "system" fn create_descriptor_pool(
+        _: VkDevice,
+        _: *const VkDescriptorPoolCreateInfo,
+        _: Alloc,
+        _: *mut VkDescriptorPool,
+    ) -> VkResult {
+        VK_ERROR_OUT_OF_DEVICE_MEMORY
+    }
+
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut data)) = vulkan_backend(W, H) else {
+        return;
+    };
+    type PfnVkCreateDescriptorPool = unsafe extern "system" fn(
+        VkDevice,
+        *const VkDescriptorPoolCreateInfo,
+        Alloc,
+        *mut VkDescriptorPool,
+    ) -> VkResult;
+    // SAFETY: a function pointer, called as the type it has.
+    let failing = unsafe {
+        std::mem::transmute::<PfnVkCreateDescriptorPool, PfnVkVoidFunction>(create_descriptor_pool)
+    };
+    let dev = device_functions_with(&data, c"vkCreateDescriptorPool", failing);
+    data.wait_for_gpu();
+    data.dev = Some(Rc::new(dev));
+    let (rc, e) = data.create_window_size_dependent_resources().unwrap_err();
+    assert_eq!(rc, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+    assert_eq!(
+        e.message(),
+        "vkCreateDescrptorPool(): VK_ERROR_OUT_OF_DEVICE_MEMORY"
+    );
+    // (the renderer is torn down)
+    assert!(data.dev.is_none() && data.descriptor_pools.is_empty());
+    data.destroy();
+    drop(data);
+    window.destroy();
 }
 
 #[test]
