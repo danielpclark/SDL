@@ -847,8 +847,8 @@ fn gpu_renderer_basics_on(backend: Backend) {
         .unwrap();
     assert_eq!(uv.info.format, TextureFormat::R16G16_UNORM);
     assert_eq!((uv.info.width, uv.info.height), (4, 4));
-    // (Note (upstream): an I444 texture's V property is its U texture;
-    // see the FIXME in create_texture())
+    // An I444 texture's V property is its V texture (upstream's is its U
+    // texture, see the Note in create_texture())
     let i444 = r
         .create_texture(PixelFormat::I444, TextureAccess::Static, 8, 8)
         .unwrap();
@@ -859,8 +859,9 @@ fn gpu_renderer_basics_on(backend: Backend) {
     let v = ip
         .get_any::<gpu::Texture>(PROP_TEXTURE_GPU_TEXTURE_V_POINTER)
         .unwrap();
-    assert!(Arc::ptr_eq(&u, &v));
+    assert!(!Arc::ptr_eq(&u, &v));
     assert_eq!((u.info.width, u.info.height), (8, 8));
+    assert_eq!((v.info.width, v.info.height), (8, 8));
     // (an unsupported YUV colorspace is refused)
     assert!(r
         .create_texture_with(&TextureCreateInfo {
