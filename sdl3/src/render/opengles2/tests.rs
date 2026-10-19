@@ -1170,6 +1170,39 @@ fn gles2_failed_shader_attempt_is_deleted() {
     window.destroy();
 }
 
+/// A YUV texture whose creation fails after its U and V (or UV) planes
+/// were made (here at an RGB colorspace) leaves no GL texture behind
+/// (upstream's planes leak).
+#[test]
+fn gles2_failed_yuv_texture_leaves_no_planes() {
+    use crate::render::test_gl::TestGl;
+
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((_window, mut r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    // (the renderer's context is current once it has drawn)
+    r.flush().unwrap();
+    let gl = TestGl::load(false);
+    let textures = |gl: &TestGl| (1..=4096).filter(|&name| gl.is_texture(name)).count();
+    let before = textures(&gl);
+    for format in [PixelFormat::IYUV, PixelFormat::I444, PixelFormat::NV12] {
+        let e = r
+            .create_texture_with(&TextureCreateInfo {
+                format,
+                width: 8,
+                height: 8,
+                colorspace: Some(Colorspace::SRGB),
+                ..Default::default()
+            })
+            .unwrap_err();
+        assert_eq!(e.message(), "Unsupported YUV colorspace", "{format:?}");
+    }
+    r.flush().unwrap();
+    assert_eq!(textures(&gl), before);
+}
+
 /// An offscreen OpenGL window whose context is asked for as OpenGL ES 3.0,
 /// with an OpenGL ES 2 renderer (which uses the `OPENGLES_300` shaders and
 /// sampling there), or `None` when there is no OpenGL ES 3 renderer. The
