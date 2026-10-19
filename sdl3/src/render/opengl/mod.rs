@@ -950,11 +950,8 @@ impl GlRenderer {
             (gl.glPixelStorei)(GL_UNPACK_ROW_LENGTH, row_length);
             (gl.glTexSubImage2D)(textype, 0, x, y, w, h, data.format, data.formattype, src);
         }
-        // FIXME (upstream): the U and V planes are taken to follow the
-        // rows of `rect` (rect->h * pitch past `pixels`), not the planes of
-        // a whole texture, so unlocking part of a YUV texture uploads the
-        // wrong chroma (and reads past the pixels near the bottom, which is
-        // an error here).
+        // (the U and V planes follow the rows of `rect`: see the Note in
+        // unlock_texture())
         let mut offset = h as usize * pitch;
         if data.yuv {
             if format == PixelFormat::I444 {
@@ -2695,10 +2692,21 @@ impl RenderBackend for GlRenderer {
     fn unlock_texture(&mut self, texture: &mut TextureData) {
         let format = texture.format;
         let bpp = format.bytes_per_pixel() as usize;
+        let (w, h) = (texture.w, texture.h);
         let Some(data) = gl_data_mut(texture) else {
             return;
         };
-        let rect = data.locked_rect;
+        // Note (upstream): GL_UpdateTexture() takes the U and V planes to
+        // follow the rows of the rect (rect->h * pitch past the pixels), not
+        // the planes of the whole texture, so unlocking part of a YUV
+        // texture there uploads the wrong chroma (and reads past the pixels
+        // near the bottom). Here a YUV texture is updated whole on unlock,
+        // as GLES2_UnlockTexture() does.
+        let rect = if data.yuv || data.nv12 {
+            Rect::new(0, 0, w, h)
+        } else {
+            data.locked_rect
+        };
         let offset = rect.y as usize * data.pitch as usize + rect.x as usize * bpp;
         let pitch = data.pitch as usize;
         let pixels = std::mem::take(&mut data.pixels);

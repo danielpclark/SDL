@@ -667,6 +667,63 @@ fn textures_match_software() {
             r.set_texture_scale_mode(nv21, ScaleMode::Nearest)?;
             r.render_texture(nv21, None, Some(&FRect::new(24.0, 20.0, 16.0, 12.0)))
         });
+
+        // A streaming YUV texture unlocked in part keeps its chroma
+        // (upstream uploads the wrong chroma here, see the Note in
+        // unlock_texture()): compare it with a static texture of the
+        // planes it ends up with.
+        let (w, h) = (16usize, 12usize);
+        let y: Vec<u8> = (0..w * h).map(|i| (16 + i % 200) as u8).collect();
+        let u: Vec<u8> = (0..w * h / 4).map(|i| (96 + i * 3 % 64) as u8).collect();
+        let v: Vec<u8> = (0..w * h / 4).map(|i| (160 - i * 2 % 64) as u8).collect();
+        let part = Rect::new(4, 6, 8, 6);
+        let mut y2 = y.clone();
+        for row in 0..part.h as usize {
+            for col in 0..part.w as usize {
+                y2[(part.y as usize + row) * w + part.x as usize + col] = (235 - row * 20) as u8;
+            }
+        }
+        let draw = |r: &mut Renderer, tex: Texture| {
+            background(r).unwrap();
+            r.set_texture_scale_mode(tex, ScaleMode::Nearest).unwrap();
+            r.render_texture(tex, None, Some(&FRect::new(2.0, 2.0, 16.0, 12.0)))
+                .unwrap();
+        };
+        let tex =
+            t.r.create_texture(PixelFormat::IYUV, TextureAccess::Streaming, 16, 12)
+                .unwrap();
+        {
+            let mut lock = t.r.lock_texture(tex, None).unwrap();
+            assert_eq!(lock.pitch(), 16);
+            let pixels = lock.pixels();
+            pixels[..w * h].copy_from_slice(&y);
+            pixels[w * h..][..w * h / 4].copy_from_slice(&u);
+            pixels[w * h * 5 / 4..][..w * h / 4].copy_from_slice(&v);
+        }
+        {
+            let mut lock = t.r.lock_texture(tex, Some(&part)).unwrap();
+            let pitch = lock.pitch() as usize;
+            let pixels = lock.pixels();
+            for row in 0..part.h as usize {
+                for col in 0..part.w as usize {
+                    pixels[row * pitch + col] =
+                        y2[(part.y as usize + row) * w + part.x as usize + col];
+                }
+            }
+        }
+        draw(&mut t.r, tex);
+        let gl = read(&mut t.r, None);
+        let mut sw = software();
+        let ts = sw
+            .create_texture(PixelFormat::IYUV, TextureAccess::Static, 16, 12)
+            .unwrap();
+        sw.update_yuv_texture(ts, None, &y2, 16, &u, 8, &v, 8)
+            .unwrap();
+        draw(&mut sw, ts);
+        let soft = read(&mut sw, None);
+        let what = format!("yuv unlocked in part ({})", t.driver);
+        compare(&what, &gl, &soft, 4, 0, false);
+        t.r.destroy_texture(tex);
     });
 }
 
