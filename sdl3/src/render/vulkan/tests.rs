@@ -1213,6 +1213,39 @@ fn vulkan_fails_without_its_descriptor_pools() {
     window.destroy();
 }
 
+/// The renderer's reference to the Vulkan loader is released when it's
+/// destroyed, and a device reset doesn't take another (upstream's is never
+/// released).
+#[test]
+fn vulkan_releases_the_loader() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let loaded = || crate::video::core::with_device(|v| v.vulkan_loader_loaded).unwrap();
+    let window = Window::create("vulkan", W, H, WindowFlags::VULKAN).unwrap();
+    let before = loaded();
+    let mut data = match VulkanRenderer::for_window(window, Colorspace::SRGB, &Default::default()) {
+        Ok(data) => data,
+        Err(e) => {
+            crate::test_support::skip(
+                "vulkan",
+                format_args!("no Vulkan renderer ({})", e.message()),
+            );
+            // (a renderer that couldn't be made holds no reference)
+            assert_eq!(loaded(), before);
+            window.destroy();
+            return;
+        }
+    };
+    assert_eq!(loaded(), before + 1);
+    assert!(data.handle_device_lost());
+    let _ = crate::events::queue::get_events(EventType::FIRST, EventType::LAST, 100);
+    assert_eq!(loaded(), before + 1);
+    data.destroy();
+    assert_eq!(loaded(), before);
+    drop(data);
+    window.destroy();
+}
+
 #[test]
 fn vulkan_line_methods() {
     let _l = crate::test_support::test_lock();

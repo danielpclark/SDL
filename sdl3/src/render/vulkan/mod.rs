@@ -549,6 +549,9 @@ pub(crate) struct VulkanRenderer {
     target: Option<Texture>,
 
     vk_get_instance_proc_addr: Option<PfnVkGetInstanceProcAddr>,
+    /// The renderer holds a reference to the Vulkan loader
+    /// (`SDL_Vulkan_LoadLibrary()`), released by destroy_all().
+    loader_loaded: bool,
     global: Option<Rc<GlobalFunctions>>,
     inst: Option<Rc<InstanceFunctions>>,
     dev: Option<Rc<DeviceFunctions>>,
@@ -1184,6 +1187,14 @@ impl VulkanRenderer {
         self.surface = VK_NULL_HANDLE;
         self.instance = null_mut();
         self.inst = None;
+
+        // (the loader's reference, see create_device_resources())
+        if self.loader_loaded {
+            self.global = None;
+            self.vk_get_instance_proc_addr = None;
+            crate::video::vulkan::vulkan_unload_library();
+            self.loader_loaded = false;
+        }
     }
 
     /// Translation of `VULKAN_DestroyBuffer()`.
@@ -2500,12 +2511,14 @@ impl VulkanRenderer {
         let create_debug = hints::get_bool(hints::RENDER_VULKAN_DEBUG, false);
         let validation_layer_name = [SDL_VULKAN_VALIDATION_LAYER_NAME.as_ptr()];
 
-        // FIXME (upstream): this reference to the loader is never released
-        // (and a device reset takes another one).
+        // Note (upstream): this reference to the loader is never released
+        // (and a device reset takes another one); here destroy_all()
+        // releases it.
         if let Err(e) = crate::video::vulkan::vulkan_load_library(None) {
             crate::log::debug!(Category::Render, "SDL_Vulkan_LoadLibrary failed");
             return Err(e);
         }
+        self.loader_loaded = true;
         let vk_get_instance_proc_addr =
             match crate::video::vulkan::vulkan_get_vk_get_instance_proc_addr() {
                 Ok(f) if f != 0 => f,
@@ -5081,6 +5094,7 @@ impl VulkanRenderer {
             hdr_headroom: 1.0,
             target: None,
             vk_get_instance_proc_addr: None,
+            loader_loaded: false,
             global: None,
             inst: None,
             dev: None,
