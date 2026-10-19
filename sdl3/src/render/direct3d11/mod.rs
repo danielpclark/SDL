@@ -324,8 +324,11 @@ fn injected_failure(_step: &str) -> Result<()> {
 
 /// Per-palette data. Translation of `D3D11_PaletteData`.
 struct PaletteData {
-    texture: Texture2d,
-    resource_view: ShaderResourceView,
+    /// The texture and its view: `None` once the device is lost, until
+    /// the new device's are made.
+    resources: Option<(Texture2d, ShaderResourceView)>,
+    /// The colors last uploaded, which a new device's texture is given.
+    colors: Vec<Color>,
 }
 
 /// The front end's handle of a palette: its key in the renderer.
@@ -782,8 +785,12 @@ impl D3d11Renderer {
         for id in ids {
             self.destroy_texture_data(id);
         }
-        // FIXME (upstream): the palettes aren't released: those made on a
-        // lost device are kept, and bound with the new device's textures.
+        // Note (upstream): the palettes aren't released, so those made on a
+        // lost device are bound with the new device's textures. Here their
+        // textures are released, and remade by recreate_palettes().
+        for palette in self.palettes.values_mut() {
+            palette.resources = None;
+        }
 
         // Release/reset everything else
 
@@ -836,6 +843,71 @@ impl D3d11Renderer {
          */
         self.h_d3d11_mod = None;
         self.h_dxgi_mod = None;
+    }
+
+    /// The texture of a palette and its view (in `D3D11_CreatePalette()`).
+    fn create_palette_resources(&self) -> Result<(Texture2d, ShaderResourceView)> {
+        let device = self.device()?;
+
+        let texture_desc = Texture2dDesc {
+            width: 256,
+            height: 1,
+            mip_levels: 1,
+            array_size: 1,
+            format: sdl_pixel_format_to_dxgi_texture_format(
+                PixelFormat::RGBA32,
+                self.output_colorspace,
+            ),
+            sample_desc: SampleDesc {
+                count: 1,
+                quality: 0,
+            },
+            misc_flags: 0,
+            usage: D3D11_USAGE_DEFAULT,
+            cpu_access_flags: 0,
+            bind_flags: D3D11_BIND_SHADER_RESOURCE,
+        };
+
+        let texture = device
+            .create_texture_2d(&texture_desc)
+            .map_err(|hr| hr_error("ID3D11Device1::CreateTexture2D", hr))?;
+
+        let resource_view_desc = ShaderResourceViewDesc::texture_2d(
+            sdl_pixel_format_to_dxgi_main_resource_view_format(
+                PixelFormat::RGBA32,
+                self.output_colorspace,
+            ),
+            0,
+            texture_desc.mip_levels,
+        );
+        let resource_view = device
+            .create_shader_resource_view(&texture, &resource_view_desc)
+            .map_err(|hr| hr_error("ID3D11Device1::CreateShaderResourceView", hr))?;
+        Ok((texture, resource_view))
+    }
+
+    /// The palettes' textures on a new device, with the colors they had
+    /// (after a device loss, see release_all()).
+    fn recreate_palettes(&mut self) -> Result<()> {
+        let ids: Vec<u32> = self.palettes.keys().copied().collect();
+        for id in ids {
+            let (texture, resource_view) = self.create_palette_resources()?;
+            let colors = &self.palettes[&id].colors;
+            if !colors.is_empty() {
+                let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
+                self.update_texture_internal(
+                    &texture,
+                    4,
+                    (0, 0, colors.len() as i32, 1),
+                    &bytes,
+                    bytes.len() as i32,
+                )?;
+            }
+            if let Some(palette) = self.palettes.get_mut(&id) {
+                palette.resources = Some((texture, resource_view));
+            }
+        }
+        Ok(())
     }
 
     /// Translation of `D3D11_CreateBlendState()`.
@@ -1384,6 +1456,7 @@ impl D3d11Renderer {
         match self
             .create_device_resources()
             .and_then(|()| self.create_window_size_dependent_resources())
+            .and_then(|()| self.recreate_palettes())
         {
             Ok(()) => recovered = true,
             Err(e) => {
@@ -2213,7 +2286,8 @@ impl D3d11Renderer {
         if source.has_palette {
             let palette = palette
                 .and_then(|p| self.palettes.get(&p))
-                .map(|p| raw(&p.resource_view));
+                .and_then(|p| p.resources.as_ref())
+                .map(|(_, view)| raw(view));
             shader_resources.push(palette.unwrap_or(null_mut()));
 
             shader_samplers.push(self.get_sampler_state(
@@ -3231,50 +3305,14 @@ impl RenderBackend for D3d11Renderer {
 
     /// Translation of `D3D11_CreatePalette()`.
     fn create_palette(&mut self) -> Result<Box<dyn Any>> {
-        let device = self.device()?;
-
-        let texture_desc = Texture2dDesc {
-            width: 256,
-            height: 1,
-            mip_levels: 1,
-            array_size: 1,
-            format: sdl_pixel_format_to_dxgi_texture_format(
-                PixelFormat::RGBA32,
-                self.output_colorspace,
-            ),
-            sample_desc: SampleDesc {
-                count: 1,
-                quality: 0,
-            },
-            misc_flags: 0,
-            usage: D3D11_USAGE_DEFAULT,
-            cpu_access_flags: 0,
-            bind_flags: D3D11_BIND_SHADER_RESOURCE,
-        };
-
-        let texture = device
-            .create_texture_2d(&texture_desc)
-            .map_err(|hr| hr_error("ID3D11Device1::CreateTexture2D", hr))?;
-
-        let resource_view_desc = ShaderResourceViewDesc::texture_2d(
-            sdl_pixel_format_to_dxgi_main_resource_view_format(
-                PixelFormat::RGBA32,
-                self.output_colorspace,
-            ),
-            0,
-            texture_desc.mip_levels,
-        );
-        let resource_view = device
-            .create_shader_resource_view(&texture, &resource_view_desc)
-            .map_err(|hr| hr_error("ID3D11Device1::CreateShaderResourceView", hr))?;
-
+        let resources = self.create_palette_resources()?;
         let id = self.next_palette;
         self.next_palette += 1;
         self.palettes.insert(
             id,
             PaletteData {
-                texture,
-                resource_view,
+                resources: Some(resources),
+                colors: Vec::new(),
             },
         );
         Ok(Box::new(PaletteRef(id)))
@@ -3288,12 +3326,14 @@ impl RenderBackend for D3d11Renderer {
             .ok_or_else(|| Error::invalid_param("palette"))?;
         let palettedata = self
             .palettes
-            .get(&id)
+            .get_mut(&id)
             .ok_or_else(|| Error::invalid_param("palette"))?;
+        palettedata.colors = colors.to_vec();
+        let (texture, _) = palettedata.resources.clone().ok_or_else(device_lost)?;
 
         let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
         self.update_texture_internal(
-            &palettedata.texture,
+            &texture,
             4,
             (0, 0, colors.len() as i32, 1),
             &bytes,
