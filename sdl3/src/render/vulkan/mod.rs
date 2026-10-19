@@ -1718,9 +1718,12 @@ impl VulkanRenderer {
                     self.swapchain_image_layouts[image_index],
                 );
             }
-            // FIXME (upstream): this looks at the layout of the swapchain
+            // Note (upstream): this looks at the layout of the swapchain
             // image of the command buffer's index, not of the current
-            // swapchain image (which it then transitions).
+            // swapchain image (which it then transitions). It does no harm:
+            // this only runs at the start of a frame, when no swapchain
+            // image is in the color attachment layout, so both indices give
+            // the same answer.
             else if self.swapchain_image_layouts[self.current_command_buffer_index as usize]
                 != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
             {
