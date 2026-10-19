@@ -597,17 +597,13 @@ fn imf_load(m: &mut ModuleData, f: &mut HioHandle<'_>, _start: i32) -> i32 {
         }
     }
 
-    let mod_ = &mut m.mod_;
-    mod_.smp = smp_num as i32;
-    // FIXME (upstream): the samples are reallocated to their number with
-    // realloc(), which for none frees them and returns NULL (with glibc),
-    // failing the load.
-    if mod_.smp == 0 {
-        mod_.xxs = Vec::new();
+    // Note (upstream): libxmp 4.7.3 reallocates the samples to their number
+    // with realloc(), which for none frees them and returns NULL (with
+    // glibc), failing the load; libxmp_realloc_samples() (as libxmp's
+    // master branch has it) doesn't.
+    if (smp_num as i32) < m.mod_.smp && libxmp_realloc_samples(m, smp_num as i32) < 0 {
         return -1;
     }
-    mod_.xxs.truncate(smp_num);
-    m.xtra.truncate(smp_num);
 
     m.c4rate = C4_NTSC_RATE;
     m.quirk |= QUIRK_FILTER | QUIRK_MARKER | QUIRK_RSTCHN | QUIRK_ARPMEM;
