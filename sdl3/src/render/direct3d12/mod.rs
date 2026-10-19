@@ -1852,10 +1852,13 @@ impl D3d12Renderer {
             node.index = i;
             if i != SDL_D3D12_MAX_NUM_TEXTURES - 1 {
                 node.next = Some(i + 1);
+            } else {
+                // Note (upstream): the last node's next isn't reset, so
+                // after a device loss it still points where it did when it
+                // was freed, and the slots from there are handed out twice.
+                node.next = None;
             }
         }
-        // FIXME (upstream): the last node's next isn't reset, so after a
-        // device loss it still points where it did when it was freed.
         self.srv_pool_head = Some(0);
     }
 
