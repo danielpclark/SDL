@@ -269,6 +269,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "far_farandole.far",
     "flt_flt8.mod",
     "fnk_funktracker.fnk",
+    "gal4_envloop.j2b",
     "gal4_j2b.j2b",
     "gal5_j2b.j2b",
     "gdm_2gdm.gdm",
