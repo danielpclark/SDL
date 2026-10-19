@@ -2791,6 +2791,10 @@ def sym_files():
             hdr += b'\4' + sym_sigma_delta(data)
     hdr += b'\1' + sym_lzw(comment)
     write('sym_symphony.dsym', hdr)
+    # a song name longer than 32 characters
+    long_name = b'sym test with a name past 32 characters'
+    assert hdr.count(b'\x08sym test') == 1
+    write('sym_longname.dsym', hdr.replace(b'\x08sym test', bytes([len(long_name)]) + long_name))
 
 
 def digi_files():

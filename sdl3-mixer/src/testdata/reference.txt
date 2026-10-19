@@ -8,6 +8,68 @@ raw 0: dur=3000 e30825106988d160
 raw 1: dur=3000 2ad3d15630b5aac3
 raw 2: dur=1500 424057d38b4cf67f
 raw 3: dur=500 8c7f074f69a59066
+== sym_longname.dsym
+open: XMP 0x8010 2 48000 title="sym test with a name past 32 cha" copyright="Digital Symphony info text Digital Symphony info text Digital Symphony info text Digital Symphony info text " frames=241920 xmp.name="sym test with a name past 32 cha" xmp.type="Digital Symphony" xmp.comment="Digital Symphony info text Digital Symphony info text Digital Symphony info text Digital Symphony info text " | 967680 65d2c4dd801ebe9a end=0
+f32s48: 1935360 d4410c9c13f95bf0 end=0
+s16m22: 222264 63bbcfa2eeefe286 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 381: err: Audio data is in unknown/unsupported/corrupt format
+trunc 763: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1145: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1526: XMP 0x8010 2 48000 title="sym test with a name past 32 cha" copyright="Digital Symphony info text Digital Symphony info text Digital Symphony info text Digital Symphony info text " frames=241920 xmp.name="sym test with a name past 32 cha" xmp.type="Digital Symphony" xmp.comment="Digital Symphony info text Digital Symphony info text Digital Symphony info text Digital Symphony info text " | 967680 65d2c4dd801ebe9a end=0
+corrupt 0: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="sym test with a name past 32 cha" copyright="*" frames=241920 xmp.name="sym test with a name past 32 cha" xmp.type="Digital Symphony" xmp.comment="*" | 967680 3ce4d37b03f8e165 end=0
+corrupt 3 mix: dur=241920 play=1 pos=12288 replay=1 seek=1 pos=80640 playing=1 35bdeb7272e2569f
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
+mix: dur=241920 play=1 pos=12288 replay=1 seek=1 pos=80640 playing=1 df2abefea9d9f5ad
+mixpre: dur=241920 play=1 pos=12288 replay=1 seek=1 pos=80640 playing=1 aeafc8df059a931d
+order 1: play=1 pos=4096 playing=1 413214736540b1b3
+order 2: play=1 pos=4096 playing=1 cdd87fd7dd84e03f
+order 0: play=1 pos=4096 playing=1 3183d7c7b7aeaadb
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 008fff4a238011c5
+order -5: play=1 pos=4096 playing=1 1f450404a7bffc00
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 cd09a15fc9f4844d
+modseek 0: seek=1 pos=0 playing=1 0b3836f73cf0e0d4
+modseek 2205: seek=1 pos=2205 playing=1 1c5e2fc783e55990
+modseek 120960: seek=1 pos=120960 playing=1 d3aef7046099ba7e
+modseek 240920: seek=1 pos=240920 playing=1 d3aef7046099ba7e
+modseek 246920: seek=1 pos=246920 playing=1 d3aef7046099ba7e
+modseek 100: seek=1 pos=100 playing=1 1c5e2fc783e55990
+xmp: pat=3 trk=4 chn=4 ins=63 smp=63 spd=6 bpm=125 len=3 rst=0 gvl=64 seqs=1 vol=64 md5=e44a35e22b4a2d8ec84297bec5635b78 94808ce63cffefa6
+xmp 0: set=0 mixer=0 frames=252 d734c829d1ce1144 314ffff334b12ec4 seek=0 pos=1 916e1c70a6b1f614
+xmp 1: set=0 mixer=0 frames=252 e4d6d44467baa339 d266664b816af404 seek=0 pos=1 9d0f96ceebb4ef27
+xmp 2: set=0 mixer=0 frames=252 07d322b9e13053b0 e08db23e08bc401c seek=0 pos=1 c8fbc60859d56a03
+xmp 3: set=0 mixer=0 frames=252 625e39972984ec84 b6f4df6f78d18eed seek=0 pos=1 4edc3a9a39cdaa9a
 == med4_loops.med
 open: XMP 0x8010 2 48000 copyright="MED4 comment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 293560 96a478a90cf51781 end=0
 f32s48: 587120 f3b8f0497b19f582 end=0
