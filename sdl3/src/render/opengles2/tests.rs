@@ -1351,3 +1351,71 @@ fn gles2_palette_of_a_texture_destroyed_before_the_flush() {
     drop(r);
     window.destroy();
 }
+
+/// Palettes made and destroyed while another renderer's context is current
+/// (upstream's GLES2_CreatePalette() and GLES2_DestroyPalette() use that
+/// context, see the Note in create_palette()).
+#[test]
+fn gles2_palettes_in_their_own_context() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    let (window2, mut r2) = gles2_renderer(W, H).unwrap();
+    let mut sw = software_renderer(W, H);
+    let palettes: Vec<_> = (0..2u8)
+        .map(|k| {
+            share_palette(
+                Palette::from_colors(
+                    (0..=255u8)
+                        .map(|i| Color::new(i, 255 - i, i / 2 + k * 100, 255))
+                        .collect(),
+                )
+                .unwrap(),
+            )
+        })
+        .collect();
+    let indices: Vec<u8> = (0..64).map(|i| (i * 37 % 256) as u8).collect();
+    // An INDEX8 texture given its palette while `other`'s context is current
+    let make = |r: &mut Renderer, other: &mut Renderer, k: usize| {
+        let t = r
+            .create_texture(PixelFormat::INDEX8, TextureAccess::Static, 8, 8)
+            .unwrap();
+        r.update_texture(t, None, &indices, 8).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        other.set_draw_color(1, 2, 3, 255);
+        other.clear().unwrap();
+        other.read_pixels(None).unwrap();
+        r.set_texture_palette(t, Some(palettes[k].clone())).unwrap();
+        t
+    };
+    let draw = |r: &mut Renderer, t: Texture| {
+        r.set_draw_color(12, 34, 56, 255);
+        r.clear().unwrap();
+        r.render_texture(t, None, Some(&FRect::new(20.0, 12.0, 8.0, 8.0)))
+            .unwrap();
+        r.read_pixels(None).unwrap()
+    };
+    let t1 = make(&mut r, &mut r2, 0);
+    let s1 = make(&mut sw, &mut r2, 0);
+    assert_close("palette made", &draw(&mut r, t1), &draw(&mut sw, s1), 0);
+
+    // (the second renderer's palette texture may have the first one's name
+    // in its own context)
+    let t2 = make(&mut r2, &mut r, 1);
+    let s2 = make(&mut sw, &mut r, 1);
+    assert_close("second palette", &draw(&mut r2, t2), &draw(&mut sw, s2), 0);
+    r2.read_pixels(None).unwrap();
+    r.set_texture_palette(t1, None).unwrap();
+    assert_close(
+        "second palette after the first is destroyed",
+        &draw(&mut r2, t2),
+        &draw(&mut sw, s2),
+        0,
+    );
+    drop(r2);
+    window2.destroy();
+    drop(r);
+    window.destroy();
+}
