@@ -1065,11 +1065,15 @@ fn gpu_matches_software_for_textures_on(backend: Backend) {
     };
     let mut sw = software_renderer(W, H);
 
+    // (ARGB4444 and ARGB1555 keep their alpha: upstream draws them
+    // opaque, see the Note in draw())
     for format in [
         PixelFormat::ARGB8888,
         PixelFormat::ABGR8888,
         PixelFormat::XRGB8888,
         PixelFormat::RGB565,
+        PixelFormat::ARGB4444,
+        PixelFormat::ARGB1555,
     ] {
         let tg = pattern_texture(&mut r, format, 16, 12);
         let ts = pattern_texture(&mut sw, format, 16, 12);
@@ -1132,35 +1136,6 @@ fn gpu_matches_software_for_textures_on(backend: Backend) {
                 tol,
             );
         }
-        r.destroy_texture(tg);
-        sw.destroy_texture(ts);
-    }
-
-    // Note (upstream): an ARGB4444 texture (one with alpha other than
-    // RGBA32 and BGRA32) is drawn with the RGB shader, as if it were
-    // opaque (see the FIXME in draw()): compare it with the software
-    // renderer's copy of the same texture made opaque.
-    {
-        let mut opaque = pattern(16, 12);
-        for p in opaque.chunks_mut(4) {
-            p[3] = 255;
-        }
-        let tg = pattern_texture(&mut r, PixelFormat::ARGB4444, 16, 12);
-        let ts = texture_from(&mut sw, PixelFormat::ARGB4444, 16, 12, &opaque);
-        for (rr, t) in [(&mut r, tg), (&mut sw, ts)] {
-            rr.set_draw_color(30, 60, 90, 255);
-            rr.clear().unwrap();
-            rr.set_texture_blend_mode(t, BlendMode::BLEND).unwrap();
-            rr.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
-            rr.render_texture(t, None, Some(&FRect::new(2.0, 3.0, 16.0, 12.0)))
-                .unwrap();
-        }
-        assert_close(
-            "ARGB4444 texture (drawn opaque)",
-            &r.read_pixels(None).unwrap(),
-            &sw.read_pixels(None).unwrap(),
-            1,
-        );
         r.destroy_texture(tg);
         sw.destroy_texture(ts);
     }
