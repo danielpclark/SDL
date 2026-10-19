@@ -4035,11 +4035,21 @@ impl RenderBackend for D3d12Renderer {
         texture_data.staging_buffer = Some(staging_buffer.clone());
 
         // Get a write-only pointer to data in the upload buffer:
-        let texture_memory = staging_buffer.map().map_err(|hr| {
-            // FIXME (upstream): this releases the next upload buffer (none)
-            // instead of the staging buffer, so the texture stays locked.
-            hr_error("ID3D12Resource::Map [map staging texture]", hr)
-        })?;
+        let mapped = if injected_failure("map staging buffer") {
+            Err(crate::render::direct3d11::d3d::E_FAIL)
+        } else {
+            staging_buffer.map()
+        };
+        let texture_memory = match mapped {
+            Ok(texture_memory) => texture_memory,
+            Err(hr) => {
+                // Note (upstream): this releases the next upload buffer
+                // (none) instead of the staging buffer, so the texture
+                // stays locked; here the staging buffer is released.
+                texture_data.staging_buffer = None;
+                return Err(hr_error("ID3D12Resource::Map [map staging texture]", hr));
+            }
+        };
 
         let bpp = if texture_desc.format == DXGI_FORMAT_R8_UNORM {
             1
