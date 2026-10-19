@@ -1828,20 +1828,31 @@ def masi16_files():
     pats += pat(16, {0: {0: ('E-4', 2, None, (13, 0x03)), 1: ('C-4', 1, 64, (30, 0x44))},
                      8: {2: ('G-3', 3, None, (22, 0x04))}})
     smp = [('square', SQ8, 0, 64, 0x80), ('saw', SW8, 0, 0, 0), ('sine', SN8, 64, 256, 0xa0)]
-    p_ord = 98
-    p_chn = p_ord + len(orders)
-    p_ins = p_chn + 16
-    p_pat = p_ins + 64 * len(smp)
-    p_smp = p_pat + len(pats)
-    hdr = b'PSM\xfe' + pad('masi16 test', 60) + bytes([0, 0x10, 0, 5, 125, 64])
-    hdr += struct.pack('<HHHHHHIIII', 0, len(orders), 2, len(smp), chn, chn, p_ord, p_chn, p_pat, p_ins)
-    hdr += bytes(orders) + bytes([0, 15, 7, 8] + [7] * 12)
-    sdata = b''
-    for i, (name, data, ls, le, flags) in enumerate(smp):
-        hdr += pad('file%d.smp' % i, 13) + pad(name, 24) + struct.pack('<IIH', p_smp + len(sdata), 0, i + 1)
-        hdr += bytes([flags]) + struct.pack('<III', len(data), ls, le) + bytes([0x70 + i, 60 - 8 * i]) + le16(8363)
-        sdata += delta8(list(struct.unpack('%db' % len(data), data)))
-    write('masi16_psm16.psm', hdr + pats + sdata)
+
+    def psm16(title, orders, npat, pats, smp):
+        p_ord = 98
+        p_chn = p_ord + len(orders)
+        p_ins = p_chn + 16
+        p_pat = p_ins + 64 * len(smp)
+        p_smp = p_pat + len(pats)
+        hdr = b'PSM\xfe' + pad(title, 60) + bytes([0, 0x10, 0, 5, 125, 64])
+        hdr += struct.pack('<HHHHHHIIII', 0, len(orders), npat, len(smp), chn, chn, p_ord, p_chn, p_pat, p_ins)
+        hdr += bytes(orders) + bytes([0, 15, 7, 8] + [7] * 12)
+        sdata = b''
+        for i, (name, data, ls, le, flags) in enumerate(smp):
+            hdr += pad('file%d.smp' % i, 13) + pad(name, 24) + struct.pack('<IIH', p_smp + len(sdata), 0, i + 1)
+            hdr += bytes([flags]) + struct.pack('<III', len(data), ls, le) + bytes([0x70 + i, 60 - 8 * i])
+            hdr += le16(8363)
+            sdata += delta8(list(struct.unpack('%db' % len(data), data)))
+        return hdr + pats + sdata
+
+    write('masi16_psm16.psm', psm16('masi16 test', orders, 2, pats, smp))
+    # sample offsets (40, with two more bytes), and a pattern after them
+    long = s8(decay(saw(4096, 50, 100), 1.0, 0.3))
+    pats = pat(16, {0: {0: ('C-4', 1, None, (40, 0x00, 0x04, 0x00))}, 4: {0: ('C-4', 1, None, (40, 0x00, 0x08, 0x00))},
+                    8: {1: ('E-4', 1, 48, (40, 0x00, 0x02, 0x00))}})
+    pats += pat(16, {0: {2: ('G-4', 1, None, None)}, 6: {3: ('C-5', 1, 40, (40, 0x00, 0x06, 0x00))}})
+    write('masi16_offset.psm', psm16('masi16 offsets', [0, 1], 2, pats, [('long', long, 0, 0, 0)]))
 
 
 def gal_patt(num, rows, cells, fx_first=True):

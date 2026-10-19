@@ -282,6 +282,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "it_old.it",
     "it_smp.it",
     "liq_liquid.liq",
+    "masi16_offset.psm",
     "masi16_psm16.psm",
     "masi_psm.psm",
     "mdl_v11.mdl",

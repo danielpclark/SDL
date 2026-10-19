@@ -8,6 +8,70 @@ raw 0: dur=3000 e30825106988d160
 raw 1: dur=3000 2ad3d15630b5aac3
 raw 2: dur=1500 424057d38b4cf67f
 raw 3: dur=500 8c7f074f69a59066
+== masi16_offset.psm
+open: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 cf1629448a502af1 end=0
+f32s48: 1228800 41dd113126fcb7b1 end=0
+s16m22: 141120 b6f22d052672c2df end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 2efd6d8d9928324f end=0
+trunc 300: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 0948206a4c0e33bf end=0
+trunc 512: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 82c2ed519dea9b17 end=0
+trunc 1000: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 0f10397cc26fd901 end=0
+trunc 2000: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 33c85d9892f8ba1a end=0
+trunc 4096: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 191714fa23cf8769 end=0
+trunc 1087: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 7e4d56fae4696194 end=0
+trunc 2174: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 0b0021e5dac6c728 end=0
+trunc 3261: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 4d2d2551af7359d6 end=0
+trunc 4348: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 b3cc83d030c9827a end=0
+corrupt 0: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 cf1629448a502af1 end=0
+corrupt 0 mix: dur=153600 play=1 pos=12288 replay=1 seek=1 pos=51200 playing=1 9fb86ca929dc75fb
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: XMP 0x8010 2 48000 title="masi16 offsets" frames=76800 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 307200 ada8e7eb26f30763 end=0
+corrupt 2 mix: dur=76800 play=1 pos=12288 replay=1 seek=1 pos=25600 playing=1 0ae4bdd1dfab64f9
+corrupt 3: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 1e7cb3a296ed394f end=0
+corrupt 3 mix: dur=153600 play=1 pos=12288 replay=1 seek=1 pos=51200 playing=1 e1abee496f313e8f
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 bbd8fb6280a527fa end=0
+corrupt 5 mix: dur=153600 play=1 pos=12288 replay=1 seek=1 pos=51200 playing=1 e2be809d3abbe188
+mix: dur=153600 play=1 pos=12288 replay=1 seek=1 pos=51200 playing=1 9fb86ca929dc75fb
+mixpre: dur=153600 play=1 pos=12288 replay=1 seek=1 pos=51200 playing=1 c0cd072a6405f52f
+order 1: play=1 pos=4096 playing=1 89d83791d2ff6bcf
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 cfb9bf7f6443a32a
+order 0: play=1 pos=4096 playing=1 69657b2373398167
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f34498dcfd970977
+order -5: play=1 pos=4096 playing=1 14e2f424878dd381
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 71fb3c14c9f46acb
+modseek 0: seek=1 pos=0 playing=1 25717d5f6ddfcd84
+modseek 2205: seek=1 pos=2205 playing=1 996207850ed3e98a
+modseek 76800: seek=1 pos=76800 playing=1 2b3fdb6639365b66
+modseek 152600: seek=1 pos=152600 playing=1 4be6867e5da6f156
+modseek 158600: seek=1 pos=158600 playing=1 4be6867e5da6f156
+modseek 100: seek=1 pos=100 playing=1 7fbbd383e3a3e3c5
+xmp: pat=2 trk=8 chn=4 ins=1 smp=1 spd=5 bpm=125 len=2 rst=0 gvl=64 seqs=1 vol=64 md5=51952fa9b439a4c436300257047011e9 061b3d59d7ecb3c0
+xmp 0: set=0 mixer=0 frames=160 c4fedc1010249d87 2a488667e8263e9b seek=0 pos=1 1c86d455bdd74529
+xmp 1: set=0 mixer=0 frames=160 cc08748e114c2117 3712af757ed2c89b seek=0 pos=1 46c11b6cafbb093e
+xmp 2: set=0 mixer=0 frames=160 8f694989833796a9 56a055a1e53f97ef seek=0 pos=1 861333e935e63f4e
+xmp 3: set=0 mixer=0 frames=160 51f397fd837ccbdf bed4699673e14a0f seek=0 pos=1 627a0de4c592ba92
 == imf_nosamples.imf
 open: XMP 0x8010 2 48000 title="no samples" frames=59040 xmp.name="no samples" xmp.type="Imago Orpheus 1.0 IMF" | 236288 38ad1a3e121abf25 end=0
 f32s48: 472576 6d4aff251de35b25 end=0
