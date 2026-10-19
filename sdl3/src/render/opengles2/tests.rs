@@ -45,6 +45,21 @@ impl Drop for Video {
     }
 }
 
+thread_local! {
+    /// The step of the renderer this thread's test makes fail.
+    static FAIL_STEP: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+}
+
+/// The renderer's fault injection: whether the test makes `step` fail.
+pub(super) fn injected_failure(step: &str) -> bool {
+    FAIL_STEP.get() == Some(step)
+}
+
+/// The shader objects of the current context (names up to 4096).
+fn shader_count(gl: &crate::render::test_gl::TestGl) -> usize {
+    (1..=4096).filter(|&name| gl.is_shader(name)).count()
+}
+
 /// An offscreen window with an OpenGL ES 2.0 renderer, or `None` (with the
 /// skip reported) when there is no OpenGL ES.
 fn gles2_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
@@ -1123,6 +1138,36 @@ fn gles2_textures_from_existing_gl_textures() {
         }
     }
     gl.delete_texture(name);
+}
+
+/// A shader whose first compile fails and second works leaves one shader
+/// object, not two (upstream's first one isn't deleted). (The vertex
+/// shader's attempts are the same source, so its first is made to fail.)
+#[test]
+fn gles2_failed_shader_attempt_is_deleted() {
+    use crate::render::test_gl::TestGl;
+
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut r)) = gles2_renderer(W, H) else {
+        return;
+    };
+    // (the renderer's context is current once it has drawn)
+    r.flush().unwrap();
+    let gl = TestGl::load(false);
+    let shaders = shader_count(&gl);
+    assert!(shaders > 0);
+    drop(r);
+    window.destroy();
+
+    FAIL_STEP.set(Some("first vertex shader attempt"));
+    let made = gles2_renderer(W, H);
+    FAIL_STEP.set(None);
+    let (window, mut r) = made.unwrap();
+    r.flush().unwrap();
+    assert_eq!(shader_count(&gl), shaders);
+    drop(r);
+    window.destroy();
 }
 
 /// An offscreen OpenGL window whose context is asked for as OpenGL ES 3.0,

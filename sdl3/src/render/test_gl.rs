@@ -22,6 +22,7 @@ pub(crate) struct TestGl {
     gen_textures: unsafe extern "system" fn(i32, *mut u32),
     delete_textures: unsafe extern "system" fn(i32, *const u32),
     is_texture: unsafe extern "system" fn(u32) -> u8,
+    is_shader: unsafe extern "system" fn(u32) -> u8,
     bind_texture: unsafe extern "system" fn(u32, u32),
     get_integerv: unsafe extern "system" fn(u32, *mut i32),
     gen_framebuffers: unsafe extern "system" fn(i32, *mut u32),
@@ -53,6 +54,7 @@ impl TestGl {
                 gen_textures: f!("glGenTextures"),
                 delete_textures: f!("glDeleteTextures"),
                 is_texture: f!("glIsTexture"),
+                is_shader: f!("glIsShader"),
                 bind_texture: f!("glBindTexture"),
                 get_integerv: f!("glGetIntegerv"),
                 gen_framebuffers: f!("glGenFramebuffers", "glGenFramebuffersEXT"),
@@ -97,6 +99,12 @@ impl TestGl {
     pub(crate) fn is_texture(&self, name: u32) -> bool {
         // SAFETY: a plain GL call on the current context.
         unsafe { (self.is_texture)(name) != 0 }
+    }
+
+    /// Whether `name` is a shader object.
+    pub(crate) fn is_shader(&self, name: u32) -> bool {
+        // SAFETY: a plain GL call on the current context.
+        unsafe { (self.is_shader)(name) != 0 }
     }
 
     /// Delete a texture.
