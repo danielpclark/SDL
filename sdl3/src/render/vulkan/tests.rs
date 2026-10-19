@@ -734,6 +734,10 @@ fn vulkan_matches_software_for_textures() {
         PixelFormat::XRGB8888, // (through a native texture)
         PixelFormat::RGB565,
         PixelFormat::RGBA4444,
+        // (VK_EXT_4444_formats' where the device has it, converted where
+        // not)
+        PixelFormat::ARGB4444,
+        PixelFormat::ABGR4444,
     ] {
         let tv = pattern_texture(&mut r, format, 16, 12);
         let ts = pattern_texture(&mut sw, format, 16, 12);
@@ -1360,6 +1364,27 @@ fn vulkan_palettes_survive_a_device_loss() {
     window.destroy();
 }
 
+/// The renderer's own device is made with VK_EXT_4444_formats when the
+/// physical device has it, and its formats are offered only then.
+#[test]
+fn vulkan_4444_formats_with_their_extension() {
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut data)) = vulkan_backend(W, H) else {
+        return;
+    };
+    let formats = data.texture_formats.clone();
+    println!("VK_EXT_4444_formats: {}", data.supports_ext_4444_formats);
+    for format in [PixelFormat::ARGB4444, PixelFormat::ABGR4444] {
+        if !data.supports_ext_4444_formats {
+            assert!(!formats.contains(&format), "{format:?}");
+        }
+    }
+    data.destroy();
+    drop(data);
+    window.destroy();
+}
+
 #[test]
 fn vulkan_line_methods() {
     let _l = crate::test_support::test_lock();
@@ -1468,12 +1493,7 @@ unsafe extern "system" fn debug_callback(
         .to_string_lossy()
         .into_owned();
     eprintln!("validation: {message}");
-    // (upstream's query of VK_EXT_4444_formats' formats, an extension the
-    // device isn't made with: see the FIXME in for_window())
-    let format_query = message
-        .contains("VUID-vkGetPhysicalDeviceImageFormatProperties-format-parameter")
-        && (message.contains("format (1000340000)") || message.contains("format (1000340001)"));
-    if severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT != 0 && !format_query {
+    if severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT != 0 {
         VALIDATION_ERRORS
             .lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -2283,6 +2303,12 @@ fn vulkan_renderer_on_existing_vulkan_objects() {
     );
     r.destroy_texture(target);
     r.present().unwrap();
+
+    // The application's device has no VK_EXT_4444_formats, so its formats
+    // aren't offered (upstream's are, and its query of them is reported).
+    for format in [PixelFormat::ARGB4444, PixelFormat::ABGR4444] {
+        assert!(!r.texture_formats().contains(&format), "{format:?}");
+    }
 
     // An NV12 texture of the application's two-plane image.
     if app.ycbcr && r.texture_formats().contains(&PixelFormat::NV12) {
