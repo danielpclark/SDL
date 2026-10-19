@@ -320,6 +320,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "stim_slamtilt.stim",
     "stm_st221.stm",
     "stx_stm2stx.stx",
+    "sym_longname.dsym",
     "sym_symphony.dsym",
     "ult_v004.ult",
     "umx_unreal.umx",

@@ -380,9 +380,9 @@ fn sym_load(m: &mut ModuleData, f: &mut HioHandle<'_>, _start: i32) -> i32 {
     let a = hio_read8(f) as u32; /* track name length */
     if a > 32 {
         hio_read(&mut mod_.name, 1, 32, f);
-        // FIXME (upstream): this seeks to the length less 32 from the
-        // start of the file, not past the rest of the name.
-        hio_seek(f, (a - 32) as i64, SEEK_SET);
+        // Note (upstream): C seeks to the length less 32 from the start of
+        // the file, not past the rest of the name.
+        hio_seek(f, (a - 32) as i64, SEEK_CUR);
     } else {
         hio_read(&mut mod_.name, 1, a as usize, f);
     }
