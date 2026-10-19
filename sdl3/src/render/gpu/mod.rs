@@ -2059,13 +2059,21 @@ impl RenderBackend for GpuRenderer {
         };
         publish(PROP_TEXTURE_GPU_TEXTURE_POINTER, &main);
 
-        // FIXME (upstream): the default colorspace of P010, I0FL and I4FL
-        // textures (HDR10) is an RGB one, which has no YCbCr matrix: they
-        // need a YCbCr colorspace.
+        // Note (upstream): the default colorspace of P010, I0FL and I4FL
+        // textures (HDR10) is an RGB one, which has no YCbCr matrix, so
+        // there they fail without a YCbCr colorspace. Here HDR10 is read as
+        // its YCbCr counterpart for these formats: BT2020_LIMITED, with the
+        // same primaries and transfer.
+        let matrix_colorspace = if matches!(texture.format, F::P010 | F::I0FL | F::I4FL)
+            && texture.colorspace == Colorspace::HDR10
+        {
+            Colorspace::BT2020_LIMITED
+        } else {
+            texture.colorspace
+        };
         let ycbcr_matrix = |bits_per_pixel: u32| -> Result<[f32; 16]> {
-            let Some(matrix) = texture
-                .colorspace
-                .ycbcr_to_rgb_matrix(texture.h.max(0) as u32, bits_per_pixel)
+            let Some(matrix) =
+                matrix_colorspace.ycbcr_to_rgb_matrix(texture.h.max(0) as u32, bits_per_pixel)
             else {
                 return Err(Error::new("Unsupported YUV colorspace"));
             };
