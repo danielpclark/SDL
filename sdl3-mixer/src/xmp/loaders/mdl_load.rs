@@ -107,9 +107,9 @@ fn fix_env(i: usize, ei: &mut XmpEnvelope, env: Option<&[MdlEnvelope]>, idx: &[i
                 };
                 ei.sus = (env[j].sus & 0x0f) as i32;
                 ei.lps = (env[j].loop_ & 0x0f) as i32;
-                // FIXME (upstream): the loop end is the high nibble, not
-                // shifted down.
-                ei.lpe = (env[j].loop_ & 0xf0) as i32;
+                // Note (upstream): C doesn't shift the loop end's nibble
+                // down (making it 0, 16, ... 240).
+                ei.lpe = ((env[j].loop_ & 0xf0) >> 4) as i32;
 
                 let mut lastx: i32 = -1;
 
