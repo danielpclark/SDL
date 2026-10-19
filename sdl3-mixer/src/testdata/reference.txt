@@ -4528,9 +4528,9 @@ xmp 1: set=0 mixer=0 frames=250 7d44ebc35064b75f c2f77a5fa5a77f0a seek=0 pos=1 0
 xmp 2: set=0 mixer=0 frames=250 67a08a43c838b0b2 8fa1193cf748b36a seek=0 pos=1 526e4b27cbe3b2eb
 xmp 3: set=0 mixer=0 frames=250 5187a095801638b1 5971706036e096ea seek=0 pos=1 5bf34299c7e8fd43
 == mmd0_med.med
-open: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 32d0295c35a6f72d end=0
-f32s48: 224936 c2748bbd49fb2e21 end=0
-s16m22: 25834 802c3ac0748f4293 end=0
+open: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 fb8cece33ebcd2b7 end=0
+f32s48: 224936 546816c515c06d97 end=0
+s16m22: 25834 636ede2484eb4964 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -4558,38 +4558,38 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 668: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1336: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2004: err: Audio data is in unknown/unsupported/corrupt format
-trunc 2671: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 cb6a3bf86c7eb428 end=0
+trunc 2671: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 9688181e1f183da2 end=0
 corrupt 0: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 1134a70bae268a35 end=0
 corrupt 0 mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 0ce109223a52f5a5
-corrupt 1: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 32d0295c35a6f72d end=0
-corrupt 1 mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 a4f37a829b1ded04
+corrupt 1: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 fb8cece33ebcd2b7 end=0
+corrupt 1 mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 c13313589bb46ad5
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 510adfe75774438e end=0
-corrupt 3 mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 b08f8b7567109a5e
+corrupt 3: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 a1b232c6e878eaac end=0
+corrupt 3 mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 55410539ecae399b
 corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
-mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 a4f37a829b1ded04
-mixpre: dur=28117 play=1 pos=12288 replay=1 seek=1 pos=9372 playing=1 8427df6fb9045d80
+mix: dur=28128 play=1 pos=12288 replay=1 seek=1 pos=9376 playing=1 c13313589bb46ad5
+mixpre: dur=28117 play=1 pos=12288 replay=1 seek=1 pos=9372 playing=1 e7e00634a7cc9012
 order 1: play=1 pos=4096 playing=1 6986ce253a9f1e4e
-order 2: play=1 pos=4096 playing=1 17b7a7ee1f60f097
-order 0: play=1 pos=4096 playing=1 5e6f0602893dbd43
+order 2: play=1 pos=4096 playing=1 22e9550abc24039a
+order 0: play=1 pos=4096 playing=1 30e4920bc094cb50
 order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d904c958ab6ef22c
-order -5: play=1 pos=4096 playing=1 f03133816f8f3287
+order -5: play=1 pos=4096 playing=1 08d939747cec8b94
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 87e7c406ee2159c9
-modseek 0: seek=1 pos=0 playing=1 ea0198456293ed37
-modseek 2205: seek=1 pos=2205 playing=1 8c7d8adca1e930eb
-modseek 14064: seek=1 pos=14064 playing=1 8c7d8adca1e930eb
-modseek 27128: seek=1 pos=27128 playing=1 17eaa2d897b08215
+modseek 0: seek=1 pos=0 playing=1 67084e2d72a63235
+modseek 2205: seek=1 pos=2205 playing=1 bc6d34e98233900b
+modseek 14064: seek=1 pos=14064 playing=1 bc6d34e98233900b
+modseek 27128: seek=1 pos=27128 playing=1 3ed3de956b5cee18
 modseek 33128: seek=1 pos=33128 playing=1 53d75694455b194f
-modseek 100: seek=1 pos=100 playing=1 729d0bd5ff47ab2c
+modseek 100: seek=1 pos=100 playing=1 bbc74705f9d54f72
 xmp: pat=2 trk=8 chn=4 ins=3 smp=5 spd=4 bpm=125 len=3 rst=0 gvl=64 seqs=2 vol=64 md5=d6f22f03028f198793ee1e2ffbf8e93b b29389007861facc
-xmp 0: set=0 mixer=0 frames=82 5612b237217e4d49 5853ba6203494fc5 seek=1 pos=1 83dd4c24b0cea00c
-xmp 1: set=0 mixer=0 frames=82 95be57815d40547f a86c9311cfaa1543 seek=1 pos=1 99c90ccf2515bac1
-xmp 2: set=0 mixer=0 frames=82 f7499ec3c3efef93 977a1dbc8cd3a1ac seek=1 pos=1 89431e7da157c9ef
-xmp 3: set=0 mixer=0 frames=82 b60a9da0ee334b87 fb2ce88a659b07c9 seek=1 pos=1 0ea9ce6c58b563db
+xmp 0: set=0 mixer=0 frames=82 d50a133383d1d2fb 67e21e7537baba91 seek=1 pos=1 83dd4c24b0cea00c
+xmp 1: set=0 mixer=0 frames=82 82a9d49b2feb5557 2af0f22a432b0e4f seek=1 pos=1 ee9deb692bb7c55b
+xmp 2: set=0 mixer=0 frames=82 eff0dff5d7cd2aa1 f189e8c9037dc2c0 seek=1 pos=1 4456473523701c4c
+xmp 3: set=0 mixer=0 frames=82 e6409e92d72f2fed 9b584488a550e5cd seek=1 pos=1 83a8591979431bdc
 == mmd1_octamed.med
 open: XMP 0x8010 2 48000 title="mmd1 test" frames=173040 xmp.name="mmd1 test" xmp.type="OctaMED 3.00 MMD1" | 692088 9523a97ddba29f42 end=0
 f32s48: 1384176 52ff6dd649e5d891 end=0
@@ -4654,9 +4654,9 @@ xmp 1: set=0 mixer=0 frames=186 8cb77ab26db348e1 8e6ab276019b3559 seek=0 pos=1 7
 xmp 2: set=0 mixer=0 frames=186 bfa8a0e06ca53c5e 6ce703a72a2ccf31 seek=0 pos=1 6b4834b6f20e7dfa
 xmp 3: set=0 mixer=0 frames=186 2afad2bf9e01cde5 79a3ad3664f6e0c1 seek=0 pos=1 3ffb779c36ae5f55
 == mmd2_octamed.med
-open: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 073c28fe826bd279 end=0
-f32s48: 1260480 c73438a6b14154d1 end=0
-s16m22: 144760 713493bfb4aba79c end=0
+open: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 547d8baa8c0acc04 end=0
+f32s48: 1260480 5c1b0d99a9418fec end=0
+s16m22: 144760 fb0684b0e7bb8678 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -4684,42 +4684,42 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 910: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1821: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2731: err: Audio data is in unknown/unsupported/corrupt format
-trunc 3641: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 5ae7884d64cd1b14 end=0
-corrupt 0: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 073c28fe826bd279 end=0
-corrupt 0 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 eedae3561fb365be
-corrupt 1: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 073c28fe826bd279 end=0
-corrupt 1 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 eedae3561fb365be
+trunc 3641: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 078924dce796b606 end=0
+corrupt 0: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 547d8baa8c0acc04 end=0
+corrupt 0 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 50b7b75f79481799
+corrupt 1: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 547d8baa8c0acc04 end=0
+corrupt 1 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 50b7b75f79481799
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 62a7a60c5f789b58 end=0
-corrupt 3 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 5bc15b848e57f7d2
-corrupt 4: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 5167e24301d95c6c end=0
-corrupt 4 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 28fd1895c285b4f2
-corrupt 5: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 43a373c17df22dd3 end=0
-corrupt 5 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 cdda289667120d26
-mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 eedae3561fb365be
-mixpre: dur=157560 play=1 pos=12288 replay=1 seek=1 pos=52520 playing=1 75364db5775539d5
+corrupt 3: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 9327e619f695fb9a end=0
+corrupt 3 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 299b00f3b119ce01
+corrupt 4: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 79d8cbcdfe67786a end=0
+corrupt 4 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 084343d7cd4f9260
+corrupt 5: XMP 0x8010 2 48000 title="MMD2 test" copyright="info text" frames=157536 xmp.name="MMD2 test" xmp.type="OctaMED Soundstudio MMD2" xmp.comment="info text" | 630240 f435297f9497bb3a end=0
+corrupt 5 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 4da32fcbd024ffc9
+mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 50b7b75f79481799
+mixpre: dur=157560 play=1 pos=12288 replay=1 seek=1 pos=52520 playing=1 a3ebdb71244cd2de
 order 1: play=1 pos=4096 playing=1 46165fdc22fab832
-order 2: play=1 pos=4096 playing=1 c629e854751b76ff
-order 0: play=1 pos=4096 playing=1 3f8bac6dfc1ea9cf
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 663a7e393a2ee367
-order -5: play=1 pos=4096 playing=1 e57db539d220b1de
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1993bdc5be1aa842
-modseek 0: seek=1 pos=0 playing=1 08002e5432443591
-modseek 2205: seek=1 pos=2205 playing=1 67d11a82beccd7f0
-modseek 78768: seek=1 pos=78768 playing=1 67d11a82beccd7f0
-modseek 156536: seek=1 pos=156536 playing=1 634d91712a9c9e42
+order 2: play=1 pos=4096 playing=1 1f03903a253094af
+order 0: play=1 pos=4096 playing=1 6c8a9f91edf2c16a
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 0382071ea63a4d18
+order -5: play=1 pos=4096 playing=1 9c07a27e6abdf5b3
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 27f4a1849f2ff6b8
+modseek 0: seek=1 pos=0 playing=1 a8a8e7a1d0d08cd7
+modseek 2205: seek=1 pos=2205 playing=1 8024c2307ed4ff29
+modseek 78768: seek=1 pos=78768 playing=1 8024c2307ed4ff29
+modseek 156536: seek=1 pos=156536 playing=1 a61aef6287c58205
 modseek 162536: seek=1 pos=162536 playing=1 bc95df825e63b7ca
-modseek 100: seek=1 pos=100 playing=1 5b462eb475c656f5
+modseek 100: seek=1 pos=100 playing=1 6636020369a85710
 xmp: pat=2 trk=16 chn=8 ins=3 smp=5 spd=5 bpm=99 len=3 rst=0 gvl=64 seqs=2 vol=64 md5=3e50e3db93ec4e866f636af1d453cbb1 3cf8b912b0df20c8
-xmp 0: set=0 mixer=0 frames=130 7adfce1535023371 18fa2dd0b1e64aab seek=0 pos=1 0dbdb5930e762b01
-xmp 1: set=0 mixer=0 frames=130 dcc7f378a28d7f21 c1986b7a8c13ae59 seek=0 pos=1 c0a657651736c48a
-xmp 2: set=0 mixer=0 frames=130 9e33a0c8dc984f65 2e5ae5c0ca2c1f40 seek=0 pos=1 185c1d6c1629d6ab
-xmp 3: set=0 mixer=0 frames=130 5115ec193d9ce2bb 7dd427e0cebfd8a2 seek=0 pos=1 ad2a2b28d09c3752
+xmp 0: set=0 mixer=0 frames=130 6580e6ba2bb9e388 bf9568dcc06e0493 seek=0 pos=1 0dbdb5930e762b01
+xmp 1: set=0 mixer=0 frames=130 3cb1def0cc9a4e78 aa008a483b2a80a1 seek=0 pos=1 f9d6670684b7dc81
+xmp 2: set=0 mixer=0 frames=130 d88429e27c5c38dc 2724a45014c44558 seek=0 pos=1 5ec1ab1d930142d3
+xmp 3: set=0 mixer=0 frames=130 36130baf5ade6bfe faad309455706c6a seek=0 pos=1 4f287c6ecc83c832
 == mmd3_octamed.med
-open: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 5d2282120431fe89 end=0
-f32s48: 1260480 05dc0551a80f79fa end=0
-s16m22: 144760 63b82c938116a484 end=0
+open: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 f12034fb5eb23c95 end=0
+f32s48: 1260480 b605561fffb4b03a end=0
+s16m22: 144760 a1ac79fe980572a1 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -4747,38 +4747,38 @@ trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
 trunc 910: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1821: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2731: err: Audio data is in unknown/unsupported/corrupt format
-trunc 3641: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 28b661d332df4de2 end=0
-corrupt 0: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 5d2282120431fe89 end=0
-corrupt 0 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 61a131180bc3ab72
-corrupt 1: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 5d2282120431fe89 end=0
-corrupt 1 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 61a131180bc3ab72
+trunc 3641: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 196e27d8a7fc2533 end=0
+corrupt 0: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 f12034fb5eb23c95 end=0
+corrupt 0 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 5296e369bb6fa473
+corrupt 1: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 f12034fb5eb23c95 end=0
+corrupt 1 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 5296e369bb6fa473
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 51af50ba2dd593ec end=0
-corrupt 3 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 9438b8d0ab12b458
-corrupt 4: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 c4baf8394a0d7157 end=0
-corrupt 4 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 f210fd1df017ecd8
-corrupt 5: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 80018a59c047e126 end=0
-corrupt 5 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 05ad7783bedd938a
-mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 61a131180bc3ab72
-mixpre: dur=157560 play=1 pos=12288 replay=1 seek=1 pos=52520 playing=1 a16bfabf5dc213b8
+corrupt 3: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 d4007432f0fd5a12 end=0
+corrupt 3 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 e4a6c795325bf9ff
+corrupt 4: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 06197be88864afaa end=0
+corrupt 4 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 55f1e910185ca0d6
+corrupt 5: XMP 0x8010 2 48000 title="MMD3 test" copyright="info text" frames=157536 xmp.name="MMD3 test" xmp.type="OctaMED Soundstudio MMD3" xmp.comment="info text" | 630240 e1736ab6b9aabd48 end=0
+corrupt 5 mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 f625da3d26b4a88f
+mix: dur=157536 play=1 pos=12288 replay=1 seek=1 pos=52512 playing=1 5296e369bb6fa473
+mixpre: dur=157560 play=1 pos=12288 replay=1 seek=1 pos=52520 playing=1 d9d30cca26703e25
 order 1: play=1 pos=4096 playing=1 9bd4a108bfdda4e6
-order 2: play=1 pos=4096 playing=1 a288af59742420a1
-order 0: play=1 pos=4096 playing=1 ec65d2ef024c7bd8
-order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f29a6003c6bb919c
-order -5: play=1 pos=4096 playing=1 736b3679b6566d5c
-order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 6108a657bfd97162
-modseek 0: seek=1 pos=0 playing=1 cd142ddbab2b5412
-modseek 2205: seek=1 pos=2205 playing=1 954edd1b5ed9d299
-modseek 78768: seek=1 pos=78768 playing=1 954edd1b5ed9d299
-modseek 156536: seek=1 pos=156536 playing=1 3177fdf641b2e5dc
+order 2: play=1 pos=4096 playing=1 c3f80a460ed1730c
+order 0: play=1 pos=4096 playing=1 91658db26628bac7
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 701e59d685b86684
+order -5: play=1 pos=4096 playing=1 f73884e6d1ae0aa6
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 d443c4cd39e2a6ec
+modseek 0: seek=1 pos=0 playing=1 4e771f61fa3b9e42
+modseek 2205: seek=1 pos=2205 playing=1 ecd6d9cea4a14ece
+modseek 78768: seek=1 pos=78768 playing=1 ecd6d9cea4a14ece
+modseek 156536: seek=1 pos=156536 playing=1 955c98756e8de63b
 modseek 162536: seek=1 pos=162536 playing=1 fb356b069c5ffe09
-modseek 100: seek=1 pos=100 playing=1 9cff3b5be5e0910e
+modseek 100: seek=1 pos=100 playing=1 a18feb3a462d05e9
 xmp: pat=2 trk=16 chn=8 ins=3 smp=5 spd=5 bpm=99 len=3 rst=0 gvl=64 seqs=2 vol=64 md5=032b113aa95ad5c85c6ef626771dc919 609583e921c8d788
-xmp 0: set=0 mixer=0 frames=130 78317ec7f511ba13 5ac2d4b8ee732d90 seek=0 pos=1 bc29ebc076569f2f
-xmp 1: set=0 mixer=0 frames=130 b3cbb867ea71cc30 1d54adad71a37f2f seek=0 pos=1 c6a51f82a068300a
-xmp 2: set=0 mixer=0 frames=130 10f3d2d280d52c6a 2fa63f46a27900d5 seek=0 pos=1 5ad6d57ef0018fe1
-xmp 3: set=0 mixer=0 frames=130 2e2c7eb35cbf10c5 e574edfd12cd91c8 seek=0 pos=1 519682e5eebc7e37
+xmp 0: set=0 mixer=0 frames=130 8d3cb4b4c718b4e1 c9410f23b5af5568 seek=0 pos=1 bc29ebc076569f2f
+xmp 1: set=0 mixer=0 frames=130 2f6381ee6b812cf3 cf49aae6cb7a4737 seek=0 pos=1 36bb8980466b39ab
+xmp 2: set=0 mixer=0 frames=130 d9706381611bb089 e8d2c68bc33ee48d seek=0 pos=1 34fda8718bc14ef4
+xmp 3: set=0 mixer=0 frames=130 e06d824c981c38a0 c860e50ce8ffaee0 seek=0 pos=1 a0fb0e4f744554f3
 == mod_6chn.mod
 open: XMP 0x8010 2 48000 title="six channels" frames=114336 xmp.name="six channels" xmp.type="Scream Tracker 6CHN" | 457320 90175231a1eb0ece end=0
 f32s48: 914640 47599b736bde93a7 end=0
