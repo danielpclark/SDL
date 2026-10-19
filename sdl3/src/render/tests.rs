@@ -1217,3 +1217,78 @@ mod window_session {
         }
     }
 }
+
+/// Textures of P010, I0FL and I4FL in their default colorspace (HDR10,
+/// which upstream's renderers refuse, see `ycbcr_matrix_colorspace()`)
+/// draw as BT2020_LIMITED ones do, on a renderer of the backend tests. A
+/// format the renderer doesn't offer, or can't make textures of (Wine's
+/// Direct3D 11 has no P010), is passed over.
+pub(super) fn hdr10_yuv_draws_as_bt2020_limited(r: &mut Renderer) {
+    let y: Vec<u8> = (0..64u16)
+        .flat_map(|i| ((64 + i * 12) << 6).to_le_bytes())
+        .collect();
+    let chroma = |n: u16, base: u16, step: i16| -> Vec<u8> {
+        (0..n)
+            .map(|i| ((base as i16 + i as i16 * step) as u16) << 6)
+            .flat_map(u16::to_le_bytes)
+            .collect()
+    };
+    for format in [PixelFormat::P010, PixelFormat::I0FL, PixelFormat::I4FL] {
+        if !r.texture_formats().contains(&format) {
+            continue;
+        }
+        let mut drawn = Vec::new();
+        for colorspace in [Some(Colorspace::BT2020_LIMITED), None] {
+            let t = match r.create_texture_with(&TextureCreateInfo {
+                format,
+                access: TextureAccess::Static,
+                width: 8,
+                height: 8,
+                colorspace,
+                ..Default::default()
+            }) {
+                Ok(t) => t,
+                Err(e) if colorspace.is_some() => {
+                    println!("note: no {format:?} textures here ({})", e.message());
+                    break;
+                }
+                Err(e) => panic!("{format:?} in its default colorspace: {}", e.message()),
+            };
+            if format == PixelFormat::P010 {
+                let uv: Vec<u8> = (0..16u16)
+                    .flat_map(|i| [(300 + i * 20) << 6, (700 - i * 25) << 6])
+                    .flat_map(u16::to_le_bytes)
+                    .collect();
+                r.update_nv_texture(t, None, &y, 16, &uv, 16).unwrap();
+            } else {
+                let (n, pitch) = if format == PixelFormat::I0FL {
+                    (16, 8)
+                } else {
+                    (64, 16)
+                };
+                let (u, v) = (chroma(n, 300, 10), chroma(n, 900, -10));
+                r.update_yuv_texture(t, None, &y, 16, &u, pitch, &v, pitch)
+                    .unwrap();
+            }
+            r.set_draw_color(0, 0, 0, 255);
+            r.clear().unwrap();
+            r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 8.0, 8.0)))
+                .unwrap();
+            let s = r.read_pixels(Some(&Rect::new(0, 0, 8, 8))).unwrap();
+            let bpp = s.format().bytes_per_pixel() as usize;
+            let pixels = s.raw_pixels().unwrap();
+            let rows: Vec<u8> = (0..8)
+                .flat_map(|row| pixels[row * s.pitch() as usize..][..8 * bpp].to_vec())
+                .collect();
+            drawn.push(rows);
+            r.destroy_texture(t);
+        }
+        if drawn.len() == 2 {
+            assert_eq!(drawn[0], drawn[1], "{format:?}");
+            assert!(
+                drawn[0].chunks(4).any(|p| p[..3] != [0, 0, 0]),
+                "{format:?}"
+            );
+        }
+    }
+}

@@ -716,3 +716,21 @@ pub(crate) struct TextureCreateProps {
 pub(crate) fn invalid_texture() -> Error {
     Error::invalid_param("texture")
 }
+
+/// The colorspace whose YCbCr to RGB matrix a texture of `format` in
+/// `colorspace` is converted with. The default colorspace of P010, I0FL
+/// and I4FL textures, HDR10, is an RGB one with no YCbCr matrix, so
+/// upstream's renderers refuse them without a YCbCr colorspace; here
+/// HDR10 is read as its YCbCr counterpart for these formats,
+/// BT2020_LIMITED (the same primaries and transfer).
+pub(crate) fn ycbcr_matrix_colorspace(format: PixelFormat, colorspace: Colorspace) -> Colorspace {
+    if matches!(
+        format,
+        PixelFormat::P010 | PixelFormat::I0FL | PixelFormat::I4FL
+    ) && colorspace == Colorspace::HDR10
+    {
+        Colorspace::BT2020_LIMITED
+    } else {
+        colorspace
+    }
+}

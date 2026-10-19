@@ -52,8 +52,8 @@ use crate::hints;
 use crate::log::Category;
 use crate::properties::Properties;
 use crate::render::sysrender::{
-    invalid_texture, CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend, RenderCommand,
-    TextureCreateProps, TextureData, TextureStore,
+    invalid_texture, ycbcr_matrix_colorspace, CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend,
+    RenderCommand, TextureCreateProps, TextureData, TextureStore,
 };
 use crate::render::{NativeObject, RendererCreateInfo, Texture, TextureAccess, TextureAddressMode};
 use crate::video::blendmode::{BlendFactor, BlendOperation};
@@ -5674,8 +5674,11 @@ impl RenderBackend for VulkanRenderer {
                 F::P010 => 10,
                 _ => 8,
             };
-            let Some(matrix) = texture
-                .colorspace
+            // Note (upstream): the default colorspace of P010, I0FL and
+            // I4FL textures (HDR10) is an RGB one, which has no YCbCr
+            // matrix, so there they fail without a YCbCr colorspace. Here
+            // HDR10 is read as BT2020_LIMITED for these formats.
+            let Some(matrix) = ycbcr_matrix_colorspace(texture.format, texture.colorspace)
                 .ycbcr_to_rgb_matrix(texture.h.max(0) as u32, bits_per_pixel)
             else {
                 return Err(Error::new("Unsupported YUV colorspace"));

@@ -54,8 +54,8 @@ use crate::loadso::SharedObject;
 use crate::log::Category;
 use crate::properties::Properties;
 use crate::render::sysrender::{
-    invalid_texture, CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend, RenderCommand,
-    TextureCreateProps, TextureData, TextureStore,
+    invalid_texture, ycbcr_matrix_colorspace, CopyEx, DrawCmd, DrawKind, Geometry, RenderBackend,
+    RenderCommand, TextureCreateProps, TextureData, TextureStore,
 };
 use crate::render::{Texture, TextureAccess, TextureAddressMode};
 use crate::video::blendmode::{BlendFactor, BlendOperation};
@@ -676,9 +676,14 @@ fn pq_shader_scales_input(shader_constants: &PixelShaderConstants) -> bool {
 
 /// The 16 floats of `SDL_GetYCbCRtoRGBConversionMatrix()`: the offsets,
 /// then the R, G and B coefficients, each in a row of four.
+///
+/// Note (upstream): the default colorspace of P010, I0FL and I4FL textures
+/// (HDR10) is an RGB one, which has no YCbCr matrix, so there they fail
+/// without a YCbCr colorspace (in the Direct3D 12 renderer too). Here
+/// HDR10 is read as BT2020_LIMITED for these formats (see
+/// [`ycbcr_matrix_colorspace()`]).
 pub(super) fn ycbcr_matrix(texture: &TextureData, bits_per_pixel: u32) -> Option<[f32; 16]> {
-    let matrix = texture
-        .colorspace
+    let matrix = ycbcr_matrix_colorspace(texture.format, texture.colorspace)
         .ycbcr_to_rgb_matrix(texture.h.max(0) as u32, bits_per_pixel)?;
     let mut ycbcr = [0.0; 16];
     ycbcr[..3].copy_from_slice(&matrix.offset);
