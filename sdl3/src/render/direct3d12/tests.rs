@@ -828,6 +828,40 @@ fn srv_pool_allocator() {
     window.destroy();
 }
 
+/// Releasing the device closes the fence event (upstream's is never
+/// closed).
+#[test]
+fn release_all_closes_the_fence_event() {
+    use windows_sys::Win32::System::Threading::{CreateEventW, OpenEventW};
+
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some(window) = window(8, 8, WindowFlags::HIDDEN) else {
+        return;
+    };
+    let mut data = D3d12Renderer::new(window, Colorspace::SRGB);
+    // (an event of a name of the test's, which is gone once its only
+    // handle is closed)
+    let name: Vec<u16> = format!("sdl3-rs-d3d12-fence-{}\0", std::process::id())
+        .encode_utf16()
+        .collect();
+    // SAFETY: no attributes; a NUL-terminated name.
+    data.fence_event = unsafe { CreateEventW(null(), 0, 0, name.as_ptr()) };
+    assert!(!data.fence_event.is_null());
+    data.release_all();
+    assert!(data.fence_event.is_null());
+    // SAFETY: a NUL-terminated name; a handle it returns is closed.
+    let event = unsafe { OpenEventW(SYNCHRONIZE, 0, name.as_ptr()) };
+    if !event.is_null() {
+        // SAFETY: the handle OpenEventW() returned.
+        unsafe { CloseHandle(event) };
+        panic!("the fence event wasn't closed");
+    }
+    window.destroy();
+}
+
 /// A texture whose creation fails frees only the SRV slots it took
 /// (upstream frees slot 0 for each one it didn't).
 #[test]
