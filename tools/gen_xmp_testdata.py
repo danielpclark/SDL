@@ -1954,15 +1954,27 @@ def amf_files():
                10: [(0x8d, 0)]}),
     ]
     pats = [[1, 2, 3, 0], [4, 3, 0, 2], [1, 0, 2, 3]]
-    hdr = b'AMF\x0e' + pad('amf test', 32) + bytes([len(smp), len(pats)]) + le16(len(tracks)) + bytes([chn])
-    hdr += bytes([0xe0, 0x20, 0x00, 0x10] + [0] * 28) + bytes([125, 6])
-    for p in pats:
-        hdr += le16(32) + b''.join(le16(t) for t in p)
-    for name, data, c2, vol, ls, le in smp:
-        hdr += b'\x01' + pad(name, 32) + pad('file.smp', 13) + le32(0) + le32(len(data)) + le16(c2) + bytes([vol])
-        hdr += le32(ls) + le32(le)
-    hdr += b''.join(le16(i + 1) for i in range(len(tracks)))
-    write('amf_dsmi.amf', hdr + b''.join(tracks) + b''.join(s[1] for s in smp))
+
+    def amf(title, tracks, pats):
+        hdr = b'AMF\x0e' + pad(title, 32) + bytes([len(smp), len(pats)]) + le16(len(tracks)) + bytes([chn])
+        hdr += bytes([0xe0, 0x20, 0x00, 0x10] + [0] * 28) + bytes([125, 6])
+        for p in pats:
+            hdr += le16(32) + b''.join(le16(t) for t in p)
+        for name, data, c2, vol, ls, le in smp:
+            hdr += b'\x01' + pad(name, 32) + pad('file.smp', 13) + le32(0) + le32(len(data)) + le16(c2)
+            hdr += bytes([vol]) + le32(ls) + le32(le)
+        hdr += b''.join(le16(i + 1) for i in range(len(tracks)))
+        return hdr + b''.join(tracks) + b''.join(s[1] for s in smp)
+
+    write('amf_dsmi.amf', amf('amf test', tracks, pats))
+    # fine (0x92) and extra fine (0x96) pitch slides, down (> 0) and up
+    fine = [
+        track({0: [(0x80, 2), note('C-5')], 2: [(0x92, 0x03)], 4: [(0x92, 0x05)], 6: [(0x92, 0xfd)],
+               8: [(0x92, 0xfa)], 10: [(0x92, 0x00)]}),
+        track({0: [(0x80, 2), note('G-4')], 2: [(0x96, 0x06)], 4: [(0x96, 0x0f)], 6: [(0x96, 0xfc)],
+               8: [(0x96, 0xf1)]}),
+    ]
+    write('amf_fineslide.amf', amf('fine slides', fine, [[1, 2, 0, 0]]))
 
 
 def asylum_files():

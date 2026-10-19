@@ -256,6 +256,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "669_composer.669",
     "abk_amos.abk",
     "amf_dsmi.amf",
+    "amf_fineslide.amf",
     "arch_musx.mod",
     "asylum_amf.amf",
     "chip_kris.mod",
