@@ -1795,6 +1795,15 @@ def masi_files():
     body = ch(b'SDFT', b'MAINSONG') + ch(b'TITL', b'masi test') + ch(b'SONG', song) + smp + p0 + p1
     write('masi_psm.psm', b'PSM ' + le32(len(body) + 4) + b'FILE' + body)
 
+    # tone portamento with a volume slide up (0x10) and down (0x12)
+    p0 = pbod(b'P0  ', 32, {0: {0: ('C-4', 3, 40, None)}, 2: {0: ('G-4', 0, None, (0x0f, 0x10))},
+                            4: {0: (None, 0, None, (0x10, 0x40))}, 8: {0: ('C-5', 0, None, (0x10, 0x80))},
+                            12: {0: (None, 0, None, (0x10, 0x00))}, 16: {0: ('C-4', 0, None, (0x12, 0x40))}})
+    p1 = pbod(b'P1  ', 16, {0: {1: ('E-4', 3, 200, None)}, 2: {1: ('A-4', 0, None, (0x0f, 0x20))},
+                            4: {1: ('C-4', 0, None, (0x10, 0xc0))}})
+    body = ch(b'SDFT', b'MAINSONG') + ch(b'TITL', b'masi tone slides') + ch(b'SONG', song) + smp + p0 + p1
+    write('masi_tonevol.psm', b'PSM ' + le32(len(body) + 4) + b'FILE' + body)
+
 
 def masi16_files():
     chn = 4

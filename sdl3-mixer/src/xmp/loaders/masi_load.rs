@@ -390,9 +390,9 @@ fn get_pbod(m: &mut ModuleData, _size: u32, f: &mut HioHandle<'_>, data: &mut Lo
                     0x10 => {
                         /* toneporta + vslide up */
                         fxt = FX_TONE_VSLIDE;
-                        // FIXME (upstream): the parameter is taken from the
-                        // new effect type instead of the parameter.
-                        fxp = fxt & 0xf0;
+                        // Note (upstream): C takes the parameter from the
+                        // new effect type (making it 0) instead of fxp.
+                        fxp &= 0xf0;
                     }
                     0x11 => {
                         /* glissando */

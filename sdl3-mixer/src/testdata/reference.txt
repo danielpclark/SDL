@@ -4092,6 +4092,68 @@ xmp 0: set=0 mixer=0 frames=164 977364e977daec72 dd42e4c9021becda seek=0 pos=1 a
 xmp 1: set=0 mixer=0 frames=164 e65dadc6a0256c22 f9d211ecb317b651 seek=0 pos=1 d7b6081e076ac801
 xmp 2: set=0 mixer=0 frames=164 dc618e3a14944fb0 6e8f433ad89c93c2 seek=0 pos=1 42d170723c1e0a6d
 xmp 3: set=0 mixer=0 frames=164 141d0c22671050b7 560c0c5ae301f212 seek=0 pos=1 c3b184d0f3d6c2ea
+== masi_tonevol.psm
+open: XMP 0x8010 2 48000 title="masi tone slides" frames=369216 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 1476800 2450753dadba7364 end=0
+f32s48: 2953600 84dda3b5da20a1e4 end=0
+s16m22: 339204 aacdf311ae7f09a3 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 16: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 20: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 24: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 32: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 36: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 40: XMP 0x8010 2 48000 title="masi" frames=0 xmp.name="masi" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 44: XMP 0x8010 2 48000 title="masi ton" frames=0 xmp.name="masi ton" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 48: XMP 0x8010 2 48000 title="masi tone sl" frames=0 xmp.name="masi tone sl" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 256: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 300: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 512: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 1000: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 358: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 717: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 1075: XMP 0x8010 2 48000 title="masi tone slides" frames=0 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+trunc 1433: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: XMP 0x8010 2 48000 title="masi tone slides" frames=369216 xmp.name="masi tone slides" xmp.type="Epic MegaGames MASI PSM" | 1476800 2450753dadba7364 end=0
+corrupt 0 mix: dur=369216 play=1 pos=12288 replay=1 seek=1 pos=123072 playing=1 13d22e8dc1b07a0a
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: err: xmp_load_module_from_memory: XMP_ERROR_LOAD
+corrupt 3 mix: dur=0 play=0 pos=0 replay=0 seek=0 pos=0 playing=0 0c8210784d8af5a5
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: XMP 0x8010 2 48000 frames=0 xmp.type="Epic MegaGames MASI PSM" | 0 cbf29ce484222325 end=0
+corrupt 5 mix: dur=0 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+mix: dur=369216 play=1 pos=12288 replay=1 seek=1 pos=123072 playing=1 13d22e8dc1b07a0a
+mixpre: dur=369200 play=1 pos=12288 replay=1 seek=1 pos=123066 playing=1 d245d2dcfd9036b6
+order 1: play=1 pos=4096 playing=1 31e6ca0e6cd1fb15
+order 2: play=1 pos=4096 playing=1 ce20254bffc00650
+order 0: play=1 pos=4096 playing=1 5e1abc5e1896dc3b
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 1f069c2df263f6d3
+order -5: play=1 pos=4096 playing=1 c9d2e27f81135cbd
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a3482df867d02db1
+modseek 0: seek=1 pos=0 playing=1 840a1aa4c93d0800
+modseek 2205: seek=1 pos=2205 playing=1 4f3a5326648b1fee
+modseek 184608: seek=1 pos=184608 playing=1 63bf7615eb764125
+modseek 368216: seek=1 pos=368216 playing=1 0fba841126422f88
+modseek 374216: seek=1 pos=374216 playing=1 4f3a5326648b1fee
+modseek 100: seek=1 pos=100 playing=1 4f3a5326648b1fee
+xmp: pat=2 trk=8 chn=4 ins=3 smp=3 spd=5 bpm=130 len=3 rst=0 gvl=64 seqs=1 vol=64 md5=08f70a5db5b5db6b3d4ca686dcb60495 9f7e0a9f516fc4e8
+xmp 0: set=0 mixer=0 frames=300 85cecc203aeb15dc bcd32193f43dac5c seek=0 pos=1 815a2f9967c562e8
+xmp 1: set=0 mixer=0 frames=300 14dc608b338f2026 9c0e7341a2190677 seek=0 pos=1 03115cfeb3b894d2
+xmp 2: set=0 mixer=0 frames=300 fae1601822887f1f 38187d7ebc431310 seek=0 pos=1 e38ece00abe99899
+xmp 3: set=0 mixer=0 frames=300 915d20e5edeaebdf 22d6f41c8fa9aa4c seek=0 pos=1 3d3eb0386dc76c23
 == mdl_v11.mdl
 open: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 2b75f320b5fd4b53 end=0
 f32s48: 1122816 38b1313653dbb077 end=0
