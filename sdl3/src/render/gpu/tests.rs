@@ -796,12 +796,42 @@ fn gpu_renderer_basics_on(backend: Backend) {
     assert_eq!(y.info.format, TextureFormat::R8_UNORM);
     assert_eq!((u.info.width, u.info.height), (5, 4));
     assert!(!Arc::ptr_eq(&u, &v));
-    // (Note (upstream): P010's default colorspace, HDR10, has no YCbCr
-    // matrix, so a P010 texture needs a YCbCr colorspace; see the FIXME in
-    // create_texture())
-    assert!(r
+    // A P010 texture with the default colorspace (HDR10, which upstream
+    // refuses, see the Note in create_texture()) draws as BT2020_LIMITED.
+    let p010_default = r
         .create_texture(PixelFormat::P010, TextureAccess::Static, 8, 8)
-        .is_err());
+        .unwrap();
+    let p010_bt2020 = r
+        .create_texture_with(&TextureCreateInfo {
+            format: PixelFormat::P010,
+            width: 8,
+            height: 8,
+            colorspace: Some(Colorspace::BT2020_LIMITED),
+            ..Default::default()
+        })
+        .unwrap();
+    let p010_y: Vec<u8> = (0..64u16)
+        .flat_map(|i| ((64 + i * 12) << 6).to_le_bytes())
+        .collect();
+    let p010_uv: Vec<u8> = (0..16u16)
+        .flat_map(|i| [(300 + i * 20) << 6, (700 - i * 25) << 6])
+        .flat_map(u16::to_le_bytes)
+        .collect();
+    let mut p010_drawn = Vec::new();
+    for t in [p010_default, p010_bt2020] {
+        r.update_nv_texture(t, None, &p010_y, 16, &p010_uv, 16)
+            .unwrap();
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.render_texture(t, None, Some(&FRect::new(0.0, 0.0, 8.0, 8.0)))
+            .unwrap();
+        p010_drawn.push(rows(&r.read_pixels(Some(&Rect::new(0, 0, 8, 8))).unwrap()));
+    }
+    assert_eq!(p010_drawn[0], p010_drawn[1]);
+    assert!(p010_drawn[0].chunks(4).any(|p| p[..3] != [0, 0, 0]));
+    for t in [p010_default, p010_bt2020] {
+        r.destroy_texture(t);
+    }
     let nv = r
         .create_texture_with(&TextureCreateInfo {
             format: PixelFormat::P010,
