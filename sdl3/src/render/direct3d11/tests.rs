@@ -40,6 +40,20 @@ use crate::video::FlipMode;
 const W: i32 = 64;
 const H: i32 = 48;
 
+thread_local! {
+    /// The step of the renderer's setup this thread's test makes fail.
+    static FAIL_STEP: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+}
+
+/// The renderer's fault injection: an error when the test makes `step`
+/// fail.
+pub(super) fn injected_failure(step: &str) -> Result<()> {
+    match FAIL_STEP.get() {
+        Some(failing) if failing == step => Err(Error::new(format!("injected failure: {step}"))),
+        _ => Ok(()),
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Without a device
 // ---------------------------------------------------------------------------
@@ -1692,6 +1706,42 @@ fn d3d11_fails_without_a_window_handle() {
     window.destroy();
     init::quit();
     hints::reset(hints::VIDEO_DRIVER);
+}
+
+/// A failure to make the vertex shader or the blend state fails the
+/// renderer (upstream's renderer is made without its shaders and states).
+#[test]
+fn d3d11_fails_when_its_shaders_or_states_fail() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some(window) = window(W, H, window_flags()) else {
+        return;
+    };
+    // (the renderer is made without a failure)
+    let Ok(mut data) = D3d11Renderer::for_window(window, Colorspace::SRGB) else {
+        crate::test_support::skip("d3d11", "no Direct3D 11 device");
+        window.destroy();
+        return;
+    };
+    assert!(data.vertex_shader.is_some() && !data.blend_modes.is_empty());
+    data.destroy();
+    drop(data);
+    for step in ["vertex shader", "blend state"] {
+        FAIL_STEP.set(Some(step));
+        let result = D3d11Renderer::for_window(window, Colorspace::SRGB);
+        let message = Renderer::for_window(&window, Some(D3D11_RENDERER))
+            .err()
+            .map(|e| e.message().to_owned());
+        FAIL_STEP.set(None);
+        assert_eq!(
+            result.err().map(|e| e.message().to_owned()),
+            Some(format!("injected failure: {step}"))
+        );
+        assert_eq!(message, Some(format!("injected failure: {step}")));
+    }
+    window.destroy();
 }
 
 /// The Direct3D 11 renderer on the machine's GPU: run on Windows with
