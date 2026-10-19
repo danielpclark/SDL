@@ -285,6 +285,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "masi16_offset.psm",
     "masi16_psm16.psm",
     "masi_psm.psm",
+    "masi_tonevol.psm",
     "mdl_v11.mdl",
     "med2_med112.med",
     "med3_med200.med",
