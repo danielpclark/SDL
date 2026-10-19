@@ -411,8 +411,12 @@ struct Image {
 /// Per-palette data. Translation of `VULKAN_PaletteData`.
 #[derive(Default)]
 struct PaletteData {
+    /// The image and its view: null once the device is lost, until the
+    /// new device's are made.
     image: Image,
     image_view: VkImageView,
+    /// The colors last uploaded, which a new device's image is given.
+    colors: Vec<Color>,
 }
 
 /// The front end's handle of a palette: its key in the renderer.
@@ -1112,6 +1116,24 @@ impl VulkanRenderer {
             }
         }
 
+        // Note (upstream): the palettes' images and views aren't released,
+        // so after a device loss they belong to the lost device (and
+        // VULKAN_DestroyPalette() destroys them with the new one). Here
+        // they're released, and remade by recreate_palettes().
+        let ids: Vec<u32> = self.palettes.keys().copied().collect();
+        for id in ids {
+            let Some(palette) = self.palettes.get_mut(&id) else {
+                continue;
+            };
+            let mut image = std::mem::take(&mut palette.image);
+            let view = std::mem::replace(&mut palette.image_view, VK_NULL_HANDLE);
+            self.destroy_image(&mut image);
+            if view != VK_NULL_HANDLE {
+                // SAFETY: the view is this device's, and idle.
+                unsafe { (dev.destroy_image_view)(device, view, null()) };
+            }
+        }
+
         // Note (upstream): upstream keeps the handle of the application's
         // device (and surface and instance) after VULKAN_DestroyAll(); here
         // they're forgotten too, so a renderer that couldn't recover from a
@@ -1119,14 +1141,12 @@ impl VulkanRenderer {
         if !self.device.is_null() {
             if !self.device_external {
                 // SAFETY: the device has no child objects left that the
-                // renderer made (bar the palettes, see below).
+                // renderer made.
                 unsafe { (dev.destroy_device)(self.device, null()) };
             }
             self.device = null_mut();
         }
         self.dev = None;
-        // FIXME (upstream): the palettes' images and views aren't
-        // released; after a device loss, they belong to the lost device.
         self.destroy_instance_objects();
     }
 
@@ -1195,6 +1215,75 @@ impl VulkanRenderer {
             crate::video::vulkan::vulkan_unload_library();
             self.loader_loaded = false;
         }
+    }
+
+    /// The image of a palette and its view (in `VULKAN_CreatePalette()`).
+    fn create_palette_data(&mut self) -> Result<PaletteData> {
+        self.check_device()?;
+        let format = get_vk_image_format(PixelFormat::RGBA32, self.output_colorspace);
+        let usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        let image_view_swizzle = self.identity_swizzle;
+        let mut palettedata = PaletteData {
+            image: self
+                .allocate_image((VK_NULL_HANDLE, None), 256, 1, format, usage)
+                .map_err(|(rc, _)| error_code("VULKAN_AllocateImage()", rc))?,
+            image_view: VK_NULL_HANDLE,
+            colors: Vec::new(),
+        };
+        match self.allocate_image_view(
+            palettedata.image.image,
+            None,
+            format,
+            usage,
+            image_view_swizzle,
+        ) {
+            Ok(view) => palettedata.image_view = view,
+            Err((rc, _)) => {
+                // (upstream leaves the image to VULKAN_DestroyPalette())
+                self.issue_batch();
+                self.wait_for_gpu();
+                self.destroy_image(&mut palettedata.image);
+                return Err(error_code("VULKAN_AllocateImage()", rc));
+            }
+        }
+        Ok(palettedata)
+    }
+
+    /// Upload a palette's colors to its image (in `VULKAN_UpdatePalette()`).
+    fn upload_palette(&mut self, id: u32, image: Image, colors: &[Color]) -> Result<()> {
+        let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
+        let layout = self.update_texture_internal(
+            image.image,
+            image.format,
+            0,
+            (0, 0, colors.len() as i32, 1),
+            &bytes,
+            bytes.len(),
+            image.image_layout,
+        )?;
+        if let Some(p) = self.palettes.get_mut(&id) {
+            p.image.image_layout = layout;
+        }
+        Ok(())
+    }
+
+    /// The palettes' images on a new device, with the colors they had
+    /// (after a device loss, see destroy_all()).
+    fn recreate_palettes(&mut self) -> Result<()> {
+        let ids: Vec<u32> = self.palettes.keys().copied().collect();
+        for id in ids {
+            let mut palettedata = self.create_palette_data()?;
+            if let Some(old) = self.palettes.get_mut(&id) {
+                palettedata.colors = std::mem::take(&mut old.colors);
+                *old = palettedata;
+            }
+            let image = self.palettes[&id].image;
+            let colors = self.palettes[&id].colors.clone();
+            if !colors.is_empty() {
+                self.upload_palette(id, image, &colors)?;
+            }
+        }
+        Ok(())
     }
 
     /// Translation of `VULKAN_DestroyBuffer()`.
@@ -3552,10 +3641,13 @@ impl VulkanRenderer {
 
         self.destroy_all();
 
-        let result = self.create_device_resources().and_then(|()| {
-            self.create_window_size_dependent_resources()
-                .map_err(|(_, e)| e)
-        });
+        let result = self
+            .create_device_resources()
+            .and_then(|()| {
+                self.create_window_size_dependent_resources()
+                    .map_err(|(_, e)| e)
+            })
+            .and_then(|()| self.recreate_palettes());
         match result {
             Ok(()) => recovered = true,
             Err(e) => {
@@ -4846,10 +4938,11 @@ impl VulkanRenderer {
             cmd.texture_address_mode_v,
         )?);
 
-        if let Some(palette) = palette
-            .filter(|_| source.has_palette)
-            .filter(|p| self.palettes.contains_key(p))
-        {
+        if let Some(palette) = palette.filter(|_| source.has_palette).filter(|p| {
+            self.palettes
+                .get(p)
+                .is_some_and(|p| p.image_view != VK_NULL_HANDLE)
+        }) {
             let image = self.palettes[&palette].image;
             if image.image_layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL {
                 let layout = self.make_shader_readable(image.image, image.image_layout);
@@ -6039,32 +6132,7 @@ impl RenderBackend for VulkanRenderer {
 
     /// Translation of `VULKAN_CreatePalette()`.
     fn create_palette(&mut self) -> Result<Box<dyn Any>> {
-        self.check_device()?;
-        let format = get_vk_image_format(PixelFormat::RGBA32, self.output_colorspace);
-        let usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        let image_view_swizzle = self.identity_swizzle;
-        let mut palettedata = PaletteData {
-            image: self
-                .allocate_image((VK_NULL_HANDLE, None), 256, 1, format, usage)
-                .map_err(|(rc, _)| error_code("VULKAN_AllocateImage()", rc))?,
-            image_view: VK_NULL_HANDLE,
-        };
-        match self.allocate_image_view(
-            palettedata.image.image,
-            None,
-            format,
-            usage,
-            image_view_swizzle,
-        ) {
-            Ok(view) => palettedata.image_view = view,
-            Err((rc, _)) => {
-                // (upstream leaves the image to VULKAN_DestroyPalette())
-                self.issue_batch();
-                self.wait_for_gpu();
-                self.destroy_image(&mut palettedata.image);
-                return Err(error_code("VULKAN_AllocateImage()", rc));
-            }
-        }
+        let palettedata = self.create_palette_data()?;
         let id = self.next_palette;
         self.next_palette += 1;
         self.palettes.insert(id, palettedata);
@@ -6077,26 +6145,16 @@ impl RenderBackend for VulkanRenderer {
             .downcast_ref::<PaletteRef>()
             .map(|p| p.0)
             .ok_or_else(|| Error::invalid_param("palette"))?;
-        let image = self
+        let palettedata = self
             .palettes
-            .get(&id)
-            .map(|p| p.image)
+            .get_mut(&id)
             .ok_or_else(|| Error::invalid_param("palette"))?;
-
-        let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
-        let layout = self.update_texture_internal(
-            image.image,
-            image.format,
-            0,
-            (0, 0, colors.len() as i32, 1),
-            &bytes,
-            bytes.len(),
-            image.image_layout,
-        )?;
-        if let Some(p) = self.palettes.get_mut(&id) {
-            p.image.image_layout = layout;
+        palettedata.colors = colors.to_vec();
+        let image = palettedata.image;
+        if image.image == VK_NULL_HANDLE {
+            return Err(Error::new("Device lost and couldn't be recovered"));
         }
-        Ok(())
+        self.upload_palette(id, image, colors)
     }
 
     /// Translation of `VULKAN_DestroyPalette()`.

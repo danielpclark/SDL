@@ -1246,6 +1246,120 @@ fn vulkan_releases_the_loader() {
     window.destroy();
 }
 
+/// After a device loss, a palette the front end keeps draws with its
+/// colors on the new device (upstream's images are the lost device's).
+#[test]
+fn vulkan_palettes_survive_a_device_loss() {
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+    type PfnVkQueueSubmit =
+        unsafe extern "system" fn(VkQueue, u32, *const VkSubmitInfo, VkFence) -> VkResult;
+    type PfnVkQueueWaitIdle = unsafe extern "system" fn(VkQueue) -> VkResult;
+    static REAL_SUBMIT: AtomicUsize = AtomicUsize::new(0);
+    static WAIT_IDLE: AtomicUsize = AtomicUsize::new(0);
+    static LOSE: AtomicBool = AtomicBool::new(false);
+    /// vkQueueSubmit, which reports a lost device once when LOSE is set
+    /// (after the queue's work is done, so the renderer's objects are idle).
+    unsafe extern "system" fn queue_submit(
+        queue: VkQueue,
+        count: u32,
+        submits: *const VkSubmitInfo,
+        fence: VkFence,
+    ) -> VkResult {
+        // SAFETY: the real functions, stored below.
+        unsafe {
+            if LOSE.swap(false, Ordering::SeqCst) {
+                let wait: PfnVkQueueWaitIdle =
+                    std::mem::transmute(WAIT_IDLE.load(Ordering::SeqCst));
+                wait(queue);
+                return VK_ERROR_DEVICE_LOST;
+            }
+            let submit: PfnVkQueueSubmit = std::mem::transmute(REAL_SUBMIT.load(Ordering::SeqCst));
+            submit(queue, count, submits, fence)
+        }
+    }
+
+    let _l = crate::test_support::test_lock();
+    let _video = Video::init();
+    let Some((window, mut data)) = vulkan_backend(W, H) else {
+        return;
+    };
+    REAL_SUBMIT.store(data.dev().queue_submit as usize, Ordering::SeqCst);
+    WAIT_IDLE.store(data.inst().queue_wait_idle as usize, Ordering::SeqCst);
+    // SAFETY: a function pointer, called as the type it has.
+    let failing =
+        unsafe { std::mem::transmute::<PfnVkQueueSubmit, PfnVkVoidFunction>(queue_submit) };
+    let dev = device_functions_with(&data, c"vkQueueSubmit", failing);
+    data.dev = Some(Rc::new(dev));
+    let mut r = Renderer::finish_create(
+        Box::new(data),
+        PixelFormat::UNKNOWN,
+        (0, 0),
+        &Default::default(),
+        0,
+        Some(window),
+    )
+    .unwrap();
+    let mut sw = software_renderer(W, H);
+
+    let mut palette = Palette::new(256).unwrap();
+    let colors: Vec<Color> = (0..256)
+        .map(|i| Color::new(i as u8, 255 - i as u8, (i * 7) as u8, 255))
+        .collect();
+    palette.set_colors(0, &colors).unwrap();
+    let palette = share_palette(palette);
+    let indices: Vec<u8> = (0..16 * 12).map(|i| (i * 5) as u8).collect();
+    let make = |r: &mut Renderer| {
+        let t = r
+            .create_texture(PixelFormat::INDEX8, TextureAccess::Static, 16, 12)
+            .unwrap();
+        r.set_texture_palette(t, Some(palette.clone())).unwrap();
+        r.update_texture(t, None, &indices, 16).unwrap();
+        r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        r.render_texture(t, None, Some(&FRect::new(5.0, 5.0, 32.0, 24.0)))
+            .unwrap();
+        t
+    };
+    let lost = make(&mut r);
+    let ts = make(&mut sw);
+    let expected = sw.read_pixels(None).unwrap();
+    assert_close(
+        "palette texture",
+        &r.read_pixels(None).unwrap(),
+        &expected,
+        0,
+    );
+
+    // The device is lost at the present, and the renderer recovers.
+    r.clear().unwrap();
+    r.flush().unwrap();
+    LOSE.store(true, Ordering::SeqCst);
+    // (SDL_RenderPresent() goes on without the error)
+    r.present().unwrap();
+    assert!(!LOSE.load(Ordering::SeqCst));
+    let events = crate::events::queue::get_events(EventType::FIRST, EventType::LAST, 100).unwrap();
+    assert!(events
+        .iter()
+        .any(|e| matches!(e, Event::Render(e) if e.event_type == EventType::RENDER_DEVICE_RESET)));
+
+    // A texture made again (while the lost one keeps the palette the
+    // front end shares) draws with the palette's colors.
+    let t = make(&mut r);
+    assert_close(
+        "palette texture after a device loss",
+        &r.read_pixels(None).unwrap(),
+        &expected,
+        0,
+    );
+    r.destroy_texture(t);
+    r.destroy_texture(lost);
+    sw.destroy_texture(ts);
+    drop(r);
+    window.destroy();
+}
+
 #[test]
 fn vulkan_line_methods() {
     let _l = crate::test_support::test_lock();
