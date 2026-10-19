@@ -2210,10 +2210,13 @@ impl RenderBackend for Gles2Renderer {
 
     /// Translation of `GLES2_CreatePalette()`.
     ///
-    /// FIXME (upstream): unlike `GLES2_UpdatePalette()`, this (and
+    /// Note (upstream): unlike `GLES2_UpdatePalette()`, this (and
     /// `GLES2_DestroyPalette()`) doesn't make the renderer's context current
-    /// first.
+    /// first, so with another renderer's context current the palette is
+    /// made (or deleted) there. Here both make it current.
     fn create_palette(&mut self) -> Result<Box<dyn Any>> {
+        self.activate()?;
+
         self.drawstate.texture = None; // we trash this state.
 
         let gl = &self.gl;
@@ -2267,7 +2270,10 @@ impl RenderBackend for Gles2Renderer {
     /// Translation of `GLES2_DestroyPalette()`.
     fn destroy_palette(&mut self, palette: Box<dyn Any>) {
         if let Ok(palette) = palette.downcast::<PaletteData>() {
-            self.gl.delete_texture(palette.texture);
+            // (not once the context is gone, as in destroy_texture())
+            if self.activate().is_ok() {
+                self.gl.delete_texture(palette.texture);
+            }
         }
     }
 
