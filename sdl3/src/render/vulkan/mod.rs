@@ -115,6 +115,7 @@ const SDL_VULKAN_NUM_TEXTURE_BINDINGS: usize = 3;
 const SDL_VULKAN_VALIDATION_LAYER_NAME: &CStr = c"VK_LAYER_KHRONOS_validation";
 
 const VK_KHR_SWAPCHAIN_EXTENSION_NAME: &CStr = c"VK_KHR_swapchain";
+const VK_EXT_4444_FORMATS_EXTENSION_NAME: &CStr = c"VK_EXT_4444_formats";
 const VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME: &CStr = c"VK_EXT_swapchain_colorspace";
 const VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME: &CStr =
     c"VK_KHR_get_physical_device_properties2";
@@ -618,6 +619,9 @@ pub(crate) struct VulkanRenderer {
     supports_ext_swapchain_colorspace: bool,
     supports_khr_get_physical_device_properties2: bool,
     supports_khr_sampler_ycbcr_conversion: bool,
+    /// The renderer's device is made with `VK_EXT_4444_formats` (see
+    /// [`VK_FORMAT_MAP`]).
+    supports_ext_4444_formats: bool,
     supports_khr_external_memory_capabilities: bool,
     swapchain_desired_image_count: u32,
     surface_format: VkSurfaceFormatKHR,
@@ -666,8 +670,11 @@ pub(crate) struct VulkanRenderer {
 // TODO: Sort this list based on what the Vulkan driver prefers?
 /// Translation of `vk_format_map`: (SDL format, UNORM format, sRGB format).
 ///
-/// FIXME (upstream): the `_EXT` formats are `VK_EXT_4444_formats`', which
+/// Note (upstream): the `_EXT` formats are `VK_EXT_4444_formats`', which
 /// the device is created without (the validation layers report every use).
+/// Here the renderer's own device is made with the extension when the
+/// physical device has it, and the formats are used only then (an
+/// application's device may not have it).
 const VK_FORMAT_MAP: &[(PixelFormat, VkFormat, VkFormat)] = &[
     (
         PixelFormat::BGRA32,
@@ -2764,6 +2771,13 @@ impl VulkanRenderer {
             self.supports_khr_sampler_ycbcr_conversion = true;
         }
 
+        // (VK_EXT_4444_formats, see VK_FORMAT_MAP)
+        self.supports_ext_4444_formats = self.create_props.device.is_none()
+            && self.supports_khr_get_physical_device_properties2
+            && self
+                .device_extensions_found(&[VK_EXT_4444_FORMATS_EXTENSION_NAME])
+                .unwrap_or(false);
+
         // Create Vulkan device
         if let Some(device) = self.create_props.device {
             self.device = device as usize as VkDevice;
@@ -2773,8 +2787,14 @@ impl VulkanRenderer {
             let mut device_queue_create_info = [VkDeviceQueueCreateInfo::default(); 2];
             let mut device_sampler_ycbcr_conversion_features =
                 VkPhysicalDeviceSamplerYcbcrConversionFeatures::default();
-            let device_extension_names: Vec<*const c_char> =
+            let mut device_extension_names: Vec<*const c_char> =
                 DEVICE_EXTENSION_NAMES.iter().map(|n| n.as_ptr()).collect();
+            if !self.supports_khr_sampler_ycbcr_conversion {
+                device_extension_names.truncate(YCBCR_EXTENSION_OFFSET);
+            }
+            if self.supports_ext_4444_formats {
+                device_extension_names.push(VK_EXT_4444_FORMATS_EXTENSION_NAME.as_ptr());
+            }
 
             let mut queue_create_info_count = 0;
             device_queue_create_info[0] = VkDeviceQueueCreateInfo {
@@ -2802,12 +2822,9 @@ impl VulkanRenderer {
                 queue_create_info_count,
                 p_queue_create_infos: device_queue_create_info.as_ptr(),
                 p_enabled_features: null(),
-                enabled_extension_count: 1,
+                enabled_extension_count: device_extension_names.len() as u32,
                 ..Default::default()
             };
-            if self.supports_khr_sampler_ycbcr_conversion {
-                device_create_info.enabled_extension_count += YCBCR_EXTENSION_COUNT as u32;
-            }
             device_create_info.pp_enabled_extension_names = device_extension_names.as_ptr();
 
             if self.supports_khr_sampler_ycbcr_conversion {
@@ -5130,10 +5147,19 @@ impl VulkanRenderer {
         };
 
         let mut formats = Vec::new();
-        // FIXME (upstream): this asks for the formats of VK_EXT_4444_formats
+        // Note (upstream): this asks for the formats of VK_EXT_4444_formats
         // too, an extension the device isn't made with (on a Vulkan 1.0
-        // instance), which the validation layer reports as invalid formats.
+        // instance), which the validation layer reports as invalid formats;
+        // here they're left out unless the device has the extension.
         for &(sdl, unorm, srgb) in VK_FORMAT_MAP {
+            if !renderer_data.supports_ext_4444_formats
+                && matches!(
+                    unorm,
+                    VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT | VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT
+                )
+            {
+                continue;
+            }
             if !texture_format_supported(unorm) {
                 continue;
             }
@@ -5238,6 +5264,7 @@ impl VulkanRenderer {
             supports_ext_swapchain_colorspace: false,
             supports_khr_get_physical_device_properties2: false,
             supports_khr_sampler_ycbcr_conversion: false,
+            supports_ext_4444_formats: false,
             supports_khr_external_memory_capabilities: false,
             swapchain_desired_image_count: 0,
             surface_format: VkSurfaceFormatKHR::default(),
