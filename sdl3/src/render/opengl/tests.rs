@@ -727,6 +727,50 @@ fn textures_match_software() {
     });
 }
 
+/// Draw an INDEX8 texture given a new palette while another renderer's
+/// context is current (upstream's GL_CreatePalette() makes the palette in
+/// that context, see the Note in create_palette()).
+#[test]
+fn palette_made_while_another_context_is_current() {
+    let _l = crate::test_support::test_lock();
+    for_each_gl(|t| {
+        let Ok(window2) = Window::create("second renderer", W, H, WindowFlags::default()) else {
+            return;
+        };
+        let mut r2 = Renderer::for_window(&window2, Some(OPENGL_RENDERER)).unwrap();
+        let mut palette = Palette::new(256).unwrap();
+        let colors: Vec<Color> = (0..256)
+            .map(|i| Color::new(i as u8, (255 - i) as u8, (i * 3) as u8, 255))
+            .collect();
+        palette.set_colors(0, &colors).unwrap();
+        let palette = share_palette(palette);
+        let indices: Vec<u8> = (0..64).map(|i| (i * 37 % 256) as u8).collect();
+        let mut sw = software();
+        let mut drawn = Vec::new();
+        for r in [&mut t.r, &mut sw] {
+            let tex = r
+                .create_texture(PixelFormat::INDEX8, TextureAccess::Static, 8, 8)
+                .unwrap();
+            r.update_texture(tex, None, &indices, 8).unwrap();
+            // (the second renderer's context is made current)
+            r2.set_draw_color(1, 2, 3, 255);
+            r2.clear().unwrap();
+            let _ = r2.read_pixels(None).unwrap();
+            r.set_texture_palette(tex, Some(palette.clone())).unwrap();
+            background(r).unwrap();
+            r.set_texture_scale_mode(tex, ScaleMode::Nearest).unwrap();
+            r.render_texture(tex, None, Some(&FRect::new(20.0, 12.0, 8.0, 8.0)))
+                .unwrap();
+            drawn.push(read(r, None));
+            r.destroy_texture(tex);
+        }
+        let what = format!("palette made in its context ({})", t.driver);
+        compare(&what, &drawn[0], &drawn[1], 0, 0, false);
+        drop(r2);
+        window2.destroy();
+    });
+}
+
 #[test]
 fn render_targets_and_read_pixels() {
     let _l = crate::test_support::test_lock();

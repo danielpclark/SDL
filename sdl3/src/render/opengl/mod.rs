@@ -2438,18 +2438,16 @@ impl RenderBackend for GlRenderer {
 
     /// Translation of `GL_CreatePalette()`.
     fn create_palette(&mut self) -> Result<Box<dyn Any>> {
-        // FIXME (upstream): GL_CreatePalette() doesn't activate the
+        // Note (upstream): GL_CreatePalette() doesn't activate the
         // renderer's context (GL_UpdatePalette() does), so the texture is
-        // made in whatever context is current.
-        // (but not once the window, and its GL library, is gone)
-        if !self.window.is_valid() {
-            return Err(Error::new("Invalid window"));
-        }
+        // made in whatever context is current. Here it is activated (which
+        // fails once the window, and its GL library, is gone).
+        self.activate()?;
         self.drawstate.texture = None; // we trash this state.
 
         let textype = self.textype;
         let mut palettedata = GlPaletteData { texture: 0 };
-        // SAFETY: a context is current (see above); no pixels are read.
+        // SAFETY: the renderer's context is current; no pixels are read.
         unsafe {
             (self.gl.glGenTextures)(1, &mut palettedata.texture);
             (self.gl.glBindTexture)(textype, palettedata.texture);
