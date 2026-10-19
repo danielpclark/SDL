@@ -260,10 +260,11 @@ fn mgt_load(m: &mut ModuleData, f: &mut HioHandle<'_>, start: i32) -> i32 {
             } else {
                 match event.fxt {
                     0x13 | 0x14 | 0x15 | 0x17 | 0x1c | 0x1d | 0x1e => {
-                        // FIXME (upstream): the extended effect's number is
-                        // taken from the new effect type, not the old one.
-                        event.fxt = FX_EXTENDED;
+                        // Note (upstream): C takes the extended effect's
+                        // number from the new effect type (making them all
+                        // EEx, pattern delays), not the old one.
                         event.fxp = ((event.fxt & 0x0f) << 4) | (event.fxp & 0x0f);
+                        event.fxt = FX_EXTENDED;
                     }
                     _ => {
                         event.fxt = 0;

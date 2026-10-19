@@ -4466,9 +4466,9 @@ xmp 1: set=0 mixer=0 frames=235 230fecea25ec9eba 4345203c3b12bc60 seek=1 pos=1 2
 xmp 2: set=0 mixer=0 frames=235 3663c68a76615655 f1a2536217f6215c seek=1 pos=1 065299b6ed5c874c
 xmp 3: set=0 mixer=0 frames=235 09c9696358d68eac 22a7017cebe5735f seek=1 pos=1 6bcfd9d5da71efb2
 == mgt_megatracker.mgt
-open: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 09b0c71f2e0e77eb end=0
-f32s48: 2227200 c6210ddc48e4b2d2 end=0
-s16m22: 255780 996d1e89021b415f end=0
+open: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 eb8be40852acb314 end=0
+f32s48: 1920000 c64921fea59f34c2 end=0
+s16m22: 220500 96afdce4901523e4 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -4490,26 +4490,26 @@ trunc 128: err: Audio data is in unknown/unsupported/corrupt format
 trunc 200: err: Audio data is in unknown/unsupported/corrupt format
 trunc 256: err: Audio data is in unknown/unsupported/corrupt format
 trunc 300: err: Audio data is in unknown/unsupported/corrupt format
-trunc 512: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 bd5fed6457934742 end=0
-trunc 1000: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 a2ab90367cdc9170 end=0
+trunc 512: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 86d2412e1b468805 end=0
+trunc 1000: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 770f469d822902ec end=0
 trunc 328: err: Audio data is in unknown/unsupported/corrupt format
-trunc 657: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 fce73aafe598a496 end=0
-trunc 985: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 f6049935447188db end=0
-trunc 1313: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 54538db68be69626 end=0
-corrupt 0: XMP 0x8010 2 48000 title="mgt testw" frames=278400 xmp.name="mgt testw" xmp.type="Megatracker MGT v1.1" | 1113600 09b0c71f2e0e77eb end=0
-corrupt 0 mix: dur=278400 play=1 pos=12288 replay=1 seek=1 pos=92800 playing=1 9cc7316bca7c91ca
+trunc 657: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 e58e9e68e9988dad end=0
+trunc 985: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 fb50e838a593a389 end=0
+trunc 1313: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 b71a98e5dd91d193 end=0
+corrupt 0: XMP 0x8010 2 48000 title="mgt testw" frames=240000 xmp.name="mgt testw" xmp.type="Megatracker MGT v1.1" | 960000 eb8be40852acb314 end=0
+corrupt 0 mix: dur=240000 play=1 pos=12288 replay=1 seek=1 pos=80000 playing=1 addfead8de1a1d09
 corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 3: XMP 0x8010 2 48000 title="mgt test" frames=278400 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 1113600 9ba72c117ea14712 end=0
-corrupt 3 mix: dur=278400 play=1 pos=12288 replay=1 seek=1 pos=92800 playing=1 32ac14744c7075c0
+corrupt 3: XMP 0x8010 2 48000 title="mgt test" frames=240000 xmp.name="mgt test" xmp.type="Megatracker MGT v1.1" | 960000 818026dc6f4805eb end=0
+corrupt 3 mix: dur=240000 play=1 pos=12288 replay=1 seek=1 pos=80000 playing=1 0bb55a1038b93177
 corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
-mix: dur=278400 play=1 pos=12288 replay=1 seek=1 pos=92800 playing=1 9cc7316bca7c91ca
-mixpre: dur=278400 play=1 pos=12288 replay=1 seek=1 pos=92800 playing=1 3ac5e544cd96c5f8
+mix: dur=240000 play=1 pos=12288 replay=1 seek=1 pos=80000 playing=1 addfead8de1a1d09
+mixpre: dur=240000 play=1 pos=12288 replay=1 seek=1 pos=80000 playing=1 c6ba6d08c24e278a
 order 1: play=1 pos=4096 playing=1 66c6f81fac9ef225
 order 2: play=1 pos=4096 playing=1 5440eef063529cf6
 order 0: play=1 pos=4096 playing=1 1e12cf61682453e4
@@ -4518,15 +4518,15 @@ order -5: play=1 pos=4096 playing=1 ffbb4318cfe43327
 order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 7e498e49dca78119
 modseek 0: seek=1 pos=0 playing=1 002cf383671f2725
 modseek 2205: seek=1 pos=2205 playing=1 a6a0797a4f995049
-modseek 139200: seek=1 pos=139200 playing=1 d738cd12001fa676
-modseek 277400: seek=1 pos=277400 playing=1 301c7d91bf41bdf7
-modseek 283400: seek=1 pos=283400 playing=1 a6a0797a4f995049
+modseek 120000: seek=1 pos=120000 playing=1 d738cd12001fa676
+modseek 239000: seek=1 pos=239000 playing=1 301c7d91bf41bdf7
+modseek 245000: seek=1 pos=245000 playing=1 a6a0797a4f995049
 modseek 100: seek=1 pos=100 playing=1 a6a0797a4f995049
 xmp: pat=2 trk=5 chn=4 ins=3 smp=3 spd=5 bpm=125 len=3 rst=0 gvl=64 seqs=1 vol=64 md5=ab93791b68561784fb0a99fe56447d93 e4c8416c6c43ca06
-xmp 0: set=0 mixer=0 frames=290 b02c98b5957b0f95 04ebdab2cc1fa95a seek=0 pos=1 cb779ef5fd25841a
-xmp 1: set=0 mixer=0 frames=290 4ea691b7799840a5 bbae3b21d06488ba seek=0 pos=1 09eb6ee74d99033a
-xmp 2: set=0 mixer=0 frames=290 cb4a07a5ba5a5fda 292437043e7b9712 seek=0 pos=1 526e4b27cbe3b2eb
-xmp 3: set=0 mixer=0 frames=290 ba3ba68396046d34 258d44620030b5a8 seek=0 pos=1 5bf34299c7e8fd43
+xmp 0: set=0 mixer=0 frames=250 b2e802384cf81e14 388927f0119f2b82 seek=0 pos=1 b5073f282a20941b
+xmp 1: set=0 mixer=0 frames=250 7d44ebc35064b75f c2f77a5fa5a77f0a seek=0 pos=1 09eb6ee74d99033a
+xmp 2: set=0 mixer=0 frames=250 67a08a43c838b0b2 8fa1193cf748b36a seek=0 pos=1 526e4b27cbe3b2eb
+xmp 3: set=0 mixer=0 frames=250 5187a095801638b1 5971706036e096ea seek=0 pos=1 5bf34299c7e8fd43
 == mmd0_med.med
 open: XMP 0x8010 2 48000 title="mmd0 test" copyright="MED annotation" frames=28128 xmp.name="mmd0 test" xmp.type="OctaMED 3.00 MMD0" xmp.comment="MED annotation" | 112468 32d0295c35a6f72d end=0
 f32s48: 224936 c2748bbd49fb2e21 end=0
