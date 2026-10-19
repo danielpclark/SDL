@@ -428,10 +428,11 @@ fn masi16_load(m: &mut ModuleData, f: &mut HioHandle<'_>, start: i32) -> i32 {
 
                     if effect == 40 {
                         /* Sample Offset */
-                        // FIXME (upstream): these two bytes aren't counted
-                        // in the pattern's length.
+                        // Note (upstream): C doesn't count these two bytes
+                        // in what's left of the pattern.
                         param2 = hio_read8(f);
                         param3 = hio_read8(f);
+                        len -= 2;
                     }
                     masi16_translate_effect(event, effect, param, param2, param3);
                     len -= 2;
