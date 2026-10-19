@@ -51,6 +51,18 @@ use crate::video::rect::{FPoint, FRect, Rect};
 use crate::video::surface::{ScaleMode, Surface};
 use crate::video::{BlendMode, FlipMode, Window};
 
+/// The tests' fault injection: whether they make `step` fail.
+#[cfg(test)]
+fn injected_failure(step: &str) -> bool {
+    tests::injected_failure(step)
+}
+
+/// The tests' fault injection (none outside them).
+#[cfg(not(test))]
+fn injected_failure(_step: &str) -> bool {
+    false
+}
+
 /// The name of the OpenGL ES 2.0 renderer (`GLES2_RenderDriver.name`).
 pub(crate) const GLES2_RENDERER: &str = "opengles2";
 
@@ -592,8 +604,6 @@ impl Gles2Renderer {
         let mut compile_successful = false;
         let shader_body = ty.source(self.opengles_300);
 
-        // FIXME (upstream): when the first attempt fails, its shader object
-        // is not deleted before the second attempt creates another one.
         for attempt in 0..2 {
             if compile_successful {
                 break;
@@ -624,7 +634,21 @@ impl Gles2Renderer {
                 }
             }
 
+            if attempt == 0
+                && shader_type == GL_VERTEX_SHADER
+                && injected_failure("first vertex shader attempt")
+            {
+                shader_src_list.push("#error injected failure\n");
+            }
+
             shader_src_list.push(shader_body);
+
+            // Note (upstream): when the first attempt fails, its shader
+            // object is not deleted before the second attempt creates
+            // another one; here it is.
+            if id != 0 {
+                gl.delete_shader(id);
+            }
 
             // Compile
             id = gl.create_shader(shader_type);
