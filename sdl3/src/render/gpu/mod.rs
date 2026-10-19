@@ -2118,8 +2118,9 @@ impl RenderBackend for GpuRenderer {
                 Some(external) => external.clone(),
                 None => Arc::new(self.device.create_texture(&tci)?),
             };
-            // FIXME (upstream): the V property is set to the U texture.
-            publish(PROP_TEXTURE_GPU_TEXTURE_V_POINTER, &u);
+            // Note (upstream): the V property is set to the U texture
+            // there; here it is the V texture.
+            publish(PROP_TEXTURE_GPU_TEXTURE_V_POINTER, &v);
 
             planes = Planes::Yuv { u, v };
             let bits_per_pixel = if texture.format == F::I4FL { 16 } else { 8 };
