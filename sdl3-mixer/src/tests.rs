@@ -289,6 +289,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "mdl_v11.mdl",
     "med2_med112.med",
     "med3_med200.med",
+    "med4_loops.med",
     "med4_med210.med",
     "mgt_megatracker.mgt",
     "mmd0_med.med",

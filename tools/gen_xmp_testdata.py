@@ -2336,12 +2336,14 @@ def oldmed_files():
     write('med3_med200.med', hdr + pats + samples)
 
     # MED 2.10 MED4: a synthetic instrument, two-pass sample mask, MEDV and ANNO chunks
-    insts = [('square', 0, 64, 64, 0), ('saw', 0, 0, 48, 0), ('synth', 0, 0, 64, -12)]
-    hdr = b'MED\x04' + bytes([0x80, 0xe0])
-    for name, ls, ll, vol, tr in insts:
-        hdr += bytes([0x0c, len(name)]) + name.encode() + be16(ls >> 1) + be16(ll >> 1) + bytes([vol, tr & 0xff])
-    hdr += be16(2) + be16(3) + bytes([0, 1, 0]) + be16(140) + bytes([0, 0x08 | 0x20]) + be16(5) + bytes(20)
-    hdr += bytes([64] * 16) + bytes([64])
+    def med4_hdr(insts):
+        hdr = b'MED\x04' + bytes([0x80, 0xe0])
+        for name, ls, ll, vol, tr in insts:
+            hdr += bytes([0x0c, len(name)]) + name.encode() + be16(ls >> 1) + be16(ll >> 1) + bytes([vol, tr & 0xff])
+        hdr += be16(2) + be16(3) + bytes([0, 1, 0]) + be16(140) + bytes([0, 0x08 | 0x20]) + be16(5) + bytes(20)
+        return hdr + bytes([64] * 16) + bytes([64])
+
+    hdr = med4_hdr([('square', 0, 64, 64, 0), ('saw', 0, 0, 48, 0), ('synth', 0, 0, 64, -12)])
 
     def med4_block(cells, rows=64):
         n = Nibbles()
@@ -2380,6 +2382,9 @@ def oldmed_files():
     samples += be32(len(msh)) + be16(0xffff) + msh
     tail = b'MEDV' + be32(4) + be32(0x0210) + b'ANNO' + be32(14) + b'MED4 comment\0\0'
     write('med4_med210.med', hdr + pats + samples + tail)
+    # loops that don't start at a multiple of 256 bytes
+    hdr = med4_hdr([('square', 16, 48, 64, 0), ('saw', 288, 224, 48, 0), ('synth', 0, 0, 64, -12)])
+    write('med4_loops.med', hdr + pats + samples + tail)
 
 
 def chip_files():
