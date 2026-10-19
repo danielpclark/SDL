@@ -172,15 +172,20 @@ fn get_patt(m: &mut ModuleData, _size: u32, f: &mut HioHandle<'_>, data: &mut Lo
                         event.fxp = (x & 0xf0) | ((x << 1) & 0x0f);
                     }
                     0x09 => {
-                        /* FIXME (upstream): this shifts the effect type,
-                         * not the parameter */
-                        event.fxt <<= 1;
+                        /* Note (upstream): C shifts the effect type (making
+                         * it 0x12, no effect) instead of the parameter;
+                         * Quadra Composer's offsets are in 512 bytes. (One
+                         * of 0x80 or more still loses its top bit.) */
+                        event.fxp <<= 1;
                     }
-                    0x0b => {
-                        /* FIXME (upstream): this converts the effect type,
-                         * not the parameter */
-                        let x = event.fxt;
-                        event.fxt = 16 * (x / 10) + x % 10;
+                    0x0d => {
+                        /* Note (upstream): C converts the type of a 0x0b
+                         * (position jump) here, making it a global volume
+                         * slide; Quadra Composer's jump and break take a
+                         * binary parameter, and the break's row is made
+                         * the BCD that FX_BREAK reads. */
+                        let x = event.fxp as u32;
+                        event.fxp = (16 * (x / 10) + x % 10) as u8;
                     }
                     _ => {}
                 }

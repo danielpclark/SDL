@@ -264,6 +264,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "dbm_digibooster.dbm",
     "digi_booster.digi",
     "dt_dtm19.dtm",
+    "emod_jumps.emod",
     "emod_quadra.emod",
     "far_farandole.far",
     "flt_flt8.mod",
