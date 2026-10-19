@@ -831,6 +831,16 @@ fn srv_pool_allocator() {
     );
     data.free_srv_index(7);
     assert_eq!(data.get_available_srv_index().unwrap(), 7);
+    // Started again (as after a device loss) with the last slot freed
+    // before another, the pool hands each slot out once.
+    let last = SDL_D3D12_MAX_NUM_TEXTURES - 1;
+    data.free_srv_index(5);
+    data.free_srv_index(last);
+    data.init_srv_pool();
+    for i in 0..SDL_D3D12_MAX_NUM_TEXTURES {
+        assert_eq!(data.get_available_srv_index().unwrap(), i);
+    }
+    assert!(data.get_available_srv_index().is_err());
     // (the renderer's starting state: invalidated, tearing presents)
     assert!(data.cliprect_dirty && data.viewport_dirty);
     assert_eq!(data.present_flags, DXGI_PRESENT_ALLOW_TEARING);
