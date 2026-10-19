@@ -4155,9 +4155,9 @@ xmp 1: set=0 mixer=0 frames=300 14dc608b338f2026 9c0e7341a2190677 seek=0 pos=1 0
 xmp 2: set=0 mixer=0 frames=300 fae1601822887f1f 38187d7ebc431310 seek=0 pos=1 e38ece00abe99899
 xmp 3: set=0 mixer=0 frames=300 915d20e5edeaebdf 22d6f41c8fa9aa4c seek=0 pos=1 3d3eb0386dc76c23
 == mdl_v11.mdl
-open: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 2b75f320b5fd4b53 end=0
-f32s48: 1122816 38b1313653dbb077 end=0
-s16m22: 128950 4f7dda2d5c3a409a end=0
+open: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 fdc41dd2c63dbb01 end=0
+f32s48: 1122816 22d9a2f8b2843993 end=0
+s16m22: 128950 b653b5a236b20535 end=0
 trunc 0: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1: err: Audio data is in unknown/unsupported/corrupt format
 trunc 2: err: Audio data is in unknown/unsupported/corrupt format
@@ -4185,9 +4185,9 @@ trunc 376: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test"
 trunc 752: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1128: err: Audio data is in unknown/unsupported/corrupt format
 trunc 1503: err: Audio data is in unknown/unsupported/corrupt format
-corrupt 0: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 2b75f320b5fd4b53 end=0
+corrupt 0: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 fdc41dd2c63dbb01 end=0
 corrupt 0 mix: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 cb9d2ea070ecce4f
-corrupt 1: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 2b75f320b5fd4b53 end=0
+corrupt 1: XMP 0x8010 2 48000 title="mdl test" frames=140352 xmp.name="mdl test" xmp.type="Digitrakker MDL 1.1" | 561408 fdc41dd2c63dbb01 end=0
 corrupt 1 mix: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 cb9d2ea070ecce4f
 corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
@@ -4198,7 +4198,7 @@ corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5: err: Audio data is in unknown/unsupported/corrupt format
 corrupt 5 mix: err: Audio data is in unknown/unsupported/corrupt format
 mix: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 cb9d2ea070ecce4f
-mixpre: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 bce3a3d6dfdb884c
+mixpre: dur=140352 play=1 pos=12288 replay=1 seek=1 pos=46784 playing=1 d0903e98c1c325b2
 order 1: play=1 pos=4096 playing=1 1f3f5e9210f11c18
 order 2: play=1 pos=4096 playing=1 097b50d1033c93bf
 order 0: play=1 pos=4096 playing=1 6abd8246a0a767f6
@@ -4212,10 +4212,10 @@ modseek 139352: seek=1 pos=139352 playing=1 ee5294ae2320e5c8
 modseek 145352: seek=1 pos=145352 playing=1 4c781352af2b9fb6
 modseek 100: seek=1 pos=100 playing=1 0493e76923e3f972
 xmp: pat=2 trk=4 chn=4 ins=2 smp=3 spd=5 bpm=135 len=3 rst=0 gvl=64 seqs=2 vol=255 md5=b26455f573acd72e10faabe014282efd 7b754a87ac9e03ab
-xmp 0: set=0 mixer=0 frames=136 70d646762b88a533 84dd98a5792e947e seek=0 pos=1 3bfac7d99c110cea
-xmp 1: set=0 mixer=0 frames=136 0216e3f6296a5f94 4723b7accf3d57c8 seek=0 pos=1 f1ddf6ec609c211a
-xmp 2: set=0 mixer=0 frames=136 6f7a56514fba49f0 62bf4562ffb8ca9f seek=0 pos=1 4ec137ef8230523e
-xmp 3: set=0 mixer=0 frames=136 7514e2190e3c8ad8 cc6949e188586956 seek=0 pos=1 48cc556235e45261
+xmp 0: set=0 mixer=0 frames=136 9296ce22aeb840a0 ee34cf03519529af seek=0 pos=1 3bfac7d99c110cea
+xmp 1: set=0 mixer=0 frames=136 80ce71c9ed632d8b 6866b27a93066536 seek=0 pos=1 f1ddf6ec609c211a
+xmp 2: set=0 mixer=0 frames=136 5e10c1fc1e18e136 8ff570ca7fe30d18 seek=0 pos=1 4ec137ef8230523e
+xmp 3: set=0 mixer=0 frames=136 29011f230cf11c4c 9a862fcb488a1382 seek=0 pos=1 48cc556235e45261
 == med2_med112.med
 open: XMP 0x8010 2 48000 frames=119856 xmp.type="MED 1.12 MED2" | 7398336 50c65b5f6c440e25 end=0
 f32s48: 8388608 637a2df54e222325 end=1
