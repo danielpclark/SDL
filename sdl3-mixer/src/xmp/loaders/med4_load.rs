@@ -623,14 +623,11 @@ fn med4_load(m: &mut ModuleData, f: &mut HioHandle<'_>, start: i32) -> i32 {
 
         let mut name = [0u8; 33];
         libxmp_copy_adjust(&mut name, &buf, 32);
+        // Note (upstream): libxmp_copy_adjust() clears the byte past C's 32
+        // byte name, which is the first byte of loop_start in memory (its
+        // low byte on a little-endian machine); here the name's terminator
+        // goes in a buffer of its own.
         ti.name.copy_from_slice(&name[..32]);
-        // FIXME (upstream): libxmp_copy_adjust() clears the byte past the
-        // 32 byte name, which is the first byte of loop_start in memory.
-        if cfg!(target_endian = "little") {
-            ti.loop_start &= !0xff;
-        } else {
-            ti.loop_start &= 0x00ffffff;
-        }
 
         i += 1;
         mask <<= 1;

@@ -8,6 +8,68 @@ raw 0: dur=3000 e30825106988d160
 raw 1: dur=3000 2ad3d15630b5aac3
 raw 2: dur=1500 424057d38b4cf67f
 raw 3: dur=500 8c7f074f69a59066
+== med4_loops.med
+open: XMP 0x8010 2 48000 copyright="MED4 comment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 293560 96a478a90cf51781 end=0
+f32s48: 587120 f3b8f0497b19f582 end=0
+s16m22: 67428 179b8d71b97e057f end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: XMP 0x8010 2 48000 frames=73392 xmp.type="MED 2.10 MED4" | 293560 96a478a90cf51781 end=0
+trunc 262: err: Audio data is in unknown/unsupported/corrupt format
+trunc 525: err: Audio data is in unknown/unsupported/corrupt format
+trunc 787: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1049: XMP 0x8010 2 48000 copyright="MED4 comment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 293560 96a478a90cf51781 end=0
+corrupt 0: XMP 0x8010 2 48000 frames=0 xmp.type="MED 2.10 MED4" | 0 cbf29ce484222325 end=0
+corrupt 0 mix: dur=0 play=1 pos=0 replay=1 seek=1 pos=100 playing=0 0c8210784d8af5a5
+corrupt 1: XMP 0x8010 2 48000 copyright="MED4 comment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 293560 c96fe7b960f5233e end=0
+corrupt 1 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 306bcbff7707a711
+corrupt 2: XMP 0x8010 2 48000 copyright="MED4 comment" frames=159504 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 637320 539a3b51fa65d1b7 end=0
+corrupt 2 mix: dur=159504 play=1 pos=12288 replay=1 seek=1 pos=53168 playing=1 d4b07a4bce4c0db1
+corrupt 3: XMP 0x8010 2 48000 copyright="MED4 comment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 293560 9dd250a269e7ae71 end=0
+corrupt 3 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 b8da9ab548d4deeb
+corrupt 4: XMP 0x8010 2 48000 copyright="MED4Ocomment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4Ocomment" | 293560 b2f8f48e8695b019 end=0
+corrupt 4 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 e285f8b79f2e9659
+corrupt 5: XMP 0x8010 2 48000 copyright="MED4 comment" frames=228480 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 913960 b78c568753020aac end=0
+corrupt 5 mix: dur=228480 play=1 pos=12288 replay=1 seek=1 pos=76160 playing=1 4d82c318d2315183
+mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 dda58aa74efac970
+mixpre: dur=73390 play=1 pos=12288 replay=1 seek=1 pos=24463 playing=1 edbb5fb06290aac3
+order 1: play=1 pos=4096 playing=1 e3f16065a50003be
+order 2: play=1 pos=4096 playing=1 1a6ea10693774b9c
+order 0: play=1 pos=4096 playing=1 a3afc0a9680d6564
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 4c3084e1ca5ea599
+order -5: play=1 pos=4096 playing=1 183d53aa895e456b
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 dace1f4f141a2e9d
+modseek 0: seek=1 pos=0 playing=1 43d0cf23e6413155
+modseek 2205: seek=1 pos=2205 playing=1 28342480d6604a70
+modseek 36696: seek=1 pos=36696 playing=1 0286b2fdba00b299
+modseek 72392: seek=1 pos=72392 playing=1 8a466b82a479166f
+modseek 78392: seek=1 pos=78392 playing=1 ed9da04ea079da77
+modseek 100: seek=1 pos=100 playing=1 a0fb4f4133f7219b
+xmp: pat=2 trk=8 chn=4 ins=3 smp=4 spd=5 bpm=140 len=3 rst=0 gvl=64 seqs=1 vol=64 md5=ad8ff97aec5dbd119dfe82f425c57e44 c8e19e7d0ca2a0b8
+xmp 0: set=0 mixer=0 frames=235 52629224200da6d6 42928611e8e5e98d seek=1 pos=1 eb2460aa77aced8e
+xmp 1: set=0 mixer=0 frames=235 7ad6eaa83a38ed97 550113897cc7fa22 seek=1 pos=1 269943aa279b2fc5
+xmp 2: set=0 mixer=0 frames=235 7d29dabe00776350 6662df3a796f7502 seek=1 pos=1 065299b6ed5c874c
+xmp 3: set=0 mixer=0 frames=235 47cb882d2cd68751 3b53406d1ee4cc39 seek=1 pos=1 58585e35721e8239
 == masi16_offset.psm
 open: XMP 0x8010 2 48000 title="masi16 offsets" frames=153600 xmp.name="masi16 offsets" xmp.type="Epic MegaGames MASI 16 PSM 1.00" | 614400 cf1629448a502af1 end=0
 f32s48: 1228800 41dd113126fcb7b1 end=0
@@ -4380,8 +4442,8 @@ corrupt 2: XMP 0x8010 2 48000 copyright="MED4 comment" frames=159504 xmp.type="M
 corrupt 2 mix: dur=159504 play=1 pos=12288 replay=1 seek=1 pos=53168 playing=1 5192c8b0c57b3d14
 corrupt 3: XMP 0x8010 2 48000 copyright="MED4 comment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 293560 2067d605b27c0b18 end=0
 corrupt 3 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 dd89e41df5bcd098
-corrupt 4: XMP 0x8010 2 48000 copyright="MED4Ocomment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4Ocomment" | 293560 3c0f793c243855fe end=0
-corrupt 4 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 e3928c5bc7a2c8cb
+corrupt 4: XMP 0x8010 2 48000 copyright="MED4Ocomment" frames=73392 xmp.type="MED 2.10 MED4" xmp.comment="MED4Ocomment" | 293560 8f0d6652416d0621 end=0
+corrupt 4 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 835e3ff72e058229
 corrupt 5: XMP 0x8010 2 48000 copyright="MED4 comment" frames=228480 xmp.type="MED 2.10 MED4" xmp.comment="MED4 comment" | 913960 af7cc1c112b22d28 end=0
 corrupt 5 mix: dur=228480 play=1 pos=12288 replay=1 seek=1 pos=76160 playing=1 62f1b8a2e8ca1575
 mix: dur=73392 play=1 pos=12288 replay=1 seek=1 pos=24464 playing=1 5b5851c8c7f0ee88
