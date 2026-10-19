@@ -1750,177 +1750,194 @@ impl RenderBackend for Gles2Renderer {
         let gl = &self.gl;
         let textype = data.texture_type;
 
-        // FIXME (upstream): the U and V (or UV) textures leak when a later
-        // step of the creation fails.
-        if data.yuv {
-            let (yuv_texture_w, yuv_texture_h) = if texture.format == F::I444 {
-                (w, h)
-            } else {
-                ((w + 1) / 2, (h + 1) / 2)
-            };
+        // Note (upstream): the U and V (or UV) textures leak when a later
+        // step of the creation fails; here they're deleted.
+        let result = (|| -> Result<()> {
+            if data.yuv {
+                let (yuv_texture_w, yuv_texture_h) = if texture.format == F::I444 {
+                    (w, h)
+                } else {
+                    ((w + 1) / 2, (h + 1) / 2)
+                };
 
-            data.texture_v = create_props.opengles2_texture_v.unwrap_or(0);
-            if data.texture_v != 0 {
-                data.texture_v_external = true;
-            } else {
-                data.texture_v = gl.gen_texture();
-                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
-            }
-            gl.active_texture(GL_TEXTURE2);
-            gl.bind_texture(textype, data.texture_v);
-            gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
-            gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
-            set_texture_scale_mode(
-                gl,
-                self.opengles_300,
-                textype,
-                texture.format,
-                data.texture_scale_mode,
-            );
-            set_texture_address_mode(
-                gl,
-                textype,
-                data.texture_address_mode_u,
-                data.texture_address_mode_v,
-            );
-            let _ = props.set(
-                PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER,
-                data.texture_v as i64,
-            );
-
-            data.texture_u = create_props.opengles2_texture_u.unwrap_or(0);
-            if data.texture_u != 0 {
-                data.texture_u_external = true;
-            } else {
-                data.texture_u = gl.gen_texture();
-                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
-            }
-            gl.active_texture(GL_TEXTURE1);
-            gl.bind_texture(textype, data.texture_u);
-            gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
-            gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
-            set_texture_scale_mode(
-                gl,
-                self.opengles_300,
-                textype,
-                texture.format,
-                data.texture_scale_mode,
-            );
-            set_texture_address_mode(
-                gl,
-                textype,
-                data.texture_address_mode_u,
-                data.texture_address_mode_v,
-            );
-            let _ = props.set(
-                PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER,
-                data.texture_u as i64,
-            );
-
-            if texture
-                .colorspace
-                .ycbcr_to_rgb_matrix(h.max(0) as u32, 8)
-                .is_none()
-            {
-                return Err(Error::new("Unsupported YUV colorspace"));
-            }
-        } else if data.nv12 {
-            data.texture_u = create_props.opengles2_texture_uv.unwrap_or(0);
-            if data.texture_u != 0 {
-                data.texture_u_external = true;
-            } else {
-                data.texture_u = gl.gen_texture();
-                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
-            }
-            gl.active_texture(GL_TEXTURE1);
-            gl.bind_texture(textype, data.texture_u);
-            gl.tex_image_2d_empty(
-                textype,
-                GL_LUMINANCE_ALPHA,
-                (w + 1) / 2,
-                (h + 1) / 2,
-                GL_LUMINANCE_ALPHA,
-                GL_UNSIGNED_BYTE,
-            );
-            gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
-            set_texture_scale_mode(
-                gl,
-                self.opengles_300,
-                textype,
-                texture.format,
-                data.texture_scale_mode,
-            );
-            set_texture_address_mode(
-                gl,
-                textype,
-                data.texture_address_mode_u,
-                data.texture_address_mode_v,
-            );
-            let _ = props.set(
-                PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER,
-                data.texture_u as i64,
-            );
-
-            if texture
-                .colorspace
-                .ycbcr_to_rgb_matrix(h.max(0) as u32, 8)
-                .is_none()
-            {
-                return Err(Error::new("Unsupported YUV colorspace"));
-            }
-        }
-
-        data.texture = create_props.opengles2_texture.unwrap_or(0);
-        if data.texture != 0 {
-            data.texture_external = true;
-        } else {
-            data.texture = gl.gen_texture();
-            gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
-        }
-        gl.active_texture(GL_TEXTURE0);
-        gl.bind_texture(textype, data.texture);
-        if texture.format != F::EXTERNAL_OES {
-            gl.tex_image_2d_empty(textype, format, w, h, format, ty);
-            if let Err(e) = gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture") {
-                if !data.texture_external {
-                    gl.delete_texture(data.texture);
+                data.texture_v = create_props.opengles2_texture_v.unwrap_or(0);
+                if data.texture_v != 0 {
+                    data.texture_v_external = true;
+                } else {
+                    data.texture_v = gl.gen_texture();
+                    gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
                 }
-                return Err(e);
-            }
-        }
-        set_texture_scale_mode(
-            gl,
-            self.opengles_300,
-            textype,
-            texture.format,
-            data.texture_scale_mode,
-        );
-        set_texture_address_mode(
-            gl,
-            textype,
-            data.texture_address_mode_u,
-            data.texture_address_mode_v,
-        );
-        let _ = props.set(PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER, data.texture as i64);
-        let _ = props.set(PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER, textype as i64);
+                gl.active_texture(GL_TEXTURE2);
+                gl.bind_texture(textype, data.texture_v);
+                gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
+                gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    texture.format,
+                    data.texture_scale_mode,
+                );
+                set_texture_address_mode(
+                    gl,
+                    textype,
+                    data.texture_address_mode_u,
+                    data.texture_address_mode_v,
+                );
+                let _ = props.set(
+                    PROP_TEXTURE_OPENGLES2_TEXTURE_V_NUMBER,
+                    data.texture_v as i64,
+                );
 
-        if texture.access == TextureAccess::Target {
-            data.fbo = gl.gen_framebuffer();
-            gl.bind_framebuffer(GL_FRAMEBUFFER, data.fbo);
-            gl.framebuffer_texture_2d(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textype, data.texture);
-            let status = gl.check_framebuffer_status(GL_FRAMEBUFFER);
-            // rebind previous fbo.
-            gl.bind_framebuffer(
-                GL_FRAMEBUFFER,
-                self.target.map_or(self.window_framebuffer, |t| t.fbo),
-            );
-            if status != GL_FRAMEBUFFER_COMPLETE {
-                gl.delete_framebuffer(data.fbo);
-                if !data.texture_external {
-                    gl.delete_texture(data.texture);
+                data.texture_u = create_props.opengles2_texture_u.unwrap_or(0);
+                if data.texture_u != 0 {
+                    data.texture_u_external = true;
+                } else {
+                    data.texture_u = gl.gen_texture();
+                    gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
                 }
-                return Err(Error::new("Texture framebuffer was incomplete"));
+                gl.active_texture(GL_TEXTURE1);
+                gl.bind_texture(textype, data.texture_u);
+                gl.tex_image_2d_empty(textype, format, yuv_texture_w, yuv_texture_h, format, ty);
+                gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    texture.format,
+                    data.texture_scale_mode,
+                );
+                set_texture_address_mode(
+                    gl,
+                    textype,
+                    data.texture_address_mode_u,
+                    data.texture_address_mode_v,
+                );
+                let _ = props.set(
+                    PROP_TEXTURE_OPENGLES2_TEXTURE_U_NUMBER,
+                    data.texture_u as i64,
+                );
+
+                if texture
+                    .colorspace
+                    .ycbcr_to_rgb_matrix(h.max(0) as u32, 8)
+                    .is_none()
+                {
+                    return Err(Error::new("Unsupported YUV colorspace"));
+                }
+            } else if data.nv12 {
+                data.texture_u = create_props.opengles2_texture_uv.unwrap_or(0);
+                if data.texture_u != 0 {
+                    data.texture_u_external = true;
+                } else {
+                    data.texture_u = gl.gen_texture();
+                    gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+                }
+                gl.active_texture(GL_TEXTURE1);
+                gl.bind_texture(textype, data.texture_u);
+                gl.tex_image_2d_empty(
+                    textype,
+                    GL_LUMINANCE_ALPHA,
+                    (w + 1) / 2,
+                    (h + 1) / 2,
+                    GL_LUMINANCE_ALPHA,
+                    GL_UNSIGNED_BYTE,
+                );
+                gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture")?;
+                set_texture_scale_mode(
+                    gl,
+                    self.opengles_300,
+                    textype,
+                    texture.format,
+                    data.texture_scale_mode,
+                );
+                set_texture_address_mode(
+                    gl,
+                    textype,
+                    data.texture_address_mode_u,
+                    data.texture_address_mode_v,
+                );
+                let _ = props.set(
+                    PROP_TEXTURE_OPENGLES2_TEXTURE_UV_NUMBER,
+                    data.texture_u as i64,
+                );
+
+                if texture
+                    .colorspace
+                    .ycbcr_to_rgb_matrix(h.max(0) as u32, 8)
+                    .is_none()
+                {
+                    return Err(Error::new("Unsupported YUV colorspace"));
+                }
             }
+
+            data.texture = create_props.opengles2_texture.unwrap_or(0);
+            if data.texture != 0 {
+                data.texture_external = true;
+            } else {
+                data.texture = gl.gen_texture();
+                gl_check_error!(self, "glGenTexures()", "GLES2_CreateTexture")?;
+            }
+            gl.active_texture(GL_TEXTURE0);
+            gl.bind_texture(textype, data.texture);
+            if texture.format != F::EXTERNAL_OES {
+                gl.tex_image_2d_empty(textype, format, w, h, format, ty);
+                if let Err(e) = gl_check_error!(self, "glTexImage2D()", "GLES2_CreateTexture") {
+                    if !data.texture_external {
+                        gl.delete_texture(data.texture);
+                    }
+                    return Err(e);
+                }
+            }
+            set_texture_scale_mode(
+                gl,
+                self.opengles_300,
+                textype,
+                texture.format,
+                data.texture_scale_mode,
+            );
+            set_texture_address_mode(
+                gl,
+                textype,
+                data.texture_address_mode_u,
+                data.texture_address_mode_v,
+            );
+            let _ = props.set(PROP_TEXTURE_OPENGLES2_TEXTURE_NUMBER, data.texture as i64);
+            let _ = props.set(PROP_TEXTURE_OPENGLES2_TEXTURE_TARGET_NUMBER, textype as i64);
+
+            if texture.access == TextureAccess::Target {
+                data.fbo = gl.gen_framebuffer();
+                gl.bind_framebuffer(GL_FRAMEBUFFER, data.fbo);
+                gl.framebuffer_texture_2d(
+                    GL_FRAMEBUFFER,
+                    GL_COLOR_ATTACHMENT0,
+                    textype,
+                    data.texture,
+                );
+                let status = gl.check_framebuffer_status(GL_FRAMEBUFFER);
+                // rebind previous fbo.
+                gl.bind_framebuffer(
+                    GL_FRAMEBUFFER,
+                    self.target.map_or(self.window_framebuffer, |t| t.fbo),
+                );
+                if status != GL_FRAMEBUFFER_COMPLETE {
+                    gl.delete_framebuffer(data.fbo);
+                    if !data.texture_external {
+                        gl.delete_texture(data.texture);
+                    }
+                    return Err(Error::new("Texture framebuffer was incomplete"));
+                }
+            }
+            Ok(())
+        })();
+        if let Err(e) = result {
+            if !data.texture_u_external {
+                gl.delete_texture(data.texture_u);
+            }
+            if !data.texture_v_external {
+                gl.delete_texture(data.texture_v);
+            }
+            return Err(e);
         }
 
         texture.internal = Some(Box::new(data));
