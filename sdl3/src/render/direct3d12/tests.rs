@@ -907,6 +907,38 @@ fn d3d12_fails_without_its_fence_event() {
     window.destroy();
 }
 
+/// A read of the pixels that fails (here at an unknown rotation) leaves
+/// the back buffer a render target (upstream's is left a copy source), so
+/// the renderer draws and reads on.
+#[test]
+fn d3d12_failed_read_leaves_a_render_target() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((window, r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    drop(r);
+    let mut data = match D3d12Renderer::for_window(window, Colorspace::SRGB) {
+        Ok(data) => data,
+        Err(e) => panic!("no Direct3D 12 renderer ({})", e.message()),
+    };
+    let rect = Rect::new(0, 0, 4, 4);
+    let rotation = data.rotation;
+    data.rotation = 99;
+    assert_eq!(
+        data.render_read_pixels(&rect).unwrap_err().message(),
+        "The physical display is in an unknown or unsupported rotation"
+    );
+    data.rotation = rotation;
+    let read = data.render_read_pixels(&rect).unwrap();
+    assert_eq!((read.width(), read.height()), (4, 4));
+    data.destroy();
+    drop(data);
+    window.destroy();
+}
+
 /// A texture whose creation fails frees only the SRV slots it took
 /// (upstream frees slot 0 for each one it didn't).
 #[test]
