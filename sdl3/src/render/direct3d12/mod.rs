@@ -48,7 +48,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ptr::{null, null_mut, NonNull};
 
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND};
+use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE, HWND};
 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows_sys::Win32::System::Threading::{WaitForSingleObjectEx, INFINITE};
 
@@ -270,6 +270,18 @@ impl VertexPositionColor {
             color: [color.r, color.g, color.b, color.a],
         }
     }
+}
+
+/// The tests' fault injection: whether they make `step` fail.
+#[cfg(test)]
+fn injected_failure(step: &str) -> bool {
+    tests::injected_failure(step)
+}
+
+/// The tests' fault injection (none outside them).
+#[cfg(not(test))]
+fn injected_failure(_step: &str) -> bool {
+    false
 }
 
 /// Per-palette data. Translation of `D3D12_PaletteData`.
@@ -1494,16 +1506,27 @@ impl D3d12Renderer {
 
         self.fence_value += 1;
 
-        // SAFETY: CreateEventExW without attributes or a name.
-        self.fence_event =
-            unsafe { p_create_event_ex_w(null(), null(), 0, EVENT_MODIFY_STATE | SYNCHRONIZE) };
+        self.fence_event = if injected_failure("fence event") {
+            null_mut()
+        } else {
+            // SAFETY: CreateEventExW without attributes or a name.
+            unsafe { p_create_event_ex_w(null(), null(), 0, EVENT_MODIFY_STATE | SYNCHRONIZE) }
+        };
         if self.fence_event.is_null() {
-            // FIXME (upstream): this `goto done` returns the S_OK of
+            // Note (upstream): this `goto done` returns the S_OK of
             // CreateFence() (with the error set from it), so the renderer
             // is made without its root signatures, pipeline states, vertex
-            // buffers and samplers, and never waits for the GPU.
-            // (WIN_SetErrorFromHRESULT("CreateEventEx", result))
-            return Ok(());
+            // buffers and samplers, and never waits for the GPU. Here the
+            // failure is returned, with the error of CreateEventExW().
+            // SAFETY: GetLastError() has no preconditions.
+            let error = unsafe { GetLastError() };
+            // (HRESULT_FROM_WIN32())
+            let hr = if error == 0 {
+                crate::render::direct3d11::d3d::E_FAIL
+            } else {
+                ((error & 0xFFFF) | 0x8007_0000) as i32
+            };
+            return Err(hr_error("CreateEventEx", hr));
         }
 
         // Create all the root signatures

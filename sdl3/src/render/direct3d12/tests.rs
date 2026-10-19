@@ -600,6 +600,16 @@ impl Drop for Video {
     }
 }
 
+thread_local! {
+    /// The step of the renderer's setup this thread's test makes fail.
+    static FAIL_STEP: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+}
+
+/// The renderer's fault injection: whether the test makes `step` fail.
+pub(super) fn injected_failure(step: &str) -> bool {
+    FAIL_STEP.get() == Some(step)
+}
+
 /// A window, or `None` (with the skip reported) when the windows video
 /// driver can't make one.
 fn window(w: i32, h: i32, flags: WindowFlags) -> Option<Window> {
@@ -859,6 +869,31 @@ fn release_all_closes_the_fence_event() {
         unsafe { CloseHandle(event) };
         panic!("the fence event wasn't closed");
     }
+    window.destroy();
+}
+
+/// A fence event that can't be made fails the renderer (upstream's is
+/// made without its root signatures and pipeline states).
+#[test]
+fn d3d12_fails_without_its_fence_event() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((window, r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    drop(r);
+    FAIL_STEP.set(Some("fence event"));
+    let result = D3d12Renderer::for_window(window, Colorspace::SRGB);
+    FAIL_STEP.set(None);
+    let message = result.err().map(|e| e.message().to_owned());
+    assert!(
+        message
+            .as_deref()
+            .is_some_and(|m| m.starts_with("CreateEventEx")),
+        "{message:?}"
+    );
     window.destroy();
 }
 
