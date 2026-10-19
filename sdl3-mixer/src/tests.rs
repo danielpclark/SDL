@@ -315,6 +315,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "s3m_st3.s3m",
     "s3m_st301.s3m",
     "sfx_soundfx13.sfx",
+    "sfx_soundfx20.sfx",
     "st_soundtracker.mod",
     "stim_slamtilt.stim",
     "stm_st221.stm",

@@ -273,10 +273,11 @@ fn sfx_13_20_load(m: &mut ModuleData, f: &mut HioHandle<'_>, nins: i32, _start: 
 
 /// Translation of `sfx_load()`.
 fn sfx_load(m: &mut ModuleData, f: &mut HioHandle<'_>, start: i32) -> i32 {
-    /* FIXME (upstream): the 31 instrument attempt reads on from wherever
-     * the 15 instrument attempt stopped instead of seeking back to the
-     * start of the module */
     if sfx_13_20_load(m, f, 15, start) < 0 {
+        /* Note (upstream): C's 31 instrument attempt reads on from
+         * wherever the 15 instrument attempt stopped, instead of from the
+         * start of the module */
+        hio_seek(f, start as i64, SEEK_SET);
         return sfx_13_20_load(m, f, 31, start);
     }
 

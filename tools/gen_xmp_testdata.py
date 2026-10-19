@@ -2993,6 +2993,20 @@ def sfx_files():
     p1 = {0: {0: ('E-2', 3, 1, 0x47), 1: ('C-2', 1, 0, 0)}, 8: {2: ('G-1', 2, 5, 0x20)}}
     write('sfx_soundfx13.sfx', hdr + pat(p0) + pat(p1) + b''.join(s[1] for s in smp))
 
+    # SoundFX 2.0: 31 instruments (the 17th a copy of the third)
+    smp31 = smp + [None] * 13 + [smp[2]] + [None] * 14
+    hdr = b''.join(be32(len(s[1]) if s else 0) for s in smp31)
+    hdr += b'SONG' + be16(7000) + bytes(14)
+    for s in smp31:
+        if s:
+            name, data, fin, vol, ls, ll = s
+            hdr += pad(name, 22) + be16(len(data) // 2) + bytes([fin & 0xf, vol]) + be16(ls) + be16(ll // 2)
+        else:
+            hdr += pad('', 22) + be16(0) + bytes([0, 0]) + be16(0) + be16(1)
+    hdr += bytes([2, 0]) + pad(bytes([0, 1]), 128)
+    p1 = {0: {0: ('E-2', 17, 1, 0x47), 1: ('C-2', 1, 0, 0)}, 8: {2: ('G-1', 17, 5, 0x20)}}
+    write('sfx_soundfx20.sfx', hdr + pat(p0) + pat(p1) + b''.join(s[1] for s in smp31 if s))
+
 
 def far_files():
     name = pad('far test', 40)
