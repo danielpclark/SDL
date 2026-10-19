@@ -1886,11 +1886,11 @@ def gal5_file():
     return b'RIFF' + le32(len(body) + 4) + b'AM  ' + body
 
 
-def gal4_file():
+def gal4_file(envloop=False):
     def ch(cid, data):
         return iff(cid, data, le=True)
 
-    main = pad('gal4 test', 64) + bytes([0, 4, 5, 125]) + le16(0x1c5) + le16(0xff00) + b'\x80'
+    main = pad('gal4 env loops' if envloop else 'gal4 test', 64) + bytes([0, 4, 5, 125]) + le16(0x1c5) + le16(0xff00) + b'\x80'
     ordr = bytes([2, 0, 1, 0])
 
     def env(points):
@@ -1899,10 +1899,10 @@ def gal4_file():
             b += le16(x * 16) + bytes([y])
         return b + bytes(30 - len(b))
 
-    def inst(num, name, samples, envflags=0, venv=(), penv=()):
+    def inst(num, name, samples, envflags=0, venv=(), penv=(), loops=(0x11, 0x00, 0x22)):
         d = bytes([0, num]) + pad(name, 28) + bytes([len(samples)]) + bytes([0] * 54 + [len(samples) - 1] * 54)
         d += bytes(11) + bytes([0, 4, 0, 0, 8]) + le16(16 * 4) + b'\0'
-        d += bytes([envflags, (max(len(venv), 1) - 1) | ((max(len(penv), 1) - 1) << 4), 0x11, 0x00, 0x22])
+        d += bytes([envflags, (max(len(venv), 1) - 1) | ((max(len(penv), 1) - 1) << 4)]) + bytes(loops)
         d += env(venv) + env(penv) + b'\x02\0'
         for sname, data, ls, le, flags, rate, vol, pan in samples:
             s = pad(sname, 28) + bytes([pan, vol, flags, 0x80])
@@ -1910,6 +1910,15 @@ def gal4_file():
             d += b'SAMP' + le32(len(s)) + s
         return ch(b'INST', d)
 
+    if envloop:
+        # volume and pan envelopes looping from their point 1 to 3 (the
+        # sustain point 0 left alone)
+        body = ch(b'MAIN', main) + ch(b'ORDR', bytes([0, 0]))
+        body += ch(b'PATT', gal_patt(0, 32, {0: {0: ('C-4', 1, 64, None)}, 24: {0: ('E-4', 1, None, None)}}))
+        body += inst(0, 'looped envs', [('sine16', s16le(sine(256, 64, 20000)), 0, 256, 0x04 | 0x18, 16726, 64, 0)],
+                     envflags=0x55, venv=[(0, 64), (4, 8), (10, 60), (16, 20), (30, 0)],
+                     penv=[(0, 32), (6, 0), (12, 64), (18, 16)], loops=(0x00, 0x11, 0x33))
+        return b'RIFF' + le32(len(body) + 4) + b'AMFF' + body
     body = ch(b'MAIN', main) + ch(b'ORDR', ordr) + ch(b'PATT', gal_patt(0, 32, GAL_P0))
     body += ch(b'PATT', gal_patt(1, 16, GAL_P1))
     body += inst(0, 'two samples', [('square', SQ8, 0, 64, 0x08, 8363, 64, 0),
@@ -1924,6 +1933,7 @@ def gal_files():
     write('gal5_j2b.j2b', gal5_file())
     g4 = gal4_file()
     write('gal4_j2b.j2b', g4)
+    write('gal4_envloop.j2b', gal4_file(envloop=True))
     write('muse_gal4.j2b', b'MUSE' + be32(0xdeadbeaf) + le32(len(g4)) + bytes(12) + zlib.compress(g4, 9))
 
 

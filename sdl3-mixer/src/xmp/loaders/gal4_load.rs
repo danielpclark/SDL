@@ -294,9 +294,9 @@ fn get_inst(m: &mut ModuleData, _size: u32, f: &mut HioHandle<'_>, data: &mut Lo
     aei.lps = lsn(val);
     pei.lps = msn(val);
 
-    // FIXME (upstream): the loop end is set from the loop start's byte, not
+    // Note (upstream): C sets the loop end from the loop start's byte, not
     // the one read here.
-    hio_read8(f); /* PV envelopes loop end */
+    val = hio_read8(f); /* PV envelopes loop end */
     aei.lpe = lsn(val);
     pei.lpe = msn(val);
 
