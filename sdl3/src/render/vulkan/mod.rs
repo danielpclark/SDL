@@ -4588,12 +4588,14 @@ impl VulkanRenderer {
             }
 
             // If we have run out of size in this constant buffer, create another if needed
-            // FIXME (upstream): only the offset is checked, so with an
+            // Note (upstream): only the offset is checked there, so with an
             // aligned size that doesn't divide the buffer's (a
             // minUniformBufferOffsetAlignment under 32) the last constants
-            // of a buffer go past its end (here only what fits is written).
+            // of a buffer go past its end. Here the end of the constants
+            // is checked.
             if self.current_constant_buffer_offset as VkDeviceSize
-                >= SDL_VULKAN_CONSTANT_BUFFER_DEFAULT_SIZE
+                + size_of::<PixelShaderConstants>() as VkDeviceSize
+                > SDL_VULKAN_CONSTANT_BUFFER_DEFAULT_SIZE
             {
                 let new_constant_buffer_index = self.current_constant_buffer_index + 1;
                 // We need a new constant buffer
