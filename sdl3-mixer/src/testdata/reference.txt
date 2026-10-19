@@ -10867,6 +10867,70 @@ xmp 0: set=0 mixer=0 frames=300 1243c5e9d18de56d 9558838d6670e81c seek=0 pos=-7 
 xmp 1: set=0 mixer=0 frames=300 21622c2ac5d3dcfc 193939d998d69489 seek=0 pos=-7 331eab4f3220ffcb
 xmp 2: set=0 mixer=1 frames=300 60d04fa914dd8755 3731a07d964c6dc2 seek=0 pos=-7 2cfece6f4af7e97f
 xmp 3: set=0 mixer=1 frames=300 014bba8eaf55c2a2 bbd50b896c38b62e seek=0 pos=-7 6b45607d02d9f0f3
+== sfx_soundfx20.sfx
+open: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 66bfc86c91ee4ca7 end=0
+f32s48: 2912256 d5817837053fd53a end=0
+s16m22: 334456 78373b41cea1f471 end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4096: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 1b74540680e9dd35 end=0
+trunc 1085: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2170: err: Audio data is in unknown/unsupported/corrupt format
+trunc 3255: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 5b0cba2aa62ae099 end=0
+trunc 4339: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 ddc9a66b3a12bae3 end=0
+corrupt 0: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 508bf14f9c04ff82 end=0
+corrupt 0 mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 ba22889ae1b75254
+corrupt 1: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 68ef167e1d31dc0f end=0
+corrupt 1 mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 5abb6495f796ec9d
+corrupt 2: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 29662b94197f26fb end=0
+corrupt 2 mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 25779ca0e3c089be
+corrupt 3: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 8efd2d6056750545 end=0
+corrupt 3 mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 5b3dd8fc0a60d427
+corrupt 4: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 d66f85f2b2888b9a end=0
+corrupt 4 mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 799b82a29e2ce671
+corrupt 5: XMP 0x8010 2 48000 frames=364224 xmp.type="SoundFX 2.0" | 1456128 ca7db62c114a6b00 end=0
+corrupt 5 mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 8ab197caa13da160
+mix: dur=364224 play=1 pos=12288 replay=1 seek=1 pos=121408 playing=1 75066690d5dbf9af
+mixpre: dur=364032 play=1 pos=12288 replay=1 seek=1 pos=121344 playing=1 c77392d9d0ca1873
+order 1: play=1 pos=4096 playing=1 7ae4477eef753c80
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 a5f9c7241adc60b0
+order 0: play=1 pos=4096 playing=1 ad5623665420f3e9
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 f117010fd377411f
+order -5: play=1 pos=4096 playing=1 eea5b87e14027059
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 84858e7548fdd2bb
+modseek 0: seek=1 pos=0 playing=1 4cbe8e3bf15f55b5
+modseek 2205: seek=1 pos=2205 playing=1 ad4155c73006aa21
+modseek 182112: seek=1 pos=182112 playing=1 e91cbce50bd5605f
+modseek 363224: seek=1 pos=363224 playing=1 64102858998d2825
+modseek 369224: seek=1 pos=369224 playing=1 64102858998d2825
+modseek 100: seek=1 pos=100 playing=1 0aac5c46233d050f
+xmp: pat=2 trk=8 chn=4 ins=31 smp=31 spd=6 bpm=253 len=2 rst=0 gvl=64 seqs=1 vol=64 md5=d07c4a123581a112a655f9e3bbc67779 e14a777b37424496
+xmp 0: set=0 mixer=0 frames=300 d536d60d2900be10 a57bdaba532d8e64 seek=0 pos=1 b329358dde6e77d6
+xmp 1: set=0 mixer=0 frames=300 9889299f699258f1 0ea7a010fd67ae09 seek=0 pos=1 1f90aaeb17daee4d
+xmp 2: set=0 mixer=1 frames=300 952ad1538ef76a22 7f294d7d87c2a0aa seek=0 pos=1 0f9c6d538251382e
+xmp 3: set=0 mixer=1 frames=300 3ea667c2334168e4 954d4455ae8e28fa seek=0 pos=1 850a450fca833d9c
 == st_soundtracker.mod
 open: XMP 0x8010 2 48000 title="soundtracker" frames=144000 xmp.name="soundtracker" xmp.type="D.O.C Soundtracker 2.0" | 576000 69a44240cc81a442 end=0
 f32s48: 1152000 084ea0932214bfd6 end=0
