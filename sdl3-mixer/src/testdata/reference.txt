@@ -569,6 +569,68 @@ xmp 0: set=0 mixer=0 frames=160 a9f29d521f6ce52b 3a5549621469eba4 seek=0 pos=1 b
 xmp 1: set=0 mixer=0 frames=160 aa7a9ec281602c4e a639e1efcd89b4b1 seek=0 pos=1 8bb61d4b9e8b6071
 xmp 2: set=0 mixer=0 frames=160 7c977deb5511020f 8824ee04f213ff08 seek=0 pos=1 140ba62569ea2906
 xmp 3: set=0 mixer=0 frames=300 4c9053e81c520dec d433f61a39f0235e seek=0 pos=1 2113c19c1e8b2099
+== amf_fineslide.amf
+open: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 c795abf3c25e7f2c end=0
+f32s48: 1474560 70e6f49ad583e747 end=0
+s16m22: 169344 f819a35bd56057bd end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 3abed53afde32325 end=0
+trunc 1000: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 addfd81934e94d30 end=0
+trunc 290: err: Audio data is in unknown/unsupported/corrupt format
+trunc 580: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 3abed53afde32325 end=0
+trunc 870: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 3abed53afde32325 end=0
+trunc 1160: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 e4d3de6000564d85 end=0
+corrupt 0: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 c795abf3c25e7f2c end=0
+corrupt 0 mix: dur=184320 play=1 pos=12288 replay=1 seek=1 pos=61440 playing=1 22e99fb9f0e1777b
+corrupt 1: XMP 0x8010 2 48000 title="fin  slides" frames=1330560 xmp.name="fin  slides" xmp.type="DSMI 1.4 AMF" | 5322240 084f7900222d671e end=0
+corrupt 1 mix: dur=1330560 play=1 pos=12288 replay=1 seek=1 pos=443520 playing=1 22e99fb9f0e1777b
+corrupt 2: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 e457a4379101c35a end=0
+corrupt 2 mix: dur=184320 play=1 pos=12288 replay=1 seek=1 pos=61440 playing=1 9adc4d2aa8ba4dc1
+corrupt 3: XMP 0x8010 2 48000 title="fine slides" frames=399360 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 1597440 3944cd95b1969820 end=0
+corrupt 3 mix: dur=399360 play=1 pos=12288 replay=1 seek=1 pos=133120 playing=1 211c736c57156413
+corrupt 4: XMP 0x8010 2 48000 title="fine slides" frames=184320 xmp.name="fine slides" xmp.type="DSMI 1.4 AMF" | 737280 a217895220da733f end=0
+corrupt 4 mix: dur=184320 play=1 pos=12288 replay=1 seek=1 pos=61440 playing=1 e81c1196c337253b
+corrupt 5: XMP 0x8010 2 48000 title="fine s ides" frames=184320 xmp.name="fine s ides" xmp.type="DSMI 1.4 AMF" | 737280 c330c9ca444da483 end=0
+corrupt 5 mix: dur=184320 play=1 pos=12288 replay=1 seek=1 pos=61440 playing=1 500d6bb7e948a333
+mix: dur=184320 play=1 pos=12288 replay=1 seek=1 pos=61440 playing=1 22e99fb9f0e1777b
+mixpre: dur=184320 play=1 pos=12288 replay=1 seek=1 pos=61440 playing=1 5bfeab09d1eaac30
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 3f9f57d6c5a0d18d
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 ed1ce2916de23bab
+order -5: play=1 pos=4096 playing=1 3caeb91f87424eb9
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 72bfb79b5ae53f99
+modseek 0: seek=1 pos=0 playing=1 7fb29e50e2467529
+modseek 2205: seek=1 pos=2205 playing=1 2b8e21a071618f39
+modseek 92160: seek=1 pos=92160 playing=1 2b8e21a071618f39
+modseek 183320: seek=1 pos=183320 playing=1 2b8e21a071618f39
+modseek 189320: seek=1 pos=189320 playing=1 2b8e21a071618f39
+modseek 100: seek=1 pos=100 playing=1 2b8e21a071618f39
+xmp: pat=1 trk=3 chn=4 ins=3 smp=3 spd=6 bpm=125 len=1 rst=0 gvl=64 seqs=1 vol=64 md5=8d1a02923d553445644847c5a7f16811 15a227d2a529b4ee
+xmp 0: set=0 mixer=0 frames=192 a667ec1e58c71a87 43b85991cc3ab0a1 seek=0 pos=-7 48ed37a790345376
+xmp 1: set=0 mixer=0 frames=192 66161335743ec04a e6351ef10c56dd39 seek=0 pos=-7 a770f1921f9f0db8
+xmp 2: set=0 mixer=0 frames=192 7573c0b0262c2266 b0c446b74095d31d seek=0 pos=-7 c92f89ce3aa8b35e
+xmp 3: set=0 mixer=0 frames=192 c5307905b5aad121 e95c0b335135bc68 seek=0 pos=-7 9a7328e498079b2d
 == arch_musx.mod
 open: XMP 0x8010 2 48000 title="arch test" frames=120000 xmp.name="arch test" xmp.type="Archimedes Tracker" | 480000 171228c8205d2e00 end=0
 f32s48: 960000 c9ca289c0d8c4cfa end=0

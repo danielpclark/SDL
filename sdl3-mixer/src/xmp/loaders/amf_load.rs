@@ -534,14 +534,15 @@ fn amf_load(m: &mut ModuleData, f: &mut HioHandle<'_>, _start: i32) -> i32 {
                         }
                     }
                     0x92 => {
-                        // FIXME (upstream): the fine slide's parameter is
-                        // taken from fxp (0) instead of t3.
+                        // Note (upstream): C takes the fine slide from fxp
+                        // (0), not t3; the translation takes it from t3,
+                        // negated for a slide up (as 0x84 does).
                         if s3 > 0 {
                             fxt = FX_PORTA_DN;
-                            fxp = 0xf0 | (fxp & 0x0f);
+                            fxp = 0xf0 | (t3 & 0x0f);
                         } else {
                             fxt = FX_PORTA_UP;
-                            fxp = 0xf0 | (fxp & 0x0f);
+                            fxp = 0xf0 | ((-(s3 as i32) & 0x0f) as u8);
                         }
                     }
                     0x93 => {
@@ -560,14 +561,14 @@ fn amf_load(m: &mut ModuleData, f: &mut HioHandle<'_>, _start: i32) -> i32 {
                         fxp = t3;
                     }
                     0x96 => {
-                        // FIXME (upstream): as 0x92, the extra fine slide's
-                        // parameter is taken from fxp (0).
+                        // Note (upstream): as 0x92, the extra fine slide is
+                        // taken from t3 here, not from fxp (0).
                         if s3 > 0 {
                             fxt = FX_PORTA_DN;
-                            fxp = 0xe0 | (fxp & 0x0f);
+                            fxp = 0xe0 | (t3 & 0x0f);
                         } else {
                             fxt = FX_PORTA_UP;
-                            fxp = 0xe0 | (fxp & 0x0f);
+                            fxp = 0xe0 | ((-(s3 as i32) & 0x0f) as u8);
                         }
                     }
                     0x97 => {
