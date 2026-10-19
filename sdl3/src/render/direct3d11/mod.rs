@@ -452,8 +452,9 @@ pub(crate) struct D3d11Renderer {
     current_blend_state: *mut c_void,
     current_shader: Option<Shader>,
     current_shader_state: [PixelShaderState; Shader::COUNT],
-    num_current_shader_resources: usize,
-    current_shader_resource: *mut c_void,
+    /// (all of them: upstream's `numCurrentShaderResources` and
+    /// `currentShaderResource`, the first, see set_draw_state())
+    current_shader_resources: Vec<*mut c_void>,
     num_current_shader_samplers: usize,
     current_shader_sampler: *mut c_void,
     cliprect_dirty: bool,
@@ -808,8 +809,7 @@ impl D3d11Renderer {
         self.current_blend_state = null_mut();
         self.current_shader = None;
         self.current_shader_state = Default::default();
-        self.num_current_shader_resources = 0;
-        self.current_shader_resource = null_mut();
+        self.current_shader_resources.clear();
         self.num_current_shader_samplers = 0;
         self.current_shader_sampler = null_mut();
 
@@ -1988,13 +1988,11 @@ impl D3d11Renderer {
         let shader = self.select_shader(shader_constants);
         let context = self.context()?.clone();
 
-        let shader_resources_changed = shader_resources.len() != self.num_current_shader_resources
-            || (!shader_resources.is_empty()
-                && shader_resources[0] != self.current_shader_resource);
-        // FIXME (upstream): only the first resource is compared, so a
+        // Note (upstream): only the first resource is compared there, so a
         // texture given another palette is drawn with the one bound before
         // until another texture is drawn (or the cached state is
-        // invalidated).
+        // invalidated). Here all of them are compared.
+        let shader_resources_changed = shader_resources != self.current_shader_resources;
 
         let shader_samplers_changed = shader_samplers.len() != self.num_current_shader_samplers
             || (!shader_samplers.is_empty() && shader_samplers[0] != self.current_shader_sampler);
@@ -2111,10 +2109,9 @@ impl D3d11Renderer {
         }
         if shader_resources_changed {
             context.ps_set_shader_resources(0, shader_resources);
-            self.num_current_shader_resources = shader_resources.len();
-            if let Some(&first) = shader_resources.first() {
-                self.current_shader_resource = first;
-            }
+            self.current_shader_resources.clear();
+            self.current_shader_resources
+                .extend_from_slice(shader_resources);
         }
         if shader_samplers_changed {
             context.ps_set_samplers(0, shader_samplers);
@@ -2436,8 +2433,7 @@ impl D3d11Renderer {
             current_blend_state: null_mut(),
             current_shader: None,
             current_shader_state: Default::default(),
-            num_current_shader_resources: 0,
-            current_shader_resource: null_mut(),
+            current_shader_resources: Vec::with_capacity(3),
             num_current_shader_samplers: 0,
             current_shader_sampler: null_mut(),
             cliprect_dirty: false,
@@ -3009,8 +3005,7 @@ impl RenderBackend for D3d11Renderer {
         self.current_rasterizer_state = null_mut();
         self.current_blend_state = null_mut();
         self.current_shader = None;
-        self.num_current_shader_resources = 0;
-        self.current_shader_resource = null_mut();
+        self.current_shader_resources.clear();
         self.num_current_shader_samplers = 0;
         self.current_shader_sampler = null_mut();
         self.cliprect_dirty = true;
