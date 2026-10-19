@@ -48,7 +48,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ptr::{null, null_mut, NonNull};
 
-use windows_sys::Win32::Foundation::{HANDLE, HWND};
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND};
 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows_sys::Win32::System::Threading::{WaitForSingleObjectEx, INFINITE};
 
@@ -996,8 +996,14 @@ impl D3d12Renderer {
         self.sampler_descriptor_heap = None;
         self.samplers_created = [false; RENDER_SAMPLER_COUNT];
         self.fence = None;
-        // FIXME (upstream): the fence event is never closed; the next
-        // D3D12_CreateDeviceResources() makes another.
+        // Note (upstream): the fence event is never closed, and the next
+        // D3D12_CreateDeviceResources() makes another; here it's closed.
+        if !self.fence_event.is_null() {
+            // SAFETY: the renderer's event handle, which nothing waits on
+            // any more, forgotten below.
+            unsafe { CloseHandle(self.fence_event) };
+            self.fence_event = null_mut();
+        }
 
         self.command_allocators = Default::default();
         self.render_targets = Default::default();
