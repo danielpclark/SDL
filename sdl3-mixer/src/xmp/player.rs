@@ -1141,9 +1141,9 @@ fn check_delay(ctx: &mut ContextData, e: &XmpEvent, chn: usize) -> i32 {
         true
     } else if e.f2t == FX_MED_RETRIG && msn(e.f2p) != 0 {
         xc.reset(RETRIG);
-        // FIXME (upstream): the delay of a MED retrigger in the second
-        // effect slot is taken from the first slot's parameter.
-        xc.delay = msn(e.fxp) + 1;
+        // Note (upstream): C takes the delay of a MED retrigger in the
+        // second effect slot from the first slot's parameter.
+        xc.delay = msn(e.f2p) + 1;
         true
     } else {
         false
@@ -2743,5 +2743,29 @@ pub(crate) fn xmp_get_frame_info(ctx: &ContextData, info: &mut XmpFrameInfo) {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A MED retrigger in the second effect slot is delayed by its own
+    /// parameter (no loader puts one there, so the module tests can't
+    /// reach it).
+    #[test]
+    fn med_retrigger_in_second_slot_takes_its_own_delay() {
+        let mut ctx = ContextData::default();
+        ctx.p.xc_data = vec![ChannelData::default()];
+        let e = XmpEvent {
+            note: 49,
+            fxt: FX_ARPEGGIO,
+            fxp: 0x57,
+            f2t: FX_MED_RETRIG,
+            f2p: 0x32,
+            ..Default::default()
+        };
+        assert_eq!(check_delay(&mut ctx, &e, 0), 1);
+        assert_eq!(ctx.p.xc_data[0].delay, 4);
     }
 }
