@@ -1396,6 +1396,15 @@ def imf_files():
     i2 = imf_ins('saw16', [('saw16', s16le(decay(saw(512, 64, 20000))), 0, 0, 22050, 60, 0, 0x04)])
     write('imf_orpheus.imf', hdr + p0 + p1 + i1 + i2)
 
+    # an instrument without samples, the module's only one
+    hdr = pad('no samples', 32) + struct.pack('<HHHH', 1, 1, 1, 1) + bytes(8) + bytes([5, 130, 56, 48]) + bytes(8)
+    hdr += b'IM10'
+    for c in range(32):
+        hdr += pad('ch%d' % c, 12) + bytes([0, 0, (c * 80) & 0xff, 0 if c < 2 else 2])
+    hdr += pad(bytes([0]), 256, b'\xff')
+    p0 = imf_pat(16, {0: {0: ('C-4', 1, (1, 4), None)}, 8: {1: ('E-4', 1, None, None)}})
+    write('imf_nosamples.imf', hdr + p0 + imf_ins('empty', []))
+
 
 def ptm_files():
     smp = [('square', SQ8, 0, 64, 0x05), ('sine16', s16le(sine(256, 64, 20000)), 0, 512, 0x0d | 0x10),

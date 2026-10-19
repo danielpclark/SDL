@@ -8,6 +8,68 @@ raw 0: dur=3000 e30825106988d160
 raw 1: dur=3000 2ad3d15630b5aac3
 raw 2: dur=1500 424057d38b4cf67f
 raw 3: dur=500 8c7f074f69a59066
+== imf_nosamples.imf
+open: XMP 0x8010 2 48000 title="no samples" frames=59040 xmp.name="no samples" xmp.type="Imago Orpheus 1.0 IMF" | 236288 38ad1a3e121abf25 end=0
+f32s48: 472576 6d4aff251de35b25 end=0
+s16m22: 54274 089daf54dd307fed end=0
+trunc 0: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1: err: Audio data is in unknown/unsupported/corrupt format
+trunc 2: err: Audio data is in unknown/unsupported/corrupt format
+trunc 4: err: Audio data is in unknown/unsupported/corrupt format
+trunc 8: err: Audio data is in unknown/unsupported/corrupt format
+trunc 11: err: Audio data is in unknown/unsupported/corrupt format
+trunc 12: err: Audio data is in unknown/unsupported/corrupt format
+trunc 16: err: Audio data is in unknown/unsupported/corrupt format
+trunc 20: err: Audio data is in unknown/unsupported/corrupt format
+trunc 24: err: Audio data is in unknown/unsupported/corrupt format
+trunc 32: err: Audio data is in unknown/unsupported/corrupt format
+trunc 36: err: Audio data is in unknown/unsupported/corrupt format
+trunc 40: err: Audio data is in unknown/unsupported/corrupt format
+trunc 44: err: Audio data is in unknown/unsupported/corrupt format
+trunc 48: err: Audio data is in unknown/unsupported/corrupt format
+trunc 64: err: Audio data is in unknown/unsupported/corrupt format
+trunc 100: err: Audio data is in unknown/unsupported/corrupt format
+trunc 128: err: Audio data is in unknown/unsupported/corrupt format
+trunc 200: err: Audio data is in unknown/unsupported/corrupt format
+trunc 256: err: Audio data is in unknown/unsupported/corrupt format
+trunc 300: err: Audio data is in unknown/unsupported/corrupt format
+trunc 512: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1000: err: Audio data is in unknown/unsupported/corrupt format
+trunc 311: err: Audio data is in unknown/unsupported/corrupt format
+trunc 622: err: Audio data is in unknown/unsupported/corrupt format
+trunc 933: err: Audio data is in unknown/unsupported/corrupt format
+trunc 1243: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 0: XMP 0x8010 2 48000 title="no samples" frames=59040 xmp.name="no samples" xmp.type="Imago Orpheus 1.0 IMF" | 236288 38ad1a3e121abf25 end=0
+corrupt 0 mix: dur=59040 play=1 pos=12288 replay=1 seek=1 pos=19680 playing=1 0ce109223a52f5a5
+corrupt 1: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 1 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 2 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 3: XMP 0x8010 2 48000 title="no samples" frames=59040 xmp.name="no samples" xmp.type="Imago Orpheus 1.0 IMF" | 236288 38ad1a3e121abf25 end=0
+corrupt 3 mix: dur=59040 play=1 pos=12288 replay=1 seek=1 pos=19680 playing=1 0ce109223a52f5a5
+corrupt 4: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 4 mix: err: Audio data is in unknown/unsupported/corrupt format
+corrupt 5: XMP 0x8010 2 48000 title="no samples" frames=59040 xmp.name="no samples" xmp.type="Imago Orpheus 1.0 IMF" | 236288 38ad1a3e121abf25 end=0
+corrupt 5 mix: dur=59040 play=1 pos=12288 replay=1 seek=1 pos=19680 playing=1 0ce109223a52f5a5
+mix: dur=59040 play=1 pos=12288 replay=1 seek=1 pos=19680 playing=1 0ce109223a52f5a5
+mixpre: dur=59072 play=1 pos=12288 replay=1 seek=1 pos=19690 playing=1 0ce109223a52f5a5
+order 1: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 2: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=0 playing=0 a8c7f832281a39c5
+order 0: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 200: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 b0a85729086f2dc5
+order -5: play=1 pos=4096 playing=1 b0a85729086f2dc5
+order 3: play=0 err: xmp_set_position: XMP_ERROR_INVALID pos=8192 playing=1 b0a85729086f2dc5
+modseek 0: seek=1 pos=0 playing=1 e287ef8df6436935
+modseek 2205: seek=1 pos=2205 playing=1 e287ef8df6436935
+modseek 29520: seek=1 pos=29520 playing=1 e287ef8df6436935
+modseek 58040: seek=1 pos=58040 playing=1 e287ef8df6436935
+modseek 64040: seek=1 pos=64040 playing=1 e287ef8df6436935
+modseek 100: seek=1 pos=100 playing=1 e287ef8df6436935
+xmp: pat=1 trk=2 chn=2 ins=1 smp=0 spd=5 bpm=130 len=1 rst=0 gvl=56 seqs=1 vol=64 md5=0fd5c3c0f0c811754cb6f9c1802038fb b9593d98d27fc68e
+xmp 0: set=0 mixer=0 frames=64 7761e7b1fc696b25 8041d750e3267a54 seek=0 pos=-7 eef4342067c9b775
+xmp 1: set=0 mixer=0 frames=64 f16716471974af25 2c7ed8e0a1bba75c seek=0 pos=-7 9b51a882621d9a75
+xmp 2: set=0 mixer=0 frames=64 6870c26405bf4325 ec5570abac0b8c6c seek=0 pos=-7 9b51a882621d9a75
+xmp 3: set=0 mixer=0 frames=64 5a9c10e88670b325 5cd4f95735b95478 seek=0 pos=-7 9b51a882621d9a75
 == gal4_envloop.j2b
 open: XMP 0x8010 2 48000 title="gal4 env loops" frames=153600 xmp.name="gal4 env loops" xmp.type="Galaxy Music System 4.0" | 614400 0099d728b0c3fcfd end=0
 f32s48: 1228800 3abe8298ab8ab3ff end=0

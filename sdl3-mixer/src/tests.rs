@@ -275,6 +275,7 @@ static MODULES: &[(&str, &[u8])] = modules![
     "gdm_2gdm.gdm",
     "hmn_fest.mod",
     "ice_ice.mod",
+    "imf_nosamples.imf",
     "imf_orpheus.imf",
     "ims_images.ims",
     "it_new.it",
