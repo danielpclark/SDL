@@ -1092,6 +1092,41 @@ fn vulkan_matches_software_for_yuv() {
         .create_texture(PixelFormat::IYUV, TextureAccess::Static, w as i32, h as i32)
         .unwrap();
     assert!(r.update_texture(t, None, &y, w as i32).is_err());
+
+    r.destroy_texture(t);
+
+    // More draws with new constants than a constant buffer holds: those
+    // past the end of the first buffer go to the next (upstream checks only
+    // the offset, so with a small minUniformBufferOffsetAlignment the last
+    // constants of a buffer, with their YCbCr matrix, go past its end; see
+    // the Note in set_draw_state())
+    let scene = |r: &mut Renderer| {
+        let iyuv = r
+            .create_texture(PixelFormat::IYUV, TextureAccess::Static, 2, 2)
+            .unwrap();
+        r.update_yuv_texture(iyuv, None, &[200; 4], 2, &[90], 1, &[170], 1)
+            .unwrap();
+        let nv12 = r
+            .create_texture(PixelFormat::NV12, TextureAccess::Static, 2, 2)
+            .unwrap();
+        r.update_nv_texture(nv12, None, &[120; 4], 2, &[160, 80], 2)
+            .unwrap();
+        r.set_draw_color(0, 0, 0, 255);
+        r.clear().unwrap();
+        // (the texture types alternate, so each draw has new constants)
+        for i in 0..(W * H) {
+            let t = if i % 2 == 0 { iyuv } else { nv12 };
+            r.set_texture_scale_mode(t, ScaleMode::Nearest).unwrap();
+            let (x, y) = ((i % W) as f32, (i / W) as f32);
+            r.render_texture(t, None, Some(&FRect::new(x, y, 1.0, 1.0)))
+                .unwrap();
+        }
+        let pixels = r.read_pixels(None).unwrap();
+        r.destroy_texture(iyuv);
+        r.destroy_texture(nv12);
+        pixels
+    };
+    assert_close("constant buffers", &scene(&mut r), &scene(&mut sw), 3);
 }
 
 #[test]
