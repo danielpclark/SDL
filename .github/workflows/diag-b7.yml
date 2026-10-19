@@ -64,7 +64,8 @@ jobs:
         shell: bash
         run: |
           cargo test -p sdl3 --lib --no-run 2>&1 | tee build.log
-          exe=$(sed -n 's/.*Executable unittests src\/lib.rs (\(.*\))/\1/p' build.log | tail -1)
+          exe=$(sed -n 's/.*Executable.*unittests src.lib.rs (\(.*\))/\1/p' build.log | tail -1)
+          exe=$(cygpath -w "$PWD/$exe")
           echo "TEST_EXE=$exe" >> "$GITHUB_ENV"
           echo "test exe: $exe"
       - name: The device-loss palette test under cdb
