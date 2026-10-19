@@ -939,6 +939,41 @@ fn d3d12_failed_read_leaves_a_render_target() {
     window.destroy();
 }
 
+/// A lock whose staging buffer can't be mapped leaves the texture
+/// unlocked (upstream's stays locked for good).
+#[test]
+fn d3d12_failed_lock_leaves_the_texture_unlocked() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((window, mut r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    let t = r
+        .create_texture(PixelFormat::ABGR8888, TextureAccess::Streaming, 8, 8)
+        .unwrap();
+    FAIL_STEP.set(Some("map staging buffer"));
+    let failed = r
+        .lock_texture(t, None)
+        .err()
+        .map(|e| e.message().to_owned());
+    FAIL_STEP.set(None);
+    assert!(
+        failed
+            .as_deref()
+            .is_some_and(|m| m.starts_with("ID3D12Resource::Map")),
+        "{failed:?}"
+    );
+    {
+        let mut lock = r.lock_texture(t, None).unwrap();
+        lock.pixels()[..4].copy_from_slice(&[10, 20, 30, 255]);
+    }
+    r.destroy_texture(t);
+    drop(r);
+    window.destroy();
+}
+
 /// A texture whose creation fails frees only the SRV slots it took
 /// (upstream frees slot 0 for each one it didn't).
 #[test]
