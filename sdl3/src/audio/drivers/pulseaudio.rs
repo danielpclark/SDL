@@ -1253,10 +1253,12 @@ unsafe extern "C" fn hotplug_callback(c: *mut PaContext, t: c_uint, idx: u32, da
             };
         } else if removed && (sink || source) {
             // removes we can handle just with the device index.
-            // FIXME (upstream): sinks and sources are numbered separately, so
-            // this can match (and disconnect) a device of the other kind.
+            // Note (upstream): the look-up is by the index alone, but sinks
+            // and sources are numbered separately, so it can find (and
+            // disconnect) a device of the other kind; here it's by the
+            // kind too.
             if let Ok(device) = find_physical_audio_device_by_callback(|d| {
-                shared.find_audio_device_by_index(d, idx)
+                d.recording == source && shared.find_audio_device_by_index(d, idx)
             }) {
                 audio_device_disconnected(&device);
             }
