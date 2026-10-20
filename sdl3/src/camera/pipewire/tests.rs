@@ -5,7 +5,7 @@
 // camera-ref/pw_ref.c), the format table, the param lists, the ABI, and,
 // when a PipeWire server is reachable, cameras made by streams of our own.
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
 use super::*;
@@ -571,6 +571,30 @@ fn a_camera_through_a_server() {
         );
     }
 
+    // Hotplug: a source that goes away is a camera disconnected (which
+    // upstream never reports).
+    let two = find("SDL Fake Camera Two").unwrap();
+    drop(fake2);
+    assert!(
+        wait_for(&|| find("SDL Fake Camera Two").is_none()),
+        "the camera was removed"
+    );
+    use crate::events::{get_events, Event, EventType};
+    crate::events::pump(); // (the event queued by the disconnect)
+    let removed = get_events(
+        EventType::CAMERA_DEVICE_REMOVED,
+        EventType::CAMERA_DEVICE_REMOVED,
+        100,
+    )
+    .unwrap();
+    assert!(
+        removed
+            .iter()
+            .any(|e| matches!(e, Event::CameraDevice(e) if e.which == two)),
+        "{removed:?}"
+    );
+    assert!(find("SDL Fake Camera").is_some(), "the other camera stays");
+
     // A camera whose source goes away while it's open still closes
     // (upstream's WaitDevice waits for a frame that never comes, and the
     // close waits for the device thread).
@@ -579,7 +603,7 @@ fn a_camera_through_a_server() {
         wait_for(&|| camera.permission_state() == crate::camera::CameraPermissionState::Approved),
         "the stream streams"
     );
-    drop((fake, fake2));
+    drop(fake);
     std::thread::sleep(Duration::from_millis(500)); // (the source's frames stop)
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
@@ -697,6 +721,7 @@ fn a_failed_open_leaves_the_loop_unlocked() {
         Box::new(PwCameraHandle {
             id: u32::MAX,
             target: None,
+            removed: AtomicBool::new(false),
         }),
     )
     .unwrap();
