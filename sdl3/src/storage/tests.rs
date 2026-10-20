@@ -115,6 +115,8 @@ fn file_storage() {
 
 #[test]
 fn title_storage_is_read_only() {
+    // (user_storage_and_driver_hints sets the title driver hint)
+    let _l = crate::test_support::test_lock();
     let tmp = TempDir::new("title");
     std::fs::write(tmp.path("data.txt"), b"title data").unwrap();
     let title = Storage::open_title(Some(&tmp.0), None).unwrap();
