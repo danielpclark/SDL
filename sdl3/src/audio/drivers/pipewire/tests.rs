@@ -341,6 +341,95 @@ fn have_libpipewire() -> bool {
     }
 }
 
+/// The buffer the fake stream hands out (once), and the size of the
+/// chunk queued back.
+static FAKE_BUFFER: AtomicPtr<PwBuffer> = AtomicPtr::new(ptr::null_mut());
+static QUEUED_SIZE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(u32::MAX);
+
+unsafe extern "C" fn fake_dequeue_buffer(_stream: *mut PwStream) -> *mut PwBuffer {
+    FAKE_BUFFER.swap(ptr::null_mut(), Ordering::SeqCst)
+}
+
+unsafe extern "C" fn fake_queue_buffer(_stream: *mut PwStream, b: *mut PwBuffer) -> c_int {
+    // SAFETY: the buffer fake_dequeue_buffer() handed out, with a data and
+    // a chunk.
+    let size = unsafe { (*(*(*b).buffer).datas).chunk.as_ref().unwrap().size };
+    QUEUED_SIZE.store(size, Ordering::SeqCst);
+    0
+}
+
+#[test]
+fn a_stream_still_opening_plays_silence() {
+    let _l = crate::test_support::test_lock();
+    if !have_libpipewire() {
+        return;
+    }
+    let mut lib = PwLib::load_syms(SharedObject::load(PIPEWIRE_LIBRARY).unwrap()).unwrap();
+    lib.pw_stream_dequeue_buffer = fake_dequeue_buffer;
+    lib.pw_stream_queue_buffer = fake_queue_buffer;
+
+    // A 64-byte buffer, of 0xAA.
+    let mut data = [0xAAu8; 64];
+    let mut chunk = SpaChunk {
+        offset: 7,
+        size: 0,
+        stride: 0,
+        flags: 0,
+    };
+    let mut spa_data = SpaData {
+        type_: 0,
+        flags: 0,
+        fd: -1,
+        mapoffset: 0,
+        maxsize: data.len() as u32,
+        data: data.as_mut_ptr().cast(),
+        chunk: &mut chunk,
+    };
+    let mut spa_buf = SpaBuffer {
+        n_metas: 0,
+        n_datas: 1,
+        metas: ptr::null_mut(),
+        datas: &mut spa_data,
+    };
+    let mut pw_buf = PwBuffer {
+        buffer: &mut spa_buf,
+        user_data: ptr::null_mut(),
+        size: 0,
+        requested: 0,
+        time: 0,
+    };
+    FAKE_BUFFER.store(&mut pw_buf, Ordering::SeqCst);
+    QUEUED_SIZE.store(u32::MAX, Ordering::SeqCst);
+
+    // A playback stream whose buffer was added but that isn't ready yet,
+    // with a 48-byte device buffer.
+    let h = PwDevice {
+        lib: Arc::new(lib),
+        device: Weak::new(),
+        recording: false,
+        silence_value: 0x80,
+        loop_: AtomicPtr::new(ptr::null_mut()),
+        stream: AtomicPtr::new(ptr::null_mut()),
+        context: AtomicPtr::new(ptr::null_mut()),
+        node_name: String::new(),
+        stride: 4,
+        stream_init_status: AtomicI32::new(PW_READY_FLAG_BUFFER_ADDED),
+        pw_buf: AtomicPtr::new(ptr::null_mut()),
+        buffer_size: AtomicUsize::new(48),
+        pending_resize: Mutex::new(None),
+        name_hint: Mutex::new(None),
+    };
+    // SAFETY: the userdata is a `PwDevice`, whose stream calls are the fakes.
+    unsafe { output_callback(ptr::from_ref(&h).cast_mut().cast()) };
+
+    // A device buffer of silence is queued (upstream queues 0 bytes and
+    // silences nothing).
+    assert_eq!(QUEUED_SIZE.load(Ordering::SeqCst), 48);
+    assert!(data[..48].iter().all(|&b| b == 0x80), "{data:?}");
+    assert!(data[48..].iter().all(|&b| b == 0xAA), "{data:?}");
+    assert_eq!((chunk.offset, chunk.stride), (0, 4));
+}
+
 fn wait_for(what: &dyn Fn() -> bool) -> bool {
     let start = Instant::now();
     while !what() && start.elapsed() < Duration::from_secs(10) {
