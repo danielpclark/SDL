@@ -743,10 +743,11 @@ impl VulkanRenderer {
     /// The framebuffer for a render pass's targets, from the cache or new.
     /// Translation of `VULKAN_INTERNAL_FetchFramebuffer()`.
     ///
-    /// FIXME (upstream): the key has the resolve texture's subresource at
+    /// Note (upstream): C's key has the resolve texture's subresource at
     /// the color target's layer and level (and whenever a resolve texture
     /// is set), the framebuffer at the resolve layer and level (when the
-    /// store op resolves).
+    /// store op resolves), so passes resolving into other layers or levels
+    /// share a framebuffer; here the key has the framebuffer's.
     fn fetch_framebuffer(
         &self,
         render_pass: VkRenderPass,
@@ -812,9 +813,10 @@ impl VulkanRenderer {
             key.color_attachment_views[i] =
                 render_target_view(info.texture, info.layer_or_depth_plane, info.mip_level);
 
-            if let Some(resolve_texture) = info.resolve_texture {
+            if let Some(resolve_texture) = info.resolve_texture.filter(|_| resolves(info.store_op))
+            {
                 key.resolve_attachment_views[key.num_resolve_attachments as usize] =
-                    resolve_view(resolve_texture, info.layer_or_depth_plane, info.mip_level);
+                    resolve_view(resolve_texture, info.resolve_layer, info.resolve_mip_level);
                 key.num_resolve_attachments += 1;
             }
         }
