@@ -1300,26 +1300,15 @@ const XML_ACTIONS_CLOSING_STR: &str = "</actions>";
 const XML_VISUAL_CLOSING_STR: &str = "</binding></visual>";
 
 /// Translation of `AppendXmlText()`.
-fn append_xml_text(dst: &mut Vec<u16>, text: Option<&str>) -> bool {
-    // FIXME (upstream): a missing text (a notification without a message)
-    // fails the conversion, and so the notification.
-    let Some(text) = text else {
-        return false;
-    };
-
+fn append_xml_text(dst: &mut Vec<u16>, text: &str) {
     dst.extend(XML_TEXT_OPENING_STR.encode_utf16());
     dst.extend(text.encode_utf16());
     dst.extend(XML_TEXT_CLOSING_STR.encode_utf16());
-
-    true
 }
 
 /// Translation of `BuildNotificationXml()`: the toast XML, NUL-terminated
 /// (for `WindowsCreateStringReference()`).
-fn build_notification_xml(
-    notification: &Notification<'_>,
-    icon_path: Option<&[u16]>,
-) -> Option<Vec<u16>> {
+fn build_notification_xml(notification: &Notification<'_>, icon_path: Option<&[u16]>) -> Vec<u16> {
     let mut dst = Vec::new();
 
     let title = notification.title.as_deref();
@@ -1334,11 +1323,11 @@ fn build_notification_xml(
     if let Some(icon_path) = icon_path {
         append_xml_image(&mut dst, icon_path);
     }
-    if !append_xml_text(&mut dst, title) {
-        return None;
-    }
-    if !append_xml_text(&mut dst, message) {
-        return None;
+    // Note (upstream): a missing text (a notification without a message)
+    // fails its conversion, and so the notification. Here its element is
+    // left out, and the toast has the title alone.
+    for text in [title, message].into_iter().flatten() {
+        append_xml_text(&mut dst, text);
     }
 
     dst.extend(XML_VISUAL_CLOSING_STR.encode_utf16());
@@ -1363,7 +1352,7 @@ fn build_notification_xml(
     dst.extend(XML_TOAST_CLOSING_STR.encode_utf16());
     dst.push(0);
 
-    Some(dst)
+    dst
 }
 
 /// The decimal tag of a notification ID.
@@ -1473,9 +1462,7 @@ pub(super) fn show_notification(notification: &Notification<'_>) -> Result<Notif
     let image_path = save_toast_image(&mut state, image);
 
     // Build the XML description for the notification.
-    let Some(xml) = build_notification_xml(notification, image_path.as_deref()) else {
-        return Err(Error::new("Couldn't build the notification"));
-    };
+    let xml = build_notification_xml(notification, image_path.as_deref());
 
     let result = (|| -> std::result::Result<(), HRESULT> {
         let class_name = utf8_to_wide(RUNTIME_CLASS_XML_DOCUMENT);
@@ -1667,7 +1654,7 @@ mod tests {
             ..Notification::default()
         };
         let icon = utf8_to_wide("C:\\tmp\\SDL1.tmp.png");
-        let xml = build_notification_xml(&notification, Some(&icon)).unwrap();
+        let xml = build_notification_xml(&notification, Some(&icon));
         assert_eq!(xml.last(), Some(&0));
         assert_eq!(
             text(&xml),
@@ -1694,7 +1681,7 @@ mod tests {
             ..Notification::default()
         };
         let icon = utf8_to_wide("C:\\R&D\\SDL1.tmp.png");
-        let xml = text(&build_notification_xml(&notification, Some(&icon)).unwrap());
+        let xml = text(&build_notification_xml(&notification, Some(&icon)));
         assert!(
             xml.contains("src=\"file:///C:\\R&amp;D\\SDL1.tmp.png\""),
             "{xml}"
@@ -1715,7 +1702,7 @@ mod tests {
             message: Some("M".into()),
             ..Notification::default()
         };
-        let xml = text(&build_notification_xml(&notification, None).unwrap());
+        let xml = text(&build_notification_xml(&notification, None));
         assert!(!xml.contains("<image"), "{xml}");
         assert!(
             xml.contains("<binding template=\"ToastGeneric\"><text>"),
@@ -1726,13 +1713,17 @@ mod tests {
         ));
         assert!(!xml.contains("<actions>"));
 
-        // (Note (upstream): a notification without a message fails; see
-        // the FIXME in append_xml_text())
+        // A notification without a message has the title alone (upstream's
+        // fails; see the Note in build_notification_xml()).
         let notification = Notification {
             title: Some("T".into()),
             ..Notification::default()
         };
-        assert!(build_notification_xml(&notification, None).is_none());
+        let xml = text(&build_notification_xml(&notification, None));
+        assert!(
+            xml.contains("<binding template=\"ToastGeneric\"><text><![CDATA[T]]></text></binding>"),
+            "{xml}"
+        );
     }
 
     #[test]
