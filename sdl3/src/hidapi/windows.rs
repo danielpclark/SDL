@@ -1443,9 +1443,11 @@ impl Device {
         if res != 0 {
             Ok(data.len())
         } else {
-            // FIXME (upstream): the failure is returned with the error
-            // cleared, so it has no message.
-            Err(Error::new(""))
+            // Note (upstream): this returns -1 without registering an error,
+            // after hid_write() has cleared it, so the failure has no
+            // message. Here it has HidD_SetOutputReport()'s, as the other
+            // HidD_ calls do.
+            Err(winapi_error("HidD_SetOutputReport"))
         }
     }
 
@@ -1992,6 +1994,62 @@ mod tests {
         assert_eq!(items, ["A", "BC"]);
         assert!(hid_blacklist(0x1CCF, 0x1234));
         assert!(!hid_blacklist(0x045E, 0x028E));
+    }
+
+    /// Writing an output report with HidD_SetOutputReport() (as on Windows
+    /// 7 over Bluetooth) to a handle that isn't a HID device fails, saying
+    /// why.
+    #[test]
+    fn failed_output_report_says_why() {
+        let functions = match lookup_functions() {
+            Ok(f) => Arc::new(f),
+            Err(e) => {
+                return crate::test_support::skip(
+                    "hidapi",
+                    format_args!("hid.dll unavailable ({})", e.message()),
+                )
+            }
+        };
+        let path: Vec<u16> = "NUL\0".encode_utf16().collect();
+        // SAFETY: a NUL-terminated path; no security attributes or template.
+        let handle = unsafe {
+            CreateFileW(
+                path.as_ptr(),
+                GENERIC_WRITE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                std::ptr::null(),
+                OPEN_EXISTING,
+                0,
+                std::ptr::null_mut(),
+            )
+        };
+        assert_ne!(handle, INVALID_HANDLE_VALUE);
+        let device = Device {
+            functions,
+            device_handle: handle,
+            blocking: AtomicBool::new(true),
+            output_report_length: 3,
+            input_report_length: 0,
+            feature_report_length: 0,
+            feature_buf: Mutex::new(Vec::new()),
+            read: Mutex::new(ReadState {
+                pending: false,
+                buf: Box::new([]),
+                ol: Overlapped::new(),
+            }),
+            write: Mutex::new(WriteState {
+                buf: vec![0u8; 3].into_boxed_slice(),
+                ol: Overlapped::new(),
+            }),
+            device_info: None,
+            use_hid_write_output_report: true,
+        };
+        let error = device.write(&[0, 1, 2]).unwrap_err();
+        assert!(
+            error.message().starts_with("HidD_SetOutputReport: (0x"),
+            "{}",
+            error.message()
+        );
     }
 
     #[test]
