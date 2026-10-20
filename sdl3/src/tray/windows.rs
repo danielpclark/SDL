@@ -22,7 +22,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetWindowLongPtrW, InsertMenuW, LoadIconW, RegisterClassExW, RegisterWindowMessageW,
     SetForegroundWindow, SetMenuItemInfoW, SetWindowLongPtrW, TrackPopupMenu, UnregisterClassW,
     CW_USEDEFAULT, GWLP_USERDATA, HICON, HMENU, IDI_APPLICATION, MENUITEMINFOW, MFS_CHECKED,
-    MFS_ENABLED, MF_BYCOMMAND, MF_BYPOSITION, MF_CHECKED, MF_DISABLED, MF_ENABLED, MF_GRAYED,
+    MFS_DISABLED, MF_BYCOMMAND, MF_BYPOSITION, MF_CHECKED, MF_DISABLED, MF_ENABLED, MF_GRAYED,
     MF_POPUP, MF_SEPARATOR, MF_STRING, MF_UNCHECKED, MIIM_STATE, MIIM_STRING, TPM_BOTTOMALIGN,
     TPM_RIGHTALIGN, WM_COMMAND, WM_CONTEXTMENU, WM_LBUTTONUP, WM_MBUTTONUP, WM_SETTINGCHANGE,
     WM_USER, WNDCLASSEXW, WS_OVERLAPPEDWINDOW,
@@ -866,16 +866,15 @@ impl TrayBackend for TrayWin {
     }
 
     /// Translation of `SDL_GetTrayEntryEnabled()`.
-    #[allow(clippy::bad_bit_mask)] // (see the FIXME)
     fn enabled(&self, entry: EntryKey) -> bool {
         let mut state = self.state();
         let Some((entry, h_menu)) = find_entry_and_parent(&mut state, entry as usize) else {
             return false;
         };
 
-        // FIXME (upstream): MFS_ENABLED is 0, so this always reports the
-        // entry disabled.
-        menu_item_state(h_menu, entry.id) & MFS_ENABLED != 0
+        // Note (upstream): this tests `fState & MFS_ENABLED`, and
+        // MFS_ENABLED is 0, so it always reports the entry disabled.
+        menu_item_state(h_menu, entry.id) & MFS_DISABLED == 0
     }
 
     /// Translation of `SDL_SetTrayEntryCallback()`.
@@ -910,7 +909,6 @@ mod tests {
     use crate::tray::Tray;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         GetMenuItemCount, GetMenuStringW, GetSubMenu, IsWindow, IsWindowVisible, SendMessageW,
-        MFS_DISABLED,
     };
 
     #[test]
@@ -1070,13 +1068,16 @@ mod tests {
         assert_eq!(sep.label().unwrap().as_deref(), Some(""));
         assert_ne!(menu_item_state(hm, disabled.key as usize) & MFS_DISABLED, 0);
         assert_eq!(menu_item_state(hm, quit.key as usize) & MFS_DISABLED, 0);
-        // (Note (upstream): enabled() always reports false; see the FIXME
-        // in enabled())
-        assert!(!quit.enabled().unwrap());
+        // (upstream's enabled() always reports false; see the Note in
+        // enabled())
+        assert!(quit.enabled().unwrap());
+        assert!(!disabled.enabled().unwrap());
         disabled.set_enabled(true);
         assert_eq!(menu_item_state(hm, disabled.key as usize) & MFS_DISABLED, 0);
+        assert!(disabled.enabled().unwrap());
         quit.set_enabled(false);
         assert_ne!(menu_item_state(hm, quit.key as usize) & MFS_DISABLED, 0);
+        assert!(!quit.enabled().unwrap());
 
         quit.set_label(Some("Leave"));
         assert_eq!(menu_string(hm, 2), "Leave");
