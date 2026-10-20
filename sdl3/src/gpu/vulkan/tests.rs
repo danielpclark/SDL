@@ -2617,6 +2617,92 @@ fn texture_bind_failure_destroys_the_image_once() {
     assert_ne!(destroyed[0], VK_NULL_HANDLE);
 }
 
+/// `vkEndCommandBuffer` that always fails.
+unsafe extern "system" fn failing_end_command_buffer(_command_buffer: VkCommandBuffer) -> VkResult {
+    VK_ERROR_OUT_OF_DEVICE_MEMORY
+}
+
+/// `vkQueueSubmit` that always fails.
+unsafe extern "system" fn failing_queue_submit(
+    _queue: VkQueue,
+    _count: u32,
+    _submits: *const VkSubmitInfo,
+    _fence: VkFence,
+) -> VkResult {
+    VK_ERROR_OUT_OF_DEVICE_MEMORY
+}
+
+/// A command buffer whose submission fails goes back to its pool, and gives
+/// back the resources it tracks and its fence (upstream loses it, and a
+/// released buffer it used is never destroyed).
+#[test]
+fn a_failed_submission_returns_the_command_buffer() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    use crate::gpu::BufferUsageFlags as B;
+    let inactive = |r: &VulkanRenderer| {
+        lock(&r.command_pools)[&std::thread::current().id()]
+            .inactive_command_buffers
+            .len()
+    };
+    let cb = r.acquire_command_buffer_internal().unwrap();
+    r.cancel_internal(cb).unwrap();
+    let available = inactive(&r);
+
+    let (real_end, real_submit) = (r.0.dev.end_command_buffer, r.0.dev.queue_submit);
+    for fail_submit in [false, true] {
+        let container = r
+            .create_buffer_container(256, B::VERTEX, VulkanBufferType::Gpu, false, None)
+            .unwrap();
+        let buffer = container.state.lock().unwrap().active_buffer.clone();
+        let mut cb = r.acquire_command_buffer_internal().unwrap();
+        cb.track_buffer(&buffer);
+        cb.auto_release_fence = false; // (as SubmitAndAcquireFence's)
+        r.release_buffer_container(&container);
+        if fail_submit {
+            r.0.dev.queue_submit = failing_queue_submit;
+        } else {
+            r.0.dev.end_command_buffer = failing_end_command_buffer;
+        }
+        let result = r.submit_internal(cb);
+        r.0.dev.end_command_buffer = real_end;
+        r.0.dev.queue_submit = real_submit;
+        let message = result.err().map(|e| e.message().to_owned());
+        let call = if fail_submit {
+            "vkQueueSubmit"
+        } else {
+            "vkEndCommandBuffer"
+        };
+        assert!(
+            message.as_deref().is_some_and(|m| m.contains(call)),
+            "{message:?}"
+        );
+        assert_eq!(buffer.reference_count.load(Ordering::SeqCst), 0);
+        assert_eq!(inactive(&r), available);
+        assert!(lock(&r.submit_lock).is_empty());
+        if fail_submit {
+            // (the fence went back to the pool)
+            assert!(lock(&r.fence_pool)
+                .iter()
+                .all(|f| f.reference_count.load(Ordering::SeqCst) == 0));
+            assert!(!lock(&r.fence_pool).is_empty());
+        }
+        // The released buffer is destroyed.
+        drop(buffer);
+        r.wait_internal().unwrap();
+        assert!(lock(&r.dispose).buffers_to_destroy.is_empty());
+    }
+
+    // The command buffer records and submits again.
+    let cb = r.acquire_command_buffer_internal().unwrap();
+    r.submit_internal(cb).unwrap();
+    r.wait_internal().unwrap();
+    assert_eq!(inactive(&r), available);
+}
+
 /// The video drivers whose windows the swapchain test presents to: the
 /// offscreen driver's headless surfaces, and X11's when there is a
 /// display (Windows' on Windows).
