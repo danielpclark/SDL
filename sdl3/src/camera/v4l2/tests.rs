@@ -321,6 +321,37 @@ fn opening_a_missing_device_fails_cleanly() {
 }
 
 #[test]
+fn read_and_user_pointer_buffers_hold_a_frame() {
+    let spec = |format, width, height| CameraSpec {
+        format,
+        colorspace: Colorspace::BT709_LIMITED,
+        width,
+        height,
+        framerate_numerator: 30,
+        framerate_denominator: 1,
+    };
+    // The opened spec's frame (upstream's came from the spec the device
+    // gets after opening, all zeros then: 0 bytes).
+    assert_eq!(
+        frame_buffer_size(&spec(PixelFormat::YUY2, 640, 480), 0).unwrap(),
+        640 * 480 * 2
+    );
+    assert_eq!(
+        frame_buffer_size(&spec(PixelFormat::NV12, 640, 480), 0).unwrap(),
+        640 * 480 * 3 / 2
+    );
+    // Or what the driver says, with padded rows or for MJPG.
+    assert_eq!(
+        frame_buffer_size(&spec(PixelFormat::YUY2, 640, 480), 1344 * 480).unwrap(),
+        1344 * 480
+    );
+    assert_eq!(
+        frame_buffer_size(&spec(PixelFormat::MJPG, 1280, 720), 921_600).unwrap(),
+        921_600
+    );
+}
+
+#[test]
 fn an_unplugged_camera_is_disconnected() {
     let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::CAMERA_DRIVER, "v4l2").unwrap();
