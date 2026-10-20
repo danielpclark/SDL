@@ -337,6 +337,51 @@ fn guids_and_sequences() {
     assert_eq!(Attachment::new(1).attachment_type, AttachmentType::Unknown);
 }
 
+/// A hello whose protocol versions aren't 1.0 warns about each of them,
+/// whichever of its numbers is wrong.
+#[test]
+fn hello_version_warnings() {
+    use crate::log::{self, Priority, Threshold};
+    let _l = crate::test_support::test_lock();
+    let _lock = crate::joystick::lock_joysticks();
+
+    let warnings = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let sink = warnings.clone();
+    log::set_priority(Category::Input, Threshold::AtLeast(Priority::Warn));
+    log::set_output(move |record| {
+        if record.message.starts_with("GIP: Invalid") {
+            sink.lock().unwrap().push(record.message.to_owned());
+        }
+    });
+
+    let device = controller(USB_VENDOR_MICROSOFT, USB_PRODUCT_XBOX_ONE_S);
+    let port = FakePort::new(&device);
+    let hello = |versions: [u8; 6]| {
+        let mut bytes = [0u8; 28];
+        bytes[22..].copy_from_slice(&versions);
+        let mut attachment = Attachment::new(0);
+        let mut gip = GipDevice::default();
+        let (ok, _, _) = run_io(&device, &port, |io| {
+            attachment.handle_command_hello_device(&mut gip, io, &Header::default(), &bytes, 28)
+        });
+        assert!(ok);
+        port.take_log();
+        std::mem::take(&mut *warnings.lock().unwrap())
+    };
+    assert_eq!(hello([1, 0, 1, 0, 1, 0]), Vec::<String>::new());
+    assert_eq!(
+        hello([1, 1, 2, 0, 0, 3]),
+        [
+            "GIP: Invalid RF protocol version 1.1, expected 1.0",
+            "GIP: Invalid security protocol version 2.0, expected 1.0",
+            "GIP: Invalid GIP version 0.3, expected 1.0",
+        ]
+    );
+
+    log::reset_output();
+    log::reset_priorities();
+}
+
 #[test]
 fn reports_past_their_tables() {
     let _l = crate::test_support::test_lock();
