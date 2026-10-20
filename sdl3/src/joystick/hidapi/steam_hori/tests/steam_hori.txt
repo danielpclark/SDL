@@ -7,12 +7,15 @@ name Wireless HORIPAD For Steam
 added
 result 1
 end
+read 05 08 0d 12 17 1c 21 26 2b 30 35 3a 3f 44 49 4e 53 58 5d 62 67 6c 71 76 7b 80 85 8a 8f 94 99 9e a3 a8 ad b2 b7 bc c1 c6 cb d0 d5 da df e4 e9 ee f3 f8 fd 02 07 0c 11 16 1b 20 25 2a 2f 34 39 3e
+read 07 08 0d 12 17 1c 21 26 2b 30 35 3a 3f 44 49 4e 53 58 5d 62 67 6c 71 76 7b 80 85 8a 8f 94 99 9e a3 a8 ad b2 b7 bc c1 c6 cb d0 d5 da df e4 e9 ee f3 f8 fd 02 07 0c 11 16 1b 20 25 2a 2f 34 39 3e
 open 0
 add sensor 2 437a0000
 add sensor 1 437a0000
 add capsense 0
 add capsense 1
 result 1
+serial c1-c6-cb-d0-d5-da
 end
 case usb
 read 07 64 af be 0b fa c4 ef 2b 8f c6 6d 7b 43 e6 bb 4f b0 83 9c 78 eb 7c 72 71 39 36 57 4e 91 6c fd 65 d6 ba 46 b9 d0 e7 a2 2a ef f5 2c 5f c0 ea 84 6f 2b 5c 6a 52 73 bf 1f 0a ea 6f 7c 91 77 7c cf
@@ -45,7 +48,6 @@ axis 4 3983
 sensor Gyro 4000000 41b20a16 c196c031 419825a4
 sensor Accel 4000000 428c56aa 414957c1 c273e965
 power Charging 10
-serial e7-a2-2a-ef-f5-2c
 ticks 28102 28102
 end
 read 07 c9 37 79 86 fa c4 ef 84 20 cd 95 87 1d fb 1d 6e 85 d5 a0 57 c8 65 3b 71 48 fd 86 a4 d8 03 6d c9 f6 80 cf 89 c8 68 d8 cf d9 a7 1f 0c 90 f0 7f e5 74 44 b5 9f 21 44 be 46 09 38 ee a0 ec db d0
@@ -794,6 +796,8 @@ name Wireless HORIPAD For Steam
 added
 result 1
 end
+read 05 08 0d 12 17 1c 21 26 2b 30 35 3a 3f 44 49 4e 53 58 5d 62 67 6c 71 76 7b 80 85 8a 8f 94 99 9e a3 a8 ad b2 b7 bc c1 c6 cb d0 d5 da df e4 e9 ee f3 f8 fd 02 07 0c 11 16 1b 20 25 2a 2f 34 39 3e
+read 00 08 0d 12 17 1c 21 26 2b 30 35 3a 3f 44 49 4e 53 58 5d 62 67 6c 71 76 7b 80 85 8a 8f 94 99 9e a3 a8 ad b2 b7 bc c1 c6 cb d0 d5 da df e4 e9 ee f3 f8 fd 02 07 0c 11 16 1b 20 25 2a 2f 34 39 3e
 open 1
 add sensor 2 42f00000
 add sensor 1 42f00000

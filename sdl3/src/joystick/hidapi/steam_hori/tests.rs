@@ -6,7 +6,9 @@
 //! SDL_hidapi_steam_hori.c, with stubs for the SDL functions it uses, on
 //! generated reports (see the Steam Controller driver's tests).
 
-use super::super::steam::tests::{describe_open, hex_bytes, parse_transcript, result_line, Entry};
+use super::super::steam::tests::{
+    describe_open, hex_bytes, parse_transcript, result_line, Entry, FakeHid,
+};
 use super::super::tests::{run, test_device};
 use super::*;
 use crate::hidapi::{BusType, DeviceInfo};
@@ -58,8 +60,10 @@ fn transcript() {
             }
             "open" => {
                 let mut joystick = JoystickData::new(1);
+                let hid = FakeHid::new(false);
+                hid.queue(&step);
                 let (result, mut events) = run(device.as_ref().unwrap(), |d| {
-                    ctx.open_joystick(d, &mut joystick)
+                    ctx.open(d, &mut joystick, &hid)
                 });
                 events.extend(describe_open(&joystick));
                 events.push(result_line(result.is_ok()));
