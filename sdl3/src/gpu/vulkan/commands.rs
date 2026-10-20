@@ -720,9 +720,11 @@ impl VulkanRenderer {
     /// (and of `VULKAN_SubmitAndAcquireFence()` when the command buffer's
     /// `auto_release_fence` is false).
     ///
-    /// FIXME (upstream): when ending the command buffer, acquiring the fence
-    /// or the submission fails, the command buffer is lost (and the
-    /// resources it tracks are never destroyed).
+    /// Note (upstream): when ending the command buffer, acquiring the fence
+    /// or the submission fails, C loses the command buffer (and the
+    /// resources it tracks are never destroyed); here nothing was submitted
+    /// then, and it's cleaned as a cancelled one (its fence released, as
+    /// the caller doesn't get it).
     pub(super) fn submit_internal(
         &self,
         mut command_buffer: VulkanCommandBuffer,
@@ -772,9 +774,18 @@ impl VulkanRenderer {
             );
         }
 
-        self.end_command_buffer(&command_buffer)?;
+        if let Err(e) = self.end_command_buffer(&command_buffer) {
+            self.clean_command_buffer(command_buffer, true);
+            return Err(e);
+        }
 
-        let in_flight_fence = self.acquire_fence_from_pool()?;
+        let in_flight_fence = match self.acquire_fence_from_pool() {
+            Ok(fence) => fence,
+            Err(e) => {
+                self.clean_command_buffer(command_buffer, true);
+                return Err(e);
+            }
+        };
 
         // Command buffer has a reference to the in-flight fence
         in_flight_fence
@@ -800,7 +811,11 @@ impl VulkanRenderer {
             (self.dev.queue_submit)(self.unified_queue, 1, &submit_info, in_flight_fence.fence)
         };
 
-        self.check(vulkan_result, "vkQueueSubmit")?;
+        if let Err(e) = self.check(vulkan_result, "vkQueueSubmit") {
+            command_buffer.auto_release_fence = true;
+            self.clean_command_buffer(command_buffer, true);
+            return Err(e);
+        }
 
         // Present, if applicable
         let allowed_frames_in_flight = self.allowed_frames_in_flight.load(Ordering::SeqCst);
