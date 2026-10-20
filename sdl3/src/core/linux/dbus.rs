@@ -712,8 +712,22 @@ impl Connection {
     where
         F: Fn(&Message) -> Option<HandlerResult> + Send + Sync + 'static,
     {
-        self.add_detached(DetachedFilter::Oneshot(Arc::new(filter)))
+        self.add_detached(DetachedFilter::Oneshot(Arc::new(filter), None))
             .is_some()
+    }
+
+    /// [`Connection::add_oneshot_filter`], which also removes the match
+    /// rule `rule` once it has handled its message (without waiting for
+    /// the bus's answer, as `dbus_bus_remove_match()` with no error does).
+    pub(crate) fn add_oneshot_filter_with_match<F>(&self, rule: &str, filter: F) -> bool
+    where
+        F: Fn(&Message) -> Option<HandlerResult> + Send + Sync + 'static,
+    {
+        self.add_detached(DetachedFilter::Oneshot(
+            Arc::new(filter),
+            Some(cstring(rule)),
+        ))
+        .is_some()
     }
 
     /// Install a filter that stays until [`Connection::remove_owned_filter`]
@@ -851,7 +865,8 @@ type PathHandler = dyn Fn(&Connection, &Message) -> HandlerResult + Send + Sync;
 /// The user data of the filters libdbus owns.
 enum DetachedFilter {
     Owned(Arc<OwnedFilterFn>),
-    Oneshot(Arc<OneshotFilterFn>),
+    /// A one-shot filter, with the match rule to remove with it.
+    Oneshot(Arc<OneshotFilterFn>, Option<CString>),
 }
 
 unsafe extern "C" fn detached_trampoline(
@@ -870,13 +885,21 @@ unsafe extern "C" fn detached_trampoline(
     // runs.
     let filter = match unsafe { &*(data as *const DetachedFilter) } {
         DetachedFilter::Owned(f) => Ok(f.clone()),
-        DetachedFilter::Oneshot(f) => Err(f.clone()),
+        DetachedFilter::Oneshot(f, rule) => Err((f.clone(), rule.clone())),
     };
     let msg = std::mem::ManuallyDrop::new(Message { lib, raw: msg });
     match filter {
         Ok(f) => f(&msg),
-        Err(f) => match f(&msg) {
+        Err((f, rule)) => match f(&msg) {
             Some(result) => {
+                if let Some(rule) = rule {
+                    // SAFETY: conn is the dispatching connection; the rule
+                    // is NUL-terminated. With no error, the call only
+                    // queues the request.
+                    unsafe {
+                        (lib.fns.bus_remove_match)(conn, rule.as_ptr(), std::ptr::null_mut())
+                    };
+                }
                 // SAFETY: (conn, trampoline, data) is installed; libdbus
                 // frees data with free_detached, and nothing touches it
                 // afterwards.
