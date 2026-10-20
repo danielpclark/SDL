@@ -477,8 +477,6 @@ unsafe extern "system" fn sensor_events_on_leave(
     let _lock = lock_sensors();
     // SAFETY: the sensor passes a valid sensor ID.
     let id = unsafe { *id };
-    // FIXME (upstream): ConnectSensor() never stores the sensor's ID (it
-    // stays zeroed), so this only matches a sensor whose ID is GUID_NULL.
     let leaving: Vec<*mut ISensor> = state()
         .sensors
         .iter()
@@ -572,12 +570,11 @@ unsafe fn connect_sensor(sensor: *mut ISensor) -> Result<()> {
 
     state().sensors.push(WindowsSensor {
         id: crate::utils::next_object_id(),
-        // FIXME (upstream): the ID read above isn't stored (SDL_zerop()
-        // leaves it zeroed), which OnLeave() compares against.
-        sensor_id: {
-            let _ = sensor_id;
-            guid(0, 0, 0, [0; 8])
-        },
+        // Note (upstream): the ID read above isn't stored (SDL_zerop()
+        // leaves it zeroed), and OnLeave() compares against it, so a sensor
+        // that goes away is never disconnected (unless its ID is
+        // GUID_NULL). Here it's stored.
+        sensor_id,
         name,
         sensor_type,
         sensor_opened: None,
@@ -844,6 +841,121 @@ mod tests {
         assert_eq!(slot(offset_of!(ISensorEventsVtbl, on_event)), 5);
         assert_eq!(slot(offset_of!(ISensorEventsVtbl, on_leave)), 6);
         assert_eq!(size_of::<PROPVARIANT>(), 24);
+    }
+
+    const FAKE_SENSOR_ID: GUID = guid(0x5E45_0001, 2, 3, [4, 5, 6, 7, 8, 9, 10, 11]);
+
+    unsafe extern "system" fn fake_query_interface(
+        _this: *mut c_void,
+        _iid: *const GUID,
+        out: *mut *mut c_void,
+    ) -> HRESULT {
+        // SAFETY: a valid out pointer.
+        unsafe { *out = std::ptr::null_mut() };
+        E_NOINTERFACE
+    }
+
+    unsafe extern "system" fn fake_add_ref_release(_this: *mut c_void) -> u32 {
+        1
+    }
+
+    unsafe extern "system" fn fake_get_id(_this: *mut ISensor, id: *mut GUID) -> HRESULT {
+        // SAFETY: a valid out pointer.
+        unsafe { *id = FAKE_SENSOR_ID };
+        S_OK
+    }
+
+    unsafe extern "system" fn fake_get_type(_this: *mut ISensor, id: *mut GUID) -> HRESULT {
+        // SAFETY: a valid out pointer.
+        unsafe { *id = SENSOR_TYPE_ACCELEROMETER_3D };
+        S_OK
+    }
+
+    unsafe extern "system" fn fake_get_friendly_name(
+        _this: *mut ISensor,
+        name: *mut BSTR,
+    ) -> HRESULT {
+        // SAFETY: a valid out pointer.
+        unsafe { *name = std::ptr::null() };
+        S_OK
+    }
+
+    unsafe extern "system" fn fake_get_state(
+        _this: *mut ISensor,
+        state: *mut SensorState,
+    ) -> HRESULT {
+        // SAFETY: a valid out pointer.
+        unsafe { *state = 0 };
+        S_OK
+    }
+
+    unsafe extern "system" fn fake_set_event_sink(
+        _this: *mut ISensor,
+        _sink: *mut ISensorEvents,
+    ) -> HRESULT {
+        S_OK
+    }
+
+    /// (the methods ConnectSensor() doesn't call)
+    unsafe extern "system" fn fake_unused() {
+        std::process::abort();
+    }
+
+    /// An accelerometer, with an ID and no name, whose references cost
+    /// nothing.
+    static FAKE_SENSOR: StaticComObject<ISensorVtbl> = StaticComObject {
+        vtbl: &ISensorVtbl {
+            base: IUnknownVtbl {
+                query_interface: fake_query_interface,
+                add_ref: fake_add_ref_release,
+                release: fake_add_ref_release,
+            },
+            get_id: fake_get_id,
+            get_category: fake_unused,
+            get_type: fake_get_type,
+            get_friendly_name: fake_get_friendly_name,
+            get_property: fake_unused,
+            get_properties: fake_unused,
+            get_supported_data_fields: fake_unused,
+            set_properties: fake_unused,
+            supports_data_field: fake_unused,
+            get_state: fake_get_state,
+            get_data: fake_unused,
+            supports_event: fake_unused,
+            get_event_interest: fake_unused,
+            set_event_interest: fake_unused,
+            set_event_sink: fake_set_event_sink,
+        },
+    };
+
+    /// A connected sensor is disconnected when it leaves, by its ID.
+    #[test]
+    fn a_sensor_that_leaves_is_disconnected() {
+        let _l = crate::test_support::test_lock();
+        let sensor = FAKE_SENSOR.as_ptr();
+        // SAFETY: a static sensor.
+        unsafe { connect_sensor(sensor) }.unwrap();
+        let connected = || {
+            state()
+                .sensors
+                .iter()
+                .filter(|s| s.sensor.as_ptr() == sensor)
+                .map(|s| (s.name.clone(), s.sensor_type))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            connected(),
+            [("Unknown Sensor".to_string(), SensorType::Accel)]
+        );
+
+        // Another sensor leaving doesn't disconnect it
+        let other = guid(0x5E45_0002, 2, 3, [4, 5, 6, 7, 8, 9, 10, 11]);
+        // SAFETY: the static event sink, and a valid ID.
+        unsafe { sensor_events_on_leave(SENSOR_EVENTS.as_ptr(), &other) };
+        assert_eq!(connected().len(), 1);
+        // SAFETY: as above.
+        unsafe { sensor_events_on_leave(SENSOR_EVENTS.as_ptr(), &FAKE_SENSOR_ID) };
+        assert_eq!(connected(), []);
     }
 
     #[test]
