@@ -158,6 +158,8 @@ struct DeviceContext {
     xinput_uncorrelate_count: u8,
     xinput_slot: u8,
 
+    /// Whether opening took a reference to WGI (`wgi_state.ref_count`).
+    wgi_enabled: bool,
     wgi_correlated: bool,
     wgi_correlation_id: u8,
     wgi_correlation_count: u8,
@@ -169,6 +171,46 @@ struct DeviceContext {
     triggers_rumbling: bool,
 
     device: Arc<RawinputDevice>,
+}
+
+impl DeviceContext {
+    /// A context for a joystick just opened on `device`, before its
+    /// capabilities are read (`SDL_calloc()` and the fields set first).
+    fn new(joystick: JoystickID, device: &Arc<RawinputDevice>) -> DeviceContext {
+        DeviceContext {
+            joystick,
+            nbuttons: 0,
+            naxes: 0,
+            nhats: 0,
+            is_xinput: device.is_xinput,
+            is_xboxone: device.is_xboxone,
+            max_data_length: 0,
+            data: Vec::new(),
+            button_indices: Vec::new(),
+            axis_indices: Vec::new(),
+            hat_indices: Vec::new(),
+            guide_hack: false,
+            trigger_hack: false,
+            trigger_hack_index: 0,
+            match_state: 0x0000008800000000, // Trigger axes at rest
+            last_state_packet: 0,
+            xinput_enabled: false,
+            xinput_correlated: false,
+            xinput_correlation_id: 0,
+            xinput_correlation_count: 0,
+            xinput_uncorrelate_count: 0,
+            xinput_slot: 0,
+            wgi_enabled: false,
+            wgi_correlated: false,
+            wgi_correlation_id: 0,
+            wgi_correlation_count: 0,
+            wgi_uncorrelate_count: 0,
+            wgi_slot: None,
+            vibration: GamepadVibration::default(),
+            triggers_rumbling: false,
+            device: device.clone(),
+        }
+    }
 }
 
 /// Translation of `guide_button_candidate`.
@@ -255,16 +297,22 @@ static STATE: ReentrantMutex<RefCell<Option<RawinputState>>> =
 fn with_state<R>(f: impl FnOnce(&mut RawinputState) -> R) -> R {
     let guard = STATE.lock();
     let mut state = guard.borrow_mut();
-    let state = state.get_or_insert_with(|| RawinputState {
-        devices: Vec::new(),
-        contexts: Vec::new(),
-        guide_button_candidate: GuideButtonCandidate::default(),
-        xinput_state: [XInputSlotState::default(); XUSER_MAX_COUNT as usize],
-        xinput_device_change: true,
-        xinput_state_dirty: true,
-        wgi_state: WgiState::default(),
-    });
+    let state = state.get_or_insert_with(RawinputState::new);
     f(state)
+}
+
+impl RawinputState {
+    fn new() -> RawinputState {
+        RawinputState {
+            devices: Vec::new(),
+            contexts: Vec::new(),
+            guide_button_candidate: GuideButtonCandidate::default(),
+            xinput_state: [XInputSlotState::default(); XUSER_MAX_COUNT as usize],
+            xinput_device_change: true,
+            xinput_state_dirty: true,
+            wgi_state: WgiState::default(),
+        }
+    }
 }
 
 /// An event to send once the state isn't borrowed.
@@ -646,16 +694,17 @@ impl RawinputState {
         true
     }
 
-    /// Translation of `RAWINPUT_InitWindowsGamingInput()`.
-    fn init_windows_gaming_input(&mut self) {
+    /// Translation of `RAWINPUT_InitWindowsGamingInput()`: whether it took
+    /// a reference (the `SDL_JOYSTICK_WGI` hint is on).
+    fn init_windows_gaming_input(&mut self) -> bool {
         if !hints::get_bool(hints::JOYSTICK_WGI, true) {
-            return;
+            return false;
         }
 
         self.wgi_state.ref_count += 1;
         if !self.wgi_state.initialized {
             if ro_initialize() < 0 {
-                return;
+                return true;
             }
             self.wgi_state.initialized = true;
             self.wgi_state.dirty = true;
@@ -695,6 +744,7 @@ impl RawinputState {
                 }
             }
         }
+        true
     }
 
     /// Translation of `RAWINPUT_WindowsGamingInputSlotMatches()`.
@@ -759,10 +809,6 @@ impl RawinputState {
 
     /// Translation of `RAWINPUT_QuitWindowsGamingInput()`.
     fn quit_windows_gaming_input(&mut self) {
-        // FIXME (upstream): this is called for every closed joystick, while
-        // RAWINPUT_InitWindowsGamingInput() only counts a reference when the
-        // SDL_JOYSTICK_WGI hint is on, so the count can go negative (and WGI
-        // then never be released).
         self.wgi_state.ref_count -= 1;
         if self.wgi_state.ref_count == 0 && self.wgi_state.initialized {
             self.wgi_state.per_gamepad.clear();
@@ -1934,25 +1980,39 @@ impl RawinputJoystickDriver {
     /// Close the joystick of a context (all of `RAWINPUT_JoystickClose()`
     /// but the guide button candidate).
     fn close_context(ctx: DeviceContext) {
-        with_state(|s| {
-            s.xinput_device_change = true;
-            if ctx.xinput_enabled {
-                if ctx.xinput_correlated {
-                    s.mark_xinput_slot_free(ctx.xinput_slot);
-                }
-                unload_xinput_dll();
-            }
-            // Note (upstream): a correlated WGI gamepad isn't freed here: it
-            // stays marked used, its correlated_context pointing to the
-            // freed context (which RAWINPUT_UpdateWindowsGamingInput()
-            // writes to when the gamepad goes away); here the context is
-            // looked up by its joystick, so a stale one is just not found.
-            s.quit_windows_gaming_input();
-        });
+        with_state(|s| s.release_context(&ctx));
 
         // (device->joystick = NULL, and the context's reference to the
         // device is released, when ctx drops)
         drop(ctx);
+    }
+}
+
+impl RawinputState {
+    /// Give back what a context holds of the driver's state (its XInput
+    /// slot and DLL, and WGI). Part of `RAWINPUT_JoystickClose()`.
+    fn release_context(&mut self, ctx: &DeviceContext) {
+        self.xinput_device_change = true;
+        if ctx.xinput_enabled {
+            if ctx.xinput_correlated {
+                self.mark_xinput_slot_free(ctx.xinput_slot);
+            }
+            unload_xinput_dll();
+        }
+        // Note (upstream): a correlated WGI gamepad isn't freed here: it
+        // stays marked used, its correlated_context pointing to the
+        // freed context (which RAWINPUT_UpdateWindowsGamingInput()
+        // writes to when the gamepad goes away); here the context is
+        // looked up by its joystick, so a stale one is just not found.
+        // Note (upstream): RAWINPUT_QuitWindowsGamingInput() is called for
+        // every closed joystick, while RAWINPUT_InitWindowsGamingInput() is
+        // only called for an XInput device and only counts a reference when
+        // the SDL_JOYSTICK_WGI hint is on, so the count can go negative and
+        // WGI then never be released. Here only a context that took a
+        // reference gives it back.
+        if ctx.wgi_enabled {
+            self.quit_windows_gaming_input();
+        }
     }
 }
 
@@ -2092,38 +2152,7 @@ impl JoystickDriver for RawinputJoystickDriver {
             return Err(Error::new("No such device"));
         };
 
-        let mut ctx = DeviceContext {
-            joystick: joystick.instance_id,
-            nbuttons: 0,
-            naxes: 0,
-            nhats: 0,
-            is_xinput: device.is_xinput,
-            is_xboxone: device.is_xboxone,
-            max_data_length: 0,
-            data: Vec::new(),
-            button_indices: Vec::new(),
-            axis_indices: Vec::new(),
-            hat_indices: Vec::new(),
-            guide_hack: false,
-            trigger_hack: false,
-            trigger_hack_index: 0,
-            match_state: 0x0000008800000000, // Trigger axes at rest
-            last_state_packet: 0,
-            xinput_enabled: false,
-            xinput_correlated: false,
-            xinput_correlation_id: 0,
-            xinput_correlation_count: 0,
-            xinput_uncorrelate_count: 0,
-            xinput_slot: 0,
-            wgi_correlated: false,
-            wgi_correlation_id: 0,
-            wgi_correlation_count: 0,
-            wgi_uncorrelate_count: 0,
-            wgi_slot: None,
-            vibration: GamepadVibration::default(),
-            triggers_rumbling: false,
-            device: device.clone(),
-        };
+        let mut ctx = DeviceContext::new(joystick.instance_id, &device);
 
         if device.is_xinput {
             // We'll try to get guide button and trigger axes from XInput
@@ -2133,7 +2162,7 @@ impl JoystickDriver for RawinputJoystickDriver {
                 ctx.xinput_enabled = false;
             }
             ctx.xinput_slot = XUSER_INDEX_ANY as u8;
-            with_state(|s| s.init_windows_gaming_input());
+            ctx.wgi_enabled = with_state(|s| s.init_windows_gaming_input());
         }
 
         let result = (|| -> Result<()> {
@@ -2451,3 +2480,6 @@ impl JoystickDriver for RawinputJoystickDriver {
         None
     }
 }
+
+#[cfg(test)]
+mod tests;
