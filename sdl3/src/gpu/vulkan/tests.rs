@@ -2981,6 +2981,86 @@ fn a_failed_graphics_pipeline_releases_its_shaders() {
     assert!(lock(&r.dispose).shaders_to_destroy.is_empty());
 }
 
+/// The real `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`, for
+/// [`minimized_surface_capabilities`].
+static REAL_SURFACE_CAPABILITIES: std::sync::Mutex<Option<PfnSurfaceCapabilities>> =
+    std::sync::Mutex::new(None);
+
+/// `vkGetPhysicalDeviceSurfaceCapabilitiesKHR`
+type PfnSurfaceCapabilities = unsafe extern "system" fn(
+    VkPhysicalDevice,
+    VkSurfaceKHR,
+    *mut VkSurfaceCapabilitiesKHR,
+) -> VkResult;
+
+/// `vkGetPhysicalDeviceSurfaceCapabilitiesKHR` with a zero current extent,
+/// as some drivers report for a minimized window.
+unsafe extern "system" fn minimized_surface_capabilities(
+    physical_device: VkPhysicalDevice,
+    surface: VkSurfaceKHR,
+    capabilities: *mut VkSurfaceCapabilitiesKHR,
+) -> VkResult {
+    let real = lock(&REAL_SURFACE_CAPABILITIES).unwrap();
+    // SAFETY: the caller's arguments, for the driver's function; then its
+    // output.
+    unsafe {
+        let result = real(physical_device, surface, capabilities);
+        (*capabilities).current_extent = VkExtent2D {
+            width: 0,
+            height: 0,
+        };
+        result
+    }
+}
+
+/// A window whose swapchain can't be made yet (a zero extent) is claimed,
+/// and gets its swapchain on the next acquire (upstream's isn't claimed,
+/// and its surface is lost).
+#[test]
+fn a_window_claimed_while_minimized_gets_its_swapchain_later() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    let window =
+        Window::create("gpu", 32, 32, crate::events::window::WindowFlags::default()).unwrap();
+    let _ = window.show();
+    let _ = window.sync();
+    let real = r.0.inst.get_physical_device_surface_capabilities_khr;
+    *lock(&REAL_SURFACE_CAPABILITIES) = Some(real);
+    r.0.inst.get_physical_device_surface_capabilities_khr = minimized_surface_capabilities;
+    let claimed = r.claim_window_internal(window);
+    r.0.inst.get_physical_device_surface_capabilities_khr = real;
+    if let Err(e) = claimed {
+        crate::test_support::skip(
+            "vulkan",
+            format_args!("no Vulkan surface for a window ({})", e.message()),
+        );
+        window.destroy();
+        return;
+    }
+    assert_eq!(lock(&r.claimed_windows).len(), 1);
+    {
+        let entry = lock(&r.claimed_windows)[0].clone();
+        let data = lock(&entry.data);
+        assert!(data.needs_swapchain_recreate);
+        assert_eq!(data.swapchain, VK_NULL_HANDLE);
+    }
+
+    let mut cb = r.acquire_command_buffer_internal().unwrap();
+    let texture = r
+        .acquire_swapchain_texture_internal(true, &mut cb, window)
+        .unwrap();
+    assert!(texture.is_some());
+    r.submit_internal(cb).unwrap();
+    r.wait_internal().unwrap();
+    r.release_window_internal(window);
+    assert!(lock(&r.claimed_windows).is_empty());
+    drop(r);
+    window.destroy();
+}
+
 /// `vkMapMemory` that always fails.
 unsafe extern "system" fn failing_map_memory(
     _device: VkDevice,
