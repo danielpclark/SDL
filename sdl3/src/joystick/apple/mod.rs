@@ -1525,13 +1525,13 @@ impl RumbleContext {
     fn rumble_triggers(&self, left_rumble: u16, right_rumble: u16) -> Result<()> {
         match (&self.left_trigger_motor, &self.right_trigger_motor) {
             (Some(left), Some(right)) => {
-                // FIXME (upstream): `result` starts false, so `result &=` keeps
+                // Note (upstream): `result` starts false, so `result &=` keeps
                 // it false and trigger rumble always reports failure (with
                 // whatever error was set last) after applying the intensities.
+                // Here it starts true, as in rumbleWithLowFrequency:.
                 let l = left.set_intensity(f32::from(left_rumble) / 65535.0);
                 let r = right.set_intensity(f32::from(right_rumble) / 65535.0);
-                and_results(l, r)?;
-                Err(Error::new("Couldn't rumble the triggers"))
+                and_results(l, r)
             }
             _ => Err(Error::unsupported()),
         }
