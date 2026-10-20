@@ -151,13 +151,16 @@ fn parse_response(msg: &Message) -> Option<crate::error::Result<Vec<String>>> {
         return None;
     };
 
-    // FIXME (upstream): with an empty results dictionary, upstream reads
-    // an uninitialized iterator; here (as for a dictionary without "uris")
-    // the signal is not taken as ours, and the dialog never completes.
-    let uris = results.iter().find_map(|entry| match entry {
+    // Note (upstream): with an empty results dictionary, upstream reads an
+    // uninitialized iterator, and with one without "uris" it doesn't take
+    // the signal as its own, so the dialog never completes. Here either is
+    // a response without files.
+    let Some(uris) = results.iter().find_map(|entry| match entry {
         Value::DictEntry(key, value) if key.as_str() == Some("uris") => Some(&**value),
         _ => None,
-    })?;
+    }) else {
+        return Some(Ok(Vec::new()));
+    };
 
     let Value::Variant(uris) = uris else {
         return None;
@@ -526,7 +529,8 @@ mod tests {
         // queued response a moment later.
         type Call = (String, Vec<Value>);
         let calls: Arc<Mutex<Vec<Call>>> = Arc::default();
-        type Response = (u32, Vec<&'static str>);
+        // (no URIs: an empty results dictionary)
+        type Response = (u32, Option<Vec<&'static str>>);
         let responses: Arc<Mutex<VecDeque<Response>>> = Arc::default();
         let (c2, r2) = (calls.clone(), responses.clone());
         let portal = peer(&bus.address, PORTAL_DESTINATION, move |conn, msg| {
@@ -553,8 +557,9 @@ mod tests {
                             conn.new_signal(&p2, SIGNAL_INTERFACE, SIGNAL_NAME).unwrap();
                         let mut w = signal.writer();
                         w.append(&Arg::U32(code));
-                        w.container(b'a', Some("{sv}"), |d| {
-                            d.dict_entry("uris", "as", |v| v.append_str_array(&uris))
+                        w.container(b'a', Some("{sv}"), |d| match &uris {
+                            Some(uris) => d.dict_entry("uris", "as", |v| v.append_str_array(uris)),
+                            None => true,
                         });
                         // (queued for the peer thread to write; flushing
                         // from here could wait for good, see Connection::send)
@@ -593,7 +598,7 @@ mod tests {
         responses
             .lock()
             .unwrap()
-            .push_back((0, vec!["file:///tmp/a%20b", "file:///c"]));
+            .push_back((0, Some(vec!["file:///tmp/a%20b", "file:///c"])));
         let result = show(
             FileDialogType::OpenFile,
             FileDialogOptions {
@@ -650,7 +655,7 @@ mod tests {
         }
 
         // A canceled folder dialog.
-        responses.lock().unwrap().push_back((1, vec![]));
+        responses.lock().unwrap().push_back((1, Some(vec![])));
         let result = show(FileDialogType::OpenFolder, FileDialogOptions::default());
         assert_eq!(result, (Ok(vec![]), None));
         {
@@ -672,9 +677,12 @@ mod tests {
         responses
             .lock()
             .unwrap()
-            .push_back((0, vec!["file:///x/new.txt"]));
-        responses.lock().unwrap().push_back((0, vec!["ftp://nope"]));
-        responses.lock().unwrap().push_back((3, vec![]));
+            .push_back((0, Some(vec!["file:///x/new.txt"])));
+        responses
+            .lock()
+            .unwrap()
+            .push_back((0, Some(vec!["ftp://nope"])));
+        responses.lock().unwrap().push_back((3, Some(vec![])));
         let result = show(
             FileDialogType::SaveFile,
             FileDialogOptions {
@@ -729,6 +737,12 @@ mod tests {
             );
             assert_eq!(calls[4].1[1], Value::Str("Save File".into()));
         }
+
+        // A response without files: an empty results dictionary (upstream's
+        // dialog never completes).
+        responses.lock().unwrap().push_back((0, None));
+        let result = show(FileDialogType::OpenFile, FileDialogOptions::default());
+        assert_eq!(result, (Ok(vec![]), None));
 
         drop(ctx);
         test_bus::release_session();
