@@ -2285,14 +2285,14 @@ impl Attachment {
             if self.last_input[byte] != bytes[byte] {
                 while i < self.extra_buttons {
                     let byte = (i / 8 + 3) as usize;
-                    // FIXME (upstream): the bit isn't taken modulo 8, so the
-                    // buttons past the first eight are never down.
-                    let mask = 1u32.wrapping_shl(i as u32);
+                    // Note (upstream): C doesn't take the bit modulo 8, so
+                    // the buttons past the first eight are never down; here
+                    // each button is its bit of its byte.
                     io.device.send_button(
                         timestamp,
                         joystick,
                         self.extra_button_idx.wrapping_add(i as u8),
-                        u32::from(bytes[byte]) & mask != 0,
+                        bytes[byte] & (1 << (i % 8)) != 0,
                     );
                     i += 1;
                 }
