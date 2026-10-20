@@ -507,6 +507,10 @@ mod macos {
     static SAVE_PANEL_FOLDER: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);
     /// How many times [`stop_modal`] has waited for that folder.
     static SAVE_PANEL_WAITS: AtomicUsize = AtomicUsize::new(0);
+    /// The save panel's `directoryURL` path when [`stop_modal`] stopped it:
+    /// the folder it was told to show, even when the panel (which runs out
+    /// of process) never got there.
+    static SAVE_PANEL_DIRECTORY: Mutex<Option<String>> = Mutex::new(None);
 
     /// `[NSApp stopModalWithCode:STOP_CODE]`, from the main queue inside a
     /// panel's modal loop (once a save panel is at [`SAVE_PANEL_FOLDER`],
@@ -537,6 +541,9 @@ mod macos {
                     on_main_queue_after(10, stop_modal, ctx);
                     return;
                 }
+                let directory: Id = send0(window, c"directoryURL");
+                *SAVE_PANEL_DIRECTORY.lock().unwrap() =
+                    (!directory.is_null()).then(|| to_string(send0(directory, c"path")));
             }
             let code = STOP_CODE.load(Ordering::SeqCst);
             let _: () = send1(ns_app(), c"stopModalWithCode:", code);
@@ -585,6 +592,7 @@ mod macos {
         STOP_CODE.store(NS_MODAL_RESPONSE_OK, Ordering::SeqCst);
         *SAVE_PANEL_FOLDER.lock().unwrap() = Some(dir.clone());
         SAVE_PANEL_WAITS.store(0, Ordering::SeqCst);
+        *SAVE_PANEL_DIRECTORY.lock().unwrap() = None;
         on_main_queue(stop_modal, std::ptr::null_mut());
         show_file_dialog(
             FileDialogType::SaveFile,
@@ -608,7 +616,22 @@ mod macos {
         // (the panel names the folder by its /var path, not /private/var)
         let saved = std::path::Path::new(&files[0]);
         assert_eq!(saved.file_name().unwrap(), "saved.txt");
-        assert_eq!(saved.parent().unwrap().canonicalize().unwrap(), dir);
+        let folder = saved.parent().unwrap().canonicalize().unwrap();
+        if folder != dir {
+            // The panel sometimes stays at its default folder however long
+            // it's given (seen on CI runners): then the folder it was told
+            // to show must be the one asked for.
+            let directory = SAVE_PANEL_DIRECTORY.lock().unwrap().take();
+            println!(
+                "cocoa_shell: save panel stayed at {}, told to show {directory:?}",
+                folder.display()
+            );
+            let directory = directory.expect("the save panel's directoryURL");
+            assert_eq!(
+                std::path::Path::new(&directory).canonicalize().unwrap(),
+                dir
+            );
+        }
         let _ = std::fs::remove_dir_all(&dir);
         println!("cocoa_shell: app-modal dialogs ok");
     }
