@@ -978,9 +978,13 @@ fn show_folder_dialog_thread(args: WinFArgs) {
     let lp_item = unsafe { SHBrowseForFolderW(&dialog) };
 
     if !lp_item.is_null() {
-        // SAFETY: lp_item is the chosen item; buffer holds MAX_PATH characters.
-        unsafe { SHGetPathFromIDListW(lp_item, buffer.as_mut_ptr()) };
-        // FIXME (upstream): the item list is never freed (CoTaskMemFree()).
+        // SAFETY: lp_item is the chosen item, ours to free; buffer holds
+        // MAX_PATH characters.
+        unsafe {
+            SHGetPathFromIDListW(lp_item, buffer.as_mut_ptr());
+            // Note (upstream): the item list is never freed.
+            CoTaskMemFree(lp_item.cast());
+        }
         let chosen_file = wide_to_utf8(&buffer);
         callback(Ok(vec![chosen_file]), None);
     } else {
