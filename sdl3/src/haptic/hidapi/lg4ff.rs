@@ -317,9 +317,11 @@ fn get_effect_replay_delay(effect: &HapticEffect) -> u16 {
 /// The level of an envelope's attack, `level_sign * attack_level + d *
 /// time_playing / attack_length`.
 ///
-/// FIXME (upstream): `time_playing` is unsigned 64-bit (as in new-lg4ff,
-/// on 64-bit kernels), so `d * time_playing` is too: when the attack starts
-/// above the effect's level (`d` negative), the level is garbage.
+/// Note (upstream): `time_playing` is unsigned 64-bit in C (as in
+/// new-lg4ff, on 64-bit kernels), so `d * time_playing` is too: when the
+/// attack starts above the effect's level (`d` negative), the level is
+/// garbage. Here the product is signed (`time_playing` is under
+/// `attack_length` in the attack).
 fn attack_level(
     level_sign: i32,
     attack_level: u16,
@@ -327,9 +329,9 @@ fn attack_level(
     time_playing: u64,
     attack_length: u16,
 ) -> i32 {
-    let base = i64::from(level_sign * i32::from(attack_level)) as u64;
-    let ramp = (i64::from(d) as u64).wrapping_mul(time_playing) / u64::from(attack_length);
-    base.wrapping_add(ramp) as i32
+    let base = i64::from(level_sign * i32::from(attack_level));
+    let ramp = i64::from(d) * time_playing as i64 / i64::from(attack_length);
+    (base + ramp) as i32
 }
 
 /// Translation of `lg4ff_calculate_constant()`.
