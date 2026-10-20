@@ -615,14 +615,19 @@ pub(crate) fn init() -> Result<()> {
         drop(guard);
 
         // Do an initial scan of existing devices
-        let scanned = scan();
+        // Note (upstream): when the initial scan fails, SDL_UDEV_Scan()
+        // calls SDL_UDEV_Quit(), which frees _this, and SDL_UDEV_Init() then
+        // dereferences NULL. Here scan() leaves the state alone, and Init
+        // unwinds as on its other failures.
+        if let Err(e) = scan() {
+            quit();
+            return Err(e);
+        }
 
         guard = lock();
         if guard.is_none() {
-            // Note (upstream): when the initial scan fails, SDL_UDEV_Scan()
-            // calls SDL_UDEV_Quit(), which frees _this, and SDL_UDEV_Init()
-            // then dereferences NULL; the error is returned instead.
-            return scanned;
+            // (quit meanwhile)
+            return Ok(());
         }
     }
 
@@ -678,10 +683,9 @@ pub(crate) fn scan() -> Result<()> {
         // SAFETY: udev is live; the enumeration is ours to unref.
         let enumerate = unsafe { (syms.udev_enumerate_new)(this.udev) };
         if enumerate.is_null() {
-            drop(guard);
-            // FIXME (upstream): this drops a reference that SDL_UDEV_Scan()'s
-            // caller still thinks it holds.
-            quit();
+            // Note (upstream): this calls SDL_UDEV_Quit(), dropping a
+            // reference that the caller still holds (and freeing the state
+            // with the last one).
             return Err(Error::new("udev_enumerate_new() failed"));
         }
 
@@ -959,5 +963,35 @@ mod tests {
         // Quitting more often than initializing is harmless
         quit();
         assert!(add_callback(count_callback).is_err());
+    }
+
+    unsafe extern "C" fn no_enumerate(_: *mut udev) -> *mut udev_enumerate {
+        ptr::null_mut()
+    }
+
+    #[test]
+    fn failed_scan_keeps_the_reference() {
+        let _l = crate::test_support::test_lock();
+        if let Err(e) = init() {
+            crate::test_support::skip("udev", format_args!("udev unavailable ({})", e.message()));
+            return;
+        }
+        let real = {
+            let mut guard = lock();
+            let syms = guard.as_mut().unwrap().syms.as_mut().unwrap();
+            std::mem::replace(&mut syms.udev_enumerate_new, no_enumerate)
+        };
+        assert_eq!(
+            scan().unwrap_err().to_string(),
+            "udev_enumerate_new() failed"
+        );
+        // (upstream's drops the caller's reference, and with it the state)
+        let ref_count = lock().as_ref().map(|this| this.ref_count);
+        if let Some(this) = lock().as_mut() {
+            this.syms.as_mut().unwrap().udev_enumerate_new = real;
+        }
+        assert_eq!(ref_count, Some(1));
+        quit();
+        assert!(lock().is_none());
     }
 }
