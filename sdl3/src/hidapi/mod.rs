@@ -1029,8 +1029,12 @@ fn init_locked(state: &mut HidapiState) -> Result<()> {
     let (attempts, success) = (0, 0);
 
     if attempts > 0 && success == 0 {
-        // FIXME (upstream): a failed SDL_hid_init() leaves its hint
-        // callbacks registered; they are replaced by the next init.
+        // Note (upstream): a failed SDL_hid_init() returns with its hint
+        // callbacks still registered (and the ignored devices kept), which
+        // only SDL_hid_exit() removes, and only after a successful init.
+        // Here they go, as in exit().
+        state.hint_watches.clear();
+        *IGNORED_DEVICES.lock().unwrap_or_else(|e| e.into_inner()) = None;
         return Err(Error::new("Couldn't initialize hidapi"));
     }
 
