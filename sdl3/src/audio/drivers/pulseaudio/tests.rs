@@ -371,20 +371,13 @@ fn playback_and_recording_through_a_private_server() {
                 .any(|d| audio_device_name(d).is_ok_and(|n| n == "Monitor of Hotplugged"))
         };
         assert!(wait_for(&has_monitor), "its monitor added");
+        // (without anything else to wake the hotplug thread: upstream's
+        // misses a change whose signal comes while it's unlocked, until the
+        // next one)
         pactl(&["set-default-sink", "hotplugged"]).unwrap();
-        // (a volume change wakes the hotplug thread again, in case the
-        // default change's signal was missed; see the FIXME in `hotplug_thread`)
         let is_default =
             || audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK).is_ok_and(|n| n == "Hotplugged");
-        let mut changed = false;
-        for volume in ["90%", "100%"].iter().cycle().take(10) {
-            changed = wait_for_up_to(Duration::from_millis(500), &is_default);
-            if changed {
-                break;
-            }
-            let _ = pactl(&["set-sink-volume", "hotplugged", volume]);
-        }
-        assert!(changed, "the new default");
+        assert!(wait_for(&is_default), "the new default");
         // (the sink's monitor is a source with the sink's index; looked up
         // by the index alone, the sink's removal finds the monitor, and the
         // monitor's finds it again before it's gone, so the sink stays)

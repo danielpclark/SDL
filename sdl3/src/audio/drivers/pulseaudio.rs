@@ -1297,11 +1297,15 @@ fn hotplug_thread(shared: Arc<PulseShared>, ready_sem: Arc<Semaphore>) -> i32 {
 
     ready_sem.signal();
 
+    // A default changed while this thread was unlocked below.
+    let mut changed_while_unlocked = false;
     while shared.hotplug_thread_active.load(Ordering::Acquire) {
-        // FIXME (upstream): a default change whose ServerInfoCallback signal
-        // comes while this thread is unlocked below is only noticed at the
-        // next signal, since the flags aren't checked again before waiting.
-        shared.wait();
+        // Note (upstream): this always waits, but the ServerInfoCallback
+        // signal of a change made while this thread was unlocked below came
+        // when nobody waited, so the change is only seen at the next signal.
+        if !changed_while_unlocked {
+            shared.wait();
+        }
         // SAFETY: `op` is our live reference; we hold the lock.
         if !op.is_null() && unsafe { (lib.pa_operation_get_state)(op) } != PA_OPERATION_RUNNING {
             // SAFETY: as above; released once.
@@ -1349,6 +1353,7 @@ fn hotplug_thread(shared: Arc<PulseShared>, ready_sem: Arc<Semaphore>) -> i32 {
 
         // set these to true if we didn't handle the change OR there was _another_ change while we were working unlocked.
         let mut d = shared.defaults.lock().unwrap_or_else(|e| e.into_inner());
+        changed_while_unlocked = d.default_sink_changed || d.default_source_changed;
         d.default_sink_changed = d.default_sink_changed || check_default_sink;
         d.default_source_changed = d.default_source_changed || check_default_source;
     }
