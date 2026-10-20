@@ -401,11 +401,10 @@ pub(super) fn create_tray(
 
 /// Translation of `DestroyDriver()`.
 pub(super) fn destroy_driver(_driver: TrayDriver) {
-    // FIXME (upstream): this closes SDL's shared D-Bus connections, which
-    // the rest of SDL (portal dialogs, notifications, the screensaver...)
-    // may still be using; they reconnect on next use, but lose their
-    // filters.
-    dbus::quit();
+    // Note (upstream): this calls SDL_DBus_Quit(), which closes SDL's shared
+    // D-Bus connections while the rest of SDL (portal dialogs,
+    // notifications, the screensaver inhibition...) may still be using
+    // them. They stay open here, until SDL_Quit().
 }
 
 /// Find an item by its key in a menu and its submenus.
@@ -955,9 +954,8 @@ pub(super) fn create_dbus_driver() -> Result<TrayDriver> {
     }
 
     if !sni_supported {
-        // FIXME (upstream): this closes SDL's shared D-Bus connections too
-        // (see destroy_driver).
-        dbus::quit();
+        // Note (upstream): this calls SDL_DBus_Quit() too, closing SDL's
+        // shared D-Bus connections (see destroy_driver); they stay open.
         return Err(Error::new("Unable to create tray: no SNI support!"));
     }
 
@@ -1348,8 +1346,12 @@ mod tests {
         assert!(error_name_is(&gone, dbus::ERROR_UNKNOWN_PROPERTY));
 
         let handle = tray.handle();
+        let ctx = dbus::context().unwrap();
         drop(tray);
         assert!(!crate::tray::has_active_trays());
+        // Destroying the driver with the last tray leaves the shared
+        // connections open (upstream closes them).
+        assert!(dbus::context().is_some_and(|c| Arc::ptr_eq(&c, &ctx)));
         assert!(handle.menu().is_none());
         assert!(a.label().is_err());
 
@@ -1366,11 +1368,14 @@ mod tests {
         let _l = crate::test_support::test_lock();
         let Some(bus) = Bus::start() else { return };
         test_bus::use_as_session(&bus);
+        let ctx = dbus::context().unwrap();
         let Err(err) = super::super::create_tray_on_any_thread(TrayOptions::default()) else {
             panic!("no watcher on the bus");
         };
         assert_eq!(err.to_string(), "Unable to create tray: no SNI support!");
         assert!(!crate::tray::has_active_trays());
+        // The shared connections stay open (upstream closes them).
+        assert!(dbus::context().is_some_and(|c| Arc::ptr_eq(&c, &ctx)));
         test_bus::release_session();
     }
 }
