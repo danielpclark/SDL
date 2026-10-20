@@ -27,8 +27,9 @@ use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::time::Duration;
 
 use super::{
-    add_camera, camera_permission_outcome, AcquiredFrame, CameraBackend, CameraBootStrap,
-    CameraDevice, CameraDriverImpl, CameraFrameResult, CameraPosition, CameraSpec,
+    add_camera, camera_disconnected, camera_permission_outcome, find_physical_camera_by_callback,
+    AcquiredFrame, CameraBackend, CameraBootStrap, CameraDevice, CameraDriverImpl,
+    CameraFrameResult, CameraPosition, CameraSpec,
 };
 use crate::core::linux::dbus::{camera_portal_request_access, CameraPortalAccess};
 use crate::core::linux::pipewire::spa::{
@@ -650,10 +651,11 @@ impl Drop for LoopGuard<'_> {
 /// An SDL camera's handle: the node it is (upstream's is the global).
 struct PwCameraHandle {
     /// The node's global id.
-    #[allow(dead_code)] // (nothing looks a camera up by its node yet)
     id: u32,
     /// The node's [`Global::target`].
     target: Option<String>,
+    /// The node was removed (and the device reported disconnected).
+    removed: AtomicBool,
 }
 
 /// Translation of `add_device()`.
@@ -673,6 +675,7 @@ fn add_device(g: &Global) {
         let handle = PwCameraHandle {
             id: g.id,
             target: g.target.clone(),
+            removed: AtomicBool::new(false),
         };
         add_camera(&g.name, CameraPosition::Unknown, &data, Box::new(handle));
     }
@@ -904,10 +907,25 @@ unsafe extern "C" fn hotplug_registry_global_callback(
 /// Translation of `hotplug_registry_global_remove_callback()`; called with
 /// thread_loop lock.
 ///
-/// FIXME (upstream): this does nothing, so a camera that goes away is
-/// never reported as disconnected (its global is freed when the server
-/// removes the proxy; the SDL device keeps only its id here).
-unsafe extern "C" fn hotplug_registry_global_remove_callback(_object: *mut c_void, _id: u32) {}
+/// Note (upstream): this does nothing, so a camera whose node goes away is
+/// never reported as disconnected; here its SDL device is.
+unsafe extern "C" fn hotplug_registry_global_remove_callback(_object: *mut c_void, id: u32) {
+    // (a node's id can be given to a new node once it's removed, so the
+    // device is marked as removed as it's found, and isn't found again)
+    let device = find_physical_camera_by_callback(|d| {
+        d.handle
+            .downcast_ref::<PwCameraHandle>()
+            .is_some_and(|h| h.id == id && !h.removed.swap(true, Ordering::AcqRel))
+    });
+    if let Ok(device) = device {
+        // SDL_CameraDisconnected() takes the device lock, which the device
+        // thread holds while it waits for this loop's lock in AcquireFrame
+        // (and SDL_OpenCamera() while it waits in OpenDevice), so it runs on
+        // the main thread, as the audio core does with its disconnects. The
+        // device thread sees it after its wait (see WaitDevice).
+        let _ = crate::events::run_on_main_thread(move || camera_disconnected(&device), false);
+    }
+}
 
 static HOTPLUG_REGISTRY_EVENTS: PwRegistryEvents = PwRegistryEvents {
     version: PW_VERSION_REGISTRY_EVENTS,
