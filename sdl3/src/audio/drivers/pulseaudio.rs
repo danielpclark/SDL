@@ -1063,8 +1063,13 @@ impl PulseShared {
                     device_index: index,
                 },
             );
-        // FIXME (upstream): if SDL_AddAudioDevice() fails, the handle is leaked.
-        let _ = add_audio_device(recording, description, None, Some(&spec), handle);
+        if add_audio_device(recording, description, None, Some(&spec), handle).is_none() {
+            // Note (upstream): the handle is leaked here.
+            self.handles
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .remove(&handle);
+        }
     }
 }
 
