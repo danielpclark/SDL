@@ -1250,15 +1250,31 @@ impl VulkanRenderer {
 
         // Pipeline Layout
 
-        // FIXME (upstream): when this or the pipeline fails, the shaders'
-        // reference counts taken above aren't given back (so they are
-        // never destroyed), and here the transient render pass leaks.
+        // Note (upstream): when this or the pipeline fails, C doesn't give
+        // back the shaders' reference counts taken above (so they are never
+        // destroyed), and here it leaks the transient render pass; both are
+        // given back here.
+        let release_shaders = || {
+            vertex_shader.reference_count.fetch_sub(1, Ordering::SeqCst);
+            fragment_shader
+                .reference_count
+                .fetch_sub(1, Ordering::SeqCst);
+        };
         let resource_layout = match self
             .fetch_graphics_pipeline_resource_layout(&vertex_shader, &fragment_shader)
         {
             Ok(layout) => layout,
             Err(_) => {
-                return Err(self.set_string_error("Failed to initialize pipeline resource layout!"))
+                release_shaders();
+                // SAFETY: the render pass made above, unused.
+                unsafe {
+                    (self.dev.destroy_render_pass)(
+                        self.logical_device,
+                        transient_render_pass,
+                        null(),
+                    )
+                };
+                return Err(self.set_string_error("Failed to initialize pipeline resource layout!"));
             }
         };
 
@@ -1307,7 +1323,10 @@ impl VulkanRenderer {
             (self.dev.destroy_render_pass)(self.logical_device, transient_render_pass, null())
         };
 
-        self.check(vulkan_result, "vkCreateGraphicsPipelines")?;
+        if let Err(e) = self.check(vulkan_result, "vkCreateGraphicsPipelines") {
+            release_shaders();
+            return Err(e);
+        }
 
         if let Some(name) = string_property(
             &createinfo.props,

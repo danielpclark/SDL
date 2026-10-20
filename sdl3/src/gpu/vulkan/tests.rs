@@ -2819,6 +2819,168 @@ fn astc_hdr_formats_need_their_extension() {
     )));
 }
 
+/// `vkCreateRenderPass`
+type PfnCreateRenderPass = unsafe extern "system" fn(
+    VkDevice,
+    *const VkRenderPassCreateInfo,
+    Alloc,
+    *mut VkRenderPass,
+) -> VkResult;
+/// `vkDestroyRenderPass`
+type PfnDestroyRenderPass = unsafe extern "system" fn(VkDevice, VkRenderPass, Alloc);
+
+/// The real `vkCreateRenderPass`/`vkDestroyRenderPass`, and the render
+/// passes made and destroyed through [`counting_create_render_pass`] and
+/// [`counting_destroy_render_pass`].
+static REAL_RENDER_PASS_FUNCTIONS: std::sync::Mutex<
+    Option<(PfnCreateRenderPass, PfnDestroyRenderPass)>,
+> = std::sync::Mutex::new(None);
+static LIVE_RENDER_PASSES: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+
+/// `vkCreateRenderPass` that counts the render passes made.
+unsafe extern "system" fn counting_create_render_pass(
+    device: VkDevice,
+    info: *const VkRenderPassCreateInfo,
+    alloc: Alloc,
+    render_pass: *mut VkRenderPass,
+) -> VkResult {
+    let (create, _) = lock(&REAL_RENDER_PASS_FUNCTIONS).unwrap();
+    // SAFETY: the caller's arguments, for the driver's function.
+    let result = unsafe { create(device, info, alloc, render_pass) };
+    if result == VK_SUCCESS {
+        LIVE_RENDER_PASSES.fetch_add(1, Ordering::SeqCst);
+    }
+    result
+}
+
+/// `vkDestroyRenderPass` that counts the render passes destroyed.
+unsafe extern "system" fn counting_destroy_render_pass(
+    device: VkDevice,
+    render_pass: VkRenderPass,
+    alloc: Alloc,
+) {
+    let (_, destroy) = lock(&REAL_RENDER_PASS_FUNCTIONS).unwrap();
+    if render_pass != VK_NULL_HANDLE {
+        LIVE_RENDER_PASSES.fetch_sub(1, Ordering::SeqCst);
+    }
+    // SAFETY: the caller's arguments, for the driver's function.
+    unsafe { destroy(device, render_pass, alloc) };
+}
+
+/// `vkCreatePipelineLayout` that always fails.
+unsafe extern "system" fn failing_create_pipeline_layout(
+    _device: VkDevice,
+    _info: *const VkPipelineLayoutCreateInfo,
+    _alloc: Alloc,
+    _layout: *mut VkPipelineLayout,
+) -> VkResult {
+    VK_ERROR_OUT_OF_DEVICE_MEMORY
+}
+
+/// `vkCreateGraphicsPipelines` that always fails.
+unsafe extern "system" fn failing_create_graphics_pipelines(
+    _device: VkDevice,
+    _cache: VkPipelineCache,
+    _count: u32,
+    _infos: *const VkGraphicsPipelineCreateInfo,
+    _alloc: Alloc,
+    _pipelines: *mut VkPipeline,
+) -> VkResult {
+    VK_ERROR_OUT_OF_DEVICE_MEMORY
+}
+
+/// A graphics pipeline that can't be made gives back its shaders and its
+/// transient render pass (upstream keeps a reference to each shader for
+/// good, and leaks the render pass when the layout fails).
+#[test]
+fn a_failed_graphics_pipeline_releases_its_shaders() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    let shader = |code: &[u32], stage, uniforms| {
+        let vulkan_shader = r
+            .create_shader_internal(&ShaderCreateInfo {
+                code: &bytes(code),
+                entrypoint: "main",
+                format: ShaderFormat::SPIRV,
+                stage,
+                num_uniform_buffers: uniforms,
+                ..Default::default()
+            })
+            .unwrap();
+        crate::gpu::Shader {
+            raw: BackendObject(vulkan_shader),
+            owner: crate::gpu::Owner::Backend,
+        }
+    };
+    let vertex = shader(test_spirv::VERTEX_INPUT_UNIFORM, ShaderStage::Vertex, 1);
+    let fragment = shader(test_spirv::FRAGMENT_SOLID, ShaderStage::Fragment, 0);
+    let color_target = [ColorTargetDescription {
+        format: TextureFormat::R8G8B8A8_UNORM,
+        blend_state: Default::default(),
+    }];
+    let createinfo = crate::gpu::GraphicsPipelineCreateInfo {
+        vertex_shader: &vertex,
+        fragment_shader: &fragment,
+        vertex_input_state: Default::default(),
+        primitive_type: PrimitiveType::TriangleList,
+        rasterizer_state: Default::default(),
+        multisample_state: Default::default(),
+        depth_stencil_state: Default::default(),
+        target_info: GraphicsPipelineTargetInfo {
+            color_target_descriptions: &color_target,
+            depth_stencil_format: TextureFormat::D16_UNORM,
+            has_depth_stencil_target: false,
+        },
+        props: None,
+    };
+    let vulkan_shaders = [
+        vertex.raw.downcast::<VulkanShader>().unwrap(),
+        fragment.raw.downcast::<VulkanShader>().unwrap(),
+    ];
+
+    let real = (
+        r.0.dev.create_render_pass,
+        r.0.dev.destroy_render_pass,
+        r.0.dev.create_pipeline_layout,
+        r.0.dev.create_graphics_pipelines,
+    );
+    *lock(&REAL_RENDER_PASS_FUNCTIONS) = Some((real.0, real.1));
+    let live = LIVE_RENDER_PASSES.load(Ordering::SeqCst);
+    r.0.dev.create_render_pass = counting_create_render_pass;
+    r.0.dev.destroy_render_pass = counting_destroy_render_pass;
+    for fail_layout in [true, false] {
+        if fail_layout {
+            r.0.dev.create_pipeline_layout = failing_create_pipeline_layout;
+        } else {
+            r.0.dev.create_graphics_pipelines = failing_create_graphics_pipelines;
+        }
+        let result = r.create_graphics_pipeline_internal(
+            &createinfo,
+            vulkan_shaders[0].clone(),
+            vulkan_shaders[1].clone(),
+        );
+        r.0.dev.create_pipeline_layout = real.2;
+        r.0.dev.create_graphics_pipelines = real.3;
+        assert!(result.is_err(), "fail_layout {fail_layout}");
+        for s in &vulkan_shaders {
+            assert_eq!(s.reference_count.load(Ordering::SeqCst), 0);
+        }
+        assert_eq!(LIVE_RENDER_PASSES.load(Ordering::SeqCst), live);
+    }
+    r.0.dev.create_render_pass = real.0;
+    r.0.dev.destroy_render_pass = real.1;
+
+    // The shaders are destroyed once released.
+    r.release_shader(&vertex.raw);
+    r.release_shader(&fragment.raw);
+    drop(vulkan_shaders);
+    r.wait_internal().unwrap();
+    assert!(lock(&r.dispose).shaders_to_destroy.is_empty());
+}
+
 /// `vkMapMemory` that always fails.
 unsafe extern "system" fn failing_map_memory(
     _device: VkDevice,
