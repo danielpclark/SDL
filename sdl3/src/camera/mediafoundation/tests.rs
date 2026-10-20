@@ -683,6 +683,162 @@ fn planar_frames_from_2d_buffers_have_their_chroma() {
     assert_eq!(frame_len_2d(PixelFormat::NV12, 640, 480), 460_800);
 }
 
+/// An `IMFMediaBuffer`'s bytes.
+type FakeMediaBuffer = Fake<IMFMediaBufferVtbl, Vec<u8>>;
+
+unsafe extern "system" fn fake_lock(
+    this: *mut c_void,
+    data: *mut *mut u8,
+    maxlen: *mut u32,
+    curlen: *mut u32,
+) -> HRESULT {
+    // SAFETY: a live fake, valid out pointers.
+    unsafe {
+        let bytes = &FakeMediaBuffer::this(this).data;
+        *data = bytes.as_ptr().cast_mut();
+        *maxlen = bytes.len() as u32;
+        *curlen = bytes.len() as u32;
+    }
+    0
+}
+
+static FAKE_MEDIA_BUFFER_VTBL: IMFMediaBufferVtbl = IMFMediaBufferVtbl {
+    base: FAKE_UNKNOWN,
+    lock: fake_lock,
+    unlock: fake_s_ok,
+};
+
+/// An `IMFSample`: its time (or GetSampleTime()'s error), its buffer,
+/// and how often the buffer was asked for.
+struct SampleData {
+    time: std::result::Result<i64, HRESULT>,
+    buffer: *mut c_void,
+    buffers_asked: Cell<u32>,
+}
+type FakeSample = Fake<IMFSampleVtbl, SampleData>;
+
+unsafe extern "system" fn fake_sample_time(this: *mut c_void, time: *mut i64) -> HRESULT {
+    // SAFETY: a live fake, a valid out pointer.
+    match unsafe { &FakeSample::this(this).data }.time {
+        Ok(t) => {
+            // SAFETY: as above.
+            unsafe { *time = t };
+            0
+        }
+        Err(hr) => hr,
+    }
+}
+
+unsafe extern "system" fn fake_contiguous_buffer(
+    this: *mut c_void,
+    out: *mut *mut c_void,
+) -> HRESULT {
+    // SAFETY: a live fake, a valid out pointer.
+    unsafe {
+        let d = &FakeSample::this(this).data;
+        d.buffers_asked.set(d.buffers_asked.get() + 1);
+        *out = d.buffer;
+    }
+    0
+}
+
+// The attribute methods a sample has (none is called).
+const E_NOTIMPL: HRESULT = 0x8000_4001_u32 as HRESULT;
+unsafe extern "system" fn no_get_uint32(_: *mut c_void, _: *const GUID, _: *mut u32) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_get_uint64(_: *mut c_void, _: *const GUID, _: *mut u64) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_get_guid(_: *mut c_void, _: *const GUID, _: *mut GUID) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_get_allocated_string(
+    _: *mut c_void,
+    _: *const GUID,
+    _: *mut *mut u16,
+    _: *mut u32,
+) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_set_uint32(_: *mut c_void, _: *const GUID, _: u32) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_set_uint64(_: *mut c_void, _: *const GUID, _: u64) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_set_guid(_: *mut c_void, _: *const GUID, _: *const GUID) -> HRESULT {
+    E_NOTIMPL
+}
+unsafe extern "system" fn no_set_string(_: *mut c_void, _: *const GUID, _: *const u16) -> HRESULT {
+    E_NOTIMPL
+}
+
+static FAKE_SAMPLE_VTBL: IMFSampleVtbl = IMFSampleVtbl {
+    attributes: IMFAttributesVtbl {
+        base: FAKE_UNKNOWN,
+        _get_item: [0; 4],
+        get_uint32: no_get_uint32,
+        get_uint64: no_get_uint64,
+        _get_double: 0,
+        get_guid: no_get_guid,
+        _get_string: [0; 2],
+        get_allocated_string: no_get_allocated_string,
+        _get_blob: [0; 7],
+        set_uint32: no_set_uint32,
+        set_uint64: no_set_uint64,
+        _set_double: 0,
+        set_guid: no_set_guid,
+        set_string: no_set_string,
+        _set_blob: [0; 7],
+    },
+    _get_sample_flags: [0; 2],
+    get_sample_time: fake_sample_time,
+    _set_sample_time: [0; 5],
+    convert_to_contiguous_buffer: fake_contiguous_buffer,
+};
+
+#[test]
+fn a_sample_without_a_time_is_no_frame() {
+    let bytes: Vec<u8> = (0..32).collect();
+    let mut buffer = FakeMediaBuffer {
+        vtbl: &FAKE_MEDIA_BUFFER_VTBL,
+        data: bytes.clone(),
+    };
+    let buffer_ptr = ptr::from_mut(&mut buffer).cast::<c_void>();
+    let sample = |time| FakeSample {
+        vtbl: &FAKE_SAMPLE_VTBL,
+        data: SampleData {
+            time,
+            buffer: buffer_ptr,
+            buffers_asked: Cell::new(0),
+        },
+    };
+
+    // A sample with a time: its frame (a plain buffer's, at the default
+    // pitch), with the time in nanoseconds.
+    let mut s = sample(Ok(333_667));
+    match frame_from_sample(s.com(), PixelFormat::YUY2, 4, 8) {
+        CameraFrameResult::Ready(frame) => {
+            assert_eq!(frame.pixels, bytes);
+            assert_eq!(frame.pitch, 8);
+            assert_eq!(frame.timestamp_ns, 33_366_700);
+        }
+        _ => panic!("the sample's frame wasn't ready"),
+    }
+    assert_eq!(s.data.buffers_asked.get(), 1);
+
+    // A failed GetSampleTime(): an error, without copying the frame
+    // (upstream delivers it anyway, with a timestamp of 0).
+    const E_FAIL: HRESULT = 0x8000_4005_u32 as HRESULT;
+    let mut s = sample(Err(E_FAIL));
+    assert!(matches!(
+        frame_from_sample(s.com(), PixelFormat::YUY2, 4, 8),
+        CameraFrameResult::Error
+    ));
+    assert_eq!(s.data.buffers_asked.get(), 0);
+}
+
 /// The libraries, started up, or `None` (with a note) where they're
 /// missing (Windows Server without the Media Foundation feature); Wine
 /// always has them.
