@@ -144,24 +144,26 @@ fn exists(path: &str) -> bool {
 
 /// Translation of `HasDesktopFile()`.
 fn has_desktop_file(app_id: &str) -> bool {
-    // FIXME (upstream): with XDG_DATA_HOME set, the second check looks in
-    // "$XDG_DATA_HOME/.local/share/applications"; without it, it repeats
-    // the "$HOME/.local/share/applications" check. Kept.
-    let mut xdg_data_home = crate::stdlib::getenv("XDG_DATA_HOME");
-    if let Some(dir) = &xdg_data_home {
+    has_desktop_file_in(
+        app_id,
+        crate::stdlib::getenv("XDG_DATA_HOME").as_deref(),
+        crate::stdlib::getenv("HOME").as_deref(),
+    )
+}
+
+/// [`has_desktop_file`] with these `XDG_DATA_HOME` and `HOME`.
+fn has_desktop_file_in(app_id: &str, xdg_data_home: Option<&str>, home: Option<&str>) -> bool {
+    // Note (upstream): with XDG_DATA_HOME set, the second check looks in
+    // "$XDG_DATA_HOME/.local/share/applications" instead of
+    // "$HOME/.local/share/applications"; without it, it repeats the first
+    // check. Here the second one is the $HOME one, either way.
+    if let Some(dir) = xdg_data_home {
         if exists(&format!("{dir}/applications/{app_id}.desktop")) {
             return true;
         }
-    } else {
-        xdg_data_home = crate::stdlib::getenv("HOME");
-        if let Some(dir) = &xdg_data_home {
-            if exists(&format!("{dir}/.local/share/applications/{app_id}.desktop")) {
-                return true;
-            }
-        }
     }
 
-    if let Some(dir) = &xdg_data_home {
+    if let Some(dir) = home {
         if exists(&format!("{dir}/.local/share/applications/{app_id}.desktop")) {
             return true;
         }
@@ -1289,6 +1291,34 @@ mod tests {
         let mut dst = [0u8; 8];
         fill_random(Some(Trickle(vec![9, 9].into_iter())), &mut dst);
         assert_ne!(dst, [9, 9, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn desktop_files() {
+        let id = format!("org.libsdl.test-desktop-file-{}", std::process::id());
+        let xdg = crate::test_support::TempDir::new("xdg-data-home");
+        let home = crate::test_support::TempDir::new("home");
+        std::fs::create_dir_all(xdg.path("applications")).unwrap();
+        std::fs::create_dir_all(home.path(".local/share/applications")).unwrap();
+        let (x, h) = (Some(xdg.0.as_str()), Some(home.0.as_str()));
+        assert!(!has_desktop_file_in(&id, x, h));
+        assert!(!has_desktop_file_in(&id, None, None));
+
+        // In $HOME/.local/share/applications, with XDG_DATA_HOME set or
+        // not (upstream looks in $XDG_DATA_HOME/.local/share/applications
+        // instead, when it's set).
+        let in_home = home.path(&format!(".local/share/applications/{id}.desktop"));
+        std::fs::write(&in_home, "").unwrap();
+        assert!(has_desktop_file_in(&id, x, h));
+        assert!(has_desktop_file_in(&id, None, h));
+        assert!(!has_desktop_file_in(&id, x, None));
+        std::fs::remove_file(&in_home).unwrap();
+
+        // In $XDG_DATA_HOME/applications.
+        std::fs::write(xdg.path(&format!("applications/{id}.desktop")), "").unwrap();
+        assert!(has_desktop_file_in(&id, x, h));
+        assert!(has_desktop_file_in(&id, x, None));
+        assert!(!has_desktop_file_in(&id, None, h));
     }
 
     #[test]
