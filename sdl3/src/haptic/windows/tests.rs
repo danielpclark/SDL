@@ -96,7 +96,8 @@ fn direction(kind: HapticDirectionType, dir: [i32; 3]) -> HapticDirection {
 #[test]
 fn effects_convert_like_upstream() {
     // (expected values from upstream's SDL_SYS_ToDIEFFECT(), run on the same
-    // effects)
+    // effects, with durations and trigger repeat intervals in microseconds
+    // and SDL_HAPTIC_INFINITY as INFINITE, as here)
     let constant = HapticEffect::Constant(HapticConstant {
         direction: direction(HapticDirectionType::Polar, [18000, 0, 0]),
         length: 5000,
@@ -111,7 +112,7 @@ fn effects_convert_like_upstream() {
     });
     assert_eq!(
         effect_string("constant", &to_dieffect(2, &HW_AXES, &constant).unwrap()),
-        "constant flags=34 dur=5000000 gain=10000 trig=50 interval=250 delay=100000 caxes=2 axes=0,4, dir=18000,0, env=10000,200000,376,0 cb=4 params=-6103"
+        "constant flags=34 dur=5000000 gain=10000 trig=50 interval=250000 delay=100000 caxes=2 axes=0,4, dir=18000,0, env=10000,200000,376,0 cb=4 params=-6103"
     );
 
     let periodic = HapticEffect::Periodic(HapticPeriodic {
@@ -126,7 +127,7 @@ fn effects_convert_like_upstream() {
     });
     assert_eq!(
         effect_string("periodic", &to_dieffect(3, &HW_AXES, &periodic).unwrap()),
-        "periodic flags=18 dur=4294966296 gain=10000 trig=4294967295 interval=0 delay=0 caxes=3 axes=0,4,20, dir=1,-1,5, env=null cb=16 params=10000,10000,9000,65535000"
+        "periodic flags=18 dur=4294967295 gain=10000 trig=4294967295 interval=0 delay=0 caxes=3 axes=0,4,20, dir=1,-1,5, env=null cb=16 params=10000,10000,9000,65535000"
     );
 
     let sine = HapticEffect::Periodic(HapticPeriodic {
@@ -193,7 +194,7 @@ fn effects_convert_like_upstream() {
     });
     assert_eq!(
         effect_string("ramp", &to_dieffect(2, &HW_AXES, &ramp).unwrap()),
-        "ramp flags=34 dur=704 gain=10000 trig=4294967295 interval=0 delay=0 caxes=2 axes=0,4, dir=0,0, env=23,2000,0,1000 cb=8 params=-10000,3767"
+        "ramp flags=34 dur=4294967294 gain=10000 trig=4294967295 interval=0 delay=0 caxes=2 axes=0,4, dir=0,0, env=23,2000,0,1000 cb=8 params=-10000,3767"
     );
 
     let custom = HapticEffect::Custom(HapticCustom {

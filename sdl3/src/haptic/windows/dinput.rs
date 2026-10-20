@@ -455,6 +455,17 @@ pub(super) fn haptic_quit() {
     }
 }
 
+/// An effect length in milliseconds as a DIEFFECT duration in
+/// microseconds: [`HAPTIC_INFINITY`] is `INFINITE`, and a length too long
+/// for the DWORD is the longest finite duration.
+pub(super) fn di_duration(length: u32) -> u32 {
+    use windows_sys::Win32::System::Threading::INFINITE;
+    if length == HAPTIC_INFINITY {
+        return INFINITE;
+    }
+    (u64::from(length) * 1000).min(u64::from(INFINITE - 1)) as u32
+}
+
 /// Converts an SDL trigger button to an DIEFFECT trigger button.
 /// Translation of `DIGetTriggerButton()`.
 pub(super) fn di_get_trigger_button(button: u16) -> u32 {
@@ -721,13 +732,15 @@ pub(super) fn to_dieffect(naxes: i32, hw_axes: &[u32; 3], src: &HapticEffect) ->
         .collect();
 
     // Generics
-    // FIXME (upstream): `length * 1000UL` wraps (unsigned long is 32 bits
-    // on Windows), so long and infinite lengths don't become DirectInput's
-    // INFINITE; and the trigger repeat interval is given in milliseconds
-    // where DirectInput wants microseconds.
-    let dw_duration = generics.length.wrapping_mul(1000); // In microseconds.
+    // Note (upstream): this is `length * 1000UL`, which wraps (unsigned
+    // long is 32 bits on Windows), so SDL_HAPTIC_INFINITY doesn't become
+    // INFINITE and lengths over 71 minutes come out short; and the trigger
+    // repeat interval is `interval`, in milliseconds where DirectInput
+    // wants microseconds. Here both are in microseconds, and the infinity
+    // is INFINITE.
+    let dw_duration = di_duration(generics.length); // In microseconds.
     let dw_trigger_button = di_get_trigger_button(generics.button);
-    let dw_trigger_repeat_interval = generics.interval as u32;
+    let dw_trigger_repeat_interval = generics.interval as u32 * 1000; // In microseconds.
     let dw_start_delay = generics.delay as u32 * 1000; // In microseconds.
 
     // Direction.
