@@ -320,6 +320,52 @@ fn opening_a_missing_device_fails_cleanly() {
     crate::init::quit_subsystem(InitFlags::CAMERA);
 }
 
+#[test]
+fn an_unplugged_camera_is_disconnected() {
+    let _l = crate::test_support::test_lock();
+    crate::hints::set(crate::hints::CAMERA_DRIVER, "v4l2").unwrap();
+    let r = crate::init::init_subsystem(InitFlags::CAMERA);
+    crate::hints::reset(crate::hints::CAMERA_DRIVER);
+    r.unwrap();
+    let path = "/dev/sdl-test-video";
+    let spec = CameraSpec {
+        format: PixelFormat::YUY2,
+        colorspace: Colorspace::BT709_LIMITED,
+        width: 640,
+        height: 480,
+        framerate_numerator: 30,
+        framerate_denominator: 1,
+    };
+    let device = add_camera(
+        "SDL Test Camera",
+        CameraPosition::Unknown,
+        &[spec],
+        Box::new(V4l2DeviceHandle {
+            bus_info: "sdl-test".to_owned(),
+            path: path.to_owned(),
+        }),
+    )
+    .unwrap();
+    let id = device.instance_id;
+    drop(device);
+    let listed = || super::super::cameras().unwrap().contains(&id);
+    assert!(listed());
+
+    // Other devices' events don't touch it.
+    camera_udev_callback(
+        UdevDeviceEvent::Removed,
+        DeviceClass::UNKNOWN,
+        "/dev/video99",
+    );
+    camera_udev_callback(UdevDeviceEvent::Added, DeviceClass::UNKNOWN, path);
+    assert!(listed());
+    // udev's removals carry no device class (which upstream filters out).
+    camera_udev_callback(UdevDeviceEvent::Removed, DeviceClass::UNKNOWN, path);
+    assert!(!listed(), "the camera was disconnected");
+
+    crate::init::quit_subsystem(InitFlags::CAMERA);
+}
+
 /// Hardware: grab frames from the first V4L2 camera (a webcam).
 #[test]
 #[ignore = "hardware: needs a camera"]
