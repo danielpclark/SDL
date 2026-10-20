@@ -655,6 +655,16 @@ pub(crate) fn ff_get_trigger_button(button: u16) -> u32 {
     dw_trigger_button
 }
 
+/// An effect length in milliseconds as an FFEFFECT duration in
+/// microseconds: [`HAPTIC_INFINITY`] is `FF_INFINITE`, and a length too
+/// long for the DWORD is the longest finite duration.
+pub(crate) fn ff_duration(length: u32) -> u32 {
+    if length == HAPTIC_INFINITY {
+        return FF_INFINITE;
+    }
+    (u64::from(length) * 1000).min(u64::from(FF_INFINITE - 1)) as u32
+}
+
 /// Sets the direction: `dwFlags` and `rglDirection` for `naxes` axes.
 /// Translation of `SDL_SYS_SetDirection()` (whose "Unknown direction type"
 /// can't happen here).
@@ -802,13 +812,14 @@ pub(crate) fn to_ffeffect(naxes: i32, hw_axes: &[u8; 3], src: &HapticEffect) -> 
         .collect();
 
     // Generics
-    // FIXME (upstream): `length * 1000` wraps (a 32-bit DWORD), so long and
-    // infinite lengths don't become FF_INFINITE; and the trigger repeat
-    // interval is given in milliseconds where ForceFeedback wants
-    // microseconds.
-    let dw_duration = generics.length.wrapping_mul(1000); // In microseconds.
+    // Note (upstream): this is `length * 1000`, which wraps in the 32-bit
+    // DWORD, so SDL_HAPTIC_INFINITY doesn't become FF_INFINITE and lengths
+    // over 71 minutes come out short; and the trigger repeat interval is
+    // `interval`, in milliseconds where ForceFeedback wants microseconds.
+    // Here both are in microseconds, and the infinity is FF_INFINITE.
+    let dw_duration = ff_duration(generics.length); // In microseconds.
     let dw_trigger_button = ff_get_trigger_button(generics.button);
-    let dw_trigger_repeat_interval = u32::from(generics.interval);
+    let dw_trigger_repeat_interval = u32::from(generics.interval) * 1000; // In microseconds.
     let dw_start_delay = u32::from(generics.delay) * 1000; // In microseconds.
 
     // Direction.
