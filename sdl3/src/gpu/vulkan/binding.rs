@@ -217,16 +217,12 @@ impl VulkanRenderer {
                 )
             };
             if result != VK_SUCCESS {
-                // FIXME (upstream): the allocation stays in the list,
+                // Note (upstream): the allocation stays in the list,
                 // without its free region (nothing is ever placed in it,
-                // and it is only freed with the device).
-                allocator.borrow_mut().add_allocation(
-                    memory_type_index,
-                    allocation_size,
-                    memory,
-                    None,
-                    false,
-                );
+                // and it is only freed with the device); here its memory
+                // is freed, as when the allocation fails.
+                // SAFETY: the memory just allocated, which nothing uses.
+                unsafe { (self.dev.free_memory)(self.logical_device, memory, null()) };
                 let _ = self.vk_error(result, "vkMapMemory");
                 return None;
             }
