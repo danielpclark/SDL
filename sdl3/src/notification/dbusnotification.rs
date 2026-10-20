@@ -593,13 +593,10 @@ fn remove_core_notification(ctx: &Context, id: NotificationID) -> Result<()> {
 
 /// The notification ID in a portal notification's ID string.
 ///
-/// FIXME (upstream): the number is read from one character past the
-/// preamble (`sizeof` counts the NUL), so its first digit is skipped. Kept.
+/// Note (upstream): the number is read from one character past the
+/// preamble (`sizeof` counts the NUL), so its first digit is skipped.
 fn parse_portal_id(s: &str) -> Option<u32> {
-    if !s.starts_with(SDL_NOTIFICATION_PREAMBLE) {
-        return None;
-    }
-    let rest = s.get(SDL_NOTIFICATION_PREAMBLE.len() + 1..).unwrap_or("");
+    let rest = s.strip_prefix(SDL_NOTIFICATION_PREAMBLE)?;
     let id = crate::stdlib::string::strtoul(rest, 10).0 as u32;
     (id != 0).then_some(id)
 }
@@ -1323,9 +1320,11 @@ mod tests {
 
     #[test]
     fn portal_ids() {
-        // (the first digit is skipped, as upstream)
-        assert_eq!(parse_portal_id("SDL_LocalNotification-1234"), Some(234));
-        assert_eq!(parse_portal_id("SDL_LocalNotification-5"), None);
+        // (upstream's skips the first digit: 234, and none for 5)
+        assert_eq!(parse_portal_id("SDL_LocalNotification-1234"), Some(1234));
+        assert_eq!(parse_portal_id("SDL_LocalNotification-5"), Some(5));
+        assert_eq!(parse_portal_id("SDL_LocalNotification-0"), None);
+        assert_eq!(parse_portal_id("SDL_LocalNotification-"), None);
         assert_eq!(parse_portal_id("Other-1234"), None);
     }
 
@@ -1593,8 +1592,8 @@ mod tests {
         };
         invoke("1");
         invoke(&session_id);
-        // (the first digit of the ID is lost, as upstream)
-        assert_eq!(wait_for_action(), [(234, "yes".to_owned())]);
+        // (upstream's loses the first digit of the ID: 234)
+        assert_eq!(wait_for_action(), [(1234, "yes".to_owned())]);
 
         super::super::remove_notification(1234).unwrap();
         assert!(test_bus::wait_for(
