@@ -1497,20 +1497,12 @@ impl XboxOneContext {
 
     /// Translation of `HIDAPI_DriverXboxOne_HandleSerialIDPacket()`.
     fn handle_serial_id_packet(&mut self, device: &DeviceCtx<'_>, data: &[u8]) {
-        let mut serial = [0u8; 29];
+        // Note (upstream): C writes each byte with SDL_uitoa(), which has no
+        // leading zero, so a byte under 0x10 gives one digit and a NUL that
+        // cuts the serial number short there; here each byte is two digits.
+        let serial: String = data[2..16].iter().map(|b| format!("{b:02x}")).collect();
 
-        for i in 0..14 {
-            // (SDL_uitoa: lowercase hex without leading zeros, then a NUL)
-            let digits = format!("{:x}", data[2 + i]);
-            serial[i * 2..i * 2 + digits.len()].copy_from_slice(digits.as_bytes());
-            serial[i * 2 + digits.len()] = 0;
-        }
-        serial[14 * 2] = 0;
-        // FIXME (upstream): a byte under 0x10 gives one digit and a NUL,
-        // which cuts the serial number short there.
-        let end = serial.iter().position(|&c| c == 0).unwrap_or(serial.len());
-
-        device.set_device_serial(std::str::from_utf8(&serial[..end]).unwrap_or(""));
+        device.set_device_serial(&serial);
     }
 
     /// Translation of `HIDAPI_DriverXboxOne_UpdateInitState()`.
