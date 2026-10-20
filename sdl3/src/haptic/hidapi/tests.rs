@@ -169,12 +169,21 @@ fn hidapi_layer() {
             "haptic {}",
             u8::from(joystick_is_haptic(&joystick))
         ));
+        let before = crate::utils::next_object_id();
         let result = open_from_joystick(&mut haptic, &joystick);
+        let after = crate::utils::next_object_id();
         lines.append(&mut wheel.take_writes());
         lines.push(format!("result {}", u8::from(result.is_ok())));
+        // (an object ID made by the open is "object", as the C harness
+        // prints it)
+        let instance = if (before + 1..after).contains(&haptic.instance_id) {
+            "object".to_owned()
+        } else {
+            haptic.instance_id.to_string()
+        };
         lines.push(format!(
             "instance {} effects {} playing {} supported {} axes {} hidapi {}",
-            haptic.instance_id,
+            instance,
             haptic.effects.len(),
             haptic.nplaying,
             haptic.supported.0,
@@ -270,7 +279,9 @@ fn wheel_through_the_front_end() {
             "write f5 00 00 00 00 00 00",
         ]
     );
-    assert_eq!(haptic.id(), 255);
+    // (its ID is an object ID, which no other haptic has)
+    let haptic_id = haptic.id();
+    assert_ne!(haptic_id, 0);
     assert_eq!(haptic.name().unwrap(), None);
     assert_eq!(haptic.max_effects().unwrap(), 16);
     assert_eq!(haptic.max_effects_playing().unwrap(), 16);
@@ -285,9 +296,9 @@ fn wheel_through_the_front_end() {
 
     // The same joystick gives the same device
     let again = Haptic::open_from_joystick(&joystick).unwrap();
-    assert_eq!(again.id(), 255);
+    assert_eq!(again.id(), haptic_id);
     drop(again);
-    assert_eq!(Haptic::from_id(255).map(|h| h.id()), Some(255));
+    assert_eq!(Haptic::from_id(haptic_id).map(|h| h.id()), Some(haptic_id));
     assert!(haptic.features().is_ok());
 
     // A constant force, played and stopped by the thread
@@ -388,7 +399,7 @@ fn wheel_through_the_front_end() {
     wheel.take_writes();
     std::thread::sleep(Duration::from_millis(20));
     assert_eq!(wheel.take_writes(), Vec::<String>::new());
-    assert!(Haptic::from_id(255).is_none());
+    assert!(Haptic::from_id(haptic_id).is_none());
 
     drop(joystick);
     drop(wheel);

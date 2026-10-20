@@ -195,10 +195,10 @@ pub(crate) fn open_from_joystick(haptic: &mut HapticData, joystick: &Joystick) -
             haptic.effects = (0..neffects).map(|_| HapticEffectSlot::default()).collect();
 
             // outside of SYS_HAPTIC
-            // FIXME (upstream): every HIDAPI haptic gets instance ID 255,
+            // Note (upstream): C gives every HIDAPI haptic instance ID 255,
             // which a platform driver's device (whose IDs come from the
-            // object ID counter) can have too.
-            haptic.instance_id = 255;
+            // object ID counter) can have too; here it's a new object ID.
+            haptic.instance_id = crate::utils::next_object_id();
 
             haptic.hwdata = Some(Box::new(device));
             return Ok(());
