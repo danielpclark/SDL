@@ -457,6 +457,9 @@ struct Global {
     // (pw_properties_new_dict()), which is never used nor freed; here
     // there's no copy.
     name: String,
+    /// What a stream's `target.object` names this node by: its
+    /// `node.name`, or else its `object.serial`.
+    target: Option<String>,
 
     proxy: *mut PwProxy,
     proxy_listener: UnsafeCell<SpaHook>,
@@ -621,6 +624,15 @@ impl Drop for LoopGuard<'_> {
     }
 }
 
+/// An SDL camera's handle: the node it is (upstream's is the global).
+struct PwCameraHandle {
+    /// The node's global id.
+    #[allow(dead_code)] // (nothing looks a camera up by its node yet)
+    id: u32,
+    /// The node's [`Global::target`].
+    target: Option<String>,
+}
+
 /// Translation of `add_device()`.
 fn add_device(g: &Global) {
     let mut d = g.data();
@@ -635,7 +647,11 @@ fn add_device(g: &Global) {
         }
     }
     if !data.is_empty() {
-        add_camera(&g.name, CameraPosition::Unknown, &data, Box::new(g.id));
+        let handle = PwCameraHandle {
+            id: g.id,
+            target: g.target.clone(),
+        };
+        add_camera(&g.name, CameraPosition::Unknown, &data, Box::new(handle));
     }
 
     d.added = true;
@@ -812,6 +828,11 @@ unsafe extern "C" fn hotplug_registry_global_callback(
         || "unnamed camera".to_owned(),
         |s| s.to_string_lossy().into_owned(),
     );
+    // SAFETY: as above.
+    let target = unsafe {
+        spa_dict_lookup(props, "node.name").or_else(|| spa_dict_lookup(props, "object.serial"))
+    }
+    .map(|s| s.to_string_lossy().into_owned());
 
     // SAFETY: the registry is live; `type_` is libpipewire's C string.
     // (the global lives in its own Box rather than the proxy's user data)
@@ -827,6 +848,7 @@ unsafe extern "C" fn hotplug_registry_global_callback(
         id,
         permissions,
         name,
+        target,
         proxy,
         proxy_listener: SpaHook::zeroed(),
         object_listener: SpaHook::zeroed(),
@@ -1405,11 +1427,6 @@ impl CameraDriverImpl for PipewireCamera {
         // unlocks it on every path here.
         let _locked = hotplug.locked();
 
-        let target = CString::new(device.name.as_str()).unwrap_or_default();
-        // FIXME (upstream): target.object is given the node's description
-        // (SDL's device name), which PipeWire doesn't match against (it
-        // wants a node name or serial), so the stream connects to the
-        // default video source rather than the chosen one.
         // SAFETY: the keys and values are NUL-terminated; the list ends
         // with NULL.
         let props = unsafe {
@@ -1420,13 +1437,27 @@ impl CameraDriverImpl for PipewireCamera {
                 c"Capture".as_ptr(),
                 PW_KEY_MEDIA_ROLE.as_ptr(),
                 c"Camera".as_ptr(),
-                PW_KEY_TARGET_OBJECT.as_ptr(),
-                target.as_ptr(),
                 ptr::null::<c_char>(),
             )
         };
         if props.is_null() {
             return Err(Error::new("Pipewire: Failed to create stream properties"));
+        }
+        // Note (upstream): target.object is the device's name, the node's
+        // description, which PipeWire doesn't look nodes up by, so every
+        // camera opens the default video source; here it's the node's name
+        // or serial, and a node without either gets the default.
+        let target = device
+            .handle
+            .downcast_ref::<PwCameraHandle>()
+            .and_then(|h| h.target.as_deref())
+            .and_then(|t| CString::new(t).ok());
+        if let Some(target) = &target {
+            // SAFETY: our new properties; the key and value are
+            // NUL-terminated (and copied).
+            unsafe {
+                (lib.pw_properties_set)(props, PW_KEY_TARGET_OBJECT.as_ptr(), target.as_ptr())
+            };
         }
 
         // SAFETY: the core is live; the stream takes the properties.

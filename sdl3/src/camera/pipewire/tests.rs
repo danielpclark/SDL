@@ -3,7 +3,7 @@
 // headers and SDL_camera_pipewire.c's collect_format() (PipeWire 1.2's
 // spa_pod_builder_add_object(), printed by a throwaway C program, scratchpad
 // camera-ref/pw_ref.c), the format table, the param lists, the ABI, and,
-// when a PipeWire server is reachable, a camera made by a stream of our own.
+// when a PipeWire server is reachable, cameras made by streams of our own.
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
@@ -315,6 +315,8 @@ fn version_parsing() {
 /// uniform gray (getting lighter).
 struct FakeCamera {
     lib: Arc<PwLib>,
+    /// The luma of every pixel of its frames.
+    luma: u8,
     thread_loop: *mut PwThreadLoop,
     context: *mut PwContext,
     core: *mut PwCore,
@@ -338,8 +340,8 @@ unsafe extern "C" fn fake_process(data: *mut c_void) {
         let d = &mut *(*(*b).buffer).datas;
         if !d.data.is_null() {
             let size = (FAKE_W * FAKE_H * 2).min(d.maxsize);
-            let n = FAKE_FRAMES.fetch_add(1, Ordering::SeqCst);
-            let y = (n % 200) as u8 + 16;
+            FAKE_FRAMES.fetch_add(1, Ordering::SeqCst);
+            let y = fake.luma;
             let pixels = std::slice::from_raw_parts_mut(d.data.cast::<u8>(), size as usize);
             for (i, b) in pixels.iter_mut().enumerate() {
                 *b = if i % 2 == 0 { y } else { 128 }; // Y0 U Y1 V: gray
@@ -369,9 +371,14 @@ static FAKE_EVENTS: PwStreamEvents = PwStreamEvents {
 };
 
 impl FakeCamera {
-    fn new(lib: &Arc<PwLib>) -> Option<Box<FakeCamera>> {
+    /// A source described as `name` (its node.name is made from it), whose
+    /// frames are a uniform gray of `luma`.
+    fn new(lib: &Arc<PwLib>, name: &str, luma: u8) -> Option<Box<FakeCamera>> {
+        let node_name = CString::new(name.to_lowercase().replace(' ', "-")).unwrap();
+        let description = CString::new(name).unwrap();
         let mut fake = Box::new(FakeCamera {
             lib: lib.clone(),
+            luma,
             thread_loop: ptr::null_mut(),
             context: ptr::null_mut(),
             core: ptr::null_mut(),
@@ -402,12 +409,12 @@ impl FakeCamera {
                 PW_KEY_MEDIA_CLASS_C.as_ptr(),
                 c"Video/Source".as_ptr(),
                 PW_KEY_NODE_NAME.as_ptr(),
-                c"sdl-fake-camera".as_ptr(),
+                node_name.as_ptr(),
                 PW_KEY_NODE_DESCRIPTION.as_ptr(),
-                c"SDL Fake Camera".as_ptr(),
+                description.as_ptr(),
                 ptr::null::<c_char>(),
             );
-            fake.stream = (lib.pw_stream_new)(fake.core, c"sdl-fake-camera".as_ptr(), props);
+            fake.stream = (lib.pw_stream_new)(fake.core, node_name.as_ptr(), props);
             if fake.stream.is_null() {
                 return None;
             }
@@ -513,22 +520,30 @@ fn a_camera_through_a_server() {
     let before = cameras().unwrap();
     eprintln!("note: PipeWire cameras before: {}", before.len());
 
-    let Some(fake) = FakeCamera::new(&lib) else {
+    // Two cameras of our own, a dark and a light one.
+    let fakes = (
+        FakeCamera::new(&lib, "SDL Fake Camera", 60),
+        FakeCamera::new(&lib, "SDL Fake Camera Two", 180),
+    );
+    let (Some(fake), Some(fake2)) = fakes else {
         crate::test_support::skip("pipewire", "couldn't make a video source");
         crate::init::quit_subsystem(InitFlags::CAMERA);
         deinit_pipewire_library(&lib);
         return;
     };
 
-    // Hotplug: it shows up, with its one spec.
-    let find = || {
+    // Hotplug: they show up, with their one spec.
+    let find = |name: &str| {
         cameras()
             .unwrap()
             .into_iter()
-            .find(|&id| camera_name(id).is_ok_and(|n| n == "SDL Fake Camera"))
+            .find(|&id| camera_name(id).is_ok_and(|n| n == name))
     };
-    assert!(wait_for(&|| find().is_some()), "the camera was added");
-    let id = find().unwrap();
+    assert!(
+        wait_for(&|| find("SDL Fake Camera").is_some() && find("SDL Fake Camera Two").is_some()),
+        "the cameras were added"
+    );
+    let id = find("SDL Fake Camera").unwrap();
     let specs = camera_supported_formats(id).unwrap();
     assert_eq!(specs.len(), 1);
     assert_eq!(
@@ -540,12 +555,35 @@ fn a_camera_through_a_server() {
         (30, 1)
     );
 
-    // Frames come through (converted to XRGB8888 here).
+    // Frames come through (converted to XRGB8888 here), each camera's
+    // from its own source (upstream's streams all went to the default
+    // source, so one of the two got the other's frames).
+    for (name, luma) in [("SDL Fake Camera", 60u8), ("SDL Fake Camera Two", 180)] {
+        let pixel = first_pixel(find(name).unwrap(), &specs[0]);
+        // A uniform YUY2 frame is a uniform gray: BT.709 limited range.
+        assert_eq!(pixel[0], pixel[1]);
+        assert_eq!(pixel[1], pixel[2]);
+        let gray = (f32::from(luma) - 16.0) * 255.0 / 219.0;
+        eprintln!("note: PipeWire camera frame pixel of {name}: {pixel:?}");
+        assert!(
+            (f32::from(pixel[0]) - gray).abs() <= 4.0,
+            "{name} gave {pixel:?}, not its own gray of {gray}"
+        );
+    }
+
+    drop((fake, fake2));
+    crate::init::quit_subsystem(InitFlags::CAMERA);
+    deinit_pipewire_library(&lib);
+}
+
+/// Open a camera for XRGB8888 frames in `spec`'s size and rate, and give
+/// back the first pixel of its first frame (of the right size and format).
+fn first_pixel(id: crate::camera::CameraID, spec: &CameraSpec) -> Vec<u8> {
     let camera = Camera::open(
         id,
         Some(&CameraSpec {
             format: PixelFormat::XRGB8888,
-            ..specs[0]
+            ..*spec
         }),
     )
     .unwrap();
@@ -568,16 +606,7 @@ fn a_camera_through_a_server() {
         (w, h, format),
         (FAKE_W as i32, FAKE_H as i32, PixelFormat::XRGB8888)
     );
-    // A uniform YUY2 frame is a uniform gray.
-    let first = first.unwrap();
-    assert_eq!(first[0], first[1]);
-    assert_eq!(first[1], first[2]);
-    eprintln!("note: PipeWire camera frame pixel: {first:?}");
-    drop(camera);
-
-    drop(fake);
-    crate::init::quit_subsystem(InitFlags::CAMERA);
-    deinit_pipewire_library(&lib);
+    first.unwrap()
 }
 
 unsafe extern "C" fn failing_stream_connect(
@@ -646,7 +675,10 @@ fn a_failed_open_leaves_the_loop_unlocked() {
         "SDL Test Camera",
         CameraPosition::Unknown,
         &[spec(PixelFormat::YUY2, 160, 120, 30, 1)],
-        Box::new(u32::MAX),
+        Box::new(PwCameraHandle {
+            id: u32::MAX,
+            target: None,
+        }),
     )
     .unwrap();
     let driver = PipewireCamera {
