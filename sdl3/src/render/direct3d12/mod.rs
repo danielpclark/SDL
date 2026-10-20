@@ -286,10 +286,13 @@ fn injected_failure(_step: &str) -> bool {
 
 /// Per-palette data. Translation of `D3D12_PaletteData`.
 struct PaletteData {
+    /// `None` once the device is lost, until the new device's is made.
     texture: Option<D3d12Resource>,
     resource_view: CpuDescriptorHandle,
     resource_state: u32,
     srv_index: Option<usize>,
+    /// The colors last uploaded, which a new device's texture is given.
+    colors: Vec<Color>,
 }
 
 /// The front end's handle of a palette: its key in the renderer.
@@ -992,6 +995,16 @@ impl D3d12Renderer {
         let ids: Vec<u32> = self.textures.keys().copied().collect();
         for id in ids {
             self.destroy_texture_data(id);
+        }
+        // Note (upstream): the palettes aren't released, so those made on a
+        // lost device are bound with the new device's textures (and their
+        // SRV slots are handed out again). Here their textures are
+        // released, and remade by recreate_palettes().
+        for palette in self.palettes.values_mut() {
+            palette.texture = None;
+            palette.resource_view = CpuDescriptorHandle::default();
+            palette.resource_state = 0;
+            palette.srv_index = None;
         }
 
         // Release/reset everything else
@@ -1811,6 +1824,7 @@ impl D3d12Renderer {
         match self
             .create_device_resources()
             .and_then(|()| self.create_window_size_dependent_resources())
+            .and_then(|()| self.recreate_palettes())
         {
             Ok(()) => recovered = true,
             Err(e) => {
@@ -1900,6 +1914,100 @@ impl D3d12Renderer {
         self.device()?
             .create_shader_resource_view(resource, desc, view);
         Ok((index, view))
+    }
+
+    /// The texture of a palette and its view (in `D3D12_CreatePalette()`),
+    /// into the palette's data.
+    fn create_palette_resources(&mut self, id: u32) -> Result<()> {
+        let device = self.device()?.clone();
+        let texture_desc = ResourceDesc {
+            width: 256,
+            height: 1,
+            mip_levels: 1,
+            depth_or_array_size: 1,
+            format: sdl_pixel_format_to_dxgi_texture_format(
+                PixelFormat::RGBA32,
+                self.output_colorspace,
+            ),
+            sample_desc: SampleDesc {
+                count: 1,
+                quality: 0,
+            },
+            dimension: D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+            flags: D3D12_RESOURCE_FLAG_NONE,
+            ..Default::default()
+        };
+
+        let heap_props = heap_properties(D3D12_HEAP_TYPE_DEFAULT);
+
+        let texture = device
+            .create_committed_resource(
+                &heap_props,
+                D3D12_HEAP_FLAG_NONE,
+                &texture_desc,
+                D3D12_RESOURCE_STATE_COPY_DEST,
+                None,
+            )
+            .map_err(|hr| hr_error("ID3D12Device::CreateCommittedResource [texture]", hr))?;
+        if let Some(palettedata) = self.palettes.get_mut(&id) {
+            palettedata.texture = Some(texture.clone());
+            palettedata.resource_state = D3D12_RESOURCE_STATE_COPY_DEST;
+        }
+
+        let resource_view_desc = texture_2d_srv_desc(
+            sdl_pixel_format_to_dxgi_main_resource_view_format(
+                PixelFormat::RGBA32,
+                self.output_colorspace,
+            ),
+            texture_desc.mip_levels as u32,
+            0,
+        );
+
+        let (index, view) = self.create_srv(&texture, &resource_view_desc)?;
+        if let Some(palettedata) = self.palettes.get_mut(&id) {
+            palettedata.srv_index = Some(index);
+            palettedata.resource_view = view;
+        }
+
+        Ok(())
+    }
+
+    /// The palettes' textures on a new device, with the colors they had
+    /// (after a device loss, see release_all()).
+    fn recreate_palettes(&mut self) -> Result<()> {
+        let ids: Vec<u32> = self.palettes.keys().copied().collect();
+        for id in ids {
+            self.create_palette_resources(id)?;
+            let colors = self.palettes[&id].colors.clone();
+            if !colors.is_empty() {
+                self.upload_palette_colors(id, &colors)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Upload colors into a palette's texture (in `D3D12_UpdatePalette()`).
+    fn upload_palette_colors(&mut self, id: u32, colors: &[Color]) -> Result<()> {
+        let palettedata = self
+            .palettes
+            .get(&id)
+            .ok_or_else(|| Error::invalid_param("palette"))?;
+        let texture = palettedata.texture.clone().ok_or_else(device_lost)?;
+        let mut state = palettedata.resource_state;
+
+        let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
+        let result = self.update_texture_internal(
+            &texture,
+            0,
+            (0, 0, colors.len() as i32, 1),
+            &bytes,
+            bytes.len() as i32,
+            &mut state,
+        );
+        if let Some(palettedata) = self.palettes.get_mut(&id) {
+            palettedata.resource_state = state;
+        }
+        result
     }
 
     /// The renderer's part of `D3D12_CreateTexture()` (from the main texture
@@ -3811,62 +3919,14 @@ impl RenderBackend for D3d12Renderer {
                 resource_view: CpuDescriptorHandle::default(),
                 resource_state: 0,
                 srv_index: None,
+                colors: Vec::new(),
             },
         );
         let palette = Box::new(PaletteRef(id));
 
         // (the palette's data stays the palette's whether or not this fails,
         // as upstream's)
-        let device = self.device()?.clone();
-
-        let texture_desc = ResourceDesc {
-            width: 256,
-            height: 1,
-            mip_levels: 1,
-            depth_or_array_size: 1,
-            format: sdl_pixel_format_to_dxgi_texture_format(
-                PixelFormat::RGBA32,
-                self.output_colorspace,
-            ),
-            sample_desc: SampleDesc {
-                count: 1,
-                quality: 0,
-            },
-            dimension: D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-            flags: D3D12_RESOURCE_FLAG_NONE,
-            ..Default::default()
-        };
-
-        let heap_props = heap_properties(D3D12_HEAP_TYPE_DEFAULT);
-
-        let texture = device
-            .create_committed_resource(
-                &heap_props,
-                D3D12_HEAP_FLAG_NONE,
-                &texture_desc,
-                D3D12_RESOURCE_STATE_COPY_DEST,
-                None,
-            )
-            .map_err(|hr| hr_error("ID3D12Device::CreateCommittedResource [texture]", hr))?;
-        if let Some(palettedata) = self.palettes.get_mut(&id) {
-            palettedata.texture = Some(texture.clone());
-            palettedata.resource_state = D3D12_RESOURCE_STATE_COPY_DEST;
-        }
-
-        let resource_view_desc = texture_2d_srv_desc(
-            sdl_pixel_format_to_dxgi_main_resource_view_format(
-                PixelFormat::RGBA32,
-                self.output_colorspace,
-            ),
-            texture_desc.mip_levels as u32,
-            0,
-        );
-
-        let (index, view) = self.create_srv(&texture, &resource_view_desc)?;
-        if let Some(palettedata) = self.palettes.get_mut(&id) {
-            palettedata.srv_index = Some(index);
-            palettedata.resource_view = view;
-        }
+        self.create_palette_resources(id)?;
 
         Ok(palette)
     }
@@ -3879,24 +3939,10 @@ impl RenderBackend for D3d12Renderer {
             .ok_or_else(|| Error::invalid_param("palette"))?;
         let palettedata = self
             .palettes
-            .get(&id)
+            .get_mut(&id)
             .ok_or_else(|| Error::invalid_param("palette"))?;
-        let texture = palettedata.texture.clone().ok_or_else(device_lost)?;
-        let mut state = palettedata.resource_state;
-
-        let bytes: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
-        let result = self.update_texture_internal(
-            &texture,
-            0,
-            (0, 0, colors.len() as i32, 1),
-            &bytes,
-            bytes.len() as i32,
-            &mut state,
-        );
-        if let Some(palettedata) = self.palettes.get_mut(&id) {
-            palettedata.resource_state = state;
-        }
-        result
+        palettedata.colors = colors.to_vec();
+        self.upload_palette_colors(id, colors)
     }
 
     /// Translation of `D3D12_DestroyPalette()`.

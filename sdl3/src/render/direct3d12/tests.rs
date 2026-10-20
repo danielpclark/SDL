@@ -1599,6 +1599,108 @@ fn d3d12_palette_outlives_its_draws() {
     sw.destroy_texture(ts);
 }
 
+/// The 256 colors of a palette's texture, read back.
+fn read_palette(data: &mut D3d12Renderer, id: u32) -> Vec<u8> {
+    let palette = &data.palettes[&id];
+    let texture = palette.texture.clone().unwrap();
+    let state = palette.resource_state;
+    let device = data.device().unwrap().clone();
+    let desc = texture.desc();
+    let (_, _, _, size) = device.copyable_footprints(&desc, 0, 0);
+    let readback = device
+        .create_committed_resource(
+            &heap_properties(D3D12_HEAP_TYPE_READBACK),
+            D3D12_HEAP_FLAG_NONE,
+            &buffer_desc(size),
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            None,
+        )
+        .unwrap();
+    // (the test's reference to the device goes before the renderer, which
+    // unloads d3d12.dll)
+    drop(device);
+    let footprint = PlacedSubresourceFootprint {
+        offset: 0,
+        footprint: SubresourceFootprint {
+            format: desc.format,
+            width: 256,
+            height: 1,
+            depth: 1,
+            row_pitch: 256 * 4,
+        },
+    };
+    data.transition_resource(&texture, state, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    data.command_list.as_ref().unwrap().copy_texture_region(
+        &footprint_location(&readback, footprint),
+        0,
+        0,
+        0,
+        &subresource_location(&texture, 0),
+        None,
+    );
+    data.transition_resource(&texture, D3D12_RESOURCE_STATE_COPY_SOURCE, state);
+    data.issue_batch().unwrap();
+    let pixels = readback.map().unwrap();
+    // SAFETY: the mapped readback buffer holds at least the row.
+    let bytes = unsafe { std::slice::from_raw_parts(pixels, 256 * 4) }.to_vec();
+    readback.unmap();
+    bytes
+}
+
+/// After a device loss, the palettes have textures of the new device, with
+/// their colors, and SRV slots of its pool (upstream keeps the lost
+/// device's textures, and slots the new pool hands out again).
+#[test]
+fn d3d12_palettes_survive_a_device_loss() {
+    let _l = crate::test_support::test_lock();
+    let Some(_video) = Video::init() else {
+        return;
+    };
+    let Some((window, r)) = d3d12_renderer(W, H) else {
+        return;
+    };
+    drop(r);
+    let mut data = match D3d12Renderer::for_window(window, Colorspace::SRGB) {
+        Ok(data) => data,
+        Err(e) => panic!("no Direct3D 12 renderer ({})", e.message()),
+    };
+    let colors: Vec<Color> = (0..16u8)
+        .map(|i| Color::new(i * 16, 255 - i * 8, i * 3, 255 - i))
+        .collect();
+    let mut palette = data.create_palette().unwrap();
+    data.update_palette(palette.as_mut(), &colors).unwrap();
+    let unused = data.create_palette().unwrap();
+    data.issue_batch().unwrap();
+    assert!(data.handle_device_lost());
+    let _ = get_events(EventType::FIRST, EventType::LAST, 100); // (the reset)
+
+    let id = palette.downcast_ref::<PaletteRef>().unwrap().0;
+    let expected: Vec<u8> = colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect();
+    assert_eq!(
+        &read_palette(&mut data, id)[..expected.len()],
+        &expected[..]
+    );
+    // (each palette has its own slot of the new pool, which the pool
+    // doesn't hand out again)
+    let mut slots: Vec<usize> = data
+        .palettes
+        .values()
+        .map(|p| p.srv_index.unwrap())
+        .collect();
+    slots.sort();
+    slots.dedup();
+    assert_eq!(slots.len(), 2);
+    let next = data.get_available_srv_index().unwrap();
+    assert!(!slots.contains(&next));
+    data.free_srv_index(next);
+
+    data.destroy_palette(unused);
+    data.destroy_palette(palette);
+    data.destroy();
+    drop(data);
+    window.destroy();
+}
+
 #[test]
 fn d3d12_matches_software_for_targets() {
     let _l = crate::test_support::test_lock();
