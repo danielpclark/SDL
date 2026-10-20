@@ -860,7 +860,12 @@ pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> 
 
         if let Some(first) = tmp.first_mut() {
             if first.manufacturer_string.is_none() {
-                if let Some(manufacturer_string) = hwdb_vendor(syms, &udev, vendor_id) {
+                // Note (upstream): the modalias is built from the vendor_id
+                // argument of hid_enumerate() (0 when enumerating all
+                // devices), not from the device's own vendor ID, so the
+                // database names the wrong vendor or none. Here it's the
+                // device's.
+                if let Some(manufacturer_string) = hwdb_vendor(syms, &udev, first.vendor_id) {
                     first.manufacturer_string = utf8_to_wchar_t(Some(&manufacturer_string));
                 }
             }
@@ -887,9 +892,6 @@ fn hwdb_vendor(syms: &UdevSymbols, udev: &Udev<'_>, vendor_id: u16) -> Option<Ve
     };
     const KEY: &[u8] = b"ID_VENDOR_FROM_DATABASE";
 
-    // FIXME (upstream): the modalias is built from the vendor_id argument of
-    // hid_enumerate() (0 when enumerating all devices), not from the
-    // device's own vendor ID.
     let modalias = CString::new(format!("usb:v{vendor_id:04X}*")).expect("no NUL");
     let mut result = None;
     // SAFETY: the context is live; the hwdb and its list entries are used
