@@ -672,8 +672,35 @@ fn create_instance(
     if vulkan_result != VK_SUCCESS {
         return Err(vulkan_error(debug_mode, vulkan_result, "vkCreateInstance"));
     }
+    count_instance(1);
 
     Ok((instance, support))
+}
+
+/// The instances made and not destroyed yet, which the tests check.
+#[cfg(test)]
+pub(super) static LIVE_INSTANCES: std::sync::atomic::AtomicIsize =
+    std::sync::atomic::AtomicIsize::new(0);
+
+/// Count an instance made (1) or destroyed (-1), for the tests.
+fn count_instance(delta: isize) {
+    #[cfg(test)]
+    LIVE_INSTANCES.fetch_add(delta, std::sync::atomic::Ordering::SeqCst);
+    let _ = delta;
+}
+
+/// Destroy an instance with nothing made from it left.
+///
+/// # Safety
+///
+/// `destroy` is the instance's `vkDestroyInstance`.
+unsafe fn destroy_instance(
+    destroy: unsafe extern "system" fn(VkInstance, Alloc),
+    instance: VkInstance,
+) {
+    // SAFETY: the caller's instance and its function.
+    unsafe { destroy(instance, null()) };
+    count_instance(-1);
 }
 
 /// The VkPhysicalDeviceType priorities (`DEVICE_PRIORITY_HIGHPERFORMANCE`).
@@ -1594,7 +1621,21 @@ fn prepare_vulkan(
     let inst = match unsafe { InstanceFunctions::load(lookup) } {
         Ok(inst) => inst,
         Err(name) => {
-            // FIXME (upstream): the instance leaks when a later step fails.
+            // Note (upstream): the instance leaks when a later step fails;
+            // here it's destroyed (with its vkDestroyInstance, if that's
+            // found).
+            if let Some(destroy) = lookup(c"vkDestroyInstance") {
+                // SAFETY: vkGetInstanceProcAddr's vkDestroyInstance.
+                unsafe {
+                    destroy_instance(
+                        std::mem::transmute::<
+                            PfnVkVoidFunction,
+                            unsafe extern "system" fn(VkInstance, Alloc),
+                        >(destroy),
+                        instance,
+                    )
+                };
+            }
             return Err(Error::new(format!(
                 "vkGetInstanceProcAddr(instance, \"{name}\") failed"
             )));
@@ -1626,7 +1667,9 @@ fn prepare_vulkan(
             Category::Gpu,
             "Vulkan: Failed to determine a suitable physical device"
         );
-        // FIXME (upstream): the instance leaks.
+        // Note (upstream): the instance leaks; here it's destroyed.
+        // SAFETY: the instance just created, with nothing made from it.
+        unsafe { destroy_instance(prepared.inst.destroy_instance, prepared.instance) };
         return Err(Error::new("Failed to determine a suitable physical device"));
     }
     Ok((prepared, features))
@@ -1664,7 +1707,7 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
     let result = match prepare_vulkan(debug_mode, prefer_low_power, props) {
         Ok((prepared, _)) => {
             // SAFETY: the instance just created, with nothing made from it.
-            unsafe { (prepared.inst.destroy_instance)(prepared.instance, null()) };
+            unsafe { destroy_instance(prepared.inst.destroy_instance, prepared.instance) };
             true
         }
         Err(_) => false,
@@ -1794,7 +1837,9 @@ pub(super) fn create_device(
     ) = match prepared.create_logical_device(&mut features) {
         Ok(device) => device,
         Err(_) => {
-            // FIXME (upstream): the instance leaks.
+            // Note (upstream): the instance leaks; here it's destroyed.
+            // SAFETY: the instance, with nothing made from it left.
+            unsafe { destroy_instance(prepared.inst.destroy_instance, prepared.instance) };
             let e = set_string_error(debug_mode, "Failed to create logical device!");
             crate::video::vulkan::vulkan_unload_library();
             return Err(e);
@@ -1963,7 +2008,7 @@ impl VulkanRenderer {
         // SAFETY: the device, with nothing of it left in use.
         unsafe { (self.dev.destroy_device)(self.logical_device, null()) };
         // SAFETY: the instance, with nothing of it left.
-        unsafe { (self.inst.destroy_instance)(self.instance, null()) };
+        unsafe { destroy_instance(self.inst.destroy_instance, self.instance) };
 
         crate::video::vulkan::vulkan_unload_library();
     }

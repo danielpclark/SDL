@@ -2725,6 +2725,40 @@ fn devices_release_the_loader() {
     assert_eq!(loaded(), before);
 }
 
+/// A device that can't be made destroys its instance (upstream's leaks):
+/// here none of the machine's devices has the hardware acceleration asked
+/// for if it's a CPU one (lavapipe), and every instance made is destroyed
+/// either way.
+#[test]
+fn failed_devices_destroy_their_instance() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let live = || device::LIVE_INSTANCES.load(Ordering::SeqCst);
+    let before = live();
+    let props = Properties::new();
+    props
+        .set(PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true)
+        .unwrap();
+    props
+        .set(
+            crate::gpu::PROP_GPU_DEVICE_CREATE_VULKAN_REQUIRE_HARDWARE_ACCELERATION_BOOLEAN,
+            true,
+        )
+        .unwrap();
+    let video = crate::video::core::driver().unwrap();
+    let prepared = device::prepare_driver(&*video, &props);
+    assert_eq!(live(), before);
+    if prepared {
+        // (a hardware device: it's made, and its instance goes with it)
+        let mut renderer = device::create_device(false, false, &props).unwrap();
+        assert_eq!(live(), before + 1);
+        renderer.destroy_device();
+    } else {
+        assert!(device::create_device(false, false, &props).is_err());
+    }
+    assert_eq!(live(), before);
+}
+
 /// `vkMapMemory` that always fails.
 unsafe extern "system" fn failing_map_memory(
     _device: VkDevice,
