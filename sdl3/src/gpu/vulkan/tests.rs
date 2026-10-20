@@ -2759,6 +2759,66 @@ fn failed_devices_destroy_their_instance() {
     assert_eq!(live(), before);
 }
 
+/// The formats `vkGetPhysicalDeviceImageFormatProperties` was asked about
+/// through [`recording_image_format_properties`].
+static QUERIED_FORMATS: std::sync::Mutex<Vec<VkFormat>> = std::sync::Mutex::new(Vec::new());
+
+/// `vkGetPhysicalDeviceImageFormatProperties` that records the format and
+/// supports nothing.
+unsafe extern "system" fn recording_image_format_properties(
+    _physical_device: VkPhysicalDevice,
+    format: VkFormat,
+    _ty: i32,
+    _tiling: i32,
+    _usage: VkImageUsageFlags,
+    _flags: VkFlags,
+    _properties: *mut VkImageFormatProperties,
+) -> VkResult {
+    lock(&QUERIED_FORMATS).push(format);
+    -11 // VK_ERROR_FORMAT_NOT_SUPPORTED
+}
+
+/// The ASTC HDR formats are queried only with their extension (upstream
+/// queries them without it, an invalid format there).
+#[test]
+fn astc_hdr_formats_need_their_extension() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    assert!(is_astc_hdr_format(TextureFormat::ASTC_4x4_FLOAT));
+    assert!(is_astc_hdr_format(TextureFormat::ASTC_12x12_FLOAT));
+    assert!(!is_astc_hdr_format(TextureFormat::ASTC_12x12_UNORM_SRGB));
+    assert!(!is_astc_hdr_format(TextureFormat(105)));
+
+    let real = r.0.inst.get_physical_device_image_format_properties;
+    r.0.inst.get_physical_device_image_format_properties = recording_image_format_properties;
+    lock(&QUERIED_FORMATS).clear();
+    for i in TextureFormat::ASTC_12x12_UNORM_SRGB.0..=TextureFormat::ASTC_12x12_FLOAT.0 {
+        r.supports_texture_format_internal(
+            TextureFormat(i),
+            TextureType::Texture2D,
+            TextureUsageFlags::SAMPLER,
+        );
+    }
+    r.0.inst.get_physical_device_image_format_properties = real;
+    let queried = std::mem::take(&mut *lock(&QUERIED_FORMATS));
+    let hdr = (1000066000..=1000066013)
+        .filter(|f| queried.contains(f))
+        .count();
+    let expected = if r.supports.ext_texture_compression_astc_hdr {
+        14
+    } else {
+        0
+    };
+    assert_eq!(hdr, expected, "{queried:?}");
+    // (the LDR one is queried either way)
+    assert!(queried.contains(&sdl_to_vk_texture_format(
+        TextureFormat::ASTC_12x12_UNORM_SRGB
+    )));
+}
+
 /// `vkMapMemory` that always fails.
 unsafe extern "system" fn failing_map_memory(
     _device: VkDevice,

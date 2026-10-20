@@ -144,6 +144,12 @@ fn vulkan_error(debug_mode: bool, res: VkResult, func: &str) -> Error {
     Error::new(message)
 }
 
+/// Whether a format is one of the ASTC HDR (`*_FLOAT`) formats, which
+/// need `VK_EXT_texture_compression_astc_hdr`.
+fn is_astc_hdr_format(format: TextureFormat) -> bool {
+    (TextureFormat::ASTC_4x4_FLOAT.0..=TextureFormat::ASTC_12x12_FLOAT.0).contains(&format.0)
+}
+
 /// The Vulkan device. Translation of `VulkanRenderer`.
 ///
 /// Upstream's locks guard the same state here: `allocatorLock` is the
@@ -280,15 +286,20 @@ impl VulkanRenderer {
     /// Whether a texture format can be made with a type and usage.
     /// Translation of `VULKAN_SupportsTextureFormat()`.
     ///
-    /// FIXME (upstream): the ASTC HDR (`*_FLOAT`) formats are queried even
+    /// Note (upstream): C queries the ASTC HDR (`*_FLOAT`) formats even
     /// when `VK_EXT_texture_compression_astc_hdr` isn't enabled, which the
-    /// validation layers report as an invalid format.
+    /// validation layers report as an invalid format; here they're not
+    /// supported without it.
     fn supports_texture_format_internal(
         &self,
         format: TextureFormat,
         texture_type: TextureType,
         usage: TextureUsageFlags,
     ) -> bool {
+        if is_astc_hdr_format(format) && !self.supports.ext_texture_compression_astc_hdr {
+            return false;
+        }
+
         let vulkan_format = sdl_to_vk_texture_format(format);
         let mut vulkan_usage = 0;
         let mut create_flags = 0;
