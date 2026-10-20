@@ -404,17 +404,19 @@ fn reports_past_their_tables() {
     });
     assert_eq!(events.last().unwrap(), "axis 3 24576");
 
-    // A flight stick's extra buttons past the eighth are never down
+    // A flight stick's extra buttons past the eighth are the bits of the
+    // next byte
     attachment.extra_buttons = 10;
     attachment.extra_button_idx = 20;
     let mut bytes = padded(&[0xff; 19]);
     bytes[2] = 0;
+    bytes[4] = 0x02;
     let (_, events, _) = run_io(&device, &port, |io| {
         attachment.handle_flight_stick_report(io, 0, &bytes, 19)
     });
-    assert_eq!(events[..10].iter().filter(|e| e.ends_with(" 1")).count(), 8);
+    assert_eq!(events[..8].iter().filter(|e| e.ends_with(" 1")).count(), 8);
     assert_eq!(events[8], "button 28 0");
-    assert_eq!(events[9], "button 29 0");
+    assert_eq!(events[9], "button 29 1");
 
     // A reassembled input report longer than the saved input
     attachment.attachment_type = AttachmentType::Gamepad;
