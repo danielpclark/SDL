@@ -372,7 +372,9 @@ impl Drop for TrayClassCleanup {
         // NUL-terminated.
         unsafe {
             let mut wcex: WNDCLASSEXW = std::mem::zeroed();
-            // FIXME (upstream): wcex.cbSize isn't set for GetClassInfoEx().
+            // Note (upstream): wcex.cbSize isn't set for GetClassInfoEx(),
+            // which may then fail and leave the class registered.
+            wcex.cbSize = size_of::<WNDCLASSEXW>() as u32;
             let h = GetModuleHandleW(std::ptr::null());
             if GetClassInfoExW(h, self.0.as_ptr(), &mut wcex) != 0 {
                 UnregisterClassW(self.0.as_ptr(), h);
@@ -909,6 +911,31 @@ mod tests {
         GetMenuItemCount, GetMenuStringW, GetSubMenu, IsWindow, IsWindowVisible, SendMessageW,
         MFS_DISABLED,
     };
+
+    #[test]
+    fn class_cleanup_unregisters_the_class() {
+        let name = utf8_to_wide("SDLTrayCleanupTest");
+        let registered = || {
+            // SAFETY: WNDCLASSEXW is plain data; the name is NUL-terminated.
+            unsafe {
+                let mut wcex: WNDCLASSEXW = std::mem::zeroed();
+                wcex.cbSize = size_of::<WNDCLASSEXW>() as u32;
+                GetClassInfoExW(GetModuleHandleW(std::ptr::null()), name.as_ptr(), &mut wcex) != 0
+            }
+        };
+        // (registered as register_tray_class() does)
+        // SAFETY: as above; the system copies the name.
+        unsafe {
+            let mut wcex: WNDCLASSEXW = std::mem::zeroed();
+            wcex.cbSize = size_of::<WNDCLASSEXW>() as u32;
+            wcex.lpszClassName = name.as_ptr();
+            wcex.lpfnWndProc = Some(tray_window_proc);
+            assert_ne!(RegisterClassExW(&wcex), 0);
+        }
+        assert!(registered());
+        drop(TrayClassCleanup(name.clone()));
+        assert!(!registered(), "the cleanup unregisters the class");
+    }
 
     /// A tray made off the main thread (as the tests run).
     fn test_tray(options: TrayOptions<'_>) -> Tray {
