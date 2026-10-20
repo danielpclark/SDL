@@ -83,27 +83,26 @@ fn with_state<R>(f: impl FnOnce(&mut State) -> R) -> R {
 /// Translation of `GetRandom()`.
 fn get_random(dst: &mut [u8]) {
     let file = std::fs::File::open("/dev/urandom").or_else(|_| std::fs::File::open("/dev/random"));
-    match file {
-        Ok(mut f) => {
-            // FIXME (upstream): this retries forever if the device can't
-            // give the full amount.
-            loop {
-                if let Ok(n) = f.read(dst) {
-                    if n == dst.len() {
-                        break;
-                    }
-                }
-            }
+    fill_random(file.ok(), dst);
+}
+
+/// [`get_random`] from `source` (the random device, if it opened).
+fn fill_random(source: Option<impl Read>, dst: &mut [u8]) {
+    if let Some(mut f) = source {
+        // Note (upstream): the read is retried until a single one gives the
+        // full amount, so it never ends if the device gives less (or
+        // nothing). Here the short reads add up, and a device that fails
+        // or ends falls back to the ticks.
+        if f.read_exact(dst).is_ok() {
+            return;
         }
-        Err(_) => {
-            let mut written = 0;
-            while written < dst.len() {
-                let tval = crate::timer::ticks_ns().to_ne_bytes();
-                let towrite = (dst.len() - written).min(tval.len());
-                dst[written..written + towrite].copy_from_slice(&tval[..towrite]);
-                written += towrite;
-            }
-        }
+    }
+    let mut written = 0;
+    while written < dst.len() {
+        let tval = crate::timer::ticks_ns().to_ne_bytes();
+        let towrite = (dst.len() - written).min(tval.len());
+        dst[written..written + towrite].copy_from_slice(&tval[..towrite]);
+        written += towrite;
     }
 }
 
@@ -1258,6 +1257,38 @@ mod tests {
         let mut signal = conn.new_signal(path, interface, name).unwrap();
         fill(&mut signal.writer());
         assert!(conn.send(&signal));
+    }
+
+    /// A random device that gives at most three bytes a read.
+    struct Trickle(std::vec::IntoIter<u8>);
+
+    impl Read for Trickle {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let mut n = 0;
+            for b in buf.iter_mut().take(3) {
+                let Some(v) = self.0.next() else { break };
+                *b = v;
+                n += 1;
+            }
+            Ok(n)
+        }
+    }
+
+    #[test]
+    fn random_bytes_from_short_reads() {
+        // (upstream's never ends: no single read gives the eight bytes)
+        let mut dst = [0u8; 8];
+        fill_random(
+            Some(Trickle((1..=20).collect::<Vec<_>>().into_iter())),
+            &mut dst,
+        );
+        assert_eq!(dst, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+        // A device that ends early: the ticks fill it, as when there's no
+        // device.
+        let mut dst = [0u8; 8];
+        fill_random(Some(Trickle(vec![9, 9].into_iter())), &mut dst);
+        assert_ne!(dst, [9, 9, 0, 0, 0, 0, 0, 0]);
     }
 
     #[test]
