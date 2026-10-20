@@ -3520,6 +3520,71 @@ mod with_command_buffers {
         device.wait_for_idle().unwrap();
     }
 
+    /// A 3D texture's slices come back where they belong, through the
+    /// temporary buffer of a download that needs realigning (upstream reads
+    /// the slices past the first from the wrong place).
+    #[test]
+    fn download_a_3d_texture() {
+        let _l = crate::test_support::test_lock();
+        let _v = Video::init();
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        let (w, h, d) = (4u32, 4u32, 3u32);
+        let texture = device
+            .create_texture(&TextureCreateInfo {
+                width: w,
+                height: h,
+                ..texture_info(
+                    TextureType::Texture3D,
+                    TextureFormat::R8G8B8A8_UNORM,
+                    TextureUsageFlags::SAMPLER,
+                    d,
+                    1,
+                )
+            })
+            .unwrap();
+        let size = w * h * d * 4;
+        let pattern: Vec<u8> = (0..size).map(|i| (i * 7 % 251) as u8).collect();
+        let upload = upload_buffer(&device, &pattern);
+        // (16-byte rows, and an unaligned offset: the temporary buffer
+        // unless the device copies any pitch)
+        let mut download = download_buffer(&device, 4 + size);
+        let whole = TextureRegion {
+            d,
+            ..region(&texture, 0, w, h)
+        };
+        let mut cb = device.acquire_command_buffer().unwrap();
+        {
+            let mut copy = cb.begin_copy_pass().unwrap();
+            copy.upload_to_texture(
+                &TextureTransferInfo {
+                    transfer_buffer: &upload,
+                    offset: 0,
+                    pixels_per_row: w,
+                    rows_per_layer: h,
+                },
+                &whole,
+                false,
+            );
+            copy.download_from_texture(
+                &whole,
+                &TextureTransferInfo {
+                    transfer_buffer: &download,
+                    offset: 4,
+                    pixels_per_row: w,
+                    rows_per_layer: h,
+                },
+            );
+        }
+        submit_and_wait(&device, cb);
+        assert_eq!(&read_back(&mut download)[4..], &pattern[..]);
+        drop(upload);
+        drop(download);
+        drop(texture);
+        device.wait_for_idle().unwrap();
+    }
+
     #[test]
     fn draw_triangles_with_a_vertex_buffer_and_uniforms() {
         let _l = crate::test_support::test_lock();

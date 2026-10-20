@@ -1027,10 +1027,10 @@ impl D3D12Renderer {
     /// Copy a download's temporary buffer into its transfer buffer at the
     /// pitches asked for. Translation of `D3D12_INTERNAL_CopyTextureDownload()`.
     ///
-    /// FIXME (upstream): a depth slice starts `sliceIndex * height` bytes
+    /// Note (upstream): C starts a depth slice `sliceIndex * height` bytes
     /// into the temporary buffer, not `sliceIndex * height *
     /// alignedBytesPerRow`, so the slices of a 3D download past the first
-    /// are read from the wrong place.
+    /// are read from the wrong place; here they start at their footprint's.
     ///
     /// Note (upstream): C copies past the ends of the buffers when the
     /// download doesn't fit; the rows that don't fit are skipped here.
@@ -1055,7 +1055,9 @@ impl D3D12Renderer {
                 let dst = download.buffer_offset as usize
                     + (slice_index * download.bytes_per_depth_slice as usize)
                     + (row_index * download.bytes_per_row as usize);
-                let src = (slice_index * download.height as usize)
+                let src = (slice_index
+                    * download.height as usize
+                    * download.aligned_bytes_per_row as usize)
                     + (row_index * download.aligned_bytes_per_row as usize);
                 let len = download.bytes_per_row as usize;
                 if dst + len > dest_size || src + len > source_size {
