@@ -21,10 +21,21 @@ use std::sync::Mutex;
 
 use super::{HapticData, HapticDriver, HapticEffect, HapticID};
 use crate::core::windows::directx::{
-    Effect, InputDevice, DI8DEVCLASS_POINTER, DIDC_FORCEFEEDBACK, DIDEVCAPS, DIDEVICEINSTANCEW,
+    get_didevice_type, Effect, InputDevice, DI8DEVTYPE_MOUSE, DIDC_FORCEFEEDBACK, DIDEVCAPS,
+    DIDEVICEINSTANCEW,
 };
 use crate::error::{Error, Result};
 use crate::joystick::Joystick;
+
+/// Whether a device is a mouse, by its type.
+///
+/// Note (upstream): SDL_SYS_HapticMouse() compares the whole `dwDevType`
+/// (the device type, its subtype and flags) with `DI8DEVCLASS_POINTER`, a
+/// device class, so it never finds a mouse and SDL_OpenHapticFromMouse()
+/// always fails. Here the device type is compared with `DI8DEVTYPE_MOUSE`.
+fn is_mouse(capabilities: &DIDEVCAPS) -> bool {
+    get_didevice_type(capabilities.dwDevType) == DI8DEVTYPE_MOUSE
+}
 
 /// Haptic system hardware data. Translation of `struct haptic_hwdata`.
 struct HapticHwData {
@@ -167,13 +178,7 @@ impl HapticDriver for WindowsHapticDriver {
     /// Translation of `SDL_SYS_HapticMouse()`.
     fn mouse(&self) -> Option<usize> {
         // Grab the first mouse haptic device we find.
-        // FIXME (upstream): this compares the device type (DI8DEVTYPE_MOUSE
-        // and its subtype) with a device class (DI8DEVCLASS_POINTER), so it
-        // never finds one.
-        with_list(|l| {
-            l.iter()
-                .position(|item| item.capabilities.dwDevType == DI8DEVCLASS_POINTER)
-        })
+        with_list(|l| l.iter().position(|item| is_mouse(&item.capabilities)))
     }
 
     /// Checks to see if a joystick has haptic features.
