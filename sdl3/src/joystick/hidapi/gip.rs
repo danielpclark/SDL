@@ -803,9 +803,9 @@ fn parse_device_metadata(metadata: &mut Metadata, bytes: &[u8], offset: &mut usi
                 return false;
             }
 
-            // FIXME (upstream): the length's high byte is never read (the
-            // low byte is or-ed in twice), so it's the low byte alone.
-            let count = usize::from(bytes[buffer_offset]);
+            // Note (upstream): C ors in the length's low byte twice and
+            // never reads its high byte; here the length is all 16 bits.
+            let count = usize::from(le16(bytes, buffer_offset));
             buffer_offset += 2;
             if buffer_offset + count > length {
                 return false;
