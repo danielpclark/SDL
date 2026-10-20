@@ -1018,17 +1018,20 @@ unsafe fn resolve<T: Copy>(name: &std::ffi::CStr) -> Result<T> {
 fn reg_set_string(app_reg_key: &[u16], name: &str, value: &[u16]) -> HRESULT {
     let name = utf8_to_wide(name);
     let len = value.iter().position(|&c| c == 0).unwrap_or(value.len());
-    // FIXME (upstream): the size of a REG_SZ should count its terminating
-    // NUL.
-    // SAFETY: the key and name are NUL-terminated; value holds len characters.
+    // Note (upstream): the size given is the string's without its
+    // terminating NUL, which a REG_SZ's size should count, so the value is
+    // stored unterminated.
+    let mut data = value[..len].to_vec();
+    data.push(0);
+    // SAFETY: the key and name are NUL-terminated; data holds its length.
     hresult_from_win32(unsafe {
         RegSetKeyValueW(
             HKEY_CURRENT_USER,
             app_reg_key.as_ptr(),
             name.as_ptr(),
             REG_SZ,
-            value.as_ptr().cast(),
-            (len * 2) as u32,
+            data.as_ptr().cast(),
+            (data.len() * 2) as u32,
         )
     })
 }
@@ -1688,6 +1691,46 @@ mod tests {
         assert!(!exists(&png));
         // (upstream leaves GetTempFileNameW()'s file behind)
         assert!(!exists(&temp));
+    }
+
+    #[test]
+    fn registry_strings_are_terminated() {
+        use windows_sys::Win32::System::Registry::{
+            RegCloseKey, RegDeleteKeyW, RegOpenKeyExW, RegQueryValueExW, HKEY, KEY_READ,
+        };
+        let key = utf8_to_wide(&format!(
+            "Software\\SDL3-rs-test-reg-sz-{}",
+            std::process::id()
+        ));
+        assert_eq!(reg_set_string(&key, "Name", &utf8_to_wide("abc")), S_OK);
+        let mut hkey: HKEY = std::ptr::null_mut();
+        let mut kind = 0;
+        let mut data = [0u8; 16];
+        let mut size = data.len() as u32;
+        let name = utf8_to_wide("Name");
+        // SAFETY: the strings are NUL-terminated; the buffers hold their
+        // sizes.
+        unsafe {
+            assert_eq!(
+                RegOpenKeyExW(HKEY_CURRENT_USER, key.as_ptr(), 0, KEY_READ, &mut hkey),
+                0
+            );
+            let rc = RegQueryValueExW(
+                hkey,
+                name.as_ptr(),
+                std::ptr::null(),
+                &mut kind,
+                data.as_mut_ptr(),
+                &mut size,
+            );
+            RegCloseKey(hkey);
+            RegDeleteKeyW(HKEY_CURRENT_USER, key.as_ptr());
+            assert_eq!(rc, 0);
+        }
+        assert_eq!(kind, REG_SZ);
+        // (upstream's is the 6 bytes of "abc", unterminated)
+        assert_eq!(size, 8);
+        assert_eq!(data[..8], [b'a', 0, b'b', 0, b'c', 0, 0, 0]);
     }
 
     #[test]
