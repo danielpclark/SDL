@@ -255,17 +255,18 @@ fn wheel_through_the_front_end() {
     let joystick = Joystick::open(wheel.id).unwrap();
     assert!(crate::haptic::is_joystick_haptic(&joystick));
 
-    // Opening it sets up the slots (with upstream's repeated fixed loop
-    // command), the gain and no autocenter
+    // Opening it sets up the slots (the fixed loop mode, then each slot:
+    // a constant force of 0 and the conditions off), the gain and no
+    // autocenter
     let haptic = Haptic::open_from_joystick(&joystick).unwrap();
     assert_eq!(
         wheel.take_writes(),
         [
             "write 0d 00 00 00 00 00 00",
-            "write 0d 00 00 00 00 00 00",
-            "write 0d 00 00 00 00 00 00",
-            "write 0d 00 00 00 00 00 00",
-            "write 0d 00 00 00 00 00 00",
+            "write 11 00 80 00 00 00 00",
+            "write 23 00 00 00 00 00 00",
+            "write 43 00 00 00 00 00 00",
+            "write 83 00 00 00 00 00 00",
             "write f5 00 00 00 00 00 00",
         ]
     );

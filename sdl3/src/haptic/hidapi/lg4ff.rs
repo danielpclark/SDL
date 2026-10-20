@@ -736,9 +736,9 @@ impl Lg4ffDevice {
 
         for slot in &mut self.slots {
             update_slot(slot, &parameters);
-            // FIXME (upstream): this sends the fixed loop command again,
-            // where new-lg4ff sends the slot's `current_cmd`.
-            joystick.send_effect(&cmd)?;
+            // Note (upstream): C sends the fixed loop command again here,
+            // where new-lg4ff sends the slot's `current_cmd`, as this does.
+            joystick.send_effect(&slot.current_cmd)?;
             slot.is_updated = false;
         }
 
