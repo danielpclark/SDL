@@ -7,7 +7,7 @@
 
 use std::sync::{Mutex, MutexGuard, Weak};
 
-use super::dbus::{self, Arg, Context, HandlerResult, Message, Value};
+use super::dbus::{self, Arg, Context, FilterHandle, HandlerResult, Message, Value};
 use crate::events::keyboard::{self, Keymod};
 use crate::events::WindowID;
 use crate::hints;
@@ -19,6 +19,9 @@ const FCITX_IM_DBUS_PATH: &str = "/org/freedesktop/portal/inputmethod";
 
 const FCITX_IM_DBUS_INTERFACE: &str = "org.fcitx.Fcitx.InputMethod1";
 const FCITX_IC_DBUS_INTERFACE: &str = "org.fcitx.Fcitx.InputContext1";
+
+/// The match rule for the input context's signals.
+const FCITX_IC_MATCH: &str = "type='signal', interface='org.fcitx.Fcitx.InputContext1'";
 
 #[allow(dead_code)] // (unused upstream too)
 const DBUS_TIMEOUT: i32 = 500;
@@ -34,8 +37,10 @@ struct FcitxClient {
 
     cursor_rect: Rect,
 
-    /// The `SDL_HINT_IME_IMPLEMENTED_UI` callbacks added.
-    capabilities_watches: Vec<hints::Callback>,
+    /// The message filter, with the context whose connection has it.
+    filter: Option<(Weak<Context>, FilterHandle)>,
+    /// The `SDL_HINT_IME_IMPLEMENTED_UI` callback.
+    capabilities_watch: Option<hints::Callback>,
 }
 
 static FCITX_CLIENT: Mutex<FcitxClient> = Mutex::new(FcitxClient {
@@ -48,7 +53,8 @@ static FCITX_CLIENT: Mutex<FcitxClient> = Mutex::new(FcitxClient {
         w: 0,
         h: 0,
     },
-    capabilities_watches: Vec::new(),
+    filter: None,
+    capabilities_watch: None,
 });
 
 fn client() -> MutexGuard<'static, FcitxClient> {
@@ -244,19 +250,45 @@ fn fcitx_client_create_ic(ctx: Option<&std::sync::Arc<Context>>) -> bool {
     client().ic_path = Some(ic_path);
 
     let conn = &ctx.session_conn;
-    let _ = conn.add_match("type='signal', interface='org.fcitx.Fcitx.InputContext1'");
-    // FIXME (upstream): the filter and the hint callback are never removed,
-    // and each Init adds another.
-    let _ = conn.add_owned_filter(dbus_message_filter);
+    let _ = conn.add_match(FCITX_IC_MATCH);
+    // Note (upstream): the filter, the match rule and the hint callback are
+    // never removed, so each Init adds another of each, and the filter
+    // keeps sending the text it's signalled after Quit. Here quit() removes
+    // them.
+    let filter = conn
+        .add_owned_filter(dbus_message_filter)
+        .map(|handle| (std::sync::Arc::downgrade(ctx), handle));
     conn.flush();
 
     // (it runs at once, without our lock)
-    if let Ok(watch) = hints::watch(hints::IME_IMPLEMENTED_UI, |change| {
+    let watch = hints::watch(hints::IME_IMPLEMENTED_UI, |change| {
         fcitx_set_capabilities(change.new_value)
-    }) {
-        client().capabilities_watches.push(watch);
-    }
+    })
+    .ok();
+    // (an Init without a Quit replaces the previous ones)
+    let (old_filter, old_watch) = {
+        let mut c = client();
+        (
+            std::mem::replace(&mut c.filter, filter),
+            std::mem::replace(&mut c.capabilities_watch, watch),
+        )
+    };
+    remove_filter(old_filter);
+    drop(old_watch);
     true
+}
+
+/// Remove the message filter and its match rule (see
+/// [`fcitx_client_create_ic`]).
+fn remove_filter(filter: Option<(Weak<Context>, FilterHandle)>) {
+    let Some((ctx, handle)) = filter else {
+        return;
+    };
+    if let Some(ctx) = ctx.upgrade() {
+        let conn = &ctx.session_conn;
+        conn.remove_owned_filter(handle);
+        let _ = conn.remove_match(FCITX_IC_MATCH);
+    }
 }
 
 /// Translation of `Fcitx_ModState()`.
@@ -314,7 +346,16 @@ pub(crate) fn init() -> bool {
 /// Translation of `SDL_Fcitx_Quit()`.
 pub(crate) fn quit() {
     fcitx_client_ic_call_method("DestroyIC");
-    client().ic_path = None;
+    let (filter, watch) = {
+        let mut c = client();
+        c.ic_path = None;
+        (c.filter.take(), c.capabilities_watch.take())
+    };
+
+    // (see fcitx_client_create_ic())
+    remove_filter(filter);
+    // (SDL_RemoveHintCallback(), outside our lock)
+    drop(watch);
 }
 
 /// Translation of `SDL_Fcitx_SetFocus()`.
@@ -615,6 +656,38 @@ mod tests {
                     .last()
                     .is_some_and(|c| c.0 == "DestroyIC")
             ));
+
+            // Another Init works, and Quit removes its filter: a commit is
+            // sent once, then none after Quit (upstream's filters stay, and
+            // send it).
+            assert!(init());
+            signal("CommitString", &|w| {
+                w.append(&Arg::Str("again"));
+            });
+            let texts = |texts: &mut Vec<Event>| {
+                texts.extend(
+                    crate::events::get_events(EventType::TEXT_INPUT, EventType::TEXT_INPUT, 16)
+                        .unwrap(),
+                );
+            };
+            let mut got = Vec::new();
+            assert!(test_bus::wait_for(pump_events, || {
+                texts(&mut got);
+                !got.is_empty()
+            }));
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            pump_events();
+            texts(&mut got);
+            assert_eq!(got.len(), 1, "{got:?}");
+            quit();
+            signal("CommitString", &|w| {
+                w.append(&Arg::Str("gone"));
+            });
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            pump_events();
+            got.clear();
+            texts(&mut got);
+            assert!(got.is_empty(), "{got:?}");
             test_bus::release_session();
             portal.stop();
         });
