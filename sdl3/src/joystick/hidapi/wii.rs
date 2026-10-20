@@ -1462,14 +1462,15 @@ impl WiiContext {
     ) {
         const ACCEL_RES_PER_G: f32 = 100.0;
 
-        if !self.report_sensors {
+        // Note (upstream): C doesn't check `hasAccelerometer`, so the status
+        // and acknowledge reports, and the button reports without
+        // accelerometer data, report the zeroed accelerometer bytes as a
+        // reading of (-0x200, -0x200, -0x200) while sensors are enabled;
+        // here only the reports with accelerometer data report it.
+        if !self.report_sensors || !data.has_accelerometer {
             return;
         }
 
-        // FIXME (upstream): this doesn't check `hasAccelerometer`, so the
-        // status and acknowledge reports, and the button reports without
-        // accelerometer data, report the zeroed accelerometer bytes as a
-        // reading of (-0x200, -0x200, -0x200) while sensors are enabled.
         let accel = &data.accelerometer;
         let buttons = &data.base_buttons;
         let x = ((i16::from(accel[0]) << 2) | i16::from((buttons[0] >> 5) & 0x03)) - 0x200;
