@@ -958,8 +958,9 @@ fn add_device(h_device: usize) {
     // Figure out what kind of device it is
     // SAFETY: RID_DEVICE_INFO is plain data; all zeros is valid.
     let mut rdi: RID_DEVICE_INFO = unsafe { std::mem::zeroed() };
-    // FIXME (upstream): rdi.cbSize is left 0, which the documentation says
-    // must be sizeof(RID_DEVICE_INFO) for RIDI_DEVICEINFO.
+    // Note (upstream): rdi.cbSize is left 0, where the documentation says
+    // it must be sizeof(RID_DEVICE_INFO) for RIDI_DEVICEINFO.
+    rdi.cbSize = size_of::<RID_DEVICE_INFO>() as u32;
     let mut size = size_of::<RID_DEVICE_INFO>() as u32;
     // SAFETY: rdi holds `size` bytes.
     let result = unsafe {
