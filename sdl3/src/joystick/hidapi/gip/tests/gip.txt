@@ -1715,7 +1715,6 @@ key 4 1
 key 4 0
 text 61
 key 225 1
-key 0 1
 key 5 1
 result 1
 end
@@ -1727,7 +1726,6 @@ update
 key 5 0
 text 42
 key 225 0
-key 0 1
 key 57 1
 key 57 0
 result 1
@@ -1793,7 +1791,6 @@ read 0b 21 1e 08 04 00 62 00 00 00 00 00
 update
 key 7 1
 key 7 0
-key 0 1
 key 98 1
 result 1
 end
@@ -1819,7 +1816,6 @@ key 96 0
 text e2 82 ac
 key 83 1
 key 83 0
-key 0 1
 result 1
 end
 read 0b 21 27 08 04 00 62 00 00 00 00 00
@@ -1844,7 +1840,6 @@ key 91 0
 text c3 a9
 key 83 1
 key 83 0
-key 0 1
 result 1
 end
 read 0b 21 2f 08 04 00 59 00 00 00 00 00
@@ -1865,7 +1860,6 @@ read 0b 21 36 08 04 00 04 00 00 00 00 00
 update
 key 83 1
 key 83 0
-key 0 1
 key 98 1
 key 98 0
 key 4 1
@@ -1879,7 +1873,6 @@ update
 key 4 0
 key 83 1
 key 83 0
-key 0 1
 key 98 1
 key 89 1
 result 1
@@ -1895,7 +1888,6 @@ key 96 0
 text c5 a0
 key 83 1
 key 83 0
-key 0 1
 result 1
 end
 read 0b 21 3f 08 04 00 62 00 00 00 00 00
@@ -1970,7 +1962,6 @@ read 0b 21 54 08 04 00 62 00 00 00 00 00
 read 0b 21 55 08 04 00 00 00 00 00 00 00
 read 0b 21 56 08 04 00 61 00 00 00 00 00
 update
-key 0 1
 key 98 1
 key 98 0
 key 97 1
@@ -1991,9 +1982,9 @@ read 0b 21 5b 08 04 00 00 00 00 00 00 00
 read 0b 21 5c 08 00 00 00 00 00 00 00 00
 update
 key 96 0
+text cf 92
 key 83 1
 key 83 0
-key 0 1
 result 1
 end
 read 0b 21 01 09 00 00 00 00 00 00 00 00 00
