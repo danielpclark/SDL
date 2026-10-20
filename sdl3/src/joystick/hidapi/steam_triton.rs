@@ -391,12 +391,11 @@ impl SteamTritonContext {
         let imu =
             (self.report_sensors && report.imu.timestamp != self.last_sensor_tick16).then(|| {
                 // The timestamp is in units of 32 microseconds
-                // FIXME (upstream): the 16-bit timestamps are subtracted
-                // as ints, so when they wrap around the difference is
-                // negative and the delta becomes huge.
-                let delta_us = ((i32::from(report.imu.timestamp)
-                    - i32::from(self.last_sensor_tick16)) as u32)
-                    .wrapping_mul(32);
+                // Note (upstream): C subtracts the 16-bit timestamps as
+                // ints, so when they wrap around the difference is negative
+                // and the delta becomes huge; here they wrap as 16 bits.
+                let delta_us =
+                    u32::from(report.imu.timestamp.wrapping_sub(self.last_sensor_tick16)) * 32;
                 self.last_sensor_tick16 = report.imu.timestamp;
                 TritonImu {
                     delta_us,
