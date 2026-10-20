@@ -451,25 +451,18 @@ fn collect_keys(menu: &[MenuItem], out: &mut Vec<EntryKey>) {
     }
 }
 
-/// Where `SDL_ListInsertAtPosition()` puts an item.
+/// Where `SDL_ListInsertAtPosition()` puts an item: at `pos`, or at the end
+/// for -1 or a position that isn't in the list.
 ///
-/// FIXME (upstream): for positions from 2 on, the item lands one place
+/// Note (upstream): for positions from 2 on, the item lands one place
 /// earlier than asked (the cursor stops one node short), and any other
 /// negative position than -1 inserts at 1. Position 0 inserts the same item
-/// twice (the head insertion doesn't return), which would alias the item
-/// here, so it is inserted once.
+/// twice (the head insertion doesn't return). Here each lands where asked,
+/// once.
 fn list_insert_index(len: usize, pos: i32) -> usize {
-    if pos == -1 || len == 0 {
-        return len;
-    }
-    if pos == 0 {
-        return 0;
-    }
-    let advances = if pos >= 2 { (pos - 2) as usize } else { 0 };
-    if advances < len {
-        advances + 1
-    } else {
-        len
+    match usize::try_from(pos) {
+        Ok(pos) if pos <= len => pos,
+        _ => len,
     }
 }
 
@@ -975,16 +968,18 @@ mod tests {
 
     #[test]
     fn insert_positions() {
-        // (upstream's list insertion, off by one from 2 on)
+        // (upstream's list insertion is off by one from 2 on, and puts
+        // other negative positions than -1 at 1)
         assert_eq!(list_insert_index(0, 5), 0);
+        assert_eq!(list_insert_index(0, 0), 0);
         assert_eq!(list_insert_index(3, -1), 3);
         assert_eq!(list_insert_index(3, 0), 0);
         assert_eq!(list_insert_index(3, 1), 1);
-        assert_eq!(list_insert_index(3, 2), 1);
-        assert_eq!(list_insert_index(3, 3), 2);
+        assert_eq!(list_insert_index(3, 2), 2);
+        assert_eq!(list_insert_index(3, 3), 3);
         assert_eq!(list_insert_index(3, 4), 3);
         assert_eq!(list_insert_index(3, 9), 3);
-        assert_eq!(list_insert_index(3, -5), 1);
+        assert_eq!(list_insert_index(3, -5), 3);
     }
 
     /// Run `host` on another thread while this one updates the trays.
@@ -1330,14 +1325,22 @@ mod tests {
             .unwrap();
         assert_eq!(
             menu.entries().unwrap(),
-            vec![first, a.clone(), _sep, c.clone()]
+            vec![first.clone(), a.clone(), _sep.clone(), c.clone()]
+        );
+        // (upstream's lands at 1)
+        let mid = menu
+            .insert_entry(2, Some("Mid"), TrayEntryFlags::BUTTON)
+            .unwrap();
+        assert_eq!(
+            menu.entries().unwrap(),
+            vec![first, a.clone(), mid, _sep, c.clone()]
         );
         let layout = as_host(&bus.address, |conn| {
             dbusmenu(conn, "GetLayout", &[Arg::I32(0), Arg::I32(-1)]).unwrap()
         });
         let (_, _, top) = node(&layout[1]);
         let labels: Vec<String> = top.iter().map(|n| node(n).1).collect();
-        assert_eq!(labels, ["First", "A2", "", "C"]);
+        assert_eq!(labels, ["First", "A2", "Mid", "", "C"]);
 
         tray.set_tooltip(None);
         let gone = as_host(&bus.address, |conn| {
