@@ -531,16 +531,16 @@ fn update_state(state: &mut EffectState, effect: &HapticEffect, now: u64) {
 
     state.slope = 0;
     if let HapticEffect::Ramp(ramp) = effect {
-        // FIXME (upstream): the length is unsigned 32-bit here (16-bit in
+        // Note (upstream): the length is unsigned 32-bit in C (16-bit in
         // the kernel), so the division is unsigned: a ramp whose end is
-        // below its start gets a garbage slope.
+        // below its start gets a garbage slope. Here it's signed.
         let duration = ramp
             .length
             .wrapping_sub(u32::from(ramp.attack_length))
             .wrapping_sub(u32::from(ramp.fade_length));
         if ramp.length != 0 && duration != 0 {
             let rise = (i32::from(ramp.end) - i32::from(ramp.start)) << 16;
-            state.slope = ((rise as u32) / duration) as i32;
+            state.slope = (i64::from(rise) / i64::from(duration)) as i32;
         }
     }
 
