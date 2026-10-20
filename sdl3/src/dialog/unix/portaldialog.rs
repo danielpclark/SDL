@@ -385,9 +385,8 @@ fn portal_show_file_dialog_on(
         _ => return callback(Err(Error::new("Invalid response received by DBus")), None),
     };
 
-    // FIXME (upstream): the match rule is never removed, so one stays on the
-    // bus for each dialog shown. Kept.
-    if let Err(e) = conn.add_match(&signal_filter(&signal_id)) {
+    let rule = signal_filter(&signal_id);
+    if let Err(e) = conn.add_match(&rule) {
         return callback(
             Err(Error::new(format!(
                 "Failed to set up DBus listener for dialog, {}",
@@ -402,8 +401,11 @@ fn portal_show_file_dialog_on(
     */
     // (translation of `DBus_MessageFilter()`; the SignalCallback data is
     // what the closure captures)
+    // Note (upstream): the match rule is never removed, so one stays on the
+    // bus for each dialog shown. Here it goes with the filter, once the
+    // response has come.
     let callback = Mutex::new(Some(callback));
-    conn.add_oneshot_filter(move |msg| {
+    conn.add_oneshot_filter_with_match(&rule, move |msg| {
         if !msg.is_signal(SIGNAL_INTERFACE, SIGNAL_NAME) || !msg.has_path(&signal_id) {
             return None;
         }
@@ -743,6 +745,18 @@ mod tests {
         responses.lock().unwrap().push_back((0, None));
         let result = show(FileDialogType::OpenFile, FileDialogOptions::default());
         assert_eq!(result, (Ok(vec![]), None));
+
+        // The responses' match rules are gone from the bus (upstream's
+        // stay): removing one again fails.
+        for t in 1..=6 {
+            let rule = signal_filter(&format!("/org/freedesktop/portal/desktop/request/1_1/t{t}"));
+            let err = ctx.session_conn.remove_match(&rule).unwrap_err();
+            assert!(
+                err.message()
+                    .starts_with("org.freedesktop.DBus.Error.MatchRuleNotFound"),
+                "{err}"
+            );
+        }
 
         drop(ctx);
         test_bus::release_session();
