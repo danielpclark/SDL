@@ -995,6 +995,64 @@ fn upload_copy_and_download_buffers_and_textures() {
     device.wait_for_idle().unwrap();
 }
 
+/// A buffer keeps its name, which the buffers it cycles to get too
+/// (upstream's container forgets it, so they have no label).
+#[test]
+fn cycled_buffers_keep_the_name() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(device) = front_end_device() else {
+        return;
+    };
+    let props = Properties::new();
+    props
+        .set(crate::gpu::PROP_GPU_BUFFER_CREATE_NAME_STRING, "a buffer")
+        .unwrap();
+    let buffer = device
+        .create_buffer(&BufferCreateInfo {
+            usage: BufferUsageFlags::VERTEX,
+            size: 16,
+            props: Some(props),
+        })
+        .unwrap();
+    let upload = upload_buffer(&device, &[3; 16]);
+    let mut cb = device.acquire_command_buffer().unwrap();
+    {
+        let mut copy = cb.begin_copy_pass().unwrap();
+        // (the second upload cycles the buffer the first one uses)
+        for _ in 0..2 {
+            copy.upload_to_buffer(
+                &TransferBufferLocation {
+                    transfer_buffer: &upload,
+                    offset: 0,
+                },
+                &BufferRegion {
+                    buffer: &buffer,
+                    offset: 0,
+                    size: 16,
+                },
+                true,
+            );
+        }
+    }
+    submit_and_wait(&device, cb);
+    let container = buffer.raw.downcast::<BufferContainer>().unwrap();
+    let state = lock(&container.state);
+    assert_eq!(state.debug_name.as_deref(), Some("a buffer"));
+    assert_eq!(state.buffers.len(), 2);
+    for metal_buffer in &state.buffers {
+        // SAFETY: a buffer; its label is an NSString (or nil).
+        let label = crate::core::apple::objc::autoreleasepool(|| unsafe {
+            let label: crate::core::apple::objc::Id =
+                crate::core::apple::objc::msg_send![metal_buffer.handle.get(), label];
+            crate::core::apple::foundation::string_from_ns(label)
+        });
+        assert_eq!(label.as_deref(), Some("a buffer"));
+    }
+    drop(state);
+    device.wait_for_idle().unwrap();
+}
+
 /// A pipeline drawing `vec2` positions from vertex buffer slot 0 into an
 /// RGBA8 target.
 fn position_pipeline(
