@@ -1072,6 +1072,60 @@ fn copy_from_media_buffer(
     result
 }
 
+/// The frame of a sample (released here), of `format` and `h` rows, with
+/// `default_pitch` for buffers that don't say theirs: the work of
+/// `MEDIAFOUNDATION_AcquireFrame()`.
+fn frame_from_sample(
+    sample: ComPtr<IMFSampleVtbl>,
+    format: PixelFormat,
+    h: i32,
+    default_pitch: i32,
+) -> CameraFrameResult {
+    let mut timestamp_100ns = 0i64;
+    // SAFETY: a live sample; GetSampleTime writes a LONGLONG.
+    let ret =
+        unsafe { (sample.vtbl().get_sample_time)(sample.as_ptr().cast(), &mut timestamp_100ns) };
+    if check_hr(ret).is_err() {
+        // Note (upstream): this sets SDL_CAMERA_FRAME_ERROR, but the
+        // `result < 0` test that should then skip the copy is never true
+        // (SDL_CAMERA_FRAME_ERROR is 0) and the copy's result replaces it,
+        // so the frame is delivered anyway, with a timestamp of 0.
+        return CameraFrameResult::Error;
+    }
+    let timestamp_ns = sample_time_to_ns(timestamp_100ns);
+
+    // SAFETY: a live sample; the method stores a new IMFMediaBuffer.
+    let buffer = unsafe {
+        out_ptr::<IMFMediaBufferVtbl>(|out| {
+            (sample.vtbl().convert_to_contiguous_buffer)(sample.as_ptr().cast(), out)
+        })
+    }; // IMFSample_GetBufferByIndex(sample, 0, &buffer);
+
+    let copied = buffer.ok().and_then(|buffer| {
+        if let Ok(buffer2d2) = buffer.query::<IMF2DBuffer2Vtbl>(&IID_IMF2DBUFFER2) {
+            return copy_from_2d_buffer2(&buffer2d2, format, h);
+        }
+        if format != PixelFormat::MJPG {
+            if let Ok(buffer2d) = buffer.query::<IMF2DBufferVtbl>(&IID_IMF2DBUFFER) {
+                return copy_from_2d_buffer(&buffer2d, format, h);
+            }
+        }
+        copy_from_media_buffer(&buffer, format, h, default_pitch)
+    });
+
+    drop(sample);
+
+    match copied {
+        Some((pixels, pitch)) => CameraFrameResult::Ready(AcquiredFrame {
+            pixels,
+            pitch,
+            timestamp_ns,
+            rotation: 0.0,
+        }),
+        None => CameraFrameResult::Error,
+    }
+}
+
 impl CameraBackend for MfCamera {
     fn wait_device(&self, device: &CameraDevice) -> bool {
         // Translation of `MEDIAFOUNDATION_WaitDevice()`.
@@ -1128,48 +1182,7 @@ impl CameraBackend for MfCamera {
             (sample, hidden.format, hidden.height, hidden.pitch)
         };
 
-        // FIXME (upstream): a failed GetSampleTime() sets the result to
-        // SDL_CAMERA_FRAME_ERROR, but the `result < 0` check that should
-        // then skip the copy is never true (SDL_CAMERA_FRAME_ERROR is 0),
-        // and the copy's result replaces it: the frame is delivered anyway,
-        // with a timestamp of 0. So it is here.
-        let mut timestamp_100ns = 0i64;
-        // SAFETY: a live sample; GetSampleTime writes a LONGLONG.
-        let _ = unsafe {
-            (sample.vtbl().get_sample_time)(sample.as_ptr().cast(), &mut timestamp_100ns)
-        };
-        let timestamp_ns = sample_time_to_ns(timestamp_100ns);
-
-        // SAFETY: a live sample; the method stores a new IMFMediaBuffer.
-        let buffer = unsafe {
-            out_ptr::<IMFMediaBufferVtbl>(|out| {
-                (sample.vtbl().convert_to_contiguous_buffer)(sample.as_ptr().cast(), out)
-            })
-        }; // IMFSample_GetBufferByIndex(sample, 0, &buffer);
-
-        let copied = buffer.ok().and_then(|buffer| {
-            if let Ok(buffer2d2) = buffer.query::<IMF2DBuffer2Vtbl>(&IID_IMF2DBUFFER2) {
-                return copy_from_2d_buffer2(&buffer2d2, format, h);
-            }
-            if format != PixelFormat::MJPG {
-                if let Ok(buffer2d) = buffer.query::<IMF2DBufferVtbl>(&IID_IMF2DBUFFER) {
-                    return copy_from_2d_buffer(&buffer2d, format, h);
-                }
-            }
-            copy_from_media_buffer(&buffer, format, h, default_pitch)
-        });
-
-        drop(sample);
-
-        match copied {
-            Some((pixels, pitch)) => CameraFrameResult::Ready(AcquiredFrame {
-                pixels,
-                pitch,
-                timestamp_ns,
-                rotation: 0.0,
-            }),
-            None => CameraFrameResult::Error,
-        }
+        frame_from_sample(sample, format, h, default_pitch)
     }
 
     fn release_frame(&self, _device: &CameraDevice, _pixels: Vec<u8>) {
