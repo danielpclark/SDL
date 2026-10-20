@@ -22,6 +22,7 @@ use std::cell::UnsafeCell;
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::os::fd::IntoRawFd;
 use std::ptr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use super::{
@@ -1137,6 +1138,10 @@ struct PwCamera {
     device: Weak<CameraDevice>,
     stream_listener: UnsafeCell<SpaHook>,
     state: Mutex<StreamState>,
+    /// The stream reached `PW_STREAM_STATE_STREAMING`, which the device
+    /// thread reports as the permission outcome (see
+    /// `on_stream_state_changed`).
+    streaming: AtomicBool,
 }
 
 // SAFETY: the stream and its buffers are used under the hotplug loop's lock
@@ -1196,13 +1201,14 @@ unsafe extern "C" fn on_stream_state_changed(
     // SAFETY: the userdata is the live device.
     let camera = unsafe { pw_camera(data) };
     if state == PW_STREAM_STATE_STREAMING {
-        // FIXME (upstream): this runs on the hotplug loop thread with the
-        // loop locked and takes the device lock, while the device thread
-        // holds the device lock in AcquireFrame and waits for the loop lock;
-        // a stream that starts streaming again then deadlocks.
-        if let Some(device) = camera.device.upgrade() {
-            camera_permission_outcome(&device, true);
-        }
+        // Note (upstream): this calls SDL_CameraPermissionOutcome(), which
+        // takes the device lock on the hotplug loop thread with the loop
+        // locked, while the device thread holds the device lock in
+        // AcquireFrame and waits for the loop lock: a stream that starts
+        // streaming again deadlocks. Here the device thread reports it from
+        // WaitDevice, which holds neither lock; the signal ends its wait.
+        camera.streaming.store(true, Ordering::Release);
+        camera.hotplug.signal();
     }
 }
 
@@ -1247,8 +1253,17 @@ impl CameraBackend for PwCamera {
         // asked to shut down, so closing a camera whose stream never starts
         // (or stops) producing frames waits here forever.
         self.hotplug.lock();
-        self.hotplug.wait();
+        if !self.streaming.load(Ordering::Acquire) {
+            self.hotplug.wait();
+        }
         self.hotplug.unlock();
+
+        // The permission outcome of on_stream_state_changed().
+        if self.streaming.swap(false, Ordering::AcqRel) {
+            if let Some(device) = self.device.upgrade() {
+                camera_permission_outcome(&device, true);
+            }
+        }
         true
     }
 
@@ -1420,6 +1435,7 @@ impl CameraDriverImpl for PipewireCamera {
                 lent: Vec::new(),
                 spare: Vec::new(),
             }),
+            streaming: AtomicBool::new(false),
         });
 
         // Note (upstream): the failures below return with the thread loop
