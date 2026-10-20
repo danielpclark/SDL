@@ -1182,6 +1182,19 @@ fn maybe_add_device(path: &str) {
     }
 }
 
+/// The size of the `read()` and user-pointer buffers of a device opened
+/// with `spec`, whose driver says a frame takes `sizeimage` bytes.
+///
+/// Note (upstream): they're sized from `device->spec`, which
+/// SDL_OpenCamera() only fills in after OpenDevice() returns, so they're 0
+/// bytes long. Here they're sized from the spec being opened, and are at
+/// least `sizeimage` long, which covers rows the driver pads and MJPG
+/// frames (whose size the spec doesn't give).
+fn frame_buffer_size(spec: &CameraSpec, sizeimage: u32) -> Result<usize> {
+    let (size, _pitch) = calculate_surface_size(spec.format, spec.width, spec.height, false)?;
+    Ok(size.max(sizeimage as usize))
+}
+
 /// Translation of `FindV4L2CameraByPathCallback()`.
 fn find_v4l2_camera_by_path(device: &CameraDevice, path: &str) -> bool {
     handle_of(device).is_some_and(|h| h.path == path)
@@ -1394,13 +1407,7 @@ impl CameraDriverImpl for V4l2Driver {
             return Err(Error::new("Don't have a way to talk to this device"));
         };
 
-        // FIXME (upstream): the buffer size comes from device->spec, which
-        // SDL_OpenCamera() only fills in after OpenDevice() returns, so it's
-        // all zeros here and the read() and user-pointer buffers are 0
-        // bytes long.
-        let app_spec = device.lock().borrow().spec;
-        let (size, _pitch) =
-            calculate_surface_size(app_spec.format, app_spec.width, app_spec.height, false)?;
+        let size = frame_buffer_size(spec, fmt.fmt.pix.sizeimage)?;
 
         let io = match io {
             Method::Read => Io::Read {
