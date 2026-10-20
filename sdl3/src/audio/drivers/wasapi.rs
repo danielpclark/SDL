@@ -782,9 +782,11 @@ impl WasapiDevice {
                 unsafe { (IAudioClient::vtbl(client).stop)(client) };
             }
             wasapi_disconnect_device(device, Some(self));
-            // FIXME (upstream): SDL_AudioDeviceDisconnected() marks the device a
-            // zombie, it doesn't set `shutdown`, so this assertion fails.
-            crate::sdl_assert!(device.shutting_down()); // so we don't come back through here.
+            // Note (upstream): this asserts SDL_GetAtomicInt(&device->shutdown),
+            // but SDL_AudioDeviceDisconnected() makes the device a zombie, it
+            // doesn't shut it down, so that assertion fails. What keeps us
+            // from coming back is device_disconnecting, checked above.
+            crate::sdl_assert!(self.device_disconnecting.load(Ordering::Acquire) != 0); // so we don't come back through here.
             return false; // already failed.
         } else if device.is_zombie() {
             return false; // we're already dead, so just leave and let the Zombie implementations take over.
