@@ -2708,6 +2708,23 @@ fn texture_bind_failure_destroys_the_image_once() {
     assert_ne!(destroyed[0], VK_NULL_HANDLE);
 }
 
+/// PrepareDriver and the device give back the references to the loader
+/// they take (upstream's keep one each for good).
+#[test]
+fn devices_release_the_loader() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let loaded = || crate::video::core::with_device(|v| v.vulkan_loader_loaded).unwrap();
+    let before = loaded();
+    let Some(r) = renderer() else {
+        assert_eq!(loaded(), before);
+        return;
+    };
+    assert_eq!(loaded(), before + 1);
+    drop(r);
+    assert_eq!(loaded(), before);
+}
+
 /// `vkMapMemory` that always fails.
 unsafe extern "system" fn failing_map_memory(
     _device: VkDevice,
