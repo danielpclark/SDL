@@ -5,7 +5,7 @@
 
 //! The Wireless HORIPAD For Steam driver.
 
-use super::steam::remap_val_clamped;
+use super::steam::{remap_val_clamped, SteamHid};
 use super::{
     load16, remap_val, DeviceCtx, DriverContext, DriverImpl, HidapiDevice, SDL_HIDAPI_DEFAULT,
     USB_PACKET_LENGTH,
@@ -414,6 +414,72 @@ fn sensor_values(data: &[u8]) -> ([f32; 3], [f32; 3]) {
     (gyro_data, imu_data)
 }
 
+impl SteamHoriContext {
+    /// Translation of `HIDAPI_DriverSteamHori_OpenJoystick()`, reading the
+    /// reports from `dev`.
+    fn open(
+        &mut self,
+        device: &mut DeviceCtx<'_>,
+        joystick: &mut JoystickData,
+        dev: &dyn SteamHid,
+    ) -> Result<()> {
+        crate::joystick::assert_joysticks_locked();
+
+        self.last_state = [0; USB_PACKET_LENGTH];
+
+        /* Initialize the joystick capabilities */
+        joystick.nbuttons = SDL_GAMEPAD_NUM_HORI_BUTTONS;
+        joystick.naxes = GamepadAxis::COUNT;
+        joystick.nhats = 1;
+
+        self.wireless = device.product_id() == USB_PRODUCT_HORI_STEAM_CONTROLLER_BT;
+
+        if let Some(serial) = device.serial().filter(|_| self.wireless) {
+            joystick.serial = Some(serial);
+            self.serial_needs_init = false;
+        } else if !self.wireless {
+            // Need to actual read from the device to init the serial
+            // Note (upstream): C reads the reports with UpdateDevice(),
+            // which drops them, as the joystick being opened isn't open
+            // yet, so the serial is only set by the first update after the
+            // open. Here the serial comes from the first state report read
+            // (whose state isn't sent, as upstream), and the reports after
+            // it are left for the first update.
+            self.read_serial(joystick, dev);
+        }
+
+        let sensorupdaterate = if self.wireless { 120.0 } else { 250.0 };
+
+        joystick.add_sensor(SensorType::Gyro, sensorupdaterate);
+        joystick.add_sensor(SensorType::Accel, sensorupdaterate);
+
+        let sensorupdatestep_ms: u64 = if self.wireless { 8333 } else { 4000 }; // Equivalent to 120hz / 250hz respectively
+        self.simulated_sensor_step_ns = sensorupdatestep_ms * super::NS_PER_US;
+
+        joystick.add_capsense(GamepadCapSenseType::LeftStick);
+        joystick.add_capsense(GamepadCapSenseType::RightStick);
+
+        Ok(())
+    }
+
+    /// The serial of the joystick being opened, from the first state
+    /// report read.
+    fn read_serial(&mut self, joystick: &mut JoystickData, dev: &dyn SteamHid) {
+        let mut data = [0u8; USB_PACKET_LENGTH];
+        while self.serial_needs_init {
+            match dev.read_timeout(&mut data, 0) {
+                Ok(size) if size > 0 => {
+                    if data[0] == REPORT_HEADER_USB || data[0] == REPORT_HEADER_BT {
+                        joystick.serial = Some(usb_serial(&data));
+                        self.serial_needs_init = false;
+                    }
+                }
+                _ => break,
+            }
+        }
+    }
+}
+
 impl DriverContext for SteamHoriContext {
     /// Translation of `HIDAPI_DriverSteamHori_InitDevice()`.
     fn init_device(&mut self, device: &mut DeviceCtx<'_>) -> Result<()> {
@@ -460,40 +526,8 @@ impl DriverContext for SteamHoriContext {
         device: &mut DeviceCtx<'_>,
         joystick: &mut JoystickData,
     ) -> Result<()> {
-        crate::joystick::assert_joysticks_locked();
-
-        self.last_state = [0; USB_PACKET_LENGTH];
-
-        /* Initialize the joystick capabilities */
-        joystick.nbuttons = SDL_GAMEPAD_NUM_HORI_BUTTONS;
-        joystick.naxes = GamepadAxis::COUNT;
-        joystick.nhats = 1;
-
-        self.wireless = device.product_id() == USB_PRODUCT_HORI_STEAM_CONTROLLER_BT;
-
-        if let Some(serial) = device.serial().filter(|_| self.wireless) {
-            joystick.serial = Some(serial);
-            self.serial_needs_init = false;
-        } else if !self.wireless {
-            // Need to actual read from the device to init the serial
-            // FIXME (upstream): the joystick being opened isn't open yet,
-            // so the reports read here are dropped and the serial is only
-            // set by the first update after the open.
-            self.update_device(device);
-        }
-
-        let sensorupdaterate = if self.wireless { 120.0 } else { 250.0 };
-
-        joystick.add_sensor(SensorType::Gyro, sensorupdaterate);
-        joystick.add_sensor(SensorType::Accel, sensorupdaterate);
-
-        let sensorupdatestep_ms: u64 = if self.wireless { 8333 } else { 4000 }; // Equivalent to 120hz / 250hz respectively
-        self.simulated_sensor_step_ns = sensorupdatestep_ms * super::NS_PER_US;
-
-        joystick.add_capsense(GamepadCapSenseType::LeftStick);
-        joystick.add_capsense(GamepadCapSenseType::RightStick);
-
-        Ok(())
+        let dev = device.device().clone();
+        self.open(device, joystick, &*dev)
     }
 
     // (RumbleJoystick: device doesn't support rumble)
