@@ -1694,6 +1694,12 @@ fn clear_target(texture: &Texture, color: FColor) -> ColorTargetInfo<'_> {
 
 const RED: [u8; 4] = [255, 0, 0, 255];
 const BLUE: [u8; 4] = [0, 0, 255, 255];
+const RED_F: FColor = FColor {
+    r: 1.0,
+    g: 0.0,
+    b: 0.0,
+    a: 1.0,
+};
 const BLUE_F: FColor = FColor {
     r: 0.0,
     g: 0.0,
@@ -1779,6 +1785,91 @@ fn clear_a_texture_and_download_it() {
     let renderer = device_renderer(&device);
     assert_eq!(lock(&renderer.render_pass_hash_table).len(), 3);
     assert_eq!(lock(&renderer.framebuffer_hash_table).len(), 3);
+}
+
+/// Passes resolving into the layers of an array texture each resolve into
+/// their own (upstream's framebuffers are cached by the color target's
+/// layer, so the second pass resolves into the first layer again).
+#[test]
+fn resolves_into_layers_get_their_own_framebuffers() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(device) = front_end_device() else {
+        return;
+    };
+    use TextureUsageFlags as U;
+    let format = TextureFormat::R8G8B8A8_UNORM;
+    if !device.texture_supports_sample_count(format, SampleCount::Four) {
+        crate::test_support::skip("vulkan", "no 4x multisampling of RGBA8");
+        return;
+    }
+    let msaa = device
+        .create_texture(&TextureCreateInfo {
+            width: 4,
+            height: 4,
+            sample_count: SampleCount::Four,
+            ..texture_info(TextureType::Texture2D, format, U::COLOR_TARGET, 1, 1)
+        })
+        .unwrap();
+    let layers = device
+        .create_texture(&TextureCreateInfo {
+            width: 4,
+            height: 4,
+            ..texture_info(
+                TextureType::Texture2DArray,
+                format,
+                U::COLOR_TARGET | U::SAMPLER,
+                2,
+                1,
+            )
+        })
+        .unwrap();
+    let mut cb = device.acquire_command_buffer().unwrap();
+    for (layer, color) in [(0, RED_F), (1, BLUE_F)] {
+        let target = ColorTargetInfo {
+            store_op: crate::gpu::StoreOp::Resolve,
+            resolve_texture: Some(&layers),
+            resolve_layer: layer,
+            ..clear_target(&msaa, color)
+        };
+        cb.begin_render_pass(&[target], None).unwrap().end();
+    }
+    submit_and_wait(&device, cb);
+
+    let mut download = download_buffer(&device, 2 * 4 * 4 * 4);
+    let mut cb = device.acquire_command_buffer().unwrap();
+    {
+        let mut copy = cb.begin_copy_pass().unwrap();
+        for layer in 0..2 {
+            copy.download_from_texture(
+                &TextureRegion {
+                    texture: &layers,
+                    mip_level: 0,
+                    layer,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    w: 4,
+                    h: 4,
+                    d: 1,
+                },
+                &TextureTransferInfo {
+                    transfer_buffer: &download,
+                    offset: layer * 4 * 4 * 4,
+                    pixels_per_row: 4,
+                    rows_per_layer: 4,
+                },
+            );
+        }
+    }
+    submit_and_wait(&device, cb);
+    let pixels = read_back(&mut download);
+    assert_eq!(&pixels[..64], &solid(4, 4, RED)[..], "layer 0");
+    assert_eq!(&pixels[64..], &solid(4, 4, BLUE)[..], "layer 1");
+    assert_eq!(
+        lock(&device_renderer(&device).framebuffer_hash_table).len(),
+        2
+    );
 }
 
 /// The Vulkan renderer of a front-end device.
