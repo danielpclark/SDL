@@ -1275,10 +1275,8 @@ fn append_xml_action(dst: &mut Vec<u16>, label: &str, action: &str) {
 }
 
 /// Translation of `AppendXmlImage()`.
-fn append_xml_image(dst: &mut Vec<u16>, image_path: Option<&[u16]>) {
-    // FIXME (upstream): this is called without an image too, whose NULL
-    // path SDL_swprintf() prints as "(null)".
-    let image_path = image_path.map_or_else(|| "(null)".to_string(), wide_to_utf8);
+fn append_xml_image(dst: &mut Vec<u16>, image_path: &[u16]) {
+    let image_path = wide_to_utf8(image_path);
     // (escaped: see append_xml_audio())
     let image_path = xml_escape(&image_path);
     dst.extend(
@@ -1330,7 +1328,12 @@ fn build_notification_xml(
     let actions = &notification.actions;
 
     dst.extend(XML_TOAST_OPENING_STR.encode_utf16());
-    append_xml_image(&mut dst, icon_path);
+    // Note (upstream): the image element is written without an image too,
+    // whose NULL path SDL_swprintf() prints as "(null)", so the toast
+    // refers to "file:///(null)". It is left out here.
+    if let Some(icon_path) = icon_path {
+        append_xml_image(&mut dst, icon_path);
+    }
     if !append_xml_text(&mut dst, title) {
         return None;
     }
@@ -1705,14 +1708,19 @@ mod tests {
         );
         assert_eq!(xml_escape("plain"), "plain");
 
-        // The default sound, no actions, no image.
+        // The default sound, no actions, no image (upstream's has an image
+        // element whose src is "file:///(null)").
         let notification = Notification {
             title: Some("T".into()),
             message: Some("M".into()),
             ..Notification::default()
         };
         let xml = text(&build_notification_xml(&notification, None).unwrap());
-        assert!(xml.contains("src=\"file:///(null)\""), "{xml}");
+        assert!(!xml.contains("<image"), "{xml}");
+        assert!(
+            xml.contains("<binding template=\"ToastGeneric\"><text>"),
+            "{xml}"
+        );
         assert!(xml.contains(
             "<audio src=\"ms-winsoundevent:Notification.Default\" loop=\"false\" silent=\"false\"/>"
         ));
