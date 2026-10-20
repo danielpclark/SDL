@@ -170,9 +170,9 @@ fn ibus_mod_state() -> u32 {
 /// The fields of an `IBusText`-style structure in a variant. Translation of
 /// `IBus_EnterVariant()`.
 ///
-/// FIXME (upstream): the structure's name is compared with itself, so any
-/// name is accepted. Kept.
-fn ibus_enter_variant<'v>(value: Option<&'v Value>, _struct_id: &str) -> Option<&'v [Value]> {
+/// Note (upstream): the structure's name is compared with itself, so any
+/// name is accepted; here it must be `struct_id`.
+fn ibus_enter_variant<'v>(value: Option<&'v Value>, struct_id: &str) -> Option<&'v [Value]> {
     let Some(Value::Variant(sub)) = value else {
         return None;
     };
@@ -180,7 +180,7 @@ fn ibus_enter_variant<'v>(value: Option<&'v Value>, _struct_id: &str) -> Option<
         return None;
     };
     match inside.first() {
-        Some(Value::Str(_)) => Some(inside),
+        Some(Value::Str(name)) if name == struct_id => Some(inside),
         _ => None,
     }
 }
@@ -827,6 +827,28 @@ mod tests {
             ibus_address_filename(Some(":0"), None, Some("/c"), None, || None),
             None
         );
+    }
+
+    #[test]
+    fn variants_are_entered_by_name() {
+        let text = |name: &str| {
+            Value::Variant(Box::new(Value::Struct(vec![
+                Value::Str(name.into()),
+                Value::Array(vec![]),
+                Value::Str("hi".into()),
+            ])))
+        };
+        let ibus_text = text("IBusText");
+        assert_eq!(
+            ibus_enter_variant(Some(&ibus_text), "IBusText").map(<[Value]>::len),
+            Some(3)
+        );
+        // (upstream's takes any name)
+        assert!(ibus_enter_variant(Some(&ibus_text), "IBusAttrList").is_none());
+        assert!(ibus_enter_variant(Some(&text("IBusTextX")), "IBusText").is_none());
+        assert!(ibus_enter_variant(Some(&text("")), "IBusText").is_none());
+        assert!(ibus_enter_variant(Some(&Value::Str("x".into())), "IBusText").is_none());
+        assert!(ibus_enter_variant(None, "IBusText").is_none());
     }
 
     #[test]
