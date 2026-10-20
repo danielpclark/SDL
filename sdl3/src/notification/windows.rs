@@ -909,9 +909,6 @@ fn save_toast_image(state: &mut State, icon: Option<&Surface<'_>>) -> Option<Vec
     if name_ret == 0 {
         return None;
     }
-    // FIXME (upstream): GetTempFileNameW() creates the file it names,
-    // which is never deleted (only the ".png" next to it is).
-
     let name_len = file_name
         .iter()
         .position(|&c| c == 0)
@@ -926,6 +923,12 @@ fn save_toast_image(state: &mut State, icon: Option<&Surface<'_>>) -> Option<Vec
     }
 
     state.toast_icons.push(path_buf.clone());
+    // Note (upstream): GetTempFileNameW() creates the file it names, which
+    // is never deleted (only the ".png" next to it is). Here it keeps the
+    // name taken while the image is in use, and goes after it.
+    let mut placeholder = file_name[..name_len].to_vec();
+    placeholder.push(0);
+    state.toast_icons.push(placeholder);
 
     // Schedule a cleanup of icons 5 seconds from now.
     // SAFETY: a thread timer with a valid callback.
@@ -1669,6 +1672,22 @@ mod tests {
             ..Notification::default()
         };
         assert!(build_notification_xml(&notification, None).is_none());
+    }
+
+    #[test]
+    fn toast_images_are_cleaned_up() {
+        let _l = crate::test_support::test_lock();
+        let mut state = state();
+        let icon = Surface::new(4, 4, crate::video::pixels::PixelFormat::ARGB8888).unwrap();
+        let png = text(&save_toast_image(&mut state, Some(&icon)).unwrap());
+        let temp = png.strip_suffix(".png").unwrap().to_owned();
+        let exists = |p: &str| std::path::Path::new(p).exists();
+        assert!(exists(&png), "{png}");
+        assert!(exists(&temp), "{temp}");
+        cleanup_icons(&mut state);
+        assert!(!exists(&png));
+        // (upstream leaves GetTempFileNameW()'s file behind)
+        assert!(!exists(&temp));
     }
 
     #[test]
