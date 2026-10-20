@@ -338,18 +338,9 @@ fn playback_and_recording_through_a_private_server() {
     drop(stream);
 
     // Hotplug: a sink loaded at run time appears, becomes the default and
-    // disappears again (when pactl is there to do it). This runs without
-    // the monitors, since a removed sink is looked up by an index that a
-    // source can share (see the FIXME in `hotplug_callback`).
-    crate::init::quit_subsystem(InitFlags::AUDIO);
-    crate::hints::reset(crate::hints::AUDIO_INCLUDE_MONITORS);
-    std::env::set_var("PULSE_SERVER", &address);
-    let r = crate::init::init_subsystem(InitFlags::AUDIO);
-    std::env::remove_var("PULSE_SERVER");
-    if let Err(e) = r {
-        reset();
-        panic!("PulseAudio should reconnect: {}", e.message());
-    }
+    // disappears again (when pactl is there to do it), with the monitors,
+    // whose sources' indices can be the sinks' (upstream looks a removal
+    // up by its index alone, so it can disconnect a source instead).
     let pactl = |args: &[&str]| {
         std::process::Command::new("pactl")
             .args(args)
@@ -373,6 +364,13 @@ fn playback_and_recording_through_a_private_server() {
         "sink_properties=device.description=Hotplugged",
     ]) {
         assert!(wait_for(&|| named("Hotplugged").is_some()), "added");
+        let has_monitor = || {
+            recording_devices()
+                .unwrap()
+                .into_iter()
+                .any(|d| audio_device_name(d).is_ok_and(|n| n == "Monitor of Hotplugged"))
+        };
+        assert!(wait_for(&has_monitor), "its monitor added");
         pactl(&["set-default-sink", "hotplugged"]).unwrap();
         // (a volume change wakes the hotplug thread again, in case the
         // default change's signal was missed; see the FIXME in `hotplug_thread`)
@@ -387,8 +385,16 @@ fn playback_and_recording_through_a_private_server() {
             let _ = pactl(&["set-sink-volume", "hotplugged", volume]);
         }
         assert!(changed, "the new default");
+        // (the sink's monitor is a source with the sink's index; looked up
+        // by the index alone, the sink's removal finds the monitor, and the
+        // monitor's finds it again before it's gone, so the sink stays)
+        let monitors_before = recording_devices().unwrap().len();
         pactl(&["unload-module", &module]).unwrap();
         assert!(wait_for(&|| named("Hotplugged").is_none()), "removed");
+        assert!(
+            wait_for(&|| recording_devices().unwrap().len() == monitors_before - 1),
+            "the sink's monitor removed, and only it"
+        );
     } else {
         crate::test_support::skip("pulseaudio", "no pactl for the hotplug check");
     }
