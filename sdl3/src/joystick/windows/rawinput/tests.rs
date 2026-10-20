@@ -5,6 +5,7 @@
 
 use super::*;
 use crate::core::windows::com::{ComObject, IUnknownVtbl};
+use crate::joystick::JoystickDriver;
 
 use std::ffi::c_void;
 
@@ -110,4 +111,9 @@ fn closing_a_joystick_releases_only_the_wgi_reference_it_took() {
     ctx.wgi_enabled = true;
     s.release_context(&ctx);
     assert_eq!(s.wgi_state.ref_count, 0);
+}
+
+#[test]
+fn no_player_index() {
+    assert_eq!(RAWINPUT_JOYSTICK_DRIVER.device_player_index(0), -1);
 }
