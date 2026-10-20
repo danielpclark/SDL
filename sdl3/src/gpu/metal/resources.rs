@@ -682,11 +682,11 @@ impl MetalRenderer {
             state: Mutex::new(BufferContainerState {
                 active_buffer: buffer.clone(),
                 buffers: vec![buffer],
-                // FIXME (upstream): C sets debugName to NULL, then copies
+                // Note (upstream): C sets debugName to NULL, then copies
                 // the name only `if (container->debugName != NULL)`, so the
                 // container never keeps it and the buffers made when it
-                // cycles have no label.
-                debug_name: None,
+                // cycles have no label; here it keeps it.
+                debug_name: debug_name.map(str::to_owned),
             }),
         })
     }
