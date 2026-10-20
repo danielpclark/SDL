@@ -96,11 +96,13 @@ fn bluetooth_rumble_packet(low_frequency_rumble: u16, high_frequency_rumble: u16
 /// Whether the controller is rumbled with the Bluetooth packet (the
 /// `ENABLE_LUNA_BLUETOOTH_RUMBLE` product check).
 fn has_bluetooth_rumble(device: &HidapiDevice) -> bool {
-    // FIXME (upstream): only the product ID is checked, and the USB
-    // controller has the same one as the Bluetooth controller
-    // (USB_PRODUCT_AMAZON_LUNA_CONTROLLER), so the USB controller reports
-    // rumble and is sent the Bluetooth rumble packet too.
-    ENABLE_LUNA_BLUETOOTH_RUMBLE && device.product_id() == BLUETOOTH_PRODUCT_LUNA_CONTROLLER
+    // Note (upstream): C checks only the product ID, which the USB
+    // controller shares (USB_PRODUCT_AMAZON_LUNA_CONTROLLER), so the USB
+    // controller reports rumble and is sent the Bluetooth rumble packet
+    // too; here the controller must also be on Bluetooth.
+    ENABLE_LUNA_BLUETOOTH_RUMBLE
+        && device.is_bluetooth()
+        && device.product_id() == BLUETOOTH_PRODUCT_LUNA_CONTROLLER
 }
 
 /// A stick axis of a state packet (`READ_STICK_AXIS()`).

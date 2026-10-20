@@ -697,5 +697,7 @@ pub(super) const CALLS: &[(&str, &[&str])] = &[
     ("rumble 028e 028f", &["rumble 03 0f 00 00 00 01 ff 00 eb"]),
     ("rumble 1234 abcd", &["rumble 03 0f 00 00 07 43 ff 00 eb"]),
     ("rumble ffff ffdc", &["rumble 03 0f 00 00 64 64 ff 00 eb"]),
-    ("rumble usb", &["rumble 03 0f 00 00 00 00 ff 00 eb"]),
+    ("caps bluetooth", &["caps 10"]),
+    ("rumble usb", &["unsupported"]),
+    ("caps usb", &["caps 0"]),
 ];

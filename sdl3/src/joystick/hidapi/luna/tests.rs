@@ -69,24 +69,37 @@ fn state_reports() {
 fn rumble_packets() {
     for (name, expected) in data::CALLS {
         let words: Vec<&str> = name.split(' ').collect();
-        let (low, high) = match words[1] {
-            "usb" => {
-                // (upstream sends the Bluetooth packet to USB controllers too)
-                assert!(has_bluetooth_rumble(&device(false)) == ENABLE_LUNA_BLUETOOTH_RUMBLE);
-                (1, 1)
+        let lines = match (words[0], words[1]) {
+            ("caps", bus) => {
+                let mut ctx = LunaContext::default();
+                let (caps, _) = run(&device(bus == "bluetooth"), |d| {
+                    ctx.get_joystick_capabilities(d, 1)
+                });
+                if !ENABLE_LUNA_BLUETOOTH_RUMBLE {
+                    // (the cases come from a build with Bluetooth rumble,
+                    // which macOS leaves out)
+                    assert_eq!(caps.0, 0, "{name}");
+                    continue;
+                }
+                vec![format!("caps {:x}", caps.0)]
             }
-            _ => (
-                u16::from_str_radix(words[1], 16).unwrap(),
-                u16::from_str_radix(words[2], 16).unwrap(),
-            ),
+            ("rumble", "usb") => {
+                // (no rumble over USB, so nothing is queued)
+                let mut ctx = LunaContext::default();
+                let (result, _) = run(&device(false), |d| ctx.rumble_joystick(d, 1, 1, 1));
+                assert_eq!(
+                    result.unwrap_err().kind(),
+                    crate::error::ErrorKind::Unsupported
+                );
+                vec!["unsupported".to_owned()]
+            }
+            _ => {
+                assert!(has_bluetooth_rumble(&device(true)) == ENABLE_LUNA_BLUETOOTH_RUMBLE);
+                let low = u16::from_str_radix(words[1], 16).unwrap();
+                let high = u16::from_str_radix(words[2], 16).unwrap();
+                vec![hex_line("rumble", &bluetooth_rumble_packet(low, high))]
+            }
         };
-        let line = hex_line("rumble", &bluetooth_rumble_packet(low, high));
-        assert_eq!([line.as_str()], *expected, "{name}");
+        assert_eq!(lines, *expected, "{name}");
     }
-    let mut ctx = LunaContext::default();
-    let (caps, _) = run(&device(true), |d| ctx.get_joystick_capabilities(d, 1));
-    assert_eq!(
-        caps.contains(JoystickCaps::RUMBLE),
-        ENABLE_LUNA_BLUETOOTH_RUMBLE
-    );
 }
