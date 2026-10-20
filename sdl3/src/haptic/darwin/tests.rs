@@ -102,7 +102,9 @@ fn convert_effect(label: &str, naxes: i32, effect: &HapticEffect) -> String {
 }
 
 /// The effects of the upstream harness (SDL_SYS_ToFFEFFECT() compiled from
-/// upstream's SDL_syshaptic.c), with the lines it printed.
+/// upstream's SDL_syshaptic.c, with durations and trigger repeat intervals
+/// in microseconds and SDL_HAPTIC_INFINITY as FF_INFINITE, as here), with
+/// the lines it printed.
 #[test]
 fn effects_convert_like_upstream() {
     let constant = HapticEffect::Constant(HapticConstant {
@@ -119,7 +121,7 @@ fn effects_convert_like_upstream() {
     });
     assert_eq!(
         convert_effect("constant", 2, &constant),
-        "constant flags=34 dur=5000000 gain=10000 trig=50 interval=250 delay=100000 caxes=2 axes=0,4, dir=18000,0, env=10000,200000,376,0 cb=4 params=-6103"
+        "constant flags=34 dur=5000000 gain=10000 trig=50 interval=250000 delay=100000 caxes=2 axes=0,4, dir=18000,0, env=10000,200000,376,0 cb=4 params=-6103"
     );
 
     let periodic = HapticEffect::Periodic(HapticPeriodic {
@@ -134,7 +136,7 @@ fn effects_convert_like_upstream() {
     });
     assert_eq!(
         convert_effect("periodic", 3, &periodic),
-        "periodic flags=18 dur=4294966296 gain=10000 trig=4294967295 interval=0 delay=0 caxes=3 axes=0,4,20, dir=1,-1,5, env=null cb=16 params=10000,10000,9000,65535000"
+        "periodic flags=18 dur=4294967295 gain=10000 trig=4294967295 interval=0 delay=0 caxes=3 axes=0,4,20, dir=1,-1,5, env=null cb=16 params=10000,10000,9000,65535000"
     );
 
     let sine = HapticEffect::Periodic(HapticPeriodic {
@@ -204,6 +206,26 @@ fn effects_convert_like_upstream() {
     assert_eq!(
         convert_effect("ramp", 2, &ramp),
         "ramp flags=34 dur=750000 gain=10000 trig=4294967295 interval=0 delay=65535000 caxes=2 axes=0,4, dir=35999,0, env=0,1000,10000,2000 cb=8 params=-10000,10000"
+    );
+
+    // Lengths past what the DWORD holds in microseconds; the longest interval
+    let long = |length| {
+        let HapticEffect::Ramp(ramp) = &ramp else {
+            unreachable!()
+        };
+        HapticEffect::Ramp(HapticRamp {
+            length,
+            interval: 65535,
+            ..*ramp
+        })
+    };
+    assert_eq!(
+        convert_effect("long", 2, &long(4294968)),
+        "long flags=34 dur=4294967294 gain=10000 trig=4294967295 interval=65535000 delay=65535000 caxes=2 axes=0,4, dir=35999,0, env=0,1000,10000,2000 cb=8 params=-10000,10000"
+    );
+    assert_eq!(
+        convert_effect("longest", 2, &long(4294967)),
+        "longest flags=34 dur=4294967000 gain=10000 trig=4294967295 interval=65535000 delay=65535000 caxes=2 axes=0,4, dir=35999,0, env=0,1000,10000,2000 cb=8 params=-10000,10000"
     );
 
     let custom = HapticEffect::Custom(HapticCustom {
