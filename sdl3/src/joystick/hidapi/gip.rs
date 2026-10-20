@@ -1438,9 +1438,9 @@ impl Attachment {
          * The GIP spec specifies that the host should reject the device if any of these are wrong.
          * I don't know if Windows or an Xbox do, however, so let's just log warnings instead.
          */
-        // FIXME (upstream): the version checks only warn when both numbers
-        // are wrong (`&&` where `||` is meant).
-        if rf_proto_major_version != 1 && rf_proto_minor_version != 0 {
+        // Note (upstream): C warns only when both numbers are wrong (`&&`
+        // where `||` is meant); here any version but 1.0 is reported.
+        if rf_proto_major_version != 1 || rf_proto_minor_version != 0 {
             crate::log::warn!(
                 Category::Input,
                 "GIP: Invalid RF protocol version {}.{}, expected 1.0",
@@ -1449,7 +1449,7 @@ impl Attachment {
             );
         }
 
-        if security_major_version != 1 && security_minor_version != 0 {
+        if security_major_version != 1 || security_minor_version != 0 {
             crate::log::warn!(
                 Category::Input,
                 "GIP: Invalid security protocol version {}.{}, expected 1.0",
@@ -1458,7 +1458,7 @@ impl Attachment {
             );
         }
 
-        if gip_major_version != 1 && gip_minor_version != 0 {
+        if gip_major_version != 1 || gip_minor_version != 0 {
             crate::log::warn!(
                 Category::Input,
                 "GIP: Invalid GIP version {}.{}, expected 1.0",
