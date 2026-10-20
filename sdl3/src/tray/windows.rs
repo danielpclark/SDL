@@ -690,9 +690,10 @@ impl TrayBackend for TrayWin {
                 Some(label_w) => {
                     let mut mf = MF_STRING | MF_BYPOSITION;
                     if flags.contains(TrayEntryFlags::SUBMENU) {
-                        // FIXME (upstream): this drops MF_BYPOSITION, so
-                        // the position is taken as a command ID.
-                        mf = MF_POPUP;
+                        // Note (upstream): this is `mf = MF_POPUP`, which
+                        // drops MF_BYPOSITION, so the position is taken as
+                        // a command ID.
+                        mf |= MF_POPUP;
                     }
 
                     if flags.contains(TrayEntryFlags::DISABLED) {
@@ -1152,6 +1153,33 @@ mod tests {
         assert!(menu.entries().is_err());
         // SAFETY: IsWindow accepts any handle.
         assert!(unsafe { IsWindow(window) } == 0);
+    }
+
+    #[test]
+    fn submenu_inserted_at_a_position() {
+        let _l = crate::test_support::test_lock();
+        let tray = test_tray(TrayOptions::default());
+        let menu = tray.create_menu().unwrap();
+        let a = menu
+            .insert_entry(-1, Some("A"), TrayEntryFlags::BUTTON)
+            .unwrap();
+        let b = menu
+            .insert_entry(-1, Some("B"), TrayEntryFlags::BUTTON)
+            .unwrap();
+        // (upstream's goes where the command ID 0 is: nowhere, as IDs
+        // start at 1)
+        let sub = menu
+            .insert_entry(0, Some("Sub"), TrayEntryFlags::SUBMENU)
+            .unwrap();
+        assert_eq!(menu.entries().unwrap(), [sub.clone(), a, b]);
+        let hm = h_menu(&tray, None);
+        // SAFETY: the menus are live.
+        unsafe {
+            assert_eq!(GetMenuItemCount(hm), 3);
+            assert_eq!(GetSubMenu(hm, 0), h_menu(&tray, Some(sub.key)));
+        }
+        assert_eq!(menu_string(hm, 0), "Sub");
+        assert_eq!(menu_string(hm, 1), "A");
     }
 
     #[test]
