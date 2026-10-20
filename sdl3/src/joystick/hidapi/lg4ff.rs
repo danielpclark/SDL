@@ -617,9 +617,10 @@ impl Lg4ffContext {
                 if report_buf[5] != last[5] {
                     axis(GamepadAxis::RightX, pedal(report_buf[5]).into());
                 }
-                // FIXME (upstream): the change of byte 6 sends byte 7.
+                // Note (upstream): C sends byte 7 when byte 6 changes; here
+                // byte 6 is sent, as for the other axes.
                 if report_buf[6] != last[6] {
-                    axis(GamepadAxis::RightY, pedal(report_buf[7]).into());
+                    axis(GamepadAxis::RightY, pedal(report_buf[6]).into());
                 }
             }
             _ => {}
