@@ -2675,6 +2675,66 @@ fn renderer_resources_and_pools() {
     renderer.drain_info_queue_messages();
 }
 
+/// A command buffer whose submission fails goes back to the available ones,
+/// and gives back the resources it tracks (upstream loses it, and a
+/// released texture it used is never destroyed).
+#[test]
+fn a_failed_submission_returns_the_command_buffer() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(renderer) = renderer() else {
+        return;
+    };
+    let cb = renderer.acquire_command_buffer_internal().unwrap();
+    renderer.cancel_internal(cb).unwrap();
+    let available = lock(&renderer.command_buffer_pool).len();
+
+    let texture = renderer
+        .create_texture_container(&texture_info(
+            TextureType::Texture2D,
+            TextureFormat::R8G8B8A8_UNORM,
+            TextureUsageFlags::SAMPLER,
+            1,
+            1,
+        ))
+        .unwrap();
+    let active = lock(&texture.state).active_texture.clone();
+    let mut cb = renderer.acquire_command_buffer_internal().unwrap();
+    cb.track_texture(&active);
+    assert_eq!(active.reference_count.load(Ordering::SeqCst), 1);
+    renderer.release_texture_container(&texture);
+
+    // (closing the command list twice fails)
+    assert!(cb.graphics_command_list.close() >= 0);
+    let (result, _) = gpu_warnings(|| renderer.submit_internal(cb));
+    let message = result.err().map(|e| e.message().to_owned());
+    assert!(
+        message
+            .as_deref()
+            .is_some_and(|m| m.starts_with("Failed to close command list!")),
+        "{message:?}"
+    );
+    assert_eq!(active.reference_count.load(Ordering::SeqCst), 0);
+    assert_eq!(lock(&renderer.command_buffer_pool).len(), available);
+    assert!(lock(&renderer.submit_lock).is_empty());
+
+    // The released texture is destroyed.
+    drop(active);
+    renderer.wait_internal().unwrap();
+    assert!(renderer
+        .dispose
+        .lock()
+        .unwrap()
+        .textures_to_destroy
+        .is_empty());
+
+    // The command buffer records and submits again.
+    let cb = renderer.acquire_command_buffer_internal().unwrap();
+    renderer.submit_internal(cb).unwrap();
+    renderer.wait_internal().unwrap();
+    assert_eq!(lock(&renderer.command_buffer_pool).len(), available);
+}
+
 #[test]
 fn staging_descriptor_pools_grow() {
     let _l = crate::test_support::test_lock();

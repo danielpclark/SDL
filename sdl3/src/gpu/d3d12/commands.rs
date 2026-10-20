@@ -1205,10 +1205,11 @@ impl D3D12Renderer {
         let mut result = Ok(());
 
         for i in (0..submitted.len()).rev() {
+            // (one without a fence, whose submission failed, waits for Wait)
             let fence_value = submitted[i]
                 .in_flight_fence
                 .as_ref()
-                .map_or(D3D12_FENCE_SIGNAL_VALUE, |f| f.handle.completed_value());
+                .map_or(D3D12_FENCE_UNSIGNALED_VALUE, |f| f.handle.completed_value());
 
             if fence_value == D3D12_FENCE_SIGNAL_VALUE {
                 let command_buffer = submitted.swap_remove(i);
@@ -1226,9 +1227,12 @@ impl D3D12Renderer {
     /// fence is `SubmitAndAcquireFence()`'s when the command buffer's
     /// `auto_release_fence` is false).
     ///
-    /// FIXME (upstream): when closing the command list, converting it,
-    /// acquiring the fence or enqueuing its signal fails, the command
-    /// buffer is lost (and the resources it tracks are never destroyed).
+    /// Note (upstream): when closing the command list, converting it,
+    /// acquiring the fence or enqueuing its signal fails, C loses the
+    /// command buffer (and the resources it tracks are never destroyed).
+    /// Here one that wasn't executed is cleaned as a cancelled one; one
+    /// that was goes to the submitted ones (without a fence for the
+    /// caller), which the next Wait cleans.
     ///
     /// Note (upstream): C returns with `submitLock` held when closing the
     /// command list or enqueuing the fence signal fails; the lock's guard
@@ -1285,13 +1289,19 @@ impl D3D12Renderer {
         let res = command_buffer.graphics_command_list.close();
         self.drain_info_queue_messages();
         if res < 0 {
-            return Err(self.set_error("Failed to close command list!", res));
+            let e = self.set_error("Failed to close command list!", res);
+            let _ = self.clean_command_buffer(&mut submitted, command_buffer, true);
+            return Err(e);
         }
 
-        let command_list = command_buffer
-            .graphics_command_list
-            .command_list()
-            .map_err(|res| self.set_error("Failed to convert command list!", res))?;
+        let command_list = match command_buffer.graphics_command_list.command_list() {
+            Ok(command_list) => command_list,
+            Err(res) => {
+                let e = self.set_error("Failed to convert command list!", res);
+                let _ = self.clean_command_buffer(&mut submitted, command_buffer, true);
+                return Err(e);
+            }
+        };
 
         // Submit the command list to the queue
         self.command_queue.execute_command_list(&command_list);
@@ -1299,7 +1309,13 @@ impl D3D12Renderer {
         drop(command_list);
 
         // Acquire a fence and set it to the in-flight fence
-        let in_flight_fence = self.acquire_fence()?;
+        let in_flight_fence = match self.acquire_fence() {
+            Ok(fence) => fence,
+            Err(e) => {
+                submitted.push(command_buffer);
+                return Err(e);
+            }
+        };
         command_buffer.in_flight_fence = Some(in_flight_fence.clone());
 
         // Return the fence while submitLock is held, another thread could
@@ -1311,6 +1327,9 @@ impl D3D12Renderer {
             .command_queue
             .signal(&in_flight_fence.handle, D3D12_FENCE_SIGNAL_VALUE);
         if res < 0 {
+            // (the fence never signals; the caller doesn't get it)
+            command_buffer.auto_release_fence = true;
+            submitted.push(command_buffer);
             return Err(self.set_error("Failed to enqueue fence signal!", res));
         }
 
