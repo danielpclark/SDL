@@ -923,13 +923,11 @@ pub(super) fn di_get_type_specific_params_update_flag(before: &DiEffect, after: 
         return true;
     }
     // (lpvTypeSpecificParams is never NULL)
-    match (&before.params, &after.params) {
-        // FIXME (upstream): the memcmp() compares the DICUSTOMFORCE
-        // structures, whose sample pointers always differ, rather than the
-        // samples: custom effects always count as changed.
-        (TypeSpecificParams::Custom { .. }, TypeSpecificParams::Custom { .. }) => true,
-        (b, a) => b != a,
-    }
+    // Note (upstream): the memcmp() compares the DICUSTOMFORCE structures,
+    // whose sample pointers always differ, rather than the samples, so a
+    // custom effect always counts as changed. Here the samples are
+    // compared.
+    before.params != after.params
 }
 
 /// Calculate the exact flags needed when updating an existing

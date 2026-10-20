@@ -285,7 +285,8 @@ fn effect_types() {
 
 #[test]
 fn update_flags_like_upstream() {
-    // (expected values from upstream's DICalculateUpdateFlags())
+    // (expected values from upstream's DICalculateUpdateFlags(), with custom
+    // effects comparing their samples, as here)
     let mut constant = HapticConstant {
         direction: direction(HapticDirectionType::Polar, [0; 3]),
         length: 1000,
@@ -326,21 +327,27 @@ fn update_flags_like_upstream() {
         985
     );
 
-    // Custom effects always count as changed (upstream compares pointers)
-    let custom = to_dieffect(
-        1,
-        &HW_AXES,
-        &HapticEffect::Custom(HapticCustom {
-            channels: 1,
-            samples: 1,
-            data: vec![5],
-            ..Default::default()
-        }),
-    )
-    .unwrap();
+    // Custom effects compare their samples
+    let custom = |data| {
+        to_dieffect(
+            2,
+            &HW_AXES,
+            &HapticEffect::Custom(HapticCustom {
+                channels: 1,
+                samples: 1,
+                data: vec![data],
+                ..Default::default()
+            }),
+        )
+        .unwrap()
+    };
     assert_eq!(
-        di_calculate_update_flags(&custom, &custom.clone()),
-        DIEP_TYPESPECIFICPARAMS
+        format!(
+            "custom_flags same={} samples={}",
+            di_calculate_update_flags(&custom(5), &custom(5)),
+            di_calculate_update_flags(&custom(5), &custom(30000))
+        ),
+        "custom_flags same=985 samples=256"
     );
 }
 
