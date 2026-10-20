@@ -1761,8 +1761,11 @@ impl X11Video {
                             &mut children,
                             &mut num_children,
                         );
-                        // FIXME (upstream): the list of children from
-                        // XQueryTree() is never freed.
+                        // Note (upstream): C never frees the list of
+                        // children from XQueryTree(); it is freed here.
+                        if !children.is_null() {
+                            (x.XFree)(children.cast());
+                        }
                         let (cx, cy) = (conf.x, conf.y);
                         (x.XTranslateCoordinates)(
                             conf.display,
