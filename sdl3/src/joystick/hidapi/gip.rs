@@ -1924,10 +1924,11 @@ impl Attachment {
                 }
             }
             self.last_key = 0;
-        } else {
-            // FIXME (upstream): a report without a key, when none was down,
-            // lands here: it presses scancode 0, and ends an Alt code (so
-            // pressing Alt before the first digit loses the code).
+        } else if bytes[2] != 0 {
+            // Note (upstream): C takes a report without a key, when none
+            // was down, as a key press: it presses scancode 0 and ends an
+            // Alt code (so pressing Alt before the first digit loses the
+            // code). Here such a report presses nothing.
             self.send_key(io, timestamp, Scancode(u16::from(bytes[2])), true);
             self.last_key = bytes[2];
 
