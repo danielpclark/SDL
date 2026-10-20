@@ -273,251 +273,257 @@ write 1c 00 ce 00 00 00 00
 result 0 peak 24576
 end
 op 3016 timer
-write 1c 00 ff 00 00 00 00
-result 0 peak 859009659
+write 1c 00 bf 00 00 00 00
+result 0 peak 24576
 end
 op 3032 timer
-result 0 peak 859009659
+write 1c 00 b0 00 00 00 00
+result 0 peak 24576
 end
 op 3048 timer
-result 0 peak 859009659
+write 1c 00 a1 00 00 00 00
+result 0 peak 24576
 end
 op 3064 timer
-result 0 peak 859009659
+write 1c 00 92 00 00 00 00
+result 0 peak 24576
 end
 op 3080 timer
 write 1c 00 83 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3096 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3112 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3128 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3144 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3160 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3176 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3192 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3208 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3224 timer
 write 1c 00 82 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3240 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3256 timer
 write 1c 00 81 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3272 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3288 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3304 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3320 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 3336 stop 1
 result 1
 end
 op 3336 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4000 run 2 1
 result 1
 end
 op 4000 timer
 write 1c 00 7b 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4016 timer
-write 1c 00 ff 00 00 00 00
-result 0 peak 859009659
+write 1c 00 72 00 00 00 00
+result 0 peak 24576
 end
 op 4032 timer
-result 0 peak 859009659
+write 1c 00 69 00 00 00 00
+result 0 peak 24576
 end
 op 4048 timer
-result 0 peak 859009659
+write 1c 00 61 00 00 00 00
+result 0 peak 24576
 end
 op 4064 timer
-result 0 peak 859009659
+write 1c 00 58 00 00 00 00
+result 0 peak 24576
 end
 op 4080 timer
 write 1c 00 50 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4096 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4112 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4128 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4144 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4160 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4176 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4192 timer
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4208 timer
 write 1c 00 4a 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4224 timer
 write 1c 00 40 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4240 timer
 write 1c 00 36 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4256 timer
 write 1c 00 2c 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4272 timer
 write 1c 00 21 00 00 00 00
-result 0 peak 859009659
+result 0 peak 24576
 end
 op 4288 timer
 write 1c 00 17 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 4304 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 4320 timer
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 4336 stop 2
 result 1
 end
 op 4336 timer
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5000 run 3 1
 result 1
 end
 op 5000 timer
 write 1c 00 7f 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5016 timer
 write 1c 00 7a 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5032 timer
 write 1c 00 75 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5048 timer
 write 1c 00 70 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5064 timer
 write 1c 00 6b 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5080 timer
 write 1c 00 66 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5096 timer
 write 1c 00 60 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5112 timer
 write 1c 00 5b 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5128 timer
 write 1c 00 56 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5144 timer
 write 1c 00 51 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5160 timer
 write 1c 00 4c 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5176 timer
 write 1c 00 47 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5192 timer
 write 1c 00 42 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5208 timer
 write 1c 00 3d 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5224 timer
 write 1c 00 38 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5240 timer
 write 1c 00 32 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5256 timer
 write 1c 00 2d 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5272 timer
 write 1c 00 28 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5288 timer
 write 1c 00 23 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5304 timer
 write 1c 00 1e 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5320 timer
 write 1c 00 19 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5336 stop 3
 result 1
 end
 op 5336 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 859009659
+result 0 peak 26705
 end
 op 5336 close
 end
@@ -4977,15 +4983,14 @@ op 2544 status 4
 result 0
 end
 op 2629 timer
-write 1c 00 00 00 00 00 00
-result 0 peak 256860765
+write 1c 00 ff 00 00 00 00
+result 0 peak 160404
 end
 op 2730 run 2 3
 result 1
 end
 op 2830 timer
-write 1c 00 ff 00 00 00 00
-result 0 peak 256860765
+result 0 peak 7744846
 end
 op 2939 gain 109
 result 1
@@ -4994,45 +4999,45 @@ op 2948 run 4 1
 result 1
 end
 op 3021 timer
-result 0 peak 256860765
+result 0 peak 12806164
 end
 op 3112 update 4 periodic 2 1 -787 -522 0 555 22 275 -21244 3003 23296 85 61596 188 18076
 result 1
 end
 op 3198 timer
-result 0 peak 256860765
+result 0 peak 13079762
 end
 op 3228 timer
-result 0 peak 256860765
+result 0 peak 13149099
 end
 op 3259 timer
-result 0 peak 256860765
+result 0 peak 13149099
 end
 op 3305 timer
-result 0 peak 256860765
+result 0 peak 13319442
 end
 op 3321 timer
-result 0 peak 256860765
+result 0 peak 13346007
 end
 op 3340 timer
-result 0 peak 256860765
+result 0 peak 13377292
 end
 op 3345 timer
-result 0 peak 256860765
+result 0 peak 13385627
 end
 op 3363 timer
-result 0 peak 256860765
+result 0 peak 13416501
 end
 op 3373 timer
-result 0 peak 256860765
+result 0 peak 13434360
 end
 op 3397 timer
-result 0 peak 256860765
+result 0 peak 13480826
 end
 op 3397 destroy 0
 end
 op 3397 timer
-result 0 peak 256860765
+result 0 peak 13480826
 end
 op 3397 close
 end
@@ -5732,11 +5737,12 @@ write 1c 00 82 00 00 00 00
 result 0 peak 5677
 end
 op 2126 timer
-write 1c 00 ff 00 00 00 00
-result 0 peak 1072370633
+write 1c 00 aa 00 00 00 00
+result 0 peak 10856
 end
 op 2219 timer
-result 0 peak 1075422944
+write 1c 00 74 00 00 00 00
+result 0 peak 10856
 end
 op 2225 create constant 3 0 0 0 4294967295 43 27415 89 12949 0 23969
 result 4
@@ -5755,26 +5761,26 @@ result 1
 end
 op 2518 timer
 write 1c 00 69 00 00 00 00
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 2615 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 2742 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 2760 stop 4
 result 1
 end
 op 2855 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 2959 status 2
 result 0
 end
 op 2998 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3030 run 0 1
 result 1
@@ -5783,8 +5789,8 @@ op 3109 status 0
 result 1
 end
 op 3114 timer
-write 1c 00 ff 00 00 00 00
-result 0 peak 1075422944
+write 1c 00 8f 00 00 00 00
+result 0 peak 10856
 end
 op 3117 run 2 3
 result 1
@@ -5800,40 +5806,40 @@ result 1
 end
 op 3284 timer
 write 1c 00 8a 00 00 00 00
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3286 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3299 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3325 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3333 timer
 write 1c 00 8b 00 00 00 00
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3368 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3391 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3417 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3443 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3477 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3477 destroy 0
 end
 op 3477 timer
-result 0 peak 1075422944
+result 0 peak 10856
 end
 op 3477 close
 end
@@ -6580,51 +6586,54 @@ op 2936 create condition 256 3 0 0 0 87 9 40223 40034 -1806 -32610 20866 -5055
 result 4
 end
 op 3036 timer
-write 1c 00 00 00 00 00 00
-result 0 peak 445732519
+write 1c 00 6c 00 00 00 00
+result 0 peak 11432
 end
 op 3086 timer
-result 0 peak 570987327
+write 1c 00 73 00 00 00 00
+result 0 peak 11432
 end
 op 3090 timer
-result 0 peak 570987327
+write 1c 00 76 00 00 00 00
+result 0 peak 11432
 end
 op 3091 timer
-result 0 peak 570987327
+write 1c 00 77 00 00 00 00
+result 0 peak 11432
 end
 op 3121 stop 0
 result 1
 end
 op 3134 timer
 write 1c 00 8d 00 00 00 00
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3161 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3178 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3223 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3268 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3284 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3302 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3310 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3326 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3342 timer
-result 0 peak 570987327
+result 0 peak 11432
 end
 op 3342 close
 end
