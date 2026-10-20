@@ -987,20 +987,43 @@ fn copy_from_2d_buffer2(
     result
 }
 
+/// The bytes of a frame of `format` that is `rows` rows high, with
+/// `row_len` bytes from one row to the next, as a locked `IMF2DBuffer`
+/// holds it: the luma plane, then the chroma planes of the planar
+/// formats, NV12's and NV21's one at the luma's pitch, YV12's and IYUV's
+/// two at half of it, each half as high.
+fn frame_len_2d(format: PixelFormat, row_len: usize, rows: usize) -> usize {
+    let chroma_rows = rows.div_ceil(2);
+    let chroma = match format {
+        PixelFormat::NV12 | PixelFormat::NV21 => row_len * chroma_rows,
+        PixelFormat::YV12 | PixelFormat::IYUV => 2 * row_len.div_ceil(2) * chroma_rows,
+        _ => 0,
+    };
+    row_len * rows + chroma
+}
+
 /// The `IMF2DBuffer` path of `MEDIAFOUNDATION_AcquireFrame()`.
-fn copy_from_2d_buffer(buffer2d: &ComPtr<IMF2DBufferVtbl>, h: i32) -> Option<(Vec<u8>, i32)> {
+fn copy_from_2d_buffer(
+    buffer2d: &ComPtr<IMF2DBufferVtbl>,
+    format: PixelFormat,
+    h: i32,
+) -> Option<(Vec<u8>, i32)> {
     let vtbl = buffer2d.vtbl();
     let this = buffer2d.as_ptr().cast();
     let mut pixels: *mut u8 = ptr::null_mut();
     let mut pitch = 0i32;
     // SAFETY: a live buffer; Lock2D writes the two out parameters.
     check_hr(unsafe { (vtbl.lock_2d)(this, &mut pixels, &mut pitch) }).ok()?;
-    // FIXME (upstream): this is the size of the first plane only, so the
-    // chroma planes of the planar formats (NV12, YV12, ...) aren't copied
-    // (and upstream's frame is too short for them).
+    // Note (upstream): this copies `abs(pitch) * h` bytes, the first plane
+    // only, so NV12, NV21, YV12 and IYUV frames have no chroma; the planes
+    // follow the luma's in a top-down buffer, and are copied too here.
     let row_len = pitch.unsigned_abs() as usize;
     let rows = h.max(0) as usize;
-    let buflen = row_len * rows;
+    let buflen = if pitch >= 0 {
+        frame_len_2d(format, row_len, rows)
+    } else {
+        row_len * rows
+    };
     // The rows run from the top row (`pixels`) in the pitch's direction.
     let back = if pitch < 0 {
         row_len * rows.saturating_sub(1)
@@ -1130,7 +1153,7 @@ impl CameraBackend for MfCamera {
             }
             if format != PixelFormat::MJPG {
                 if let Ok(buffer2d) = buffer.query::<IMF2DBufferVtbl>(&IID_IMF2DBUFFER) {
-                    return copy_from_2d_buffer(&buffer2d, h);
+                    return copy_from_2d_buffer(&buffer2d, format, h);
                 }
             }
             copy_from_media_buffer(&buffer, format, h, default_pitch)
