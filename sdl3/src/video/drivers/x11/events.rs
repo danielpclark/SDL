@@ -2509,11 +2509,11 @@ impl X11Video {
             if status == Success {
                 if nitems > 0 {
                     // WM_STATE: 0=Withdrawn, 1=Normal, 3=Iconic
-                    // FIXME (upstream): the format-32 value (a long) is read
-                    // as its first 32 bits, wrong on big-endian 64-bit
-                    // systems.
+                    // Note (upstream): C reads the format-32 value (which
+                    // Xlib stores as a long) as its first 32 bits, wrong on
+                    // big-endian 64-bit systems. It is read as a long here.
                     // SAFETY: the property holds at least one long.
-                    let state = unsafe { *(prop_data as *const u32) };
+                    let state = unsafe { *(prop_data as *const c_long) };
                     let minimized =
                         with_window(window, |w| w.flags().contains(WindowFlags::MINIMIZED))
                             .unwrap_or(false);
