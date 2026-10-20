@@ -289,8 +289,8 @@ fn effects() {
 #[test]
 fn accelerometer() {
     // DualShock 3 values are big endian, with 511 at rest
-    assert_eq!(scale_accel(load16(0x01, 0xff)), 0.0);
-    assert_eq!(scale_accel(load16(0x02, 0x70)), STANDARD_GRAVITY);
+    assert_eq!(scale_accel([0x01, 0xff]), 0.0);
+    assert_eq!(scale_accel([0x02, 0x70]), STANDARD_GRAVITY);
     assert_eq!(third_party_scale_accel(load16(0x00, 0x02)), 0.0);
     assert_eq!(
         third_party_scale_accel(load16(0x71, 0x02)),

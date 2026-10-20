@@ -120,13 +120,15 @@ fn byte_axis(value: u8) -> i16 {
     (i32::from(value) * 257 - 32768) as i16
 }
 
-/// Translation of `HIDAPI_DriverPS3_ScaleAccel()`.
-fn scale_accel(value: i16) -> f32 {
+/// Translation of `HIDAPI_DriverPS3_ScaleAccel()`, on the value's two
+/// bytes.
+fn scale_accel(bytes: [u8; 2]) -> f32 {
     // Accelerometer values are in big endian order
-    // FIXME (upstream): LOAD16() already reads the bytes in little endian
-    // order on every host, so this swap (SDL_Swap16BE()) only gives the big
-    // endian value on little endian hosts.
-    let value = i16::from_be(value);
+    // Note (upstream): C reads the bytes with LOAD16(), which is little
+    // endian on every host, then swaps them with SDL_Swap16BE(), which
+    // gives the big endian value on little endian hosts only; here the
+    // bytes are read as big endian.
+    let value = i16::from_be_bytes(bytes);
     ((i32::from(value) - 511) as f32 / 113.0) * STANDARD_GRAVITY
 }
 
@@ -495,9 +497,9 @@ impl Ps3Context {
 
         if self.report_sensors {
             let sensor_data = [
-                scale_accel(load16(data[41], data[42])),
-                -scale_accel(load16(data[45], data[46])),
-                -scale_accel(load16(data[43], data[44])),
+                scale_accel([data[41], data[42]]),
+                -scale_accel([data[45], data[46]]),
+                -scale_accel([data[43], data[44]]),
             ];
             device.send_sensor(
                 timestamp,
