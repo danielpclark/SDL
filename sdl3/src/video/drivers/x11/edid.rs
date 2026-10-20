@@ -496,9 +496,9 @@ fn decode_fraction(high: i32, low: i32) -> f64 {
 fn decode_color_characteristics(edid: &[u8], info: &mut MonitorInfo) -> bool {
     let e = |i: usize| edid[i] as i32;
     info.red_x = decode_fraction(e(0x1b), get_bits(e(0x19), 6, 7));
-    // FIXME (upstream): get_bits(x, 5, 4) is an empty range and always 0
-    // (the red y low bits are bits 4..5).
-    info.red_y = decode_fraction(e(0x1c), get_bits(e(0x19), 5, 4));
+    // Note (upstream): C reads get_bits(x, 5, 4), an empty range that is
+    // always 0. The red y low bits are bits 4..5.
+    info.red_y = decode_fraction(e(0x1c), get_bits(e(0x19), 4, 5));
     info.green_x = decode_fraction(e(0x1d), get_bits(e(0x19), 2, 3));
     info.green_y = decode_fraction(e(0x1e), get_bits(e(0x19), 0, 1));
     info.blue_x = decode_fraction(e(0x1f), get_bits(e(0x1a), 6, 7));
@@ -1182,6 +1182,27 @@ mod tests {
         let dump = dump_monitor_info(&info);
         assert!(dump.contains("Product Name: DELL U2415"), "{dump}");
         assert!(dump.contains("  1920 x 1080 @ 60 Hz"));
+    }
+
+    #[test]
+    fn color_characteristics_low_bits() {
+        let mut e = sample_edid();
+        // Each primary's two low bits are a different value: red x 1,
+        // red y 2, green x 3, green y 0; blue x 2, blue y 1, white x 0,
+        // white y 3.
+        e[0x19] = 0b01_10_11_00;
+        e[0x1a] = 0b10_01_00_11;
+        e[0x1b..0x23].copy_from_slice(&[0x80; 8]);
+        let info = decode_edid(&e).unwrap();
+        let f = |low: f64| 0.5 + low / 1024.0;
+        assert_eq!(info.red_x, f(1.0));
+        assert_eq!(info.red_y, f(2.0));
+        assert_eq!(info.green_x, f(3.0));
+        assert_eq!(info.green_y, f(0.0));
+        assert_eq!(info.blue_x, f(2.0));
+        assert_eq!(info.blue_y, f(1.0));
+        assert_eq!(info.white_x, f(0.0));
+        assert_eq!(info.white_y, f(3.0));
     }
 
     #[test]
