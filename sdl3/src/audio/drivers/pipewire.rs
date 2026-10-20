@@ -498,10 +498,15 @@ impl Hotplug {
         };
         if let Some(id) = id {
             if let Some(device) = find_physical_audio_device_by_handle(id as usize) {
-                // FIXME (upstream): this runs on the hotplug loop thread with
-                // the loop locked and takes device locks, while OpenDevice holds
-                // a device lock and waits for the hotplug loop lock.
-                default_audio_device_changed(&device);
+                // Note (upstream): SDL_DefaultAudioDeviceChanged() is called
+                // right here, on the hotplug loop thread with the loop locked,
+                // and it takes device locks, while OpenDevice holds a device
+                // lock and waits for the hotplug loop's lock: a deadlock. Here
+                // it runs on the main thread, as the core's disconnects do.
+                let _ = crate::events::run_on_main_thread(
+                    move || default_audio_device_changed(&device),
+                    false,
+                );
             }
             // found it, we're done.
         }
