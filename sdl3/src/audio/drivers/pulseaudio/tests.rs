@@ -203,6 +203,46 @@ fn failed_context_frees_the_proplist() {
 }
 
 #[test]
+fn a_device_that_isnt_added_keeps_no_handle() {
+    let _l = crate::test_support::test_lock();
+    let lib = match load_pulseaudio_library() {
+        Ok(lib) => lib,
+        Err(e) => {
+            crate::test_support::skip(
+                "pulseaudio",
+                format_args!("libpulse isn't installed: {}", e.message()),
+            );
+            return;
+        }
+    };
+    assert!(current_audio_driver().is_none());
+    // (no connection: adding a device uses neither)
+    let shared = PulseShared {
+        mainloop: ptr::null_mut(),
+        context: ptr::null_mut(),
+        _context_signal: Box::new(MainloopSignal {
+            signal: lib.pa_threaded_mainloop_signal,
+            mainloop: ptr::null_mut(),
+        }),
+        lib,
+        include_monitors: false,
+        defaults: Mutex::new(Defaults::default()),
+        handles: Mutex::new(HashMap::new()),
+        next_handle: AtomicUsize::new(1),
+        hotplug_thread_active: AtomicBool::new(false),
+    };
+    let sample_spec = PaSampleSpec {
+        format: PA_SAMPLE_S16LE,
+        rate: 48000,
+        channels: 2,
+    };
+    // Without the audio subsystem, SDL_AddAudioDevice() fails, and the
+    // handle goes (upstream's is leaked).
+    shared.add_pulse_audio_device(false, "Sink", "sink", 1, &sample_spec);
+    assert!(shared.handles.lock().unwrap().is_empty());
+}
+
+#[test]
 fn no_server_means_no_driver() {
     let _l = crate::test_support::test_lock();
     if std::env::var_os("PULSE_SERVER").is_some() {
