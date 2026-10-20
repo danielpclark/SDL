@@ -1196,14 +1196,17 @@ fn maybe_remove_device(path: &str) {
 
 /// Translation of `CameraUdevCallback()`.
 fn camera_udev_callback(udev_type: UdevDeviceEvent, udev_class: DeviceClass, devpath: &str) {
-    // FIXME (upstream): udev reports removals without a device class, so
-    // the VIDEO_CAPTURE check below drops every removal and an unplugged
-    // camera is never reported as disconnected.
-    if udev_class.intersects(DeviceClass::VIDEO_CAPTURE) {
-        match udev_type {
-            UdevDeviceEvent::Added => maybe_add_device(devpath),
-            UdevDeviceEvent::Removed => maybe_remove_device(devpath),
+    // Note (upstream): both events are handled only for the VIDEO_CAPTURE
+    // class, but udev reports removals without a device class, so an
+    // unplugged camera is never reported as disconnected. Here a removal
+    // is looked up by its path, which only finds our cameras, whatever its
+    // class.
+    match udev_type {
+        UdevDeviceEvent::Added if udev_class.intersects(DeviceClass::VIDEO_CAPTURE) => {
+            maybe_add_device(devpath)
         }
+        UdevDeviceEvent::Added => {}
+        UdevDeviceEvent::Removed => maybe_remove_device(devpath),
     }
 }
 
