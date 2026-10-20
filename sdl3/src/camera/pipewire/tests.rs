@@ -580,6 +580,92 @@ fn a_camera_through_a_server() {
     deinit_pipewire_library(&lib);
 }
 
+unsafe extern "C" fn failing_stream_connect(
+    _stream: *mut PwStream,
+    _direction: c_int,
+    _target_id: u32,
+    _flags: c_int,
+    _params: *mut *const u8,
+    _n_params: u32,
+) -> c_int {
+    -22 // -EINVAL
+}
+
+/// The library with `pw_stream_connect()` replaced by `connect`, and
+/// pw_init() called, or `None` (with a note) where it doesn't load.
+fn lib_with_stream_connect(
+    connect: unsafe extern "C" fn(*mut PwStream, c_int, u32, c_int, *mut *const u8, u32) -> c_int,
+) -> Option<Arc<PwLib>> {
+    let lib = SharedObject::load(PIPEWIRE_LIBRARY).and_then(PwLib::load_syms);
+    let mut lib = match lib {
+        Ok(lib) => lib,
+        Err(e) => {
+            crate::test_support::skip("pipewire", e.message());
+            return None;
+        }
+    };
+    lib.pw_stream_connect = connect;
+    // SAFETY: pw_init() accepts NULL arguments.
+    unsafe { (lib.pw_init)(ptr::null_mut(), ptr::null_mut()) };
+    Some(Arc::new(lib))
+}
+
+/// Whether another thread can take the hotplug loop's lock (within five
+/// seconds).
+fn loop_is_unlocked(hotplug: &Arc<Hotplug>) -> bool {
+    let h = hotplug.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        h.lock();
+        h.unlock();
+        let _ = tx.send(());
+    });
+    rx.recv_timeout(Duration::from_secs(5)).is_ok()
+}
+
+#[test]
+fn a_failed_open_leaves_the_loop_unlocked() {
+    let _l = crate::test_support::test_lock();
+    let Some(lib) = lib_with_stream_connect(failing_stream_connect) else {
+        return;
+    };
+    let hotplug = match hotplug_loop_init(&lib) {
+        Ok(hotplug) => hotplug,
+        Err(e) => {
+            crate::test_support::skip("pipewire", format_args!("no server ({})", e.message()));
+            deinit_pipewire_library(&lib);
+            return;
+        }
+    };
+
+    // A device of the test driver's, opened by this one.
+    crate::hints::set(crate::hints::CAMERA_DRIVER, "test").unwrap();
+    crate::init::init_subsystem(InitFlags::CAMERA).unwrap();
+    crate::hints::reset(crate::hints::CAMERA_DRIVER);
+    let device = add_camera(
+        "SDL Test Camera",
+        CameraPosition::Unknown,
+        &[spec(PixelFormat::YUY2, 160, 120, 30, 1)],
+        Box::new(u32::MAX),
+    )
+    .unwrap();
+    let driver = PipewireCamera {
+        hotplug: Mutex::new(Some(hotplug.clone())),
+    };
+
+    let e = driver
+        .open_device(&device, &spec(PixelFormat::YUY2, 160, 120, 30, 1))
+        .err()
+        .unwrap();
+    assert_eq!(e.message(), "Pipewire: Failed to connect stream (-22)");
+    // (upstream returns with the loop locked, so the next lock hangs)
+    assert!(loop_is_unlocked(&hotplug), "the loop was left locked");
+
+    drop(device);
+    driver.deinitialize();
+    crate::init::quit_subsystem(InitFlags::CAMERA);
+}
+
 /// Hardware: grab frames from the first camera the PipeWire server offers
 /// (through libcamera or its V4L2 monitor).
 #[test]

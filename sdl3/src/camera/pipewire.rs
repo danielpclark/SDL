@@ -542,6 +542,12 @@ impl Hotplug {
         unsafe { (self.lib.pw_thread_loop_unlock)(self.loop_) }
     }
 
+    /// Lock the thread loop until the guard is dropped.
+    fn locked(&self) -> LoopGuard<'_> {
+        self.lock();
+        LoopGuard(self)
+    }
+
     fn wait(&self) {
         // SAFETY: as above; we hold the lock.
         unsafe { (self.lib.pw_thread_loop_wait)(self.loop_) }
@@ -602,6 +608,16 @@ impl Hotplug {
             }
         }
         *self.state() = HotplugState::default();
+    }
+}
+
+/// The hotplug thread loop's lock, held by [`Hotplug::locked`] until
+/// this is dropped.
+struct LoopGuard<'a>(&'a Hotplug);
+
+impl Drop for LoopGuard<'_> {
+    fn drop(&mut self) {
+        self.0.unlock();
     }
 }
 
@@ -1384,10 +1400,11 @@ impl CameraDriverImpl for PipewireCamera {
             }),
         });
 
-        hotplug.lock();
+        // Note (upstream): the failures below return with the thread loop
+        // still locked, which leaves the hotplug loop stuck; the guard
+        // unlocks it on every path here.
+        let _locked = hotplug.locked();
 
-        // FIXME (upstream): the failures below return with the thread loop
-        // still locked, so the hotplug loop is stuck from then on.
         let target = CString::new(device.name.as_str()).unwrap_or_default();
         // FIXME (upstream): target.object is given the node's description
         // (SDL's device name), which PipeWire doesn't match against (it
@@ -1459,15 +1476,12 @@ impl CameraDriverImpl for PipewireCamera {
         if res < 0 {
             // (the stream's callbacks point at `camera`, which is freed
             // with this error: destroy the stream, as SDL_OpenCamera()'s
-            // ClosePhysicalCamera() does upstream; its lock and unlock
-            // leave the loop locked, as there)
+            // ClosePhysicalCamera() does upstream)
             camera.close();
             return Err(Error::new(format!(
                 "Pipewire: Failed to connect stream ({res})"
             )));
         }
-
-        hotplug.unlock();
 
         Ok(camera)
     }
