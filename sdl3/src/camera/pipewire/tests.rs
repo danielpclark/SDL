@@ -571,7 +571,26 @@ fn a_camera_through_a_server() {
         );
     }
 
+    // A camera whose source goes away while it's open still closes
+    // (upstream's WaitDevice waits for a frame that never comes, and the
+    // close waits for the device thread).
+    let camera = Camera::open(find("SDL Fake Camera").unwrap(), None).unwrap();
+    assert!(
+        wait_for(&|| camera.permission_state() == crate::camera::CameraPermissionState::Approved),
+        "the stream streams"
+    );
     drop((fake, fake2));
+    std::thread::sleep(Duration::from_millis(500)); // (the source's frames stop)
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        drop(camera);
+        let _ = tx.send(());
+    });
+    assert!(
+        rx.recv_timeout(Duration::from_secs(10)).is_ok(),
+        "the camera without a source didn't close"
+    );
+
     crate::init::quit_subsystem(InitFlags::CAMERA);
     deinit_pipewire_library(&lib);
 }

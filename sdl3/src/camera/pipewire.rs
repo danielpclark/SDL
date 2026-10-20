@@ -24,6 +24,7 @@ use std::os::fd::IntoRawFd;
 use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::time::Duration;
 
 use super::{
     add_camera, camera_permission_outcome, AcquiredFrame, CameraBackend, CameraBootStrap,
@@ -45,6 +46,10 @@ use crate::video::{Colorspace, PixelFormat};
 const PW_REQUIRED_MAJOR: i32 = 1;
 const PW_REQUIRED_MINOR: i32 = 0;
 const PW_REQUIRED_PATCH: i32 = 0;
+
+/// The longest a device thread waits for a frame before looking again
+/// whether it is to shut down.
+const WAIT_DEVICE_TIMEOUT: Duration = Duration::from_millis(100);
 
 const PW_VERSION_NODE: u32 = 3;
 const PW_NODE_CHANGE_MASK_PARAMS: u64 = 1 << 4;
@@ -101,6 +106,8 @@ pipewire_syms! {
         pw_thread_loop_signal: fn(*mut PwThreadLoop, bool);
         pw_thread_loop_wait: fn(*mut PwThreadLoop);
         pw_thread_loop_start: fn(*mut PwThreadLoop) -> c_int;
+        pw_thread_loop_get_time: fn(*mut PwThreadLoop, *mut libc::timespec, i64) -> c_int;
+        pw_thread_loop_timed_wait_full: fn(*mut PwThreadLoop, *const libc::timespec) -> c_int;
         pw_context_new: fn(*mut PwLoop, *mut PwProperties, usize) -> *mut PwContext;
         pw_context_destroy: fn(*mut PwContext);
         pw_context_connect: fn(*mut PwContext, *mut PwProperties, usize) -> *mut PwCore;
@@ -555,6 +562,21 @@ impl Hotplug {
     fn wait(&self) {
         // SAFETY: as above; we hold the lock.
         unsafe { (self.lib.pw_thread_loop_wait)(self.loop_) }
+    }
+
+    /// Wait for a signal, for `timeout` at most.
+    fn timed_wait(&self, timeout: Duration) {
+        // SAFETY: a timespec is plain integers (and padding on some
+        // targets), for which zeros are valid.
+        let mut abstime: libc::timespec = unsafe { std::mem::zeroed() };
+        let timeout_ns = i64::try_from(timeout.as_nanos()).unwrap_or(i64::MAX);
+        // SAFETY: the loop is alive; we hold the lock; `abstime` is a valid
+        // timespec, filled in by pw_thread_loop_get_time().
+        unsafe {
+            if (self.lib.pw_thread_loop_get_time)(self.loop_, &mut abstime, timeout_ns) == 0 {
+                (self.lib.pw_thread_loop_timed_wait_full)(self.loop_, &abstime);
+            }
+        }
     }
 
     fn signal(&self) {
@@ -1247,14 +1269,16 @@ static STREAM_EVENTS: PwStreamEvents = PwStreamEvents {
 };
 
 impl CameraBackend for PwCamera {
-    fn wait_device(&self, _device: &CameraDevice) -> bool {
+    fn wait_device(&self, device: &CameraDevice) -> bool {
         // Translation of `PIPEWIRECAMERA_WaitDevice()`.
-        // FIXME (upstream): nothing signals the loop when the device is
-        // asked to shut down, so closing a camera whose stream never starts
-        // (or stops) producing frames waits here forever.
+        // Note (upstream): this waits for a signal with no limit, but
+        // nothing signals the loop when the device is asked to shut down,
+        // so closing a camera whose stream sends no frames (or has stopped)
+        // waits forever. The wait is bounded here; a timeout is a wait that
+        // ends without a frame, which AcquireFrame skips.
         self.hotplug.lock();
-        if !self.streaming.load(Ordering::Acquire) {
-            self.hotplug.wait();
+        if !device.shutting_down() && !self.streaming.load(Ordering::Acquire) {
+            self.hotplug.timed_wait(WAIT_DEVICE_TIMEOUT);
         }
         self.hotplug.unlock();
 
