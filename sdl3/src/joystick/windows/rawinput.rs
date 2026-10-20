@@ -774,20 +774,22 @@ impl RawinputState {
          * That will be right most of the time, and uncorrelation will fix any bad guesses
          */
         let mut match_count = 0;
-        for gamepad_state in &self.wgi_state.per_gamepad {
+        let mut available = None;
+        for (index, gamepad_state) in self.wgi_state.per_gamepad.iter().enumerate() {
             if gamepad_state.connected && !gamepad_state.used {
                 slot = Some(gamepad_state.id);
+                available = Some(index);
                 match_count += 1;
             }
         }
-        if match_count == 1 {
-            // FIXME (upstream): this increments the correlation id of the
-            // last gamepad in the list (the loop variable), not of the one
-            // chosen.
-            if let Some(last) = self.wgi_state.per_gamepad.last_mut() {
-                last.correlation_id = last.correlation_id.wrapping_add(1);
-                correlation_id = last.correlation_id;
-            }
+        if let (1, Some(index)) = (match_count, available) {
+            // Note (upstream): this increments the correlation id of
+            // `gamepad_state`, the loop variable, which by then is the last
+            // gamepad in the list rather than the one chosen. Here it's the
+            // chosen one's, as RAWINPUT_GuessXInputSlot() does.
+            let chosen = &mut self.wgi_state.per_gamepad[index];
+            chosen.correlation_id = chosen.correlation_id.wrapping_add(1);
+            correlation_id = chosen.correlation_id;
             return (true, correlation_id, slot);
         }
 
