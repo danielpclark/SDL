@@ -694,14 +694,15 @@ fn reconstruct(pp_data: &mut PreparsedData, buf: &mut [u8]) -> Option<usize> {
                             if parent.last_bit < child.last_bit {
                                 parent.last_bit = child.last_bit;
                             }
-                            // FIXME (upstream): the next sibling is taken
-                            // inside the report ID and report type loops,
-                            // so each child only merges one (report ID,
-                            // report type) range, and once the siblings run
-                            // out the root collection (0) is "merged" in.
-                            child_idx = usize::from(link(child_idx)?.next_sibling);
                         }
                     }
+                    // Note (upstream): the next sibling is taken inside the
+                    // report ID and report type loops, so each child only
+                    // merges one (report ID, report type) range, and once
+                    // the siblings run out the root collection (0) is
+                    // "merged" in for the rest. Here each child merges all
+                    // of its ranges before the next sibling is taken.
+                    child_idx = usize::from(link(child_idx)?.next_sibling);
                 }
             }
         }
@@ -1574,6 +1575,21 @@ mod tests {
             let len = reconstruct_pp_data(pp_data, &mut buf).unwrap_or_else(|()| panic!("{name}"));
             assert_eq!(&buf[..len], expected, "{name}");
         }
+    }
+
+    /// A synthetic device (written as one of upstream's test dumps, its
+    /// binary preparsed data from that loader) whose two child collections
+    /// are put in order by the bit ranges their own children merge into
+    /// them, with the descriptor upstream's reconstructor gives for it once
+    /// every child's ranges are merged.
+    #[test]
+    fn child_ranges_merge_into_their_parents() {
+        let pp_data = include_bytes!("testdata/nested_collections.pp_data");
+        let expected = include_bytes!("testdata/nested_collections.rpt_desc");
+        assert_eq!(preparsed_data_size(pp_data), Some(pp_data.len()));
+        let mut buf = [0u8; super::super::MAX_REPORT_DESCRIPTOR_SIZE];
+        let len = reconstruct_pp_data(pp_data, &mut buf).unwrap();
+        assert_eq!(&buf[..len], expected);
     }
 
     #[test]
