@@ -9,10 +9,10 @@
 case constant|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -162,10 +162,10 @@ endcase
 case constant envelope|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -531,10 +531,10 @@ endcase
 case directions|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -967,10 +967,10 @@ endcase
 case conditions|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -1097,10 +1097,10 @@ endcase
 case periodic sine|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -1441,10 +1441,10 @@ endcase
 case periodic square|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -1751,10 +1751,10 @@ endcase
 case periodic triangle|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -2095,10 +2095,10 @@ endcase
 case periodic sawtoothup|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -2437,10 +2437,10 @@ endcase
 case periodic sawtoothdown|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -2780,10 +2780,10 @@ endcase
 case ramps|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3136,10 +3136,10 @@ endcase
 case gain|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3221,10 +3221,10 @@ endcase
 case env|046d c29b 1230 50 100 0 30000
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3264,10 +3264,10 @@ endcase
 case env clamped|046d c29a 1300 -5 1000 abc 70000
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3300,10 +3300,10 @@ endcase
 case autocenter g29|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3369,10 +3369,10 @@ endcase
 case autocenter ffex|046d c294 2100 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3422,10 +3422,10 @@ endcase
 case autocenter dfex|046d c294 1000 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3491,10 +3491,10 @@ endcase
 case autocenter dfp|046d c298 1000 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3560,10 +3560,10 @@ endcase
 case errors|046d c299 1200 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3728,9 +3728,9 @@ op 1000 fail 3 1
 end
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-fail 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+fail 43 00 00 00 00 00 00
 error lg4ff hidapi driver failed initializing effect slots
 result 0
 end
@@ -3738,10 +3738,10 @@ endcase
 case fail commands|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3819,10 +3819,10 @@ endcase
 case fail ffex|046d c294 2100 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3851,10 +3851,10 @@ endcase
 case wheel g29|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3892,10 +3892,10 @@ endcase
 case wheel g27|046d c29b 1230 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3933,10 +3933,10 @@ endcase
 case wheel g25|046d c299 1200 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -3974,10 +3974,10 @@ endcase
 case wheel dfgt|046d c29a 1300 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4015,10 +4015,10 @@ endcase
 case wheel dfp|046d c298 1000 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4056,10 +4056,10 @@ endcase
 case wheel dfex|046d c294 1000 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4097,10 +4097,10 @@ endcase
 case wheel ffex|046d c294 2100 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4138,10 +4138,10 @@ endcase
 case restarts|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4375,10 +4375,10 @@ endcase
 case random 0|046d c29b 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4544,10 +4544,10 @@ endcase
 case random 1|046d c29b 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4718,10 +4718,10 @@ endcase
 case random 2|046d c29a 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -4885,10 +4885,10 @@ endcase
 case random 3|046d c298 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -5044,10 +5044,10 @@ endcase
 case random 4|046d c298 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -5183,10 +5183,10 @@ endcase
 case random 5|046d c298 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -5348,10 +5348,10 @@ endcase
 case random 6|046d c29b 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -5517,10 +5517,10 @@ endcase
 case random 7|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -5678,10 +5678,10 @@ endcase
 case random 8|046d c294 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -5846,10 +5846,10 @@ endcase
 case random 9|046d c298 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6006,10 +6006,10 @@ endcase
 case random 10|046d c299 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6169,10 +6169,10 @@ endcase
 case random 11|046d c29a 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6302,10 +6302,10 @@ endcase
 case random 12|046d c298 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6468,10 +6468,10 @@ endcase
 case random 13|046d c24f 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6640,10 +6640,10 @@ endcase
 case random 14|046d c298 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6805,10 +6805,10 @@ endcase
 case random 15|046d c29b 1350 - - - -
 op 1000 open
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 features 460287 effects 16 playing 16 axes 1
 result 1
 end
@@ -6986,10 +6986,10 @@ endcall
 call open
 haptic 1
 write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
-write 0d 00 00 00 00 00 00
+write 11 00 80 00 00 00 00
+write 23 00 00 00 00 00 00
+write 43 00 00 00 00 00 00
+write 83 00 00 00 00 00 00
 result 1
 instance 255 effects 16 playing 16 supported 460287 axes 1 hidapi 1
 same 1
