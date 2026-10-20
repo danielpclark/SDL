@@ -789,9 +789,15 @@ impl DeviceBackend for PulseDevice {
             (buffer_size as i32).min(self.bytes_requested.load(Ordering::Acquire)) as usize;
         let mut nbytes = reqsize;
         let mut data: *mut c_void = ptr::null_mut();
-        // FIXME (upstream): pa_stream_begin_write() is called without the main loop lock.
-        // SAFETY: the stream is live; `data` and `nbytes` are valid out-pointers.
-        if unsafe { (self.lib().pa_stream_begin_write)(self.stream, &mut data, &mut nbytes) } == 0 {
+        // Note (upstream): pa_stream_begin_write() is called without the
+        // main loop's lock, which every libpulse call on the threaded main
+        // loop's objects needs, so it races the main loop thread.
+        self.shared.lock();
+        // SAFETY: the stream is live; `data` and `nbytes` are valid
+        // out-pointers; we hold the lock.
+        let rc = unsafe { (self.lib().pa_stream_begin_write)(self.stream, &mut data, &mut nbytes) };
+        self.shared.unlock();
+        if rc == 0 {
             let mut b = self.buffers();
             b.write_buf = data.cast();
             b.write_len = nbytes;
