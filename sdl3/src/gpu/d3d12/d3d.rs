@@ -2866,12 +2866,15 @@ impl DxgiSwapChain3 {
         }
     }
 
-    /// `IDXGISwapChain1::GetDesc1()` (whose result upstream doesn't check).
-    pub(crate) fn desc1(&self) -> SwapChainDesc1 {
+    /// `IDXGISwapChain1::GetDesc1()`
+    pub(crate) fn desc1(&self) -> Result<SwapChainDesc1, HRESULT> {
         let mut desc = SwapChainDesc1::default();
         // SAFETY: a live swap chain; a valid output.
-        unsafe { (self.vtbl().get_desc1)(raw(self), &mut desc) };
-        desc
+        let res = unsafe { (self.vtbl().get_desc1)(raw(self), &mut desc) };
+        if res < 0 {
+            return Err(res);
+        }
+        Ok(desc)
     }
 
     /// `IDXGISwapChain1::SetRotation()`
