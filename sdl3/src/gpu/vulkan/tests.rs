@@ -2548,6 +2548,61 @@ fn blits_and_mipmaps() {
     device.wait_for_idle().unwrap();
 }
 
+/// A cycling blit that clears its destination keeps the clear: the blit
+/// goes into the texture the clear cycled to (upstream's cycles again).
+#[test]
+fn a_cycling_blit_keeps_its_clear() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(device) = front_end_device() else {
+        return;
+    };
+    use TextureUsageFlags as U;
+    let source = rgba_texture(&device, 2, 2, U::SAMPLER, 1);
+    fill_texture(&device, &source, 0, 2, 2, &solid(2, 2, RED));
+    let destination = rgba_texture(&device, 4, 4, U::SAMPLER | U::COLOR_TARGET, 1);
+    let mut cb = device.acquire_command_buffer().unwrap();
+    // (the destination in use by the command buffer: the blit's clear
+    // cycles it)
+    cb.begin_render_pass(&[clear_target(&destination, RED_F)], None)
+        .unwrap()
+        .end();
+    cb.blit_texture(&BlitInfo {
+        source: crate::gpu::BlitRegion {
+            texture: &source,
+            mip_level: 0,
+            layer_or_depth_plane: 0,
+            x: 0,
+            y: 0,
+            w: 2,
+            h: 2,
+        },
+        destination: crate::gpu::BlitRegion {
+            texture: &destination,
+            mip_level: 0,
+            layer_or_depth_plane: 0,
+            x: 0,
+            y: 0,
+            w: 2,
+            h: 2,
+        },
+        load_op: crate::gpu::LoadOp::Clear,
+        clear_color: BLUE_F,
+        flip_mode: crate::video::FlipMode::None,
+        filter: Filter::Nearest,
+        cycle: true,
+    })
+    .unwrap();
+    submit_and_wait(&device, cb);
+    assert_eq!(lock(&container_of(&destination).state).textures.len(), 2);
+    let pixels = texture_pixels(&device, &destination, 0, 4, 4);
+    for (i, pixel) in pixels.chunks(4).enumerate() {
+        let (x, y) = (i % 4, i / 4);
+        let expected = if x < 2 && y < 2 { RED } else { BLUE };
+        assert_eq!(pixel, expected, "({x}, {y})");
+    }
+}
+
 #[test]
 fn fences() {
     let _l = crate::test_support::test_lock();

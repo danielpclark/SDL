@@ -2449,9 +2449,10 @@ impl VulkanRenderer {
     /// Blit a region of a texture to a region of another. Translation of
     /// `VULKAN_Blit()`.
     ///
-    /// FIXME (upstream): with `cycle` and the CLEAR load op, the clear's
+    /// Note (upstream): with `cycle` and the CLEAR load op, the clear's
     /// render pass cycles the destination, which the command buffer then
-    /// uses, so the blit cycles it again and the clear is lost.
+    /// uses, so C's blit cycles it again and the clear is lost; here the
+    /// blit writes into the texture the clear cycled to.
     pub(super) fn blit_internal(
         &self,
         vulkan_command_buffer: &mut VulkanCommandBuffer,
@@ -2516,7 +2517,7 @@ impl VulkanRenderer {
             &container(info.destination.texture),
             dst_layer,
             info.destination.mip_level,
-            info.cycle,
+            info.cycle && info.load_op != LoadOp::Clear,
             VulkanTextureUsageMode::CopyDestination,
         );
 
