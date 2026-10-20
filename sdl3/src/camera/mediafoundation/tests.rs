@@ -576,6 +576,113 @@ fn frame_copies() {
     assert_eq!(sample_time_to_ns(333_667), 33_366_700);
 }
 
+// --- fake COM objects, for the frame copies ---
+
+const E_NOINTERFACE: HRESULT = 0x8000_4002_u32 as HRESULT;
+
+/// A fake COM object: its vtable (a static `V`), then its state.
+#[repr(C)]
+struct Fake<V: 'static, D> {
+    vtbl: &'static V,
+    data: D,
+}
+
+impl<V: 'static, D> Fake<V, D> {
+    /// An owned reference to the object, which must outlive it (its
+    /// Release() does nothing).
+    fn com(&mut self) -> ComPtr<V> {
+        // SAFETY: a `Fake` starts with its vtable pointer, as a COM object
+        // does, and the vtable is a `V`.
+        unsafe { ComPtr::from_raw(ptr::from_mut(self).cast()) }.unwrap()
+    }
+
+    /// The object a fake method was called on.
+    ///
+    /// # Safety
+    ///
+    /// `this` must be a live `Fake<V, D>`.
+    unsafe fn this<'a>(this: *mut c_void) -> &'a Fake<V, D> {
+        // SAFETY: the caller's contract.
+        unsafe { &*this.cast::<Fake<V, D>>() }
+    }
+}
+
+unsafe extern "system" fn fake_query_interface(
+    _this: *mut c_void,
+    _iid: *const GUID,
+    out: *mut *mut c_void,
+) -> HRESULT {
+    // SAFETY: a valid out pointer.
+    unsafe { *out = ptr::null_mut() };
+    E_NOINTERFACE
+}
+
+unsafe extern "system" fn fake_add_ref_release(_this: *mut c_void) -> u32 {
+    1
+}
+
+unsafe extern "system" fn fake_s_ok(_this: *mut c_void) -> HRESULT {
+    0
+}
+
+const FAKE_UNKNOWN: IUnknownVtbl = IUnknownVtbl {
+    query_interface: fake_query_interface,
+    add_ref: fake_add_ref_release,
+    release: fake_add_ref_release,
+};
+
+/// An `IMF2DBuffer`'s scan lines: the bytes and the pitch.
+type Fake2DBuffer = Fake<IMF2DBufferVtbl, (Vec<u8>, i32)>;
+
+unsafe extern "system" fn fake_lock_2d(
+    this: *mut c_void,
+    pixels: *mut *mut u8,
+    pitch: *mut i32,
+) -> HRESULT {
+    // SAFETY: a live fake, valid out pointers.
+    unsafe {
+        let (bytes, p) = &Fake2DBuffer::this(this).data;
+        *pixels = bytes.as_ptr().cast_mut();
+        *pitch = *p;
+    }
+    0
+}
+
+static FAKE_2D_VTBL: IMF2DBufferVtbl = IMF2DBufferVtbl {
+    base: FAKE_UNKNOWN,
+    lock_2d: fake_lock_2d,
+    unlock_2d: fake_s_ok,
+    _get_scanline0_and_pitch: [0; 5],
+};
+
+#[test]
+fn planar_frames_from_2d_buffers_have_their_chroma() {
+    // 4x4 frames with 8-byte rows: each byte is its offset.
+    let bytes: Vec<u8> = (0..64).collect();
+    let mut fake = Fake2DBuffer {
+        vtbl: &FAKE_2D_VTBL,
+        data: (bytes.clone(), 8),
+    };
+    let buffer = fake.com();
+    let copy = |format| copy_from_2d_buffer(&buffer, format, 4).unwrap();
+    // Packed: the rows. NV12 and NV21: and a chroma plane of half the
+    // rows. YV12 and IYUV: and two of half the rows at half the pitch.
+    // (upstream copies the luma plane only: 32 bytes for each)
+    assert_eq!(copy(PixelFormat::YUY2), (bytes[..32].to_vec(), 8));
+    assert_eq!(copy(PixelFormat::NV12), (bytes[..48].to_vec(), 8));
+    assert_eq!(copy(PixelFormat::NV21), (bytes[..48].to_vec(), 8));
+    assert_eq!(copy(PixelFormat::YV12), (bytes[..48].to_vec(), 8));
+    assert_eq!(copy(PixelFormat::IYUV), (bytes[..48].to_vec(), 8));
+    drop(buffer);
+
+    // Odd heights round the chroma rows up.
+    assert_eq!(frame_len_2d(PixelFormat::NV12, 8, 3), 8 * 3 + 8 * 2);
+    assert_eq!(frame_len_2d(PixelFormat::YV12, 7, 3), 7 * 3 + 2 * 4 * 2);
+    assert_eq!(frame_len_2d(PixelFormat::XRGB8888, 16, 3), 48);
+    // 640x480 NV12 at a pitch of 640: the frame's 460800 bytes.
+    assert_eq!(frame_len_2d(PixelFormat::NV12, 640, 480), 460_800);
+}
+
 /// The libraries, started up, or `None` (with a note) where they're
 /// missing (Windows Server without the Media Foundation feature); Wine
 /// always has them.
