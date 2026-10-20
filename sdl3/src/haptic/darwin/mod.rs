@@ -57,6 +57,8 @@ fn lock_list() -> MutexGuard<'static, HapticList> {
 struct HapticHwData {
     /// Hardware device.
     device: FFDeviceObjectReference,
+    /// The service it was created from (a reference of its own).
+    service: IoService,
     axes: [u8; 3],
 }
 
@@ -572,6 +574,7 @@ fn haptic_open_from_service(haptic: &mut HapticData, service: IoService) -> Resu
     // Allocate the hwdata
     let mut hwdata = HapticHwData {
         device: std::ptr::null_mut(),
+        service,
         axes: [0; 3],
     };
 
@@ -620,6 +623,9 @@ fn haptic_open_from_service(haptic: &mut HapticData, service: IoService) -> Resu
         return Err(e);
     }
 
+    // (the service is kept to find the device by its joystick)
+    // SAFETY: a valid service; released on close.
+    unsafe { IOObjectRetain(service) };
     haptic.hwdata = Some(Box::new(hwdata));
     Ok(())
 }
@@ -1081,12 +1087,13 @@ impl HapticDriver for DarwinHapticDriver {
         let Ok(hwdata) = hwdata(haptic) else {
             return false;
         };
-        // FIXME (upstream): this compares the ForceFeedback device
+        // Note (upstream): this compares the ForceFeedback device
         // reference, a pointer cut to an io_object_t, with the joystick's
         // service, so an open haptic device is never found again by its
-        // joystick.
+        // joystick. Here the device keeps the service it was created from,
+        // and that is compared.
         // SAFETY: IOObjectIsEqualTo() compares the two object names.
-        unsafe { IOObjectIsEqualTo(hwdata.device as usize as IoObject, ffservice) != 0 }
+        unsafe { IOObjectIsEqualTo(hwdata.service, ffservice) != 0 }
     }
 
     /// Closes the haptic device. Translation of `SDL_SYS_HapticClose()`.
@@ -1097,8 +1104,12 @@ impl HapticDriver for DarwinHapticDriver {
 
             // Clean up
             if let Ok(hwdata) = hwdata.downcast::<HapticHwData>() {
-                // SAFETY: the device created when opening, released once.
-                unsafe { FFReleaseDevice(hwdata.device) };
+                // SAFETY: the device created when opening, and the
+                // reference to its service taken then, released once.
+                unsafe {
+                    FFReleaseDevice(hwdata.device);
+                    IOObjectRelease(hwdata.service);
+                }
             }
 
             // Free
