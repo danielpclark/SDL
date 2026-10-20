@@ -1233,16 +1233,39 @@ fn append_xml_audio(dst: &mut Vec<u16>, sound: &str) {
         }
     }
 
-    // FIXME (upstream): the attribute values (here and in the actions)
-    // aren't XML-escaped.
+    // Note (upstream): the attribute values (here, in the actions and in
+    // the image) aren't XML-escaped, so a quote or an ampersand in them
+    // makes the XML invalid and the toast fails; here they are escaped.
+    let sound_path = xml_escape(&sound_path);
     dst.extend(
         format!("<audio src=\"{sound_path}\" loop=\"false\" silent=\"{silent_str}\"/>")
             .encode_utf16(),
     );
 }
 
+/// `s` escaped for an XML attribute value.
+fn xml_escape(s: &str) -> std::borrow::Cow<'_, str> {
+    if !s.contains(['&', '<', '>', '"', '\'']) {
+        return s.into();
+    }
+    let mut out = String::with_capacity(s.len() + 8);
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&apos;"),
+            c => out.push(c),
+        }
+    }
+    out.into()
+}
+
 /// Translation of `AppendXmlAction()`.
 fn append_xml_action(dst: &mut Vec<u16>, label: &str, action: &str) {
+    // (escaped: see append_xml_audio())
+    let (label, action) = (xml_escape(label), xml_escape(action));
     dst.extend(
         format!(
             "<action content=\"{label}\" activationType=\"foreground\" arguments=\"{action}\"/>"
@@ -1256,6 +1279,8 @@ fn append_xml_image(dst: &mut Vec<u16>, image_path: Option<&[u16]>) {
     // FIXME (upstream): this is called without an image too, whose NULL
     // path SDL_swprintf() prints as "(null)".
     let image_path = image_path.map_or_else(|| "(null)".to_string(), wide_to_utf8);
+    // (escaped: see append_xml_audio())
+    let image_path = xml_escape(&image_path);
     dst.extend(
         format!(
             "<image id=\"1\" placement=\"appLogoOverride\" src=\"file:///{image_path}\"></image>"
@@ -1654,6 +1679,31 @@ mod tests {
                 "</toast>"
             )
         );
+
+        // The attribute values are escaped (upstream's aren't).
+        let notification = Notification {
+            title: Some("T".into()),
+            message: Some("M".into()),
+            actions: vec![NotificationAction::Button {
+                action_id: "a'b".into(),
+                action_label: "Say \"hi\" & <go>".into(),
+            }],
+            ..Notification::default()
+        };
+        let icon = utf8_to_wide("C:\\R&D\\SDL1.tmp.png");
+        let xml = text(&build_notification_xml(&notification, Some(&icon)).unwrap());
+        assert!(
+            xml.contains("src=\"file:///C:\\R&amp;D\\SDL1.tmp.png\""),
+            "{xml}"
+        );
+        assert!(
+            xml.contains(concat!(
+                "<action content=\"Say &quot;hi&quot; &amp; &lt;go&gt;\" ",
+                "activationType=\"foreground\" arguments=\"a&apos;b\"/>"
+            )),
+            "{xml}"
+        );
+        assert_eq!(xml_escape("plain"), "plain");
 
         // The default sound, no actions, no image.
         let notification = Notification {
