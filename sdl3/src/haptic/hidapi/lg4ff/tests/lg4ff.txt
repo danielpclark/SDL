@@ -3679,7 +3679,7 @@ op 1000 run 4 4294967295
 result 1
 end
 op 1000 status 4
-result 0
+result 1
 end
 op 1000 run 4 1
 result 1
@@ -3691,13 +3691,13 @@ op 1000 run 4 4294967295
 result 1
 end
 op 1000 status 4
-result 0
+result 1
 end
 op 1000 run 4 2147483648
 result 1
 end
 op 1000 status 4
-result 0
+result 1
 end
 op 1000 pause
 error That operation is not supported
@@ -3708,8 +3708,8 @@ error That operation is not supported
 result 0
 end
 op 1000 timer
-write 1c 00 90 00 00 00 00
-result 0 peak 4096
+write 1c 00 91 00 00 00 00
+result 0 peak 4496
 end
 op 1000 close
 end
@@ -4585,13 +4585,14 @@ op 1739 create constant 0 -5474 0 0 28 28 21292 139 46911 49 35139
 result 2
 end
 op 1764 timer
-result 0 peak 0
+write 81 0e 99 ea 4b 01 00
+result 0 peak 9629
 end
 op 1853 update 1 constant 2 -5118 3263 0 491 1 2425 152 40222 122 64228
 result 1
 end
 op 1931 timer
-result 0 peak 0
+result 0 peak 9629
 end
 op 2036 stop 0
 result 1
@@ -4609,7 +4610,6 @@ op 2190 status 4
 result 0
 end
 op 2307 timer
-write 81 0e 99 ea 4b 01 00
 result 0 peak 9629
 end
 op 2331 update 2 constant 3 0 0 0 4294967295 60 -5348 34 19376 178 37893
@@ -5759,27 +5759,30 @@ op 2442 status 0
 result 1
 end
 op 2518 timer
-write 1c 00 69 00 00 00 00
+write 1c 00 8d 00 00 00 00
 result 0 peak 10856
 end
 op 2615 timer
-write 1c 00 80 00 00 00 00
-result 0 peak 10856
+write 1c 00 b9 00 00 00 00
+result 0 peak 14835
 end
 op 2742 timer
-result 0 peak 10856
+write 1c 00 d6 00 00 00 00
+result 0 peak 22256
 end
 op 2760 stop 4
 result 1
 end
 op 2855 timer
-result 0 peak 10856
+write 1c 00 f0 00 00 00 00
+result 0 peak 28859
 end
 op 2959 status 2
 result 0
 end
 op 2998 timer
-result 0 peak 10856
+write 1c 00 e8 00 00 00 00
+result 0 peak 28859
 end
 op 3030 run 0 1
 result 1
@@ -5788,8 +5791,8 @@ op 3109 status 0
 result 1
 end
 op 3114 timer
-write 1c 00 8f 00 00 00 00
-result 0 peak 10856
+write 1c 00 bc 00 00 00 00
+result 0 peak 28859
 end
 op 3117 run 2 3
 result 1
@@ -5804,41 +5807,47 @@ op 3245 gain 17
 result 1
 end
 op 3284 timer
-write 1c 00 8a 00 00 00 00
-result 0 peak 10856
+write 1c 00 9d 00 00 00 00
+result 0 peak 28859
 end
 op 3286 timer
-result 0 peak 10856
+write 1c 00 9e 00 00 00 00
+result 0 peak 28859
 end
 op 3299 timer
-result 0 peak 10856
+result 0 peak 28859
 end
 op 3325 timer
-result 0 peak 10856
+write 1c 00 a0 00 00 00 00
+result 0 peak 28859
 end
 op 3333 timer
-write 1c 00 8b 00 00 00 00
-result 0 peak 10856
+result 0 peak 28859
 end
 op 3368 timer
-result 0 peak 10856
+write 1c 00 a2 00 00 00 00
+result 0 peak 28859
 end
 op 3391 timer
-result 0 peak 10856
+write 1c 00 a3 00 00 00 00
+result 0 peak 28859
 end
 op 3417 timer
-result 0 peak 10856
+write 1c 00 a5 00 00 00 00
+result 0 peak 28859
 end
 op 3443 timer
-result 0 peak 10856
+write 1c 00 a6 00 00 00 00
+result 0 peak 28859
 end
 op 3477 timer
-result 0 peak 10856
+write 1c 00 8b 00 00 00 00
+result 0 peak 28859
 end
 op 3477 destroy 0
 end
 op 3477 timer
-result 0 peak 10856
+result 0 peak 28859
 end
 op 3477 close
 end
@@ -6115,7 +6124,7 @@ op 3286 create ramp 3 0 0 0 4294967295 47 -5065 28075 30 43494 18 39010
 result 5
 end
 op 3316 timer
-write 1c 00 8b 00 00 00 00
+write 1c 00 84 00 00 00 00
 result 0 peak 36152
 end
 op 3431 timer
@@ -6125,15 +6134,15 @@ op 3709 update 5 ramp 3 0 0 0 483 8 11359 -28504 134 41153 0 17195
 result 1
 end
 op 3756 timer
-write 1c 00 4a 00 00 00 00
+write 1c 00 43 00 00 00 00
 result 0 peak 36152
 end
 op 3798 timer
-write 1c 00 44 00 00 00 00
+write 1c 00 3e 00 00 00 00
 result 0 peak 36152
 end
 op 3840 timer
-write 1c 00 8b 00 00 00 00
+write 1c 00 84 00 00 00 00
 result 0 peak 36152
 end
 op 3887 timer
@@ -6149,7 +6158,7 @@ op 3940 timer
 result 0 peak 36152
 end
 op 3985 timer
-write 1c 00 80 00 00 00 00
+write 1c 00 79 00 00 00 00
 result 0 peak 36152
 end
 op 4031 timer
@@ -6566,7 +6575,7 @@ op 2466 update 2 constant 2 -12410 3504 0 151 48 -27247 0 16150 31 38090
 result 1
 end
 op 2550 timer
-write 1c 00 8d 00 00 00 00
+write 1c 00 99 00 00 00 00
 result 0 peak 11432
 end
 op 2658 status 1

@@ -1025,9 +1025,15 @@ impl Lg4ffHaptic {
             return Err(Error::new("Bad effect id"));
         };
 
-        // FIXME (upstream): the iterations become an int, so running an
-        // effect SDL_HAPTIC_INFINITY times (-1) stops it instead.
-        ctx.play_effect(index, iterations as i32, self.now());
+        // Note (upstream): C passes the iterations on as an int, so running
+        // an effect SDL_HAPTIC_INFINITY times (-1) stops it instead. Here,
+        // as on Linux, there's no infinity, so more than i32::MAX
+        // iterations play i32::MAX times.
+        ctx.play_effect(
+            index,
+            i32::try_from(iterations).unwrap_or(i32::MAX),
+            self.now(),
+        );
         Ok(())
     }
 
