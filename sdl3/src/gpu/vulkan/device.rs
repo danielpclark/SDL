@@ -477,18 +477,30 @@ pub(super) fn add_opt_in_vulkan_options(
 ///
 /// Note (upstream): C logs a failure and goes on with NULL functions
 /// (calling them next); the failure is returned here.
+///
+/// Note (upstream): C never releases the reference to the loader this
+/// takes (each PrepareDriver and CreateDevice takes one more, so the
+/// loader is never unloaded); here it's released before returning, the
+/// caller's own reference (PrepareDriver's, or the device's) keeping the
+/// loader loaded.
 fn load_entry_points() -> Result<(PfnVkGetInstanceProcAddr, GlobalFunctions)> {
     // Required for MoltenVK support
     let _ = crate::stdlib::setenv_unsafe("MVK_CONFIG_FULL_IMAGE_VIEW_SWIZZLE", "1", true);
 
     // Load Vulkan entry points
-    // FIXME (upstream): this reference to the loader is never released
-    // (each PrepareDriver and CreateDevice takes one more).
     if let Err(e) = crate::video::vulkan::vulkan_load_library(None) {
         crate::log::warn!(Category::Gpu, "Vulkan: SDL_Vulkan_LoadLibrary failed!");
         return Err(e);
     }
 
+    let result = load_global_functions();
+    crate::video::vulkan::vulkan_unload_library();
+    result
+}
+
+/// The loader's `vkGetInstanceProcAddr` and the global functions (in
+/// `VULKAN_INTERNAL_LoadEntryPoints()`).
+fn load_global_functions() -> Result<(PfnVkGetInstanceProcAddr, GlobalFunctions)> {
     let address = match crate::video::vulkan::vulkan_get_vk_get_instance_proc_addr() {
         Ok(address) if address != 0 => address,
         other => {
