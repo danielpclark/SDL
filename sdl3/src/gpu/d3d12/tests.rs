@@ -4251,6 +4251,55 @@ mod with_command_buffers {
         drop(device);
         window.destroy();
     }
+
+    /// A window whose association fails still gets its swapchain (upstream
+    /// fails the claim, taking the association's result for GetDesc1's).
+    #[test]
+    fn a_failed_window_association_only_warns() {
+        let _l = crate::test_support::test_lock();
+        let Some(_video) = WindowsVideo::init() else {
+            return;
+        };
+        let Some(device) = front_end_device() else {
+            return;
+        };
+        let window =
+            Window::create("gpu", 32, 32, crate::events::window::WindowFlags::default()).unwrap();
+        FAIL_WINDOW_ASSOCIATION.store(true, Ordering::SeqCst);
+        let (claimed, warnings) = gpu_warnings(|| device.claim_window(&window));
+        FAIL_WINDOW_ASSOCIATION.store(false, Ordering::SeqCst);
+        claimed.unwrap();
+        assert!(
+            warnings
+                .iter()
+                .any(|w| w.starts_with("MakeWindowAssociation failed!")),
+            "{warnings:?}"
+        );
+        let mut cb = device.acquire_command_buffer().unwrap();
+        let texture = cb.wait_and_acquire_swapchain_texture(&window).unwrap();
+        assert_eq!(
+            texture.as_ref().map(|t| (t.width, t.height)),
+            Some((32, 32))
+        );
+        drop(texture);
+        cb.submit().unwrap();
+        device.release_window(&window);
+        drop(device);
+        window.destroy();
+    }
+}
+
+/// Makes `MakeWindowAssociation()` fail, for
+/// [`injected_window_association_failure`].
+static FAIL_WINDOW_ASSOCIATION: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+/// The tests' fault injection: the result `MakeWindowAssociation()` is
+/// made to give, if any.
+pub(super) fn injected_window_association_failure() -> Option<windows_sys::core::HRESULT> {
+    FAIL_WINDOW_ASSOCIATION
+        .load(Ordering::SeqCst)
+        .then_some(DXGI_ERROR_INVALID_CALL)
 }
 
 #[test]

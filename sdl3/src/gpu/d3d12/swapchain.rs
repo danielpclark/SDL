@@ -361,8 +361,9 @@ impl D3D12Renderer {
             window_data.texture_containers.push(container);
         }
 
-        // (upstream checks the result of ResizeBuffers again here)
-        let swapchain_desc = swapchain.desc1();
+        // (upstream checks the result of ResizeBuffers again here, not
+        // GetDesc1's)
+        let swapchain_desc = swapchain.desc1().unwrap_or_default();
 
         window_data.width = swapchain_desc.width;
         window_data.height = swapchain_desc.height;
@@ -382,9 +383,10 @@ impl D3D12Renderer {
     /// Make a window's swapchain and its textures. Translation of
     /// `D3D12_INTERNAL_CreateSwapchain()`.
     ///
-    /// FIXME (upstream): the check after `GetDesc1()` tests the result of
-    /// the window association (`GetDesc1()` returns nothing), so a swapchain
-    /// whose window association fails is not made.
+    /// Note (upstream): the check after `GetDesc1()` tests the result of
+    /// the window association, so a swapchain whose window association
+    /// fails is not made (a failure C only warns about); here it tests
+    /// `GetDesc1()`'s own.
     ///
     /// Note (upstream): C fails without an error when the window has no
     /// `HWND`; the error says so here.
@@ -474,18 +476,19 @@ impl D3D12Renderer {
          * will silently fail and doesn't even verify arguments or return errors.
          * See https://gamedev.net/forums/topic/634235-dxgidisabling-altenter/4999955/
          */
-        let res = match swapchain3.parent_factory() {
+        match swapchain3.parent_factory() {
             Err(res) => {
                 crate::log::warn!(
                     Category::Gpu,
                     "Could not get swapchain parent! Error Code: (0x{:08X})",
                     res as u32
                 );
-                res
             }
             Ok(parent) => {
                 // Disable DXGI window crap
                 let res = make_window_association(&parent, dxgi_handle, DXGI_MWA_NO_WINDOW_CHANGES);
+                #[cfg(test)]
+                let res = super::tests::injected_window_association_failure().unwrap_or(res);
                 if res < 0 {
                     crate::log::warn!(
                         Category::Gpu,
@@ -495,14 +498,12 @@ impl D3D12Renderer {
                 }
 
                 // We're done with the parent now
-                res
             }
-        };
-
-        let swapchain_desc = swapchain3.desc1();
-        if res < 0 {
-            return Err(self.set_error("Failed to retrieve swapchain descriptor!", res));
         }
+
+        let swapchain_desc = swapchain3
+            .desc1()
+            .map_err(|res| self.set_error("Failed to retrieve swapchain descriptor!", res))?;
 
         // Initialize the swapchain data
         window_data.present_mode = present_mode;
