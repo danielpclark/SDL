@@ -453,10 +453,9 @@ struct Global {
     id: u32,
     #[allow(dead_code)] // (unused, as upstream)
     permissions: u32,
-    /// FIXME (upstream): never freed (nor used).
-    #[allow(dead_code)]
-    props: *mut PwProperties,
-
+    // Note (upstream): the global also keeps a copy of its props
+    // (pw_properties_new_dict()), which is never used nor freed; here
+    // there's no copy.
     name: String,
 
     proxy: *mut PwProxy,
@@ -807,13 +806,10 @@ unsafe extern "C" fn hotplug_registry_global_callback(
     }
 
     let lib = &hotplug.lib;
-    // SAFETY: `props` is a valid dictionary.
-    let g_props = unsafe { (lib.pw_properties_new_dict)(props) };
     let g = Box::into_raw(Box::new(Global {
         hotplug: ptr::from_ref(hotplug),
         id,
         permissions,
-        props: g_props,
         name,
         proxy,
         proxy_listener: SpaHook::zeroed(),
