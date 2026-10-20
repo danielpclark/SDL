@@ -427,10 +427,13 @@ fn serial_numbers() {
         Some("3039373132333332333534303336")
     );
 
-    // (upstream's truncation at a byte under 0x10)
+    // A byte under 0x10 has its leading zero
     data[4] = 0x05;
     run(&device, |d| ctx.handle_serial_id_packet(d, &data));
-    assert_eq!(device.serial().as_deref(), Some("30395"));
+    assert_eq!(
+        device.serial().as_deref(),
+        Some("3039053132333332333534303336")
+    );
 }
 
 #[test]
