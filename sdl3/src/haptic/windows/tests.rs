@@ -416,6 +416,24 @@ fn conversions() {
     });
 }
 
+/// A mouse is found by its device type.
+#[test]
+fn mouse_device_type() {
+    // SAFETY: the structure is plain data.
+    let mut capabilities: DIDEVCAPS = unsafe { std::mem::zeroed() };
+    let types = [
+        (0x0000_0212, true),  // a traditional mouse (DI8DEVTYPEMOUSE_TRADITIONAL)
+        (0x0001_0412, true),  // a HID touchpad (DI8DEVTYPEMOUSE_TOUCHPAD)
+        (0x0000_0002, false), // DI8DEVCLASS_POINTER, a class
+        (0x0001_0115, false), // a HID gamepad (DI8DEVTYPE_GAMEPAD)
+        (0x0000_0013, false), // a keyboard (DI8DEVTYPE_KEYBOARD)
+    ];
+    for (dev_type, mouse) in types {
+        capabilities.dwDevType = dev_type;
+        assert_eq!(super::is_mouse(&capabilities), mouse, "{dev_type:#x}");
+    }
+}
+
 /// Pause and resume fail on a device without force feedback (Wine's
 /// DirectInput mouse), each saying what failed.
 #[test]

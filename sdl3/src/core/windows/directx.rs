@@ -104,6 +104,13 @@ pub(crate) const DIEDFL_FORCEFEEDBACK: u32 = 0x0000_0100;
 pub(crate) const DIENUM_STOP: BOOL = 0;
 pub(crate) const DIENUM_CONTINUE: BOOL = 1;
 pub(crate) const DIDEVTYPE_HID: u32 = 0x0001_0000;
+/// `DI8DEVTYPE_MOUSE`, a device type (`GET_DIDEVICE_TYPE()`).
+pub(crate) const DI8DEVTYPE_MOUSE: u32 = 0x12;
+
+/// `GET_DIDEVICE_TYPE()`: the device type of a `dwDevType`.
+pub(crate) const fn get_didevice_type(dw_dev_type: u32) -> u32 {
+    dw_dev_type & 0xFF
+}
 
 // DIDEVCAPS.dwFlags
 pub(crate) const DIDC_ATTACHED: u32 = 0x0000_0001;
