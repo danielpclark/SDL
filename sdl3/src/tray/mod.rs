@@ -146,8 +146,6 @@ pub(crate) trait TrayBackend: Send + Sync {
     fn set_enabled(&self, entry: EntryKey, enabled: bool);
     fn enabled(&self, entry: EntryKey) -> bool;
     fn set_callback(&self, entry: EntryKey, callback: TrayCallback);
-    // (unreachable on Unix: see TrayEntry::click)
-    #[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
     fn click(&self, entry: EntryKey);
 }
 
@@ -428,18 +426,12 @@ impl TrayEntry {
 
     /// Simulate a click on the entry. Translation of `SDL_ClickTrayEntry()`.
     pub fn click(&self) {
-        // (Windows and macOS have their own SDL_ClickTrayEntry(), which
-        // clicks)
-        #[cfg(any(windows, target_os = "macos"))]
+        // Note (upstream): on Unix, SDL_ClickTrayEntry() calls the driver's
+        // GetTrayEntryEnabled() instead of its ClickTrayEntry(), so a
+        // simulated click does nothing (Windows and macOS have their own
+        // SDL_ClickTrayEntry(), which clicks).
         if let Ok(b) = self.valid() {
             b.click(self.key);
-        }
-        #[cfg(not(any(windows, target_os = "macos")))]
-        if let Ok(b) = self.valid() {
-            // FIXME (upstream): SDL_ClickTrayEntry() calls the driver's
-            // GetTrayEntryEnabled() instead of its ClickTrayEntry(), so a
-            // simulated click does nothing.
-            let _ = b.enabled(self.key);
         }
     }
 

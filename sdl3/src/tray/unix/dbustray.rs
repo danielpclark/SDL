@@ -1318,8 +1318,12 @@ mod tests {
         assert!(!c.enabled().unwrap());
         c.set_checked(false);
         assert!(!c.checked().unwrap());
-        c.click(); // (does nothing, as upstream)
-        assert!(!c.checked().unwrap());
+        // A simulated click toggles the checkbox and runs its callback
+        // (upstream's does nothing on Unix).
+        c.click();
+        assert!(c.checked().unwrap());
+        assert_eq!(*activated.lock().unwrap(), ["C", "A", "S1", "C"]);
+        c.set_checked(false);
         s.clone().remove();
         assert!(s1.label().is_err(), "removed with its parent");
         assert!(s.submenu().is_none());
