@@ -1272,7 +1272,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 7067",
                     "axis 1 9894",
                     "axis 2 30711",
-                    "axis 3 26085",
+                    "axis 3 8609",
                     "write f5 00 00 00 00 00 00",
                 ],
             ),
@@ -1295,7 +1295,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 18118",
                     "axis 1 9380",
                     "axis 2 12207",
-                    "axis 3 -19404",
+                    "axis 3 -7839",
                 ],
             ),
             (
@@ -1316,7 +1316,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 20945",
                     "axis 1 -6554",
                     "axis 2 11436",
-                    "axis 3 8352",
+                    "axis 3 -11180",
                 ],
             ),
             (
@@ -1359,7 +1359,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 2441",
                     "axis 1 -24287",
                     "axis 2 -9638",
-                    "axis 3 -7325",
+                    "axis 3 -25572",
                 ],
             ),
             (
@@ -1380,7 +1380,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -7325",
                     "axis 1 31996",
                     "axis 2 29940",
-                    "axis 3 6810",
+                    "axis 3 -12979",
                 ],
             ),
             (
@@ -1401,7 +1401,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -5012",
                     "axis 1 -25829",
                     "axis 2 -11437",
-                    "axis 3 -5012",
+                    "axis 3 -20432",
                 ],
             ),
             (
@@ -1422,7 +1422,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 5525",
                     "axis 1 -16577",
                     "axis 2 -18119",
-                    "axis 3 6810",
+                    "axis 3 1670",
                 ],
             ),
             (
@@ -1442,7 +1442,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 7581",
                     "axis 1 -22488",
                     "axis 2 -7068",
-                    "axis 3 25571",
+                    "axis 3 -28913",
                 ],
             ),
         ],
@@ -1475,7 +1475,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -12722",
                     "axis 1 -14521",
                     "axis 2 2955",
-                    "axis 3 18889",
+                    "axis 3 15034",
                     "write fe 03 00 00 00 00 00",
                 ],
             ),
@@ -1492,7 +1492,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -2442",
                     "axis 1 32510",
                     "axis 2 -30712",
-                    "axis 3 26342",
+                    "axis 3 -9381",
                 ],
             ),
             (
@@ -1512,7 +1512,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -643",
                     "axis 1 -1414",
                     "axis 2 19146",
-                    "axis 3 -24801",
+                    "axis 3 -20689",
                 ],
             ),
             (
@@ -1554,7 +1554,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 2698",
                     "axis 1 -26343",
                     "axis 2 3212",
-                    "axis 3 -27114",
+                    "axis 3 -1414",
                 ],
             ),
             (
@@ -1572,7 +1572,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -32768",
                     "axis 1 11436",
                     "axis 2 27627",
-                    "axis 3 -26086",
+                    "axis 3 3212",
                 ],
             ),
             (
@@ -1593,7 +1593,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -31226",
                     "axis 1 1413",
                     "axis 2 -28913",
-                    "axis 3 14777",
+                    "axis 3 -11951",
                 ],
             ),
             (
@@ -1613,7 +1613,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -21460",
                     "axis 1 -7582",
                     "axis 2 15034",
-                    "axis 3 13235",
+                    "axis 3 2184",
                 ],
             ),
             (
@@ -1634,7 +1634,7 @@ pub(super) const CASES: &[(&str, &[(&[u8], &[&str])])] = &[
                     "axis 0 -19918",
                     "axis 1 -31997",
                     "axis 2 10922",
-                    "axis 3 19146",
+                    "axis 3 29426",
                 ],
             ),
         ],
