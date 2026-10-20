@@ -523,9 +523,14 @@ fn axis_offset(guid_type: &GUID, num_sliders: &mut u32) -> Option<u32> {
     } else if is_equal_guid(guid_type, &GUID_RZAXIS) {
         DIJOFS_RZ
     } else if is_equal_guid(guid_type, &GUID_SLIDER) {
-        // FIXME (upstream): a third slider gets DIJOFS_SLIDER(2), the
-        // offset of the first POV, which DIJOYSTATE2 has no slider at: it
-        // never reports a value.
+        // Note (upstream): this takes DIJOFS_SLIDER(NumSliders++) for every
+        // slider, so a third one gets DIJOFS_SLIDER(2), the offset of the
+        // first POV: DIJOYSTATE2 has room for two sliders only, and that
+        // axis never reports a value. Here a slider past the second isn't
+        // used, as for any other axis the data format has no room for.
+        if *num_sliders >= 2 {
+            return None;
+        }
         let ofs = dijofs_slider(*num_sliders);
         *num_sliders += 1;
         ofs

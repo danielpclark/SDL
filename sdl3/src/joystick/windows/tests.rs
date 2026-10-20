@@ -585,6 +585,21 @@ fn device_objects_and_their_order() {
         assert_eq!(go_on, i != 251, "{i}");
     }
     assert_eq!(counts.inputs.len(), 256);
+
+    // Two sliders at most: DIJOYSTATE2 has no room for a third
+    let mut counts = ObjectCounts::default();
+    for _ in 0..3 {
+        assert!(enum_dev_objects_callback(
+            &device_object(DIDFT_AXIS, GUID_SLIDER),
+            &mut counts,
+            |_| true
+        ));
+    }
+    assert_eq!((counts.naxes, counts.num_sliders), (2, 2));
+    assert_eq!(
+        counts.inputs,
+        [input(24, InputType::Axis, 0), input(28, InputType::Axis, 1)]
+    );
 }
 
 #[test]
