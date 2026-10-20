@@ -473,6 +473,21 @@ fn framebuffer_roundtrip() {
     // (only the rectangle was updated)
     assert_eq!(below & 0xffffff, 0xff0000);
 
+    // A rectangle that starts left of the window updates its part inside
+    // the window (columns 0..8, white), not columns 8..16
+    w.update_surface_rects(&[Rect::new(-4, 20, 12, 4)]).unwrap();
+    // SAFETY: as above.
+    let (inside, right) = unsafe {
+        (client.x.XSync)(client.dpy, False);
+        let image = (client.x.XGetImage)(client.dpy, xwin, 0, 0, 16, 32, !0, ZPixmap);
+        let inside = XGetPixel(image, 2, 22);
+        let right = XGetPixel(image, 12, 22);
+        XDestroyImage(image);
+        (inside, right)
+    };
+    assert_eq!(inside & 0xffffff, 0xffffff, "inside {inside:#x}");
+    assert_eq!(right & 0xffffff, 0xff0000, "right {right:#x}");
+
     // Resizing makes a new framebuffer
     w.set_size(80, 60).unwrap();
     w.sync().unwrap();

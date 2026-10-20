@@ -303,15 +303,16 @@ impl X11Video {
                 // Clipped?
                 return Option::None;
             }
-            // FIXME (upstream): a rectangle starting left of (above) the
-            // window is moved to its right (bottom) edge, x += w, instead of
-            // being clipped to 0.
+            // Note (upstream): C moves a rectangle starting left of (above)
+            // the window to its far edge (x += w) instead of clipping it to
+            // 0, so the part inside the window isn't the part drawn. It is
+            // clipped here.
             if x < 0 {
-                x += w;
+                x = 0;
                 w += rect.x;
             }
             if y < 0 {
-                y += h;
+                y = 0;
                 h += rect.y;
             }
             if x + w > window_w {
