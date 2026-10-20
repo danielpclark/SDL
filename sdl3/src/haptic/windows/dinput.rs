@@ -1117,9 +1117,9 @@ pub(super) fn haptic_pause(hwdata: &HapticHwData) -> Result<()> {
 /// Translation of `SDL_DINPUT_HapticResume()`.
 pub(super) fn haptic_resume(hwdata: &HapticHwData) -> Result<()> {
     // Unpause the device.
-    // FIXME (upstream): the error message says "Pausing" (copied from
-    // SDL_DINPUT_HapticPause()).
-    send_command(hwdata, DISFFC_CONTINUE, "Pausing the device")
+    // Note (upstream): the error message says "Pausing the device" (copied
+    // from SDL_DINPUT_HapticPause()); here it says what failed.
+    send_command(hwdata, DISFFC_CONTINUE, "Resuming the device")
 }
 
 /// Translation of `SDL_DINPUT_HapticStopAll()`.
