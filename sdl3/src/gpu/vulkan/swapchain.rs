@@ -800,7 +800,15 @@ impl VulkanRenderer {
             crate::video::vulkan::vulkan_create_surface(&window, self.instance as usize, 0)?;
 
         match self.create_swapchain(&mut window_data) {
-            Ok(SwapchainResult::Created) => {
+            Ok(result) => {
+                // Note (upstream): when the swapchain is to be made again
+                // later, C loses the window data (and its surface): it's
+                // stored neither in the window nor in the claimed windows,
+                // so the window isn't claimed. Here it's claimed, and the
+                // swapchain made on the next acquire.
+                if result == SwapchainResult::TryAgain {
+                    window_data.needs_swapchain_recreate = true;
+                }
                 let entry = Arc::new(WindowEntry {
                     renderer: self.window_owner(),
                     data: Mutex::new(window_data),
@@ -814,13 +822,6 @@ impl VulkanRenderer {
 
                 *lock(&entry.watch) = Some(watch_window_resize(window, Arc::downgrade(&entry)));
 
-                Ok(())
-            }
-            Ok(SwapchainResult::TryAgain) => {
-                // FIXME (upstream): the window data (and its surface) is
-                // lost: it is stored neither in the window nor in the
-                // claimed windows, so the window isn't claimed.
-                window_data.needs_swapchain_recreate = true;
                 Ok(())
             }
             Err(e) => {
