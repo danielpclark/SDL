@@ -186,11 +186,15 @@ impl ShieldContext {
         Ok(())
     }
 
-    /// The payload of the next rumble command, if there is a rumble update
-    /// to send (the state change of `HIDAPI_DriverShield_SendNextRumble()`).
-    fn next_rumble(&mut self) -> Option<[u8; 3]> {
+    /// Translation of `HIDAPI_DriverShield_SendNextRumble()`, with `send`
+    /// sending the rumble command's payload (for the tests, which don't
+    /// start the rumble thread).
+    fn send_next_rumble_with(
+        &mut self,
+        send: impl FnOnce(&mut Self, &[u8]) -> Result<()>,
+    ) -> Result<()> {
         if !self.rumble_update_pending {
-            return None;
+            return Ok(());
         }
 
         let rumble_data = [
@@ -202,15 +206,20 @@ impl ShieldContext {
         self.rumble_update_pending = false;
         self.last_rumble_time = crate::timer::ticks_ms();
 
-        Some(rumble_data)
+        send(self, &rumble_data)?;
+
+        // Note (upstream): C never sets rumble_report_pending, so an update
+        // isn't held back until the previous one is acknowledged; here a
+        // rumble command sent waits for its acknowledgement.
+        self.rumble_report_pending = true;
+        Ok(())
     }
 
     /// Translation of `HIDAPI_DriverShield_SendNextRumble()`.
     fn send_next_rumble(&mut self, device: &mut DeviceCtx<'_>) -> Result<()> {
-        match self.next_rumble() {
-            Some(rumble_data) => self.send_command(device, CMD_RUMBLE, &rumble_data),
-            None => Ok(()),
-        }
+        self.send_next_rumble_with(|ctx, rumble_data| {
+            ctx.send_command(device, CMD_RUMBLE, rumble_data)
+        })
     }
 
     /// The rumble state change of the V104 controller in
@@ -221,8 +230,6 @@ impl ShieldContext {
         self.right_motor_amplitude = (high_frequency_rumble >> 11) as u8;
         self.rumble_update_pending = true;
 
-        // FIXME (upstream): rumble_report_pending is never set, so an update
-        // is never held back until the previous one is acknowledged.
         if self.rumble_report_pending {
             // We will service this after the hardware acknowledges the previous request
             return false;

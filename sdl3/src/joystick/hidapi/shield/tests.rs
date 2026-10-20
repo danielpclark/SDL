@@ -69,6 +69,15 @@ fn call(ctx: &mut ShieldContext, name: &str) -> Vec<String> {
     let command = |ctx: &mut ShieldContext, cmd: u8, payload: &[u8]| {
         vec![hex_line("rumble", &ctx.command_packet(cmd, payload))]
     };
+    let next_rumble = |ctx: &mut ShieldContext| {
+        let mut lines = Vec::new();
+        ctx.send_next_rumble_with(|ctx, rumble_data| {
+            lines = command(ctx, CMD_RUMBLE, rumble_data);
+            Ok(())
+        })
+        .unwrap();
+        lines
+    };
     match words[0] {
         "effect" => match words[1] {
             "1" => command(ctx, 0x42, &[]),
@@ -84,15 +93,18 @@ fn call(ctx: &mut ShieldContext, name: &str) -> Vec<String> {
         "rumble" => {
             let low = u16::from_str_radix(words[1], 16).unwrap();
             let high = u16::from_str_radix(words[2], 16).unwrap();
-            assert!(ctx.set_rumble(low, high));
-            let rumble_data = ctx.next_rumble().unwrap();
-            command(ctx, CMD_RUMBLE, &rumble_data)
+            if ctx.set_rumble(low, high) {
+                next_rumble(ctx)
+            } else {
+                // (held until the controller acknowledges the last one)
+                Vec::new()
+            }
         }
         "ack" => {
             // (the CMD_RUMBLE response sends the pending update)
+            assert!(ctx.rumble_report_pending);
             ctx.rumble_report_pending = false;
-            let rumble_data = ctx.next_rumble().unwrap();
-            command(ctx, CMD_RUMBLE, &rumble_data)
+            next_rumble(ctx)
         }
         "v103" => {
             let low = u16::from_str_radix(words[1], 16).unwrap();
@@ -116,7 +128,9 @@ fn commands() {
         assert_eq!(call(&mut ctx, name), *expected, "{name}");
     }
     // Nothing is pending once sent
-    assert_eq!(ctx.next_rumble(), None);
+    assert!(!ctx.rumble_update_pending);
+    ctx.rumble_report_pending = false;
+    ctx.send_next_rumble_with(|_, _| panic!("sent")).unwrap();
 }
 
 #[test]
