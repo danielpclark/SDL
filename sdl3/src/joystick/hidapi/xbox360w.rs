@@ -333,10 +333,10 @@ impl Xbox360WContext {
             if let Some(joystick) = joystick {
                 update_power_level(device, joystick, data[4]);
             }
-        } else if data[0] == 0x00 && data[1] == 0x05 && data[5] == 0x12 {
-            // FIXME (upstream): the size of this report isn't checked, so a
-            // short one leaves bytes of an earlier report in the
-            // capabilities (the buffer is always big enough).
+        } else if size >= 21 && data[0] == 0x00 && data[1] == 0x05 && data[5] == 0x12 {
+            // Note (upstream): C doesn't check the size of this report, so a
+            // short one puts bytes of an earlier report in the capabilities
+            // (the buffer is always big enough); here it must hold them all.
             self.capabilities.gamepad.buttons = load16(data[6], data[7]) as u16;
             self.capabilities.gamepad.left_trigger = data[8];
             self.capabilities.gamepad.right_trigger = data[9];
@@ -565,5 +565,30 @@ mod tests {
         assert_eq!(events, ["removed"]);
         assert_eq!(device.num_joysticks(), 0);
         super::super::NUMJOYSTICKS.store(0, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// A capabilities report too short for them doesn't take the bytes an
+    /// earlier report left in the buffer.
+    #[test]
+    fn short_capabilities_report() {
+        let device = test_device(&DeviceInfo {
+            vendor_id: USB_VENDOR_MICROSOFT,
+            product_id: USB_PRODUCT_XBOX360_WIRELESS_RECEIVER,
+            ..DeviceInfo::default()
+        });
+        let mut ctx = Xbox360WContext::default();
+        let mut data = [0x55u8; USB_PACKET_LENGTH];
+        data[..6].copy_from_slice(&[0x00, 0x05, 0x00, 0x00, 0x00, 0x12]);
+
+        let ((), events) = run(&device, |d| ctx.handle_report(d, None, &data, 6));
+        assert!(events.is_empty());
+        assert_eq!(ctx.capabilities.gamepad.buttons, 0);
+        assert_eq!(ctx.capabilities.flags, 0);
+
+        let ((), events) = run(&device, |d| ctx.handle_report(d, None, &data, 21));
+        assert!(events.is_empty());
+        assert_eq!(ctx.capabilities.gamepad.buttons, 0x5555);
+        assert_eq!(ctx.capabilities.gamepad.right_trigger, 0x55);
+        assert_eq!(ctx.capabilities.flags, 0x55);
     }
 }
