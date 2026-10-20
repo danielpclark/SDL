@@ -519,17 +519,19 @@ fn state_conversions() {
     assert_eq!(blend.render_target[1].src_blend, D3D12_BLEND_ZERO);
     assert_eq!(blend.render_target[2], RenderTargetBlendDesc::default());
 
+    // (out of slot order: each attribute has the rate of its slot's
+    // description, where upstream takes the one at that position)
     let descriptions = [
-        VertexBufferDescription {
-            slot: 0,
-            pitch: 24,
-            input_rate: VertexInputRate::Vertex,
-            instance_step_rate: 0,
-        },
         VertexBufferDescription {
             slot: 1,
             pitch: 16,
             input_rate: VertexInputRate::Instance,
+            instance_step_rate: 0,
+        },
+        VertexBufferDescription {
+            slot: 0,
+            pitch: 24,
+            input_rate: VertexInputRate::Vertex,
             instance_step_rate: 0,
         },
     ];

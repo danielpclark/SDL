@@ -820,12 +820,13 @@ pub(super) fn convert_depth_stencil_state(
 /// The input elements of the vertex attributes (none for none).
 /// Translation of `D3D12_INTERNAL_ConvertVertexInputState()`.
 ///
-/// FIXME (upstream): the input rate is the one of the buffer description
-/// at the attribute's `buffer_slot` *position*, not of the description
-/// whose `slot` that is, so descriptions out of slot order get the wrong
-/// rates. Note (upstream): C reads past the descriptions (and the 32
-/// elements) for values out of their range, which the front end rejects in
-/// debug mode; a missing description reads as per-vertex here.
+/// Note (upstream): C takes the input rate of the buffer description at
+/// the attribute's `buffer_slot` *position*, not of the description whose
+/// `slot` that is, so descriptions out of slot order get the wrong rates;
+/// here it is the description of that slot (as the strides are). C also
+/// reads past the descriptions (and the 32 elements) for values out of
+/// their range, which the front end rejects in debug mode; a missing
+/// description reads as per-vertex here.
 pub(super) fn convert_vertex_input_state(
     vertex_input_state: &VertexInputState<'_>,
     semantic: *const std::ffi::c_char,
@@ -837,7 +838,8 @@ pub(super) fn convert_vertex_input_state(
         .map(|attribute| {
             let rate = vertex_input_state
                 .vertex_buffer_descriptions
-                .get(attribute.buffer_slot as usize)
+                .iter()
+                .find(|d| d.slot == attribute.buffer_slot)
                 .map_or(VertexInputRate::Vertex, |d| d.input_rate);
 
             InputElementDesc {
