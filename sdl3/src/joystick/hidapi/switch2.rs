@@ -705,10 +705,10 @@ impl Switch2Context {
             }
             let _ = self.recv_bulk_data(&mut reply);
         }
-        // FIXME (upstream): this should be `enabled`; as it is, disabling
+        // Note (upstream): C sets this to true, not `enabled`, so disabling
         // the sensors leaves the sensor reports on, and the sensors, once
         // ready, are never switched off by the state handler.
-        self.sensors_enabled = true;
+        self.sensors_enabled = enabled;
         Ok(())
     }
 
