@@ -2617,6 +2617,50 @@ fn texture_bind_failure_destroys_the_image_once() {
     assert_ne!(destroyed[0], VK_NULL_HANDLE);
 }
 
+/// `vkMapMemory` that always fails.
+unsafe extern "system" fn failing_map_memory(
+    _device: VkDevice,
+    _memory: VkDeviceMemory,
+    _offset: VkDeviceSize,
+    _size: VkDeviceSize,
+    _flags: VkFlags,
+    _data: *mut *mut std::ffi::c_void,
+) -> VkResult {
+    -5 // VK_ERROR_MEMORY_MAP_FAILED
+}
+
+/// Memory that can't be mapped is freed, not kept in the allocator's lists
+/// for good (as upstream's is).
+#[test]
+fn unmappable_memory_is_freed() {
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    let count = |r: &VulkanRenderer| -> usize {
+        let a = r.memory_allocator.lock();
+        let a = a.borrow();
+        (0..VK_MAX_MEMORY_TYPES)
+            .map(|t| a.allocation_count(t))
+            .sum()
+    };
+    let before = count(&r);
+    let real_map = r.0.dev.map_memory;
+    r.0.dev.map_memory = failing_map_memory;
+    // (a dedicated upload buffer: a new host-visible allocation)
+    let result = r.create_buffer_container(
+        4096,
+        crate::gpu::BufferUsageFlags::default(),
+        VulkanBufferType::Transfer,
+        true,
+        None,
+    );
+    r.0.dev.map_memory = real_map;
+    assert!(result.is_err());
+    assert_eq!(count(&r), before);
+}
+
 /// `vkEndCommandBuffer` that always fails.
 unsafe extern "system" fn failing_end_command_buffer(_command_buffer: VkCommandBuffer) -> VkResult {
     VK_ERROR_OUT_OF_DEVICE_MEMORY
