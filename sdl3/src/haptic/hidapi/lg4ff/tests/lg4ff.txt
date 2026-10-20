@@ -2312,115 +2312,114 @@ op 1343 timer
 result 0 peak 19825
 end
 op 1352 timer
-write 1c 00 ff 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1361 timer
 write 1c 00 78 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1370 timer
 write 1c 00 77 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1379 timer
 write 1c 00 7c 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1388 timer
 write 1c 00 89 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1397 timer
 write 1c 00 9c 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1406 timer
 write 1c 00 b6 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1415 timer
 write 1c 00 33 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1424 timer
 write 1c 00 43 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1433 timer
 write 1c 00 59 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1442 timer
 write 1c 00 76 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1451 timer
 write 1c 00 9a 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1460 timer
 write 1c 00 c4 00 00 00 00
-result 0 peak 11930552
+result 0 peak 19825
 end
 op 1469 timer
 write 1c 00 f5 00 00 00 00
-result 0 peak 11930552
+result 0 peak 30018
 end
 op 1478 timer
 write 1c 00 00 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1487 timer
 write 1c 00 08 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1496 update 1 periodic 16 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
 result 1
 end
 op 1496 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1502 timer
 write 1c 00 72 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1508 timer
 write 1c 00 7a 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1514 timer
 write 1c 00 81 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1520 timer
 write 1c 00 89 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1526 timer
 write 1c 00 91 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1532 timer
 write 1c 00 98 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1538 timer
 write 1c 00 a0 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1544 timer
 write 1c 00 a8 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1550 timer
 write 1c 00 6f 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1556 timer
 write 1c 00 77 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1562 update 1 periodic 16 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
 result 0
@@ -2430,7 +2429,7 @@ result 1
 end
 op 1562 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11930552
+result 0 peak 40251
 end
 op 1562 close
 end
@@ -2655,115 +2654,115 @@ op 1343 timer
 result 0 peak 19599
 end
 op 1352 timer
-write 1c 00 00 00 00 00 00
-result 0 peak 11931576
+write 1c 00 7b 00 00 00 00
+result 0 peak 19599
 end
 op 1361 timer
 write 1c 00 83 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1370 timer
 write 1c 00 84 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1379 timer
 write 1c 00 7f 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1388 timer
 write 1c 00 72 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1397 timer
 write 1c 00 5f 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1406 timer
 write 1c 00 45 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1415 timer
 write 1c 00 c8 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1424 timer
 write 1c 00 b8 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1433 timer
 write 1c 00 a2 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1442 timer
 write 1c 00 85 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1451 timer
 write 1c 00 61 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1460 timer
 write 1c 00 37 00 00 00 00
-result 0 peak 11931576
+result 0 peak 19599
 end
 op 1469 timer
 write 1c 00 06 00 00 00 00
-result 0 peak 11931576
+result 0 peak 31042
 end
 op 1478 timer
 write 1c 00 ff 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1487 timer
 write 1c 00 f3 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1496 update 1 periodic 32 3 0 0 0 4294967295 5 50 8192 0 18000 0 0 0 0
 result 1
 end
 op 1496 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1502 timer
 write 1c 00 8d 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1508 timer
 write 1c 00 85 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1514 timer
 write 1c 00 7e 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1520 timer
 write 1c 00 76 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1526 timer
 write 1c 00 6e 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1532 timer
 write 1c 00 67 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1538 timer
 write 1c 00 5f 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1544 timer
 write 1c 00 57 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1550 timer
 write 1c 00 90 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1556 timer
 write 1c 00 88 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1562 update 1 periodic 32 3 0 0 0 4294967295 5 0 8192 0 18000 0 0 0 0
 result 0
@@ -2773,7 +2772,7 @@ result 1
 end
 op 1562 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11931576
+result 0 peak 39227
 end
 op 1562 close
 end
@@ -4990,7 +4989,7 @@ op 2730 run 2 3
 result 1
 end
 op 2830 timer
-result 0 peak 7744846
+result 0 peak 348086
 end
 op 2939 gain 109
 result 1
@@ -4999,45 +4998,45 @@ op 2948 run 4 1
 result 1
 end
 op 3021 timer
-result 0 peak 12806164
+result 0 peak 875701
 end
 op 3112 update 4 periodic 2 1 -787 -522 0 555 22 275 -21244 3003 23296 85 61596 188 18076
 result 1
 end
 op 3198 timer
-result 0 peak 13079762
+result 0 peak 1149298
 end
 op 3228 timer
-result 0 peak 13149099
+result 0 peak 1218635
 end
 op 3259 timer
-result 0 peak 13149099
+result 0 peak 1305183
 end
 op 3305 timer
-result 0 peak 13319442
+result 0 peak 1388978
 end
 op 3321 timer
-result 0 peak 13346007
+result 0 peak 1415543
 end
 op 3340 timer
-result 0 peak 13377292
+result 0 peak 1446828
 end
 op 3345 timer
-result 0 peak 13385627
+result 0 peak 1455164
 end
 op 3363 timer
-result 0 peak 13416501
+result 0 peak 1486037
 end
 op 3373 timer
-result 0 peak 13434360
+result 0 peak 1503896
 end
 op 3397 timer
-result 0 peak 13480826
+result 0 peak 1550362
 end
 op 3397 destroy 0
 end
 op 3397 timer
-result 0 peak 13480826
+result 0 peak 1550362
 end
 op 3397 close
 end
@@ -6335,8 +6334,8 @@ op 1308 status 0
 result 1
 end
 op 1387 timer
-write 1c 00 00 00 00 00 00
-result 0 peak 11915191
+write 1c 00 bb 00 00 00 00
+result 0 peak 15273
 end
 op 1488 stop 0
 result 1
@@ -6349,13 +6348,13 @@ result 1
 end
 op 1650 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11915191
+result 0 peak 15273
 end
 op 1738 timer
-result 0 peak 11915191
+result 0 peak 15273
 end
 op 1850 timer
-result 0 peak 11915191
+result 0 peak 15273
 end
 op 1860 update 0 periodic 32 3 0 0 0 4294967295 58 376 24304 -5791 13473 96 55803 109 52938
 result 1
@@ -6364,13 +6363,13 @@ op 1891 stop 0
 result 1
 end
 op 1909 timer
-result 0 peak 11915191
+result 0 peak 15273
 end
 op 2029 timer
-result 0 peak 11915191
+result 0 peak 15273
 end
 op 2142 timer
-result 0 peak 11915191
+result 0 peak 15273
 end
 op 2198 run 0 2
 result 1
@@ -6380,20 +6379,20 @@ result 1
 end
 op 2359 timer
 write 1c 00 00 00 00 00 00
-result 0 peak 11915191
+result 0 peak 102229
 end
 op 2466 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 2494 stop 0
 result 1
 end
 op 2613 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 2701 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 2752 run 0 1
 result 1
@@ -6403,7 +6402,7 @@ result 1
 end
 op 2923 timer
 write 1c 00 70 00 00 00 00
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 2987 stop 0
 result 1
@@ -6422,46 +6421,46 @@ result 1
 end
 op 3237 timer
 write 1c 00 80 00 00 00 00
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3338 stop 1
 result 1
 end
 op 3349 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3461 create periodic 16 2 25052 -7861 0 1 55 260 -15445 -7344 29460 0 13728 85 12935
 result 2
 end
 op 3501 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3538 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3579 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3604 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3628 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3660 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3683 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3714 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3753 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3758 timer
-result 0 peak 11915191
+result 0 peak 197975
 end
 op 3758 close
 end

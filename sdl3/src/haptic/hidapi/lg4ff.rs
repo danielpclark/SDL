@@ -439,9 +439,9 @@ fn calculate_periodic(
         }
     }
 
-    // FIXME (upstream): the phase is unsigned (as in new-lg4ff), so the
+    // Note (upstream): the phase is unsigned in C (as in new-lg4ff), so the
     // sawtooth waves are computed unsigned: they are garbage for a negative
-    // magnitude.
+    // magnitude. Here they're signed (the phase is under 720 degrees).
     let phase = state.phase;
     let level_change = match periodic.waveform {
         HapticWaveform::Sine => (sin_deg(f64::from(phase)) * f64::from(magnitude)) as i32,
@@ -451,11 +451,12 @@ fn calculate_periodic(
             ((i64::from(phase) * magnitude * 2 / 360 - magnitude).wrapping_abs() * 2 - magnitude)
                 as i32
         }
-        HapticWaveform::SawtoothUp => (phase.wrapping_mul(magnitude as u32).wrapping_mul(2) / 360)
-            .wrapping_sub(magnitude as u32) as i32,
-        HapticWaveform::SawtoothDown => (magnitude as u32)
-            .wrapping_sub(phase.wrapping_mul(magnitude as u32).wrapping_mul(2) / 360)
-            as i32,
+        HapticWaveform::SawtoothUp => {
+            (phase as i32).wrapping_mul(magnitude).wrapping_mul(2) / 360 - magnitude
+        }
+        HapticWaveform::SawtoothDown => {
+            magnitude - (phase as i32).wrapping_mul(magnitude).wrapping_mul(2) / 360
+        }
     };
     level = level.wrapping_add(level_change);
 
