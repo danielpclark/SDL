@@ -1368,13 +1368,8 @@ impl DeviceBackend for Arc<WasapiDevice> {
         let mut flags: u32 = 0;
         let buflen = buffer.len();
 
-        // FIXME (upstream): on a GetBuffer() failure other than an empty buffer,
-        // this keeps calling it until the device is marked disconnecting.
-        loop {
-            let capture = self.capture.load(Ordering::Acquire);
-            if capture.is_null() || self.device_disconnecting.load(Ordering::Acquire) != 0 {
-                break;
-            }
+        let capture = self.capture.load(Ordering::Acquire);
+        if !capture.is_null() && self.device_disconnecting.load(Ordering::Acquire) == 0 {
             // SAFETY: a live capture client; valid out-pointers.
             let ret = unsafe {
                 (IAudioCaptureClient::vtbl(capture).get_buffer)(
@@ -1414,6 +1409,13 @@ impl DeviceBackend for Arc<WasapiDevice> {
 
                 return Ok(cpy);
             }
+
+            // Note (upstream): this calls GetBuffer() again, in a loop that
+            // ends only when the device is marked disconnecting, which only
+            // an unplug notification does, so the thread can spin for good.
+            // Here the failure is marked above, and the next WaitDevice
+            // recovers a lost device or disconnects a dead one.
+            return Ok(0);
         }
 
         Err(Error::new("WASAPI recording failed")) // unrecoverable error.

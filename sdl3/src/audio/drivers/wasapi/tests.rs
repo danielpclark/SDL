@@ -234,6 +234,102 @@ fn a_dead_device_is_disconnected_once() {
     assert!(failed.lock().unwrap().is_empty(), "{failed:?}");
 }
 
+/// An `IAudioCaptureClient` whose GetBuffer() fails with `result` (for
+/// 100 calls; then its buffer is empty, so a caller that keeps asking
+/// ends).
+#[repr(C)]
+struct FakeCapture {
+    vtbl: &'static IAudioCaptureClientVtbl,
+    calls: std::sync::atomic::AtomicU32,
+    result: HRESULT,
+}
+
+unsafe extern "system" fn fake_query_interface(
+    _this: *mut c_void,
+    _iid: *const GUID,
+    out: *mut *mut c_void,
+) -> HRESULT {
+    // SAFETY: a valid out pointer.
+    unsafe { *out = ptr::null_mut() };
+    0x8000_4002_u32 as HRESULT // E_NOINTERFACE
+}
+
+unsafe extern "system" fn fake_add_ref_release(_this: *mut c_void) -> u32 {
+    1
+}
+
+unsafe extern "system" fn fake_get_buffer(
+    this: *mut IAudioCaptureClient,
+    _data: *mut *mut u8,
+    _frames: *mut u32,
+    _flags: *mut u32,
+    _position: *mut u64,
+    _qpc: *mut u64,
+) -> HRESULT {
+    // SAFETY: the client is a live FakeCapture.
+    let fake = unsafe { &*this.cast::<FakeCapture>() };
+    if fake.calls.fetch_add(1, Ordering::SeqCst) >= 100 {
+        return AUDCLNT_S_BUFFER_EMPTY;
+    }
+    fake.result
+}
+
+unsafe extern "system" fn fake_release_buffer(_this: *mut IAudioCaptureClient, _n: u32) -> HRESULT {
+    S_OK
+}
+
+unsafe extern "system" fn fake_get_next_packet_size(
+    _this: *mut IAudioCaptureClient,
+    _n: *mut u32,
+) -> HRESULT {
+    S_OK
+}
+
+static FAKE_CAPTURE_VTBL: IAudioCaptureClientVtbl = IAudioCaptureClientVtbl {
+    base: IUnknownVtbl {
+        query_interface: fake_query_interface,
+        add_ref: fake_add_ref_release,
+        release: fake_add_ref_release,
+    },
+    get_buffer: fake_get_buffer,
+    release_buffer: fake_release_buffer,
+    get_next_packet_size: fake_get_next_packet_size,
+};
+
+#[test]
+fn a_failed_capture_goes_back_to_waiting() {
+    let _l = crate::test_support::test_lock();
+    let (_cleanup, device) = dummy_physical_device();
+    const E_FAIL: HRESULT = 0x8000_4005_u32 as HRESULT;
+    // A failure marks the device dead, an invalidated device lost; either
+    // way RecordDevice comes back with no data (for WaitDevice to disconnect
+    // or recover it) after one GetBuffer() (upstream calls it until the
+    // device is marked disconnecting, which only an unplug does).
+    for (result, lost, dead) in [
+        (E_FAIL, false, true),
+        (AUDCLNT_E_DEVICE_INVALIDATED, true, false),
+    ] {
+        let mut fake = FakeCapture {
+            vtbl: &FAKE_CAPTURE_VTBL,
+            calls: std::sync::atomic::AtomicU32::new(0),
+            result,
+        };
+        let h = Arc::new(bare_device(true));
+        h.capture
+            .store(ptr::from_mut(&mut fake).cast(), Ordering::SeqCst);
+        let mut buffer = [0u8; 64];
+        assert_eq!(h.record_device(&device, &mut buffer).unwrap(), 0);
+        assert_eq!(fake.calls.load(Ordering::SeqCst), 1, "GetBuffer() calls");
+        assert_eq!(
+            (
+                h.device_lost.load(Ordering::SeqCst),
+                h.device_dead.load(Ordering::SeqCst)
+            ),
+            (lost, dead)
+        );
+    }
+}
+
 #[test]
 fn playback_and_recording_when_there_is_an_endpoint() {
     let _l = crate::test_support::test_lock();
