@@ -996,6 +996,12 @@ fn wgi_conversions() {
     assert_eq!(device_instance_id("HID#VID_045E#{x}"), None);
 }
 
+#[test]
+fn wgi_devices_have_no_player_index() {
+    use super::windows_gaming_input::WGI_JOYSTICK_DRIVER;
+    assert_eq!(WGI_JOYSTICK_DRIVER.device_player_index(0), -1);
+}
+
 // --- the drivers together, under Wine (no controllers) ---
 
 #[test]

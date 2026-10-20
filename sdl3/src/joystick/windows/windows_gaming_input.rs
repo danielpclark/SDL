@@ -853,9 +853,11 @@ impl JoystickDriver for WgiJoystickDriver {
 
     /// Translation of `WGI_JoystickGetDevicePlayerIndex()`.
     fn device_player_index(&self, _device_index: usize) -> i32 {
-        // FIXME (upstream): this returns false, i.e. player index 0, rather
-        // than -1 (no player index).
-        0
+        // Note (upstream): this returns false, i.e. player index 0, rather
+        // than -1 (no player index), so every WGI joystick claims the first
+        // player's slot when it's added (and takes it from the joystick
+        // that had it). Here it has none, as the driver can't tell.
+        -1
     }
 
     /// Translation of `WGI_JoystickSetDevicePlayerIndex()`.
