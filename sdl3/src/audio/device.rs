@@ -2435,14 +2435,16 @@ fn open_physical_audio_device(
         return Ok(()); // carry on with the reconfigured device!
     }
 
-    // FIXME (upstream): the requested `spec` is only used for logging and
-    // for the reopen comparison above; the device opens at its current
-    // (default) spec, as in this version of SDL_audio.c.
-
     // These start with the backend's implementation, but we might swap them out with zombie versions later.
     {
         let mut st = guard.borrow_mut();
         st.zombie_ops = false;
+        // Note (upstream): the requested `spec` is never copied to
+        // device->spec (the minimums that used to be applied to it went, and
+        // the assignment with them), so the device opens at its current
+        // (default) spec whatever was asked, and the reopen above at a
+        // better spec reopens it at that same one.
+        st.spec = spec;
         st.sample_frames = get_default_sample_frames_from_freq(st.spec.freq);
         updated_audio_device_format(&mut st); // start this off sane.
     }

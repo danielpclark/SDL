@@ -846,6 +846,53 @@ fn dummy_driver_playback_and_recording() {
 }
 
 #[test]
+fn a_device_opens_at_the_spec_asked_for() {
+    let _l = crate::test_support::test_lock();
+    let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
+    crate::hints::set(crate::hints::AUDIO_DUMMY_TIMESCALE, "0.05").unwrap();
+    let r = crate::init::init_subsystem(crate::init::InitFlags::AUDIO);
+    crate::hints::reset(crate::hints::AUDIO_DRIVER);
+    crate::hints::reset(crate::hints::AUDIO_DUMMY_TIMESCALE);
+    r.unwrap();
+    let physical = playback_devices().unwrap()[0];
+    let format = || audio_device_format(physical).unwrap().0;
+    let default = AudioSpec::new(AudioFormat::S16, 2, 44100);
+    assert_eq!(format(), default);
+
+    // The first opening's spec (upstream's opens at the default).
+    let low = AudioDevice::open(
+        AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        Some(&AudioSpec::new(AudioFormat::U8, 1, 22050)),
+    )
+    .unwrap();
+    assert_eq!(format(), AudioSpec::new(AudioFormat::U8, 1, 22050));
+    assert_eq!(low.format().unwrap().0, format());
+    // A better one reopens the device at the better of each (upstream's
+    // reopens it at the default again).
+    let high = AudioDevice::open(
+        AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        Some(&AudioSpec::new(AudioFormat::S16, 1, 48000)),
+    )
+    .unwrap();
+    assert_eq!(format(), AudioSpec::new(AudioFormat::S16, 1, 48000));
+    // A worse one changes nothing.
+    let worse = AudioDevice::open(
+        AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        Some(&AudioSpec::new(AudioFormat::U8, 1, 8000)),
+    )
+    .unwrap();
+    assert_eq!(format(), AudioSpec::new(AudioFormat::S16, 1, 48000));
+    drop((low, high, worse));
+
+    // Closed, then opened without a spec: the default.
+    assert_eq!(format(), default);
+    let dev = AudioDevice::open(AUDIO_DEVICE_DEFAULT_PLAYBACK, None).unwrap();
+    assert_eq!(format(), default);
+    drop(dev);
+}
+
+#[test]
 fn mix_path_swizzles_float_data_to_device_layout() {
     let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
