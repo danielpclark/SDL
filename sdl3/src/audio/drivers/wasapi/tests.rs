@@ -168,6 +168,72 @@ fn management_thread_runs_tasks_in_order() {
     assert!(MANAGEMENT.thread.lock().unwrap().is_none());
 }
 
+/// A playback device of the dummy driver's, for the WASAPI device code
+/// to work on, with the audio subsystem started (until the guard drops).
+fn dummy_physical_device() -> (
+    crate::audio::drivers::tests::QuitAudioOnDrop,
+    Arc<PhysicalDevice>,
+) {
+    let cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
+    crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
+    let r = crate::init::init_subsystem(InitFlags::AUDIO);
+    crate::hints::reset(crate::hints::AUDIO_DRIVER);
+    r.unwrap();
+    let device =
+        crate::audio::device::add_audio_device(false, "WASAPI test device", None, None, 0x5d1)
+            .unwrap();
+    (cleanup, device)
+}
+
+/// A WASAPI device with no client yet.
+fn bare_device(recording: bool) -> WasapiDevice {
+    WasapiDevice {
+        device: Weak::new(),
+        recording,
+        waveformat: AtomicPtr::new(ptr::null_mut()),
+        client: AtomicPtr::new(ptr::null_mut()),
+        render: AtomicPtr::new(ptr::null_mut()),
+        capture: AtomicPtr::new(ptr::null_mut()),
+        event: AtomicPtr::new(ptr::null_mut()),
+        task: AtomicPtr::new(ptr::null_mut()),
+        coinitialized: AtomicBool::new(false),
+        framesize: AtomicI32::new(4),
+        device_disconnecting: AtomicI32::new(0),
+        device_lost: AtomicBool::new(false),
+        device_dead: AtomicBool::new(false),
+        isplayback: AtomicBool::new(!recording),
+        sample_frames: AtomicI32::new(0),
+        render_buffer: AtomicPtr::new(ptr::null_mut()),
+        prepared: Mutex::new(None),
+    }
+}
+
+#[test]
+fn a_dead_device_is_disconnected_once() {
+    let _l = crate::test_support::test_lock();
+    let (_cleanup, device) = dummy_physical_device();
+    let failed = Arc::new(Mutex::new(Vec::new()));
+    let f = failed.clone();
+    crate::assert::set_assertion_handler(move |data| {
+        f.lock().unwrap().push(data.condition().to_owned());
+        crate::assert::AssertState::Ignore
+    });
+
+    // A fatal error elsewhere: RecoverWasapiIfLost() disconnects it...
+    let h = Arc::new(bare_device(false));
+    h.device_dead.store(true, Ordering::SeqCst);
+    assert!(!h.recover_wasapi_if_lost(&device));
+    assert_eq!(h.device_disconnecting.load(Ordering::SeqCst), 1);
+    // ...and doesn't come back through there.
+    assert!(!h.recover_wasapi_if_lost(&device));
+    assert_eq!(h.device_disconnecting.load(Ordering::SeqCst), 1);
+
+    crate::assert::reset_assertion_handler();
+    crate::assert::reset_assertion_report();
+    // (upstream asserts the device is shutting down, which it isn't)
+    assert!(failed.lock().unwrap().is_empty(), "{failed:?}");
+}
+
 #[test]
 fn playback_and_recording_when_there_is_an_endpoint() {
     let _l = crate::test_support::test_lock();
