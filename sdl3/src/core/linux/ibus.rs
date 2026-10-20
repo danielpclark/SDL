@@ -378,13 +378,7 @@ fn ibus_get_dbus_address_filename() -> Option<String> {
 
     dbus::context()?;
 
-    // Use this environment variable if it exists.
-    // FIXME (upstream): this is an address, not the name of a file holding
-    // one, so reading it as a file fails.
-    if let Some(addr) = crate::stdlib::getenv("IBUS_ADDRESS").filter(|a| !a.is_empty()) {
-        return Some(addr);
-    }
-
+    // (IBUS_ADDRESS: see init())
     let env = crate::stdlib::getenv;
     ibus_address_filename(
         env("DISPLAY").as_deref(),
@@ -580,6 +574,14 @@ pub(crate) fn init() -> bool {
     let Some(ctx) = dbus::context() else {
         return false;
     };
+
+    // Use this environment variable if it exists.
+    // Note (upstream): IBus_GetDBusAddressFilename() returns it as the name
+    // of the address file, which is then read, so it never works. Here it
+    // is the address, and there's no file to watch.
+    if let Some(addr) = crate::stdlib::getenv("IBUS_ADDRESS").filter(|a| !a.is_empty()) {
+        return ibus_setup_connection(&ctx, &addr);
+    }
 
     let Some(addr_file) = ibus_get_dbus_address_filename() else {
         return false;
@@ -849,6 +851,52 @@ mod tests {
         assert!(ibus_enter_variant(Some(&text("")), "IBusText").is_none());
         assert!(ibus_enter_variant(Some(&Value::Str("x".into())), "IBusText").is_none());
         assert!(ibus_enter_variant(None, "IBusText").is_none());
+    }
+
+    #[test]
+    fn ibus_address_variable() {
+        crate::events::window::tests::with_video(&[1], |_| {
+            let Some(session) = Bus::start() else { return };
+            let Some(ibus) = Bus::start() else { return };
+            const CTX_PATH: &str = "/org/freedesktop/IBus/InputContext_3";
+            // An IBus daemon on its own bus, and no portal.
+            let daemon = peer(&ibus.address, IBUS_SERVICE, move |_, msg| {
+                if msg.is_method_call(IBUS_INTERFACE, "CreateInputContext") {
+                    let mut reply = msg.new_method_return()?;
+                    reply.append_args(&[Arg::ObjectPath(CTX_PATH)]);
+                    return Some(reply);
+                }
+                if msg.has_path(CTX_PATH) {
+                    return msg.new_method_return();
+                }
+                None
+            });
+            test_bus::use_as_session(&session);
+            let old = std::env::var_os("IBUS_ADDRESS");
+            crate::stdlib::setenv_unsafe("IBUS_ADDRESS", &ibus.address, true).unwrap();
+
+            // (upstream's reads the address as the name of a file, and
+            // fails)
+            let connected = init();
+            match old {
+                Some(old) => {
+                    crate::stdlib::setenv_unsafe("IBUS_ADDRESS", &old.to_string_lossy(), true)
+                        .unwrap()
+                }
+                None => crate::stdlib::unsetenv_unsafe("IBUS_ADDRESS").unwrap(),
+            }
+            assert!(connected);
+            {
+                let s = state();
+                assert!(!s.ibus_is_portal_interface);
+                assert_eq!(s.input_ctx_path.as_deref(), Some(CTX_PATH));
+                assert_eq!(s.ibus_addr_file, None);
+            }
+
+            quit();
+            test_bus::release_session();
+            daemon.stop();
+        });
     }
 
     #[test]
