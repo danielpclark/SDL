@@ -7000,7 +7000,7 @@ write 23 00 00 00 00 00 00
 write 43 00 00 00 00 00 00
 write 83 00 00 00 00 00 00
 result 1
-instance 255 effects 16 playing 16 supported 460287 axes 1 hidapi 1
+instance object effects 16 playing 16 supported 460287 axes 1 hidapi 1
 same 1
 other 0
 effect 0 type 1
