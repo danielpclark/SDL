@@ -880,6 +880,36 @@ pub(super) fn hid_enumerate(vendor_id: u16, product_id: u16) -> Vec<DeviceInfo> 
     root
 }
 
+/// The retries of `hid_send_feature_report()`: `ioctl` (`HIDIOCSFEATURE`,
+/// the bytes sent or the `errno`) is tried again after a broken pipe, up to
+/// 50 times.
+fn send_feature_report_retrying(
+    mut ioctl: impl FnMut() -> std::result::Result<usize, i32>,
+) -> Result<usize> {
+    const MAX_RETRIES: i32 = 50;
+
+    for _retry in 0..MAX_RETRIES {
+        match ioctl() {
+            // Try again...
+            Err(libc::EPIPE) => continue,
+            Err(error) => {
+                return Err(Error::new(format!(
+                    "ioctl (SFEATURE): {}",
+                    errno_string(error)
+                )))
+            }
+            Ok(res) => return Ok(res),
+        }
+    }
+    // Note (upstream): after MAX_RETRIES broken pipes the failure is
+    // returned with the error cleared (register_device_error(dev, NULL)
+    // before the loop), so it has no message. Here it says the pipe broke.
+    Err(Error::new(format!(
+        "ioctl (SFEATURE): {}",
+        errno_string(libc::EPIPE)
+    )))
+}
+
 /// The `ID_VENDOR_FROM_DATABASE` of a vendor in the hardware database, if
 /// libudev has one (the hwdb lookup of `hid_enumerate()`).
 fn hwdb_vendor(syms: &UdevSymbols, udev: &Udev<'_>, vendor_id: u16) -> Option<Vec<u8>> {
@@ -1179,9 +1209,7 @@ impl Device {
 
     /// Translation of `hid_send_feature_report()`.
     pub(super) fn send_feature_report(&self, data: &[u8]) -> Result<usize> {
-        const MAX_RETRIES: i32 = 50;
-
-        for _retry in 0..MAX_RETRIES {
+        send_feature_report_retrying(|| {
             // SAFETY: the request reads data.len() bytes (it is _IOWR, but
             // the kernel only writes the report back for the read
             // direction of GFEATURE).
@@ -1193,21 +1221,11 @@ impl Device {
                 )
             };
             if res < 0 {
-                let error = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
-                if error == libc::EPIPE {
-                    // Try again...
-                    continue;
-                }
-                return Err(Error::new(format!(
-                    "ioctl (SFEATURE): {}",
-                    errno_string(error)
-                )));
+                Err(std::io::Error::last_os_error().raw_os_error().unwrap_or(0))
+            } else {
+                Ok(res as usize)
             }
-            return Ok(res as usize);
-        }
-        // FIXME (upstream): after MAX_RETRIES broken pipes the failure is
-        // returned with the error cleared, so it has no message.
-        Err(Error::new(""))
+        })
     }
 
     /// Translation of `hid_get_feature_report()`.
@@ -1376,6 +1394,42 @@ mod tests {
         assert_eq!(get_hid_item_size(&[0xfe, 0x10], 0), Some((16, 3)));
         assert_eq!(get_hid_item_size(&[0xfe], 0), Some((2, 1)));
         assert_eq!(get_hid_item_size(&[0xff], 0), Some((4, 1)));
+    }
+
+    #[test]
+    fn feature_reports_retry_broken_pipes() {
+        // Sent after two broken pipes
+        let mut calls = 0;
+        let result = send_feature_report_retrying(|| {
+            calls += 1;
+            if calls < 3 {
+                Err(libc::EPIPE)
+            } else {
+                Ok(9)
+            }
+        });
+        assert_eq!((result.unwrap(), calls), (9, 3));
+        // Another error isn't retried
+        let mut calls = 0;
+        let error = send_feature_report_retrying(|| {
+            calls += 1;
+            Err(libc::EIO)
+        })
+        .unwrap_err();
+        assert_eq!(calls, 1);
+        assert_eq!(
+            error.message(),
+            format!("ioctl (SFEATURE): {}", errno_string(libc::EIO))
+        );
+        // A pipe that stays broken fails after 50 tries, saying so
+        let mut calls = 0;
+        let error = send_feature_report_retrying(|| {
+            calls += 1;
+            Err(libc::EPIPE)
+        })
+        .unwrap_err();
+        assert_eq!(calls, 50);
+        assert_eq!(error.message(), "ioctl (SFEATURE): Broken pipe");
     }
 
     #[test]
