@@ -355,7 +355,6 @@ button 0 0
 button 1 0
 button 4 1
 button 5 0
-sensor Accel 1000000000 4248d717 c248d717 c248d717
 power OnBattery 20
 rumble 12 04 35
 button 24 0
@@ -380,7 +379,6 @@ button 0 0
 button 1 1
 button 4 0
 button 5 1
-sensor Accel 1000000000 4248d717 c248d717 c248d717
 power OnBattery 5
 rumble 12 04 35
 removed
@@ -1381,7 +1379,6 @@ axis 0 -8936
 axis 1 -17096
 axis 2 -32768
 axis 3 32767
-sensor Accel 1000000000 4248d717 c248d717 c248d717
 removed
 connection 0
 result 1
