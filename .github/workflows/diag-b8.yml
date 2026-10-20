@@ -1,0 +1,95 @@
+name: diag-b8
+
+on:
+  push:
+    branches: [claude/diag-b8]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  RUST_TEST_NOCAPTURE: 1
+  MESA_VERSION: "26.2.4"
+  MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
+  VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
+  VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+
+jobs:
+  gpu:
+    name: gpu (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: pinned
+      - name: Cache the GPU drivers
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/gpu-cache
+          key: gpu-${{ runner.os }}-${{ runner.os == 'Windows' && format('mesa-{0}-loader-{1}', env.MESA_VERSION, env.VULKAN_LOADER_COMMIT) || format('moltenvk-{0}', env.MOLTENVK_VERSION) }}
+      - name: Install the GPU drivers (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          C="$RUNNER_TEMP/gpu-cache"
+          G="$RUNNER_TEMP/gpu"
+          mkdir -p "$C" "$G"
+          cd "$C"
+          if [ ! -f mesa.7z ]; then
+            curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
+          fi
+          echo "$MESA_SHA256  mesa.7z" | sha256sum -c
+          7z x -y -o"$G" mesa.7z x64 > /dev/null
+          if [ ! -f vulkan-1.dll ]; then
+            git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader "$G/loader"
+            test "$(git -C "$G/loader" rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
+            cmake -S "$G/loader" -B "$G/loader/build" -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > "$G/cmake.log" 2>&1 || { tail -50 "$G/cmake.log"; exit 1; }
+            cmake --build "$G/loader/build" --config Release --parallel > "$G/build.log" 2>&1 || { tail -80 "$G/build.log"; exit 1; }
+            cp "$G/loader/build/loader/Release/vulkan-1.dll" .
+          fi
+          cd "$GITHUB_WORKSPACE"
+          for d in target/debug/deps target/release/deps; do
+            mkdir -p "$d"
+            cp "$G"/x64/{opengl32,libgallium_wgl,libEGL,libGLESv2}.dll "$C/vulkan-1.dll" "$d/"
+          done
+          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
+          echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
+          echo "EGL_PLATFORM=windows" >> "$GITHUB_ENV"
+      - name: Install the GPU drivers (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          C="$RUNNER_TEMP/gpu-cache"
+          mkdir -p "$C"
+          cd "$C"
+          if [ ! -f moltenvk.tar ]; then
+            curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          fi
+          echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
+          tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - name: The GPU API and renderer tests
+        run: "cargo test -p sdl3 --lib -- gpu:: render::"
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          if [ -s "$SDL3_TEST_SKIP_LOG" ]; then sort -u "$SDL3_TEST_SKIP_LOG"; else echo "no checks skipped"; fi
