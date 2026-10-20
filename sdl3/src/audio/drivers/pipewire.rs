@@ -1220,8 +1220,9 @@ impl PwDevice {
         self.stream.load(Ordering::Acquire)
     }
 
-    /// `PIPEWIRE_GetDeviceBuf()` proper: the dequeued buffer's memory.
-    fn dequeue_device_buf(&self) -> Option<*mut u8> {
+    /// `PIPEWIRE_GetDeviceBuf()` proper: the dequeued buffer's memory, and
+    /// its size.
+    fn dequeue_device_buf(&self) -> Option<(*mut u8, usize)> {
         // See if a buffer is available. If this sets *buffer_size=0, then SDL_PlaybackAudioThreadIterate will skip this iteration but try again next time.
         let stream = self.stream();
         // SAFETY: the stream is live; this runs on the loop thread.
@@ -1231,7 +1232,10 @@ impl PwDevice {
         }
 
         // SAFETY: a dequeued buffer has a spa_buffer with at least one data.
-        let data = unsafe { (*(*(*pw_buf).buffer).datas).data };
+        let (data, maxsize) = unsafe {
+            let d = &*(*(*pw_buf).buffer).datas;
+            (d.data, d.maxsize as usize)
+        };
         if data.is_null() {
             // SAFETY: we dequeued it; it goes back once.
             unsafe { (self.lib.pw_stream_queue_buffer)(stream, pw_buf) };
@@ -1239,7 +1243,7 @@ impl PwDevice {
         }
 
         self.pw_buf.store(pw_buf, Ordering::Release);
-        Some(data.cast())
+        Some((data.cast(), maxsize))
     }
 
     /// `PIPEWIRE_PlayDevice()` proper: queue the dequeued buffer with
@@ -1323,11 +1327,13 @@ unsafe extern "C" fn output_callback(data: *mut c_void) {
     // this callback can fire in a background thread during OpenDevice, while we're still blocking
     // _with the device lock_ until the stream is ready, causing a deadlock. Write silence in this case.
     if h.stream_init_status.load(Ordering::Acquire) != PW_READY_FLAG_ALL_BITS {
-        // FIXME (upstream): PIPEWIRE_GetDeviceBuf() doesn't set the size,
-        // so `bufsize` stays 0, nothing is silenced and an empty buffer is
-        // queued.
-        let bufsize: usize = 0;
-        if let Some(buf) = h.dequeue_device_buf() {
+        // Note (upstream): `bufsize` starts at 0, which
+        // PIPEWIRE_GetDeviceBuf() leaves alone, so nothing is silenced and
+        // an empty buffer is queued. Here it's the device's buffer size, as
+        // the core's calls start with, within the buffer's.
+        let mut bufsize: usize = 0;
+        if let Some((buf, maxsize)) = h.dequeue_device_buf() {
+            bufsize = h.buffer_size.load(Ordering::Acquire).min(maxsize);
             if bufsize != 0 {
                 // SAFETY: the buffer has room for `bufsize` bytes.
                 unsafe { ptr::write_bytes(buf, h.silence_value, bufsize) };
