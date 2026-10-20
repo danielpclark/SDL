@@ -431,9 +431,12 @@ fn management_thread_prepare() -> Result<()> {
     if failed(co_initialize()) {
         return Err(Error::new("CoInitialize() failed"));
     }
-    // FIXME (upstream): when SDL_IMMDevice_Init() fails, this thread's
-    // CoInitialize() is never balanced.
-    immdevice::init(Some(callbacks))?; // Error string is set by SDL_IMMDevice_Init
+    if let Err(e) = immdevice::init(Some(callbacks)) {
+        // Note (upstream): this returns without balancing the thread's
+        // CoInitialize().
+        co_uninitialize();
+        return Err(e); // Error string is set by SDL_IMMDevice_Init
+    }
 
     IMMDEVICE_INITIALIZED.store(true, Ordering::Release);
 
