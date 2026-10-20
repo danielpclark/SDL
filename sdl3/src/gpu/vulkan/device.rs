@@ -1961,15 +1961,13 @@ impl VulkanRenderer {
             unsafe { (self.dev.destroy_render_pass)(self.logical_device, render_pass, null()) };
         }
 
-        {
-            // FIXME (upstream): the framebuffers are released (to be
-            // destroyed by a PerformPendingDestroys that never comes), so
-            // they outlive the device.
-            let framebuffers = std::mem::take(&mut *super::lock(&self.framebuffer_hash_table));
-            let mut dispose = super::lock(&self.dispose);
-            for (_, framebuffer) in framebuffers {
-                self.release_framebuffer(&mut dispose, framebuffer);
-            }
+        // Note (upstream): the framebuffers are released (to be destroyed by
+        // a PerformPendingDestroys that never comes), so they outlive the
+        // device; here they're destroyed (the GPU is idle). (Only those of
+        // textures never released can be left: the front end releases every
+        // texture before the device.)
+        for (_, framebuffer) in std::mem::take(&mut *super::lock(&self.framebuffer_hash_table)) {
+            self.destroy_framebuffer(&framebuffer);
         }
 
         for (_, layout) in std::mem::take(&mut *super::lock(
