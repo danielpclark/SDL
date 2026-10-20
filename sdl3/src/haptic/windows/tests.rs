@@ -416,6 +416,39 @@ fn conversions() {
     });
 }
 
+/// Pause and resume fail on a device without force feedback (Wine's
+/// DirectInput mouse), each saying what failed.
+#[test]
+fn pause_and_resume_errors() {
+    let _l = crate::test_support::test_lock();
+    // (for COM and DirectInput)
+    crate::init::init_subsystem(crate::init::InitFlags::HAPTIC).unwrap();
+    let dinput = DirectInput::create().unwrap();
+    // SAFETY: GetModuleHandleW(NULL) is the executable's handle.
+    let instance =
+        unsafe { windows_sys::Win32::System::LibraryLoader::GetModuleHandleW(std::ptr::null()) };
+    dinput.initialize(instance, DIRECTINPUT_VERSION).unwrap();
+    let device = dinput
+        .create_device(&windows_sys::Win32::Devices::HumanInterfaceDevice::GUID_SysMouse)
+        .unwrap();
+    let hwdata = super::HapticHwData {
+        device,
+        axes: [0; 3],
+        is_joystick: false,
+    };
+    let message = |r: Result<()>| r.unwrap_err().message().to_owned();
+    assert_eq!(
+        message(haptic_pause(&hwdata)),
+        "Haptic error Pausing the device"
+    );
+    assert_eq!(
+        message(haptic_resume(&hwdata)),
+        "Haptic error Resuming the device"
+    );
+    drop(hwdata);
+    crate::init::quit_subsystem(crate::init::InitFlags::HAPTIC);
+}
+
 #[test]
 fn driver_without_devices() {
     let _l = crate::test_support::test_lock();
