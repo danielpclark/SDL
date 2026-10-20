@@ -526,13 +526,55 @@ fn playback_recording_and_hotplug_through_a_server() {
                 let _ = std::process::Command::new("pw-metadata")
                     .args(["-d", "0", "default.audio.sink"])
                     .output();
-                let _ = std::process::Command::new("pw-cli")
-                    .args(["destroy", "sdl-hotplugged"])
-                    .output();
+                for node in ["sdl-hotplugged", "sdl-probe"] {
+                    let _ = std::process::Command::new("pw-cli")
+                        .args(["destroy", node])
+                        .output();
+                }
             }
         }
         let hotplugged = Hotplugged;
         assert!(wait_for(&|| named("Hotplugged").is_some()), "added");
+
+        // The default changes while the new default is locked, as
+        // OpenDevice holds a device's lock while it waits for the hotplug
+        // loop's: the loop goes on, and sees the next node (upstream's waits
+        // for the device lock with the loop locked, and is stuck).
+        let device = crate::audio::device::find_physical_audio_device_by_callback(|d| {
+            d.name == "Hotplugged"
+        })
+        .unwrap();
+        let probe_seen = with_device_state(&device, |_| {
+            // (no pumping in here: the main thread's work would want this
+            // device's state, which we're borrowing)
+            run(
+                "pw-metadata",
+                &[
+                    "0",
+                    "default.audio.sink",
+                    "{ \"name\": \"sdl-hotplugged\" }",
+                ],
+            );
+            std::thread::sleep(Duration::from_millis(500));
+            run(
+                "pw-cli",
+                &[
+                    "create-node",
+                    "adapter",
+                    "{ factory.name=support.null-audio-sink node.name=sdl-probe \
+                     node.description=Probe media.class=Audio/Sink audio.position=[FL FR] \
+                     object.linger=true }",
+                ],
+            );
+            let start = Instant::now();
+            while named("Probe").is_none() && start.elapsed() < Duration::from_secs(5) {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            named("Probe").is_some()
+        });
+        assert!(probe_seen, "the hotplug loop is stuck on a locked device");
+        let _ = run("pw-cli", &["destroy", "sdl-probe"]);
+
         let is_default =
             || audio_device_name(AUDIO_DEVICE_DEFAULT_PLAYBACK).is_ok_and(|n| n == "Hotplugged");
         // A session manager (WirePlumber) that is still reacting to the new
