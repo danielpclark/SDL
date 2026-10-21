@@ -124,8 +124,12 @@ fn convert_vibrato_rate(song: &MidiSong, rate: u8) -> i32 {
 
 fn reverse_data(sp: &mut [i16], ls: i32, le: i32) {
     // Sint16 s, *ep=sp+le; sp+=ls; le-=ls; le/=2; while (le--) { swap }
+    // Note (upstream): C's `ep` starts at `sp+le`, one past the last
+    // sample, so the reversal is one off: the first sample goes past the
+    // end of the data (where it is then zeroed) and the 0 there takes its
+    // place. It starts at the last sample here.
     let mut a = ls as usize;
-    let mut e = le as usize;
+    let mut e = (le as usize).wrapping_sub(1);
     let mut n = (le - ls) / 2;
     while n > 0 {
         n -= 1;
@@ -474,10 +478,6 @@ fn load_instrument(
                 whole sample. We do the same because the GUS does not SUCK. */
 
                 crate::snddbg!("Reverse loop in {}\n", String::from_utf8_lossy(name));
-                // FIXME (upstream): this reverses one sample past the end
-                // (the first of the extra samples, not yet set upstream: 0
-                // here), and the last real sample is then overwritten with
-                // 0 below.
                 reverse_data(&mut sp.data, 0, sp.data_length / 2);
 
                 let t = sp.loop_start;
