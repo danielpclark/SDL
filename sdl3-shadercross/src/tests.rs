@@ -6,6 +6,10 @@ use crate::spirv_cross::c_api::*;
 
 /// The test shaders (testdata/*.spv), by name.
 pub(crate) const SHADERS: &[(&str, &[u8])] = &[
+    (
+        "cs_asm_void_undef",
+        include_bytes!("../testdata/cs_asm_void_undef.spv"),
+    ),
     ("cs_bad_flip", include_bytes!("../testdata/cs_bad_flip.spv")),
     (
         "cs_bad_flip2",
@@ -488,13 +492,16 @@ fn gpu_shaders_and_pipelines_from_spirv() {
     // A device without SPIR-V or MSL gets its shaders through HLSL. vs_push's
     // std430 push constant block (a mat2 in 16 bytes, then a vec2) has no
     // HLSL cbuffer packing, and upstream's SPIRV-Cross writes the same
-    // overlapping packoffsets, which D3DCompile rejects (X4019).
+    // overlapping packoffsets, which D3DCompile rejects (X4019). The
+    // hand-assembled modules ("_asm_") are left out: they are made for
+    // SPIRV-Cross, not to be valid shaders (a void OpUndef, say).
     let formats = device.shader_formats();
     let through_hlsl = !formats.contains(sdl3::gpu::ShaderFormat::SPIRV)
         && !formats.contains(sdl3::gpu::ShaderFormat::MSL);
     let mut count = 0;
     for (name, code) in SHADERS {
-        if name.contains("_bad_") || (through_hlsl && *name == "vs_push") {
+        if name.contains("_bad_") || name.contains("_asm_") || (through_hlsl && *name == "vs_push")
+        {
             continue;
         }
         let shader_stage = stage(match name.as_bytes()[0] {

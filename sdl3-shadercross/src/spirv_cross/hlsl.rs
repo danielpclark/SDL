@@ -1988,10 +1988,11 @@ impl Compiler {
                 let undef = self.get_rc::<SPIRUndef>(id_)?;
                 let type_ = self.get_rc::<SPIRType>(undef.basetype)?;
                 // OpUndef can be void for some reason ...
-                // FIXME (upstream): this return leaves the whole function (it's a
-                // loop, not a lambda), skipping the remaining declarations.
+                // Note (upstream): C++ `return`s here, which leaves the whole
+                // function (it's a loop, not a lambda), skipping the remaining
+                // declarations; this goes on to the next.
                 if type_.basetype == BaseType::Void {
-                    return Ok(());
+                    continue;
                 }
 
                 let mut initializer = String::new();
