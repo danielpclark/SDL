@@ -97,8 +97,7 @@ fn pfr_cmap_char_next(cmap: &mut FtCMapRec, pchar_code: &mut FtUInt32) -> FtUInt
     let mut result: FtUInt = 0;
     let mut char_code: FtUInt32 = pchar_code.wrapping_add(1);
 
-    'exit: loop {
-        /* Restart: */
+    'exit: {
         let mut min: FtUInt = 0;
         let mut max: FtUInt = pfrcmap.num_chars;
         let mut mid: FtUInt = min + (max - min) / 2;
@@ -107,16 +106,11 @@ fn pfr_cmap_char_next(cmap: &mut FtCMapRec, pchar_code: &mut FtUInt32) -> FtUInt
             let gchar = pfrcmap.chars[mid as usize];
 
             if gchar == char_code {
-                /* FIXME (upstream): the first character (`mid' 0, glyph  */
-                /* index 1) is taken for none and skipped, here and below */
-                result = mid;
-                if result != 0 {
-                    result += 1;
-                    break 'exit;
-                }
-
-                char_code = char_code.wrapping_add(1);
-                continue 'exit;
+                /* Note (upstream): C takes `mid' 0 for no glyph, here and */
+                /* below, so the first character (glyph index 1) is       */
+                /* skipped; its glyph index is `mid + 1' like the others  */
+                result = mid + 1;
+                break 'exit;
             }
 
             if gchar < char_code {
@@ -137,13 +131,9 @@ fn pfr_cmap_char_next(cmap: &mut FtCMapRec, pchar_code: &mut FtUInt32) -> FtUInt
 
         if min < pfrcmap.num_chars {
             let gchar = pfrcmap.chars[min as usize];
-            result = min;
-            if result != 0 {
-                result += 1;
-                char_code = gchar;
-            }
+            result = min + 1;
+            char_code = gchar;
         }
-        break 'exit;
     }
 
     /* Exit: */
