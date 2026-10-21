@@ -742,6 +742,50 @@ ASSEMBLED.append(('cs_asm_pointer_arrays', compute_header(PHYSICAL_STORAGE_BUFFE
     ('OpFunctionEnd',),
 ]))
 
+# An output block at location 0 whose second member is at location 5:
+# SPIRV-Cross put the third member at 2, not 6 (it looked for a location on
+# that member, the one it counts for, rather than on those before it).
+ASSEMBLED.append(('vs_asm_member_location', [
+    ('OpCapability', SHADER),
+    ('OpMemoryModel', LOGICAL, GLSL450),
+    ('OpEntryPoint', VERTEX, '%main', 'main', '%out', '%position'),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%VOut', 'VOut'),
+    ('OpMemberName', '%VOut', 0, 'a'), ('OpMemberName', '%VOut', 1, 'b'),
+    ('OpMemberName', '%VOut', 2, 'c'),
+    ('OpName', '%out', 'vout'),
+    ('OpName', '%position', 'in_position'),
+    ('OpMemberDecorate', '%VOut', 1, LOCATION, 5),
+    ('OpDecorate', '%VOut', BLOCK),
+    ('OpDecorate', '%out', LOCATION, 0),
+    ('OpDecorate', '%position', LOCATION, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeVector', '%vec4', '%float', 4),
+    ('OpTypeStruct', '%VOut', '%vec4', '%vec4', '%vec4'),
+    ('OpTypePointer', '%ptr_out', OUTPUT, '%VOut'),
+    ('OpVariable', '%ptr_out', '%out', OUTPUT),
+    ('OpTypePointer', '%ptr_in', INPUT, '%vec4'),
+    ('OpVariable', '%ptr_in', '%position', INPUT),
+    ('OpTypeInt', '%int', 32, 1),
+    ('OpConstant', '%int', '%i0', 0),
+    ('OpConstant', '%int', '%i1', 1),
+    ('OpConstant', '%int', '%i2', 2),
+    ('OpTypePointer', '%ptr_out_vec4', OUTPUT, '%vec4'),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpLoad', '%vec4', '%p', '%position'),
+    ('OpAccessChain', '%ptr_out_vec4', '%pa', '%out', '%i0'),
+    ('OpStore', '%pa', '%p'),
+    ('OpAccessChain', '%ptr_out_vec4', '%pb', '%out', '%i1'),
+    ('OpStore', '%pb', '%p'),
+    ('OpAccessChain', '%ptr_out_vec4', '%pc', '%out', '%i2'),
+    ('OpStore', '%pc', '%p'),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
 
 def main():
     assembled_only = sys.argv[1:] == ['--assembled']

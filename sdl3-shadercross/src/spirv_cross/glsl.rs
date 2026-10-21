@@ -26015,10 +26015,11 @@ impl Compiler {
             let mbr_type = self.get::<SPIRType>(*type_.member_types.at(i as usize)?)?;
 
             // Start counting from any place we have a new location decoration.
-            // FIXME (upstream): this tests (and reads) mbr_idx's decoration
-            // rather than member i's.
-            if self.has_member_decoration(type_.self_, mbr_idx, DecorationLocation) {
-                location = self.get_member_decoration(type_.self_, mbr_idx, DecorationLocation);
+            // Note (upstream): C++ tests (and reads) mbr_idx's decoration
+            // here, which its callers have checked isn't there, rather than
+            // member i's, so earlier members' locations are ignored.
+            if self.has_member_decoration(type_.self_, i, DecorationLocation) {
+                location = self.get_member_decoration(type_.self_, i, DecorationLocation);
             }
 
             let location_count = self.type_to_location_count(mbr_type)?;

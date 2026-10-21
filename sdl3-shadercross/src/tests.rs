@@ -61,6 +61,10 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
     ("fs_storage", include_bytes!("../testdata/fs_storage.spv")),
     ("fs_textured", include_bytes!("../testdata/fs_textured.spv")),
     (
+        "vs_asm_member_location",
+        include_bytes!("../testdata/vs_asm_member_location.spv"),
+    ),
+    (
         "vs_bad_truncated",
         include_bytes!("../testdata/vs_bad_truncated.spv"),
     ),
