@@ -3268,10 +3268,11 @@ impl Compiler {
         }
 
         if a.basetype == BaseType::Image || a.basetype == BaseType::SampledImage {
-            // FIXME (upstream): memcmp(&a.image, &b.image, sizeof(SPIRType::Image))
-            // takes the size of the enumerator SPIRType::Image (an int), not
-            // of the ImageType struct, so only image.type is compared.
-            if a.image.type_ != b.image.type_ {
+            // Note (upstream): C++ compares with memcmp(&a.image, &b.image,
+            // sizeof(SPIRType::Image)), the size of the enumerator
+            // SPIRType::Image (an int) rather than of the ImageType struct,
+            // so only image.type; the whole image type is compared here.
+            if a.image != b.image {
                 return Ok(false);
             }
         }

@@ -9922,6 +9922,240 @@ void main()
 {
     comp_main();
 }
+=== fs_asm_image_structs reflect
+samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
+output out_color location=0 type=float32 size=4
+=== fs_asm_image_structs glsl 450 0 0
+#version 450
+
+struct S
+{
+    sampler2D t;
+};
+
+struct S_1
+{
+    sampler3D t;
+};
+
+layout(binding = 0) uniform S u2;
+layout(binding = 1) uniform S_1 u3;
+
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    out_color = texture(u2.t, vec2(0.5)) + texture(u3.t, vec3(0.5));
+}
+
+=== fs_asm_image_structs glsl 310 1 0
+#version 310 es
+precision mediump float;
+precision highp int;
+
+struct S
+{
+    highp sampler2D t;
+};
+
+struct S_1
+{
+    highp sampler3D t;
+};
+
+layout(binding = 0) uniform S u2;
+layout(binding = 1) uniform S_1 u3;
+
+layout(location = 0) out highp vec4 out_color;
+
+void main()
+{
+    out_color = texture(u2.t, vec2(0.5)) + texture(u3.t, vec3(0.5));
+}
+
+=== fs_asm_image_structs glsl 450 0 1
+#version 450
+
+struct S
+{
+    sampler2D t;
+};
+
+struct S_1
+{
+    sampler3D t;
+};
+
+layout(set = 2, binding = 0) uniform S u2;
+layout(set = 2, binding = 1) uniform S_1 u3;
+
+layout(location = 0) out vec4 out_color;
+
+void main()
+{
+    out_color = texture(u2.t, vec2(0.5)) + texture(u3.t, vec3(0.5));
+}
+
+=== fs_asm_image_structs msl fragment 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct S
+{
+    texture2d<float> t;
+};
+
+struct S_1
+{
+    texture3d<float> t;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+};
+
+fragment main0_out main0(constant S& u2 [[buffer(0)]], constant S_1& u3 [[buffer(1)]])
+{
+    main0_out out = {};
+    out.out_color = u2.t.sample(u2.tSmplr, float2(0.5)) + u3.t.sample(u3.tSmplr, float3(0.5));
+    return out;
+}
+
+=== fs_asm_image_structs msl fragment 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct S
+{
+    texture2d<float> t;
+};
+
+struct S_1
+{
+    texture3d<float> t;
+};
+
+struct main0_out
+{
+    float4 out_color [[color(0)]];
+};
+
+fragment main0_out main0(constant S& u2 [[buffer(0)]], constant S_1& u3 [[buffer(1)]])
+{
+    main0_out out = {};
+    out.out_color = u2.t.sample(u2.tSmplr, float2(0.5)) + u3.t.sample(u3.tSmplr, float3(0.5));
+    return out;
+}
+
+=== fs_asm_image_structs hlsl fragment 60 - 0
+entrypoint: main
+struct S
+{
+    Texture2D<float4> t;
+};
+
+struct S_1
+{
+    Texture3D<float4> t;
+};
+
+uniform S u2;
+uniform S_1 u3;
+
+static float4 out_color;
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void main_inner()
+{
+    out_color = u2.t.Sample(_u2.t_sampler, 0.5f.xx) + u3.t.Sample(_u3.t_sampler, 0.5f.xxx);
+}
+
+SPIRV_Cross_Output main()
+{
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_asm_image_structs hlsl fragment 51 - 0
+entrypoint: main
+struct S
+{
+    Texture2D<float4> t;
+};
+
+struct S_1
+{
+    Texture3D<float4> t;
+};
+
+uniform S u2;
+uniform S_1 u3;
+
+static float4 out_color;
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void main_inner()
+{
+    out_color = u2.t.Sample(_u2.t_sampler, 0.5f.xx) + u3.t.Sample(_u3.t_sampler, 0.5f.xxx);
+}
+
+SPIRV_Cross_Output main()
+{
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
+=== fs_asm_image_structs hlsl fragment 50 - 1
+entrypoint: main
+struct S
+{
+    Texture2D<float4> t;
+};
+
+struct S_1
+{
+    Texture3D<float4> t;
+};
+
+uniform S u2;
+uniform S_1 u3;
+
+static float4 out_color;
+
+struct SPIRV_Cross_Output
+{
+    float4 out_color : SV_Target0;
+};
+
+void frag_main()
+{
+    out_color = u2.t.Sample(_u2.t_sampler, 0.5f.xx) + u3.t.Sample(_u3.t_sampler, 0.5f.xxx);
+}
+
+SPIRV_Cross_Output main()
+{
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.out_color = out_color;
+    return stage_output;
+}
 === vs_asm_member_location reflect
 samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 input in_position location=0 type=float32 size=4
