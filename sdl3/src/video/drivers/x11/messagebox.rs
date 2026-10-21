@@ -260,11 +260,15 @@ pub(crate) fn x11_show_message_box_impl(
     let (w, h) = x11_position_message_box(&controls, &mut window);
 
     /* Actually create window, do event loop, cleanup */
-    // FIXME (upstream): the result isn't checked: when the window can't be
-    // created, the event loop waits for its events forever.
-    let _ = window.create_window_res(w, h, 0, 0, &messageboxdata.title);
-    window.do_window_event_loop();
+    // Note (upstream): C doesn't check the result: when the window can't be
+    // created, the event loop waits for its events forever. Here the
+    // window is cleaned up and the error returned.
+    let created = window.create_window_res(w, h, 0, 0, &messageboxdata.title);
+    if created.is_ok() {
+        window.do_window_event_loop();
+    }
     window.destroy_window();
+    created?;
     if let Some(id) = chosen.get() {
         *button_id = id;
     }
