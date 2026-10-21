@@ -878,6 +878,61 @@ fn x11_keyboard_and_mouse_input() {
     w.destroy();
 }
 
+/// Relative motion events (from XI_RawMotion) carry SDL timestamps, not X
+/// server times.
+#[test]
+fn x11_raw_motion_timestamps() {
+    let _l = crate::test_support::test_lock();
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    let _video = Video::init();
+    let Some(xtest) = XTest::load() else {
+        crate::test_support::skip("x11", "libXtst not available");
+        return;
+    };
+    let client = Client::open().unwrap();
+    let w = SdlWindow::create("timestamps", 200, 200, WindowFlags::default()).unwrap();
+    w.raise().unwrap();
+    drain();
+    let _ = wait_for(
+        |e| matches!(e, Event::Window(we) if we.event_type == EventType::WINDOW_FOCUS_GAINED),
+    );
+    let (wx, wy) = w.position().unwrap();
+    w.set_relative_mouse_mode(true).unwrap();
+    drain();
+
+    let before = Duration::from_nanos(crate::timer::ticks_ns());
+    // SAFETY: the client display is open.
+    unsafe {
+        for i in 0..4 {
+            (xtest.motion)(client.dpy, 0, wx + 50 + 10 * i, wy + 60 + 5 * i, 0);
+        }
+        (client.x.XFlush)(client.dpy);
+    }
+    let mut stamps = Vec::new();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while Instant::now() < deadline {
+        crate::events::pump();
+        while let Some(e) = crate::events::poll() {
+            if let Event::MouseMotion(m) = e {
+                stamps.push(m.timestamp);
+            }
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let after = Duration::from_nanos(crate::timer::ticks_ns());
+    assert!(!stamps.is_empty());
+    for t in &stamps {
+        assert!(
+            before <= *t && *t <= after,
+            "motion at {t:?}, not in {before:?}..{after:?}"
+        );
+    }
+    w.set_relative_mouse_mode(false).unwrap();
+    w.destroy();
+}
+
 #[test]
 fn x11_vulkan() {
     let _l = crate::test_support::test_lock();

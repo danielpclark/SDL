@@ -13,6 +13,7 @@ use std::ffi::{c_int, c_uchar};
 use std::sync::Mutex;
 use std::time::Duration;
 
+use super::events::x11_get_event_timestamp;
 use super::pen::{
     x11_find_pen_by_device_id, x11_pen_axes_from_valuators, x11_remove_pen_by_device_id,
     SDL_X11_PEN_AXIS_VALUATOR_MISSING,
@@ -202,10 +203,12 @@ unsafe fn parse_relative_valuators(rel_dev: &mut XInput2RelativeDevice, rawev: &
     // Relative mouse motion is delivered to the window with keyboard focus
     let (relative_mode, focus) = mouse::with_mouse(|m| (m.relative_mode, m.focus));
     if relative_mode && keyboard::keyboard_focus().is_some() {
-        // FIXME (upstream): the X server time (milliseconds) is passed as
-        // an SDL timestamp (nanoseconds).
+        // Note (upstream): C passes the X server time (milliseconds since
+        // the server started) as the SDL timestamp (nanoseconds since SDL
+        // started). Here it goes through X11_GetEventTimestamp(), as for
+        // the other X11 input events.
         mouse::send_mouse_motion(
-            Duration::from_nanos(rawev.time),
+            x11_get_event_timestamp(rawev.time),
             focus,
             rawev.sourceid as MouseID,
             true,
@@ -278,10 +281,11 @@ unsafe fn xinput2_parse_scrollable_valuators(
     // (sent once the state is no longer borrowed)
     for (x, y) in wheel {
         let focus = mouse::mouse_focus();
-        // FIXME (upstream): as in parse_relative_valuators(), the X time is
-        // taken for nanoseconds.
+        // Note (upstream): as in parse_relative_valuators(), C takes the X
+        // time for an SDL timestamp; it goes through
+        // X11_GetEventTimestamp() here.
         mouse::send_mouse_wheel(
-            Duration::from_nanos(xev.time),
+            x11_get_event_timestamp(xev.time),
             focus,
             xev.sourceid as MouseID,
             -x as f32,
