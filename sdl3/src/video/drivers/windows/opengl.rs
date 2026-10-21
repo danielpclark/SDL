@@ -685,7 +685,15 @@ impl VideoData {
             (hdc, (f.wglCreateContext)(hdc))
         };
         if hglrc.is_null() {
-            // FIXME (upstream): the window and its DC are never released here.
+            // Note (upstream): the window and its DC are never released here,
+            // which leaves the hidden temporary window behind. They're
+            // released as after a context.
+            // SAFETY: the DC and window are ours.
+            unsafe {
+                ReleaseDC(hwnd, hdc);
+                DestroyWindow(hwnd);
+            }
+            pump_events_for_hwnd(hwnd);
             return;
         }
         // SAFETY: the context was created for hdc.
