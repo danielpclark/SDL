@@ -9563,6 +9563,70 @@ void main()
 {
     comp_main();
 }
+=== cs_asm_coopvec_outer reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=0 threadcount=1,1,1
+=== cs_asm_coopvec_outer glsl 450 0 0
+ERROR: Cooperative vector NV only available in Vulkan.
+=== cs_asm_coopvec_outer glsl 310 1 0
+ERROR: Cooperative vector NV only available in Vulkan.
+=== cs_asm_coopvec_outer glsl 450 0 1
+#version 450
+#extension GL_NV_cooperative_vector : require
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 1, binding = 0, std430) buffer Buf
+{
+    float m[];
+} matrix;
+
+void main()
+{
+    coopvecNV<float, 4u> _21 = coopvecNV<float, 4u>(1.0);
+    coopVecOuterProductAccumulateNV(_21, _21, matrix.m, 0u, 0, gl_CooperativeVectorMatrixLayoutTrainingOptimalNV, gl_ComponentTypeFloat32NV);
+}
+
+=== cs_asm_coopvec_outer msl compute 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Buf
+{
+    float m[1];
+};
+
+kernel void main0(const device Buf& matrix [[buffer(0)]])
+{
+    unknown_type _21 = unknown_type(1.0);
+    coopVecOuterProductAccumulateNV(_21, _21, matrix.m, 0u, 0, gl_CooperativeVectorMatrixLayoutTrainingOptimalNV, gl_ComponentTypeFloat32NV);
+}
+
+=== cs_asm_coopvec_outer msl compute 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Buf
+{
+    float m[1];
+};
+
+kernel void main0(const device Buf& matrix [[buffer(0)]])
+{
+    unknown_type _21 = unknown_type(1.0);
+    coopVecOuterProductAccumulateNV(_21, _21, matrix.m, 0u, 0, gl_CooperativeVectorMatrixLayoutTrainingOptimalNV, gl_ComponentTypeFloat32NV);
+}
+
+=== cs_asm_coopvec_outer hlsl compute 60 - 0
+ERROR: spvc_compiler_compile failed: Access chains have no default expression representation.
+=== cs_asm_coopvec_outer hlsl compute 51 - 0
+ERROR: spvc_compiler_compile failed: Access chains have no default expression representation.
+=== cs_asm_coopvec_outer hlsl compute 50 - 1
+ERROR: spvc_compiler_compile failed: Access chains have no default expression representation.
 === cs_asm_pointer_arrays reflect
 samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=0 uniform_buffers=1 threadcount=1,1,1
 === cs_asm_pointer_arrays glsl 450 0 0

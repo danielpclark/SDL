@@ -555,15 +555,17 @@ OPCODES = {
     'OpExtInst': 12, 'OpMemoryModel': 14, 'OpEntryPoint': 15, 'OpExecutionMode': 16,
     'OpCapability': 17, 'OpTypeVoid': 19, 'OpTypeInt': 21, 'OpTypeFloat': 22,
     'OpTypeVector': 23, 'OpTypeImage': 25, 'OpTypeSampledImage': 27, 'OpTypeArray': 28,
-    'OpTypeStruct': 30, 'OpTypePointer': 32, 'OpTypeFunction': 33, 'OpConstant': 43,
-    'OpConstantComposite': 44, 'OpFunction': 54, 'OpFunctionEnd': 56, 'OpVariable': 59,
-    'OpLoad': 61, 'OpStore': 62, 'OpAccessChain': 65, 'OpDecorate': 71,
+    'OpTypeRuntimeArray': 29, 'OpTypeStruct': 30, 'OpTypePointer': 32, 'OpTypeFunction': 33,
+    'OpConstant': 43, 'OpConstantComposite': 44, 'OpFunction': 54, 'OpFunctionEnd': 56,
+    'OpVariable': 59, 'OpLoad': 61, 'OpStore': 62, 'OpAccessChain': 65, 'OpDecorate': 71,
     'OpMemberDecorate': 72, 'OpCompositeConstruct': 80, 'OpImageSampleImplicitLod': 87,
-    'OpFAdd': 129, 'OpLabel': 248, 'OpReturn': 253,
+    'OpFAdd': 129, 'OpLabel': 248, 'OpReturn': 253, 'OpTypeCooperativeVectorNV': 5288,
+    'OpCooperativeVectorOuterProductAccumulateNV': 5290,
 }
 
 # (enumerants used below)
 SHADER, PHYSICAL_STORAGE_BUFFER_ADDRESSES = 1, 5347
+COOPERATIVE_VECTOR_NV, COOPERATIVE_VECTOR_TRAINING_NV = 5394, 5435
 LOGICAL, PHYSICAL_STORAGE_BUFFER_64, GLSL450 = 0, 5348, 1
 VERTEX, FRAGMENT, GL_COMPUTE = 0, 4, 5
 ORIGIN_UPPER_LEFT, LOCAL_SIZE = 7, 17
@@ -870,6 +872,49 @@ ASSEMBLED.append(('fs_asm_asinh', [
     ('OpExtInst', '%float', '%y', '%glsl', GLSL_STD_450_ASINH, '%x'),
     ('OpCompositeConstruct', '%vec4', '%c', '%y', '%y', '%y', '%y'),
     ('OpStore', '%color', '%c'),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
+# A cooperative vector outer product without its optional matrix stride:
+# SPIRV-Cross's GLSL backend took the word after the instruction for the
+# stride's ID.
+ASSEMBLED.append(('cs_asm_coopvec_outer', compute_header(
+        COOPERATIVE_VECTOR_NV, COOPERATIVE_VECTOR_TRAINING_NV) + [
+    ('OpExtension', 'SPV_NV_cooperative_vector'),
+    ('OpMemoryModel', LOGICAL, GLSL450),
+    ('OpEntryPoint', GL_COMPUTE, '%main', 'main'),
+    ('OpExecutionMode', '%main', LOCAL_SIZE, 1, 1, 1),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%Buf', 'Buf'), ('OpMemberName', '%Buf', 0, 'm'),
+    ('OpName', '%buf', 'matrix'),
+    ('OpDecorate', '%rta', ARRAY_STRIDE, 4),
+    ('OpMemberDecorate', '%Buf', 0, OFFSET, 0),
+    ('OpDecorate', '%Buf', BUFFER_BLOCK),
+    ('OpDecorate', '%buf', DESCRIPTOR_SET, 1), ('OpDecorate', '%buf', BINDING, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeInt', '%uint', 32, 0),
+    ('OpTypeInt', '%int', 32, 1),
+    ('OpConstant', '%uint', '%c4', 4),
+    ('OpTypeCooperativeVectorNV', '%cv', '%float', '%c4'),
+    ('OpTypeRuntimeArray', '%rta', '%float'),
+    ('OpTypeStruct', '%Buf', '%rta'),
+    ('OpTypePointer', '%ptr_buf', UNIFORM, '%Buf'),
+    ('OpVariable', '%ptr_buf', '%buf', UNIFORM),
+    ('OpTypePointer', '%ptr_rta', UNIFORM, '%rta'),
+    ('OpConstant', '%int', '%i0', 0),
+    ('OpConstant', '%uint', '%u0', 0),
+    ('OpConstant', '%uint', '%training_optimal', 3),
+    ('OpConstant', '%uint', '%float32', 1),
+    ('OpConstant', '%float', '%one', 1.0),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpAccessChain', '%ptr_rta', '%p', '%buf', '%i0'),
+    ('OpCompositeConstruct', '%cv', '%v', '%one', '%one', '%one', '%one'),
+    ('OpCooperativeVectorOuterProductAccumulateNV', '%p', '%u0', '%v', '%v',
+     '%training_optimal', '%float32'),
     ('OpReturn',),
     ('OpFunctionEnd',),
 ]))
