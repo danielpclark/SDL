@@ -2425,7 +2425,7 @@ struct IEnumFormatEtc {
 struct IEnumFormatEtcVtbl {
     query_interface: usize,
     add_ref: usize,
-    release: usize,
+    release: unsafe extern "system" fn(*mut IEnumFormatEtc) -> u32,
     next: unsafe extern "system" fn(*mut IEnumFormatEtc, u32, *mut FORMATETC, *mut u32) -> HRESULT,
 }
 
@@ -2741,8 +2741,10 @@ unsafe extern "system" fn drop_target_drop(
                     ),
                 }
             }
-            // FIXME (upstream): SDLDropTarget_Drop() never releases the
-            // IEnumFORMATETC it gets from EnumFormatEtc(), leaking it.
+            // Note (upstream): SDLDropTarget_Drop() never releases the
+            // IEnumFORMATETC it gets from EnumFormatEtc(), leaking one with
+            // every drop. It's released here.
+            ((*(*p_enum_format_etc).vtbl).release)(p_enum_format_etc);
         }
     }
 
@@ -3180,5 +3182,130 @@ pub(crate) fn window_data_from_prop(hwnd: HWND) -> Option<Arc<WindowData>> {
         }
         Arc::increment_strong_count(ptr);
         Some(Arc::from_raw(ptr))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::AtomicU32;
+
+    use windows_sys::Win32::Foundation::{DV_E_FORMATETC, S_FALSE};
+
+    use super::*;
+
+    /// A data object with no data, whose format enumerator counts its
+    /// references.
+    #[repr(C)]
+    struct FakeDataObject {
+        object: IDataObject,
+        enumerator: IEnumFormatEtc,
+        enumerator_refs: AtomicU32,
+    }
+
+    unsafe extern "system" fn get_data(
+        _: *mut IDataObject,
+        _: *const FORMATETC,
+        _: *mut STGMEDIUM,
+    ) -> HRESULT {
+        DV_E_FORMATETC
+    }
+
+    unsafe extern "system" fn query_get_data(_: *mut IDataObject, _: *const FORMATETC) -> HRESULT {
+        DV_E_FORMATETC
+    }
+
+    unsafe extern "system" fn enum_format_etc(
+        object: *mut IDataObject,
+        _: u32,
+        out: *mut *mut IEnumFormatEtc,
+    ) -> HRESULT {
+        // SAFETY: the object is the first field of a FakeDataObject.
+        unsafe {
+            let fake = object.cast::<FakeDataObject>();
+            (*fake).enumerator_refs.fetch_add(1, Ordering::SeqCst);
+            *out = std::ptr::addr_of_mut!((*fake).enumerator);
+        }
+        S_OK
+    }
+
+    unsafe extern "system" fn enumerator_release(enumerator: *mut IEnumFormatEtc) -> u32 {
+        // SAFETY: the enumerator is a field of a FakeDataObject (handed out
+        // by enum_format_etc() from a pointer to all of it).
+        unsafe {
+            let fake = enumerator
+                .cast::<u8>()
+                .sub(std::mem::offset_of!(FakeDataObject, enumerator))
+                .cast::<FakeDataObject>();
+            (*fake).enumerator_refs.fetch_sub(1, Ordering::SeqCst) - 1
+        }
+    }
+
+    unsafe extern "system" fn enumerator_next(
+        _: *mut IEnumFormatEtc,
+        _: u32,
+        _: *mut FORMATETC,
+        _: *mut u32,
+    ) -> HRESULT {
+        S_FALSE
+    }
+
+    static DATA_OBJECT_VTBL: IDataObjectVtbl = IDataObjectVtbl {
+        query_interface: 0,
+        add_ref: 0,
+        release: 0,
+        get_data,
+        get_data_here: 0,
+        query_get_data,
+        get_canonical_format_etc: 0,
+        set_data: 0,
+        enum_format_etc,
+    };
+
+    static ENUMERATOR_VTBL: IEnumFormatEtcVtbl = IEnumFormatEtcVtbl {
+        query_interface: 0,
+        add_ref: 0,
+        release: enumerator_release,
+        next: enumerator_next,
+    };
+
+    #[test]
+    fn drop_releases_the_format_enumerator() {
+        let _l = crate::test_support::test_lock();
+        let mut fake = FakeDataObject {
+            object: IDataObject {
+                vtbl: &DATA_OBJECT_VTBL,
+            },
+            enumerator: IEnumFormatEtc {
+                vtbl: &ENUMERATOR_VTBL,
+            },
+            enumerator_refs: AtomicU32::new(0),
+        };
+        let mut target = DropTarget {
+            lp_vtbl: &VT_DROP_TARGET,
+            refcount: AtomicI32::new(1),
+            window: 0,
+            hwnd: std::ptr::null_mut(),
+            format_text: 0,
+            format_file: 0,
+        };
+        let mut effect = 0;
+        let object: *mut FakeDataObject = &mut fake;
+        // SAFETY: the target and data object live through the call.
+        let hres = unsafe {
+            drop_target_drop(
+                &mut target,
+                object.cast(),
+                0,
+                POINTL { x: 0, y: 0 },
+                &mut effect,
+            )
+        };
+        assert_eq!(hres, S_OK);
+        assert_eq!(effect, DROPEFFECT_COPY);
+        assert_eq!(
+            fake.enumerator_refs.load(Ordering::SeqCst),
+            0,
+            "the drop releases the enumerator it asked for"
+        );
     }
 }
