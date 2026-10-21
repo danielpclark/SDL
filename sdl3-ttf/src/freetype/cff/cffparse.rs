@@ -518,10 +518,10 @@ fn do_fixed(parser: &CffParserRec<'_, '_>, d: CffOperand, scaling: FtLong) -> Ft
     if parser.byte(d, 0) == 30 {
         cff_parse_real(parser.dict, real_start(d), parser.limit, scaling, None)
     } else if parser.byte(d, 0) == 255 {
-        /* FIXME (upstream): the four bytes are read as an unsigned 32-bit */
-        /* value, so that a negative blend result becomes a large positive */
-        /* `FT_Fixed' (C's conversion is kept here)                        */
-        let mut val: FtFixed = blend_bytes(parser, d) as FtFixed;
+        /* Note (upstream): C reads the four bytes as an unsigned 32-bit  */
+        /* value, so that where `FT_Fixed' is 64-bit, a negative blend    */
+        /* result becomes a large positive one; it is sign-extended here */
+        let mut val: FtFixed = blend_bytes(parser, d) as i32 as FtFixed;
 
         if scaling != 0 {
             if val.abs() > POWER_TEN_LIMITS[scaling as usize] {
@@ -1342,4 +1342,34 @@ pub fn cff_parser_run<'d>(parser: &mut CffParserRec<'_, 'd>, dict: &'d [u8]) -> 
     } /* while ( p < limit ) */
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A negative blend result is a negative number (upstream's is
+    /// 2^32 more).
+    #[test]
+    fn negative_blend_result() {
+        /* -0.5 and 1.5, as cff_blend_doBlend() stores them */
+        let data = [255, 0xFF, 0xFF, 0x80, 0x00, 255, 0x00, 0x01, 0x80, 0x00];
+        let mut dict = CffFontRecDictRec::default();
+        let mut parser = cff_parser_init(
+            CFF2_CODE_PRIVATE,
+            CffParserObject::FontDict(&mut dict),
+            4,
+            0,
+            0,
+        )
+        .unwrap();
+        parser.dict = &data;
+        parser.limit = data.len();
+        assert_eq!(cff_parse_fixed(&parser, CffOperand::Dict(0)), -0x8000);
+        assert_eq!(cff_parse_fixed(&parser, CffOperand::Dict(5)), 0x18000);
+        assert_eq!(
+            cff_parse_fixed_scaled(&parser, CffOperand::Dict(0), 3),
+            -0x8000 * 1000
+        );
+    }
 }
