@@ -12837,9 +12837,9 @@ impl Compiler {
                     one,
                     "))"
                 );
-                // FIXME (upstream): this emits the op here and again after the
-                // switch.
-                self.emit_op(result_type, id, &expr, forward, false)?;
+                // Note (upstream): C++ emits the op here too, and again after
+                // the switch (declaring a temporary twice, where the operand
+                // isn't forwarded).
             }
 
             GLSLstd450Acosh => {
