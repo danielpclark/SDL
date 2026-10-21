@@ -705,24 +705,34 @@ impl WebpEncoderContext {
                     return Err(Error::new("WebPMuxSetAnimationParams() failed"));
                 }
 
-                let d = xmlman::construct_xmp_with_rdf_description(
-                    metadata.get_string(PROP_METADATA_TITLE_STRING).as_deref(),
-                    metadata.get_string(PROP_METADATA_AUTHOR_STRING).as_deref(),
-                    metadata
-                        .get_string(PROP_METADATA_DESCRIPTION_STRING)
-                        .as_deref(),
-                    metadata
-                        .get_string(PROP_METADATA_COPYRIGHT_STRING)
-                        .as_deref(),
-                    metadata
-                        .get_string(PROP_METADATA_CREATION_TIME_STRING)
-                        .as_deref(),
-                );
-                let Some(d) = d.filter(|d| !d.is_empty()) else {
-                    return Err(Error::new("Failed to construct XMP data"));
-                };
-                if webp_mux_set_chunk(&mut mux, b"XMP ", &d) != WebPMuxError::Ok {
-                    return Err(Error::new("WebPMuxSetChunk() failed for XMP data"));
+                let title = metadata.get_string(PROP_METADATA_TITLE_STRING);
+                let author = metadata.get_string(PROP_METADATA_AUTHOR_STRING);
+                let description = metadata.get_string(PROP_METADATA_DESCRIPTION_STRING);
+                let copyright = metadata.get_string(PROP_METADATA_COPYRIGHT_STRING);
+                let creation_time = metadata.get_string(PROP_METADATA_CREATION_TIME_STRING);
+                // Note (upstream): upstream constructs the XMP for any
+                // metadata property (the loop count alone, say), and without
+                // one of the five XMP strings none is constructed, which
+                // fails the save; the translation writes no XMP then.
+                if title.is_some()
+                    || author.is_some()
+                    || description.is_some()
+                    || copyright.is_some()
+                    || creation_time.is_some()
+                {
+                    let d = xmlman::construct_xmp_with_rdf_description(
+                        title.as_deref(),
+                        author.as_deref(),
+                        description.as_deref(),
+                        copyright.as_deref(),
+                        creation_time.as_deref(),
+                    );
+                    let Some(d) = d.filter(|d| !d.is_empty()) else {
+                        return Err(Error::new("Failed to construct XMP data"));
+                    };
+                    if webp_mux_set_chunk(&mut mux, b"XMP ", &d) != WebPMuxError::Ok {
+                        return Err(Error::new("WebPMuxSetChunk() failed for XMP data"));
+                    }
                 }
 
                 if webp_mux_assemble(&mut mux, &mut data) != WebPMuxError::Ok {

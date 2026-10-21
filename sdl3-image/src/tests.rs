@@ -2551,6 +2551,35 @@ fn webp_encoders_round_trip() {
         Some("frames")
     );
     assert!(decoder.get_frame().unwrap().is_some());
+    drop(decoder);
+
+    // A loop count is the only metadata: no XMP, and the loop count kept
+    // (upstream fails to construct the XMP).
+    let mut out = IoStream::from_dynamic_mem();
+    let props = sdl3::properties::Properties::new();
+    props
+        .set(crate::PROP_ANIMATION_ENCODER_CREATE_TYPE_STRING, "webp")
+        .unwrap();
+    props
+        .set(crate::PROP_METADATA_LOOP_COUNT_NUMBER, 4)
+        .unwrap();
+    let mut e = crate::AnimationEncoder::with_properties(Some(&mut out), &props).unwrap();
+    for (i, f) in frames.iter().enumerate() {
+        let mut f = f.convert(PixelFormat::RGBA32).unwrap();
+        e.add_frame(&mut f, 100 + i as u64 * 10).unwrap();
+    }
+    e.close().unwrap();
+    let looped = out.dynamic_memory().unwrap().to_vec();
+    let mut src = IoStream::from_const_mem(&looped);
+    let mut decoder = crate::AnimationDecoder::from_io(&mut src, "webp").unwrap();
+    let meta = decoder.properties();
+    assert_eq!(
+        meta.get_number(crate::PROP_METADATA_LOOP_COUNT_NUMBER),
+        Some(4)
+    );
+    assert_eq!(meta.get_string(crate::PROP_METADATA_TITLE_STRING), None);
+    assert!(decoder.get_frame().unwrap().is_some());
+    drop(decoder);
 
     // Lossy, the whole animation at once (quality 90).
     let mut anim =
