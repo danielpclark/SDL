@@ -11,6 +11,10 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
         include_bytes!("../testdata/cs_asm_array_store.spv"),
     ),
     (
+        "cs_asm_pointer_arrays",
+        include_bytes!("../testdata/cs_asm_pointer_arrays.spv"),
+    ),
+    (
         "cs_asm_void_undef",
         include_bytes!("../testdata/cs_asm_void_undef.spv"),
     ),

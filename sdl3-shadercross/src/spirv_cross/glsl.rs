@@ -22052,12 +22052,13 @@ impl Compiler {
             // array information is left to to_array_type_glsl. The base type loses array information.
             let mut steps: usize = 0;
             while self.is_array(&parent) {
-                // FIXME (upstream): this uses the pointer type's array
-                // dimensions rather than the parent's.
+                // Note (upstream): C++ takes the pointer type's outer array
+                // dimension here every time (float3_stride_163_stride_4Pointer
+                // for a float[3][4]), rather than the dimension of `parent`.
                 if *parent.array_size_literal.back()? {
-                    name += &join!(*type_.array.back()?, "_");
+                    name += &join!(*parent.array.back()?, "_");
                 } else {
-                    name += &join!("id", *type_.array.back()?, "_");
+                    name += &join!("id", *parent.array.back()?, "_");
                 }
 
                 name += &(String::from("stride_") + &array_stride.to_string());
