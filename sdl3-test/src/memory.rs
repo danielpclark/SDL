@@ -585,7 +585,7 @@ fn capture_stack(stack: &mut [u64; MAXIMUM_TRACKED_STACK_DEPTH]) {
 fn capture_stack(_stack: &mut [u64; MAXIMUM_TRACKED_STACK_DEPTH]) {}
 
 /// The names of the addresses on the recorded stacks.
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "emscripten")))]
 mod symbols {
     use std::ffi::CStr;
 
@@ -729,7 +729,9 @@ mod symbols {
     }
 }
 
-#[cfg(not(any(unix, windows)))]
+/// No names, where no stacks are recorded (upstream's Emscripten build has
+/// no libunwind).
+#[cfg(any(not(any(unix, windows)), target_os = "emscripten"))]
 mod symbols {
     pub(super) fn init() {}
 
