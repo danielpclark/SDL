@@ -1205,92 +1205,12 @@ unsafe extern "C" fn preedit_done_callback(
 /// Translation of `preedit_draw_callback()`.
 fn preedit_draw_callback(window: WindowID, call_data: &mut XIMPreeditDrawCallbackStruct) {
     let updated = with_x11_window(window, |_, data| {
-        let chg_first = call_data.chg_first.clamp(0, data.preedit_length);
-        let chg_length = call_data
-            .chg_length
-            .clamp(0, data.preedit_length - chg_first);
-
-        let mut start = data
-            .preedit_text
-            .as_deref()
-            .map_or(0, |t| char_offset(t, chg_first));
-        if chg_length > 0 {
-            // Delete text in range
-            if let Some(text) = &mut data.preedit_text {
-                let end = start + char_offset(&text[start..], chg_length);
-
-                if end > start {
-                    text.replace_range(start..end, "");
-                    // FIXME (upstream): chg_length is clamped so that this
-                    // is never true: the feedback isn't moved.
-                    if (chg_first + chg_length) > data.preedit_length {
-                        let first = chg_first as usize;
-                        let count = (data.preedit_length - chg_first - chg_length) as usize;
-                        let from = first + chg_length as usize;
-                        data.preedit_feedback.copy_within(from..from + count, first);
-                    }
-                }
-                start = start.min(text.len());
-            }
-            data.preedit_length -= chg_length;
-        }
-
-        if !call_data.text.is_null() {
-            // SAFETY: the input method passes a valid text.
-            let text = unsafe { &mut *call_data.text };
-            // Insert text in range
-            crate::sdl_assert!(text.encoding_is_wchar == 0);
-
-            // Note (upstream): a NULL multi-byte string is passed to
-            // SDL_strlen(); it is taken as empty here.
-            let string: &[u8] = if text.string.is_null() {
-                &[]
-            } else {
-                // SAFETY: a NUL-terminated multi-byte string.
-                unsafe { CStr::from_ptr(text.string) }.to_bytes()
-            };
-            let string = String::from_utf8_lossy(string).into_owned();
-
-            // The text length isn't calculated as directed by the spec, recalculate it now
-            if !text.string.is_null() {
-                text.length = string.chars().count() as u16;
-            }
-
-            let old = data.preedit_text.as_deref().unwrap_or("");
-            let at = start.min(old.len());
-            let mut preedit_text = String::with_capacity(old.len() + string.len());
-            preedit_text.push_str(&old[..at]);
-            preedit_text.push_str(&string);
-            preedit_text.push_str(&old[at..]);
-
-            let text_feedback: &[XIMFeedback] = if text.feedback.is_null() {
-                &[]
-            } else {
-                // SAFETY: the text has `length` feedback entries.
-                unsafe { std::slice::from_raw_parts(text.feedback, text.length as usize) }
-            };
-            let pre_size = chg_first as usize;
-            let post_size = (data.preedit_length as usize).saturating_sub(pre_size);
-            let mut feedback: Vec<XIMFeedback> =
-                Vec::with_capacity(data.preedit_length as usize + text.length as usize);
-            feedback.extend_from_slice(
-                &data.preedit_feedback[..pre_size.min(data.preedit_feedback.len())],
-            );
-            feedback.resize(pre_size, 0);
-            feedback.extend_from_slice(text_feedback);
-            // Note (upstream): a NULL feedback array is copied from; it
-            // reads as no highlighting here.
-            feedback.resize(pre_size + text.length as usize, 0);
-            let post_end = (pre_size + post_size).min(data.preedit_feedback.len());
-            if pre_size < post_end {
-                feedback.extend_from_slice(&data.preedit_feedback[pre_size..post_end]);
-            }
-
-            data.preedit_text = Some(preedit_text);
-            data.preedit_feedback = feedback;
-
-            data.preedit_length += text.length as c_int;
-        }
+        preedit_draw(
+            &mut data.preedit_text,
+            &mut data.preedit_feedback,
+            &mut data.preedit_length,
+            call_data,
+        );
 
         data.preedit_cursor = call_data.caret;
 
@@ -1299,6 +1219,103 @@ fn preedit_draw_callback(window: WindowID, call_data: &mut XIMPreeditDrawCallbac
 
     if updated.is_ok() {
         x11_send_editing_event(window);
+    }
+}
+
+/// The text change of `preedit_draw_callback()`: the window's pre-edit
+/// text, its feedback (one per character) and its length in characters.
+fn preedit_draw(
+    preedit_text: &mut Option<String>,
+    preedit_feedback: &mut Vec<XIMFeedback>,
+    preedit_length: &mut c_int,
+    call_data: &mut XIMPreeditDrawCallbackStruct,
+) {
+    let chg_first = call_data.chg_first.clamp(0, *preedit_length);
+    let chg_length = call_data.chg_length.clamp(0, *preedit_length - chg_first);
+
+    let mut start = preedit_text
+        .as_deref()
+        .map_or(0, |t| char_offset(t, chg_first));
+    if chg_length > 0 {
+        // Delete text in range
+        if let Some(text) = preedit_text {
+            let end = start + char_offset(&text[start..], chg_length);
+
+            if end > start {
+                text.replace_range(start..end, "");
+                // Note (upstream): C tests (chg_first + chg_length) >
+                // preedit_length, which the clamping above makes never
+                // true, so the feedback after the deleted text isn't moved
+                // and the highlight no longer lines up with the text. It
+                // is moved here when there is text after the deleted range.
+                if (chg_first + chg_length) < *preedit_length {
+                    let first = chg_first as usize;
+                    let count = (*preedit_length - chg_first - chg_length) as usize;
+                    let from = first + chg_length as usize;
+                    let end = (from + count).min(preedit_feedback.len());
+                    if from < end {
+                        preedit_feedback.copy_within(from..end, first);
+                    }
+                }
+            }
+            start = start.min(text.len());
+        }
+        *preedit_length -= chg_length;
+    }
+
+    if !call_data.text.is_null() {
+        // SAFETY: the input method passes a valid text.
+        let text = unsafe { &mut *call_data.text };
+        // Insert text in range
+        crate::sdl_assert!(text.encoding_is_wchar == 0);
+
+        // Note (upstream): a NULL multi-byte string is passed to
+        // SDL_strlen(); it is taken as empty here.
+        let string: &[u8] = if text.string.is_null() {
+            &[]
+        } else {
+            // SAFETY: a NUL-terminated multi-byte string.
+            unsafe { CStr::from_ptr(text.string) }.to_bytes()
+        };
+        let string = String::from_utf8_lossy(string).into_owned();
+
+        // The text length isn't calculated as directed by the spec, recalculate it now
+        if !text.string.is_null() {
+            text.length = string.chars().count() as u16;
+        }
+
+        let old = preedit_text.as_deref().unwrap_or("");
+        let at = start.min(old.len());
+        let mut new_text = String::with_capacity(old.len() + string.len());
+        new_text.push_str(&old[..at]);
+        new_text.push_str(&string);
+        new_text.push_str(&old[at..]);
+
+        let text_feedback: &[XIMFeedback] = if text.feedback.is_null() {
+            &[]
+        } else {
+            // SAFETY: the text has `length` feedback entries.
+            unsafe { std::slice::from_raw_parts(text.feedback, text.length as usize) }
+        };
+        let pre_size = chg_first as usize;
+        let post_size = (*preedit_length as usize).saturating_sub(pre_size);
+        let mut feedback: Vec<XIMFeedback> =
+            Vec::with_capacity(*preedit_length as usize + text.length as usize);
+        feedback.extend_from_slice(&preedit_feedback[..pre_size.min(preedit_feedback.len())]);
+        feedback.resize(pre_size, 0);
+        feedback.extend_from_slice(text_feedback);
+        // Note (upstream): a NULL feedback array is copied from; it
+        // reads as no highlighting here.
+        feedback.resize(pre_size + text.length as usize, 0);
+        let post_end = (pre_size + post_size).min(preedit_feedback.len());
+        if pre_size < post_end {
+            feedback.extend_from_slice(&preedit_feedback[pre_size..post_end]);
+        }
+
+        *preedit_text = Some(new_text);
+        *preedit_feedback = feedback;
+
+        *preedit_length += text.length as c_int;
     }
 }
 
@@ -1385,6 +1402,56 @@ mod tests {
     fn remappable() {
         assert!(!x11_scancode_is_remappable(Scancode::LSHIFT));
         assert!(x11_scancode_is_remappable(Scancode::A));
+    }
+
+    #[test]
+    fn preedit_deletion_moves_the_feedback() {
+        let mut text = Option::None;
+        let mut feedback = Vec::new();
+        let mut length = 0;
+        let mut draw =
+            |chg_first: c_int, chg_length: c_int, insert: Option<(&str, &[XIMFeedback])>| {
+                let string = insert.map(|(s, _)| std::ffi::CString::new(s).unwrap());
+                let mut fb = insert.map_or(Vec::new(), |(_, f)| f.to_vec());
+                let mut xim_text = XIMText {
+                    length: fb.len() as u16,
+                    feedback: fb.as_mut_ptr(),
+                    encoding_is_wchar: 0,
+                    string: string
+                        .as_ref()
+                        .map_or(std::ptr::null_mut(), |s| s.as_ptr() as *mut c_char),
+                };
+                let mut call_data = XIMPreeditDrawCallbackStruct {
+                    caret: 0,
+                    chg_first,
+                    chg_length,
+                    text: if insert.is_some() {
+                        &mut xim_text
+                    } else {
+                        std::ptr::null_mut()
+                    },
+                };
+                preedit_draw(&mut text, &mut feedback, &mut length, &mut call_data);
+                (text.clone().unwrap(), feedback[..length as usize].to_vec())
+            };
+        let (n, r): (XIMFeedback, XIMFeedback) = (0, XIMReverse);
+        // "abcd\u{e9}" with "d\u{e9}" highlighted
+        assert_eq!(
+            draw(0, 0, Some(("abcd\u{e9}", &[n, n, n, r, r][..]))),
+            ("abcd\u{e9}".to_string(), vec![n, n, n, r, r])
+        );
+        // Deleting "b" keeps "d\u{e9}" highlighted
+        assert_eq!(
+            draw(1, 1, Option::None),
+            ("acd\u{e9}".to_string(), vec![n, n, r, r])
+        );
+        // Replacing "c" with "xy"
+        assert_eq!(
+            draw(1, 1, Some(("xy", &[n, n][..]))),
+            ("axyd\u{e9}".to_string(), vec![n, n, n, r, r])
+        );
+        // Deleting at the end has nothing to move
+        assert_eq!(draw(3, 2, Option::None), ("axy".to_string(), vec![n, n, n]));
     }
 
     #[test]
