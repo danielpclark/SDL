@@ -1733,8 +1733,9 @@ impl ToolkitWindow {
                         return Some(pos);
                     } else {
                         (rr.XRRFreeOutputInfo)(out_info);
-                        // FIXME (upstream): the screen resources are leaked
-                        // on this path.
+                        // Note (upstream): C leaks the screen resources on
+                        // this path; they are freed here.
+                        (rr.XRRFreeScreenResources)(screen_res);
                         return Option::None;
                     }
                 } else if !out_info.is_null() {
