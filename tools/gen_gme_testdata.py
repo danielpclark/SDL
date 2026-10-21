@@ -4805,9 +4805,9 @@ def vgm_psg():
 
 
 def vgm_dual():
-    """Two YM2612s and the second PSG's commands (a dual PSG's clock is
-    limited before its flag is read); a YM2413 clock and a YM2151's
-    alongside, data at its 1.51 offset 0."""
+    """Two YM2612s and the second PSG's commands (a dual T6W28 PSG, from
+    the flags of its clock); a YM2413 clock and a YM2151's alongside, data
+    at its 1.51 offset 0."""
     v = Vgm()
     ym_setup(v, 0)
     ym_setup(v, 1)

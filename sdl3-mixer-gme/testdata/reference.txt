@@ -4539,40 +4539,40 @@ voices: FM 1 FM 2 FM 3 FM 4 FM 5 FM 6 PCM PSG
 eq: -14.000 80.000 multi=0
 start 0: ok
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
-t0 16384: ed3ee1ac6ed7c3cb tell=185 samples=16384 ended=0
-t0 32768: 390624d76b0e4b13 tell=371 samples=32768 ended=0
-t0 49152: dcf2d03ced45a18e tell=557 samples=49152 ended=0
-t0 65536: 11fa0310413ee0a3 tell=743 samples=65536 ended=0
-t0 81920: 0270e5002fb588c2 tell=928 samples=81920 ended=1
-t0 88200: 10e4fc1d1d7c7142 tell=1000 samples=88200 ended=1
+t0 16384: c8de6edb52d5a071 tell=185 samples=16384 ended=0
+t0 32768: 20ba7e4b64554b6f tell=371 samples=32768 ended=0
+t0 49152: 8d0e1c701f4982ab tell=557 samples=49152 ended=0
+t0 65536: 0c44180c9461abb2 tell=743 samples=65536 ended=0
+t0 81920: ff51c546464fcf8d tell=928 samples=81920 ended=1
+t0 88200: 417d1f9094a3decd tell=1000 samples=88200 ended=1
 start 1: Invalid track
 start -1: Invalid track
 start 0: ok
 pre 4096: c02806a245fdb531 tell=46 samples=4096 ended=0
 seek_samples 30000: ok tell=30000
-s1 4096: 5ea473d77207c53b tell=386 samples=34096 ended=0
+s1 4096: cf942e19b6c129fe tell=386 samples=34096 ended=0
 seek_samples 10000: ok tell=10000
-s2 4096: 0a217eabb08d7f7f tell=159 samples=14096 ended=0
+s2 4096: 7d488c0d2204036e tell=159 samples=14096 ended=0
 seek 700: ok tell=700
-s3 2048: d8258e778f054632 tell=723 samples=63788 ended=0
+s3 2048: ee052030f42e622c tell=723 samples=63788 ended=0
 seek_samples 200000: ok tell=200000 ended=1
 s4 2048: b93a0c83ce3b6325 tell=2290 samples=202048 ended=1
 start 0: ok
-fade: 34816 d225b48ae89710b9 tell=394
+fade: 34816 f82a95a136334407 tell=394
 after: 28c31cf8df2ec325
 start 0: ok
-nofade 8192: 44e158cf9f5d2b61 tell=92 samples=8192 ended=0
+nofade 8192: cf389b379e67f33a tell=92 samples=8192 ended=0
 open 32000: tracks=1 type=VGM voices=8
 start 0: ok
-tempo 16000: 488eaa2e4c41142f tell=250 samples=16000 ended=0
-tempo 32000: 41ac53083ad9a4d7 tell=500 samples=32000 ended=0
+tempo 16000: 49662bd308cee6a9 tell=250 samples=16000 ended=0
+tempo 32000: 285c3c6c27574ac3 tell=500 samples=32000 ended=0
 tell_scaled=850
 seek_scaled 300: ok tell_scaled=299
-sc 4000: db264f0ecfa845bc tell=238 samples=15294 ended=0
-slow 8000: 67f0671a4292a355 tell=363 samples=23294 ended=0
+sc 4000: 009814d90fdddf80 tell=238 samples=15294 ended=0
+slow 8000: d1f372a0757bc2f1 tell=363 samples=23294 ended=0
 tracks=1
 start 0: ok
-acc 8000: ff76890a0a66771b tell=125 samples=8000 ended=0
+acc 8000: a3d9e7df6e8c06c5 tell=125 samples=8000 ended=0
 -- cut 4
 info: err=Wrong file type for this emulator
 open: err=Wrong file type for this emulator
@@ -4599,21 +4599,21 @@ info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
 info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
-q 8192: 44e158cf9f5d2b61 tell=92 samples=8192 ended=0
+q 8192: cf389b379e67f33a tell=92 samples=8192 ended=0
 -- flip 0
 info: tracks=1 type=VGM voices=-1
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
 info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
-q 8192: c38f4066a00b66c4 tell=92 samples=8192 ended=0
+q 8192: 110711af2b7f785c tell=92 samples=8192 ended=0
 -- flip 1
 info: tracks=1 type=VGM voices=-1
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
 info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
-q 8192: 44e158cf9f5d2b61 tell=92 samples=8192 ended=0
+q 8192: cf389b379e67f33a tell=92 samples=8192 ended=0
 -- flip 2
 info: tracks=1 type=VGM voices=-1
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
@@ -4621,7 +4621,7 @@ info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
 warning: Unknown stream event
-q 8192: 302f6f0fb617b8f3 tell=92 samples=8192 ended=0
+q 8192: cda06d332efe1fa3 tell=92 samples=8192 ended=0
 -- flip 3
 info: tracks=1 type=VGM voices=-1
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
@@ -4629,7 +4629,7 @@ info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
 warning: Unknown stream event
-q 8192: 3e3421f16ce99569 tell=92 samples=8192 ended=0
+q 8192: 41dbdbb5877f3bd4 tell=92 samples=8192 ended=0
 -- flip 4
 info: tracks=1 type=VGM voices=-1
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
@@ -4637,7 +4637,7 @@ info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
 warning: Unknown stream event
-q 8192: 661cf9997f3bd4d6 tell=92 samples=8192 ended=0
+q 8192: 0f03bf982a8d73bc tell=92 samples=8192 ended=0
 -- flip 5
 info: tracks=1 type=VGM voices=-1
 info 0: 913 913 0 -1 913|Sega SMS/Genesis||||||
@@ -4645,7 +4645,7 @@ info 1: err=Invalid track
 open: tracks=1 type=VGM voices=8
 start 0: ok
 warning: Unknown stream event
-q 8192: 882c03877d233370 tell=92 samples=8192 ended=0
+q 8192: e8b688e005a4ca8d tell=92 samples=8192 ended=0
 == vgm_fm.vgm
 identify: VGM
 info: tracks=1 type=VGM voices=-1
