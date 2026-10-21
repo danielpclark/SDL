@@ -205,6 +205,15 @@ are programs of their own run on the main thread (`cargo test -p sdl3
 them too): they show small windows, a status item and file panels for a
 moment.
 
+Emscripten (`wasm32-unknown-emscripten`) builds too, configured as
+upstream's Emscripten build is (no threads; the dummy process, haptic,
+dialog, tray and notification backends; the OpenGL ES 2 and software
+renderers; SDL_net's stub library): `cargo check --target
+wasm32-unknown-emscripten` needs no emcc. Loading shared objects at run
+time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. Its own
+backends (canvas video, Web Audio, the Gamepad API, ...) are in
+progress; until then the dummy drivers stand in. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)
 skip with a note when it's missing; [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) lists what

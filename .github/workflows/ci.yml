@@ -47,12 +47,15 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
-          # Intel Macs: the x86-64 build is linted on the Apple Silicon runner
-          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || '' }}
+          # Intel Macs: the x86-64 build is linted on the Apple Silicon
+          # runner; Emscripten on the Linux one (no emcc is needed to lint)
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten' || '' }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - if: matrix.os == 'macos-latest'
         run: cargo clippy --workspace --all-targets --target x86_64-apple-darwin -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target wasm32-unknown-emscripten -- -D warnings
       # sdl3-mixer's zlib-only build (no `timidity`, `fluidsynth`, `mpg123` or
       # `gme` feature)
       - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
@@ -98,9 +101,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain == 'pinned' && env.RUST_TOOLCHAIN || matrix.toolchain }}
+          # Emscripten builds with the minimum supported version too (no
+          # emcc is needed to check)
+          targets: ${{ matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten' || '' }}
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.toolchain }}
+      - if: matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest'
+        run: cargo check --target wasm32-unknown-emscripten
       # What the Linux tests that would otherwise skip need (see
       # docs/HARDWARE_TESTING.md): an X server, Mesa's software GL, EGL and
       # Vulkan, a headless Wayland compositor, the PulseAudio binary, and a

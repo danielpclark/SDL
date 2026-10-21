@@ -1,0 +1,4 @@
+[target.wasm32-unknown-emscripten]
+# Every link warns that -sWASM_BIGINT is deprecated (rustc passes it);
+# silence emcc's deprecation warnings.
+rustflags = ["-Clink-arg=-Wno-deprecated"]

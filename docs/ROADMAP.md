@@ -69,6 +69,20 @@ AArch64 and on x86-64 under Rosetta).
 | `power/`, `locale/`, `filesystem/`, `dialog/`, `tray/`, `notification/`, `camera/`, `sensor/`, `haptic/`, `misc/`, `process/`, `time/`, `timer/`, `loadso/`, `main/` backends | ~30,000 | alongside the platform they belong to (the Linux/Unix and Windows power (UPower, sysfs, `/proc/acpi`, `/proc/apm`; `GetSystemPowerStatus()`), locale, URL, time, timer and filesystem backends **done**; the Windows process (`CreateProcessW()`), dialog (`IFileDialog`, `GetOpenFileNameW()`, `SHBrowseForFolderW()`), notification (WinRT toasts), tray (`Shell_NotifyIconW()`) and sensor (the Sensor API) backends **done**; the macOS power (IOKit power sources), locale (`NSLocale`), URL (`LSOpenCFURLRef()`), filesystem (Cocoa: the bundle's base path, the Application Support pref path, the user folders), log (`NSLog()`), dialog (`NSOpenPanel`/`NSSavePanel` as sheets or app-modal, `UTType` filters), tray (`NSStatusItem` with its menus; upstream's tray menu items, whose `menu` action never reaches the app delegate's `menu:`, fixed) and notification (UserNotifications, only in an application bundle as upstream) backends **done**, with time, timer, threads, processes and `loadso` on the Unix code; haptic: Linux, Windows DirectInput, Darwin (ForceFeedback) and HIDAPI (Logitech wheels) **done**; camera: V4L2, PipeWire, Media Foundation and CoreMedia (macOS: AVFoundation discovery and capture, the permission check; the spec list identical to upstream's C, tested on a FaceTime HD camera) **done**, Android, Emscripten, Vita and OpenHarmony not translated; the Unix D-Bus ones **done**: the FileChooser portal dialogs, the StatusNotifierItem tray with its dbusmenu, `org.freedesktop.Notifications` and the notification portal) |
 | `test/` (`SDL_test_*`) | ~6,200 | **Done**: the test framework, as the `sdl3-test` crate (assert, common, compare, crc32, font, fuzzer, harness, log, md5, memory, with the memory tracker as a global allocator); the fuzzer, execution keys, test order and logs checked against upstream's C, and upstream's `testautomation_sdltest.c` run through the harness, with the Direct3D 9 and DXGI indices of `--info modes` on Windows |
 
+**Emscripten** (`wasm32-unknown-emscripten`): the workspace **builds**
+(checked and linted in CI), configured as upstream's Emscripten build is:
+no threads (`SDL_THREADS_DISABLED`: the generic thread backend, mutexes
+that don't lock, semaphores and conditions that don't wait); the dummy
+process, haptic, dialog, tray and notification backends; no HIDAPI,
+Vulkan or GPU backend; the OpenGL ES 2 and software renderers; and
+SDL_net's stub library (`SDL_net_stub_only.c`). The shared-object
+loader is the dlopen one, which loads only in a program linked with
+`-sMAIN_MODULE`. The Emscripten backends are in progress: the test
+suite under node, the JavaScript glue, timers and the main loop, the filesystem, power, locale, URL and
+sensor backends, then the canvas video driver and its events, WebGL, Web
+Audio, the Gamepad API and the camera. Until each lands, the dummy (or
+generic) one stands in.
+
 ## Phase 5 — Satellite libraries (same approach, each its own crate)
 
 In dependency order, after the core each one needs exists:
