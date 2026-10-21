@@ -1627,6 +1627,41 @@ fn pfr_bearing_is_the_glyph_top() {
     let _ = ft_done_freetype(lib);
 }
 
+/// A PFR font's first character is enumerated (upstream skips it).
+#[test]
+fn pfr_first_char() {
+    use crate::freetype::base::ftinit::{ft_done_freetype, ft_init_freetype};
+    use crate::freetype::base::ftobjs::*;
+    use std::sync::Arc;
+
+    let lib = ft_init_freetype().unwrap();
+    for data in [SANS_PFR, SANS_PFR_BITMAP] {
+        let mut face = ft_new_memory_face(&lib, Arc::from(data), 0).unwrap();
+        let mut gi = 0;
+        let first = ft_get_first_char(&mut face, &mut gi);
+        assert_eq!(gi, 1);
+        assert_eq!(ft_get_char_index(&face, first), 1);
+        // Every glyph's character, in order, from the first.
+        let mut count = 1;
+        let mut code = first;
+        loop {
+            let mut next_gi = 0;
+            let next = ft_get_next_char(&mut face, code, &mut next_gi);
+            if next_gi == 0 {
+                break;
+            }
+            count += 1;
+            assert!(next > code);
+            assert_eq!(next_gi, count);
+            assert_eq!(ft_get_char_index(&face, next), next_gi);
+            code = next;
+        }
+        assert_eq!(count as i64 + 1, face.num_glyphs);
+        ft_done_face(face);
+    }
+    let _ = ft_done_freetype(lib);
+}
+
 /* The GPU text engine, against testdata/gpu_reference.txt (the output of
 a C program built from upstream SDL_ttf and SDL3 with the GPU API,
 which runs the cases below in the same order). */
