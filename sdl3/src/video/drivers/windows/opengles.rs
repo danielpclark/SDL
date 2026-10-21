@@ -36,9 +36,11 @@ impl VideoData {
         }
 
         if !egl::is_loaded() {
-            // FIXME (upstream): the requested path is ignored; EGL is loaded
-            // from SDL_HINT_EGL_LIBRARY or the default library.
-            return egl::load_library(None, EGL_DEFAULT_DISPLAY);
+            // Note (upstream): the requested path is ignored (NULL is
+            // passed), so EGL is only loaded from SDL_HINT_EGL_LIBRARY or
+            // the default library. It's tried first here, as other drivers
+            // do.
+            return egl::load_library(path, EGL_DEFAULT_DISPLAY);
         }
         Ok(())
     }
