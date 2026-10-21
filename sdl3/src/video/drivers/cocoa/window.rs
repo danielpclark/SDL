@@ -3948,10 +3948,12 @@ pub(crate) fn hide_window(window: WindowID) {
                         new_focus = grand;
                     }
 
-                    // FIXME (upstream): the window made key is the hidden child
-                    // (window->internal), not the new_focus parent found above.
-                    let _ = new_focus;
-                    let _: () = msg_send![nswindow, makeKeyAndOrderFront: NIL];
+                    // Note (upstream): the window made key is the hidden child
+                    // (window->internal), not the new_focus parent found above,
+                    // which shows the child again. The parent is made key here.
+                    if let Some(focus_data) = window_data(new_focus) {
+                        let _: () = msg_send![focus_data.nswindow(), makeKeyAndOrderFront: NIL];
+                    }
                 }
             }
         }
