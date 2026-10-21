@@ -333,7 +333,7 @@ pub(crate) fn has_extension(extension: &str, extensions: Option<&str>) -> bool {
     /* It takes a bit of care to be fool-proof about parsing the
      * OpenGL extensions string. Don't be fooled by sub-strings,
      * etc. */
-    gl::extension_in_list(extensions, extension, true)
+    gl::extension_in_list(extensions, extension)
 }
 
 /// The `WGL_ARB_pixel_format` attributes `WIN_GL_SetupWindowInternal()`
@@ -1265,7 +1265,8 @@ mod tests {
         ] {
             assert_eq!(has_extension(name, exts), expected, "{name}");
         }
-        assert!(has_extension("abc", Some("xabcabc")));
+        // (a partial match doesn't make the next one start a word)
+        assert!(!has_extension("abc", Some("xabcabc")));
         assert!(!has_extension("abc", None));
     }
 

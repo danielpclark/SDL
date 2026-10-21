@@ -291,7 +291,7 @@ pub(crate) fn has_extension(extension: &str, extensions: Option<&str>) -> bool {
     /* It takes a bit of care to be fool-proof about parsing the
      * OpenGL extensions string. Don't be fooled by sub-strings,
      * etc. */
-    gl::extension_in_list(extensions, extension, true)
+    gl::extension_in_list(extensions, extension)
 }
 
 /// The attributes `X11_GL_GetAttributes()` builds for `glXChooseFBConfig`

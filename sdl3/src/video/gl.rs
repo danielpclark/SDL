@@ -611,16 +611,9 @@ fn is_at_least_gl3(verstr: Option<&str>) -> bool {
 /// Whether `extension` is a whole word of the space-separated
 /// `extensions`, the way upstream parses extension strings ("It takes a
 /// bit of care to be fool-proof about parsing the OpenGL extensions
-/// string. Don't be fooled by sub-strings, etc.").
-///
-/// `from_search_start` selects the variant of the GLX and WGL
-/// `HasExtension()`, which accepts a match at the place the previous
-/// search stopped as the start of a word.
-pub(crate) fn extension_in_list(
-    extensions: &str,
-    extension: &str,
-    from_search_start: bool,
-) -> bool {
+/// string. Don't be fooled by sub-strings, etc."), for
+/// `SDL_GL_ExtensionSupported()` and the GLX and WGL `HasExtension()`.
+pub(crate) fn extension_in_list(extensions: &str, extension: &str) -> bool {
     let haystack = extensions.as_bytes();
     let needle = extension.as_bytes();
     if needle.is_empty() {
@@ -634,16 +627,13 @@ pub(crate) fn extension_in_list(
     {
         let where_ = start + pos;
         let terminator = where_ + needle.len();
-        let at_word_start = if from_search_start {
-            // FIXME (upstream): the GLX and WGL HasExtension() compare with
-            // where the search started, so after a partial match ("xabc"
-            // looking for "abc") a match right after it ("xabcabc") counts
-            // as a whole word.
-            where_ == start
-        } else {
-            where_ == 0
-        };
-        if (at_word_start || haystack[where_ - 1] == b' ')
+        // Note (upstream): the GLX and WGL HasExtension() compare a match
+        // with where the search started instead of the start of the list,
+        // so after a partial match ("xabc" or "abcd" looking for "abc") a
+        // match right after it ("xabcabc") counts as a whole word. Here
+        // they compare with the start of the list, as
+        // SDL_GL_ExtensionSupported() does.
+        if (where_ == 0 || haystack[where_ - 1] == b' ')
             && (terminator == haystack.len() || haystack[terminator] == b' ')
         {
             return true;
@@ -802,7 +792,7 @@ pub fn gl_extension_supported(extension: &str) -> bool {
     let Some(extensions) = gl_get_string(gl_get_string_func, GL_EXTENSIONS) else {
         return false;
     };
-    extension_in_list(&extensions, extension, false)
+    extension_in_list(&extensions, extension)
 }
 
 /// The highest OpenGL ES version the current context's
@@ -1437,19 +1427,21 @@ mod tests {
     use super::*;
 
     /// The C reference's SDL_GL_ExtensionSupported() string matching (see
-    /// gl-ref/extmatch.c): (extensions, extension, front end, GLX/WGL).
+    /// gl-ref/extmatch.c): (extensions, extension, front end, GLX/WGL),
+    /// with the GLX/WGL HasExtension() comparing a match with the start
+    /// of the list (see extension_in_list()).
     const EXTENSION_CASES: &[(&str, &str, bool, bool)] = &[
         ("GL_ARB_a GL_ARB_b", "GL_ARB_a", true, true),
         ("GL_ARB_a GL_ARB_b", "GL_ARB_b", true, true),
         ("GL_ARB_a GL_ARB_b", "GL_ARB", false, false),
         ("GL_ARB_ab GL_ARB_a", "GL_ARB_a", true, true),
         ("xGL_ARB_a", "GL_ARB_a", false, false),
-        ("xabcabc", "abc", false, true),
-        ("xabcabc def", "abc", false, true),
+        ("xabcabc", "abc", false, false),
+        ("xabcabc def", "abc", false, false),
         ("abc", "abc", true, true),
         ("", "abc", false, false),
         ("abcd abc", "abc", true, true),
-        ("abcabc", "abc", false, true),
+        ("abcabc", "abc", false, false),
         ("ab abc ", "abc", true, true),
         ("  abc", "abc", true, true),
     ];
@@ -1457,16 +1449,8 @@ mod tests {
     #[test]
     fn extension_strings_match_like_upstream() {
         for &(list, ext, front, glx) in EXTENSION_CASES {
-            assert_eq!(
-                extension_in_list(list, ext, false),
-                front,
-                "{list:?} {ext:?}"
-            );
-            assert_eq!(
-                extension_in_list(list, ext, true),
-                glx,
-                "{list:?} {ext:?} (GLX)"
-            );
+            assert_eq!(extension_in_list(list, ext), front, "{list:?} {ext:?}");
+            assert_eq!(extension_in_list(list, ext), glx, "{list:?} {ext:?} (GLX)");
         }
     }
 
