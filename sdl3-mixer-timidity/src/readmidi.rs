@@ -10,8 +10,6 @@
 //! Reading Standard MIDI Files (and RIFF RMID files) into a list of
 //! events. Translation of `readmidi.c` (and `readmidi.h`).
 
-use std::sync::Mutex;
-
 use sdl3::io::{IoStream, IoWhence};
 
 use crate::common::c_f64_to_i32;
@@ -67,25 +65,19 @@ enum ReadEvent {
     Error,
 }
 
-/// `read_midi_event()`'s `static` variables, which upstream keeps from
-/// one call to the next, and from one song to the next.
-struct ReadMidiStatics {
+/// `read_midi_event()`'s `static` variables, which it keeps from one call
+/// to the next.
+// Note (upstream): C's are `static`, so the running status and the RPN
+// state carry over from one file to the next (and are shared by threads
+// loading at once); here they start afresh with each file.
+#[derive(Default)]
+struct ReadMidiState {
     laststatus: u8,
     lastchan: u8,
     nrpn: u8,
     rpn_msb: [u8; 16],
     rpn_lsb: [u8; 16], /* one per channel */
 }
-
-// FIXME (upstream): the running status and the RPN state carry over from
-// one file to the next (and are shared by threads loading at once).
-static READ_MIDI_STATICS: Mutex<ReadMidiStatics> = Mutex::new(ReadMidiStatics {
-    laststatus: 0,
-    lastchan: 0,
-    nrpn: 0,
-    rpn_msb: [0; 16],
-    rpn_lsb: [0; 16],
-});
 
 /// `MIDIEVENT(at,t,ch,pa,pb)`.
 fn midievent(song: &mut MidiSong, at: i32, t: i32, ch: u8, pa: u8, pb: u8) -> ReadEvent {
@@ -104,8 +96,11 @@ fn midievent(song: &mut MidiSong, at: i32, t: i32, ch: u8, pa: u8, pb: u8) -> Re
 
 /* Read a MIDI event, returning a freshly allocated element that can
 be linked to the event list */
-fn read_midi_event(song: &mut MidiSong, io: &mut IoStream<'_>) -> ReadEvent {
-    let mut st = READ_MIDI_STATICS.lock().unwrap_or_else(|e| e.into_inner());
+fn read_midi_event(
+    song: &mut MidiSong,
+    io: &mut IoStream<'_>,
+    st: &mut ReadMidiState,
+) -> ReadEvent {
     let mut a: u8;
     let mut b: u8;
 
@@ -336,7 +331,12 @@ fn read_midi_event(song: &mut MidiSong, io: &mut IoStream<'_>) -> ReadEvent {
 
 /* Read a midi track into the linked list, either merging with any previous
 tracks or appending to them. */
-fn read_track(song: &mut MidiSong, io: &mut IoStream<'_>, append: bool) -> i32 {
+fn read_track(
+    song: &mut MidiSong,
+    io: &mut IoStream<'_>,
+    append: bool,
+    st: &mut ReadMidiState,
+) -> i32 {
     let mut meep: usize = 0;
     if append && !song.evlist.is_empty() {
         /* find the last event in the list */
@@ -363,7 +363,7 @@ fn read_track(song: &mut MidiSong, io: &mut IoStream<'_>, append: bool) -> i32 {
     }
 
     loop {
-        let newlist = match read_midi_event(song, io) {
+        let newlist = match read_midi_event(song, io, st) {
             ReadEvent::Error => return -2, /* Some kind of error  */
             ReadEvent::Eot => {
                 /* End-of-track Hack. */
@@ -603,6 +603,7 @@ pub(crate) fn read_midi_file(
     song.event_count = 0;
     song.at = 0;
     song.evlist = Vec::new();
+    let mut st = ReadMidiState::default();
 
     if !read_full(io, &mut tmp) || !read_full(io, &mut lenbuf) {
         crate::snddbg!("Not a MIDI file!\n");
@@ -684,7 +685,7 @@ pub(crate) fn read_midi_file(
 
     match format {
         0 => {
-            if read_track(song, io, false) != 0 {
+            if read_track(song, io, false, &mut st) != 0 {
                 free_midi_list(song);
                 return None;
             }
@@ -692,7 +693,7 @@ pub(crate) fn read_midi_file(
 
         1 => {
             for _ in 0..tracks {
-                if read_track(song, io, false) != 0 {
+                if read_track(song, io, false, &mut st) != 0 {
                     free_midi_list(song);
                     return None;
                 }
@@ -702,7 +703,7 @@ pub(crate) fn read_midi_file(
         _ => {
             /* We simply play the tracks sequentially */
             for _ in 0..tracks {
-                if read_track(song, io, true) != 0 {
+                if read_track(song, io, true, &mut st) != 0 {
                     free_midi_list(song);
                     return None;
                 }
@@ -711,4 +712,51 @@ pub(crate) fn read_midi_file(
     }
 
     groom_list(song, divisions, count, sp)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A format 0 MIDI file with a track of `events` (and its end).
+    fn smf(events: &[u8]) -> Vec<u8> {
+        let mut f = b"MThd\0\0\0\x06\0\0\0\x01\0\x60MTrk".to_vec();
+        f.extend_from_slice(&(events.len() as u32 + 4).to_be_bytes());
+        f.extend_from_slice(events);
+        f.extend_from_slice(&[0x00, 0xFF, 0x2F, 0x00]);
+        f
+    }
+
+    /// The events read from `data`: time, type, channel, a and b.
+    fn events(data: &[u8]) -> Vec<(i32, u8, u8, u8, u8)> {
+        let mut song = MidiSong::new();
+        let (mut count, mut sp) = (0, 0);
+        read_midi_file(
+            &mut song,
+            &mut IoStream::from_const_mem(data),
+            &mut count,
+            &mut sp,
+        )
+        .unwrap()
+        .iter()
+        .map(|e| (e.time, e.type_, e.channel, e.a, e.b))
+        .collect()
+    }
+
+    /// A file whose first event leans on a running status doesn't get the
+    /// one the file read before it left (upstream's carries over).
+    #[test]
+    fn running_status_starts_afresh_with_each_file() {
+        // A note on channel 5, then its key pressure...
+        let before = smf(&[0x00, 0x95, 60, 100, 0x10, 0xA5, 60, 80]);
+        // ...and a file starting with data bytes, a note off on channel 0
+        // for a fresh state.
+        let after = smf(&[0x00, 64, 100, 0x60, 0x90, 64, 100]);
+        let alone = events(&after);
+        assert!(alone
+            .iter()
+            .any(|&(_, t, ch, a, _)| t == ME_NOTEOFF as u8 && ch == 0 && a == 64));
+        events(&before);
+        assert_eq!(events(&after), alone);
+    }
 }
