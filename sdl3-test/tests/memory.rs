@@ -115,6 +115,28 @@ fn main() {
     assert_ne!(first, rest);
     assert_eq!(tail, rest);
 
+    // A block that can't be reallocated stays allocated, and tracked.
+    let layout = Layout::from_size_align(1234, 1).unwrap();
+    // SAFETY: a non-zero size; the failed realloc() leaves the block as it
+    // was, to be freed with its layout.
+    unsafe {
+        let p = alloc(layout);
+        assert!(!p.is_null());
+        let huge = isize::MAX as usize - 4096;
+        assert!(std::alloc::realloc(p, layout, huge).is_null());
+        let message = logged(&lines, memory::log_allocations);
+        assert!(message.contains(": 1234 bytes"), "{message}");
+        let unknown_frees = |message: &str| {
+            let tail = message.lines().last().unwrap().to_owned();
+            tail.split(", ").nth(1).map(str::to_owned)
+        };
+        let before = unknown_frees(&message);
+        dealloc(p, layout);
+        let message = logged(&lines, memory::log_allocations);
+        assert!(!message.contains(": 1234 bytes"), "{message}");
+        assert_eq!(unknown_frees(&message), before, "{message}");
+    }
+
     // Destroying the state logs what's left.
     let message = logged(&lines, || drop(state));
     assert!(message.starts_with("Memory allocations:\n"), "{message}");

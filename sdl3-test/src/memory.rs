@@ -303,10 +303,11 @@ unsafe impl GlobalAlloc for TrackingAllocator {
             }
             // SAFETY: the caller's block and sizes, passed on.
             let mem = unsafe { System.realloc(ptr, layout, new_size) };
-            // FIXME (upstream): the old block is untracked even when the
-            // reallocation fails, leaving it allocated.
-            untrack_allocation(ptr);
+            // Note (upstream): C untracks the old block even when the
+            // reallocation fails, which leaves it allocated; it is untracked
+            // only when it is replaced.
             if !mem.is_null() {
+                untrack_allocation(ptr);
                 track_allocation(mem, new_size);
                 if new_size > old_size {
                     // SAFETY: the block has new_size bytes.
