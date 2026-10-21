@@ -107,8 +107,7 @@ pub(crate) fn gles_setup_window(window: WindowID) -> Result<()> {
         }
 
         // Create the GLES window surface
-        // FIXME (upstream): Cocoa_DestroyWindow() never destroys this
-        // surface (SDL_EGL_DestroySurface), so it outlives its window.
+        // (destroyed with the window: see destroy_window())
         // SAFETY: the window's NSWindow and its content view's layer.
         let layer: Id = unsafe {
             let v: Id = msg_send![windowdata.nswindow(), contentView];
