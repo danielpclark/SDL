@@ -3076,8 +3076,9 @@ unsafe fn window_proc_for(
                 let params = unsafe { &mut *(l_param as *mut NCCALCSIZE_PARAMS) };
                 // SAFETY: plain data; all zeroes is valid.
                 let mut placement: WINDOWPLACEMENT = unsafe { std::mem::zeroed() };
-                // FIXME (upstream): placement.length is never set before
-                // GetWindowPlacement().
+                // Note (upstream): placement.length is never set before
+                // GetWindowPlacement(), which is documented to fail then.
+                placement.length = size_of::<WINDOWPLACEMENT>() as u32;
                 // SAFETY: placement is a valid WINDOWPLACEMENT.
                 if unsafe { GetWindowPlacement(hwnd, &mut placement) } != 0
                     && placement.showCmd == SW_MAXIMIZE as u32
