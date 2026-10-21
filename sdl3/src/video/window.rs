@@ -3037,4 +3037,6 @@ pub(crate) enum WindowOp {
     SetFocusable,
     SetMouseRect,
     SetHitTest,
+    /// `SetWindowFullscreen`.
+    SetFullscreen,
 }

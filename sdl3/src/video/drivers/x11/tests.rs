@@ -1064,6 +1064,33 @@ fn x11_fullscreen_and_popups() {
     w.destroy();
 }
 
+#[test]
+fn x11_leaving_fullscreen_without_a_display() {
+    let _l = crate::test_support::test_lock();
+    let Some(_server) = XServer::start() else {
+        return;
+    };
+    let _video = Video::init();
+    let w = SdlWindow::create("no display", 300, 200, WindowFlags::RESIZABLE).unwrap();
+    drain();
+    w.set_fullscreen(true).unwrap();
+    w.sync().unwrap();
+    drain();
+    assert!(w.flags().unwrap().contains(WindowFlags::FULLSCREEN));
+
+    // Every display goes away: the backend can't be told to leave
+    // fullscreen without one, so leaving fails and the window stays
+    // fullscreen
+    for display in video::displays().unwrap() {
+        crate::video::display::del_video_display(display, false);
+    }
+    let error = w.set_fullscreen(false).unwrap_err();
+    assert_eq!(error.message(), "Couldn't leave fullscreen");
+    drain();
+    assert!(w.flags().unwrap().contains(WindowFlags::FULLSCREEN));
+    w.destroy();
+}
+
 /// The top-level window whose `_NET_WM_NAME` is `title`, once it is
 /// viewable (for up to five seconds).
 fn find_viewable_window(client: &Client, title: &str) -> Option<Window> {

@@ -889,10 +889,19 @@ pub(crate) fn update_fullscreen_mode(
                     }
                 }
                 None => {
-                    // (upstream: the backend isn't called without a display,
-                    // but a missing SetWindowFullscreen still means resized)
-                    // FIXME (upstream): with no display found and no backend
-                    // call, the result stays "succeeded".
+                    // Note (upstream): C doesn't call SetWindowFullscreen
+                    // without a display, and reports that the window left
+                    // fullscreen although the backend still has it there.
+                    // Here that is a failure.
+                    if driver.implements_window_op(window::WindowOp::SetFullscreen) {
+                        return fullscreen_error(
+                            window,
+                            fullscreen,
+                            commit,
+                            Error::new("Couldn't leave fullscreen"),
+                        );
+                    }
+                    // (a missing SetWindowFullscreen still means resized)
                     resized = true;
                     FullscreenResult::Succeeded
                 }

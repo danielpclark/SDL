@@ -742,6 +742,7 @@ impl VideoDriver for CocoaVideo {
                 | WindowOp::SetFocusable
                 | WindowOp::SetMouseRect
                 | WindowOp::SetHitTest
+                | WindowOp::SetFullscreen
         )
     }
     fn implements_sync_window(&self) -> bool {

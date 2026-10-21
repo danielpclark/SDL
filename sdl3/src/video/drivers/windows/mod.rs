@@ -1282,6 +1282,7 @@ impl VideoDriver for WindowsVideo {
                 | WindowOp::SetFocusable
                 | WindowOp::SetMouseRect
                 | WindowOp::SetHitTest
+                | WindowOp::SetFullscreen
         )
     }
     fn implements_window_framebuffer(&self) -> bool {
