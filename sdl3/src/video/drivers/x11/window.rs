@@ -3114,7 +3114,11 @@ impl X11Video {
             let real_nitems = atom_prop.count;
             let icc_profile_data = atom_prop.data;
             if real_format == None as c_int {
-                // FIXME (upstream): the property data (if any) leaks here.
+                // Note (upstream): C leaks the property data (if any) here;
+                // it is freed.
+                if !icc_profile_data.is_null() {
+                    (x.XFree)(icc_profile_data.cast());
+                }
                 return Err(Error::new("Screen is not calibrated."));
             }
 
