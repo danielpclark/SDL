@@ -703,6 +703,7 @@ impl X11Video {
         // SAFETY: the display is open.
         let screen = unsafe { DefaultScreen(display) };
         let mut w: Window = 0;
+        let mut colormap: Colormap = 0;
         let mut prev_ctx: GLXContext = std::ptr::null_mut();
         let mut prev_drawable: GLXDrawable = 0;
         let mut context: GLXContext = std::ptr::null_mut();
@@ -736,13 +737,15 @@ impl X11Video {
                     let mut xattr: XSetWindowAttributes = std::mem::zeroed();
                     xattr.background_pixel = 0;
                     xattr.border_pixel = 0;
-                    // FIXME (upstream): this colormap is never freed.
-                    xattr.colormap = (x.XCreateColormap)(
+                    // Note (upstream): C never frees this colormap; it is
+                    // freed with the window below.
+                    colormap = (x.XCreateColormap)(
                         display,
                         RootWindow(display, screen),
                         (*vinfo).visual,
                         AllocNone,
                     );
+                    xattr.colormap = colormap;
                     w = (x.XCreateWindow)(
                         display,
                         RootWindow(display, screen),
@@ -874,6 +877,9 @@ impl X11Video {
 
             if w != 0 {
                 (x.XDestroyWindow)(display, w);
+            }
+            if colormap != 0 {
+                (x.XFreeColormap)(display, colormap);
             }
         }
 
