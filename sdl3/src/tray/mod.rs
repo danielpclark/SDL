@@ -27,7 +27,12 @@ use crate::video::surface::Surface;
 
 #[cfg(target_os = "macos")]
 mod cocoa;
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 mod unix;
 #[cfg(windows)]
 mod windows;
@@ -113,7 +118,7 @@ pub(crate) type EntryKey = u64;
     not(any(
         windows,
         target_os = "macos",
-        all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+        all(unix, not(target_vendor = "apple"), not(target_os = "android"), not(target_os = "emscripten"))
     )),
     allow(dead_code) // (only the dummy backend, which creates none)
 )]
@@ -454,7 +459,12 @@ pub fn update_trays() {
     sys::update_trays();
 }
 
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 use unix as sys;
 
 #[cfg(windows)]
@@ -466,7 +476,12 @@ use cocoa as sys;
 #[cfg(not(any(
     windows,
     target_os = "macos",
-    all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+    all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    )
 )))]
 mod sys {
     //! Translation of `src/tray/dummy/SDL_tray.c`.
@@ -588,7 +603,12 @@ mod tests {
     #[cfg(not(any(
         windows,
         target_os = "macos",
-        all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+        all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "emscripten")
+        )
     )))]
     #[test]
     fn dummy_tray() {

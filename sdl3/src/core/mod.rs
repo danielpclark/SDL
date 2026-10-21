@@ -13,7 +13,12 @@
 /// share.
 #[cfg(target_vendor = "apple")]
 pub(crate) mod apple;
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 pub(crate) mod linux;
 #[cfg(unix)]
 pub(crate) mod unix;

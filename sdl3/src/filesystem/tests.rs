@@ -227,7 +227,7 @@ fn enumerate_and_glob() {
     assert!(glob_directory(&tmp.path("missing"), None, GlobFlags::NONE).is_err());
 }
 
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 #[test]
 fn xdg_paths() {
     use crate::stdlib::{setenv_unsafe, unsetenv_unsafe};

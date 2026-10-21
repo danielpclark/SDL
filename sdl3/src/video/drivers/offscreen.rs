@@ -10,19 +10,23 @@
 //! machine. Its OpenGL contexts are EGL's, on a device display with pbuffer
 //! window surfaces ([`opengles`], where EGL is built: on Unix other than
 //! Apple platforms). Its Vulkan surfaces are `VK_EXT_headless_surface`'s,
-//! from the Vulkan loader loaded at run time ([`vulkan`]).
+//! from the Vulkan loader loaded at run time ([`vulkan`]; not on
+//! Emscripten, which upstream builds without Vulkan).
 
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 mod opengles;
+#[cfg(not(target_os = "emscripten"))]
 mod vulkan;
 
 use std::sync::atomic::AtomicI32;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+#[cfg(not(target_os = "emscripten"))]
+use std::sync::Mutex;
 
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 use std::ffi::c_void;
 
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 use crate::error::Error;
 use crate::error::Result;
 use crate::events::window::{send_window_event, WindowFlags};
@@ -31,7 +35,7 @@ use crate::hints;
 use crate::properties::Properties;
 use crate::video::core::with_window;
 use crate::video::display::add_basic_video_display;
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 use crate::video::gl::RawGlContext;
 use crate::video::sysvideo::{
     DeviceCaps, DisplayMode, VideoBootStrap, VideoDriver, WINDOWPOS_UNDEFINED,
@@ -44,13 +48,14 @@ const OFFSCREENVID_DRIVER_NAME: &str = "offscreen";
 struct OffscreenWindow {
     #[allow(dead_code)]
     sdl_window: WindowID,
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     egl_surface: Option<crate::video::gl::EglSurface>,
 }
 
 #[derive(Default)]
 struct OffscreenVideo {
     /// The Vulkan loader (`_this->vulkan_config`).
+    #[cfg(not(target_os = "emscripten"))]
     vulkan: Mutex<vulkan::VulkanConfig>,
 }
 
@@ -93,7 +98,7 @@ impl VideoDriver for OffscreenVideo {
         let created = with_window(window, |w| {
             w.internal = Some(Box::new(OffscreenWindow {
                 sdl_window: window,
-                #[cfg(all(unix, not(target_vendor = "apple")))]
+                #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
                 egl_surface: None,
             }));
 
@@ -107,13 +112,16 @@ impl VideoDriver for OffscreenVideo {
 
             (w.flags().contains(WindowFlags::OPENGL), w.core.w, w.core.h)
         });
-        #[cfg_attr(not(all(unix, not(target_vendor = "apple"))), allow(unused_variables))]
+        #[cfg_attr(
+            not(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))),
+            allow(unused_variables)
+        )]
         let (opengl, width, height) = match created {
             Ok(created) => created,
             Err(e) => return Some(Err(e)),
         };
 
-        #[cfg(all(unix, not(target_vendor = "apple")))]
+        #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
         if opengl {
             use crate::video::egl;
 
@@ -149,7 +157,7 @@ impl VideoDriver for OffscreenVideo {
 
     fn destroy_window(&self, window: WindowID) -> Option<()> {
         let _internal = with_window(window, |w| w.internal.take());
-        #[cfg(all(unix, not(target_vendor = "apple")))]
+        #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
         if let Some(d) = _internal
             .ok()
             .flatten()
@@ -203,17 +211,17 @@ impl VideoDriver for OffscreenVideo {
 
     // * * * GL context (`OFFSCREEN_GLES_*`, where EGL is built)
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn implements_gl_contexts(&self) -> bool {
         true
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
         Some(opengles::offscreen_gles_swap_window(window))
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_make_current(
         &self,
         window: Option<WindowID>,
@@ -222,68 +230,74 @@ impl VideoDriver for OffscreenVideo {
         Some(opengles::offscreen_gles_make_current(window, context))
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
         Some(opengles::offscreen_gles_create_context(window))
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
         crate::video::egl::destroy_context(context);
         Some(Ok(()))
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
         Some(opengles::offscreen_gles_load_library(path))
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_unload_library(&self) -> Option<()> {
         crate::video::egl::unload_library();
         Some(())
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
         Some(crate::video::egl::get_proc_address_internal(proc_name))
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
         Some(crate::video::egl::get_swap_interval())
     }
 
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
         Some(crate::video::egl::set_swap_interval(interval))
     }
 
     // * * * Vulkan (`OFFSCREEN_Vulkan_*`)
 
+    #[cfg(not(target_os = "emscripten"))]
     fn implements_vulkan_surfaces(&self) -> bool {
         true
     }
 
+    #[cfg(not(target_os = "emscripten"))]
     fn vulkan_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
         Some(vulkan::offscreen_vulkan_load_library(&self.vulkan, path))
     }
 
+    #[cfg(not(target_os = "emscripten"))]
     fn vulkan_unload_library(&self) -> Option<()> {
         vulkan::offscreen_vulkan_unload_library(&self.vulkan);
         Some(())
     }
 
+    #[cfg(not(target_os = "emscripten"))]
     fn vulkan_get_instance_proc_addr(&self) -> Option<usize> {
         vulkan::offscreen_vulkan_get_instance_proc_addr(&self.vulkan)
     }
 
+    #[cfg(not(target_os = "emscripten"))]
     fn vulkan_instance_extensions(&self) -> Option<Vec<&'static str>> {
         Some(vulkan::offscreen_vulkan_get_instance_extensions(
             &self.vulkan,
         ))
     }
 
+    #[cfg(not(target_os = "emscripten"))]
     fn vulkan_create_surface(
         &self,
         _window: WindowID,
@@ -297,6 +311,7 @@ impl VideoDriver for OffscreenVideo {
         ))
     }
 
+    #[cfg(not(target_os = "emscripten"))]
     fn vulkan_destroy_surface(
         &self,
         instance: usize,

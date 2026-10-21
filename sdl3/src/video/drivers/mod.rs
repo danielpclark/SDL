@@ -2,8 +2,8 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Video backends: Wayland and X11 (on Unix other than Apple platforms;
-//! Wayland not on Android), Cocoa (on macOS), Windows (on Windows), and the dummy and
+//! Video backends: Wayland and X11 (on Unix other than Apple platforms and
+//! Emscripten; Wayland not on Android), Cocoa (on macOS), Windows (on Windows), and the dummy and
 //! offscreen drivers, both only available when requested with
 //! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER).
 
@@ -11,11 +11,16 @@
 pub(crate) mod cocoa;
 pub(crate) mod dummy;
 pub(crate) mod offscreen;
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 pub(crate) mod wayland;
 #[cfg(windows)]
 pub(crate) mod windows;
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 pub(crate) mod x11;
 
 use std::sync::atomic::{AtomicI32, Ordering};

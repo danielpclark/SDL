@@ -74,14 +74,26 @@ static VIDEO_DEVICE: ReentrantMutex<RefCell<Option<VideoDevice>>> =
 static BOOTSTRAP: &[&VideoBootStrap] = &[
     #[cfg(target_os = "macos")]
     &drivers::cocoa::COCOA_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     &drivers::x11::video::X11_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     &drivers::wayland::video::WAYLAND_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::windows::WINDOWS_BOOTSTRAP,
+    // (Emscripten: offscreen and dummy only, until the Emscripten port's
+    // PR 7 translates its canvas driver)
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
     &drivers::dummy::DUMMY_BOOTSTRAP,
 ];
@@ -89,11 +101,21 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
 static BOOTSTRAP: &[&VideoBootStrap] = &[
     #[cfg(target_os = "macos")]
     &drivers::cocoa::COCOA_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     &drivers::wayland::video::WAYLAND_PREFERRED_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     &drivers::x11::video::X11_BOOTSTRAP,
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     &drivers::wayland::video::WAYLAND_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::windows::WINDOWS_BOOTSTRAP,
@@ -1671,7 +1693,7 @@ pub(crate) fn display_current_mode_ref(display: DisplayID) -> Option<CurrentMode
 /// The CSS (and freedesktop cursor theme) name of a system cursor, and a
 /// fallback name for themes without it. Translation of
 /// `SDL_GetCSSCursorName()`.
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 pub(crate) fn css_cursor_name(id: mouse::SystemCursor) -> (&'static str, Option<&'static str>) {
     use mouse::SystemCursor as C;
     // Reference: https://www.w3.org/TR/css-ui-4/#cursor

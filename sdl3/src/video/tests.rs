@@ -559,7 +559,7 @@ fn session_matches_c() {
     // The C reference's offscreen driver was built without EGL and Vulkan:
     // here their loading is made to fail, and the errors stand in for "not
     // available" (below).
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     hints::set(hints::EGL_LIBRARY, "libSDL-test-no-such-EGL.so").unwrap();
     hints::set(hints::VULKAN_LIBRARY, "libSDL-test-no-such-vulkan.so").unwrap();
     // Without them, the C reference's attempt at a texture framebuffer
@@ -585,7 +585,7 @@ fn session_matches_c() {
         }
         t.out = out;
     }
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     {
         hints::reset(hints::EGL_LIBRARY);
         let offscreen = t.out.find("==== driver offscreen").unwrap();

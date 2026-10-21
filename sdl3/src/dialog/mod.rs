@@ -335,17 +335,32 @@ pub(crate) fn validate_list(list: &str) -> Option<&'static str> {
 
 #[cfg(all(
     unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    not(any(
+        target_vendor = "apple",
+        target_os = "android",
+        target_os = "haiku",
+        target_os = "emscripten"
+    ))
 ))]
 mod unix;
 #[cfg(all(
     unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    not(any(
+        target_vendor = "apple",
+        target_os = "android",
+        target_os = "haiku",
+        target_os = "emscripten"
+    ))
 ))]
 use unix as sys;
 #[cfg(all(
     unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    not(any(
+        target_vendor = "apple",
+        target_os = "android",
+        target_os = "haiku",
+        target_os = "emscripten"
+    ))
 ))]
 pub(crate) use unix::zenity_show_message_box;
 
@@ -364,7 +379,12 @@ use cocoa as sys;
     target_os = "macos",
     all(
         unix,
-        not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+        not(any(
+            target_vendor = "apple",
+            target_os = "android",
+            target_os = "haiku",
+            target_os = "emscripten"
+        ))
     )
 )))]
 mod sys {

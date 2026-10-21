@@ -120,9 +120,19 @@ pub fn remove_notification(notification: NotificationID) -> Result<()> {
     sys_remove_notification(notification)
 }
 
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 mod dbusnotification;
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 use dbusnotification as sys;
 
 #[cfg(windows)]
@@ -145,7 +155,12 @@ pub(crate) fn register_notification_delegate() {
 #[cfg(not(any(
     windows,
     target_os = "macos",
-    all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+    all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    )
 )))]
 mod sys {
     //! Translation of `src/notification/dummy/SDL_dummynotification.c`.
@@ -228,7 +243,12 @@ mod tests {
     #[cfg(not(any(
         windows,
         target_os = "macos",
-        all(unix, not(target_vendor = "apple"), not(target_os = "android"))
+        all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "emscripten")
+        )
     )))]
     #[test]
     fn dummy_notifications() {

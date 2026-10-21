@@ -383,7 +383,10 @@ pub(crate) fn gl_config() -> GlConfig {
 /// Change the attributes from a driver (`_this->gl_config.x = ...`).
 // (the WGL, GLX and EGL drivers of Windows, X11 and Wayland)
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_vendor = "apple")))),
+    not(any(
+        windows,
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn with_gl_config<R>(f: impl FnOnce(&mut GlConfig) -> R) -> R {
@@ -391,38 +394,56 @@ pub(crate) fn with_gl_config<R>(f: impl FnOnce(&mut GlConfig) -> R) -> R {
 }
 
 /// `_this->gl_allow_no_surface`.
-#[cfg_attr(not(any(windows, unix)), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    allow(dead_code)
+)]
 pub(crate) fn allow_no_surface() -> bool {
     gl_state().allow_no_surface
 }
 
 /// `_this->gl_allow_no_surface = true` (by EGL).
-#[cfg_attr(not(any(windows, unix)), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    allow(dead_code)
+)]
 pub(crate) fn set_allow_no_surface() {
     gl_state().allow_no_surface = true;
 }
 
 /// The EGL attribute callbacks (`egl_*attrib_callback`), if set.
-#[cfg_attr(not(any(windows, unix)), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    allow(dead_code)
+)]
 pub(crate) fn egl_attrib_callbacks() -> Option<Arc<EglAttribCallbacks>> {
     gl_state().egl_callbacks.clone()
 }
 
 /// `gl_config.driver_loaded` (0 when video isn't up).
-#[cfg_attr(not(all(unix, not(target_vendor = "apple"))), allow(dead_code))]
+#[cfg_attr(
+    not(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))),
+    allow(dead_code)
+)]
 pub(crate) fn driver_loaded() -> i32 {
     with_device(|v| v.gl_driver_loaded).unwrap_or(0)
 }
 
 /// Adjust `gl_config.driver_loaded` from a driver (the increment around
 /// extension initialization, EGL's reset to 0...).
-#[cfg_attr(not(any(windows, unix)), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    allow(dead_code)
+)]
 pub(crate) fn set_driver_loaded(f: impl FnOnce(i32) -> i32) {
     let _ = with_device(|v| v.gl_driver_loaded = f(v.gl_driver_loaded));
 }
 
 /// Set `gl_config.driver_path` from a driver (`None`: cleared).
-#[cfg_attr(not(any(windows, unix)), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    allow(dead_code)
+)]
 pub(crate) fn set_driver_path(path: Option<&str>) {
     let _ = with_device(|v| v.gl_driver_path = path.map(str::to_owned));
 }
@@ -524,7 +545,10 @@ const GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE: GLenum = 0x8215;
 const GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE: GLenum = 0x8216;
 const GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE: GLenum = 0x8217;
 const GL_FRAMEBUFFER_DEFAULT: GLint = 0x8218;
-#[cfg_attr(not(any(windows, unix)), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    allow(dead_code)
+)]
 pub(crate) const GL_MAJOR_VERSION: GLenum = 0x821B;
 const GL_NUM_EXTENSIONS: GLenum = 0x821D;
 const GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE: GLenum = 0x8CD0;
@@ -692,7 +716,7 @@ pub fn gl_get_proc_address(proc_name: &str) -> Option<*const c_void> {
 /// there is no such function or EGL isn't in use. Translation of
 /// `SDL_EGL_GetProcAddress()`.
 pub fn egl_get_proc_address(proc_name: &str) -> Option<*const c_void> {
-    #[cfg(any(windows, unix))]
+    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
     {
         if !core::initialized() {
             // (SDL_UninitializedVideo())
@@ -704,7 +728,7 @@ pub fn egl_get_proc_address(proc_name: &str) -> Option<*const c_void> {
         }
         super::egl::get_proc_address_internal(proc_name).map(|p| p.as_ptr() as *const c_void)
     }
-    #[cfg(not(any(windows, unix)))]
+    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
     {
         // (SDL_SetError("SDL was not built with EGL support"))
         let _ = proc_name;
@@ -804,7 +828,10 @@ pub fn gl_extension_supported(extension: &str) -> bool {
 /// context that has been made current.
 // (the WGL, GLX and EGL drivers of Windows, X11 and Wayland)
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_vendor = "apple")))),
+    not(any(
+        windows,
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn gl_deduce_max_supported_es_profile() -> (i32, i32) {
@@ -1302,7 +1329,7 @@ pub fn gl_current_context() -> Result<Option<RawGlContext>> {
 
 /// The current EGL display. Translation of `SDL_EGL_GetCurrentDisplay()`.
 pub fn egl_current_display() -> Result<EglDisplay> {
-    #[cfg(any(windows, unix))]
+    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
     {
         if !core::initialized() {
             return Err(uninitialized_video());
@@ -1311,7 +1338,7 @@ pub fn egl_current_display() -> Result<EglDisplay> {
             .flatten()
             .ok_or_else(|| Error::new("There is no current EGL display"))
     }
-    #[cfg(not(any(windows, unix)))]
+    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
     {
         Err(Error::new("SDL was not built with EGL support"))
     }
@@ -1320,14 +1347,14 @@ pub fn egl_current_display() -> Result<EglDisplay> {
 /// The current EGL config (`None` before one is chosen). Translation of
 /// `SDL_EGL_GetCurrentConfig()`.
 pub fn egl_current_config() -> Result<Option<EglConfig>> {
-    #[cfg(any(windows, unix))]
+    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
     {
         if !core::initialized() {
             return Err(uninitialized_video());
         }
         super::egl::current_config().ok_or_else(|| Error::new("There is no current EGL display"))
     }
-    #[cfg(not(any(windows, unix)))]
+    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
     {
         Err(Error::new("SDL was not built with EGL support"))
     }
@@ -1336,7 +1363,7 @@ pub fn egl_current_config() -> Result<Option<EglConfig>> {
 /// The EGL surface of a window (`None` if it has none). Translation of
 /// `SDL_EGL_GetWindowSurface()`.
 pub fn egl_window_surface(window: &Window) -> Result<Option<EglSurface>> {
-    #[cfg(any(windows, unix))]
+    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
     {
         if !core::initialized() {
             return Err(uninitialized_video());
@@ -1348,7 +1375,7 @@ pub fn egl_window_surface(window: &Window) -> Result<Option<EglSurface>> {
             .gl_get_egl_surface(window.id())
             .and_then(EglSurface::from_ptr))
     }
-    #[cfg(not(any(windows, unix)))]
+    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
     {
         let _ = window;
         Err(Error::new("SDL was not built with EGL support"))
