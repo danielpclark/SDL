@@ -21,15 +21,15 @@
 //! Upstream's C was patched where the translation works around its memory
 //! errors (the `Note (upstream)` notes: buffers it leaves uninitialized
 //! are zeroed, as the translation's are) and where the translation fixes
-//! its bugs (`Timidity_PlaySome()`'s output), and built to use SDL's bundled
-//! math functions, as sdl3's are, rather than the C library's. The files
-//! here don't hit the places where the translation does something defined
-//! where upstream reads or writes out of bounds.
+//! its bugs (`Timidity_PlaySome()`'s output, `read_midi_event()`'s state
+//! kept for one file), and built to use SDL's bundled math functions, as
+//! sdl3's are, rather than the C library's. The files here don't hit the
+//! places where the translation does something defined where upstream
+//! reads or writes out of bounds.
 //!
-//! TiMidity's configuration is global, and `read_midi_event()` keeps the
-//! running status from one file to the next, so everything runs in one
-//! test, in upstream's order. It runs in `sdl3-mixer-timidity/`, as the C
-//! program does (`default.cfg` names a directory relative to it).
+//! TiMidity's configuration is global, so everything runs in one test, in
+//! upstream's order. It runs in `sdl3-mixer-timidity/`, as the C program
+//! does (`default.cfg` names a directory relative to it).
 
 use std::fmt::Write;
 

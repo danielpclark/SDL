@@ -763,7 +763,7 @@ pub fn set_soundfont(sf2_file: Option<&str>) -> Result<()> {
 
 impl MidiSong {
     /// `SDL_calloc(1, sizeof(*song))`.
-    fn new() -> MidiSong {
+    pub(crate) fn new() -> MidiSong {
         MidiSong {
             oom: 0,
             playing: 0,
