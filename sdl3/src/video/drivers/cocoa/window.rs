@@ -663,8 +663,10 @@ fn sq_distance_to_rect(point: &NSPoint, rect: &NSRect) -> f64 {
     let mut edge = *point;
     let left = rect.min_x();
     let right = rect.max_x();
-    // FIXME (upstream): the bottom edge is NSMinX(), not NSMinY().
-    let bottom = rect.min_x();
+    // Note (upstream): the bottom edge is NSMinX(), not NSMinY(), so a
+    // point is measured to the wrong edge (and one inside the rectangle
+    // can be far from it) unless the rectangle's x and y happen to match.
+    let bottom = rect.min_y();
     let top = rect.max_y();
 
     if point.x < left {
@@ -4763,27 +4765,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn distance_to_rect_keeps_upstream_bottom_edge() {
-        // Note (upstream): the bottom edge is the rectangle's minimum x (see
-        // the FIXME in sq_distance_to_rect()), so a rectangle from x = 100
-        // has its "bottom" at y = 100.
+    fn distance_to_rect_measures_to_the_nearest_edge() {
+        // (upstream measures to a bottom edge at the rectangle's minimum x:
+        // see the Note in sq_distance_to_rect())
         let r = NSRect::new(100.0, 0.0, 50.0, 50.0);
-        // Inside the real rectangle, 75 units under that bottom.
-        assert_eq!(
-            sq_distance_to_rect(&NSPoint::new(120.0, 25.0), &r),
-            75.0 * 75.0
-        );
-        // Above the top (50) but under the bottom (100): measured to y = 100.
+        // Inside the rectangle (upstream: 75 units under its "bottom" at
+        // y = 100).
+        assert_eq!(sq_distance_to_rect(&NSPoint::new(120.0, 25.0), &r), 0.0);
+        // Above the top.
         assert_eq!(
             sq_distance_to_rect(&NSPoint::new(120.0, 60.0), &r),
-            40.0 * 40.0
+            10.0 * 10.0
         );
-        // Left of the rectangle and above both: to (100, 50).
+        // Under the bottom.
+        assert_eq!(
+            sq_distance_to_rect(&NSPoint::new(120.0, -20.0), &r),
+            20.0 * 20.0
+        );
+        // Left of the rectangle and above it: to (100, 50).
         assert_eq!(
             sq_distance_to_rect(&NSPoint::new(90.0, 120.0), &r),
             100.0 + 70.0 * 70.0
         );
-        // Where x is the same as the bottom, nothing changes.
+        // Where x is the same as y (as upstream gets right).
         let square = NSRect::new(0.0, 0.0, 10.0, 10.0);
         assert_eq!(sq_distance_to_rect(&NSPoint::new(5.0, 5.0), &square), 0.0);
         assert_eq!(
