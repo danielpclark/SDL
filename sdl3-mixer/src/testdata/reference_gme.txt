@@ -517,16 +517,16 @@ corrupt 3: GME 0x8010 2 48000 artist="gen_gme_testdata.py" album="PSG Test" copy
 corrupt 3 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 0ce109223a52f5a5
 mix: dur=-1 play=1 pos=12288 replay=1 seek=1 pos=100 playing=1 1337fb1fabf9b42e
 order 1: play=1 pos=4096 playing=1 4eca4ab43e98a979
-order 2: play=1 pos=4096 playing=1 f6e042f616ea5037
+order 2: play=1 pos=4096 playing=1 998c0358e921515a
 order 0: play=1 pos=4096 playing=1 87a28f55a6bbc42f
-order 200: play=1 pos=4096 playing=1 f6e042f616ea5037
-order -5: play=1 pos=4096 playing=1 f6e042f616ea5037
-order 3: play=1 pos=4096 playing=1 f6e042f616ea5037
+order 200: play=1 pos=4096 playing=1 998c0358e921515a
+order -5: play=1 pos=4096 playing=1 998c0358e921515a
+order 3: play=1 pos=4096 playing=1 998c0358e921515a
 replay: 1 playing=1
 gmeseek 0: seek=1 pos=0 playing=1 33c3382dbb704a21
 gmeseek 2205: seek=1 pos=2205 playing=1 6f796c951be16822
-gmeseek 48000: seek=1 pos=48000 playing=1 7de6db951516ed00
-gmeseek 20000: seek=1 pos=20000 playing=1 e03f649004472600
+gmeseek 48000: seek=1 pos=48000 playing=1 f1b672eb498fe403
+gmeseek 20000: seek=1 pos=20000 playing=1 64b66232e2f210dc
 gmeseek 100: seek=1 pos=100 playing=1 db4914027affd206
 fresh: 1 playing=1
 freshseek 0: seek=1 pos=0 playing=1 33c3382dbb704a21

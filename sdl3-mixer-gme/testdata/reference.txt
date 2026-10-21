@@ -1785,12 +1785,12 @@ t1 81920: 41d80cc105cca277 tell=928 samples=81920 ended=0
 t1 88200: 63c0a84d77b938a1 tell=1000 samples=88200 ended=0
 start 2: ok
 info 2: -1 -1 -1 -1 150000|PC Engine|PSG Test||gen_gme_testdata.py|2026 Public Domain||
-t2 16384: 5971132aacb66a7c tell=185 samples=16384 ended=0
-t2 32768: 8f46224e3b100f57 tell=371 samples=32768 ended=0
-t2 49152: ece62357a113914f tell=557 samples=49152 ended=0
-t2 65536: 1a691767ba846819 tell=743 samples=65536 ended=0
-t2 81920: 2ad133824535c885 tell=928 samples=81920 ended=0
-t2 88200: e308ef2fcbad0258 tell=1000 samples=88200 ended=0
+t2 16384: 441410509565a1b4 tell=185 samples=16384 ended=0
+t2 32768: 8e06725ebbf5de23 tell=371 samples=32768 ended=0
+t2 49152: 86037ccb31e7dbd8 tell=557 samples=49152 ended=0
+t2 65536: b94ad8bec0a6fdba tell=743 samples=65536 ended=0
+t2 81920: 38dc50f19d0d73f9 tell=928 samples=81920 ended=0
+t2 88200: a1cec365086d9910 tell=1000 samples=88200 ended=0
 start 256: Invalid track
 start -1: Invalid track
 start 0: ok
@@ -1810,12 +1810,12 @@ start 0: ok
 nofade 8192: a6819f4b45dbc4f4 tell=92 samples=8192 ended=0
 open 32000: tracks=256 type=HES voices=6
 start 255: ok
-tempo 16000: 495a3fc5f46cef28 tell=250 samples=16000 ended=0
-tempo 32000: ddea18db3ad55442 tell=500 samples=32000 ended=0
+tempo 16000: bd351164bb40a9db tell=250 samples=16000 ended=0
+tempo 32000: 0da08debd20653e1 tell=500 samples=32000 ended=0
 tell_scaled=850
 seek_scaled 300: ok tell_scaled=299
-sc 4000: 567fcaa318a006e1 tell=238 samples=15294 ended=0
-slow 8000: 2a9994e11a645173 tell=363 samples=23294 ended=0
+sc 4000: 389149e62947e0ab tell=238 samples=15294 ended=0
+slow 8000: b5215851684f6eba tell=363 samples=23294 ended=0
 tracks=256
 start 0: ok
 acc 8000: a548e25f8428dd99 tell=125 samples=8000 ended=0
