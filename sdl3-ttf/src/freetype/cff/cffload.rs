@@ -1506,7 +1506,10 @@ pub fn cff_load_private_dict(
     };
 
     let error = (|| -> FtResult<()> {
-        let Ok(mut parser) = cff_parser_init(
+        /* Note (upstream): C jumps to `Exit' without setting `error' */
+        /* when the parser can't be allocated, so the failure is not  */
+        /* reported; it is here                                       */
+        let mut parser = cff_parser_init(
             if cff2 {
                 CFF2_CODE_PRIVATE
             } else {
@@ -1519,11 +1522,7 @@ pub fn cff_load_private_dict(
             stack_size,
             top.num_designs,
             top.num_axes,
-        ) else {
-            /* FIXME (upstream): a failed parser allocation jumps to `Exit' */
-            /* without setting `error', so it is not reported              */
-            return Ok(());
-        };
+        )?;
 
         stream.seek(base_offset.wrapping_add(top.private_offset))?;
         stream.enter_frame(top.private_size)?;
