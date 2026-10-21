@@ -334,9 +334,13 @@ const RENDER_DRIVERS: &[&str] = &[
     direct3d12::D3D12_RENDERER,
     #[cfg(target_os = "macos")]
     metal::METAL_RENDERER,
+    // (Emscripten: OpenGL ES 2 and software only, as upstream builds it)
+    #[cfg(not(target_os = "emscripten"))]
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
+    #[cfg(not(target_os = "emscripten"))]
     vulkan::VULKAN_RENDERER,
+    #[cfg(not(target_os = "emscripten"))]
     GPU_RENDERER,
     SOFTWARE_RENDERER,
 ];

@@ -55,10 +55,14 @@ pub(crate) const MAX_STORAGE_BUFFERS_PER_STAGE: u32 = 8;
 pub(crate) const MAX_UNIFORM_BUFFERS_PER_STAGE: u32 = 4;
 pub(crate) const MAX_COMPUTE_WRITE_TEXTURES: u32 = 8;
 pub(crate) const MAX_COMPUTE_WRITE_BUFFERS: u32 = 8;
+// (used by the backends; Emscripten has none)
+#[cfg_attr(target_os = "emscripten", allow(dead_code))]
 pub(crate) const UNIFORM_BUFFER_SIZE: u32 = 32768;
 pub(crate) const MAX_VERTEX_BUFFERS: u32 = 16;
 pub(crate) const MAX_VERTEX_ATTRIBUTES: u32 = 16;
 pub(crate) const MAX_COLOR_TARGET_BINDINGS: u32 = 8;
+// (used by the backends; Emscripten has none)
+#[cfg_attr(target_os = "emscripten", allow(dead_code))]
 pub(crate) const MAX_PRESENT_COUNT: u32 = 16;
 pub(crate) const MAX_FRAMES_IN_FLIGHT: u32 = 3;
 

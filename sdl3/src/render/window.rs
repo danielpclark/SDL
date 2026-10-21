@@ -233,6 +233,11 @@ impl Renderer {
 
         let present_vsync = super::present_vsync_with_hint(info);
 
+        if cfg!(target_os = "emscripten") {
+            // (no GPU driver is built, so none matches the name)
+            return Err(Error::new(format!("{} not available", super::GPU_RENDERER)));
+        }
+
         // (the driver name is "gpu", which only the GPU driver matches)
         let output_colorspace = info.output_colorspace.unwrap_or(Colorspace::SRGB);
         let backend = match super::gpu::GpuRenderer::new(
