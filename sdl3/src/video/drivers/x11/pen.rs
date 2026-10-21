@@ -181,7 +181,14 @@ impl X11Video {
                 &mut output,
             )
         };
-        if status != Success || num_items_return == 0 || output.is_null() {
+        if status != Success || output.is_null() {
+            return Vec::new();
+        }
+        if num_items_return == 0 {
+            // SAFETY: the property data from XIGetProperty, freed once.
+            unsafe {
+                (self.x.XFree)(output.cast());
+            }
             return Vec::new();
         }
 
@@ -206,7 +213,12 @@ impl X11Video {
             }
         }
 
-        // FIXME (upstream): the property data leaks on a type mismatch.
+        // Note (upstream): C leaks the property data on a type mismatch
+        // (and when it holds no items); it is freed here.
+        // SAFETY: the property data from XIGetProperty, freed once.
+        unsafe {
+            (self.x.XFree)(output.cast());
+        }
         Vec::new() // type mismatch
     }
 
