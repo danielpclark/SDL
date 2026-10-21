@@ -623,8 +623,7 @@ mod tests {
     #[test]
     fn local_time_round_trips() {
         let _l = crate::test_support::test_lock();
-        // (whole milliseconds: see the FIXME in windows::time_to_date_time)
-        for t in sample_times(1_000_000) {
+        for t in sample_times(1) {
             let dt = t.to_local_date_time().unwrap();
             if !(1678..=2261).contains(&dt.year) {
                 continue; // (the ends of the range don't convert back)
@@ -636,8 +635,7 @@ mod tests {
             );
             assert!(dt.utc_offset.abs() <= 14 * 3600 + 3600, "{dt:?}");
         }
-        let now = Time::now().unwrap().as_nanos();
-        let now = Time::from_nanos(now - now.rem_euclid(1_000_000)); // (as above)
+        let now = Time::now().unwrap();
         assert_eq!(now.to_local_date_time().unwrap().to_time().unwrap(), now);
     }
 
