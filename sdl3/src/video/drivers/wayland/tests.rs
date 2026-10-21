@@ -62,7 +62,7 @@ const ENV_VARS: [&str; 5] = [
 
 /// A headless compositor for one test, in its own runtime directory, which
 /// `WAYLAND_DISPLAY` points at while it runs.
-struct Compositor {
+pub(super) struct Compositor {
     kind: Kind,
     child: Child,
     dir: PathBuf,
@@ -100,7 +100,7 @@ fn runtime_dir() -> PathBuf {
 impl Compositor {
     /// A new compositor: sway if available, else weston (with
     /// `need_sway`, only sway).
-    fn start(need_sway: bool) -> Option<Compositor> {
+    pub(super) fn start(need_sway: bool) -> Option<Compositor> {
         let sway = find_in_path("sway");
         let weston = if need_sway {
             None
@@ -258,10 +258,10 @@ impl Drop for Compositor {
 
 /// Video initialized with the Wayland driver; quits video when dropped
 /// (before the compositor goes away).
-struct Video;
+pub(super) struct Video;
 
 impl Video {
-    fn init() -> Video {
+    pub(super) fn init() -> Video {
         init::quit();
         hints::set(hints::VIDEO_DRIVER, "wayland").unwrap();
         init::init(InitFlags::VIDEO).unwrap();

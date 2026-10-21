@@ -25,7 +25,7 @@ pub(crate) fn set_current_device(device: Weak<WaylandVideo>) {
 
 /// The current video device, if it is the Wayland one (`SDL_GetVideoDevice()`
 /// with a `vid->name` of "wayland").
-fn current_device() -> Option<Arc<WaylandVideo>> {
+pub(super) fn current_device() -> Option<Arc<WaylandVideo>> {
     if crate::video::core::current_video_driver().ok()? != super::video::WAYLANDVID_DRIVER_NAME {
         return None;
     }
