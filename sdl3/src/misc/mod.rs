@@ -26,7 +26,12 @@ pub fn open_url(url: &str) -> Result<()> {
 
 #[cfg(all(
     unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    not(any(
+        target_vendor = "apple",
+        target_os = "android",
+        target_os = "haiku",
+        target_os = "emscripten"
+    ))
 ))]
 /// Translation of `SDL_SYS_OpenURL()` (Unix).
 fn sys_open_url(url: &str) -> Result<()> {
@@ -60,7 +65,12 @@ fn sys_open_url(url: &str) -> Result<()> {
 /// token and the window ID. Translation of `GetActivationToken()`.
 #[cfg(all(
     unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    not(any(
+        target_vendor = "apple",
+        target_os = "android",
+        target_os = "haiku",
+        target_os = "emscripten"
+    ))
 ))]
 fn get_activation_token() -> (Option<String>, Option<String>) {
     crate::video::drivers::wayland::util::get_activation_token()
@@ -152,12 +162,19 @@ fn sys_open_url(url: &str) -> Result<()> {
     })
 }
 
+// (also Emscripten's, until the Emscripten port's PR 5 translates its
+// window.open() backend)
 #[cfg(not(any(
     windows,
     target_os = "macos",
     all(
         unix,
-        not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+        not(any(
+            target_vendor = "apple",
+            target_os = "android",
+            target_os = "haiku",
+            target_os = "emscripten"
+        ))
     )
 )))]
 /// Translation of `SDL_SYS_OpenURL()` (dummy).

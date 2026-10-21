@@ -22,7 +22,7 @@ pub mod clipboard;
 pub(crate) mod core;
 pub mod display;
 pub(crate) mod drivers;
-#[cfg(any(windows, unix))]
+#[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
 pub(crate) mod egl;
 pub mod gl;
 pub(crate) mod image;
@@ -53,11 +53,13 @@ pub mod sysvideo;
 pub mod textinput;
 pub(crate) mod vk;
 pub mod vulkan;
+// (no video driver has Vulkan on Emscripten)
+#[cfg_attr(target_os = "emscripten", allow(dead_code))]
 pub(crate) mod vulkan_utils;
 pub mod window;
 mod yuv;
 
-#[cfg(all(unix, not(target_vendor = "apple")))]
+#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
 pub use drivers::x11::events::{set_x11_event_hook, X11EventHook};
 
 pub use self::core::{

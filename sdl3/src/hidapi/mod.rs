@@ -609,6 +609,8 @@ fn update_discovery(state: &mut HidapiState) {
             DEVICE_CHANGE_COUNTER.fetch_add(1, Ordering::Relaxed);
             discovery.last_detect = now;
         }
+        // (the platform code follows; Emscripten has none)
+        #[cfg_attr(target_os = "emscripten", allow(clippy::needless_return))]
         return;
     }
 
@@ -880,6 +882,10 @@ static IGNORED_DEVICES: Mutex<Option<String>> = Mutex::new(None);
 
 /// Whether a device should be left out of the enumeration.
 /// Translation of `SDL_HIDAPI_ShouldIgnoreDevice()`.
+#[cfg_attr(
+    not(any(windows, target_os = "linux", target_os = "macos")),
+    allow(dead_code)
+)] // (used by the platform backends)
 pub(crate) fn should_ignore_device(
     bus: BusType,
     vendor_id: u16,

@@ -148,7 +148,12 @@ pub fn preferred_locales() -> Result<Vec<Locale>> {
 
 #[cfg(all(
     unix,
-    not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+    not(any(
+        target_vendor = "apple",
+        target_os = "android",
+        target_os = "haiku",
+        target_os = "emscripten"
+    ))
 ))]
 mod sys {
     use super::strlcat;
@@ -462,12 +467,19 @@ mod sys {
     }
 }
 
+// (also Emscripten's, until the Emscripten port's PR 5 translates its
+// navigator.languages backend)
 #[cfg(not(any(
     windows,
     target_vendor = "apple",
     all(
         unix,
-        not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+        not(any(
+            target_vendor = "apple",
+            target_os = "android",
+            target_os = "haiku",
+            target_os = "emscripten"
+        ))
     )
 )))]
 mod sys {
@@ -669,7 +681,12 @@ mod tests {
 
     #[cfg(all(
         unix,
-        not(any(target_vendor = "apple", target_os = "android", target_os = "haiku"))
+        not(any(
+            target_vendor = "apple",
+            target_os = "android",
+            target_os = "haiku",
+            target_os = "emscripten"
+        ))
     ))]
     #[test]
     fn unix_normalization() {

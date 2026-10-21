@@ -46,7 +46,12 @@ const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(1);
 const TRAY_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 // Determines how often to pump events if DBus is active
-#[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+#[cfg(all(
+    unix,
+    not(target_vendor = "apple"),
+    not(target_os = "android"),
+    not(target_os = "emscripten")
+))]
 const DBUS_POLL_INTERVAL: Duration = Duration::from_secs(3);
 
 // ---------------------------------------------------------------------------
@@ -840,7 +845,12 @@ fn pump_events_internal(push_sentinel: bool) {
     run_main_thread_callbacks();
 
     // DBus event processing is independent of the video subsystem
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     crate::core::linux::dbus::pump_events();
 
     // Get events from the video subsystem
@@ -912,7 +922,12 @@ fn events_get_polling_interval() -> Option<Duration> {
     }
 
     // Wake periodically to pump DBus events
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     min(DBUS_POLL_INTERVAL);
 
     poll_interval

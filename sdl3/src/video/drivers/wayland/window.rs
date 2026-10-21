@@ -5766,7 +5766,12 @@ impl WaylandVideo {
 
     /// Translation of `Wayland_SuspendScreenSaver()`.
     pub(crate) fn wayland_suspend_screen_saver(&self, suspend_screensaver: bool) -> Result<()> {
-        #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+        #[cfg(all(
+            unix,
+            not(target_vendor = "apple"),
+            not(target_os = "android"),
+            not(target_os = "emscripten")
+        ))]
         if crate::core::linux::dbus::screensaver_inhibit(suspend_screensaver) {
             return Ok(());
         }

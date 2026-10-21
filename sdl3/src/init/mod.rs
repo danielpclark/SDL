@@ -421,7 +421,12 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
 
     init_main_thread();
 
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     crate::core::linux::dbus::init();
 
     // Apple platforms require the notification delegate to be registered early.
@@ -713,7 +718,12 @@ pub fn quit() {
     crate::tray::cleanup_trays();
     crate::notification::cleanup_notifications();
 
-    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "android")))]
+    #[cfg(all(
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten")
+    ))]
     crate::core::linux::dbus::quit();
 
     crate::timer::quit_timers();

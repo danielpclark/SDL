@@ -206,7 +206,10 @@ pub(crate) fn create_device_name(
 /// Translation of `SDL_URIDecode()`.
 // (used by uri_to_local)
 #[cfg_attr(
-    not(any(all(unix, not(target_vendor = "apple")), windows)),
+    not(any(
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")),
+        windows
+    )),
     allow(dead_code)
 )]
 fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
@@ -264,7 +267,10 @@ fn uri_decode(src: &[u8], len: usize) -> Vec<u8> {
 /// `file://<this host>/p` are local. Translation of `SDL_URIToLocal()`.
 // (used by the D-Bus code and the X11 and Windows video drivers)
 #[cfg_attr(
-    not(any(all(unix, not(target_vendor = "apple")), windows)),
+    not(any(
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")),
+        windows
+    )),
     allow(dead_code)
 )]
 pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
@@ -327,7 +333,10 @@ pub(crate) fn uri_to_local(uri: &str) -> Option<Vec<u8>> {
 /// Whether `uri` starts with a valid scheme: a letter, then letters,
 /// digits, `+`, `-` or `.`, then `:`. Translation of `SDL_IsURI()`.
 // (used by the D-Bus code)
-#[cfg_attr(not(all(unix, not(target_vendor = "apple"))), allow(dead_code))]
+#[cfg_attr(
+    not(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))),
+    allow(dead_code)
+)]
 pub(crate) fn is_uri(uri: &str) -> bool {
     /* A valid URI begins with a letter and is followed by any sequence of
      * letters, digits, '+', '.', or '-'.
