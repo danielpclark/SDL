@@ -137,14 +137,19 @@ pub(super) fn time_to_date_time(ticks: Time, local_time: bool) -> Result<DateTim
     let utc_offset = if local_time {
         extern "C" {
             static timezone: libc::c_long;
+            static altzone: libc::c_long;
             fn tzset();
         }
-        // FIXME (upstream): `timezone` counts seconds *west* of UTC, and
-        // ignores daylight saving time; utc_offset is seconds east.
-        // SAFETY: tzset() initializes `timezone`, which is then read.
+        // Note (upstream): C returns `timezone`, which counts seconds
+        // *west* of UTC and ignores daylight saving time, while utc_offset
+        // is seconds east. Here it is negated, and `altzone` (the offset
+        // in daylight saving time) is used when the date is in it.
+        // SAFETY: tzset() initializes `timezone` and `altzone`, which are
+        // then read.
         unsafe {
             tzset();
-            timezone as i32
+            let seconds_west = if tm.tm_isdst > 0 { altzone } else { timezone };
+            -(seconds_west as i32)
         }
     } else {
         0
