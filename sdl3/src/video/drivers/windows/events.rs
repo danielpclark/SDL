@@ -24,7 +24,7 @@ use windows_sys::Win32::Foundation::{
 };
 use windows_sys::Win32::Graphics::Gdi::{
     BeginPaint, ClientToScreen, CreateSolidBrush, DeleteObject, EndPaint, FillRect, GetDC,
-    GetMonitorInfoW, GetUpdateRect, MonitorFromPoint, MonitorFromWindow, ScreenToClient,
+    GetMonitorInfoW, GetUpdateRect, MonitorFromPoint, MonitorFromWindow, ReleaseDC, ScreenToClient,
     ValidateRect, MONITORINFO, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTONULL, PAINTSTRUCT,
 };
 use windows_sys::Win32::Graphics::Gdi::{SetRectEmpty, SC_SCREENSAVE};
@@ -2870,12 +2870,17 @@ unsafe fn window_proc_for(
             if should_clear_window_on_erase_background(videodata, data) {
                 videodata.state.with(|s| s.cleared = true);
                 let mut client_rect = RECT::default();
-                // SAFETY: the brush is deleted after use.
-                // FIXME (upstream): the DC from GetDC(hwnd) is never released.
+                // Note (upstream): the DC from GetDC(hwnd) is never released,
+                // which leaks a DC each time unless the window class has
+                // CS_OWNDC (as SDL's own class does, but not an application's
+                // or an external window's). It's released here.
+                // SAFETY: the brush is deleted and the DC released after use.
                 unsafe {
                     GetClientRect(hwnd, &mut client_rect);
                     let brush = CreateSolidBrush(0);
-                    FillRect(GetDC(hwnd), &client_rect, brush);
+                    let hdc = GetDC(hwnd);
+                    FillRect(hdc, &client_rect, brush);
+                    ReleaseDC(hwnd, hdc);
                     DeleteObject(brush);
                 }
             }
