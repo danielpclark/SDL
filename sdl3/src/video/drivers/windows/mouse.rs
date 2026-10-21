@@ -801,12 +801,18 @@ pub(crate) fn apply_system_scale(
 
     let mut data = SYSTEM_SCALE_DATA.lock().unwrap_or_else(|e| e.into_inner());
 
-    let mut ix = (x as i64).wrapping_mul(65536);
-    let mut iy = (y as i64).wrapping_mul(65536);
-    let mut dpi = match content_scale {
+    let dpi = match content_scale {
         Some(scale) => (scale * USER_DEFAULT_SCREEN_DPI as f32) as u32,
         None => USER_DEFAULT_SCREEN_DPI,
     };
+    scale_motion(&mut data, x, y, dpi)
+}
+
+/// The rest of `WIN_ApplySystemScale()`: the motion scaled for a display
+/// of `dpi`.
+fn scale_motion(data: &mut MouseData, x: f32, y: f32, mut dpi: u32) -> (f32, f32) {
+    let mut ix = (x as i64).wrapping_mul(65536);
+    let mut iy = (y as i64).wrapping_mul(65536);
 
     if !data.enhanced {
         // early return if flat scale
@@ -855,16 +861,21 @@ pub(crate) fn apply_system_scale(
     let k = data.last_node as usize;
     data.last_node = j as i32;
 
-    // FIXME (upstream): the slopes mix signed and unsigned 64-bit arithmetic (C's usual conversions, reproduced here).
+    // Note (upstream): `inter / speed` divides a signed intercept by the
+    // unsigned speed, so C converts a negative intercept to a huge unsigned
+    // one and the scale comes out as garbage. That happens whenever a
+    // segment's line passes above the origin, as with the truncated slope
+    // of a straight curve (one without acceleration). It's a signed
+    // division here.
+    let speed = speed as i64;
     let mut denom = data.dpidenom;
     let mut scale: i64 = 0;
     let mut xdiff = xs[j + 1].wrapping_sub(xs[j]) as i64;
     let mut ydiff = ys[j + 1].wrapping_sub(ys[j]) as i64;
     if xdiff != 0 {
         let slope = ydiff / xdiff;
-        let inter = (slope as u64).wrapping_mul(xs[i]).wrapping_sub(ys[i]) as i64;
-        scale =
-            (scale as u64).wrapping_add((slope as u64).wrapping_sub((inter as u64) / speed)) as i64;
+        let inter = slope.wrapping_mul(xs[i] as i64).wrapping_sub(ys[i] as i64);
+        scale = scale.wrapping_add(slope.wrapping_sub(inter.wrapping_div(speed)));
     }
 
     if j > k {
@@ -873,9 +884,8 @@ pub(crate) fn apply_system_scale(
         ydiff = ys[k + 1].wrapping_sub(ys[k]) as i64;
         if xdiff != 0 {
             let slope = ydiff / xdiff;
-            let inter = (slope as u64).wrapping_mul(xs[k]).wrapping_sub(ys[k]) as i64;
-            scale = (scale as u64).wrapping_add((slope as u64).wrapping_sub((inter as u64) / speed))
-                as i64;
+            let inter = slope.wrapping_mul(xs[k] as i64).wrapping_sub(ys[k] as i64);
+            scale = scale.wrapping_add(slope.wrapping_sub(inter.wrapping_div(speed)));
         }
     }
 
@@ -1014,6 +1024,37 @@ fn update_mouse_system_scale_for(dpiaware: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_straight_mouse_curve_scales_all_motion_alike() {
+        // A curve without acceleration, Y = 3X (in 16.16), read as
+        // ReadMouseCurve() reads one at mouse speed 10.
+        let (x, y) = ([0u64, 1, 2, 3, 40], [0u64, 3, 6, 9, 120]);
+        let mut data = MouseData {
+            xs: x.map(|x| 7 * (x << 16)),
+            ys: y.map(|y| (10 * (y << 16)) << 17),
+            residual: [0; 2],
+            dpiscale: 0,
+            dpidenom: (10 * 120) << 16,
+            last_node: 0,
+            enhanced: true,
+            dpiaware: false,
+        };
+        // (each motion on its own, from the first segment)
+        let mut scaled = |x: f32, y: f32| {
+            data.last_node = 0;
+            scale_motion(&mut data, x, y, USER_DEFAULT_SCREEN_DPI)
+        };
+        let (unit, _) = scaled(1.0, 0.0);
+        assert!((0.68..0.69).contains(&unit), "{unit}");
+        // Motion into the second segment, whose truncated slope puts its
+        // line above the origin (upstream: about (-325374, 162691)).
+        for (mx, my) in [(3.0, 4.0), (10.0, 0.0), (-5.0, 2.0)] {
+            let (sx, sy) = scaled(mx, my);
+            assert!((sx - mx * unit).abs() < 0.01, "{mx} -> {sx}");
+            assert!((sy - my * unit).abs() < 0.01, "{my} -> {sy}");
+        }
+    }
 
     fn u32_at(b: &[u8], off: usize) -> u32 {
         u32::from_le_bytes([b[off], b[off + 1], b[off + 2], b[off + 3]])
