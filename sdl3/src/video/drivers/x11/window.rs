@@ -2707,10 +2707,12 @@ impl X11Video {
         let Ok(pending_operation) = with_x11_window(window, |_, d| d.pending_operation) else {
             return;
         };
-        // FIXME (upstream): pending_operation is tested against the window
+        // Note (upstream): C tests pending_operation against the window
         // flag SDL_WINDOW_FULLSCREEN (0x1, which is X11_PENDING_OP_RESTORE)
-        // instead of X11_PENDING_OP_FULLSCREEN.
-        if pending_operation & (WindowFlags::FULLSCREEN.0 as u32) != 0 {
+        // instead of X11_PENDING_OP_FULLSCREEN, so it waits for a pending
+        // restore, not for a pending fullscreen change. It tests
+        // X11_PENDING_OP_FULLSCREEN here.
+        if pending_operation & X11_PENDING_OP_FULLSCREEN != 0 {
             let _ = crate::video::window::sync_window(window);
         }
 
