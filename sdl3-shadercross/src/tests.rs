@@ -7,6 +7,10 @@ use crate::spirv_cross::c_api::*;
 /// The test shaders (testdata/*.spv), by name.
 pub(crate) const SHADERS: &[(&str, &[u8])] = &[
     (
+        "cs_asm_array_store",
+        include_bytes!("../testdata/cs_asm_array_store.spv"),
+    ),
+    (
         "cs_asm_void_undef",
         include_bytes!("../testdata/cs_asm_void_undef.spv"),
     ),

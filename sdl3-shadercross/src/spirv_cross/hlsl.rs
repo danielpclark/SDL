@@ -6376,9 +6376,13 @@ impl Compiler {
             if steps > 1024 {
                 spirv_cross_throw!("Type recursion too deep.");
             }
-            // FIXME (upstream): this looks up the BaseType enum value as an ID
-            // (parent_type was presumably meant).
-            ptype = self.get_rc::<SPIRType>(ptype.basetype.to_u32())?;
+            // Note (upstream): C++ looks up `ptype->basetype`, the BaseType
+            // enumerator, as an ID here (the chain's type is a pointer, so
+            // this is reached for every whole array stored into a byte
+            // address buffer), and goes on with whatever has that ID: some
+            // other type, an error, or a pointer that loops forever. The
+            // pointee is meant.
+            ptype = self.get_rc::<SPIRType>(ptype.parent_type)?;
         }
         let type_ = ptype;
 
