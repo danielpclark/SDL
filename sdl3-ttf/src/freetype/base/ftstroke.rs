@@ -717,6 +717,9 @@ pub fn ft_stroker_rewind(stroker: &mut FtStrokerRec) {
 }
 
 /// `FT_Stroker_Done`
+// (the handle is a box, as FT_Stroker is a pointer; the record is smaller
+// than the lint's limit on 32-bit targets)
+#[allow(clippy::boxed_local)]
 pub fn ft_stroker_done(mut stroker: FtStroker) {
     ft_stroke_border_done(&mut stroker.borders[0]);
     ft_stroke_border_done(&mut stroker.borders[1]);
