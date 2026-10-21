@@ -654,10 +654,9 @@ fn fnt_face_get_dll_font(face: &mut FntFaceRec, face_instance_index: FtInt) -> F
                                     }
                                 };
 
-                                /* FIXME (upstream): this tests `dir_entry2', */
-                                /* whose flag was just cleared, instead of    */
-                                /* `dir_entry3'                               */
-                                if dir_entry2.offset & 0x80000000 != 0
+                                /* Note (upstream): C tests `dir_entry2' here, */
+                                /* whose flag was just cleared                 */
+                                if dir_entry3.offset & 0x80000000 != 0
                                 /* DataIsDirectory */
                                 {
                                     error = FT_ERR_INVALID_FILE_FORMAT;
