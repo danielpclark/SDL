@@ -118,19 +118,20 @@ impl X11Video {
                     });
                 }
 
-                if let Some(tooltype_name) = tooltype_name {
-                    let result = tooltype_name.eq_ignore_ascii_case(PEN_ERASER_NAME_TAG);
-                    // SAFETY: the property data from XIGetProperty, freed
-                    // once (the atom name was copied and freed by
-                    // atom_name()).
-                    unsafe {
-                        (self.x.XFree)(tooltype_name_info.cast());
-                    }
-
-                    return result;
+                // Note (upstream): C frees the property data only when it
+                // has a tool type name, so it leaks when it is neither an
+                // atom nor a string (or the atom is None). It is freed in
+                // every case here.
+                // SAFETY: the property data from XIGetProperty, freed
+                // once (the atom name was copied and freed by
+                // atom_name()).
+                unsafe {
+                    (self.x.XFree)(tooltype_name_info.cast());
                 }
-                // FIXME (upstream): the property data leaks when it is
-                // neither an atom nor a string.
+
+                if let Some(tooltype_name) = tooltype_name {
+                    return tooltype_name.eq_ignore_ascii_case(PEN_ERASER_NAME_TAG);
+                }
             }
         }
 
