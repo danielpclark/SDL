@@ -166,11 +166,19 @@ pub(super) fn time_to_date_time(ticks: Time, local_time: bool) -> Result<DateTim
                 // SAFETY: valid in and out pointers.
                 unsafe { SystemTimeToFileTime(&local_st, &mut local_ft) };
                 let local_ticks = time_from_filetime(&local_ft).as_nanos();
-                // FIXME (upstream): local_st only has millisecond precision,
-                // so with a sub-millisecond part in ticks and a time zone
-                // east of UTC, this truncates to one second less than the
-                // offset.
-                utc_offset = ((local_ticks - ticks) / NS_PER_SECOND) as i32;
+                // Note (upstream): C subtracts ticks, but local_st only has
+                // millisecond precision, so with a sub-millisecond part in
+                // ticks and a time zone east of UTC this truncates to one
+                // second less than the offset. Here the local time is
+                // compared with utc_st, which has the same precision.
+                let mut utc_ft = FILETIME {
+                    dwLowDateTime: 0,
+                    dwHighDateTime: 0,
+                };
+                // SAFETY: valid in and out pointers.
+                unsafe { SystemTimeToFileTime(&utc_st, &mut utc_ft) };
+                let utc_ticks = time_from_filetime(&utc_ft).as_nanos();
+                utc_offset = ((local_ticks - utc_ticks) / NS_PER_SECOND) as i32;
                 st = Some(&local_st);
             }
         } else {
