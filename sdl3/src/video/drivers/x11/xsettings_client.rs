@@ -369,6 +369,55 @@ unsafe extern "C" fn ignore_errors(_display: *mut Display, _event: *mut XErrorEv
     True
 }
 
+/// The `notify()` calls of `notify_changes()`: what changed from the
+/// sorted list `old_list` to the sorted list `new_list`.
+fn settings_changes(
+    old_list: &[XSettingsSetting],
+    new_list: &[XSettingsSetting],
+) -> Vec<XSettingsNotification> {
+    let mut notifications = Vec::new();
+    let mut old_iter = old_list.iter().peekable();
+    let mut new_iter = new_list.iter().peekable();
+
+    while old_iter.peek().is_some() || new_iter.peek().is_some() {
+        let cmp = match (old_iter.peek(), new_iter.peek()) {
+            (Some(old), Some(new)) => old.name.as_bytes().cmp(new.name.as_bytes()),
+            (Some(_), Option::None) => std::cmp::Ordering::Less,
+            _ => std::cmp::Ordering::Greater,
+        };
+
+        // Note (upstream): C advances both lists after every step, even
+        // when only one side was consumed (a deleted or new name), so
+        // later entries are compared against the wrong neighbors and
+        // changes are missed or reported for unchanged settings. Here only
+        // the side (or sides) consumed advances.
+        match cmp {
+            std::cmp::Ordering::Less => {
+                let old = old_iter.next().expect("checked above");
+                notifications.push((old.name.clone(), XSettingsAction::Deleted, Option::None));
+            }
+            std::cmp::Ordering::Equal => {
+                let (old, new) = (
+                    old_iter.next().expect("checked"),
+                    new_iter.next().expect("checked"),
+                );
+                if !xsettings_setting_equal(old, new) {
+                    notifications.push((
+                        old.name.clone(),
+                        XSettingsAction::Changed,
+                        Some(new.clone()),
+                    ));
+                }
+            }
+            std::cmp::Ordering::Greater => {
+                let new = new_iter.next().expect("checked above");
+                notifications.push((new.name.clone(), XSettingsAction::New, Some(new.clone())));
+            }
+        }
+    }
+    notifications
+}
+
 /// Translation of `struct _XSettingsClient` (without the watch and grab
 /// functions, which SDL doesn't use: their `NULL` paths are translated).
 pub(crate) struct XSettingsClient {
@@ -399,54 +448,8 @@ impl XSettingsClient {
             return;
         }
 
-        let mut old_iter = old_list.iter().peekable();
-        let mut new_iter = self.settings.iter().peekable();
-
-        while old_iter.peek().is_some() || new_iter.peek().is_some() {
-            let cmp = match (old_iter.peek(), new_iter.peek()) {
-                (Some(old), Some(new)) => old.name.as_bytes().cmp(new.name.as_bytes()),
-                (Some(_), Option::None) => std::cmp::Ordering::Less,
-                _ => std::cmp::Ordering::Greater,
-            };
-
-            match cmp {
-                std::cmp::Ordering::Less => {
-                    let old = old_iter.peek().expect("checked above");
-                    self.notifications.push((
-                        old.name.clone(),
-                        XSettingsAction::Deleted,
-                        Option::None,
-                    ));
-                }
-                std::cmp::Ordering::Equal => {
-                    let (old, new) = (
-                        old_iter.peek().expect("checked"),
-                        new_iter.peek().expect("checked"),
-                    );
-                    if !xsettings_setting_equal(old, new) {
-                        self.notifications.push((
-                            old.name.clone(),
-                            XSettingsAction::Changed,
-                            Some((*new).clone()),
-                        ));
-                    }
-                }
-                std::cmp::Ordering::Greater => {
-                    let new = new_iter.peek().expect("checked above");
-                    self.notifications.push((
-                        new.name.clone(),
-                        XSettingsAction::New,
-                        Some((*new).clone()),
-                    ));
-                }
-            }
-
-            // FIXME (upstream): both lists advance even when only one side
-            // matched (a deleted or new name), so later entries are
-            // compared against the wrong neighbors.
-            old_iter.next();
-            new_iter.next();
-        }
+        let changes = settings_changes(old_list, &self.settings);
+        self.notifications.extend(changes);
     }
 
     /// Translation of `read_settings()`.
@@ -710,6 +713,44 @@ mod tests {
             &[(0, "A", &[1, 0, 0, 0]), (0, "A", &[2, 0, 0, 0])],
         );
         assert!(parse_settings(&dup).is_none());
+    }
+
+    #[test]
+    fn changes_between_lists() {
+        let setting = |name: &str, v: i32| XSettingsSetting {
+            name: name.to_owned(),
+            data: XSettingsValue::Int(v),
+            last_change_serial: 0,
+        };
+        let old = [setting("a", 1), setting("c", 1), setting("d", 1)];
+        // "b" is new, "c" is deleted, "d" is changed, "e" is new
+        let new = [
+            setting("a", 1),
+            setting("b", 1),
+            setting("d", 2),
+            setting("e", 1),
+        ];
+        let changes: Vec<_> = settings_changes(&old, &new)
+            .into_iter()
+            .map(|(name, action, _)| (name, action))
+            .collect();
+        assert_eq!(
+            changes,
+            [
+                ("b".to_owned(), XSettingsAction::New),
+                ("c".to_owned(), XSettingsAction::Deleted),
+                ("d".to_owned(), XSettingsAction::Changed),
+                ("e".to_owned(), XSettingsAction::New),
+            ]
+        );
+        assert!(settings_changes(&new, &new).is_empty());
+        assert_eq!(
+            settings_changes(&new, &[])
+                .iter()
+                .map(|(_, action, _)| *action)
+                .collect::<Vec<_>>(),
+            [XSettingsAction::Deleted; 4]
+        );
     }
 
     #[test]
