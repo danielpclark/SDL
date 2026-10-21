@@ -547,10 +547,12 @@ pub(crate) fn x11_pen_axes_from_valuators(
         {
             *value = 0.0;
         } else {
-            // FIXME (upstream): the values are packed (one per set mask
-            // bit), but they are indexed by valuator number, which can
-            // read the wrong value or past the array (0.0 here).
-            *value = input_values.get(valuator as usize).copied().unwrap_or(0.0) as f32;
+            // Note (upstream): the values are packed (one per set mask
+            // bit), but C indexes them by valuator number, which reads
+            // another axis's value (or past the array) when the mask has
+            // gaps. Here the value is the one of the valuator's bit.
+            let index: usize = (0..valuator).filter(|&v| XIMaskIsSet(mask, v)).count();
+            *value = input_values.get(index).copied().unwrap_or(0.0) as f32;
         }
     }
     x11_xinput2_normalize_pen_axes(pen, &mut axis_values);
@@ -585,11 +587,28 @@ mod tests {
         let mut mask = [0u8; 1];
         XISetMask(&mut mask, 2);
         XISetMask(&mut mask, 3);
-        let values = [0.0, 0.0, 1024.0, -32.0];
+        // (packed: one value per set mask bit)
+        let values = [1024.0, -32.0];
         let axes = x11_pen_axes_from_valuators(&p, &values, &mask);
         assert_eq!(axes[PenAxis::Pressure as usize], 0.5);
         assert_eq!(axes[PenAxis::XTilt as usize], -0.5);
         assert_eq!(axes[PenAxis::YTilt as usize], 0.0);
+
+        // With x and y (valuators 0 and 1) too, and a gap at 4 before
+        // the y tilt at 5
+        let mut p = p;
+        p.valuator_for_axis[PenAxis::YTilt as usize] = 5;
+        p.axis_min[PenAxis::YTilt as usize] = -64.0;
+        p.axis_max[PenAxis::YTilt as usize] = 63.0;
+        let mut mask = [0u8; 1];
+        for v in [0, 1, 2, 3, 5] {
+            XISetMask(&mut mask, v);
+        }
+        let values = [100.0, 200.0, 512.0, 63.0, -16.0];
+        let axes = x11_pen_axes_from_valuators(&p, &values, &mask);
+        assert_eq!(axes[PenAxis::Pressure as usize], 0.25);
+        assert_eq!(axes[PenAxis::XTilt as usize], 1.0);
+        assert_eq!(axes[PenAxis::YTilt as usize], -0.25);
 
         // A valuator outside the mask reads as 0.
         let axes = x11_pen_axes_from_valuators(&p, &values, &[0u8]);
