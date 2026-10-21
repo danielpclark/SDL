@@ -3773,7 +3773,9 @@ pub fn unregister_app() {
         // Ensure the icons are initialized.
         // SAFETY: plain data; all zeroes is valid.
         let mut wcex: WNDCLASSEXW = unsafe { std::mem::zeroed() };
-        // FIXME (upstream): wcex.cbSize is never set before GetClassInfoEx(), so the call can fail and leave the class registered.
+        // Note (upstream): wcex.cbSize is never set before GetClassInfoEx(),
+        // so the call can fail and leave the class registered.
+        wcex.cbSize = size_of::<WNDCLASSEXW>() as u32;
         // Check for any registered window classes.
         let name = app.name.clone().unwrap_or_else(|| vec![0]);
         // SAFETY: name is NUL-terminated; wcex receives the class.
