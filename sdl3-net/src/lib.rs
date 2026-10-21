@@ -63,7 +63,9 @@
 //! errors are [`Result`](sdl3::Result)s (`NET_FAILURE` is the `Err` next to
 //! a [`Status`]), and every item names the C symbol it translates. The
 //! sockets are the system's, through the `libc` and `windows-sys`
-//! declarations; no C is compiled and no C SDL is loaded.
+//! declarations; no C is compiled and no C SDL is loaded. On Emscripten,
+//! as upstream builds it there, the library is the stub: every operation
+//! is unsupported.
 //!
 //! ```no_run
 //! # fn main() -> sdl3::Result<()> {
@@ -93,7 +95,14 @@
 // or `int` lengths), so a cast needed on one is a no-op on another.
 #![allow(clippy::unnecessary_cast)]
 
+// On Emscripten, upstream builds the stub library (SDL_net_stub_only.c).
+#[cfg(not(target_os = "emscripten"))]
 mod net;
+#[cfg(target_os = "emscripten")]
+mod stub_only;
+#[cfg(target_os = "emscripten")]
+use stub_only as net;
+#[cfg(not(target_os = "emscripten"))]
 mod sys;
 
 pub use net::{
@@ -120,5 +129,5 @@ pub const VERSION: sdl3::Version = sdl3::Version::new(MAJOR_VERSION, MINOR_VERSI
 /// The upstream SDL_net revision this translation was made from.
 pub const REVISION: &str = "SDL_net-3.2.0-1a84a2a6b9663572f77e2eb5348d42845bac0053";
 
-#[cfg(test)]
+#[cfg(all(test, not(target_os = "emscripten")))]
 mod tests;

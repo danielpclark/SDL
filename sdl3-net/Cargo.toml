@@ -16,11 +16,12 @@ path = "src/lib.rs"
 
 # The sockets are the system's, as upstream's are: BSD sockets through the
 # pure-Rust declarations of `libc`, WinSock (and the IP Helper API, for the
-# interface list) through `windows-sys`. No C is compiled.
+# interface list) through `windows-sys`. No C is compiled. Emscripten has
+# the stub library (upstream's SDL_net_stub_only.c), with no sockets.
 [dependencies]
 sdl3 = { path = "../sdl3", version = "3.5.0" }
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(all(unix, not(target_os = "emscripten")))'.dependencies]
 libc = "0.2.170"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
