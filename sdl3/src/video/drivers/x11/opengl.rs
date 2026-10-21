@@ -1108,6 +1108,7 @@ impl X11Video {
         let screen = display_driver_data_for_window(window).map_or(0, |d| d.screen);
         let transparent = with_window(window, |w| w.flags().contains(WindowFlags::TRANSPARENT))?;
         let mut context: GLXContext = std::ptr::null_mut();
+        let mut error = Option::None;
 
         let share_context: GLXContext = if config.share_with_current_context != 0 {
             gl::current_thread_context().map_or(std::ptr::null_mut(), |c| c.as_ptr())
@@ -1146,8 +1147,12 @@ impl X11Video {
                     // Get a pointer to the context creation function for GL 3.0
                     match glx.f.glXCreateContextAttribsARB {
                         Option::None => {
-                            // FIXME (upstream): this error is overwritten by
-                            // "Could not create GL context" below.
+                            // Note (upstream): C sets this error and then
+                            // overwrites it with "Could not create GL
+                            // context" below; it is kept here.
+                            error = Some(Error::new(
+                                "OpenGL 3.0 and later are not supported by this system",
+                            ));
                         }
                         Some(create_context_attribs) => {
                             // Create a GL 3.x context
@@ -1242,9 +1247,9 @@ impl X11Video {
         self.end_gl_error_trap();
 
         let Some(context) = RawGlContext::from_ptr(context) else {
-            return Err(
-                take_handler_error().unwrap_or_else(|| Error::new("Could not create GL context"))
-            );
+            return Err(take_handler_error()
+                .or(error)
+                .unwrap_or_else(|| Error::new("Could not create GL context")));
         };
 
         if let Err(e) = self.x11_gl_make_current(Some(window), Some(context)) {
