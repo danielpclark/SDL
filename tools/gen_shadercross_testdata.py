@@ -5,17 +5,21 @@ glslang (and, for the "_opt" variants, optimized with spirv-opt, which
 turns locals into OpPhi and restructures the control flow).
 
 Usage: gen_shadercross_testdata.py GLSLANG SPIRV_OPT
+       gen_shadercross_testdata.py --assembled
 
 GLSLANG and SPIRV_OPT are the paths of the glslang and spirv-opt
 executables (the tests' reference outputs were made with glslang 16.6.0 and
-the SPIRV-Tools of the same release).
+the SPIRV-Tools of the same release). With --assembled, it only writes the
+hand-assembled modules (below), which need neither.
 
 It also writes malformed variants of some of them ("*_bad_*.spv",
 "*_ub_*.spv", "*_guard_*.spv" and "*_hang_*.spv", listed in MALFORMED
 below): truncated, with a broken header, an instruction claiming zero or
 too many words, out-of-range IDs and member indices, and flipped bytes.
 The reference has SDL_shadercross's errors (or output) for the "bad"
-ones too.
+ones too. And it writes modules it assembles itself ("*_asm_*.spv", listed
+in ASSEMBLED), for what glslang doesn't emit: each reaches an upstream
+SPIRV-Cross bug sdl3-shadercross fixes.
 
 The shaders bind their resources where SDL's GPU API wants them (see
 SDL_CreateGPUShader): a vertex shader's sampled textures, storage textures
@@ -39,6 +43,7 @@ uninitialized indices, the buffer of an emulated image atomic, reached
 the output.
 """
 import os
+import struct
 import subprocess
 import sys
 import tempfile
@@ -539,27 +544,135 @@ MALFORMED = [
 ]
 
 
+# Hand-assembled modules ("*_asm_*.spv"), for what glslang doesn't emit (or
+# not without options this script doesn't pass), each reaching an upstream
+# SPIRV-Cross bug sdl3-shadercross fixes. Written by a small assembler: an
+# operand is a word, an '%id' (numbered in order of first use), a string,
+# or a float.
+
+OPCODES = {
+    'OpUndef': 1, 'OpName': 5, 'OpMemberName': 6, 'OpExtension': 10, 'OpExtInstImport': 11,
+    'OpExtInst': 12, 'OpMemoryModel': 14, 'OpEntryPoint': 15, 'OpExecutionMode': 16,
+    'OpCapability': 17, 'OpTypeVoid': 19, 'OpTypeInt': 21, 'OpTypeFloat': 22,
+    'OpTypeVector': 23, 'OpTypeImage': 25, 'OpTypeSampledImage': 27, 'OpTypeArray': 28,
+    'OpTypeStruct': 30, 'OpTypePointer': 32, 'OpTypeFunction': 33, 'OpConstant': 43,
+    'OpConstantComposite': 44, 'OpFunction': 54, 'OpFunctionEnd': 56, 'OpVariable': 59,
+    'OpLoad': 61, 'OpStore': 62, 'OpAccessChain': 65, 'OpDecorate': 71,
+    'OpMemberDecorate': 72, 'OpCompositeConstruct': 80, 'OpImageSampleImplicitLod': 87,
+    'OpFAdd': 129, 'OpLabel': 248, 'OpReturn': 253,
+}
+
+# (enumerants used below)
+SHADER, PHYSICAL_STORAGE_BUFFER_ADDRESSES = 1, 5347
+LOGICAL, PHYSICAL_STORAGE_BUFFER_64, GLSL450 = 0, 5348, 1
+VERTEX, FRAGMENT, GL_COMPUTE = 0, 4, 5
+ORIGIN_UPPER_LEFT, LOCAL_SIZE = 7, 17
+UNIFORM_CONSTANT, INPUT, UNIFORM, OUTPUT, PHYSICAL_STORAGE_BUFFER = 0, 1, 2, 3, 5349
+BLOCK, BUFFER_BLOCK, ARRAY_STRIDE, LOCATION, BINDING, DESCRIPTOR_SET, OFFSET = 2, 3, 6, 30, 33, 34, 35
+ALIGNED = 2
+DIM_2D, DIM_3D = 1, 2
+GLSL_STD_450_ASINH = 22
+
+
+def assemble(lines):
+    """A module from its instructions: (opcode name, operands...)."""
+    ids = {}
+
+    def word_list(operand):
+        if isinstance(operand, str) and operand.startswith('%'):
+            return [ids.setdefault(operand, len(ids) + 1)]
+        if isinstance(operand, str):
+            b = operand.encode() + b'\0'
+            b += b'\0' * (-len(b) % 4)
+            return words(b)
+        if isinstance(operand, float):
+            return words(struct.pack('<f', operand))
+        return [operand]
+
+    body = []
+    for name, *operands in lines:
+        ws = [w for o in operands for w in word_list(o)]
+        body += [(len(ws) + 1) << 16 | OPCODES[name]] + ws
+    return [0x07230203, 0x00010000, 0, len(ids) + 1, 0] + body
+
+
+def compute_header(*capabilities):
+    return [('OpCapability', SHADER)] + [('OpCapability', c) for c in capabilities]
+
+
+ASSEMBLED = []
+
+# A void OpUndef (as DXC's debug information has), before the struct a
+# uniform block holds: SPIRV-Cross's HLSL and MSL backends stopped
+# declaring the structs and constants after it.
+ASSEMBLED.append(('cs_asm_void_undef', compute_header() + [
+    ('OpMemoryModel', LOGICAL, GLSL450),
+    ('OpEntryPoint', GL_COMPUTE, '%main', 'main'),
+    ('OpExecutionMode', '%main', LOCAL_SIZE, 1, 1, 1),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%S', 'S'), ('OpMemberName', '%S', 0, 'x'),
+    ('OpName', '%Params', 'Params'), ('OpMemberName', '%Params', 0, 's'),
+    ('OpName', '%params', 'params'),
+    ('OpName', '%Out', 'Out'), ('OpMemberName', '%Out', 0, 'value'),
+    ('OpName', '%out', 'out_data'),
+    ('OpMemberDecorate', '%S', 0, OFFSET, 0),
+    ('OpMemberDecorate', '%Params', 0, OFFSET, 0),
+    ('OpDecorate', '%Params', BLOCK),
+    ('OpDecorate', '%params', DESCRIPTOR_SET, 2), ('OpDecorate', '%params', BINDING, 0),
+    ('OpMemberDecorate', '%Out', 0, OFFSET, 0),
+    ('OpDecorate', '%Out', BUFFER_BLOCK),
+    ('OpDecorate', '%out', DESCRIPTOR_SET, 1), ('OpDecorate', '%out', BINDING, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpUndef', '%void', '%undef'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeStruct', '%S', '%float'),
+    ('OpTypeStruct', '%Params', '%S'),
+    ('OpTypePointer', '%ptr_params', UNIFORM, '%Params'),
+    ('OpVariable', '%ptr_params', '%params', UNIFORM),
+    ('OpTypeStruct', '%Out', '%float'),
+    ('OpTypePointer', '%ptr_out', UNIFORM, '%Out'),
+    ('OpVariable', '%ptr_out', '%out', UNIFORM),
+    ('OpTypeInt', '%int', 32, 1),
+    ('OpConstant', '%int', '%c0', 0),
+    ('OpTypePointer', '%ptr_float', UNIFORM, '%float'),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpAccessChain', '%ptr_float', '%p', '%params', '%c0', '%c0'),
+    ('OpLoad', '%float', '%v', '%p'),
+    ('OpAccessChain', '%ptr_float', '%q', '%out', '%c0'),
+    ('OpStore', '%q', '%v'),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
+
 def main():
-    if len(sys.argv) != 3:
+    assembled_only = sys.argv[1:] == ['--assembled']
+    if len(sys.argv) != 3 and not assembled_only:
         sys.exit(__doc__)
-    glslang, spirv_opt = sys.argv[1:]
     out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'sdl3-shadercross', 'testdata')
     os.makedirs(out_dir, exist_ok=True)
-    with tempfile.TemporaryDirectory() as tmp:
-        for name, stage, source, optimize in SHADERS:
-            src = os.path.join(tmp, name + '.' + stage)
-            with open(src, 'w') as f:
-                f.write(source.lstrip())
-            out = os.path.join(out_dir, name + '.spv')
-            spv = os.path.join(tmp, name + '.spv') if optimize else out
-            subprocess.run([glslang, '-V', '--quiet', '-o', spv, src], check=True)
-            if optimize:
-                subprocess.run([spirv_opt, '-O', spv, '-o', out], check=True)
-    for name, source, transform in MALFORMED:
-        with open(os.path.join(out_dir, source + '.spv'), 'rb') as f:
-            data = transform(f.read())
+    if not assembled_only:
+        glslang, spirv_opt = sys.argv[1:]
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, stage, source, optimize in SHADERS:
+                src = os.path.join(tmp, name + '.' + stage)
+                with open(src, 'w') as f:
+                    f.write(source.lstrip())
+                out = os.path.join(out_dir, name + '.spv')
+                spv = os.path.join(tmp, name + '.spv') if optimize else out
+                subprocess.run([glslang, '-V', '--quiet', '-o', spv, src], check=True)
+                if optimize:
+                    subprocess.run([spirv_opt, '-O', spv, '-o', out], check=True)
+        for name, source, transform in MALFORMED:
+            with open(os.path.join(out_dir, source + '.spv'), 'rb') as f:
+                data = transform(f.read())
+            with open(os.path.join(out_dir, name + '.spv'), 'wb') as f:
+                f.write(data)
+    for name, lines in ASSEMBLED:
         with open(os.path.join(out_dir, name + '.spv'), 'wb') as f:
-            f.write(data)
+            f.write(pack(assemble(lines)))
 
 
 if __name__ == '__main__':

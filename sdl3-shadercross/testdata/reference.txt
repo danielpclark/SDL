@@ -9123,3 +9123,203 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     stage_output.out_uv = out_uv;
     return stage_output;
 }
+=== cs_asm_void_undef reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=1,1,1
+=== cs_asm_void_undef glsl 450 0 0
+#version 450
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct S
+{
+    float x;
+};
+
+layout(binding = 0, std140) uniform Params
+{
+    S s;
+} params;
+
+layout(binding = 0, std430) buffer Out
+{
+    float value;
+} out_data;
+
+void main()
+{
+    out_data.value = params.s.x;
+}
+
+=== cs_asm_void_undef glsl 310 1 0
+#version 310 es
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct S
+{
+    float x;
+};
+
+layout(binding = 0, std140) uniform Params
+{
+    S s;
+} params;
+
+layout(binding = 0, std430) buffer Out
+{
+    float value;
+} out_data;
+
+void main()
+{
+    out_data.value = params.s.x;
+}
+
+=== cs_asm_void_undef glsl 450 0 1
+#version 450
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct S
+{
+    float x;
+};
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    S s;
+} params;
+
+layout(set = 1, binding = 0, std430) buffer Out
+{
+    float value;
+} out_data;
+
+void main()
+{
+    out_data.value = params.s.x;
+}
+
+=== cs_asm_void_undef msl compute 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct S
+{
+    float x;
+};
+
+struct Params
+{
+    S s;
+};
+
+struct Out
+{
+    float value;
+};
+
+kernel void main0(constant Params& params [[buffer(0)]], device Out& out_data [[buffer(1)]])
+{
+    out_data.value = params.s.x;
+}
+
+=== cs_asm_void_undef msl compute 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct S
+{
+    float x;
+};
+
+struct Params
+{
+    S s;
+};
+
+struct Out
+{
+    float value;
+};
+
+kernel void main0(constant Params& params [[buffer(0)]], device Out& out_data [[buffer(1)]])
+{
+    out_data.value = params.s.x;
+}
+
+=== cs_asm_void_undef hlsl compute 60 - 0
+entrypoint: main
+struct S
+{
+    float x;
+};
+
+cbuffer Params : register(b0, space2)
+{
+    S params_s : packoffset(c0);
+};
+
+RWByteAddressBuffer out_data : register(u0, space1);
+
+void main_inner()
+{
+    out_data.Store(0, asuint(params_s.x));
+}
+
+[numthreads(1, 1, 1)]
+void main()
+{
+    main_inner();
+}
+=== cs_asm_void_undef hlsl compute 51 - 0
+entrypoint: main
+struct S
+{
+    float x;
+};
+
+cbuffer Params : register(b0, space2)
+{
+    S params_s : packoffset(c0);
+};
+
+RWByteAddressBuffer out_data : register(u0, space1);
+
+void main_inner()
+{
+    out_data.Store(0, asuint(params_s.x));
+}
+
+[numthreads(1, 1, 1)]
+void main()
+{
+    main_inner();
+}
+=== cs_asm_void_undef hlsl compute 50 - 1
+entrypoint: main
+struct S
+{
+    float x;
+};
+
+cbuffer Params : register(b0)
+{
+    S params_s : packoffset(c0);
+};
+
+RWByteAddressBuffer out_data : register(u0);
+
+void comp_main()
+{
+    out_data.Store(0, asuint(params_s.x));
+}
+
+[numthreads(1, 1, 1)]
+void main()
+{
+    comp_main();
+}

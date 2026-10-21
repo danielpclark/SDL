@@ -12503,10 +12503,11 @@ impl Compiler {
                 let undef = self.get_rc::<SPIRUndef>(id_)?;
                 let type_ = self.get_rc::<SPIRType>(undef.basetype)?;
                 // OpUndef can be void for some reason ...
-                // FIXME (upstream): this returns from the whole function (it isn't
-                // in a lambda), skipping the declarations after the void undef.
+                // Note (upstream): C++ `return`s here, which leaves the whole
+                // function (it isn't in a lambda), skipping the declarations
+                // after the void undef; this goes on to the next.
                 if type_.basetype == BaseType::Void {
-                    return Ok(());
+                    continue;
                 }
 
                 // Undefined global memory is not allowed in MSL.
