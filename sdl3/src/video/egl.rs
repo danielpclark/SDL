@@ -1687,28 +1687,36 @@ pub(crate) fn create_surface(window: Option<WindowID>, nw: NativeWindowType) -> 
     // driver's; the list is EGL_NONE-terminated.
     let mut surface =
         unsafe { (e.f.eglCreateWindowSurface)(e.egl_display, e.egl_config, nw, attribs.as_ptr()) };
+    let mut error_code = EGL_SUCCESS;
     if surface == EGL_NO_SURFACE {
         // we had a report of Nvidia drivers that report EGL_BAD_ATTRIBUTE if you try to
         //  use EGL_PRESENT_OPAQUE_EXT, even when EGL_EXT_present_opaque is reported as available.
         //  If we used it, try a second time without this attribute.
         // SAFETY: eglGetError has no preconditions.
-        if unsafe { (e.f.eglGetError)() } == EGL_BAD_ATTRIBUTE {
+        error_code = unsafe { (e.f.eglGetError)() };
+        if error_code == EGL_BAD_ATTRIBUTE {
             if let Some(idx) = opaque_ext_idx {
                 attribs.drain(idx..idx + 2);
                 // SAFETY: as above.
                 surface = unsafe {
                     (e.f.eglCreateWindowSurface)(e.egl_display, e.egl_config, nw, attribs.as_ptr())
                 };
+                if surface == EGL_NO_SURFACE {
+                    // SAFETY: as above.
+                    error_code = unsafe { (e.f.eglGetError)() };
+                }
             }
         }
     }
 
     if surface == EGL_NO_SURFACE {
-        // FIXME (upstream): the first failure's error was already taken by
-        // the eglGetError() above, so this usually reports EGL_SUCCESS.
-        return Err(e.set_error(
+        // Note (upstream): C reports the error with a second
+        // eglGetError(), after the one above took it, so it usually says
+        // EGL_SUCCESS. The code of the (last) failure is kept here.
+        return Err(egl_set_error_ex(
             "unable to create an EGL window surface",
             "eglCreateWindowSurface",
+            error_code,
         ));
     }
 
