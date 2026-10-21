@@ -618,8 +618,10 @@ impl ToolkitWindow {
             self.font_struct = std::ptr::null_mut();
             for &format in G_TOOLKIT_FONT {
                 if format.contains("%d") {
-                    // FIXME (upstream): if no size of the font loads, iscale
-                    // keeps decreasing (to negative sizes) forever.
+                    // Note (upstream): if no size of the font loads, C keeps
+                    // decreasing iscale (to 0 and negative sizes) and tries
+                    // again forever. Here it stops at 1 and moves on to the
+                    // next font.
                     loop {
                         let font = font_name(format, G_TOOLKITFONT_SIZE * self.iscale);
                         // SAFETY: the display is open; the out-parameters are valid.
@@ -637,8 +639,10 @@ impl ToolkitWindow {
                             if self.scale != 0.0 && self.iscale > 0 {
                                 self.iscale = self.scale.ceil() as c_int;
                                 self.scale = 0.0;
-                            } else {
+                            } else if self.iscale > 1 {
                                 self.iscale -= 1;
+                            } else {
+                                break;
                             }
                             // (goto try_load_font, leaking `missing` as upstream)
                             continue;
