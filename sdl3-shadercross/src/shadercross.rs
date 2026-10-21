@@ -1085,9 +1085,8 @@ fn resource_list<'a>(
 
 fn binding_2(stage: ExecutionModel, desc_set: u32, binding: u32) -> SpvcMslResourceBinding2 {
     // Note (upstream): the compute path doesn't zero its binding arrays,
-    // leaving the MSL indices each resource doesn't use uninitialized, and
-    // the buffer of an emulated image atomic takes its texture binding's
-    // uninitialized msl_buffer; zero here (as a zero-initializing build).
+    // leaving the MSL indices each resource doesn't use uninitialized; zero
+    // here (as a zero-initializing build).
     SpvcMslResourceBinding2 {
         stage,
         desc_set,
@@ -1627,6 +1626,15 @@ fn transpile_from_spirv(
                 b.msl_texture = readonly_texture_count.wrapping_add(b.binding);
                 b.msl_sampler = readonly_texture_count.wrapping_add(b.binding);
             }
+            // Note (upstream): C leaves a texture's msl_buffer, which
+            // SPIRV-Cross gives the buffer of an emulated image atomic
+            // (before MSL 3.1), uninitialized (0 in a zero-initializing
+            // build), where the first buffer already is, and Metal refuses
+            // the shader. It goes after all the buffers here. (SDL's GPU API
+            // doesn't bind a texture's buffer there, nor give the function
+            // constant the emulation declares, so such an atomic only works
+            // in SDL with MSL 3.1's native ones.)
+            b.msl_buffer = (buffer_bindings.len() as u32).wrapping_add(b.msl_texture);
             if compiler.msl_add_resource_binding_2(&mut context, b) < 0 {
                 return Err(spvc_error(
                     "spvc_compiler_msl_add_resource_binding_2",

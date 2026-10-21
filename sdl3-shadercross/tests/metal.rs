@@ -80,18 +80,21 @@ fn main() {
             props: None,
         };
         if shader_stage == sc::ShaderStage::Compute {
-            let metadata = sc::reflect_compute_spirv(&code, None).unwrap();
-            let pipeline = sc::compile_compute_pipeline_from_spirv(&device, &info, &metadata, None);
             if name == "cs_image" {
-                // FIXME (upstream): SPIRV-Cross emulates the image atomic
-                // with a buffer it puts at [[buffer(0)]], where the uniform
-                // block already is (the MSL in testdata/reference.txt, made
-                // by upstream's SDL_shadercross), so Metal refuses the
-                // library, upstream's as well.
-                assert!(pipeline.is_err(), "{name}");
+                // Note (upstream): before MSL 3.1 SPIRV-Cross emulates
+                // cs_image's image atomic with a buffer, and the emulation
+                // declares a function constant
+                // (spvLinearTextureAlignmentOverride). SDL's Metal backend
+                // makes the function with newFunctionWithName: and gives no
+                // constant values, so Metal's validation aborts on making
+                // its pipeline (and SDL doesn't bind the buffer either). Its
+                // MSL, with that buffer after the others, is checked against
+                // testdata/reference.txt by src/tests.rs.
                 continue;
             }
-            pipeline.unwrap_or_else(|e| panic!("{name}: {}", e.message()));
+            let metadata = sc::reflect_compute_spirv(&code, None).unwrap();
+            sc::compile_compute_pipeline_from_spirv(&device, &info, &metadata, None)
+                .unwrap_or_else(|e| panic!("{name}: {}", e.message()));
         } else {
             let metadata = sc::reflect_graphics_spirv(&code, None).unwrap();
             sc::compile_graphics_shader_from_spirv(&device, &info, &metadata.resource_info, None)
@@ -102,7 +105,7 @@ fn main() {
     sc::quit();
     sdl3::init::quit();
     println!(
-        "metal: {} shaders and pipelines from SPIR-V ok (cs_image refused, as upstream's)",
+        "metal: {} shaders and pipelines from SPIR-V ok (cs_image skipped)",
         names.len() - 1
     );
 }
