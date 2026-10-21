@@ -30,6 +30,8 @@ mod controller_type;
 #[cfg(target_os = "macos")]
 pub(crate) mod darwin;
 mod device_info;
+// (also Emscripten's, until the Emscripten port's PR 11 translates its
+// Gamepad API driver)
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 mod dummy;
 pub mod gamepad;

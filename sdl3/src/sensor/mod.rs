@@ -15,6 +15,8 @@
 //! radians per second for gyroscopes, with the axes of the device in its
 //! natural orientation (see `SDL_sensor.h`).
 
+// (also Emscripten's, until the Emscripten port's PR 5 translates its
+// devicemotion driver)
 #[cfg(not(windows))]
 mod dummy;
 #[cfg(windows)]

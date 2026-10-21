@@ -71,6 +71,7 @@ static IMPLEMENTATIONS: &[GetPowerInfoImpl] = &[
     // handles macOS, Darwin.
     #[cfg(target_os = "macos")]
     macos::get_power_info_macosx,
+    // (Emscripten: none, until the Emscripten port's PR 5)
 ];
 
 /// Get the current power supply details. Translation of `SDL_GetPowerInfo()`.

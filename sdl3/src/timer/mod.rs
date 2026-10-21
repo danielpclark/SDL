@@ -409,6 +409,8 @@ fn init_timers() -> Result<()> {
     data.active.store(true, Ordering::Release);
 
     // Timer threads use a callback into the app, so we can't set a limited stack size here.
+    // (Without threads, on Emscripten, this fails until the Emscripten
+    // port's PR 4 translates upstream's emscripten_set_timeout() timers.)
     match std::thread::Builder::new()
         .name("SDLTimer".into())
         .spawn(move || timer_thread(&TIMER_DATA))

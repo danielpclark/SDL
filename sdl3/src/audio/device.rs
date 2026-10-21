@@ -220,6 +220,8 @@ static BOOTSTRAP: &[&AudioBootStrap] = &[
     &drivers::wasapi::WASAPI_BOOTSTRAP,
     #[cfg(target_os = "macos")]
     &drivers::coreaudio::COREAUDIO_BOOTSTRAP,
+    // (Emscripten: disk and dummy only, until the Emscripten port's PR 10
+    // translates its Web Audio driver)
     &drivers::disk::DISKAUDIO_BOOTSTRAP,
     &drivers::dummy::DUMMYAUDIO_BOOTSTRAP,
 ];
