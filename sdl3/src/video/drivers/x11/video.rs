@@ -992,6 +992,7 @@ impl VideoDriver for X11Video {
                 | WindowOp::SetFocusable
                 | WindowOp::SetMouseRect
                 | WindowOp::SetHitTest
+                | WindowOp::SetFullscreen
         )
     }
 

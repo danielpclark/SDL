@@ -2570,6 +2570,7 @@ impl VideoDriver for WaylandVideo {
                 | WindowOp::SetFocusable
                 | WindowOp::SetMouseRect
                 | WindowOp::SetHitTest
+                | WindowOp::SetFullscreen
         )
     }
 
