@@ -99,9 +99,6 @@ pub(crate) struct VulkanData {
     vk_get_instance_proc_addr: Option<PfnVkGetInstanceProcAddr>,
     vulkan_xlib_xcb_library: Option<SharedObject>,
     vulkan_x_get_xcb_connection: Option<PfnXGetXCBConnection>,
-    /// `vulkan_xlib_xcb_library != NULL`, which upstream doesn't reset when
-    /// the library is unloaded.
-    uses_xcb: bool,
 }
 
 impl VulkanData {
@@ -326,12 +323,10 @@ impl X11Video {
                 Some((library, f)) => {
                     d.vulkan.vulkan_xlib_xcb_library = Some(library);
                     d.vulkan.vulkan_x_get_xcb_connection = Some(f);
-                    d.vulkan.uses_xcb = true;
                 }
                 Option::None => {
                     d.vulkan.vulkan_xlib_xcb_library = Option::None;
                     d.vulkan.vulkan_x_get_xcb_connection = Option::None;
-                    d.vulkan.uses_xcb = false;
                 }
             }
         });
@@ -342,10 +337,10 @@ impl X11Video {
     pub(crate) fn x11_vulkan_unload_library(&self) {
         let old = self.with_data(|d| {
             if d.vulkan.loader_handle.is_some() {
-                // FIXME (upstream): vulkan_xlib_xcb_library is unloaded but
-                // not cleared, so X11_Vulkan_GetInstanceExtensions() still
-                // reports the XCB extension until the next load (`uses_xcb`
-                // is kept for that).
+                // Note (upstream): C unloads vulkan_xlib_xcb_library but
+                // doesn't clear it, so X11_Vulkan_GetInstanceExtensions()
+                // still reports the XCB extension until the next load. It
+                // is cleared here.
                 let xcb = d.vulkan.vulkan_xlib_xcb_library.take();
                 d.vulkan.vulkan_x_get_xcb_connection = Option::None;
                 let loader = d.vulkan.loader_handle.take();
@@ -366,7 +361,7 @@ impl X11Video {
 
     /// Translation of `X11_Vulkan_GetInstanceExtensions()`.
     pub(crate) fn x11_vulkan_get_instance_extensions(&self) -> Vec<&'static str> {
-        if self.with_data(|d| d.vulkan.uses_xcb) {
+        if self.with_data(|d| d.vulkan.vulkan_xlib_xcb_library.is_some()) {
             vec![
                 VK_KHR_SURFACE_EXTENSION_NAME,
                 VK_KHR_XCB_SURFACE_EXTENSION_NAME,
