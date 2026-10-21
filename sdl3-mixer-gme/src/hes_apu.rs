@@ -322,9 +322,10 @@ impl HesApu {
 
                 for i in (0..OSC_COUNT as usize).rev() {
                     self.oscs[i].run_until(&self.synth, bufs, time);
-                    // FIXME (upstream): this updates the first oscillator's
-                    // balance every time, not this one's
-                    self.balance_changed(0);
+                    // Note (upstream): C++ updates the first oscillator's
+                    // balance every time here (`*oscs` for `*osc`), not this
+                    // one's
+                    self.balance_changed(i);
                 }
             }
         } else if self.latch < OSC_COUNT {
