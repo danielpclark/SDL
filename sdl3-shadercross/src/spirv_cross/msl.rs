@@ -15866,8 +15866,9 @@ impl Compiler {
             }
 
             // Pass internal array of spvUnsafeArray<> into wrapper functions
-            // FIXME (upstream): the first `if` is missing an `else`, so when both sides are array templates
-            // (only reachable with builtin arrays in use), two copies are emitted.
+            // Note (upstream): the first `if` is missing an `else` in C++, so when both sides are array
+            // templates (only reachable with builtin arrays in use), a second copy from the whole
+            // spvUnsafeArray<> follows, which doesn't compile.
             if lhs_is_array_template
                 && rhs_is_array_template
                 && !self.msl.options.force_native_arrays
@@ -15882,8 +15883,7 @@ impl Compiler {
                     self.to_expression(rhs_id, true)?,
                     ".elements);"
                 );
-            }
-            if lhs_is_array_template && !self.msl.options.force_native_arrays {
+            } else if lhs_is_array_template && !self.msl.options.force_native_arrays {
                 statement!(
                     self,
                     "spvArrayCopy",
