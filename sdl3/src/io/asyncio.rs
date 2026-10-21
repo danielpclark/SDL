@@ -348,6 +348,8 @@ fn maybe_spin_new_worker_thread(pool: &mut Threadpool) -> bool {
         && pool.running_threadpool_threads < pool.max_threadpool_threads
     {
         let threadname = format!("SDLasyncio{}", pool.threadpool_threads_spun);
+        // (Without threads, on Emscripten, this fails until the Emscripten
+        // port's PR 4 translates the synchronous path.)
         let Ok(thread) = Thread::spawn(threadname, async_io_threadpool_worker) else {
             return false;
         };

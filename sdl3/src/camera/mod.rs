@@ -199,6 +199,7 @@ static BOOTSTRAP: &[&CameraBootStrap] = &[
     &coremedia::COREMEDIA_BOOTSTRAP,
     #[cfg(windows)]
     &mediafoundation::MEDIAFOUNDATION_BOOTSTRAP,
+    // (Emscripten: dummy only, until the Emscripten port's PR 12)
     &dummy::DUMMYCAMERA_BOOTSTRAP,
 ];
 
