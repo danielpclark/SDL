@@ -1601,6 +1601,32 @@ fn light_subpixel_hinting_is_kept() {
     crate::quit();
 }
 
+/// A PFR glyph's `horiBearingY` is its top (upstream's is its bottom).
+#[test]
+fn pfr_bearing_is_the_glyph_top() {
+    use crate::freetype::base::ftinit::{ft_done_freetype, ft_init_freetype};
+    use crate::freetype::base::ftobjs::*;
+    use crate::freetype::base::ftoutln::ft_outline_get_cbox;
+    use crate::freetype::fttypes::*;
+    use std::sync::Arc;
+
+    let lib = ft_init_freetype().unwrap();
+    let mut face = ft_new_memory_face(&lib, Arc::from(SANS_PFR), 0).unwrap();
+    ft_set_pixel_sizes(&mut face, 0, 20).unwrap();
+    let gi = ft_get_char_index(&face, 'g' as FtULong);
+    assert_ne!(gi, 0);
+    for flags in [FT_LOAD_NO_HINTING, FT_LOAD_NO_SCALE] {
+        ft_load_glyph(&mut face, gi, flags).unwrap();
+        let slot = &face.glyph;
+        let cbox = ft_outline_get_cbox(&slot.outline);
+        assert!(cbox.yMin < 0 && cbox.yMax > 0, "{flags:x}");
+        assert_eq!(slot.metrics.horiBearingY, cbox.yMax, "{flags:x}");
+        assert_eq!(slot.metrics.height, cbox.yMax - cbox.yMin, "{flags:x}");
+    }
+    ft_done_face(face);
+    let _ = ft_done_freetype(lib);
+}
+
 /* The GPU text engine, against testdata/gpu_reference.txt (the output of
 a C program built from upstream SDL_ttf and SDL3 with the GPU API,
 which runs the cases below in the same order). */

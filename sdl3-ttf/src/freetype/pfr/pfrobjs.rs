@@ -408,9 +408,9 @@ pub fn pfr_slot_load(pfrface: &mut FtFace, gindex: FtUInt, load_flags: FtInt32) 
         metrics.width = cbox.xMax - cbox.xMin;
         metrics.height = cbox.yMax - cbox.yMin;
         metrics.horiBearingX = cbox.xMin;
-        /* FIXME (upstream): this is the bottom (`cbox.yMin'), */
-        /* not the top, of the glyph                          */
-        metrics.horiBearingY = cbox.yMax - metrics.height;
+        /* Note (upstream): C sets `cbox.yMax - metrics->height', the */
+        /* bottom (`cbox.yMin') of the glyph rather than its top      */
+        metrics.horiBearingY = cbox.yMax;
     }
 
     face.root.glyph.internal.loader = Some(std::mem::take(&mut face.glyph.loader));
