@@ -946,13 +946,14 @@ pub(crate) fn initialize_offscreen(device: i32) -> Result<()> {
             return Err(Error::new("Could not initialize EGL"));
         }
     } else {
-        // FIXME (upstream): without the hint, the `device` argument is
-        // ignored and the first device that initializes is used.
-        let _ = device;
         let mut found = false;
 
         // If no hint is provided lets look for the first device/display that will allow us to eglInit
-        for &egl_device in &egl_devices[..num_egl_devices as usize] {
+        // Note (upstream): C ignores the `device` argument here and tries
+        // the devices from the first one. Here `device` is tried first,
+        // then the ones after it (and those before it).
+        for i in offscreen_device_order(device, num_egl_devices)? {
+            let egl_device = egl_devices[i];
             // SAFETY: the device came from eglQueryDevicesEXT.
             let attempted_egl_display = unsafe {
                 get_platform_display_ext(EGL_PLATFORM_DEVICE_EXT, egl_device, std::ptr::null())
@@ -995,6 +996,19 @@ pub(crate) fn initialize_offscreen(device: i32) -> Result<()> {
     with_egl(|e| e.is_offscreen = true);
 
     Ok(())
+}
+
+/// The order `SDL_EGL_InitializeOffscreen()` tries the `count` EGL devices
+/// in without the hint: `device`, the ones after it, then the ones before
+/// it.
+#[cfg_attr(any(windows, target_vendor = "apple"), allow(dead_code))] // (offscreen only)
+fn offscreen_device_order(device: i32, count: i32) -> Result<impl Iterator<Item = usize>> {
+    if device < 0 || (count > 0 && device >= count) {
+        return Err(Error::new("Invalid EGL device is requested."));
+    }
+    let count = count.max(0) as usize;
+    let device = device as usize;
+    Ok((0..count).map(move |i| (device + i) % count))
 }
 
 /// Require configs of this native visual. Translation of
@@ -1730,6 +1744,21 @@ pub(crate) fn destroy_surface(egl_surface: EGLSurface) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn offscreen_devices_from_the_one_asked_for() {
+        let order = |device, count| offscreen_device_order(device, count).map(Vec::from_iter);
+        assert_eq!(order(0, 3).unwrap(), [0, 1, 2]);
+        assert_eq!(order(1, 3).unwrap(), [1, 2, 0]);
+        assert_eq!(order(2, 3).unwrap(), [2, 0, 1]);
+        assert_eq!(order(0, 0).unwrap(), [0usize; 0]);
+        for (device, count) in [(3, 3), (-1, 3), (-1, 0)] {
+            assert_eq!(
+                order(device, count).unwrap_err().message(),
+                "Invalid EGL device is requested."
+            );
+        }
+    }
 
     fn default_config() -> GlConfig {
         GlConfig {
