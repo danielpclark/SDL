@@ -105,8 +105,7 @@ impl VideoData {
         }
 
         // Create the GLES window surface
-        // FIXME (upstream): WIN_DestroyWindow() never destroys this surface
-        // (SDL_EGL_DestroySurface), so it outlives its window.
+        // (destroyed with the window: see cleanup_window_data())
         let surface = egl::create_surface(Some(window), windowdata.hwnd)
             .ok()
             .filter(|s| *s != EGL_NO_SURFACE);

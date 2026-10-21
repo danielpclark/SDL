@@ -865,14 +865,19 @@ fn cleanup_window_data(window: WindowID) {
                 accept_drag_and_drop(&videodata, window, false);
             }
         }
-        let (keyboard_hook, hicon, wndproc) = data.state.with(|s| {
+        let (keyboard_hook, hicon, wndproc, egl_surface) = data.state.with(|s| {
             s.icm_file_name = None;
             (
                 std::mem::replace(&mut s.keyboard_hook, std::ptr::null_mut()),
                 std::mem::replace(&mut s.hicon, std::ptr::null_mut()),
                 s.wndproc,
+                std::mem::replace(&mut s.egl_surface, std::ptr::null_mut()),
             )
         });
+        // Note (upstream): CleanupWindowData() never destroys the window's
+        // EGL surface (SDL_EGL_DestroySurface()), so it outlives the window.
+        // It's destroyed here, before the window.
+        crate::video::egl::destroy_surface(egl_surface);
         let prop = utf8_to_wide(WINDOW_DATA_PROP);
         // SAFETY: the handles belong to this window and are released once.
         unsafe {
