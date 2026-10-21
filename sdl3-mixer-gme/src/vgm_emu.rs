@@ -598,18 +598,18 @@ impl MusicEmu for VgmEmu {
         // check( get_le32( h.version ) <= 0x150 );
 
         // psg rate
+        // Note (upstream): C++ limits the rate to 100 MHz first, and then
+        // reads the flags from it, which has neither, so the dual and T6W28
+        // PSGs are never enabled; the flags are taken off first here.
         let mut psg_rate = get_le32(&h[header::PSG_RATE..]);
+        e.psg_dual = (psg_rate & 0x40000000) != 0;
+        e.psg_t6w28 = (psg_rate & 0x80000000) != 0;
+        psg_rate &= 0x0FFFFFFF;
         if psg_rate == 0 {
             psg_rate = 3579545;
         } else if psg_rate > 100000000 {
             psg_rate = 100000000;
         }
-        // FIXME (upstream): the flags are read from the rate after it is
-        // limited to 100 MHz, which has neither, so the dual and T6W28
-        // PSGs are never enabled.
-        e.psg_dual = (psg_rate & 0x40000000) != 0;
-        e.psg_t6w28 = (psg_rate & 0x80000000) != 0;
-        psg_rate &= 0x0FFFFFFF;
         e.psg_rate = psg_rate;
         e.blip_buf.set_clock_rate(psg_rate);
 
