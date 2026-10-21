@@ -842,6 +842,38 @@ ASSEMBLED.append(('fs_asm_image_structs', [
     ('OpFunctionEnd',),
 ]))
 
+# asinh(), which legacy GLSL doesn't have: SPIRV-Cross's GLSL backend
+# emitted its emulation twice, and with temporaries forced (or an operand
+# that can't be forwarded) declared its temporary twice.
+ASSEMBLED.append(('fs_asm_asinh', [
+    ('OpCapability', SHADER),
+    ('OpExtInstImport', '%glsl', 'GLSL.std.450'),
+    ('OpMemoryModel', LOGICAL, GLSL450),
+    ('OpEntryPoint', FRAGMENT, '%main', 'main', '%value', '%color'),
+    ('OpExecutionMode', '%main', ORIGIN_UPPER_LEFT),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%value', 'in_value'),
+    ('OpName', '%color', 'out_color'),
+    ('OpDecorate', '%value', LOCATION, 0),
+    ('OpDecorate', '%color', LOCATION, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeVector', '%vec4', '%float', 4),
+    ('OpTypePointer', '%ptr_in', INPUT, '%float'),
+    ('OpVariable', '%ptr_in', '%value', INPUT),
+    ('OpTypePointer', '%ptr_out', OUTPUT, '%vec4'),
+    ('OpVariable', '%ptr_out', '%color', OUTPUT),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpLoad', '%float', '%x', '%value'),
+    ('OpExtInst', '%float', '%y', '%glsl', GLSL_STD_450_ASINH, '%x'),
+    ('OpCompositeConstruct', '%vec4', '%c', '%y', '%y', '%y', '%y'),
+    ('OpStore', '%color', '%c'),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
 
 def main():
     assembled_only = sys.argv[1:] == ['--assembled']

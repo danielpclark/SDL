@@ -44,6 +44,10 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
     ("cs_layout", include_bytes!("../testdata/cs_layout.spv")),
     ("cs_math", include_bytes!("../testdata/cs_math.spv")),
     (
+        "fs_asm_asinh",
+        include_bytes!("../testdata/fs_asm_asinh.spv"),
+    ),
+    (
         "fs_asm_image_structs",
         include_bytes!("../testdata/fs_asm_image_structs.spv"),
     ),
@@ -165,6 +169,43 @@ fn glsl_matches_spirv_cross() {
         count += 1;
     }
     assert_eq!(count, SHADERS.len() * 3);
+}
+
+/// SPIRV-Cross's emulation of asinh() in legacy GLSL, with temporaries
+/// forced, as its C API gives it (built with the emulation emitted once, as
+/// here; upstream emits it twice, declaring its temporary twice).
+#[test]
+fn legacy_glsl_asinh_is_emitted_once() {
+    let mut context = SpvcContext::create();
+    let ir = context.parse_spirv(&words(shader("fs_asm_asinh"))).unwrap();
+    let mut compiler = context.create_compiler(SpvcBackend::Glsl, ir).unwrap();
+    let mut options = compiler.create_compiler_options();
+    for (o, v) in [
+        (SPVC_COMPILER_OPTION_GLSL_VERSION, 120),
+        (SPVC_COMPILER_OPTION_FORCE_TEMPORARY, 1),
+    ] {
+        assert!(options.set_uint(&mut context, o, v) >= 0);
+    }
+    compiler.install_compiler_options(&options);
+    let out = compiler.compile(&mut context).unwrap();
+    assert_eq!(
+        out,
+        r#"#version 120
+#ifdef GL_ARB_shading_language_420pack
+#extension GL_ARB_shading_language_420pack : require
+#endif
+
+varying float in_value;
+
+void main()
+{
+    float _13 = log(in_value + sqrt(in_value * in_value + 1.0));
+    vec4 _14 = vec4(_13);
+    gl_FragData[0] = _14;
+}
+
+"#
+    );
 }
 
 fn stage(name: &str) -> crate::ShaderStage {
