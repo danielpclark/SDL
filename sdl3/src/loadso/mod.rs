@@ -11,6 +11,9 @@
 //! `SDL_SharedObject`: [`SharedObject::load`] is `SDL_LoadObject()`, dropping
 //! it is `SDL_UnloadObject()`, and [`SharedObject::function`] is
 //! `SDL_LoadFunction()`.
+//!
+//! On Emscripten the backend is the C library's `dlopen()`, as upstream's,
+//! which loads only in a program linked with `-sMAIN_MODULE`.
 
 use crate::error::{Error, Result};
 use std::ffi::{c_void, CString};
@@ -50,7 +53,7 @@ impl SharedObject {
     /// Load a shared object with its symbols made available to the ones
     /// loaded after it (`dlopen(sofile, RTLD_NOW | RTLD_GLOBAL)`), as the
     /// X11 driver loads libGL (its `GL_LoadObject()`).
-    #[cfg(all(unix, not(target_vendor = "apple")))]
+    #[cfg(all(unix, not(target_vendor = "apple"), not(target_os = "emscripten")))]
     pub(crate) fn load_global(sofile: &str) -> Result<SharedObject> {
         sys::load_with_flags(sofile, libc::RTLD_NOW | libc::RTLD_GLOBAL).map(|handle| {
             SharedObject {
