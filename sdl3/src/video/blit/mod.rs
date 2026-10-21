@@ -60,6 +60,12 @@ pub(crate) const COPY_RLE_MASK: u32 = COPY_RLE_DESIRED | COPY_RLE_COLORKEY | COP
 /// `src` starts at the first source pixel of the blit rectangle and `dst` at
 /// the first destination pixel; both run to the end of their surface's
 /// pixel buffer.
+// Note (upstream): many of upstream's blitters (in SDL_blit_0.c,
+// SDL_blit_1.c, SDL_blit_A.c and SDL_blit_N.c) step typed pointers by
+// `skip / unit` pixels, so with a pitch that isn't a multiple of the pixel
+// size (SDL_ConvertPixels() takes any pitch) they lose the remainder on
+// every row, and the rows after the first are skewed. Every blitter here
+// steps `src_skip` and `dst_skip` bytes.
 #[allow(dead_code)] // some fields are only read by the specialized blitters
 pub(crate) struct BlitInfo<'a> {
     pub src: &'a [u8],
@@ -90,18 +96,6 @@ pub(crate) struct BlitInfo<'a> {
     pub dst_colorspace: Colorspace,
     pub src_props: Option<&'a Properties>,
     pub dst_props: Option<&'a Properties>,
-}
-
-impl BlitInfo<'_> {
-    /// Round the row skips down to whole pixels of `src_unit` and
-    /// `dst_unit` bytes. FIXME (upstream): many blitters step typed
-    /// pointers by `skip / unit` units, so with a pitch that isn't a
-    /// multiple of the pixel size (`SDL_ConvertPixels()` with any pitch)
-    /// they lose the remainder on every row.
-    pub(crate) fn truncate_skips(&mut self, src_unit: i32, dst_unit: i32) {
-        self.src_skip = self.src_skip / src_unit * src_unit;
-        self.dst_skip = self.dst_skip / dst_unit * dst_unit;
-    }
 }
 
 /// Translation of `SDL_BlitFunc`.

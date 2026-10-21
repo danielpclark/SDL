@@ -525,12 +525,14 @@ fn run_render(t: &mut Harness) -> u64 {
 // negative texture coordinates by adding the size, as `TexCoords::get` does.
 // The INDEX8 output (FMTS[6]) needs upstream's SDL_render_sw.c patched to
 // give the intermediate surface of a scaled, clipped copy the output's
-// palette, as `run_commands` does; upstream crashes there.
+// palette, as `run_commands` does; upstream crashes there. Upstream's
+// blitters also step their row skips in bytes, as the ones here do (see
+// the note on BlitInfo).
 #[test]
 fn render_matches_c() {
     let simd = with_simd(true, run_render);
     let plain = with_simd(false, run_render);
-    assert_eq!((simd, plain), (0x13c2b23cd1e21472, 0xb189fd46a79a1c45));
+    assert_eq!((simd, plain), (0xd4c2c0745d4386da, 0xb189fd46a79a1c45));
 }
 
 #[test]
@@ -708,7 +710,8 @@ fn texture_rects_outside_texture() {
 }
 
 // Conversions of pixels with any pitch, as SDL_UpdateTexture() passes
-// them (see BlitInfo::truncate_skips()).
+// them. The hashes come from the C harness with upstream's blitters
+// stepping their row skips in bytes (see the note on BlitInfo).
 #[test]
 fn convert_pixels_any_pitch_matches_c() {
     fn run(t: &mut Harness) -> u64 {
@@ -741,7 +744,43 @@ fn convert_pixels_any_pitch_matches_c() {
     }
     let simd = with_simd(true, run);
     let plain = with_simd(false, run);
-    assert_eq!((simd, plain), (0x34882d8a52ffb322, 0x621e5cedca99fdce));
+    assert_eq!((simd, plain), (0x108395209d73d9fa, 0x89be09d2ee3853f9));
+}
+
+// Rows whose pitches aren't a multiple of the pixel size start at their
+// pitch, on both sides.
+#[test]
+fn convert_pixels_odd_pitch_rows() {
+    use crate::video::surface::convert_pixels;
+    // Two rows of two XRGB8888 pixels, 9 bytes apart
+    let mut src = vec![0u8; 18];
+    for (row, pixels) in [[0x00ff0000u32, 0x0000ff00], [0x000000ff, 0x00ffffff]]
+        .iter()
+        .enumerate()
+    {
+        for (i, p) in pixels.iter().enumerate() {
+            src[row * 9 + i * 4..][..4].copy_from_slice(&p.to_ne_bytes());
+        }
+    }
+    // to RGB565 rows 5 bytes apart
+    let mut out = vec![0u8; 10];
+    convert_pixels(
+        2,
+        2,
+        PixelFormat::XRGB8888,
+        &src,
+        9,
+        PixelFormat::RGB565,
+        &mut out,
+        5,
+    )
+    .unwrap();
+    let px =
+        |row: usize, i: usize| u16::from_ne_bytes([out[row * 5 + i * 2], out[row * 5 + i * 2 + 1]]);
+    assert_eq!(
+        [px(0, 0), px(0, 1), px(1, 0), px(1, 1)],
+        [0xf800, 0x07e0, 0x001f, 0xffff]
+    );
 }
 
 // A session with window renderers on the dummy video driver, compared with

@@ -111,7 +111,6 @@ fn blit_bto1(info: &mut BlitInfo<'_>, srcbpp: u32) {
 
 /// Translation of `BlitBto2()`.
 fn blit_bto2(info: &mut BlitInfo<'_>, srcbpp: u32) {
-    info.truncate_skips(1, 2);
     let map = info.table;
     walk_bits(info, srcbpp, 2, |dst, d, bit| {
         wr16(dst, d, rd16(map, bit as usize * 2));
@@ -129,7 +128,6 @@ fn blit_bto3(info: &mut BlitInfo<'_>, srcbpp: u32) {
 
 /// Translation of `BlitBto4()`.
 fn blit_bto4(info: &mut BlitInfo<'_>, srcbpp: u32) {
-    info.truncate_skips(1, 4);
     let map = info.table;
     walk_bits(info, srcbpp, 4, |dst, d, bit| {
         wr32(dst, d, rd32(map, bit as usize * 4));
@@ -152,7 +150,6 @@ fn blit_bto1_key(info: &mut BlitInfo<'_>, srcbpp: u32) {
 
 /// Translation of `BlitBto2Key()`.
 fn blit_bto2_key(info: &mut BlitInfo<'_>, srcbpp: u32) {
-    info.truncate_skips(1, 2);
     let (palmap, ckey) = (info.table, info.colorkey);
     walk_bits(info, srcbpp, 2, |dst, d, bit| {
         if bit != ckey {
@@ -174,7 +171,6 @@ fn blit_bto3_key(info: &mut BlitInfo<'_>, srcbpp: u32) {
 
 /// Translation of `BlitBto4Key()`.
 fn blit_bto4_key(info: &mut BlitInfo<'_>, srcbpp: u32) {
-    info.truncate_skips(1, 4);
     let (palmap, ckey) = (info.table, info.colorkey);
     walk_bits(info, srcbpp, 4, |dst, d, bit| {
         if bit != ckey {
