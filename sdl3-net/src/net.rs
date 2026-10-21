@@ -602,6 +602,49 @@ fn would_block(err: c_int) -> bool {
     }
 }
 
+/// What the sends of one broadcast came to (the `retval` and
+/// `all_wouldblock` of `SendOneDatagram()`).
+// Note (upstream): C starts `all_wouldblock` false and only ever sets it to
+// false, so a broadcast that would block on every interface reports
+// NET_FAILURE (with no error message set) instead of NET_WAITING. Here it
+// is waiting when there were sends and all of them would block (one with
+// nowhere to go still fails, rather than waiting forever).
+#[derive(Default)]
+struct BroadcastOutcome {
+    /// A send went through (NET_SUCCESS).
+    sent: bool,
+    /// A send was made.
+    tried: bool,
+    /// The error of the last send that failed for a reason other than
+    /// blocking.
+    last_error: Option<Error>,
+}
+
+impl BroadcastOutcome {
+    /// Record one send's error (0 for none).
+    fn record(&mut self, err: c_int) {
+        self.tried = true;
+        if err == 0 {
+            self.sent = true; // it went to at least one interface's broadcast address, we'll call it success.
+        } else if !would_block(err) {
+            self.last_error = Some(set_socket_error("Failed to send from socket", err));
+            // so there's a clear error message, but keep going, maybe something else works out.
+        }
+    }
+
+    fn status(self) -> Result<Status> {
+        if self.sent {
+            Ok(Status::Success)
+        } else if self.tried && self.last_error.is_none() {
+            Ok(Status::Waiting) // every send would block.
+        } else {
+            Err(self
+                .last_error
+                .unwrap_or_else(|| Error::new("Failed to broadcast datagram")))
+        }
+    }
+}
+
 /* Network interface enumeration... */
 // (FreeNetworkInterfaces() is dropping the `Vec<NetworkInterface>`.)
 
@@ -2959,14 +3002,7 @@ impl DatagramSocket {
         // broadcast (or fake with multicast) this packet.
         debug_assert!(self.allow_broadcast); // we should have checked this in NET_SendDatagram!
 
-        // FIXME (upstream): `all_wouldblock` starts false and is only ever
-        // set to false, so a broadcast that would block everywhere reports
-        // NET_FAILURE (with no error message set) instead of NET_WAITING.
-        // That is kept; the failure gets the message of the last real
-        // error, or a generic one.
-        let mut all_wouldblock = false;
-        let mut last_error: Option<Error> = None;
-        let mut retval = false; // (NET_FAILURE; true is NET_SUCCESS)
+        let mut outcome = BroadcastOutcome::default();
         for handle in &self.handles {
             if let Some(broadcast) = &handle.broadcast {
                 let Ok(addrwithport) = make_addr_info_with_port(Some(broadcast), SOCK_DGRAM, port)
@@ -2977,13 +3013,7 @@ impl DatagramSocket {
                 //SDL_Log("Broadcasting on %s ...", handle->broadcast->human_readable);
                 let (_, err) = Self::send_to(handle.handle, buf, addrwithport.first());
                 drop(addrwithport);
-                if err == 0 {
-                    retval = true; // it went to at least one interface's broadcast address, we'll call it success.
-                } else if !would_block(err) {
-                    all_wouldblock = false;
-                    last_error = Some(set_socket_error("Failed to send from socket", err));
-                    // so there's a clear error message, but keep going, maybe something else works out.
-                }
+                outcome.record(err);
             } else if addr.is_none() && interfaces_ready() {
                 // iterate all interfaces for this broadcast.
                 let interfaces = read_interfaces();
@@ -3005,24 +3035,12 @@ impl DatagramSocket {
                     //SDL_Log("Broadcasting on %s ...", bc->human_readable);
                     let (_, err) = Self::send_to(handle.handle, buf, addrwithport.first());
                     drop(addrwithport);
-                    if err == 0 {
-                        retval = true; // it went to at least one interface's broadcast address, we'll call it success.
-                    } else if !would_block(err) {
-                        all_wouldblock = false;
-                        last_error = Some(set_socket_error("Failed to send from socket", err));
-                        // so there's a clear error message, but keep going, maybe something else works out.
-                    }
+                    outcome.record(err);
                 }
             }
         }
 
-        if retval {
-            Ok(Status::Success)
-        } else if all_wouldblock {
-            Ok(Status::Waiting)
-        } else {
-            Err(last_error.unwrap_or_else(|| Error::new("Failed to broadcast datagram")))
-        }
+        outcome.status()
     }
 
     // see if any pending data can finally be sent, etc
@@ -3480,4 +3498,45 @@ pub fn wait_until_input_available(
     }
 
     Ok(retval)
+}
+
+#[cfg(test)]
+mod broadcast_tests {
+    use super::*;
+
+    #[cfg(unix)]
+    const WOULD_BLOCK: c_int = libc::EAGAIN;
+    #[cfg(unix)]
+    const UNREACHABLE: c_int = libc::ENETUNREACH;
+    #[cfg(windows)]
+    const WOULD_BLOCK: c_int = sys::WSAEWOULDBLOCK;
+    #[cfg(windows)]
+    const UNREACHABLE: c_int = 10051; // WSAENETUNREACH
+
+    fn outcome(errs: &[c_int]) -> Result<Status> {
+        let mut outcome = BroadcastOutcome::default();
+        for &err in errs {
+            outcome.record(err);
+        }
+        outcome.status()
+    }
+
+    #[test]
+    fn broadcast_that_would_block_everywhere_waits() {
+        assert_eq!(outcome(&[WOULD_BLOCK]).unwrap(), Status::Waiting);
+        assert_eq!(
+            outcome(&[WOULD_BLOCK, WOULD_BLOCK]).unwrap(),
+            Status::Waiting
+        );
+        assert_eq!(outcome(&[WOULD_BLOCK, 0]).unwrap(), Status::Success);
+        assert_eq!(outcome(&[UNREACHABLE, 0]).unwrap(), Status::Success);
+        let err = outcome(&[WOULD_BLOCK, UNREACHABLE]).unwrap_err();
+        assert!(
+            err.to_string().starts_with("Failed to send from socket: "),
+            "{err}"
+        );
+        // Nowhere to send it.
+        let err = outcome(&[]).unwrap_err();
+        assert_eq!(err.to_string(), "Failed to broadcast datagram");
+    }
 }
