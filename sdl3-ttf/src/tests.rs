@@ -27,7 +27,9 @@
 //! attached), and the fonts truncated
 //! and with flipped bytes. Surfaces are
 //! described by their size, format, pitch and FNV-1a hashes of their pixel
-//! rows and palette, their color key and blend mode.
+//! rows and palette, their color key and blend mode. Upstream's C is
+//! patched where sdl3-ttf fixes its bugs (the `Note (upstream)` notes that
+//! say so).
 
 use sdl3::io::{IoStream, IoWhence};
 use sdl3::video::{Color, Surface};
@@ -1581,6 +1583,20 @@ fn tiny_renderer_atlas() {
         }
     }
     drop(r);
+    drop(f);
+    crate::quit();
+}
+
+/// Light subpixel hinting is kept as such (upstream renders and reports
+/// it as light hinting).
+#[test]
+fn light_subpixel_hinting_is_kept() {
+    crate::init().unwrap();
+    let f = open_mem(SANS, 16.5).unwrap();
+    f.set_hinting(Hinting::LightSubpixel);
+    assert!(f.hinting() == Hinting::LightSubpixel);
+    f.set_hinting(Hinting::Light);
+    assert!(f.hinting() == Hinting::Light);
     drop(f);
     crate::quit();
 }
