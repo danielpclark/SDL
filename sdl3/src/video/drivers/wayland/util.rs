@@ -108,9 +108,12 @@ impl WaylandVideo {
             while activation_token.is_some()
                 && done.lock().unwrap_or_else(|e| e.into_inner()).is_none()
             {
-                // FIXME (upstream): this spins forever if the connection
-                // fails before the token arrives (kept as upstream).
-                let _ = self.conn.dispatch_queue(&queue);
+                // Note (upstream): this spins forever if the connection
+                // fails before the token arrives; here the failed dispatch
+                // ends the wait, without a token.
+                if self.conn.dispatch_queue(&queue).is_err() {
+                    break;
+                }
             }
             // (handle_xdg_activation_done() destroys the token)
             activation_token.take();
