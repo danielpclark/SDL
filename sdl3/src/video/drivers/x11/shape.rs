@@ -86,7 +86,9 @@ impl X11Video {
                     shape.height() as c_uint,
                 );
                 (xshape.XShapeCombineMask)(display, xwindow, ShapeInput, 0, 0, pixmap, ShapeSet);
-                // FIXME (upstream): the mask pixmap is never freed.
+                // Note (upstream): C never frees the mask pixmap (the
+                // server keeps the shape, not the pixmap); it is freed here.
+                (self.x.XFreePixmap)(display, pixmap);
             }
         } else {
             // SAFETY: the display is open and the window ours; the region is
