@@ -24,10 +24,9 @@ use windows_sys::Win32::UI::HiDpi::{
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     DialogBoxIndirectParamW, EndDialog, GetDlgItem, GetSystemMetrics, PostMessageW,
-    SystemParametersInfoA, SystemParametersInfoW, DLGTEMPLATE, GWLP_USERDATA, IDI_ERROR,
-    IDI_INFORMATION, IDI_WARNING, NONCLIENTMETRICSA, NONCLIENTMETRICSW, SM_CXICON, SM_CYICON,
-    SPI_GETNONCLIENTMETRICS, WM_COMMAND, WM_INITDIALOG, WM_NEXTDLGCTL, WM_SETFOCUS, WS_CAPTION,
-    WS_CHILD, WS_GROUP, WS_TABSTOP, WS_VISIBLE,
+    SystemParametersInfoW, DLGTEMPLATE, GWLP_USERDATA, IDI_ERROR, IDI_INFORMATION, IDI_WARNING,
+    NONCLIENTMETRICSW, SM_CXICON, SM_CYICON, SPI_GETNONCLIENTMETRICS, WM_COMMAND, WM_INITDIALOG,
+    WM_NEXTDLGCTL, WM_SETFOCUS, WS_CAPTION, WS_CHILD, WS_GROUP, WS_TABSTOP, WS_VISIBLE,
 };
 
 use super::window::window_data;
@@ -468,15 +467,16 @@ fn create_dialog_data(w: i32, h: i32, caption: &str) -> Result<DialogData> {
         /*
          * We want to use the system messagebox font.
          */
-        // SAFETY: NONCLIENTMETRICSA is plain data; SystemParametersInfoA fills it.
-        let mut ncm: NONCLIENTMETRICSA = unsafe { std::mem::zeroed() };
-        ncm.cbSize = size_of::<NONCLIENTMETRICSA>() as u32;
+        // (the wide metrics: see the face name below)
+        // SAFETY: NONCLIENTMETRICSW is plain data; SystemParametersInfoW fills it.
+        let mut ncm: NONCLIENTMETRICSW = unsafe { std::mem::zeroed() };
+        ncm.cbSize = size_of::<NONCLIENTMETRICSW>() as u32;
         // SAFETY: as above.
         unsafe {
-            SystemParametersInfoA(
+            SystemParametersInfoW(
                 SPI_GETNONCLIENTMETRICS,
                 0,
-                (&mut ncm as *mut NONCLIENTMETRICSA).cast(),
+                (&mut ncm as *mut NONCLIENTMETRICSW).cast(),
                 0,
             )
         };
@@ -509,15 +509,18 @@ fn create_dialog_data(w: i32, h: i32, caption: &str) -> Result<DialogData> {
         add_dialog_data(&mut dialog, &[ncm.lfMessageFont.lfCharSet])?;
 
         // font typeface.
-        // FIXME (upstream): lfFaceName is in the ANSI code page, but is converted as UTF-8.
-        let face: Vec<u8> = ncm
+        // Note (upstream): the metrics are NONCLIENTMETRICSA, whose
+        // lfFaceName is in the ANSI code page, but it's converted as UTF-8,
+        // so a face name that isn't ASCII is garbled. The wide name is
+        // used here.
+        let face: Vec<u16> = ncm
             .lfMessageFont
             .lfFaceName
             .iter()
-            .map(|&c| c as u8)
+            .copied()
             .take_while(|&c| c != 0)
             .collect();
-        add_dialog_string(&mut dialog, Some(&String::from_utf8_lossy(&face)))?;
+        add_dialog_string(&mut dialog, Some(&String::from_utf16_lossy(&face)))?;
     }
 
     Ok(dialog)
@@ -1025,5 +1028,51 @@ mod tests {
             assert_eq!(dialog.data.len(), aligned, "from {used} bytes");
             assert!(dialog.data[used..].iter().all(|&b| b == 0));
         }
+    }
+
+    #[test]
+    fn dialog_font_face_name_keeps_its_characters() {
+        use windows_sys::Win32::UI::WindowsAndMessaging::SPI_SETNONCLIENTMETRICS;
+        let _l = crate::test_support::test_lock();
+        // (the test changes the system's message font for a moment, which
+        // is only done in a Wine prefix)
+        if !crate::core::windows::is_wine() {
+            println!("note: the message font is only changed under Wine");
+            return;
+        }
+        let size = size_of::<NONCLIENTMETRICSW>() as u32;
+        // SAFETY: NONCLIENTMETRICSW is plain data, filled in.
+        let old = unsafe {
+            let mut ncm: NONCLIENTMETRICSW = std::mem::zeroed();
+            ncm.cbSize = size;
+            let p = (&mut ncm as *mut NONCLIENTMETRICSW).cast();
+            assert_ne!(
+                SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, size, p, 0),
+                0
+            );
+            ncm
+        };
+
+        // A face name that isn't ASCII.
+        let face = utf8_to_wide("Tahom\u{e4}");
+        let mut ncm = old;
+        ncm.lfMessageFont.lfFaceName = [0; 32];
+        ncm.lfMessageFont.lfFaceName[..face.len()].copy_from_slice(&face);
+        let set = |ncm: &mut NONCLIENTMETRICSW| {
+            let p = (ncm as *mut NONCLIENTMETRICSW).cast();
+            // SAFETY: a filled-in NONCLIENTMETRICSW; not saved (fWinIni 0).
+            unsafe { SystemParametersInfoW(SPI_SETNONCLIENTMETRICS, size, p, 0) }
+        };
+        assert_ne!(set(&mut ncm), 0);
+        // (the dialog units, which WIN_ShowOldMessageBox() measures first)
+        BASE_UNITS_X.store(7, Ordering::Relaxed);
+        BASE_UNITS_Y.store(16, Ordering::Relaxed);
+        let dialog = create_dialog_data(100, 80, "Face name test");
+        let mut old = old;
+        set(&mut old);
+
+        // The template ends with the face name.
+        let expected: Vec<u8> = face.iter().flat_map(|c| c.to_le_bytes()).collect();
+        assert!(dialog.unwrap().data.ends_with(&expected));
     }
 }
