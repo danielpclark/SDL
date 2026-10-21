@@ -550,13 +550,13 @@ fn fnt_face_get_dll_font(face: &mut FntFaceRec, face_instance_index: FtInt) -> F
 
                     let root_dir_offset: FtULong = pe32_section.pointer_to_raw_data;
 
-                    /* FIXME (upstream): the FT_UShort counters wrap around (and  */
-                    /* the loops do not end) with more than 65535 entries whose */
-                    /* reads all succeed                                        */
-                    let n1 = root_dir.number_of_named_entries as u32
-                        + root_dir.number_of_id_entries as u32;
-                    let mut i: FtUShort = 0;
-                    while (i as u32) < n1 {
+                    /* Note (upstream): C counts with FT_UShort counters, which */
+                    /* wrap around (so the loops never end) with more than     */
+                    /* 65535 entries whose reads all succeed                   */
+                    let n1 = root_dir.number_of_named_entries as FtUInt
+                        + root_dir.number_of_id_entries as FtUInt;
+                    let mut i: FtUInt = 0;
+                    while i < n1 {
                         let mut dir_entry1 = match stream
                             .seek(root_dir_offset.wrapping_add(16 + i as FtULong * 8))
                             .and_then(|_| read_winpe_rsrc_dir_entry(stream))
@@ -596,10 +596,10 @@ fn fnt_face_get_dll_font(face: &mut FntFaceRec, face_instance_index: FtInt) -> F
                             }
                         };
 
-                        let n2 = name_dir.number_of_named_entries as u32
-                            + name_dir.number_of_id_entries as u32;
-                        let mut j: FtUShort = 0;
-                        while (j as u32) < n2 {
+                        let n2 = name_dir.number_of_named_entries as FtUInt
+                            + name_dir.number_of_id_entries as FtUInt;
+                        let mut j: FtUInt = 0;
+                        while j < n2 {
                             let mut dir_entry2 = match stream
                                 .seek(name_dir_offset.wrapping_add(16 + j as FtULong * 8))
                                 .and_then(|_| read_winpe_rsrc_dir_entry(stream))
@@ -639,10 +639,10 @@ fn fnt_face_get_dll_font(face: &mut FntFaceRec, face_instance_index: FtInt) -> F
                                 }
                             };
 
-                            let n3 = lang_dir.number_of_named_entries as u32
-                                + lang_dir.number_of_id_entries as u32;
-                            let mut k: FtUShort = 0;
-                            while (k as u32) < n3 {
+                            let n3 = lang_dir.number_of_named_entries as FtUInt
+                                + lang_dir.number_of_id_entries as FtUInt;
+                            let mut k: FtUInt = 0;
+                            while k < n3 {
                                 let dir_entry3 = match stream
                                     .seek(lang_dir_offset.wrapping_add(16 + k as FtULong * 8))
                                     .and_then(|_| read_winpe_rsrc_dir_entry(stream))
@@ -697,11 +697,11 @@ fn fnt_face_get_dll_font(face: &mut FntFaceRec, face_instance_index: FtInt) -> F
 
                                     face.root.num_faces += 1;
                                 }
-                                k = k.wrapping_add(1);
+                                k += 1;
                             }
-                            j = j.wrapping_add(1);
+                            j += 1;
                         }
-                        i = i.wrapping_add(1);
+                        i += 1;
                     }
                 }
 
