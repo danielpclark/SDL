@@ -1167,11 +1167,14 @@ impl X11Video {
 
                             if let Some(choose_fb_config) = glx.f.glXChooseFBConfig {
                                 let mut fbcount: c_int = 0;
-                                // FIXME (upstream): the configs are chosen on
-                                // the default screen, not the window's.
+                                // Note (upstream): C chooses the configs on
+                                // the default screen, not the window's, so
+                                // a window on another screen gets a config
+                                // it can't be made current with. They are
+                                // chosen on the window's screen here.
                                 let mut framebuffer_config = choose_fb_config(
                                     display,
-                                    DefaultScreen(display),
+                                    screen,
                                     glx_attribs.as_ptr(),
                                     &mut fbcount,
                                 );
@@ -1181,7 +1184,7 @@ impl X11Video {
                                         glx_attribs[i] = None as c_int;
                                         framebuffer_config = choose_fb_config(
                                             display,
-                                            DefaultScreen(display),
+                                            screen,
                                             glx_attribs.as_ptr(),
                                             &mut fbcount,
                                         );
