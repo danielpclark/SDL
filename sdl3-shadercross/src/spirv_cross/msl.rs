@@ -18813,9 +18813,12 @@ impl Compiler {
                 }
 
                 self.msl.is_using_builtin_array = true;
-                // FIXME (upstream): orig_id is passed as the member index here.
-                let result = if self.has_member_decoration(type_.self_, orig_id, DecorationBuiltIn)
-                {
+                // Note (upstream): C++ passes orig_id (0, or the ID of the
+                // interface variable the member was flattened from) for the
+                // member index here, so it checks some other member's BuiltIn
+                // decoration (or none), and a builtin member can get its
+                // member name rather than the builtin's.
+                let result = if self.has_member_decoration(type_.self_, index, DecorationBuiltIn) {
                     // avoid '_RESERVED_IDENTIFIER_FIXUP_' in variable name
                     join!(
                         self.msl_type_to_glsl_member(&metallic_type, orig_id, false)?,
