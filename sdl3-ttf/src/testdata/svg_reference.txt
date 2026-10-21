@@ -474,7 +474,7 @@ render hinting normal: 322x32 SDL_PIXELFORMAT_ARGB8888 pitch=1344 hash=9c9dd5306
 render hinting light: 322x32 SDL_PIXELFORMAT_ARGB8888 pitch=1344 hash=60867ad51bc8fbdd blend=1
 render hinting mono: 322x32 SDL_PIXELFORMAT_ARGB8888 pitch=1344 hash=97d45cf80763fa3f blend=1
 render hinting none: 322x32 SDL_PIXELFORMAT_ARGB8888 pitch=1344 hash=69aa416f77482082 blend=1
-render hinting light_subpixel: 322x32 SDL_PIXELFORMAT_ARGB8888 pitch=1344 hash=60867ad51bc8fbdd blend=1
+render hinting light_subpixel: 322x32 SDL_PIXELFORMAT_ARGB8888 pitch=1344 hash=e4e2490741c91a3c blend=1
 render style 1 shaded: 352x32 SDL_PIXELFORMAT_INDEX8 pitch=352 hash=2f8ce8f87a60a17b pal=256:b1257179c18f8b45 blend=1
 render style 1 blended: 352x32 SDL_PIXELFORMAT_ARGB8888 pitch=1456 hash=7695cdf4d182b759 blend=1
 glyph style 1: 14x20 SDL_PIXELFORMAT_ARGB8888 pitch=112 hash=65d3ebe37f9d3dea blend=1
@@ -3074,7 +3074,7 @@ render hinting normal: 137x33 SDL_PIXELFORMAT_ARGB8888 pitch=608 hash=fd3c16f278
 render hinting light: 137x33 SDL_PIXELFORMAT_ARGB8888 pitch=608 hash=d229524a86ad54fb blend=1
 render hinting mono: 137x33 SDL_PIXELFORMAT_ARGB8888 pitch=608 hash=fd3c16f278d3b7eb blend=1
 render hinting none: 137x33 SDL_PIXELFORMAT_ARGB8888 pitch=608 hash=0ce11a466968105f blend=1
-render hinting light_subpixel: 137x33 SDL_PIXELFORMAT_ARGB8888 pitch=608 hash=d229524a86ad54fb blend=1
+render hinting light_subpixel: 138x33 SDL_PIXELFORMAT_ARGB8888 pitch=608 hash=af1b31bf8c9c8d05 blend=1
 render style 1 shaded: 152x33 SDL_PIXELFORMAT_INDEX8 pitch=160 hash=6596e13d90797cf3 pal=256:b1257179c18f8b45 blend=1
 render style 1 blended: 152x33 SDL_PIXELFORMAT_ARGB8888 pitch=656 hash=766cbd9b6d408d36 blend=1
 glyph style 1: 11x23 SDL_PIXELFORMAT_ARGB8888 pitch=96 hash=543f89cb855b0a2c blend=1

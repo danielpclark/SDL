@@ -4122,10 +4122,6 @@ impl Font {
 
     /// Set a font's current hinter setting. Translation of
     /// `TTF_SetFontHinting()`.
-    ///
-    /// FIXME (upstream): the subpixel setting computed for
-    /// [`Hinting::LightSubpixel`] is never stored, so that hinting renders
-    /// as [`Hinting::Light`] (and is reported as such).
     pub fn set_hinting(&self, hinting: Hinting) {
         let this = self.weak();
         let mut fd = self.rc.borrow_mut();
@@ -4152,6 +4148,11 @@ impl Font {
         }
 
         font.ft_load_target = ft_load_target;
+        // Note (upstream): C never stores the subpixel setting, so
+        // TTF_HINTING_LIGHT_SUBPIXEL renders as TTF_HINTING_LIGHT (and is
+        // reported as such); it is stored here (and in the patched C
+        // reference harness).
+        font.render_subpixel = render_subpixel;
 
         /* TTF_USE_HARFBUZZ: update flag for HB */
         hb_ft_font_set_load_flags(&mut font.hb_font, FT_LOAD_DEFAULT | font.ft_load_target);

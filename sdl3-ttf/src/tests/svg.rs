@@ -20,7 +20,8 @@
 //! text objects drawn by the surface text engine; the font truncated and
 //! with flipped bytes; and the glyphs of each of its SVG documents with
 //! bytes of the table's index and of the documents changed, the documents
-//! truncated, and the font truncated in the table.
+//! truncated, and the font truncated in the table. The C is patched as
+//! `testdata/reference.txt`'s is.
 //!
 //! The C program opens each font with a new FreeType library: PlutoSVG's
 //! FreeType hooks cache documents by their address and length, so a font
