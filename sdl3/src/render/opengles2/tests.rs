@@ -1165,6 +1165,9 @@ fn gles2_failed_shader_attempt_is_deleted() {
     FAIL_STEP.set(None);
     let (window, mut r) = made.unwrap();
     r.flush().unwrap();
+    // (destroying the first window unloaded the GL library, so the entry
+    // points are looked up again)
+    let gl = TestGl::load(false);
     assert_eq!(shader_count(&gl), shaders);
     drop(r);
     window.destroy();
