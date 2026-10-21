@@ -776,9 +776,9 @@ fn from_hlsl(
                     );
                 }
                 if options.cull_unused_bindings {
-                    // FIXME (upstream): this sets the debug property, not the
-                    // cull one.
-                    set_property(&spirv_props, PROP_SHADER_DEBUG_ENABLE_BOOLEAN, true);
+                    // Note (upstream): C sets the debug property here, not
+                    // the cull one.
+                    set_property(&spirv_props, PROP_SHADER_CULL_UNUSED_BINDINGS_BOOLEAN, true);
                 }
                 if let Some(msl_version) = options.msl_version {
                     set_property(&spirv_props, PROP_SPIRV_MSL_VERSION_STRING, msl_version);
