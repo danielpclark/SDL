@@ -108,14 +108,14 @@ v5: len=0 bytes=0 calls=1 rc=0 time=0 active=0 cbf29ce484222325 afterend=0 seekt
 v6: len=0 bytes=0 calls=1 rc=0 time=0 active=0 cbf29ce484222325 afterend=0 seektime=0 rc=0 cbf29ce484222325 triple=0 232016122f9ca325 stopped=0
 v7: len=0 bytes=0 calls=1 rc=0 time=0 active=0 cbf29ce484222325 afterend=0 seektime=0 rc=0 cbf29ce484222325 triple=0 c6f36e1898f6c965 stopped=0
 == format1.mid
-v0: len=2010 bytes=354564 calls=348 rc=0 time=2010 active=0 733cac542e9ab7ff afterend=0 seektime=300 rc=1024 21e6fa9a87c14190 triple=3072 7c3272593fecd23a stopped=0
-v1: len=2010 bytes=771840 calls=378 rc=0 time=2010 active=0 2e738fcae11f0d35 afterend=0 seektime=550 rc=2048 fcf60a453ea55a55 triple=6144 270987a42f9629a5 stopped=0
-v2: len=2009 bytes=177280 calls=46 rc=0 time=2009 active=0 d8d6faa529208298 afterend=0 seektime=798 rc=4000 7008ae3f1268e1d2 triple=12000 faac4541674df578 stopped=0
-v3: len=2009 bytes=44320 calls=223 rc=0 time=2009 active=0 97d708f1463c0ad3 afterend=0 seektime=1047 rc=200 682098c317b88cd3 triple=600 94faef2ca249daea stopped=0
-v4: len=2010 bytes=16080 calls=253 rc=0 time=2010 active=0 f32ddbb3af31028f afterend=0 seektime=1300 rc=64 3a389cb15d785cf5 triple=192 15189da182c01402 stopped=0
-v5: len=2010 bytes=128640 calls=195 rc=0 time=2010 active=0 46c2f9f529c0c8be afterend=0 seektime=1550 rc=666 f34bd87c3d7bb4ac triple=1998 6c3d2aae80c0db65 stopped=0
-v6: len=2010 bytes=1543680 calls=378 rc=0 time=2010 active=0 bd06d3c43532b595 afterend=0 seektime=1800 rc=4096 617a0ebb9d0e3681 triple=12288 1044ef5cddb2c4ca stopped=0
-v7: len=2010 bytes=32160 calls=162 rc=0 time=2010 active=0 7b352dfb621699d1 afterend=0 seektime=2010 rc=0 cbf29ce484222325 triple=600 38fabebadee5c8e8 stopped=0
+v0: len=2010 bytes=354564 calls=348 rc=0 time=2010 active=0 69f10d2707e700eb afterend=0 seektime=300 rc=1024 643d84e9a62bb430 triple=3072 0529587c551f9706 stopped=0
+v1: len=2010 bytes=771840 calls=378 rc=0 time=2010 active=0 bd8c6ee0768cfa6e afterend=0 seektime=550 rc=2048 054ccf3930234df5 triple=6144 2fb2b70c9f533c79 stopped=0
+v2: len=2009 bytes=177280 calls=46 rc=0 time=2009 active=0 353a83ff1530eee4 afterend=0 seektime=798 rc=4000 7008ae3f1268e1d2 triple=12000 17bc23243fe37e59 stopped=0
+v3: len=2009 bytes=44320 calls=223 rc=0 time=2009 active=0 7fad5df1ca3a5650 afterend=0 seektime=1047 rc=200 682098c317b88cd3 triple=600 c7b38db98b6d417a stopped=0
+v4: len=2010 bytes=16080 calls=253 rc=0 time=2010 active=0 a1f87c126a2c9667 afterend=0 seektime=1300 rc=64 3a389cb15d785cf5 triple=192 9209fb792ecfe37a stopped=0
+v5: len=2010 bytes=128640 calls=195 rc=0 time=2010 active=0 91dea010102491be afterend=0 seektime=1550 rc=666 f34bd87c3d7bb4ac triple=1998 f1752bc03fa3a56a stopped=0
+v6: len=2010 bytes=1543680 calls=378 rc=0 time=2010 active=0 5fc5d645f57a4e86 afterend=0 seektime=1800 rc=4096 617a0ebb9d0e3681 triple=12288 fe43de106bd05af9 stopped=0
+v7: len=2010 bytes=32160 calls=162 rc=0 time=2010 active=0 91f4cf4beaf89cbd afterend=0 seektime=2010 rc=0 cbf29ce484222325 triple=600 e21a3967d26e10a5 stopped=0
 trunc 0: load failed
 trunc 3: load failed
 trunc 4: load failed
@@ -135,15 +135,15 @@ trunc 100: load failed
 trunc 58: load failed
 trunc 116: load failed
 trunc 174: load failed
-trunc 232: len=2010 bytes=354564 calls=348 rc=0 time=2010 active=0 733cac542e9ab7ff
+trunc 232: len=2010 bytes=354564 calls=348 rc=0 time=2010 active=0 69f10d2707e700eb
 corrupt 0: load failed
 corrupt 1: load failed
 corrupt 2: load failed
 corrupt 3: load failed
-corrupt 4: len=96217 bytes=1921024 calls=938 rc=2048 time=5002 active=1 8eda3f4b0a861dd0
-corrupt 5: len=59145 bytes=1921024 calls=938 rc=2048 time=5002 active=1 2f7f089fbe72710a
+corrupt 4: len=96217 bytes=1921024 calls=938 rc=2048 time=5002 active=1 021085d6c20c081b
+corrupt 5: len=59145 bytes=1921024 calls=938 rc=2048 time=5002 active=1 896675d2c06b45f5
 corrupt 6: load failed
-corrupt 7: len=3649950 bytes=1921024 calls=938 rc=2048 time=5002 active=1 35bec4994c96f41f
+corrupt 7: len=3649950 bytes=1921024 calls=938 rc=2048 time=5002 active=1 1f909a3a62561539
 == format2.mid
 v0: len=2000 bytes=352800 calls=346 rc=0 time=2000 active=0 e58bada3f1a32fde afterend=0 seektime=300 rc=1024 fa95a27970f26558 triple=3072 bec084b9786c0ec0 stopped=0
 v1: len=2000 bytes=768000 calls=376 rc=0 time=2000 active=0 6d23e3aba712f2ec afterend=0 seektime=550 rc=2048 efad3401f9bc5a7f triple=6144 014ec1452be5274d stopped=0
@@ -219,14 +219,14 @@ v5: len=624 bytes=39998 calls=62 rc=0 time=624 active=0 ed11fc532d644fe1 afteren
 v6: len=625 bytes=480000 calls=119 rc=0 time=625 active=0 b9650a115f54eeb7 afterend=0 seektime=625 rc=0 cbf29ce484222325 triple=12288 b9d4f390e907c97c stopped=0
 v7: len=624 bytes=9996 calls=51 rc=0 time=624 active=0 f2576597d89ccdfa afterend=0 seektime=624 rc=0 cbf29ce484222325 triple=600 32aa7491ffe77499 stopped=0
 == sustained.mid
-v0: len=4250 bytes=749700 calls=734 rc=0 time=4250 active=0 b71f471a22e54d53 afterend=0 seektime=300 rc=1024 c1bbc9008781fe8c triple=3072 b8c098eb9a33b618 stopped=0
-v1: len=4250 bytes=1632000 calls=798 rc=0 time=4250 active=0 078a28c3baf9157f afterend=0 seektime=550 rc=2048 0715f4f972c229ed triple=6144 e9d7b29bc5231992 stopped=0
-v2: len=4249 bytes=374848 calls=95 rc=0 time=4249 active=0 b3d21736afdf1ba6 afterend=0 seektime=798 rc=4000 9dca01a8b5db2b66 triple=12000 ea19e329ffde64ca stopped=0
-v3: len=4249 bytes=93712 calls=470 rc=0 time=4249 active=0 4f05150c90710495 afterend=0 seektime=1047 rc=200 27cd979df38a84e5 triple=600 14c487fe427a2274 stopped=0
-v4: len=4249 bytes=33999 calls=533 rc=0 time=4249 active=0 1c6b15daee5660d9 afterend=0 seektime=1300 rc=64 c86ec345c0ee8125 triple=192 9f2af0d2ed31bc0c stopped=0
-v5: len=4249 bytes=271998 calls=410 rc=0 time=4249 active=0 c7617aa839bf280b afterend=0 seektime=1550 rc=666 f9854f07771997d5 triple=1998 fbebf9ff332e9101 stopped=0
-v6: len=4250 bytes=1921024 calls=469 rc=4096 time=2501 active=1 15192d4abc4625d1 afterend=4096 seektime=1800 rc=4096 332fc06af0b9a325 triple=12288 8ec1a70c0bf218b1 stopped=0
-v7: len=4249 bytes=67996 calls=341 rc=0 time=4249 active=0 2ef7440a39f2b300 afterend=0 seektime=2050 rc=200 74b4429a2fdd70e5 triple=600 f745ec7c0581a677 stopped=0
+v0: len=4250 bytes=749700 calls=734 rc=0 time=4250 active=0 ded240de22c7f62e afterend=0 seektime=300 rc=1024 c1bbc9008781fe8c triple=3072 0ae3981ff9683e54 stopped=0
+v1: len=4250 bytes=1632000 calls=798 rc=0 time=4250 active=0 7b6ab79ce865a2a5 afterend=0 seektime=550 rc=2048 0715f4f972c229ed triple=6144 ede6b97c2ed5039e stopped=0
+v2: len=4249 bytes=374848 calls=95 rc=0 time=4249 active=0 8499c94135b1b4c0 afterend=0 seektime=798 rc=4000 9dca01a8b5db2b66 triple=12000 c5fcc327623b18a1 stopped=0
+v3: len=4249 bytes=93712 calls=470 rc=0 time=4249 active=0 f7a4c7698a7d9433 afterend=0 seektime=1047 rc=200 27cd979df38a84e5 triple=600 0f6de0650f205321 stopped=0
+v4: len=4249 bytes=33999 calls=533 rc=0 time=4249 active=0 6f5b90131fa68f6c afterend=0 seektime=1300 rc=64 c86ec345c0ee8125 triple=192 1c23ed093867c1fd stopped=0
+v5: len=4249 bytes=271998 calls=410 rc=0 time=4249 active=0 63cb3362a5c5a2b0 afterend=0 seektime=1550 rc=666 f9854f07771997d5 triple=1998 89948b109a1d6e34 stopped=0
+v6: len=4250 bytes=1921024 calls=469 rc=4096 time=2501 active=1 10a2f10339c1e413 afterend=4096 seektime=1800 rc=4096 332fc06af0b9a325 triple=12288 52d05f999d1e6827 stopped=0
+v7: len=4249 bytes=67996 calls=341 rc=0 time=4249 active=0 8211e5db3380b45e afterend=0 seektime=2050 rc=200 74b4429a2fdd70e5 triple=600 499524f15588a442 stopped=0
 == track_len_long.mid
 v0: len=500 bytes=88200 calls=88 rc=0 time=500 active=0 f8603aa6c6d1e271 afterend=0 seektime=300 rc=1024 4fd4ca6abf7d94cf triple=3072 bec084b9786c0ec0 stopped=0
 v1: len=500 bytes=192000 calls=95 rc=0 time=500 active=0 dc8776c51b89acb4 afterend=0 seektime=500 rc=0 cbf29ce484222325 triple=6144 014ec1452be5274d stopped=0
