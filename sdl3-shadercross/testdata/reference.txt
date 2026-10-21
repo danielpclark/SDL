@@ -9922,3 +9922,268 @@ void main()
 {
     comp_main();
 }
+=== vs_asm_member_location reflect
+samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
+input in_position location=0 type=float32 size=4
+output VOut location=0 type=unknown size=1
+=== vs_asm_member_location glsl 450 0 0
+#version 450
+
+out VOut
+{
+    vec4 a;
+    layout(location = 5) vec4 b;
+    vec4 c;
+} vout;
+
+layout(location = 0) in vec4 in_position;
+
+void main()
+{
+    vout.a = in_position;
+    vout.b = in_position;
+    vout.c = in_position;
+}
+
+=== vs_asm_member_location glsl 310 1 0
+#version 310 es
+#extension GL_EXT_shader_io_blocks : require
+
+out VOut
+{
+    vec4 a;
+    layout(location = 5) vec4 b;
+    vec4 c;
+} vout;
+
+layout(location = 0) in vec4 in_position;
+
+void main()
+{
+    vout.a = in_position;
+    vout.b = in_position;
+    vout.c = in_position;
+}
+
+=== vs_asm_member_location glsl 450 0 1
+#version 450
+
+out VOut
+{
+    vec4 a;
+    layout(location = 5) vec4 b;
+    vec4 c;
+} vout;
+
+layout(location = 0) in vec4 in_position;
+
+void main()
+{
+    vout.a = in_position;
+    vout.b = in_position;
+    vout.c = in_position;
+}
+
+=== vs_asm_member_location msl vertex 0 - 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct VOut
+{
+    float4 a;
+    float4 b;
+    float4 c;
+};
+
+struct main0_out
+{
+    float4 vout_a [[user(locn0)]];
+    float4 vout_b [[user(locn1)]];
+    float4 vout_c [[user(locn2)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float4 in_position [[attribute(0)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]])
+{
+    main0_out out = {};
+    VOut vout = {};
+    vout.a = in.in_position;
+    vout.b = in.in_position;
+    vout.c = in.in_position;
+    out.vout_a = vout.a;
+    out.vout_b = vout.b;
+    out.vout_c = vout.c;
+    return out;
+}
+
+=== vs_asm_member_location msl vertex 0 2.1.0 0
+entrypoint: main0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct VOut
+{
+    float4 a;
+    float4 b;
+    float4 c;
+};
+
+struct main0_out
+{
+    float4 vout_a [[user(locn0)]];
+    float4 vout_b [[user(locn1)]];
+    float4 vout_c [[user(locn2)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float4 in_position [[attribute(0)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]])
+{
+    main0_out out = {};
+    VOut vout = {};
+    vout.a = in.in_position;
+    vout.b = in.in_position;
+    vout.c = in.in_position;
+    out.vout_a = vout.a;
+    out.vout_b = vout.b;
+    out.vout_c = vout.c;
+    return out;
+}
+
+=== vs_asm_member_location hlsl vertex 60 - 0
+entrypoint: main
+struct VOut
+{
+    float4 a;
+    float4 b;
+    float4 c;
+};
+
+static VOut vout;
+static float4 in_position;
+
+struct SPIRV_Cross_Input
+{
+    float4 in_position : TEXCOORD0;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 VOut_a : TEXCOORD0;
+    float4 VOut_b : TEXCOORD5;
+    float4 VOut_c : TEXCOORD6;
+};
+
+void main_inner()
+{
+    vout.a = in_position;
+    vout.b = in_position;
+    vout.c = in_position;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_position = stage_input.in_position;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.VOut_a = vout.a;
+    stage_output.VOut_b = vout.b;
+    stage_output.VOut_c = vout.c;
+    return stage_output;
+}
+=== vs_asm_member_location hlsl vertex 51 - 0
+entrypoint: main
+struct VOut
+{
+    float4 a;
+    float4 b;
+    float4 c;
+};
+
+static VOut vout;
+static float4 in_position;
+
+struct SPIRV_Cross_Input
+{
+    float4 in_position : TEXCOORD0;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 VOut_a : TEXCOORD0;
+    float4 VOut_b : TEXCOORD5;
+    float4 VOut_c : TEXCOORD6;
+};
+
+void main_inner()
+{
+    vout.a = in_position;
+    vout.b = in_position;
+    vout.c = in_position;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_position = stage_input.in_position;
+    main_inner();
+    SPIRV_Cross_Output stage_output;
+    stage_output.VOut_a = vout.a;
+    stage_output.VOut_b = vout.b;
+    stage_output.VOut_c = vout.c;
+    return stage_output;
+}
+=== vs_asm_member_location hlsl vertex 50 - 1
+entrypoint: main
+struct VOut
+{
+    float4 a;
+    float4 b;
+    float4 c;
+};
+
+static VOut vout;
+static float4 in_position;
+
+struct SPIRV_Cross_Input
+{
+    float4 in_position : TEXCOORD0;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 VOut_a : TEXCOORD0;
+    float4 VOut_b : TEXCOORD5;
+    float4 VOut_c : TEXCOORD6;
+};
+
+void vert_main()
+{
+    vout.a = in_position;
+    vout.b = in_position;
+    vout.c = in_position;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    in_position = stage_input.in_position;
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.VOut_a = vout.a;
+    stage_output.VOut_b = vout.b;
+    stage_output.VOut_c = vout.c;
+    return stage_output;
+}
