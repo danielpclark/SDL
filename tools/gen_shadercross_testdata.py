@@ -685,6 +685,63 @@ ASSEMBLED.append(('cs_asm_array_store', compute_header() + [
     ('OpFunctionEnd',),
 ]))
 
+# Buffer-device-address pointers to two-dimensional arrays (float[3][4] and
+# float[3][2]): SPIRV-Cross's GLSL backend named the pointer types after
+# their outer dimension twice (float3_stride_163_stride_4Pointer).
+ASSEMBLED.append(('cs_asm_pointer_arrays', compute_header(PHYSICAL_STORAGE_BUFFER_ADDRESSES) + [
+    ('OpExtension', 'SPV_KHR_physical_storage_buffer'),
+    ('OpMemoryModel', PHYSICAL_STORAGE_BUFFER_64, GLSL450),
+    ('OpEntryPoint', GL_COMPUTE, '%main', 'main'),
+    ('OpExecutionMode', '%main', LOCAL_SIZE, 1, 1, 1),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%Params', 'Params'),
+    ('OpMemberName', '%Params', 0, 'a'), ('OpMemberName', '%Params', 1, 'b'),
+    ('OpName', '%params', 'params'),
+    ('OpDecorate', '%a4', ARRAY_STRIDE, 4),
+    ('OpDecorate', '%a34', ARRAY_STRIDE, 16),
+    ('OpDecorate', '%a2', ARRAY_STRIDE, 4),
+    ('OpDecorate', '%a32', ARRAY_STRIDE, 8),
+    ('OpMemberDecorate', '%Params', 0, OFFSET, 0),
+    ('OpMemberDecorate', '%Params', 1, OFFSET, 8),
+    ('OpDecorate', '%Params', BLOCK),
+    ('OpDecorate', '%params', DESCRIPTOR_SET, 2), ('OpDecorate', '%params', BINDING, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeInt', '%uint', 32, 0),
+    ('OpConstant', '%uint', '%c2', 2),
+    ('OpConstant', '%uint', '%c3', 3),
+    ('OpConstant', '%uint', '%c4', 4),
+    ('OpTypeArray', '%a4', '%float', '%c4'),
+    ('OpTypeArray', '%a34', '%a4', '%c3'),
+    ('OpTypeArray', '%a2', '%float', '%c2'),
+    ('OpTypeArray', '%a32', '%a2', '%c3'),
+    ('OpTypePointer', '%ptr_a', PHYSICAL_STORAGE_BUFFER, '%a34'),
+    ('OpTypePointer', '%ptr_b', PHYSICAL_STORAGE_BUFFER, '%a32'),
+    ('OpTypeStruct', '%Params', '%ptr_a', '%ptr_b'),
+    ('OpTypePointer', '%ptr_params', UNIFORM, '%Params'),
+    ('OpVariable', '%ptr_params', '%params', UNIFORM),
+    ('OpTypeInt', '%int', 32, 1),
+    ('OpConstant', '%int', '%i0', 0),
+    ('OpConstant', '%int', '%i1', 1),
+    ('OpConstant', '%int', '%i2', 2),
+    ('OpTypePointer', '%ptr_u_a', UNIFORM, '%ptr_a'),
+    ('OpTypePointer', '%ptr_u_b', UNIFORM, '%ptr_b'),
+    ('OpTypePointer', '%ptr_float', PHYSICAL_STORAGE_BUFFER, '%float'),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpAccessChain', '%ptr_u_a', '%pa', '%params', '%i0'),
+    ('OpLoad', '%ptr_a', '%a', '%pa'),
+    ('OpAccessChain', '%ptr_u_b', '%pb', '%params', '%i1'),
+    ('OpLoad', '%ptr_b', '%b', '%pb'),
+    ('OpAccessChain', '%ptr_float', '%ea', '%a', '%i1', '%i2'),
+    ('OpLoad', '%float', '%v', '%ea', ALIGNED, 4),
+    ('OpAccessChain', '%ptr_float', '%eb', '%b', '%i1', '%i1'),
+    ('OpStore', '%eb', '%v', ALIGNED, 4),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
 
 def main():
     assembled_only = sys.argv[1:] == ['--assembled']

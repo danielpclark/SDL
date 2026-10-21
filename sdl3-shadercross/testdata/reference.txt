@@ -9563,6 +9563,165 @@ void main()
 {
     comp_main();
 }
+=== cs_asm_pointer_arrays reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=0 uniform_buffers=1 threadcount=1,1,1
+=== cs_asm_pointer_arrays glsl 450 0 0
+ERROR: GL_EXT_buffer_reference is only supported in Vulkan GLSL.
+=== cs_asm_pointer_arrays glsl 310 1 0
+ERROR: GL_EXT_buffer_reference is only supported in Vulkan GLSL.
+=== cs_asm_pointer_arrays glsl 450 0 1
+#version 450
+#extension GL_EXT_buffer_reference2 : require
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(buffer_reference) buffer float3_stride_164_stride_4Pointer;
+layout(buffer_reference) buffer float3_stride_82_stride_4Pointer;
+
+layout(std430, buffer_reference, buffer_reference_align = 4) buffer float3_stride_164_stride_4Pointer
+{
+    float value[3][4];
+};
+
+layout(std430, buffer_reference, buffer_reference_align = 4) buffer float3_stride_82_stride_4Pointer
+{
+    float value[3][2];
+};
+
+layout(set = 2, binding = 0, std140) uniform Params
+{
+    float3_stride_164_stride_4Pointer a;
+    float3_stride_82_stride_4Pointer b;
+} params;
+
+void main()
+{
+    params.b.value[1][1] = params.a.value[1][2];
+}
+
+=== cs_asm_pointer_arrays msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct Params
+{
+    device spvUnsafeArray<spvUnsafeArray<float, 4>, 3>* a;
+    device spvUnsafeArray<spvUnsafeArray<float, 2>, 3>* b;
+};
+
+kernel void main0(constant Params& params [[buffer(0)]])
+{
+    (*params.b)[1][1] = (*params.a)[1][2];
+}
+
+=== cs_asm_pointer_arrays msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct Params
+{
+    device spvUnsafeArray<spvUnsafeArray<float, 4>, 3>* a;
+    device spvUnsafeArray<spvUnsafeArray<float, 2>, 3>* b;
+};
+
+kernel void main0(constant Params& params [[buffer(0)]])
+{
+    (*params.b)[1][1] = (*params.a)[1][2];
+}
+
+=== cs_asm_pointer_arrays hlsl compute 60 - 0
+ERROR: spvc_compiler_compile failed: Only Logical addressing model can be used with HLSL.
+=== cs_asm_pointer_arrays hlsl compute 51 - 0
+ERROR: spvc_compiler_compile failed: Only Logical addressing model can be used with HLSL.
+=== cs_asm_pointer_arrays hlsl compute 50 - 1
+ERROR: spvc_compiler_compile failed: Only Logical addressing model can be used with HLSL.
 === cs_asm_void_undef reflect
 samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=1,1,1
 === cs_asm_void_undef glsl 450 0 0
