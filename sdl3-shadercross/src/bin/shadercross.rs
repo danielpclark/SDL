@@ -558,9 +558,9 @@ fn from_spirv(
     let props = Properties::new();
     if options.enable_debug {
         set_property(&props, PROP_SHADER_DEBUG_ENABLE_BOOLEAN, true);
-        // FIXME (upstream): the debug name is set as a boolean property (to
-        // true), not as the file name.
-        set_property(&props, PROP_SHADER_DEBUG_NAME_STRING, true);
+        // Note (upstream): C sets the debug name as a boolean property (to
+        // true, so that it reads as "true"), not as the file name.
+        set_property(&props, PROP_SHADER_DEBUG_NAME_STRING, options.filename);
     }
     if options.cull_unused_bindings {
         set_property(&props, PROP_SHADER_CULL_UNUSED_BINDINGS_BOOLEAN, true);
