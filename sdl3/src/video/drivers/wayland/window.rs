@@ -1764,14 +1764,16 @@ impl WaylandVideo {
             return;
         };
 
-        // FIXME (upstream): this loops forever if the connection fails before
-        // the sync points are reached (kept as upstream).
+        // Note (upstream): this loops forever if the connection fails before
+        // the sync points are reached; here the failed roundtrip ends it.
         while self.with_data(|d| {
             d.window(window)
                 .map_or(0, |w| w.pending_state_deadline_count)
         }) > 0
         {
-            let _ = self.conn.roundtrip();
+            if self.conn.roundtrip().is_err() {
+                break;
+            }
         }
 
         let _ = with_window(window, |w| {
@@ -3518,11 +3520,13 @@ impl WaylandVideo {
         }
 
         // Always roundtrip to ensure there are no pending buffer attachments.
-        // FIXME (upstream): this loops forever if the connection fails while
-        // a show/hide sync point is pending (kept as upstream).
+        // Note (upstream): this loops forever if the connection fails while
+        // a show/hide sync point is pending; here the failed roundtrip ends
+        // it.
         loop {
-            let _ = self.conn.roundtrip();
-            if !self.with_data(|d| d.window(window).is_some_and(|w| w.show_hide_sync_required)) {
+            if self.conn.roundtrip().is_err()
+                || !self.with_data(|d| d.window(window).is_some_and(|w| w.show_hide_sync_required))
+            {
                 break;
             }
         }
@@ -5657,10 +5661,13 @@ impl WaylandVideo {
 
     /// Translation of `Wayland_SyncWindow()`.
     pub(crate) fn wayland_sync_window(&self, window: WindowID) -> Result<()> {
-        // FIXME (upstream): this loops forever if the connection fails before
-        // the sync points are reached (kept as upstream).
+        // Note (upstream): this loops forever if the connection fails before
+        // the sync points are reached; here the failed roundtrip ends it, and
+        // the sync fails.
         loop {
-            let _ = self.conn.roundtrip();
+            if self.conn.roundtrip().is_err() {
+                return Err(Error::new("Wayland display connection closed"));
+            }
             if self.with_data(|d| {
                 d.window(window)
                     .map_or(0, |w| w.pending_state_deadline_count)

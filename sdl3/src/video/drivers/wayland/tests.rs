@@ -1066,6 +1066,110 @@ fn wayland_window_lifecycle() {
     pump_for(50);
 }
 
+/// Run `f`, aborting the tests if it doesn't return within ten seconds
+/// (a wait on the compositor that never ends).
+fn returning<R>(what: &'static str, f: impl FnOnce() -> R) -> R {
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    let watchdog = std::thread::spawn(move || {
+        if rx.recv_timeout(Duration::from_secs(10))
+            == Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+        {
+            eprintln!("{what} never returned");
+            std::process::abort();
+        }
+    });
+    let r = f();
+    drop(tx);
+    watchdog.join().unwrap();
+    r
+}
+
+/// A shown window on a compositor that is then killed, so the driver's
+/// connection fails. `None` (skipped) without a compositor.
+fn window_on_a_dead_connection() -> Option<(Compositor, Video, SdlWindow)> {
+    let mut compositor = Compositor::start(false)?;
+    let video = Video::init();
+    let w = SdlWindow::create(
+        "Wayland test",
+        160,
+        120,
+        WindowFlags::HIDDEN | WindowFlags::RESIZABLE,
+    )
+    .unwrap();
+    let id = w.id();
+    w.show().unwrap();
+    assert!(
+        wait_presenting(&w, |e| window_event(e, id, EventType::WINDOW_SHOWN)).is_some()
+            || !w.flags().unwrap().contains(WindowFlags::HIDDEN)
+    );
+    pump_presenting(&w, 100);
+    let _ = compositor.child.kill();
+    let _ = compositor.child.wait();
+    Some((compositor, video, w))
+}
+
+#[test]
+fn wayland_sync_ends_when_the_connection_fails() {
+    let _l = crate::test_support::test_lock();
+    let Some((_compositor, _video, w)) = window_on_a_dead_connection() else {
+        return;
+    };
+    // A state change whose sync point never comes.
+    w.maximize().unwrap();
+    assert!(returning("SDL_SyncWindow()", || w.sync()).is_err());
+    w.destroy();
+}
+
+#[test]
+fn wayland_fullscreen_ends_its_wait_when_the_connection_fails() {
+    let _l = crate::test_support::test_lock();
+    let Some((_compositor, _video, w)) = window_on_a_dead_connection() else {
+        return;
+    };
+    // Going fullscreen first waits for the pending state (FlushPendingEvents()).
+    w.maximize().unwrap();
+    returning("SDL_SetWindowFullscreen()", || {
+        let _ = w.set_fullscreen(true);
+    });
+    w.destroy();
+}
+
+#[test]
+fn wayland_show_ends_its_wait_when_the_connection_fails() {
+    let _l = crate::test_support::test_lock();
+    let Some((_compositor, _video, w)) = window_on_a_dead_connection() else {
+        return;
+    };
+    // Hiding leaves a show/hide sync point that showing waits for.
+    w.hide().unwrap();
+    returning("SDL_ShowWindow()", || {
+        let _ = w.show();
+    });
+    w.destroy();
+}
+
+#[test]
+fn wayland_activation_token_wait_ends_when_the_connection_fails() {
+    let _l = crate::test_support::test_lock();
+    let Some((_compositor, _video, w)) = window_on_a_dead_connection() else {
+        return;
+    };
+    let video = super::util::current_device().unwrap();
+    if !video.with_data(|d| d.g.activation_manager.is_some()) {
+        crate::test_support::skip("wayland", "the compositor has no xdg_activation_v1");
+        w.destroy();
+        return;
+    }
+    let old = std::env::var_os("XDG_ACTIVATION_TOKEN");
+    crate::stdlib::unsetenv_unsafe("XDG_ACTIVATION_TOKEN").unwrap();
+    let (token, _) = returning("GetActivationToken()", super::util::get_activation_token);
+    assert_eq!(token, None);
+    if let Some(old) = old {
+        crate::stdlib::setenv_unsafe("XDG_ACTIVATION_TOKEN", &old.to_string_lossy(), true).unwrap();
+    }
+    w.destroy();
+}
+
 #[test]
 fn wayland_framebuffer() {
     let _l = crate::test_support::test_lock();
