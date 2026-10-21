@@ -12,13 +12,19 @@
 // (upstream's SDL_FSOPS_POSIX and SDL_FSOPS_WINDOWS), and the Unix paths
 // except on Windows and Apple platforms, which have their own
 // (SDL_FILESYSTEM_UNIX, SDL_FILESYSTEM_WINDOWS and SDL_FILESYSTEM_COCOA).
+// Emscripten has the dummy paths (SDL_FILESYSTEM_DUMMY) until the
+// Emscripten port's PR 5 translates SDL_FILESYSTEM_EMSCRIPTEN.
 #[cfg(target_vendor = "apple")]
 mod cocoa;
+#[cfg(target_os = "emscripten")]
+mod dummy;
 #[cfg(not(windows))]
 mod fsops;
 #[cfg(target_vendor = "apple")]
 use cocoa as sys;
-#[cfg(not(any(windows, target_vendor = "apple")))]
+#[cfg(target_os = "emscripten")]
+use dummy as sys;
+#[cfg(not(any(windows, target_vendor = "apple", target_os = "emscripten")))]
 mod sys;
 #[cfg(windows)]
 mod windows;

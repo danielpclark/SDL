@@ -13,9 +13,10 @@
 //! upstream's non-blocking pipes).
 //!
 //! On Windows the backend is upstream's `CreateProcessW()` one
-//! (`SDL_windowsprocess.c`); everywhere else it is built on
-//! `std::process`, in place of upstream's `posix_spawn()` backend, which
-//! makes it available on every platform with a Rust standard library.
+//! (`SDL_windowsprocess.c`); on Emscripten, which has no processes, it is
+//! the dummy one; everywhere else it is built on `std::process`, in place
+//! of upstream's `posix_spawn()` backend, which makes it available on every
+//! platform with a Rust standard library.
 //!
 //! [`IoStatus::NotReady`]: crate::io::IoStatus::NotReady
 
@@ -26,9 +27,13 @@ use crate::io::IoStream;
 use crate::properties::Properties;
 use crate::stdlib::Environment;
 
-#[cfg(not(windows))]
+#[cfg(target_os = "emscripten")]
+mod dummy;
+#[cfg(target_os = "emscripten")]
+use dummy as sys;
+#[cfg(not(any(windows, target_os = "emscripten")))]
 mod posix;
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "emscripten")))]
 use posix as sys;
 #[cfg(windows)]
 mod windows;
@@ -74,6 +79,7 @@ pub enum ProcessIo {
 }
 
 impl ProcessIo {
+    #[cfg_attr(target_os = "emscripten", allow(dead_code))] // (by the backends)
     fn is_inherited(&self) -> bool {
         matches!(self, ProcessIo::Inherited)
     }
@@ -224,6 +230,7 @@ pub struct Process {
     stdout: Option<IoStream<'static>>,
     stderr: Option<IoStream<'static>>,
     // (last, so that it goes after the streams)
+    #[cfg_attr(target_os = "emscripten", allow(dead_code))] // (the dummy backend has none)
     internal: Option<sys::ProcessData>,
 }
 
