@@ -36,6 +36,12 @@ pub use tls::{cleanup_tls, TlsId};
 /// Translation of `SDL_ThreadID`.
 pub type ThreadID = u64;
 
+/// `SDL_THREADS_DISABLED`: set where upstream's CMake builds without threads
+/// (Emscripten, whose pthreads are off by default) and takes the generic
+/// backends' threadless paths: creating a thread fails, mutexes don't lock,
+/// semaphores and conditions don't wait, and TLS is the one thread's.
+pub(crate) const THREADS_DISABLED: bool = cfg!(target_os = "emscripten");
+
 static NEXT_THREAD_ID: AtomicU64 = AtomicU64::new(1);
 
 thread_local! {
@@ -54,6 +60,10 @@ fn adopt_thread_id(id: ThreadID) {
 }
 
 /// The thread identifier for the current thread. Translation of `SDL_GetCurrentThreadID()`.
+///
+/// Note (upstream): without threads, the generic `SDL_GetCurrentThreadID()`
+/// returns 0, which here means "no thread yet"; the one thread keeps the id
+/// it is given here.
 pub fn current_thread_id() -> ThreadID {
     THIS_THREAD_ID.with(|c| {
         if c.get() == 0 {
@@ -65,6 +75,10 @@ pub fn current_thread_id() -> ThreadID {
 
 /// A counting semaphore. Translation of the generic `SDL_Semaphore`
 /// (`SDL_CreateSemaphore()` is [`Semaphore::new`]; dropping destroys it).
+///
+/// Where SDL is built without threads (Emscripten), the semaphore does what
+/// upstream's `SDL_THREADS_DISABLED` functions do: waits succeed at once,
+/// signals do nothing, and the value is 0.
 pub struct Semaphore {
     count: std::sync::Mutex<u32>,
     cond: Condvar,
@@ -80,6 +94,10 @@ impl std::fmt::Debug for Semaphore {
 
 impl Semaphore {
     /// Create a semaphore with an initial value. Translation of `SDL_CreateSemaphore()`.
+    ///
+    /// Note (upstream): without threads, `SDL_CreateSemaphore()` fails ("SDL
+    /// not built with thread support") and every semaphore function is a
+    /// no-op; here creation can't fail, so the semaphore is the no-op one.
     pub const fn new(initial_value: u32) -> Self {
         Semaphore {
             count: std::sync::Mutex::new(initial_value),
@@ -89,6 +107,9 @@ impl Semaphore {
 
     /// Wait until the value is non-zero, then decrement it. Translation of `SDL_WaitSemaphore()`.
     pub fn wait(&self) {
+        if THREADS_DISABLED {
+            return;
+        }
         let mut count = self.count.lock().unwrap_or_else(|e| e.into_inner());
         while *count == 0 {
             count = self.cond.wait(count).unwrap_or_else(|e| e.into_inner());
@@ -98,6 +119,9 @@ impl Semaphore {
 
     /// Decrement the value if it is non-zero. Translation of `SDL_TryWaitSemaphore()`.
     pub fn try_wait(&self) -> bool {
+        if THREADS_DISABLED {
+            return true;
+        }
         let mut count = self.count.lock().unwrap_or_else(|e| e.into_inner());
         if *count > 0 {
             *count -= 1;
@@ -110,6 +134,9 @@ impl Semaphore {
     /// Wait up to `timeout` (`None`: forever) for a non-zero value, then
     /// decrement it; `false` on timeout. Translation of `SDL_WaitSemaphoreTimeoutNS()`.
     pub fn wait_timeout(&self, timeout: Option<Duration>) -> bool {
+        if THREADS_DISABLED {
+            return true;
+        }
         let Some(timeout) = timeout else {
             self.wait();
             return true;
@@ -136,6 +163,9 @@ impl Semaphore {
 
     /// Increment the value, waking one waiter. Translation of `SDL_SignalSemaphore()`.
     pub fn signal(&self) {
+        if THREADS_DISABLED {
+            return;
+        }
         let mut count = self.count.lock().unwrap_or_else(|e| e.into_inner());
         *count += 1;
         self.cond.notify_one();
@@ -143,6 +173,9 @@ impl Semaphore {
 
     /// The current value. Translation of `SDL_GetSemaphoreValue()`.
     pub fn value(&self) -> u32 {
+        if THREADS_DISABLED {
+            return 0;
+        }
         *self.count.lock().unwrap_or_else(|e| e.into_inner())
     }
 }
@@ -173,6 +206,9 @@ impl RawMutex {
 
     /// Translation of `SDL_LockMutex()`.
     pub(crate) fn lock(&self) {
+        if THREADS_DISABLED {
+            return;
+        }
         let this_thread = current_thread_id();
         if self.owner.load(Ordering::Acquire) == this_thread {
             // SAFETY: we own the lock, nobody else touches `recursive`.
@@ -191,6 +227,9 @@ impl RawMutex {
 
     /// Translation of `SDL_UnlockMutex()`.
     pub(crate) fn unlock(&self) {
+        if THREADS_DISABLED {
+            return;
+        }
         // If we don't own the mutex, we can't unlock it
         if current_thread_id() != self.owner.load(Ordering::Acquire) {
             debug_assert!(false, "Tried to unlock a mutex we don't own!");
