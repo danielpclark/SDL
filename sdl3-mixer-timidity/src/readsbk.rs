@@ -576,8 +576,9 @@ fn load_sample_info(size: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32 {
     rc
 }
 
-// FIXME (upstream): a chunk whose size seeks back over itself makes these
-// loops read the same chunks for ever (as upstream's do).
+// Note (upstream): in C, a chunk whose size seeks back over itself makes
+// these loops read the same chunks for ever; here a chunk whose data ends
+// before it starts fails the load.
 fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32 {
     let ioend = io.size().unwrap_or(-1);
     let mut subchunk = Tchunk::default();
@@ -592,6 +593,7 @@ fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32
                 if cid == LIST_ID {
                     break;
                 }
+                let start = io.tell().unwrap_or(-1);
                 match cid {
                     IFIL_ID => {
                         if readw(&mut sf.version, io) < 0 {
@@ -617,6 +619,9 @@ fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32
                         let _ = io.seek(subchunk.size as i64, IoWhence::Cur);
                     }
                 }
+                if io.tell().unwrap_or(-1) < start {
+                    return -1;
+                }
                 readchunk(&mut subchunk, io);
                 if io.tell().unwrap_or(-1) >= ioend {
                     return 0;
@@ -632,6 +637,7 @@ fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32
                 if cid == LIST_ID {
                     break;
                 }
+                let start = io.tell().unwrap_or(-1);
                 match cid {
                     SNAM_ID => {
                         if sf.version > 1 {
@@ -648,6 +654,9 @@ fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32
                     }
                     _ => {}
                 }
+                if io.tell().unwrap_or(-1) < start {
+                    return -1;
+                }
                 readchunk(&mut subchunk, io);
                 if io.tell().unwrap_or(-1) >= ioend {
                     return 0;
@@ -663,6 +672,7 @@ fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32
                 if cid == LIST_ID {
                     break;
                 }
+                let start = io.tell().unwrap_or(-1);
                 match cid {
                     PHDR_ID => {
                         if load_preset_header(subchunk.size, sf, io) < 0 {
@@ -735,6 +745,9 @@ fn process_chunk(id: i32, s: i32, sf: &mut SFInfo, io: &mut IoStream<'_>) -> i32
                         let _ = io.seek(subchunk.size as i64, IoWhence::Cur);
                     }
                 }
+                if io.tell().unwrap_or(-1) < start {
+                    return -1;
+                }
                 readchunk(&mut subchunk, io);
                 if io.tell().unwrap_or(-1) >= ioend {
                     return 0;
@@ -753,3 +766,27 @@ const _UNUSED_IDS: [i32; 13] = [
     UNKN_ID, ISNG_ID, IROM_ID, INAM_ID, IVER_ID, IPRD_ID, ICOP_ID, ICRD_ID, IENG_ID, ISFT_ID,
     ICMT_ID, SFBK_ID, RIFF_ID,
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A SoundFont with an INFO chunk whose size takes it back to its own
+    /// header fails to load (upstream reads it for ever).
+    #[test]
+    fn chunk_seeking_back_over_itself_fails() {
+        let mut info = b"INFOifil\x04\0\0\0\x02\0\x01\0".to_vec();
+        info.extend_from_slice(b"ICMT");
+        info.extend_from_slice(&(-8i32).to_le_bytes());
+        info.extend_from_slice(b"ISFT\0\0\0\0");
+        let mut list = b"LIST".to_vec();
+        list.extend_from_slice(&(info.len() as u32).to_le_bytes());
+        list.extend_from_slice(&info);
+        let mut f = b"RIFF".to_vec();
+        f.extend_from_slice(&(list.len() as u32 + 4).to_le_bytes());
+        f.extend_from_slice(b"sfbk");
+        f.extend_from_slice(&list);
+        let mut sf = SFInfo::new();
+        assert_eq!(load_sbk(&mut IoStream::from_const_mem(&f), &mut sf), -1);
+    }
+}
