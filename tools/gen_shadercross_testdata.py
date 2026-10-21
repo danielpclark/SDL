@@ -32,10 +32,11 @@ The reference outputs in sdl3-shadercross/testdata/reference.txt come
 from SDL_shadercross and its SPIRV-Cross (built from the commits the
 crate translates) run on these files, with SDL_shadercross compiled with
 -ftrivial-auto-var-init=zero: its compute path leaves the MSL indices of
-the resource bindings that don't use them uninitialized, and one of them
-reaches the output (the buffer of an emulated image atomic), so zero
-initialization keeps the reference reproducible (the translation zeroes
-them too).
+the resource bindings that don't use them uninitialized (the translation
+zeroes them too). Both are patched where sdl3-shadercross fixes their
+bugs (the `Note (upstream)` notes that say so): one of those
+uninitialized indices, the buffer of an emulated image atomic, reached
+the output.
 """
 import os
 import subprocess
