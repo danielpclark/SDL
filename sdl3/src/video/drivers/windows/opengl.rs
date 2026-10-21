@@ -812,9 +812,13 @@ impl VideoData {
         let mut pixel_format: c_int = 0;
         let mut matching: u32 = 0;
 
-        // FIXME (upstream): a failed CreateWindow() isn't checked: the
-        // screen's DC (GetDC(NULL)) gets the pixel format then.
+        // Note (upstream): a failed CreateWindow() isn't checked, so the
+        // screen's DC (GetDC(NULL)) would get the pixel format. No pixel
+        // format is chosen then here, as when the context fails.
         let hwnd = create_temp_window();
+        if hwnd.is_null() {
+            return pixel_format;
+        }
         pump_events_for_hwnd(hwnd);
 
         let pfd = setup_pixel_format(&gl_config());
