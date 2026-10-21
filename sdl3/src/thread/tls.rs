@@ -21,6 +21,10 @@ type Slot = Option<Rc<dyn Any>>;
 
 thread_local! {
     /// The current thread's `SDL_TLSData` (`array[i].data`; the destructor is `Drop`).
+    ///
+    /// Without threads (Emscripten), upstream's generic TLS
+    /// (`SDL_Generic_GetTLSData()`) keeps one entry per thread id; with the
+    /// one thread, this is that entry.
     static STORAGE: RefCell<Vec<Slot>> = const { RefCell::new(Vec::new()) };
 }
 

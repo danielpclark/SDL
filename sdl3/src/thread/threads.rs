@@ -6,7 +6,7 @@
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 
-use super::{adopt_thread_id, allocate_thread_id, cleanup_tls, ThreadID};
+use super::{adopt_thread_id, allocate_thread_id, cleanup_tls, ThreadID, THREADS_DISABLED};
 use crate::error::{Error, Result};
 
 /// The SDL thread priority. Translation of `SDL_ThreadPriority`.
@@ -101,6 +101,10 @@ impl ThreadBuilder {
         });
 
         // Create the thread and go!
+        if THREADS_DISABLED {
+            // The generic SDL_SYS_CreateThread()
+            return Err(Error::new("Threads are not supported on this platform"));
+        }
         let mut builder = std::thread::Builder::new();
         if let Some(name) = &shared.name {
             // SDL_SYS_SetupThread(): the OS name (Linux truncates to 15 bytes)
@@ -245,7 +249,7 @@ pub fn set_current_thread_priority(priority: ThreadPriority) -> Result<()> {
     sys_set_thread_priority(priority)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "emscripten")))]
 fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
     use crate::hints;
     // SAFETY: pthread_self() has no preconditions.
@@ -376,6 +380,12 @@ fn sys_set_thread_priority(priority: ThreadPriority) -> Result<()> {
 #[cfg(not(any(unix, windows)))]
 fn sys_set_thread_priority(_priority: ThreadPriority) -> Result<()> {
     Err(Error::unsupported())
+}
+
+/// The generic `SDL_SYS_SetThreadPriority()`, without threads (Emscripten).
+#[cfg(target_os = "emscripten")]
+fn sys_set_thread_priority(_priority: ThreadPriority) -> Result<()> {
+    Ok(())
 }
 
 #[cfg(test)]

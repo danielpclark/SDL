@@ -11,7 +11,7 @@
 use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
-use super::{ReentrantMutexGuard, Semaphore};
+use super::{ReentrantMutexGuard, Semaphore, THREADS_DISABLED};
 
 /// Translation of the counters of `SDL_cond_generic`, guarded by what was
 /// `signal_sem` (a semaphore with initial value 1, used as a lock).
@@ -61,6 +61,9 @@ impl Condition {
     /// Restart one of the threads that are waiting on the condition variable.
     /// Translation of `SDL_SignalCondition()`.
     pub fn signal(&self) {
+        if THREADS_DISABLED {
+            return;
+        }
         /* If there are waiting threads not already signalled, then
           signal the condition and wait for the thread to respond.
         */
@@ -76,6 +79,9 @@ impl Condition {
     /// Restart all threads that are waiting on the condition variable.
     /// Translation of `SDL_BroadcastCondition()`.
     pub fn broadcast(&self) {
+        if THREADS_DISABLED {
+            return;
+        }
         /* If there are waiting threads not already signalled, then
           signal the condition and wait for the thread to respond.
         */
@@ -131,6 +137,10 @@ impl Condition {
         guard: &ReentrantMutexGuard<'_, T>,
         timeout: Option<Duration>,
     ) -> bool {
+        if THREADS_DISABLED {
+            // (without threads, upstream returns at once, the mutex still held)
+            return true;
+        }
         /* Obtain the protection mutex, and increment the number of waiters.
           This allows the signal mechanism to only perform a signal if there
           are waiting threads.
