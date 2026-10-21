@@ -1610,12 +1610,12 @@ voices: Wave 1 Wave 2 Wave 3 Wave 4 Multi 1 Multi 2
 eq: -1.000 60.000 multi=0
 start 0: ok
 info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
-t0 16384: fdc55ba7588b8a65 tell=185 samples=16384 ended=0
-t0 32768: 3dbd124bf2c057c5 tell=371 samples=32768 ended=0
-t0 49152: 4f5cf8c1fbe0447d tell=557 samples=49152 ended=0
-t0 65536: 11ff64effa943c05 tell=743 samples=65536 ended=0
-t0 81920: 327839d1f1a015c5 tell=928 samples=81920 ended=0
-t0 88200: 92ebd0d382459849 tell=1000 samples=88200 ended=0
+t0 16384: aa6f774f089d3e75 tell=185 samples=16384 ended=0
+t0 32768: 8a183163f8937c5d tell=371 samples=32768 ended=0
+t0 49152: bc8c2d00c43b4921 tell=557 samples=49152 ended=0
+t0 65536: 8b971339940808a1 tell=743 samples=65536 ended=0
+t0 81920: d85d8c33508dd7e5 tell=928 samples=81920 ended=0
+t0 88200: 063d029f8a24488d tell=1000 samples=88200 ended=0
 start 1: ok
 info 1: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
 t1 16384: aa6f774f089d3e75 tell=185 samples=16384 ended=0
@@ -1636,20 +1636,20 @@ t2 88200: 114c30ad566b3af9 tell=1000 samples=88200 ended=0
 start 256: Invalid track
 start -1: Invalid track
 start 0: ok
-pre 4096: e4e368faf90d6679 tell=46 samples=4096 ended=0
+pre 4096: aaace4a29f133525 tell=46 samples=4096 ended=0
 seek_samples 30000: ok tell=30000
-s1 4096: 92a1339ab1012aa5 tell=386 samples=34096 ended=0
+s1 4096: a599706680a5fcbd tell=386 samples=34096 ended=0
 seek_samples 10000: ok tell=10000
-s2 4096: 62c3638e52016da9 tell=159 samples=14096 ended=0
+s2 4096: e2b8c677688ace35 tell=159 samples=14096 ended=0
 seek 700: ok tell=700
-s3 2048: a92727d0f3aff775 tell=723 samples=63788 ended=0
+s3 2048: 18c57f0c83586051 tell=723 samples=63788 ended=0
 seek_samples 200000: ok tell=200000 ended=0
-s4 2048: 81775ef1e01b12b5 tell=2290 samples=202048 ended=0
+s4 2048: 4a6c123ebc910ced tell=2290 samples=202048 ended=0
 start 0: ok
-fade: 34816 accce05f46f12381 tell=394
+fade: 34816 25e66fc60e80cda5 tell=394
 after: 28c31cf8df2ec325
 start 0: ok
-nofade 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+nofade 8192: 05cc3cd8624e4195 tell=92 samples=8192 ended=0
 open 32000: tracks=256 type=HES voices=6
 warning: Missing file data
 start 255: ok
@@ -1687,7 +1687,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+q 8192: 05cc3cd8624e4195 tell=92 samples=8192 ended=0
 -- cut 1055
 info: tracks=256 type=HES voices=-1
 info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
@@ -1696,7 +1696,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+q 8192: 05cc3cd8624e4195 tell=92 samples=8192 ended=0
 -- flip 0
 info: tracks=256 type=HES voices=-1
 info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
@@ -1705,7 +1705,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+q 8192: 05cc3cd8624e4195 tell=92 samples=8192 ended=0
 -- flip 1
 info: tracks=256 type=HES voices=-1
 info 0: -1 -1 -1 -1 150000|PC Engine||||||
@@ -1714,7 +1714,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: 1a66578e71b120d5 tell=92 samples=8192 ended=0
+q 8192: 005fd52ad7d9c2d9 tell=92 samples=8192 ended=0
 -- flip 2
 info: tracks=256 type=HES voices=-1
 info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
@@ -1723,7 +1723,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: 05121279984937cd tell=92 samples=8192 ended=0
+q 8192: 05cc3cd8624e4195 tell=92 samples=8192 ended=0
 -- flip 3
 info: tracks=256 type=HES voices=-1
 info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in 0x30 bytes!!!!!!!!!!!!!!!!||gen_gme_testdata.py|||
@@ -1732,7 +1732,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: bc4d52fa8135f7e9 tell=92 samples=8192 ended=0
+q 8192: 05cc3cd8624e4195 tell=92 samples=8192 ended=0
 -- flip 4
 info: tracks=256 type=HES voices=-1
 info 0: -1 -1 -1 -1 150000|PC Engine|Odd HES, its name in !x30 bytes!!>!\xE8!!!!!!!!!!!||gen_gme_testd\x9Cta.py|||
@@ -1741,7 +1741,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: f642edc2b603881d tell=92 samples=8192 ended=0
+q 8192: a8ded36753f85c51 tell=92 samples=8192 ended=0
 warning: Emulation error (illegal instruction)
 -- flip 5
 info: tracks=256 type=HES voices=-1
@@ -1751,7 +1751,7 @@ info 256: err=Invalid track
 open: tracks=256 type=HES voices=6
 warning: Missing file data
 start 0: ok
-q 8192: 900b81c05ad279a9 tell=92 samples=8192 ended=0
+q 8192: 33aef989625b8441 tell=92 samples=8192 ended=0
 == hes_psg.hes
 identify: HES
 info: tracks=256 type=HES voices=-1

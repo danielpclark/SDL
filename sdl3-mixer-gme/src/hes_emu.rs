@@ -610,7 +610,8 @@ impl HesCpuHost for HesEmu {
 
     fn cpu_write(&mut self, addr: HesAddr, data: i32) {
         // check( addr <= 0xFFFF );
-        let out = self.write_pages[(addr >> PAGE_SHIFT) as usize];
+        let page = (addr >> PAGE_SHIFT) as usize;
+        let out = self.write_pages[page];
         let addr = addr & (PAGE_SIZE as u32 - 1);
         if let Some(p) = out {
             let i = p.offset + addr as usize;
@@ -618,10 +619,12 @@ impl HesCpuHost for HesEmu {
                 MEM_RAM => self.cpu.ram[i] = data as u8,
                 _ => self.sgx[i] = data as u8,
             }
-        } else if self.cpu.mmr[(addr >> PAGE_SHIFT) as usize] == 0xFF {
-            // FIXME (upstream): the address is already masked to the page
-            // here, so this checks the first page's mapping (normally the
-            // I/O page) rather than the page written to
+        } else if self.cpu.mmr[page] == 0xFF {
+            // Note (upstream): C++ (here and in CPU_WRITE_FAST()) checks the
+            // mapping of the page of the address it has already masked to
+            // the page, the first page's (normally the I/O page), rather than
+            // the written page's: writes to ROM go to the I/O registers, and
+            // writes to the I/O page mapped elsewhere are lost
             self.cpu_write_(addr, data);
         }
     }

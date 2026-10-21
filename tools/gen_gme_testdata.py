@@ -3288,11 +3288,11 @@ def hes_odd():
     # header warnings (an unknown version, the DATA tag missing, unknown
     # header data, an address past the 1 MB ROM, a size past the file),
     # fields of 0x30 bytes, the instructions that are illegal or not
-    # emulated, writes to ROM pages (which go to the I/O page), the I/O
-    # page mapped elsewhere, code at the end of RAM reading past it, code
-    # running past the end of memory (track 1), interrupts enabled and
-    # disabled by PLP and RTI, a scanline interrupt (a warning), a block
-    # transfer to the PSG, banks with nothing in them
+    # emulated, writes to ROM pages (which libgme sent to the I/O page),
+    # the I/O page mapped elsewhere, code at the end of RAM reading past
+    # it, code running past the end of memory (track 1), interrupts
+    # enabled and disabled by PLP and RTI, a scanline interrupt (a
+    # warning), a block transfer to the PSG, banks with nothing in them
     a = HucAsm(0x7C00)
     a('''
     .org $7CC0
