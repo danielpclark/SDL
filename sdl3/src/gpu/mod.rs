@@ -38,8 +38,9 @@
 //!
 //! The backends are "metal" (on Apple platforms, tried first; see the
 //! `metal` module), "direct3d12" (on Windows, tried first; see the `d3d12`
-//! module) and "vulkan" (see the `vulkan` module). The OpenXR functions
-//! are not translated.
+//! module) and "vulkan" (see the `vulkan` module; not on Emscripten, which
+//! upstream builds without Vulkan, so that there is no backend). The OpenXR
+//! functions are not translated.
 
 #[cfg(windows)]
 pub(crate) mod d3d12;
@@ -48,6 +49,7 @@ pub(crate) mod metal;
 pub(crate) mod sysgpu;
 #[cfg(test)]
 mod tests;
+#[cfg(not(target_os = "emscripten"))]
 pub(crate) mod vulkan;
 
 use std::ptr::NonNull;
@@ -2024,6 +2026,8 @@ static BACKENDS: &[&GpuBootstrap] = &[
     &metal::METAL_DRIVER,
     #[cfg(windows)]
     &d3d12::D3D12_DRIVER,
+    // (Emscripten: none, as upstream builds it without Vulkan)
+    #[cfg(not(target_os = "emscripten"))]
     &vulkan::VULKAN_DRIVER,
 ];
 
@@ -3294,6 +3298,7 @@ impl CommandBuffer {
 
     /// The backend's command buffer, if it is a `T` (for the backends'
     /// `generate_mipmaps` and `blit`).
+    #[cfg_attr(target_os = "emscripten", allow(dead_code))] // (Emscripten has no backend)
     pub(crate) fn backend_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.raw
             .as_deref_mut()
