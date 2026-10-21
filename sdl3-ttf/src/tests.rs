@@ -1732,6 +1732,20 @@ fn pe_fon_with_many_resource_types_ends() {
     assert_eq!(ft_open_error(pe_fon(&rsrc)), FT_ERR_INVALID_FILE_FORMAT);
 }
 
+/// A PE font whose language entry is marked as a directory is a broken
+/// file (upstream checks the name entry's flag again there, and reads a
+/// data entry at the offset, past the end).
+#[test]
+fn pe_fon_language_directory_is_broken() {
+    use crate::freetype::fttypes::FT_ERR_INVALID_FILE_FORMAT;
+
+    /* RT_FONT, font 1, language 0x409: a directory */
+    let mut rsrc = pe_rsrc_dir(0, &[(8, 0x8000_0000 | 24)]);
+    rsrc.extend(pe_rsrc_dir(0, &[(1, 0x8000_0000 | 48)]));
+    rsrc.extend(pe_rsrc_dir(0, &[(0x409, 0x8000_0000 | 72)]));
+    assert_eq!(ft_open_error(pe_fon(&rsrc)), FT_ERR_INVALID_FILE_FORMAT);
+}
+
 /* The GPU text engine, against testdata/gpu_reference.txt (the output of
 a C program built from upstream SDL_ttf and SDL3 with the GPU API,
 which runs the cases below in the same order). */
