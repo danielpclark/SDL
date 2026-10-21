@@ -10,9 +10,9 @@ use std::sync::atomic::{AtomicI32, Ordering};
 
 use windows_sys::Win32::Foundation::{FreeLibrary, HWND, LPARAM, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    CreateCompatibleDC, CreateFontIndirectW, DeleteDC, DrawTextW, GetDC, GetDeviceCaps,
-    GetTextExtentPoint32A, GetTextMetricsW, ReleaseDC, SelectObject, DT_CALCRECT, DT_EDITCONTROL,
-    DT_LEFT, DT_NOPREFIX, LOGPIXELSX, LOGPIXELSY, TEXTMETRICW,
+    CreateCompatibleDC, CreateFontIndirectW, DeleteDC, DeleteObject, DrawTextW, GetDC,
+    GetDeviceCaps, GetTextExtentPoint32A, GetTextMetricsW, ReleaseDC, SelectObject, DT_CALCRECT,
+    DT_EDITCONTROL, DT_LEFT, DT_NOPREFIX, LOGPIXELSX, LOGPIXELSY, TEXTMETRICW,
 };
 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress, LoadLibraryW};
 use windows_sys::Win32::System::WindowsProgramming::MulDiv;
@@ -653,7 +653,8 @@ fn show_old_message_box(messageboxdata: &MessageBoxData) -> Result<i32> {
             let lf = ncm.lfMessageFont;
             CreateFontIndirectW(&lf)
         };
-        // FIXME (upstream): DialogFont is never deleted.
+        // Note (upstream): DialogFont is never deleted, so every message
+        // box leaks a GDI font; it's deleted with the DC here.
 
         // Select the font in to our DC
         SelectObject(font_dc, dialog_font);
@@ -695,6 +696,7 @@ fn show_old_message_box(messageboxdata: &MessageBoxData) -> Result<i32> {
 
         // Done with the DC, and the string
         DeleteDC(font_dc);
+        DeleteObject(dialog_font);
     }
 
     // Add margins and some padding for hangs, etc.
