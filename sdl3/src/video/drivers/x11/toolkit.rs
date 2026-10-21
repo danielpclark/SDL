@@ -2825,15 +2825,17 @@ impl ToolkitWindow {
             }
             self.dyn_controls.clear();
 
-            if self.pixmap {
+            // (a window whose X11Toolkit_CreateWindowRes() failed may have
+            // no pixmap or image yet)
+            if self.pixmap && self.drawable != None {
                 (x.XFreePixmap)(display, self.drawable);
             }
 
-            if self.pixmap && self.shm {
+            if self.pixmap && self.shm && !self.shm_info.shmaddr.is_null() {
                 if let Some(shm) = &x.shm {
                     (shm.XShmDetach)(display, &mut *self.shm_info);
                 }
-                if self.shm_pixmap == 0 {
+                if self.shm_pixmap == 0 && !self.image.is_null() {
                     XDestroyImage(self.image);
                 }
                 libc::shmdt(self.shm_info.shmaddr as *const libc::c_void);
