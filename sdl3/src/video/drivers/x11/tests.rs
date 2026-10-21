@@ -1460,6 +1460,14 @@ fn x11_egl_context() {
                 let query =
                     unsafe { std::mem::transmute::<*const std::ffi::c_void, QuerySurface>(query) };
                 surface = Some((display, window_surface, query));
+                // A failure says why
+                let error = crate::video::egl::create_surface(Option::None, std::ptr::null_mut())
+                    .unwrap_err();
+                assert_eq!(
+                    error.message(),
+                    "unable to create an EGL window surface (call to eglCreateWindowSurface \
+                     failed, reporting an error of EGL_BAD_NATIVE_WINDOW)"
+                );
             } else {
                 assert!(gl::egl_current_display().is_err());
             }
