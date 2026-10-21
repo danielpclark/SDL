@@ -650,8 +650,12 @@ impl WaylandVideo {
         let mut sys = sys.lock().unwrap_or_else(|e| e.into_inner());
         sys.num_frames = images.len() as i32;
         let generation = THEME_GENERATION.load(Ordering::Acquire);
+        // Note (upstream): the cache is keyed by the unscaled theme_size, so
+        // after a scale change the buffers of the old scale are reused (with
+        // the size and hotspot of the new one). It's keyed by the size of
+        // the theme the buffers come from here.
         let buffers =
-            wayland_cache_system_cursor(self.syms(), &mut sys, &images, theme_size, generation);
+            wayland_cache_system_cursor(self.syms(), &mut sys, &images, scaled_size, generation);
         state.system_cursor_handle = Some((generation, buffers));
 
         if images.len() > 1 && sys.frame_durations_ms.is_empty() {
@@ -1626,8 +1630,6 @@ fn wayland_cache_system_cursor(
     generation: u64,
 ) -> Vec<usize> {
     // Is this cursor already cached at the target scale?
-    // FIXME (upstream): the cache is keyed by the unscaled theme size, so
-    // after a scale change the buffers of the old scale are reused.
     if let Some(c) = cdata
         .cursor_buffer_cache
         .iter()
@@ -1702,5 +1704,39 @@ fn wayland_get_system_cursor_shape(id: SystemCursor) -> WpCursorShapeDeviceV1Sha
         C::AllScroll => S::ALL_SCROLL,
         C::ZoomIn => S::ZOOM_IN,
         C::ZoomOut => S::ZOOM_OUT,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::{Compositor, Video};
+    use super::*;
+
+    #[test]
+    fn system_cursor_buffers_follow_the_scale() {
+        let _l = crate::test_support::test_lock();
+        let Some(_compositor) = Compositor::start(false) else {
+            return;
+        };
+        let _video = Video::init();
+        let video = super::super::util::current_device().unwrap();
+
+        let sys = Mutex::new(SystemCursorData::default());
+        let mut state = CursorState::default();
+        let mut buffers_at = |scale: f64| {
+            state.scale = scale;
+            video.with_data(|d| {
+                video.wayland_get_system_cursor(d, SystemCursor::Default, &sys, &mut state)
+            })?;
+            state.system_cursor_handle.as_ref().map(|(_, b)| b.clone())
+        };
+        let Some(at_1) = buffers_at(1.0) else {
+            crate::test_support::skip("wayland", "no cursor theme");
+            return;
+        };
+        let at_2 = buffers_at(2.0).unwrap();
+        assert_ne!(at_1, at_2, "a new scale has the buffers of its own theme");
+        assert_eq!(buffers_at(1.0).unwrap(), at_1, "and the old one is cached");
+        assert_eq!(buffers_at(2.0).unwrap(), at_2);
     }
 }
