@@ -4485,6 +4485,13 @@ pub(crate) fn destroy_window(window: WindowID) {
                 std::mem::take(&mut *data.listener.lock().unwrap_or_else(|e| e.into_inner()));
             drop(listener);
 
+            // Note (upstream): Cocoa_DestroyWindow() never destroys the
+            // window's EGL surface (SDL_EGL_DestroySurface()), so it outlives
+            // the window and its layer. It's destroyed here, before the view.
+            let egl_surface =
+                std::mem::replace(&mut data.state().egl_surface, std::ptr::null_mut());
+            crate::video::egl::destroy_surface(egl_surface);
+
             if !flags(window).contains(WindowFlags::EXTERNAL) {
                 // SAFETY: the window we created.
                 unsafe {
