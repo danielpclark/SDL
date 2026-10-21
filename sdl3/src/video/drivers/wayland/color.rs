@@ -10,7 +10,7 @@
 //! output's data; a new request replaces (cancels) the old one. Its
 //! listeners find it by the object it belongs to and its serial.
 
-use std::os::fd::{IntoRawFd, RawFd};
+use std::os::fd::OwnedFd;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
@@ -42,7 +42,7 @@ pub(crate) struct ColorInfoState {
     hdr: HdrOutputProperties,
 
     /// The ICC profile (`icc_fd`, only valid if the size is non-zero).
-    icc_fd: RawFd,
+    icc_fd: Option<OwnedFd>,
     icc_size: u32,
 
     deferred_event_processing: bool,
@@ -112,12 +112,13 @@ impl WaylandVideo {
                 self.image_description_info_handle_done(object, serial)
             }
             WpImageDescriptionInfoV1Event::IccFile { icc, icc_size } => {
-                // FIXME (upstream): the ICC profile descriptors are never
-                // closed (one leaks per profile change); kept.
-                let icc = icc.into_raw_fd();
+                // Note (upstream): the ICC profile descriptors are never
+                // closed, so one leaks with every profile change (and with
+                // every display's profile, which isn't kept). Here the
+                // descriptor is owned: a replaced or unused one is closed.
                 self.with_data(|d| {
                     if let Some(state) = state_of(d, object, serial) {
-                        state.icc_fd = icc;
+                        state.icc_fd = Some(icc);
                         state.icc_size = icc_size;
                     }
                 });
@@ -150,7 +151,7 @@ impl WaylandVideo {
         let Some((hdr, icc)) = self.with_data(|d| {
             let state = state_of(d, object, serial)?;
             state.cancel();
-            Some((state.hdr, (state.icc_fd, state.icc_size)))
+            Some((state.hdr, (state.icc_fd.take(), state.icc_size)))
         }) else {
             return;
         };
@@ -158,11 +159,12 @@ impl WaylandVideo {
         match object {
             ColorObject::Window(window) => {
                 crate::video::display::set_window_hdr_properties(window, hdr, true);
-                if icc.1 != 0 {
+                if let (Some(icc_fd), icc_size @ 1..) = icc {
                     self.with_data(|d| {
                         if let Some(w) = d.window_mut(window) {
-                            w.icc_fd = icc.0;
-                            w.icc_size = icc.1;
+                            // (the window's previous profile is closed)
+                            w.icc_fd = Some(icc_fd);
+                            w.icc_size = icc_size;
                         }
                     });
                     crate::events::window::send_window_event(
@@ -334,7 +336,7 @@ impl WaylandVideo {
             wp_image_description_info: None,
             queue: None,
             hdr: HdrOutputProperties::default(),
-            icc_fd: -1,
+            icc_fd: None,
             icc_size: 0,
             deferred_event_processing: defer_event_processing,
         };
@@ -377,5 +379,104 @@ impl WaylandVideo {
             ColorObject::Display(key) => d.output_mut(key)?.color_info_state = Some(state),
         }
         Some(serial)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::os::fd::{AsRawFd, FromRawFd};
+
+    use super::super::tests::{Compositor, Video};
+    use super::*;
+    use crate::events::window::WindowFlags;
+    use crate::video::window::Window;
+
+    /// A non-blocking pipe: (read end, write end).
+    fn pipe() -> (OwnedFd, OwnedFd) {
+        let mut fds = [0; 2];
+        // SAFETY: fds holds the two descriptors made.
+        assert_eq!(
+            unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_NONBLOCK | libc::O_CLOEXEC) },
+            0
+        );
+        // SAFETY: the new descriptors, owned once each.
+        unsafe { (OwnedFd::from_raw_fd(fds[0]), OwnedFd::from_raw_fd(fds[1])) }
+    }
+
+    /// Whether every write end of the pipe of `read` is closed.
+    fn write_end_closed(read: &OwnedFd) -> bool {
+        let mut b = 0u8;
+        // SAFETY: a one-byte buffer.
+        let n = unsafe { libc::read(read.as_raw_fd(), (&mut b as *mut u8).cast(), 1) };
+        n == 0
+    }
+
+    /// Run a profile request to the window to its end, as the compositor
+    /// would: an `icc_file` event with `icc`, then `done`.
+    fn send_profile(video: &WaylandVideo, window: WindowID, icc: OwnedFd) {
+        let serial = NEXT_SERIAL.fetch_add(1, Ordering::Relaxed);
+        video.with_data(|d| {
+            d.window_mut(window).unwrap().color_info_state = Some(ColorInfoState {
+                serial,
+                wp_image_description: None,
+                wp_image_description_info: None,
+                queue: None,
+                hdr: HdrOutputProperties::default(),
+                icc_fd: None,
+                icc_size: 0,
+                deferred_event_processing: false,
+            })
+        });
+        let object = ColorObject::Window(window);
+        video.handle_image_description_info_event(
+            object,
+            serial,
+            WpImageDescriptionInfoV1Event::IccFile { icc, icc_size: 16 },
+        );
+        video.handle_image_description_info_event(
+            object,
+            serial,
+            WpImageDescriptionInfoV1Event::Done,
+        );
+        video.with_data(|d| drop(free_state(d, object, serial)));
+    }
+
+    #[test]
+    fn icc_profile_descriptors_are_closed() {
+        let _l = crate::test_support::test_lock();
+        let Some(_compositor) = Compositor::start(false) else {
+            return;
+        };
+        let _video = Video::init();
+        let video = super::super::util::current_device().unwrap();
+        let w = Window::create("ICC test", 64, 48, WindowFlags::HIDDEN).unwrap();
+        let id = w.id();
+
+        let (first, first_icc) = pipe();
+        send_profile(&video, id, first_icc);
+        assert!(!write_end_closed(&first), "the window keeps its profile");
+
+        // A new profile closes the old one.
+        let (second, second_icc) = pipe();
+        send_profile(&video, id, second_icc);
+        assert!(write_end_closed(&first), "the replaced profile is closed");
+        assert!(!write_end_closed(&second));
+
+        // A profile request to nothing (here a window that's gone) closes
+        // its descriptor too.
+        let (third, third_icc) = pipe();
+        video.handle_image_description_info_event(
+            ColorObject::Window(id + 1000),
+            0,
+            WpImageDescriptionInfoV1Event::IccFile {
+                icc: third_icc,
+                icc_size: 16,
+            },
+        );
+        assert!(write_end_closed(&third));
+
+        // The window's profile is closed with it.
+        w.destroy();
+        assert!(write_end_closed(&second), "the window's profile is closed");
     }
 }

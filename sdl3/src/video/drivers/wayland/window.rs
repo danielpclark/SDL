@@ -22,7 +22,7 @@
 //! [`super::opengles`]).
 
 use std::ffi::{c_char, c_int, c_void};
-use std::os::fd::RawFd;
+use std::os::fd::{AsRawFd, OwnedFd};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
@@ -486,7 +486,8 @@ pub(crate) struct WaylandWindowData {
     pub(crate) pending_state_deadline_count: i32,
     pub(crate) last_focus_event_time_ns: u64,
     pub(crate) last_resize_event_time_ns: u64,
-    pub(crate) icc_fd: RawFd,
+    /// The ICC profile (`icc_fd`, closed with the window).
+    pub(crate) icc_fd: Option<OwnedFd>,
     pub(crate) icc_size: u32,
     pub(crate) floating: bool,
     pub(crate) suspended: bool,
@@ -573,7 +574,8 @@ impl Drop for WaylandWindowData {
         // (the surface field is dropped after this: destroyed unless external)
         self.xdg_toplevel_icon_v1.take();
         self.icon_buffers.clear();
-        // FIXME (upstream): the ICC profile descriptor (icc_fd) isn't closed.
+        // Note (upstream): the ICC profile descriptor (icc_fd) isn't closed.
+        self.icc_fd.take();
     }
 }
 
@@ -4962,7 +4964,7 @@ impl WaylandVideo {
                 pending_state_deadline_count: 0,
                 last_focus_event_time_ns: 0,
                 last_resize_event_time_ns: 0,
-                icc_fd: -1,
+                icc_fd: None,
                 icc_size: 0,
                 floating: false,
                 suspended: false,
@@ -5618,10 +5620,15 @@ impl WaylandVideo {
 
     /// Translation of `Wayland_GetWindowICCProfile()`.
     pub(crate) fn wayland_get_window_icc_profile(&self, window: WindowID) -> Result<Vec<u8>> {
-        let (icc_fd, icc_size) =
-            self.with_data(|d| d.window(window).map_or((-1, 0), |w| (w.icc_fd, w.icc_size)));
-
-        if icc_size > 0 {
+        // (mapped with the window data locked, as a new profile closes the
+        // descriptor of the old one)
+        let profile = self.with_data(|d| {
+            let w = d.window(window)?;
+            let icc_fd = w.icc_fd.as_ref()?;
+            let icc_size = w.icc_size;
+            if icc_size == 0 {
+                return None;
+            }
             // SAFETY: a private read-only mapping of the profile descriptor.
             let icc_map = unsafe {
                 libc::mmap(
@@ -5629,22 +5636,23 @@ impl WaylandVideo {
                     icc_size as usize,
                     libc::PROT_READ,
                     libc::MAP_PRIVATE,
-                    icc_fd,
+                    icc_fd.as_raw_fd(),
                     0,
                 )
             };
-            if icc_map != libc::MAP_FAILED {
-                // SAFETY: the mapping is `icc_size` bytes long.
-                let ret =
-                    unsafe { std::slice::from_raw_parts(icc_map as *const u8, icc_size as usize) }
-                        .to_vec();
-                // SAFETY: the mapping made above.
-                unsafe { libc::munmap(icc_map, icc_size as usize) };
-                return Ok(ret);
+            if icc_map == libc::MAP_FAILED {
+                return None;
             }
-        }
+            // SAFETY: the mapping is `icc_size` bytes long.
+            let ret =
+                unsafe { std::slice::from_raw_parts(icc_map as *const u8, icc_size as usize) }
+                    .to_vec();
+            // SAFETY: the mapping made above.
+            unsafe { libc::munmap(icc_map, icc_size as usize) };
+            Some(ret)
+        });
 
-        Err(Error::new("The window has no ICC profile"))
+        profile.ok_or_else(|| Error::new("The window has no ICC profile"))
     }
 
     /// Translation of `Wayland_SyncWindow()`.
