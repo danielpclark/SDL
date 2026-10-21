@@ -20719,9 +20719,12 @@ impl Compiler {
                 let v2 = ops[3];
                 let matrix_layout_id = ops[4];
                 let matrix_iterpretation_id = ops[5];
-                // FIXME (upstream): with exactly 6 operands, this reads the
-                // word after the instruction.
-                let matrix_stride_id = if length >= 6 { ops[6] } else { 0 };
+                // Note (upstream): C++ takes the optional matrix stride (the
+                // seventh operand) with `length >= 6`, so that without it, it
+                // reads the word after the instruction (past the end of the
+                // module, or an ID out of range: undefined behaviour) for its
+                // ID.
+                let matrix_stride_id = if length >= 7 { ops[6] } else { 0 };
                 let s = join!(
                     "coopVecOuterProductAccumulateNV(",
                     self.to_expression(v1, true)?,
