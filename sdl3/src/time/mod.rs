@@ -853,6 +853,25 @@ mod tests {
         }
     }
 
+    /// A local time's UTC offset doesn't depend on the time's fraction of
+    /// a second. (It only did in a time zone east of UTC: under Wine, run
+    /// with `TZ` set to one, such as `TZ=Asia/Kolkata`.)
+    #[cfg(windows)]
+    #[test]
+    fn windows_utc_offset_is_whole_seconds() {
+        let base = 1704067200000000000; // 2024-01-01 00:00:00 UTC
+        let offset = |ns: i64| {
+            sys::time_to_date_time(Time::from_nanos(base + ns), true)
+                .unwrap()
+                .utc_offset
+        };
+        let whole = offset(0);
+        assert_eq!(whole % 60, 0, "{whole}");
+        for ns in [1, 999, 500_000, 999_999, 123_456_789, 999_999_999] {
+            assert_eq!(offset(ns), whole, "{ns} ns");
+        }
+    }
+
     /// The preferences follow the first `y`/`d`/`M` of the user locale's
     /// short date format and the first `H`/`h` of its time format.
     #[cfg(windows)]
