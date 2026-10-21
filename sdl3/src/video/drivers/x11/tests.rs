@@ -1379,17 +1379,32 @@ fn x11_egl_context() {
             gl::gl_set_attribute(gl::GlAttr::ContextMinorVersion, 0).unwrap();
             // (Mesa's GLX can create ES 2 contexts; OPENGL_ES_DRIVER makes it use EGL)
         }
+        // (loaded here too, so that EGL stays initialized once the window
+        // that loaded it is destroyed)
+        let preloaded = through_egl && gl::gl_load_library(Option::None).is_ok();
         let what = match (es, through_egl) {
             (false, _) => "EGL (forced)",
             (true, true) => "EGL (OpenGL ES)",
             (true, false) => "GLX (OpenGL ES)",
         };
         if let Some((window, context)) = gl_window_and_context(what) {
+            let mut surface = Option::None;
             if through_egl {
-                assert!(gl::egl_current_display().is_ok());
+                let display = gl::egl_current_display().unwrap();
                 assert!(gl::egl_current_config().unwrap().is_some());
-                assert!(gl::egl_window_surface(&window).unwrap().is_some());
+                let window_surface = gl::egl_window_surface(&window).unwrap().unwrap();
                 assert!(gl::egl_get_proc_address("eglGetCurrentContext").is_some());
+                type QuerySurface = unsafe extern "C" fn(
+                    *mut std::ffi::c_void,
+                    *mut std::ffi::c_void,
+                    i32,
+                    *mut i32,
+                ) -> u32;
+                let query = gl::egl_get_proc_address("eglQuerySurface").unwrap();
+                // SAFETY: eglQuerySurface has this signature.
+                let query =
+                    unsafe { std::mem::transmute::<*const std::ffi::c_void, QuerySurface>(query) };
+                surface = Some((display, window_surface, query));
             } else {
                 assert!(gl::egl_current_display().is_err());
             }
@@ -1399,6 +1414,24 @@ fn x11_egl_context() {
             }
             drop(context);
             window.destroy();
+            // The window surface was destroyed with the window
+            if let Some((display, window_surface, query)) = surface {
+                let mut width = 0;
+                // SAFETY: the display is initialized; EGL checks the
+                // surface handle.
+                let ok = unsafe {
+                    query(
+                        display.as_ptr(),
+                        window_surface.as_ptr(),
+                        0x3057, // EGL_WIDTH
+                        &mut width,
+                    )
+                };
+                assert_eq!(ok, 0, "{what}: the window's EGL surface is still alive");
+            }
+        }
+        if preloaded {
+            gl::gl_unload_library();
         }
         drop(video);
         std::env::remove_var(hints::OPENGL_ES_DRIVER);

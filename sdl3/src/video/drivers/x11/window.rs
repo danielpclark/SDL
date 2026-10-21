@@ -918,9 +918,9 @@ impl X11Video {
             }
 
             // Create the GLES window surface
-            // FIXME (upstream): the surface is never destroyed with the
+            // Note (upstream): C never destroys this surface with the
             // window (only eglTerminate() frees it, when the library is
-            // unloaded).
+            // unloaded); here x11_destroy_window() destroys it.
             match crate::video::egl::create_surface(Some(window), w as usize as *mut _) {
                 Ok(surface) => data.egl_surface = surface,
                 Err(_) => {
@@ -3319,6 +3319,15 @@ impl X11Video {
         });
 
         let _ = with_x11_window(window, |_, data| self.x11_destroy_input_context(data));
+
+        // (the GLES window surface, which C leaks: see x11_create_window())
+        if let Ok(egl_surface) = with_x11_window(window, |_, data| {
+            std::mem::replace(&mut data.egl_surface, std::ptr::null_mut())
+        }) {
+            if !egl_surface.is_null() {
+                crate::video::egl::destroy_surface(egl_surface);
+            }
+        }
 
         self.x11_term_resize_sync(window);
 
