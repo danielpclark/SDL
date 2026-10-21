@@ -786,6 +786,62 @@ ASSEMBLED.append(('vs_asm_member_location', [
     ('OpFunctionEnd',),
 ]))
 
+# Two structs named S, one with a 2D and one with a 3D sampler: SPIRV-Cross
+# compared only the sampled type of their images (memcmp() with the size of
+# the SPIRType::Image enumerator), took the second for an alias of the
+# first, and sampled the 3D texture as a 2D one.
+ASSEMBLED.append(('fs_asm_image_structs', [
+    ('OpCapability', SHADER),
+    ('OpMemoryModel', LOGICAL, GLSL450),
+    ('OpEntryPoint', FRAGMENT, '%main', 'main', '%color'),
+    ('OpExecutionMode', '%main', ORIGIN_UPPER_LEFT),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%S2', 'S'), ('OpMemberName', '%S2', 0, 't'),
+    ('OpName', '%S3', 'S'), ('OpMemberName', '%S3', 0, 't'),
+    ('OpName', '%u2', 'u2'), ('OpName', '%u3', 'u3'),
+    ('OpName', '%color', 'out_color'),
+    ('OpDecorate', '%u2', DESCRIPTOR_SET, 2), ('OpDecorate', '%u2', BINDING, 0),
+    ('OpDecorate', '%u3', DESCRIPTOR_SET, 2), ('OpDecorate', '%u3', BINDING, 1),
+    ('OpDecorate', '%color', LOCATION, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeVector', '%vec2', '%float', 2),
+    ('OpTypeVector', '%vec3', '%float', 3),
+    ('OpTypeVector', '%vec4', '%float', 4),
+    ('OpTypeImage', '%img2', '%float', DIM_2D, 0, 0, 0, 1, 0),
+    ('OpTypeSampledImage', '%si2', '%img2'),
+    ('OpTypeImage', '%img3', '%float', DIM_3D, 0, 0, 0, 1, 0),
+    ('OpTypeSampledImage', '%si3', '%img3'),
+    ('OpTypeStruct', '%S2', '%si2'),
+    ('OpTypeStruct', '%S3', '%si3'),
+    ('OpTypePointer', '%ptr_s2', UNIFORM_CONSTANT, '%S2'),
+    ('OpTypePointer', '%ptr_s3', UNIFORM_CONSTANT, '%S3'),
+    ('OpVariable', '%ptr_s2', '%u2', UNIFORM_CONSTANT),
+    ('OpVariable', '%ptr_s3', '%u3', UNIFORM_CONSTANT),
+    ('OpTypePointer', '%ptr_si2', UNIFORM_CONSTANT, '%si2'),
+    ('OpTypePointer', '%ptr_si3', UNIFORM_CONSTANT, '%si3'),
+    ('OpTypePointer', '%ptr_color', OUTPUT, '%vec4'),
+    ('OpVariable', '%ptr_color', '%color', OUTPUT),
+    ('OpTypeInt', '%int', 32, 1),
+    ('OpConstant', '%int', '%i0', 0),
+    ('OpConstant', '%float', '%half', 0.5),
+    ('OpConstantComposite', '%vec2', '%uv', '%half', '%half'),
+    ('OpConstantComposite', '%vec3', '%uvw', '%half', '%half', '%half'),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpAccessChain', '%ptr_si2', '%t2', '%u2', '%i0'),
+    ('OpLoad', '%si2', '%s2', '%t2'),
+    ('OpImageSampleImplicitLod', '%vec4', '%c2', '%s2', '%uv'),
+    ('OpAccessChain', '%ptr_si3', '%t3', '%u3', '%i0'),
+    ('OpLoad', '%si3', '%s3', '%t3'),
+    ('OpImageSampleImplicitLod', '%vec4', '%c3', '%s3', '%uvw'),
+    ('OpFAdd', '%vec4', '%sum', '%c2', '%c3'),
+    ('OpStore', '%color', '%sum'),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
 
 def main():
     assembled_only = sys.argv[1:] == ['--assembled']

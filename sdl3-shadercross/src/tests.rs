@@ -43,6 +43,10 @@ pub(crate) const SHADERS: &[(&str, &[u8])] = &[
     ("cs_image", include_bytes!("../testdata/cs_image.spv")),
     ("cs_layout", include_bytes!("../testdata/cs_layout.spv")),
     ("cs_math", include_bytes!("../testdata/cs_math.spv")),
+    (
+        "fs_asm_image_structs",
+        include_bytes!("../testdata/fs_asm_image_structs.spv"),
+    ),
     ("fs_bad_flip", include_bytes!("../testdata/fs_bad_flip.spv")),
     (
         "fs_bad_header",
