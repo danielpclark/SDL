@@ -102,6 +102,9 @@ pub(crate) struct ImeData {
     imm_unlock_imc: Option<ImmUnlockImcFn>,
     imm_lock_imcc: Option<ImmLockImccFn>,
     imm_unlock_imcc: Option<ImmUnlockImccFn>,
+    /// The IME's module, which `get_reading_string` and
+    /// `show_reading_window` come from (upstream doesn't keep it).
+    hime: Option<SharedObject>,
     get_reading_string: Option<GetReadingStringFn>,
     show_reading_window: Option<ShowReadingWindowFn>,
 
@@ -167,6 +170,7 @@ impl ImeData {
             imm_unlock_imc: None,
             imm_lock_imcc: None,
             imm_unlock_imcc: None,
+            hime: None,
             get_reading_string: None,
             show_reading_window: None,
             id_hklprev: std::ptr::null_mut(),
@@ -640,7 +644,7 @@ fn ime_quit(videodata: &VideoData) {
         unsafe { ImmAssociateContext(main, himc) };
     }
 
-    let himm32 = ime(videodata, |d| {
+    let (himm32, hime) = ime(videodata, |d| {
         d.hwnd_main = std::ptr::null_mut();
         d.himc = std::ptr::null_mut();
         d.imm_lock_imc = None;
@@ -648,13 +652,17 @@ fn ime_quit(videodata: &VideoData) {
         d.imm_lock_imcc = None;
         d.imm_unlock_imcc = None;
         let himm32 = d.himm32.take();
+        // (the IME's module, unloaded here: see ime_setup_api())
+        d.get_reading_string = None;
+        d.show_reading_window = None;
+        let hime = d.hime.take();
         for i in 0..d.candcount as usize {
             d.candidates[i] = None;
         }
         d.initialized = false;
-        himm32
+        (himm32, hime)
     });
-    drop(himm32);
+    drop((himm32, hime));
 }
 
 /// Copy at most `max - 1` WCHARs of a NUL-terminated string (`SDL_wcslcpy()`
@@ -964,11 +972,13 @@ fn ime_get_id(videodata: &VideoData, index: usize) -> u32 {
 /// Translation of `IME_SetupAPI()`.
 fn ime_setup_api(videodata: &VideoData) {
     let mut ime_file = [0u8; 260 + 1];
-    let hkl = ime(videodata, |d| {
+    let (hkl, old_hime) = ime(videodata, |d| {
         d.get_reading_string = None;
         d.show_reading_window = None;
-        d.hkl
+        (d.hkl, d.hime.take())
     });
+    // (the previous IME's module goes, now that its functions are gone)
+    drop(old_hime);
 
     // SAFETY: the buffer holds the size passed.
     if unsafe { ImmGetIMEFileNameA(hkl, ime_file.as_mut_ptr(), (ime_file.len() - 1) as u32) } == 0 {
@@ -989,11 +999,13 @@ fn ime_setup_api(videodata: &VideoData) {
                 .ok(),
         )
     };
-    // FIXME (upstream): the IME module is never unloaded.
-    std::mem::forget(hime);
+    // Note (upstream): the IME module is never unloaded, so one more
+    // reference to it leaks with every input language change. It's kept
+    // with its functions here, and unloaded with them.
     let current = ime(videodata, |d| {
         d.get_reading_string = get_reading_string;
         d.show_reading_window = show_reading_window;
+        d.hime = Some(hime);
         d.hwnd_current
     });
 
