@@ -1662,6 +1662,76 @@ fn pfr_first_char() {
     let _ = ft_done_freetype(lib);
 }
 
+/// A PE font file (`.fon`) whose resource section is `rsrc`: an MZ header,
+/// the PE header and one section, the resources.
+fn pe_fon(rsrc: &[u8]) -> Vec<u8> {
+    const RSRC_VA: u32 = 0x1000;
+    let mut f = vec![0u8; 64 + 248 + 40];
+    f[0..2].copy_from_slice(b"MZ");
+    f[0x3C..0x40].copy_from_slice(&64u32.to_le_bytes()); /* lfanew */
+    let pe = &mut f[64..64 + 248];
+    pe[0..4].copy_from_slice(b"PE\0\0");
+    pe[4..6].copy_from_slice(&0x014Cu16.to_le_bytes()); /* i386 */
+    pe[6..8].copy_from_slice(&1u16.to_le_bytes()); /* sections */
+    pe[20..22].copy_from_slice(&0xE0u16.to_le_bytes()); /* optional header size */
+    pe[24..26].copy_from_slice(&0x10Bu16.to_le_bytes());
+    pe[136..140].copy_from_slice(&RSRC_VA.to_le_bytes());
+    pe[140..144].copy_from_slice(&(rsrc.len() as u32).to_le_bytes());
+    let section = &mut f[64 + 248..];
+    section[0..5].copy_from_slice(b".rsrc");
+    section[12..16].copy_from_slice(&RSRC_VA.to_le_bytes());
+    section[16..20].copy_from_slice(&(rsrc.len() as u32).to_le_bytes());
+    section[20..24].copy_from_slice(&(64u32 + 248 + 40).to_le_bytes());
+    f.extend_from_slice(rsrc);
+    f
+}
+
+/// A PE resource directory with `entries` (name, offset) after it.
+fn pe_rsrc_dir(named: u16, entries: &[(u32, u32)]) -> Vec<u8> {
+    let mut d = vec![0u8; 16];
+    d[12..14].copy_from_slice(&named.to_le_bytes());
+    let id = (entries.len() - named as usize) as u16;
+    d[14..16].copy_from_slice(&id.to_le_bytes());
+    for &(name, offset) in entries {
+        d.extend_from_slice(&name.to_le_bytes());
+        d.extend_from_slice(&offset.to_le_bytes());
+    }
+    d
+}
+
+/// The error of opening `data` with FreeType.
+fn ft_open_error(data: Vec<u8>) -> i32 {
+    use crate::freetype::base::ftinit::{ft_done_freetype, ft_init_freetype};
+    use crate::freetype::base::ftobjs::*;
+    use std::sync::Arc;
+
+    let lib = ft_init_freetype().unwrap();
+    let error = match ft_new_memory_face(&lib, Arc::from(data), 0) {
+        Ok(face) => {
+            ft_done_face(face);
+            0
+        }
+        Err(e) => e,
+    };
+    let _ = ft_done_freetype(lib);
+    error
+}
+
+/// A PE font with more than 65535 resource types is read to its end
+/// (upstream's 16-bit counters wrap around, and it never ends).
+#[test]
+fn pe_fon_with_many_resource_types_ends() {
+    use crate::freetype::fttypes::FT_ERR_INVALID_FILE_FORMAT;
+
+    /* 65536 types, each a directory without entries */
+    let n = 65536usize;
+    let empty = (16 + n * 8) as u32;
+    let entries = vec![(1u32, 0x8000_0000 | empty); n];
+    let mut rsrc = pe_rsrc_dir(1, &entries);
+    rsrc.extend_from_slice(&[0u8; 16]);
+    assert_eq!(ft_open_error(pe_fon(&rsrc)), FT_ERR_INVALID_FILE_FORMAT);
+}
+
 /* The GPU text engine, against testdata/gpu_reference.txt (the output of
 a C program built from upstream SDL_ttf and SDL3 with the GPU API,
 which runs the cases below in the same order). */
