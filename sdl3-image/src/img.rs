@@ -137,6 +137,9 @@ fn file_extension(file: &Path) -> Option<String> {
 /// Translation of `IMG_Load()`.
 pub fn load(file: impl AsRef<Path>) -> Result<Surface<'static>> {
     let file = file.as_ref();
+    // (On Emscripten, upstream first takes the browser's decoding of a
+    // preloaded file, emscripten_get_preloaded_image_data(); the Emscripten
+    // port's PR 13 translates it.)
     let mut src = IoStream::from_file(file, "rb")?;
     /* The error message has been set in SDL_IOFromFile */
 
@@ -155,6 +158,10 @@ pub fn load_io(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
 /// magic number are detected whatever `type_` says; `type_` only selects
 /// the magicless ones. Translation of `IMG_LoadTyped_IO()`.
 pub fn load_typed_io(src: &mut IoStream<'_>, type_: Option<&str>) -> Result<Surface<'static>> {
+    // Note (upstream): on Emscripten, upstream first tries
+    // emscripten_get_preloaded_image_data_from_FILE() on the stream's stdio
+    // FILE *; an IoStream here has none.
+
     /* See whether or not this data source can handle seeking */
     if src.seek(0, IoWhence::Cur).is_err() {
         return Err(Error::new("Can't seek in this data source"));
