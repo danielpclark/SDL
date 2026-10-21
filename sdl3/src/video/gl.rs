@@ -960,8 +960,6 @@ enum AttrQuery {
     BufferSize,
     /// `HAS_GL_ARB_color_buffer_float` is false.
     Unavailable,
-    /// No case for it (`default:`).
-    Unknown,
 }
 
 /// The query for an attribute (the `switch` of `SDL_GL_GetAttribute()`).
@@ -1023,10 +1021,11 @@ fn attribute_query(attr: GlAttr, config: &GlConfig) -> AttrQuery {
         GlAttr::FramebufferSrgbCapable => AttrQuery::Value(config.framebuffer_srgb_capable),
         GlAttr::ContextNoError => AttrQuery::Value(config.no_error),
         GlAttr::EglPlatform => AttrQuery::Value(config.egl_platform),
-        // FIXME (upstream): SDL_GL_ContextResetNotification has no case in
+        // Note (upstream): SDL_GL_CONTEXT_RESET_NOTIFICATION has no case in
         // SDL_GL_GetAttribute(), which fails with "Unknown OpenGL
-        // attribute" for it.
-        GlAttr::ContextResetNotification => AttrQuery::Unknown,
+        // attribute" for it. Here it is the value set, as for the other
+        // context attributes.
+        GlAttr::ContextResetNotification => AttrQuery::Value(config.reset_notification),
         GlAttr::FloatBuffers => {
             if config.has_gl_arb_color_buffer_float {
                 gl(GL_RGBA_FLOAT_MODE_ARB, GL_BACK_LEFT, 0)
@@ -1055,7 +1054,6 @@ pub fn gl_get_attribute(attr: GlAttr) -> Result<i32> {
             let asize = gl_get_attribute(GlAttr::AlphaSize)?;
             return Ok(rsize + gsize + bsize + asize);
         }
-        AttrQuery::Unknown => return Err(Error::new("Unknown OpenGL attribute")),
         // Note (upstream): SDL_GL_FLOATBUFFERS fails ("return 0") without
         // setting an error when GL_ARB_color_buffer_float is unknown; and
         // only WGL ever finds that out. This reports "unsupported".
@@ -1451,6 +1449,21 @@ mod tests {
         for &(list, ext, front, glx) in EXTENSION_CASES {
             assert_eq!(extension_in_list(list, ext), front, "{list:?} {ext:?}");
             assert_eq!(extension_in_list(list, ext), glx, "{list:?} {ext:?} (GLX)");
+        }
+    }
+
+    #[test]
+    fn reset_notification_is_the_value_set() {
+        let mut config = GlConfig::default();
+        for value in [
+            GL_CONTEXT_RESET_NO_NOTIFICATION,
+            GL_CONTEXT_RESET_LOSE_CONTEXT,
+        ] {
+            config.reset_notification = value;
+            assert!(matches!(
+                attribute_query(GlAttr::ContextResetNotification, &config),
+                AttrQuery::Value(v) if v == value
+            ));
         }
     }
 
