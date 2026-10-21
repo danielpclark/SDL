@@ -227,8 +227,12 @@ fn expand_dialog_space(dialog: &mut DialogData, space: usize) -> Result<()> {
 
 /// Translation of `AlignDialogData()`.
 fn align_dialog_data(dialog: &mut DialogData, size: usize) -> Result<()> {
-    // FIXME (upstream): the padding is `used % size`, not the bytes up to the next multiple of `size` (right only for 0 or size/2).
-    let padding = dialog.data.len() % size;
+    // Note (upstream): the padding is `used % size`, not the bytes up to
+    // the next multiple of `size`, which is only the same when that is 0
+    // or size/2 (as it happens to be for the templates SDL builds, which
+    // only ever grow by an even number of bytes). Here it pads to the next
+    // multiple.
+    let padding = (size - dialog.data.len() % size) % size;
 
     expand_dialog_space(dialog, padding)?;
 
@@ -1001,5 +1005,25 @@ fn show_task_dialog(messageboxdata: &MessageBoxData) -> Result<i32> {
     } else {
         // We failed showing the Task Dialog, use the old message box!
         show_old_message_box(messageboxdata)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dialog_data_is_aligned_to_the_next_multiple() {
+        for used in 0..12 {
+            let mut dialog = DialogData {
+                data: vec![0xAA; used],
+                size: 0,
+                numbuttons: 0,
+            };
+            align_dialog_data(&mut dialog, 4).unwrap();
+            let aligned = used.div_ceil(4) * 4;
+            assert_eq!(dialog.data.len(), aligned, "from {used} bytes");
+            assert!(dialog.data[used..].iter().all(|&b| b == 0));
+        }
     }
 }
