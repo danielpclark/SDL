@@ -646,6 +646,45 @@ ASSEMBLED.append(('cs_asm_void_undef', compute_header() + [
     ('OpFunctionEnd',),
 ]))
 
+# A whole array stored into a storage buffer: SPIRV-Cross's HLSL backend
+# took the array's base type enumerator for the ID of its type (and looped
+# forever on this one).
+ASSEMBLED.append(('cs_asm_array_store', compute_header() + [
+    ('OpMemoryModel', LOGICAL, GLSL450),
+    ('OpEntryPoint', GL_COMPUTE, '%main', 'main'),
+    ('OpExecutionMode', '%main', LOCAL_SIZE, 1, 1, 1),
+    ('OpName', '%main', 'main'),
+    ('OpName', '%Out', 'Out'), ('OpMemberName', '%Out', 0, 'values'),
+    ('OpName', '%out', 'out_data'),
+    ('OpDecorate', '%arr', ARRAY_STRIDE, 4),
+    ('OpMemberDecorate', '%Out', 0, OFFSET, 0),
+    ('OpDecorate', '%Out', BUFFER_BLOCK),
+    ('OpDecorate', '%out', DESCRIPTOR_SET, 1), ('OpDecorate', '%out', BINDING, 0),
+    ('OpTypeVoid', '%void'),
+    ('OpTypeFunction', '%fn', '%void'),
+    ('OpTypeFloat', '%float', 32),
+    ('OpTypeInt', '%uint', 32, 0),
+    ('OpConstant', '%uint', '%c4', 4),
+    ('OpTypeArray', '%arr', '%float', '%c4'),
+    ('OpTypeStruct', '%Out', '%arr'),
+    ('OpTypePointer', '%ptr_out', UNIFORM, '%Out'),
+    ('OpVariable', '%ptr_out', '%out', UNIFORM),
+    ('OpTypeInt', '%int', 32, 1),
+    ('OpConstant', '%int', '%c0', 0),
+    ('OpTypePointer', '%ptr_arr', UNIFORM, '%arr'),
+    ('OpConstant', '%float', '%f1', 1.0),
+    ('OpConstant', '%float', '%f2', 2.0),
+    ('OpConstant', '%float', '%f3', 3.0),
+    ('OpConstant', '%float', '%f4', 4.0),
+    ('OpConstantComposite', '%arr', '%values', '%f1', '%f2', '%f3', '%f4'),
+    ('OpFunction', '%void', '%main', 0, '%fn'),
+    ('OpLabel', '%entry'),
+    ('OpAccessChain', '%ptr_arr', '%q', '%out', '%c0'),
+    ('OpStore', '%q', '%values'),
+    ('OpReturn',),
+    ('OpFunctionEnd',),
+]))
+
 
 def main():
     assembled_only = sys.argv[1:] == ['--assembled']

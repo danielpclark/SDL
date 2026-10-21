@@ -9123,6 +9123,446 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     stage_output.out_uv = out_uv;
     return stage_output;
 }
+=== cs_asm_array_store reflect
+samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=0 threadcount=1,1,1
+=== cs_asm_array_store glsl 450 0 0
+#version 450
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) buffer Out
+{
+    float values[4];
+} out_data;
+
+void main()
+{
+    out_data.values = float[](1.0, 2.0, 3.0, 4.0);
+}
+
+=== cs_asm_array_store glsl 310 1 0
+#version 310 es
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) buffer Out
+{
+    float values[4];
+} out_data;
+
+void main()
+{
+    out_data.values = float[](1.0, 2.0, 3.0, 4.0);
+}
+
+=== cs_asm_array_store glsl 450 0 1
+#version 450
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 1, binding = 0, std430) buffer Out
+{
+    float values[4];
+} out_data;
+
+void main()
+{
+    out_data.values = float[](1.0, 2.0, 3.0, 4.0);
+}
+
+=== cs_asm_array_store msl compute 0 - 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+template<typename T, uint N>
+inline void spvArrayCopyFromConstantToStack(thread T (&dst)[N], constant T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromConstantToThreadGroup(threadgroup T (&dst)[N], constant T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromStackToStack(thread T (&dst)[N], thread const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromStackToThreadGroup(threadgroup T (&dst)[N], thread const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromThreadGroupToStack(thread T (&dst)[N], threadgroup const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromThreadGroupToThreadGroup(threadgroup T (&dst)[N], threadgroup const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromDeviceToDevice(device T (&dst)[N], device const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromConstantToDevice(device T (&dst)[N], constant T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromStackToDevice(device T (&dst)[N], thread const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromThreadGroupToDevice(device T (&dst)[N], threadgroup const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromDeviceToStack(thread T (&dst)[N], device const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromDeviceToThreadGroup(threadgroup T (&dst)[N], device const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+struct Out
+{
+    float values[4];
+};
+
+constant spvUnsafeArray<float, 4> _18 = spvUnsafeArray<float, 4>({ 1.0, 2.0, 3.0, 4.0 });
+
+kernel void main0(device Out& out_data [[buffer(0)]])
+{
+    spvArrayCopyFromConstantToDevice(out_data.values, _18.elements);
+}
+
+=== cs_asm_array_store msl compute 0 2.1.0 0
+entrypoint: main0
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+template<typename T, uint N>
+inline void spvArrayCopyFromConstantToStack(thread T (&dst)[N], constant T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromConstantToThreadGroup(threadgroup T (&dst)[N], constant T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromStackToStack(thread T (&dst)[N], thread const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromStackToThreadGroup(threadgroup T (&dst)[N], thread const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromThreadGroupToStack(thread T (&dst)[N], threadgroup const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromThreadGroupToThreadGroup(threadgroup T (&dst)[N], threadgroup const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromDeviceToDevice(device T (&dst)[N], device const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromConstantToDevice(device T (&dst)[N], constant T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromStackToDevice(device T (&dst)[N], thread const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromThreadGroupToDevice(device T (&dst)[N], threadgroup const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromDeviceToStack(thread T (&dst)[N], device const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+template<typename T, uint N>
+inline void spvArrayCopyFromDeviceToThreadGroup(threadgroup T (&dst)[N], device const T (&src)[N])
+{
+    for (uint i = 0; i < N; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
+struct Out
+{
+    float values[4];
+};
+
+constant spvUnsafeArray<float, 4> _18 = spvUnsafeArray<float, 4>({ 1.0, 2.0, 3.0, 4.0 });
+
+kernel void main0(device Out& out_data [[buffer(0)]])
+{
+    spvArrayCopyFromConstantToDevice(out_data.values, _18.elements);
+}
+
+=== cs_asm_array_store hlsl compute 60 - 0
+entrypoint: main
+static const float _18[4] = { 1.0f, 2.0f, 3.0f, 4.0f };
+
+RWByteAddressBuffer out_data : register(u0, space1);
+
+void main_inner()
+{
+    [unroll]
+    for (int _0ident = 0; _0ident < 4; _0ident++)
+    {
+        out_data.Store(_0ident * 4 + 0, asuint(_18[_0ident]));
+    }
+}
+
+[numthreads(1, 1, 1)]
+void main()
+{
+    main_inner();
+}
+=== cs_asm_array_store hlsl compute 51 - 0
+entrypoint: main
+static const float _18[4] = { 1.0f, 2.0f, 3.0f, 4.0f };
+
+RWByteAddressBuffer out_data : register(u0, space1);
+
+void main_inner()
+{
+    [unroll]
+    for (int _0ident = 0; _0ident < 4; _0ident++)
+    {
+        out_data.Store(_0ident * 4 + 0, asuint(_18[_0ident]));
+    }
+}
+
+[numthreads(1, 1, 1)]
+void main()
+{
+    main_inner();
+}
+=== cs_asm_array_store hlsl compute 50 - 1
+entrypoint: main
+static const float _18[4] = { 1.0f, 2.0f, 3.0f, 4.0f };
+
+RWByteAddressBuffer out_data : register(u0);
+
+void comp_main()
+{
+    [unroll]
+    for (int _0ident = 0; _0ident < 4; _0ident++)
+    {
+        out_data.Store(_0ident * 4 + 0, asuint(_18[_0ident]));
+    }
+}
+
+[numthreads(1, 1, 1)]
+void main()
+{
+    comp_main();
+}
 === cs_asm_void_undef reflect
 samplers=0 readonly_storage_textures=0 readonly_storage_buffers=0 readwrite_storage_textures=0 readwrite_storage_buffers=1 uniform_buffers=1 threadcount=1,1,1
 === cs_asm_void_undef glsl 450 0 0
