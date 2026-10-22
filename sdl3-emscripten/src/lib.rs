@@ -46,8 +46,9 @@
 //! exports when they are defined; Rust functions JavaScript calls are
 //! function-table entries, not exports, so an application's own
 //! `-sEXPORTED_FUNCTIONS` (which replaces rustc's list) can't hide them.
-//! What applications pass (`-sALLOW_MEMORY_GROWTH`, a larger stack, …) is in
-//! `docs/HARDWARE_TESTING.md`.
+//! (The options a program usually wants, `-sALLOW_MEMORY_GROWTH` and a
+//! larger `-sSTACK_SIZE`, are the ones `.cargo/config.toml` gives the test
+//! programs.)
 
 #![no_std]
 // Everywhere but on Emscripten the crate is empty, and its documentation
