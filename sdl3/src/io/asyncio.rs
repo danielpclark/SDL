@@ -14,6 +14,11 @@
 //! This is the generic backend: it uses a threadpool to block on synchronous
 //! i/o. This is not ideal, it's meant to be used if there isn't a
 //! platform-specific backend that can do something more efficient!
+//!
+//! On Emscripten without threads, async i/o is synchronous, as upstream's:
+//! a request is done (and its outcome queued) before the call that starts
+//! it returns, and waiting on a queue doesn't wait (conditions don't, with
+//! `SDL_THREADS_DISABLED`).
 
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
@@ -21,7 +26,15 @@ use std::time::Duration;
 
 use super::{IoStatus, IoStream, IoWhence};
 use crate::error::{Error, Result};
+#[cfg(not(target_os = "emscripten"))]
 use crate::thread::{InitState, Thread};
+
+// on Emscripten without threads, async i/o is synchronous. Sorry. Almost
+// everything is MEMFS, so it's just a memcpy anyhow, and the Emscripten
+// filesystem APIs don't offer async. In theory, directly accessing
+// persistent storage _does_ offer async APIs at the browser level, but
+// that's not exposed in Emscripten's filesystem abstraction.
+// (SDL_ASYNCIO_USE_THREADPOOL is `not(target_os = "emscripten")`.)
 
 /// Types of asynchronous I/O tasks. Translation of `SDL_AsyncIOTaskType`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -95,6 +108,7 @@ trait ErasedTask: Send {
     /// `SynchronousIO()`.
     fn run(self: Box<Self>);
     /// Mark the task canceled and complete it.
+    #[cfg_attr(target_os = "emscripten", allow(dead_code))]
     fn cancel(self: Box<Self>);
     /// The `tasks_inflight` counter of the task's queue.
     fn inflight(&self) -> &AtomicI32;
@@ -212,6 +226,7 @@ fn async_io_task_complete<U>(task: AsyncIoTask<U>) {
 
 /// Translation of `SynchronousIO()`: synchronous i/o is offloaded onto the
 /// threadpool. This function does the threaded work.
+/// This is called directly, without a threadpool, if `!SDL_ASYNCIO_USE_THREADPOOL`.
 fn synchronous_io<U>(mut task: AsyncIoTask<U>) {
     crate::sdl_assert!(task.result != AsyncIoResult::Canceled); // shouldn't have gotten in here if canceled!
 
@@ -277,6 +292,7 @@ fn synchronous_io<U>(mut task: AsyncIoTask<U>) {
     async_io_task_complete(task);
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of the generic backend's threadpool globals.
 struct Threadpool {
     stop_threadpool: bool,
@@ -287,7 +303,9 @@ struct Threadpool {
     threadpool_threads_spun: i32,
 }
 
+#[cfg(not(target_os = "emscripten"))]
 static THREADPOOL_INIT: InitState = InitState::new();
+#[cfg(not(target_os = "emscripten"))]
 static THREADPOOL_LOCK: Mutex<Threadpool> = Mutex::new(Threadpool {
     stop_threadpool: false,
     threadpool_tasks: Vec::new(),
@@ -296,8 +314,10 @@ static THREADPOOL_LOCK: Mutex<Threadpool> = Mutex::new(Threadpool {
     idle_threadpool_threads: 0,
     threadpool_threads_spun: 0,
 });
+#[cfg(not(target_os = "emscripten"))]
 static THREADPOOL_CONDITION: Condvar = Condvar::new();
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `AsyncIOThreadpoolWorker()`.
 fn async_io_threadpool_worker() -> i32 {
     let mut pool = lock(&THREADPOOL_LOCK);
@@ -341,6 +361,7 @@ fn async_io_threadpool_worker() -> i32 {
     0
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `MaybeSpinNewWorkerThread()`.
 fn maybe_spin_new_worker_thread(pool: &mut Threadpool) -> bool {
     // if all existing threads are busy and the pool of threads isn't maxed out, make a new one.
@@ -348,8 +369,6 @@ fn maybe_spin_new_worker_thread(pool: &mut Threadpool) -> bool {
         && pool.running_threadpool_threads < pool.max_threadpool_threads
     {
         let threadname = format!("SDLasyncio{}", pool.threadpool_threads_spun);
-        // (Without threads, on Emscripten, this fails until the Emscripten
-        // port's PR 4 translates the synchronous path.)
         let Ok(thread) = Thread::spawn(threadname, async_io_threadpool_worker) else {
             return false;
         };
@@ -360,6 +379,7 @@ fn maybe_spin_new_worker_thread(pool: &mut Threadpool) -> bool {
     true
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `QueueAsyncIOTask()`.
 fn queue_async_io_task(task: Box<dyn ErasedTask>) {
     let mut pool = lock(&THREADPOOL_LOCK);
@@ -380,6 +400,7 @@ fn queue_async_io_task(task: Box<dyn ErasedTask>) {
     }
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `PrepareThreadpool()`.
 ///
 /// We don't initialize async i/o at all until it's used, so
@@ -404,6 +425,7 @@ fn prepare_threadpool() -> Result<()> {
     }
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `ShutdownThreadpool()`.
 fn shutdown_threadpool() {
     if THREADPOOL_INIT.should_quit() {
@@ -434,6 +456,36 @@ fn shutdown_threadpool() {
         pool.stop_threadpool = false;
         drop(pool);
         THREADPOOL_INIT.set_initialized(false);
+    }
+}
+
+/// Translation of `generic_asyncioqueue_queue_task()`: the threadpool
+/// takes the task, or without one it's done now. (It can't fail.)
+fn generic_asyncioqueue_queue_task(task: Box<dyn ErasedTask>) {
+    #[cfg(not(target_os = "emscripten"))]
+    queue_async_io_task(task);
+    #[cfg(target_os = "emscripten")]
+    task.run(); // oh well. Get a better platform.
+}
+
+/// `SDL_WaitConditionTimeout()` on a queue's condition: without threads
+/// (`SDL_THREADS_DISABLED`), it returns at once, as the generic backend's.
+fn wait_condition<'a, T>(
+    condition: &Condvar,
+    guard: MutexGuard<'a, T>,
+    timeout: Option<Duration>,
+) -> MutexGuard<'a, T> {
+    if crate::thread::THREADS_DISABLED {
+        return guard;
+    }
+    match timeout {
+        None => condition.wait(guard).unwrap_or_else(|e| e.into_inner()),
+        Some(t) => {
+            condition
+                .wait_timeout(guard, t)
+                .unwrap_or_else(|e| e.into_inner())
+                .0
+        }
     }
 }
 
@@ -488,6 +540,7 @@ impl AsyncIo {
         };
 
         // SDL_SYS_AsyncIOFromFile_Generic()
+        #[cfg(not(target_os = "emscripten"))]
         prepare_threadpool()?;
         let io = IoStream::from_file(file, binary_mode)?;
 
@@ -549,7 +602,7 @@ impl AsyncIo {
 
         // generic_asyncio_io() -> generic_asyncioqueue_queue_task(), which
         // always succeeds.
-        queue_async_io_task(Box::new(task));
+        generic_asyncioqueue_queue_task(Box::new(task));
         Ok(())
     }
 
@@ -648,7 +701,7 @@ impl AsyncIo {
             state.closing = Closing::Queued;
             state.tasks += 1;
             queue.inner.tasks_inflight.fetch_add(1, Ordering::AcqRel);
-            queue_async_io_task(task);
+            generic_asyncioqueue_queue_task(task);
         } else {
             state.closing = Closing::Pending(task);
         }
@@ -675,7 +728,7 @@ fn get_async_io_task_outcome<U>(task: AsyncIoTask<U>) -> Option<AsyncIoOutcome<U
                 state.tasks += 1;
                 closing.inflight().fetch_add(1, Ordering::AcqRel);
                 // (the generic backend's queue_task cannot fail)
-                queue_async_io_task(closing);
+                generic_asyncioqueue_queue_task(closing);
             }
         }
     }
@@ -710,6 +763,7 @@ impl<U: Send + 'static> AsyncIoQueue<U> {
     /// can be checked for completed tasks thereafter.
     pub fn new() -> Result<AsyncIoQueue<U>> {
         // SDL_SYS_CreateAsyncIOQueue_Generic()
+        #[cfg(not(target_os = "emscripten"))]
         prepare_threadpool()?;
         Ok(AsyncIoQueue {
             inner: Arc::new(QueueInner {
@@ -757,18 +811,7 @@ impl<U: Send + 'static> AsyncIoQueue<U> {
         let data = &self.inner;
         let mut completed = lock(&data.completed);
         if completed.is_empty() {
-            completed = match timeout {
-                None => data
-                    .condition
-                    .wait(completed)
-                    .unwrap_or_else(|e| e.into_inner()),
-                Some(t) => {
-                    data.condition
-                        .wait_timeout(completed, t)
-                        .unwrap_or_else(|e| e.into_inner())
-                        .0
-                }
-            };
+            completed = wait_condition(&data.condition, completed, timeout);
         }
         completed.pop()
     }
@@ -785,7 +828,7 @@ impl<U: Send + 'static> AsyncIoQueue<U> {
     /// caller should take measures to make sure any previously-blocked
     /// threads have returned from their wait and will not touch the queue
     /// again (perhaps by setting a flag to tell the threads to terminate and
-    /// then using [`Thread::wait`] to make sure they've done so).
+    /// then using [`Thread::wait`](crate::thread::Thread::wait) to make sure they've done so).
     pub fn signal(&self) {
         let _completed = lock(&self.inner.completed);
         self.inner.condition.notify_all();
@@ -800,11 +843,7 @@ impl<U> Drop for AsyncIoQueue<U> {
             let task = {
                 let mut completed = lock(&self.inner.completed);
                 if completed.is_empty() {
-                    completed = self
-                        .inner
-                        .condition
-                        .wait(completed)
-                        .unwrap_or_else(|e| e.into_inner());
+                    completed = wait_condition(&self.inner.condition, completed, None);
                 }
                 completed.pop()
             };
@@ -818,6 +857,7 @@ impl<U> Drop for AsyncIoQueue<U> {
 
 /// Translation of `SDL_QuitAsyncIO()`.
 pub(crate) fn quit_async_io() {
+    #[cfg(not(target_os = "emscripten"))]
     shutdown_threadpool();
 }
 
@@ -870,10 +910,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(
-        target_os = "emscripten",
-        ignore = "threads (SDL_THREADS_DISABLED): the async I/O thread"
-    )]
     fn read_write_close() {
         let _l = guard();
         let tmp = TempDir::new("asyncio");
@@ -943,10 +979,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(
-        target_os = "emscripten",
-        ignore = "threads (SDL_THREADS_DISABLED): the async I/O thread"
-    )]
     fn load_file_and_signal() {
         let _l = guard();
         let tmp = TempDir::new("asyncio-load");
@@ -962,7 +994,12 @@ mod tests {
         // The internal close task is never reported.
         assert!(queue.wait_result(Some(Duration::from_millis(50))).is_none());
         assert!(load_file_async(&tmp.path("missing"), &queue, 0).is_err());
+    }
 
+    #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
+    fn signal_wakes_a_waiter() {
+        let _l = guard();
         // signal() wakes a waiter with nothing to report.
         let queue = Arc::new(AsyncIoQueue::<()>::new().unwrap());
         let q2 = queue.clone();
@@ -975,10 +1012,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(
-        target_os = "emscripten",
-        ignore = "threads (SDL_THREADS_DISABLED): the async I/O thread"
-    )]
     fn dropping_queue_waits_for_tasks() {
         let _l = guard();
         let tmp = TempDir::new("asyncio-drop");
@@ -996,5 +1029,31 @@ mod tests {
             std::fs::read(&path).unwrap(),
             b"aaaabbbbccccddddeeeeffffgggghhhh"
         );
+    }
+
+    /// Without threads every request is done before the call that starts
+    /// it returns, and waiting doesn't wait (upstream's
+    /// `!SDL_ASYNCIO_USE_THREADPOOL`).
+    #[test]
+    #[cfg(target_os = "emscripten")]
+    fn synchronous_without_threads() {
+        let _l = guard();
+        let tmp = TempDir::new("asyncio-sync");
+        let path = tmp.path("s.bin");
+        let queue: AsyncIoQueue<u8> = AsyncIoQueue::new().unwrap();
+        let start = std::time::Instant::now();
+        assert!(queue.wait_result(None).is_none());
+        assert!(queue.wait_result(Some(Duration::from_secs(5))).is_none());
+        assert!(start.elapsed() < Duration::from_secs(1));
+        let io = AsyncIo::from_file(&path, "w+").unwrap();
+        io.write(b"sync".to_vec(), 0, &queue, 1).unwrap();
+        let out = queue.get_result().expect("done already");
+        assert_eq!((out.userdata, out.result), (1, AsyncIoResult::Complete));
+        io.read(vec![0; 4], 0, &queue, 2).unwrap();
+        assert_eq!(queue.get_result().unwrap().buffer, b"sync");
+        io.close(false, &queue, 3).unwrap();
+        assert_eq!(queue.get_result().unwrap().kind, AsyncIoTaskType::Close);
+        queue.signal();
+        assert!(queue.get_result().is_none());
     }
 }
