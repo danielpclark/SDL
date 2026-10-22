@@ -192,7 +192,7 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
-#[cfg(not(any(windows, target_os = "macos")))] // (direct3d11 and metal come first there: see their tests)
+#[cfg(not(any(windows, target_os = "macos", target_os = "emscripten")))] // (direct3d11 and metal come first there: see their tests; Emscripten's below)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     assert_eq!(num_render_drivers(), 5);
@@ -204,7 +204,22 @@ fn driver_list_follows_upstreams_order() {
     assert!(render_driver(5).is_err());
 }
 
+/// Upstream's Emscripten build has the OpenGL ES 2 and software renderers.
 #[test]
+#[cfg(target_os = "emscripten")]
+fn emscripten_driver_list_follows_upstreams_order() {
+    use crate::render::{num_render_drivers, render_driver};
+    assert_eq!(num_render_drivers(), 2);
+    assert_eq!(render_driver(0).unwrap(), "opengles2");
+    assert_eq!(render_driver(1).unwrap(), SOFTWARE_RENDERER);
+    assert!(render_driver(2).is_err());
+}
+
+#[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_renderer_basics() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -319,6 +334,10 @@ fn gles2_renderer_basics() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_matches_software_for_shapes() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -418,6 +437,10 @@ fn gles2_matches_software_for_shapes() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_matches_software_for_textures() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -583,6 +606,10 @@ fn gles2_matches_software_for_textures() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_matches_software_for_targets() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -658,6 +685,10 @@ fn yuv_planes(w: usize, h: usize) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_matches_software_for_yuv() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -801,6 +832,10 @@ fn gles2_matches_software_for_yuv() {
 /// More programs than the cache holds, used in turn (upstream's linked list
 /// cache gets this wrong).
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_program_cache_eviction() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -895,6 +930,10 @@ fn gles2_program_cache_eviction() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_line_methods() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -957,6 +996,10 @@ fn gles2_skips_without_a_gl_driver() {
 /// back through the test's framebuffer, and drawn from, as the software
 /// renderer draws; destroying them leaves the GL textures to the test.
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_textures_from_existing_gl_textures() {
     use crate::render::test_gl::TestGl;
     use crate::render::TextureCreateInfo;
@@ -1144,6 +1187,10 @@ fn gles2_textures_from_existing_gl_textures() {
 /// object, not two (upstream's first one isn't deleted). (The vertex
 /// shader's attempts are the same source, so its first is made to fail.)
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_failed_shader_attempt_is_deleted() {
     use crate::render::test_gl::TestGl;
 
@@ -1177,6 +1224,10 @@ fn gles2_failed_shader_attempt_is_deleted() {
 /// were made (here at an RGB colorspace) leaves no GL texture behind
 /// (upstream's planes leak).
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_failed_yuv_texture_leaves_no_planes() {
     use crate::render::test_gl::TestGl;
 
@@ -1247,6 +1298,10 @@ fn gles3_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
 /// which draw as the OpenGL ES 2.0 ones do but for pixel art, whose texels'
 /// edges are filtered.
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_opengles_300() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1393,6 +1448,10 @@ fn gles2_opengles_300() {
 /// texture still having it, so the draw uses it (upstream's order in
 /// `SDL_SetTexturePalette()`).
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_palette_of_a_texture_destroyed_before_the_flush() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1437,6 +1496,10 @@ fn gles2_palette_of_a_texture_destroyed_before_the_flush() {
 /// (upstream's GLES2_CreatePalette() and GLES2_DestroyPalette() use that
 /// context, see the Note in create_palette()).
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver"
+)]
 fn gles2_palettes_in_their_own_context() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();

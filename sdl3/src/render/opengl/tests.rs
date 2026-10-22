@@ -354,6 +354,10 @@ fn background(r: &mut Renderer) -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn properties_and_formats() {
     let _l = crate::test_support::test_lock();
     for_each_gl(|t| {
@@ -423,6 +427,10 @@ fn properties_and_formats() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn primitives_match_software() {
     let _l = crate::test_support::test_lock();
     for_each_gl(|t| {
@@ -522,6 +530,10 @@ fn primitives_match_software() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn textures_match_software() {
     let _l = crate::test_support::test_lock();
     for_each_gl(|t| {
@@ -774,6 +786,10 @@ fn textures_match_software() {
 /// context is current (upstream's GL_CreatePalette() makes the palette in
 /// that context, see the Note in create_palette()).
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn palette_made_while_another_context_is_current() {
     let _l = crate::test_support::test_lock();
     for_each_gl(|t| {
@@ -815,6 +831,10 @@ fn palette_made_while_another_context_is_current() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn render_targets_and_read_pixels() {
     let _l = crate::test_support::test_lock();
     for_each_gl(|t| {
@@ -897,6 +917,10 @@ fn render_targets_and_read_pixels() {
 /// The window going first: the renderer's calls fail (without touching
 /// GL, whose library may be gone) and it can still be dropped.
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn window_destroyed_first() {
     let _l = crate::test_support::test_lock();
     for_each_gl(|t| {
@@ -915,6 +939,10 @@ fn window_destroyed_first() {
 /// `glGetError()`): an external texture of the wrong target can't be
 /// bound as a 2D texture.
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn debug_context_reports_errors() {
     let _l = crate::test_support::test_lock();
     for driver in gl_video_drivers() {
@@ -980,6 +1008,10 @@ fn debug_context_reports_errors() {
 /// Generic's OpenGL 1.1): the window is put back as it was, and the
 /// driver list falls back to the next driver.
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn fallback_without_framebuffer_objects() {
     let _l = crate::test_support::test_lock();
     for driver in gl_video_drivers() {
@@ -1024,6 +1056,10 @@ fn fallback_without_framebuffer_objects() {
 /// back through the test's framebuffer, and drawn from, as the software
 /// renderer draws; destroying them leaves the GL textures to the test.
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no OpenGL renderer in the Emscripten build"
+)]
 fn textures_from_existing_gl_textures() {
     use crate::render::test_gl::TestGl;
 

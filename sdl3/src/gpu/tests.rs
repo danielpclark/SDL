@@ -1192,11 +1192,14 @@ fn no_backend_fails_cleanly() {
     *TEST_BACKENDS.lock().unwrap() = None;
     // (Metal, on Apple platforms, Direct3D 12, on Windows, and Vulkan are
     // the backends translated; none takes SPIR-V on the dummy video
-    // driver, which has no Vulkan surfaces or Metal views, below.)
+    // driver, which has no Vulkan surfaces or Metal views, below. The
+    // Emscripten build has none, as upstream's.)
     let expected: &[&str] = if cfg!(windows) {
         &["direct3d12", "vulkan"]
     } else if cfg!(target_vendor = "apple") {
         &["metal", "vulkan"]
+    } else if cfg!(target_os = "emscripten") {
+        &[]
     } else {
         &["vulkan"]
     };

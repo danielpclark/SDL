@@ -38,7 +38,7 @@ const H: i32 = 48;
 // ---------------------------------------------------------------------------
 
 #[test]
-#[cfg(not(any(windows, target_os = "macos")))] // (direct3d11 and metal come first there: see their tests)
+#[cfg(not(any(windows, target_os = "macos", target_os = "emscripten")))] // (direct3d11 and metal come first there: see their tests; Emscripten has no Vulkan: see the OpenGL ES 2 renderer's)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     // (render_drivers[] in SDL_render.c: ..., GLES2, ..., VULKAN, GPU, SW)
@@ -482,6 +482,7 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_renderer_basics() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -607,6 +608,7 @@ fn vulkan_renderer_basics() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_matches_software_for_shapes() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -720,6 +722,7 @@ fn vulkan_matches_software_for_shapes() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_matches_software_for_textures() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -935,6 +938,7 @@ fn vulkan_matches_software_for_textures() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_matches_software_for_targets() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1038,6 +1042,7 @@ fn yuv_planes(w: usize, h: usize) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_matches_software_for_yuv() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1176,6 +1181,7 @@ fn vulkan_matches_software_for_yuv() {
 /// A descriptor pool that can't be made fails the swapchain's resources
 /// (upstream's goes on with a null pool).
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_fails_without_its_descriptor_pools() {
     unsafe extern "system" fn create_descriptor_pool(
         _: VkDevice,
@@ -1221,6 +1227,7 @@ fn vulkan_fails_without_its_descriptor_pools() {
 /// destroyed, and a device reset doesn't take another (upstream's is never
 /// released).
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_releases_the_loader() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1253,6 +1260,7 @@ fn vulkan_releases_the_loader() {
 /// After a device loss, a palette the front end keeps draws with its
 /// colors on the new device (upstream's images are the lost device's).
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_palettes_survive_a_device_loss() {
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -1367,6 +1375,7 @@ fn vulkan_palettes_survive_a_device_loss() {
 /// The renderer's own device is made with VK_EXT_4444_formats when the
 /// physical device has it, and its formats are offered only then.
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_4444_formats_with_their_extension() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1388,6 +1397,7 @@ fn vulkan_4444_formats_with_their_extension() {
 /// I0FL and I4FL textures are uploaded and drawn (upstream asks for an
 /// upload buffer of 0 bytes for their 16-bit planes).
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_16_bit_yuv_textures() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1431,6 +1441,7 @@ fn vulkan_16_bit_yuv_textures() {
 /// P010, I0FL and I4FL textures in their default colorspace draw as
 /// BT2020_LIMITED ones (upstream's renderer refuses them).
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_hdr10_yuv_textures() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -1441,6 +1452,7 @@ fn vulkan_hdr10_yuv_textures() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_line_methods() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
@@ -2186,6 +2198,7 @@ impl Drop for AppVulkan {
 /// application, or drawn into as targets) and leaves them all to the
 /// application; with no validation error.
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no Vulkan in the Emscripten build")]
 fn vulkan_renderer_on_existing_vulkan_objects() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
