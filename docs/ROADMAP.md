@@ -87,10 +87,19 @@ dependencies, a registry through which JavaScript calls Rust functions
 by name whatever the application exports, and the `emscripten.h`/`html5.h`
 declarations, their layouts checked against emcc's; with `SDL.c`'s
 `Module['SDL3']` and `SDL_ExitProcess()`, and `SDL_malloc.c`'s and
-`SDL_utils.c`'s JavaScript-callable functions. Next: timers and the main
-loop, the filesystem, power, locale, URL and sensor backends, then the
-canvas video driver and its events, WebGL, Web Audio, the Gamepad API and
-the camera. Until each lands, the dummy (or generic) one stands in.
+`SDL_utils.c`'s JavaScript-callable functions. The runtime is **done**:
+the timers on the browser's event loop (`emscripten_set_timeout()`) and
+`emscripten_sleep()` delays with Asyncify (`SDL_timer.c`,
+`timer/unix`), the main callbacks on `emscripten_set_main_loop()` with
+the rate hint and `waitevent`, `SDL_RunApp()`'s URL parameters and its
+optional IndexedDB storage (the `emscripten-persistent-path` feature)
+(`main/emscripten/`), synchronous async I/O without threads
+(`SDL_asyncio_generic.c`) and the assertion's `window.prompt()`
+(`SDL_assert.c`); tested under node by a program of its own against
+upstream's C traces. Next: the filesystem, power, locale, URL and sensor
+backends, then the canvas video driver and its events, WebGL, Web Audio,
+the Gamepad API and the camera. Until each lands, the dummy (or generic)
+one stands in.
 
 ## Phase 5 — Satellite libraries (same approach, each its own crate)
 

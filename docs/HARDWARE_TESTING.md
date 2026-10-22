@@ -355,7 +355,7 @@ by path, as TiMidity's configurations; another crate's test data; the
 checks that the embedded lists match the directories) is ignored there,
 "host file system". The build is upstream's Emscripten configuration,
 without threads, so the tests that need a thread (an audio device's, the
-camera's, a timer's), a process, sockets, an executable name, or a
+camera's), a process, sockets, an executable name, or a
 renderer or GPU backend the build doesn't have are `#[ignore]`d on
 Emscripten with the reason, which the test run prints. Where
 SDL has no SIMD blitters, as on wasm32, sdl3-image's reference results
@@ -376,6 +376,35 @@ is, which replaces the functions rustc would export. The crate's own
 build (`cargo test -p sdl3-emscripten --release --target
 wasm32-unknown-emscripten`), where thin LTO and emcc's `-O3` change what
 the program holds.
+
+The main callbacks and the timers of the Emscripten build run from the
+browser's event loop (node's), after `main` has returned to it, and the
+main loop ends the program with `exit()`: a test can't wait for them, so
+the tests that need a timer to fire stay ignored there ("the timers fire
+from the event loop"), and `sdl3/tests/emscripten_main.rs` is a program
+of its own (`harness = false`) that is an application: `run_app()`, then
+`enter_app_main_callbacks()`. It checks the iterations (eight, at the 60
+Hz `setTimeout()` emscripten stands in for `requestAnimationFrame()`
+under node; every 50 ms with `SDL_HINT_MAIN_CALLBACK_RATE` at 20; only
+after events with `waitevent`), the timers' order, intervals and
+cancellation, and the exit statuses, running the scenarios that end
+otherwise (a failure, an init failure, a timer still pending at the end,
+`exit()` from a timer, and upstream's JavaScript without a `window`: the
+URL parameters and a failed assertion's prompt) as child programs, itself
+again through node's `child_process`. The expected traces are upstream's
+C SDL's, built with emcc and run under node the same way. Upstream's
+`SDL_RunApp()` reads the page's URL from `window.location`, which node
+doesn't have, so the program sets one up first, as a page would have it.
+The persistent storage of `SDL_RunApp()` (the `emscripten-persistent-path`
+feature, IndexedDB) has a program of its own that needs the feature and
+the path, `SDL_EMSCRIPTEN_PERSISTENT_PATH=/persistent cargo test -p sdl3
+--target wasm32-unknown-emscripten --features emscripten-persistent-path
+--test emscripten_persistent_path` (node has no IndexedDB: it checks the
+mount and upstream's warning). A program linked with `-sASYNCIFY` sleeps
+in `delay()` with `emscripten_sleep()`, back in the event loop; the test
+programs aren't (Cargo has no link options per test), so theirs wait
+busily, and asynchronous I/O is synchronous, as upstream's without
+threads.
 
 ## CI
 
