@@ -244,6 +244,18 @@ pub(crate) mod test_support {
             "CoreAudio with default playback and recording devices",
         ),
         ("metal", "a Metal device (MTLCreateSystemDefaultDevice)"),
+        (
+            "browser",
+            "a browser running the Emscripten program (headless Chromium through tools/emscripten_run.py)",
+        ),
+        (
+            "webgl",
+            "WebGL contexts in that browser (SwiftShader without a GPU)",
+        ),
+        (
+            "webaudio",
+            "a running Web Audio AudioContext in that browser",
+        ),
     ];
 
     /// Whether `SDL3_TEST_REQUIRE` (`all`, or a comma-separated list of
