@@ -210,9 +210,11 @@ upstream's Emscripten build is (no threads; the dummy process, haptic,
 dialog, tray and notification backends; the OpenGL ES 2 and software
 renderers; SDL_net's stub library): `cargo check --target
 wasm32-unknown-emscripten` needs no emcc, and with emsdk the tests run
-under node (`cargo test --workspace --target wasm32-unknown-emscripten`;
-see "Emscripten" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md)
-for the setup and what is ignored there). Loading shared objects at run
+under node (`cargo test --workspace --target wasm32-unknown-emscripten`,
+through `tools/emscripten_run.py`, which runs the browser checks,
+`sdl3/tests/emscripten_browser.rs`, in headless Chromium; see "Emscripten" in
+[docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) for the setup, what
+is ignored there, and the browser checks). Loading shared objects at run
 time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. The
 JavaScript SDL needs there (upstream's `EM_JS`/`EM_ASM` blocks, the
 `html5.h` API) is written in Rust too, with no `.js` file, in the internal
