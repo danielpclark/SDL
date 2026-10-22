@@ -326,6 +326,44 @@ draw into transparent windows, whose swap chains aren't rotated. Wine's
 d3d11 can't sample NV12 textures either, so those checks only run on
 Windows.
 
+## Emscripten (under node)
+
+The workspace's tests also run built for `wasm32-unknown-emscripten`,
+under node, which `.cargo/config.toml` makes the runner (with the link
+options the test programs need: growable memory up to 4 GB, an 8 MB
+stack, node's environment for `SDL3_TEST_REQUIRE` and the hints). That
+needs emsdk 6.0.13 (the version CI pins) and node 22 or newer:
+
+```sh
+rustup target add wasm32-unknown-emscripten
+git clone https://github.com/emscripten-core/emsdk && cd emsdk
+./emsdk install 6.0.13 && ./emsdk activate 6.0.13 && . ./emsdk_env.sh
+cd -
+CARGO_PROFILE_DEV_OPT_LEVEL=1 cargo test --workspace --target wasm32-unknown-emscripten
+```
+
+Unoptimized test programs run too (no function nears V8's limits of about
+50,000 locals and 7.6 MB of code), but five or six times slower;
+`CARGO_PROFILE_DEV_OPT_LEVEL=1` (as CI sets it) keeps the debug assertions
+and overflow checks. `CARGO_PROFILE_DEV_DEBUG=line-tables-only` makes
+the programs much smaller.
+
+The programs see emscripten's in-memory file system (MEMFS), not the
+host's, so they stay usable in a browser: test data is embedded with
+`include_bytes!`, and what needs the host's files (a directory tree read
+by path, as TiMidity's configurations; another crate's test data; the
+checks that the embedded lists match the directories) is ignored there,
+"host file system". The build is upstream's Emscripten configuration,
+without threads, so the tests that need a thread (an audio device's, the
+camera's, a timer's), a process, sockets, an executable name, or a
+renderer or GPU backend the build doesn't have are `#[ignore]`d on
+Emscripten with the reason, which the test run prints. Where
+SDL has no SIMD blitters, as on wasm32, sdl3-image's reference results
+of the frames composited with them are upstream's without them
+(`sdl3-image/src/testdata/reference_nosimd.txt`). The skip log, which
+the programs would write in their own file system, is made in CI from
+the notes they print (`RUST_TEST_NOCAPTURE=1`).
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
@@ -348,5 +386,7 @@ check on Windows, those render-state checks on macOS, and the OpenGL and
 OpenGL ES 2 renderers' checks on the offscreen driver, which has no EGL
 on either. What else a hosted runner offers (audio endpoints, GameInput,
 a camera) isn't guaranteed, so nothing more is required. The
-macOS clippy job also lints the x86-64 build for Intel Macs. Every job
-lists its skips in the job summary.
+macOS clippy job also lints the x86-64 build for Intel Macs. The
+Emscripten job runs the tests under node as [above](#emscripten-under-node),
+with emsdk and emcc's sysroot libraries cached. Every job lists its skips
+in the job summary (`tools/ci/list-skips.sh`).

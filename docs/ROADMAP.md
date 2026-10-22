@@ -77,8 +77,9 @@ process, haptic, dialog, tray and notification backends; no HIDAPI,
 Vulkan or GPU backend; the OpenGL ES 2 and software renderers; and
 SDL_net's stub library (`SDL_net_stub_only.c`). The shared-object
 loader is the dlopen one, which loads only in a program linked with
-`-sMAIN_MODULE`. The Emscripten backends are in progress: the test
-suite under node, the JavaScript glue, timers and the main loop, the filesystem, power, locale, URL and
+`-sMAIN_MODULE`. The test suite **runs under node** (in CI; what needs
+threads, processes, sockets or the host's files is ignored there). The
+Emscripten backends are in progress: the JavaScript glue, timers and the main loop, the filesystem, power, locale, URL and
 sensor backends, then the canvas video driver and its events, WebGL, Web
 Audio, the Gamepad API and the camera. Until each lands, the dummy (or
 generic) one stands in.
