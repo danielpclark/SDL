@@ -103,6 +103,13 @@ Upstream's `EM_ASM`/`EM_JS` blocks become Rust macros of the internal
   and registered when its subsystem initializes, not exported.
 * The C API (`html5.h`, `emscripten.h`) is in `sdl3_emscripten::sys`;
   add what a backend needs there, with its layout test.
+* A Rust function the event loop calls (a main loop iteration, a
+  timeout) is `extern "C-unwind"`: `exit()` there (C's, or Rust's
+  `std::process::exit()`) ends in a JavaScript exception, `ExitStatus`,
+  that must leave it for the event loop, where a `"C"` function would
+  abort. Without threads, and without Asyncify, nothing blocks: code that
+  upstream runs "later" (timers, the main loop, `FS.syncfs` callbacks)
+  runs only once control is back in the event loop.
 
 ## Testing
 
