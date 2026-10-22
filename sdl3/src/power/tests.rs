@@ -197,6 +197,79 @@ fn power_info_is_consistent() {
     assert_ne!(info.state, PowerState::Unknown);
 }
 
+/// The Battery Status API, stubbed: a `navigator.getBattery()` whose
+/// promise is a thenable that answers at once (a real one would answer
+/// from the event loop, after the test), with a battery whose state the
+/// test sets. The results are what upstream's C reports for the same
+/// stub, built with emcc and run under node, with its `-1`s as `None` (and
+/// one negative time, `-5` upstream, which `PowerInfo` can't hold).
+#[cfg(target_os = "emscripten")]
+#[test]
+fn emscripten_battery_matches_upstream() {
+    use sdl3_emscripten::em_asm;
+    use PowerState::*;
+    let _l = crate::test_support::test_lock();
+    // (node has no Battery Status API)
+    assert_eq!(power_info().state, Unknown);
+
+    // SAFETY: plain JavaScript.
+    unsafe {
+        em_asm!(
+            r#"
+            Module['sdl3_test_battery'] = { level: 1, charging: true, chargingTime: 0, dischargingTime: Infinity };
+            navigator.getBattery = () => ({ then: (f) => f(Module['sdl3_test_battery']) });
+        "#
+        )
+    };
+    let info = || {
+        let i = power_info();
+        (i.state, i.time_left.map(|t| t.as_secs()), i.percent)
+    };
+    // The first call has no data yet (upstream's uninitialized structure).
+    assert_eq!(info(), (OnBattery, Some(0), Some(0)));
+    let inf = f64::INFINITY;
+    // (INT_MAX: Infinity, or past it)
+    const MAX: u64 = i32::MAX as u64;
+    type Battery = (f64, bool, f64, f64);
+    let cases: [(Battery, _); 10] = [
+        // level, charging, chargingTime, dischargingTime
+        ((1.0, true, 0.0, inf), (NoBattery, None, None)),
+        ((0.5, false, inf, 3600.0), (OnBattery, Some(3600), Some(0))),
+        ((0.5, true, 1800.0, inf), (Charging, Some(MAX), Some(0))),
+        ((0.8, true, 0.0, inf), (Charged, Some(MAX), Some(0))),
+        ((1.0, true, 0.0, 120.0), (NoBattery, None, None)),
+        ((1.0, false, 0.0, 0.0), (OnBattery, Some(0), Some(100))),
+        (
+            (0.999, false, inf, 7200.9),
+            (OnBattery, Some(7200), Some(0)),
+        ),
+        ((0.25, false, inf, f64::NAN), (OnBattery, Some(0), Some(0))),
+        ((0.25, false, inf, 1e12), (OnBattery, Some(MAX), Some(0))),
+        ((0.25, false, inf, -5.0), (OnBattery, None, Some(0))),
+    ];
+    for ((level, charging, charging_time, discharging_time), expected) in cases {
+        // SAFETY: plain JavaScript.
+        unsafe {
+            em_asm!(
+                "Object.assign(Module['sdl3_test_battery'], { level: $0, charging: !!$1, chargingTime: $2, dischargingTime: $3 });",
+                level,
+                charging,
+                charging_time,
+                discharging_time
+            )
+        };
+        assert_eq!(
+            info(),
+            expected,
+            "{level} {charging} {charging_time} {discharging_time}"
+        );
+    }
+
+    // SAFETY: plain JavaScript.
+    unsafe { em_asm!("delete navigator.getBattery;") };
+    assert_eq!(info(), (Unknown, None, None));
+}
+
 #[cfg(windows)]
 #[test]
 fn windows_power_status() {
