@@ -355,6 +355,16 @@ mod emscripten {
             println!("after");
             return 0;
         }
+        if scenario == "openurl" {
+            // open_url() under node as it is: window.open() without a
+            // `window`.
+            // SAFETY: plain JavaScript.
+            unsafe { em_asm!("delete globalThis.window;") };
+            println!("before");
+            let _ = sdl3::misc::open_url("https://libsdl.org/");
+            println!("after");
+            return 0;
+        }
         let name = if scenario.is_empty() {
             "success".to_string()
         } else {
@@ -482,6 +492,14 @@ mod emscripten {
                     "Assertion failure at",
                     "ReferenceError: window is not defined",
                 ][..],
+            ),
+            // open_url() without a `window` either: the JavaScript throws,
+            // as upstream's does (its C, built with emcc and run under
+            // node, ends the same way).
+            (
+                "openurl",
+                1,
+                &["before", "ReferenceError: window is not defined"][..],
             ),
         ] {
             let (got, output) = run_child(scenario);

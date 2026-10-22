@@ -1,7 +1,7 @@
 // Rust translation of src/misc/SDL_url.c, SDL_sysurl.h,
 // src/misc/unix/SDL_sysurl.c, src/misc/windows/SDL_sysurl.c,
-// src/misc/macos/SDL_sysurl.m, src/misc/dummy/SDL_sysurl.c and
-// include/SDL3/SDL_misc.h from Simple DirectMedia Layer.
+// src/misc/macos/SDL_sysurl.m, src/misc/emscripten/SDL_sysurl.c,
+// src/misc/dummy/SDL_sysurl.c and include/SDL3/SDL_misc.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -10,7 +10,8 @@
 //! The Unix backend prefers the D-Bus OpenURI portal and falls back to
 //! `xdg-open` (on Unix systems other than Apple's, Android and Haiku); the
 //! Windows backend hands the URL to `ShellExecuteW()`, and the macOS one to
-//! LaunchServices (`LSOpenCFURLRef()`); elsewhere the dummy backend reports
+//! LaunchServices (`LSOpenCFURLRef()`), and the Emscripten one opens it in a
+//! new browser tab (`window.open()`); elsewhere the dummy backend reports
 //! that the operation is unsupported until the platform layer arrives.
 //! Under Wayland, an activation token is passed along so that the browser
 //! may take focus.
@@ -162,11 +163,24 @@ fn sys_open_url(url: &str) -> Result<()> {
     })
 }
 
-// (also Emscripten's, until the Emscripten port's PR 5 translates its
-// window.open() backend)
+/// Translation of `SDL_SYS_OpenURL()` (Emscripten): `window.open(url,
+/// "_blank")`, which a browser may block as a popup without telling: it
+/// always succeeds. Under node, which has no `window`, the JavaScript
+/// throws a ReferenceError that ends the program, as upstream's does.
+#[cfg(target_os = "emscripten")]
+fn sys_open_url(url: &str) -> Result<()> {
+    // (as a C string, up to its first NUL)
+    let url = url.split('\0').next().unwrap_or_default();
+    let url = std::ffi::CString::new(url).unwrap_or_default();
+    // SAFETY: the URL is NUL-terminated.
+    unsafe { sdl3_emscripten::url::sdl3_open_url(url.as_ptr()) };
+    Ok(())
+}
+
 #[cfg(not(any(
     windows,
     target_os = "macos",
+    target_os = "emscripten",
     all(
         unix,
         not(any(
@@ -184,6 +198,50 @@ fn sys_open_url(_url: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    /// A page's `window`, stubbed: `window.open()` records its arguments.
+    /// (Without a `window` the JavaScript throws, which ends the program:
+    /// `tests/emscripten_main.rs` checks that in a program of its own.)
+    #[cfg(target_os = "emscripten")]
+    #[test]
+    fn emscripten_window_open() {
+        use sdl3_emscripten::{em_asm, em_asm_int};
+        let _l = crate::test_support::test_lock();
+        // SAFETY: plain JavaScript.
+        unsafe {
+            em_asm!(
+                r#"
+                Module['sdl3_test_window'] = globalThis.window;
+                Module['sdl3_test_opened'] = [];
+                globalThis.window = { open: (url, target) => { Module['sdl3_test_opened'].push(JSON.stringify([url, target])); return null; } };
+            "#
+            )
+        };
+        super::open_url("https://libsdl.org/?q=\u{e9}").unwrap();
+        super::open_url("").unwrap();
+        super::open_url("a\0b").unwrap();
+        let mut buf = [0u8; 256];
+        // SAFETY: plain JavaScript, writing at most the buffer's length.
+        let len = unsafe {
+            let len = em_asm_int!(
+                r#"
+                var opened = Module['sdl3_test_opened'].join('\n');
+                globalThis.window = Module['sdl3_test_window'];
+                if (window === undefined) delete globalThis.window;
+                delete Module['sdl3_test_window'];
+                delete Module['sdl3_test_opened'];
+                return stringToUTF8(opened, $0, $1);
+            "#,
+                buf.as_mut_ptr(),
+                buf.len() as i32
+            );
+            len as usize
+        };
+        assert_eq!(
+            std::str::from_utf8(&buf[..len]).unwrap(),
+            "[\"https://libsdl.org/?q=\u{e9}\",\"_blank\"]\n[\"\",\"_blank\"]\n[\"a\",\"_blank\"]"
+        );
+    }
+
     /// LaunchServices' answers for URLs no application opens (nothing is
     /// launched): kLSApplicationNotFoundErr, and paramErr for an empty one.
     #[cfg(target_os = "macos")]
