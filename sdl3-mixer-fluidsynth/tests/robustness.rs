@@ -26,7 +26,6 @@
 //! them, rendered bit for bit as upstream's C renders them when it was
 //! checked.
 
-use std::path::Path;
 use std::sync::Arc;
 
 use sdl3_mixer_fluidsynth::*;
@@ -43,13 +42,33 @@ impl Lcg {
     }
 }
 
+/// The files of testdata/ these tests read, embedded: the tests of the
+/// Emscripten build see only their own (in-memory) file system.
+const TESTDATA: &[(&str, &[u8])] = &[
+    ("test.sf2", include_bytes!("../testdata/test.sf2")),
+    (
+        "midi/basic.mid",
+        include_bytes!("../testdata/midi/basic.mid"),
+    ),
+    (
+        "midi/format1.mid",
+        include_bytes!("../testdata/midi/format1.mid"),
+    ),
+    (
+        "midi/sysex.mid",
+        include_bytes!("../testdata/midi/sysex.mid"),
+    ),
+    ("midi/mono.mid", include_bytes!("../testdata/midi/mono.mid")),
+    ("midi/nrpn.mid", include_bytes!("../testdata/midi/nrpn.mid")),
+    ("midi/many.mid", include_bytes!("../testdata/midi/many.mid")),
+];
+
 fn testdata(name: &str) -> Vec<u8> {
-    std::fs::read(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("testdata")
-            .join(name),
-    )
-    .unwrap()
+    let (_, data) = TESTDATA
+        .iter()
+        .find(|&&(n, _)| n == name)
+        .unwrap_or_else(|| panic!("{name} isn't in TESTDATA"));
+    data.to_vec()
 }
 
 /// Flip `flips` random bytes of `data` from `start` on.

@@ -403,6 +403,7 @@ fn run(out: &mut String) {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn matches_upstream() {
     let mut out = String::new();
     run(&mut out);

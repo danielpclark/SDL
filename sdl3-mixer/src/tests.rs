@@ -1704,6 +1704,12 @@ fn setup() {
 }
 
 #[test]
+// (the TIMIDITY decoder starts only with sdl3-mixer-timidity's
+// configuration)
+#[cfg_attr(
+    all(target_os = "emscripten", feature = "timidity"),
+    ignore = "host file system"
+)]
 fn misc_matches_upstream() {
     setup();
     let mut out = String::new();
@@ -1928,6 +1934,7 @@ fn system_soundfont() -> bool {
 /// in the reference's order.
 #[cfg(any(feature = "timidity", feature = "fluidsynth"))]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn midi_matches_upstream() {
     setup();
     let dir = timidity_testdata().join("midi");
@@ -2069,6 +2076,7 @@ fn fstest(out: &mut String, sf2path: &std::path::Path, name: &str, data: &[u8]) 
 /// SoundFont.
 #[cfg(feature = "fluidsynth")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn fluidsynth_matches_upstream() {
     setup();
     let dir = fluidsynth_testdata();
@@ -2331,60 +2339,70 @@ fn gme_files(prefix: &str) {
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_ay_matches_upstream() {
     gme_files("ay_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_gbs_matches_upstream() {
     gme_files("gbs_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_gym_matches_upstream() {
     gme_files("gym_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_hes_matches_upstream() {
     gme_files("hes_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_kss_matches_upstream() {
     gme_files("kss_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_nsf_matches_upstream() {
     gme_files("nsf_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_nsfe_matches_upstream() {
     gme_files("nsfe_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_sap_matches_upstream() {
     gme_files("sap_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_spc_matches_upstream() {
     gme_files("spc_");
 }
 
 #[cfg(feature = "gme")]
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn gme_vgm_matches_upstream() {
     gme_files("vgm_");
 }
