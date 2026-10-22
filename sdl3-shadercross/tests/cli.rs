@@ -36,6 +36,7 @@ fn reference(header: &str) -> String {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "processes")]
 fn json_reflection() {
     let dir = out_dir("json");
     let vs = dir.join("vs.json");
@@ -80,6 +81,7 @@ fn json_reflection() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "processes")]
 fn transpiles() {
     let dir = out_dir("transpile");
     let msl = dir.join("vs.metal");
@@ -125,6 +127,7 @@ fn transpiles() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "processes")]
 fn errors() {
     let dir = out_dir("errors");
     // Missing input.
