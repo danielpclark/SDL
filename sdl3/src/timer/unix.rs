@@ -3,7 +3,8 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The Unix performance counter (`clock_gettime()` on a monotonic clock,
-//! or `gettimeofday()`) and delay (`nanosleep()`).
+//! or `gettimeofday()`) and delay (`nanosleep()`, or on Emscripten
+//! `emscripten_sleep()` when the program is built with Asyncify).
 
 use std::sync::OnceLock;
 
@@ -86,7 +87,26 @@ pub(super) fn get_performance_frequency() -> u64 {
 }
 
 /// Translation of `SDL_SYS_DelayNS()` (Unix, with `nanosleep()`).
+///
+/// On Emscripten, in a program linked with `-sASYNCIFY` (or `-sJSPI`) and
+/// unless `SDL_HINT_EMSCRIPTEN_ASYNCIFY` is false, the delay is an
+/// `emscripten_sleep()`, in whole milliseconds, which returns to the
+/// browser's event loop meanwhile (so timers fire and the page stays
+/// responsive). Otherwise emscripten's `nanosleep()` waits busily.
 pub(super) fn sys_delay_ns(ns: u64) {
+    #[cfg(target_os = "emscripten")]
+    {
+        use sdl3_emscripten::sys;
+        // SAFETY: takes nothing; returns 0 without Asyncify or JSPI.
+        let has_asyncify = unsafe { sys::emscripten_has_asyncify() } != 0;
+        if has_asyncify && crate::hints::get_bool(crate::hints::EMSCRIPTEN_ASYNCIFY, true) {
+            // pseudo-synchronous pause, used directly or through e.g. SDL_WaitEvent
+            // SAFETY: the program is built to unwind and rewind here.
+            unsafe { sys::emscripten_sleep((ns / super::NS_PER_MS) as std::ffi::c_uint) };
+            return;
+        }
+    }
+
     // Set the timeout interval
     let mut remaining = libc::timespec {
         tv_sec: (ns / NS_PER_SECOND as u64) as libc::time_t,

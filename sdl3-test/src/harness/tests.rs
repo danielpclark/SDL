@@ -195,10 +195,6 @@ fn arguments() {
 }
 
 #[test]
-#[cfg_attr(
-    target_os = "emscripten",
-    ignore = "threads (SDL_THREADS_DISABLED): the timer thread"
-)]
 fn pass_fail_skip() {
     let _l = test_lock();
     let capture = Capture::new();
