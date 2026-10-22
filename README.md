@@ -222,9 +222,10 @@ callbacks (`sdl3::app::enter_app_main_callbacks()`, which returns at once)
 and the timers run from the browser's event loop once `main` has
 returned, and the main loop's end ends the program; `run_app()` reads
 `SDL_*` hints from the page's URL, and with the
-`emscripten-persistent-path` feature mounts IndexedDB storage. Its own
-backends (canvas video, Web Audio, the Gamepad API, ...) are in
-progress; until then the dummy drivers stand in. See
+`emscripten-persistent-path` feature mounts IndexedDB storage. Its
+filesystem, power, locale, URL and sensor backends are the browser's;
+the others (canvas video, Web Audio, the Gamepad API, ...) are in
+progress, and until then the dummy drivers stand in. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Tests of the platform backends that need something from the system (an X

@@ -406,6 +406,21 @@ programs aren't (Cargo has no link options per test), so theirs wait
 busily, and asynchronous I/O is synchronous, as upstream's without
 threads.
 
+The small Emscripten backends are tested in the ordinary test programs,
+under node, against upstream's C built with emcc and run there the same
+way: the pref paths made in MEMFS and `$HOME`, node's own
+`navigator.languages`, and the answers without what node lacks (no
+Battery Status API, no `devicemotion` events, no `window`). Where node
+lacks a browser API the test stubs it with a little JavaScript
+(`em_asm!`), so that the rest of the path runs too: lists in
+`navigator.languages`, a `navigator.getBattery()` whose promise answers
+at once, a `window.open()` that records its calls, and a window target
+(emscripten's `specialHTMLTargets[2]`) that the sensor driver registers
+its `devicemotion` handler on and the test dispatches events to.
+`open_url()` without a `window` throws, which ends the program, as
+upstream's does: `emscripten_main.rs` checks that in a child program.
+The same APIs in a real browser are for the headless Chromium tests.
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
