@@ -37,6 +37,8 @@ use crate::timer;
 
 #[cfg(target_os = "emscripten")]
 mod emscripten;
+#[cfg(all(target_os = "emscripten", feature = "emscripten-persistent-path"))]
+pub(crate) use emscripten::PERSISTENT_PATH_STRING;
 
 /// Return values from the main callbacks. Translation of `SDL_AppResult`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
