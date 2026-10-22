@@ -123,7 +123,23 @@ fn main() {
         let p = alloc(layout);
         assert!(!p.is_null());
         let huge = isize::MAX as usize - 4096;
+        // (A 32-bit target can have that much: wasm32's memory grows to
+        // 4 GB. There a block of that size is taken first, from the system
+        // allocator and never written, leaving no room for another.)
+        #[cfg(target_pointer_width = "32")]
+        let reserve = std::alloc::GlobalAlloc::alloc(
+            &std::alloc::System,
+            Layout::from_size_align(huge, 1).unwrap(),
+        );
         assert!(std::alloc::realloc(p, layout, huge).is_null());
+        #[cfg(target_pointer_width = "32")]
+        if !reserve.is_null() {
+            std::alloc::GlobalAlloc::dealloc(
+                &std::alloc::System,
+                reserve,
+                Layout::from_size_align(huge, 1).unwrap(),
+            );
+        }
         let message = logged(&lines, memory::log_allocations);
         assert!(message.contains(": 1234 bytes"), "{message}");
         let unknown_frees = |message: &str| {
