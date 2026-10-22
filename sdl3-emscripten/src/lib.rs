@@ -25,7 +25,8 @@
 //! * [`sys`]: the C functions, structures and constants of `emscripten.h`,
 //!   `html5.h` and `html5_webgl.h` that SDL uses;
 //! * the JavaScript of SDL's own sources, one module per upstream file
-//!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`).
+//!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`,
+//!   [`runapp`] for `main/emscripten/SDL_sysmain_runapp.c`).
 //!
 //! ## Why a crate of its own
 //!
@@ -63,6 +64,8 @@ mod deps;
 pub mod js;
 #[cfg(target_os = "emscripten")]
 mod registry;
+#[cfg(target_os = "emscripten")]
+pub mod runapp;
 #[cfg(target_os = "emscripten")]
 pub mod sdl;
 #[cfg(target_os = "emscripten")]

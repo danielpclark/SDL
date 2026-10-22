@@ -1,6 +1,7 @@
 // Rust translation of src/main/SDL_main_callbacks.c, SDL_main_callbacks.h,
 // SDL_runapp.c, src/main/generic/SDL_sysmain_callbacks.c and
-// include/SDL3/SDL_main.h from Simple DirectMedia Layer.
+// include/SDL3/SDL_main.h from Simple DirectMedia Layer (the Emscripten
+// ones are in emscripten.rs).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -11,20 +12,31 @@
 //!
 //! This is upstream's `src/main/` (the module is named `app` because
 //! `main` is reserved for binaries) in its generic implementation, used on
-//! desktop platforms; the platforms that need their own main loop (iOS,
-//! Emscripten, consoles) arrive with their platform layers.
+//! desktop platforms, and in Emscripten's, where the browser runs the main
+//! loop: there [`enter_app_main_callbacks`] returns at once and the program
+//! ends after [`AppCallbacks::quit`], and [`run_app`] reads hints from the
+//! page's URL first. The other platforms that need their own main loop
+//! (iOS, consoles) arrive with their platform layers.
 
 use std::cell::RefCell;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, Ordering};
+#[cfg(not(target_os = "emscripten"))]
+use std::sync::atomic::{AtomicBool, AtomicU64};
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(not(target_os = "emscripten"))]
 use std::time::Duration;
 
 use crate::events::queue::{self, EventWatch};
 use crate::events::{Event, EventType};
+#[cfg(not(target_os = "emscripten"))]
 use crate::hints;
 use crate::init::{self, InitFlags};
 use crate::thread::ReentrantMutex;
+#[cfg(not(target_os = "emscripten"))]
 use crate::timer;
+
+#[cfg(target_os = "emscripten")]
+mod emscripten;
 
 /// Return values from the main callbacks. Translation of `SDL_AppResult`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -250,13 +262,17 @@ fn quit_main_callbacks(result: AppResult) {
     init::quit();
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `callback_rate_increment` (ns).
 static CALLBACK_RATE_INCREMENT: AtomicU64 = AtomicU64::new(0);
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `iterate_after_waitevent`.
 static ITERATE_AFTER_WAITEVENT: AtomicBool = AtomicBool::new(false);
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `callback_rate_changed`.
 static CALLBACK_RATE_CHANGED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `MainCallbackRateHintChanged()`.
 fn main_callback_rate_hint_changed(new_value: Option<&str>) {
     CALLBACK_RATE_CHANGED.store(true, Ordering::Relaxed);
@@ -277,6 +293,7 @@ fn main_callback_rate_hint_changed(new_value: Option<&str>) {
     }
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `GenericIterateMainCallbacks()`.
 fn generic_iterate_main_callbacks() -> AppResult {
     let mut should_wait = ITERATE_AFTER_WAITEVENT.load(Ordering::Relaxed);
@@ -305,7 +322,32 @@ fn generic_iterate_main_callbacks() -> AppResult {
 /// [`AppCallbacks::quit`] and shuts down. Returns the process exit code
 /// (1 for [`AppResult::Failure`], else 0). `SDL_HINT_MAIN_CALLBACK_RATE`
 /// limits the iteration rate. Translation of `SDL_EnterAppMainCallbacks()`.
+///
+/// On Emscripten the browser runs the loop: this returns as soon as it's
+/// set up (0, or 1 if `appinit` failed, after [`AppCallbacks::quit`]), the
+/// program's `main` must then return (or `exit()`) to the browser's event
+/// loop, which calls the iterations, and when they end SDL quits and calls
+/// `exit()` with 0 or 1 (1 for [`AppResult::Failure`]). The rate hint is in
+/// whole milliseconds per iteration there; without it, or with `"waitevent"`,
+/// the iterations follow `requestAnimationFrame()`. Translation of
+/// `SDL_EnterAppMainCallbacks()` in `SDL_sysmain_callbacks.c` (Emscripten).
 pub fn enter_app_main_callbacks<A: AppCallbacks>(
+    args: &[String],
+    appinit: impl FnOnce(&[String]) -> (A, AppResult),
+) -> i32 {
+    #[cfg(target_os = "emscripten")]
+    {
+        emscripten::enter_app_main_callbacks(args, appinit)
+    }
+    #[cfg(not(target_os = "emscripten"))]
+    {
+        generic_enter_app_main_callbacks(args, appinit)
+    }
+}
+
+/// Translation of the generic `SDL_EnterAppMainCallbacks()`.
+#[cfg(not(target_os = "emscripten"))]
+fn generic_enter_app_main_callbacks<A: AppCallbacks>(
     args: &[String],
     appinit: impl FnOnce(&[String]) -> (A, AppResult),
 ) -> i32 {
@@ -375,18 +417,57 @@ fn check_default_args(args: Vec<String>) -> Vec<String> {
     args
 }
 
-/// Initialize SDL's main thread state and call the application's main
-/// function with the program's arguments. Translation of `SDL_RunApp()`
-/// (via `SDL_CallMainFunction()`).
-pub fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
+/// Translation of `SDL_CallMainFunction()`.
+fn call_main_function(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
     let args = check_default_args(std::env::args().collect());
     init::set_main_ready();
     main_function(&args)
 }
 
+/// Initialize SDL's main thread state and call the application's main
+/// function with the program's arguments. Translation of `SDL_RunApp()`
+/// (via `SDL_CallMainFunction()`).
+///
+/// On Emscripten, upstream's `SDL_RunApp()` first moves the page's URL
+/// parameters whose names start with `SDL_` into the environment (so
+/// `?SDL_RENDER_DRIVER=software` sets a hint), with JavaScript that reads
+/// `window.location`: under node, which has no `window`, that throws (a
+/// `ReferenceError` that ends the program), as upstream's does. With the
+/// `emscripten-persistent-path` feature (see `sdl3/Cargo.toml`), the main
+/// function needs a `'static` bound: it runs later, from the event loop.
+#[cfg(not(all(target_os = "emscripten", feature = "emscripten-persistent-path")))]
+pub fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
+    #[cfg(target_os = "emscripten")]
+    {
+        emscripten::run_app(main_function)
+    }
+    #[cfg(not(target_os = "emscripten"))]
+    {
+        call_main_function(main_function)
+    }
+}
+
+/// Initialize SDL's main thread state and call the application's main
+/// function with the program's arguments. Translation of `SDL_RunApp()`
+/// on Emscripten with `SDL_EMSCRIPTEN_PERSISTENT_PATH` (the
+/// `emscripten-persistent-path` feature): the page's `SDL_*` URL parameters
+/// become environment variables, then IndexedDB storage is mounted at the
+/// path the `SDL_EMSCRIPTEN_PERSISTENT_PATH` environment variable named when
+/// this crate was built, and once it's loaded (asynchronously, in a browser)
+/// the main function runs, from the event loop. This never returns: it
+/// leaves `main` to the event loop with the runtime kept alive
+/// (`emscripten_exit_with_live_runtime()`), and the main function's result
+/// is not the program's exit status, as upstream's isn't.
+#[cfg(all(target_os = "emscripten", feature = "emscripten-persistent-path"))]
+pub fn run_app(main_function: impl FnOnce(&[String]) -> i32 + 'static) -> i32 {
+    emscripten::run_app(main_function)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(target_os = "emscripten")]
+    use std::time::Duration;
 
     struct Counter {
         iterations: u32,
@@ -423,6 +504,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "the main loop runs from the event loop (tests/emscripten_main.rs)"
+    )]
     fn main_callbacks_loop() {
         let _l = crate::test_support::test_lock();
         init::set_main_ready();
@@ -452,8 +537,12 @@ mod tests {
             1
         );
         assert!(!has_main_callbacks());
+    }
 
-        // An init failure goes straight to quit
+    #[test]
+    fn init_failure_goes_straight_to_quit() {
+        let _l = crate::test_support::test_lock();
+        init::set_main_ready();
         let quit_with = Arc::new(Mutex::new(None));
         let q = quit_with.clone();
         let code = enter_app_main_callbacks(&[], move |_| {
@@ -471,6 +560,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "emscripten"))]
     fn rate_hint() {
         main_callback_rate_hint_changed(Some("60"));
         assert_eq!(CALLBACK_RATE_INCREMENT.load(Ordering::Relaxed), 16_666_666);

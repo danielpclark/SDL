@@ -28,6 +28,9 @@ doctest = false
 # The em_js! functions this crate's own tests call (src/testing.rs), which
 # must be in a library: only the tests turn it on.
 testing = []
+# The JavaScript of SDL_RunApp()'s persistent storage, with emscripten's
+# IDBFS library linked (sdl3's `emscripten-persistent-path` feature).
+idbfs = []
 
 [dev-dependencies]
 sdl3-emscripten = { path = ".", features = ["testing"] }
