@@ -1797,8 +1797,14 @@ fn surface_too_large_to_allocate_is_an_error() {
     // 0x1FFFFFFF x 0x7FFFFFFF ARGB8888 pixels: no overflow in the size
     // calculation (2^62 bytes), but no memory either; upstream's
     // SDL_aligned_alloc() returns NULL, and here the allocation fails
-    // without aborting.
-    let e = Surface::new(0x1FFF_FFFF, 0x7FFF_FFFF, PixelFormat::ARGB8888).unwrap_err();
+    // without aborting. (Where size_t is 32 bits, that size overflows:
+    // 0x3FFFFFFF x 1 pixels, 4 GB - 4 bytes, there.)
+    let (w, h) = if cfg!(target_pointer_width = "64") {
+        (0x1FFF_FFFF, 0x7FFF_FFFF)
+    } else {
+        (0x3FFF_FFFF, 1)
+    };
+    let e = Surface::new(w, h, PixelFormat::ARGB8888).unwrap_err();
     assert_eq!(e.to_string(), Error::out_of_memory().to_string());
     // and a large one is still allocated lazily, zeroed
     let s = Surface::new(16384, 16384, PixelFormat::ARGB8888).unwrap();
