@@ -56,7 +56,7 @@ const H: i32 = 48;
 // ---------------------------------------------------------------------------
 
 #[test]
-#[cfg(not(any(windows, target_os = "macos")))] // (direct3d11 and metal come first there: see their tests)
+#[cfg(not(any(windows, target_os = "macos", target_os = "emscripten")))] // (direct3d11 and metal come first there: see their tests; Emscripten has no GPU renderer: see the OpenGL ES 2 renderer's)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     // (render_drivers[] in SDL_render.c: ..., GLES2, ..., VULKAN, GPU, SW)
@@ -704,6 +704,10 @@ fn pattern_texture(r: &mut Renderer, format: PixelFormat, w: i32, h: i32) -> Tex
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_renderer_basics() {
     gpu_renderer_basics_on(Backend::Vulkan);
 }
@@ -944,6 +948,10 @@ fn gpu_renderer_basics_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_matches_software_for_shapes() {
     gpu_matches_software_for_shapes_on(Backend::Vulkan);
 }
@@ -1084,6 +1092,10 @@ fn gpu_matches_software_for_shapes_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_matches_software_for_textures() {
     gpu_matches_software_for_textures_on(Backend::Vulkan);
 }
@@ -1344,6 +1356,10 @@ fn gpu_matches_software_for_textures_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_matches_software_for_targets() {
     gpu_matches_software_for_targets_on(Backend::Vulkan);
 }
@@ -1464,6 +1480,10 @@ fn yuv_planes(w: usize, h: usize) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_matches_software_for_yuv() {
     gpu_matches_software_for_yuv_on(Backend::Vulkan);
 }
@@ -1623,6 +1643,10 @@ fn gpu_matches_software_for_yuv_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_line_methods() {
     gpu_line_methods_on(Backend::Vulkan);
 }
@@ -1666,6 +1690,10 @@ fn gpu_line_methods_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_pipelines_are_cached() {
     gpu_pipelines_are_cached_on(Backend::Vulkan);
 }
@@ -2003,6 +2031,10 @@ fn gpu_texture(
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_render_states() {
     gpu_render_states_on(Backend::Vulkan);
 }
@@ -2233,6 +2265,10 @@ fn gpu_render_states_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_renderer_on_an_existing_device() {
     gpu_renderer_on_an_existing_device_on(Backend::Vulkan);
 }
@@ -2358,6 +2394,10 @@ fn gpu_renderer_on_an_existing_device_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_textures_from_existing_gpu_textures() {
     gpu_textures_from_existing_gpu_textures_on(Backend::Vulkan);
 }
@@ -2508,6 +2548,10 @@ fn gpu_textures_from_existing_gpu_textures_on(backend: Backend) {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU renderer in the Emscripten build"
+)]
 fn gpu_renderer_without_a_window() {
     gpu_renderer_without_a_window_on(Backend::Vulkan);
 }
