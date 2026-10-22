@@ -209,7 +209,10 @@ Emscripten (`wasm32-unknown-emscripten`) builds too, configured as
 upstream's Emscripten build is (no threads; the dummy process, haptic,
 dialog, tray and notification backends; the OpenGL ES 2 and software
 renderers; SDL_net's stub library): `cargo check --target
-wasm32-unknown-emscripten` needs no emcc. Loading shared objects at run
+wasm32-unknown-emscripten` needs no emcc, and with emsdk the tests run
+under node (`cargo test --workspace --target wasm32-unknown-emscripten`;
+see "Emscripten" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md)
+for the setup and what is ignored there). Loading shared objects at run
 time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. Its own
 backends (canvas video, Web Audio, the Gamepad API, ...) are in
 progress; until then the dummy drivers stand in. See [docs/ROADMAP.md](docs/ROADMAP.md).

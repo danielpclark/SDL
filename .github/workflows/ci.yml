@@ -221,19 +221,7 @@ jobs:
         shell: bash
         env:
           SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-        run: |
-          if [ -s "$SDL3_TEST_SKIP_LOG" ]; then
-            {
-              echo "### Skipped checks (${{ matrix.os }}, ${{ matrix.toolchain }})"
-              echo
-              echo "| capability | test | reason |"
-              echo "|---|---|---|"
-              sort -u "$SDL3_TEST_SKIP_LOG" | sed 's/|/\\|/g; s/\t/ | /g; s/^/| /; s/$/ |/'
-            } >> "$GITHUB_STEP_SUMMARY"
-            cut -f1 "$SDL3_TEST_SKIP_LOG" | sort | uniq -c
-          else
-            echo "no checks skipped"
-          fi
+        run: tools/ci/list-skips.sh "$SDL3_TEST_SKIP_LOG" "${{ matrix.os }}, ${{ matrix.toolchain }}"
       # The skips of vulkan and egl by design: on Windows, lavapipe has no
       # VK_EXT_headless_surface (the offscreen driver's Vulkan check); on
       # macOS, MoltenVK misdraws render-state checks under the Metal debug
@@ -260,6 +248,68 @@ jobs:
             echo "::error::vulkan or egl checks skipped (above)"
             exit 1
           fi
+
+  # The test programs built for Emscripten, run under node (the runner in
+  # .cargo/config.toml): see "Emscripten" in docs/HARDWARE_TESTING.md.
+  # (Linted on the Linux clippy runner, checked with 1.87 in the test job.)
+  emscripten:
+    name: test (wasm32-unknown-emscripten, node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EMSDK_VERSION: "6.0.13"
+      RUST_TEST_NOCAPTURE: 1
+      # opt-level 0 runs too (no function nears V8's limits on locals and
+      # size), but five or six times slower; debug assertions and
+      # overflow checks stay on.
+      CARGO_PROFILE_DEV_OPT_LEVEL: 1
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-unknown-emscripten
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: emscripten
+      - uses: mymindstorm/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: emsdk-cache
+      # emcc's sysroot libraries, built on the first link
+      - uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/em-cache
+          key: em-cache-${{ env.EMSDK_VERSION }}-${{ hashFiles('.cargo/config.toml') }}
+      - run: echo "EM_CACHE=$RUNNER_TEMP/em-cache" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: cargo test --workspace --target wasm32-unknown-emscripten
+        shell: bash
+        run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
+      # The tests write SDL3_TEST_SKIP_LOG in their own in-memory file
+      # system, so the skip log is made from the notes they print (with
+      # RUST_TEST_NOCAPTURE), each with the test libtest names next.
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/test.log"
+          python3 - "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv" <<'EOF'
+          import sys
+          pending = []
+          for line in open(sys.argv[1], errors="replace"):
+              line = line.rstrip("\n")
+              if line.startswith("note: skipping, ") and " unavailable: " in line:
+                  pending.append(line[len("note: skipping, "):].split(" unavailable: ", 1))
+              elif line.startswith("test ") and " ... " in line:
+                  for capability, reason in pending:
+                      print(f"{capability}\t{line.split()[1]}\t{reason}")
+                  pending = []
+          EOF
+          tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" wasm32-unknown-emscripten
 
   doc:
     name: rustdoc
