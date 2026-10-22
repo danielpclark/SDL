@@ -1,0 +1,33 @@
+[package]
+name = "sdl3-emscripten"
+description = "Internal to the sdl3 crate: its JavaScript for Emscripten (EM_JS, EM_ASM and the html5.h declarations), in pure Rust. No C code."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["sdl", "sdl3", "emscripten", "wasm", "pure-rust"]
+categories = ["wasm", "game-development"]
+
+[lib]
+name = "sdl3_emscripten"
+path = "src/lib.rs"
+# The crate's own test harness can't link: in an executable crate rustc
+# gives the `__em_js__*` statics local linkage, so emscripten never sees
+# their JavaScript. The tests are integration tests (tests/), which link
+# this crate as an rlib, as sdl3 does. The examples in the documentation
+# define em_js! functions in the doctest's own (executable) crate, which
+# fails the same way.
+test = false
+doctest = false
+
+# No dependencies: only `core` (the html5.h declarations and the macros).
+
+[features]
+# The em_js! functions this crate's own tests call (src/testing.rs), which
+# must be in a library: only the tests turn it on.
+testing = []
+
+[dev-dependencies]
+sdl3-emscripten = { path = ".", features = ["testing"] }

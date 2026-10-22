@@ -17,6 +17,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdl3-emscripten"
+version = "3.5.0"
+dependencies = [
+ "sdl3-emscripten",
+]
+
+[[package]]
 name = "sdl3-image"
 version = "3.5.0"
 dependencies = [
