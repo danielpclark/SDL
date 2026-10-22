@@ -99,10 +99,12 @@ fn tiff_min(a: f32, b: f32) -> f32 {
 }
 
 /// `(size_t)f` (x86-64: out of range and NaN give 2^63, which the
-/// callers clamp to the table's range)
+/// callers clamp to the table's range; on a 32-bit target the top bit of
+/// its `size_t` stands in, and a value past `usize::MAX` saturates, both
+/// clamped the same)
 fn c_f32_to_usize(f: f32) -> usize {
     if f.is_nan() || f >= 18446744073709551616.0 || f <= -1.0 {
-        1usize << 63
+        1usize << (usize::BITS - 1)
     } else {
         f as usize
     }
