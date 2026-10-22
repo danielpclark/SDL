@@ -42,6 +42,13 @@
 //! saved animation's frame error with the encoder's "No frames added to
 //! animation" as it closes (where the translation keeps the first error),
 //! any message is taken.
+//!
+//! The C program ran on x86-64, with SDL's SSE blitters. Where SDL has no
+//! SIMD blitters (not x86, x86-64 or AArch64: Emscripten's wasm32), the
+//! frames an animation's canvas composites with them come out differently,
+//! as in upstream's C without them: `testdata/reference_nosimd.txt` has
+//! those results, from the same program run with
+//! `SDL_CPU_FEATURE_MASK=-all`.
 
 use sdl3::io::IoStream;
 use sdl3::video::{
@@ -1046,6 +1053,24 @@ fn matches_upstream_reference() {
     let mut tga_index = 0;
     let mut avif_saves = 0;
 
+    // (the results without SDL's SIMD blitters, where there are none: see
+    // the module's comment)
+    let mut nosimd = std::collections::HashMap::new();
+    if !cfg!(any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64"
+    )) {
+        let mut section = "";
+        for line in include_str!("testdata/reference_nosimd.txt").lines() {
+            if let Some(n) = line.strip_prefix("== ") {
+                section = n;
+            } else if let Some((label, expected)) = line.split_once(": ") {
+                assert!(nosimd.insert((section, label), expected).is_none());
+            }
+        }
+    }
+
     for line in reference.lines() {
         if let Some(n) = line.strip_prefix("== ") {
             name = n;
@@ -1060,6 +1085,7 @@ fn matches_upstream_reference() {
         let (label, expected) = line
             .split_once(": ")
             .unwrap_or((line.trim_end_matches(':'), ""));
+        let expected = nosimd.remove(&(name, label)).unwrap_or(expected);
         let actual = if label == "is" {
             let mut io = IoStream::from_const_mem(data);
             let mut found = String::new();
@@ -1291,6 +1317,10 @@ fn matches_upstream_reference() {
     let _ = std::fs::remove_dir_all(&tmp);
 
     assert!(checked > 2000, "only {checked} reference lines");
+    assert!(
+        nosimd.is_empty(),
+        "reference_nosimd.txt lines not in reference.txt: {nosimd:?}"
+    );
     assert!(
         failures.is_empty(),
         "{} of {checked} results differ from upstream:\n{}",
@@ -2089,6 +2119,10 @@ fn rgba32_pixels(surface: &Surface<'_>) -> Vec<u8> {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU backend in the Emscripten build"
+)]
 fn gpu_textures_from_files_and_streams() {
     use sdl3::gpu::{Device, ShaderFormat};
     let _lock = VIDEO.lock().unwrap_or_else(|e| e.into_inner());
