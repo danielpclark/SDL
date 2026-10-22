@@ -96,10 +96,14 @@ optional IndexedDB storage (the `emscripten-persistent-path` feature)
 (`main/emscripten/`), synchronous async I/O without threads
 (`SDL_asyncio_generic.c`) and the assertion's `window.prompt()`
 (`SDL_assert.c`); tested under node by a program of its own against
-upstream's C traces. Next: the filesystem, power, locale, URL and sensor
-backends, then the canvas video driver and its events, WebGL, Web Audio,
-the Gamepad API and the camera. Until each lands, the dummy (or generic)
-one stands in.
+upstream's C traces. The small backends are **done**: the filesystem
+paths (base path `/`, pref paths under `/libsdl` or the persistent path,
+`$HOME`), power (the Battery Status API), locale (`navigator.languages`),
+URLs (`window.open()`) and the sensors (`devicemotion` events), each
+checked under node against upstream's C, with the browser APIs node
+lacks stubbed by the tests. Next: the canvas video driver and its
+events, WebGL, Web Audio, the Gamepad API and the camera. Until each
+lands, the dummy (or generic) one stands in.
 
 ## Phase 5 — Satellite libraries (same approach, each its own crate)
 
