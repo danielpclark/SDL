@@ -249,11 +249,12 @@ jobs:
             exit 1
           fi
 
-  # The test programs built for Emscripten, run under node (the runner in
-  # .cargo/config.toml): see "Emscripten" in docs/HARDWARE_TESTING.md.
-  # (Linted on the Linux clippy runner, checked with 1.87 in the test job.)
+  # The test programs built for Emscripten, run under node and in headless
+  # Chrome (tools/emscripten_run.py, the runner in .cargo/config.toml): see
+  # "Emscripten" in docs/HARDWARE_TESTING.md. (Linted on the Linux clippy
+  # runner, checked with 1.87 in the test job.)
   emscripten:
-    name: test (wasm32-unknown-emscripten, node)
+    name: test (wasm32-unknown-emscripten, node and Chrome)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -286,9 +287,23 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      # (the programs that ask for a browser, emscripten_browser, run in
+      # the runner image's Chrome here too)
       - name: cargo test --workspace --target wasm32-unknown-emscripten
         shell: bash
         run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
+      # The paths that need a browser (the Battery Status API, window.open(),
+      # devicemotion events) and the WebGL and Web Audio probes, in the
+      # runner image's Chrome, headless, which must have them.
+      - name: cargo test -p sdl3 --test emscripten_browser (headless Chrome)
+        shell: bash
+        run: |
+          "$CHROME" --version
+          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser 2>&1 | tee "$RUNNER_TEMP/browser.log"
+        env:
+          SDL3_EMSCRIPTEN_BROWSER: 1
+          SDL3_TEST_REQUIRE: browser,webgl,webaudio
+          CHROME: /usr/bin/google-chrome
       # The JavaScript layer's tests (sdl3-emscripten: em_js!, em_asm!, the
       # dependency table, the callback registry, the html5.h layouts) once
       # more in a release build: thin LTO keeps every #[used] static and
@@ -304,23 +319,25 @@ jobs:
           RUSTDOCFLAGS: -D warnings
       # The tests write SDL3_TEST_SKIP_LOG in their own in-memory file
       # system, so the skip log is made from the notes they print (with
-      # RUST_TEST_NOCAPTURE), each with the test libtest names next.
+      # RUST_TEST_NOCAPTURE), each with the test libtest names next (the
+      # browser program prints such lines too), from both test steps.
       - name: List the skipped checks
         if: always()
         shell: bash
         run: |
-          touch "$RUNNER_TEMP/test.log"
-          python3 - "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv" <<'EOF'
+          touch "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log"
+          python3 - "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log" > "$RUNNER_TEMP/skips.tsv" <<'EOF'
           import sys
-          pending = []
-          for line in open(sys.argv[1], errors="replace"):
-              line = line.rstrip("\n")
-              if line.startswith("note: skipping, ") and " unavailable: " in line:
-                  pending.append(line[len("note: skipping, "):].split(" unavailable: ", 1))
-              elif line.startswith("test ") and " ... " in line:
-                  for capability, reason in pending:
-                      print(f"{capability}\t{line.split()[1]}\t{reason}")
-                  pending = []
+          for log in sys.argv[1:]:
+              pending = []
+              for line in open(log, errors="replace"):
+                  line = line.rstrip("\n")
+                  if line.startswith("note: skipping, ") and " unavailable: " in line:
+                      pending.append(line[len("note: skipping, "):].split(" unavailable: ", 1))
+                  elif line.startswith("test ") and " ... " in line:
+                      for capability, reason in pending:
+                          print(f"{capability}\t{line.split()[1]}\t{reason}")
+                      pending = []
           EOF
           tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" wasm32-unknown-emscripten
 
