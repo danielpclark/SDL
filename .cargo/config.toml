@@ -1,8 +1,14 @@
 [target.wasm32-unknown-emscripten]
 # `cargo test --target wasm32-unknown-emscripten` runs the test programs
-# (and the doctests) under node, 22 or newer: see "Emscripten" in
-# docs/HARDWARE_TESTING.md.
-runner = "node"
+# (and the doctests) through tools/emscripten_run.py: under node, 22 or
+# newer, as `node PROGRAM.js ARGS...`, or in headless Chromium with
+# SDL3_EMSCRIPTEN_BROWSER=1 (and for the programs that ask for a browser,
+# when there is one): see "Emscripten" in docs/HARDWARE_TESTING.md. (Cargo
+# finds the script from here, as a path with a slash; it runs as an
+# executable, through its `#!/usr/bin/env python3` line. Where that can't
+# run, as on Windows, set CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUNNER to
+# `node`, or to `python` with the script's absolute path.)
+runner = "tools/emscripten_run.py"
 # Every link warns that -sWASM_BIGINT is deprecated (rustc passes it);
 # silence emcc's deprecation warnings. The rest is what the test programs
 # need: memory that grows past the 16 MB default, an 8 MB stack (the
