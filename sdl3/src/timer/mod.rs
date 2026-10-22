@@ -7,20 +7,37 @@
 //!
 //! Direct translation of `SDL_timer.c`. The platform pieces
 //! (`SDL_GetPerformanceCounter`, `SDL_SYS_DelayNS`) are the Unix backend
-//! (`clock_gettime()` on `CLOCK_MONOTONIC_RAW`, `nanosleep()`) and the
+//! (`clock_gettime()` on `CLOCK_MONOTONIC_RAW`, `nanosleep()`, and on
+//! Emscripten `emscripten_sleep()` in a program built with Asyncify) and the
 //! Windows one (`QueryPerformanceCounter()`, high resolution waitable
 //! timers, `timeBeginPeriod()`); elsewhere they are written with
-//! `std::time` and `std::thread::sleep`.
+//! `std::time` and `std::thread::sleep`. The callback timers run on a
+//! thread of their own, but on Emscripten, where upstream schedules them
+//! on the browser's event loop instead (`emscripten_set_timeout()`): they
+//! fire only once control is back there (see [`Timer::new`]).
 
+#[cfg(not(target_os = "emscripten"))]
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
-use std::sync::{Arc, LazyLock, Mutex};
+#[cfg(not(target_os = "emscripten"))]
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::Mutex;
+#[cfg(not(target_os = "emscripten"))]
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
+#[cfg(not(target_os = "emscripten"))]
 use crate::err;
 use crate::error::Result;
+#[cfg(not(target_os = "emscripten"))]
 use crate::thread::{InitState, Semaphore};
 
+#[cfg(target_os = "emscripten")]
+mod emscripten;
+#[cfg(target_os = "emscripten")]
+pub(crate) use emscripten::quit_timers;
+#[cfg(target_os = "emscripten")]
+use emscripten::{create_timer, remove_timer, timer_is_active};
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
@@ -268,12 +285,14 @@ pub fn delay_precise(duration: Duration) {
 /// Translation of `SDL_NSTimerCallback`.
 pub type TimerCallback = Box<dyn FnMut(Duration) -> Option<Duration> + Send + 'static>;
 
+#[cfg(not(target_os = "emscripten"))]
 /// Shared, cross-thread part of a timer (translation of the shared fields of `SDL_Timer`).
 struct TimerShared {
     callback: Mutex<TimerCallback>,
     canceled: AtomicBool,
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// A scheduled timer; only touched by the timer thread once queued.
 struct Scheduled {
     id: u32,
@@ -282,6 +301,7 @@ struct Scheduled {
     scheduled: u64,
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `SDL_TimerData`.
 struct TimerData {
     init: InitState,
@@ -293,6 +313,7 @@ struct TimerData {
     active: AtomicBool,
 }
 
+#[cfg(not(target_os = "emscripten"))]
 static TIMER_DATA: TimerData = TimerData {
     init: InitState::new(),
     thread: Mutex::new(None),
@@ -302,11 +323,13 @@ static TIMER_DATA: TimerData = TimerData {
     active: AtomicBool::new(false),
 };
 
+#[cfg(not(target_os = "emscripten"))]
 /* The idea here is that any thread might add a timer, but a single
  * thread manages the active timer queue, sorted by scheduling time.
  *
  * Timers are removed by simply setting a canceled flag
  */
+#[cfg(not(target_os = "emscripten"))]
 fn add_timer_internal(timers: &mut Vec<Scheduled>, timer: Scheduled) {
     // Keep the list sorted by `scheduled`, inserting after equal entries.
     let pos = timers
@@ -316,6 +339,7 @@ fn add_timer_internal(timers: &mut Vec<Scheduled>, timer: Scheduled) {
     timers.insert(pos, timer);
 }
 
+#[cfg(not(target_os = "emscripten"))]
 fn timer_thread(data: &'static TimerData) {
     // List of timers - this is only touched by the timer thread
     let mut timers: Vec<Scheduled> = Vec::new();
@@ -399,6 +423,7 @@ fn timer_thread(data: &'static TimerData) {
     }
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `SDL_InitTimers()`.
 fn init_timers() -> Result<()> {
     let data = &TIMER_DATA;
@@ -409,8 +434,6 @@ fn init_timers() -> Result<()> {
     data.active.store(true, Ordering::Release);
 
     // Timer threads use a callback into the app, so we can't set a limited stack size here.
-    // (Without threads, on Emscripten, this fails until the Emscripten
-    // port's PR 4 translates upstream's emscripten_set_timeout() timers.)
     match std::thread::Builder::new()
         .name("SDLTimer".into())
         .spawn(move || timer_thread(&TIMER_DATA))
@@ -428,6 +451,7 @@ fn init_timers() -> Result<()> {
     }
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Stop the timer thread and drop all timers. Translation of `SDL_QuitTimers()`.
 pub(crate) fn quit_timers() {
     let data = &TIMER_DATA;
@@ -457,6 +481,53 @@ pub(crate) fn quit_timers() {
     data.init.set_initialized(false);
 }
 
+/// Translation of `SDL_CreateTimer()`: queue the timer for the timer
+/// thread, starting it first if need be.
+#[cfg(not(target_os = "emscripten"))]
+fn create_timer(interval_ns: u64, callback: TimerCallback) -> Result<u32> {
+    let data = &TIMER_DATA;
+    init_timers()?;
+
+    let id = crate::utils::next_object_id();
+    let shared = Arc::new(TimerShared {
+        callback: Mutex::new(callback),
+        canceled: AtomicBool::new(false),
+    });
+    let scheduled = Scheduled {
+        id,
+        shared: shared.clone(),
+        interval: interval_ns,
+        scheduled: ticks_ns() + interval_ns,
+    };
+
+    data.timermap
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(id, shared);
+
+    // Add the timer to the pending list for the timer thread
+    data.pending
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .push(scheduled);
+
+    // Wake up the timer thread if necessary
+    data.sem.signal();
+
+    Ok(id)
+}
+
+/// Whether the timer is still in the map and not canceled.
+#[cfg(not(target_os = "emscripten"))]
+fn timer_is_active(id: u32) -> bool {
+    TIMER_DATA
+        .timermap
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&id)
+        .is_some_and(|t| !t.canceled.load(Ordering::Acquire))
+}
+
 /// A handle to a running timer. Translation of `SDL_TimerID`.
 ///
 /// Dropping the handle cancels the timer (RAII). Call [`Timer::detach`] to
@@ -474,45 +545,27 @@ impl Timer {
     /// the next interval (`Some(interval)` keeps a periodic alarm going) or
     /// `None` to stop. For short intervals it can run before this function
     /// returns. Translation of `SDL_AddTimerNS()`/`SDL_AddTimer()`.
+    ///
+    /// On Emscripten there is no timer thread: the browser's event loop
+    /// runs the callback (`emscripten_set_timeout()`, in whole
+    /// milliseconds) once `interval` has passed and the program has
+    /// returned to it, from a main loop iteration (see
+    /// [`enter_app_main_callbacks`](crate::app::enter_app_main_callbacks))
+    /// or from `main`.
     pub fn new(
         interval: Duration,
         callback: impl FnMut(Duration) -> Option<Duration> + Send + 'static,
     ) -> Result<Timer> {
-        let data = &TIMER_DATA;
-        init_timers()?;
-
         let interval_ns = interval.as_nanos().min(u64::MAX as u128) as u64;
-        let id = crate::utils::next_object_id();
-        let shared = Arc::new(TimerShared {
-            callback: Mutex::new(Box::new(callback)),
-            canceled: AtomicBool::new(false),
-        });
-        let scheduled = Scheduled {
-            id,
-            shared: shared.clone(),
-            interval: interval_ns,
-            scheduled: ticks_ns() + interval_ns,
-        };
-
-        data.timermap
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id, shared);
-
-        // Add the timer to the pending list for the timer thread
-        data.pending
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .push(scheduled);
-
-        // Wake up the timer thread if necessary
-        data.sem.signal();
-
+        let id = create_timer(interval_ns, Box::new(callback))?;
         Ok(Timer { id })
     }
 
     /// Cancel the timer. Returns `true` if it was still active, `false` if it
     /// had already finished or been cancelled. Translation of `SDL_RemoveTimer()`.
+    ///
+    /// On Emscripten, as upstream's there, a timer whose callback asked for
+    /// no more is still found, and cancelling it returns `true`.
     pub fn cancel(self) -> bool {
         let id = self.id;
         std::mem::forget(self);
@@ -521,12 +574,7 @@ impl Timer {
 
     /// Whether the timer is still scheduled (has neither finished nor been cancelled).
     pub fn is_active(&self) -> bool {
-        TIMER_DATA
-            .timermap
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .get(&self.id)
-            .is_some_and(|t| !t.canceled.load(Ordering::Acquire))
+        timer_is_active(self.id)
     }
 
     /// Let the timer keep running after the handle is dropped (SDL's default
@@ -543,6 +591,7 @@ impl Drop for Timer {
     }
 }
 
+#[cfg(not(target_os = "emscripten"))]
 /// Translation of `SDL_RemoveTimer()`.
 fn remove_timer(id: u32) -> bool {
     let data = &TIMER_DATA;
@@ -562,6 +611,7 @@ fn remove_timer(id: u32) -> bool {
 mod tests {
     use super::*;
     use std::sync::atomic::AtomicUsize;
+    use std::sync::Arc;
     use std::time::Instant;
 
     /// The counter runs at its frequency and delays wait at least as long
@@ -699,7 +749,7 @@ mod tests {
     #[test]
     #[cfg_attr(
         target_os = "emscripten",
-        ignore = "threads (SDL_THREADS_DISABLED): the timer thread"
+        ignore = "the timers fire from the event loop (tests/emscripten_main.rs)"
     )]
     fn one_shot_and_periodic() {
         // (init::quit() in other tests shuts the timer thread down)
@@ -734,7 +784,7 @@ mod tests {
     #[test]
     #[cfg_attr(
         target_os = "emscripten",
-        ignore = "threads (SDL_THREADS_DISABLED): the timer thread"
+        ignore = "the timers fire from the event loop (tests/emscripten_main.rs)"
     )]
     fn drop_cancels_detach_keeps() {
         // (init::quit() in other tests shuts the timer thread down)

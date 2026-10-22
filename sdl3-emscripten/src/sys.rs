@@ -52,9 +52,17 @@ pub const EMSCRIPTEN_RESULT_NO_DATA: EMSCRIPTEN_RESULT = -7;
 pub const EMSCRIPTEN_RESULT_TIMED_OUT: EMSCRIPTEN_RESULT = -8;
 
 /// `em_callback_func`.
-pub type em_callback_func = Option<unsafe extern "C" fn()>;
+///
+/// `"C-unwind"`, as [`em_arg_callback_func`] and the callback of
+/// [`emscripten_set_timeout`]: the JavaScript event loop calls these, and
+/// C's `exit()` there (Rust's `std::process::exit()`) ends in a JavaScript
+/// exception, `ExitStatus`, that leaves the callback back to the event loop,
+/// which handles it. A `"C"` function would abort instead ("panic in a
+/// function that cannot unwind"). The html5.h event callbacks, which
+/// upstream's code never exits from, stay `"C"`.
+pub type em_callback_func = Option<unsafe extern "C-unwind" fn()>;
 /// `em_arg_callback_func`.
-pub type em_arg_callback_func = Option<unsafe extern "C" fn(arg: *mut c_void)>;
+pub type em_arg_callback_func = Option<unsafe extern "C-unwind" fn(arg: *mut c_void)>;
 
 /// `pthread_t` (a pointer), here only to name the thread an event callback
 /// runs on.
@@ -805,6 +813,15 @@ pub const DOM_PK_MEDIA_SELECT: DOM_PK_CODE_TYPE = 0xE06D;
 // ---------------------------------------------------------------------------
 // The functions
 
+// These two end in a JavaScript exception ('unwind', ExitStatus) that leaves
+// the Rust frames for the JavaScript that called into the program (which
+// handles it): so "C-unwind".
+extern "C-unwind" {
+    // emscripten.h
+    pub fn emscripten_exit_with_live_runtime() -> !;
+    pub fn emscripten_force_exit(status: c_int) -> !;
+}
+
 extern "C" {
     // emscripten.h
     pub fn emscripten_set_main_loop(
@@ -816,8 +833,6 @@ extern "C" {
     /// Either pointer may be null.
     pub fn emscripten_get_main_loop_timing(mode: *mut c_int, value: *mut c_int);
     pub fn emscripten_cancel_main_loop();
-    pub fn emscripten_exit_with_live_runtime() -> !;
-    pub fn emscripten_force_exit(status: c_int) -> !;
     pub fn emscripten_get_device_pixel_ratio() -> f64;
     pub fn emscripten_set_window_title(title: *const c_char);
     pub fn emscripten_get_screen_size(width: *mut c_int, height: *mut c_int);
@@ -826,7 +841,7 @@ extern "C" {
 
     // eventloop.h
     pub fn emscripten_set_timeout(
-        cb: unsafe extern "C" fn(user_data: *mut c_void),
+        cb: unsafe extern "C-unwind" fn(user_data: *mut c_void),
         msecs: f64,
         user_data: *mut c_void,
     ) -> c_int;
