@@ -298,6 +298,70 @@ fn base_path_and_exe_name() {
     assert!(std::path::Path::new(&format!("{base}{exe}")).exists());
 }
 
+/// What upstream's `filesystem/emscripten` reports under node, built with
+/// emcc (the same calls, in the same order, on a fresh MEMFS): the pref
+/// paths made under `/libsdl`, one that runs into a file, and `$HOME`.
+#[cfg(all(target_os = "emscripten", not(feature = "emscripten-persistent-path")))]
+#[test]
+fn emscripten_paths() {
+    use crate::stdlib::{setenv_unsafe, unsetenv_unsafe};
+    let _l = crate::test_support::test_lock();
+    quit_filesystem();
+    assert_eq!(get_base_path().unwrap(), "/");
+    assert_eq!(get_exe_name().unwrap_err().message(), "");
+
+    assert_eq!(
+        get_pref_path(Some("Org"), "App").unwrap(),
+        "/libsdl/Org/App/"
+    );
+    assert_eq!(get_pref_path(None, "App2").unwrap(), "/libsdl/App2/");
+    assert_eq!(get_pref_path(Some(""), "a/b").unwrap(), "/libsdl/a/b/");
+    for dir in ["/libsdl", "/libsdl/Org/App", "/libsdl/App2", "/libsdl/a/b"] {
+        let meta = std::fs::metadata(dir).unwrap();
+        assert!(meta.is_dir(), "{dir}");
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(meta.permissions().mode() & 0o777, 0o700, "{dir}");
+    }
+    // Again: everything is there already.
+    assert_eq!(
+        get_pref_path(Some("Org"), "App").unwrap(),
+        "/libsdl/Org/App/"
+    );
+    // A file where a directory goes counts as made (EEXIST), until a
+    // directory under it can't be.
+    std::fs::write("/libsdl/file", b"").unwrap();
+    assert_eq!(
+        get_pref_path(Some("file"), "x").unwrap_err().message(),
+        "Couldn't create directory '/libsdl/file/x': 'Not a directory'"
+    );
+    assert_eq!(
+        get_pref_path(Some("Org"), "file2").unwrap(),
+        "/libsdl/Org/file2/"
+    );
+
+    let saved = crate::stdlib::getenv("HOME");
+    setenv_unsafe("HOME", "/home/web_user", true).unwrap();
+    assert_eq!(get_user_folder(Folder::Home).unwrap(), "/home/web_user/");
+    for folder in [Folder::Desktop, Folder::Documents, Folder::SavedGames] {
+        assert_eq!(
+            get_user_folder(folder).unwrap_err().message(),
+            "Emscripten only supports the home folder"
+        );
+    }
+    quit_filesystem();
+    unsetenv_unsafe("HOME").unwrap();
+    assert_eq!(
+        get_user_folder(Folder::Home).unwrap_err().message(),
+        "No $HOME environment variable available"
+    );
+    match saved {
+        Some(home) => setenv_unsafe("HOME", &home, true).unwrap(),
+        None => unsetenv_unsafe("HOME").unwrap(),
+    }
+    quit_filesystem();
+    std::fs::remove_file("/libsdl/file").unwrap();
+}
+
 /// The SDL part of an error: on Windows, without the system's text for the
 /// error code that follows it (it depends on the language, and on Wine or
 /// Windows); elsewhere the whole message.

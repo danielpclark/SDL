@@ -200,6 +200,16 @@ fn call_sdl_emscripten_main_function(main_function: impl FnOnce(&[String]) -> i3
     super::call_main_function(main_function)
 }
 
+/// `SDL_EMSCRIPTEN_PERSISTENT_PATH_STRING`, the directory the persistent
+/// storage is mounted at, which is also where the pref paths go
+/// (`filesystem/emscripten`).
+#[cfg(feature = "emscripten-persistent-path")]
+pub(crate) const PERSISTENT_PATH_STRING: &str =
+    match std::str::from_utf8(persistent_path::PERSISTENT_PATH.to_bytes()) {
+        Ok(path) => path,
+        Err(_) => panic!("SDL_EMSCRIPTEN_PERSISTENT_PATH is a Rust string"),
+    };
+
 /// Upstream's `SDL_EMSCRIPTEN_PERSISTENT_PATH_STRING` part of `SDL_RunApp()`.
 #[cfg(feature = "emscripten-persistent-path")]
 mod persistent_path {
@@ -208,7 +218,7 @@ mod persistent_path {
 
     /// `SDL_EMSCRIPTEN_PERSISTENT_PATH`, the directory the storage is mounted
     /// at: set when this crate is built, as CMake's option is.
-    const PERSISTENT_PATH: &CStr = {
+    pub(super) const PERSISTENT_PATH: &CStr = {
         const PATH: &str = concat!(
             env!(
                 "SDL_EMSCRIPTEN_PERSISTENT_PATH",

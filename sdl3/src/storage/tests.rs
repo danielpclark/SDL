@@ -114,10 +114,6 @@ fn file_storage() {
 }
 
 #[test]
-#[cfg_attr(
-    target_os = "emscripten",
-    ignore = "no base or pref path yet (the dummy filesystem backend)"
-)]
 fn title_storage_is_read_only() {
     // (user_storage_and_driver_hints sets the title driver hint)
     let _l = crate::test_support::test_lock();
@@ -143,10 +139,6 @@ fn title_storage_is_read_only() {
 
 #[cfg(unix)]
 #[test]
-#[cfg_attr(
-    target_os = "emscripten",
-    ignore = "no base or pref path yet (the dummy filesystem backend)"
-)]
 fn user_storage_and_driver_hints() {
     use crate::stdlib::{getenv, setenv_unsafe, unsetenv_unsafe};
     let _l = crate::test_support::test_lock();
@@ -154,9 +146,10 @@ fn user_storage_and_driver_hints() {
     let saved = getenv("XDG_DATA_HOME");
     setenv_unsafe("XDG_DATA_HOME", &tmp.0, true).unwrap();
     // (Apple platforms' pref path is in the user's Application Support
-    // folder, whatever XDG_DATA_HOME says: names of this process's own,
-    // removed at the end)
-    let (org, game) = if cfg!(target_vendor = "apple") {
+    // folder, and Emscripten's under /libsdl, whatever XDG_DATA_HOME says:
+    // names of this process's own, removed at the end)
+    let elsewhere = cfg!(any(target_vendor = "apple", target_os = "emscripten"));
+    let (org, game) = if elsewhere {
         let id = std::process::id();
         (
             format!("SDL3 Test Org {id}"),
@@ -165,7 +158,7 @@ fn user_storage_and_driver_hints() {
     } else {
         ("Org".to_owned(), "Game".to_owned())
     };
-    let root = if cfg!(target_vendor = "apple") {
+    let root = if elsewhere {
         let pref = crate::filesystem::get_pref_path(None, &game).unwrap();
         std::fs::remove_dir(&pref).unwrap();
         pref[..pref.len() - game.len() - 1].to_owned()
@@ -188,7 +181,7 @@ fn user_storage_and_driver_hints() {
         Storage::open_user(None, &game, None).unwrap_err().message(),
         "nope not available"
     );
-    if cfg!(target_vendor = "apple") {
+    if elsewhere {
         std::fs::remove_dir_all(format!("{root}{org}")).unwrap();
         std::fs::remove_dir_all(format!("{root}{game}")).unwrap();
     }
