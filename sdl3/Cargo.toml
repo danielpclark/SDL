@@ -36,6 +36,11 @@ assert-level-3 = []
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.170"
 
+# The JavaScript of the Emscripten build (em_js!, em_asm!, html5.h) lives
+# in an internal crate: see its documentation.
+[target.'cfg(target_os = "emscripten")'.dependencies]
+sdl3-emscripten = { path = "../sdl3-emscripten", version = "3.5.0" }
+
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = "0.61"
 features = [
