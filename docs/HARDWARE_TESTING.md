@@ -53,6 +53,9 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
 | `metal` | macOS | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
+| `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
+| `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow) |
+| `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag) |
 
 Two environment variables control skips:
 
@@ -329,10 +332,14 @@ Windows.
 ## Emscripten (under node)
 
 The workspace's tests also run built for `wasm32-unknown-emscripten`,
-under node, which `.cargo/config.toml` makes the runner (with the link
-options the test programs need: growable memory up to 4 GB, an 8 MB
+under node: `.cargo/config.toml` makes `tools/emscripten_run.py` the
+runner, which by default runs `node PROGRAM.js ARGS...` (and gives the
+link options the test programs need: growable memory up to 4 GB, an 8 MB
 stack, node's environment for `SDL3_TEST_REQUIRE` and the hints). That
-needs emsdk 6.0.13 (the version CI pins) and node 22 or newer:
+needs emsdk 6.0.13 (the version CI pins), node 22 or newer and Python 3
+(the runner is a script with a `#!/usr/bin/env python3` line, which Cargo
+runs as is; on Windows set `CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUNNER`
+to `node`):
 
 ```sh
 rustup target add wasm32-unknown-emscripten
@@ -419,7 +426,69 @@ at once, a `window.open()` that records its calls, and a window target
 its `devicemotion` handler on and the test dispatches events to.
 `open_url()` without a `window` throws, which ends the program, as
 upstream's does: `emscripten_main.rs` checks that in a child program.
-The same APIs in a real browser are for the headless Chromium tests.
+The same APIs in a real browser are checked in headless Chromium, below.
+
+## Emscripten (browser)
+
+The runner, `tools/emscripten_run.py` (Python's standard library only),
+runs a program in headless Chrome or Chromium instead of node when
+`SDL3_EMSCRIPTEN_BROWSER=1`, or when the program asks for a browser (a
+custom section `sdl3_runner` in its `.wasm`, holding `browser`) and
+`SDL3_EMSCRIPTEN_BROWSER` isn't `0`. It serves the program's directory on
+`127.0.0.1` (`http.server`), with a page it writes at run time (an HTML
+shell with a `#canvas`: the repository has no HTML or JavaScript files),
+and drives the browser over the DevTools protocol on a pipe
+(`--remote-debugging-pipe`): the page gets the program's arguments
+(`Module.arguments`: a libtest program's filters and options, or a
+`harness = false` program's) and the runner's environment (put in
+emscripten's `ENV` by `Module.preRun`, as `-sNODE_HOST_ENV` passes node's),
+what the program prints goes to stdout (`Module.print`) and stderr
+(`Module.printErr`, warnings, uncaught exceptions), and the runner exits
+with the program's status once emscripten's runtime has exited
+(`Module.onExit`; after an `exit()` while something keeps the runtime alive,
+once nothing does, as node waits for its event loop), or with 1 after an
+uncaught exception, an abort or a crashed page. The browser is found in
+`CHROME`, else as `google-chrome`, `google-chrome-stable`, `chromium`,
+`chromium-browser` or `chrome` in `PATH` (or the macOS applications); without
+one a program that asks for a browser runs under node (with a note) and
+`SDL3_EMSCRIPTEN_BROWSER=1` fails. It runs with a temporary profile and
+`--headless=new --enable-unsafe-swiftshader --use-angle=swiftshader`
+(WebGL on SwiftShader, without a GPU),
+`--autoplay-policy=no-user-gesture-required` (Web Audio without a click),
+`--use-fake-device-for-media-stream --use-fake-ui-for-media-stream` (a
+fake camera and microphone, allowed without asking), and `--no-sandbox`
+only where the sandbox can't start: as root, or after a first start
+failed (a container without user namespaces). `SDL3_EMSCRIPTEN_TIMEOUT`
+limits a browser run (900 s by default, 0 for none),
+`SDL3_EMSCRIPTEN_CHROME_FLAGS` adds options, and
+`SDL3_EMSCRIPTEN_VERBOSE=1` shows the browser's own log. The browser mode
+needs a POSIX system (Linux or macOS).
+
+`sdl3/tests/emscripten_browser.rs` (`harness = false`) is such a program:
+an application whose main callbacks wait for what the browser answers from
+its event loop. It checks the paths that the tests under node stub: the
+Battery Status API (the first `power_info()` without data while
+`navigator.getBattery()`'s promise is pending, then the state upstream's
+rules make of the battery the page sees: `NoBattery` for headless
+Chromium's full battery on mains), `open_url()` through the browser's own
+`window.open()`, and a `DeviceMotionEvent` dispatched on `window`, which
+reaches both sensors with upstream's values; and it probes for the later
+backends: a WebGL context through emscripten's WebGL API, with its
+`GL_VERSION` and renderer, and a running `AudioContext`. Each check prints
+a libtest-like `test NAME ... ok` line after its skip notes. Under node
+everything skips as `browser`; without WebGL or Web Audio those checks
+skip as `webgl` or `webaudio`:
+
+```sh
+SDL3_EMSCRIPTEN_BROWSER=1 CHROME=/path/to/chrome \
+  SDL3_TEST_REQUIRE=browser,webgl,webaudio \
+  cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser
+```
+
+`SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
+too, but the ones written for node expect node: the stubs of the power,
+URL and sensor tests (no Battery Status API, no `window`, emscripten's
+window target replaced) fail there or break what follows.
 
 ## CI
 
@@ -445,5 +514,7 @@ on either. What else a hosted runner offers (audio endpoints, GameInput,
 a camera) isn't guaranteed, so nothing more is required. The
 macOS clippy job also lints the x86-64 build for Intel Macs. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
-with emsdk and emcc's sysroot libraries cached. Every job lists its skips
+with emsdk and emcc's sysroot libraries cached, and the browser program in
+the runner image's Chrome (`/usr/bin/google-chrome`) as
+[above](#emscripten-browser), requiring `browser`, `webgl` and `webaudio`. Every job lists its skips
 in the job summary (`tools/ci/list-skips.sh`).

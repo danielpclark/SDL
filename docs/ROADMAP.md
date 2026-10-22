@@ -101,7 +101,12 @@ paths (base path `/`, pref paths under `/libsdl` or the persistent path,
 `$HOME`), power (the Battery Status API), locale (`navigator.languages`),
 URLs (`window.open()`) and the sensors (`devicemotion` events), each
 checked under node against upstream's C, with the browser APIs node
-lacks stubbed by the tests. Next: the canvas video driver and its
+lacks stubbed by the tests. The browser runner is **done**:
+`tools/emscripten_run.py` runs the test programs under node or in headless
+Chromium (over the DevTools protocol, with a page written at run time),
+and `sdl3/tests/emscripten_browser.rs` checks the Battery Status API,
+`window.open()` and `devicemotion` events there, with WebGL and Web Audio
+probes (in CI, required). Next: the canvas video driver and its
 events, WebGL, Web Audio, the Gamepad API and the camera. Until each
 lands, the dummy (or generic) one stands in.
 
