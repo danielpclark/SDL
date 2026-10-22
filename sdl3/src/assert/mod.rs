@@ -161,9 +161,11 @@ pub const fn assert_level(debug: bool) -> u8 {
     }
 }
 
-/// Translation of `debug_print()`.
+/// Translation of `debug_print()`. (Through the logging macros' entry, which
+/// installs the default output first, as upstream's `SDL_LogMessageV()` has
+/// it: an assertion that fails before anything else logs is shown too.)
 fn debug_print(message: &str) {
-    log::log(Category::Assert, Priority::Warn, message);
+    log::__log(Category::Assert, Priority::Warn, format_args!("{message}"));
 }
 
 /// Translation of `SDL_AddAssertionToReport()`.
@@ -240,6 +242,16 @@ fn abort_assertion() -> ! {
 /// Upstream shows a message box first; message boxes arrive with the video
 /// subsystem, so this goes straight to upstream's stdio fallback (what C SDL
 /// does when `SDL_ShowMessageBox()` fails).
+///
+/// On Emscripten that fallback is the page's `window.prompt()`, asked
+/// until the reply is one of `a`, `r`, `i` or `A` (a cancelled prompt is
+/// `i`). Under node there is no `window`: the prompt's JavaScript throws a
+/// `ReferenceError`, which ends the program with exit status 1. That's how
+/// upstream's ends there too, one step earlier: its message box on
+/// Emscripten (the video driver's, not translated yet) is `alert()`, which
+/// node doesn't have either ("alert is not defined"). Set
+/// `SDL_HINT_ASSERT` (as tests do) or an assertion handler to answer
+/// without asking.
 pub fn default_assertion_handler(data: &AssertData) -> AssertState {
     let message = render_assert_message(data);
 
@@ -259,6 +271,41 @@ pub fn default_assertion_handler(data: &AssertData) -> AssertState {
 
     // Leave fullscreen mode, if possible (scary!) -- needs the video subsystem.
 
+    #[cfg(target_os = "emscripten")]
+    {
+        prompt_assertion(&message)
+    }
+    #[cfg(not(target_os = "emscripten"))]
+    {
+        stdio_prompt_assertion()
+    }
+}
+
+/// Upstream's Emscripten branch of `SDL_PromptAssertion()`: ask with
+/// `window.prompt()`.
+#[cfg(target_os = "emscripten")]
+fn prompt_assertion(message: &str) -> AssertState {
+    // (the JavaScript reads the message up to a NUL)
+    let message = std::ffi::CString::new(message.replace('\0', "")).unwrap_or_default();
+    // This is nasty, but we can't block on a custom UI.
+    loop {
+        // SAFETY: the message is NUL-terminated.
+        let reply = unsafe { sdl3_emscripten::assert::sdl3_prompt_assertion(message.as_ptr()) };
+        match u8::try_from(reply).map(char::from) {
+            Ok('a') => return AssertState::Abort,
+            // (currently) no break functionality on Emscripten
+            // Ok('b') => return AssertState::Break,
+            Ok('r') => return AssertState::Retry,
+            Ok('i') => return AssertState::Ignore,
+            Ok('A') => return AssertState::AlwaysIgnore,
+            _ => {} // (asks again)
+        }
+    }
+}
+
+/// Upstream's stdio branch of `SDL_PromptAssertion()`.
+#[cfg(not(target_os = "emscripten"))]
+fn stdio_prompt_assertion() -> AssertState {
     // this is a little hacky.
     let mut state = AssertState::Abort;
     loop {
@@ -639,5 +686,62 @@ mod tests {
             true
         });
         assert!(!evaluated);
+    }
+
+    /// The `window.prompt()` loop, with a page's prompt stubbed: the replies,
+    /// and what it's asked.
+    #[test]
+    #[cfg(target_os = "emscripten")]
+    fn emscripten_prompt() {
+        use sdl3_emscripten::{em_asm, em_asm_int};
+        let _l = crate::test_support::test_lock();
+        hints::reset(hints::ASSERT);
+        log::disable_output();
+        static D: AssertData = AssertData::new("x == 2", "f", "file.c", 7);
+        // SAFETY: plain JavaScript.
+        unsafe {
+            em_asm!(
+                r#"
+                Module['sdl3_prompts'] = [];
+                globalThis.window = { prompt: function(str, def) {
+                    Module['sdl3_prompts'].push([str, def]);
+                    return Module['sdl3_replies'].shift();
+                } };
+            "#
+            )
+        };
+        for (replies, state, asked) in [
+            ("[null]", AssertState::Ignore, 1),
+            ("['r']", AssertState::Retry, 1),
+            ("['i']", AssertState::Ignore, 1),
+            ("['A']", AssertState::AlwaysIgnore, 1),
+            ("['a']", AssertState::Abort, 1),
+            // asked again: too long, empty, unknown, no break
+            ("['ra', '', 'x', 'b', 'R', 'r']", AssertState::Retry, 6),
+        ] {
+            let js = format!("Module['sdl3_replies'] = {replies}; Module['sdl3_prompts'] = [];\0");
+            // SAFETY: plain JavaScript, NUL-terminated.
+            unsafe { em_asm!("eval(UTF8ToString($0));", js.as_ptr()) };
+            assert_eq!(default_assertion_handler(&D), state, "{replies}");
+            // SAFETY: plain JavaScript.
+            let n = unsafe { em_asm_int!("return Module['sdl3_prompts'].length;") };
+            assert_eq!(n, asked, "{replies}");
+        }
+        // What it asks, with "i" as the default reply.
+        let expected = format!(
+            "{}\n\nAbort/Retry/Ignore/AlwaysIgnore? [ariA] :\0",
+            render_assert_message(&D)
+        );
+        // SAFETY: plain JavaScript, NUL-terminated.
+        let same = unsafe {
+            em_asm_int!(
+                r#"var p = Module['sdl3_prompts'][0]; return (p[0] === UTF8ToString($0) && p[1] === 'i') ? 1 : 0;"#,
+                expected.as_ptr()
+            )
+        };
+        assert_eq!(same, 1);
+        // SAFETY: plain JavaScript.
+        unsafe { em_asm!("delete globalThis.window;") };
+        log::reset_output();
     }
 }
