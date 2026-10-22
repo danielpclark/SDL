@@ -255,12 +255,14 @@ impl Xcf<'_, '_> {
                     return false;
                 };
                 prop.set_u32_at(0, num);
-                let len = num as usize * 3;
-                let Some(cmap) = read_up_to(self.src, len) else {
+                // (a size past the address space, as on a 32-bit target,
+                // can't be allocated: where C's size_t product would wrap)
+                let len = (num as usize).checked_mul(3);
+                let Some(cmap) = len.and_then(|len| read_up_to(self.src, len)) else {
                     self.set_error("Out of memory");
                     return false;
                 };
-                if cmap.len() != len {
+                if Some(cmap.len()) != len {
                     return false;
                 }
                 prop.cmap = cmap;
