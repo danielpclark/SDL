@@ -395,6 +395,7 @@ mod tests {
     use std::sync::atomic::AtomicU64;
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn spawn_wait_status_and_ids() {
         let seen = Arc::new(AtomicU64::new(0));
         let s2 = seen.clone();
@@ -416,6 +417,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn states_detach_and_panics() {
         let gate = Arc::new(Semaphore::new(0));
         let g2 = gate.clone();
@@ -449,6 +451,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn priorities() {
         let _l = crate::test_support::test_lock();
         let t = Thread::spawn("priorities", || {

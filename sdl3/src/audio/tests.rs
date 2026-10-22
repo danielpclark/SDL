@@ -701,6 +701,10 @@ fn stream_api_behaviour() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+)]
 fn dummy_driver_playback_and_recording() {
     let _l = crate::test_support::test_lock();
     assert!(current_audio_driver().is_none());
@@ -846,6 +850,10 @@ fn dummy_driver_playback_and_recording() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+)]
 fn a_device_opens_at_the_spec_asked_for() {
     let _l = crate::test_support::test_lock();
     let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
@@ -893,6 +901,10 @@ fn a_device_opens_at_the_spec_asked_for() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+)]
 fn mix_path_swizzles_float_data_to_device_layout() {
     let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
@@ -947,6 +959,10 @@ fn mix_path_swizzles_float_data_to_device_layout() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+)]
 fn recording_swizzle_handles_float_data() {
     let _l = crate::test_support::test_lock();
     let tmp = crate::test_support::TempDir::new("diskswizzle");
@@ -1017,6 +1033,10 @@ fn recording_swizzle_handles_float_data() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+)]
 fn unbinding_a_simplified_stream_is_ignored() {
     let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();
@@ -1048,6 +1068,10 @@ fn unbinding_a_simplified_stream_is_ignored() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+)]
 fn disk_driver_writes_and_reads_files() {
     let _l = crate::test_support::test_lock();
     let tmp = crate::test_support::TempDir::new("diskaudio");

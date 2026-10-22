@@ -870,6 +870,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): the async I/O thread"
+    )]
     fn read_write_close() {
         let _l = guard();
         let tmp = TempDir::new("asyncio");
@@ -939,6 +943,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): the async I/O thread"
+    )]
     fn load_file_and_signal() {
         let _l = guard();
         let tmp = TempDir::new("asyncio-load");
@@ -967,6 +975,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): the async I/O thread"
+    )]
     fn dropping_queue_waits_for_tasks() {
         let _l = guard();
         let tmp = TempDir::new("asyncio-drop");

@@ -35,7 +35,7 @@ thread_local! {
 /// thread sets it. Values are dropped (the `SDL_TLSDestructorCallback`)
 /// when the thread exits, when [`cleanup_tls`] runs, or when replaced.
 ///
-/// ```
+/// ```ignore-emscripten
 /// use sdl3::thread::TlsId;
 /// static COUNTER: TlsId = TlsId::new();
 /// COUNTER.set(5u32).unwrap();
@@ -159,6 +159,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn per_thread_values() {
         static A: TlsId = TlsId::new();
         static B: TlsId = TlsId::new();

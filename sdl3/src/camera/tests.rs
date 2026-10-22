@@ -361,6 +361,10 @@ fn devices_and_events() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the camera thread"
+)]
 fn capture_without_conversion() {
     let _l = crate::test_support::test_lock();
     let (a, _) = start();
@@ -445,6 +449,10 @@ fn capture_without_conversion() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the camera thread"
+)]
 fn capture_with_conversion_and_scaling() {
     let _l = crate::test_support::test_lock();
     let (a, _) = start();
@@ -510,6 +518,10 @@ fn capture_with_conversion_and_scaling() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the camera thread"
+)]
 fn disconnect_makes_zombie() {
     let _l = crate::test_support::test_lock();
     let (a, b) = start();
@@ -549,6 +561,10 @@ fn disconnect_makes_zombie() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the camera thread"
+)]
 fn permission_denied_or_pending() {
     let _l = crate::test_support::test_lock();
     let (a, b) = start();
@@ -579,6 +595,10 @@ fn permission_denied_or_pending() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the camera thread"
+)]
 fn failed_open_keeps_the_device() {
     let _l = crate::test_support::test_lock();
     let (a, b) = start();
@@ -603,6 +623,10 @@ fn failed_open_keeps_the_device() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "threads (SDL_THREADS_DISABLED): the camera thread"
+)]
 fn quit_while_open() {
     let _l = crate::test_support::test_lock();
     let (a, _) = start();

@@ -289,6 +289,7 @@ fn xdg_paths() {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "no executable name on Emscripten")]
 fn base_path_and_exe_name() {
     let base = get_base_path().unwrap();
     assert!(base.ends_with(std::path::MAIN_SEPARATOR) || base.ends_with('/'));

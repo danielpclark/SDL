@@ -1549,6 +1549,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn main_thread_callbacks() {
         with_events(|| {
             let ran = Arc::new(AtomicUsize::new(0));

@@ -131,6 +131,7 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn spinlock_excludes() {
         let lock = Arc::new(SpinLock::new(0usize));
         let mut hs = vec![];

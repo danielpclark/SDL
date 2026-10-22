@@ -183,6 +183,10 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): conditions don't wait"
+    )]
     fn signal_broadcast_timeout() {
         let shared = Arc::new((ReentrantMutex::new(Cell::new(0)), Condition::new()));
 
