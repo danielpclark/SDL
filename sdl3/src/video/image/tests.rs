@@ -12,6 +12,116 @@ use crate::video::surface::{read_palette, write_palette, Surface};
 
 const FNV0: u64 = 14695981039346656037;
 
+/// `(name, bytes)` of each of the files in testdata/images.
+macro_rules! images {
+    [$($name:literal),* $(,)?] => {
+        &[$(($name, include_bytes!(concat!("../testdata/images/", $name)) as &[u8])),*]
+    };
+}
+
+/// The images of testdata/images, in name order, embedded: the tests of
+/// the Emscripten build see only their own (in-memory) file system.
+const IMAGES: &[(&str, &[u8])] = images![
+    "ancillary.png",
+    "bad_depth.png",
+    "bad_filter.png",
+    "bad_zlib.png",
+    "best.png",
+    "fixed.png",
+    "g1.png",
+    "g16.png",
+    "g16trns.png",
+    "g1i.png",
+    "g2.png",
+    "g2f0.png",
+    "g2f1.png",
+    "g2f2.png",
+    "g2f3.png",
+    "g2f4.png",
+    "g4.png",
+    "g4trns.png",
+    "g8.png",
+    "g8i5x1.png",
+    "g8trns.png",
+    "ga16.png",
+    "ga8.png",
+    "ga8i3x3.png",
+    "j100.jpg",
+    "j411.jpg",
+    "j420.jpg",
+    "j422.jpg",
+    "j440.jpg",
+    "j444.jpg",
+    "j64.jpg",
+    "jcmyk.jpg",
+    "jgray.jpg",
+    "jgrayprog.jpg",
+    "jone.jpg",
+    "jprog.jpg",
+    "jrst.jpg",
+    "no_idat.png",
+    "one.png",
+    "p1.png",
+    "p2.png",
+    "p4.png",
+    "p4i.png",
+    "p4key2.png",
+    "p8.png",
+    "p8key.png",
+    "p8trns.png",
+    "rgb16.png",
+    "rgb16trns.png",
+    "rgb8.png",
+    "rgb8f0.png",
+    "rgb8f1.png",
+    "rgb8f2.png",
+    "rgb8f3.png",
+    "rgb8f4.png",
+    "rgb8i.png",
+    "rgb8i1x1.png",
+    "rgb8trns.png",
+    "rgba16.png",
+    "rgba16f0.png",
+    "rgba16f1.png",
+    "rgba16f2.png",
+    "rgba16f3.png",
+    "rgba16f4.png",
+    "rgba16i.png",
+    "rgba8.png",
+    "rle.png",
+    "split.png",
+    "stored.png",
+    "tall.png",
+    "truncated.png",
+    "unknown_critical.png",
+    "wide.png",
+    "wide1bit.png",
+];
+
+/// [`IMAGES`] written to a temporary directory, for the loaders that read
+/// a path.
+fn image_dir() -> crate::test_support::TempDir {
+    let dir = crate::test_support::TempDir::new("images");
+    for (name, data) in IMAGES {
+        std::fs::write(dir.path(name), data).unwrap();
+    }
+    dir
+}
+
+/// [`IMAGES`] has every file of testdata/images.
+#[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
+fn images_are_the_testdata_files() {
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/video/testdata/images");
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect();
+    names.sort();
+    let embedded: Vec<&str> = IMAGES.iter().map(|&(name, _)| name).collect();
+    assert_eq!(names, embedded);
+}
+
 fn fnv(mut h: u64, bytes: &[u8]) -> u64 {
     for &b in bytes {
         h ^= b as u64;
@@ -147,14 +257,9 @@ fn mjpg(out: &mut String, name: &str, data: &[u8], w: i32, h: i32) {
 fn session() -> String {
     let mut out = String::new();
     let o = &mut out;
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/video/testdata/images");
-    let mut names: Vec<String> = std::fs::read_dir(dir)
-        .unwrap()
-        .map(|e| e.unwrap().file_name().into_string().unwrap())
-        .collect();
-    names.sort();
-    for name in &names {
-        let path = format!("{dir}/{name}");
+    let dir = image_dir();
+    for (name, _) in IMAGES {
+        let path = dir.path(name);
         let mut io = IoStream::from_file(&path, "rb").unwrap();
         let is_jpg = name.contains(".jpg");
         let mut s = if is_jpg {
@@ -268,15 +373,14 @@ fn images_match_c() {
 /// outside the chroma planes).
 #[test]
 fn mjpg_conversions_upstream_mishandles() {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/video/testdata/images");
     let convert = |name: &str, f: PixelFormat, pitch: i32, size: usize| {
-        let data = std::fs::read(format!("{dir}/{name}")).unwrap();
+        let &(_, data) = IMAGES.iter().find(|&&(n, _)| n == name).unwrap();
         let mut dst = vec![0u8; size];
         crate::video::surface::convert_pixels(
             37,
             23,
             PixelFormat::MJPG,
-            &data,
+            data,
             data.len() as i32,
             f,
             &mut dst,
@@ -310,9 +414,9 @@ fn mjpg_conversions_upstream_mishandles() {
 fn mjpg_to_nv12_keeps_rows_aligned() {
     // A 37-pixel-wide grayscale JPEG: its plane rows are padded to 40 bytes,
     // and the NV12 Y plane holds the same luma rows as the decoded image
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/video/testdata/images");
+    let dir = image_dir();
     for name in ["jgray.jpg", "jgrayprog.jpg"] {
-        let path = format!("{dir}/{name}");
+        let path = dir.path(name);
         let gray = Surface::load_jpg(&path).unwrap();
         assert_eq!(gray.format(), PixelFormat::INDEX8);
         let (w, h) = (gray.width() as usize, gray.height() as usize);
