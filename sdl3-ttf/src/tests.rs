@@ -1952,6 +1952,10 @@ fn gpu_pass(
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU backend in the Emscripten build"
+)]
 fn gpu_text_engine_matches_upstream_reference() {
     use sdl3::gpu::{Device, ShaderFormat};
 

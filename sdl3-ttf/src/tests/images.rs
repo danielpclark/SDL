@@ -21,6 +21,87 @@ use super::{fnv, FNV0};
 use crate::plutovg::plutovg_surface_load_from_image_data;
 use sdl3::video::stb_image::load_from_memory_all_formats;
 
+/// `(name, bytes)` of each of the files in testdata/images.
+macro_rules! images {
+    [$($name:literal),* $(,)?] => {
+        &[$(($name, include_bytes!(concat!("../testdata/images/", $name)) as &[u8])),*]
+    };
+}
+
+/// The images of testdata/images, in name order, embedded: the tests of
+/// the Emscripten build see only their own (in-memory) file system.
+const IMAGES: &[(&str, &[u8])] = images![
+    "bmp1.bmp",
+    "bmp16.bmp",
+    "bmp16bf.bmp",
+    "bmp16v3.bmp",
+    "bmp24.bmp",
+    "bmp24td.bmp",
+    "bmp32.bmp",
+    "bmp32v4.bmp",
+    "bmp32v5.bmp",
+    "bmp32v5a0.bmp",
+    "bmp4.bmp",
+    "bmp8.bmp",
+    "bmp8os2.bmp",
+    "bmpbadmask.bmp",
+    "bmprle.bmp",
+    "gif87.gif",
+    "gifbg.gif",
+    "gifbig.gif",
+    "giflocal.gif",
+    "gifnoimage.gif",
+    "gifnotable.gif",
+    "gifoutside.gif",
+    "hdrbadsize.hdr",
+    "hdrflat.hdr",
+    "hdrnoformat.hdr",
+    "hdrnotrle.hdr",
+    "hdrrle.hdr",
+    "hdrrle2.hdr",
+    "pic.pic",
+    "picbad.pic",
+    "picrle.pic",
+    "pnm5.pgm",
+    "pnm5x16.pgm",
+    "pnm6.ppm",
+    "pnm6x16.ppm",
+    "pnmmaxv.pgm",
+    "pnmzero.pgm",
+    "psd1.psd",
+    "psd16.psd",
+    "psd3.psd",
+    "psd4.psd",
+    "psd5.psd",
+    "psdgrey.psd",
+    "psdrle.psd",
+    "tga16.tga",
+    "tga24.tga",
+    "tga32td.tga",
+    "tgagrey.tga",
+    "tgagreya.tga",
+    "tganopal.tga",
+    "tgapal.tga",
+    "tgapal16.tga",
+    "tgapalidx16.tga",
+    "tgarle24.tga",
+    "tgarlegrey.tga",
+];
+
+/// [`IMAGES`] has every file of testdata/images.
+#[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
+fn images_are_the_testdata_files() {
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/testdata/images");
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect();
+    names.sort();
+    let embedded: Vec<&str> = IMAGES.iter().map(|&(name, _)| name).collect();
+    assert_eq!(names, embedded);
+}
+
 struct Lcg(u64);
 
 impl Lcg {
@@ -58,24 +139,17 @@ fn run(out: &mut Vec<String>, label: &str, d: &[u8]) {
 
 #[test]
 fn image_decoding_matches_upstream_reference() {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/testdata/images");
-    let mut names: Vec<String> = std::fs::read_dir(dir)
-        .unwrap()
-        .map(|e| e.unwrap().file_name().into_string().unwrap())
-        .collect();
-    names.sort();
     let mut out = Vec::new();
     let mut rng = Lcg(7);
-    for name in &names {
-        let d = std::fs::read(format!("{dir}/{name}")).unwrap();
+    for &(name, d) in IMAGES {
         let n = d.len();
-        run(&mut out, name, &d);
+        run(&mut out, name, d);
         for k in 1..=4 {
             let cut = n * k / 5;
             run(&mut out, &format!("{name} cut {cut}"), &d[..cut]);
         }
         for k in 0..16 {
-            let mut m = d.clone();
+            let mut m = d.to_vec();
             let pos = (rng.rnd() % n as u32) as usize;
             if k < 12 {
                 m[pos] ^= 1 << (rng.rnd() % 8);
