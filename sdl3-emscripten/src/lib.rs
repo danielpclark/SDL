@@ -27,7 +27,8 @@
 //! * the JavaScript of SDL's own sources, one module per upstream file
 //!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`,
 //!   [`assert`](mod@assert) for `SDL_assert.c`, [`runapp`] for
-//!   `main/emscripten/SDL_sysmain_runapp.c`).
+//!   `main/emscripten/SDL_sysmain_runapp.c`, [`locale`] for
+//!   `locale/emscripten/SDL_syslocale.c`).
 //!
 //! ## Why a crate of its own
 //!
@@ -65,6 +66,8 @@ pub mod assert;
 mod deps;
 #[cfg(target_os = "emscripten")]
 pub mod js;
+#[cfg(target_os = "emscripten")]
+pub mod locale;
 #[cfg(target_os = "emscripten")]
 mod registry;
 #[cfg(target_os = "emscripten")]

@@ -467,11 +467,38 @@ mod sys {
     }
 }
 
-// (also Emscripten's, until the Emscripten port's PR 5 translates its
-// navigator.languages backend)
+/// The Emscripten backend: the browser's `navigator.languages`.
+/// Translation of `locale/emscripten/SDL_syslocale.c`.
+#[cfg(target_os = "emscripten")]
+mod sys {
+    /// Translation of `SDL_SYS_GetPreferredLocales()` (Emscripten).
+    pub(super) fn get_preferred_locales(buf: &mut String, buflen: usize) -> crate::Result<()> {
+        // (the caller's zeroed buffer, upstream's locbuf, on the stack: the
+        // JavaScript takes its address as a signed number, so it must be
+        // below 2 GB, as the stack is)
+        let mut locbuf = [0u8; 128];
+        let buflen = buflen.min(locbuf.len());
+        // SAFETY: the JavaScript writes at most buflen bytes at the pointer.
+        unsafe {
+            sdl3_emscripten::locale::sdl3_get_preferred_locales(locbuf.as_mut_ptr().cast(), buflen)
+        };
+        // Note (upstream): a list exactly as long as the buffer has no NUL
+        // after it, and C reads on past the buffer; this stops at its end.
+        // The bytes are UTF-16 units cut to 8 bits: anything but ASCII
+        // (which language tags are) isn't UTF-8, and is replaced here.
+        let len = locbuf[..buflen]
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(buflen);
+        buf.push_str(&String::from_utf8_lossy(&locbuf[..len]));
+        Ok(())
+    }
+}
+
 #[cfg(not(any(
     windows,
     target_vendor = "apple",
+    target_os = "emscripten",
     all(
         unix,
         not(any(
@@ -608,6 +635,92 @@ mod tests {
         let (lang, country) = xp.split_once('_').unwrap_or((&xp, ""));
         assert!(is_tag(lang), "{xp}");
         assert!(country.is_empty() || is_tag(country), "{xp}");
+    }
+
+    /// node's `navigator.languages` (its ICU locale), then lists of the
+    /// test's own: what upstream's C reports for the same lists, built with
+    /// emcc and run under node, but where it reads past its buffer (a list
+    /// of exactly 128 bytes has no NUL) and for bytes that aren't UTF-8.
+    #[cfg(target_os = "emscripten")]
+    #[test]
+    fn emscripten_navigator_languages() {
+        use sdl3_emscripten::em_asm;
+        let _l = crate::test_support::test_lock();
+        hints::reset(hints::PREFERRED_LOCALES);
+        let is_tag = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric());
+        let locales = preferred_locales().unwrap();
+        assert!(!locales.is_empty());
+        for l in &locales {
+            assert!(is_tag(&l.language), "{locales:?}");
+            assert!(l.country.as_deref().is_none_or(is_tag), "{locales:?}");
+        }
+
+        // `property` of navigator, as the JavaScript expression `value`.
+        let set = |property: &str, value: &str| {
+            let js = format!("{property}\0{value}\0");
+            // SAFETY: plain JavaScript; both strings are NUL-terminated.
+            unsafe {
+                em_asm!(
+                    "Object.defineProperty(navigator, UTF8ToString($0), { value: eval(UTF8ToString($1)), configurable: true });",
+                    js.as_ptr(),
+                    js[property.len() + 1..].as_ptr()
+                )
+            };
+        };
+        let a120 = "a".repeat(120);
+        let cases: [(&str, String); 10] = [
+            ("['en-US', 'fr', 'de-CH']", "(en|US) (fr|-) (de|CH)".into()),
+            ("['zh-Hant-TW', 'en']", "(zh|TW) (en|-)".into()),
+            ("['a'.repeat(127)]", format!("({}|-)", "a".repeat(127))),
+            // (no room for it and a NUL)
+            ("['a'.repeat(128)]", String::new()),
+            // (upstream's "x" is followed by what's past its buffer)
+            (
+                "['a'.repeat(120), 'bb-CC', 'x']",
+                format!("({a120}|-) (bb|CC) (x|-)"),
+            ),
+            (
+                "['a'.repeat(120), 'bbbbbbb']",
+                format!("({a120}|-) (bbbbbbb|-)"),
+            ),
+            (
+                "['a'.repeat(120), 'bbbbbb']",
+                format!("({a120}|-) (bbbbbb|-)"),
+            ),
+            (
+                "['a'.repeat(120), 'bbbbb', 'c']",
+                format!("({a120}|-) (bbbbb|-) (c|-)"),
+            ),
+            // (upstream's language is the bytes E9 74 E9)
+            (
+                "['\\u00e9t\\u00e9-FR', 'en']",
+                "(\u{FFFD}t\u{FFFD}|FR) (en|-)".into(),
+            ),
+            // (none: navigator.language, then)
+            ("[]", "(pt|BR)".into()),
+        ];
+        set("language", "'pt-BR'");
+        let got = || {
+            preferred_locales()
+                .unwrap()
+                .iter()
+                .map(|l| format!("({}|{})", l.language, l.country.as_deref().unwrap_or("-")))
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        for (list, expected) in cases {
+            set("languages", list);
+            assert_eq!(got(), expected, "{list}");
+        }
+        set("languages", "undefined");
+        assert_eq!(got(), "(pt|BR)");
+        // Nothing at all: no locales, and no error.
+        set("language", "undefined");
+        assert_eq!(got(), "");
+
+        // SAFETY: plain JavaScript (node's own properties again).
+        unsafe { em_asm!("delete navigator.languages; delete navigator.language;") };
+        assert_eq!(preferred_locales().unwrap(), locales);
     }
 
     #[test]
