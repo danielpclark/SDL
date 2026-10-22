@@ -28,7 +28,8 @@
 //!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`,
 //!   [`assert`](mod@assert) for `SDL_assert.c`, [`runapp`] for
 //!   `main/emscripten/SDL_sysmain_runapp.c`, [`locale`] for
-//!   `locale/emscripten/SDL_syslocale.c`).
+//!   `locale/emscripten/SDL_syslocale.c`, [`url`] for
+//!   `misc/emscripten/SDL_sysurl.c`).
 //!
 //! ## Why a crate of its own
 //!
@@ -81,6 +82,8 @@ pub mod sys;
 #[cfg(all(target_os = "emscripten", feature = "testing"))]
 #[doc(hidden)]
 pub mod testing;
+#[cfg(target_os = "emscripten")]
+pub mod url;
 
 #[cfg(target_os = "emscripten")]
 pub use deps::DEPS;
