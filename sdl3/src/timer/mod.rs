@@ -666,6 +666,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn precise_delay_ends_when_ticks_restart() {
         let _l = crate::test_support::test_lock();
         let _ = ticks_ns();
@@ -696,6 +697,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): the timer thread"
+    )]
     fn one_shot_and_periodic() {
         // (init::quit() in other tests shuts the timer thread down)
         let _l = crate::test_support::test_lock();
@@ -727,6 +732,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): the timer thread"
+    )]
     fn drop_cancels_detach_keeps() {
         // (init::quit() in other tests shuts the timer thread down)
         let _l = crate::test_support::test_lock();

@@ -118,6 +118,7 @@ mod tests {
     use std::os::unix::net::UnixStream;
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "sockets")]
     fn io_ready_on_a_socket() {
         let (mut a, b) = UnixStream::pair().unwrap();
         let fd = b.as_raw_fd();
@@ -143,7 +144,14 @@ mod tests {
         assert_eq!(app_id(), "org.libsdl.test");
         crate::init::set_app_metadata_property(crate::init::AppMetadata::Identifier, None);
         if crate::stdlib::getenv("FLATPAK_ID").is_none() {
-            assert_eq!(app_id(), crate::filesystem::get_exe_name().unwrap());
+            // (Emscripten has no executable name, upstream's
+            // SDL_SYS_GetExeName() returning NULL there: the default)
+            let exe = if cfg!(target_os = "emscripten") {
+                "SDL_App".to_owned()
+            } else {
+                crate::filesystem::get_exe_name().unwrap()
+            };
+            assert_eq!(app_id(), exe);
         }
     }
 }

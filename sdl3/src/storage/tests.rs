@@ -114,6 +114,10 @@ fn file_storage() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no base or pref path yet (the dummy filesystem backend)"
+)]
 fn title_storage_is_read_only() {
     // (user_storage_and_driver_hints sets the title driver hint)
     let _l = crate::test_support::test_lock();
@@ -139,6 +143,10 @@ fn title_storage_is_read_only() {
 
 #[cfg(unix)]
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no base or pref path yet (the dummy filesystem backend)"
+)]
 fn user_storage_and_driver_hints() {
     use crate::stdlib::{getenv, setenv_unsafe, unsetenv_unsafe};
     let _l = crate::test_support::test_lock();

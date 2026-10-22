@@ -981,6 +981,17 @@ pub(crate) mod tests {
         // The failed video init doesn't leave its thread behind as the
         // main thread.
         assert_eq!(VIDEO_THREAD_ID.load(Ordering::Acquire), 0);
+
+        init(InitFlags::EVENTS).unwrap();
+        init(InitFlags::EVENTS).unwrap();
+        quit(); // forces everything down regardless of refcounts
+        assert_eq!(was_init(InitFlags::NONE), InitFlags::NONE);
+    }
+
+    #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
+    fn the_thread_that_inits_events_pumps_them() {
+        let _l = crate::test_support::test_lock();
         let other = std::thread::spawn(|| {
             init(InitFlags::EVENTS).unwrap();
             let main = is_main_thread();
@@ -991,10 +1002,6 @@ pub(crate) mod tests {
             other.join().unwrap(),
             "the thread that inits events pumps them"
         );
-
-        init(InitFlags::EVENTS).unwrap();
-        init(InitFlags::EVENTS).unwrap();
-        quit(); // forces everything down regardless of refcounts
         assert_eq!(was_init(InitFlags::NONE), InitFlags::NONE);
     }
 

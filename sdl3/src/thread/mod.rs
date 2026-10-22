@@ -460,6 +460,7 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn thread_ids_unique_and_stable() {
         let a = current_thread_id();
         assert_eq!(a, current_thread_id());
@@ -469,6 +470,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_os = "emscripten", ignore = "threads (SDL_THREADS_DISABLED)")]
     fn recursive_lock_and_exclusion() {
         let m = Arc::new(ReentrantMutex::new(std::cell::Cell::new(0)));
         {
@@ -492,6 +494,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "emscripten",
+        ignore = "threads (SDL_THREADS_DISABLED): semaphores don't wait"
+    )]
     fn semaphore_basics() {
         let s = Semaphore::new(0);
         assert!(!s.try_wait());
@@ -503,6 +509,31 @@ mod tests {
         let t = std::thread::spawn(move || s2.wait_timeout(None));
         s.signal();
         assert!(t.join().unwrap());
+    }
+
+    /// Without threads (Emscripten) the primitives do what upstream's
+    /// `SDL_THREADS_DISABLED` functions do: creating a thread fails,
+    /// semaphores and conditions don't wait (a semaphore's value is 0), and
+    /// setting the priority succeeds.
+    #[test]
+    #[cfg(target_os = "emscripten")]
+    fn threadless_primitives() {
+        let e = Thread::spawn("worker", || 0).unwrap_err();
+        assert_eq!(e.message(), "Threads are not supported on this platform");
+        let s = Semaphore::new(0);
+        assert!(s.try_wait());
+        assert!(s.wait_timeout(Some(Duration::from_millis(1))));
+        s.wait();
+        s.signal();
+        assert_eq!(s.value(), 0);
+        let m = ReentrantMutex::new(Cell::new(0));
+        let c = Condition::new();
+        let guard = m.lock();
+        assert!(c.wait_timeout(&guard, Some(Duration::from_millis(10))));
+        c.signal();
+        c.broadcast();
+        drop(guard);
+        set_current_thread_priority(ThreadPriority::High).unwrap();
     }
 
     #[test]
