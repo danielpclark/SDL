@@ -22,7 +22,7 @@
 //! copies.
 
 use std::fmt::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use sdl3_mixer_mpg123::mpg123::*;
@@ -441,24 +441,71 @@ fn test_one(out: &mut String, name: &str, data: &[u8]) {
     damage(out, data);
 }
 
-/// Where the file of a reference section is: this crate's test data, or
-/// sdl3-mixer's (which a packaged crate doesn't have).
-fn find(name: &str) -> Option<PathBuf> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let own = root.join("testdata").join(name);
-    if own.exists() {
-        return Some(own);
+/// `(name, bytes)` of each of the files in testdata/.
+macro_rules! own_files {
+    [$($name:literal),* $(,)?] => {
+        &[$(($name, include_bytes!(concat!("../testdata/", $name)) as &[u8])),*]
+    };
+}
+
+/// This crate's test files, in name order, embedded: the tests of the
+/// Emscripten build see only their own (in-memory) file system.
+const OWN_FILES: &[(&str, &[u8])] = own_files![
+    "mp1_dual.mp1",
+    "mp1_free.mp1",
+    "mp1_joint_crc.mp1",
+    "mp1_lsf.mp1",
+    "mp1_mono.mp1",
+    "mp2_32k_low.mp2",
+    "mp2_48k_low.mp2",
+    "mp2_dual.mp2",
+    "mp2_joint_crc.mp2",
+    "mp2_lsf_stereo.mp2",
+    "mp3_abr.mp3",
+    "mp3_id3_mid.mp3",
+    "mp3_id3v1_end.mp3",
+    "mp3_id3v22_frames.mp3",
+    "mp3_id3v23_unsync.mp3",
+    "mp3_id3v24_footer.mp3",
+    "mp3_lsf_intensity.mp3",
+    "mp3_mpeg25_stereo.mp3",
+    "mp3_replaygain.mp3",
+    "mp3_riff.wav",
+    "mp3_shine.mp3",
+    "mp3_short_blocks.mp3",
+    "mp3_stereo_info.mp3",
+];
+
+/// [`OWN_FILES`] has every file of testdata/.
+#[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
+fn own_files_are_the_testdata_files() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .filter(|n| n != "reference.txt")
+        .collect();
+    names.sort();
+    let embedded: Vec<&str> = OWN_FILES.iter().map(|&(name, _)| name).collect();
+    assert_eq!(names, embedded);
+}
+
+/// The file of a reference section: this crate's test data, or sdl3-mixer's
+/// (which a packaged crate doesn't have, nor the Emscripten build's tests).
+fn find(name: &str) -> Option<Vec<u8>> {
+    if let Some(&(_, data)) = OWN_FILES.iter().find(|&&(n, _)| n == name) {
+        return Some(data.to_vec());
     }
-    let mixer = root.join("../sdl3-mixer/src/testdata/audio").join(name);
-    mixer.exists().then_some(mixer)
+    let mixer = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../sdl3-mixer/src/testdata/audio")
+        .join(name);
+    std::fs::read(mixer).ok()
 }
 
 #[test]
 fn matches_upstream() {
-    let reference = std::fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/reference.txt"),
-    )
-    .expect("testdata/reference.txt");
+    let reference = include_str!("../testdata/reference.txt");
     let mut sections: Vec<(String, String)> = Vec::new();
     for line in reference.lines() {
         if let Some(name) = line.strip_prefix("== ") {
@@ -473,34 +520,39 @@ fn matches_upstream() {
     let next = std::sync::atomic::AtomicUsize::new(0);
     let failures = std::sync::Mutex::new(Vec::new());
     let skipped = std::sync::atomic::AtomicUsize::new(0);
-    std::thread::scope(|scope| {
-        for _ in 0..threads {
-            scope.spawn(|| loop {
-                let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                let Some((name, expected)) = sections.get(i) else {
-                    break;
-                };
-                let Some(path) = find(name) else {
-                    skipped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    continue;
-                };
-                let data = std::fs::read(&path).unwrap();
-                let mut out = String::new();
-                test_one(&mut out, name, &data);
-                if out != *expected {
-                    let (n, (want, got)) = expected
-                        .lines()
-                        .zip(out.lines())
-                        .enumerate()
-                        .find(|(_, (a, b))| a != b)
-                        .unwrap_or((0, ("(line count)", "(line count)")));
-                    failures.lock().unwrap().push(format!(
-                        "{name}, line {n}:\n  upstream: {want}\n  ours:     {got}"
-                    ));
-                }
-            });
+    let work = || loop {
+        let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let Some((name, expected)) = sections.get(i) else {
+            break;
+        };
+        let Some(data) = find(name) else {
+            skipped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            continue;
+        };
+        let mut out = String::new();
+        test_one(&mut out, name, &data);
+        if out != *expected {
+            let (n, (want, got)) = expected
+                .lines()
+                .zip(out.lines())
+                .enumerate()
+                .find(|(_, (a, b))| a != b)
+                .unwrap_or((0, ("(line count)", "(line count)")));
+            failures.lock().unwrap().push(format!(
+                "{name}, line {n}:\n  upstream: {want}\n  ours:     {got}"
+            ));
         }
-    });
+    };
+    if cfg!(target_os = "emscripten") {
+        // (no threads: one file after another)
+        work();
+    } else {
+        std::thread::scope(|scope| {
+            for _ in 0..threads {
+                scope.spawn(work);
+            }
+        });
+    }
     let failures = failures.into_inner().unwrap();
     assert!(
         failures.is_empty(),

@@ -81,6 +81,7 @@ fn play(data: &[u8], seconds: i64) -> Option<i64> {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn corrupt_midi_files() {
     let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = testdata();
@@ -182,6 +183,7 @@ fn every_program() -> Vec<u8> {
 }
 
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn corrupt_patches_play() {
     let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let out = std::env::temp_dir().join(format!("sdl3-mixer-timidity-{}", std::process::id()));
@@ -208,9 +210,10 @@ fn corrupt_patches_play() {
 #[test]
 fn corrupt_soundfonts() {
     let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let dir = testdata();
-    let sf2 = std::fs::read(dir.join("test.sf2")).unwrap();
-    let midi = std::fs::read(dir.join("midi/sf2.mid")).unwrap();
+    // (embedded: the tests of the Emscripten build see only their own
+    // in-memory file system, where the corrupt copies go)
+    let sf2: &[u8] = include_bytes!("../testdata/test.sf2");
+    let midi: &[u8] = include_bytes!("../testdata/midi/sf2.mid");
     let out = std::env::temp_dir().join(format!("sdl3-mixer-timidity-sf2-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&out);
     // the presets, instruments, zones and generators are near the end
@@ -219,17 +222,17 @@ fn corrupt_soundfonts() {
     for seed in 0..60u32 {
         let flips = 1 + seed as usize % 6;
         let bad = if seed % 4 == 0 {
-            corrupt(&sf2, seed, flips, 0..sf2.len())
+            corrupt(sf2, seed, flips, 0..sf2.len())
         } else {
-            corrupt(&sf2, seed, flips, pdta..sf2.len())
+            corrupt(sf2, seed, flips, pdta..sf2.len())
         };
         let path = out.join(format!("c{seed}.sf2"));
         std::fs::write(&path, &bad).unwrap();
         if set_soundfont(Some(&path.to_string_lossy())).is_ok() && init(None).is_ok() {
-            if play(&midi, 2).is_some_and(|n| n > 0) {
+            if play(midi, 2).is_some_and(|n| n > 0) {
                 played += 1;
             }
-            let _ = play(&midi, 2);
+            let _ = play(midi, 2);
         }
         exit();
     }

@@ -167,12 +167,104 @@ impl SfFile for MemFile {
     }
 }
 
-fn testdata(name: &str) -> Option<Vec<u8>> {
-    let dir = match std::env::var("FSREF_DIR") {
-        Ok(dir) => dir + "/",
-        Err(_) => concat!(env!("CARGO_MANIFEST_DIR"), "/testdata/").to_owned(),
+/// `(name, bytes)` of each of the files in testdata/.
+macro_rules! testdata {
+    [$($name:literal),* $(,)?] => {
+        &[$(($name, include_bytes!(concat!("../testdata/", $name)) as &[u8])),*]
     };
-    std::fs::read(dir + name).ok()
+}
+
+/// The SoundFonts and MIDI files of testdata/, in name order, embedded:
+/// the tests of the Emscripten build see only their own (in-memory) file
+/// system.
+const TESTDATA: &[(&str, &[u8])] = testdata![
+    "midi/bad_eot.mid",
+    "midi/bad_keysig.mid",
+    "midi/bad_mthd_len.mid",
+    "midi/bad_smpte_ofs.mid",
+    "midi/bad_tempo.mid",
+    "midi/bad_timesig.mid",
+    "midi/bad_varlen.mid",
+    "midi/basic.mid",
+    "midi/big_param.mid",
+    "midi/empty.mid",
+    "midi/fast.mid",
+    "midi/format1.mid",
+    "midi/format2.mid",
+    "midi/hanging.mid",
+    "midi/header_only.mid",
+    "midi/huge_meta.mid",
+    "midi/huge_sysex.mid",
+    "midi/junk_chunk.mid",
+    "midi/long_track.mid",
+    "midi/many.mid",
+    "midi/mono.mid",
+    "midi/more_tracks.mid",
+    "midi/neg_tracks.mid",
+    "midi/negative_chunk.mid",
+    "midi/no_eot.mid",
+    "midi/no_status.mid",
+    "midi/nonascii_chunk.mid",
+    "midi/not_midi.mid",
+    "midi/notracks.mid",
+    "midi/nrpn.mid",
+    "midi/short_header.mid",
+    "midi/short_track.mid",
+    "midi/slow.mid",
+    "midi/smpte.mid",
+    "midi/sys_common.mid",
+    "midi/sysex.mid",
+    "midi/truncated.mid",
+    "sf2_badinfo.sf2",
+    "sf2_badinst.sf2",
+    "sf2_badsamples.sf2",
+    "sf2_badsize.sf2",
+    "sf2_badsm24.sf2",
+    "sf2_extra_pdta.sf2",
+    "sf2_header.sf2",
+    "sf2_noimod.sf2",
+    "sf2_nopdta.sf2",
+    "sf2_noshdr.sf2",
+    "sf2_oddinfo.sf2",
+    "sf2_truncated.sf2",
+    "sf2_version1.sf2",
+    "sf2_version3.sf2",
+    "sf2_version9.sf2",
+    "test.sf2",
+    "test_v201.sf2",
+];
+
+/// A file of testdata/ ([`TESTDATA`]), or of `FSREF_DIR`.
+fn testdata(name: &str) -> Option<Vec<u8>> {
+    if let Ok(dir) = std::env::var("FSREF_DIR") {
+        return std::fs::read(dir + "/" + name).ok();
+    }
+    TESTDATA
+        .iter()
+        .find(|&&(n, _)| n == name)
+        .map(|&(_, data)| data.to_vec())
+}
+
+/// [`TESTDATA`] has every SoundFont and MIDI file of testdata/.
+#[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
+fn testdata_is_every_file() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
+    let mut names = Vec::new();
+    for sub in ["", "midi/"] {
+        for e in std::fs::read_dir(dir.join(sub)).unwrap() {
+            let e = e.unwrap();
+            if e.file_type().unwrap().is_file() {
+                let name = format!("{sub}{}", e.file_name().into_string().unwrap());
+                if !name.ends_with(".txt") {
+                    names.push(name);
+                }
+            }
+        }
+    }
+    names.sort();
+    let embedded: Vec<&str> = TESTDATA.iter().map(|&(name, _)| name).collect();
+    assert_eq!(names, embedded);
 }
 
 /// C's atof() of the simple numbers in cases.txt.

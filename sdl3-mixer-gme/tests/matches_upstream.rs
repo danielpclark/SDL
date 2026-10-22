@@ -414,14 +414,17 @@ fn file_test(out: &mut String, name: &str, d: &[u8]) {
     }
 }
 
+/// testdata/reference.txt (the rips are embedded too: the tests of the
+/// Emscripten build see only their own in-memory file system).
+static REFERENCE: &[u8] = include_bytes!("../testdata/reference.txt");
+
 fn testdata() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
 }
 
 /// The reference's lines for a section (`== name` up to the next one).
 fn reference_section(name: &str) -> String {
-    let reference = std::fs::read(testdata().join("reference.txt")).unwrap();
-    let reference = String::from_utf8_lossy(&reference);
+    let reference = String::from_utf8_lossy(REFERENCE);
     let mut want = String::new();
     let mut keep = false;
     for line in reference.lines() {
@@ -463,10 +466,9 @@ fn compare(out: &str, name: &str) {
     panic!("{name}: output differs from upstream's:\n{report}");
 }
 
-fn check_file(name: &str) {
-    let d = std::fs::read(testdata().join(name)).unwrap();
+fn check_file(name: &str, d: &[u8]) {
     let mut out = String::new();
-    file_test(&mut out, name, &d);
+    file_test(&mut out, name, d);
     compare(&out, name);
 }
 
@@ -482,7 +484,7 @@ macro_rules! file_tests {
         $(
             #[test]
             fn $name() {
-                check_file($file);
+                check_file($file, include_bytes!(concat!("../testdata/", $file)));
             }
         )*
     };
@@ -535,6 +537,7 @@ file_tests! {
 
 /// Every file in `testdata/` has its test above.
 #[test]
+#[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn every_file_is_tested() {
     let mut names: Vec<String> = std::fs::read_dir(testdata())
         .unwrap()
@@ -542,8 +545,7 @@ fn every_file_is_tested() {
         .filter(|n| n != "reference.txt")
         .collect();
     names.sort();
-    let reference = std::fs::read(testdata().join("reference.txt")).unwrap();
-    let reference = String::from_utf8_lossy(&reference);
+    let reference = String::from_utf8_lossy(REFERENCE);
     let sections: Vec<&str> = reference
         .lines()
         .filter_map(|l| l.strip_prefix("== "))
