@@ -1,4 +1,28 @@
 [target.wasm32-unknown-emscripten]
+# `cargo test --target wasm32-unknown-emscripten` runs the test programs
+# (and the doctests) under node, 22 or newer: see "Emscripten" in
+# docs/HARDWARE_TESTING.md.
+runner = "node"
 # Every link warns that -sWASM_BIGINT is deprecated (rustc passes it);
-# silence emcc's deprecation warnings.
-rustflags = ["-Clink-arg=-Wno-deprecated"]
+# silence emcc's deprecation warnings. The rest is what the test programs
+# need: memory that grows past the 16 MB default, an 8 MB stack (the
+# default is 64 KB), the exit code passed on, and node's environment
+# variables seen by getenv() (SDL3_TEST_REQUIRE, SDL's hints). The file
+# system is emscripten's in-memory one (MEMFS), as in a browser.
+rustflags = [
+    "-Clink-arg=-Wno-deprecated",
+    "-Clink-arg=-sALLOW_MEMORY_GROWTH=1",
+    "-Clink-arg=-sMAXIMUM_MEMORY=4GB",
+    "-Clink-arg=-sSTACK_SIZE=8MB",
+    "-Clink-arg=-sEXIT_RUNTIME=1",
+    "-Clink-arg=-sNODE_HOST_ENV=1",
+]
+# The same for the doctests, which rustdoc links.
+rustdocflags = [
+    "-Clink-arg=-Wno-deprecated",
+    "-Clink-arg=-sALLOW_MEMORY_GROWTH=1",
+    "-Clink-arg=-sMAXIMUM_MEMORY=4GB",
+    "-Clink-arg=-sSTACK_SIZE=8MB",
+    "-Clink-arg=-sEXIT_RUNTIME=1",
+    "-Clink-arg=-sNODE_HOST_ENV=1",
+]
