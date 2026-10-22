@@ -80,6 +80,30 @@ faithful translation; the API is not a mock-up of the C one.
   when callbacks may re-enter; the C "lock nothing, assume one thread"
   code becomes short locked scopes with the event push outside them.
 
+## Emscripten's JavaScript
+
+Upstream's `EM_ASM`/`EM_JS` blocks become Rust macros of the internal
+`sdl3-emscripten` crate, with the JavaScript kept verbatim in raw strings
+(no `.js` file):
+
+* Prefer a named function, defined in `sdl3-emscripten` (in the module
+  named after the upstream file) and called from `sdl3`: `em_js!` with
+  JavaScript parameter names, or `em_js_dollar!` to paste an `EM_ASM`
+  body that uses `$0`, `$1`, … as it is. Name it `sdl3_…`. It must be in
+  `sdl3-emscripten`: in `sdl3`'s own test program rustc wouldn't export
+  its text.
+* The anonymous `em_asm!`/`em_asm_int!`/`em_asm_double!`/`em_asm_ptr!`
+  (and `main_thread_…`) compile their text with `eval` at run time: for
+  tests and one-off blocks only.
+* Upstream's `#if` inside JavaScript becomes a `#[cfg]` between two
+  functions. A library function the JavaScript needs goes in the one
+  dependency table (`sdl3_emscripten::DEPS`), not a new table.
+* A Rust function upstream's JavaScript calls by name (`EMSCRIPTEN_KEEPALIVE`,
+  `_Emscripten_HandlePointerEnter`) is declared with `em_js_callback!`
+  and registered when its subsystem initializes, not exported.
+* The C API (`html5.h`, `emscripten.h`) is in `sdl3_emscripten::sys`;
+  add what a backend needs there, with its layout test.
+
 ## Testing
 
 Each module carries unit tests that pin behaviour to upstream's: known hash

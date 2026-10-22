@@ -213,9 +213,13 @@ wasm32-unknown-emscripten` needs no emcc, and with emsdk the tests run
 under node (`cargo test --workspace --target wasm32-unknown-emscripten`;
 see "Emscripten" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md)
 for the setup and what is ignored there). Loading shared objects at run
-time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. Its own
-backends (canvas video, Web Audio, the Gamepad API, ...) are in
-progress; until then the dummy drivers stand in. See [docs/ROADMAP.md](docs/ROADMAP.md).
+time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. The
+JavaScript SDL needs there (upstream's `EM_JS`/`EM_ASM` blocks, the
+`html5.h` API) is written in Rust too, with no `.js` file, in the internal
+`sdl3-emscripten` crate (its `em_js!` and `em_asm!` macros do what
+clang's do). Its own backends (canvas video, Web Audio, the Gamepad API,
+...) are in progress; until then the dummy drivers stand in. See
+[docs/ROADMAP.md](docs/ROADMAP.md).
 
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)

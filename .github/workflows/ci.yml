@@ -289,6 +289,19 @@ jobs:
       - name: cargo test --workspace --target wasm32-unknown-emscripten
         shell: bash
         run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
+      # The JavaScript layer's tests (sdl3-emscripten: em_js!, em_asm!, the
+      # dependency table, the callback registry, the html5.h layouts) once
+      # more in a release build: thin LTO keeps every #[used] static and
+      # drops what nothing refers to, and emcc -O3 drops the glue's
+      # unnamed JavaScript, which changes what the program holds.
+      - name: cargo test -p sdl3-emscripten --release
+        run: cargo test -p sdl3-emscripten --release --target wasm32-unknown-emscripten
+      # Its documentation is only there on Emscripten (the crate is empty
+      # elsewhere).
+      - name: cargo doc -p sdl3-emscripten
+        run: cargo doc --no-deps -p sdl3-emscripten --target wasm32-unknown-emscripten
+        env:
+          RUSTDOCFLAGS: -D warnings
       # The tests write SDL3_TEST_SKIP_LOG in their own in-memory file
       # system, so the skip log is made from the notes they print (with
       # RUST_TEST_NOCAPTURE), each with the test libtest names next.

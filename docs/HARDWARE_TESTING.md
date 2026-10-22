@@ -364,6 +364,19 @@ of the frames composited with them are upstream's without them
 the programs would write in their own file system, is made in CI from
 the notes they print (`RUST_TEST_NOCAPTURE=1`).
 
+The JavaScript layer, `sdl3-emscripten`, is tested by its own
+integration tests (`sdl3-emscripten/tests/`): `em_js!` and `em_asm!`
+round trips, the dependency table, the callback registry and the
+`html5.h` layouts (the expected sizes and offsets are what a C program
+built with emcc printed). Its build script links them with
+`-sEXPORTED_FUNCTIONS=_main`, as an application with its own export list
+is, which replaces the functions rustc would export. The crate's own
+`--lib` tests can't link (in an executable crate rustc doesn't export the
+`EM_JS` text) and are off. CI runs these tests once more in a release
+build (`cargo test -p sdl3-emscripten --release --target
+wasm32-unknown-emscripten`), where thin LTO and emcc's `-O3` change what
+the program holds.
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
