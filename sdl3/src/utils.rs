@@ -6,6 +6,23 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 
+/// Translation of `Emscripten_force_free()`: C's `free()`, for JavaScript
+/// (as `_Emscripten_force_free`, registered at initialization) to free
+/// what it allocated with `stringToNewUTF8`, emscripten's `_malloc`.
+/// (Upstream: "even though we reference the C runtime's free() in other
+/// places, it appears to be inlined more aggressively in Emscripten 4, so
+/// we need a reference to it here, too, so inlined Javascript doesn't fail
+/// to find it.")
+///
+/// # Safety
+///
+/// `ptr` is null or came from `malloc()` and wasn't freed.
+#[cfg(target_os = "emscripten")]
+pub(crate) unsafe extern "C" fn emscripten_force_free(ptr: *mut std::ffi::c_void) {
+    // SAFETY: the caller's.
+    unsafe { libc::free(ptr) }; // This should NOT be SDL_free()
+}
+
 /// Translation of `SDL_CalculateGCD()`.
 pub fn gcd(a: u32, b: u32) -> u32 {
     if b == 0 {

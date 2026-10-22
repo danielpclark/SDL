@@ -31,3 +31,8 @@ testing = []
 
 [dev-dependencies]
 sdl3-emscripten = { path = ".", features = ["testing"] }
+
+# emscripten_force_exit() ends the program, so it's a program of its own.
+[[test]]
+name = "force_exit"
+harness = false

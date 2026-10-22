@@ -13,6 +13,10 @@
 /// share.
 #[cfg(target_vendor = "apple")]
 pub(crate) mod apple;
+/// SDL.c's Emscripten parts (`Module['SDL3']`, the JavaScript-callable
+/// functions, `SDL_ExitProcess()`).
+#[cfg(target_os = "emscripten")]
+pub(crate) mod emscripten;
 #[cfg(all(
     unix,
     not(target_vendor = "apple"),

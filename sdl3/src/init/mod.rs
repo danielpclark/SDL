@@ -419,6 +419,11 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
         return Err(err!("Application didn't initialize properly, did you include SDL_main.h in the file containing your main() function?"));
     }
 
+    // make sure this generic table to hang SDL-specific Javascript stuff is
+    // available at init time.
+    #[cfg(target_os = "emscripten")]
+    crate::core::emscripten::init_subsystem();
+
     init_main_thread();
 
     #[cfg(all(
@@ -894,6 +899,9 @@ pub fn sandbox() -> Sandbox {
 /// Translation of the internal `SDL_ExitProcess()`.
 #[allow(dead_code)] // used by SDL_main callbacks (later phase)
 pub(crate) fn exit_process(exitcode: i32) -> ! {
+    #[cfg(target_os = "emscripten")]
+    crate::core::emscripten::exit_process(exitcode);
+    #[cfg(not(target_os = "emscripten"))]
     std::process::exit(exitcode)
 }
 
@@ -1012,5 +1020,77 @@ pub(crate) mod tests {
         let _ = device_form_factor();
         let _ = (is_phone(), is_tablet(), is_tv());
         let _ = sandbox();
+    }
+
+    /// `SDL_InitSubSystem()` makes `Module['SDL3']` with its pointer
+    /// helpers (keeping what the page put there), and the functions
+    /// upstream's JavaScript calls by name are there.
+    #[cfg(target_os = "emscripten")]
+    #[test]
+    fn emscripten_module_sdl3() {
+        use sdl3_emscripten::{em_asm, em_asm_int};
+        let _l = crate::test_support::test_lock();
+        // SAFETY (all the snippets): they touch only Module and memory
+        // they allocate.
+        unsafe {
+            em_asm!("delete Module['SDL3'];");
+            assert_eq!(
+                em_asm_int!("return typeof Module['SDL3'] == 'undefined' ? 1 : 0;"),
+                1
+            );
+        }
+        init_subsystem(InitFlags::NONE).unwrap();
+        unsafe {
+            assert_eq!(
+                em_asm_int!(
+                    r#"
+                    var SDL3 = Module['SDL3'];
+                    if (typeof SDL3 != 'object') return -1;
+                    if (SDL3.JSVarToCPtr(1234) !== 1234) return -2;
+                    if (SDL3.CPtrToHeap32Index(0x80000010) !== 0x20000004) return -3;
+                    return 1;
+                "#
+                ),
+                1
+            );
+            // a second init keeps the table and what the page put in it
+            em_asm!("Module['SDL3'].state = 7; Module['SDL3'].JSVarToCPtr = function(v) { return v + 1; };");
+        }
+        init_subsystem(InitFlags::NONE).unwrap();
+        unsafe {
+            assert_eq!(
+                em_asm_int!("return Module['SDL3'].state * 10 + Module['SDL3'].JSVarToCPtr(1);"),
+                72
+            );
+            em_asm!("delete Module['SDL3'];");
+        }
+        init_subsystem(InitFlags::NONE).unwrap();
+
+        // _SDL_malloc & co. and _Emscripten_force_free, as upstream's
+        // JavaScript calls them
+        let r = unsafe {
+            em_asm_int!(
+                r#"
+                var p = _SDL_malloc(16);
+                if (!p) return -1;
+                HEAPU8.fill(0xAB, p, p + 16);
+                p = _SDL_realloc(p, 64);
+                if (!p || HEAPU8[p + 15] != 0xAB) return -2;
+                _SDL_free(p);
+                _SDL_free(0);
+                var z = Module['_SDL_calloc'](4, 4);
+                for (var i = 0; i < 16; i++) if (HEAPU8[z + i]) return -3;
+                _SDL_free(z);
+                var e = _SDL_malloc(0);
+                if (!e) return -4;
+                _SDL_free(e);
+                var s = stringToNewUTF8('dropped');
+                if (UTF8ToString(s) != 'dropped') return -5;
+                _Emscripten_force_free(s);
+                return 1;
+            "#
+            )
+        };
+        assert_eq!(r, 1);
     }
 }

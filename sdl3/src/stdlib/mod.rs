@@ -13,7 +13,8 @@
 //! environment API ([`Environment`], [`getenv`]).
 //!
 //! Intentionally not translated: `SDL_malloc.c` (dlmalloc; Rust's allocator
-//! replaces it), `SDL_memcpy.c`/`SDL_memmove.c`/`SDL_memset.c` (slice
+//! replaces it; only its four entry points are, on Emscripten, for SDL's
+//! JavaScript), `SDL_memcpy.c`/`SDL_memmove.c`/`SDL_memset.c` (slice
 //! methods), `SDL_qsort.c` (`sort_unstable_by`), `SDL_strtokr.c`
 //! (`split`), `SDL_mslibc.c` (MSVC runtime shims), and `SDL_aligned_alloc`
 //! (`std::alloc::Layout`).
@@ -23,6 +24,8 @@ pub mod crc16;
 pub mod crc32;
 mod getenv;
 pub mod iconv;
+#[cfg(target_os = "emscripten")]
+pub(crate) mod malloc;
 pub mod math;
 pub mod murmur3;
 pub mod random;
