@@ -317,16 +317,29 @@ js_function!(
 // The direct eval is what lets the snippet see the glue's scope (Module,
 // HEAPU8, the library functions), as emscripten's ASM_CONSTS functions do;
 // its only own name is the parameter. The '\n' ends a trailing // comment.
+// Naming sdl3_em_asm_deps keeps the dependency table's functions in the
+// glue at -O2 and up, where emscripten drops what nothing names.
 js_function!(
     ASM_COMPILE,
     "sdl3_em_asm_compile",
     r#"(sdl3_em_asm_text)<::>{
+    sdl3_em_asm_compile.deps = sdl3_em_asm_deps;
     return eval('(function($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) {' + sdl3_em_asm_text + '\n})');
 }"#
 );
 
+// The dependency table's functions, named in the glue (crate::DEPS).
+js_function!(ASM_DEPS, "sdl3_em_asm_deps", crate::deps::DEPS_JS);
+
 /// The texts of the dispatchers, for [`KEEP`](crate::__private::KEEP).
-pub(crate) static ASM: [&[u8]; 5] = [&ASM_INT, &ASM_DOUBLE, &ASM_PTR, &ASM_RUN, &ASM_COMPILE];
+pub(crate) static ASM: [&[u8]; 6] = [
+    &ASM_INT,
+    &ASM_DOUBLE,
+    &ASM_PTR,
+    &ASM_RUN,
+    &ASM_COMPILE,
+    &ASM_DEPS,
+];
 
 /// A value an `em_asm` snippet can take: converted to the type C's variadic
 /// call would pass ([`EmArg::Raw`]: `int` for the smaller integers and
