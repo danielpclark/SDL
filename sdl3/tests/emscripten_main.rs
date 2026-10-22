@@ -344,6 +344,17 @@ mod emscripten {
         if scenario.is_empty() {
             parent(args);
         }
+        if scenario == "assert" {
+            // A failed assertion, without SDL_HINT_ASSERT, under node as it
+            // is (the URL's `window` gone).
+            // SAFETY: plain JavaScript.
+            unsafe { em_asm!("delete globalThis.window;") };
+            println!("before");
+            let x = 1;
+            sdl3::sdl_assert_always!(x == 2);
+            println!("after");
+            return 0;
+        }
         let name = if scenario.is_empty() {
             "success".to_string()
         } else {
@@ -459,6 +470,18 @@ mod emscripten {
                 "nowindow",
                 1,
                 &["ReferenceError: window is not defined"][..],
+            ),
+            // The assertion's prompt: no `window` either (upstream's ends
+            // one step earlier, at its message box's `alert()`, which isn't
+            // there either).
+            (
+                "assert",
+                1,
+                &[
+                    "before",
+                    "Assertion failure at",
+                    "ReferenceError: window is not defined",
+                ][..],
             ),
         ] {
             let (got, output) = run_child(scenario);

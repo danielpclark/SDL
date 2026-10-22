@@ -26,7 +26,8 @@
 //!   `html5.h` and `html5_webgl.h` that SDL uses;
 //! * the JavaScript of SDL's own sources, one module per upstream file
 //!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`,
-//!   [`runapp`] for `main/emscripten/SDL_sysmain_runapp.c`).
+//!   [`assert`](mod@assert) for `SDL_assert.c`, [`runapp`] for
+//!   `main/emscripten/SDL_sysmain_runapp.c`).
 //!
 //! ## Why a crate of its own
 //!
@@ -58,6 +59,8 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations, missing_docs)]
 
+#[cfg(target_os = "emscripten")]
+pub mod assert;
 #[cfg(target_os = "emscripten")]
 mod deps;
 #[cfg(target_os = "emscripten")]
