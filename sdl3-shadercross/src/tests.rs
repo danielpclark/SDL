@@ -519,6 +519,10 @@ fn usable_formats() -> sdl3::gpu::ShaderFormat {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no GPU backend in the Emscripten build"
+)]
 fn gpu_shaders_and_pipelines_from_spirv() {
     // Declared before the device, so dropped after it.
     let video = OffscreenVideo::init();
