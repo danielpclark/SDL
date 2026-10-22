@@ -25,6 +25,12 @@ assert-level-0 = []
 assert-level-1 = []
 assert-level-2 = []
 assert-level-3 = []
+# Emscripten: SDL_RunApp() mounts IndexedDB storage (IDBFS, persisted
+# automatically) at the path the SDL_EMSCRIPTEN_PERSISTENT_PATH environment
+# variable names when this crate is built (as upstream's CMake option of
+# that name does) and runs the main function once it's loaded. It links
+# emscripten's IDBFS library (-lidbfs.js) itself. Nothing on other targets.
+emscripten-persistent-path = ["sdl3-emscripten/idbfs"]
 
 [dependencies]
 # The platform-independent core uses no third-party crates. The platform
@@ -107,3 +113,17 @@ harness = false
 [[test]]
 name = "cocoa_metal"
 harness = false
+
+# Emscripten's main callbacks, timers and SDL_RunApp(), which the browser's
+# event loop runs after `main` returns, and which end the program: a
+# program of its own, run under node.
+[[test]]
+name = "emscripten_main"
+harness = false
+
+# SDL_RunApp()'s persistent storage (IDBFS); built with the path in
+# SDL_EMSCRIPTEN_PERSISTENT_PATH (see the file).
+[[test]]
+name = "emscripten_persistent_path"
+harness = false
+required-features = ["emscripten-persistent-path"]
