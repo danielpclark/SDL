@@ -8,17 +8,18 @@
 //! A [`Sensor`] is an open sensor; it is closed when the last handle to it
 //! is dropped (upstream reference counts `SDL_OpenSensor()` calls). The
 //! sensor drivers are platform backends: the Windows Sensor API driver on
-//! Windows, and the dummy driver, which reports no sensors, elsewhere.
+//! Windows, the `devicemotion` driver on Emscripten, and the dummy driver,
+//! which reports no sensors, elsewhere.
 //!
 //! Sensor data is in SI units: m/s² for accelerometers (a device at rest
 //! reports [`STANDARD_GRAVITY`] away from the center of the earth) and
 //! radians per second for gyroscopes, with the axes of the device in its
 //! natural orientation (see `SDL_sensor.h`).
 
-// (also Emscripten's, until the Emscripten port's PR 5 translates its
-// devicemotion driver)
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "emscripten")))]
 mod dummy;
+#[cfg(target_os = "emscripten")]
+mod emscripten;
 #[cfg(windows)]
 mod windows;
 
@@ -175,7 +176,10 @@ pub(crate) trait SensorDriver: Send + Sync {
 static SENSOR_DRIVERS: &[&dyn SensorDriver] = &[
     #[cfg(windows)]
     &windows::WINDOWS_SENSOR_DRIVER,
-    #[cfg(not(windows))]
+    #[cfg(target_os = "emscripten")]
+    &emscripten::EMSCRIPTEN_SENSOR_DRIVER,
+    // (SDL_SENSOR_DUMMY: where there's no other driver)
+    #[cfg(not(any(windows, target_os = "emscripten")))]
     &dummy::DUMMY_SENSOR_DRIVER,
 ];
 
@@ -592,7 +596,7 @@ pub fn update_sensors() {
 mod tests {
     use super::*;
 
-    #[cfg(not(windows))]
+    #[cfg(not(any(windows, target_os = "emscripten")))]
     #[test]
     fn dummy_driver_has_no_sensors() {
         // (SENSOR implies EVENTS, whose events thread is the thread that
@@ -655,6 +659,159 @@ mod tests {
         init::init_subsystem(InitFlags::SENSOR).unwrap();
         assert_eq!(sensors().len(), ids.len());
         init::quit_subsystem(InitFlags::SENSOR);
+    }
+
+    /// The sensors' updates, as `(which, data)`, from the event queue.
+    #[cfg(target_os = "emscripten")]
+    fn sensor_events() -> Vec<(SensorID, [f32; 3])> {
+        update_sensors();
+        let mut updates = Vec::new();
+        while let Some(event) = crate::events::queue::poll() {
+            if let Event::Sensor(e) = event {
+                updates.push((e.which, [e.data[0], e.data[1], e.data[2]]));
+            }
+        }
+        updates
+    }
+
+    /// Without `devicemotion` events (node has no `window`, so emscripten
+    /// can't even register the handler) there are still the two sensors,
+    /// which never have data, as upstream's.
+    #[cfg(target_os = "emscripten")]
+    #[test]
+    fn emscripten_driver_without_devicemotion() {
+        let _l = crate::test_support::test_lock();
+        init::set_main_ready();
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        let ids = sensors();
+        assert_eq!(ids.len(), 2);
+        assert_eq!(ids[1], ids[0] + 1);
+        for (&id, (name, sensor_type)) in ids.iter().zip([
+            ("Accelerometer", SensorType::Accel),
+            ("Gyroscope", SensorType::Gyro),
+        ]) {
+            assert_eq!(sensor_name_for_id(id).unwrap().as_deref(), Some(name));
+            assert_eq!(sensor_type_for_id(id).unwrap(), sensor_type);
+            assert_eq!(
+                sensor_non_portable_type_for_id(id).unwrap(),
+                sensor_type as i32
+            );
+        }
+        let accel = Sensor::open(ids[0]).unwrap();
+        let gyro = Sensor::open(ids[1]).unwrap();
+        assert_eq!(accel.name().unwrap().as_deref(), Some("Accelerometer"));
+        assert_eq!(gyro.sensor_type(), SensorType::Gyro);
+        assert_eq!(sensor_events(), []);
+        let mut data = [1f32; 3];
+        accel.data(&mut data).unwrap();
+        assert_eq!(data, [0.0; 3]);
+        assert!(sensor_name_for_id(ids[1] + 1).is_err());
+        drop((accel, gyro));
+        init::quit_subsystem(InitFlags::SENSOR);
+
+        // New instance IDs after a restart.
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        let again = sensors();
+        assert_eq!(again.len(), 2);
+        assert!(again[0] > ids[1], "{ids:?} {again:?}");
+        init::quit_subsystem(InitFlags::SENSOR);
+    }
+
+    /// `devicemotion` events on a window of the test's own (emscripten's
+    /// `window` target, `specialHTMLTargets[2]`, which under node is 0),
+    /// dispatched to the handler the driver registered: the sensor values
+    /// are what upstream's C reports for the same events, built with emcc
+    /// and run under node.
+    #[cfg(target_os = "emscripten")]
+    #[test]
+    #[allow(clippy::excessive_precision)] // (as upstream's C printed them, with %.9g)
+    fn emscripten_devicemotion_matches_upstream() {
+        use sdl3_emscripten::{em_asm, em_asm_int};
+        let _l = crate::test_support::test_lock();
+        // SAFETY: plain JavaScript.
+        unsafe {
+            em_asm!(
+                r#"
+                specialHTMLTargets[2] = { listeners: [], prevented: 0,
+                    addEventListener(type, f, capture) { this.listeners.push([type, f, capture]); },
+                    removeEventListener(type, f) { this.listeners = this.listeners.filter((l) => l[1] !== f); },
+                    dispatch(type, e) { e.preventDefault = () => { this.prevented++; }; for (var l of this.listeners) if (l[0] == type) l[1](e); } };
+            "#
+            )
+        };
+        // `acceleration`, `accelerationIncludingGravity` and `rotationRate`.
+        let dispatch = |event: &str| {
+            let event = format!("{event}\0");
+            // SAFETY: plain JavaScript; the string is NUL-terminated.
+            unsafe {
+                em_asm!(
+                    "specialHTMLTargets[2].dispatch('devicemotion', eval('(' + UTF8ToString($0) + ')'));",
+                    event.as_ptr()
+                )
+            };
+        };
+        // SAFETY: plain JavaScript.
+        let listeners = || unsafe { em_asm_int!("return specialHTMLTargets[2].listeners.length;") };
+
+        init::set_main_ready();
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        assert_eq!(listeners(), 1);
+        let ids = sensors();
+        let (accel_id, gyro_id) = (ids[0], ids[1]);
+        let accel = Sensor::open(accel_id).unwrap();
+        let gyro = Sensor::open(gyro_id).unwrap();
+        assert_eq!(sensor_events(), []);
+
+        let f = f32::NAN;
+        let cases: [(&str, [[f32; 3]; 2]); 3] = [
+            (
+                "{ acceleration: { x: 0.5, y: -1.25, z: 2 }, accelerationIncludingGravity: { x: 0.5, y: -1.25, z: 11.80665 }, rotationRate: { alpha: 90, beta: -45, gamma: 1.5 } }",
+                [[1.57079637, -0.785398185, 0.0261799395], [0.5, -1.25, 11.8066502]],
+            ),
+            // (no rotation rate: NaN, as the missing fields are)
+            (
+                "{ acceleration: { x: 0, y: 0, z: 0 }, accelerationIncludingGravity: { x: 3, y: -4, z: 0 }, rotationRate: null }",
+                [[f, f, f], [4.20284986, -5.6038003, 0.0]],
+            ),
+            // (no gravity: 0 / 0)
+            (
+                "{ acceleration: { x: 1, y: 2, z: 3 }, accelerationIncludingGravity: { x: 1, y: 2, z: 3 }, rotationRate: { alpha: 0, beta: 0, gamma: 0 } }",
+                [[0.0, 0.0, 0.0], [f, f, f]],
+            ),
+        ];
+        for (event, [gyro_data, accel_data]) in cases {
+            dispatch(event);
+            // (the most recently opened sensor first, as upstream's list)
+            let got = sensor_events();
+            let bits = |d: &[f32; 3]| d.map(|v| if v.is_nan() { u32::MAX } else { v.to_bits() });
+            let got: Vec<_> = got.iter().map(|(id, d)| (*id, bits(d))).collect();
+            assert_eq!(
+                got,
+                [(gyro_id, bits(&gyro_data)), (accel_id, bits(&accel_data))],
+                "{event}"
+            );
+            let mut data = [0f32; 3];
+            gyro.data(&mut data).unwrap();
+            assert_eq!(bits(&data), bits(&gyro_data));
+        }
+        // Nothing new, nothing sent.
+        assert_eq!(sensor_events(), []);
+        // (the handler returns true: emscripten calls preventDefault())
+        // SAFETY: plain JavaScript.
+        assert_eq!(
+            unsafe { em_asm_int!("return specialHTMLTargets[2].prevented;") },
+            3
+        );
+        drop((accel, gyro));
+        init::quit_subsystem(InitFlags::SENSOR);
+
+        // Nothing removes the handler, and each initialization adds one.
+        assert_eq!(listeners(), 1);
+        init::init_subsystem(InitFlags::SENSOR).unwrap();
+        assert_eq!(listeners(), 2);
+        init::quit_subsystem(InitFlags::SENSOR);
+        // SAFETY: plain JavaScript (node's window target again).
+        unsafe { em_asm!("specialHTMLTargets[2] = 0;") };
     }
 
     #[test]
