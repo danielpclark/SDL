@@ -1009,7 +1009,9 @@ impl IoStream<'static> {
         let fp = opts
             .open(path)
             .map_err(|e| Error::new(format!("Couldn't open {display}: {}", strerror(&e))))?;
-        if fp.metadata().map(|m| m.is_dir()).unwrap_or(false) {
+        // Upstream skips this check on Emscripten (and Windows, where a
+        // directory can't be opened as a file): SKIP_STDIO_DIR_TEST.
+        if !cfg!(target_os = "emscripten") && fp.metadata().map(|m| m.is_dir()).unwrap_or(false) {
             return Err(Error::new(format!("{display} is a directory")));
         }
         Ok(IoStream::from_std_file(fp, mode, true))
@@ -1311,11 +1313,18 @@ mod tests {
         std::fs::remove_file(&path).unwrap();
 
         let dir = std::env::temp_dir();
-        if cfg!(unix) {
+        if cfg!(all(unix, not(target_os = "emscripten"))) {
             assert!(IoStream::from_file(&dir, "rb")
                 .unwrap_err()
                 .message()
                 .ends_with("is a directory"));
+        }
+        // On Emscripten upstream doesn't check (SKIP_STDIO_DIR_TEST): the
+        // directory opens, and reading it fails.
+        if cfg!(target_os = "emscripten") {
+            let mut s = IoStream::from_file(&dir, "rb").unwrap();
+            assert_eq!(s.read(&mut [0; 4]), 0);
+            assert_eq!(s.status(), IoStatus::Error);
         }
     }
 
