@@ -93,7 +93,7 @@ jobs:
   sdl3:
     name: sdl3 for iOS (cargo test --no-run, then spawn)
     runs-on: macos-15
-    timeout-minutes: 80
+    timeout-minutes: 120
     env:
       SPIKE_RUNTIME_PREFIX: "18."
     steps:
@@ -117,7 +117,7 @@ jobs:
           cargo test --no-run -p sdl3 --lib --target aarch64-apple-ios-sim --message-format=json-render-diagnostics > "$RUNNER_TEMP/lib.json" 2> "$RUNNER_TEMP/lib.err"; rc=$?
           echo "TIMING sdl3 lib test --no-run $(( $(date +%s) - s ))s rc=$rc"
           tail -c 20000 "$RUNNER_TEMP/lib.err"
-          echo "--- error summary:"; grep -E "^error" "$RUNNER_TEMP/lib.err" | sort | uniq -c | sort -rn | head -60
+          echo "--- error summary:"; (grep -E "^error" "$RUNNER_TEMP/lib.err" | sort | uniq -c | sort -rn | head -60) || true
           python3 -c "import json,sys
           for l in open(sys.argv[1]):
               try: m=json.loads(l)
@@ -142,6 +142,30 @@ jobs:
           grep -E "^test result|FAILED|panicked" "$RUNNER_TEMP/libtest.log" | head -100
           echo "--- failures section:"; sed -n '/^failures:/,$p' "$RUNNER_TEMP/libtest.log" | tail -150
           echo "--- tail:"; tail -30 "$RUNNER_TEMP/libtest.log"
+      - name: cargo test --no-run --workspace --target aarch64-apple-ios-sim (timed)
+        id: ws
+        continue-on-error: true
+        run: |
+          s=$(date +%s); cargo test --no-run --workspace --target aarch64-apple-ios-sim > "$RUNNER_TEMP/ws.log" 2>&1; rc=$?
+          echo "TIMING workspace test --no-run $(( $(date +%s) - s ))s rc=$rc"
+          (grep -E "^error" -A8 "$RUNNER_TEMP/ws.log" | head -150) || true
+          tail -5 "$RUNNER_TEMP/ws.log"; exit $rc
+      - name: cargo test --workspace through a simctl-spawn runner (a first tally)
+        if: steps.ws.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 45
+        env:
+          CARGO_TARGET_AARCH64_APPLE_IOS_SIM_RUNNER: ${{ github.workspace }}/ios-spike/spawn_runner.sh
+          SPIKE_NO_FORWARD: ""
+        run: |
+          export SPIKE_UDID=$(ios-spike/wait_boot.sh 2>/dev/null)
+          export RUST_TEST_THREADS=4
+          s=$(date +%s)
+          perl -e 'alarm 2500; exec @ARGV' cargo test --workspace --target aarch64-apple-ios-sim --no-fail-fast > "$RUNNER_TEMP/wst.log" 2>&1; rc=$?
+          echo "TIMING workspace tests $(( $(date +%s) - s ))s rc=$rc"
+          grep -E "Running|Doc-tests|^test result|error: test failed|SIGABRT|SIGSEGV|signal:|exit status" "$RUNNER_TEMP/wst.log" | head -300
+          echo "--- FAILED tests:"; (grep -E "^test .* FAILED$|^    [a-z_:0-9]+$" "$RUNNER_TEMP/wst.log" | sort -u | head -200) || true
+          echo "--- tail:"; tail -60 "$RUNNER_TEMP/wst.log"
 
   upstream:
     name: upstream C reference (CMake, iOS simulator)
