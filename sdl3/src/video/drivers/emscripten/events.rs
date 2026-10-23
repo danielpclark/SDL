@@ -50,7 +50,7 @@ fn handle_pointer_lock_change(
 }
 
 /// Translation of `Emscripten_HandlePointerLockChangeGlobal()`.
-unsafe extern "C" fn handle_pointer_lock_change_global(
+unsafe extern "C-unwind" fn handle_pointer_lock_change_global(
     _event_type: c_int,
     change_event: *const EmscriptenPointerlockChangeEvent,
     _user_data: *mut c_void,
@@ -94,7 +94,7 @@ fn handle_fullscreen_change(
 }
 
 /// Translation of `Emscripten_HandleFullscreenChangeGlobal()`.
-unsafe extern "C" fn handle_fullscreen_change_global(
+unsafe extern "C-unwind" fn handle_fullscreen_change_global(
     _event_type: c_int,
     fullscreen_change_event: *const EmscriptenFullscreenChangeEvent,
     _user_data: *mut c_void,
@@ -197,7 +197,7 @@ fn handle_resize(window: WindowID, ui_event: &EmscriptenUiEvent) -> bool {
 }
 
 /// Translation of `Emscripten_HandleResizeGlobal()`.
-unsafe extern "C" fn handle_resize_global(
+unsafe extern "C-unwind" fn handle_resize_global(
     _event_type: c_int,
     ui_event: *const EmscriptenUiEvent,
     _user_data: *mut c_void,
@@ -215,7 +215,7 @@ unsafe extern "C" fn handle_resize_global(
 
 /// The canvas resize callback of a fullscreen request (the window's ID is
 /// the user data). Translation of `Emscripten_HandleCanvasResize()`.
-pub(super) unsafe extern "C" fn handle_canvas_resize(
+pub(super) unsafe extern "C-unwind" fn handle_canvas_resize(
     _event_type: c_int,
     _reserved: *const c_void,
     user_data: *mut c_void,

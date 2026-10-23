@@ -1179,7 +1179,7 @@ mod video {
 
     /// emscripten's `keydown` handler, which runs its deferred requests in
     /// the user's gesture.
-    unsafe extern "C" fn keydown(
+    unsafe extern "C-unwind" fn keydown(
         _event_type: c_int,
         _event: *const sys::EmscriptenKeyboardEvent,
         _user_data: *mut c_void,
