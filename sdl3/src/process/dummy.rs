@@ -3,7 +3,8 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The process backend of a platform without processes (Emscripten).
+//! The process backend of a platform without processes (Emscripten, and
+//! tvOS, where CMake's `posix_spawn()` check fails).
 
 use super::{Process, ProcessBuilder};
 use crate::error::{Error, Result};

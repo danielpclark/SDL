@@ -13,10 +13,11 @@
 //! upstream's non-blocking pipes).
 //!
 //! On Windows the backend is upstream's `CreateProcessW()` one
-//! (`SDL_windowsprocess.c`); on Emscripten, which has no processes, it is
-//! the dummy one; everywhere else it is built on `std::process`, in place
-//! of upstream's `posix_spawn()` backend, which makes it available on every
-//! platform with a Rust standard library.
+//! (`SDL_windowsprocess.c`); on Emscripten, which has no processes, and on
+//! tvOS, where CMake's `posix_spawn()` check fails, it is the dummy one;
+//! everywhere else (iOS and visionOS too) it is built on `std::process`, in
+//! place of upstream's `posix_spawn()` backend, which makes it available on
+//! every platform with a Rust standard library.
 //!
 //! [`IoStatus::NotReady`]: crate::io::IoStatus::NotReady
 
@@ -27,13 +28,13 @@ use crate::io::IoStream;
 use crate::properties::Properties;
 use crate::stdlib::Environment;
 
-#[cfg(target_os = "emscripten")]
+#[cfg(any(target_os = "emscripten", target_os = "tvos"))]
 mod dummy;
-#[cfg(target_os = "emscripten")]
+#[cfg(any(target_os = "emscripten", target_os = "tvos"))]
 use dummy as sys;
-#[cfg(not(any(windows, target_os = "emscripten")))]
+#[cfg(not(any(windows, target_os = "emscripten", target_os = "tvos")))]
 mod posix;
-#[cfg(not(any(windows, target_os = "emscripten")))]
+#[cfg(not(any(windows, target_os = "emscripten", target_os = "tvos")))]
 use posix as sys;
 #[cfg(windows)]
 mod windows;
@@ -79,7 +80,7 @@ pub enum ProcessIo {
 }
 
 impl ProcessIo {
-    #[cfg_attr(target_os = "emscripten", allow(dead_code))] // (by the backends)
+    #[cfg_attr(any(target_os = "emscripten", target_os = "tvos"), allow(dead_code))] // (by the backends)
     fn is_inherited(&self) -> bool {
         matches!(self, ProcessIo::Inherited)
     }
@@ -230,7 +231,8 @@ pub struct Process {
     stdout: Option<IoStream<'static>>,
     stderr: Option<IoStream<'static>>,
     // (last, so that it goes after the streams)
-    #[cfg_attr(target_os = "emscripten", allow(dead_code))] // (the dummy backend has none)
+    // (the dummy backend has none)
+    #[cfg_attr(any(target_os = "emscripten", target_os = "tvos"), allow(dead_code))]
     internal: Option<sys::ProcessData>,
 }
 

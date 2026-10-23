@@ -615,7 +615,15 @@ fn touch_mouse_events_changed(hint: Option<&str>) {
 }
 
 fn mouse_touch_events_changed(hint: Option<&str>) {
-    let default_value = cfg!(any(target_os = "android", target_os = "ios"));
+    // (Android, and SDL_PLATFORM_IOS but not tvOS)
+    let default_value = cfg!(any(
+        target_os = "android",
+        all(
+            target_vendor = "apple",
+            not(target_os = "macos"),
+            not(target_os = "tvos")
+        )
+    ));
     let (add, del) = with_mouse(|mouse| {
         mouse.mouse_touch_events = hints::string_to_bool(hint, default_value);
         if mouse.mouse_touch_events {

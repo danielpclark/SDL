@@ -43,10 +43,10 @@ const HINT_JOYSTICK_HIDAPI_STEAM_PAIRING_ENABLED: &str =
 
 /// `SDL_HINT_JOYSTICK_HIDAPI_STEAM_DEFAULT`
 fn hint_joystick_hidapi_steam_default() -> bool {
+    // (Android and SDL_PLATFORM_IOS, every UIKit platform)
     if cfg!(any(
         target_os = "android",
-        target_os = "ios",
-        target_os = "tvos"
+        all(target_vendor = "apple", not(target_os = "macos"))
     )) {
         // This requires prompting for Bluetooth permissions, so make sure the application really wants it
         false

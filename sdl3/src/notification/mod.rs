@@ -147,9 +147,9 @@ use cocoa as sys;
 
 /// Register the notification delegate early, as Apple platforms require.
 /// Translation of `Cocoa_RegisterNotificationDelegate()`.
-#[cfg(target_os = "macos")]
+#[cfg(target_vendor = "apple")]
 pub(crate) fn register_notification_delegate() {
-    cocoa::register_notification_delegate();
+    sys::register_notification_delegate();
 }
 
 #[cfg(not(any(
@@ -185,6 +185,12 @@ mod sys {
 
     /// Translation of `SDL_CleanupNotifications()` (dummy: nothing to do).
     pub(super) fn cleanup_notifications() {
+        // Nothing to do.
+    }
+
+    /// Translation of `Cocoa_RegisterNotificationDelegate()` (dummy).
+    #[cfg(target_vendor = "apple")]
+    pub(super) fn register_notification_delegate() {
         // Nothing to do.
     }
 

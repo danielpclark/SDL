@@ -22,7 +22,12 @@ pub mod clipboard;
 pub(crate) mod core;
 pub mod display;
 pub(crate) mod drivers;
-#[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
+// (SDL_VIDEO_OPENGL_EGL: not on Emscripten or UIKit)
+#[cfg(any(
+    windows,
+    target_os = "macos",
+    all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+))]
 pub(crate) mod egl;
 pub mod gl;
 pub(crate) mod image;

@@ -334,8 +334,12 @@ const RENDER_DRIVERS: &[&str] = &[
     direct3d12::D3D12_RENDERER,
     #[cfg(target_os = "macos")]
     metal::METAL_RENDERER,
-    // (Emscripten: OpenGL ES 2 and software only, as upstream builds it)
-    #[cfg(not(target_os = "emscripten"))]
+    // (Emscripten: OpenGL ES 2 and software only, as upstream builds it;
+    // no desktop OpenGL on UIKit either)
+    #[cfg(not(any(
+        target_os = "emscripten",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     opengl::OPENGL_RENDERER,
     opengles2::GLES2_RENDERER,
     #[cfg(not(target_os = "emscripten"))]
@@ -2253,8 +2257,13 @@ impl Renderer {
         let _ = self.flush_render_commands();
 
         // (DONT_DRAW_WHILE_HIDDEN is only set on mobile platforms, where
-        // nothing is presented while the renderer is hidden)
-        let presented = if cfg!(any(target_os = "ios", target_os = "android")) && self.hidden {
+        // nothing is presented while the renderer is hidden: Android and
+        // SDL_PLATFORM_IOS, which is every UIKit platform)
+        let presented = if cfg!(any(
+            target_os = "android",
+            all(target_vendor = "apple", not(target_os = "macos"))
+        )) && self.hidden
+        {
             false
         } else {
             self.backend.present()
