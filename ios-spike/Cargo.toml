@@ -1,0 +1,18 @@
+[package]
+name = "ios-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Its own workspace: not a member of the repository's.
+[workspace]
+
+[[bin]]
+name = "spawn_probe"
+path = "src/bin/spawn_probe.rs"
+
+[[bin]]
+name = "uikit_app"
+path = "src/bin/uikit_app.rs"
+
+[dependencies]

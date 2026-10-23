@@ -1,9 +1,9 @@
 name: CI
 
+# A throwaway iOS-simulator spike (plan PR 0): this branch only, never main.
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: [claude/diag-ios-spike]
   workflow_dispatch:
 
 permissions:
@@ -13,366 +13,150 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# The pinned toolchain the lints, docs and main tests run on, so a new Rust
-# release (and its new lints) can't turn CI red on its own. Bump it on
-# purpose, fixing what the new clippy finds in the same change.
 env:
   RUST_TOOLCHAIN: "1.99"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
+  UPSTREAM_COMMIT: ea7a2dabfd1ab6b0a5720568ffd207f5825e47f1
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  fmt:
-    name: rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt
-      - run: cargo fmt --all --check
-
-  clippy:
-    name: clippy (${{ matrix.os }})
+  probe:
+    name: spike probes (Xcode ${{ matrix.xcode }})
+    runs-on: macos-15
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - xcode: "16.4"
+            runtime: "18."
+          - xcode: "26"
+            runtime: "26."
+    env:
+      SPIKE_RUNTIME_PREFIX: ${{ matrix.runtime }}
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: clippy
-          # Intel Macs: the x86-64 build is linted on the Apple Silicon
-          # runner; Emscripten on the Linux one (no emcc is needed to lint)
-          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten' || '' }}
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - if: matrix.os == 'macos-latest'
-        run: cargo clippy --workspace --all-targets --target x86_64-apple-darwin -- -D warnings
-      - if: matrix.os == 'ubuntu-latest'
-        run: cargo clippy --workspace --all-targets --target wasm32-unknown-emscripten -- -D warnings
-      # sdl3-mixer's zlib-only build (no `timidity`, `fluidsynth`, `mpg123` or
-      # `gme` feature)
-      - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
+      - name: Environment and Xcode
+        run: |
+          set -x
+          sw_vers; uname -m; sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize; df -h /
+          ls -d /Applications/Xcode*.app
+          x=$(ls -d /Applications/Xcode_${{ matrix.xcode }}*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          if [ -n "$x" ]; then sudo xcode-select -s "$x"; else echo "NO Xcode ${{ matrix.xcode }}; default kept"; fi
+          xcode-select -p; xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version; xcrun --sdk iphoneos --show-sdk-version
+          xcrun simctl list runtimes
+          xcrun simctl list devicetypes | grep -iE "iphone|ipad" | head -40
+          xcrun simctl list devices available | head -40
+          rustup --version; python3 --version; cmake --version | head -1; command -v ninja || true; brew --version | head -1
+      - name: Install the Rust toolchain and iOS targets (timed)
+        run: |
+          s=$(date +%s)
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target aarch64-apple-ios-sim,aarch64-apple-ios
+          rustup default "$RUST_TOOLCHAIN"
+          echo "TIMING toolchain install $(( $(date +%s) - s ))s"
+          rustc -vV
+      - name: Boot a simulator (timed)
+        working-directory: ios-spike
+        run: ./run.py boot
+      - name: Build the spike crate (timed)
+        working-directory: ios-spike
+        run: |
+          s=$(date +%s); cargo build --target aarch64-apple-ios-sim --bins; echo "TIMING sim bins $(( $(date +%s) - s ))s"
+          s=$(date +%s); cargo test --no-run --target aarch64-apple-ios-sim; echo "TIMING sim test --no-run $(( $(date +%s) - s ))s"
+          s=$(date +%s); cargo build --target aarch64-apple-ios --bins; echo "TIMING device bins $(( $(date +%s) - s ))s"
+          file target/aarch64-apple-ios-sim/debug/spawn_probe target/aarch64-apple-ios/debug/uikit_app
+      - name: simctl spawn experiments
+        working-directory: ios-spike
+        run: ./spawn_tests.sh
+      - name: libtest through a simctl-spawn cargo runner
+        working-directory: ios-spike
+        run: ./libtest_tests.sh
+      - name: UIKit app experiments
+        working-directory: ios-spike
+        run: ./app_tests.sh
+      - name: idb (optional)
+        working-directory: ios-spike
+        timeout-minutes: 15
+        continue-on-error: true
+        run: ./idb.sh
+      - name: Shut down the simulator
+        if: always()
+        run: |
+          [ -n "$SPIKE_UDID" ] && xcrun simctl shutdown "$SPIKE_UDID"; [ -n "$SPIKE_UDID" ] && xcrun simctl delete "$SPIKE_UDID"; true
 
-  test:
-    name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        # the pinned toolchain, and the minimum supported version
-        # (rust-version in Cargo.toml)
-        toolchain: [pinned, "1.87"]
-    runs-on: ${{ matrix.os }}
-    # The pinned Windows job (debug, the zlib-only mixer, then release) takes
-    # close to 30 minutes; this still stops a hung run.
+  sdl3:
+    name: sdl3 for iOS (cargo test --no-run, then spawn)
+    runs-on: macos-15
+    timeout-minutes: 80
+    env:
+      SPIKE_RUNTIME_PREFIX: "18."
+    steps:
+      - uses: actions/checkout@v5
+      - name: Xcode
+        run: |
+          x=$(ls -d /Applications/Xcode_16.4*.app 2>/dev/null | tail -1); [ -n "$x" ] && sudo xcode-select -s "$x"; xcodebuild -version
+      - name: Install the Rust toolchain and iOS targets (timed)
+        run: |
+          s=$(date +%s)
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target aarch64-apple-ios-sim,aarch64-apple-ios
+          rustup default "$RUST_TOOLCHAIN"
+          echo "TIMING toolchain install $(( $(date +%s) - s ))s"
+      - name: Boot a simulator in the background
+        run: (cd ios-spike && ./run.py boot > "$RUNNER_TEMP/boot.log" 2>&1) &
+      - name: cargo test --no-run -p sdl3 --lib --target aarch64-apple-ios-sim (timed)
+        id: lib
+        continue-on-error: true
+        run: |
+          s=$(date +%s)
+          cargo test --no-run -p sdl3 --lib --target aarch64-apple-ios-sim --message-format=json-render-diagnostics > "$RUNNER_TEMP/lib.json" 2> "$RUNNER_TEMP/lib.err"; rc=$?
+          echo "TIMING sdl3 lib test --no-run $(( $(date +%s) - s ))s rc=$rc"
+          tail -c 20000 "$RUNNER_TEMP/lib.err"
+          echo "--- error summary:"; grep -E "^error" "$RUNNER_TEMP/lib.err" | sort | uniq -c | sort -rn | head -60
+          python3 -c "import json,sys
+          for l in open(sys.argv[1]):
+              try: m=json.loads(l)
+              except Exception: continue
+              if m.get('reason')=='compiler-artifact' and m.get('executable') and m['target']['name']=='sdl3': print(m['executable'])" "$RUNNER_TEMP/lib.json" > "$RUNNER_TEMP/libtest-exe.txt"
+          cat "$RUNNER_TEMP/libtest-exe.txt"
+          exit $rc
+      - name: cargo build -p sdl3 --lib --target aarch64-apple-ios (timed)
+        continue-on-error: true
+        run: |
+          s=$(date +%s); cargo build -p sdl3 --lib --target aarch64-apple-ios 2>&1 | tail -40; echo "TIMING sdl3 device lib $(( $(date +%s) - s ))s rc=${PIPESTATUS[0]}"
+      - name: Run the sdl3 lib tests under simctl spawn
+        if: steps.lib.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          U=$(ios-spike/wait_boot.sh)
+          exe=$(head -1 "$RUNNER_TEMP/libtest-exe.txt")
+          s=$(date +%s)
+          SIMCTL_CHILD_RUST_TEST_THREADS=4 perl -e 'alarm 1500; exec @ARGV' xcrun simctl spawn "$U" "$exe" > "$RUNNER_TEMP/libtest.log" 2>&1; rc=$?
+          echo "TIMING sdl3 lib tests $(( $(date +%s) - s ))s rc=$rc"
+          grep -E "^test result|FAILED|panicked" "$RUNNER_TEMP/libtest.log" | head -100
+          echo "--- failures section:"; sed -n '/^failures:/,$p' "$RUNNER_TEMP/libtest.log" | tail -150
+          echo "--- tail:"; tail -30 "$RUNNER_TEMP/libtest.log"
+
+  upstream:
+    name: upstream C reference (CMake, iOS simulator)
+    runs-on: macos-15
     timeout-minutes: 45
     env:
-      # Print a failing test's panic as it happens rather than in the summary
-      # at the end, so a run that then hangs still shows what went wrong.
-      RUST_TEST_NOCAPTURE: 1
-      # The test capabilities (test_support::CAPABILITIES in sdl3/src/lib.rs)
-      # the packages and GPU drivers installed below provide: tests that
-      # would skip without them fail instead. Not uinput on ubuntu (the
-      # runner can't use /dev/uinput), nor what a hosted runner doesn't pin
-      # down (an audio endpoint, GameInput, a camera). Not vulkan and egl on
-      # Windows and macOS either, which a few checks skip by design there:
-      # "Check the GPU skips" below fails on any other skip of them.
-      LINUX_REQUIRE: x11,xvfb,glx,egl,vulkan,wayland,dbus,pulseaudio,pipewire,alsa,udev,hidapi,tzdata,locales
-      WINDOWS_REQUIRE: wgl
-      # The GPU drivers of the Windows and macOS jobs, pinned: Mesa for
-      # Windows (pal1000/mesa-dist-win's MSVC build: llvmpipe OpenGL and
-      # EGL, lavapipe Vulkan) with the Khronos Vulkan loader built from its
-      # SDK tag (Windows has none), and MoltenVK's release build.
-      MESA_VERSION: "26.2.4"
-      MESA_SHA256: 351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695
-      VULKAN_LOADER_TAG: vulkan-sdk-1.4.363.0
-      VULKAN_LOADER_COMMIT: fa218055ff4948b159f31d43f800c808a13d51df
-      MOLTENVK_VERSION: v1.4.2
-      MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+      SPIKE_RUNTIME_PREFIX: "18."
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.toolchain == 'pinned' && env.RUST_TOOLCHAIN || matrix.toolchain }}
-          # Emscripten builds with the minimum supported version too (no
-          # emcc is needed to check)
-          targets: ${{ matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten' || '' }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.toolchain }}
-      - if: matrix.toolchain == '1.87' && matrix.os == 'ubuntu-latest'
-        run: cargo check --target wasm32-unknown-emscripten
-      # What the Linux tests that would otherwise skip need (see
-      # docs/HARDWARE_TESTING.md): an X server, Mesa's software GL, EGL and
-      # Vulkan, a headless Wayland compositor, the PulseAudio binary, and a
-      # PipeWire server with WirePlumber and null devices.
-      - name: Install the test environment
-        if: runner.os == 'Linux'
+      - name: Xcode
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libegl1 libgles2 \
-            mesa-vulkan-drivers libvulkan1 libxtst6 libwayland-client0 \
-            libwayland-egl1 libwayland-cursor0 libxkbcommon0 sway \
-            pulseaudio pulseaudio-utils pipewire pipewire-bin wireplumber \
-            libudev1 libasound2t64 libdbus-1-3 dbus-daemon tzdata locales
-          XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg" tools/ci/start-pipewire.sh
-      # The GPU driver archives and the Vulkan loader build, kept between
-      # runs (the archives are checked again on every run).
-      - name: Cache the GPU drivers
-        if: runner.os != 'Linux'
-        uses: actions/cache@v5
-        with:
-          path: ${{ runner.temp }}/gpu-cache
-          key: gpu-${{ runner.os }}-${{ runner.os == 'Windows' && format('mesa-{0}-loader-{1}', env.MESA_VERSION, env.VULKAN_LOADER_COMMIT) || format('moltenvk-{0}', env.MOLTENVK_VERSION) }}
-      # Mesa's opengl32.dll next to the test executables, where it's found
-      # before System32's (Mesa's per-application deployment), with its
-      # libgallium_wgl.dll, libEGL.dll and libGLESv2.dll and the Vulkan
-      # loader; lavapipe's ICD in the registry (the loader ignores
-      # VK_DRIVER_FILES in an elevated process, as the runner's). And two
-      # Mesa settings: llvmpipe (on the runner's Microsoft Basic Render
-      # Driver Mesa picks its d3d12 driver, whose glReadPixels ends the
-      # process), and EGL's Windows platform for the default display, which
-      # SDL's EGL window surfaces need (this build's default is surfaceless).
-      - name: Install the GPU drivers (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
+          x=$(ls -d /Applications/Xcode_16.4*.app 2>/dev/null | tail -1); [ -n "$x" ] && sudo xcode-select -s "$x"; xcodebuild -version
+      - name: Boot a simulator (background)
+        run: (cd ios-spike && ./run.py boot > "$RUNNER_TEMP/boot.log" 2>&1) &
+      - name: Build and run the upstream C trace
+        working-directory: ios-spike
         run: |
-          C="$RUNNER_TEMP/gpu-cache"
-          G="$RUNNER_TEMP/gpu"
-          mkdir -p "$C" "$G"
-          cd "$C"
-          if [ ! -f mesa.7z ]; then
-            curl -fsSL -o mesa.7z "https://github.com/pal1000/mesa-dist-win/releases/download/$MESA_VERSION/mesa3d-$MESA_VERSION-release-msvc.7z"
-          fi
-          echo "$MESA_SHA256  mesa.7z" | sha256sum -c
-          7z x -y -o"$G" mesa.7z x64 > /dev/null
-          if [ ! -f vulkan-1.dll ]; then
-            git clone -q --depth 1 --branch "$VULKAN_LOADER_TAG" https://github.com/KhronosGroup/Vulkan-Loader "$G/loader"
-            test "$(git -C "$G/loader" rev-parse HEAD)" = "$VULKAN_LOADER_COMMIT"
-            cmake -S "$G/loader" -B "$G/loader/build" -D UPDATE_DEPS=ON -D CMAKE_BUILD_TYPE=Release > "$G/cmake.log" 2>&1 || { tail -50 "$G/cmake.log"; exit 1; }
-            cmake --build "$G/loader/build" --config Release --parallel > "$G/build.log" 2>&1 || { tail -80 "$G/build.log"; exit 1; }
-            cp "$G/loader/build/loader/Release/vulkan-1.dll" .
-          fi
-          cd "$GITHUB_WORKSPACE"
-          for d in target/debug/deps target/release/deps; do
-            mkdir -p "$d"
-            cp "$G"/x64/{opengl32,libgallium_wgl,libEGL,libGLESv2}.dll "$C/vulkan-1.dll" "$d/"
-          done
-          MSYS_NO_PATHCONV=1 reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' /v "$(cygpath -w "$G/x64/lvp_icd.x86_64.json")" /t REG_DWORD /d 0 /f
-          echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
-          echo "EGL_PLATFORM=windows" >> "$GITHUB_ENV"
-      # MoltenVK's dylib in /usr/local/lib, where upstream's default
-      # libMoltenVK.dylib is found, without a loader: through one, MoltenVK's
-      # devices need portability enumeration, which upstream's Vulkan
-      # renderer doesn't ask for.
-      - name: Install the GPU drivers (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          C="$RUNNER_TEMP/gpu-cache"
-          mkdir -p "$C"
-          cd "$C"
-          if [ ! -f moltenvk.tar ]; then
-            curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
-          fi
-          echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
-          tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
-          sudo mkdir -p /usr/local/lib
-          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
-      - run: cargo test --workspace
-        env:
-          # Skips are listed in the job summary; the capabilities installed
-          # above are required, so a test that can't find one fails instead
-          # of skipping.
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
-      # sdl3-mixer without its default `timidity`, `fluidsynth`, `mpg123` and
-      # `gme` features: the zlib-only build, without sdl3-mixer-timidity,
-      # sdl3-mixer-fluidsynth, sdl3-mixer-mpg123 and sdl3-mixer-gme.
-      - name: cargo test -p sdl3-mixer --no-default-features
-        run: cargo test -p sdl3-mixer --no-default-features
-        env:
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
-      - name: cargo test --release
-        if: matrix.toolchain == 'pinned'
-        run: cargo test --workspace --release
-        env:
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-          SDL3_TEST_REQUIRE: ${{ runner.os == 'Linux' && env.LINUX_REQUIRE || runner.os == 'Windows' && env.WINDOWS_REQUIRE || '' }}
-      # The render-state test whose checks MoltenVK misdraws under the Metal
-      # debug layer (which the Metal tests turn on in the main run's
-      # process, so they skip there), without the layer: they must run.
-      - name: cargo test the MoltenVK render states without the Metal debug layer
-        if: runner.os == 'macOS'
-        run: cargo test -p sdl3 --lib render::gpu::tests::gpu_render_states -- --exact
-        env:
-          MTL_DEBUG_LAYER: 0
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips-moltenvk.tsv
-          SDL3_TEST_REQUIRE: vulkan
-      - name: List the skipped checks
-        if: always()
-        shell: bash
-        env:
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-        run: tools/ci/list-skips.sh "$SDL3_TEST_SKIP_LOG" "${{ matrix.os }}, ${{ matrix.toolchain }}"
-      # The skips of vulkan and egl by design: on Windows, lavapipe has no
-      # VK_EXT_headless_surface (the offscreen driver's Vulkan check); on
-      # macOS, MoltenVK misdraws render-state checks under the Metal debug
-      # layer (run again without it above); on both, the offscreen
-      # driver has no EGL (the OpenGL and OpenGL ES 2 renderers' checks on
-      # it). Any other skip of them fails the job.
-      - name: Check the GPU skips
-        if: runner.os != 'Linux'
-        shell: bash
-        env:
-          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
-        run: |
-          touch "$SDL3_TEST_SKIP_LOG"
-          awk -F '\t' -v os="$RUNNER_OS" '
-            $1 == "vulkan" && os == "Windows" && $2 == "video::drivers::offscreen::vulkan::tests::offscreen_vulkan_surfaces" && $3 == "no VK_EXT_headless_surface" { next }
-            $1 == "vulkan" && os == "macOS" && $2 == "render::gpu::tests::gpu_render_states" && $3 ~ /^MoltenVK misdraws .* \(MTL_DEBUG_LAYER\)$/ { next }
-            $1 == "egl" && $2 ~ /^render::opengl(es2)?::tests::/ && $3 ~ /offscreen/ { next }
-            $1 == "vulkan" || $1 == "egl"' "$SDL3_TEST_SKIP_LOG" > "$RUNNER_TEMP/unexpected.tsv"
-          if [ -f "$RUNNER_TEMP/skips-moltenvk.tsv" ]; then
-            cat "$RUNNER_TEMP/skips-moltenvk.tsv" >> "$RUNNER_TEMP/unexpected.tsv"
-          fi
-          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
-            cat "$RUNNER_TEMP/unexpected.tsv"
-            echo "::error::vulkan or egl checks skipped (above)"
-            exit 1
-          fi
-
-  # The test programs built for Emscripten, run under node and in headless
-  # Chrome (tools/emscripten_run.py, the runner in .cargo/config.toml): see
-  # "Emscripten" in docs/HARDWARE_TESTING.md. (Linted on the Linux clippy
-  # runner, checked with 1.87 in the test job.)
-  emscripten:
-    name: test (wasm32-unknown-emscripten, node and Chrome)
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      EMSDK_VERSION: "6.0.13"
-      RUST_TEST_NOCAPTURE: 1
-      # opt-level 0 runs too (no function nears V8's limits on locals and
-      # size), but five or six times slower; debug assertions and
-      # overflow checks stay on.
-      CARGO_PROFILE_DEV_OPT_LEVEL: 1
-      CARGO_PROFILE_DEV_DEBUG: line-tables-only
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          targets: wasm32-unknown-emscripten
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: emscripten
-      - uses: mymindstorm/setup-emsdk@v16
-        with:
-          version: ${{ env.EMSDK_VERSION }}
-          actions-cache-folder: emsdk-cache
-      # emcc's sysroot libraries, built on the first link
-      - uses: actions/cache@v5
-        with:
-          path: ${{ runner.temp }}/em-cache
-          key: em-cache-${{ env.EMSDK_VERSION }}-${{ hashFiles('.cargo/config.toml') }}
-      - run: echo "EM_CACHE=$RUNNER_TEMP/em-cache" >> "$GITHUB_ENV"
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-      # (the programs that ask for a browser, emscripten_browser,
-      # emscripten_video, emscripten_events, emscripten_gl,
-      # emscripten_audio, emscripten_joystick, emscripten_camera,
-      # emscripten_asyncify, emscripten_jspi and sdl3-image's
-      # emscripten_preload, run in the runner image's Chrome here too)
-      - name: cargo test --workspace --target wasm32-unknown-emscripten
-        shell: bash
-        run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
-      # The paths that need a browser (the Battery Status API, window.open(),
-      # devicemotion events, the canvas video driver, its DOM events and its
-      # WebGL contexts, with the OpenGL ES 2 renderer, the Web Audio driver,
-      # the Gamepad API driver on a stand-in Gamepad API, and the
-      # getUserMedia() camera driver on stand-in media devices and Chrome's
-      # fake camera, SDL_image's images the browser decodes as their files
-      # are preloaded, and the programs linked with Asyncify and with JSPI,
-      # which sleep in the browser's event loop) and the WebGL and Web
-      # Audio probes, in the runner image's Chrome, headless, which must
-      # have them.
-      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera --test emscripten_asyncify --test emscripten_jspi, -p sdl3-image --test emscripten_preload (headless Chrome)
-        shell: bash
-        run: |
-          "$CHROME" --version
-          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera --test emscripten_asyncify --test emscripten_jspi 2>&1 | tee "$RUNNER_TEMP/browser.log"
-          cargo test -p sdl3-image --target wasm32-unknown-emscripten --test emscripten_preload 2>&1 | tee -a "$RUNNER_TEMP/browser.log"
-        env:
-          SDL3_EMSCRIPTEN_BROWSER: 1
-          SDL3_TEST_REQUIRE: browser,webgl,webaudio
-          CHROME: /usr/bin/google-chrome
-      # SDL_RunApp()'s IndexedDB storage (the emscripten-persistent-path
-      # feature, with the path its program expects): in Chrome across a
-      # reload of the page, and under node, which has no IndexedDB.
-      - name: cargo test -p sdl3 --features emscripten-persistent-path --test emscripten_persistent_path (headless Chrome, node)
-        shell: bash
-        run: |
-          cargo test -p sdl3 --target wasm32-unknown-emscripten --features emscripten-persistent-path --test emscripten_persistent_path 2>&1 | tee -a "$RUNNER_TEMP/browser.log"
-          SDL3_EMSCRIPTEN_BROWSER=0 cargo test -p sdl3 --target wasm32-unknown-emscripten --features emscripten-persistent-path --test emscripten_persistent_path
-        env:
-          SDL_EMSCRIPTEN_PERSISTENT_PATH: /persistent
-          SDL3_EMSCRIPTEN_BROWSER: 1
-          CHROME: /usr/bin/google-chrome
-      # The JavaScript layer's tests (sdl3-emscripten: em_js!, em_asm!, the
-      # dependency table, the callback registry, the html5.h layouts) once
-      # more in a release build: thin LTO keeps every #[used] static and
-      # drops what nothing refers to, and emcc -O3 drops the glue's
-      # unnamed JavaScript, which changes what the program holds.
-      - name: cargo test -p sdl3-emscripten --release
-        run: cargo test -p sdl3-emscripten --release --target wasm32-unknown-emscripten
-      # Its documentation is only there on Emscripten (the crate is empty
-      # elsewhere).
-      - name: cargo doc -p sdl3-emscripten
-        run: cargo doc --no-deps -p sdl3-emscripten --target wasm32-unknown-emscripten
-        env:
-          RUSTDOCFLAGS: -D warnings
-      # The tests write SDL3_TEST_SKIP_LOG in their own in-memory file
-      # system, so the skip log is made from the notes they print (with
-      # RUST_TEST_NOCAPTURE), each with the test libtest names next (the
-      # browser program prints such lines too), from both test steps.
-      - name: List the skipped checks
-        if: always()
-        shell: bash
-        run: |
-          touch "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log"
-          python3 - "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log" > "$RUNNER_TEMP/skips.tsv" <<'EOF'
-          import sys
-          for log in sys.argv[1:]:
-              pending = []
-              for line in open(log, errors="replace"):
-                  line = line.rstrip("\n")
-                  if line.startswith("note: skipping, ") and " unavailable: " in line:
-                      pending.append(line[len("note: skipping, "):].split(" unavailable: ", 1))
-                  elif line.startswith("test ") and " ... " in line:
-                      for capability, reason in pending:
-                          print(f"{capability}\t{line.split()[1]}\t{reason}")
-                      pending = []
-          EOF
-          tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" wasm32-unknown-emscripten
-
-  doc:
-    name: rustdoc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo doc --workspace --no-deps
-        env:
-          RUSTDOCFLAGS: -D warnings
+          ./upstream.sh
