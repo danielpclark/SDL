@@ -143,6 +143,13 @@ harness = false
 name = "emscripten_events"
 harness = false
 
+# The Emscripten video driver's WebGL contexts and the OpenGL ES 2 renderer
+# on them (vertex buffer objects) in headless Chromium, against upstream's
+# C trace: a program that asks tools/emscripten_run.py for the browser.
+[[test]]
+name = "emscripten_gl"
+harness = false
+
 # SDL_RunApp()'s persistent storage (IDBFS); built with the path in
 # SDL_EMSCRIPTEN_PERSISTENT_PATH (see the file).
 [[test]]
