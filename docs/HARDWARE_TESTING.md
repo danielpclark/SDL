@@ -461,8 +461,14 @@ only where the sandbox can't start: as root, or after a first start
 failed (a container without user namespaces). `SDL3_EMSCRIPTEN_TIMEOUT`
 limits a browser run (900 s by default, 0 for none),
 `SDL3_EMSCRIPTEN_CHROME_FLAGS` adds options, and
-`SDL3_EMSCRIPTEN_VERBOSE=1` shows the browser's own log. The browser mode
-needs a POSIX system (Linux or macOS).
+`SDL3_EMSCRIPTEN_VERBOSE=1` shows the browser's own log. A page can ask
+the runner for trusted input, which the browser treats as the user's (the
+Fullscreen and Pointer Lock APIs want a user gesture, which synthetic
+events don't give): it calls `sdl3RunnerReport(JSON.stringify(['input',
+[METHOD, PARAMS]]))`, and the runner sends the DevTools protocol's
+`Input.METHOD` (`dispatchKeyEvent`, `dispatchMouseEvent`,
+`dispatchTouchEvent` or `insertText`) once the page's code is back in its
+event loop. The browser mode needs a POSIX system (Linux or macOS).
 
 `sdl3/tests/emscripten_browser.rs` (`harness = false`) is such a program:
 an application whose main callbacks wait for what the browser answers from
@@ -484,6 +490,30 @@ SDL3_EMSCRIPTEN_BROWSER=1 CHROME=/path/to/chrome \
   SDL3_TEST_REQUIRE=browser,webgl,webaudio \
   cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser
 ```
+
+`sdl3/tests/emscripten_video.rs` (`harness = false`) checks the canvas
+video driver there, on what the page shows: the display (the screen, the
+page's inner size as the usable bounds), canvas windows (their size and
+CSS size, at a `devicePixelRatio` of 1 and, stood in, 2; canvases the
+page's CSS sizes, which follow the page's `resize` events), the window's
+properties, `document.title`, the icon's `blob:` PNG (byte for byte the
+one SDL encodes), the framebuffer read back with `getImageData()`, the
+system cursors' CSS names and color cursors' PNG data URLs, the global
+mouse state from the document's mouse events, `prefers-color-scheme` and
+its changes (a stand-in `matchMedia`), a fill-document window (the page
+hidden and put back), message boxes as `alert()` (a stand-in records
+them), the fullscreen and pointer lock requests emscripten defers without
+a user gesture, and then, with a trusted key press from the runner (which
+emscripten's `keydown` handler, registered by the test, runs the
+deferred requests in), the window fullscreen and back and the pointer
+locked and released. The expected values are upstream's C SDL's, built
+with emcc and run on the same page (headless Chromium enters fullscreen
+and locks the pointer after the key press, for both). Under node it
+skips as `browser`; `SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser
+cargo test -p sdl3 --target wasm32-unknown-emscripten --test
+emscripten_video` runs it as CI does. (Under node the driver is
+unavailable, as there's no DOM: video initialization goes on to the next
+driver, which the ordinary tests check.)
 
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
