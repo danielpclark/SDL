@@ -109,15 +109,6 @@ pub(super) struct CMVideoDimensions {
     pub(super) height: i32,
 }
 
-/// `NSOperatingSystemVersion`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub(super) struct NSOperatingSystemVersion {
-    pub(super) major_version: isize,
-    pub(super) minor_version: isize,
-    pub(super) patch_version: isize,
-}
-
 #[link(name = "CoreMedia", kind = "framework")]
 unsafe extern "C" {
     pub(super) fn CMSampleBufferGetSampleTimingInfo(

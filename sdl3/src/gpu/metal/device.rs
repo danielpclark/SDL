@@ -16,7 +16,7 @@ use super::commands::AvailableCommandBuffers;
 use super::shaders::*;
 use super::sys::*;
 use super::{lock, BlitResources, MetalRenderer};
-use crate::core::apple::foundation::{ns_array_items, string_from_ns};
+use crate::core::apple::foundation::{available, ns_array_items, string_from_ns};
 use crate::core::apple::objc::{msg_send, Bool, Id, StrongPtr};
 use crate::error::{Error, Result};
 use crate::gpu::sysgpu::{BackendObject, BlitPipelineCache, UNIFORM_BUFFER_SIZE};
@@ -51,7 +51,7 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
         return false;
     }
 
-    if available(10, 14) {
+    if available!(macos(10, 14)) {
         return video.implements_metal_views();
     }
     false
@@ -119,13 +119,13 @@ pub(super) fn create_device(
         .unwrap_or(false);
     // SAFETY: the device's feature queries.
     unsafe {
-        if available(10, 15) {
+        if available!(macos(10, 15)) {
             has_hardware_support = if allow_mac_family1 {
                 supports_family(device.get(), MTL_GPU_FAMILY_MAC1)
             } else {
                 supports_family(device.get(), MTL_GPU_FAMILY_MAC2)
             };
-        } else if available(10, 14) {
+        } else if available!(macos(10, 14)) {
             let feature_set = if allow_mac_family1 {
                 MTL_FEATURE_SET_MACOS_GPU_FAMILY1_V4
             } else {
@@ -371,7 +371,7 @@ impl MetalRenderer {
             match format {
                 // Apple GPU exclusive
                 F::B5G6R5_UNORM | F::B5G5R5A1_UNORM | F::B4G4R4A4_UNORM => {
-                    if available(10, 15) {
+                    if available!(macos(10, 15)) {
                         supports_family(device, MTL_GPU_FAMILY_APPLE1)
                     } else {
                         false
@@ -395,7 +395,7 @@ impl MetalRenderer {
                     if usage.contains(TextureUsageFlags::COLOR_TARGET) {
                         return false;
                     }
-                    if available(11, 0) {
+                    if available!(macos(11, 0)) {
                         let r: Bool = msg_send![device, supportsBCTextureCompression];
                         r.is_true()
                     } else {
@@ -410,7 +410,7 @@ impl MetalRenderer {
                     r.is_true()
                 }
 
-                F::D16_UNORM => available(10, 12),
+                F::D16_UNORM => available!(macos(10, 12)),
 
                 F::ASTC_4x4_UNORM
                 | F::ASTC_5x4_UNORM
@@ -455,7 +455,7 @@ impl MetalRenderer {
                 | F::ASTC_12x10_FLOAT
                 | F::ASTC_12x12_FLOAT => {
                     // (SDL_PLATFORM_MACOS)
-                    if available(11, 0) {
+                    if available!(macos(11, 0)) {
                         supports_family(device, MTL_GPU_FAMILY_APPLE7)
                     } else {
                         false

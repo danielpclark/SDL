@@ -20,8 +20,8 @@ use std::sync::Mutex;
 use super::{Notification, NotificationAction, NotificationID, NotificationPriority};
 use crate::core::apple::block::RcBlock;
 use crate::core::apple::foundation::{
-    ns_string, string_from_ns, CFBundleGetMainBundle, CFRelease, CFStringRef, CFTypeRef, CFURLRef,
-    CfRef,
+    available, ns_string, string_from_ns, CFBundleGetMainBundle, CFRelease, CFStringRef, CFTypeRef,
+    CFURLRef, CfRef,
 };
 use crate::core::apple::objc::{
     autoreleasepool, class, imp, msg_send, sel, Bool, ClassBuilder, DeclaredClass, Id, NSInteger,
@@ -93,30 +93,6 @@ unsafe extern "C" {
     fn SecRandomCopyBytes(rnd: *const c_void, count: usize, bytes: *mut c_void) -> i32;
 }
 
-/// `NSOperatingSystemVersion`.
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct NSOperatingSystemVersion {
-    major: NSInteger,
-    minor: NSInteger,
-    patch: NSInteger,
-}
-
-/// `@available(macOS major, *)`.
-fn macos_at_least(major: NSInteger) -> bool {
-    let version = NSOperatingSystemVersion {
-        major,
-        minor: 0,
-        patch: 0,
-    };
-    // SAFETY: NSProcessInfo's documented query.
-    unsafe {
-        let info: Id = msg_send![class!(NSProcessInfo), processInfo];
-        let r: Bool = msg_send![info, isOperatingSystemAtLeastVersion: version];
-        r.is_true()
-    }
-}
-
 /// The head of `Block_layout`, with the invoke function of type `F`.
 #[repr(C)]
 struct BlockHead<F> {
@@ -160,7 +136,7 @@ extern "C" fn will_present_notification(
     _notification: Id,
     completion_handler: *mut c_void,
 ) {
-    let options = if macos_at_least(11) {
+    let options = if available!(macos(11), ios(14)) {
         UN_NOTIFICATION_PRESENTATION_OPTION_BANNER + UN_NOTIFICATION_PRESENTATION_OPTION_SOUND
     } else {
         UN_NOTIFICATION_PRESENTATION_OPTION_ALERT + UN_NOTIFICATION_PRESENTATION_OPTION_SOUND
@@ -559,7 +535,7 @@ pub(super) fn show_notification(notification: &Notification<'_>) -> Result<Notif
                 let _: () = msg_send![content, setSound: s];
             }
 
-            if macos_at_least(12) {
+            if available!(macos(12), ios(15)) {
                 let level = match priority {
                     NotificationPriority::Low => UN_NOTIFICATION_INTERRUPTION_LEVEL_PASSIVE,
                     NotificationPriority::Critical => UN_NOTIFICATION_INTERRUPTION_LEVEL_CRITICAL,
@@ -674,9 +650,7 @@ mod tests {
     }
 
     #[test]
-    fn delegate_class_and_os_version() {
-        assert!(macos_at_least(10));
-        assert!(!macos_at_least(1000));
+    fn delegate_class_methods() {
         let cls = delegate_class();
         assert!(crate::core::apple::objc::class_responds_to(
             cls,

@@ -14,7 +14,7 @@ use std::sync::Arc;
 use super::sys::*;
 use super::{video_data, VideoData};
 use crate::core::apple::foundation::{
-    cf_string, kCFAllocatorDefault, kCFBooleanTrue, kCFTypeArrayCallBacks,
+    available, cf_string, kCFAllocatorDefault, kCFBooleanTrue, kCFTypeArrayCallBacks,
     kCFTypeDictionaryValueCallBacks, string_from_cf, CFArrayAppendValue, CFArrayCreateMutable,
     CFArrayGetCount, CFArrayGetValueAtIndex, CFArrayRef, CFDictionaryCreate, CFEqual, CFIndex,
     CfRef,
@@ -335,7 +335,7 @@ fn get_display_mode(
 
 /// Translation of `Cocoa_GetDisplayName()`.
 fn get_display_name(display_id: CGDirectDisplayID) -> Option<String> {
-    if macos_available(10, 15) {
+    if available!(macos(10, 15)) {
         let screen = get_ns_screen_for_display_id(display_id);
         if !screen.is_null() {
             // SAFETY: an NSScreen's localized name.
@@ -392,7 +392,7 @@ fn get_hdr_properties(display_id: CGDirectDisplayID) -> HdrOutputProperties {
         hdr_headroom: 1.0,
     };
 
-    if macos_available(10, 15) {
+    if available!(macos(10, 15)) {
         let screen = get_ns_screen_for_display_id(display_id);
         if !screen.is_null() {
             // SAFETY: an NSScreen's EDR properties.

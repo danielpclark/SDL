@@ -43,7 +43,7 @@ use super::{
 };
 use crate::core::apple::block::RcBlock;
 use crate::core::apple::foundation::{
-    kCFBooleanTrue, macos_at_least, ns_array_items, ns_string, string_from_ns, NSTimeInterval,
+    available, kCFBooleanTrue, ns_array_items, ns_string, string_from_ns, NSTimeInterval,
 };
 use crate::core::apple::iokit::{IOHIDDeviceGetProperty, IOHIDDeviceRef, K_IOHID_VIRTUAL_HIDEVICE};
 use crate::core::apple::objc::{
@@ -270,7 +270,7 @@ unsafe fn is_controller_category(
 ) -> bool {
     // SAFETY: the caller's contract.
     unsafe {
-        if macos_at_least(10, 15, 0) {
+        if available!(macos(10, 15)) {
             if product_category(controller).is_some_and(|c| c == category) {
                 return true;
             }
@@ -388,7 +388,7 @@ pub(crate) fn scan_siri_remote_generation(category: &str) -> Option<i32> {
 
 /// Translation of `CheckControllerSiriRemote()`.
 unsafe fn check_controller_siri_remote(controller: Id) -> i32 {
-    if macos_at_least(10, 15, 0) {
+    if available!(macos(10, 15)) {
         // SAFETY: the caller's contract.
         if let Some(category) = unsafe { product_category(controller) } {
             if category.starts_with("Siri Remote") {
@@ -695,11 +695,11 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
         //
         // Since the fact that we're initializing means that the application is likely to
         // be opening available controllers, this is probably the right thing to do for now.
-        if macos_at_least(11, 0, 0) {
+        if available!(macos(11, 0)) {
             set_system_gesture_state(controller, GC_SYSTEM_GESTURE_STATE_DISABLED);
         }
 
-        if macos_at_least(11, 3, 0) {
+        if available!(macos(11, 3)) {
             let gc = class!(GCController);
             let monitor: Bool = msg_send![gc, shouldMonitorBackgroundEvents];
             if !monitor.is_true() {
@@ -713,7 +713,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
 
         let name = if let Some(vendor_name) = vendor_name(controller) {
             Some(vendor_name)
-        } else if macos_at_least(10, 15, 0) {
+        } else if available!(macos(10, 15)) {
             product_category(controller)
         } else {
             None
@@ -746,7 +746,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
             return false;
         }
 
-        if macos_at_least(11, 0, 0) {
+        if available!(macos(11, 0)) {
             let buttons = profile_buttons(controller);
             let names = input_names();
             if !dict_get(buttons, &names.dual_shock_touchpad_button).is_null() {
@@ -811,7 +811,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
         } else if device.is_switch_joycon_r {
             vendor = USB_VENDOR_NINTENDO;
             product = USB_PRODUCT_NINTENDO_SWITCH_JOYCON_RIGHT;
-        } else if macos_at_least(11, 0, 0) {
+        } else if available!(macos(11, 0)) {
             vendor = USB_VENDOR_APPLE;
             product = 4;
             subtype = 4;
@@ -828,7 +828,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
             return false;
         }
 
-        if macos_at_least(11, 0, 0) {
+        if available!(macos(11, 0)) {
             let elements = profile_elements(controller);
 
             // Provide both axes and analog buttons as SDL axes
@@ -888,7 +888,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
             nbuttons += 6;
 
             // These buttons are available on some newer controllers
-            if macos_at_least(10, 14, 1) {
+            if available!(macos(10, 14, 1)) {
                 let b: Id = msg_send![gamepad, leftThumbstickButton];
                 if !b.is_null() {
                     device.button_mask |= button_bit(GamepadButton::LeftStick);
@@ -900,7 +900,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
                     nbuttons += 1;
                 }
             }
-            if macos_at_least(10, 15, 0) {
+            if available!(macos(10, 15)) {
                 let b: Id = msg_send![gamepad, buttonOptions];
                 if !b.is_null() {
                     device.button_mask |= button_bit(GamepadButton::Back);
@@ -910,7 +910,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
             device.button_mask |= button_bit(GamepadButton::Start);
             nbuttons += 1;
 
-            if macos_at_least(10, 15, 0) {
+            if available!(macos(10, 15)) {
                 let b: Id = msg_send![gamepad, buttonMenu];
                 if !b.is_null() {
                     has_direct_menu = true;
@@ -930,7 +930,7 @@ unsafe fn add_mfi_joystick_device(device: &mut MfiDevice, controller: Id) -> boo
 
         device.name = create_joystick_name(0, 0, None, Some(&name)).unwrap_or_else(|| name.clone());
 
-        let signature = if macos_at_least(11, 0, 0) {
+        let signature = if available!(macos(11, 0)) {
             element_signature(device)
         } else {
             device.button_mask as u16
@@ -1119,7 +1119,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
 
         // SAFETY: the device's controller and its elements, by their types.
         unsafe {
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 let elements = profile_elements(controller);
                 let buttons = profile_buttons(controller);
 
@@ -1174,7 +1174,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
                     buttons.push(is_pressed(msg_send![gamepad, rightShoulder]));
 
                     // These buttons are available on some newer controllers
-                    if macos_at_least(10, 14, 1) {
+                    if available!(macos(10, 14, 1)) {
                         if device.button_mask & button_bit(GamepadButton::LeftStick) != 0 {
                             buttons.push(is_pressed(msg_send![gamepad, leftThumbstickButton]));
                         }
@@ -1182,7 +1182,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
                             buttons.push(is_pressed(msg_send![gamepad, rightThumbstickButton]));
                         }
                     }
-                    if macos_at_least(10, 15, 0)
+                    if available!(macos(10, 15))
                         && device.button_mask & button_bit(GamepadButton::Back) != 0
                     {
                         buttons.push(is_pressed(msg_send![gamepad, buttonOptions]));
@@ -1191,7 +1191,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
                         if device.pause_button_index >= 0 {
                             // Guaranteed if buttonMenu is not supported on this OS
                             buttons.push(device.pause_button_pressed > 0);
-                        } else if macos_at_least(10, 15, 0) {
+                        } else if available!(macos(10, 15)) {
                             buttons.push(is_pressed(msg_send![gamepad, buttonMenu]));
                         }
                     }
@@ -1220,7 +1220,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
                 }
             }
 
-            if macos_at_least(11, 0, 0) && device.has_dualshock_touchpad {
+            if available!(macos(11, 0)) && device.has_dualshock_touchpad {
                 let profile: Id = msg_send![controller, physicalInputProfile];
                 let dpads: Id = msg_send![profile, dpads];
                 for (finger, name) in [
@@ -1246,7 +1246,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
                 }
             }
 
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 let motion: Id = msg_send![controller, motion];
                 let active: Bool = msg_send![motion, sensorsActive];
                 if !motion.is_null() && active.is_true() {
@@ -1268,7 +1268,7 @@ fn mfi_joystick_update(device: &mut MfiDevice, timestamp_ms: u64) -> Vec<Input> 
                 }
             }
 
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 let battery: Id = msg_send![controller, battery];
                 if !battery.is_null() {
                     let level: f32 = msg_send![battery, batteryLevel];
@@ -1322,7 +1322,7 @@ impl RumbleMotor {
     /// `-[SDL3_RumbleMotor cleanup]`.
     fn cleanup(&self) {
         autoreleasepool(|| {
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 let (player, engine) = {
                     let mut s = self.lock();
                     (std::mem::take(&mut s.player), std::mem::take(&mut s.engine))
@@ -1344,7 +1344,7 @@ impl RumbleMotor {
     /// `-[SDL3_RumbleMotor setIntensity:]`.
     fn set_intensity(&self, intensity: f32) -> Result<()> {
         autoreleasepool(|| {
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 let mut s = self.lock();
                 let mut error: Id = NIL;
 
@@ -1552,7 +1552,7 @@ impl RumbleContext {
 /// `controller` must be a valid `GCController` with haptics.
 unsafe fn init_rumble(controller: Id) -> Option<RumbleContext> {
     autoreleasepool(|| {
-        if macos_at_least(11, 0, 0) {
+        if available!(macos(11, 0)) {
             // SAFETY: the caller's contract.
             unsafe {
                 let low_frequency_motor =
@@ -1594,7 +1594,7 @@ fn device_rumble(joystick: JoystickID) -> Result<Option<Arc<RumbleContext>>> {
         device.controller.clone()
     };
 
-    if macos_at_least(11, 0, 0) && !controller.is_nil() {
+    if available!(macos(11, 0)) && !controller.is_nil() {
         // SAFETY: the device's controller.
         let haptics: Id = unsafe { msg_send![controller, haptics] };
         if !haptics.is_null() {
@@ -1629,7 +1629,7 @@ pub(crate) unsafe fn supported_hid_device(device: IOHIDDeviceRef) -> bool {
         return false;
     }
 
-    if macos_at_least(11, 0, 0) && load_frameworks() {
+    if available!(macos(11, 0)) && load_frameworks() {
         const MAX_ATTEMPTS: i32 = 3;
         for _ in 0..MAX_ATTEMPTS {
             // SAFETY: GCController's class method taking the device.
@@ -1655,7 +1655,7 @@ pub(crate) unsafe fn supported_hid_device(device: IOHIDDeviceRef) -> bool {
 /// `element` must be nil or a valid `GCControllerElement`.
 unsafe fn sf_symbols_name_for_element(element: Id) -> String {
     let mut name = [0u8; 256];
-    if macos_at_least(11, 0, 0) && !element.is_null() {
+    if available!(macos(11, 0)) && !element.is_null() {
         // SAFETY: the caller's contract; the buffer holds 255 bytes and a
         // terminator.
         unsafe {
@@ -1678,7 +1678,7 @@ unsafe fn sf_symbols_name_for_element(element: Id) -> String {
 unsafe fn directional_pad_for_controller(controller: Id) -> Id {
     // SAFETY: the caller's contract.
     unsafe {
-        if macos_at_least(11, 0, 0) {
+        if available!(macos(11, 0)) {
             let profile: Id = msg_send![controller, physicalInputProfile];
             let dpads: Id = msg_send![profile, dpads];
             return msg_send![dpads, objectForKey: gc_input_direction_pad()];
@@ -1712,7 +1712,7 @@ pub(crate) fn apple_sf_symbols_name_for_button(
     button: GamepadButton,
 ) -> Option<String> {
     let controller = joystick_controller(joystick)?;
-    if !macos_at_least(11, 0, 0) {
+    if !available!(macos(11, 0)) {
         return None;
     }
     let element_name = autoreleasepool(|| {
@@ -1794,7 +1794,7 @@ pub(crate) fn apple_sf_symbols_name_for_axis(
     axis: GamepadAxis,
 ) -> Option<String> {
     let controller = joystick_controller(joystick)?;
-    if !macos_at_least(11, 0, 0) {
+    if !available!(macos(11, 0)) {
         return None;
     }
     let element_name = autoreleasepool(|| {
@@ -1966,7 +1966,7 @@ impl JoystickDriver for MfiJoystickDriver {
             return Ok(());
         }
 
-        if !macos_at_least(11, 0, 0) {
+        if !available!(macos(11, 0)) {
             // Continue with initialization on macOS 11+
             return Ok(());
         }
@@ -2131,7 +2131,7 @@ impl JoystickDriver for MfiJoystickDriver {
                     let _: () = msg_send![controller, setControllerPausedHandler: handler.as_ptr()];
                 }
 
-                if macos_at_least(11, 0, 0) {
+                if available!(macos(11, 0)) {
                     let motion: Id = msg_send![controller, motion];
                     let has_rotation_rate: Bool = msg_send![motion, hasRotationRate];
                     if !motion.is_null() && has_rotation_rate.is_true() {
@@ -2140,11 +2140,11 @@ impl JoystickDriver for MfiJoystickDriver {
                     }
                 }
 
-                if macos_at_least(11, 0, 0) {
+                if available!(macos(11, 0)) {
                     set_system_gesture_state(controller, GC_SYSTEM_GESTURE_STATE_DISABLED);
                 }
 
-                if macos_at_least(11, 0, 0) {
+                if available!(macos(11, 0)) {
                     let light: Id = msg_send![controller, light];
                     if !light.is_null() {
                         caps.push(PROP_JOYSTICK_CAP_RGB_LED_BOOLEAN);
@@ -2212,7 +2212,7 @@ impl JoystickDriver for MfiJoystickDriver {
                 return Err(Error::new("Controller is no longer connected"));
             };
 
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 // SAFETY: the device's controller, its light and GCColor.
                 unsafe {
                     let light: Id = msg_send![controller, light];
@@ -2244,7 +2244,7 @@ impl JoystickDriver for MfiJoystickDriver {
                 return Err(Error::new("Controller is no longer connected"));
             };
 
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0)) {
                 // SAFETY: the device's controller and its motion.
                 unsafe {
                     let motion: Id = msg_send![controller, motion];
@@ -2319,7 +2319,7 @@ impl JoystickDriver for MfiJoystickDriver {
                     let _: () = msg_send![controller, setControllerPausedHandler: NIL];
                     let _: () = msg_send![controller, setPlayerIndex: -1 as NSInteger];
 
-                    if macos_at_least(11, 0, 0) {
+                    if available!(macos(11, 0)) {
                         set_system_gesture_state(controller.get(), GC_SYSTEM_GESTURE_STATE_ENABLED);
                     }
                 }
@@ -2371,7 +2371,7 @@ impl JoystickDriver for MfiJoystickDriver {
         let mut state = lock_state();
         let device = state.device_for_index(device_index)?;
 
-        if macos_at_least(11, 0, 0) {
+        if available!(macos(11, 0)) {
             return Some(gamepad_mapping_for(device, input_names()));
         }
         None

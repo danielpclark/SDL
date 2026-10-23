@@ -30,7 +30,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 
 use crate::core::apple::block::{dispatch_get_global_queue, dispatch_release, RcBlock};
-use crate::core::apple::foundation::{macos_at_least, ns_array_items, ns_string, NSSize};
+use crate::core::apple::foundation::{available, ns_array_items, ns_string, NSSize};
 use crate::core::apple::objc::{
     autoreleasepool, class, msg_send, release, Bool, Id, NSInteger, NSUInteger, StrongPtr, NIL, NO,
     YES,
@@ -2101,7 +2101,7 @@ impl MetalRenderer {
                 PixelFormat::RGBA64_FLOAT,
                 PixelFormat::RGBA128_FLOAT,
             ];
-            if macos_at_least(11, 0, 0) {
+            if available!(macos(11, 0), ios(13, 0), tvos(13, 0)) {
                 let apple1: Bool = msg_send![data.mtldevice, supportsFamily: MTL_GPU_FAMILY_APPLE1];
                 if apple1.is_true() {
                     data.texture_formats.extend([
@@ -2212,22 +2212,22 @@ impl RenderBackend for MetalRenderer {
                     }
                     F::ABGR2101010 => pixfmt = MTL_PIXEL_FORMAT_RGB10A2_UNORM,
                     F::RGB565 => {
-                        if macos_at_least(11, 0, 0) {
+                        if available!(macos(11, 0)) {
                             pixfmt = MTL_PIXEL_FORMAT_B5G6R5_UNORM;
                         }
                     }
                     F::RGBA5551 => {
-                        if macos_at_least(11, 0, 0) {
+                        if available!(macos(11, 0)) {
                             pixfmt = MTL_PIXEL_FORMAT_A1BGR5_UNORM;
                         }
                     }
                     F::ARGB1555 => {
-                        if macos_at_least(11, 0, 0) {
+                        if available!(macos(11, 0)) {
                             pixfmt = MTL_PIXEL_FORMAT_BGR5A1_UNORM;
                         }
                     }
                     F::RGBA4444 => {
-                        if macos_at_least(11, 0, 0) {
+                        if available!(macos(11, 0)) {
                             pixfmt = MTL_PIXEL_FORMAT_ABGR4_UNORM;
                         }
                     }

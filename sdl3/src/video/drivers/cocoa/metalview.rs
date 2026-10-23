@@ -17,12 +17,11 @@
 
 use std::ffi::c_void;
 
-use super::events::encoding;
 use super::window::{window_data, SDL_METALVIEW_TAG};
 use crate::core::apple::foundation::{NSPoint, NSRect};
 use crate::core::apple::objc::{
-    autoreleasepool, class, imp, ivar_ptr, msg_send, msg_send_super, release, sel, Bool, Class,
-    ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, WeakId, NIL, YES,
+    autoreleasepool, class, encoding, imp, ivar_ptr, msg_send, msg_send_super, release, sel, Bool,
+    Class, ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, WeakId, NIL, YES,
 };
 use crate::events::queue::EventWatch;
 use crate::events::window::{add_window_event_watch, WindowEventWatchPriority, WindowFlags};

@@ -39,7 +39,7 @@ use super::{
     CameraDriverImpl, CameraFrameResult, CameraPermissionState, CameraPosition, CameraSpec,
 };
 use crate::core::apple::block::{dispatch_queue_create, dispatch_release};
-use crate::core::apple::foundation::{ns_array_items, string_from_ns};
+use crate::core::apple::foundation::{available, ns_array_items, string_from_ns};
 use crate::core::apple::objc::{
     autoreleasepool, class, imp, ivar_ptr, msg_send, msg_send_super, responds_to, sel, Bool, Class,
     ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr,
@@ -251,23 +251,6 @@ fn gather_camera_specs(formats: &[FormatInfo]) -> Vec<CameraSpec> {
     specs
 }
 
-/// `@available(macOS major.minor, *)`
-/// (`-[NSProcessInfo isOperatingSystemAtLeastVersion:]`).
-fn macos_at_least(major: isize, minor: isize) -> bool {
-    let version = NSOperatingSystemVersion {
-        major_version: major,
-        minor_version: minor,
-        patch_version: 0,
-    };
-    // SAFETY: class and instance methods of NSProcessInfo, taking the
-    // version structure by value.
-    let r: Bool = unsafe {
-        let info: Id = msg_send![class!(NSProcessInfo), processInfo];
-        msg_send![info, isOperatingSystemAtLeastVersion: version]
-    };
-    r.is_true()
-}
-
 /// `+[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]`.
 fn video_authorization_status() -> NSInteger {
     // SAFETY: a class method taking the media type constant.
@@ -278,7 +261,7 @@ fn video_authorization_status() -> NSInteger {
 fn check_camera_permissions(device: &Arc<CameraDevice>) -> bool {
     if device.permission() == CameraPermissionState::Pending {
         // still expecting a permission result.
-        if macos_at_least(14, 0) {
+        if available!(macos(14)) {
             let status = video_authorization_status();
             if status != AV_AUTHORIZATION_STATUS_NOT_DETERMINED {
                 // NotDetermined == still waiting for an answer from the user.
@@ -865,7 +848,7 @@ unsafe fn video_devices() -> Vec<Id> {
     // SAFETY: class methods of AVFoundation with their arguments; the
     // arrays are autoreleased into the caller's pool.
     unsafe {
-        let devices: Id = if macos_at_least(10, 15) {
+        let devices: Id = if available!(macos(10, 15), ios(13)) {
             // kind of annoying that there isn't a "give me anything that looks like a camera" option,
             // so this list will need to be updated when Apple decides to add
             // AVCaptureDeviceTypeBuiltInQuadrupleCamera some day.

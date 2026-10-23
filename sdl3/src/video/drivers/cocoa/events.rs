@@ -16,28 +16,16 @@ use std::time::Duration;
 use super::sys::*;
 use super::{keyboard, mouse, window, VideoData};
 use crate::core::apple::foundation::{
-    cf_string, ns_number_bool, ns_string, NSPoint, NSTimeInterval,
+    available, cf_string, ns_number_bool, ns_string, NSPoint, NSTimeInterval,
 };
 use crate::core::apple::objc::{
-    autoreleasepool, class, imp, msg_send, msg_send_super, sel, Bool, Class, ClassBuilder,
-    DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, NIL, NO, YES,
+    autoreleasepool, class, encoding, imp, msg_send, msg_send_super, sel, Bool, Class,
+    ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, NIL, NO, YES,
 };
 use crate::error::Result;
 use crate::events::window::{send_drop_complete, send_drop_file};
 use crate::events::WindowID;
 use crate::hints;
-
-/// `BOOL`'s type encoding (`B` on AArch64, `c` on x86-64).
-#[cfg(target_arch = "aarch64")]
-pub(crate) const BOOL_ENC: &str = "B";
-#[cfg(not(target_arch = "aarch64"))]
-pub(crate) const BOOL_ENC: &str = "c";
-
-/// A type encoding string with `BOOL_ENC` substituted for `B`, for
-/// [`ClassBuilder::add_method`].
-pub(crate) fn encoding(types: &str) -> std::ffi::CString {
-    std::ffi::CString::new(types.replace('B', BOOL_ENC)).expect("type encoding")
-}
 
 /// Translation of `FindSDLWindowForNSWindow()`.
 fn find_sdl_window_for_nswindow(win: Id) -> Option<WindowID> {
@@ -504,7 +492,7 @@ extern "C" fn delegate_did_finish_launching(_this: Id, _sel: Sel, _notification:
     behaviour there.  https://github.com/libsdl-org/SDL/issues/10340
     (13.6 still needs it, presumably 13.7 does, too.) */
     let mut background_app_default = false;
-    if macos_available(14, 0) {
+    if available!(macos(14, 0)) {
         background_app_default = true; /* by default, don't explicitly activate the dock and then us again to force to foreground */
     }
 

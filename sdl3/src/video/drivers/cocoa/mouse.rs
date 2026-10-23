@@ -19,7 +19,9 @@ use super::sys::*;
 use super::window::{find_sdl_window, window_data};
 use super::{video_data, VideoData};
 use crate::core::apple::block::{dispatch_get_global_queue, dispatch_queue_create, RcBlock};
-use crate::core::apple::foundation::{ns_array_items, ns_string, NSPoint, NSRect, NSSize};
+use crate::core::apple::foundation::{
+    available, ns_array_items, ns_string, NSPoint, NSRect, NSSize,
+};
 use crate::core::apple::objc::{
     autoreleasepool, class, msg_send, Bool, Id, NSInteger, NSUInteger, StrongPtr, NIL, YES,
 };
@@ -566,7 +568,7 @@ fn on_gc_mouse_disconnected(mouse: Id) {
     remove_mouse(mouse_id);
 
     // Check if any GCMouse devices remain
-    if macos_available(11, 0) {
+    if available!(macos(11, 0)) {
         // SAFETY: GCMouse's class method.
         let count = unsafe {
             let mice: Id = msg_send![class!(GCMouse), mice];
@@ -586,7 +588,7 @@ pub(crate) fn init_gc_mouse() {
         // These APIs are available starting in macOS Big Sur, but we don't enable
         // GCMouse until Sonoma due to broken motion and button events on MacBooks
         // running Monterey and Ventura.
-        if macos_available(14, 0) {
+        if available!(macos(14, 0)) {
             let Some(framework) = game_controller_framework() else {
                 return;
             };
@@ -654,7 +656,7 @@ pub(crate) fn has_gc_mouse() -> bool {
 /// Translation of `Cocoa_QuitGCMouse()`.
 pub(crate) fn quit_gc_mouse() {
     autoreleasepool(|| {
-        if macos_available(14, 0) && game_controller_framework().is_some() {
+        if available!(macos(14, 0)) && game_controller_framework().is_some() {
             let Some(framework) = game_controller_framework() else {
                 return;
             };

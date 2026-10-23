@@ -14,13 +14,13 @@ use std::ffi::c_void;
 use std::sync::Arc;
 use std::time::Duration;
 
-use super::events::{encoding, get_event_timestamp};
+use super::events::get_event_timestamp;
 use super::sys::*;
 use super::{video_data, OptionAsAlt, VideoData};
 use crate::core::apple::foundation::{CFDataGetBytePtr, CfRef, NSPoint, NSRange, NSRect};
 use crate::core::apple::objc::{
-    autoreleasepool, class, imp, is_kind_of, ivar_ptr, msg_send, msg_send_super, sel, Bool, Class,
-    ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, NIL, NO,
+    autoreleasepool, class, encoding, imp, is_kind_of, ivar_ptr, msg_send, msg_send_super, sel,
+    Bool, Class, ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, NIL, NO,
 };
 use crate::error::Result;
 use crate::events::keyboard::{

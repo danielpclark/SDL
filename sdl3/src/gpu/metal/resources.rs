@@ -23,7 +23,9 @@ use super::sys::*;
 use super::tables::*;
 use super::{lock, MetalRenderer};
 use crate::core::apple::block::{dispatch_get_global_queue, dispatch_release};
-use crate::core::apple::foundation::{ns_string, string_from_ns, NSRange, NS_UTF8_STRING_ENCODING};
+use crate::core::apple::foundation::{
+    available, ns_string, string_from_ns, NSRange, NS_UTF8_STRING_ENCODING,
+};
 use crate::core::apple::objc::{class, msg_send, Bool, Id, NSUInteger, StrongPtr, NIL};
 use crate::error::{Error, Result};
 use crate::gpu::{
@@ -453,7 +455,7 @@ impl MetalRenderer {
             let _: () = msg_send![texture_descriptor, setPixelFormat: sdl_to_metal_texture_format(createinfo.format)];
             // This format isn't natively supported so let's swizzle!
             if createinfo.format == TextureFormat::B4G4R4A4_UNORM {
-                if available(10, 15) {
+                if available!(macos(10, 15)) {
                     let swizzle = MTLTextureSwizzleChannels {
                         red: MTL_TEXTURE_SWIZZLE_GREEN,
                         green: MTL_TEXTURE_SWIZZLE_BLUE,

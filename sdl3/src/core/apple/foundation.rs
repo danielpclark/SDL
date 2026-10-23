@@ -725,9 +725,10 @@ pub(crate) struct NSOperatingSystemVersion {
     pub(crate) patch: NSInteger,
 }
 
-/// `@available(macOS major.minor.patch, *)`
-/// (`-[NSProcessInfo isOperatingSystemAtLeastVersion:]`).
-pub(crate) fn macos_at_least(major: NSInteger, minor: NSInteger, patch: NSInteger) -> bool {
+/// Whether the system is at least `major.minor.patch`
+/// (`-[NSProcessInfo isOperatingSystemAtLeastVersion:]`, what `@available()`
+/// amounts to), in the platform's own numbering.
+pub(crate) fn os_version_at_least(major: NSInteger, minor: NSInteger, patch: NSInteger) -> bool {
     let version = NSOperatingSystemVersion {
         major,
         minor,
@@ -741,6 +742,84 @@ pub(crate) fn macos_at_least(major: NSInteger, minor: NSInteger, patch: NSIntege
         r.is_true()
     }
 }
+
+/// The platforms an [`available!`] check names.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum ApplePlatform {
+    /// `macOS` (`target_os = "macos"`).
+    MacOs,
+    /// `iOS` (`target_os = "ios"`).
+    Ios,
+    /// `tvOS` (`target_os = "tvos"`).
+    TvOs,
+    /// `visionOS` (`target_os = "visionos"`).
+    VisionOs,
+}
+
+impl ApplePlatform {
+    /// The platform built for (`None`: one no check names, watchOS).
+    pub(crate) const CURRENT: Option<ApplePlatform> = if cfg!(target_os = "macos") {
+        Some(ApplePlatform::MacOs)
+    } else if cfg!(target_os = "ios") {
+        Some(ApplePlatform::Ios)
+    } else if cfg!(target_os = "tvos") {
+        Some(ApplePlatform::TvOs)
+    } else if cfg!(target_os = "visionos") {
+        Some(ApplePlatform::VisionOs)
+    } else {
+        None
+    };
+}
+
+/// `@available()` with these minimum versions (`[major, minor, patch]`):
+/// the current platform's is checked at run time; a platform the list
+/// doesn't name passes (the `*`). [`available!`] builds the list.
+pub(crate) fn available_on(versions: &[(ApplePlatform, [NSInteger; 3])]) -> bool {
+    match versions
+        .iter()
+        .find(|(platform, _)| Some(*platform) == ApplePlatform::CURRENT)
+    {
+        Some(&(_, [major, minor, patch])) => os_version_at_least(major, minor, patch),
+        None => true,
+    }
+}
+
+/// `@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)` is
+/// `available!(macos(11, 0), ios(14, 0), tvos(14, 0))`: true if the system
+/// is at least the version given for the platform built for (`macos`,
+/// `ios`, `tvos` or `visionos`; one to three numbers), or if that platform
+/// isn't named (the `*`, which every `@available()` ends with). Checked at
+/// run time, as upstream's are when it is built with the newest SDK.
+macro_rules! available {
+    (@platform macos) => {
+        $crate::core::apple::foundation::ApplePlatform::MacOs
+    };
+    (@platform ios) => {
+        $crate::core::apple::foundation::ApplePlatform::Ios
+    };
+    (@platform tvos) => {
+        $crate::core::apple::foundation::ApplePlatform::TvOs
+    };
+    (@platform visionos) => {
+        $crate::core::apple::foundation::ApplePlatform::VisionOs
+    };
+    (@version $major:expr) => {
+        [$major, 0, 0]
+    };
+    (@version $major:expr, $minor:expr) => {
+        [$major, $minor, 0]
+    };
+    (@version $major:expr, $minor:expr, $patch:expr) => {
+        [$major, $minor, $patch]
+    };
+    ($($platform:ident ( $($version:expr),+ )),+ $(,)?) => {
+        $crate::core::apple::foundation::available_on(&[$((
+            $crate::core::apple::foundation::available!(@platform $platform),
+            $crate::core::apple::foundation::available!(@version $($version),+),
+        )),+])
+    };
+}
+pub(crate) use available;
 
 #[cfg(test)]
 mod tests {
@@ -765,6 +844,41 @@ mod tests {
             Some(-42)
         );
         assert!(unsafe { cf_dictionary_get(d.get(), "missing") }.is_null());
+    }
+
+    /// `available!()`: the current platform's version is checked, the
+    /// others pass.
+    #[test]
+    fn availability() {
+        assert!(os_version_at_least(1, 0, 0));
+        assert!(!os_version_at_least(1000, 0, 0));
+        assert!(available!(macos(1), ios(1, 0), tvos(1, 0, 0), visionos(1)));
+        assert!(!available!(
+            macos(1000, 0),
+            ios(1000, 0),
+            tvos(1000),
+            visionos(1000)
+        ));
+        // (another platform's version isn't checked: `*`)
+        let other = if cfg!(target_os = "macos") {
+            available!(ios(1000, 0), tvos(1000, 0))
+        } else {
+            available!(macos(1000, 0))
+        };
+        assert!(other);
+        assert_eq!(
+            ApplePlatform::CURRENT.is_some(),
+            !cfg!(target_os = "watchos")
+        );
+        // (the minor and patch versions count)
+        let v = unsafe {
+            let info: Id = msg_send![class!(NSProcessInfo), processInfo];
+            let v: NSOperatingSystemVersion = msg_send![info, operatingSystemVersion];
+            v
+        };
+        assert!(os_version_at_least(v.major, v.minor, v.patch));
+        assert!(!os_version_at_least(v.major, v.minor, v.patch + 1));
+        assert!(!os_version_at_least(v.major, v.minor + 1, 0));
     }
 
     #[test]

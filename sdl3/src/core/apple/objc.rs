@@ -84,8 +84,9 @@ impl fmt::Debug for Sel {
     }
 }
 
-/// `BOOL`: `bool` on AArch64, `signed char` on x86-64; both are a byte
-/// that is 0 or 1 for `NO` and `YES`.
+/// `BOOL`: `bool`, but `signed char` on x86-64 macOS and Mac Catalyst
+/// (`OBJC_BOOL_IS_BOOL`); both are a byte that is 0 or 1 for `NO` and
+/// `YES`.
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) struct Bool(i8);
@@ -116,6 +117,27 @@ impl fmt::Debug for Bool {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(if self.is_true() { "YES" } else { "NO" })
     }
+}
+
+/// `BOOL`'s type encoding: `B` (`bool`), but `c` (`signed char`) on x86-64
+/// macOS and Mac Catalyst; the x86-64 iOS (and tvOS) Simulator's is `bool`.
+#[cfg(not(all(
+    target_arch = "x86_64",
+    any(target_os = "macos", target_abi = "macabi")
+)))]
+pub(crate) const BOOL_ENC: &str = "B";
+/// `BOOL`'s type encoding: `B` (`bool`), but `c` (`signed char`) on x86-64
+/// macOS and Mac Catalyst; the x86-64 iOS (and tvOS) Simulator's is `bool`.
+#[cfg(all(
+    target_arch = "x86_64",
+    any(target_os = "macos", target_abi = "macabi")
+))]
+pub(crate) const BOOL_ENC: &str = "c";
+
+/// A type encoding string with [`BOOL_ENC`] substituted for `B`, for
+/// [`ClassBuilder::add_method`].
+pub(crate) fn encoding(types: &str) -> std::ffi::CString {
+    std::ffi::CString::new(types.replace('B', BOOL_ENC)).expect("type encoding")
 }
 
 /// `YES`.
@@ -916,6 +938,26 @@ mod tests {
             let sub: Id = msg_send![s, substringWithRange: NSRange::new(2, 3)];
             assert_eq!(string_from_ns(sub).as_deref(), Some("cde"));
         });
+    }
+
+    /// [`BOOL_ENC`] is the runtime's: the encoding of a method returning
+    /// `BOOL` (`-[NSObject isProxy]`) starts with it.
+    #[test]
+    fn bool_encoding() {
+        // SAFETY: a method NSObject has, and its encoding string.
+        let types = unsafe {
+            let m = class_getInstanceMethod(class!(NSObject), sel!(isProxy));
+            assert!(!m.is_null());
+            CStr::from_ptr(method_getTypeEncoding(m))
+        };
+        assert!(
+            types.to_bytes().starts_with(BOOL_ENC.as_bytes()),
+            "{types:?}"
+        );
+        assert_eq!(
+            encoding("B@:@").to_bytes(),
+            format!("{BOOL_ENC}@:@").as_bytes()
+        );
     }
 
     static SUBCLASS: DeclaredClass = DeclaredClass::new();

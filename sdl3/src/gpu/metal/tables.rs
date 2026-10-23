@@ -11,7 +11,7 @@
 //! only name iOS and tvOS are true on macOS.
 
 use super::sys::*;
-use crate::core::apple::foundation::CFStringRef;
+use crate::core::apple::foundation::{available, CFStringRef};
 use crate::core::apple::objc::NSUInteger;
 use crate::gpu::{
     BlendFactor, BlendOp, ColorComponentFlags, CompareOp, CullMode, FillMode, Filter, FrontFace,
@@ -32,7 +32,7 @@ pub(super) fn sdl_to_metal_texture_format(format: TextureFormat) -> NSUInteger {
             MTL_PIXEL_FORMAT_INVALID
         }
     };
-    let macos11 = || available(11, 0);
+    let macos11 = || available!(macos(11, 0));
 
     match format {
         F::INVALID => MTL_PIXEL_FORMAT_INVALID,
@@ -387,7 +387,7 @@ pub(super) fn swapchain_composition_to_color_space(
             SwapchainComposition::Sdr | SwapchainComposition::SdrLinear => kCGColorSpaceSRGB,
             SwapchainComposition::HdrExtendedLinear => kCGColorSpaceExtendedLinearSRGB,
             SwapchainComposition::Hdr10St2084 => {
-                if available(11, 0) {
+                if available!(macos(11, 0)) {
                     kCGColorSpaceITUR_2100_PQ
                 } else {
                     std::ptr::null()
