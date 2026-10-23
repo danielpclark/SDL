@@ -9,8 +9,12 @@ By default the program runs under node, as `node PROGRAM.js ARGUMENTS...`
 Chromium instead, when SDL3_EMSCRIPTEN_BROWSER is 1, or when it's unset and
 the program asks for a browser (a custom section `sdl3_runner` in its .wasm
 holding `browser`, as sdl3/tests/emscripten_browser.rs has) and a Chrome
-or Chromium is found; SDL3_EMSCRIPTEN_BROWSER=0 always picks node. Then
-this script
+or Chromium is found; SDL3_EMSCRIPTEN_BROWSER=0 always picks node. (A
+program linked with JSPI, -sJSPI, has `jspi` in that section too: under a
+node without JSPI's current API, `WebAssembly.Suspending`, which
+emscripten's JSPI programs can't start without, this script skips it
+with a note, `note: skipping, jspi unavailable: ...`, or fails if
+SDL3_TEST_REQUIRE has `jspi` or `all`.) In the browser this script
 
 * serves the program's directory over HTTP on 127.0.0.1 (http.server), with
   a page generated at run time (an HTML shell in a temporary directory: the
@@ -174,16 +178,17 @@ def leb128(data, pos):
             return value, pos
 
 
-def asks_for_browser(program):
-    """Whether the program's .wasm has a custom section `sdl3_runner` that
-    holds `browser`."""
+def requests(program):
+    """The words in the custom section `sdl3_runner` of the program's .wasm
+    (`browser`, `jspi`), if it has one."""
     try:
         with open(wasm_path(program), "rb") as f:
             data = f.read()
     except OSError:
-        return False
+        return set()
     if data[:4] != b"\0asm":
-        return False
+        return set()
+    words = set()
     pos = 8
     try:
         while pos < len(data):
@@ -193,12 +198,12 @@ def asks_for_browser(program):
             if section_id == 0:
                 name_len, name_pos = leb128(data, pos)
                 name = data[name_pos:name_pos + name_len]
-                if name == b"sdl3_runner" and b"browser" in data[name_pos + name_len:end]:
-                    return True
+                if name == b"sdl3_runner":
+                    words.update(data[name_pos + name_len:end].decode(errors="replace").split())
             pos = end
     except IndexError:
         pass
-    return False
+    return words
 
 
 def find_chrome():
@@ -221,8 +226,50 @@ def find_chrome():
     return None
 
 
-def run_node(program, args):
-    node = os.environ.get("SDL3_EMSCRIPTEN_NODE") or "node"
+def node_binary():
+    return os.environ.get("SDL3_EMSCRIPTEN_NODE") or "node"
+
+
+def node_has_jspi():
+    """Whether node has JSPI's current API (`WebAssembly.Suspending`, which
+    emscripten's JSPI programs use), and which node it is."""
+    node = node_binary()
+    try:
+        result = subprocess.run(
+            [node, "-p", "typeof WebAssembly.Suspending + ' ' + process.version"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return False, f"{node}: {e}"
+    kind, _, version = result.stdout.strip().partition(" ")
+    return kind == "function", f"node {version or '(unknown version)'}"
+
+
+def required(capability):
+    wanted = [c.strip() for c in os.environ.get("SDL3_TEST_REQUIRE", "").split(",")]
+    return "all" in wanted or capability in wanted
+
+
+def run_node(program, args, words):
+    node = node_binary()
+    if "jspi" in words:
+        has_jspi, which = node_has_jspi()
+        if not has_jspi:
+            # (as the test programs skip: a note, or an error if required)
+            reason = f"{which} has no WebAssembly.Suspending (run it in Chrome or Chromium: SDL3_EMSCRIPTEN_BROWSER=1)"
+            if required("jspi"):
+                note(f"required capability jspi unavailable: {reason}")
+                return 1
+            print(f"note: skipping, jspi unavailable: {reason}", flush=True)
+            # (the program's name without the hash Cargo adds)
+            name = os.path.splitext(os.path.basename(program))[0]
+            stem, _, suffix = name.rpartition("-")
+            if stem and len(suffix) == 16 and all(c in "0123456789abcdef" for c in suffix):
+                name = stem
+            print(f"test {name} ... ok", flush=True)
+            return 0
     argv = [node, program, *args]
     sys.stdout.flush()
     sys.stderr.flush()
@@ -597,15 +644,16 @@ def main():
     if mode not in ("", "0", "1"):
         note(f"SDL3_EMSCRIPTEN_BROWSER is {mode!r}: 1 (browser), 0 (node) or unset")
         return 2
-    if mode == "0" or (mode == "" and not asks_for_browser(program)):
-        return run_node(program, args)
+    words = requests(program)
+    if mode == "0" or (mode == "" and "browser" not in words):
+        return run_node(program, args, words)
     chrome = find_chrome()
     if chrome is None:
         if mode == "1":
             note("no Chrome or Chromium found: set CHROME to one")
             return 1
         note(f"{os.path.basename(program)} asks for a browser, but there's no Chrome or Chromium (set CHROME): running it under node")
-        return run_node(program, args)
+        return run_node(program, args, words)
     if os.name != "posix":
         note("the browser mode needs a POSIX system")
         return 1

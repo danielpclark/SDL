@@ -175,6 +175,20 @@ harness = false
 name = "emscripten_camera"
 harness = false
 
+# What SDL does differently when the program is linked with Asyncify (its
+# sleeps: delays, waits, the <dialog> message boxes, the framebuffer and
+# buffer swaps, the main callbacks), against upstream's C trace: a program
+# that asks tools/emscripten_link.py for -sASYNCIFY=1 and
+# tools/emscripten_run.py for the browser.
+[[test]]
+name = "emscripten_asyncify"
+harness = false
+
+# The same program linked with JSPI (-sJSPI), in the browser only.
+[[test]]
+name = "emscripten_jspi"
+harness = false
+
 # SDL_RunApp()'s persistent storage (IDBFS); built with the path in
 # SDL_EMSCRIPTEN_PERSISTENT_PATH (see the file).
 [[test]]
