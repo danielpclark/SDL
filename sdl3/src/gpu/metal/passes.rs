@@ -528,6 +528,7 @@ impl MetalRenderer {
             let _: () = msg_send![encoder, setCullMode: sdl_to_metal_cull_mode(rast.cull_mode)];
             let _: () =
                 msg_send![encoder, setFrontFacingWinding: sdl_to_metal_front_face(rast.front_face)];
+            #[cfg(not(target_os = "visionos"))]
             let _: () = msg_send![encoder, setDepthClipMode: sdl_to_metal_depth_clip_mode(rast.enable_depth_clip)];
             let depth_bias = if rast.enable_depth_bias {
                 rast.depth_bias_constant_factor

@@ -31,9 +31,14 @@
 //!   driver), compositions, present modes, frames in flight and swapchain
 //!   texture acquisition ([`swapchain`]).
 //!
-//! The OpenXR entry points (`HAVE_GPU_OPENXR`, all of which fail on Metal
-//! upstream) are not translated, nor are the iOS, tvOS and visionOS
-//! branches.
+//! The `SDL_PLATFORM_MACOS` branches (the low-power device, the Mac
+//! families, managed buffers, D24S8, immediate presentation) and their
+//! UIKit counterparts (the Apple3 family, cube arrays, the HDR10 swapchain,
+//! EDR, visionOS's depth clipping) are `cfg`s, upstream's `@available()`
+//! checks [`available!`](crate::core::apple::foundation::available) ones. The
+//! OpenXR entry points (`HAVE_GPU_OPENXR`, all of which fail on Metal
+//! upstream) are not translated, nor are the iOS and tvOS blit libraries
+//! (the macOS ones are used everywhere).
 
 mod commands;
 mod device;

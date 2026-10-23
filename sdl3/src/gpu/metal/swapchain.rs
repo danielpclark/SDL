@@ -102,6 +102,12 @@ impl MetalRenderer {
         _window: Window,
         swapchain_composition: SwapchainComposition,
     ) -> bool {
+        if cfg!(not(target_os = "macos"))
+            && swapchain_composition == SwapchainComposition::Hdr10St2084
+        {
+            return false;
+        }
+
         if available!(macos(11, 0)) {
             true
         } else {
@@ -120,17 +126,21 @@ impl MetalRenderer {
         // SAFETY: CAMetalLayer properties (no-ops on nil), and a color space
         // created and released around its use.
         unsafe {
-            // (SDL_PLATFORM_MACOS)
+            #[cfg(target_os = "macos")]
             if available!(macos(10, 13)) {
                 let _: () = msg_send![layer, setDisplaySyncEnabled: Bool::from(present_mode != PresentMode::Immediate)];
                 window_data.present_mode = present_mode;
             }
+            #[cfg(not(target_os = "macos"))]
+            let _ = present_mode;
             let format = swapchain_composition_to_format(swapchain_composition);
             let _: () = msg_send![layer, setPixelFormat: sdl_to_metal_texture_format(format)];
-            // (@available(iOS 16.0, *): always on macOS)
-            let _: () = msg_send![layer, setWantsExtendedDynamicRangeContent: Bool::from(
-                swapchain_composition != SwapchainComposition::Sdr
-            )];
+            #[cfg(not(target_os = "tvos"))]
+            if available!(ios(16, 0)) {
+                let _: () = msg_send![layer, setWantsExtendedDynamicRangeContent: Bool::from(
+                    swapchain_composition != SwapchainComposition::Sdr
+                )];
+            }
 
             let colorspace = CGColorSpaceCreateWithName(swapchain_composition_to_color_space(
                 swapchain_composition,
@@ -182,8 +192,9 @@ impl MetalRenderer {
         present_mode: PresentMode,
     ) -> bool {
         match present_mode {
-            // (SDL_PLATFORM_MACOS)
-            PresentMode::Immediate | PresentMode::Vsync => true,
+            #[cfg(target_os = "macos")]
+            PresentMode::Immediate => true,
+            PresentMode::Vsync => true,
             _ => false,
         }
     }

@@ -7,8 +7,7 @@
 //! and the swapchain composition tables.
 //!
 //! The tables are indexed by the GPU enums' C values, as upstream's are.
-//! Upstream's `@available()` checks are made at run time; the ones that
-//! only name iOS and tvOS are true on macOS.
+//! Upstream's `@available()` checks are made at run time ([`available!`]).
 
 use super::sys::*;
 use crate::core::apple::foundation::{available, CFStringRef};
@@ -33,6 +32,15 @@ pub(super) fn sdl_to_metal_texture_format(format: TextureFormat) -> NSUInteger {
         }
     };
     let macos11 = || available!(macos(11, 0));
+    let ios16_4 = || available!(ios(16, 4), tvos(16, 4));
+    let astc_hdr = || available!(macos(11, 0), ios(13, 0), tvos(16, 0));
+
+    // (MTLPixelFormatDepth24Unorm_Stencil8 is macOS's)
+    const DEPTH24_UNORM_STENCIL8: NSUInteger = if cfg!(target_os = "macos") {
+        MTL_PIXEL_FORMAT_DEPTH24_UNORM_STENCIL8
+    } else {
+        MTL_PIXEL_FORMAT_INVALID
+    };
 
     match format {
         F::INVALID => MTL_PIXEL_FORMAT_INVALID,
@@ -48,15 +56,14 @@ pub(super) fn sdl_to_metal_texture_format(format: TextureFormat) -> NSUInteger {
         F::B5G5R5A1_UNORM => gated(macos11(), MTL_PIXEL_FORMAT_BGR5A1_UNORM),
         F::B4G4R4A4_UNORM => gated(macos11(), MTL_PIXEL_FORMAT_ABGR4_UNORM),
         F::B8G8R8A8_UNORM => MTL_PIXEL_FORMAT_BGRA8_UNORM,
-        // (@available(iOS 16.4, tvOS 16.4, *): always on macOS)
-        F::BC1_RGBA_UNORM => MTL_PIXEL_FORMAT_BC1_RGBA,
-        F::BC2_RGBA_UNORM => MTL_PIXEL_FORMAT_BC2_RGBA,
-        F::BC3_RGBA_UNORM => MTL_PIXEL_FORMAT_BC3_RGBA,
-        F::BC4_R_UNORM => MTL_PIXEL_FORMAT_BC4_R_UNORM,
-        F::BC5_RG_UNORM => MTL_PIXEL_FORMAT_BC5_RG_UNORM,
-        F::BC7_RGBA_UNORM => MTL_PIXEL_FORMAT_BC7_RGBA_UNORM,
-        F::BC6H_RGB_FLOAT => MTL_PIXEL_FORMAT_BC6H_RGB_FLOAT,
-        F::BC6H_RGB_UFLOAT => MTL_PIXEL_FORMAT_BC6H_RGB_UFLOAT,
+        F::BC1_RGBA_UNORM => gated(ios16_4(), MTL_PIXEL_FORMAT_BC1_RGBA),
+        F::BC2_RGBA_UNORM => gated(ios16_4(), MTL_PIXEL_FORMAT_BC2_RGBA),
+        F::BC3_RGBA_UNORM => gated(ios16_4(), MTL_PIXEL_FORMAT_BC3_RGBA),
+        F::BC4_R_UNORM => gated(ios16_4(), MTL_PIXEL_FORMAT_BC4_R_UNORM),
+        F::BC5_RG_UNORM => gated(ios16_4(), MTL_PIXEL_FORMAT_BC5_RG_UNORM),
+        F::BC7_RGBA_UNORM => gated(ios16_4(), MTL_PIXEL_FORMAT_BC7_RGBA_UNORM),
+        F::BC6H_RGB_FLOAT => gated(ios16_4(), MTL_PIXEL_FORMAT_BC6H_RGB_FLOAT),
+        F::BC6H_RGB_UFLOAT => gated(ios16_4(), MTL_PIXEL_FORMAT_BC6H_RGB_UFLOAT),
         F::R8_SNORM => MTL_PIXEL_FORMAT_R8_SNORM,
         F::R8G8_SNORM => MTL_PIXEL_FORMAT_RG8_SNORM,
         F::R8G8B8A8_SNORM => MTL_PIXEL_FORMAT_RGBA8_SNORM,
@@ -90,17 +97,17 @@ pub(super) fn sdl_to_metal_texture_format(format: TextureFormat) -> NSUInteger {
         F::R32G32B32A32_INT => MTL_PIXEL_FORMAT_RGBA32_SINT,
         F::R8G8B8A8_UNORM_SRGB => MTL_PIXEL_FORMAT_RGBA8_UNORM_SRGB,
         F::B8G8R8A8_UNORM_SRGB => MTL_PIXEL_FORMAT_BGRA8_UNORM_SRGB,
-        F::BC1_RGBA_UNORM_SRGB => MTL_PIXEL_FORMAT_BC1_RGBA_SRGB,
-        F::BC2_RGBA_UNORM_SRGB => MTL_PIXEL_FORMAT_BC2_RGBA_SRGB,
-        F::BC3_RGBA_UNORM_SRGB => MTL_PIXEL_FORMAT_BC3_RGBA_SRGB,
-        F::BC7_RGBA_UNORM_SRGB => MTL_PIXEL_FORMAT_BC7_RGBA_UNORM_SRGB,
-        // (@available(iOS 13.0, tvOS 13.0, *): always on macOS)
-        F::D16_UNORM => MTL_PIXEL_FORMAT_DEPTH16_UNORM,
-        // (SDL_PLATFORM_MACOS)
-        F::D24_UNORM => MTL_PIXEL_FORMAT_DEPTH24_UNORM_STENCIL8,
+        F::BC1_RGBA_UNORM_SRGB => gated(ios16_4(), MTL_PIXEL_FORMAT_BC1_RGBA_SRGB),
+        F::BC2_RGBA_UNORM_SRGB => gated(ios16_4(), MTL_PIXEL_FORMAT_BC2_RGBA_SRGB),
+        F::BC3_RGBA_UNORM_SRGB => gated(ios16_4(), MTL_PIXEL_FORMAT_BC3_RGBA_SRGB),
+        F::BC7_RGBA_UNORM_SRGB => gated(ios16_4(), MTL_PIXEL_FORMAT_BC7_RGBA_UNORM_SRGB),
+        F::D16_UNORM => gated(
+            available!(ios(13, 0), tvos(13, 0)),
+            MTL_PIXEL_FORMAT_DEPTH16_UNORM,
+        ),
+        F::D24_UNORM => DEPTH24_UNORM_STENCIL8,
         F::D32_FLOAT => MTL_PIXEL_FORMAT_DEPTH32_FLOAT,
-        // (SDL_PLATFORM_MACOS)
-        F::D24_UNORM_S8_UINT => MTL_PIXEL_FORMAT_DEPTH24_UNORM_STENCIL8,
+        F::D24_UNORM_S8_UINT => DEPTH24_UNORM_STENCIL8,
         F::D32_FLOAT_S8_UINT => MTL_PIXEL_FORMAT_DEPTH32_FLOAT_STENCIL8,
         F::ASTC_4x4_UNORM => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_4X4_LDR),
         F::ASTC_5x4_UNORM => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_5X4_LDR),
@@ -130,20 +137,20 @@ pub(super) fn sdl_to_metal_texture_format(format: TextureFormat) -> NSUInteger {
         F::ASTC_10x10_UNORM_SRGB => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_10X10_SRGB),
         F::ASTC_12x10_UNORM_SRGB => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_12X10_SRGB),
         F::ASTC_12x12_UNORM_SRGB => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_12X12_SRGB),
-        F::ASTC_4x4_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_4X4_HDR),
-        F::ASTC_5x4_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_5X4_HDR),
-        F::ASTC_5x5_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_5X5_HDR),
-        F::ASTC_6x5_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_6X5_HDR),
-        F::ASTC_6x6_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_6X6_HDR),
-        F::ASTC_8x5_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_8X5_HDR),
-        F::ASTC_8x6_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_8X6_HDR),
-        F::ASTC_8x8_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_8X8_HDR),
-        F::ASTC_10x5_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_10X5_HDR),
-        F::ASTC_10x6_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_10X6_HDR),
-        F::ASTC_10x8_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_10X8_HDR),
-        F::ASTC_10x10_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_10X10_HDR),
-        F::ASTC_12x10_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_12X10_HDR),
-        F::ASTC_12x12_FLOAT => gated(macos11(), MTL_PIXEL_FORMAT_ASTC_12X12_HDR),
+        F::ASTC_4x4_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_4X4_HDR),
+        F::ASTC_5x4_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_5X4_HDR),
+        F::ASTC_5x5_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_5X5_HDR),
+        F::ASTC_6x5_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_6X5_HDR),
+        F::ASTC_6x6_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_6X6_HDR),
+        F::ASTC_8x5_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_8X5_HDR),
+        F::ASTC_8x6_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_8X6_HDR),
+        F::ASTC_8x8_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_8X8_HDR),
+        F::ASTC_10x5_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_10X5_HDR),
+        F::ASTC_10x6_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_10X6_HDR),
+        F::ASTC_10x8_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_10X8_HDR),
+        F::ASTC_10x10_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_10X10_HDR),
+        F::ASTC_12x10_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_12X10_HDR),
+        F::ASTC_12x12_FLOAT => gated(astc_hdr(), MTL_PIXEL_FORMAT_ASTC_12X12_HDR),
         // Note (upstream): C falls off the end of the switch for values
         // outside the enum (undefined behavior); no format here.
         _ => MTL_PIXEL_FORMAT_INVALID,
@@ -387,7 +394,7 @@ pub(super) fn swapchain_composition_to_color_space(
             SwapchainComposition::Sdr | SwapchainComposition::SdrLinear => kCGColorSpaceSRGB,
             SwapchainComposition::HdrExtendedLinear => kCGColorSpaceExtendedLinearSRGB,
             SwapchainComposition::Hdr10St2084 => {
-                if available!(macos(11, 0)) {
+                if available!(macos(11, 0), ios(14, 0), tvos(14, 0)) {
                     kCGColorSpaceITUR_2100_PQ
                 } else {
                     std::ptr::null()
