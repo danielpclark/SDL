@@ -30,9 +30,9 @@
 //!   `main/emscripten/SDL_sysmain_runapp.c`, [`locale`] for
 //!   `locale/emscripten/SDL_syslocale.c`, [`url`] for
 //!   `misc/emscripten/SDL_sysurl.c`, [`video`] for
-//!   `video/emscripten/SDL_emscriptenvideo.c`, with
-//!   [`video::framebuffer`] and [`video::mouse`] for its framebuffer and
-//!   mouse files).
+//!   `video/emscripten/SDL_emscriptenvideo.c`, with [`video::events`],
+//!   [`video::framebuffer`] and [`video::mouse`] for its events,
+//!   framebuffer and mouse files).
 //!
 //! ## Why a crate of its own
 //!
