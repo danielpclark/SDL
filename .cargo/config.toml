@@ -9,6 +9,14 @@
 # run, as on Windows, set CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUNNER to
 # `node`, or to `python` with the script's absolute path.)
 runner = "tools/emscripten_run.py"
+# The linker: emcc, through tools/emscripten_link.py, which adds the link
+# options a program asks for in a custom section of its own (Cargo has no
+# link options per test program: sdl3/tests/emscripten_asyncify.rs is
+# linked with -sASYNCIFY=1 that way). The same as for the runner applies:
+# where the script can't run, set CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER
+# to `emcc` (`emcc.bat` on Windows; the programs that ask for options then
+# don't get them).
+linker = "tools/emscripten_link.py"
 # Every link warns that -sWASM_BIGINT is deprecated (rustc passes it);
 # silence emcc's deprecation warnings. The rest is what the test programs
 # need: memory that grows past the 16 MB default, an 8 MB stack (the
