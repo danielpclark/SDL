@@ -45,8 +45,8 @@
 //! * `message_box`: without Asyncify, `alert()` (a stand-in records it).
 //!
 //! Then the main callbacks, which wait for the browser: the runner sends a
-//! trusted key press (a user gesture, which emscripten's `keydown` handler,
-//! registered here, runs the deferred requests in): `fullscreen`, the
+//! trusted key press (a user gesture, which SDL's `keydown` handler, one of
+//! emscripten's, runs the deferred requests in): `fullscreen`, the
 //! window fullscreen and back (`fullscreenchange`); `pointer_lock`, the
 //! pointer locked (`pointerlockchange`), or headless Chromium's refusal
 //! (`pointerlockerror`), which is printed. Finally `quit`: what video's
@@ -73,7 +73,6 @@ static RUNNER: [u8; 7] = *b"browser";
 
 #[cfg(target_os = "emscripten")]
 mod video {
-    use std::ffi::{c_int, c_void};
     use std::panic::{self, AssertUnwindSafe};
     use std::process::ExitCode;
     use std::time::Duration;
@@ -98,7 +97,6 @@ mod video {
         PROP_WINDOW_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING,
     };
     use sdl3::video::{self as sdl_video, PixelFormat, Rect, Surface, SystemTheme, Window};
-    use sdl3_emscripten::sys;
     use sdl3_emscripten::{em_asm, em_asm_double, em_asm_int};
 
     /// How long the checks may wait for the browser.
@@ -1177,16 +1175,6 @@ mod video {
 
     // -- the main callbacks: trusted input -------------------------------------
 
-    /// emscripten's `keydown` handler, which runs its deferred requests in
-    /// the user's gesture.
-    unsafe extern "C-unwind" fn keydown(
-        _event_type: c_int,
-        _event: *const sys::EmscriptenKeyboardEvent,
-        _user_data: *mut c_void,
-    ) -> bool {
-        false
-    }
-
     /// A trusted key press, which the runner sends (`Input.dispatchKeyEvent`)
     /// once the page is back in its event loop.
     fn press_key() {
@@ -1251,19 +1239,12 @@ mod video {
             };
             match self.step {
                 Step::Start => {
-                    // SAFETY: the window target, a handler with emscripten's
-                    // signature.
-                    let registered = unsafe {
-                        sys::emscripten_set_keydown_callback_on_thread(
-                            sys::EMSCRIPTEN_EVENT_TARGET_WINDOW,
-                            std::ptr::null_mut(),
-                            true,
-                            Some(keydown),
-                            sys::EM_CALLBACK_THREAD_CONTEXT_CALLING_THREAD,
-                        )
-                    };
-                    assert_eq!(registered, sys::EMSCRIPTEN_RESULT_SUCCESS);
-                    // (after SDL's handler, registered before)
+                    // SDL's keydown handler (the window's keyboard element is
+                    // #window), which runs emscripten's deferred requests
+                    assert_eq!(
+                        js("JSEvents.eventHandlers.filter((h) => h.eventTypeString == 'keydown' && h.target === window).length"),
+                        "1"
+                    );
                     js_run("Module.sdl3TestFullscreenChanges = 0; document.addEventListener('fullscreenchange', () => { Module.sdl3TestFullscreenChanges++; });");
                     // (the fullscreen request of fullscreen_request(),
                     // still deferred)
