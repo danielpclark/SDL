@@ -19,7 +19,8 @@
 //! Nintendo Switch device drivers), the Linux driver (evdev devices, found
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
 //! and XInput; Windows.Gaming.Input), the IOKit and MFi (GameController)
-//! drivers (macOS), the virtual driver
+//! drivers (macOS), the Emscripten driver (the browser's Gamepad API), the
+//! virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the other HIDAPI device
 //! drivers and platform drivers arrive later.
@@ -30,10 +31,15 @@ mod controller_type;
 #[cfg(target_os = "macos")]
 pub(crate) mod darwin;
 mod device_info;
-// (also Emscripten's, until the Emscripten port's PR 11 translates its
-// Gamepad API driver)
-#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+#[cfg(not(any(
+    windows,
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "emscripten"
+)))]
 mod dummy;
+#[cfg(target_os = "emscripten")]
+mod emscripten;
 pub mod gamepad;
 mod gamepad_db;
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
@@ -584,6 +590,11 @@ const DARWIN_DRIVER_INDEX: usize = 1;
 #[cfg(target_os = "macos")]
 pub(crate) const MFI_DRIVER_INDEX: usize = 2;
 
+/// The index of the Emscripten (Gamepad API) driver in [`JOYSTICK_DRIVERS`]
+/// (for the driver order's test: nothing else compares with it).
+#[cfg(all(test, target_os = "emscripten"))]
+const EMSCRIPTEN_DRIVER_INDEX: usize = 0;
+
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are).
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
@@ -592,6 +603,8 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     3
 } else if cfg!(target_os = "linux") {
     2
+} else if cfg!(target_os = "emscripten") {
+    1
 } else {
     0
 };
@@ -619,8 +632,15 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     &darwin::DARWIN_JOYSTICK_DRIVER,
     #[cfg(target_os = "macos")]
     &apple::MFI_JOYSTICK_DRIVER,
+    #[cfg(target_os = "emscripten")]
+    &emscripten::EMSCRIPTEN_JOYSTICK_DRIVER,
     &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER,
-    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+    #[cfg(not(any(
+        windows,
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "emscripten"
+    )))]
     &dummy::DUMMY_JOYSTICK_DRIVER,
 ];
 
