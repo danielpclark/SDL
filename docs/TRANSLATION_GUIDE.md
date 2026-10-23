@@ -115,6 +115,51 @@ Upstream's `EM_ASM`/`EM_JS` blocks become Rust macros of the internal
   upstream runs "later" (timers, the main loop, `FS.syncfs` callbacks)
   runs only once control is back in the event loop.
 
+## Apple mobile platforms
+
+Upstream's Apple platform macros become these `cfg`s, spelled out where
+they are used (there is no build script to make aliases):
+
+| C | Rust |
+|---|------|
+| `SDL_PLATFORM_APPLE` | `target_vendor = "apple"` |
+| `SDL_PLATFORM_MACOS` | `target_os = "macos"` |
+| `SDL_PLATFORM_IOS`, `SDL_VIDEO_DRIVER_UIKIT` | `all(target_vendor = "apple", not(target_os = "macos"))` |
+| CMake's `IOS` | `target_os = "ios"` |
+| `SDL_PLATFORM_TVOS`, `SDL_PLATFORM_VISIONOS` | `target_os = "tvos"`, `target_os = "visionos"` |
+| `TARGET_OS_SIMULATOR` | `target_abi = "sim"` |
+| `TARGET_OS_MACCATALYST` | `target_abi = "macabi"` |
+
+* `SDL_PLATFORM_IOS` is `TARGET_OS_IPHONE`: every UIKit platform, tvOS,
+  visionOS and Mac Catalyst too, not just `target_os = "ios"`. Upstream's
+  `#if` chains test it before `SDL_PLATFORM_TVOS`, so a tvOS branch after
+  it is never taken; the translation keeps the order (`FIXME (upstream)`
+  where that is a bug, as `SDL_GetPlatform()`'s "tvOS").
+* The simulators are told by `target_abi`, not `target_env`, which the
+  minimum supported Rust leaves empty there.
+* What is built follows upstream's CMake build for the platform (as for
+  macOS and Emscripten): on iOS the UIKit pieces, the Apple-wide ones
+  (`core/apple`, the filesystem, locale, log, time and timer backends, the
+  GPU API's Metal backend) and the dummy ones upstream uses there; a
+  macOS-only backend (Cocoa, IOKit, LaunchServices) is
+  `target_os = "macos"`, and so is an Apple-wide one until its UIKit half
+  is translated (CoreAudio, MFi, the Metal renderer, CoreMedia, the
+  notifications). Until then a subsystem falls back to what else is built,
+  as upstream would without the piece (the offscreen and dummy video
+  drivers, no power information...).
+* `@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)` is
+  `available!(macos(11, 0), ios(14, 0), tvos(14, 0))`
+  (`core::apple::foundation`), checked at run time; a platform it doesn't
+  name passes. SDK guards (`__IPHONE_OS_VERSION_MAX_ALLOWED >= 170000`) are
+  compiled in, as if upstream were built with the newest SDK.
+* An Objective-C method declared at run time takes its type encoding
+  through `objc::encoding()`, which writes `BOOL` as the platform's (`c`
+  on x86-64 macOS and Mac Catalyst, `B` elsewhere, the x86-64 Simulator
+  too).
+* The frameworks are linked as upstream links them, but for those a
+  system the program may start on can lack (GameController and
+  CoreHaptics, UniformTypeIdentifiers), which are loaded at run time.
+
 ## Testing
 
 Each module carries unit tests that pin behaviour to upstream's: known hash
