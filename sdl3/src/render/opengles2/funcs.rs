@@ -98,6 +98,8 @@ pub(super) const GL_COMPILE_STATUS: GLenum = 0x8B81;
 pub(super) const GL_LINK_STATUS: GLenum = 0x8B82;
 pub(super) const GL_INFO_LOG_LENGTH: GLenum = 0x8B84;
 
+pub(super) const GL_MAJOR_VERSION: GLenum = 0x821B;
+
 pub(super) const GL_FRAMEBUFFER_BINDING: GLenum = 0x8CA6;
 pub(super) const GL_FRAMEBUFFER_COMPLETE: GLenum = 0x8CD5;
 pub(super) const GL_COLOR_ATTACHMENT0: GLenum = 0x8CE0;
