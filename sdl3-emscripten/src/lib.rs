@@ -29,7 +29,10 @@
 //!   [`assert`](mod@assert) for `SDL_assert.c`, [`runapp`] for
 //!   `main/emscripten/SDL_sysmain_runapp.c`, [`locale`] for
 //!   `locale/emscripten/SDL_syslocale.c`, [`url`] for
-//!   `misc/emscripten/SDL_sysurl.c`).
+//!   `misc/emscripten/SDL_sysurl.c`, [`video`] for
+//!   `video/emscripten/SDL_emscriptenvideo.c`, with
+//!   [`video::framebuffer`] and [`video::mouse`] for its framebuffer and
+//!   mouse files).
 //!
 //! ## Why a crate of its own
 //!
@@ -84,6 +87,8 @@ pub mod sys;
 pub mod testing;
 #[cfg(target_os = "emscripten")]
 pub mod url;
+#[cfg(target_os = "emscripten")]
+pub mod video;
 
 #[cfg(target_os = "emscripten")]
 pub use deps::DEPS;
