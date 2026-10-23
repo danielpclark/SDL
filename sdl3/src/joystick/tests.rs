@@ -618,4 +618,18 @@ fn driver_order() {
         }
         assert_eq!(JOYSTICK_DRIVERS.len(), 4);
     }
+    #[cfg(target_os = "emscripten")]
+    {
+        // The Emscripten (Gamepad API) driver, then the virtual driver; no
+        // HIDAPI or dummy driver, as upstream builds it
+        let emscripten_driver: &dyn JoystickDriver = &emscripten::EMSCRIPTEN_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[EMSCRIPTEN_DRIVER_INDEX],
+            emscripten_driver
+        ));
+        const {
+            assert!(EMSCRIPTEN_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
+        }
+        assert_eq!(JOYSTICK_DRIVERS.len(), 2);
+    }
 }
