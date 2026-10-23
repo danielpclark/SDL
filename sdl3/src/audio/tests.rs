@@ -703,7 +703,7 @@ fn stream_api_behaviour() {
 #[test]
 #[cfg_attr(
     target_os = "emscripten",
-    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+    ignore = "the dummy device's timer runs in the event loop, which a synchronous test never returns to (audio::drivers::emscripten's tests run it by hand)"
 )]
 fn dummy_driver_playback_and_recording() {
     let _l = crate::test_support::test_lock();
@@ -717,7 +717,12 @@ fn dummy_driver_playback_and_recording() {
 
     // Disk and dummy are demand-only: without a platform driver, nothing
     // initializes without the hint.
-    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "emscripten"
+    )))]
     {
         crate::hints::reset(crate::hints::AUDIO_DRIVER);
         assert_eq!(
@@ -850,10 +855,6 @@ fn dummy_driver_playback_and_recording() {
 }
 
 #[test]
-#[cfg_attr(
-    target_os = "emscripten",
-    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
-)]
 fn a_device_opens_at_the_spec_asked_for() {
     let _l = crate::test_support::test_lock();
     let _cleanup = crate::audio::drivers::tests::QuitAudioOnDrop;
@@ -903,7 +904,7 @@ fn a_device_opens_at_the_spec_asked_for() {
 #[test]
 #[cfg_attr(
     target_os = "emscripten",
-    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
+    ignore = "the dummy device's timer runs in the event loop, which a synchronous test never returns to (audio::drivers::emscripten's tests run it by hand)"
 )]
 fn mix_path_swizzles_float_data_to_device_layout() {
     let _l = crate::test_support::test_lock();
@@ -1033,10 +1034,6 @@ fn recording_swizzle_handles_float_data() {
 }
 
 #[test]
-#[cfg_attr(
-    target_os = "emscripten",
-    ignore = "threads (SDL_THREADS_DISABLED): the audio device thread"
-)]
 fn unbinding_a_simplified_stream_is_ignored() {
     let _l = crate::test_support::test_lock();
     crate::hints::set(crate::hints::AUDIO_DRIVER, "dummy").unwrap();

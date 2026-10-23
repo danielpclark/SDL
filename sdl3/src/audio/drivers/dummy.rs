@@ -3,6 +3,11 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 // Output audio to nowhere...
+//
+// On Emscripten, without threads, a repeating timer per device (the
+// browser's or node's setInterval(), in its event loop) runs the device's
+// iterations, so the driver provides its own callback "thread"; the
+// JavaScript is upstream's, in `sdl3_emscripten::audio::dummy`.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -43,6 +48,32 @@ impl DeviceBackend for DummyDevice {
         buffer.fill(crate::audio::device::silence_value_of(device));
         Ok(buffer.len())
     }
+
+    /// Translation of `DUMMYAUDIO_CloseDevice()` (the core frees the mix
+    /// buffer).
+    #[cfg(target_os = "emscripten")]
+    fn close_device(&self, device: &PhysicalDevice) {
+        // on Emscripten, we just fire a repeating timer to consume audio.
+        // SAFETY: plain JavaScript.
+        unsafe { sdl3_emscripten::audio::dummy::sdl3_dummy_audio_close(device.recording as i32) };
+    }
+}
+
+/// `SDL_PlaybackAudioThreadIterate(device)` or
+/// `SDL_RecordingAudioThreadIterate(device)`, which the timer calls
+/// (`dynCall('vi', …)`) with the device's handle (the dummy devices are the
+/// default ones, 0x1 and 0x2).
+#[cfg(target_os = "emscripten")]
+extern "C-unwind" fn iterate(handle: usize) -> bool {
+    use crate::audio::device::{
+        find_physical_audio_device_by_handle, playback_audio_thread_iterate,
+        recording_audio_thread_iterate,
+    };
+    match find_physical_audio_device_by_handle(handle) {
+        Some(device) if device.recording => recording_audio_thread_iterate(&device),
+        Some(device) => playback_audio_thread_iterate(&device),
+        None => false,
+    }
 }
 
 impl AudioDriverImpl for DummyAudio {
@@ -51,14 +82,15 @@ impl AudioDriverImpl for DummyAudio {
             only_has_default_playback_device: true,
             only_has_default_recording_device: true,
             has_recording_support: true,
-            provides_own_callback_thread: false,
+            // on Emscripten, we just fire a repeating timer to consume audio.
+            provides_own_callback_thread: cfg!(target_os = "emscripten"),
         }
     }
 
     /// Translation of `DUMMYAUDIO_OpenDevice()`.
     fn open_device(
         &self,
-        _device: &PhysicalDevice,
+        device: &PhysicalDevice,
         state: &mut PhysState,
     ) -> Result<Arc<dyn DeviceBackend>> {
         let io_delay = super::io_delay(
@@ -66,12 +98,39 @@ impl AudioDriverImpl for DummyAudio {
             state.spec.freq,
             crate::hints::AUDIO_DUMMY_TIMESCALE,
         );
+
+        // on Emscripten, we just fire a repeating timer to consume audio.
+        #[cfg(target_os = "emscripten")]
+        {
+            // SAFETY: the timer calls back an extern "C-unwind" fn(usize) ->
+            // bool, which lives as long as the program, with the handle.
+            unsafe {
+                sdl3_emscripten::audio::dummy::sdl3_dummy_audio_open(
+                    device.recording as i32,
+                    state.sample_frames,
+                    state.spec.freq,
+                    iterate as *const std::ffi::c_void,
+                    device.handle,
+                )
+            };
+        }
+        #[cfg(not(target_os = "emscripten"))]
+        let _ = device;
+
         Ok(Arc::new(DummyDevice { io_delay })) // we're good; don't change reported device format.
     }
 }
 
 /// Translation of `DUMMYAUDIO_Init()`.
 fn dummyaudio_init() -> Option<Arc<dyn AudioDriverImpl>> {
+    // on Emscripten, we just fire a repeating timer to consume audio.
+    #[cfg(target_os = "emscripten")]
+    {
+        // SAFETY: plain JavaScript (`Module['SDL3']` is made by
+        // SDL_InitSubSystem()).
+        unsafe { sdl3_emscripten::audio::dummy::sdl3_dummy_audio_init() };
+    }
+
     Some(Arc::new(DummyAudio))
 }
 
