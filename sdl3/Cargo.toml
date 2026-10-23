@@ -150,6 +150,13 @@ harness = false
 name = "emscripten_gl"
 harness = false
 
+# The Emscripten audio driver (Web Audio playback and recording, autoplay,
+# the dummy driver's timers) in headless Chromium, against upstream's C
+# trace: a program that asks tools/emscripten_run.py for the browser.
+[[test]]
+name = "emscripten_audio"
+harness = false
+
 # SDL_RunApp()'s persistent storage (IDBFS); built with the path in
 # SDL_EMSCRIPTEN_PERSISTENT_PATH (see the file).
 [[test]]

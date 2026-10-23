@@ -15,6 +15,12 @@
 //! code, so its output is bit-identical to SDL on x86-64. (NEON sums the
 //! final lanes in a different order, so AArch64 builds of C SDL can differ
 //! in the last bit.)
+//!
+//! Note (upstream): on targets where upstream has no SIMD intrinsics, such
+//! as its Emscripten (wasm32) build, upstream resamples with 5 zero
+//! crossings and the scalar frame resamplers; this translation uses the
+//! SIMD configuration there too, so its resampled samples differ a little
+//! from that build's (`tests/emscripten_audio.rs` shows by how much).
 
 use std::sync::OnceLock;
 
