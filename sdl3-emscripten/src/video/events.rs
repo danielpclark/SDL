@@ -413,20 +413,24 @@ crate::em_js_dollar!(
     }"#
 );
 
-// Emscripten_unset_drag_event_callbacks()'s MAIN_THREAD_EM_ASM, verbatim.
+// Emscripten_unset_drag_event_callbacks()'s MAIN_THREAD_EM_ASM, verbatim but
+// for its removal of /tmp/filedrop.
 //
-// FIXME (upstream): `recursive_remove` is declared and never called (the
-// `("/tmp/filedrop")` after its body is an expression statement of its
-// own), so only the `FS.rmdir()` after it runs, and it throws (an uncaught
-// `ErrnoError`, which ends the program) where the directory isn't there or
-// isn't empty: when a second window is destroyed (the first one removed
-// it), and once anything was dropped (the files are in it).
-// `recursive_remove` would stop at the first subdirectory too: `FS.isDir()`
-// wants the mode, not the path.
+// Note (upstream): there `recursive_remove` is declared and never called
+// (the `("/tmp/filedrop")` after its body is an expression statement of
+// its own), so only the `FS.rmdir("/tmp/filedrop")` after it runs, and it
+// throws (an uncaught `ErrnoError`, which ends the program) where the
+// directory isn't there or isn't empty: when a second window is destroyed
+// (the first one removed it), and once anything was dropped (the files
+// are in it). `recursive_remove` itself would recurse into `.` (FS.readdir()
+// lists `.` and `..`) and never into a subdirectory (`FS.isDir()` wants the
+// mode, not the path). Here it's called, in a `try` (nothing to remove is
+// no error), and skips `.` and `..`, and `FS.isDir()` gets the mode: the
+// directory and the dropped files go, as upstream means.
 crate::em_js_dollar!(
     /// Removes the listeners of [`sdl3_set_drag_event_callbacks`] from the
-    /// canvas `canvas_id`, and `/tmp/filedrop` (which throws if it isn't
-    /// there, or isn't empty).
+    /// canvas `canvas_id`, and `/tmp/filedrop` with everything in it (if
+    /// it's there).
     pub fn sdl3_unset_drag_event_callbacks(canvas_id: *const c_char),
     r#"{
         var target = document.querySelector(UTF8ToString($0));
@@ -439,18 +443,22 @@ crate::em_js_dollar!(
 
             function recursive_remove(dirpath) {
                 FS.readdir(dirpath).forEach((filename) => {
+                    if ((filename == ".") || (filename == "..")) {
+                        return;  // (sdl3: not upstream's)
+                    }
                     const p = `${dirpath}/${filename}`;
                     const p_s = FS.stat(p);
                     if (FS.isFile(p_s.mode)) {
                         FS.unlink(p);
-                    } else if (FS.isDir(p)) {
+                    } else if (FS.isDir(p_s.mode)) {  // (sdl3: upstream's is FS.isDir(p))
                         recursive_remove(p);
                     }
                 });
                 FS.rmdir(dirpath);
-            }("/tmp/filedrop");
+            }
 
-            FS.rmdir("/tmp/filedrop");
+            // (sdl3: upstream's is FS.rmdir("/tmp/filedrop"), which throws)
+            try { recursive_remove("/tmp/filedrop"); } catch (e) {}
             target.removeEventListener("dragover", SDL3.eventHandlerDropDragover);
             SDL3.eventHandlerDropDragover = undefined;
             SDL3.eventHandlerDropDrop = undefined;
