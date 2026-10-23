@@ -13,8 +13,10 @@ runner = "tools/emscripten_run.py"
 # silence emcc's deprecation warnings. The rest is what the test programs
 # need: memory that grows past the 16 MB default, an 8 MB stack (the
 # default is 64 KB), the exit code passed on, and node's environment
-# variables seen by getenv() (SDL3_TEST_REQUIRE, SDL's hints). The file
-# system is emscripten's in-memory one (MEMFS), as in a browser.
+# variables seen by getenv() (SDL3_TEST_REQUIRE, SDL's hints), and WebGL 2
+# (an OpenGL ES 3.0 context; without it emscripten makes WebGL 1 contexts
+# only). The file system is emscripten's in-memory one (MEMFS), as in a
+# browser.
 rustflags = [
     "-Clink-arg=-Wno-deprecated",
     "-Clink-arg=-sALLOW_MEMORY_GROWTH=1",
@@ -22,6 +24,7 @@ rustflags = [
     "-Clink-arg=-sSTACK_SIZE=8MB",
     "-Clink-arg=-sEXIT_RUNTIME=1",
     "-Clink-arg=-sNODE_HOST_ENV=1",
+    "-Clink-arg=-sMAX_WEBGL_VERSION=2",
 ]
 # The same for the doctests, which rustdoc links.
 rustdocflags = [
@@ -31,4 +34,5 @@ rustdocflags = [
     "-Clink-arg=-sSTACK_SIZE=8MB",
     "-Clink-arg=-sEXIT_RUNTIME=1",
     "-Clink-arg=-sNODE_HOST_ENV=1",
+    "-Clink-arg=-sMAX_WEBGL_VERSION=2",
 ]
