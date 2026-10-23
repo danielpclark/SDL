@@ -389,9 +389,22 @@ mod tests {
     use super::*;
     use crate::process::*;
 
+    // The shell and sleep(1), found in PATH; but in the simulators, whose
+    // PATH is the runtime's own bin directories, without either, the host's
+    // by their paths (a device's sandbox doesn't let an app start
+    // processes at all).
+    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    const SH: &str = "sh";
+    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    const SLEEP: &str = "sleep";
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    const SH: &str = "/bin/sh";
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    const SLEEP: &str = "/bin/sleep";
+
     #[test]
     fn read_output_and_exit_code() {
-        let mut p = Process::create(&["sh", "-c", "echo hello; exit 3"], true).unwrap();
+        let mut p = Process::create(&[SH, "-c", "echo hello; exit 3"], true).unwrap();
         assert!(p.properties().get_number(PROP_PROCESS_PID_NUMBER).unwrap() > 0);
         let (data, code) = p.read().unwrap();
         assert_eq!(data, b"hello\n");
@@ -405,7 +418,7 @@ mod tests {
 
     #[test]
     fn input_and_stderr() {
-        let mut p = ProcessBuilder::new(["sh", "-c", "read x; echo got $x; echo oops >&2"])
+        let mut p = ProcessBuilder::new([SH, "-c", "read x; echo got $x; echo oops >&2"])
             .stdin(ProcessIo::App)
             .stdout(ProcessIo::App)
             .stderr_to_stdout(true)
@@ -433,7 +446,7 @@ mod tests {
 
     #[test]
     fn kill_and_errors() {
-        let mut p = Process::create(&["sleep", "10"], false).unwrap();
+        let mut p = Process::create(&[SLEEP, "10"], false).unwrap();
         assert_eq!(p.wait(false).unwrap(), None);
         p.kill(false).unwrap();
         assert_eq!(p.wait(true).unwrap(), Some(-15));
@@ -451,7 +464,7 @@ mod tests {
             .to_string()
             .starts_with("posix_spawn() failed: "));
 
-        let mut p = ProcessBuilder::new(["sh", "-c", "exit 5"])
+        let mut p = ProcessBuilder::new([SH, "-c", "exit 5"])
             .background(true)
             .spawn()
             .unwrap();

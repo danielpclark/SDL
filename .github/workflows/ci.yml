@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      ios_only:
+        description: Run only the iOS Simulator job
+        type: boolean
+        default: false
+      ios_test_args:
+        description: "The iOS Simulator job's cargo test arguments in place of --workspace (e.g. -p sdl3 --lib -- video::)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -25,6 +34,7 @@ env:
 jobs:
   fmt:
     name: rustfmt
+    if: ${{ !inputs.ios_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -36,6 +46,7 @@ jobs:
 
   clippy:
     name: clippy (${{ matrix.os }})
+    if: ${{ !inputs.ios_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -70,6 +81,7 @@ jobs:
 
   test:
     name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
+    if: ${{ !inputs.ios_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -265,6 +277,7 @@ jobs:
   # runner, checked with 1.87 in the test job.)
   emscripten:
     name: test (wasm32-unknown-emscripten, node and Chrome)
+    if: ${{ !inputs.ios_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -358,24 +371,74 @@ jobs:
         if: always()
         shell: bash
         run: |
-          touch "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log"
-          python3 - "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log" > "$RUNNER_TEMP/skips.tsv" <<'EOF'
-          import sys
-          for log in sys.argv[1:]:
-              pending = []
-              for line in open(log, errors="replace"):
-                  line = line.rstrip("\n")
-                  if line.startswith("note: skipping, ") and " unavailable: " in line:
-                      pending.append(line[len("note: skipping, "):].split(" unavailable: ", 1))
-                  elif line.startswith("test ") and " ... " in line:
-                      for capability, reason in pending:
-                          print(f"{capability}\t{line.split()[1]}\t{reason}")
-                      pending = []
-          EOF
+          tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" "$RUNNER_TEMP/browser.log" > "$RUNNER_TEMP/skips.tsv"
           tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" wasm32-unknown-emscripten
+
+  # The test programs built for the iOS Simulator, run on a simulated
+  # iPhone through tools/ios_run.py (the runner in .cargo/config.toml): see
+  # "iOS Simulator" in docs/HARDWARE_TESTING.md. The device build is linked,
+  # not run. (Linted on the Linux clippy runner, checked with 1.87 in the
+  # test job.) Xcode, the simulator's runtime and its device are pinned.
+  ios:
+    name: test (aarch64-apple-ios-sim, iOS Simulator)
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      XCODE_VERSION: "16.4"
+      SDL3_IOS_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.iPhone-16
+      SDL3_IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-18-5
+      RUST_TEST_NOCAPTURE: 1
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_$XCODE_VERSION.app"
+          xcodebuild -version
+          xcrun simctl list runtimes
+      # (rustup is on the runner image)
+      - name: Install Rust
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target aarch64-apple-ios-sim,aarch64-apple-ios
+          rustup default "$RUST_TOOLCHAIN"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ios
+      # The simulator is created and booted here; it finishes booting (a
+      # minute or two, on a new device) while the programs build, and the
+      # runner waits for that before the first program runs.
+      - name: Boot the simulator
+        run: echo "SDL3_IOS_SIMULATOR=$(tools/ios_run.py --boot)" >> "$GITHUB_ENV"
+      - name: Build the tests
+        env:
+          TEST_ARGS: ${{ inputs.ios_test_args }}
+        run: cargo test --no-run --target aarch64-apple-ios-sim ${TEST_ARGS:---workspace}
+      - name: cargo test --workspace --target aarch64-apple-ios-sim
+        shell: bash
+        env:
+          TEST_ARGS: ${{ inputs.ios_test_args }}
+        run: cargo test --target aarch64-apple-ios-sim --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: Link for devices (cargo build --workspace --all-targets --target aarch64-apple-ios)
+        if: ${{ !cancelled() && !inputs.ios_test_args }}
+        run: cargo build --workspace --all-targets --target aarch64-apple-ios
+      # The programs that run as apps can't write SDL3_TEST_SKIP_LOG on the
+      # runner (their files are in their containers), so the skip log is
+      # made from the notes they print, as in the Emscripten job.
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        run: |
+          tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv"
+          tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" aarch64-apple-ios-sim
+      - name: The simulator's log
+        if: failure() && env.SDL3_IOS_SIMULATOR != ''
+        run: |
+          ls -l ~/Library/Logs/DiagnosticReports || true
+          xcrun simctl spawn "$SDL3_IOS_SIMULATOR" log show --last 15m --style compact | tail -500
 
   doc:
     name: rustdoc
+    if: ${{ !inputs.ios_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

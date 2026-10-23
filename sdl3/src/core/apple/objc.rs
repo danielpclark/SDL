@@ -922,21 +922,50 @@ mod tests {
     }
 
     /// Structures passed and returned by value (`objc_msgSend_stret` for
-    /// the 32-byte NSRect on x86-64).
+    /// the 32-byte NSRect and the 20-byte NSDecimal on x86-64). NSValue's
+    /// NSRect and NSPoint methods are macOS's (UIKit has CGRect ones).
     #[test]
     fn structures_by_value() {
-        use crate::core::apple::foundation::{NSPoint, NSRange, NSRect};
+        use crate::core::apple::foundation::NSRange;
         autoreleasepool(|| unsafe {
-            let r = NSRect::new(1.5, -2.0, 300.0, 400.25);
-            let v: Id = msg_send![class!(NSValue), valueWithRect: r];
-            let back: NSRect = msg_send![v, rectValue];
-            assert_eq!(back, r);
-            let p: Id = msg_send![class!(NSValue), valueWithPoint: NSPoint::new(7.0, 8.0)];
-            let back: NSPoint = msg_send![p, pointValue];
-            assert_eq!(back, NSPoint::new(7.0, 8.0));
+            #[cfg(target_os = "macos")]
+            {
+                use crate::core::apple::foundation::{NSPoint, NSRect};
+                let r = NSRect::new(1.5, -2.0, 300.0, 400.25);
+                let v: Id = msg_send![class!(NSValue), valueWithRect: r];
+                let back: NSRect = msg_send![v, rectValue];
+                assert_eq!(back, r);
+                let p: Id = msg_send![class!(NSValue), valueWithPoint: NSPoint::new(7.0, 8.0)];
+                let back: NSPoint = msg_send![p, pointValue];
+                assert_eq!(back, NSPoint::new(7.0, 8.0));
+            }
+            let v: Id = msg_send![class!(NSValue), valueWithRange: NSRange::new(5, 9)];
+            let back: NSRange = msg_send![v, rangeValue];
+            assert_eq!(back, NSRange::new(5, 9));
             let s = crate::core::apple::foundation::ns_string("abcdef");
             let sub: Id = msg_send![s, substringWithRange: NSRange::new(2, 3)];
             assert_eq!(string_from_ns(sub).as_deref(), Some("cde"));
+
+            // NSDecimal: _exponent:8, _length:4, _isNegative:1,
+            // _isCompact:1, _reserved:18, then _mantissa[8]
+            #[repr(C)]
+            #[derive(Clone, Copy)]
+            struct NSDecimal {
+                bits: u32,
+                mantissa: [u16; 8],
+            }
+            let n: Id = msg_send![
+                class!(NSDecimalNumber),
+                decimalNumberWithString: crate::core::apple::foundation::ns_string("-12.5").get()
+            ];
+            let d: NSDecimal = msg_send![n, decimalValue];
+            assert_eq!(d.bits as u8 as i8, -1, "exponent");
+            assert_eq!((d.bits >> 8) & 0xF, 1, "length");
+            assert_eq!((d.bits >> 12) & 1, 1, "negative");
+            assert_eq!(d.mantissa[0], 125);
+            let back: Id = msg_send![class!(NSDecimalNumber), decimalNumberWithDecimal: d];
+            let text: Id = msg_send![back, stringValue];
+            assert_eq!(string_from_ns(text).as_deref(), Some("-12.5"));
         });
     }
 
