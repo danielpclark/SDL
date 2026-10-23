@@ -212,8 +212,8 @@ renderers; SDL_net's stub library): `cargo check --target
 wasm32-unknown-emscripten` needs no emcc, and with emsdk the tests run
 under node (`cargo test --workspace --target wasm32-unknown-emscripten`,
 through `tools/emscripten_run.py`, which runs the browser checks,
-`sdl3/tests/emscripten_browser.rs` and `emscripten_video.rs`, in headless
-Chromium; see "Emscripten" in
+`sdl3/tests/emscripten_browser.rs`, `emscripten_video.rs` and
+`emscripten_events.rs`, in headless Chromium; see "Emscripten" in
 [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) for the setup, what
 is ignored there, and the browser checks). Loading shared objects at run
 time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. The
@@ -228,8 +228,9 @@ returned, and the main loop's end ends the program; `run_app()` reads
 `emscripten-persistent-path` feature mounts IndexedDB storage. Its
 filesystem, power, locale, URL and sensor backends are the browser's,
 and its video driver draws on a `<canvas>` of the page (a window
-framebuffer, cursors, fullscreen and pointer lock; its input events and
-WebGL are next); the others (Web Audio, the Gamepad API, ...) are in
+framebuffer, cursors, fullscreen and pointer lock, and the page's
+keyboard, mouse, touch, pen, wheel, focus and drag-and-drop events;
+WebGL is next); the others (Web Audio, the Gamepad API, ...) are in
 progress, and until then the dummy drivers stand in. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 

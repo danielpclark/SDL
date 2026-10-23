@@ -504,8 +504,8 @@ its changes (a stand-in `matchMedia`), a fill-document window (the page
 hidden and put back), message boxes as `alert()` (a stand-in records
 them), the fullscreen and pointer lock requests emscripten defers without
 a user gesture, and then, with a trusted key press from the runner (which
-emscripten's `keydown` handler, registered by the test, runs the
-deferred requests in), the window fullscreen and back and the pointer
+SDL's own `keydown` handler, one of emscripten's, runs the deferred
+requests in), the window fullscreen and back and the pointer
 locked and released. The expected values are upstream's C SDL's, built
 with emcc and run on the same page (headless Chromium enters fullscreen
 and locks the pointer after the key press, for both). Under node it
@@ -514,6 +514,23 @@ cargo test -p sdl3 --target wasm32-unknown-emscripten --test
 emscripten_video` runs it as CI does. (Under node the driver is
 unavailable, as there's no DOM: video initialization goes on to the next
 driver, which the ordinary tests check.)
+
+`sdl3/tests/emscripten_events.rs` (`harness = false`) checks the driver's
+DOM events there: each step dispatches the page's events (synchronous
+`dispatchEvent()`: key presses, pointer events of a mouse, a touch and a
+pen, wheel steps, `focus` and `blur`, `visibilitychange`, `beforeunload`,
+the screen orientation's `change`, drags and drops of text and files) or
+asks the runner for trusted input (a click, which doesn't run a deferred
+fullscreen request, and a key press, which does), and writes a trace of
+SDL's events with every field that matters, the modifier state, the
+focus and which DOM events were prevented. The test holds upstream's C
+SDL's trace of the same steps on the same page, and each step's must be
+the same. `SDL3_TEST_TRACE=1` prints the whole trace. Under node it skips
+as `browser`; `SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser cargo
+test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_events`
+runs it as CI does. The DOM-code scancode table, the keys' keycodes, the
+lock keys, the mouse buttons and the wheel steps have unit tests that run
+under node.
 
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
