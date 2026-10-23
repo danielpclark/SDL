@@ -70,7 +70,16 @@ def cmd_boot(args):
         dt = [d for d in dts if "iPhone" in d][-1]
     log("chosen runtime", rt["identifier"], "device type", dt)
     t0 = time.monotonic()
-    udid = sh(["xcrun", "simctl", "create", "spike-" + dt.rsplit(".", 1)[-1], dt, rt["identifier"]]).stdout.strip()
+    udid = None
+    if os.environ.get("SPIKE_USE_EXISTING"):
+        devs = simctl_json("devices")["devices"].get(rt["identifier"], [])
+        for d in devs:
+            if d.get("deviceTypeIdentifier") == dt and d.get("isAvailable"):
+                udid = d["udid"]
+                log("using the image's existing device", d["name"], udid, d.get("state"), "dataPathSize=%s" % d.get("dataPathSize"))
+                break
+    if not udid:
+        udid = sh(["xcrun", "simctl", "create", "spike-" + dt.rsplit(".", 1)[-1], dt, rt["identifier"]]).stdout.strip()
     t1 = time.monotonic()
     sh(["xcrun", "simctl", "boot", udid])
     t2 = time.monotonic()

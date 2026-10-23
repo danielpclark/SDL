@@ -16,7 +16,7 @@ command -v ninja || brew install ninja
 h "cmake configure (iOS simulator, static)"
 s=$(t)
 cmake -S "$W/SDL" -B "$W/build" -G Ninja -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
+  -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo > "$W/configure.log" 2>&1; echo "configure rc=$?"
 tail -60 "$W/configure.log"
 python3 -c "import time;print('configure elapsed %.1fs' % (time.time()-$s))"
@@ -50,5 +50,7 @@ SIMCTL_CHILD_SPIKE_VAR=fwd ./run.py launch "$U" "$W/sdl_trace.app" org.libsdl.sd
 h "bundle and launch the C trace (with UIApplicationSceneManifest)"
 ./run.py bundle "$W/sdl_trace" "$W/sdl_trace_scene.app" org.libsdl.sdl3-c.trace-scene --scene > /dev/null
 ./run.py launch "$U" "$W/sdl_trace_scene.app" org.libsdl.sdl3-c.trace-scene pty 120
+h "the C trace returning from main without exit(): does the app (and simctl launch) end?"
+./run.py launch "$U" "$W/sdl_trace.app" org.libsdl.sdl3-c.trace pty 25 --return
 h "the C trace under simctl spawn (not an app)"
 perl -e 'alarm 60; exec @ARGV' xcrun simctl spawn "$U" "$W/sdl_trace" 2>&1 | tail -30; echo "rc=${PIPESTATUS[0]}"

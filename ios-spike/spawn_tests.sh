@@ -27,7 +27,7 @@ to 60 xcrun simctl spawn "$U" "$B/spawn_probe" info < /dev/null 2>/dev/null | gr
 
 for c in 0 3 255 256; do
   h "spawn: exit $c"
-  to 60 xcrun simctl spawn "$U" "$B/spawn_probe" exit $c; echo; echo "rc=$?"
+  to 60 xcrun simctl spawn "$U" "$B/spawn_probe" exit $c; rc=$?; echo; echo "rc=$rc"
 done
 h "spawn: panic"
 to 60 xcrun simctl spawn "$U" "$B/spawn_probe" panic; echo "rc=$?"
@@ -50,6 +50,16 @@ t = time.monotonic(); subprocess.run(["xcrun", "simctl", "spawn", sys.argv[1], s
 print("spawn round trip %.3fs" % (time.monotonic() - t))
 PY
 done
+h "spawn: startup latency through the simctl binary directly (no xcrun), 3 runs"
+SIMCTL=$(xcrun -f simctl); echo "simctl=$SIMCTL"
+for i in 1 2 3; do python3 - "$SIMCTL" "$U" "$B/spawn_probe" <<'PY'
+import subprocess, sys, time
+t = time.monotonic(); subprocess.run([sys.argv[1], "spawn", sys.argv[2], sys.argv[3], "exit", "0"], capture_output=True)
+print("direct simctl spawn round trip %.3fs" % (time.monotonic() - t))
+PY
+done
+h "spawn: xcrun alone (overhead)"
+python3 -c "import subprocess,time;t=time.monotonic();subprocess.run(['xcrun','-f','simctl'],capture_output=True);print('xcrun -f simctl %.3fs'%(time.monotonic()-t))"
 h "spawn: killing simctl spawn (SIGTERM) -- does the child die?"
 xcrun simctl spawn "$U" "$B/spawn_probe" sleep 60 & sp=$!
 sleep 4; echo "host pgrep before:"; pgrep -fl "spawn_probe sleep" ; kill -TERM $sp; sleep 3
@@ -61,6 +71,6 @@ sleep 4; kill -INT $sp; sleep 3
 pgrep -fl "spawn_probe sleep" || echo "(child gone)"
 pkill -f "spawn_probe sleep"
 h "spawn: a binary for the device target (aarch64-apple-ios) in the simulator"
-to 60 xcrun simctl spawn "$U" "$PWD/target/aarch64-apple-ios/debug/spawn_probe" exit 0; echo; echo "rc=$?"
+to 60 xcrun simctl spawn "$U" "$PWD/target/aarch64-apple-ios/debug/spawn_probe" exit 0; rc=$?; echo; echo "rc=$rc"
 h "spawn: the simulator's own processes visible on the host?"
 ps -axo pid,command | grep -i "CoreSimulator/Devices/$U" | head -5

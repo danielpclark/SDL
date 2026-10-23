@@ -23,4 +23,4 @@ h "cargo test --doc only"
 cargo test --target aarch64-apple-ios-sim --doc -- --nocapture 2>&1 | tail -15; echo "rc=${PIPESTATUS[0]}"
 
 h "libtest json format (unstable via RUSTC_BOOTSTRAP)"
-RUSTC_BOOTSTRAP=1 cargo test --target aarch64-apple-ios-sim --test probe -- -Zunstable-options --format json 2>&1 | head -8
+SIMCTL_CHILD_RUSTC_BOOTSTRAP=1 RUSTC_BOOTSTRAP=1 cargo test --target aarch64-apple-ios-sim --test probe -- -Zunstable-options --format json 2>&1 | head -8

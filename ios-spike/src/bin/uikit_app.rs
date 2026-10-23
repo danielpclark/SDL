@@ -100,6 +100,9 @@ struct Opts {
     exit: i32,
     panic_in_tick: bool,
     wait_touch: Option<f64>,
+    want_key: bool,
+    rotate: bool,
+    wait_background: Option<f64>,
     read: Vec<String>,
 }
 
@@ -107,6 +110,9 @@ static OPTS: OnceLock<Opts> = OnceLock::new();
 static START: OnceLock<Instant> = OnceLock::new();
 static TICKS: AtomicUsize = AtomicUsize::new(0);
 static TOUCHED: AtomicBool = AtomicBool::new(false);
+static PRESSED: AtomicBool = AtomicBool::new(false);
+static BACKGROUNDED: AtomicBool = AtomicBool::new(false);
+static REFOREGROUNDED: AtomicBool = AtomicBool::new(false);
 static WINDOW: AtomicPtr<Object> = AtomicPtr::new(ptr::null_mut());
 static VIEWCTL: AtomicPtr<Object> = AtomicPtr::new(ptr::null_mut());
 static VIRTUAL: AtomicPtr<Object> = AtomicPtr::new(ptr::null_mut());
@@ -396,6 +402,15 @@ fn probe_virtual_controller_poll(tag: &str) {
             );
         }
         say!("GameController [{tag}]: controllers.count={n} virtual.controller={}{extra}", if c.is_null() { "nil" } else { "present" });
+        for i in 0..n {
+            let ci: Id = msg_send![ctls, objectAtIndex: i];
+            let eg: Id = msg_send![ci, extendedGamepad];
+            say!("  controller {i}: vendorName={} productCategory={} extendedGamepad={}", to_string(msg_send![ci, vendorName]), to_string(msg_send![ci, productCategory]), !eg.is_null());
+        }
+        let kb: Id = msg_send![class!(GCKeyboard), coalescedKeyboard];
+        let mice: Id = msg_send![class!(GCMouse), mice];
+        let nm: NSUInteger = msg_send![mice, count];
+        say!("  GCKeyboard.coalescedKeyboard={} GCMouse.mice.count={nm}", desc(kb));
     }
 }
 
@@ -433,6 +448,8 @@ extern "C" fn did_finish_launching(this: Id, _sel: Sel, app: Id, _opts: Id) -> B
         let _: () = msg_send![w, makeKeyAndVisible];
         WINDOW.store(w, Ordering::Relaxed);
         VIEWCTL.store(vc, Ordering::Relaxed);
+        let fr: Bool = msg_send![view, becomeFirstResponder];
+        say!("view becomeFirstResponder = {fr:?}");
         let state: NSInteger = msg_send![app, applicationState];
         say!("window made key and visible; applicationState={state}");
         probe_safe_area("didFinishLaunching");
@@ -473,9 +490,47 @@ extern "C" fn tick(_this: Id, _sel: Sel, link: Id) {
     if o.panic_in_tick && n == 3 {
         panic!("panicking inside the CADisplayLink callback on purpose");
     }
+    if o.rotate && n == 20 {
+        unsafe {
+            let w = WINDOW.load(Ordering::Relaxed);
+            let scene: Id = msg_send![w, windowScene];
+            let cls = class!(UIWindowSceneGeometryPreferencesIOS);
+            say!("rotate: UIWindowSceneGeometryPreferencesIOS class = {:?}", cls);
+            if !cls.is_null() {
+                // UIInterfaceOrientationMaskLandscapeRight = 1 << 3
+                let prefs: Id = msg_send![alloc(cls), initWithInterfaceOrientations: 8usize];
+                let nil: Id = NIL;
+                let vc = VIEWCTL.load(Ordering::Relaxed);
+                if responds_to(vc, sel!(setNeedsUpdateOfSupportedInterfaceOrientations)) {
+                    let _: () = msg_send![vc, setNeedsUpdateOfSupportedInterfaceOrientations];
+                }
+                let _: () = msg_send![scene, requestGeometryUpdateWithPreferences: prefs errorHandler: nil];
+                say!("rotate: requestGeometryUpdateWithPreferences(landscapeRight) sent");
+            }
+        }
+    }
+    if o.rotate && (n == 60 || n == 100) {
+        probe_safe_area(&format!("after rotate, tick {n}"));
+        unsafe {
+            let b: CGRect = msg_send![main_screen(), bounds];
+            say!("after rotate: UIScreen bounds={b:?}");
+        }
+    }
+    if let Some(secs) = o.wait_background {
+        if REFOREGROUNDED.load(Ordering::Relaxed) {
+            finish(o.exit, "backgrounded and back");
+        }
+        if n == 10 {
+            println!("sdl3-ios-runner: request background");
+        }
+        if t() > secs {
+            finish(o.exit + 100, "wait-background timed out");
+        }
+        return;
+    }
     if let Some(secs) = o.wait_touch {
-        if TOUCHED.load(Ordering::Relaxed) {
-            finish(o.exit, "touched");
+        if TOUCHED.load(Ordering::Relaxed) && (!o.want_key || PRESSED.load(Ordering::Relaxed)) {
+            finish(o.exit, "touched (and pressed)");
         }
         if t() > secs {
             finish(o.exit + 100, "wait-touch timed out without a touch");
@@ -492,6 +547,17 @@ extern "C" fn tick(_this: Id, _sel: Sel, link: Id) {
 
 extern "C" fn lifecycle(_this: Id, sel: Sel, _app: Id) {
     say!("lifecycle: {}", sel.name());
+    if sel.name() == "applicationDidEnterBackground:" {
+        BACKGROUNDED.store(true, Ordering::Relaxed);
+    }
+    if sel.name() == "applicationDidBecomeActive:" && BACKGROUNDED.load(Ordering::Relaxed) {
+        REFOREGROUNDED.store(true, Ordering::Relaxed);
+    }
+    println!("sdl3-ios-runner: lifecycle {}", sel.name());
+}
+
+extern "C" fn yes(_this: Id, _sel: Sel) -> Bool {
+    YES
 }
 
 extern "C" fn touches_began(this: Id, _sel: Sel, touches: Id, _event: Id) {
@@ -519,7 +585,7 @@ extern "C" fn presses_began(_this: Id, _sel: Sel, presses: Id, _event: Id) {
         let code: NSInteger = if key.is_null() { -1 } else { msg_send![key, keyCode] };
         say!("pressesBegan: keyCode={code}");
     }
-    TOUCHED.store(true, Ordering::Relaxed);
+    PRESSED.store(true, Ordering::Relaxed);
 }
 
 static VIEW_CLASS: DeclaredClass = DeclaredClass::new();
@@ -530,6 +596,7 @@ fn view_class() -> Class {
             b.add_method(sel!(touchesBegan:withEvent:), imp!(touches_began as extern "C" fn(Id, Sel, Id, Id)), c"v@:@@");
             b.add_method(sel!(touchesEnded:withEvent:), imp!(touches_ended as extern "C" fn(Id, Sel, Id, Id)), c"v@:@@");
             b.add_method(sel!(pressesBegan:withEvent:), imp!(presses_began as extern "C" fn(Id, Sel, Id, Id)), c"v@:@@");
+            b.add_method(sel!(canBecomeFirstResponder), imp!(yes as extern "C" fn(Id, Sel) -> Bool), c"B@:");
         }
         b.register()
     })
@@ -561,7 +628,7 @@ fn declare_delegate() -> Class {
 fn main() {
     START.set(Instant::now()).ok();
     let argv_s: Vec<String> = std::env::args().collect();
-    let mut o = Opts { ticks: 120, exit: -1, panic_in_tick: false, wait_touch: None, read: vec![] };
+    let mut o = Opts { ticks: 120, exit: -1, panic_in_tick: false, wait_touch: None, want_key: false, rotate: false, wait_background: None, read: vec![] };
     let mut i = 1;
     while i < argv_s.len() {
         match argv_s[i].as_str() {
@@ -570,6 +637,9 @@ fn main() {
             "--panic-in-tick" => o.panic_in_tick = true,
             "--wait-touch" => { i += 1; o.wait_touch = Some(argv_s[i].parse().unwrap()); }
             "--read" => { i += 1; o.read.push(argv_s[i].clone()); }
+            "--want-key" => o.want_key = true,
+            "--rotate" => o.rotate = true,
+            "--wait-background" => { i += 1; o.wait_background = Some(argv_s[i].parse().unwrap()); }
             _ => {}
         }
         i += 1;

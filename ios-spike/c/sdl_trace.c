@@ -109,6 +109,9 @@ int main(int argc, char *argv[])
                 char buf[256];
                 SDL_GetEventDescription(&e, buf, sizeof(buf));
                 P("event: %s", buf);
+                if (e.type == SDL_EVENT_JOYSTICK_ADDED) {
+                    P("  joystick %u: name=%s gamepad=%d", e.jdevice.which, SDL_GetJoystickNameForID(e.jdevice.which), SDL_IsGamepad(e.jdevice.which));
+                }
             }
             SDL_Delay(16);
             frames++;
@@ -118,6 +121,12 @@ int main(int argc, char *argv[])
     if (w) SDL_DestroyWindow(w);
     SDL_Quit();
     P("done");
+    for (i = 1; i < argc; i++) {
+        if (SDL_strcmp(argv[i], "--return") == 0) {
+            P("returning 3 from main without exit()");
+            return 3;
+        }
+    }
     /* upstream doesn't exit after main returns (postFinishLaunch); the
        runner protocol does */
     printf("sdl3-ios-runner: exit 0\n");

@@ -36,7 +36,12 @@ h "launch --stdout=/--stderr= files: exit 5 after 5 ticks"
 
 h "launch --console-pty: panic inside the CADisplayLink callback"
 ./run.py launch "$U" "$APP" "$ID" pty 120 --panic-in-tick
-echo "--- crash reports:"; ls -la ~/Library/Logs/DiagnosticReports/ 2>&1 | tail -10
+sleep 8; echo "--- crash reports:"; ls -la ~/Library/Logs/DiagnosticReports/ 2>&1 | tail -10
+f=$(ls -t ~/Library/Logs/DiagnosticReports/uikit_app*.ips 2>/dev/null | head -1)
+[ -n "$f" ] && { echo "--- $f (head)"; head -c 1500 "$f"; echo; python3 -c "
+import json,sys
+t=open(sys.argv[1]).read().split('\n',1)[1]; d=json.loads(t)
+print('exception:', d.get('exception')); print('termination:', d.get('termination')); print('asi:', d.get('asi'))" "$f"; }
 
 h "launch --console-pty with the scene manifest in Info.plist (app delegate without scene methods)"
 ./run.py bundle "$B/uikit_app" "$RUNNER_TEMP/uikit_scene.app" "$ID.scene" --scene >/dev/null
@@ -46,6 +51,19 @@ h "launch --console-pty without codesign (unsigned bundle after modifying the bi
 cp -R "$APP" "$RUNNER_TEMP/unsigned.app"; codesign --remove-signature "$RUNNER_TEMP/unsigned.app/uikit_app"; rm -rf "$RUNNER_TEMP/unsigned.app/_CodeSignature"
 codesign -dv "$RUNNER_TEMP/unsigned.app" 2>&1 | head -2
 ./run.py launch "$U" "$RUNNER_TEMP/unsigned.app" "$ID" pty 60 --ticks 5 --exit 6
+
+h "launch --console-pty: in-process rotation (requestGeometryUpdateWithPreferences)"
+./run.py launch "$U" "$APP" "$ID" pty 60 --ticks 110 --exit 0 --rotate
+
+h "background: launch Preferences over the app, then relaunch the app"
+./run.py launch "$U" "$APP" "$ID" pty 90 --wait-background 60 --exit 0 &
+lp=$!
+sleep 12
+xcrun simctl launch "$U" com.apple.Preferences; echo "launch Preferences rc=$?"
+sleep 5
+xcrun simctl launch "$U" "$ID"; echo "relaunch rc=$?"
+wait $lp
+xcrun simctl terminate "$U" com.apple.Preferences
 
 h "simulator log for the app (last 3 minutes, filtered)"
 xcrun simctl spawn "$U" log show --last 3m --style compact --predicate 'process == "uikit_app"' 2>&1 | tail -60
