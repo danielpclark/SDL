@@ -225,8 +225,8 @@ mod browser {
     }
 
     /// A WebGL context on a canvas of the check's own: WebGL 2 if the
-    /// program has it (`-sMAX_WEBGL_VERSION=2`; the test programs have
-    /// WebGL 1 only, which this then gets), else WebGL 1.
+    /// program has it (`-sMAX_WEBGL_VERSION=2`, as the test programs have),
+    /// else WebGL 1.
     fn webgl() {
         // SAFETY: plain JavaScript.
         unsafe {
