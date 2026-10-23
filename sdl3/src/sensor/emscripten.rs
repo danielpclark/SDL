@@ -89,7 +89,7 @@ fn gyroscope_callback(
 
 /// Translation of `SDL_EMSCRIPTEN_SensorCallback()`: emscripten's
 /// `devicemotion` handler calls it with the event it filled in.
-unsafe extern "C" fn sensor_callback(
+unsafe extern "C-unwind" fn sensor_callback(
     _event_type: c_int,
     event: *const EmscriptenDeviceMotionEvent,
     _user_data: *mut c_void,
@@ -114,7 +114,7 @@ impl SensorDriver for EmscriptenSensorDriver {
         // EMSCRIPTEN_RESULT_UNKNOWN_TARGET and nothing is registered. Each
         // initialization registers the callback again, and nothing removes
         // it: SensorQuit() does nothing.)
-        // SAFETY: an extern "C" fn with the parameters emscripten calls it
+        // SAFETY: an extern "C-unwind" fn with the parameters emscripten calls it
         // with, for the life of the program; the user data isn't used.
         unsafe {
             sys::emscripten_set_devicemotion_callback_on_thread(

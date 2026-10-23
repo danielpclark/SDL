@@ -58,8 +58,11 @@ pub const EMSCRIPTEN_RESULT_TIMED_OUT: EMSCRIPTEN_RESULT = -8;
 /// C's `exit()` there (Rust's `std::process::exit()`) ends in a JavaScript
 /// exception, `ExitStatus`, that leaves the callback back to the event loop,
 /// which handles it. A `"C"` function would abort instead ("panic in a
-/// function that cannot unwind"). The html5.h event callbacks, which
-/// upstream's code never exits from, stay `"C"`.
+/// function that cannot unwind"). So are the html5.h event callbacks
+/// (`em_key_callback_func` and the rest): the browser's event loop calls
+/// them, and what they send (a key press, a `beforeunload`'s
+/// `SDL_EVENT_TERMINATING`) reaches the application's event watches,
+/// which may exit there.
 pub type em_callback_func = Option<unsafe extern "C-unwind" fn()>;
 /// `em_arg_callback_func`.
 pub type em_arg_callback_func = Option<unsafe extern "C-unwind" fn(arg: *mut c_void)>;
@@ -157,7 +160,7 @@ pub struct EmscriptenKeyboardEvent {
 
 /// `em_key_callback_func`.
 pub type em_key_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         keyEvent: *const EmscriptenKeyboardEvent,
         userData: *mut c_void,
@@ -207,7 +210,7 @@ pub struct EmscriptenWheelEvent {
 
 /// `em_wheel_callback_func`.
 pub type em_wheel_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         wheelEvent: *const EmscriptenWheelEvent,
         userData: *mut c_void,
@@ -231,7 +234,7 @@ pub struct EmscriptenUiEvent {
 
 /// `em_ui_callback_func`.
 pub type em_ui_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         uiEvent: *const EmscriptenUiEvent,
         userData: *mut c_void,
@@ -248,7 +251,7 @@ pub struct EmscriptenFocusEvent {
 
 /// `em_focus_callback_func`.
 pub type em_focus_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         focusEvent: *const EmscriptenFocusEvent,
         userData: *mut c_void,
@@ -277,7 +280,7 @@ pub struct EmscriptenDeviceMotionEvent {
 
 /// `em_devicemotion_callback_func`.
 pub type em_devicemotion_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         deviceMotionEvent: *const EmscriptenDeviceMotionEvent,
         userData: *mut c_void,
@@ -300,7 +303,7 @@ pub struct EmscriptenOrientationChangeEvent {
 
 /// `em_orientationchange_callback_func`.
 pub type em_orientationchange_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         orientationChangeEvent: *const EmscriptenOrientationChangeEvent,
         userData: *mut c_void,
@@ -323,7 +326,7 @@ pub struct EmscriptenFullscreenChangeEvent {
 
 /// `em_fullscreenchange_callback_func`.
 pub type em_fullscreenchange_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         fullscreenChangeEvent: *const EmscriptenFullscreenChangeEvent,
         userData: *mut c_void,
@@ -351,7 +354,11 @@ pub const EMSCRIPTEN_FULLSCREEN_FILTERING_BILINEAR: EMSCRIPTEN_FULLSCREEN_FILTER
 
 /// `em_canvasresized_callback_func`.
 pub type em_canvasresized_callback_func = Option<
-    unsafe extern "C" fn(eventType: c_int, reserved: *const c_void, userData: *mut c_void) -> bool,
+    unsafe extern "C-unwind" fn(
+        eventType: c_int,
+        reserved: *const c_void,
+        userData: *mut c_void,
+    ) -> bool,
 >;
 
 /// `EmscriptenFullscreenStrategy`.
@@ -377,7 +384,7 @@ pub struct EmscriptenPointerlockChangeEvent {
 
 /// `em_pointerlockchange_callback_func`.
 pub type em_pointerlockchange_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         pointerlockChangeEvent: *const EmscriptenPointerlockChangeEvent,
         userData: *mut c_void,
@@ -399,7 +406,7 @@ pub struct EmscriptenVisibilityChangeEvent {
 
 /// `em_visibilitychange_callback_func`.
 pub type em_visibilitychange_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         visibilityChangeEvent: *const EmscriptenVisibilityChangeEvent,
         userData: *mut c_void,
@@ -424,7 +431,7 @@ pub struct EmscriptenGamepadEvent {
 
 /// `em_gamepad_callback_func`.
 pub type em_gamepad_callback_func = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         gamepadEvent: *const EmscriptenGamepadEvent,
         userData: *mut c_void,
@@ -443,7 +450,7 @@ pub struct EmscriptenBatteryEvent {
 
 /// `em_beforeunload_callback`: returns the message to show, or null.
 pub type em_beforeunload_callback = Option<
-    unsafe extern "C" fn(
+    unsafe extern "C-unwind" fn(
         eventType: c_int,
         reserved: *const c_void,
         userData: *mut c_void,
