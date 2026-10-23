@@ -336,11 +336,14 @@ under node: `.cargo/config.toml` makes `tools/emscripten_run.py` the
 runner, which by default runs `node PROGRAM.js ARGS...` (and gives the
 link options the test programs need: growable memory up to 4 GB, an 8 MB
 stack, node's environment for `SDL3_TEST_REQUIRE` and the hints, WebGL 2
-for the browser's OpenGL ES 3.0 contexts). That
+for the browser's OpenGL ES 3.0 contexts), and makes
+`tools/emscripten_link.py` the linker (emcc, with the options a program
+asks for: below). That
 needs emsdk 6.0.13 (the version CI pins), node 22 or newer and Python 3
-(the runner is a script with a `#!/usr/bin/env python3` line, which Cargo
-runs as is; on Windows set `CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUNNER`
-to `node`):
+(the runner and the linker are scripts with a `#!/usr/bin/env python3`
+line, which Cargo runs as is; on Windows set
+`CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUNNER` to `node` and
+`CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER` to `emcc.bat`):
 
 ```sh
 rustup target add wasm32-unknown-emscripten
@@ -427,12 +430,23 @@ The persistent storage of `SDL_RunApp()` (the `emscripten-persistent-path`
 feature, IndexedDB) has a program of its own that needs the feature and
 the path, `SDL_EMSCRIPTEN_PERSISTENT_PATH=/persistent cargo test -p sdl3
 --target wasm32-unknown-emscripten --features emscripten-persistent-path
---test emscripten_persistent_path` (node has no IndexedDB: it checks the
-mount and upstream's warning). A program linked with `-sASYNCIFY` sleeps
-in `delay()` with `emscripten_sleep()`, back in the event loop; the test
-programs aren't (Cargo has no link options per test), so theirs wait
-busily, and asynchronous I/O is synchronous, as upstream's without
-threads.
+--test emscripten_persistent_path`, which asks for the browser (below);
+with `SDL3_EMSCRIPTEN_BROWSER=0` it runs under node, which has no
+IndexedDB: it checks the mount, the pref path in it and upstream's
+warning, against upstream's C built with the same path. The test
+programs wait busily in `delay()`, and asynchronous I/O is synchronous,
+as upstream's without threads; `emscripten_asyncify.rs` is linked with
+Asyncify, with which `delay()` sleeps with `emscripten_sleep()`, back in
+the event loop (below, and under node its steps that need no page).
+
+Cargo has no link options per test program, so a program that needs its
+own asks for them: `.cargo/config.toml` makes `tools/emscripten_link.py`
+the target's linker, which runs emcc with what rustc passes and adds the
+options in a custom section `sdl3_link` of the program's own objects (a
+`#[used] #[link_section = "sdl3_link"]` static of NUL-separated options;
+the libraries' objects don't count). `emscripten_asyncify.rs` asks for
+`-sASYNCIFY=1 -sASYNCIFY_STACK_SIZE=65536`, `emscripten_jspi.rs` for
+`-sJSPI`.
 
 The small Emscripten backends are tested in the ordinary test programs,
 under node, against upstream's C built with emcc and run there the same
@@ -667,6 +681,52 @@ overwritten. Under node the second skips as `browser`;
 sdl3-image --target wasm32-unknown-emscripten --test emscripten_preload`
 runs it as CI does.
 
+`sdl3/tests/emscripten_asyncify.rs` (`harness = false`, linked with
+`-sASYNCIFY=1`) checks what SDL does differently with Asyncify, where
+upstream's sleeps with `emscripten_sleep()`, as a trace of steps against
+upstream's C SDL linked the same way on the same page (and under node,
+without the page's steps): `emscripten_has_asyncify()`; `delay()` and
+`delay_precise()`, during which a `setTimeout()` set before them runs; a
+timer that fires during a `delay()`; `wait_timeout()` getting the event
+a timer pushes meanwhile; the message boxes as a modal `<dialog>` that
+`show_message_box()` waits on while the page answers it (Enter, Escape, a
+click, the hover colors of the color scheme, a dialog without a default
+button that Escape doesn't close, the simple message box); a window
+surface's update and a WebGL buffer swap, which give the browser its
+turn; and a `delay()` in the main callbacks' iterations; each but the
+last once more with `SDL_HINT_EMSCRIPTEN_ASYNCIFY` false, which waits
+busily (and shows the message box with `alert()`). Asyncify's default
+data stack, 4 KB, is too small for the message box's sleep in Rust's
+frames (the program aborts in `asyncify_stop_unwind`): the program has 64
+KB. Rust's standard library unwinds with WebAssembly exceptions
+(`-fwasm-exceptions`), which Asyncify doesn't fully support (emcc warns
+at the link): a sleep while a panic unwinds (in a `Drop`) breaks the
+program; nothing in the program sleeps then. `emscripten_jspi.rs` is the
+same program linked with `-sJSPI` (`emscripten_has_asyncify()` is 2),
+which suspends the WebAssembly instead: only what JavaScript called
+through `WebAssembly.promising` (emscripten's `main`) can, so a sleep in
+the main callbacks throws a `SuspendError`, as upstream's C does, and its
+iterations turn the hint off. Node 22 hasn't JSPI's current API
+(`WebAssembly.Suspending`), so under node the runner skips the program
+as `jspi` (it asks for that in its `sdl3_runner` section); in the browser
+both programs require nothing more than Chrome or Chromium 137.
+`SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser,webgl cargo test -p
+sdl3 --target wasm32-unknown-emscripten --test emscripten_asyncify
+--test emscripten_jspi` runs them as CI does.
+
+`sdl3/tests/emscripten_persistent_path.rs` (`harness = false`, with the
+`emscripten-persistent-path` feature) checks `SDL_RunApp()`'s IndexedDB
+storage in the browser over two loads of the page, each against upstream's
+C SDL built with the same `SDL_EMSCRIPTEN_PERSISTENT_PATH_STRING` and
+`-lidbfs.js`: the first, with the browser profile's IndexedDB empty,
+finds the storage mounted and empty, makes the pref path in it, writes a
+file there and one at the mount, waits until both have reached IndexedDB
+(the page reads its database), and reloads the page; the second finds both
+files loaded before the main function runs. `SDL_EMSCRIPTEN_PERSISTENT_PATH=/persistent
+SDL3_EMSCRIPTEN_BROWSER=1 cargo test -p sdl3 --target
+wasm32-unknown-emscripten --features emscripten-persistent-path --test
+emscripten_persistent_path` runs it as CI does.
+
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
@@ -699,9 +759,10 @@ Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
 `emscripten_gl`, `emscripten_audio`, `emscripten_joystick`,
-`emscripten_camera`, and sdl3-image's `emscripten_preload`) in the runner
-image's Chrome
+`emscripten_camera`, `emscripten_asyncify`, `emscripten_jspi`, and
+sdl3-image's `emscripten_preload`) in the runner image's Chrome
 (`/usr/bin/google-chrome`)
 as [above](#emscripten-browser), requiring `browser`, `webgl` and
-`webaudio`. Every job lists its skips in the job summary
+`webaudio`, and the persistent storage's program (with its feature and
+path) there and under node. Every job lists its skips in the job summary
 (`tools/ci/list-skips.sh`).
