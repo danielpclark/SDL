@@ -652,10 +652,9 @@ fn quit_while_open() {
 /// cameras, open the first one in its preferred format and grab ten frames,
 /// checking their size and format and that their timestamps advance. A
 /// driver that doesn't start skips as `capability`, no camera as `camera`.
-#[cfg_attr(
-    not(any(target_os = "linux", target_os = "macos", windows)),
-    allow(dead_code)
-)] // (no camera driver of its own elsewhere; the browser's camera: tests/emscripten_camera.rs)
+// (the platform drivers' hardware checks; the browser's camera is
+// tests/emscripten_camera.rs)
+#[cfg(any(target_os = "linux", target_os = "macos", windows))]
 pub(super) fn hardware_capture(driver: &str, capability: &str) {
     use std::time::{Duration, Instant};
     crate::hints::set(crate::hints::CAMERA_DRIVER, driver).unwrap();
