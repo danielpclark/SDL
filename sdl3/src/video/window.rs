@@ -101,8 +101,28 @@ pub const PROP_WINDOW_CREATE_WAYLAND_WL_SURFACE_POINTER: &str =
 /// of `SDL_PROP_WINDOW_CREATE_WAYLAND_ENABLE_INSETS_BOOLEAN`.
 pub const PROP_WINDOW_CREATE_WAYLAND_ENABLE_INSETS_BOOLEAN: &str =
     "SDL.window.create.wayland.enable_insets";
+/// The CSS selector of the canvas element a window uses (Emscripten; by
+/// default `#canvas`, unless the [`hints::EMSCRIPTEN_CANVAS_SELECTOR`] hint
+/// names one). Translation of
+/// `SDL_PROP_WINDOW_CREATE_EMSCRIPTEN_CANVAS_ID_STRING`.
+pub const PROP_WINDOW_CREATE_EMSCRIPTEN_CANVAS_ID_STRING: &str =
+    "SDL.window.create.emscripten.canvas_id";
+/// The element that gets the window's keyboard events (Emscripten): a CSS
+/// selector, or `#window`, `#document`, `#screen` or `#none` (by default
+/// `#window`, unless the [`hints::EMSCRIPTEN_KEYBOARD_ELEMENT`] hint names
+/// one). Translation of
+/// `SDL_PROP_WINDOW_CREATE_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING`.
+pub const PROP_WINDOW_CREATE_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING: &str =
+    "SDL.window.create.emscripten.keyboard_element";
 
 // Window properties (SDL_PROP_WINDOW_*)
+/// The CSS selector of the window's canvas element (Emscripten).
+/// Translation of `SDL_PROP_WINDOW_EMSCRIPTEN_CANVAS_ID_STRING`.
+pub const PROP_WINDOW_EMSCRIPTEN_CANVAS_ID_STRING: &str = "SDL.window.emscripten.canvas_id";
+/// The element that gets the window's keyboard events (Emscripten).
+/// Translation of `SDL_PROP_WINDOW_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING`.
+pub const PROP_WINDOW_EMSCRIPTEN_KEYBOARD_ELEMENT_STRING: &str =
+    "SDL.window.emscripten.keyboard_element";
 /// The X11 `Display *` of the window, as an address (a number). Translation
 /// of `SDL_PROP_WINDOW_X11_DISPLAY_POINTER`.
 pub const PROP_WINDOW_X11_DISPLAY_POINTER: &str = "SDL.window.x11.display";
