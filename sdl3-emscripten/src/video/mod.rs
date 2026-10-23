@@ -4,15 +4,16 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The JavaScript of the canvas video driver: `SDL_emscriptenvideo.c`
-//! here, [`framebuffer`] for `SDL_emscriptenframebuffer.c` and [`mouse`]
-//! for `SDL_emscriptenmouse.c`. (`SDL_emscriptenevents.c`'s JavaScript, the
-//! pointer, drag and lock-key listeners, comes with the event handling.)
+//! here, [`events`] for `SDL_emscriptenevents.c` (the pointer, drag and
+//! lock-key listeners), [`framebuffer`] for `SDL_emscriptenframebuffer.c`
+//! and [`mouse`] for `SDL_emscriptenmouse.c`.
 //!
 //! Each function is upstream's `MAIN_THREAD_EM_ASM` body, verbatim (in the
 //! braces emscripten puts around an `EM_ASM`'s code): without threads the
 //! main thread is the only one. Where upstream passes an `SDL_Window *` to
 //! JavaScript, which hands it back to C, these pass the window's ID.
 
+pub mod events;
 pub mod framebuffer;
 pub mod mouse;
 
