@@ -213,8 +213,8 @@ wasm32-unknown-emscripten` needs no emcc, and with emsdk the tests run
 under node (`cargo test --workspace --target wasm32-unknown-emscripten`,
 through `tools/emscripten_run.py`, which runs the browser checks,
 `sdl3/tests/emscripten_browser.rs`, `emscripten_video.rs`,
-`emscripten_events.rs`, `emscripten_gl.rs` and `emscripten_audio.rs`, in
-headless Chromium; see
+`emscripten_events.rs`, `emscripten_gl.rs`, `emscripten_audio.rs` and
+`emscripten_joystick.rs`, in headless Chromium; see
 "Emscripten" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) for
 the setup, what is ignored there, and the browser checks). Loading shared
 objects at run time (`dlopen()`) needs a program linked with
@@ -234,9 +234,11 @@ framebuffer, cursors, fullscreen and pointer lock, and the page's
 keyboard, mouse, touch, pen, wheel, focus and drag-and-drop events, and
 WebGL contexts, which the OpenGL ES 2 renderer draws with), and its
 audio driver is Web Audio (playback through a `ScriptProcessorNode`,
-recording from the microphone, run from the browser's event loop); the
-others (the Gamepad API, the camera, ...) are in progress, and until then
-the dummy drivers stand in. See [docs/ROADMAP.md](docs/ROADMAP.md).
+recording from the microphone, run from the browser's event loop), and
+its joystick driver the Gamepad API (with rumble, and every gamepad a
+gamepad through the default mapping, as upstream's); the camera is in
+progress, and until then the dummy driver stands in. See
+[docs/ROADMAP.md](docs/ROADMAP.md).
 
 An Emscripten application passes its own link options (Cargo gives a
 library's to no one), in its `.cargo/config.toml` as this repository does
