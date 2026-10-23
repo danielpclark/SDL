@@ -16,14 +16,15 @@ use super::commands::AvailableCommandBuffers;
 use super::shaders::*;
 use super::sys::*;
 use super::{lock, BlitResources, MetalRenderer};
-use crate::core::apple::foundation::{available, ns_array_items, string_from_ns};
+#[cfg(target_os = "macos")]
+use crate::core::apple::foundation::ns_array_items;
+use crate::core::apple::foundation::{available, string_from_ns};
 use crate::core::apple::objc::{msg_send, Bool, Id, StrongPtr};
 use crate::error::{Error, Result};
 use crate::gpu::sysgpu::{BackendObject, BlitPipelineCache, UNIFORM_BUFFER_SIZE};
 use crate::gpu::{
     CompareOp, Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode, Shader,
     ShaderCreateInfo, ShaderFormat, ShaderStage, TextureFormat, TextureType, TextureUsageFlags,
-    PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN,
     PROP_GPU_DEVICE_CREATE_SHADERS_METALLIB_BOOLEAN, PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN,
     PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN, PROP_GPU_DEVICE_CREATE_XR_ENABLE_BOOLEAN,
     PROP_GPU_DEVICE_NAME_STRING,
@@ -51,7 +52,7 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
         return false;
     }
 
-    if available!(macos(10, 14)) {
+    if available!(macos(10, 14), ios(13, 0), tvos(13, 0)) {
         return video.implements_metal_views();
     }
     false
@@ -90,7 +91,7 @@ pub(super) fn create_device(
 
     // Create the Metal device and command queue
     let mut device = StrongPtr::nil();
-    // (SDL_PLATFORM_MACOS)
+    #[cfg(target_os = "macos")]
     if prefer_low_power {
         // SAFETY: a +1 array of devices, and their isLowPower property.
         unsafe {
@@ -104,6 +105,8 @@ pub(super) fn create_device(
             }
         }
     }
+    #[cfg(not(target_os = "macos"))]
+    let _ = prefer_low_power;
     if device.is_nil() {
         // SAFETY: returns a +1 device, or nil.
         device = unsafe { StrongPtr::from_owned(MTLCreateSystemDefaultDevice()) };
@@ -112,29 +115,39 @@ pub(super) fn create_device(
         }
     }
 
-    // (SDL_PLATFORM_MACOS)
-    let mut has_hardware_support = true;
-    let allow_mac_family1 = props
-        .get_bool(PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN)
-        .unwrap_or(false);
-    // SAFETY: the device's feature queries.
-    unsafe {
-        if available!(macos(10, 15)) {
-            has_hardware_support = if allow_mac_family1 {
-                supports_family(device.get(), MTL_GPU_FAMILY_MAC1)
-            } else {
-                supports_family(device.get(), MTL_GPU_FAMILY_MAC2)
-            };
-        } else if available!(macos(10, 14)) {
-            let feature_set = if allow_mac_family1 {
-                MTL_FEATURE_SET_MACOS_GPU_FAMILY1_V4
-            } else {
-                MTL_FEATURE_SET_MACOS_GPU_FAMILY2_V1
-            };
-            let r: Bool = msg_send![device, supportsFeatureSet: feature_set];
-            has_hardware_support = r.is_true();
+    #[cfg(target_os = "macos")]
+    let has_hardware_support = {
+        let mut has_hardware_support = true;
+        let allow_mac_family1 = props
+            .get_bool(crate::gpu::PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN)
+            .unwrap_or(false);
+        // SAFETY: the device's feature queries.
+        unsafe {
+            if available!(macos(10, 15)) {
+                has_hardware_support = if allow_mac_family1 {
+                    supports_family(device.get(), MTL_GPU_FAMILY_MAC1)
+                } else {
+                    supports_family(device.get(), MTL_GPU_FAMILY_MAC2)
+                };
+            } else if available!(macos(10, 14)) {
+                let feature_set = if allow_mac_family1 {
+                    MTL_FEATURE_SET_MACOS_GPU_FAMILY1_V4
+                } else {
+                    MTL_FEATURE_SET_MACOS_GPU_FAMILY2_V1
+                };
+                let r: Bool = msg_send![device, supportsFeatureSet: feature_set];
+                has_hardware_support = r.is_true();
+            }
         }
-    }
+        has_hardware_support
+    };
+    #[cfg(target_os = "visionos")]
+    let has_hardware_support = true;
+    // (the other UIKit platforms)
+    #[cfg(not(any(target_os = "macos", target_os = "visionos")))]
+    // SAFETY: the device's feature query.
+    let has_hardware_support = available!(ios(13, 0), tvos(13, 0))
+        && unsafe { supports_family(device.get(), MTL_GPU_FAMILY_APPLE3) };
 
     if !has_hardware_support {
         return Err(Error::new(
@@ -359,19 +372,30 @@ impl MetalRenderer {
             return false;
         }
 
+        let device = self.device.get();
+
         // Cube arrays are not supported on older iOS devices
         if texture_type == TextureType::CubeArray {
-            // (SDL_PLATFORM_MACOS)
-            return true;
+            if cfg!(target_os = "macos") {
+                return true;
+            }
+            // SAFETY: the device's feature queries.
+            if !(available!(ios(13, 0), tvos(13, 0))
+                && unsafe {
+                    supports_family(device, MTL_GPU_FAMILY_COMMON2)
+                        || supports_family(device, MTL_GPU_FAMILY_APPLE4)
+                })
+            {
+                return false;
+            }
         }
 
-        let device = self.device.get();
         // SAFETY: the device's feature queries.
         unsafe {
             match format {
                 // Apple GPU exclusive
                 F::B5G6R5_UNORM | F::B5G5R5A1_UNORM | F::B4G4R4A4_UNORM => {
-                    if available!(macos(10, 15)) {
+                    if available!(macos(10, 15), ios(13, 0), tvos(13, 0)) {
                         supports_family(device, MTL_GPU_FAMILY_APPLE1)
                     } else {
                         false
@@ -391,26 +415,32 @@ impl MetalRenderer {
                 | F::BC2_RGBA_UNORM_SRGB
                 | F::BC3_RGBA_UNORM_SRGB
                 | F::BC7_RGBA_UNORM_SRGB => {
-                    // (@available(iOS 16.4, tvOS 16.4, *): always on macOS)
-                    if usage.contains(TextureUsageFlags::COLOR_TARGET) {
-                        return false;
-                    }
-                    if available!(macos(11, 0)) {
-                        let r: Bool = msg_send![device, supportsBCTextureCompression];
-                        r.is_true()
+                    if available!(ios(16, 4), tvos(16, 4)) {
+                        if usage.contains(TextureUsageFlags::COLOR_TARGET) {
+                            return false;
+                        }
+                        if available!(macos(11, 0)) {
+                            let r: Bool = msg_send![device, supportsBCTextureCompression];
+                            r.is_true()
+                        } else {
+                            true
+                        }
                     } else {
-                        true
+                        false
                     }
                 }
 
                 // Requires D24S8 support
                 F::D24_UNORM | F::D24_UNORM_S8_UINT => {
-                    // (SDL_PLATFORM_MACOS)
-                    let r: Bool = msg_send![device, isDepth24Stencil8PixelFormatSupported];
-                    r.is_true()
+                    if cfg!(target_os = "macos") {
+                        let r: Bool = msg_send![device, isDepth24Stencil8PixelFormatSupported];
+                        r.is_true()
+                    } else {
+                        false
+                    }
                 }
 
-                F::D16_UNORM => available!(macos(10, 12)),
+                F::D16_UNORM => available!(macos(10, 12), ios(13, 0), tvos(13, 0)),
 
                 F::ASTC_4x4_UNORM
                 | F::ASTC_5x4_UNORM
@@ -439,8 +469,18 @@ impl MetalRenderer {
                 | F::ASTC_10x8_UNORM_SRGB
                 | F::ASTC_10x10_UNORM_SRGB
                 | F::ASTC_12x10_UNORM_SRGB
-                | F::ASTC_12x12_UNORM_SRGB
-                | F::ASTC_4x4_FLOAT
+                | F::ASTC_12x12_UNORM_SRGB => {
+                    if cfg!(target_os = "macos") {
+                        if available!(macos(11, 0)) {
+                            supports_family(device, MTL_GPU_FAMILY_APPLE7)
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
+                    }
+                }
+                F::ASTC_4x4_FLOAT
                 | F::ASTC_5x4_FLOAT
                 | F::ASTC_5x5_FLOAT
                 | F::ASTC_6x5_FLOAT
@@ -454,9 +494,14 @@ impl MetalRenderer {
                 | F::ASTC_10x10_FLOAT
                 | F::ASTC_12x10_FLOAT
                 | F::ASTC_12x12_FLOAT => {
-                    // (SDL_PLATFORM_MACOS)
-                    if available!(macos(11, 0)) {
-                        supports_family(device, MTL_GPU_FAMILY_APPLE7)
+                    if cfg!(target_os = "macos") {
+                        if available!(macos(11, 0)) {
+                            supports_family(device, MTL_GPU_FAMILY_APPLE7)
+                        } else {
+                            false
+                        }
+                    } else if available!(ios(13, 0), tvos(13, 0)) {
+                        supports_family(device, MTL_GPU_FAMILY_APPLE6)
                     } else {
                         false
                     }

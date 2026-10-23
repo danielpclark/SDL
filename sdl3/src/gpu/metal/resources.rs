@@ -24,7 +24,7 @@ use super::tables::*;
 use super::{lock, MetalRenderer};
 use crate::core::apple::block::{dispatch_get_global_queue, dispatch_release};
 use crate::core::apple::foundation::{
-    available, ns_string, string_from_ns, NSRange, NS_UTF8_STRING_ENCODING,
+    available, ns_string, string_from_ns, NS_UTF8_STRING_ENCODING,
 };
 use crate::core::apple::objc::{class, msg_send, Bool, Id, NSUInteger, StrongPtr, NIL};
 use crate::error::{Error, Result};
@@ -455,7 +455,7 @@ impl MetalRenderer {
             let _: () = msg_send![texture_descriptor, setPixelFormat: sdl_to_metal_texture_format(createinfo.format)];
             // This format isn't natively supported so let's swizzle!
             if createinfo.format == TextureFormat::B4G4R4A4_UNORM {
-                if available!(macos(10, 15)) {
+                if available!(macos(10, 15), ios(13, 0), tvos(13, 0)) {
                     let swizzle = MTLTextureSwizzleChannels {
                         red: MTL_TEXTURE_SWIZZLE_GREEN,
                         green: MTL_TEXTURE_SWIZZLE_BLUE,
@@ -775,7 +775,13 @@ impl MetalRenderer {
         }
     }
 
+    /// Translation of `METAL_UnmapTransferBuffer()` (nothing to do but on
+    /// macOS).
+    #[cfg(not(target_os = "macos"))]
+    pub(super) fn unmap_transfer_buffer_internal(&self, _container: &BufferContainer) {}
+
     /// Translation of `METAL_UnmapTransferBuffer()`.
+    #[cfg(target_os = "macos")]
     pub(super) fn unmap_transfer_buffer_internal(&self, container: &BufferContainer) {
         // FIXME: Is this necessary?
         let buffer = container.active();
@@ -784,7 +790,7 @@ impl MetalRenderer {
         unsafe {
             let storage_mode: NSUInteger = msg_send![buffer.handle, storageMode];
             if storage_mode == MTL_STORAGE_MODE_MANAGED {
-                let _: () = msg_send![buffer.handle, didModifyRange: NSRange::new(0, container.size as NSUInteger)];
+                let _: () = msg_send![buffer.handle, didModifyRange: crate::core::apple::foundation::NSRange::new(0, container.size as NSUInteger)];
             }
         }
     }

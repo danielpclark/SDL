@@ -55,8 +55,10 @@ fn texture_format_table() {
     assert_eq!(f(TextureFormat::BC6H_RGB_UFLOAT), 151);
     assert_eq!(f(TextureFormat::R11G11B10_UFLOAT), 92);
     assert_eq!(f(TextureFormat::R8_INT), 14);
-    assert_eq!(f(TextureFormat::D24_UNORM), 255); // Depth24Unorm_Stencil8
-    assert_eq!(f(TextureFormat::D24_UNORM_S8_UINT), 255);
+    // (Depth24Unorm_Stencil8, macOS's only)
+    let d24 = if cfg!(target_os = "macos") { 255 } else { 0 };
+    assert_eq!(f(TextureFormat::D24_UNORM), d24);
+    assert_eq!(f(TextureFormat::D24_UNORM_S8_UINT), d24);
     assert_eq!(f(TextureFormat::D32_FLOAT_S8_UINT), 260);
     assert_eq!(f(TextureFormat::ASTC_4x4_UNORM), 204);
     assert_eq!(f(TextureFormat::ASTC_12x12_UNORM_SRGB), 200);
@@ -65,9 +67,18 @@ fn texture_format_table() {
     // (out of range: no format)
     assert_eq!(f(TextureFormat(105)), 0);
 
-    // Every format past INVALID has a Metal format (macOS 11 and later).
+    // Every format past INVALID has a Metal format (macOS 11 and later;
+    // iOS and tvOS 16.4 and later, but for D24).
     for i in 1..105 {
-        assert_ne!(f(TextureFormat(i)), MTL_PIXEL_FORMAT_INVALID, "{i}");
+        let format = TextureFormat(i);
+        if f(format) == MTL_PIXEL_FORMAT_INVALID {
+            assert!(
+                cfg!(not(target_os = "macos"))
+                    && [TextureFormat::D24_UNORM, TextureFormat::D24_UNORM_S8_UINT]
+                        .contains(&format),
+                "{i}"
+            );
+        }
     }
 }
 
@@ -1823,7 +1834,11 @@ fn swapchain_queries_without_a_window() {
     let window = crate::video::Window::create("metal", 32, 32, Default::default()).unwrap();
 
     assert!(r.supports_present_mode_internal(window, PresentMode::Vsync));
-    assert!(r.supports_present_mode_internal(window, PresentMode::Immediate));
+    // (immediate presentation and HDR10 swapchains: macOS only)
+    assert_eq!(
+        r.supports_present_mode_internal(window, PresentMode::Immediate),
+        cfg!(target_os = "macos")
+    );
     assert!(!r.supports_present_mode_internal(window, PresentMode::Mailbox));
     for composition in [
         SwapchainComposition::Sdr,
@@ -1831,7 +1846,10 @@ fn swapchain_queries_without_a_window() {
         SwapchainComposition::HdrExtendedLinear,
         SwapchainComposition::Hdr10St2084,
     ] {
-        assert!(r.supports_swapchain_composition_internal(window, composition));
+        assert_eq!(
+            r.supports_swapchain_composition_internal(window, composition),
+            cfg!(target_os = "macos") || composition != SwapchainComposition::Hdr10St2084
+        );
     }
     // An unclaimed window has no swapchain.
     assert_eq!(

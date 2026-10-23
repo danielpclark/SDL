@@ -137,6 +137,15 @@ impl MetalRenderer {
                 );
             }
         }
+        #[cfg(target_os = "visionos")]
+        {
+            // The default is depth clipping enabled and it can't be changed
+            if !createinfo.rasterizer_state.enable_depth_clip {
+                crate::sdl_assert_release!(
+                    !"Rasterizer state enable_depth_clip must be true on this platform"
+                );
+            }
+        }
 
         let mut error: Id = NIL;
         // SAFETY: new descriptors configured through their properties and

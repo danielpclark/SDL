@@ -35,7 +35,7 @@ pub(crate) const MTL_PIXEL_FORMAT_RG8_SNORM: NSUInteger = 32;
 pub(crate) const MTL_PIXEL_FORMAT_RG8_UINT: NSUInteger = 33;
 pub(crate) const MTL_PIXEL_FORMAT_RG8_SINT: NSUInteger = 34;
 pub(crate) const MTL_PIXEL_FORMAT_B5G6R5_UNORM: NSUInteger = 40;
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))] // (the Metal renderer's, macOS-only so far)
+#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 pub(crate) const MTL_PIXEL_FORMAT_A1BGR5_UNORM: NSUInteger = 41;
 pub(crate) const MTL_PIXEL_FORMAT_ABGR4_UNORM: NSUInteger = 42;
 pub(crate) const MTL_PIXEL_FORMAT_BGR5A1_UNORM: NSUInteger = 43;
@@ -272,6 +272,7 @@ pub(crate) const MTL_DEPTH_CLIP_MODE_CLIP: NSUInteger = 0;
 pub(crate) const MTL_DEPTH_CLIP_MODE_CLAMP: NSUInteger = 1;
 
 // MTLStorageMode
+#[cfg(target_os = "macos")]
 pub(crate) const MTL_STORAGE_MODE_MANAGED: NSUInteger = 1;
 pub(crate) const MTL_STORAGE_MODE_PRIVATE: NSUInteger = 2;
 
@@ -283,7 +284,7 @@ pub(crate) const MTL_TEXTURE_USAGE_RENDER_TARGET: NSUInteger = 4;
 // MTLResourceOptions
 pub(crate) const MTL_RESOURCE_CPU_CACHE_MODE_DEFAULT_CACHE: NSUInteger = 0;
 pub(crate) const MTL_RESOURCE_CPU_CACHE_MODE_WRITE_COMBINED: NSUInteger = 1;
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))] // (the Metal renderer's, macOS-only so far)
+#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 pub(crate) const MTL_RESOURCE_STORAGE_MODE_SHARED: NSUInteger = 0;
 pub(crate) const MTL_RESOURCE_STORAGE_MODE_PRIVATE: NSUInteger = 32;
 
@@ -302,12 +303,21 @@ pub(crate) const MTL_COMMAND_BUFFER_STATUS_SCHEDULED: NSUInteger = 3;
 
 // MTLGPUFamily
 pub(crate) const MTL_GPU_FAMILY_APPLE1: NSInteger = 1001;
+#[cfg(not(any(target_os = "macos", target_os = "visionos")))]
+pub(crate) const MTL_GPU_FAMILY_APPLE3: NSInteger = 1003;
+pub(crate) const MTL_GPU_FAMILY_APPLE4: NSInteger = 1004;
+pub(crate) const MTL_GPU_FAMILY_APPLE6: NSInteger = 1006;
 pub(crate) const MTL_GPU_FAMILY_APPLE7: NSInteger = 1007;
+#[cfg(target_os = "macos")]
 pub(crate) const MTL_GPU_FAMILY_MAC1: NSInteger = 2001;
+#[cfg(target_os = "macos")]
 pub(crate) const MTL_GPU_FAMILY_MAC2: NSInteger = 2002;
+pub(crate) const MTL_GPU_FAMILY_COMMON2: NSInteger = 3002;
 
 // MTLFeatureSet
+#[cfg(target_os = "macos")]
 pub(crate) const MTL_FEATURE_SET_MACOS_GPU_FAMILY1_V4: NSUInteger = 10004;
+#[cfg(target_os = "macos")]
 pub(crate) const MTL_FEATURE_SET_MACOS_GPU_FAMILY2_V1: NSUInteger = 10005;
 
 /// `MTLOrigin`.
@@ -347,7 +357,7 @@ pub(crate) fn mtl_size_make(width: u32, height: u32, depth: u32) -> MTLSize {
 }
 
 /// `MTLRegion`.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))] // (the Metal renderer's, macOS-only so far)
+#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct MTLRegion {
@@ -356,7 +366,7 @@ pub(crate) struct MTLRegion {
 }
 
 /// `MTLRegionMake2D()`.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))] // (the Metal renderer's, macOS-only so far)
+#[cfg(target_os = "macos")] // (the Metal renderer's, macOS-only so far)
 pub(crate) fn mtl_region_make_2d(x: i32, y: i32, width: i32, height: i32) -> MTLRegion {
     MTLRegion {
         origin: MTLOrigin {
@@ -428,7 +438,8 @@ pub(crate) const DISPATCH_DATA_DESTRUCTOR_DEFAULT: *const c_void = std::ptr::nul
 unsafe extern "C" {
     /// Returns a `+1` device (`NS_RETURNS_RETAINED`), or nil.
     pub(crate) fn MTLCreateSystemDefaultDevice() -> Id;
-    /// Returns a `+1` `NSArray` of the devices (macOS).
+    /// Returns a `+1` `NSArray` of the devices (macOS only).
+    #[cfg(target_os = "macos")]
     pub(crate) fn MTLCopyAllDevices() -> Id;
 }
 
