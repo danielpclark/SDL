@@ -26,7 +26,9 @@
 //!   `html5.h` and `html5_webgl.h` that SDL uses;
 //! * the JavaScript of SDL's own sources, one module per upstream file
 //!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`,
-//!   [`assert`](mod@assert) for `SDL_assert.c`, [`runapp`] for
+//!   [`assert`](mod@assert) for `SDL_assert.c`, [`audio`] for
+//!   `audio/emscripten/SDL_emscriptenaudio.c` (with [`audio::dummy`] for
+//!   the dummy driver's Emscripten parts), [`runapp`] for
 //!   `main/emscripten/SDL_sysmain_runapp.c`, [`locale`] for
 //!   `locale/emscripten/SDL_syslocale.c`, [`url`] for
 //!   `misc/emscripten/SDL_sysurl.c`, [`video`] for
@@ -69,6 +71,8 @@
 
 #[cfg(target_os = "emscripten")]
 pub mod assert;
+#[cfg(target_os = "emscripten")]
+pub mod audio;
 #[cfg(target_os = "emscripten")]
 mod deps;
 #[cfg(target_os = "emscripten")]
