@@ -371,7 +371,12 @@ which a synchronous test never returns to: the tests that wait for its
 data are ignored, and the Emscripten driver's tests fire its timers by
 hand. Node has no Web Audio, so the Emscripten audio driver is
 unavailable there; its tests stand in an `AudioContext` of their own,
-whose events they fire.) Where
+whose events they fire. Nor has node the Gamepad API, so the Emscripten
+joystick driver is unavailable there too; its tests stand in a
+`navigator.getGamepads()` of their own and call the driver's
+`gamepadconnected` and `gamepaddisconnected` callbacks as emscripten's
+handlers would, replaying upstream's C trace of
+`emscripten_joystick.rs`.) Where
 SDL has no SIMD blitters, as on wasm32, sdl3-image's reference results
 of the frames composited with them are upstream's without them
 (`sdl3-image/src/testdata/reference_nosimd.txt`). The skip log, which
@@ -584,6 +589,29 @@ Under node it skips as `browser`; `SDL3_EMSCRIPTEN_BROWSER=1
 SDL3_TEST_REQUIRE=browser,webaudio cargo test -p sdl3 --target
 wasm32-unknown-emscripten --test emscripten_audio` runs it as CI does.
 
+`sdl3/tests/emscripten_joystick.rs` (`harness = false`) checks the
+Gamepad API joystick driver (`joystick/emscripten/SDL_sysjoystick.c`)
+there, as a trace of steps against upstream's C trace of the same steps
+on the same page. A headless browser has no gamepads, so the page has a
+stand-in Gamepad API: `navigator.getGamepads()` answers the program's
+gamepads (plain objects with what emscripten and the driver read, and a
+`vibrationActuator` whose `playEffect()` records its arguments), the
+program sets `navigator.userAgent`, and it dispatches the
+`gamepadconnected` and `gamepaddisconnected` events itself, so nothing
+depends on the browser's own gamepad support. The steps: a standard
+gamepad connected before SDL initializes, with its name, GUID, USB IDs,
+path and the `"default"` gamepad mapping; opened as a gamepad (the d-pad
+as a hat, the triggers as axes, rumble and trigger rumble); its buttons,
+sticks, triggers and d-pad as joystick and gamepad events and states;
+rumble through `playEffect('dual-rumble', …)` and its expiry; an unmapped
+gamepad on Windows with its hat in the axis 9; an XInput gamepad on
+Android, a Firefox standard gamepad on a Mac, and duplicate connections;
+disconnecting an open gamepad and another, reconnecting, and quitting
+and initializing again. Under node it skips as `browser`;
+`SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser cargo test -p sdl3
+--target wasm32-unknown-emscripten --test emscripten_joystick` runs it as
+CI does.
+
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
@@ -615,7 +643,8 @@ macOS clippy job also lints the x86-64 build for Intel Macs. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
-`emscripten_gl`, `emscripten_audio`) in the runner image's Chrome
+`emscripten_gl`, `emscripten_audio`, `emscripten_joystick`) in the runner
+image's Chrome
 (`/usr/bin/google-chrome`)
 as [above](#emscripten-browser), requiring `browser`, `webgl` and
 `webaudio`. Every job lists its skips in the job summary
