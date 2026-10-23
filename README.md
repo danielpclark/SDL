@@ -212,11 +212,12 @@ renderers; SDL_net's stub library): `cargo check --target
 wasm32-unknown-emscripten` needs no emcc, and with emsdk the tests run
 under node (`cargo test --workspace --target wasm32-unknown-emscripten`,
 through `tools/emscripten_run.py`, which runs the browser checks,
-`sdl3/tests/emscripten_browser.rs`, `emscripten_video.rs` and
-`emscripten_events.rs`, in headless Chromium; see "Emscripten" in
-[docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) for the setup, what
-is ignored there, and the browser checks). Loading shared objects at run
-time (`dlopen()`) needs a program linked with `-sMAIN_MODULE`. The
+`sdl3/tests/emscripten_browser.rs`, `emscripten_video.rs`,
+`emscripten_events.rs` and `emscripten_gl.rs`, in headless Chromium; see
+"Emscripten" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) for
+the setup, what is ignored there, and the browser checks). Loading shared
+objects at run time (`dlopen()`) needs a program linked with
+`-sMAIN_MODULE`. The
 JavaScript SDL needs there (upstream's `EM_JS`/`EM_ASM` blocks, the
 `html5.h` API) is written in Rust too, with no `.js` file, in the internal
 `sdl3-emscripten` crate (its `em_js!` and `em_asm!` macros do what
@@ -229,10 +230,24 @@ returned, and the main loop's end ends the program; `run_app()` reads
 filesystem, power, locale, URL and sensor backends are the browser's,
 and its video driver draws on a `<canvas>` of the page (a window
 framebuffer, cursors, fullscreen and pointer lock, and the page's
-keyboard, mouse, touch, pen, wheel, focus and drag-and-drop events;
-WebGL is next); the others (Web Audio, the Gamepad API, ...) are in
-progress, and until then the dummy drivers stand in. See
-[docs/ROADMAP.md](docs/ROADMAP.md).
+keyboard, mouse, touch, pen, wheel, focus and drag-and-drop events, and
+WebGL contexts, which the OpenGL ES 2 renderer draws with); the others
+(Web Audio, the Gamepad API, ...) are in progress, and until then the
+dummy drivers stand in. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+An Emscripten application passes its own link options (Cargo gives a
+library's to no one), in its `.cargo/config.toml` as this repository does
+for its test programs (`[target.wasm32-unknown-emscripten]` `rustflags`):
+usually `-Clink-arg=-sALLOW_MEMORY_GROWTH=1` and a larger
+`-Clink-arg=-sSTACK_SIZE=...` (emscripten's default stack is 64 KB), and
+`-Clink-arg=-sMAX_WEBGL_VERSION=2` for OpenGL ES 3.0 contexts (WebGL 2;
+without it an OpenGL ES 3.0 context is WebGL 1, OpenGL ES 2.0, as with
+upstream's C, whose build passes nothing either). The OpenGL ES 2
+renderer and OpenGL ES 2.0 contexts need nothing: emscripten links its
+WebGL library into every program, with `emscripten_webgl_get_proc_address()`
+(`-sGL_ENABLE_GET_PROC_ADDRESS`, on by default), and the renderer passes
+its vertices in buffer objects, so `-sFULL_ES2` (client-side arrays) isn't
+needed.
 
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)

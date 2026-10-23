@@ -54,8 +54,11 @@
 //! function-table entries, not exports, so an application's own
 //! `-sEXPORTED_FUNCTIONS` (which replaces rustc's list) can't hide them.
 //! (The options a program usually wants, `-sALLOW_MEMORY_GROWTH` and a
-//! larger `-sSTACK_SIZE`, are the ones `.cargo/config.toml` gives the test
-//! programs.)
+//! larger `-sSTACK_SIZE`, and `-sMAX_WEBGL_VERSION=2` for OpenGL ES 3.0
+//! contexts, are the ones `.cargo/config.toml` gives the test programs.
+//! The WebGL contexts' functions, `html5_webgl.h`'s and the GL ones
+//! `emscripten_webgl_get_proc_address()` finds, are in emscripten's `libGL`,
+//! which it links into every program.)
 
 #![no_std]
 // Everywhere but on Emscripten the crate is empty, and its documentation

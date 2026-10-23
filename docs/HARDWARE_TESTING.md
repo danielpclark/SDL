@@ -54,7 +54,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
 | `metal` | macOS | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
-| `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow) |
+| `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
 | `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag) |
 
 Two environment variables control skips:
@@ -335,7 +335,8 @@ The workspace's tests also run built for `wasm32-unknown-emscripten`,
 under node: `.cargo/config.toml` makes `tools/emscripten_run.py` the
 runner, which by default runs `node PROGRAM.js ARGS...` (and gives the
 link options the test programs need: growable memory up to 4 GB, an 8 MB
-stack, node's environment for `SDL3_TEST_REQUIRE` and the hints). That
+stack, node's environment for `SDL3_TEST_REQUIRE` and the hints, WebGL 2
+for the browser's OpenGL ES 3.0 contexts). That
 needs emsdk 6.0.13 (the version CI pins), node 22 or newer and Python 3
 (the runner is a script with a `#!/usr/bin/env python3` line, which Cargo
 runs as is; on Windows set `CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUNNER`
@@ -532,6 +533,32 @@ runs it as CI does. The DOM-code scancode table, the keys' keycodes, the
 lock keys, the mouse buttons and the wheel steps have unit tests that run
 under node.
 
+`sdl3/tests/emscripten_gl.rs` (`harness = false`) checks the driver's
+WebGL contexts (`SDL_emscriptenopengles.c`) and the OpenGL ES 2 renderer
+on them, which passes its vertices in buffer objects there
+(`USE_VERTEX_BUFFER_OBJECTS`: WebGL has no client-side arrays), as a trace
+of steps as `emscripten_events.rs` does, against upstream's C trace of
+the same steps on the same page: the attributes before any context
+(OpenGL ES 2.0 by default, upstream's Emscripten build having OpenGL ES 2
+only), an OpenGL ES 2.0 context (WebGL 1) with its attributes, the GL
+functions `SDL_GL_GetProcAddress()` finds (called through the pointers it
+gives: a clear read back), a second context on the window and a context
+made current with another window (both refused), the swap interval before
+a main loop runs (kept until the first event pump) and in the main
+callbacks (the main loop's timing, unless `SDL_HINT_MAIN_CALLBACK_RATE`
+decides it), an OpenGL ES 3.0 context (WebGL 2: the test programs are
+linked with `-sMAX_WEBGL_VERSION=2`), the context attributes WebGL takes,
+a context lost (`WEBGL_lose_context`) and restored, and the renderer's
+scenes (shapes, blend modes, textures, a streaming texture, IYUV and NV12,
+a render target, geometry) read back and hashed, on an OpenGL ES 2.0 and
+an OpenGL ES 3.0 window, and a present on the page's canvas;
+`SDL_GL_ExtensionSupported()` is checked against the context's list.
+Under node it skips as `browser`; `SDL3_EMSCRIPTEN_BROWSER=1
+SDL3_TEST_REQUIRE=browser,webgl cargo test -p sdl3 --target
+wasm32-unknown-emscripten --test emscripten_gl` runs it as CI does. The
+renderer's vertex buffer objects are checked on Linux's GL too
+(`gles2_vertex_buffer_objects`, with Mesa).
+
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
@@ -561,7 +588,9 @@ on either. What else a hosted runner offers (audio endpoints, GameInput,
 a camera) isn't guaranteed, so nothing more is required. The
 macOS clippy job also lints the x86-64 build for Intel Macs. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
-with emsdk and emcc's sysroot libraries cached, and the browser program in
-the runner image's Chrome (`/usr/bin/google-chrome`) as
-[above](#emscripten-browser), requiring `browser`, `webgl` and `webaudio`. Every job lists its skips
-in the job summary (`tools/ci/list-skips.sh`).
+with emsdk and emcc's sysroot libraries cached, and the browser programs
+(`emscripten_browser`, `emscripten_video`, `emscripten_events`,
+`emscripten_gl`) in the runner image's Chrome (`/usr/bin/google-chrome`)
+as [above](#emscripten-browser), requiring `browser`, `webgl` and
+`webaudio`. Every job lists its skips in the job summary
+(`tools/ci/list-skips.sh`).
