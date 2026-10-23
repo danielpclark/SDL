@@ -55,6 +55,17 @@ pub(super) fn injected_failure(step: &str) -> bool {
     FAIL_STEP.get() == Some(step)
 }
 
+thread_local! {
+    /// Whether this thread's new renderers use vertex buffer objects (`None`:
+    /// as built, `USE_VERTEX_BUFFER_OBJECTS`).
+    static FORCE_VBOS: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+}
+
+/// What the test asks of the renderer's vertex buffer objects.
+pub(super) fn forced_vertex_buffer_objects() -> Option<bool> {
+    FORCE_VBOS.get()
+}
+
 /// The shader objects of the current context (names up to 4096).
 fn shader_count(gl: &crate::render::test_gl::TestGl) -> usize {
     (1..=4096).filter(|&name| gl.is_shader(name)).count()
@@ -434,6 +445,55 @@ fn gles2_matches_software_for_shapes() {
         )
         .unwrap();
     });
+}
+
+/// Upstream's Emscripten path (`USE_VERTEX_BUFFER_OBJECTS`: WebGL has no
+/// client-side arrays) on this GL: the vertices go through the renderer's
+/// eight vertex buffer objects, in turn, and the scenes are the same.
+#[test]
+#[cfg_attr(
+    target_os = "emscripten",
+    ignore = "no EGL on Emscripten's offscreen driver (tests/emscripten_gl.rs draws with WebGL)"
+)]
+fn gles2_vertex_buffer_objects() {
+    struct Restore;
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            FORCE_VBOS.set(None);
+        }
+    }
+    let _restore = Restore;
+    FORCE_VBOS.set(Some(true));
+    {
+        const GL_ARRAY_BUFFER_BINDING: u32 = 0x8894;
+        let _l = crate::test_support::test_lock();
+        let _video = Video::init();
+        let Some((_window, mut r)) = gles2_renderer(W, H) else {
+            return;
+        };
+        let gl = crate::render::test_gl::TestGl::load(false);
+        let mut bound = Vec::new();
+        for i in 0..10 {
+            r.set_draw_color(i * 20, 0, 0, 255);
+            r.render_fill_rect(Some(&FRect::new(1.0, 1.0, 4.0, 4.0)))
+                .unwrap();
+            r.flush().unwrap();
+            bound.push(gl.get_integer(GL_ARRAY_BUFFER_BINDING));
+        }
+        // (eight buffers, one per flush, then the first again)
+        assert!(bound.iter().all(|&b| b != 0), "{bound:?}");
+        assert_eq!(bound[8], bound[0], "{bound:?}");
+        assert_eq!(bound[9], bound[1], "{bound:?}");
+        let mut distinct = bound[..8].to_vec();
+        distinct.sort_unstable();
+        distinct.dedup();
+        assert_eq!(distinct.len(), 8, "{bound:?}");
+    }
+    gles2_matches_software_for_shapes();
+    gles2_matches_software_for_textures();
+    gles2_matches_software_for_targets();
+    gles2_matches_software_for_yuv();
+    gles2_line_methods();
 }
 
 #[test]

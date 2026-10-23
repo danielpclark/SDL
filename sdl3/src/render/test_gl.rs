@@ -83,6 +83,14 @@ impl TestGl {
         name
     }
 
+    /// `glGetIntegerv()` of one value.
+    pub(crate) fn get_integer(&self, pname: u32) -> i32 {
+        let mut value = 0;
+        // SAFETY: a plain GL call on the current context, one value written.
+        unsafe { (self.get_integerv)(pname, &mut value) };
+        value
+    }
+
     /// Bind `name` as a 2D texture (making it one), then put the previous
     /// binding back.
     pub(crate) fn make_2d_texture(&self, name: u32) {
