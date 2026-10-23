@@ -442,7 +442,7 @@ pub(crate) struct Mouse {
     added_mouse_touch_device: bool,
     /// did we `add_touch()` a virtual touch device for pens?
     pub(crate) added_pen_touch_device: bool,
-    auto_capture: bool,
+    pub(crate) auto_capture: bool,
     capture_desired: bool,
     capture_window: Option<WindowID>,
 
