@@ -289,8 +289,9 @@ jobs:
           node-version: 22
       # (the programs that ask for a browser, emscripten_browser,
       # emscripten_video, emscripten_events, emscripten_gl,
-      # emscripten_audio, emscripten_joystick and emscripten_camera, run in
-      # the runner image's Chrome here too)
+      # emscripten_audio, emscripten_joystick, emscripten_camera and
+      # sdl3-image's emscripten_preload, run in the runner image's Chrome
+      # here too)
       - name: cargo test --workspace --target wasm32-unknown-emscripten
         shell: bash
         run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
@@ -299,13 +300,15 @@ jobs:
       # WebGL contexts, with the OpenGL ES 2 renderer, the Web Audio driver,
       # the Gamepad API driver on a stand-in Gamepad API, and the
       # getUserMedia() camera driver on stand-in media devices and Chrome's
-      # fake camera) and the WebGL and Web Audio probes, in the runner
-      # image's Chrome, headless, which must have them.
-      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera (headless Chrome)
+      # fake camera, and SDL_image's images the browser decodes as their
+      # files are preloaded) and the WebGL and Web Audio probes, in the
+      # runner image's Chrome, headless, which must have them.
+      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera, -p sdl3-image --test emscripten_preload (headless Chrome)
         shell: bash
         run: |
           "$CHROME" --version
           cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera 2>&1 | tee "$RUNNER_TEMP/browser.log"
+          cargo test -p sdl3-image --target wasm32-unknown-emscripten --test emscripten_preload 2>&1 | tee -a "$RUNNER_TEMP/browser.log"
         env:
           SDL3_EMSCRIPTEN_BROWSER: 1
           SDL3_TEST_REQUIRE: browser,webgl,webaudio

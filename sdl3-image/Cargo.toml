@@ -26,3 +26,11 @@ sdl3 = { path = "../sdl3", version = "3.5.0" }
 # sdl3's own Emscripten layer.
 [target.'cfg(target_os = "emscripten")'.dependencies]
 sdl3-emscripten = { path = "../sdl3-emscripten", version = "3.5.0" }
+
+# The preloaded images on Emscripten (IMG_Load() and IMG_LoadTyped_IO()):
+# stand-in canvases under node and in the browser, and the browser's own
+# decoding through emscripten's image plugin, against upstream's C trace: a
+# program that asks tools/emscripten_run.py for the browser.
+[[test]]
+name = "emscripten_preload"
+harness = false
