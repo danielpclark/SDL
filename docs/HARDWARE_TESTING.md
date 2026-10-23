@@ -55,7 +55,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `metal` | macOS | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
-| `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag) |
+| `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag): `emscripten_browser.rs`'s probe and `emscripten_audio.rs` |
 
 Two environment variables control skips:
 
@@ -362,10 +362,16 @@ host's, so they stay usable in a browser: test data is embedded with
 by path, as TiMidity's configurations; another crate's test data; the
 checks that the embedded lists match the directories) is ignored there,
 "host file system". The build is upstream's Emscripten configuration,
-without threads, so the tests that need a thread (an audio device's, the
-camera's), a process, sockets, an executable name, or a
+without threads, so the tests that need a thread (the disk audio
+driver's device, the camera's), a process, sockets, an executable name, or a
 renderer or GPU backend the build doesn't have are `#[ignore]`d on
-Emscripten with the reason, which the test run prints. Where
+Emscripten with the reason, which the test run prints. (The dummy audio
+driver's devices run from a timer in the event loop there, as upstream's,
+which a synchronous test never returns to: the tests that wait for its
+data are ignored, and the Emscripten driver's tests fire its timers by
+hand. Node has no Web Audio, so the Emscripten audio driver is
+unavailable there; its tests stand in an `AudioContext` of their own,
+whose events they fire.) Where
 SDL has no SIMD blitters, as on wasm32, sdl3-image's reference results
 of the frames composited with them are upstream's without them
 (`sdl3-image/src/testdata/reference_nosimd.txt`). The skip log, which
@@ -559,6 +565,25 @@ wasm32-unknown-emscripten --test emscripten_gl` runs it as CI does. The
 renderer's vertex buffer objects are checked on Linux's GL too
 (`gles2_vertex_buffer_objects`, with Mesa).
 
+`sdl3/tests/emscripten_audio.rs` (`harness = false`) checks the Web
+Audio driver (`SDL_emscriptenaudio.c`) there, as a trace of steps against
+upstream's C trace of the same steps on the same page: the drivers and
+the default devices with their formats before they're opened, the
+playback device at the `AudioContext`'s rate in floats with its
+`ScriptProcessorNode`, the samples that reach the node (its
+`onaudioprocess` is wrapped to copy the output buffers SDL fills: a ramp
+of floats, sample for sample), a paused device, an S16 mono stream
+converted and an F32 mono stream at half the rate resampled, the
+recording device with its silence timer until the runner's fake
+microphone answers, then the microphone's samples, closing the devices
+and the context, a suspended context (as autoplay leaves it) whose
+silence timer runs the device until a trusted click lets it resume, the
+dummy driver's timers, and `SDL_Quit()`. The trace doesn't depend on the
+context's rate between 22050 and 48000 Hz (the rate is shown as `ctx`).
+Under node it skips as `browser`; `SDL3_EMSCRIPTEN_BROWSER=1
+SDL3_TEST_REQUIRE=browser,webaudio cargo test -p sdl3 --target
+wasm32-unknown-emscripten --test emscripten_audio` runs it as CI does.
+
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
@@ -590,7 +615,8 @@ macOS clippy job also lints the x86-64 build for Intel Macs. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
-`emscripten_gl`) in the runner image's Chrome (`/usr/bin/google-chrome`)
+`emscripten_gl`, `emscripten_audio`) in the runner image's Chrome
+(`/usr/bin/google-chrome`)
 as [above](#emscripten-browser), requiring `browser`, `webgl` and
 `webaudio`. Every job lists its skips in the job summary
 (`tools/ci/list-skips.sh`).
