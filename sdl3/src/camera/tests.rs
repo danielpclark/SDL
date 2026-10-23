@@ -203,7 +203,14 @@ fn driver_selection() {
     assert_eq!(names, ["test", "coremedia", "dummy"]);
     #[cfg(windows)]
     assert_eq!(names, ["test", "mediafoundation", "dummy"]);
-    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    #[cfg(target_os = "emscripten")]
+    assert_eq!(names, ["test", "emscripten", "dummy"]);
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        windows,
+        target_os = "emscripten"
+    )))]
     assert_eq!(names, ["test", "dummy"]);
     assert!(camera_driver(names.len()).is_err());
     assert_eq!(
@@ -221,7 +228,7 @@ fn driver_selection() {
             stop();
         }
         Err(e) => {
-            assert!(names.len() == 2 || cfg!(windows), "{}", e.message()); // (V4L2 and CoreMedia always start)
+            assert!(names.len() == 2 || cfg!(windows), "{}", e.message()); // (V4L2, CoreMedia and Emscripten always start)
             if names.len() == 2 {
                 assert_eq!(e.message(), "No available camera driver");
             }
@@ -645,7 +652,7 @@ fn quit_while_open() {
 /// cameras, open the first one in its preferred format and grab ten frames,
 /// checking their size and format and that their timestamps advance. A
 /// driver that doesn't start skips as `capability`, no camera as `camera`.
-#[cfg_attr(target_os = "emscripten", allow(dead_code))] // (no camera driver yet)
+#[cfg_attr(target_os = "emscripten", allow(dead_code))] // (the browser's camera: tests/emscripten_camera.rs)
 pub(super) fn hardware_capture(driver: &str, capability: &str) {
     use std::time::{Duration, Instant};
     crate::hints::set(crate::hints::CAMERA_DRIVER, driver).unwrap();
