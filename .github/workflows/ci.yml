@@ -289,9 +289,9 @@ jobs:
           node-version: 22
       # (the programs that ask for a browser, emscripten_browser,
       # emscripten_video, emscripten_events, emscripten_gl,
-      # emscripten_audio, emscripten_joystick, emscripten_camera and
-      # sdl3-image's emscripten_preload, run in the runner image's Chrome
-      # here too)
+      # emscripten_audio, emscripten_joystick, emscripten_camera,
+      # emscripten_asyncify, emscripten_jspi and sdl3-image's
+      # emscripten_preload, run in the runner image's Chrome here too)
       - name: cargo test --workspace --target wasm32-unknown-emscripten
         shell: bash
         run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
@@ -300,18 +300,32 @@ jobs:
       # WebGL contexts, with the OpenGL ES 2 renderer, the Web Audio driver,
       # the Gamepad API driver on a stand-in Gamepad API, and the
       # getUserMedia() camera driver on stand-in media devices and Chrome's
-      # fake camera, and SDL_image's images the browser decodes as their
-      # files are preloaded) and the WebGL and Web Audio probes, in the
-      # runner image's Chrome, headless, which must have them.
-      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera, -p sdl3-image --test emscripten_preload (headless Chrome)
+      # fake camera, SDL_image's images the browser decodes as their files
+      # are preloaded, and the programs linked with Asyncify and with JSPI,
+      # which sleep in the browser's event loop) and the WebGL and Web
+      # Audio probes, in the runner image's Chrome, headless, which must
+      # have them.
+      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera --test emscripten_asyncify --test emscripten_jspi, -p sdl3-image --test emscripten_preload (headless Chrome)
         shell: bash
         run: |
           "$CHROME" --version
-          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera 2>&1 | tee "$RUNNER_TEMP/browser.log"
+          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick --test emscripten_camera --test emscripten_asyncify --test emscripten_jspi 2>&1 | tee "$RUNNER_TEMP/browser.log"
           cargo test -p sdl3-image --target wasm32-unknown-emscripten --test emscripten_preload 2>&1 | tee -a "$RUNNER_TEMP/browser.log"
         env:
           SDL3_EMSCRIPTEN_BROWSER: 1
           SDL3_TEST_REQUIRE: browser,webgl,webaudio
+          CHROME: /usr/bin/google-chrome
+      # SDL_RunApp()'s IndexedDB storage (the emscripten-persistent-path
+      # feature, with the path its program expects): in Chrome across a
+      # reload of the page, and under node, which has no IndexedDB.
+      - name: cargo test -p sdl3 --features emscripten-persistent-path --test emscripten_persistent_path (headless Chrome, node)
+        shell: bash
+        run: |
+          cargo test -p sdl3 --target wasm32-unknown-emscripten --features emscripten-persistent-path --test emscripten_persistent_path 2>&1 | tee -a "$RUNNER_TEMP/browser.log"
+          SDL3_EMSCRIPTEN_BROWSER=0 cargo test -p sdl3 --target wasm32-unknown-emscripten --features emscripten-persistent-path --test emscripten_persistent_path
+        env:
+          SDL_EMSCRIPTEN_PERSISTENT_PATH: /persistent
+          SDL3_EMSCRIPTEN_BROWSER: 1
           CHROME: /usr/bin/google-chrome
       # The JavaScript layer's tests (sdl3-emscripten: em_js!, em_asm!, the
       # dependency table, the callback registry, the html5.h layouts) once
