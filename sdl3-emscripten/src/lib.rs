@@ -28,7 +28,8 @@
 //!   ([`sdl`] for `SDL.c`, [`stdlib`] for `SDL_malloc.c` and `SDL_utils.c`,
 //!   [`assert`](mod@assert) for `SDL_assert.c`, [`audio`] for
 //!   `audio/emscripten/SDL_emscriptenaudio.c` (with [`audio::dummy`] for
-//!   the dummy driver's Emscripten parts), [`joystick`] for
+//!   the dummy driver's Emscripten parts), [`camera`] for
+//!   `camera/emscripten/SDL_camera_emscripten.c`, [`joystick`] for
 //!   `joystick/emscripten/SDL_sysjoystick.c`, [`runapp`] for
 //!   `main/emscripten/SDL_sysmain_runapp.c`, [`locale`] for
 //!   `locale/emscripten/SDL_syslocale.c`, [`url`] for
@@ -74,6 +75,8 @@
 pub mod assert;
 #[cfg(target_os = "emscripten")]
 pub mod audio;
+#[cfg(target_os = "emscripten")]
+pub mod camera;
 #[cfg(target_os = "emscripten")]
 mod deps;
 #[cfg(target_os = "emscripten")]
