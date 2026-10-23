@@ -929,7 +929,11 @@ pub(crate) trait VideoDriver: Send + Sync {
     /// The `EGLSurface` of a window (`GL_GetEGLSurface`; `None`: not
     /// implemented, which upstream reports as NULL).
     #[cfg_attr(
-        not(any(windows, all(unix, not(target_os = "emscripten")))),
+        not(any(
+            windows,
+            target_os = "macos",
+            all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+        )),
         allow(dead_code)
     )]
     fn gl_get_egl_surface(&self, window: WindowID) -> Option<*mut c_void> {

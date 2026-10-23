@@ -525,16 +525,19 @@ fn finish_window_creation(window: WindowID, flags: WindowFlags) {
 }
 
 /// The graphics backends some platforms enable by default. Translation of
-/// `SDL_DefaultGraphicsBackends()` (the iOS, QNX and OpenVR cases aren't
+/// `SDL_DefaultGraphicsBackends()` (the QNX and OpenVR cases aren't
 /// translated).
 fn default_graphics_backends(driver: &dyn super::sysvideo::VideoDriver) -> WindowFlags {
-    if cfg!(target_os = "macos") {
-        if driver.implements_gl_contexts() {
-            return WindowFlags::OPENGL;
-        }
-        if driver.implements_metal_views() {
-            return WindowFlags::METAL;
-        }
+    // (SDL_VIDEO_OPENGL && SDL_PLATFORM_MACOS, or SDL_PLATFORM_IOS but not
+    // Mac Catalyst)
+    if cfg!(all(target_vendor = "apple", not(target_abi = "macabi")))
+        && driver.implements_gl_contexts()
+    {
+        return WindowFlags::OPENGL;
+    }
+    // (SDL_VIDEO_METAL, on macOS, SDL_PLATFORM_IOS and Mac Catalyst)
+    if cfg!(target_vendor = "apple") && driver.implements_metal_views() {
+        return WindowFlags::METAL;
     }
     WindowFlags::NONE
 }

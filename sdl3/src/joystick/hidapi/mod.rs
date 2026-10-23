@@ -89,7 +89,10 @@ use crate::sensor::SensorType;
 /// HIDAPI prompts for permissions and acquires exclusive access to the
 /// device, and on Apple mobile platforms it doesn't do anything except for
 /// handling Bluetooth Steam Controllers, so it's off there by default.
-pub(crate) const SDL_HIDAPI_DEFAULT: bool = !cfg!(any(target_os = "android", target_os = "ios"));
+pub(crate) const SDL_HIDAPI_DEFAULT: bool = !cfg!(any(
+    target_os = "android",
+    all(target_vendor = "apple", not(target_os = "macos"))
+));
 
 /// `SDL_NS_PER_US`
 pub(crate) const NS_PER_US: u64 = 1000;

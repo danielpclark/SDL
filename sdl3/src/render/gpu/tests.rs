@@ -56,7 +56,7 @@ const H: i32 = 48;
 // ---------------------------------------------------------------------------
 
 #[test]
-#[cfg(not(any(windows, target_os = "macos", target_os = "emscripten")))] // (direct3d11 and metal come first there: see their tests; Emscripten has no GPU renderer: see the OpenGL ES 2 renderer's)
+#[cfg(not(any(windows, target_vendor = "apple", target_os = "emscripten")))] // (direct3d11 and metal come first there: see their tests; UIKit has no desktop OpenGL and Emscripten no GPU renderer: see the OpenGL ES 2 renderer's)
 fn driver_list_follows_upstreams_order() {
     use crate::render::{num_render_drivers, render_driver};
     // (render_drivers[] in SDL_render.c: ..., GLES2, ..., VULKAN, GPU, SW)

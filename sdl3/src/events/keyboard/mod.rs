@@ -334,6 +334,12 @@ pub fn text_input_active(window_id: WindowID) -> bool {
 /// Move keyboard focus to `window` (or nowhere), sending the focus lost/gained
 /// window events. Translation of `SDL_SetKeyboardFocus()`.
 pub fn set_keyboard_focus(window_id: Option<WindowID>) -> Result<()> {
+    // (the text input isn't stopped and started with the focus on
+    // SDL_PLATFORM_IOS, every UIKit platform, or Android)
+    #[cfg(not(any(
+        target_os = "android",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     let video = window::video();
 
     if let Some(id) = window_id {
@@ -356,6 +362,10 @@ pub fn set_keyboard_focus(window_id: Option<WindowID>) -> Result<()> {
             window::send_window_event(old, EventType::WINDOW_FOCUS_LOST, 0, 0);
 
             // Ensures IME compositions are committed
+            #[cfg(not(any(
+                target_os = "android",
+                all(target_vendor = "apple", not(target_os = "macos"))
+            )))]
             if text_input_active(old) {
                 if let Some(video) = &video {
                     video.stop_text_input(old);
@@ -387,6 +397,10 @@ pub fn set_keyboard_focus(window_id: Option<WindowID>) -> Result<()> {
     if let Some(new) = window_id {
         window::send_window_event(new, EventType::WINDOW_FOCUS_GAINED, 0, 0);
 
+        #[cfg(not(any(
+            target_os = "android",
+            all(target_vendor = "apple", not(target_os = "macos"))
+        )))]
         if text_input_active(new) {
             if let Some(video) = &video {
                 video.start_text_input(new);

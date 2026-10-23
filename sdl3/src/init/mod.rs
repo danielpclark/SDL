@@ -435,7 +435,7 @@ pub fn init_subsystem(flags: InitFlags) -> Result<()> {
     crate::core::linux::dbus::init();
 
     // Apple platforms require the notification delegate to be registered early.
-    #[cfg(target_os = "macos")]
+    #[cfg(target_vendor = "apple")]
     crate::notification::register_notification_delegate();
 
     #[cfg(windows)]
@@ -775,7 +775,10 @@ pub const fn platform() -> &'static str {
         "Windows"
     } else if cfg!(target_os = "visionos") {
         "visionOS"
-    } else if cfg!(target_os = "ios") {
+    } else if cfg!(all(target_vendor = "apple", not(target_os = "macos"))) {
+        // FIXME (upstream): this is SDL_PLATFORM_IOS, which tvOS defines
+        // too (TARGET_OS_IPHONE), so tvOS is "iOS" and the next case is
+        // never taken.
         "iOS"
     } else if cfg!(target_os = "tvos") {
         "tvOS"
@@ -825,10 +828,14 @@ impl FormFactor {
 
 /// The device's form factor. Translation of `SDL_GetDeviceFormFactor()`.
 ///
-/// Android/OpenHarmony/iOS query the OS at runtime (platform backends, not
-/// translated yet, so those report `Unknown`); other platforms are fixed.
+/// Android/OpenHarmony/iOS (`SDL_PLATFORM_IOS`: every UIKit platform) query
+/// the OS at runtime (platform backends, not translated yet, so those report
+/// `Unknown`); other platforms are fixed.
 pub const fn device_form_factor() -> FormFactor {
-    if cfg!(any(target_os = "android", target_os = "ios")) {
+    if cfg!(any(
+        target_os = "android",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )) {
         FormFactor::Unknown
     } else if cfg!(target_os = "horizon") {
         FormFactor::Handheld
@@ -1020,6 +1027,25 @@ pub(crate) mod tests {
         let _ = device_form_factor();
         let _ = (is_phone(), is_tablet(), is_tv());
         let _ = sandbox();
+    }
+
+    /// `SDL_GetPlatform()`'s names on Apple platforms (SDL_PLATFORM_IOS is
+    /// every UIKit platform, tvOS too).
+    #[cfg(target_vendor = "apple")]
+    #[test]
+    fn apple_platform_names() {
+        let expected = if cfg!(target_os = "macos") {
+            "macOS"
+        } else if cfg!(target_os = "visionos") {
+            "visionOS"
+        } else {
+            "iOS"
+        };
+        assert_eq!(platform(), expected);
+        // (UIKit asks the device, which isn't translated yet)
+        if cfg!(not(target_os = "macos")) {
+            assert_eq!(device_form_factor(), FormFactor::Unknown);
+        }
     }
 
     /// `SDL_InitSubSystem()` makes `Module['SDL3']` with its pointer

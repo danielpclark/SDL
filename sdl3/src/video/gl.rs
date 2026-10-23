@@ -17,7 +17,9 @@
 //! only (`SDL_VIDEO_OPENGL_ES2` without `SDL_VIDEO_OPENGL`): the
 //! attributes default to an OpenGL ES 2.0 context, the attributes desktop
 //! OpenGL has (double buffering, accumulation buffers, stereo) are the ones
-//! set, and the canvas driver's contexts are WebGL's.
+//! set, and the canvas driver's contexts are WebGL's. Upstream's UIKit build
+//! has OpenGL ES (EAGL, not translated yet) without `SDL_VIDEO_OPENGL` or
+//! EGL: the attributes are those of the Emscripten build.
 //!
 //! A [`GlContext`] is destroyed when dropped; functions are looked up with
 //! [`gl_get_proc_address`] once a library is loaded (by creating an
@@ -401,7 +403,11 @@ pub(crate) fn with_gl_config<R>(f: impl FnOnce(&mut GlConfig) -> R) -> R {
 
 /// `_this->gl_allow_no_surface`.
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn allow_no_surface() -> bool {
@@ -410,7 +416,11 @@ pub(crate) fn allow_no_surface() -> bool {
 
 /// `_this->gl_allow_no_surface = true` (by EGL).
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn set_allow_no_surface() {
@@ -419,7 +429,11 @@ pub(crate) fn set_allow_no_surface() {
 
 /// The EGL attribute callbacks (`egl_*attrib_callback`), if set.
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn egl_attrib_callbacks() -> Option<Arc<EglAttribCallbacks>> {
@@ -438,7 +452,11 @@ pub(crate) fn driver_loaded() -> i32 {
 /// Adjust `gl_config.driver_loaded` from a driver (the increment around
 /// extension initialization, EGL's reset to 0...).
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn set_driver_loaded(f: impl FnOnce(i32) -> i32) {
@@ -447,7 +465,11 @@ pub(crate) fn set_driver_loaded(f: impl FnOnce(i32) -> i32) {
 
 /// Set `gl_config.driver_path` from a driver (`None`: cleared).
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) fn set_driver_path(path: Option<&str>) {
@@ -552,7 +574,11 @@ const GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE: GLenum = 0x8216;
 const GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE: GLenum = 0x8217;
 const GL_FRAMEBUFFER_DEFAULT: GLint = 0x8218;
 #[cfg_attr(
-    not(any(windows, all(unix, not(target_os = "emscripten")))),
+    not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )),
     allow(dead_code)
 )]
 pub(crate) const GL_MAJOR_VERSION: GLenum = 0x821B;
@@ -571,9 +597,13 @@ const GL_RGBA_FLOAT_MODE_ARB: GLenum = 0x8820;
 
 /// Whether upstream's `SDL_VIDEO_OPENGL` (desktop OpenGL) is built: not on
 /// Emscripten, where upstream builds OpenGL ES 2 only
-/// (`SDL_VIDEO_OPENGL_ES2`), and the `#ifdef SDL_VIDEO_OPENGL` parts of
-/// `SDL_video.c` take their OpenGL ES branch.
-const SDL_VIDEO_OPENGL: bool = cfg!(not(target_os = "emscripten"));
+/// (`SDL_VIDEO_OPENGL_ES2`), nor on UIKit (OpenGL ES 2 and 1), and the
+/// `#ifdef SDL_VIDEO_OPENGL` parts of `SDL_video.c` take their OpenGL ES
+/// branch.
+const SDL_VIDEO_OPENGL: bool = cfg!(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)));
 
 /// `SDL_GL_GetProcAddress()` keeping the error: `Err` when no driver can
 /// be asked, `Ok(None)` when the driver doesn't have the function.
@@ -728,7 +758,11 @@ pub fn gl_get_proc_address(proc_name: &str) -> Option<*const c_void> {
 /// there is no such function or EGL isn't in use. Translation of
 /// `SDL_EGL_GetProcAddress()`.
 pub fn egl_get_proc_address(proc_name: &str) -> Option<*const c_void> {
-    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
+    #[cfg(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    ))]
     {
         if !core::initialized() {
             // (SDL_UninitializedVideo())
@@ -740,7 +774,11 @@ pub fn egl_get_proc_address(proc_name: &str) -> Option<*const c_void> {
         }
         super::egl::get_proc_address_internal(proc_name).map(|p| p.as_ptr() as *const c_void)
     }
-    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
+    #[cfg(not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )))]
     {
         // (SDL_SetError("SDL was not built with EGL support"))
         let _ = proc_name;
@@ -893,8 +931,8 @@ pub fn gl_reset_attributes() {
         floatbuffers: 0,
         retained_backing: 1,
         accelerated: -1, // accelerated or not, both are fine
-        // (SDL_VIDEO_OPENGL: 2.1; SDL_VIDEO_OPENGL_ES2 alone, as on
-        // Emscripten: OpenGL ES 2.0)
+        // (SDL_VIDEO_OPENGL: 2.1; SDL_VIDEO_OPENGL_ES2 without it, as on
+        // Emscripten and UIKit: OpenGL ES 2.0)
         major_version: 2,
         minor_version: if SDL_VIDEO_OPENGL { 1 } else { 0 },
         profile_mask: if SDL_VIDEO_OPENGL {
@@ -1377,7 +1415,11 @@ pub fn gl_current_context() -> Result<Option<RawGlContext>> {
 
 /// The current EGL display. Translation of `SDL_EGL_GetCurrentDisplay()`.
 pub fn egl_current_display() -> Result<EglDisplay> {
-    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
+    #[cfg(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    ))]
     {
         if !core::initialized() {
             return Err(uninitialized_video());
@@ -1386,7 +1428,11 @@ pub fn egl_current_display() -> Result<EglDisplay> {
             .flatten()
             .ok_or_else(|| Error::new("There is no current EGL display"))
     }
-    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
+    #[cfg(not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )))]
     {
         Err(Error::new("SDL was not built with EGL support"))
     }
@@ -1395,14 +1441,22 @@ pub fn egl_current_display() -> Result<EglDisplay> {
 /// The current EGL config (`None` before one is chosen). Translation of
 /// `SDL_EGL_GetCurrentConfig()`.
 pub fn egl_current_config() -> Result<Option<EglConfig>> {
-    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
+    #[cfg(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    ))]
     {
         if !core::initialized() {
             return Err(uninitialized_video());
         }
         super::egl::current_config().ok_or_else(|| Error::new("There is no current EGL display"))
     }
-    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
+    #[cfg(not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )))]
     {
         Err(Error::new("SDL was not built with EGL support"))
     }
@@ -1411,7 +1465,11 @@ pub fn egl_current_config() -> Result<Option<EglConfig>> {
 /// The EGL surface of a window (`None` if it has none). Translation of
 /// `SDL_EGL_GetWindowSurface()`.
 pub fn egl_window_surface(window: &Window) -> Result<Option<EglSurface>> {
-    #[cfg(any(windows, all(unix, not(target_os = "emscripten"))))]
+    #[cfg(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    ))]
     {
         if !core::initialized() {
             return Err(uninitialized_video());
@@ -1423,7 +1481,11 @@ pub fn egl_window_surface(window: &Window) -> Result<Option<EglSurface>> {
             .gl_get_egl_surface(window.id())
             .and_then(EglSurface::from_ptr))
     }
-    #[cfg(not(any(windows, all(unix, not(target_os = "emscripten")))))]
+    #[cfg(not(any(
+        windows,
+        target_os = "macos",
+        all(unix, not(target_vendor = "apple"), not(target_os = "emscripten"))
+    )))]
     {
         let _ = window;
         Err(Error::new("SDL was not built with EGL support"))

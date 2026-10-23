@@ -287,7 +287,7 @@ pub fn default_key_from_scancode(scancode: Scancode, modstate: Keymod) -> Keycod
 
     if scancode < Scancode::N1 {
         let mut shifted = modstate.intersects(Keymod::SHIFT);
-        if cfg!(any(target_os = "macos", target_os = "ios")) {
+        if cfg!(target_vendor = "apple") {
             // Apple maps to upper case for either shift or capslock inclusive
             if modstate.intersects(Keymod::CAPS) {
                 shifted = true;
