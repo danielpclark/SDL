@@ -781,7 +781,7 @@ fn constants() {
 /// link); nothing is called.
 #[test]
 fn functions_link() {
-    let functions: [*const (); 47] = [
+    let functions: [*const (); 54] = [
         emscripten_set_main_loop as *const (),
         emscripten_set_main_loop_timing as *const (),
         emscripten_get_main_loop_timing as *const (),
@@ -793,6 +793,8 @@ fn functions_link() {
         emscripten_get_screen_size as *const (),
         emscripten_has_asyncify as *const (),
         emscripten_sleep as *const (),
+        emscripten_get_preloaded_image_data as *const (),
+        emscripten_get_preloaded_image_data_from_FILE as *const (),
         emscripten_set_timeout as *const (),
         emscripten_clear_timeout as *const (),
         emscripten_set_keypress_callback_on_thread as *const (),
@@ -829,6 +831,11 @@ fn functions_link() {
         emscripten_webgl_destroy_context as *const (),
         emscripten_webgl_get_proc_address as *const (),
         emscripten_compute_dom_pk_code as *const (),
+        dup as *const (),
+        close as *const (),
+        fdopen as *const (),
+        fclose as *const (),
+        free as *const (),
     ];
     assert!(std::hint::black_box(functions).iter().all(|f| !f.is_null()));
 }

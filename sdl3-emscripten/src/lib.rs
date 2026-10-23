@@ -4,7 +4,8 @@
 
 //! # sdl3-emscripten — the JavaScript side of the `sdl3` crate on Emscripten
 //!
-//! An internal crate: `sdl3` depends on it only when it's built for
+//! An internal crate: `sdl3` (and `sdl3-image`, for SDL_image's preloaded
+//! images) depends on it only when it's built for
 //! `wasm32-unknown-emscripten`, and on every other target it is empty. It
 //! holds what upstream SDL gets from `<emscripten.h>` and `<emscripten/html5.h>`,
 //! in pure Rust, with no `.js` file:
@@ -36,7 +37,9 @@
 //!   `misc/emscripten/SDL_sysurl.c`, [`video`] for
 //!   `video/emscripten/SDL_emscriptenvideo.c`, with [`video::events`],
 //!   [`video::framebuffer`] and [`video::mouse`] for its events,
-//!   framebuffer and mouse files).
+//!   framebuffer and mouse files), and [`image`] for what SDL_image's
+//!   `IMG.c` asks emscripten for (the images the browser decoded when their
+//!   files were preloaded).
 //!
 //! ## Why a crate of its own
 //!
@@ -79,6 +82,8 @@ pub mod audio;
 pub mod camera;
 #[cfg(target_os = "emscripten")]
 mod deps;
+#[cfg(target_os = "emscripten")]
+pub mod image;
 #[cfg(target_os = "emscripten")]
 pub mod joystick;
 #[cfg(target_os = "emscripten")]

@@ -20,3 +20,9 @@ path = "src/lib.rs"
 # library is linked or loaded.
 [dependencies]
 sdl3 = { path = "../sdl3", version = "3.5.0" }
+
+# On Emscripten, the images the browser decoded when their files were
+# preloaded (IMG.c's emscripten_get_preloaded_image_data() calls), through
+# sdl3's own Emscripten layer.
+[target.'cfg(target_os = "emscripten")'.dependencies]
+sdl3-emscripten = { path = "../sdl3-emscripten", version = "3.5.0" }

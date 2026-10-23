@@ -15,6 +15,9 @@
 //!   (or are told it, for the magicless TGA) and call the format's loader;
 //!   [`load_texture`] and friends upload the result to a renderer, and
 //!   [`load_gpu_texture`] and friends to a GPU texture through a copy pass.
+//!   On Emscripten, [`load`] and [`load_typed_io`] first take the image
+//!   the browser decoded when the file was preloaded (emcc's
+//!   `--preload-file` with `--use-preload-plugins`), as upstream's do.
 //! * Detection: an `is_*` function for every format SDL_image knows, each
 //!   leaving the stream where it was.
 //! * Decoders: AVIF (8, 10 and 12 bits, alpha, grids, HDR PQ images as
