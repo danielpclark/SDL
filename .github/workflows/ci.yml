@@ -401,9 +401,11 @@ jobs:
         run: |
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target aarch64-apple-ios-sim,aarch64-apple-ios
           rustup default "$RUST_TOOLCHAIN"
+      # (kept when the tests fail too: the build takes most of the job)
       - uses: Swatinem/rust-cache@v2
         with:
           key: ios
+          cache-on-failure: true
       # The simulator is created and booted here; it finishes booting (a
       # minute or two, on a new device) while the programs build, and the
       # runner waits for that before the first program runs.
@@ -430,11 +432,17 @@ jobs:
         run: |
           tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv"
           tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" aarch64-apple-ios-sim
-      - name: The simulator's log
+      # The failures again, out of the long log (the panics with what
+      # follows them, and libtest's lists), and the end of the simulator's
+      # log.
+      - name: The failed tests and the simulator's log
         if: failure() && env.SDL3_IOS_SIMULATOR != ''
+        shell: bash
         run: |
+          touch "$RUNNER_TEMP/test.log"
+          grep -E -A12 "panicked at|^failures:$|targets? failed|process didn't exit" "$RUNNER_TEMP/test.log" | cut -c1-400 | head -1500 || true
           ls -l ~/Library/Logs/DiagnosticReports || true
-          xcrun simctl spawn "$SDL3_IOS_SIMULATOR" log show --last 15m --style compact | tail -500
+          xcrun simctl spawn "$SDL3_IOS_SIMULATOR" log show --last 15m --style compact | tail -200 || true
 
   doc:
     name: rustdoc
