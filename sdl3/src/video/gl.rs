@@ -13,6 +13,12 @@
 //! time. The EGL contexts of the offscreen driver
 //! (`SDL_offscreenopengles.c`) aren't translated yet.
 //!
+//! On Emscripten it is upstream's Emscripten build instead, with OpenGL ES 2
+//! only (`SDL_VIDEO_OPENGL_ES2` without `SDL_VIDEO_OPENGL`): the
+//! attributes default to an OpenGL ES 2.0 context, the attributes desktop
+//! OpenGL has (double buffering, accumulation buffers, stereo) are the ones
+//! set, and the canvas driver's contexts are WebGL's.
+//!
 //! A [`GlContext`] is destroyed when dropped; functions are looked up with
 //! [`gl_get_proc_address`] once a library is loaded (by creating an
 //! [`OPENGL`](WindowFlags::OPENGL) window or with [`gl_load_library`]).
@@ -563,6 +569,12 @@ const GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_GL: GLint = 0x82FC;
 const GL_FRAMEBUFFER_SRGB: GLenum = 0x8DB9;
 const GL_RGBA_FLOAT_MODE_ARB: GLenum = 0x8820;
 
+/// Whether upstream's `SDL_VIDEO_OPENGL` (desktop OpenGL) is built: not on
+/// Emscripten, where upstream builds OpenGL ES 2 only
+/// (`SDL_VIDEO_OPENGL_ES2`), and the `#ifdef SDL_VIDEO_OPENGL` parts of
+/// `SDL_video.c` take their OpenGL ES branch.
+const SDL_VIDEO_OPENGL: bool = cfg!(not(target_os = "emscripten"));
+
 /// `SDL_GL_GetProcAddress()` keeping the error: `Err` when no driver can
 /// be asked, `Ok(None)` when the driver doesn't have the function.
 pub(crate) fn get_proc_address(proc_name: &str) -> Result<Option<NonNull<c_void>>> {
@@ -881,10 +893,15 @@ pub fn gl_reset_attributes() {
         floatbuffers: 0,
         retained_backing: 1,
         accelerated: -1, // accelerated or not, both are fine
-        // (SDL_VIDEO_OPENGL)
+        // (SDL_VIDEO_OPENGL: 2.1; SDL_VIDEO_OPENGL_ES2 alone, as on
+        // Emscripten: OpenGL ES 2.0)
         major_version: 2,
-        minor_version: 1,
-        profile_mask: 0,
+        minor_version: if SDL_VIDEO_OPENGL { 1 } else { 0 },
+        profile_mask: if SDL_VIDEO_OPENGL {
+            0
+        } else {
+            GL_CONTEXT_PROFILE_ES
+        },
         flags: 0,
         framebuffer_srgb_capable: 0,
         no_error: 0,
@@ -991,11 +1008,33 @@ enum AttrQuery {
 
 /// The query for an attribute (the `switch` of `SDL_GL_GetAttribute()`).
 fn attribute_query(attr: GlAttr, config: &GlConfig) -> AttrQuery {
+    // (the attachment queries are SDL_VIDEO_OPENGL's)
     let gl = |attrib, attachment, attachment_attrib| AttrQuery::Gl {
         attrib,
         attachment,
-        attachment_attrib,
+        attachment_attrib: if SDL_VIDEO_OPENGL {
+            attachment_attrib
+        } else {
+            0
+        },
     };
+    if !SDL_VIDEO_OPENGL {
+        match attr {
+            // OpenGL ES 1.0 and above specifications have EGL_SINGLE_BUFFER
+            // parameter which switches double buffer to single buffer. OpenGL ES
+            // SDL driver must set proper value after initialization
+            GlAttr::DoubleBuffer => return AttrQuery::Value(config.double_buffer),
+            GlAttr::AccumRedSize
+            | GlAttr::AccumGreenSize
+            | GlAttr::AccumBlueSize
+            | GlAttr::AccumAlphaSize
+            | GlAttr::Stereo => {
+                // none of these are supported in OpenGL ES
+                return AttrQuery::Value(0);
+            }
+            _ => {}
+        }
+    }
     match attr {
         GlAttr::RedSize => gl(
             GL_RED_BITS,
@@ -1094,18 +1133,27 @@ pub fn gl_get_attribute(attr: GlAttr) -> Result<i32> {
 
     let mut value: GLint = 0;
 
-    // SAFETY: glGetString's type.
-    let gl_get_string_func = unsafe { required_gl_function::<PfnGlGetString>("glGetString")? };
-
     /*
      * Some queries in Core Profile desktop OpenGL 3+ contexts require
      * glGetFramebufferAttachmentParameteriv instead of glGetIntegerv. Note that
      * the enums we use for the former function don't exist in OpenGL ES 2, and
      * the function itself doesn't exist prior to OpenGL 3 and OpenGL ES 2.
      */
-    if attachment_attrib != 0
-        && is_at_least_gl3(gl_get_string(gl_get_string_func, GL_VERSION).as_deref())
-    {
+    // (SDL_VIDEO_OPENGL's: without it, as on Emscripten, glGetString isn't
+    // looked up and attachment_attrib is 0)
+    let gl_get_string_func = if SDL_VIDEO_OPENGL {
+        // SAFETY: glGetString's type.
+        Some(unsafe { required_gl_function::<PfnGlGetString>("glGetString")? })
+    } else {
+        None
+    };
+    let attachment_query = match gl_get_string_func {
+        Some(gl_get_string_func) if attachment_attrib != 0 => {
+            is_at_least_gl3(gl_get_string(gl_get_string_func, GL_VERSION).as_deref())
+        }
+        _ => false,
+    };
+    if attachment_query {
         // glGetFramebufferAttachmentParameteriv needs to operate on the window framebuffer for this, so bind FBO 0 if necessary.
         let mut current_fbo: GLint = 0;
         // SAFETY: the functions' types.
@@ -1518,22 +1566,62 @@ mod tests {
             attribute_query(GlAttr::ContextMajorVersion, &config),
             AttrQuery::Value(3)
         );
-        assert_eq!(
-            attribute_query(GlAttr::DepthSize, &config),
-            AttrQuery::Gl {
-                attrib: 0x0D56,
-                attachment: 0x1801,
-                attachment_attrib: 0x8216
-            }
-        );
-        assert_eq!(
-            attribute_query(GlAttr::DoubleBuffer, &config),
-            AttrQuery::Gl {
-                attrib: 0x0C32,
-                attachment: 0x0402,
-                attachment_attrib: 0
-            }
-        );
+        if SDL_VIDEO_OPENGL {
+            assert_eq!(
+                attribute_query(GlAttr::DepthSize, &config),
+                AttrQuery::Gl {
+                    attrib: 0x0D56,
+                    attachment: 0x1801,
+                    attachment_attrib: 0x8216
+                }
+            );
+            assert_eq!(
+                attribute_query(GlAttr::DoubleBuffer, &config),
+                AttrQuery::Gl {
+                    attrib: 0x0C32,
+                    attachment: 0x0402,
+                    attachment_attrib: 0
+                }
+            );
+            assert_eq!(
+                attribute_query(GlAttr::Stereo, &config),
+                AttrQuery::Gl {
+                    attrib: 0x0C33,
+                    attachment: 0x0402,
+                    attachment_attrib: 0
+                }
+            );
+        } else {
+            // (OpenGL ES 2 only: no attachment queries; the double buffer
+            // is the attribute's value, the accumulation buffers and stereo
+            // 0)
+            assert_eq!(
+                attribute_query(GlAttr::DepthSize, &config),
+                AttrQuery::Gl {
+                    attrib: 0x0D56,
+                    attachment: 0x1801,
+                    attachment_attrib: 0
+                }
+            );
+            let config = GlConfig {
+                double_buffer: 1,
+                stereo: 1,
+                accum_red_size: 8,
+                ..config.clone()
+            };
+            assert_eq!(
+                attribute_query(GlAttr::DoubleBuffer, &config),
+                AttrQuery::Value(1)
+            );
+            assert_eq!(
+                attribute_query(GlAttr::Stereo, &config),
+                AttrQuery::Value(0)
+            );
+            assert_eq!(
+                attribute_query(GlAttr::AccumRedSize, &config),
+                AttrQuery::Value(0)
+            );
+        }
         assert_eq!(
             attribute_query(GlAttr::FloatBuffers, &config),
             AttrQuery::Unavailable
