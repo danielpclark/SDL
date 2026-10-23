@@ -93,6 +93,16 @@ pub(super) fn get_performance_frequency() -> u64 {
 /// `emscripten_sleep()`, in whole milliseconds, which returns to the
 /// browser's event loop meanwhile (so timers fire and the page stays
 /// responsive). Otherwise emscripten's `nanosleep()` waits busily.
+///
+/// Note (upstream): with JSPI only what JavaScript called through
+/// `WebAssembly.promising` can suspend (`main`, which emscripten wraps), so
+/// a delay in the main callbacks' iterations (emscripten's main loop calls
+/// them), in a timer's callback or in an event handler throws a
+/// `SuspendError`, as upstream's does; so do the window framebuffer's
+/// updates, buffer swaps and message boxes, which sleep the same way. The
+/// hint false keeps them from sleeping. With Asyncify they can sleep, but
+/// Rust's WebAssembly exceptions, which Asyncify doesn't fully support,
+/// break a sleep while a panic unwinds (in a `Drop`).
 pub(super) fn sys_delay_ns(ns: u64) {
     #[cfg(target_os = "emscripten")]
     {
