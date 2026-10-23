@@ -732,6 +732,68 @@ too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
 window target replaced) fail there or break what follows.
 
+## iOS Simulator
+
+The workspace's tests also run built for the arm64 iOS Simulator
+(`aarch64-apple-ios-sim`), on a Mac with Xcode and an iOS Simulator
+runtime: `.cargo/config.toml` makes `tools/ios_run.py` (Python's standard
+library only) the runner, which picks or makes the simulated device,
+boots it, and runs each test program (and doctest) on it:
+
+```sh
+rustup target add aarch64-apple-ios-sim
+# (optional: boot the simulator while the tests build; the runner waits
+# for its boot to finish before the first program runs)
+export SDL3_IOS_SIMULATOR=$(tools/ios_run.py --boot)
+cargo test --workspace --target aarch64-apple-ios-sim
+```
+
+The simulator is `SDL3_IOS_SIMULATOR`'s (a UDID or a device name), else a
+booted iPhone or iPad simulator, else `sdl3-TYPE-RUNTIME`, which the
+runner creates: of `SDL3_IOS_DEVICE_TYPE` on `SDL3_IOS_RUNTIME`
+(identifiers or names, as `xcrun simctl list` prints them; by default the
+iPhone 16 on the newest iOS runtime). A new device takes a minute or two
+to boot the first time.
+
+A test program runs as a process of the simulated device (`xcrun simctl
+spawn`), with the runner's stdin, stdout and stderr and its exit status.
+It sees the simulator's system (its frameworks, no GPU but the
+simulator's Metal device, no MoltenVK, no camera, sensors or battery),
+runs in the device's data directory (HOME and TMPDIR are there too), and
+reads and writes the host's files by their paths: test data is read
+through `env!("CARGO_MANIFEST_DIR")`, and a test that needs the package's
+directory as its working directory (as Cargo gives it) changes to it
+there (TiMidity's). Only the variables `SDL3_*`, `SDL_*`, `RUST_*` and
+`RUSTC_BOOTSTRAP` reach it (simctl passes `SIMCTL_CHILD_NAME` as `NAME`;
+set that for any other), so `SDL3_TEST_REQUIRE`, `SDL3_TEST_SKIP_LOG` and
+the hints work as elsewhere, and the runner sets `SDL_ASSERT=abort` unless
+it's set, so a failed assertion ends the program rather than waiting for
+an answer on the terminal. The simulator's PATH is the runtime's own `bin`
+directories, which have no shell: the process tests start the host's
+`/bin/sh` and `/bin/sleep` by their paths there.
+
+A program that has to be an app (UIKit's `UIApplicationMain()` can't start
+in a spawned process) asks the runner for it: a section
+`__DATA,__sdl3_runner` holding the word `app` (a
+`#[used] #[link_section = "__DATA,__sdl3_runner"]` static, as
+`sdl3/tests/ios_runner.rs` has). The runner puts it in an app bundle (an
+`Info.plist` with a launch screen and every orientation, ad-hoc signed),
+installs it, launches it with `xcrun simctl launch --console-pty`, copies
+its output and uninstalls it. simctl doesn't give an app's exit status, so
+the program prints `sdl3-ios-runner: exit N` last, then exits with N;
+without that line (a crash, a panic in a callback, an app still running
+after `SDL3_IOS_TIMEOUT` seconds, 900 by default) the run fails with the
+device's log for the program. `tools/ios_run.py --bundle PROGRAM OUT.app`
+writes the same bundle for a program of your own (`SDL3_IOS_BUNDLE_ID` and
+`SDL3_IOS_CODESIGN` set its identifier and signing identity; a device
+needs a real identity and a provisioning profile, which the runner doesn't
+handle: it doesn't run programs built for devices).
+
+What the simulator can't do is ignored or skipped there: the GPU API has
+no backend that starts on it (its Metal device is of the Apple2 family,
+below what upstream's Metal backend asks for, and there's no MoltenVK), so
+the Vulkan and GPU tests skip `vulkan`.
+
 ## CI
 
 The ubuntu test jobs install the packages above, start the private
@@ -758,7 +820,14 @@ macOS clippy job also lints the x86-64 build for Intel Macs, and the
 Linux one the Emscripten and iOS builds (the device, the arm64 Simulator
 and the x86-64 one: no SDK is needed to lint, nor to check iOS with the
 minimum supported Rust in the Linux test job and its documentation in the
-rustdoc job); iOS isn't linked or run yet. The
+rustdoc job). The iOS job, on the macOS 15 runner with Xcode 16.4 and its
+iOS 18.5 runtime, runs the tests on an iPhone 16 simulator as
+[above](#ios-simulator) (booted by `tools/ios_run.py --boot` while the
+programs build), links the device build without running it, and makes its
+skip log from the notes the programs print (`tools/ci/skips_from_log.py`,
+as the Emscripten job does: the apps can't write the file); a manual run
+of the workflow can run that job alone (`ios_only`) and pass it other
+`cargo test` arguments (`ios_test_args`). The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,

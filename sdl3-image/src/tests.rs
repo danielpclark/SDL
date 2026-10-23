@@ -1560,7 +1560,10 @@ fn saving_through_files_and_types() {
     for ext in [
         "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "webp", "avif", "BMP",
     ] {
-        let path = tmp.join(format!("out.{ext}"));
+        // (each its own file: out.bmp and out.BMP are one on a
+        // case-insensitive file system, where the iOS Simulator won't open
+        // it again under the other name, EEXIST)
+        let path = tmp.join(format!("out-{ext}.{ext}"));
         crate::save(&mut surface, &path).unwrap();
         let back = crate::load(&path).unwrap();
         assert_eq!((back.width(), back.height()), (w, h), "{ext}");
