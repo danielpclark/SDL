@@ -305,9 +305,19 @@ rustflags = [
 The test programs also have `-sMAXIMUM_MEMORY=4GB`, `-sEXIT_RUNTIME=1` (the
 exit status passed on) and `-sNODE_HOST_ENV=1` (node's environment seen by
 `getenv()`). Other options, as an application needs them:
-`-sASYNCIFY` or `-sJSPI`, with which `delay()` sleeps with
-`emscripten_sleep()`, back in the browser's event loop (without, it waits
-busily, as upstream's); `-sMAIN_MODULE`, for `dlopen()`; and
+`-sASYNCIFY` or `-sJSPI`, with which `delay()` (and so `wait_timeout()`)
+sleeps with `emscripten_sleep()`, back in the browser's event loop, the
+message boxes are a `<dialog>` they wait on, and window surface updates
+and buffer swaps give the browser its turn (without, `delay()` waits
+busily and a message box is an `alert()`, as upstream's; the
+`SDL_HINT_EMSCRIPTEN_ASYNCIFY` hint false does the same). With Asyncify,
+raise its data stack: the 4 KB default is too small for the message box
+(`-sASYNCIFY_STACK_SIZE=65536`); and since Rust unwinds with WebAssembly
+exceptions, which Asyncify doesn't fully support (emcc warns), nothing
+may sleep while a panic unwinds (in a `Drop`). With JSPI (Chrome 137 and
+later; not node 22) only `main` can sleep: in the main callbacks, timers
+and event handlers a sleep throws a `SuspendError`, as upstream's does,
+so turn the hint off there. `-sMAIN_MODULE`, for `dlopen()`; and
 `--preload-file` with `--use-preload-plugins`, which put files in the
 program's file system with the images among them decoded by the browser,
 which `sdl3_image::load()` takes. The OpenGL ES 2 renderer and OpenGL ES
@@ -325,23 +335,31 @@ programs that ask for a browser, or for any program with
 `SDL3_EMSCRIPTEN_BROWSER=1` (`0` keeps them under node). The browser
 programs (`sdl3/tests/emscripten_browser.rs`, `emscripten_video.rs`,
 `emscripten_events.rs`, `emscripten_gl.rs`, `emscripten_audio.rs`,
-`emscripten_joystick.rs`, `emscripten_camera.rs` and
+`emscripten_joystick.rs`, `emscripten_camera.rs`, the Asyncify and
+JSPI builds' `emscripten_asyncify.rs` and `emscripten_jspi.rs`, the
+IndexedDB storage's `emscripten_persistent_path.rs`, and
 `sdl3-image/tests/emscripten_preload.rs`) check each backend against
-upstream's C run on the same page:
+upstream's C run on the same page. (Cargo has no link options per test
+program: the linker in `.cargo/config.toml`, `tools/emscripten_link.py`,
+runs emcc with the options a program asks for in a custom section
+`sdl3_link`, as the Asyncify and JSPI programs do.)
 
 ```sh
 CARGO_PROFILE_DEV_OPT_LEVEL=1 cargo test --workspace --target wasm32-unknown-emscripten
 SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser,webgl,webaudio CHROME=/path/to/chrome \
   cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser \
   --test emscripten_video --test emscripten_events --test emscripten_gl \
-  --test emscripten_audio --test emscripten_joystick --test emscripten_camera
+  --test emscripten_audio --test emscripten_joystick --test emscripten_camera \
+  --test emscripten_asyncify --test emscripten_jspi
+SDL_EMSCRIPTEN_PERSISTENT_PATH=/persistent SDL3_EMSCRIPTEN_BROWSER=1 CHROME=/path/to/chrome \
+  cargo test -p sdl3 --target wasm32-unknown-emscripten \
+  --features emscripten-persistent-path --test emscripten_persistent_path
 ```
 
 See "Emscripten" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md)
 for what is ignored under node and what each browser program checks. Not
 done yet: a build with threads (emscripten's pthreads, which need the
-standard library built with atomics), and tests of an Asyncify or JSPI
-build and of the IndexedDB storage in a browser; see
+standard library built with atomics); see
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Using it

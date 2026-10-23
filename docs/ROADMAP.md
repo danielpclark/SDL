@@ -178,15 +178,22 @@ file descriptor, which stands in for upstream's `FILE *`), checked under
 node with stand-in canvases and in headless Chromium through emscripten's
 own image plugin by `sdl3-image/tests/emscripten_preload.rs`, against
 upstream's C on the same page; and SDL_net's stub library (the other
-satellites have no Emscripten code). Not done yet: the build with threads
+satellites have no Emscripten code). The builds with Asyncify and JSPI
+are **tested** (`delay()`'s `emscripten_sleep()`, with the timers, events
+and `setTimeout()`s it lets run, the `<dialog>` message boxes, the
+framebuffer updates and buffer swaps that sleep with it, the main
+callbacks; and `SDL_HINT_EMSCRIPTEN_ASYNCIFY`), in headless Chromium and
+under node (Asyncify), by `sdl3/tests/emscripten_asyncify.rs` and
+`emscripten_jspi.rs` against upstream's C linked the same way, linked
+with their own options through `tools/emscripten_link.py` (the target's
+linker, which adds the options a program asks for in a custom section);
+so is the IndexedDB storage of `SDL_RunApp()` and the pref paths in it,
+in the browser across a reload of the page, by
+`emscripten_persistent_path.rs`. Not done yet: the build with threads
 (emscripten's pthreads, which need the standard library rebuilt with
 atomics and shared memory; with them upstream's paths for threads, the
 `MAIN_THREAD_EM_ASM` blocks run on the main thread for the others, and
-the tests now ignored for want of a thread), and tests of what the test
-programs aren't linked for: an Asyncify or JSPI build (`delay()`'s
-`emscripten_sleep()`, and the message boxes, framebuffer updates and
-buffer swaps that sleep with it) and the IndexedDB storage in a browser
-(node has no IndexedDB).
+the tests now ignored for want of a thread).
 
 ## Phase 5 — Satellite libraries (same approach, each its own crate)
 
