@@ -376,7 +376,12 @@ joystick driver is unavailable there too; its tests stand in a
 `navigator.getGamepads()` of their own and call the driver's
 `gamepadconnected` and `gamepaddisconnected` callbacks as emscripten's
 handlers would, replaying upstream's C trace of
-`emscripten_joystick.rs`.) Where
+`emscripten_joystick.rs`. Node's `navigator` has no `mediaDevices`, so
+the Emscripten camera driver starts there with no camera; its tests
+stand in a `navigator.mediaDevices` whose `getUserMedia()` records the
+constraints and never answers, and call the driver's callbacks by name
+as its JavaScript would, with a stand-in 2D context for the frames.)
+Where
 SDL has no SIMD blitters, as on wasm32, sdl3-image's reference results
 of the frames composited with them are upstream's without them
 (`sdl3-image/src/testdata/reference_nosimd.txt`). The skip log, which
@@ -612,6 +617,32 @@ and initializing again. Under node it skips as `browser`;
 --target wasm32-unknown-emscripten --test emscripten_joystick` runs it as
 CI does.
 
+`sdl3/tests/emscripten_camera.rs` (`harness = false`) checks the
+`getUserMedia()` camera driver (`camera/emscripten/SDL_camera_emscripten.c`)
+there, as a trace of steps against upstream's C trace of the same steps
+on the same page, its driver patched as the translation fixes it.
+Chrome's fake camera draws a moving picture whose pixels and timing
+depend on the browser, so most steps use stand-ins: a `getUserMedia()`
+that records the constraints and whose answer the program gives (a
+stream with the settings it chooses, or an error), a "video" element
+that is a canvas with known pixels (whose `loadedmetadata` the program
+fires), and a clock (`performance.now()` and `Date.now()`) that stands
+still unless the program moves it, so the frames' pixels, which display
+frame takes them and their timestamps are exact. The steps: the one
+camera without formats; a denial; a 4×2 stream at 25 fps, its frames
+byte for byte, timestamped with SDL's ticks; the loop's pacing as the
+clock moves (frames due, skipped and not yet due) and a full queue; closing
+(the track stopped, the loop ended); a requested format and size,
+scaled and converted; a frame rate without a size, a fractional one and
+none; closing while the browser asks; the browser's fake camera through
+the real `getUserMedia()` (only what doesn't depend on the browser: the
+format is the stream's, three frames of its size, opaque, not all black,
+their timestamps increasing; its track stopped on close); and quitting
+and initializing again. Under node it skips as `browser`;
+`SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser cargo test -p sdl3
+--target wasm32-unknown-emscripten --test emscripten_camera` runs it as
+CI does.
+
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
@@ -643,8 +674,8 @@ macOS clippy job also lints the x86-64 build for Intel Macs. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
-`emscripten_gl`, `emscripten_audio`, `emscripten_joystick`) in the runner
-image's Chrome
+`emscripten_gl`, `emscripten_audio`, `emscripten_joystick`,
+`emscripten_camera`) in the runner image's Chrome
 (`/usr/bin/google-chrome`)
 as [above](#emscripten-browser), requiring `browser`, `webgl` and
 `webaudio`. Every job lists its skips in the job summary
