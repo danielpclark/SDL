@@ -380,7 +380,11 @@ handlers would, replaying upstream's C trace of
 the Emscripten camera driver starts there with no camera; its tests
 stand in a `navigator.mediaDevices` whose `getUserMedia()` records the
 constraints and never answers, and call the driver's callbacks by name
-as its JavaScript would, with a stand-in 2D context for the frames.)
+as its JavaScript would, with a stand-in 2D context for the frames.
+Nor does node decode images, so SDL_image's preloaded images are stand-in
+canvases there, in `Browser.preloadedImages` as emscripten's image plugin
+keeps them: `sdl3-image/tests/emscripten_preload.rs` and
+`sdl3-emscripten/tests/image.rs`.)
 Where
 SDL has no SIMD blitters, as on wasm32, sdl3-image's reference results
 of the frames composited with them are upstream's without them
@@ -643,6 +647,26 @@ and initializing again. Under node it skips as `browser`;
 --target wasm32-unknown-emscripten --test emscripten_camera` runs it as
 CI does.
 
+`sdl3-image/tests/emscripten_preload.rs` (`harness = false`) checks
+SDL_image's preloaded images (`IMG.c`: `IMG_Load()` and
+`IMG_LoadTyped_IO()` take the image the browser decoded when the file was
+preloaded), as two traces of steps against upstream's C SDL_image (built
+with emcc over upstream's C SDL) on the same page. The first, under node
+too, puts stand-in canvases in `Browser.preloadedImages`: loading by
+absolute and relative paths, a preloaded path without a file, a preloaded
+file that is no image (through its stream's descriptor, with a type, and
+not through a memory stream of the same bytes), an empty canvas, and a
+file that wasn't preloaded. The second, in the browser only, preloads a
+PNG and a 24-bit BMP of a known opaque image, and a PNG without its file,
+through emscripten's `FS.preloadFile()` as its file packager does for
+`--preload-file` with `--use-preload-plugins`, so that the browser
+decodes them into canvases; their pixels must be the image's exactly,
+from the path and from a stream, and still after the file is
+overwritten. Under node the second skips as `browser`;
+`SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser cargo test -p
+sdl3-image --target wasm32-unknown-emscripten --test emscripten_preload`
+runs it as CI does.
+
 `SDL3_EMSCRIPTEN_BROWSER=1` runs any other test program in the browser
 too, but the ones written for node expect node: the stubs of the power,
 URL and sensor tests (no Battery Status API, no `window`, emscripten's
@@ -675,7 +699,8 @@ Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
 `emscripten_gl`, `emscripten_audio`, `emscripten_joystick`,
-`emscripten_camera`) in the runner image's Chrome
+`emscripten_camera`, and sdl3-image's `emscripten_preload`) in the runner
+image's Chrome
 (`/usr/bin/google-chrome`)
 as [above](#emscripten-browser), requiring `browser`, `webgl` and
 `webaudio`. Every job lists its skips in the job summary
