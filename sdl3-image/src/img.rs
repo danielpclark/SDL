@@ -14,6 +14,10 @@ use sdl3::io::{IoStream, IoWhence};
 use sdl3::render::{Renderer, Texture};
 use sdl3::stdlib::string::strcasecmp;
 use sdl3::video::{FlipMode, Surface};
+#[cfg(target_os = "emscripten")]
+use sdl3::{io::PROP_IOSTREAM_FILE_DESCRIPTOR_NUMBER, video::PixelFormat};
+#[cfg(target_os = "emscripten")]
+use sdl3_emscripten::image::PreloadedImage;
 
 use crate::{MAJOR_VERSION, MICRO_VERSION, MINOR_VERSION};
 
@@ -125,6 +129,23 @@ pub const fn version() -> sdl3::Version {
     crate::VERSION
 }
 
+/// A surface of the pixels the browser decoded when the file was preloaded
+/// (emscripten's `--preload-file` with `--use-preload-plugins`): RGBA32,
+/// as upstream's `IMG_Load()` and `IMG_LoadTyped_IO()` make it on
+/// Emscripten.
+#[cfg(target_os = "emscripten")]
+fn surface_from_preloaded(data: PreloadedImage) -> Result<Surface<'static>> {
+    let mut surf = Surface::new(data.width(), data.height(), PixelFormat::RGBA32);
+    if let Ok(surf) = &mut surf {
+        if let Some(pixels) = surf.pixels_mut() {
+            let rgba = data.pixels();
+            pixels[..rgba.len()].copy_from_slice(rgba);
+        }
+    }
+    drop(data); /* This should NOT be SDL_free() */
+    surf
+}
+
 /// The extension of a file name: what follows its last `.` (upstream's
 /// `SDL_strrchr(file, '.') + 1`, so a dot in a directory name counts too).
 fn file_extension(file: &Path) -> Option<String> {
@@ -135,11 +156,21 @@ fn file_extension(file: &Path) -> Option<String> {
 /// Load an image from a file. The format is detected from the contents,
 /// or for a magicless format (TGA) taken from the file's extension.
 /// Translation of `IMG_Load()`.
+///
+/// On Emscripten, an image the browser decoded when the file was preloaded
+/// (emcc's `--preload-file` with `--use-preload-plugins`) is taken
+/// instead, as an RGBA32 surface, even if the file is gone.
 pub fn load(file: impl AsRef<Path>) -> Result<Surface<'static>> {
     let file = file.as_ref();
-    // (On Emscripten, upstream first takes the browser's decoding of a
-    // preloaded file, emscripten_get_preloaded_image_data(); the Emscripten
-    // port's PR 13 translates it.)
+    #[cfg(target_os = "emscripten")]
+    {
+        // (a path with a NUL in it is none emscripten preloaded)
+        let path = std::ffi::CString::new(file.as_os_str().as_encoded_bytes());
+        if let Some(data) = path.ok().as_deref().and_then(PreloadedImage::of_path) {
+            return surface_from_preloaded(data);
+        }
+    }
+
     let mut src = IoStream::from_file(file, "rb")?;
     /* The error message has been set in SDL_IOFromFile */
 
@@ -157,14 +188,35 @@ pub fn load_io(src: &mut IoStream<'_>) -> Result<Surface<'static>> {
 /// file extension such as `"TGA"`, compared without case). Formats with a
 /// magic number are detected whatever `type_` says; `type_` only selects
 /// the magicless ones. Translation of `IMG_LoadTyped_IO()`.
+///
+/// On Emscripten, for a stream on a file (one with a file descriptor) that
+/// was preloaded with the browser decoding it, that image is taken
+/// instead, as [`load`] does.
 pub fn load_typed_io(src: &mut IoStream<'_>, type_: Option<&str>) -> Result<Surface<'static>> {
-    // Note (upstream): on Emscripten, upstream first tries
-    // emscripten_get_preloaded_image_data_from_FILE() on the stream's stdio
-    // FILE *; an IoStream here has none.
-
     /* See whether or not this data source can handle seeking */
     if src.seek(0, IoWhence::Cur).is_err() {
         return Err(Error::new("Can't seek in this data source"));
+    }
+
+    #[cfg(target_os = "emscripten")]
+    {
+        /*load through preloadedImages*/
+        // Upstream asks with the stdio FILE * of its file streams
+        // (SDL_PROP_IOSTREAM_STDIO_FILE_POINTER); a file stream here has the
+        // descriptor instead, which upstream's has too
+        // (SDL_PROP_IOSTREAM_FILE_DESCRIPTOR_NUMBER, its FILE *'s), and
+        // emscripten finds the image by the descriptor's path either way.
+        let fd = src
+            .properties()
+            .ok()
+            .and_then(|props| props.get_number(PROP_IOSTREAM_FILE_DESCRIPTOR_NUMBER));
+        if let Some(data) = fd
+            .and_then(|fd| i32::try_from(fd).ok())
+            .and_then(PreloadedImage::of_fd)
+        {
+            /* If SDL_CreateSurface returns NULL, it has set the error message for us */
+            return surface_from_preloaded(data);
+        }
     }
 
     /* Detect the type of image being loaded */

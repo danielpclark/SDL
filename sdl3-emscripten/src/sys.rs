@@ -1,6 +1,6 @@
 // Declarations of <emscripten/emscripten.h>, <emscripten/eventloop.h>,
 // <emscripten/html5.h>, <emscripten/html5_webgl.h> and <emscripten/dom_pk_codes.h>
-// (emscripten 6.0.13), as Simple DirectMedia Layer uses them.
+// (emscripten 6.0.13), as Simple DirectMedia Layer and SDL_image use them.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -13,6 +13,8 @@
 //! `emscripten_compute_dom_pk_code` (C, in emscripten's `libhtml5`) and the
 //! `emscripten_webgl_*` context functions (C wrappers in its `libGL`), from
 //! the system libraries emscripten links into every program, as its libc.
+//! The few functions of that libc that SDL_image's preloaded images need
+//! (a stdio stream over a descriptor, and `free()`) are declared here too.
 //!
 //! As in C, an event callback is set with its `_on_thread` function: the
 //! `emscripten_set_*_callback` names are macros in `html5.h` that pass
@@ -70,6 +72,10 @@ pub type em_arg_callback_func = Option<unsafe extern "C-unwind" fn(arg: *mut c_v
 /// `pthread_t` (a pointer), here only to name the thread an event callback
 /// runs on.
 pub type pthread_t = usize;
+
+/// `FILE` (`<stdio.h>`): opaque, only pointed to.
+#[derive(Debug)]
+pub enum FILE {}
 
 // ---------------------------------------------------------------------------
 // emscripten.h
@@ -845,6 +851,25 @@ extern "C" {
     pub fn emscripten_get_screen_size(width: *mut c_int, height: *mut c_int);
     pub fn emscripten_has_asyncify() -> c_int;
     pub fn emscripten_sleep(ms: c_uint);
+    /// The pixels of the image the browser decoded when the file `path`
+    /// (resolved against the current directory) was preloaded with
+    /// emscripten's image plugin (emcc's `--preload-file` with
+    /// `--use-preload-plugins`, or `FS.preloadFile()`): `*w` × `*h` RGBA
+    /// pixels, `*w * *h * 4` bytes allocated with `malloc()`, which the
+    /// caller frees with [`free`]. Null (and `*w`, `*h` untouched) if it
+    /// wasn't.
+    pub fn emscripten_get_preloaded_image_data(
+        path: *const c_char,
+        w: *mut c_int,
+        h: *mut c_int,
+    ) -> *mut c_char;
+    /// The same for the file `file` is open on (the path of its
+    /// descriptor).
+    pub fn emscripten_get_preloaded_image_data_from_FILE(
+        file: *mut FILE,
+        w: *mut c_int,
+        h: *mut c_int,
+    ) -> *mut c_char;
 
     // eventloop.h
     pub fn emscripten_set_timeout(
@@ -1017,4 +1042,12 @@ extern "C" {
 
     // dom_pk_codes.h
     pub fn emscripten_compute_dom_pk_code(keyCodeString: *const c_char) -> DOM_PK_CODE_TYPE;
+
+    // emscripten's libc (unistd.h, stdio.h, stdlib.h), for the preloaded
+    // images: a stdio stream over a descriptor, and their pixels' free()
+    pub fn dup(fd: c_int) -> c_int;
+    pub fn close(fd: c_int) -> c_int;
+    pub fn fdopen(fd: c_int, mode: *const c_char) -> *mut FILE;
+    pub fn fclose(stream: *mut FILE) -> c_int;
+    pub fn free(ptr: *mut c_void);
 }

@@ -1,6 +1,6 @@
 [package]
 name = "sdl3-emscripten"
-description = "Internal to the sdl3 crate: its JavaScript for Emscripten (EM_JS, EM_ASM and the html5.h declarations), in pure Rust. No C code."
+description = "Internal to the sdl3 crates: their JavaScript for Emscripten (EM_JS, EM_ASM and the html5.h declarations), in pure Rust. No C code."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
