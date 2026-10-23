@@ -25,14 +25,18 @@
 //!
 //! The camera backends are platform drivers: on Linux, V4L2 and PipeWire
 //! (in that order, as upstream); on macOS, CoreMedia (AVFoundation); on
-//! Windows, Media Foundation; elsewhere, so far, only the dummy driver, which reports no cameras and is used
-//! only when requested with [`hints::CAMERA_DRIVER`]. Without a platform
-//! driver, initializing the camera subsystem fails with "No available
-//! camera driver", as upstream does on a platform without camera support.
+//! Windows, Media Foundation; on Emscripten, the browser's camera
+//! (`getUserMedia()`); elsewhere, so far, only the dummy driver, which
+//! reports no cameras and is used only when requested with
+//! [`hints::CAMERA_DRIVER`]. Without a platform driver, initializing the
+//! camera subsystem fails with "No available camera driver", as upstream
+//! does on a platform without camera support.
 
 #[cfg(target_os = "macos")]
 mod coremedia;
 mod dummy;
+#[cfg(target_os = "emscripten")]
+mod emscripten;
 #[cfg(windows)]
 mod mediafoundation;
 #[cfg(target_os = "linux")]
@@ -197,9 +201,10 @@ static BOOTSTRAP: &[&CameraBootStrap] = &[
     &pipewire::PIPEWIRECAMERA_BOOTSTRAP,
     #[cfg(target_os = "macos")]
     &coremedia::COREMEDIA_BOOTSTRAP,
+    #[cfg(target_os = "emscripten")]
+    &emscripten::EMSCRIPTENCAMERA_BOOTSTRAP,
     #[cfg(windows)]
     &mediafoundation::MEDIAFOUNDATION_BOOTSTRAP,
-    // (Emscripten: dummy only, until the Emscripten port's PR 12)
     &dummy::DUMMYCAMERA_BOOTSTRAP,
 ];
 
