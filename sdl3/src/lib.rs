@@ -28,6 +28,22 @@
 //! pure-Rust OS declarations of `libc` and `windows-sys`. See `docs/ROADMAP.md` in the repository
 //! for what is translated so far and the plan for the rest of SDL and its
 //! satellite libraries.
+//!
+//! ## Platforms
+//!
+//! Linux, Windows and macOS, each with its system's backends, and
+//! Emscripten (`wasm32-unknown-emscripten`), configured as upstream's
+//! Emscripten build is: single-threaded, with the browser's APIs as the
+//! backends (a `<canvas>` video driver with the page's DOM events and WebGL
+//! contexts, Web Audio, the Gamepad API, `getUserMedia()` cameras, the
+//! Battery Status API, `navigator.languages`, `devicemotion` sensors), and
+//! upstream's JavaScript in the internal `sdl3-emscripten` crate. There the
+//! main callbacks ([`app::enter_app_main_callbacks`], which returns at once)
+//! and the timers run from the browser's event loop once `main` has
+//! returned, threads can't be created, and an application passes its own
+//! link options (`-sALLOW_MEMORY_GROWTH=1`, a larger `-sSTACK_SIZE`,
+//! `-sMAX_WEBGL_VERSION=2` for OpenGL ES 3.0 contexts): see "Emscripten" in
+//! the repository's README.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_debug_implementations)]

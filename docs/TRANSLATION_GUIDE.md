@@ -102,7 +102,10 @@ Upstream's `EM_ASM`/`EM_JS` blocks become Rust macros of the internal
   `_Emscripten_HandlePointerEnter`) is declared with `em_js_callback!`
   and registered when its subsystem initializes, not exported.
 * The C API (`html5.h`, `emscripten.h`) is in `sdl3_emscripten::sys`;
-  add what a backend needs there, with its layout test.
+  add what a backend needs there, with its layout test. A satellite crate
+  without `unsafe` (`sdl3-image`) calls it through a safe wrapper there,
+  in the module named after the upstream file (`sdl3_emscripten::image`
+  for `IMG.c`).
 * A Rust function the event loop calls (a main loop iteration, a
   timeout, an `html5.h` event callback, a function JavaScript calls by
   name) is `extern "C-unwind"`: `exit()` there (C's, or Rust's

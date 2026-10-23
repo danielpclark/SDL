@@ -65,7 +65,11 @@
 //! contexts, are the ones `.cargo/config.toml` gives the test programs.
 //! The WebGL contexts' functions, `html5_webgl.h`'s and the GL ones
 //! `emscripten_webgl_get_proc_address()` finds, are in emscripten's `libGL`,
-//! which it links into every program.)
+//! which it links into every program. An application may add `-sASYNCIFY`
+//! or `-sJSPI`, with which SDL's delays sleep in the browser's event loop
+//! (`emscripten_sleep()`), and `--preload-file` with `--use-preload-plugins`
+//! for the images [`image`] finds; see "Emscripten" in the repository's
+//! README.)
 
 #![no_std]
 // Everywhere but on Emscripten the crate is empty, and its documentation
