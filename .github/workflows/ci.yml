@@ -287,19 +287,20 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      # (the programs that ask for a browser, emscripten_browser, run in
-      # the runner image's Chrome here too)
+      # (the programs that ask for a browser, emscripten_browser and
+      # emscripten_video, run in the runner image's Chrome here too)
       - name: cargo test --workspace --target wasm32-unknown-emscripten
         shell: bash
         run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
       # The paths that need a browser (the Battery Status API, window.open(),
-      # devicemotion events) and the WebGL and Web Audio probes, in the
-      # runner image's Chrome, headless, which must have them.
-      - name: cargo test -p sdl3 --test emscripten_browser (headless Chrome)
+      # devicemotion events, the canvas video driver) and the WebGL and Web
+      # Audio probes, in the runner image's Chrome, headless, which must
+      # have them.
+      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video (headless Chrome)
         shell: bash
         run: |
           "$CHROME" --version
-          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser 2>&1 | tee "$RUNNER_TEMP/browser.log"
+          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video 2>&1 | tee "$RUNNER_TEMP/browser.log"
         env:
           SDL3_EMSCRIPTEN_BROWSER: 1
           SDL3_TEST_REQUIRE: browser,webgl,webaudio

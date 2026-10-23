@@ -128,6 +128,13 @@ harness = false
 name = "emscripten_browser"
 harness = false
 
+# The Emscripten canvas video driver (canvas windows, the framebuffer,
+# cursors, fullscreen, pointer lock, the system theme) in headless Chromium:
+# a program that asks tools/emscripten_run.py for the browser.
+[[test]]
+name = "emscripten_video"
+harness = false
+
 # SDL_RunApp()'s persistent storage (IDBFS); built with the path in
 # SDL_EMSCRIPTEN_PERSISTENT_PATH (see the file).
 [[test]]
