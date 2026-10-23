@@ -49,6 +49,13 @@
 //! (upstream) in `sdl3_emscripten::video::events`). The trace is of that
 //! patched behaviour.
 //!
+//! The steps' pointer input is theirs: the browser's own pointer and mouse
+//! events (trusted ones, which the steps don't send but for the click)
+//! are kept from the page, in the C's run as here. Browsers make them as
+//! they please: headless Chromium 141 moves its pointer to the page's
+//! corner when the canvas goes fullscreen and back, and the old headless
+//! mode when the page starts; CI's Chrome 155 doesn't.
+//!
 //! Each step prints a libtest-like `test NAME ... ok` line (with both
 //! traces when they differ); under node everything skips as `browser`.
 //! `SDL3_EMSCRIPTEN_BROWSER=1 SDL3_TEST_REQUIRE=browser cargo test -p sdl3
@@ -473,6 +480,9 @@ mod events {
                         window(0).set_fullscreen(true).is_ok() as i32
                     ));
                     state("before the click");
+                    // (the browser's own pointer events are kept from the
+                    // page, but for the click's)
+                    js_run("Module.sdl3t.blocking = false;");
                     trusted_click();
                     next(l, Phase::Click);
                 }
@@ -481,13 +491,16 @@ mod events {
                 if now - l.since > Duration::from_millis(1000) {
                     state("after the click");
                     drain();
+                    js_run("Module.sdl3t.blocking = true;");
                     out("== trusted_key");
                     trusted_key();
                     next(l, Phase::Key);
                 }
             }
             Phase::Key => {
-                if fullscreen() || late {
+                // (fullscreen, and the key let go: the runner's keyUp comes
+                // when it comes)
+                if (fullscreen() && !keyboard::is_pressed(Scancode::A)) || late {
                     state("after the key");
                     drain();
                     out("== leave_fullscreen");
@@ -521,6 +534,10 @@ mod events {
                     ));
                     drain();
                     init::quit();
+                    println!(
+                        "(the browser's own pointer events kept from the page: {})",
+                        js("Module.sdl3t.blocked")
+                    );
                     out(&format!(
                         "quit: [{}] mouseup={} lockkeys={}",
                         js("Module.sdl3t.handlers()"),
@@ -671,7 +688,10 @@ mod events {
     /// The page's helpers (`Module.sdl3t`, `T` in the steps): key presses
     /// as a browser makes them (`keydown`, `keypress` unless prevented,
     /// `keyup`), pointer, wheel and drag events at a position in an
-    /// element, html5.h's handlers by event type, `/tmp/filedrop`.
+    /// element, html5.h's handlers by event type, `/tmp/filedrop`; and
+    /// `T.blocking` (on but for the trusted click), which keeps the
+    /// browser's own (trusted) pointer and mouse events from the page,
+    /// counting them in `T.blocked`.
     const PRELUDE: &str = r#"var T = Module.sdl3t = {};
 T.target = function(sel) { return sel === 'document' ? document : sel === 'window' ? window : document.querySelector(sel); };
 T.at = function(sel, o) { var t = T.target(sel); var r = t.getBoundingClientRect ? t.getBoundingClientRect() : { left: 0, top: 0 }; return [r.left + ((o && o.x) || 0), r.top + ((o && o.y) || 0)]; };
@@ -709,6 +729,11 @@ T.fire = function(sel, e) { return T.done(e, T.target(sel).dispatchEvent(e)); };
 T.all = function(list) { return list.join(', '); };
 T.handlers = function() { return JSEvents.eventHandlers.map(function(h) { return h.eventTypeString; }).join(' '); };
 T.filedrop = function() { return FS.analyzePath('/tmp/filedrop').exists; };
+T.blocking = true;
+T.blocked = 0;
+for (var t of ['pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'pointerup', 'pointercancel', 'pointerout', 'pointerleave', 'mouseover', 'mouseenter', 'mousemove', 'mousedown', 'mouseup', 'mouseout', 'mouseleave']) {
+  window.addEventListener(t, function(e) { if (T.blocking && e.isTrusted) { T.blocked++; e.stopImmediatePropagation(); } }, true);
+}
 "#;
 
     /// The steps (the C reference's, the same text).
@@ -1154,7 +1179,6 @@ window 0x206 {SW} {SH} w1
 window 0x207 {SW} {SH} w1
 window 0x215 0 0 w1
 key 0x300 sc=4 key=0x61 mod=0x0 down=1 repeat=0 w1
-motion which=0 state=0x0 x=0.0000 y=0.0000 xrel=-60.0000 yrel=-40.0000 w1
 key 0x301 sc=4 key=0x61 mod=0x0 down=0 repeat=0 w1
 window 0x217 0 0 w1
 window 0x205 0 0 w1
@@ -1163,13 +1187,13 @@ leave: 1
 left: deferred=0 fullscreen=0 element=null
 window 0x218 0 0 w1
 window 0x205 {CX} {CY} w1
-window 0x20d 0 0 w1
 window 0x206 320 200 w1
 window 0x207 320 200 w1
 window 0x215 0 0 w1
 == two_windows
 dom: focus blur pointerlockchange webkitfullscreenchange fullscreenchange resize wheel change visibilitychange beforeunload wheel change keydown keyup keypress visibilitychange beforeunload
 mod=0x0 focus=w2 kbd=w2
+window 0x20d 0 0 w1
 window 0x20c 0 0 w2
 window 0x20f 0 0 w1
 window 0x20e 0 0 w2
