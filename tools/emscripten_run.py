@@ -27,7 +27,15 @@ this script
   runtime has exited (`Module.onExit`). As under node, an `exit()` while the
   runtime is kept alive (a main loop, a pending timer) ends the run only
   once nothing keeps it alive any more; an uncaught exception or an abort
-  ends it with 1.
+  ends it with 1;
+* sends the page the trusted input it asks for: what the browser's APIs
+  only allow in response to the user (the Fullscreen and Pointer Lock APIs
+  want a "user activation", which synthetic events don't give). The page
+  calls `sdl3RunnerReport(JSON.stringify(['input', [METHOD, PARAMS]]))`,
+  and this script sends the DevTools protocol's `Input.METHOD` with PARAMS
+  (`dispatchKeyEvent`, `dispatchMouseEvent`, `dispatchTouchEvent` or
+  `insertText` only), as the browser does for a real key press or click,
+  once the page's code is back in its event loop.
 
 Environment:
   SDL3_EMSCRIPTEN_BROWSER  1: run in the browser; 0: under node; unset or
@@ -125,6 +133,10 @@ var Module = (() => {{
 </html>
 """
 SHELL_PATH = "/__sdl3_runner__.html"
+
+# The DevTools protocol's Input methods a page may ask for (the trusted
+# input of the docstring).
+TRUSTED_INPUT = ("dispatchKeyEvent", "dispatchMouseEvent", "dispatchTouchEvent", "insertText")
 
 CHROME_FLAGS = [
     "--headless=new",
@@ -487,6 +499,12 @@ def drive(browser, url, config, timeout):
                 return int(value) & 0xFF
             if what == "abort":
                 aborted = time.monotonic()
+            if what == "input":
+                input_method, input_params = value
+                if input_method not in TRUSTED_INPUT:
+                    note(f"the page asked for Input.{input_method}, which isn't input")
+                    return 1
+                devtools.call(f"Input.{input_method}", input_params, session)
         elif method == "Runtime.exceptionThrown":
             details = params.get("exceptionDetails", {})
             class_name = (details.get("exception") or {}).get("className")
