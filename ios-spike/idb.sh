@@ -11,8 +11,10 @@ s=$(t)
 brew tap facebook/fb > /dev/null 2>&1; brew install facebook/fb/idb-companion 2>&1 | tail -5
 if ! command -v idb_companion; then
   X26=$(ls -d /Applications/Xcode_26*.app | grep -vi beta | sort -V | tail -1)
-  echo "retrying the install with DEVELOPER_DIR=$X26"
-  DEVELOPER_DIR="$X26/Contents/Developer" brew install facebook/fb/idb-companion 2>&1 | tail -5
+  CUR=$(xcode-select -p)
+  echo "retrying the install with $X26 selected, then switching back to $CUR"
+  sudo xcode-select -s "$X26" && brew install facebook/fb/idb-companion 2>&1 | tail -5
+  sudo xcode-select -s "$CUR"; xcodebuild -version
 fi
 python3 -m venv "$RUNNER_TEMP/idbenv" && "$RUNNER_TEMP/idbenv/bin/pip" install -q fb-idb 2>&1 | tail -3
 python3 -c "import time;print('idb install elapsed %.1fs' % (time.time()-$s))"

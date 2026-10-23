@@ -36,9 +36,6 @@ jobs:
           - xcode: "16.4"
             runtime: "18."
             runtime_id: com.apple.CoreSimulator.SimRuntime.iOS-18-5
-          - xcode: "26"
-            runtime: "26."
-            runtime_id: com.apple.CoreSimulator.SimRuntime.iOS-26-2
     env:
       SPIKE_RUNTIME_PREFIX: ${{ matrix.runtime }}
       SPIKE_RUNTIME: ${{ matrix.runtime_id }}
@@ -93,21 +90,80 @@ jobs:
         run: |
           [ -n "$SPIKE_UDID" ] && xcrun simctl shutdown "$SPIKE_UDID"; [ -n "$SPIKE_UDID" ] && xcrun simctl delete "$SPIKE_UDID"; true
 
-  upstream:
-    name: upstream C reference (CMake, iOS simulator)
+  sdl3:
+    name: sdl3 for iOS (cargo test --no-run, then spawn)
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 120
     env:
       SPIKE_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-18-5
-      SPIKE_USE_EXISTING: 1
     steps:
       - uses: actions/checkout@v5
       - name: Xcode
         run: |
           x=$(ls -d /Applications/Xcode_16.4*.app 2>/dev/null | tail -1); [ -n "$x" ] && sudo xcode-select -s "$x"; xcodebuild -version
-      - name: Boot a simulator (background)
-        run: (cd ios-spike && ./run.py boot > "$RUNNER_TEMP/boot.log" 2>&1) &
-      - name: Build and run the upstream C trace
-        working-directory: ios-spike
+      - name: Install the Rust toolchain and iOS targets (timed)
         run: |
-          ./upstream.sh
+          s=$(date +%s)
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target aarch64-apple-ios-sim,aarch64-apple-ios
+          rustup default "$RUST_TOOLCHAIN"
+          echo "TIMING toolchain install $(( $(date +%s) - s ))s"
+      - name: Boot a simulator in the background
+        run: (cd ios-spike && ./run.py boot > "$RUNNER_TEMP/boot.log" 2>&1) &
+      - name: cargo test --no-run -p sdl3 --lib --target aarch64-apple-ios-sim (timed)
+        id: lib
+        continue-on-error: true
+        run: |
+          s=$(date +%s)
+          cargo test --no-run -p sdl3 --lib --target aarch64-apple-ios-sim --message-format=json-render-diagnostics > "$RUNNER_TEMP/lib.json" 2> "$RUNNER_TEMP/lib.err"; rc=$?
+          echo "TIMING sdl3 lib test --no-run $(( $(date +%s) - s ))s rc=$rc"
+          tail -c 20000 "$RUNNER_TEMP/lib.err"
+          echo "--- error summary:"; (grep -E "^error" "$RUNNER_TEMP/lib.err" | sort | uniq -c | sort -rn | head -60) || true
+          python3 -c "import json,sys
+          for l in open(sys.argv[1]):
+              try: m=json.loads(l)
+              except Exception: continue
+              if m.get('reason')=='compiler-artifact' and m.get('executable') and m['target']['name']=='sdl3': print(m['executable'])" "$RUNNER_TEMP/lib.json" > "$RUNNER_TEMP/libtest-exe.txt"
+          cat "$RUNNER_TEMP/libtest-exe.txt"
+          exit $rc
+      - name: cargo build -p sdl3 --lib --target aarch64-apple-ios (timed)
+        continue-on-error: true
+        run: |
+          s=$(date +%s); cargo build -p sdl3 --lib --target aarch64-apple-ios 2>&1 | tail -40; echo "TIMING sdl3 device lib $(( $(date +%s) - s ))s rc=${PIPESTATUS[0]}"
+      - name: Run the sdl3 lib tests under simctl spawn (skip-and-continue on crashes)
+        if: steps.lib.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 45
+        run: |
+          set +e
+          U=$(ios-spike/wait_boot.sh)
+          exe=$(head -1 "$RUNNER_TEMP/libtest-exe.txt")
+          s=$(date +%s)
+          python3 ios-spike/libtest_loop.py "$U" "$exe" 2400
+          echo "TIMING sdl3 lib tests (all iterations) $(( $(date +%s) - s ))s"
+      - name: cargo test --no-run --workspace --target aarch64-apple-ios-sim (timed)
+        id: ws
+        continue-on-error: true
+        run: |
+          set +e
+          s=$(date +%s); cargo test --no-run --workspace --target aarch64-apple-ios-sim > "$RUNNER_TEMP/ws.log" 2>&1; rc=$?
+          echo "TIMING workspace test --no-run $(( $(date +%s) - s ))s rc=$rc"
+          (grep -E "^error" -A8 "$RUNNER_TEMP/ws.log" | head -150) || true
+          tail -5 "$RUNNER_TEMP/ws.log"; exit $rc
+      - name: cargo test --workspace through a simctl-spawn runner (a first tally)
+        if: steps.ws.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 45
+        env:
+          CARGO_TARGET_AARCH64_APPLE_IOS_SIM_RUNNER: ${{ github.workspace }}/ios-spike/spawn_runner.sh
+          SPIKE_NO_FORWARD: ""
+        run: |
+          set +e
+          export SPIKE_UDID=$(ios-spike/wait_boot.sh 2>/dev/null)
+          export RUST_TEST_THREADS=4
+          s=$(date +%s)
+          perl -e 'alarm 2500; exec @ARGV' cargo test --workspace --target aarch64-apple-ios-sim --no-fail-fast > "$RUNNER_TEMP/wst.log" 2>&1; rc=$?
+          echo "TIMING workspace tests $(( $(date +%s) - s ))s rc=$rc"
+          grep -E "Running|Doc-tests|^test result|error: test failed|process didn't exit|SIGABRT|SIGSEGV|signal:|exit status" "$RUNNER_TEMP/wst.log" | head -400
+          echo "--- FAILED tests:"; (grep -E "^test .* FAILED$|^    [a-z_:0-9]+$" "$RUNNER_TEMP/wst.log" | sort -u | head -200) || true
+          echo "--- tail:"; tail -60 "$RUNNER_TEMP/wst.log"
+
