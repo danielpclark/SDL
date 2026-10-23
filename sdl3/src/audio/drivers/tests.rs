@@ -17,6 +17,8 @@ pub(crate) const EXPECTED_DRIVERS: &[&str] = &[
     "wasapi",
     #[cfg(target_os = "macos")]
     "coreaudio",
+    #[cfg(target_os = "emscripten")]
+    "emscripten",
     "disk",
     "dummy",
 ];
@@ -33,6 +35,8 @@ const NON_DEMAND_ONLY: &[&str] = &[
     "wasapi",
     #[cfg(target_os = "macos")]
     "coreaudio",
+    #[cfg(target_os = "emscripten")]
+    "emscripten",
 ];
 
 /// Shuts audio down (and resets the driver hints) when dropped, so a

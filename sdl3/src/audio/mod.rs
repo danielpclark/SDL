@@ -51,10 +51,19 @@
 //!
 //! The platform drivers are tried in upstream's order ([`audio_driver`]
 //! lists them): on Linux "pipewire", "pulseaudio" and "alsa", on Windows
-//! "wasapi". The Linux ones load their system library at run time, so a
-//! missing library or sound server just moves on to the next driver. "disk" and "dummy" are only used when requested with the
-//! [`AUDIO_DRIVER`](crate::hints::AUDIO_DRIVER) hint (which may name
-//! several drivers, separated by commas, to try in turn).
+//! "wasapi", on macOS "coreaudio", on Emscripten "emscripten" (Web Audio,
+//! unavailable without an `AudioContext`, as under node). The Linux ones
+//! load their system library at run time, so a missing library or sound
+//! server just moves on to the next driver. "disk" and "dummy" are only
+//! used when requested with the [`AUDIO_DRIVER`](crate::hints::AUDIO_DRIVER)
+//! hint (which may name several drivers, separated by commas, to try in
+//! turn).
+//!
+//! On Emscripten there are no threads: the Web Audio driver's devices run
+//! from the browser's event loop (the nodes' `onaudioprocess` events, as
+//! upstream's), and the dummy driver's from a timer there, so nothing
+//! plays or records while the program's own code runs; the disk driver,
+//! which needs a device thread, can't open a device (as upstream's).
 
 mod channel_converters;
 mod convert;

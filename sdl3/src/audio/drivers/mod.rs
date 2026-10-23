@@ -10,6 +10,8 @@ pub(crate) mod alsa;
 pub(crate) mod coreaudio;
 pub(crate) mod disk;
 pub(crate) mod dummy;
+#[cfg(target_os = "emscripten")]
+pub(crate) mod emscripten;
 #[cfg(target_os = "linux")]
 pub(crate) mod pipewire;
 #[cfg(target_os = "linux")]
