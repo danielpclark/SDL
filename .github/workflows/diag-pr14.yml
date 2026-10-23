@@ -1,0 +1,69 @@
+name: diag-pr14
+
+on:
+  push:
+    branches: [claude/diag-pr14]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  RUST_TEST_NOCAPTURE: 1
+
+jobs:
+  emscripten:
+    name: Asyncify, JSPI and IDBFS programs in the runner image's Chrome
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EMSDK_VERSION: "6.0.13"
+      CARGO_PROFILE_DEV_OPT_LEVEL: 1
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99"
+          targets: wasm32-unknown-emscripten
+      - uses: mymindstorm/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: emsdk-cache
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: versions
+        run: |
+          /usr/bin/google-chrome --version
+          node --version
+          emcc --version | head -1
+      - name: under node
+        shell: bash
+        run: |
+          SDL3_EMSCRIPTEN_BROWSER=0 cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_asyncify --test emscripten_jspi
+      - name: in Chrome, 5 times
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "=== run $i"
+            cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_asyncify --test emscripten_jspi || exit 1
+          done
+        env:
+          SDL3_EMSCRIPTEN_BROWSER: 1
+          SDL3_TEST_REQUIRE: browser,webgl,webaudio
+          CHROME: /usr/bin/google-chrome
+      - name: persistent path in Chrome, 5 times, and under node
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "=== run $i"
+            cargo test -p sdl3 --target wasm32-unknown-emscripten --features emscripten-persistent-path --test emscripten_persistent_path || exit 1
+          done
+          SDL3_EMSCRIPTEN_BROWSER=0 cargo test -p sdl3 --target wasm32-unknown-emscripten --features emscripten-persistent-path --test emscripten_persistent_path
+        env:
+          SDL_EMSCRIPTEN_PERSISTENT_PATH: /persistent
+          SDL3_EMSCRIPTEN_BROWSER: 1
+          CHROME: /usr/bin/google-chrome
