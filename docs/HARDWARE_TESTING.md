@@ -754,7 +754,11 @@ check on Windows, those render-state checks on macOS, and the OpenGL and
 OpenGL ES 2 renderers' checks on the offscreen driver, which has no EGL
 on either. What else a hosted runner offers (audio endpoints, GameInput,
 a camera) isn't guaranteed, so nothing more is required. The
-macOS clippy job also lints the x86-64 build for Intel Macs. The
+macOS clippy job also lints the x86-64 build for Intel Macs, and the
+Linux one the Emscripten and iOS builds (the device, the arm64 Simulator
+and the x86-64 one: no SDK is needed to lint, nor to check iOS with the
+minimum supported Rust in the Linux test job and its documentation in the
+rustdoc job); iOS isn't linked or run yet. The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
 with emsdk and emcc's sysroot libraries cached, and the browser programs
 (`emscripten_browser`, `emscripten_video`, `emscripten_events`,
