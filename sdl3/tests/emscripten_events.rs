@@ -54,7 +54,10 @@
 //! are kept from the page, in the C's run as here. Browsers make them as
 //! they please: headless Chromium 141 moves its pointer to the page's
 //! corner when the canvas goes fullscreen and back, and the old headless
-//! mode when the page starts; CI's Chrome 155 doesn't.
+//! mode when the page starts; CI's Chrome 155 doesn't. Likewise the
+//! `fullscreenchange` of the trusted key press races the key's release
+//! (it comes before or after it): in `trusted_key` the release is compared
+//! last (in both traces), the rest in order.
 //!
 //! Each step prints a libtest-like `test NAME ... ok` line (with both
 //! traces when they differ); under node everything skips as `browser`.
@@ -607,10 +610,38 @@ mod events {
             .replace("{CY}", &((ih - 200) / 2).to_string())
     }
 
+    /// A step's lines as compared: in `trusted_key` the key's release
+    /// goes last. The runner sends the key press and its release one after
+    /// the other, and the browser's `fullscreenchange` (the window's
+    /// `SDL_EVENT_WINDOW_ENTER_FULLSCREEN` and `SDL_EVENT_WINDOW_MOVED`),
+    /// which the press started, comes in between or after, as the browser
+    /// pleases: it is a race (CI's Chrome 155 has given both orders; headless
+    /// Chromium 141 so far gives it after). Everything else keeps its order.
+    fn compared(name: &str, body: &str) -> String {
+        if name != "trusted_key" {
+            return body.to_owned();
+        }
+        let (released, rest): (Vec<&str>, Vec<&str>) =
+            body.lines().partition(|l| l.starts_with("key 0x301 "));
+        rest.iter()
+            .chain(&released)
+            .map(|l| format!("{l}\n"))
+            .collect()
+    }
+
     fn finish() -> ! {
         let trace = TRACE.lock().unwrap().clone();
-        let expected = sections(&expected());
-        let actual = sections(&trace);
+        let normalize = |sections: Vec<(String, String)>| -> Vec<(String, String)> {
+            sections
+                .into_iter()
+                .map(|(name, body)| {
+                    let body = compared(&name, &body);
+                    (name, body)
+                })
+                .collect()
+        };
+        let expected = normalize(sections(&expected()));
+        let actual = normalize(sections(&trace));
         if std::env::var_os("SDL3_TEST_TRACE").is_some() {
             println!("{trace}");
         }
