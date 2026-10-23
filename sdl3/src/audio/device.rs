@@ -220,8 +220,8 @@ static BOOTSTRAP: &[&AudioBootStrap] = &[
     &drivers::wasapi::WASAPI_BOOTSTRAP,
     #[cfg(target_os = "macos")]
     &drivers::coreaudio::COREAUDIO_BOOTSTRAP,
-    // (Emscripten: disk and dummy only, until the Emscripten port's PR 10
-    // translates its Web Audio driver)
+    #[cfg(target_os = "emscripten")]
+    &drivers::emscripten::EMSCRIPTENAUDIO_BOOTSTRAP,
     &drivers::disk::DISKAUDIO_BOOTSTRAP,
     &drivers::dummy::DUMMYAUDIO_BOOTSTRAP,
 ];
@@ -1352,7 +1352,7 @@ pub(crate) fn quit_audio() {
 }
 
 /// Translation of `SDL_AudioThreadFinalize()`.
-fn audio_thread_finalize(_device: &PhysicalDevice) {}
+pub(crate) fn audio_thread_finalize(_device: &PhysicalDevice) {}
 
 /// Translation of `MixFloat32Audio()`: `SDL_MixAudio()` of float32 data at
 /// full volume (`dst = clamp(src * 1.0 + dst, -1, 1)`).
