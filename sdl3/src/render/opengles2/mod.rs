@@ -1347,6 +1347,22 @@ impl Gles2Renderer {
 
         let gl = Gles2Funcs::load()?;
 
+        // (the OPENGLES_300 shaders need the OpenGL ES 3.0 context asked
+        // for: on Emscripten a program linked without WebGL 2,
+        // -sMAX_WEBGL_VERSION=2, gets a WebGL 1 context, OpenGL ES 2.0, for
+        // it, where GL_MAJOR_VERSION is an invalid enum, whose error is
+        // cleared; emscripten's glGetString() keeps the first context's
+        // GL_VERSION for all of them)
+        let opengles_300 = opengles_300 && {
+            let major = gl.get_integer(GL_MAJOR_VERSION);
+            for _ in 0..8 {
+                if gl.get_error() == GL_NO_ERROR {
+                    break;
+                }
+            }
+            major >= 3
+        };
+
         let mut data = Gles2Renderer {
             window,
             context: Some(context),
