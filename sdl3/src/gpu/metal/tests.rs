@@ -24,6 +24,7 @@ use super::shaders::*;
 use super::sys::*;
 use super::tables::*;
 use super::*;
+use crate::core::apple::foundation::available;
 use crate::gpu::{
     BlendFactor, BlendOp, BlitRegion, Buffer, BufferCreateInfo, ColorTargetDescription, CompareOp,
     CullMode, Device, Filter, GraphicsPipeline, GraphicsPipelineTargetInfo, LoadOp, PrimitiveType,
@@ -127,8 +128,8 @@ fn helpers() {
     assert!(is_valid_metal_library(b"MTLB...."));
     assert!(!is_valid_metal_library(b"MTL"));
     assert!(!is_valid_metal_library(b"\x03\x02\x23\x07"));
-    assert!(available(10, 15));
-    assert!(!available(999, 0));
+    assert!(available!(macos(10, 15)));
+    assert!(!available!(macos(999, 0)));
 }
 
 #[test]

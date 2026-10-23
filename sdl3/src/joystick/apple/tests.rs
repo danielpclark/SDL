@@ -325,7 +325,7 @@ fn driver_starts_and_quits() {
         count
     };
     println!("MFi controllers: {count}");
-    assert!(lock_state().connect_observer.get() != NIL || !macos_at_least(11, 0, 0));
+    assert!(lock_state().connect_observer.get() != NIL || !available!(macos(11, 0)));
     crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
     assert!(lock_state().devices.is_empty());
     assert!(lock_state().connect_observer.is_nil());

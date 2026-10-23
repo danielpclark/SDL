@@ -32,7 +32,7 @@ use super::resources::{MetalTexture, TextureContainer, TextureContainerState};
 use super::sys::*;
 use super::tables::*;
 use super::{lock, MetalRenderer};
-use crate::core::apple::foundation::CGSize;
+use crate::core::apple::foundation::{available, CGSize};
 use crate::core::apple::objc::{msg_send, Bool, Id, StrongPtr, NIL};
 use crate::error::{Error, Result};
 use crate::gpu::sysgpu::{BackendObject, BackendSwapchainTexture, MAX_FRAMES_IN_FLIGHT};
@@ -102,7 +102,7 @@ impl MetalRenderer {
         _window: Window,
         swapchain_composition: SwapchainComposition,
     ) -> bool {
-        if available(11, 0) {
+        if available!(macos(11, 0)) {
             true
         } else {
             swapchain_composition != SwapchainComposition::Hdr10St2084
@@ -121,7 +121,7 @@ impl MetalRenderer {
         // created and released around its use.
         unsafe {
             // (SDL_PLATFORM_MACOS)
-            if available(10, 13) {
+            if available!(macos(10, 13)) {
                 let _: () = msg_send![layer, setDisplaySyncEnabled: Bool::from(present_mode != PresentMode::Immediate)];
                 window_data.present_mode = present_mode;
             }

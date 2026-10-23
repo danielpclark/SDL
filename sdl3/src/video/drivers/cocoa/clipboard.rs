@@ -13,7 +13,9 @@ use std::sync::{Arc, OnceLock};
 
 use super::sys::*;
 use super::VideoData;
-use crate::core::apple::foundation::{cf_string, ns_array_items, ns_string, CFStringRef, CfRef};
+use crate::core::apple::foundation::{
+    available, cf_string, ns_array_items, ns_string, CFStringRef, CfRef,
+};
 use crate::core::apple::objc::{
     autoreleasepool, class, imp, ivar_ptr, msg_send, msg_send_super, sel, Bool, Class,
     ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr,
@@ -149,7 +151,7 @@ fn get_mime_types() -> Vec<String> {
         for item in ns_array_items(items) {
             let types: Id = msg_send![item, types];
             for ty in ns_array_items(types) {
-                if macos_available(11, 0) && uniform_type_identifiers().is_some() {
+                if available!(macos(11, 0)) && uniform_type_identifiers().is_some() {
                     let uttype: Id = msg_send![class!(UTType), typeWithIdentifier: ty];
                     let mime_type: Id = if uttype.is_null() {
                         std::ptr::null_mut()

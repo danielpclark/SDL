@@ -139,8 +139,7 @@ fn channel_layouts() {
     );
     assert!(channel_layout(0, true).is_err());
     // Every macOS this builds for has the WAVE layouts.
-    assert!(macos_at_least(10, 15));
-    assert!(!macos_at_least(999, 0));
+    assert!(crate::core::apple::foundation::available!(macos(10, 15)));
 }
 
 #[test]

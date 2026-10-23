@@ -20,14 +20,17 @@ use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::events::{encoding, get_event_timestamp, ns_app, BOOL_ENC};
+use super::events::{get_event_timestamp, ns_app};
 use super::sys::*;
 use super::{mouse, pen, video_data, VideoData};
 use crate::core::apple::block::{run_on_main_async, RcBlock};
-use crate::core::apple::foundation::{ns_array_items, ns_string, NSPoint, NSRect, NSSize};
+use crate::core::apple::foundation::{
+    available, ns_array_items, ns_string, NSPoint, NSRect, NSSize,
+};
 use crate::core::apple::objc::{
-    autoreleasepool, class, imp, is_kind_of, ivar_ptr, msg_send, msg_send_super, sel, Bool, Class,
-    ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, NIL, NO, YES,
+    autoreleasepool, class, encoding, imp, is_kind_of, ivar_ptr, msg_send, msg_send_super, sel,
+    Bool, Class, ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, BOOL_ENC,
+    NIL, NO, YES,
 };
 use crate::error::{Error, Result};
 use crate::events::mouse::{
@@ -2734,7 +2737,7 @@ extern "C" fn listener_mouse_moved(this: Id, _sel: Sel, the_event: Id) {
     // to time when mouse leaves/enters a window and/or focus changes, too. The global mouse position query
     // is still correct, so we'll fall back to that until this is fixed by Apple. Mouse button events are
     // interestingly not affected.
-    if macos_available(26, 0) {
+    if available!(macos(26, 0)) {
         // do for all windows for now, not just fullscreen spaces. And hopefully remove this code entirely soon.
         //if ([_data.listener isInFullscreenSpace]) {
         let (posx, posy) = Window::from_raw(window).position().unwrap_or((0, 0));
@@ -4314,7 +4317,7 @@ pub(crate) fn set_window_fullscreen(
 
             // Update the safe area insets
             // The view never seems to reflect the safe area, so we'll use the screen instead
-            if macos_available(12, 0) {
+            if available!(macos(12, 0)) {
                 if fullscreen {
                     let screen: Id = msg_send![nswindow, screen];
                     let insets: NSEdgeInsets = if screen.is_null() {

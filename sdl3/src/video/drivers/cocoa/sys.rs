@@ -20,7 +20,7 @@ use crate::core::apple::foundation::{
     CFArrayRef, CFDataRef, CFDictionaryKeyCallBacks, CFDictionaryRef, CFStringRef, CFTypeRef,
     CGPoint, CGRect,
 };
-use crate::core::apple::objc::{class, msg_send, Id, NSInteger, NSUInteger};
+use crate::core::apple::objc::{Id, NSInteger, NSUInteger};
 
 // ---------------------------------------------------------------------------
 // AppKit
@@ -240,33 +240,6 @@ unsafe extern "C" {
     pub(crate) static NSURLIsAliasFileKey: Id;
     pub(crate) static NSDefaultRunLoopMode: Id;
     pub(crate) static NSRunLoopCommonModes: Id;
-}
-
-/// `NSOperatingSystemVersion`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct NSOperatingSystemVersion {
-    pub(crate) major: NSInteger,
-    pub(crate) minor: NSInteger,
-    pub(crate) patch: NSInteger,
-}
-
-/// `@available(macOS major.minor, *)`
-/// (`-[NSProcessInfo isOperatingSystemAtLeastVersion:]`).
-pub(crate) fn macos_available(major: NSInteger, minor: NSInteger) -> bool {
-    let version = NSOperatingSystemVersion {
-        major,
-        minor,
-        patch: 0,
-    };
-    // SAFETY: NSProcessInfo's class method and an instance method taking the
-    // version structure by value.
-    unsafe {
-        let info: Id = msg_send![class!(NSProcessInfo), processInfo];
-        let r: crate::core::apple::objc::Bool =
-            msg_send![info, isOperatingSystemAtLeastVersion: version];
-        r.is_true()
-    }
 }
 
 /// `NSAppKitVersionNumber`.

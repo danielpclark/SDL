@@ -176,6 +176,24 @@ impl RcBlock {
         Self::with_invoke(f, invoke::<A, B, C, R, F> as *const c_void)
     }
 
+    /// `^(A a, B b, C c, D d) { f(a, b, c, d); }`.
+    pub(crate) fn new4<A, B, C, D, R, F>(f: F) -> RcBlock
+    where
+        F: Fn(A, B, C, D) -> R + Send + Sync + 'static,
+    {
+        unsafe extern "C" fn invoke<A, B, C, D, R, F: Fn(A, B, C, D) -> R>(
+            block: *mut BlockLayout,
+            a: A,
+            b: B,
+            c: C,
+            d: D,
+        ) -> R {
+            // SAFETY: as in new0.
+            unsafe { (*((*block).closure as *const F))(a, b, c, d) }
+        }
+        Self::with_invoke(f, invoke::<A, B, C, D, R, F> as *const c_void)
+    }
+
     /// The block, to pass where an Objective-C or C API takes one.
     pub(crate) fn as_ptr(&self) -> *mut c_void {
         self.0
@@ -333,6 +351,28 @@ mod tests {
         assert_eq!(DROPS.load(Ordering::SeqCst), 0);
         drop(b2);
         assert_eq!(DROPS.load(Ordering::SeqCst), 1);
+    }
+
+    /// A four-argument block (GCKeyboard's `keyChangedHandler` takes a
+    /// keyboard, a key, a key code and a pressed flag), called through the
+    /// block ABI with arguments of different sizes.
+    #[test]
+    fn four_argument_blocks() {
+        let b = RcBlock::new4(|a: *mut c_void, b: *mut c_void, c: isize, d: bool| -> i64 {
+            (a as i64) * 1000 + (b as i64) * 100 + c as i64 * 10 + d as i64
+        });
+        let r = unsafe {
+            let layout = b.as_ptr() as *const BlockLayout;
+            let f: unsafe extern "C" fn(
+                *const BlockLayout,
+                *mut c_void,
+                *mut c_void,
+                isize,
+                bool,
+            ) -> i64 = std::mem::transmute((*layout).invoke);
+            f(layout, 4 as *mut c_void, 3 as *mut c_void, 2, true)
+        };
+        assert_eq!(r, 4321);
     }
 
     #[test]

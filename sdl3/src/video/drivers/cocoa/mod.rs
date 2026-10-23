@@ -47,7 +47,9 @@ pub(crate) mod window;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use crate::core::apple::foundation::{ns_string, string_from_ns, CGFloat, CfRef, NSSize};
+use crate::core::apple::foundation::{
+    available, ns_string, string_from_ns, CGFloat, CfRef, NSSize,
+};
 use crate::core::apple::objc::{
     autoreleasepool, class, msg_send, Bool, Id, NSInteger, StrongPtr, NO, YES,
 };
@@ -265,7 +267,7 @@ fn video_quit(data: &Arc<VideoData>) {
 ///
 /// This function assumes that it's called from within an autorelease pool
 pub(crate) fn get_system_theme() -> SystemTheme {
-    if sys::macos_available(10, 14) {
+    if available!(macos(10, 14)) {
         // SAFETY: NSApplication's shared instance and its appearance.
         let dark = unsafe {
             let app: Id = msg_send![class!(NSApplication), sharedApplication];

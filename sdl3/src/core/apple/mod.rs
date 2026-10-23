@@ -10,8 +10,9 @@
 //! * [`objc`]: message sending (`msg_send!`), selectors, classes, classes
 //!   declared at run time, ownership ([`objc::StrongPtr`]) and autorelease
 //!   pools;
-//! * [`foundation`]: the geometry types, `NSString` conversions and the
-//!   CoreFoundation objects;
+//! * [`foundation`]: the geometry types, `NSString` conversions, the
+//!   CoreFoundation objects and the `@available()` checks
+//!   ([`foundation::available!`]);
 //! * [`block`]: blocks wrapping Rust closures, and Grand Central Dispatch.
 //!
 //! The system frameworks are linked, as upstream links them (Foundation

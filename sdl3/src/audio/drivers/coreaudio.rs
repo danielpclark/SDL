@@ -44,10 +44,10 @@ use crate::audio::device::{
 use crate::audio::queue::store_chmap;
 use crate::audio::{AudioFormat, AudioSpec};
 use crate::core::apple::foundation::{
-    kCFRunLoopDefaultMode, string_from_cf, CFRelease, CFRunLoopGetCurrent, CFRunLoopRunInMode,
-    CFStringRef, CFTimeInterval,
+    available, kCFRunLoopDefaultMode, string_from_cf, CFRelease, CFRunLoopGetCurrent,
+    CFRunLoopRunInMode, CFStringRef, CFTimeInterval,
 };
-use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, NSInteger};
+
 use crate::error::{Error, Result};
 use crate::thread::Thread;
 
@@ -875,34 +875,9 @@ fn assign_device_to_audio_queue(shared: &Shared) -> Result<()> {
     )
 }
 
-/// `@available(macOS major.minor, *)`: `[[NSProcessInfo processInfo]
-/// isOperatingSystemAtLeastVersion:]`.
-fn macos_at_least(major: NSInteger, minor: NSInteger) -> bool {
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    struct NSOperatingSystemVersion {
-        major_version: NSInteger,
-        minor_version: NSInteger,
-        patch_version: NSInteger,
-    }
-    autoreleasepool(|| {
-        // SAFETY: NSProcessInfo's class method and instance method, with
-        // the structure they take.
-        unsafe {
-            let info: crate::core::apple::objc::Id = msg_send![class!(NSProcessInfo), processInfo];
-            let r: Bool = msg_send![info, isOperatingSystemAtLeastVersion: NSOperatingSystemVersion {
-                major_version: major,
-                minor_version: minor,
-                patch_version: 0,
-            }];
-            r.is_true()
-        }
-    })
-}
-
 /// The channel layout `PrepareAudioQueue()` sets for a channel count, and
 /// the channel map converting SDL's layout to it, if one is needed
-/// (`modern`: `@available(macOS 10.15, *)`).
+/// (`modern`: `@available(macOS 10.15, iOS 13.0, tvOS 13.0, *)`).
 fn channel_layout(
     channels: i32,
     modern: bool,
@@ -1021,7 +996,7 @@ fn prepare_audio_queue(shared: &Arc<Shared>) -> Result<Option<&'static [i32]>> {
     let mut layout = AudioChannelLayout::default();
     let channels = shared.spec.channels;
     let modern = if channels >= 7 {
-        macos_at_least(10, 15)
+        available!(macos(10, 15), ios(13, 0), tvos(13, 0))
     } else {
         true
     };

@@ -16,7 +16,7 @@ use std::ffi::c_void;
 
 use crate::core::apple::block::DispatchQueue;
 use crate::core::apple::foundation::CFStringRef;
-use crate::core::apple::objc::{class, msg_send, Bool, Id, NSInteger, NSUInteger};
+use crate::core::apple::objc::{Id, NSInteger, NSUInteger};
 
 // MTLPixelFormat
 pub(crate) const MTL_PIXEL_FORMAT_INVALID: NSUInteger = 0;
@@ -415,15 +415,6 @@ pub(crate) struct MTLTextureSwizzleChannels {
     pub(crate) alpha: u8,
 }
 
-/// `NSOperatingSystemVersion`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct NSOperatingSystemVersion {
-    major_version: NSInteger,
-    minor_version: NSInteger,
-    patch_version: NSInteger,
-}
-
 /// `CGColorSpaceRef`.
 pub(crate) type CGColorSpaceRef = *mut c_void;
 
@@ -464,22 +455,4 @@ unsafe extern "C" {
         queue: DispatchQueue,
         destructor: *const c_void,
     ) -> DispatchData;
-}
-
-/// `@available(macOS major.minor, *)`: whether the system is at least that
-/// version (`-[NSProcessInfo isOperatingSystemAtLeastVersion:]`, which the
-/// compiler's check amounts to).
-pub(crate) fn available(major: isize, minor: isize) -> bool {
-    let version = NSOperatingSystemVersion {
-        major_version: major,
-        minor_version: minor,
-        patch_version: 0,
-    };
-    // SAFETY: NSProcessInfo's class method and an instance method taking
-    // the structure by value.
-    unsafe {
-        let info: Id = msg_send![class!(NSProcessInfo), processInfo];
-        let r: Bool = msg_send![info, isOperatingSystemAtLeastVersion: version];
-        r.is_true()
-    }
 }
