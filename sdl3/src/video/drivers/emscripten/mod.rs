@@ -9,7 +9,8 @@
 //! names), the one display is the screen, fullscreen is the browser's
 //! Fullscreen API, and the framebuffer is drawn with the canvas's 2D
 //! context ([`framebuffer`]). The mouse ([`mouse`]) has CSS cursors and
-//! pointer lock.
+//! pointer lock. OpenGL windows have WebGL contexts on their canvas
+//! ([`opengles`]).
 //!
 //! The DOM's events ([`events`]: the keyboard, the mouse, touch and pens,
 //! the wheel, focus, visibility, `beforeunload`, the screen's orientation,
@@ -24,10 +25,6 @@
 //! (the pointer, drag-and-drop and lock-key listeners'), registered when the
 //! driver is created.
 //!
-//! Not translated yet: the WebGL contexts of `SDL_emscriptenopengles.c` (no
-//! `GL_*` entry points: OpenGL windows fail to create, as on a driver
-//! without OpenGL).
-//!
 //! Note (upstream): the driver is unavailable without a DOM (under node):
 //! upstream's creates its device anyway, and its first JavaScript (the
 //! system theme's `window.matchMedia`) throws a ReferenceError, which ends
@@ -38,6 +35,7 @@
 mod events;
 mod framebuffer;
 mod mouse;
+mod opengles;
 
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
@@ -58,6 +56,7 @@ use crate::properties::Properties;
 use crate::stdlib::math::{floor, lroundf};
 use crate::video::core::{set_system_theme, with_device, with_window};
 use crate::video::display::add_basic_video_display;
+use crate::video::gl::RawGlContext;
 use crate::video::messagebox::{MessageBoxButtonFlags, MessageBoxColorType, MessageBoxData};
 use crate::video::sysvideo::{
     DisplayMode, FullscreenOp, FullscreenResult, SystemTheme, VideoBootStrap, VideoDriver,
@@ -73,14 +72,16 @@ use crate::video::{PixelFormat, Rect, Surface};
 const EMSCRIPTENVID_DRIVER_NAME: &str = "emscripten";
 
 /// The window data. Translation of `struct SDL_WindowData` (the window is
-/// its ID; the framebuffer surface is the video core's, and the WebGL
-/// context comes with the WebGL driver).
+/// its ID; the framebuffer surface is the video core's).
 ///
 /// Upstream writes `fullscreen_mode_flags` and never reads it; `window` is
 /// the window's own ID, which its handlers get as their user data.
 #[allow(dead_code)]
 pub(crate) struct EmscriptenWindow {
     window: WindowID,
+
+    /// The window's WebGL context (one at most).
+    gl_context: Option<RawGlContext>,
 
     non_fill_document_width: i32,
     non_fill_document_height: i32,
@@ -404,8 +405,7 @@ fn display_usable_bounds() -> Rect {
 /// Whether the WebGL driver may set the swap interval now; if not, it's
 /// kept for the first event pump. Translation of
 /// `Emscripten_ShouldSetSwapInterval()`.
-#[allow(dead_code)] // (the WebGL driver's, PR 9 of the Emscripten port)
-pub(crate) fn should_set_swap_interval(interval: i32) -> bool {
+fn should_set_swap_interval(interval: i32) -> bool {
     if !PUMPEVENTS_HAS_RUN.load(Ordering::Relaxed) {
         PENDING_SWAP_INTERVAL.store(interval, Ordering::Relaxed);
         return false;
@@ -414,15 +414,9 @@ pub(crate) fn should_set_swap_interval(interval: i32) -> bool {
 }
 
 /// Translation of `Emscripten_GetPendingSwapInterval()`.
-#[allow(dead_code)] // (the WebGL driver's, PR 9 of the Emscripten port)
-pub(crate) fn pending_swap_interval() -> i32 {
+fn pending_swap_interval() -> i32 {
     PENDING_SWAP_INTERVAL.load(Ordering::Relaxed)
 }
-
-/// `Emscripten_GLES_SetSwapInterval()`: a stub until the WebGL driver
-/// (`SDL_emscriptenopengles.c`, PR 9 of the Emscripten port), when nothing
-/// sets a pending interval.
-fn gles_set_swap_interval(_interval: i32) {}
 
 /// Translation of `Emscripten_PumpEvents()`.
 fn pump_events() {
@@ -432,7 +426,7 @@ fn pump_events() {
         PUMPEVENTS_HAS_RUN.store(true, Ordering::Relaxed);
         let pending = PENDING_SWAP_INTERVAL.load(Ordering::Relaxed);
         if pending >= 0 {
-            gles_set_swap_interval(pending);
+            let _ = opengles::gles_set_swap_interval(pending);
             PENDING_SWAP_INTERVAL.store(-1, Ordering::Relaxed);
         }
     }
@@ -606,6 +600,7 @@ fn create_window(window: WindowID, props: &Properties) -> Result<()> {
     // Setup driver data for this window
     let data = EmscriptenWindow {
         window,
+        gl_context: None,
         non_fill_document_width: w,
         non_fill_document_height: h,
         canvas_id: canvas,
@@ -958,8 +953,54 @@ impl VideoDriver for EmscriptenVideo {
         )
     }
 
-    // WebGL (SDL_emscriptenopengles.c: the GL_* entry points) is PR 9 of
-    // the Emscripten port.
+    // OpenGL ES (SDL_emscriptenopengles.c)
+
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(opengles::gles_load_library(path))
+    }
+
+    fn gl_get_proc_address(&self, proc_name: &str) -> Option<Option<std::ptr::NonNull<c_void>>> {
+        Some(opengles::gles_get_proc_address(proc_name))
+    }
+
+    fn gl_unload_library(&self) -> Option<()> {
+        opengles::gles_unload_library();
+        Some(())
+    }
+
+    fn gl_create_context(&self, window: WindowID) -> Option<Result<RawGlContext>> {
+        Some(opengles::gles_create_context(window))
+    }
+
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(opengles::gles_make_current(window, context))
+    }
+
+    fn gl_set_swap_interval(&self, interval: i32) -> Option<Result<()>> {
+        Some(opengles::gles_set_swap_interval(interval))
+    }
+
+    fn gl_get_swap_interval(&self) -> Option<Result<i32>> {
+        Some(opengles::gles_get_swap_interval())
+    }
+
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        opengles::gles_swap_window(window);
+        Some(Ok(()))
+    }
+
+    fn gl_destroy_context(&self, context: RawGlContext) -> Option<Result<()>> {
+        opengles::gles_destroy_context(context);
+        Some(Ok(()))
+    }
 }
 
 /// The C string the JavaScript gave, as Rust's, freed with `SDL_free()`
