@@ -11,17 +11,20 @@
 //! context ([`framebuffer`]). The mouse ([`mouse`]) has CSS cursors and
 //! pointer lock.
 //!
+//! The DOM's events ([`events`]: the keyboard, the mouse, touch and pens,
+//! the wheel, focus, visibility, `beforeunload`, the screen's orientation,
+//! drag and drop, and what the driver itself follows: `resize`,
+//! `fullscreenchange`, `pointerlockchange`) become SDL's.
+//!
 //! The JavaScript is upstream's, in the `sdl3-emscripten` crate
-//! (`sdl3_emscripten::video`). JavaScript calls two Rust functions by
-//! name, through the callback registry: `_Emscripten_SendSystemThemeChangedEvent()`
-//! (the `prefers-color-scheme` listener) and `_requestFullscreenThroughSDL()`
-//! (emscripten's own `Module.requestFullscreen()`), registered when the
+//! (`sdl3_emscripten::video`). JavaScript calls Rust functions by name,
+//! through the callback registry: `_Emscripten_SendSystemThemeChangedEvent()`
+//! (the `prefers-color-scheme` listener), `_requestFullscreenThroughSDL()`
+//! (emscripten's own `Module.requestFullscreen()`) and the event handling's
+//! (the pointer, drag-and-drop and lock-key listeners'), registered when the
 //! driver is created.
 //!
-//! Not translated yet: the DOM event handlers of `SDL_emscriptenevents.c`
-//! but for the ones the driver needs ([`events`]: the window's `resize`,
-//! `fullscreenchange`, `pointerlockchange` and the fullscreen canvas
-//! resize), and the WebGL contexts of `SDL_emscriptenopengles.c` (no
+//! Not translated yet: the WebGL contexts of `SDL_emscriptenopengles.c` (no
 //! `GL_*` entry points: OpenGL windows fail to create, as on a driver
 //! without OpenGL).
 //!
@@ -73,11 +76,8 @@ const EMSCRIPTENVID_DRIVER_NAME: &str = "emscripten";
 /// its ID; the framebuffer surface is the video core's, and the WebGL
 /// context comes with the WebGL driver).
 ///
-/// Some fields are only read by the event handlers that come with the
-/// Emscripten port's event handling (PR 8): `window`, `keyboard_element`,
-/// `has_pointer_lock` (which the pointer lock handler here keeps) and
-/// `mouse_focus_loss_pending`. Upstream writes `fullscreen_mode_flags` and
-/// never reads it.
+/// Upstream writes `fullscreen_mode_flags` and never reads it; `window` is
+/// the window's own ID, which its handlers get as their user data.
 #[allow(dead_code)]
 pub(crate) struct EmscriptenWindow {
     window: WindowID,
@@ -179,14 +179,14 @@ fn unlisten_system_theme() {
 
 /// `_Emscripten_SendSystemThemeChangedEvent()`, which the theme listener
 /// calls. Translation of `Emscripten_SendSystemThemeChangedEvent()`.
-extern "C" fn send_system_theme_changed_event() {
+extern "C-unwind" fn send_system_theme_changed_event() {
     set_system_theme(get_system_theme());
 }
 
 /// `_requestFullscreenThroughSDL(window)`, which `Module.requestFullscreen()`
 /// calls. Translation of `requestFullscreenThroughSDL()` (with the
 /// window's ID for its `SDL_Window *`).
-extern "C" fn request_fullscreen_through_sdl(window: WindowID) {
+extern "C-unwind" fn request_fullscreen_through_sdl(window: WindowID) {
     let _ = crate::video::window::Window::from_raw(window).set_fullscreen(true);
 }
 
@@ -195,7 +195,7 @@ extern "C" fn request_fullscreen_through_sdl(window: WindowID) {
 fn register_callbacks() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        // SAFETY: extern "C" functions with the parameters the JavaScript
+        // SAFETY: extern "C-unwind" functions with the parameters the JavaScript
         // passes; they live as long as the program.
         unsafe {
             js::EMSCRIPTEN_SEND_SYSTEM_THEME_CHANGED_EVENT
@@ -203,6 +203,7 @@ fn register_callbacks() {
             js::REQUEST_FULLSCREEN_THROUGH_SDL
                 .register(request_fullscreen_through_sdl as *const ());
         }
+        events::register_callbacks();
     });
 }
 
