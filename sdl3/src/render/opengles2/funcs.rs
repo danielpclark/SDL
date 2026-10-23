@@ -89,6 +89,9 @@ pub(super) const GL_TEXTURE0: GLenum = 0x84C0;
 pub(super) const GL_TEXTURE1: GLenum = 0x84C1;
 pub(super) const GL_TEXTURE2: GLenum = 0x84C2;
 
+pub(super) const GL_ARRAY_BUFFER: GLenum = 0x8892;
+pub(super) const GL_STREAM_DRAW: GLenum = 0x88E0;
+
 pub(super) const GL_FRAGMENT_SHADER: GLenum = 0x8B30;
 pub(super) const GL_VERTEX_SHADER: GLenum = 0x8B31;
 pub(super) const GL_COMPILE_STATUS: GLenum = 0x8B81;
@@ -109,7 +112,7 @@ macro_rules! gles2_funcs {
     ($($field:ident = $func:ident($($arg:ty),*) $(-> $ret:ty)?;)*) => {
         /// The GLES2 functions of a renderer (the `SDL_PROC` members of
         /// `GLES2_RenderData`).
-        #[allow(dead_code)] // (loaded as upstream does; the VBO functions are Emscripten's)
+        #[allow(dead_code)] // (loaded as upstream does, the ones the renderer never calls too)
         pub(super) struct Gles2Funcs {
             $($field: unsafe extern "system" fn($($arg),*) $(-> $ret)?,)*
         }
@@ -439,7 +442,8 @@ impl Gles2Funcs {
     /// # Safety
     ///
     /// `pointer` must stay valid (for the vertices drawn) until the draw
-    /// calls using it.
+    /// calls using it; with a buffer bound to `GL_ARRAY_BUFFER` it is an
+    /// offset into the buffer instead.
     pub(super) unsafe fn vertex_attrib_pointer(
         &self,
         index: GLuint,
@@ -479,5 +483,36 @@ impl Gles2Funcs {
     }
     pub(super) fn delete_framebuffer(&self, framebuffer: GLuint) {
         unsafe { (self.delete_framebuffers_fn)(1, &framebuffer) }
+    }
+    pub(super) fn gen_buffers(&self, buffers: &mut [GLuint]) {
+        unsafe { (self.gen_buffers_fn)(buffers.len() as GLsizei, buffers.as_mut_ptr()) }
+    }
+    pub(super) fn delete_buffers(&self, buffers: &[GLuint]) {
+        unsafe { (self.delete_buffers_fn)(buffers.len() as GLsizei, buffers.as_ptr()) }
+    }
+    pub(super) fn bind_buffer(&self, target: GLenum, buffer: GLuint) {
+        unsafe { (self.bind_buffer_fn)(target, buffer) }
+    }
+    /// `glBufferData()` of the floats in `data`.
+    pub(super) fn buffer_data(&self, target: GLenum, data: &[f32], usage: GLenum) {
+        unsafe {
+            (self.buffer_data_fn)(
+                target,
+                size_of_val(data) as GLsizeiptr,
+                data.as_ptr().cast(),
+                usage,
+            )
+        }
+    }
+    /// `glBufferSubData()` of the floats in `data`, `offset` bytes in.
+    pub(super) fn buffer_sub_data(&self, target: GLenum, offset: GLintptr, data: &[f32]) {
+        unsafe {
+            (self.buffer_sub_data_fn)(
+                target,
+                offset,
+                size_of_val(data) as GLsizeiptr,
+                data.as_ptr().cast(),
+            )
+        }
     }
 }

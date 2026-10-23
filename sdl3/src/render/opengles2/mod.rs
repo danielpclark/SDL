@@ -8,7 +8,8 @@
 //! at run time.
 //!
 //! As on the desktop builds upstream, vertices are passed in client-side
-//! arrays (vertex buffer objects are only used on Emscripten). Textures can
+//! arrays, but on Emscripten, whose WebGL has none, they go through vertex
+//! buffer objects (upstream's `USE_VERTEX_BUFFER_OBJECTS`). Textures can
 //! wrap the application's GL textures
 //! ([`TextureCreateInfo::opengles2_texture`](crate::render::TextureCreateInfo::opengles2_texture)
 //! and the others, `SDL_PROP_TEXTURE_CREATE_OPENGLES2_TEXTURE_*_NUMBER`):
@@ -61,6 +62,25 @@ fn injected_failure(step: &str) -> bool {
 #[cfg(not(test))]
 fn injected_failure(_step: &str) -> bool {
     false
+}
+
+/* WebGL doesn't offer client-side arrays, so use Vertex Buffer Objects
+on Emscripten, which converts GLES2 into WebGL calls.
+In all other cases, attempt to use client-side arrays, as they tend to
+be dramatically faster when not batching, and about the same when
+we are. */
+/// Translation of `USE_VERTEX_BUFFER_OBJECTS`.
+const USE_VERTEX_BUFFER_OBJECTS: bool = cfg!(target_os = "emscripten");
+
+/// Whether a new renderer uses vertex buffer objects:
+/// [`USE_VERTEX_BUFFER_OBJECTS`], or what the test asks for (the tests
+/// draw through them elsewhere too).
+fn use_vertex_buffer_objects() -> bool {
+    #[cfg(test)]
+    if let Some(forced) = tests::forced_vertex_buffer_objects() {
+        return forced;
+    }
+    USE_VERTEX_BUFFER_OBJECTS
 }
 
 /// The name of the OpenGL ES 2.0 renderer (`GLES2_RenderDriver.name`).
@@ -251,6 +271,9 @@ pub(crate) struct Gles2Renderer {
     target: Option<Target>,
     /// The vertex data of the queued commands (floats; `first` indexes it).
     verts: Vec<f32>,
+    /// The vertex buffer objects the vertices go through (`None`: client-side
+    /// arrays). See [`USE_VERTEX_BUFFER_OBJECTS`].
+    vertex_buffers: Option<VertexBuffers>,
     texture_formats: Vec<PixelFormat>,
     npot_texture_wrap_unsupported: bool,
     max_texture_size: i32,
@@ -258,6 +281,16 @@ pub(crate) struct Gles2Renderer {
 
 /// Translation of `GLES2_MAX_CACHED_PROGRAMS`.
 const GLES2_MAX_CACHED_PROGRAMS: usize = 8;
+
+/// The vertex buffer objects of `USE_VERTEX_BUFFER_OBJECTS` (the
+/// `vertex_buffers`, `vertex_buffer_size` and `current_vertex_buffer` of
+/// `GLES2_RenderData`).
+struct VertexBuffers {
+    buffers: [GLuint; 8],
+    /// The bytes each buffer holds.
+    sizes: [usize; 8],
+    current: usize,
+}
 
 /// The floats of an `SDL_VertexSolid` (position, color).
 const VERTEX_SOLID_FLOATS: usize = 6;
@@ -1021,10 +1054,18 @@ impl Gles2Renderer {
         let stride_bytes = (stride * size_of::<f32>()) as GLsizei;
 
         // address of first vertex
-        let base = self.verts.as_ptr().wrapping_add(cmd.first);
+        // (with vertex buffer objects, its offset in the bound buffer:
+        // attrib pointers will be offsets into the VBO)
+        let base = if self.vertex_buffers.is_some() {
+            std::ptr::null::<f32>()
+        } else {
+            self.verts.as_ptr()
+        }
+        .wrapping_add(cmd.first);
         if texture.is_some() {
             // SAFETY: the texture coordinates of the command's vertices are
-            // in `self.verts`, which isn't touched until the draw calls.
+            // in `self.verts`, which isn't touched until the draw calls (or
+            // in the vertex buffer bound, which holds a copy of it).
             unsafe {
                 gl.vertex_attrib_pointer(
                     Attribute::TexCoord as GLuint,
@@ -1291,8 +1332,8 @@ impl Gles2Renderer {
         };
         debug_assert!(cmd.first + count * stride <= self.verts.len());
         // SAFETY: set_draw_state() pointed the vertex arrays at `cmd.first`
-        // in `self.verts`, which holds the `count` vertices of the
-        // command(s) drawn.
+        // in `self.verts` (or in the vertex buffer bound, a copy of it),
+        // which holds the `count` vertices of the command(s) drawn.
         unsafe { self.gl.draw_arrays(mode, 0, count as GLsizei) };
     }
 
@@ -1339,6 +1380,7 @@ impl Gles2Renderer {
             texcoord_precision_hint: ShaderInclude::None,
             target: None,
             verts: Vec::new(),
+            vertex_buffers: None,
             texture_formats: Vec::new(),
             npot_texture_wrap_unsupported: false,
             max_texture_size: 0,
@@ -1356,7 +1398,16 @@ impl Gles2Renderer {
 
         data.max_texture_size = data.gl.get_integer(GL_MAX_TEXTURE_SIZE);
 
-        // (USE_VERTEX_BUFFER_OBJECTS is Emscripten's)
+        if use_vertex_buffer_objects() {
+            // we keep a few of these and cycle through them, so data can live for a few frames.
+            let mut buffers = [0; 8];
+            data.gl.gen_buffers(&mut buffers);
+            data.vertex_buffers = Some(VertexBuffers {
+                buffers,
+                sizes: [0; 8],
+                current: 0,
+            });
+        }
 
         data.window_framebuffer = data.gl.get_integer(GL_FRAMEBUFFER_BINDING) as GLuint;
 
@@ -2107,6 +2158,27 @@ impl RenderBackend for Gles2Renderer {
             }
         }
 
+        if let Some(vbo) = &mut self.vertex_buffers {
+            let vboidx = vbo.current;
+            let vertsize = size_of_val(self.verts.as_slice());
+            // upload the new VBO data for this set of commands.
+            self.gl.bind_buffer(GL_ARRAY_BUFFER, vbo.buffers[vboidx]);
+            if vbo.sizes[vboidx] < vertsize {
+                self.gl
+                    .buffer_data(GL_ARRAY_BUFFER, &self.verts, GL_STREAM_DRAW);
+                vbo.sizes[vboidx] = vertsize;
+            } else {
+                self.gl.buffer_sub_data(GL_ARRAY_BUFFER, 0, &self.verts);
+            }
+
+            // cycle through a few VBOs so the GL has some time with the data before we replace it.
+            vbo.current += 1;
+            if vbo.current >= vbo.buffers.len() {
+                vbo.current = 0;
+            }
+            // (attrib pointers will be offsets into the VBO: see set_draw_state())
+        }
+
         let mut i = 0;
         while i < cmds.len() {
             match cmds[i] {
@@ -2636,7 +2708,13 @@ impl RenderBackend for Gles2Renderer {
             for entry in &self.program_cache {
                 self.gl.delete_program(entry.id);
             }
+
+            if let Some(vbo) = self.vertex_buffers.take() {
+                self.gl.delete_buffers(&vbo.buffers);
+                let _ = gl_check_error!(self, "", "GLES2_DestroyRenderer");
+            }
         }
+        self.vertex_buffers = None;
         self.shader_id_cache = [0; ShaderType::COUNT];
         self.program_cache.clear();
 
