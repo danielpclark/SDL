@@ -288,21 +288,23 @@ jobs:
         with:
           node-version: 22
       # (the programs that ask for a browser, emscripten_browser,
-      # emscripten_video, emscripten_events, emscripten_gl and
-      # emscripten_audio, run in the runner image's Chrome here too)
+      # emscripten_video, emscripten_events, emscripten_gl,
+      # emscripten_audio and emscripten_joystick, run in the runner image's
+      # Chrome here too)
       - name: cargo test --workspace --target wasm32-unknown-emscripten
         shell: bash
         run: cargo test --workspace --target wasm32-unknown-emscripten 2>&1 | tee "$RUNNER_TEMP/test.log"
       # The paths that need a browser (the Battery Status API, window.open(),
       # devicemotion events, the canvas video driver, its DOM events and its
-      # WebGL contexts, with the OpenGL ES 2 renderer, and the Web Audio
-      # driver) and the WebGL and Web Audio probes, in the runner image's
-      # Chrome, headless, which must have them.
-      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio (headless Chrome)
+      # WebGL contexts, with the OpenGL ES 2 renderer, the Web Audio driver,
+      # and the Gamepad API driver on a stand-in Gamepad API) and the WebGL
+      # and Web Audio probes, in the runner image's Chrome, headless, which
+      # must have them.
+      - name: cargo test -p sdl3 --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick (headless Chrome)
         shell: bash
         run: |
           "$CHROME" --version
-          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio 2>&1 | tee "$RUNNER_TEMP/browser.log"
+          cargo test -p sdl3 --target wasm32-unknown-emscripten --test emscripten_browser --test emscripten_video --test emscripten_events --test emscripten_gl --test emscripten_audio --test emscripten_joystick 2>&1 | tee "$RUNNER_TEMP/browser.log"
         env:
           SDL3_EMSCRIPTEN_BROWSER: 1
           SDL3_TEST_REQUIRE: browser,webgl,webaudio
