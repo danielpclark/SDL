@@ -46,6 +46,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: diag-${{ matrix.toolchain }}
+          cache-on-failure: true
       - name: Install the GPU drivers (macOS)
         run: |
           C="$RUNNER_TEMP/gpu-cache"
@@ -121,6 +122,8 @@ jobs:
                 xargs -I{} cp {} "$RUNNER_TEMP/ips/" < "$RUNNER_TEMP/ips.txt"
               fi
               touch "$RUNNER_TEMP/marker"
+              # (stop at the first failure, so the log is there to read)
+              break
             fi
           done
           echo "SUMMARY ${{ matrix.toolchain }} ${{ matrix.name }}: $i iterations, $fails failed, $crashes crashed"
