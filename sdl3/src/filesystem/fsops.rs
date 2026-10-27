@@ -6,6 +6,10 @@
 //! The `SDL_SYS_*` filesystem operations, written against `std::fs` (which
 //! wraps the same POSIX calls: `opendir`/`readdir`, `remove`, `rename`,
 //! `mkdir`, `stat` and `getcwd`), on every platform but Windows.
+//!
+//! On iOS (`SDL_PLATFORM_IOS`: every UIKit platform), whose apps can't
+//! write to their current directory, relative paths are in the pref path
+//! (`SDL_GetPrefPath("", "")`).
 
 use std::ops::ControlFlow;
 
@@ -14,16 +18,37 @@ use crate::error::{Error, Result};
 use crate::io::{strerror, IoStatus, IoStream};
 use crate::time::Time;
 
+/// `path` in the pref path, `SDL_GetPrefPath("", "")`'s path followed by
+/// it (UIKit).
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+fn in_pref_path(path: &str) -> Result<String> {
+    let base = super::get_pref_path(Some(""), "")?;
+    Ok(format!("{base}{path}"))
+}
+
 /// Translation of `SDL_SYS_EnumerateDirectory()`.
 pub(super) fn enumerate_directory(
     path: &str,
     cb: &mut dyn FnMut(&str, &str) -> EnumerationResult,
 ) -> Result<()> {
+    #[allow(unused_mut)] // (only UIKit makes it absolute)
+    let mut apath: Option<String> = None; // absolute path (for Android, iOS, etc). Overrides `path`.
+
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    if path.is_empty() {
+        return Err(Error::new("No such file or directory"));
+    } else if !path.starts_with('/') {
+        apath = Some(in_pref_path(path)?);
+    }
+
+    let full = apath.as_deref().unwrap_or(path);
+    // (where the caller's path starts in it: the callback is given that part)
+    let extralen = full.len() - path.len();
     // trim down to a single path separator at the end, in case the caller added one or more.
-    let pathwithsep = if path.is_empty() {
+    let pathwithsep = if full.is_empty() {
         String::new()
     } else {
-        format!("{}/", path.trim_end_matches('/'))
+        format!("{}/", full.trim_end_matches('/'))
     };
 
     let dir = std::fs::read_dir(if pathwithsep.is_empty() {
@@ -44,7 +69,7 @@ pub(super) fn enumerate_directory(
         if name == "." || name == ".." {
             continue;
         }
-        match cb(&pathwithsep, &name)? {
+        match cb(&pathwithsep[extralen..], &name)? {
             ControlFlow::Continue(()) => {}
             ControlFlow::Break(()) => break,
         }
@@ -55,6 +80,15 @@ pub(super) fn enumerate_directory(
 /// Translation of `SDL_SYS_RemovePath()`: `remove()` deletes a file or an
 /// empty directory.
 pub(super) fn remove_path(path: &str) -> Result<()> {
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    let apath;
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    let path = if path.starts_with('/') {
+        path
+    } else {
+        apath = in_pref_path(path)?;
+        &apath
+    };
     let rc = match std::fs::symlink_metadata(path) {
         Ok(md) if md.is_dir() => std::fs::remove_dir(path),
         Ok(_) => std::fs::remove_file(path),
@@ -72,6 +106,29 @@ pub(super) fn remove_path(path: &str) -> Result<()> {
 
 /// Translation of `SDL_SYS_RenamePath()`.
 pub(super) fn rename_path(oldpath: &str, newpath: &str) -> Result<()> {
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    let (aoldpath, anewpath);
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    let (oldpath, newpath) = {
+        let base = if !oldpath.starts_with('/') || !newpath.starts_with('/') {
+            super::get_pref_path(Some(""), "")?
+        } else {
+            String::new()
+        };
+        let oldpath = if !oldpath.starts_with('/') {
+            aoldpath = format!("{base}{oldpath}");
+            &aoldpath
+        } else {
+            oldpath
+        };
+        let newpath = if !newpath.starts_with('/') {
+            anewpath = format!("{base}{newpath}");
+            &anewpath
+        } else {
+            newpath
+        };
+        (oldpath, newpath)
+    };
     std::fs::rename(oldpath, newpath)
         .map_err(|e| Error::new(format!("Can't rename path: {}", strerror(&e))))
 }
@@ -122,9 +179,22 @@ pub(super) fn create_directory(path: &str) -> Result<()> {
         use std::os::unix::fs::DirBuilderExt;
         builder.mode(0o770);
     }
-    match builder.create(path) {
+    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    let rc = builder.create(path);
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    let rc = if path.starts_with('/') {
+        builder.create(path)
+    } else {
+        builder.create(in_pref_path(path)?)
+    };
+    match rc {
         Ok(()) => Ok(()),
         Err(e) => {
+            // FIXME (upstream): on iOS a relative path is made in the pref
+            // path, but whether it already is a directory is asked of the
+            // path as given, in the current directory: a relative directory
+            // that exists is a failure (EEXIST), unless the current
+            // directory has one of that name too.
             if e.kind() == std::io::ErrorKind::AlreadyExists
                 && std::fs::metadata(path).is_ok_and(|m| m.is_dir())
             {
@@ -154,8 +224,16 @@ fn system_time(t: std::io::Result<std::time::SystemTime>) -> Time {
 
 /// Translation of `SDL_SYS_GetPathInfo()`; like `stat()`, symlinks are followed.
 pub(super) fn get_path_info(path: &str) -> Result<PathInfo> {
-    let statbuf =
-        std::fs::metadata(path).map_err(|e| Error::new(format!("Can't stat: {}", strerror(&e))))?;
+    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    let rc = std::fs::metadata(path);
+    // (on iOS a relative path in the pref path, else in the current directory)
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    let rc = if path.starts_with('/') {
+        std::fs::metadata(path)
+    } else {
+        std::fs::metadata(in_pref_path(path)?).or_else(|_| std::fs::metadata(path))
+    };
+    let statbuf = rc.map_err(|e| Error::new(format!("Can't stat: {}", strerror(&e))))?;
     let mut info = PathInfo::default();
     if statbuf.is_file() {
         info.kind = PathType::File;

@@ -678,3 +678,103 @@ fn windows_paths() {
     );
     quit_filesystem();
 }
+
+/// On iOS relative paths are in the pref path (`SDL_GetPrefPath("", "")`,
+/// the Application Support directory followed by "/" and an empty app's
+/// "/"), as upstream's `SDL_sysfsops.c` and `SDL_IOFromFile()` have them;
+/// path information and files to open are looked for in the current
+/// directory next.
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+#[test]
+fn uikit_relative_paths_are_in_the_pref_path() {
+    use crate::io::IoStream;
+    let home = crate::stdlib::getenv("HOME").unwrap();
+    let pref = get_pref_path(Some(""), "").unwrap();
+    assert_eq!(pref, format!("{home}/Library/Application Support//"));
+
+    let rel = format!("sdl3-rs-relative-{}", std::process::id());
+    let cwd = std::env::current_dir().unwrap();
+    assert!(!cwd.join(&rel).exists());
+
+    create_directory(&format!("{rel}/sub")).unwrap();
+    assert!(std::path::Path::new(&format!("{pref}{rel}/sub")).is_dir());
+    assert!(!cwd.join(&rel).exists());
+    // FIXME (upstream): a relative directory that exists isn't seen as one
+    // (it's looked for in the current directory).
+    assert_eq!(
+        create_directory(&rel).unwrap_err().message(),
+        "Can't create directory: File exists"
+    );
+
+    let mut io = IoStream::from_file(format!("{rel}/a.txt"), "w").unwrap();
+    assert_eq!(io.write(b"hello"), 5);
+    io.close().unwrap();
+    assert_eq!(
+        std::fs::read(format!("{pref}{rel}/a.txt")).unwrap(),
+        b"hello"
+    );
+    let info = get_path_info(&format!("{rel}/a.txt")).unwrap();
+    assert_eq!((info.kind, info.size), (PathType::File, 5));
+
+    rename_path(&format!("{rel}/a.txt"), &format!("{rel}/b.txt")).unwrap();
+    copy_file(&format!("{rel}/b.txt"), &format!("{pref}{rel}/c.txt")).unwrap();
+    assert_eq!(
+        std::fs::read(format!("{pref}{rel}/c.txt")).unwrap(),
+        b"hello"
+    );
+
+    // The directory the callback is given is the caller's (with one
+    // separator at the end).
+    for path in [rel.clone(), format!("{rel}//"), format!("{pref}{rel}")] {
+        let mut seen = Vec::new();
+        enumerate_directory(&path, |dir, name| {
+            seen.push(format!("{dir}{name}"));
+            Ok(ControlFlow::Continue(()))
+        })
+        .unwrap();
+        seen.sort();
+        let dir = format!("{}/", path.trim_end_matches('/'));
+        assert_eq!(
+            seen,
+            [
+                format!("{dir}b.txt"),
+                format!("{dir}c.txt"),
+                format!("{dir}sub")
+            ]
+        );
+    }
+    assert_eq!(
+        enumerate_directory("", |_, _| Ok(ControlFlow::Continue(())))
+            .unwrap_err()
+            .message(),
+        "No such file or directory"
+    );
+
+    // Not in the pref path: in the current directory.
+    let in_cwd = format!("{rel}-cwd.txt");
+    std::fs::write(cwd.join(&in_cwd), b"cwd").unwrap();
+    let info = get_path_info(&in_cwd).unwrap();
+    assert_eq!((info.kind, info.size), (PathType::File, 3));
+    let mut io = IoStream::from_file(&in_cwd, "rb").unwrap();
+    let mut buf = [0u8; 8];
+    assert_eq!(io.read(&mut buf), 3);
+    assert_eq!(&buf[..3], b"cwd");
+    drop(io);
+    // (but removed only from the pref path, where it isn't)
+    remove_path(&in_cwd).unwrap();
+    assert!(cwd.join(&in_cwd).exists());
+    std::fs::remove_file(cwd.join(&in_cwd)).unwrap();
+    assert_eq!(
+        get_path_info(&in_cwd).unwrap_err().message(),
+        "Can't stat: No such file or directory"
+    );
+    assert_eq!(
+        IoStream::from_file(&in_cwd, "rb").unwrap_err().message(),
+        format!("Couldn't open {in_cwd}: No such file or directory")
+    );
+
+    for f in ["b.txt", "c.txt", "sub", ""] {
+        remove_path(&format!("{rel}/{f}")).unwrap();
+    }
+    assert!(!std::path::Path::new(&format!("{pref}{rel}")).exists());
+}

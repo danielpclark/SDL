@@ -185,7 +185,8 @@ fn compare(
 /// succeeded), or an error if the surface sizes differ. When pixels differ,
 /// the first is described in the log and both surfaces are saved as
 /// `CompareSurfacesNNNN_TestOutput.bmp` and
-/// `CompareSurfacesNNNN_Reference.bmp` in the current directory.
+/// `CompareSurfacesNNNN_Reference.bmp` in the current directory (in the
+/// pref path on iOS, where SDL's relative paths are).
 /// Translation of `SDLTest_CompareSurfaces()`.
 pub fn compare_surfaces(
     surface: &mut Surface<'_>,
@@ -350,9 +351,15 @@ mod tests {
         );
         let saved = Surface::load_bmp(format!("CompareSurfaces{count:04}_Reference.bmp")).unwrap();
         assert_eq!(saved.read_pixel(1, 0).unwrap(), Color::new(254, 1, 0, 255));
-        assert!(
-            std::path::Path::new(&format!("CompareSurfaces{count:04}_TestOutput.bmp")).exists()
-        );
+        // (where SDL put it: in the current directory, but in the pref path
+        // on iOS, where relative paths are)
+        let output = format!("CompareSurfaces{count:04}_TestOutput.bmp");
+        assert!(sdl3::filesystem::get_path_info(&output).is_ok());
+        if cfg!(all(target_vendor = "apple", not(target_os = "macos"))) {
+            sdl3::filesystem::remove_path(&output).unwrap();
+            sdl3::filesystem::remove_path(&format!("CompareSurfaces{count:04}_Reference.bmp"))
+                .unwrap();
+        }
 
         // Alpha doesn't count.
         let mut c = surface(4, 3, PixelFormat::RGBA8888, Color::new(255, 0, 0, 7));
