@@ -92,6 +92,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::wayland::video::WAYLAND_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::windows::WINDOWS_BOOTSTRAP,
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    &drivers::uikit::UIKIT_BOOTSTRAP,
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
     &drivers::offscreen::OFFSCREEN_BOOTSTRAP,
@@ -119,6 +121,8 @@ static BOOTSTRAP: &[&VideoBootStrap] = &[
     &drivers::wayland::video::WAYLAND_BOOTSTRAP,
     #[cfg(windows)]
     &drivers::windows::WINDOWS_BOOTSTRAP,
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    &drivers::uikit::UIKIT_BOOTSTRAP,
     // (unavailable in the tests, under node)
     #[cfg(target_os = "emscripten")]
     &drivers::emscripten::EMSCRIPTEN_BOOTSTRAP,
@@ -419,6 +423,83 @@ pub(crate) fn set_system_theme(theme: SystemTheme) {
 /// The current system theme. Translation of `SDL_GetSystemTheme()`.
 pub fn system_theme() -> SystemTheme {
     with_device(|v| v.system_theme).unwrap_or(SystemTheme::Unknown)
+}
+
+// Functions used by iOS application delegates (to notify SDL about state
+// changes). They map directly to iOS's notifications, but since they don't
+// do anything iOS-specific, they're available on all platforms, in case
+// they might be useful for some specific paradigm. Most apps don't need
+// them: SDL's own event code handles all this for the windows it makes.
+
+/// Report that the app is terminating: sends [`EventType::TERMINATING`]
+/// (to the event watchers, at once; it isn't queued). For apps that have
+/// their own event handling. Translation of
+/// `SDL_OnApplicationWillTerminate()`.
+///
+/// It is safe to call this function from any thread.
+pub fn on_application_will_terminate() {
+    crate::events::queue::send_app_event(EventType::TERMINATING);
+}
+
+/// Report that the system is low on memory: sends
+/// [`EventType::LOW_MEMORY`] (to the event watchers, at once). Translation
+/// of `SDL_OnApplicationDidReceiveMemoryWarning()`.
+///
+/// It is safe to call this function from any thread.
+pub fn on_application_did_receive_memory_warning() {
+    crate::events::queue::send_app_event(EventType::LOW_MEMORY);
+}
+
+/// Report that the app is about to go to the background (on iOS, that it
+/// resigns being active): every window is minimized, the keyboard focus
+/// is cleared, and [`EventType::WILL_ENTER_BACKGROUND`] is sent (to the
+/// event watchers, at once). Translation of
+/// `SDL_OnApplicationWillEnterBackground()`.
+///
+/// It is safe to call this function from any thread.
+pub fn on_application_will_enter_background() {
+    if initialized() {
+        for window in window_ids() {
+            send_window_event(window, EventType::WINDOW_MINIMIZED, 0, 0);
+        }
+        let _ = keyboard::set_keyboard_focus(None);
+    }
+    crate::events::queue::send_app_event(EventType::WILL_ENTER_BACKGROUND);
+}
+
+/// Report that the app is in the background: sends
+/// [`EventType::DID_ENTER_BACKGROUND`] (to the event watchers, at once).
+/// Translation of `SDL_OnApplicationDidEnterBackground()`.
+///
+/// It is safe to call this function from any thread.
+pub fn on_application_did_enter_background() {
+    crate::events::queue::send_app_event(EventType::DID_ENTER_BACKGROUND);
+}
+
+/// Report that the app is about to come back to the foreground: sends
+/// [`EventType::WILL_ENTER_FOREGROUND`] (to the event watchers, at once).
+/// Translation of `SDL_OnApplicationWillEnterForeground()`.
+///
+/// It is safe to call this function from any thread.
+pub fn on_application_will_enter_foreground() {
+    crate::events::queue::send_app_event(EventType::WILL_ENTER_FOREGROUND);
+}
+
+/// Report that the app is in the foreground (on iOS, that it became
+/// active): sends [`EventType::DID_ENTER_FOREGROUND`] (to the event
+/// watchers, at once), then gives each window the keyboard focus in turn
+/// and restores it. Translation of `SDL_OnApplicationDidEnterForeground()`.
+///
+/// It is safe to call this function from any thread.
+pub fn on_application_did_enter_foreground() {
+    crate::events::queue::send_app_event(EventType::DID_ENTER_FOREGROUND);
+
+    if initialized() {
+        for window in window_ids() {
+            let _ = keyboard::set_keyboard_focus(Some(window));
+            send_window_event(window, EventType::WINDOW_RESTORED, 0, 0);
+        }
+    }
 }
 
 /// Translation of `SDL_SyncIfRequired()`.
