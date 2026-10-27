@@ -219,6 +219,18 @@ moment.
 Emscripten (`wasm32-unknown-emscripten`) builds and is tested too, under
 node and in headless Chrome: see [below](#emscripten).
 
+iOS (`aarch64-apple-ios`, `aarch64-apple-ios-sim`, `x86_64-apple-ios`)
+builds, and on a Mac with Xcode the tests run on the iOS Simulator, through
+`tools/ios_run.py` (`.cargo/config.toml`'s runner, which also boots the
+simulator); the UIKit backends are not translated yet:
+
+```sh
+rustup target add aarch64-apple-ios-sim
+cargo test --workspace --target aarch64-apple-ios-sim
+```
+
+See "iOS Simulator" in [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md).
+
 Tests of the platform backends that need something from the system (an X
 server, a PipeWire server, a GPU, a camera, a macOS window server session)
 skip with a note when it's missing; [docs/HARDWARE_TESTING.md](docs/HARDWARE_TESTING.md) lists what
