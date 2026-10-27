@@ -53,7 +53,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
 | `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
-| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen for `uikit_input`'s real taps and swipes (see [below](#ios-simulator)) |
+| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes and `uikit_keyboard`'s real keys and text (see [below](#ios-simulator)) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
 | `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag): `emscripten_browser.rs`'s probe and `emscripten_audio.rs` |
@@ -807,17 +807,20 @@ its own URLs. A running app can ask the runner for what only the host can
 do with a line `sdl3-ios-runner: request WHAT`: `background` (the runner
 launches the Settings app, which sends the app to the background),
 `foreground` (it launches the app again without terminating it, which
-brings the same process back), and `tap X Y` and `swipe X1 Y1 X2 Y2
+brings the same process back), `tap X Y` and `swipe X1 Y1 X2 Y2
 [SECONDS]` (a finger touches the screen there, in points, through idb's
-`idb ui tap` and `idb ui swipe`); the app waits for what follows (its
-application events, its touches) itself. The touches need
+`idb ui tap` and `idb ui swipe`), and `key CODE [SECONDS]` and `text
+TEXT` (the simulator's hardware keyboard presses the key of USB HID usage
+CODE, or types TEXT, the rest of the line, through `idb ui key` and `idb
+ui text`); the app waits for what follows (its application events, its
+touches, its keys) itself. The touches and keys need
 [idb](https://fbidb.io): its `idb_companion` (`brew install
 facebook/fb/idb-companion`, which only installs with an Xcode 26
 selected: select one for that, then yours again) and its Python client
 (`pip install fb-idb` in a virtual environment), `idb` in `PATH` or the
 command in `SDL3_IOS_IDB` (0: none). The runner tells the app whether it
 has them (`SDL3_IOS_RUNNER_IDB`: `1`, or why not), and after an app that
-touched the screen it stops the companions idb started (`idb kill`).
+used them it stops the companions idb started (`idb kill`).
 Without idb, the checks that need it skip `idb`. The simulator passes a
 touch through a window that has nothing drawn in it (as SDL's views are
 until a renderer draws) to what is behind it, so an app that wants idb's
@@ -859,8 +862,36 @@ pointer's hovering and the pinch gesture (stand-in recognizers), the
 relative mode and the pointer's lock, a game controller's mouse (the
 simulator has none: a stand-in `GCMouse` posted with its connection
 notification, whose handlers it calls), and real touches through idb (a
-tap and a swipe, `idb`). All five compare a trace with upstream's C
-SDL's,
+tap and a swipe, `idb`); `uikit_keyboard` traces the keyboards, the key,
+text and on-screen keyboard events and the window's hidden text field
+(whether it's the first responder, its keyboard type, return key,
+autocapitalization, autocorrection, secure entry and text) through the
+view controller's key commands, text input started and stopped with each
+text input property, text typed in the field in-process (`insertText:`
+and `deleteBackward`, which UIKit turns into the delegate's calls), the
+return key with and without `SDL_HINT_RETURN_KEY_HIDES_IME`, the text
+input area with the keyboard's notifications posted in-process, the
+view's press handlers (stand-ins for `UIPress`, `UIKey` and
+`UIPressesEvent`), a game controller's keyboard (a stand-in `GCKeyboard`
+whose key handler it calls) and the simulator's own (its
+`coalescedKeyboard`, which comes a moment after the video subsystem
+starts), and real keys and text through idb (`idb`). UIKit shows its
+on-screen keyboard there (GameController has its coalesced keyboard
+from the start, and idb's keys reach both), and that keyboard's
+notifications, which make its shown and hidden events and set its
+height, come some while the text field becomes the first responder or
+resigns and some whenever the run loop gets to them, differently on a
+newly booted simulator and on one whose hardware keyboard has typed in
+a text field. So `uikit_keyboard`, as its C counterpart, first has idb
+type a key in its text field (not traced), after which they come the
+same way on both, and turns the event pump off
+(`set_ios_event_pump(false)`) while it checks what it does in-process,
+so that only those that come at once (and those it posts) do; once the
+pump is on again it leaves the on-screen keyboard's events out of the
+trace; and since the coalesced keyboard's key events
+come from its own queue and the text from the main thread, it traces
+each of the two in its own order. Without idb it doesn't compare its
+trace. All six compare a trace with upstream's C SDL's,
 from the same programs in C run the same way on the CI's simulator (an
 iPhone 16 with iOS 18.5).
 
@@ -872,10 +903,9 @@ so the GPU API's Metal tests skip `metal`, and the Vulkan renderer's, the
 GPU API's Vulkan backend's and the GPU renderer's tests skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
-and dummy drivers there, as elsewhere; its keyboard (the on-screen one,
-the hardware keys, `GCKeyboard`), its windows' graphics views, and the
-iOS halves of CoreAudio, MFi, the Metal renderer and the camera, aren't
-translated yet.
+and dummy drivers there, as elsewhere; its clipboard, message boxes and
+windows' graphics views, and the iOS halves of CoreAudio, MFi, the Metal
+renderer and the camera, aren't translated yet.
 
 ## CI
 
