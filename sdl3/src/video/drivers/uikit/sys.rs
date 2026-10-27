@@ -116,6 +116,26 @@ pub(crate) type UIViewAutoresizing = NSUInteger;
 pub(crate) const UIViewAutoresizingFlexibleWidth: UIViewAutoresizing = 1 << 1;
 pub(crate) const UIViewAutoresizingFlexibleHeight: UIViewAutoresizing = 1 << 4;
 
+/// `UIRectEdge`.
+pub(crate) type UIRectEdge = NSUInteger;
+pub(crate) const UIRectEdgeNone: UIRectEdge = 0;
+pub(crate) const UIRectEdgeTop: UIRectEdge = 1 << 0;
+pub(crate) const UIRectEdgeLeft: UIRectEdge = 1 << 1;
+pub(crate) const UIRectEdgeBottom: UIRectEdge = 1 << 2;
+pub(crate) const UIRectEdgeRight: UIRectEdge = 1 << 3;
+pub(crate) const UIRectEdgeAll: UIRectEdge =
+    UIRectEdgeTop | UIRectEdgeLeft | UIRectEdgeBottom | UIRectEdgeRight;
+
+/// `UIEdgeInsets`.
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
+pub(crate) struct UIEdgeInsets {
+    pub(crate) top: CGFloat,
+    pub(crate) left: CGFloat,
+    pub(crate) bottom: CGFloat,
+    pub(crate) right: CGFloat,
+}
+
 /// `UIImageOrientation`.
 pub(crate) type UIImageOrientation = NSInteger;
 pub(crate) const UIImageOrientationUp: UIImageOrientation = 0;
@@ -134,6 +154,13 @@ pub(crate) const UISceneActivationStateUnattached: UISceneActivationState = -1;
 pub(crate) const UISceneActivationStateForegroundActive: UISceneActivationState = 0;
 pub(crate) const UISceneActivationStateForegroundInactive: UISceneActivationState = 1;
 pub(crate) const UISceneActivationStateBackground: UISceneActivationState = 2;
+
+// ---------------------------------------------------------------------------
+// GameController (loaded at run time)
+
+/// `GCUIEventTypes` (iOS 18, visionOS 2).
+pub(crate) type GCUIEventTypes = NSUInteger;
+pub(crate) const GCUIEventTypeGamepad: GCUIEventTypes = 1 << 0;
 
 // ---------------------------------------------------------------------------
 // Foundation
