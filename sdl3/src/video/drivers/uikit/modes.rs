@@ -483,6 +483,44 @@ pub(crate) fn get_display_modes(display: DisplayID) {
     let _ = display;
 }
 
+/// The `UIScreenMode` of one of a display's modes (`((SDL_UIKitDisplayModeData
+/// *)mode->internal).uiscreenmode`; nil for a mode it doesn't have).
+/// Upstream takes the mode's own data; the desktop mode is the one the
+/// video core passes from `display->desktop_mode`.
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
+pub(crate) fn screen_mode_of(display: DisplayID, mode: &DisplayMode) -> StrongPtr {
+    let desktop_mode = with_display(display, |d| d.desktop_mode);
+    with_display_data(display, |d| {
+        if desktop_mode == Some(*mode) {
+            d.desktop_uiscreenmode.clone()
+        } else {
+            d.modes
+                .iter()
+                .find(|(m, _)| m == mode)
+                .map(|(_, data)| data.clone())
+                .unwrap_or_default()
+        }
+    })
+    .unwrap_or_default()
+}
+
+/// Make one of a display's fullscreen modes (as the video core keeps them)
+/// its current mode (`SDL_SetCurrentDisplayMode(display, &mode)`, with a
+/// mode from `SDL_GetClosestFullscreenDisplayMode()`).
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
+pub(crate) fn set_current_display_mode_to(display: DisplayID, mode: &DisplayMode) {
+    use crate::video::sysvideo::CurrentMode;
+    let current = with_display(display, |d| {
+        d.fullscreen_modes
+            .iter()
+            .position(|m| m == mode)
+            .map_or(CurrentMode::Other(*mode), CurrentMode::Fullscreen)
+    });
+    if let Some(current) = current {
+        crate::video::display::set_current_display_mode(display, current);
+    }
+}
+
 /// Translation of `UIKit_SetDisplayMode()`.
 pub(crate) fn set_display_mode(display: DisplayID, mode: &DisplayMode) -> Result<()> {
     #[cfg(not(target_os = "visionos"))]
@@ -494,21 +532,7 @@ pub(crate) fn set_display_mode(display: DisplayID, mode: &DisplayMode) -> Result
 
             #[cfg(not(target_os = "tvos"))]
             {
-                // (upstream takes the mode's own data; the desktop mode is
-                // the one the video core passes from display->desktop_mode)
-                let desktop_mode = with_display(display, |d| d.desktop_mode);
-                let modedata = with_display_data(display, |d| {
-                    if desktop_mode == Some(*mode) {
-                        d.desktop_uiscreenmode.clone()
-                    } else {
-                        d.modes
-                            .iter()
-                            .find(|(m, _)| m == mode)
-                            .map(|(_, data)| data.clone())
-                            .unwrap_or_default()
-                    }
-                })
-                .unwrap_or_default();
+                let modedata = screen_mode_of(display, mode);
                 // SAFETY: a UIScreen property (nil, as upstream's nil mode
                 // data has, is UIKit's to handle).
                 unsafe {

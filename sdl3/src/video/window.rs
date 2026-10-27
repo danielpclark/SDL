@@ -79,6 +79,11 @@ pub const PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER: &str = "SDL.window.create.coc
 /// Translation of `SDL_PROP_WINDOW_CREATE_COCOA_VIEW_POINTER`.
 pub const PROP_WINDOW_CREATE_COCOA_VIEW_POINTER: &str = "SDL.window.create.cocoa.view";
 
+/// The `UIWindowScene` a window goes in (iOS, tvOS, visionOS), as a number;
+/// the app's active window scene by default. Translation of
+/// `SDL_PROP_WINDOW_CREATE_WINDOWSCENE_POINTER`.
+pub const PROP_WINDOW_CREATE_WINDOWSCENE_POINTER: &str = "SDL.window.create.uikit.windowscene";
+
 /// The X11 `Window` to wrap (instead of creating one). Translation of
 /// `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`.
 pub const PROP_WINDOW_CREATE_X11_WINDOW_NUMBER: &str = "SDL.window.create.x11.window";
@@ -194,6 +199,12 @@ pub const PROP_WINDOW_COCOA_WINDOW_POINTER: &str = "SDL.window.cocoa.window";
 /// The tag the window's Metal view gets (macOS). Translation of
 /// `SDL_PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER`.
 pub const PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER: &str = "SDL.window.cocoa.metal_view_tag";
+/// The window's `UIWindow` (iOS, tvOS, visionOS), as a number. Translation
+/// of `SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER`.
+pub const PROP_WINDOW_UIKIT_WINDOW_POINTER: &str = "SDL.window.uikit.window";
+/// The tag the window's Metal views get (iOS, tvOS, visionOS). Translation
+/// of `SDL_PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER`.
+pub const PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER: &str = "SDL.window.uikit.metal_view_tag";
 
 /// Translation of `SDL_PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY`.
 const PROP_SDL2_COMPAT_WINDOW_PREFERRED_FULLSCREEN_DISPLAY: &str =
@@ -1637,6 +1648,32 @@ impl Window {
     /// `SDL_GetWindowProperties()`.
     pub fn properties(&self) -> Result<Properties> {
         with_window(self.id, |w| w.properties())
+    }
+
+    /// Call `callback` once every `interval` frames of the window's screen
+    /// (an `interval` below 1 is 1), from the main run loop, in place of the
+    /// callback set before; `None` stops it. This is for apps that let
+    /// UIKit's run loop run (returning from their main function, or with
+    /// [`set_ios_event_pump`](super::set_ios_event_pump) off), and draw
+    /// from the callback; the main callbacks are another way. The callback
+    /// may set another (or none) or destroy the window; a panic in it
+    /// aborts the process. iOS, tvOS and visionOS only. Translation of
+    /// `SDL_SetiOSAnimationCallback()`.
+    ///
+    /// Note: this must be called on the main thread (the callback isn't
+    /// `Send`); elsewhere it fails.
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    pub fn set_ios_animation_callback(
+        &self,
+        interval: i32,
+        callback: Option<Box<dyn FnMut()>>,
+    ) -> Result<()> {
+        if !crate::core::apple::foundation::is_main_thread() {
+            return Err(Error::new(
+                "SDL_SetiOSAnimationCallback() must be called on the main thread",
+            ));
+        }
+        super::drivers::uikit::window::set_ios_animation_callback(self.id, interval, callback)
     }
 
     /// The window flags, with pending ones. Translation of
