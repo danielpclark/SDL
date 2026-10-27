@@ -1,36 +1,47 @@
-// Rust translation of the display parts of src/video/uikit/SDL_uikitmodes.m
-// and SDL_uikitmodes.h from Simple DirectMedia Layer.
+// Rust translation of src/video/uikit/SDL_uikitmodes.m and
+// SDL_uikitmodes.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! The displays: one per `UIScreen` (the fake 1280x720 one on visionOS),
-//! with its desktop mode, added at video init and when a screen connects
-//! (`SDL_DisplayWatch`), and the main screen's orientation
-//! (`SDL_OnApplicationDidChangeStatusBarOrientation()`).
+//! added at video init and when a screen connects (`SDL_DisplayWatch`),
+//! removed when it disconnects; their modes (the screen's modes, each in
+//! both orientations on the main screen, in points with the screen's
+//! native scale as the pixel density, at the screen's maximum frame rate),
+//! mode changes, usable bounds (the screen's bounds), and the main
+//! screen's orientation (`SDL_OnApplicationDidChangeStatusBarOrientation()`),
+//! which the desktop and fullscreen modes follow.
 //!
-//! This is the part of upstream's file the video init needs (it fails
-//! without a display). The fullscreen modes (`UIKit_GetDisplayModes()`),
-//! mode changes (`UIKit_SetDisplayMode()`) and the usable bounds
-//! (`UIKit_GetDisplayUsableBounds()`) aren't translated yet: displays have
-//! only their desktop mode, and the generic usable bounds (the display's
-//! bounds). Upstream keeps each mode's `UIScreenMode` in the mode, for
-//! `UIKit_SetDisplayMode()`; it isn't kept here until that is translated.
+//! Upstream keeps each mode's `UIScreenMode` in the mode
+//! (`SDL_UIKitDisplayModeData`, the mode's `internal`), for
+//! `UIKit_SetDisplayMode()`. The video core's modes carry no driver data
+//! here, so the display's driver data keeps them, by the mode as the core
+//! finalized it (and turned with it), as the X11 driver keeps its modes'.
 
+use crate::core::apple::foundation::CGRect;
+#[cfg(not(target_os = "visionos"))]
+use crate::core::apple::foundation::{CGFloat, CGSize};
 use crate::core::apple::objc::{autoreleasepool, StrongPtr};
 #[cfg(not(target_os = "visionos"))]
 use crate::core::apple::objc::{class, msg_send, Id};
+#[cfg(not(target_os = "visionos"))]
+use crate::error::Error;
+use crate::error::Result;
 use crate::events::DisplayID;
-#[cfg(not(target_os = "visionos"))]
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use crate::events::EventType;
+use crate::video::core::with_display;
 #[cfg(not(target_os = "visionos"))]
-use crate::video::display::del_video_display;
-use crate::video::display::{add_video_display, displays};
+use crate::video::display::finalize_display_mode;
+#[cfg(not(target_os = "visionos"))]
+use crate::video::display::{add_fullscreen_display_mode, del_video_display};
+use crate::video::display::{add_video_display, display_bounds, displays};
 #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use crate::video::display::{primary_display, set_desktop_display_mode};
 use crate::video::sysvideo::{DisplayOrientation, VideoDisplay};
-use crate::video::{DisplayMode, PixelFormat};
+use crate::video::{DisplayMode, PixelFormat, Rect};
 
-#[cfg(not(target_os = "visionos"))]
+#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use super::sys::*;
 
 /// because visionOS does not have a screen
@@ -42,23 +53,40 @@ pub(crate) const SDL_XR_SCREENWIDTH: i32 = 1280;
 #[cfg(target_os = "visionos")]
 pub(crate) const SDL_XR_SCREENHEIGHT: i32 = 720;
 
-/// Translation of `SDL_UIKitDisplayData` (the display's `internal`).
+/// Translation of `SDL_UIKitDisplayData` (the display's `internal`), with
+/// the `SDL_UIKitDisplayModeData` of its modes (see the module's
+/// description).
 pub(crate) struct DisplayData {
     /// `uiscreen` (nil on visionOS).
     #[cfg_attr(target_os = "visionos", allow(dead_code))]
     pub(crate) uiscreen: StrongPtr,
+    /// The desktop mode's `uiscreenmode` (`desktop_mode.internal`; nil
+    /// once lost, see `on_application_did_change_status_bar_orientation()`).
+    #[cfg(not(target_os = "visionos"))]
+    #[cfg_attr(target_os = "tvos", allow(dead_code))] // (as upstream's)
+    desktop_uiscreenmode: StrongPtr,
+    /// The fullscreen modes' `uiscreenmode`s, by the mode as the video core
+    /// keeps it.
+    #[cfg(not(target_os = "visionos"))]
+    modes: Vec<(DisplayMode, StrongPtr)>,
+}
+
+/// Run `f` on a display's driver data, if it's one of this driver's.
+#[cfg(not(target_os = "visionos"))]
+fn with_display_data<R>(display: DisplayID, f: impl FnOnce(&mut DisplayData) -> R) -> Option<R> {
+    with_display(display, |d| {
+        d.internal
+            .as_mut()
+            .and_then(|i| i.downcast_mut::<DisplayData>())
+            .map(f)
+    })
+    .flatten()
 }
 
 /// The `UIScreen` of a display, if it's one of this driver's.
 #[cfg(not(target_os = "visionos"))]
 pub(crate) fn display_screen(display: DisplayID) -> Option<Id> {
-    crate::video::core::with_display(display, |d| {
-        d.internal
-            .as_ref()
-            .and_then(|i| i.downcast_ref::<DisplayData>())
-            .map(|data| data.uiscreen.get())
-    })
-    .flatten()
+    with_display_data(display, |data| data.uiscreen.get())
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +178,7 @@ mod watch {
 }
 
 // ---------------------------------------------------------------------------
-// Displays
+// Modes
 
 /// Translation of `UIKit_GetDisplayModeRefreshRate()`.
 #[cfg(not(target_os = "visionos"))]
@@ -161,9 +189,69 @@ fn get_display_mode_refresh_rate(uiscreen: Id) -> f32 {
     fps as f32
 }
 
+/// Add a fullscreen mode of a display, keeping its `UIScreenMode`.
+/// Translation of `UIKit_AddSingleDisplayMode()` (with
+/// `UIKit_AllocateDisplayModeData()`).
+#[cfg(not(target_os = "visionos"))]
+fn add_single_display_mode(
+    display: DisplayID,
+    w: i32,
+    h: i32,
+    uiscreen: Id,
+    uiscreenmode: Id,
+) -> bool {
+    // SAFETY: a UIScreen property.
+    let native_scale: CGFloat = unsafe { msg_send![uiscreen, nativeScale] };
+    let mode = DisplayMode {
+        w,
+        h,
+        pixel_density: native_scale as f32,
+        refresh_rate: get_display_mode_refresh_rate(uiscreen),
+        format: PixelFormat::ABGR8888,
+        ..DisplayMode::default()
+    };
+
+    if add_fullscreen_display_mode(display, &mode) {
+        // (the mode as the video core keeps it)
+        let mut kept = mode;
+        kept.display_id = display;
+        finalize_display_mode(&mut kept);
+        // SAFETY: the screen's mode (nil allowed).
+        let data = unsafe { StrongPtr::retain(uiscreenmode) };
+        with_display_data(display, |d| d.modes.push((kept, data)));
+        true
+    } else {
+        false
+    }
+}
+
+/// Translation of `UIKit_AddDisplayMode()`.
+#[cfg(not(target_os = "visionos"))]
+fn add_display_mode(
+    display: DisplayID,
+    w: i32,
+    h: i32,
+    uiscreen: Id,
+    uiscreenmode: Id,
+    add_rotation: bool,
+) -> bool {
+    if !add_single_display_mode(display, w, h, uiscreen, uiscreenmode) {
+        return false;
+    }
+
+    if add_rotation {
+        // Add the rotated version
+        if !add_single_display_mode(display, h, w, uiscreen, uiscreenmode) {
+            return false;
+        }
+    }
+
+    true
+}
+
 /// Translation of `GetUIScreenModeSize()`.
 #[cfg(not(target_os = "visionos"))]
-fn get_uiscreen_mode_size(uiscreen: Id, mode: Id) -> crate::core::apple::foundation::CGSize {
+fn get_uiscreen_mode_size(uiscreen: Id, mode: Id) -> CGSize {
     /* For devices such as iPhone 6/7/8 Plus, the UIScreenMode reported by iOS
      * isn't the physical pixels of the display, but rather the point size times
      * the scale. For example, on iOS 12.2 on iPhone 8 Plus the physical pixel
@@ -179,8 +267,8 @@ fn get_uiscreen_mode_size(uiscreen: Id, mode: Id) -> crate::core::apple::foundat
      */
     // SAFETY: UIScreenMode's and UIScreen's properties.
     unsafe {
-        let mut size: crate::core::apple::foundation::CGSize = msg_send![mode, size];
-        let scale: crate::core::apple::foundation::CGFloat = msg_send![uiscreen, scale];
+        let mut size: CGSize = msg_send![mode, size];
+        let scale: CGFloat = msg_send![uiscreen, scale];
 
         size.width = crate::stdlib::math::round(size.width / scale);
         size.height = crate::stdlib::math::round(size.height / scale);
@@ -188,6 +276,9 @@ fn get_uiscreen_mode_size(uiscreen: Id, mode: Id) -> crate::core::apple::foundat
         size
     }
 }
+
+// ---------------------------------------------------------------------------
+// Displays
 
 /// Add the display of a screen. Translation of `UIKit_AddDisplay()`.
 #[cfg(not(target_os = "visionos"))]
@@ -202,8 +293,7 @@ pub(crate) fn add_display(uiscreen: Id, send_event: bool) -> bool {
             std::mem::swap(&mut size.width, &mut size.height);
         }
 
-        let native_scale: crate::core::apple::foundation::CGFloat =
-            msg_send![uiscreen, nativeScale];
+        let native_scale: CGFloat = msg_send![uiscreen, nativeScale];
         let mode = DisplayMode {
             w: size.width as i32,
             h: size.height as i32,
@@ -212,6 +302,8 @@ pub(crate) fn add_display(uiscreen: Id, send_event: bool) -> bool {
             refresh_rate: get_display_mode_refresh_rate(uiscreen),
             ..DisplayMode::default()
         };
+
+        let desktop_uiscreenmode = StrongPtr::retain(uiscreenmode);
 
         let mut display = VideoDisplay::new();
         #[cfg(not(target_os = "tvos"))]
@@ -233,13 +325,11 @@ pub(crate) fn add_display(uiscreen: Id, send_event: bool) -> bool {
 
         #[cfg(not(target_os = "tvos"))]
         if crate::core::apple::foundation::available!(ios(16, 0)) {
-            let current: crate::core::apple::foundation::CGFloat =
-                msg_send![uiscreen, currentEDRHeadroom];
+            let current: CGFloat = msg_send![uiscreen, currentEDRHeadroom];
             if current > 1.0 {
                 display.hdr.hdr_headroom = current as f32;
             } else {
-                let potential: crate::core::apple::foundation::CGFloat =
-                    msg_send![uiscreen, potentialEDRHeadroom];
+                let potential: CGFloat = msg_send![uiscreen, potentialEDRHeadroom];
                 display.hdr.hdr_headroom = potential as f32;
             }
         }
@@ -247,6 +337,8 @@ pub(crate) fn add_display(uiscreen: Id, send_event: bool) -> bool {
         // Allocate the display data
         display.internal = Some(Box::new(DisplayData {
             uiscreen: StrongPtr::retain(uiscreen),
+            desktop_uiscreenmode,
+            modes: Vec::new(),
         }));
         add_video_display(display, send_event) != 0
     }
@@ -286,7 +378,11 @@ pub(crate) fn add_display(send_event: bool) -> bool {
 pub(crate) fn del_display(uiscreen: Id, send_event: bool) {
     for id in displays().unwrap_or_default() {
         if display_screen(id) == Some(uiscreen) {
-            let _ = crate::video::core::with_display(id, |d| d.internal = None);
+            // Note (upstream): upstream releases only the display's data
+            // here, and SDL_DelVideoDisplay() SDL_free()s its modes' (the
+            // SDL_UIKitDisplayModeData objects); here dropping the
+            // display's data releases them all.
+            let _ = with_display(id, |d| d.internal = None);
             del_video_display(id, send_event);
             break;
         }
@@ -308,7 +404,7 @@ pub(crate) fn is_display_landscape(uiscreen: Id) -> bool {
         return UIInterfaceOrientationIsLandscape(super::get_interface_orientation());
     }
     // SAFETY: a UIScreen property.
-    let bounds: crate::core::apple::foundation::CGRect = unsafe { msg_send![uiscreen, bounds] };
+    let bounds: CGRect = unsafe { msg_send![uiscreen, bounds] };
     bounds.size.width > bounds.size.height
 }
 
@@ -341,15 +437,151 @@ pub(crate) fn init_modes() -> bool {
     })
 }
 
+/// Add a display's fullscreen modes. Translation of
+/// `UIKit_GetDisplayModes()`.
+pub(crate) fn get_display_modes(display: DisplayID) {
+    #[cfg(not(target_os = "visionos"))]
+    autoreleasepool(|| {
+        let Some(uiscreen) = display_screen(display) else {
+            return;
+        };
+
+        let is_landscape = is_display_landscape(uiscreen);
+        let add_rotation: bool;
+        let available_modes: Vec<Id>;
+
+        #[cfg(target_os = "tvos")]
+        {
+            add_rotation = false;
+            // SAFETY: a UIScreen property.
+            available_modes = vec![unsafe { msg_send![uiscreen, currentMode] }];
+        }
+        #[cfg(not(target_os = "tvos"))]
+        {
+            add_rotation = uiscreen == main_screen();
+            // SAFETY: a UIScreen property, an array of UIScreenModes.
+            available_modes = unsafe {
+                let modes: Id = msg_send![uiscreen, availableModes];
+                crate::core::apple::foundation::ns_array_items(modes)
+            };
+        }
+
+        for uimode in available_modes {
+            let size = get_uiscreen_mode_size(uiscreen, uimode);
+            let mut w = size.width as i32;
+            let mut h = size.height as i32;
+
+            // Make sure the width/height are oriented correctly
+            if is_landscape != (w > h) {
+                std::mem::swap(&mut w, &mut h);
+            }
+
+            add_display_mode(display, w, h, uiscreen, uimode, add_rotation);
+        }
+    });
+    #[cfg(target_os = "visionos")]
+    let _ = display;
+}
+
+/// Translation of `UIKit_SetDisplayMode()`.
+pub(crate) fn set_display_mode(display: DisplayID, mode: &DisplayMode) -> Result<()> {
+    #[cfg(not(target_os = "visionos"))]
+    {
+        autoreleasepool(|| {
+            let Some(uiscreen) = display_screen(display) else {
+                return Ok(());
+            };
+
+            #[cfg(not(target_os = "tvos"))]
+            {
+                // (upstream takes the mode's own data; the desktop mode is
+                // the one the video core passes from display->desktop_mode)
+                let desktop_mode = with_display(display, |d| d.desktop_mode);
+                let modedata = with_display_data(display, |d| {
+                    if desktop_mode == Some(*mode) {
+                        d.desktop_uiscreenmode.clone()
+                    } else {
+                        d.modes
+                            .iter()
+                            .find(|(m, _)| m == mode)
+                            .map(|(_, data)| data.clone())
+                            .unwrap_or_default()
+                    }
+                })
+                .unwrap_or_default();
+                // SAFETY: a UIScreen property (nil, as upstream's nil mode
+                // data has, is UIKit's to handle).
+                unsafe {
+                    let () = msg_send![uiscreen, setCurrentMode: modedata.get()];
+                }
+            }
+
+            if uiscreen == main_screen() {
+                /* [UIApplication setStatusBarOrientation:] no longer works reliably
+                 * in recent iOS versions, so we can't rotate the screen when setting
+                 * the display mode. */
+                if mode.w > mode.h {
+                    if !is_display_landscape(uiscreen) {
+                        return Err(Error::new(
+                            "Screen orientation does not match display mode size",
+                        ));
+                    }
+                } else if mode.w < mode.h && is_display_landscape(uiscreen) {
+                    return Err(Error::new(
+                        "Screen orientation does not match display mode size",
+                    ));
+                }
+            }
+            Ok(())
+        })
+    }
+    #[cfg(target_os = "visionos")]
+    {
+        let _ = (display, mode);
+        Ok(())
+    }
+}
+
+/// Translation of `UIKit_GetDisplayUsableBounds()`.
+pub(crate) fn get_display_usable_bounds(display: DisplayID) -> Result<Rect> {
+    autoreleasepool(|| {
+        #[cfg(target_os = "visionos")]
+        let frame = CGRect::new(
+            0.0,
+            0.0,
+            SDL_XR_SCREENWIDTH as f64,
+            SDL_XR_SCREENHEIGHT as f64,
+        );
+        #[cfg(not(target_os = "visionos"))]
+        let frame: CGRect = {
+            let uiscreen = display_screen(display).ok_or_else(|| Error::new("Invalid display"))?;
+            // SAFETY: a UIScreen property.
+            unsafe { msg_send![uiscreen, bounds] }
+        };
+
+        /* the default function iterates displays to make a fake offset,
+        as if all the displays were side-by-side, which is fine for iOS. */
+        let mut rect = display_bounds(display)?;
+
+        rect.x += frame.origin.x as i32;
+        rect.y += frame.origin.y as i32;
+        rect.w = frame.size.width as i32;
+        rect.h = frame.size.height as i32;
+
+        Ok(rect)
+    })
+}
+
 /// Translation of `UIKit_QuitModes()`.
 pub(crate) fn quit_modes() {
     #[cfg(not(target_os = "visionos"))]
     watch::stop();
 
     // Release Objective-C objects, so higher level doesn't free() them.
+    // (the display's data holds its modes' too)
     autoreleasepool(|| {
         for id in displays().unwrap_or_default() {
-            let _ = crate::video::core::with_display(id, |d| d.internal = None);
+            let _ = with_display(id, |d| d.internal = None);
         }
     });
 }
@@ -363,7 +595,9 @@ pub(crate) fn on_application_did_change_status_bar_orientation() {
     let Ok(display) = primary_display() else {
         return;
     };
-    let Some(desktop_mode) = crate::video::core::with_display(display, |d| d.desktop_mode) else {
+    let Some((desktop_mode, fullscreen_active)) =
+        with_display(display, |d| (d.desktop_mode, d.fullscreen_active))
+    else {
         return;
     };
 
@@ -376,16 +610,29 @@ pub(crate) fn on_application_did_change_status_bar_orientation() {
         new_mode.w = desktop_mode.h;
         new_mode.h = desktop_mode.w;
 
+        // Make sure we don't free the current display mode data
+        // (the desktop mode's data goes with new_mode)
+        // FIXME (upstream): SDL_SetDesktopDisplayMode() doesn't take
+        // new_mode while a fullscreen window is active, so the desktop mode
+        // is left with no data (nil), and restoring it sets the screen's
+        // current mode to nil.
+        if fullscreen_active {
+            with_display_data(display, |d| d.desktop_uiscreenmode = StrongPtr::nil());
+        }
+
         set_desktop_display_mode(display, &new_mode);
     }
 
     // Same deal with the fullscreen modes
-    crate::video::core::with_display(display, |d| {
-        for mode in &mut d.fullscreen_modes {
-            if is_landscape != (mode.w > mode.h) {
-                std::mem::swap(&mut mode.w, &mut mode.h);
-            }
+    // (and their data, kept by the mode)
+    let turn = |mode: &mut DisplayMode| {
+        if is_landscape != (mode.w > mode.h) {
+            std::mem::swap(&mut mode.w, &mut mode.h);
         }
+    };
+    with_display(display, |d| d.fullscreen_modes.iter_mut().for_each(turn));
+    with_display_data(display, |d| {
+        d.modes.iter_mut().for_each(|(mode, _)| turn(mode))
     });
 
     let orientation = match interface_orientation {
