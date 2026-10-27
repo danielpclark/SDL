@@ -218,3 +218,7 @@ harness = false
 [[test]]
 name = "uikit_windows"
 harness = false
+
+[[test]]
+name = "uikit_input"
+harness = false

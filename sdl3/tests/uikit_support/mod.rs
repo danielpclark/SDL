@@ -8,14 +8,17 @@
 //! with [`exit`], which prints the line the runner takes it from, flushes
 //! and exits. [`request`] asks the runner for something done from outside
 //! the app (`background`: another app comes to the foreground;
-//! `foreground`: this one comes back).
+//! `foreground`: this one comes back; `tap X Y` and `swipe X1 Y1 X2 Y2
+//! SECONDS`: a finger touches the screen there, through idb, when the
+//! runner drives it, see [`idb`]).
 //!
 //! A panic in a callback from Objective-C (the main function, which
 //! `run_app()` calls from the app delegate, or a main callback) aborts the
 //! process, so the programs run their checks in [`checked`] and end with
 //! the status it gives. The few Objective-C messages the programs send
-//! themselves (posting notifications, asking UIKit how the app is) go
-//! through [`objc`].
+//! themselves (posting notifications, asking UIKit how the app is), the
+//! classes they declare (stand-ins for UIKit's and GameController's
+//! objects) and the blocks they call go through [`objc`].
 
 #![allow(dead_code)] // (each program uses what it needs)
 
@@ -40,6 +43,27 @@ pub fn print_exit_line(status: i32) {
 pub fn request(what: &str) {
     println!("sdl3-ios-runner: request {what}");
     let _ = std::io::stdout().flush();
+}
+
+/// Whether the runner drives idb (`Ok`), so that `tap` and `swipe`
+/// requests touch the screen, or why not: the runner tells the app in
+/// `SDL3_IOS_RUNNER_IDB` (`1`, or the reason). When `SDL3_TEST_REQUIRE`
+/// names `idb` (or `all`), its absence is a failure.
+pub fn idb() -> Result<(), String> {
+    let why = match std::env::var("SDL3_IOS_RUNNER_IDB") {
+        Ok(v) if v == "1" => return Ok(()),
+        Ok(v) => v,
+        Err(_) => "the runner doesn't drive idb".to_string(),
+    };
+    let required = std::env::var("SDL3_TEST_REQUIRE").unwrap_or_default();
+    if required
+        .split(',')
+        .map(str::trim)
+        .any(|c| c == "idb" || c == "all")
+    {
+        panic!("required capability idb unavailable: {why}");
+    }
+    Err(why)
 }
 
 /// Run `checks`, catching a panic (printed by the panic hook): the exit
@@ -188,6 +212,114 @@ pub mod objc {
             let f: unsafe extern "C" fn(Id, Sel, A, B) -> R =
                 std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
             f(obj, sel(selector), a, b)
+        }
+    }
+
+    /// `[obj selector:a b:b c:c]`.
+    ///
+    /// # Safety
+    ///
+    /// As [`send1`].
+    pub unsafe fn send3<A, B, C, R>(obj: Id, selector: &str, a: A, b: B, c: C) -> R {
+        // SAFETY: as above.
+        unsafe {
+            let f: unsafe extern "C" fn(Id, Sel, A, B, C) -> R =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            f(obj, sel(selector), a, b, c)
+        }
+    }
+
+    #[link(name = "objc")]
+    unsafe extern "C" {
+        fn objc_allocateClassPair(superclass: Id, name: *const c_char, extra: usize) -> Id;
+        fn objc_registerClassPair(cls: Id);
+        fn class_addMethod(cls: Id, name: Sel, imp: *const c_void, types: *const c_char) -> bool;
+        fn objc_getProtocol(name: *const c_char) -> Id;
+        fn class_conformsToProtocol(cls: Id, protocol: Id) -> bool;
+        fn object_getClass(obj: Id) -> Id;
+    }
+
+    unsafe extern "C" {
+        fn _Block_copy(block: *const c_void) -> *mut c_void;
+        fn _Block_release(block: *const c_void);
+    }
+
+    /// Declare a class (a subclass of `superclass`) with these methods
+    /// (selector, implementation, type encoding).
+    ///
+    /// # Safety
+    ///
+    /// Each implementation must be an `extern "C"` function of its
+    /// encoding's signature.
+    pub unsafe fn declare_class(
+        name: &str,
+        superclass: &str,
+        methods: &[(&str, *const c_void, &str)],
+    ) -> Id {
+        let cname = CString::new(name).unwrap();
+        // SAFETY: the caller's contract; a class pair registered once.
+        unsafe {
+            let cls = objc_allocateClassPair(class(superclass), cname.as_ptr(), 0);
+            assert!(!cls.is_null(), "the class {name} exists already");
+            for &(selector, imp, types) in methods {
+                let types = CString::new(types).unwrap();
+                assert!(class_addMethod(cls, sel(selector), imp, types.as_ptr()));
+            }
+            objc_registerClassPair(cls);
+            cls
+        }
+    }
+
+    /// Whether an object's class conforms to a protocol (false if the
+    /// runtime doesn't know the protocol).
+    pub fn conforms_to(obj: Id, protocol: &str) -> bool {
+        let name = CString::new(protocol).unwrap();
+        // SAFETY: a valid object and a NUL-terminated name.
+        unsafe {
+            let protocol = objc_getProtocol(name.as_ptr());
+            !protocol.is_null() && class_conformsToProtocol(object_getClass(obj), protocol)
+        }
+    }
+
+    /// A copy of a block (`[block copy]`), nil for nil.
+    pub fn block_copy(block: Id) -> Id {
+        if block.is_null() {
+            return block;
+        }
+        // SAFETY: a block.
+        unsafe { _Block_copy(block) }
+    }
+
+    /// Release a block copied with [`block_copy`] (nothing for nil).
+    pub fn block_release(block: Id) {
+        if !block.is_null() {
+            // SAFETY: a block copied with block_copy().
+            unsafe { _Block_release(block) }
+        }
+    }
+
+    /// The start of a block (its invoke function follows `isa`, the flags
+    /// and a reserved word).
+    #[repr(C)]
+    struct BlockLiteral {
+        isa: *const c_void,
+        flags: i32,
+        reserved: i32,
+        invoke: *const c_void,
+    }
+
+    /// Call a block of three arguments, `^(A, B, C)`.
+    ///
+    /// # Safety
+    ///
+    /// `block` must be a block of that signature, returning nothing.
+    pub unsafe fn call_block3<A, B, C>(block: Id, a: A, b: B, c: C) {
+        // SAFETY: the caller's contract; a block's invoke function takes
+        // the block, then the arguments.
+        unsafe {
+            let invoke = (*(block as *const BlockLiteral)).invoke;
+            let f: unsafe extern "C" fn(Id, A, B, C) = std::mem::transmute(invoke);
+            f(block, a, b, c)
         }
     }
 
