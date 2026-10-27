@@ -190,7 +190,13 @@ fn power_info_is_consistent() {
         #[cfg(windows)]
         assert_eq!((info.time_left, info.percent), (None, None), "{info:?}");
     }
-    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    #[cfg(not(any(target_os = "linux", target_vendor = "apple", windows)))]
+    assert_eq!(info.state, PowerState::Unknown);
+    // (UIKit: no battery on tvOS, nor in the simulator, which reports its
+    // state as unknown)
+    #[cfg(target_os = "tvos")]
+    assert_eq!(info.state, PowerState::NoBattery);
+    #[cfg(all(target_vendor = "apple", not(target_os = "tvos"), target_abi = "sim"))]
     assert_eq!(info.state, PowerState::Unknown);
     // (always a definitive answer on macOS)
     #[cfg(target_os = "macos")]
