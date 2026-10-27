@@ -6,7 +6,7 @@
 //! The UIKit video driver (iOS, tvOS, visionOS): the app delegate that
 //! `UIApplicationMain()` runs and that calls the app's main function
 //! ([`appdelegate`]), the lifecycle notifications and the event pump
-//! ([`events`]), and the displays ([`modes`]).
+//! ([`events`]), and the displays and their modes ([`modes`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -23,9 +23,9 @@
 //!
 //! Not translated yet: windows and their views and view controllers, so
 //! no window can be made yet (and the delegate's `window` is always nil),
-//! the fullscreen display modes and usable bounds, touches, the keyboard
-//! (`GCKeyboard`, the on-screen one), the mouse (`GCMouse`), pens, the
-//! clipboard, message boxes, OpenGL ES, Metal views and Vulkan.
+//! touches, the keyboard (`GCKeyboard`, the on-screen one), the mouse
+//! (`GCMouse`), pens, the clipboard, message boxes, OpenGL ES, Metal views
+//! and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
@@ -41,7 +41,9 @@ use std::sync::Arc;
 use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id};
 use crate::core::apple::uikit::shared_application;
 use crate::error::Result;
+use crate::events::DisplayID;
 use crate::video::sysvideo::{DeviceCaps, SystemTheme, VideoBootStrap, VideoDriver};
+use crate::video::{DisplayMode, Rect};
 
 #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use sys::UIInterfaceOrientation;
@@ -237,6 +239,19 @@ impl VideoDriver for UIKitVideo {
 
     fn video_quit(&self) {
         video_quit()
+    }
+
+    fn display_usable_bounds(&self, display: DisplayID) -> Option<Result<Rect>> {
+        Some(modes::get_display_usable_bounds(display))
+    }
+
+    fn display_modes(&self, display: DisplayID) -> Option<()> {
+        modes::get_display_modes(display);
+        Some(())
+    }
+
+    fn set_display_mode(&self, display: DisplayID, mode: &DisplayMode) -> Option<Result<()>> {
+        Some(modes::set_display_mode(display, mode))
     }
 
     fn pump_events(&self) -> Option<()> {
