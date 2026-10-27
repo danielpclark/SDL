@@ -1,5 +1,4 @@
-// Rust translation of the window parts of
-// src/video/uikit/SDL_uikitviewcontroller.m and
+// Rust translation of src/video/uikit/SDL_uikitviewcontroller.m and
 // SDL_uikitviewcontroller.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see
@@ -16,13 +15,28 @@
 //! callback ([`set_animation_callback`], `SDL_SetiOSAnimationCallback()`),
 //! which a `CADisplayLink` calls once every `interval` frames.
 //!
-//! Not translated yet: the on-screen keyboard and text input (the hidden
-//! `SDLUITextField` and its delegate, the keyboard's notifications, the
-//! text input properties and area, the key commands for the arrows and
-//! escape, and the rotation flag `viewWillTransitionToSize:` keeps for
-//! the keyboard), which come with the keyboard; and tvOS's base class
-//! (`GCEventViewController`) and hint
-//! (`SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`), which come with tvOS.
+//! It also does text input, through a hidden text field (`SDLUITextField`,
+//! a subview of the window's view) whose delegate it is: starting text
+//! input makes the field the first responder, which shows the on-screen
+//! keyboard (when there's no hardware keyboard), and stopping it lets go
+//! ([`start_text_input`], [`stop_text_input`]). The text input properties
+//! become the field's ([`set_text_field_properties`]: keyboard type,
+//! content type, secure entry, autocapitalization, autocorrection and
+//! spell checking, and whether the return key enables itself). What is
+//! typed in the field is SDL's text input: the field starts with 64
+//! spaces, so that deleting has something to delete, and each change
+//! becomes backspaces for what's gone (with no hardware keyboard), a key
+//! press for each new character (when no hardware key is down) and the
+//! new text; the return key is a press of Return, which stops text input
+//! with `SDL_HINT_RETURN_KEY_HIDES_IME`. The keyboard's notifications tell
+//! whether the on-screen keyboard is shown (the
+//! `SCREEN_KEYBOARD_SHOWN`/`HIDDEN` events) and its height, by which the
+//! view moves up when it would hide the text input area
+//! ([`update_keyboard`], [`crate::video::Window::set_text_input_area`]).
+//! Its key commands are the arrow keys and Escape, pressed and released.
+//!
+//! Not translated yet: tvOS's base class (`GCEventViewController`) and
+//! hint (`SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`), which come with tvOS.
 //! The view controller keeps the window's ID; once the window is gone it
 //! answers as for a window with no flags.
 //!
@@ -30,21 +44,33 @@
 //! [`EventType::WINDOW_RESIZED`]: crate::events::EventType::WINDOW_RESIZED
 
 use std::cell::{Cell, RefCell};
-use std::ffi::c_void;
+use std::ffi::{c_char, c_void, CStr};
 use std::sync::atomic::{AtomicI32, Ordering};
+use std::time::Duration;
 
-use crate::core::apple::foundation::{available, CGRect};
-#[cfg(not(target_os = "tvos"))]
-use crate::core::apple::objc::encoding;
-use crate::core::apple::objc::{
-    class, imp, ivar_ptr, msg_send, msg_send_super, sel, Class, ClassBuilder, DeclaredClass, Id,
-    NSInteger, Sel, StrongPtr, NIL,
+use crate::core::apple::block::RcBlock;
+use crate::core::apple::foundation::{
+    available, ns_string, CGFloat, CGPoint, CGRect, CGSize, NSRange,
 };
-#[cfg(not(target_os = "tvos"))]
-use crate::core::apple::objc::{Bool, NSUInteger, NO, YES};
+use crate::core::apple::objc::{
+    autoreleasepool, class, encoding, imp, ivar_ptr, msg_send, msg_send_super, sel, Bool, Class,
+    ClassBuilder, DeclaredClass, Id, NSInteger, NSUInteger, Sel, StrongPtr, NIL, NO, YES,
+};
+use crate::error::{Error, Result};
+use crate::events::keyboard::{
+    hardware_keyboard_key_pressed, has_keyboard, send_keyboard_key, send_keyboard_key_auto_release,
+    send_keyboard_text, send_keyboard_unicode_code, Scancode, GLOBAL_KEYBOARD_ID,
+};
 use crate::events::window::{send_window_event, WindowFlags};
 use crate::events::{EventType, WindowID};
+use crate::properties::Properties;
 use crate::video::core::with_window;
+use crate::video::textinput::{
+    send_screen_keyboard_hidden, send_screen_keyboard_shown, text_input_autocorrect,
+    text_input_capitalization, text_input_multiline, text_input_type, Capitalization,
+    TextInputType,
+};
+use crate::video::Rect;
 
 use super::sys::*;
 
@@ -69,6 +95,60 @@ struct State {
     /// view controller).
     #[cfg(not(target_os = "tvos"))]
     hint_callback: RefCell<Option<crate::hints::Callback>>,
+
+    // SDL_IPHONE_KEYBOARD
+    /// `textField` (an `SDLUITextField`).
+    text_field: StrongPtr,
+    /// `rotatingOrientation`: while the view's size changes with the
+    /// interface's orientation (from `viewWillTransitionToSize:` to the
+    /// transition's end). (Upstream keeps it, but reads it nowhere.)
+    rotating_orientation: Cell<bool>,
+    /// `committedText`: the text field's text as SDL last saw it.
+    committed_text: RefCell<StrongPtr>,
+    /// `obligateForBackspace`: the 64 spaces the text field holds, so
+    /// that deleting has something to delete.
+    obligate_for_backspace: StrongPtr,
+    /// `isOTPMode`: the text input is a PIN (a one-time code), whose text
+    /// isn't reset.
+    is_otp_mode: Cell<bool>,
+    /// `textInputRect` (the window's text input area).
+    text_input_rect: Cell<Rect>,
+    /// `keyboardHeight` (the on-screen keyboard's, in the view's points).
+    keyboard_height: Cell<i32>,
+    /// `textFieldFocused`.
+    text_field_focused: Cell<bool>,
+}
+
+static SDLUITEXTFIELD: DeclaredClass = DeclaredClass::new();
+
+/// The `SDLUITextField` class (`@interface SDLUITextField : UITextField`),
+/// which can't paste.
+fn text_field_class() -> Class {
+    SDLUITEXTFIELD.get(|| {
+        let mut b =
+            ClassBuilder::new(c"SDLUITextField", class!(UITextField)).expect("SDLUITextField");
+        // SAFETY: the implementation has the signature of the encoding.
+        unsafe {
+            b.add_method(
+                sel!(canPerformAction:withSender:),
+                imp!(text_field_can_perform_action as extern "C" fn(Id, Sel, Sel, Id) -> Bool),
+                &encoding("B@::@"),
+            );
+        }
+        b.register()
+    })
+}
+
+/// Translation of `-[SDLUITextField canPerformAction:withSender:]`.
+extern "C" fn text_field_can_perform_action(this: Id, _sel: Sel, action: Sel, sender: Id) -> Bool {
+    if action == sel!(paste:) {
+        return NO;
+    }
+
+    // SAFETY: UIResponder's method.
+    unsafe {
+        msg_send_super![this, text_field_class(), canPerformAction: action withSender: sender]
+    }
 }
 
 static SDL_UIKITVIEWCONTROLLER: DeclaredClass = DeclaredClass::new();
@@ -81,6 +161,7 @@ pub(crate) fn viewcontroller_class() -> Class {
         let mut b = ClassBuilder::new(c"SDL_uikitviewcontroller", class!(UIViewController))
             .expect("SDL_uikitviewcontroller");
         b.add_ivar::<*mut c_void>(c"_state", c"^v");
+        b.add_protocol(c"UITextFieldDelegate");
         // SAFETY: the implementations have the signatures of the encodings.
         unsafe {
             b.add_method(
@@ -112,6 +193,59 @@ pub(crate) fn viewcontroller_class() -> Class {
                 sel!(setView:),
                 imp!(vc_set_view as extern "C" fn(Id, Sel, Id)),
                 c"v@:@",
+            );
+            // SDL_IPHONE_KEYBOARD
+            b.add_method(
+                sel!(keyCommands),
+                imp!(vc_key_commands as extern "C" fn(Id, Sel) -> Id),
+                c"@@:",
+            );
+            b.add_method(
+                sel!(handleCommand:),
+                imp!(vc_handle_command as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
+            );
+            b.add_method(
+                sel!(viewWillTransitionToSize:withTransitionCoordinator:),
+                imp!(vc_view_will_transition_to_size as extern "C" fn(Id, Sel, CGSize, Id)),
+                c"v@:{CGSize=dd}@",
+            );
+            b.add_method(
+                sel!(keyboardWillShow:),
+                imp!(vc_keyboard_will_show as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
+            );
+            b.add_method(
+                sel!(keyboardDidShow:),
+                imp!(vc_keyboard_did_show as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
+            );
+            b.add_method(
+                sel!(keyboardWillHide:),
+                imp!(vc_keyboard_will_hide as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
+            );
+            b.add_method(
+                sel!(keyboardDidHide:),
+                imp!(vc_keyboard_did_hide as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
+            );
+            b.add_method(
+                sel!(textFieldTextDidChange:),
+                imp!(vc_text_field_text_did_change as extern "C" fn(Id, Sel, Id)),
+                c"v@:@",
+            );
+            b.add_method(
+                sel!(textField:shouldChangeCharactersInRange:replacementString:),
+                imp!(
+                    vc_should_change_characters as extern "C" fn(Id, Sel, Id, NSRange, Id) -> Bool
+                ),
+                &encoding("B@:@{_NSRange=QQ}@"),
+            );
+            b.add_method(
+                sel!(textFieldShouldReturn:),
+                imp!(vc_text_field_should_return as extern "C" fn(Id, Sel, Id) -> Bool),
+                &encoding("B@:@"),
             );
             #[cfg(not(target_os = "tvos"))]
             {
@@ -209,6 +343,12 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
     if this.is_nil() {
         return this;
     }
+    // (initKeyboard's text field, which the state keeps)
+    // SAFETY: SDLUITextField's alloc and UIView's initializer (owned).
+    let text_field = unsafe {
+        let text_field: Id = msg_send![text_field_class(), alloc];
+        StrongPtr::from_owned(msg_send![text_field, initWithFrame: CGRect::new(0.0, 0.0, 0.0, 0.0)])
+    };
     let new_state = Box::new(State {
         window,
         display_link: RefCell::new(StrongPtr::nil()),
@@ -219,12 +359,22 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
         home_indicator_hidden: AtomicI32::new(0),
         #[cfg(not(target_os = "tvos"))]
         hint_callback: RefCell::new(None),
+        text_field,
+        rotating_orientation: Cell::new(false),
+        committed_text: RefCell::new(StrongPtr::nil()),
+        obligate_for_backspace: ns_string(&" ".repeat(64)), // 64 space
+        is_otp_mode: Cell::new(false),
+        text_input_rect: Cell::new(Rect::default()),
+        keyboard_height: Cell::new(0),
+        text_field_focused: Cell::new(false),
     });
     // SAFETY: the view controller's variable, owning the box until dealloc.
     unsafe { *state_ivar(this.get()) = Box::into_raw(new_state) };
     let state = state(this.get()).expect("the view controller's state");
 
-    // (SDL_IPHONE_KEYBOARD's initKeyboard: see the module's description)
+    // SDL_IPHONE_KEYBOARD
+    init_keyboard(this.get(), state);
+    state.rotating_orientation.set(false);
 
     #[cfg(not(target_os = "tvos"))]
     {
@@ -273,7 +423,8 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
 
 /// Translation of `-[SDL_uikitviewcontroller dealloc]`.
 extern "C" fn vc_dealloc(this: Id, _sel: Sel) {
-    // (SDL_IPHONE_KEYBOARD's deinitKeyboard: see the module's description)
+    // SDL_IPHONE_KEYBOARD
+    deinit_keyboard(this);
 
     // SAFETY: the box new_view_controller() made (taken once); dropping
     // it removes the hint's callback and releases the display link.
@@ -418,9 +569,7 @@ extern "C" fn vc_view_did_layout_subviews(this: Id, _sel: Sel) {
     }
 }
 
-/// Translation of `-[SDL_uikitviewcontroller setView:]` (the game
-/// controllers' interaction with the view; the hidden text field the
-/// keyboard adds to it isn't translated yet).
+/// Translation of `-[SDL_uikitviewcontroller setView:]`.
 extern "C" fn vc_set_view(this: Id, _sel: Sel, view: Id) {
     // SAFETY: UIViewController's setView:.
     unsafe {
@@ -433,7 +582,19 @@ extern "C" fn vc_set_view(this: Id, _sel: Sel, view: Id) {
         super::set_view_game_controller_interaction(view, true);
     }
 
-    // (the text field: see the module's description)
+    let Some(state) = state(this) else {
+        return;
+    };
+    // SAFETY: UIView's method (nil does nothing).
+    unsafe {
+        let () = msg_send![view, addSubview: state.text_field.get()];
+    }
+
+    if state.text_field_focused.get() {
+        /* startTextInput has been called before the text field was added to the view,
+         * call it again for the text field to actually become first responder. */
+        start_text_input(this);
+    }
 }
 
 /// Translation of `-[SDL_uikitviewcontroller supportedInterfaceOrientations]`.
@@ -495,4 +656,658 @@ extern "C" fn vc_prefers_pointer_locked(_this: Id, _sel: Sel) -> Bool {
     } else {
         NO
     }
+}
+
+// ---------------------------------------------------------------------------
+// ---- Keyboard related functionality below this line ----
+// (SDL_IPHONE_KEYBOARD: every UIKit platform)
+
+/// The UTF-8 bytes of an `NSString` (`[string UTF8String]`; `None` for
+/// nil or a string that has none).
+///
+/// # Safety
+///
+/// `string` must be nil or an `NSString`.
+unsafe fn utf8_bytes(string: Id) -> Option<Vec<u8>> {
+    if string.is_null() {
+        return None;
+    }
+    // SAFETY: the caller's contract; the buffer lives as long as the
+    // autorelease pool, and is copied at once.
+    unsafe {
+        let p: *const c_char = msg_send![string, UTF8String];
+        (!p.is_null()).then(|| CStr::from_ptr(p).to_bytes().to_vec())
+    }
+}
+
+/// `[string length]` (0 for nil).
+///
+/// # Safety
+///
+/// As [`utf8_bytes`].
+unsafe fn length(string: Id) -> NSUInteger {
+    // SAFETY: the caller's contract.
+    unsafe { msg_send![string, length] }
+}
+
+/// Set ourselves up as a UITextFieldDelegate. Translation of
+/// `-[SDL_uikitviewcontroller initKeyboard]` (the text field and the
+/// obligatory spaces are made with the state).
+fn init_keyboard(this: Id, state: &State) {
+    let text_field = state.text_field.get();
+    // SAFETY: UITextField's properties, and the default notification
+    // center with this view controller's methods (which take the
+    // notification).
+    unsafe {
+        let () = msg_send![text_field, setDelegate: this];
+        // placeholder so there is something to delete!
+        let () = msg_send![text_field, setText: state.obligate_for_backspace.get()];
+        let text: Id = msg_send![text_field, text];
+        *state.committed_text.borrow_mut() = StrongPtr::retain(text);
+
+        let () = msg_send![text_field, setHidden: YES];
+        state.text_field_focused.set(false);
+        state.is_otp_mode.set(false);
+
+        let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
+        let observe = |selector: Sel, name: Id| {
+            let () = msg_send![center, addObserver: this
+                                          selector: selector
+                                              name: name
+                                            object: NIL];
+        };
+        #[cfg(not(target_os = "tvos"))]
+        {
+            observe(sel!(keyboardWillShow:), UIKeyboardWillShowNotification);
+            observe(sel!(keyboardDidShow:), UIKeyboardDidShowNotification);
+            observe(sel!(keyboardWillHide:), UIKeyboardWillHideNotification);
+            observe(sel!(keyboardDidHide:), UIKeyboardDidHideNotification);
+        }
+        observe(
+            sel!(textFieldTextDidChange:),
+            UITextFieldTextDidChangeNotification,
+        );
+    }
+}
+
+/// Translation of `-[SDL_uikitviewcontroller keyCommands]`.
+extern "C" fn vc_key_commands(_this: Id, _sel: Sel) -> Id {
+    // SAFETY: NSMutableArray's alloc and init (owned), UIKeyCommand's
+    // class method (autoreleased) and NSArray's (autoreleased, as the
+    // method answers); UIKit's constant strings.
+    unsafe {
+        let commands: Id = msg_send![class!(NSMutableArray), alloc];
+        let commands = StrongPtr::from_owned(msg_send![commands, init]);
+        for input in [
+            UIKeyInputUpArrow,
+            UIKeyInputDownArrow,
+            UIKeyInputLeftArrow,
+            UIKeyInputRightArrow,
+            UIKeyInputEscape,
+        ] {
+            let command: Id = msg_send![class!(UIKeyCommand),
+                keyCommandWithInput: input
+                modifierFlags: 0 as UIKeyModifierFlags // kNilOptions
+                action: sel!(handleCommand:)];
+            let () = msg_send![commands.get(), addObject: command];
+        }
+        msg_send![class!(NSArray), arrayWithArray: commands.get()]
+    }
+}
+
+/// Translation of `-[SDL_uikitviewcontroller handleCommand:]`.
+extern "C" fn vc_handle_command(_this: Id, _sel: Sel, key_command: Id) {
+    // SAFETY: a UIKeyCommand property.
+    let input: Id = unsafe { msg_send![key_command, input] };
+
+    // (the same strings, as upstream compares them)
+    // SAFETY: UIKit's constant strings.
+    let scancode = unsafe {
+        if input == UIKeyInputUpArrow {
+            Scancode::UP
+        } else if input == UIKeyInputDownArrow {
+            Scancode::DOWN
+        } else if input == UIKeyInputLeftArrow {
+            Scancode::LEFT
+        } else if input == UIKeyInputRightArrow {
+            Scancode::RIGHT
+        } else if input == UIKeyInputEscape {
+            Scancode::ESCAPE
+        } else {
+            Scancode::UNKNOWN
+        }
+    };
+
+    if scancode != Scancode::UNKNOWN {
+        send_keyboard_key_auto_release(Duration::ZERO, scancode);
+    }
+}
+
+/// Translation of
+/// `-[SDL_uikitviewcontroller viewWillTransitionToSize:withTransitionCoordinator:]`.
+extern "C" fn vc_view_will_transition_to_size(this: Id, _sel: Sel, size: CGSize, coordinator: Id) {
+    // SAFETY: UIViewController's method.
+    unsafe {
+        let () = msg_send_super![this, viewcontroller_class(),
+            viewWillTransitionToSize: size
+            withTransitionCoordinator: coordinator];
+    }
+    let Some(state) = state(this) else {
+        return;
+    };
+    state.rotating_orientation.set(true);
+    // (the completion keeps the view controller, as upstream's block does)
+    // SAFETY: a valid object, retained.
+    let vc = unsafe { StrongPtr::retain(this) };
+    let along = RcBlock::new1(|_context: Id| {});
+    let completion = RcBlock::new1(move |_context: Id| {
+        if let Some(state) = self::state(vc.get()) {
+            state.rotating_orientation.set(false);
+        }
+    });
+    // SAFETY: the transition coordinator's method, which copies the blocks.
+    unsafe {
+        let _: Bool = msg_send![coordinator,
+            animateAlongsideTransition: along.as_ptr()
+            completion: completion.as_ptr()];
+    }
+}
+
+/// Translation of `-[SDL_uikitviewcontroller deinitKeyboard]`.
+fn deinit_keyboard(this: Id) {
+    // SAFETY: the default notification center.
+    unsafe {
+        let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
+        let forget = |name: Id| {
+            let () = msg_send![center, removeObserver: this name: name object: NIL];
+        };
+        #[cfg(not(target_os = "tvos"))]
+        {
+            forget(UIKeyboardWillShowNotification);
+            forget(UIKeyboardDidShowNotification);
+            forget(UIKeyboardWillHideNotification);
+            forget(UIKeyboardDidHideNotification);
+        }
+        forget(UITextFieldTextDidChangeNotification);
+    }
+}
+
+/// Make the text input properties the text field's. Translation of
+/// `-[SDL_uikitviewcontroller setTextFieldProperties:]`.
+pub(crate) fn set_text_field_properties(this: Id, props: Option<&Properties>) {
+    let Some(state) = state(this) else {
+        return;
+    };
+    let text_field = state.text_field.get();
+    let ty = text_input_type(props);
+    // SAFETY: UITextField's properties (UITextInputTraits) and UIView's;
+    // UIKit's constant strings.
+    unsafe {
+        let () = msg_send![text_field, setSecureTextEntry: NO];
+
+        let (keyboard_type, content_type) = match ty {
+            TextInputType::Text => (UIKeyboardTypeDefault, NIL),
+            TextInputType::TextName => (UIKeyboardTypeDefault, UITextContentTypeName),
+            TextInputType::TextEmail => (UIKeyboardTypeEmailAddress, UITextContentTypeEmailAddress),
+            TextInputType::TextUsername => (UIKeyboardTypeDefault, UITextContentTypeUsername),
+            TextInputType::TextPasswordHidden | TextInputType::TextPasswordVisible => {
+                (UIKeyboardTypeDefault, UITextContentTypePassword)
+            }
+            TextInputType::Number => (UIKeyboardTypeDecimalPad, NIL),
+            TextInputType::NumberPasswordHidden | TextInputType::NumberPasswordVisible => {
+                let content_type = if available!(ios(12, 0), tvos(12, 0)) {
+                    UITextContentTypeOneTimeCode()
+                } else {
+                    NIL
+                };
+                (UIKeyboardTypeNumberPad, content_type)
+            }
+        };
+        let () = msg_send![text_field, setKeyboardType: keyboard_type];
+        let () = msg_send![text_field, setTextContentType: content_type];
+        if matches!(
+            ty,
+            TextInputType::TextPasswordHidden | TextInputType::NumberPasswordHidden
+        ) {
+            let () = msg_send![text_field, setSecureTextEntry: YES];
+        }
+
+        let capitalization = match text_input_capitalization(props) {
+            Capitalization::None => UITextAutocapitalizationTypeNone,
+            Capitalization::Letters => UITextAutocapitalizationTypeAllCharacters,
+            Capitalization::Words => UITextAutocapitalizationTypeWords,
+            Capitalization::Sentences => UITextAutocapitalizationTypeSentences,
+        };
+        let () = msg_send![text_field, setAutocapitalizationType: capitalization];
+
+        if text_input_autocorrect(props) {
+            let () = msg_send![text_field, setAutocorrectionType: UITextAutocorrectionTypeYes];
+            let () = msg_send![text_field, setSpellCheckingType: UITextSpellCheckingTypeYes];
+        } else {
+            let () = msg_send![text_field, setAutocorrectionType: UITextAutocorrectionTypeNo];
+            let () = msg_send![text_field, setSpellCheckingType: UITextSpellCheckingTypeNo];
+        }
+
+        if text_input_multiline(props) {
+            let () = msg_send![text_field, setEnablesReturnKeyAutomatically: YES];
+        } else {
+            let () = msg_send![text_field, setEnablesReturnKeyAutomatically: NO];
+        }
+
+        let window: Id = msg_send![text_field, window];
+        if window.is_null() {
+            /* textField has not been added to the view yet,
+            we don't have to do anything. */
+            return;
+        }
+
+        // the text field needs to be re-added to the view in order to update correctly.
+        // (the superview kept while the text field is out of it)
+        let superview = StrongPtr::retain(msg_send![text_field, superview]);
+        let () = msg_send![text_field, removeFromSuperview];
+        let () = msg_send![superview.get(), addSubview: text_field];
+
+        if window_of(this).is_some_and(crate::events::keyboard::text_input_active) {
+            let _: Bool = msg_send![text_field, becomeFirstResponder];
+        }
+    }
+
+    state.is_otp_mode.set(matches!(
+        ty,
+        TextInputType::NumberPasswordHidden | TextInputType::NumberPasswordVisible
+    ));
+}
+
+/// Make the text field the first responder and accept text input (which
+/// also shows the on-screen keyboard if no hardware keyboard is
+/// attached): whether it is. Translation of
+/// `-[SDL_uikitviewcontroller startTextInput]`.
+pub(crate) fn start_text_input(this: Id) -> bool {
+    let Some(state) = state(this) else {
+        return false;
+    };
+    if !state.text_field_focused.get() {
+        state.text_field_focused.set(true);
+        send_screen_keyboard_shown();
+    }
+
+    let text_field = state.text_field.get();
+    // SAFETY: UIView's, UITextField's and UIResponder's properties and
+    // methods; NSString's.
+    unsafe {
+        let window: Id = msg_send![text_field, window];
+        if window.is_null() {
+            /* textField has not been added to the view yet,
+             * we will try again when that happens. */
+            return true;
+        }
+
+        if state.is_otp_mode.get() {
+            let text: Id = msg_send![text_field, text];
+            let empty = ns_string("");
+            let space = ns_string(" ");
+            let padding: Id = msg_send![empty.get(),
+                stringByPaddingToLength: 64 as NSUInteger
+                withString: space.get()
+                startingAtIndex: 0 as NSUInteger];
+            if length(text) == 64 {
+                let equal: Bool = msg_send![text, isEqualToString: padding];
+                if equal.is_true() {
+                    let () = msg_send![text_field, setText: empty.get()];
+                    *state.committed_text.borrow_mut() = empty;
+                }
+            }
+        }
+        let first_responder: Bool = msg_send![text_field, becomeFirstResponder];
+        first_responder.is_true()
+    }
+}
+
+/// Let the text field lose focus and stop accepting text input (which
+/// also hides the on-screen keyboard if no hardware keyboard is
+/// attached): whether it did. Translation of
+/// `-[SDL_uikitviewcontroller stopTextInput]`.
+pub(crate) fn stop_text_input(this: Id) -> bool {
+    let Some(state) = state(this) else {
+        return false;
+    };
+    if state.text_field_focused.get() {
+        state.text_field_focused.set(false);
+        send_screen_keyboard_hidden();
+    }
+
+    let text_field = state.text_field.get();
+    // SAFETY: UIView's property.
+    let window: Id = unsafe { msg_send![text_field, window] };
+    if window.is_null() {
+        /* textField has not been added to the view yet,
+         * we will try again when that happens. */
+        return true;
+    }
+
+    reset_text_state(this);
+    // SAFETY: UIResponder's method.
+    let resigned: Bool = unsafe { msg_send![text_field, resignFirstResponder] };
+    resigned.is_true()
+}
+
+/// Translation of `-[SDL_uikitviewcontroller keyboardWillShow:]`.
+extern "C" fn vc_keyboard_will_show(this: Id, _sel: Sel, notification: Id) {
+    #[cfg(not(target_os = "tvos"))]
+    {
+        // SAFETY: NSNotification's user info (a dictionary), whose frame
+        // is an NSValue of a CGRect; UIView's method.
+        let height = unsafe {
+            let info: Id = msg_send![notification, userInfo];
+            let value: Id = msg_send![info, objectForKey: UIKeyboardFrameEndUserInfoKey];
+            // ([nil CGRectValue] is a zero rectangle)
+            let kbrect: CGRect = if value.is_null() {
+                CGRect::new(0.0, 0.0, 0.0, 0.0)
+            } else {
+                msg_send![value, CGRectValue]
+            };
+
+            /* The keyboard rect is in the coordinate space of the screen/window, but we
+             * want its height in the coordinate space of the view. */
+            let view: Id = msg_send![this, view];
+            let kbrect: CGRect = if view.is_null() {
+                // ([nil convertRect:fromView:] is a zero rectangle)
+                CGRect::new(0.0, 0.0, 0.0, 0.0)
+            } else {
+                msg_send![view, convertRect: kbrect fromView: NIL]
+            };
+            kbrect.size.height as i32
+        };
+
+        set_keyboard_height(this, height);
+    }
+    #[cfg(target_os = "tvos")]
+    let _ = (this, notification);
+}
+
+/// Translation of `-[SDL_uikitviewcontroller keyboardDidShow:]`.
+extern "C" fn vc_keyboard_did_show(_this: Id, _sel: Sel, _notification: Id) {
+    send_screen_keyboard_shown();
+}
+
+/// Translation of `-[SDL_uikitviewcontroller keyboardWillHide:]`.
+extern "C" fn vc_keyboard_will_hide(this: Id, _sel: Sel, _notification: Id) {
+    set_keyboard_height(this, 0);
+}
+
+/// Translation of `-[SDL_uikitviewcontroller keyboardDidHide:]`.
+extern "C" fn vc_keyboard_did_hide(_this: Id, _sel: Sel, _notification: Id) {
+    send_screen_keyboard_hidden();
+}
+
+/// Translation of `-[SDL_uikitviewcontroller textFieldTextDidChange:]`.
+extern "C" fn vc_text_field_text_did_change(this: Id, _sel: Sel, _notification: Id) {
+    let Some(state) = state(this) else {
+        return;
+    };
+    let text_field = state.text_field.get();
+    // SAFETY: UITextField's properties, and NSString's methods (with
+    // indices below the strings' lengths).
+    unsafe {
+        let marked: Id = msg_send![text_field, markedTextRange];
+        if !marked.is_null() {
+            return;
+        }
+        // (both kept: the events sent below may change the text field's
+        // text and the committed one)
+        let text = StrongPtr::retain(msg_send![text_field, text]);
+        let committed = state.committed_text.borrow().clone();
+        let text_length = length(text.get());
+        let committed_length = length(committed.get());
+
+        if state.is_otp_mode.get()
+            && (text_length as NSInteger - committed_length as NSInteger).abs() != 1
+        {
+            return;
+        }
+
+        let compare_length = text_length.min(committed_length);
+        let mut match_length: NSUInteger = 0;
+
+        // Backspace over characters that are no longer in the string
+        while match_length < compare_length {
+            let a: u16 = msg_send![committed.get(), characterAtIndex: match_length];
+            let b: u16 = msg_send![text.get(), characterAtIndex: match_length];
+            if a != b {
+                break;
+            }
+            match_length += 1;
+        }
+        if match_length < committed_length && !has_keyboard() {
+            let gone: Id = msg_send![committed.get(), substringFromIndex: match_length];
+            // Note: upstream counts a string that has no UTF-8 (a lone
+            // surrogate's) from a NULL pointer; here there's nothing to
+            // delete then.
+            let mut delete_length =
+                utf8_bytes(gone).map_or(0, |b| crate::stdlib::string::utf8strlen(&b));
+            while delete_length > 0 {
+                // Send distinct down and up events for each backspace action
+                send_keyboard_key(
+                    Duration::ZERO,
+                    GLOBAL_KEYBOARD_ID,
+                    0,
+                    Scancode::BACKSPACE,
+                    true,
+                );
+                send_keyboard_key(
+                    Duration::ZERO,
+                    GLOBAL_KEYBOARD_ID,
+                    0,
+                    Scancode::BACKSPACE,
+                    false,
+                );
+                delete_length -= 1;
+            }
+        }
+
+        if match_length < text_length {
+            let pending: Id = msg_send![text.get(), substringFromIndex: match_length];
+            if !hardware_keyboard_key_pressed() {
+                /* Go through all the characters in the string we've been sent and
+                 * convert them to key presses */
+                for i in 0..length(pending) {
+                    let ch: u16 = msg_send![pending, characterAtIndex: i];
+                    send_keyboard_unicode_code(Duration::ZERO, ch as u32);
+                }
+            }
+            // (no UTF-8 is no text, as for upstream's SDL_SendKeyboardText())
+            if let Some(bytes) = utf8_bytes(pending) {
+                send_keyboard_text(&String::from_utf8_lossy(&bytes));
+            }
+        }
+        *state.committed_text.borrow_mut() = text;
+    }
+}
+
+/// Move the view up when the on-screen keyboard would hide the text input
+/// area (or back). Translation of `-[SDL_uikitviewcontroller updateKeyboard]`.
+pub(crate) fn update_keyboard(this: Id) {
+    let Some(state) = state(this) else {
+        return;
+    };
+    // SAFETY: UIViewController's view, UIView's properties, and UIWindow's.
+    unsafe {
+        let view: Id = msg_send![this, view];
+        if view.is_null() {
+            // (upstream's messages to nil do nothing)
+            return;
+        }
+        let mut t: CGAffineTransform = msg_send![view, transform];
+        let mut offset = CGPoint::new(0.0, 0.0);
+        #[cfg(target_os = "visionos")]
+        let mut frame = super::compute_view_frame(state.window);
+        #[cfg(not(target_os = "visionos"))]
+        let mut frame = {
+            let uiwindow =
+                super::window::window_data(state.window).map_or(NIL, |data| data.uiwindow());
+            let screen: Id = msg_send![uiwindow, screen];
+            super::compute_view_frame(state.window, screen)
+        };
+
+        let rect = state.text_input_rect.get();
+        let keyboard_height = state.keyboard_height.get();
+        if keyboard_height != 0 && rect.h != 0 {
+            let rectbottom = rect.y.wrapping_add(rect.h);
+            let bounds: CGRect = msg_send![view, bounds];
+            let keybottom = (bounds.size.height - keyboard_height as CGFloat) as i32;
+            if keybottom < rectbottom {
+                offset.y = keybottom.wrapping_sub(rectbottom) as CGFloat;
+            }
+        }
+
+        /* Apply this view's transform (except any translation) to the offset, in
+         * order to orient it correctly relative to the frame's coordinate space. */
+        t.tx = 0.0;
+        t.ty = 0.0;
+        offset = CGPointApplyAffineTransform(offset, t);
+
+        // Apply the updated offset to the view's frame.
+        frame.origin.x += offset.x;
+        frame.origin.y += offset.y;
+
+        let () = msg_send![view, setFrame: frame];
+    }
+}
+
+/// Translation of `-[SDL_uikitviewcontroller setKeyboardHeight:]`.
+fn set_keyboard_height(this: Id, height: i32) {
+    let Some(state) = state(this) else {
+        return;
+    };
+    state.keyboard_height.set(height);
+    update_keyboard(this);
+}
+
+/// UITextFieldDelegate method.  Invoked when user types something.
+/// Translation of
+/// `-[SDL_uikitviewcontroller textField:shouldChangeCharactersInRange:replacementString:]`.
+extern "C" fn vc_should_change_characters(
+    this: Id,
+    _sel: Sel,
+    _text_field: Id,
+    _range: NSRange,
+    string: Id,
+) -> Bool {
+    let Some(state) = state(this) else {
+        return YES;
+    };
+    if !state.is_otp_mode.get() {
+        let text_field = state.text_field.get();
+        // SAFETY: UITextField's properties and NSString's.
+        let reset = unsafe {
+            let marked: Id = msg_send![text_field, markedTextRange];
+            let text: Id = msg_send![text_field, text];
+            marked.is_null() && length(string) == 0 && length(text) < 16
+        };
+        if reset {
+            reset_text_state(this);
+        }
+    }
+    YES
+}
+
+/// Terminates the editing session. Translation of
+/// `-[SDL_uikitviewcontroller textFieldShouldReturn:]`.
+extern "C" fn vc_text_field_should_return(this: Id, _sel: Sel, _text_field: Id) -> Bool {
+    send_keyboard_key_auto_release(Duration::ZERO, Scancode::RETURN);
+    if state(this).is_some_and(|s| s.text_field_focused.get())
+        && crate::hints::get_bool(crate::hints::RETURN_KEY_HIDES_IME, false)
+    {
+        if let Some(window) = window_of(this).and_then(|w| crate::video::Window::from_id(w).ok()) {
+            let _ = window.stop_text_input();
+        }
+    }
+    YES
+}
+
+/// Translation of `-[SDL_uikitviewcontroller resetTextState]`.
+fn reset_text_state(this: Id) {
+    let Some(state) = state(this) else {
+        return;
+    };
+    if !state.is_otp_mode.get() {
+        let text_field = state.text_field.get();
+        // SAFETY: UITextField's property.
+        unsafe {
+            let () = msg_send![text_field, setText: state.obligate_for_backspace.get()];
+            let text: Id = msg_send![text_field, text];
+            *state.committed_text.borrow_mut() = StrongPtr::retain(text);
+        }
+    }
+}
+
+// iPhone keyboard addition functions
+
+/// The view controller of a window. Translation of
+/// `GetWindowViewController()`.
+fn get_window_view_controller(window: WindowID) -> Result<Id> {
+    super::window::window_data(window)
+        .map(|data| data.viewcontroller())
+        .ok_or_else(|| Error::new("Invalid window"))
+}
+
+/// Translation of `UIKit_HasScreenKeyboardSupport()`.
+pub(crate) fn has_screen_keyboard_support() -> bool {
+    true
+}
+
+/// Translation of `UIKit_StartTextInput()`.
+pub(crate) fn uikit_start_text_input(window: WindowID, _props: Option<&Properties>) -> Result<()> {
+    autoreleasepool(|| {
+        let vc = get_window_view_controller(window)?;
+        if start_text_input(vc) {
+            Ok(())
+        } else {
+            // Note: upstream fails without an error of its own.
+            Err(Error::new(
+                "The text field couldn't become the first responder",
+            ))
+        }
+    })
+}
+
+/// Translation of `UIKit_StopTextInput()`.
+pub(crate) fn uikit_stop_text_input(window: WindowID) -> Result<()> {
+    autoreleasepool(|| {
+        let vc = get_window_view_controller(window)?;
+        if stop_text_input(vc) {
+            Ok(())
+        } else {
+            // Note: as above.
+            Err(Error::new(
+                "The text field couldn't resign being the first responder",
+            ))
+        }
+    })
+}
+
+/// Translation of `UIKit_SetTextInputProperties()`.
+pub(crate) fn uikit_set_text_input_properties(window: WindowID, props: Option<&Properties>) {
+    autoreleasepool(|| {
+        if let Ok(vc) = get_window_view_controller(window) {
+            set_text_field_properties(vc, props);
+        }
+    })
+}
+
+/// Translation of `UIKit_UpdateTextInputArea()`.
+pub(crate) fn uikit_update_text_input_area(window: WindowID) -> Result<()> {
+    autoreleasepool(|| {
+        if let Ok(vc) = get_window_view_controller(window) {
+            if let Some(state) = state(vc) {
+                let rect = with_window(window, |w| w.text_input_rect).unwrap_or_default();
+                state.text_input_rect.set(rect);
+
+                if state.text_field_focused.get() {
+                    update_keyboard(vc);
+                }
+            }
+        }
+    });
+    Ok(())
 }

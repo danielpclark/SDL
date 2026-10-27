@@ -109,9 +109,11 @@ pub(crate) fn text_input_capitalization(props: Option<&Properties>) -> Capitaliz
         };
     }
 
-    match text_input_type(props) {
-        TextInputType::Text => Capitalization::Sentences,
-        TextInputType::TextName => Capitalization::Words,
+    // (upstream's switch is on the property's value: one that is no type
+    // is none of these, though SDL_GetTextInputType() answers it)
+    match props.and_then(|p| p.get_number(PROP_TEXTINPUT_TYPE_NUMBER)) {
+        None | Some(0) => Capitalization::Sentences, // SDL_TEXTINPUT_TYPE_TEXT
+        Some(1) => Capitalization::Words,            // SDL_TEXTINPUT_TYPE_TEXT_NAME
         _ => Capitalization::None,
     }
 }
@@ -321,5 +323,58 @@ impl Window {
     pub fn screen_keyboard_shown(&self) -> Result<bool> {
         with_window(self.id(), |_| ())?;
         with_device(|v| v.screen_keyboard_shown)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Properties of these numbers (none unset).
+    fn props(ty: Option<i64>, capitalization: Option<i64>) -> Properties {
+        let props = Properties::new();
+        if let Some(ty) = ty {
+            props.set(PROP_TEXTINPUT_TYPE_NUMBER, ty).unwrap();
+        }
+        if let Some(c) = capitalization {
+            props.set(PROP_TEXTINPUT_CAPITALIZATION_NUMBER, c).unwrap();
+        }
+        props
+    }
+
+    #[test]
+    fn capitalization_defaults() {
+        // (upstream's SDL_GetTextInputCapitalization(): the type's default,
+        // none for a value that is no type)
+        assert_eq!(text_input_capitalization(None), Capitalization::Sentences);
+        let cases = [
+            (None, Capitalization::Sentences),
+            (Some(0), Capitalization::Sentences),
+            (Some(1), Capitalization::Words),
+            (Some(2), Capitalization::None),
+            (Some(8), Capitalization::None),
+            (Some(9), Capitalization::None),
+            (Some(-1), Capitalization::None),
+        ];
+        for (ty, expected) in cases {
+            assert_eq!(
+                text_input_capitalization(Some(&props(ty, None))),
+                expected,
+                "{ty:?}"
+            );
+        }
+        // (a value that is no type is text for the type itself)
+        assert_eq!(
+            text_input_type(Some(&props(Some(9), None))),
+            TextInputType::Text
+        );
+        assert_eq!(
+            text_input_capitalization(Some(&props(Some(9), Some(3)))),
+            Capitalization::Letters
+        );
+        assert_eq!(
+            text_input_capitalization(Some(&props(Some(1), Some(4)))),
+            Capitalization::None
+        );
     }
 }

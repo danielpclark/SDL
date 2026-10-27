@@ -704,7 +704,14 @@ fn send_keyboard_key_internal(
 /// Send a key press and release for a Unicode character (used by on-screen
 /// keyboards and the like). Translation of `SDL_SendKeyboardUnicodeKey()`.
 pub fn send_keyboard_unicode_key(timestamp: Duration, ch: char) {
-    let mut ch = ch as u32;
+    send_keyboard_unicode_code(timestamp, ch as u32)
+}
+
+/// [`send_keyboard_unicode_key`] for any 32-bit value, as upstream's
+/// `Uint32` (the UIKit driver's UTF-16 code units, surrogates too).
+#[allow(dead_code)] // (used by the UIKit video driver)
+pub(crate) fn send_keyboard_unicode_code(timestamp: Duration, ch: u32) {
+    let mut ch = ch;
     if ch == '\n' as u32 {
         ch = Keycode::RETURN.0;
     }

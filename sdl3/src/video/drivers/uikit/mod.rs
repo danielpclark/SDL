@@ -8,9 +8,10 @@
 //! ([`appdelegate`]), the lifecycle notifications and the event pump
 //! ([`events`]), the displays and their modes ([`modes`]), and the
 //! windows ([`window`]), with their views ([`view`], which turn UIKit's
-//! touches, pointer and pinches into SDL's events) and view controllers
-//! ([`viewcontroller`]), the Apple Pencil ([`pen`]), and the game
-//! controllers' mice ([`events`]).
+//! touches, pointer, pinches and hardware keys' presses into SDL's
+//! events) and view controllers ([`viewcontroller`], with text input and
+//! the on-screen keyboard), the Apple Pencil ([`pen`]), and the game
+//! controllers' keyboards and mice ([`events`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -25,8 +26,7 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: the keyboard (`GCKeyboard`, the on-screen one, the
-//! hardware keys' presses), the clipboard, message boxes, OpenGL ES, Metal
+//! Not translated yet: the clipboard, message boxes, OpenGL ES, Metal
 //! views and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
@@ -104,16 +104,20 @@ fn video_init() -> Result<()> {
         ));
     }
 
-    // (SDL_InitGCKeyboard() and UIKit_InitClipboard() come with the
-    // keyboard and the clipboard, which aren't translated yet)
+    events::init_gc_keyboard();
     events::init_gc_mouse();
+
+    // (UIKit_InitClipboard() comes with the clipboard, which isn't
+    // translated yet)
 
     Ok(())
 }
 
 /// Translation of `UIKit_VideoQuit()`.
 fn video_quit() {
-    // (UIKit_QuitClipboard() and SDL_QuitGCKeyboard(): see video_init())
+    // (UIKit_QuitClipboard(): see video_init())
+
+    events::quit_gc_keyboard();
     events::quit_gc_mouse();
     pen::quit_pen();
 
@@ -474,6 +478,32 @@ impl VideoDriver for UIKitVideo {
 
     fn implements_window_op(&self, op: WindowOp) -> bool {
         matches!(op, WindowOp::SetBordered | WindowOp::SetFullscreen)
+    }
+
+    // SDL_IPHONE_KEYBOARD
+    fn has_screen_keyboard_support(&self) -> Option<bool> {
+        Some(viewcontroller::has_screen_keyboard_support())
+    }
+
+    fn start_text_input(&self, window: WindowID, props: Option<&Properties>) -> Option<Result<()>> {
+        Some(viewcontroller::uikit_start_text_input(window, props))
+    }
+
+    fn stop_text_input(&self, window: WindowID) -> Option<Result<()>> {
+        Some(viewcontroller::uikit_stop_text_input(window))
+    }
+
+    fn set_text_input_properties(
+        &self,
+        window: WindowID,
+        props: Option<&Properties>,
+    ) -> Option<()> {
+        viewcontroller::uikit_set_text_input_properties(window, props);
+        Some(())
+    }
+
+    fn update_text_input_area(&self, window: WindowID) -> Option<Result<()>> {
+        Some(viewcontroller::uikit_update_text_input_area(window))
     }
 
     fn pump_events(&self) -> Option<()> {

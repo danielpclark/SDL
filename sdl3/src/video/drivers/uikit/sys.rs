@@ -18,7 +18,7 @@
 
 use std::ffi::{c_char, c_int};
 
-use crate::core::apple::foundation::{Boolean, CFStringRef, CGFloat, CGSize};
+use crate::core::apple::foundation::{Boolean, CFStringRef, CGFloat, CGPoint, CGSize};
 use crate::core::apple::objc::{Id, NSInteger, NSUInteger};
 
 // ---------------------------------------------------------------------------
@@ -183,6 +183,118 @@ pub(crate) const UIGestureRecognizerStateFailed: UIGestureRecognizerState = 5;
 pub(crate) type UIEventButtonMask = NSInteger;
 
 // ---------------------------------------------------------------------------
+// The keyboard and text input
+
+#[link(name = "UIKit", kind = "framework")]
+unsafe extern "C" {
+    pub(crate) static UITextFieldTextDidChangeNotification: Id;
+
+    /// The `UIKeyCommand` inputs of the arrow keys and Escape.
+    pub(crate) static UIKeyInputUpArrow: Id;
+    pub(crate) static UIKeyInputDownArrow: Id;
+    pub(crate) static UIKeyInputLeftArrow: Id;
+    pub(crate) static UIKeyInputRightArrow: Id;
+    pub(crate) static UIKeyInputEscape: Id;
+
+    /// The `UITextContentType`s (iOS 10; the one-time code's is
+    /// [`UITextContentTypeOneTimeCode`]).
+    pub(crate) static UITextContentTypeName: Id;
+    pub(crate) static UITextContentTypeEmailAddress: Id;
+    pub(crate) static UITextContentTypeUsername: Id;
+    pub(crate) static UITextContentTypePassword: Id;
+}
+
+#[cfg(not(target_os = "tvos"))]
+#[link(name = "UIKit", kind = "framework")]
+unsafe extern "C" {
+    pub(crate) static UIKeyboardWillShowNotification: Id;
+    pub(crate) static UIKeyboardDidShowNotification: Id;
+    pub(crate) static UIKeyboardWillHideNotification: Id;
+    pub(crate) static UIKeyboardDidHideNotification: Id;
+    /// The `userInfo` key of the keyboard's frame (an `NSValue` of a
+    /// `CGRect`, in the screen's coordinates) once it's shown or hidden.
+    pub(crate) static UIKeyboardFrameEndUserInfoKey: Id;
+}
+
+/// `UITextContentTypeOneTimeCode` (iOS 12, tvOS 12; nil before): looked
+/// up when it's asked for, so that a program still starts on an older
+/// system, whose UIKit doesn't have it (upstream links it weakly).
+pub(crate) fn UITextContentTypeOneTimeCode() -> Id {
+    // SAFETY: the symbol, when there, is UIKit's `NSString *const`.
+    unsafe {
+        let p =
+            libc::dlsym(libc::RTLD_DEFAULT, c"UITextContentTypeOneTimeCode".as_ptr()) as *const Id;
+        if p.is_null() {
+            std::ptr::null_mut()
+        } else {
+            *p
+        }
+    }
+}
+
+/// `UIKeyboardType`.
+pub(crate) type UIKeyboardType = NSInteger;
+pub(crate) const UIKeyboardTypeDefault: UIKeyboardType = 0;
+pub(crate) const UIKeyboardTypeNumberPad: UIKeyboardType = 4;
+pub(crate) const UIKeyboardTypeEmailAddress: UIKeyboardType = 7;
+pub(crate) const UIKeyboardTypeDecimalPad: UIKeyboardType = 8;
+
+/// `UITextAutocapitalizationType`.
+pub(crate) type UITextAutocapitalizationType = NSInteger;
+pub(crate) const UITextAutocapitalizationTypeNone: UITextAutocapitalizationType = 0;
+pub(crate) const UITextAutocapitalizationTypeWords: UITextAutocapitalizationType = 1;
+pub(crate) const UITextAutocapitalizationTypeSentences: UITextAutocapitalizationType = 2;
+pub(crate) const UITextAutocapitalizationTypeAllCharacters: UITextAutocapitalizationType = 3;
+
+/// `UITextAutocorrectionType`.
+pub(crate) type UITextAutocorrectionType = NSInteger;
+pub(crate) const UITextAutocorrectionTypeNo: UITextAutocorrectionType = 1;
+pub(crate) const UITextAutocorrectionTypeYes: UITextAutocorrectionType = 2;
+
+/// `UITextSpellCheckingType`.
+pub(crate) type UITextSpellCheckingType = NSInteger;
+pub(crate) const UITextSpellCheckingTypeNo: UITextSpellCheckingType = 1;
+pub(crate) const UITextSpellCheckingTypeYes: UITextSpellCheckingType = 2;
+
+/// `UIKeyModifierFlags` (`kNilOptions`: none).
+pub(crate) type UIKeyModifierFlags = NSInteger;
+
+/// `UIPressType`: what a press without a key (`UIPress.key`) is, the
+/// Apple TV Remote's and the game controllers' buttons.
+pub(crate) type UIPressType = NSInteger;
+pub(crate) const UIPressTypeUpArrow: UIPressType = 0;
+pub(crate) const UIPressTypeDownArrow: UIPressType = 1;
+pub(crate) const UIPressTypeLeftArrow: UIPressType = 2;
+pub(crate) const UIPressTypeRightArrow: UIPressType = 3;
+pub(crate) const UIPressTypeSelect: UIPressType = 4;
+pub(crate) const UIPressTypeMenu: UIPressType = 5;
+pub(crate) const UIPressTypePlayPause: UIPressType = 6;
+
+/// `UIKeyboardHIDUsage` (iOS 13.4): a key's USB HID usage (page 7), which
+/// SDL's scancodes are.
+pub(crate) type UIKeyboardHIDUsage = NSInteger;
+
+/// `CGAffineTransform`.
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
+pub(crate) struct CGAffineTransform {
+    pub(crate) a: CGFloat,
+    pub(crate) b: CGFloat,
+    pub(crate) c: CGFloat,
+    pub(crate) d: CGFloat,
+    pub(crate) tx: CGFloat,
+    pub(crate) ty: CGFloat,
+}
+
+/// `CGPointApplyAffineTransform()` (an inline function of the SDK's).
+pub(crate) fn CGPointApplyAffineTransform(point: CGPoint, t: CGAffineTransform) -> CGPoint {
+    CGPoint::new(
+        t.a * point.x + t.c * point.y + t.tx,
+        t.b * point.x + t.d * point.y + t.ty,
+    )
+}
+
+// ---------------------------------------------------------------------------
 // CoreFoundation's preferences
 
 #[link(name = "CoreFoundation", kind = "framework")]
@@ -249,6 +361,20 @@ pub(crate) fn GCMouseDidConnectNotification() -> Id {
 pub(crate) fn GCMouseDidDisconnectNotification() -> Id {
     game_controller_string(c"GCMouseDidDisconnectNotification")
 }
+
+/// `GCKeyboardDidConnectNotification` (iOS 14), nil without GameController.
+pub(crate) fn GCKeyboardDidConnectNotification() -> Id {
+    game_controller_string(c"GCKeyboardDidConnectNotification")
+}
+
+/// `GCKeyboardDidDisconnectNotification` (iOS 14), nil without
+/// GameController.
+pub(crate) fn GCKeyboardDidDisconnectNotification() -> Id {
+    game_controller_string(c"GCKeyboardDidDisconnectNotification")
+}
+
+/// `GCKeyCode` (iOS 14): a key's USB HID usage (page 7).
+pub(crate) type GCKeyCode = NSInteger;
 
 // ---------------------------------------------------------------------------
 // Foundation
