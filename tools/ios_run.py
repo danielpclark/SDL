@@ -60,14 +60,21 @@ A program runs in one of two ways:
     swipe X1 Y1 X2 Y2 [SECONDS]
                 a finger moves on the screen from (X1, Y1) to (X2, Y2)
                 (`idb ui swipe`, in SECONDS, by default idb's)
-  The app waits for what follows (its application events, its touches)
-  itself. The touches need idb (fb-idb, Meta's iOS development bridge: the
-  `idb` client, a Python program, and its `idb_companion`, which drives
-  the simulator's input): SDL3_IOS_IDB's command (0: none), else `idb` on
-  PATH, with `idb_companion` on PATH. The app learns whether the runner
-  has them in SDL3_IOS_RUNNER_IDB: `1`, or why not (and skips what needs
-  them). After an app that touched the screen, `idb kill` stops the
-  companions idb started.
+    key CODE [SECONDS]
+                the hardware keyboard's key of USB HID usage CODE (page
+                7: 4 is A, 40 Return) is pressed, and released after
+                SECONDS (`idb ui key`, by default idb's)
+    text TEXT   the hardware keyboard types TEXT, the rest of the line
+                (`idb ui text`, a key press for each character, with
+                Shift for those that need it)
+  The app waits for what follows (its application events, its touches,
+  its keys) itself. The touches and keys need idb (fb-idb, Meta's iOS
+  development bridge: the `idb` client, a Python program, and its
+  `idb_companion`, which drives the simulator's input): SDL3_IOS_IDB's
+  command (0: none), else `idb` on PATH, with `idb_companion` on PATH. The
+  app learns whether the runner has them in SDL3_IOS_RUNNER_IDB: `1`, or
+  why not (and skips what needs them). After an app that used them, `idb
+  kill` stops the companions idb started.
 
 The simulator: SDL3_IOS_SIMULATOR's (a UDID or a device name), else a
 booted iPhone or iPad simulator (one of SDL3_IOS_DEVICE_TYPE on
@@ -96,8 +103,8 @@ Environment:
   SDL3_IOS_BUNDLE_ID    the bundle identifier (default
                         org.libsdl.sdl3-rust.NAME, NAME the program's)
   SDL3_IOS_VERBOSE      1: the simctl commands, with their times, on stderr
-  SDL3_IOS_IDB          the idb command for the `tap` and `swipe` requests
-                        (default `idb` on PATH; 0: none)
+  SDL3_IOS_IDB          the idb command for the `tap`, `swipe`, `key` and
+                        `text` requests (default `idb` on PATH; 0: none)
 
 A program built for devices (aarch64-apple-ios) can't run on the
 simulator: `--bundle` writes its bundle, which needs signing for a device.
@@ -511,8 +518,8 @@ def child_environment():
 
 
 def find_idb():
-    """The idb command for the touch requests and None, or None and why
-    there's none."""
+    """The idb command for the touch and key requests and None, or None
+    and why there's none."""
     setting = os.environ.get("SDL3_IOS_IDB", "")
     if setting == "0":
         return None, "SDL3_IOS_IDB is 0"
@@ -720,13 +727,15 @@ class Requests:
         self.pid = pid
         self.background_since = None
         # (the idb command, why there's none, and the list told once idb
-        # touched the screen)
+        # was used)
         self.idb, self.no_idb, self.used_idb = idb
 
     def handle(self, what, args=""):
         words = (args or "").split()
-        if what in ("tap", "swipe"):
+        if what in ("tap", "swipe", "key"):
             self.touch(what, words)
+        elif what == "text":
+            self.text(args or "")
         elif what == "background":
             # (the Settings app comes to the foreground, launched anew:
             # this one resigns being active, then enters the background a
@@ -744,20 +753,39 @@ class Requests:
             note(f"unknown request {what!r} (ignored)")
 
     def touch(self, what, words):
-        counts = {"tap": (2,), "swipe": (4, 5)}[what]
+        """A `tap`, `swipe` or `key` request (numbers only)."""
+        counts = {"tap": (2,), "swipe": (4, 5), "key": (1, 2)}[what]
         if len(words) not in counts or not all(NUMBER.fullmatch(w) for w in words):
             note(f"request {what}: bad arguments {' '.join(words)!r} (ignored)")
+            return
+        if what == "key" and not words[0].isdigit():
+            note(f"request key: {words[0]!r} isn't a key code (ignored)")
             return
         if not self.idb:
             note(f"request {what}: ignored, {self.no_idb}")
             return
         if what == "tap":
             argv = ["ui", "tap", "--udid", self.udid, *words]
-        else:
+        elif what == "swipe":
             duration = ["--duration", words[4]] if len(words) == 5 else []
             argv = ["ui", "swipe", "--udid", self.udid, *duration, *words[:4]]
+        else:
+            duration = ["--duration", words[1]] if len(words) == 2 else []
+            argv = ["ui", "key", "--udid", self.udid, *duration, words[0]]
         self.used_idb.append(what)
         run_idb(self.idb, *argv)
+
+    def text(self, text):
+        """A `text` request: TEXT as it is (spaces too)."""
+        if not text:
+            note("request text: no text (ignored)")
+            return
+        if not self.idb:
+            note(f"request text: ignored, {self.no_idb}")
+            return
+        self.used_idb.append("text")
+        # (`--` keeps a text starting with `-` from being an option)
+        run_idb(self.idb, "ui", "text", "--udid", self.udid, "--", text)
 
     def foreground(self):
         # (the running app, the same process, comes back to the foreground)
