@@ -222,3 +222,7 @@ harness = false
 [[test]]
 name = "uikit_input"
 harness = false
+
+[[test]]
+name = "uikit_keyboard"
+harness = false

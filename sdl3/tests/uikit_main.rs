@@ -20,9 +20,8 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
-//! Upstream's driver also adds a keyboard (`GCKeyboard`), which isn't
-//! translated yet, so the keyboards' and mice's device events are left
-//! out of it. Elsewhere this program does nothing.
+//! The mice's device events are left out of it. Elsewhere this program
+//! does nothing.
 
 #[cfg(not(target_os = "ios"))]
 fn main() {}
@@ -74,7 +73,7 @@ system theme: 1
 displays: 1
 display: bounds=0,0 393x852 natural=3 current=3
 desktop mode: 393x852 fmt=SDL_PIXELFORMAT_ABGR8888 density=3 refresh=60
-events: DISPLAY_ORIENTATION(3)
+events: DISPLAY_ORIENTATION(3), KEYBOARD_ADDED
 activation: application state 0, (none)
 posted will resign active: WILL_ENTER_BACKGROUND
 posted did enter background: DID_ENTER_BACKGROUND
@@ -122,13 +121,12 @@ quit
     }
 
     /// An event as the trace names it (the C program's names), `None` for
-    /// the keyboards' and mice's device events (see the module's
-    /// description).
+    /// the mice's device events (see the module's description).
     fn describe(event: &Event, scheme: &str) -> Option<String> {
         let ty = event.event_type();
         let name = event_name(ty);
         Some(match event {
-            Event::KeyboardDevice(_) | Event::MouseDevice(_) => return None,
+            Event::MouseDevice(_) => return None,
             Event::Display(d) => format!("{name}({})", d.data1),
             Event::Drop(d) if ty == EventType::DROP_FILE => {
                 let data = d.data.as_deref().unwrap_or_default();
