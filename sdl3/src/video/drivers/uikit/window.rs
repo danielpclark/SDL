@@ -402,7 +402,9 @@ fn update_window_border(window: WindowID) {
             let () = msg_send![view, setFrame: super::compute_view_frame(window, screen)];
         }
 
-        // (SDL_IPHONE_KEYBOARD's updateKeyboard comes with the keyboard)
+        // SDL_IPHONE_KEYBOARD
+        // Make sure the view is offset correctly when the keyboard is visible.
+        viewcontroller::update_keyboard(viewcontroller);
 
         let view: Id = msg_send![viewcontroller, view];
         let () = msg_send![view, setNeedsLayout];

@@ -1,5 +1,5 @@
 // Rust translation of src/video/uikit/SDL_uikitview.m and SDL_uikitview.h
-// from Simple DirectMedia Layer (but the hardware keys).
+// from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -27,9 +27,17 @@
 //! `touchLocation:shouldNormalize:`, `indirectPointerPressed:fromEvent:`,
 //! ...) are Rust functions here.
 //!
-//! Not translated yet: the hardware keys (`UIPress`), which come with the
-//! keyboard, and tvOS's swipe gestures, which come with tvOS; until then
-//! the view leaves the presses to `UIView` (the next responder).
+//! The hardware keys' presses that reach it (`UIPress`, while it or its
+//! text field is the first responder) are key events, when SDL has no
+//! keyboard (with one, `GCKeyboard`'s, [`super::events`], the keys' events
+//! are that keyboard's): a key's scancode is its USB HID usage, and the
+//! buttons of the Apple TV Remote and the game controllers are the
+//! arrows, Return, Escape and Pause while no joystick is open. While text
+//! input is active they also go on to `UIView`'s handling (to the next
+//! responder).
+//!
+//! Not translated yet: tvOS's swipe gestures, and its remote's presses
+//! when the remote is opened as a joystick, which come with tvOS.
 //!
 //! [`set_window_safe_area_insets`]: crate::video::core::set_window_safe_area_insets
 
@@ -42,6 +50,7 @@ use crate::core::apple::objc::{
 };
 #[cfg(not(target_os = "tvos"))]
 use crate::core::apple::objc::{NSInteger, NO};
+use crate::events::keyboard::Scancode;
 use crate::events::touch::{
     add_touch, send_touch, send_touch_motion, FingerID, TouchDeviceType, TouchID,
 };
@@ -98,6 +107,26 @@ pub(crate) fn uikitview_class() -> Class {
             b.add_method(
                 sel!(touchesMoved:withEvent:),
                 imp!(view_touches_moved as extern "C" fn(Id, Sel, Id, Id)),
+                c"v@:@@",
+            );
+            b.add_method(
+                sel!(pressesBegan:withEvent:),
+                imp!(view_presses_began as extern "C" fn(Id, Sel, Id, Id)),
+                c"v@:@@",
+            );
+            b.add_method(
+                sel!(pressesEnded:withEvent:),
+                imp!(view_presses_ended as extern "C" fn(Id, Sel, Id, Id)),
+                c"v@:@@",
+            );
+            b.add_method(
+                sel!(pressesCancelled:withEvent:),
+                imp!(view_presses_cancelled as extern "C" fn(Id, Sel, Id, Id)),
+                c"v@:@@",
+            );
+            b.add_method(
+                sel!(pressesChanged:withEvent:),
+                imp!(view_presses_changed as extern "C" fn(Id, Sel, Id, Id)),
                 c"v@:@@",
             );
             #[cfg(not(target_os = "tvos"))]
@@ -527,8 +556,8 @@ fn pressure_for_touch(touch: Id) -> f32 {
     force as f32
 }
 
-/// The touches of a set (`for (UITouch *touch in touches)`, through its
-/// enumerator).
+/// The objects of a set of touches or presses (`for (UITouch *touch in
+/// touches)`, through its enumerator).
 fn each_touch(touches: Id, mut f: impl FnMut(Id)) {
     // SAFETY: an NSSet's enumerator (autoreleased) and its objects.
     unsafe {
@@ -660,6 +689,136 @@ extern "C" fn view_touches_cancelled(this: Id, _sel: Sel, touches: Id, event: Id
 /// Translation of `-[SDL_uikitview touchesMoved:withEvent:]`.
 extern "C" fn view_touches_moved(this: Id, _sel: Sel, touches: Id, event: Id) {
     handle_touches(this, touches, event, Phase::Moved);
+}
+
+// ---------------------------------------------------------------------------
+// The hardware keys
+
+/// The scancode of a press: its key's USB HID usage, or for the Apple TV
+/// Remote's and the game controllers' buttons (no key) the arrows,
+/// Return, Escape and Pause, unless a joystick is open. Translation of
+/// `-[SDL_uikitview scancodeFromPress:]`.
+fn scancode_from_press(press: Id) -> Scancode {
+    // SAFETY: UIPress's properties (iOS 13.4: the key) and UIKey's.
+    let key: Id = unsafe { msg_send![press, key] };
+    if !key.is_null() {
+        // SAFETY: as above.
+        let key_code: UIKeyboardHIDUsage = unsafe { msg_send![key, keyCode] };
+        return Scancode(key_code as u16);
+    }
+
+    // Presses from Apple TV remote or game controller
+    #[cfg(target_os = "tvos")]
+    let controller_opened = {
+        // tvOS doesn't send these for game controllers, but does for the Siri remote
+        // (SDL_AppleTVRemoteOpenedAsJoystick comes with tvOS's joystick
+        // driver, which isn't translated yet)
+        false
+    };
+    #[cfg(not(target_os = "tvos"))]
+    let controller_opened = {
+        // iOS doesn't have a Siri remote, but does send these for game controllers as of iOS 26
+        // We don't currently have any way of telling what controller sent this, so assume if any
+        // controllers are opened, that the application is handling the controller as a gamepad
+        crate::joystick::joysticks_opened()
+    };
+    if !controller_opened {
+        // SAFETY: a UIPress property.
+        let press_type: UIPressType = unsafe { msg_send![press, type] };
+        match press_type {
+            UIPressTypeUpArrow => return Scancode::UP,
+            UIPressTypeDownArrow => return Scancode::DOWN,
+            UIPressTypeLeftArrow => return Scancode::LEFT,
+            UIPressTypeRightArrow => return Scancode::RIGHT,
+            UIPressTypeSelect => {
+                // HIG says: "primary button behavior"
+                return Scancode::RETURN;
+            }
+            UIPressTypeMenu => {
+                // HIG says: "returns to previous screen"
+                return Scancode::ESCAPE;
+            }
+            UIPressTypePlayPause => {
+                // HIG says: "secondary button behavior"
+                return Scancode::PAUSE;
+            }
+            _ => {}
+        }
+    }
+
+    Scancode::UNKNOWN
+}
+
+/// `-[SDL_uikitview pressesBegan:withEvent:]` and the others: each press's
+/// key event (`down`, or released), unless there's a keyboard (whose own
+/// events are the keys').
+fn handle_presses(presses: Id, event: Id, down: bool) {
+    if !crate::events::keyboard::has_keyboard() {
+        each_touch(presses, |press| {
+            let scancode = scancode_from_press(press);
+            // SAFETY: a UIEvent property.
+            let timestamp: NSTimeInterval = unsafe { msg_send![event, timestamp] };
+            crate::events::keyboard::send_keyboard_key(
+                get_event_timestamp(timestamp),
+                crate::events::keyboard::GLOBAL_KEYBOARD_ID,
+                0,
+                scancode,
+                down,
+            );
+        });
+    }
+}
+
+/// Whether text input is active in the view's window (`SDL_TextInputActive(sdlwindow)`).
+fn text_input_active(this: Id) -> bool {
+    get_sdl_window(this).is_some_and(crate::events::keyboard::text_input_active)
+}
+
+/// Translation of `-[SDL_uikitview pressesBegan:withEvent:]`.
+extern "C" fn view_presses_began(this: Id, _sel: Sel, presses: Id, event: Id) {
+    handle_presses(presses, event, true);
+    if text_input_active(this) {
+        // SAFETY: UIResponder's method.
+        unsafe {
+            let () =
+                msg_send_super![this, uikitview_class(), pressesBegan: presses withEvent: event];
+        }
+    }
+}
+
+/// Translation of `-[SDL_uikitview pressesEnded:withEvent:]`.
+extern "C" fn view_presses_ended(this: Id, _sel: Sel, presses: Id, event: Id) {
+    handle_presses(presses, event, false);
+    if text_input_active(this) {
+        // SAFETY: UIResponder's method.
+        unsafe {
+            let () =
+                msg_send_super![this, uikitview_class(), pressesEnded: presses withEvent: event];
+        }
+    }
+}
+
+/// Translation of `-[SDL_uikitview pressesCancelled:withEvent:]`.
+extern "C" fn view_presses_cancelled(this: Id, _sel: Sel, presses: Id, event: Id) {
+    handle_presses(presses, event, false);
+    if text_input_active(this) {
+        // SAFETY: UIResponder's method.
+        unsafe {
+            let () = msg_send_super![this, uikitview_class(), pressesCancelled: presses withEvent: event];
+        }
+    }
+}
+
+/// Translation of `-[SDL_uikitview pressesChanged:withEvent:]`.
+extern "C" fn view_presses_changed(this: Id, _sel: Sel, presses: Id, event: Id) {
+    // This is only called when the force of a press changes.
+    if text_input_active(this) {
+        // SAFETY: UIResponder's method.
+        unsafe {
+            let () =
+                msg_send_super![this, uikitview_class(), pressesChanged: presses withEvent: event];
+        }
+    }
 }
 
 /// Translation of `-[SDL_uikitview safeAreaInsetsDidChange]`.
