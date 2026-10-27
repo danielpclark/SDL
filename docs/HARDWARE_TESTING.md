@@ -822,7 +822,13 @@ turned off and on, drop events for URLs (the app's own, opened with
 `open_url()`), and that the app keeps running when its main function
 returns, as upstream's does; `uikit_callbacks` runs the main callbacks,
 which a display link iterates, and checks their order and that the
-process exits after quit. Both compare a trace with upstream's C SDL's,
+process exits after quit; `uikit_displays` asks for everything the
+display answers (bounds and usable bounds, orientations, the desktop,
+current, fullscreen and closest modes, properties), turns the app
+in-process to each orientation (`requestGeometryUpdateWithPreferences:`
+on a window of its own, iOS 16) and asks again, posts the screens'
+connection and disconnection notifications, and starts the video
+subsystem again. All three compare a trace with upstream's C SDL's,
 from the same programs in C run the same way on the CI's simulator (an
 iPhone 16 with iOS 18.5).
 
