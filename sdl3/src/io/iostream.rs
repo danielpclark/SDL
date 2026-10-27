@@ -992,6 +992,11 @@ impl<'a> IoStream<'a> {
 impl IoStream<'static> {
     /// Open a file. `mode` is an `fopen()` mode string ("rb", "w+b", "a",
     /// "wx", ...). Translation of `SDL_IOFromFile()`.
+    ///
+    /// On iOS (and the other UIKit platforms), whose apps can't write to
+    /// their current directory, a relative path is opened in the pref path
+    /// ([`get_pref_path(Some(""), "")`](crate::filesystem::get_pref_path))
+    /// if it can be, else in the current directory.
     pub fn from_file(file: impl AsRef<std::path::Path>, mode: &str) -> Result<IoStream<'static>> {
         let path = file.as_ref();
         if path.as_os_str().is_empty() {
@@ -1001,14 +1006,34 @@ impl IoStream<'static> {
             return Err(Error::invalid_param("mode"));
         }
         let display = path.display();
+        // We can't write to the current directory, so use a writable path
+        #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+        let in_pref_path = {
+            use std::os::unix::ffi::OsStrExt;
+            if path.as_os_str().as_bytes()[0] == b'/' {
+                None
+            } else {
+                let base = crate::filesystem::get_pref_path(Some(""), "")?;
+                let mut apath = std::ffi::OsString::from(base);
+                apath.push(path.as_os_str());
+                Some(std::path::PathBuf::from(apath))
+            }
+        };
         let Some(opts) = open_options(mode) else {
             return Err(Error::new(format!(
                 "Couldn't open {display}: Invalid argument"
             )));
         };
-        let fp = opts
-            .open(path)
-            .map_err(|e| Error::new(format!("Couldn't open {display}: {}", strerror(&e))))?;
+        #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+        let fp = opts.open(path);
+        // Try to open the file on the filesystem first
+        #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+        let fp = match &in_pref_path {
+            None => opts.open(path),
+            Some(apath) => opts.open(apath).or_else(|_| opts.open(path)),
+        };
+        let fp =
+            fp.map_err(|e| Error::new(format!("Couldn't open {display}: {}", strerror(&e))))?;
         // Upstream skips this check on Emscripten (and Windows, where a
         // directory can't be opened as a file): SKIP_STDIO_DIR_TEST.
         if !cfg!(target_os = "emscripten") && fp.metadata().map(|m| m.is_dir()).unwrap_or(false) {
