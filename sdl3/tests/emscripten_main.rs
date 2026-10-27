@@ -250,8 +250,13 @@ mod emscripten {
             if self.scenario != "waitevent" {
                 let p2 = since("periodic #2 (30 ms)");
                 let p3 = since("periodic #3 (40 ms)");
+                // (a periodic timer is set again from inside its callback,
+                // where node's loop clock is both whole milliseconds and as
+                // old as the loop's current turn: the next one can come up
+                // to that much more before its interval on SDL's ticks)
+                let rearm_slack = ms(2);
                 assert!(
-                    p2 + slack >= p1 + ms(30) && p3 + slack >= p2 + ms(40),
+                    p2 + rearm_slack >= p1 + ms(30) && p3 + rearm_slack >= p2 + ms(40),
                     "{trace:#?}"
                 );
                 assert!(b30 < p2, "{trace:#?}");
