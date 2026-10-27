@@ -122,6 +122,12 @@ pub(crate) const UIImageOrientationUp: UIImageOrientation = 0;
 pub(crate) const UIImageOrientationLeft: UIImageOrientation = 2;
 pub(crate) const UIImageOrientationRight: UIImageOrientation = 3;
 
+/// `UIUserInterfaceIdiom`'s values are in [`crate::core::apple::uikit`].
+pub(crate) use crate::core::apple::uikit::{
+    UI_USER_INTERFACE_IDIOM_PAD as UIUserInterfaceIdiomPad,
+    UI_USER_INTERFACE_IDIOM_PHONE as UIUserInterfaceIdiomPhone,
+};
+
 /// `UISceneActivationState`.
 pub(crate) type UISceneActivationState = NSInteger;
 pub(crate) const UISceneActivationStateUnattached: UISceneActivationState = -1;

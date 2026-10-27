@@ -1,7 +1,7 @@
 // Rust translation of src/main/SDL_main_callbacks.c, SDL_main_callbacks.h,
 // SDL_runapp.c, src/main/generic/SDL_sysmain_callbacks.c and
 // include/SDL3/SDL_main.h from Simple DirectMedia Layer (the Emscripten
-// ones are in emscripten.rs).
+// ones are in emscripten.rs, the iOS ones in uikit.rs).
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
@@ -12,31 +12,50 @@
 //!
 //! This is upstream's `src/main/` (the module is named `app` because
 //! `main` is reserved for binaries) in its generic implementation, used on
-//! desktop platforms, and in Emscripten's, where the browser runs the main
+//! desktop platforms; in Emscripten's, where the browser runs the main
 //! loop: there [`enter_app_main_callbacks`] returns at once and the program
 //! ends after [`AppCallbacks::quit`], and [`run_app`] reads hints from the
-//! page's URL first. The other platforms that need their own main loop
-//! (iOS, consoles) arrive with their platform layers.
+//! page's URL first; and in UIKit's (iOS, tvOS, visionOS), where
+//! [`run_app`] runs `UIApplicationMain()`, which calls the main function
+//! once the app has launched and never returns, and a `CADisplayLink`
+//! runs the main callbacks' iterations, once the main function has
+//! returned to the run loop, until SDL quits and the process exits. The
+//! other platforms that need their own main loop (consoles) arrive with
+//! their platform layers.
 
 use std::cell::RefCell;
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 use std::time::Duration;
 
 use crate::events::queue::{self, EventWatch};
 use crate::events::{Event, EventType};
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 use crate::hints;
 use crate::init::{self, InitFlags};
 use crate::thread::ReentrantMutex;
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 use crate::timer;
 
 #[cfg(target_os = "emscripten")]
 mod emscripten;
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+mod uikit;
 #[cfg(all(target_os = "emscripten", feature = "emscripten-persistent-path"))]
 pub(crate) use emscripten::PERSISTENT_PATH_STRING;
 
@@ -264,17 +283,29 @@ fn quit_main_callbacks(result: AppResult) {
     init::quit();
 }
 
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 /// Translation of `callback_rate_increment` (ns).
 static CALLBACK_RATE_INCREMENT: AtomicU64 = AtomicU64::new(0);
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 /// Translation of `iterate_after_waitevent`.
 static ITERATE_AFTER_WAITEVENT: AtomicBool = AtomicBool::new(false);
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 /// Translation of `callback_rate_changed`.
 static CALLBACK_RATE_CHANGED: AtomicBool = AtomicBool::new(false);
 
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 /// Translation of `MainCallbackRateHintChanged()`.
 fn main_callback_rate_hint_changed(new_value: Option<&str>) {
     CALLBACK_RATE_CHANGED.store(true, Ordering::Relaxed);
@@ -295,7 +326,10 @@ fn main_callback_rate_hint_changed(new_value: Option<&str>) {
     }
 }
 
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 /// Translation of `GenericIterateMainCallbacks()`.
 fn generic_iterate_main_callbacks() -> AppResult {
     let mut should_wait = ITERATE_AFTER_WAITEVENT.load(Ordering::Relaxed);
@@ -333,6 +367,15 @@ fn generic_iterate_main_callbacks() -> AppResult {
 /// whole milliseconds per iteration there; without it, or with `"waitevent"`,
 /// the iterations follow `requestAnimationFrame()`. Translation of
 /// `SDL_EnterAppMainCallbacks()` in `SDL_sysmain_callbacks.c` (Emscripten).
+///
+/// On UIKit (iOS, tvOS, visionOS), from a main function [`run_app`] runs,
+/// this returns 0 as soon as it's set up, and the main function must then
+/// return to the run loop, where a `CADisplayLink` calls the iterations,
+/// once per frame of the display (the rate hint isn't used). When they end
+/// SDL quits and calls `exit()` with 0 or 1 (1 for
+/// [`AppResult::Failure`]); if `appinit` fails, that happens at once,
+/// after [`AppCallbacks::quit`]. Translation of
+/// `SDL_EnterAppMainCallbacks()` in `src/main/ios/SDL_sysmain_callbacks.m`.
 pub fn enter_app_main_callbacks<A: AppCallbacks>(
     args: &[String],
     appinit: impl FnOnce(&[String]) -> (A, AppResult),
@@ -341,14 +384,24 @@ pub fn enter_app_main_callbacks<A: AppCallbacks>(
     {
         emscripten::enter_app_main_callbacks(args, appinit)
     }
-    #[cfg(not(target_os = "emscripten"))]
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    {
+        uikit::enter_app_main_callbacks(args, appinit)
+    }
+    #[cfg(not(any(
+        target_os = "emscripten",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     {
         generic_enter_app_main_callbacks(args, appinit)
     }
 }
 
 /// Translation of the generic `SDL_EnterAppMainCallbacks()`.
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(
+    target_os = "emscripten",
+    all(target_vendor = "apple", not(target_os = "macos"))
+)))]
 fn generic_enter_app_main_callbacks<A: AppCallbacks>(
     args: &[String],
     appinit: impl FnOnce(&[String]) -> (A, AppResult),
@@ -420,7 +473,7 @@ fn check_default_args(args: Vec<String>) -> Vec<String> {
 }
 
 /// Translation of `SDL_CallMainFunction()`.
-fn call_main_function(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
+pub(crate) fn call_main_function(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
     let args = check_default_args(std::env::args().collect());
     init::set_main_ready();
     main_function(&args)
@@ -437,13 +490,31 @@ fn call_main_function(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
 /// `ReferenceError` that ends the program), as upstream's does. With the
 /// `emscripten-persistent-path` feature (see `sdl3/Cargo.toml`), the main
 /// function needs a `'static` bound: it runs later, from the event loop.
+///
+/// On UIKit (iOS, tvOS, visionOS) this is `UIApplicationMain()` with SDL's
+/// app delegate, which calls the main function once the app has launched,
+/// on the main thread, from the main run loop, with SDL's event pump on
+/// (see `video::set_ios_event_pump()`, on UIKit): this
+/// never returns. When the main function returns, the app keeps running,
+/// as upstream's does (for apps that set up there and let the run loop
+/// run, such as the main callbacks'): end the process with
+/// [`std::process::exit`]. The main function's result isn't the process's
+/// exit status. A panic in the main function aborts the process (it's
+/// called from Objective-C).
 #[cfg(not(all(target_os = "emscripten", feature = "emscripten-persistent-path")))]
 pub fn run_app(main_function: impl FnOnce(&[String]) -> i32) -> i32 {
     #[cfg(target_os = "emscripten")]
     {
         emscripten::run_app(main_function)
     }
-    #[cfg(not(target_os = "emscripten"))]
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    {
+        crate::video::drivers::uikit::appdelegate::run_app(main_function)
+    }
+    #[cfg(not(any(
+        target_os = "emscripten",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     {
         call_main_function(main_function)
     }
@@ -468,7 +539,10 @@ pub fn run_app(main_function: impl FnOnce(&[String]) -> i32 + 'static) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(target_os = "emscripten")]
+    #[cfg(any(
+        target_os = "emscripten",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    ))]
     use std::time::Duration;
 
     struct Counter {
@@ -510,6 +584,10 @@ mod tests {
         target_os = "emscripten",
         ignore = "the main loop runs from the event loop (tests/emscripten_main.rs)"
     )]
+    #[cfg_attr(
+        all(target_vendor = "apple", not(target_os = "macos")),
+        ignore = "a display link runs the iterations, in an app (tests/uikit_callbacks.rs)"
+    )]
     fn main_callbacks_loop() {
         let _l = crate::test_support::test_lock();
         init::set_main_ready();
@@ -542,6 +620,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_vendor = "apple", not(target_os = "macos")),
+        ignore = "the process exits once AppCallbacks::quit has run (tests/uikit_callbacks.rs)"
+    )]
     fn init_failure_goes_straight_to_quit() {
         let _l = crate::test_support::test_lock();
         init::set_main_ready();
@@ -562,7 +644,10 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(target_os = "emscripten"))]
+    #[cfg(not(any(
+        target_os = "emscripten",
+        all(target_vendor = "apple", not(target_os = "macos"))
+    )))]
     fn rate_hint() {
         main_callback_rate_hint_changed(Some("60"));
         assert_eq!(CALLBACK_RATE_INCREMENT.load(Ordering::Relaxed), 16_666_666);
