@@ -29,11 +29,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { toolchain: "1.87", name: full-a, args: "", lldb: false }
-          - { toolchain: "1.87", name: full-b, args: "", lldb: false }
-          - { toolchain: "1.87", name: vulkan, args: "vulkan", lldb: false }
-          - { toolchain: "1.87", name: full-lldb, args: "", lldb: true }
-          - { toolchain: "1.99", name: full-pinned, args: "", lldb: false }
+          - { toolchain: "1.87", name: vulkan-a, args: "vulkan", lldb: false }
+          - { toolchain: "1.87", name: vulkan-b, args: "vulkan", lldb: false }
+          - { toolchain: "1.99", name: vulkan-pinned, args: "vulkan", lldb: false }
     runs-on: macos-latest
     timeout-minutes: 120
     env:
@@ -110,6 +108,17 @@ jobs:
                 echo "::endgroup::"
               fi
               grep -E "panicked at|^failures:|^    [a-z_:]+$" "$log" | head -50
+              echo "::group::iteration $i panics"
+              grep -A8 "panicked at" "$log" | head -200
+              echo "::endgroup::"
+              echo "::group::iteration $i foreign loader operations"
+              grep -A70 "DIAG-FOREIGN" "$log" | cut -c1-300 | head -1500
+              echo "::endgroup::"
+              echo "::group::iteration $i loader operations"
+              grep -E "DIAG|^test |Created VkInstance|Destroying VkInstance|Created VkDevice|Destroyed VkDevice|panicked" "$log" | cut -c1-300 | tail -400
+              echo "::endgroup::"
+              mkdir -p "$RUNNER_TEMP/ips"
+              cp "$log" "$RUNNER_TEMP/ips/"
               sleep 15
               for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
                 find "$d" -newer "$RUNNER_TEMP/marker" -name 'sdl3-*' 2>/dev/null

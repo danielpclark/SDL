@@ -1497,6 +1497,13 @@ pub(crate) fn quit_video() {
     {
         let _ = with_device(|v| v.gl_driver_loaded = 0);
     }
+    #[cfg(test)]
+    if with_device(|v| v.vulkan_loader_loaded).unwrap_or(0) != 0 {
+        crate::test_support::diag_loader(
+            "video-quit-unload",
+            with_device(|v| v.vulkan_loader_loaded).unwrap_or(0),
+        );
+    }
     if with_device(|v| v.vulkan_loader_loaded).unwrap_or(0) != 0
         && driver.vulkan_unload_library().is_some()
     {

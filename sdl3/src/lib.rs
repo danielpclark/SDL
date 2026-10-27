@@ -106,6 +106,27 @@ pub fn shutdown() {
 pub(crate) mod test_support {
     pub(crate) static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+    /// (diagnostic) The thread that took TEST_LOCK last.
+    pub(crate) static DIAG_HOLDER: std::sync::Mutex<Option<std::thread::ThreadId>> =
+        std::sync::Mutex::new(None);
+
+    /// (diagnostic) Report a Vulkan loader operation, with a backtrace when
+    /// it's made by a thread that doesn't hold TEST_LOCK.
+    pub(crate) fn diag_loader(op: &str, count: i32) {
+        let me = std::thread::current();
+        let holder = *DIAG_HOLDER.lock().unwrap_or_else(|e| e.into_inner());
+        let free = TEST_LOCK.try_lock().is_ok();
+        if free || holder != Some(me.id()) {
+            eprintln!(
+                "DIAG-FOREIGN loader {op} count {count} on {:?} (lock free: {free})\n{}",
+                me.name(),
+                std::backtrace::Backtrace::force_capture()
+            );
+        } else {
+            eprintln!("DIAG loader {op} count {count} on {:?}", me.name());
+        }
+    }
+
     /// Take [`TEST_LOCK`], with SDL shut down: subsystems a previous holder
     /// left initialized would still belong to its (now finished) thread, so
     /// the events thread checks would fail. If the last holder panicked (a
@@ -120,6 +141,8 @@ pub(crate) mod test_support {
                 poisoned.into_inner()
             }
         };
+        *DIAG_HOLDER.lock().unwrap_or_else(|e| e.into_inner()) =
+            Some(std::thread::current().id());
         if !crate::init::was_init(crate::init::InitFlags::ALL).is_empty() {
             crate::init::quit();
         }

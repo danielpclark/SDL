@@ -32,6 +32,8 @@ pub fn vulkan_load_library(path: Option<&str>) -> Result<()> {
     }
     with_device(|v| {
         v.vulkan_loader_loaded += 1;
+        #[cfg(test)]
+        crate::test_support::diag_loader("load", v.vulkan_loader_loaded);
         if v.vulkan_loader_path.is_none() {
             v.vulkan_loader_path = path.map(str::to_owned);
         }
@@ -55,6 +57,8 @@ pub fn vulkan_unload_library() {
     let Ok(Some(driver)) = with_device(|v| {
         if v.vulkan_loader_loaded > 0 {
             v.vulkan_loader_loaded -= 1;
+            #[cfg(test)]
+            crate::test_support::diag_loader("unload", v.vulkan_loader_loaded);
             if v.vulkan_loader_loaded > 0 {
                 return None;
             }
