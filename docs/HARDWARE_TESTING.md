@@ -758,9 +758,13 @@ to boot the first time.
 A test program runs as a process of the simulated device (`xcrun simctl
 spawn`), with the runner's stdin, stdout and stderr and its exit status.
 It sees the simulator's system (its frameworks, no GPU but the
-simulator's Metal device, no MoltenVK, no camera, sensors or battery),
-runs in the device's data directory (HOME and TMPDIR are there too), and
-reads and writes the host's files by their paths: test data is read
+simulator's Metal device, no MoltenVK, no camera, sensors or battery:
+UIDevice's battery state is unknown there), is no app (UIKit's
+`UIApplication` is nil, so no URL has a handler), runs in the device's
+data directory (HOME and TMPDIR are there too; SDL's file functions put
+a relative path in the pref path, `Library/Application Support/` there,
+as on a device), and reads and writes the host's files by their paths:
+test data is read
 through `env!("CARGO_MANIFEST_DIR")`, and a test that needs the package's
 directory as its working directory (as Cargo gives it) changes to it
 there (TiMidity's). The simulator sees those files case-sensitively,
