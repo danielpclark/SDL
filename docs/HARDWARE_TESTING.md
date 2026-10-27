@@ -53,7 +53,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
 | `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
-| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes and `uikit_keyboard`'s real keys and text (see [below](#ios-simulator)) |
+| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#ios-simulator)) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
 | `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag): `emscripten_browser.rs`'s probe and `emscripten_audio.rs` |
@@ -891,7 +891,22 @@ pump is on again it leaves the on-screen keyboard's events out of the
 trace; and since the coalesced keyboard's key events
 come from its own queue and the text from the main thread, it traces
 each of the two in its own order. Without idb it doesn't compare its
-trace. All six compare a trace with upstream's C SDL's,
+trace. `uikit_clipboard` empties the general pasteboard (what another
+app put there would ask to be pasted when read), then traces the
+clipboard, the `UIPasteboard` and the clipboard's events through text
+set and read back (ASCII, beyond ASCII and the Basic Multilingual Plane,
+control characters, empty), the pasteboard changed in-process through
+`UIPasteboard` and its change notification posted, clipboard data with
+and without text, and the text left when SDL quits; `uikit_messagebox`
+shows message boxes (a simple one, three buttons left to right and right
+to left, none without a window, empty texts, one from another thread)
+and answers each from the main queue while the box runs its run loop:
+it finds the alert controller, traces it, counts the window's animation
+frames (none while a box is up), then dismisses it and calls the chosen
+action's handler (`handler`, a private property: test programs only);
+and one is answered by a real tap on its button through idb (the
+middle of the button's label, `idb`; without idb the trace is compared
+without those lines). All eight compare a trace with upstream's C SDL's,
 from the same programs in C run the same way on the CI's simulator (an
 iPhone 16 with iOS 18.5).
 
@@ -903,9 +918,10 @@ so the GPU API's Metal tests skip `metal`, and the Vulkan renderer's, the
 GPU API's Vulkan backend's and the GPU renderer's tests skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
-and dummy drivers there, as elsewhere; its clipboard, message boxes and
-windows' graphics views, and the iOS halves of CoreAudio, MFi, the Metal
-renderer and the camera, aren't translated yet.
+and dummy drivers there, as elsewhere (and so its message boxes only
+show in an app); its windows' graphics views, and the iOS halves of
+CoreAudio, MFi, the Metal renderer and the camera, aren't translated
+yet.
 
 ## CI
 

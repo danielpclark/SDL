@@ -198,8 +198,8 @@ the main function and the main callbacks, and the UIKit video driver's
 app delegate, lifecycle events, event pump, displays and display modes,
 and windows with their input (touches, the pointer, the Apple Pencil,
 the keyboard, text input and the on-screen keyboard, the game
-controllers' keyboards and mice; without the clipboard, message boxes
-and OpenGL ES, Metal and Vulkan views); the
+controllers' keyboards and mice), the clipboard and message boxes
+(without OpenGL ES, Metal and Vulkan views); the
 SVE2, LSX and AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.
@@ -233,8 +233,8 @@ form factor, `run_app()` and the main callbacks are translated, and of the
 UIKit video driver its app delegate, the application's lifecycle events,
 the event pump, the displays with their modes and the windows (with
 `Window::set_ios_animation_callback()`) and their input (touches, the
-pointer, the Apple Pencil, the keyboard and text input), not yet their
-graphics views, the clipboard and message boxes:
+pointer, the Apple Pencil, the keyboard and text input), the clipboard
+and message boxes, not yet the windows' graphics views:
 
 ```sh
 rustup target add aarch64-apple-ios-sim
