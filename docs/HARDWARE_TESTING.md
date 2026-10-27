@@ -828,7 +828,14 @@ current, fullscreen and closest modes, properties), turns the app
 in-process to each orientation (`requestGeometryUpdateWithPreferences:`
 on a window of its own, iOS 16) and asks again, posts the screens'
 connection and disconnection notifications, and starts the video
-subsystem again. All three compare a trace with upstream's C SDL's,
+subsystem again; `uikit_windows` makes windows (plain, resizable and high
+density made hidden, fullscreen) and traces what SDL and UIKit say about
+them (sizes in points and pixels, flags, the safe area, the `UIWindow`,
+its view controller's status bar, home indicator and orientations, the
+properties) as they are hidden and shown, made borderless, fullscreen and
+exclusive fullscreen, turned in-process to each orientation, and given
+animation callbacks, whose frames it counts. All four compare a trace
+with upstream's C SDL's,
 from the same programs in C run the same way on the CI's simulator (an
 iPhone 16 with iOS 18.5).
 
@@ -840,8 +847,9 @@ so the GPU API's Metal tests skip `metal`, and the Vulkan renderer's, the
 GPU API's Vulkan backend's and the GPU renderer's tests skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
-and dummy drivers there, as elsewhere; its windows, and the iOS halves of
-CoreAudio, MFi, the Metal renderer and the camera, aren't translated yet.
+and dummy drivers there, as elsewhere; its windows' input and graphics
+views, and the iOS halves of CoreAudio, MFi, the Metal renderer and the
+camera, aren't translated yet.
 
 ## CI
 
