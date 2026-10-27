@@ -35,15 +35,27 @@ A program runs in one of two ways:
   --terminate-running-process`, with the same variables, its stdout and
   stderr in files in the device's temporary directory (so that a program
   that ends at once loses nothing), which are copied to this script's as
-  they grow, until the app's process is gone. simctl doesn't give an app's exit status, so the program ends
-  by printing `sdl3-ios-runner: exit N` on a line of its own, then exits:
-  N is this script's exit status (the line isn't copied). Without that
-  line (a
-  crash, an uncaught panic, an app that returned from main and stays up
-  until the timeout) the run fails, and the end of the device's log for
-  the program follows. The app is then terminated and uninstalled. A word
+  they grow, until the app's process is gone. simctl doesn't give an
+  app's exit status, so the program ends by printing `sdl3-ios-runner:
+  exit N` on a line of its own, then exits: N is this script's exit
+  status (the line isn't copied). Without that line (a crash, an uncaught
+  panic, an app that returned from main and stays up until the timeout)
+  the run fails, and the end of the device's log for the program follows.
+  The app is then terminated and uninstalled. A word
   `privacy=SERVICE,...` grants it those services first (`simctl privacy
-  grant`: camera, microphone, photos, ...).
+  grant`: camera, microphone, photos, ...). The app's bundle identifier
+  is also a URL scheme it handles (CFBundleURLTypes), and one it may ask
+  about (LSApplicationQueriesSchemes), so that it can open its own URLs.
+
+  A running app can ask for what only the host can do, with a line
+  `sdl3-ios-runner: request WHAT` (copied, then acted on):
+    background  launch the Settings app (com.apple.Preferences), which
+                sends this one to the background
+    foreground  launch this app again (without terminating it), which
+                brings it back to the foreground, the same process (the
+                runner does that itself after a minute: an app in the
+                background is soon suspended)
+  The app waits for what follows (its application events) itself.
 
 The simulator: SDL3_IOS_SIMULATOR's (a UDID or a device name), else a
 booted iPhone or iPad simulator (one of SDL3_IOS_DEVICE_TYPE on
@@ -94,6 +106,7 @@ PROGRAM = os.path.basename(__file__)
 VERBOSE = os.environ.get("SDL3_IOS_VERBOSE", "") not in ("", "0")
 
 SENTINEL = re.compile(r"sdl3-ios-runner: exit (-?\d+)")
+REQUEST = re.compile(r"sdl3-ios-runner: request (\S+)")
 
 # The variables a spawned or launched program gets (as SIMCTL_CHILD_NAME).
 FORWARD_PREFIXES = ("SDL3_", "SDL_", "RUST_")
@@ -134,20 +147,24 @@ def xcrun_simctl(*args, check=True, timeout=None, env=None):
     """`xcrun simctl ARGS...`, its output captured."""
     argv = ["xcrun", "simctl", *args]
     start = time.monotonic()
-    try:
-        result = subprocess.run(
-            argv,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            timeout=timeout,
-            env=env,
+    # (the output goes to files, not pipes: a process simctl leaves behind
+    # would keep a pipe open, and reading it to its end would never end)
+    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        try:
+            process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env)
+        except FileNotFoundError:
+            raise Failure("no xcrun: the iOS Simulator needs Xcode (xcode-select -s /Applications/Xcode.app)") from None
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+            raise Failure(f"{shlex.join(argv)} took more than {timeout} s") from None
+        out.seek(0)
+        err.seek(0)
+        result = subprocess.CompletedProcess(
+            argv, returncode, out.read().decode(errors="replace"), err.read().decode(errors="replace")
         )
-    except FileNotFoundError:
-        raise Failure("no xcrun: the iOS Simulator needs Xcode (xcode-select -s /Applications/Xcode.app)") from None
-    except subprocess.TimeoutExpired:
-        raise Failure(f"{shlex.join(argv)} took more than {timeout} s") from None
     if VERBOSE:
         note(f"{shlex.join(argv)}: {result.returncode} ({time.monotonic() - start:.2f} s)")
     if check and result.returncode != 0:
@@ -288,6 +305,10 @@ def write_bundle(program, macho, app, identifier):
         "CADisableMinimumFrameDurationOnPhone": True,
         "NSCameraUsageDescription": "The SDL tests check the camera.",
         "NSMicrophoneUsageDescription": "The SDL tests check audio recording.",
+        # (the bundle identifier as a URL scheme the app handles and may
+        # ask about, for its own URLs)
+        "CFBundleURLTypes": [{"CFBundleURLName": identifier, "CFBundleURLSchemes": [identifier]}],
+        "LSApplicationQueriesSchemes": [identifier],
     }
     with open(os.path.join(app, "Info.plist"), "wb") as f:
         plistlib.dump(info, f, fmt=plistlib.FMT_BINARY)
@@ -561,12 +582,15 @@ def alive(pid):
 
 class Output:
     """A file the app writes, copied to `stream` as it grows: by lines, the
-    `sdl3-ios-runner: exit N` line kept out (and noted) when `sentinel`."""
+    `sdl3-ios-runner: exit N` line kept out (and noted) when `sentinel`,
+    and the `sdl3-ios-runner: request WHAT` lines passed to `on_request`
+    (after they're copied)."""
 
-    def __init__(self, path, stream, sentinel):
+    def __init__(self, path, stream, sentinel, on_request=None):
         self.path = path
         self.stream = stream
         self.sentinel = sentinel
+        self.on_request = on_request
         self.file = None
         self.pending = b""
         self.status = None
@@ -593,6 +617,10 @@ class Output:
             self.tail.append(text)
             del self.tail[:-40]
             self.stream.write(text + "\n")
+            request = REQUEST.fullmatch(text) if self.on_request else None
+            if request:
+                self.stream.flush()
+                self.on_request(request.group(1))
         self.stream.flush()
 
     def close(self):
@@ -618,39 +646,76 @@ def run_app(udid, identifier, executable, args, timeout, temp):
         shutil.rmtree(temp, ignore_errors=True)
 
 
+# An app in the background is suspended a few seconds after it gets there;
+# one that asked for the background but not to come back by then is
+# brought back (so that it can tell what went wrong).
+BACKGROUND_LIMIT = 60
+
+
+class Requests:
+    """What a running app asks for (`sdl3-ios-runner: request WHAT`)."""
+
+    def __init__(self, udid, identifier, pid):
+        self.udid = udid
+        self.identifier = identifier
+        self.pid = pid
+        self.background_since = None
+
+    def handle(self, what):
+        if what == "background":
+            # (the Settings app comes to the foreground, launched anew:
+            # this one resigns being active, then enters the background a
+            # few seconds later)
+            result = xcrun_simctl(
+                "launch", "--terminate-running-process", self.udid, "com.apple.Preferences",
+                check=False, timeout=120,
+            )
+            if result.returncode != 0:
+                note(f"request background: launching Settings failed ({result.returncode}): {result.stderr.strip()}")
+            self.background_since = time.monotonic()
+        elif what == "foreground":
+            self.foreground()
+        else:
+            note(f"unknown request {what!r} (ignored)")
+
+    def foreground(self):
+        # (the running app, the same process, comes back to the foreground)
+        self.background_since = None
+        result = xcrun_simctl("launch", self.udid, self.identifier, check=False, timeout=120)
+        match = re.search(re.escape(self.identifier) + r": (\d+)", result.stdout)
+        if result.returncode != 0 or not match:
+            note(f"request foreground: launching the app failed ({result.returncode}): {result.stderr.strip()}")
+        elif int(match.group(1)) != self.pid:
+            note(f"request foreground: the app was launched again as process {match.group(1)}, not brought back")
+
+    def check(self):
+        if self.background_since is not None and time.monotonic() - self.background_since > BACKGROUND_LIMIT:
+            note(f"the app didn't ask to come back from the background within {BACKGROUND_LIMIT} s: bringing it back")
+            self.foreground()
+
+
 def run_app_in(udid, identifier, executable, args, timeout, temp):
     out_path = os.path.join(temp, "stdout.txt")
     err_path = os.path.join(temp, "stderr.txt")
-    argv = [
-        "xcrun", "simctl", "launch", "--terminate-running-process",
-        f"--stdout={out_path}", f"--stderr={err_path}", udid, identifier, *args,
-    ]
-    if VERBOSE:
-        note("running " + shlex.join(argv))
     start = time.monotonic()
-    try:
-        result = subprocess.run(
-            argv,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            env=child_environment(),
-            timeout=600,
-        )
-    except subprocess.TimeoutExpired:
-        raise Failure(f"{shlex.join(argv)} took more than 600 s") from None
+    result = xcrun_simctl(
+        "launch", "--terminate-running-process", f"--stdout={out_path}", f"--stderr={err_path}",
+        udid, identifier, *args,
+        check=False, timeout=600, env=child_environment(),
+    )
     match = re.search(re.escape(identifier) + r": (\d+)", result.stdout)
-    out = Output(out_path, sys.stdout, True)
+    pid = int(match.group(1)) if match else None
+    requests = Requests(udid, identifier, pid)
+    out = Output(out_path, sys.stdout, True, requests.handle)
     err = Output(err_path, sys.stderr, False)
     timed_out = False
     if result.returncode != 0 or not match:
         note(f"xcrun simctl launch failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
     else:
-        pid = int(match.group(1))
         while alive(pid):
             out.poll()
             err.poll()
+            requests.check()
             if timeout and time.monotonic() - start > timeout:
                 timed_out = True
                 note(f"the app ran for more than {timeout:g} s (SDL3_IOS_TIMEOUT): terminating it")

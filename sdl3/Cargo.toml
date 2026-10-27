@@ -202,3 +202,11 @@ required-features = ["emscripten-persistent-path"]
 [[test]]
 name = "ios_runner"
 harness = false
+
+[[test]]
+name = "uikit_main"
+harness = false
+
+[[test]]
+name = "uikit_callbacks"
+harness = false

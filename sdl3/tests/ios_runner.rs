@@ -20,9 +20,10 @@ fn main() {}
 static RUNNER: [u8; 4] = *b"app\0";
 
 #[cfg(target_os = "ios")]
-fn main() {
-    use std::io::Write;
+mod uikit_support;
 
+#[cfg(target_os = "ios")]
+fn main() {
     println!("ios_runner: started");
     let checks = std::panic::catch_unwind(|| {
         // The executable is in an app bundle, NAME.app, which the base path
@@ -53,7 +54,5 @@ fn main() {
     });
     let status = if checks.is_ok() { 0 } else { 101 };
     // The runner's exit status (simctl doesn't give an app's).
-    println!("sdl3-ios-runner: exit {status}");
-    let _ = std::io::stdout().flush();
-    std::process::exit(status);
+    uikit_support::exit(status);
 }
