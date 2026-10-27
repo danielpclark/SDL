@@ -189,6 +189,22 @@ they are used (there is no build script to make aliases):
   GameController's, loaded at run time: without it there's no mouse to
   follow, and no relative mode (`SDL_GetMouse()->SetRelativeMouseMode`
   is set only while they're followed, as upstream's).
+* The keyboard (`SDL_IPHONE_KEYBOARD`, on every UIKit platform) is the
+  view controller's: its text field (`SDLUITextField`, declared at run
+  time) and the `UITextFieldDelegate` methods, the keyboard's
+  notifications, the key commands and `startTextInput`/`stopTextInput`
+  are as upstream's, the instance variables in the view controller's
+  Rust state. The text field's changes go through `NSString`'s UTF-16
+  code units as upstream's do: each one, surrogates too, is a key press
+  (`keyboard::send_keyboard_unicode_code()`, which takes upstream's
+  `Uint32`; `send_keyboard_unicode_key()` takes a `char`). The key
+  commands' inputs are compared with UIKit's constant strings by
+  address, as upstream does. `UITextContentTypeOneTimeCode` (iOS 12) is
+  looked up at run time, as a weakly linked symbol would be, and the
+  game controllers' keyboards (`GCKeyboard`) are GameController's,
+  loaded at run time. When the text field can't become the first
+  responder, starting text input fails with an error of its own
+  (`Note`: upstream fails without one).
 
 ## Testing
 
