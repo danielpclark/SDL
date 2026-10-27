@@ -327,10 +327,23 @@ fn vulkan_renderer(w: i32, h: i32) -> Option<(Window, Renderer)> {
     }
 }
 
+/// An offscreen Vulkan window, or `None` (with the skip reported): a
+/// Vulkan window loads the Vulkan loader, which may not be there (as on
+/// the iOS Simulator, which has no MoltenVK).
+fn vulkan_window(w: i32, h: i32) -> Option<Window> {
+    match Window::create("vulkan", w, h, WindowFlags::VULKAN) {
+        Ok(window) => Some(window),
+        Err(e) => {
+            crate::test_support::skip("vulkan", format_args!("no Vulkan window ({})", e.message()));
+            None
+        }
+    }
+}
+
 /// The Vulkan renderer's backend itself for an offscreen window, or
 /// `None` (with the skip reported) when there is no Vulkan.
 fn vulkan_backend(w: i32, h: i32) -> Option<(Window, VulkanRenderer)> {
-    let window = Window::create("vulkan", w, h, WindowFlags::VULKAN).unwrap();
+    let window = vulkan_window(w, h)?;
     match VulkanRenderer::for_window(window, Colorspace::SRGB, &Default::default()) {
         Ok(data) => Some((window, data)),
         Err(e) => {
@@ -1232,7 +1245,9 @@ fn vulkan_releases_the_loader() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
     let loaded = || crate::video::core::with_device(|v| v.vulkan_loader_loaded).unwrap();
-    let window = Window::create("vulkan", W, H, WindowFlags::VULKAN).unwrap();
+    let Some(window) = vulkan_window(W, H) else {
+        return;
+    };
     let before = loaded();
     let mut data = match VulkanRenderer::for_window(window, Colorspace::SRGB, &Default::default()) {
         Ok(data) => data,
@@ -2202,13 +2217,8 @@ impl Drop for AppVulkan {
 fn vulkan_renderer_on_existing_vulkan_objects() {
     let _l = crate::test_support::test_lock();
     let _video = Video::init();
-    // (a Vulkan window loads the Vulkan loader, which may not be there)
-    let window = match Window::create("vulkan", W, H, WindowFlags::VULKAN) {
-        Ok(window) => window,
-        Err(e) => {
-            crate::test_support::skip("vulkan", format_args!("no Vulkan window ({})", e.message()));
-            return;
-        }
+    let Some(window) = vulkan_window(W, H) else {
+        return;
     };
     let Some(app) = AppVulkan::new(&window) else {
         window.destroy();

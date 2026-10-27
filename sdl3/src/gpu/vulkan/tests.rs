@@ -2808,8 +2808,15 @@ fn failed_devices_destroy_their_instance() {
         let mut renderer = device::create_device(false, false, &props).unwrap();
         assert_eq!(live(), before + 1);
         renderer.destroy_device();
-    } else {
+    } else if crate::video::vulkan::vulkan_load_library(None).is_ok() {
+        // (no hardware device: its instance goes when the device fails)
+        crate::video::vulkan::vulkan_unload_library();
         assert!(device::create_device(false, false, &props).is_err());
+    } else {
+        // Without a loader there's no instance to make, and upstream's
+        // VULKAN_CreateDevice() asserts that VULKAN_PrepareDriver() failed
+        // first, so it isn't called.
+        crate::test_support::skip("vulkan", "no Vulkan loader");
     }
     assert_eq!(live(), before);
 }

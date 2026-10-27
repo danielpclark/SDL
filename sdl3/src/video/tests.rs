@@ -551,6 +551,13 @@ fn session(t: &mut Trace, driver: &str) {
 fn session_matches_c() {
     let _l = crate::test_support::test_lock();
     init::quit(); // (in case an earlier test failed halfway)
+
+    // The C reference ran where the mouse makes no touch events by default;
+    // on UIKit (and Android) it does, which adds a finger's events to the
+    // trace.
+    if crate::events::mouse::MOUSE_TOUCH_EVENTS_DEFAULT {
+        hints::set(hints::MOUSE_TOUCH_EVENTS, "0").unwrap();
+    }
     let mut t = Trace {
         out: String::new(),
         ids: Vec::new(),
@@ -610,6 +617,7 @@ fn session_matches_c() {
     t.res("init none", init::init(InitFlags::VIDEO));
     drop(no_display);
     init::quit();
+    hints::reset(hints::MOUSE_TOUCH_EVENTS);
 
     let expected = include_str!("testdata/video_trace.txt");
     // (on Windows the windows driver is available without asking for it)

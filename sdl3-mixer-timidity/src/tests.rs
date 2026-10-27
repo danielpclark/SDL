@@ -405,6 +405,9 @@ fn run(out: &mut String) {
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore = "host file system")]
 fn matches_upstream() {
+    // (Cargo runs the tests there; the iOS Simulator runs them in the
+    // device's data directory)
+    std::env::set_current_dir(env!("CARGO_MANIFEST_DIR")).unwrap();
     let mut out = String::new();
     run(&mut out);
     let want = String::from_utf8_lossy(REFERENCE);

@@ -644,7 +644,9 @@ mod tests {
         let _l = crate::test_support::test_lock();
         reset_assertion_report();
         log::disable_output();
-        hints::set(hints::ASSERT, "always_ignore").unwrap();
+        // (over SDL_ASSERT in the environment, which tools/ios_run.py sets)
+        let set = |v| hints::set_with_priority(hints::ASSERT, Some(v), hints::Priority::Override);
+        set("always_ignore").unwrap();
         let fire = || crate::sdl_assert_release!(1 + 1 == 3);
         fire();
         fire();
@@ -662,7 +664,7 @@ mod tests {
             ("always_ignore", AssertState::AlwaysIgnore),
             ("nonsense", AssertState::Abort),
         ] {
-            hints::set(hints::ASSERT, v).unwrap();
+            set(v).unwrap();
             assert_eq!(default_assertion_handler(&D), s);
         }
         hints::reset(hints::ASSERT);
