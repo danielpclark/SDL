@@ -8,9 +8,10 @@
 //! Direct translation of `SDL_power.c`, with the Linux backends (UPower
 //! over D-Bus, `/sys/class/power_supply`, `/proc/acpi` and `/proc/apm`,
 //! tried in that order), the Windows one (`GetSystemPowerStatus()`) and
-//! the macOS one (IOKit's power sources) and the Emscripten one (the
-//! browser's Battery Status API). Elsewhere (the iOS, Android, ... backends
-//! are not translated) no backend is compiled in, so the answer is
+//! the UIKit one (UIDevice's battery monitoring; no battery on tvOS), the
+//! macOS one (IOKit's power sources) and the Emscripten one (the
+//! browser's Battery Status API). Elsewhere (the Android, ... backends are
+//! not translated) no backend is compiled in, so the answer is
 //! [`PowerState::Unknown`], as in an `SDL_POWER_DISABLED` build.
 
 use std::time::Duration;
@@ -21,6 +22,9 @@ mod emscripten;
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
+/// (`update_battery_monitoring()` is for the UIKit video driver.)
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+pub(crate) mod uikit;
 #[cfg(windows)]
 mod windows;
 
@@ -71,6 +75,9 @@ static IMPLEMENTATIONS: &[GetPowerInfoImpl] = &[
     // handles Win32, Win64, PocketPC.
     #[cfg(windows)]
     windows::get_power_info_windows,
+    // handles iPhone/iPad/etc
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    uikit::get_power_info_uikit,
     // handles macOS, Darwin.
     #[cfg(target_os = "macos")]
     macos::get_power_info_macosx,
