@@ -69,7 +69,10 @@ pub use drivers::x11::events::{set_x11_event_hook, X11EventHook};
 
 pub use self::core::{
     current_video_driver, disable_screen_saver, enable_screen_saver, num_video_drivers,
-    screen_saver_enabled, system_theme, video_driver,
+    on_application_did_enter_background, on_application_did_enter_foreground,
+    on_application_did_receive_memory_warning, on_application_will_enter_background,
+    on_application_will_enter_foreground, on_application_will_terminate, screen_saver_enabled,
+    system_theme, video_driver,
 };
 pub use display::*;
 pub use sysvideo::{
@@ -87,6 +90,32 @@ pub use drivers::windows::events::{
 };
 #[cfg(windows)]
 pub use drivers::windows::{get_direct3d9_adapter_index, get_dxgi_output_info};
+
+// The iOS-specific entry points of SDL_system.h (on every UIKit platform)
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+pub use drivers::uikit::events::set_ios_event_pump;
+
+/// Report that the interface orientation changed: the primary display's
+/// desktop mode (and its fullscreen modes) are turned to match, and a
+/// [`DISPLAY_ORIENTATION`](crate::events::EventType::DISPLAY_ORIENTATION)
+/// event is sent. For iOS apps that have their own event handling; SDL
+/// does this itself on UIKit's notification. Unsupported on tvOS and
+/// visionOS. Translation of
+/// `SDL_OnApplicationDidChangeStatusBarOrientation()`.
+///
+/// It is safe to call this function from any thread.
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+pub fn on_application_did_change_status_bar_orientation() -> crate::error::Result<()> {
+    #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
+    {
+        drivers::uikit::modes::on_application_did_change_status_bar_orientation();
+        Ok(())
+    }
+    #[cfg(any(target_os = "tvos", target_os = "visionos"))]
+    {
+        Err(crate::error::Error::unsupported())
+    }
+}
 
 pub use blendmode::*;
 pub use bmp::is_bmp;

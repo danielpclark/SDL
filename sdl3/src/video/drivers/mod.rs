@@ -3,8 +3,9 @@
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
 //! Video backends: Wayland and X11 (on Unix other than Apple platforms and
-//! Emscripten; Wayland not on Android), Cocoa (on macOS), Windows (on Windows),
-//! the canvas driver (on Emscripten, in a page), and the dummy and
+//! Emscripten; Wayland not on Android), Cocoa (on macOS), UIKit (on iOS,
+//! tvOS and visionOS, in an app), Windows (on Windows), the canvas driver
+//! (on Emscripten, in a page), and the dummy and
 //! offscreen drivers, both only available when requested with
 //! [`hints::VIDEO_DRIVER`](crate::hints::VIDEO_DRIVER).
 
@@ -14,6 +15,8 @@ pub(crate) mod dummy;
 #[cfg(target_os = "emscripten")]
 pub(crate) mod emscripten;
 pub(crate) mod offscreen;
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+pub(crate) mod uikit;
 #[cfg(all(
     unix,
     not(target_vendor = "apple"),

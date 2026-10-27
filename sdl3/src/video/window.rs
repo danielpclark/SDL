@@ -1345,6 +1345,9 @@ impl Window {
         // Make sure window pixel size is up to date
         core::check_window_pixel_size_changed(id);
 
+        #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+        super::drivers::uikit::events::update_lifecycle_observer();
+
         Ok(window)
     }
 
@@ -3042,6 +3045,9 @@ impl Window {
 
         // Unlink the window from the global window list (which invalidates it)
         let _ = with_device(|v| v.windows.retain(|w| w.core.id != window));
+
+        #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+        super::drivers::uikit::events::update_lifecycle_observer();
     }
 }
 
