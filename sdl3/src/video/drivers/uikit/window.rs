@@ -12,8 +12,9 @@
 //! window covers its screen either way), the size in pixels (the view's
 //! bounds at the screen's native scale, for high density windows), the
 //! orientations a window supports (`SDL_HINT_ORIENTATIONS`, or those its
-//! shape suits), and the animation callback
-//! ([`crate::video::Window::set_ios_animation_callback`]).
+//! shape suits), the animation callback
+//! ([`crate::video::Window::set_ios_animation_callback`]), and the
+//! pointer's lock ([`update_pointer_lock`]).
 //!
 //! The driver data of a window ([`WindowData`], `SDL_UIKitWindowData`)
 //! lives in `window->internal`; the view controller and the views keep
@@ -442,6 +443,27 @@ pub(crate) fn set_window_fullscreen(
         update_window_border(window);
     });
     FullscreenResult::Succeeded
+}
+
+/// Make a window's view controller tell UIKit again whether it wants the
+/// pointer locked (the game controllers' mice's relative mode, iOS 14).
+/// Translation of `UIKit_UpdatePointerLock()`.
+pub(crate) fn update_pointer_lock(window: WindowID) {
+    #[cfg(not(target_os = "tvos"))]
+    autoreleasepool(|| {
+        let Some(data) = window_data(window) else {
+            return;
+        };
+        let viewcontroller = data.viewcontroller();
+        if available!(ios(14, 0)) {
+            // SAFETY: a UIViewController method (iOS 14).
+            unsafe {
+                let () = msg_send![viewcontroller, setNeedsUpdateOfPrefersPointerLocked];
+            }
+        }
+    });
+    #[cfg(target_os = "tvos")]
+    let _ = window;
 }
 
 /// Translation of `UIKit_DestroyWindow()`.

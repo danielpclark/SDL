@@ -18,7 +18,7 @@
 
 use std::ffi::{c_char, c_int};
 
-use crate::core::apple::foundation::{CGFloat, CGSize};
+use crate::core::apple::foundation::{Boolean, CFStringRef, CGFloat, CGSize};
 use crate::core::apple::objc::{Id, NSInteger, NSUInteger};
 
 // ---------------------------------------------------------------------------
@@ -156,11 +156,99 @@ pub(crate) const UISceneActivationStateForegroundInactive: UISceneActivationStat
 pub(crate) const UISceneActivationStateBackground: UISceneActivationState = 2;
 
 // ---------------------------------------------------------------------------
+// Touches, gestures and the pointer
+
+/// `UITouchType` (iOS 9).
+pub(crate) type UITouchType = NSInteger;
+/// A touch of a finger on the screen.
+pub(crate) const UITouchTypeDirect: UITouchType = 0;
+/// A touch not on the screen (the Siri Remote's touch surface).
+pub(crate) const UITouchTypeIndirect: UITouchType = 1;
+/// The Apple Pencil (`UITouchTypeStylus`).
+pub(crate) const UITouchTypePencil: UITouchType = 2;
+/// The pointer of a trackpad or a mouse (iOS 13.4).
+pub(crate) const UITouchTypeIndirectPointer: UITouchType = 3;
+
+/// `UIGestureRecognizerState`.
+pub(crate) type UIGestureRecognizerState = NSInteger;
+pub(crate) const UIGestureRecognizerStatePossible: UIGestureRecognizerState = 0;
+pub(crate) const UIGestureRecognizerStateBegan: UIGestureRecognizerState = 1;
+pub(crate) const UIGestureRecognizerStateChanged: UIGestureRecognizerState = 2;
+pub(crate) const UIGestureRecognizerStateEnded: UIGestureRecognizerState = 3;
+pub(crate) const UIGestureRecognizerStateCancelled: UIGestureRecognizerState = 4;
+pub(crate) const UIGestureRecognizerStateFailed: UIGestureRecognizerState = 5;
+
+/// `UIEventButtonMask` (iOS 13.4): the buttons of the pointer pressed
+/// during an event (`UIEventButtonMaskPrimary` is bit 0, and so on).
+pub(crate) type UIEventButtonMask = NSInteger;
+
+// ---------------------------------------------------------------------------
+// CoreFoundation's preferences
+
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    /// `kCFPreferencesAnyApplication`.
+    pub(crate) static kCFPreferencesAnyApplication: CFStringRef;
+
+    /// `CFPreferencesGetAppBooleanValue()`: a preference's boolean value
+    /// (false when it isn't set or isn't a boolean, which
+    /// `keyExistsAndHasValidFormat` tells apart).
+    pub(crate) fn CFPreferencesGetAppBooleanValue(
+        key: CFStringRef,
+        applicationID: CFStringRef,
+        keyExistsAndHasValidFormat: *mut Boolean,
+    ) -> Boolean;
+}
+
+// ---------------------------------------------------------------------------
 // GameController (loaded at run time)
 
 /// `GCUIEventTypes` (iOS 18, visionOS 2).
 pub(crate) type GCUIEventTypes = NSUInteger;
 pub(crate) const GCUIEventTypeGamepad: GCUIEventTypes = 1 << 0;
+
+/// The GameController framework (`dlopen()`, kept loaded for the life of
+/// the process, as a weakly linked framework is), `None` without it.
+fn game_controller_framework() -> Option<usize> {
+    static HANDLE: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
+    *HANDLE.get_or_init(|| {
+        // SAFETY: a NUL-terminated path; the handle is never closed.
+        let handle = unsafe {
+            libc::dlopen(
+                c"/System/Library/Frameworks/GameController.framework/GameController".as_ptr(),
+                libc::RTLD_LAZY | libc::RTLD_GLOBAL,
+            )
+        };
+        (!handle.is_null()).then_some(handle as usize)
+    })
+}
+
+/// An `NSString *const` GameController exports (nil without the framework
+/// or the symbol).
+fn game_controller_string(name: &std::ffi::CStr) -> Id {
+    let Some(handle) = game_controller_framework() else {
+        return std::ptr::null_mut();
+    };
+    // SAFETY: the symbol, when there, is an exported `NSString *const`.
+    unsafe {
+        let p = libc::dlsym(handle as *mut std::ffi::c_void, name.as_ptr()) as *const Id;
+        if p.is_null() {
+            std::ptr::null_mut()
+        } else {
+            *p
+        }
+    }
+}
+
+/// `GCMouseDidConnectNotification` (iOS 14), nil without GameController.
+pub(crate) fn GCMouseDidConnectNotification() -> Id {
+    game_controller_string(c"GCMouseDidConnectNotification")
+}
+
+/// `GCMouseDidDisconnectNotification` (iOS 14), nil without GameController.
+pub(crate) fn GCMouseDidDisconnectNotification() -> Id {
+    game_controller_string(c"GCMouseDidDisconnectNotification")
+}
 
 // ---------------------------------------------------------------------------
 // Foundation

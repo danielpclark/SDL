@@ -7,8 +7,10 @@
 //! `UIApplicationMain()` runs and that calls the app's main function
 //! ([`appdelegate`]), the lifecycle notifications and the event pump
 //! ([`events`]), the displays and their modes ([`modes`]), and the
-//! windows ([`window`]), with their views ([`view`]) and view controllers
-//! ([`viewcontroller`]).
+//! windows ([`window`]), with their views ([`view`], which turn UIKit's
+//! touches, pointer and pinches into SDL's events) and view controllers
+//! ([`viewcontroller`]), the Apple Pencil ([`pen`]), and the game
+//! controllers' mice ([`events`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -23,9 +25,9 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: touches, the keyboard (`GCKeyboard`, the on-screen
-//! one), the mouse (`GCMouse`), pens, the clipboard, message boxes, OpenGL
-//! ES, Metal views and Vulkan.
+//! Not translated yet: the keyboard (`GCKeyboard`, the on-screen one, the
+//! hardware keys' presses), the clipboard, message boxes, OpenGL ES, Metal
+//! views and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
@@ -34,6 +36,7 @@
 pub(crate) mod appdelegate;
 pub(crate) mod events;
 pub(crate) mod modes;
+pub(crate) mod pen;
 pub(crate) mod sys;
 pub(crate) mod view;
 pub(crate) mod viewcontroller;
@@ -45,6 +48,7 @@ use crate::core::apple::foundation::CGRect;
 use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id};
 use crate::core::apple::uikit::shared_application;
 use crate::error::Result;
+use crate::events::mouse::MouseFeature;
 use crate::events::{DisplayID, WindowID};
 use crate::properties::Properties;
 use crate::video::sysvideo::{
@@ -100,17 +104,18 @@ fn video_init() -> Result<()> {
         ));
     }
 
-    // (SDL_InitGCKeyboard(), SDL_InitGCMouse() and UIKit_InitClipboard()
-    // come with the keyboard, the mouse and the clipboard, which aren't
-    // translated yet)
+    // (SDL_InitGCKeyboard() and UIKit_InitClipboard() come with the
+    // keyboard and the clipboard, which aren't translated yet)
+    events::init_gc_mouse();
 
     Ok(())
 }
 
 /// Translation of `UIKit_VideoQuit()`.
 fn video_quit() {
-    // (UIKit_QuitClipboard(), SDL_QuitGCKeyboard(), SDL_QuitGCMouse() and
-    // UIKit_QuitPen(): see video_init())
+    // (UIKit_QuitClipboard() and SDL_QuitGCKeyboard(): see video_init())
+    events::quit_gc_mouse();
+    pen::quit_pen();
 
     modes::quit_modes();
 }
@@ -478,5 +483,15 @@ impl VideoDriver for UIKitVideo {
 
     fn suspend_screen_saver(&self, suspend: bool) -> Option<Result<()>> {
         Some(suspend_screen_saver(suspend))
+    }
+
+    // (SDL_InitGCMouse() sets SDL_GetMouse()->SetRelativeMouseMode, and
+    // SDL_QuitGCMouse() clears it)
+    fn set_relative_mouse_mode(&self, enabled: bool) -> Option<Result<()>> {
+        events::has_gc_mouse_relative_mode().then(|| events::set_gc_mouse_relative_mode(enabled))
+    }
+
+    fn implements_mouse_feature(&self, feature: MouseFeature) -> bool {
+        feature == MouseFeature::SetRelativeMouseMode && events::has_gc_mouse_relative_mode()
     }
 }

@@ -521,7 +521,7 @@ pub fn default_output(record: &Record<'_>) {
 
 /// Translation of `SDL_NSLog()` (in upstream's `SDL_cocoavideo.m`).
 #[cfg(target_vendor = "apple")]
-fn ns_log(prefix: &str, text: &str) {
+pub(crate) fn ns_log(prefix: &str, text: &str) {
     use crate::core::apple::foundation::ns_string;
     use crate::core::apple::objc::{autoreleasepool, Id};
 

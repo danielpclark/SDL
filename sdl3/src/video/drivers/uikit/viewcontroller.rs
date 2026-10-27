@@ -11,19 +11,18 @@
 //! ([`get_supported_orientations`]), whether the status bar is hidden
 //! (fullscreen and borderless windows), the home indicator and the screen
 //! edges that defer the system's gestures (`SDL_HINT_IOS_HIDE_HOME_INDICATOR`),
-//! the system theme when the traits change, and the animation callback
-//! ([`set_animation_callback`], `SDL_SetiOSAnimationCallback()`), which a
-//! `CADisplayLink` calls once every `interval` frames.
+//! the system theme when the traits change, whether the pointer is locked
+//! (in the game controllers' mice's relative mode), and the animation
+//! callback ([`set_animation_callback`], `SDL_SetiOSAnimationCallback()`),
+//! which a `CADisplayLink` calls once every `interval` frames.
 //!
 //! Not translated yet: the on-screen keyboard and text input (the hidden
 //! `SDLUITextField` and its delegate, the keyboard's notifications, the
 //! text input properties and area, the key commands for the arrows and
 //! escape, and the rotation flag `viewWillTransitionToSize:` keeps for
-//! the keyboard), which come with the keyboard; `prefersPointerLocked`
-//! (the game controllers' mouse's relative mode), which comes with the
-//! mouse (until then UIKit's default, unlocked, as upstream's with no
-//! relative mode); and tvOS's base class (`GCEventViewController`) and
-//! hint (`SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`), which come with tvOS.
+//! the keyboard), which come with the keyboard; and tvOS's base class
+//! (`GCEventViewController`) and hint
+//! (`SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS`), which come with tvOS.
 //! The view controller keeps the window's ID; once the window is gone it
 //! answers as for a window with no flags.
 //!
@@ -140,6 +139,11 @@ pub(crate) fn viewcontroller_class() -> Class {
                             as extern "C" fn(Id, Sel) -> UIRectEdge
                     ),
                     c"Q@:",
+                );
+                b.add_method(
+                    sel!(prefersPointerLocked),
+                    imp!(vc_prefers_pointer_locked as extern "C" fn(Id, Sel) -> Bool),
+                    &encoding("B@:"),
                 );
             }
         }
@@ -480,5 +484,15 @@ extern "C" fn vc_preferred_screen_edges_deferring_system_gestures(
         UIRectEdgeAll
     } else {
         UIRectEdgeNone
+    }
+}
+
+/// Translation of `-[SDL_uikitviewcontroller prefersPointerLocked]`.
+#[cfg(not(target_os = "tvos"))]
+extern "C" fn vc_prefers_pointer_locked(_this: Id, _sel: Sel) -> Bool {
+    if super::events::gc_mouse_relative_mode() {
+        YES
+    } else {
+        NO
     }
 }
