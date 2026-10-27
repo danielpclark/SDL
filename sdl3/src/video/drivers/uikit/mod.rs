@@ -3,32 +3,35 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! The UIKit video driver (iOS, tvOS, visionOS): the lifecycle
-//! notifications and the event pump ([`events`]), and the displays
-//! ([`modes`]).
+//! The UIKit video driver (iOS, tvOS, visionOS): the app delegate that
+//! `UIApplicationMain()` runs and that calls the app's main function
+//! ([`appdelegate`]), the lifecycle notifications and the event pump
+//! ([`events`]), and the displays ([`modes`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
-//! (`SDL_LifecycleObserver`, `SDL_DisplayWatch`, ...) are declared at run
+//! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
+//! `SDL_LifecycleObserver`, `SDL_DisplayWatch`, ...) are declared at run
 //! time here, their methods implemented in Rust (see
 //! [`crate::core::apple::objc`]), as the Cocoa driver's are.
 //!
 //! The driver only starts in an app: on the main thread of a process whose
-//! `UIApplicationMain()` runs. Note: upstream
+//! `UIApplicationMain()` runs ([`crate::app::run_app`]). Note: upstream
 //! never runs outside `UIApplicationMain()`; here a program that isn't an
 //! app (a test program run as a plain process of a simulated device)
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: the app delegate, windows and their views and view
-//! controllers, so no window can be made yet, the fullscreen display
-//! modes and usable bounds, touches, the keyboard (`GCKeyboard`, the
-//! on-screen one), the mouse (`GCMouse`), pens, the clipboard, message
-//! boxes, OpenGL ES, Metal views and Vulkan.
+//! Not translated yet: windows and their views and view controllers, so
+//! no window can be made yet (and the delegate's `window` is always nil),
+//! the fullscreen display modes and usable bounds, touches, the keyboard
+//! (`GCKeyboard`, the on-screen one), the mouse (`GCMouse`), pens, the
+//! clipboard, message boxes, OpenGL ES, Metal views and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
 #![allow(non_upper_case_globals, non_snake_case)] // (the SDK's names are kept)
 
+pub(crate) mod appdelegate;
 pub(crate) mod events;
 pub(crate) mod modes;
 pub(crate) mod sys;
@@ -116,6 +119,17 @@ fn suspend_screen_saver(suspend: bool) -> Result<()> {
     Ok(())
 }
 
+/// Translation of `UIKit_IsSystemVersionAtLeast()`.
+pub(crate) fn is_system_version_at_least(version: f64) -> bool {
+    // SAFETY: UIDevice's systemVersion, an NSString.
+    unsafe {
+        let system_version: Id =
+            msg_send![crate::core::apple::uikit::current_device(), systemVersion];
+        let value: f64 = msg_send![system_version, doubleValue];
+        value >= version
+    }
+}
+
 /// The system theme, from the main screen's traits. Translation of
 /// `UIKit_GetSystemTheme()`.
 pub(crate) fn get_system_theme() -> SystemTheme {
@@ -200,6 +214,12 @@ pub(crate) fn get_active_window_scene() -> Id {
 
     crate::core::apple::objc::NIL
 }
+
+/// Make the focused window's view controller update its home indicator
+/// and the screen edges deferring system gestures. Translation of
+/// `UIKit_ForceUpdateHomeIndicator()`: windows (and their view
+/// controllers) aren't translated yet, so there's none to update.
+pub(crate) fn force_update_home_indicator() {}
 
 impl VideoDriver for UIKitVideo {
     fn caps(&self) -> DeviceCaps {
