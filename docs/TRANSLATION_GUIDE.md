@@ -162,6 +162,18 @@ they are used (there is no build script to make aliases):
 * The frameworks are linked as upstream links them, but for those a
   system the program may start on can lack (GameController and
   CoreHaptics, UniformTypeIdentifiers), which are loaded at run time.
+* `SDL_RunApp()` is `UIApplicationMain()`, which never returns: the main
+  function, a closure on `run_app()`'s frame, is reached through a
+  pointer in a thread-local variable, so it needs no `'static` bound. As
+  upstream, the app keeps running when it returns (the main callbacks
+  rely on that), and the process ends with `exit()`. The UIKit classes
+  are declared at run time under upstream's names, as the Cocoa driver's
+  are; their methods are `extern "C"`, so a panic in one (the main
+  function included) aborts. The UIKit driver only starts in an app, on
+  its main thread (`Note`): a program run as a plain process of a
+  simulated device gets the next driver. Upstream's `@try` around
+  loading the launch storyboard or nib becomes a check that the bundle
+  has it (`Note (upstream)`): Objective-C exceptions can't be caught.
 
 ## Testing
 
