@@ -205,6 +205,18 @@ they are used (there is no build script to make aliases):
   loaded at run time. When the text field can't become the first
   responder, starting text input fails with an error of its own
   (`Note`: upstream fails without one).
+* The clipboard is the general `UIPasteboard`'s text (the driver has
+  upstream's `SetClipboardText`, `GetClipboardText` and
+  `HasClipboardText`, not the data entry points, so the clipboard front
+  end gives the pasteboard the text among the app's data and keeps the
+  rest to the app); `SDL_UIKitVideoData` is the driver's `VideoData`,
+  whose notification block (`UIPasteboardChangedNotification`) holds an
+  `Arc` of it. A message box is upstream's `UIAlertController`, its
+  actions' handlers Rust closures in blocks, run in a nested run loop on
+  the main thread (`SDL_RunOnMainThread()`, waiting, from another one);
+  the bootstrap's message box, as the driver, only shows one in an app,
+  on its main thread (`Note`), and fails with upstream's "Could not show
+  message box." elsewhere.
 
 ## Testing
 
