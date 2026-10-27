@@ -614,18 +614,21 @@ fn touch_mouse_events_changed(hint: Option<&str>) {
     with_mouse(|mouse| mouse.touch_mouse_events = hints::string_to_bool(hint, true));
 }
 
+/// `SDL_HINT_MOUSE_TOUCH_EVENTS`' default: on for Android, and
+/// SDL_PLATFORM_IOS but not tvOS (with the mouse's touch device, "mouse_input",
+/// there from the start).
+pub(crate) const MOUSE_TOUCH_EVENTS_DEFAULT: bool = cfg!(any(
+    target_os = "android",
+    all(
+        target_vendor = "apple",
+        not(target_os = "macos"),
+        not(target_os = "tvos")
+    )
+));
+
 fn mouse_touch_events_changed(hint: Option<&str>) {
-    // (Android, and SDL_PLATFORM_IOS but not tvOS)
-    let default_value = cfg!(any(
-        target_os = "android",
-        all(
-            target_vendor = "apple",
-            not(target_os = "macos"),
-            not(target_os = "tvos")
-        )
-    ));
     let (add, del) = with_mouse(|mouse| {
-        mouse.mouse_touch_events = hints::string_to_bool(hint, default_value);
+        mouse.mouse_touch_events = hints::string_to_bool(hint, MOUSE_TOUCH_EVENTS_DEFAULT);
         if mouse.mouse_touch_events {
             if !mouse.added_mouse_touch_device {
                 mouse.added_mouse_touch_device = true;
@@ -2434,7 +2437,16 @@ mod tests {
             assert_eq!(mouse_name(4).unwrap(), "Trackball");
             assert_eq!(mouse_name(GLOBAL_MOUSE_ID).unwrap(), "Mouse");
             assert_eq!(mouse_name(PEN_MOUSE_ID).unwrap(), "Pen");
-            assert_eq!(mouse_name(TOUCH_MOUSE_ID).unwrap(), "Touch");
+            // (the first touch device's name: the mouse's own, where it's
+            // there from the start)
+            assert_eq!(
+                mouse_name(TOUCH_MOUSE_ID).unwrap(),
+                if MOUSE_TOUCH_EVENTS_DEFAULT {
+                    "mouse_input"
+                } else {
+                    "Touch"
+                }
+            );
             assert_eq!(mouse_name(9).unwrap_err().message(), "Mouse 9 not found");
             remove_mouse(3);
             assert_eq!(mice(), vec![4]);
@@ -2630,12 +2642,15 @@ mod tests {
     fn hints_touch_emulation() {
         with_video(&[1], |_| {
             pre_init_mouse().unwrap();
-            assert!(!super::super::touch::touch_devices()
-                .contains(&super::super::touch::MOUSE_TOUCH_ID));
-            hints::set(hints::MOUSE_TOUCH_EVENTS, "1").unwrap();
-            assert!(
+            let mouse_touch = || {
                 super::super::touch::touch_devices().contains(&super::super::touch::MOUSE_TOUCH_ID)
-            );
+            };
+            // (there from the start where the hint's default is on)
+            assert_eq!(mouse_touch(), MOUSE_TOUCH_EVENTS_DEFAULT);
+            hints::set(hints::MOUSE_TOUCH_EVENTS, "0").unwrap();
+            assert!(!mouse_touch());
+            hints::set(hints::MOUSE_TOUCH_EVENTS, "1").unwrap();
+            assert!(mouse_touch());
             drain();
             send_mouse_motion(
                 Duration::ZERO,
@@ -2657,8 +2672,7 @@ mod tests {
                 false,
             );
             hints::reset(hints::MOUSE_TOUCH_EVENTS);
-            assert!(!super::super::touch::touch_devices()
-                .contains(&super::super::touch::MOUSE_TOUCH_ID));
+            assert_eq!(mouse_touch(), MOUSE_TOUCH_EVENTS_DEFAULT);
 
             hints::set("SDL_MOUSE_INTEGER_MODE", "1").unwrap();
             drain();

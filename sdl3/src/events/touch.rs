@@ -539,6 +539,9 @@ mod tests {
     #[test]
     fn devices_and_fingers() {
         with_video(&[1], |_| {
+            // (without the mouse's touch device, which UIKit's and Android's
+            // default adds: mouse::tests checks that)
+            hints::set(hints::MOUSE_TOUCH_EVENTS, "0").unwrap();
             mouse::pre_init_mouse().unwrap();
             assert!(!touch_devices_available());
             assert_eq!(add_touch(7, TouchDeviceType::Direct, "screen"), 0);
@@ -684,6 +687,7 @@ mod tests {
             quit_touch();
             assert!(!touch_devices_available());
             mouse::quit_mouse();
+            hints::reset(hints::MOUSE_TOUCH_EVENTS);
         });
     }
 }

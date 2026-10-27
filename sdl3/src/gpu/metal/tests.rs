@@ -139,8 +139,12 @@ fn helpers() {
     assert!(is_valid_metal_library(b"MTLB...."));
     assert!(!is_valid_metal_library(b"MTL"));
     assert!(!is_valid_metal_library(b"\x03\x02\x23\x07"));
-    assert!(available!(macos(10, 15)));
-    assert!(!available!(macos(999, 0)));
+    assert!(available!(macos(10, 15), ios(13, 0)));
+    // (a platform it doesn't name passes)
+    #[cfg(target_os = "macos")]
+    assert!(!available!(macos(999, 0)) && available!(ios(999, 0)));
+    #[cfg(target_os = "ios")]
+    assert!(!available!(ios(999, 0)) && available!(macos(999, 0)));
 }
 
 #[test]

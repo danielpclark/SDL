@@ -1557,10 +1557,17 @@ fn saving_through_files_and_types() {
     let mut surface = crate::load_io(&mut IoStream::from_const_mem(image("sample.png"))).unwrap();
     let (w, h) = (surface.width(), surface.height());
 
-    for ext in [
+    for (i, ext) in [
         "bmp", "png", "tga", "jpg", "jpeg", "ico", "cur", "gif", "webp", "avif", "BMP",
-    ] {
-        let path = tmp.join(format!("out.{ext}"));
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        // (each its own name, not just its own case: the iOS Simulator
+        // keeps a case-sensitive view of the host's case-insensitive
+        // volume, where out.BMP doesn't exist next to out.bmp but can't
+        // be made either, EEXIST)
+        let path = tmp.join(format!("out{i}.{ext}"));
         crate::save(&mut surface, &path).unwrap();
         let back = crate::load(&path).unwrap();
         assert_eq!((back.width(), back.height()), (w, h), "{ext}");
