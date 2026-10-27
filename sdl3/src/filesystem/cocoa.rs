@@ -6,8 +6,9 @@
 //! The Apple `SDL_SYS_*` path lookups: the main bundle (`NSBundle`) for the
 //! base path and the executable's name, and
 //! `NSSearchPathForDirectoriesInDomains()` for the pref path and the user
-//! folders. The current directory and the file operations are POSIX, as
-//! upstream's `SDL_FSOPS_POSIX`.
+//! folders (tvOS, which has no persistent local storage, keeps the pref
+//! path in its caches and has no user folders). The current directory and
+//! the file operations are POSIX, as upstream's `SDL_FSOPS_POSIX`.
 
 use std::cmp::Ordering;
 use std::ffi::{c_char, CStr};
@@ -16,6 +17,7 @@ use super::Folder;
 use crate::core::apple::foundation::{ns_array_count, ns_array_get, ns_string, string_from_ns};
 use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id, NSUInteger, YES};
 use crate::error::{Error, Result};
+#[cfg(not(target_os = "tvos"))]
 use crate::stdlib::getenv;
 use crate::stdlib::string::strcasecmp;
 
@@ -24,13 +26,23 @@ type NSSearchPathDirectory = NSUInteger;
 /// `NSSearchPathDomainMask`.
 type NSSearchPathDomainMask = NSUInteger;
 
+#[cfg(not(target_os = "tvos"))]
 const NS_DOCUMENT_DIRECTORY: NSSearchPathDirectory = 9;
+#[cfg(not(target_os = "tvos"))]
 const NS_DESKTOP_DIRECTORY: NSSearchPathDirectory = 12;
+#[cfg(not(target_os = "tvos"))]
 const NS_APPLICATION_SUPPORT_DIRECTORY: NSSearchPathDirectory = 14;
+#[cfg(target_os = "tvos")]
+const NS_CACHES_DIRECTORY: NSSearchPathDirectory = 13;
+#[cfg(not(target_os = "tvos"))]
 const NS_DOWNLOADS_DIRECTORY: NSSearchPathDirectory = 15;
+#[cfg(not(target_os = "tvos"))]
 const NS_MOVIES_DIRECTORY: NSSearchPathDirectory = 17;
+#[cfg(not(target_os = "tvos"))]
 const NS_MUSIC_DIRECTORY: NSSearchPathDirectory = 18;
+#[cfg(not(target_os = "tvos"))]
 const NS_PICTURES_DIRECTORY: NSSearchPathDirectory = 19;
+#[cfg(not(target_os = "tvos"))]
 const NS_SHARED_PUBLIC_DIRECTORY: NSSearchPathDirectory = 21;
 const NS_USER_DOMAIN_MASK: NSSearchPathDomainMask = 1;
 
@@ -155,16 +167,40 @@ pub(super) fn get_exe_name() -> Result<String> {
     })
 }
 
-/// Translation of `SDL_SYS_GetPrefPath()` (Cocoa, macOS: tvOS's caches
-/// directory isn't translated).
+/// Translation of `SDL_SYS_GetPrefPath()` (Cocoa).
 pub(super) fn get_pref_path(org: &str, app: &str) -> Result<String> {
     autoreleasepool(|| {
+        #[cfg(not(target_os = "tvos"))]
+        let dir = NS_APPLICATION_SUPPORT_DIRECTORY;
+        #[cfg(target_os = "tvos")]
+        let dir = {
+            /* tvOS does not have persistent local storage!
+             * The only place on-device where we can store data is
+             * a cache directory that the OS can empty at any time.
+             *
+             * It's therefore very likely that save data will be erased
+             * between sessions. If you want your app's save data to
+             * actually stick around, you'll need to use iCloud storage.
+             */
+            static SHOWN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+            if !SHOWN.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                crate::critical!(
+                    crate::log::Category::System,
+                    "tvOS does not have persistent local storage! Use iCloud storage if you want your data to persist between sessions.",
+                );
+            }
+
+            NS_CACHES_DIRECTORY
+        };
+
         // we only want the first item in the list.
-        let Some(Some(base)) = first_search_path(NS_APPLICATION_SUPPORT_DIRECTORY) else {
+        let Some(Some(base)) = first_search_path(dir) else {
             // (upstream returns NULL without setting an error)
-            return Err(Error::new(
-                "Couldn't find the Application Support directory",
-            ));
+            return Err(Error::new(if cfg!(target_os = "tvos") {
+                "Couldn't find the Caches directory"
+            } else {
+                "Couldn't find the Application Support directory"
+            }));
         };
         let result = if !org.is_empty() {
             format!("{base}/{org}/{app}/")
@@ -177,7 +213,14 @@ pub(super) fn get_pref_path(org: &str, app: &str) -> Result<String> {
     })
 }
 
+/// Translation of `SDL_SYS_GetUserFolder()` (Cocoa, tvOS).
+#[cfg(target_os = "tvos")]
+pub(super) fn get_user_folder(_folder: Folder) -> Result<String> {
+    Err(Error::new("tvOS does not have persistent storage"))
+}
+
 /// Translation of `SDL_SYS_GetUserFolder()` (Cocoa).
+#[cfg(not(target_os = "tvos"))]
 pub(super) fn get_user_folder(folder: Folder) -> Result<String> {
     autoreleasepool(|| {
         let dir = match folder {
@@ -212,6 +255,7 @@ pub(super) fn get_user_folder(folder: Folder) -> Result<String> {
 }
 
 /// The `append_slash:` label: `"%s/"`, then `mkdir()` each parent.
+#[cfg(not(target_os = "tvos"))]
 fn append_slash(base: &str) -> String {
     let result = format!("{base}/");
     mkdir_parents(&result);
@@ -221,6 +265,7 @@ fn append_slash(base: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::getenv;
 
     #[test]
     fn cocoa_paths() {
@@ -244,6 +289,20 @@ mod tests {
             "{name}"
         );
 
+        // (tvOS has none)
+        #[cfg(target_os = "tvos")]
+        for folder in [Folder::Home, Folder::Documents, Folder::SavedGames] {
+            assert_eq!(
+                get_user_folder(folder).unwrap_err().message(),
+                "tvOS does not have persistent storage"
+            );
+        }
+        #[cfg(not(target_os = "tvos"))]
+        user_folders();
+    }
+
+    #[cfg(not(target_os = "tvos"))]
+    fn user_folders() {
         let home = getenv("HOME").unwrap();
         assert_eq!(get_user_folder(Folder::Home).unwrap(), format!("{home}/"));
         assert_eq!(
@@ -271,15 +330,18 @@ mod tests {
     #[test]
     fn cocoa_pref_path() {
         let home = getenv("HOME").unwrap();
+        // (tvOS keeps it in the caches)
+        let base = if cfg!(target_os = "tvos") {
+            format!("{home}/Library/Caches")
+        } else {
+            format!("{home}/Library/Application Support")
+        };
         let org = format!("SDL3 Test Org {}", std::process::id());
         let pref = get_pref_path(&org, "Test App").unwrap();
-        assert_eq!(
-            pref,
-            format!("{home}/Library/Application Support/{org}/Test App/")
-        );
+        assert_eq!(pref, format!("{base}/{org}/Test App/"));
         assert!(std::path::Path::new(&pref).is_dir());
         let pref2 = get_pref_path("", &org).unwrap();
-        assert_eq!(pref2, format!("{home}/Library/Application Support/{org}/"));
+        assert_eq!(pref2, format!("{base}/{org}/"));
         std::fs::remove_dir(&pref).unwrap();
         std::fs::remove_dir(&pref2).unwrap();
     }
