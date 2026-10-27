@@ -800,7 +800,31 @@ device's log for the program. `tools/ios_run.py --bundle PROGRAM OUT.app`
 writes the same bundle for a program of your own (`SDL3_IOS_BUNDLE_ID` and
 `SDL3_IOS_CODESIGN` set its identifier and signing identity; a device
 needs a real identity and a provisioning profile, which the runner doesn't
-handle: it doesn't run programs built for devices).
+handle: it doesn't run programs built for devices). The bundle registers
+its identifier as a URL scheme the app handles, so that an app can open
+its own URLs. A running app can ask the runner for what only the host can
+do with a line `sdl3-ios-runner: request WHAT`: `background` (the runner
+launches the Settings app, which sends the app to the background) and
+`foreground` (it launches the app again without terminating it, which
+brings the same process back); the app waits for its application events
+itself.
+
+The UIKit test programs (`sdl3/tests/uikit_*.rs`) are such apps; they
+share `sdl3/tests/uikit_support/`, which prints the exit line and has the
+few Objective-C messages they send themselves. Their bodies run under
+`catch_unwind`, since a panic in a callback from Objective-C (the main
+function `run_app()` calls, a main callback) aborts with no exit line.
+`uikit_main` runs `run_app()` (`UIApplicationMain()` with SDL's app
+delegate) and checks the delegate, the UIKit video driver and its
+display, the application events of UIKit's notifications (posted
+in-process, and a real trip to the background and back), the event pump
+turned off and on, drop events for URLs (the app's own, opened with
+`open_url()`), and that the app keeps running when its main function
+returns, as upstream's does; `uikit_callbacks` runs the main callbacks,
+which a display link iterates, and checks their order and that the
+process exits after quit. Both compare a trace with upstream's C SDL's,
+from the same programs in C run the same way on the CI's simulator (an
+iPhone 16 with iOS 18.5).
 
 The simulator has no GPU the GPU API can use: its Metal device supports
 only the Apple2 and Common1 families, below the Apple3 upstream's Metal
@@ -809,9 +833,9 @@ SDL_GPU Metal", as upstream's C says there too), and there's no MoltenVK,
 so the GPU API's Metal tests skip `metal`, and the Vulkan renderer's, the
 GPU API's Vulkan backend's and the GPU renderer's tests skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
-driver and the iOS halves of CoreAudio, MFi, the Metal renderer and the
-camera aren't translated yet, so the tests use the offscreen and dummy
-drivers there, as elsewhere.
+driver only starts in an app, so the spawned programs use the offscreen
+and dummy drivers there, as elsewhere; its windows, and the iOS halves of
+CoreAudio, MFi, the Metal renderer and the camera, aren't translated yet.
 
 ## CI
 

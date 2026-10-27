@@ -144,7 +144,7 @@ A **direct, pure-Rust translation of [Simple DirectMedia Layer](https://github.c
 | `locale/SDL_locale.c`, `unix/`, `windows/`, `macos/`, `emscripten/` | `sdl3::locale` | `Locale` list, the CSV parser (byte-exact with upstream, checked against its C), `LANG`/`LANGUAGE` on Unix, `GetUserPreferredUILanguages()` (or the user locale) on Windows, `NSLocale`'s preferred languages on macOS, `navigator.languages` on Emscripten |
 | `misc/SDL_url.c`, `unix/`, `windows/`, `macos/`, `ios/`, `emscripten/` | `sdl3::misc` | `open_url` via the D-Bus OpenURI portal, else `xdg-open`; `ShellExecuteW()` on Windows; `LSOpenCFURLRef()` on macOS; the app's `UIApplication` (`openURL:options:completionHandler:`) on iOS; `window.open()` on Emscripten |
 | `process/SDL_process.c`, `posix/`, `windows/` | `sdl3::process` | `Process`/`ProcessBuilder` (arguments, environment, working directory, redirections, background), pipes with non-blocking output, `kill`, `wait`, over `std::process`; on Windows `CreateProcessW()` (the quoted command line or `SDL_PROP_PROCESS_CREATE_CMDLINE_STRING`, the UTF-16 environment block, non-blocking anonymous pipes with the Win32 handle stream's buffering, `WM_CLOSE`/console break/`TerminateProcess()`), tested under Wine by re-running the test binary as the child |
-| `main/SDL_main_callbacks.c`, `generic/SDL_sysmain_callbacks.c`, `SDL_runapp.c`, `emscripten/` | `sdl3::app` | the main-callbacks driver (`AppCallbacks` trait: init/iterate/event/quit), the callback-rate hint, `run_app`; on Emscripten the main callbacks on `emscripten_set_main_loop()` (the rate hint, `waitevent`; `enter_app_main_callbacks()` returns at once and the main loop's end ends the program), `run_app()`'s `SDL_*` hints from the page's URL and its IndexedDB storage (the `emscripten-persistent-path` feature), checked under node against upstream's C traces |
+| `main/SDL_main_callbacks.c`, `generic/SDL_sysmain_callbacks.c`, `SDL_runapp.c`, `emscripten/`, `ios/` | `sdl3::app` | the main-callbacks driver (`AppCallbacks` trait: init/iterate/event/quit), the callback-rate hint, `run_app`; on Emscripten the main callbacks on `emscripten_set_main_loop()` (the rate hint, `waitevent`; `enter_app_main_callbacks()` returns at once and the main loop's end ends the program), `run_app()`'s `SDL_*` hints from the page's URL and its IndexedDB storage (the `emscripten-persistent-path` feature), checked under node against upstream's C traces; on iOS `run_app()` through `UIApplicationMain()` and the UIKit driver's app delegate, and the main callbacks on a `CADisplayLink` (`exit()` when they end), checked on the iOS Simulator against upstream's C traces |
 | `events/SDL_events.c`, `SDL_eventwatch.c`, `SDL_events.h` | `sdl3::events` (`queue`) | `Event` enum (one variant per `SDL_Event` member, owned `String`s instead of temporary memory), `EventType` consts, `push`/`poll`/`wait`/`peek`/`flush`, filter + RAII watchers, enable/disable bitset, user event registration, poll sentinel, `run_on_main_thread`, event logging hint |
 | `events/SDL_keyboard.c`, `SDL_keymap.c` | `sdl3::events::keyboard` | `Scancode`/`Keycode`/`Keymod` with every constant and name table, `Keymap` with shift-level lookup and the US QWERTY defaults, key state/modifiers/repeat/auto-release, focus, text input/editing/candidates, keycode-options hint |
 | `events/SDL_mouse.c` | `sdl3::events::mouse` | devices, focus and position tracking, relative/absolute motion with scaling and integer mode, clicks and double-click counting, wheel accumulation, relative mode, capture, warping (incl. warp emulation), cursors (mono bitmaps, color surfaces with hotspot properties, animated cursors animated by the mouse code when the backend can't), cursor state; all 14 mouse hints |
@@ -193,8 +193,9 @@ drivers listed above), the Windows ones, the IOKit and MFi ones and
 Emscripten's, the hidapi backends other than Linux hidraw, Windows and
 macOS, the sensor drivers other than the Windows and Emscripten ones; the
 threaded (pthreads) Emscripten build; the iOS, tvOS and visionOS parts of
-the Apple backends (and the UIKit video driver) but power, URLs, the file
-system's and the form factor; the SVE2, LSX and
+the Apple backends but power, URLs, the file system's, the form factor,
+the main function and the main callbacks, and the UIKit video driver's
+app delegate, lifecycle events, event pump and displays; the SVE2, LSX and
 AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.
@@ -223,8 +224,10 @@ node and in headless Chrome: see [below](#emscripten).
 iOS (`aarch64-apple-ios`, `aarch64-apple-ios-sim`, `x86_64-apple-ios`)
 builds, and on a Mac with Xcode the tests run on the iOS Simulator, through
 `tools/ios_run.py` (`.cargo/config.toml`'s runner, which also boots the
-simulator); of the UIKit backends power, URLs, the file system's and the
-form factor are translated, the UIKit video driver and the others not yet:
+simulator); of the UIKit backends power, URLs, the file system's, the
+form factor, `run_app()` and the main callbacks are translated, and of the
+UIKit video driver its app delegate, the application's lifecycle events,
+the event pump and the displays, not yet its windows and the others:
 
 ```sh
 rustup target add aarch64-apple-ios-sim
