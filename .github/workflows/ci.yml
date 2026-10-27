@@ -385,6 +385,8 @@ jobs:
     timeout-minutes: 90
     env:
       XCODE_VERSION: "16.4"
+      # idb's Python client (the companion is Homebrew's current formula)
+      FB_IDB_VERSION: "1.7.7"
       SDL3_IOS_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.iPhone-16
       SDL3_IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-18-5
       RUST_TEST_NOCAPTURE: 1
@@ -396,6 +398,26 @@ jobs:
           sudo xcode-select -s "/Applications/Xcode_$XCODE_VERSION.app"
           xcodebuild -version
           xcrun simctl list runtimes
+      # idb (fb-idb's client and its idb_companion), which the runner's
+      # tap and swipe requests touch the simulator's screen with (the
+      # UIKit input program's real touches). The companion's Homebrew
+      # formula only installs with an Xcode 26 selected, so one is for
+      # that (before the simulator boots), then the pinned one again.
+      - name: Install idb
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          xcode26=$(ls -d /Applications/Xcode_26*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$xcode26"
+          brew tap facebook/fb
+          brew install facebook/fb/idb-companion
+          sudo xcode-select -s "/Applications/Xcode_$XCODE_VERSION.app"
+          xcodebuild -version
+          idb_companion --version
+          python3 -m venv "$RUNNER_TEMP/idb"
+          "$RUNNER_TEMP/idb/bin/pip" install --quiet "fb-idb==$FB_IDB_VERSION"
+          echo "SDL3_IOS_IDB=$RUNNER_TEMP/idb/bin/idb" >> "$GITHUB_ENV"
       # (rustup is on the runner image)
       - name: Install Rust
         run: |
@@ -435,7 +457,7 @@ jobs:
       # The skips by design: the simulator's Metal device is below what the
       # GPU API's Metal backend asks for (metal), there's no MoltenVK
       # (vulkan), and the offscreen driver has no EGL on Apple platforms
-      # (egl). Any other skip fails the job, in place of an
+      # (egl). Any other skip (idb's too) fails the job, in place of an
       # SDL3_TEST_REQUIRE list.
       - name: Check the skips
         if: ${{ !cancelled() && !inputs.ios_test_args }}
@@ -470,6 +492,11 @@ jobs:
           grep -E -B30 "process didn't exit" "$RUNNER_TEMP/test.log" | cut -c1-400 | head -1000 || true
           xcrun simctl spawn "$SDL3_IOS_SIMULATOR" log show --last 30m --style compact \
             --predicate 'processImagePath CONTAINS "/target/" OR processImagePath CONTAINS "/Containers/Bundle/Application/"' | tail -300 || true
+      # (the runner stops the companions idb started; any left are
+      # stopped here, so that the job doesn't end with them running)
+      - name: Stop idb's companions
+        if: always()
+        run: pkill -x idb_companion || true
 
   doc:
     name: rustdoc

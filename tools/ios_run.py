@@ -48,14 +48,26 @@ A program runs in one of two ways:
   about (LSApplicationQueriesSchemes), so that it can open its own URLs.
 
   A running app can ask for what only the host can do, with a line
-  `sdl3-ios-runner: request WHAT` (copied, then acted on):
+  `sdl3-ios-runner: request WHAT [ARGUMENTS]` (copied, then acted on):
     background  launch the Settings app (com.apple.Preferences), which
                 sends this one to the background
     foreground  launch this app again (without terminating it), which
                 brings it back to the foreground, the same process (the
                 runner does that itself after a minute: an app in the
                 background is soon suspended)
-  The app waits for what follows (its application events) itself.
+    tap X Y     a finger taps the screen at (X, Y), in points from its
+                top left corner (`idb ui tap`)
+    swipe X1 Y1 X2 Y2 [SECONDS]
+                a finger moves on the screen from (X1, Y1) to (X2, Y2)
+                (`idb ui swipe`, in SECONDS, by default idb's)
+  The app waits for what follows (its application events, its touches)
+  itself. The touches need idb (fb-idb, Meta's iOS development bridge: the
+  `idb` client, a Python program, and its `idb_companion`, which drives
+  the simulator's input): SDL3_IOS_IDB's command (0: none), else `idb` on
+  PATH, with `idb_companion` on PATH. The app learns whether the runner
+  has them in SDL3_IOS_RUNNER_IDB: `1`, or why not (and skips what needs
+  them). After an app that touched the screen, `idb kill` stops the
+  companions idb started.
 
 The simulator: SDL3_IOS_SIMULATOR's (a UDID or a device name), else a
 booted iPhone or iPad simulator (one of SDL3_IOS_DEVICE_TYPE on
@@ -84,6 +96,8 @@ Environment:
   SDL3_IOS_BUNDLE_ID    the bundle identifier (default
                         org.libsdl.sdl3-rust.NAME, NAME the program's)
   SDL3_IOS_VERBOSE      1: the simctl commands, with their times, on stderr
+  SDL3_IOS_IDB          the idb command for the `tap` and `swipe` requests
+                        (default `idb` on PATH; 0: none)
 
 A program built for devices (aarch64-apple-ios) can't run on the
 simulator: `--bundle` writes its bundle, which needs signing for a device.
@@ -106,7 +120,8 @@ PROGRAM = os.path.basename(__file__)
 VERBOSE = os.environ.get("SDL3_IOS_VERBOSE", "") not in ("", "0")
 
 SENTINEL = re.compile(r"sdl3-ios-runner: exit (-?\d+)")
-REQUEST = re.compile(r"sdl3-ios-runner: request (\S+)")
+REQUEST = re.compile(r"sdl3-ios-runner: request (\S+)(?: (.*))?")
+NUMBER = re.compile(r"-?\d+(\.\d+)?")
 
 # The variables a spawned or launched program gets (as SIMCTL_CHILD_NAME).
 FORWARD_PREFIXES = ("SDL3_", "SDL_", "RUST_")
@@ -495,6 +510,20 @@ def child_environment():
     return env
 
 
+def find_idb():
+    """The idb command for the touch requests and None, or None and why
+    there's none."""
+    setting = os.environ.get("SDL3_IOS_IDB", "")
+    if setting == "0":
+        return None, "SDL3_IOS_IDB is 0"
+    command = shutil.which(setting or "idb")
+    if not command:
+        return None, f"no idb (fb-idb): {setting!r} isn't a command" if setting else "no idb (fb-idb) on PATH"
+    if not shutil.which("idb_companion"):
+        return None, "no idb_companion on PATH"
+    return command, None
+
+
 def check_runnable(program, macho):
     if macho.is_simulator():
         return
@@ -557,13 +586,19 @@ def launch(udid, program, args, macho):
         write_bundle(program, macho, app, identifier)
         executable = re.sub(r"[^A-Za-z0-9_.-]", "-", name)
         xcrun_simctl("install", udid, app, timeout=600)
+        idb, why = find_idb()
+        used_idb = []
         try:
             for word in macho.words:
                 if word.startswith("privacy="):
                     for service in filter(None, word[len("privacy="):].split(",")):
                         xcrun_simctl("privacy", udid, "grant", service, identifier)
-            return run_app(udid, identifier, executable, args, timeout, temp)
+            return run_app(udid, identifier, executable, args, timeout, temp, (idb, why, used_idb))
         finally:
+            if used_idb:
+                # (the companions idb started for the device: the next
+                # request starts one again)
+                run_idb(idb, "kill")
             xcrun_simctl("terminate", udid, identifier, check=False, timeout=60)
             xcrun_simctl("uninstall", udid, identifier, check=False, timeout=120)
 
@@ -583,8 +618,8 @@ def alive(pid):
 class Output:
     """A file the app writes, copied to `stream` as it grows: by lines, the
     `sdl3-ios-runner: exit N` line kept out (and noted) when `sentinel`,
-    and the `sdl3-ios-runner: request WHAT` lines passed to `on_request`
-    (after they're copied)."""
+    and the `sdl3-ios-runner: request WHAT [ARGUMENTS]` lines passed to
+    `on_request` (after they're copied)."""
 
     def __init__(self, path, stream, sentinel, on_request=None):
         self.path = path
@@ -620,7 +655,7 @@ class Output:
             request = REQUEST.fullmatch(text) if self.on_request else None
             if request:
                 self.stream.flush()
-                self.on_request(request.group(1))
+                self.on_request(request.group(1), request.group(2))
         self.stream.flush()
 
     def close(self):
@@ -628,7 +663,31 @@ class Output:
             self.file.close()
 
 
-def run_app(udid, identifier, executable, args, timeout, temp):
+def run_idb(idb, *args):
+    """Run `idb ARGS...` (and note how it failed): whether it succeeded."""
+    argv = [idb, *args]
+    start = time.monotonic()
+    try:
+        result = subprocess.run(
+            argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        note(f"{shlex.join(argv)} didn't finish in 120 s")
+        return False
+    except OSError as e:
+        note(f"can't run {idb}: {e}")
+        return False
+    if VERBOSE:
+        note(f"{shlex.join(argv)} -> {result.returncode} in {time.monotonic() - start:.2f} s")
+        for text in (result.stdout + result.stderr).splitlines()[-200:]:
+            print(f"  | {text}", file=sys.stderr)
+    if result.returncode != 0:
+        note(f"{shlex.join(argv)} failed ({result.returncode}): {(result.stderr or result.stdout).strip()}")
+        return False
+    return True
+
+
+def run_app(udid, identifier, executable, args, timeout, temp, idb):
     # The app's stdout and stderr go to files, which launchd opens for it
     # before it starts, so that nothing it prints is lost (through `simctl
     # launch --console-pty` a program that is done at once now and then
@@ -641,7 +700,7 @@ def run_app(udid, identifier, executable, args, timeout, temp):
     else:
         temp = tempfile.mkdtemp(prefix="sdl3-ios-run-", dir=temp)
     try:
-        return run_app_in(udid, identifier, executable, args, timeout, temp)
+        return run_app_in(udid, identifier, executable, args, timeout, temp, idb)
     finally:
         shutil.rmtree(temp, ignore_errors=True)
 
@@ -655,14 +714,20 @@ BACKGROUND_LIMIT = 60
 class Requests:
     """What a running app asks for (`sdl3-ios-runner: request WHAT`)."""
 
-    def __init__(self, udid, identifier, pid):
+    def __init__(self, udid, identifier, pid, idb):
         self.udid = udid
         self.identifier = identifier
         self.pid = pid
         self.background_since = None
+        # (the idb command, why there's none, and the list told once idb
+        # touched the screen)
+        self.idb, self.no_idb, self.used_idb = idb
 
-    def handle(self, what):
-        if what == "background":
+    def handle(self, what, args=""):
+        words = (args or "").split()
+        if what in ("tap", "swipe"):
+            self.touch(what, words)
+        elif what == "background":
             # (the Settings app comes to the foreground, launched anew:
             # this one resigns being active, then enters the background a
             # few seconds later)
@@ -677,6 +742,22 @@ class Requests:
             self.foreground()
         else:
             note(f"unknown request {what!r} (ignored)")
+
+    def touch(self, what, words):
+        counts = {"tap": (2,), "swipe": (4, 5)}[what]
+        if len(words) not in counts or not all(NUMBER.fullmatch(w) for w in words):
+            note(f"request {what}: bad arguments {' '.join(words)!r} (ignored)")
+            return
+        if not self.idb:
+            note(f"request {what}: ignored, {self.no_idb}")
+            return
+        if what == "tap":
+            argv = ["ui", "tap", "--udid", self.udid, *words]
+        else:
+            duration = ["--duration", words[4]] if len(words) == 5 else []
+            argv = ["ui", "swipe", "--udid", self.udid, *duration, *words[:4]]
+        self.used_idb.append(what)
+        run_idb(self.idb, *argv)
 
     def foreground(self):
         # (the running app, the same process, comes back to the foreground)
@@ -694,18 +775,20 @@ class Requests:
             self.foreground()
 
 
-def run_app_in(udid, identifier, executable, args, timeout, temp):
+def run_app_in(udid, identifier, executable, args, timeout, temp, idb):
     out_path = os.path.join(temp, "stdout.txt")
     err_path = os.path.join(temp, "stderr.txt")
     start = time.monotonic()
+    env = child_environment()
+    env["SIMCTL_CHILD_SDL3_IOS_RUNNER_IDB"] = "1" if idb[0] else idb[1]
     result = xcrun_simctl(
         "launch", "--terminate-running-process", f"--stdout={out_path}", f"--stderr={err_path}",
         udid, identifier, *args,
-        check=False, timeout=600, env=child_environment(),
+        check=False, timeout=600, env=env,
     )
     match = re.search(re.escape(identifier) + r": (\d+)", result.stdout)
     pid = int(match.group(1)) if match else None
-    requests = Requests(udid, identifier, pid)
+    requests = Requests(udid, identifier, pid, idb)
     out = Output(out_path, sys.stdout, True, requests.handle)
     err = Output(err_path, sys.stderr, False)
     timed_out = False
