@@ -180,6 +180,15 @@ they are used (there is no build script to make aliases):
   on the main thread (`Note`), where the display link calls it. As the
   other drivers' pointer properties, `SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER`
   and `SDL_PROP_WINDOW_CREATE_WINDOWSCENE_POINTER` hold numbers.
+* The view's touch handlers enumerate the touches through the set's
+  `objectEnumerator` (as `for ... in` does), and a finger's ID is its
+  `UITouch`'s address, as upstream's. The methods upstream's view calls
+  only from its own handlers (`touchLocation:shouldNormalize:`,
+  `indirectPointerPressed:fromEvent:`, ...) are Rust functions, not
+  methods of the class. The game controllers' mice (`GCMouse`) are
+  GameController's, loaded at run time: without it there's no mouse to
+  follow, and no relative mode (`SDL_GetMouse()->SetRelativeMouseMode`
+  is set only while they're followed, as upstream's).
 
 ## Testing
 
