@@ -210,3 +210,7 @@ harness = false
 [[test]]
 name = "uikit_callbacks"
 harness = false
+
+[[test]]
+name = "uikit_displays"
+harness = false
