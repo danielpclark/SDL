@@ -195,3 +195,10 @@ harness = false
 name = "emscripten_persistent_path"
 harness = false
 required-features = ["emscripten-persistent-path"]
+
+# The iOS Simulator runner's app mode (tools/ios_run.py): a program that
+# runs as an app, in a bundle, and gives its exit status as the UIKit
+# programs will.
+[[test]]
+name = "ios_runner"
+harness = false

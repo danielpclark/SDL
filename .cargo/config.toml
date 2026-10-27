@@ -44,3 +44,20 @@ rustdocflags = [
     "-Clink-arg=-sNODE_HOST_ENV=1",
     "-Clink-arg=-sMAX_WEBGL_VERSION=2",
 ]
+
+# `cargo test --target aarch64-apple-ios-sim` (on a Mac with Xcode and an
+# iOS Simulator runtime) runs the test programs and the doctests on a
+# simulated iPhone through tools/ios_run.py: as processes of the simulated
+# device (`xcrun simctl spawn`), or as apps for the programs that ask for
+# it; the script picks, makes and boots the simulator. See "iOS Simulator"
+# in docs/HARDWARE_TESTING.md. (The same for the x86-64 Simulator of Intel
+# Macs; for the device target the script says it can't run a device's
+# program.)
+[target.aarch64-apple-ios-sim]
+runner = "tools/ios_run.py"
+
+[target.x86_64-apple-ios]
+runner = "tools/ios_run.py"
+
+[target.aarch64-apple-ios]
+runner = "tools/ios_run.py"
