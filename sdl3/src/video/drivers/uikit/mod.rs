@@ -6,7 +6,9 @@
 //! The UIKit video driver (iOS, tvOS, visionOS): the app delegate that
 //! `UIApplicationMain()` runs and that calls the app's main function
 //! ([`appdelegate`]), the lifecycle notifications and the event pump
-//! ([`events`]), and the displays and their modes ([`modes`]).
+//! ([`events`]), the displays and their modes ([`modes`]), and the
+//! windows ([`window`]), with their views ([`view`]) and view controllers
+//! ([`viewcontroller`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -21,11 +23,9 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: windows and their views and view controllers, so
-//! no window can be made yet (and the delegate's `window` is always nil),
-//! touches, the keyboard (`GCKeyboard`, the on-screen one), the mouse
-//! (`GCMouse`), pens, the clipboard, message boxes, OpenGL ES, Metal views
-//! and Vulkan.
+//! Not translated yet: touches, the keyboard (`GCKeyboard`, the on-screen
+//! one), the mouse (`GCMouse`), pens, the clipboard, message boxes, OpenGL
+//! ES, Metal views and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
@@ -35,14 +35,22 @@ pub(crate) mod appdelegate;
 pub(crate) mod events;
 pub(crate) mod modes;
 pub(crate) mod sys;
+pub(crate) mod view;
+pub(crate) mod viewcontroller;
+pub(crate) mod window;
 
 use std::sync::Arc;
 
+use crate::core::apple::foundation::CGRect;
 use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id};
 use crate::core::apple::uikit::shared_application;
 use crate::error::Result;
-use crate::events::DisplayID;
-use crate::video::sysvideo::{DeviceCaps, SystemTheme, VideoBootStrap, VideoDriver};
+use crate::events::{DisplayID, WindowID};
+use crate::properties::Properties;
+use crate::video::sysvideo::{
+    DeviceCaps, FullscreenOp, FullscreenResult, SystemTheme, VideoBootStrap, VideoDriver,
+};
+use crate::video::window::WindowOp;
 use crate::video::{DisplayMode, Rect};
 
 #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
@@ -217,11 +225,164 @@ pub(crate) fn get_active_window_scene() -> Id {
     crate::core::apple::objc::NIL
 }
 
+/// The frame of a window's view: its `UIWindow`'s bounds (the screen's
+/// before it has one), turned to the interface's orientation (or to
+/// landscape for a window that supports no portrait one) when it covers
+/// the screen. Translation of `UIKit_ComputeViewFrame()`.
+#[cfg(not(target_os = "visionos"))]
+pub(crate) fn compute_view_frame(window: WindowID, screen: Id) -> CGRect {
+    let data = window::window_data(window);
+    // SAFETY: UIScreen's and UIWindow's bounds.
+    let screen_bounds: CGRect = unsafe { msg_send![screen, bounds] };
+    #[allow(unused_mut)]
+    let mut frame = screen_bounds;
+
+    /* Use the UIWindow bounds instead of the UIScreen bounds, when possible.
+     * The uiwindow bounds may be smaller than the screen bounds when Split View
+     * is used on an iPad. */
+    if let Some(data) = data.filter(|d| !d.uiwindow().is_null()) {
+        // SAFETY: as above.
+        frame = unsafe { msg_send![data.uiwindow(), bounds] };
+    }
+
+    #[cfg(not(target_os = "tvos"))]
+    {
+        /* iOS 10 seems to have a bug where, in certain conditions, putting the
+         * device to sleep with the a landscape-only app open, re-orienting the
+         * device to portrait, and turning it back on will result in the screen
+         * bounds returning portrait orientation despite the app being in landscape.
+         * This is a workaround until a better solution can be found.
+         * https://bugzilla.libsdl.org/show_bug.cgi?id=3505
+         * https://bugzilla.libsdl.org/show_bug.cgi?id=3465
+         * https://forums.developer.apple.com/thread/65337 */
+
+        let orient = get_interface_orientation();
+
+        let landscape = sys::UIInterfaceOrientationIsLandscape(orient)
+            || (window::get_supported_orientations(window)
+                & (sys::UIInterfaceOrientationMaskPortrait
+                    | sys::UIInterfaceOrientationMaskPortraitUpsideDown))
+                == 0;
+        let fullscreen = screen_bounds == frame;
+
+        /* The orientation flip doesn't make sense when the window is smaller
+         * than the screen (iPad Split View, for example). */
+        if fullscreen && (landscape != (frame.size.width > frame.size.height)) {
+            // (as upstream, through a float)
+            let height = frame.size.width as f32;
+            frame.size.width = frame.size.height;
+            frame.size.height = height as f64;
+        }
+    }
+
+    frame
+}
+
+/// The frame of a window's view on visionOS: the window's size. Translation
+/// of `UIKit_ComputeViewFrame()` (visionOS).
+#[cfg(target_os = "visionos")]
+pub(crate) fn compute_view_frame(window: WindowID) -> CGRect {
+    // View origin is always (0,0) relative to the UIWindow.
+    // window->x/y are screen-level positions (often SDL_WINDOWPOS_UNDEFINED).
+    let (w, h) =
+        crate::video::core::with_window(window, |w| (w.core.w, w.core.h)).unwrap_or_default();
+    CGRect::new(0.0, 0.0, w as f64, h as f64)
+}
+
+/// Let the game controllers' events (or not) reach the UIKit windows of
+/// every window scene. Translation of `UIKit_SetGameControllerInteraction()`,
+/// which the MFi joystick driver calls (its UIKit half isn't translated
+/// yet).
+#[allow(dead_code)] // (used by the MFi joystick driver's UIKit half)
+pub(crate) fn set_game_controller_interaction(enabled: bool) {
+    if crate::core::apple::foundation::available!(ios(13, 0), tvos(13, 0)) {
+        // SAFETY: UIApplication's connected scenes (an NSSet) and the
+        // window scenes' windows (an NSArray).
+        unsafe {
+            let connected: Id = msg_send![shared_application(), connectedScenes];
+            let all: Id = msg_send![connected, allObjects];
+            for scene in crate::core::apple::foundation::ns_array_items(all) {
+                if !crate::core::apple::objc::is_kind_of(scene, class!(UIWindowScene)) {
+                    continue;
+                }
+
+                let window_scene = scene;
+                let windows: Id = msg_send![window_scene, windows];
+                for window in crate::core::apple::foundation::ns_array_items(windows) {
+                    set_view_game_controller_interaction(window, enabled);
+                }
+            }
+        }
+    }
+}
+
+/// Add (or remove) a view's interaction for the game controllers' events
+/// (`GCEventInteraction`, iOS 18 and visionOS 2). Translation of
+/// `UIKit_SetViewGameControllerInteraction()`. Note: GameController is
+/// loaded at run time here (the MFi joystick driver loads it), so without
+/// it there's no interaction to add.
+pub(crate) fn set_view_game_controller_interaction(view: Id, enabled: bool) {
+    #[cfg(any(target_os = "ios", target_os = "visionos"))]
+    if crate::core::apple::foundation::available!(ios(18, 0), visionos(2, 0)) {
+        let interaction_class = class!(GCEventInteraction);
+        if interaction_class.is_null() {
+            return;
+        }
+        // SAFETY: GCEventInteraction's alloc and init (owned) and
+        // properties, UIView's interactions (an NSArray) and methods.
+        unsafe {
+            if enabled {
+                let interaction: Id = msg_send![interaction_class, alloc];
+                let interaction =
+                    crate::core::apple::objc::StrongPtr::from_owned(msg_send![interaction, init]);
+                let () =
+                    msg_send![interaction.get(), setHandledEventTypes: sys::GCUIEventTypeGamepad];
+                let () = msg_send![view, addInteraction: interaction.get()];
+            } else {
+                let interactions: Id = msg_send![view, interactions];
+                for entry in crate::core::apple::foundation::ns_array_items(interactions) {
+                    if crate::core::apple::objc::is_kind_of(entry, interaction_class) {
+                        let interaction = entry;
+                        let types: sys::GCUIEventTypes = msg_send![interaction, handledEventTypes];
+                        if types == sys::GCUIEventTypeGamepad {
+                            let () = msg_send![view, removeInteraction: interaction];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    #[cfg(not(any(target_os = "ios", target_os = "visionos")))]
+    let _ = (view, enabled);
+}
+
 /// Make the focused window's view controller update its home indicator
 /// and the screen edges deferring system gestures. Translation of
-/// `UIKit_ForceUpdateHomeIndicator()`: windows (and their view
-/// controllers) aren't translated yet, so there's none to update.
-pub(crate) fn force_update_home_indicator() {}
+/// `UIKit_ForceUpdateHomeIndicator()`.
+pub(crate) fn force_update_home_indicator() {
+    #[cfg(not(target_os = "tvos"))]
+    {
+        // Force the main SDL window to re-evaluate home indicator state
+        let Some(focus) = crate::events::keyboard::keyboard_focus() else {
+            return;
+        };
+        if let Some(data) = window::window_data(focus) {
+            // SAFETY: NSObject's method, with UIViewController's selectors
+            // (which take no argument).
+            unsafe {
+                let () = msg_send![data.viewcontroller(),
+                    performSelectorOnMainThread: crate::core::apple::objc::sel!(setNeedsUpdateOfHomeIndicatorAutoHidden)
+                    withObject: crate::core::apple::objc::NIL
+                    waitUntilDone: crate::core::apple::objc::NO];
+                let () = msg_send![data.viewcontroller(),
+                    performSelectorOnMainThread: crate::core::apple::objc::sel!(setNeedsUpdateOfScreenEdgesDeferringSystemGestures)
+                    withObject: crate::core::apple::objc::NIL
+                    waitUntilDone: crate::core::apple::objc::NO];
+            }
+        }
+    }
+}
 
 impl VideoDriver for UIKitVideo {
     fn caps(&self) -> DeviceCaps {
@@ -252,6 +413,62 @@ impl VideoDriver for UIKitVideo {
 
     fn set_display_mode(&self, display: DisplayID, mode: &DisplayMode) -> Option<Result<()>> {
         Some(modes::set_display_mode(display, mode))
+    }
+
+    fn create_window(&self, window: WindowID, create_props: &Properties) -> Option<Result<()>> {
+        Some(window::create_window(window, create_props))
+    }
+
+    fn set_window_title(&self, window: WindowID) -> Option<()> {
+        window::set_window_title(window);
+        Some(())
+    }
+
+    fn set_window_size(&self, window: WindowID) -> Option<()> {
+        window::set_window_size(window);
+        Some(())
+    }
+
+    fn show_window(&self, window: WindowID) -> Option<()> {
+        window::show_window(window);
+        Some(())
+    }
+
+    fn hide_window(&self, window: WindowID) -> Option<()> {
+        window::hide_window(window);
+        Some(())
+    }
+
+    fn raise_window(&self, window: WindowID) -> Option<()> {
+        window::raise_window(window);
+        Some(())
+    }
+
+    fn set_window_bordered(&self, window: WindowID, bordered: bool) -> Option<()> {
+        window::set_window_bordered(window, bordered);
+        Some(())
+    }
+
+    fn set_window_fullscreen(
+        &self,
+        window: WindowID,
+        _display: DisplayID,
+        fullscreen: FullscreenOp,
+    ) -> Option<FullscreenResult> {
+        Some(window::set_window_fullscreen(window, fullscreen))
+    }
+
+    fn destroy_window(&self, window: WindowID) -> Option<()> {
+        window::destroy_window(window);
+        Some(())
+    }
+
+    fn window_size_in_pixels(&self, window: WindowID) -> Option<(i32, i32)> {
+        Some(window::get_window_size_in_pixels(window))
+    }
+
+    fn implements_window_op(&self, op: WindowOp) -> bool {
+        matches!(op, WindowOp::SetBordered | WindowOp::SetFullscreen)
     }
 
     fn pump_events(&self) -> Option<()> {

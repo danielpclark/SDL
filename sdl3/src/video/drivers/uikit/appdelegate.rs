@@ -1299,8 +1299,14 @@ extern "C" fn delegate_did_finish_launching(
 /// to be used when the app's UI is storyboard-based. SDL is not
 /// storyboard-based, however several major third-party ad APIs (e.g.
 /// Google admob) incorrectly assume this property always exists, and will
-/// crash if it doesn't. (Windows aren't translated yet: there's none.)
+/// crash if it doesn't.
 extern "C" fn delegate_window(_this: Id, _sel: Sel) -> Id {
+    // (the windows, the most recently made first; none without video)
+    for window in crate::video::core::window_ids() {
+        if let Some(data) = super::window::window_data(window) {
+            return data.uiwindow();
+        }
+    }
     NIL
 }
 
