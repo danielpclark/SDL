@@ -1,6 +1,7 @@
 // Rust translation of src/misc/SDL_url.c, SDL_sysurl.h,
 // src/misc/unix/SDL_sysurl.c, src/misc/windows/SDL_sysurl.c,
-// src/misc/macos/SDL_sysurl.m, src/misc/emscripten/SDL_sysurl.c,
+// src/misc/macos/SDL_sysurl.m, src/misc/ios/SDL_sysurl.m,
+// src/misc/emscripten/SDL_sysurl.c,
 // src/misc/dummy/SDL_sysurl.c and include/SDL3/SDL_misc.h from Simple DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
@@ -9,8 +10,10 @@
 //!
 //! The Unix backend prefers the D-Bus OpenURI portal and falls back to
 //! `xdg-open` (on Unix systems other than Apple's, Android and Haiku); the
-//! Windows backend hands the URL to `ShellExecuteW()`, and the macOS one to
-//! LaunchServices (`LSOpenCFURLRef()`), and the Emscripten one opens it in a
+//! Windows backend hands the URL to `ShellExecuteW()`, the macOS one to
+//! LaunchServices (`LSOpenCFURLRef()`), the UIKit one to the app's
+//! `UIApplication` (`openURL:options:completionHandler:`), and the
+//! Emscripten one opens it in a
 //! new browser tab (`window.open()`); elsewhere the dummy backend reports
 //! that the operation is unsupported until the platform layer arrives.
 //! Under Wayland, an activation token is passed along so that the browser
@@ -163,6 +166,44 @@ fn sys_open_url(url: &str) -> Result<()> {
     })
 }
 
+/// Translation of `SDL_SYS_OpenURL()` (UIKit): the app's
+/// `openURL:options:completionHandler:`, which opens it asynchronously.
+/// Outside an app (no `UIApplicationMain()`) there's no shared
+/// application to ask, so no handler, as upstream's messages to nil answer.
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+fn sys_open_url(url: &str) -> Result<()> {
+    use crate::core::apple::block::RcBlock;
+    use crate::core::apple::foundation::ns_string;
+    use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id};
+    use crate::core::apple::uikit::shared_application;
+
+    autoreleasepool(|| {
+        // (stringWithUTF8String: reads up to the first NUL)
+        let url = url.split('\0').next().unwrap_or_default();
+        let nsstr = ns_string(url);
+        // SAFETY: NSURL's class method with an NSString (nil for a string
+        // that isn't a URL); UIApplication's methods, with an empty
+        // dictionary of options and a block taking the BOOL result, which
+        // UIKit copies.
+        unsafe {
+            let nsurl: Id = msg_send![class!(NSURL), URLWithString: nsstr.get()];
+            let app = shared_application();
+            let can_open: Bool = msg_send![app, canOpenURL: nsurl];
+            if !can_open.is_true() {
+                return Err(crate::error::Error::new(
+                    "No handler registered for this type of URL",
+                ));
+            }
+            let options: Id = msg_send![class!(NSDictionary), dictionary];
+            let handler = RcBlock::new1(|_success: Bool| {});
+            let () = msg_send![app, openURL: nsurl
+                                    options: options
+                                    completionHandler: handler.as_ptr()];
+        }
+        Ok(())
+    })
+}
+
 /// Translation of `SDL_SYS_OpenURL()` (Emscripten): `window.open(url,
 /// "_blank")`, which a browser may block as a popup without telling: it
 /// always succeeds. Under node, which has no `window`, the JavaScript
@@ -179,7 +220,7 @@ fn sys_open_url(url: &str) -> Result<()> {
 
 #[cfg(not(any(
     windows,
-    target_os = "macos",
+    target_vendor = "apple",
     target_os = "emscripten",
     all(
         unix,
@@ -240,6 +281,24 @@ mod tests {
             std::str::from_utf8(&buf[..len]).unwrap(),
             "[\"https://libsdl.org/?q=\u{e9}\",\"_blank\"]\n[\"\",\"_blank\"]\n[\"a\",\"_blank\"]"
         );
+    }
+
+    /// Outside an app, as a test program runs under `simctl spawn`, there's
+    /// no shared application, so no handler for any URL.
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    #[test]
+    fn uikit_open_url_outside_an_app() {
+        for url in [
+            "https://libsdl.org/",
+            "sdl-no-such-scheme-for-tests://x",
+            "",
+            "a\0b",
+        ] {
+            assert_eq!(
+                super::open_url(url).unwrap_err().message(),
+                "No handler registered for this type of URL"
+            );
+        }
     }
 
     /// LaunchServices' answers for URLs no application opens (nothing is
