@@ -1,0 +1,135 @@
+name: diag-macos-segv
+
+# Diagnostic only (branch claude/diag-macos-segv): the sdl3 lib tests in a
+# loop on macOS runners set up as ci.yml's test job, with crash reports.
+on:
+  push:
+    branches: [claude/diag-macos-segv]
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: time budget for the loop, per job
+        type: string
+        default: "75"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+
+jobs:
+  loop:
+    name: loop (${{ matrix.toolchain }}, ${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { toolchain: "1.87", name: full-a, args: "", lldb: false }
+          - { toolchain: "1.87", name: full-b, args: "", lldb: false }
+          - { toolchain: "1.87", name: vulkan, args: "vulkan", lldb: false }
+          - { toolchain: "1.87", name: full-lldb, args: "", lldb: true }
+          - { toolchain: "1.99", name: full-pinned, args: "", lldb: false }
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      RUST_TEST_NOCAPTURE: 1
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: diag-${{ matrix.toolchain }}
+      - name: Install the GPU drivers (macOS)
+        run: |
+          C="$RUNNER_TEMP/gpu-cache"
+          mkdir -p "$C"
+          cd "$C"
+          curl -fsSL -o moltenvk.tar "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          echo "$MOLTENVK_SHA256  moltenvk.tar" | shasum -a 256 -c
+          tar xf moltenvk.tar -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - name: Build
+        run: cargo test -p sdl3 --lib --no-run 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: Loop
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+          ARGS: ${{ matrix.args }}
+          USE_LLDB: ${{ matrix.lldb }}
+          MINUTES: ${{ inputs.minutes || '75' }}
+        run: |
+          set +e
+          ulimit -c 0
+          BIN=$(grep -o 'target/debug/deps/sdl3-[0-9a-f]*' "$RUNNER_TEMP/build.log" | head -1)
+          echo "binary: $BIN"
+          sw_vers; uname -a; rustc -V
+          mkdir -p "$RUNNER_TEMP/logs"
+          touch "$RUNNER_TEMP/marker"
+          start=$(date +%s)
+          i=0; fails=0; crashes=0
+          while [ $(( $(date +%s) - start )) -lt $(( MINUTES * 60 )) ]; do
+            i=$((i + 1))
+            log="$RUNNER_TEMP/logs/run-$i.log"
+            t0=$(date +%s)
+            if [ "$USE_LLDB" = true ]; then
+              (cd sdl3 && CARGO_MANIFEST_DIR="$PWD" lldb --batch \
+                -o "process handle SIGPIPE -n true -p true -s false" \
+                -o run \
+                -o "thread backtrace all" \
+                -k "thread backtrace all" -k "register read" -k "image list" -k quit \
+                -- "../$BIN" $ARGS) > "$log" 2>&1
+              rc=$?
+              if grep -q "stop reason = EXC_BAD_ACCESS\|stop reason = signal SIGSEGV\|stop reason = signal SIGBUS" "$log"; then rc=139; fi
+            else
+              cargo test -q -p sdl3 --lib -- $ARGS > "$log" 2>&1
+              rc=$?
+            fi
+            t1=$(date +%s)
+            res=$(grep -E "^test result:" "$log" | tail -1)
+            echo "iteration $i: rc=$rc $(( t1 - t0 ))s $res"
+            if [ $rc -ne 0 ]; then
+              fails=$((fails + 1))
+              if grep -q "SIGSEGV\|SIGBUS\|EXC_BAD_ACCESS\|signal: 11\|signal: 10" "$log" || [ $rc -ge 128 ]; then
+                crashes=$((crashes + 1))
+              fi
+              echo "::group::iteration $i failure (last 400 lines)"
+              tail -400 "$log" | cut -c1-400
+              echo "::endgroup::"
+              if [ "$USE_LLDB" = true ]; then
+                echo "::group::iteration $i lldb backtraces"
+                awk '/stop reason =/{p=1} p' "$log" | grep -v "^\s*$" | cut -c1-400 | head -3000
+                echo "::endgroup::"
+              fi
+              grep -E "panicked at|^failures:|^    [a-z_:]+$" "$log" | head -50
+              sleep 15
+              for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
+                find "$d" -newer "$RUNNER_TEMP/marker" -name 'sdl3-*' 2>/dev/null
+              done > "$RUNNER_TEMP/ips.txt"
+              if [ -s "$RUNNER_TEMP/ips.txt" ]; then
+                echo "::group::iteration $i crash reports"
+                xargs python3 -I tools/ci/diag_ips.py < "$RUNNER_TEMP/ips.txt" | cut -c1-500
+                echo "::endgroup::"
+                mkdir -p "$RUNNER_TEMP/ips"
+                xargs -I{} cp {} "$RUNNER_TEMP/ips/" < "$RUNNER_TEMP/ips.txt"
+              fi
+              touch "$RUNNER_TEMP/marker"
+            fi
+          done
+          echo "SUMMARY ${{ matrix.toolchain }} ${{ matrix.name }}: $i iterations, $fails failed, $crashes crashed"
+          echo "SUMMARY ${{ matrix.toolchain }} ${{ matrix.name }}: $i iterations, $fails failed, $crashes crashed" >> "$GITHUB_STEP_SUMMARY"
+          [ $fails -eq 0 ]
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diag-${{ matrix.toolchain }}-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/ips
+          if-no-files-found: ignore
