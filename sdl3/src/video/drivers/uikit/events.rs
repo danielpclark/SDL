@@ -1,4 +1,4 @@
-// Rust translation of the lifecycle and event pump parts of
+// Rust translation of the lifecycle, event pump and mouse parts of
 // src/video/uikit/SDL_uikitevents.m and SDL_uikitevents.h from Simple
 // DirectMedia Layer.
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
@@ -8,18 +8,30 @@
 //! turns UIApplication's notifications into the application events
 //! (`SDL_OnApplication*()`, observed while the event pump is on, the main
 //! callbacks run or a window exists), and the pump, which runs the main
-//! run loop briefly ([`set_ios_event_pump`] turns it off). The game
-//! controllers' keyboards and mice (`GCKeyboard`, `GCMouse`) aren't
-//! translated yet.
+//! run loop briefly ([`set_ios_event_pump`] turns it off); the events'
+//! timestamps on SDL's clock ([`get_event_timestamp`]); and the game
+//! controllers' mice (`GCMouse`, iOS 14.1): each connected one is a mouse
+//! whose buttons and wheel send their events, and whose motion is the
+//! relative mode's, which locks the pointer
+//! ([`super::window::update_pointer_lock`]). The game controllers'
+//! keyboards (`GCKeyboard`) come with the keyboard.
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Mutex, OnceLock};
+use std::time::Duration;
 
+use crate::core::apple::block::{dispatch_get_global_queue, dispatch_queue_create, RcBlock};
 use crate::core::apple::foundation::{
-    kCFRunLoopDefaultMode, CFRunLoopRunInMode, CFStringRef, K_CF_RUN_LOOP_RUN_HANDLED_SOURCE,
+    available, cf_string, kCFRunLoopDefaultMode, ns_array_items, ns_string, CFRunLoopRunInMode,
+    CFStringRef, NSTimeInterval, K_CF_RUN_LOOP_RUN_HANDLED_SOURCE,
 };
 use crate::core::apple::objc::{
-    class, imp, msg_send, sel, Class, ClassBuilder, DeclaredClass, Id, Sel, StrongPtr, NIL,
+    autoreleasepool, class, imp, msg_send, sel, Bool, Class, ClassBuilder, DeclaredClass, Id, Sel,
+    StrongPtr, NIL,
+};
+use crate::events::mouse::{
+    add_mouse, mouse_focus, remove_mouse, send_mouse_button, send_mouse_motion, send_mouse_wheel,
+    MouseID, MouseWheelDirection, BUTTON_LEFT, BUTTON_MIDDLE, BUTTON_RIGHT, BUTTON_X1,
 };
 
 use super::sys::*;
@@ -206,6 +218,29 @@ pub fn set_ios_event_pump(enabled: bool) {
     update_lifecycle_observer();
 }
 
+/// Translation of `timestamp_offset` (`UIKit_GetEventTimestamp()`'s).
+static TIMESTAMP_OFFSET: AtomicU64 = AtomicU64::new(0);
+
+/// A UIKit event's timestamp (seconds since the system started) on SDL's
+/// clock, never later than now. Translation of `UIKit_GetEventTimestamp()`.
+pub(crate) fn get_event_timestamp(ns_timestamp: NSTimeInterval) -> Duration {
+    let mut timestamp = (ns_timestamp * 1_000_000_000.0) as u64;
+    let now = crate::timer::ticks_ns();
+
+    let mut timestamp_offset = TIMESTAMP_OFFSET.load(Ordering::Relaxed);
+    if timestamp_offset == 0 {
+        timestamp_offset = now.wrapping_sub(timestamp);
+    }
+    timestamp = timestamp.wrapping_add(timestamp_offset);
+
+    if timestamp > now {
+        timestamp_offset = timestamp_offset.wrapping_sub(timestamp - now);
+        timestamp = now;
+    }
+    TIMESTAMP_OFFSET.store(timestamp_offset, Ordering::Relaxed);
+    Duration::from_nanos(timestamp)
+}
+
 /// Translation of `UIKit_PumpEvents()`.
 pub(crate) fn pump_events() {
     if !UIKIT_EVENT_PUMP_ENABLED.load(Ordering::Relaxed) {
@@ -242,4 +277,359 @@ pub(crate) fn pump_events() {
 
     // (UIKit_GL_RestoreCurrentContext() comes with OpenGL ES, which isn't
     // translated yet)
+}
+
+// ---------------------------------------------------------------------------
+// GCMouse
+
+/// The `GCMouseDidConnectNotification` and `GCMouseDidDisconnectNotification`
+/// observers (`mouse_connect_observer`, `mouse_disconnect_observer`).
+static MOUSE_OBSERVERS: Mutex<(StrongPtr, StrongPtr)> =
+    Mutex::new((StrongPtr::nil(), StrongPtr::nil()));
+/// Translation of `mouse_relative_mode`.
+static MOUSE_RELATIVE_MODE: AtomicBool = AtomicBool::new(false);
+/// Translation of `mouse_scroll_direction` (true: `SDL_MOUSEWHEEL_FLIPPED`).
+static MOUSE_SCROLL_FLIPPED: AtomicBool = AtomicBool::new(false);
+/// Whether `SDL_GetMouse()->SetRelativeMouseMode` is
+/// [`set_gc_mouse_relative_mode`] (from [`init_gc_mouse`] to
+/// [`quit_gc_mouse`]).
+static RELATIVE_MODE_HOOKED: AtomicBool = AtomicBool::new(false);
+
+/// Translation of `UpdateScrollDirection()`.
+fn update_scroll_direction() {
+    // (upstream's `#if 0` reads NSUserDefaults instead: "This code doesn't
+    // work for some reason")
+    let key = cf_string("com.apple.swipescrolldirection");
+    let mut key_exists_and_has_valid_format = 0;
+    // SAFETY: a CFString key, the constant application ID and an out
+    // parameter.
+    let mut natural_scroll_direction = unsafe {
+        CFPreferencesGetAppBooleanValue(
+            key.get() as CFStringRef,
+            kCFPreferencesAnyApplication,
+            &mut key_exists_and_has_valid_format,
+        )
+    } != 0;
+    if key_exists_and_has_valid_format == 0 {
+        // Couldn't read the preference, assume natural scrolling direction
+        natural_scroll_direction = true;
+    }
+    MOUSE_SCROLL_FLIPPED.store(natural_scroll_direction, Ordering::Relaxed);
+}
+
+/// Translation of `UpdatePointerLock()`.
+fn update_pointer_lock() {
+    for window in crate::video::core::window_ids() {
+        super::window::update_pointer_lock(window);
+    }
+}
+
+/// Translation of `SetGCMouseRelativeMode()`.
+pub(crate) fn set_gc_mouse_relative_mode(enabled: bool) -> crate::Result<()> {
+    MOUSE_RELATIVE_MODE.store(enabled, Ordering::Relaxed);
+    update_pointer_lock();
+    Ok(())
+}
+
+/// Whether `SDL_GetMouse()->SetRelativeMouseMode` is
+/// [`set_gc_mouse_relative_mode`]: from [`init_gc_mouse`] (when the app
+/// asks for the pointer's events) to [`quit_gc_mouse`].
+pub(crate) fn has_gc_mouse_relative_mode() -> bool {
+    RELATIVE_MODE_HOOKED.load(Ordering::Relaxed)
+}
+
+/// Translation of `OnGCMouseButtonChanged()`.
+fn on_gc_mouse_button_changed(mouse_id: MouseID, button: u8, pressed: bool) {
+    let timestamp = crate::timer::ticks();
+
+    // (visionOS's pointer mode and curved windows come with visionOS)
+    send_mouse_button(timestamp, mouse_focus(), mouse_id, button, pressed);
+}
+
+/// `button.pressedChangedHandler = handler` (nil for `None`).
+///
+/// # Safety
+///
+/// `input` must be a `GCControllerButtonInput`.
+unsafe fn set_pressed_changed_handler(input: Id, handler: Option<RcBlock>) {
+    let block = handler
+        .as_ref()
+        .map_or(std::ptr::null_mut(), |b| b.as_ptr());
+    // SAFETY: the caller's contract; the input copies the block.
+    let () = unsafe { msg_send![input, setPressedChangedHandler: block] };
+}
+
+/// Translation of `OnGCMouseConnected()`.
+fn on_gc_mouse_connected(mouse: Id) {
+    let mouse_id = mouse as usize as MouseID;
+
+    add_mouse(mouse_id, None);
+
+    // `^(GCControllerButtonInput *button, float value, BOOL pressed) {...}`
+    let button_handler = |button: u8| {
+        RcBlock::new3(move |_button: Id, _value: f32, pressed: Bool| {
+            on_gc_mouse_button_changed(mouse_id, button, pressed.is_true());
+        })
+    };
+
+    // SAFETY: a GCMouse and its inputs; the handlers are blocks of the
+    // documented signatures, which the inputs copy.
+    unsafe {
+        let mouse_input: Id = msg_send![mouse, mouseInput];
+        let left: Id = msg_send![mouse_input, leftButton];
+        set_pressed_changed_handler(left, Some(button_handler(BUTTON_LEFT)));
+        let middle: Id = msg_send![mouse_input, middleButton];
+        set_pressed_changed_handler(middle, Some(button_handler(BUTTON_MIDDLE)));
+        let right: Id = msg_send![mouse_input, rightButton];
+        set_pressed_changed_handler(right, Some(button_handler(BUTTON_RIGHT)));
+
+        let mut auxiliary_button = BUTTON_X1;
+        let auxiliary: Id = msg_send![mouse_input, auxiliaryButtons];
+        for btn in ns_array_items(auxiliary) {
+            set_pressed_changed_handler(btn, Some(button_handler(auxiliary_button)));
+            auxiliary_button = auxiliary_button.wrapping_add(1);
+        }
+
+        // `^(GCMouseInput *mouseInput, float deltaX, float deltaY) {...}`
+        let moved = RcBlock::new3(move |_mouse_input: Id, delta_x: f32, delta_y: f32| {
+            let timestamp = crate::timer::ticks();
+
+            let send_motion = gc_mouse_relative_mode();
+            // (visionOS's pointer mode comes with visionOS)
+            if send_motion {
+                send_mouse_motion(timestamp, mouse_focus(), mouse_id, true, delta_x, -delta_y);
+            }
+        });
+        let () = msg_send![mouse_input, setMouseMovedHandler: moved.as_ptr()];
+
+        // `^(GCControllerDirectionPad *dpad, float xValue, float yValue) {...}`
+        let scrolled = RcBlock::new3(move |_dpad: Id, x_value: f32, y_value: f32| {
+            let timestamp = crate::timer::ticks();
+
+            #[cfg(target_os = "visionos")]
+            let (mut vertical, mut horizontal) = {
+                /* Mouse scroll values on visionOS have swapped axes compared to other platforms.
+                 * There is also an acceleration ramp applied, so clamp to a single tick per event.
+                 */
+                let tick = |v: f32| {
+                    if v < 0.0 {
+                        -1.0
+                    } else if v > 0.0 {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                };
+                (tick(y_value), tick(x_value))
+            };
+            #[cfg(not(target_os = "visionos"))]
+            let (mut vertical, mut horizontal) = {
+                /* Raw scroll values come in here, vertical values in the first axis, horizontal values in the second axis.
+                 * The vertical values are negative moving the mouse wheel up and positive moving it down.
+                 * The horizontal values are negative moving the mouse wheel left and positive moving it right.
+                 * The vertical values are inverted compared to SDL, and the horizontal values are as expected.
+                 */
+                (-x_value, y_value)
+            };
+
+            let flipped = MOUSE_SCROLL_FLIPPED.load(Ordering::Relaxed);
+            if flipped {
+                // Since these are raw values, we need to flip them ourselves
+                vertical = -vertical;
+                horizontal = -horizontal;
+            }
+            let direction = if flipped {
+                MouseWheelDirection::Flipped
+            } else {
+                MouseWheelDirection::Normal
+            };
+            send_mouse_wheel(
+                timestamp,
+                mouse_focus(),
+                mouse_id,
+                horizontal,
+                vertical,
+                direction,
+            );
+        });
+        let scroll: Id = msg_send![mouse_input, scroll];
+        let () = msg_send![scroll, setValueChangedHandler: scrolled.as_ptr()];
+        update_scroll_direction();
+
+        #[link(name = "System", kind = "dylib")]
+        unsafe extern "C" {
+            fn dispatch_set_target_queue(
+                object: *mut std::ffi::c_void,
+                queue: *mut std::ffi::c_void,
+            );
+        }
+        /// `DISPATCH_QUEUE_PRIORITY_HIGH`.
+        const DISPATCH_QUEUE_PRIORITY_HIGH: isize = 2;
+        let queue = dispatch_queue_create(
+            c"org.libsdl.input.mouse".as_ptr(),
+            crate::core::apple::block::DISPATCH_QUEUE_SERIAL,
+        );
+        dispatch_set_target_queue(
+            queue,
+            dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0),
+        );
+        let () = msg_send![mouse, setHandlerQueue: queue];
+        // (the mouse keeps its queue)
+        crate::core::apple::block::dispatch_release(queue);
+    }
+
+    update_pointer_lock();
+}
+
+/// Translation of `OnGCMouseDisconnected()`.
+fn on_gc_mouse_disconnected(mouse: Id) {
+    let mouse_id = mouse as usize as MouseID;
+
+    // SAFETY: a GCMouse and its inputs.
+    unsafe {
+        let mouse_input: Id = msg_send![mouse, mouseInput];
+        let () =
+            msg_send![mouse_input, setMouseMovedHandler: std::ptr::null_mut::<std::ffi::c_void>()];
+
+        let left: Id = msg_send![mouse_input, leftButton];
+        set_pressed_changed_handler(left, None);
+        let middle: Id = msg_send![mouse_input, middleButton];
+        set_pressed_changed_handler(middle, None);
+        let right: Id = msg_send![mouse_input, rightButton];
+        set_pressed_changed_handler(right, None);
+
+        let auxiliary: Id = msg_send![mouse_input, auxiliaryButtons];
+        for button in ns_array_items(auxiliary) {
+            set_pressed_changed_handler(button, None);
+        }
+        // (upstream leaves the scroll wheel's handler)
+    }
+
+    update_pointer_lock();
+
+    remove_mouse(mouse_id);
+}
+
+/// Start following the game controllers' mice (from iOS 14.1, in an app
+/// whose Info.plist has `UIApplicationSupportsIndirectInputEvents`),
+/// adding those connected, and make the relative mode theirs. Translation
+/// of `SDL_InitGCMouse()`.
+pub(crate) fn init_gc_mouse() {
+    autoreleasepool(|| {
+        // There is a bug where mouse accumulates duplicate deltas over time in iOS 14.0
+        if !available!(ios(14, 1), tvos(14, 1)) {
+            return;
+        }
+        // (GameController is loaded at run time here: without it there's no
+        // mouse to follow)
+        let connect_name = GCMouseDidConnectNotification();
+        let disconnect_name = GCMouseDidDisconnectNotification();
+        if connect_name.is_null() || disconnect_name.is_null() || class!(GCMouse).is_null() {
+            return;
+        }
+        // SAFETY: the main bundle's Info.plist (a dictionary), the
+        // notification center with notification blocks of the documented
+        // signature, and GCMouse's class method.
+        unsafe {
+            /* iOS will not send the new pointer touch events if you don't have this key,
+             * and we need them to differentiate between mouse events and real touch events.
+             */
+            let bundle: Id = msg_send![class!(NSBundle), mainBundle];
+            let info: Id = msg_send![bundle, infoDictionary];
+            let key = ns_string("UIApplicationSupportsIndirectInputEvents");
+            let value: Id = msg_send![info, objectForKey: key.get()];
+            // ([nil boolValue] is NO)
+            let indirect_input_available = !value.is_null() && {
+                let b: Bool = msg_send![value, boolValue];
+                b.is_true()
+            };
+            if indirect_input_available {
+                let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
+
+                let connect = RcBlock::new1(|note: Id| {
+                    // (a notification whose object is the GCMouse)
+                    let mouse: Id = msg_send![note, object];
+                    on_gc_mouse_connected(mouse);
+                });
+                let connect_observer: Id = msg_send![center,
+                    addObserverForName: connect_name
+                    object: NIL
+                    queue: NIL
+                    usingBlock: connect.as_ptr()];
+
+                let disconnect = RcBlock::new1(|note: Id| {
+                    // (a notification whose object is the GCMouse)
+                    let mouse: Id = msg_send![note, object];
+                    on_gc_mouse_disconnected(mouse);
+                });
+                let disconnect_observer: Id = msg_send![center,
+                    addObserverForName: disconnect_name
+                    object: NIL
+                    queue: NIL
+                    usingBlock: disconnect.as_ptr()];
+
+                *MOUSE_OBSERVERS.lock().unwrap_or_else(|e| e.into_inner()) = (
+                    StrongPtr::retain(connect_observer),
+                    StrongPtr::retain(disconnect_observer),
+                );
+
+                let mice: Id = msg_send![class!(GCMouse), mice];
+                for mouse in ns_array_items(mice) {
+                    on_gc_mouse_connected(mouse);
+                }
+
+                RELATIVE_MODE_HOOKED.store(true, Ordering::Relaxed);
+            } else {
+                crate::log::ns_log(
+                    "",
+                    "You need UIApplicationSupportsIndirectInputEvents in your Info.plist for mouse support",
+                );
+            }
+        }
+    })
+}
+
+/// Whether the relative mode is on. Translation of
+/// `SDL_GCMouseRelativeMode()`.
+pub(crate) fn gc_mouse_relative_mode() -> bool {
+    MOUSE_RELATIVE_MODE.load(Ordering::Relaxed)
+}
+
+/// Stop following the game controllers' mice, removing those connected.
+/// Translation of `SDL_QuitGCMouse()`.
+pub(crate) fn quit_gc_mouse() {
+    autoreleasepool(|| {
+        if !available!(ios(14, 1), tvos(14, 1)) {
+            return;
+        }
+        // SAFETY: the observers init_gc_mouse() registered, the
+        // notification center and GCMouse's class method.
+        unsafe {
+            let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
+            let (connect, disconnect) =
+                std::mem::take(&mut *MOUSE_OBSERVERS.lock().unwrap_or_else(|e| e.into_inner()));
+
+            if !connect.is_nil() {
+                let () = msg_send![center, removeObserver: connect.get()
+                                                     name: GCMouseDidConnectNotification()
+                                                   object: NIL];
+            }
+
+            if !disconnect.is_nil() {
+                let () = msg_send![center, removeObserver: disconnect.get()
+                                                     name: GCMouseDidDisconnectNotification()
+                                                   object: NIL];
+            }
+
+            // (no GCMouse class without GameController)
+            if !class!(GCMouse).is_null() {
+                let mice: Id = msg_send![class!(GCMouse), mice];
+                for mouse in ns_array_items(mice) {
+                    on_gc_mouse_disconnected(mouse);
+                }
+            }
+        }
+
+        RELATIVE_MODE_HOOKED.store(false, Ordering::Relaxed);
+    })
 }
