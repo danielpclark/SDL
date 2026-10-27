@@ -500,8 +500,13 @@ pub fn log_allocations() {
 
 /// Record the stack of the caller of the tracking code (frame 0 is the
 /// tracking code itself; upstream starts at its caller too).
+///
+/// Note (upstream): upstream's CMake build looks for libunwind only on
+/// Emscripten and on the Unix systems other than Apple's, so its Apple
+/// builds record no stacks; here the system's unwinder records them on
+/// every Apple platform too.
 #[cfg(all(
-    any(target_os = "linux", target_os = "macos", target_os = "freebsd"),
+    any(target_os = "linux", target_vendor = "apple", target_os = "freebsd"),
     not(target_arch = "arm")
 ))]
 fn capture_stack(stack: &mut [u64; MAXIMUM_TRACKED_STACK_DEPTH]) {
@@ -578,7 +583,7 @@ fn capture_stack(stack: &mut [u64; MAXIMUM_TRACKED_STACK_DEPTH]) {
 #[cfg(not(any(
     windows,
     all(
-        any(target_os = "linux", target_os = "macos", target_os = "freebsd"),
+        any(target_os = "linux", target_vendor = "apple", target_os = "freebsd"),
         not(target_arch = "arm")
     )
 )))]

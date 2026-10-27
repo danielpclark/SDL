@@ -62,7 +62,7 @@ fn main() {
         .lines()
         .position(|l| l.starts_with("Allocation ") && l.ends_with(": 1000 bytes"))
         .unwrap_or_else(|| panic!("{message}"));
-    if cfg!(any(target_os = "linux", windows)) {
+    if cfg!(any(target_os = "linux", target_vendor = "apple", windows)) {
         let frame = message.lines().nth(entry + 1).unwrap();
         assert!(frame.starts_with("\t0x"), "{message}");
     }
