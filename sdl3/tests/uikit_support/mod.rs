@@ -115,6 +115,8 @@ pub mod objc {
         pub static UIApplicationWillTerminateNotification: Id;
         pub static UIApplicationDidReceiveMemoryWarningNotification: Id;
         pub static UIApplicationDidChangeStatusBarOrientationNotification: Id;
+        pub static UIScreenDidConnectNotification: Id;
+        pub static UIScreenDidDisconnectNotification: Id;
     }
 
     unsafe extern "C" {
@@ -228,15 +230,16 @@ pub mod objc {
     /// `[[NSNotificationCenter defaultCenter] postNotificationName:name
     /// object:[UIApplication sharedApplication]]`, as UIKit posts its own.
     pub fn post_notification(name: Id) {
+        post_notification_for(name, shared_application());
+    }
+
+    /// `[[NSNotificationCenter defaultCenter] postNotificationName:name
+    /// object:object]`.
+    pub fn post_notification_for(name: Id, object: Id) {
         // SAFETY: NSNotificationCenter's methods.
         unsafe {
             let center: Id = send0(class("NSNotificationCenter"), "defaultCenter");
-            let () = send2(
-                center,
-                "postNotificationName:object:",
-                name,
-                shared_application(),
-            );
+            let () = send2(center, "postNotificationName:object:", name, object);
         }
     }
 
