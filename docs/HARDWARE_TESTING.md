@@ -53,6 +53,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `cocoa` | macOS | a login session whose window server shows windows (Aqua), for the main-thread programs `cargo test -p sdl3 --test cocoa`, `--test cocoa_shell` and `--test cocoa_metal` (and `cargo test -p sdl3-shadercross --test metal`) |
 | `coreaudio` | macOS | CoreAudio with a default playback and a default recording device |
 | `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
+| `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen for `uikit_input`'s real taps and swipes (see [below](#ios-simulator)) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
 | `webaudio` | Emscripten | a Web Audio `AudioContext` there that runs without a user gesture (the runner's autoplay flag): `emscripten_browser.rs`'s probe and `emscripten_audio.rs` |
@@ -804,10 +805,24 @@ handle: it doesn't run programs built for devices). The bundle registers
 its identifier as a URL scheme the app handles, so that an app can open
 its own URLs. A running app can ask the runner for what only the host can
 do with a line `sdl3-ios-runner: request WHAT`: `background` (the runner
-launches the Settings app, which sends the app to the background) and
+launches the Settings app, which sends the app to the background),
 `foreground` (it launches the app again without terminating it, which
-brings the same process back); the app waits for its application events
-itself.
+brings the same process back), and `tap X Y` and `swipe X1 Y1 X2 Y2
+[SECONDS]` (a finger touches the screen there, in points, through idb's
+`idb ui tap` and `idb ui swipe`); the app waits for what follows (its
+application events, its touches) itself. The touches need
+[idb](https://fbidb.io): its `idb_companion` (`brew install
+facebook/fb/idb-companion`, which only installs with an Xcode 26
+selected: select one for that, then yours again) and its Python client
+(`pip install fb-idb` in a virtual environment), `idb` in `PATH` or the
+command in `SDL3_IOS_IDB` (0: none). The runner tells the app whether it
+has them (`SDL3_IOS_RUNNER_IDB`: `1`, or why not), and after an app that
+touched the screen it stops the companions idb started (`idb kill`).
+Without idb, the checks that need it skip `idb`. The simulator passes a
+touch through a window that has nothing drawn in it (as SDL's views are
+until a renderer draws) to what is behind it, so an app that wants idb's
+touches draws something first, or makes its view opaque, as
+`uikit_input` does.
 
 The UIKit test programs (`sdl3/tests/uikit_*.rs`) are such apps; they
 share `sdl3/tests/uikit_support/`, which prints the exit line and has the
@@ -834,8 +849,18 @@ them (sizes in points and pixels, flags, the safe area, the `UIWindow`,
 its view controller's status bar, home indicator and orientations, the
 properties) as they are hidden and shown, made borderless, fullscreen and
 exclusive fullscreen, turned in-process to each orientation, and given
-animation callbacks, whose frames it counts. All four compare a trace
-with upstream's C SDL's,
+animation callbacks, whose frames it counts; `uikit_input` traces the
+touch devices, the mice, the window's view (its gesture recognizers and
+pointer interaction) and the events of input: touches given to the
+view's handlers (stand-ins for `UITouch` and `UIEvent`, of each kind:
+fingers, with the mouse the first one emulates, an indirect touch, the
+Apple Pencil, the pointer's buttons and motion), the Pencil's and the
+pointer's hovering and the pinch gesture (stand-in recognizers), the
+relative mode and the pointer's lock, a game controller's mouse (the
+simulator has none: a stand-in `GCMouse` posted with its connection
+notification, whose handlers it calls), and real touches through idb (a
+tap and a swipe, `idb`). All five compare a trace with upstream's C
+SDL's,
 from the same programs in C run the same way on the CI's simulator (an
 iPhone 16 with iOS 18.5).
 
@@ -847,9 +872,10 @@ so the GPU API's Metal tests skip `metal`, and the Vulkan renderer's, the
 GPU API's Vulkan backend's and the GPU renderer's tests skip `vulkan`. The
 offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
-and dummy drivers there, as elsewhere; its windows' input and graphics
-views, and the iOS halves of CoreAudio, MFi, the Metal renderer and the
-camera, aren't translated yet.
+and dummy drivers there, as elsewhere; its keyboard (the on-screen one,
+the hardware keys, `GCKeyboard`), its windows' graphics views, and the
+iOS halves of CoreAudio, MFi, the Metal renderer and the camera, aren't
+translated yet.
 
 ## CI
 
@@ -878,13 +904,15 @@ Linux one the Emscripten and iOS builds (the device, the arm64 Simulator
 and the x86-64 one: no SDK is needed to lint, nor to check iOS with the
 minimum supported Rust in the Linux test job and its documentation in the
 rustdoc job). The iOS job, on the macOS 15 runner with Xcode 16.4 and its
-iOS 18.5 runtime, runs the tests on an iPhone 16 simulator as
+iOS 18.5 runtime, installs idb (the companion's Homebrew formula with an
+Xcode 26 selected for that, and its pinned Python client in a virtual
+environment), runs the tests on an iPhone 16 simulator as
 [above](#ios-simulator) (booted by `tools/ios_run.py --boot` while the
 programs build), links the device build without running it, and makes its
 skip log from the notes the programs print (`tools/ci/skips_from_log.py`,
 as the Emscripten job does, so that the apps' skips, written in their
 own containers, are listed too), failing on any skip but the simulator's
-of `metal`, `vulkan` and `egl` (above); a manual run
+of `metal`, `vulkan` and `egl` (above: so `idb` is required); a manual run
 of the workflow can run that job alone (`ios_only`) and pass it other
 `cargo test` arguments (`ios_test_args`). The
 Emscripten job runs the tests under node as [above](#emscripten-under-node),
