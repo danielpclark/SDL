@@ -195,9 +195,10 @@ macOS, the sensor drivers other than the Windows and Emscripten ones; the
 threaded (pthreads) Emscripten build; the iOS, tvOS and visionOS parts of
 the Apple backends but power, URLs, the file system's, the form factor,
 the main function and the main callbacks, and the UIKit video driver's
-app delegate, lifecycle events, event pump, displays and display modes;
-the SVE2, LSX and
-AltiVec kernels. Parts of the C
+app delegate, lifecycle events, event pump, displays and display modes,
+and windows (without touches, keyboard and text input, the mouse, pens,
+the clipboard, message boxes and OpenGL ES, Metal and Vulkan views); the
+SVE2, LSX and AltiVec kernels. Parts of the C
 stdlib that Rust already provides (`malloc`, `memcpy`, `qsort`, `snprintf`)
 are intentionally not translated.
 
@@ -228,8 +229,9 @@ builds, and on a Mac with Xcode the tests run on the iOS Simulator, through
 simulator); of the UIKit backends power, URLs, the file system's, the
 form factor, `run_app()` and the main callbacks are translated, and of the
 UIKit video driver its app delegate, the application's lifecycle events,
-the event pump and the displays with their modes, not yet its windows
-and the others:
+the event pump, the displays with their modes and the windows (with
+`Window::set_ios_animation_callback()`), not yet their input, graphics
+views and the others:
 
 ```sh
 rustup target add aarch64-apple-ios-sim

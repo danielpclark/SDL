@@ -174,6 +174,12 @@ they are used (there is no build script to make aliases):
   simulated device gets the next driver. Upstream's `@try` around
   loading the launch storyboard or nib becomes a check that the bundle
   has it (`Note (upstream)`): Objective-C exceptions can't be caught.
+* `SDL_SetiOSAnimationCallback(window, interval, callback, param)` is
+  `Window::set_ios_animation_callback(interval, Some(Box::new(closure)))`
+  (`None` stops it). The closure isn't `Send`, so the call must be made
+  on the main thread (`Note`), where the display link calls it. As the
+  other drivers' pointer properties, `SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER`
+  and `SDL_PROP_WINDOW_CREATE_WINDOWSCENE_POINTER` hold numbers.
 
 ## Testing
 
