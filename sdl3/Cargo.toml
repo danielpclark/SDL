@@ -214,3 +214,7 @@ harness = false
 [[test]]
 name = "uikit_displays"
 harness = false
+
+[[test]]
+name = "uikit_windows"
+harness = false
