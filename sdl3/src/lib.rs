@@ -261,6 +261,10 @@ pub(crate) mod test_support {
         ),
         ("metal", "a Metal device (MTLCreateSystemDefaultDevice)"),
         (
+            "idb",
+            "idb (fb-idb and idb_companion), through which tools/ios_run.py touches the iOS Simulator's screen",
+        ),
+        (
             "browser",
             "a browser running the Emscripten program (headless Chromium through tools/emscripten_run.py)",
         ),
