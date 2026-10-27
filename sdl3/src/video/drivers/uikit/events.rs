@@ -13,8 +13,10 @@
 //! controllers' mice (`GCMouse`, iOS 14.1): each connected one is a mouse
 //! whose buttons and wheel send their events, and whose motion is the
 //! relative mode's, which locks the pointer
-//! ([`super::window::update_pointer_lock`]). The game controllers'
-//! keyboards (`GCKeyboard`) come with the keyboard.
+//! ([`super::window::update_pointer_lock`]); and the game controllers'
+//! keyboards (`GCKeyboard`, iOS 14): the one that all those connected
+//! make (`coalescedKeyboard`) is a keyboard, whose keys send their events
+//! (from a queue of their own, as the mice's do).
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -29,10 +31,12 @@ use crate::core::apple::objc::{
     autoreleasepool, class, imp, msg_send, sel, Bool, Class, ClassBuilder, DeclaredClass, Id, Sel,
     StrongPtr, NIL,
 };
+use crate::events::keyboard::{add_keyboard, remove_keyboard, send_keyboard_key, Scancode};
 use crate::events::mouse::{
     add_mouse, mouse_focus, remove_mouse, send_mouse_button, send_mouse_motion, send_mouse_wheel,
     MouseID, MouseWheelDirection, BUTTON_LEFT, BUTTON_MIDDLE, BUTTON_RIGHT, BUTTON_X1,
 };
+use crate::events::KeyboardID;
 
 use super::sys::*;
 
@@ -280,6 +284,184 @@ pub(crate) fn pump_events() {
 }
 
 // ---------------------------------------------------------------------------
+// The input handlers' queue
+
+#[link(name = "System", kind = "dylib")]
+unsafe extern "C" {
+    fn dispatch_set_target_queue(object: *mut std::ffi::c_void, queue: *mut std::ffi::c_void);
+}
+
+/// `DISPATCH_QUEUE_PRIORITY_HIGH`.
+const DISPATCH_QUEUE_PRIORITY_HIGH: isize = 2;
+
+/// Make a game controller's keyboard or mouse call its handlers on a new
+/// serial queue, `label`, of high priority (`dispatch_queue_create()`,
+/// `dispatch_set_target_queue()` and `device.handlerQueue = queue`).
+///
+/// # Safety
+///
+/// `device` must be a `GCDevice` (a `GCKeyboard`, a `GCMouse`).
+unsafe fn set_handler_queue(device: Id, label: &std::ffi::CStr) {
+    // SAFETY: GCD's functions, and the caller's contract (the device
+    // keeps the queue).
+    unsafe {
+        let queue = dispatch_queue_create(
+            label.as_ptr(),
+            crate::core::apple::block::DISPATCH_QUEUE_SERIAL,
+        );
+        dispatch_set_target_queue(
+            queue,
+            dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0),
+        );
+        let () = msg_send![device, setHandlerQueue: queue];
+        crate::core::apple::block::dispatch_release(queue);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GCKeyboard
+
+/// The `GCKeyboardDidConnectNotification` and
+/// `GCKeyboardDidDisconnectNotification` observers
+/// (`keyboard_connect_observer`, `keyboard_disconnect_observer`).
+static KEYBOARD_OBSERVERS: Mutex<(StrongPtr, StrongPtr)> =
+    Mutex::new((StrongPtr::nil(), StrongPtr::nil()));
+
+/// Translation of `OnGCKeyboardConnected()`.
+fn on_gc_keyboard_connected(keyboard: Id) {
+    let keyboard_id = keyboard as usize as KeyboardID;
+
+    add_keyboard(keyboard_id, None);
+
+    // `^(GCKeyboardInput *kbrd, GCControllerButtonInput *key, GCKeyCode keyCode, BOOL pressed) {...}`
+    let handler = RcBlock::new4(
+        move |_kbrd: Id, _key: Id, key_code: GCKeyCode, pressed: Bool| {
+            let timestamp = crate::timer::ticks();
+            send_keyboard_key(
+                timestamp,
+                keyboard_id,
+                0,
+                Scancode(key_code as u16),
+                pressed.is_true(),
+            );
+        },
+    );
+
+    // SAFETY: a GCKeyboard and its input; the handler is a block of the
+    // documented signature, which the input copies.
+    unsafe {
+        let input: Id = msg_send![keyboard, keyboardInput];
+        let () = msg_send![input, setKeyChangedHandler: handler.as_ptr()];
+
+        set_handler_queue(keyboard, c"org.libsdl.input.keyboard");
+    }
+}
+
+/// Translation of `OnGCKeyboardDisconnected()`.
+fn on_gc_keyboard_disconnected(keyboard: Id) {
+    let keyboard_id = keyboard as usize as KeyboardID;
+
+    remove_keyboard(keyboard_id);
+
+    // SAFETY: a GCKeyboard and its input.
+    unsafe {
+        let input: Id = msg_send![keyboard, keyboardInput];
+        let () = msg_send![input, setKeyChangedHandler: std::ptr::null_mut::<std::ffi::c_void>()];
+    }
+}
+
+/// Start following the game controllers' keyboards (from iOS 14), adding
+/// the one all connected ones make (`coalescedKeyboard`), whose keys send
+/// their events. Translation of `SDL_InitGCKeyboard()`.
+pub(crate) fn init_gc_keyboard() {
+    autoreleasepool(|| {
+        if available!(ios(14, 0), tvos(14, 0)) {
+            // (GameController is loaded at run time here: without it
+            // there's no keyboard to follow)
+            let connect_name = GCKeyboardDidConnectNotification();
+            let disconnect_name = GCKeyboardDidDisconnectNotification();
+            if connect_name.is_null() || disconnect_name.is_null() || class!(GCKeyboard).is_null() {
+                return;
+            }
+            // SAFETY: the notification center with notification blocks of
+            // the documented signature, and GCKeyboard's class property.
+            unsafe {
+                let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
+
+                let connect = RcBlock::new1(|note: Id| {
+                    // (a notification whose object is the GCKeyboard)
+                    let keyboard: Id = msg_send![note, object];
+                    on_gc_keyboard_connected(keyboard);
+                });
+                let connect_observer: Id = msg_send![center,
+                    addObserverForName: connect_name
+                    object: NIL
+                    queue: NIL
+                    usingBlock: connect.as_ptr()];
+
+                let disconnect = RcBlock::new1(|note: Id| {
+                    // (a notification whose object is the GCKeyboard)
+                    let keyboard: Id = msg_send![note, object];
+                    on_gc_keyboard_disconnected(keyboard);
+                });
+                let disconnect_observer: Id = msg_send![center,
+                    addObserverForName: disconnect_name
+                    object: NIL
+                    queue: NIL
+                    usingBlock: disconnect.as_ptr()];
+
+                *KEYBOARD_OBSERVERS.lock().unwrap_or_else(|e| e.into_inner()) = (
+                    StrongPtr::retain(connect_observer),
+                    StrongPtr::retain(disconnect_observer),
+                );
+
+                let coalesced: Id = msg_send![class!(GCKeyboard), coalescedKeyboard];
+                if !coalesced.is_null() {
+                    on_gc_keyboard_connected(coalesced);
+                }
+            }
+        }
+    })
+}
+
+/// Stop following the game controllers' keyboards, removing the one
+/// connected. Translation of `SDL_QuitGCKeyboard()`.
+pub(crate) fn quit_gc_keyboard() {
+    autoreleasepool(|| {
+        if available!(ios(14, 0), tvos(14, 0)) {
+            // SAFETY: the observers init_gc_keyboard() registered, the
+            // notification center and GCKeyboard's class property.
+            unsafe {
+                let center: Id = msg_send![class!(NSNotificationCenter), defaultCenter];
+                let (connect, disconnect) = std::mem::take(
+                    &mut *KEYBOARD_OBSERVERS.lock().unwrap_or_else(|e| e.into_inner()),
+                );
+
+                if !connect.is_nil() {
+                    let () = msg_send![center, removeObserver: connect.get()
+                                                         name: GCKeyboardDidConnectNotification()
+                                                       object: NIL];
+                }
+
+                if !disconnect.is_nil() {
+                    let () = msg_send![center, removeObserver: disconnect.get()
+                                                         name: GCKeyboardDidDisconnectNotification()
+                                                       object: NIL];
+                }
+
+                // (no GCKeyboard class without GameController)
+                if !class!(GCKeyboard).is_null() {
+                    let coalesced: Id = msg_send![class!(GCKeyboard), coalescedKeyboard];
+                    if !coalesced.is_null() {
+                        on_gc_keyboard_disconnected(coalesced);
+                    }
+                }
+            }
+        }
+    })
+}
+
+// ---------------------------------------------------------------------------
 // GCMouse
 
 /// The `GCMouseDidConnectNotification` and `GCMouseDidDisconnectNotification`
@@ -456,26 +638,7 @@ fn on_gc_mouse_connected(mouse: Id) {
         let () = msg_send![scroll, setValueChangedHandler: scrolled.as_ptr()];
         update_scroll_direction();
 
-        #[link(name = "System", kind = "dylib")]
-        unsafe extern "C" {
-            fn dispatch_set_target_queue(
-                object: *mut std::ffi::c_void,
-                queue: *mut std::ffi::c_void,
-            );
-        }
-        /// `DISPATCH_QUEUE_PRIORITY_HIGH`.
-        const DISPATCH_QUEUE_PRIORITY_HIGH: isize = 2;
-        let queue = dispatch_queue_create(
-            c"org.libsdl.input.mouse".as_ptr(),
-            crate::core::apple::block::DISPATCH_QUEUE_SERIAL,
-        );
-        dispatch_set_target_queue(
-            queue,
-            dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0),
-        );
-        let () = msg_send![mouse, setHandlerQueue: queue];
-        // (the mouse keeps its queue)
-        crate::core::apple::block::dispatch_release(queue);
+        set_handler_queue(mouse, c"org.libsdl.input.mouse");
     }
 
     update_pointer_lock();
