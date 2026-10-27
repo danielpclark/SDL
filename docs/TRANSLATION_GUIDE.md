@@ -146,7 +146,10 @@ they are used (there is no build script to make aliases):
   is translated (CoreAudio, MFi, the Metal renderer, CoreMedia, the
   notifications). Until then a subsystem falls back to what else is built,
   as upstream would without the piece (the offscreen and dummy video
-  drivers, no power information...).
+  drivers, the dummy audio driver...). The UIKit pieces that backends
+  other than the video driver share (UIDevice, UIApplication, the form
+  factor, which upstream keeps in the video driver) are in
+  `core/apple/uikit`, which links UIKit.
 * `@available(macOS 11.0, iOS 14.0, tvOS 14.0, *)` is
   `available!(macos(11, 0), ios(14, 0), tvos(14, 0))`
   (`core::apple::foundation`), checked at run time; a platform it doesn't
