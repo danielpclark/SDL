@@ -310,6 +310,21 @@ pub mod objc {
         invoke: *const c_void,
     }
 
+    /// Call a block of one argument, `^(A)`.
+    ///
+    /// # Safety
+    ///
+    /// `block` must be a block of that signature, returning nothing.
+    pub unsafe fn call_block1<A>(block: Id, a: A) {
+        // SAFETY: the caller's contract; a block's invoke function takes
+        // the block, then the arguments.
+        unsafe {
+            let invoke = (*(block as *const BlockLiteral)).invoke;
+            let f: unsafe extern "C" fn(Id, A) = std::mem::transmute(invoke);
+            f(block, a)
+        }
+    }
+
     /// Call a block of three arguments, `^(A, B, C)`.
     ///
     /// # Safety
