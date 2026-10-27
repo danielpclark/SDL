@@ -43,8 +43,7 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
-//! The keyboards' device events (upstream's `GCKeyboard`, which isn't
-//! translated yet) are left out. Elsewhere this program does nothing.
+//! Elsewhere this program does nothing.
 
 #[cfg(not(target_os = "ios"))]
 fn main() {}
@@ -658,12 +657,10 @@ quit
         }
     }
 
-    /// An event as the trace names it (the C program's names), `None` for
-    /// the keyboards' device events (see the module's description).
+    /// An event as the trace names it (the C program's names).
     fn describe(event: &Event) -> Option<String> {
         let n = event_name(event.event_type());
         Some(match event {
-            Event::KeyboardDevice(_) => return None,
             Event::MouseDevice(e) => format!("{n}(which={})", mouse_label(e.which)),
             Event::TouchFinger(e) => format!(
                 "{n}(touch={} finger=f{} x={:.4} y={:.4} dx={:.4} dy={:.4} p={:.4} w={})",

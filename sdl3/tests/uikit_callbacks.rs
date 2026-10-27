@@ -17,8 +17,7 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5),
-//! the keyboards' and mice's device events left out (see
-//! `tests/uikit_main.rs`). Elsewhere this program does nothing.
+//! the mice's device events left out (see `tests/uikit_main.rs`). Elsewhere this program does nothing.
 
 #[cfg(not(target_os = "ios"))]
 fn main() {}
@@ -59,6 +58,7 @@ init video: ok
 main: enter_app_main_callbacks returned 0
 main returns
 event DISPLAY_ORIENTATION(3)
+event KEYBOARD_ADDED
 warmup: application state 0
 iterate 1
 iterate 2: posting a memory warning
@@ -166,7 +166,7 @@ exit: after quit
             }
             match event {
                 // (see the module's description)
-                Event::KeyboardDevice(_) | Event::MouseDevice(_) => {}
+                Event::MouseDevice(_) => {}
                 _ if lifecycle && self.warmup => {}
                 Event::Display(d) => t(format!("event {name}({})", d.data1)),
                 _ => t(format!("event {name}")),

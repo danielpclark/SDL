@@ -38,8 +38,7 @@
 //! flag on UIKit (OpenGL ES isn't translated yet), so the flags are traced
 //! without it; upstream's window pointer property is a pointer, here a
 //! number (as the other drivers' are), traced as `(pointer)` both ways; the
-//! keyboards' and mice's device events (upstream's `GCKeyboard`, which
-//! isn't translated yet) are left out. Elsewhere this program does
+//! mice's device events are left out. Elsewhere this program does
 //! nothing.
 
 #[cfg(not(target_os = "ios"))]
@@ -81,7 +80,7 @@ mod ios {
     const EXPECTED: &str = "\
 init video: ok
 video driver: uikit
-events: DISPLAY_ORIENTATION(1,3)
+events: DISPLAY_ORIENTATION(1,3), KEYBOARD_ADDED
 application state: 0
 A: create 320x480: ok
 A: created: events: A:WINDOW_SAFE_AREA_CHANGED(0,0), A:WINDOW_MOUSE_ENTER(0,0), A:WINDOW_FOCUS_GAINED(0,0), A:WINDOW_SHOWN(0,0), A:WINDOW_PIXEL_SIZE_CHANGED(393,852)
@@ -376,12 +375,11 @@ quit
     }
 
     /// An event as the trace names it (the C program's names), `None` for
-    /// the keyboards' and mice's device events (see the module's
-    /// description).
+    /// the mice's device events (see the module's description).
     fn describe(event: &Event) -> Option<String> {
         let name = event_name(event.event_type());
         Some(match event {
-            Event::KeyboardDevice(_) | Event::MouseDevice(_) => return None,
+            Event::MouseDevice(_) => return None,
             Event::Display(d) => format!("{name}({},{})", d.display_id, d.data1),
             Event::Window(w) => format!(
                 "{}:{name}({},{})",
