@@ -13,7 +13,9 @@
 //! * [`foundation`]: the geometry types, `NSString` conversions, the
 //!   CoreFoundation objects and the `@available()` checks
 //!   ([`foundation::available!`]);
-//! * [`block`]: blocks wrapping Rust closures, and Grand Central Dispatch.
+//! * [`block`]: blocks wrapping Rust closures, and Grand Central Dispatch;
+//! * `uikit` (on the UIKit platforms): UIDevice and UIApplication, for the
+//!   backends besides the video driver.
 //!
 //! The system frameworks are linked, as upstream links them (Foundation
 //! and CoreFoundation here, the others by the backends that use them);
@@ -25,6 +27,9 @@ pub(crate) mod foundation;
 #[cfg(target_os = "macos")]
 pub(crate) mod iokit;
 pub(crate) mod objc;
+/// UIKit, for the backends besides the video driver.
+#[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+pub(crate) mod uikit;
 
 // Foundation's classes (NSString, NSArray, NSNumber, NSThread...) are
 // looked up by name, so nothing references the framework's symbols.

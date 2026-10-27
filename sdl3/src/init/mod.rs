@@ -828,14 +828,15 @@ impl FormFactor {
 
 /// The device's form factor. Translation of `SDL_GetDeviceFormFactor()`.
 ///
-/// Android/OpenHarmony/iOS (`SDL_PLATFORM_IOS`: every UIKit platform) query
-/// the OS at runtime (platform backends, not translated yet, so those report
-/// `Unknown`); other platforms are fixed.
-pub const fn device_form_factor() -> FormFactor {
-    if cfg!(any(
-        target_os = "android",
-        all(target_vendor = "apple", not(target_os = "macos"))
-    )) {
+/// iOS (`SDL_PLATFORM_IOS`: every UIKit platform) asks UIKit for the
+/// device's user interface idiom, and Android/OpenHarmony would ask the
+/// OS (that backend isn't translated yet, so Android reports `Unknown`);
+/// other platforms are fixed.
+pub fn device_form_factor() -> FormFactor {
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    return crate::core::apple::uikit::device_form_factor();
+    #[cfg(not(all(target_vendor = "apple", not(target_os = "macos"))))]
+    if cfg!(target_os = "android") {
         FormFactor::Unknown
     } else if cfg!(target_os = "horizon") {
         FormFactor::Handheld
@@ -845,15 +846,15 @@ pub const fn device_form_factor() -> FormFactor {
 }
 
 /// Translation of `SDL_IsPhone()`.
-pub const fn is_phone() -> bool {
+pub fn is_phone() -> bool {
     matches!(device_form_factor(), FormFactor::Phone)
 }
 /// Translation of `SDL_IsTablet()`.
-pub const fn is_tablet() -> bool {
+pub fn is_tablet() -> bool {
     matches!(device_form_factor(), FormFactor::Tablet)
 }
 /// Translation of `SDL_IsTV()`.
-pub const fn is_tv() -> bool {
+pub fn is_tv() -> bool {
     matches!(device_form_factor(), FormFactor::Tv)
 }
 
@@ -1042,9 +1043,9 @@ pub(crate) mod tests {
             "iOS"
         };
         assert_eq!(platform(), expected);
-        // (UIKit asks the device, which isn't translated yet)
-        if cfg!(not(target_os = "macos")) {
-            assert_eq!(device_form_factor(), FormFactor::Unknown);
+        // (UIKit asks the device: core::apple::uikit's tests)
+        if cfg!(target_os = "macos") {
+            assert_eq!(device_form_factor(), FormFactor::Desktop);
         }
     }
 
