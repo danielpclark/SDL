@@ -22,9 +22,8 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
-//! Upstream's driver also adds a keyboard (`GCKeyboard`), which isn't
-//! translated yet, so the keyboards' and mice's device events are left
-//! out of it. Elsewhere this program does nothing.
+//! The mice's device events are left out of it. Elsewhere this program
+//! does nothing.
 
 #[cfg(not(target_os = "ios"))]
 fn main() {}
@@ -61,7 +60,7 @@ mod ios {
     const EXPECTED: &str = "\
 init video: ok
 video driver: uikit
-events: DISPLAY_ORIENTATION(1,3)
+events: DISPLAY_ORIENTATION(1,3), KEYBOARD_ADDED
 start: displays: 1
 start: display 1 name=1 primary=yes
 start: bounds=0,0 393x852 usable=0,0 393x852
@@ -248,7 +247,7 @@ connected again: display for point 1000,1000: 3
 connected again: display for rect 300,0 200x200: 3
 quit video: displays: error: Video subsystem has not been initialized
 init video again: ok
-events: DISPLAY_ORIENTATION(4,3)
+events: DISPLAY_ORIENTATION(4,3), KEYBOARD_ADDED
 again: displays: 4
 again: display 4 name=4 primary=yes
 again: bounds=0,0 393x852 usable=0,0 393x852
@@ -299,12 +298,11 @@ quit
     }
 
     /// An event as the trace names it (the C program's names), `None` for
-    /// the keyboards' and mice's device events (see the module's
-    /// description).
+    /// the mice's device events (see the module's description).
     fn describe(event: &Event) -> Option<String> {
         let name = event_name(event.event_type());
         Some(match event {
-            Event::KeyboardDevice(_) | Event::MouseDevice(_) => return None,
+            Event::MouseDevice(_) => return None,
             Event::Display(d) => format!("{name}({},{})", d.display_id, d.data1),
             _ => name,
         })

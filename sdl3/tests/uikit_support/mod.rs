@@ -9,8 +9,9 @@
 //! and exits. [`request`] asks the runner for something done from outside
 //! the app (`background`: another app comes to the foreground;
 //! `foreground`: this one comes back; `tap X Y` and `swipe X1 Y1 X2 Y2
-//! SECONDS`: a finger touches the screen there, through idb, when the
-//! runner drives it, see [`idb`]).
+//! SECONDS`: a finger touches the screen there; `key CODE` and `text
+//! TEXT`: the hardware keyboard presses a key or types; through idb, when
+//! the runner drives it, see [`idb`]).
 //!
 //! A panic in a callback from Objective-C (the main function, which
 //! `run_app()` calls from the app delegate, or a main callback) aborts the
@@ -46,7 +47,8 @@ pub fn request(what: &str) {
 }
 
 /// Whether the runner drives idb (`Ok`), so that `tap` and `swipe`
-/// requests touch the screen, or why not: the runner tells the app in
+/// requests touch the screen (and `key` and `text` ones type), or why
+/// not: the runner tells the app in
 /// `SDL3_IOS_RUNNER_IDB` (`1`, or the reason). When `SDL3_TEST_REQUIRE`
 /// names `idb` (or `all`), its absence is a failure.
 pub fn idb() -> Result<(), String> {
@@ -320,6 +322,52 @@ pub mod objc {
             let invoke = (*(block as *const BlockLiteral)).invoke;
             let f: unsafe extern "C" fn(Id, A, B, C) = std::mem::transmute(invoke);
             f(block, a, b, c)
+        }
+    }
+
+    /// Call a block of four arguments, `^(A, B, C, D)`.
+    ///
+    /// # Safety
+    ///
+    /// As [`call_block3`].
+    pub unsafe fn call_block4<A, B, C, D>(block: Id, a: A, b: B, c: C, d: D) {
+        // SAFETY: as in call_block3().
+        unsafe {
+            let invoke = (*(block as *const BlockLiteral)).invoke;
+            let f: unsafe extern "C" fn(Id, A, B, C, D) = std::mem::transmute(invoke);
+            f(block, a, b, c, d)
+        }
+    }
+
+    /// The name of a selector.
+    pub fn sel_name(selector: Sel) -> String {
+        #[link(name = "objc")]
+        unsafe extern "C" {
+            fn sel_getName(sel: Sel) -> *const c_char;
+        }
+        // SAFETY: a selector's name, a C string the runtime keeps.
+        unsafe { CStr::from_ptr(sel_getName(selector)) }
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    /// The name of the superclass of an object's class.
+    pub fn superclass_name(obj: Id) -> String {
+        #[link(name = "objc")]
+        unsafe extern "C" {
+            fn class_getSuperclass(cls: Id) -> Id;
+            fn class_getName(cls: Id) -> *const c_char;
+        }
+        if obj.is_null() {
+            return "nil".into();
+        }
+        // SAFETY: a valid object; class names are C strings the runtime
+        // keeps.
+        unsafe {
+            let cls = class_getSuperclass(object_getClass(obj));
+            CStr::from_ptr(class_getName(cls))
+                .to_string_lossy()
+                .into_owned()
         }
     }
 
