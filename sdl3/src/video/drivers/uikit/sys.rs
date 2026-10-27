@@ -377,6 +377,35 @@ pub(crate) fn GCKeyboardDidDisconnectNotification() -> Id {
 pub(crate) type GCKeyCode = NSInteger;
 
 // ---------------------------------------------------------------------------
+// The pasteboard and alerts
+
+// (tvOS has no pasteboard)
+#[cfg(not(target_os = "tvos"))]
+#[link(name = "UIKit", kind = "framework")]
+unsafe extern "C" {
+    /// `UIPasteboardChangedNotification`: a pasteboard's contents changed
+    /// (posted by the pasteboard, in the process that changed them).
+    pub(crate) static UIPasteboardChangedNotification: Id;
+}
+
+#[link(name = "UIKit", kind = "framework")]
+unsafe extern "C" {
+    /// `UIWindowLevelAlert`.
+    pub(crate) static UIWindowLevelAlert: CGFloat;
+}
+
+/// `UIAlertControllerStyle`.
+pub(crate) type UIAlertControllerStyle = NSInteger;
+pub(crate) const UIAlertControllerStyleActionSheet: UIAlertControllerStyle = 0;
+pub(crate) const UIAlertControllerStyleAlert: UIAlertControllerStyle = 1;
+
+/// `UIAlertActionStyle`.
+pub(crate) type UIAlertActionStyle = NSInteger;
+pub(crate) const UIAlertActionStyleDefault: UIAlertActionStyle = 0;
+pub(crate) const UIAlertActionStyleCancel: UIAlertActionStyle = 1;
+pub(crate) const UIAlertActionStyleDestructive: UIAlertActionStyle = 2;
+
+// ---------------------------------------------------------------------------
 // Foundation
 
 #[link(name = "Foundation", kind = "framework")]
