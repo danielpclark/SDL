@@ -533,7 +533,9 @@ extern "C" fn vc_do_loop(this: Id, _sel: Sel, _sender: Id) {
     };
 
     // Don't run the game loop while a messagebox is up
-    // (message boxes aren't translated yet)
+    if super::messagebox::showing_message_box() {
+        return;
+    }
     let Some(mut callback) = state.animation_callback.borrow_mut().take() else {
         return;
     };

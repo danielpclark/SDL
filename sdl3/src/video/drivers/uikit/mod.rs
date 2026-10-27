@@ -10,8 +10,10 @@
 //! windows ([`window`]), with their views ([`view`], which turn UIKit's
 //! touches, pointer, pinches and hardware keys' presses into SDL's
 //! events) and view controllers ([`viewcontroller`], with text input and
-//! the on-screen keyboard), the Apple Pencil ([`pen`]), and the game
-//! controllers' keyboards and mice ([`events`]).
+//! the on-screen keyboard), the Apple Pencil ([`pen`]), the game
+//! controllers' keyboards and mice ([`events`]), the clipboard
+//! ([`clipboard`], the general pasteboard's text) and message boxes
+//! ([`messagebox`], alert controllers).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -26,15 +28,16 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: the clipboard, message boxes, OpenGL ES, Metal
-//! views and Vulkan.
+//! Not translated yet: OpenGL ES, Metal views and Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
 #![allow(non_upper_case_globals, non_snake_case)] // (the SDK's names are kept)
 
 pub(crate) mod appdelegate;
+pub(crate) mod clipboard;
 pub(crate) mod events;
+pub(crate) mod messagebox;
 pub(crate) mod modes;
 pub(crate) mod pen;
 pub(crate) mod sys;
@@ -42,10 +45,11 @@ pub(crate) mod view;
 pub(crate) mod viewcontroller;
 pub(crate) mod window;
 
-use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::apple::foundation::CGRect;
-use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id};
+use crate::core::apple::objc::{autoreleasepool, class, msg_send, Bool, Id, StrongPtr};
 use crate::core::apple::uikit::shared_application;
 use crate::error::Result;
 use crate::events::mouse::MouseFeature;
@@ -65,9 +69,29 @@ use sys::{
 };
 
 /// The UIKit video driver (the function pointers of the `SDL_VideoDevice`
-/// that `UIKit_CreateDevice()` fills in). Upstream's `SDL_UIKitVideoData`
-/// holds the clipboard's state, which isn't translated yet.
-pub(crate) struct UIKitVideo;
+/// that `UIKit_CreateDevice()` fills in), with its data.
+pub(crate) struct UIKitVideo {
+    data: Arc<VideoData>,
+}
+
+/// The driver's data (`_this->internal`). Translation of
+/// `SDL_UIKitVideoData`: the clipboard's state.
+pub(crate) struct VideoData {
+    pasteboard_observer: Mutex<StrongPtr>,
+    /// Whether the pasteboard is being set (its change notification is
+    /// SDL's own then; tvOS has no pasteboard).
+    #[cfg_attr(target_os = "tvos", allow(dead_code))]
+    pub(crate) setting_clipboard: AtomicBool,
+}
+
+impl VideoData {
+    /// `data.pasteboardObserver`.
+    pub(crate) fn pasteboard_observer(&self) -> MutexGuard<'_, StrongPtr> {
+        self.pasteboard_observer
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+    }
+}
 
 /// Translation of `UIKit_CreateDevice()`.
 fn create_device() -> Option<Arc<dyn VideoDriver>> {
@@ -79,7 +103,11 @@ fn create_device() -> Option<Arc<dyn VideoDriver>> {
             return None; // this doesn't SDL_SetError() because SDL_InitVideo is just going to overwrite it.
         }
 
-        let video: Arc<dyn VideoDriver> = Arc::new(UIKitVideo);
+        let data = Arc::new(VideoData {
+            pasteboard_observer: Mutex::new(StrongPtr::nil()),
+            setting_clipboard: AtomicBool::new(false),
+        });
+        let video: Arc<dyn VideoDriver> = Arc::new(UIKitVideo { data });
         Some(video)
     })
 }
@@ -89,13 +117,12 @@ pub(crate) static UIKIT_BOOTSTRAP: VideoBootStrap = VideoBootStrap {
     name: "uikit",
     desc: "SDL UIKit video driver",
     create: create_device,
-    // (UIKit_ShowMessageBox() isn't translated yet)
-    show_message_box: None,
+    show_message_box: Some(messagebox::show_message_box),
     is_preferred: false,
 };
 
 /// Translation of `UIKit_VideoInit()`.
-fn video_init() -> Result<()> {
+fn video_init(data: &Arc<VideoData>) -> Result<()> {
     let _ = crate::video::core::with_device(|v| v.gl_driver_loaded = 1);
 
     if !modes::init_modes() {
@@ -107,15 +134,14 @@ fn video_init() -> Result<()> {
     events::init_gc_keyboard();
     events::init_gc_mouse();
 
-    // (UIKit_InitClipboard() comes with the clipboard, which isn't
-    // translated yet)
+    clipboard::init_clipboard(data);
 
     Ok(())
 }
 
 /// Translation of `UIKit_VideoQuit()`.
-fn video_quit() {
-    // (UIKit_QuitClipboard(): see video_init())
+fn video_quit(data: &VideoData) {
+    clipboard::quit_clipboard(data);
 
     events::quit_gc_keyboard();
     events::quit_gc_mouse();
@@ -404,11 +430,11 @@ impl VideoDriver for UIKitVideo {
         // gl_config.accelerated to 1, which SDL_VideoInit() resets.)
         let theme = autoreleasepool(get_system_theme);
         let _ = crate::video::core::with_device(|v| v.system_theme = theme);
-        video_init()
+        video_init(&self.data)
     }
 
     fn video_quit(&self) {
-        video_quit()
+        video_quit(&self.data)
     }
 
     fn display_usable_bounds(&self, display: DisplayID) -> Option<Result<Rect>> {
@@ -504,6 +530,22 @@ impl VideoDriver for UIKitVideo {
 
     fn update_text_input_area(&self, window: WindowID) -> Option<Result<()>> {
         Some(viewcontroller::uikit_update_text_input_area(window))
+    }
+
+    fn implements_clipboard_text(&self) -> bool {
+        true
+    }
+
+    fn set_clipboard_text(&self, text: &str) -> Option<Result<()>> {
+        Some(clipboard::set_clipboard_text(&self.data, text))
+    }
+
+    fn clipboard_text(&self) -> Option<Option<String>> {
+        Some(Some(clipboard::get_clipboard_text()))
+    }
+
+    fn has_clipboard_text(&self) -> Option<bool> {
+        Some(clipboard::has_clipboard_text())
     }
 
     fn pump_events(&self) -> Option<()> {
