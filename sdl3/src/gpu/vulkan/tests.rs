@@ -3167,6 +3167,52 @@ fn unmappable_memory_is_freed() {
     assert_eq!(count(&r), before);
 }
 
+/// (diagnostic) unmappable_memory_is_freed's device, DIAG_N times: memory
+/// allocated and freed, then the device destroyed (it waits first); and a
+/// transfer buffer made and released, DIAG_MODE=buffer.
+#[test]
+#[ignore = "diagnostic"]
+fn diag_stress_free_then_destroy() {
+    let n: usize = std::env::var("DIAG_N")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+    let buffer_mode = std::env::var("DIAG_MODE").as_deref() == Ok("buffer");
+    let _l = crate::test_support::test_lock();
+    let _v = Video::init();
+    for _ in 0..n {
+        let Some(mut r) = renderer() else {
+            return;
+        };
+        if buffer_mode {
+            let container = r
+                .create_buffer_container(
+                    4096,
+                    crate::gpu::BufferUsageFlags::default(),
+                    VulkanBufferType::Transfer,
+                    true,
+                    None,
+                )
+                .unwrap();
+            r.release_buffer_container(&container);
+        } else {
+            let real_map = r.0.dev.map_memory;
+            r.0.dev.map_memory = failing_map_memory;
+            let result = r.create_buffer_container(
+                4096,
+                crate::gpu::BufferUsageFlags::default(),
+                VulkanBufferType::Transfer,
+                true,
+                None,
+            );
+            r.0.dev.map_memory = real_map;
+            assert!(result.is_err());
+        }
+        drop(r);
+    }
+    eprintln!("DIAG-STRESS done: {n} devices");
+}
+
 /// `vkEndCommandBuffer` that always fails.
 unsafe extern "system" fn failing_end_command_buffer(_command_buffer: VkCommandBuffer) -> VkResult {
     VK_ERROR_OUT_OF_DEVICE_MEMORY

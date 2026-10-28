@@ -1,8 +1,9 @@
 name: diag-stress
 
-# Diagnostic only (branch claude/diag-macos-segv): vulkan_releases_the_loader's
-# simulated device loss many times per process, alternately without and
-# with waiting for the device first, on the same runner.
+# Diagnostic only (branch claude/diag-macos-segv): gpu::vulkan devices that
+# free memory and are destroyed, DIAG_N times per process, with MoltenVK's
+# MTLHeaps (its default) and without (MVK_CONFIG_USE_MTLHEAP=0), alternately
+# on the same runner.
 on:
   push:
     branches: [claude/diag-macos-segv]
@@ -28,6 +29,7 @@ jobs:
           - { toolchain: "1.87", n: a }
           - { toolchain: "1.87", n: b }
           - { toolchain: "1.99", n: c }
+          - { toolchain: "1.99", n: d }
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -47,47 +49,50 @@ jobs:
           sudo mkdir -p /usr/local/lib
           sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
       - run: cargo test -p sdl3 --lib --no-run
-      - name: Alternate without and with the wait
+      - name: Alternate the variants
         shell: bash
         env:
-          DIAG_N: "50"
+          DIAG_N: "100"
         run: |
           set +e
           start=$(date +%s)
           i=0
-          declare -A runs fails crashes
-          for v in nowait wait; do runs[$v]=0; fails[$v]=0; crashes[$v]=0; done
           touch "$RUNNER_TEMP/marker"
-          while [ $(( $(date +%s) - start )) -lt 1800 ]; do
+          for v in heap_unmappable noheap_unmappable heap_buffer noheap_buffer; do
+            eval "runs_$v=0 fails_$v=0 crashes_$v=0"
+          done
+          while [ $(( $(date +%s) - start )) -lt 2100 ]; do
             i=$((i + 1))
-            for v in nowait wait; do
+            for v in heap_unmappable noheap_unmappable heap_buffer noheap_buffer; do
               rm -rf "$(getconf DARWIN_USER_CACHE_DIR)"com.apple.metal* 2>/dev/null
+              case $v in noheap_*) export MVK_CONFIG_USE_MTLHEAP=0 ;; *) unset MVK_CONFIG_USE_MTLHEAP ;; esac
+              case $v in *_buffer) export DIAG_MODE=buffer ;; *) unset DIAG_MODE ;; esac
               log="$RUNNER_TEMP/$v-$i.log"
-              if [ $v = wait ]; then export DIAG_WAIT=1; else unset DIAG_WAIT; fi
-              cargo test -q -p sdl3 --lib -- --ignored --exact render::vulkan::tests::diag_stress_device_lost > "$log" 2>&1
+              cargo test -q -p sdl3 --lib -- --ignored --exact gpu::vulkan::tests::diag_stress_free_then_destroy > "$log" 2>&1
               rc=$?
-              runs[$v]=$(( ${runs[$v]} + 1 ))
+              eval "runs_$v=\$((runs_$v + 1))"
               if [ $rc -ne 0 ]; then
-                fails[$v]=$(( ${fails[$v]} + 1 ))
+                eval "fails_$v=\$((fails_$v + 1))"
                 kind=failed
                 if grep -q "SIGSEGV\|SIGBUS\|signal: 11\|signal: 10" "$log"; then
-                  crashes[$v]=$(( ${crashes[$v]} + 1 )); kind=crashed
+                  eval "crashes_$v=\$((crashes_$v + 1))"; kind=crashed
                 fi
-                echo "round $i $v: rc=$rc $kind $(grep -m1 -A2 'panicked at' "$log" | tr '\n' ' ' | cut -c1-200)"
+                echo "round $i $v: rc=$rc $kind $(grep -m1 -A2 'panicked at' "$log" | tr '\n' ' ' | cut -c1-240)"
+                grep -m3 "mvk-error" "$log" | cut -c1-200
                 sleep 10
                 for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
                   find "$d" -newer "$RUNNER_TEMP/marker" -name 'sdl3-*' 2>/dev/null
                 done > "$RUNNER_TEMP/ips.txt"
                 if [ -s "$RUNNER_TEMP/ips.txt" ]; then
                   xargs python3 -I tools/ci/diag_ips.py < "$RUNNER_TEMP/ips.txt" > "$RUNNER_TEMP/ips-$v-$i.txt"
-                  grep -A2 "^--- faulting thread" "$RUNNER_TEMP/ips-$v-$i.txt" | sed "s/^/  CRASH $v $i: /" | cut -c1-200
-                  grep -A12 "diag_stress\|^--- thread .*diag" "$RUNNER_TEMP/ips-$v-$i.txt" | grep -E "libMoltenVK|_4sdl3" | head -4 | sed "s/^/  CRASH $v $i: /" | cut -c1-250
+                  grep -A6 "^--- faulting thread" "$RUNNER_TEMP/ips-$v-$i.txt" | sed "s/^/  CRASH $v $i: /" | cut -c1-200
+                  grep -A14 "^--- thread .*diag_stress" "$RUNNER_TEMP/ips-$v-$i.txt" | grep -E "libMoltenVK|_4sdl3" | head -5 | sed "s/^/  CRASH $v $i: /" | cut -c1-250
                 fi
                 touch "$RUNNER_TEMP/marker"
               fi
             done
           done
-          for v in nowait wait; do
-            line="SUMMARY ${{ matrix.toolchain }} ${{ matrix.n }} $v: ${runs[$v]} processes of $DIAG_N losses, ${fails[$v]} failed, ${crashes[$v]} crashed"
+          for v in heap_unmappable noheap_unmappable heap_buffer noheap_buffer; do
+            eval "line=\"SUMMARY ${{ matrix.toolchain }} ${{ matrix.n }} $v: \$runs_$v processes of $DIAG_N devices, \$fails_$v failed, \$crashes_$v crashed\""
             echo "$line"; echo "$line" >> "$GITHUB_STEP_SUMMARY"
           done
