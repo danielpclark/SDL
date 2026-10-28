@@ -18,14 +18,14 @@
 //! through [`crate::hidapi`], with the Xbox 360, Xbox One, PS4, PS5 and
 //! Nintendo Switch device drivers), the Linux driver (evdev devices, found
 //! through libudev or inotify), the Windows drivers (RawInput; DirectInput
-//! and XInput; Windows.Gaming.Input), the IOKit and MFi (GameController)
-//! drivers (macOS), the Emscripten driver (the browser's Gamepad API), the
-//! virtual driver
+//! and XInput; Windows.Gaming.Input), the IOKit driver (macOS), the MFi
+//! (GameController) driver (every Apple platform), the Emscripten driver
+//! (the browser's Gamepad API), the virtual driver
 //! ([`attach_virtual_joystick`]) and the dummy driver (on platforms without
 //! a driver), which reports no devices, exist; the other HIDAPI device
 //! drivers and platform drivers arrive later.
 
-#[cfg(target_os = "macos")]
+#[cfg(target_vendor = "apple")]
 pub(crate) mod apple;
 mod controller_type;
 #[cfg(target_os = "macos")]
@@ -34,7 +34,7 @@ mod device_info;
 #[cfg(not(any(
     windows,
     target_os = "linux",
-    target_os = "macos",
+    target_vendor = "apple",
     target_os = "emscripten"
 )))]
 mod dummy;
@@ -551,9 +551,10 @@ pub(crate) trait JoystickDriver: Send + Sync {
 
 /// `SDL_JOYSTICK_MFI`: whether the GameController framework (MFi) joystick
 /// driver is built, as upstream builds it on macOS (where both
-/// GameController and CoreHaptics are available). The HIDAPI and IOKit
-/// drivers leave the controllers it supports to it.
-#[cfg(target_os = "macos")]
+/// GameController and CoreHaptics are available) and the UIKit platforms.
+/// The HIDAPI and IOKit drivers leave the controllers it supports to it.
+#[cfg(target_vendor = "apple")]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))] // (read by the HIDAPI and IOKit drivers)
 pub(crate) const JOYSTICK_MFI: bool = true;
 
 /// The index of the HIDAPI driver in [`JOYSTICK_DRIVERS`] (the highest
@@ -586,9 +587,11 @@ const LINUX_DRIVER_INDEX: usize = 1;
 #[cfg(target_os = "macos")]
 const DARWIN_DRIVER_INDEX: usize = 1;
 
-/// The index of the MFi (GameController) driver in [`JOYSTICK_DRIVERS`].
-#[cfg(target_os = "macos")]
-pub(crate) const MFI_DRIVER_INDEX: usize = 2;
+/// The index of the MFi (GameController) driver in [`JOYSTICK_DRIVERS`]
+/// (after the HIDAPI and IOKit drivers on macOS; first on the UIKit
+/// platforms, where those aren't built).
+#[cfg(target_vendor = "apple")]
+pub(crate) const MFI_DRIVER_INDEX: usize = if cfg!(target_os = "macos") { 2 } else { 0 };
 
 /// The index of the Emscripten (Gamepad API) driver in [`JOYSTICK_DRIVERS`]
 /// (for the driver order's test: nothing else compares with it).
@@ -601,6 +604,8 @@ const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
 } else if cfg!(target_os = "macos") {
     3
+} else if cfg!(target_vendor = "apple") {
+    1
 } else if cfg!(target_os = "linux") {
     2
 } else if cfg!(target_os = "emscripten") {
@@ -630,7 +635,9 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     &linux::LINUX_JOYSTICK_DRIVER,
     #[cfg(target_os = "macos")]
     &darwin::DARWIN_JOYSTICK_DRIVER,
-    #[cfg(target_os = "macos")]
+    // (SDL_IOS_JoystickDriver: on macOS, iOS and tvOS, and on visionOS,
+    // which SDL_PLATFORM_IOS covers)
+    #[cfg(target_vendor = "apple")]
     &apple::MFI_JOYSTICK_DRIVER,
     #[cfg(target_os = "emscripten")]
     &emscripten::EMSCRIPTEN_JOYSTICK_DRIVER,
@@ -638,7 +645,7 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     #[cfg(not(any(
         windows,
         target_os = "linux",
-        target_os = "macos",
+        target_vendor = "apple",
         target_os = "emscripten"
     )))]
     &dummy::DUMMY_JOYSTICK_DRIVER,
@@ -745,7 +752,7 @@ fn with_state<R>(f: impl FnOnce(&mut JoystickState) -> R) -> R {
 
 /// The index in [`JOYSTICK_DRIVERS`] of an open joystick's driver
 /// (`joystick->driver`, for the checks that compare it with a driver).
-#[cfg(target_os = "macos")]
+#[cfg(target_vendor = "apple")]
 pub(crate) fn joystick_driver_index(instance_id: JoystickID) -> Option<usize> {
     with_joystick(instance_id, |j| j.driver)
 }

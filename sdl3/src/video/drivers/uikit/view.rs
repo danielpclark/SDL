@@ -711,9 +711,9 @@ fn scancode_from_press(press: Id) -> Scancode {
     #[cfg(target_os = "tvos")]
     let controller_opened = {
         // tvOS doesn't send these for game controllers, but does for the Siri remote
-        // (SDL_AppleTVRemoteOpenedAsJoystick comes with tvOS's joystick
-        // driver, which isn't translated yet)
-        false
+        crate::joystick::apple::APPLE_TV_REMOTE_OPENED_AS_JOYSTICK
+            .load(std::sync::atomic::Ordering::Relaxed)
+            > 0
     };
     #[cfg(not(target_os = "tvos"))]
     let controller_opened = {

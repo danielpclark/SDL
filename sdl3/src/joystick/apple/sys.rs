@@ -4,11 +4,13 @@
 // Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 // This is an altered (translated) version of the original software; see LICENSE.txt.
 
-//! Upstream links GameController and CoreHaptics; CoreHaptics only exists
-//! from macOS 10.15 (and the driver only runs from macOS 11), while the
-//! x86-64 build here may start on older systems. So both frameworks are
-//! loaded when the driver initializes (`[GCController class]` being nil
-//! without them, as upstream checks), and their exported constants are
+//! Upstream links GameController, and CoreHaptics weakly; CoreHaptics only
+//! exists from macOS 10.15, iOS 13 and tvOS 14 (and the driver only runs
+//! from macOS 11), while the x86-64 macOS build here may start on older
+//! systems. So both frameworks are loaded when the driver initializes
+//! (`[GCController class]` being nil without GameController, as upstream
+//! checks; without CoreHaptics its classes are nil, as a weakly linked
+//! framework's, and its constants nil), and their exported constants are
 //! read through the loader. The classes are looked up by name once loaded.
 
 use std::sync::OnceLock;
@@ -50,8 +52,9 @@ pub(crate) struct GCAcceleration {
 /// them).
 struct Frameworks {
     game_controller: SharedObject,
-    #[allow(dead_code)] // (kept loaded: its classes are looked up by name)
-    core_haptics: SharedObject,
+    /// (kept loaded: its classes are looked up by name; `None` before iOS
+    /// 13 and tvOS 14)
+    core_haptics: Option<SharedObject>,
 }
 
 const GAME_CONTROLLER_PATH: &str =
@@ -64,25 +67,27 @@ fn frameworks() -> Option<&'static Frameworks> {
         .get_or_init(|| {
             Some(Frameworks {
                 game_controller: SharedObject::load(GAME_CONTROLLER_PATH).ok()?,
-                core_haptics: SharedObject::load(CORE_HAPTICS_PATH).ok()?,
+                core_haptics: SharedObject::load(CORE_HAPTICS_PATH).ok(),
             })
         })
         .as_ref()
 }
 
-/// Load GameController and CoreHaptics; whether both are there (upstream's
-/// build only enables MFi with both, "to ensure rumble works").
+/// Load GameController and CoreHaptics; whether GameController is there
+/// (CoreHaptics is weakly linked upstream; on macOS its build only enables
+/// MFi with both, "to ensure rumble works", and every macOS the driver
+/// starts on has it).
 pub(crate) fn load_frameworks() -> bool {
     frameworks().is_some()
 }
 
 /// The value of an exported `NSString *const` of a framework, nil when the
 /// framework or the symbol is missing.
-fn string_constant(lib: fn(&Frameworks) -> &SharedObject, name: &str) -> Id {
-    let Some(f) = frameworks() else {
+fn string_constant(lib: fn(&Frameworks) -> Option<&SharedObject>, name: &str) -> Id {
+    let Some(lib) = frameworks().and_then(lib) else {
         return std::ptr::null_mut();
     };
-    match lib(f).symbol(name) {
+    match lib.symbol(name) {
         // SAFETY: the symbol is an `NSString *const` the framework exports.
         Ok(p) => unsafe { *(p.as_ptr() as *const Id) },
         Err(_) => std::ptr::null_mut(),
@@ -106,7 +111,7 @@ macro_rules! gc_strings {
         $(
             #[doc = concat!("`", $sym, "`.")]
             pub(crate) fn $fn_name() -> Id {
-                string_constant(|f| &f.game_controller, $sym)
+                string_constant(|f| Some(&f.game_controller), $sym)
             }
         )*
     };
@@ -117,7 +122,7 @@ macro_rules! ch_strings {
         $(
             #[doc = concat!("`", $sym, "`.")]
             pub(crate) fn $fn_name() -> Id {
-                string_constant(|f| &f.core_haptics, $sym)
+                string_constant(|f| f.core_haptics.as_ref(), $sym)
             }
         )*
     };
