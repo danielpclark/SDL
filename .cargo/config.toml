@@ -74,3 +74,12 @@ runner = "tools/ios_run.py"
 
 [target.aarch64-apple-tvos]
 runner = "tools/ios_run.py"
+
+# The same for visionOS: `cargo test --target aarch64-apple-visionos-sim`
+# runs the programs on a simulated Apple Vision Pro (a visionOS Simulator
+# runtime is needed).
+[target.aarch64-apple-visionos-sim]
+runner = "tools/ios_run.py"
+
+[target.aarch64-apple-visionos]
+runner = "tools/ios_run.py"
