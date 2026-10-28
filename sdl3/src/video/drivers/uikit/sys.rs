@@ -335,6 +335,12 @@ fn game_controller_framework() -> Option<usize> {
     })
 }
 
+/// Load GameController (once); whether it's there.
+#[cfg(target_os = "tvos")]
+pub(crate) fn load_game_controller() -> bool {
+    game_controller_framework().is_some()
+}
+
 /// An `NSString *const` GameController exports (nil without the framework
 /// or the symbol).
 fn game_controller_string(name: &std::ffi::CStr) -> Id {

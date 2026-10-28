@@ -289,15 +289,16 @@ fn rumble_results_keep_the_last_error() {
 }
 
 /// The driver starts (there being no controller here is fine, and nothing
-/// waits for GameController's discovery), is placed after the IOKit driver,
-/// and quits.
+/// waits for GameController's discovery), is placed after the IOKit driver
+/// on macOS (first on the UIKit platforms), and quits.
 #[test]
 fn driver_starts_and_quits() {
-    use crate::joystick::{
-        lock_joysticks, DARWIN_DRIVER_INDEX, JOYSTICK_DRIVERS, MFI_DRIVER_INDEX,
-    };
+    use crate::joystick::{lock_joysticks, JOYSTICK_DRIVERS, MFI_DRIVER_INDEX};
     let _l = crate::test_support::test_lock();
-    assert_eq!(MFI_DRIVER_INDEX, DARWIN_DRIVER_INDEX + 1);
+    #[cfg(target_os = "macos")]
+    assert_eq!(MFI_DRIVER_INDEX, crate::joystick::DARWIN_DRIVER_INDEX + 1);
+    #[cfg(not(target_os = "macos"))]
+    assert_eq!(MFI_DRIVER_INDEX, 0);
     assert!(std::ptr::eq(
         JOYSTICK_DRIVERS[MFI_DRIVER_INDEX] as *const dyn JoystickDriver as *const u8,
         &MFI_JOYSTICK_DRIVER as *const MfiJoystickDriver as *const u8
@@ -326,9 +327,13 @@ fn driver_starts_and_quits() {
     };
     println!("MFi controllers: {count}");
     assert!(lock_state().connect_observer.get() != NIL || !available!(macos(11, 0)));
+    #[cfg(target_os = "tvos")]
+    assert!(lock_state().rotation_hint.is_some());
     crate::init::quit_subsystem(crate::init::InitFlags::JOYSTICK);
     assert!(lock_state().devices.is_empty());
     assert!(lock_state().connect_observer.is_nil());
+    #[cfg(target_os = "tvos")]
+    assert!(lock_state().rotation_hint.is_none());
 
     // With the hint off, the driver doesn't start
     hints::set(hints::JOYSTICK_MFI, "0").unwrap();

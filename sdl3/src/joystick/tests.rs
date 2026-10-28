@@ -618,6 +618,20 @@ fn driver_order() {
         }
         assert_eq!(JOYSTICK_DRIVERS.len(), 4);
     }
+    #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
+    {
+        // MFi, then the virtual driver (no IOKit driver, and the HIDAPI
+        // driver comes with its Bluetooth backend); no dummy driver
+        let mfi_driver: &dyn JoystickDriver = &apple::MFI_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[MFI_DRIVER_INDEX],
+            mfi_driver
+        ));
+        const {
+            assert!(MFI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
+        }
+        assert_eq!(JOYSTICK_DRIVERS.len(), 2);
+    }
     #[cfg(target_os = "emscripten")]
     {
         // The Emscripten (Gamepad API) driver, then the virtual driver; no
