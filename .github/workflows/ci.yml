@@ -459,8 +459,8 @@ jobs:
       # does not meet the hardware requirements for SDL_GPU Metal": the
       # Metal renderer, which has a device there, must not skip), there's
       # no MoltenVK (vulkan), and the offscreen driver has no EGL on Apple
-      # platforms (egl). Any other skip (idb's and gles's too) fails the job,
-      # in place of an SDL3_TEST_REQUIRE list.
+      # platforms (egl). Any other skip (idb's, gles's and gamecontroller's
+      # too) fails the job, in place of an SDL3_TEST_REQUIRE list.
       - name: Check the skips
         if: ${{ !cancelled() && !inputs.ios_test_args }}
         shell: bash

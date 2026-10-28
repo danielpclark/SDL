@@ -246,3 +246,7 @@ harness = false
 [[test]]
 name = "uikit_audio"
 harness = false
+
+[[test]]
+name = "uikit_gamepad"
+harness = false
