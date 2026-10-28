@@ -1519,9 +1519,17 @@ fn vulkan_fails_without_vulkan_surfaces() {
     let window = Window::create("no vulkan", 16, 16, WindowFlags::default()).unwrap();
     assert!(Renderer::for_window(&window, Some(VULKAN_RENDERER)).is_err());
     assert!(!window.flags().unwrap().contains(WindowFlags::VULKAN));
-    let r = Renderer::for_window(&window, None).unwrap();
-    assert_eq!(r.name(), SOFTWARE_RENDERER);
-    drop(r);
+    let r = Renderer::for_window(&window, None);
+    if cfg!(target_os = "visionos") {
+        // (nor the software one, which can't be made there: its output
+        // colorspace is always linear sRGB, as upstream's)
+        assert_eq!(
+            r.err().unwrap().message(),
+            "Couldn't find matching render driver"
+        );
+    } else {
+        assert_eq!(r.unwrap().name(), SOFTWARE_RENDERER);
+    }
     window.destroy();
     init::quit();
     hints::reset(hints::VIDEO_DRIVER);
