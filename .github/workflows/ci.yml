@@ -14,6 +14,14 @@ on:
         description: "The iOS Simulator job's cargo test arguments in place of --workspace (e.g. -p sdl3 --lib -- video::)"
         type: string
         default: ""
+      tvos_only:
+        description: Run only the tvOS Simulator job
+        type: boolean
+        default: false
+      tvos_test_args:
+        description: "The tvOS Simulator job's cargo test arguments in place of --workspace (e.g. -p sdl3 --test uikit_tvos_input)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -34,7 +42,7 @@ env:
 jobs:
   fmt:
     name: rustfmt
-    if: ${{ !inputs.ios_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -46,7 +54,7 @@ jobs:
 
   clippy:
     name: clippy (${{ matrix.os }})
-    if: ${{ !inputs.ios_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,12 +65,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: clippy
           # Intel Macs: the x86-64 build is linted on the Apple Silicon
-          # runner; Emscripten and iOS (the device, the arm64 Simulator and
-          # the x86-64 one) on the Linux one (no emcc or SDK is needed to
-          # lint)
-          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios' || '' }}
+          # runner; Emscripten, iOS and tvOS (the devices, the arm64
+          # Simulators and the x86-64 ones) on the Linux one (no emcc or SDK
+          # is needed to lint; rust-src builds the standard library of
+          # x86_64-apple-tvos, a tier 3 target)
+          components: ${{ matrix.os == 'ubuntu-latest' && 'clippy,rust-src' || 'clippy' }}
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin' || matrix.os == 'ubuntu-latest' && 'wasm32-unknown-emscripten,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios,aarch64-apple-tvos,aarch64-apple-tvos-sim' || '' }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - if: matrix.os == 'macos-latest'
@@ -75,13 +84,24 @@ jobs:
         run: cargo clippy --workspace --all-targets --target aarch64-apple-ios-sim -- -D warnings
       - if: matrix.os == 'ubuntu-latest'
         run: cargo clippy --workspace --all-targets --target x86_64-apple-ios -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target aarch64-apple-tvos -- -D warnings
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --target aarch64-apple-tvos-sim -- -D warnings
+      # (the x86-64 tvOS Simulator is a tier 3 target: its standard library
+      # is built from rust-src, which takes the pinned toolchain's unstable
+      # -Zbuild-std; RUSTC_BOOTSTRAP allows it on a stable release)
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy -Zbuild-std --workspace --all-targets --target x86_64-apple-tvos -- -D warnings
+        env:
+          RUSTC_BOOTSTRAP: 1
       # sdl3-mixer's zlib-only build (no `timidity`, `fluidsynth`, `mpg123` or
       # `gme` feature)
       - run: cargo clippy -p sdl3-mixer --all-targets --no-default-features -- -D warnings
 
   test:
     name: test (${{ matrix.os }}, ${{ matrix.toolchain }})
-    if: ${{ !inputs.ios_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -277,7 +297,7 @@ jobs:
   # runner, checked with 1.87 in the test job.)
   emscripten:
     name: test (wasm32-unknown-emscripten, node and Chrome)
-    if: ${{ !inputs.ios_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -381,6 +401,7 @@ jobs:
   # test job.) Xcode, the simulator's runtime and its device are pinned.
   ios:
     name: test (aarch64-apple-ios-sim, iOS Simulator)
+    if: ${{ !inputs.tvos_only }}
     runs-on: macos-15
     timeout-minutes: 90
     env:
@@ -500,9 +521,93 @@ jobs:
         if: always()
         run: pkill -x idb_companion || true
 
+  # The test programs built for the tvOS Simulator, run on a simulated
+  # Apple TV through tools/ios_run.py, as the iOS job runs them: the tests
+  # and doctests as processes of the device, the UIKit programs that run on
+  # tvOS (sdl3/tests/uikit_tvos*.rs and the iOS programs that take tvOS too)
+  # as apps. See "tvOS Simulator" in docs/HARDWARE_TESTING.md. The device
+  # build is linked, not run. (Linted on the Linux clippy runner.)
+  tvos:
+    name: test (aarch64-apple-tvos-sim, tvOS Simulator)
+    if: ${{ !inputs.ios_only }}
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      XCODE_VERSION: "16.4"
+      SDL3_TVOS_DEVICE_TYPE: com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-4K
+      SDL3_TVOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.tvOS-18-5
+      RUST_TEST_NOCAPTURE: 1
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_$XCODE_VERSION.app"
+          xcodebuild -version
+          xcrun simctl list runtimes
+      # (rustup is on the runner image)
+      - name: Install Rust
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target aarch64-apple-tvos-sim,aarch64-apple-tvos
+          rustup default "$RUST_TOOLCHAIN"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: tvos
+          cache-on-failure: true
+      - name: Boot the simulator
+        run: echo "SDL3_TVOS_SIMULATOR=$(tools/ios_run.py --boot tvos)" >> "$GITHUB_ENV"
+      - name: Build the tests
+        env:
+          TEST_ARGS: ${{ inputs.tvos_test_args }}
+        run: cargo test --no-run --target aarch64-apple-tvos-sim ${TEST_ARGS:---workspace}
+      - name: cargo test --workspace --target aarch64-apple-tvos-sim
+        shell: bash
+        env:
+          TEST_ARGS: ${{ inputs.tvos_test_args }}
+        run: cargo test --target aarch64-apple-tvos-sim --no-fail-fast ${TEST_ARGS:---workspace} 2>&1 | tee "$RUNNER_TEMP/test.log"
+      - name: Link for devices (cargo build --workspace --all-targets --target aarch64-apple-tvos)
+        if: ${{ !cancelled() && !inputs.tvos_test_args }}
+        run: cargo build --workspace --all-targets --target aarch64-apple-tvos
+      - name: List the skipped checks
+        if: always()
+        shell: bash
+        run: |
+          tools/ci/skips_from_log.py "$RUNNER_TEMP/test.log" > "$RUNNER_TEMP/skips.tsv"
+          tools/ci/list-skips.sh "$RUNNER_TEMP/skips.tsv" aarch64-apple-tvos-sim
+      # The skips by design, as in the iOS job: the GPU API's Metal backend
+      # (the simulator's Metal device is below its requirements), Vulkan
+      # (no MoltenVK) and the offscreen driver's EGL. Any other skip fails
+      # the job.
+      - name: Check the skips
+        if: ${{ !cancelled() && !inputs.tvos_test_args }}
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/skips.tsv"
+          awk -F '\t' '!($1 == "metal" && index($3, "hardware requirements for SDL_GPU Metal")) && $1 != "vulkan" && $1 != "egl"' "$RUNNER_TEMP/skips.tsv" > "$RUNNER_TEMP/unexpected.tsv"
+          if [ -s "$RUNNER_TEMP/unexpected.tsv" ]; then
+            cat "$RUNNER_TEMP/unexpected.tsv"
+            echo "::error::checks skipped for other capabilities than vulkan and egl, or metal for another reason than the GPU API's hardware requirements (above)"
+            exit 1
+          fi
+      - name: The test results
+        if: always()
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/test.log"
+          perl -pe 's/\e\[[0-9;]*m//g' "$RUNNER_TEMP/test.log" | grep -E "^ *(Running|Doc-tests) |^test result: |^error: " || true
+      - name: The failed tests and the simulator's log
+        if: failure() && env.SDL3_TVOS_SIMULATOR != ''
+        shell: bash
+        run: |
+          touch "$RUNNER_TEMP/test.log"
+          grep -E -A12 "panicked at|^failures:$|targets? failed" "$RUNNER_TEMP/test.log" | cut -c1-400 | head -1500 || true
+          grep -E -B30 "process didn't exit" "$RUNNER_TEMP/test.log" | cut -c1-400 | head -1000 || true
+          xcrun simctl spawn "$SDL3_TVOS_SIMULATOR" log show --last 30m --style compact \
+            --predicate 'processImagePath CONTAINS "/target/" OR processImagePath CONTAINS "/Containers/Bundle/Application/"' | tail -300 || true
+
   doc:
     name: rustdoc
-    if: ${{ !inputs.ios_only }}
+    if: ${{ !inputs.ios_only && !inputs.tvos_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
