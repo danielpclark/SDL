@@ -17,26 +17,28 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5),
-//! the mice's device events left out (see `tests/uikit_main.rs`). Elsewhere this program does nothing.
+//! the mice's device events left out (see `tests/uikit_main.rs`). It runs
+//! on the tvOS Simulator too (an Apple TV 4K (3rd generation) with tvOS
+//! 18.5), against upstream's C there. Elsewhere this program does nothing.
 
-#[cfg(not(target_os = "ios"))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod uikit_support;
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod ios {
     use std::sync::Mutex;
     use std::time::{Duration, Instant};
@@ -51,6 +53,7 @@ mod ios {
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
     /// iOS 18.5).
+    #[cfg(target_os = "ios")]
     const EXPECTED: &str = "\
 main: argc=1
 init: argc=1
@@ -58,6 +61,29 @@ init video: ok
 main: enter_app_main_callbacks returned 0
 main returns
 event DISPLAY_ORIENTATION(3)
+event KEYBOARD_ADDED
+warmup: application state 0
+iterate 1
+iterate 2: posting a memory warning
+event LOW_MEMORY
+iterate 3: pushing a user event
+event USER
+iterate 4
+iterate 5: success
+quit: SUCCESS
+iterations paced by the display: yes
+exit: after quit
+";
+
+    /// Upstream's trace on tvOS (the C program, on an Apple TV 4K (3rd
+    /// generation) simulator with tvOS 18.5).
+    #[cfg(target_os = "tvos")]
+    const EXPECTED: &str = "\
+main: argc=1
+init: argc=1
+init video: ok
+main: enter_app_main_callbacks returned 0
+main returns
 event KEYBOARD_ADDED
 warmup: application state 0
 iterate 1

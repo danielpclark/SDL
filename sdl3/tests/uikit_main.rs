@@ -20,27 +20,31 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
-//! The mice's device events are left out of it. Elsewhere this program
-//! does nothing.
+//! The mice's device events are left out of it. It runs on the tvOS
+//! Simulator too (an Apple TV 4K (3rd generation) with tvOS 18.5: the
+//! runner's background is the Apple TV's Settings app), without the
+//! battery monitoring and the status bar's notification, which tvOS
+//! hasn't, against upstream's C there. Elsewhere this program does
+//! nothing.
 
-#[cfg(not(target_os = "ios"))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod uikit_support;
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod ios {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
@@ -56,6 +60,7 @@ mod ios {
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
     /// iOS 18.5).
+    #[cfg(target_os = "ios")]
     const EXPECTED: &str = "\
 main: argc=1
 main thread: yes
@@ -82,6 +87,50 @@ posted did become active: DID_ENTER_FOREGROUND
 posted memory warning: LOW_MEMORY
 posted will terminate: TERMINATING
 posted status bar orientation: (none)
+pump off: main queue ran: no
+pump off: posted memory warning: (none)
+pump on: main queue ran: yes
+pump on: posted memory warning: LOW_MEMORY
+handleURL file: DROP_BEGIN, DROP_FILE(/tmp/sdl3 drop.txt), DROP_COMPLETE
+handleURL https: DROP_BEGIN, DROP_FILE(https://libsdl.org/?q=1), DROP_COMPLETE
+open_url unknown scheme: No handler registered for this type of URL
+open_url own scheme: ok
+own scheme opened: DROP_BEGIN, DROP_FILE(SCHEME://open-url-test), DROP_COMPLETE
+background and back: WILL_ENTER_BACKGROUND, WILL_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, DID_ENTER_BACKGROUND, WILL_ENTER_FOREGROUND, WILL_ENTER_FOREGROUND, DID_ENTER_FOREGROUND, DID_ENTER_FOREGROUND
+application state: 0
+main returns
+after main returned: application state: 0
+after main returned: posted memory warning: (none)
+quit
+";
+
+    /// Upstream's trace on tvOS (the C program, on an Apple TV 4K (3rd
+    /// generation) simulator with tvOS 18.5).
+    #[cfg(target_os = "tvos")]
+    const EXPECTED: &str = "\
+main: argc=1
+main thread: yes
+before run_app: yes
+app delegate: SDLUIKitSceneDelegate
+scenes: 1 UIWindowScene, delegate SDLUIKitSceneDelegate, the app delegate: no
+cwd is the bundle's resource path: yes
+form factor: SDL_FORMFACTOR_TV
+power: state=2 secs=-1 pct=-1
+platform: iOS
+init video: ok
+video driver: uikit
+system theme: 2
+displays: 1
+display: bounds=0,0 1920x1080 natural=1 current=1
+desktop mode: 1920x1080 fmt=SDL_PIXELFORMAT_ABGR8888 density=2 refresh=60
+events: KEYBOARD_ADDED
+activation: application state 0, (none)
+posted will resign active: WILL_ENTER_BACKGROUND
+posted did enter background: DID_ENTER_BACKGROUND
+posted will enter foreground: WILL_ENTER_FOREGROUND
+posted did become active: DID_ENTER_FOREGROUND
+posted memory warning: LOW_MEMORY
+posted will terminate: TERMINATING
 pump off: main queue ran: no
 pump off: posted memory warning: (none)
 pump on: main queue ran: yes
@@ -299,13 +348,16 @@ quit
             power.percent.map_or(-1, i32::from)
         ));
         // (SDL turns UIDevice's battery monitoring on for the query; the
-        // simulator keeps it off, in an app too)
-        // SAFETY: UIDevice's current device and its property.
-        let monitoring: bool = unsafe {
-            let device: Id = objc::send0(objc::class("UIDevice"), "currentDevice");
-            objc::send0::<i8>(device, "isBatteryMonitoringEnabled") != 0
-        };
-        t(format!("battery monitoring: {}", yes_no(monitoring)));
+        // simulator keeps it off, in an app too; tvOS has none)
+        #[cfg(not(target_os = "tvos"))]
+        {
+            // SAFETY: UIDevice's current device and its property.
+            let monitoring: bool = unsafe {
+                let device: Id = objc::send0(objc::class("UIDevice"), "currentDevice");
+                objc::send0::<i8>(device, "isBatteryMonitoringEnabled") != 0
+            };
+            t(format!("battery monitoring: {}", yes_no(monitoring)));
+        }
         t(format!("platform: {}", init::platform()));
 
         // Video
@@ -406,6 +458,8 @@ quit
                     "will terminate",
                     objc::UIApplicationWillTerminateNotification,
                 ),
+                // (tvOS has no status bar)
+                #[cfg(not(target_os = "tvos"))]
                 (
                     "status bar orientation",
                     objc::UIApplicationDidChangeStatusBarOrientationNotification,

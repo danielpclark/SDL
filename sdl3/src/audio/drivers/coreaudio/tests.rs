@@ -468,12 +468,15 @@ fn hardware_default_playback_and_recording() {
 
 /// The categories and options `UpdateAudioSession()` picks (the
 /// session's read-back ones are in tests/uikit_audio.rs, where setting
-/// `DuckOthers` alone reads back with `MixWithOthers`).
+/// `DuckOthers` alone reads back with `MixWithOthers`; tvOS has no
+/// `DefaultToSpeaker`).
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn session_categories() {
     use super::session::{session_category, Category::*};
     let c = session_category;
+    // (DefaultToSpeaker with playing and recording, but on tvOS)
+    const SPEAKER: usize = if cfg!(target_os = "tvos") { 0 } else { 0x8 };
     // Playback, mixing with others, unless the hint says otherwise
     assert_eq!(c(None, false, 1, 0, true), Some((Playback, 0x1)));
     assert_eq!(c(None, true, 1, 0, true), Some((Playback, 0x3)));
@@ -519,9 +522,12 @@ fn session_categories() {
     for hint in ["playandrecord", "AVAudioSessionCategoryPlayAndRecord"] {
         assert_eq!(
             c(Some(hint), false, 1, 0, true),
-            Some((PlayAndRecord, 0x6d))
+            Some((PlayAndRecord, 0x65 | SPEAKER))
         );
-        assert_eq!(c(Some(hint), true, 1, 1, true), Some((PlayAndRecord, 0x6f)));
+        assert_eq!(
+            c(Some(hint), true, 1, 1, true),
+            Some((PlayAndRecord, 0x67 | SPEAKER))
+        );
         // (the retry after ResourceNotAvailable)
         assert_eq!(c(Some(hint), false, 1, 1, false), Some((Playback, 0x1)));
     }
@@ -540,8 +546,14 @@ fn session_categories() {
     }
     // Without the hint, what is open: recording, both.
     assert_eq!(c(None, true, 0, 1, true), Some((Record, 0x5)));
-    assert_eq!(c(None, false, 2, 1, true), Some((PlayAndRecord, 0x6d)));
-    assert_eq!(c(None, true, 1, 2, true), Some((PlayAndRecord, 0x6f)));
+    assert_eq!(
+        c(None, false, 2, 1, true),
+        Some((PlayAndRecord, 0x65 | SPEAKER))
+    );
+    assert_eq!(
+        c(None, true, 1, 2, true),
+        Some((PlayAndRecord, 0x67 | SPEAKER))
+    );
     assert_eq!(c(None, false, 1, 1, false), None);
     assert_eq!(c(None, false, 0, 1, false), Some((Record, 0x5)));
     // On every system this builds for, Foundation is newer than iOS 7.1's.
@@ -605,6 +617,7 @@ fn spawned_session_matches_c() {
     /// Upstream's trace, from the same steps in C spawned on the same
     /// simulator (an iPhone 16 with iOS 18.5), the runner's audio playing
     /// and recording.
+    #[cfg(not(target_os = "tvos"))]
     const EXPECTED: &str = "\
 init: ok driver=coreaudio
 playback 0: System audio playback device
@@ -625,6 +638,40 @@ both: session: category=AVAudioSessionCategoryPlayAndRecord options=0x6d mode=AV
 both: playback advanced=yes recording advanced=yes
 both: recording closed
 both: recording closed: session: category=AVAudioSessionCategoryPlayAndRecord options=0x6d mode=AVAudioSessionModeDefault
+both: playback closed
+both: playback closed: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
+ambient: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+ambient: session: category=AVAudioSessionCategoryAmbient options=0x1 mode=AVAudioSessionModeDefault
+ambient: closed
+ducking: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+ducking: session: category=AVAudioSessionCategoryPlayback options=0x3 mode=AVAudioSessionModeDefault
+ducking: closed
+quit: session: category=AVAudioSessionCategoryPlayback options=0x3 mode=AVAudioSessionModeDefault
+done
+";
+
+    /// The same on tvOS (an Apple TV 4K (3rd generation) with tvOS 18.5).
+    #[cfg(target_os = "tvos")]
+    const EXPECTED: &str = "\
+init: ok driver=coreaudio
+playback 0: System audio playback device
+recording 0: System audio recording device
+playback: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+playback: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
+playback: playback advanced=yes recording advanced=no
+playback: closed
+playback closed: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
+recording: open: ok format=0x8010 channels=1 freq=44100 frames=1024
+recording: session: category=AVAudioSessionCategoryRecord options=0x5 mode=AVAudioSessionModeDefault
+recording: playback advanced=no recording advanced=yes
+recording: closed
+recording closed: session: category=AVAudioSessionCategoryRecord options=0x5 mode=AVAudioSessionModeDefault
+both: playback: open: ok format=0x8010 channels=2 freq=44100 frames=1024
+both: recording: open: ok format=0x8010 channels=1 freq=44100 frames=1024
+both: session: category=AVAudioSessionCategoryPlayAndRecord options=0x65 mode=AVAudioSessionModeDefault
+both: playback advanced=yes recording advanced=yes
+both: recording closed
+both: recording closed: session: category=AVAudioSessionCategoryPlayAndRecord options=0x65 mode=AVAudioSessionModeDefault
 both: playback closed
 both: playback closed: session: category=AVAudioSessionCategoryPlayback options=0x1 mode=AVAudioSessionModeDefault
 ambient: open: ok format=0x8010 channels=2 freq=44100 frames=1024

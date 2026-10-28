@@ -65,27 +65,32 @@
 //! Rust renderer's cache, a `Vec`), and malloc aborts, so the C program is
 //! built with that list's two missing updates added. If OpenGL ES is
 //! missing (Apple deprecated it), the program skips (capability `gles`),
-//! unless `SDL3_TEST_REQUIRE` names it. Elsewhere this program does
-//! nothing.
+//! unless `SDL3_TEST_REQUIRE` names it.
+//!
+//! It runs on the tvOS Simulator too (an Apple TV 4K (3rd generation) with
+//! tvOS 18.5), where nothing turns (`turn` only traces that), against
+//! upstream's C there, built with OpenGL ES as the Xcode project builds it
+//! on tvOS (upstream's CMake build leaves it out there). Elsewhere this
+//! program does nothing.
 
-#[cfg(not(target_os = "ios"))]
+#[cfg(not(any(target_os = "ios", target_os = "tvos")))]
 fn main() {}
 
 /// The runner's words: run as an app.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 #[used]
 #[link_section = "__DATA,__sdl3_runner"]
 static RUNNER: [u8; 4] = *b"app\0";
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod uikit_support;
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 fn main() {
     ios::main()
 }
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 mod ios {
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -108,6 +113,7 @@ mod ios {
 
     /// Upstream's trace (the C program, on an iPhone 16 simulator with
     /// iOS 18.5).
+    #[cfg(target_os = "ios")]
     const EXPECTED: &str = "\
 init video: ok
 video driver: uikit
@@ -398,6 +404,303 @@ W: destroyed: events: W:WINDOW_DESTROYED(0,0)
 quit
 ";
 
+    /// Upstream's trace on tvOS (the C program, on an Apple TV 4K (3rd
+    /// generation) simulator with tvOS 18.5).
+    #[cfg(target_os = "tvos")]
+    const EXPECTED: &str = "\
+init video: ok
+video driver: uikit
+application state: 0
+defaults: attributes: double=1 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0
+D: create 320x480: ok
+D: created: events: D:WINDOW_SAFE_AREA_CHANGED(0,0), D:WINDOW_MOUSE_ENTER(0,0), D:WINDOW_FOCUS_GAINED(0,0), D:WINDOW_SHOWN(0,0), D:WINDOW_PIXEL_SIZE_CHANGED(1920,1080)
+D: created: size=1920x1080 pixels=1920x1080 density=1 flags=0x602
+D: created: root view: SDL_uikitview frame=0,0 1920x1080
+D: es 2.0: create context: ok
+D: es 2.0: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: es 2.0: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: es 2.0: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: es 2.0: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: es 2.0: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: es 2.0: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: es 2.0: samples=0 max_samples=4 error=0x0
+D: es 2.0: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: es 2.0: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: es 2.0: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: es 3.0: create context: ok
+D: es 3.0: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=3
+D: es 3.0: version=OpenGL ES 3.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 3.00
+D: es 3.0: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=3 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: es 3.0: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: es 3.0: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: es 3.0: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: es 3.0: samples=0 max_samples=9 error=0x0
+D: es 3.0: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: es 3.0: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: es 3.0: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: es 1.1: create context: ok
+D: es 1.1: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=1
+D: es 1.1: version=OpenGL ES-CM 1.1 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=-
+D: es 1.1: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=1 minor=1 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: es 1.1: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: es 1.1: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: es 1.1: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: es 1.1: samples=0 max_samples=4 error=0x0
+D: es 1.1: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: es 1.1: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: es 1.1: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: es 3.1: create context: error: OpenGL ES 3.1 context could not be created
+D: es 4.0: create context: error: OpenGL ES 4.0 context could not be created
+D: versions: events: (none)
+D: context A: ok
+D: context B (shared): same group=yes texture=yes current=yes root view is A's=no
+D: context C (not shared): same group=no texture=no
+D: A current again: ok texture=yes root view is A's=no eagl=yes
+D: B and C destroyed: A current=yes root view is A's=yes
+D: pumped after another context: ours=yes
+D: animation callbacks after another context: ours=yes, yes
+D: raised after another context: ok ours=yes
+D: power: state=NoBattery percent=None
+D: battery: assertions: swap at once 0, after 3 s 0, again 0
+D: A destroyed: raised: ok eagl=no root view: SDL_uikitview
+D: contexts: events: (none)
+D: srgb: create context: ok
+D: srgb: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: srgb: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: srgb: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=1 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: srgb: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: srgb: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormatS8888
+D: srgb: renderbuffer: 1920x1080 format=0x8c43 pixels=1920x1080
+D: srgb: samples=0 max_samples=4 error=0x0
+D: srgb: clear: pixel=[137, 188, 225, 255] error=0x0; swap: ok, error=0x0
+D: srgb: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: srgb: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: srgb forced off: create context: ok
+D: srgb forced off: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: srgb forced off: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: srgb forced off: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=1 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: srgb forced off: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: srgb forced off: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: srgb forced off: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: srgb forced off: samples=0 max_samples=4 error=0x0
+D: srgb forced off: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: srgb forced off: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: srgb forced off: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: srgb forced on: create context: ok
+D: srgb forced on: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: srgb forced on: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: srgb forced on: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: srgb forced on: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: srgb forced on: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormatS8888
+D: srgb forced on: renderbuffer: 1920x1080 format=0x8c43 pixels=1920x1080
+D: srgb forced on: samples=0 max_samples=4 error=0x0
+D: srgb forced on: clear: pixel=[137, 188, 225, 255] error=0x0; swap: ok, error=0x0
+D: srgb forced on: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: srgb forced on: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: rgb565: create context: ok
+D: rgb565: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: rgb565: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: rgb565: attributes: red=8 green=8 blue=8 alpha=0 buffer=24 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: rgb565: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: rgb565: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat565
+D: rgb565: renderbuffer: 1920x1080 format=0x8051 pixels=1920x1080
+D: rgb565: samples=0 max_samples=4 error=0x0
+D: rgb565: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: rgb565: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: rgb565: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: depth 24 stencil 8: create context: ok
+D: depth 24 stencil 8: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: depth 24 stencil 8: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: depth 24 stencil 8: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=8 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: depth 24 stencil 8: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: depth 24 stencil 8: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: depth 24 stencil 8: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: depth 24 stencil 8: samples=0 max_samples=4 error=0x0
+D: depth 24 stencil 8: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: depth 24 stencil 8: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: depth 24 stencil 8: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: no depth, not retained: create context: ok
+D: no depth, not retained: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: no depth, not retained: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: no depth, not retained: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=0 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=0 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: no depth, not retained: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+D: no depth, not retained: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=no format=EAGLColorFormat8888
+D: no depth, not retained: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: no depth, not retained: samples=0 max_samples=4 error=0x0
+D: no depth, not retained: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+D: no depth, not retained: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: no depth, not retained: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 1 1 0
+D: msaa 4 es 2.0: create context: ok
+D: msaa 4 es 2.0: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: msaa 4 es 2.0: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: msaa 4 es 2.0: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=1 mssamples=4 accelerated=1 retained=1 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: msaa 4 es 2.0: props: framebuffer=2 renderbuffer=1 resolve=1 bound framebuffer=2 renderbuffer=1
+D: msaa 4 es 2.0: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: msaa 4 es 2.0: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: msaa 4 es 2.0: samples=4 max_samples=4 error=0x0
+D: msaa 4 es 2.0: clear: pixel=- error=0x0; swap: ok, error=0x0
+D: msaa 4 es 2.0: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: msaa 4 es 2.0: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 2 1 1
+D: msaa 4 es 3.0: create context: ok
+D: msaa 4 es 3.0: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=3
+D: msaa 4 es 3.0: version=OpenGL ES 3.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 3.00
+D: msaa 4 es 3.0: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=1 mssamples=4 accelerated=1 retained=1 major=3 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: msaa 4 es 3.0: props: framebuffer=2 renderbuffer=1 resolve=1 bound framebuffer=2 renderbuffer=1
+D: msaa 4 es 3.0: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=yes format=EAGLColorFormat8888
+D: msaa 4 es 3.0: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: msaa 4 es 3.0: samples=4 max_samples=9 error=0x0
+D: msaa 4 es 3.0: clear: pixel=- error=0x0; swap: ok, error=0x0
+D: msaa 4 es 3.0: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: msaa 4 es 3.0: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 2 1 1
+D: msaa 64 es 3.0 not retained: create context: ok
+D: msaa 64 es 3.0 not retained: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=3
+D: msaa 64 es 3.0 not retained: version=OpenGL ES 3.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 3.00
+D: msaa 64 es 3.0 not retained: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=1 mssamples=9 accelerated=1 retained=0 major=3 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: msaa 64 es 3.0 not retained: props: framebuffer=2 renderbuffer=1 resolve=1 bound framebuffer=2 renderbuffer=1
+D: msaa 64 es 3.0 not retained: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=no format=EAGLColorFormat8888
+D: msaa 64 es 3.0 not retained: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: msaa 64 es 3.0 not retained: samples=9 max_samples=9 error=0x0
+D: msaa 64 es 3.0 not retained: clear: pixel=- error=0x0; swap: ok, error=0x0
+D: msaa 64 es 3.0 not retained: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: msaa 64 es 3.0 not retained: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 2 1 1
+D: msaa 64 es 2.0 not retained: create context: ok
+D: msaa 64 es 2.0 not retained: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=2
+D: msaa 64 es 2.0 not retained: version=OpenGL ES 2.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 1.00
+D: msaa 64 es 2.0 not retained: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=1 mssamples=4 accelerated=1 retained=0 major=2 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+D: msaa 64 es 2.0 not retained: props: framebuffer=2 renderbuffer=1 resolve=1 bound framebuffer=2 renderbuffer=1
+D: msaa 64 es 2.0 not retained: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=1 opaque=yes retained=no format=EAGLColorFormat8888
+D: msaa 64 es 2.0 not retained: renderbuffer: 1920x1080 format=0x8058 pixels=1920x1080
+D: msaa 64 es 2.0 not retained: samples=4 max_samples=4 error=0x0
+D: msaa 64 es 2.0 not retained: clear: pixel=- error=0x0; swap: ok, error=0x0
+D: msaa 64 es 2.0 not retained: swap interval: set 1: error: Setting the swap interval is not supported; get: error: not implemented
+D: msaa 64 es 2.0 not retained: destroy: ok; current: sdl=no eagl=no; root view: SDL_uikitview; props: 2 1 1
+D: formats: events: (none)
+D: destroyed
+D: destroyed: events: D:WINDOW_DESTROYED(0,0)
+H: create 320x480 opengl resizable high-density: ok
+H: created: events: H:WINDOW_SAFE_AREA_CHANGED(0,0), H:WINDOW_MOUSE_ENTER(0,0), H:WINDOW_FOCUS_GAINED(0,0), H:WINDOW_SHOWN(0,0), H:WINDOW_PIXEL_SIZE_CHANGED(3840,2160), H:WINDOW_DISPLAY_SCALE_CHANGED(0,0)
+H: created: size=1920x1080 pixels=3840x2160 density=2 flags=0x2622
+H: created: root view: SDL_uikitview frame=0,0 1920x1080
+H: create es 3.0 context: ok
+H: context: events: (none)
+H: context: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=3
+H: context: version=OpenGL ES 3.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 3.00
+H: context: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=3 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+H: context: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+H: context: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=2 opaque=yes retained=yes format=EAGLColorFormat8888
+H: context: renderbuffer: 3840x2160 format=0x8058 pixels=3840x2160
+H: context: samples=0 max_samples=9 error=0x0
+H: context: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+H: landscape right: not turned (no orientations on tvOS)
+H: landscape right: events: (none)
+H: landscape right: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=3
+H: landscape right: version=OpenGL ES 3.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 3.00
+H: landscape right: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=3 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+H: landscape right: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+H: landscape right: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=2 opaque=yes retained=yes format=EAGLColorFormat8888
+H: landscape right: renderbuffer: 3840x2160 format=0x8058 pixels=3840x2160
+H: landscape right: samples=0 max_samples=9 error=0x0
+H: landscape right: clear: pixel=[64, 128, 191, 255] error=0x0; swap: ok, error=0x0
+H: portrait: not turned (no orientations on tvOS)
+H: portrait: events: (none)
+H: portrait: current: sdl=yes window=yes eagl=yes class=SDLEAGLContext api=3
+H: portrait: version=OpenGL ES 3.0 APPLE-21.1.1 renderer=Apple Software Renderer vendor=Apple Inc. shading=OpenGL ES GLSL ES 3.00
+H: portrait: attributes: red=8 green=8 blue=8 alpha=8 buffer=32 depth=24 stencil=0 double=1 msbuffers=0 mssamples=0 accelerated=1 retained=1 major=3 minor=0 profile=4 share=0 srgb=0 accum_red=0 stereo=0 release=(OpenGL error: GL_INVALID_ENUM)
+H: portrait: props: framebuffer=1 renderbuffer=1 resolve=0 bound framebuffer=1 renderbuffer=1
+H: portrait: view: SDL_uikitopenglview super=SDL_uikitview frame=0,0 1920x1080 layer: CAEAGLLayer scale=2 opaque=yes retained=yes format=EAGLColorFormat8888
+H: portrait: renderbuffer: 3840x2160 format=0x8058 pixels=3840x2160
+H: portrait: samples=0 max_samples=9 error=0x0
+H: context destroyed
+H: context destroyed: events: (none)
+H: context destroyed: size=1920x1080 pixels=3840x2160 density=2 flags=0x2622
+H: context destroyed: root view: SDL_uikitview frame=0,0 1920x1080
+H: create opengles2 renderer: ok
+H: renderer: events: (none)
+H: renderer: name=opengles2 output=3840x2160 pixels=3840x2160 max_texture_size=4096 vsync=0
+H: renderer: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_XRGB8888, SDL_PIXELFORMAT_XBGR8888, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21
+H: renderer: context: SDLEAGLContext eagl=yes window flags=0x2622 root view: SDL_uikitopenglview props: 1 1 0 bound framebuffer=1
+scene clear and fill: 64x48 5fe1f24a
+scene points and lines: 64x48 75192d12
+scene viewport and clip: 64x48 b09f79e5
+scene blend modes: 64x48 ebb10095
+scene texture SDL_PIXELFORMAT_ARGB8888: 64x48 a2cf2633
+scene texture SDL_PIXELFORMAT_ABGR8888: 64x48 a2cf2633
+scene texture SDL_PIXELFORMAT_RGB24: 64x48 4fb014c5
+scene texture SDL_PIXELFORMAT_XRGB8888: 64x48 4fb014c5
+scene streaming texture: 64x48 c2319ec5
+scene render target: 64x48 9e5285c5
+scene packed SDL_PIXELFORMAT_ABGR2101010: 64x48 8bdc6af5
+scene packed SDL_PIXELFORMAT_RGBA64_FLOAT: 64x48 9a74c64d
+scene packed SDL_PIXELFORMAT_RGBA128_FLOAT: 64x48 9a74c64d
+scene palette texture: 64x48 65a75445
+scene yuv SDL_PIXELFORMAT_IYUV: 64x48 785ae64d
+scene yuv SDL_PIXELFORMAT_YV12: 64x48 785ae64d
+scene yuv SDL_PIXELFORMAT_NV12: 64x48 785ae64d
+scene yuv SDL_PIXELFORMAT_NV21: 64x48 785ae64d
+scene IYUV planes: 64x48 785ae64d
+scene NV12 planes: 64x48 785ae64d
+scene locked texture: 64x48 76d14245
+scene locked NV12 texture: 64x48 785ae64d
+scene custom blend mode: 64x48 af879425
+scene wrapping geometry: 64x48 dd468f45
+scene colored geometry: 64x48 7a2c48ad
+scene linear scaling: 64x48 5599895b
+scene debug text: 64x48 73f3e17d
+partial read: 8x8 f24b7925
+target read: 20x10 da6561f5
+H: vsync 1: ok, vsync=1
+H: vsync 0: ok, vsync=0
+H: vsync 2: error: That operation is not supported, vsync=0
+H: vsync -1: error: That operation is not supported, vsync=0
+H: scenes: events: (none)
+H: renderer landscape right: not turned (no orientations on tvOS)
+H: renderer landscape right: events: (none)
+H: renderer landscape right: name=opengles2 output=3840x2160 pixels=3840x2160 max_texture_size=4096 vsync=0
+H: renderer landscape right: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_XRGB8888, SDL_PIXELFORMAT_XBGR8888, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21
+H: renderer landscape right: context: SDLEAGLContext eagl=yes window flags=0x2622 root view: SDL_uikitopenglview props: 1 1 0 bound framebuffer=1
+H: renderer landscape right corner: 64x48 bf597dc5
+H: renderer portrait: not turned (no orientations on tvOS)
+H: renderer portrait: events: (none)
+H: renderer portrait: name=opengles2 output=3840x2160 pixels=3840x2160 max_texture_size=4096 vsync=0
+H: renderer portrait: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_XRGB8888, SDL_PIXELFORMAT_XBGR8888, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21
+H: renderer portrait: context: SDLEAGLContext eagl=yes window flags=0x2622 root view: SDL_uikitopenglview props: 1 1 0 bound framebuffer=1
+scene again clear and fill: 64x48 5fe1f24a
+H: renderer destroyed
+H: renderer destroyed: events: (none)
+H: renderer destroyed: size=1920x1080 pixels=3840x2160 density=2 flags=0x2622
+H: renderer destroyed: root view: SDL_uikitview frame=0,0 1920x1080
+H: destroyed
+H: destroyed: events: H:WINDOW_DESTROYED(0,0)
+M: create 320x480 metal: ok
+M: created: events: M:WINDOW_SAFE_AREA_CHANGED(0,0), M:WINDOW_MOUSE_ENTER(0,0), M:WINDOW_FOCUS_GAINED(0,0), M:WINDOW_SHOWN(0,0), M:WINDOW_PIXEL_SIZE_CHANGED(1920,1080)
+M: created: size=1920x1080 pixels=1920x1080 density=1 flags=0x20000600
+M: created: root view: SDL_uikitview frame=0,0 1920x1080
+M: create opengles2 renderer: ok
+M: renderer: events: M:WINDOW_HIDDEN(0,0), M:WINDOW_FOCUS_GAINED(0,0), M:WINDOW_SHOWN(0,0)
+M: renderer: size=1920x1080 pixels=1920x1080 density=1 flags=0x202
+M: renderer: root view: SDL_uikitopenglview frame=0,0 1920x1080
+M: renderer: name=opengles2 output=1920x1080 pixels=1920x1080 max_texture_size=4096 vsync=0
+M: renderer: formats: SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_XRGB8888, SDL_PIXELFORMAT_XBGR8888, SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_YV12, SDL_PIXELFORMAT_IYUV, SDL_PIXELFORMAT_I444, SDL_PIXELFORMAT_NV12, SDL_PIXELFORMAT_NV21
+M: renderer: context: SDLEAGLContext eagl=yes window flags=0x202 root view: SDL_uikitopenglview props: 1 1 0 bound framebuffer=1
+scene M clear and fill: 64x48 5fe1f24a
+M: renderer destroyed: events: (none)
+M: destroyed
+M: destroyed: events: M:WINDOW_DESTROYED(0,0)
+W: create 320x480: ok
+W: created: events: W:WINDOW_SAFE_AREA_CHANGED(0,0), W:WINDOW_MOUSE_ENTER(0,0), W:WINDOW_FOCUS_GAINED(0,0), W:WINDOW_SHOWN(0,0), W:WINDOW_PIXEL_SIZE_CHANGED(1920,1080)
+W: created: size=1920x1080 pixels=1920x1080 density=1 flags=0x602
+W: created: root view: SDL_uikitview frame=0,0 1920x1080
+W: create renderer: ok
+W: renderer: events: (none)
+W: renderer: name=metal
+W: renderer: size=1920x1080 pixels=1920x1080 density=1 flags=0x20000600
+W: renderer: root view: SDL_uikitmetalview frame=0,0 1920x1080
+W: renderer destroyed: events: (none)
+W: destroyed
+W: destroyed: events: W:WINDOW_DESTROYED(0,0)
+quit
+";
+
     fn yes_no(b: bool) -> &'static str {
         if b {
             "yes"
@@ -565,6 +868,12 @@ quit
     /// Ask the window's scene to turn to an orientation (a
     /// `UIInterfaceOrientationMask`), and trace the events that come.
     fn turn(w: &Window, label: &str, mask: usize) {
+        if cfg!(target_os = "tvos") {
+            let _ = (w, mask);
+            t(format!("{label}: not turned (no orientations on tvOS)"));
+            trace_events(label, 500);
+            return;
+        }
         let mut seen = Vec::new();
         println!("uikit_gles: {:.3} s: turning to {label}", elapsed());
         // SAFETY: UIWindowSceneGeometryPreferencesIOS's initializer, the

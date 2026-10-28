@@ -266,3 +266,12 @@ harness = false
 [[test]]
 name = "uikit_camera_denied"
 harness = false
+
+# The tvOS programs, run as apps on the tvOS Simulator.
+[[test]]
+name = "uikit_tvos"
+harness = false
+
+[[test]]
+name = "uikit_tvos_input"
+harness = false
