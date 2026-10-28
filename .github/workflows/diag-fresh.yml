@@ -1,0 +1,74 @@
+name: diag-fresh
+
+# Diagnostic only (branch claude/diag-macos-segv): the sdl3 lib tests once
+# on each of many fresh macOS runners, as ci.yml's test job runs them
+# (first run on the machine), with crash reports. This commit has the
+# render::vulkan test fix.
+on:
+  push:
+    branches: [claude/diag-macos-segv]
+    paths: [.github/workflows/diag-fresh.yml]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  MOLTENVK_VERSION: v1.4.2
+  MOLTENVK_SHA256: f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e
+
+jobs:
+  once:
+    name: once (${{ matrix.n }})
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      RUST_TEST_NOCAPTURE: 1
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.87"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: diag-1.87
+          save-if: false
+      - name: Install MoltenVK
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/moltenvk.tar" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+          echo "$MOLTENVK_SHA256  $RUNNER_TEMP/moltenvk.tar" | shasum -a 256 -c
+          tar xf "$RUNNER_TEMP/moltenvk.tar" -C "$RUNNER_TEMP" MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          sudo mkdir -p /usr/local/lib
+          sudo cp "$RUNNER_TEMP/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib" /usr/local/lib/
+      - run: cargo test -p sdl3 --lib --no-run
+      - name: cargo test -p sdl3 --lib (once)
+        shell: bash
+        env:
+          SDL3_TEST_SKIP_LOG: ${{ runner.temp }}/skips.tsv
+        run: |
+          set +e
+          touch "$RUNNER_TEMP/marker"
+          cargo test -q -p sdl3 --lib > "$RUNNER_TEMP/test.log" 2>&1
+          rc=$?
+          grep -E "^test result:" "$RUNNER_TEMP/test.log"
+          echo "RESULT rc=$rc"
+          if [ $rc -ne 0 ]; then
+            grep -E "^    [a-z_:]+$|panicked at|signal" "$RUNNER_TEMP/test.log" | head -20
+            echo "::group::last 300 lines"
+            tail -300 "$RUNNER_TEMP/test.log" | cut -c1-300
+            echo "::endgroup::"
+            sleep 15
+            for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
+              find "$d" -newer "$RUNNER_TEMP/marker" -name 'sdl3-*' 2>/dev/null
+            done > "$RUNNER_TEMP/ips.txt"
+            if [ -s "$RUNNER_TEMP/ips.txt" ]; then
+              xargs python3 -I tools/ci/diag_ips.py < "$RUNNER_TEMP/ips.txt" | cut -c1-500
+            fi
+          fi
+          exit $rc
