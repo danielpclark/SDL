@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Run a program built for the iOS Simulator (aarch64-apple-ios-sim,
-x86_64-apple-ios) or the tvOS Simulator (aarch64-apple-tvos-sim,
-x86_64-apple-tvos) on a simulated device: Cargo's runner for those targets
+x86_64-apple-ios), the tvOS Simulator (aarch64-apple-tvos-sim,
+x86_64-apple-tvos) or the visionOS Simulator (aarch64-apple-visionos-sim)
+on a simulated device: Cargo's runner for those targets
 (.cargo/config.toml), for the test programs and the doctests. It needs a
 Mac with Xcode (`xcrun simctl`) and a Simulator runtime of the program's
-platform (iOS or tvOS, which its Mach-O file tells).
+platform (iOS, tvOS or visionOS, which its Mach-O file tells).
 
 Usage:
   ios_run.py PROGRAM [ARGUMENTS...]   run PROGRAM on the simulator
-  ios_run.py --boot [ios|tvos]        pick (or create) the simulator of
+  ios_run.py --boot [ios|tvos|visionos]
+                                      pick (or create) the simulator of
                                       that platform (iOS by default), boot
                                       it, and print its UDID
   ios_run.py --bundle PROGRAM OUT.app write PROGRAM's app bundle
@@ -109,12 +111,24 @@ or `tvOS 18.5`; by default the newest tvOS runtime), and booted ahead with
 its `background` request launches the Apple TV's Settings app
 (com.apple.TVSettings).
 
+A visionOS program runs on an Apple Vision Pro simulator, chosen by
+SDL3_VISIONOS_SIMULATOR, SDL3_VISIONOS_DEVICE_TYPE (by default the Apple
+Vision Pro, or the newest Apple Vision device type the runtime has) and
+SDL3_VISIONOS_RUNTIME (`com.apple.CoreSimulator.SimRuntime.xrOS-2-5`,
+`2.5` or `visionOS 2.5`; by default the newest visionOS runtime), and
+booted ahead with `--boot visionos`. Its app bundle is a visionOS app's
+(`UIDeviceFamily` 7, the XRSimulator and XROS platforms, no
+orientations); its `background` request launches the Settings app
+(com.apple.Preferences).
+
 Environment:
   SDL3_IOS_SIMULATOR    the simulator (a UDID or a name)
   SDL3_IOS_DEVICE_TYPE  the device type of the simulator made or picked
   SDL3_IOS_RUNTIME      the iOS runtime of the simulator made or picked
   SDL3_TVOS_SIMULATOR, SDL3_TVOS_DEVICE_TYPE, SDL3_TVOS_RUNTIME
                         the same for tvOS programs
+  SDL3_VISIONOS_SIMULATOR, SDL3_VISIONOS_DEVICE_TYPE, SDL3_VISIONOS_RUNTIME
+                        the same for visionOS programs
   SDL3_IOS_TIMEOUT      seconds an app may run (default 900; 0: no limit)
   SDL3_IOS_CODESIGN     the identity app bundles are signed with (default
                         `-`, ad-hoc, which is all the simulator needs; 0:
@@ -125,8 +139,8 @@ Environment:
   SDL3_IOS_IDB          the idb command for the `tap`, `swipe`, `key` and
                         `text` requests (default `idb` on PATH; 0: none)
 
-A program built for devices (aarch64-apple-ios, aarch64-apple-tvos) can't
-run on the simulator: `--bundle` writes its bundle, which needs signing
+A program built for devices (aarch64-apple-ios, aarch64-apple-tvos,
+aarch64-apple-visionos) can't run on the simulator: `--bundle` writes its bundle, which needs signing
 for a device.
 """
 import fcntl
@@ -160,6 +174,8 @@ PLATFORM_TVOS = 3
 PLATFORM_MACCATALYST = 6
 PLATFORM_IOSSIMULATOR = 7
 PLATFORM_TVOSSIMULATOR = 8
+PLATFORM_VISIONOS = 11
+PLATFORM_VISIONOSSIMULATOR = 12
 PLATFORM_NAMES = {
     1: "macOS",
     PLATFORM_IOS: "iOS devices",
@@ -169,20 +185,26 @@ PLATFORM_NAMES = {
     PLATFORM_IOSSIMULATOR: "the iOS Simulator",
     PLATFORM_TVOSSIMULATOR: "the tvOS Simulator",
     9: "the watchOS Simulator",
-    11: "visionOS devices",
-    12: "the visionOS Simulator",
+    PLATFORM_VISIONOS: "visionOS devices",
+    PLATFORM_VISIONOSSIMULATOR: "the visionOS Simulator",
 }
 
 
 class Family:
     """What differs between the platforms this script runs programs of:
-    iOS (iPhones and iPads) and tvOS (the Apple TV)."""
+    iOS (iPhones and iPads), tvOS (the Apple TV) and visionOS (the Apple
+    Vision Pro)."""
 
     def __init__(self, name, device_platform, simulator_platform, plist_platforms, device_families,
-                 default_device_types, product_family, settings, target):
+                 default_device_types, product_family, settings, target, runtime_name=None,
+                 orientations=False):
         self.name = name
-        # (the simulator's variables: SDL3_IOS_..., SDL3_TVOS_...)
+        # (the simulator's variables: SDL3_IOS_..., SDL3_TVOS_...,
+        # SDL3_VISIONOS_...)
         self.env = f"SDL3_{name.upper()}_"
+        # (the runtimes' platform as simctl names it: visionOS's runtimes
+        # are `com.apple.CoreSimulator.SimRuntime.xrOS-...`)
+        self.runtime_names = (name, runtime_name) if runtime_name else (name,)
         self.device_platform = device_platform
         self.simulator_platform = simulator_platform
         # (CFBundleSupportedPlatforms: the simulator's, the devices')
@@ -194,6 +216,9 @@ class Family:
         self.settings = settings
         # (the simulator's Rust target)
         self.target = target
+        # (UISupportedInterfaceOrientations: an iPhone's or iPad's app has
+        # them all)
+        self.orientations = orientations
 
     def var(self, name):
         return os.environ.get(self.env + name)
@@ -202,14 +227,19 @@ class Family:
 IOS = Family(
     "iOS", PLATFORM_IOS, PLATFORM_IOSSIMULATOR, ("iPhoneSimulator", "iPhoneOS"), [1, 2],
     ("com.apple.CoreSimulator.SimDeviceType.iPhone-16",), "iPhone", "com.apple.Preferences",
-    "aarch64-apple-ios-sim",
+    "aarch64-apple-ios-sim", orientations=True,
 )
 TVOS = Family(
     "tvOS", PLATFORM_TVOS, PLATFORM_TVOSSIMULATOR, ("AppleTVSimulator", "AppleTVOS"), [3],
     ("com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-4K",), "Apple TV", "com.apple.TVSettings",
     "aarch64-apple-tvos-sim",
 )
-FAMILIES = {"ios": IOS, "tvos": TVOS}
+VISIONOS = Family(
+    "visionOS", PLATFORM_VISIONOS, PLATFORM_VISIONOSSIMULATOR, ("XRSimulator", "XROS"), [7],
+    ("com.apple.CoreSimulator.SimDeviceType.Apple-Vision-Pro",), "Apple Vision", "com.apple.Preferences",
+    "aarch64-apple-visionos-sim", runtime_name="xrOS",
+)
+FAMILIES = {"ios": IOS, "tvos": TVOS, "visionos": VISIONOS}
 
 CPU_TYPE_X86_64 = 0x01000007
 CPU_TYPE_ARM64 = 0x0100000C
@@ -330,17 +360,20 @@ class MachO:
         return PLATFORM_NAMES.get(self.platform, f"platform {self.platform}")
 
     def family(self):
-        """The program's platform (iOS or tvOS; None for another)."""
+        """The program's platform (iOS, tvOS or visionOS; None for
+        another)."""
         # (no LC_BUILD_VERSION: taken for iOS)
         if self.platform in (None, PLATFORM_IOS, PLATFORM_IOSSIMULATOR):
             return IOS
         if self.platform in (PLATFORM_TVOS, PLATFORM_TVOSSIMULATOR):
             return TVOS
+        if self.platform in (PLATFORM_VISIONOS, PLATFORM_VISIONOSSIMULATOR):
+            return VISIONOS
         return None
 
     def is_simulator(self):
         # (no LC_BUILD_VERSION: taken for the iOS Simulator)
-        return self.platform in (None, PLATFORM_IOSSIMULATOR, PLATFORM_TVOSSIMULATOR)
+        return self.platform in (None, PLATFORM_IOSSIMULATOR, PLATFORM_TVOSSIMULATOR, PLATFORM_VISIONOSSIMULATOR)
 
 
 def program_name(program):
@@ -398,8 +431,8 @@ def write_bundle(program, macho, app, identifier):
         "CFBundleURLTypes": [{"CFBundleURLName": identifier, "CFBundleURLSchemes": [identifier]}],
         "LSApplicationQueriesSchemes": [identifier],
     }
-    if family is IOS:
-        # (an Apple TV has none)
+    if family.orientations:
+        # (an Apple TV and an Apple Vision Pro have none)
         info["UISupportedInterfaceOrientations"] = [
             "UIInterfaceOrientationPortrait",
             "UIInterfaceOrientationPortraitUpsideDown",
@@ -427,7 +460,7 @@ def cmd_bundle(args):
     program, app = args
     macho = MachO(program)
     if macho.family() is None:
-        raise Failure(f"{program} is built for {macho.platform_name()}, not iOS or tvOS")
+        raise Failure(f"{program} is built for {macho.platform_name()}, not iOS, tvOS or visionOS")
     if os.path.lexists(app):
         if not os.path.isfile(os.path.join(app, "Info.plist")):
             raise Failure(f"{app} exists and isn't an app bundle")
@@ -444,7 +477,7 @@ def runtimes_of(family):
     runtimes = []
     for runtime in simctl_list("runtimes")["runtimes"]:
         platform = runtime.get("platform") or runtime.get("name", "").split(" ")[0]
-        if platform == family.name and runtime.get("isAvailable", True):
+        if platform in family.runtime_names and runtime.get("isAvailable", True):
             runtimes.append(runtime)
     return sorted(runtimes, key=lambda r: [int(p) if p.isdigit() else 0 for p in r.get("version", "0").split(".")])
 
@@ -511,7 +544,8 @@ def find_simulator(family):
     explicit = family.var("DEVICE_TYPE") or family.var("RUNTIME")
     if not explicit:
         for runtime, device in available:
-            if f".SimRuntime.{family.name}-" in runtime and device.get("state") == "Booted":
+            booted = device.get("state") == "Booted"
+            if booted and any(f".SimRuntime.{n}-" in runtime for n in family.runtime_names):
                 return device["udid"], True
 
     runtime = pick_runtime(family, runtimes_of(family))
@@ -570,7 +604,7 @@ def simulator(family):
 
 def cmd_boot(args):
     if len(args) > 1 or (args and args[0] not in FAMILIES):
-        raise Failure("usage: --boot [ios|tvos]")
+        raise Failure("usage: --boot [ios|tvos|visionos]")
     family = FAMILIES[args[0] if args else "ios"]
     with Lock():
         udid, booted = find_simulator(family)
@@ -617,7 +651,7 @@ def check_runnable(program, macho):
             f"{program} is built for {family.name} devices ({device_target}), which this script can't run: "
             f"build it for the Simulator (--target {family.target}), or bundle it with --bundle"
         )
-    raise Failure(f"{program} is built for {macho.platform_name()}, not the iOS or tvOS Simulator")
+    raise Failure(f"{program} is built for {macho.platform_name()}, not the iOS, tvOS or visionOS Simulator")
 
 
 def spawn(udid, program, args, macho):
