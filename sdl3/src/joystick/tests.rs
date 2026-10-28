@@ -503,6 +503,7 @@ fn virtual_trace_matches_c() {
     );
 }
 
+#[cfg(not(target_os = "visionos"))]
 #[test]
 fn virtual_joystick_without_gamepads() {
     let _l = crate::test_support::test_lock();
@@ -542,6 +543,26 @@ fn virtual_joystick_without_gamepads() {
     assert!(Joystick::open(id).is_err());
 }
 
+/// visionOS has no virtual joystick driver (upstream's CMake build has
+/// none without HIDAPI): the virtual joystick functions fail with
+/// upstream's error, and no joystick is virtual.
+#[cfg(target_os = "visionos")]
+#[test]
+fn no_virtual_joysticks() {
+    let _l = crate::test_support::test_lock();
+    init::set_main_ready();
+    init::init_subsystem(InitFlags::JOYSTICK).unwrap();
+    let error = "SDL not built with virtual-joystick support";
+    let result = attach_virtual_joystick(VirtualJoystickDesc {
+        naxes: 2,
+        ..VirtualJoystickDesc::default()
+    });
+    assert_eq!(result.unwrap_err().message(), error);
+    assert_eq!(detach_virtual_joystick(1).unwrap_err().message(), error);
+    assert!(!is_joystick_virtual(1));
+    init::quit_subsystem(InitFlags::JOYSTICK);
+}
+
 #[test]
 fn driver_order() {
     // The HIDAPI driver comes first, then the platform drivers and the
@@ -560,11 +581,14 @@ fn driver_order() {
             hidapi_driver
         ));
     }
-    let virtual_driver: &dyn JoystickDriver = &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER;
-    assert!(std::ptr::addr_eq(
-        JOYSTICK_DRIVERS[VIRTUAL_DRIVER_INDEX],
-        virtual_driver
-    ));
+    #[cfg(not(target_os = "visionos"))]
+    {
+        let virtual_driver: &dyn JoystickDriver = &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER;
+        assert!(std::ptr::addr_eq(
+            JOYSTICK_DRIVERS[VIRTUAL_DRIVER_INDEX],
+            virtual_driver
+        ));
+    }
     #[cfg(windows)]
     {
         // GameInput, RawInput, then Windows (DirectInput and XInput), then WGI
@@ -627,25 +651,23 @@ fn driver_order() {
     #[cfg(all(target_vendor = "apple", not(target_os = "macos")))]
     {
         // (HIDAPI on iOS and tvOS,) MFi, then the virtual driver (no IOKit
-        // driver, and upstream builds no HIDAPI on visionOS); no dummy
-        // driver
+        // driver; upstream builds no HIDAPI, and so no virtual driver, on
+        // visionOS); no dummy driver
         let mfi_driver: &dyn JoystickDriver = &apple::MFI_JOYSTICK_DRIVER;
         assert!(std::ptr::addr_eq(
             JOYSTICK_DRIVERS[MFI_DRIVER_INDEX],
             mfi_driver
         ));
-        const {
-            assert!(MFI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
-        }
         #[cfg(any(target_os = "ios", target_os = "tvos"))]
         {
             const {
                 assert!(HIDAPI_DRIVER_INDEX < MFI_DRIVER_INDEX);
+                assert!(MFI_DRIVER_INDEX < VIRTUAL_DRIVER_INDEX);
             }
             assert_eq!(JOYSTICK_DRIVERS.len(), 3);
         }
         #[cfg(target_os = "visionos")]
-        assert_eq!(JOYSTICK_DRIVERS.len(), 2);
+        assert_eq!(JOYSTICK_DRIVERS.len(), 1);
     }
     #[cfg(target_os = "emscripten")]
     {

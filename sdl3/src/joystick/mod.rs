@@ -58,6 +58,11 @@ mod steam_virtual_gamepad;
 mod tables;
 pub(crate) mod usb_ids;
 mod vidpid;
+mod virtual_desc;
+// (SDL_JOYSTICK_VIRTUAL: upstream's CMake build has it where it has
+// SDL_HIDAPI, which it doesn't build on visionOS. Note (upstream): the Xcode
+// project's SDL_build_config_ios.h builds it there, without HIDAPI)
+#[cfg(not(target_os = "visionos"))]
 mod virtual_joystick;
 #[cfg(windows)]
 pub(crate) mod windows;
@@ -70,7 +75,7 @@ use std::time::Duration;
 
 pub use device_info::joystick_guid_info;
 pub(crate) use device_info::*;
-pub use virtual_joystick::{
+pub use virtual_desc::{
     VirtualJoystickDesc, VirtualJoystickSensorDesc, VirtualJoystickTouchpadDesc,
 };
 
@@ -632,16 +637,17 @@ const EMSCRIPTEN_DRIVER_INDEX: usize = 0;
 
 /// The index of the virtual driver in [`JOYSTICK_DRIVERS`] (after the
 /// HIDAPI and platform drivers, if there are: on iOS and tvOS the HIDAPI
-/// and MFi drivers, on visionOS the MFi driver).
+/// and MFi drivers; there's none on visionOS).
+#[cfg(not(target_os = "visionos"))]
 const VIRTUAL_DRIVER_INDEX: usize = if cfg!(windows) {
     5
 } else if cfg!(target_os = "macos") {
     3
-} else if cfg!(any(target_os = "ios", target_os = "tvos")) {
-    2
-} else if cfg!(target_vendor = "apple") {
-    1
-} else if cfg!(target_os = "linux") {
+} else if cfg!(any(
+    target_os = "ios",
+    target_os = "tvos",
+    target_os = "linux"
+)) {
     2
 } else if cfg!(target_os = "emscripten") {
     1
@@ -684,6 +690,7 @@ static JOYSTICK_DRIVERS: &[&dyn JoystickDriver] = &[
     &apple::MFI_JOYSTICK_DRIVER,
     #[cfg(target_os = "emscripten")]
     &emscripten::EMSCRIPTEN_JOYSTICK_DRIVER,
+    #[cfg(not(target_os = "visionos"))]
     &virtual_joystick::VIRTUAL_JOYSTICK_DRIVER,
     #[cfg(not(any(
         windows,
@@ -1358,7 +1365,10 @@ impl Joystick {
         joystick.attached = true;
         joystick.led_expiration = timer::ticks_ms();
         joystick.battery_percent = -1;
-        joystick.is_virtual = driver_index == VIRTUAL_DRIVER_INDEX;
+        #[cfg(not(target_os = "visionos"))]
+        {
+            joystick.is_virtual = driver_index == VIRTUAL_DRIVER_INDEX;
+        }
 
         driver.open(&mut joystick, device_index)?;
 
@@ -1483,7 +1493,13 @@ impl Joystick {
     pub fn set_virtual_axis(&self, axis: usize, value: i16) -> Result<()> {
         let _lock = lock_joysticks();
         self.check_virtual()?;
-        virtual_joystick::set_joystick_virtual_axis_inner(self.instance_id, axis, value)
+        #[cfg(not(target_os = "visionos"))]
+        return virtual_joystick::set_joystick_virtual_axis_inner(self.instance_id, axis, value);
+        #[cfg(target_os = "visionos")]
+        {
+            let _ = (axis, value);
+            Err(not_built_with_virtual_joystick())
+        }
     }
 
     /// Generate ball motion on an opened virtual joystick.
@@ -1491,7 +1507,18 @@ impl Joystick {
     pub fn set_virtual_ball(&self, ball: usize, xrel: i16, yrel: i16) -> Result<()> {
         let _lock = lock_joysticks();
         self.check_virtual()?;
-        virtual_joystick::set_joystick_virtual_ball_inner(self.instance_id, ball, xrel, yrel)
+        #[cfg(not(target_os = "visionos"))]
+        return virtual_joystick::set_joystick_virtual_ball_inner(
+            self.instance_id,
+            ball,
+            xrel,
+            yrel,
+        );
+        #[cfg(target_os = "visionos")]
+        {
+            let _ = (ball, xrel, yrel);
+            Err(not_built_with_virtual_joystick())
+        }
     }
 
     /// Set the state of a button on an opened virtual joystick.
@@ -1499,7 +1526,13 @@ impl Joystick {
     pub fn set_virtual_button(&self, button: usize, down: bool) -> Result<()> {
         let _lock = lock_joysticks();
         self.check_virtual()?;
-        virtual_joystick::set_joystick_virtual_button_inner(self.instance_id, button, down)
+        #[cfg(not(target_os = "visionos"))]
+        return virtual_joystick::set_joystick_virtual_button_inner(self.instance_id, button, down);
+        #[cfg(target_os = "visionos")]
+        {
+            let _ = (button, down);
+            Err(not_built_with_virtual_joystick())
+        }
     }
 
     /// Set the state of a hat on an opened virtual joystick.
@@ -1507,7 +1540,13 @@ impl Joystick {
     pub fn set_virtual_hat(&self, hat: usize, value: u8) -> Result<()> {
         let _lock = lock_joysticks();
         self.check_virtual()?;
-        virtual_joystick::set_joystick_virtual_hat_inner(self.instance_id, hat, value)
+        #[cfg(not(target_os = "visionos"))]
+        return virtual_joystick::set_joystick_virtual_hat_inner(self.instance_id, hat, value);
+        #[cfg(target_os = "visionos")]
+        {
+            let _ = (hat, value);
+            Err(not_built_with_virtual_joystick())
+        }
     }
 
     /// Set touchpad finger state on an opened virtual joystick.
@@ -1524,7 +1563,8 @@ impl Joystick {
     ) -> Result<()> {
         let _lock = lock_joysticks();
         self.check_virtual()?;
-        virtual_joystick::set_joystick_virtual_touchpad_inner(
+        #[cfg(not(target_os = "visionos"))]
+        return virtual_joystick::set_joystick_virtual_touchpad_inner(
             self.instance_id,
             touchpad,
             finger,
@@ -1532,7 +1572,12 @@ impl Joystick {
             x,
             y,
             pressure,
-        )
+        );
+        #[cfg(target_os = "visionos")]
+        {
+            let _ = (touchpad, finger, down, x, y, pressure);
+            Err(not_built_with_virtual_joystick())
+        }
     }
 
     /// Send a sensor update for an opened virtual joystick.
@@ -1545,12 +1590,18 @@ impl Joystick {
     ) -> Result<()> {
         let _lock = lock_joysticks();
         self.check_virtual()?;
-        virtual_joystick::send_joystick_virtual_sensor_data_inner(
+        #[cfg(not(target_os = "visionos"))]
+        return virtual_joystick::send_joystick_virtual_sensor_data_inner(
             self.instance_id,
             sensor_type,
             sensor_timestamp,
             data,
-        )
+        );
+        #[cfg(target_os = "visionos")]
+        {
+            let _ = (sensor_type, sensor_timestamp, data);
+            Err(not_built_with_virtual_joystick())
+        }
     }
 
     /// The properties of the joystick. Translation of `SDL_GetJoystickProperties()`.
@@ -1949,26 +2000,60 @@ fn error_no_such_sensor() -> Error {
     Error::new("No such sensor on this device")
 }
 
-/// Attach a new virtual joystick, returning its instance ID.
-/// Translation of `SDL_AttachVirtualJoystick()`.
+/// The error of the virtual joystick functions where the driver isn't
+/// built (visionOS).
+#[cfg(target_os = "visionos")]
+fn not_built_with_virtual_joystick() -> Error {
+    Error::new("SDL not built with virtual-joystick support")
+}
+
+/// Attach a new virtual joystick, returning its instance ID (an error on
+/// visionOS, which has no virtual joystick driver). Translation of
+/// `SDL_AttachVirtualJoystick()`.
 pub fn attach_virtual_joystick(desc: VirtualJoystickDesc) -> Result<JoystickID> {
-    let _lock = lock_joysticks();
-    virtual_joystick::joystick_attach_virtual_inner(desc)
+    #[cfg(not(target_os = "visionos"))]
+    {
+        let _lock = lock_joysticks();
+        virtual_joystick::joystick_attach_virtual_inner(desc)
+    }
+    #[cfg(target_os = "visionos")]
+    {
+        // (the description's cleanup isn't called, as upstream's isn't)
+        std::mem::forget(desc);
+        Err(not_built_with_virtual_joystick())
+    }
 }
 
 /// Detach a virtual joystick. Translation of `SDL_DetachVirtualJoystick()`.
 pub fn detach_virtual_joystick(instance_id: JoystickID) -> Result<()> {
-    let _lock = lock_joysticks();
-    virtual_joystick::joystick_detach_virtual_inner(instance_id)
+    #[cfg(not(target_os = "visionos"))]
+    {
+        let _lock = lock_joysticks();
+        virtual_joystick::joystick_detach_virtual_inner(instance_id)
+    }
+    #[cfg(target_os = "visionos")]
+    {
+        let _ = instance_id;
+        Err(not_built_with_virtual_joystick())
+    }
 }
 
-/// Whether a joystick is virtual. Translation of `SDL_IsJoystickVirtual()`.
+/// Whether a joystick is virtual (never on visionOS). Translation of
+/// `SDL_IsJoystickVirtual()`.
 pub fn is_joystick_virtual(instance_id: JoystickID) -> bool {
-    let _lock = lock_joysticks();
-    matches!(
-        driver_and_joystick_index(instance_id),
-        Ok((VIRTUAL_DRIVER_INDEX, _))
-    )
+    #[cfg(not(target_os = "visionos"))]
+    {
+        let _lock = lock_joysticks();
+        matches!(
+            driver_and_joystick_index(instance_id),
+            Ok((VIRTUAL_DRIVER_INDEX, _))
+        )
+    }
+    #[cfg(target_os = "visionos")]
+    {
+        let _ = instance_id;
+        false
+    }
 }
 
 /// The autodetected gamepad mapping of a joystick, from its driver.
@@ -2437,6 +2522,8 @@ pub(crate) fn send_joystick_axis(timestamp: u64, joystick: JoystickID, axis: u8,
 }
 
 /// Deliver trackball motion. Translation of `SDL_SendJoystickBall()`.
+// (only the virtual driver has balls: unused on visionOS)
+#[cfg_attr(target_os = "visionos", allow(dead_code))]
 pub(crate) fn send_joystick_ball(
     timestamp: u64,
     joystick: JoystickID,
