@@ -84,6 +84,15 @@ pub const PROP_WINDOW_CREATE_COCOA_VIEW_POINTER: &str = "SDL.window.create.cocoa
 /// `SDL_PROP_WINDOW_CREATE_WINDOWSCENE_POINTER`.
 pub const PROP_WINDOW_CREATE_WINDOWSCENE_POINTER: &str = "SDL.window.create.uikit.windowscene";
 
+/// The window's settings on visionOS, in JSON (a curved window's
+/// curvature, `{"curvatureRadius":1000}` for a radius of a meter): without
+/// them the window has the standard UIKit behavior. Translation of
+/// `SDL_PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING`. Note: curved windows
+/// are upstream's Swift code, which isn't translated, so the window is a
+/// standard one either way; its settings are kept as
+/// [`PROP_WINDOW_VISIONOS_SETTINGS_STRING`].
+pub const PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING: &str = "SDL.window.create.visionos.settings";
+
 /// The X11 `Window` to wrap (instead of creating one). Translation of
 /// `SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER`.
 pub const PROP_WINDOW_CREATE_X11_WINDOW_NUMBER: &str = "SDL.window.create.x11.window";
@@ -205,6 +214,10 @@ pub const PROP_WINDOW_UIKIT_WINDOW_POINTER: &str = "SDL.window.uikit.window";
 /// The tag the window's Metal views get (iOS, tvOS, visionOS). Translation
 /// of `SDL_PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER`.
 pub const PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER: &str = "SDL.window.uikit.metal_view_tag";
+/// The window's current settings on visionOS, in JSON (none for a window
+/// with the standard UIKit behavior). Translation of
+/// `SDL_PROP_WINDOW_VISIONOS_SETTINGS_STRING`.
+pub const PROP_WINDOW_VISIONOS_SETTINGS_STRING: &str = "SDL.window.visionos.settings";
 /// The OpenGL view's framebuffer object (iOS, tvOS), set when an OpenGL ES
 /// context is made for the window. It must be bound when rendering to the
 /// screen using OpenGL. Translation of

@@ -63,7 +63,7 @@ pub(super) fn prepare_driver(video: &dyn VideoDriver, props: &Properties) -> boo
 /// # Safety
 ///
 /// `device` must be a Metal device.
-unsafe fn supports_family(device: Id, family: isize) -> bool {
+pub(super) unsafe fn supports_family(device: Id, family: isize) -> bool {
     // SAFETY: the caller's contract.
     let r: Bool = unsafe { msg_send![device, supportsFamily: family] };
     r.is_true()

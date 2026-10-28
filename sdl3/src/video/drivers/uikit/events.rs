@@ -525,7 +525,10 @@ pub(crate) fn has_gc_mouse_relative_mode() -> bool {
 fn on_gc_mouse_button_changed(mouse_id: MouseID, button: u8, pressed: bool) {
     let timestamp = crate::timer::ticks();
 
-    // (visionOS's pointer mode and curved windows come with visionOS)
+    #[cfg(target_os = "visionos")]
+    if !super::bridge::pointer_mode_enabled() && super::bridge::has_curved_window() {
+        return;
+    }
     send_mouse_button(timestamp, mouse_focus(), mouse_id, button, pressed);
 }
 
@@ -577,8 +580,12 @@ fn on_gc_mouse_connected(mouse: Id) {
         let moved = RcBlock::new3(move |_mouse_input: Id, delta_x: f32, delta_y: f32| {
             let timestamp = crate::timer::ticks();
 
-            let send_motion = gc_mouse_relative_mode();
-            // (visionOS's pointer mode comes with visionOS)
+            #[cfg_attr(not(target_os = "visionos"), allow(unused_mut))]
+            let mut send_motion = gc_mouse_relative_mode();
+            #[cfg(target_os = "visionos")]
+            if !send_motion && super::bridge::pointer_mode_enabled() {
+                send_motion = true;
+            }
             if send_motion {
                 send_mouse_motion(timestamp, mouse_focus(), mouse_id, true, delta_x, -delta_y);
             }

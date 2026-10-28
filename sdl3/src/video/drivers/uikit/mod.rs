@@ -38,6 +38,9 @@
 #![allow(non_upper_case_globals, non_snake_case)] // (the SDK's names are kept)
 
 pub(crate) mod appdelegate;
+// (visionOS's Swift bridge: stand-ins, see the module)
+#[cfg(target_os = "visionos")]
+pub(crate) mod bridge;
 pub(crate) mod clipboard;
 pub(crate) mod events;
 pub(crate) mod messagebox;
@@ -76,10 +79,9 @@ use crate::video::{DisplayMode, Rect};
 
 #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use sys::UIInterfaceOrientation;
-use sys::{
-    UISceneActivationStateForegroundActive, UISceneActivationStateForegroundInactive,
-    UIUserInterfaceStyleDark, UIUserInterfaceStyleLight,
-};
+use sys::{UISceneActivationStateForegroundActive, UISceneActivationStateForegroundInactive};
+#[cfg(not(target_os = "visionos"))]
+use sys::{UIUserInterfaceStyleDark, UIUserInterfaceStyleLight};
 
 /// The UIKit video driver (the function pointers of the `SDL_VideoDevice`
 /// that `UIKit_CreateDevice()` fills in), with its data.

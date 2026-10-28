@@ -305,6 +305,14 @@ pub(crate) fn viewcontroller_class() -> Class {
                     &encoding("B@:"),
                 );
             }
+            #[cfg(target_os = "visionos")]
+            b.add_method(
+                sel!(preferredContainerBackgroundStyle),
+                imp!(
+                    vc_preferred_container_background_style as extern "C" fn(Id, Sel) -> NSInteger
+                ),
+                c"q@:",
+            );
         }
         b.register()
     })
@@ -459,7 +467,28 @@ pub(crate) fn new_view_controller(window: WindowID) -> StrongPtr {
         }
     }
 
+    #[cfg(target_os = "visionos")]
+    if available!(visionos(26, 0)) {
+        let settings = super::window::window_data(window).and_then(|data| data.settings());
+        if settings.is_some() {
+            super::bridge::initialize_visionos_curved_ui(this.get());
+        }
+    }
     this
+}
+
+/// Translation of `-[SDL_uikitviewcontroller
+/// preferredContainerBackgroundStyle]` (visionOS): hidden for a curved
+/// window (no glass behind its content), else UIKit's default. (Never a
+/// curved one here: see [`super::bridge`].)
+#[cfg(target_os = "visionos")]
+extern "C" fn vc_preferred_container_background_style(this: Id, _sel: Sel) -> NSInteger {
+    if let Some(window) = window_of(this) {
+        if super::window::window_data(window).is_some() && super::bridge::is_curved_window(window) {
+            return UIContainerBackgroundStyleHidden;
+        }
+    }
+    UIContainerBackgroundStyleAutomatic
 }
 
 /// Translation of `SDL_AppleTVControllerUIHintChanged()`: whether the game

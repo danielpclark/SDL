@@ -25,9 +25,11 @@ use std::sync::{Arc, Mutex, MutexGuard};
 #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
 use crate::core::apple::foundation::CGSize;
 use crate::core::apple::foundation::{available, ns_string};
-use crate::core::apple::objc::{autoreleasepool, class, msg_send, Id, NSInteger, StrongPtr, NIL};
 #[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
-use crate::core::apple::objc::{responds_to, sel, Bool, NSUInteger};
+use crate::core::apple::objc::Bool;
+use crate::core::apple::objc::{autoreleasepool, class, msg_send, Id, NSInteger, StrongPtr, NIL};
+#[cfg(not(target_os = "tvos"))]
+use crate::core::apple::objc::{responds_to, sel, NSUInteger};
 use crate::error::{Error, Result};
 use crate::events::window::{send_window_event, WindowFlags};
 use crate::events::{EventType, WindowID};
@@ -38,8 +40,12 @@ use crate::video::window::{
     display_for_window, Window, PROP_WINDOW_CREATE_WINDOWSCENE_POINTER,
     PROP_WINDOW_UIKIT_METAL_VIEW_TAG_NUMBER, PROP_WINDOW_UIKIT_WINDOW_POINTER,
 };
+#[cfg(target_os = "visionos")]
+use crate::video::window::{
+    PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING, PROP_WINDOW_VISIONOS_SETTINGS_STRING,
+};
 
-#[cfg(not(any(target_os = "tvos", target_os = "visionos")))]
+#[cfg(not(target_os = "tvos"))]
 use super::sys::*;
 use super::{view, viewcontroller};
 
@@ -52,6 +58,13 @@ pub(crate) struct WindowData {
     viewcontroller: Mutex<StrongPtr>,
     /// Array of SDL_uikitviews owned by this window.
     views: Mutex<Vec<StrongPtr>>,
+    /// `settings`: the window's visionOS settings (JSON), as it was made
+    /// with them (`SDL_PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING`); none
+    /// for a standard UIKit window. (Upstream's `curvedContentHosting`,
+    /// which only the Swift code sets, is the bridge's stand-ins: see
+    /// [`super::bridge`].)
+    #[cfg(target_os = "visionos")]
+    settings: Mutex<Option<String>>,
 }
 
 impl WindowData {
@@ -71,6 +84,15 @@ impl WindowData {
     /// `data.views`. Never message UIKit while holding it.
     pub(crate) fn views(&self) -> MutexGuard<'_, Vec<StrongPtr>> {
         self.views.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// `data.settings`.
+    #[cfg(target_os = "visionos")]
+    pub(crate) fn settings(&self) -> Option<String> {
+        self.settings
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 }
 
@@ -104,7 +126,7 @@ fn window_display_screen(window: WindowID) -> Id {
 fn setup_window_data(
     window: WindowID,
     uiwindow: StrongPtr,
-    _create_props: &Properties,
+    #[cfg_attr(not(target_os = "visionos"), allow(unused_variables))] create_props: &Properties,
 ) -> Result<()> {
     #[cfg(target_os = "visionos")]
     let frame = super::compute_view_frame(window);
@@ -122,6 +144,8 @@ fn setup_window_data(
         uiwindow,
         viewcontroller: Mutex::new(StrongPtr::nil()),
         views: Mutex::new(Vec::new()),
+        #[cfg(target_os = "visionos")]
+        settings: Mutex::new(None),
     });
 
     with_window(window, |w| w.internal = Some(Box::new(data.clone())))?;
@@ -166,7 +190,20 @@ fn setup_window_data(
         SDL_METALVIEW_TAG as i64,
     );
 
-    // (visionOS's settings string comes with visionOS)
+    #[cfg(target_os = "visionos")]
+    {
+        let settings = create_props.get_string(PROP_WINDOW_CREATE_VISIONOS_SETTINGS_STRING);
+        *data.settings.lock().unwrap_or_else(|e| e.into_inner()) = settings.clone();
+        // (SDL_SetStringProperty() with NULL clears the property)
+        match settings {
+            Some(settings) => {
+                let _ = props.set(PROP_WINDOW_VISIONOS_SETTINGS_STRING, settings);
+            }
+            None => {
+                props.remove(PROP_WINDOW_VISIONOS_SETTINGS_STRING);
+            }
+        }
+    }
 
     /* The View Controller will handle rotating the view when the device
      * orientation changes. This will trigger resize events, if appropriate. */
@@ -266,7 +303,28 @@ pub(crate) fn create_window(window: WindowID, create_props: &Properties) -> Resu
                     StrongPtr::from_owned(msg_send![w, initWithWindowScene: scene])
                 };
 
-                // (visionOS's initial geometry request comes with visionOS)
+                #[cfg(target_os = "visionos")]
+                {
+                    /* On visionOS, the window scene may not have its final geometry yet
+                     * when the UIWindow is first created. Request the desired size now
+                     * and set the UIWindow frame to match so views have valid initial
+                     * dimensions before the async geometry update completes. */
+                    let (w, h) = with_window(window, |w| (w.core.w, w.core.h))?;
+                    let desired_size =
+                        crate::core::apple::foundation::CGSize::new(w as f64, h as f64);
+                    // SAFETY: a UIView property.
+                    unsafe {
+                        let () = msg_send![uiwindow.get(), setFrame: crate::core::apple::foundation::CGRect::new(0.0, 0.0, desired_size.width, desired_size.height)];
+                    }
+
+                    request_geometry_update(scene, desired_size, |error| {
+                        crate::log::warn!(
+                            crate::log::Category::Video,
+                            "Initial geometry request failed: {}",
+                            error
+                        );
+                    });
+                }
             }
         }
         if uiwindow.is_nil() {
@@ -325,8 +383,56 @@ pub(crate) fn set_window_title(window: WindowID) {
 }
 
 /// Translation of `UIKit_SetWindowSize()`: windows have their screen's
-/// size, but on visionOS (whose geometry request comes with visionOS).
-pub(crate) fn set_window_size(_window: WindowID) {}
+/// size, but on visionOS, where the window's scene is asked for the size.
+pub(crate) fn set_window_size(window: WindowID) {
+    #[cfg(target_os = "visionos")]
+    autoreleasepool(|| {
+        let Some(data) = window_data(window) else {
+            return;
+        };
+        // SAFETY: a UIWindow property.
+        let scene: Id = unsafe { msg_send![data.uiwindow(), windowScene] };
+        let Ok((w, h)) = with_window(window, |w| (w.pending.w, w.pending.h)) else {
+            return;
+        };
+        let size = crate::core::apple::foundation::CGSize::new(w as f64, h as f64);
+        request_geometry_update(scene, size, |_error| {
+            // Request failed, no worries
+        });
+    });
+    #[cfg(not(target_os = "visionos"))]
+    let _ = window;
+}
+
+/// `[scene requestGeometryUpdateWithPreferences:[[UIWindowSceneGeometryPreferencesVision
+/// alloc] initWithSize:size] errorHandler:^(NSError *error) {...}]`, the
+/// handler given the error's localized description.
+#[cfg(target_os = "visionos")]
+fn request_geometry_update(
+    scene: Id,
+    size: crate::core::apple::foundation::CGSize,
+    error_handler: impl Fn(&str) + Send + Sync + 'static,
+) {
+    let handler = crate::core::apple::block::RcBlock::new1(move |error: Id| {
+        // SAFETY: an NSError's description, an NSString.
+        let description = unsafe {
+            let description: Id = msg_send![error, localizedDescription];
+            crate::core::apple::foundation::string_from_ns(description)
+        };
+        // (as %s prints a NULL string)
+        error_handler(description.as_deref().unwrap_or("(null)"));
+    });
+    // SAFETY: UIWindowSceneGeometryPreferencesVision's alloc and
+    // initializer (owned), and UIWindowScene's method (iOS 16, visionOS
+    // 1), which copies the block.
+    unsafe {
+        let preferences: Id = msg_send![class!(UIWindowSceneGeometryPreferencesVision), alloc];
+        let preferences = StrongPtr::from_owned(msg_send![preferences, initWithSize: size]);
+        let () = msg_send![scene,
+            requestGeometryUpdateWithPreferences: preferences.get()
+            errorHandler: handler.as_ptr()];
+    }
+}
 
 /// Translation of `UIKit_ShowWindow()`.
 pub(crate) fn show_window(window: WindowID) {
@@ -483,7 +589,8 @@ pub(crate) fn destroy_window(window: WindowID) {
 
         viewcontroller::stop_animation(data.viewcontroller());
 
-        // (visionOS's curved window comes with visionOS)
+        #[cfg(target_os = "visionos")]
+        super::bridge::hide_curved_window(window);
 
         /* Detach all views from this window. We use a copy of the array
          * because setSDLWindow will remove the object from the original
@@ -550,86 +657,78 @@ pub(crate) fn get_window_size_in_pixels(window: WindowID) -> (i32, i32) {
 pub(crate) fn get_supported_orientations(
     window: WindowID,
 ) -> super::sys::UIInterfaceOrientationMask {
-    #[cfg(target_os = "visionos")]
-    {
-        let _ = window;
-        super::sys::UIInterfaceOrientationMaskAll
-    }
-    #[cfg(not(target_os = "visionos"))]
-    {
-        let hint = crate::hints::get(crate::hints::ORIENTATIONS);
-        let mut orientation_mask: NSUInteger = 0;
+    let hint = crate::hints::get(crate::hints::ORIENTATIONS);
+    let mut orientation_mask: NSUInteger = 0;
 
-        autoreleasepool(|| {
-            let uiwindow = window_data(window).map_or(NIL, |d| d.uiwindow());
-            let app = crate::core::apple::uikit::shared_application();
+    autoreleasepool(|| {
+        let uiwindow = window_data(window).map_or(NIL, |d| d.uiwindow());
+        let app = crate::core::apple::uikit::shared_application();
 
-            /* Get all possible valid orientations. If the app delegate doesn't tell
-             * us, we get the orientations from Info.plist via UIApplication. */
-            // SAFETY: UIApplication's delegate and methods.
-            let valid_orientations: NSUInteger = unsafe {
-                let delegate: Id = msg_send![app, delegate];
-                if responds_to(
-                    delegate,
-                    sel!(application:supportedInterfaceOrientationsForWindow:),
-                ) {
-                    msg_send![delegate, application: app supportedInterfaceOrientationsForWindow: uiwindow]
-                } else {
-                    msg_send![app, supportedInterfaceOrientationsForWindow: uiwindow]
-                }
-            };
-
-            if let Some(hint) = &hint {
-                // (componentsSeparatedByString:@" "'s parts)
-                let orientations: Vec<&str> = hint.split(' ').collect();
-
-                if orientations.contains(&"LandscapeLeft") {
-                    orientation_mask |= UIInterfaceOrientationMaskLandscapeLeft;
-                }
-                if orientations.contains(&"LandscapeRight") {
-                    orientation_mask |= UIInterfaceOrientationMaskLandscapeRight;
-                }
-                if orientations.contains(&"Portrait") {
-                    orientation_mask |= UIInterfaceOrientationMaskPortrait;
-                }
-                if orientations.contains(&"PortraitUpsideDown") {
-                    orientation_mask |= UIInterfaceOrientationMaskPortraitUpsideDown;
-                }
+        /* Get all possible valid orientations. If the app delegate doesn't tell
+         * us, we get the orientations from Info.plist via UIApplication. */
+        // SAFETY: UIApplication's delegate and methods.
+        let valid_orientations: NSUInteger = unsafe {
+            let delegate: Id = msg_send![app, delegate];
+            if responds_to(
+                delegate,
+                sel!(application:supportedInterfaceOrientationsForWindow:),
+            ) {
+                msg_send![delegate, application: app supportedInterfaceOrientationsForWindow: uiwindow]
+            } else {
+                msg_send![app, supportedInterfaceOrientationsForWindow: uiwindow]
             }
+        };
 
-            let (window_flags, floating) =
-                with_window(window, |w| (w.flags(), w.core.floating)).unwrap_or_default();
+        if let Some(hint) = &hint {
+            // (componentsSeparatedByString:@" "'s parts)
+            let orientations: Vec<&str> = hint.split(' ').collect();
 
-            if orientation_mask == 0 && window_flags.contains(WindowFlags::RESIZABLE) {
-                // any orientation is okay.
-                orientation_mask = UIInterfaceOrientationMaskAll;
+            if orientations.contains(&"LandscapeLeft") {
+                orientation_mask |= UIInterfaceOrientationMaskLandscapeLeft;
             }
-
-            if orientation_mask == 0 {
-                if floating.w >= floating.h {
-                    orientation_mask |= UIInterfaceOrientationMaskLandscape;
-                }
-                if floating.h >= floating.w {
-                    orientation_mask |= UIInterfaceOrientationMaskPortrait
-                        | UIInterfaceOrientationMaskPortraitUpsideDown;
-                }
+            if orientations.contains(&"LandscapeRight") {
+                orientation_mask |= UIInterfaceOrientationMaskLandscapeRight;
             }
-
-            // Don't allow upside-down orientation on phones, so answering calls is in the natural orientation
-            if crate::core::apple::uikit::user_interface_idiom() == UIUserInterfaceIdiomPhone {
-                orientation_mask &= !UIInterfaceOrientationMaskPortraitUpsideDown;
+            if orientations.contains(&"Portrait") {
+                orientation_mask |= UIInterfaceOrientationMaskPortrait;
             }
-
-            /* If none of the specified orientations are actually supported by the
-             * app, we'll revert to what the app supports. An exception would be
-             * thrown by the system otherwise. */
-            if (valid_orientations & orientation_mask) == 0 {
-                orientation_mask = valid_orientations;
+            if orientations.contains(&"PortraitUpsideDown") {
+                orientation_mask |= UIInterfaceOrientationMaskPortraitUpsideDown;
             }
-        });
+        }
 
-        orientation_mask
-    }
+        let (window_flags, floating) =
+            with_window(window, |w| (w.flags(), w.core.floating)).unwrap_or_default();
+
+        if orientation_mask == 0 && window_flags.contains(WindowFlags::RESIZABLE) {
+            // any orientation is okay.
+            orientation_mask = UIInterfaceOrientationMaskAll;
+        }
+
+        if orientation_mask == 0 {
+            if floating.w >= floating.h {
+                orientation_mask |= UIInterfaceOrientationMaskLandscape;
+            }
+            if floating.h >= floating.w {
+                orientation_mask |= UIInterfaceOrientationMaskPortrait
+                    | UIInterfaceOrientationMaskPortraitUpsideDown;
+            }
+        }
+
+        // Don't allow upside-down orientation on phones, so answering calls is in the natural orientation
+        if crate::core::apple::uikit::user_interface_idiom() == UIUserInterfaceIdiomPhone {
+            orientation_mask &= !UIInterfaceOrientationMaskPortraitUpsideDown;
+        }
+
+        /* If none of the specified orientations are actually supported by the
+         * app, we'll revert to what the app supports. An exception would be
+         * thrown by the system otherwise. */
+        if (valid_orientations & orientation_mask) == 0 {
+            orientation_mask = valid_orientations;
+        }
+    });
+
+    orientation_mask
 }
 
 /// Translation of `SDL_SetiOSAnimationCallback()` (see

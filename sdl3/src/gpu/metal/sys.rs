@@ -266,8 +266,11 @@ pub(crate) const MTL_COLOR_WRITE_MASK_BLUE: NSUInteger = 2;
 pub(crate) const MTL_COLOR_WRITE_MASK_GREEN: NSUInteger = 4;
 pub(crate) const MTL_COLOR_WRITE_MASK_RED: NSUInteger = 8;
 
-// MTLDepthClipMode
+// MTLDepthClipMode (no depth clip mode on visionOS, where it's always
+// clipped)
+#[cfg(not(target_os = "visionos"))]
 pub(crate) const MTL_DEPTH_CLIP_MODE_CLIP: NSUInteger = 0;
+#[cfg(not(target_os = "visionos"))]
 pub(crate) const MTL_DEPTH_CLIP_MODE_CLAMP: NSUInteger = 1;
 
 // MTLStorageMode
@@ -301,7 +304,11 @@ pub(crate) const MTL_COMMAND_BUFFER_STATUS_SCHEDULED: NSUInteger = 3;
 
 // MTLGPUFamily
 pub(crate) const MTL_GPU_FAMILY_APPLE1: NSInteger = 1001;
-#[cfg(not(any(target_os = "macos", target_os = "visionos")))]
+// (the other UIKit platforms' device check; visionOS's tests')
+#[cfg(any(
+    not(any(target_os = "macos", target_os = "visionos")),
+    all(test, target_os = "visionos")
+))]
 pub(crate) const MTL_GPU_FAMILY_APPLE3: NSInteger = 1003;
 pub(crate) const MTL_GPU_FAMILY_APPLE4: NSInteger = 1004;
 pub(crate) const MTL_GPU_FAMILY_APPLE6: NSInteger = 1006;

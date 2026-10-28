@@ -16,6 +16,15 @@
 //! with what upstream's C made on this machine's GPU (Apple M2 Pro), with
 //! the same MSL. Without a Metal device they report a skip (capability
 //! `metal`) and pass. In debug mode Metal's API validation is on.
+//!
+//! visionOS has no depth clamping (upstream's Metal backend asserts that
+//! a pipeline clips, as Metal always does there), so the devices there are
+//! made without the feature (`SDL_PROP_GPU_DEVICE_CREATE_FEATURE_DEPTH_CLAMPING_BOOLEAN`
+//! false: the front end's blit pipelines clip too), and the tests'
+//! pipelines clip ([`rasterizer_state`]). Upstream's backend takes any
+//! Metal device there (no GPU family check), the visionOS Simulator's
+//! too, which has no indirect draws or dispatches (Apple1 and Apple2
+//! only): the tests that make them skip on it ([`indirect_arguments`]).
 
 use std::sync::atomic::Ordering;
 
@@ -123,6 +132,7 @@ fn enum_tables() {
         sdl_to_metal_color_write_mask(crate::gpu::ColorComponentFlags::R),
         8
     );
+    #[cfg(not(target_os = "visionos"))]
     assert_eq!(sdl_to_metal_depth_clip_mode(false), 1);
     assert_eq!(
         swapchain_composition_to_format(SwapchainComposition::HdrExtendedLinear),
@@ -196,7 +206,16 @@ impl Drop for Video {
 /// reported) without a Metal device.
 fn front_end_device() -> Option<Device> {
     *crate::gpu::TEST_BACKENDS.lock().unwrap() = Some(vec![&METAL_HEADLESS_TEST_DRIVER]);
-    let device = Device::new(ShaderFormat::MSL, true, Some("metal"));
+    let props = crate::properties::Properties::new();
+    crate::gpu::fill_properties(&props, ShaderFormat::MSL, true, Some("metal")).unwrap();
+    #[cfg(target_os = "visionos")]
+    props
+        .set(
+            crate::gpu::PROP_GPU_DEVICE_CREATE_FEATURE_DEPTH_CLAMPING_BOOLEAN,
+            false,
+        )
+        .unwrap();
+    let device = Device::with_properties(&props);
     *crate::gpu::TEST_BACKENDS.lock().unwrap() = None;
     match device {
         Ok(device) => Some(device),
@@ -205,6 +224,35 @@ fn front_end_device() -> Option<Device> {
             None
         }
     }
+}
+
+/// The tests' pipelines' rasterizer state: the defaults, but clipping on
+/// visionOS (see the module's description).
+fn rasterizer_state() -> crate::gpu::RasterizerState {
+    crate::gpu::RasterizerState {
+        enable_depth_clip: cfg!(target_os = "visionos"),
+        ..Default::default()
+    }
+}
+
+/// Whether the device has indirect draw and dispatch arguments (Apple3 on
+/// visionOS: every device there but the simulator's), else the skip
+/// reported (Metal's validation would end the process).
+fn indirect_arguments(device: &Device) -> bool {
+    // (only visionOS takes devices without checking their family)
+    #[cfg(target_os = "visionos")]
+    // SAFETY: the backend's Metal device.
+    if !unsafe {
+        super::device::supports_family(device_renderer(device).device.get(), MTL_GPU_FAMILY_APPLE3)
+    } {
+        crate::test_support::skip(
+            "metal",
+            "the visionOS Simulator's Metal device has no indirect draws or dispatches (Apple3)",
+        );
+        return false;
+    }
+    let _ = device;
+    true
 }
 
 /// The Metal renderer of a front-end device.
@@ -617,12 +665,31 @@ fn device_formats_and_properties() {
         TextureType::Texture2D,
         U::DEPTH_STENCIL_TARGET
     ));
-    // Cube arrays always, the Apple GPU formats with Apple GPUs.
-    assert!(device.texture_supports_format(
-        TextureFormat::B5G6R5_UNORM,
-        TextureType::CubeArray,
-        sampler
-    ));
+    // Cube arrays always on macOS, else with the Common2 or Apple4
+    // families (not the visionOS Simulator's device), the Apple GPU
+    // formats with Apple GPUs.
+    let has_cube_arrays = cfg!(target_os = "macos") || {
+        // SAFETY: as above.
+        unsafe {
+            let common2: crate::core::apple::objc::Bool = crate::core::apple::objc::msg_send![
+                r.device,
+                supportsFamily: MTL_GPU_FAMILY_COMMON2
+            ];
+            let apple4: crate::core::apple::objc::Bool = crate::core::apple::objc::msg_send![
+                r.device,
+                supportsFamily: MTL_GPU_FAMILY_APPLE4
+            ];
+            common2.is_true() || apple4.is_true()
+        }
+    };
+    assert_eq!(
+        device.texture_supports_format(
+            TextureFormat::B5G6R5_UNORM,
+            TextureType::CubeArray,
+            sampler
+        ),
+        has_cube_arrays
+    );
     assert_eq!(
         device.texture_supports_format(
             TextureFormat::B5G6R5_UNORM,
@@ -648,6 +715,9 @@ fn device_formats_and_properties() {
         (TextureType::Cube, 6),
         (TextureType::CubeArray, 12),
     ] {
+        if texture_type == TextureType::CubeArray && !has_cube_arrays {
+            continue;
+        }
         let props = Properties::new();
         props
             .set(PROP_GPU_TEXTURE_CREATE_NAME_STRING, "a texture")
@@ -676,7 +746,10 @@ fn device_formats_and_properties() {
         );
     }
     // The released textures wait for the next submission or wait.
-    assert_eq!(lock(&r.dispose).texture_containers_to_destroy.len(), 5);
+    assert_eq!(
+        lock(&r.dispose).texture_containers_to_destroy.len(),
+        if has_cube_arrays { 5 } else { 4 }
+    );
     device.wait_for_idle().unwrap();
     assert!(lock(&r.dispose).texture_containers_to_destroy.is_empty());
 
@@ -1101,7 +1174,7 @@ fn position_pipeline(
                 vertex_attributes: &vertex_attributes,
             },
             primitive_type: PrimitiveType::TriangleList,
-            rasterizer_state: Default::default(),
+            rasterizer_state: rasterizer_state(),
             multisample_state: Default::default(),
             depth_stencil_state: Default::default(),
             target_info: GraphicsPipelineTargetInfo {
@@ -1241,6 +1314,9 @@ fn indexed_and_indirect_draws() {
     let Some(device) = front_end_device() else {
         return;
     };
+    if !indirect_arguments(&device) {
+        return;
+    }
     use crate::gpu::BufferUsageFlags as B;
     use TextureUsageFlags as U;
 
@@ -1475,7 +1551,7 @@ fn draw_with_interpolated_colors_as_upstream() {
             fragment_shader: &fragment,
             vertex_input_state: Default::default(),
             primitive_type: PrimitiveType::TriangleList,
-            rasterizer_state: Default::default(),
+            rasterizer_state: rasterizer_state(),
             multisample_state: Default::default(),
             depth_stencil_state: Default::default(),
             target_info: GraphicsPipelineTargetInfo {
@@ -1527,6 +1603,9 @@ fn compute_dispatches_write_storage_buffers_and_textures() {
     let Some(device) = front_end_device() else {
         return;
     };
+    if !indirect_arguments(&device) {
+        return;
+    }
     use crate::gpu::BufferUsageFlags as B;
     use TextureUsageFlags as U;
 
