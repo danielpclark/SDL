@@ -34,11 +34,9 @@
 //!
 //! The expected trace is upstream's C SDL's, from the same program in C
 //! run the same way on the same simulator (an iPhone 16 with iOS 18.5).
-//! Upstream gives every window that asks for no graphics API the OpenGL
-//! flag on UIKit; OpenGL ES isn't translated yet, so here such a window
-//! gets the Metal flag, upstream's next default
-//! (`SDL_DefaultGraphicsBackends()`), and the flags are traced without
-//! either; upstream's window pointer property is a pointer, here a number
+//! A window that asks for no graphics API gets the OpenGL flag on UIKit,
+//! as upstream's (`SDL_DefaultGraphicsBackends()`). Upstream's window
+//! pointer property is a pointer, here a number
 //! (as the other drivers' are), traced as `(pointer)` both ways; the
 //! mice's device events are left out. Elsewhere this program does
 //! nothing.
@@ -87,7 +85,7 @@ application state: 0
 A: create 320x480: ok
 A: created: events: A:WINDOW_SAFE_AREA_CHANGED(0,0), A:WINDOW_MOUSE_ENTER(0,0), A:WINDOW_FOCUS_GAINED(0,0), A:WINDOW_SHOWN(0,0), A:WINDOW_PIXEL_SIZE_CHANGED(393,852)
 A: created: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: created: flags=0x600 safe_area=0,59 393x759 display=1
+A: created: flags=0x602 safe_area=0,59 393x759 display=1
 A: created: fullscreen mode (none)
 A: created: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: created: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -98,7 +96,7 @@ A: another window: events: ?:WINDOW_DESTROYED(0,0)
 A: hide: ok
 A: hidden: events: A:WINDOW_HIDDEN(0,0)
 A: hidden: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: hidden: flags=0x608 safe_area=0,59 393x759 display=1
+A: hidden: flags=0x60a safe_area=0,59 393x759 display=1
 A: hidden: fullscreen mode (none)
 A: hidden: uiwindow: UIWindow frame=0,0 393x852 hidden=yes key=no scene=yes
 A: hidden: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -107,7 +105,7 @@ A: hidden: properties: SDL.window.HDR_enabled=false, SDL.window.HDR_headroom=1, 
 A: show: ok
 A: shown: events: A:WINDOW_SHOWN(0,0)
 A: shown: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: shown: flags=0x600 safe_area=0,59 393x759 display=1
+A: shown: flags=0x602 safe_area=0,59 393x759 display=1
 A: shown: fullscreen mode (none)
 A: shown: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: shown: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -120,7 +118,7 @@ A: title: window=Title A view controller=Title A
 A: borderless: ok
 A: borderless: events: (none)
 A: borderless: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: borderless: flags=0x610 safe_area=0,59 393x759 display=1
+A: borderless: flags=0x612 safe_area=0,59 393x759 display=1
 A: borderless: fullscreen mode (none)
 A: borderless: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: borderless: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -129,7 +127,7 @@ A: borderless: properties: SDL.window.HDR_enabled=false, SDL.window.HDR_headroom
 A: bordered: ok
 A: bordered: events: (none)
 A: bordered: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: bordered: flags=0x600 safe_area=0,59 393x759 display=1
+A: bordered: flags=0x602 safe_area=0,59 393x759 display=1
 A: bordered: fullscreen mode (none)
 A: bordered: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: bordered: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -139,7 +137,7 @@ A: fullscreen: ok
 A: sync: ok
 A: fullscreen: events: A:WINDOW_ENTER_FULLSCREEN(0,0)
 A: fullscreen: pos=0,0 size=393x852 pixels=393x852 density=1 display_scale=1
-A: fullscreen: flags=0x601 safe_area=0,59 393x759 display=1
+A: fullscreen: flags=0x603 safe_area=0,59 393x759 display=1
 A: fullscreen: fullscreen mode (none)
 A: fullscreen: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: fullscreen: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -149,7 +147,7 @@ A: windowed: ok
 A: sync: ok
 A: windowed: events: A:WINDOW_LEAVE_FULLSCREEN(0,0)
 A: windowed: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: windowed: flags=0x600 safe_area=0,59 393x759 display=1
+A: windowed: flags=0x602 safe_area=0,59 393x759 display=1
 A: windowed: fullscreen mode (none)
 A: windowed: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: windowed: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -160,7 +158,7 @@ A: exclusive 852x393: fullscreen: error: Screen orientation does not match displ
 A: exclusive 852x393: sync: ok
 A: exclusive 852x393: events: (none)
 A: exclusive 852x393: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: exclusive 852x393: flags=0x600 safe_area=0,59 393x759 display=1
+A: exclusive 852x393: flags=0x602 safe_area=0,59 393x759 display=1
 A: exclusive 852x393: fullscreen mode 852x393 density=3
 A: exclusive 852x393: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: exclusive 852x393: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -172,7 +170,7 @@ A: exclusive 852x393: sync: ok
 A: exclusive 852x393: unset mode: ok
 A: exclusive 852x393 left: events: (none)
 A: exclusive 852x393 left: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: exclusive 852x393 left: flags=0x600 safe_area=0,59 393x759 display=1
+A: exclusive 852x393 left: flags=0x602 safe_area=0,59 393x759 display=1
 A: exclusive 852x393 left: fullscreen mode (none)
 A: exclusive 852x393 left: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: exclusive 852x393 left: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -184,7 +182,7 @@ A: exclusive 393x852: fullscreen: ok
 A: exclusive 393x852: sync: ok
 A: exclusive 393x852: events: A:WINDOW_ENTER_FULLSCREEN(0,0)
 A: exclusive 393x852: pos=0,0 size=393x852 pixels=393x852 density=1 display_scale=1
-A: exclusive 393x852: flags=0x601 safe_area=0,59 393x759 display=1
+A: exclusive 393x852: flags=0x603 safe_area=0,59 393x759 display=1
 A: exclusive 393x852: fullscreen mode 393x852 density=3
 A: exclusive 393x852: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: exclusive 393x852: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -196,7 +194,7 @@ A: exclusive 393x852: sync: ok
 A: exclusive 393x852: unset mode: ok
 A: exclusive 393x852 left: events: A:WINDOW_LEAVE_FULLSCREEN(0,0)
 A: exclusive 393x852 left: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: exclusive 393x852 left: flags=0x600 safe_area=0,59 393x759 display=1
+A: exclusive 393x852 left: flags=0x602 safe_area=0,59 393x759 display=1
 A: exclusive 393x852 left: fullscreen mode (none)
 A: exclusive 393x852 left: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: exclusive 393x852 left: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -220,7 +218,7 @@ A: orientations hint Sideways: supported=2
 A: orientations hint (unset): supported=2
 A: landscape right (unsupported): events: (none)
 A: landscape right (unsupported): pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: landscape right (unsupported): flags=0x600 safe_area=0,59 393x759 display=1
+A: landscape right (unsupported): flags=0x602 safe_area=0,59 393x759 display=1
 A: landscape right (unsupported): fullscreen mode (none)
 A: landscape right (unsupported): uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: landscape right (unsupported): root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -229,7 +227,7 @@ A: landscape right (unsupported): properties: SDL.window.HDR_enabled=false, SDL.
 A: resize to 100x100: ok
 A: resized: events: (none)
 A: resized: pos=36,186 size=393x852 pixels=393x852 density=1 display_scale=1
-A: resized: flags=0x600 safe_area=0,59 393x759 display=1
+A: resized: flags=0x602 safe_area=0,59 393x759 display=1
 A: resized: fullscreen mode (none)
 A: resized: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 A: resized: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -241,7 +239,7 @@ A: destroyed: events: A:WINDOW_DESTROYED(0,0)
 B: create 640x200 resizable high-density hidden: ok
 B: created: events: B:WINDOW_PIXEL_SIZE_CHANGED(1179,2556), B:WINDOW_DISPLAY_SCALE_CHANGED(0,0)
 B: created: pos=-123,326 size=393x852 pixels=1179x2556 density=3 display_scale=3
-B: created: flags=0x2028 safe_area=0,0 393x852 display=1
+B: created: flags=0x202a safe_area=0,0 393x852 display=1
 B: created: fullscreen mode (none)
 B: created: uiwindow: UIWindow frame=0,0 393x852 hidden=yes key=no scene=yes
 B: created: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -250,7 +248,7 @@ B: created: properties: SDL.window.HDR_enabled=false, SDL.window.HDR_headroom=1,
 B: show: ok
 B: shown: events: B:WINDOW_SAFE_AREA_CHANGED(0,0), B:WINDOW_MOUSE_ENTER(0,0), B:WINDOW_FOCUS_GAINED(0,0), B:WINDOW_SHOWN(0,0)
 B: shown: pos=-123,326 size=393x852 pixels=1179x2556 density=3 display_scale=3
-B: shown: flags=0x2620 safe_area=0,59 393x759 display=1
+B: shown: flags=0x2622 safe_area=0,59 393x759 display=1
 B: shown: fullscreen mode (none)
 B: shown: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 B: shown: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -258,7 +256,7 @@ B: shown: status bar hidden=no home indicator auto hidden=no edges=0 orientation
 B: shown: properties: SDL.window.HDR_enabled=false, SDL.window.HDR_headroom=1, SDL.window.SDR_white_level=1, SDL.window.uikit.metal_view_tag=255, SDL.window.uikit.window=(pointer), sdl2-compat.window.preferred_fullscreen_display=1
 B: landscape right: events: DISPLAY_DESKTOP_MODE_CHANGED(1,852), DISPLAY_CURRENT_MODE_CHANGED(1,852), DISPLAY_ORIENTATION(1,1), B:WINDOW_RESIZED(852,393), B:WINDOW_PIXEL_SIZE_CHANGED(2556,1179), B:WINDOW_SAFE_AREA_CHANGED(0,0)
 B: landscape right: pos=-123,326 size=852x393 pixels=2556x1179 density=3 display_scale=3
-B: landscape right: flags=0x2620 safe_area=59,0 734x372 display=1
+B: landscape right: flags=0x2622 safe_area=59,0 734x372 display=1
 B: landscape right: fullscreen mode (none)
 B: landscape right: uiwindow: UIWindow frame=0,0 852x393 hidden=no key=yes scene=yes
 B: landscape right: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 852x393
@@ -268,7 +266,7 @@ B: fullscreen: ok
 B: sync: ok
 B: fullscreen in landscape: events: B:WINDOW_ENTER_FULLSCREEN(0,0)
 B: fullscreen in landscape: pos=0,0 size=852x393 pixels=2556x1179 density=3 display_scale=3
-B: fullscreen in landscape: flags=0x2621 safe_area=59,0 734x372 display=1
+B: fullscreen in landscape: flags=0x2623 safe_area=59,0 734x372 display=1
 B: fullscreen in landscape: fullscreen mode (none)
 B: fullscreen in landscape: uiwindow: UIWindow frame=0,0 852x393 hidden=no key=yes scene=yes
 B: fullscreen in landscape: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 852x393
@@ -279,7 +277,7 @@ B: sync: ok
 B: windowed in landscape: events: B:WINDOW_LEAVE_FULLSCREEN(0,0)
 B: landscape left: events: DISPLAY_ORIENTATION(1,2)
 B: landscape left: pos=-123,326 size=852x393 pixels=2556x1179 density=3 display_scale=3
-B: landscape left: flags=0x2620 safe_area=59,0 734x372 display=1
+B: landscape left: flags=0x2622 safe_area=59,0 734x372 display=1
 B: landscape left: fullscreen mode (none)
 B: landscape left: uiwindow: UIWindow frame=0,0 852x393 hidden=no key=yes scene=yes
 B: landscape left: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 852x393
@@ -287,7 +285,7 @@ B: landscape left: status bar hidden=no home indicator auto hidden=no edges=0 or
 B: landscape left: properties: SDL.window.HDR_enabled=false, SDL.window.HDR_headroom=1, SDL.window.SDR_white_level=1, SDL.window.uikit.metal_view_tag=255, SDL.window.uikit.window=(pointer), sdl2-compat.window.preferred_fullscreen_display=1
 B: portrait: events: DISPLAY_DESKTOP_MODE_CHANGED(1,393), DISPLAY_CURRENT_MODE_CHANGED(1,393), DISPLAY_ORIENTATION(1,3), B:WINDOW_RESIZED(393,852), B:WINDOW_PIXEL_SIZE_CHANGED(1179,2556), B:WINDOW_SAFE_AREA_CHANGED(0,0)
 B: portrait: pos=-123,326 size=393x852 pixels=1179x2556 density=3 display_scale=3
-B: portrait: flags=0x2620 safe_area=0,59 393x759 display=1
+B: portrait: flags=0x2622 safe_area=0,59 393x759 display=1
 B: portrait: fullscreen mode (none)
 B: portrait: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 B: portrait: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -308,7 +306,7 @@ animation without a window: error: Invalid window
 C: create 200x300 fullscreen: ok
 C: created: events: C:WINDOW_SAFE_AREA_CHANGED(0,0), C:WINDOW_MOUSE_ENTER(0,0), C:WINDOW_FOCUS_GAINED(0,0), C:WINDOW_SHOWN(0,0), C:WINDOW_ENTER_FULLSCREEN(0,0), C:WINDOW_PIXEL_SIZE_CHANGED(393,852)
 C: created: pos=0,0 size=393x852 pixels=393x852 density=1 display_scale=1
-C: created: flags=0x601 safe_area=0,59 393x759 display=1
+C: created: flags=0x603 safe_area=0,59 393x759 display=1
 C: created: fullscreen mode (none)
 C: created: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 C: created: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -318,7 +316,7 @@ C: windowed: ok
 C: sync: ok
 C: windowed: events: C:WINDOW_LEAVE_FULLSCREEN(0,0)
 C: windowed: pos=0,0 size=393x852 pixels=393x852 density=1 display_scale=1
-C: windowed: flags=0x600 safe_area=0,59 393x759 display=1
+C: windowed: flags=0x602 safe_area=0,59 393x759 display=1
 C: windowed: fullscreen mode (none)
 C: windowed: uiwindow: UIWindow frame=0,0 393x852 hidden=no key=yes scene=yes
 C: windowed: root: SDL_uikitviewcontroller view=SDL_uikitview frame=0,0 393x852
@@ -484,8 +482,7 @@ quit
         t(format!("{label}: properties: {}", list(props)));
     }
 
-    /// What SDL and UIKit say about a window (without the OpenGL flag: see
-    /// the module's description).
+    /// What SDL and UIKit say about a window.
     fn window_state(label: &str, w: &Window) {
         let (x, y) = w.position().unwrap_or_default();
         let (ww, wh) = w.size().unwrap_or_default();
@@ -496,8 +493,7 @@ quit
             w.pixel_density().unwrap_or_default(),
             w.display_scale().unwrap_or_default()
         ));
-        let flags =
-            w.flags().unwrap_or_default().0 & !(WindowFlags::OPENGL.0 | WindowFlags::METAL.0);
+        let flags = w.flags().unwrap_or_default().0;
         t(format!(
             "{label}: flags={flags:#x} safe_area={},{} {}x{} display={}",
             safe.x,
