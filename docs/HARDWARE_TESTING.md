@@ -54,6 +54,7 @@ Every skip names one *capability* (the list is `CAPABILITIES` in
 | `coreaudio` | macOS, iOS Simulator | CoreAudio with a default playback and a default recording device (on the simulator, the Mac's audio, through the app's audio session) |
 | `metal` | macOS, iOS Simulator | a Metal device (`MTLCreateSystemDefaultDevice()`): the GPU API's Metal backend, the GPU renderer on it, and the Metal renderer |
 | `gles` | iOS Simulator | OpenGL ES through EAGL (`EAGLContext`, which Apple deprecated; the simulator's renderer is "Apple Software Renderer"), for `uikit_gles`'s contexts and the OpenGL ES 2 renderer on UIKit windows |
+| `gamecontroller` | iOS Simulator | GameController's on-screen virtual controller (`GCVirtualController`, iOS 15), which `uikit_gamepad` connects as a controller |
 | `idb` | iOS Simulator | idb (fb-idb's `idb` client, a Python program, and its `idb_companion`, in `PATH` or `SDL3_IOS_IDB`), through which `tools/ios_run.py` touches the simulator's screen and presses its keyboard's keys, for `uikit_input`'s real taps and swipes, `uikit_keyboard`'s real keys and text and `uikit_messagebox`'s tap on a button (see [below](#ios-simulator)) |
 | `browser` | Emscripten | a browser the program runs in: headless Chrome or Chromium, through `tools/emscripten_run.py` (see [below](#emscripten-browser)) |
 | `webgl` | Emscripten | WebGL contexts in that browser (without a GPU, SwiftShader, which the runner's flags allow): `emscripten_browser.rs`'s probe and `emscripten_gl.rs` |
@@ -961,7 +962,8 @@ offscreen driver has no EGL there, as on macOS (`egl`). The UIKit video
 driver only starts in an app, so the spawned programs use the offscreen
 and dummy drivers there, as elsewhere (and so its message boxes only
 show in an app); its windows' Vulkan views, the OpenGL ES 1 renderer,
-and the iOS halves of MFi and the camera, aren't translated yet.
+the HIDAPI driver's Bluetooth backend and the iOS half of the camera
+aren't translated yet.
 
 CoreAudio runs there as on a device, its audio going to the Mac's
 output and coming from its input (the runner's are a "Speaker" and a
@@ -987,6 +989,35 @@ compares the trace with upstream's C SDL's (the same program in C, on the
 same simulator). Upstream
 leaves the session active, in its category, when the last device closes
 (the closing device still counts as open), which the trace shows too.
+
+The MFi joystick driver sees no controller in a spawned program
+(GameController reports them to an app), and CoreMotion has no
+accelerometer, gyroscope, magnetometer or device motion on the simulator,
+so the sensor list is empty there (the CoreMotion test checks that, and
+what it can of the sensors' names, types and data on a device).
+`uikit_gamepad`, an app, traces against upstream's C (the same program
+in C, on the same simulator): the window's and its view's
+`GCEventInteraction`s for gamepads (set on the window when the gamepads
+start and cleared when they quit, on the view of a window made while they
+run); the simulator's built-in controller ("Gamepad", product category
+MFi, which an app sees whether a controller is connected or not) with its
+name, GUID, vendor and product, types, mapping, axes and buttons, SF
+Symbols names, the unsupported LED, rumble and sensors, and its player
+index, which is the `GCController`'s; a `GCVirtualController` ("Apple
+Touch Controller", capability `gamecontroller`) connected, opened and
+disconnected (the on-screen controller can't be pressed from the program:
+its elements only take values on snapshots); and stand-in controllers,
+`+[GCController controllerWithExtendedGamepad]` and
+`controllerWithMicroGamepad` snapshots posted in-process as connected
+(`GCControllerDidConnectNotification`, a second time for nothing) and
+disconnected, whose elements the program sets: the joystick and gamepad
+events and the gamepad's state as a button, a stick, a trigger, the d-pad
+and the menu button change, and what a gamepad open when its controller
+goes away answers. It also restarts the gamepads with `SDL_JOYSTICK_MFI`
+off, and lists the sensors (none) and opens one (upstream's "Sensor 0 not
+found"). Real controllers' rumble, light, battery and motion, and a
+device's accelerometer and gyroscope, need hardware: none of them can be
+checked on the simulator.
 
 ## CI
 
