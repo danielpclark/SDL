@@ -258,3 +258,11 @@ harness = false
 [[test]]
 name = "uikit_hidapi_ble"
 harness = false
+
+[[test]]
+name = "uikit_camera"
+harness = false
+
+[[test]]
+name = "uikit_camera_denied"
+harness = false
