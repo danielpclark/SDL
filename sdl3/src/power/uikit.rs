@@ -38,8 +38,12 @@ mod battery {
     }
 
     /// Translation of `SDL_UIKit_UpdateBatteryMonitoring()`.
-    // (the UIKit video driver's OpenGL ES swap calls it, once translated)
-    #[cfg_attr(not(test), allow(dead_code))]
+    // (the UIKit video driver's OpenGL ES swap calls it: not on visionOS
+    // or Mac Catalyst, which have no OpenGL ES)
+    #[cfg_attr(
+        all(not(test), any(target_os = "visionos", target_abi = "macabi")),
+        allow(dead_code)
+    )]
     pub(crate) fn update_battery_monitoring() {
         let last = SDL_UIKIT_LAST_POWER_INFO_QUERY.load(Ordering::Relaxed);
         if last != 0 && crate::timer::ticks_ms() >= last + BATTERY_MONITORING_TIMEOUT {
@@ -116,13 +120,15 @@ mod battery {
 }
 
 #[cfg(not(target_os = "tvos"))]
-#[cfg_attr(not(test), allow(unused_imports))]
-// (for the UIKit video driver's OpenGL ES swap, once translated)
+#[cfg_attr(
+    all(not(test), any(target_os = "visionos", target_abi = "macabi")),
+    allow(unused_imports)
+)]
+// (for the UIKit video driver's OpenGL ES swap)
 pub(crate) use battery::update_battery_monitoring;
 
 /// Translation of `SDL_UIKit_UpdateBatteryMonitoring()` (tvOS).
 #[cfg(target_os = "tvos")]
-#[allow(dead_code)] // (the UIKit video driver's OpenGL ES swap calls it, once translated)
 pub(crate) fn update_battery_monitoring() {
     // Do nothing.
 }

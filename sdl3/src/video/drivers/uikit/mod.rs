@@ -13,8 +13,10 @@
 //! the on-screen keyboard), the Apple Pencil ([`pen`]), the game
 //! controllers' keyboards and mice ([`events`]), the clipboard
 //! ([`clipboard`], the general pasteboard's text), message boxes
-//! ([`messagebox`], alert controllers) and Metal views ([`metalview`],
-//! which the Metal renderer and the GPU API's swapchains draw to).
+//! ([`messagebox`], alert controllers), Metal views ([`metalview`],
+//! which the Metal renderer and the GPU API's swapchains draw to) and, on
+//! iOS and tvOS, OpenGL ES contexts ([`opengles`], with their views,
+//! [`openglview`]).
 //!
 //! Upstream writes the driver in Objective-C; its classes
 //! (`SDLUIKitDelegate`, `SDLUIKitSceneDelegate`, `SDLLaunchScreenController`,
@@ -29,7 +31,7 @@
 //! falls through to the next driver, as one on another thread does with
 //! the Cocoa driver.
 //!
-//! Not translated yet: OpenGL ES and Vulkan.
+//! Not translated yet: Vulkan.
 //! `SDL_NSLog()`, which upstream copies here from the Cocoa driver, is
 //! [`crate::log`]'s on every Apple platform.
 
@@ -41,6 +43,15 @@ pub(crate) mod events;
 pub(crate) mod messagebox;
 pub(crate) mod metalview;
 pub(crate) mod modes;
+// OpenGL ES: SDL_VIDEO_OPENGL_ES and SDL_VIDEO_OPENGL_ES2, which upstream's
+// SDL_build_config_ios.h builds on iOS and tvOS, not on visionOS or Mac
+// Catalyst. Note: upstream's CMake build leaves it out on tvOS too
+// (SDL_OPENGLES is off there); this follows the Xcode project's
+// configuration, with OpenGLES.framework linked on both.
+#[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+pub(crate) mod opengles;
+#[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+pub(crate) mod openglview;
 pub(crate) mod pen;
 pub(crate) mod sys;
 pub(crate) mod view;
@@ -548,6 +559,48 @@ impl VideoDriver for UIKitVideo {
 
     fn has_clipboard_text(&self) -> Option<bool> {
         Some(clipboard::has_clipboard_text())
+    }
+
+    // SDL_VIDEO_OPENGL_ES || SDL_VIDEO_OPENGL_ES2 (no GL_UnloadLibrary,
+    // GL_SetSwapInterval or GL_GetSwapInterval)
+
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn implements_gl_contexts(&self) -> bool {
+        true
+    }
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn gl_load_library(&self, path: Option<&str>) -> Option<Result<()>> {
+        Some(opengles::gl_load_library(path))
+    }
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn gl_get_proc_address(
+        &self,
+        proc_name: &str,
+    ) -> Option<Option<std::ptr::NonNull<std::ffi::c_void>>> {
+        Some(opengles::gl_get_proc_address(proc_name))
+    }
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn gl_create_context(
+        &self,
+        window: WindowID,
+    ) -> Option<Result<crate::video::gl::RawGlContext>> {
+        Some(opengles::gl_create_context(window))
+    }
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn gl_make_current(
+        &self,
+        window: Option<WindowID>,
+        context: Option<crate::video::gl::RawGlContext>,
+    ) -> Option<Result<()>> {
+        Some(opengles::gl_make_current(window, context))
+    }
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn gl_swap_window(&self, window: WindowID) -> Option<Result<()>> {
+        Some(opengles::gl_swap_window(window))
+    }
+    #[cfg(all(any(target_os = "ios", target_os = "tvos"), not(target_abi = "macabi")))]
+    fn gl_destroy_context(&self, context: crate::video::gl::RawGlContext) -> Option<Result<()>> {
+        Some(opengles::gl_destroy_context(context))
     }
 
     // SDL_VIDEO_METAL
