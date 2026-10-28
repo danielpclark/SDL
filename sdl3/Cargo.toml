@@ -238,3 +238,7 @@ harness = false
 [[test]]
 name = "uikit_metal"
 harness = false
+
+[[test]]
+name = "uikit_gles"
+harness = false
