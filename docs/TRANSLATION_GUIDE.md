@@ -231,10 +231,32 @@ they are used (there is no build script to make aliases):
   256 on macOS, the simulators and Mac Catalyst, the type's alignment on
   the devices; vsync, which only Mac layers can turn off; the iOS and
   tvOS feature sets' maximum texture size; no EDR on tvOS). visionOS's
-  RealityKit paths are the Swift bridge's and aren't translated. Until
-  OpenGL ES is translated, a UIKit window that asks for no graphics API
-  gets the Metal flag (`SDL_DefaultGraphicsBackends()`'s next choice),
-  where upstream's gets the OpenGL one.
+  RealityKit paths are the Swift bridge's and aren't translated.
+* OpenGL ES (EAGL) is upstream's on iOS and tvOS, not on visionOS or Mac
+  Catalyst: the `cfg` is `all(any(target_os = "ios", target_os =
+  "tvos"), not(target_abi = "macabi"))`, as the Xcode project's
+  `SDL_build_config_ios.h` builds it (`Note`: upstream's CMake build
+  leaves it out on tvOS too). OpenGLES.framework is linked there, as
+  upstream links it. `SDLEAGLContext` is an `EAGLContext` subclass
+  declared at run time whose `sdlView` (strong) is an instance variable
+  released in its `dealloc`, as ARC would; `SDL_uikitopenglview`'s
+  instance variables are a Rust structure the view points to, its
+  `context` a weak reference made with the runtime's `objc_storeWeak()`
+  and `objc_loadWeakRetained()` (what ARC's `weak` compiles to), so a
+  view outliving its context sees nil as upstream's does. The context
+  handle owns the reference `alloc`/`init` gave (`CFBridgingRetain`).
+  `UIKit_GL_GetProcAddress()` is `dlsym(RTLD_DEFAULT, ...)` as upstream;
+  the OpenGL ES 2 renderer looks its functions up through it on UIKit too,
+  where upstream's `__SDL_NOGETPROCADDR__` takes them from the linked
+  library (`Note`: the same functions; a missing one is an error, not a
+  link failure). With OpenGL ES contexts, a UIKit window that asks for
+  no graphics API gets the OpenGL flag, as upstream's
+  (`SDL_DefaultGraphicsBackends()`), and on visionOS and Mac Catalyst the
+  Metal one. The swaps check UIDevice's battery monitoring
+  (`SDL_UIKit_UpdateBatteryMonitoring()`), whose assertion fails on the
+  iOS Simulator three seconds after a power query (`FIXME (upstream)`,
+  in `power/uikit.rs`). The OpenGL ES 1 renderer (`SDL_render_gles.c`),
+  which upstream builds there, isn't translated yet.
 
 ## Testing
 
